@@ -35,33 +35,47 @@ test('леска провисла: без рук и касаясь кнопки 
   }
 });
 
-test('леска провисла: короткий отпуск не наказывается; зона целиком под шкалой дольше 0,7 с — надпись, улов тает; нажал — снова натянута', () => {
+test('леска провисла: короткий отпуск не наказывается; зона легла на дно и 0,7 с без нажатия — надпись, улов не идёт; нажал — снова натянута', () => {
   const r = reelStart(still, 7);
   for (let i = 0; i < 60; i++) reelStep(r, track(r));
   assert.ok(reelPulling(r), 'рыба в зоне — тянет');
-  // отпустил на треть секунды: зона опустилась, но рыба ещё в ней — тянет, надписи нет
+  // нажал (леска натянута) и отпустил на треть секунды: зона опустилась, но рыба ещё в ней — тянет, надписи нет
+  reelStep(r, true);
+  assert.equal(r.rest, 0, 'нажатие сбрасывает счёт');
   for (let i = 0; i < 20; i++) {
     reelStep(r, false);
     assert.ok(!reelSlack(r), `тик ${i}: короткий отпуск — не провисла`);
   }
   assert.ok(reelPulling(r), 'после короткого отпуска всё ещё тянет');
-  // отпустил надолго: зона целиком ушла под шкалу (от дна под шкалой ещё отскакивает) — пролежала там 0,7 с подряд,
-  // и только тогда «леска провисла»
-  let under = -1;
+  // не нажимает дальше: зона легла на дно шкалы и уходит под неё — через 0,7 с без нажатия «леска провисла»
+  let lastUp = -1;
   for (let i = 0; i < 400 && !reelSlack(r); i++) {
+    if (r.z > 0) lastUp = r.t;
     reelStep(r, false);
-    if (r.rest === 1) under = r.t;
-    if (r.rest > 0) assert.ok(r.z + r.zone <= 0, 'считается только время целиком под шкалой');
   }
-  assert.ok(under > 0, 'зона ушла под шкалу');
   assert.ok(reelSlack(r));
-  assert.equal(r.t - under, SLACK_TICKS, 'надпись — ровно через 0,7 с под шкалой подряд');
+  assert.equal(r.rest, SLACK_TICKS + 1, 'надпись — ровно через 0,7 с без нажатия');
+  assert.ok(r.t - lastUp >= SLACK_TICKS, 'считается с того, как зона легла на дно');
   const p = r.p;
   reelStep(r, false);
   assert.ok(r.p < p && !r.perfect && !reelPulling(r), 'провисла — улов тает, «идеально» уже не будет');
   // нажал — леска снова натянута, зона идёт вверх
   reelStep(r, true);
-  assert.ok(!reelSlack(r) && r.rest === 0 && r.zv > 0);
+  assert.ok(!reelSlack(r) && r.rest === 0);
+  for (let i = 0; i < 40 && r.zv <= 0; i++) reelStep(r, true);
+  assert.ok(r.zv > 0, 'держит — зона пошла вверх');
+});
+
+test('леска провисла: без рук надпись видна заранее — через 0,7 с, до срыва у каждого вида', () => {
+  for (const sp of COLLECTION) {
+    const r = reelStart(reelStyleFor(sp, fishCastMods(emptyFishProgress(), 0, RULE[sp]!.zone)), 4242 + sp);
+    let at = -1;
+    while (r.done === 0) {
+      reelStep(r, false);
+      if (at < 0 && reelSlack(r)) at = r.t;
+    }
+    assert.ok(at === SLACK_TICKS + 1 && r.t - at >= 12, `${FISH[sp].id}: надпись на ${at}, срыв на ${r.t}`);
+  }
 });
 
 test('леска провисла: кто держит зону на рыбе у дна — вытаскивает её, как раньше (300 тиков, «идеально»)', () => {
