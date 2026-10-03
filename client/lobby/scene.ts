@@ -331,6 +331,8 @@ export class LobbyScene implements Scene {
     this.world = new LobbyWorld(d.renderer, lobbyQuality(d.settings.quality));
     for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
+    // корпус музыкального автомата твёрдый, только когда сервер с ним (флаг JUKEBOX: приходит «juke»)
+    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
     const col = this.world.collision;
     this.aquaDyn = new AquaDyn(col, this.world.map.aquaMovers);
     const dyn = this.aquaDyn;
@@ -528,6 +530,7 @@ export class LobbyScene implements Scene {
     this.skillStatus = this.boatRaceStatus = this.hideStatus = null;
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
+    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
     for (const circle of this.entryCircles.values()) circle.setVisible(false);
     this.startZone = { kind: null, left: 0 };
     this.stormState = emptyStorm(); this.pirateState = emptyPirates(); this.pirateTail = emptyPirateTail();
@@ -698,6 +701,9 @@ export class LobbyScene implements Scene {
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
         this.onFightSt(msg.fc ?? null);
+        break;
+      case 'juke':
+        for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, true);
         break;
       case 'fortSt':
         this.onFort(msg);
@@ -2231,6 +2237,8 @@ export class LobbyScene implements Scene {
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
+      // музыкальный автомат: клиент — следующим шагом (client/lobby/jukebox.ts)
+      if (it.kind === 'juke') continue;
       // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
       if (it.kind === 'fight') continue;
       if (this.isBusy(it)) {

@@ -28,6 +28,8 @@ test('сохранение до нового меню: прежние значе
     ...old,
     sfxVolume: 1,
     ambVolume: 1,
+    musicVolume: 0.8,
+    uiVolume: 1,
     invertY: false,
     keyHints: true,
     uiScale: 1,

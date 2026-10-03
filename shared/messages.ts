@@ -21,6 +21,7 @@ import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
+import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
@@ -162,6 +163,7 @@ export interface DurakTableView {
 export type ClientMsg =
   | GiftClientMsg
   | LoadClientMsg
+  | JukeClientMsg
   | VoiceClientMsg
   | HideClientMsg
   | RegattaClientMsg
@@ -379,6 +381,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 export type ServerMsg =
   | GiftServerMsg
   | LoadServerMsg
+  | JukeServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | RegattaServerMsg

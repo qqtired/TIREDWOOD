@@ -17,6 +17,7 @@ import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
 import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
+import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
@@ -60,7 +61,9 @@ const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 const fish2 = fish2Enabled(process.env.FISH2);
 // Лаборатория идей /lab (страница + решения владельца в DATA_DIR/lab.json, ключ — DATA_DIR/lab-key): LAB=1 включает, LAB=0 выключает
 const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
+// Музыкальный автомат на площади: JUKEBOX=1 — включить, JUKEBOX=0 — выключить, без переменной — только с --dev
+const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce, jukebox,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
 // /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
@@ -75,6 +78,7 @@ if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
+if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
 /** Токен для проверки после выкладки (deploy/smoke.ts): создаётся один раз, файл только для владельца. */

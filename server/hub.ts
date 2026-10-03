@@ -132,6 +132,8 @@ export interface HubOptions {
   devPirates?: boolean;
   /** Рыбалка 2.0: шкала вываживания, коллекция, доска у мостков — флаг сервера FISH2; нет — старая рыбалка */
   fish2?: boolean;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
+  jukebox?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }

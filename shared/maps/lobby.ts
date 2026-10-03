@@ -6,6 +6,7 @@ import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSte
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { FC_CIRCLE } from '../fight.ts';
+import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import { FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE } from '../fishplaces.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
@@ -13,7 +14,7 @@ import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke';
 
 export interface Interactable {
   id: number;
@@ -76,6 +77,8 @@ export interface LobbyMap extends GameMap {
   /** NPC, доска и пьедестал видны только с FISH2: при выключенном режиме эти коллизии тоже выключают. */
   fishPropsBoxes: number[];
   skillPortalBoxes: number[];
+  /** Корпус музыкального автомата (флаг сервера JUKEBOX): без флага коллизию выключают */
+  jukeBoxes: number[];
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -340,6 +343,8 @@ export function buildLobby(): LobbyMap {
   add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
   add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Портовая регата');
   add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
+  // Музыкальный автомат (shared/jukebox.ts): E перед лицевой стороной — выбрать песню
+  add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат');
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'wood', 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
@@ -365,6 +370,9 @@ export function buildLobby(): LobbyMap {
   b.box([SKILL_PORTAL.x - 1.68, 2.9, SKILL_PORTAL.z - .18], [SKILL_PORTAL.x + 1.68, 3.35, SKILL_PORTAL.z + .18], 'invisible', 0);
   // Песчаная отмель у мостков к маяку рисуется в LobbyCritters; здесь только твёрдая ровная часть (можно спрыгнуть и вернуться).
   if (CRITTERS_ENABLED) for (const s of coveBoxes()) b.box([s.x0, -1.8, s.z0], [s.x1, s.top, s.z1], 'invisible', 0);
+  // Корпус музыкального автомата — твёрдый (рисует клиент, client/lobby/jukebox3d.ts); без флага JUKEBOX его выключают
+  const jukeBoxes = [b.boxes.length];
+  b.box([JUKEBOX.x - JUKE_W / 2, 0, JUKEBOX.z - JUKE_D / 2], [JUKEBOX.x + JUKE_W / 2, JUKE_H, JUKEBOX.z + JUKE_D / 2], 'invisible', 0);
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
@@ -408,5 +416,6 @@ export function buildLobby(): LobbyMap {
     aquaMovers,
     fishPropsBoxes,
     skillPortalBoxes,
+    jukeBoxes,
   };
 }
