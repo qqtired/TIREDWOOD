@@ -43,6 +43,14 @@ const RULES = [
   'Банк получает только первый вышедший, если он поставил. Если первым вышел бесплатный игрок или бот, либо ничья — ставки возвращаются. Бесплатная игра не даёт жетонов или опыта.',
 ];
 
+/** Положение карты в атласе (CSS background-position) */
+function atlasPos(c: number): string {
+  const A = CARD_ATLAS;
+  const bx = ((c % A.cols) / (A.cols - 1)) * 100;
+  const by = (Math.floor(c / A.cols) / (A.rows - 1)) * 100;
+  return `${bx.toFixed(3)}% ${by.toFixed(3)}%`;
+}
+
 /** Карта текстом: «Д♥» с цветом масти (︎ — чтобы масть не стала цветным эмодзи). */
 function cardText(c: number): string {
   const s = suitOf(c);
@@ -205,6 +213,20 @@ export class DurakHud {
     }
   }
 
+  /** Клавиши: T — «Беру», B — «Бито» / «Пас». Не обработано — false. */
+  onKey(code: string): boolean {
+    if (this.table < 0 || this.confirmOpen || !this.g || this.me < 0 || this.v?.phase !== 'play') return false;
+    if (code === 'KeyT' && canTake(this.g, this.me)) {
+      this.onAct('take');
+      return true;
+    }
+    if (code === 'KeyB' && canPass(this.g, this.me)) {
+      this.onAct('pass');
+      return true;
+    }
+    return false;
+  }
+
   /** Реакция (клавиши 1–4). */
   react(k: number): void {
     const now = performance.now();
@@ -326,11 +348,14 @@ export class DurakHud {
     const gv = v.game;
     let title = `Стол ${this.table + 1} · ${MODE_NAMES[v.mode]}`;
     if (v.bank) title += ` · банк ${v.bank} 🪙`;
-    if (gv) {
-      const trump = gv.deck > 0 ? cardText(gv.trump) : suitText(suitOf(gv.trump));
-      title += ` · козырь ${trump} · колода ${gv.deck} · бито ${gv.discard}`;
-    }
     let html = `<div class="dk-title">${title}</div>`;
+    if (gv) {
+      // козырь — настоящей картой, под ней колода и бито числами
+      const trump = gv.deck > 0
+        ? `<i class="dk-tcard" style="background-position:${atlasPos(gv.trump)}" title="козырь"></i>`
+        : suitText(suitOf(gv.trump));
+      html = `<div class="dk-head">${html}<div class="dk-deck">козырь ${trump}<span>колода <b>${gv.deck}</b></span><span>бито <b>${gv.discard}</b></span></div></div>`;
+    }
     if (!gv) return html;
     const wait = new Set(awaited(gv));
     const chips: string[] = [];
@@ -383,12 +408,15 @@ export class DurakHud {
     else if (occupied < 2) status = 'Нужно хотя бы двое: позови друга или добавь бота';
     else status = this.resultSummary ? 'Каждый игрок подтверждает повтор отдельно' : 'Ждём, пока все нажмут «Готов»';
     const rules = this.rulesOpen ? `<ul class="dk-rules">${RULES.map((r) => `<li>${r}</li>`).join('')}</ul>` : '';
+    // две колонки: слева — режим и места, справа — ставка, «Готов» и боты; стол за панелью остаётся виден
     return (
+      `<div class="dk-lcol">` +
       `<div class="dk-lt">Дурак · стол ${this.table + 1}</div>` +
       (this.resultSummary ? `<div class="dk-note">${this.resultSummary}</div>` : '') +
       `<div class="dk-modes">${modes}</div>` +
       (note ? `<div class="dk-note">${note}</div>` : '') +
       `<div class="dk-seats">${seats}</div>` +
+      `</div><div class="dk-lcol">` +
       this.stakeHtml(true) +
       `<div class="dk-lbtns">` +
       (this.resultSummary ? '' : `<button class="dk-btn big${ready ? ' on' : ''}" data-a="ready">${ready ? 'Готов ✓' : mine?.stake ? `Готов · ставка ${v.ante ?? 10}` : 'Готов · бесплатно'}</button>`) +
@@ -397,6 +425,7 @@ export class DurakHud {
       `<button class="dk-btn ghost${this.rulesOpen ? ' on' : ''}" data-a="rules">Правила</button>` +
       `</div>` +
       `<div class="dk-status">${status}</div>` +
+      `</div>` +
       rules
     );
   }
@@ -457,14 +486,19 @@ export class DurakHud {
       else if (w === 'defend') say = `Ждём: ${nick(gv.defender)}`;
       else say = 'Ждём, подкинут ли ещё';
     }
-    const sayHtml = `<div class="dk-say">${say}${timer ? ' <span class="dk-time" data-timer></span>' : ''}</div>`;
+    // ход за мной — подсказка светится, чтобы не пропустить
+    const mineTurn = !!g && me >= 0 && v.phase === 'play' && timer && !gv.out.includes(me) && (
+      (gv.waiting === 'lead' && gv.attacker === me) || (gv.waiting === 'defend' && gv.defender === me) ||
+      ((gv.waiting === 'throw' || gv.waiting === 'take') && canPass(g, me))
+    );
+    const sayHtml = `<div class="dk-say${mineTurn ? ' me' : ''}">${say}${timer ? ' <span class="dk-time" data-timer></span>' : ''}</div>`;
     if (me < 0 || !g || v.phase !== 'play') return sayHtml;
 
     const btns: string[] = [];
-    if (canTake(g, me)) btns.push(`<button class="dk-btn warn" data-a="take">Беру</button>`);
+    if (canTake(g, me)) btns.push(`<button class="dk-btn warn" data-a="take">Беру<kbd>T</kbd></button>`);
     const tr = this.cards.filter((c) => canTransfer(g, me, c));
     if (tr.length) btns.push(`<button class="dk-btn" data-a="transfer-best">Перевести</button>`);
-    if (canPass(g, me)) btns.push(`<button class="dk-btn ok" data-a="pass">${!gv.taking && me === gv.attacker ? 'Бито' : 'Пас'}</button>`);
+    if (canPass(g, me)) btns.push(`<button class="dk-btn ok" data-a="pass">${!gv.taking && me === gv.attacker ? 'Бито' : 'Пас'}<kbd>B</kbd></button>`);
 
     const ts = suitOf(gv.trump);
     const key = (c: number): number => (suitOf(c) === ts ? 4 : SUIT_ORDER.indexOf(suitOf(c))) * 9 + rankOf(c);
@@ -474,17 +508,18 @@ export class DurakHud {
     const cardPx = small ? CARD_SMALL_PX : CARD_PX;
     const handMax = Math.min(HAND_MAX_PX, window.innerWidth - 16 - (window.innerHeight <= SMALL_H ? SAY_COL_PX : 0));
     const step = n > 1 ? Math.min(cardPx + 4, (handMax - cardPx) / (n - 1)) : 0;
-    const A = CARD_ATLAS;
     const cardsHtml = hand.map((c, i) => {
       const ok = this.moves.has(c);
       const cls = ['dk-card', ok ? 'ok' : 'dim'];
       if (c === this.pending) cls.push('pending');
       if (c === this.menuCard) cls.push('sel');
       if (suitOf(c) === ts) cls.push('trump');
-      const bx = ((c % A.cols) / (A.cols - 1)) * 100;
-      const by = (Math.floor(c / A.cols) / (A.rows - 1)) * 100;
       const ml = i === 0 ? 0 : step - cardPx;
-      return `<button class="${cls.join(' ')}" data-card="${c}" style="background-position:${bx.toFixed(3)}% ${by.toFixed(3)}%;margin-left:${ml.toFixed(1)}px;z-index:${i + 1}"></button>`;
+      // веер: крайние карты чуть наклонены и опущены
+      const off = i - (n - 1) / 2;
+      const rot = off * Math.min(2.6, 30 / Math.max(n, 1));
+      const drop = off * off * Math.min(1.1, 14 / Math.max(n, 1));
+      return `<button class="${cls.join(' ')}" data-card="${c}" style="background-position:${atlasPos(c)};margin-left:${ml.toFixed(1)}px;z-index:${i + 1};--r:${rot.toFixed(2)}deg;--y:${drop.toFixed(1)}px"></button>`;
     }).join('');
     let menu = '';
     if (this.menuCard >= 0) {

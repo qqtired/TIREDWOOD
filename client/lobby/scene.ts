@@ -1429,6 +1429,7 @@ export class LobbyScene implements Scene {
       if (MOVE_KEYS.has(code) && !this.bjHud.locked) this.leaveTable(false);
       return false;
     }
+    if (this.dkHud.onKey(code)) return true;
     const k = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(code);
     if (k >= 0) {
       this.dkHud.react(k);
