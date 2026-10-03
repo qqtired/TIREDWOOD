@@ -14,8 +14,13 @@ const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 
 
 /** Сколько раз возвращается ставка при выигрыше (вместе со ставкой) */
 export const ROULETTE_PAYOUT: Readonly<Record<RouletteColor, number>> = { red: 2, black: 2, green: 36 };
-/** Потолок одной выплаты, жетонов. Владелец просил «фул по правилам» — потолка нет; ограничить — одной строкой. */
-export const ROULETTE_MAX_PAYOUT = Number.POSITIVE_INFINITY;
+/**
+ * Потолок одной выплаты, жетонов. Временная цифра — окончательную согласует владелец (меняется одной строкой).
+ * 10 000 — это ~8–9 ч рыбалки у пристани или 10 бубнов. Красное и чёрное упираются в потолок только при улове дороже
+ * 5 000, зеро — дороже 277. Полный рюкзак (20 мест, модель): пристань 170–280 — честные ×36; баркас с ур. 5 — 300–360,
+ * в дождь 480–570 — зеро там упирается в потолок (на деле ×17–33).
+ */
+export const ROULETTE_MAX_PAYOUT = 10_000;
 /** Приём ставок после первой, мс; вращение колеса, мс */
 export const ROULETTE_OPEN_MS = 10_000;
 export const ROULETTE_SPIN_MS = 7_000;
@@ -31,10 +36,15 @@ export function rouletteChance(c: RouletteColor): number {
   return c === 'green' ? 1 / 37 : 18 / 37;
 }
 
+/** Сколько принесёт ставка stake на цвет c, если цвет выпадет (с потолком ROULETTE_MAX_PAYOUT) */
+export function rouletteWin(stake: number, c: RouletteColor): number {
+  return Math.min(ROULETTE_MAX_PAYOUT, stake * ROULETTE_PAYOUT[c]);
+}
+
 /** Выплата за ставку stake на цвет c, если выпало n: 0 — проиграл */
 export function roulettePayout(stake: number, c: RouletteColor, n: number): number {
   if (!Number.isSafeInteger(stake) || stake <= 0 || rouletteColor(n) !== c) return 0;
-  return Math.min(ROULETTE_MAX_PAYOUT, stake * ROULETTE_PAYOUT[c]);
+  return rouletteWin(stake, c);
 }
 
 export function isRouletteColor(v: unknown): v is RouletteColor {
