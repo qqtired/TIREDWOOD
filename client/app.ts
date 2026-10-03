@@ -9,6 +9,7 @@ import { emptyFishProgress } from '../shared/fishprogress.ts';
 import { CLOSE_SILENCE, type ClientMsg, type ErrorCode, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import type { RaceTrackId } from '../shared/racecourse.ts';
+import { RACE_TRACKS } from '../shared/racecourse.ts';
 import { Sound } from './audio.ts';
 import { Chat } from './chat.ts';
 import { BoatRaceScene } from './boatrace/scene.ts';
@@ -33,6 +34,7 @@ import { OnlineList } from './ui/online.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
 import { TokensHud } from './ui/tokens.ts';
+import { Transition } from './ui/transition.ts';
 import { VoiceController } from './voice.ts';
 import { VoiceUi } from './ui/voice.ts';
 import './ui/voice.css';
@@ -128,6 +130,8 @@ export class App {
   private readonly reconnectEl: HTMLElement;
   private readonly replacedEl: HTMLElement;
   private readonly fadeEl: HTMLElement;
+  /** Плавный переход между комнатами: экран загрузки, прогрев, «готов» серверу (ui/transition.ts) */
+  private readonly transition: Transition;
   private readonly helloNick: HTMLElement;
   private readonly nameInput: HTMLInputElement;
   private readonly codeInput: HTMLInputElement;
@@ -279,6 +283,12 @@ export class App {
       </div>`;
     this.fadeEl = h('div', 'fade');
     menus.append(this.fadeEl, this.joinEl, this.pauseEl, this.lostEl, this.reconnectEl, this.replacedEl);
+    this.transition = new Transition({
+      renderer: this.renderer, active: () => this.active, send: (m) => this.net.send(m), nick: () => this.me.nick, sound: this.sound,
+      build: (kind, epoch) => { this.net.epoch = epoch; this.switchScene(kind, true); return this.active!; },
+      detail: (kind) => (kind === 'race' ? RACE_TRACKS.find((t) => t.id === this.raceTrack)?.name ?? null : null),
+      blockedChanged: () => this.updateBlocked(), freePointer: () => this.input.unlock(),
+    }, this.fadeEl);
 
     this.helloNick = this.joinEl.querySelector('.hello-nick')!;
     this.nameInput = this.joinEl.querySelector('.name')!;
@@ -335,7 +345,7 @@ export class App {
       if (this.hello) this.net.send(this.hello);
     };
     this.net.onJson = (m) => this.onJson(m);
-    this.net.onBinary = (buf, at) => this.active?.onSnapshot(buf, at);
+    this.net.onBinary = (buf, at) => this.transition.snapshot(buf, at);
     this.net.onClose = (code, reason) => this.onClose(code, reason);
     // ошибки браузера — серверу, но только из игры (до входа ждут в очереди)
     errorReport.scene = () => this.active?.kind ?? this.screen;
@@ -389,7 +399,7 @@ export class App {
         input: this.input,
         send: (m: ClientMsg) => this.net.send(m),
         voice: () => this.voice?.debug() ?? null,
-        state: () => ({ screen: this.screen, scene: this.active?.kind ?? null, paused: this.paused, nick: this.me.nick, tokens: this.me.tokens, epoch: this.net.epoch, ...this.active?.debugState() }),
+        state: () => ({ screen: this.screen, scene: this.active?.kind ?? null, paused: this.paused, nick: this.me.nick, tokens: this.me.tokens, epoch: this.net.epoch, transition: this.transition.debugState(), ...this.active?.debugState() }),
         look: (yaw: number, pitch: number) => {
           this.input.yaw = yaw;
           this.input.pitch = pitch;
@@ -554,8 +564,21 @@ export class App {
         }
         return;
       case 'scene':
-        this.net.epoch = m.epoch;
-        this.switchScene(m.scene);
+        if (this.screen === 'game' && this.active) {
+          // в игре — плавно, через экран загрузки; голос сбрасываем сразу: его новое состояние придёт следом
+          setVoicePresence([]);
+          this.voice?.roomChanged();
+          this.transition.begin(m.scene, m.epoch);
+        } else {
+          // вход и переподключение — сразу (их закрывает свой экран)
+          this.net.epoch = m.epoch;
+          this.switchScene(m.scene);
+          this.transition.instant(m.epoch);
+        }
+        return;
+      case 'load':
+      case 'go':
+        this.transition.onJson(m);
         return;
       case 'lobby':
         this.raceTrack = m.kart.track ?? 'port';
@@ -570,7 +593,7 @@ export class App {
         this.raceTrack = track;
         // Приветствие сервера — источник выбранной трассы, в том числе после переподключения.
         if (this.active?.kind === 'race' && this.race?.trackId !== track) this.switchScene('race');
-        this.active?.onJson(m);
+        this.transition.toScene(m);
         return;
       }
       case 'code':
@@ -591,7 +614,7 @@ export class App {
         this.chat.add(m, this.me.pid, this.active?.kind ?? 'lobby');
         if (!m.sys && m.pid !== this.me.pid) this.sound.chat();
         // облачка над головой — дело сцены
-        this.active?.onJson(m);
+        this.transition.toScene(m);
         return;
       case 'chatlog':
         this.chat.clear();
@@ -601,7 +624,7 @@ export class App {
         this.online.set(m.list, this.me.nick);
         return;
       default:
-        this.active?.onJson(m);
+        this.transition.toScene(m);
     }
   }
 
@@ -731,9 +754,12 @@ export class App {
 
   // ------------------------------------------------------------ сцены
 
-  private switchScene(kind: RoomKind): void {
-    setVoicePresence([]);
-    this.voice?.roomChanged();
+  /** quiet — из плавного перехода: голос уже сброшен при письме `scene`, затемнение — у перехода */
+  private switchScene(kind: RoomKind, quiet = false): void {
+    if (!quiet) {
+      setVoicePresence([]);
+      this.voice?.roomChanged();
+    }
     const next = kind === 'boatrace' ? (this.boatRace ??= this.makeBoatRace()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
@@ -743,7 +769,7 @@ export class App {
     this.lobby.setMenuOpen(kind === 'lobby' && this.paused);
     this.renderer.refreshShadows();
     this.online.show(false);
-    this.flashFade();
+    if (!quiet) this.flashFade();
     if (this.screen !== 'game') this.enterGame();
     else if (this.paused) this.refreshPause();
   }
@@ -822,6 +848,7 @@ export class App {
 
   /** Уходим из игры (меню, обрыв, ошибка): сцену — прочь, интерфейс — спрятать. */
   private leaveGame(): void {
+    this.transition.cancel();
     setVoicePresence([]);
     this.syncFishingUi(false);
     this.voice?.disconnected();
@@ -861,6 +888,8 @@ export class App {
       this.toggleSound();
       return;
     }
+    // экран загрузки: клавиши сцене не отдаём (во время затемнения они ушли бы уже в новую комнату)
+    if (this.transition.busy) return;
     if (this.active.onKey(code, down, e)) return;
     if (code === 'Tab') {
       e.preventDefault();
@@ -963,7 +992,7 @@ export class App {
   }
 
   private updateBlocked(): void {
-    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen;
+    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.transition.busy;
     this.syncVoiceVisibility();
   }
 
@@ -1282,7 +1311,7 @@ export class App {
     if (this.screen === 'reconnecting') this.tickReconnect(now);
     if (this.screen === 'game' && this.active) {
       this.renderer.beginFrame(this.settings.showStats);
-      try { this.active.frame(now, dt); }
+      try { if (!this.transition.frame(now, dt)) this.active.frame(now, dt); }
       finally { this.renderer.endFrame(); }
       this.watchPointer(now);
       const mode = this.active.touchMode;
