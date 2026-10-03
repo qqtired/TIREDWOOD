@@ -159,37 +159,47 @@ test('catching the last hider ends the round for the hunters with a team bonus a
   assert.ok(hr.reward > 0 && hr.reward <= 30);
 });
 
-test('forced taunts: first in 10–30 s, then every 30 s, every 10 s in the final; own taunt pays by distance and caps at 75', () => {
+test('forced taunt is a silent wiggle: first in 10–30 s, then every 30 s', () => {
   const { game, ps, events } = hideSetup(2);
   toSeek(game);
   const prop = ps.find(p => p.role === 'prop')!, hunter = ps.find(p => p.role === 'hunter')!;
   const first = prop.tauntAt - game.tick;
   assert.ok(first >= TAUNT.firstMin - 1 && first <= TAUNT.firstMax, `first taunt in ${first} ticks`);
-  const count = () => events(hunter.pid).filter(e => e.k === 'taunt').length;
-  steps(game, first + 1); assert.equal(count(), 1);
-  steps(game, TAUNT.every); assert.equal(count(), 2);
-  // своя насмешка: чем ближе к ищущему, тем дороже; откат 8 с; не больше 75 за раунд
+  const wiggles = () => events(hunter.pid).filter(e => e.k === 'wiggle').length;
+  steps(game, first + 1); assert.equal(wiggles(), 1);
+  assert.ok(events(hunter.pid).some(e => e.k === 'wiggle' && e.id === prop.prop), 'the hider\'s own item trembles');
+  steps(game, TAUNT.every); assert.equal(wiggles(), 2);
+  assert.equal(events(hunter.pid).filter(e => e.k === 'taunt').length, 0, 'no sound and no notes');
+});
+
+test('own taunt (Z): quiet sound + wiggle, pays by distance, 15 s cooldown, caps at 75; no hint in the feed', () => {
+  const { game, ps, events } = hideSetup(2);
+  toSeek(game);
+  const prop = ps.find(p => p.role === 'prop')!, hunter = ps.find(p => p.role === 'hunter')!;
+  const sounds = () => events(hunter.pid).filter(e => e.k === 'taunt').length;
+  const wiggles = () => events(hunter.pid).filter(e => e.k === 'wiggle' && e.id === prop.prop).length;
   const tauntAt = (dx: number) => { Object.assign(prop.state, { x: hunter.state.x + dx, z: hunter.state.z }); game.action(prop, { t: 'hide', a: 'taunt' }); return prop.tauntPts; };
   const before = prop.pts;
   assert.equal(tauntAt(4), 25); assert.equal(prop.pts - before, 25);
-  assert.equal(count(), 3, 'own taunt sounds too');
-  assert.ok(events(hunter.pid).some(e => e.k === 'feed' && e.text.includes('Наглая насмешка')));
-  steps(game, 10); assert.equal(tauntAt(4), 25, 'cooldown 8 s');
-  steps(game, TAUNT.cd); assert.equal(tauntAt(9), 40);
+  assert.equal(sounds(), 1); assert.equal(wiggles(), 1);
+  assert.ok(!events(hunter.pid).some(e => e.k === 'feed' && /насмешк/i.test(e.text)), 'the feed gives the hunter no hint');
+  steps(game, TAUNT.cd - 10); assert.equal(tauntAt(4), 25, 'cooldown 15 s'); assert.equal(sounds(), 1);
+  steps(game, 10); assert.equal(tauntAt(9), 40);
   steps(game, TAUNT.cd); assert.equal(tauntAt(30), 45);
-  steps(game, TAUNT.cd); assert.equal(tauntAt(3), 70);
+  prop.tauntPts = 70;
   steps(game, TAUNT.cd); assert.equal(tauntAt(3), TAUNT.cap);
   steps(game, TAUNT.cd); assert.equal(tauntAt(3), TAUNT.cap);
-  assert.equal(count(), 8, 'capped taunts still sound');
+  assert.equal(sounds(), 5, 'capped taunts still sound');
+  assert.equal(game.phase, 'seek');
   // своя насмешка отодвигает обязательную
   assert.equal(prop.tauntAt, game.tick + TAUNT.every);
 });
 
-test('final 30 s: forced taunts every 10 s, a single «final» signal for everyone', () => {
+test('final 30 s: forced wiggles every 10 s, a single «final» signal for everyone', () => {
   const { game, ps, events } = hideSetup(2);
   toSeek(game);
   const hunter = ps.find(p => p.role === 'hunter')!;
-  const count = () => events(hunter.pid).filter(e => e.k === 'taunt').length;
+  const count = () => events(hunter.pid).filter(e => e.k === 'wiggle').length;
   steps(game, game.phaseEnd - game.tick - HIDE_FINAL_TICKS + 1);
   assert.equal(events(hunter.pid).filter(e => e.k === 'final').length, 1);
   const at = count(); steps(game, HIDE_FINAL_TICKS - 2);
@@ -207,7 +217,8 @@ test('time out: survivors win, AFK hunter cancels rewards, three rounds then pod
   steps(game, HIDE_SEEK_TICKS);
   assert.equal(game.phase, 'result'); assert.equal(game.result?.winner, 'props');
   const survivors = ps.filter(p => p.role === 'prop');
-  for (const p of survivors) { assert.equal(p.survivedEnd, true); assert.ok(p.pts >= PTS.survive + 140); }
+  // +1 за секунду поиска и +40 за то, что дожил
+  for (const p of survivors) { assert.equal(p.survivedEnd, true); assert.ok(p.pts >= PTS.survive + HIDE_SEEK_TICKS / 60 - 10, `${p.pts} points`); }
   assert.ok(game.result!.lines.some(l => l.startsWith('🏆')));
   assert.equal(results.length, 3);
   // раунд 2: ищущий ничего не делает — без наград

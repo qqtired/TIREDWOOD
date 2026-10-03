@@ -10,6 +10,8 @@ export interface PropView { id: number; kind: HideKind; x: number; y: number; z:
 
 export const PAINT_COLOR = 0xff3d9a;
 const BLOBS = 3 * 12;
+/** Дрожь насмешки: длительность, с, и наклон, рад (~1,7°) */
+const WIGGLE_S = 0.4, WIGGLE_AMP = 0.03;
 
 interface Spot { p: THREE.Vector3; n: THREE.Vector3 }
 
@@ -28,6 +30,8 @@ export class HideProps {
   private readonly s = new THREE.Vector3(1, 1, 1);
   private readonly zAxis = new THREE.Vector3(0, 0, 1);
   private sig = NaN;
+  /** Лёгкая дрожь предмета (насмешка): id → время начала, с */
+  private readonly shakes = new Map<number, number>();
   /** Где сейчас нарисован предмет id (для эффектов попадания) */
   readonly where = new Map<number, PropView>();
 
@@ -85,8 +89,12 @@ export class HideProps {
    * Кадр: расставить все предметы. target — id, на который смотрит свой прячущийся (подсветка), 0 — нет.
    * Возвращает true, если что-то сдвинулось — тогда тени надо пересчитать в этом же кадре.
    */
+  /** Предмет id чуть вздрагивает ~0,4 с: наклон на 1–2°, без звука — заметно, только если смотришь прямо на него */
+  wiggle(id: number, t: number): void { this.shakes.set(id, t); }
+
   update(list: readonly PropView[], t: number, target: number): boolean {
     for (const k of HIDE_KINDS) this.used.set(k, 0);
+    for (const [id, t0] of this.shakes) if (t - t0 > WIGGLE_S || t < t0 - 1) this.shakes.delete(id);
     let sig = list.length, blobs = 0;
     this.where.clear();
     this.outline.visible = false;
@@ -101,12 +109,18 @@ export class HideProps {
       const ph = t * 13 + b.id * 1.7;
       const hop = go > 0.05 ? Math.abs(Math.sin(ph)) * 0.05 * go : 0;
       const tilt = go > 0.05 ? Math.sin(ph) * 0.08 * go : 0;
-      this.e.set(0, b.yaw, tilt);
+      let wx = 0, wz = 0;
+      const w0 = this.shakes.get(b.id);
+      if (w0 !== undefined && t >= w0) {
+        const s = t - w0, env = Math.sin(Math.PI * Math.min(1, s / WIGGLE_S)) * WIGGLE_AMP;
+        wx = Math.sin(s * 97) * env; wz = Math.sin(s * 131 + 1) * env;
+      }
+      this.e.set(wx, b.yaw, tilt + wz);
       this.q.setFromEuler(this.e);
       this.v.set(b.x, b.y + hop, b.z);
       this.m.compose(this.v, this.q, this.s);
       mesh.setMatrixAt(i, this.m);
-      sig += b.x * 3.1 + b.y * 7.7 + b.z * 1.3 + b.yaw * 0.37 + hop * 11 + tilt * 5 + i * 0.001;
+      sig += b.x * 3.1 + b.y * 7.7 + b.z * 1.3 + b.yaw * 0.37 + hop * 11 + tilt * 5 + wx * 13 + wz * 17 + i * 0.001;
       if (b.stains > 0 && blobs < BLOBS) {
         const spots = this.spotsOf(b.kind), size = HIDE_KIND[b.kind].size;
         for (let k = 0; k < Math.min(3, b.stains) && blobs < BLOBS; k++) {
@@ -144,6 +158,7 @@ export class HideProps {
     this.blobs.count = 0;
     this.outline.visible = false;
     this.where.clear();
+    this.shakes.clear();
     this.sig = NaN;
   }
 }
