@@ -78,6 +78,7 @@ export function coveBoxes(): Array<{ x0: number; x1: number; z0: number; z1: num
       if (solid) {
         if (!run) run = { x0: x, x1: x + step, top: low };
         else { run.x1 = x + step; run.top = Math.min(run.top, low); }
+        if (run && run.x1 - run.x0 > 1.05) flush();       // short pieces: each follows the local sand height
       } else flush();
     }
     flush();
@@ -119,8 +120,8 @@ export const CRITTERS: readonly CritterDef[] = [
     stop(-19.5, 30.7, 'peck', 9, 'fishing-pier', 0, 'fly'), stop(-18.7, 31.3, 'peck', 14, 'fishing-pier'), fly(stop(-20.1, 33.2, 'perch', 14, 'fishing-pier'), [-3.4, 0.2], 2.4),
   ].map((s, i) => (i === 0 ? fly(s, [-3.6, -0.2], 2.4) : s)) },
   { id: 8, kind: 'gull', coat: 0, speed: 0.62, phase: 51, stops: [
-    stop(-22.6, 39.3, 'peck', 15, 'lighthouse-apron', 0, 'fly'), stop(-22.1, 40, 'peck', 10, 'lighthouse-apron'), fly(stop(-21.3, 39.3, 'perch', 12, 'lighthouse-apron'), [-3.8, -1.2], 2.4),
-  ].map((s, i) => (i === 0 ? fly(s, [-4.4, 0.4], 2.4) : s)) },
+    stop(-22.6, 39.3, 'peck', 15, 'lighthouse-apron', 0, 'fly'), stop(-22.1, 40, 'peck', 10, 'lighthouse-apron'), fly(stop(-14.7, 45.3, 'perch', 12, 'lighthouse-bollard', 0.54), [-3.5, 5.5], 2.8),
+  ].map((s, i) => (i === 0 ? fly(s, [-3.5, 5.5], 2.8) : s)) },
   { id: 9, kind: 'gull', coat: 0, speed: 0.62, phase: 62, stops: [
     stop(16.5, 20.3, 'peck', 13, 'cafe-pier', 0, 'fly'), stop(17.7, 20.1, 'peck', 9, 'cafe-pier'), fly(stop(19.5, 20.4, 'perch', 17, 'cafe-pier'), [0.4, 4.4], 2.6),
   ].map((s, i) => (i === 0 ? fly(s, [0.4, 4.6], 2.6) : s)) },
