@@ -983,7 +983,7 @@ export class Hub {
     // Погода не зависит от присутствия рыбаков на набережной и шагается только здесь.
     this.lobby.stepWeather();
     if (this.paintball.humans > 0) this.paintball.step();
-    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active) this.lobby.step();
+    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();

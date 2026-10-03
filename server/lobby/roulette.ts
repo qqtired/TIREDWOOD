@@ -38,6 +38,13 @@ export function atRoulette(x: number, y: number, z: number): boolean {
   return Math.hypot(x - ROULETTE_SPOT.x, z - ROULETTE_SPOT.z) <= ROULETTE_SPOT.r + .5 && Math.abs(y - ROULETTE_SPOT.y) < 2;
 }
 
+/** Улов, который уходит на стол: рыба и её цена (ничего не стоит — ставить нечего) */
+function bagStake(profile: Profile): number {
+  let sum = 0;
+  for (const f of profile.fishing.bag) sum += f.p;
+  return sum;
+}
+
 interface Bet extends RouletteBetView {
   round: string;
 }
@@ -61,6 +68,11 @@ export class RouletteTable {
     this.profiles = profiles;
   }
 
+  /** Идёт ли раунд (приём ставок или вращение): комнату надо шагать, даже если в ней никого нет, — иначе ставки зависнут */
+  get busy(): boolean {
+    return this.phase !== 'idle';
+  }
+
   view(): RouletteView {
     return {
       phase: this.phase, left: this.phase === 'idle' ? 0 : Math.max(0, this.until - this.host.now()), round: this.round,
@@ -77,6 +89,7 @@ export class RouletteTable {
     if (this.bets.some((b) => b.pid === who.pid)) return fail('Ты уже поставил в этом раунде');
     if (who.profile.rouletteEscrow) return fail('Твоя прошлая ставка ещё не рассчитана');
     if (!who.profile.fishing.bag.length) return fail('Рюкзак пуст — ставить нечего');
+    if (bagStake(who.profile) <= 0) return fail('Твой улов ничего не стоит — ставить нечего');
     if (this.phase === 'idle') {
       this.round++;
       this.n = undefined;
