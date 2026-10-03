@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-03",
+  "agent": "arsenal (TIREDWOOD, «Крепость»)",
+  "tool": "OpenAI Codex CLI v0.153.4 (codex exec), встроенная генерация изображений (imagegen), модель сессии gpt-6-astra",
+  "mode": "По одному новому изображению на иконку (не больше трёх запусков одновременно), прозрачный фон, без редактирования и без референсов из интернета.",
+  "stylePrompt": "Style: a single bold game UI icon for a cozy fairytale castle-defense game, warm sunny cartoon look, chunky clean shapes, soft cel shading, saturated friendly colors, thick dark-brown outline, gentle highlight, no text, no letters, no background scenery, the object centered and filling about 80% of the frame, square 1024x1024, on a genuinely transparent background (real alpha channel, no checkerboard, no white box).",
+  "styleNote": "Тёплая сказочная дневная гамма, как у остальных иконок игры (client/assets/fish), без sci-fi и неона.",
+  "postprocess": "Оригиналы 1024×1024 PNG уменьшены до 256×256 (sips), затем перекодированы в WebP с альфа-каналом, качество 0,86 (canvas.toDataURL в headless Chrome: cwebp на машине нет). Оригиналы в репозиторий не кладём.",
+  "icons": {
+    "dmg": {
+      "file": "dmg.webp",
+      "use": "лавка: «Урон»",
+      "prompt": "a round paintball cannonball bursting into a big orange-red paint splash with an impact star",
+      "bytes": 19592,
+      "size": "256x256"
+    },
+    "rate": {
+      "file": "rate.webp",
+      "use": "лавка: «Темп»",
+      "prompt": "a brass cartoon stopwatch with speed motion lines and a small yellow lightning bolt",
+      "bytes": 18224,
+      "size": "256x256"
+    },
+    "mag": {
+      "file": "mag.webp",
+      "use": "лавка: «Магазин»; полоска стволов — маркер",
+      "prompt": "an open small wooden ammo crate overflowing with shiny round colorful paint balls",
+      "bytes": 24426,
+      "size": "256x256"
+    },
+    "crit": {
+      "file": "crit.webp",
+      "use": "лавка: «Крит»",
+      "prompt": "a golden archery bullseye target with a sparkling yellow star exploding in the very center",
+      "bytes": 17514,
+      "size": "256x256"
+    },
+    "gren": {
+      "file": "gren.webp",
+      "use": "лавка: «Гранаты +2»; полоска стволов — гранаты",
+      "prompt": "a round black cartoon bomb with a lit sparkling fuse and colorful paint drips on its body",
+      "bytes": 16300,
+      "size": "256x256"
+    },
+    "pouch": {
+      "file": "pouch.webp",
+      "use": "лавка: «Подсумок»",
+      "prompt": "a brown leather belt pouch with a brass buckle holding three small round cartoon bombs",
+      "bytes": 18938,
+      "size": "256x256"
+    },
+    "shotgun": {
+      "file": "shotgun.webp",
+      "use": "лавка и полоска стволов: дробовик",
+      "prompt": "a chunky cartoon double-barrel shotgun with a warm wooden stock and brass details, side view, pointing right",
+      "bytes": 7838,
+      "size": "256x256"
+    },
+    "crossbow": {
+      "file": "crossbow.webp",
+      "use": "лавка и полоска стволов: арбалет",
+      "prompt": "a sturdy cartoon wooden crossbow loaded with a bolt with red fletching, brass fittings, side view, pointing right",
+      "bytes": 15032,
+      "size": "256x256"
+    },
+    "mg": {
+      "file": "mg.webp",
+      "use": "лавка и полоска стволов: пулемёт",
+      "prompt": "a chunky cartoon hand-cranked gatling gun with six brass barrels on a short wooden stock, side view, pointing right",
+      "bytes": 11358,
+      "size": "256x256"
+    },
+    "ballista": {
+      "file": "ballista.webp",
+      "use": "панель места башни: баллиста",
+      "prompt": "a small wooden castle ballista on a sturdy stand with a huge bolt loaded, three-quarter view",
+      "bytes": 20844,
+      "size": "256x256"
+    },
+    "cannon": {
+      "file": "cannon.webp",
+      "use": "панель места башни: пушка",
+      "prompt": "a black iron castle cannon on a wooden carriage with two cannonballs beside it, three-quarter view",
+      "bytes": 13888,
+      "size": "256x256"
+    },
+    "tar": {
+      "file": "tar.webp",
+      "use": "панель места башни: смоляной котёл",
+      "prompt": "a black iron cauldron full of bubbling dark tar over small flames, with a pouring lip and a ladle",
+      "bytes": 13990,
+      "size": "256x256"
+    },
+    "brazier": {
+      "file": "brazier.webp",
+      "use": "панель места башни: жаровня",
+      "prompt": "an iron fire brazier basket on three legs with bright orange flames and glowing coals",
+      "bytes": 12220,
+      "size": "256x256"
+    },
+    "gate": {
+      "file": "gate.webp",
+      "use": "панель ворот",
+      "prompt": "a sturdy wooden castle gate reinforced with dark iron bands and rivets, with a small hammer leaning on it",
+      "bytes": 16396,
+      "size": "256x256"
+    },
+    "crystal": {
+      "file": "crystal.webp",
+      "use": "панель кристалла",
+      "prompt": "a glowing cyan magic crystal on a small stone pedestal with a little round shield emblem",
+      "bytes": 13236,
+      "size": "256x256"
+    }
+  }
+}

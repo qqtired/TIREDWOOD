@@ -405,6 +405,11 @@ function buildBrazier(): TowerModel {
 }
 
 const BUILDERS = [buildBallista, buildCannon, buildTar, buildBrazier];
+/** Башни крупнее «натуры»: со двора и с террасы их должно быть видно над зубцами (дуло — около TOWER_MUZZLE) */
+const TOWER_SCALE = 1.25;
+/** Торговец стоит на ящике за прилавком: глаза и усы — над столешницей */
+const MERCHANT_STEP = 0.5;
+const MERCHANT_SCALE = 1.12;
 const LEVEL_COLORS = [0xf4e6c4, 0xf4e6c4, 0x7bd88f, 0x7bd88f, 0x5fb7ff, 0x5fb7ff, 0xffd35a, 0xffd35a, 0xff7a4a, 0xff7a4a, 0xcf70d9];
 
 // ------------------------------------------------------------ снаряды
@@ -577,6 +582,8 @@ export class Arsenal3D {
     for (let i = 0; i < slats; i++) {
       geos.push(place(paint(new THREE.BoxGeometry(sw - 0.05, C.h - 0.22, 0.03), i % 2 ? WOOD_LIGHT : WOOD), C.x0 + sw * (i + 0.5), y0 + (C.h - 0.22) / 2 + 0.03, C.z0 - 0.016));
     }
+    // ящик, на котором стоит торговец (из-за прилавка его иначе не видно)
+    geos.push(place(paint(new THREE.BoxGeometry(0.72, MERCHANT_STEP, 0.56), WOOD_DARK), cx, y0 + MERCHANT_STEP / 2, 10.45));
     // столешница с напуском и резной фартук спереди
     geos.push(place(paint(new THREE.BoxGeometry(C.x1 - C.x0 + 0.3, 0.09, C.z1 - C.z0 + 0.2), WOOD_LIGHT), cx, y0 + C.h + 0.045, (C.z0 + C.z1) / 2));
     geos.push(place(paint(new THREE.BoxGeometry(C.x1 - C.x0 + 0.02, 0.16, 0.05), 0xd9483b), cx, y0 + C.h - 0.1, C.z0 - 0.03));
@@ -595,14 +602,19 @@ export class Arsenal3D {
     for (let i = 0; i < 3; i++) geos.push(place(paint(new THREE.SphereGeometry(0.12, 10, 8), 0x2a2a2e), C.x1 - 0.35 - i * 0.2, y0 + C.h + 0.21, C.z0 + 0.25 + (i % 2) * 0.12));
     // на стене за торговцем — стволы на крючках
     const wallZ = 10.97;
-    geos.push(place(paint(new THREE.BoxGeometry(2.3, 0.08, 0.06), WOOD_DARK), cx, y0 + 2.0, wallZ));
+    // щит с крючками за торговцем: на нём стволы, что продаются
+    geos.push(place(paint(new THREE.BoxGeometry(1.7, 1.12, 0.05), WOOD_DARK), cx, y0 + 1.77, wallZ));
+    for (const y of [2.04, 1.7, 1.34]) {
+      for (const s of [-0.42, 0.42]) geos.push(place(paint(new THREE.BoxGeometry(0.05, 0.05, 0.14), IRON), cx + s, y0 + y, wallZ - 0.08));
+    }
     const stall = staticMesh(mergeColored(geos), vc(), true);
     this.scene.add(stall);
-    for (const [gun, x] of [[GUN_SHOTGUN, cx - 0.7], [GUN_CROSSBOW, cx], [GUN_MG, cx + 0.75]] as const) {
+    // три ствола на крючках одной стопкой: дробовик, арбалет, пулемёт — каждый на своей высоте
+    for (const [gun, y] of [[GUN_SHOTGUN, 2.12], [GUN_CROSSBOW, 1.78], [GUN_MG, 1.42]] as const) {
       const m = gunModel(gun);
-      m.group.scale.setScalar(1.25);
-      m.group.rotation.set(0, Math.PI / 2, 0.15);
-      m.group.position.set(x, y0 + 1.75, wallZ - 0.08);
+      m.group.scale.setScalar(1.2);
+      m.group.rotation.set(0, Math.PI / 2, 0.08);
+      m.group.position.set(cx, y0 + y, wallZ - 0.1);
       this.scene.add(m.group);
     }
     // навес: ткань наклонно от стены к прилавку, с фестонами
@@ -648,7 +660,8 @@ export class Arsenal3D {
     const tassel = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshStandardMaterial({ color: 0xffd35a }));
     tassel.position.set(0.12, 1.3, 0.12);
     this.merchant.add(body, this.merchantEyes, stache, fez, tassel);
-    this.merchant.position.set(cx, y0, 10.45);
+    this.merchant.position.set(cx, y0 + MERCHANT_STEP, 10.45);
+    this.merchant.scale.setScalar(MERCHANT_SCALE);
     this.scene.add(this.merchant);
   }
 
@@ -711,7 +724,7 @@ export class Arsenal3D {
       t.level = level;
       t.pennantMat.color.setHex(LEVEL_COLORS[Math.min(LEVEL_COLORS.length - 1, level)]);
       const m = type >= 0 ? t.models[type] : null;
-      if (m) m.group.scale.setScalar(1 + Math.min(10, level) * 0.025);
+      if (m) m.group.scale.setScalar(TOWER_SCALE * (1 + Math.min(10, level) * 0.025));
     }
   }
 
@@ -899,9 +912,9 @@ export class Arsenal3D {
   update(dt: number, camPos: THREE.Vector3, where: (zid: number, out: THREE.Vector3) => boolean): void {
     this.time += dt;
     const t = this.time;
-    // торговец покачивается и поглядывает на ближнего
-    this.merchant.position.y = TERRACE.h + Math.abs(Math.sin(t * 2.2)) * 0.04;
-    this.merchant.scale.set(1 + Math.sin(t * 4.4) * 0.015, 1 - Math.sin(t * 4.4) * 0.015, 1);
+    // торговец (на ящике за прилавком) покачивается и поглядывает на ближнего
+    this.merchant.position.y = TERRACE.h + MERCHANT_STEP + Math.abs(Math.sin(t * 2.2)) * 0.04;
+    this.merchant.scale.set(MERCHANT_SCALE * (1 + Math.sin(t * 4.4) * 0.015), MERCHANT_SCALE * (1 - Math.sin(t * 4.4) * 0.015), MERCHANT_SCALE);
     const dx = camPos.x - this.merchant.position.x;
     const dz = camPos.z - this.merchant.position.z;
     if (dx * dx + dz * dz < 900) this.merchant.rotation.y = damp(this.merchant.rotation.y, Math.atan2(-dx, -dz), 3, dt);
@@ -912,7 +925,7 @@ export class Arsenal3D {
       const m = tw.models[tw.type];
       if (!m) continue;
       tw.pop = Math.max(0, tw.pop - dt * 2.2);
-      const s = 1 + Math.min(10, tw.level) * 0.025;
+      const s = TOWER_SCALE * (1 + Math.min(10, tw.level) * 0.025);
       m.group.scale.setScalar(s * (1 + Math.sin(tw.pop * Math.PI) * 0.25));
       if (t - tw.lastShot > 2.2) {
         tw.wantYaw = Math.sin(t * 0.35 + i * 1.7) * 0.7;

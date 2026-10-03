@@ -448,7 +448,8 @@ export class ArsenalClient {
   mark(st: FortStation): [string, string] | null {
     switch (st.kind) {
       case 'shop':
-        return ['🛒', 'ЛАВКА'];
+        // у прилавка своя вывеска «ЛАВКА» на навесе — парящая табличка лишняя
+        return ['', ''];
       case 'gate': {
         const g = this.host.gate();
         if (g <= 0) return this.calm ? ['🚪', 'НОВЫЕ'] : ['', ''];

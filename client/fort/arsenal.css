@@ -161,7 +161,8 @@
 .ars-arms {
   position: absolute;
   right: 18px;
-  bottom: 96px;
+  /* над карточкой патронов (она снизу справа, ~125 px) */
+  bottom: 150px;
   display: flex;
   gap: 6px;
   align-items: flex-end;

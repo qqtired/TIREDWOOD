@@ -328,7 +328,8 @@ export class FortProps {
       if (!m.key) continue;
       m.sprite.position.y = m.baseY + Math.sin(t * 2 + m.st.id) * 0.06;
       const d = _v.set(m.st.x, m.baseY, m.st.z).distanceTo(camPos);
-      m.sprite.visible = d < 42 && d > 2.2;
+      // места башен — восемь штук по стенам: табличка только вблизи, иначе со двора — частокол «БАШНЯ»
+      m.sprite.visible = d < (m.st.kind === 'tower' ? 15 : 42) && d > 2.2;
     }
   }
 }
