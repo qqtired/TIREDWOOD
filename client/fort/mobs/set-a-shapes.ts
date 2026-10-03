@@ -59,6 +59,27 @@ export function paint(geo: THREE.BufferGeometry, fn: (x: number, y: number, z: n
   return g;
 }
 
+/** Раскрасить по граням (цвет — по центру треугольника): чёткая клетка и полосы даже на грубой сетке */
+export function paintFaces(geo: THREE.BufferGeometry, fn: (x: number, y: number, z: number, out: THREE.Color) => void): THREE.BufferGeometry {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const pos = g.getAttribute('position');
+  const arr = new Float32Array(pos.count * 3);
+  for (let t = 0; t + 2 < pos.count; t += 3) {
+    const x = (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3;
+    const y = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3;
+    const z = (pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3;
+    fn(x, y, z, _pc);
+    for (let k = 0; k < 3; k++) {
+      arr[(t + k) * 3] = _pc.r;
+      arr[(t + k) * 3 + 1] = _pc.g;
+      arr[(t + k) * 3 + 2] = _pc.b;
+    }
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  if (!g.getAttribute('normal')) g.computeVertexNormals();
+  return g;
+}
+
 /** Эллипсоид */
 export function blob(rx: number, ry: number, rz: number, hex: number, w = 10, h = 8): THREE.BufferGeometry {
   return colored(new THREE.SphereGeometry(1, w, h).scale(rx, ry, rz), hex);

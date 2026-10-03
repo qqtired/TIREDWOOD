@@ -5,6 +5,9 @@ import { test } from 'node:test';
 import * as THREE from 'three';
 import { colored, merge, mobMaterial, newPose, pickVariant, setBone, setChild, type MobAnim, type MobDef } from '../client/fort/mobs/kit.ts';
 import { MOB_CAP, MobRenderer, mobRoot, mobSeed } from '../client/fort/mobs/renderer.ts';
+import { MOBS_A } from '../client/fort/mobs/set-a.ts';
+import { ZS_ATTACK, ZS_BOSS_OPEN, ZS_CLIMB, ZS_HOP, ZS_WALK } from '../shared/fort.ts';
+import { KF_BOSS, ZK, Z_BRUTE, Z_KINDS, Z_RUNNER, Z_WALKER } from '../shared/fortkinds.ts';
 
 function anim(over: Partial<MobAnim> = {}): MobAnim {
   return { t: 1.3, gait: 0.4, speed: 2.4, st: 0, stT: 0.2, hit: 0, die: 0, seed: 0.5, rage: false, flags: 0, ...over };
@@ -117,5 +120,113 @@ test('материал: вставки в шейдер three на месте, н
     const a = n.clone().applyMatrix3(adj).normalize();
     const b = n.clone().applyMatrix3(exact).normalize();
     assert.ok(a.distanceTo(b) < 1e-6, 'нормаль сжатого босса — без искажения');
+  }
+});
+
+// ------------------------------------------------------------ модели набора A
+
+const STATES_A = [ZS_WALK, ZS_ATTACK, ZS_HOP, ZS_CLIMB, ZS_BOSS_OPEN];
+
+test('набор A: части с цветом, бюджет, существующие виды, 2–3 варианта у вида', () => {
+  assert.ok(MOBS_A.length >= 7);
+  const ids = new Set<string>();
+  for (const def of MOBS_A) {
+    assert.ok(!ids.has(def.id), `id ${def.id} уникален`);
+    ids.add(def.id);
+    assert.ok(def.kinds.length > 0 && def.kinds.every((k) => Number.isInteger(k) && k >= 0 && k < Z_KINDS && ZK[k]), `${def.id}: виды существуют`);
+    assert.ok(def.parts.length > 0 && def.parts.length <= 6, `${def.id}: до 6 частей`);
+    let tris = 0;
+    for (const part of def.parts) {
+      for (const name of ['position', 'normal', 'color']) assert.ok(part.geo.getAttribute(name), `${def.id}/${part.bone}: есть ${name}`);
+      tris += (part.geo.index ? part.geo.index.count : part.geo.getAttribute('position').count) / 3;
+    }
+    const boss = def.kinds.some((k) => (ZK[k].flags & KF_BOSS) !== 0);
+    assert.ok(tris <= (boss ? 6000 : 1500), `${def.id}: ${tris} треугольников`);
+    assert.ok(def.parts.some((p) => p.glow), `${def.id}: светящиеся глаза (glow)`);
+  }
+  for (const kind of [Z_WALKER, Z_RUNNER, Z_BRUTE]) {
+    const n = MOBS_A.filter((d) => d.kinds.includes(kind)).length;
+    assert.ok(n >= 2 && n <= 3, `${ZK[kind].name}: ${n} варианта`);
+  }
+});
+
+test('набор A: позы конечные во всех состояниях, при ударе и гибели; стоит на земле; к концу гибели почти исчез', () => {
+  const pose = newPose();
+  const box = new THREE.Box3();
+  const b = new THREE.Box3();
+  const posed = (def: MobDef, a: MobAnim) => {
+    def.pose(a, pose);
+    box.makeEmpty();
+    for (const part of def.parts) {
+      if (!part.geo.boundingBox) part.geo.computeBoundingBox();
+      b.copy(part.geo.boundingBox!).applyMatrix4(pose[part.bone]);
+      box.union(b);
+    }
+    return box;
+  };
+  for (const def of MOBS_A) {
+    for (const st of STATES_A) {
+      for (const stT of [0, 0.1, 0.18, 0.3, 0.6, 2.5]) {
+        for (const [hit, die] of [[0, 0], [1, 0], [0.5, 0], [0, 0.2], [0, 0.5], [0, 0.8], [0, 1]]) {
+          for (const seed of [0, 0.37, 0.999]) {
+            def.pose(anim({ st, stT, hit, die, seed, gait: (stT * 1.7) % 1, t: stT * 3 + seed, speed: st === ZS_WALK ? 2.4 : 0 }), pose);
+            for (const part of def.parts) {
+              const m = pose[part.bone];
+              assert.ok(m.elements.every(Number.isFinite), `${def.id}/${part.bone}: st ${st} die ${die} — конечная матрица`);
+              assert.ok(Math.abs(m.determinant()) > 1e-9, `${def.id}/${part.bone}: масштаб не ноль`);
+            }
+          }
+        }
+      }
+    }
+    const rest = posed(def, anim({ speed: 0, gait: 0 }));
+    assert.ok(Math.abs(rest.min.y) < 0.05, `${def.id}: ноги на земле (${rest.min.y.toFixed(3)})`);
+    assert.ok(rest.max.y > def.height * 0.85 && rest.max.y < def.height * 1.2, `${def.id}: рост ${def.height} ≈ ${rest.max.y.toFixed(2)}`);
+    const k = ZK[def.kinds[0]];
+    assert.ok(rest.max.y > k.headY, `${def.id}: голова выше кольца «в голову»`);
+    const gone = posed(def, anim({ die: 1, speed: 0 }));
+    assert.ok(gone.max.y < def.height * 0.45, `${def.id}: к концу гибели ушёл в землю или сжался (${gone.max.y.toFixed(2)})`);
+  }
+});
+
+test('набор A: стопы не скользят — опорная нога стоит, пока тело идёт', () => {
+  const pose = newPose();
+  const lowest = new THREE.Vector3();
+  const p = new THREE.Vector3();
+  const root = new THREE.Matrix4();
+  for (const def of MOBS_A) {
+    const legs = def.parts.filter((part) => part.bone === 'legL' || part.bone === 'legR');
+    if (!legs.length) continue;
+    const speed = ZK[def.kinds[0]].speed;
+    for (const leg of legs) {
+      // подошва: точка прямо под шарниром на глубине самой нижней вершины ноги
+      const pos = leg.geo.getAttribute('position');
+      lowest.set(0, Infinity, 0);
+      for (let i = 0; i < pos.count; i++) lowest.y = Math.min(lowest.y, pos.getY(i));
+      let slide = 0;
+      let path = 0;
+      let lastZ = NaN;
+      const dt = 1 / 240;
+      let z = 0;
+      let gait = 0;
+      for (let f = 0; f < 240 * 3; f++) {
+        z += speed * dt;
+        gait = (gait + (speed * dt) / 1.25) % 1;
+        def.pose(anim({ gait, speed, t: f * dt, seed: 0.5 }), pose);
+        root.makeTranslation(0, 0, z);
+        p.copy(lowest).applyMatrix4(pose[leg.bone]).applyMatrix4(root);
+        if (p.y < 0.012) {
+          if (!Number.isNaN(lastZ)) {
+            slide += Math.abs(p.z - lastZ);
+            path += speed * dt;
+          }
+          lastZ = p.z;
+        } else {
+          lastZ = NaN;
+        }
+      }
+      assert.ok(path > 0.3, `${def.id}/${leg.bone}: нога касается земли`);
+      assert.ok(slide / path < 0.2, `${def.id}/${leg.bone}: скольжение ${(100 * slide / path).toFixed(0)} % пути опоры`);
+    }
   }
 });
