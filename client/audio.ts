@@ -1164,6 +1164,27 @@ export class Sound {
     this.tone(d, 2093, 2093, 0.24, 'triangle', 0.045, 0.11);
   }
 
+  /** Крысиные бега: писк крысы (споткнулась, нашла крошку) — короткое «пи-и» вверх. */
+  ratSqueak(pos: V3 | null): void {
+    if (!this.ok || !this.once('ratSqueak', 0.25)) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const f = 2600 + Math.random() * 900;
+    this.tone(d, f, f * 1.35, 0.07, 'sine', 0.09);
+    this.tone(d, f * 1.2, f * 1.6, 0.06, 'sine', 0.07, 0.08);
+  }
+
+  /** Крысиные бега: трибуна болеет — гул и выкрики; k 0…1 — сколько болеют (чем больше, тем громче и дольше). */
+  ratCrowd(pos: V3 | null, k: number): void {
+    if (!this.ok || !this.once('ratCrowd', 0.6)) return;
+    const d = this.out(pos, this.sfx, 0, 6);
+    const g = 0.05 + 0.13 * Math.min(1, Math.max(0, k));
+    this.noise(d, 0.9 + k * 0.8, 'bandpass', 700, 1100, 0.8, g, 0, 0.12);
+    for (let i = 0; i < 3 + Math.round(k * 6); i++) {
+      const f = 380 + Math.random() * 260;
+      this.tone(d, f, f * (1.3 + Math.random() * 0.4), 0.22 + Math.random() * 0.15, 'triangle', 0.02 + 0.03 * k, Math.random() * 0.6);
+    }
+  }
+
   /** Обнимашки: мягкий шлепок двух желеек и тёплое «о-о» вверх. */
   hug(pos: V3 | null): void {
     if (!this.ok) return;

@@ -13,6 +13,7 @@ import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY,
   FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
 } from '../fishplaces.ts';
+import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
@@ -20,7 +21,8 @@ import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette';
+/** ratrace — крысиные бега на понтоне у набережной (флаг RATRACE) */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace';
 
 export interface Interactable {
   id: number;
@@ -88,6 +90,8 @@ export interface LobbyMap extends GameMap {
   ferryAwayBoxes: number[];
   /** Корпус музыкального автомата (флаг сервера JUKEBOX): без флага коллизию выключают */
   jukeBoxes: number[];
+  /** Понтон крысиных бегов: настил, бортик арены, столбы табло (флаг сервера RATRACE): без флага коллизию выключают */
+  ratBoxes: number[];
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -402,6 +406,24 @@ export function buildLobby(): LobbyMap {
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
   // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
   add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
+  // крысиные бега (флаг RATRACE) — понтон у набережной между скамейкой и мостками; всё невидимое рисует
+  // client/lobby/ratrace3d.ts, без флага коллизию выключают (там снова вода). Точка — в самый конец списка
+  add('ratrace', RAT_USE.x, RAT_USE.z, Math.PI, RAT_USE.r, 0, 'крысиные бега');
+  const ratBoxes: number[] = [];
+  const ratBox = (min: [number, number, number], max: [number, number, number]): void => {
+    ratBoxes.push(b.boxes.length);
+    b.box(min, max, 'invisible', 0);
+  };
+  ratBox([RAT_DECK.x0, -0.6, RAT_DECK.z0], [RAT_DECK.x1, 0, RAT_DECK.z1]);
+  const P = RAT_PEN;
+  ratBox([P.x0 - P.t, 0, P.z0 - P.t], [P.x1 + P.t, P.h, P.z0]);
+  ratBox([P.x0 - P.t, 0, P.z1], [P.x1 + P.t, P.h, P.z1 + P.t]);
+  ratBox([P.x0 - P.t, 0, P.z0], [P.x0, P.h, P.z1]);
+  ratBox([P.x1, 0, P.z0], [P.x1 + P.t, P.h, P.z1]);
+  for (const sx of [-1, 1]) {
+    const x = RAT_BOARD.x + sx * (RAT_BOARD.w / 2 + 0.05);
+    ratBox([x - 0.05, 0, RAT_BOARD.z - 0.05], [x + 0.05, RAT_BOARD.y + RAT_BOARD.h + 0.1, RAT_BOARD.z + 0.05]);
+  }
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
@@ -448,5 +470,6 @@ export function buildLobby(): LobbyMap {
     ferryHomeBoxes,
     ferryAwayBoxes,
     jukeBoxes,
+    ratBoxes,
   };
 }

@@ -10,7 +10,7 @@ import { pulse } from './critter-kit.ts';
 import { Crab, Gull } from './critter-coastal.ts';
 import { Cove } from './critter-cove.ts';
 import { Quadruped } from './critter-quadruped.ts';
-import { CritterBrain, brainWorld, type Mover, type Scare } from './critterbrain.ts';
+import { CritterBrain, brainWorld, type CritterVisit, type Mover, type Scare } from './critterbrain.ts';
 import type { CritterPlayer } from './crittersim.ts';
 
 export interface CritterOptions {
@@ -155,6 +155,21 @@ export class LobbyCritters {
     }
     this.brain.events.length = 0;
     return done;
+  }
+
+  /** Кот id идёт посмотреть (крысиные бега) или возвращается к своим делам (null) */
+  setVisit(id: number, visit: CritterVisit | null): void {
+    if (!CRITTERS_ENABLED) return;
+    const i = this.animals.findIndex((a) => a.def.id === id);
+    if (i >= 0) this.brain.setVisit(i, visit);
+  }
+
+  /** Где кот id и что делает (отладка, снимки) */
+  where(id: number): { x: number; y: number; z: number; mode: string } | null {
+    const i = this.animals.findIndex((a) => a.def.id === id);
+    if (i < 0) return null;
+    const m = this.brain.minds[i];
+    return { x: m.pose.x, y: m.pose.y, z: m.pose.z, mode: m.mode };
   }
 
   debug(): Record<string, unknown> {

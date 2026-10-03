@@ -97,6 +97,12 @@ export class Profiles {
         p.rouletteEscrow = null;
         recovered = true;
       }
+      // ставка на крысиных бегах, забег не кончился до рестарта: жетоны назад
+      if (p.ratEscrow) {
+        p.tokens += p.ratEscrow.amount;
+        p.ratEscrow = null;
+        recovered = true;
+      }
     }
     if (recovered) { store.markDirty(); store.flush(); }
   }
@@ -169,6 +175,7 @@ export class Profiles {
       xp: 0, level: 1, levelsVersion: LEVELS_VERSION, fishingResetVersion: FISHING_RESET_VERSION,
       durakEscrow: null,
       rouletteEscrow: null,
+      ratEscrow: null,
       blackjackEscrow: null,
       owned: [],
       outfit: { ...DEFAULT_OUTFIT, c: randomInt(PALETTE.length) },
@@ -454,6 +461,28 @@ export class Profiles {
     p.rouletteEscrow = null;
     p.tokens += payout;
     p.stats.rlWon += payout;
+    this.store.markDirty();
+    this.store.flush();
+    return true;
+  }
+
+  /** Ставка на крысиных бегах: жетоны уходят в залог до конца забега (переживает рестарт — тогда возвращаются). */
+  reserveRat(pid: number, round: string, amount: number): boolean {
+    const p = this.ids.get(pid);
+    if (!p || !round || round.length > 100 || p.ratEscrow || !Number.isSafeInteger(amount) || amount <= 0 || p.tokens < amount) return false;
+    p.tokens -= amount;
+    p.ratEscrow = { round, amount };
+    this.store.markDirty();
+    this.store.flush();
+    return true;
+  }
+
+  /** Забег кончился: выигрыш (0 — ставка проиграла) жетонами, без общего опыта; по профилю, даже если игрок ушёл. */
+  settleRat(pid: number, round: string, payout: number): boolean {
+    const p = this.ids.get(pid);
+    if (!p || !p.ratEscrow || p.ratEscrow.round !== round || !Number.isSafeInteger(payout) || payout < 0) return false;
+    p.ratEscrow = null;
+    p.tokens += payout;
     this.store.markDirty();
     this.store.flush();
     return true;

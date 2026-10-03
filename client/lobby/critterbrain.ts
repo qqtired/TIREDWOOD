@@ -29,7 +29,16 @@ export type BrainEvent =
   | { kind: 'purr'; x: number; y: number; z: number; hiss: boolean }
   | { kind: 'woof'; x: number; y: number; z: number };
 
-type Mode = 'sched' | 'hold' | 'dodge' | 'run' | 'greet' | 'return' | 'flush' | 'alarm' | 'dash' | 'dig' | 'pop';
+type Mode = 'sched' | 'hold' | 'dodge' | 'run' | 'greet' | 'return' | 'flush' | 'alarm' | 'dash' | 'dig' | 'pop' | 'visit' | 'perch' | 'leave';
+/**
+ * Сходить посмотреть (кот у крысиных бегов, client/lobby/ratrace3d.ts): путь по полу, место, куда запрыгнуть и сесть,
+ * и куда смотреть (меняется каждый кадр — за кем следить). Снять — кот спрыгнет, уйдёт тем же путём и вернётся к своим делам.
+ */
+export interface CritterVisit {
+  path: ReadonlyArray<{ x: number; z: number }>;
+  seat: { x: number; y: number; z: number };
+  look: { x: number; z: number };
+}
 /** A flushed gull flies one banked circle (radius R, starting away from the scare, curling toward `cx, cz`) and lands where the schedule has it. */
 interface Flush { t0: number; T: number; p0: [number, number, number]; end: [number, number, number]; endYaw: number; ax: number; az: number; cx: number; cz: number; R: number; H: number }
 export interface Mind {
@@ -45,6 +54,12 @@ export interface Mind {
   petUntil: number; petHiss: boolean; petCool: number;
   spot: { x: number; z: number } | null;
   heldAction: CritterPose['action'];
+  /** Поход посмотреть: куда, до какой точки пути дошёл, прыжок (откуда, когда начался) */
+  visit: CritterVisit | null;
+  /** Путь похода — остаётся и после снятия visit, чтобы уйти тем же путём */
+  visitPath: ReadonlyArray<{ x: number; z: number }> | null;
+  vstep: number;
+  hop: { x: number; y: number; z: number; t0: number; up: boolean } | null;
 }
 
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
@@ -74,9 +89,33 @@ export class CritterBrain {
         def, index, pose: newPose(), sched: newPose(), mode: 'sched', since: 0, until: 0, cooldown: 0,
         gx: 0, gy: 0, gz: 0, gyaw: 0, gspeed: 0, grest: 0, dist: 0, bias: 0, blocked: 0, settle: 1, mergeYaw: 0,
         look: 0, lookYaw: 0, alert: 0, alarm: 0, tx: 0, tz: 0, flush: null, cryIndex: -1, cryAt: -1e9, flushes: 0,
-        petUntil: 0, petHiss: false, petCool: 0, spot: null, heldAction: 'sit',
+        petUntil: 0, petHiss: false, petCool: 0, spot: null, heldAction: 'sit', visit: null, visitPath: null, vstep: 0, hop: null,
       });
     });
+  }
+
+  /** Кот idx идёт смотреть (visit) или возвращается к своим делам (null). Смотреть, куда — можно менять каждый кадр. */
+  setVisit(index: number, visit: CritterVisit | null): void {
+    const m = this.minds[index];
+    if (!m || m.def.kind !== 'cat') return;
+    if (visit) {
+      m.visit = visit;
+      if (m.mode === 'leave') { m.mode = 'visit'; m.vstep = visit.path.length; m.hop = null; }
+      return;
+    }
+    if (!m.visit) return;
+    m.visit = null;
+    if (m.mode === 'visit' || m.mode === 'perch') {
+      // со столбика — вниз к последней точке пути (это сделает 'leave'), с полпути — назад к предыдущей точке
+      const len = m.visitPath?.length ?? 0;
+      if (m.mode === 'visit' && !m.hop) m.vstep = Math.min(m.vstep - 1, len - 1);
+      m.mode = 'leave'; m.since = this.now; m.hop = null;
+    }
+  }
+
+  /** Сидит ли кот idx на месте похода (для отладки и снимков) */
+  visiting(index: number): string {
+    return this.minds[index]?.mode ?? '';
   }
 
   // ------------------------------------------------------------------ player actions
@@ -114,7 +153,10 @@ export class CritterBrain {
       if (!far) {
         switch (m.def.kind) {
           case 'gull': this.gull(m, tick, now, movers, scares, dog); break;
-          case 'cat': case 'dog': this.walker(m, now, dt, movers); break;
+          case 'cat': case 'dog':
+            if (m.visit || m.mode === 'visit' || m.mode === 'perch' || m.mode === 'leave') this.visitor(m, now, dt);
+            else this.walker(m, now, dt, movers);
+            break;
           case 'crab': this.crab(m, now, dt, movers); break;
         }
       }
@@ -138,7 +180,7 @@ export class CritterBrain {
       if (kind === 'crab') p.alarm = m.alarm;
     } else if (m.mode !== 'flush') {
       const moving = m.gspeed > 0.04, buried = m.mode === 'dig' || m.mode === 'pop';
-      const held = m.mode === 'hold' || m.mode === 'greet' || m.mode === 'alarm';
+      const held = m.mode === 'hold' || m.mode === 'greet' || m.mode === 'alarm' || m.mode === 'perch';
       Object.assign(p, {
         x: m.gx, y: m.gy, z: m.gz, yaw: m.gyaw, pitch: 0, action: buried ? 'burrow' : held ? (m.mode === 'alarm' ? 'sit' : m.heldAction) : 'walk', mood: 'none', rest: null,
         moving, airborne: false, phase: 0, distance: m.dist, speed: m.gspeed, restWeight: m.mode === 'alarm' ? 0 : m.grest, age: now - m.since, remaining: Math.max(0, m.until - now), turn: 0,
@@ -151,6 +193,13 @@ export class CritterBrain {
       } else if (m.mode === 'greet') { p.mood = 'greet'; p.excite = 1; }
       else if (m.mode === 'run') p.excite = 0.7;
       else if (m.mode === 'dodge') p.mood = 'scare';
+      else if (m.mode === 'perch' && m.visit) {
+        // сидит на столбике и смотрит на крыс: голова — за тем, за кем следит, хвост ходит
+        const rel = wrap(bearing(m.visit.look.x - m.gx, m.visit.look.z - m.gz) - m.gyaw);
+        m.lookYaw = follow(m.lookYaw, clamp(rel, -1.3, 1.3), dt, 6);
+        m.look = follow(m.look, 1, dt, 4);
+        p.look = m.look; p.lookYaw = m.lookYaw; p.lookPitch = -0.35; p.excite = 0.55; p.mood = 'alert';
+      }
       if (kind === 'crab') p.alarm = m.mode === 'alarm' || m.mode === 'dash' ? 1 : m.alarm;
     }
     if (kind === 'crab') p.y = coveHeight(p.x, p.z);                    // always exactly on the sand surface
@@ -158,7 +207,86 @@ export class CritterBrain {
       const cu = (now - m.cryAt) / CRY_LENGTH;
       p.cry = cu >= 0 && cu < 1 ? cryEnvelope(cu) : 0;
     }
-    if (m.mode !== 'flush' && kind !== 'crab' && !far) this.attention(m, dt, movers);
+    if (m.mode !== 'flush' && m.mode !== 'perch' && kind !== 'crab' && !far) this.attention(m, dt, movers);
+  }
+
+  // ------------------------------------------------------------------ поход посмотреть (кот у крысиных бегов)
+
+  /** Шаг к точке без проверки препятствий (путь задан заранее), высота — по полу под лапами. Сколько осталось, м. */
+  private walkTo(m: Mind, tx: number, tz: number, speed: number, dt: number): number {
+    const dx = tx - m.gx, dz = tz - m.gz, d = Math.hypot(dx, dz);
+    if (d < 1e-4) { m.gspeed = follow(m.gspeed, 0, dt, 10); return 0; }
+    const v = Math.min(speed, d / Math.max(dt, 1e-3));
+    m.gx += (dx / d) * v * dt; m.gz += (dz / d) * v * dt;
+    if (this.world) {
+      const f = this.world.floor(m.gx, m.gz, m.gy);
+      if (f !== null && Math.abs(f - m.gy) < 0.45) m.gy = follow(m.gy, f, dt, 14);
+    }
+    m.gspeed = follow(m.gspeed, v, dt, 10); m.dist += m.gspeed * dt;
+    m.gyaw = turnTo(m.gyaw, bearing(dx, dz), dt, 8);
+    return d - v * dt;
+  }
+
+  private visitor(m: Mind, now: number, dt: number): void {
+    const v = m.visit;
+    const path = v?.path ?? [];
+    switch (m.mode) {
+      case 'visit': {
+        if (!v) { m.mode = 'leave'; break; }
+        m.grest = follow(m.grest, 0, dt, 5);
+        if (m.vstep < path.length) {
+          const p = path[m.vstep];
+          if (this.walkTo(m, p.x, p.z, 1.5, dt) < 0.08) m.vstep++;
+          break;
+        }
+        // последний шаг — прыжок на столбик
+        if (!m.hop) m.hop = { x: m.gx, y: m.gy, z: m.gz, t0: now, up: true };
+        const u = clamp01((now - m.hop.t0) / 0.45);
+        m.gx = m.hop.x + (v.seat.x - m.hop.x) * ease(u); m.gz = m.hop.z + (v.seat.z - m.hop.z) * ease(u);
+        m.gy = m.hop.y + (v.seat.y - m.hop.y) * ease(u) + Math.sin(Math.PI * u) * 0.35;
+        m.gyaw = turnTo(m.gyaw, bearing(v.seat.x - m.hop.x, v.seat.z - m.hop.z), dt, 8);
+        m.gspeed = u < 1 ? 1 : 0;
+        if (u >= 1) { m.hop = null; m.mode = 'perch'; m.since = now; m.heldAction = 'sit'; m.gspeed = 0; }
+        break;
+      }
+      case 'perch': {
+        if (!v) { m.mode = 'leave'; break; }
+        m.gx = v.seat.x; m.gy = v.seat.y; m.gz = v.seat.z; m.gspeed = 0;
+        m.grest = follow(m.grest, 1, dt, 3);
+        // корпусом — к арене, но не дёргается за каждым движением
+        const want = bearing(v.look.x - m.gx, v.look.z - m.gz);
+        if (Math.abs(wrap(want - m.gyaw)) > 1.1) m.gyaw = turnTo(m.gyaw, want, dt, 1.6);
+        break;
+      }
+      case 'leave': {
+        m.grest = follow(m.grest, 0, dt, 5);
+        const back = m.visitPath ?? path;
+        const last = back.length ? back[back.length - 1] : { x: m.sched.x, z: m.sched.z };
+        if (m.gy > 0.25 && !m.hop) m.hop = { x: m.gx, y: m.gy, z: m.gz, t0: now, up: false };
+        if (m.hop) {
+          const u = clamp01((now - m.hop.t0) / 0.45);
+          m.gx = m.hop.x + (last.x - m.hop.x) * ease(u); m.gz = m.hop.z + (last.z - m.hop.z) * ease(u);
+          m.gy = m.hop.y * (1 - ease(u)) + Math.sin(Math.PI * u) * 0.25;
+          m.gyaw = turnTo(m.gyaw, bearing(last.x - m.hop.x, last.z - m.hop.z), dt, 8);
+          if (u >= 1) { m.hop = null; m.gy = 0; m.vstep = back.length - 1; }
+          break;
+        }
+        // обратно по пути (от конца к началу), потом — к своим делам по расписанию
+        if (m.vstep >= 0 && m.vstep < back.length) {
+          const p = back[m.vstep];
+          if (this.walkTo(m, p.x, p.z, 1.3, dt) < 0.08) m.vstep--;
+          break;
+        }
+        m.mode = 'return'; m.since = now;
+        break;
+      }
+      default:
+        // начать поход с того места, где кот по расписанию
+        if (!v) break;
+        if (m.mode === 'sched') this.toGhost(m);
+        m.mode = 'visit'; m.since = now; m.vstep = 0; m.hop = null; m.visitPath = v.path;
+        break;
+    }
   }
 
   /** Looking at whoever is near, plus the alert mood that goes with it. */
