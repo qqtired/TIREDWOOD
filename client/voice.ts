@@ -16,6 +16,8 @@ export interface VoiceDependencies {
   supported(): boolean;
   createPeerConnection(config: RTCConfiguration): RTCPeerConnection;
   createAudioElement(): HTMLAudioElement;
+  /** Звуковой движок для цепочки отправки (затухание); null — без него, просто короткий хвост */
+  createAudioContext(): AudioContext | null;
   getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream>;
   createMediaStream(tracks: MediaStreamTrack[]): MediaStream;
   audioCapabilities(): RTCRtpCapabilities | null;
@@ -44,6 +46,8 @@ interface Peer {
 }
 export interface VoiceDebug {
   enabled: boolean; joined: boolean; self: number | null; zone: string; mic: VoiceView['mic']; transmitting: boolean; playbackBlocked: boolean;
+  /** Что уходит собеседникам: webaudio — через цепочку с затуханием; track — дорожка микрофона напрямую */
+  send: 'webaudio' | 'track'; engine: string; gain: number | null; tail: boolean;
   peers: Array<{ id: number; pid: number; connection: string; ice: string; gathering: string; signaling: string; offerer: boolean; restarts: number; localIce: number; remoteIce: number; descriptionsSent: number; descriptionsReceived: number; iceErrors: number; route: string; bytesSent: number; bytesReceived: number; audioEnergy: number; samplesReceived: number; codecs: string[]; dtx: boolean;
     /** Звук собеседника: none — дорожки ещё нет, playing — играет, paused — браузер не дал включить */
     audio: 'none' | 'playing' | 'paused'; muted: boolean }>;
@@ -52,6 +56,7 @@ const defaults: VoiceDependencies = {
   supported: () => typeof RTCPeerConnection !== 'undefined' && typeof Audio !== 'undefined',
   createPeerConnection: config => new RTCPeerConnection(config),
   createAudioElement: () => { const a = new Audio(); a.autoplay = true; return a; },
+  createAudioContext: () => typeof AudioContext === 'undefined' ? null : new AudioContext({ latencyHint: 'interactive' }),
   getUserMedia: constraints => navigator.mediaDevices.getUserMedia(constraints), createMediaStream: tracks => new MediaStream(tracks),
   audioCapabilities: () => typeof RTCRtpReceiver === 'undefined' ? null : RTCRtpReceiver.getCapabilities('audio'),
   micPermission: async () => {
@@ -63,6 +68,21 @@ const defaults: VoiceDependencies = {
   hidden: () => typeof document !== 'undefined' && document.hidden,
 };
 const ICE_LIMIT = 64;
+/**
+ * Отпустили V — передача идёт ещё столько, громкость отправки плавно уходит в ноль: последний слог не обрезается.
+ * Без звукового движка — короткий хвост без затухания. Хвост только у добровольного отпускания: blur, скрытая
+ * вкладка, запрет говорить, выключение голоса или микрофона, смена зоны, обрыв — тишина сразу (stopTalking).
+ */
+export const VOICE_TAIL_MS = 230;
+export const VOICE_TAIL_PLAIN_MS = 150;
+/** Затухание — экспонента: за ~190 мс тише на 36 дБ; подъём при нажатии — 25 мс, без щелчка */
+export const VOICE_FADE_OUT_TAU_S = 0.045;
+export const VOICE_FADE_IN_S = 0.025;
+/**
+ * Свежее нажатие: звук только что включённой дорожки микрофона доходит до движка не сразу (в Chrome замерено 0–21 мс).
+ * Подъём начинаем после этой паузы — иначе звук входит уже на половине громкости, скачком (щелчок).
+ */
+export const VOICE_ONSET_S = 0.04;
 /** Новое соединение: столько ждём «connected», потом ICE restart */
 const CONNECT_GRACE = 15_000;
 /** «disconnected» часто проходит само (короткий провал сети) — ждём, потом ICE restart */
@@ -73,6 +93,8 @@ const REBUILD_AFTER = 3;
 const JOIN_RETRY = [3_000, 6_000, 12_000, 20_000];
 const NOTICE_MS = 4_000;
 const MIC_ERRORS = ['Доступ к микрофону запрещён', 'Не удалось открыть микрофон', 'Микрофон недоступен', 'Микрофон отключился'];
+/** Цепочка отправки: микрофон (уже с эхо- и шумоподавлением браузера) → громкость → поток, который уходит собеседникам */
+interface SendChain { ctx: AudioContext; source: MediaStreamAudioSourceNode; gain: GainNode; track: MediaStreamTrack }
 function typing(target: EventTarget | null | undefined) {
   const el = target as HTMLElement | null;
   return !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color', 'file', 'image'].includes((el as HTMLInputElement).type)));
@@ -116,6 +138,12 @@ export class VoiceController {
   private gameMuted = false;
   private linkIsDown = false;
   private stream: MediaStream | null = null;
+  private audio: AudioContext | null = null;
+  /** Движок не создался или не проснулся — дальше без него */
+  private audioBroken = false;
+  private chain: SendChain | null = null;
+  /** Хвост после отпускания V: таймер до тишины */
+  private tail: Timer | null = null;
   private peers = new Map<number, Peer>();
   private presence: VoicePeer[] = [];
   private joining = false;
@@ -434,10 +462,10 @@ export class VoiceController {
   private async replaceMic(peer: Peer, valid: () => boolean) {
     const sender = peer.sender; if (!sender) return;
     // Read current track at execution, not enqueue time. A detached/closed generation never attaches.
-    const track = this.stream?.getAudioTracks()[0] ?? null;
+    const track = this.sendTrack();
     await sender.replaceTrack(track);
     if (!valid()) return;
-    const current = this.stream?.getAudioTracks()[0] ?? null;
+    const current = this.sendTrack();
     if (track !== current) await sender.replaceTrack(current);
     if (valid()) await this.bitrate(peer);
   }
@@ -550,6 +578,7 @@ export class VoiceController {
   }
   private useStream(stream: MediaStream) {
     this.stream = stream;
+    const old = this.chain; this.chain = this.makeChain(stream); this.dropChain(old);
     stream.getAudioTracks()[0]?.addEventListener('ended', () => {
       if (this.stream !== stream) return;
       this.disableMic(); this.micWanted = true; this.error = 'Микрофон отключился. Подключите его и нажмите V.'; this.changed();
@@ -572,7 +601,65 @@ export class VoiceController {
     this.stopTalking(); this.micGeneration++;
     const stream = this.stream; this.stream = null; this.mic = 'off';
     if (stream) for (const track of stream.getTracks()) { track.enabled = false; track.stop(); }
+    this.dropChain(this.chain); this.chain = null;
     for (const peer of this.peers.values()) this.attachMic(peer);
+  }
+  /** Что уходит собеседникам: поток цепочки (с затуханием) или, без движка, дорожка микрофона */
+  private sendTrack(): MediaStreamTrack | null { return this.chain?.track ?? this.stream?.getAudioTracks()[0] ?? null; }
+  private makeChain(stream: MediaStream): SendChain | null {
+    if (this.audioBroken || !stream.getAudioTracks()[0]) return null;
+    try {
+      this.audio ??= this.deps.createAudioContext();
+      const ctx = this.audio;
+      if (!ctx) { this.audioBroken = true; return null; }
+      const source = ctx.createMediaStreamSource(stream), gain = ctx.createGain(), dest = ctx.createMediaStreamDestination();
+      gain.gain.value = 0;
+      source.connect(gain); gain.connect(dest);
+      const track = dest.stream.getAudioTracks()[0];
+      if (!track) { source.disconnect(); gain.disconnect(); this.audioBroken = true; return null; }
+      track.enabled = false;
+      return { ctx, source, gain, track };
+    } catch { this.audioBroken = true; return null; }
+  }
+  private dropChain(chain: SendChain | null) {
+    if (!chain) return;
+    chain.track.enabled = false;
+    try { chain.source.disconnect(); chain.gain.disconnect(); chain.track.stop(); } catch { /* уже разобрана */ }
+  }
+  /** Нажатие V — жест: будим движок. Не проснулся — дальше шлём дорожку микрофона напрямую (хвост без затухания). */
+  private wake() {
+    const chain = this.chain, ctx = chain?.ctx;
+    if (!chain || !ctx || ctx.state === 'running') return;
+    const fail = () => {
+      if (this.chain !== chain || ctx.state === 'running') return;
+      this.audioBroken = true; this.chain = null;
+      // дорожка микрофона уже в том же состоянии (gate), собеседникам — она
+      this.dropChain(chain);
+      for (const peer of this.peers.values()) this.attachMic(peer);
+    };
+    ctx.resume().then(fail, fail);
+  }
+  /** Всё, что может прозвучать у собеседников: дорожка микрофона и поток цепочки */
+  private gate(on: boolean) {
+    if (this.stream) for (const t of this.stream.getTracks()) t.enabled = on;
+    if (this.chain) this.chain.track.enabled = on;
+  }
+  /** Громкость отправки: start — свежее нажатие (ждём звук, потом подъём за 25 мс), in — подъём за 25 мс с текущей, out — затухание, cut — ноль сразу */
+  private ramp(mode: 'start' | 'in' | 'out' | 'cut') {
+    const c = this.chain;
+    if (!c) return;
+    try {
+      const p = c.gain.gain, now = c.ctx.currentTime;
+      if (mode === 'cut') { p.cancelScheduledValues(0); p.setValueAtTime(0, now); return; }
+      if (mode === 'start') {
+        p.cancelScheduledValues(0); p.setValueAtTime(0, now); p.setValueAtTime(0, now + VOICE_ONSET_S);
+        p.linearRampToValueAtTime(1, now + VOICE_ONSET_S + VOICE_FADE_IN_S);
+        return;
+      }
+      // с текущего значения: перехват посреди затухания — без скачка
+      const v = p.value; p.cancelScheduledValues(now); p.setValueAtTime(v, now);
+      if (mode === 'in') p.linearRampToValueAtTime(1, now + VOICE_FADE_IN_S); else p.setTargetAtTime(0, now, VOICE_FADE_OUT_TAU_S);
+    } catch { /* движок сломался — остаётся хвост без затухания */ }
   }
   /** Сменить устройство или шумоподавление на ходу: новый поток, собеседникам — новая дорожка без пересогласования. */
   private async reacquire() {
@@ -594,23 +681,45 @@ export class VoiceController {
   // ------------------------------------------------------------ передача
 
   push(down: boolean) {
-    if (this.prefs.mode === 'toggle') { if (down) { if (this.held) this.stopTalking(); else this.startTalking(); } return; }
-    if (down) this.startTalking(); else this.stopTalking();
+    if (this.prefs.mode === 'toggle') { if (down) { if (this.held) this.release(); else this.startTalking(); } return; }
+    if (down) this.startTalking(); else this.release();
   }
   private startTalking(): boolean {
     if (this.held) return true;
     if (this.mic !== 'ready' || !this.stream) return false;
-    if (!this.eligible()) { if (this.peers.size && !this.reachable() && this.inputEligible()) this.flash('Соединяем голос — ещё секунду…'); return false; }
+    if (!this.eligible()) {
+      if (this.tail !== null) this.stopTalking();
+      if (this.peers.size && !this.reachable() && this.inputEligible()) this.flash('Соединяем голос — ещё секунду…');
+      return false;
+    }
+    // нажали посреди затухания — оно отменяется, громкость быстро возвращается (та же дорожка, без пересогласования)
+    const resume = this.tail !== null;
+    this.clearTail();
     this.held = true;
-    for (const track of this.stream.getAudioTracks()) track.enabled = true;
+    this.wake();
+    this.gate(true);
+    // посреди хвоста звук ещё идёт — подъём сразу; свежее нажатие — подъём, когда звук дошёл до движка
+    this.ramp(resume ? 'in' : 'start');
     this.send({ t: 'voice', a: 'talk', self: this.self!, on: true }); this.heartbeat(); this.changed();
     return true;
   }
+  /** Отпустили V сами: передача идёт ещё хвост с затуханием, потом тишина и «замолчал» (stopTalking). */
+  private release() {
+    if (!this.held) return;
+    this.held = false;
+    if (this.pulse !== null) this.deps.clearTimer(this.pulse); this.pulse = null;
+    this.ramp('out');
+    this.clearTail();
+    // tail не обнуляем до stopTalking: по нему видно, что «говорит» ещё надо снять
+    this.tail = this.deps.setTimer(() => this.stopTalking(), this.chain ? VOICE_TAIL_MS : VOICE_TAIL_PLAIN_MS);
+    this.changed();
+  }
+  private clearTail() { if (this.tail !== null) this.deps.clearTimer(this.tail); this.tail = null; }
   handleKey(code: string, down: boolean, event: KeyboardEvent): boolean {
     if (code !== 'KeyV') return false;
     if (!down) {
       if (this.prefs.mode === 'toggle') return this.on;
-      const handled = this.held || this.on; this.stopTalking(); return handled;
+      const handled = this.held || this.on; this.release(); return handled;
     }
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || typing(event.target) || !this.inputEligible()) return false;
     if (!this.view.available) return false;
@@ -625,13 +734,16 @@ export class VoiceController {
     this.push(true);
     return true;
   }
+  /** Тишина сразу, без хвоста: приватность (blur, скрытая вкладка, запрет, выключение, смена зоны, обрыв) и конец хвоста. */
   stopTalking() {
     // Privacy boundary: synchronous, ahead of signaling, callbacks and queued RTC operations.
-    if (this.stream) for (const track of this.stream.getTracks()) track.enabled = false;
-    const wasHeld = this.held; this.held = false;
+    this.gate(false);
+    this.ramp('cut');
+    const was = this.held || this.tail !== null;
+    this.held = false; this.clearTail();
     if (this.pulse !== null) this.deps.clearTimer(this.pulse); this.pulse = null;
-    if (wasHeld && this.self !== null) this.send({ t: 'voice', a: 'talk', self: this.self, on: false });
-    if (wasHeld) this.changed();
+    if (was && this.self !== null) this.send({ t: 'voice', a: 'talk', self: this.self, on: false });
+    if (was) this.changed();
   }
   private heartbeat() {
     if (this.pulse !== null) this.deps.clearTimer(this.pulse);
@@ -689,11 +801,14 @@ export class VoiceController {
       }); } catch { /* Closed peers may reject stats; never return their exception text. */ }
       return row;
     }));
-    return { enabled: this.on, joined: this.self !== null, self: this.self, zone: this.zone, mic: this.mic, transmitting: this.view.transmitting, playbackBlocked: this.playbackBlocked, peers };
+    return { enabled: this.on, joined: this.self !== null, self: this.self, zone: this.zone, mic: this.mic, transmitting: this.view.transmitting, playbackBlocked: this.playbackBlocked,
+      send: this.chain ? 'webaudio' : 'track', engine: this.audio?.state ?? 'none', gain: this.chain ? this.chain.gain.gain.value : null, tail: this.tail !== null, peers };
   }
   dispose() {
     if (this.disposed) return;
     this.teardown(); this.disposed = true; this.listeners.clear();
+    const audio = this.audio; this.audio = null;
+    if (audio) void audio.close().catch(() => { /* уже закрыт */ });
     this.deps.window?.removeEventListener('blur', this.blur); this.deps.document?.removeEventListener('visibilitychange', this.visibility); this.deps.document?.removeEventListener('focusin', this.focus);
   }
 }
