@@ -40,6 +40,7 @@ import type { MeState } from '../scene.ts';
 import type { Settings } from '../settings.ts';
 import { TOUCH } from '../touch.ts';
 import { setAvatarGun } from './arsenal3d.ts';
+import { gatePress } from './castle.ts';
 import { ArsenalClient, TOWER_BY } from './arsenalc.ts';
 import type { FortHud, MapDot } from './hud.ts';
 import type { TeamRow } from './ui/index.ts';
@@ -525,7 +526,7 @@ export class FortMatch {
     const first = !this.tailSeen;
     this.tailSeen = true;
     if (!first && t.gate < this.gate && t.gate > 0) {
-      props.shakeGate(Math.min(1.5, (this.gate - t.gate) / 25));
+      world.castle.gate.hit(Math.min(1.5, (this.gate - t.gate) / 25));
       hud.hurt('gate');
       if (this.time - this.gateSfxAt > 0.22) {
         this.gateSfxAt = this.time;
@@ -558,7 +559,10 @@ export class FortMatch {
     this.gate = t.gate;
     this.crystal = t.crystal;
     this.left = t.left;
-    props.setGate(t.gate, this.ars.gateMax);
+    props.setGate(t.gate);
+    // ворота замка: прочность (доля от максимума с укреплением), пали ли; укрепление ворот и кристалла — из арсенала
+    world.castle.setTiers(this.ars.gateTier, this.ars.crystalTier);
+    world.castle.gate.set(0, t.gate / this.ars.gateMax, t.gate <= 0, first);
     this.applyEvent();
     props.setCrystal(t.crystal, this.ars.crystalMax);
     props.setRally((t.rally ?? 0) > 0);
@@ -761,6 +765,7 @@ export class FortMatch {
             hud.pb.centerMessage('Ворота пали!', 'Зомби во дворе — защищайте кристалл', '#ff8a6a', 2400);
             if (this.camPos.distanceTo(_v.set(cx, 1.5, GATE.face)) < 25) this.shake = Math.min(1, this.shake + 0.6);
           } else if (what === 1) {
+            world.castle.gate.repair();
             sound.hammer([cx, 1.5, GATE.z1], 3);
             effects.burst(cx, 1.6, GATE.z1 + 0.3, 0xffe08a, 10, 3, 0, 0.5, 1, 0.03);
             if (by === this.myId) hud.pb.bannerMessage('🔨 Ворота подлатаны', 1500);
@@ -908,6 +913,8 @@ export class FortMatch {
           hud.alert('👑 Ворота пали — Барон протискивается во двор · к кристаллу!', 3600);
           const seen = zombies.where(id, _v);
           sound.roar(seen ? [_v.x, _v.y + 3, _v.z] : null, 0.8);
+          // арка вздрагивает, сыплется пыль; остатки створок оторвёт сам Барон, когда войдёт в «горло» (squeeze)
+          this.d.world.castle.gate.rumble();
           break;
         }
         case 'event': {
@@ -1106,6 +1113,12 @@ export class FortMatch {
     this.updateLocalAvatar(dt, alpha);
     const cam = d.world.camera;
     d.zombies.update(this.clock.renderTick, dt, this.time, cam);
+    // босс в проёме ворот — арка дрожит, сыплется пыль (а если ворота пали — остатки створок отрывает)
+    let press = 0;
+    for (const z of this.zlist) {
+      if (isBossKind(z.kind) && z.hp > 0 && d.zombies.where(z.id, _v)) press = Math.max(press, gatePress(_v.x, _v.z));
+    }
+    d.world.castle.gate.squeeze(press);
     d.projectiles?.update(dt);
     d.marks?.update(dt, this.clock.renderTick);
     d.eventFx?.update(dt);

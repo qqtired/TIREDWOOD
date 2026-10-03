@@ -1,14 +1,14 @@
-// Живое в крепости: ворота (трещины и сквозные дыры по прочности, дрожат от ударов, падают — обломки на земле,
-// новые «вырастают»), кристалл над постаментом (цвет и мерцание по прочности, вспышка от удара, луч в небо),
-// колокол на террасе, таблички над стойками, указатели к лестницам с луга. Башни, лестницы и прилавок — арсенал
-// (arsenal3d.ts). Эффекты и звук — у матча, здесь только меши и их анимация.
+// Живое в крепости: кристалл над постаментом (цвет и мерцание по прочности, вспышка от удара, луч в небо),
+// колокол на террасе, таблички над стойками, указатели к лестницам с луга, щит над воротами и кристаллом. Ворота
+// (створки, повреждения, падение, прорыв) — в castle.ts; башни, лестницы и прилавок — арсенал (arsenal3d.ts).
+// Эффекты и звук — у матча, здесь только меши и их анимация.
 import * as THREE from 'three';
-import { CRYSTAL_HP, GATE_HP } from '../../shared/fort.ts';
+import { CRYSTAL_HP } from '../../shared/fort.ts';
 import { LADDERS } from '../../shared/fortladder.ts';
 import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
-import { clamp, makeRng } from '../../shared/math.ts';
-import { glowSprite, mergeColored, paint, place, staticMesh } from '../render/kit.ts';
-import { gateTexture, labelTexture } from './textures.ts';
+import { clamp } from '../../shared/math.ts';
+import { glowSprite, mergeColored, paint, staticMesh } from '../render/kit.ts';
+import { labelTexture } from './textures.ts';
 
 /** Табличка над стойкой: размер на экране (доля высоты кадра) */
 const LABEL_H = 0.042;
@@ -31,15 +31,8 @@ export class FortProps {
   private readonly rally = new THREE.Group();
   private readonly rallyMat = new THREE.MeshBasicMaterial({ color: 0x75ffe0, transparent: true, opacity: .18,
     side: THREE.DoubleSide, depthWrite: false });
-  // ворота
-  private readonly gate = new THREE.Group();
-  private readonly gateMat: THREE.MeshStandardMaterial;
-  private readonly gateTex: THREE.CanvasTexture[] = [];
-  private readonly debris = new THREE.Group();
-  private gateLevel = -1;
+  // ворота стоят (для щита над ними; сами створки — castle.ts)
   private gateUp = true;
-  private gateShake = 0;
-  private gateRise = 1;
   // кристалл
   private readonly crystal = new THREE.Group();
   private readonly gem: THREE.Mesh;
@@ -60,33 +53,6 @@ export class FortProps {
 
   constructor(scene: THREE.Scene, map: FortMap) {
     this.scene = scene;
-    // --- ворота: две плоскости (снаружи и со двора) с одной развёрткой по x — дыры сквозные
-    for (let i = 0; i < 4; i++) this.gateTex.push(gateTexture(i));
-    this.gateMat = new THREE.MeshStandardMaterial({ map: this.gateTex[0], alphaTest: 0.5, roughness: 0.85, side: THREE.DoubleSide });
-    const w = GATE.x1 - GATE.x0;
-    const h = GATE.h;
-    const front = new THREE.PlaneGeometry(w, h);
-    front.rotateY(Math.PI);
-    const fuv = front.getAttribute('uv');
-    for (let i = 0; i < fuv.count; i++) fuv.setX(i, 1 - fuv.getX(i));
-    front.translate(0, h / 2, -0.15);
-    const back = new THREE.PlaneGeometry(w, h).translate(0, h / 2, 0.15);
-    this.gate.add(new THREE.Mesh(front, this.gateMat), new THREE.Mesh(back, this.gateMat));
-    // со двора — засов-брус поперёк створок, сверху — тёмная кромка
-    const trim: THREE.BufferGeometry[] = [
-      paint(new THREE.BoxGeometry(w + 0.3, 0.26, 0.2).translate(0, 1.45, 0.32), 0x5d3c22),
-      paint(new THREE.BoxGeometry(w, 0.06, 0.3).translate(0, h - 0.03, 0), 0x3b2616),
-      paint(new THREE.BoxGeometry(0.16, 0.5, 0.16).translate(-w / 2 - 0.05, 1.45, 0.32), 0x3b3a38),
-      paint(new THREE.BoxGeometry(0.16, 0.5, 0.16).translate(w / 2 + 0.05, 1.45, 0.32), 0x3b3a38),
-    ];
-    const trimMesh = new THREE.Mesh(mergeColored(trim), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
-    trimMesh.castShadow = true;
-    this.gate.add(trimMesh);
-    for (const m of this.gate.children) m.castShadow = true;
-    this.gate.position.set((GATE.x0 + GATE.x1) / 2, 0, (GATE.face + GATE.z1) / 2);
-    scene.add(this.gate);
-    this.buildDebris();
-
     // --- кристалл
     this.gemMat = new THREE.MeshStandardMaterial({
       color: CYAN, emissive: 0x1aa6d6, emissiveIntensity: 0.9, roughness: 0.12, metalness: 0.05, flatShading: true, transparent: true, opacity: 0.93,
@@ -162,23 +128,6 @@ export class FortProps {
 
   // ------------------------------------------------------------ постройка
 
-  /** Обломки ворот: доски вразброс в проезде (видны, только когда ворота пали) */
-  private buildDebris(): void {
-    const rng = makeRng(3);
-    const planks: THREE.BufferGeometry[] = [];
-    for (let i = 0; i < 9; i++) {
-      const len = 0.8 + rng() * 1.6;
-      const g = paint(new THREE.BoxGeometry(0.4, 0.07, len), new THREE.Color(0x8a5a34).multiplyScalar(0.8 + rng() * 0.35));
-      g.rotateX((rng() - 0.5) * 0.3);
-      planks.push(place(g, (rng() - 0.5) * 4.4, 0.05 + rng() * 0.12, (GATE.face + GATE.z1) / 2 + (rng() - 0.3) * 3.4, rng() * Math.PI));
-    }
-    planks.push(place(paint(new THREE.BoxGeometry(5.2, 0.22, 0.2), 0x5d3c22), 0.6, 0.12, GATE.z1 + 1.2, 0.35));
-    const m = staticMesh(mergeColored(planks), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), true);
-    this.debris.add(m);
-    this.debris.visible = false;
-    this.scene.add(this.debris);
-  }
-
   /** Колокол на террасе: деревянная рама, бронзовый колокол с языком. */
   private buildBell(map: FortMap): void {
     const st = map.stations.find((s) => s.kind === 'bell');
@@ -222,27 +171,9 @@ export class FortProps {
 
   // ------------------------------------------------------------ состояние с сервера
 
-  /** Прочность ворот (из max — с укреплением): уровень трещин; 0 — пали (обломки), снова больше 0 — встали. */
-  setGate(hp: number, max = GATE_HP): void {
-    const up = hp > 0;
-    if (up !== this.gateUp) {
-      this.gateUp = up;
-      this.gate.visible = up;
-      this.debris.visible = !up;
-      if (up) this.gateRise = 0;
-    }
-    const f = hp / max;
-    const level = f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : 3;
-    if (level !== this.gateLevel) {
-      this.gateLevel = level;
-      this.gateMat.map = this.gateTex[level];
-      this.gateMat.needsUpdate = true;
-    }
-  }
-
-  /** Удар по воротам: створки вздрагивают */
-  shakeGate(power = 1): void {
-    this.gateShake = Math.min(1, this.gateShake + 0.5 * power);
+  /** Ворота стоят или пали (щит над воротами виден, только пока стоят). Сами створки — castle.ts. */
+  setGate(hp: number): void {
+    this.gateUp = hp > 0;
   }
 
   setCrystal(hp: number, max = CRYSTAL_HP): void {
@@ -283,17 +214,6 @@ export class FortProps {
 
   update(dt: number, t: number, camPos: THREE.Vector3): void {
     if (this.rally.visible) this.rallyMat.opacity = .15 + Math.sin(t * 3) * .025;
-    // ворота: дрожь от ударов, «вырастают» после постройки
-    this.gateShake = Math.max(0, this.gateShake - dt * 3.5);
-    const sh = this.gateShake * this.gateShake;
-    this.gate.position.x = (GATE.x0 + GATE.x1) / 2 + Math.sin(t * 61) * 0.035 * sh;
-    this.gate.rotation.x = Math.sin(t * 47) * 0.02 * sh;
-    if (this.gateRise < 1) {
-      this.gateRise = Math.min(1, this.gateRise + dt * 2.2);
-      const k = this.gateRise;
-      const back = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);
-      this.gate.scale.set(1, Math.max(0.05, back), 1);
-    }
 
     // кристалл: крутится и парит; цвет по прочности, мало — мигает красным; вспышка от удара
     const f = this.crystalFrac;
