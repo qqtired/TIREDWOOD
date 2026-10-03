@@ -8,7 +8,7 @@ import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
 import type { RouletteColor, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
-import type { FortEvent, FortPlayerRow, FortResultRow, FortStatus, FtReward } from './fort.ts';
+import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { RaceTrackId } from './racecourse.ts';
@@ -545,11 +545,13 @@ export type ServerMsg =
   | { t: 'cheer'; nick: string }
   // --- крепость (shared/fort.ts): вход (id — свой номер в снимках, wave — какая волна идёт или была последней),
   // состав, события тика, смена фазы, итоги, жетоны; на набережную — что в крепости (раз в секунду, если менялось)
-  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[] }
+  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[]; card?: FortWaveCard }
   | { t: 'froster'; players: FortPlayerRow[] }
   | { t: 'fev'; k: number; e: FortEvent[] }
-  | { t: 'fphase'; phase: number; end: number; wave: number }
-  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[] }
+  // card — карточка идущей волны (в бою) или следующей (в передышке и сборе)
+  | { t: 'fphase'; phase: number; end: number; wave: number; card?: FortWaveCard }
+  // top — рекорды крепости после этого забега, record — побили рекорд, prev — прежний рекорд
+  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number }
   | ({ t: 'fortReward' } & FtReward)
   | ({ t: 'fortSt' } & FortStatus)
   // --- Fight Club (shared/fight.ts): вход (id — свой номер в снимках, ring — радиус ринга), состав, события тика,

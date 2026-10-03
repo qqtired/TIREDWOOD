@@ -25,9 +25,9 @@ export const TERRACE = { x0: -10, x1: 10, z0: 5, z1: 11, h: 2.2 };
 export const PEDESTAL = { x0: -1.3, x1: 1.3, z0: 1.3, z1: 3.9, h: 1.0 };
 export const CRYSTAL = { x: 0, y: 2.55, z: 2.6 };
 
-export type FortStationKind = 'bell' | 'gate' | 'crystal' | 'turret' | 'jam' | 'shop';
+export type FortStationKind = 'bell' | 'gate' | 'crystal' | 'tower' | 'shop';
 
-/** Стойка лавки: E рядом с ней. arg — номер краскомёта или жёлоба */
+/** Стойка: E рядом с ней (лавка, ворота, кристалл, место башни, колокол). arg — номер места башни */
 export interface FortStation {
   id: number;
   kind: FortStationKind;
@@ -38,20 +38,41 @@ export interface FortStation {
   arg: number;
 }
 
-/** Где стоят краскомёты: верх воротных башен у края «горла» — оттуда видно ворота и дорогу */
-export const TURRET_SPOTS: ReadonlyArray<{ x: number; y: number; z: number }> = [
-  { x: -3.4, y: WALL_H, z: -17.4 },
-  { x: 3.4, y: WALL_H, z: -17.4 },
-];
-/** Ствол краскомёта над верхом башни */
-export const TURRET_MUZZLE = 1.4;
+/** Место башни на стене: где стоит, куда смотрит (наружу), подпись */
+export interface TowerSpot {
+  x: number;
+  y: number;
+  z: number;
+  nx: number;
+  nz: number;
+  /**
+   * Бойница: на сколько метров по нормали от места — уже за наружной гранью бруствера. Оттуда башня «видит» цель
+   * (ствол высунут в бойницу), иначе бруствер прячет всех, кто ближе 15–20 м к стене.
+   */
+  port: number;
+  name: string;
+}
 
-/** Жёлоба на северной стене и куда из них ложится лужа варенья (на дорогу перед стеной) */
-export const CHUTES: ReadonlyArray<{ x: number; z: number; px: number; pz: number }> = [
-  { x: -10.5, z: -14.6, px: -10.5, pz: -20.6 },
-  { x: 0, z: -14.6, px: 0, pz: -20.4 },
-  { x: 10.5, z: -14.6, px: 10.5, pz: -20.6 },
+/**
+ * Восемь мест для башен (баллиста, пушка, смоляной котёл, жаровня): воротные башни, северные бастионы, середины
+ * боковых стен и южные углы (там — против морского десанта). Башня — не препятствие: ход по стене свободен.
+ */
+export const TOWER_SPOTS: readonly TowerSpot[] = [
+  { x: -4.9, y: WALL_H, z: -17.2, nx: 0, nz: -1, port: 1.45, name: 'Ворота, запад' },
+  { x: 4.9, y: WALL_H, z: -17.2, nx: 0, nz: -1, port: 1.45, name: 'Ворота, восток' },
+  { x: -19.2, y: WALL_H, z: -17.2, nx: -0.71, nz: -0.71, port: 2.7, name: 'Северо-западный бастион' },
+  { x: 19.2, y: WALL_H, z: -17.2, nx: 0.71, nz: -0.71, port: 2.7, name: 'Северо-восточный бастион' },
+  { x: -16.5, y: WALL_H, z: -9.5, nx: -1, nz: 0, port: 1.65, name: 'Западная стена' },
+  { x: 16.5, y: WALL_H, z: -9.5, nx: 1, nz: 0, port: 1.65, name: 'Восточная стена' },
+  { x: -16.5, y: WALL_H, z: 12.5, nx: -0.71, nz: 0.71, port: 2.25, name: 'Юго-западный угол' },
+  { x: 16.5, y: WALL_H, z: 12.5, nx: 0.71, nz: 0.71, port: 2.25, name: 'Юго-восточный угол' },
 ];
+/** Ствол башни над ходом по стене (выше зубцов) */
+export const TOWER_MUZZLE = 1.5;
+
+/** Прилавок лавки на террасе (справа, торговец — за ним у южной стены): коробка и где встать покупателю */
+export const SHOP_COUNTER = { x0: 6.7, x1: 9.3, z0: 9.3, z1: 10.0, h: 1.05 };
+export const SHOP_SPOT = { x: 8, z: 8.3 };
 
 /** Дорога: от конца (там появляются зомби) к воротам; точки — для рисования, зомби идут по полю расстояний */
 export interface FortRoad {
@@ -79,7 +100,13 @@ export const CLIMBS: readonly ClimbPoint[] = [
   { x: FORT.x0, z: 4, nx: -1, nz: 0 },
   { x: FORT.x1, z: -7, nx: 1, nz: 0 },
   { x: FORT.x1, z: 4, nx: 1, nz: 0 },
+  // морская (южная) стена — для абордажников: спрыгивают во двор сбоку от террасы
+  { x: -12.5, z: FORT.z1, nx: 0, nz: 1 },
+  { x: 12.5, z: FORT.z1, nx: 0, nz: 1 },
 ];
+/** Точки лазанья абордажников на морской стене: запад и восток */
+export const CLIMB_SEA_W = 6;
+export const CLIMB_SEA_E = 7;
 
 /** Толщина стены (ход по стене): липучка перелезает бруствер, встаёт на ход и спрыгивает во двор */
 export const WALL_T = 3;
@@ -154,36 +181,13 @@ export function buildFort(): FortMap {
   parapet(-6, THROAT_Z + T, -6 + T, -16, 'z');
   parapet(GATE.x1, THROAT_Z, 6, THROAT_Z + T, 'x');
   parapet(6 - T, THROAT_Z + T, 6, -16, 'z');
-  // запад, восток, юг (к морю)
-  // Two 2.4 m parapet openings meet the exterior rescue stair landings.
+  // запад, восток, юг (к морю). В западной и восточной стенах — проёмы бруствера: туда приставлены лестницы с луга
+  // (shared/fortladder.ts; у лестниц нет коллизии — по ним лезут, W лицом к стене).
   for (const [x0, x1] of [[-18, -18 + T], [18 - T, 18]]) {
     parapet(x0, -13, x1, -2.2, 'z');
     parapet(x0, .2, x1, 11, 'z');
   }
-  // Exterior stairs: 8 low stone steps (0.425 m), accessible from both open flanks.
-  // Shared map boxes are the rendered masonry and the authoritative collision.
-  for (const side of [-1, 1]) {
-    const cx = side * 21.4;
-    for (let i = 0; i < 8; i++) {
-      const z1 = 7 - i;
-      b.box([cx - 1.2, 0, z1 - 1], [cx + 1.2, H * (i + 1) / 8, z1], 'concrete', STONE_DARK);
-    }
-    b.box([Math.min(side * 17.6, cx - 1.2), 0, -2.2], [Math.max(side * 17.6, cx + 1.2), H, 0], 'concrete', TRIM);
-    // Solid outside handrail at landing; open toward the wall and stair run.
-    const outer = side * 22.6;
-    b.box([outer - .1, H, -2.2], [outer + .1, H + .65, 0], 'concrete', TRIM);
-  }
   parapet(-18, 14 - T, 18, 14, 'x');
-
-  // --- лестницы со двора на северную стену: 7 ступеней, верхняя — вровень с ходом по стене
-  for (const cx of [-9, 9]) {
-    const run = 0.62;
-    for (let i = 0; i < 7; i++) {
-      const top = (H * (i + 1)) / 7;
-      const za = -13 + (6 - i) * run;
-      b.box([cx - 1.1, 0, za], [cx + 1.1, top, za + run], 'concrete', STONE_DARK);
-    }
-  }
 
   // --- цитадель: терраса у южной стены, две лестницы спереди, низкий бортик (у лестниц — проходы)
   const R = TERRACE;
@@ -215,7 +219,11 @@ export function buildFort(): FortMap {
   b.box([-13.2, 0, 2.6], [-11.2, 1.1, 6.2], 'wood', 0x9a6b42);
   b.box([11, 0, 1.5], [13.2, 1.5, 4.5], 'wood', 0xd9b45a);
 
-  // --- стойки лавки
+  // --- прилавок лавки на террасе (навес, товар и торговца рисует клиент)
+  const C = SHOP_COUNTER;
+  b.box([C.x0, R.h, C.z0], [C.x1, R.h + C.h, C.z1], 'wood', 0x9a6438);
+
+  // --- стойки
   const stations: FortStation[] = [];
   const st = (kind: FortStationKind, x: number, y: number, z: number, r: number, arg: number): void => {
     stations.push({ id: stations.length, kind, x, y, z, r, arg });
@@ -224,9 +232,8 @@ export function buildFort(): FortMap {
   st('bell', -8.2, R.h, 9.4, 1.6, 0);
   st('gate', 0, 0, -11.6, 2.4, 0);
   st('crystal', 0, R.h, 5.8, 1.4, 0);
-  TURRET_SPOTS.forEach((t, i) => st('turret', t.x, t.y, t.z, 1.5, i));
-  CHUTES.forEach((c, i) => st('jam', c.x, H, c.z, 1.4, i));
-  st('shop', 8, R.h, 9.3, 2.4, 0);
+  TOWER_SPOTS.forEach((t, i) => st('tower', t.x, t.y, t.z, 1.6, i));
+  st('shop', SHOP_SPOT.x, R.h, SHOP_SPOT.z, 2.4, 0);
 
   // --- игроки появляются на террасе лицом к воротам
   const spawns: SpawnPoint[] = [[-6, 7.2], [-3.6, 7.9], [-1.2, 7.2], [1.2, 7.9], [3.6, 7.2], [6, 7.9]].map(([x, z]) => ({ x, y: R.h, z, yaw: 0, team: 0 }));

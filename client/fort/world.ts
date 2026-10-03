@@ -1,18 +1,22 @@
 // Мир «Старой крепости»: ясный летний день, кучевые облака, море на юге за скалистым берегом, луг с грунтовками,
-// по которым идут зомби, лес по краю луга и холмы до горизонта. Стены и башни — из боксов карты (кладка, тёсаный
-// камень), двор — брусчатка; живое (ворота, кристалл, краскомёты, колокол, лужи варенья, таблички) — в props.ts.
-// Статика склеена по материалам, тени от солнца считаются один раз (и заново — когда ворота падают или встают).
+// по которым идут зомби, лес по краю луга и холмы до горизонта. Замок (стены по боксам карты, надвратная башня,
+// эркеры, флаги, ворота со всеми состояниями, двор, кольца кристалла) — castle.ts; двор — брусчатка; живое
+// (кристалл, колокол, таблички) — в props.ts; арсенал (лестницы, лавка, башни на стенах, гранаты, снаряды) — в
+// arsenal3d.ts. Статика склеена по материалам, тени от солнца считаются один раз (и заново — когда ворота падают
+// или встают).
 import * as THREE from 'three';
-import { WATER_Y } from '../../shared/constants.ts';
-import { FORT, GATE, INSIDE, ROADS, THROAT_Z, type FortMap } from '../../shared/fortmap.ts';
+import { FORT, GATE, INSIDE, ROADS, SHOP_COUNTER, THROAT_Z, type FortMap } from '../../shared/fortmap.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
-import { Gulls, addBox, buildDeco, buildGeo, fitShadow, mergeColored, paint, parts, place, staticMesh, updateFloaters, type Floater, type GeoParts } from '../render/kit.ts';
+import { Gulls, buildDeco, fitShadow, mergeColored, paint, place, staticMesh, updateFloaters, type Floater } from '../render/kit.ts';
 import type { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
 import { fogColor, makeSea, makeSky, type SkyPalette } from '../render/sky.ts';
 import * as rtex from '../render/textures.ts';
+import { Arsenal3D } from './arsenal3d.ts';
+import { CastleDecor } from './castle.ts';
 import { FortProps } from './props.ts';
+import { buildShore } from './shore.ts';
 import * as tex from './textures.ts';
 
 /**
@@ -50,6 +54,8 @@ export class FortWorld {
   readonly camera: THREE.PerspectiveCamera;
   readonly sun: THREE.DirectionalLight;
   readonly props: FortProps;
+  readonly arsenal: Arsenal3D;
+  readonly castle: CastleDecor;
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
   private readonly floaters: Floater[] = [];
@@ -79,8 +85,8 @@ export class FortWorld {
     this.sun.shadow.normalBias = 0.03;
     this.sun.shadow.radius = 2.5;
     scene.add(this.sun, this.sun.target);
-    // тени — на крепость и «горло» перед воротами
-    fitShadow(this.sun, this.sun.target.position, new THREE.Box3(new THREE.Vector3(-26, -0.5, -26), new THREE.Vector3(26, 9, 20)));
+    // тени — на крепость и «горло» перед воротами (до конька надвратной башни)
+    fitShadow(this.sun, this.sun.target.position, new THREE.Box3(new THREE.Vector3(-26, -0.5, -26), new THREE.Vector3(26, 14.5, 20)));
 
     const sky = makeSky(p);
     this.skyMat = sky.material;
@@ -91,13 +97,14 @@ export class FortWorld {
 
     this.buildGround();
     this.buildRoads();
-    this.buildWalls(map);
+    this.castle = new CastleDecor(scene, map);
     this.buildYardProps(map);
-    this.buildShore();
+    buildShore(this.scene);
     this.buildForest();
     this.buildFar();
     buildDeco(scene, map.deco, this.floaters);
     this.props = new FortProps(scene, map);
+    this.arsenal = new Arsenal3D(scene, this.camera);
     this.gulls = new Gulls(scene, 0, 50);
   }
 
@@ -217,53 +224,10 @@ export class FortWorld {
     this.scene.add(spot);
   }
 
-  // ------------------------------------------------------------ стены
-
-  /** Боксы карты: кладка, тёсаный камень, ящики. Ворота, телега и стог — свои модели (props.ts и ниже). */
-  private buildWalls(map: FortMap): void {
-    const rng = makeRng(13);
-    const groups: Record<string, GeoParts> = {};
-    map.boxes.forEach((b, i) => {
-      if (b.mat === 'invisible' || b.mat === 'deck' || i === map.gateBox) return;
-      if ((b.mat === 'wood' && b.variant === undefined) || isWell(b)) return;
-      addBox((groups[b.mat] ??= parts()), b, b.mat, rng);
-    });
-    const mats: Record<string, THREE.Material> = {
-      brick: new THREE.MeshStandardMaterial({ map: tex.stoneTexture(), vertexColors: true, roughness: 0.92, color: 0xfff8ee }),
-      concrete: new THREE.MeshStandardMaterial({ map: tex.cutStoneTexture(), vertexColors: true, roughness: 0.88 }),
-      wood: new THREE.MeshStandardMaterial({ map: rtex.crateTexture(), vertexColors: true, roughness: 0.85 }),
-    };
-    for (const [mat, p] of Object.entries(groups)) {
-      const m = mats[mat];
-      if (m) this.scene.add(staticMesh(buildGeo(p), m, true));
-    }
-    this.buildBanners();
-  }
-
-  /** Флаги на бастионах и над воротами: на шестах, красно-жёлтые, колышутся (вершинный сдвиг в шейдере — не надо). */
-  private buildBanners(): void {
-    const poles: THREE.BufferGeometry[] = [];
-    const spots: Array<[number, number, number]> = [[-18, -16, 0xe0492f], [18, -16, 0xf2c230], [-3.9, -17.6, 0xe0492f], [3.9, -17.6, 0xf2c230]];
-    for (const [x, z] of spots) poles.push(place(paint(new THREE.CylinderGeometry(0.05, 0.06, 3.2, 6), 0x6b4a2c), x, 3.4 + 1.6, z));
-    this.scene.add(staticMesh(mergeColored(poles), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }), true));
-    for (const [x, z, c] of spots) {
-      const flag = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.3, 0.8, 8, 1).translate(0.65, 0, 0),
-        new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, side: THREE.DoubleSide }),
-      );
-      flag.position.set(x, 3.4 + 2.75, z);
-      flag.userData.phase = x * 0.3 + z;
-      this.flags.push(flag);
-      this.scene.add(flag);
-    }
-  }
-
-  private readonly flags: THREE.Mesh[] = [];
-
   /** Двор: колодец, телега, стог — по их боксам (коллизия — боксы, вид — свой). */
   private buildYardProps(map: FortMap): void {
     const wood: THREE.BufferGeometry[] = [];
-    const boxes = map.boxes.filter((b, i) => b.mat === 'wood' && b.variant === undefined && i !== map.gateBox);
+    const boxes = map.boxes.filter((b, i) => b.mat === 'wood' && b.variant === undefined && i !== map.gateBox && !isCounter(b));
     for (const b of boxes) {
       const [x0, y0, z0] = b.min;
       const [x1, y1, z1] = b.max;
@@ -313,27 +277,6 @@ export class FortWorld {
   }
 
   // ------------------------------------------------------------ берег, лес, даль
-
-  /** Скалистый берег на юге: кромка луга обрывается к воде валунами, в воде — камни. */
-  private buildShore(): void {
-    const rng = makeRng(23);
-    const rocks: THREE.BufferGeometry[] = [];
-    const rock = (x: number, y: number, z: number, r: number, c: number) => {
-      const g = new THREE.IcosahedronGeometry(r, 0);
-      g.scale(1 + rng() * 0.6, 0.55 + rng() * 0.35, 1 + rng() * 0.5);
-      g.rotateY(rng() * Math.PI);
-      rocks.push(place(paint(g, new THREE.Color(c).multiplyScalar(0.85 + rng() * 0.25)), x, y, z));
-    };
-    // обрыв: стенка от края луга к воде
-    const cliff = new THREE.PlaneGeometry(900, 1.8);
-    cliff.translate(0, WATER_Y + 0.35, 24);
-    rocks.push(paint(cliff, 0x8f8574));
-    for (let x = -260; x < 260; x += 1.6 + rng() * 1.8) {
-      rock(x, -0.3 - rng() * 0.6, 24.4 + rng() * 1.6, 0.8 + rng() * 1.3, 0x9b917e);
-      if (rng() < 0.35) rock(x + rng(), WATER_Y + 0.1, 26.5 + rng() * 4, 0.5 + rng() * 1.1, 0x857b6a);
-    }
-    this.scene.add(staticMesh(mergeColored(rocks), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }), false));
-  }
 
   /**
    * Лес по краю поля: из него выходят зомби. Деревья — инстансы (ствол и две кроны); у дорог — просеки.
@@ -478,6 +421,8 @@ export class FortWorld {
     this.decorEvery = tier === 'low' ? 1 / 12 : tier === 'medium' ? 1 / 24 : 0;
     this.sun.castShadow = tier !== 'low';
     for (const crown of this.crowns) crown.castShadow = tier === 'high';
+    this.arsenal.setQuality(q, slow);
+    this.castle.setQuality(tier);
     this.renderer.refreshShadows();
   }
 
@@ -492,8 +437,8 @@ export class FortWorld {
       updateFloaters(this.floaters, t);
       this.gulls.update(t);
       if (this.mill) this.mill.rotation.z = -t * 0.35;
-      for (const f of this.flags) f.rotation.y = Math.sin(t * 1.9 + (f.userData.phase as number)) * 0.32 + 0.9;
     }
+    this.castle.update(dt, t);
     this.props.update(dt, t, camPos);
   }
 
@@ -505,6 +450,11 @@ export class FortWorld {
 /** Бокс колодца во дворе (рисуется круглым срубом, а не кубом) */
 function isWell(b: MapBox): boolean {
   return b.mat === 'concrete' && Math.abs(b.min[0] + 9.4) < 0.01 && Math.abs(b.min[2] + 2.4) < 0.01;
+}
+
+/** Бокс прилавка лавки на террасе (корпус рисует arsenal3d.ts, а не телегой) */
+function isCounter(b: MapBox): boolean {
+  return b.mat === 'wood' && Math.abs(b.min[0] - SHOP_COUNTER.x0) < 0.01 && Math.abs(b.min[2] - SHOP_COUNTER.z0) < 0.01;
 }
 
 /** Ближе d к любой дороге (по отрезкам) */

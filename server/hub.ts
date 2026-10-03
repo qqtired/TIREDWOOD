@@ -32,7 +32,7 @@ import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
 import type { Prestart } from '../shared/loading.ts';
-import { emptyStats, type Profile, type Store } from './store.ts';
+import { addFortRun, emptyStats, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
 import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
@@ -118,6 +118,8 @@ export interface HubOptions {
   tg?: TgFeed;
   /** «Крепость» (выпуск 6): комната есть, только если режим включён флагом сервера (FORTRESS) */
   fort?: boolean;
+  /** Только в разработке (--dev): в чате крепости /wave N — сразу к волне N (проверка боссов и поздних волн) */
+  devFort?: boolean;
   /** «Fight Club» (выпуск 6): комната есть, только если режим включён флагом сервера (FIGHT) */
   fight?: boolean;
   skill?: boolean;
@@ -314,6 +316,13 @@ export class Hub {
         outfitOf: (p) => this.outfitOf(p),
         result: (c, row, reward, win, wave) => this.onFortResult(c, row, reward, win, wave),
         afk: (c) => this.onPaintballAfk(c),
+        top: () => this.store.state.fortTop ?? [],
+        saveRun: (rec) => {
+          this.store.state.fortTop = addFortRun(this.store.state.fortTop ?? [], rec);
+          this.store.markDirty();
+        },
+        best: (c) => c.profile && !c.ephemeral ? c.profile.stats.ftBest : 0,
+        dev: o.devFort ?? false,
       })
       : null;
     const now = this.now();
@@ -889,10 +898,11 @@ export class Hub {
     const prof = c.profile;
     if (!prof || c.ephemeral) return;
     const st = prof.stats;
-    st.ftGames++;
+    // выплата по забегу бывает и при выходе: игра считается один раз, сбитые — с прошлой выплаты
+    if (!row.again) st.ftGames++;
     if (win) st.ftWins++;
     if (wave > st.ftBest) st.ftBest = wave;
-    st.ftKills += row.k;
+    st.ftKills += row.kNew ?? row.k;
     if (reward) this.profiles.credit(prof, reward.total, 'mode');
     this.store.markDirty();
     this.tokens(c, prof.tokens);
