@@ -10,7 +10,8 @@ import { buildFort, WALL_H } from '../shared/fortmap.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { BTN_FORWARD, BTN_JUMP, makeEvents, makeInput, makeState } from '../shared/sim.ts';
 import { budgetHp, planCounts, planWave, type WavePlan } from '../server/fort/director.ts';
-import { bossHp, teamPressure } from '../shared/fortwaves.ts';
+import { bossHp, teamEarlyBoost, teamPressure } from '../shared/fortwaves.ts';
+import { FEATURES } from '../server/fort/director.ts';
 const sink = { sendJson() {}, sendBinary() {}, close() {} };
 function add(g: FortGame, pid: number) { return g.addHuman({ pid, nick: `P${pid}`, outfit: DEFAULT_OUTFIT }, sink)!; }
 /** Игра с n защитниками сразу на волне wave; seed — зерно директора (иначе случайное, как в игре) */
@@ -40,7 +41,7 @@ test('с людьми HP волны растёт, на одного — по н�
       assert.ok(many > prev, `wave ${w}, ${n} defenders: ${many} / ${prev}`);
       // на одного: (3/n)^0,4, соло ×1,77 (щиты и кастрюли в бюджете — допуск на состав)
       const per = many / n / one;
-      const want = teamPressure(n) / teamPressure(1);
+      const want = teamPressure(n) / teamPressure(1) * teamEarlyBoost(w, n);
       assert.ok(Math.abs(per / want - 1) < 0.2, `wave ${w}, ${n}: на одного ${per.toFixed(3)} / ${want.toFixed(3)}`);
       prev = many;
     }
@@ -67,7 +68,11 @@ test('late joins add exact quota delta, rescale existing fraction, leave/rejoin 
   assert.equal(g.horde.left, left + diff);
   assert.equal(p[0].waves, 0);
 });
-test('1/2/4/6 defender schedules keep pending enemies and never exceed 60 alive', () => {
+test('1/2/4/6 defender schedules keep pending enemies and never exceed 60 alive', (t) => {
+  // только суша: от двоих десант идёт часто (у четверых — каждую волну), лодки и экипаж — в своих тестах (fort-sea)
+  const sea = FEATURES.sea;
+  FEATURES.sea = false;
+  t.after(() => { FEATURES.sea = sea; });
   for (const n of [1,2,4,6]) {
     // зерно задано: при случайном раз в ~130 игр на 30-й волне у четверых выходило меньше 60 тел (тяжёлая тема)
     const {g} = start(n, 30, 77);

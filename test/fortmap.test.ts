@@ -6,7 +6,7 @@ import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
 import { FORT_WAVES, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_WALKER, ZS_BOSS_BOMB, ZS_TOP } from '../shared/fort.ts';
 import { FT_TOK_MVP, FT_TOK_WIN, killTokens, waveTokens } from '../shared/fortwaves.ts';
 import { ALL_FEATURES, budgetHp, enemyHpScale, planCounts, planWave } from '../server/fort/director.ts';
-import { teamPressure, waveHpPerDefender } from '../shared/fortwaves.ts';
+import { bodyCap, teamEarlyBoost, teamPressure, waveHpPerDefender } from '../shared/fortwaves.ts';
 import { makeRun, settle } from '../server/fort/ledger.ts';
 import { FT_STRIDE, nearestZombie, zombieHead } from '../shared/fortaim.ts';
 import { CLIMBS, FORT, GATE, ROADS, TERRACE, WALL_H, buildFort, insideFort, outsideFort } from '../shared/fortmap.ts';
@@ -143,10 +143,10 @@ test('HP волны — в цель arsenal: на защитника 34,1 HP/с 
         for (const s of p.spawns) hp += budgetHp(s.kind, s.tier, w, n, p.hpScale);
         for (const b of p.boats) b.crew.forEach((k, i) => { hp += budgetHp(k, b.tiers[i], w, n, p.hpScale); });
         const land = p.kraken ? 0.5 : p.boss >= 0 ? 0.6 : 1;
-        const target = waveHpPerDefender(w) * n * teamPressure(n) * land;
+        const target = waveHpPerDefender(w) * n * teamPressure(n) * teamEarlyBoost(w, n) * land;
         assert.ok(Math.abs(hp / target - 1) < 0.01, `волна ${w}, ${n}: ${hp.toFixed(0)} / ${target.toFixed(0)}`);
         const bodies = planCounts(p).reduce((a, b) => a + b, 0);
-        assert.ok(bodies <= 60 + 20 * (n - 1), `волна ${w}, ${n}: тел ${bodies}`);
+        assert.ok(bodies <= bodyCap(n), `волна ${w}, ${n}: тел ${bodies}`);
       }
     }
   }

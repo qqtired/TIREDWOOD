@@ -8,7 +8,7 @@ import {
 } from '../../shared/fortkinds.ts';
 import {
   ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
-  bodyCap, bossHp, bossNumber, bossTier, boatCount, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWave,
+  bodyCap, bossHp, bossNumber, bossTier, boatCountFor, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWaveFor, teamEarlyBoost,
   isFinalWave, isSuperWave, releaseTicks, shieldHp, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
@@ -153,8 +153,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
 
   // десант: экипаж — из HP волны
   const boats: PlanBoat[] = [];
-  if (f.sea && isSeaWave(w)) {
-    const nb = boatCount(w);
+  if (f.sea && isSeaWaveFor(w, n)) {
+    const nb = boatCountFor(w, n);
     const size = crewSize(w);
     for (let b = 0; b < nb; b++) {
       const crew: number[] = [];
@@ -170,7 +170,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   // 20-й волны всегда толще шаркуна 19-й. Состав набираем не очками, а HP: каждый враг «тратит» свои HP из цели
   // arsenal, поэтому тяжёлая тема даёт меньше тел, шустрая — больше, а HP волны всегда в цель. В бюджете — то, что
   // команде нужно снять (budgetHp): щит и кастрюля Чугунка тоже. Щит от s0 не зависит — его считаем отдельно.
-  const target = waveHpPerDefender(w) * n * teamPressure(n) * landMul;
+  const target = waveHpPerDefender(w) * n * teamPressure(n) * teamEarlyBoost(w, n) * landMul;
   const es = eliteShare(w);
   const cs = champShare(w);
   const s0 = enemyHpScale(w, n, f);
@@ -213,9 +213,10 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     for (const [kind, share] of hand.mix) {
       if (kind === Z_WALKER || !f.kinds.has(kind)) continue;
       const c = Math.max(1, Math.round(share * target / hpOf(kind, TIER_NORMAL)));
-      for (let i = 0; i < c && list.length < cap; i++) add(kind, TIER_NORMAL);
+      // 04.10: и в ручных волнах ступень — по eliteShare (элита с 6-й)
+      for (let i = 0; i < c && list.length < cap; i++) add(kind);
     }
-    while (sum < target - walkerHp * 0.5 && list.length < cap) add(Z_WALKER, TIER_NORMAL);
+    while (sum < target - walkerHp * 0.5 && list.length < cap) add(Z_WALKER);
   } else {
     const pool = [...f.kinds].filter((k) => ZK[k].first <= w && WEIGHT[k] > 0);
     const themed = pool.filter((k) => THEME[k]);

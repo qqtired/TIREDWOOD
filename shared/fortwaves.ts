@@ -56,6 +56,24 @@ export function boatCount(w: number): number {
   return w >= 35 ? 3 : w >= 20 ? 2 : 1;
 }
 
+/**
+ * Десант по числу защитников (04.10, владелец: «при 4 игроках — сразу с 4 сторон»). Один — как isSeaWave; двое-трое —
+ * с 6-й каждая вторая; от четверых море — постоянная четвёртая сторона: лодки на каждой волне с 3-й и на одну больше.
+ * Лодки идут к причалам, экипаж лезет через морскую стену — та же проверенная дорога, что у обычного десанта.
+ */
+export function isSeaWaveFor(w: number, humans: number): boolean {
+  const n = defenders(humans);
+  if (n >= 4) return isSuperWave(w) || w >= 3;
+  if (n >= 2) return isSuperWave(w) || (w >= 6 && w % 2 === 0) || isSeaWave(w);
+  return isSeaWave(w);
+}
+
+export function boatCountFor(w: number, humans: number): number {
+  if (!isSeaWaveFor(w, humans)) return 0;
+  const base = w >= 35 ? 3 : w >= 20 ? 2 : 1;
+  return Math.min(4, base + (defenders(humans) >= 4 ? 1 : 0));
+}
+
 /** Абордажников в лодке */
 export function crewSize(w: number): number {
   return w >= 60 ? 8 : w >= 30 ? 6 : 4;
@@ -110,7 +128,8 @@ export const BODY_MUL = 1.1;
 /** Бюджет тел в очках на одного (шаркун = 1 очко) */
 export function wavePoints(w: number): number {
   w = Math.max(1, w);
-  const base = w <= 10 ? 16 + 4 * (w - 1) : w <= 50 ? 52 + 1.5 * (w - 10) : 112 + (w - 50);
+  // 04.10: начало плотнее — 20 + 5 за волну до 10-й (было 16 + 4), дальше прежний шаг
+  const base = w <= 10 ? 20 + 5 * (w - 1) : w <= 50 ? 65 + 1.4 * (w - 10) : 121 + (w - 50);
   return base * BODY_MUL;
 }
 
@@ -119,7 +138,10 @@ export function wavePoints(w: number): number {
  * виртуальной команде (tools/fort-balance/team-sim.ts): новички падают на 15–25-й, опытные на 40–60-й,
  * мастера доходят до 80–100.
  */
-const HARDNESS: ReadonlyArray<readonly [number, number]> = [[1, 1.6], [24, 1.6], [32, 1.45], [45, 1.45], [60, 1.6], [75, 1.75], [100, 2]];
+const HARDNESS: ReadonlyArray<readonly [number, number]> = [
+  // 04.10 второй заход: начальные волны заметно тяжелее (×2,8 на 1-й, ×2,1 к 15-й); тел и золота больше — и дальше туже
+  [1, 2.8], [8, 2.5], [15, 2.1], [24, 1.8], [32, 1.65], [45, 1.6], [60, 1.7], [75, 1.85], [100, 2.1],
+];
 
 export function waveHardness(w: number): number {
   return logInterp(HARDNESS, w);
@@ -175,8 +197,24 @@ export function teamHpMul(humans: number): number {
  */
 const TEAM_LOAD: readonly number[] = [1.8, 1.22, 1, 0.87, 0.82, 0.73];
 
+/** 04.10 владелец: «корректируй по числу игроков» — сверх договора команды: вдвоём ×1,05, втроём ×1,08, вчетвером ×1,12 */
+const TEAM_HARD: readonly number[] = [1, 1.05, 1.08, 1.12, 1.14, 1.16];
+
+export function teamHardness(humans: number): number {
+  return TEAM_HARD[defenders(humans) - 1];
+}
+
+/**
+ * Команде начало тяжелее: башен ещё нет, а стрелков много — до 15-й волны HP земли (не боссов) × 1 + 0,12 на
+ * каждого второго и далее, к 20-й — сходит на нет (вчетвером на 1–5-й ×1,36).
+ */
+export function teamEarlyBoost(w: number, humans: number): number {
+  const fade = Math.max(0, Math.min(1, (20 - w) / 15));
+  return 1 + 0.12 * (defenders(humans) - 1) * fade;
+}
+
 export function teamPressure(humans: number): number {
-  return TEAM_LOAD[defenders(humans) - 1];
+  return TEAM_LOAD[defenders(humans) - 1] * teamHardness(humans);
 }
 
 /** Боссы — доля волны на всю команду: n × нагрузка команды */
@@ -184,9 +222,9 @@ export function bossTeamMul(humans: number): number {
   return defenders(humans) * teamPressure(humans);
 }
 
-/** Тел за волну не больше: 60 / 120 / 160 на 1 / 4 / 6 защитников; живых одновременно — FORT_MAX_ALIVE */
+/** Тел за волну не больше: 60 / 135 / 185 на 1 / 4 / 6 защитников; живых одновременно — FORT_MAX_ALIVE */
 export function bodyCap(humans: number): number {
-  return 60 + 20 * (defenders(humans) - 1);
+  return 60 + 25 * (defenders(humans) - 1);
 }
 
 // ------------------------------------------------------------ элита
@@ -199,12 +237,13 @@ export const TIER_HP: readonly number[] = [1, 2.5, 6];
 export const TIER_DMG: readonly number[] = [1, 1.25, 1.5];
 export const TIER_SPEED: readonly number[] = [1, 1.08, 1.0];
 
+/** Элита — с 6-й (было с 18-й), чемпионы — с 20-й (было с 30-й) */
 export function eliteShare(w: number): number {
-  return Math.max(0, Math.min(0.4, 0.015 * (w - 17)));
+  return Math.max(0, Math.min(0.4, 0.02 * (w - 5)));
 }
 
 export function champShare(w: number): number {
-  return Math.max(0, Math.min(0.12, 0.005 * (w - 29)));
+  return Math.max(0, Math.min(0.12, 0.005 * (w - 19)));
 }
 
 // ------------------------------------------------------------ броня и щиты

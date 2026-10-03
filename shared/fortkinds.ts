@@ -114,7 +114,11 @@ export const BARREL_R = 3.5;
 export const BARREL_GATE = 300;
 export const BARREL_CRYSTAL = 200;
 export const BARREL_PLAYER = 30;
-export const BARREL_ZOMBIE = 120;
+/**
+ * Своим — 18 × HP-множитель волны (треть шаркуна): было 120 (два шаркуна) — 04.10 владелец: подрывники рвались разом
+ * и чистили волну за людей. Соседних подрывников взрыв не задевает — цепочки нет (horde.drainBarrels).
+ */
+export const BARREL_ZOMBIE = 18;
 /** Сбили подрывника до взрыва — бочка рвётся на месте: по строениям только эта доля */
 export const BARREL_SHOT_MUL = 0.3;
 /** Лекарь: раз в столько тиков лечит соседей в радиусе на долю их HP (боссов — на пятую часть доли) */
