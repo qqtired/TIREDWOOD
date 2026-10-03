@@ -50,6 +50,8 @@ const CAM_BACK = 6.2;
 const CAM_UP = 2.4;
 const CAM_AHEAD = 4;
 const CAM_MARGIN = 1;
+/** Камера не ниже стольких метров над землёй и дорогой под собой (склоны серпантина, гребень) */
+const CAM_CLEAR = 1.15;
 /** Поле зрения по вертикали: 70 на месте → 78 на полной скорости, +6 в турбо */
 const FOV_MIN = 70;
 const FOV_SPEED = 8;
@@ -124,6 +126,9 @@ export class RaceMatch {
   private readonly myPose: KartPose = makeKartPose();
   private readonly loc = makeLoc();
   private readonly camLoc = makeLoc();
+  private readonly floorLoc = makeLoc();
+  /** Сглаженный «пол» камеры (−∞ — ещё не было) */
+  private camFloorY = -Infinity;
   private readonly dots: MapDot[] = [];
   private readonly shots: PaintShot[] = [];
 
@@ -840,7 +845,11 @@ export class RaceMatch {
     const t = world.time;
     const ox = (Math.sin(t * 41) + Math.sin(t * 27)) * 0.05 * sh;
     const oy = Math.sin(t * 33) * 0.07 * sh;
-    cam.position.set(cx + ox, this.camY + oy, cz);
+    // пол: земля и дорога под камерой — сглажен, чтобы на изломах не дёргался
+    this.floorLoc.seg = this.camLoc.seg;
+    const floor = world.camFloor(cx, cz, this.floorLoc) + CAM_CLEAR;
+    this.camFloorY = this.camFloorY === -Infinity || Math.abs(floor - this.camFloorY) > 8 ? floor : damp(this.camFloorY, floor, 10, dt);
+    cam.position.set(cx + ox, Math.max(this.camY, this.camFloorY) + oy, cz);
     cam.lookAt(p.x + hx * CAM_AHEAD + ox * 0.5, p.y + 0.8 + oy * 0.5, p.z + hz * CAM_AHEAD);
 
     const lvl = s.boostT > 0 ? s.boostLvl : 0;
