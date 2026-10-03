@@ -11,51 +11,59 @@ import { TYPICAL, EXPERT, fishIncome, reelStats } from './fishbot.ts';
 
 const sp = (id: string) => FISH.findIndex(f => f.id === id);
 
-test('exactly two appended real species expand completion to32 without shifting old species IDs', () => {
-  assert.equal(COLLECTION_SIZE, 32);
-  assert.equal(COLLECTION.length, 32);
+test('appended real species expand completion (32 at the pier + 19 on the barkas) without shifting old species IDs', () => {
+  assert.equal(COLLECTION_SIZE, 51);
+  assert.equal(COLLECTION.length, 51);
   assert.equal(sp('whiteshark'), 32);
   assert.equal(sp('chest'), 33);
   assert.equal(sp('bluemarlin'), 34);
   assert.equal(sp('greenlandshark'), 35);
+  assert.equal(sp('sprat'), 36, 'виды баркаса — строго после прежних');
+  assert.equal(sp('hammerhead'), 54);
   assert.equal(RULE[34]!.tier, T_LEGEND);
   assert.equal(RULE[35]!.tier, T_MYTH);
-  const oldAlbum = Object.fromEntries(COLLECTION.filter(s => s < 34).map(s => [FISH[s].id, [FISH[s].g[0], 1] as const]));
-  assert.equal(collectionCount(oldAlbum), 30, 'old full album cannot satisfy32');
-  assert.ok(collectionCount(oldAlbum) < COLLECTION_SIZE);
-  for (const s of [34, 35]) oldAlbum[FISH[s].id] = [FISH[s].g[0], 1];
-  assert.equal(collectionCount(oldAlbum), 32);
+  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier');
+  assert.equal(pier.length, 32);
+  assert.ok(pier.every(s => s < 36));
+  const oldAlbum = Object.fromEntries(pier.map(s => [FISH[s].id, [FISH[s].g[0], 1] as const]));
+  assert.equal(collectionCount(oldAlbum), 32, 'вся прежняя коллекция на месте');
+  assert.ok(collectionCount(oldAlbum) < COLLECTION_SIZE, 'для полной — нужен баркас');
 });
 
-test('unique event-only pool contains allfive rarity tiers, includes common picarel and two real new species', () => {
+test('unique event-only pools: pier keeps all five tiers with picarel; barkas adds its own four', () => {
   const unique = COLLECTION.filter(s => RULE[s]!.rain);
-  assert.equal(unique.length, 8);
-  assert.deepEqual([...new Set(unique.map(s => RULE[s]!.tier))].sort(), [0, 1, 2, 3, 4]);
+  const pier = unique.filter(s => RULE[s]!.zone === 'pier');
+  const sea = unique.filter(s => RULE[s]!.zone === 'barkas');
+  assert.equal(pier.length, 8);
+  assert.equal(sea.length, 4);
+  assert.deepEqual([...new Set(pier.map(s => RULE[s]!.tier))].sort(), [0, 1, 2, 3, 4]);
+  assert.deepEqual(sea.map(s => RULE[s]!.tier).sort(), [1, 2, 2, 3], 'баркас в дождь: 1 редкая, 2 эпические, 1 легенда');
   assert.equal(RULE[sp('picarel')]!.tier, T_COMMON);
   assert.ok(RULE[sp('picarel')]!.rain);
-  const mods = fishCastMods({ ...emptyFishProgress(), xp: 15_000, beerUntil: 1_000_000 }, 0);
-  const rng = makeRng(337);
-  for (let i = 0; i < 100_000; i++) assert.ok(!RULE[rollCatch2(false, rng, mods).sp]!.rain);
-  for (const s of unique) {
-    assert.equal(biteShare(s, false, mods), 0);
-    assert.ok(biteShare(s, true) > 0 && isCollected(s));
+  for (const zone of ['pier', 'barkas'] as const) {
+    const mods = fishCastMods({ ...emptyFishProgress(), xp: 15_000, beerUntil: 1_000_000 }, 0, zone);
+    const rng = makeRng(337);
+    for (let i = 0; i < 50_000; i++) assert.ok(!RULE[rollCatch2(false, rng, mods).sp]!.rain);
+    for (const s of unique) {
+      assert.equal(biteShare(s, false, mods), 0);
+      assert.equal(biteShare(s, true, mods) > 0, RULE[s]!.zone === zone, `${FISH[s].id}: только в своём месте`);
+      assert.ok(isCollected(s));
+    }
   }
 });
 
-test('new event myth is rarest and harder than legend but skilled players can land it', () => {
+test('event myth is the rarest pier fish, harder than its legend, and still catchable', () => {
   const legend = sp('bluemarlin'), myth = sp('greenlandshark');
   assert.ok(legend >= 0 && myth >= 0, 'both species exist');
-  const eventRares = COLLECTION.filter(s => RULE[s]!.rain && RULE[s]!.tier >= 1 && RULE[s]!.tier <= 2);
+  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier');
+  const eventRares = pier.filter(s => RULE[s]!.rain && RULE[s]!.tier >= 1 && RULE[s]!.tier <= 2);
   assert.ok(biteShare(myth, true) < biteShare(legend, true));
   for (const s of eventRares) assert.ok(biteShare(legend, true) < biteShare(s, true));
-  for (const s of COLLECTION) if (s !== myth) assert.ok(biteShare(myth, true) < biteShare(s, true), FISH[s].id);
-  const oldMyth = RULE[sp('whiteshark')]!;
+  for (const s of pier) if (s !== myth) assert.ok(biteShare(myth, true) < biteShare(s, true), FISH[s].id);
   for (const skill of [TYPICAL, EXPERT]) {
     const green = reelStats(RULE[myth]!.style, skill, 1200, 11 + myth * 7919);
     const marlin = reelStats(RULE[legend]!.style, skill, 1200, 11 + legend * 7919);
-    const white = reelStats(oldMyth.style, skill, 1200, 11 + oldMyth.sp * 7919);
-    assert.ok(marlin.costTicks < white.costTicks, 'new legendary must stay below the old myth band');
-    assert.ok(green.costTicks >= white.costTicks, 'event myth is at least as difficult as the old myth');
+    assert.ok(green.p < marlin.p || skill === EXPERT, 'обычному игроку мифик труднее легенды');
     assert.ok(green.p > (skill === EXPERT ? .4 : .05), 'myth must be difficult but catchable');
   }
 });

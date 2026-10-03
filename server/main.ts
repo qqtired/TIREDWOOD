@@ -13,6 +13,8 @@ import { fortEnabled } from './fort/room.ts';
 import { Hub, closeReason, type Sink } from './hub.ts';
 import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
+import { FISH } from '../shared/fishing.ts';
+import { SP_CHEST, rollChest, rollWeight } from '../shared/fishrules.ts';
 import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
 import { regattaEnabled } from './lobby/regatta.ts';
@@ -59,11 +61,13 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
+// Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Лаборатория идей /lab (страница + решения владельца в DATA_DIR/lab.json, ключ — DATA_DIR/lab-key): LAB=1 включает, LAB=0 выключает
 const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
 // Музыкальный автомат на площади: JUKEBOX=1 — включить, JUKEBOX=0 — выключить, без переменной — только с --dev
 const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce, jukebox,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, storm, pirates, voice, voiceIce, jukebox,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
 // /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
@@ -75,7 +79,18 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
+// DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание)
+const devFish = DEV ? (process.env.DEV_FISH ?? '').split(',').map((id) => FISH.findIndex((f) => f.id === id.trim())).filter((sp) => sp >= 0) : [];
+if (devFish.length && hub.lobby.fishing2) {
+  let next = 0;
+  hub.lobby.fishing2.roll = (_rain, rand) => {
+    const sp = devFish[next++ % devFish.length];
+    return { sp, g: rollWeight(sp, rand), coins: sp === SP_CHEST ? rollChest(rand) : 0 };
+  };
+  console.log(`DEV_FISH: клюют по очереди ${devFish.map((sp) => FISH[sp].id).join(', ')}`);
+}
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');

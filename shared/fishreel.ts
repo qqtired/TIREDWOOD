@@ -34,8 +34,20 @@ const DART_TICKS = 40;
 /** Начало: рыба стоит в зоне столько тиков (+ до столько же), чтобы успеть взяться */
 const START_HOVER = 30;
 
-export const REEL_PATTERNS = ['Dash', 'FakeDash', 'Sawtooth', 'HoverDash', 'SlowMigration', 'EdgeSnapback', 'DoubleDash', 'Wave', 'Nervous', 'Ambush'] as const;
+export const REEL_PATTERNS = [
+  'Dash', 'FakeDash', 'Sawtooth', 'HoverDash', 'SlowMigration', 'EdgeSnapback', 'DoubleDash', 'Wave', 'Nervous', 'Ambush',
+  // fisheco: «Свечка», «Уход на глубину», «Круги», «Зигзаг»
+  'Breach', 'Sound', 'Circle', 'Zigzag',
+] as const;
 export type ReelPattern = typeof REEL_PATTERNS[number];
+/** Названия паттернов для игрока (журнал, подсказки) */
+export const PATTERN_NAMES: Readonly<Record<ReelPattern, string>> = {
+  Dash: 'рывок', FakeDash: 'ложный рывок', Sawtooth: 'пила', HoverDash: 'зависание и рывок', SlowMigration: 'медленный уход',
+  EdgeSnapback: 'к краю и назад', DoubleDash: 'двойной рывок', Wave: 'волна', Nervous: 'нервная', Ambush: 'засада',
+  Breach: 'свечка', Sound: 'уход на глубину', Circle: 'круги', Zigzag: 'зигзаг',
+};
+/** «Последний рывок» легенд и мификов начинается, когда прогресс дошёл до стольких единиц (70 %) */
+export const STAND_P = 28_000;
 
 /**
  * Манера рыбы на шкале — в понятных единицах (таблица в shared/fishrules.ts):
@@ -52,6 +64,8 @@ export interface ReelStyle {
   patternPeriod?: number;
   /** Excursion amplitude in percent of the bar. */
   patternAmplitude?: number;
+  /** «Последний рывок» на 70 % прогресса: один цикл главного паттерна со скоростью ×lastStand/100 (130 — ×1,3); нет — без него */
+  lastStand?: number;
   spd: number;
   sharp: number;
   turn: number;
@@ -73,6 +87,8 @@ interface Cfg {
   secondaryPattern: number;
   patternPeriod: number;
   patternAmplitude: number;
+  /** «Последний рывок»: множитель скорости, % (0 — нет) */
+  stand: number;
   spd: number;
   acc: number;
   turn: number;
@@ -120,6 +136,8 @@ export interface Reel {
   patternAnchor: number;
   patternDir: number;
   patternTarget: number;
+  /** «Последний рывок»: 0 — ещё не было, 1 — идёт, 2 — позади */
+  stand: number;
   readonly c: Cfg;
 }
 
@@ -143,6 +161,7 @@ function cfgOf(s: ReelStyle): Cfg {
     secondaryPattern: s.secondaryPattern === undefined ? -1 : REEL_PATTERNS.indexOf(s.secondaryPattern),
     patternPeriod: Math.round(clampI(s.patternPeriod ?? 180, 60, 480)),
     patternAmplitude: Math.round(clampI(s.patternAmplitude ?? s.roam, 5, 85) * pct),
+    stand: s.lastStand ? Math.round(clampI(s.lastStand, 100, 200)) : 0,
     spd: div(s.spd * pct, 60),
     acc: Math.round(6 + clampI(s.sharp, 1, 10) * 9),
     turn: div(s.turn * 10_000, 3600),
@@ -176,7 +195,7 @@ function rnd(r: Reel, n: number): number {
 export function reelStart(style: ReelStyle, seed: number): Reel {
   const c = cfgOf(style);
   const r: Reel = {
-    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, c,
+    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, c,
   };
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
   r.f = div(c.zone, 2);
@@ -268,7 +287,14 @@ function wave(q: number): number {
 function patternedFishStep(r: Reel): void {
   const c = r.c;
   if (r.patternTick < 0 && r.timer > 0) { r.timer--; return; }
+  // «Последний рывок»: прогресс дошёл до 70 % — сразу новый цикл главного паттерна, быстрее обычного
+  const stand = c.stand > 0 && r.stand === 0 && r.patternTick >= 0 && r.p >= STAND_P;
+  if (stand) {
+    r.stand = 1;
+    r.patternTick = r.patternLength;
+  }
   if (r.patternTick < 0 || r.patternTick >= r.patternLength) {
+    if (r.stand === 1 && !stand) r.stand = 2;
     r.patternTick = 0;
     r.patternLength = div(c.patternPeriod * (80 + rnd(r, 41)), 100);
     r.patternAnchor = r.f;
@@ -279,7 +305,7 @@ function patternedFishStep(r: Reel): void {
     r.patternCycle++;
   }
   const q = div(r.patternTick * 1000, r.patternLength);
-  const kind = r.patternCycle % 3 === 0 ? c.secondaryPattern : c.mainPattern;
+  const kind = r.stand === 1 ? c.mainPattern : r.patternCycle % 3 === 0 ? c.secondaryPattern : c.mainPattern;
   const a = c.patternAmplitude * r.patternDir;
   const origin = r.patternAnchor;
   let target = origin;
@@ -329,7 +355,29 @@ function patternedFishStep(r: Reel): void {
       target = q < 720 ? origin : origin + a;
       if (q >= 720) { speed = div(c.dartSpd * 6, 5); acceleration *= 4; }
       break;
+    case 10: { // Breach «Свечка»: стремительно вверх выше привычного, миг на высоте, падение ниже исходной глубины.
+      const peak = origin + c.patternAmplitude + div(c.patternAmplitude, 2);
+      if (q < 220) { target = peak; speed = c.dartSpd; acceleration *= 3; }
+      else if (q < 380) { target = peak; speed = div(c.spd, 3); }
+      else if (q < 620) { target = origin - div(c.patternAmplitude, 3); speed = div(c.dartSpd * 4, 5); acceleration *= 2; }
+      break;
+    }
+    case 11: { // Sound «Уход на глубину»: бросок ко дну, упрямое покачивание у самого дна, медленный подъём.
+      const floor = div(REEL_BAR, 25);
+      if (q < 260) { target = floor; speed = c.dartSpd; acceleration *= 2; }
+      else if (q < 760) target = floor + div(c.patternAmplitude * (wave((q * 3) % 1000) + 1000), 8000);
+      else speed = div(c.spd, 2);
+      break;
+    }
+    case 12: // Circle «Круги»: два витка волны, размах растёт от трети до полного.
+      target = origin + div(div(a * (300 + div(q * 7, 10)), 1000) * wave((q * 2) % 1000), 1000);
+      break;
+    case 13: // Zigzag «Зигзаг»: шесть коротких бросков то вверх, то вниз.
+      target = origin + (div(q * 6, 1000) % 2 === 0 ? div(a, 2) : -div(a, 2));
+      speed = c.dartSpd; acceleration *= 2;
+      break;
   }
+  if (r.stand === 1) speed = div(speed * c.stand, 100);
   r.ft = clampI(target, 0, REEL_BAR);
   // Existing HUD reads mode 2 for burst feedback. Pattern identity lives in config/cycle;
   // keep the public move/hover/dart contract, including a calm arrival at the target.

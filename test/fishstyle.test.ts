@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
-import { COLLECTION } from '../shared/fishrules.ts';
+import { COLLECTION, COLLECTION_SIZE } from '../shared/fishrules.ts';
 import {
   ALL, GEAR_SLOTS, LADDER, REWARD_INFO, earnedItems, fishTotal, gearOnly, needOf, nextStep, stepNeed,
 } from '../shared/fishstyle.ts';
@@ -71,6 +71,28 @@ test('пороги считаются от числа видов в коде: в
   assert.equal(nextStep(22, 51)?.need, 25);
   assert.equal(nextStep(46, 51)?.need, ALL);
   assert.equal(nextStep(51, 51), null);
+});
+
+test('51 вид в игре (fisheco): ступени 35/40/45 и финал на 51 выдаются ровно на пороге, раньше — ничего', () => {
+  assert.equal(COLLECTION.length, 51);
+  assert.equal(COLLECTION_SIZE, COLLECTION.length);
+  assert.equal(fishTotal(), 51);
+  assert.deepEqual(LADDER.map((s) => stepNeed(s)), [5, 10, 15, 20, 25, 30, 35, 40, 45, 51]);
+  const e = env();
+  const p = login(e.hub, 'Коллекционер').c.profile!;
+  const at = new Map(LADDER.map((s) => [stepNeed(s), s.items]));
+  // по одному виду: вещи ступени появляются ровно на её пороге, между порогами — ничего
+  for (let n = 0; n <= COLLECTION.length; n++) {
+    p.album = album(n);
+    const g = grantLadder(e.profiles, p);
+    assert.deepEqual(g.items, at.get(n) ?? [], `${n} видов`);
+    assert.equal(g.master, n === 51, `${n} видов: финал`);
+    assert.deepEqual(p.owned, earnedItems(n), `${n} видов: всё положенное и только оно`);
+  }
+  for (const [id, need] of [['a:net', 35], ['w:night', 40], ['b:firefly', 45], ['h:captain', 51], ['n:anchor', 51]] as const) {
+    assert.equal(needOf(id), need, id);
+    assert.equal(earnedItems(need - 1).includes(id), false, `${id}: не раньше ${need}`);
+  }
 });
 
 test('наряд: новые слоты только когда надето не «пустое»; чужое — снимается; старые наряды не меняются', () => {

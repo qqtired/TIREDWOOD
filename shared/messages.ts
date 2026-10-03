@@ -4,7 +4,9 @@ import type { DurakMode, DurakView } from './durak.ts';
 import type { PbReward, RcReward, Stats } from './economy.ts';
 import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
+import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
+import type { RouletteColor, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortStatus, FtReward } from './fort.ts';
 import type { Outfit } from './outfit.ts';
@@ -123,6 +125,13 @@ export interface OnlineEntry {
  * Действие за столом. Аргументы: card — карта; on — для beat номер пары на столе, для tomato стул-цель,
  * для react номер реакции, для mode 0 — подкидной / 1 — переводной, для ready 0 / 1.
  */
+/**
+ * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
+ * через FishNpc.register (server/lobby/fishnpc.ts).
+ */
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry';
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry'];
+
 export type DurakAct = 'ready' | 'bot' | 'unbot' | 'mode' | 'ante' | 'stake' | 'attack' | 'beat' | 'transfer' | 'take' | 'pass' | 'tomato' | 'react';
 
 /** wait — собираемся, count — отсчёт до раздачи, play — партия, result — итог */
@@ -193,8 +202,15 @@ export type ClientMsg =
   | { t: 'pull' }
   /** Рыбалка: забросить, подсечь (n — последнее событие поплавка, которое видел), рыбу — в альбом или продать */
   | { t: 'fish'; a: 'cast' | 'hook' | 'keep' | 'sell'; n?: number }
-  /** Рыбак: сервер проверяет близость, цену, заработанную удочку и готовность текущего квеста. */
-  | { t: 'fishNpc'; a: 'open' | 'beer' | 'rain' | 'claim' | 'rod'; rod?: number }
+  /**
+   * Семён или Саня (npc, по умолчанию Семён): сервер проверяет близость, цену, уровень, заработанную удочку, готовность
+   * квеста. buy — item из shared/fishshop.ts (bag1…3, lure1…3); sell — рыба n из рюкзака, sellAll — весь улов.
+   */
+  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number }
+  /** Рюкзак: отпустить рыбу n (где угодно, денег нет) */
+  | { t: 'fishBag'; a: 'release'; n: number }
+  /** Рулетка рыбака: весь улов из рюкзака — на цвет */
+  | { t: 'roulette'; a: 'bet'; c: RouletteColor }
   /**
    * Рыбалка 2.0, шкала вываживания: новые переключения кнопки (k — номера тиков, i — номер первого из них с начала),
    * u — до какого тика досчитал у себя, d: 1 — у себя вываживание кончилось на u
@@ -429,6 +445,8 @@ export type ServerMsg =
     /** Рыбалка 2.0 (флаг сервера FISH2): 1 — шкала вываживания, полная коллекция, доска рекордов у мостков (ftop) */
     fish2?: number;
     ftop?: FishBoardView;
+    /** Рулетка рыбака (флаг сервера ROULETTE) */
+    roulette?: RouletteView;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)
@@ -450,7 +468,12 @@ export type ServerMsg =
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
-  | { t: 'fishNpc'; progress: FishProgress; now: number; open?: boolean; message?: string }
+  | { t: 'fishNpc'; npc: FishNpcId; progress: FishProgress; now: number; open?: boolean; message?: string; sold?: { n: number; coins: number } }
+  // рыбалка 2.0: сорвалась эпическая и выше после 3 с борьбы — утешительный опыт (вид — тайна, только категория)
+  | { t: 'fishLost'; tier: number; xp: number }
+  // рулетка рыбака: стол — при каждом изменении; свой итог — когда колесо остановилось
+  | { t: 'roulette'; v: RouletteView }
+  | { t: 'rouletteResult'; n: number; c: RouletteColor; stake: number; payout: number; fish: number }
   | { t: 'lroster'; players: LobbyPlayerInfo[] }
   | { t: 'outfitOf'; id: number; o: Outfit; level?: number }
   | { t: 'lev'; e: LobbyEvent[] }
@@ -462,8 +485,14 @@ export type ServerMsg =
   // рыбалка 2.0: подсёк — шкала вываживания (вид и сид от сервера; играешь у себя, нажатия — сообщением reel)
   | { t: 'fishReel'; spot: number; sp: number; seed: number; mods: FishCastMods }
   // рыбалка 2.0: вытащил (сервер повторил вываживание): цена (сундук — что в нём, coins), бонус за новый вид, рекорд
-  // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full)
-  | { t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean; rw?: string[] }
+  // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full). fisheco: рыба — в рюкзак
+  // (bag — сколько в нём теперь, cap — мест; bagFull — места не нашлось, рыбу отпустили), base — цена без напитка и
+  // места, m — множители (биты BAG_*), xp — опыт рыбалки, perfect — ни тика вне зоны; rw — награды лестницы
+  // fishstyle, полученные этим уловом
+  | {
+    t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean;
+    base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
+  }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }
   // line — выигравшая строка таблицы выплат автомата m (−1 — ничего)

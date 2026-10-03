@@ -29,7 +29,7 @@ import {
   LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
-import { FISH_SPOTS } from '../../shared/fishplaces.ts';
+import { FISH_NPCS, FISH_SPOTS } from '../../shared/fishplaces.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
 import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
@@ -75,6 +75,8 @@ import { FishingSpots } from './fishing.ts';
 import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
 import { FishDrink } from './fishdrink.ts';
+import { Roulette3D } from './roulette3d.ts';
+import { RouletteHud } from './roulettehud.ts';
 import { LobbyFolk } from './folk.ts';
 import { Respects } from './respect.ts';
 import { LobbyFx } from './fx.ts';
@@ -209,6 +211,8 @@ export class LobbyScene implements Scene {
   /** Рыбалка 2.0: шкала вываживания, карточка улова, журнал, доска рекордов (без флага сервера молчит) */
   private readonly fish2: Fish2Hud;
   private readonly fishDrink: FishDrink;
+  /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
+  private readonly roulette3d: Roulette3D;
   private readonly folk: LobbyFolk;
   /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
   private readonly respects: Respects;
@@ -421,6 +425,7 @@ export class LobbyScene implements Scene {
     this.fishing = new FishingSpots(this.world.scene, this.effects, this.fx, d.sound, this.me);
     addFishPlaces3d(this.world.scene);
     this.fishDrink = new FishDrink(this.me, d.sound);
+    this.roulette3d = new Roulette3D(this.world.scene);
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = new Respects(this.world.scene, this.fx, d.sound);
     this.boatSign = new BoatSign(this.world.scene);
@@ -694,6 +699,11 @@ export class LobbyScene implements Scene {
         for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, this.fish2.on);
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
+        this.roulette3d.setOn(!!msg.roulette);
+        if (msg.roulette) {
+          this.roulette3d.setView(msg.roulette);
+          this.fish2.onRoulette(msg.roulette);
+        }
         this.fishing.reset(msg.fish);
         this.world.setRain(msg.rain === 1, true, msg.wx);
         this.respects.setCount(msg.respects ?? 0);
@@ -841,6 +851,17 @@ export class LobbyScene implements Scene {
         break;
       case 'fishNpc':
         this.fish2.onNpc(msg);
+        break;
+      case 'fishLost':
+        this.fish2.onLost(msg.tier, msg.xp);
+        break;
+      case 'roulette':
+        this.roulette3d.setView(msg.v);
+        this.fish2.onRoulette(msg.v);
+        break;
+      case 'rouletteResult':
+        this.d.ui.toasts.show(RouletteHud.resultText(msg), 6000);
+        if (msg.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(msg.payout))));
         break;
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
@@ -1464,6 +1485,7 @@ export class LobbyScene implements Scene {
         if (this.fish2.npcOpen) this.fish2.closeNpc();
         else this.fish2.closeBook();
       } else if (code === 'KeyJ' && this.fish2.bookOpen) this.fish2.closeBook();
+      else if (code === 'KeyI' && this.fish2.npcOpen) this.fish2.closeNpc();
       if (MOVE_KEYS.has(code) || code === 'KeyE') e.preventDefault();
       return true;
     }
@@ -1486,6 +1508,11 @@ export class LobbyScene implements Scene {
     }
     if (code === 'KeyJ' && this.fish2.on && this.hasSelf && act !== ACT_DURAK) {
       this.fish2.toggleBook();
+      return true;
+    }
+    // рюкзак с уловом (fisheco): I — открыть или закрыть
+    if (code === 'KeyI' && this.fish2.on && this.hasSelf && act !== ACT_DURAK) {
+      this.fish2.toggleBag();
       return true;
     }
     if (code === 'KeyF' && this.photo.hasCard) {
@@ -1586,7 +1613,11 @@ export class LobbyScene implements Scene {
       return;
     }
     const it = this.target;
-    if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen();
+    if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
+    else if (it?.kind === 'roulette') {
+      this.d.net.send({ t: 'use', id: it.id });
+      this.fish2.openRoulette();
+    }
     else if (it && usable(it.kind) && (it.kind !== 'kboard' || this.cheerable)) this.d.net.send({ t: 'use', id: it.id });
     // у статуи E (на телефоне — та же кнопка, на ней «F») — отдать честь
     else if (!it && this.respectHere) this.payRespect();
@@ -1652,6 +1683,12 @@ export class LobbyScene implements Scene {
     const spot = this.arg;
     const ph = this.fishing.phaseOf(spot);
     if (ph === FP_IDLE || (ph === FP_HOLD && this.fish2.on)) {
+      // рюкзак полон — заброс не уйдёт (сервер решил бы так же): сразу подсказка
+      if (this.fish2.on && this.fish2.bagFull) {
+        this.d.ui.toasts.show('Рюкзак полон — продай улов Семёну или Сане (I — рюкзак)', 3200);
+        this.fishSentAt = now;
+        return;
+      }
       // рыбалка 2.0: с рыбой в руках — сразу новый заброс (замах начнётся по событию сервера)
       if (ph === FP_IDLE && !this.fishing.castLocal(spot)) return;
       this.d.net.send({ t: 'fish', a: 'cast' });
@@ -1841,6 +1878,7 @@ export class LobbyScene implements Scene {
     this.pirates3d.update(this.clock.renderTick, dt, this.world.camera, this.eventEligible, TOUCH);
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, camPos);
+    this.roulette3d.update(dt);
     this.respects.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
@@ -1885,6 +1923,7 @@ export class LobbyScene implements Scene {
     this.critters.update(this.time * TICK_RATE, this.time, cam.position, { x: 1e6, y: 0, z: 1e6, speed: 0 });
     this.folk.update(dt, this.time, cam.position, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, cam.position);
+    this.roulette3d.update(dt);
     this.respects.update(dt, this.time, 0);
     this.effects.update(dt);
     this.world.update(dt);
@@ -2160,7 +2199,8 @@ export class LobbyScene implements Scene {
     const ph = this.fishing.phaseOf(this.arg);
     const h = this.hud;
     const cast = TOUCH ? ['🎣'] : ['Пробел', '/', 'ЛКМ'];
-    if (ph === FP_IDLE) h.setHint(cast, TOUCH ? 'Забросить' : `забросить · ${this.fish2.on ? 'J — журнал · ' : ''}E или шаг — уйти`);
+    if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(TOUCH ? [] : ['I'], 'Рюкзак полон — продай улов Семёну или Сане');
+    else if (ph === FP_IDLE) h.setHint(cast, TOUCH ? 'Забросить' : `забросить · ${this.fish2.on ? 'J — журнал · I — рюкзак · ' : ''}E или шаг — уйти`);
     else if (ph === FP_CAST) h.setHint([], 'Заброс…');
     else if (ph === FP_WAIT) h.setHint([], TOUCH ? 'Ждём поклёвку' : 'Ждём поклёвку: поплавок уйдёт под воду — тогда жми Пробел');
     else if (ph === FP_BITE) h.setHint(cast, 'ПОДСЕКАЙ!');
@@ -2235,6 +2275,7 @@ export class LobbyScene implements Scene {
       // арка «Крепости» — только когда режим включён
       if (it.kind === 'fort' && !this.fortSt) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;
+      if (it.kind === 'roulette' && !this.roulette3d.group.visible) continue;
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
@@ -2330,7 +2371,10 @@ export class LobbyScene implements Scene {
         this.hud.setHint(['E'], 'порыбачить');
         break;
       case 'fisher':
-        this.hud.setHint(['E'], 'поговорить с Дедом Семёном · снасти и задания');
+        this.hud.setHint(['E'], it.arg === 1 ? 'поговорить с Саней · продать улов, снасти, задания' : 'поговорить с Дедом Семёном · продать улов, снасти, задания');
+        break;
+      case 'roulette':
+        this.hud.setHint(['E'], this.fish2.roulette.hint());
         break;
       case 'boat':
         if (this.boat.ph === BP_BOARD) this.hud.setHint(['E'], `сесть в катер — бесплатно · отплытие через ${this.boatSecs()} с`);

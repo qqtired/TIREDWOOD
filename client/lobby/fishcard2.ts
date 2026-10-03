@@ -1,14 +1,18 @@
-// Карточка улова рыбалки 2.0 (рыба продаётся сразу, выбирать нечего): картинка, категория цветом, имя, вес, цена,
-// «Новый вид!» с бонусом или «Рекорд!», уникальный вид события ×1,5, сколько из всей коллекции в коллекции. Сундук — своя карточка: трясётся,
+// Карточка улова рыбалки 2.0 (выбирать нечего): картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
+// и из чего она (база · баркас · напиток), опыт («Идеально! ×2,4»), «Новый вид!» с бонусом или «Рекорд!», уникальный
+// вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
 // крышка отскакивает, сыплются монеты, сумма набегает; 200 — джекпот. Сама уходит через несколько секунд или
 // при следующем забросе.
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
-import { COLLECTION_SIZE, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch } from '../../shared/fishrules.ts';
+import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_RAIN } from '../../shared/fishprogress.ts';
+import { ALE, BEER } from '../../shared/fishshop.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
+import { mul, pct } from './fishfmt.ts';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
 
@@ -75,7 +79,18 @@ export class CatchCard2 {
     else if (m.record) sub.textContent = `Прошлый рекорд — ${fmtWeight(m.best)}`;
     else if (!m.fresh) sub.textContent = `Рекорд — ${fmtWeight(m.best)} · ${r.note}`;
     else sub.textContent = r.note;
-    if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
+    if (m.bag !== undefined) {
+      // fisheco: рыба — в рюкзак по цене поимки; ниже — из чего цена и сколько опыта
+      if (m.bagFull) card.appendChild(el('div', 'fc2-price fe-bagfull', 'Рюкзак полон — рыбу пришлось отпустить'));
+      else setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙 в рюкзак (${m.bag}/${m.cap})`);
+      const why: string[] = [];
+      const f = m.m ?? 0;
+      if (f & BAG_BARKAS) why.push(`баркас ${mul(BARKAS_INCOME)}`);
+      if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
+      else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
+      if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
+      if (m.xp) card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`)).classList.toggle('perfect', !!m.perfect);
+    } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
     if (!junk) {
       const col = card.appendChild(el('div', 'fc2-col'));
       col.appendChild(el('span', '', `Коллекция: ${m.got} из ${COLLECTION_SIZE}`));
@@ -86,7 +101,7 @@ export class CatchCard2 {
       if (note) card.appendChild(note);
     }
     this.open(m.full || m.rw ? SHOW_MS + 2500 : SHOW_MS);
-    if (m.price > 0) this.later(250, () => this.sound.coins(null, Math.min(8, Math.max(2, Math.round(m.price / 4)))));
+    if (m.price > 0 && !m.bagFull) this.later(250, () => this.sound.coins(null, Math.min(8, Math.max(2, Math.round(m.price / 4)))));
     if (m.fresh && !junk) this.later(450, () => this.sound.fishAlbum());
     if (m.full) this.later(900, () => this.sound.fanfare(null));
   }
@@ -94,6 +109,20 @@ export class CatchCard2 {
   hide(): void {
     this.clear();
     this.card.classList.remove('show');
+  }
+
+  /** Сорвалась эпическая и выше после 3 с борьбы: утешительный опыт (вид — тайна, только категория). */
+  lost(tier: number, xp: number): void {
+    this.clear();
+    const card = this.card;
+    card.textContent = '';
+    card.className = 'fc2 fe-lost';
+    card.style.setProperty('--tc', TIER_CSS[tier] ?? TIER_CSS[0]);
+    card.appendChild(el('div', 'fc2-head')).appendChild(el('span', 'fc2-tier', `${TIER_NAMES[tier] ?? ''} рыба`));
+    card.appendChild(el('div', 'fc2-title')).appendChild(el('b', '', 'Сорвалась!'));
+    card.appendChild(el('div', 'fe-xp', `+${xp} XP за борьбу`));
+    card.appendChild(el('div', 'fc2-sub', 'За долгую схватку с крупной рыбой опыт остаётся'));
+    this.open(3200);
   }
 
   /** Сундук: трясётся → крышка отскакивает, монеты, сумма набегает с нуля. */

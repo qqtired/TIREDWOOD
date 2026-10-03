@@ -4,8 +4,10 @@
 // и работает старая рыбалка.
 import type * as THREE from 'three';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
-import type { FishProgress } from '../../shared/fishprogress.ts';
+import { bagSlots, fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
+import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
+import type { RouletteView } from '../../shared/roulette.ts';
 import { slotKey, type Outfit } from '../../shared/outfit.ts';
 import type { Sound } from '../audio.ts';
 import type { Ui } from '../scene.ts';
@@ -21,6 +23,10 @@ import { FishProgressHud } from './fishprogresshud.ts';
 import { Fisherman3D } from './fisherman.ts';
 import { FishPodium3D } from './fishpodium.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
+import { FishBag } from './fishbag.ts';
+import { FishOdds } from './fishodds.ts';
+import { RouletteHud } from './roulettehud.ts';
+import { fishLevelUpText } from './fishfmt.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -40,7 +46,11 @@ export class Fish2Hud {
   private readonly rainBadge: HTMLElement;
   private readonly bookBtn: HTMLElement;
   private readonly progress: FishProgressHud;
-  private readonly npc: FishNpcDialog;
+  /** Разговор с Семёном и Саней; npc.extra — шапка для чужих кнопок (перевоз Сани) */
+  readonly npc: FishNpcDialog;
+  private readonly bag: FishBag;
+  private readonly odds: FishOdds;
+  readonly roulette: RouletteHud;
   private readonly fisherman: Fisherman3D;
   private readonly podium: FishPodium3D;
   private readonly clock = new FishClock();
@@ -66,10 +76,17 @@ export class Fish2Hud {
     // журнал — поверх всего на набережной (кнопки и шкала под ним)
     this.book = new FishBook(parent);
     this.progress = new FishProgressHud(this.tools, overlay);
+    this.odds = new FishOdds(this.tools);
     this.npc = new FishNpcDialog(overlay, ui.me, send);
     this.npc.onOpen = () => this.onNpcOpen();
     this.npc.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.npc.onBeer = () => this.onBeer();
+    this.bag = new FishBag(overlay, send);
+    this.bag.onClose = () => { if (!this.quiet) this.onNpcClose(); };
+    this.progress.onBag = () => this.toggleBag();
+    this.roulette = new RouletteHud(overlay, send);
+    this.roulette.onOpen = () => this.onNpcOpen();
+    this.roulette.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.book.onClose = () => {
       if (!this.quiet) this.onBookClose();
     };
@@ -87,8 +104,14 @@ export class Fish2Hud {
     return this.book.isOpen;
   }
 
-  get npcOpen(): boolean { return this.npc.isOpen; }
-  get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen; }
+  get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
+  get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
+
+  /** Рюкзак полон — заброс не уйдёт (сервер скажет то же самое) */
+  get bagFull(): boolean {
+    const f = this.ui.me().fishing;
+    return f.bag.length >= bagSlots(f);
+  }
 
   /** Приветствие набережной: включена ли, доска рекордов, дождь. true — доска только что появилась (пересчитать тени). */
   lobby(on: boolean, top: FishBoardView | null, rain: boolean): boolean {
@@ -128,12 +151,63 @@ export class Fish2Hud {
     this.npc.setEvent(on, until);
   }
 
+  /**
+   * Уровень рыбалки, который игрок уже видел: вырос — плашка «что дал уровень и что открылось». Первое значение с
+   * сервера (вход, возврат на набережную, другой профиль) запоминается молча; назад не идёт — устаревший профиль не
+   * повторит плашку.
+   */
+  private seenLevel = -1;
+  private seenPid = -1;
+
+  private levelCheck(progress: FishProgress): void {
+    const pid = this.ui.me().pid;
+    if (pid !== this.seenPid) {
+      this.seenPid = pid;
+      this.seenLevel = -1;
+    }
+    const level = fishLevel(progress.xp);
+    if (this.seenLevel >= 0 && level > this.seenLevel) this.ui.toasts.show(fishLevelUpText(level), 7000, 'fish-level');
+    this.seenLevel = Math.max(this.seenLevel, level);
+  }
+
   onProgress(progress: FishProgress, now: number): void {
+    this.levelCheck(progress);
     this.clock.sync(now);
     this.progress.set(progress, now);
     this.npc.setProgress(progress, now);
+    this.bag.set(progress);
+    this.roulette.setProgress(progress);
     const me = this.ui.me();
+    this.book.setWeather(this.rain, now);
     this.book.update(me.album, me.owned, progress);
+  }
+
+  /** Сорвалась эпическая и выше после 3 с борьбы — карточка с утешительным опытом */
+  onLost(tier: number, xp: number): void {
+    this.card.lost(tier, xp);
+  }
+
+  /** Стол рулетки поменялся */
+  onRoulette(v: RouletteView): void {
+    this.roulette.setView(v);
+  }
+
+  /** E у стола рулетки */
+  openRoulette(): void {
+    if (this.modalOpen) return;
+    const me = this.ui.me();
+    this.roulette.open(me.fishing, me.pid);
+  }
+
+  /** I или значок 🎒: окно рюкзака */
+  toggleBag(): void {
+    if (this.npc.isOpen || this.book.isOpen || this.roulette.isOpen) return;
+    if (this.bag.isOpen) {
+      this.bag.close();
+      return;
+    }
+    this.bag.open(this.ui.me().fishing);
+    this.onNpcOpen();
   }
 
   onNpc(msg: Extract<ServerMsg, { t: 'fishNpc' }>): void {
@@ -143,14 +217,19 @@ export class Fish2Hud {
       this.book.close();
       this.quiet = false;
     }
+    this.levelCheck(msg.progress);
     this.clock.sync(msg.now);
     this.progress.set(msg.progress, msg.now);
     this.npc.onState(msg);
   }
 
-  closeNpc(): void { this.npc.close(); }
+  closeNpc(): void {
+    this.npc.close();
+    this.bag.close();
+    this.roulette.close();
+  }
 
-  requestNpcOpen(): void { this.npc.requestOpen(); }
+  requestNpcOpen(npc: FishNpcId = 'semyon'): void { this.npc.requestOpen(npc); }
 
   refreshBalance(): void { this.npc.refresh(); }
 
@@ -188,10 +267,13 @@ export class Fish2Hud {
   /** Профиль с сервера (новый улов, комплект) — журнал и счёт на кнопке. */
   onMe(): void {
     const me = this.ui.me();
+    this.levelCheck(me.fishing);
     this.book.rewards.outfit = me.outfit;
     this.book.update(me.album, me.owned, me.fishing);
     this.progress.set(me.fishing);
     this.npc.setProgress(me.fishing);
+    this.bag.set(me.fishing);
+    this.roulette.setProgress(me.fishing);
     this.board.set(this.top, me.pid);
     this.setBookBtn();
   }
@@ -206,12 +288,26 @@ export class Fish2Hud {
       this.reel.update(held);
       if (fishing) spots.setProgress(spot, this.reel.progress);
     }
-    const near = px !== null && pz !== null && this.nearBoard(px, pz);
+    // уровень, задание и рюкзак видны с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить)
+    const near = px !== null && pz !== null && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
     this.tools.classList.toggle('show', (fishing || near) && !this.modalOpen);
+    // «Шансы сейчас» — пока сидишь с удочкой и не тянешь рыбу; место (пристань/баркас) — по своему месту
+    const zone = fishing ? spotZone(spot) : 'pier';
+    this.progress.setZone(zone);
+    this.odds.root.hidden = !fishing || this.reel.active;
+    if (fishing && !this.reel.active) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain);
     this.rainBadge.classList.toggle('show', fishing && this.rain && !this.reel.active);
     if (this.rain) this.rainBadge.textContent = TOUCH
       ? `🎣 Событие ×1,5${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''}`
       : `🎣 Рыболовное событие${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''} · уникальные виды · доход от них ×1,5`;
+  }
+
+  /** Рядом с Семёном или Саней */
+  nearNpc(x: number, z: number): boolean {
+    return FISH2.on && FISH_NPCS.some((id) => {
+      const u = FISH_NPC_USE[id];
+      return !!u && Math.hypot(x - u.x, z - u.z) < u.r + 1.5;
+    });
   }
 
   /** У доски рекордов (подсказка: что на ней и как открыть журнал) */
@@ -243,6 +339,8 @@ export class Fish2Hud {
     this.quiet = true;
     this.book.close();
     this.npc.close(true);
+    this.bag.close();
+    this.roulette.close();
     this.quiet = false;
     this.tools.classList.remove('show');
   }
