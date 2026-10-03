@@ -1235,11 +1235,12 @@ b {
 
 /* ================================================================ чат */
 
+/* на 10 % крупнее (владелец, 2026-10-04): было 440 px, 220 px, текст 14 px; на телефоне — свои размеры ниже */
 .chat {
   position: absolute;
   left: 20px;
   bottom: 180px;
-  width: min(440px, 40vw);
+  width: min(484px, 44vw);
 }
 
 .chat-list {
@@ -1247,16 +1248,16 @@ b {
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  max-height: 220px;
+  max-height: 242px;
   overflow: hidden;
 }
 
 .chat .msg {
   max-width: 100%;
-  padding: 3px 10px;
-  border-radius: 9px;
+  padding: 3px 11px;
+  border-radius: 10px;
   background: var(--panel);
-  font-size: 14px;
+  font-size: 15.4px;
   line-height: 1.35;
   overflow-wrap: anywhere;
   user-select: text;
@@ -1298,7 +1299,7 @@ b {
 }
 
 .chat-label {
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 700;
   color: var(--orange-soft);
 }
@@ -1309,7 +1310,7 @@ b {
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 15px;
+  font-size: 16.5px;
   user-select: text;
 }
 
@@ -2070,7 +2071,7 @@ input[type='checkbox'] {
 }
 
 .chat .room {
-  font-size: 12px;
+  font-size: 13.2px;
 }
 
 /* --- жетоны */

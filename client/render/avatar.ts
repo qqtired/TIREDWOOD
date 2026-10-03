@@ -1285,12 +1285,12 @@ export class Avatar {
       this.root.add(badge);
     }
     badge.position.y = this.tag.position.y;
-    badge.scale.set(0.03, 0.03, 1);
+    badge.scale.set(0.036, 0.036, 1);
     this.positionVoiceIndicator();
     badge.visible = true;
   }
 
-  /** 24 CSS pixels under the actual render camera, including wide FOV and scaled kart avatars. */
+  /** ~29 CSS pixels (было 24, +20 % — владелец просил заметнее) under the actual render camera, including wide FOV and scaled kart avatars. */
   private fitVoiceIndicator(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
     const badge = this.voiceIndicator!;
     const height = renderer.domElement?.clientHeight || viewH || 720;
@@ -1299,7 +1299,7 @@ export class Avatar {
     const parentX = Math.hypot(root[0], root[1], root[2]);
     const parentY = Math.hypot(root[4], root[5], root[6]);
     if (!(height > 0 && projection > 0 && parentX > 0 && parentY > 0)) return;
-    const size = 48 / (height * projection);
+    const size = 57.6 / (height * projection);
     badge.scale.set(size / parentX, size / parentY, 1);
     badge.updateMatrixWorld();
     this.positionVoiceIndicator();
