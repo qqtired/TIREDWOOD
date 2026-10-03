@@ -2,7 +2,7 @@
 // стаканы в подстаканниках — и плавающая табличка «ДУРАК» над каждым столом (места, ставка, идёт игра / свободно).
 // Только украшение: карты, стулья и боты остаются в durak3d.ts, правила и столы — на сервере.
 import * as THREE from 'three';
-import { MODE_NAMES } from '../../shared/durak.ts';
+import { MODE_NAMES, suitOf } from '../../shared/durak.ts';
 import type { DurakTableView } from '../../shared/messages.ts';
 import { TableSign, type SignModel } from './tablesign.ts';
 
@@ -259,7 +259,8 @@ export function durakSignModel(t: number, v: DurakTableView | null): SignModel {
   if (!v || seated === 0) stake = 'со ставкой или без';
   else if (anyStake) stake = `🪙 ставка ${v.ante ?? 10}${v.bank ? ` · банк ${v.bank}` : ''}`;
   else stake = 'играют без ставки';
-  return { title: 'ДУРАК', sub: `${MODE_NAMES[v?.mode ?? 'throw']} · стол ${t + 1}`, stake, seated, seats: 6, state, tone };
+  const trump = v?.game && !v.game.over ? suitOf(v.game.trump) : undefined;
+  return { title: 'ДУРАК', sub: `${MODE_NAMES[v?.mode ?? 'throw']} · стол ${t + 1}`, stake, seated, seats: 6, state, tone, ...(trump === undefined ? {} : { trump }) };
 }
 
 export class DurakDecor {
