@@ -36,7 +36,7 @@ export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   { x: -16.35, z: 45.45, yaw: Math.PI },
   // TEMP-BARKAS: временное место «баркаса» у кромки набережной для проверок fisheco. При слиянии убрать:
   // настоящие места на палубе добавляет barkas (zone: 'barkas').
-  { x: -2, z: 21.3, yaw: Math.PI, zone: 'barkas' },
+  { x: -2, z: 21.2, yaw: Math.PI, zone: 'barkas' },
 ];
 
 /** Пристань или баркас: место рыбалки по номеру. */
