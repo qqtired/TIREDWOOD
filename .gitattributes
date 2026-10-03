@@ -1,0 +1,4 @@
+# Переносы строк — LF на всех системах (у участников на Windows тоже)
+* text=auto eol=lf
+# Файл лицензии храним как есть
+client/assets/boats/LICENSE-Kenney.txt -text

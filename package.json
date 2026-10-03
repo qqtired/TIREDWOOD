@@ -2,7 +2,7 @@
   "name": "game-opus",
   "version": "0.1.0",
   "private": true,
-  "description": "Game Opus — браузерный командный шутер с желейными кругляшами",
+  "description": "TIREDWOOD (рабочее имя Game Opus) — браузерная игра для своей компании: набережная, пейнтбол, картинг, дурак",
   "type": "module",
   "engines": {
     "node": ">=24"

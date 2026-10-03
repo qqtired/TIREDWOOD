@@ -1,8 +1,9 @@
 # Правила для помощника (Астра) — Game Opus
 
 Ты дорабатываешь **Game Opus** (https://game.tired.solutions) — игру для компании друзей владельца: 3D-набережная
-с желейками, мини-режимы, жетоны, общий чат. Папка: `/Users/tired/Desktop/tired.solutions/game-opus`. Это не git:
-правишь файлы прямо в папке. Стек: Node 24 (TypeScript без сборки на сервере), three.js, ws, Vite.
+с желейками, мини-режимы, жетоны, общий чат. Папка: `/Users/tired/Desktop/tired.solutions/game-opus`. Это git-репозиторий
+https://github.com/qqtired/TIREDWOOD (публичный): `data/`, токены и ключи не коммить; участники работают через ветки
+и Pull Request — [CONTRIBUTING.md](CONTRIBUTING.md). Стек: Node 24 (TypeScript без сборки на сервере), three.js, ws, Vite.
 
 Сначала прочитай `README.md` (устройство, режимы, команды) и `docs/design.md` (как сделано). Похожий готовый режим —
 лучший образец: Fight Club (`shared/fight*.ts`, `server/fight/`, `client/fight/`) или картинг (`client/race/`,
