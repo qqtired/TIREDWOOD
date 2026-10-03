@@ -1,173 +1,582 @@
+// Прятки 2.0 «Рыбный двор» — сервер решает всё: роли, превращения, краску, попадания с компенсацией задержки,
+// заражение, насмешки, очки и жетоны. Клиенту в снимке уходят предметы без признака «живой» (id случайные, общий список).
 import { randomInt } from 'node:crypto';
-import { viewDir } from '../../shared/math.ts';
 import { EYE_HEIGHT } from '../../shared/constants.ts';
-import { HIDE_CAPACITY,HIDE_COUNT_TICKS,HIDE_MIN,HIDE_PREP_TICKS,HIDE_SEEK_TICKS,HIDE_RESULT_TICKS,HIDE_REJOIN_TICKS,HIDE_SHOT_TICKS,HIDE_MISS_TICKS,HIDE_PROPS,HIDE_FORMS,type HideClientMsg,type HideForm,type HidePhase,type HideProp,type HideResult,type HideRole,type HideServerMsg } from '../../shared/hide.ts';
-import { HidePhysics,HIDE_SPAWN,hideClearOfProps,hideFits,hideRayProp,hideWorld } from '../../shared/hidephysics.ts';
+import {
+  HIDE_CAPACITY, HIDE_COUNT_TICKS, HIDE_FINAL_TICKS, HIDE_MAX_REWIND, HIDE_MIN, HIDE_PODIUM_TICKS, HIDE_PREP_TICKS, HIDE_REJOIN_TICKS,
+  HIDE_RESPAWN_TICKS, HIDE_RESULT_TICKS, HIDE_ROUNDS, HIDE_SEEK_TICKS, HIDE_SHOT_RANGE, HIDE_SHOT_TICKS, HIDE_TAKE_PREP_TICKS, HIDE_TAKE_RANGE,
+  HIDE_TAKE_TICKS, HIDE_TOKENS, PAINT, PTS, TAUNT, hideHunterCount,
+  type HideClientMsg, type HideEvent, type HidePhase, type HideResult, type HideRole, type HideRoundResult, type HideRow, type HideServerMsg,
+  type HideShotKind, type HideStateMsg,
+} from '../../shared/hide.ts';
+import { HIDE_KIND, HIDE_YAW_STEPS, hideHits, hideKindIndex, type HideKind } from '../../shared/hideprops.ts';
+import { HIDE_POOLS, HIDE_SLOTS, YARD } from '../../shared/hidemap.ts';
+import { HidePhysics, hideFillProps, hideFits, hideMotionWorld, hideRayBody, hideStaticWorld, type HideBody } from '../../shared/hidephysics.ts';
+import { viewDir } from '../../shared/math.ts';
 import type { Outfit } from '../../shared/outfit.ts';
-import { makeState,type Input,type PlayerState } from '../../shared/sim.ts';
-import type { RayHit } from '../../shared/world.ts';
+import { makeState, type Input, type PlayerState } from '../../shared/sim.ts';
+import { makeRayHit } from '../../shared/world.ts';
 import { InputQueue } from '../inputs.ts';
-import { HIDE_SHOT_HISTORY,HIDE_SHOT_EVENT_TICKS,type HideShot } from '../../shared/hide.ts';
-export interface HideSink {sendJson(msg:HideServerMsg):void}
+import { HideHistory } from './history.ts';
+import { catchText, paintOutText, podiumBonus, roundLines, roundTokens, tauntPoints, type RoundStat } from './score.ts';
+
+export interface HideSink { sendJson(msg: HideServerMsg): void }
+interface PendingShot { aim: [number, number]; view: number; seq: number; at: number }
+
 export interface HidePlayer {
- id:number;pid:number;nick:string;level:number;outfit:Outfit;sink:HideSink|null;connected:boolean;leftAt:number;
- state:PlayerState;input:InputQueue;physics:HidePhysics;role:HideRole;form:HideForm;locked:boolean;found:boolean;propId:number;
- yaw:number;pitch:number;propYaw:number;reset:number;round:number;rewardEligible:boolean;awarded:boolean;
- moved:number;chose:boolean;shots:number;finds:number;lastShot:number;lastAction:number;lastTaunt:number;lastPacket:number;lastHuntAt:number;
+  id: number; pid: number; nick: string; level: number; outfit: Outfit; sink: HideSink | null; connected: boolean; leftAt: number;
+  state: PlayerState; input: InputQueue; physics: HidePhysics; reset: number; yaw: number; pitch: number; lastPacket: number; lastAction: number;
+  role: HideRole; kind: HideKind; prop: number; propYaw: number; locked: boolean; hits: number; stains: number;
+  paint: number; jam: boolean; lastShot: number; pending: PendingShot | null;
+  takeAt: number; tauntAt: number; tauntCd: number; back: number;
+  /** раунд, в котором участвует (0 — ждёт следующего) */
+  round: number; rewardEligible: boolean; awarded: boolean;
+  /** очки: за этот раунд и за матч; сколько раз начинал раунд ищущим в этом матче и когда последний раз */
+  pts: number; score: number; startedHunter: number; lastHunterRound: number;
+  // для честных наград и итогов раунда
+  moved: number; chose: boolean; shots: number; lastHuntAt: number; finds: number; wasProp: boolean;
+  caughtAt: number; survivedEnd: boolean; tauntPts: number; misses: number; paintOuts: number; lastMiss: HideKind | null; transforms: number;
+  /** что из предметов уже отправлено этому игроку (id → строка) и для какого раунда — снимки идут дельтой */
+  sent: Map<number, string>; sentEpoch: string;
 }
-interface Hooks {finished(pid:number,result:HideResult):void;rand?:(n:number)=>number}
+interface Hooks { finished(pid: number, result: HideResult): void; rand?: (n: number) => number }
+
+const START_KINDS: readonly HideKind[] = ['crate', 'barrel', 'bucket', 'sack', 'pot', 'churn'];
+const SURVIVAL_EVERY = 60;
+/** Анти-AFK: сколько метров надо пройти за раунд. Прячущемуся хватит пары шагов до предмета у колодца, ищущему — выйти из сарая. */
+const PROP_MOVE = 1.5, HUNT_MOVE = 4;
+
 export class HideGame {
- readonly world=hideWorld();readonly players=new Map<number,HidePlayer>();tick=0;round=0;phase:HidePhase='gather';phaseEnd=0;
- result:HideServerMsg['result']=null;notice='Нужно 2–8 игроков';cue:HideServerMsg['cue']=null;
- private readonly hooks:Hooks;private readonly rand:(n:number)=>number;private nextId=1;private hunterPid=0;private lastHunter=0;
- private props:HideProp[]=[];private initialProps=0;private seekAt=0;private nextCue=0;
- private readonly shotDir={x:0,y:0,z:0};
- private shots:HideShot[]=[];private shotSerial=0;
- private readonly wallHit:RayHit={t:0,nx:0,ny:0,nz:0,box:-1};
- constructor(hooks:Hooks){this.hooks=hooks;this.rand=hooks.rand??randomInt;}
- canRejoin(pid:number):boolean{return [...this.players.values()].some(p=>p.pid===pid&&!p.connected&&!p.found&&p.role!=='spectator'&&this.tick-p.leftAt<HIDE_REJOIN_TICKS);}
- get humans():number{return [...this.players.values()].filter(p=>p.connected).length;}
- get active():boolean{return this.phase!=='gather'||this.phaseEnd>0;}
- get busy():number{return [...this.players.values()].filter(p=>p.connected&&p.role!=='spectator'&&this.phase!=='gather').length;}
- addHuman(info:{pid:number;nick:string;level:number;outfit:Outfit},sink:HideSink):HidePlayer|null {
-  const old=[...this.players.values()].find(p=>p.pid===info.pid);
-  if(old?.connected||this.humans>=HIDE_CAPACITY)return null;
-  if(old){old.connected=true;old.sink=sink;old.nick=info.nick;old.outfit=info.outfit;old.level=info.level;old.input.reset();old.reset++;old.lastPacket=this.tick;this.send(old);this.recount();return old;}
-  const p:HidePlayer={...info,id:this.nextId++,sink,connected:true,leftAt:0,state:Object.assign(makeState(),HIDE_SPAWN,{grounded:1}),input:new InputQueue(),physics:new HidePhysics(this.world),role:'spectator',form:'barrel',locked:false,found:false,propId:0,yaw:0,pitch:0,propYaw:0,reset:0,round:0,rewardEligible:false,awarded:false,moved:0,chose:false,shots:0,finds:0,lastShot:-9999,lastAction:-9999,lastTaunt:-9999,lastPacket:this.tick,lastHuntAt:-9999};
-  this.players.set(p.id,p);this.recount();this.send(p);return p;
- }
- removePlayer(id:number):void {
-  const p=this.players.get(id);if(!p)return;
-  p.connected=false;p.sink=null;p.leftAt=this.tick;p.rewardEligible=false;
-  if(this.phase==='gather'||this.phase==='result'||p.role==='spectator'||p.found)this.players.delete(id);
-  this.recount();
- }
- onInputs(p:HidePlayer,inputs:Input[],count:number):void {
-  if(!p.connected)return;p.lastPacket=this.tick;
-  const valid=inputs.slice(0,Math.max(0,Math.min(count,inputs.length))).filter(i=>Number.isFinite(i.yaw)&&Number.isFinite(i.pitch));p.input.push(valid,valid.length);
- }
- action(p:HidePlayer,msg:HideClientMsg):void {
-  if(!p.connected||p.found||(this.phase!=='hide'&&this.phase!=='seek'))return;
-  if(msg.a==='shoot'){
-   if(msg.aim!==undefined&&(!Array.isArray(msg.aim)||msg.aim.length!==2||!msg.aim.every(v=>typeof v==='number'&&Number.isFinite(v))))return;
-   if(p.role==='hunter'&&this.phase==='seek')this.shoot(p,msg.aim);return;
+  /** Неподвижный мир: лучи выстрелов, видимость */
+  readonly world = hideStaticWorld();
+  /** Мир движения: неподвижное + коробки всех предметов */
+  readonly motion = hideMotionWorld();
+  readonly players = new Map<number, HidePlayer>();
+  tick = 0; round = 0; match = 0; phase: HidePhase = 'gather'; phaseEnd = 0; seekAt = 0;
+  notice = 'Нужно 2–8 игроков';
+  result: HideRoundResult | null = null;
+  /** Предметы двора этого раунда (неподвижные) */
+  decor: HideBody[] = [];
+  private readonly hooks: Hooks;
+  private readonly rand: (n: number) => number;
+  private readonly history = new HideHistory();
+  private readonly hit = makeRayHit();
+  private readonly dir = { x: 0, y: 0, z: 0 };
+  private readonly rewound: HideBody = { id: 0, kind: 'crate', x: 0, y: 0, z: 0, yaw: 0 };
+  private readonly normal = { nx: 0, ny: 0, nz: 0 };
+  private nextId = 1;
+  private shotSerial = 0;
+  private initialProps = 0;
+  private finalSaid = false;
+  private lastOneSaid = false;
+  private anyCaught = false;
+  private events: HideEvent[] = [];
+  private rosterDirty = true;
+
+  constructor(hooks: Hooks) { this.hooks = hooks; this.rand = hooks.rand ?? randomInt; }
+
+  get humans(): number { let n = 0; for (const p of this.players.values()) if (p.connected) n++; return n; }
+  get active(): boolean { return this.phase !== 'gather' || this.phaseEnd > 0; }
+  get busy(): number { let n = 0; if (this.phase !== 'gather') for (const p of this.players.values()) if (p.connected && p.round === this.round && p.role !== 'spectator') n++; return n; }
+  canRejoin(pid: number): boolean {
+    return [...this.players.values()].some(p => p.pid === pid && !p.connected && p.role !== 'spectator' && this.tick - p.leftAt < HIDE_REJOIN_TICKS);
   }
-  if(p.role!=='prop'||this.tick-p.lastAction<9)return;p.lastAction=this.tick;
-  if(msg.a==='form'&&HIDE_PROPS.includes(msg.form!)){
-   if(hideFits(this.world,p.state,msg.form!,p.propYaw)&&this.clearOfProps(p,msg.form!,p.propYaw)){p.form=msg.form!;p.chose=true;p.reset++;}
-  }else if(msg.a==='freeze'){p.locked=!p.locked;p.chose=true;p.reset++;}
-  else if(msg.a==='rotate'){
-   const yaw=p.propYaw+Math.PI/2;if(hideFits(this.world,p.state,p.form,yaw)&&this.clearOfProps(p,p.form,yaw)){p.propYaw=yaw;p.chose=true;p.reset++;}
-  }else if(msg.a==='taunt'&&this.phase==='seek'&&this.tick-p.lastTaunt>=1200){p.lastTaunt=this.tick;this.signal(p);}
-  this.send(p);
- }
- private recount():void {
-  if(this.phase!=='gather')return;
-  if(this.humans<HIDE_MIN)this.phaseEnd=0;
-  else if(!this.phaseEnd)this.phaseEnd=this.tick+HIDE_COUNT_TICKS;
- }
- private layout():void {
-  const spots:{x:number;y:number;z:number}[]=[];
-  for(let z=-21;z<=10;z+=4)for(let x=-25;x<=25;x+=4){const s={x:x+(this.rand(21)-10)/100,y:this.world.groundBelow(x,.4,z),z:z+(this.rand(21)-10)/100};if(hideFits(this.world,s,'bench',0)&&hideFits(this.world,s,'bench',Math.PI/2))spots.push(s);}
-  for(let i=spots.length-1;i>0;i--){const j=this.rand(i+1);[spots[i],spots[j]]=[spots[j],spots[i]];}
-  const base=10000+this.rand(1000000);this.props=spots.slice(0,Math.min(48,spots.length)).map((s,i)=>({...s,id:base+i,form:HIDE_PROPS[this.rand(4)],yaw:this.rand(4)*Math.PI/2}));
- }
- private begin():void {
-  const players=[...this.players.values()].filter(p=>p.connected).sort((a,b)=>a.pid-b.pid);
-  if(players.length<HIDE_MIN){this.phaseEnd=0;return;}
-  const hunter=players.find(p=>p.pid>this.lastHunter)??players[0];this.hunterPid=hunter.pid;this.lastHunter=hunter.pid;
-  this.round++;this.phase='hide';this.phaseEnd=this.tick+HIDE_PREP_TICKS;this.result=null;this.notice='20 секунд: выберите предмет и спрячьтесь';this.cue=null;this.shots=[];
-  this.layout();const choices=[...this.props];
-  for(let i=choices.length-1;i>0;i--){const j=this.rand(i+1);[choices[i],choices[j]]=[choices[j],choices[i]];}
-  let slot=0;this.initialProps=players.length-1;
-  for(const p of players){
-   p.role=p===hunter?'hunter':'prop';p.round=this.round;p.found=false;p.locked=false;p.chose=false;p.awarded=false;p.rewardEligible=true;p.moved=0;p.shots=0;p.finds=0;p.lastShot=-9999;p.lastHuntAt=-9999;p.input.reset();p.reset++;
-   if(p.role==='prop'){const prop=choices[slot++];p.propId=prop.id;p.form=prop.form;p.propYaw=prop.yaw;p.state=Object.assign(makeState(),{x:prop.x,y:prop.y,z:prop.z,grounded:1});}
-   else{p.propId=0;p.form='barrel';p.state=Object.assign(makeState(),HIDE_SPAWN,{grounded:1});}
+
+  // ------------------------------------------------------------ вход и выход
+
+  addHuman(info: { pid: number; nick: string; level: number; outfit: Outfit }, sink: HideSink): HidePlayer | null {
+    const old = [...this.players.values()].find(p => p.pid === info.pid);
+    if (old?.connected || this.humans >= HIDE_CAPACITY) return null;
+    if (old) {
+      // Возврат в окне: прежняя роль и место, но право на награду этого раунда не возвращается
+      Object.assign(old, { connected: true, sink, nick: info.nick, outfit: info.outfit, level: info.level, lastPacket: this.tick, sentEpoch: '' });
+      old.sent.clear(); old.input.reset(); old.reset++; this.rosterDirty = true;
+      this.recount(); this.flush(); this.send(old);
+      return old;
+    }
+    const p: HidePlayer = {
+      ...info, id: this.nextId++, sink, connected: true, leftAt: 0,
+      state: Object.assign(makeState(), this.hunterSpot(0), { grounded: 1 }), input: new InputQueue(), physics: new HidePhysics(this.motion),
+      reset: 0, yaw: 0, pitch: 0, lastPacket: this.tick, lastAction: -9999,
+      role: 'spectator', kind: 'crate', prop: 0, propYaw: 0, locked: false, hits: 0, stains: 0,
+      paint: PAINT.max, jam: false, lastShot: -9999, pending: null, takeAt: 0, tauntAt: 0, tauntCd: 0, back: 0,
+      round: 0, rewardEligible: false, awarded: false, pts: 0, score: 0, startedHunter: 0, lastHunterRound: -1,
+      moved: 0, chose: false, shots: 0, lastHuntAt: -9999, finds: 0, wasProp: false,
+      caughtAt: 0, survivedEnd: false, tauntPts: 0, misses: 0, paintOuts: 0, lastMiss: null, transforms: 0,
+      sent: new Map(), sentEpoch: '',
+    };
+    this.players.set(p.id, p);
+    // Поздний вход: в подготовке — прячется, в поиске — через 3 с выходит ищущим; между раундами ждёт
+    if (this.phase === 'hide') { this.joinRound(p); this.makeProp(p, this.propCount()); }
+    else if (this.phase === 'seek') { this.joinRound(p); this.makeCaught(p); }
+    this.rosterDirty = true;
+    this.recount(); this.flush(); this.send(p);
+    return p;
   }
-  this.broadcast();
- }
- private currentProps():HideProp[]{return this.props.flatMap(prop=>{const p=[...this.players.values()].find(p=>p.propId===prop.id&&p.round===this.round);if(!p)return [{...prop}];if(p.found)return [];return [{id:prop.id,form:p.form,x:p.state.x,y:p.state.y,z:p.state.z,yaw:p.propYaw}];});}
- private clearOfProps(p:HidePlayer,form:HideForm,yaw:number):boolean {
-  return hideClearOfProps(p.state,form,yaw,p.propId,this.currentProps());
- }
- private shoot(p:HidePlayer,aim?:[number,number]):void {
-  if(this.tick-p.lastShot<HIDE_SHOT_TICKS)return;p.lastShot=this.tick;p.lastHuntAt=this.tick;p.shots++;
-  // Only orientation comes from this action; origin and collision stay server-authoritative.
-  viewDir(aim?.[0]??p.yaw,Math.max(-1.2,Math.min(1.2,aim?.[1]??p.pitch)),this.shotDir);const {x:dx,y:dy,z:dz}=this.shotDir;
-  let nearest=42,id=0,hitProp:HideProp|undefined;for(const prop of this.currentProps()){const d=hideRayProp(p.state.x,p.state.y+EYE_HEIGHT,p.state.z,dx,dy,dz,prop);if(d<nearest){nearest=d;id=prop.id;hitProp=prop;}}
-  const blocked=this.world.raycast(p.state.x,p.state.y+EYE_HEIGHT,p.state.z,dx,dy,dz,nearest,this.wallHit,true);
-  const distance=blocked?this.wallHit.t:nearest;
-  const from:[number,number,number]=[p.state.x,p.state.y+EYE_HEIGHT,p.state.z];
-  const to:[number,number,number]=[from[0]+dx*distance,from[1]+dy*distance,from[2]+dz*distance];
-  const normal:[number,number,number]=blocked?[this.wallHit.nx,this.wallHit.ny,this.wallHit.nz]:hitProp?propNormal(hitProp,to):[0,0,0];
-  this.shots.push({id:++this.shotSerial,tick:this.tick,from,to,normal,kind:blocked?'world':id?'prop':'air',propId:blocked?0:id});
-  this.shots=this.shots.filter(shot=>this.tick-shot.tick<=HIDE_SHOT_EVENT_TICKS).slice(-HIDE_SHOT_HISTORY);
-  const target=id&&!blocked?[...this.players.values()].find(q=>q.propId===id&&q.role==='prop'&&q.connected&&!q.found&&q.round===this.round):undefined;
-  if(target){target.found=true;target.reset++;p.finds++;this.notice='Нашли предмет!';if(this.remaining().length===0)this.finish('hunter');}
-  else{this.phaseEnd=Math.max(this.tick,this.phaseEnd-HIDE_MISS_TICKS);this.notice='Промах: −3 секунды';}
-  this.broadcast();
- }
- private remaining():HidePlayer[]{return [...this.players.values()].filter(p=>p.round===this.round&&p.role==='prop'&&!p.found);}
- private signal(p:HidePlayer):void {this.cue={x:Math.round(p.state.x/4)*4,z:Math.round(p.state.z/4)*4,until:this.tick+180};this.notice='Шорох: предмет где-то в отмеченном квартале';}
- private finish(result:HideServerMsg['result']):void {
-  if(this.phase==='result')return;
-  if(result!=='cancelled'&&(![...this.players.values()].some(p=>p.round===this.round&&p.role==='hunter'&&p.connected)||![...this.players.values()].some(p=>p.round===this.round&&p.role==='prop'&&p.connected)))result='cancelled';
-  const hunter=[...this.players.values()].find(p=>p.round===this.round&&p.role==='hunter');
-  const hunterActive=!!hunter&&hunter.connected&&hunter.moved>=4&&hunter.shots>0&&this.tick-hunter.lastHuntAt<=1800;
-  const preparedOpponent=[...this.players.values()].some(p=>p.round===this.round&&p.role==='prop'&&p.connected&&p.moved>=4&&p.chose);
-  if(result!=='cancelled'&&(!hunterActive||!preparedOpponent))result='cancelled';
-  this.phase='result';this.result=result;this.phaseEnd=this.tick+HIDE_RESULT_TICKS;this.cue=null;
-  this.notice=result==='hunter'?'Искатель нашёл всех':result==='props'?'Предметы продержались!':'Раунд без наград: нужны активные соперники';
-  if(result!=='cancelled')for(const p of this.players.values()){
-   if(p.awarded||p.round!==this.round||p.role==='spectator')continue;p.awarded=true;
-   const participated=p.connected&&p.rewardEligible&&p.moved>=4&&(p.role==='hunter'?p.shots>0:p.chose);
-   if(!participated)continue;
-   const won=p.role==='hunter'?result==='hunter':!p.found&&result==='props',survived=p.role==='prop'&&!p.found&&result==='props';
-   const seconds=Math.max(0,(this.tick-this.seekAt)/60),earned=p.role==='hunter'?Math.floor(seconds/60*8)+p.finds*3+(won?3:0):survived?Math.floor(seconds/60*10):0;
-   this.hooks.finished(p.pid,{round:this.round,role:p.role,won,found:p.finds,survived,reward:seconds>=15?Math.min(35,earned):0});
+
+  removePlayer(id: number): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    p.connected = false; p.sink = null; p.leftAt = this.tick; p.rewardEligible = false; p.pending = null;
+    if (this.phase === 'gather' || this.phase === 'result' || this.phase === 'final' || p.role === 'spectator') this.players.delete(id);
+    this.rosterDirty = true;
+    this.recount();
   }
-  this.broadcast();
- }
- step():void {
-  this.tick++;
-  for(const [id,p] of this.players){
-   if(!p.connected&&this.tick-p.leftAt>=HIDE_REJOIN_TICKS){if(p.role==='hunter'&&(this.phase==='hide'||this.phase==='seek')){this.finish('cancelled');}p.found=true;p.role='spectator';if(this.phase==='gather'||this.phase==='result')this.players.delete(id);continue;}
-   if(!p.connected)continue;
-   const n=p.input.due();for(let i=0;i<n;i++){
-    if(!p.input.length)break;const inp=p.input.shift();const oldYaw=p.yaw,oldPitch=p.pitch;p.yaw=inp.yaw;p.pitch=Math.max(-1.2,Math.min(1.2,inp.pitch));
-    const free=(p.role==='prop'&&!p.found&&(this.phase==='hide'||this.phase==='seek'))||(p.role==='hunter'&&this.phase==='seek');
-    p.physics.form=p.form;p.physics.locked=p.locked;p.physics.free=free;p.physics.yaw=p.propYaw;
-    const x=p.state.x,z=p.state.z,before={...p.state};p.physics.step(p.state,inp);
-    if(p.role==='prop'&&!this.clearOfProps(p,p.form,p.propYaw))Object.assign(p.state,before);
-    const moved=Math.hypot(p.state.x-x,p.state.z-z);p.moved+=moved;
-    if(p.role==='hunter'&&this.phase==='seek'&&(moved>.02||Math.abs(p.yaw-oldYaw)>.02||Math.abs(p.pitch-oldPitch)>.02))p.lastHuntAt=this.tick;
-   }
+
+  onInputs(p: HidePlayer, inputs: Input[], count: number): void {
+    if (!p.connected) return;
+    p.lastPacket = this.tick;
+    const valid = inputs.slice(0, Math.max(0, Math.min(count, inputs.length))).filter(i => Number.isFinite(i.yaw) && Number.isFinite(i.pitch));
+    p.input.push(valid, valid.length);
   }
-  if(this.phase==='gather'&&this.phaseEnd&&this.tick>=this.phaseEnd)this.begin();
-  else if(this.phase==='hide'&&this.tick>=this.phaseEnd){this.phase='seek';this.seekAt=this.tick;this.phaseEnd=this.tick+HIDE_SEEK_TICKS;this.nextCue=this.tick+1800;this.notice='Искатель вышел на площадь';this.broadcast();}
-  else if(this.phase==='seek'){
-   if(!this.remaining().length)this.finish('cancelled');
-   else if(this.tick>=this.phaseEnd)this.finish('props');
-   else if(this.tick>=this.nextCue){const props=this.remaining();this.signal(props[this.rand(props.length)]);this.nextCue=this.tick+1800;}
-  }else if(this.phase==='result'&&this.tick>=this.phaseEnd){this.phase='gather';this.phaseEnd=0;this.props=[];this.shots=[];this.result=null;for(const p of this.players.values()){p.role='spectator';p.propId=0;p.state=Object.assign(makeState(),HIDE_SPAWN,{grounded:1});p.reset++;}this.recount();this.broadcast();}
-  if(this.tick%6===0)this.broadcast();
- }
- view(p:HidePlayer):HideServerMsg {
-  const blind=this.phase==='hide'&&p.role!=='prop';const hunter=[...this.players.values()].find(q=>q.pid===this.hunterPid&&q.round===this.round);
-  return{t:'hide_state',tick:this.tick,round:this.round,phase:this.phase,phaseEnd:this.phaseEnd,
-   self:{id:p.id,ack:p.input.ack,reset:p.reset,state:{...p.state},role:p.role,form:p.form,propId:p.propId,propYaw:p.propYaw,locked:p.locked,found:p.found},
-   props:blind?[]:this.currentProps(),hunter:blind||!hunter?null:{x:hunter.state.x,y:hunter.state.y,z:hunter.state.z,yaw:hunter.yaw,nick:hunter.nick,level:hunter.level,outfit:hunter.outfit},
-   remaining:this.remaining().length,total:this.initialProps,notice:this.notice,result:this.result,cue:blind?null:this.cue,
-   shots:this.phase==='hide'||this.phase==='gather'?[]:this.shots.filter(shot=>this.tick-shot.tick<=HIDE_SHOT_EVENT_TICKS)};
- }
- send(p:HidePlayer):void{p.sink?.sendJson(this.view(p));}
- private broadcast():void{for(const p of this.players.values())if(p.connected)this.send(p);}
+
+  // ------------------------------------------------------------ действия
+
+  action(p: HidePlayer, msg: HideClientMsg): void {
+    if (!p.connected || (this.phase !== 'hide' && this.phase !== 'seek')) return;
+    if (msg.a === 'shoot') { this.requestShot(p, msg); return; }
+    if (p.role !== 'prop' || this.tick - p.lastAction < 9) return;
+    p.lastAction = this.tick;
+    if (msg.a === 'take') this.take(p, msg.id);
+    else if (msg.a === 'lock') { p.locked = !p.locked; p.chose = true; p.reset++; }
+    else if (msg.a === 'rotate') this.rotate(p, msg.n);
+    else if (msg.a === 'taunt') {
+      if (this.phase !== 'seek') this.note(p, 'Насмешки — когда выйдут ищущие');
+      else if (this.tick < p.tauntCd) this.note(p, `Ещё ${Math.ceil((p.tauntCd - this.tick) / 60)} с`);
+      else this.taunt(p, false);
+    }
+    this.flush(); this.send(p);
+  }
+
+  private take(p: HidePlayer, id: unknown): void {
+    if (typeof id !== 'number' || !Number.isInteger(id)) return;
+    if (this.tick < p.takeAt) { this.note(p, `Превращение через ${Math.ceil((p.takeAt - this.tick) / 60)} с`); return; }
+    const target = this.bodies().find(b => b.id === id && b.id !== p.prop);
+    if (!target) return;
+    const dx = target.x - p.state.x, dz = target.z - p.state.z, dist = Math.hypot(dx, dz);
+    if (dist > HIDE_TAKE_RANGE + 0.5) { this.note(p, 'Слишком далеко — подойди ближе'); return; }
+    const ty = target.y + HIDE_KIND[target.kind].h / 2, oy = p.state.y + 0.4, dy = ty - oy, len = Math.hypot(dx, dy, dz);
+    if (len > 0.4 && this.world.raycast(p.state.x, oy, p.state.z, dx / len, dy / len, dz / len, len - 0.3, this.hit, true, true)) { this.note(p, 'Не видно — подойди ближе'); return; }
+    if (p.hits >= hideHits(target.kind)) { this.note(p, `Слишком заляпан для такого — нужен предмет покрепче`); return; }
+    hideFillProps(this.motion, this.bodies(), p.prop);
+    if (!hideFits(this.motion, p.state.x, p.state.y, p.state.z, target.kind, target.yaw)) { this.note(p, 'Не помещается здесь — отойди на свободное место'); return; }
+    p.kind = target.kind; p.propYaw = target.yaw; p.stains = 0; p.chose = true; p.transforms++;
+    p.takeAt = this.tick + (this.phase === 'hide' ? HIDE_TAKE_PREP_TICKS : HIDE_TAKE_TICKS);
+    p.reset++;
+    this.emit({ k: 'puff', x: r2(p.state.x), y: r2(p.state.y), z: r2(p.state.z) });
+  }
+
+  private rotate(p: HidePlayer, n: unknown): void {
+    if (n !== 1 && n !== -1 && n !== 3 && n !== -3) return;
+    const yaw = (p.propYaw + n + HIDE_YAW_STEPS) % HIDE_YAW_STEPS;
+    hideFillProps(this.motion, this.bodies(), p.prop);
+    if (!hideFits(this.motion, p.state.x, p.state.y, p.state.z, p.kind, yaw)) { this.note(p, 'Не повернуться — мешает'); return; }
+    p.propYaw = yaw; p.chose = true; p.reset++;
+  }
+
+  private requestShot(p: HidePlayer, msg: Extract<HideClientMsg, { a: 'shoot' }>): void {
+    const aim = msg.aim;
+    if (!Array.isArray(aim) || aim.length !== 2 || !aim.every(v => typeof v === 'number' && Number.isFinite(v))) return;
+    if (typeof msg.view !== 'number' || !Number.isFinite(msg.view) || typeof msg.seq !== 'number' || !Number.isInteger(msg.seq)) return;
+    if (p.role !== 'hunter' || this.phase !== 'seek' || p.pending || this.tick - p.lastShot < HIDE_SHOT_TICKS) return;
+    if (p.jam) { this.note(p, 'Краска кончилась — подожди, бак наполняется'); this.flush(); return; }
+    p.lastShot = this.tick;
+    p.pending = { aim: [aim[0], aim[1]], view: msg.view, seq: msg.seq, at: this.tick };
+  }
+
+  /**
+   * Выстрел краской. Луч из серверных глаз ищущего по направлению, которое прислал клиент; прячущиеся откатываются к
+   * тику, который он видел (не дальше 0,4 с). Предметы двора и стены не двигаются — их не откатываем.
+   */
+  private fire(p: HidePlayer, shot: PendingShot): void {
+    p.pending = null; p.shots++; p.lastHuntAt = this.tick;
+    const ox = p.state.x, oy = p.state.y + EYE_HEIGHT, oz = p.state.z;
+    viewDir(shot.aim[0], Math.max(-1.2, Math.min(1.2, shot.aim[1])), this.dir);
+    const { x: dx, y: dy, z: dz } = this.dir;
+    let rewind = this.tick - shot.view;
+    if (!(rewind >= 0)) rewind = 0;
+    if (rewind > HIDE_MAX_REWIND) rewind = HIDE_MAX_REWIND;
+    const t = this.tick - rewind;
+    let best = HIDE_SHOT_RANGE, target: HideBody | null = null, victim: HidePlayer | null = null;
+    let nx = 0, ny = 0, nz = 0;
+    for (const b of this.decor) {
+      const d = hideRayBody(ox, oy, oz, dx, dy, dz, b, best, this.normal);
+      if (d < best) { best = d; target = b; victim = null; nx = this.normal.nx; ny = this.normal.ny; nz = this.normal.nz; }
+    }
+    for (const q of this.players.values()) {
+      if (q.role !== 'prop' || q.round !== this.round) continue;
+      let body: HideBody | null = this.rewound;
+      if (rewind > 0) { if (!this.history.sample(q.prop, t, this.rewound)) body = null; }
+      else Object.assign(this.rewound, { id: q.prop, kind: q.kind, x: q.state.x, y: q.state.y, z: q.state.z, yaw: q.propYaw });
+      if (!body) continue;
+      const d = hideRayBody(ox, oy, oz, dx, dy, dz, body, best, this.normal);
+      if (d < best) { best = d; target = { ...body }; victim = q; nx = this.normal.nx; ny = this.normal.ny; nz = this.normal.nz; }
+    }
+    let kind: HideShotKind = target ? (victim ? 'prop' : 'decor') : 'air';
+    let dist = best;
+    if (this.world.raycast(ox, oy, oz, dx, dy, dz, best, this.hit, true)) {
+      kind = 'world'; dist = this.hit.t; target = null; victim = null; nx = this.hit.nx; ny = this.hit.ny; nz = this.hit.nz;
+    }
+    const to: [number, number, number] = [r2(ox + dx * dist), r2(oy + dy * dist), r2(oz + dz * dist)];
+    this.emit({ k: 'shot', id: ++this.shotSerial, by: p.id, from: [r2(ox), r2(oy), r2(oz)], to, n: [r2(nx), r2(ny), r2(nz)], hit: kind, prop: target?.id ?? 0, size: target ? HIDE_KIND[target.kind].size : 0 });
+    if (victim) {
+      p.paint = Math.min(PAINT.max, p.paint + PAINT.hit); p.jam = false;
+      victim.hits++; victim.stains++;
+      this.award(p, PTS.hit, 'попадание');
+      if (victim.hits >= hideHits(victim.kind)) this.caught(victim, p);
+      return;
+    }
+    if (kind === 'decor' && target) { p.misses++; p.lastMiss = target.kind; }
+    p.paint -= kind === 'decor' ? PAINT.decor : PAINT.world;
+    if (p.paint <= 0) {
+      p.paint = 0; p.jam = true; p.paintOuts++;
+      this.emit({ k: 'feed', text: paintOutText(p.nick, kind === 'decor' && target ? target.kind : p.lastMiss) });
+    }
+  }
+
+  private caught(q: HidePlayer, by: HidePlayer): void {
+    this.anyCaught = true;
+    q.caughtAt = this.tick - this.seekAt;
+    this.emit({ k: 'catch', x: r2(q.state.x), y: r2(q.state.y), z: r2(q.state.z), kind: q.kind, who: q.id, by: by.id, text: catchText(q.kind, q.nick, by.nick) });
+    by.finds++;
+    this.award(by, PTS.catch, 'поймал');
+    this.makeCaught(q);
+    const left = this.liveProps();
+    if (!left.length) this.finish('hunters');
+    else if (left.length === 1 && !this.lastOneSaid) { this.lastOneSaid = true; this.emit({ k: 'feed', text: '⏳ Остался последний прячущийся — ему очки вдвойне!' }); }
+  }
+
+  private taunt(p: HidePlayer, forced: boolean): void {
+    let near = Infinity;
+    for (const q of this.players.values()) if (q.role === 'hunter' && q.connected && q.round === this.round) near = Math.min(near, Math.hypot(q.state.x - p.state.x, q.state.z - p.state.z));
+    let loud = 0;
+    if (!forced) {
+      const pts = Math.min(tauntPoints(near), TAUNT.cap - p.tauntPts);
+      loud = near <= TAUNT.near[1] ? 2 : near <= TAUNT.near[0] ? 1 : 0;
+      if (pts > 0) { p.tauntPts += pts; this.award(p, pts, loud === 2 ? 'наглая насмешка' : loud === 1 ? 'дерзкая насмешка' : 'насмешка'); }
+      p.tauntCd = this.tick + TAUNT.cd;
+      if (loud === 2) this.emit({ k: 'feed', text: `🦆 Наглая насмешка в ${Math.max(1, Math.round(near))} м от ищущего!` });
+    }
+    const a = this.rand(360) * Math.PI / 180, r = this.rand(71) / 100;
+    this.emit({ k: 'taunt', x: r2(p.state.x + Math.cos(a) * r), y: r2(p.state.y + HIDE_KIND[p.kind].h * 0.6), z: r2(p.state.z + Math.sin(a) * r), s: this.rand(TAUNT.sounds), loud });
+    p.tauntAt = this.tick + (this.inFinal() ? TAUNT.final : TAUNT.every);
+  }
+
+  private award(p: HidePlayer, n: number, why: string): void {
+    p.pts += n;
+    p.sink?.sendJson({ t: 'hide_ev', e: [{ k: 'pts', n, why }] });
+  }
+
+  private note(p: HidePlayer, text: string): void { p.sink?.sendJson({ t: 'hide_ev', e: [{ k: 'note', text }] }); }
+
+  // ------------------------------------------------------------ ход матча
+
+  private recount(): void {
+    if (this.phase !== 'gather') return;
+    if (this.humans < HIDE_MIN) this.phaseEnd = 0;
+    else if (!this.phaseEnd) this.phaseEnd = this.tick + HIDE_COUNT_TICKS;
+  }
+
+  private startMatch(): void {
+    this.match++; this.round = 0;
+    for (const p of this.players.values()) { p.score = 0; p.startedHunter = 0; p.lastHunterRound = -1; }
+    this.startRound();
+  }
+
+  private startRound(): void {
+    const players = [...this.players.values()].filter(p => p.connected).sort((a, b) => a.pid - b.pid);
+    if (players.length < HIDE_MIN) { this.toGather(); return; }
+    this.round++;
+    this.phase = 'hide'; this.phaseEnd = this.tick + HIDE_PREP_TICKS; this.seekAt = 0; this.result = null;
+    this.finalSaid = false; this.lastOneSaid = false; this.anyCaught = false; this.history.clear();
+    this.notice = 'Прячьтесь! Наведитесь на предмет и нажмите E';
+    this.layout();
+    // ищущие на старте — те, кто реже начинал ищущим в этом матче
+    const order = players.map(p => ({ p, k: this.rand(1000) })).sort((a, b) => a.p.startedHunter - b.p.startedHunter || a.p.lastHunterRound - b.p.lastHunterRound || a.k - b.k).map(e => e.p);
+    const hunters = new Set(order.slice(0, hideHunterCount(players.length)));
+    for (const p of this.players.values()) if (!p.connected) this.players.delete(p.id);
+    let h = 0, s = 0;
+    for (const p of players) {
+      this.joinRound(p);
+      if (hunters.has(p)) { p.startedHunter++; p.lastHunterRound = this.round; this.makeHunter(p, h++, PAINT.max); }
+      else this.makeProp(p, s++);
+    }
+    this.initialProps = s;
+    this.rosterDirty = true;
+    this.broadcast();
+  }
+
+  private joinRound(p: HidePlayer): void {
+    Object.assign(p, {
+      round: this.round, rewardEligible: true, awarded: false, pts: 0, moved: 0, chose: false, shots: 0, lastHuntAt: -9999, finds: 0,
+      wasProp: false, caughtAt: 0, survivedEnd: false, tauntPts: 0, misses: 0, paintOuts: 0, lastMiss: null, transforms: 0,
+      hits: 0, stains: 0, locked: false, pending: null, jam: false, paint: PAINT.max,
+    });
+    p.input.reset(); p.reset++;
+  }
+
+  private makeHunter(p: HidePlayer, slot: number, paint: number): void {
+    p.role = 'hunter'; p.prop = 0; p.locked = false; p.paint = paint; p.jam = false; p.pending = null; p.lastShot = -9999;
+    p.state = Object.assign(makeState(), this.hunterSpot(slot), { grounded: 1 });
+    p.reset++;
+  }
+
+  private makeProp(p: HidePlayer, slot: number): void {
+    p.role = 'prop'; p.wasProp = true; p.prop = this.newId(); p.locked = false; p.hits = 0; p.stains = 0;
+    p.takeAt = 0; p.tauntCd = 0; p.tauntAt = this.phase === 'seek' ? this.tick + TAUNT.firstMin : 0;
+    const spots = YARD.propSpawns;
+    hideFillProps(this.motion, this.bodies(), p.prop);
+    let placed = false;
+    for (let i = 0; i < spots.length * START_KINDS.length && !placed; i++) {
+      const [x, z] = spots[(slot + i) % spots.length], kind = START_KINDS[(slot + Math.floor(i / spots.length) + this.rand(START_KINDS.length)) % START_KINDS.length];
+      const yaw = this.rand(4) * 6;
+      if (!hideFits(this.motion, x, 0, z, kind, yaw)) continue;
+      p.kind = kind; p.propYaw = yaw; p.state = Object.assign(makeState(), { x, y: 0, z, grounded: 1 }); placed = true;
+    }
+    if (!placed) { p.kind = 'bucket'; p.propYaw = 0; p.state = Object.assign(makeState(), { x: YARD.well.x, y: YARD.well.h, z: YARD.well.z, grounded: 1 }); }
+    p.reset++;
+  }
+
+  private makeCaught(p: HidePlayer): void {
+    p.role = 'caught'; p.back = this.tick + HIDE_RESPAWN_TICKS; p.prop = 0; p.locked = false; p.pending = null;
+    p.reset++;
+  }
+
+  private hunterSpot(slot: number): { x: number; y: number; z: number } {
+    const [x, z] = YARD.hunterSpawns[slot % YARD.hunterSpawns.length];
+    return { x, y: 0, z };
+  }
+
+  private newId(): number {
+    const used = new Set([...this.decor.map(b => b.id), ...[...this.players.values()].map(p => p.prop)]);
+    // случайный id; занят — следующий свободный (даже с плохим rand цикл конечен)
+    let id = 10000 + this.rand(990000);
+    while (used.has(id)) id = id >= 999999 ? 10000 : id + 1;
+    return id;
+  }
+
+  /** Раскладка предметов двора: каждый слот с вероятностью ~78%, вид — из его набора, без наложений. */
+  private layout(): void {
+    this.decor = [];
+    const order = HIDE_SLOTS.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = this.rand(i + 1); [order[i], order[j]] = [order[j], order[i]]; }
+    for (const i of order) {
+      const slot = HIDE_SLOTS[i];
+      if (this.rand(100) >= 78) continue;
+      const pool = [...(HIDE_POOLS[slot.pool] ?? [])];
+      for (let k = pool.length - 1; k > 0; k--) { const j = this.rand(k + 1); [pool[k], pool[j]] = [pool[j], pool[k]]; }
+      hideFillProps(this.motion, this.decor, -1);
+      const kind = pool.find(kind => hideFits(this.motion, slot.x, slot.y, slot.z, kind, slot.yaw));
+      if (kind) this.decor.push({ id: this.newId(), kind, x: slot.x, y: slot.y, z: slot.z, yaw: slot.yaw });
+    }
+  }
+
+  private startSeek(): void {
+    this.phase = 'seek'; this.seekAt = this.tick; this.phaseEnd = this.tick + HIDE_SEEK_TICKS;
+    for (const p of this.players.values()) if (p.role === 'prop' && p.round === this.round) {
+      p.tauntAt = this.tick + TAUNT.firstMin + this.rand(TAUNT.firstMax - TAUNT.firstMin);
+    }
+    this.notice = 'Ищущие вышли! Каждые 30 с прячущиеся обязаны крякнуть';
+    this.emit({ k: 'door' });
+    this.broadcast();
+  }
+
+  private inFinal(): boolean { return this.phase === 'seek' && this.phaseEnd - this.tick <= HIDE_FINAL_TICKS; }
+
+  liveProps(): HidePlayer[] { return [...this.players.values()].filter(p => p.role === 'prop' && p.round === this.round); }
+  private propCount(): number { return this.liveProps().length; }
+
+  private finish(winner: HideRoundResult['winner']): void {
+    if (this.phase !== 'seek') return;
+    const inRound = [...this.players.values()].filter(p => p.round === this.round);
+    if (winner !== 'cancelled') {
+      const huntActive = inRound.some(p => (p.role === 'hunter' || p.role === 'caught') && p.connected && p.moved >= HUNT_MOVE && p.shots > 0 && this.tick - p.lastHuntAt <= 1800);
+      const prepared = inRound.some(p => p.wasProp && p.connected && p.moved >= PROP_MOVE && p.chose);
+      if (!huntActive || !prepared) winner = 'cancelled';
+    }
+    if (winner === 'hunters') { for (const p of inRound) if ((p.role === 'hunter' || p.role === 'caught') && p.connected) p.pts += PTS.teamWin; }
+    else if (winner === 'props') { for (const p of inRound) if (p.role === 'prop') { p.pts += PTS.survive; p.survivedEnd = true; } }
+    const seekTicks = this.tick - this.seekAt;
+    const last = this.round >= HIDE_ROUNDS;
+    for (const p of inRound) p.score += p.pts;
+    const ranked = inRound.filter(p => p.connected).sort((a, b) => b.score - a.score);
+    const rows: HideRoundResult['rows'] = [];
+    for (const p of inRound) {
+      let tokens = 0;
+      const participated = p.connected && p.rewardEligible && p.moved >= (p.wasProp ? PROP_MOVE : HUNT_MOVE) && (p.chose || p.shots > 0);
+      if (winner !== 'cancelled' && participated && !p.awarded) {
+        p.awarded = true;
+        tokens = seekTicks >= HIDE_TOKENS.minSeekTicks ? roundTokens(p.pts) : 0;
+        if (last) tokens += podiumBonus(ranked.indexOf(p), ranked.length);
+        const hunter = p.role === 'hunter' || p.role === 'caught';
+        this.hooks.finished(p.pid, { round: this.round, role: hunter ? 'hunter' : 'prop', won: hunter ? winner === 'hunters' : winner === 'props', found: p.finds, survived: p.survivedEnd, reward: tokens });
+      }
+      rows.push({ id: p.id, nick: p.nick, pts: p.pts, score: p.score, tokens });
+    }
+    rows.sort((a, b) => b.score - a.score);
+    const stats: RoundStat[] = inRound.map(p => ({ nick: p.nick, wasProp: p.wasProp, kind: p.kind, caught: p.wasProp && (p.role === 'caught' || p.role === 'hunter'), caughtAt: p.caughtAt, survivedEnd: p.survivedEnd, finds: p.finds, tauntPts: p.tauntPts, misses: p.misses, paintOuts: p.paintOuts, lastMiss: p.lastMiss, transforms: p.transforms }));
+    this.result = { winner, round: this.round, last, lines: roundLines(stats, winner), rows };
+    this.phase = 'result'; this.phaseEnd = this.tick + HIDE_RESULT_TICKS;
+    this.notice = winner === 'hunters' ? 'Ищущие нашли всех!' : winner === 'props' ? 'Прячущиеся продержались!' : 'Раунд без наград';
+    for (const p of this.players.values()) p.pending = null;
+    this.broadcast();
+  }
+
+  private toGather(): void {
+    this.phase = 'gather'; this.phaseEnd = 0; this.round = 0; this.result = null; this.decor = [];
+    this.notice = 'Нужно 2–8 игроков';
+    for (const [id, p] of this.players) {
+      if (!p.connected) { this.players.delete(id); continue; }
+      p.role = 'spectator'; p.prop = 0; p.round = 0; p.pending = null;
+      p.state = Object.assign(makeState(), this.hunterSpot(0), { grounded: 1 }); p.reset++;
+    }
+    this.rosterDirty = true;
+    this.recount();
+    this.broadcast();
+  }
+
+  // ------------------------------------------------------------ тик
+
+  /** Все тела для движения и выстрелов: предметы двора и живые прячущиеся (без признака, кто есть кто). */
+  private bodies(): HideBody[] {
+    const list = this.decor.slice();
+    for (const p of this.players.values()) if (p.role === 'prop' && p.round === this.round) list.push({ id: p.prop, kind: p.kind, x: p.state.x, y: p.state.y, z: p.state.z, yaw: p.propYaw });
+    return list;
+  }
+
+  step(): void {
+    this.tick++;
+    for (const [id, p] of this.players) {
+      if (p.connected || this.tick - p.leftAt < HIDE_REJOIN_TICKS) continue;
+      // Не вернулся: прячущийся исчезает (не пойман), ищущий просто уходит
+      this.players.delete(id); this.rosterDirty = true;
+    }
+    if (this.phase === 'gather') { if (this.phaseEnd && this.tick >= this.phaseEnd) this.startMatch(); }
+    else if (this.phase === 'hide') { if (this.tick >= this.phaseEnd) this.startSeek(); }
+    else if (this.phase === 'result') {
+      if (this.humans < HIDE_MIN) this.toGather();
+      else if (this.tick >= this.phaseEnd) {
+        if (this.round >= HIDE_ROUNDS) { this.phase = 'final'; this.phaseEnd = this.tick + HIDE_PODIUM_TICKS; this.notice = 'Итоги матча'; this.broadcast(); }
+        else this.startRound();
+      }
+    } else if (this.phase === 'final') {
+      if (this.tick >= this.phaseEnd) { if (this.humans >= HIDE_MIN) this.startMatch(); else this.toGather(); }
+    }
+    this.move();
+    if (this.phase === 'seek') this.seekTick();
+    this.flush();
+    if (this.tick % 6 === 0) this.broadcast();
+  }
+
+  private move(): void {
+    const playing = this.phase === 'hide' || this.phase === 'seek';
+    const bodies = this.bodies();
+    for (const p of this.players.values()) {
+      if (!p.connected) continue;
+      const ph = p.physics;
+      ph.mover = playing && p.round === this.round ? (p.role === 'prop' ? 'prop' : p.role === 'hunter' && this.phase === 'seek' ? 'hunter' : 'still') : 'still';
+      ph.kind = p.kind; ph.yaw = p.propYaw; ph.locked = p.locked; ph.props = bodies; ph.ownId = p.role === 'prop' ? p.prop : 0;
+      const n = p.input.due();
+      for (let i = 0; i < n && p.input.length; i++) {
+        const inp = p.input.shift();
+        const oldYaw = p.yaw, oldPitch = p.pitch, x = p.state.x, z = p.state.z;
+        p.yaw = inp.yaw; p.pitch = Math.max(-1.2, Math.min(1.2, inp.pitch));
+        ph.step(p.state, inp);
+        const moved = Math.hypot(p.state.x - x, p.state.z - z);
+        p.moved += moved;
+        if (p.role === 'hunter' && this.phase === 'seek' && (moved > 0.02 || Math.abs(p.yaw - oldYaw) > 0.02 || Math.abs(p.pitch - oldPitch) > 0.02)) p.lastHuntAt = this.tick;
+        if (p.role === 'prop') {
+          const own = bodies.find(b => b.id === p.prop);
+          if (own) { own.x = p.state.x; own.y = p.state.y; own.z = p.state.z; }
+        }
+      }
+      if (p.pending && (p.input.ack >= p.pending.seq || this.tick - p.pending.at >= 10)) {
+        if (this.phase === 'seek' && p.role === 'hunter') this.fire(p, p.pending); else p.pending = null;
+        // выстрел закончил раунд — остальных подвинем в следующем тике
+        if (!playing || this.phase === 'result') break;
+      }
+    }
+    if (this.phase === 'seek') this.history.record(this.tick, this.liveProps().map(p => ({ id: p.prop, kind: p.kind, x: p.state.x, y: p.state.y, z: p.state.z, yaw: p.propYaw })));
+  }
+
+  private seekTick(): void {
+    if (this.inFinal() && !this.finalSaid) {
+      this.finalSaid = true;
+      for (const p of this.liveProps()) p.tauntAt = Math.min(p.tauntAt, this.tick + TAUNT.final);
+      this.emit({ k: 'final' }); this.emit({ k: 'feed', text: '⏰ Финал! Насмешки каждые 10 секунд' });
+    }
+    const live = this.liveProps();
+    for (const p of [...this.players.values()]) {
+      if (p.round !== this.round) continue;
+      if (p.role === 'caught' && this.tick >= p.back) { this.makeHunter(p, p.id, PAINT.infected); this.rosterDirty = true; }
+      else if (p.role === 'prop' && this.tick >= p.tauntAt) this.taunt(p, true);
+      else if (p.role === 'hunter' && this.tick - p.lastShot >= PAINT.regenDelay && p.paint < PAINT.max) {
+        p.paint = Math.min(PAINT.max, p.paint + PAINT.regen / 60);
+        if (p.jam && p.paint >= PAINT.unjam) p.jam = false;
+      }
+    }
+    if ((this.tick - this.seekAt) % SURVIVAL_EVERY === 0) for (const p of live) p.pts += live.length === 1 ? 2 : 1;
+    if (!live.length) { this.finish(this.anyCaught ? 'hunters' : 'cancelled'); return; }
+    const hunters = [...this.players.values()].some(p => p.round === this.round && (p.role === 'hunter' || p.role === 'caught') && (p.connected || this.tick - p.leftAt < HIDE_REJOIN_TICKS));
+    if (!hunters) { this.finish('cancelled'); return; }
+    if (this.tick >= this.phaseEnd) this.finish('props');
+  }
+
+  // ------------------------------------------------------------ рассылка
+
+  private emit(e: HideEvent): void { this.events.push(e); }
+
+  private flush(): void {
+    if (this.rosterDirty) {
+      this.rosterDirty = false;
+      const players = [...this.players.values()].map(p => ({ id: p.id, nick: p.nick, level: p.level, outfit: p.outfit }));
+      for (const p of this.players.values()) if (p.connected) p.sink?.sendJson({ t: 'hide_roster', players });
+    }
+    if (!this.events.length) return;
+    const e = this.events; this.events = [];
+    for (const p of this.players.values()) if (p.connected) p.sink?.sendJson({ t: 'hide_ev', e });
+  }
+
+  /** Снимок игроку: предметы — дельтой к тому, что ему уже ушло (см. HideStateMsg). */
+  view(p: HidePlayer): HideStateMsg {
+    const blind = this.phase === 'hide' && p.role !== 'prop';
+    const epoch = !blind && (this.phase === 'hide' || this.phase === 'seek' || this.phase === 'result') ? `${this.match}:${this.round}` : '';
+    const full = p.sentEpoch !== epoch;
+    if (full) { p.sent.clear(); p.sentEpoch = epoch; }
+    const props: number[] = [], gone: number[] = [];
+    if (epoch) {
+      const list = this.bodies().sort((a, b) => a.id - b.id);
+      const stains = new Map<number, number>();
+      for (const q of this.players.values()) if (q.role === 'prop' && q.round === this.round && q.stains) stains.set(q.prop, Math.min(3, q.stains));
+      const seen = new Set<number>();
+      for (const b of list) {
+        const row = [b.id, hideKindIndex(b.kind), Math.round(b.x * 100), Math.round(b.y * 100), Math.round(b.z * 100), b.yaw, stains.get(b.id) ?? 0];
+        const key = row.join(',');
+        seen.add(b.id);
+        if (p.sent.get(b.id) !== key) { p.sent.set(b.id, key); props.push(...row); }
+      }
+      for (const id of p.sent.keys()) if (!seen.has(id)) { p.sent.delete(id); gone.push(id); }
+    }
+    const hunters: number[] = [];
+    for (const q of this.players.values()) {
+      if (q.role !== 'hunter' || q.round !== this.round || (this.phase !== 'hide' && this.phase !== 'seek')) continue;
+      hunters.push(q.id, Math.round(q.state.x * 100), Math.round(q.state.y * 100), Math.round(q.state.z * 100), Math.round(q.yaw * 1000), Math.round(q.pitch * 1000));
+    }
+    const rows: HideRow[] = [...this.players.values()].map(q => ({ id: q.id, nick: q.nick, role: q.round !== this.round || q.role === 'spectator' ? 's' : q.role === 'hunter' ? 'h' : q.role === 'prop' ? 'p' : 'c', score: q.score + (this.phase === 'result' || this.phase === 'final' ? 0 : q.pts), pts: q.pts }));
+    return {
+      t: 'hide_state', tick: this.tick, phase: this.phase, phaseEnd: this.phaseEnd, round: this.round, match: this.match, seekAt: this.seekAt,
+      self: {
+        id: p.id, ack: p.input.ack, reset: p.reset, state: { ...p.state }, role: p.round === this.round ? p.role : 'spectator',
+        kind: p.kind, prop: p.prop, yaw: p.propYaw, locked: p.locked, hits: p.hits, paint: Math.round(p.paint * 10) / 10, jam: p.jam,
+        takeAt: p.takeAt, tauntCd: p.tauntCd, tauntAt: p.tauntAt, back: p.back,
+      },
+      full, p: props, gone, h: hunters, left: this.liveProps().length, total: this.initialProps, notice: this.notice, rows,
+      res: this.phase === 'result' || this.phase === 'final' ? this.result : null,
+    };
+  }
+
+  send(p: HidePlayer): void { p.sink?.sendJson(this.view(p)); }
+  private broadcast(): void { this.flush(); for (const p of this.players.values()) if (p.connected) this.send(p); }
 }
-/** Normal of the same oriented collision box used to judge a prop hit; no hidden metadata. */
-function propNormal(prop:HideProp,point:readonly number[]):[number,number,number] {
- const f=HIDE_FORMS[prop.form],c=Math.cos(prop.yaw),s=Math.sin(prop.yaw),rx=point[0]-prop.x,rz=point[2]-prop.z;
- const x=rx*c-rz*s,y=point[1]-prop.y,z=rx*s+rz*c;
- const faces=[{d:Math.abs(x+f.w),n:[-c,0,s]},{d:Math.abs(x-f.w),n:[c,0,-s]},{d:Math.abs(y),n:[0,-1,0]},{d:Math.abs(y-f.h),n:[0,1,0]},{d:Math.abs(z+f.d),n:[-s,0,-c]},{d:Math.abs(z-f.d),n:[s,0,c]}];
- return faces.reduce((best,face)=>face.d<best.d?face:best).n as [number,number,number];
-}
+
+function r2(v: number): number { return Math.round(v * 100) / 100; }

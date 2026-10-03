@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { Effects } from '../client/render/effects.ts';
-import { hideWorld } from '../shared/hidephysics.ts';
+import { hideStaticWorld as hideWorld } from '../shared/hidephysics.ts';
 
 // Real Three pools and matrices; only the canvas texture drawing surface is stubbed.
 const context=new Proxy({createRadialGradient:()=>({addColorStop(){}})},{get:(target,key)=>Reflect.get(target,key)??(()=>{})});

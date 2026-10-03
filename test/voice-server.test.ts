@@ -73,8 +73,9 @@ test('per-destination signal quota survives voice ID churn and keeps talk contro
  s.time(2000);send();assert.equal(signals(b).length,121,'pair quota refills with elapsed time');
 });
 
-test('зоны: внешний мир общий для набережной и катеров, у каждого инстанса свой голос; микрофон и перезапуск', () => {
- const s=setup(),lobby={kind:'lobby'},boats={kind:'boatrace'},fort1={kind:'fort'},fort2={kind:'fort'};
+// регата теперь на самой набережной; вторая комната «внешнего мира» (будущий баркас, остров) — та же зона
+test('зоны: внешний мир общий для всех его комнат, у каждого инстанса свой голос; микрофон и перезапуск', () => {
+ const s=setup(),lobby={kind:'lobby'},boats={kind:'lobby'},fort1={kind:'fort'},fort2={kind:'fort'};
  const a=s.client(lobby),b=s.client(boats),c=s.client(fort1),d=s.client(fort2),e=s.client(fort1);
  for(const p of[a,b,c,d,e])s.router.handle(p,{t:'voice',a:'join'});
  assert.deepEqual(state(a).peers.map(p=>p.pid),[b.pid]);assert.equal(state(a).zone,'world');

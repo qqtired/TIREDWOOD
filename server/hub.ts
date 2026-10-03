@@ -2,7 +2,8 @@
 // Один на процесс. Комнаты (набережная, пейнтбол, гонка) шагаются из общего цикла 60 тиков в секунду.
 import { timingSafeEqual } from 'node:crypto';
 import { PROTOCOL_VERSION, TICK_RATE } from '../shared/constants.ts';
-import type { BoatRaceResultRow, BoatRaceReward } from '../shared/boatrace.ts';
+import { addRecord } from '../shared/aqua.ts';
+import { rgLapMs, type RgRecordRow, type RgRow } from '../shared/regatta.ts';
 import type { HideResult } from '../shared/hide.ts';
 import { FOOL_MS, type PbReward, type RcReward } from '../shared/economy.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
@@ -27,7 +28,6 @@ import { SkillRoom } from './skilltest/room.ts';
 import type { SkillReward } from './skilltest/game.ts';
 import { applySkillFinish } from '../shared/skilltest.ts';
 import { mskDayNum } from '../shared/fishrules.ts';
-import { BoatRaceRoom } from './boatrace/room.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
@@ -224,7 +224,8 @@ export class Hub {
   readonly paintball: PaintballRoom;
   readonly race: RaceRoom;
   readonly skill: SkillRoom | null;
-  readonly boatrace: BoatRaceRoom | null;
+  /** «Портовая регата» включена (флаг BOATRACE): гонка идёт в бухте набережной (server/lobby/regatta.ts) */
+  readonly boatrace: boolean;
   readonly hide: HideRoom | null;
   private readonly voice: VoiceRouter | null;
   private readonly gifts: GiftCodes;
@@ -294,8 +295,7 @@ export class Hub {
       })
       : null;
     this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
-    this.boatrace = o.boatrace ? new BoatRaceRoom({ outfitOf: p => this.outfitOf(p), result: (c,row,reward) => this.onBoatRaceResult(c,row,reward),
-      over: clients => this.onRaceOver(clients), announce: text => this.announce(text), afk: c => this.onPaintballAfk(c) }) : null;
+    this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);
     this.tg = o.tg ?? null;
@@ -320,7 +320,7 @@ export class Hub {
 
   /** Есть ли кто-то в комнатах (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.boatrace?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
@@ -425,7 +425,7 @@ export class Hub {
         c.sink.sendJson({ t: 'code', ...this.profiles.issueCode(c.profile) });
         return;
       case 'leave':
-        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.boatrace !== null && c.room === this.boatrace) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
+        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
         return;
       default:
         c.room?.onMessage(c, msg);
@@ -616,7 +616,6 @@ export class Hub {
     this.sendMe(c);
     this.lobby.onRename(c);
     this.skill?.onRename(c);
-    this.boatrace?.onRename(c);
     this.hide?.onRename(c);
     this.voice?.renamed(c);
     this.outfitChanged(c.pid);
@@ -703,7 +702,6 @@ export class Hub {
     else if (c.room === this.paintball) this.paintball.outfitChanged(c);
     else if (c.room === this.race) this.race.outfitChanged(c);
     else if (this.skill && c.room === this.skill) this.skill.outfitChanged(c);
-    else if (this.boatrace && c.room === this.boatrace) this.boatrace.outfitChanged(c);
     else if (this.hide && c.room === this.hide) this.hide.outfitChanged(c);
     else if (this.fort !== null && c.room === this.fort) this.fort.outfitChanged(c);
     else if (this.fight !== null && c.room === this.fight) this.fight.outfitChanged(c);
@@ -781,22 +779,35 @@ export class Hub {
     this.race.launch();
   }
 
-  startBoatRace(clients: Client[]): void {
-    const room = this.boatrace;
-    if (!room?.idle) return;
-    room.open();
-    for (const c of clients) this.move(c, room, true);
-    room.launch();
-  }
-
-  onBoatRaceResult(c: Client, row: BoatRaceResultRow, reward: BoatRaceReward | null): void {
-    const p = c.profile;
-    if (!p || c.ephemeral) return;
+  /** «Портовая регата»: итог заезда в профиль (сошедшему посреди гонки — заезд без награды). */
+  onRegattaResult(pid: number, row: RgRow): void {
+    const p = this.profiles.byId(pid);
+    const c = this.byPid.get(pid);
+    if (!p || c?.ephemeral) return;
     p.stats.brRaces++;
     if (row.finished && row.pos === 1) p.stats.brWins++;
-    if (row.bestLap > 0 && (!p.stats.brBestLap || row.bestLap < p.stats.brBestLap)) p.stats.brBestLap = row.bestLap;
-    if (reward) this.profiles.credit(p, reward.total, 'mode');
-    this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
+    if (row.best > 0 && (!p.stats.brBestLapHarbor || row.best < p.stats.brBestLapHarbor)) p.stats.brBestLapHarbor = row.best;
+    if (row.reward > 0) this.profiles.credit(p, row.reward, 'mode');
+    this.store.markDirty();
+    if (c && c.profile === p) {
+      this.tokens(c, p.tokens);
+      this.sendMe(c);
+    }
+    this.lobby.honorChanged();
+  }
+
+  /** Круг регаты — на доску бухты (5 лучших, у каждого — только свой лучший): место или −1. */
+  regattaRecord(pid: number, nick: string, ticks: number): number {
+    const st = this.store.state;
+    const { top, place } = addRecord(st.regatta, { pid, nick, ms: rgLapMs(ticks), at: this.now() });
+    if (place < 0) return -1;
+    st.regatta = top;
+    this.store.markDirty();
+    return place;
+  }
+
+  regattaTop(): RgRecordRow[] {
+    return this.store.state.regatta.map(r => ({ pid: r.pid, nick: r.nick, ms: r.ms }));
   }
 
   /** «Выше облаков»: позвонил в колокол — статистика профиля, жетоны (медаль, «без падений», первый за день). */
@@ -973,7 +984,6 @@ export class Hub {
     if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
-    if (this.boatrace && this.boatrace.humans > 0) this.boatrace.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
     if (this.fort && this.fort.humans > 0) this.fort.step();
     if (this.fight && this.fight.humans > 0) this.fight.step();
@@ -1008,7 +1018,7 @@ export class Hub {
     const fort = this.fort?.humans ?? 0;
     const fight = this.fight?.humans ?? 0;
     const skill = this.skill?.humans ?? 0;
-    const boatrace = this.boatrace?.humans ?? 0;
+    const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
     return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) };
   }

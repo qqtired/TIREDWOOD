@@ -159,18 +159,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
       + '<circle cx="52" cy="70" r="3.6" fill="#30242d"/><circle cx="74" cy="70" r="3.6" fill="#30242d"/>',
     ),
   },
-  boatrace: {
-    title: 'Гонка катеров',
-    sub: 'По бухте до финиша',
-    build: 'Спускаем катера на воду…',
-    go: 'Вперёд!',
-    tint: '#3fb6a8',
-    tips: ['Газ, руль и немного удачи на волнах'],
-    svg: svg(
-      '<path d="M18 74h84l-12 16H34z" fill="#fff3de"/><path d="M40 74V52h26l14 22z" fill="#ff8a1c"/>'
-      + '<rect x="46" y="57" width="10" height="9" rx="2" fill="#9ec0e6"/>' + WAVES,
-    ),
-  },
 };
 
 /** Подсказка: по кругу, чтобы при повторном входе была новая. */

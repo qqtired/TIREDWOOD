@@ -341,8 +341,8 @@ export function buildLobby(): LobbyMap {
   FISH_SPOTS.slice(6, 12).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
   add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком');
   add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
-  add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Гонки на катерах');
-  add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки в городе');
+  add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Портовая регата');
+  add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
   // fisheco: места баркаса (пока — TEMP-BARKAS у набережной), Саня (arg 1 — номер в FISH_NPCS) и стол рулетки
   FISH_SPOTS.slice(12).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 12, 'порыбачить'));
   const sanya = FISH_NPC_USE.sanya;

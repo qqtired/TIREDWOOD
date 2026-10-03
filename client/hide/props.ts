@@ -1,58 +1,149 @@
+// Предметы двора на экране: по одной InstancedMesh на вид, общая для предметов двора и прячущихся (та же модель,
+// материал, масштаб и тень — по картинке не отличить). Кто двигается — переваливается с боку на бок; стоящий —
+// неподвижен, как настоящий. Кляксы — капли краски на поверхности модели; подсветка — только у своей цели.
 import * as THREE from 'three';
-import { HIDE_FORMS,HIDE_PROPS,type HideForm,type HideProp } from '../../shared/hide.ts';
-import { mergeColored,paint,place } from '../render/kit.ts';
-/** Одна геометрия на вид и один материал: игрок и декорация не отличаются ни цветом, ни тенями. */
-function geometry(form:HideForm):THREE.BufferGeometry {
- const parts:THREE.BufferGeometry[]=[];const wood=HIDE_FORMS[form].color,metal=0x445765;
- const box=(x:number,y:number,z:number,w:number,h:number,d:number,color:number)=>parts.push(place(paint(new THREE.BoxGeometry(w,h,d),color),x,y,z));
- if(form==='barrel'){
-  parts.push(place(paint(new THREE.CylinderGeometry(.53,.53,1.22,14),wood),0,.61,0));
-  for(const y of [.16,.98])parts.push(place(paint(new THREE.CylinderGeometry(.557,.557,.095,14),metal),0,y,0));
-  parts.push(place(paint(new THREE.CylinderGeometry(.46,.46,.035,14),0x536f73),0,1.24,0));
- }else if(form==='pot'){
-  parts.push(place(paint(new THREE.CylinderGeometry(.49,.34,.66,12),wood),0,.33,0));
-  parts.push(place(paint(new THREE.CylinderGeometry(.54,.54,.105,12),0xd59c74),0,.65,0));
-  parts.push(place(paint(new THREE.CylinderGeometry(.45,.45,.05,12),0x453e30),0,.7,0));
-  for(let i=0;i<5;i++){const a=i*Math.PI*2/5;parts.push(place(paint(new THREE.IcosahedronGeometry(.31,0).scale(.9,1.2,.9),i%2?0x648d5b:0x80a56c),Math.sin(a)*.21,1.02+((i%2)*.1),Math.cos(a)*.21));}
- }else if(form==='bench'){
-  for(const x of [-.95,.95]){box(x,.27,0,.12,.54,.76,metal);box(x,.68,.37,.1,.72,.12,metal);}
-  for(const z of [-.35,-.1,.15,.38])box(0,.55,z,2.48,.12,.18,wood);
-  for(const y of [.8,.98])box(0,y,.43,2.48,.14,.1,wood);
- }else{
-  box(0,.57,0,1.2,1.14,1.2,wood);
-  for(const y of [.12,1.02]){box(0,y,.608,1.24,.14,.04,0x8c623e);box(.608,y,0,.04,.14,1.24,0x8c623e);box(-.608,y,0,.04,.14,1.24,0x8c623e);box(0,y,-.608,1.24,.14,.04,0x8c623e);}
- }
- return mergeColored(parts);
-}
+import { HIDE_KIND, HIDE_KINDS, type HideKind } from '../../shared/hideprops.ts';
+import { propGeometry } from './models.ts';
+
+/** Предмет в кадре: позиция и поворот (радианы) уже интерполированы; speed — м/с (для переваливания). */
+export interface PropView { id: number; kind: HideKind; x: number; y: number; z: number; yaw: number; stains: number; speed: number }
+
+export const PAINT_COLOR = 0xff3d9a;
+const BLOBS = 3 * 12;
+
+interface Spot { p: THREE.Vector3; n: THREE.Vector3 }
+
 export class HideProps {
- private readonly meshes=new Map<HideForm,THREE.InstancedMesh>();private readonly dummy=new THREE.Object3D();
- private readonly instances=new Map<number,{mesh:THREE.InstancedMesh;index:number}>();
- private readonly raycaster=new THREE.Raycaster();private readonly instanceMatrix=new THREE.Matrix4();private readonly normalMatrix=new THREE.Matrix3();
- private readonly material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85});
- constructor(scene:THREE.Scene){for(const form of HIDE_PROPS){const mesh=new THREE.InstancedMesh(geometry(form),this.material,64);mesh.count=0;mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;this.meshes.set(form,mesh);scene.add(mesh);}}
- update(props:readonly HideProp[],ownId=0,own?:{x:number;y:number;z:number}):void {
-  this.instances.clear();
-  for(const mesh of this.meshes.values())mesh.count=0;
-  for(const prop of props){const mesh=this.meshes.get(prop.form);if(!mesh||mesh.count>=64)continue;const p=prop.id===ownId&&own?own:prop;this.dummy.position.set(p.x,p.y,p.z);this.dummy.rotation.set(0,prop.yaw,0);this.dummy.updateMatrix();this.instances.set(prop.id,{mesh,index:mesh.count});mesh.setMatrixAt(mesh.count++,this.dummy.matrix);}
-  for(const mesh of this.meshes.values()){mesh.instanceMatrix.needsUpdate=true;mesh.boundingSphere=null;}
- }
- /** Paint attaches to a visible triangle of the anonymous prop, never to empty space in its gameplay box. */
- raycastProp(id:number,origin:THREE.Vector3,direction:THREE.Vector3,maxDistance:number):{point:THREE.Vector3;normal:THREE.Vector3;size:number}|null {
-  const entry=this.instances.get(id);if(!entry)return null;
-  const {mesh,index}=entry;mesh.updateMatrixWorld(true);
-  this.raycaster.set(origin,direction);this.raycaster.near=0;this.raycaster.far=maxDistance;
-  const hits:THREE.Intersection[]=[];mesh.raycast(this.raycaster,hits);
-  const hit=hits.filter(h=>h.instanceId===index&&h.face).sort((a,b)=>a.distance-b.distance)[0];if(!hit?.face)return null;
-  mesh.getMatrixAt(index,this.instanceMatrix);this.instanceMatrix.premultiply(mesh.matrixWorld);this.normalMatrix.getNormalMatrix(this.instanceMatrix);
-  // Box triangles share their face bounds, so the internal triangulation diagonal does not erase centre hits.
-  // Limit the footprint on narrow rendered pieces (bench legs/slats), rather than painting a full gameplay box.
-  const local=hit.point.clone().applyMatrix4(this.instanceMatrix.clone().invert()),vertices=[hit.face.a,hit.face.b,hit.face.c].map(i=>new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.position,i));
-  const axes=['x','y','z'] as const,normalAxis=axes.reduce((a,b)=>Math.abs(hit.face!.normal[a])>Math.abs(hit.face!.normal[b])?a:b);
-  let size=.72;
-  for(const axis of axes){if(axis===normalAxis)continue;const lo=Math.min(...vertices.map(v=>v[axis])),hi=Math.max(...vertices.map(v=>v[axis]));size=Math.min(size,Math.max(0,Math.min(local[axis]-lo,hi-local[axis]))*Math.SQRT2);}
-  if(size<.025)return null;
-  return {point:hit.point.clone(),normal:hit.face.normal.clone().applyMatrix3(this.normalMatrix).normalize(),size};
- }
- clear():void{this.instances.clear();for(const mesh of this.meshes.values())mesh.count=0;}
- dispose():void{for(const mesh of this.meshes.values()){mesh.removeFromParent();mesh.geometry.dispose();}this.material.dispose();}
+  readonly material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74, metalness: 0.03 });
+  private readonly scene: THREE.Scene;
+  private readonly meshes = new Map<HideKind, THREE.InstancedMesh>();
+  private readonly used = new Map<HideKind, number>();
+  private readonly blobs: THREE.InstancedMesh;
+  private readonly outline: THREE.LineSegments;
+  private readonly spots = new Map<HideKind, Spot[]>();
+  private readonly m = new THREE.Matrix4();
+  private readonly q = new THREE.Quaternion();
+  private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
+  private readonly v = new THREE.Vector3();
+  private readonly s = new THREE.Vector3(1, 1, 1);
+  private readonly zAxis = new THREE.Vector3(0, 0, 1);
+  private sig = NaN;
+  /** Где сейчас нарисован предмет id (для эффектов попадания) */
+  readonly where = new Map<number, PropView>();
+
+  constructor(scene: THREE.Scene) {
+    this.scene = scene;
+    for (const k of HIDE_KINDS) this.grow(k, 24);
+    const blobGeo = new THREE.SphereGeometry(1, 10, 7).scale(1, 1, 0.32);
+    this.blobs = new THREE.InstancedMesh(blobGeo, new THREE.MeshStandardMaterial({ color: PAINT_COLOR, roughness: 0.28, metalness: 0 }), BLOBS);
+    this.blobs.frustumCulled = false;
+    this.blobs.castShadow = false;
+    this.blobs.count = 0;
+    scene.add(this.blobs);
+    const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0));
+    this.outline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.9, depthTest: false }));
+    this.outline.renderOrder = 5;
+    this.outline.visible = false;
+    scene.add(this.outline);
+  }
+
+  private grow(kind: HideKind, cap: number): THREE.InstancedMesh {
+    const old = this.meshes.get(kind);
+    if (old) { this.scene.remove(old); old.dispose(); }
+    const mesh = new THREE.InstancedMesh(propGeometry(kind), this.material, cap);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+    this.scene.add(mesh);
+    this.meshes.set(kind, mesh);
+    return mesh;
+  }
+
+  /** Точки на поверхности модели для клякс: лучи к оси на трёх высотах с трёх сторон. */
+  private spotsOf(kind: HideKind): Spot[] {
+    let list = this.spots.get(kind);
+    if (list) return list;
+    list = [];
+    const f = HIDE_KIND[kind];
+    const probe = new THREE.Mesh(propGeometry(kind), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+    probe.updateMatrixWorld();
+    const ray = new THREE.Raycaster();
+    for (const [a, k] of [[0.5, 0.48], [2.8, 0.7], [4.4, 0.3]] as const) {
+      const y = f.h * k, dir = new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a));
+      ray.set(new THREE.Vector3(Math.sin(a) * 3, y, Math.cos(a) * 3), dir);
+      const hit = ray.intersectObject(probe)[0];
+      if (hit?.face) list.push({ p: hit.point.clone(), n: hit.face.normal.clone().setY(0).normalize() });
+      else list.push({ p: new THREE.Vector3(Math.sin(a) * f.w * 0.8, y, Math.cos(a) * f.d * 0.8), n: dir.clone().negate() });
+    }
+    this.spots.set(kind, list);
+    return list;
+  }
+
+  /**
+   * Кадр: расставить все предметы. target — id, на который смотрит свой прячущийся (подсветка), 0 — нет.
+   * Возвращает true, если что-то сдвинулось — тогда тени надо пересчитать в этом же кадре.
+   */
+  update(list: readonly PropView[], t: number, target: number): boolean {
+    for (const k of HIDE_KINDS) this.used.set(k, 0);
+    let sig = list.length, blobs = 0;
+    this.where.clear();
+    this.outline.visible = false;
+    for (const b of list) {
+      this.where.set(b.id, b);
+      let mesh = this.meshes.get(b.kind)!;
+      const i = this.used.get(b.kind)!;
+      if (i >= mesh.instanceMatrix.count) mesh = this.grow(b.kind, mesh.instanceMatrix.count * 2);
+      this.used.set(b.kind, i + 1);
+      // переваливается, пока едет; стоит — как вкопанный
+      const go = Math.min(1, b.speed / 3);
+      const ph = t * 13 + b.id * 1.7;
+      const hop = go > 0.05 ? Math.abs(Math.sin(ph)) * 0.05 * go : 0;
+      const tilt = go > 0.05 ? Math.sin(ph) * 0.08 * go : 0;
+      this.e.set(0, b.yaw, tilt);
+      this.q.setFromEuler(this.e);
+      this.v.set(b.x, b.y + hop, b.z);
+      this.m.compose(this.v, this.q, this.s);
+      mesh.setMatrixAt(i, this.m);
+      sig += b.x * 3.1 + b.y * 7.7 + b.z * 1.3 + b.yaw * 0.37 + hop * 11 + tilt * 5 + i * 0.001;
+      if (b.stains > 0 && blobs < BLOBS) {
+        const spots = this.spotsOf(b.kind), size = HIDE_KIND[b.kind].size;
+        for (let k = 0; k < Math.min(3, b.stains) && blobs < BLOBS; k++) {
+          const sp = spots[k];
+          const r = (0.075 + size * 0.03) * (1 + ((b.id * 7 + k * 3) % 5) * 0.08);
+          const p = this.v.copy(sp.p).applyMatrix4(this.m);
+          const n = sp.n.clone().applyQuaternion(this.q);
+          const q = new THREE.Quaternion().setFromUnitVectors(this.zAxis, n);
+          this.blobs.setMatrixAt(blobs++, new THREE.Matrix4().compose(p.addScaledVector(n, 0.012), q, new THREE.Vector3(r, r, r)));
+        }
+      }
+      if (b.id === target) {
+        const f = HIDE_KIND[b.kind];
+        this.outline.visible = true;
+        this.outline.position.set(b.x, b.y, b.z);
+        this.outline.rotation.set(0, b.yaw, 0);
+        this.outline.scale.set(f.w * 2 + 0.06, f.h + 0.04, f.d * 2 + 0.06);
+        (this.outline.material as THREE.LineBasicMaterial).opacity = 0.65 + Math.sin(t * 6) * 0.25;
+      }
+    }
+    for (const [k, mesh] of this.meshes) {
+      const n = this.used.get(k)!;
+      mesh.count = n;
+      if (n) mesh.instanceMatrix.needsUpdate = true;
+    }
+    this.blobs.count = blobs;
+    if (blobs) this.blobs.instanceMatrix.needsUpdate = true;
+    const changed = sig !== this.sig;
+    this.sig = sig;
+    return changed;
+  }
+
+  clear(): void {
+    for (const mesh of this.meshes.values()) mesh.count = 0;
+    this.blobs.count = 0;
+    this.outline.visible = false;
+    this.where.clear();
+    this.sig = NaN;
+  }
 }
