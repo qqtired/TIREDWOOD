@@ -9,6 +9,8 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { GATE, WALL_H } from '../shared/fortmap.ts';
 import { decodeFortTail, encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
 import { BTN_JUMP, BTN_RELOAD, MAG_SIZE, RELOAD_TICKS, makeInput } from '../shared/sim.ts';
+import { planCounts, planWave } from '../server/fort/director.ts';
+import { BOSS_BASE_HP, bossTeamMul, waveHpMul } from '../shared/fortwaves.ts';
 
 function steps(game: FortGame, n: number) { for (let i = 0; i < n; i++) game.step(); }
 function standShop(game: FortGame, p: FortPlayer) {
@@ -24,12 +26,13 @@ function setup(n = 1) {
   return { game, players, messages };
 }
 
-test('первые крылатки появляются на четвёртой волне, один босс — только на восьмой', () => {
-  for (let w = 1; w < 4; w++) assert.equal(F.waveCounts(w, 1)[5] ?? 0, 0);
-  assert.ok(F.waveCounts(4, 1)[5] > 0, 'первая воздушная атака');
-  assert.equal(F.waveCounts(7, 6)[6], 0);
-  assert.equal(F.waveCounts(8, 1)[6], 1);
-  assert.equal(F.waveCounts(8, 6)[6], 1, 'босс не умножается числом игроков');
+test('первые крылатки — на пятой волне, первый босс — на седьмой и один на любую команду', () => {
+  for (let w = 1; w < 5; w++) assert.equal(planCounts(planWave(w, 1, 5))[F.Z_FLYER], 0);
+  assert.ok(planCounts(planWave(5, 1, 5))[F.Z_FLYER] > 0, 'первая воздушная атака');
+  for (let w = 1; w < 7; w++) assert.equal(planWave(w, 6, 5).boss, -1);
+  assert.equal(planWave(7, 1, 5).boss, F.Z_BOSS);
+  assert.equal(planWave(7, 6, 5).boss, F.Z_BOSS, 'босс не умножается числом игроков');
+  assert.equal(planCounts(planWave(7, 6, 5))[F.Z_BOSS], 0, 'в составе босса нет — он отдельно');
 });
 
 test('сервер отвергает покупку от чужого объекта игрока', () => {
@@ -159,7 +162,7 @@ test('крылатка без защитников на стене атакуе�
   assert.equal(game.crystal, hp - F.FLY_CRYSTAL_DMG);
 });
 
-test('босс защищён бронёй, открывает ядро и проходит три фазы с ограниченными подкреплениями', () => {
+test('босс защищён бронёй, открывает ядро; на 50 % — ярость с одной стаей крылаток', () => {
   const { game, players } = setup();
   game.phase = F.FT_WAVE;
   const b = game.horde.spawn(F.Z_BOSS, 1)!;
@@ -171,15 +174,19 @@ test('босс защищён бронёй, открывает ядро и пр�
   game.horde.damage(b, 100, players[0].id, false, b.x, 2, b.z);
   assert.equal(b.hp, hp - 122);
   Object.assign(b, { x: 0, z: -23, hp: b.maxHp * 0.65, t: 40 });
+  const before = game.horde.alive;
   game.step();
-  assert.equal(b.stage, 2);
-  const afterPhase2 = game.horde.alive;
+  assert.equal(b.stage, 1, 'выше половины — без ярости');
+  assert.equal(game.horde.alive, before);
+  b.hp = b.maxHp * 0.45;
+  game.step();
+  assert.equal(b.stage, 2, 'ярость');
+  assert.equal(game.horde.alive, before + 3, 'стая крылаток на одного');
+  assert.ok(game.horde.zombies.filter((z) => z.alive && z.kind === F.Z_FLYER).length === 3);
   steps(game, 10);
-  assert.equal(game.horde.alive, afterPhase2, 'подкрепления выдаются один раз за фазу');
-  b.hp = b.maxHp * 0.32;
-  game.step();
-  assert.equal(b.stage, 3);
-  assert.equal(game.horde.alive, afterPhase2 + 4);
+  b.hp = b.maxHp * 0.2;
+  steps(game, 2);
+  assert.equal(game.horde.alive, before + 3, 'стая — один раз за бой');
 });
 
 test('босс даёт полное предупреждение до урона и окно для ответного огня после', () => {
@@ -198,12 +205,12 @@ test('босс даёт полное предупреждение до урон�
   assert.equal(b.t, F.BOSS_OPEN_TICKS);
 });
 
-test('восьмая волна не заканчивается с живым боссом; подкрепления не пробивают лимит 60', () => {
+test('последняя волна не заканчивается с живым боссом; подкрепления не пробивают лимит 60', () => {
   const { game, players } = setup(6);
   game.phase = F.FT_WAVE;
-  game.wave = 8;
+  game.wave = F.FORT_WAVES;
   const b = game.horde.spawn(F.Z_BOSS, 1, 6)!;
-  assert.equal(b.maxHp, 16900);
+  assert.ok(Math.abs(b.maxHp - BOSS_BASE_HP * waveHpMul(1) * bossTeamMul(6)) < 1e-6);
   for (let i = 1; i < 60; i++) assert.ok(game.horde.spawn(F.Z_WALKER, 1));
   assert.equal(game.horde.spawn(F.Z_FLYER, 1), null);
   b.hp = b.maxHp * 0.3;
@@ -221,7 +228,7 @@ test('восьмая волна не заканчивается с живым б
 test('хвост снимка сохраняет высоту, фазу босса и зафиксированную метку атаки', () => {
   const z: ZombieSnap & { wind: number; tx: number; ty: number; tz: number; stage: number } =
     { id: 51, kind: F.Z_BOSS, state: F.ZS_BOSS_BOMB, hp: 0.4, x: 0, y: 0, z: -23, yaw: 0, atk: 250, wind: 108, tx: 12.25, ty: 4.2, tz: -14.6, stage: 2 };
-  const buf = new Uint8Array(fortTailSize(1));
+  const buf = new Uint8Array(fortTailSize([z], 1));
   encodeFortTail(buf, 0, { gate: 1600, crystal: 2500, turrets: 17, jams: 3, left: 1 }, [z], 1);
   const out: Array<typeof z> = [];
   decodeFortTail(buf.buffer, 0, makeFortTail(), out);
@@ -404,12 +411,12 @@ test('зенитный краскомёт предпочитает дальню�
   Object.assign(flyer, { x: -3.4, y: WALL_H + 4, z: -40 });
   game.turrets[0]!.cd = 0;
   game.step();
-  assert.equal(ground.hp, 60);
-  assert.equal(flyer.hp, 52, 'сначала дальняя воздушная цель, 18 урона');
+  assert.equal(ground.hp, ground.maxHp);
+  assert.ok(Math.abs(flyer.hp - (flyer.maxHp - 18)) < 1e-9, 'сначала дальняя воздушная цель, 18 урона');
   game.horde.damage(flyer, 999, p.id, false, flyer.x, flyer.y, flyer.z);
   game.turrets[0]!.cd = 0;
   game.step();
-  assert.equal(ground.hp, 54, 'наземная цель, 6 урона');
+  assert.ok(Math.abs(ground.hp - (ground.maxHp - 6)) < 1e-9, 'наземная цель, 6 урона');
 });
 
 test('новый защитник с переиспользованным номером не наследует убийства краскомёта и помощь ушедшего', () => {

@@ -6,13 +6,20 @@
 import { EYE_HEIGHT, MAX_NAME, MAX_REWIND_TICKS, TICK_RATE } from '../../shared/constants.ts';
 import { PB_AFK_TICKS } from '../../shared/economy.ts';
 import {
-  ANTIAIR_DMG, ANTIAIR_GROUND_DMG, ANTIAIR_PRICE, ANTIAIR_RANGE, BREAK_TICKS, BUY_ANTIAIR, BUY_CRYSTAL, BUY_FIX, BUY_GATE, BUY_JAM,
+  ANTIAIR_DMG, ANTIAIR_GROUND_DMG, ANTIAIR_PRICE, ANTIAIR_RANGE, BUY_ANTIAIR, BUY_CRYSTAL, BUY_FIX, BUY_GATE, BUY_JAM,
   BUY_MAGAZINE, BUY_TURRET, CRYSTAL_FIX, CRYSTAL_HP, CRYSTAL_PRICE, END_TICKS, FIX_HP, FIX_PRICE, FORT_MAGAZINE, MAGAZINE_PRICE,
-  FORT_HP, FORT_MAX_ALIVE, FORT_MAX_HUMANS, FORT_REGEN_DELAY, FORT_REGEN_EVERY, FORT_RESPAWN_TICKS, FORT_SNAP_EVERY, FORT_WAVES, FT_BREAK,
+  FORT_HP, FORT_MAX_ALIVE, FORT_MAX_HUMANS, FORT_REGEN_DELAY, FORT_REGEN_EVERY, FORT_RESPAWN_TICKS, FORT_SNAP_EVERY, FORT_TOP, FORT_WAVES, FT_BREAK,
   FT_END, FT_GATHER, FT_WAVE, GATE_HP, GATHER_TICKS, JAM_PRICE, JAM_R, JAM_SLOW, JAM_TICKS, LATE_PTS, NEWGATE_PRICE, READY_TICKS, START_PTS,
-  TURRET_DMG, TURRET_EVERY, TURRET_PRICE, TURRET_RANGE, WAVE_PTS, ZK, fortReward, type FortEvent, type FortPlayerRow, type FortResultRow,
-  RALLY_TICKS, RALLY_COOLDOWN, RALLY_MITIGATION, Z_FLYER, waveRole, type FortStatus, type FtReward,
+  TURRET_DMG, TURRET_EVERY, TURRET_PRICE, TURRET_RANGE, WAVE_PTS, ZK, type FortEvent, type FortPlayerRow, type FortResultRow,
+  RALLY_TICKS, RALLY_COOLDOWN, RALLY_MITIGATION, Z_FLYER, fortBounty, type FortRunRec, type FortStatus, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
+import {
+  CRATE_NONE, EARLY_BONUS, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, GOLD_MUL, breakSecondsAfter, isBossWave, isSuperWave, supplyGold,
+  waveTokens,
+} from '../../shared/fortwaves.ts';
+import { FM_EARLY } from '../../shared/fortnet.ts';
+import { planWave, type LastEvent, type WavePlan } from './director.ts';
+import { FortLedger, makeRun, settle, type FortRun, type SettleFinal } from './ledger.ts';
 import { fortShopItems } from '../../shared/fortshop.ts';
 import { afterFortWeapon, beforeFortWeapon } from '../../shared/fortweapon.ts';
 import { FT_STRIDE, fortShotDir, nearestZombie, zombieHead } from '../../shared/fortaim.ts';
@@ -30,6 +37,7 @@ import { sanitizeName } from '../../shared/text.ts';
 import { CollisionWorld, makeRayHit } from '../../shared/world.ts';
 import { InputQueue } from '../inputs.ts';
 import type { Sink } from '../paintball/game.ts';
+import { WaveEvents, type EventHost } from './events.ts';
 import { Horde, type HordeHost, type HordeTarget, type Zombie } from './horde.ts';
 import { FortNav } from './nav.ts';
 
@@ -48,17 +56,26 @@ export class FortPlayer {
   hurtTick = -9999;
   respawnTick = 0;
   firingUntil = 0;
-  /** Очки матча (лавка), сбитые, сколько раз сбили его, очки за сбитых (для «лучшего защитника») */
-  pts = START_PTS;
-  kills = 0;
-  deaths = 0;
-  killPts = 0;
-  /** Отбитых волн с участием и «был в крепости с начала этой волны» */
-  waves = 0;
+  /** Всё нажитое в этой игре — учёт по профилю (ledger.ts): ушёл и вернулся — получает обратно, а не новый бюджет */
+  run: FortRun = makeRun(START_PTS);
+  /** Очки матча (лавка), сбитые, сколько раз сбили его, очки за сбитых (для «лучшего защитника») — поля run */
+  get pts(): number { return this.run.pts; }
+  set pts(v: number) { this.run.pts = v; }
+  get kills(): number { return this.run.kills; }
+  set kills(v: number) { this.run.kills = v; }
+  get deaths(): number { return this.run.deaths; }
+  set deaths(v: number) { this.run.deaths = v; }
+  get killPts(): number { return this.run.killPts; }
+  set killPts(v: number) { this.run.killPts = v; }
+  /** Отбитых волн с участием */
+  get waves(): number { return this.run.waves; }
+  set waves(v: number) { this.run.waves = v; }
+  get magazine(): boolean { return this.run.magazine; }
+  set magazine(v: boolean) { this.run.magazine = v; }
+  /** «Был в крепости с начала этой волны» и вклад в неё */
   inWave = false;
   waveJoinTick = 0;
   waveContribution = 0;
-  magazine = false;
   /** Ударил в колокол */
   ready = false;
   readonly inq = new InputQueue();
@@ -89,6 +106,11 @@ export interface FortHooks {
   result?(p: FortPlayer, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
   /** Человек 90 с ничего не нажимал */
   afk?(p: FortPlayer): void;
+  /** Рекорды крепости (лучшие FORT_TOP забегов, по убыванию волн) и запись нового забега */
+  top?(): readonly FortRunRec[];
+  saveRun?(rec: FortRunRec): void;
+  /** Свой лучший результат защитника (волн) — до этой выплаты */
+  best?(p: FortPlayer): number;
 }
 
 interface Turret {
@@ -100,10 +122,12 @@ interface Turret {
 /** Навигация считается один раз на процесс: карта у всех игр одна */
 let navCache: FortNav | null = null;
 
-export class FortGame implements HordeHost {
+export class FortGame implements HordeHost, EventHost {
   readonly map: FortMap;
   readonly world: CollisionWorld;
   readonly horde: Horde;
+  /** События волны: метеоры, ящик припасов, лихорадка, туман (events.ts) */
+  readonly waveEvents: WaveEvents;
   readonly players = new Map<number, FortPlayer>();
   readonly rng = makeRng(Date.now() & 0xffffffff);
   tick = 0;
@@ -116,6 +140,19 @@ export class FortGame implements HordeHost {
   crystal = CRYSTAL_HP;
   rallyUntil = 0;
   rallyReady = 0;
+  /** Зерно директора на эту игру, последнее событие, план идущей волны */
+  seed = 1;
+  lastEvent: LastEvent = { wave: -99, kind: EV_NONE };
+  plan: WavePlan | null = null;
+  /** Волну вызвали раньше (все в колокол в передышке): +10 % золота за неё */
+  early = false;
+  /** Карточка: в бою — идущей волны, в передышке и сборе — следующей */
+  card: FortWaveCard | null = null;
+  /** Разработка: /wave N, /gate, /event … в чате */
+  debug = false;
+  /** Разработка: событие следующей волны (/event) и «волна как для N защитников» (/wave W N) */
+  private forceEvent = EV_NONE;
+  private debugTeam = 0;
   readonly turrets: Array<Turret | null> = TURRET_SPOTS.map(() => null);
   /** До какого тика лежит лужа на дороге под жёлобом (0 — нет) */
   readonly jams: number[] = CHUTES.map(() => 0);
@@ -136,6 +173,8 @@ export class FortGame implements HordeHost {
   private rosterDirty = true;
   private rosterSentTick = -9999;
   private pendingAfk: FortPlayer[] = [];
+  /** Ушедшие из идущей игры — по номеру профиля (вернутся — получат свой забег) */
+  private readonly ledger = new FortLedger();
 
   constructor(hooks: FortHooks = {}) {
     this.hooks = hooks;
@@ -143,6 +182,7 @@ export class FortGame implements HordeHost {
     this.world = new CollisionWorld(this.map);
     navCache ??= new FortNav(this.map);
     this.horde = new Horde(navCache, this, makeRng(hash32(Date.now() & 0xffff, 77)));
+    this.waveEvents = new WaveEvents(this);
   }
 
   get humanCount(): number {
@@ -167,24 +207,30 @@ export class FortGame implements HordeHost {
     const p = new FortPlayer(id, this.uniqueName(sanitizeName(info.nick) || `Игрок${id}`), sink, hash32(id, Date.now() & 0xffff), info.outfit);
     p.pid = info.pid;
     p.level = info.level ?? 1;
-    // опоздавшим — очки за уже отбитые волны, чтобы было с чем идти в лавку
-    p.pts = START_PTS + LATE_PTS * this.cleared;
+    // Вернулся в ту же игру — свой забег целиком (стартовые очки — один раз за игру). Новенький — с очками за уже
+    // отбитые волны, чтобы было с чем идти в лавку.
+    const back = this.ledger.take(info.pid);
+    p.run = back ?? makeRun(START_PTS + LATE_PTS * this.cleared);
     this.players.set(id, p);
     p.waveJoinTick = this.tick;
     // приветствие — строго первым, до снимков и событий
-    sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster() });
+    sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster(),
+      ...(this.card ? { card: this.card } : {}) });
     this.spawn(p);
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
       this.systemChat(`Орда усилена для ${this.horde.defenders} защитников · подкрепление через 3 с`);
     }
     this.rosterDirty = true;
-    this.systemChat(`${p.name} поднимается на стены`);
+    this.systemChat(back ? `${p.name} вернулся на стены` : `${p.name} поднимается на стены`);
     return p;
   }
 
   removePlayer(id: number): void {
     const p = this.players.get(id);
     if (!p) return;
+    // жетоны за отбитые волны — сразу при выходе; забег — в книгу: вернётся в эту же игру — продолжит с ним
+    this.payout(p, null, false);
+    if (this.phase !== FT_END) this.ledger.stash(p.pid, p.run);
     this.players.delete(id);
     this.usedIds.delete(id);
     // Snapshot IDs can be reused by a new defender; ownership and prior damage belong to the departed session.
@@ -208,9 +254,16 @@ export class FortGame implements HordeHost {
 
   /** Новая игра: ворота и кристалл целы, лавка пуста, у всех стартовые очки, сбор 25 с. */
   newGame(): void {
+    this.waveEvents.stop();
+    this.debugTeam = 0;
     this.horde.clear();
+    this.ledger.clear();
     this.wave = 0;
     this.cleared = 0;
+    this.seed = Math.floor(this.rng() * 0x7fffffff) + 1;
+    this.lastEvent = { wave: -99, kind: EV_NONE };
+    this.plan = null;
+    this.early = false;
     this.gate = GATE_HP;
     this.world.setEnabled(this.map.gateBox, true);
     this.crystal = CRYSTAL_HP;
@@ -218,16 +271,12 @@ export class FortGame implements HordeHost {
     this.turrets.fill(null);
     this.jams.fill(0);
     for (const p of this.players.values()) {
-      p.pts = START_PTS;
-      p.kills = 0;
-      p.deaths = 0;
-      p.killPts = 0;
-      p.waves = 0;
+      p.run = makeRun(START_PTS);
       p.inWave = false;
-      p.magazine = false;
       p.waveContribution = 0;
       this.spawn(p);
     }
+    this.card = this.planFor(1).card;
     this.setPhase(FT_GATHER, this.tick + GATHER_TICKS);
   }
 
@@ -236,32 +285,73 @@ export class FortGame implements HordeHost {
     this.phaseEnd = end;
     for (const p of this.players.values()) p.ready = false;
     this.rosterDirty = true;
-    this.broadcast({ t: 'fphase', phase, end, wave: this.wave });
+    this.broadcast({ t: 'fphase', phase, end, wave: this.wave, ...(this.card ? { card: this.card } : {}) });
+  }
+
+  /** План волны w для нынешнего числа защитников (директор: то же зерно — тот же план) */
+  private planFor(w: number, humans = this.debugTeam || this.players.size): WavePlan {
+    return planWave(w, Math.max(1, humans), this.seed, this.lastEvent);
   }
 
   private startWave(): void {
     this.wave++;
     this.rallyUntil = this.rallyReady = 0;
-    this.horde.startWave(this.wave, Math.max(1, this.players.size), this.tick);
+    const w = this.wave;
+    const last = this.lastEvent;
+    const plan = planWave(w, Math.max(1, this.debugTeam || this.players.size), this.seed, last);
+    if (this.forceEvent !== EV_NONE) {
+      plan.event = this.forceEvent;
+      plan.card = { ...plan.card, event: this.forceEvent };
+      this.forceEvent = EV_NONE;
+    }
+    this.plan = plan;
+    if (plan.event !== EV_NONE) this.lastEvent = { wave: w, kind: plan.event };
+    this.horde.startWave(plan, this.tick, (n) => planWave(w, n, this.seed, last));
+    this.waveEvents.start(plan, this.tick);
     for (let i = 0; i < this.jams.length; i++) if (this.jams[i] === -1) this.jams[i] = this.tick + JAM_TICKS;
     for (const p of this.players.values()) {
       p.inWave = true;
       p.waveJoinTick = this.tick;
       p.waveContribution = 0;
     }
+    this.card = { ...plan.card, ...(this.early ? { early: true } : {}) };
     this.setPhase(FT_WAVE, this.tick);
-    this.systemChat(this.wave === FORT_WAVES ? `🧟 Последняя волна — ${FORT_WAVES}-я! Держимся!` : `🧟 Волна ${this.wave} из ${FORT_WAVES}`);
-    const role = waveRole(this.wave);
-    this.systemChat(`${role.name}: ${role.hint}`);
-    this.systemChat(`Орда: ${this.horde.defenders} защитников · ${this.horde.left} врагов. Колокол: щит строений на 8 с, перезарядка 30 с`);
+    const boss = plan.boss >= 0 ? ` · 👑 ${ZK[plan.boss].name}${plan.bossTier ? ` ${roman(plan.bossTier + 1)}` : ''}` : '';
+    this.systemChat(w === FORT_WAVES ? `🧟 Последняя волна — ${FORT_WAVES}-я! Держимся!` : `🧟 Волна ${w} · ${plan.card.title}${boss}`);
+    if (this.early) this.systemChat(`🔔 Волну вызвали раньше: +${Math.round(EARLY_BONUS * 100)} % золота за неё`);
+  }
+
+  /** Множитель награды за сбитых в этой волне: вызвали раньше (+10 %), золотая лихорадка (×2) */
+  get goldMul(): number {
+    const rush = this.phase === FT_WAVE && this.plan?.event === EV_GOLD ? GOLD_MUL : 1;
+    return (this.early ? 1 + EARLY_BONUS : 1) * rush;
+  }
+
+  /**
+   * Ящик припасов подобран. Хук arsenal grantSupply(p) — гранаты; до слияния — золото каждому защитнику (как
+   * хорошая волна). Возвращает надпись для чата.
+   */
+  grantSupply(_p: FortPlayer): string {
+    const gold = supplyGold(this.wave);
+    for (const q of this.players.values()) q.pts += gold;
+    this.rosterDirty = true;
+    return `+${gold} золота каждому`;
+  }
+
+  supplyPicked(pid: number): void {
+    const p = this.players.get(pid);
+    if (!p) return;
+    this.systemChat(`📦 ${p.name} подобрал припасы: ${this.grantSupply(p)}`);
   }
 
   private endWave(): void {
+    this.waveEvents.stop();
     this.cleared = this.wave;
     for (const p of this.players.values()) {
       if (p.inWave || p.waveContribution > 0 || this.tick - p.waveJoinTick >= 5 * TICK_RATE) {
         p.pts += WAVE_PTS;
         p.waves++;
+        p.run.tokWaves += waveTokens(this.wave);
       }
       p.inWave = false;
     }
@@ -275,28 +365,64 @@ export class FortGame implements HordeHost {
       else p.hp = FORT_HP;
     }
     this.jams.fill(0);
-    this.setPhase(FT_BREAK, this.tick + BREAK_TICKS);
-    this.systemChat(`✅ Волна ${this.wave} отбита! +${WAVE_PTS} очков. Передышка — лавка открыта`);
+    this.early = false;
+    this.plan = null;
+    const next = this.planFor(this.wave + 1);
+    this.card = next.card;
+    const sec = breakSecondsAfter(this.wave);
+    this.setPhase(FT_BREAK, this.tick + sec * TICK_RATE);
+    const ahead = isSuperWave(this.wave + 1) ? ` · ⚠ дальше супер-босс: ${next.card.title}!`
+      : isBossWave(this.wave + 1) ? ` · ⚠ дальше босс: ${next.card.title}` : '';
+    this.systemChat(`✅ Волна ${this.wave} отбита! +${WAVE_PTS} очков. Передышка ${sec} с — лавка открыта${ahead}`);
   }
 
-  /** Итоги: таблица, лучший защитник, жетоны тем, кто дождался (решает fortReward). */
+  /**
+   * Итоги: таблица, лучший защитник, рекорд крепости (новый — +15 🪙 каждому в итогах), остаток жетонов тем, кто
+   * дождался (за волны — то, что ещё не платили), забег — в таблицу рекордов.
+   */
   private finish(win: boolean): void {
+    this.waveEvents.stop();
+    this.card = null;
+    this.plan = null;
     this.setPhase(FT_END, this.tick + END_TICKS);
     let mvp: FortPlayer | null = null;
     if (this.players.size >= 2) {
       for (const p of this.players.values()) if (p.killPts > 0 && (!mvp || p.killPts > mvp.killPts)) mvp = p;
     }
+    const before = this.hooks.top?.() ?? [];
+    const prev = before[0]?.wave ?? 0;
+    const record = this.cleared > prev;
     const rows: FortResultRow[] = [];
-    for (const p of this.players.values()) {
-      const reward = fortReward({ waves: p.waves, kills: p.kills, win, mvp: p === mvp });
-      const row: FortResultRow = { id: p.id, name: p.name, k: p.kills, d: p.deaths, pts: p.killPts, waves: p.waves, tokens: reward?.total ?? 0 };
-      rows.push(row);
-      if (reward) p.sink.sendJson({ t: 'fortReward', ...reward });
-      this.hooks.result?.(p, row, reward, win, this.cleared);
-    }
+    for (const p of this.players.values()) rows.push(this.payout(p, { mvp: p === mvp, record, win }, win)!);
     rows.sort((a, b) => b.pts - a.pts || b.k - a.k);
-    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows });
-    this.systemChat(win ? `🏆 Крепость устояла! Все ${FORT_WAVES} волн отбиты` : `💥 Кристалл разбит на волне ${this.wave}. Новая игра — через несколько секунд`);
+    if (this.cleared > 0 && this.players.size > 0) {
+      this.hooks.saveRun?.({ wave: this.cleared, names: [...this.players.values()].map((p) => p.name).slice(0, FORT_MAX_HUMANS), at: Date.now(), n: this.players.size });
+    }
+    const top = (this.hooks.top?.() ?? []).slice(0, FORT_TOP);
+    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev });
+    this.systemChat(win ? `🏆 Крепость устояла! Все ${FORT_WAVES} волн отбиты`
+      : `💥 Кристалл разбит на волне ${this.wave}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
+  }
+
+  /**
+   * Выплата по забегу (ledger.settle): при выходе — за отбитые волны и сбитых, что ещё не платили; в итогах — ещё
+   * бонусы. Хук result считает игру в статистике профиля только при первой выплате (row.again). При выходе без
+   * единой волны и сбитого — ничего (null).
+   */
+  private payout(p: FortPlayer, final: SettleFinal | null, win: boolean): FortResultRow | null {
+    const run = p.run;
+    const kNew = run.kills - run.paidKills;
+    const reward = settle(run, final);
+    if (!final && !reward && kNew <= 0) return null;
+    const row: FortResultRow = { id: p.id, name: p.name, k: p.kills, d: p.deaths, pts: p.killPts, waves: p.waves, tokens: reward?.total ?? 0, again: run.payouts > 0, kNew,
+      best: this.hooks.best?.(p) ?? 0 };
+    run.paidKills = run.kills;
+    run.payouts++;
+    // в итогах — панель наград; при выходе — короткая надпись (игрок уже уходит на набережную)
+    if (reward && final) p.sink.sendJson({ t: 'fortReward', ...reward });
+    else if (reward) p.sink.sendJson({ t: 'toast', text: `🏰 Крепость: +${reward.total} 🪙 за отбитые волны (${p.waves}) и сбитых` });
+    this.hooks.result?.(p, row, reward, win, this.cleared);
+    return row;
   }
 
   // ------------------------------------------------------------ люди
@@ -371,6 +497,10 @@ export class FortGame implements HordeHost {
       p.state.prevButtons = inp.buttons;
       return;
     }
+    // E у ящика припасов (кнопка «нажата сейчас», а не держится)
+    if ((inp.buttons & BTN_USE) !== 0 && (p.state.prevButtons & BTN_USE) === 0 && this.phase === FT_WAVE) {
+      this.waveEvents.use(p.id, p.state.x, p.state.y, p.state.z);
+    }
     const extraReload = beforeFortWeapon(p.state, inp, p.magazine);
     stepPlayer(p.state, inp, this.world, true, p.seed, p.ev);
     afterFortWeapon(p.state, p.ev, p.magazine, extraReload);
@@ -444,7 +574,7 @@ export class FortGame implements HordeHost {
     if (i >= 0) {
       const z = this.who[i];
       const head = zombieHead(z.kind, ey, tg[i * FT_STRIDE + 1]);
-      this.horde.damage(z, damageAt(best, head), p.id, head, ex, ey, ez);
+      this.horde.damage(z, damageAt(best, head), p.id, head, ex, ey, ez, ox, oz);
     }
   }
 
@@ -529,7 +659,7 @@ export class FortGame implements HordeHost {
 
   killed(z: Zombie, by: number): void {
     const p = by ? this.players.get(by) : undefined;
-    const pts = ZK[z.kind].pts;
+    const pts = Math.round(fortBounty(z.kind, z.tier, this.wave, z.crew) * this.goldMul);
     if (p) p.kills++;
     const team = [...this.players.values()];
     if (!team.length) return;
@@ -559,11 +689,12 @@ export class FortGame implements HordeHost {
     let n = 0;
     for (const p of this.players.values()) {
       if (!p.alive) continue;
-      const t = list[n] ?? (list[n] = { id: 0, x: 0, y: 0, z: 0 });
+      const t = list[n] ?? (list[n] = { id: 0, x: 0, y: 0, z: 0, air: false });
       t.id = p.id;
       t.x = p.state.x;
       t.y = p.state.y;
       t.z = p.state.z;
+      t.air = p.state.grounded === 0;
       n++;
     }
     list.length = n;
@@ -606,7 +737,7 @@ export class FortGame implements HordeHost {
       const ey = best.y + ZK[best.kind].hcy;
       this.events.push(['tshot', i, best.id, r2(best.x), r2(ey), r2(best.z)]);
       this.horde.damage(best, t.aa ? best.kind === Z_FLYER ? ANTIAIR_DMG : ANTIAIR_GROUND_DMG : TURRET_DMG,
-        this.players.has(t.owner) ? t.owner : 0, false, best.x, ey, best.z);
+        this.players.has(t.owner) ? t.owner : 0, false, best.x, ey, best.z, ox, oz);
     }
   }
 
@@ -645,7 +776,13 @@ export class FortGame implements HordeHost {
       const all = [...this.players.values()].every((q) => q.ready);
       if (all) {
         this.phaseEnd = Math.min(this.phaseEnd, this.tick + READY_TICKS);
-        this.broadcast({ t: 'fphase', phase: this.phase, end: this.phaseEnd, wave: this.wave });
+        // в передышке — «вызвали раньше»: +10 % золота за следующую волну всем
+        if (this.phase === FT_BREAK && !this.early) {
+          this.early = true;
+          this.events.push(['early', Math.round(EARLY_BONUS * 100)]);
+        }
+        if (this.card) this.card = { ...this.card, ...(this.early ? { early: true } : {}) };
+        this.broadcast({ t: 'fphase', phase: this.phase, end: this.phaseEnd, wave: this.wave, ...(this.card ? { card: this.card } : {}) });
       }
       return;
     }
@@ -737,12 +874,45 @@ export class FortGame implements HordeHost {
 
   /** Команды из чата: /kill — снова на террасу (застрял за стенами), /help. */
   command(p: FortPlayer, text: string): void {
-    const cmd = text.slice(1).split(/\s+/)[0].toLowerCase();
-    if (cmd === 'kill') {
+    const [cmd, arg] = text.slice(1).split(/\s+/);
+    if (cmd.toLowerCase() === 'kill') {
       if (p.alive) this.down(p, 0);
       return;
     }
+    if (this.debug && cmd.toLowerCase() === 'wave') {
+      // /wave W [N] — к волне W; N — орда как для N защитников (проверить большие волны одному)
+      const team = Number(text.slice(1).split(/\s+/)[2] ?? 0);
+      this.debugTeam = Number.isInteger(team) && team >= 1 && team <= 6 ? team : 0;
+      this.jumpTo(Number(arg));
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'gate') {
+      // разработка: снести ворота (проверить прорыв боссов)
+      if (this.gate > 0) this.hitGate(1e9);
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'event') {
+      // разработка: событие следующей волны
+      const kinds: Record<string, number> = { meteors: EV_METEORS, supply: EV_SUPPLY, gold: EV_GOLD, fog: EV_FOG };
+      this.forceEvent = kinds[(arg ?? '').toLowerCase()] ?? EV_NONE;
+      this.systemChat(this.forceEvent ? `🛠 Разработка: на следующей волне — ${arg}` : '🛠 /event meteors | supply | gold | fog');
+      return;
+    }
     this.privateChat(p, 'Крепость: E у стоек — лавка (ворота, кристалл, краскомёты, варенье), колокол — «готов», Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');
+  }
+
+  /** Разработка: передышка перед волной w (3 с), орда убрана; очки и жетоны не начисляются */
+  jumpTo(w: number): void {
+    if (!Number.isInteger(w) || w < 1 || w > FORT_WAVES || this.phase === FT_END) return;
+    this.waveEvents.stop();
+    this.horde.clear();
+    this.wave = w - 1;
+    this.cleared = w - 1;
+    this.early = false;
+    this.plan = null;
+    this.card = this.planFor(w).card;
+    this.setPhase(FT_BREAK, this.tick + 3 * TICK_RATE);
+    this.systemChat(`🛠 Разработка: дальше волна ${w}`);
   }
 
   systemChat(text: string): void {
@@ -775,6 +945,7 @@ export class FortGame implements HordeHost {
       this.buildTargets();
       this.horde.step();
       this.stepTurrets();
+      this.waveEvents.step();
       if (this.crystal <= 0) this.finish(false);
       else if (this.horde.cleared) this.endWave();
     }
@@ -820,7 +991,7 @@ export class FortGame implements HordeHost {
     }
     const ents = encodeEntities(list);
     const nz = this.horde.snap(this.zsnap);
-    const body = new Uint8Array(ents.length + fortTailSize(nz));
+    const body = new Uint8Array(ents.length + fortTailSize(this.zsnap, nz, this.tail.ext?.length ?? 0));
     body.set(ents);
     const t = this.tail;
     t.gate = this.gate;
@@ -833,6 +1004,13 @@ export class FortGame implements HordeHost {
     t.jams = 0;
     for (let i = 0; i < this.jams.length; i++) if (this.jams[i] === -1 || this.jams[i] > tick) t.jams |= 1 << i;
     t.left = this.phase === FT_WAVE ? this.horde.left : 0;
+    t.wave = this.wave;
+    t.event = this.phase === FT_WAVE ? this.plan?.event ?? EV_NONE : EV_NONE;
+    t.mods = this.early ? FM_EARLY : 0;
+    const ev = this.waveEvents;
+    t.crate = this.phase === FT_WAVE ? ev.crate : CRATE_NONE;
+    t.crateX = ev.crateX;
+    t.crateZ = ev.crateZ;
     encodeFortTail(body, ents.length, t, this.zsnap, nz);
     const h = this.header;
     h.tick = tick;
@@ -869,6 +1047,12 @@ export class FortGame implements HordeHost {
     this.rosterSentTick = this.tick;
     this.broadcast({ t: 'froster', players: this.roster() });
   }
+}
+
+/** 2 → II, 3 → III … (круг босса) */
+function roman(n: number): string {
+  const r = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  return r[n] ?? String(n);
 }
 
 function sysLine(text: string): ServerMsg {

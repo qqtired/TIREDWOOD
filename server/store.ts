@@ -6,6 +6,7 @@ import { AQUA_COURSE, addRecord, type AquaRecord } from '../shared/aqua.ts';
 import { RG_COURSE } from '../shared/regattacourse.ts';
 import { emptyStats, mskDay, type Stats } from '../shared/economy.ts';
 import { FISH, sanitizeAlbum, type FishAlbum } from '../shared/fishing.ts';
+import { FORT_TOP, type FortRunRec } from '../shared/fort.ts';
 import { normalizeFishProgress, type FishProgress } from '../shared/fishprogress.ts';
 import { COLLECTION, isCollected } from '../shared/fishrules.ts';
 import type { FishPodiumCatch } from '../shared/messages.ts';
@@ -73,6 +74,8 @@ export interface State {
   fishPodium: { day: string; catches: FishPodiumCatch[] };
   /** Сроки общих событий, абсолютные миллисекунды; переживают перезапуск. */
   lobbyEvents?: { stormAt: number; piratesAt: number; endedAt: number; lockUntil?: number };
+  /** Рекорды «Крепости»: лучшие забеги (волн отбито, кто был в итогах), по убыванию; старые сохранения — пусто */
+  fortTop?: FortRunRec[];
   profiles: Profile[];
 }
 
@@ -173,8 +176,33 @@ function parseState(text: string): State {
     regattaCourse: RG_COURSE,
     fishPodium: parseFishPodium(raw.fishPodium),
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
+    // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
+    ...(raw.fortTop !== undefined ? { fortTop: parseFortTop(raw.fortTop) } : {}),
     profiles,
   };
+}
+
+/** Рекорды крепости: только целые записи, не больше FORT_TOP, по убыванию волн (раньше — выше) */
+export function parseFortTop(raw: unknown): FortRunRec[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FortRunRec[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== 'object') continue;
+    const o = r as Record<string, unknown>;
+    const wave = Math.floor(num(o.wave));
+    if (wave <= 0 || wave > 100000) continue;
+    out.push({ wave, names: strings(o.names).slice(0, 6).map((s) => s.slice(0, 40)), at: Math.max(0, num(o.at)), n: Math.max(1, Math.min(6, Math.floor(num(o.n, 1)))) });
+  }
+  return sortFortTop(out);
+}
+
+/** Забег в таблицу рекордов: по убыванию волн, при равенстве — кто раньше; не больше FORT_TOP */
+export function addFortRun(top: readonly FortRunRec[], rec: FortRunRec): FortRunRec[] {
+  return sortFortTop([...top, rec]);
+}
+
+function sortFortTop(list: FortRunRec[]): FortRunRec[] {
+  return list.sort((a, b) => b.wave - a.wave || a.at - b.at).slice(0, FORT_TOP);
 }
 
 function parseLobbyEvents(raw: unknown): NonNullable<State['lobbyEvents']> {

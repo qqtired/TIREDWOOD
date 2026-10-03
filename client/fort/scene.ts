@@ -11,6 +11,8 @@ import { FortHud } from './hud.ts';
 import { FortMatch } from './match.ts';
 import { FortWorld } from './world.ts';
 import { Zombies3D } from './zombies3d.ts';
+import { Projectiles } from './projectiles.ts';
+import { EventMarks } from './marks.ts';
 
 export class FortScene implements Scene {
   readonly kind = 'fort' as const;
@@ -21,6 +23,8 @@ export class FortScene implements Scene {
   readonly world: FortWorld;
   private readonly effects: Effects;
   private readonly zombies: Zombies3D;
+  private readonly projectiles: Projectiles;
+  private readonly marks: EventMarks;
   private readonly hud: FortHud;
   private match: FortMatch | null = null;
 
@@ -30,6 +34,8 @@ export class FortScene implements Scene {
     this.world = new FortWorld(d.renderer, this.map);
     this.effects = new Effects(this.world.scene, this.collision);
     this.zombies = new Zombies3D(this.world.scene, this.collision);
+    this.projectiles = new Projectiles(this.world.scene);
+    this.marks = new EventMarks(this.world.scene);
     const root = document.createElement('div');
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
@@ -50,6 +56,8 @@ export class FortScene implements Scene {
       world: this.world,
       effects: this.effects,
       zombies: this.zombies,
+      projectiles: this.projectiles,
+      marks: this.marks,
       hud: this.hud,
       chat: d.ui.chat,
       sound: d.sound,

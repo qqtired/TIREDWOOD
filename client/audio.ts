@@ -1451,6 +1451,76 @@ export class Sound {
     this.noise(d, 0.25, 'bandpass', 1800, 500, 1.5, 0.2, 0.03);
   }
 
+  // --- «Крепость»: новые враги, боссы, море, события
+
+  /** Шарик по кастрюле Чугунка: звонкий металл с искрой. */
+  clang(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 6);
+    const f = 900 + Math.random() * 300;
+    this.tone(d, f, f * 0.98, 0.22, 'triangle', 0.09);
+    this.tone(d, f * 2.7, f * 2.6, 0.12, 'sine', 0.05);
+    this.noise(d, 0.04, 'highpass', 4000, 5000, 1, 0.08);
+  }
+
+  /** Щит щитоносца разбит: треск досок. */
+  planks(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 8);
+    this.noise(d, 0.35, 'lowpass', 1400, 200, 1, 0.45, 0, 0.003, true);
+    for (let i = 0; i < 6; i++) this.noise(d, 0.05, 'bandpass', 1200 + Math.random() * 1800, 600, 2, 0.14, Math.random() * 0.25);
+  }
+
+  /** Лекарь лечит: мягкий восходящий перезвон. */
+  heal(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 7);
+    for (const [f, w] of [[523, 0], [659, 0.07], [784, 0.14]] as const) this.tone(d, f, f * 1.01, 0.35, 'sine', 0.05, w);
+  }
+
+  /** Плевок: влажный «тьфу». */
+  spit(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 6);
+    this.noise(d, 0.18, 'bandpass', 1500, 600, 2, 0.3, 0, 0.002);
+    this.tone(d, 300, 160, 0.12, 'sine', 0.12);
+  }
+
+  /** Бочка рванула: гулкий взрыв с треском. */
+  boom(pos: V3 | null, big = 1): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 14 * big);
+    this.noise(d, 0.9 * big, 'lowpass', 1200, 80, 0.8, 0.8, 0, 0.003, true);
+    this.tone(d, 90, 30, 0.6 * big, 'sine', 0.6);
+    for (let i = 0; i < 5; i++) this.noise(d, 0.06, 'bandpass', 900 + Math.random() * 2000, 500, 2, 0.15, 0.05 + Math.random() * 0.3);
+  }
+
+  /** Рёв босса: низкий гул с хрипом (ярость, появление). */
+  roar(pos: V3 | null, pitch = 1): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 20);
+    this.tone(d, 90 * pitch, 55 * pitch, 1.3, 'sawtooth', 0.12, 0, 0.08);
+    this.tone(d, 135 * pitch, 80 * pitch, 1.1, 'square', 0.05, 0.05, 0.1);
+    this.noise(d, 1.2, 'lowpass', 700 * pitch, 200, 1.2, 0.3, 0, 0.08, true);
+  }
+
+  /** Землетрясение и удар камня: низкий раскатистый грохот. */
+  rumble(pos: V3 | null, len = 1): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 18);
+    this.noise(d, len, 'lowpass', 300, 60, 0.7, 0.7, 0, 0.05, true);
+    this.tone(d, 50, 32, len, 'sine', 0.45, 0, 0.05);
+  }
+
+  /** Лодка тонет: треск досок и большой всплеск. */
+  sink(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 16);
+    for (let i = 0; i < 8; i++) this.noise(d, 0.06, 'bandpass', 900 + Math.random() * 1500, 500, 2, 0.16, Math.random() * 0.4);
+    this.noise(d, 1.1, 'lowpass', 2200, 200, 0.7, 0.55, 0.25, 0.02, true);
+    this.tone(d, 120, 45, 0.6, 'sine', 0.3, 0.3);
+  }
+
   // ------------------------------------------------------------ атмосфера
 
   private startAmbience(): void {

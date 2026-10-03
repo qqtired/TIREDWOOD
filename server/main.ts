@@ -69,7 +69,9 @@ const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_D
 const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, storm, pirates, voice, voiceIce, jukebox,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
-  devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
+  devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
+  // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
+  devFort: DEV || process.env.DEV_GO === '1' });
 // /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
 hub.gate.devGo = DEV || process.env.DEV_GO === '1';
 tg.start();

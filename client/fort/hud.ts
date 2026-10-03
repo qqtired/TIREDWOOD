@@ -3,7 +3,9 @@
 // осталось или сколько до волны, очки лавки), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка),
 // мини-карта с ордой, таблица защитников (Tab) и итоги игры с жетонами.
 import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_OPEN, ZS_BOSS_APPROACH, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE,
-  waveRole, type FortPlayerRow, type FortResultRow } from '../../shared/fort.ts';
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, ZS_THROW,
+  isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
+import { WaveCardView, romanTier } from './wavecard.ts';
 import { fortShopItems, type FortShopState } from '../../shared/fortshop.ts';
 import { CHUTES, FORT, GATE, ROADS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
@@ -64,8 +66,10 @@ export class FortHud {
   private readonly end: HTMLElement;
   private readonly deathTitle: HTMLElement | null;
   private readonly deathBy: HTMLElement | null;
-  private readonly roleEl: HTMLElement;
+  /** Карточка волны: что идёт, откуда, босс, событие */
+  readonly card: WaveCardView;
   private readonly bossEl: HTMLElement;
+  private readonly bossName: HTMLElement;
   private readonly bossFill: HTMLElement;
   private readonly bossInfo: HTMLElement;
   private readonly shop: HTMLDialogElement;
@@ -89,7 +93,7 @@ export class FortHud {
     const top = el('div', 'ft-top', root);
     const wave = el('div', 'ft-wave', top);
     this.phaseEl = el('span', 'ft-phase', wave, 'СБОР');
-    this.waveEl = el('b', 'ft-wave-n', wave, `0 / ${FORT_WAVES}`);
+    this.waveEl = el('b', 'ft-wave-n', wave, '1');
     this.infoEl = el('span', 'ft-info', wave, '');
     const meter = (cls: string, icon: string): [HTMLElement, HTMLElement, HTMLElement] => {
       const box = el('div', `ft-meter ${cls}`, top);
@@ -106,17 +110,18 @@ export class FortHud {
     this.alertEl = el('div', 'ft-alert', root);
     this.alertEl.setAttribute('role', 'status');
     const briefing = el('div', 'ft-briefing', root);
-    this.roleEl = el('div', 'ft-role', briefing);
+    this.card = new WaveCardView(briefing, root);
     this.defenseEl = el('div', 'ft-defense', briefing);
     this.defenseEl.title = 'Колокол на террасе: 8 секунд защиты строений, общий откат 30 секунд. Игроки по-прежнему получают полный урон.';
     this.bossEl = el('div', 'ft-boss', briefing);
-    el('b', 'ft-boss-name', this.bossEl, ZK[Z_BOSS].name);
+    this.bossName = el('b', 'ft-boss-name', this.bossEl, ZK[Z_BOSS].name);
     const bossBar = el('div', 'ft-boss-bar', this.bossEl);
     bossBar.setAttribute('role', 'progressbar');
-    bossBar.setAttribute('aria-label', 'Здоровье Барона Варенья');
+    bossBar.setAttribute('aria-label', 'Здоровье босса');
     bossBar.setAttribute('aria-valuemin', '0');
     bossBar.setAttribute('aria-valuemax', '100');
     this.bossFill = el('i', '', bossBar);
+    el('b', 'ft-boss-rage', bossBar).title = 'Ярость на половине здоровья';
     this.bossInfo = el('span', 'ft-boss-info', this.bossEl);
 
     // --- подсказка у стойки
@@ -191,13 +196,15 @@ export class FortHud {
     const ph = phase === FT_GATHER ? 'Сбор' : phase === FT_BREAK ? 'Передышка' : phase === FT_END ? 'Итоги' : 'Волна';
     if (this.set('ph', ph)) this.phaseEl.textContent = ph;
     const shown = phase === FT_BREAK || phase === FT_GATHER ? wave + 1 : wave;
-    const w = `${Math.max(1, Math.min(FORT_WAVES, shown))} / ${FORT_WAVES}`;
+    const w = String(Math.max(1, Math.min(FORT_WAVES, shown)));
     if (this.set('wave', w)) this.waveEl.textContent = w;
     if (this.set('info', info)) this.infoEl.textContent = info;
     if (this.set('urgent', urgent)) this.infoEl.classList.toggle('urgent', urgent);
-    const role = waveRole(shown);
-    if (this.set('role', role.name)) this.roleEl.textContent = `${role.name} · ${role.hint}`;
-    this.roleEl.hidden = phase === FT_END;
+  }
+
+  /** Карточка волны: в бою — идущая, в передышке и сборе — следующая */
+  setCard(card: FortWaveCard | null, phase: number): void {
+    this.card.set(phase === FT_END ? null : card, phase !== FT_WAVE);
   }
 
   setDefense(phase: number, defenders: number, rally: number, cooldown: number): void {
@@ -210,22 +217,36 @@ export class FortHud {
     this.defenseEl.classList.toggle('active', rally > 0);
   }
 
-  setBoss(hp: number, stage: number, state: number, wind: number): void {
+  /**
+   * Полоса босса: доля HP, фаза, состояние, отсчёт (окно уязвимости), тип и круг (II, III …), ярость.
+   * hp 0 — спрятать.
+   */
+  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage = false): void {
     this.bossEl.classList.toggle('show', hp > 0);
     if (hp <= 0) return;
     const pct = Math.max(0, Math.min(100, Math.ceil(hp * 100)));
     this.bossFill.style.width = `${pct}%`;
     this.bossFill.parentElement!.setAttribute('aria-valuenow', String(pct));
-    const name = ['Осадник', 'Повелитель налёта', 'Ярость'][Math.max(0, stage - 1)] ?? 'Осадник';
+    const k = isBossKind(kind) ? ZK[kind] : ZK[Z_BOSS];
+    const title = `${k.icon} ${k.name}${tier > 0 ? ` ${romanTier(tier + 1)}` : ''}`;
+    if (this.set('bossName', title)) this.bossName.textContent = title;
+    const phase = rage || stage >= 2 ? 'ярость' : '';
     const attack = state === ZS_BOSS_OPEN ? `Ядро открыто · ${Math.max(0, wind / 60).toFixed(1)} с — огонь!`
-      : state === ZS_BOSS_APPROACH ? 'Идёт к воротам · приготовьтесь'
+      : state === ZS_BOSS_APPROACH ? 'Подходит · приготовьтесь'
       : state === ZS_BOSS_GATE ? 'Замах по воротам · уйдите с метки'
       : state === ZS_BOSS_BOMB ? 'Прицельный залп · уйдите с метки'
-      : state === ZS_BOSS_PULSE ? 'Удар по стене · выйдите из круга или прыгните'
-      : 'Броня активна · ждите открытия ядра';
-    const text = `${pct}% · ${name} · ${attack}`;
+      : state === ZS_BOSS_PULSE ? 'Волна по кругу · выйдите из круга или прыгните'
+      : state === ZS_CHARGE_WARN ? 'Разбег · уйдите с красной дорожки'
+      : state === ZS_CHARGE ? 'Рывок!'
+      : state === ZS_STOMP ? 'Встаёт на дыбы · прыгайте'
+      : state === ZS_HOWL ? 'Воет · сейчас выбегут шустрики'
+      : state === ZS_THROW ? 'Камень · уйдите из круга'
+      : state === ZS_QUAKE ? 'Трясёт стену · прыгайте'
+      : 'Броня · ждите открытия ядра';
+    const text = `${pct}%${phase ? ` · ${phase}` : ''} · ${attack}`;
     if (this.set('bossInfo', text)) this.bossInfo.textContent = text;
     this.bossEl.classList.toggle('open', state === ZS_BOSS_OPEN);
+    this.bossEl.classList.toggle('rage', rage || stage >= 2);
   }
 
   showShop(): void {
@@ -239,7 +260,7 @@ export class FortHud {
   updateShop(s: FortShopState, wave: number, sec: number, pending: number | null): void {
     if (!this.shop.open) return;
     this.shopBalance.textContent = `Твой баланс: ${s.pts} ⭐`;
-    this.shopTime.textContent = `Волна ${Math.min(FORT_WAVES, wave + 1)} через ${Math.max(0, Math.ceil(sec))} с`;
+    this.shopTime.textContent = `Волна ${Math.min(FORT_WAVES, wave + 1)} через ${Math.max(0, Math.ceil(sec))} с · все в колокол — раньше и +10 % золота`;
     for (const item of fortShopItems(s)) {
       const row = this.shopRows.get(item.id)!;
       row.reason.textContent = pending === item.id ? 'Покупка…' : item.reason;
@@ -379,7 +400,7 @@ export class FortHud {
       const kk = ZK[z.kind] ?? ZK[0];
       ctx.fillStyle = `#${kk.color.toString(16).padStart(6, '0')}`;
       ctx.beginPath();
-      ctx.arc(X(z.x), Z(z.z), z.kind === Z_BOSS ? 8 : z.kind === 2 ? 5.5 : 3.6, 0, Math.PI * 2);
+      ctx.arc(X(z.x), Z(z.z), isBossKind(z.kind) ? 8 : kk.r >= 0.7 ? 5.5 : 3.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(20,10,10,0.7)';
       ctx.lineWidth = 1.2;
@@ -430,14 +451,31 @@ export class FortHud {
     if (this.set('board', show)) this.board.classList.toggle('show', show);
   }
 
-  showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number): void {
-    const title = win ? 'Крепость устояла!' : 'Кристалл разбит';
-    const sub = win ? `Все ${FORT_WAVES} волн отбиты` : wave > 0 ? `Отбито волн: ${wave} из ${FORT_WAVES}` : 'Ни одной волны не отбили';
+  /**
+   * Итоги: «Крепость пала на волне 37 · рекорд крепости 41 · твой лучший — новый!», лучший защитник, таблица
+   * защитников (волн, жетоны) и рекорды крепости (top). record — команда побила рекорд, prev — прежний рекорд.
+   */
+  showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number,
+    top: readonly FortRunRec[] = [], record = false, prev = 0): void {
+    const title = win ? 'Крепость устояла!' : wave > 0 ? `Крепость пала на волне ${wave + 1}` : 'Кристалл разбит';
+    const parts: string[] = [];
+    parts.push(win ? `Все ${FORT_WAVES} волн отбиты` : wave > 0 ? `Отбито волн: <b>${wave}</b>` : 'Ни одной волны не отбили');
+    if (record && wave > 0) parts.push(`🏆 <b>новый рекорд крепости!</b>${prev ? ` (был ${prev})` : ''}`);
+    else if (prev > 0) parts.push(`рекорд крепости — <b>${prev}</b>`);
+    const me = rows.find((r) => r.id === myId);
+    if (me && wave > 0) {
+      const best = me.best ?? 0;
+      parts.push(me.waves > best && best > 0 ? `твой лучший — <b>${me.waves}</b>, новый!` : best > 0 ? `твой лучший — ${Math.max(best, me.waves)}` : '');
+    }
+    const sub = parts.filter(Boolean).join(' · ');
     const mvpHtml = mvp ? `<div class="mvp">⭐ Лучший защитник: <b>${escapeHtml(mvp.name)}</b> — сбил ${mvp.k}</div>` : '';
     const body = rows
       .map((r) => `<tr class="${r.id === myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${r.k}</td><td>${r.d}</td><td>${r.waves}</td><td>${r.tokens > 0 ? `+${r.tokens} 🪙` : '—'}</td></tr>`)
       .join('');
-    this.end.innerHTML = `<div class="overlay-card end-card"><div class="end-title ${win ? 'win' : 'lose'}">${title}</div><div class="end-sub">${sub}</div>${mvpHtml}<div class="board-team ft-team"><table><thead><tr><th class="n">Защитник</th><th>Сбил</th><th>Повален</th><th>Волн</th><th>Жетоны</th></tr></thead><tbody>${body}</tbody></table></div><div class="board-hint ft-end-timer">Новая игра начнётся сама через несколько секунд</div></div>`;
+    const topHtml = top.length
+      ? `<div class="ft-top5"><h3>Рекорды крепости</h3><ol>${top.map((t) => `<li><b>${t.wave}</b> <span>${escapeHtml(t.names.join(', '))}</span></li>`).join('')}</ol></div>`
+      : '';
+    this.end.innerHTML = `<div class="overlay-card end-card"><div class="end-title ${win || record ? 'win' : 'lose'}">${title}</div><div class="end-sub">${sub}</div>${mvpHtml}<div class="board-team ft-team"><table><thead><tr><th class="n">Защитник</th><th>Сбил</th><th>Повален</th><th>Волн</th><th>Жетоны</th></tr></thead><tbody>${body}</tbody></table></div>${topHtml}<div class="board-hint ft-end-timer">Новая игра начнётся сама через несколько секунд</div></div>`;
     this.end.classList.add('show');
   }
 
@@ -482,6 +520,7 @@ export class FortHud {
     if (!v) {
       this.hideShop();
       this.setBoss(0, 0, 0, 0);
+      this.card.hideAll();
       this.hideEnd();
       this.showBoard(false, [], 0, 0);
       this.setHint(null, 0, false, true);
