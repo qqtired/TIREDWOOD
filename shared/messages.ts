@@ -487,6 +487,8 @@ export type ServerMsg =
   | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
+  /** ВРЕМЕННО до слияния с A (сезон рыбалки делает A): идёт ли сезон, когда кончится и когда следующий — мс сервера */
+  | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
   | { t: 'fishNpc'; npc: FishNpcId; progress: FishProgress; now: number; open?: boolean; message?: string; sold?: { n: number; coins: number } }
   // рыбалка 2.0: сорвалась эпическая и выше после 3 с борьбы — утешительный опыт (вид — тайна, только категория)
