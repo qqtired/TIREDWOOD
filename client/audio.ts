@@ -27,6 +27,10 @@ export class Sound {
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
+  /** Доли эффектов и окружения от общей громкости (меню → Звук) и «на улице ли» (в подвале прибоя не слышно) */
+  private sfxMix = 1;
+  private ambMix = 1;
+  private outdoor = 1;
   private nextGull = 8;
   private nextHorn = 50;
   /** Дождь: общий регулятор шума (создаётся с первым дождём), сила 0…1, когда следующее «кап» */
@@ -59,7 +63,9 @@ export class Sound {
       this.sfx = ctx.createGain();
       this.ui = ctx.createGain();
       this.amb = ctx.createGain();
-      this.amb.gain.value = 0.55;
+      this.sfx.gain.value = this.sfxMix;
+      this.ui.gain.value = this.sfxMix;
+      this.amb.gain.value = 0.55 * this.outdoor * this.ambMix;
       this.sfx.connect(this.master);
       this.ui.connect(this.master);
       this.amb.connect(this.master);
@@ -87,9 +93,21 @@ export class Sound {
     if (this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
+  /** Громкость эффектов и окружения — доли 0…1 от общей (ползунки «Эффекты» и «Окружение» в меню). */
+  setMix(effects: number, ambience: number): void {
+    this.sfxMix = effects;
+    this.ambMix = ambience;
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.sfx.gain.setTargetAtTime(effects, t, 0.05);
+    this.ui.gain.setTargetAtTime(effects, t, 0.05);
+    this.amb.gain.setTargetAtTime(0.55 * this.outdoor * ambience, t, 0.05);
+  }
+
   /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
   setOutdoor(k: number): void {
-    if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k, this.ctx.currentTime, 0.3);
+    this.outdoor = k;
+    if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k * this.ambMix, this.ctx.currentTime, 0.3);
   }
 
   /** Для своих звуков сцены (client/fight/sfx.ts): контекст, шина эффектов и шумы; null — звук ещё не разрешён. */

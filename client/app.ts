@@ -1,5 +1,5 @@
 // Оболочка: экран входа, одно соединение на всё время, переходы между сценами (набережная ⇄ пейнтбол),
-// пауза с настройками и профилем, переподключение после обрыва и общий цикл кадров.
+// меню на Esc (профиль, настройки по категориям — client/ui/menu/), переподключение после обрыва и общий цикл кадров.
 // Сцены и общий интерфейс (чат, жетоны, уведомления, «кто где») создаются один раз.
 // На телефоне — ещё кнопки на экране (touch.ts): пауза там по кнопке ☰ и когда свернули браузер.
 import { MAX_NAME, PROTOCOL_VERSION } from '../shared/constants.ts';
@@ -29,6 +29,7 @@ import type { MeState, Scene, SceneDeps } from './scene.ts';
 import { effectiveVolume, loadSettings, saveSettings, toggleMute, type Quality, type Settings } from './settings.ts';
 import { TOUCH, TouchControls } from './touch.ts';
 import { COIN_HTML } from './ui/coin.ts';
+import { GameMenu, applyInterface } from './ui/menu/menu.ts';
 import { OnlineList } from './ui/online.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
@@ -74,6 +75,8 @@ export class App {
   private readonly toasts: Toasts;
   private readonly online: OnlineList;
   private readonly profile = new ProfilePanel();
+  /** Меню на Esc (на телефоне ☰): профиль, настройки по категориям, клавиши */
+  private readonly menu: GameMenu;
   /** Кнопки на экране — только на телефоне и планшете */
   private readonly touch: TouchControls | null;
   private readonly deps: SceneDeps;
@@ -123,7 +126,6 @@ export class App {
   // экраны
   private readonly joinEl: HTMLElement;
   private readonly pauseEl: HTMLElement;
-  private readonly pauseMain: HTMLElement;
   private readonly lostEl: HTMLElement;
   private readonly reconnectEl: HTMLElement;
   private readonly replacedEl: HTMLElement;
@@ -139,9 +141,8 @@ export class App {
   private readonly rcTitle: HTMLElement;
   private readonly rcSub: HTMLElement;
   private readonly pauseSub: HTMLElement;
-  private readonly pauseHint: HTMLElement;
   private readonly toLobbyBtn: HTMLElement;
-  /** Ползунок громкости и флажок «Без звука» — под текущие настройки (их строит buildSettings) */
+  /** Ползунок громкости и флажок «Без звука» — под текущие настройки (M жмут и в игре) */
   private syncSound: () => void = () => {};
 
   // кадр и качество
@@ -203,7 +204,7 @@ export class App {
           <input class="name" type="text" maxlength="${MAX_NAME}" autocomplete="off" spellcheck="false" />
         </label>
         <label class="field join-code">
-          <span>Код с другого устройства (там: Esc → Профиль → «Код для входа»)</span>
+          <span>Код с другого устройства (там: меню, Esc или ☰ → «Подарки и коды»)</span>
           <input class="code" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ABCD-2345" />
         </label>
         <div class="join-error"></div>
@@ -222,7 +223,7 @@ export class App {
           <div><b>😊</b><span>эмоции</span></div>
           <div><b>💬</b><span>чат</span></div>
           <div><b>👥</b><span>кто где · счёт</span></div>
-          <div><b>☰</b><span>пауза, профиль</span></div>
+          <div><b>☰</b><span>меню: профиль, настройки</span></div>
         </div>
         <div class="keys desk-keys">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>бег</span></div>
@@ -235,25 +236,25 @@ export class App {
           <div><kbd class="wide">Enter</kbd><span>чат</span></div>
           <div><kbd>Tab</kbd><span>кто где · счёт</span></div>
           <div><kbd>M</kbd><span>звук вкл / выкл</span></div>
-          <div><kbd>Esc</kbd><span>пауза, профиль</span></div>
+          <div><kbd>Esc</kbd><span>меню: профиль, настройки</span></div>
         </div>
         <details class="join-settings"><summary>Настройки</summary></details>
         <div class="tips">Жетоны ${COIN_HTML} — за бои на складе, партии в дурака, гонки и ежедневный бонус · тратятся на автоматы и наряды · в воду не падай 🌊</div>
       </div>`;
-    this.pauseEl = h('div', 'screen pause');
-    this.pauseMain = h('div', 'pause-card main');
-    this.pauseMain.innerHTML = `
-      <div class="pause-title">Пауза</div>
-      <div class="pause-sub"></div>
-      <button class="btn primary resume">Продолжить</button>
-      <div class="pause-hint"></div>
-      <div class="pause-settings"></div>
-      <div class="pause-row">
-        <button class="btn ghost open-profile">Профиль</button>
-        <button class="btn ghost to-lobby">На набережную</button>
-      </div>
-      <button class="btn ghost leave">Выйти в меню</button>`;
-    this.pauseEl.append(this.pauseMain, this.profile.root);
+    this.menu = new GameMenu(this.profile, this.settings, {
+      resume: () => this.resume(),
+      toLobby: () => {
+        this.net.send({ t: 'leave' });
+        this.resume();
+      },
+      leave: () => this.toMenu(),
+      profile: (open) => this.showProfile(open),
+      redeem: (code) => this.net.send({ t: 'redeem', code }),
+      changed: () => this.applySettings(),
+      room: () => this.active?.kind ?? 'lobby',
+      gifts: () => this.me.gifts === true,
+    });
+    this.pauseEl = this.menu.root;
     this.lostEl = h('div', 'screen lost');
     this.lostEl.innerHTML = `
       <div class="pause-card">
@@ -289,10 +290,10 @@ export class App {
     this.lostReason = this.lostEl.querySelector('.lost-reason')!;
     this.rcTitle = this.reconnectEl.querySelector('.rc-title')!;
     this.rcSub = this.reconnectEl.querySelector('.rc-sub')!;
-    this.pauseSub = this.pauseMain.querySelector('.pause-sub')!;
-    this.pauseHint = this.pauseMain.querySelector('.pause-hint')!;
-    this.toLobbyBtn = this.pauseMain.querySelector('.to-lobby')!;
-    this.settingsEl = this.buildSettings();
+    this.pauseSub = this.menu.sub;
+    this.toLobbyBtn = this.menu.toLobbyBtn;
+    this.settingsEl = this.menu.settings.root;
+    this.syncSound = () => this.menu.settings.sync();
     this.joinEl.querySelector('.join-settings')!.appendChild(this.settingsEl);
 
     this.nameInput.value = oldName();
@@ -309,21 +310,9 @@ export class App {
     this.joinEl.querySelector('.other')!.addEventListener('click', () => this.otherProfile());
     this.joinEl.querySelector('.have-code')!.addEventListener('click', () => this.setJoinMode('code'));
     this.joinEl.querySelector('.back')!.addEventListener('click', () => this.setJoinMode(savedNick() ? 'saved' : 'nick'));
-    this.pauseMain.querySelector('.resume')!.addEventListener('click', () => this.resume());
-    this.pauseEl.addEventListener('mousedown', (e) => {
-      // клик мимо карточки — тоже «продолжить»
-      if (e.target === this.pauseEl) this.resume();
-    });
-    this.pauseMain.querySelector('.open-profile')!.addEventListener('click', () => this.showProfile(true));
-    this.toLobbyBtn.addEventListener('click', () => {
-      this.net.send({ t: 'leave' });
-      this.resume();
-    });
-    this.pauseMain.querySelector('.leave')!.addEventListener('click', () => this.toMenu());
     this.lostEl.querySelector('.retry')!.addEventListener('click', () => this.play());
     this.replacedEl.querySelector('.back-here')!.addEventListener('click', () => this.play());
     for (const el of [this.lostEl, this.reconnectEl, this.replacedEl]) el.querySelector('.menu')!.addEventListener('click', () => this.toMenu());
-    this.profile.onBack = () => this.showProfile(false);
     this.profile.onRename = (nick) => {
       this.renamePending = true;
       this.net.send({ t: 'rename', nick });
@@ -576,6 +565,11 @@ export class App {
       case 'code':
         this.profile.showCode(m.code, m.until);
         return;
+      case 'redeemResult':
+        // подарочный код вводят и в примерочной, и в меню (Профиль → Подарки и коды)
+        this.menu.giftResult(m.result);
+        this.active?.onJson(m);
+        return;
       case 'restart':
         this.restarting = true;
         return;
@@ -808,7 +802,7 @@ export class App {
     this.showScreen(null);
     this.shell.classList.remove('hidden');
     this.resetPlayButton();
-    this.pauseMain.querySelector('.pause-settings')!.appendChild(this.settingsEl);
+    this.menu.adoptSettings();
     this.setJoinMode('saved');
     this.perfWait = 3;
     try {
@@ -829,7 +823,7 @@ export class App {
     this.active = null;
     delete document.documentElement.dataset.room;
     this.paused = false;
-    this.pauseEl.classList.remove('show');
+    this.menu.setOpen(false);
     this.showProfile(false);
     this.chat.close();
     this.online.show(false);
@@ -861,6 +855,11 @@ export class App {
       this.toggleSound();
       return;
     }
+    // Esc в открытом меню: спрятать меню сразу (мышь браузер отдаст по клику), ещё раз — меню назад
+    if (down && code === 'Escape' && this.paused) {
+      if (!e.repeat) this.menu.setVeil(!this.menu.veiled);
+      return;
+    }
     if (this.active.onKey(code, down, e)) return;
     if (code === 'Tab') {
       e.preventDefault();
@@ -881,7 +880,7 @@ export class App {
       return;
     }
     void this.input.lock().then(() => {
-      if (!this.input.locked) this.pauseHint.textContent = 'Браузер не отдал мышь — кликни ещё раз через секунду';
+      if (!this.input.locked) this.menu.setHint('Браузер не отдал мышь — кликни ещё раз через секунду');
     });
   }
 
@@ -920,15 +919,13 @@ export class App {
   }
 
   private setPaused(p: boolean): void {
-    const was = this.paused;
     this.paused = p;
     this.lobby.setMenuOpen(this.active?.kind === 'lobby' && p);
-    this.pauseEl.classList.toggle('show', p);
+    // меню открывается на том разделе, где остановились, с начала; игра за ним идёт дальше
+    this.menu.setOpen(p);
     if (p) {
-      // на невысоком экране меню листается: открываем его с начала, с «Продолжить» (прокрутка — у показанного)
-      if (!was) this.pauseMain.scrollTop = 0;
       this.input.releaseAll();
-      this.pauseHint.textContent = '';
+      this.menu.setHint('');
       this.online.show(false);
       this.refreshPause();
     } else {
@@ -954,7 +951,6 @@ export class App {
     this.pauseEl.classList.toggle('profile-open', open);
     this.lobby.setMenuOpen(this.active?.kind === 'lobby' && (this.paused || open));
     if (open) {
-      this.profile.root.scrollTop = 0;
       this.profile.update(this.me);
     } else {
       this.profile.reset();
@@ -977,14 +973,14 @@ export class App {
   private ensureVoice(): void {
     if (this.voice) return;
     const slot = h('div');
-    this.pauseMain.querySelector('.pause-settings')!.after(slot);
+    this.menu.voiceHome.append(slot);
     this.voiceUi = new VoiceUi({ settingsRoot: slot, hudRoot: this.shell }, {
       connectMic: () => { void this.voice?.connectMic(); },
       enable: () => { void this.voice?.enable(); }, disable: () => this.voice?.disable(),
       enableMic: () => { void this.voice?.enableMic(); }, disableMic: () => this.voice?.disableMic(),
       push: on => this.voice?.push(on), setReceiving: on => this.voice?.setReceiving(on),
       setVolume: volume => this.voice?.setVolume(volume), setPeerMuted: (id, muted) => this.voice?.setPeerMuted(id, muted),
-      openSettings: () => { this.input.unlock(); this.setPaused(true); },
+      openSettings: () => { this.input.unlock(); this.setPaused(true); this.menu.show('voice'); },
     });
     this.voice = new VoiceController({
       send: message => this.net.send(message),
@@ -1103,98 +1099,21 @@ export class App {
 
   // ------------------------------------------------------------ настройки
 
-  private buildSettings(): HTMLElement {
-    const box = h('div', 'settings');
-    const s = this.settings;
-    const range = (label: string, key: 'sens' | 'adsSens' | 'fov' | 'volume', min: number, max: number, step: number, fmt: (v: number) => string) => {
-      const row = h('label', 'set-row');
-      const name = h('span', 'set-name', label);
-      const input = h('input');
-      input.type = 'range';
-      input.min = String(min);
-      input.max = String(max);
-      input.step = String(step);
-      input.value = String(s[key]);
-      const val = h('b', 'set-val', fmt(s[key]));
-      input.addEventListener('input', () => {
-        s[key] = Number(input.value);
-        // двигают громкость при выключенном звуке — значит, хотят слышать
-        if (key === 'volume' && s.volume > 0) s.muted = false;
-        val.textContent = fmt(s[key]);
-        this.applySettings();
-      });
-      // стрелки двигают ползунок — игре не отдаём; M (звук) пропускаем: после клика по ползунку фокус остаётся на нём
-      input.addEventListener('keydown', (e) => {
-        if (e.code !== 'KeyM') e.stopPropagation();
-      });
-      row.append(name, input, val);
-      box.appendChild(row);
-      return { input, val };
-    };
-    range(TOUCH ? 'Обзор пальцем' : 'Мышь', 'sens', 0.1, 4, 0.05, (v) => v.toFixed(2));
-    range(TOUCH ? 'Пальцем в прицеле' : 'Мышь в прицеле', 'adsSens', 0.2, 1.5, 0.05, (v) => v.toFixed(2));
-    range('Обзор', 'fov', 70, 120, 1, (v) => `${Math.round(v)}°`);
-    const vol = range('Громкость', 'volume', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`);
-
-    const muteRow = h('label', 'set-row check');
-    const mute = h('input');
-    mute.type = 'checkbox';
-    mute.checked = s.muted;
-    mute.addEventListener('change', () => {
-      if (mute.checked !== s.muted) toggleMute(s);
-      this.applySettings();
-    });
-    muteRow.append(mute, h('span', 'set-name', TOUCH ? 'Без звука' : 'Без звука (M)'));
-    box.appendChild(muteRow);
-    // без звука ползунок стоит на нуле и подписан «выкл» (сама громкость в настройках цела), звук вернули — встаёт назад
-    this.syncSound = () => {
-      const level = String(effectiveVolume(s));
-      if (vol.input.value !== level) vol.input.value = level;
-      vol.val.textContent = s.muted ? 'выкл' : `${Math.round(s.volume * 100)}%`;
-      mute.checked = s.muted;
-    };
-
-    const qRow = h('label', 'set-row');
-    const sel = h('select');
-    for (const [v, t] of [['auto', 'Авто'], ['high', 'Высокое'], ['medium', 'Среднее'], ['low', 'Низкое']] as const) {
-      const o = h('option');
-      o.value = v;
-      o.textContent = t;
-      sel.appendChild(o);
-    }
-    sel.value = s.quality;
-    sel.addEventListener('change', () => {
-      s.quality = sel.value as Quality;
-      this.applySettings();
-    });
-    qRow.append(h('span', 'set-name', 'Качество'), sel);
-    box.appendChild(qRow);
-
-    const row = h('label', 'set-row check');
-    const check = h('input');
-    check.type = 'checkbox';
-    check.checked = s.showStats;
-    check.addEventListener('change', () => {
-      s.showStats = check.checked;
-      this.applySettings();
-    });
-    row.append(check, h('span', 'set-name', 'Показывать FPS и пинг'));
-    box.appendChild(row);
-    return box;
-  }
-
   private applySettings(): void {
     const s = this.settings;
     this.input.sens = s.sens;
     this.input.adsSens = s.adsSens;
+    this.input.invertY = s.invertY;
     this.sound.setVolume(effectiveVolume(s));
+    this.sound.setMix(s.sfxVolume, s.ambVolume);
     this.voice?.setGameMuted(s.muted);
     this.syncSound();
+    applyInterface(s);
     saveSettings(s);
     this.applyQuality();
   }
 
-  /** M: без звука ⇄ звук. Запоминается в настройках, как громкость; ползунок и флажок в паузе подстроятся сами. */
+  /** M: без звука ⇄ звук. Запоминается в настройках, как громкость; ползунок и флажок в меню подстроятся сами. */
   private toggleSound(): void {
     const muted = toggleMute(this.settings);
     this.applySettings();

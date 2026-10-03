@@ -1902,37 +1902,7 @@ kbd.wide {
   gap: 10px;
 }
 
-.set-row {
-  display: grid;
-  grid-template-columns: 130px 1fr 52px;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-}
-
-.set-row.check {
-  grid-template-columns: 22px 1fr;
-  cursor: pointer;
-}
-
-.set-row select {
-  grid-column: 2 / 4;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 236, 205, 0.25);
-  background: #3a2b31;
-  color: var(--cream);
-}
-
-.set-name {
-  color: var(--cream-2);
-}
-
-.set-val {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-}
+/* строки настроек по категориям — client/ui/menu/menu.css */
 
 input[type='range'] {
   -webkit-appearance: none;
@@ -2017,20 +1987,6 @@ input[type='checkbox'] {
   margin-top: -6px;
   font-size: 14px;
   color: var(--cream-dim);
-}
-
-.pause-hint {
-  font-size: 13px;
-  color: var(--orange-soft);
-}
-
-.pause-hint:empty {
-  display: none;
-}
-
-.pause-settings {
-  padding: 14px 0 4px;
-  border-top: 1px solid var(--line);
 }
 
 /* ================================================================ анимации */
@@ -2360,40 +2316,13 @@ input[type='checkbox'] {
   color: var(--cream);
 }
 
-/* --- пауза и профиль */
-
-.pause-row {
-  display: flex;
-  gap: 10px;
-}
-
-.pause-row .btn {
-  flex: 1;
-}
-
-.pause .profile {
-  display: none;
-}
-
-.pause.profile-open .profile {
-  display: flex;
-}
-
-.pause.profile-open .main {
-  display: none;
-}
+/* --- профиль (разделы меню — client/ui/menu/menu.css) */
 
 .prof-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-}
-
-.prof-nick {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .prof-tokens {
@@ -4986,14 +4915,7 @@ input[type='checkbox'] {
   text-align: center;
 }
 
-/* альбом рыбака в профиле: на всю ширину, клетки по виду (рамка — цвет редкости); профиль листается, если не влез */
-.pause .profile {
-  max-height: calc(100vh - 24px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 240, 220, 0.25) transparent;
-}
-
+/* альбом рыбака в профиле: на всю ширину, клетки по виду (рамка — цвет редкости) */
 .prof-block.prof-album {
   grid-column: 1 / -1;
 }
