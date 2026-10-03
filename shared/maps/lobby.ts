@@ -339,7 +339,7 @@ export function buildLobby(): LobbyMap {
   add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком');
   add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
   add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Гонки на катерах');
-  add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки в городе');
+  add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'wood', 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
