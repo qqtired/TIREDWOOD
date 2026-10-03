@@ -3,5 +3,7 @@
 import type { MobDef } from './kit.ts';
 import { climberGecko } from './climber-gecko.ts';
 import { climberSpider } from './climber-spider.ts';
+import { flyerBat } from './flyer-bat.ts';
+import { flyerCrow } from './flyer-crow.ts';
 
-export const MOBS_B: MobDef[] = [climberSpider, climberGecko];
+export const MOBS_B: MobDef[] = [climberSpider, climberGecko, flyerBat, flyerCrow];
