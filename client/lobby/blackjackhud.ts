@@ -76,10 +76,10 @@ export class BlackjackHud {
   private countdownEl: HTMLElement | null = null;
   /** Сколько карт было в моих руках в прошлой отрисовке: новые карты вылетают в панель с анимацией */
   private cardCounts: number[] = [];
+  private atlasSet = false;
 
   constructor(parent: HTMLElement) {
     this.root.setAttribute('aria-label', 'Блэкджек');
-    this.root.style.setProperty('--bj-atlas', `url(${bjAtlasCanvas().toDataURL('image/png')})`);
     this.root.style.setProperty('--bj-cols', String(BJ_ATLAS.cols));
     this.root.style.setProperty('--bj-rows', String(BJ_ATLAS.rows));
     this.status.setAttribute('role', 'status');
@@ -130,6 +130,11 @@ export class BlackjackHud {
 
   show(table: number, chair: number): void {
     if (this.table === table && this.chair === chair) return;
+    // картинка карт для панели кодируется при первой посадке, а не при загрузке набережной
+    if (!this.atlasSet) {
+      this.atlasSet = true;
+      this.root.style.setProperty('--bj-atlas', `url(${bjAtlasCanvas().toDataURL('image/png')})`);
+    }
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.table = table;
     this.chair = chair;
@@ -147,6 +152,8 @@ export class BlackjackHud {
     this.table = this.chair = -1;
     this.view = this.shown = null;
     this.pending = null;
+    this.holdUntil = 0;
+    this.cardCounts = [];
     this.signature = '';
     this.rulesEl.classList.add('hidden');
     this.banner.className = 'bj-banner';
