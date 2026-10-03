@@ -1,0 +1,6 @@
+<!doctype html><html lang="ru"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Крепость · мобы</title>
+<style>body{margin:0;background:#9fd3ef;color:#2b2230;font:14px system-ui}canvas{position:fixed;inset:0;width:100%;height:100%}nav{position:fixed;z-index:2;left:12px;top:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100% - 24px);padding:8px;background:#fff8eccc;border-radius:10px}button,select,label{font:inherit}button,select{background:#fff;border:1px solid #b9a58a;border-radius:6px;padding:6px 8px;cursor:pointer}#note{position:fixed;left:12px;bottom:12px;z-index:2;padding:8px 10px;border-radius:8px;background:#fff8eccc;white-space:pre-line}</style>
+<canvas id="c"></canvas>
+<nav><b>Мобы крепости</b><select id="mob"></select><select id="st"></select><label>скорость <input id="speed" type="range" min="0" max="7" step="0.1" value="2.4"></label><button id="hit">Удар</button><button id="die">Гибель</button><label><input id="rage" type="checkbox"> ярость</label><label><input id="box" type="checkbox" checked> хитбокс</label></nav>
+<div id="note"></div>
+<script type="module" src="./lab.ts"></script></html>
