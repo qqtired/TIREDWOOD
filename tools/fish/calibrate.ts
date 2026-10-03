@@ -4,7 +4,8 @@
 // Паттерн у видов разный и сильно меняет сложность, поэтому подбор — по каждому виду. Запуск:
 // node tools/fish/calibrate.ts → таблица CAL для shared/fishrules.ts.
 // Вид баркаса, которого море ломает сильнее соседей (махи-махи), подбирается уже в море, к успеху соседей по категории:
-// SEA=0.65 GRID=-1.6,-1.4,-1.2,-1,-0.7 node tools/fish/calibrate.ts mahi — в CAL идут цифры до моря.
+// SEA=0.63 GRID=-1.8,-1.6,-1.4,-1.2,-1,-0.7 node tools/fish/calibrate.ts mahi — в CAL идут цифры до моря. Меч-рыба —
+// на спокойной сетке: GRID=-1.8,-1.6,-1.4,-1.2,-1,-0.7,-0.4 node tools/fish/calibrate.ts swordfish.
 import { FISH } from '../../shared/fishing.ts';
 import { BAND, COLLECTION, RULE, SEA_DRAIN, SEA_FIGHT, T_LEGEND } from '../../shared/fishrules.ts';
 import { TYPICAL, EXPERT, reelStats } from '../../test/fishbot.ts';

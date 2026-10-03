@@ -79,6 +79,9 @@ test('вес: в границах вида, тяжёлые реже; вес дл
 
 const still: ReelStyle = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
 
+/** Держит середину зоны на рыбе: без нажатий зона уходит под шкалу («леска провисла») и рыбу у дна не держит */
+const track = (r: Reel): boolean => r.z + Math.trunc(r.zone / 2) < r.f;
+
 function snapshot(r: Reel): number[] {
   return [r.t, r.f, r.fv, r.ft, r.mode, r.timer, r.z, r.zv, r.p, r.done, r.rng];
 }
@@ -87,12 +90,12 @@ test('вываживание: рыба всё время в зоне — от 25
   assert.equal(REEL_FILL_TICKS, 300);
   assert.equal(REEL_P_START * 4, REEL_P_MAX, 'начало — 25 %');
   const r = reelStart(still, 42);
-  while (r.done === 0) reelStep(r, false);
+  while (r.done === 0) reelStep(r, track(r));
   assert.equal(r.done, 1);
   assert.equal(r.t, 300);
 });
 
-test('вываживание: держишь — зона вверх (прилипает к верху), отпустил — падает и отскакивает от дна; рыба вне зоны — прогресс падает', () => {
+test('вываживание: держишь — зона вверх (прилипает к верху), отпустил — падает под шкалу и отскакивает от дна под ней; рыба вне зоны — прогресс падает', () => {
   const r = reelStart({ ...still, drain: 1 }, 1);
   for (let i = 0; i < 40; i++) reelStep(r, true);
   assert.ok(r.z > 10_000 && r.zv > 0, `зона пошла вверх: ${r.z}`);
@@ -102,13 +105,18 @@ test('вываживание: держишь — зона вверх (прили
   assert.equal(r.zv, 0);
   assert.ok(!r.inZone && r.p < p0, 'рыба внизу, зона наверху — прогресс падает');
   let bounced = false;
+  let under = false;
   for (let i = 0; i < 200 && r.done === 0; i++) {
     const before = r.zv;
     reelStep(r, false);
+    if (r.z + r.zone <= 0) under = true;
     if (before < 0 && r.zv > 0) bounced = true;
   }
-  assert.ok(bounced, 'от дна отскочила');
-  assert.ok(r.inZone, 'снова на рыбе');
+  assert.ok(under, 'отпустил — зона ушла под шкалу');
+  assert.ok(bounced, 'от дна под шкалой отскочила');
+  assert.ok(!r.inZone, 'зона в покое рыбу у дна не держит');
+  for (let i = 0; i < 120 && r.done === 0; i++) reelStep(r, track(r));
+  assert.ok(r.inZone, 'подмотал — снова на рыбе');
   // сопротивление побольше — сорвалась
   const q = reelStart(still, 1);
   while (q.done === 0) reelStep(q, true);

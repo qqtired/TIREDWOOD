@@ -2,9 +2,11 @@
 // (реакция, каждый раз чуть разная) и неточно, решает «держать или отпустить» не каждый тик, иногда отвлекается
 // (кнопка остаётся как была), свою зону чувствует: хочет, чтобы середина зоны шла к рыбе со скоростью по расстоянию,
 // с упреждением по скорости рыбы. «Обычный» — реакция ~230 мс, «опытный» — ~150 мс, внимательнее и точнее.
+// Леска провисла (зона лежит на дне дольше 0,7 с): «обычный» подматывает, увидев надпись (через свою реакцию),
+// «опытный» не даёт зоне залежаться и касается кнопки заранее.
 import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
-import { REEL_BAR, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
+import { REEL_BAR, SLACK_TICKS, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
 import {
   CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, JUNK_PER_10K, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, reelStyleFor,
 } from '../shared/fishrules.ts';
@@ -27,10 +29,14 @@ export interface Skill {
   /** Отвлёкся: раз в столько тиков в среднем, на lapse тиков (± половина) */
   lapseEvery: number;
   lapse: number;
+  /** Зона пролежала на дне столько тиков — коснуться кнопки (подмотать) */
+  slackTap: number;
 }
 
-export const TYPICAL: Skill = { delay: 14, jitter: 4, period: 5, noise: 3000, lead: 8, k: 14, vmax: 1500, lapseEvery: 240, lapse: 24 };
-export const EXPERT: Skill = { delay: 9, jitter: 2, period: 3, noise: 1500, lead: 12, k: 12, vmax: 2200, lapseEvery: 900, lapse: 12 };
+export const TYPICAL: Skill = { delay: 14, jitter: 4, period: 5, noise: 3000, lead: 8, k: 14, vmax: 1500, lapseEvery: 240, lapse: 24, slackTap: SLACK_TICKS + 14 };
+export const EXPERT: Skill = { delay: 9, jitter: 2, period: 3, noise: 1500, lead: 12, k: 12, vmax: 2200, lapseEvery: 900, lapse: 12, slackTap: 24 };
+/** «Без рук»: ни одного нажатия за всё вываживание (проверка, что так рыбу не вытащить) */
+export const AFK: Skill = { delay: 0, jitter: 0, period: 1, noise: 0, lead: 0, k: 1, vmax: 0, lapseEvery: 1, lapse: 1_000_000, slackTap: Number.POSITIVE_INFINITY };
 
 export interface Play {
   caught: boolean;
@@ -60,7 +66,8 @@ export function playReel(style: ReelStyle, seed: number, skill: Skill, rngSeed =
       const seen = hist[i] + vel * skill.lead + (me() * 2 - 1) * skill.noise;
       const err = Math.min(REEL_BAR, Math.max(0, seen)) - (r.z + r.zone / 2);
       const want = Math.max(-skill.vmax, Math.min(skill.vmax, err / skill.k));
-      const h = r.zv < want;
+      // леска провисла (или вот-вот): коснуться кнопки, даже если рыба внизу
+      const h = r.zv < want || r.rest >= skill.slackTap;
       if (h !== held) {
         held = h;
         toggles.push(r.t);

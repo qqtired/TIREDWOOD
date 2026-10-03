@@ -82,9 +82,10 @@ test('new legendary/myth use the same1.5 event reward with appropriate base valu
   assert.equal(fishPrice2(common, FISH[common].g[0]), 6, 'old integer2 → common round(2*1.75)=4 → unique round(4*1.5)=6');
 });
 
-test('event is noticeably more profitable by its fish pool while novice clear stays within5% of +50% target', t => {
+test('event is noticeably more profitable by its fish pool while novice clear stays at most 10% below the +50% target (fisheco: harder rare fish)', t => {
   const clear = fishIncome(TYPICAL, false, 300), event = fishIncome(TYPICAL, true, 300);
   t.diagnostic(`clear ${clear.coins.toFixed(6)} event ${event.coins.toFixed(6)} event gain ${(100 * (event.coins / clear.coins - 1)).toFixed(2)}%`);
-  assert.ok(Math.abs(clear.coins / (13.465547009661105 * 1.5) - 1) < .05);
+  const ratio = clear.coins / (13.465547009661105 * 1.5);
+  assert.ok(ratio >= 0.9 && ratio <= 1.05, `novice clear ${ratio.toFixed(3)} of the +50% target`);
   assert.ok(event.coins > clear.coins * 1.3, 'event earns >30% extra fish sale via unique weights and rewards');
 });
