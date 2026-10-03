@@ -582,7 +582,12 @@ export class LobbyRoom implements Room {
       }
       case 'roulette': {
         const who = this.rouletteWho(p);
-        if (who && this.roulette && msg.a === 'bet' && this.hub.limits.hit(`roulette:${c.id}`, 4, 1000)) this.roulette.bet(who, msg.c);
+        if (!this.roulette || msg.a !== 'bet') return;
+        if (!who) {
+          this.hub.toast(c, 'Рулетка — только для игроков с профилем');
+          return;
+        }
+        if (this.hub.limits.hit(`roulette:${c.id}`, 4, 1000)) this.roulette.bet(who, msg.c);
         return;
       }
       case 'rg':

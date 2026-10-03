@@ -34,7 +34,7 @@ import {
   ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
-import { FISH_NPCS, FISH_SPOTS } from '../../shared/fishplaces.ts';
+import { FISH_NPCS, FISH_SPOTS, ROULETTE_SPOT } from '../../shared/fishplaces.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
 import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
@@ -226,6 +226,10 @@ export class LobbyScene implements Scene {
   private readonly fishDrink: FishDrink;
   /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
   private readonly roulette3d: Roulette3D;
+  /** Итог моей ставки: тост и звук — когда шарик остановится (после вращения у меня на экране) */
+  private rlResult: Extract<ServerMsg, { t: 'rouletteResult' }> | null = null;
+  /** Крутилось ли колесо в прошлом кадре — по смене обновляем плашку раунда */
+  private rlSpun = false;
   private readonly folk: LobbyFolk;
   /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
   private readonly respects: Respects;
@@ -485,6 +489,7 @@ export class LobbyScene implements Scene {
     this.fish2.onBookClose = () => d.wantPointer();
     this.fish2.onNpcOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.fish2.onNpcClose = () => d.wantPointer();
+    this.fish2.roulette.isSpinning = () => this.roulette3d.spinning;
     this.fish2.onBeer = () => this.fishDrink.start();
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
@@ -740,8 +745,9 @@ export class LobbyScene implements Scene {
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
         this.roulette3d.setOn(!!msg.roulette);
+        this.rlResult = null;
         if (msg.roulette) {
-          this.roulette3d.setView(msg.roulette);
+          this.roulette3d.setView(msg.roulette, this.d.net.pingMs / 2);
           this.fish2.onRoulette(msg.roulette);
         }
         this.fishing.reset(msg.fish);
@@ -906,12 +912,12 @@ export class LobbyScene implements Scene {
         this.fish2.onLost(msg.tier, msg.xp);
         break;
       case 'roulette':
-        this.roulette3d.setView(msg.v);
+        this.roulette3d.setView(msg.v, this.d.net.pingMs / 2);
         this.fish2.onRoulette(msg.v);
         break;
       case 'rouletteResult':
-        this.d.ui.toasts.show(RouletteHud.resultText(msg), 6000);
-        if (msg.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(msg.payout))));
+        this.fish2.roulette.onResult(msg);
+        this.rlResult = msg;
         break;
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
@@ -1720,6 +1726,19 @@ export class LobbyScene implements Scene {
     }
   }
 
+  /** Рулетка каждый кадр: плашка раунда — только у стола; итог моей ставки — когда шарик лёг в лунку */
+  private updateRoulette(): void {
+    const p = this.pose;
+    this.fish2.roulette.setNear(this.hasSelf && Math.hypot(p.x - ROULETTE_SPOT.x, p.z - ROULETTE_SPOT.z) <= 9 && Math.abs(p.y - ROULETTE_SPOT.y) < 3);
+    const spin = this.roulette3d.spinning;
+    if (spin !== this.rlSpun) { this.rlSpun = spin; this.fish2.roulette.refresh(); }
+    const m = this.rlResult;
+    if (!m || spin) return;
+    this.rlResult = null;
+    this.d.ui.toasts.show(RouletteHud.resultText(m), 6000);
+    if (m.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(m.payout))));
+  }
+
   /** Рядом со статуей, стоит сам по себе — можно отдать честь (то же правило, что на сервере). */
   private get respectHere(): boolean {
     const act = this.myAct;
@@ -1978,6 +1997,7 @@ export class LobbyScene implements Scene {
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, camPos);
     this.roulette3d.update(dt);
+    this.updateRoulette();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
     this.respects.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
