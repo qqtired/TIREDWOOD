@@ -1,6 +1,7 @@
 // Эффекты пряток: комок краски летит от ловца, шлёпается кляксой на стену или предмет (клякса сохнет 20 с),
 // брызги, облачко превращения, конфетти поимки и нотка над тем, кто дразнится.
 import * as THREE from 'three';
+import { fxCount } from '../render/gfx.ts';
 import { glowTexture } from '../render/kit.ts';
 import * as tex from '../render/textures.ts';
 import { PAINT_COLOR } from './props.ts';
@@ -97,7 +98,8 @@ export class HideFx {
   splash(p: V3, n: V3, count = 14): void {
     const normal = new THREE.Vector3(...n);
     if (normal.lengthSq() < 0.5) normal.set(0, 1, 0);
-    for (let i = 0; i < count && this.drops.length < DROPS; i++) {
+    const total = fxCount(count);
+    for (let i = 0; i < total && this.drops.length < DROPS; i++) {
       const v = normal.clone().multiplyScalar(1.5 + Math.random() * 2).add(new THREE.Vector3((Math.random() - 0.5) * 3, Math.random() * 2.5, (Math.random() - 0.5) * 3));
       this.drops.push({ v, p: new THREE.Vector3(...p), life: 0.45 + Math.random() * 0.3, spin: 0.02 + Math.random() * 0.03 });
     }

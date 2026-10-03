@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import { makeRayHit } from '../../shared/world.ts';
+import { fxCount } from './gfx.ts';
 import { softDot, splatAtlas } from './textures.ts';
 
 const MAX_SPLATS = 720;
@@ -334,6 +335,8 @@ export class Effects {
 
   burst(x: number, y: number, z: number, color: number, count: number, speed: number, nx: number, ny: number, nz: number, size: number): void {
     _c.set(color);
+    // меню → Графика → «Эффекты и частицы»: меньше или больше брызг
+    count = fxCount(count);
     for (let k = 0; k < count; k++) {
       const i = this.dropNext;
       this.dropNext = (this.dropNext + 1) % MAX_DROPS;

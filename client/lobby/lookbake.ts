@@ -32,6 +32,7 @@ void main() {
 /** Тексель запечённой карты: R — затенение (AO), G — сколько солнца доходит (0 — тень) */
 const frag = (samples: number) => /* glsl */ `
 uniform sampler2DShadow uShadow;
+uniform float uSunOn;
 uniform mat4 uShadowMatrix;
 uniform vec2 uRadius;
 uniform float uBias;
@@ -49,7 +50,7 @@ void main() {
 	sc.xyz /= sc.w;
 	sc.z += uBias;
 	float sun = 1.0;
-	if ( sc.x >= 0.0 && sc.x <= 1.0 && sc.y >= 0.0 && sc.y <= 1.0 && sc.z <= 1.0 ) {
+	if ( uSunOn > 0.5 && sc.x >= 0.0 && sc.x <= 1.0 && sc.y >= 0.0 && sc.y <= 1.0 && sc.z <= 1.0 ) {
 		float acc = 0.0;
 		for ( int i = 0; i < ${samples}; i ++ ) {
 			float r = sqrt( ( float( i ) + 0.5 ) / ${samples}.0 );
@@ -141,6 +142,7 @@ export class DeckBake {
       fragmentShader: frag(lite ? 32 : 64),
       uniforms: {
         uShadow: { value: null },
+        uSunOn: { value: 1 },
         uShadowMatrix: { value: new THREE.Matrix4() },
         uRadius: { value: new THREE.Vector2() },
         uBias: { value: 0 },
@@ -192,12 +194,17 @@ export class DeckBake {
   private bake(): void {
     const sh = this.sun.shadow;
     const depth = sh.map?.depthTexture;
+    // «Тени: выкл» (меню → Графика): солнце доходит везде, остаётся затенение у подножий; карта теней не нужна
+    const sunOn = this.gl.shadowMap.enabled && this.sun.castShadow;
+    const real = !!depth && depth.compareFunction === THREE.LessEqualCompare;
     // карты ещё нет (или она не для аппаратного сравнения) — подождём следующего пересчёта
-    if (!depth || depth.compareFunction !== THREE.LessEqualCompare) return;
+    if (sunOn && !real) return;
     this.pending = false;
     const u = this.mat.uniforms;
     const cam = sh.camera;
-    u.uShadow.value = depth;
+    u.uSunOn.value = sunOn ? 1 : 0;
+    // выключенному солнцу карта не нужна: прошлая остаётся в uniform, а пока её не было — three.js подставит пустую
+    if (sunOn) u.uShadow.value = depth;
     u.uShadowMatrix.value.copy(sh.matrix);
     (u.uRadius.value as THREE.Vector2).set(SOFT / (cam.right - cam.left), SOFT / (cam.top - cam.bottom));
     u.uBias.value = sh.bias;

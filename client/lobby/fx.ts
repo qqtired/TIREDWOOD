@@ -4,6 +4,7 @@
 // Всё — из заранее созданных пулов, без аллокаций в кадре.
 // Брызги от падения в воду рисует общий Effects (как в пейнтболе).
 import * as THREE from 'three';
+import { gfx } from '../render/gfx.ts';
 import { glowTexture } from '../render/kit.ts';
 import { metalEnvTexture } from '../render/textures.ts';
 import type { LobbyQuality } from './world.ts';
@@ -17,14 +18,14 @@ const COIN_GRAVITY = 13;
 const TEXT_LIFE = 1.9;
 /** Надпись всплывает на столько метров */
 const TEXT_RISE = 0.42;
-/** Салют: искр в залпе и запас на хвосты ракет */
-const SPARKS_PER_BURST: Record<LobbyQuality, number> = { high: 110, medium: 80, low: 50 };
+/** Салют: искр в залпе «обычно» (меню → Графика → «Эффекты и частицы»: меньше — вдвое, больше — в полтора раза) и запас на хвосты ракет */
+const SPARKS_PER_BURST = 110;
 const MAX_SPARKS = 1100;
 const SPARK_GRAVITY = 3.2;
 const SPARK_DRAG = 1.5;
 /** Фонтаны у автомата: искры мельче и падают быстрее; сколько в секунду из одного фонтана */
 const MAX_NEAR_SPARKS = 600;
-const FOUNTAIN_RATE: Record<LobbyQuality, number> = { high: 160, medium: 110, low: 70 };
+const FOUNTAIN_RATE = 160;
 const NEAR_GRAVITY = 8;
 const NEAR_DRAG = 1.1;
 const ROCKET_S = 0.6;
@@ -498,10 +499,11 @@ export class LobbyFx {
   private fountainRate: number;
   private time = 0;
 
-  constructor(scene: THREE.Scene, quality: LobbyQuality) {
-    this.perBurst = SPARKS_PER_BURST[quality];
-    this.paperK = quality === 'high' ? 1 : quality === 'medium' ? 0.75 : 0.5;
-    this.fountainRate = FOUNTAIN_RATE[quality];
+  constructor(scene: THREE.Scene, _quality: LobbyQuality) {
+    this.perBurst = SPARKS_PER_BURST;
+    this.paperK = 1;
+    this.fountainRate = FOUNTAIN_RATE;
+    this.setQuality(_quality);
 
     // --- монеты: золотые жетоны с отражениями — крупнее настоящих, иначе за пару метров их не видно
     const coinGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.011, 20);
@@ -674,11 +676,11 @@ export class LobbyFx {
     this.pops.update(dt);
   }
 
-  /** Переключение пресета действует и на следующие залпы, без пересоздания сцены. */
-  setQuality(quality: LobbyQuality): void {
-    this.perBurst = SPARKS_PER_BURST[quality];
-    this.paperK = quality === 'high' ? 1 : quality === 'medium' ? 0.75 : 0.5;
-    this.fountainRate = FOUNTAIN_RATE[quality];
+  /** Число искр и конфетти — по «Эффектам и частицам» (gfx.fx); действует на следующие залпы, без пересоздания сцены. Уровень детализации здесь больше не нужен. */
+  setQuality(_quality: LobbyQuality): void {
+    this.perBurst = Math.max(1, Math.round(SPARKS_PER_BURST * gfx.fx));
+    this.paperK = gfx.fx;
+    this.fountainRate = FOUNTAIN_RATE * gfx.fx;
   }
 
   private updateCoins(dt: number): void {

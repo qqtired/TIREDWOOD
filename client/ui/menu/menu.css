@@ -24,7 +24,7 @@
   text-align: left;
 }
 
-/* --- слева: продолжить, разделы, выход */
+/* --- слева: продолжить и «На набережную» (закреплены вверху), разделы (прокручиваются), выход (закреплён внизу) */
 
 .mn-side {
   display: flex;
@@ -32,11 +32,9 @@
   gap: 12px;
   min-height: 0;
   padding: 22px 16px 16px;
-  overflow-y: auto;
+  overflow: hidden;
   background: rgba(22, 15, 19, 0.5);
   border-right: 1px solid var(--line);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 240, 220, 0.2) transparent;
 }
 
 .mn-head {
@@ -61,10 +59,54 @@
   display: none;
 }
 
+/* «Продолжить» и «На набережную» не прокручиваются вместе с разделами: всегда на виду, на ПК и на телефоне */
+.mn-go {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .mn-side .mn-resume {
   margin-top: 4px;
   padding: 13px 18px;
   font-size: 20px;
+}
+
+/* своя кнопка: бирюзовая «клавиша» — рядом с оранжевым «Продолжить», но не сливается ни с ним, ни с серым «Выйти».
+   Подпись меняет App (в катере регаты — «Сойти на берег»), значок рисует CSS и от подписи не зависит */
+.mn-side .mn-lobby {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: linear-gradient(180deg, #67d6c7, #3fb6a8);
+  color: #082a26;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow:
+    0 4px 0 #26807a,
+    0 8px 16px rgba(10, 60, 56, 0.3),
+    inset 0 2px 0 rgba(225, 255, 250, 0.55);
+}
+
+.mn-side .mn-lobby::before {
+  content: '⚓';
+  content: '⚓' / '';
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.mn-side .mn-lobby:hover {
+  filter: brightness(1.06);
+}
+
+.mn-side .mn-lobby:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 #26807a,
+    inset 0 2px 0 rgba(225, 255, 250, 0.55);
 }
 
 .mn-hint {
@@ -74,11 +116,18 @@
   color: var(--orange-soft);
 }
 
+/* разделы: на низком экране прокручивается только этот список, а не вся панель */
 .mn-nav {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
   margin-top: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 240, 220, 0.2) transparent;
 }
 
 .mn-group {
@@ -124,6 +173,7 @@
 
 .mn-exit {
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: 8px;
   margin-top: auto;
@@ -139,6 +189,11 @@
 .mn-card :focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: 2px;
+}
+
+/* список разделов прокручивается и обрезал бы обводку у края — рисуем её внутри кнопки */
+.mn-nav .mn-tab:focus-visible {
+  outline-offset: -3px;
 }
 
 /* --- справа: заголовок раздела и содержимое (листается) */
@@ -892,11 +947,32 @@ html[data-hints='off'] :is(.key-hint, .lh-emotes, .ammo-hint, .rc-help, .br-help
     display: none;
   }
 
+  .mn-go {
+    flex-direction: row;
+    gap: 8px;
+  }
+
   .mn-side .mn-resume {
     width: auto;
     margin: 0;
     padding: 8px 16px;
     font-size: 16px;
+  }
+
+  .mn-side .mn-lobby {
+    width: auto;
+    padding: 7px 12px;
+    font-size: 14px;
+    box-shadow:
+      0 3px 0 #26807a,
+      inset 0 2px 0 rgba(225, 255, 250, 0.55);
+  }
+
+  .mn-side .mn-lobby:active {
+    transform: translateY(2px);
+    box-shadow:
+      0 1px 0 #26807a,
+      inset 0 2px 0 rgba(225, 255, 250, 0.55);
   }
 
   .mn-nav {
@@ -905,7 +981,7 @@ html[data-hints='off'] :is(.key-hint, .lh-emotes, .ammo-hint, .rc-help, .br-help
     flex-direction: row;
     gap: 4px;
     margin: 0;
-    overflow-x: auto;
+    overflow: auto hidden;
     scrollbar-width: none;
   }
 

@@ -1,8 +1,9 @@
 // Меню настроек по категориям: старые сохранения в браузере читаются как были, новые поля (эффекты, окружение,
-// инверсия, подсказки клавиш, размер интерфейса, сообщения чата) получают значения по умолчанию, мусор не ломает.
+// инверсия, подсказки клавиш, размер интерфейса, сообщения чата, пункты графики, версия) получают значения по умолчанию,
+// мусор не ломает.
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DEFAULTS, loadSettings, saveSettings, UI_SCALES } from '../client/settings.ts';
+import { DEFAULTS, loadSettings, saveSettings, SETTINGS_VERSION, UI_SCALES } from '../client/settings.ts';
 
 function fakeStorage(initial?: unknown) {
   const data = new Map<string, string>();
@@ -26,14 +27,21 @@ test('сохранение до нового меню: прежние значе
   const s = loadSettings();
   assert.deepEqual(s, {
     ...old,
+    ver: SETTINGS_VERSION,
     sfxVolume: 1,
     ambVolume: 1,
-    musicVolume: 0.8,
+    musicVolume: 0.5,
     uiVolume: 1,
     invertY: false,
     keyHints: true,
     uiScale: 1,
     chatFeed: 'fade',
+    custom: false,
+    renderScale: 1,
+    shadows: 'high',
+    effects: 'normal',
+    viewDistance: 'far',
+    fpsCap: 0,
   });
   // и записываются под прежним ключом, вместе со старыми
   const data = fakeStorage();

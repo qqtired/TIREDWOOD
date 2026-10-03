@@ -19,6 +19,7 @@ import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import { SURF_GRASS, SURF_SAND, makeLoc, type TrackLoc } from '../../shared/track.ts';
 import { Avatar, DRIVE_SQUASH, DRIVE_TURN, DRIVE_WHEEL, type AvatarPose, type GroundQuery } from '../render/avatar.ts';
+import { fxKeep } from '../render/gfx.ts';
 import { glowTexture, paint } from '../render/kit.ts';
 import * as tex from '../render/textures.ts';
 import { SkidMarks } from './skids.ts';
@@ -853,6 +854,8 @@ class Cloud {
   }
 
   emit(x: number, y: number, z: number, vx: number, vy: number, vz: number, color: number, alpha: number, size: number, grow: number, life: number, grav: number, drag: number): void {
+    // меню → Графика → «Эффекты и частицы»: при «Меньше» часть дыма, пыли и искр не рождается
+    if (!fxKeep()) return;
     const p = this.ps[this.next];
     this.next = (this.next + 1) % this.ps.length;
     _c.set(color);

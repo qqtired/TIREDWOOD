@@ -2,6 +2,7 @@
 // категория (её выбирают слева), на экране входа (⚙ Настройки) — все подряд с заголовками. Значения живут в Settings
 // (client/settings.ts, localStorage); применяет их App.applySettings — через onChange.
 import type { MixPreview } from '../../audio.ts';
+import { editGfx, minScale, pickCustom, pickPreset, type DistanceLevel, type EffectsLevel, type FpsCap, type GfxItems, type GfxState, type ShadowLevel } from '../../render/gfx.ts';
 import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, type Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
 import { setVoiceVolume, voiceVolume } from '../../voice-prefs.ts';
@@ -15,6 +16,8 @@ const CATS: ReadonlyArray<readonly [SettingsCategory, string]> = [
 export interface SettingsPanelHooks {
   /** Настройку поменяли: применить и запомнить */
   onChange(): void;
+  /** Что в графике действует сейчас: у пресета его значения, у «Авто» — до чего дошла игра, у «Своё» — свои */
+  gfx(): GfxState;
   /** Ссылка на соседний раздел меню */
   go(section: 'voice' | 'keys'): void;
   /** Ползунок громкости отпустили: короткий пример звука его шины */
@@ -59,10 +62,41 @@ export class SettingsPanel {
 
   // ------------------------------------------------------------ категории
 
+  /**
+   * Графика по пунктам. «Качество картинки» — пресет: нажал — все пункты встали по нему; тронул пункт руками — стало «Своё»
+   * (пункты остались как были, правка поверх). Что действует, считает client/render/gfx.ts; применяет App.applyQuality на лету.
+   */
   private graphics(): void {
     const s = this.s;
-    let c = this.item('graphics', 'Качество картинки', 'Ниже — меньше чёткость и детали, зато плавнее. «Авто» само снизит качество, если игра тормозит.');
-    this.choice<Quality>(c, 'Качество картинки', [['auto', 'Авто'], ['high', 'Высокое'], ['medium', 'Среднее'], ['low', 'Низкое']], () => s.quality, (v) => { s.quality = v; });
+    const now = (): GfxState => this.hooks.gfx();
+    const edit = (patch: Partial<GfxItems>): void => editGfx(s, now(), patch);
+    let c = this.item('graphics', 'Качество картинки', '');
+    const hint = c.parentElement!.querySelector('small') ?? c.parentElement!.firstElementChild!.appendChild(el('small', ''));
+    this.choice<Quality | 'custom'>(
+      c,
+      'Качество картинки',
+      [['auto', 'Авто'], ['high', 'Высокое'], ['medium', 'Среднее'], ['low', 'Низкое'], ['custom', 'Своё']],
+      () => (s.custom ? 'custom' : s.quality),
+      (v) => (v === 'custom' ? pickCustom(s, now()) : pickPreset(s, v)),
+    );
+    this.syncs.push(() => {
+      hint.textContent = s.custom
+        ? '«Своё»: пункты ниже выставлены вручную. Нажми пресет — все пункты встанут по нему.'
+        : 'Пресет выставляет все пункты ниже сразу. «Авто» само снизит разрешение, если игра тормозит. Тронешь пункт — станет «Своё».';
+    });
+    c = this.item('graphics', 'Разрешение', 'Ниже — меньше пикселей, зато плавнее. 100% — родное разрешение экрана');
+    this.slider(c, 'Разрешение', minScale(window.devicePixelRatio || 1), 1, 0.05, () => now().renderScale, (v) => edit({ renderScale: v }), () => {
+      const g = now();
+      return g.auto ? `авто · ${pct(g.renderScale)}` : pct(g.renderScale);
+    });
+    c = this.item('graphics', 'Тени', 'Выкл — самое быстрое. Низкие — резче и грубее');
+    this.choice<ShadowLevel>(c, 'Тени', [['off', 'Выкл'], ['low', 'Низкие'], ['high', 'Высокие']], () => now().shadows, (v) => edit({ shadows: v }));
+    c = this.item('graphics', 'Эффекты и частицы', 'Дождь, салют, фонтаны, брызги. «Меньше» ещё и гасит точечные лампы на набережной');
+    this.choice<EffectsLevel>(c, 'Эффекты и частицы', [['less', 'Меньше'], ['normal', 'Обычно'], ['more', 'Больше']], () => now().effects, (v) => edit({ effects: v }));
+    c = this.item('graphics', 'Дальность видимости', 'Что дальше — тонет в дымке и не рисуется');
+    this.choice<DistanceLevel>(c, 'Дальность видимости', [['near', 'Близко'], ['mid', 'Средне'], ['far', 'Далеко']], () => now().viewDistance, (v) => edit({ viewDistance: v }));
+    c = this.item('graphics', 'Ограничение FPS', 'Для слабых ноутбуков: меньше кадров — холоднее и тише');
+    this.choice<FpsCap>(c, 'Ограничение FPS', [[0, 'Без ограничения'], [60, '60'], [30, '30']], () => now().fpsCap, (v) => edit({ fpsCap: v }));
     c = this.item('graphics', 'Угол обзора', 'Шире — больше видно по сторонам');
     this.slider(c, 'Угол обзора', 70, 120, 1, () => s.fov, (v) => { s.fov = v; }, () => `${Math.round(s.fov)}°`);
     c = this.item('graphics', 'Показывать FPS и пинг', 'Счётчик кадров и задержки в углу экрана', true);
