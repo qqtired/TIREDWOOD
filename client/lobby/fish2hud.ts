@@ -19,6 +19,7 @@ import { CatchCard2 } from './fishcard2.ts';
 import { ReelGame } from './fishgame.ts';
 import type { FishingSpots } from './fishing.ts';
 import { FishNpcDialog } from './fishnpcdialog.ts';
+import { SanyaHome } from './barkas/sanyahome.ts';
 import { FishProgressHud } from './fishprogresshud.ts';
 import { Fisherman3D } from './fisherman.ts';
 import { FishPodium3D } from './fishpodium.ts';
@@ -48,6 +49,8 @@ export class Fish2Hud {
   private readonly progress: FishProgressHud;
   /** Разговор с Семёном и Саней; npc.extra — шапка для чужих кнопок (перевоз Сани) */
   readonly npc: FishNpcDialog;
+  /** Баркас: «Домой, к Семёну» у Сани — кнопка в npc.extra */
+  private readonly sanyaHome: SanyaHome;
   private readonly bag: FishBag;
   private readonly odds: FishOdds;
   readonly roulette: RouletteHud;
@@ -81,6 +84,7 @@ export class Fish2Hud {
     this.npc.onOpen = () => this.onNpcOpen();
     this.npc.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.npc.onBeer = () => this.onBeer();
+    this.sanyaHome = new SanyaHome(this.npc, () => ui.me().tokens, send, (text) => ui.toasts.show(text));
     this.bag = new FishBag(overlay, send);
     this.bag.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.progress.onBag = () => this.toggleBag();
@@ -221,6 +225,7 @@ export class Fish2Hud {
     this.clock.sync(msg.now);
     this.progress.set(msg.progress, msg.now);
     this.npc.onState(msg);
+    this.sanyaHome.refresh();
   }
 
   closeNpc(): void {
@@ -229,9 +234,15 @@ export class Fish2Hud {
     this.roulette.close();
   }
 
+  /** Саня ответил на «Домой, к Семёну» (кнопка модуля баркаса в шапке разговора — client/lobby/barkas/sanyahome.ts) */
+  onBarkasHome(ok: boolean, message: string): void { this.sanyaHome.onResult(ok, message); }
+
   requestNpcOpen(npc: FishNpcId = 'semyon'): void { this.npc.requestOpen(npc); }
 
-  refreshBalance(): void { this.npc.refresh(); }
+  refreshBalance(): void {
+    this.npc.refresh();
+    this.sanyaHome.refresh();
+  }
 
   updateVisuals(dt: number, time: number, camera: THREE.Vector3): void {
     this.fisherman.update(dt, time, camera);

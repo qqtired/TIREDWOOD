@@ -901,6 +901,10 @@ button.fb-cell { cursor: pointer; }
 .fn-close { border: 1px solid #78856e; color: var(--cream); background: rgba(255,245,220,.08); font: inherit; font-size: 26px; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; }
 .fn-close:hover { background: #43523f; }
 .fn-intro { margin: 0 0 14px; color: #c7d0bc; font-size: 13px; }
+/* баркас: «Домой, к Семёну» у Сани — в шапке разговора (client/lobby/barkas/sanyahome.ts) */
+.fn-action.bk-home { min-height: 32px; padding: 5px 11px; background: #3f6670; border-color: #7fb3bb; white-space: nowrap; }
+.fn-action.bk-home:hover:not(:disabled) { background: #4b7a85; }
+.fn-action.bk-home[hidden] { display: none; }
 .fn-body { min-width: 0; min-height: 0; overflow-y: auto; padding: 16px 22px 20px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-gutter: stable; }
 .fn-body h3 { margin: 18px 0 10px; font-size: 16px; color: #e7dbc1; }
 .fn-body h4 { font-size: 16px; line-height: 1.35; margin: 0; }

@@ -294,6 +294,17 @@ export interface BoatStatus {
   nick: string;
 }
 
+/**
+ * Лодка Семёна «Удалая» (shared/ferry.ts): ph — FE_* (у Семёна стоит, отсчёт, к баркасу, у баркаса, к Семёну); at — тик:
+ * в отсчёте и у баркаса — когда отойдёт, в рейсе — когда отошла; n — сколько сидит; c — 1: позвали колоколом с баркаса.
+ */
+export interface FerryStatus {
+  ph: number;
+  at: number;
+  n: number;
+  c: number;
+}
+
 /** Строка доски «Рекорды полосы» аквапарка: чей профиль (свою строку видно), ник, время, мс */
 export interface AquaRow {
   pid: number;
@@ -436,6 +447,8 @@ export type ServerMsg =
     regatta?: { v: RgView; q: GatherStatus; top: RgRecordRow[] };
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    /** Лодка Семёна «Удалая» */
+    ferry: FerryStatus;
     /** Идущий дождь (shared/weather.ts): сколько уже идёт, длина, сид, откуда — силу и молнии считает клиент */
     wx?: RainWire | null;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
@@ -450,6 +463,10 @@ export type ServerMsg =
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)
+  // лодка Семёна «Удалая» (shared/ferry.ts): что с ней — при каждом изменении
+  | ({ t: 'ferry' } & FerryStatus)
+  // Саня: «Домой, к Семёну» (действие ferry разговора fishNpc) — отправил на пирс (ok: окно закрывается, тост) или нет — почему
+  | { t: 'barkasHome'; ok: boolean; message: string }
   // аквапарк (shared/aqua.ts): доска рекордов — при каждом изменении; свой забег: пошло время (at — номер своего входа,
   // с которого старт: время идёт по своим шагам), снят (вернулся на мостик, упал в воду, пауза), финиш (время по шагам,
   // свой лучший, место на доске: −1 — не попал)

@@ -3,13 +3,15 @@
 // ларёк «Примерочная»; на юго-западе — мостки к маяку; к западу и юго-западу на воде — аквапарк «Волна»; в юго-восточном углу —
 // колесо обозрения. X — восток, Z — юг, «север» = −Z.
 import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSteps } from '../aqua.ts';
+import { BARKAS_BOARD, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../barkas.ts';
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
+import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
-  FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_MOORINGS, FISH_NPC_USE, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES,
-  FISHER_USE, ROULETTE_SPOT,
+  FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY,
+  FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
 } from '../fishplaces.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
@@ -17,7 +19,8 @@ import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'roulette';
+/** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette';
 
 export interface Interactable {
   id: number;
@@ -80,6 +83,9 @@ export interface LobbyMap extends GameMap {
   /** NPC, доска и пьедестал видны только с FISH2: при выключенном режиме эти коллизии тоже выключают. */
   fishPropsBoxes: number[];
   skillPortalBoxes: number[];
+  /** Лодка «Удалая» у мостков и у баркаса (номера в boxes): включены только у той стоянки, где она стоит */
+  ferryHomeBoxes: number[];
+  ferryAwayBoxes: number[];
   /** Корпус музыкального автомата (флаг сервера JUKEBOX): без флага коллизию выключают */
   jukeBoxes: number[];
 }
@@ -341,18 +347,13 @@ export function buildLobby(): LobbyMap {
   add('fight', FC_CIRCLE.x, FC_CIRCLE.z, Math.PI, FC_CIRCLE.r, 0, 'Fight Club');
 
   // Новые места и NPC — строго после всех прежних interactables: номера уже используются клиентами.
-  FISH_SPOTS.slice(6, 12).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
+  FISH_SPOTS.slice(6, FISH_ISLAND_COUNT).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
   add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком');
   add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
   add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Портовая регата');
   add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
   // Музыкальный автомат (shared/jukebox.ts): E перед лицевой стороной — выбрать песню
   add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат');
-  // fisheco: места баркаса (пока — TEMP-BARKAS у набережной), Саня (arg 1 — номер в FISH_NPCS) и стол рулетки
-  FISH_SPOTS.slice(12).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 12, 'порыбачить'));
-  const sanya = FISH_NPC_USE.sanya;
-  if (sanya) add('fisher', sanya.x, sanya.z, sanya.yaw, sanya.r, 1, 'поговорить с Саней');
-  add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'wood', 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
@@ -381,6 +382,26 @@ export function buildLobby(): LobbyMap {
   // Корпус музыкального автомата — твёрдый (рисует клиент, client/lobby/jukebox3d.ts); без флага JUKEBOX его выключают
   const jukeBoxes = [b.boxes.length];
   b.box([JUKEBOX.x - JUKE_W / 2, 0, JUKEBOX.z - JUKE_D / 2], [JUKEBOX.x + JUKE_W / 2, JUKE_H, JUKEBOX.z + JUKE_D / 2], 'invisible', 0);
+
+  // --- Баркас «Альбатрос» в море (shared/barkas.ts) и лодка Семёна «Удалая» у обеих стоянок (shared/ferry.ts). Всё
+  // невидимое — рисует client/lobby/barkas. Точки — в самый конец: места рыбалки на борту, лодка, Саня (fisher arg 1)
+  for (const k of barkasBoxes()) b.box(k.min, k.max, 'invisible', 0);
+  const ferryHomeBoxes: number[] = [];
+  const ferryAwayBoxes: number[] = [];
+  for (const [dock, list] of [[FERRY_HOME, ferryHomeBoxes], [FERRY_AWAY, ferryAwayBoxes]] as const) {
+    for (const k of ferryBoxes(dock)) {
+      list.push(b.boxes.length);
+      b.box(k.min, k.max, 'invisible', 0);
+    }
+  }
+  // табличка «Удалой» у стоянки: столбик (обходить, как кнехт)
+  b.box([FERRY_SIGN.x - 0.05, 0, FERRY_SIGN.z - 0.05], [FERRY_SIGN.x + 0.05, 1.9, FERRY_SIGN.z + 0.05], 'invisible', 0);
+  BARKAS_FISH_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_ISLAND_COUNT + i, 'порыбачить'));
+  add('ferry', -13.2, 39.5, -Math.PI / 2, 1.9, 0, 'лодка «Удалая»');
+  add('ferry', BARKAS_BOARD.x, BARKAS_BOARD.z, BARKAS_BOARD.yaw, BARKAS_BOARD.r, 1, 'лодка «Удалая»');
+  add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
+  // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
+  add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
@@ -424,6 +445,8 @@ export function buildLobby(): LobbyMap {
     aquaMovers,
     fishPropsBoxes,
     skillPortalBoxes,
+    ferryHomeBoxes,
+    ferryAwayBoxes,
     jukeBoxes,
   };
 }

@@ -29,10 +29,11 @@ function supportedAndClear(w: CollisionWorld, x: number, z: number, why: string)
   assert.ok(!w.overlaps(x - PLAYER_HALF, 0.002, z - PLAYER_HALF, x + PLAYER_HALF, PLAYER_HEIGHT, z + PLAYER_HALF), `${why}: капсула вне твёрдых предметов`);
 }
 
-test('у пристани ровно 12 мест: 8 на пирсе и 4 у маяка; прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
+test('у пристани ровно 12 мест: 8 на пирсе и 4 у маяка (дальше — 8 на баркасе); прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
   const map = buildLobby();
   const pier = FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier');
   assert.equal(pier.length, 12);
+  assert.equal(FISH_SPOTS.length, 20);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
   assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
   assert.ok(FISH_SPOTS.slice(12).every((s) => s.zone === 'barkas'), 'места баркаса — только в конце списка');
@@ -45,8 +46,9 @@ test('у пристани ровно 12 мест: 8 на пирсе и 4 у ма
   assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.arg), FISH_SPOTS.map((_, i) => i), 'arg места = номер в FISH_SPOTS');
   assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id).slice(0, 12), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   assert.equal(map.interact.find(i => i.kind === 'fisher')?.id, 52);
-  // музыкальный автомат уже в main (id 56) — точки fisheco после него, в самом конце
-  assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`), ['juke:0', ...FISH_SPOTS.slice(12).map((_, i) => `fish:${i + 12}`), 'fisher:1', 'roulette:0']);
+  // музыкальный автомат уже в main (id 56) — после него, в самом конце: места баркаса, лодка «Удалая», Саня, стол рулетки
+  assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
+    ['juke:0', ...FISH_SPOTS.slice(12).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0']);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');
@@ -80,7 +82,8 @@ test('каждое новое место достижимо от входа на
 
 test('новые места не перекрывают фото, декорации рыбаков, снасти, кнехты и прочие старые interactions', () => {
   const map = buildLobby();
-  const props: Point[] = [[-14.6, 40.3], [-14.85, 39.35], [-14.85, 40.72], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
+  // рыбак-декорация с ведром и термосом (client/lobby/folk.ts) — у южного края площадки, второй — у западного
+  const props: Point[] = [[-19.2, 45.5], [-18.3, 45.3], [-19.62, 45.3], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
   for (const [n, s] of NEW_SPOTS.entries()) {
     for (const p of props) assert.ok(Math.hypot(s.x - p[0], s.z - p[1]) > 1.3, `место ${n + 6}: проход возле старого предмета ${p}`);
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && i.kind !== 'fisher')) {

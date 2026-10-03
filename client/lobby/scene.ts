@@ -19,14 +19,19 @@ import { readPirateTail } from '../../shared/piratenet.ts';
 import { AQUA_NEAR_X, AQUA_PIECES, aquaFall, aquaMs, fmtAquaTime, onFinish, onJetty } from '../../shared/aqua.ts';
 import { AquaDyn, KNOCK_BAG, quantTick } from '../../shared/aquadyn.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_DOCK, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
+import { barkasWater } from '../../shared/barkas.ts';
+import {
+  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat, type FerryPose,
+} from '../../shared/ferry.ts';
+import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { BJ_TABLE, type BlackjackView } from '../../shared/blackjack.ts';
 import type { SkillStatus } from '../../shared/skilltest.ts';
 import { MAX_HUMANS, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_EARLY, FE_HOOK, FE_LOST, FE_MISS, FE_OFF, FP_BITE, FP_CAST, FP_HOLD, FP_IDLE, FP_REEL, FP_WAIT } from '../../shared/fishing.ts';
 import type { FortStatus } from '../../shared/fort.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL,
-  LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isHeld, isPair, isRiding, pairReach,
+  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
+  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
 import { FISH_NPCS, FISH_SPOTS } from '../../shared/fishplaces.ts';
@@ -34,7 +39,7 @@ import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
 import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
 import { clamp } from '../../shared/math.ts';
-import type { AquaRow, BoatStatus, DurakSeatView, DurakTableView, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
+import type { AquaRow, BoatStatus, DurakSeatView, DurakTableView, FerryStatus, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_HAS_SELF, SNAP_SELF_RESET, decodeSnapshot, encodeInputs, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { BTN_FIRE, BTN_JUMP, makeInput, makeState, type Input, type StepEvents } from '../../shared/sim.ts';
@@ -168,6 +173,8 @@ const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
 /** Катер у причала — пока статуса с сервера нет (в меню) */
 const BOAT_DOCKED: BoatStatus = { ph: BP_DOCK, at: 0, n: 0, nick: '' };
+/** Лодка «Удалая» у мостков Семёна — пока статуса с сервера нет */
+const FERRY_DOCKED: FerryStatus = { ph: FE_HOME, at: 0, n: 0, c: 0 };
 
 export class LobbyScene implements Scene {
   readonly kind = 'lobby' as const;
@@ -287,6 +294,12 @@ export class LobbyScene implements Scene {
   /** Над катером во время посадки: отсчёт и «Садись!» */
   private readonly boatBanner: BoatBanner;
   private readonly seatTmp = { x: 0, z: 0 };
+  /** Лодка Семёна «Удалая»: статус с сервера и где она на экране (по часам отрисовки — там же её пассажиры) */
+  private ferry: FerryStatus = { ...FERRY_DOCKED };
+  private readonly ferryPose: FerryPose = { ...FERRY_HOME };
+  private ferryYaw = FERRY_HOME.yaw;
+  /** Уровень рыбалки в прошлый раз (−1 — ещё не знаем): дошёл до FERRY_LEVEL — Семён зовёт в море */
+  private fishLvl = -1;
   /**
    * Аквапарк «Волна»: полоса и доска рекордов; препятствия в шаге предсказания (по метке входа, как на сервере);
    * свой забег — номер своего входа на старте по серверу (0 — не бежим), на финише по своему предсказанию (0 — ещё нет)
@@ -664,6 +677,8 @@ export class LobbyScene implements Scene {
     this.d.sound.engineStop(BOAT_ENGINE);
     this.d.sound.engineStop(LAUNCH_ENGINE);
     this.setBoat(BOAT_DOCKED);
+    this.setFerry(FERRY_DOCKED, true);
+    this.fishLvl = -1;
   }
 
   // ------------------------------------------------------------ сеть: JSON
@@ -708,6 +723,8 @@ export class LobbyScene implements Scene {
         this.world.setRain(msg.rain === 1, true, msg.wx);
         this.respects.setCount(msg.respects ?? 0);
         this.setBoat(msg.boat ?? BOAT_DOCKED);
+        this.setFerry(msg.ferry ?? FERRY_DOCKED, true);
+        this.fishLvl = fishLevel(this.d.ui.me().fishing?.xp ?? 0);
         this.setAquaTop(msg.aqua ?? []);
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
@@ -724,6 +741,12 @@ export class LobbyScene implements Scene {
         break;
       case 'boat':
         this.setBoat(msg);
+        break;
+      case 'ferry':
+        this.setFerry(msg);
+        break;
+      case 'barkasHome':
+        this.fish2.onBarkasHome(msg.ok, msg.message);
         break;
       case 'aquaTop':
         this.setAquaTop(msg.top);
@@ -848,6 +871,7 @@ export class LobbyScene implements Scene {
         break;
       case 'fishProgress':
         this.fish2.onProgress(msg.progress, msg.now);
+        this.checkFerryLevel(msg.progress.xp);
         break;
       case 'fishNpc':
         this.fish2.onNpc(msg);
@@ -902,6 +926,7 @@ export class LobbyScene implements Scene {
     if (this.wardrobe.isOpen) this.wardrobe.update(me);
     else if (this.entered) this.me.setOutfit(this.infos.get(this.myId)?.o ?? me.outfit);
     this.fish2.onMe();
+    if (me.fishing) this.checkFerryLevel(me.fishing.xp);
     this.bjHud.setBalance(me.tokens);
     // свой лучший на доске аквапарка
     this.setAquaTop(this.aquaTop);
@@ -982,8 +1007,21 @@ export class LobbyScene implements Scene {
     const mine = id === this.myId;
     this.effects.waterSplash(x, z, true);
     this.d.sound.splash(mine ? null : [x, WATER_Y, z]);
-    // у аквапарка сервер ставит упавшего на мостик старта
-    if (mine) this.d.ui.toasts.show(aquaFall(x) ? 'Плюх! 🌊 Снова на мостике — ещё попытка' : 'Плюх! 🌊 Выбираемся обратно на площадь');
+    // у баркаса матросы вытаскивают на палубу, у аквапарка сервер ставит на мостик старта (aquaFall — всё западнее
+    // площади, поэтому баркас проверяем раньше, как на сервере)
+    if (mine) {
+      this.d.ui.toasts.show(barkasWater(x, z) ? 'Плюх! 🌊 Матросы выудили тебя багром — снова на палубе'
+        : aquaFall(x) ? 'Плюх! 🌊 Снова на мостике — ещё попытка' : 'Плюх! 🌊 Выбираемся обратно на площадь');
+    }
+  }
+
+  /** Дорос до FERRY_LEVEL рыбалки — Семён зовёт в море (один раз, когда уровень сменился у нас на глазах). */
+  private checkFerryLevel(xp: number): void {
+    const lvl = fishLevel(xp);
+    if (this.fishLvl >= 0 && this.fishLvl < FERRY_LEVEL && lvl >= FERRY_LEVEL) {
+      this.d.ui.toasts.show('Семён берёт тебя в море! Лодка «Удалая» ждёт у его мостков — на баркас «Альбатрос»');
+    }
+    this.fishLvl = lvl;
   }
 
   // ------------------------------------------------------------ дурак
@@ -1322,6 +1360,26 @@ export class LobbyScene implements Scene {
     this.world.boats.setRide(away, st.at);
   }
 
+  /** Статус «Удалой»: её боксы — только у той стоянки, где она стоит (как на сервере); first — при входе, без гудка. */
+  private setFerry(st: FerryStatus, first = false): void {
+    this.ferry = { ph: st.ph, at: st.at, n: st.n, c: st.c };
+    const home = st.ph === FE_HOME || st.ph === FE_BOARD;
+    for (const i of this.world.map.ferryHomeBoxes) this.world.collision.setEnabled(i, home);
+    for (const i of this.world.map.ferryAwayBoxes) this.world.collision.setEnabled(i, st.ph === FE_AWAY);
+    this.world.barkas.setFerry(this.ferry, first);
+  }
+
+  /** «Удалая»: у стоянки — секунд до отхода, в рейсе — до прихода (куда идёт). */
+  private ferrySecs(): number {
+    const f = this.ferry;
+    const tick = this.clock.renderTick;
+    const s = (ticks: number): number => Math.max(0, Math.ceil(ticks / TICK_RATE));
+    if (f.ph === FE_BOARD || f.ph === FE_AWAY) return s(f.at - tick);
+    if (f.ph === FE_OUT) return s(ferryEta(f.ph, f.at, tick, true));
+    if (f.ph === FE_BACK) return s(ferryEta(f.ph, f.at, tick, false));
+    return 0;
+  }
+
   /** Сколько секунд до отплытия (посадка) или до возвращения к причалу (поездка). */
   private boatSecs(): number {
     const b = this.boat;
@@ -1427,6 +1485,10 @@ export class LobbyScene implements Scene {
         } else if (isAboard(action) && !isAboard(prev)) {
           // сел в катер — взгляд вперёд, по носу
           input.yaw = this.boatPose.yaw;
+          input.pitch = -0.12;
+        } else if (isFerry(action) && !isFerry(prev)) {
+          // сел в лодку «Удалая» — тоже по носу
+          input.yaw = this.ferryPose.yaw;
           input.pitch = -0.12;
         } else if (action === ACT_WHEEL && prev !== ACT_WHEEL) {
           // сел в кабинку колеса — взгляд на надпись TIREDWOOD на горе (чуть в сторону от желейки): при подъёме она
@@ -1857,6 +1919,7 @@ export class LobbyScene implements Scene {
     this.aqua.update(dt, this.aquaDrawTick(alpha));
 
     this.updateBoatPose();
+    this.updateFerryPose();
     this.updateLocalPose(alpha);
     this.rg.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position);
     this.updateCamera(dt);
@@ -1891,6 +1954,7 @@ export class LobbyScene implements Scene {
 
     this.effects.update(dt);
     this.updateSlots(dt, this.busySlots | (act === ACT_SLOT ? 1 << this.arg : 0));
+    this.world.barkas.setListener(this.d.sound.kit, this.hasSelf ? this.pose : null);
     this.world.update(dt, this.clock.renderTick);
     this.boatSign.update(this.boat, this.clock.renderTick);
     this.boatBanner.update(this.boat, this.clock.renderTick, this.time, this.world.boats.launchOffset, camPos);
@@ -1926,6 +1990,7 @@ export class LobbyScene implements Scene {
     this.roulette3d.update(dt);
     this.respects.update(dt, this.time, 0);
     this.effects.update(dt);
+    this.world.barkas.setListener(this.d.sound.kit, null);
     this.world.update(dt);
     this.boatSign.update(this.boat, 0);
     this.boatBanner.update(this.boat, 0, this.time, this.world.boats.launchOffset, cam.position);
@@ -1971,6 +2036,17 @@ export class LobbyScene implements Scene {
     if (this.hasSelf && this.myAct === ACT_RIDE) this.d.input.yaw += turn;
   }
 
+  /** Где «Удалая» на экране: в рейсе — на пути по часам отрисовки, иначе у стоянки. Плывём — взгляд поворачивает с ней. */
+  private updateFerryPose(): void {
+    const f = this.ferry;
+    const p = this.ferryPose;
+    ferryPose(f.ph, f.at, this.clock.ready ? this.clock.renderTick : f.at, p);
+    let turn = p.yaw - this.ferryYaw;
+    turn -= Math.round(turn / (2 * Math.PI)) * 2 * Math.PI;
+    this.ferryYaw = p.yaw;
+    if (this.hasSelf && this.myAct === ACT_FERRY_RIDE) this.d.input.yaw += turn;
+  }
+
   private updateLocalPose(alpha: number): void {
     const s = this.predictor.state;
     const p = this.predictor.prev;
@@ -1994,6 +2070,21 @@ export class LobbyScene implements Scene {
       pose.y += lo.y;
       pose.z += lo.z;
       pose.yaw = this.boatPose.yaw;
+      pose.pitch = 0;
+    } else if (isFerry(act)) {
+      // в лодке «Удалая»: в рейсе — на своей банке по пути лодки (часы те же, что у лодки на экране), у стоянки — где
+      // посадил сервер; качается вместе с лодкой и смотрит по носу
+      if (act === ACT_FERRY_RIDE && this.arg < FERRY_SEATS) {
+        const at = ferrySeat(this.ferryPose, this.arg, this.seatTmp);
+        pose.x = at.x;
+        pose.y = FERRY_FLOOR_Y;
+        pose.z = at.z;
+      }
+      const fo = this.world.barkas.ferry.offset;
+      pose.x += fo.x;
+      pose.y += fo.y;
+      pose.z += fo.z;
+      pose.yaw = this.ferryPose.yaw;
       pose.pitch = 0;
     } else if (act === ACT_WHEEL && this.clock.ready) {
       // в кабинке колеса: на своём месте по тем же часам, по которым кабинка на экране
@@ -2059,8 +2150,9 @@ export class LobbyScene implements Scene {
       const pose = r.pose;
       // в катере сидит: шагов и батутов нет, качается вместе с катером; в кабинке колеса — тоже без шагов
       const aboard = isAboard(r.track.hp);
+      const ferry = isFerry(r.track.hp);
       if (ok) {
-        if (pose.valid && dt > 0 && !aboard && r.track.hp !== ACT_WHEEL) {
+        if (pose.valid && dt > 0 && !aboard && !ferry && r.track.hp !== ACT_WHEEL) {
           // шаги чужих — по пройденному пути
           if (s.flags & E_GROUNDED) {
             const moved = Math.hypot(s.x - pose.x, s.z - pose.z);
@@ -2100,6 +2192,11 @@ export class LobbyScene implements Scene {
           pose.x += lo.x;
           pose.y += lo.y;
           pose.z += lo.z;
+        } else if (ferry) {
+          const fo = this.world.barkas.ferry.offset;
+          pose.x += fo.x;
+          pose.y += fo.y;
+          pose.z += fo.z;
         }
       } else {
         pose.valid = false;
@@ -2162,6 +2259,10 @@ export class LobbyScene implements Scene {
     else if (act === ACT_FISH) this.hintFish();
     else if (act === ACT_BOAT) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из катера · отплытие через ${this.boatSecs()} с`);
     else if (act === ACT_RIDE) hud.setHint([], `Прогулка по бухте · ещё ${this.boatSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
+    else if (act === ACT_FERRY) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из лодки · отход через ${this.ferrySecs()} с`);
+    else if (act === ACT_FERRY_RIDE) {
+      hud.setHint([], `«Удалая» идёт ${this.ferry.ph === FE_BACK ? 'к Семёну' : 'к баркасу «Альбатрос»'} · ещё ${this.ferrySecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
+    }
     else if (act === ACT_WHEEL) hud.setHint([], `Колесо обозрения · внизу через ${this.wheelSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
     // в катере регаты подсказки — свои (client/lobby/regattahud.ts)
     else if (act === ACT_REGATTA || this.rg.racing) hud.setHint(null);
@@ -2305,7 +2406,8 @@ export class LobbyScene implements Scene {
       return;
     }
     if (it === taken) {
-      this.hud.setHint([], it.kind === 'boat' ? this.boatBusyText() : it.kind === 'slot' ? 'Автомат занят' : it.kind === 'fish' ? 'Здесь уже рыбачат' : 'Место занято');
+      this.hud.setHint([], it.kind === 'boat' ? this.boatBusyText() : it.kind === 'ferry' ? `В лодке мест нет · отход через ${this.ferrySecs()} с`
+        : it.kind === 'slot' ? 'Автомат занят' : it.kind === 'fish' ? 'Здесь уже рыбачат' : 'Место занято');
       return;
     }
     this.target = it;
@@ -2371,7 +2473,10 @@ export class LobbyScene implements Scene {
         this.hud.setHint(['E'], 'порыбачить');
         break;
       case 'fisher':
-        this.hud.setHint(['E'], it.arg === 1 ? 'поговорить с Саней · продать улов, снасти, задания' : 'поговорить с Дедом Семёном · продать улов, снасти, задания');
+        this.hud.setHint(['E'], it.arg === 1 ? 'поговорить с Саней · продать улов, снасти, домой к Семёну' : 'поговорить с Дедом Семёном · продать улов, снасти, задания');
+        break;
+      case 'ferry':
+        this.hintFerry(it.arg);
         break;
       case 'roulette':
         this.hud.setHint(['E'], this.fish2.roulette.hint());
@@ -2389,6 +2494,35 @@ export class LobbyScene implements Scene {
         break;
       }
     }
+  }
+
+  /**
+   * Лодка «Удалая»: у мостков Семёна (arg 0) — сесть (с FERRY_LEVEL-го уровня рыбалки) или когда вернётся; у калитки
+   * баркаса (arg 1) — сесть или позвонить в колокол.
+   */
+  private hintFerry(arg: number): void {
+    const f = this.ferry;
+    const tick = this.clock.renderTick;
+    const secs = this.ferrySecs();
+    if (arg === 1) {
+      if (f.ph === FE_AWAY) this.hud.setHint(['E'], `сесть в лодку — к Семёну, бесплатно · отход через ${secs} с`);
+      else if (f.ph === FE_OUT) this.hud.setHint([], `«Удалая» идёт сюда · будет через ${secs} с`);
+      else if (f.c) this.hud.setHint([], `Гоша услышал колокол — «Удалая» будет через ${Math.max(1, Math.ceil(ferryEta(f.ph, f.at, tick, true) / TICK_RATE))} с`);
+      else this.hud.setHint(['E'], 'позвонить в колокол — Гоша приведёт лодку «Удалая»');
+      return;
+    }
+    if (f.ph !== FE_HOME && f.ph !== FE_BOARD) {
+      this.hud.setHint([], `«Удалая» в море · вернётся к мосткам через ${Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)} с`);
+      return;
+    }
+    const xp = this.d.ui.me().fishing?.xp ?? 0;
+    const lvl = fishLevel(xp);
+    if (lvl < FERRY_LEVEL) {
+      // новичку — понятно, почему нет и сколько осталось (E — Семён скажет то же)
+      this.hud.setHint([], `Лодка к баркасу «Альбатрос» — с ${FERRY_LEVEL}-го уровня рыбалки · у тебя ${lvl}-й, ещё ${Math.max(0, FISH_XP_LEVELS[FERRY_LEVEL] - xp)} опыта`);
+      return;
+    }
+    this.hud.setHint(['E'], f.ph === FE_BOARD ? `сесть в лодку «Удалая» · отход через ${secs} с` : 'сесть в лодку «Удалая» — на баркас «Альбатрос», бесплатно');
   }
 
   /** Сколько секунд до низа своей кабинки колеса. */
@@ -2412,6 +2546,7 @@ export class LobbyScene implements Scene {
     if (it.kind === 'seat') return this.busySeats.has(it.arg);
     if (it.kind === 'fish') return this.busyFish.has(it.arg);
     if (it.kind === 'boat') return this.boat.ph === BP_RIDE || (this.boat.ph === BP_BOARD && this.boat.n >= BOAT_SEATS);
+    if (it.kind === 'ferry') return this.ferry.n >= FERRY_SEATS && this.ferry.ph === (it.arg === 1 ? FE_AWAY : FE_BOARD);
     // стул дурака: сидит человек, бот или чужая бронь отошедшего (на своё место из партии — можно вернуться)
     if (it.kind === 'durak') return this.busySeats.has(it.arg) || ((this.chairOf(it.arg)?.k ?? 0) !== 0 && !this.myReserved(it.arg));
     if (it.kind === 'blackjack') {
@@ -2439,7 +2574,7 @@ export class LobbyScene implements Scene {
     const s = this.predictor.state;
     return {
       id: this.myId, hasSelf: this.hasSelf, action: this.action, arg: this.arg, act: this.myAct, hold: this.predictor.hold,
-      pos: [s.x, s.y, s.z], corrections: this.predictor.corrections, target: this.target?.kind ?? null,
+      pos: [s.x, s.y, s.z], corrections: this.predictor.corrections, target: this.target?.kind ?? null, barkas: this.world.barkas.debug(),
       renderTick: this.clock.renderTick, delay: this.clock.delay, jitter: this.clock.jitter,
       remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, seq: this.seq,
       dkSeat: this.dkSeat, dkLocked: this.dkHud.locked, dkHand: this.dkHand?.cards.length ?? -1,
