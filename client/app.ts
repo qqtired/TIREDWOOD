@@ -21,6 +21,8 @@ import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } f
 import { Input, isMuteKey, isTyping } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
 import { Net } from './net.ts';
+import { Relink } from './relink.ts';
+import { LinkBanner } from './ui/linkbanner.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
@@ -39,6 +41,8 @@ import { Transition } from './ui/transition.ts';
 import { VoiceController } from './voice.ts';
 import { VoiceUi } from './ui/voice.ts';
 import './ui/voice.css';
+import { loadVoicePrefs, saveVoicePrefs } from './voice-prefs.ts';
+import { setVoiceSource } from './ui/voicepanel.ts';
 import './ui/mobile-fishing.css';
 import { setVoicePresence } from './render/voice-presence.ts';
 
@@ -48,8 +52,13 @@ type JoinMode = 'saved' | 'nick' | 'code';
 
 const NICKS = ['Кругляш', 'Мармеладка', 'Боцман', 'Юнга', 'Шкипер', 'Клякса', 'Пончик', 'Бублик', 'Карамелька', 'Лоцман', 'Тюлька', 'Кок'];
 const CONNECT_TIMEOUT_MS = 9000;
-/** В игре сервер шлёт снимки 30 раз в секунду: 8 с тишины — связь умерла, переподключаемся сами */
-const SILENCE_MS = 8000;
+/**
+ * В игре сервер шлёт снимки 30 раз в секунду: 20 с тишины — связь умерла, возвращаемся в сессию заново (relink.ts).
+ * Было 8 с: при пинге 220–260 мс TCP после короткого провала сети догоняет за 8–12 с, и живые соединения рвались.
+ */
+const SILENCE_MS = 20_000;
+/** Сервер молчит дольше этого — плашка «Связь нестабильна» (игра идёт дальше) */
+const SHAKY_MS = 3000;
 /** Паузы между попытками переподключения, с (дальше — последняя) */
 const RETRY_S = [1, 2, 4, 8, 15];
 const PING_MS = 2000;
@@ -71,6 +80,9 @@ export class App {
   private readonly sound = new Sound();
   private readonly input: Input;
   private readonly net = new Net();
+  /** Возврат в ту же сессию после обрыва связи: сцена остаётся, сервер досылает пропущенное */
+  private readonly relink: Relink;
+  private readonly linkBanner: LinkBanner;
   private readonly shell: HTMLElement;
   private readonly chat: Chat;
   private readonly tokens: TokensHud;
@@ -177,6 +189,43 @@ export class App {
     this.online = new OnlineList(shell);
     // уведомления — над меню: ошибка смены ника видна и в профиле
     this.toasts = new Toasts(menus);
+    this.linkBanner = new LinkBanner(menus);
+    this.relink = new Relink({
+      connect: (rs) => {
+        this.hello = { t: 'hello', v: PROTOCOL_VERSION, key: deviceKey(), re: this.lastClose, rs };
+        this.net.connect();
+      },
+      abort: () => this.net.close(),
+      rx: () => this.net.rx,
+      setRx: (n) => { this.net.rx = n; },
+      down: () => { this.voice?.linkDown(); this.input.releaseAll(); this.updateBlocked(); },
+      up: (resumed) => {
+        this.updateBlocked();
+        if (resumed) {
+          this.voice?.linkUp();
+          this.toasts.show('Связь восстановлена', 1800, 'link');
+          return;
+        }
+        // сервер начал сессию заново: голос и жетоны — с нуля, сцену он пришлёт сам
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected(true);
+      },
+      giveUp: () => {
+        this.net.close();
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected(true);
+        this.startReconnect();
+      },
+      banner: (text) => this.linkBanner.show(text, 'down'),
+      now: () => performance.now(),
+      setTimer: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimer: (id) => clearTimeout(id),
+    });
+    window.addEventListener('online', () => this.relink.online());
+    // вкладку закрывают или обновляют — сервер отпустит сразу; заморозка в фоне (persisted) — подождёт возврата
+    window.addEventListener('pagehide', (e) => { if (!e.persisted && this.net.isOpen) this.net.send({ t: 'bye' }); });
     this.deps = {
       renderer: this.renderer,
       input: this.input,
@@ -344,7 +393,8 @@ export class App {
       return true;
     };
     window.setInterval(() => {
-      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now() });
+      // r — подтверждение: сколько сообщений сессии дошло (сервер их забывает, недошедшее дошлёт после обрыва)
+      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now(), r: this.net.rx });
     }, PING_MS);
 
     // --- ввод
@@ -504,6 +554,7 @@ export class App {
   // ------------------------------------------------------------ сообщения сервера
 
   private onJson(m: ServerMsg): void {
+    if (this.relink.active && this.relink.message(m.t)) return;
     switch (m.t) {
       case 'voiceConfig':
         this.ensureVoice();
@@ -595,6 +646,7 @@ export class App {
         return;
       case 'restart':
         this.restarting = true;
+        this.relink.restarting = true;
         return;
       case 'error':
         this.onError(m.code, m.text);
@@ -698,6 +750,13 @@ export class App {
   }
 
   private onClose(code: number, reason: string): void {
+    // обрыв посреди игры — возвращаемся в ту же сессию, сцена остаётся (relink.ts); флуд, другое окно, версия — как раньше
+    if (!this.reloading && (this.screen === 'game' || this.relink.active) && code !== 1008 && code !== 4001 && code !== 4002) {
+      if (!this.relink.active) this.lastClose = code;
+      this.relink.lost();
+      return;
+    }
+    this.relink.cancel();
     setVoicePresence([]);
     this.tokens.reset();
     this.voice?.disconnected();
@@ -843,9 +902,10 @@ export class App {
   /** Уходим из игры (меню, обрыв, ошибка): сцену — прочь, интерфейс — спрятать. */
   private leaveGame(): void {
     this.transition.cancel();
+    this.relink.cancel();
     setVoicePresence([]);
     this.syncFishingUi(false);
-    this.voice?.disconnected();
+    this.voice?.disconnected(this.screen === 'reconnecting');
     this.active?.exit();
     this.active = null;
     delete document.documentElement.dataset.room;
@@ -988,7 +1048,7 @@ export class App {
   }
 
   private updateBlocked(): void {
-    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.transition.busy;
+    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.transition.busy || this.relink.active;
     this.syncVoiceVisibility();
   }
 
@@ -1001,21 +1061,21 @@ export class App {
   /** VOICE=0 never constructs media, listeners or visible controls. */
   private ensureVoice(): void {
     if (this.voice) return;
-    const slot = h('div');
-    this.menu.voiceHome.append(slot);
-    this.voiceUi = new VoiceUi({ settingsRoot: slot, hudRoot: this.shell }, {
+    // панель «Голос» монтирует само меню (вкладка «Голос», client/ui/voicepanel.ts)
+    this.voiceUi = new VoiceUi(this.shell, {
       connectMic: () => { void this.voice?.connectMic(); },
-      enable: () => { void this.voice?.enable(); }, disable: () => this.voice?.disable(),
-      enableMic: () => { void this.voice?.enableMic(); }, disableMic: () => this.voice?.disableMic(),
-      push: on => this.voice?.push(on), setReceiving: on => this.voice?.setReceiving(on),
-      setVolume: volume => this.voice?.setVolume(volume), setPeerMuted: (id, muted) => this.voice?.setPeerMuted(id, muted),
+      push: on => this.voice?.push(on),
+      unblock: () => { void this.voice?.unblock(); },
       openSettings: () => { this.input.unlock(); this.setPaused(true); this.menu.show('voice'); },
     });
     this.voice = new VoiceController({
       send: message => this.net.send(message),
       canTalk: () => this.canTalk(),
       onChange: view => { this.voiceTransmitting = view.transmitting; setVoicePresence(view.presence); this.voiceUi?.render(view); },
+      prefs: loadVoicePrefs(),
+      savePrefs: prefs => saveVoicePrefs(prefs),
     });
+    setVoiceSource(this.voice);
     this.voice.setGameMuted(this.settings.muted);
   }
 
@@ -1224,7 +1284,12 @@ export class App {
 
     // вкладка спала (кадров не было больше секунды) — сначала дадим письмам дойти, потом считаем тишину
     if (gap > 1000) this.net.lastRx = Math.max(this.net.lastRx, now);
-    if (this.screen === 'game' && this.net.isOpen && now - this.net.lastRx > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+    if (this.screen === 'game' && this.net.isOpen && !this.relink.active) {
+      const quiet = now - this.net.lastRx;
+      if (quiet > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+      else this.linkBanner.show(quiet > SHAKY_MS ? 'Связь нестабильна — ждём сервер…' : null);
+    } else if (!this.relink.active) this.linkBanner.show(null);
+    this.relink.frame();
 
     if (this.screen === 'connecting' && now - this.connectAt > CONNECT_TIMEOUT_MS) this.showLost('сервер не отвечает');
     if (this.screen === 'reconnecting') this.tickReconnect(now);

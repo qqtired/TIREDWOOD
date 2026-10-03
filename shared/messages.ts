@@ -41,7 +41,7 @@ export interface RosterEntry {
   o: Outfit;
 }
 
-/** Код закрытия «клиент 8 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
+/** Код закрытия «клиент 20 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
 export const CLOSE_SILENCE = 4900;
 
 /** Символы однорукого бандита пейнтбола (бонус на раунд) */
@@ -163,10 +163,14 @@ export type ClientMsg =
   | LoadClientMsg
   | VoiceClientMsg
   | HideClientMsg
-  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал) */
-  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number }
+  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
+   *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
+  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
   | { t: 'chat'; text: string }
-  | { t: 'ping'; c: number }
+  /** r — сколько JSON-сообщений сессии клиент принял (сервер забывает подтверждённое) */
+  | { t: 'ping'; c: number; r?: number }
+  /** Вкладку закрывают или обновляют: не ждать возврата (без него закрытие 1001 — как заморозка вкладки в фоне) */
+  | { t: 'bye' }
   /** Ошибка в браузере игрока: текст, где (файл:строка), начало стека, сцена, браузер; n — ник на устройстве (до входа) */
   | { t: 'err'; m: string; at?: string; st?: string; sc?: string; ua?: string; n?: string }
   | { t: 'use'; id: number }
@@ -389,6 +393,8 @@ export type ServerMsg =
   | { t: 'scene'; scene: RoomKind; epoch: number }
   | { t: 'code'; code: string; until: number }
   | { t: 'restart' }
+  /** Возврат в ту же сессию после обрыва принят: следом — всё, что не дошло, сцена у клиента остаётся */
+  | { t: 'resumed' }
   | { t: 'error'; text: string; code?: ErrorCode }
   | { t: 'pong'; c: number; k: number }
   // --- общий чат и «кто где»

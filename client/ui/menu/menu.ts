@@ -65,7 +65,7 @@ export class GameMenu {
   readonly toLobbyBtn: HTMLButtonElement;
   readonly settings: SettingsPanel;
   /** Где живут нынешние настройки голоса (client/ui/voice.ts), пока вкладка «Голос» закрыта */
-  readonly voiceHome: HTMLElement;
+
   private readonly actions: MenuActions;
   private readonly hint: HTMLElement;
   private readonly veilHint: HTMLElement;
@@ -114,8 +114,7 @@ export class GameMenu {
         <b>Кликни, чтобы играть</b>
         <span>Esc — меню</span>
         <i class="mn-veil-hint"></i>
-      </div>
-      <div class="mn-voice-home" hidden></div>`;
+      </div>`;
     const q = <T extends HTMLElement>(sel: string): T => this.root.querySelector<T>(sel)!;
     this.sub = q('.mn-sub');
     this.hint = q('.mn-hint');
@@ -124,7 +123,7 @@ export class GameMenu {
     this.lead = q('.mn-lead');
     this.body = q('.mn-body');
     this.toLobbyBtn = q<HTMLButtonElement>('.mn-lobby');
-    this.voiceHome = q('.mn-voice-home');
+
 
     const nav = q('.mn-nav');
     for (const [group, items] of NAV) {

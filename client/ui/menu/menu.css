@@ -697,31 +697,12 @@ label.set-item .set-ctl {
   align-self: stretch;
 }
 
-/* --- голос (пока — нынешние настройки голоса, client/ui/voicepanel.ts) */
+/* --- голос (панель — client/ui/voicepanel.ts) */
 
 .mn-voice {
   max-width: 680px;
 }
 
-.vp-empty {
-  margin: 0;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: rgba(255, 240, 220, 0.05);
-  border: 1px solid var(--line);
-  font-size: 14px;
-  color: var(--cream-2);
-}
-
-.mn-voice:has(.voice-settings:not([hidden])) .vp-empty {
-  display: none;
-}
-
-.mn-voice .voice-settings {
-  font-size: 15px;
-  background: rgba(255, 240, 220, 0.05);
-  border-color: var(--line);
-}
 
 /* --- клавиши */
 
