@@ -57,7 +57,8 @@ import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { LobbyCamera } from './camera.ts';
-import { DurakTables3D } from './durak3d.ts';
+import { DurakTables3D, TORSO_R } from './durak3d.ts';
+import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, tomatoRadius, type PickPoint } from './tomatopick.ts';
 import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
@@ -133,8 +134,6 @@ const TABLE_FOV = 52;
 const BJ_CAM_D = 1.32;
 const BJ_CAM_Y = 1.8;
 const BJ_PITCH = (42 * Math.PI) / 180;
-/** Клик по желейке за столом — помидор: не дальше стольких пикселей от головы */
-const TOMATO_PICK_PX = 80;
 const TOMATO_COLOR = 0xd42a1c;
 /** Подсказка про гонку — в круге «Старт» и на столько метров вокруг */
 const KART_HINT_M = 1.4;
@@ -155,6 +154,11 @@ interface Remote {
 const _v = new THREE.Vector3();
 const _hand = new THREE.Vector3();
 const _head = new THREE.Vector3();
+const _tp = new THREE.Vector3();
+const _tq = new THREE.Vector3();
+const _th = new THREE.Vector3();
+const _tm = new THREE.Vector3();
+const _tr = new THREE.Vector3();
 /** Голоса моторов: лодки в заливе и катера «Ласточка» (номера картов — меньше) */
 const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
@@ -216,6 +220,8 @@ export class LobbyScene implements Scene {
   private later: Array<{ at: number; run: () => void }> = [];
   /** Свой стул за столом дурака (номер места), −1 — не за столом */
   private dkSeat = -1;
+  /** Над желейкой горит прицел помидора (курсор — рука, кольцо на панели) */
+  private aimOn = false;
   /** Когда пришёл последний вид каждого стола (таймеры панели — от него) */
   private readonly dkRecv: number[] = [];
   /** Последняя своя рука: приходит раньше, чем снимок посадит за стол */
@@ -420,6 +426,8 @@ export class LobbyScene implements Scene {
     this.fish2.onBeer = () => this.fishDrink.start();
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
+    d.renderer.canvas.addEventListener('pointermove', (e) => this.onCanvasMove(e));
+    d.renderer.canvas.addEventListener('pointerleave', () => this.clearAim());
     this.me.addTo(this.world.scene);
     window.addEventListener('wheel', (e) => {
       if (this.entered && d.input.locked && !d.input.blocked) this.cam.zoomBy(e.deltaY);
@@ -1129,6 +1137,7 @@ export class LobbyScene implements Scene {
     this.decor.setMe(seat >= 0 && seatTable(seat) !== BJ_TABLE ? seatTable(seat) : -1);
     this.blackjack3d.setMe(seat >= 0 ? seatTable(seat) : -1, seat >= 0 ? seatChair(seat) : -1);
     if (seat < 0) {
+      this.clearAim();
       this.dkHud.hide();
       this.bjHud.hide();
       return;
@@ -1156,38 +1165,89 @@ export class LobbyScene implements Scene {
     this.d.wantPointer();
   }
 
-  /** Клик по холсту за столом: ближайшая к курсору голова (кроме своей) — в неё помидор. */
-  private onCanvasDown(e: MouseEvent): void {
-    if (e.button !== 0 || !this.entered || this.dkSeat < 0 || this.d.input.locked || this.d.input.blocked) return;
+  /**
+   * Кого заденет помидор от клика в точку экрана: центры корпусов сидящих соперников (игроки и боты, не я и не пустые
+   * места) проецируем на экран и берём ближайшего в радиусе (мышь 110 px, палец 140 px; у ближних — по размеру силуэта).
+   * Мерим по экрану, а не по мешу: целиться почти в центр не нужно. null — никого.
+   */
+  private tomatoAim(cx: number, cy: number, touch: boolean): (PickPoint & { body: number; cx: number; cy: number; size: number }) | null {
+    if (this.dkSeat < 0) return null;
     const t = seatTable(this.dkSeat);
     const mine = seatChair(this.dkSeat);
     const v = this.tables3d.view(t);
-    if (!v) return;
+    if (!v) return null;
     const rect = this.d.renderer.canvas.getBoundingClientRect();
     const cam = this.world.camera;
-    let best = -1;
-    let bestD = TOMATO_PICK_PX;
+    cam.updateMatrixWorld();
+    _tr.setFromMatrixColumn(cam.matrixWorld, 0);
+    const base = touch ? TOMATO_REACH_TOUCH_PX : TOMATO_REACH_PX;
+    const pts: Array<PickPoint & { body: number; cx: number; cy: number; size: number }> = [];
+    const sx = (n: number): number => rect.left + ((n + 1) / 2) * rect.width;
+    const sy = (n: number): number => rect.top + ((1 - n) / 2) * rect.height;
     for (let ch = 0; ch < TABLE_SEATS; ch++) {
-      const s = v.seats[ch];
-      if (ch === mine || !s || s.k === 0 || (s.k === 1 && s.id === 0)) continue;
-      this.tables3d.headPos(t, ch, _v).project(cam);
-      if (_v.z > 1) continue;
-      const sx = rect.left + ((_v.x + 1) / 2) * rect.width;
-      const sy = rect.top + ((1 - _v.y) / 2) * rect.height;
-      const dd = Math.hypot(sx - e.clientX, sy - e.clientY);
-      if (dd < bestD) {
-        bestD = dd;
-        best = ch;
-      }
+      if (!targetable(v.seats[ch], ch, mine) || !this.tables3d.bodyEnds(t, ch, _tp, _th)) continue;
+      const dist = _tp.distanceTo(cam.position);
+      _tm.copy(_tp).lerp(_th, 0.5);
+      _tq.copy(_tm).addScaledVector(_tr, TORSO_R);
+      _tp.project(cam);
+      _th.project(cam);
+      _tm.project(cam);
+      _tq.project(cam);
+      if (_tp.z > 1 || _th.z > 1 || _tq.z > 1) continue;
+      const body = Math.abs(_tq.x - _tm.x) * (rect.width / 2);
+      const x = sx(_tp.x);
+      const y = sy(_tp.y);
+      const x2 = sx(_th.x);
+      const y2 = sy(_th.y);
+      pts.push({
+        ch, body, x, y, x2, y2, cx: (x + x2) / 2, cy: (y + y2) / 2, size: Math.hypot(x2 - x, y2 - y),
+        r: tomatoRadius(base, body, dist),
+      });
     }
-    if (best < 0) return;
+    const best = pickTomatoTarget(pts, cx, cy, mine);
+    return best < 0 ? null : (pts.find((p) => p.ch === best) ?? null);
+  }
+
+  /** Клик по холсту за столом (кнопки и карты панели перехватывают клик раньше — сюда он не доходит): помидор в выбранного. */
+  private onCanvasDown(e: MouseEvent): void {
+    if (e.button !== 0 || !this.entered || this.dkSeat < 0 || this.d.input.locked || this.d.input.blocked) return;
+    const hit = this.tomatoAim(e.clientX, e.clientY, TOUCH || (e as PointerEvent).pointerType === 'touch');
+    if (!hit) return;
     const now = performance.now();
     if (!this.dkHud.tomatoReady(now)) {
       this.d.ui.toasts.show('Помидор ещё не созрел — подожди немного 🍅');
       return;
     }
     this.dkHud.tomatoSent(now);
-    this.d.net.send({ t: 'durak', table: t, a: 'tomato', on: best });
+    this.d.net.send({ t: 'durak', table: seatTable(this.dkSeat), a: 'tomato', on: hit.ch });
+    if ((e as PointerEvent).pointerType !== 'touch') this.showAim(hit);
+  }
+
+  /** Наведение мыши: курсор-«рука» и кольцо с именем на той желейке, в которую полетит помидор. */
+  private onCanvasMove(e: PointerEvent): void {
+    if (this.dkSeat < 0 || !this.entered || e.pointerType === 'touch' || this.d.input.locked || this.d.input.blocked) {
+      this.clearAim();
+      return;
+    }
+    const hit = this.tomatoAim(e.clientX, e.clientY, false);
+    if (!hit) {
+      this.clearAim();
+      return;
+    }
+    this.showAim(hit);
+  }
+
+  private showAim(hit: PickPoint & { body: number; cx: number; cy: number; size: number }): void {
+    this.aimOn = true;
+    this.d.renderer.canvas.style.cursor = 'pointer';
+    this.dkHud.aim({ x: hit.cx, y: hit.cy, body: Math.max(hit.body, hit.size / 2), nick: this.tables3d.view(seatTable(this.dkSeat))?.seats[hit.ch]?.nick ?? '' });
+  }
+
+  private clearAim(): void {
+    if (!this.aimOn) return;
+    this.aimOn = false;
+    this.d.renderer.canvas.style.cursor = '';
+    this.dkHud.aim(null);
   }
 
   /** Кто-то дёрнул рычаг: барабаны крутятся у всех, итог (монеты, салют) — когда встанут. */

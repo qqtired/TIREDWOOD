@@ -93,6 +93,10 @@ export class DurakHud {
   private readonly resultEl: HTMLElement;
   private readonly confirmEl: HTMLElement;
   private readonly tomatoEl: HTMLElement;
+  /** Прицел помидора: кольцо вокруг желейки под курсором и имя */
+  private readonly aimEl: HTMLElement;
+  private readonly aimRing: HTMLElement;
+  private readonly aimName: HTMLElement;
   /** Последний HTML каждой части: одинаковый не перерисовываем (иначе клик может попасть между кадрами) */
   private readonly html = new Map<HTMLElement, string>();
   private table = -1;
@@ -131,7 +135,11 @@ export class DurakHud {
     this.confirmEl.innerHTML =
       `<div class="dk-cbox"><div class="dk-ct">Выйти из партии?</div><div class="dk-cs">Твои карты доиграет бот</div>` +
       `<div class="dk-cb"><button class="dk-btn warn" data-a="leave-yes">Выйти</button><button class="dk-btn" data-a="leave-no">Остаться</button></div></div>`;
-    this.root.append(this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl);
+    this.aimEl = el('div', 'dk-aim');
+    this.aimRing = document.createElement('i');
+    this.aimName = document.createElement('b');
+    this.aimEl.append(this.aimRing, this.aimName);
+    this.root.append(this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl, this.aimEl);
     this.root.style.setProperty('--atlas', `url(${cardAtlasCanvas().toDataURL('image/png')})`);
     this.root.style.setProperty('--splat', `url(${tomatoSplatCanvas().toDataURL('image/png')})`);
     this.root.addEventListener('click', (e) => this.onClick(e));
@@ -173,6 +181,7 @@ export class DurakHud {
     this.me = -1;
     this.root.classList.add('hidden');
     this.resultEl.classList.remove('show');
+    this.aimEl.classList.remove('show');
   }
 
   /** Новый вид своего стола (now — когда пришёл: от него считаем таймеры). */
@@ -248,6 +257,29 @@ export class DurakHud {
     e.style.top = `${r.bottom - box.top}px`;
     this.root.appendChild(e);
     setTimeout(() => e.remove(), REACT_SHOW_MS);
+  }
+
+  /**
+   * Прицел: кольцо вокруг желейки, в которую полетит помидор от клика (центр и размер — в пикселях экрана), и её имя.
+   * null — убрать. Пока помидор не созрел, кольцо серое и пишет, сколько ждать.
+   */
+  aim(a: { x: number; y: number; body: number; nick: string } | null, now = performance.now()): void {
+    if (!a || this.table < 0) {
+      this.aimEl.classList.remove('show');
+      return;
+    }
+    const box = this.root.getBoundingClientRect();
+    const wait = TOMATO_MS - (now - this.tomatoAt);
+    const d = Math.max(84, Math.min(360, a.body * 2));
+    this.aimEl.style.left = `${(a.x - box.left).toFixed(1)}px`;
+    this.aimEl.style.top = `${(a.y - box.top).toFixed(1)}px`;
+    this.aimEl.style.setProperty('--d', `${d.toFixed(0)}px`);
+    this.aimEl.classList.toggle('wait', wait > 0);
+    // у верхнего края экрана подпись уезжает под кольцо, чтобы не обрезаться
+    this.aimEl.classList.toggle('low', a.y - d / 2 < 46);
+    const name = wait > 0 ? `🍅 через ${Math.ceil(wait / 1000)} с` : `🍅 ${a.nick}`;
+    if (this.aimName.textContent !== name) this.aimName.textContent = name;
+    this.aimEl.classList.add('show');
   }
 
   /** Помидор прилетел в меня: клякса на весь экран, сползает и тает. */
