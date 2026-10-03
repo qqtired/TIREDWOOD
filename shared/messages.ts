@@ -19,6 +19,7 @@ import type { PirateView } from './pirates.ts';
 import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
+import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'boatrace' | 'hide';
 
@@ -159,6 +160,7 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | GiftClientMsg
+  | LoadClientMsg
   | VoiceClientMsg
   | HideClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал) */
@@ -368,6 +370,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | GiftServerMsg
+  | LoadServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | BoatRaceServerMsg

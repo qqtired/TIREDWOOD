@@ -27,6 +27,8 @@ import { SkillRoom } from './skilltest/room.ts';
 import { BoatRaceRoom } from './boatrace/room.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
+import { ReadyGate } from './readygate.ts';
+import type { Prestart } from '../shared/loading.ts';
 import { emptyStats, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
@@ -41,6 +43,8 @@ export interface Room {
   readonly tick: number;
   /** Existing per-room actor lookup; identifiers are room-local, never socket/client IDs. */
   playerOf?(c: Client): { id?: number; slot?: number } | undefined;
+  /** Отсчёт перед стартом раунда, который ждёт загрузки всех (server/readygate.ts); null — сейчас ждать нечего */
+  readonly prestart?: Prestart | null;
   hasSpace(): boolean;
   /** from — откуда пришёл (с пейнтбола на набережную — к воротам склада, из гонки — к гаражу) */
   join(c: Client, from: RoomKind | null): boolean;
@@ -207,6 +211,8 @@ export class Hub {
   readonly fish2: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
+  /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
+  readonly gate = new ReadyGate(this);
   tick = 0;
   private readonly smokeToken: string;
   private readonly build: string;
@@ -343,6 +349,9 @@ export class Hub {
         return;
       case 'hello':
         return;
+      case 'ready':
+        this.gate.ready(c, msg.e);
+        return;
       case 'chat':
         this.onChat(c, msg.text);
         return;
@@ -470,6 +479,7 @@ export class Hub {
       if (room !== this.lobby) return this.move(c, this.lobby, true);
       return false;
     }
+    this.gate.moved(c, room);
     this.voice?.moved(c);
     if (!c.ephemeral) this.broadcastOnline();
     return true;
@@ -486,6 +496,7 @@ export class Hub {
       return;
     }
     if (text.startsWith('/')) {
+      if (this.gate.command(c, text)) return;
       if (c.room === this.paintball) this.paintball.command(c, text);
       else if (this.skill && c.room === this.skill) this.skill.command(c, text);
       else if (this.fort !== null && c.room === this.fort) this.fort.command(c, text);
@@ -836,6 +847,7 @@ export class Hub {
 
   step(): void {
     this.tick++;
+    this.gate.step();
     this.voice?.step();
     if (this.delayed.length) {
       const due = this.delayed.filter((d) => d.at <= this.tick);

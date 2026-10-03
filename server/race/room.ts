@@ -2,6 +2,7 @@
 // и запускает (launch). Итоги людям и «всех обратно» уходят наверх через хуки.
 import { TICK_RATE } from '../../shared/constants.ts';
 import { RC_LAPS, RC_MAX_KARTS, RC_RESULTS } from '../../shared/kart.ts';
+import { RC_GRID } from '../../shared/kart.ts';
 import type { RaceTrackId } from '../../shared/racecourse.ts';
 import type { RcReward } from '../../shared/economy.ts';
 import type { ClientMsg, KartStatus, RaceResultRow } from '../../shared/messages.ts';
@@ -49,6 +50,9 @@ export class RaceRoom implements Room {
   hasSpace(): boolean {
     return !!this.race && !this.race.started && !this.race.closed && this.race.karts.size < RC_MAX_KARTS;
   }
+
+  /** Ожидание загрузки (server/readygate.ts): решётка стоит, пока все не загрузились */
+  get prestart(): { phaseEnd: number } | null { const r = this.race; return r && r.started && !r.closed && r.phase === RC_GRID ? r : null; }
 
   /** Новая гонка: принимает людей до launch(). */
   open(track: RaceTrackId = this.opts.track ?? 'port'): void {
