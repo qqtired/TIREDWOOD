@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FISHER_USE } from '../shared/fishplaces.ts';
+import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
 import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
-import { fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
+import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { reelRun, reelStart } from '../shared/fishreel.ts';
-import { COLLECTION, NEW_BONUS2, REWARD_ITEMS, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { RAIN_DRUM_PRICE } from '../shared/fishshop.ts';
 import { earnedItems } from '../shared/fishstyle.ts';
 import { Hub, type Room } from '../server/hub.ts';
 import { type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -177,8 +178,9 @@ test('рыболовное событие от бубна разослано и�
   const rooms: Room[] = [e.hub.lobby, e.hub.paintball, e.hub.race, e.hub.fort!, e.hub.fight!];
   for (let i = 1; i < players.length; i++) assert.equal(e.hub.move(players[i].c, rooms[i], true), true);
   npc(e);
-  e.a.c.profile!.tokens = 1000;
+  e.a.c.profile!.tokens = RAIN_DRUM_PRICE + 500;
   e.hub.onJson(e.a.c, { t: 'fishNpc', a: 'rain' });
+  assert.equal(RAIN_DRUM_PRICE, 1000, 'бубен дождя — 1000 🪙 (fisheco)');
   assert.equal(e.a.c.profile!.tokens, 500);
   const event = lastOf(e.a.s, 'fishEvent')!;
   assert.equal(event.on, true);
@@ -205,7 +207,9 @@ test('реконнект восстанавливает сохранённый �
   e.a.c.profile!.fishing.rod = 2;
   e.hub.disconnect(e.a.c);
   const again = login(e.hub, '', e.a.key);
-  assert.deepEqual(lastOf(again.s, 'me')!.fishing, { xp: 380, questsDone: 5, questCaught: 0, rod: 2, beerUntil: until });
+  assert.deepEqual(lastOf(again.s, 'me')!.fishing, {
+    xp: 380, questsDone: 5, questCaught: 0, rod: 2, beerUntil: until, aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0,
+  });
   assert.equal(lastOf(again.s, 'fishProgress')!.now, e.clock.now);
   e.hub.move(again.c, e.hub.paintball, true);
   e.clock.now = until;
@@ -216,9 +220,9 @@ test('реконнект восстанавливает сохранённый �
 test('уровень/удочка/пиво фиксируются при забросе: expiry до поклёвки не меняет roll, replay или цену этого улова', () => {
   const e = setup();
   const p = e.a.c.profile!;
-  p.fishing = { xp: 100, questsDone: 1, questCaught: 0, rod: 1, beerUntil: e.clock.now + 500 };
+  p.fishing = { xp: 100, questsDone: 1, questCaught: 0, rod: 1, beerUntil: e.clock.now + 500 , aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
-  const mods: FishCastMods = { level: 1, rod: 1, zoneScale: 1.025 * 1.1, biteSpeed: 1.1, rareMultiplier: 1.025 * 1.05 * 1.2, incomeScale: 1.1 };
+  const mods: FishCastMods = { level: 1, rod: 1, zoneScale: 1.025 * 1.1, biteSpeed: 1.1, rareMultiplier: 1.025 * 1.05 * 1.2, incomeScale: 1.1 , zone: 'pier', drink: 1, lure: 0, epicMultiplier: 1, calm: 0, sea: 1, seaDrain: 1 };
   let rolled: Readonly<FishCastMods> | undefined;
   hall.roll = (_rain, _rand, m) => { rolled = m; return { sp: sp('scad'), g: 300, coins: 0 }; };
   const t0 = p.tokens;
@@ -236,7 +240,9 @@ test('уровень/удочка/пиво фиксируются при заб�
   assert.ok(land);
   assert.equal(land.price, Math.round(fishPrice2(h.sp, 300) * 1.1));
   assert.equal(land.bonus, NEW_BONUS2[0]);
-  assert.equal(p.tokens, t0 + land.price + NEW_BONUS2[0]);
+  // цена с пивом заброса — в рюкзак (жетоны при продаже); бонус за новый вид — сразу
+  assert.equal(p.tokens, t0 + NEW_BONUS2[0]);
+  assert.deepEqual(p.fishing.bag, [{ n: 0, f: 'scad', g: 300, p: land.price, m: BAG_BEER }]);
   assert.equal(p.fishing.xp, 100 + fishCatchXp(h.sp, replay.perfect));
   assert.equal(p.fishing.questCaught, 1);
   assert.equal(p.stats.fsFish, 1);
@@ -244,7 +250,8 @@ test('уровень/удочка/пиво фиксируются при заб�
   assert.equal(p.stats.fsCasts, 1);
   assert.equal(p.stats.fsBites, 1);
   e.hub.onJson(e.a.c, { t: 'reel', i: 0, k: play.toggles, u: play.ticks, d: 1 });
-  assert.equal(p.tokens, t0 + land.price + NEW_BONUS2[0]);
+  assert.equal(p.tokens, t0 + NEW_BONUS2[0]);
+  assert.equal(p.fishing.bag.length, 1, 'дубль reel не кладёт рыбу второй раз');
   assert.equal(p.fishing.questCaught, 1);
   assert.equal(p.stats.fsFish, 1);
   assert.equal(hall.board.top.podium.length, 1);
@@ -285,16 +292,18 @@ test('дубли reel не начисляют повторно; сундук/х�
   assert.equal(p.fishing.questCaught, 0);
 });
 
-test('12мест у острова (+8 на баркасе): серверные массивы и welcome содержат все места; все12игроков занимают своё, чужой reel не действует', () => {
+test('все места (12 у пристани + 8 на баркасе): серверные массивы и welcome содержат все; 12 игроков у пристани занимают своё, чужой reel не действует', () => {
   const e = setup();
   const players = [e.a];
-  for (let i = 1; i < 12; i++) players.push(login(e.hub, `Рыбак${i}`, undefined, `10.0.0.${i + 1}`));
+  const pier = FISH_SPOTS.filter((_s, i) => spotZone(i) === 'pier').length;
+  assert.equal(pier, 12);
+  for (let i = 1; i < pier; i++) players.push(login(e.hub, `Рыбак${i}`, undefined, `10.0.0.${i + 1}`));
   const hall = e.hub.lobby.fishing2!;
   hall.rand = () => .5;
   hall.roll = () => ({ sp: sp('scad'), g: 300, coins: 0 });
   const spots = e.hub.lobby.map.interact.filter((i) => i.kind === 'fish');
-  assert.equal(spots.length, 20);
-  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, 20);
+  assert.equal(spots.length, FISH_SPOTS.length);
+  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOTS.length);
   for (let i = 0; i < players.length; i++) {
     const it = spots.find((s) => s.arg === i)!;
     placeAt(e.hub, players[i].c, it.x, it.z);
@@ -302,8 +311,8 @@ test('12мест у острова (+8 на баркасе): серверные 
     assert.equal(hall.occupant(i), e.hub.lobby.playerOf(players[i].c)!.slot);
     e.hub.onJson(players[i].c, { t: 'fish', a: 'cast' });
   }
-  assert.equal(hall.views().length, 20);
-  assert.ok(hall.views().slice(0, 12).every((s) => s.ph > FP_IDLE));
+  assert.equal(hall.views().length, FISH_SPOTS.length);
+  assert.ok(hall.views().slice(0, pier).every((s) => s.ph > FP_IDLE));
   for (const p of players) assert.equal(p.c.profile!.stats.fsCasts, 1);
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   advance(e, 2);
@@ -347,9 +356,11 @@ test('обычный дождь запускает единственное со
 test('после отсутствия всех игроков новый вход получает уже завершённое событие, без ложного уведомления о начале', () => {
   const e = setup();
   npc(e);
-  e.a.c.profile!.tokens = 500;
+  e.a.c.profile!.tokens = RAIN_DRUM_PRICE;
   e.hub.onJson(e.a.c, { t: 'fishNpc', a: 'rain' });
+  assert.equal(e.a.c.profile!.tokens, 0, 'бубен куплен');
   const until = lastOf(e.a.s, 'fishEvent')!.until;
+  assert.ok(until > e.clock.now);
   e.hub.disconnect(e.a.c);
   assert.equal(e.hub.active, false);
   e.clock.now = until + 1;
@@ -361,6 +372,7 @@ test('после отсутствия всех игроков новый вхо�
 test('семь рыб дают один готовый квест без переполнения и пять крупнейших отдельных уловов; награда появляется лишь при получении у NPC', () => {
   const e = setup();
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
+  e.a.c.profile!.fishing.bagTier = 1; // рюкзак новичка: 10 мест — семь рыб помещаются
   for (const g of [300, 450, 400, 450, 200, 100, 150]) {
     hall.roll = () => ({ sp: sp('scad'), g, coins: 0 });
     const h = hook(e, hall);
@@ -424,30 +436,33 @@ test('событие и пиво применены к продаже один �
     playHonest(e, play);
     const land = lastOf(e.a.s, 'fishLand')!;
     assert.equal(land.price, Math.round(fishPrice2(fish, g) * 1.1));
-    assert.equal(p.tokens, t0 + land.price + land.bonus);
+    assert.equal(p.tokens, t0 + land.bonus, 'жетоны за рыбу — при продаже');
+    assert.deepEqual(p.fishing.bag.at(-1), { n: p.fishing.bag.length - 1, f: FISH[fish].id, g, p: land.price, m: BAG_BEER | (fish === sp('eel') ? BAG_RAIN : 0) });
     e.clock.now += 1100;
   }
 });
 
-test('32 вида: прежние30 не завершают коллекцию; новые событийные рыбы дают прогресс, подиум и сохраняются; последняя выдаёт комплект', () => {
+test('вся коллекция (COLLECTION_SIZE): без двух событийных рыб пристани не завершена; они дают прогресс, подиум и сохраняются; последняя выдаёт финал лестницы', () => {
   assert.equal(sp('bluemarlin'), 34);
   assert.equal(sp('greenlandshark'), 35);
   const e = setup({ rain: true });
   const p = e.a.c.profile!;
-  p.fishing = { xp: 15000, questsDone: 10, questCaught: 0, rod: 3, beerUntil: 0 };
-  const old = COLLECTION.filter((s) => s < 34);
-  assert.equal(old.length, 30);
+  p.fishing = { xp: 15000, questsDone: 10, questCaught: 0, rod: 3, beerUntil: 0 , aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
+  // всё, кроме двух событийных рыб пристани (и баркас тоже нужен для полной коллекции)
+  const old = COLLECTION.filter((s) => s !== sp('bluemarlin') && s !== sp('greenlandshark'));
+  assert.equal(old.length, COLLECTION_SIZE - 2);
   for (const s of old) p.album[FISH[s].id] = [FISH[s].g[0], 1];
   p.stats.fsMaxGrams = Math.max(...old.map((s) => FISH[s].g[0]));
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
   let play = hookWinning(e, hall, sp('scad'));
   playHonest(e, play);
-  assert.equal(lastOf(e.a.s, 'fishLand')!.got, 30);
+  assert.equal(lastOf(e.a.s, 'fishLand')!.got, COLLECTION_SIZE - 2);
   assert.equal(lastOf(e.a.s, 'fishLand')!.full, false);
-  // лестница коллекции (shared/fishstyle.ts): за 30 видов — всё до сета «Капитан баркаса», финал — за все
-  assert.deepEqual(p.owned, earnedItems(30));
+  // лестница коллекции (shared/fishstyle.ts): без двух видов — всё до 45 включительно, финал — только за все
+  assert.deepEqual(p.owned, earnedItems(COLLECTION_SIZE - 2));
+  assert.ok(!p.owned.includes('h:captain'));
   const weights = [300];
-  for (const [species, got] of [[sp('bluemarlin'), 31], [sp('greenlandshark'), 32]]) {
+  for (const [species, got] of [[sp('bluemarlin'), COLLECTION_SIZE - 1], [sp('greenlandshark'), COLLECTION_SIZE]]) {
     const g = FISH[species].g[1];
     weights.push(g);
     hall.roll = (rain) => { assert.equal(rain, true); return { sp: species, g, coins: 0 }; };
@@ -456,7 +471,7 @@ test('32 вида: прежние30 не завершают коллекцию; 
     playHonest(e, play);
     const land = lastOf(e.a.s, 'fishLand')!;
     assert.equal(land.got, got);
-    assert.equal(land.full, got === 32);
+    assert.equal(land.full, got === COLLECTION_SIZE);
     assert.deepEqual(p.album[FISH[species].id], [g, 1]);
   }
   assert.equal(p.stats.fsFish, 3);
@@ -467,7 +482,7 @@ test('32 вида: прежние30 не завершают коллекцию; 
   assert.equal(p.stats.fsGrams, weights.reduce((n, g) => n + g, 0));
   assert.equal(p.stats.fsMaxGrams, Math.max(...weights));
   assert.deepEqual(hall.board.top.podium.map((c) => c.g), [...weights].sort((a, b) => b - a));
-  for (const id of REWARD_ITEMS) assert.ok(p.owned.includes(id));
+  assert.deepEqual(p.owned, earnedItems(COLLECTION_SIZE));
   e.store.flush();
   const restored = new Store(e.store.dir, { now: () => e.clock.now, log: () => {} });
   restored.load();
@@ -476,26 +491,31 @@ test('32 вида: прежние30 не завершают коллекцию; 
   assert.deepEqual(saved.fishing, p.fishing);
   assert.deepEqual(saved.stats, p.stats);
   assert.deepEqual(restored.state.fishPodium, e.store.state.fishPodium);
-  for (const id of REWARD_ITEMS) assert.ok(saved.owned.includes(id));
+  assert.deepEqual(saved.owned, earnedItems(COLLECTION_SIZE));
   restored.close();
 });
 
-test('32 вида: вещи за прежнюю полную коллекцию30 остаются у старого владельца после улова и сохранения', () => {
+test('ветеран: прежний рыбацкий комплект (за старые 30 видов) остаётся после улова и сохранения; лестница его не дублирует', () => {
+  // что лежит в owned у собравших прежнюю коллекцию (до лестницы fishstyle): панама, очки и жилет рыболова
+  const oldSet = ['h:angler', 'e:angler', 'a:angler'];
   assert.equal(sp('greenlandshark'), 35);
   const e = setup();
   const p = e.a.c.profile!;
   for (const s of COLLECTION.filter((s) => s < 34)) p.album[FISH[s].id] = [FISH[s].g[0], 1];
-  for (const id of REWARD_ITEMS) e.profiles.grant(p, id);
+  for (const id of oldSet) e.profiles.grant(p, id);
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
   const h = hook(e, hall);
   playHonest(e, playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT));
   const land = lastOf(e.a.s, 'fishLand')!;
   assert.equal(land.got, 30);
   assert.equal(land.full, false);
-  for (const id of REWARD_ITEMS) assert.ok(p.owned.includes(id));
+  for (const id of oldSet) assert.ok(p.owned.includes(id));
+  assert.ok(!oldSet.some((id) => land.rw?.includes(id)), 'старый комплект не выдаётся второй раз');
+  assert.equal(new Set(p.owned).size, p.owned.length);
+  assert.deepEqual([...p.owned].sort(), [...earnedItems(30)].sort());
   e.store.flush();
   const restored = new Store(e.store.dir, { now: () => e.clock.now, log: () => {} });
   restored.load();
-  for (const id of REWARD_ITEMS) assert.ok(restored.state.profiles[0].owned.includes(id));
+  for (const id of oldSet) assert.ok(restored.state.profiles[0].owned.includes(id));
   restored.close();
 });

@@ -132,6 +132,8 @@ export interface HubOptions {
   devPirates?: boolean;
   /** Рыбалка 2.0: шкала вываживания, коллекция, доска у мостков — флаг сервера FISH2; нет — старая рыбалка */
   fish2?: boolean;
+  /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
+  roulette?: boolean;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
   now?: () => number;
@@ -237,6 +239,8 @@ export class Hub {
   readonly tg: TgFeed | null;
   /** Рыбалка 2.0 включена (флаг FISH2) */
   readonly fish2: boolean;
+  /** Рулетка рыбака включена (флаг ROULETTE вместе с FISH2) */
+  readonly roulette: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
   /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
@@ -282,6 +286,7 @@ export class Hub {
     this.log = o.log ?? ((s) => console.log(s));
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
+    this.roulette = this.fish2 && (o.roulette ?? false);
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой
     this.fight = o.fight
       ? new FightRoom({
@@ -679,6 +684,11 @@ export class Hub {
     this.store.markDirty();
     this.tokens(c, prof.tokens);
     this.lobby.honorChanged();
+  }
+
+  /** Подключённый игрок по номеру профиля (в любой комнате) */
+  clientOf(pid: number): Client | undefined {
+    return this.byPid.get(pid);
   }
 
   /** Наряд, который видят все: свой, а поверх — колпак дурака и погоны, пока не истёк срок. */

@@ -218,24 +218,30 @@ test('с баркаса: колокол зовёт пустую лодку; об
   assert.equal(pa.state.y, 0);
 });
 
-test('Саня: за 250 🪙 — на пирс к Семёну; далеко или без денег — нет; в диалоге говорит Саня', () => {
+test('Саня: за 250 🪙 — на пирс к Семёну (действие ferry разговора fisheco); далеко или без денег — нет; E у прилавка — говорит Саня', () => {
   const { hub, clock } = setupHub({ fish2: true });
   const a = login(hub, 'Турист');
-  hub.onJson(a.c, { t: 'barkasHome' });
-  assert.deepEqual(lastOf(a.s, 'barkasHome'), { t: 'barkasHome', ok: false, message: 'Подойди к Сане на баркасе' });
+  const ferry = { t: 'fishNpc', npc: 'sanya', a: 'ferry' } as const;
+  hub.onJson(a.c, ferry);
+  assert.equal(lastOf(a.s, 'fishNpc')!.message, 'Подойди к Сане на баркасе');
+  assert.equal(lastOf(a.s, 'fishNpc')!.open, false);
+  assert.equal(lastOf(a.s, 'barkasHome'), undefined, 'издали до Сани не доходит');
   placeAt(hub, a.c, SANYA_USE.x, SANYA_USE.z);
   a.c.profile!.tokens = SANYA_PRICE - 1;
   steps(hub, 60);
-  hub.onJson(a.c, { t: 'barkasHome' });
+  clock.now += 1500;
+  hub.onJson(a.c, ferry);
   assert.equal(lastOf(a.s, 'barkasHome')!.ok, false);
   assert.match(lastOf(a.s, 'barkasHome')!.message, /250 🪙, а у тебя 249/);
+  assert.match(lastOf(a.s, 'fishNpc')!.message!, /250 🪙, а у тебя 249/, 'причина — в окне разговора');
   assert.equal(a.c.profile!.tokens, SANYA_PRICE - 1);
-  hub.onJson(a.c, { t: 'fishNpc', a: 'open' });
+  const sanya = hub.lobby.map.interact.find((i) => i.kind === 'fisher' && i.arg === 1)!;
+  hub.onJson(a.c, { t: 'use', id: sanya.id });
   assert.equal(lastOf(a.s, 'fishNpc')!.npc, 'sanya');
   assert.equal(lastOf(a.s, 'fishNpc')!.open, true);
   a.c.profile!.tokens = 1000;
   clock.now += 1500;
-  hub.onJson(a.c, { t: 'barkasHome' });
+  hub.onJson(a.c, ferry);
   assert.equal(lastOf(a.s, 'barkasHome')!.ok, true);
   assert.equal(a.c.profile!.tokens, 1000 - SANYA_PRICE);
   assert.equal(lastOf(a.s, 'tokens')!.n, 1000 - SANYA_PRICE);

@@ -9,15 +9,18 @@ import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
-import { FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE } from '../fishplaces.ts';
+import {
+  FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY,
+  FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
+} from '../fishplaces.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
-/** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry';
+/** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette';
 
 export interface Interactable {
   id: number;
@@ -397,6 +400,8 @@ export function buildLobby(): LobbyMap {
   add('ferry', -13.2, 39.5, -Math.PI / 2, 1.9, 0, 'лодка «Удалая»');
   add('ferry', BARKAS_BOARD.x, BARKAS_BOARD.z, BARKAS_BOARD.yaw, BARKAS_BOARD.r, 1, 'лодка «Удалая»');
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
+  // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
+  add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });

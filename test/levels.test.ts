@@ -6,6 +6,7 @@ import path from 'node:path';
 import { levelFromXp,xpForLevel,xpToNext,levelProgress,frameForLevel,legacyXp } from '../shared/levels.ts';
 import { Profiles } from '../server/profiles.ts';
 import { Store,normalizeProfile } from '../server/store.ts';
+import { emptyFishProgress } from '../shared/fishprogress.ts';
 const legacy=JSON.parse(readFileSync(new URL('./fixtures/profile-before-progression.json',import.meta.url),'utf8'));
 
 test('level curve and all frame boundaries; invalid XP cannot produce a level exploit',()=>{
@@ -23,10 +24,10 @@ test('one hour model gives evening bronze, week silver, month gold without casin
 });
 test('historical profile migration resets only authorized fishing skill and backfills general XP once',()=>{
   const p=normalizeProfile(legacy)!;assert.equal(p.xp,870);assert.equal(legacyXp(p.stats),870);assert.equal(p.level,5);
-  assert.deepEqual(p.fishing,{xp:0,questsDone:0,questCaught:0,rod:0,beerUntil:1900000000000});
+  assert.deepEqual(p.fishing,{...emptyFishProgress(),beerUntil:1900000000000});
   for(const key of ['tokens','owned','outfit','album','createdAt','lastSeen','daily','foolUntil','epUntil','blackjackEscrow'] as const)assert.deepEqual(p[key],legacy[key],key);
   for(const [key,value] of Object.entries(legacy.stats))assert.equal(p.stats[key as keyof typeof p.stats],value,key);
-  p.fishing={xp:123,questsDone:2,questCaught:4,rod:1,beerUntil:1900000000000};p.xp=1000;p.level=5;
+  p.fishing={xp:123,questsDone:2,questCaught:4,rod:1,beerUntil:1900000000000,aleUntil:0,bagTier:0,lure:0,bag:[],bagSeq:0};p.xp=1000;p.level=5;
   const again=normalizeProfile(JSON.parse(JSON.stringify(p)))!;assert.deepEqual(again,p);
 });
 test('mode credit earns XP once; other credits and Blackjack returns do not; event only crosses level',()=>{
@@ -50,7 +51,7 @@ test('migration markers survive disk reload; new fishing progress and event cool
     store.state.lobbyEvents={stormAt:1000,piratesAt:2000,endedAt:3000,lockUntil:1803000};
     store.markDirty();store.flush();const second=new Store(dir,{log:()=>{}});second.load();const ps=new Profiles(second);
     const p=ps.byId(17)!;assert.equal(p.tokens,12365,'only pending Blackjack escrow refunded');assert.equal(p.xp,870);
-    p.fishing={xp:77,questsDone:1,questCaught:3,rod:1,beerUntil:1900000000000};second.markDirty();second.flush();second.close();
+    p.fishing={xp:77,questsDone:1,questCaught:3,rod:1,beerUntil:1900000000000,aleUntil:0,bagTier:0,lure:0,bag:[],bagSeq:0};second.markDirty();second.flush();second.close();
     const third=new Store(dir,{log:()=>{}});third.load();const again=new Profiles(third).byId(17)!;
     assert.equal(again.tokens,12365);assert.equal(again.xp,870);assert.deepEqual(again.fishing,p.fishing);assert.equal(third.state.lobbyEvents!.lockUntil,1803000);
     third.close();

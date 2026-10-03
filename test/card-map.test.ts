@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { spotZone } from '../shared/fishplaces.ts';
 import { buildLobby, seatTable } from '../shared/maps/lobby.ts';
 import { CollisionWorld } from '../shared/world.ts';
 
@@ -16,8 +17,10 @@ test('кафе сохраняет 18 старых стульев: два сто�
     assert.ok(Math.abs(Math.hypot(i.x - center.x, i.z - center.z) - 1.35) < 1e-9);
   }
   assert.equal(m.interact.find((i) => i.kind === 'fisher')?.id, 52);
-  // восемь мест на баркасе — в конце списка (56…63)
-  assert.deepEqual(m.interact.filter((i) => i.kind === 'fish').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51, 56, 57, 58, 59, 60, 61, 62, 63]);
+  // места у пристани — прежние номера; места баркаса (fisheco, barkas) добавляются только после прежних точек
+  const fish = m.interact.filter((i) => i.kind === 'fish');
+  assert.deepEqual(fish.filter((i) => spotZone(i.arg) === 'pier').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
+  for (const i of fish) if (spotZone(i.arg) === 'barkas') assert.ok(i.id > 52, `место баркаса ${i.id} — после прежних точек`);
 });
 
 test('портал скилл-теста добавлен после старых точек; вход и выход стоят на свободном настиле', () => {

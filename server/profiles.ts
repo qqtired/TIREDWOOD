@@ -3,7 +3,10 @@
 import { createHash, randomInt } from 'node:crypto';
 import { BOT_NAMES } from '../shared/constants.ts';
 import { DAILY_BONUS, START_TOKENS, itemPrice, mskDay } from '../shared/economy.ts';
-import { BEER_MS, BEER_PRICE, emptyFishProgress, questNeed, unlockedRod, type FishRod } from '../shared/fishprogress.ts';
+import {
+  ALE_MS, ALE_PRICE, BEER_MS, BEER_PRICE, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, unlockedRod, type BagFish, type FishRod,
+} from '../shared/fishprogress.ts';
+import { BAGS, LURES, gearState, type GearState } from '../shared/fishshop.ts';
 import { RECENT_ROWS, type RecentRow } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, PALETTE, itemById, sanitizeOutfit, type Outfit } from '../shared/outfit.ts';
 import { sanitizeName } from '../shared/text.ts';
@@ -88,6 +91,12 @@ export class Profiles {
         p.blackjackEscrow = null;
         recovered = true;
       }
+      // улов на рулетке, колесо не остановилось до рестарта: его цена — жетонами (столько дал бы Семён)
+      if (p.rouletteEscrow) {
+        p.tokens += p.rouletteEscrow.amount;
+        p.rouletteEscrow = null;
+        recovered = true;
+      }
     }
     if (recovered) { store.markDirty(); store.flush(); }
   }
@@ -159,6 +168,7 @@ export class Profiles {
       tokens: START_TOKENS,
       xp: 0, level: 1, levelsVersion: LEVELS_VERSION, fishingResetVersion: FISHING_RESET_VERSION,
       durakEscrow: null,
+      rouletteEscrow: null,
       blackjackEscrow: null,
       owned: [],
       outfit: { ...DEFAULT_OUTFIT, c: randomInt(PALETTE.length) },
@@ -231,6 +241,14 @@ export class Profiles {
     const amount = Math.floor(n);
     p.tokens += amount;
     const change = source === 'mode' ? this.addModeXp(p, amount) : null;
+    this.store.markDirty();
+    if (change) this.onLevel?.(p, change);
+  }
+
+  /** Общий опыт за режим без жетонов (рыба легла в рюкзак: опыт сразу, жетоны — при продаже). */
+  modeXp(p: Profile, n: number): void {
+    if (!Number.isFinite(n) || n < 1) return;
+    const change = this.addModeXp(p, Math.floor(n));
     this.store.markDirty();
     if (change) this.onLevel?.(p, change);
   }
@@ -319,21 +337,115 @@ export class Profiles {
     return true;
   }
 
-  /** Истёкшее пиво снимается по серверным часам, независимо от комнаты игрока. */
+  /** Истёкшие пиво и эль снимаются по серверным часам, независимо от комнаты игрока. */
   refreshFishing(p: Profile): boolean {
-    if (p.fishing.beerUntil <= 0 || p.fishing.beerUntil > this.now()) return false;
-    p.fishing.beerUntil = 0;
-    this.store.markDirty();
-    return true;
+    const f = p.fishing;
+    const now = this.now();
+    let changed = false;
+    if (f.beerUntil > 0 && f.beerUntil <= now) { f.beerUntil = 0; changed = true; }
+    if (f.aleUntil > 0 && f.aleUntil <= now) { f.aleUntil = 0; changed = true; }
+    if (changed) this.store.markDirty();
+    return changed;
   }
 
-  buyFishBeer(p: Profile): 'ok' | 'active' | 'no_tokens' {
+  /** Пиво: не поверх эля (он сильнее) и не второе подряд. */
+  buyFishBeer(p: Profile): 'ok' | 'active' | 'ale' | 'no_tokens' {
     this.refreshFishing(p);
+    if (p.fishing.aleUntil > this.now()) return 'ale';
     if (p.fishing.beerUntil > this.now()) return 'active';
     if (!this.spend(p, BEER_PRICE)) return 'no_tokens';
     p.fishing.beerUntil = this.now() + BEER_MS;
     this.store.markDirty();
     return 'ok';
+  }
+
+  /** Эль заменяет пиво (остаток пива пропадает), второй подряд — нет. */
+  buyFishAle(p: Profile): 'ok' | 'active' | 'no_tokens' {
+    this.refreshFishing(p);
+    if (p.fishing.aleUntil > this.now()) return 'active';
+    if (!this.spend(p, ALE_PRICE)) return 'no_tokens';
+    p.fishing.aleUntil = this.now() + ALE_MS;
+    p.fishing.beerUntil = 0;
+    this.store.markDirty();
+    return 'ok';
+  }
+
+  /** Рюкзак или блесна из лавки: навсегда, по уровню рыбалки; действует лучший купленный. */
+  buyFishGear(p: Profile, item: unknown): { state: GearState; name: string } | null {
+    const bag = BAGS.find((b) => b.id === item);
+    const lure = LURES.find((l) => l.id === item);
+    const g = bag ?? lure;
+    if (!g) return null;
+    const f = p.fishing;
+    const state = gearState(bag ? 'bag' : 'lure', g.tier, bag ? f.bagTier : f.lure, fishLevel(f.xp), p.tokens);
+    if (state !== 'ok' || !this.spend(p, g.price)) return { state: state === 'ok' ? 'tokens' : state, name: g.name };
+    if (bag) f.bagTier = g.tier; else f.lure = g.tier;
+    this.store.markDirty();
+    this.store.flush();
+    return { state: 'ok', name: g.name };
+  }
+
+  /** Рыба в рюкзак по цене поимки; null — места нет. */
+  bagPut(p: Profile, fish: Omit<BagFish, 'n'>): BagFish | null {
+    const f = p.fishing;
+    if (f.bag.length >= bagSlots(f)) return null;
+    const item: BagFish = { n: f.bagSeq, ...fish };
+    f.bagSeq = Math.min(Number.MAX_SAFE_INTEGER, f.bagSeq + 1);
+    f.bag.push(item);
+    this.store.markDirty();
+    return item;
+  }
+
+  /** Продать Семёну или Сане одну рыбу (n) или весь улов (n не задан): жетоны по цене поимки, без общего опыта. */
+  sellFish(p: Profile, n?: number): { n: number; coins: number } {
+    const f = p.fishing;
+    const sold = n === undefined ? f.bag : f.bag.filter((x) => x.n === n);
+    if (!sold.length) return { n: 0, coins: 0 };
+    const coins = bagValue(sold);
+    f.bag = n === undefined ? [] : f.bag.filter((x) => x.n !== n);
+    if (coins > 0) this.credit(p, coins, 'other');
+    p.stats.fsSold += sold.length;
+    p.stats.fsEarned += coins;
+    this.store.markDirty();
+    return { n: sold.length, coins };
+  }
+
+  /** Отпустить рыбу из рюкзака: место освобождается, денег нет. */
+  releaseFish(p: Profile, n: unknown): boolean {
+    const f = p.fishing;
+    const before = f.bag.length;
+    f.bag = f.bag.filter((x) => x.n !== n);
+    if (f.bag.length === before) return false;
+    this.store.markDirty();
+    return true;
+  }
+
+  /** Весь улов — на рулетку: рюкзак пустеет, его цена ждёт остановки колеса (переживает рестарт). */
+  reserveRoulette(p: Profile, round: string): { stake: number; fish: number } | null {
+    const f = p.fishing;
+    if (!round || round.length > 100 || p.rouletteEscrow || !f.bag.length) return null;
+    const stake = bagValue(f.bag);
+    if (!Number.isSafeInteger(stake) || stake <= 0) return null;
+    const fish = f.bag.length;
+    f.bag = [];
+    p.rouletteEscrow = { round, amount: stake };
+    p.stats.rlSpins++;
+    p.stats.rlStaked += stake;
+    this.store.markDirty();
+    this.store.flush();
+    return { stake, fish };
+  }
+
+  /** Колесо остановилось: выигрыш (0 — улов пропал) жетонами, без общего опыта — его дали при поимке. */
+  settleRoulette(pid: number, round: string, payout: number): boolean {
+    const p = this.ids.get(pid);
+    if (!p || !p.rouletteEscrow || p.rouletteEscrow.round !== round || !Number.isSafeInteger(payout) || payout < 0) return false;
+    p.rouletteEscrow = null;
+    p.tokens += payout;
+    p.stats.rlWon += payout;
+    this.store.markDirty();
+    this.store.flush();
+    return true;
   }
 
   /** Получение награды обнуляет текущий счётчик, без переноса лишних уловов; повтор не может выдать его снова. */

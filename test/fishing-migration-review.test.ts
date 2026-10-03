@@ -8,7 +8,7 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { mskDay } from '../shared/economy.ts';
 import { FISH } from '../shared/fishing.ts';
 import { mskDayNum } from '../shared/fishrules.ts';
-import { fishCatchXp } from '../shared/fishprogress.ts';
+import { emptyFishProgress, fishCatchXp, normalizeFishProgress } from '../shared/fishprogress.ts';
 import { LEVELS_VERSION, FISHING_RESET_VERSION, levelFromXp } from '../shared/levels.ts';
 import { Store, normalizeProfile, type Profile } from '../server/store.ts';
 import { Profiles } from '../server/profiles.ts';
@@ -26,7 +26,8 @@ test('review: general XP backfill and fishing wipe have independent migration ma
     const p = normalizeProfile(raw)!;
     assert.equal(p.xp, generalCurrent ? 2345 : 870);
     assert.equal(p.level, levelFromXp(p.xp));
-    assert.deepEqual(p.fishing, fishCurrent ? raw.fishing : { xp:0, questsDone:0, questCaught:0, rod:0, beerUntil:raw.fishing.beerUntil });
+    // старое сохранение без рюкзака и блесны получает пустой рюкзак (fisheco), прочее — как было
+    assert.deepEqual(p.fishing, fishCurrent ? normalizeFishProgress(raw.fishing) : { ...emptyFishProgress(), beerUntil:raw.fishing.beerUntil });
     assert.equal(JSON.stringify(raw), untouched, 'read normalization must not mutate the input');
     assert.deepEqual(normalizeProfile(JSON.parse(JSON.stringify(p))), p, 'idempotent including marker combinations');
   }
@@ -50,9 +51,9 @@ test('review: real legacy disk load retains albums, every historical stat, money
     for (const [key,value] of Object.entries(raw.stats)) assert.equal(p.stats[key as keyof typeof p.stats],value,key);
     assert.deepEqual(store.state.aqua,aqua); assert.deepEqual(store.state.fishPodium,state.fishPodium);
     assert.deepEqual(buildFishTop([p],now,store.state.fishPodium.catches),boardBefore);
-    assert.deepEqual(p.fishing,{xp:0,questsDone:0,questCaught:0,rod:0,beerUntil:raw.fishing.beerUntil});
+    assert.deepEqual(p.fishing,{...emptyFishProgress(),beerUntil:raw.fishing.beerUntil});
     const backfill = p.xp;
-    p.fishing={xp:380,questsDone:5,questCaught:17,rod:2,beerUntil:raw.fishing.beerUntil};
+    p.fishing={xp:380,questsDone:5,questCaught:17,rod:2,beerUntil:raw.fishing.beerUntil,aleUntil:0,bagTier:0,lure:0,bag:[],bagSeq:0};
     profiles.credit(p,123,'mode'); p.stats.rcRaces += 1;
     store.flush(); store.close();
     const again = new Store(dir,{now:()=>now,log:()=>{}});
@@ -76,8 +77,9 @@ test('review: completed quest cannot carry an old excess into next quest or pay 
     assert.equal(p.fishing.questCaught,0);assert.equal(p.fishing.questsDone,1);
     assert.deepEqual(profiles.claimFishQuest(p),{ok:false});
     assert.equal(p.tokens,initialTokens+25);assert.equal(p.xp,initialGeneralXp+25);assert.equal(p.fishing.xp,fishingXp);
-    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='hamsa')),6,'old frozen17 XP rounds to6 after one-third');
-    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='tuna'),true),135,'old perfect405 XP rounds to135');
+    // fisheco: опыт за рыбу ×0,4 вместо трети (+20 %)
+    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='hamsa')),7,'old frozen17 XP rounds to7 after ×0.4');
+    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='tuna'),true),162,'old perfect405 XP rounds to162 after ×0.4');
   } finally { store.close();rmSync(dir,{recursive:true,force:true}); }
 });
 

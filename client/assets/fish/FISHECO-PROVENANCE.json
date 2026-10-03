@@ -1,0 +1,889 @@
+{
+  "date": "2026-10-03",
+  "author": "fisheco (TIREDWOOD rework)",
+  "tool": "Codex CLI v0.153.4 (`codex exec`, model gpt-6-astra), built-in image_gen tool with transparent_background=true; one call per image, no edits, no reference images, no regeneration needed",
+  "wrapper": "Use your built-in image generation tool to generate the following image on a genuinely transparent background (transparent_background true). Do not write code to draw it and do not edit any other files.\\n\\n<prompt>\\n\\nThen save the generated image as <id>.png in the current working directory.",
+  "styleSource": "Fish prompts follow client/assets/fish/EVENT-PROVENANCE.json (naturalistic hand-painted marine field-guide specimen art, lateral profile facing LEFT); gear follows the same painted style.",
+  "verification": "Each image was checked by eye on a checkerboard and on a dark backdrop: correct species/object, profile facing left (halibut: eyed side, head left; hammerhead: three-quarter top-side view so the hammer reads), transparent corners, no text, no props.",
+  "processing": "Headless Chrome canvas: crop to alpha>16 bounds plus 1.2% margin, halving downscale with high-quality smoothing to 320 px wide (fish) or 192 px on the long side (shop items), alpha >=245 set to 255 and <=4 set to 0 (the generator leaves solid areas at 251-253), WebP quality 0.9. Original PNGs are not kept in the repo (1-2.6 MB each); SHA-256 of each original is recorded.",
+  "items": [
+    {
+      "id": "sprat",
+      "kind": "fish",
+      "species": "European sprat",
+      "latin": "Sprattus sprattus",
+      "file": "client/assets/fish/sprat.webp",
+      "source": {
+        "w": 2048,
+        "h": 768,
+        "sha256": "3e666a1176f39edaf9987a154b786b0ac44ffd2a25843b1bca2df5d640da9752",
+        "alphaBBox": [
+          27,
+          76,
+          2023,
+          686
+        ]
+      },
+      "processing": {
+        "crop": [
+          3,
+          52,
+          2045,
+          659
+        ],
+        "resized": [
+          320,
+          103
+        ],
+        "bytes": 10508
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real European sprat (Sprattus sprattus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: small slender herring-like schooling fish, compressed body with a sharp keeled belly of small scutes, single short dorsal fin set at mid-body, forked tail, bright silver flanks, blue-green back, small upturned mouth, no lateral line spots; tiny delicate fins.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "flyingfish",
+      "kind": "fish",
+      "species": "Mediterranean flying fish",
+      "latin": "Cheilopogon heterurus",
+      "file": "client/assets/fish/flyingfish.webp",
+      "source": {
+        "w": 1774,
+        "h": 887,
+        "sha256": "ec202c3a321ead710bc469b432ab6d4433d0bc83e2692eb46459552e232e0999",
+        "alphaBBox": [
+          46,
+          12,
+          1747,
+          871
+        ]
+      },
+      "processing": {
+        "crop": [
+          26,
+          0,
+          1742,
+          887
+        ],
+        "resized": [
+          320,
+          163
+        ],
+        "bytes": 12906
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Mediterranean flying fish (Cheilopogon heterurus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: torpedo-shaped body, dark blue back and bright silver belly, enormous wing-like pectoral fins fully spread and clearly visible (greyish translucent with darker membranes), large pelvic fins also spread, deeply forked tail with the lower lobe longer than the upper, blunt short head with big eye.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "haddock",
+      "kind": "fish",
+      "species": "haddock",
+      "latin": "Melanogrammus aeglefinus",
+      "file": "client/assets/fish/haddock.webp",
+      "source": {
+        "w": 1774,
+        "h": 887,
+        "sha256": "6168ba169289817c3c4bab4e35df4d303620e9090feee72eb98cc666d05659a1",
+        "alphaBBox": [
+          17,
+          49,
+          1757,
+          793
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          28,
+          1774,
+          787
+        ],
+        "resized": [
+          320,
+          142
+        ],
+        "bytes": 11284
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real haddock (Melanogrammus aeglefinus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: cod-like body with three separate dorsal fins (the first tall and pointed), two anal fins, small chin barbel, purplish-grey back fading to silvery-white belly, distinctive black lateral line, and the characteristic dark blotch (\"thumbprint\") above the pectoral fin.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "hake",
+      "kind": "fish",
+      "species": "European hake",
+      "latin": "Merluccius merluccius",
+      "file": "client/assets/fish/hake.webp",
+      "source": {
+        "w": 2135,
+        "h": 736,
+        "sha256": "150b9fc2fef66ab1489d2f849c0ee86c574a7a985ea8509964d5609ee2d6055c",
+        "alphaBBox": [
+          28,
+          37,
+          2098,
+          691
+        ]
+      },
+      "processing": {
+        "crop": [
+          3,
+          12,
+          2121,
+          705
+        ],
+        "resized": [
+          320,
+          106
+        ],
+        "bytes": 9414
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real European hake (Merluccius merluccius), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: elongated slender body, large head with a big mouth and visible sharp teeth, lower jaw slightly protruding, two dorsal fins (a short triangular first and a long second with a shallow notch), long anal fin, steel-grey back, silvery sides, nearly square tail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "redfish",
+      "kind": "fish",
+      "species": "golden redfish (rose fish)",
+      "latin": "Sebastes norvegicus",
+      "file": "client/assets/fish/redfish.webp",
+      "source": {
+        "w": 1774,
+        "h": 887,
+        "sha256": "5e85fe0b195becab164b78fed324415e0c8a232f29f89985b061ea676a59219c",
+        "alphaBBox": [
+          18,
+          14,
+          1752,
+          870
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          0,
+          1774,
+          887
+        ],
+        "resized": [
+          320,
+          160
+        ],
+        "bytes": 16632
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real golden redfish (rose fish) (Sebastes norvegicus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: deep compressed body, large eyes, big mouth, bony ridges and spines on the head and gill covers, long spiny dorsal fin joined to a soft rear dorsal, uniformly bright orange-red to red body with slightly paler belly.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "bonito",
+      "kind": "fish",
+      "species": "Atlantic bonito",
+      "latin": "Sarda sarda",
+      "file": "client/assets/fish/bonito.webp",
+      "source": {
+        "w": 1881,
+        "h": 836,
+        "sha256": "5b5ea737ed8b2320791ade606e0067405932191a9027ec1010c97a32acebe041",
+        "alphaBBox": [
+          16,
+          49,
+          1865,
+          751
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          27,
+          1881,
+          747
+        ],
+        "resized": [
+          320,
+          127
+        ],
+        "bytes": 11278
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Atlantic bonito (Sarda sarda), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: tuna-like fusiform body, pointed head, dark steel-blue back with 7 to 9 oblique dark stripes running diagonally down and forward across the upper flank, silvery lower sides and belly, long low first dorsal fin, small yellowish finlets behind dorsal and anal fins, crescent tail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "cod",
+      "kind": "fish",
+      "species": "Atlantic cod",
+      "latin": "Gadus morhua",
+      "file": "client/assets/fish/cod.webp",
+      "source": {
+        "w": 1942,
+        "h": 809,
+        "sha256": "3ec44439d80f4c6f1b7a5c212b5eebf4488624b2ed091c97b15de70a7bb31f90",
+        "alphaBBox": [
+          23,
+          16,
+          1928,
+          790
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          0,
+          1942,
+          809
+        ],
+        "resized": [
+          320,
+          133
+        ],
+        "bytes": 13522
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Atlantic cod (Gadus morhua), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: heavy robust body, three rounded dorsal fins and two anal fins, single prominent chin barbel, upper jaw longer than the lower, pale curved lateral line, olive-brown to greenish back densely speckled with brown spots, pale cream belly, nearly square tail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "barracuda",
+      "kind": "fish",
+      "species": "European barracuda",
+      "latin": "Sphyraena sphyraena",
+      "file": "client/assets/fish/barracuda.webp",
+      "source": {
+        "w": 2172,
+        "h": 724,
+        "sha256": "48dbe60674c68a0a053af776a06750a02704cc8364e9643a308fd81f8a9dec96",
+        "alphaBBox": [
+          10,
+          100,
+          2160,
+          609
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          74,
+          2172,
+          562
+        ],
+        "resized": [
+          320,
+          83
+        ],
+        "bytes": 7918
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real European barracuda (Sphyraena sphyraena), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: long slender pike-like body, pointed head, protruding lower jaw with visible fang-like teeth, two widely separated dorsal fins, forked tail, silver-grey body with faint darker bars on the upper flank and a darker grey back.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "wolffish",
+      "kind": "fish",
+      "species": "Atlantic wolffish",
+      "latin": "Anarhichas lupus",
+      "file": "client/assets/fish/wolffish.webp",
+      "source": {
+        "w": 2172,
+        "h": 724,
+        "sha256": "6787f4faeebc879de62a806bbf3510e78aef7007ad7f0e79cab043a5b5fc263e",
+        "alphaBBox": [
+          22,
+          21,
+          2151,
+          674
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          0,
+          2172,
+          701
+        ],
+        "resized": [
+          320,
+          103
+        ],
+        "bytes": 10588
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Atlantic wolffish (Anarhichas lupus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: long heavy almost eel-like body, large blunt head with strong protruding canine-like front teeth visible, one long continuous dorsal fin along the back, long anal fin, no pelvic fins, small rounded tail, blue-grey body crossed by 10 to 15 dark irregular vertical bands.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "mahi",
+      "kind": "fish",
+      "species": "common dolphinfish (mahi-mahi)",
+      "latin": "Coryphaena hippurus",
+      "file": "client/assets/fish/mahi.webp",
+      "source": {
+        "w": 1776,
+        "h": 886,
+        "sha256": "0cf60ddf80aeb34b422aa0fd5063b1602da6275736328e714d7e9ed0c5c68867",
+        "alphaBBox": [
+          10,
+          17,
+          1764,
+          820
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          0,
+          1776,
+          842
+        ],
+        "resized": [
+          320,
+          152
+        ],
+        "bytes": 14832
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real common dolphinfish (mahi-mahi) (Coryphaena hippurus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: adult bull with a very steep blunt forehead, compressed body, one long dorsal fin running from the head almost to the tail, deeply forked tail, brilliant golden-yellow flanks with blue-green back and scattered small blue spots, pale yellow belly.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "amberjack",
+      "kind": "fish",
+      "species": "greater amberjack",
+      "latin": "Seriola dumerili",
+      "file": "client/assets/fish/amberjack.webp",
+      "source": {
+        "w": 1918,
+        "h": 820,
+        "sha256": "a4cf973d7c463c3fee5a8c41e72ce2df79c33d1ef342a32b3ab685dcdcfb4265",
+        "alphaBBox": [
+          23,
+          13,
+          1904,
+          791
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          0,
+          1918,
+          815
+        ],
+        "resized": [
+          320,
+          136
+        ],
+        "bytes": 11158
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real greater amberjack (Seriola dumerili), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: elongated robust jack body, dark olive-amber diagonal stripe running from the snout through the eye to the first dorsal fin, faint amber-yellow stripe along the mid-flank, bluish-olive back, silvery-white belly, short low first dorsal fin, long second dorsal, forked tail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "sunfish",
+      "kind": "fish",
+      "species": "ocean sunfish",
+      "latin": "Mola mola",
+      "file": "client/assets/fish/sunfish.webp",
+      "source": {
+        "w": 1374,
+        "h": 1145,
+        "sha256": "9475d0bf74d722cdac22c2439a646aca597f3befaf8f721c0434b25f0152fcac",
+        "alphaBBox": [
+          79,
+          7,
+          1314,
+          1137
+        ]
+      },
+      "processing": {
+        "crop": [
+          64,
+          0,
+          1266,
+          1145
+        ],
+        "resized": [
+          320,
+          289
+        ],
+        "bytes": 20598
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real ocean sunfish (Mola mola), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: huge disc-shaped laterally compressed body, very tall pointed dorsal fin and matching anal fin set far back, no true tail but a short rounded scalloped rudder-like clavus at the rear, small round mouth, small eye, small pectoral fin, rough grey-silver skin with faint mottling.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "halibut",
+      "kind": "fish",
+      "species": "Atlantic halibut",
+      "latin": "Hippoglossus hippoglossus",
+      "file": "client/assets/fish/halibut.webp",
+      "source": {
+        "w": 1774,
+        "h": 887,
+        "sha256": "cecddcddcab1586aba6398eca45c9e3101a76b2b49e3caa4091804be4ac68964",
+        "alphaBBox": [
+          14,
+          33,
+          1759,
+          854
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          12,
+          1774,
+          864
+        ],
+        "resized": [
+          320,
+          156
+        ],
+        "bytes": 13126
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Atlantic halibut (Hippoglossus hippoglossus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: very large right-eyed flatfish shown lying flat, seen from directly above its eyed side like a field-guide flatfish plate, both eyes on the upper side of the head, large mouth, long dorsal and anal fins fringing the body, strongly arched lateral line over the pectoral fin, slightly concave tail, smooth olive-brown to dark brown upper side with subtle mottling.\nComposition/framing: broad horizontal canvas, top-down view of the eyed side, head on the LEFT and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "mako",
+      "kind": "fish",
+      "species": "shortfin mako shark",
+      "latin": "Isurus oxyrinchus",
+      "file": "client/assets/fish/mako.webp",
+      "source": {
+        "w": 1854,
+        "h": 848,
+        "sha256": "623e160376c38019d62c082a829fbaa49745f360c48817f44c59c69a351c660a",
+        "alphaBBox": [
+          26,
+          79,
+          1840,
+          774
+        ]
+      },
+      "processing": {
+        "crop": [
+          4,
+          57,
+          1850,
+          740
+        ],
+        "resized": [
+          320,
+          128
+        ],
+        "bytes": 8338
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real shortfin mako shark (Isurus oxyrinchus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: slender streamlined body, sharply pointed conical snout, large black eye, long gill slits, visible narrow pointed teeth, metallic deep indigo-blue back sharply separated from a white belly, large first dorsal fin, small second dorsal, crescent-shaped tail with nearly equal lobes and a strong keel.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "oarfish",
+      "kind": "fish",
+      "species": "giant oarfish",
+      "latin": "Regalecus glesne",
+      "file": "client/assets/fish/oarfish.webp",
+      "source": {
+        "w": 2172,
+        "h": 724,
+        "sha256": "7a743c7b7b29558288aebc35848b1b3a67bbde08be4274e3b28ac10ac06b67a9",
+        "alphaBBox": [
+          17,
+          43,
+          2150,
+          684
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          17,
+          2172,
+          694
+        ],
+        "resized": [
+          320,
+          102
+        ],
+        "bytes": 9458
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real giant oarfish (Regalecus glesne), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: extremely long ribbon-like compressed silver body with irregular dark streaks and spots, a bright red crest of elongated dorsal rays on top of the small head, one continuous red dorsal fin running along the entire back, long red oar-like pelvic fin rays, small mouth, body tapering toward the tail; body shown with one gentle wave so it fits the canvas.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "hairtail",
+      "kind": "fish",
+      "species": "largehead hairtail (cutlassfish)",
+      "latin": "Trichiurus lepturus",
+      "file": "client/assets/fish/hairtail.webp",
+      "source": {
+        "w": 2172,
+        "h": 724,
+        "sha256": "9cf93335b95d110db1a29dcd2f5f68752dd60b0b017814f3bb3394bd43334dd0",
+        "alphaBBox": [
+          19,
+          162,
+          2154,
+          546
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          136,
+          2172,
+          437
+        ],
+        "resized": [
+          320,
+          64
+        ],
+        "bytes": 5924
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real largehead hairtail (cutlassfish) (Trichiurus lepturus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: very long compressed ribbon-like body tapering to a thin whip-like point with no tail fin, metallic steel-silver body, large mouth with long fang-like teeth, big eye, long low dorsal fin along the entire back, no pelvic fins; body shown with a gentle wave so it fits the canvas.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "wahoo",
+      "kind": "fish",
+      "species": "wahoo",
+      "latin": "Acanthocybium solandri",
+      "file": "client/assets/fish/wahoo.webp",
+      "source": {
+        "w": 2172,
+        "h": 724,
+        "sha256": "68e0d18cbec63b2e606a0c15f5fe51569650d36056e9e3a31cb75540f9fcad9e",
+        "alphaBBox": [
+          19,
+          121,
+          2152,
+          633
+        ]
+      },
+      "processing": {
+        "crop": [
+          0,
+          95,
+          2172,
+          565
+        ],
+        "resized": [
+          320,
+          83
+        ],
+        "bytes": 8898
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real wahoo (Acanthocybium solandri), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: elongated torpedo body with a long beak-like pointed snout, iridescent blue-green back, silvery flanks crossed by about 25 cobalt-blue vertical bars, long low spiny first dorsal fin, small finlets, narrow crescent tail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "blueshark",
+      "kind": "fish",
+      "species": "blue shark",
+      "latin": "Prionace glauca",
+      "file": "client/assets/fish/blueshark.webp",
+      "source": {
+        "w": 1983,
+        "h": 793,
+        "sha256": "6cbdcd7f7edb6a454c0ba0c6df3ddf0036e08fb1aa2e94c8a2a4db875b77bf01",
+        "alphaBBox": [
+          29,
+          90,
+          1961,
+          700
+        ]
+      },
+      "processing": {
+        "crop": [
+          6,
+          67,
+          1977,
+          657
+        ],
+        "resized": [
+          320,
+          106
+        ],
+        "bytes": 6808
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real blue shark (Prionace glauca), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: slender elongated body, long conical snout, large eye, very long narrow sickle-shaped pectoral fins, deep indigo-blue back, bright blue flanks, white belly, small first dorsal set behind the pectorals, long upper tail lobe.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "hammerhead",
+      "kind": "fish",
+      "species": "smooth hammerhead shark",
+      "latin": "Sphyrna zygaena",
+      "file": "client/assets/fish/hammerhead.webp",
+      "source": {
+        "w": 1774,
+        "h": 887,
+        "sha256": "adce4decd93cde3cd7df126b0942ddf92e65a569ded6bebcd80ed9af563b0be1",
+        "alphaBBox": [
+          33,
+          69,
+          1760,
+          825
+        ]
+      },
+      "processing": {
+        "crop": [
+          12,
+          48,
+          1762,
+          799
+        ],
+        "resized": [
+          320,
+          145
+        ],
+        "bytes": 7230
+      },
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real smooth hammerhead shark (Sphyrna zygaena), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: distinctive wide flattened hammer-shaped head (cephalofoil) with an eye at each end and a smoothly curved front edge without a central notch, tall pointed first dorsal fin, olive-grey to brownish-grey back, white belly, long upper tail lobe.\nComposition/framing: broad horizontal canvas, lateral profile facing LEFT seen slightly from above (three-quarter top-side view) so the wide hammer-shaped head is clearly visible, head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Animal spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single animal only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete animal."
+    },
+    {
+      "id": "bag1",
+      "kind": "gear",
+      "file": "client/assets/fishshop/bag1.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "8b6c15f2db506d6bf9320b845027f7a3767adebb3aea9c868a3718acec283c46",
+        "alphaBBox": [
+          97,
+          11,
+          1165,
+          1239
+        ]
+      },
+      "processing": {
+        "crop": [
+          82,
+          0,
+          1099,
+          1254
+        ],
+        "resized": [
+          168,
+          192
+        ],
+        "bytes": 12712
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a small beginner fishing backpack, isolated on a genuinely transparent background.\nDetails: compact olive-green cotton canvas rucksack with a simple drawstring top under a flap, one front pocket, plain webbing straps, a little wooden toggle; humble, clean, slightly worn.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "bag2",
+      "kind": "gear",
+      "file": "client/assets/fishshop/bag2.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "6672e98acf86df3f8a05ba33fd7a2f712ab4a18bb14ca105221e0d1aff588188",
+        "alphaBBox": [
+          116,
+          16,
+          1142,
+          1230
+        ]
+      },
+      "processing": {
+        "crop": [
+          101,
+          1,
+          1057,
+          1245
+        ],
+        "resized": [
+          163,
+          192
+        ],
+        "bytes": 15734
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a medium angler fishing backpack, isolated on a genuinely transparent background.\nDetails: sturdy waxed khaki-brown canvas backpack with tan leather straps and brass buckles, two side pockets, loops holding a folded landing net and a rod tube on the side, a small embroidered fish silhouette (no letters) on the front pocket; practical seaside look.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "bag3",
+      "kind": "gear",
+      "file": "client/assets/fishshop/bag3.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "1551dcd850af5d2d4d42a3354f12eea7e16b4127666ed7357251cb3650a46aad",
+        "alphaBBox": [
+          125,
+          85,
+          1136,
+          1187
+        ]
+      },
+      "processing": {
+        "crop": [
+          112,
+          72,
+          1038,
+          1129
+        ],
+        "resized": [
+          177,
+          192
+        ],
+        "bytes": 15728
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a large professional fishing backpack, isolated on a genuinely transparent background.\nDetails: big expedition fishing backpack in deep teal and navy waterproof fabric with many pockets, two rod tubes strapped to the sides, sturdy brass hardware, padded straps, a tackle box compartment, subtle reflective piping; premium but grounded, not futuristic.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "lure1",
+      "kind": "gear",
+      "file": "client/assets/fishshop/lure1.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "0a8d555bc68a97b59c3a455905630a74f613936a616b1bcd4e309afc7b347831",
+        "alphaBBox": [
+          73,
+          57,
+          1206,
+          1191
+        ]
+      },
+      "processing": {
+        "crop": [
+          59,
+          43,
+          1162,
+          1163
+        ],
+        "resized": [
+          192,
+          192
+        ],
+        "bytes": 7702
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a bronze fishing spoon lure, isolated on a genuinely transparent background.\nDetails: classic oval wobbling spoon lure made of warm bronze-copper metal with a gentle hammered texture, small split ring at the top and a single treble hook at the bottom, shown diagonally.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "lure2",
+      "kind": "gear",
+      "file": "client/assets/fishshop/lure2.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "5d222b6bc38eb6b5aaa2a249afc4436b29d91aa7489cba928b1c29b3bdecd586",
+        "alphaBBox": [
+          65,
+          26,
+          1190,
+          1210
+        ]
+      },
+      "processing": {
+        "crop": [
+          51,
+          12,
+          1154,
+          1213
+        ],
+        "resized": [
+          183,
+          192
+        ],
+        "bytes": 7006
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a silver fishing spoon lure, isolated on a genuinely transparent background.\nDetails: polished silver elongated spoon lure with a fine fish-scale engraving, a small red bead and swivel at the top, a treble hook at the bottom, shown diagonally; bright cool reflections.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "lure3",
+      "kind": "gear",
+      "file": "client/assets/fishshop/lure3.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "0e1925073df100d8291e724f6310c136b495f4d779a2085a4b16a41c52d920f3",
+        "alphaBBox": [
+          97,
+          90,
+          1160,
+          1191
+        ]
+      },
+      "processing": {
+        "crop": [
+          84,
+          77,
+          1090,
+          1128
+        ],
+        "resized": [
+          186,
+          192
+        ],
+        "bytes": 8886
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a golden fishing spoon lure, isolated on a genuinely transparent background.\nDetails: premium gleaming gold spoon lure with an engraved scale pattern and a tiny red eye dot, swivel at the top, a treble hook dressed with a few short red feathers at the bottom, shown diagonally; rich warm gold, still realistic.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "ale",
+      "kind": "gear",
+      "file": "client/assets/fishshop/ale.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "471e48c07a20faa33d0b29ca72d2789206d7050d887bab15f912941cb4af6e81",
+        "alphaBBox": [
+          214,
+          104,
+          1142,
+          1130
+        ]
+      },
+      "processing": {
+        "crop": [
+          202,
+          92,
+          953,
+          1051
+        ],
+        "resized": [
+          174,
+          192
+        ],
+        "bytes": 14500
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a tankard of fishermen's amber ale, isolated on a genuinely transparent background.\nDetails: heavy thick-glass tankard filled with clear amber ale and a thick creamy foam head spilling slightly over the rim, fine condensation droplets, a short piece of tarred rope wrapped around the handle.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "beer",
+      "kind": "gear",
+      "file": "client/assets/fishshop/beer.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "a87f8ce072ce144410e46e8bd290e5fd6ad44c08469588afd4ecb9a90ace4c47",
+        "alphaBBox": [
+          278,
+          50,
+          976,
+          1216
+        ]
+      },
+      "processing": {
+        "crop": [
+          264,
+          36,
+          727,
+          1195
+        ],
+        "resized": [
+          117,
+          192
+        ],
+        "bytes": 9794
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a can of light fishermen's beer, isolated on a genuinely transparent background.\nDetails: plain metal beverage can with a cream-colored body and a muted sea-blue band, simple wave pattern, no letters, pull tab on top, small condensation droplets; modest and everyday.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    },
+    {
+      "id": "drum",
+      "kind": "gear",
+      "file": "client/assets/fishshop/drum.webp",
+      "source": {
+        "w": 1254,
+        "h": 1254,
+        "sha256": "e5bc381a9fb5d262b11c194327cdc7a55989813a9c91955ac00d0df3673dd85b",
+        "alphaBBox": [
+          44,
+          32,
+          1214,
+          1221
+        ]
+      },
+      "processing": {
+        "crop": [
+          30,
+          18,
+          1199,
+          1218
+        ],
+        "resized": [
+          189,
+          192
+        ],
+        "bytes": 14996
+      },
+      "prompt": "Use case: game inventory icon.\nAsset type: Game Opus fishing shop item icon, a unique raster illustration.\nStyle/medium: realistic hand-painted illustration matching naturalistic field-guide fish specimen art and illustrated fishing-rod inventory icons: fine tactile brushwork, understated realistic shading, subtle worn seaside materials, crisp silhouette. Warm, friendly and grounded, not sci-fi, no neon, no cartoon exaggeration, no vector flatness.\nPrimary request: a rain-calling frame drum, isolated on a genuinely transparent background.\nDetails: round wooden frame drum with a stretched pale hide, a hand-painted blue rain cloud with falling raindrops on the hide (no letters), small brass jingles around the rim, a braided cord handle with a few blue beads.\nComposition/framing: the single object centered, three-quarter view, filling about 85 percent of a square canvas, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral daylight specimen lighting, no glow.\nScene/backdrop: nothing except transparent alpha, no table, floor, water, person, hands or cast shadow.\nText: none — no letters, numbers, logos, labels or watermark anywhere.\nConstraints: exactly one object; no frame, badge, sparkles or halo. Preserve genuine transparency around the complete object."
+    }
+  ]
+}

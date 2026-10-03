@@ -16,8 +16,8 @@ import {
   FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_AWAY, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_HOME_SPOTS, FERRY_LEVEL,
   ferryEta, ferryPose, ferrySeat, inFerry, type FerryPose,
 } from '../../shared/ferry.ts';
-import { FISHER_USE } from '../../shared/fishplaces.ts';
-import { FISH_XP_LEVELS, RAIN_DRUM_PRICE, fishLevel, questNeed } from '../../shared/fishprogress.ts';
+import { FISH_NPCS } from '../../shared/fishplaces.ts';
+import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import { JUKE_PRICE, JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime } from '../../shared/jukebox.ts';
 import {
@@ -48,7 +48,7 @@ import type { Client, Hub, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
 import { AquaRuns } from './aqua.ts';
 import { BoatRide } from './boat.ts';
-import { FerryRide, nearSanya, sanyaHome } from './ferry.ts';
+import { FerryRide, sanyaHome } from './ferry.ts';
 import { BlackjackHall } from './blackjack.ts';
 import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
@@ -58,6 +58,8 @@ import { Regatta } from './regatta.ts';
 import { DurakHall } from './durak.ts';
 import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
+import { FishNpc, type NpcCtx, type NpcResult, type NpcWho } from './fishnpc.ts';
+import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
 import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
@@ -125,6 +127,10 @@ export class LobbyRoom implements Room {
   readonly fishing: FishingHall;
   /** Рыбалка 2.0 (флаг сервера FISH2): null — старая рыбалка */
   readonly fishing2: FishingHall2 | null;
+  /** Семён и Саня: задания, лавка, продажа улова (с рыбалкой 2.0); register — свои действия других модулей */
+  readonly fishNpc: FishNpc | null;
+  /** Рулетка рыбака (флаг сервера ROULETTE) */
+  readonly roulette: RouletteTable | null;
   readonly weather: Weather;
   tick = 0;
   private readonly hub: Hub;
@@ -337,6 +343,54 @@ export class LobbyRoom implements Room {
       }, hub.profiles, hub.store, this.now)
       : null;
     this.fish = this.fishing2 ?? this.fishing;
+    this.fishNpc = this.fishing2 ? new FishNpc({
+      now: this.now,
+      limit: (key) => hub.limits.hit(`fishNpc:${key}`, 6, 1000),
+      changed: (who) => {
+        const c = hub.clientOf(who.profile.id);
+        if (c) { hub.tokens(c, who.profile.tokens); hub.sendMe(c); }
+        this.honorDirty = true;
+      },
+      rainState: () => {
+        if (this.director.busy) return 'busy';
+        if (this.weather.step(this.weatherTick)) this.publishWeather();
+        return this.weather.rain ? 'on' : 'off';
+      },
+      startRain: () => {
+        this.weather.startRain(this.weatherTick);
+        this.publishWeather();
+      },
+    }, hub.profiles) : null;
+    // Саня на баркасе: «Домой, к Семёну» — своё действие в разговоре (близость и частоту уже проверил FishNpc)
+    this.fishNpc?.register('ferry', (ctx) => this.onSanyaFerry(ctx));
+    this.roulette = hub.roulette ? new RouletteTable({
+      now: this.now,
+      nearby: () => [...this.players.values()].flatMap((p) => p.client.profile && !p.client.ephemeral && atRoulette(p.state.x, p.state.y, p.state.z) ? [this.rouletteWho(p)!] : []),
+      send: (pid, msg) => hub.clientOf(pid)?.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      toast: (pid, text) => {
+        const c = hub.clientOf(pid);
+        if (c) hub.toast(c, text);
+      },
+      announce: (text) => hub.announce(text),
+      changed: (pid) => {
+        const c = hub.clientOf(pid);
+        if (c?.profile) { hub.tokens(c, c.profile.tokens); hub.sendMe(c); }
+        this.honorDirty = true;
+      },
+    }, hub.profiles) : null;
+  }
+
+  private npcWho(p: LobbyPlayer): NpcWho | null {
+    const c = p.client;
+    if (!c.profile || c.ephemeral) return null;
+    return { key: String(c.id), profile: c.profile, x: p.state.x, y: p.state.y, z: p.state.z, send: (msg) => c.sink.sendJson(msg) };
+  }
+
+  private rouletteWho(p: LobbyPlayer): RouletteWho | null {
+    const c = p.client;
+    if (!c.profile || c.ephemeral) return null;
+    return { pid: c.profile.id, nick: c.nick, profile: c.profile, x: p.state.x, y: p.state.y, z: p.state.z };
   }
 
   get humans(): number {
@@ -377,6 +431,7 @@ export class LobbyRoom implements Room {
       rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
+      ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
@@ -507,12 +562,21 @@ export class LobbyRoom implements Room {
       case 'fish':
         if (p.action === ACT_FISH && this.hub.limits.hit(`fish:${c.id}`, 6, 1000)) this.fish.act(p.arg, p.slot, msg.a, msg.n, this.tick);
         return;
-      case 'fishNpc':
-        this.onFishNpc(p, msg.a, msg.rod);
+      case 'fishNpc': {
+        const who = this.npcWho(p);
+        if (who && this.fishNpc) this.fishNpc.handle(who, msg);
         return;
-      case 'barkasHome':
-        this.onBarkasHome(p);
+      }
+      case 'fishBag': {
+        const who = this.npcWho(p);
+        if (who && this.fishNpc && msg.a === 'release') this.fishNpc.release(who, msg.n);
         return;
+      }
+      case 'roulette': {
+        const who = this.rouletteWho(p);
+        if (who && this.roulette && msg.a === 'bet' && this.hub.limits.hit(`roulette:${c.id}`, 4, 1000)) this.roulette.bet(who, msg.c);
+        return;
+      }
       case 'rg':
         if (msg.a === 'quit') this.regatta?.quit(p);
         return;
@@ -651,71 +715,19 @@ export class LobbyRoom implements Room {
         this.hold(p, ACT_FISH, it);
         return;
       }
-      case 'fisher':
-        if (!this.fishing2 || c.ephemeral) return;
+      case 'fisher': {
+        // Семён (arg 0) или Саня (arg 1): окно разговора; близость, цены и уровни проверяет FishNpc
+        const who = this.npcWho(p);
+        if (!this.fishNpc || !who) return;
         this.release(p);
-        this.onFishNpc(p, 'open');
+        this.fishNpc.handle(who, { t: 'fishNpc', a: 'open', npc: FISH_NPCS[it.arg] ?? 'semyon' });
         return;
-    }
-  }
-
-  private onFishNpc(p: LobbyPlayer, action: unknown, rod?: unknown): void {
-    const c = p.client;
-    const prof = c.profile;
-    if (!prof || !this.fishing2 || c.ephemeral) return;
-    this.hub.profiles.refreshFishing(prof);
-    // рыбаков двое: Дед Семён у мостков и его брат Саня на баркасе — у обоих всё одинаково, в ответе — кто говорит
-    const semyon = Math.hypot(p.state.x - FISHER_USE.x, p.state.z - FISHER_USE.z) <= FISHER_USE.r + .5 && Math.abs(p.state.y - FISHER_USE.y) < 2;
-    const npc = !semyon && nearSanya(p.state) ? 'sanya' : 'semyon';
-    const near = semyon || npc === 'sanya';
-    const reply = (message?: string, open = true): void => {
-      c.sink.sendJson({ t: 'fishNpc', progress: { ...prof.fishing }, now: this.now(), open, npc, ...(message ? { message } : {}) });
-    };
-    if (!this.hub.limits.hit(`fishNpc:${c.id}`, 6, 1000)) {
-      reply('Рыбак занят — подожди секунду', near);
-      return;
-    }
-    if (!near) {
-      reply('Подойди к рыбаку на пристани', false);
-      return;
-    }
-    let message: string;
-    switch (action) {
-      case 'open':
-        reply();
-        return;
-      case 'beer': {
-        const result = this.hub.profiles.buyFishBeer(prof);
-        message = result === 'ok' ? 'Рыбацкое пиво действует 10 минут' : result === 'active' ? 'Пиво уже действует — дождись окончания' : 'Не хватает жетонов на рыбацкое пиво';
-        break;
       }
-      case 'rain':
-        if (this.director.busy) { message = 'Сейчас идёт большое событие. Бубен дождя доступен после его окончания.'; break; }
-        if (this.weather.step(this.weatherTick)) this.publishWeather();
-        if (this.weather.rain) message = 'Рыболовное событие уже идёт';
-        else if (!this.hub.profiles.spend(prof, RAIN_DRUM_PRICE)) message = 'Бубен дождя стоит 500 жетонов';
-        else {
-          this.weather.startRain(this.weatherTick);
-          this.publishWeather();
-          message = 'Рыболовное событие началось — доступны уникальные виды рыб!';
-        }
-        break;
-      case 'claim': {
-        const result = this.hub.profiles.claimFishQuest(prof);
-        message = result.ok ? `Задание выполнено: +${result.reward} жетонов` : `Для задания поймай ${questNeed(prof.fishing.questsDone)} рыб`;
-        break;
-      }
-      case 'rod':
-        message = this.hub.profiles.equipFishRod(prof, rod) ? 'Удочка выбрана' : 'Эта удочка ещё не заработана';
-        break;
-      default:
-        reply('Выбери товар, задание или удочку');
+      case 'roulette':
+        // окно ставки клиент открывает сам; здесь — только свежий вид стола
+        if (this.roulette) c.sink.sendJson({ t: 'roulette', v: this.roulette.view() });
         return;
     }
-    this.hub.tokens(c, prof.tokens);
-    this.hub.sendMe(c);
-    this.honorDirty = true;
-    reply(message);
   }
 
   /** Вызывается хабом один раз за его тик, независимо от числа игроков на набережной. */
@@ -821,11 +833,16 @@ export class LobbyRoom implements Room {
     this.ferryChanged();
   }
 
-  /** Саня за SANYA_PRICE жетонов отправляет на пирс к Семёну (server/lobby/ferry.ts — sanyaHome). */
-  private onBarkasHome(p: LobbyPlayer): void {
-    const c = p.client;
-    const prof = c.profile;
-    if (!prof || c.ephemeral || isRiding(p.action) || !this.hub.limits.hit(`barkasHome:${c.id}`, 2, 1000)) return;
+  /**
+   * Саня за SANYA_PRICE жетонов отправляет на пирс к Семёну (server/lobby/ferry.ts — sanyaHome): действие 'ferry' разговора
+   * (server/lobby/fishnpc.ts). Отправил — barkasHome ok (клиент закрывает окно, тост), нет — причина в окне разговора.
+   */
+  private onSanyaFerry(ctx: NpcCtx): NpcResult {
+    const prof = ctx.prof;
+    const c = this.hub.clientOf(prof.id);
+    const p = c ? this.playerOf(c) : undefined;
+    if (ctx.npc !== 'sanya' || !c || !p || c.ephemeral) return 'Здесь так нельзя';
+    if (isRiding(p.action)) return 'Сначала сойди на палубу';
     const r = sanyaHome(p.state, {
       spend: (n) => this.hub.profiles.spend(prof, n),
       move: () => {
@@ -835,13 +852,11 @@ export class LobbyRoom implements Room {
         this.teleport(p, x, 0, z);
       },
     });
-    if (r === 'ok') {
-      this.hub.tokens(c, prof.tokens);
-      this.honorDirty = true;
-    }
+    // жетоны, профиль и доску почёта после обработчика обновляет FishNpc (host.changed)
     const message = r === 'ok' ? 'Саня свистнул знакомому катеру — и ты уже на мостках у Семёна'
       : r === 'far' ? 'Подойди к Сане на баркасе' : `Саня берёт ${SANYA_PRICE} 🪙, а у тебя ${prof.tokens}`;
     c.sink.sendJson({ t: 'barkasHome', ok: r === 'ok', message });
+    return r === 'ok' ? { open: false } : message;
   }
 
   /** E у кассы колеса: 5 жетонов — садишься в нижнюю кабинку на один оборот. */
@@ -1172,6 +1187,7 @@ export class LobbyRoom implements Room {
     this.stepWheel();
     this.stepBall();
     this.fish.step(this.tick);
+    this.roulette?.step();
     this.durak.step(this.tick);
     this.blackjack.step(this.tick);
     this.stepStartZones();
