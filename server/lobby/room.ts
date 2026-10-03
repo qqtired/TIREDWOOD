@@ -13,6 +13,7 @@ import { COYOTE_TICKS, DROWN_Y, TICK_RATE, WATER_Y } from '../../shared/constant
 import { FC_CHECK_EVERY, FC_SPAWN } from '../../shared/fight.ts';
 import { FISH_NPCS } from '../../shared/fishplaces.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
+import { JUKE_PRICE, JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime } from '../../shared/jukebox.ts';
 import {
   ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
   KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE, holdMask, isAboard, isHeld,
@@ -51,6 +52,7 @@ import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
 import { FishNpc, type NpcWho } from './fishnpc.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
+import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
 import { WheelRide } from './wheel.ts';
@@ -169,8 +171,10 @@ export class LobbyRoom implements Room {
   private readonly fc: FightGather<LobbyPlayer> | null;
   /** Включённая рыбалка — места, заброс и подсечка у обеих одинаковые */
   private readonly fish: FishingHall | FishingHall2;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
+  readonly juke: Jukebox | null;
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean } = {}) {
     this.hub = hub;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
@@ -219,6 +223,8 @@ export class LobbyRoom implements Room {
       bestLap: (p) => p.client.profile?.stats.brBestLapHarbor ?? 0,
       queue: (n) => this.boatQueue?.take(n) ?? [],
     }) : null;
+    this.juke = eventOptions.jukebox ? new Jukebox() : null;
+    if (!this.juke) for (const box of this.map.jukeBoxes) this.world.setEnabled(box, false);
     this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
       nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => this.regatta!.begin(players),
@@ -418,6 +424,11 @@ export class LobbyRoom implements Room {
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
     if (this.pirates) c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
+    // музыкальный автомат: что играет и с какого места (вошедшему позже — то же место песни, что у всех)
+    if (this.juke) {
+      if (this.juke.step(this.now())) this.broadcastJuke();
+      else c.sink.sendJson({ t: 'juke', v: this.juke.view(this.now()) });
+    }
     const kpos = this.hub.race.positions();
     if (kpos) c.sink.sendJson({ t: 'kpos', p: kpos });
     // экран с чатом друзей из Telegram на крыше склада — всё, что на нём сейчас (дальше — только новое)
@@ -530,6 +541,9 @@ export class LobbyRoom implements Room {
         return;
       case 'kartTrack':
         this.chooseKartTrack(p, msg.track);
+        return;
+      case 'juke':
+        this.onJuke(p, msg.song);
         return;
       case 'fish':
         if (p.action === ACT_FISH && this.hub.limits.hit(`fish:${c.id}`, 6, 1000)) this.fish.act(p.arg, p.slot, msg.a, msg.n, this.tick);
@@ -1062,6 +1076,8 @@ export class LobbyRoom implements Room {
     }
     this.regatta?.step();
     this.checkPairs();
+    // музыкальный автомат: песня доиграла — следующая (раз в треть секунды; время — по часам, не по тикам)
+    if (this.juke && this.tick % 10 === 0 && this.juke.step(this.now())) this.broadcastJuke();
     this.stepBoat();
     this.stepWheel();
     this.stepBall();
@@ -1524,6 +1540,42 @@ export class LobbyRoom implements Room {
 
   broadcast(msg: ServerMsg): void {
     for (const p of this.players.values()) p.client.sink.sendJson(msg);
+  }
+
+  private broadcastJuke(): void {
+    if (this.juke) this.broadcast({ t: 'juke', v: this.juke.view(this.now()) });
+  }
+
+  /**
+   * Заказ песни у музыкального автомата: рядом ли, есть ли такая, своя уже ждёт, очередь, повтор — и только потом
+   * списать 10 🪙. Любой отказ — ответом с причиной, жетоны не тронуты. В чат — «🎵 ник ставит «…»».
+   */
+  private onJuke(p: LobbyPlayer, song: unknown): void {
+    const c = p.client;
+    const prof = c.profile;
+    const juke = this.juke;
+    if (!juke || !prof || c.ephemeral) return;
+    const no = (text: string): void => c.sink.sendJson({ t: 'jukeRes', ok: false, text });
+    if (!this.hub.limits.hit(`juke:${c.id}`, 1, JUKE_RATE_MS)) return no('Не так быстро 🙂');
+    const s = p.state;
+    if (isHeld(p.action) || Math.abs(s.y) > 2 || Math.hypot(s.x - JUKE_USE.x, s.z - JUKE_USE.z) > JUKE_SERVER_R) return no('Подойди к музыкальному автомату');
+    const now = this.now();
+    if (juke.step(now)) this.broadcastJuke();
+    const why = juke.check(prof.id, song, now);
+    if (why === 'song') return no('Такой песни в автомате нет');
+    if (why === 'mine') return no('Твоя песня уже в очереди — дождись её');
+    if (why === 'full') return no('Очередь полная — подожди, пока доиграет следующая');
+    const n = song as number;
+    const title = JUKE_SONGS[n].title;
+    if (why === 'same') return no(`«${title}» уже ${juke.cur?.song === n ? 'играет' : 'в очереди'} — выбери другую`);
+    if (!this.hub.profiles.spend(prof, JUKE_PRICE)) return no(`Песня стоит ${JUKE_PRICE} 🪙, а у тебя ${prof.tokens}`);
+    juke.add(prof.id, c.nick, n, now);
+    this.hub.tokens(c, prof.tokens);
+    this.honorDirty = true;
+    this.broadcastJuke();
+    const place = juke.queue.length;
+    c.sink.sendJson({ t: 'jukeRes', ok: true, text: place === 0 ? `«${title}» — сейчас заиграет` : `«${title}» в очереди: ${place}-я, через ${fmtSongTime(juke.etaMs(place - 1, now) / 1000)}` });
+    this.hub.announce(`🎵 ${c.nick} ставит «${title}»`);
   }
 }
 

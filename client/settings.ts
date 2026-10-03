@@ -14,10 +14,14 @@ export interface Settings {
   muted: boolean;
   quality: Quality;
   showStats: boolean;
-  /** Эффекты (выстрелы, шаги, моторы, кнопки) — доля от общей громкости */
+  /** Эффекты (выстрелы, шаги, моторы, удары) — доля от общей громкости */
   sfxVolume: number;
-  /** Окружение (море, чайки, дождь) — доля от общей громкости */
+  /** Окружение (море, чайки, ветер, дождь, гром) — доля от общей громкости */
   ambVolume: number;
+  /** Музыка (музыкальный автомат на площади и другая музыка в мире) — доля от общей громкости */
+  musicVolume: number;
+  /** Интерфейс (кнопки, уведомления, монетки) — доля от общей громкости */
+  uiVolume: number;
   /** Мышь (палец) вверх — взгляд вниз */
   invertY: boolean;
   /** Подсказки клавиш на экране: полоска эмоций, строки «W — газ …» в режимах */
@@ -43,6 +47,8 @@ export const DEFAULTS: Settings = {
   showStats: true,
   sfxVolume: 1,
   ambVolume: 1,
+  musicVolume: 0.8,
+  uiVolume: 1,
   invertY: false,
   keyHints: true,
   uiScale: 1,
@@ -64,6 +70,9 @@ export function loadSettings(): Settings {
     if (typeof s.showStats !== 'boolean') s.showStats = DEFAULTS.showStats;
     s.sfxVolume = clampNum(s.sfxVolume, 0, 1, DEFAULTS.sfxVolume);
     s.ambVolume = clampNum(s.ambVolume, 0, 1, DEFAULTS.ambVolume);
+    s.musicVolume = clampNum(s.musicVolume, 0, 1, DEFAULTS.musicVolume);
+    // интерфейс раньше звучал вместе с эффектами: в старом сохранении его доля — та же, что у эффектов
+    s.uiVolume = clampNum(parsed.uiVolume, 0, 1, s.sfxVolume);
     s.invertY = s.invertY === true;
     s.keyHints = s.keyHints !== false;
     s.uiScale = nearestScale(clampNum(s.uiScale, UI_SCALES[0], UI_SCALES[UI_SCALES.length - 1], DEFAULTS.uiScale));

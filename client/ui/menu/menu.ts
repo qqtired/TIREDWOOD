@@ -4,6 +4,7 @@
 // отдаёт только по клику (Esc — не жест пользователя).
 import type { GiftResultCode } from '../../../shared/gifts.ts';
 import type { RoomKind } from '../../../shared/messages.ts';
+import type { MixPreview } from '../../audio.ts';
 import type { Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
 import type { ProfilePanel } from '../profile.ts';
@@ -29,7 +30,7 @@ const HEAD: Record<MenuSection, readonly [title: string, lead: string]> = {
   collection: ['Коллекция', TOUCH ? 'Рыбы и находки. На набережной журнал рыбака — кнопка 📖' : 'Рыбы и находки. На набережной журнал рыбака — клавиша J'],
   codes: ['Подарки и коды', 'Подарочный код, вход с другого устройства, примерочная'],
   graphics: ['Графика', 'Качество картинки, угол обзора, счётчик кадров'],
-  sound: ['Звук', 'Общая громкость, эффекты и окружение'],
+  sound: ['Звук', 'Общая громкость, музыка, окружение, эффекты, интерфейс и голоса'],
   voice: ['Голос', 'Голосовой чат: включить, проверить микрофон, кого слышно'],
   controls: ['Управление', TOUCH ? 'Обзор пальцем, прицел, инверсия' : 'Мышь, прицел, инверсия'],
   interface: ['Интерфейс', 'Размер меню и чата, сообщения чата'],
@@ -51,6 +52,8 @@ export interface MenuActions {
   redeem(code: string): void;
   /** Настройку поменяли: применить и запомнить */
   changed(): void;
+  /** Ползунок громкости отпустили: короткий пример звука его шины */
+  preview?(kind: MixPreview): void;
   /** Где игрок сейчас: подарочный код принимают только на набережной */
   room(): RoomKind;
   /** Подарочные коды включены на сервере */
@@ -138,7 +141,7 @@ export class GameMenu {
     }
 
     this.gift = new GiftForm((code) => actions.redeem(code), () => [actions.gifts(), actions.room() === 'lobby']);
-    this.settings = new SettingsPanel(settings, { onChange: () => actions.changed(), go: (s) => this.show(s) });
+    this.settings = new SettingsPanel(settings, { onChange: () => actions.changed(), go: (s) => this.show(s), preview: (k) => actions.preview?.(k) });
     this.voiceRoot = el('div', 'mn-voice');
     this.pane('overview', profile.overview);
     this.pane('records', profile.records);

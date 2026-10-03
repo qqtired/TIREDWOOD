@@ -134,6 +134,8 @@ export interface HubOptions {
   fish2?: boolean;
   /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
   roulette?: boolean;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
+  jukebox?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }

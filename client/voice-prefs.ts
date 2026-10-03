@@ -59,6 +59,27 @@ export function saveVoicePrefs(p: VoicePrefs, storage: Storage | null = store())
   try { storage?.setItem(VOICE_PREFS_KEY, JSON.stringify(p)); } catch { /* приватный режим — просто не запоминаем */ }
 }
 
+/** Работающий голос (VoiceController): его громкость — живая, меняет звук сразу и сохраняется им самим */
+export interface VoiceVolumeOwner { readonly view: { volume: number }; setVolume(volume: number): void }
+let volumeOwner: VoiceVolumeOwner | null = null;
+/** Голос включился или пропал (client/ui/voicepanel.ts → setVoiceSource) */
+export function setVoiceVolumeOwner(owner: VoiceVolumeOwner | null): void { volumeOwner = owner; }
+
+/**
+ * Громкость голосов игроков 0…1 — одна на меню «Звук» и вкладку «Голос»: у работающего голоса — его, иначе — из
+ * сохранения (голос прочитает её, когда включится).
+ */
+export function voiceVolume(storage: Storage | null = store()): number {
+  return volumeOwner ? volumeOwner.view.volume : loadVoicePrefs(storage).volume;
+}
+export function setVoiceVolume(volume: number, storage: Storage | null = store()): void {
+  if (!Number.isFinite(volume)) return;
+  if (volumeOwner) { volumeOwner.setVolume(volume); return; }
+  const p = loadVoicePrefs(storage);
+  p.volume = unit(volume, p.volume);
+  saveVoicePrefs(p, storage);
+}
+
 export function peerPref(p: VoicePrefs, pid: number): VoicePeerPref {
   return p.peers[String(pid)] ?? { muted: false, volume: 1 };
 }
