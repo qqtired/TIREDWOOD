@@ -101,7 +101,7 @@ export class FortWorld {
     this.buildFar();
     buildDeco(scene, map.deco, this.floaters);
     this.props = new FortProps(scene, map);
-    this.arsenal = new Arsenal3D(scene);
+    this.arsenal = new Arsenal3D(scene, this.camera);
     this.gulls = new Gulls(scene, 0, 50);
   }
 
@@ -461,6 +461,7 @@ export class FortWorld {
     this.decorEvery = tier === 'low' ? 1 / 12 : tier === 'medium' ? 1 / 24 : 0;
     this.sun.castShadow = tier !== 'low';
     for (const crown of this.crowns) crown.castShadow = tier === 'high';
+    this.arsenal.setQuality(q, slow);
     this.renderer.refreshShadows();
   }
 
