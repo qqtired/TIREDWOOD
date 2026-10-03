@@ -7,7 +7,7 @@ import {
   DK_REACT_TICKS, DK_TAKE_TICKS, DK_TOMATO_TICKS, DK_TURN_TICKS, MODE_NAMES, RANK_NAMES, REACTIONS, SUIT_SIGNS,
   canPass, canTake, canTransfer, fromView, movesFor, rankOf, suitOf, type Durak, type DurakMove, type DurakView,
 } from '../../shared/durak.ts';
-import type { DurakAct, DurakTableView } from '../../shared/messages.ts';
+import type { DurakAct, DurakSeatView, DurakTableView } from '../../shared/messages.ts';
 import { CARD_ATLAS, cardAtlasCanvas, tomatoSplatCanvas } from '../render/textures.ts';
 import { TOUCH } from '../touch.ts';
 import './durak.css';
@@ -35,6 +35,8 @@ const SUIT_ORDER = [0, 2, 1, 3];
 const SUIT_NAMES = ['пики', 'трефы', 'бубны', 'червы'];
 /** Свечение хода переходит на «торопись», когда до конца срока осталось столько */
 const HURRY_MS = 5000;
+/** Ставки стола (так же проверяет сервер): фишки до партии */
+const ANTES = [10, 20, 50] as const;
 const RULES = [
   'Цель — первым избавиться от карт. Последний с картами — <b>дурак</b> 🃏.',
   'Ходящий кладёт любую карту. Отбиваются старшей той же масти или козырем.',
@@ -392,6 +394,8 @@ export class DurakHud {
     const before = !v || v.phase === 'wait' || v.phase === 'count';
     const rematch = !!this.resultSummary && v?.phase !== 'play';
     this.root.classList.toggle('dk-rematch', rematch);
+    this.root.classList.toggle('dk-before', before);
+    this.root.classList.toggle('dk-rules', before && this.rulesOpen);
     this.lobbyEl.classList.toggle('show', before);
     this.playEl.classList.toggle('show', !before || rematch);
     this.playEl.classList.toggle('rematch', rematch);
@@ -450,68 +454,102 @@ export class DurakHud {
     return html + `<div class="dk-players">${chips.join('')}</div>`;
   }
 
+  /**
+   * До раздачи: панель как у блэкджека — кто за столом, ставка стола фишками, моё участие, «Готов» и понятное состояние;
+   * правила открываются над ней. Какие кнопки что делают (data-a), не изменилось.
+   */
   private lobbyHtml(): string {
     const v = this.v;
     if (!v) return '';
     const mine = v.seats[this.chair];
     const chooser = v.modeBy >= 0 ? v.seats[v.modeBy] : null;
     const canMode = v.modeBy === this.chair;
+    const ante = v.ante ?? 10;
+    const have = this.balance();
     const modes = (['throw', 'transfer'] as const).map((m, i) =>
       `<button class="dk-mode${v.mode === m ? ' on' : ''}" data-a="mode" data-on="${i}"${canMode ? '' : ' disabled'}>${MODE_NAMES[m]}</button>`,
     ).join('');
-    const note = canMode ? 'Режим выбираешь ты' : chooser && chooser.k === 1 ? `Режим выбирает ${esc(chooser.nick)}` : '';
+    const note = canMode ? 'Режим и ставку стола выбираешь ты' : chooser && chooser.k === 1 ? `Режим и ставку стола выбирает ${esc(chooser.nick)}` : '';
     const seats = v.seats.map((s, ch) => {
-      if (s.k === 0) return `<div class="dk-seat empty">свободно</div>`;
-      const me = ch === this.chair ? ' me' : '';
+      if (s.k === 0) return '';
+      const me = ch === this.chair;
       const mark = s.ready ? '<b class="ok">✓</b>' : '<b class="no">…</b>';
-      return `<div class="dk-seat${me}" data-ch="${ch}">${s.k === 2 ? '🤖 ' : ''}${esc(s.nick)} ${mark}<small>${s.stake ? `ставка ${v.ante ?? 10}` : 'бесплатно'}</small></div>`;
+      const tag = s.k === 2 ? 'бот' : s.stake ? `ставка ${ante} 🪙` : 'бесплатно';
+      return `<div class="dk-seat${me ? ' me' : ''}" data-ch="${ch}">${s.k === 2 ? '🤖 ' : ''}${me ? 'Ты' : esc(s.nick)} ${mark}<small>${tag}</small></div>`;
     }).join('');
+    const humans = v.seats.filter((s) => s.k === 1);
     const occupied = v.seats.filter((s) => s.k !== 0).length;
+    const free = v.seats.length - occupied;
     const bots = v.seats.some((s) => s.k === 2);
+    const readyHumans = humans.filter((s) => s.ready).length;
     const ready = mine?.ready === true;
+    const stakers = humans.filter((s) => s.stake).length;
     let status: string;
     if (v.phase === 'count') status = `Начинаем через <b data-count>5</b>…`;
-    else if (occupied < 2) status = 'Нужно хотя бы двое: позови друга или добавь бота';
-    else status = this.resultSummary ? 'Каждый игрок подтверждает повтор отдельно' : 'Ждём, пока все нажмут «Готов»';
-    const rules = this.rulesOpen ? `<ul class="dk-rules">${RULES.map((r) => `<li>${r}</li>`).join('')}</ul>` : '';
-    // две колонки: слева — режим и места, справа — ставка, «Готов» и боты; стол за панелью остаётся виден
+    else if (occupied < 2) status = `Ждём игроков: <b>${occupied}</b> из 2<span> · позови друга или добавь бота</span>`;
+    else if (this.resultSummary) status = 'Каждый игрок подтверждает повтор отдельно';
+    else if (ready) status = `Готовы: <b>${readyHumans}</b> из ${humans.length}<span> · ждём остальных</span>`;
+    else status = `Готовы: <b>${readyHumans}</b> из ${humans.length}<span> · выбери участие и нажми «Готов»</span>`;
+    const pot = stakers
+      ? `Общая ставка <b>${stakers * ante} 🪙</b><span> · со ставкой ${stakers} из ${humans.length}</span>`
+      : `Общая ставка <b>0</b><span> · играем бесплатно</span>`;
+    const readyBtn = this.resultSummary ? '' :
+      `<button class="dk-btn big${ready ? ' on' : ''}" data-a="ready" aria-pressed="${ready}">` +
+      (ready ? `Готов ✓<small>нажми, чтобы отменить</small>` : `Готов<small>${mine?.stake ? `ставка ${ante} 🪙` : 'бесплатно'}</small>`) + `</button>`;
+    const rules = this.rulesOpen ? `<div class="dk-rulesbox"><b>Правила дурака</b><ul>${RULES.map((r) => `<li>${r}</li>`).join('')}</ul></div>` : '';
     return (
-      `<div class="dk-lcol">` +
-      `<div class="dk-lt">Дурак · стол ${this.table + 1}</div>` +
-      (this.resultSummary ? `<div class="dk-note">${this.resultSummary}</div>` : '') +
+      rules +
+      `<div class="dk-pre">` +
+      `<div class="dk-pre-head"><div class="dk-lt">Дурак · стол ${this.table + 1}</div>` +
       `<div class="dk-modes">${modes}</div>` +
-      (note ? `<div class="dk-note">${note}</div>` : '') +
-      `<div class="dk-seats">${seats}</div>` +
-      `</div><div class="dk-lcol">` +
-      this.stakeHtml(true) +
-      `<div class="dk-lbtns">` +
-      (this.resultSummary ? '' : `<button class="dk-btn big${ready ? ' on' : ''}" data-a="ready">${ready ? 'Готов ✓' : mine?.stake ? `Готов · ставка ${v.ante ?? 10}` : 'Готов · бесплатно'}</button>`) +
+      (note ? `<div class="dk-note${canMode ? ' mine' : ''}">${note}</div>` : '') +
+      `<div class="dk-pre-side"><span class="dk-balance" title="Твои жетоны">🪙 ${Number.isFinite(have) ? have : '—'}</span>` +
+      `<button class="dk-btn ghost dk-help${this.rulesOpen ? ' on' : ''}" data-a="rules" aria-pressed="${this.rulesOpen}" title="Правила">?<span> Правила</span></button></div>` +
+      (this.resultSummary ? `<div class="dk-note summary">${this.resultSummary}</div>` : '') + `</div>` +
+      `<div class="dk-pre-main">` +
+      `<div class="dk-seats">${seats}${free ? `<span class="dk-free">свободно мест: ${free}</span>` : ''}</div>` +
+      `<div class="dk-pre-row">${this.anteChips(chooser, canMode, ante)}${this.partHtml()}</div></div>` +
+      `<div class="dk-pre-act">` +
+      `<div class="dk-status" role="status">${status}</div>` +
+      `<div class="dk-pot">${pot}</div>` +
+      `<div class="dk-lbtns">${readyBtn}` +
       `<button class="dk-btn" data-a="bot"${occupied >= 6 ? ' disabled' : ''}>+ бот</button>` +
-      `<button class="dk-btn" data-a="unbot"${bots ? '' : ' disabled'}>− бот</button>` +
-      `<button class="dk-btn ghost${this.rulesOpen ? ' on' : ''}" data-a="rules">Правила</button>` +
-      `</div>` +
-      `<div class="dk-status">${status}</div>` +
-      `</div>` +
-      rules
+      `<button class="dk-btn" data-a="unbot"${bots ? '' : ' disabled'}>− бот</button></div>` +
+      `</div></div>`
     );
   }
 
-  private stakeHtml(anteControls: boolean): string {
+  /** Ставка стола фишками, как в блэкджеке: выбирает тот же, кто выбирает режим; остальным видно, какая выбрана. */
+  private anteChips(chooser: DurakSeatView | null, canChoose: boolean, ante: number): string {
+    const who = canChoose ? 'Выбери ставку стола' : chooser && chooser.k === 1 ? `Ставку стола выбирает ${esc(chooser.nick)}` : 'Ставка стола';
+    const chips = ANTES.map((amount) =>
+      `<button class="dk-chip c${amount}${amount === ante ? ' on' : ''}" data-a="ante" data-on="${amount}" aria-pressed="${amount === ante}" aria-label="Ставка стола ${amount}"${canChoose ? '' : ' disabled'}><b>${amount}</b></button>`,
+    ).join('');
+    return `<div class="dk-chipbox" title="${who}"><span class="dk-cap">Ставка стола</span><div class="dk-chips">${chips}</div></div>`;
+  }
+
+  /**
+   * Моё участие: бесплатно или со ставкой стола. Жетонов меньше ставки — ставку не включить: кнопка серая, рядом сколько нужно
+   * (сервер такую ставку тоже не примет).
+   */
+  private partHtml(): string {
     const v = this.v, mine = v?.seats[this.chair];
     if (!v || mine?.k !== 1) return '';
     const ante = v.ante ?? 10;
-    const chooser = v.modeBy === this.chair;
-    // жетонов меньше ставки стола — ставку не включить: кнопка серая, рядом сколько нужно (сервер такую ставку тоже не примет)
     const have = this.balance();
     const poor = have < ante;
     const lock = poor && !mine.stake ? ' disabled' : '';
     const why = poor ? ` title="Не хватает жетонов: нужно ${ante} 🪙, у тебя ${have} 🪙" aria-describedby="dk-need"` : '';
-    return `<div class="dk-stakes"><span>Участие</span>` +
+    return `<div class="dk-part"><span class="dk-cap">Моё участие${poor ? `<em class="dk-need" id="dk-need">нужно ${ante} 🪙</em>` : ''}</span><div class="dk-seg">` +
       `<button class="dk-btn${mine.stake ? '' : ' on'}" data-a="stake" data-on="0" aria-pressed="${!mine.stake}">Бесплатно</button>` +
-      `<button class="dk-btn${mine.stake ? ' on' : ''}" data-a="stake" data-on="1" aria-pressed="${!!mine.stake}"${lock}${why}>Со ставкой ${ante} 🪙</button>` +
-      (poor ? `<span class="dk-need" id="dk-need">нужно ${ante} 🪙</span>` : '') +
-      (anteControls ? `<div class="dk-ante"><span>Ставка стола</span>${[10,20,50].map(amount => `<button class="dk-btn${amount === ante ? ' on' : ''}" data-a="ante" data-on="${amount}" aria-pressed="${amount === ante}"${chooser ? '' : ' disabled'}>${amount}</button>`).join('')}</div>` : '') +
-      `<small>Списание при раздаче. Бесплатный победитель не получает банк — ставки возвращаются.</small></div>`;
+      `<button class="dk-btn${mine.stake ? ' on' : ''}" data-a="stake" data-on="1" aria-pressed="${!!mine.stake}"${lock}${why}>Со ставкой ${ante} 🪙</button></div></div>`;
+  }
+
+  /** После партии (повтор): моё участие и подсказка о списании. */
+  private stakeHtml(): string {
+    const v = this.v, mine = v?.seats[this.chair];
+    if (!v || mine?.k !== 1) return '';
+    return `<div class="dk-stakes">${this.partHtml()}<small>Списание при раздаче. Бесплатный победитель не получает банк — ставки возвращаются.</small></div>`;
   }
 
   private rematchHtml(): string {
@@ -525,7 +563,7 @@ export class DurakHud {
     if (v.phase === 'count') status = 'Начинаем через <b data-count>5</b>…';
     else if (ready && v.phase === 'result' && agreed === humans.length) status = 'Повтор начнётся после показа итога';
     else if (v.phase === 'wait' && v.seats.filter((s) => s.k !== 0).length < 2) status = 'Позови друга или добавь бота';
-    return (v.phase === 'result' ? this.stakeHtml(false) : '') + `<div class="dk-status" role="status">${status}</div>` +
+    return (v.phase === 'result' ? this.stakeHtml() : '') + `<div class="dk-status" role="status">${status}</div>` +
       `<button class="dk-btn big${ready ? ' on' : ''}" data-a="ready" aria-pressed="${ready}">${ready ? 'Отменить готовность' : 'Повторить партию'}</button>`;
   }
 

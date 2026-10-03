@@ -3332,23 +3332,6 @@ input[type='checkbox'] {
   font-size: 18px;
 }
 
-.dk-rules {
-  margin: 0;
-  padding: 10px 12px 10px 28px;
-  border-radius: 12px;
-  background: rgba(255, 240, 220, 0.06);
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--cream-2);
-}
-
-.dk-rules li + li {
-  margin-top: 4px;
-}
-
-.dk-rules b {
-  color: var(--cream);
-}
 
 /* --- в партии: что делать, кнопки, рука */
 
