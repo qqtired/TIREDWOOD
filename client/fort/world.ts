@@ -3,7 +3,6 @@
 // камень), двор — брусчатка; живое (ворота, кристалл, краскомёты, колокол, лужи варенья, таблички) — в props.ts.
 // Статика склеена по материалам, тени от солнца считаются один раз (и заново — когда ворота падают или встают).
 import * as THREE from 'three';
-import { WATER_Y } from '../../shared/constants.ts';
 import { FORT, GATE, INSIDE, ROADS, THROAT_Z, type FortMap } from '../../shared/fortmap.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
@@ -13,6 +12,7 @@ import type { Quality } from '../settings.ts';
 import { fogColor, makeSea, makeSky, type SkyPalette } from '../render/sky.ts';
 import * as rtex from '../render/textures.ts';
 import { FortProps } from './props.ts';
+import { buildShore } from './shore.ts';
 import * as tex from './textures.ts';
 
 /**
@@ -93,7 +93,7 @@ export class FortWorld {
     this.buildRoads();
     this.buildWalls(map);
     this.buildYardProps(map);
-    this.buildShore();
+    buildShore(this.scene);
     this.buildForest();
     this.buildFar();
     buildDeco(scene, map.deco, this.floaters);
@@ -313,27 +313,6 @@ export class FortWorld {
   }
 
   // ------------------------------------------------------------ берег, лес, даль
-
-  /** Скалистый берег на юге: кромка луга обрывается к воде валунами, в воде — камни. */
-  private buildShore(): void {
-    const rng = makeRng(23);
-    const rocks: THREE.BufferGeometry[] = [];
-    const rock = (x: number, y: number, z: number, r: number, c: number) => {
-      const g = new THREE.IcosahedronGeometry(r, 0);
-      g.scale(1 + rng() * 0.6, 0.55 + rng() * 0.35, 1 + rng() * 0.5);
-      g.rotateY(rng() * Math.PI);
-      rocks.push(place(paint(g, new THREE.Color(c).multiplyScalar(0.85 + rng() * 0.25)), x, y, z));
-    };
-    // обрыв: стенка от края луга к воде
-    const cliff = new THREE.PlaneGeometry(900, 1.8);
-    cliff.translate(0, WATER_Y + 0.35, 24);
-    rocks.push(paint(cliff, 0x8f8574));
-    for (let x = -260; x < 260; x += 1.6 + rng() * 1.8) {
-      rock(x, -0.3 - rng() * 0.6, 24.4 + rng() * 1.6, 0.8 + rng() * 1.3, 0x9b917e);
-      if (rng() < 0.35) rock(x + rng(), WATER_Y + 0.1, 26.5 + rng() * 4, 0.5 + rng() * 1.1, 0x857b6a);
-    }
-    this.scene.add(staticMesh(mergeColored(rocks), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }), false));
-  }
 
   /**
    * Лес по краю поля: из него выходят зомби. Деревья — инстансы (ствол и две кроны); у дорог — просеки.
