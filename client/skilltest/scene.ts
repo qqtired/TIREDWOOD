@@ -7,12 +7,13 @@ import { TAU, clamp } from '../../shared/math.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import { E_ALIVE, E_GROUNDED, encodeInputs } from '../../shared/protocol.ts';
 import { makeInput, type StepEvents } from '../../shared/sim.ts';
-import { SKILL_KNOCK_TICKS, SkillDynamics, makeSackPose, sackAt } from '../../shared/skillphysics.ts';
+import { SKILL_KNOCK_TICKS, SkillDynamics, makeSackPose, moverAt, sackAt, type P3 } from '../../shared/skillphysics.ts';
 import {
   SKILL_COUNT_TICKS, SKILL_COURSE, SKILL_GOLD_TICKS, SKILL_MEDALS, SKILL_SECTIONS, SKILL_SILVER_TICKS, makeSkillProgress, skillClock,
   skillMedal, skillTime, type SkillPeer, type SkillProgress, type SkillRaceView, type SkillServerMsg,
 } from '../../shared/skilltest.ts';
 import { CRUMBLE_SPEED, crumbleFront, crumbleReformIn, ramState, windState, type RamPhase } from '../../shared/skilltraps.ts';
+import { ClockSync } from '../net.ts';
 import { Predictor } from '../predict.ts';
 import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
@@ -25,6 +26,15 @@ import { SkillWorld } from './world.ts';
 
 type StateMsg = Extract<SkillServerMsg, { t: 'skill_state' }>;
 type V3 = [number, number, number];
+
+/** Положение чужого в его времени подвижного (vt — метка его входа) */
+interface PeerSample { t: number; x: number; y: number; z: number; yaw: number; g: number }
+/** История чужого и на сколько тиков его время отстаёт от тика сервера (сглажено) */
+interface PeerTrack { s: PeerSample[]; lag: number }
+
+/** Состояние приходит раз в 6 тиков: часы отрисовки держим позади хотя бы на столько, плюс запас на дрожание сети */
+const MIN_DELAY = 7.5;
+const STEP = 1 / 60;
 
 /** Сбитый кувыркается столько секунд (сальто вокруг середины тела) */
 const TUMBLE_S = 0.7;
@@ -72,8 +82,18 @@ export class SkillScene implements Scene {
   private seq = 0;
   private acc = 0;
   private tick = 0;
-  private receivedAt = 0;
+  /** Время картинки (тики с дробью): подвижное и своя желейка — между двумя последними шагами */
   private viewTick = 0;
+  /** Часы отрисовки по приходу состояний (как на набережной): идут ровно, без рывков от сети */
+  private clock = new ClockSync(MIN_DELAY);
+  /** Метки двух последних входов и последняя отправленная */
+  private vt0 = 0;
+  private vt1 = 0;
+  private lastVt = 0;
+  private readonly tracks = new Map<number, PeerTrack>();
+  private readonly peerPose: PeerSample = { t: 0, x: 0, y: 0, z: 0, yaw: 0, g: 0 };
+  private readonly mp0: P3 = { x: 0, y: 0, z: 0 };
+  private readonly mp1: P3 = { x: 0, y: 0, z: 0 };
   private hudAt = 0;
   private shake = 0;
   private countText = '';
@@ -126,6 +146,9 @@ export class SkillScene implements Scene {
     this.seq = 0;
     this.acc = 0;
     this.viewTick = 0;
+    this.clock = new ClockSync(MIN_DELAY);
+    this.vt0 = this.vt1 = this.lastVt = 0;
+    this.tracks.clear();
     this.lock = 0;
     this.racer = false;
     this.race = noRace();
@@ -195,7 +218,8 @@ export class SkillScene implements Scene {
     const first = !this.ready;
     this.myId = msg.id;
     this.tick = msg.tick;
-    this.receivedAt = performance.now();
+    this.clock.addSample(msg.tick, performance.now());
+    this.trackPeers(msg);
     this.racer = msg.peers.some((p) => p.id === msg.id && p.racer);
     this.race = msg.race;
     this.best = msg.best;
@@ -261,34 +285,41 @@ export class SkillScene implements Scene {
   frame(now: number, dt: number): void {
     if (!this.active) return;
     const cam = this.world.camera;
-    if (!this.ready) {
+    if (!this.ready || !this.clock.ready) {
       cam.position.set(-30, 14, 30);
       cam.lookAt(0, 30, 0);
       this.world.render();
       return;
     }
-    // Часы мира: оценка тика сервера минус задержка показа. Метка входа — подсказка; сервер её зажмёт ещё раз.
-    const estimated = this.tick + Math.min(12, Math.max(0, (now - this.receivedAt) * 0.06)) - 6;
-    this.viewTick = Math.max(this.viewTick, quantTick(Math.max(0, estimated)));
+    // Часы мира идут ровно (ClockSync); метка входа — подсказка, сервер её зажмёт ещё раз.
+    this.clock.update(now, dt * 1000);
     const input = this.d.input;
     // Зажимаем и накопленный угол: развернуть взгляд от предела можно сразу.
     input.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, input.pitch));
     this.dynamics.lockUntil = this.lock;
     this.acc = Math.min(0.15, this.acc + dt);
-    while (this.acc >= 1 / 60) {
-      this.acc -= 1 / 60;
+    while (this.acc >= STEP) {
+      this.acc -= STEP;
       const inp = this.inputs[0];
       inp.seq = ++this.seq;
       inp.buttons = input.sample();
       inp.yaw = Math.fround(input.yaw);
       inp.pitch = Math.fround(input.pitch);
-      inp.viewTick = this.viewTick;
+      // время шага — часы на момент этого шага: шаги ровно через тик, площадка под ногами едет без рывков
+      const vt = quantTick(Math.max(0, this.clock.renderTick - this.acc * 60));
+      inp.viewTick = vt > this.lastVt ? vt : this.lastVt;
+      this.lastVt = inp.viewTick;
+      this.vt0 = this.vt1 > 0 ? this.vt1 : inp.viewTick;
+      this.vt1 = inp.viewTick;
       this.stepFx(this.predictor.step(inp, false));
       this.d.net.sendBinary(encodeInputs(this.inputs, 0, 1, this.d.net.epoch));
     }
+    // картинка — между двумя последними шагами: своя желейка и всё подвижное в одном и том же времени
+    const alpha = Math.min(1, this.acc * 60);
+    this.viewTick = this.vt1 > 0 ? this.vt0 + (this.vt1 - this.vt0) * alpha : Math.max(0, this.clock.renderTick);
     this.predictor.decay(dt);
-    const s = this.predictor.state, off = this.predictor.offset;
-    const pos = this.cameraPos.set(s.x + off.x, s.y + off.y, s.z + off.z);
+    const s = this.predictor.state, pr = this.predictor.prev, off = this.predictor.offset;
+    const pos = this.cameraPos.set(pr.x + (s.x - pr.x) * alpha + off.x, pr.y + (s.y - pr.y) * alpha + off.y, pr.z + (s.z - pr.z) * alpha + off.z);
     // подвижные боксы — на время картинки, тогда и камера не проходит сквозь люльку
     this.dynamics.place(this.viewTick);
     this.cam.follow(cam, dt, pos.x, pos.y, pos.z, input.yaw, input.pitch, this.world.collision, skyVfov(this.d.settings.fov));
@@ -346,18 +377,98 @@ export class SkillScene implements Scene {
       const a = this.avatars.get(p.id), pose = this.poses.get(p.id);
       if (!a || !pose) continue;
       const local = p.id === this.myId;
-      const tx = local ? pos.x : p.x, ty = local ? pos.y : p.y, tz = local ? pos.z : p.z;
-      const snap = Math.hypot(pose.x - tx, pose.y - ty, pose.z - tz) > 8;
-      const blend = local || snap ? 1 : 1 - Math.exp(-dt * 16);
-      pose.x += (tx - pose.x) * blend;
-      pose.y += (ty - pose.y) * blend;
-      pose.z += (tz - pose.z) * blend;
-      pose.yaw = local ? this.d.input.yaw : p.yaw;
-      pose.flags = E_ALIVE | ((local ? s.grounded : p.grounded) ? E_GROUNDED : 0);
+      let grounded = s.grounded;
+      if (local) {
+        pose.x = pos.x;
+        pose.y = pos.y;
+        pose.z = pos.z;
+        pose.yaw = this.d.input.yaw;
+      } else {
+        const q = this.peerAt(p.id);
+        if (!q) continue;
+        pose.x = q.x;
+        pose.y = q.y;
+        pose.z = q.z;
+        pose.yaw = q.yaw;
+        grounded = q.g;
+      }
+      pose.flags = E_ALIVE | (grounded ? E_GROUNDED : 0);
       a.setLevel(local ? this.d.ui.me().level : p.level);
       a.update(pose, dt, now / 1000, this.world.collision, this.world.camera.position, local);
       this.tumble(a, p.id, local ? s.fireCd : p.knock, dt, local, pose);
     }
+  }
+
+  /** Положения чужих — в историю, по их времени подвижного (vt); телепорт (упал, «к точке») — история заново. */
+  private trackPeers(msg: StateMsg): void {
+    const ids = new Set<number>();
+    for (const q of msg.peers) {
+      if (q.id === msg.id) continue;
+      ids.add(q.id);
+      const t = q.vt ?? msg.tick;
+      let tr = this.tracks.get(q.id);
+      if (!tr) this.tracks.set(q.id, (tr = { s: [], lag: msg.tick - t }));
+      tr.lag += (msg.tick - t - tr.lag) * 0.1;
+      const s = tr.s, last = s[s.length - 1];
+      const sample: PeerSample = { t, x: q.x, y: q.y, z: q.z, yaw: q.yaw, g: q.grounded };
+      if (last && (t < last.t || Math.hypot(q.x - last.x, q.y - last.y, q.z - last.z) > 6)) {
+        s.length = 0;
+        tr.lag = msg.tick - t;
+      }
+      const prev = s[s.length - 1];
+      if (prev && prev.t === t) Object.assign(prev, sample);
+      else s.push(sample);
+      if (s.length > 16) s.shift();
+    }
+    for (const id of this.tracks.keys()) if (!ids.has(id)) this.tracks.delete(id);
+  }
+
+  /**
+   * Где рисовать чужого: его история в его времени, позади на задержку часов (без угадывания вперёд). Стоит на
+   * подвижной площадке или на карусели — едет с ней до времени картинки, а не висит рядом.
+   */
+  private peerAt(id: number): PeerSample | null {
+    const tr = this.tracks.get(id);
+    if (!tr || !tr.s.length) return null;
+    const s = tr.s, out = this.peerPose;
+    const pt = this.clock.renderTick - tr.lag;
+    let a = s[0], b = s[0], k = 0;
+    if (pt >= s[s.length - 1].t) a = b = s[s.length - 1];
+    else if (pt > s[0].t) {
+      let i = 0;
+      while (i + 1 < s.length && s[i + 1].t <= pt) i++;
+      a = s[i];
+      b = s[i + 1];
+      k = (pt - a.t) / Math.max(1e-6, b.t - a.t);
+    }
+    out.t = a === b ? a.t : pt;
+    out.x = a.x + (b.x - a.x) * k;
+    out.y = a.y + (b.y - a.y) * k;
+    out.z = a.z + (b.z - a.z) * k;
+    let dy = b.yaw - a.yaw;
+    dy -= Math.round(dy / TAU) * TAU;
+    out.yaw = a.yaw + dy * k;
+    out.g = k < 0.5 ? a.g : b.g;
+    const map = this.world.map, t1 = this.viewTick, t0 = out.t;
+    if (out.g && t1 !== t0) {
+      for (const m of map.movers) {
+        const p0 = moverAt(m, t0, this.mp0);
+        if (Math.abs(out.y - p0.y) > 0.06 || Math.abs(out.x - p0.x) > m.w / 2 + 0.42 || Math.abs(out.z - p0.z) > m.d / 2 + 0.42) continue;
+        const p1 = moverAt(m, t1, this.mp1);
+        out.x += p1.x - p0.x;
+        out.y += p1.y - p0.y;
+        out.z += p1.z - p0.z;
+        return out;
+      }
+      const d = map.disc, rx = out.x - d.cx, rz = out.z - d.cz;
+      if (Math.abs(out.y - d.top) < 0.06 && rx * rx + rz * rz < d.r * d.r) {
+        const an = (TAU * (t1 - t0)) / d.period, c = Math.cos(an), sn = Math.sin(an);
+        out.x = d.cx + rx * c - rz * sn;
+        out.z = d.cz + rx * sn + rz * c;
+        out.yaw -= an;
+      }
+    }
+    return out;
   }
 
   /** Сбили — сальто вокруг середины тела, «бумс» и звёздочки. knock — сколько тиков ещё кувыркаться. */

@@ -226,12 +226,12 @@ export class SkillWorld {
     b.span('brick', 0xc98a63, s.x0 + 0.2, -26, s.z0 + 0.2, s.x1 - 0.2, s.y - 0.8, s.z1 - 0.2);
     for (let y = -20; y < -2; y += 5) for (let z = s.z0 + 1.5; z < s.z1 - 1; z += 2.6) b.span('glass', C.glass, s.x0 + 0.1, y, z, s.x0 + 0.2, y + 2, z + 1.3);
     this.map.slots.forEach((sl, i) => {
-      b.span('paint', C.trim, sl.x - 0.7, s.y + 0.005, sl.z - 0.75, sl.x + 0.7, s.y + 0.02, sl.z - 0.67);
-      b.span('paint', C.trim, sl.x - 0.7, s.y + 0.005, sl.z + 0.67, sl.x + 0.7, s.y + 0.02, sl.z + 0.75);
+      b.span('paint', C.trim, sl.x - 0.7, s.y + 0.012, sl.z - 0.75, sl.x + 0.7, s.y + 0.03, sl.z - 0.67);
+      b.span('paint', C.trim, sl.x - 0.7, s.y + 0.012, sl.z + 0.67, sl.x + 0.7, s.y + 0.03, sl.z + 0.75);
       const n = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: signTexture(String(i + 1), '', 128, 128, '#3f8ad4'), transparent: true }));
       // лёжа на крыше, верх цифры — по ходу бега (+x): читается из-за спины
       n.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
-      n.position.set(sl.x - 1.3, s.y + 0.03, sl.z);
+      n.position.set(sl.x - 1.3, s.y + 0.045, sl.z);
       this.scene.add(n);
     });
     // арка «Старт» на краю крыши
@@ -304,8 +304,8 @@ export class SkillWorld {
       if (n >= 2) break;
       if (Math.abs(x) < SKILL_TOWER.half + 0.4 && Math.abs(z) < SKILL_TOWER.half + 0.4) continue;
       if (this.map.movers.some((m) => this.moverSwept(m, x, z, bottom))) continue;
-      // столб не встаёт на площадку ниже: там бегают — только в облака мимо всех площадок
-      if (this.map.boxes.some((bx) => bx.max[1] < bottom - 0.1 && x > bx.min[0] - 0.2 && x < bx.max[0] + 0.2 && z > bx.min[2] - 0.2 && z < bx.max[2] + 0.2)) continue;
+      // столб не встаёт на площадку ниже и не идёт вплотную к её краю: там бегают — только в облака мимо всех площадок
+      if (this.map.boxes.some((bx) => bx.max[1] < bottom - 0.1 && x > bx.min[0] - 0.6 && x < bx.max[0] + 0.6 && z > bx.min[2] - 0.6 && z < bx.max[2] + 0.6)) continue;
       b.beam('wood', C.woodDark, [x, SEA_Y + 1, z], [x, bottom, z], 0.1, 6);
       n++;
     }
@@ -335,12 +335,13 @@ export class SkillWorld {
     const vs = hi - lo > 1.6 ? [lo + 0.35, hi - 0.35] : [(lo + hi) / 2];
     const drop = Math.min(3, 1.4 + (f.u1 - half) * 0.35);
     let n = 0;
+    const wall = new Set(this.map.pads.filter((p) => p.look === 'tower' || p.look === 'belfry').map((p) => p.box));
     for (const v of vs) {
       const outer = f.u0 + (f.u1 - f.u0) * 0.7;
-      const a = P(half, bottom - drop, v), c = P(outer, bottom - 0.12, v);
-      // подкос не должен пройти сквозь площадку ниже или путь подвижного
-      const xa = Math.min(a[0], c[0]) - 0.1, xb = Math.max(a[0], c[0]) + 0.1, za = Math.min(a[2], c[2]) - 0.1, zb = Math.max(a[2], c[2]) + 0.1;
-      const hit = this.map.boxes.some((bx) => bx.max[1] > bottom - drop && bx.max[1] < bottom - 0.2 && bx.max[0] > xa && bx.min[0] < xb && bx.max[2] > za && bx.min[2] < zb);
+      const a = P(half, bottom - drop, v), c = P(outer, bottom - 0.12, v), e = P(f.u1 - 0.25, bottom - 0.1, v);
+      // балка и подкос не должны пройти ни сквозь соседний настил (выше или ниже), ни через путь подвижного
+      const xa = Math.min(a[0], c[0], e[0]) - 0.15, xb = Math.max(a[0], c[0], e[0]) + 0.15, za = Math.min(a[2], c[2], e[2]) - 0.15, zb = Math.max(a[2], c[2], e[2]) + 0.15;
+      const hit = this.map.boxes.some((bx, i) => !wall.has(i) && bx.max[1] > bottom - drop - 0.05 && bx.min[1] < bottom - 0.05 && bx.max[0] > xa && bx.min[0] < xb && bx.max[2] > za && bx.min[2] < zb);
       if (hit || this.map.movers.some((m) => this.moverSwept(m, c[0], c[2], bottom - drop))) continue;
       b.beam('wood', C.woodDark, P(half, bottom - 0.1, v), P(f.u1 - 0.25, bottom - 0.1, v), 0.09, 6);
       b.beam('wood', C.woodDark, a, c, 0.08, 6);
@@ -396,7 +397,8 @@ export class SkillWorld {
         floor.span('paint', C.red, -m.w / 2, -0.05, z - 0.05, m.w / 2, 0.05, z + 0.05);
       }
       floor.span('paint', C.red, -0.08, hang - 0.08, -m.d / 2 - 0.2, 0.08, hang + 0.08, m.d / 2 + 0.2);
-      floor.flush(root, this.mats);
+      // подвижное тень не отбрасывает: карта теней статична (renderer), тень застыла бы на месте
+      floor.flush(root, this.mats, false);
       this.scene.add(root);
       this.gondolas.push(root);
     }
@@ -421,7 +423,7 @@ export class SkillWorld {
       rope.position.y = -(k.len - k.r * 0.9) / 2;
       const bag = new THREE.Mesh(new THREE.CapsuleGeometry(k.r * 0.86, k.r * 0.7, 6, 14), bagMat);
       bag.position.y = -k.len;
-      bag.castShadow = true;
+      bag.castShadow = false;
       const knot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: 0x6b4f33 }));
       knot.position.y = -k.len + k.r * 1.15;
       pivot.add(rope, bag, knot);
@@ -455,7 +457,6 @@ export class SkillWorld {
       const cap = new THREE.Mesh(new THREE.BoxGeometry(0.12, (r.y1 - r.y0) * 0.8, r.w * 0.85), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.7 }));
       cap.position.x = r.dx * 0.6;
       root.add(log, head, cap);
-      root.traverse((o) => { if (o instanceof THREE.Mesh) o.castShadow = true; });
       root.position.set(r.fx, (r.y0 + r.y1) / 2, r.fz);
       this.scene.add(root);
       const lampMat = new THREE.MeshStandardMaterial({ color: 0x5a1612, emissive: 0xff2a1a, emissiveIntensity: 0, roughness: 0.3 });
@@ -463,8 +464,8 @@ export class SkillWorld {
       lamp.position.set(r.fx - 0.05, r.y1 + 0.6, r.fz);
       this.scene.add(lamp);
       // предупреждающая разметка на полу полосы удара
-      b.span('paint', C.red, r.fx - r.stroke, r.y0 - 0.24, r.fz - r.w / 2 - 0.02, r.fx, r.y0 - 0.235, r.fz - r.w / 2 + 0.1);
-      b.span('paint', C.red, r.fx - r.stroke, r.y0 - 0.24, r.fz + r.w / 2 - 0.1, r.fx, r.y0 - 0.235, r.fz + r.w / 2 + 0.02);
+      b.span('paint', C.red, r.fx - r.stroke, r.y0 - 0.235, r.fz - r.w / 2 - 0.02, r.fx, r.y0 - 0.215, r.fz - r.w / 2 + 0.1);
+      b.span('paint', C.red, r.fx - r.stroke, r.y0 - 0.235, r.fz + r.w / 2 - 0.1, r.fx, r.y0 - 0.215, r.fz + r.w / 2 + 0.02);
       this.rams.push({ root, lamp: lampMat, dx: r.dx, fx: r.fx, puff: 0, last: 'rest' });
       // ход тарана — как часть геометрии: r.stroke, r.dx
       (root.userData as { stroke: number }).stroke = r.stroke;
@@ -479,7 +480,7 @@ export class SkillWorld {
       const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.12, transparent: true, opacity: 1 });
       const geo = puffGeometry((r.x1 - r.x0) * 0.62, 0.55, (r.z1 - r.z0) * 0.62, 77 + i * 13, 8);
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
+      mesh.castShadow = false;
       const root = new THREE.Group();
       root.add(mesh);
       const x = (r.x0 + r.x1) / 2, z = (r.z0 + r.z1) / 2;
@@ -584,7 +585,7 @@ export class SkillWorld {
     body.span('paint', C.safe, -m.w / 2, -0.55, -m.d / 2, m.w / 2, -0.12, m.d / 2);
     body.span('paint', C.trim, -m.w / 2 - 0.02, -0.16, -m.d / 2 - 0.02, m.w / 2 + 0.02, -0.08, m.d / 2 + 0.02);
     for (const sx of [-0.8, 0.8]) for (const sz of [-0.9, 0.9]) body.cyl('metal', 0x2f3337, sx, -0.5, sz, 0.18, 0.12, 10);
-    body.flush(this.cart, this.mats);
+    body.flush(this.cart, this.mats, false);
     const top = new THREE.Mesh(new THREE.BoxGeometry(m.w - 0.2, 0.12, m.d - 0.2), new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.5, emissive: 0x4a3600, emissiveIntensity: 0.25 }));
     top.position.y = -0.06;
     this.cart.add(top);
@@ -620,7 +621,7 @@ export class SkillWorld {
     for (const bm of this.map.bumpers) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(bm.rad, bm.rad, bm.y1 - bm.y0, 16), this.stripeMat);
       post.position.set(Math.cos(bm.a0) * bm.r0, (bm.y1 - bm.y0) / 2, Math.sin(bm.a0) * bm.r0);
-      post.castShadow = true;
+      post.castShadow = false;
       const topCap = new THREE.Mesh(new THREE.SphereGeometry(bm.rad, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: C.red, roughness: 0.4 }));
       topCap.position.set(post.position.x, bm.y1 - bm.y0, post.position.z);
       this.disc.add(post, topCap);
@@ -631,7 +632,7 @@ export class SkillWorld {
     const bar = this.map.bar;
     const beam = new THREE.Mesh(new THREE.BoxGeometry(bar.len * 2, bar.y1 - bar.y0, bar.r * 2), this.stripeMat);
     beam.position.y = (bar.y0 + bar.y1) / 2 - d.top;
-    beam.castShadow = true;
+    beam.castShadow = false;
     const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 1.6, 16), new THREE.MeshStandardMaterial({ color: C.red, roughness: 0.4 }));
     hub.position.y = 0.8;
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 10), new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.4 }));
@@ -655,7 +656,7 @@ export class SkillWorld {
       body.span('wood', 0x7a5129, -m.w / 2 - 0.05, -0.02, m.d / 2 - 0.07, m.w / 2 + 0.05, 0.12, m.d / 2 + 0.05);
       // стропы к шару — по углам, снаружи
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) body.beam('wood', 0x6b4f33, [sx * (m.w / 2 + 0.05), 0, sz * (m.d / 2 + 0.05)], [sx * 1.2, 5.4, sz * 1.2], 0.03, 4);
-      body.flush(root, this.mats);
+      body.flush(root, this.mats, false);
       // шар: полосатый купол
       const pair = colors[this.baskets.length % 2];
       const env = new THREE.SphereGeometry(3.1, 24, 16);
@@ -691,7 +692,8 @@ export class SkillWorld {
       top.position.y = -0.05;
       const body = new THREE.Mesh(new THREE.BoxGeometry(w - 0.04, 0.35, d - 0.04), side);
       body.position.y = -0.27;
-      top.castShadow = body.castShadow = true;
+      // ступени осыпаются — тень от них застыла бы на стене каланчи
+      top.castShadow = body.castShadow = false;
       top.receiveShadow = true;
       g.add(top, body);
       g.position.set((r.x0 + r.x1) / 2, r.y, (r.z0 + r.z1) / 2);
@@ -720,7 +722,7 @@ export class SkillWorld {
     crown.position.y = 0.12;
     this.bell.add(shell, tongue, crown);
     this.bell.position.set(0, bell.y1 + 0.2, 0);
-    this.bell.traverse((o) => { if (o instanceof THREE.Mesh) o.castShadow = true; });
+
     this.scene.add(this.bell);
   }
 
@@ -751,7 +753,10 @@ export class SkillWorld {
       // табличка участка: номер и название — у начала участка
       const sec = SKILL_SECTIONS[Math.min(i, SKILL_SECTIONS.length - 1)];
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.49), new THREE.MeshBasicMaterial({ map: signTexture(`${i + 1}. ${sec.name}`, `флажок ${i}`, 512, 192), side: THREE.DoubleSide }));
-      sign.position.set(fx, cp.y + 1.35, fz);
+      // табличка висит на столбе сбоку (к середине площадки), а не насквозь
+      const ax = Math.cos(cp.yaw), az = -Math.sin(cp.yaw);
+      const side = (((cp.x0 + cp.x1) / 2 - fx) * ax + ((cp.z0 + cp.z1) / 2 - fz) * az) >= 0 ? 1 : -1;
+      sign.position.set(fx + ax * side * 0.72, cp.y + 1.35, fz + az * side * 0.72);
       sign.rotation.y = cp.yaw;
       this.scene.add(sign);
     });
@@ -793,8 +798,11 @@ export class SkillWorld {
       const v = this.sacks[i];
       if (k.axis === 'z') v.pivot.rotation.x = -s.a;
       else v.pivot.rotation.z = s.a;
-      const hh = Math.max(0, s.y - v.floorY);
-      v.shadow.position.set(s.x, v.floorY + 1.2 + 0.03, s.z);
+      // пятно — на настиле прямо под мешком; над пропастью его нет
+      const floor = this.collision.groundBelow(s.x, s.y - k.r, s.z);
+      v.shadow.visible = floor > s.y - 9;
+      const hh = Math.max(0, s.y - floor);
+      v.shadow.position.set(s.x, floor + 0.035, s.z);
       const near = THREE.MathUtils.clamp(1 - hh / 5, 0, 1);
       (v.shadow.material as THREE.MeshBasicMaterial).opacity = 0.12 + 0.3 * near;
       v.shadow.scale.setScalar(0.7 + 0.5 * near);

@@ -345,7 +345,7 @@ export class SkillGame {
       return {
         id: p.id, pid: p.pid, level: p.level, nick: p.nick, outfit: p.outfit, x: p.state.x, y: p.state.y, z: p.state.z, yaw: p.yaw,
         grounded: p.state.grounded, checkpoint: pr.checkpoint, finished: pr.finishedAt !== null, racer: this.race.racers.has(p.pid),
-        ticks: Math.max(0, ticks), knock: p.state.fireCd,
+        ticks: Math.max(0, ticks), knock: p.state.fireCd, vt: Number.isFinite(p.prevTick) ? p.prevTick : this.tick,
       };
     });
   }

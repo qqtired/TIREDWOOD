@@ -35,7 +35,7 @@ const REAL_FRAMES = 2;
 const FAIL_RETRY_MS = 2500;
 const FAIL_FIRST_MS = 2100;
 /** Режимы со своим крупным отсчётом на старте */
-const OWN_COUNT: ReadonlySet<RoomKind> = new Set(['race']);
+const OWN_COUNT: ReadonlySet<RoomKind> = new Set(['race', 'skill']);
 
 type Phase = 'idle' | 'out' | 'build' | 'warm' | 'frames' | 'in' | 'fail';
 
