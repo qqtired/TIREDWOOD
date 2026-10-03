@@ -16,13 +16,16 @@ export interface NpcDialogHost {
 }
 
 const FREE = 'бесплатно — на «Удалой»: колокол у калитки на корме';
+const NOTE = 'или бесплатно — колокол у калитки на корме';
 
 export class SanyaHome {
   private readonly dialog: NpcDialogHost;
   private readonly tokens: () => number;
   private readonly send: (msg: ClientMsg) => void;
   private readonly toast: (text: string) => void;
+  private readonly box: HTMLElement;
   private readonly btn: HTMLButtonElement;
+  private readonly note: HTMLElement;
   /** Ждём ответа сервера (таймер на случай, если ответ не пришёл) */
   private pending = 0;
 
@@ -31,23 +34,32 @@ export class SanyaHome {
     this.tokens = tokens;
     this.send = send;
     this.toast = toast;
-    const b = this.btn = dialog.extra.appendChild(document.createElement('button'));
+    this.box = dialog.extra.appendChild(document.createElement('div'));
+    this.box.className = 'bk-homebox';
+    this.box.hidden = true;
+    const b = this.btn = this.box.appendChild(document.createElement('button'));
     b.type = 'button';
     b.className = 'fn-action bk-home';
-    b.hidden = true;
     setCoinText(b, `⛵ Домой, к Семёну · ${SANYA_PRICE} 🪙`);
     b.addEventListener('click', () => this.go());
+    this.note = this.box.appendChild(document.createElement('small'));
+    this.note.className = 'bk-homenote';
     window.setInterval(() => { if (this.dialog.isOpen) this.refresh(); }, 500);
   }
 
   /** Показать (только у Сани) и включить по деньгам */
   refresh(): void {
     const sanya = this.dialog.who === 'sanya';
-    this.btn.hidden = !sanya;
+    this.box.hidden = !sanya;
     if (!sanya) return;
     const short = SANYA_PRICE - this.tokens();
     this.btn.disabled = this.pending !== 0 || short > 0;
     this.btn.title = short > 0 ? `Не хватает ${short} 🪙 · ${FREE}` : `Саня свистнет знакомому катеру — и ты сразу на мостках у Семёна. Или ${FREE}`;
+    const note = short > 0 ? `Не хватает ${short} 🪙 · бесплатно — колокол у калитки` : NOTE;
+    if (this.note.dataset.t !== note) {
+      this.note.dataset.t = note;
+      setCoinText(this.note, note);
+    }
   }
 
   /** Ответ сервера (barkasHome) */
