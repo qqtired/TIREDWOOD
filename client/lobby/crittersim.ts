@@ -78,6 +78,15 @@ function legPoint(a: CritterStop, b: CritterStop, u: number, r: number, out: { x
   return out;
 }
 
+const Q0 = { x: 0, y: 0, z: 0 }, Q1 = { x: 0, y: 0, z: 0 };
+/** Heading along a leg at u: straight legs keep their bearing, flights follow the curve (so take-off and landing turn smoothly). */
+function legHeading(a: CritterStop, b: CritterStop, u: number, duration: number): number {
+  if (b.travel !== 'fly') return Math.atan2(-(b.x - a.x), -(b.z - a.z));
+  const r = Math.min(0.18, 0.5 / duration), e = 0.004, uc = Math.min(0.96, Math.max(0.04, u));
+  const p0 = legPoint(a, b, uc - e, r, Q0), x0 = p0.x, z0 = p0.z, p1 = legPoint(a, b, uc + e, r, Q1);
+  return Math.atan2(-(p1.x - x0), -(p1.z - z0));
+}
+
 export function sampleCritter(def: CritterDef, tick: number, out: CritterPose = newPose()): CritterPose {
   const cycle = periods.get(def.id)!;
   const absolute = Math.max(0, Number.isFinite(tick) ? tick : 0) / TICK_RATE + def.phase;
@@ -85,7 +94,7 @@ export function sampleCritter(def: CritterDef, tick: number, out: CritterPose = 
   const n = def.stops.length;
   for (let i = 0; i < n; i++) {
     const a = def.stops[i], b = def.stops[(i + 1) % n], prev = def.stops[(i + n - 1) % n], duration = cycle.legs[i];
-    const outgoing = Math.atan2(-(b.x - a.x), -(b.z - a.z)), incoming = Math.atan2(-(a.x - prev.x), -(a.z - prev.z));
+    const outgoing = legHeading(a, b, 0.04, duration), incoming = legHeading(prev, a, 0.96, cycle.legs[(i + n - 1) % n]);
     if (t < a.hold) {
       const resting = a.yaw ?? incoming;
       const yaw = t < 0.65 ? angle(incoming, resting, t / 0.65) : angle(resting, outgoing, (t - a.hold + 0.85) / 0.85);
@@ -104,7 +113,7 @@ export function sampleCritter(def: CritterDef, tick: number, out: CritterPose = 
       const progress = u < r ? u * u / (2 * r * (1 - r)) : u > 1 - r ? 1 - (1 - u) ** 2 / (2 * r * (1 - r)) : (u - r / 2) / (1 - r);
       Object.assign(out, {
         x, y, z,
-        yaw: fly && horizontal > 0.05 ? Math.atan2(-vx, -vz) : outgoing,
+        yaw: fly ? legHeading(a, b, u, duration) : outgoing,
         pitch: fly ? Math.atan2(vy, Math.max(horizontal, 0.4)) : 0,
         action: fly ? 'fly' : 'walk', mood: 'none', rest: null, moving: true, airborne: fly || hop, phase: progress,
         distance: distance + cycle.lengths[i] * progress, speed: horizontal, restWeight: 0, age: t, remaining: duration - t,

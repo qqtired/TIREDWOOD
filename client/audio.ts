@@ -673,6 +673,16 @@ export class Sound {
     }
   }
 
+  /** Harbour dog: two short barks, heard only nearby. */
+  woof(pos: V3): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.amb, .15, 5);
+    for (let i = 0; i < 2; i++) {
+      this.tone(d, 360, 190, .12, 'sawtooth', .04, i * .2, .012);
+      this.noise(d, .1, 'bandpass', 900, 500, .8, .02, i * .2, .01);
+    }
+  }
+
   /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы). */
   horn(gain = 0.35): void {
     if (!this.ok) return;

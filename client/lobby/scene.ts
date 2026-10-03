@@ -187,6 +187,7 @@ export class LobbyScene implements Scene {
   private startZone: { kind: 'paintball' | 'fort' | null; left: number } = { kind: null, left: 0 };
   private readonly defenders: {id:number;x:number;y:number;z:number;yaw:number;eligible:boolean}[] = [];
   private readonly fishForCritters: {x:number;z:number}[] = [];
+  private readonly critterOthers: {id:number;x:number;y:number;z:number}[] = [];
   private readonly photo: PhotoBooth;
   private readonly ball: LobbyBall;
   private readonly fishing: FishingSpots;
@@ -339,6 +340,8 @@ export class LobbyScene implements Scene {
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
+      onWoof: (x, y, z) => d.sound.woof([x, y, z]),
+      collision: col,
     });
     this.storm3d = new Storm3D(this.world.scene, this.hud.root, {
       climate: (dark, rain, flash, lamps) => this.world.setStormClimate(dark, rain, flash, lamps),
@@ -1705,7 +1708,9 @@ export class LobbyScene implements Scene {
     this.updateFishing(dt);
     this.fishForCritters.length = 0;
     for (let i = 0; i < FISH_SPOTS.length; i++) if (this.fishOcc[i] && this.fishing.phaseOf(i) === FP_HOLD) this.fishForCritters.push(FISH_SPOTS[i]);
-    this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters);
+    this.critterOthers.length = 0;
+    for (const [id, r] of this.remotes) if (r.pose.valid) this.critterOthers.push({ id, x: r.pose.x, y: r.pose.y, z: r.pose.z });
+    this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters, this.critterOthers);
     this.storm3d.update(this.clock.renderTick, dt, this.pose, this.eventEligible, lobbyQuality(this.d.settings.quality) === 'low');
     this.defenders.length = 0;
     for (const [id, r] of this.remotes) if (r.pose.valid) this.defenders.push({ id, ...r.pose, eligible: !isHeld(r.avatar.action) });
