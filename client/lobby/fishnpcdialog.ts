@@ -15,7 +15,7 @@ import type { MeState } from '../scene.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el, fishPic, tierOf } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
-import { bagMarks, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
+import { bagMarks, levelOpens, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
 import { fishSkillBlock } from './fishprogresshud.ts';
 import './fisheco.css';
 
@@ -377,8 +377,7 @@ export class FishNpcDialog {
     // --- квесты
     this.skill.replaceChildren(fishSkillBlock(p));
     const next = Math.min(10, level + 1);
-    const opens = [...BAGS, ...LURES].filter((g) => g.level === next).map((g) => g.name.toLowerCase());
-    if (next === 3) opens.push('баркас в открытом море');
+    const opens = levelOpens(next);
     this.perks.textContent = level >= 10
       ? `Ур. 10: ${levelPerks(10)} — максимум`
       : `${level ? `Сейчас — ${levelPerks(level)}` : 'Бонусов уровня пока нет'}. На ур. ${next}: ${levelPerks(next)}${opens.length ? ` · откроется: ${opens.join(', ')}` : ''}.`;

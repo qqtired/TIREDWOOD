@@ -4,7 +4,7 @@
 // и работает старая рыбалка.
 import type * as THREE from 'three';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
-import { bagSlots, fishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
+import { bagSlots, fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
 import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
@@ -26,6 +26,7 @@ import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { FishBag } from './fishbag.ts';
 import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
+import { fishLevelUpText } from './fishfmt.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -150,7 +151,27 @@ export class Fish2Hud {
     this.npc.setEvent(on, until);
   }
 
+  /**
+   * Уровень рыбалки, который игрок уже видел: вырос — плашка «что дал уровень и что открылось». Первое значение с
+   * сервера (вход, возврат на набережную, другой профиль) запоминается молча; назад не идёт — устаревший профиль не
+   * повторит плашку.
+   */
+  private seenLevel = -1;
+  private seenPid = -1;
+
+  private levelCheck(progress: FishProgress): void {
+    const pid = this.ui.me().pid;
+    if (pid !== this.seenPid) {
+      this.seenPid = pid;
+      this.seenLevel = -1;
+    }
+    const level = fishLevel(progress.xp);
+    if (this.seenLevel >= 0 && level > this.seenLevel) this.ui.toasts.show(fishLevelUpText(level), 7000, 'fish-level');
+    this.seenLevel = Math.max(this.seenLevel, level);
+  }
+
   onProgress(progress: FishProgress, now: number): void {
+    this.levelCheck(progress);
     this.clock.sync(now);
     this.progress.set(progress, now);
     this.npc.setProgress(progress, now);
@@ -196,6 +217,7 @@ export class Fish2Hud {
       this.book.close();
       this.quiet = false;
     }
+    this.levelCheck(msg.progress);
     this.clock.sync(msg.now);
     this.progress.set(msg.progress, msg.now);
     this.npc.onState(msg);
@@ -245,6 +267,7 @@ export class Fish2Hud {
   /** Профиль с сервера (новый улов, комплект) — журнал и счёт на кнопке. */
   onMe(): void {
     const me = this.ui.me();
+    this.levelCheck(me.fishing);
     this.book.rewards.outfit = me.outfit;
     this.book.update(me.album, me.owned, me.fishing);
     this.progress.set(me.fishing);
