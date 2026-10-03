@@ -2,7 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { TICK_MS } from '../../shared/constants.ts';
 import {
   BJ_COUNT_TICKS, BJ_DEALER_TICKS, BJ_MAX_BET, BJ_RESULT_TICKS, BJ_TABLE, BJ_TURN_TICKS,
-  handValue, isBet, naturalPayout, rankOf, type BlackjackAct, type BlackjackHandView, type BlackjackPhase, type BlackjackView,
+  handValue, isBet, naturalPayout, rankOf, seatPrint, type BlackjackAct, type BlackjackHandView, type BlackjackPhase, type BlackjackView,
 } from '../../shared/blackjack.ts';
 
 export interface BlackjackHooks {
@@ -30,8 +30,10 @@ interface Seat {
   reservation: string;
   /** Нажал «дальше»: после итога — не ждать конец паузы, после ставок — раздать сразу (когда так решили все участвующие). */
   skip: boolean;
+  /** Последнее принятое действие (версия вида, действие, сумма): тот же запрос второй раз — повтор, а не новое действие. */
+  last: string;
 }
-const emptySeat = (): Seat => ({ slot: 0, pid: 0, nick: '', bet: 0, participating: false, hands: [], settled: false, reservation: '', skip: false });
+const emptySeat = (): Seat => ({ slot: 0, pid: 0, nick: '', bet: 0, participating: false, hands: [], settled: false, reservation: '', skip: false, last: '' });
 const hand = (cards: number[], bet: number, split = false): Hand => ({ cards, bet, split, status: 'playing', result: null, payout: 0 });
 
 /** Шесть обычных колод; выбирается сервером, новый shoe для каждой раздачи. */
@@ -50,6 +52,9 @@ export class BlackjackHall {
   private readonly seats = Array.from({ length: 6 }, emptySeat);
   private phase: BlackjackPhase = 'betting';
   private rev = 0;
+  /** По каждому месту: отпечаток (`seatPrint`) и версия стола, на которой он последний раз менялся. */
+  private readonly prints: string[] = this.seats.map(() => '');
+  private readonly touched: number[] = this.seats.map(() => 0);
   private tick = 0;
   private deadline = 0;
   private turn = -1;
@@ -110,13 +115,22 @@ export class BlackjackHall {
     return ch >= 0 && this.seats[ch].participating && !this.seats[ch].settled && (this.phase === 'play' || this.phase === 'dealer');
   }
 
+  /**
+   * Действие игрока. `rev` — версия вида стола, по которому он действовал. Отказ бывает, только если действие стало неверным
+   * (не твой ход, ставки закрыты, нет жетонов…) или после того вида изменилось само место игрока (ходил, ставил: см. `seatPrint`).
+   * Чужие ставки, посадки, ходы и ники версию «не двигают»: за столом их бывает сколько угодно, и гонка с ними не отказ.
+   * Тот же запрос второй раз (двойной клик, повторная отправка) уже выполнен: молча ничего не делаем, жетоны не списываем снова.
+   */
   act(seat: number, slot: number, action: BlackjackAct, rev: number, amount?: number): void {
     const ch = this.chair(seat), s = this.seats[ch];
     if (ch < 0 || !slot || !s || s.slot !== slot || !s.pid) return this.reject(slot, 'Сначала сядьте за свой стол Blackjack.');
-    // «Дальше» безобидно и повторяемо: гонку версий и запоздавший клик молча пропускаем, без тоста об ошибке.
+    // «Дальше» безобидно и повторяемо: запоздавший клик молча пропускаем, без тоста об ошибке.
     if (action === 'skip') return this.skip(ch);
-    if (!Number.isSafeInteger(rev) || rev !== this.rev) return this.reject(slot, 'Состояние стола обновилось. Повторите действие.');
-    if (!this.actions(ch).includes(action)) return this.reject(slot, 'Это действие сейчас недоступно.');
+    if (!Number.isSafeInteger(rev) || rev < 0) return this.reject(slot, 'Не удалось разобрать действие. Обнови страницу.');
+    const key = `${rev}:${action}:${amount ?? ''}`;
+    if (key === s.last) return;
+    if (!this.actions(ch).includes(action)) return this.reject(slot, this.refusal(ch, action));
+    if (rev < this.touched[ch]) return this.reject(slot, 'Твоё место за столом уже изменилось. Посмотри на стол и повтори.');
     if (action === 'bet') {
       if (!isBet(amount)) return this.reject(slot, `Ставка — целое число жетонов от 1 до ${BJ_MAX_BET}, или играй бесплатно.`);
       const reservation = amount > 0 ? randomUUID() : '';
@@ -148,7 +162,25 @@ export class BlackjackHall {
       }
       this.advance();
     }
+    s.last = key;
     this.changed();
+  }
+
+  /** Почему действие сейчас невозможно — одной понятной фразой для тоста. */
+  private refusal(ch: number, action: BlackjackAct): string {
+    const betting = this.phase === 'betting' || this.phase === 'countdown';
+    if (action === 'bet') {
+      if (betting) return 'Ставка уже сделана. Чтобы поменять, сначала убери её.';
+      return this.phase === 'result' ? 'Раунд закончился: ставки откроются в следующем.' : 'Ставки закрыты: раздача уже идёт. Ставь в следующем раунде.';
+    }
+    if (action === 'cancel') return betting ? 'Ставки нет: убирать нечего.' : 'Раздача уже началась: ставку не убрать.';
+    if (this.phase !== 'play') return betting ? 'Раздача ещё не началась.' : 'Раунд уже сыгран: дождись следующего.';
+    if (this.turn !== ch) return 'Сейчас не твой ход.';
+    const h = this.seats[ch].hands[this.activeHand];
+    if (!h || h.status !== 'playing') return 'Эта рука уже сыграна.';
+    if (action === 'double') return 'Удвоить можно только на первых двух картах.';
+    if (action === 'split') return 'Разделить можно только пару одного достоинства, один раз и с первых двух карт.';
+    return 'Это действие сейчас недоступно.';
   }
 
   private actions(ch: number): BlackjackAct[] {
@@ -325,6 +357,17 @@ export class BlackjackHall {
     };
   }
 
-  private changed(): void { this.rev++; this.hooks.broadcast(this.view()); }
+  /** Любое изменение стола: версия растёт у всех, а «версия места» — только у тех, чьё место (отпечаток) действительно изменилось. */
+  private changed(): void {
+    this.rev++;
+    const view = this.view();
+    view.seats.forEach((seat, ch) => {
+      const print = seatPrint(view, seat, ch);
+      if (print === this.prints[ch]) return;
+      this.prints[ch] = print;
+      this.touched[ch] = this.rev;
+    });
+    this.hooks.broadcast(view);
+  }
   private reject(slot: number, text: string): void { this.hooks.toast(slot, text); }
 }

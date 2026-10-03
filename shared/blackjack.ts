@@ -58,7 +58,11 @@ export interface BlackjackSeatView {
 export interface BlackjackView {
   table: typeof BJ_TABLE;
   phase: BlackjackPhase;
-  /** Версия меняется только при действии или переходе, не при отсчёте таймера. */
+  /**
+   * Версия вида: растёт при любом изменении стола (чья-то ставка, посадка, ход, переход), но не при отсчёте таймера.
+   * Клиент присылает с действием версию того вида, по которому действовал. Сервер отказывает по ней, только если после
+   * этого вида изменилось само место игрока (`seatPrint`): чужие изменения стола отказом не бывают.
+   */
   rev: number;
   left: number;
   turn: number;
@@ -66,4 +70,18 @@ export interface BlackjackView {
   dealer: number[];
   dealerTotal: number | null;
   seats: BlackjackSeatView[];
+}
+
+/**
+ * «Отпечаток» места за столом: всё, от чего зависит, что игрок видит у себя и что ему сейчас можно, — стул, ставка, голос
+ * «дальше», руки, доступные действия и (в свой ход) номер руки. Чужие ставки, ники, посадки и ходы сюда не входят: пока
+ * отпечаток не поменялся, действие, задуманное по прежнему виду стола, всё ещё верно. Сервер сверяет по нему, не устарело ли
+ * действие; клиент — пришёл ли ответ на его запрос. Считают оба одной функцией, чтобы понимать «моё место изменилось» одинаково.
+ */
+export function seatPrint(view: Pick<BlackjackView, 'turn' | 'hand'>, seat: BlackjackSeatView, chair: number): string {
+  return JSON.stringify([
+    seat.id, seat.pid ?? 0, seat.away, seat.bet, seat.participating ?? false, seat.skip ?? false, seat.actions,
+    seat.hands.map((h) => [h.cards.join('.'), h.bet, h.status, h.result]),
+    view.turn === chair ? view.hand : -1,
+  ]);
 }
