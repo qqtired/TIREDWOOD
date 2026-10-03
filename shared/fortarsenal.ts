@@ -84,15 +84,17 @@ export interface UpgradeLine {
   key: string;
   name: string;
   base: number;
+  /** Цена ступени t = base × growth^t */
+  growth: number;
   max: number;
 }
 
 export const UPGRADES: readonly UpgradeLine[] = [
-  { key: 'dmg', name: 'Урон', base: 150, max: 60 },
-  { key: 'rate', name: 'Темп', base: 200, max: 8 },
-  { key: 'mag', name: 'Магазин', base: 150, max: 6 },
-  { key: 'crit', name: 'Крит', base: 250, max: 8 },
-  { key: 'pouch', name: 'Подсумок', base: 250, max: 3 },
+  { key: 'dmg', name: 'Урон', base: 150, growth: 1.6, max: 60 },
+  { key: 'rate', name: 'Темп', base: 200, growth: 1.6, max: 8 },
+  { key: 'mag', name: 'Магазин', base: 150, growth: 1.6, max: 6 },
+  { key: 'crit', name: 'Крит', base: 250, growth: 1.6, max: 8 },
+  { key: 'pouch', name: 'Подсумок', base: 250, growth: 1.6, max: 3 },
 ];
 
 /** Цена, округлённая «по-человечески»: 150, 240, 380, 610, 980, 1 570, 2 500… */
@@ -103,7 +105,8 @@ export function nicePrice(v: number): number {
 
 /** Цена следующей ступени (сейчас ступень tier) */
 export function upgradePrice(line: number, tier: number): number {
-  return nicePrice(UPGRADES[line].base * 1.6 ** tier);
+  const u = UPGRADES[line];
+  return nicePrice(u.base * u.growth ** tier);
 }
 
 export const CRIT_MUL = 2.5;
