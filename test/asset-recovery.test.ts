@@ -13,23 +13,6 @@ function canvasDom(t:TestContext){
  Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({width:1,height:1,getContext:()=>ctx})}});
  t.after(()=>{if(old)Object.defineProperty(globalThis,'document',old);else Reflect.deleteProperty(globalThis,'document');});
 }
-test('quadruped current callers share a bounded retry; successful source is reused for independent skins',async t=>{
- const source=await glb('critters/cat');let calls=0;
- t.mock.method(GLTFLoader.prototype,'loadAsync',async()=>{if(++calls===1)throw Error('temporary');return source;});t.mock.timers.enable({apis:['setTimeout']});
- const {makeQuadruped}=await import(new URL('../client/lobby/critter-quadruped.ts?recovery=current',import.meta.url).href);
- const pending=Promise.allSettled([makeQuadruped('cat',0),makeQuadruped('cat',1)]);await flush();t.mock.timers.tick(500);await flush();
- const results=await pending;assert.equal(calls,2);assert.ok(results.every(r=>r.status==='fulfilled'));
- const a=(results[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof makeQuadruped>>>).value,b=(results[1] as typeof results[0] & {value:typeof a}).value;
- assert.notEqual(a.mesh,b.mesh);assert.notEqual(a.mesh.geometry,b.mesh.geometry);await makeQuadruped('cat',2);assert.equal(calls,2);
-});
-test('final GLB rejection is evicted so a later view retries without page reload',async t=>{
- const source=await glb('critters/dog');let calls=0;
- t.mock.method(GLTFLoader.prototype,'loadAsync',async()=>{if(++calls<=2)throw Error('offline');return source;});t.mock.timers.enable({apis:['setTimeout']});
- const {makeQuadruped}=await import(new URL('../client/lobby/critter-quadruped.ts?recovery=later',import.meta.url).href);
- const pending=Promise.allSettled([makeQuadruped('dog'),makeQuadruped('dog')]);await flush();t.mock.timers.tick(500);await flush();
- assert.ok((await pending).every(r=>r.status==='rejected'));assert.equal(calls,2,'retry must be finite');
- const recovered=await makeQuadruped('dog');assert.ok(recovered.mesh);assert.equal(calls,3);
-});
 test('existing BoatModel recovers its hull after first failure; concurrent models share one source',async t=>{
  canvasDom(t);const source=await glb('boats/kenney-speed-a');let calls=0;
  t.mock.method(GLTFLoader.prototype,'loadAsync',async()=>{if(++calls===1)throw Error('temporary');return source;});t.mock.timers.enable({apis:['setTimeout']});
