@@ -4,7 +4,7 @@ import { createHash, randomInt } from 'node:crypto';
 import { BOT_NAMES } from '../shared/constants.ts';
 import { DAILY_BONUS, START_TOKENS, itemPrice, mskDay } from '../shared/economy.ts';
 import {
-  ALE_MS, ALE_PRICE, BEER_MS, BEER_PRICE, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, unlockedRod, type BagFish, type FishRod,
+  ALE_MS, ALE_PRICE, BEER_MS, BEER_PRICE, LORD_MS, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, unlockedRod, type BagFish, type FishRod,
 } from '../shared/fishprogress.ts';
 import { BAGS, LURES, gearState, type GearState } from '../shared/fishshop.ts';
 import { RECENT_ROWS, type RecentRow } from '../shared/messages.ts';
@@ -337,20 +337,30 @@ export class Profiles {
     return true;
   }
 
-  /** Истёкшие пиво и эль снимаются по серверным часам, независимо от комнаты игрока. */
+  /** Истёкшие пиво, эль и пиво владыки снимаются по серверным часам, независимо от комнаты игрока. */
   refreshFishing(p: Profile): boolean {
     const f = p.fishing;
     const now = this.now();
     let changed = false;
     if (f.beerUntil > 0 && f.beerUntil <= now) { f.beerUntil = 0; changed = true; }
     if (f.aleUntil > 0 && f.aleUntil <= now) { f.aleUntil = 0; changed = true; }
+    if (f.lordUntil !== undefined && f.lordUntil <= now) { delete f.lordUntil; changed = true; }
     if (changed) this.store.markDirty();
     return changed;
   }
 
-  /** Пиво: не поверх эля (он сильнее) и не второе подряд. */
-  buyFishBeer(p: Profile): 'ok' | 'active' | 'ale' | 'no_tokens' {
+  /** Пиво подводного владыки из сундука: выпивается сразу, заменяет пиво и эль (их остаток пропадает). */
+  drinkFishLord(p: Profile): void {
+    p.fishing.lordUntil = this.now() + LORD_MS;
+    p.fishing.aleUntil = 0;
+    p.fishing.beerUntil = 0;
+    this.store.markDirty();
+  }
+
+  /** Пиво: не поверх эля и пива владыки (они сильнее) и не второе подряд. */
+  buyFishBeer(p: Profile): 'ok' | 'active' | 'ale' | 'lord' | 'no_tokens' {
     this.refreshFishing(p);
+    if ((p.fishing.lordUntil ?? 0) > this.now()) return 'lord';
     if (p.fishing.aleUntil > this.now()) return 'ale';
     if (p.fishing.beerUntil > this.now()) return 'active';
     if (!this.spend(p, BEER_PRICE)) return 'no_tokens';
@@ -359,9 +369,10 @@ export class Profiles {
     return 'ok';
   }
 
-  /** Эль заменяет пиво (остаток пива пропадает), второй подряд — нет. */
-  buyFishAle(p: Profile): 'ok' | 'active' | 'no_tokens' {
+  /** Эль заменяет пиво (остаток пива пропадает), второй подряд — нет, поверх пива владыки — нет. */
+  buyFishAle(p: Profile): 'ok' | 'active' | 'lord' | 'no_tokens' {
     this.refreshFishing(p);
+    if ((p.fishing.lordUntil ?? 0) > this.now()) return 'lord';
     if (p.fishing.aleUntil > this.now()) return 'active';
     if (!this.spend(p, ALE_PRICE)) return 'no_tokens';
     p.fishing.aleUntil = this.now() + ALE_MS;

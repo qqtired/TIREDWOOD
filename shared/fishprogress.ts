@@ -4,9 +4,9 @@
 import { FISH } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import {
-  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, T_MYTH, XP_SCALE, isCollected, ruleOf,
+  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, T_MYTH, XP_SCALE, isCollected, ruleOf,
 } from './fishrules.ts';
-import { ALE, BAG_MAX, BEER, RAIN_DRUM_PRICE as DRUM_PRICE, bagCapacity, lureOf } from './fishshop.ts';
+import { ALE, BAG_MAX, BEER, LORD, RAIN_DRUM_PRICE as DRUM_PRICE, bagCapacity, lureOf, type ShopDrink } from './fishshop.ts';
 
 export type FishRod = 0 | 1 | 2 | 3;
 /** Купленный рюкзак или блесна: 0 — нет, 1–3 — номер в shared/fishshop.ts */
@@ -30,6 +30,8 @@ export const BAG_BARKAS = 1;
 export const BAG_RAIN = 2;
 export const BAG_BEER = 4;
 export const BAG_ALE = 8;
+/** Пиво подводного владыки (из сундука) */
+export const BAG_LORD = 16;
 
 export interface FishProgress {
   xp: number;
@@ -38,6 +40,8 @@ export interface FishProgress {
   rod: FishRod;
   beerUntil: number;
   aleUntil: number;
+  /** Пиво подводного владыки (из сундука) действует до; нет — не пили (в старых сохранениях его и не было) */
+  lordUntil?: number;
   bagTier: FishGear;
   lure: FishGear;
   bag: BagFish[];
@@ -51,12 +55,12 @@ export interface FishCastMods {
   biteSpeed: number;
   /** Шанс редких и выше: уровень × удочка × напиток */
   rareMultiplier: number;
-  /** Доход от рыбы: напиток (×1,1 пиво, ×1,15 эль) */
+  /** Доход от рыбы: напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво подводного владыки) */
   incomeScale: number;
   /** Где заброс: пристань или баркас (×1,25 к доходу и опыту, свой пул, злее рыба) */
   zone: FishZone;
-  /** Напиток: 0 — нет, 1 — пиво, 2 — эль */
-  drink: 0 | 1 | 2;
+  /** Напиток: 0 — нет, 1 — пиво, 2 — эль, 3 — пиво подводного владыки */
+  drink: FishDrink;
   /** Блесна на леске */
   lure: FishGear;
   /** Ещё шанс эпических и выше: блесна */
@@ -72,6 +76,9 @@ export const BEER_PRICE = BEER.price;
 export const BEER_MS = BEER.ms;
 export const ALE_PRICE = ALE.price;
 export const ALE_MS = ALE.ms;
+export const LORD_MS = LORD.ms;
+/** Напиток: 0 — нет, 1 — пиво, 2 — эль, 3 — пиво подводного владыки */
+export type FishDrink = 0 | 1 | 2 | 3;
 export const RAIN_DRUM_PRICE = DRUM_PRICE;
 
 export function emptyFishProgress(): FishProgress {
@@ -96,7 +103,7 @@ function bagFish(raw: unknown): BagFish | null {
   const sp = typeof r.f === 'string' ? FISH.findIndex((f) => f.id === r.f) : -1;
   if (sp < 0 || !isCollected(sp)) return null;
   const ok = (v: unknown, max: number): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 && v <= max;
-  if (!ok(r.n, Number.MAX_SAFE_INTEGER) || !ok(r.g, 10_000_000) || r.g === 0 || !ok(r.p, 1_000_000) || !ok(r.m, 15)) return null;
+  if (!ok(r.n, Number.MAX_SAFE_INTEGER) || !ok(r.g, 10_000_000) || r.g === 0 || !ok(r.p, 1_000_000) || !ok(r.m, 31)) return null;
   return { n: r.n, f: r.f as string, g: r.g, p: r.p, m: r.m };
 }
 
@@ -117,6 +124,7 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
     rod: Math.min(selected, unlockedRod(questsDone)) as FishRod,
     beerUntil: count(r.beerUntil),
     aleUntil: count(r.aleUntil),
+    ...(count(r.lordUntil) > 0 ? { lordUntil: count(r.lordUntil) } : {}),
     bagTier: gear(r.bagTier),
     lure: gear(r.lure),
     bag,
@@ -160,10 +168,20 @@ export function bagValue(bag: readonly BagFish[]): number {
   return bag.reduce((s, f) => s + f.p, 0);
 }
 
-/** Какой напиток действует сейчас: 2 — эль, 1 — пиво, 0 — никакого */
-export function activeDrink(p: Readonly<FishProgress>, now: number): 0 | 1 | 2 {
+/** Какой напиток действует сейчас: 3 — пиво подводного владыки, 2 — эль, 1 — пиво, 0 — никакого */
+export function activeDrink(p: Readonly<FishProgress>, now: number): FishDrink {
   if (!Number.isFinite(now)) return 0;
-  return p.aleUntil > now ? 2 : p.beerUntil > now ? 1 : 0;
+  return (p.lordUntil ?? 0) > now ? 3 : p.aleUntil > now ? 2 : p.beerUntil > now ? 1 : 0;
+}
+
+/** Напиток по номеру (0 — никакого) */
+export function drinkOf(drink: number): ShopDrink | null {
+  return drink === 3 ? LORD : drink === 2 ? ALE : drink === 1 ? BEER : null;
+}
+
+/** До какого времени действует напиток по номеру */
+export function drinkUntil(p: Readonly<FishProgress>, drink: number): number {
+  return drink === 3 ? p.lordUntil ?? 0 : drink === 2 ? p.aleUntil : drink === 1 ? p.beerUntil : 0;
 }
 
 export function fishCastMods(progress: FishProgress, now: number, zone: FishZone = 'pier'): FishCastMods {
@@ -177,8 +195,8 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
     level, rod: p.rod,
     zoneScale: (1 + .025 * level) * (1 + bonus),
     biteSpeed: 1 + bonus,
-    rareMultiplier: 1.025 ** level * (1 + .05 * p.rod) * (drink === 2 ? ALE.rare : drink === 1 ? BEER.rare : 1),
-    incomeScale: drink === 2 ? ALE.income : drink === 1 ? BEER.income : 1,
+    rareMultiplier: 1.025 ** level * (1 + .05 * p.rod) * (drinkOf(drink)?.rare ?? 1),
+    incomeScale: drinkOf(drink)?.income ?? 1,
     zone: barkas ? 'barkas' : 'pier',
     drink,
     lure: p.lure,
@@ -192,9 +210,9 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
 /**
  * Stardew: trunc(3 + difficulty/3), perfect ×2.4, legendary ×5 (truncated after each factor). Виды пристани — от
  * замороженной сложности выпуска 6, виды баркаса — от заданной базы. Итог ×0,4 (+20 % к прежней трети), на баркасе ещё
- * ×1,25, одно округление. Хлам и сундук опыта не дают.
+ * ×1,25, в дождь ещё ×1,15 (rain), одно округление. Хлам и сундук опыта не дают.
  */
-export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<FishCastMods, 'zone'>>): number {
+export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<FishCastMods, 'zone'>>, rain = false): number {
   const r = ruleOf(sp);
   if (!r || r.tier > T_MYTH) return 0;
   // Convert measured reel effort to Stardew's 5…110 scale: a five-second perfect reel is difficulty30.
@@ -203,12 +221,12 @@ export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<Fi
   if (perfect) xp = Math.trunc(xp * 2.4);
   if (r.tier >= T_LEGEND) xp *= 5;
   const place = mods?.zone === 'barkas' ? BARKAS_XP : 1;
-  return Math.max(1, Math.round(xp * XP_SCALE * place));
+  return Math.max(1, Math.round(xp * XP_SCALE * place * (rain ? RAIN_XP : 1)));
 }
 
 /** Утешение: эпическая и выше сорвалась после 3 с борьбы — четверть опыта за поимку (не меньше 1). Иначе 0. */
-export function fishLostXp(sp: number, ticks: number, mods?: Readonly<Pick<FishCastMods, 'zone'>>): number {
+export function fishLostXp(sp: number, ticks: number, mods?: Readonly<Pick<FishCastMods, 'zone'>>, rain = false): number {
   const r = ruleOf(sp);
   if (!r || r.tier < T_EPIC || r.tier > T_MYTH || !(ticks >= CONSOLATION_TICKS)) return 0;
-  return Math.max(1, Math.round(fishCatchXp(sp, false, mods) * CONSOLATION_SHARE));
+  return Math.max(1, Math.round(fishCatchXp(sp, false, mods, rain) * CONSOLATION_SHARE));
 }

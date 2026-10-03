@@ -26,12 +26,13 @@ test('common base sale is old integer price plus75%, and event-only common separ
   }
 });
 
-test('fisheco: novice clear-weather pier earnings pay at most 10% for harder fish below the released +50% target', t => {
+// 03.10: зона −10 % и отскок от дна (владелец: чуть сложнее, шансы не подтягивать) — новичок ~−15 % к цели выпуска
+test('fisheco: novice clear-weather pier earnings pay at most 20% for harder fish below the released +50% target', t => {
   const measuredBefore = 13.465547009661105;
   const released = measuredBefore * 1.5;
   const current = fishIncome(TYPICAL, false, 300);
   t.diagnostic(`clear ${current.coins.toFixed(6)}, chest ${current.chest.toFixed(6)}, vs released ${(100 * (current.coins / released - 1)).toFixed(3)}%`);
-  assert.ok(current.coins >= released * 0.9 && current.coins <= released, `${current.coins} should be within 10% below ${released.toFixed(4)} fish coins/min`);
+  assert.ok(current.coins >= released * 0.8 && current.coins <= released * 0.92, `${current.coins} should be 8…20% below ${released.toFixed(4)} fish coins/min`);
 });
 
 test('fisheco: no species is an outlier inside its rarity tier at the place entry (pier level 0, barkas level 3 with rod 1)', t => {

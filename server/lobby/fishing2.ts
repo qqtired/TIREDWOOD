@@ -1,10 +1,12 @@
 // Рыбалка 2.0 с мостков к маяку (флаг сервера FISH2): заброс, пробы и поклёвка — как в старой рыбалке
-// (server/lobby/fishing.ts); что клюёт — по погоде (дождевые виды — только в дождь), 3 % — сундук; подсёк вовремя —
+// (server/lobby/fishing.ts); что клюёт — по погоде (дождевые виды — только в дождь), 3 % — сундук (в каждом пятом ещё
+// и пиво подводного владыки — выпивается сразу), хлам — реже с каждым уровнем рыбалки; подсёк вовремя —
 // шкала вываживания (shared/fishreel.ts). Клиент играет её у себя и шлёт нажатия, сервер повторяет вываживание своим
 // сидом и засчитывает улов, только если его повтор дошёл до 100 %. Улов: рыба — в рюкзак по цене поимки (продаётся
 // Семёну или Сане, server/lobby/fishnpc.ts), сундук и бонус за новый вид — сразу жетонами; коллекция (альбом), опыт
 // рыбалки и общий опыт (по цене рыбы), счётчики доски рекордов, награды лестницы коллекции (server/fishstyle.ts).
 // Полный рюкзак — заброс не уходит. Эпическая и выше сорвалась после 3 с борьбы — утешительный опыт (fishLostXp).
+// В дождь опыт рыбалки ×1,15 (и за поимку, и утешительный).
 //
 // Подделать трудно: тики нажатий — целые, по возрастанию, не раньше уже подтверждённого; клиент не может досчитать
 // дальше, чем прошло настоящего времени с начала вываживания (+0,5 с), — ускорить бой нельзя; отстал больше чем на 4 с
@@ -15,9 +17,10 @@ import {
   FP_REEL, FP_WAIT, albumNews, hookTicks, planBite,
 } from '../../shared/fishing.ts';
 import {
-  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp, questNeed, type FishCastMods,
+  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp, questNeed, type FishCastMods,
 } from '../../shared/fishprogress.ts';
 import { spotZone } from '../../shared/fishplaces.ts';
+import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import {
   ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
@@ -97,6 +100,8 @@ export class FishingHall2 {
   /** Случайное 0…1 и что клюнуло (в тестах подменяются) */
   rand: () => number;
   roll: (rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>) => Hooked = rollCatch2;
+  /** Шанс пива подводного владыки в сундуке (в тестах и в разработке подменяется) */
+  lordChance = LORD_CHEST_CHANCE;
   readonly board: FishBoard;
   private readonly spots: Spot[] = FISH_SPOTS.map(emptySpot);
   private readonly host: FishingHost2;
@@ -305,7 +310,7 @@ export class FishingHall2 {
   private lose(s: Spot, spot: number): void {
     this.countLost(s);
     // эпическая и выше сорвалась после 3 с борьбы — утешительный опыт рыбалки (вид не раскрываем, только категорию)
-    const xp = fishLostXp(s.sp, s.ack, s.mods);
+    const xp = fishLostXp(s.sp, s.ack, s.mods, this.host.rain());
     const prof = xp > 0 ? this.host.who(s.slot)?.profile : undefined;
     if (prof) {
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
@@ -364,14 +369,16 @@ export class FishingHall2 {
     st.fsCaught++;
     let xp = 0;
     let bagFull = false;
-    const m = (s.mods.zone === 'barkas' ? BAG_BARKAS : 0) | (rule.rain ? BAG_RAIN : 0) | (s.mods.drink === 1 ? BAG_BEER : 0) | (s.mods.drink === 2 ? BAG_ALE : 0);
+    const m = (s.mods.zone === 'barkas' ? BAG_BARKAS : 0) | (rule.rain ? BAG_RAIN : 0) | (s.mods.drink === 1 ? BAG_BEER : 0) | (s.mods.drink === 2 ? BAG_ALE : 0)
+      | (s.mods.drink === 3 ? BAG_LORD : 0);
+    let lord = false;
     if (fish) {
       // рыба — в рюкзак по цене поимки; общий опыт — сейчас (по цене), жетоны — при продаже
       const put = this.profiles.bagPut(prof, { f: f.id, g: s.g, p: price, m });
       bagFull = !put;
       if (put) this.profiles.modeXp(prof, price);
       st.fsMaxGrams = Math.max(st.fsMaxGrams, s.g);
-      xp = fishCatchXp(s.sp, perfect, s.mods);
+      xp = fishCatchXp(s.sp, perfect, s.mods, this.host.rain());
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
       prof.fishing.questCaught = Math.min(questNeed(prof.fishing.questsDone), prof.fishing.questCaught + 1);
       countCatch(prof, s.g, this.now());
@@ -380,6 +387,9 @@ export class FishingHall2 {
       st.fsChests++;
       this.profiles.credit(prof, price, 'mode');
       st.fsEarned += price;
+      // в каждом пятом сундуке — пиво подводного владыки: выпивается сразу (сильнее пива и эля, заменяет их)
+      lord = this.rand() < this.lordChance;
+      if (lord) this.profiles.drinkFishLord(prof);
     }
     if (bonus > 0) {
       this.profiles.credit(prof, bonus, 'mode');
@@ -394,19 +404,21 @@ export class FishingHall2 {
       t: 'fishLand', sp: s.sp, g: s.g, price, coins: s.coins, bonus, fresh: news.fresh, record: news.record, best, got, full,
       ...(fish ? { base: basePrice(s.sp, s.g), m, xp, perfect, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
       ...(ladder?.items.length ? { rw: ladder.items } : {}),
+      ...(lord ? { lord: true } : {}),
     });
     this.host.changed(s.slot);
     if (ladder?.outfit) this.host.outfit?.(s.slot);
-    this.announce(w.nick, s, rule.tier, rule.rain);
+    this.announce(w.nick, s, rule.tier, rule.rain, lord);
     for (const line of ladder ? ladderAnnounce(w.nick, ladder) : []) this.host.announce(line);
     // финал: фанфары и золотые искры у рыбака — слышат и видят все рядом
     if (full) this.host.event(['fishMaster', s.slot]);
   }
 
-  private announce(nick: string, s: Spot, tier: number, rain: boolean): void {
+  private announce(nick: string, s: Spot, tier: number, rain: boolean, lord = false): void {
     const f = FISH[s.sp];
     if (tier === T_CHEST) {
-      if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук${s.coins >= 200 ? ' с джекпотом' : ''}: ${s.coins} 🪙!`);
+      if (lord) this.host.announce(`🔱 ${nick} вылавливает сундук: ${s.coins} 🪙 и пиво подводного владыки!`);
+      else if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук${s.coins >= 200 ? ' с джекпотом' : ''}: ${s.coins} 🪙!`);
       return;
     }
     if (tier === T_JUNK || tier < ANNOUNCE_TIER) return;

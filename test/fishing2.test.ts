@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import {
-  REEL_BAR, REEL_FILL_TICKS, REEL_MAX_TICKS, REEL_P_MAX, REEL_P_START, heldAt, reelRun, reelStart, reelStep, type Reel, type ReelStyle,
+  BOUNCE_FULL, REEL_BAR, REEL_FILL_TICKS, REEL_MAX_TICKS, REEL_P_MAX, REEL_P_START, heldAt, reelRun, reelStart, reelStep, type Reel, type ReelStyle,
 } from '../shared/fishreel.ts';
 import {
   BARKAS_INCOME, CHEST_BANDS, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_POINTS_PER_MIN, FISH_TARGET_PER_MIN,
@@ -95,7 +95,7 @@ test('вываживание: рыба всё время в зоне — от 25
   assert.equal(r.t, 300);
 });
 
-test('вываживание: держишь — зона вверх (прилипает к верху), отпустил — падает под шкалу и отскакивает от дна под ней; рыба вне зоны — прогресс падает', () => {
+test('вываживание: держишь — зона вверх (прилипает к верху); отпустил с верха — о дно шкалы на полной скорости сильный отскок, удары всё слабее, потом легла и ушла под шкалу; рыба вне зоны — прогресс падает', () => {
   const r = reelStart({ ...still, drain: 1 }, 1);
   for (let i = 0; i < 40; i++) reelStep(r, true);
   assert.ok(r.z > 10_000 && r.zv > 0, `зона пошла вверх: ${r.z}`);
@@ -104,18 +104,22 @@ test('вываживание: держишь — зона вверх (прили
   assert.equal(r.z, REEL_BAR - r.zone, 'держишь — у верха');
   assert.equal(r.zv, 0);
   assert.ok(!r.inZone && r.p < p0, 'рыба внизу, зона наверху — прогресс падает');
-  let bounced = false;
+  const hits: number[] = [];
+  let peak = 0;
   let under = false;
-  for (let i = 0; i < 200 && r.done === 0; i++) {
-    const before = r.zv;
+  for (let i = 0; i < 400 && r.done === 0; i++) {
     reelStep(r, false);
+    if (r.hit > 0) hits.push(r.hit);
+    else if (hits.length === 1) peak = Math.max(peak, r.z);
     if (r.z + r.zone <= 0) under = true;
-    if (before < 0 && r.zv > 0) bounced = true;
   }
-  assert.ok(under, 'отпустил — зона ушла под шкалу');
-  assert.ok(bounced, 'от дна под шкалой отскочила');
+  assert.ok(hits[0] >= BOUNCE_FULL, `с верха — полная скорость удара: ${hits[0]}`);
+  assert.ok(peak > REEL_BAR / 4, `с полной скорости — сильный отскок: до ${peak}`);
+  for (let k = 1; k < hits.length; k++) assert.ok(hits[k] < hits[k - 1], `удары всё слабее: ${hits.join(', ')}`);
+  assert.ok(under, 'отскакала, легла — зона ушла под шкалу');
   assert.ok(!r.inZone, 'зона в покое рыбу у дна не держит');
-  for (let i = 0; i < 120 && r.done === 0; i++) reelStep(r, track(r));
+  // из-под шкалы подматывать дольше: зона разгоняется снизу, проскакивает рыбу и успокаивается на ней
+  for (let i = 0; i < 240 && r.done === 0; i++) reelStep(r, track(r));
   assert.ok(r.inZone, 'подмотал — снова на рыбе');
   // сопротивление побольше — сорвалась
   const q = reelStart(still, 1);
@@ -187,11 +191,12 @@ function tierSuccess(zone: FishZone, mods: FishCastMods, skill: Skill, n: number
 
 test('трудность: ценнее — злее (успех падает, бой длиннее), море злее пристани, уровень и снасти помогают; опытный вытаскивает чаще', (t) => {
   const pct = (a: number[]) => a.map((v) => `${Math.round(v * 100)}%`).join(' / ');
-  // пристань, 0-й уровень без бонусов: цель калибровки 99 / 93 / 80 / 55 / 36 % за ~6 / 9 / 12 / 15 / 18 с
+  // пристань, 0-й уровень без бонусов: цель калибровки была 99 / 93 / 80 / 55 / 36 % за ~6 / 9 / 12 / 15 / 18 с; 03.10
+  // зона −10 % и отскок от дна шкалы (владелец: чуть сложнее, шансы обратно не подтягивать) — 99 / 93 / 77 / 45 / 14 %
   const pier0 = tierSuccess('pier', castAt('pier', 0), TYPICAL, 200, 3);
   const pierPro = tierSuccess('pier', castAt('pier', 0), EXPERT, 200, 4);
   t.diagnostic(`пристань, ур. 0: обычный ${pct(pier0.p)}, опытный ${pct(pierPro.p)}; бой ${pier0.fight.map((v) => v.toFixed(1)).join(' / ')} с`);
-  [0.99, 0.93, 0.8, 0.55, 0.36].forEach((want, tier) => assert.ok(Math.abs(pier0.p[tier] - want) < 0.08, `категория ${tier}: ${pier0.p[tier]}`));
+  [0.99, 0.93, 0.77, 0.45, 0.14].forEach((want, tier) => assert.ok(Math.abs(pier0.p[tier] - want) < 0.08, `категория ${tier}: ${pier0.p[tier]}`));
   for (let tier = 1; tier <= T_MYTH; tier++) {
     assert.ok(pier0.p[tier] < pier0.p[tier - 1], `пристань: категория ${tier} труднее`);
     assert.ok(pier0.fight[tier] > pier0.fight[tier - 1] - 0.3, `пристань: категория ${tier} бьётся не короче`);
@@ -217,16 +222,17 @@ test('трудность: ценнее — злее (успех падает, б
 
 // ------------------------------------------------------------ экономика
 
-test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (не больше −10 % к прежним 20,2); очки FISH_POINTS_PER_MIN ±3 %', (t) => {
+test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (не больше −20 % к прежним 20,2); очки FISH_POINTS_PER_MIN ±3 %', (t) => {
   assert.equal(COIN_PER_POINT, 13.5 / 13.7, 'старый курс заморожен для +75 % обычным');
-  assert.equal(FISH_TARGET_PER_MIN, 19.3);
+  assert.equal(FISH_TARGET_PER_MIN, 17.1);
   const clear = fishIncome(TYPICAL, false);
   const rain = fishIncome(TYPICAL, true);
   const pro = fishIncome(EXPERT, false);
   t.diagnostic(`обычный: ${clear.coins.toFixed(2)} 🪙/мин (очков ${clear.points.toFixed(2)}), в дождь ${rain.coins.toFixed(2)}, опытный ${pro.coins.toFixed(2)}, сундуки +${clear.chest.toFixed(2)}`);
   assert.ok(Math.abs(clear.points / FISH_POINTS_PER_MIN - 1) < 0.03, `очков в минуту ${clear.points.toFixed(2)} — поправь FISH_POINTS_PER_MIN`);
   assert.ok(Math.abs(clear.coins / FISH_TARGET_PER_MIN - 1) < 0.05, `жетонов в минуту ${clear.coins.toFixed(2)}`);
-  assert.ok(clear.coins >= 20.2 * 0.9 && clear.coins <= 20.2, 'новичок платит за трудность не больше 10 % дохода выпуска 6');
+  // 03.10 зона −10 % (владелец: чуть сложнее) — новичок теряет ещё ~8 %: от выпуска 6 −15 %
+  assert.ok(clear.coins >= 20.2 * 0.8 && clear.coins <= 20.2, 'новичок платит за трудность не больше 20 % дохода выпуска 6');
   // в дождь заметно выгоднее, опытный зарабатывает больше, но не в разы
   assert.ok(rain.coins > clear.coins * 1.15 && rain.coins < clear.coins * 1.6, `дождь: ${rain.coins}`);
   assert.ok(pro.coins > clear.coins && pro.coins < clear.coins * 1.6, `опытный: ${pro.coins}`);

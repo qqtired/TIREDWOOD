@@ -492,6 +492,8 @@ export type ServerMsg =
   | {
     t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean;
     base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
+    /** В сундуке было пиво подводного владыки — уже выпито (shared/fishshop.ts LORD) */
+    lord?: boolean;
   }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }

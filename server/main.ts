@@ -91,6 +91,8 @@ if (devFish.length && hub.lobby.fishing2) {
   };
   console.log(`DEV_FISH: клюют по очереди ${devFish.map((sp) => FISH[sp].id).join(', ')}`);
 }
+// DEV_LORD=1 — пиво подводного владыки в каждом сундуке (только в разработке: проверить с DEV_FISH=chest)
+if (DEV && process.env.DEV_LORD === '1' && hub.lobby.fishing2) hub.lobby.fishing2.lordChance = 1;
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');

@@ -47,7 +47,7 @@ export const LURES: readonly ShopLure[] = [
 ];
 
 export interface ShopDrink {
-  id: 'beer' | 'ale';
+  id: 'beer' | 'ale' | 'lord';
   name: string;
   price: number;
   /** Сколько действует, мс */
@@ -61,6 +61,13 @@ export interface ShopDrink {
 /** Действует один напиток: эль сильнее и заменяет пиво; пиво поверх эля не продаётся. */
 export const BEER: ShopDrink = { id: 'beer', name: 'Рыбацкое пиво', price: 15, ms: 600_000, income: 1.1, rare: 1.2 };
 export const ALE: ShopDrink = { id: 'ale', name: 'Рыбацкий эль', price: 30, ms: 600_000, income: 1.15, rare: 1.3 };
+/**
+ * Пиво подводного владыки: не продаётся — лежит в каждом пятом сундуке и выпивается сразу. Сильнее эля, действует
+ * столько же; заменяет пиво и эль (их остаток пропадает), поверх него ни пиво, ни эль не наливают.
+ */
+export const LORD: ShopDrink = { id: 'lord', name: 'Пиво подводного владыки', price: 0, ms: ALE.ms, income: 1.2, rare: 1.4 };
+/** Шанс найти его в сундуке */
+export const LORD_CHEST_CHANCE = 0.2;
 
 /** Бубен дождя: сразу вызывает рыболовное событие для всех */
 export const RAIN_DRUM_PRICE = 1000;

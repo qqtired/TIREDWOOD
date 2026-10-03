@@ -1,6 +1,6 @@
 // fisheco: подписи бонусов одним языком везде (лавка, рюкзак, «Шансы сейчас», карточка улова, шкала) и картинки лавки.
-import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_RAIN, FISH_XP_LEVELS, fishLevel, type FishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
-import { ALE, BAGS, BARKAS_LEVEL, BEER, LURES, lureOf } from '../../shared/fishshop.ts';
+import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_XP_LEVELS, fishLevel, type FishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
+import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES, lureOf } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_TOP_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
 
 const SHOP = import.meta.glob('../assets/fishshop/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -30,7 +30,8 @@ export function bagMarks(m: number): string[] {
   const out: string[] = [];
   if (m & BAG_BARKAS) out.push(`⚓ ${mul(BARKAS_INCOME)}`);
   if (m & BAG_RAIN) out.push(`🌧 ${mul(RAIN_NUM / RAIN_DEN)}`);
-  if (m & BAG_ALE) out.push(`🍻 ${pct(ALE.income)}`);
+  if (m & BAG_LORD) out.push(`🔱 ${pct(LORD.income)}`);
+  else if (m & BAG_ALE) out.push(`🍻 ${pct(ALE.income)}`);
   else if (m & BAG_BEER) out.push(`🍺 ${pct(BEER.income)}`);
   return out;
 }
@@ -68,7 +69,8 @@ export function xpTo(progress: Readonly<FishProgress>, level: number): number {
 export function oddsParts(mods: Readonly<FishCastMods>, rain: boolean): string[] {
   const parts = [`ур. ${mods.level} ${mul(1.025 ** mods.level)}`];
   if (mods.rod) parts.push(`удочка ${mul(1 + 0.05 * mods.rod)}`);
-  if (mods.drink === 2) parts.push(`эль ${mul(ALE.rare)}`);
+  if (mods.drink === 3) parts.push(`пиво владыки ${mul(LORD.rare)}`);
+  else if (mods.drink === 2) parts.push(`эль ${mul(ALE.rare)}`);
   else if (mods.drink === 1) parts.push(`пиво ${mul(BEER.rare)}`);
   const lure = lureOf(mods.lure);
   if (lure) parts.push(`${lure.name.split(' ')[0].toLowerCase()}: эпик+ ${mul(lure.epic)}`);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { BAND, COLLECTION, RULE, biteShare, effectiveRareMultiplier, reelStyleFor } from '../shared/fishrules.ts';
+import { BAND, COLLECTION, RULE, ZONE_BASE, biteShare, effectiveRareMultiplier, reelStyleFor } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods, fishCatchXp, FISH_XP_LEVELS, type FishRod } from '../shared/fishprogress.ts';
 import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, type ReelStyle } from '../shared/fishreel.ts';
 import { TYPICAL, reelStats } from './fishbot.ts';
@@ -88,7 +88,7 @@ test('all legal probability combinations sum to one with transparent saturation 
 
 test('fill gain unchanged, zone per rarity tier (fisheco), frozen XP difficulty kept; progression remains useful', () => {
  assert.equal(REEL_GAIN, 100);
- for (const sp of COLLECTION) assert.equal(RULE[sp]!.style.zone, BAND[RULE[sp]!.tier].zone, `${sp}: зона — по категории`);
+ for (const sp of COLLECTION) assert.equal(RULE[sp]!.style.zone, BAND[RULE[sp]!.tier].zone * ZONE_BASE, `${sp}: зона — по категории, −10 % с 03.10`);
  for (const old of baseline.rows) assert.equal(RULE[old.sp]!.xpDifficulty,old.difficulty,old.id);
  for (const sp of COLLECTION) {
   const zone = RULE[sp]!.zone;

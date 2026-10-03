@@ -1,5 +1,5 @@
-import { activeDrink, bagSlots, bagValue, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
-import { ALE, BEER, lureOf } from '../../shared/fishshop.ts';
+import { activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
+import { BEER, lureOf } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME } from '../../shared/fishrules.ts';
 import type { FishZone } from '../../shared/fishplaces.ts';
 import { setCoinText } from '../ui/coin.ts';
@@ -8,16 +8,24 @@ import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { mul, num, pct } from './fishfmt.ts';
 import { TOUCH } from '../touch.ts';
 
+/** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки */
+const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱' };
+
 /** Same compact skill scale in the journal, NPC dialog and profile. */
 export function fishSkillBlock(progress: FishProgress, compact = false): HTMLElement {
   const view = fishLevelView(progress.xp);
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
   const head = block.appendChild(el('div', 'fs-skill-head'));
   head.appendChild(el('b', '', compact ? `🎣 Ур. ${view.level}` : view.level === 0 ? '🎣 Новичок' : `🎣 Уровень ${view.level} из 10`));
-  head.appendChild(el('span', '', compact ? view.next === null ? `${view.xp.toLocaleString('ru-RU')} XP` : `${view.xp.toLocaleString('ru-RU')} / ${view.next.toLocaleString('ru-RU')}` : view.next === null ? `${view.xp.toLocaleString('ru-RU')} XP · максимум` : `${view.xp.toLocaleString('ru-RU')} / ${view.next.toLocaleString('ru-RU')} XP`));
+  // Шкала на каждом уровне идёт с нуля: опыт внутри уровня / сколько нужно на весь уровень (5-й: «0 / 1 150 XP»).
+  // На максимальном уровне следующего нет — пишем накопленный опыт.
+  const gained = Math.max(0, view.xp - view.from);
+  const fmt = (n: number): string => n.toLocaleString('ru-RU');
+  const stat = view.next === null ? `${fmt(view.xp)} XP` : `${fmt(gained)} / ${fmt(view.next - view.from)}`;
+  head.appendChild(el('span', '', compact ? stat : view.next === null ? `${stat} · максимум` : `${stat} XP`));
   const bar = block.appendChild(el('progress', 'fs-xp'));
   bar.max = view.next === null ? 1 : Math.max(1, view.next - view.from);
-  bar.value = view.next === null ? 1 : Math.max(0, view.xp - view.from);
+  bar.value = view.next === null ? 1 : gained;
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
     ? 'Зелёная зона +25% · опыт продолжает учитываться'
@@ -30,7 +38,7 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
 /**
  * Рядом с уровнем (fisheco): задание («Задание 3 · 7/15», готово — «сдай Семёну»), рюкзак («🎒 6/10 · 84 🪙»: одно
  * место — жёлтый, полон — красный; клик — окно рюкзака), блесна и место (баркас ×1,25). Справа сверху — напиток с
- * таймером (пиво или эль).
+ * таймером: пиво, эль или пиво подводного владыки (🔱, из сундука; доход ×1,2, редкие ×1,4) — действует сильнейший.
  */
 export class FishProgressHud {
   onBag: () => void = () => {};
@@ -111,12 +119,13 @@ export class FishProgressHud {
     const now = this.clock.now();
     const p = this.progress;
     const drink = p ? activeDrink(p, now) : 0;
-    const until = drink === 2 ? p!.aleUntil : drink === 1 ? p!.beerUntil : 0;
-    const d = drink === 2 ? ALE : BEER;
+    // Напиток и срок по номеру: 1 — пиво, 2 — эль, 3 — пиво владыки; без напитка значок скрыт (текст — от пива)
+    const d = drinkOf(drink) ?? BEER;
+    const until = p ? drinkUntil(p, drink) : 0;
     const active = drink !== 0;
     this.badge.classList.toggle('show', active);
     this.badge.classList.toggle('ending', active && until - now <= 60_000);
-    this.icon.textContent = drink === 2 ? '🍻' : '🍺';
+    this.icon.textContent = DRINK_ICONS[drink] ?? '🍺';
     this.name.textContent = d.name;
     this.effect.textContent = `Доход от рыбы ${pct(d.income)} · редкие ${mul(d.rare)}`;
     this.time.textContent = fishTimeLeft(until, now);

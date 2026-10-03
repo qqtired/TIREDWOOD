@@ -5,7 +5,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
-import { SLACK_TICKS, reelPulling, reelSlack, reelStart, reelStep, type Reel, type ReelStyle } from '../shared/fishreel.ts';
+import {
+  BOUNCE_FULL, BOUNCE_SOFT, REEL_BAR, SLACK_TICKS, bounceSpeed, reelPulling, reelSlack, reelStart, reelStep, type Reel, type ReelStyle,
+} from '../shared/fishreel.ts';
 import { COLLECTION, RULE, reelStyleFor } from '../shared/fishrules.ts';
 import { AFK, playReel } from './fishbot.ts';
 
@@ -84,4 +86,38 @@ test('леска провисла: кто держит зону на рыбе у
   assert.equal(r.done, 1);
   assert.equal(r.t, 300);
   assert.ok(r.perfect);
+});
+
+test('отскок от дна шкалы растёт со скоростью удара: медленно легла — не отскакивает и уходит под шкалу, с верха — сильно (03.10, владелец)', () => {
+  assert.equal(bounceSpeed(BOUNCE_SOFT - 1), 0);
+  assert.equal(bounceSpeed(BOUNCE_SOFT), 0);
+  assert.equal(bounceSpeed(BOUNCE_FULL), Math.trunc(BOUNCE_FULL * 3 / 4));
+  assert.equal(bounceSpeed(BOUNCE_FULL * 2), BOUNCE_FULL * 3 / 2, 'быстрее полной — те же 3/4');
+  let prev = 0;
+  for (let v = BOUNCE_SOFT + 50; v <= BOUNCE_FULL; v += 50) {
+    const e = bounceSpeed(v) / v;
+    assert.ok(e > prev, `коэффициент растёт со скоростью: ${v} → ${e}`);
+    prev = e;
+  }
+  // отпустил кнопку на высоте h (рыба далеко вверху — зона её не задевает): удар о дно и высота отскока
+  const still: ReelStyle = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 90, hi: 100, roam: 2, zone: 30, drain: 1 };
+  const drop = (h: number): { hit: number; peak: number; under: boolean } => {
+    const r = reelStart(still, 5);
+    r.f = REEL_BAR;
+    r.z = h;
+    let hit = 0, peak = 0, under = false;
+    for (let i = 0; i < 400 && r.done === 0; i++) {
+      reelStep(r, false);
+      if (r.hit > 0 && hit === 0) hit = r.hit;
+      else if (hit > 0 && r.hit === 0 && r.zv > 0) peak = Math.max(peak, r.z);
+      if (r.z + r.zone <= 0) under = true;
+    }
+    return { hit, peak, under };
+  };
+  const low = drop(REEL_BAR / 10), mid = drop(REEL_BAR / 4), half = drop(REEL_BAR / 2), top = drop(REEL_BAR - 30_000);
+  assert.equal(low.hit, 0, 'с 10 % шкалы — медленно: не отскочила');
+  assert.ok(low.under && mid.under && top.under, 'в конце всегда ложится и уходит под шкалу (леска провисает)');
+  assert.ok(mid.hit > BOUNCE_SOFT && mid.peak > 0 && mid.peak < REEL_BAR / 50, `с четверти — едва подпрыгнула: ${mid.peak}`);
+  assert.ok(half.peak > mid.peak * 5, `с середины — заметно: ${half.peak}`);
+  assert.ok(top.hit >= BOUNCE_FULL && top.peak > REEL_BAR / 3, `с самого верха — полная скорость и отскок на треть шкалы и выше: ${top.peak}`);
 });

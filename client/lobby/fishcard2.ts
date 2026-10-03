@@ -5,8 +5,8 @@
 // при следующем забросе.
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
 import { BARKAS_INCOME, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch } from '../../shared/fishrules.ts';
-import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_RAIN } from '../../shared/fishprogress.ts';
-import { ALE, BEER } from '../../shared/fishshop.ts';
+import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
+import { ALE, BEER, LORD } from '../../shared/fishshop.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
@@ -86,7 +86,8 @@ export class CatchCard2 {
       const why: string[] = [];
       const f = m.m ?? 0;
       if (f & BAG_BARKAS) why.push(`баркас ${mul(BARKAS_INCOME)}`);
-      if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
+      if (f & BAG_LORD) why.push(`пиво владыки ${pct(LORD.income)}`);
+      else if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
       else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
       if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
       if (m.xp) card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`)).classList.toggle('perfect', !!m.perfect);
@@ -148,7 +149,13 @@ export class CatchCard2 {
     const sum = card.appendChild(el('div', 'fc2-price big'));
     setCoinText(sum, '+0 🪙');
     card.appendChild(el('div', 'fc2-sub', jackpot ? 'Двести жетонов — такое бывает раз на тысячи поклёвок' : 'Сундук — сверх улова: 3 % поклёвок'));
-    this.open(CHEST_MS);
+    // в каждом пятом сундуке — пиво подводного владыки, уже выпито (сервер включил его сразу)
+    if (m.lord) {
+      const lord = card.appendChild(el('div', 'fe-lord'));
+      lord.appendChild(el('b', '', `🔱 ${LORD.name}!`));
+      lord.appendChild(el('span', '', `Выпито сразу: доход от рыбы ${pct(LORD.income)}, редкие ${mul(LORD.rare)} · ${Math.round(LORD.ms / 60_000)} мин`));
+    }
+    this.open(m.lord ? CHEST_MS + 2500 : CHEST_MS);
     this.sound.fishNibble(null);
     this.later(SHAKE_MS, () => {
       card.classList.add('open');
