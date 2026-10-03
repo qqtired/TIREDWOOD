@@ -1,7 +1,11 @@
 // Звук синтезируется на лету (WebAudio) — ни одного файла. Выстрелы и шаги других
 // игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют. Дождь и гром — weathersound.ts.
 import { DEFAULTS } from './settings.ts';
+import { compressorMakeup, crowdDuck, type Voice, VoicePool, voicePrio, type VoiceStats } from './voices.ts';
 import { RainVoice, thunderSound } from './weathersound.ts';
+
+/** Ограничитель на выходе: после мягкого компрессора сумма не выше этого уровня (дБ полной шкалы) */
+const LIMIT_DB = -2;
 
 type Wave = OscillatorType;
 type V3 = [number, number, number];
@@ -52,6 +56,23 @@ export class Sound {
   private rainLevel = 0;
   private started = false;
   private readonly engines = new Map<number, EngineVoice>();
+  /** Голоса: сколько звучит и кому место, когда звуков слишком много (толпа в «Крепости») — client/voices.ts */
+  private readonly pool = new VoicePool();
+  private readonly voiceOf = new WeakMap<AudioNode, Voice>();
+  /** Сюда «играют» несыгранные звуки: никуда не подключён */
+  private mute!: GainNode;
+  /** Эффекты под толпу (crowdDuck) — отдельно от ползунка */
+  private sfxDuck!: GainNode;
+  private crowd = 1;
+  /** Ограничитель после компрессора и возврат его автоподъёма: ниже порога громкость прежняя */
+  private limiter!: DynamicsCompressorNode;
+  private limTrim!: GainNode;
+  /** Где слушатель — для важности звуков */
+  private lx = 0;
+  private ly = 0;
+  private lz = 0;
+  /** Проверки: пики суммы до компрессора и на выходе */
+  private meters: { pre: AnalyserNode; post: AnalyserNode; buf: Float32Array<ArrayBuffer>; preMax: number; postMax: number } | null = null;
 
   /** Браузер разрешает звук только после жеста пользователя. */
   unlock(): void {
@@ -69,14 +90,20 @@ export class Sound {
       comp.ratio.value = 5;
       comp.attack.value = 0.003;
       comp.release.value = 0.2;
-      this.master.connect(comp).connect(ctx.destination);
+      // а сумма толпы всё равно может уйти за 0 дБ — ограничитель после компрессора держит выход ниже LIMIT_DB
+      this.limiter = ctx.createDynamicsCompressor();
+      this.limTrim = ctx.createGain();
+      this.setLimiter(true);
+      this.master.connect(comp).connect(this.limiter).connect(this.limTrim).connect(ctx.destination);
+      this.mute = ctx.createGain();
+      this.sfxDuck = ctx.createGain();
       this.sfx = ctx.createGain();
       this.ui = ctx.createGain();
       this.amb = ctx.createGain();
       this.sfx.gain.value = this.sfxMix;
       this.ui.gain.value = this.uiMix;
       this.amb.gain.value = 0.55 * this.outdoor * this.ambMix;
-      this.sfx.connect(this.master);
+      this.sfx.connect(this.sfxDuck).connect(this.master);
       this.ui.connect(this.master);
       this.amb.connect(this.master);
       this.musicOut = ctx.createGain();
@@ -104,6 +131,73 @@ export class Sound {
       this.started = true;
       this.startAmbience();
     }
+  }
+
+  private setLimiter(on: boolean): void {
+    const l = this.limiter;
+    const thr = on ? LIMIT_DB : 0;
+    const ratio = on ? 20 : 1;
+    l.threshold.value = thr;
+    l.knee.value = 0;
+    l.ratio.value = ratio;
+    l.attack.value = 0.001;
+    l.release.value = 0.1;
+    this.limTrim.gain.value = 1 / compressorMakeup(thr, 0, ratio);
+  }
+
+  /** Тревога или сигнал интерфейса: не чаще раза в gap секунд на тип, одинаковые склеиваются (false — не играть) */
+  once(key: string, gap: number): boolean {
+    return this.pool.once(key, gap, performance.now() / 1000);
+  }
+
+  /**
+   * Проверки и разработка: сколько звуков звучит (максимумы с последнего сброса), сколько не сыграно, пики суммы до
+   * компрессора и на выходе (meter — включить измерители). legacy — как до ограничений: всё играет, без ограничителя
+   * и приглушения (сравнить «до» и «после»). null — звук не разрешён.
+   */
+  voiceStats(o: { reset?: boolean; legacy?: boolean; meter?: boolean } = {}): (VoiceStats & { preDb: number; postDb: number; crowd: number; legacy: boolean }) | null {
+    const ctx = this.ctx;
+    if (!ctx) return null;
+    if (o.legacy !== undefined && o.legacy !== this.pool.off) {
+      this.pool.off = o.legacy;
+      this.setLimiter(!o.legacy);
+    }
+    if (o.meter && !this.meters) {
+      const mk = (src: AudioNode): AnalyserNode => {
+        const a = ctx.createAnalyser();
+        a.fftSize = 4096;
+        src.connect(a);
+        return a;
+      };
+      this.meters = { pre: mk(this.master), post: mk(this.limTrim), buf: new Float32Array(4096), preMax: 0, postMax: 0 };
+    }
+    if (o.reset) {
+      this.pool.resetStats(ctx.currentTime);
+      if (this.meters) this.meters.preMax = this.meters.postMax = 0;
+    }
+    const db = (x: number): number => Math.round((x > 0 ? 20 * Math.log10(x) : -120) * 10) / 10;
+    return { ...this.pool.count(ctx.currentTime), preDb: db(this.meters?.preMax ?? 0), postDb: db(this.meters?.postMax ?? 0), crowd: Math.round(this.crowd * 100) / 100, legacy: this.pool.off };
+  }
+
+  /** Каждый кадр: эффекты чуть тише, когда звуков в мире много; измерители пиков (если включены) */
+  private crowdTick(): void {
+    const ctx = this.ctx!;
+    const s = this.pool.count(ctx.currentTime);
+    const k = this.pool.off ? 1 : crowdDuck(s.world);
+    if (Math.abs(k - this.crowd) > 0.01) {
+      this.sfxDuck.gain.setTargetAtTime(k, ctx.currentTime, k < this.crowd ? 0.08 : 0.6);
+      this.crowd = k;
+    }
+    const m = this.meters;
+    if (!m) return;
+    const peak = (a: AnalyserNode): number => {
+      a.getFloatTimeDomainData(m.buf);
+      let p = 0;
+      for (const x of m.buf) p = Math.max(p, Math.abs(x));
+      return p;
+    };
+    m.preMax = Math.max(m.preMax, peak(m.pre));
+    m.postMax = Math.max(m.postMax, peak(m.post));
   }
 
   setVolume(v: number): void {
@@ -221,6 +315,9 @@ export class Sound {
   setListener(x: number, y: number, z: number, fx: number, fy: number, fz: number): void {
     const ctx = this.ctx;
     if (!ctx) return;
+    this.lx = x;
+    this.ly = y;
+    this.lz = z;
     const l = ctx.listener;
     if (l.positionX) {
       const t = ctx.currentTime;
@@ -238,12 +335,29 @@ export class Sound {
 
   // ------------------------------------------------------------ кирпичики
 
-  /** ref — до какого расстояния звук не тише (салют слышно издалека) */
-  private out(pos: [number, number, number] | null, bus: GainNode, muffle = 0, ref = 3): AudioNode {
+  /**
+   * Вход звука. ref — до какого расстояния звук не тише (салют слышно издалека); key — один и тот же звук (не больше
+   * KEY_MAX за KEY_WINDOW). Звуков в мире слишком много — тихий и дальний не играет (вернёт mute) или вытесняет самый
+   * слабый, если сам заметно громче.
+   */
+  private out(pos: [number, number, number] | null, bus: GainNode, muffle = 0, ref = 3, key = ''): AudioNode {
     const ctx = this.ctx!;
-    if (!pos) return bus;
+    const dist = pos ? Math.hypot(pos[0] - this.lx, pos[1] - this.ly, pos[2] - this.lz) : 0;
+    const v = this.pool.admit(key, pos ? voicePrio(dist, ref) : 1, pos !== null, ctx.currentTime);
+    if (!v) return this.mute;
+    const g = ctx.createGain();
+    this.voiceOf.set(g, v);
+    v.stop = () => {
+      g.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
+      setTimeout(() => g.disconnect(), 80);
+    };
+    if (!pos) {
+      g.connect(bus);
+      return g;
+    }
     const p = ctx.createPanner();
-    p.panningModel = 'HRTF';
+    // в толпе дальние — простая панорама вместо HRTF (она дорогая): звуковой поток не захлёбывается
+    p.panningModel = dist > 25 && this.pool.stats.world > 12 ? 'equalpower' : 'HRTF';
     p.distanceModel = 'inverse';
     p.refDistance = ref;
     p.rolloffFactor = 1.15;
@@ -261,15 +375,25 @@ export class Sound {
       lp.frequency.value = 12000 - muffle * 10000;
       lp.connect(p);
       p.connect(bus);
-      return lp;
+      g.connect(lp);
+      return g;
     }
     p.connect(bus);
-    return p;
+    g.connect(p);
+    return g;
+  }
+
+  /** Голос звучит до end (по часам контекста) — для счёта одновременных */
+  private hold(dest: AudioNode, end: number): void {
+    const v = this.voiceOf.get(dest);
+    if (v && end > v.end) v.end = end;
   }
 
   private tone(dest: AudioNode, f0: number, f1: number, dur: number, type: Wave, gain: number, when = 0, attack = 0.004): void {
+    if (dest === this.mute) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime + when;
+    this.hold(dest, t + dur + 0.02);
     const o = ctx.createOscillator();
     o.type = type;
     o.frequency.setValueAtTime(f0, t);
@@ -284,8 +408,10 @@ export class Sound {
   }
 
   private noise(dest: AudioNode, dur: number, type: BiquadFilterType, f0: number, f1: number, q: number, gain: number, when = 0, attack = 0.002, brown = false): void {
+    if (dest === this.mute) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime + when;
+    this.hold(dest, t + dur + 0.02);
     const src = ctx.createBufferSource();
     src.buffer = brown ? this.brownBuf : this.noiseBuf;
     src.loop = true;
@@ -313,7 +439,7 @@ export class Sound {
   shot(pos: [number, number, number] | null, dist = 0): void {
     if (!this.ok) return;
     const muffle = Math.min(0.8, dist / 70);
-    const d = this.out(pos, this.sfx, muffle);
+    const d = this.out(pos, this.sfx, muffle, 3, 'shot');
     const k = 0.94 + Math.random() * 0.12;
     const g = pos ? 0.9 : 0.55;
     this.noise(d, 0.05, 'bandpass', 2600 * k, 1400 * k, 0.9, 0.7 * g);
@@ -365,7 +491,7 @@ export class Sound {
   /** Шлепок краски о стену/пол. */
   splat(pos: [number, number, number], dist: number): void {
     if (!this.ok || dist > 45) return;
-    const d = this.out(pos, this.sfx, Math.min(0.7, dist / 50));
+    const d = this.out(pos, this.sfx, Math.min(0.7, dist / 50), 3, 'splat');
     const k = 0.9 + Math.random() * 0.2;
     this.noise(d, 0.07, 'lowpass', 1600 * k, 500, 0.8, 0.5);
     this.tone(d, 160 * k, 70, 0.06, 'sine', 0.3);
@@ -373,7 +499,7 @@ export class Sound {
 
   /** Попадание по врагу: чёткий «тик», в голову — звонкий «динь». */
   hitmarker(head: boolean): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once(head ? 'hitH' : 'hit', 0.03)) return;
     const d = this.ui;
     if (head) {
       this.tone(d, 1850, 1850, 0.32, 'sine', 0.28);
@@ -387,7 +513,7 @@ export class Sound {
 
   /** Сбил: «чпок» и маленький аккорд. */
   kill(head: boolean): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('kill', 0.08)) return;
     const d = this.ui;
     this.tone(d, 700, 180, 0.09, 'sine', 0.45);
     this.noise(d, 0.06, 'lowpass', 2500, 600, 0.7, 0.3);
@@ -418,7 +544,7 @@ export class Sound {
   /** Чужая желейка лопнула рядом. */
   popAt(pos: [number, number, number], dist: number): void {
     if (!this.ok || dist > 60) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, this.sfx, 0, 3, 'pop');
     this.tone(d, 480, 90, 0.18, 'sine', 0.5);
     this.noise(d, 0.16, 'lowpass', 2400, 300, 0.8, 0.45);
   }
@@ -488,7 +614,7 @@ export class Sound {
   /** Мягкий «чвак» шага желейки. */
   step(pos: [number, number, number] | null, dist = 0): void {
     if (!this.ok || dist > 28) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, this.sfx, 0, 3, 'step');
     const k = 0.85 + Math.random() * 0.3;
     const g = pos ? 0.5 : 0.09;
     this.noise(d, 0.06, 'lowpass', 700 * k, 250, 1.2, g, 0, 0.004, true);
@@ -656,7 +782,7 @@ export class Sound {
 
   /** Сирена джекпота: слышат все. */
   siren(): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('siren', 2)) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime;
     const len = 2.8;
@@ -724,7 +850,7 @@ export class Sound {
 
   /** Короткое мягкое «ух» кракена: плавная атака, общий регулятор громкости и mute сохраняются. */
   krakenScare(pos: V3): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('krakenScare', 1.5)) return;
     const dest = this.out(pos, this.amb, .35, 14);
     this.tone(dest, 105, 64, 1.25, 'sine', .085, 0, .2);
     this.tone(dest, 156, 96, .95, 'triangle', .028, .12, .16);
@@ -792,7 +918,7 @@ export class Sound {
 
   /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы); pos — откуда (старт регаты слышно с пирса). */
   horn(gain = 0.35, pos: V3 | null = null): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('horn', 1.5)) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime;
     const lp = ctx.createBiquadFilter();
@@ -860,7 +986,7 @@ export class Sound {
 
   /** Остался в дураках: грустный тромбон — четыре ноты вниз, последняя тянется и дрожит. */
   foolHorn(pos: V3 | null): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('foolHorn', 1.5)) return;
     const ctx = this.ctx!;
     const d = this.out(pos, this.sfx, 0, 4);
     const lp = ctx.createBiquadFilter();
@@ -900,7 +1026,7 @@ export class Sound {
 
   /** Вышел из игры не дураком: короткое арпеджио. Своё (null) — интерфейс. */
   fanfare(pos: V3 | null): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('fanfare', 1)) return;
     const d = this.out(pos, pos ? this.sfx : this.ui, 0, 3);
     [523, 659, 784, 1047].forEach((f, i) => {
       this.tone(d, f, f, 0.24, 'triangle', 0.13, i * 0.09);
@@ -976,7 +1102,7 @@ export class Sound {
 
   /** Болеют у табло гонки: гул толпы, хлопки вразнобой и свист. pos = null — для гонщика, без объёма. */
   applause(pos: V3 | null): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('applause', 1.5)) return;
     const d = this.out(pos, this.sfx, 0, 5);
     this.noise(d, 1.7, 'bandpass', 900, 1300, 0.7, 0.06, 0, 0.3);
     for (let i = 0; i < 24; i++) {
@@ -1365,9 +1491,11 @@ export class Sound {
   zombieGroan(pos: V3 | null, pitch = 1): void {
     if (!this.ok) return;
     const ctx = this.ctx!;
-    const d = this.out(pos, this.sfx, 0.2, 4);
+    const d = this.out(pos, this.sfx, 0.2, 4, 'groan');
+    if (d === this.mute) return;
     const t = ctx.currentTime;
     const len = 0.7 + Math.random() * 0.5;
+    this.hold(d, t + len + 0.05);
     const f = (95 + Math.random() * 30) * pitch;
     const o = ctx.createOscillator();
     o.type = 'sawtooth';
@@ -1399,7 +1527,7 @@ export class Sound {
   /** Удар по воротам: глухой стук по дереву. */
   gateHit(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 5);
+    const d = this.out(pos, this.sfx, 0, 5, 'gate');
     const k = 0.9 + Math.random() * 0.2;
     this.noise(d, 0.16, 'lowpass', 900 * k, 160, 1, 0.5, 0, 0.002, true);
     this.tone(d, 110 * k, 60, 0.18, 'sine', 0.45);
@@ -1418,7 +1546,7 @@ export class Sound {
   /** Молоток: починка ворот (новые ворота — дробью подлиннее). */
   hammer(pos: V3 | null, n = 3): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 4);
+    const d = this.out(pos, this.sfx, 0, 4, 'hammer');
     for (let i = 0; i < n; i++) {
       this.tone(d, 900, 600, 0.06, 'square', 0.06, i * 0.16);
       this.noise(d, 0.05, 'bandpass', 2600, 1800, 3, 0.18, i * 0.16);
@@ -1427,7 +1555,7 @@ export class Sound {
 
   /** Колокол на террасе: удар и долгий гул с обертонами. */
   bell(pos: V3 | null): void {
-    if (!this.ok) return;
+    if (!this.ok || !this.once('bell', 1.5)) return;
     const d = this.out(pos, this.sfx, 0, 10);
     for (const [f, g, len] of [[392, 0.16, 2.4], [784, 0.08, 1.6], [1176, 0.05, 1.1], [523, 0.05, 2.0]] as const) this.tone(d, f, f * 0.995, len, 'sine', g, 0, 0.003);
     this.noise(d, 0.04, 'bandpass', 3000, 2000, 2, 0.1);
@@ -1436,7 +1564,7 @@ export class Sound {
   /** Кристалл получил удар: стеклянный звон. */
   crystalHit(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 8);
+    const d = this.out(pos, this.sfx, 0, 8, 'crystal');
     const f = 1400 + Math.random() * 500;
     this.tone(d, f, f * 0.97, 0.5, 'sine', 0.1);
     this.tone(d, f * 1.5, f * 1.48, 0.35, 'sine', 0.06, 0.01);
@@ -1446,7 +1574,7 @@ export class Sound {
   /** Пузырь лопнул: мокрый «бумм». */
   bloat(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 10);
+    const d = this.out(pos, this.sfx, 0, 10, 'bloat');
     this.noise(d, 0.5, 'lowpass', 900, 120, 1, 0.65, 0, 0.003, true);
     this.tone(d, 140, 40, 0.4, 'sine', 0.5);
     this.noise(d, 0.25, 'bandpass', 1800, 500, 1.5, 0.2, 0.03);
@@ -1457,7 +1585,7 @@ export class Sound {
   /** Шарик по кастрюле Чугунка: звонкий металл с искрой. */
   clang(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 6);
+    const d = this.out(pos, this.sfx, 0, 6, 'clang');
     const f = 900 + Math.random() * 300;
     this.tone(d, f, f * 0.98, 0.22, 'triangle', 0.09);
     this.tone(d, f * 2.7, f * 2.6, 0.12, 'sine', 0.05);
@@ -1467,7 +1595,7 @@ export class Sound {
   /** Щит щитоносца разбит: треск досок. */
   planks(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 8);
+    const d = this.out(pos, this.sfx, 0, 8, 'planks');
     this.noise(d, 0.35, 'lowpass', 1400, 200, 1, 0.45, 0, 0.003, true);
     for (let i = 0; i < 6; i++) this.noise(d, 0.05, 'bandpass', 1200 + Math.random() * 1800, 600, 2, 0.14, Math.random() * 0.25);
   }
@@ -1475,14 +1603,14 @@ export class Sound {
   /** Лекарь лечит: мягкий восходящий перезвон. */
   heal(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 7);
+    const d = this.out(pos, this.sfx, 0, 7, 'heal');
     for (const [f, w] of [[523, 0], [659, 0.07], [784, 0.14]] as const) this.tone(d, f, f * 1.01, 0.35, 'sine', 0.05, w);
   }
 
   /** Плевок: влажный «тьфу». */
   spit(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 6);
+    const d = this.out(pos, this.sfx, 0, 6, 'spit');
     this.noise(d, 0.18, 'bandpass', 1500, 600, 2, 0.3, 0, 0.002);
     this.tone(d, 300, 160, 0.12, 'sine', 0.12);
   }
@@ -1490,7 +1618,7 @@ export class Sound {
   /** Бочка рванула: гулкий взрыв с треском. */
   boom(pos: V3 | null, big = 1): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 14 * big);
+    const d = this.out(pos, this.sfx, 0, 14 * big, 'boom');
     this.noise(d, 0.9 * big, 'lowpass', 1200, 80, 0.8, 0.8, 0, 0.003, true);
     this.tone(d, 90, 30, 0.6 * big, 'sine', 0.6);
     for (let i = 0; i < 5; i++) this.noise(d, 0.06, 'bandpass', 900 + Math.random() * 2000, 500, 2, 0.15, 0.05 + Math.random() * 0.3);
@@ -1498,8 +1626,8 @@ export class Sound {
 
   /** Рёв босса: низкий гул с хрипом (ярость, появление). */
   roar(pos: V3 | null, pitch = 1): void {
-    if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 20);
+    if (!this.ok || !this.once('roar', 1)) return;
+    const d = this.out(pos, this.sfx, 0, 20, 'roar');
     this.tone(d, 90 * pitch, 55 * pitch, 1.3, 'sawtooth', 0.12, 0, 0.08);
     this.tone(d, 135 * pitch, 80 * pitch, 1.1, 'square', 0.05, 0.05, 0.1);
     this.noise(d, 1.2, 'lowpass', 700 * pitch, 200, 1.2, 0.3, 0, 0.08, true);
@@ -1508,7 +1636,7 @@ export class Sound {
   /** Землетрясение и удар камня: низкий раскатистый грохот. */
   rumble(pos: V3 | null, len = 1): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 18);
+    const d = this.out(pos, this.sfx, 0, 18, 'rumble');
     this.noise(d, len, 'lowpass', 300, 60, 0.7, 0.7, 0, 0.05, true);
     this.tone(d, 50, 32, len, 'sine', 0.45, 0, 0.05);
   }
@@ -1516,7 +1644,7 @@ export class Sound {
   /** Лодка тонет: треск досок и большой всплеск. */
   sink(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 16);
+    const d = this.out(pos, this.sfx, 0, 16, 'sink');
     for (let i = 0; i < 8; i++) this.noise(d, 0.06, 'bandpass', 900 + Math.random() * 1500, 500, 2, 0.16, Math.random() * 0.4);
     this.noise(d, 1.1, 'lowpass', 2200, 200, 0.7, 0.55, 0.25, 0.02, true);
     this.tone(d, 120, 45, 0.6, 'sine', 0.3, 0.3);
@@ -1575,6 +1703,7 @@ export class Sound {
   /** Раз в кадр: изредка кричат чайки (в дождь прячутся), иногда гудит пароход, в дождь — стук и капли рядом. */
   tick(dt: number): void {
     if (!this.ok) return;
+    this.crowdTick();
     this.nextGull -= dt;
     if (this.nextGull <= 0) {
       this.nextGull = 7 + Math.random() * 14;
