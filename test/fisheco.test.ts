@@ -421,18 +421,23 @@ test('на баркасе клюют только его виды, рыба в �
 
 // ------------------------------------------------------------ рулетка
 
-test('рулетка: красное и чёрное ×2, зеро ×36, проигрыш — 0; 18 красных, 18 чёрных, одно зеро; потолка нет', () => {
+test('рулетка: красное и чёрное ×2, зеро ×36, проигрыш — 0; 18 красных, 18 чёрных, одно зеро; выплата не выше потолка', () => {
   const colors = ROULETTE_WHEEL.map(rouletteColor);
   assert.equal(ROULETTE_WHEEL.length, 37);
   assert.equal(new Set(ROULETTE_WHEEL).size, 37);
   assert.deepEqual([colors.filter((c) => c === 'red').length, colors.filter((c) => c === 'black').length, colors.filter((c) => c === 'green').length], [18, 18, 1]);
   assert.equal(roulettePayout(600, 'red', 1), 1200);
   assert.equal(roulettePayout(600, 'black', 2), 1200);
-  assert.equal(roulettePayout(600, 'green', 0), 21_600);
+  assert.equal(roulettePayout(600, 'green', 0), Math.min(ROULETTE_MAX_PAYOUT, 21_600));
   assert.equal(roulettePayout(600, 'red', 2), 0);
   assert.equal(roulettePayout(600, 'green', 5), 0);
   assert.equal(roulettePayout(0, 'red', 1), 0);
-  assert.equal(ROULETTE_MAX_PAYOUT, Infinity);
+  // потолок — целое число жетонов (цифру согласует владелец) и действует на любой цвет
+  assert.ok(Number.isSafeInteger(ROULETTE_MAX_PAYOUT) && ROULETTE_MAX_PAYOUT >= 1000, `потолок ${ROULETTE_MAX_PAYOUT}`);
+  assert.equal(roulettePayout(ROULETTE_MAX_PAYOUT, 'red', 1), ROULETTE_MAX_PAYOUT);
+  assert.equal(roulettePayout(ROULETTE_MAX_PAYOUT, 'green', 0), ROULETTE_MAX_PAYOUT);
+  const under = Math.floor(ROULETTE_MAX_PAYOUT / 36);
+  assert.equal(roulettePayout(under, 'green', 0), under * 36, 'ниже потолка — честные ×36');
 });
 
 test('рулетка: весь улов на цвет, общий раунд; все у стола поставили — крутим; выплата жетонами, зеро — в общий чат; залог переживает рестарт', () => {
@@ -473,14 +478,16 @@ test('рулетка: весь улов на цвет, общий раунд; в
   advance(e, 8 * TICK_RATE);
   assert.equal(lastOf(e.a.s, 'roulette')!.v.phase, 'idle');
   assert.deepEqual(lastOf(e.a.s, 'rouletteResult'), { t: 'rouletteResult', n: 0, c: 'green', stake: 40, payout: 0, fish: 2 });
-  assert.deepEqual(lastOf(b.s, 'rouletteResult'), { t: 'rouletteResult', n: 0, c: 'green', stake: 600, payout: 21_600, fish: 1 });
+  // 600 на зеро — ×36 = 21 600, но не больше потолка
+  const win = Math.min(ROULETTE_MAX_PAYOUT, 21_600);
+  assert.deepEqual(lastOf(b.s, 'rouletteResult'), { t: 'rouletteResult', n: 0, c: 'green', stake: 600, payout: win, fish: 1 });
   assert.equal(pa.tokens, ta);
-  assert.equal(pb.tokens, tb + 21_600);
+  assert.equal(pb.tokens, tb + win);
   assert.equal(pa.rouletteEscrow, null);
-  assert.equal(pb.stats.rlWon, 21_600);
+  assert.equal(pb.stats.rlWon, win);
   assert.equal(pa.stats.rlStaked, 40);
   // разряды — неразрывным пробелом, как везде в чате
-  assert.ok(allOf(e.a.s, 'chat').some((m) => m.sys && m.text.includes('Вася поставил улов на зеро и выиграл 21 600 🪙!')));
+  assert.ok(allOf(e.a.s, 'chat').some((m) => m.sys && m.text.includes(`Вася поставил улов на зеро и выиграл ${String(win).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')} 🪙!`)));
   // пустой рюкзак — ставить нечего
   e.hub.onJson(e.a.c, { t: 'roulette', a: 'bet', c: 'red' });
   assert.equal(lastOf(e.a.s, 'toast')!.text, 'Рюкзак пуст — ставить нечего');

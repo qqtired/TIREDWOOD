@@ -3,7 +3,7 @@
 import { bagValue, emptyFishProgress, type FishProgress } from '../../shared/fishprogress.ts';
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import {
-  ROULETTE_COLORS, ROULETTE_COLOR_NAMES, ROULETTE_MAX_PAYOUT, ROULETTE_PAYOUT, rouletteChance, type RouletteColor, type RouletteView,
+  ROULETTE_COLORS, ROULETTE_COLOR_NAMES, ROULETTE_MAX_PAYOUT, ROULETTE_PAYOUT, rouletteChance, rouletteWin, type RouletteColor, type RouletteView,
 } from '../../shared/roulette.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
@@ -61,7 +61,8 @@ export class RouletteHud {
     const no = btns.appendChild(el('button', 'fn-action fn-dismiss', 'Отмена'));
     no.type = 'button';
     no.addEventListener('click', () => { this.pick = null; this.render(); });
-    this.root.appendChild(el('p', 'fn-fine', 'Европейская рулетка: 37 лунок — 18 красных, 18 чёрных и зеро. Ставка — весь улов из рюкзака по его цене. Выиграл — жетоны сразу; проиграл — улов пропадает. Колесо крутится через 10 с после первой ставки или сразу, когда поставили все у стола.'));
+    const cap = Number.isFinite(ROULETTE_MAX_PAYOUT) ? ` Выплата — не больше ${num(ROULETTE_MAX_PAYOUT)} 🪙.` : '';
+    setCoinText(this.root.appendChild(el('p', 'fn-fine')), `Европейская рулетка: 37 лунок — 18 красных, 18 чёрных и зеро. Ставка — весь улов из рюкзака по его цене. Выиграл — жетоны сразу; проиграл — улов пропадает.${cap} Колесо крутится через 10 с после первой ставки или сразу, когда поставили все у стола.`);
     this.root.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.code === 'Escape') { e.preventDefault(); this.close(); }
@@ -132,12 +133,17 @@ export class RouletteHud {
       : v?.phase === 'open' ? `Приём ставок: ${this.left()} с · ставок за столом: ${v.bets.length}` : 'Стол свободен — твоя ставка откроет раунд';
     const can = bag.length > 0 && !mine && v?.phase !== 'spin';
     for (const [c, b] of this.picks) {
-      const win = Math.min(ROULETTE_MAX_PAYOUT, stake * ROULETTE_PAYOUT[c]);
-      setCoinText(b, `${NAMES[c]} · ${(rouletteChance(c) * 100).toFixed(1).replace('.', ',')}% · выигрыш ${num(win)} 🪙`);
+      setCoinText(b, `${NAMES[c]} · ${(rouletteChance(c) * 100).toFixed(1).replace('.', ',')}% · выигрыш ${this.winText(stake, c)}`);
       b.disabled = !can;
       b.classList.toggle('on', this.pick === c);
     }
     this.confirm.hidden = !this.pick || !can;
-    if (this.pick) setCoinText(this.confirmText, `Поставить весь улов (${num(stake)} 🪙) на ${ROULETTE_COLOR_NAMES[this.pick]}? Выигрыш — ${num(Math.min(ROULETTE_MAX_PAYOUT, stake * ROULETTE_PAYOUT[this.pick]))} 🪙, проигрыш — улов пропадёт.`);
+    if (this.pick) setCoinText(this.confirmText, `Поставить весь улов (${num(stake)} 🪙) на ${ROULETTE_COLOR_NAMES[this.pick]}? Выигрыш — ${this.winText(stake, this.pick)}, проигрыш — улов пропадёт.`);
+  }
+
+  /** «1 200 🪙»; упёрлись в потолок — так и пишем, чтобы ставка на зеро не обещала лишнего */
+  private winText(stake: number, c: RouletteColor): string {
+    const win = rouletteWin(stake, c);
+    return `${num(win)} 🪙${win < stake * ROULETTE_PAYOUT[c] ? ' (потолок)' : ''}`;
   }
 }
