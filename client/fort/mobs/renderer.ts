@@ -1,11 +1,11 @@
 // Орда новых мобов «Крепости» инстансами: одна часть одной модели = один InstancedMesh на MOB_CAP особей. Кадр:
 // begin() → add() на каждую особь (поза модели × корень особи, вспышка, оттенок) → end(). Пустые сетки не рисуются,
-// в кадре ничего не выделяется. Вариант модели выбирается по seed (как pickVariant). Если для вида модели нет (или
-// модель переполнена), add() отвечает false — крепость рисует эту особь по-старому (желейкой).
+// в кадре ничего не выделяется. Вариант модели выбирается по seed и признакам (как pickVariant). Если для вида модели
+// нет (или модель переполнена), add() отвечает false — крепость рисует эту особь по-старому (желейкой).
 import * as THREE from 'three';
 import type { Quality } from '../../settings.ts';
 import { ALL_MOBS } from './index.ts';
-import { mobMaterial, newPose, type BoneName, type MobAnim, type MobDef } from './kit.ts';
+import { mobMaterial, newPose, variantWeight, type BoneName, type MobAnim, type MobDef } from './kit.ts';
 
 /** Особей одной модели в кадре — как CAP в zombies3d.ts (живых не больше FORT_MAX_ALIVE, с запасом) */
 export const MOB_CAP = 72;
@@ -24,10 +24,14 @@ interface Slot {
   used: number;
 }
 
+/** Варианты одного вида: обычные (по весам) и особые (when — только для особей с признаками) */
 interface KindPick {
   slots: Slot[];
   weights: number[];
   total: number;
+  special: Slot[];
+  specialWhen: number[];
+  specialWeights: number[];
 }
 
 const _m = new THREE.Matrix4();
@@ -85,7 +89,8 @@ export class MobRenderer {
     this.group.name = 'mobs';
     this.group.matrixAutoUpdate = false;
     for (const def of defs) {
-      if (!def.parts.length) continue;
+      // без частей или с весом 0 модель никогда не выбирается — и сеток не строим
+      if (!def.parts.length || variantWeight(def) <= 0) continue;
       const flash = new THREE.InstancedBufferAttribute(new Float32Array(MOB_CAP), 1);
       const tint = new THREE.InstancedBufferAttribute(new Float32Array(MOB_CAP * 4), 4);
       flash.setUsage(THREE.DynamicDrawUsage);
@@ -111,12 +116,18 @@ export class MobRenderer {
         slot.geos.push(geo);
       }
       this.slots.push(slot);
+      const w = variantWeight(def);
       for (const kind of def.kinds) {
-        const k = this.kinds[kind] ?? (this.kinds[kind] = { slots: [], weights: [], total: 0 });
-        const w = def.weight ?? 1;
-        k.slots.push(slot);
-        k.weights.push(w);
-        k.total += w;
+        const k = this.kinds[kind] ?? (this.kinds[kind] = { slots: [], weights: [], total: 0, special: [], specialWhen: [], specialWeights: [] });
+        if (def.when) {
+          k.special.push(slot);
+          k.specialWhen.push(def.when);
+          k.specialWeights.push(w);
+        } else {
+          k.slots.push(slot);
+          k.weights.push(w);
+          k.total += w;
+        }
       }
     }
     parent.add(this.group);
@@ -136,14 +147,14 @@ export class MobRenderer {
     }
   }
 
-  /** Есть ли модель для вида */
-  has(kind: number): boolean {
-    return (this.kinds[kind]?.total ?? 0) > 0;
+  /** Есть ли модель для вида (у особи с признаками flags — с учётом особых вариантов) */
+  has(kind: number, flags = 0): boolean {
+    return this.pick(kind, 0, flags) !== null;
   }
 
-  /** Какая модель нарисует особь вида kind с этим seed (тот же выбор, что pickVariant); null — модели нет */
-  variant(kind: number, seed: number): MobDef | null {
-    return this.pick(kind, seed)?.def ?? null;
+  /** Какая модель нарисует особь вида kind с этим seed и признаками (тот же выбор, что pickVariant); null — модели нет */
+  variant(kind: number, seed: number, flags = 0): MobDef | null {
+    return this.pick(kind, seed, flags)?.def ?? null;
   }
 
   /** Особей нарисовано в последнем кадре */
@@ -159,12 +170,12 @@ export class MobRenderer {
 
   /**
    * Особь в кадр: root — корень (ноги, курс; см. mobRoot; масштаб может быть неравномерным — босс в воротах), anim —
-   * поза, flash 0…1 — вспышка в белый, tint и tintMix — оттенок (экипаж, лечение, ярость). false — модели для вида нет
-   * или она переполнена: рисуй по-старому.
+   * поза (anim.flags участвует в выборе особого варианта, when), flash 0…1 — вспышка в белый, tint и tintMix — оттенок
+   * (экипаж, лечение, ярость). false — модели для вида нет или она переполнена: рисуй по-старому.
    */
   add(kind: number, seed: number, root: THREE.Matrix4, anim: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.3): boolean {
     if (!this.open) return false;
-    const slot = this.pick(kind, seed);
+    const slot = this.pick(kind, seed, anim.flags ?? 0);
     if (!slot || slot.n >= MOB_CAP) return false;
     const i = slot.n;
     const pose = this.pose;
@@ -232,11 +243,28 @@ export class MobRenderer {
     this.kinds.length = 0;
   }
 
-  /** Тот же выбор, что pickVariant(defs, kind, seed): по весам в порядке списка, хвост — последнему */
-  private pick(kind: number, seed: number): Slot | null {
+  /** Тот же выбор, что pickVariant(defs, kind, seed, flags): особые (when) — если подходят, иначе обычные; по весам */
+  private pick(kind: number, seed: number, flags: number): Slot | null {
     const k = this.kinds[kind];
-    if (!k || k.total <= 0) return null;
-    let r = (seed >= 0 && seed < 1 ? seed : seed >= 1 ? 0.999999 : 0) * k.total;
+    if (!k) return null;
+    const u = seed >= 0 && seed < 1 ? seed : seed >= 1 ? 0.999999 : 0;
+    if (flags && k.special.length) {
+      let total = 0;
+      for (let i = 0; i < k.special.length; i++) if ((flags & k.specialWhen[i]) === k.specialWhen[i]) total += k.specialWeights[i];
+      if (total > 0) {
+        let r = u * total;
+        let last: Slot | null = null;
+        for (let i = 0; i < k.special.length; i++) {
+          if ((flags & k.specialWhen[i]) !== k.specialWhen[i]) continue;
+          last = k.special[i];
+          r -= k.specialWeights[i];
+          if (r < 0) return last;
+        }
+        return last;
+      }
+    }
+    if (k.total <= 0) return null;
+    let r = u * k.total;
     for (let i = 0; i < k.slots.length; i++) {
       r -= k.weights[i];
       if (r < 0) return k.slots[i];

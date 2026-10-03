@@ -8,6 +8,8 @@
 //   &crowd=<N> — толпа из N особей выбранных моделей идёт к стене через MobRenderer (инстансы, как в крепости):
 //                варианты по seed, скорость вида, вспышки попаданий; вид по умолчанию — со стены
 //   &squeeze=<0…1> — сжать корень особей, как босса в воротах (ниже на 42 %, уже на 20 %) — проверить свет
+//   &flags=<ZF_*> — признаки особи в anim.flags (8 — экипаж: в толпе выберет особые варианты when; 16 — щит цел);
+//   &stage=<n> — байт stage в anim.stage (фаза босса, номер щупальца, сколько экипажа в лодке)
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ALL_MOBS, MOB_SETS } from '../../client/fort/mobs/index.ts';
@@ -91,8 +93,11 @@ function hitbox(def: MobDef): THREE.Object3D {
   return g;
 }
 
+const FLAGS = Math.max(0, Math.floor(num('flags', 0)));
+const STAGE = Math.max(0, Math.floor(num('stage', 0)));
+
 function restAnim(seed = 0.5): MobAnim {
-  return { t: 0, gait: 0, speed: 0, st: 0, stT: 0, hit: 0, die: 0, seed, rage: false, flags: 0 };
+  return { t: 0, gait: 0, speed: 0, st: 0, stT: 0, hit: 0, die: 0, seed, rage: false, flags: FLAGS, stage: STAGE };
 }
 
 /** Габариты модели в покое (по позе, с костями) — сверить с хитбоксом */
@@ -152,7 +157,7 @@ function startCrowd(defs: MobDef[]): void {
     const kind = kinds[i % kinds.length];
     const v = (ZK[kind]?.speed ?? 2.4) * (0.85 + rand() * 0.3);
     mobs.push({ kind, seed: rand(), x: (rand() - 0.5) * 16, z: -4 - rand() * 40, v, flash: 0,
-      anim: { t: rand() * 10, gait: rand(), speed: v, st: 0, stT: rand(), hit: 0, die: 0, seed: 0, rage: false, flags: 0 } });
+      anim: { t: rand() * 10, gait: rand(), speed: v, st: 0, stT: rand(), hit: 0, die: 0, seed: 0, rage: false, flags: FLAGS, stage: STAGE } });
   }
   crowd = { r, mobs };
   span = { w: 16, h: 2 };

@@ -13,11 +13,11 @@ function anim(over: Partial<MobAnim> = {}): MobAnim {
   return { t: 1.3, gait: 0.4, speed: 2.4, st: 0, stT: 0.2, hit: 0, die: 0, seed: 0.5, rage: false, flags: 0, ...over };
 }
 
-function testDef(id: string, kinds: number[], weight = 1): MobDef {
+function testDef(id: string, kinds: number[], weight = 1, when = 0): MobDef {
   const body = colored(new THREE.BoxGeometry(0.6, 1, 0.4).translate(0, 0.5, 0), 0x88aa66);
   const eye = merge([colored(new THREE.SphereGeometry(0.05, 6, 4).translate(0.1, 0, 0.2), 0xc17bff), colored(new THREE.SphereGeometry(0.05, 6, 4).translate(-0.1, 0, 0.2), 0xc17bff)]);
   return {
-    id, name: id, kinds, weight, height: 1.4,
+    id, name: id, kinds, weight, height: 1.4, ...(when ? { when } : {}),
     parts: [{ bone: 'body', geo: body }, { bone: 'head', geo: eye, glow: true }],
     pose(a, out) {
       setBone(out.body, 0, Math.sin(a.gait * Math.PI * 2) * 0.05, 0, -a.hit * 0.3, 0, 0, 1 - a.die * 0.9);
@@ -42,6 +42,36 @@ test('рендерер: вариант по seed — тот же, что pickVar
     assert.ok(s >= 0 && s < 1);
   }
   assert.notEqual(mobSeed(1), mobSeed(2));
+});
+
+test('выбор варианта: особые (when) — только особям с признаками, вес 0 не выбирается никогда', () => {
+  const CREW = 8;
+  const RAGE = 64;
+  const defs = [testDef('a', [0]), testDef('crab', [0, 3], 2, CREW), testDef('nil', [0], 0), testDef('fiddler', [0], 1, CREW), testDef('b', [0], 2)];
+  const r = new MobRenderer(new THREE.Group(), defs);
+  const seen = new Set<string>();
+  for (let i = 0; i <= 300; i++) {
+    const s = i / 300;
+    for (const flags of [0, CREW, CREW | RAGE, RAGE]) {
+      for (const kind of [0, 3]) {
+        const want = pickVariant(defs, kind, s, flags)?.id ?? null;
+        assert.equal(r.variant(kind, s, flags)?.id ?? null, want, `вид ${kind}, seed ${s}, признаки ${flags}`);
+        if (want) seen.add(`${kind}:${flags & CREW ? 'crew' : 'plain'}:${want}`);
+      }
+    }
+  }
+  // обычным — только обычные, экипажу — только особые; вид 3 без обычных моделей рисует крепость, экипаж — краб
+  assert.deepEqual([...seen].sort(), ['0:crew:crab', '0:crew:fiddler', '0:plain:a', '0:plain:b', '3:crew:crab'].sort());
+  assert.ok(!r.has(3) && r.has(3, CREW) && r.has(0));
+  assert.equal(pickVariant(defs, 0, 0.9999999)?.id, 'b', 'хвост — последнему с весом, не нулевому');
+  assert.equal(r.group.children.filter((m) => m.name.startsWith('mob:nil:')).length, 0, 'вес 0 — без сеток');
+  // anim.flags выбирает особый вариант и в add()
+  const root = mobRoot(new THREE.Matrix4(), 0, 0, 0, 0);
+  r.begin();
+  assert.equal(r.add(3, 0.5, root, anim({ flags: CREW })), true);
+  assert.equal(r.add(3, 0.5, root, anim()), false);
+  r.end();
+  assert.equal((r.group.children.find((m) => m.name === 'mob:crab:body') as THREE.InstancedMesh).count, 1);
 });
 
 test('рендерер: особи в инстансах — кость × корень, вспышка и оттенок, пустые сетки спрятаны, переполнение', () => {

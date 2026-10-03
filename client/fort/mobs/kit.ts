@@ -17,7 +17,7 @@ export const ARMY = {
   jam: 0x7e2fa8,
   jamDark: 0x52206f,
   jamLight: 0xb06ad8,
-  eye: 0xc17bff,
+  eye: 0xb066ff,
 } as const;
 
 /** Часть модели: геометрия с цветами вершин (атрибут color), в осях своей кости (точка подвеса — начало координат) */
@@ -73,8 +73,14 @@ export interface MobDef {
   name: string;
   /** Какие виды врагов (Z_* из shared/fortkinds.ts) рисует эта модель */
   kinds: number[];
-  /** Доля среди вариантов одного вида (выбор по seed); по умолчанию 1 */
+  /** Доля среди вариантов одного вида (выбор по seed); по умолчанию 1, 0 — не выбирается */
   weight?: number;
+  /**
+   * Особый вариант — только для особей с этими признаками ZF_* (все биты; shared/fortnet.ts): экипаж лодки — ZF_CREW.
+   * Обычным особям вида он не достаётся, а у особи с признаками выбирается вместо обычных (между собой — по weight).
+   * Признаки — постоянные для особи (экипаж), не переключаемые (щит, ярость): иначе модель сменится на ходу.
+   */
+  when?: number;
   /** Рост, м — сверяется с хитбоксом вида на стенде */
   height: number;
   parts: MobPart[];
@@ -156,21 +162,36 @@ export function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   return out;
 }
 
-/** Вариант вида по seed с учётом weight; null — для вида нет модели (крепость рисует как раньше) */
-export function pickVariant(defs: readonly MobDef[], kind: number, seed: number): MobDef | null {
+/** Доля варианта: weight, по умолчанию 1; 0, отрицательное и NaN — не выбирается */
+export function variantWeight(d: MobDef): number {
+  const w = d.weight ?? 1;
+  return w > 0 ? w : 0;
+}
+
+/** Подходит ли особый вариант (when) особи с признаками flags */
+export function variantWhen(d: MobDef, flags: number): boolean {
+  return !!d.when && (flags & d.when) === d.when;
+}
+
+/**
+ * Вариант вида по seed с учётом weight; flags — признаки ZF_* особи (для особых вариантов when). null — для вида нет
+ * модели (крепость рисует как раньше).
+ */
+export function pickVariant(defs: readonly MobDef[], kind: number, seed: number, flags = 0): MobDef | null {
+  // особые варианты (when): если признаки особи их включают — выбор только среди них, иначе — среди обычных
   let total = 0;
+  for (const d of defs) if (variantWhen(d, flags) && d.kinds.includes(kind)) total += variantWeight(d);
+  const special = total > 0;
+  if (!special) for (const d of defs) if (!d.when && d.kinds.includes(kind)) total += variantWeight(d);
+  if (total <= 0) return null;
+  // seed вне [0, 1) (или NaN) не должен терять модель: прижимаем, а «хвост» отдаём последнему подходящему варианту
+  let r = (seed >= 0 && seed < 1 ? seed : seed >= 1 ? 0.999999 : 0) * total;
   let last: MobDef | null = null;
   for (const d of defs) {
-    if (!d.kinds.includes(kind)) continue;
-    total += d.weight ?? 1;
+    const w = variantWeight(d);
+    if (w <= 0 || !d.kinds.includes(kind) || (special ? !variantWhen(d, flags) : !!d.when)) continue;
     last = d;
-  }
-  if (total <= 0) return null;
-  // seed вне [0, 1) (или NaN) не должен терять модель: прижимаем, а «хвост» отдаём последнему варианту
-  let r = (seed >= 0 && seed < 1 ? seed : seed >= 1 ? 0.999999 : 0) * total;
-  for (const d of defs) {
-    if (!d.kinds.includes(kind)) continue;
-    r -= d.weight ?? 1;
+    r -= w;
     if (r < 0) return d;
   }
   return last;
@@ -226,7 +247,7 @@ varying vec4 vMobTint;`;
 const FX_FRAGMENT = /* glsl */ `#include <color_fragment>
 #ifdef MOB_GLOW
 totalEmissiveRadiance *= diffuseColor.rgb;
-diffuseColor.rgb *= 0.35;
+diffuseColor.rgb *= 0.25;
 #else
 diffuseColor.rgb = mix( diffuseColor.rgb, vMobTint.rgb, clamp( vMobTint.a, 0.0, 1.0 ) );
 #endif
@@ -238,7 +259,7 @@ totalEmissiveRadiance += vec3( 0.6 * clamp( vMobFlash, 0.0, 1.0 ) );`;
  * рисуют одним и тем же). glow — светится цветом вершин (глаза, фитиль, ядро). Ручки для превью — userData.mobFx.
  */
 export function mobMaterial(glow = false): THREE.MeshStandardMaterial {
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: glow ? 0.4 : 0.62, metalness: 0, emissive: glow ? 0xffffff : 0x000000, emissiveIntensity: glow ? 0.85 : 1 });
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: glow ? 0.4 : 0.62, metalness: 0, emissive: glow ? 0xffffff : 0x000000, emissiveIntensity: glow ? 0.6 : 1 });
   const fx: MobFxUniforms = { uMobFlash: { value: 0 }, uMobTint: { value: new THREE.Vector4(1, 1, 1, 0) } };
   if (glow) mat.defines = { MOB_GLOW: '' };
   mat.userData.mobFx = fx;
