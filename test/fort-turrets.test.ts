@@ -125,15 +125,27 @@ test('Turrets3D: выстрелы всех типов на всех ступен
       }
       t3.update(1 / 60, cam, where);
     }
+    const m4 = new THREE.Matrix4();
+    let batches = 0;
     for (const o of scene.children) {
+      if (o instanceof THREE.BatchedMesh) {
+        batches++;
+        assert.ok(t3.info.parts > TOWER_SPOTS.length * 3, `деталей в пачке ${t3.info.parts}`);
+        for (let k = 0; k < t3.info.parts; k++) {
+          o.getMatrixAt(k, m4);
+          assert.ok(m4.elements.every(Number.isFinite), `NaN в матрице детали ${k}`);
+        }
+        continue;
+      }
       if (!(o instanceof THREE.InstancedMesh) || !o.visible) continue;
       assert.ok(o.count <= o.instanceMatrix.count, 'не больше, чем места в инстансах');
       const a = o.instanceMatrix.array as Float32Array;
       for (let j = 0; j < o.count * 16; j++) assert.ok(Number.isFinite(a[j]), `NaN в матрице ${o.geometry.type}`);
     }
+    assert.equal(batches, 1, 'все твёрдые детали — одна пачка');
     assert.ok(t3.info.particles <= 120 + 160 + 72);
-    // вызовов отрисовки на все восемь мест — не больше полусотни
-    assert.ok(t3.info.draws <= 50, `вызовов ${t3.info.draws}`);
+    // вызовов отрисовки на все восемь мест (без частиц): пачка, два вида вымпелов, пятна-тени
+    assert.ok(t3.info.draws <= 4, `вызовов ${t3.info.draws}`);
   }
   t3.dispose();
 });

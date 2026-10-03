@@ -11,7 +11,7 @@ import { softDot } from '../../render/textures.ts';
 import type { Quality } from '../../settings.ts';
 import { ringTexture } from '../textures.ts';
 import { CELL_FLASH, CELL_SOFT, CELL_SPARK, TurretFx } from './fx.ts';
-import { C, Part, PartPool, dayEnvTexture, turretMaterial } from './kit.ts';
+import { BatchPool, C, Part, PartPool, dayEnvTexture, turretMaterial } from './kit.ts';
 import {
   PENNANT_COLORS, STAGES, STAR_COLORS, ballGeometry, boltGeometry, bubbleGeometry, buildModel, crankGeometry, pennantGeometry, stageOf,
   starGeometry, starsOf, streamGeometry, stringGeometry, type TurretModel,
@@ -21,7 +21,9 @@ import {
 export const TURRET_SCALE = 1.2;
 /** Ветер: вымпелы смотрят туда же, куда флаги замка */
 const WIND_YAW = 0.9;
-const BUILD_S = 1.05;
+const BUILD_S = 1.35;
+/** Постройка: сколько секунд башня поднимается из стены */
+const RISE_S = 0.62;
 const UP_S = 0.95;
 const GONE_S = 0.5;
 const STREAM_SEGS = 9;
@@ -29,6 +31,10 @@ const BUBBLES = 3;
 /** Дальше этого от камеры — без дымков, искр и пара в простое */
 const FAR2 = 45 * 45;
 const CONFETTI = [C.red, C.yellow, C.blue, C.green, C.pink, C.cream] as const;
+/** Вымпел: I — треугольный, II–IV — «ласточкин хвост» (одна геометрия), длиннее и шире со ступенью */
+const PENNANT_SCALE = [[1, 1], [1, 1], [0.74 / 0.64, 0.35 / 0.32], [0.78 / 0.64, 0.37 / 0.32]] as const;
+/** Деталей в пачке на одно место (с запасом: котёл со струёй и пузырями — около двадцати) */
+const PARTS_PER_SPOT = 26;
 
 const _mR = new THREE.Matrix4();
 const _mT = new THREE.Matrix4();
@@ -127,6 +133,7 @@ interface SpotVis {
   emberAt: number;
   steamAt: number;
   wispAt: number;
+  dustAt: number;
 }
 
 export class Turrets3D {
@@ -134,7 +141,7 @@ export class Turrets3D {
   private readonly scene: THREE.Scene;
   private readonly mat: THREE.MeshStandardMaterial;
   private readonly env: THREE.Texture | null;
-  private readonly pool: PartPool;
+  private readonly pool: BatchPool;
   private readonly clothPool: PartPool;
   private readonly cloth: THREE.MeshStandardMaterial;
   private readonly fx: TurretFx;
@@ -167,7 +174,7 @@ export class Turrets3D {
     this.cap = spots.length;
     this.env = dayEnvTexture();
     this.mat = turretMaterial(this.env);
-    this.pool = new PartPool(scene, this.mat);
+    this.pool = new BatchPool(scene, this.mat, this.cap * PARTS_PER_SPOT);
     this.cloth = this.clothMaterial();
     this.clothPool = new PartPool(scene, this.cloth);
     this.fx = new TurretFx(scene, this.mat);
@@ -179,7 +186,7 @@ export class Turrets3D {
     this.bubble = new Part(bubbleGeometry(), cap * BUBBLES);
     this.stream = new Part(streamGeometry(), cap * STREAM_SEGS);
     this.star = new Part(starGeometry(), cap * 3);
-    for (let s = 0; s < STAGES; s++) this.pennants.push(new Part(pennantGeometry(s), cap));
+    this.pennants.push(new Part(pennantGeometry(0), cap), new Part(pennantGeometry(1), cap));
     // пятно-тень и пунктирный круг пустого места
     const hasDoc = typeof document !== 'undefined';
     this.shadow = new THREE.InstancedMesh(
@@ -212,7 +219,7 @@ export class Turrets3D {
         shotAt: -99, shots: 0, recoil: 0, recoilV: 0, kick: 0, kickV: 0, wheel: 0,
         bowT: new Float32Array([99, 99]), flex: new Float32Array([-0.2, -0.2]), flexV: new Float32Array(2), crank: 0,
         barrel: 0, pour: -1, tarLevel: 1, tpx: 0, tpz: 0, bub: new Float32Array([0.1, 0.45, 0.8]),
-        flare: 0, emberAt: 0, steamAt: 0, wispAt: 0,
+        flare: 0, emberAt: 0, steamAt: 0, wispAt: 0, dustAt: 0,
       });
     });
     this.setQuality(quality);
@@ -314,7 +321,8 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     s.up = -1;
     s.yaw = s.wantYaw = 0;
     s.yawV = 0;
-    this.dust(s, 12, 1.25);
+    s.dustAt = this.time + 0.06;
+    this.dust(s, 14, 1.25);
     const n = Math.ceil(10 * this.fx.scale);
     for (let k = 0; k < n; k++) {
       const a = rnd(0, Math.PI * 2);
@@ -465,10 +473,11 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     // вспышка, огненный шар, дым клубами вдоль ствола, искры, пыж
     fx.spark(out.x, out.y, out.z, 0, 0, 0, 1.4, 0.13, 0xfff2c0, 1.6, CELL_FLASH, 0, 0, 5);
     fx.spark(out.x + _dir.x * 0.25, out.y + _dir.y * 0.25, out.z + _dir.z * 0.25, _dir.x * 3, _dir.y * 3, _dir.z * 3, 0.9, 0.22, 0xff9a3a, 1.3, CELL_SOFT, 0, 4, 3);
-    const n = Math.ceil(7 * fx.scale);
+    // клубы дыма: вперёд по стволу и чуть в стороны, медленно всплывают
+    const n = Math.ceil(11 * fx.scale);
     for (let k = 0; k < n; k++) {
-      const sp = rnd(1.5, 4.5);
-      fx.puff(out.x + _dir.x * 0.2, out.y + _dir.y * 0.2, out.z + _dir.z * 0.2, _dir.x * sp + rnd(-0.6, 0.6), _dir.y * sp + rnd(0, 0.6), _dir.z * sp + rnd(-0.6, 0.6), rnd(0.35, 0.55), rnd(0.9, 1.5), rnd(1.1, 1.8), k % 3 ? 0xf2efe8 : 0xd8d2c6, 0.8, 0.35, 2.2);
+      const sp = rnd(1.2, 5);
+      fx.puff(out.x + _dir.x * 0.25, out.y + _dir.y * 0.25, out.z + _dir.z * 0.25, _dir.x * sp + rnd(-0.8, 0.8), _dir.y * sp + rnd(0, 0.8), _dir.z * sp + rnd(-0.8, 0.8), rnd(0.45, 0.75), rnd(1.2, 2), rnd(1.4, 2.3), k % 3 ? 0xf4f1ea : 0xd6cfc2, 0.88, 0.4, 2);
     }
     const ns = Math.ceil(8 * fx.scale);
     for (let k = 0; k < ns; k++) {
@@ -507,14 +516,14 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     }
   }
 
-  /** Пыль кольцом у основания */
+  /** Пыль кольцом у основания (бурая — видна и на светлом камне) */
   private dust(s: SpotVis, n0: number, r: number): void {
     const n = Math.ceil(n0 * this.fx.scale);
     const rr = r * 0.6 * TURRET_SCALE;
     for (let k = 0; k < n; k++) {
       const a = (k / n) * Math.PI * 2 + rnd(0, 0.4);
-      const sp = rnd(0.9, 1.6);
-      this.fx.puff(s.def.x + Math.cos(a) * rr, s.def.y + 0.15, s.def.z + Math.sin(a) * rr, Math.cos(a) * sp, rnd(0.2, 0.6), Math.sin(a) * sp, rnd(0.35, 0.55), rnd(0.8, 1.3), rnd(0.9, 1.4), k % 2 ? 0xd8c8a8 : 0xc9b48e, 0.75, 0.1, 2.4);
+      const sp = rnd(0.9, 1.8);
+      this.fx.puff(s.def.x + Math.cos(a) * rr, s.def.y + 0.15, s.def.z + Math.sin(a) * rr, Math.cos(a) * sp, rnd(0.25, 0.7), Math.sin(a) * sp, rnd(0.4, 0.65), rnd(1, 1.6), rnd(1, 1.6), k % 2 ? 0xb8a07a : 0xa88d66, 0.85, 0.12, 2.2);
     }
   }
 
@@ -563,7 +572,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
       const m = this.model(s.shownType, s.shownStage);
       this.pose(s, m);
       // пятно-тень
-      const r = m.shadowR * 2.3 * TURRET_SCALE * (s.build >= 0 ? clamp01(s.build / 0.5) : 1) * (s.gone >= 0 ? 1 - s.gone / GONE_S : 1);
+      const r = m.shadowR * 2.3 * TURRET_SCALE * (s.build >= 0 ? clamp01(s.build / RISE_S) : 1) * (s.gone >= 0 ? 1 - s.gone / GONE_S : 1);
       _mA.makeScale(r, 1, r).setPosition(s.def.x, s.def.y + 0.025, s.def.z);
       this.shadow.setMatrixAt(shadows++, _mA);
     }
@@ -583,6 +592,11 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     const t = this.time;
     if (s.build >= 0) {
       s.build += dt;
+      // пока поднимается — из щели у основания валит пыль
+      if (s.build < RISE_S && t > s.dustAt) {
+        s.dustAt = t + 0.07;
+        this.dust(s, 3, 1.1);
+      }
       if (s.build > BUILD_S) s.build = -1;
     }
     if (s.up >= 0) {
@@ -668,7 +682,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
       if (s.pour >= 0) {
         s.pour += dt;
         if (s.pour > 0.3 && s.pour < 1.1) s.tarLevel = Math.max(0.2, s.tarLevel - dt * 1.1);
-        if (s.pour > 1.8) s.pour = -1;
+        if (s.pour > 1.9) s.pour = -1;
       } else s.tarLevel = Math.min(1, s.tarLevel + dt * 0.18);
       for (let b = 0; b < BUBBLES; b++) {
         s.bub[b] += dt * (0.7 + b * 0.13);
@@ -688,17 +702,19 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     let bright = 0;
     let flagK = 1;
     if (s.build >= 0) {
-      const u = clamp01(s.build / 0.5);
-      rise = -2.1 * (1 - easeOutBack(u));
-      if (s.build < 0.5) {
-        sy = 1 + 0.14 * (1 - u);
-        sxz = 1 - 0.08 * (1 - u);
-      } else if (s.build < 0.82) {
-        const w = Math.sin((Math.PI * (s.build - 0.5)) / 0.32);
+      // поднимается из стены (с лёгким перелётом), потом садится с приседанием; вымпел разворачивается последним
+      const b = s.build;
+      const u = clamp01(b / RISE_S);
+      rise = -2.1 * (1 - riseEase(u));
+      if (b < RISE_S) {
+        sy = 1 + 0.12 * (1 - u);
+        sxz = 1 - 0.07 * (1 - u);
+      } else if (b < RISE_S + 0.32) {
+        const w = Math.sin((Math.PI * (b - RISE_S)) / 0.32);
         sy = 1 - 0.13 * w;
         sxz = 1 + 0.07 * w;
       }
-      flagK = clamp01((s.build - 0.55) / 0.35);
+      flagK = clamp01((b - RISE_S - 0.1) / 0.4);
     }
     if (s.up >= 0) {
       const u = s.up;
@@ -761,15 +777,16 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     _v.copy(m.flag).applyMatrix4(frame);
     const sway = Math.sin(t * 1.9 + s.seed) * 0.22 + Math.sin(t * 0.7 + s.seed * 3) * 0.1;
     _q.setFromAxisAngle(Y_AXIS, WIND_YAW + sway);
-    _mA.compose(_v, _q, _s.set(Math.max(0.02, flagK) * TURRET_SCALE, TURRET_SCALE, TURRET_SCALE));
+    const ps = PENNANT_SCALE[m.stage];
+    _mA.compose(_v, _q, _s.set(Math.max(0.02, flagK) * TURRET_SCALE * ps[0], TURRET_SCALE * ps[1], TURRET_SCALE));
     _col2.setHex(PENNANT_COLORS[Math.max(0, Math.min(PENNANT_COLORS.length - 1, s.shownLevel - 1))]);
-    this.clothPool.put(this.pennants[m.stage], _mA, _col2);
+    this.clothPool.put(this.pennants[m.stage === 0 ? 0 : 1], _mA, _col2);
     const stars = starsOf(s.shownLevel);
     for (let k = 0; k < stars; k++) {
       const dx = stars === 1 ? 0 : stars === 2 ? (k ? 0.068 : -0.068) : k === 2 ? 0 : k ? 0.07 : -0.07;
       const dy = stars === 3 ? (k === 2 ? -0.07 : 0.045) : 0.02;
       let pop = 1;
-      if (s.build >= 0) pop = clamp01((s.build - 0.7 - k * 0.08) / 0.15);
+      if (s.build >= 0) pop = clamp01((s.build - RISE_S - 0.3 - k * 0.08) / 0.15);
       else if (s.up >= 0 && k === stars - 1) {
         const u = s.up - 0.45;
         pop = u < 0 ? 0 : u < 0.2 ? 1.5 * (u / 0.2) : 1.5 - 0.5 * clamp01((u - 0.2) / 0.2);
@@ -911,38 +928,59 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
       _v.set(rnd(-0.15, 0.15), lvl + 0.15, rnd(-0.15, 0.15)).applyMatrix4(_mG);
       this.fx.puff(_v.x, _v.y, _v.z, rnd(-0.1, 0.1), rnd(0.5, 0.8), rnd(-0.1, 0.1), 0.22, 0.6, 1.6, 0xd9d4ca, 0.35, 0.2, 0.8);
     }
-    // струя: от носика дугой над бруствером к цели у подножия стены
+    // струя: парабола от носика через бруствер к цели у подножия стены; голова струи бежит вперёд, хвост — следом
     const p = s.pour;
-    if (p >= 0.22 && p < 1.15) {
-      const w = Math.min(1, (p - 0.22) / 0.12) * Math.min(1, (1.15 - p) / 0.15);
+    if (p >= 0.22 && p < 1.3) {
+      const head = clamp01((p - 0.22) / 0.22);
+      const tail = clamp01((p - 1.05) / 0.25);
+      if (head <= tail) return;
       _v.copy(m.muzzle).applyMatrix4(_mG);
-      _v2.set(s.tpx, 0.05, s.tpz);
-      const hx = _v2.x - _v.x;
-      const hz = _v2.z - _v.z;
-      const hl = Math.max(0.01, Math.hypot(hx, hz));
-      const reach = Math.min(1.6, hl * 0.4);
-      const cx = _v.x + (hx / hl) * reach;
-      const cz = _v.z + (hz / hl) * reach;
-      const cy = _v.y + 0.35;
+      const h0 = _v.y;
+      const yT = 0.05;
+      let ux = s.tpx - _v.x;
+      let uz = s.tpz - _v.z;
+      const D = Math.max(0.8, Math.hypot(ux, uz));
+      ux /= D;
+      uz /= D;
+      // где бруствер: место — в def, бруствер — в port метрах по нормали; над ним — с запасом
+      const { nx, nz } = s.def;
+      const ahead = (_v.x - s.def.x) * nx + (_v.z - s.def.z) * nz;
+      const xp = Math.max(0.3, Math.min(D - 0.4, (s.def.port - ahead) / Math.max(0.2, ux * nx + uz * nz)));
+      const par = s.def.y + 1.05;
+      let k = ((par - h0) * D - (yT - h0) * xp) / (xp * D * (D - xp));
+      let a = (par - h0 + k * xp * xp) / xp;
+      if (!(k > 0.05) || !Number.isFinite(a)) {
+        k = (h0 - yT) / (D * D);
+        a = 0;
+      }
       let px = _v.x;
-      let py = _v.y;
+      let py = h0;
       let pz = _v.z;
-      for (let k = 1; k <= STREAM_SEGS; k++) {
-        const u = k / STREAM_SEGS;
-        const a = (1 - u) * (1 - u);
-        const b = 2 * (1 - u) * u;
-        const c = u * u;
-        const qx = a * _v.x + b * cx + c * _v2.x;
-        const qy = a * _v.y + b * cy + c * _v2.y;
-        const qz = a * _v.z + b * cz + c * _v2.z;
-        _v3.set(px, py, pz);
-        _dir.set(qx, qy, qz);
-        this.segment(this.stream, null, _v3, _dir, Math.max(0.05, w * (1 - u * 0.35) * (1 + 0.15 * Math.sin(t * 30 + k))), col);
+      for (let i = 1; i <= STREAM_SEGS; i++) {
+        const u0 = (i - 1) / STREAM_SEGS;
+        const u = i / STREAM_SEGS;
+        const x = D * Math.pow(u, 0.8);
+        const qx = _v.x + ux * x;
+        const qy = h0 + a * x - k * x * x;
+        const qz = _v.z + uz * x;
+        if (u > tail && u0 < head) {
+          _v3.set(px, py, pz);
+          _dir.set(qx, qy, qz);
+          const w = (1.35 - 0.5 * u) * (1 + 0.12 * Math.sin(t * 31 + i * 1.7));
+          this.segment(this.stream, null, _v3, _dir, w, col);
+        }
         px = qx;
         py = qy;
         pz = qz;
       }
-      if (this.detail > 0 && Math.random() < 0.5) this.fx.chip(_v2.x + rnd(-0.4, 0.4), 0.1, _v2.z + rnd(-0.4, 0.4), rnd(-1.5, 1.5), rnd(1.5, 3), rnd(-1.5, 1.5), rnd(0.04, 0.07), 0.6, C.tar, 0.03);
+      if (this.detail > 0 && !s.far) {
+        // капли срываются со струи, у цели — брызги
+        if (Math.random() < 0.35) {
+          const x = D * rnd(0.2, 0.8) * head;
+          this.fx.chip(_v.x + ux * x, h0 + a * x - k * x * x, _v.z + uz * x, ux * rnd(0.5, 1.5) + rnd(-0.4, 0.4), rnd(-0.5, 0.5), uz * rnd(0.5, 1.5) + rnd(-0.4, 0.4), rnd(0.03, 0.05), 1, C.tar, 0.03);
+        }
+        if (head >= 1 && Math.random() < 0.6) this.fx.chip(s.tpx + rnd(-0.3, 0.3), 0.1, s.tpz + rnd(-0.3, 0.3), rnd(-1.5, 1.5), rnd(1.5, 3), rnd(-1.5, 1.5), rnd(0.04, 0.07), 0.6, C.tar, 0.03);
+      }
     }
   }
 
@@ -1028,10 +1066,11 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     this.silent = true;
   }
 
-  /** Для отладки и тестов: вызовы отрисовки башен, частицы, что показано */
-  get info(): { draws: number; particles: number; shown: number[]; stages: number[] } {
+  /** Для отладки и тестов: вызовы отрисовки башен (без частиц), деталей в пачке, частицы, что показано */
+  get info(): { draws: number; parts: number; particles: number; shown: number[]; stages: number[] } {
     return {
       draws: this.pool.draws + this.clothPool.draws + (this.shadow.count ? 1 : 0) + (this.ring.count ? 1 : 0),
+      parts: this.pool.count,
       particles: this.fx.active,
       shown: this.spots.map((s) => s.shownType),
       stages: this.spots.map((s) => s.shownStage),
@@ -1058,6 +1097,13 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     this.cloth.dispose();
     this.env?.dispose();
   }
+}
+
+/** Подъём из стены: быстро, с небольшим перелётом вверх в конце */
+function riseEase(u: number): number {
+  const c1 = 1.15;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
 }
 
 /** Баллиста: насколько спущена тетива через bt секунд после выстрела (1 — спущена, 0 — взведена) */

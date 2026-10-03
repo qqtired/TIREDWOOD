@@ -1,9 +1,10 @@
 // Башни крепости — общий набор: палитра игрушечного замка, один материал на все детали (цвет — в вершинах, «металл» и
 // «свечение» — во втором атрибуте вершины, отражения латуни и меди — от своего светлого неба), помощники геометрии и
-// пулы инстансов. Геометрия строится без document (её проверяют тесты в node); текстуры — только в браузере.
+// пулы: все твёрдые детали всех башен — один BatchedMesh (один вызов отрисовки), ткань вымпелов — инстансы.
+// Геометрия строится без document (её проверяют тесты в node); текстуры — только в браузере.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Палитра: тёплое дерево, крашеные доски, латунь, медь, золото, светлый камень, ткань флажков */
 export const C = {
@@ -66,12 +67,18 @@ export function tint(g: THREE.BufferGeometry, hex: number, metal = 0, glow = 0):
   return s;
 }
 
-/** Склеить окрашенные части в одну геометрию */
+/** Склеить окрашенные части в одну геометрию (с индексом: общие вершины — один раз) */
 export function merge(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  const g = mergeGeometries(list, false);
+  const g = mergeGeometries(list.map((x) => (x.index ? x.toNonIndexed() : x)), false);
   if (!g) throw new Error('turrets: merge failed');
-  g.computeBoundingSphere();
-  return g;
+  return indexed(g);
+}
+
+/** Индексированная копия (вершины с одинаковыми атрибутами склеены); у индексированной — она сама */
+export function indexed(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const r = g.index ? g : mergeVertices(g, 1e-4);
+  r.computeBoundingSphere();
+  return r;
 }
 
 // ------------------------------------------------------------ примитивы (единицы — метры)
@@ -208,19 +215,109 @@ export function turretMaterial(env: THREE.Texture | null): THREE.MeshStandardMat
 
 // ------------------------------------------------------------ инстансы
 
-/** Деталь: геометрия и её InstancedMesh (создаётся при первом показе); n — сколько записано в этом кадре */
+/**
+ * Деталь: геометрия (индексированная). В BatchPool — номер геометрии в пачке (gid); в PartPool — свой InstancedMesh
+ * (создаётся при первом показе) и n — сколько записано в этом кадре.
+ */
 export class Part {
   mesh: THREE.InstancedMesh | null = null;
   n = 0;
+  gid = -1;
   readonly geo: THREE.BufferGeometry;
   readonly cap: number;
   constructor(geo: THREE.BufferGeometry, cap: number) {
-    this.geo = geo;
+    this.geo = indexed(geo);
     this.cap = cap;
   }
 }
 
-/** Все детали всех башен: кадр — begin(), put(...) по деталям, end() */
+/**
+ * Все твёрдые детали всех башен — один BatchedMesh: матрицы и цвета — в текстурах, один вызов отрисовки на всё.
+ * Кадр: begin(), put(...) по деталям, end(). Экземпляры пачки переиспользуются по порядку (меняется только номер
+ * геометрии), лишние прячутся; геометрия детали попадает в пачку при первом показе (буферы растут редко, с запасом).
+ */
+export class BatchPool {
+  readonly mesh: THREE.BatchedMesh;
+  private readonly max: number;
+  private readonly gids: Int32Array;
+  private n = 0;
+  private shown = 0;
+  private added = 0;
+
+  constructor(scene: THREE.Scene, mat: THREE.Material, maxInstances: number) {
+    this.max = maxInstances;
+    this.gids = new Int32Array(maxInstances).fill(-1);
+    const m = new THREE.BatchedMesh(maxInstances, 16000, 48000, mat);
+    // башни вне кадра отсекает сам Turrets3D; сортировка непрозрачному не нужна
+    m.frustumCulled = false;
+    m.perObjectFrustumCulled = false;
+    m.sortObjects = false;
+    m.castShadow = false;
+    m.receiveShadow = true;
+    m.visible = false;
+    this.mesh = m;
+    scene.add(m);
+  }
+
+  private addGeometry(p: Part): void {
+    const m = this.mesh;
+    const v = p.geo.getAttribute('position').count;
+    const i = p.geo.index!.count;
+    if (m.unusedVertexCount < v || m.unusedIndexCount < i) {
+      const usedV = m.geometry.getAttribute('position') ? m.geometry.getAttribute('position').count - m.unusedVertexCount : 0;
+      const usedI = m.geometry.index ? m.geometry.index.count - m.unusedIndexCount : 0;
+      m.setGeometrySize(Math.ceil((usedV + v) * 1.5), Math.ceil((usedI + i) * 1.5));
+    }
+    p.gid = m.addGeometry(p.geo);
+  }
+
+  begin(): void {
+    this.n = 0;
+  }
+
+  put(p: Part, mat: THREE.Matrix4, c: THREE.Color): void {
+    if (p.gid < 0) this.addGeometry(p);
+    if (this.n >= this.max) return;
+    const k = this.n++;
+    const m = this.mesh;
+    if (k >= this.added) {
+      m.addInstance(p.gid);
+      this.added++;
+      this.gids[k] = p.gid;
+    } else {
+      if (this.gids[k] !== p.gid) {
+        m.setGeometryIdAt(k, p.gid);
+        this.gids[k] = p.gid;
+      }
+      if (k >= this.shown) m.setVisibleAt(k, true);
+    }
+    m.setMatrixAt(k, mat);
+    m.setColorAt(k, c);
+  }
+
+  end(): void {
+    const m = this.mesh;
+    for (let k = this.n; k < this.shown; k++) m.setVisibleAt(k, false);
+    this.shown = this.n;
+    m.visible = this.n > 0;
+  }
+
+  /** Сколько деталей в кадре и вызовов отрисовки (0 или 1) */
+  get count(): number {
+    return this.n;
+  }
+
+  get draws(): number {
+    return this.n > 0 ? 1 : 0;
+  }
+
+  dispose(): void {
+    this.mesh.removeFromParent();
+    this.mesh.dispose();
+  }
+}
+
+/** Детали со своим материалом (ткань): по InstancedMesh на деталь; кадр — begin(), put(...), end() */
 export class PartPool {
   private readonly scene: THREE.Scene;
   private readonly mat: THREE.Material;

@@ -427,7 +427,13 @@ const api = {
   quality: setQuality,
   row,
   lfire: (i?: number) => {
-    for (let k = 0; k < LINEUP.length; k++) if (i === undefined || i === k) lineup?.fire(k, ROW_AIM[0] + k * 1.5, ROW_AIM[1], ROW_AIM[2], out);
+    for (let k = 0; k < LINEUP.length; k++) {
+      if (i !== undefined && i !== k) continue;
+      // котёл льёт себе под ноги, как со стены к её подножию; остальные бьют вдаль
+      const s = LINEUP[k];
+      if (ROW_TYPES[k] === TW_TAR) lineup?.fire(k, s.x + s.nx * 2.6, 0, s.z + s.nz * 2.6, out);
+      else lineup?.fire(k, ROW_AIM[0] + k * 1.5, ROW_AIM[1], ROW_AIM[2], out);
+    }
   },
   lbuild: (i?: number) => {
     for (let k = 0; k < LINEUP.length; k++) if (i === undefined || i === k) lineup?.build(k);
