@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BARKAS, BARKAS_BOARD, BARKAS_FISH_SPOTS, BARKAS_LANDING_SPOTS, SANYA_PRICE, SANYA_USE, barkasWater,
+  BARKAS, BARKAS_BOARD, BARKAS_FISH_SPOTS, BARKAS_LANDING_SPOTS, BARKAS_RAIL_T, SANYA_PRICE, SANYA_USE, barkasHalf, barkasWater,
 } from '../shared/barkas.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
 import {
@@ -58,6 +58,10 @@ test('баркас: восемь мест рыбалки вдоль бортов
   assert.deepEqual(spots.map((i) => i.arg), [12, 13, 14, 15, 16, 17, 18, 19]);
   for (const s of BARKAS_FISH_SPOTS) {
     standable(w, s.x, s.z, 0, 'место на баркасе');
+    // желейка (радиус до 0,53) и руки с удочкой (до 0,95 м вперёд, ниже планширя) — не в фальшборте
+    const toRail = barkasHalf(s.x) - BARKAS_RAIL_T - Math.abs(s.z - BARKAS.z);
+    assert.ok(toRail >= 0.95, `место (${s.x}, ${s.z}): до фальшборта ${toRail.toFixed(2)} м`);
+    assert.ok(!w.overlaps(s.x - 0.55, 0.002, s.z - 0.55, s.x + 0.55, PLAYER_HEIGHT, s.z + 0.55), `место (${s.x}, ${s.z}): вокруг желейки свободно`);
     for (const d of [6.5, 9.5]) assert.equal(w.groundBelow(s.x - Math.sin(s.yaw) * d, 5, s.z - Math.cos(s.yaw) * d), -Infinity, 'поплавок в воде');
     // зоны точек не наезжают друг на друга: место рыбалки — отдельно от лодки и Сани
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && Math.hypot(i.x - s.x, i.z - s.z) < 20)) {
