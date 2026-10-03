@@ -9,7 +9,7 @@ import {
 import {
   ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
   bodyCap, bossHp, bossNumber, bossTier, boatCount, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWave,
-  isSuperWave, releaseTicks, shieldHp, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
+  isFinalWave, isSuperWave, releaseTicks, shieldHp, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
@@ -91,7 +91,7 @@ const HAND: ReadonlyArray<{ title: string; mix: Mix; roads: readonly number[] }>
   { title: 'Барон Варенья', mix: [[Z_WALKER, 0.4], [Z_RUNNER, 0.2], [Z_CLIMBER, 0.15], [Z_FLYER, 0.15], [Z_SHIELD, 0.1]], roads: [0, 2] },
   { title: 'Пузыри', mix: [[Z_WALKER, 0.3], [Z_RUNNER, 0.1], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.1], [Z_FLYER, 0.1], [Z_BLOATER, 0.3]], roads: [1, 2, 0] },
   { title: 'Плевальщики', mix: [[Z_WALKER, 0.3], [Z_RUNNER, 0.1], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.1], [Z_BLOATER, 0.1], [Z_SPITTER, 0.3]], roads: [0, 1] },
-  { title: 'Десант с моря', mix: [[Z_WALKER, 0.35], [Z_RUNNER, 0.15], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.15], [Z_FLYER, 0.1], [Z_SHIELD, 0.15]], roads: [1, 2] },
+  { title: 'Щиты и бугаи', mix: [[Z_WALKER, 0.35], [Z_RUNNER, 0.15], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.15], [Z_FLYER, 0.1], [Z_SHIELD, 0.15]], roads: [1, 2] },
   { title: 'Подрывники', mix: [[Z_WALKER, 0.3], [Z_RUNNER, 0.1], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.1], [Z_SHIELD, 0.1], [Z_SAPPER, 0.3]], roads: [0, 1, 2] },
   { title: 'Натиск', mix: [[Z_WALKER, 0.3], [Z_RUNNER, 0.15], [Z_CLIMBER, 0.1], [Z_BRUTE, 0.15], [Z_FLYER, 0.1], [Z_BLOATER, 0.1], [Z_SPITTER, 0.1]], roads: [2, 0] },
   { title: 'Лекари', mix: [[Z_WALKER, 0.3], [Z_RUNNER, 0.1], [Z_BRUTE, 0.15], [Z_SHIELD, 0.15], [Z_MEDIC, 0.3]], roads: [1, 0] },
@@ -143,8 +143,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     boss = f.bosses[(bossNumber(w) - 1) % k] ?? Z_BOSS;
     tierOfBoss = Math.floor((bossNumber(w) - 1) / k);
     hpTier = bossTier(w);
-  } else if (superWave && !kraken) {
-    // Кракена ещё нет — на супер-волне Барон кругом выше
+  } else if (superWave && (!kraken || isFinalWave(w))) {
+    // Кракена ещё нет — на супер-волне Барон кругом выше; финал — Кракен и Барон разом
     boss = Z_BOSS;
     tierOfBoss = superTier(w) + 1;
     hpTier = tierOfBoss;
@@ -208,7 +208,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   if (w <= HAND.length) {
     const hand = HAND[w - 1];
     title = hand.title;
-    roads = [...hand.roads];
+    // 04.10: враги всегда идут со всех трёх сторон; «своя» дорога волны — первой
+    roads = [hand.roads[0], ...[0, 1, 2].filter((r) => r !== hand.roads[0])];
     for (const [kind, share] of hand.mix) {
       if (kind === Z_WALKER || !f.kinds.has(kind)) continue;
       const c = Math.max(1, Math.round(share * target / hpOf(kind, TIER_NORMAL)));
@@ -248,8 +249,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
       counts[k]++;
       add(k, tier);
     }
-    const nr = w < 30 ? 2 : rng() < 0.5 ? 2 : 3;
-    roads = shuffle([0, 1, 2], rng).slice(0, nr);
+    roads = shuffle([0, 1, 2], rng);
   }
 
   // тел уже предел, а HP не хватает — повышаем ступени (элиты до половины, чемпионы до четверти), и только потом
@@ -289,7 +289,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     }
   }
 
-  // время: 2–4 импульса за время выхода, у каждого — своя дорога
+  // время: 2–4 импульса за время выхода; в каждом — все три дороги по очереди (первая — «своя» дорога волны)
   const span = releaseTicks(w);
   const pulses = w < 10 ? 2 : w < 40 ? 3 : 4;
   const spawns: PlanSpawn[] = list.map((s, i) => {
@@ -297,7 +297,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     const start = Math.ceil(pulse * list.length / pulses);
     const end = Math.ceil((pulse + 1) * list.length / pulses);
     const within = (i - start) / Math.max(1, end - start);
-    return { at: 30 + Math.floor(span * (pulse + within * 0.6) / pulses), kind: s.kind, road: roads[pulse % roads.length], tier: s.tier };
+    return { at: 30 + Math.floor(span * (pulse + within * 0.6) / pulses), kind: s.kind, road: roads[(i - start + pulse) % roads.length], tier: s.tier };
   });
   boats.forEach((b, i) => { b.at = Math.floor(span * 0.2) + i * 4 * 60; });
 
@@ -310,7 +310,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   const plan: WavePlan = {
     w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, hpTier) : 0, kraken, event,
     hpScale, dmgMul: waveDmgMul(w), roads,
-    card: { w, title: kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: boats.length, crew: boats[0]?.crew.length ?? 0,
+    // десант — сюрприз (04.10): в карточке и превью лодок нет, тревога — только когда лодки уже у берега
+    card: { w, title: isFinalWave(w) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
       boss: kraken ? Z_KRAKEN : boss, tier: kraken ? superTier(w) : tierOfBoss, event, roads: [...roads].sort((a, b) => a - b), fresh: [],
       elite: 0, champ: 0 },
   };

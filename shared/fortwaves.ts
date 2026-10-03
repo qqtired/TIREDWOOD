@@ -1,10 +1,15 @@
-// Волны «Крепости» до 300: расписание (боссы, супер-боссы, десант, события), бюджет тел, нормировка HP под нагрузку
+// Волны «Крепости» до 100: расписание (боссы, супер-боссы, десант, события), бюджет тел, нормировка HP под нагрузку
 // arsenal L(w), урон, пределы, передышки и жетоны. Чистые функции: их считают сервер (директор, game.ts), клиент
 // (карточка волны, подсказки) и тесты. Числа и их смысл — docs/superpowers/plans/2026-10-03-fort-waves.md, §4.
 import { TICK_RATE } from './constants.ts';
 
-/** Последняя волна: отбили — победа */
-export const FORT_LAST_WAVE = 300;
+/** Последняя волна: отбили — победа («Крепость выстояла»). Было 300 — владелец: длинно и легко (04.10). */
+export const FORT_LAST_WAVE = 100;
+
+/** Финал: Кракен IV и Барон разом, суша как у Кракена — самый крупный бой забега */
+export function isFinalWave(w: number): boolean {
+  return w === FORT_LAST_WAVE;
+}
 
 // ------------------------------------------------------------ расписание
 
@@ -96,12 +101,28 @@ export function releaseTicks(w: number): number {
   return Math.round(releaseSeconds(w) * TICK_RATE);
 }
 
+/**
+ * Тел больше, чем было (04.10: «крепость лёгкая»): ×1,25 при том же HP одного врага. Упор в предел тел волны
+ * (bodyCap) директор добирает элитой и чемпионами, а не толпой — живых по-прежнему не больше FORT_MAX_ALIVE.
+ */
+export const BODY_MUL = 1.1;
+
 /** Бюджет тел в очках на одного (шаркун = 1 очко) */
 export function wavePoints(w: number): number {
   w = Math.max(1, w);
-  if (w <= 10) return 16 + 4 * (w - 1);
-  if (w <= 50) return 52 + 1.5 * (w - 10);
-  return 112 + (w - 50);
+  const base = w <= 10 ? 16 + 4 * (w - 1) : w <= 50 ? 52 + 1.5 * (w - 10) : 112 + (w - 50);
+  return base * BODY_MUL;
+}
+
+/**
+ * Жёсткость поверх нагрузки arsenal (04.10, 100 волн): HP волны ×1,27 до 40-й и до ×1,5 к 100-й. Цели по
+ * виртуальной команде (tools/fort-balance/team-sim.ts): новички падают на 15–25-й, опытные на 40–60-й,
+ * мастера доходят до 80–100.
+ */
+const HARDNESS: ReadonlyArray<readonly [number, number]> = [[1, 1.6], [24, 1.6], [32, 1.45], [45, 1.45], [60, 1.6], [75, 1.75], [100, 2]];
+
+export function waveHardness(w: number): number {
+  return logInterp(HARDNESS, w);
 }
 
 /**
@@ -113,7 +134,7 @@ export const LOAD_HP_PER_S = 34.1;
 
 /** Сколько HP волна несёт на одного защитника у троих (без боссов и лодок); на n — × teamPressure(n) */
 export function waveHpPerDefender(w: number): number {
-  return LOAD_HP_PER_S * waveLoad(w) * releaseSeconds(w);
+  return LOAD_HP_PER_S * waveLoad(w) * releaseSeconds(w) * waveHardness(w);
 }
 
 /** Щит и кастрюля в бюджете волны: щит — 70 % прочности (спереди держит, голову не закрывает), Чугунок ×1,5 */
@@ -210,7 +231,8 @@ export const BOSS_BASE_HP = 1340;
 
 /** HP босса: круг tier (по умолчанию — круг босс-волны) даёт +35 % за каждый */
 export function bossHp(w: number, humans: number, tier = bossTier(w)): number {
-  return BOSS_BASE_HP * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * tier);
+  // × BODY_MUL: босс — доля HP волны, а не «сколько шаркунов» (тел стало больше, а их HP — нет)
+  return BOSS_BASE_HP * BODY_MUL * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * tier);
 }
 
 /**
@@ -221,7 +243,7 @@ export const TENTACLE_BASE_HP = 320;
 export const KRAKEN_HEAD_BASE_HP = 800;
 
 export function krakenHp(base: number, w: number, humans: number): number {
-  return base * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * superTier(w));
+  return base * BODY_MUL * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * superTier(w));
 }
 
 // ------------------------------------------------------------ передышка
@@ -255,17 +277,20 @@ export function eventAllowed(w: number, lastEventWave: number): boolean {
 }
 
 /**
- * ☄ Метеоры: начинаются, когда орда уже вышла (45 % выхода, 6–20 с от начала), 12 с, 15 ударов. Каждый — красный
- * круг METEOR_R за 1,4 с до удара (камень летит на виду): зомби −40 % макс. HP, человек −25, ворота −80. Чётные
- * бьют в гущу орды, нечётные — в людей (рядом с кем-то из защитников): держи орду подальше от ворот и не стой.
+ * ☄ Метеоры: начинаются, когда орда уже вышла (45 % выхода, 6–20 с от начала), 14 с, 24 удара. Каждый — красный
+ * круг METEOR_R за 1 с до удара (камень летит на виду): зомби −40 % макс. HP, человек −40, ворота −200. Каждый
+ * третий бьёт в гущу орды, остальные — в людей (рядом с кем-то из защитников): не стой и держи орду подальше от
+ * ворот. 04.10 владелец: «метеоры лёгкие» — было 15 ударов за 12 с, круг 3 м за 1,4 с, человек −25, ворота −80.
  */
-export const METEOR_TICKS = 12 * TICK_RATE;
-export const METEOR_COUNT = 15;
-export const METEOR_WARN_TICKS = 84;
-export const METEOR_R = 3;
+export const METEOR_TICKS = 14 * TICK_RATE;
+export const METEOR_COUNT = 24;
+export const METEOR_WARN_TICKS = 60;
+export const METEOR_R = 3.6;
 export const METEOR_ZOMBIE = 0.4;
-export const METEOR_PLAYER = 25;
-export const METEOR_GATE = 80;
+export const METEOR_PLAYER = 40;
+export const METEOR_GATE = 200;
+/** Каждый какой удар — в толпу (остальные — в людей) */
+export const METEOR_CROWD_EVERY = 3;
 
 /**
  * 📦 Сброс припасов: ящик на парашюте падает 7 с (25 % выхода, 5–12 с от начала), в 40 % случаев — в поле за

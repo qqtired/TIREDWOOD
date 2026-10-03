@@ -404,7 +404,7 @@ export class FortGame implements HordeHost, EventHost {
     }
     const top = (this.hooks.top?.() ?? []).slice(0, FORT_TOP);
     this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev });
-    this.systemChat(win ? `🏆 Крепость устояла! Все ${FORT_WAVES} волн отбиты`
+    this.systemChat(win ? `🏆 Крепость выстояла! Все ${FORT_WAVES} волн отбиты`
       : `💥 Кристалл разбит на волне ${this.wave}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
   }
 

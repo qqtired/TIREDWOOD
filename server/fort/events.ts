@@ -6,7 +6,7 @@ import { TICK_RATE } from '../../shared/constants.ts';
 import { ZK, ZS_METEOR, type FortEvent } from '../../shared/fort.ts';
 import { KF_AIR, Z_BOAT, isBossKind } from '../../shared/fortkinds.ts';
 import {
-  CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, METEOR_COUNT, METEOR_GATE, METEOR_PLAYER,
+  CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, METEOR_COUNT, METEOR_CROWD_EVERY, METEOR_GATE, METEOR_PLAYER,
   METEOR_R, METEOR_TICKS, METEOR_WARN_TICKS, METEOR_ZOMBIE, SUPPLY_FALL_TICKS, SUPPLY_FIELD, SUPPLY_PICK_R, SUPPLY_TOUCH_R,
   releaseTicks,
 } from '../../shared/fortwaves.ts';
@@ -83,7 +83,7 @@ export class WaveEvents {
       for (let i = 0; i < METEOR_COUNT; i++) {
         const jitter = Math.round((rng() - 0.5) * 16);
         const at = first + Math.round((i * METEOR_TICKS) / METEOR_COUNT) + (i > 0 ? jitter : 0);
-        this.strikes.push({ at, crowd: i % 2 === 0, warned: false, x: 0, y: 0, z: 0 });
+        this.strikes.push({ at, crowd: i % METEOR_CROWD_EVERY === 0, warned: false, x: 0, y: 0, z: 0 });
       }
       this.strikes.sort((a, b) => a.at - b.at);
     } else if (this.kind === EV_SUPPLY) {
@@ -152,7 +152,7 @@ export class WaveEvents {
     if (!this.meteorsOn) {
       this.meteorsOn = true;
       this.host.event(['event', EV_METEORS, 1]);
-      this.host.systemChat('☄ Метеоры! 12 с — уходите из красных кругов и не пускайте орду к воротам');
+      this.host.systemChat('☄ Метеоры! 14 с — не стойте на месте, уходите из красных кругов');
     }
     const p = this.spot;
     if (!(s.crowd ? this.crowdSpot(p) || this.peopleSpot(p) : this.peopleSpot(p) || this.crowdSpot(p))) this.fieldSpot(p);

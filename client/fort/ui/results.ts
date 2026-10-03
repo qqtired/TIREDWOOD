@@ -34,7 +34,7 @@ export class Results {
     const rows = [...d.rows].sort((a, b) => b.k - a.k || b.pts - a.pts || a.d - b.d);
     const kills = rows.reduce((n, r) => n + r.k, 0);
     const gold = rows.reduce((n, r) => n + r.pts, 0);
-    const title = d.win ? 'Крепость устояла!' : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
+    const title = d.win ? 'Крепость выстояла!' : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
     const sub = d.win
       ? `Отбиты все ${d.lastWave} волн`
       : d.wave > 0 ? `Отбито волн: ${d.wave}` : 'Ни одной волны не отбили — в следующий раз получится';
