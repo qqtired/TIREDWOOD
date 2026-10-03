@@ -81,6 +81,7 @@ import { LosersScreen } from './losers.ts';
 import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type PhotoPerson } from './photo.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
+import { JukeboxPanel } from '../ui/jukebox.ts';
 import { JUKE_PRICE } from '../../shared/jukebox.ts';
 import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
@@ -353,6 +354,7 @@ export class LobbyScene implements Scene {
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot);
+    this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
@@ -1489,7 +1491,7 @@ export class LobbyScene implements Scene {
       return;
     }
     const it = this.target;
-    if (it?.kind === 'juke') this.juke.open();
+    if (it?.kind === 'juke') this.juke.toggle();
     else if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen();
     else if (it && usable(it.kind) && (it.kind !== 'kboard' || this.cheerable)) this.d.net.send({ t: 'use', id: it.id });
     // у статуи E (на телефоне — та же кнопка, на ней «F») — отдать честь

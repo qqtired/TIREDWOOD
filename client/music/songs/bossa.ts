@@ -52,7 +52,11 @@ export const bossa: SongDef = {
   sections: {
     intro: {
       chords: 'Dm9 | G13 | Cmaj9 | A7b9',
-      parts: [guitar(0.55), { kit: 'brush', vel: 0.7, drums: { p: 'xoooxoooxoooxooo', r: '................|................|x.....x.....x...|....x.....x.....' } }],
+      parts: [
+        guitar(0.7),
+        { i: 'bass', bass: 'r/4 | r/4 | 1/1.5 1/0.5 5/1.5 5/0.5 | 1/1.5 1/0.5 5/1.5 >/0.5', lo: 36, vel: 0.7, len: 0.85 },
+        { kit: 'brush', vel: 0.75, drums: { p: 'xoooxoooxoooxooo', r: '................|................|x.....x.....x...|....x.....x.....' } },
+      ],
     },
     a: { chords: A_CHORDS, parts: [{ i: 'whistle', mel: A.join(' | '), vel: 0.75 }, guitar(), bass, drums] },
     b: {

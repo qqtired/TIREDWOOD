@@ -134,7 +134,8 @@ export class LobbyJukebox {
     this.pending = null;
     this.note = msg.text;
     this.nextPanel = 0;
-    this.d.toast(msg.ok ? `🎵 ${msg.text}` : msg.text);
+    // окно открыто — ответ в его нижней строке; закрыли раньше ответа — тостом
+    if (!this.panel?.isOpen) this.d.toast(msg.ok ? `🎵 ${msg.text}` : msg.text);
     if (msg.ok) this.d.sound.coin(null);
   }
 
@@ -150,6 +151,12 @@ export class LobbyJukebox {
     if (!this.panel?.isOpen) return;
     this.panel.close();
     this.d.onClose();
+  }
+
+  /** E у автомата: открыть, ещё раз — закрыть (клавиша — жест: мышь захватится сразу, без паузы) */
+  toggle(): void {
+    if (this.panel?.isOpen) this.close();
+    else this.open();
   }
 
   /** Клавиши, пока окно открыто: true — съело */
@@ -198,7 +205,8 @@ export class LobbyJukebox {
           if (kit) this.player = new MusicPlayer(kit.ctx, kit.out, { live: true });
         }
         const p = this.player;
-        if (p && (p.current !== song || Math.abs(p.time - pos) > RESYNC)) p.start(song!, pos);
+        // начало — через 50 мс (запас на постановку нот): с того места, где песня будет в этот миг
+        if (p && (p.current !== song || Math.abs(p.time - pos) > RESYNC)) p.start(song!, pos + 0.05);
       }
     }
     // громкость, панорама и «глуше вдали»: от камеры до автомата
