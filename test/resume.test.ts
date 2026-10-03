@@ -77,9 +77,14 @@ test('обрыв: не вернулся за 45 с — выход; закрыт�
   for (let i = 0; i < TICK_RATE; i++) hub.step();
   assert.equal(a.c.closed, true); assert.equal(hub.lobby.playerOf(a.c), undefined);
   assert.match(lines.find(l => l.startsWith('[выход] Пропал'))!, /нет ответа 20 с, не вернулся за 45 с/);
-  for (const code of [1000, 1001, 1005, 1008, 1012, 4001, 4002]) assert.equal(resumableClose(code), false, String(code));
-  for (const code of [1006, 1011, 1013, 4900]) assert.equal(resumableClose(code), true, String(code));
+  for (const code of [1000, 1005, 1008, 1012, 4001, 4002]) assert.equal(resumableClose(code), false, String(code));
+  for (const code of [1001, 1006, 1011, 1013, 4900]) assert.equal(resumableClose(code), true, String(code));
+  // 1001 без прощания — вкладку заморозили в фоне: ждём; попрощался (закрыл вкладку) — выход сразу
+  const f = login(hub, 'Заморозка');
+  hub.linkLost(f.c, f.s, 'закрыл вкладку или обновил страницу', 1001);
+  assert.equal(f.c.closed, false);
   const b = login(hub, 'Закрыл');
+  hub.onJson(b.c, { t: 'bye' });
   hub.linkLost(b.c, b.s, 'закрыл вкладку', 1001);
   assert.equal(b.c.closed, true);
 });

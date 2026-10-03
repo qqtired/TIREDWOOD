@@ -219,6 +219,8 @@ export class App {
       clearTimer: (id) => clearTimeout(id),
     });
     window.addEventListener('online', () => this.relink.online());
+    // вкладку закрывают или обновляют — сервер отпустит сразу; заморозка в фоне (persisted) — подождёт возврата
+    window.addEventListener('pagehide', (e) => { if (!e.persisted && this.net.isOpen) this.net.send({ t: 'bye' }); });
     this.deps = {
       renderer: this.renderer,
       input: this.input,

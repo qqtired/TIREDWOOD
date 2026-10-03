@@ -74,6 +74,8 @@ export class Client {
   lostWhy = '';
   /** Этот сокет вернул прежнюю сессию после обрыва: дальше его сообщения — ей */
   adopted: Client | null = null;
+  /** Клиент попрощался (закрыл вкладку, обновил страницу): закрытие — сразу выход, без ожидания возврата */
+  bye = false;
 
   constructor(id: number, sink: LinkSocket, ip: string) {
     this.id = id;
@@ -185,11 +187,12 @@ export function cleanLog(v: unknown, max: number): string {
 export const RESUME_MS = 45_000;
 
 /**
- * Обрыв, после которого игрок может вернуться в ту же сессию. Не считаются: выход в меню и закрытая вкладка
- * (1000/1001/1005), нарушение и флуд (1008), перезапуск сервера (1012), вход в другом окне и старая версия.
+ * Обрыв, после которого игрок может вернуться в ту же сессию. Не считаются: выход в меню (1000/1005), нарушение
+ * и флуд (1008), перезапуск сервера (1012), вход в другом окне и старая версия. 1001 браузер шлёт и когда вкладку
+ * закрыли, и когда заморозил её в фоне — закрытие клиент отмечает сам сообщением «bye».
  */
 export function resumableClose(code: number): boolean {
-  return ![1000, 1001, 1005, 1008, 1012, 4001, 4002].includes(code);
+  return ![1000, 1005, 1008, 1012, 4001, 4002].includes(code);
 }
 
 /** Не больше стольких ошибок браузера с одного соединения и в минуту с одного адреса */
@@ -322,13 +325,14 @@ export class Hub {
    */
   linkLost(c: Client, socket: LinkSocket, why: string, code: number): void {
     if (!this.clients.has(c) || !c.sink.has(socket)) return;
-    if (!resumableClose(code) || !c.profile || c.ephemeral || !c.room) {
+    if (!resumableClose(code) || c.bye || !c.profile || c.ephemeral || !c.room) {
       this.disconnect(c, why);
       return;
     }
     c.sink.detach();
     c.lostAt = this.now();
-    c.lostWhy = why;
+    // 1001 без прощания — браузер усыпил вкладку (фон, заморозка), а не закрыл её
+    c.lostWhy = code === 1001 ? 'вкладка уснула' : why;
   }
 
   /** Кто не вернулся за RESUME_MS — отключаем по-настоящему. */
@@ -364,6 +368,10 @@ export class Hub {
     if (msg.t === 'ping') {
       if (typeof msg.c === 'number') c.sink.sendJson({ t: 'pong', c: msg.c, k: c.room?.tick ?? this.tick });
       c.sink.ack(msg.r);
+      return;
+    }
+    if (msg.t === 'bye') {
+      c.bye = true;
       return;
     }
     if (msg.t === 'err') {
