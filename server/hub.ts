@@ -138,6 +138,8 @@ export interface HubOptions {
   roulette?: boolean;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
+  /** Бильярд в пристройке казино (флаг сервера BILLIARDS, shared/billiards.ts) */
+  billiards?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }
@@ -331,7 +333,7 @@ export class Hub {
 
   /** Есть ли кто-то в комнатах (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.billiards?.busy || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
@@ -1003,7 +1005,7 @@ export class Hub {
     // Погода не зависит от присутствия рыбаков на набережной и шагается только здесь.
     this.lobby.stepWeather();
     if (this.paintball.humans > 0) this.paintball.step();
-    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy) this.lobby.step();
+    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy || this.lobby.billiards?.busy) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
@@ -1042,7 +1044,7 @@ export class Hub {
     const skill = this.skill?.humans ?? 0;
     const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
-    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) };
+    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) };
   }
 
   /** Перезапуск сервера: предупредить всех, сохранить, закрыть с кодом 1012 (клиенты переподключатся). */
@@ -1052,6 +1054,7 @@ export class Hub {
     for (const c of this.clients) if (c.profile && !c.ephemeral) this.profiles.touch(c.profile);
     this.lobby.blackjack.shutdown();
     this.lobby.durak.shutdown();
+    this.lobby.billiards?.shutdown();
     this.store.flush();
     for (const c of this.clients) c.sink.close(1012, 'restart');
   }

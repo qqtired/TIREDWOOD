@@ -97,6 +97,12 @@ export class Profiles {
         p.rouletteEscrow = null;
         recovered = true;
       }
+      // ставка бильярда: партия не доиграна до рестарта — обратно хозяину
+      if (p.billiardsEscrow) {
+        p.tokens += p.billiardsEscrow.amount;
+        p.billiardsEscrow = null;
+        recovered = true;
+      }
     }
     if (recovered) { store.markDirty(); store.flush(); }
   }
@@ -170,6 +176,7 @@ export class Profiles {
       durakEscrow: null,
       rouletteEscrow: null,
       blackjackEscrow: null,
+      billiardsEscrow: null,
       owned: [],
       outfit: { ...DEFAULT_OUTFIT, c: randomInt(PALETTE.length) },
       daily: mskDay(now),
@@ -291,6 +298,46 @@ export class Profiles {
     p.blackjackEscrow = null;
     this.store.markDirty();
     this.store.flush();
+    return true;
+  }
+
+  /** Ставка бильярда в банк: у профиля не больше одной; списание и запись — в одном атомарном снимке. */
+  reserveBilliards(pid: number, round: string, amount: number): boolean {
+    const p = this.ids.get(pid);
+    if (!p || !round || round.length > 100 || p.billiardsEscrow || !Number.isSafeInteger(amount) || amount <= 0 || p.tokens < amount) return false;
+    p.tokens -= amount;
+    p.billiardsEscrow = { round, amount };
+    this.store.markDirty();
+    this.store.flush();
+    return true;
+  }
+
+  /**
+   * Банк бильярдной записи round целиком: каждый, чья ставка в ней, — ровно один раз, выплаты в сумме равны ставкам
+   * (комиссии нет). Возврат ставки — та же запись с payout = wager. XP — за выигрыш сверх своей ставки.
+   */
+  settleBilliards(round: string, payouts: readonly { pid: number; wager: number; payout: number }[]): boolean {
+    const pending = [...this.ids.values()].filter((p) => p.billiardsEscrow?.round === round);
+    if (!round || !pending.length || payouts.length !== pending.length) return false;
+    const seen = new Set<number>();
+    const entries: { p: Profile; wager: number; payout: number }[] = [];
+    let bank = 0, returned = 0;
+    for (const item of payouts) {
+      const p = this.ids.get(item.pid);
+      if (!p || seen.has(item.pid) || p.billiardsEscrow?.round !== round || p.billiardsEscrow.amount !== item.wager ||
+          !Number.isSafeInteger(item.payout) || item.payout < 0) return false;
+      seen.add(item.pid); bank += item.wager; returned += item.payout;
+      entries.push({ p, wager: item.wager, payout: item.payout });
+    }
+    if (!Number.isSafeInteger(bank) || bank !== returned) return false;
+    const events: { p: Profile; change: LevelUp }[] = [];
+    for (const { p, wager, payout } of entries) {
+      p.tokens += payout; p.billiardsEscrow = null;
+      const change = payout > wager ? this.addModeXp(p, payout - wager) : null;
+      if (change) events.push({ p, change });
+    }
+    this.store.markDirty(); this.store.flush();
+    for (const { p, change } of events) this.onLevel?.(p, change);
     return true;
   }
 

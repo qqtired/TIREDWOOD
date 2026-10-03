@@ -67,7 +67,9 @@ const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE
 const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
 // Музыкальный автомат на площади: JUKEBOX=1 — включить, JUKEBOX=0 — выключить, без переменной — только с --dev
 const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, storm, pirates, voice, voiceIce, jukebox,
+// Бильярд в пристройке казино: BILLIARDS=1 — включить, BILLIARDS=0 — выключить, без переменной — только с --dev
+const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIARDS === '1';
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, storm, pirates, voice, voiceIce, jukebox, billiards,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -98,6 +100,7 @@ if (DEV && process.env.DEV_LORD === '1' && hub.lobby.fishing2) hub.lobby.fishing
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
+if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
 /** Токен для проверки после выкладки (deploy/smoke.ts): создаётся один раз, файл только для владельца. */

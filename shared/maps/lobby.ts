@@ -7,6 +7,7 @@ import { BARKAS_BOARD, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../bark
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
+import { BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
@@ -20,7 +21,7 @@ import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'billiards';
 
 export interface Interactable {
   id: number;
@@ -88,6 +89,8 @@ export interface LobbyMap extends GameMap {
   ferryAwayBoxes: number[];
   /** Корпус музыкального автомата (флаг сервера JUKEBOX): без флага коллизию выключают */
   jukeBoxes: number[];
+  /** Бильярдные столы и столбы навеса (флаг сервера BILLIARDS): без флага коллизию выключают */
+  billiardsBoxes: number[];
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -402,6 +405,17 @@ export function buildLobby(): LobbyMap {
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
   // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
   add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
+  // бильярд (флаг BILLIARDS) — навес к югу от павильона автоматов: столы и столбы твёрдые, E — у стола (shared/billiards.ts)
+  const billiardsBoxes: number[] = [];
+  for (const t of BL_TABLES) {
+    billiardsBoxes.push(b.boxes.length);
+    b.box([t.x - BL_OUT_HX, 0, t.z - BL_OUT_HZ], [t.x + BL_OUT_HX, BL_SURFACE_Y + 0.04, t.z + BL_OUT_HZ], 'invisible', 0);
+  }
+  for (const [x, z] of BL_POSTS) {
+    billiardsBoxes.push(b.boxes.length);
+    b.box([x - 0.09, 0, z - 0.09], [x + 0.09, 3.8, z + 0.09], 'invisible', 0);
+  }
+  BL_TABLES.forEach((t, i) => add('billiards', t.x, t.z, 0, 1.9, i, 'бильярд'));
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
@@ -448,5 +462,6 @@ export function buildLobby(): LobbyMap {
     ferryHomeBoxes,
     ferryAwayBoxes,
     jukeBoxes,
+    billiardsBoxes,
   };
 }

@@ -34,6 +34,8 @@ export interface Profile {
   durakEscrow?: { round: string; amount: number } | null;
   /** Улов на рулетке рыбака (его цена, жетонов) до остановки колеса: после аварийного рестарта возвращается жетонами. */
   rouletteEscrow?: { round: string; amount: number } | null;
+  /** Ставка в банке бильярдной партии (предложена или идёт партия): после аварийного рестарта возвращается. */
+  billiardsEscrow?: { round: string; amount: number } | null;
   /** Купленные и выигранные вещи: 'h:tophat', 'p:gold'… */
   owned: string[];
   outfit: Outfit;
@@ -139,6 +141,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
     blackjackEscrow: normalizeBlackjackEscrow(r.blackjackEscrow),
     durakEscrow: normalizeBlackjackEscrow(r.durakEscrow),
     rouletteEscrow: normalizeBlackjackEscrow(r.rouletteEscrow),
+    billiardsEscrow: normalizeBlackjackEscrow(r.billiardsEscrow),
     owned,
     outfit: r.outfit ? sanitizeOutfit(r.outfit, owned) : { ...DEFAULT_OUTFIT },
     daily: typeof r.daily === 'string' ? r.daily : '',
