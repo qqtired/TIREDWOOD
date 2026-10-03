@@ -151,6 +151,11 @@ export const CRUMBLE_PERIOD = 10 * TICK_RATE;
 export const CRUMBLE_GRACE = 2 * TICK_RATE;
 export const CRUMBLE_SPEED = 6;
 export const CRUMBLE_SHAKE = 3;
+/**
+ * Первые ступени (путь s меньше этого, м: площадка и три ступени у террасы) не осыпаются вообще: оттуда начинают подъём
+ * после каждого падения, и собирающаяся лестница не должна появляться над головой или вокруг тела.
+ */
+export const CRUMBLE_SAFE_S = 5;
 
 /** Где фронт обвала на пути лестницы, м (отрицательный — ещё не начался). */
 export function crumbleFront(t: number): number {
@@ -159,6 +164,7 @@ export function crumbleFront(t: number): number {
 
 /** Ступень на пути s: 0 — стоит, (0, 1) — трясётся (1 — падает), −1 — нет. */
 export function crumbleState(s: number, t: number): number {
+  if (s < CRUMBLE_SAFE_S) return 0;
   const f = crumbleFront(t);
   if (f >= s) return -1;
   if (f > s - CRUMBLE_SHAKE) return (f - (s - CRUMBLE_SHAKE)) / CRUMBLE_SHAKE;

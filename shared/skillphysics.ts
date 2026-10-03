@@ -8,8 +8,10 @@
 // полетел). Только +, −, ×, /, sqrt, остаток от деления и sinCos — бит в бит в любом браузере и в Node.
 import { DT, PLAYER_HALF, PLAYER_HEIGHT } from './constants.ts';
 import { TAU, sinCos } from './math.ts';
-import type { SkillMap, SkillMover, SkillSack } from './skillmap.ts';
-import { cloudSolid, crumbleState, lineU, orbitOffset, ramState, spinAngle, swingPose, windState, type RamPhase, type SwingPose } from './skilltraps.ts';
+import { SKILL_STEP_THICK, type SkillMap, type SkillMover, type SkillSack, type SkillStep } from './skillmap.ts';
+import {
+  CRUMBLE_PERIOD, cloudSolid, crumbleState, cyc, lineU, orbitOffset, ramState, spinAngle, swingPose, windState, type RamPhase, type SwingPose,
+} from './skilltraps.ts';
 import { makeInput, pushPlayer, stepPlayer, type Input, type PlayerState, type StepEvents } from './sim.ts';
 import type { CollisionWorld } from './world.ts';
 
@@ -99,6 +101,26 @@ export function barAngle(map: SkillMap, t: number): number {
   return map.bar.dir * spinAngle(map.bar.period, t);
 }
 
+/**
+ * Ступень колокольни собралась рядом с желейкой — для неё она «ещё не появилась»: центр ног не дальше HOLD_NEAR от
+ * краёв ступени, а тело по высоте пересекает её толщину (в первую секунду после сборки — и ближе 0,3 м над головой).
+ * Стоящий на ступени или выше неё и тот, кто упирается в её боковую грань (центр дальше 0,42 м от края), не задет:
+ * ступень скрыта, только пока выросла вокруг тела, поэтому нельзя застрять внутри. Картинка (client/skilltest/world.ts)
+ * спрашивает то же, что и физика: что видно, то и держит.
+ */
+const HOLD_NEAR = 0.25;
+const HOLD_EPS = 0.02;
+const HOLD_ABOVE = 0.3;
+const HOLD_FRESH = 60;
+
+export function stepHeldBy(st: SkillStep, x: number, y: number, z: number, t: number): boolean {
+  const r = st.rect;
+  if (y >= r.y - HOLD_EPS) return false;
+  const above = cyc(t, 0, CRUMBLE_PERIOD) < HOLD_FRESH ? HOLD_ABOVE : 0;
+  if (y + PLAYER_HEIGHT + above <= r.y - SKILL_STEP_THICK + HOLD_EPS) return false;
+  return x > r.x0 - HOLD_NEAR && x < r.x1 + HOLD_NEAR && z > r.z0 - HOLD_NEAR && z < r.z1 + HOLD_NEAR;
+}
+
 /** Ноги желейки (квадрат 0,84 м) хоть краем над прямоугольником. */
 function footOver(s: PlayerState, x0: number, x1: number, z0: number, z1: number): boolean {
   return s.x - PLAYER_HALF < x1 - EPS && s.x + PLAYER_HALF > x0 + EPS && s.z - PLAYER_HALF < z1 - EPS && s.z + PLAYER_HALF > z0 + EPS;
@@ -181,8 +203,17 @@ export class SkillDynamics {
       else this.park(c.box);
     }
     for (const st of map.steps) {
-      if (crumbleState(st.s, t) >= 0) this.setBox(st.box, st.rect.x0, st.rect.y - 0.45, st.rect.z0, st.rect.x1, st.rect.y, st.rect.z1);
+      if (crumbleState(st.s, t) >= 0) this.setBox(st.box, st.rect.x0, st.rect.y - SKILL_STEP_THICK, st.rect.z0, st.rect.x1, st.rect.y, st.rect.z1);
       else this.park(st.box);
+    }
+  }
+
+  /** Ступени, собравшиеся вокруг тела желейки, для этого шага убираем: пока не отойдёт, внутри них не застрянет. */
+  private holdSteps(s: PlayerState, t: number): void {
+    const steps = this.map.steps;
+    for (let i = 0; i < steps.length; i++) {
+      const st = steps[i];
+      if (stepHeldBy(st, s.x, s.y, s.z, t) && crumbleState(st.s, t) >= 0) this.park(st.box);
     }
   }
 
@@ -238,6 +269,7 @@ export class SkillDynamics {
       const top = w.maxY[b];
       if (s.y < top && s.y > top - GRAB && footOver(s, w.minX[b], w.maxX[b], w.minZ[b], w.maxZ[b])) s.y = top;
     }
+    this.holdSteps(s, t);
     this.weather(s, t);
     if (t < this.lockUntil) {
       const l = this.locked;
