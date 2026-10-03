@@ -113,8 +113,10 @@ test('1 на 1: бот добирает пару, вступление, раун
 });
 
 test('2 на 2: команда выбывает только целиком; нокаутированный встаёт в толпу', () => {
-  const { g, humans } = rig('team', 2);
+  // четверо людей — ботов нет (боты только соло)
+  const { g, humans } = rig('team', 4);
   assert.equal(fighters(g).length, 4);
+  assert.ok(fighters(g).every((p) => !p.bot));
   assert.equal(g.ringR, 6);
   const [a, b] = humans;
   assert.notEqual(a.p.team, b.p.team, 'люди — в разных командах');

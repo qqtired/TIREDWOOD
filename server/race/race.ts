@@ -1,4 +1,5 @@
-// Гонка: до 6 картов на одной из трасс (racecourse.ts). Люди едут своим вводом (на клиенте — предсказание), боты — KartBot.
+// Гонка: до 6 картов на одной из трасс (racecourse.ts). Люди едут своим вводом (на клиенте — предсказание), боты — KartBot,
+// но боты бывают только в заезде с одним человеком (shared/solobots.ts): вдвоём и больше — без них.
 // Фазы: решётка 5 с → гонка → итоги 10 с → всех обратно на набережную. Гонка кончается, когда доехали все люди;
 // через 30 с после первого финиша человека или после того, как доехали все боты; в крайнем случае через 5 минут.
 // Сервер считает толчки, ящики с бонусами (шансы — по месту в гонке), банки варенья, краску, пузыри и хлопки,
@@ -50,6 +51,7 @@ import {
 } from '../../shared/kartnet.ts';
 import { DEFAULT_TRACK, buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
+import { botsAllowed } from '../../shared/solobots.ts';
 import type { BoardKart, KartInfo, RaceEvent, RaceResultRow, ServerMsg } from '../../shared/messages.ts';
 import { randomOutfit, type Outfit } from '../../shared/outfit.ts';
 import { SNAP_SELF_RESET } from '../../shared/protocol.ts';
@@ -279,11 +281,14 @@ export class Race {
     if (!k.isBot && this.humanCount === 0) this.closed = true;
   }
 
-  /** Старт: боты до нужного числа, все на решётку, отсчёт 5 с. */
+  /**
+   * Старт: боты добирают карты до нужного числа, только если человек один (двое и больше — без ботов), все на
+   * решётку, отсчёт 5 с. Кто потом ушёл (хоть до «Вперёд!»), ботов не вернёт: они появятся в следующем заезде.
+   */
   start(): void {
     if (this.started || this.closed) return;
     this.started = true;
-    for (let n = 0; this.karts.size < this.minKarts; n++) this.addBot(n);
+    if (botsAllowed(this.humanCount)) for (let n = 0; this.karts.size < this.minKarts; n++) this.addBot(n);
     for (const k of this.karts.values()) {
       placeOnGrid(k.state, this.track, k.slot);
       k.selfReset = true;

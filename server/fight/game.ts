@@ -14,6 +14,7 @@ import {
   makeFighter, makeHitOut, staminaPct, stepFighter, type FightEvents, type Fighter,
 } from '../../shared/fightsim.ts';
 import { sinCos } from '../../shared/math.ts';
+import { botsAllowed } from '../../shared/solobots.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { DEFAULT_OUTFIT } from '../../shared/outfit.ts';
@@ -144,6 +145,13 @@ export class FightGame {
     return n;
   }
 
+  /** Бойцов-людей: зрители в толпе не в счёт — боты нужны тому, кто дерётся один */
+  get humanFighters(): number {
+    let n = 0;
+    for (const p of this.players.values()) if (p.fighter && !p.bot) n++;
+    return n;
+  }
+
   // ------------------------------------------------------------ состав
 
   /** Человек: бойцом (если бой ещё не начался и есть место) или зрителем. */
@@ -193,12 +201,12 @@ export class FightGame {
     return 0;
   }
 
-  /** Старт: боты добирают бойцов, команды, ринг, первый раунд. */
+  /** Старт: боты добирают бойцов — только если боец-человек один (двое и больше — без ботов), команды, ринг, первый раунд. */
   start(): void {
     if (this.started || this.closed) return;
     this.started = true;
     let botI = Math.floor(this.rng() * BOT_NAMES.length);
-    while (this.fighters < FC_FILL[this.mode]) this.addBot(botI++);
+    if (botsAllowed(this.humanFighters)) while (this.fighters < FC_FILL[this.mode]) this.addBot(botI++);
     let i = 0;
     for (const p of this.players.values()) {
       if (!p.fighter) continue;

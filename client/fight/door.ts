@@ -9,6 +9,7 @@
 // свет запечён в цвета вершин, лампа мигает — множителем цвета материала.
 import * as THREE from 'three';
 import { FC_CIRCLE, FC_DOOR, FC_FIGHTERS, FC_MODE_NAME, type FcStatus } from '../../shared/fight.ts';
+import { BOTS_RULE, botsWord } from '../../shared/solobots.ts';
 import { buildGeo, parts, type GeoParts, type V3 } from '../render/kit.ts';
 import { canvas, cardboard, chalkCircle, roundRect, seeded, soapTexture, stencilTexture, texture, writeMarker } from './paint.ts';
 
@@ -38,6 +39,11 @@ export function fightDist(x: number, y: number, z: number): number {
   return Math.hypot(x - FC_CIRCLE.x, z - FC_CIRCLE.z);
 }
 
+/** Сколько бойцов-людей спустится: бойцами идут первые FC_FIGHTERS из круга, остальные — зрители (боты нужны, только если боец один). */
+function fightersIn(st: FcStatus): number {
+  return Math.min(st.names.length, FC_FIGHTERS[st.mode]);
+}
+
 /** Подсказка у двери «Fight Club» по статусу круга, своему нику и расстоянию до центра круга. */
 export function fightHint(st: FcStatus, nick: string, d: number): { keys: string[]; text: string } | null {
   if (d > FC_HINT_R) return null;
@@ -51,11 +57,12 @@ export function fightHint(st: FcStatus, nick: string, d: number): { keys: string
     if (st.phase !== 'count') return { keys: [], text: 'Fight Club: ты в круге — сейчас пойдёт отсчёт' };
     const idx = st.names.indexOf(nick);
     const crowd = idx >= FC_FIGHTERS[st.mode] ? ' · бойцов хватает — пойдёшь зрителем' : '';
-    if (st.host === nick) return { keys: ['E'], text: `режим: ${mode} — сменить · спуск через ${st.left} с${crowd}` };
-    return { keys: [], text: `Спуск через ${st.left} с · ${mode} · режим выбирает ${st.host}${crowd}` };
+    const bots = botsWord(fightersIn(st));
+    if (st.host === nick) return { keys: ['E'], text: `режим: ${mode} — сменить · спуск через ${st.left} с · ${bots}${crowd}` };
+    return { keys: [], text: `Спуск через ${st.left} с · ${mode} · ${bots} · режим выбирает ${st.host}${crowd}` };
   }
-  if (st.phase === 'count') return { keys: [], text: `Fight Club: встань в круг — спуск через ${st.left} с · ${mode}` };
-  return { keys: [], text: 'Fight Club: встань в круг мелом — бой начнётся сам' };
+  if (st.phase === 'count') return { keys: [], text: `Fight Club: встань в круг — спуск через ${st.left} с · ${mode} · ${botsWord(fightersIn(st))}` };
+  return { keys: [], text: `Fight Club: встань в круг мелом — бой начнётся сам · ${BOTS_RULE}` };
 }
 
 // ------------------------------------------------------------ запечённый свет приямка
@@ -470,9 +477,9 @@ export function boardLines(st: FcStatus): string[] {
     return ['ИДЁТ БОЙ', `${mode} · раунд ${Math.max(1, st.round)}`, score];
   }
   if (st.phase === 'count') {
-    return [`СПУСК ЧЕРЕЗ ${st.left}`, `режим: ${mode}`, `в круге: ${st.names.length} · выбирает ${st.host}`];
+    return [`СПУСК ЧЕРЕЗ ${st.left}`, `режим: ${mode}`, `в круге: ${st.names.length} · ${botsWord(fightersIn(st))} · выбирает ${st.host}`];
   }
-  return ['СЕГОДНЯ БОЙ', 'встань в круг', `режим: ${mode}`];
+  return ['СЕГОДНЯ БОЙ', 'встань в круг', `${mode} · ${BOTS_RULE}`];
 }
 
 function drawBoard(ctx: CanvasRenderingContext2D, lines: string[]): void {

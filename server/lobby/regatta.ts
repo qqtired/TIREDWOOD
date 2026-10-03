@@ -3,9 +3,11 @@
 // комнате: катера видят все, гонщик — тот же игрок набережной (действие ACT_REGATTA, его не поднять шагом).
 // Ввод гонщика — его очередь входов набережной; шаги — по бюджету: в среднем не больше одного на тик (пачка входов
 // не ускоряет), догадка в паузе связи потом не повторяется (долг закрывают опоздавшие входы той же паузы).
-// Решает сервер: места, награда, рекорды. Ботами добиваем до 4 катеров.
+// Решает сервер: места, награда, рекорды. Ботами добиваем до 4 катеров, но только в заезде с одним человеком
+// (shared/solobots.ts): вдвоём и больше — без ботов.
 import { TICK_RATE } from '../../shared/constants.ts';
 import { makeRng } from '../../shared/math.ts';
+import { botsAllowed } from '../../shared/solobots.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import { DEFAULT_OUTFIT, type Outfit } from '../../shared/outfit.ts';
 import {
@@ -175,7 +177,7 @@ export class Regatta {
     return this.racers.find(r => r.p === p);
   }
 
-  /** Новый заезд: люди — на решётку по порядку, боты — до четырёх катеров. */
+  /** Новый заезд: люди — на решётку по порядку, боты — до четырёх катеров, но только если человек один. */
   begin(players: LobbyPlayer[]): void {
     const tick = this.host.tick();
     const humans = players.slice(0, RG_MAX);
@@ -185,9 +187,9 @@ export class Regatta {
     this.rows = [];
     this.round = (this.round + 1) & 0xffff;
     for (const p of humans) this.racers.push(this.racer(this.racers.length, p, null));
-    const bots = Math.max(0, RG_MIN_BOATS - humans.length);
-    // один — слабый, второй — средний, третий — сильный (соло); с друзьями — посильнее
-    const levels = humans.length === 1 ? [0, 1, 2] : humans.length === 2 ? [1, 2] : [2];
+    // соло: один бот слабый, второй средний, третий сильный; вдвоём и больше — ботов нет
+    const bots = botsAllowed(humans.length) ? Math.max(0, RG_MIN_BOATS - humans.length) : 0;
+    const levels = [0, 1, 2];
     const names = [...RG_BOT_NAMES].sort(() => this.rnd() - 0.5);
     for (let i = 0; i < bots; i++) {
       const id = this.racers.length;
