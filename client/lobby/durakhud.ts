@@ -582,14 +582,12 @@ export class DurakHud {
       const cls = ['dk-card', ok ? 'ok' : 'dim'];
       if (c === this.pending) cls.push('pending');
       if (c === this.menuCard) cls.push('sel');
-      if (suitOf(c) === ts) cls.push('trump', ts >= 2 ? 'red' : 'black');
       const ml = i === 0 ? 0 : step - cardPx;
       // веер: крайние карты чуть наклонены и опущены
       const off = i - (n - 1) / 2;
       const rot = off * Math.min(2.6, 30 / Math.max(n, 1));
       const drop = off * off * Math.min(1.1, 14 / Math.max(n, 1));
-      const mark = suitOf(c) === ts ? ` data-ts="${SUIT_SIGNS[ts]}︎"` : '';
-      return `<button class="${cls.join(' ')}" data-card="${c}"${mark} style="background-position:${atlasPos(c)};margin-left:${ml.toFixed(1)}px;z-index:${i + 1};--r:${rot.toFixed(2)}deg;--y:${drop.toFixed(1)}px"></button>`;
+      return `<button class="${cls.join(' ')}" data-card="${c}" style="background-position:${atlasPos(c)};margin-left:${ml.toFixed(1)}px;z-index:${i + 1};--r:${rot.toFixed(2)}deg;--y:${drop.toFixed(1)}px"></button>`;
     }).join('');
     let menu = '';
     if (this.menuCard >= 0) {

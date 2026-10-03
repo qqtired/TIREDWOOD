@@ -3452,18 +3452,6 @@ input[type='checkbox'] {
   opacity: 0.4;
 }
 
-/* козырь — золотая полоска под левым краем (он виден и у прижатых карт) */
-.dk-card.trump::after {
-  content: '';
-  position: absolute;
-  left: 7px;
-  bottom: -7px;
-  width: 22px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--gold);
-}
-
 /* несколько ходов одной картой — выбор над ней */
 .dk-menu {
   position: absolute;
@@ -5952,10 +5940,6 @@ input[type='checkbox'] {
   .dk-card {
     width: 58px;
     height: 83px;
-  }
-  .dk-card.trump::after {
-    left: 5px;
-    width: 18px;
   }
   .dk-btns .dk-btn {
     min-width: 92px;
