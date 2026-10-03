@@ -82,6 +82,7 @@ import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type Pho
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
 import { JukeboxPanel } from '../ui/jukebox.ts';
+import { Jukebox3D } from './jukebox3d.ts';
 import { JUKE_PRICE } from '../../shared/jukebox.ts';
 import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
@@ -356,6 +357,7 @@ export class LobbyScene implements Scene {
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
+    this.juke.attachModel(new Jukebox3D(this.world.scene));
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
