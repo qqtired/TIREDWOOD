@@ -10,10 +10,9 @@
 // В меню (ещё не вошли или связь пропала) — облёт площади по кругу.
 import * as THREE from 'three';
 import { BALL_BYTES } from '../../shared/ball.ts';
-import type { BoatRaceStatus } from '../../shared/boatrace.ts';
 import type { HideStatus } from '../../shared/hide.ts';
 import { START_ZONES, type GatherStatus } from '../../shared/startzones.ts';
-import { emptyStorm, STORM_GOAL } from '../../shared/storm.ts';
+import { emptyStorm } from '../../shared/storm.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { emptyPirates, emptyPirateTail, pirateInput, piratePush } from '../../shared/pirates.ts';
 import { readPirateTail } from '../../shared/piratenet.ts';
@@ -31,13 +30,14 @@ import { MAX_HUMANS, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.
 import { FE_BITE, FE_DONE, FE_EARLY, FE_HOOK, FE_LOST, FE_MISS, FE_OFF, FP_BITE, FP_CAST, FP_HOLD, FP_IDLE, FP_REEL, FP_WAIT } from '../../shared/fishing.ts';
 import type { FortStatus } from '../../shared/fort.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WARDROBE,
-  ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
+  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
+  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
 import { FISH_SPOTS } from '../../shared/fishplaces.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
+import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
 import { clamp } from '../../shared/math.ts';
 import type { AquaRow, BoatStatus, DurakSeatView, DurakTableView, FerryStatus, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -62,7 +62,9 @@ import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { LobbyCamera } from './camera.ts';
-import { DurakTables3D } from './durak3d.ts';
+import { DurakTables3D, TORSO_R } from './durak3d.ts';
+import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, tomatoRadius, type PickPoint } from './tomatopick.ts';
+import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
@@ -75,6 +77,7 @@ import { StartCircle } from './startcircles.ts';
 import { Fish2Hud } from './fish2hud.ts';
 import { FishHud } from './fishhud.ts';
 import { FishingSpots } from './fishing.ts';
+import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
 import { FishDrink } from './fishdrink.ts';
 import { LobbyFolk } from './folk.ts';
@@ -84,6 +87,7 @@ import { LobbyHud } from './hud.ts';
 import { BOARD_POS } from './kartstart.ts';
 import { LosersScreen } from './losers.ts';
 import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type PhotoPerson } from './photo.ts';
+import { RegattaClient } from './regatta.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
@@ -133,8 +137,10 @@ const TABLE_CAM_D = 1.65;
 const TABLE_CAM_Y = 2.05;
 const TABLE_PITCH = (33 * Math.PI) / 180;
 const TABLE_FOV = 52;
-/** Клик по желейке за столом — помидор: не дальше стольких пикселей от головы */
-const TOMATO_PICK_PX = 80;
+/** Блэкджек: ближе и круче, чтобы стол целиком ложился над нижней панелью, а карты у края не прятались под ней */
+const BJ_CAM_D = 1.32;
+const BJ_CAM_Y = 1.8;
+const BJ_PITCH = (42 * Math.PI) / 180;
 const TOMATO_COLOR = 0xd42a1c;
 /** Подсказка про гонку — в круге «Старт» и на столько метров вокруг */
 const KART_HINT_M = 1.4;
@@ -155,6 +161,11 @@ interface Remote {
 const _v = new THREE.Vector3();
 const _hand = new THREE.Vector3();
 const _head = new THREE.Vector3();
+const _tp = new THREE.Vector3();
+const _tq = new THREE.Vector3();
+const _th = new THREE.Vector3();
+const _tm = new THREE.Vector3();
+const _tr = new THREE.Vector3();
 /** Голоса моторов: лодки в заливе и катера «Ласточка» (номера картов — меньше) */
 const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
@@ -173,6 +184,7 @@ export class LobbyScene implements Scene {
   private readonly slots: SlotMachines3D;
   private readonly wardrobe: Wardrobe;
   private readonly tables3d: DurakTables3D;
+  private readonly decor: DurakDecor;
   private readonly dkHud: DurakHud;
   private readonly bjHud: BlackjackHud;
   private readonly blackjack3d: BlackjackTable3D;
@@ -189,11 +201,14 @@ export class LobbyScene implements Scene {
   private outerMenu = false;
   private sentMenu: boolean | null = null;
   private readonly entryCircles = new Map<string, StartCircle>();
-  private boatRaceStatus: GatherStatus | BoatRaceStatus | null = null;
+  /** Круг сбора регаты у пирса (null — регата выключена) и сама «Портовая регата» в бухте */
+  private boatRaceStatus: GatherStatus | null = null;
+  readonly rg: RegattaClient;
   private hideStatus: GatherStatus | HideStatus | null = null;
   private startZone: { kind: 'paintball' | 'fort' | null; left: number } = { kind: null, left: 0 };
   private readonly defenders: {id:number;x:number;y:number;z:number;yaw:number;eligible:boolean}[] = [];
   private readonly fishForCritters: {x:number;z:number}[] = [];
+  private readonly critterOthers: {id:number;x:number;y:number;z:number}[] = [];
   private readonly photo: PhotoBooth;
   private readonly ball: LobbyBall;
   private readonly fishing: FishingSpots;
@@ -217,6 +232,8 @@ export class LobbyScene implements Scene {
   private later: Array<{ at: number; run: () => void }> = [];
   /** Свой стул за столом дурака (номер места), −1 — не за столом */
   private dkSeat = -1;
+  /** Над желейкой горит прицел помидора (курсор — рука, кольцо на панели) */
+  private aimOn = false;
   /** Когда пришёл последний вид каждого стола (таймеры панели — от него) */
   private readonly dkRecv: number[] = [];
   /** Последняя своя рука: приходит раньше, чем снимок посадит за стол */
@@ -328,6 +345,8 @@ export class LobbyScene implements Scene {
     this.world = new LobbyWorld(d.renderer, lobbyQuality(d.settings.quality));
     for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
+    // корпус музыкального автомата твёрдый, только когда сервер с ним (флаг JUKEBOX: приходит «juke»)
+    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
     const col = this.world.collision;
     this.aquaDyn = new AquaDyn(col, this.world.map.aquaMovers);
     const dyn = this.aquaDyn;
@@ -352,14 +371,21 @@ export class LobbyScene implements Scene {
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
+      onWoof: (x, y, z) => d.sound.woof([x, y, z]),
+      collision: col,
     });
     this.storm3d = new Storm3D(this.world.scene, this.hud.root, {
-      climate: (dark, rain, flash, lamps) => this.world.setStormClimate(dark, rain, flash, lamps),
+      climate: (force, lamps) => this.world.setStormClimate(force, lamps),
+      strike: (s) => this.world.strike(s),
+      rainbow: (on) => this.world.setStormRainbow(on),
       lamp: (enabled) => this.world.setLighthouseEnabled(enabled),
       sound: (kind) => d.sound.lobbyEvent(kind),
       light: () => d.net.send({ t: 'stormLight' }),
+      self: () => d.ui.me().pid,
       lampPosition: this.world.lighthouse.lampAnchor.getWorldPosition(new THREE.Vector3()),
     });
+    // молния ударила — гром: с задержкой по расстоянию, громкость по расстоянию, сбоку — где ударило
+    this.world.onStrike((e) => d.sound.thunder(e.dist, e.pan, e.power, e.far));
     this.pirates3d = new Pirates3D(this.world.scene, this.hud.root, {
       swing: () => { d.input.touchButton(0, true); d.input.touchButton(0, false); },
       sound: (kind) => d.sound.lobbyEvent(kind),
@@ -369,8 +395,8 @@ export class LobbyScene implements Scene {
       const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });
       circle.setVisible(false); this.entryCircles.set(z.kind, circle);
     }
-    for (const [kind, zone, label, color] of [['boatrace', BOAT_RACE_CIRCLE, 'ГОНКИ НА КАТЕРАХ', 0x57ccdb], ['hide', HIDE_CIRCLE, 'ПРЯТКИ В ГОРОДЕ', 0xd9b77b]] as const) {
-      const circle = new StartCircle(this.world.scene, { ...zone, color, label, subtitle: 'Круг сбора · старт через 15 с' });
+    for (const [kind, zone, label, color] of [['boatrace', BOAT_RACE_CIRCLE, 'ПОРТОВАЯ РЕГАТА', 0x57ccdb], ['hide', HIDE_CIRCLE, 'ПРЯТКИ: РЫБНЫЙ ДВОР', 0xd9b77b]] as const) {
+      const circle = new StartCircle(this.world.scene, { ...zone, color, label, subtitle: kind === 'boatrace' ? 'Круг сбора · старт через 10 с' : 'Круг сбора · старт через 15 с' });
       circle.setVisible(false); this.entryCircles.set(kind, circle);
     }
     this.hud.onTap = (code) => {
@@ -387,13 +413,14 @@ export class LobbyScene implements Scene {
     this.wardrobe.onPreview = (o) => this.me.setOutfit(o);
     this.wardrobe.onClose = () => this.leaveWardrobe(true);
     this.tables3d = new DurakTables3D(this.world, d.sound, [0, 1]);
+    this.decor = new DurakDecor(this.world.scene, this.world.map.tables, [0, 1]);
     this.dkHud = new DurakHud(this.hud.root);
     this.dkHud.onAct = (a, card, on) => {
       if (this.dkSeat >= 0) d.net.send({ t: 'durak', table: seatTable(this.dkSeat), a, card, on });
     };
     this.dkHud.onLeave = () => this.leaveTable(true);
     const blackjackTable = this.world.map.tables[BJ_TABLE];
-    this.blackjack3d = new BlackjackTable3D(this.world.scene, blackjackTable.x, blackjackTable.z);
+    this.blackjack3d = new BlackjackTable3D(this.world, d.sound, blackjackTable.x, blackjackTable.z);
     this.bjHud = new BlackjackHud(this.hud.root);
     this.bjHud.onAct = (a, rev, amount) => {
       if (this.blackjackSeated) d.net.send({ t: 'blackjack', table: BJ_TABLE, a, rev, amount });
@@ -412,6 +439,12 @@ export class LobbyScene implements Scene {
     this.boatSign = new BoatSign(this.world.scene);
     this.boatBanner = new BoatBanner(this.world.scene);
     this.aqua = new AquaPark(this.world.scene, this.effects);
+    this.rg = new RegattaClient({
+      scene: this.world.scene, effects: this.effects, sound: d.sound, hudRoot: this.hud.root,
+      toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg),
+      tapUse: () => { d.input.tap('KeyE', true); d.input.tap('KeyE', false); },
+      low: () => lobbyQuality(d.settings.quality) === 'low',
+    });
     this.losers = new LosersScreen(this.world.scene);
     this.tg = new TgScreen(this.world.scene);
     this.ferris = new FerrisWheel(this.world.scene);
@@ -426,6 +459,8 @@ export class LobbyScene implements Scene {
     this.fish2.onBeer = () => this.fishDrink.start();
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
+    d.renderer.canvas.addEventListener('pointermove', (e) => this.onCanvasMove(e));
+    d.renderer.canvas.addEventListener('pointerleave', () => this.clearAim());
     this.me.addTo(this.world.scene);
     window.addEventListener('wheel', (e) => {
       if (this.entered && d.input.locked && !d.input.blocked) this.cam.zoomBy(e.deltaY);
@@ -451,6 +486,7 @@ export class LobbyScene implements Scene {
   get touchMode(): TouchMode {
     const act = this.myAct;
     if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen) return 'none';
+    if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
     if (isRiding(act)) return 'ride';
@@ -469,6 +505,15 @@ export class LobbyScene implements Scene {
 
   private get blackjackSeated(): boolean {
     return this.dkSeat >= 0 && seatTable(this.dkSeat) === BJ_TABLE;
+  }
+
+  /** В катере регаты: в паузе вместо «На набережную» — «Сойти на берег». */
+  get racing(): boolean {
+    return this.rg.racing;
+  }
+
+  quitRace(): void {
+    this.rg.quit();
   }
 
   /** Меню оболочки и диалоги сцены составляют один серверный признак. */
@@ -493,17 +538,13 @@ export class LobbyScene implements Scene {
     return this.eventEligible && this.pirateState.phase === 'raid' && this.pirateTail.visible;
   }
 
-  private get nearStormLight(): boolean {
-    const p = this.pose, v = this.stormState;
-    return this.eventEligible && (v.phase === 'storm' || v.phase === 'calm' && this.clock.renderTick < v.rankEnd)
-      && Math.hypot(p.x - STORM_GOAL.x, p.z - STORM_GOAL.z) <= STORM_GOAL.r && Math.abs(p.y - STORM_GOAL.y) <= .75;
-  }
 
   private resetAdditions(): void {
     this.sentMenu = null;
     this.skillStatus = this.boatRaceStatus = this.hideStatus = null;
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
+    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
     for (const circle of this.entryCircles.values()) circle.setVisible(false);
     this.startZone = { kind: null, left: 0 };
     this.stormState = emptyStorm(); this.pirateState = emptyPirates(); this.pirateTail = emptyPirateTail();
@@ -513,14 +554,15 @@ export class LobbyScene implements Scene {
     this.lastMopTick = -1e6;
   }
 
-  private onGather(kind: 'boatrace' | 'hide', status: GatherStatus | BoatRaceStatus | HideStatus | null): void {
-    if (kind === 'boatrace') this.boatRaceStatus = status as GatherStatus | BoatRaceStatus | null;
+  private onGather(kind: 'boatrace' | 'hide', status: GatherStatus | HideStatus | null): void {
+    if (kind === 'boatrace') this.boatRaceStatus = status as GatherStatus | null;
     else this.hideStatus = status as GatherStatus | HideStatus | null;
     const circle = this.entryCircles.get(kind)!;
     circle.setVisible(!!status);
     if (!status) return;
     circle.status({ ...status, left: status.phase === 'count' && 'left' in status ? status.left : undefined, max: 'max' in status ? status.max : 6,
-      hint: status.phase === 'idle' ? kind === 'hide' ? 'Нужно 2–8 игроков' : '1–6 игроков · можно с ботами'
+      hint: kind === 'boatrace' && this.rg.phase !== 'idle' && status.phase === 'idle' ? 'Регата идёт · встань — поедешь следующим'
+        : status.phase === 'idle' ? kind === 'hide' ? 'Нужно 2–8 игроков' : '1–6 игроков · можно с ботами'
         : status.phase === 'count' ? 'Сбор игроков' : 'Раунд идёт · дождись окончания' });
   }
 
@@ -549,6 +591,7 @@ export class LobbyScene implements Scene {
     this.slots.reset();
     this.fx.clear();
     this.tables3d.reset();
+    this.decor.reset();
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
@@ -570,6 +613,7 @@ export class LobbyScene implements Scene {
     this.aquaDone = null;
     this.lastVt = 0;
     this.aquaT0 = this.aquaT1 = 0;
+    this.rg.reset();
     this.seq = 0;
     this.acc = 0;
     this.queueAvg = 1;
@@ -601,6 +645,7 @@ export class LobbyScene implements Scene {
     this.slots.reset();
     this.fx.clear();
     this.tables3d.reset();
+    this.decor.reset();
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
@@ -620,6 +665,7 @@ export class LobbyScene implements Scene {
     this.aquaAt = 0;
     this.aquaFin = 0;
     this.aquaDone = null;
+    this.rg.reset();
     this.hud.setTimer(null);
     this.hud.setVisible(false);
     this.d.sound.setRain(0);
@@ -653,7 +699,9 @@ export class LobbyScene implements Scene {
         if (msg.skill) this.skillPortal.status(msg.skill);
         this.entryCircles.get('paintball')!.setVisible(true);
         this.entryCircles.get('paintball')!.status({ hint: 'Встань на 3 секунды · E — сразу' });
-        this.onGather('boatrace', msg.boatrace ?? null);
+        this.rg.setMyId(msg.id);
+        this.rg.welcome(msg.regatta);
+        this.onGather('boatrace', msg.regatta?.q ?? null);
         this.onGather('hide', msg.hide ?? null);
         this.world.kartStart.update(msg.kart);
         // рыбалка 2.0 — до мест рыбалки: вываживание в 3D у неё своё
@@ -662,7 +710,7 @@ export class LobbyScene implements Scene {
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
         this.fishing.reset(msg.fish);
-        this.world.setRain(msg.rain === 1, true);
+        this.world.setRain(msg.rain === 1, true, msg.wx);
         this.respects.setCount(msg.respects ?? 0);
         this.setBoat(msg.boat ?? BOAT_DOCKED);
         this.setFerry(msg.ferry ?? FERRY_DOCKED, true);
@@ -671,6 +719,9 @@ export class LobbyScene implements Scene {
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
         this.onFightSt(msg.fc ?? null);
+        break;
+      case 'juke':
+        for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, true);
         break;
       case 'fortSt':
         this.onFort(msg);
@@ -714,7 +765,7 @@ export class LobbyScene implements Scene {
         this.tg.add(msg.title, msg.lines);
         break;
       case 'weather':
-        this.world.setRain(msg.rain === 1);
+        this.world.setRain(msg.rain === 1, false, msg.wx);
         this.fish2.weather(msg.rain === 1);
         break;
       case 'kart':
@@ -747,6 +798,7 @@ export class LobbyScene implements Scene {
           else if (e[0] === 'fish') this.onFish(e[1], e[2], e[3], e[4]);
           else if (e[0] === 'respect') this.onRespect(e[1], e[2]);
           else if (e[0] === 'aqhit') this.onAquaHit(e[1], e[2], e[3]);
+          else if (e[0] === 'fishMaster') fishMasterCheer(e[1] === this.myId ? this.me : this.remotes.get(e[1])?.avatar, this.fx, this.d.sound);
           else this.onPhoto(e[1]);
         }
         break;
@@ -773,7 +825,8 @@ export class LobbyScene implements Scene {
         this.skillStatus = msg;
         this.skillPortal.status(msg);
         break;
-      case 'brSt': this.onGather('boatrace', msg.v); break;
+      case 'rgQ': this.rg.onJson(msg); this.onGather('boatrace', msg.v); break;
+      case 'rg': case 'rgTop': case 'rgFin': this.rg.onJson(msg); if (msg.t === 'rg') this.onGather('boatrace', this.boatRaceStatus); break;
       case 'hideSt': this.onGather('hide', msg.v); break;
       case 'startZone':
         this.startZone = msg;
@@ -957,11 +1010,14 @@ export class LobbyScene implements Scene {
     const now = performance.now();
     this.dkRecv[t] = now;
     this.tables3d.apply(t, v);
+    this.decor.setView(t, v);
     if (this.dkSeat >= 0 && seatTable(this.dkSeat) === t) this.dkHud.setView(v, now);
   }
 
   private onBlackjack(view: BlackjackView): void {
     this.blackjack3d.setView(view);
+    // панель показывает новый вид, когда карты в 3D долетят: не раскрываем очки раньше, чем карта упала на сукно
+    this.bjHud.setHold(this.blackjack3d.busyUntil);
     this.bjHud.setView(view, performance.now());
     this.bjHud.setBalance(this.d.ui.me().tokens);
   }
@@ -1151,8 +1207,10 @@ export class LobbyScene implements Scene {
     this.dkSeat = seat;
     this.me.hidden = seat >= 0;
     this.tables3d.setMe(seat);
+    this.decor.setMe(seat >= 0 && seatTable(seat) !== BJ_TABLE ? seatTable(seat) : -1);
     this.blackjack3d.setMe(seat >= 0 ? seatTable(seat) : -1, seat >= 0 ? seatChair(seat) : -1);
     if (seat < 0) {
+      this.clearAim();
       this.dkHud.hide();
       this.bjHud.hide();
       return;
@@ -1180,38 +1238,89 @@ export class LobbyScene implements Scene {
     this.d.wantPointer();
   }
 
-  /** Клик по холсту за столом: ближайшая к курсору голова (кроме своей) — в неё помидор. */
-  private onCanvasDown(e: MouseEvent): void {
-    if (e.button !== 0 || !this.entered || this.dkSeat < 0 || this.d.input.locked || this.d.input.blocked) return;
+  /**
+   * Кого заденет помидор от клика в точку экрана: центры корпусов сидящих соперников (игроки и боты, не я и не пустые
+   * места) проецируем на экран и берём ближайшего в радиусе (мышь 110 px, палец 140 px; у ближних — по размеру силуэта).
+   * Мерим по экрану, а не по мешу: целиться почти в центр не нужно. null — никого.
+   */
+  private tomatoAim(cx: number, cy: number, touch: boolean): (PickPoint & { body: number; cx: number; cy: number; size: number }) | null {
+    if (this.dkSeat < 0) return null;
     const t = seatTable(this.dkSeat);
     const mine = seatChair(this.dkSeat);
     const v = this.tables3d.view(t);
-    if (!v) return;
+    if (!v) return null;
     const rect = this.d.renderer.canvas.getBoundingClientRect();
     const cam = this.world.camera;
-    let best = -1;
-    let bestD = TOMATO_PICK_PX;
+    cam.updateMatrixWorld();
+    _tr.setFromMatrixColumn(cam.matrixWorld, 0);
+    const base = touch ? TOMATO_REACH_TOUCH_PX : TOMATO_REACH_PX;
+    const pts: Array<PickPoint & { body: number; cx: number; cy: number; size: number }> = [];
+    const sx = (n: number): number => rect.left + ((n + 1) / 2) * rect.width;
+    const sy = (n: number): number => rect.top + ((1 - n) / 2) * rect.height;
     for (let ch = 0; ch < TABLE_SEATS; ch++) {
-      const s = v.seats[ch];
-      if (ch === mine || !s || s.k === 0 || (s.k === 1 && s.id === 0)) continue;
-      this.tables3d.headPos(t, ch, _v).project(cam);
-      if (_v.z > 1) continue;
-      const sx = rect.left + ((_v.x + 1) / 2) * rect.width;
-      const sy = rect.top + ((1 - _v.y) / 2) * rect.height;
-      const dd = Math.hypot(sx - e.clientX, sy - e.clientY);
-      if (dd < bestD) {
-        bestD = dd;
-        best = ch;
-      }
+      if (!targetable(v.seats[ch], ch, mine) || !this.tables3d.bodyEnds(t, ch, _tp, _th)) continue;
+      const dist = _tp.distanceTo(cam.position);
+      _tm.copy(_tp).lerp(_th, 0.5);
+      _tq.copy(_tm).addScaledVector(_tr, TORSO_R);
+      _tp.project(cam);
+      _th.project(cam);
+      _tm.project(cam);
+      _tq.project(cam);
+      if (_tp.z > 1 || _th.z > 1 || _tq.z > 1) continue;
+      const body = Math.abs(_tq.x - _tm.x) * (rect.width / 2);
+      const x = sx(_tp.x);
+      const y = sy(_tp.y);
+      const x2 = sx(_th.x);
+      const y2 = sy(_th.y);
+      pts.push({
+        ch, body, x, y, x2, y2, cx: (x + x2) / 2, cy: (y + y2) / 2, size: Math.hypot(x2 - x, y2 - y),
+        r: tomatoRadius(base, body, dist),
+      });
     }
-    if (best < 0) return;
+    const best = pickTomatoTarget(pts, cx, cy, mine);
+    return best < 0 ? null : (pts.find((p) => p.ch === best) ?? null);
+  }
+
+  /** Клик по холсту за столом (кнопки и карты панели перехватывают клик раньше — сюда он не доходит): помидор в выбранного. */
+  private onCanvasDown(e: MouseEvent): void {
+    if (e.button !== 0 || !this.entered || this.dkSeat < 0 || this.d.input.locked || this.d.input.blocked) return;
+    const hit = this.tomatoAim(e.clientX, e.clientY, TOUCH || (e as PointerEvent).pointerType === 'touch');
+    if (!hit) return;
     const now = performance.now();
     if (!this.dkHud.tomatoReady(now)) {
       this.d.ui.toasts.show('Помидор ещё не созрел — подожди немного 🍅');
       return;
     }
     this.dkHud.tomatoSent(now);
-    this.d.net.send({ t: 'durak', table: t, a: 'tomato', on: best });
+    this.d.net.send({ t: 'durak', table: seatTable(this.dkSeat), a: 'tomato', on: hit.ch });
+    if ((e as PointerEvent).pointerType !== 'touch') this.showAim(hit);
+  }
+
+  /** Наведение мыши: курсор-«рука» и кольцо с именем на той желейке, в которую полетит помидор. */
+  private onCanvasMove(e: PointerEvent): void {
+    if (this.dkSeat < 0 || !this.entered || e.pointerType === 'touch' || this.d.input.locked || this.d.input.blocked) {
+      this.clearAim();
+      return;
+    }
+    const hit = this.tomatoAim(e.clientX, e.clientY, false);
+    if (!hit) {
+      this.clearAim();
+      return;
+    }
+    this.showAim(hit);
+  }
+
+  private showAim(hit: PickPoint & { body: number; cx: number; cy: number; size: number }): void {
+    this.aimOn = true;
+    this.d.renderer.canvas.style.cursor = 'pointer';
+    this.dkHud.aim({ x: hit.cx, y: hit.cy, body: Math.max(hit.body, hit.size / 2), nick: this.tables3d.view(seatTable(this.dkSeat))?.seats[hit.ch]?.nick ?? '' });
+  }
+
+  private clearAim(): void {
+    if (!this.aimOn) return;
+    this.aimOn = false;
+    this.d.renderer.canvas.style.cursor = '';
+    this.dkHud.aim(null);
   }
 
   /** Кто-то дёрнул рычаг: барабаны крутятся у всех, итог (монеты, салют) — когда встанут. */
@@ -1259,6 +1368,8 @@ export class LobbyScene implements Scene {
   // ------------------------------------------------------------ сеть: снимки
 
   onSnapshot(buf: ArrayBuffer, at: number): void {
+    // катера регаты — отдельное сообщение (client/lobby/regatta.ts)
+    if (this.rg.onBinary(buf)) return;
     if (this.myId < 0) return;
     const n = decodeSnapshot(buf, this.header, this.selfSnap, this.ents);
     if (n < 0) return;
@@ -1365,6 +1476,13 @@ export class LobbyScene implements Scene {
           this.wheelUntil = this.clock.ready ? wheelArrival(Math.floor(arg / WHEEL_SEATS), Math.round(this.clock.renderTick)) : 0;
         }
       }
+      // сошёл с катера регаты (сервер ставит у круга сбора) — лицом к площади, не к воде
+      if (prev === ACT_REGATTA && action !== ACT_REGATTA) {
+        const sp = this.world.map.boatraceSpawn;
+        const c = this.world.map.spawn;
+        input.yaw = Math.atan2(sp.x - c.x, sp.z - c.z);
+        input.pitch = -0.12;
+      }
       if (action === ACT_FISH) this.myFishSpot = arg;
       if (action === ACT_WARDROBE) {
         this.wardrobeOpen = true;
@@ -1421,6 +1539,7 @@ export class LobbyScene implements Scene {
       return false;
     }
     if (this.d.input.blocked) return false;
+    if (this.rg.racing) return this.rg.onKey(code);
     // журнал рыбака (рыбалка 2.0): J — открыть или закрыть, Esc — закрыть
     if (this.fish2.bookOpen && code === 'Escape') {
       this.fish2.closeBook();
@@ -1477,6 +1596,7 @@ export class LobbyScene implements Scene {
       if (MOVE_KEYS.has(code) && !this.bjHud.locked) this.leaveTable(false);
       return false;
     }
+    if (this.dkHud.onKey(code)) return true;
     const k = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(code);
     if (k >= 0) {
       this.dkHud.react(k);
@@ -1499,6 +1619,11 @@ export class LobbyScene implements Scene {
       this.spin();
       return;
     }
+    // у двери маяка в шторм: E, клик мышью или кнопка на телефоне — зажечь
+    if (this.storm3d.canLight) {
+      this.d.net.send({ t: 'stormLight' });
+      return;
+    }
     if (mouse) {
       if (act === ACT_FISH) this.fishPress();
       return;
@@ -1512,14 +1637,13 @@ export class LobbyScene implements Scene {
       if (!isRiding(act)) this.d.net.send({ t: 'unuse' });
       return;
     }
-    if (this.nearStormLight) { this.d.net.send({ t: 'stormLight' }); return; }
     if (this.startZone.kind) {
       const gate = this.world.map.interact.find(i => i.kind === (this.startZone.kind === 'paintball' ? 'pb_gate' : 'fort'));
       if (gate) { this.d.net.send({ t: 'use', id: gate.id }); return; }
     }
     const kart = this.world.kartStart.status;
     if (kart.phase === 'count' && kart.hostId === this.myId && this.kartDist() <= KART_START.r) {
-      this.d.net.send({ t: 'kartTrack', track: kart.track === 'foundry' ? 'port' : 'foundry' });
+      this.d.net.send({ t: 'kartTrack', track: nextRaceTrack(kart.track ?? DEFAULT_TRACK) });
       return;
     }
     const it = this.target;
@@ -1677,6 +1801,7 @@ export class LobbyScene implements Scene {
     this.aquaT1 = inp.viewTick;
     const held = this.predictor.hold !== 0;
     const ev = this.predictor.step(inp, false);
+    this.rg.tickInput(inp);
     this.ball.tick(inp.seq, this.predictor.state, this.predictor.hold || (this.raiding ? 1 : 0));
     if (this.raiding && (buttons & BTN_FIRE) && inp.viewTick - this.lastMopTick >= 30) {
       this.lastMopTick = inp.viewTick;
@@ -1758,16 +1883,19 @@ export class LobbyScene implements Scene {
     this.updateBoatPose();
     this.updateFerryPose();
     this.updateLocalPose(alpha);
+    this.rg.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position);
     this.updateCamera(dt);
     const camPos = this.world.camera.position;
     this.wirePartner(this.me);
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
-    this.me.update(this.hasSelf ? this.pose : null, dt, this.time, this.ground, camPos, true);
+    this.me.update(this.hasSelf ? this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose) : null, dt, this.time, this.ground, camPos, true);
     this.updateRemotes(dt);
     this.updateFishing(dt);
     this.fishForCritters.length = 0;
     for (let i = 0; i < FISH_SPOTS.length; i++) if (this.fishOcc[i] && this.fishing.phaseOf(i) === FP_HOLD) this.fishForCritters.push(FISH_SPOTS[i]);
-    this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters);
+    this.critterOthers.length = 0;
+    for (const [id, r] of this.remotes) if (r.pose.valid) this.critterOthers.push({ id, x: r.pose.x, y: r.pose.y, z: r.pose.z });
+    this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters, this.critterOthers);
     this.storm3d.update(this.clock.renderTick, dt, this.pose, this.eventEligible, lobbyQuality(this.d.settings.quality) === 'low');
     this.defenders.length = 0;
     for (const [id, r] of this.remotes) if (r.pose.valid) this.defenders.push({ id, ...r.pose, eligible: !isHeld(r.avatar.action) });
@@ -1779,6 +1907,8 @@ export class LobbyScene implements Scene {
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
     this.tables3d.update(dt, this.time, camPos);
+    this.decor.update(dt, this.time, camPos);
+    this.blackjack3d.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
     this.bjHud.tick(performance.now());
     this.updateHud();
@@ -1800,7 +1930,7 @@ export class LobbyScene implements Scene {
     tickAvatarShared(this.time);
     this.world.camera.getWorldDirection(_v);
     sound.setListener(camPos.x, camPos.y, camPos.z, _v.x, _v.y, _v.z);
-    sound.setRain(this.world.effectiveRain);
+    sound.setRain(this.world.effectiveRain, this.hasSelf ? this.world.shelter(this.pose.x, this.pose.y, this.pose.z) : 0);
     this.boatSound();
     sound.tick(dt);
     if (this.ask && performance.now() > this.ask.until) this.clearAsk();
@@ -1940,6 +2070,8 @@ export class LobbyScene implements Scene {
       this.orbit();
       return;
     }
+    // в катере регаты — камера погони (пролёт 0,6 с туда и обратно)
+    if (this.rg.camera(cam, this.cam, dt, vfov(settings.fov))) return;
     const p = this.pose;
     const act = this.myAct;
     if (act === ACT_SLOT) {
@@ -1952,10 +2084,14 @@ export class LobbyScene implements Scene {
         const l = Math.hypot(it.x - tb.x, it.z - tb.z) || 1;
         const ux = (it.x - tb.x) / l;
         const uz = (it.z - tb.z) / l;
-        const cx = tb.x + ux * TABLE_CAM_D;
-        const cz = tb.z + uz * TABLE_CAM_D;
-        const h = Math.cos(TABLE_PITCH);
-        this.cam.fixed(cam, dt, cx, TABLE_CAM_Y, cz, cx - ux * h, TABLE_CAM_Y - Math.sin(TABLE_PITCH), cz - uz * h, TABLE_FOV, 'table');
+        const bj = seatTable(this.arg) === BJ_TABLE;
+        const camD = bj ? BJ_CAM_D : TABLE_CAM_D;
+        const camY = bj ? BJ_CAM_Y : TABLE_CAM_Y;
+        const pitch = bj ? BJ_PITCH : TABLE_PITCH;
+        const cx = tb.x + ux * camD;
+        const cz = tb.z + uz * camD;
+        const h = Math.cos(pitch);
+        this.cam.fixed(cam, dt, cx, camY, cz, cx - ux * h, camY - Math.sin(pitch), cz - uz * h, TABLE_FOV, 'table');
       }
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
       this.cam.mirror(cam, dt, p.x, p.y, p.z, p.yaw, MIRROR_FOV);
@@ -2029,7 +2165,7 @@ export class LobbyScene implements Scene {
       const av = r.avatar;
       if (av.action !== r.track.hp || av.arg !== r.track.armor) av.setAction(r.track.hp, r.track.armor);
       this.wirePartner(av);
-      av.update(ok ? pose : null, dt, this.time, this.ground, camPos, false);
+      av.update(this.rg.avatarPose(r.track.id, r.track.hp === ACT_REGATTA, ok ? pose : null), dt, this.time, this.ground, camPos, false);
     }
   }
 
@@ -2088,8 +2224,10 @@ export class LobbyScene implements Scene {
       hud.setHint([], `«Удалая» идёт ${this.ferry.ph === FE_BACK ? 'к Семёну' : 'к баркасу «Альбатрос»'} · ещё ${this.ferrySecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
     }
     else if (act === ACT_WHEEL) hud.setHint([], `Колесо обозрения · внизу через ${this.wheelSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
+    // в катере регаты подсказки — свои (client/lobby/regattahud.ts)
+    else if (act === ACT_REGATTA || this.rg.racing) hud.setHint(null);
     else if (isHeld(act)) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], TOUCH ? 'встать · справа пальцем — осмотреться' : 'встать · мышь — осмотреться');
-    else if (this.nearStormLight) hud.setHint(['E'], this.stormState.phase === 'storm' ? 'зажечь маяк' : 'дойти до маяка · получить награду');
+    else if (this.storm3d.hint) hud.setHint(this.storm3d.hint.keys, this.storm3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);
     else if (fd <= FC_HINT_R) this.hintFight(fd);
@@ -2151,7 +2289,7 @@ export class LobbyScene implements Scene {
     else if (st.names.indexOf(this.d.ui.me().nick) >= RC_MAX_KARTS) text = 'Мест нет — поедешь в следующий заезд';
     else text = `Старт через ${ks.left} с · гонщиков: ${Math.min(st.n, RC_MAX_KARTS)}`;
     const canChoose = inside && st.phase === 'count' && st.hostId === this.myId;
-    const track = st.track === 'foundry' ? '2 — Литейный вираж' : '1 — Портовое кольцо';
+    const track = raceTrackLabel(st.track);
     this.hud.setHint(canChoose ? ['E'] : [], `${text} · ${track}${canChoose ? ' · сменить трассу' : st.phase === 'count' && st.hostNick ? ` · выбирает ${st.hostNick}` : ''}`);
   }
 
@@ -2200,6 +2338,8 @@ export class LobbyScene implements Scene {
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
+      // музыкальный автомат: клиент — следующим шагом (client/lobby/jukebox.ts)
+      if (it.kind === 'juke') continue;
       // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
       if (it.kind === 'fight') continue;
       if (this.isBusy(it)) {
@@ -2249,7 +2389,7 @@ export class LobbyScene implements Scene {
       }
       case 'skill': {
         const s = this.skillStatus;
-        this.hud.setHint(['E'], `Выше облаков · скилл-тест · ${s?.n ?? 0}/${s?.max ?? 5} игроков`);
+        this.hud.setHint(['E'], s?.phase === 'pre' ? `Выше облаков · сбор забега, старт через ${s.left} с — успевай!` : `Выше облаков · Небесная каланча · ${s?.n ?? 0}/${s?.max ?? 5} игроков${s?.phase === 'run' ? ' · идёт забег' : ''}`);
         break;
       }
       case 'boatrace':
@@ -2257,6 +2397,7 @@ export class LobbyScene implements Scene {
         const s = it.kind === 'boatrace' ? this.boatRaceStatus : this.hideStatus;
         if (!s) break;
         this.hud.setHint(it.kind === 'hide' && s.phase !== 'count' && s.phase !== 'idle' ? ['E'] : [], s.phase === 'count' && 'left' in s ? `Старт через ${s.left} с · в круге ${s.n}`
+          : it.kind === 'boatrace' && this.rg.phase !== 'idle' ? 'Регата идёт — стой в круге, поедешь в следующем заезде'
           : s.phase === 'idle' ? it.kind === 'hide' ? 'Встаньте в круг вдвоём · прятки 3 минуты' : 'Встань в круг · 3 круга по бухте · можно с ботами'
           : it.kind === 'hide' ? 'Вернуться в прятки или наблюдать до следующего раунда' : 'Раунд идёт · подожди следующего старта');
         break;
@@ -2270,7 +2411,7 @@ export class LobbyScene implements Scene {
         break;
       case 'garage':
         if (this.world.kartStart.status.hostId === this.myId) {
-          this.hud.setHint(['E'], `выбрать трассу · ${this.world.kartStart.status.track === 'foundry' ? '2 — Литейный вираж' : '1 — Портовое кольцо'}`);
+          this.hud.setHint(['E'], `выбрать трассу · ${raceTrackLabel(this.world.kartStart.status.track)}`);
         } else this.hud.setHint([], this.world.kartStart.status.hostNick ? `Трассу выбирает ${this.world.kartStart.status.hostNick}` : 'Встань первым в круг — выбери трассу');
         break;
       case 'honor':
@@ -2393,11 +2534,11 @@ export class LobbyScene implements Scene {
       remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, seq: this.seq,
       dkSeat: this.dkSeat, dkLocked: this.dkHud.locked, dkHand: this.dkHand?.cards.length ?? -1,
       blackjack: this.blackjack3d.view(), blackjackOpen: this.bjHud.visible, skill: this.skillStatus, kraken: this.kraken.debug(),
-      boatrace: this.boatRaceStatus, hide: this.hideStatus, startZone: this.startZone,
+      boatrace: this.boatRaceStatus, regatta: this.rg.debug(), hide: this.hideStatus, startZone: this.startZone,
       storm: this.stormState, pirates: { ...this.pirateState, visible: this.pirateTail.visible, actors: this.pirateTail.pirates.length }, critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
-      weather: { ...this.world.weather }, folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
+      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },
     };

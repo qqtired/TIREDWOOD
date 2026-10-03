@@ -52,6 +52,8 @@ export class Input {
   adsSens = 0.8;
   /** В прицеле — ещё медленнее во столько раз (сцена ставит: оптика AWP в пейнтболе) */
   scopeSens = 1;
+  /** Инверсия по вертикали (меню → Управление): мышь или палец вверх — взгляд вниз */
+  invertY = false;
   locked = false;
   /** Сколько запросов захвата мыши ещё ждут ответа браузера */
   private pendingLocks = 0;
@@ -213,7 +215,7 @@ export class Input {
     const ads = (this.held & BTN_ADS) !== 0;
     const k = base * this.sens * (ads ? this.adsSens * 0.8 * this.scopeSens : 1);
     this.yaw -= dx * k;
-    this.pitch -= dy * k;
+    this.pitch -= (this.invertY ? -dy : dy) * k;
     if (this.pitch > PITCH_LIMIT) this.pitch = PITCH_LIMIT;
     if (this.pitch < -PITCH_LIMIT) this.pitch = -PITCH_LIMIT;
     // держим yaw в разумных пределах, чтобы float32 не терял точность

@@ -12,11 +12,16 @@ export const PALETTE_NAMES: readonly string[] = [
   'голубой', 'черничный', 'сливовый', 'лавандовый', 'розовый', 'карамельный', 'шоколадный', 'молочный',
 ];
 
-/** p — узор, e — глаза, h — шапка, a — аксессуар */
-export type Slot = 'p' | 'e' | 'h' | 'a';
+/**
+ * p — узор, e — глаза, h — шапка, a — аксессуар, s — питомец на плече. Награды рыбалки (shared/fishstyle.ts), видны
+ * на мостках: r — удочка, b — поплавок, w — окно вываживания (его видит только сам рыбак); n — значок у ника.
+ */
+export type Slot = 'p' | 'e' | 'h' | 'a' | 's' | 'r' | 'b' | 'w' | 'n';
+/** Слоты, которых нет в старых нарядах: в наряде только когда надето не «пустое» (старые наряды и боты — без них) */
+export const EXTRA_SLOTS = ['s', 'r', 'b', 'w', 'n'] as const;
 /**
  * jackpot — только с автомата; system — выдаёт игра (выпуск 2); trophy — награда за достижение, не продаётся
- * (выпуск 6: рыбацкий комплект за все 30 рыб, shared/fishrules.ts REWARD_ITEMS); promo — скрытый подарок
+ * (рыбалка: лестница наград по видам в журнале, shared/fishstyle.ts); promo — скрытый подарок
  */
 export type Tier = 'free' | 'common' | 'rare' | 'epic' | 'premium' | 'jackpot' | 'system' | 'trophy' | 'promo';
 
@@ -28,7 +33,7 @@ export interface Item {
   tier: Tier;
 }
 
-/** c, c2 — индексы палитры 0–15 */
+/** c, c2 — индексы палитры 0–15; s, r, b, w, n — только не «пустые» (читать через slotKey) */
 export interface Outfit {
   c: number;
   c2: number;
@@ -36,9 +41,16 @@ export interface Outfit {
   e: string;
   h: string;
   a: string;
+  s?: string;
+  r?: string;
+  b?: string;
+  w?: string;
+  n?: string;
 }
 
-export const SLOT_NAMES: Record<Slot, string> = { p: 'Узор', e: 'Глаза', h: 'Шапка', a: 'Аксессуар' };
+export const SLOT_NAMES: Record<Slot, string> = {
+  p: 'Узор', e: 'Глаза', h: 'Шапка', a: 'Аксессуар', s: 'Питомец', r: 'Удочка', b: 'Поплавок', w: 'Окно вываживания', n: 'Значок у ника',
+};
 
 export const TIER_NAMES: Record<Tier, string> = {
   free: 'бесплатно', common: 'обычная', rare: 'редкая', epic: 'эпическая', premium: 'премиальная', jackpot: 'джекпот', system: 'особая', trophy: 'трофей', promo: 'подарочная',
@@ -94,6 +106,32 @@ const CATALOG: Array<[Slot, string, string, Tier]> = [
   ['e', 'prism', 'Призматический визор', 'premium'],
   ['h', 'devil', 'Чертячьи рожки', 'promo'],
   ['a', 'deviltail', 'Чертячий хвост', 'promo'],
+
+  // Рыбалка, выпуск 7: «пустые» вещи новых слотов и награды лестницы коллекции (shared/fishstyle.ts) — только в конец.
+  ['s', 'none', 'Без питомца', 'free'],
+  ['r', 'basic', 'Обычная', 'free'],
+  ['b', 'classic', 'Классический', 'free'],
+  ['w', 'wood', 'Деревянное', 'free'],
+  ['n', 'none', 'Без значка', 'free'],
+  ['w', 'chart', 'Морская карта', 'trophy'],
+  ['r', 'hazel', 'Орешник', 'trophy'],
+  ['a', 'kukan', 'Кукан с уловом', 'trophy'],
+  ['b', 'quill', 'Гусиное перо', 'trophy'],
+  ['b', 'duck', 'Уточка', 'trophy'],
+  ['r', 'carved', 'Резная', 'trophy'],
+  ['h', 'sou', 'Зюйдвестка', 'trophy'],
+  ['a', 'oilskin', 'Штормовка', 'trophy'],
+  ['s', 'gull', 'Чайка', 'trophy'],
+  ['a', 'net', 'Сачок', 'trophy'],
+  ['w', 'night', 'Ночной клёв', 'trophy'],
+  ['b', 'firefly', 'Светлячок', 'trophy'],
+  ['h', 'captain', 'Фуражка капитана', 'trophy'],
+  ['a', 'tunic', 'Китель капитана', 'trophy'],
+  ['s', 'parrot', 'Попугай-ара', 'trophy'],
+  ['r', 'gold', 'Золотая', 'trophy'],
+  ['b', 'goldfish', 'Золотая рыбка', 'trophy'],
+  ['w', 'gold', 'Золото', 'trophy'],
+  ['n', 'anchor', 'Золотой якорь', 'trophy'],
 ];
 
 export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => ({ id: `${slot}:${key}`, slot, key, name, tier }));
@@ -101,7 +139,7 @@ export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => (
 const BY_ID = new Map(ITEMS.map((it) => [it.id, it]));
 
 /** «Пустая» вещь слота — её надевают вместо недоступной. */
-const EMPTY: Record<Slot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none' };
+const EMPTY: Record<Slot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none', s: 'none', r: 'basic', b: 'classic', w: 'wood', n: 'none' };
 
 export const DEFAULT_OUTFIT: Outfit = { c: 9, c2: 15, p: 'none', e: 'normal', h: 'cap', a: 'none' };
 
@@ -119,6 +157,11 @@ export function itemById(id: string): Item | undefined {
 
 export function itemOf(slot: Slot, key: string): Item | undefined {
   return BY_ID.get(`${slot}:${key}`);
+}
+
+/** Что надето в слоте (у новых слотов поля может не быть — тогда «пустая» вещь). */
+export function slotKey(o: Outfit, slot: Slot): string {
+  return o[slot] ?? EMPTY[slot];
 }
 
 /** Можно ли надеть: бесплатное — всегда, системное — никогда (его выдаёт игра), остальное — если куплено. */
@@ -146,7 +189,7 @@ export function sanitizeOutfit(raw: unknown, owned: readonly string[]): Outfit {
     const it = itemOf(slot, key);
     return it && isOwned(owned, it) ? key : EMPTY[slot];
   };
-  return {
+  const out: Outfit = {
     c: colorIndex(r.c, DEFAULT_OUTFIT.c),
     c2: colorIndex(r.c2, DEFAULT_OUTFIT.c2),
     p: pick('p'),
@@ -154,9 +197,14 @@ export function sanitizeOutfit(raw: unknown, owned: readonly string[]): Outfit {
     h: pick('h'),
     a: pick('a'),
   };
+  for (const slot of EXTRA_SLOTS) {
+    const key = pick(slot);
+    if (key !== EMPTY[slot]) out[slot] = key;
+  }
+  return out;
 }
 
-const FREE: Record<Slot, string[]> = { p: [], e: [], h: [], a: [] };
+const FREE: Record<Slot, string[]> = { p: [], e: [], h: [], a: [], s: [], r: [], b: [], w: [], n: [] };
 for (const it of ITEMS) if (it.tier === 'free') FREE[it.slot].push(it.key);
 
 /** Случайный бесплатный наряд, зависящий только от зерна (боты). */
@@ -185,5 +233,6 @@ export function withItem(o: Outfit, item: Item): Outfit {
 }
 
 export function sameOutfit(a: Outfit, b: Outfit): boolean {
-  return a.c === b.c && a.c2 === b.c2 && a.p === b.p && a.e === b.e && a.h === b.h && a.a === b.a;
+  return a.c === b.c && a.c2 === b.c2 && a.p === b.p && a.e === b.e && a.h === b.h && a.a === b.a
+    && EXTRA_SLOTS.every((s) => slotKey(a, s) === slotKey(b, s));
 }

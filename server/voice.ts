@@ -1,12 +1,17 @@
 import { isIP } from 'node:net';
-import { VOICE_BITRATE, VOICE_MAX_PEERS, VOICE_MAX_SDP, VOICE_MAX_SIGNAL_TEXT, VOICE_TALK_LEASE_MS,
+import { VOICE_BITRATE, VOICE_MAX_PEERS, VOICE_MAX_SDP, VOICE_MAX_SIGNAL_TEXT, VOICE_TALK_LEASE_MS, VOICE_WORLD, voiceZoneName,
   type VoiceErrorCode, type VoiceIceConfig, type VoiceServerMsg, type VoiceSignal } from '../shared/voice.ts';
 export interface VoiceClient {
   id: number; pid: number; nick: string; profile: { id: number } | null;
   room: { kind: string } | null; closed: boolean; ephemeral: boolean;
   sink: { sendJson(message: VoiceServerMsg): void };
 }
-interface Member { id: number; client: VoiceClient; room: { kind: string }; talkingUntil: number }
+/** Ключ голосовой зоны: внешний мир — одна строка на всех; инстанс — сам объект комнаты (у каждого экземпляра свой голос). */
+type ZoneKey = string | object;
+function zoneOf(room: { kind: string }): ZoneKey {
+  return voiceZoneName(room.kind) === VOICE_WORLD ? VOICE_WORLD : room;
+}
+interface Member { id: number; client: VoiceClient; room: { kind: string }; zone: ZoneKey; talkingUntil: number; mic: boolean }
 interface SignalBudget { messageTokens: number; byteTokens: number; at: number }
 interface Session extends SignalBudget { member: Member | null; controlTokens: number; errorAt: number; peers: Map<VoiceClient, SignalBudget> }
 const SIGNAL_RATE = 30, SIGNAL_BURST = 120, BYTE_RATE = 32 * 1024, BYTE_BURST = 96 * 1024;
@@ -67,6 +72,7 @@ function audioSdp(v: unknown): v is string {
 function signal(v: unknown): VoiceSignal | null {
   if (!record(v)) return null;
   if ((v.kind === 'offer' || v.kind === 'answer') && exact(v, ['kind','sdp']) && audioSdp(v.sdp)) return { kind: v.kind, sdp: v.sdp };
+  if (v.kind === 'restart' && exact(v, ['kind'])) return { kind: 'restart' };
   if (v.kind !== 'ice' || !exact(v, ['kind','candidate'])) return null;
   if (v.candidate === null) return { kind: 'ice', candidate: null };
   const c = v.candidate;
@@ -94,31 +100,43 @@ export class VoiceRouter {
     try { c.sink.sendJson({ t: 'voiceConfig', enabled: true, maxPeers: VOICE_MAX_PEERS, bitrate: VOICE_BITRATE, ...this.ice(c) }); }
     catch { this.error(c, 'invalid'); }
   }
+  /** Участник ещё в своей зоне (клиент мог уйти в другую комнату, а переход ещё не разобран). */
+  private live(p: Member): boolean { return this.authenticated(p.client) && !!p.client.room && zoneOf(p.client.room) === p.zone; }
   private state(c: VoiceClient): void {
     if (!this.authenticated(c)) return;
+    const zone = c.room ? zoneOf(c.room) : null;
     const member = this.sessions.get(c)?.member;
-    c.sink.sendJson({ t: 'voiceState', self: member?.room === c.room ? member.id : null, room: c.room?.kind ?? '',
-      peers: [...this.members.values()].filter(p => p.client !== c && p.room === c.room && this.authenticated(p.client) && p.client.room === p.room)
-        .map(p => { const entityId = this.entityId(p.client); return { id: p.id, entityId: integer(entityId, 1, Number.MAX_SAFE_INTEGER) ? entityId : null, nick: p.client.nick, talking: p.talkingUntil > this.now() }; }) });
+    c.sink.sendJson({ t: 'voiceState', self: member && zone !== null && member.zone === zone ? member.id : null, room: c.room?.kind ?? '',
+      zone: c.room ? voiceZoneName(c.room.kind) : '',
+      peers: zone === null ? [] : [...this.members.values()].filter(p => p.client !== c && p.zone === zone && this.live(p))
+        // значок над головой — только тем, кто в той же комнате: номера фигурок у каждой комнаты свои
+        .map(p => { const entityId = p.client.room === c.room ? this.entityId(p.client) : null;
+          return { id: p.id, entityId: integer(entityId, 1, Number.MAX_SAFE_INTEGER) ? entityId : null, pid: p.client.pid, nick: p.client.nick, talking: p.talkingUntil > this.now(), mic: p.mic }; }) });
   }
-  private changed(room: object): void { for (const c of this.sessions.keys()) if (c.room === room) this.state(c); }
+  private changed(zone: ZoneKey): void { for (const c of this.sessions.keys()) if (c.room && zoneOf(c.room) === zone) this.state(c); }
   private remove(c: VoiceClient): boolean {
     const session = this.sessions.get(c), m = session?.member; if (!session || !m) return false;
-    this.members.delete(m.id); session.member = null; this.changed(m.room); return true;
+    this.members.delete(m.id); session.member = null; this.changed(m.zone); return true;
   }
   private join(c: VoiceClient): void {
     const session = this.sessions.get(c)!;
     if (session.member) { this.state(c); return; }
     if (!c.room) { this.error(c,'not_joined'); this.state(c); return; }
     if (!Number.isSafeInteger(this.nextId)) { this.error(c,'invalid'); this.state(c); return; }
-    const member: Member = { id: this.nextId++, client: c, room: c.room, talkingUntil: 0 };
-    session.member = member; this.members.set(member.id, member); this.changed(member.room);
+    const member: Member = { id: this.nextId++, client: c, room: c.room, zone: zoneOf(c.room), talkingUntil: 0, mic: false };
+    session.member = member; this.members.set(member.id, member); this.changed(member.zone);
   }
+  /** Переход в другую комнату. Та же зона (внешний мир) — номер в голосе и соединения сохраняются; другая — новый номер. */
   moved(c: VoiceClient): void {
     const session = this.sessions.get(c); if (!session) return;
+    if (!this.authenticated(c)) { this.remove(c); this.clearPeerBudgets(c); this.sessions.delete(c); return; }
+    const m = session.member, zone = c.room ? zoneOf(c.room) : null;
+    if (m && zone !== null && m.zone === zone) {
+      if (m.room !== c.room) { m.room = c.room!; this.changed(zone); } else this.state(c);
+      return;
+    }
     this.clearPeerBudgets(c);
     const joined = this.remove(c);
-    if (!this.authenticated(c)) { this.sessions.delete(c); return; }
     if (joined) this.join(c); else this.state(c);
   }
   disconnected(c: VoiceClient): void { this.remove(c); this.clearPeerBudgets(c); this.sessions.delete(c); }
@@ -126,7 +144,7 @@ export class VoiceRouter {
     this.sessions.get(c)?.peers.clear();
     for (const session of this.sessions.values()) session.peers.delete(c);
   }
-  renamed(c: VoiceClient): void { const m = this.sessions.get(c)?.member; if (m && this.authenticated(c)) this.changed(m.room); }
+  renamed(c: VoiceClient): void { const m = this.sessions.get(c)?.member; if (m && this.authenticated(c)) this.changed(m.zone); }
   private error(c: VoiceClient, code: VoiceErrorCode): void {
     const s = this.sessions.get(c), now = this.now();
     if (!s || !this.authenticated(c) || now - s.errorAt < 1000) return;
@@ -164,7 +182,13 @@ export class VoiceRouter {
       if (raw.a === 'leave' && exact(raw,['t','a']) && session.member) { this.remove(c); return; }
       if (raw.a === 'talk' && raw.on === false && exact(raw,['t','a','self','on']) && session.member && session.member.id === raw.self) {
         const m = session.member;
-        if (m.talkingUntil) { m.talkingUntil = 0; this.changed(m.room); }
+        if (m.talkingUntil) { m.talkingUntil = 0; this.changed(m.zone); }
+        return;
+      }
+      // выключение микрофона — тоже уборка: только уменьшает число соединений, проходит и без запаса
+      if (raw.a === 'mic' && raw.on === false && exact(raw,['t','a','on']) && session.member) {
+        const m = session.member;
+        if (m.mic) { m.mic = false; this.changed(m.zone); }
         return;
       }
       if (!this.budget(c,64,true)) return;
@@ -172,7 +196,13 @@ export class VoiceRouter {
         if (!exact(raw,['t','a','self','on']) || typeof raw.on !== 'boolean') return this.error(c,'invalid');
         const m = session.member; if (!m) return this.error(c,'not_joined'); if (raw.self !== m.id) return this.error(c,'stale');
         const was = m.talkingUntil > this.now(); m.talkingUntil = raw.on ? this.now() + VOICE_TALK_LEASE_MS : 0;
-        if (was !== raw.on) this.changed(m.room); return;
+        if (was !== raw.on) this.changed(m.zone); return;
+      }
+      if (raw.a === 'mic') {
+        if (!exact(raw,['t','a','on']) || typeof raw.on !== 'boolean') return this.error(c,'invalid');
+        const m = session.member; if (!m) return this.error(c,'not_joined');
+        if (m.mic !== raw.on) { m.mic = raw.on; this.changed(m.zone); }
+        return;
       }
       if (!exact(raw,['t','a'])) return this.error(c,'invalid');
       if (raw.a === 'join') this.join(c);
@@ -191,9 +221,9 @@ export class VoiceRouter {
     catch { if (this.budget(c,128,false)) this.error(c,'invalid'); return; }
     if (bytes > VOICE_MAX_SIGNAL_TEXT) return this.rejectSignal(c,bytes,'invalid');
     if (!exact(raw,['t','self','to','signal']) || !integer(raw.self,1,Number.MAX_SAFE_INTEGER) || !integer(raw.to,1,Number.MAX_SAFE_INTEGER)) return this.rejectSignal(c,bytes,'invalid');
-    const from = session.member, to = this.members.get(raw.to);
+    const from = session.member, to = this.members.get(raw.to), zone = c.room ? zoneOf(c.room) : null;
     if (!from) return this.rejectSignal(c,bytes,'not_joined');
-    if (from.id !== raw.self || !to || to === from || !this.authenticated(to.client) || to.client.room !== to.room || from.room !== c.room || to.room !== c.room) return this.rejectSignal(c,bytes,'stale');
+    if (from.id !== raw.self || !to || to === from || !this.live(to) || zone === null || from.zone !== zone || to.zone !== zone) return this.rejectSignal(c,bytes,'stale');
     if (!this.budget(c,bytes,false,to.client)) return;
     const value = signal(raw.signal); if (!value) return this.error(c,'invalid');
     to.client.sink.sendJson({ t: 'voiceSignal', from: from.id, to: to.id, signal: value });
@@ -203,7 +233,7 @@ export class VoiceRouter {
     for (const [c,s] of this.sessions) {
       if (!this.authenticated(c)) { this.disconnected(c); continue; }
       if (s.member?.room !== c.room && s.member) { this.moved(c); continue; }
-      if (s.member && s.member.talkingUntil > 0 && s.member.talkingUntil <= now) { s.member.talkingUntil = 0; this.changed(s.member.room); }
+      if (s.member && s.member.talkingUntil > 0 && s.member.talkingUntil <= now) { s.member.talkingUntil = 0; this.changed(s.member.zone); }
     }
   }
 }

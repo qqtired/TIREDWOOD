@@ -1,0 +1,971 @@
+/* Меню (Esc): карточка — слева «Продолжить» и разделы, справа выбранный раздел. Игра за меню идёт дальше,
+   поэтому фон без размытия: кадр не тратится, мир виден по краям. Цвета и шрифт — как у всей игры (styles.css). */
+
+.screen.pause {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(28, 18, 24, 0.32), rgba(28, 18, 24, 0.7));
+  backdrop-filter: none;
+}
+
+.mn-card {
+  zoom: var(--ui-scale, 1);
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+  width: min(1100px, 100%);
+  height: min(760px, 100%);
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(40, 29, 35, 0.97);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px rgba(10, 5, 8, 0.55);
+  text-align: left;
+}
+
+/* --- слева: продолжить, разделы, выход */
+
+.mn-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 22px 16px 16px;
+  overflow-y: auto;
+  background: rgba(22, 15, 19, 0.5);
+  border-right: 1px solid var(--line);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 240, 220, 0.2) transparent;
+}
+
+.mn-head {
+  padding: 0 8px;
+}
+
+.mn-name {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.mn-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--cream-dim);
+}
+
+.mn-sub:empty,
+.mn-hint:empty {
+  display: none;
+}
+
+.mn-side .mn-resume {
+  margin-top: 4px;
+  padding: 13px 18px;
+  font-size: 20px;
+}
+
+.mn-hint {
+  padding: 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--orange-soft);
+}
+
+.mn-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.mn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mn-group-h {
+  padding: 0 12px 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255, 243, 222, 0.5);
+}
+
+.mn-tab {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--cream-2);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mn-tab:hover {
+  background: rgba(255, 240, 220, 0.08);
+  color: var(--cream);
+}
+
+.mn-tab[aria-current='page'] {
+  background: var(--cream);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.mn-exit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.mn-exit .btn {
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.mn-card :focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* --- справа: заголовок раздела и содержимое (листается) */
+
+.mn-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mn-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mn-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.mn-lead {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--cream-dim);
+}
+
+.mn-x {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 236, 205, 0.22);
+  background: rgba(255, 240, 220, 0.06);
+  color: var(--cream-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mn-x:hover {
+  background: rgba(255, 240, 220, 0.14);
+  color: var(--cream);
+}
+
+.mn-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 28px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 240, 220, 0.25) transparent;
+}
+
+.mn-pane[hidden] {
+  display: none;
+}
+
+/* --- настройки: строка = название с пояснением слева, управление справа */
+
+.mn-set {
+  gap: 0;
+}
+
+.set-cat {
+  display: flex;
+  flex-direction: column;
+}
+
+.set-cat[hidden] {
+  display: none;
+}
+
+.set-cat-h {
+  display: none;
+  margin: 18px 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange-soft);
+}
+
+.set-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 28px;
+  min-height: 66px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+label.set-item {
+  cursor: pointer;
+}
+
+.set-item:last-child {
+  border-bottom: 0;
+}
+
+.set-text {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.set-text b {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cream);
+}
+
+.set-text small {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cream-dim);
+}
+
+.set-ctl {
+  display: flex;
+  flex: 0 1 380px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  min-width: 0;
+}
+
+label.set-item .set-ctl {
+  flex: none;
+}
+
+.set-ctl input[type='range'] {
+  flex: 1;
+  min-width: 120px;
+  height: 28px;
+}
+
+.set-num {
+  min-width: 54px;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.set-ctl .set-link {
+  width: auto;
+}
+
+/* выбор из нескольких */
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line);
+}
+
+.seg button {
+  min-height: 38px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--cream-2);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg button:hover {
+  background: rgba(255, 240, 220, 0.08);
+  color: var(--cream);
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* переключатель вкл / выкл */
+.sw {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 54px;
+  height: 30px;
+}
+
+.sw input[type='checkbox'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sw i {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 240, 220, 0.16);
+  border: 1px solid rgba(255, 236, 205, 0.28);
+  pointer-events: none;
+}
+
+.sw i::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cream);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.sw input:checked + i {
+  background: var(--orange);
+  border-color: var(--orange-soft);
+}
+
+.sw input:checked + i::after {
+  left: 27px;
+}
+
+.sw input:focus-visible + i {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* на экране входа (⚙ Настройки) — все категории подряд, компактно; ссылок на разделы меню там нет */
+.join-settings .mn-set .set-cat {
+  display: flex !important;
+}
+
+.join-settings .set-cat-h {
+  display: block;
+}
+
+.join-settings .set-cat:first-child .set-cat-h {
+  margin-top: 0;
+}
+
+.join-settings .set-item {
+  min-height: 0;
+  padding: 9px 0;
+  gap: 6px 14px;
+}
+
+.join-settings .set-item:has(.set-link) {
+  display: none;
+}
+
+.join-settings div.set-item .set-text,
+.join-settings div.set-item .set-ctl {
+  flex: 1 1 100%;
+  justify-content: flex-start;
+}
+
+.join-settings label.set-item .set-text {
+  flex: 1 1 0;
+}
+
+.join-settings .set-text b {
+  font-size: 15px;
+}
+
+.join-settings .set-text small {
+  font-size: 12px;
+}
+
+.join-settings .seg button {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+/* --- профиль: обзор */
+
+.mn-body .prof-head {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+}
+
+.prof-id {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.prof-tag {
+  display: block;
+  width: 320px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 320 / 52;
+}
+
+.prof-tag-note {
+  padding-left: 6px;
+  font-size: 13px;
+  color: var(--cream-dim);
+}
+
+.mn-body .prof-tokens {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 211, 90, 0.35);
+  font-size: 24px;
+}
+
+.mn-body .prof-level {
+  margin: 18px 0 20px;
+}
+
+.mn-body .prof-rename {
+  max-width: 520px;
+}
+
+.mn-body .prof-rename > span {
+  font-size: 14px;
+}
+
+.mn-body .prof-note {
+  margin-top: 8px;
+}
+
+/* --- профиль: рекорды и счёт по режимам */
+
+.prof-h {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.prof-h:not(:first-child) {
+  margin-top: 26px;
+}
+
+.prof-best {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px 12px;
+}
+
+.prof-rec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 240, 220, 0.06);
+  border: 1px solid var(--line);
+}
+
+.prof-rec-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.prof-rec-name b {
+  font-size: 15px;
+}
+
+.prof-rec-name small {
+  font-size: 12.5px;
+  color: var(--cream-dim);
+}
+
+.prof-rec-val {
+  flex: none;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-rec.none .prof-rec-val {
+  font-weight: 500;
+  color: var(--cream-dim);
+}
+
+.mn-body .prof-stats {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.mn-body .prof-stats .prof-block:last-child:nth-child(odd) {
+  grid-column: auto;
+}
+
+.mn-body .prof-block {
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.mn-body .prof-block > b {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.mn-body .prof-stats .prof-block > div {
+  padding: 2px 0;
+}
+
+/* --- профиль: коллекция */
+
+.prof-collection {
+  display: grid;
+  gap: 14px;
+}
+
+/* счёт рыбалки — в две колонки, чтобы не тянуть длинный столбик */
+.mn-body .prof-fishing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+}
+
+.mn-body .prof-fishing > :not(div:not([class])) {
+  grid-column: 1 / -1;
+}
+
+.mn-body .prof-fishing > .fs-skill {
+  margin-top: 8px;
+}
+
+/* --- подарки и коды */
+
+.mn-codes {
+  display: grid;
+  gap: 14px;
+  max-width: 680px;
+}
+
+.mn-box {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 240, 220, 0.05);
+  border: 1px solid var(--line);
+}
+
+.mn-box h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mn-box > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--cream-2);
+}
+
+.mn-box > p:last-child {
+  margin-bottom: 0;
+}
+
+.mn-gift-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mn-gift-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 236, 205, 0.18);
+  background: rgba(255, 246, 232, 0.95);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  outline: none;
+  user-select: text;
+}
+
+.mn-gift-row input::placeholder {
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(42, 31, 36, 0.4);
+}
+
+.mn-gift-row input:focus {
+  border-color: var(--orange);
+}
+
+.mn-gift-row input:disabled {
+  opacity: 0.55;
+}
+
+.mn-gift-row .btn {
+  width: auto;
+}
+
+.mn-gift-row .btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mn-gift .mn-gift-status {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--orange-soft);
+}
+
+.mn-gift .mn-gift-status:empty {
+  display: none;
+}
+
+.mn-gift .mn-gift-status[data-success='true'] {
+  color: var(--mint);
+}
+
+.prof-device {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.prof-device .btn {
+  width: auto;
+}
+
+.prof-device .prof-codebox {
+  align-self: stretch;
+}
+
+/* --- голос (панель — client/ui/voicepanel.ts) */
+
+.mn-voice {
+  max-width: 680px;
+}
+
+
+/* --- клавиши */
+
+.keys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.keys-box {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 240, 220, 0.05);
+  border: 1px solid var(--line);
+}
+
+.keys-box h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange-soft);
+}
+
+.keys-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  padding: 2px 0;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+/* ширина — под самую длинную связку (W A S D), чтобы описания стояли ровным столбиком */
+.keys-caps {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  width: 136px;
+}
+
+.keys-help kbd {
+  min-width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.keys-help kbd.wide {
+  min-width: 58px;
+}
+
+.keys-what {
+  color: var(--cream-2);
+}
+
+.keys-modes {
+  margin-top: 14px;
+}
+
+.keys-mode {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.keys-box h3 + .keys-mode {
+  border-top: 0;
+}
+
+.keys-mode span {
+  color: var(--cream-2);
+}
+
+/* --- вуаль после Esc: меню спрятано, мышь вернётся по клику */
+
+.mn-veil {
+  display: none;
+}
+
+.screen.pause.veil {
+  background: rgba(28, 18, 24, 0.14);
+  cursor: pointer;
+}
+
+.screen.pause.veil .mn-card {
+  display: none;
+}
+
+/* выше центра: не закрывает ни прицел, ни свою желейку */
+.screen.pause.veil .mn-veil {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  zoom: var(--ui-scale, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 30px;
+  border-radius: 18px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: var(--shadow), inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+  text-align: center;
+  pointer-events: none;
+}
+
+.mn-veil b {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.mn-veil span {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.mn-veil i {
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+  color: #b4520c;
+}
+
+.mn-veil i:empty {
+  display: none;
+}
+
+/* --- интерфейс: размер и сообщения чата (меню → Интерфейс; html[data-chat], --ui-scale — applyInterface) */
+
+.chat,
+.tokens,
+.toasts,
+.online-list {
+  zoom: var(--ui-scale, 1);
+}
+
+html[data-chat='keep'] .chat .msg.old {
+  opacity: 0.85;
+}
+
+html[data-chat='hide'] .chat:not(.open) .chat-list {
+  visibility: hidden;
+}
+
+/* меню → Управление → «Подсказки клавиш на экране»: выключено — прячем строки-шпаргалки режимов и полоску эмоций.
+   Подсказки «E — …» у предметов (.lh-hint) остаются: без них непонятно, что можно сделать.
+   Новой строке-шпаргалке в режиме достаточно класса key-hint */
+html[data-hints='off'] :is(.key-hint, .lh-emotes, .ammo-hint, .rc-help, .br-help, .skill-help, .ft-help, .voice-key) {
+  display: none !important;
+}
+
+/* --- телефон и низкий экран: разделы — полосой сверху, меню на весь экран */
+
+@media (max-width: 760px), (max-height: 520px) {
+  .screen.pause {
+    padding: 0;
+  }
+
+  .mn-card {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .mn-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mn-head {
+    display: none;
+  }
+
+  .mn-side .mn-resume {
+    width: auto;
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 16px;
+  }
+
+  .mn-nav {
+    order: 4;
+    flex: 1 1 100%;
+    flex-direction: row;
+    gap: 4px;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mn-hint {
+    order: 5;
+    flex: 1 1 100%;
+  }
+
+  .mn-group {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .mn-group-h {
+    display: none;
+  }
+
+  .mn-tab {
+    flex: none;
+    width: auto;
+    padding: 7px 11px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .mn-exit {
+    flex-direction: row;
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .mn-exit .btn {
+    width: auto;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
+  .mn-top {
+    padding: 10px 14px 8px;
+  }
+
+  .mn-title {
+    font-size: 20px;
+  }
+
+  .mn-lead {
+    display: none;
+  }
+
+  .mn-x {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mn-body {
+    padding: 12px max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .mn-body .prof-fishing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

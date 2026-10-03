@@ -1,0 +1,10 @@
+.link-banner { position: fixed; z-index: 30; top: 14px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px);
+  padding: 8px 16px; border-radius: 999px; box-sizing: border-box; pointer-events: none; text-align: center;
+  font: 600 14px/1.35 Rubik, sans-serif; color: #3b2a1a; background: #ffe2a8f0; border: 2px solid #f2b45a;
+  box-shadow: 0 3px 0 #a8682a55, 0 6px 18px #2a1a0a33; }
+.link-banner[hidden] { display: none; }
+.link-banner[data-tone='down'] { color: #fff6ea; background: #a8462ef0; border-color: #ffb38a; box-shadow: 0 3px 0 #5a1f1066, 0 6px 18px #2a0a0a44; }
+.link-banner::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; vertical-align: 1px;
+  background: currentColor; animation: link-blink 1s ease-in-out infinite; }
+@keyframes link-blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .link-banner::before { animation: none; } }

@@ -29,10 +29,12 @@ export const ACT_BOAT = 13;
 export const ACT_RIDE = 14;
 /** В кабинке колеса обозрения (аргумент — номер места, shared/wheel.ts): везёт сервер, выйти — только внизу */
 export const ACT_WHEEL = 15;
+/** В катере «Портовой регаты» (аргумент — номер катера, server/lobby/regatta.ts): ведёт сам, шагом не встать */
+export const ACT_REGATTA = 16;
 /** В лодке Семёна «Удалая» у стоянки, ждёт отхода (аргумент — номер места); шаг — выйти. Лодка — shared/ferry.ts */
-export const ACT_FERRY = 16;
+export const ACT_FERRY = 17;
 /** «Удалая» в рейсе: сидит, везёт сервер; выйти нельзя до стоянки */
-export const ACT_FERRY_RIDE = 17;
+export const ACT_FERRY_RIDE = 18;
 
 /** Помахать, «устал», смех — 3 с; танец — до первого шага */
 export const EMOTE_TICKS = 180;
@@ -70,13 +72,13 @@ export function pairReach(ax: number, ay: number, az: number, yaw: number, bx: n
 export function isHeld(action: number): boolean {
   return (
     action === ACT_SIT || action === ACT_SLOT || action === ACT_WARDROBE || action === ACT_DURAK || action === ACT_FISH || action === ACT_BOAT ||
-    action === ACT_RIDE || action === ACT_WHEEL || action === ACT_FERRY || action === ACT_FERRY_RIDE
+    action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY || action === ACT_FERRY_RIDE
   );
 }
 
-/** Едет: катер в поездке, кабинка колеса или лодка Семёна в рейсе — двигает сервер, встать нельзя */
+/** Едет: катер в поездке, кабинка колеса, катер регаты или лодка Семёна в рейсе — двигает сервер, встать нельзя */
 export function isRiding(action: number): boolean {
-  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_FERRY_RIDE;
+  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY_RIDE;
 }
 
 /** Сидит в лодке Семёна: ждёт отхода или уже плывёт */

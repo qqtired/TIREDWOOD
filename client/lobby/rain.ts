@@ -1,7 +1,8 @@
 // Дождь на набережной. Капли — штрихи в коробке вокруг камеры (двигает шейдер, процессор их не трогает), брызги на
 // земле и воде, лужи на плитке (отражают небо и фонари, по ним бегут круги), дорожки отблесков фонарей на мокром.
 // Мокнут и сами материалы (wettable): темнеют и отражают небо, а под крышей сухо — где укрыто, знает CoverMap.
-// Дальний город в дождь тонет в дымке (hazy). Насколько идёт дождь и насколько мокро — решает мир (0…1, плавно).
+// Дальний город в дождь тонет в дымке (hazy). Насколько идёт дождь, ветер и насколько мокро — решает мир (0…1, плавно):
+// в морось капли редкие и короткие, в ливень — густые, длинные и косые от ветра.
 import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
@@ -166,8 +167,17 @@ const NEAR_BOX: readonly [number, number] = [9, 14];
 const FAR_BOX: readonly [number, number] = [22, 26];
 const MAX_DROPS = 6000;
 const DROPS: Record<LobbyQuality, number> = { high: 6000, medium: 4000, low: 2000 };
-/** Капля падает так (м/с): ветер с моря чуть сносит на восток */
-const FALL: V3 = [1.3, -8.5, 0.5];
+/**
+ * Капля падает так (м/с): в морось медленнее, в ливень быстрее; ветер с моря сносит на восток и чуть на юг —
+ * в штиль и в бурю (wind 0…1)
+ */
+const FALL_Y: readonly [number, number] = [6.2, 10];
+const WIND_X: readonly [number, number] = [0.5, 3.6];
+const WIND_Z: readonly [number, number] = [0.2, 1.2];
+/** Длина штриха капли, м: в морось и в ливень */
+const DROP_LEN: readonly [number, number] = [0.2, 0.85];
+/** Прозрачность капель: в морось и в ливень */
+const DROP_ALPHA: readonly [number, number] = [0.24, 0.46];
 /** Брызги: сколько в секунду в полную силу, в каком радиусе от камеры, сколько живёт одна (с) */
 const SPLASH_RATE = 260;
 const SPLASH_R = 10;
@@ -205,6 +215,9 @@ export class RainFx {
   private lastSplash = -1;
   /** Своё время дождя, с (по кругу — чтобы не терять точность во float) */
   private t = 0;
+  /** Сколько капли пролетели (м): ветер и скорость меняются плавно, а капли не прыгают */
+  private readonly fallen = new THREE.Vector3();
+  private readonly fall = new THREE.Vector3();
 
   /** sky — материал неба (лужи берут его униформы по ссылке), lamps — лампочки фонарей (отражаются в лужах) */
   constructor(scene: THREE.Scene, cover: CoverMap, sky: THREE.ShaderMaterial, lamps: readonly V3[]) {
@@ -297,13 +310,21 @@ export class RainFx {
     this.streaks.material.uniforms.uCam.value.copy(at);
   }
 
-  /** Раз в кадр: rain — сила дождя, wet — насколько мокро (0…1) */
-  update(dt: number, cam: THREE.Vector3, rain: number, wet: number): void {
+  /** Раз в кадр: rain — сила дождя, wet — насколько мокро, wind — ветер (0…1) */
+  update(dt: number, cam: THREE.Vector3, rain: number, wet: number, wind = 0.3): void {
     this.t = (this.t + dt) % 3600;
     const t = this.t;
     this.follow(cam);
     const du = this.drops.material.uniforms;
-    du.uTime.value = t % 600;
+    const lerp = THREE.MathUtils.lerp;
+    const wk = Math.min(1.2, Math.max(0, wind));
+    this.fall.set(lerp(WIND_X[0], WIND_X[1], wk), -lerp(FALL_Y[0], FALL_Y[1], rain), lerp(WIND_Z[0], WIND_Z[1], wk));
+    this.fallen.addScaledVector(this.fall, dt);
+    if (this.fallen.lengthSq() > 4e6) this.fallen.set(0, 0, 0);
+    du.uOffset.value.copy(this.fallen);
+    du.uDir.value.copy(this.fall).normalize();
+    du.uLen.value = lerp(DROP_LEN[0], DROP_LEN[1], rain);
+    du.uAlpha.value = lerp(DROP_ALPHA[0], DROP_ALPHA[1], rain);
     du.uRain.value = rain;
     this.drops.visible = rain > 0.002;
     if (rain > 0.002) this.spawnSplashes(dt, cam, rain);
@@ -348,18 +369,20 @@ function dropMaterial(coverU: Record<string, THREE.IUniform>): THREE.ShaderMater
     fog: false,
     uniforms: {
       ...coverU,
-      uTime: { value: 0 },
       uRain: { value: 0 },
       uCam: { value: new THREE.Vector3() },
-      uFall: { value: new THREE.Vector3(...FALL) },
+      uOffset: { value: new THREE.Vector3() },
+      uDir: { value: new THREE.Vector3(0, -1, 0) },
+      uLen: { value: 0.5 },
       uColor: { value: new THREE.Color(0.68, 0.72, 0.78) },
       uAlpha: { value: 0.45 },
     },
     vertexShader: /* glsl */ `
-      uniform float uTime;
       uniform float uRain;
       uniform vec3 uCam;
-      uniform vec3 uFall;
+      uniform vec3 uOffset;
+      uniform vec3 uDir;
+      uniform float uLen;
       attribute vec4 aSeed;
       attribute vec2 aBox;
       varying vec2 vUv;
@@ -374,18 +397,18 @@ function dropMaterial(coverU: Record<string, THREE.IUniform>): THREE.ShaderMater
         // коробка вокруг камеры: капля падает и, выйдя за край, возвращается с другой стороны
         vec3 size = vec3(2.0 * aBox.x, aBox.y, 2.0 * aBox.x);
         vec3 base = uCam - vec3(aBox.x, aBox.y * 0.4, aBox.x);
-        vec3 p = aSeed.xyz * size + uFall * (uTime * (0.85 + 0.3 * fract(aSeed.w * 13.7)));
+        vec3 p = aSeed.xyz * size + uOffset * (0.85 + 0.3 * fract(aSeed.w * 13.7));
         p = base + mod(p - base, size);
         // под крышей и под землёй дождя нет
         if (p.y < coverTop(p.xz)) return;
         // штрих вдоль падения, развёрнут к камере; вдали — шире (не тоньше пикселя), но прозрачнее
-        vec3 axis = normalize(uFall);
+        vec3 axis = uDir;
         vec3 toCam = uCam - p;
         float dist = length(toCam);
         vec3 c = cross(axis, toCam);
         vec3 side = length(c) > 1e-4 ? normalize(c) : vec3(1.0, 0.0, 0.0);
         float w = max(0.008, dist * 0.0015);
-        float len = 0.4 + 0.3 * fract(aSeed.w * 31.1);
+        float len = uLen * (0.75 + 0.5 * fract(aSeed.w * 31.1));
         gl_Position = projectionMatrix * viewMatrix * vec4(p + side * (position.x * w) - axis * (position.y * len), 1.0);
         float edge = max(abs(toCam.x), abs(toCam.z)) / aBox.x;
         float vy = (p.y - base.y) / aBox.y;

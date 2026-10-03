@@ -8,9 +8,9 @@ import { BALL_BYTES, BALL_KICK_TICKS, makeBall, stepBall, touchBall, writeBall, 
 import { BARKAS_LANDING, SANYA_PRICE, barkasLanding, barkasWater } from '../../shared/barkas.ts';
 import { BJ_TABLE } from '../../shared/blackjack.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
-import { BR_MAX } from '../../shared/boatrace.ts';
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
-import { COYOTE_TICKS, DROWN_Y, TICK_RATE } from '../../shared/constants.ts';
+import { RG_GATHER_TICKS, RG_MAX } from '../../shared/regatta.ts';
+import { COYOTE_TICKS, DROWN_Y, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import { FC_CHECK_EVERY, FC_SPAWN } from '../../shared/fight.ts';
 import {
   FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_AWAY, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_HOME_SPOTS, FERRY_LEVEL,
@@ -19,17 +19,20 @@ import {
 import { FISHER_USE } from '../../shared/fishplaces.ts';
 import { FISH_XP_LEVELS, RAIN_DRUM_PRICE, fishLevel, questNeed } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
+import { JUKE_PRICE, JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime } from '../../shared/jukebox.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
-  KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld,
+  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
+  ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
+  holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, LOBBY_SEAT_COUNT, buildLobby, seatTable, type Interactable, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { AquaRow, ClientMsg, KartStatus, LobbyEvent, LobbyPlayerInfo, RoomKind, ServerMsg } from '../../shared/messages.ts';
-import { itemById, withItem } from '../../shared/outfit.ts';
+import { DEFAULT_OUTFIT, itemById, sameOutfit, withItem } from '../../shared/outfit.ts';
+import { gearOnly } from '../../shared/fishstyle.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
-import { isRaceTrackId, RACE_TRACKS, type RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { inStartCircle, START_DWELL_TICKS, START_ZONES, type StartZoneKind } from '../../shared/startzones.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { pirateInput, piratePush } from '../../shared/pirates.ts';
@@ -51,9 +54,11 @@ import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
 import { Pirates } from './pirates.ts';
 import { ModeQueue, syncCircleMembers } from './modequeue.ts';
+import { Regatta } from './regatta.ts';
 import { DurakHall } from './durak.ts';
 import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
+import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
 import { WheelRide } from './wheel.ts';
@@ -111,7 +116,9 @@ export class LobbyRoom implements Room {
   readonly storm: Storm | null;
   readonly pirates: Pirates | null;
   readonly director: LobbyEvents;
+  /** Круг сбора регаты у пирса и сама «Портовая регата» (null — флаг BOATRACE выключен) */
   private readonly boatQueue: ModeQueue<LobbyPlayer> | null;
+  readonly regatta: Regatta | null;
   private readonly hideQueue: ModeQueue<LobbyPlayer> | null;
   private boatShown = '';
   private hideShown = '';
@@ -138,7 +145,7 @@ export class LobbyRoom implements Room {
   private readonly starts = new Map<LobbyPlayer, { armed: boolean; zone: StartZoneKind | null; since: number; shown: string }>();
   /** Тик конца отсчёта до гонки (0 — отсчёта нет) */
   private kartCountEnd = 0;
-  private kartTrack: RaceTrackId = 'port';
+  private kartTrack: RaceTrackId = DEFAULT_TRACK;
   private kartShown = '';
   /** Табло: последние разосланные позиции картов строкой — шлём, только если поменялись */
   private kposShown = '';
@@ -169,8 +176,10 @@ export class LobbyRoom implements Room {
   private readonly fc: FightGather<LobbyPlayer> | null;
   /** Включённая рыбалка — места, заброс и подсечка у обеих одинаковые */
   private readonly fish: FishingHall | FishingHall2;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
+  readonly juke: Jukebox | null;
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean } = {}) {
     this.hub = hub;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
@@ -178,9 +187,53 @@ export class LobbyRoom implements Room {
     this.world = new CollisionWorld(this.map);
     if (!hub.skill) for (const box of this.map.skillPortalBoxes) this.world.setEnabled(box, false);
     this.ferryBoxes();
-    this.boatQueue = hub.boatrace ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: BR_MAX, ticks: KART_COUNT_TICKS,
+    this.regatta = hub.boatrace ? new Regatta({
+      tick: () => this.tick,
+      players: () => this.players.values(),
+      board: (p, id) => {
+        this.release(p);
+        p.action = ACT_REGATTA;
+        p.arg = id;
+        p.actionUntil = 0;
+        p.selfReset = true;
+      },
+      unboard: (p) => {
+        if (p.action === ACT_REGATTA) {
+          p.action = ACT_NONE;
+          p.arg = 0;
+        }
+        const s = this.map.boatraceSpawn;
+        this.placeNear(p, s.x, s.z, s.yaw);
+      },
+      follow: (p, s) => {
+        const st = p.state;
+        st.x = s.x;
+        st.z = s.z;
+        // на сиденье катера (на воде; в прыжке с трамплина — выше)
+        st.y = WATER_Y + 0.6 + s.y;
+        st.vx = st.vy = st.vz = 0;
+        p.heldYaw = Math.atan2(-s.hx, -s.hz);
+      },
+      outfit: (p) => (p.client.profile ? hub.outfitOf(p.client.profile) : { ...DEFAULT_OUTFIT }),
+      level: (p) => p.client.profile?.level ?? 1,
+      send: (p, msg) => p.client.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      toast: (p, text) => hub.toast(p.client, text),
+      announce: (text) => hub.announce(text),
+      settle: (pid, row) => hub.onRegattaResult(pid, row),
+      record: (pid, nick, ticks) => {
+        const place = hub.regattaRecord(pid, nick, ticks);
+        if (place >= 0) this.broadcast({ t: 'rgTop', top: hub.regattaTop() });
+        return place;
+      },
+      bestLap: (p) => p.client.profile?.stats.brBestLapHarbor ?? 0,
+      queue: (n) => this.boatQueue?.take(n) ?? [],
+    }) : null;
+    this.juke = eventOptions.jukebox ? new Jukebox() : null;
+    if (!this.juke) for (const box of this.map.jukeBoxes) this.world.setEnabled(box, false);
+    this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
-      nick: p => p.client.nick, position: p => p.state, idle: () => hub.boatrace!.idle, start: players => hub.startBoatRace(players.map(p => p.client)),
+      nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => this.regatta!.begin(players),
     }) : null;
     this.hideQueue = hub.hide ? new ModeQueue({ center: HIDE_CIRCLE, min: () => Math.max(1,HIDE_MIN-hub.hide!.humans), max: HIDE_CAPACITY, ticks: KART_COUNT_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
@@ -275,7 +328,13 @@ export class LobbyRoom implements Room {
     };
     this.fishing = new FishingHall(fishHost, hub.profiles, hub.store);
     this.fishing2 = hub.fish2
-      ? new FishingHall2({ ...fishHost, rain: () => this.weather.rain, top: (top) => this.broadcast({ t: 'fishTop', top }) }, hub.profiles, hub.store, this.now)
+      ? new FishingHall2({
+        ...fishHost, rain: () => this.weather.rain, top: (top) => this.broadcast({ t: 'fishTop', top }),
+        outfit: (slot) => {
+          const c = this.players.get(slot)?.client;
+          if (c?.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: slot, o: hub.outfitOf(c.profile) });
+        },
+      }, hub.profiles, hub.store, this.now)
       : null;
     this.fish = this.fishing2 ?? this.fishing;
   }
@@ -309,21 +368,26 @@ export class LobbyRoom implements Room {
     const p = new LobbyPlayer(slot, c);
     this.players.set(slot, p);
     this.byClient.set(c, p);
-    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'boatrace' ? this.map.boatraceSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
+    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
     this.placeNear(p, spot.x, spot.z, spot.yaw);
     this.starts.set(p, { armed: this.startZoneAt(p) === null, zone: null, since: 0, shown: '' });
     c.sink.sendJson({
       t: 'lobby', id: slot, tick: this.tick, yaw: spot.yaw, players: this.infos(), pool: Math.floor(this.hub.store.state.jackpot),
       pb: this.hub.pbStatus(), honor: this.hub.honor(), tables: this.durak.views(), blackjack: this.blackjack.view(), ...(this.hub.skill ? { skill: this.hub.skill.status() } : {}), kart: this.kartStatus(), fish: this.fish.views(),
-      rain: this.weather.rain ? 1 : 0, respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
+      rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
-      ...(this.boatQueue ? { boatrace: this.boatStatus()! } : {}),
+      ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
     if (this.pirates) c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
+    // музыкальный автомат: что играет и с какого места (вошедшему позже — то же место песни, что у всех)
+    if (this.juke) {
+      if (this.juke.step(this.now())) this.broadcastJuke();
+      else c.sink.sendJson({ t: 'juke', v: this.juke.view(this.now()) });
+    }
     const kpos = this.hub.race.positions();
     if (kpos) c.sink.sendJson({ t: 'kpos', p: kpos });
     // экран с чатом друзей из Telegram на крыше склада — всё, что на нём сейчас (дальше — только новое)
@@ -341,7 +405,7 @@ export class LobbyRoom implements Room {
     this.boatQueue?.drop(p);
     this.hideQueue?.drop(p);
     this.starts.delete(p);
-    if (!this.circle.size) { this.kartTrack = 'port'; this.kartCountEnd = 0; }
+    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
     this.fc?.drop(p);
     this.byClient.delete(c);
     this.players.delete(p.slot);
@@ -368,20 +432,29 @@ export class LobbyRoom implements Room {
       this.hub.store.markDirty();
       this.broadcast({ t: 'aquaTop', top: this.aquaRows() });
     }
+    // и на доске бухты, и в заезде регаты
+    const rg = this.hub.store.state.regatta.find((r) => r.pid === c.pid);
+    if (rg && rg.nick !== c.nick) {
+      rg.nick = c.nick;
+      this.hub.store.markDirty();
+      if (this.regatta) this.broadcast({ t: 'rgTop', top: this.hub.regattaTop() });
+    }
+    this.regatta?.refresh(this.byClient.get(c)!);
   }
 
   /** Наряд, который видят все, поменялся (колпак дурака надели или сняли). */
   outfitChanged(c: Client): void {
     const p = this.byClient.get(c);
     if (p && c.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: p.slot, o: this.hub.outfitOf(c.profile), level: c.profile.level });
+    if (p) this.regatta?.refresh(p);
   }
 
   // ------------------------------------------------------------ сообщения
 
   onInputs(c: Client, inputs: Input[], count: number): void {
     const p = this.byClient.get(c);
-    // на полосе аквапарка очередь длиннее: после лаг-спайка сервер проходит все шаги игрока, а не последние
-    if (p) p.inq.push(inputs, count, aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
+    // на полосе аквапарка и в регате очередь длиннее: после лаг-спайка сервер проходит все шаги игрока, а не последние
+    if (p) p.inq.push(inputs, count, p.action === ACT_REGATTA || aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
   }
 
   onMessage(c: Client, msg: ClientMsg): void {
@@ -428,6 +501,9 @@ export class LobbyRoom implements Room {
       case 'kartTrack':
         this.chooseKartTrack(p, msg.track);
         return;
+      case 'juke':
+        this.onJuke(p, msg.song);
+        return;
       case 'fish':
         if (p.action === ACT_FISH && this.hub.limits.hit(`fish:${c.id}`, 6, 1000)) this.fish.act(p.arg, p.slot, msg.a, msg.n, this.tick);
         return;
@@ -436,6 +512,9 @@ export class LobbyRoom implements Room {
         return;
       case 'barkasHome':
         this.onBarkasHome(p);
+        return;
+      case 'rg':
+        if (msg.a === 'quit') this.regatta?.quit(p);
         return;
       case 'reel':
         // шкала вываживания: свой лимит (клиент шлёт до 20 в секунду, после замирания связи — пачкой)
@@ -518,7 +597,7 @@ export class LobbyRoom implements Room {
         this.hub.move(c, this.hub.paintball);
         return;
       case 'garage':
-        this.chooseKartTrack(p, this.kartTrack === 'port' ? 'foundry' : 'port');
+        this.chooseKartTrack(p, nextRaceTrack(this.kartTrack));
         return;
       case 'skill':
         if (!this.hub.skill) return;
@@ -526,7 +605,7 @@ export class LobbyRoom implements Room {
         else this.hub.move(c, this.hub.skill);
         return;
       case 'boatrace':
-        if (this.boatQueue) this.hub.toast(c, 'Стой в круге — катера стартуют автоматически через 15 секунд.');
+        if (this.regatta) this.hub.toast(c, this.regatta.phase === 'idle' ? 'Стой в круге — через 10 секунд катера на старте у арки.' : 'Регата идёт — стой в круге, поедешь в следующем заезде.');
         return;
       case 'hide':
         if (this.hub.hide?.active) {
@@ -646,7 +725,7 @@ export class LobbyRoom implements Room {
   }
 
   private publishWeather(): void {
-    this.broadcast({ t: 'weather', rain: this.weather.rain ? 1 : 0 });
+    this.broadcast({ t: 'weather', rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}) });
     this.hub.fishEvent(this.weather.rain, this.weather.eventUntil);
   }
 
@@ -993,8 +1072,12 @@ export class LobbyRoom implements Room {
   private onOutfit(p: LobbyPlayer, o: unknown): void {
     const c = p.client;
     const prof = c.profile;
-    if (!prof || p.action !== ACT_WARDROBE || !this.hub.limits.hit(`outfit:${c.id}`, 5, 1000)) return;
-    this.hub.profiles.setOutfit(prof, o);
+    if (!prof || !this.hub.limits.hit(`outfit:${c.id}`, 5, 1000)) return;
+    // вне примерочной — только снасти и значок из журнала рыбака (shared/fishstyle.ts), одежда — как была
+    const kiosk = p.action === ACT_WARDROBE;
+    const before = prof.outfit;
+    this.hub.profiles.setOutfit(prof, kiosk ? o : gearOnly(before, o));
+    if (!kiosk && sameOutfit(before, prof.outfit)) return;
     if (!c.ephemeral) this.broadcast({ t: 'outfitOf', id: p.slot, o: this.hub.outfitOf(prof) });
     this.hub.sendMe(c);
   }
@@ -1030,7 +1113,8 @@ export class LobbyRoom implements Room {
   /** Встать: освободить автомат, место, место рыбалки или в катере (эмоции не трогает). В поездке — только force (вышел из игры). */
   private release(p: LobbyPlayer, force = false): void {
     if (!isHeld(p.action) || (isRiding(p.action) && !force)) return;
-    if (isAboard(p.action)) {
+    if (p.action === ACT_REGATTA) this.regatta?.drop(p, 'left');
+    else if (isAboard(p.action)) {
       this.boat.leave(p.slot);
       this.boatChanged();
     } else if (isFerry(p.action)) {
@@ -1079,7 +1163,10 @@ export class LobbyRoom implements Room {
         p.actionUntil = 0;
       }
     }
+    this.regatta?.step();
     this.checkPairs();
+    // музыкальный автомат: песня доиграла — следующая (раз в треть секунды; время — по часам, не по тикам)
+    if (this.juke && this.tick % 10 === 0 && this.juke.step(this.now())) this.broadcastJuke();
     this.stepBoat();
     this.stepFerry();
     this.stepWheel();
@@ -1094,8 +1181,8 @@ export class LobbyRoom implements Room {
     if (this.tick % KART_CHECK_EVERY === 0) this.kartStep();
     if (this.tick % KART_CHECK_EVERY === 0 && this.boatQueue) {
       this.boatQueue.step(this.tick);
-      const v = this.boatStatus()!, key = JSON.stringify(v);
-      if (key !== this.boatShown) { this.boatShown = key; this.broadcast({ t: 'brSt', v }); }
+      const v = this.boatQueue.view(this.tick), key = JSON.stringify(v);
+      if (key !== this.boatShown) { this.boatShown = key; this.broadcast({ t: 'rgQ', v }); }
     }
     if (this.tick % KART_CHECK_EVERY === 0 && this.hideQueue) {
       this.hideQueue.step(this.tick);
@@ -1294,6 +1381,15 @@ export class LobbyRoom implements Room {
   }
 
   private processPlayer(p: LobbyPlayer): void {
+    // в катере регаты входы — катеру (server/lobby/regatta.ts)
+    if (p.action === ACT_REGATTA) {
+      if (this.regatta?.has(p)) this.regatta.consume(p);
+      else {
+        p.action = ACT_NONE;
+        p.arg = 0;
+      }
+      return;
+    }
     const q = p.inq;
     const n = q.due();
     for (let i = 0; i < n; i++) {
@@ -1470,7 +1566,7 @@ export class LobbyRoom implements Room {
   private syncKartCircle(): void {
     syncCircleMembers(this.circle, this.players.values(), p =>
       !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen && inStartCircle(p.state, KART_START));
-    if (!this.circle.size) { this.kartTrack = 'port'; this.kartCountEnd = 0; }
+    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
   }
 
   private chooseKartTrack(p: LobbyPlayer, track: unknown): void {
@@ -1486,7 +1582,7 @@ export class LobbyRoom implements Room {
       const status = this.kartStatus();
       this.kartShown = JSON.stringify(status);
       this.broadcast({ t: 'kart', ...status });
-      this.hub.toast(p.client, `Выбрана трасса «${RACE_TRACKS.find(t => t.id === track)!.name}». E — сменить.`);
+      this.hub.toast(p.client, `Выбрана трасса «${raceTrackName(track)}». E — сменить.`);
     }
   }
 
@@ -1533,7 +1629,8 @@ export class LobbyRoom implements Room {
     return { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: RC_LAPS, ...selection };
   }
 
-  boatStatus() { return this.hub.boatrace?.status() ?? this.boatQueue?.view(this.tick) ?? null; }
+  /** Круг сбора регаты у пирса (null — регата выключена) */
+  boatStatus() { return this.boatQueue?.view(this.tick) ?? null; }
   hideStatus() {
     const queue = this.hideQueue?.view(this.tick);
     return queue?.phase === 'count' ? queue : this.hub.hide && (this.hub.hide.humans || this.hub.hide.active) ? this.hub.hide.status() : queue ?? null;
@@ -1581,6 +1678,7 @@ export class LobbyRoom implements Room {
       if (ev) p.client.sink.sendJson(ev);
     }
     this.events = [];
+    this.regatta?.send();
   }
 
   private infos(): LobbyPlayerInfo[] {
@@ -1610,6 +1708,42 @@ export class LobbyRoom implements Room {
 
   broadcast(msg: ServerMsg): void {
     for (const p of this.players.values()) p.client.sink.sendJson(msg);
+  }
+
+  private broadcastJuke(): void {
+    if (this.juke) this.broadcast({ t: 'juke', v: this.juke.view(this.now()) });
+  }
+
+  /**
+   * Заказ песни у музыкального автомата: рядом ли, есть ли такая, своя уже ждёт, очередь, повтор — и только потом
+   * списать 10 🪙. Любой отказ — ответом с причиной, жетоны не тронуты. В чат — «🎵 ник ставит «…»».
+   */
+  private onJuke(p: LobbyPlayer, song: unknown): void {
+    const c = p.client;
+    const prof = c.profile;
+    const juke = this.juke;
+    if (!juke || !prof || c.ephemeral) return;
+    const no = (text: string): void => c.sink.sendJson({ t: 'jukeRes', ok: false, text });
+    if (!this.hub.limits.hit(`juke:${c.id}`, 1, JUKE_RATE_MS)) return no('Не так быстро 🙂');
+    const s = p.state;
+    if (isHeld(p.action) || Math.abs(s.y) > 2 || Math.hypot(s.x - JUKE_USE.x, s.z - JUKE_USE.z) > JUKE_SERVER_R) return no('Подойди к музыкальному автомату');
+    const now = this.now();
+    if (juke.step(now)) this.broadcastJuke();
+    const why = juke.check(prof.id, song, now);
+    if (why === 'song') return no('Такой песни в автомате нет');
+    if (why === 'mine') return no('Твоя песня уже в очереди — дождись её');
+    if (why === 'full') return no('Очередь полная — подожди, пока доиграет следующая');
+    const n = song as number;
+    const title = JUKE_SONGS[n].title;
+    if (why === 'same') return no(`«${title}» уже ${juke.cur?.song === n ? 'играет' : 'в очереди'} — выбери другую`);
+    if (!this.hub.profiles.spend(prof, JUKE_PRICE)) return no(`Песня стоит ${JUKE_PRICE} 🪙, а у тебя ${prof.tokens}`);
+    juke.add(prof.id, c.nick, n, now);
+    this.hub.tokens(c, prof.tokens);
+    this.honorDirty = true;
+    this.broadcastJuke();
+    const place = juke.queue.length;
+    c.sink.sendJson({ t: 'jukeRes', ok: true, text: place === 0 ? `«${title}» — сейчас заиграет` : `«${title}» в очереди: ${place}-я, через ${fmtSongTime(juke.etaMs(place - 1, now) / 1000)}` });
+    this.hub.announce(`🎵 ${c.nick} ставит «${title}»`);
   }
 }
 

@@ -11,18 +11,20 @@ import { TICK_MS } from '../shared/constants.ts';
 import { fightEnabled } from './fight/room.ts';
 import { fortEnabled } from './fort/room.ts';
 import { Hub, closeReason, type Sink } from './hub.ts';
+import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
 import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
-import { boatRaceEnabled } from './boatrace/room.ts';
+import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
+import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
-import { parseClientJson, sendServerBinary, sendServerJson } from './voice-wire.ts';
+import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -40,7 +42,7 @@ const profiles = new Profiles(store);
 const build = DEV ? 'dev' : buildId();
 // DEV_RIG=777 — автоматы всегда дают три семёрки, чтобы посмотреть джекпот (только в разработке)
 const roll = DEV && process.env.DEV_RIG === '777' ? () => 63 : undefined;
-// DEV_WEATHER=rain / clear / cycle — дождь всегда, никогда или по 45 с (только в разработке)
+// DEV_WEATHER=rain / clear / cycle / storm — дождь всегда, никогда, по 45 с или гроза сразу (только в разработке)
 const weather = DEV ? weatherMode(process.env.DEV_WEATHER) : 'auto';
 // Экран с чатом друзей из Telegram на крыше склада: токен бота владелец кладёт в DATA_DIR/tg-token (deploy/set-tg-token.sh)
 const tg = new TgFeed({ dir: DATA_DIR });
@@ -50,16 +52,22 @@ const fort = fortEnabled(process.env.FORTRESS, DEV);
 const fight = fightEnabled(process.env.FIGHT, DEV);
 const skill = process.env.SKILL === undefined ? DEV : process.env.SKILL === '1';
 const storm = eventFlag(process.env.STORM, DEV), pirates = eventFlag(process.env.PIRATES, DEV);
-const boatrace = boatRaceEnabled(process.env.BOATRACE, DEV);
+const boatrace = regattaEnabled(process.env.BOATRACE, DEV);
 const hide = hideEnabled(process.env.HIDE, DEV);
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
 const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
+// Лаборатория идей /lab (страница + решения владельца в DATA_DIR/lab.json, ключ — DATA_DIR/lab-key): LAB=1 включает, LAB=0 выключает
+const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
+// Музыкальный автомат на площади: JUKEBOX=1 — включить, JUKEBOX=0 — выключить, без переменной — только с --dev
+const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce, jukebox,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
+// /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
+hub.gate.devGo = DEV || process.env.DEV_GO === '1';
 tg.start();
 if (roll) console.log('DEV_RIG=777: автоматы подкручены на джекпот');
 if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на набережной не своя`);
@@ -67,8 +75,10 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
+if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
 /** Токен для проверки после выкладки (deploy/smoke.ts): создаётся один раз, файл только для владельца. */
@@ -133,6 +143,7 @@ server.on('request', (req, res) => {
     res.end(JSON.stringify({ ok: true, ...hub.health(), stepMs: Math.round(stepMs * 1000) / 1000 }));
     return;
   }
+  if (lab.handle(req, res, url.pathname)) return;
   if (viteMiddleware) {
     viteMiddleware(req, res, () => {
       res.statusCode = 404;
@@ -236,19 +247,23 @@ const conns = new Map<WebSocket, ConnMeta>();
 
 function onConnection(ws: WebSocket, ip: string): void {
   const meta: ConnMeta = { pulse: new Pulse(performance.now()), why: '' };
-  const sink: Sink = {
+  const sink: Sink & { sendText(text: string): void } = {
     sendBinary(data) {
       sendServerBinary(ws, data, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
     sendJson(msg) {
       sendServerJson(ws, msg, voice, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
+    sendText(text) {
+      sendServerText(ws, text, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
+    },
     close(code, reason) {
       if (!meta.why) meta.why = closeReason(code, reason);
       ws.close(code, reason);
     },
   };
-  const client = hub.connect(sink, ip);
+  // После возврата в прежнюю сессию (hub.resume) сообщения этого сокета идут ей — client меняется
+  let client = hub.connect(sink, ip);
   conns.set(ws, meta);
   const budget = new MsgBudget(performance.now());
 
@@ -268,6 +283,7 @@ function onConnection(ws: WebSocket, ip: string): void {
     const msg = parseClientJson(text, voice);
     if (msg === null) return;
     hub.onJson(client, msg);
+    if (client.adopted) client = client.adopted;
     startLoop();
   });
 
@@ -278,7 +294,8 @@ function onConnection(ws: WebSocket, ip: string): void {
 
   ws.on('close', (code, reason) => {
     conns.delete(ws);
-    hub.disconnect(client, meta.why || closeReason(code, reason.toString()));
+    // обрыв в игре — игрок ждёт в комнате возврата (hub.RESUME_MS); выход, флуд, замена окном — отключаем сразу
+    hub.linkLost(client, sink, meta.why || closeReason(code, reason.toString()), code);
   });
   ws.on('error', (e) => {
     if (!meta.why) meta.why = `ошибка сокета: ${String(e.message).slice(0, 80)}`;

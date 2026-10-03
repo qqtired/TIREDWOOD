@@ -1,10 +1,13 @@
 // Звук синтезируется на лету (WebAudio) — ни одного файла. Выстрелы и шаги других
-// игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют.
+// игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют. Дождь и гром — weathersound.ts.
+import { RainVoice, thunderSound } from './weathersound.ts';
 
 type Wave = OscillatorType;
 type V3 = [number, number, number];
 export type SoundPos = V3 | null;
 export type LobbyEventSound = 'siren' | 'thunder' | 'wave' | 'success' | 'horn' | 'cannon' | 'splash' | 'victory' | 'loss' | 'mop';
+/** Ползунки меню «Звук»: пример звука шины, когда ползунок отпустили */
+export type MixPreview = 'music' | 'amb' | 'sfx' | 'ui';
 
 /** Мотор карта: пила и квадрат через фильтр, «тарахтение» — модуляция громкости, гул — шум; визг шин — отдельно */
 interface EngineVoice {
@@ -24,18 +27,28 @@ export class Sound {
   private sfx!: GainNode;
   private ui!: GainNode;
   private amb!: GainNode;
+  /** Музыка: общий регулятор (ползунок «Музыка»), вход прочей музыки (его приглушает автомат) и вход автомата */
+  private musicOut!: GainNode;
+  private musicIn!: GainNode;
+  private jukeIn!: GainNode;
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
+  /** Доли эффектов, окружения, интерфейса и музыки от общей громкости (меню → Звук) и «на улице ли» (в подвале прибоя не слышно) */
+  private sfxMix = 1;
+  private ambMix = 1;
+  private uiMix = 1;
+  private musicMix = 0.8;
+  /** Прочая музыка, пока играет автомат: доля громкости (1 — как есть) */
+  private duck = 1;
+  private outdoor = 1;
   private nextGull = 8;
   private nextHorn = 50;
-  /** Дождь: общий регулятор шума (создаётся с первым дождём), сила 0…1, когда следующее «кап» */
-  private rainBus: GainNode | null = null;
+  /** Дождь: голос дождя (создаётся с первым дождём) и его сила 0…1 */
+  private rainVoice: RainVoice | null = null;
   /** До какого времени звучит мелодия у статуи (пока играет — заново не начинается) */
   private respectEnd = 0;
   private rainLevel = 0;
-  private rainSet = 0;
-  private nextDrip = 0;
   private started = false;
   private readonly engines = new Map<number, EngineVoice>();
 
@@ -59,10 +72,20 @@ export class Sound {
       this.sfx = ctx.createGain();
       this.ui = ctx.createGain();
       this.amb = ctx.createGain();
-      this.amb.gain.value = 0.55;
+      this.sfx.gain.value = this.sfxMix;
+      this.ui.gain.value = this.uiMix;
+      this.amb.gain.value = 0.55 * this.outdoor * this.ambMix;
       this.sfx.connect(this.master);
       this.ui.connect(this.master);
       this.amb.connect(this.master);
+      this.musicOut = ctx.createGain();
+      this.musicOut.gain.value = this.musicMix;
+      this.musicOut.connect(this.master);
+      this.musicIn = ctx.createGain();
+      this.musicIn.gain.value = this.duck;
+      this.musicIn.connect(this.musicOut);
+      this.jukeIn = ctx.createGain();
+      this.jukeIn.connect(this.musicOut);
       this.noiseBuf = this.makeNoise(false);
       this.brownBuf = this.makeNoise(true);
       const l = ctx.listener;
@@ -87,14 +110,92 @@ export class Sound {
     if (this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
-  /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
-  setOutdoor(k: number): void {
-    if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k, this.ctx.currentTime, 0.3);
+  /**
+   * Громкость эффектов, окружения, интерфейса и музыки — доли 0…1 от общей (ползунки меню «Звук»). Без интерфейса —
+   * как эффекты, без музыки — прежняя.
+   */
+  setMix(effects: number, ambience: number, ui = effects, music = this.musicMix): void {
+    this.sfxMix = effects;
+    this.ambMix = ambience;
+    this.uiMix = ui;
+    this.musicMix = music;
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.sfx.gain.setTargetAtTime(effects, t, 0.05);
+    this.ui.gain.setTargetAtTime(ui, t, 0.05);
+    this.amb.gain.setTargetAtTime(0.55 * this.outdoor * ambience, t, 0.05);
+    this.musicOut.gain.setTargetAtTime(music, t, 0.05);
   }
 
-  /** Для своих звуков сцены (client/fight/sfx.ts): контекст, шина эффектов и шумы; null — звук ещё не разрешён. */
-  get kit(): { ctx: AudioContext; sfx: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
-    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, noise: this.noiseBuf, brown: this.brownBuf } : null;
+  /** Доля громкости музыки (ползунок «Музыка»): 0 — автомату незачем синтезировать */
+  get musicLevel(): number {
+    return this.musicMix * this.volume;
+  }
+
+  /**
+   * Шина «Музыка» для прочей музыки (баян на баркасе и т. п.): общий ползунок «Музыка», и её приглушает автомат на
+   * площади (duckMusic). null — звук ещё не разрешён.
+   */
+  get music(): GainNode | null {
+    return this.ctx ? this.musicIn : null;
+  }
+
+  /** Для музыкального автомата (client/music): контекст и вход шины «Музыка» мимо приглушения; null — звук не разрешён */
+  get jukeKit(): { ctx: AudioContext; out: GainNode } | null {
+    return this.ok ? { ctx: this.ctx!, out: this.jukeIn } : null;
+  }
+
+  /** Приглушить прочую музыку, пока играет автомат: k — доля громкости 0…1 (1 — как есть), плавно. */
+  duckMusic(k: number): void {
+    const v = Math.min(1, Math.max(0, Number.isFinite(k) ? k : 1));
+    if (Math.abs(v - this.duck) < 0.01) return;
+    this.duck = v;
+    if (this.ctx) this.musicIn.gain.setTargetAtTime(v, this.ctx.currentTime, 0.35);
+  }
+
+  /** Отпустили ползунок в меню: короткий пример его звука — музыка — фраза, окружение — волна, эффекты — щелчок, интерфейс — «дзынь». */
+  preview(kind: MixPreview): void {
+    if (!this.ok) {
+      // звук только что разрешили этим же жестом — сыграем, когда контекст проснётся
+      if (this.ctx?.state === 'suspended') void this.ctx.resume().then(() => { if (this.ok) this.preview(kind); });
+      return;
+    }
+    if (kind === 'amb') {
+      // волна: накат и шипение пены
+      this.noise(this.amb, 1.5, 'lowpass', 420, 1500, 0.7, 0.5, 0, 0.45, true);
+      this.noise(this.amb, 1.1, 'bandpass', 2600, 1300, 0.8, 0.07, 0.5, 0.25);
+    } else if (kind === 'sfx') {
+      // щелчок: сухой «ток» и короткий хлопок
+      this.noise(this.sfx, 0.035, 'bandpass', 2400, 1600, 1.2, 0.45);
+      this.tone(this.sfx, 520, 260, 0.05, 'triangle', 0.22);
+    } else if (kind === 'ui') {
+      this.tone(this.ui, 1568, 1568, 0.35, 'sine', 0.13);
+      this.tone(this.ui, 2349, 2349, 0.28, 'sine', 0.06, 0.02);
+    } else {
+      // фраза электропиано и бас: до мажор, вверх и обратно (через вход автомата — ползунок «Музыка»)
+      const d = this.jukeIn;
+      const notes: ReadonlyArray<readonly [number, number]> = [[523.25, 0], [659.25, 0.16], [783.99, 0.32], [987.77, 0.48], [880, 0.72]];
+      for (const [f, at] of notes) {
+        this.tone(d, f, f, 0.9, 'sine', 0.13, at, 0.006);
+        this.tone(d, f * 2, f * 2, 0.25, 'sine', 0.025, at, 0.004);
+      }
+      this.tone(d, 130.81, 130.81, 1.1, 'triangle', 0.2, 0, 0.01);
+      this.tone(d, 174.61, 174.61, 0.8, 'triangle', 0.18, 0.72, 0.01);
+    }
+  }
+
+  /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
+  setOutdoor(k: number): void {
+    this.outdoor = k;
+    if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k * this.ambMix, this.ctx.currentTime, 0.3);
+  }
+
+  /**
+   * Для своих звуков сцены (client/fight/sfx.ts): контекст, шины и шумы; null — звук ещё не разрешён.
+   * sfx — эффекты, amb — окружение (ветер, море, толпа), ui — интерфейс, music — прочая музыка (её приглушает автомат).
+   */
+  get kit(): { ctx: AudioContext; sfx: GainNode; amb: GainNode; ui: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
+    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, amb: this.amb, ui: this.ui, music: this.musicIn, noise: this.noiseBuf, brown: this.brownBuf } : null;
   }
 
   private makeNoise(brown: boolean): AudioBuffer {
@@ -524,19 +625,19 @@ export class Sound {
     o.stop(t + dur + 0.05);
   }
 
-  /** Выигрыш на автомате: size 0 — мелочь меньше ставки, 1 — обычный, 2 — крупный (от ×20). */
+  /** Выигрыш на автомате: size 0 — мелочь меньше ставки, 1 — обычный, 2 — крупный (от ×20). Свой (null) — интерфейс. */
   slotWinAt(pos: V3 | null, size: 0 | 1 | 2): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, pos ? this.sfx : this.ui);
     const notes = size === 2 ? [523, 659, 784, 1047, 784, 1047, 1319, 1568] : size === 1 ? [523, 659, 784, 1047] : [784, 1047];
     notes.forEach((f, i) => this.tone(d, f, f, 0.2, 'square', 0.07, i * 0.085));
     notes.forEach((f, i) => this.tone(d, f * 2, f * 2, 0.12, 'triangle', 0.04, i * 0.085 + 0.02));
   }
 
-  /** Одна монета: звонкое «дзинь». */
+  /** Одна монета: звонкое «дзинь». Свои монетки (null — награда, продажа, уровень) — интерфейс, в мире — эффекты. */
   coin(pos: V3 | null, when = 0): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, pos ? this.sfx : this.ui);
     const f = 2500 + Math.random() * 1100;
     this.tone(d, f, f * 0.985, 0.22, 'sine', 0.07, when);
     this.tone(d, f * 1.51, f * 1.5, 0.15, 'sine', 0.04, when);
@@ -576,7 +677,8 @@ export class Sound {
     g.gain.exponentialRampToValueAtTime(0.09, t + 0.15);
     g.gain.setValueAtTime(0.09, t + len - 0.4);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(lp).connect(g).connect(this.ui);
+    // сирена в павильоне — событие мира, а не кнопка: ползунок «Эффекты»
+    o.connect(lp).connect(g).connect(this.sfx);
     o.start(t);
     lfo.start(t);
     o.stop(t + len + 0.05);
@@ -638,10 +740,14 @@ export class Sound {
     } else if (kind === 'horn') {
       this.tone(d, 110, 108, 1.6, 'triangle', .075, 0, .18);
       this.tone(d, 165, 163, 1.4, 'sine', .035, .08, .2);
-    } else if (kind === 'thunder' || kind === 'cannon') {
-      const thunder = kind === 'thunder';
-      this.noise(d, thunder ? 1.8 : .65, 'lowpass', thunder ? 600 : 950, 90, .7, thunder ? .15 : .12, 0, .07, true);
-      this.tone(d, thunder ? 74 : 120, 36, thunder ? 1.3 : .5, 'sine', .055, .04, .05);
+    } else if (kind === 'thunder') {
+      // далёкий раскат без молнии (удары со вспышкой гремят через thunder): низкие перекаты
+      this.noise(d, 2.6, 'lowpass', 260, 70, .6, .11, 0, .45, true);
+      this.noise(d, 2.2, 'lowpass', 200, 60, .6, .08, .9, .5, true);
+      this.tone(d, 50, 34, 2.4, 'sine', .05, .1, .5);
+    } else if (kind === 'cannon') {
+      this.noise(d, .65, 'lowpass', 950, 90, .7, .12, 0, .07, true);
+      this.tone(d, 120, 36, .5, 'sine', .055, .04, .05);
     } else if (kind === 'wave' || kind === 'splash') {
       this.noise(d, .7, 'lowpass', 1900, 360, .6, .11, 0, .05);
     } else if (kind === 'mop') {
@@ -673,8 +779,18 @@ export class Sound {
     }
   }
 
-  /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы). */
-  horn(gain = 0.35): void {
+  /** Harbour dog: two short barks, heard only nearby. */
+  woof(pos: V3): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.amb, .15, 5);
+    for (let i = 0; i < 2; i++) {
+      this.tone(d, 360, 190, .12, 'sawtooth', .04, i * .2, .012);
+      this.noise(d, .1, 'bandpass', 900, 500, .8, .02, i * .2, .01);
+    }
+  }
+
+  /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы); pos — откуда (старт регаты слышно с пирса). */
+  horn(gain = 0.35, pos: V3 | null = null): void {
     if (!this.ok) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime;
@@ -686,7 +802,7 @@ export class Sound {
     g.gain.exponentialRampToValueAtTime(gain, t + 0.25);
     g.gain.setValueAtTime(gain, t + 1.4);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
-    lp.connect(g).connect(this.amb);
+    lp.connect(g).connect(this.out(pos, this.amb, 0, 25));
     for (const f of [92, 138, 184]) {
       const o = ctx.createOscillator();
       o.type = 'sawtooth';
@@ -781,10 +897,10 @@ export class Sound {
     });
   }
 
-  /** Вышел из игры не дураком: короткое арпеджио. */
+  /** Вышел из игры не дураком: короткое арпеджио. Своё (null) — интерфейс. */
   fanfare(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 3);
+    const d = this.out(pos, pos ? this.sfx : this.ui, 0, 3);
     [523, 659, 784, 1047].forEach((f, i) => {
       this.tone(d, f, f, 0.24, 'triangle', 0.13, i * 0.09);
       this.tone(d, f * 2, f * 2, 0.12, 'square', 0.025, i * 0.09);
@@ -797,6 +913,64 @@ export class Sound {
     const d = this.out(pos, this.sfx, 0, 3);
     this.tone(d, 520, 1250, 0.07, 'sine', 0.16);
     this.noise(d, 0.03, 'bandpass', 2000, 1200, 1.5, 0.08);
+  }
+
+  // ------------------------------------------------------------ блэкджек: фишки, переворот, итоги
+  // pos — стол; null — свой стол (без затухания). when — задержка в секундах.
+
+  /** Фишка легла на сукно: сухой керамический «клац». */
+  chip(pos: V3 | null, when = 0): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const k = 0.92 + Math.random() * 0.2;
+    this.tone(d, 2300 * k, 1500 * k, 0.03, 'triangle', 0.1, when);
+    this.tone(d, 3500 * k, 3000 * k, 0.02, 'sine', 0.05, when + 0.002);
+    this.noise(d, 0.025, 'highpass', 5200, 4000, 0.8, 0.14, when);
+  }
+
+  /** Стопка фишек съехала: несколько клацаний подряд. */
+  chipStack(pos: V3 | null, n = 3, when = 0): void {
+    if (!this.ok) return;
+    let t = when;
+    for (let i = 0; i < n; i++) {
+      this.chip(pos, t);
+      t += 0.04 + Math.random() * 0.025;
+    }
+  }
+
+  /** Карта перевёрнута: шорох воздуха и лёгкий щелчок. */
+  flip(pos: V3 | null, when = 0): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    this.noise(d, 0.07, 'bandpass', 1400, 3200, 1.1, 0.16, when, 0.004);
+    this.noise(d, 0.025, 'highpass', 5800, 4200, 0.7, 0.1, when + 0.05);
+  }
+
+  /** Выигрыш за столом: два звонких «динь» и несколько монет. big — блэкджек: длиннее и ярче. */
+  tableWin(big = false): void {
+    if (!this.ok) return;
+    const d = this.ui;
+    const notes = big ? [659, 784, 988, 1319, 1568] : [784, 1047];
+    notes.forEach((f, i) => {
+      this.tone(d, f, f, big ? 0.28 : 0.22, 'triangle', 0.14, i * 0.085);
+      this.tone(d, f * 2, f * 2, 0.14, 'sine', 0.04, i * 0.085 + 0.01);
+    });
+    this.coins(null, big ? 12 : 5);
+  }
+
+  /** Проигрыш за столом: мягкий низкий «уу-ух», без издевательств. */
+  tableLose(): void {
+    if (!this.ok) return;
+    const d = this.ui;
+    this.tone(d, 330, 247, 0.22, 'triangle', 0.12);
+    this.tone(d, 247, 196, 0.34, 'triangle', 0.12, 0.17);
+  }
+
+  /** Ничья: одна нейтральная нота. */
+  tablePush(): void {
+    if (!this.ok) return;
+    this.tone(this.ui, 523, 523, 0.22, 'triangle', 0.1);
+    this.tone(this.ui, 523, 523, 0.22, 'triangle', 0.1, 0.16);
   }
 
   /** Болеют у табло гонки: гул толпы, хлопки вразнобой и свист. pos = null — для гонщика, без объёма. */
@@ -1065,7 +1239,7 @@ export class Sound {
     return { o1, o2, lfo, lp, out, skid, pan, srcs };
   }
 
-  /** Турбо: свист воздуха и рёв. lvl 1–2 — мини-турбо (короче), 3 — турбо из ящика. */
+  /** Турбо: свист воздуха и рёв. lvl 1–3 — мини-турбо (синее, оранжевое, фиолетовое), 4 — турбо из ящика. */
   kartBoost(pos: V3 | null, lvl: number): void {
     if (!this.ok) return;
     const d = this.out(pos, this.sfx, 0, 4);
@@ -1073,6 +1247,7 @@ export class Sound {
     this.noise(d, big ? 0.7 : 0.4, 'bandpass', 500, 2600, 1.6, big ? 0.32 : 0.2, 0, 0.03);
     this.tone(d, 110, big ? 330 : 240, big ? 0.6 : 0.35, 'sawtooth', big ? 0.09 : 0.06, 0, 0.02);
     if (lvl >= 2) this.tone(d, 900, 1600, 0.12, 'square', 0.04);
+    if (lvl === 3) this.tone(d, 1400, 2600, 0.18, 'triangle', 0.05, 0.04);
   }
 
   /** Подскок карта на пробел: пружинка подвески; land — приземлился (мягкий «тук»). */
@@ -1090,7 +1265,7 @@ export class Sound {
   /** Занос накопил мини-турбо: искры сменили цвет. */
   driftCharge(lvl: number): void {
     if (!this.ok) return;
-    const f = lvl >= 2 ? 1568 : 1175;
+    const f = lvl >= 3 ? 2093 : lvl === 2 ? 1568 : 1175;
     this.tone(this.ui, f, f * 1.06, 0.09, 'triangle', 0.06);
   }
 
@@ -1128,6 +1303,51 @@ export class Sound {
     this.noise(d, 0.12, 'lowpass', 600, 120, 1, 0.25 + g * 0.45, 0, 0.003, true);
     this.tone(d, 95, 48, 0.14, 'sine', 0.15 + g * 0.3);
     this.noise(d, 0.06, 'bandpass', 2400, 1200, 1.5, 0.05 + g * 0.1);
+  }
+
+  /** Пузырь надулся: мягкое «блуп» вверх и переливы. */
+  bubbleUp(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 3);
+    this.tone(d, 260, 820, 0.2, 'sine', 0.16, 0, 0.01);
+    this.tone(d, 1300, 2300, 0.26, 'triangle', 0.035, 0.08, 0.03);
+  }
+
+  /** Пузырь лопнул: звонкий «чпок». */
+  bubblePop(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 3);
+    this.tone(d, 1100, 380, 0.07, 'sine', 0.2);
+    this.noise(d, 0.05, 'highpass', 3600, 2400, 0.8, 0.12);
+  }
+
+  /** «Хлопок»: удар в ладоши великана — хлёсткий треск и низкий гул волны. */
+  clap(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 6);
+    this.noise(d, 0.14, 'bandpass', 1500, 700, 1.1, 0.55);
+    this.noise(d, 0.45, 'lowpass', 500, 90, 0.8, 0.4, 0.01, 0.004, true);
+    this.tone(d, 130, 45, 0.32, 'sine', 0.32);
+  }
+
+  /** Колёса буксуют: короткий визг шин. gain 0…1. */
+  skid(gain: number): void {
+    if (!this.ok) return;
+    this.noise(this.sfx, 0.5, 'bandpass', 2300, 1700, 7, 0.14 * gain, 0, 0.02);
+    this.tone(this.sfx, 820, 700, 0.45, 'sawtooth', 0.025 * gain, 0, 0.02);
+  }
+
+  /** Трюк в прыжке: весёлое «уи-и». */
+  trick(): void {
+    if (!this.ok) return;
+    this.tone(this.ui, 660, 1320, 0.16, 'triangle', 0.07);
+    this.tone(this.ui, 990, 1980, 0.12, 'sine', 0.04, 0.05);
+  }
+
+  /** Съехал на траву (шорох) или в песок (шуршание погуще). */
+  offroad(sand: boolean): void {
+    if (!this.ok) return;
+    this.noise(this.sfx, sand ? 0.32 : 0.22, sand ? 'lowpass' : 'bandpass', sand ? 1300 : 2200, sand ? 380 : 1400, 0.9, sand ? 0.16 : 0.08, 0, 0.02, sand);
   }
 
   /** Отсчёт на решётке: три коротких бипа и высокий на «Вперёд!». */
@@ -1260,57 +1480,28 @@ export class Sound {
     lfo2.start();
   }
 
-  /** Дождь: 0 — нет, 1 — во всю силу. Ровный шелест, гул капель по крышам и плитке и близкие «кап» (в tick). */
-  setRain(level: number): void {
+  /**
+   * Дождь: level — 0 нет … 1 ливень, shelter — под крышей (0…1). Мягкий шелест по силе, стук по навесам и редкие
+   * «кап» (в tick) — weathersound.ts, шина «Окружение».
+   */
+  setRain(level: number, shelter = 0): void {
     this.rainLevel = level;
     const ctx = this.ctx;
-    if (!ctx || !this.started || Math.abs(level - this.rainSet) < 0.01) return;
-    if (!this.rainBus) this.rainBus = this.makeRain();
-    this.rainSet = level;
-    this.rainBus.gain.setTargetAtTime(level, ctx.currentTime, 0.25);
+    if (!ctx || !this.started) return;
+    if (!this.rainVoice) {
+      if (level < 0.005) return;
+      this.rainVoice = new RainVoice(ctx, this.amb, this.noiseBuf, this.brownBuf);
+    }
+    this.rainVoice.set(level, shelter);
   }
 
-  private makeRain(): GainNode {
-    const ctx = this.ctx!;
-    const bus = ctx.createGain();
-    bus.gain.value = 0;
-    bus.connect(this.amb);
-    // шелест: белый шум без низов и самого верха; гул: коричневый шум пониже
-    const layer = (buf: AudioBuffer, type: BiquadFilterType, f: number, gain: number, lowpass = 0) => {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      const flt = ctx.createBiquadFilter();
-      flt.type = type;
-      flt.frequency.value = f;
-      const g = ctx.createGain();
-      g.gain.value = gain;
-      let node: AudioNode = src.connect(flt);
-      if (lowpass) {
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = lowpass;
-        node = node.connect(lp);
-      }
-      node.connect(g).connect(bus);
-      src.start(0, Math.random() * 1.5);
-    };
-    layer(this.noiseBuf, 'highpass', 900, 0.25, 6500);
-    layer(this.brownBuf, 'lowpass', 700, 0.2);
-    return bus;
+  /** Гром после молнии: dist — до удара (м), pan — где на слух (−1…1), power — сила, far — далёкая гроза. */
+  thunder(dist: number, pan = 0, power = 0.8, far = false): void {
+    if (!this.ok) return;
+    thunderSound(this.ctx!, this.amb, this.noiseBuf, this.brownBuf, { dist, pan, power, far });
   }
 
-  /** Капля рядом: короткий щелчок шума то слева, то справа. */
-  private drip(): void {
-    const ctx = this.ctx!;
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = Math.random() * 1.8 - 0.9;
-    pan.connect(this.amb);
-    const f = 1400 + Math.random() * 3600;
-    this.noise(pan, 0.025 + Math.random() * 0.03, 'bandpass', f, f * 0.8, 3, (0.02 + Math.random() * 0.05) * this.rainLevel);
-  }
-
-  /** Раз в кадр: изредка кричат чайки (в дождь прячутся), иногда гудит пароход, в дождь — капли рядом. */
+  /** Раз в кадр: изредка кричат чайки (в дождь прячутся), иногда гудит пароход, в дождь — стук и капли рядом. */
   tick(dt: number): void {
     if (!this.ok) return;
     this.nextGull -= dt;
@@ -1318,14 +1509,7 @@ export class Sound {
       this.nextGull = 7 + Math.random() * 14;
       if (this.rainLevel < 0.3) this.gull();
     }
-    if (this.rainLevel > 0.05) {
-      this.nextDrip -= dt;
-      for (let n = 0; this.nextDrip <= 0 && n < 4; n++) {
-        this.nextDrip += (0.03 + Math.random() * 0.09) / this.rainLevel;
-        this.drip();
-      }
-      this.nextDrip = Math.max(this.nextDrip, 0);
-    }
+    this.rainVoice?.tick(dt);
     this.nextHorn -= dt;
     if (this.nextHorn <= 0) {
       this.nextHorn = 70 + Math.random() * 60;

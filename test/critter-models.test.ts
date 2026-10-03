@@ -1,58 +1,114 @@
 import assert from 'node:assert/strict';
-import {test} from 'node:test';
-import {readFileSync} from 'node:fs';
+import { test } from 'node:test';
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {RiggedQuadruped} from '../client/lobby/critter-quadruped.ts';
-import {CoastalCritter} from '../client/lobby/critter-coastal.ts';
-import {CRITTERS} from '../shared/maps/critters.ts';
-import {critterPeriod,sampleCritter,sampleReaction} from '../client/lobby/crittersim.ts';
+import { Quadruped } from '../client/lobby/critter-quadruped.ts';
+import { Crab, Gull } from '../client/lobby/critter-coastal.ts';
+import { Cove } from '../client/lobby/critter-cove.ts';
+import { critterMaterial } from '../client/lobby/critter-kit.ts';
+import { newPose, type CritterPose } from '../client/lobby/crittersim.ts';
+import { WATER_Y } from '../shared/constants.ts';
 
-async function asset(kind:'cat'|'dog'){
-  const b=readFileSync(new URL(`../client/assets/critters/${kind}.glb`,import.meta.url));
-  return new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');
-}
-test('licensed pets keep one skin/material, real clips, fixed bone lengths and grounded soles across rest/walk transitions',async()=>{
-  for(const kind of ['cat','dog'] as const){
-    const gltf=await asset(kind),pet=new RiggedQuadruped(gltf,kind),p=sampleCritter(CRITTERS[kind==='cat'?0:14],0);
-    assert.deepEqual(gltf.animations.map(a=>a.name).sort(),['Idle','Walk']);assert.ok(pet.mesh.geometry.attributes.position.count/3<2500);
-    assert.equal(Array.isArray(pet.mesh.material),false);
-    const bodyVertices=(kind==='cat'?807:602)*3,original=pet.mesh.geometry.attributes.position,closed=pet.mesh.geometry.morphAttributes.position?.[0];
-    assert.ok(closed,'real eyelid morph exists');
-    for(let i=0;i<bodyVertices;i++)assert.deepEqual([closed.getX(i),closed.getY(i),closed.getZ(i)],pet.mesh.geometry.morphTargetsRelative?[0,0,0]:[original.getX(i),original.getY(i),original.getZ(i)],'eyelid morph leaves every original body vertex untouched');
-    const bones=pet.mesh.skeleton.bones,baseLengths=bones.map(b=>b.parent instanceof THREE.Bone?b.position.length():0);
-    for(const action of ['walk','sit','sleep','groom','walk'] as const)for(let i=0;i<=12;i++){
-      Object.assign(p,{action,restWeight:action==='walk'?0:i/12,speed:action==='walk'?.55:0,distance:i*.055});pet.update(p,i/12*1.6);
-      if(action==='sleep'&&i===12)assert.equal(pet.mesh.morphTargetInfluences?.[0],1,'sleep closes the eyes');
-      pet.mesh.computeBoundingBox();const box=new THREE.Box3().setFromObject(pet.group),size=box.getSize(new THREE.Vector3());
-      assert.ok(box.min.y>-.025&&box.min.y<.005,`${kind} ${action} ground=${box.min.y}`);
-      assert.ok(size.x<.85&&size.y<1.2&&size.z<1.7,`${kind} ${action} bounded anatomy ${size.toArray()}`);
-      for(let j=0;j<bones.length;j++)if(/^Bone(009|010|012|013|015|016|018|019)$/.test(bones[j].name))assert.ok(Math.abs(bones[j].position.length()-baseLengths[j])<1e-6,'rest poses do not shorten/stretch limbs');
+type Rig = Quadruped | Gull | Crab;
+const rigs = (): Array<[string, Rig]> => [
+  ...[0, 1, 2, 3].map((c): [string, Rig] => [`cat${c}`, new Quadruped('cat', c, c)]),
+  ['dog', new Quadruped('dog', 0, 14)], ['gull', new Gull(0, 4)], ['crab0', new Crab(0, 10)], ['crab1', new Crab(1, 11)],
+];
+const pose = (patch: Partial<CritterPose>): CritterPose => Object.assign(newPose(), patch);
+function skinned(rig: Rig): THREE.SkinnedMesh { return rig.mesh; }
+const box = (rig: Rig): THREE.Box3 => new THREE.Box3().setFromObject(rig.group, true);
+
+test('every animal is one skinned mesh with the one shared material, finite geometry and valid skin weights', () => {
+  for (const [name, rig] of rigs()) {
+    const mesh = skinned(rig), g = mesh.geometry;
+    assert.ok(mesh.material === critterMaterial && !Array.isArray(mesh.material), `${name} shares the material`);
+    let skins = 0; rig.group.traverse((o) => { if (o instanceof THREE.SkinnedMesh) skins++; });
+    assert.equal(skins, 1, `${name} is a single skinned mesh`);
+    const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), sw = g.getAttribute('skinWeight'), si = g.getAttribute('skinIndex'), bones = mesh.skeleton.bones.length;
+    assert.ok(g.index!.count / 3 < 12000, `${name} triangle budget (${g.index!.count / 3})`);
+    for (let i = 0; i < pos.count; i++) {
+      assert.ok(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i)), `${name} finite position`);
+      const l = Math.hypot(nor.getX(i), nor.getY(i), nor.getZ(i)); assert.ok(l > 0.9 && l < 1.1, `${name} unit normal`);
+      assert.ok(Math.abs(sw.getX(i) + sw.getY(i) + sw.getZ(i) + sw.getW(i) - 1) < 1e-5, `${name} weights sum to one`);
+      assert.ok(si.getX(i) < bones && si.getY(i) < bones, `${name} bone index in range`);
     }
   }
 });
-test('coastal rigs have proper finite closed wing/shell surfaces and bounded poses without negative scale',()=>{
-  for(const kind of ['gull','crab'] as const){
-    const model=new CoastalCritter(kind),p=sampleCritter(CRITTERS[kind==='gull'?4:10],0);
-    assert.ok(model.mesh.geometry.attributes.position.count/3<9000);
-    const normal=model.mesh.geometry.getAttribute('normal');for(let i=0;i<normal.count;i++){const length=Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i));assert.ok(Number.isFinite(length)&&length>.9&&length<1.1);}
-    for(let i=0;i<36;i++){
-      Object.assign(p,{action:kind==='gull'?'fly':'walk',age:2,remaining:4,restWeight:0,speed:.6,distance:i*.03});model.update(p,i/10);
-      model.mesh.computeBoundingBox();const size=new THREE.Box3().setFromObject(model.group).getSize(new THREE.Vector3());assert.ok(size.x<1.5&&size.y<1.3&&size.z<1.2);
-      model.group.traverse(o=>{assert.ok(o.scale.x>0&&o.scale.y>0&&o.scale.z>0,'no mirrored negative transforms');});
+
+test('poses stay finite, bounded and grounded: feet on the floor when standing, walking, resting', () => {
+  const cat: Array<Partial<CritterPose>> = [
+    { action: 'walk' }, { action: 'walk', speed: 0.5 }, { action: 'walk', speed: 1.4 }, { action: 'sit', restWeight: 1, age: 3, remaining: 6 },
+    { action: 'groom', restWeight: 1, age: 1.5, remaining: 6 }, { action: 'groom', restWeight: 1, age: 4, remaining: 6 }, { action: 'sleep', restWeight: 1, age: 4, remaining: 9 },
+    { action: 'sniff', restWeight: 1, age: 2, remaining: 5 }, { action: 'walk', mood: 'hiss' }, { action: 'walk', mood: 'alert', look: 1, lookYaw: 0.8 }, { action: 'walk', mood: 'greet', excite: 1 },
+    { action: 'sit', restWeight: 1, mood: 'purr', age: 2, remaining: 6 },
+  ];
+  for (const [name, rig] of rigs().filter(([n]) => n.startsWith('cat') || n === 'dog')) {
+    for (const [k, patch] of cat.entries()) {
+      const p = pose({ ...patch, x: 1, y: 0.5, z: 2, yaw: 0.7 }), speed = p.speed;
+      for (let f = 0; f < 90; f++) { p.distance += speed / 60; rig.update(p, 4 + f / 60, 1 / 60); }
+      const b = box(rig), size = b.getSize(new THREE.Vector3());
+      assert.ok(Number.isFinite(b.min.y + b.max.y + size.x), `${name} pose ${k} finite`);
+      assert.ok(b.min.y > 0.5 - 0.04 && b.min.y < 0.5 + 0.035, `${name} pose ${k}: grounded (min y ${b.min.y - 0.5})`);
+      assert.ok(size.x < 1.1 && size.y < 1.1 && size.z < 1.6, `${name} pose ${k} bounded ${size.toArray()}`);
     }
+    // asleep: the eyes shut
+    const p = pose({ action: 'sleep', restWeight: 1, age: 4, remaining: 9 });
+    for (let f = 0; f < 120; f++) rig.update(p, 4 + f / 60, 1 / 60);
+    const eye = (rig as Quadruped).mesh.skeleton.bones.find((b) => b.name === 'eyeR')!;
+    assert.ok(eye.scale.y < 0.3, `${name} sleeps with closed eyes`);
   }
 });
-test('shared motion starts/stops smoothly, turns continuously and does not reverse gait during a startle',()=>{
-  for(const def of CRITTERS){
-    let previous=sampleCritter(def,0);
-    for(let tick=1;tick<critterPeriod(def)*60;tick++){
-      const p=sampleCritter(def,tick);
-      assert.ok(Math.hypot(p.x-previous.x,p.y-previous.y,p.z-previous.z)<.2,'no route teleport');
-      const turn=Math.abs(Math.atan2(Math.sin(p.yaw-previous.yaw),Math.cos(p.yaw-previous.yaw)));assert.ok(turn<.2,`${def.id} no heading snap ${turn}`);
-      assert.ok(p.distance+1e-7>=previous.distance,'gait distance is monotonic');previous=p;
-    }
-    const reaction={kind:'startle' as const,since:10,tick:600,duration:def.kind==='gull'?4.8:2.4,cooldown:20};let last=-Infinity;
-    for(let i=0;i<=144;i++){const time=10+i/60,p=sampleReaction(def,600+i,time,reaction);assert.ok(p.distance+1e-7>=last,'startle must not run the walk cycle backwards');last=p.distance;}
+
+test('gull flight poses: wings open and flap, folded when perched, never mirrored or NaN', () => {
+  const gull = new Gull(0, 0), wing = gull.mesh.skeleton.bones.find((b) => b.name === 'wingR')!;
+  const perched = pose({ action: 'perch' });
+  for (let f = 0; f < 60; f++) gull.update(perched, f / 60, 1 / 60);
+  const folded = box(gull).getSize(new THREE.Vector3());
+  assert.ok(folded.x < 0.5 && folded.z < 0.75, `perched gull is compact ${folded.toArray()}`);
+  const fly = pose({ action: 'fly', age: 3, remaining: 3, pitch: 0.2, speed: 5, y: 1 });
+  const angles: number[] = [];
+  for (let f = 0; f < 120; f++) { gull.update(fly, 2 + f / 60, 1 / 60); angles.push(wing.rotation.z); }
+  assert.ok(box(gull).getSize(new THREE.Vector3()).x > 0.9, 'wings spread in flight');
+  assert.ok(Math.max(...angles) - Math.min(...angles) > 0.5, 'the wing beats');
+  for (const [phase, patch] of [['take-off', { age: 0.2, remaining: 4, pitch: 0.5 }], ['landing', { age: 4, remaining: 0.3, pitch: -0.3 }]] as const) {
+    const p = pose({ action: 'fly', speed: 3, y: 0.5, ...patch });
+    for (let f = 0; f < 60; f++) gull.update(p, f / 60, 1 / 60);
+    const b = box(gull); assert.ok(Number.isFinite(b.min.x + b.max.y), phase);
   }
+  const peck = pose({ action: 'peck', age: 0.27, remaining: 5 });
+  for (let f = 0; f < 20; f++) gull.update(peck, f / 60, 1 / 60);
+  const head = gull.mesh.skeleton.bones.find((b) => b.name === 'head')!;
+  assert.ok(new THREE.Vector3().setFromMatrixPosition(head.matrixWorld).y < 0.3, 'pecking puts the head down');
+  const cry = pose({ action: 'perch', cry: 1 }), jaw = gull.mesh.skeleton.bones.find((b) => b.name === 'jaw')!;
+  gull.update(cry, 1, 1 / 60); assert.ok(jaw.rotation.x < -0.4, 'beak opens for the cry');
+  gull.group.traverse((o) => assert.ok(o.scale.x > 0 && o.scale.y > 0 && o.scale.z > 0, 'no negative scale'));
+});
+
+test('crab: scuttles, snaps, and buries itself so only the eyes stay above the sand', () => {
+  const crab = new Crab(0, 10);
+  const walking = pose({ action: 'walk', speed: 0.5 });
+  for (let f = 0; f < 60; f++) { walking.distance += 0.5 / 60; crab.update(walking, f / 60, 1 / 60); }
+  const sizeWalk = box(crab).getSize(new THREE.Vector3());
+  assert.ok(sizeWalk.x < 0.8 && sizeWalk.z < 0.8 && sizeWalk.y < 0.3, `crab is small ${sizeWalk.toArray()}`);
+  assert.ok(box(crab).min.y > -0.03, 'feet reach the sand, not through it');
+  const buried = pose({ action: 'burrow', restWeight: 1, age: 4, remaining: 5 });
+  for (let f = 0; f < 60; f++) crab.update(buried, f / 60, 1 / 60);
+  const b = box(crab);
+  assert.ok(b.max.y < 0.075 && b.max.y > 0.01, `buried crab shows only its back and eyes (${b.max.y})`);
+  crab.update(pose({ action: 'sit', alarm: 1, excite: 1 }), 2, 1 / 60);
+  assert.ok(Number.isFinite(box(crab).max.y));
+});
+
+test('the sandbar mesh is finite, stays on the sand and holds one draw call plus foam', () => {
+  const parent = new THREE.Group(), cove = new Cove(parent);
+  const meshes: THREE.Mesh[] = []; cove.group.traverse((o) => { if (o instanceof THREE.Mesh && !(o instanceof THREE.InstancedMesh)) meshes.push(o); });
+  assert.equal(meshes.length, 2, 'sand + props in one mesh, foam in another');
+  const sand = meshes.find((m) => m.name === 'critter-cove-sand')!, pos = sand.geometry.getAttribute('position');
+  assert.ok(pos.count > 3000 && pos.count < 40000, `vertex count ${pos.count}`);
+  for (let i = 0; i < pos.count; i++) {
+    assert.ok(Number.isFinite(pos.getX(i) + pos.getY(i) + pos.getZ(i)));
+    assert.ok(pos.getX(i) > -19.5 && pos.getX(i) < -11.8 && pos.getZ(i) > 21.9 && pos.getZ(i) < 27.6, 'compact: about 7 x 5.5 m at most');
+    assert.ok(pos.getY(i) > WATER_Y - 0.8 && pos.getY(i) < 0.2, 'nothing hangs in the air');
+  }
+  cove.update(0.016, { x: -15, z: 24 }); cove.emitBubble(-15, -0.9, 23); cove.emitSand(-15, -0.9, 23); cove.update(0.1, { x: -15, z: 24 });
+  cove.update(0.016, { x: 500, z: 500 }); assert.equal(cove.group.visible, false, 'hidden when far away');
 });

@@ -1,5 +1,6 @@
 // Комната «пейнтбол» для хаба: связывает соединения с игроками Game, отдаёт итоги раундов и AFK наверх.
 import { MAX_HUMANS } from '../../shared/constants.ts';
+import { PHASE_WARMUP } from '../../shared/constants.ts';
 import type { ClientMsg, PbStatus } from '../../shared/messages.ts';
 import type { Input } from '../../shared/sim.ts';
 import type { Client, Hub, Room } from '../hub.ts';
@@ -37,6 +38,9 @@ export class PaintballRoom implements Room {
   hasSpace(): boolean {
     return this.game.humanCount < MAX_HUMANS;
   }
+
+  /** Ожидание загрузки (server/readygate.ts): разминка стоит, пока вошедшие не загрузились */
+  get prestart(): { phaseEnd: number } | null { return this.game.phase === PHASE_WARMUP ? this.game : null; }
 
   join(c: Client): boolean {
     const prof = c.profile;
@@ -99,6 +103,8 @@ export class PaintballRoom implements Room {
 
   step(): void {
     for (const [c, p] of this.byClient) p.ping = c.ping;
+    // кто ещё грузит склад, тот под защитой появления: в него не стреляют, пока он не увидел мир
+    for (const [c, p] of this.byClient) if (this.hub.gate.loading(c)) p.protectUntil = Math.max(p.protectUntil, this.game.tick + 2);
     this.game.step();
   }
 }

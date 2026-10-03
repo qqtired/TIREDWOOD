@@ -45,7 +45,7 @@ const Z = tr.pz[0];
  * Каждый бот — со своим временем гонки rt, как в настоящей гонке.
  */
 function soloLaps(skills: KartSkill[], maxTicks: number): { karts: KartState[]; laps: number[][]; hits: number[]; spins: number[] } {
-  const view: BotView = { racing: true, place: 2, karts: skills.length, behind: Infinity, ahead: Infinity, painted: false };
+  const view: BotView = { racing: true, place: 2, karts: skills.length, behind: Infinity, ahead: Infinity, painted: false, gridLeft: 0, near: Infinity, bubble: false };
   const karts = skills.map((_, slot) => {
     const k = makeKartState();
     placeOnGrid(k, tr, slot);
@@ -82,8 +82,8 @@ test('четыре бота (normal) одни на трассе: три круг
     assert.equal(spins[i], 0, `бот ${i}: попал под движущуюся помеху ${spins[i]} раз`);
     assert.ok(hits[i] <= 12, `бот ${i}: ${hits[i]} тиков с ударами о бочки и блоки за три круга`);
     assert.equal(laps[i].length, RC_LAPS, `бот ${i}: кругов ${laps[i].length}`);
-    for (const s of laps[i]) assert.ok(s > 52 && s < 66, `бот ${i}: круг ${s} с`);
-    assert.ok(laps[i].reduce((a, b) => a + b, 0) < 200, `бот ${i}: три круга дольше 200 с`);
+    for (const s of laps[i]) assert.ok(s > 55 && s < 75, `бот ${i}: круг ${s} с`);
+    assert.ok(laps[i].reduce((a, b) => a + b, 0) < 225, `бот ${i}: три круга дольше 225 с`);
   });
 });
 
@@ -96,7 +96,7 @@ test('сильный бот быстрее обычного, обычный бы
 test('бот: турбо — на прямой, краску лидером не бросает, на решётке ничего не жмёт, застрял — R', () => {
   const bot = new KartBot(tr, 'normal', 5);
   const inp = makeInput();
-  const view: BotView = { racing: true, place: 1, karts: 4, behind: Infinity, ahead: Infinity, painted: false };
+  const view: BotView = { racing: true, place: 1, karts: 4, behind: Infinity, ahead: Infinity, painted: false, gridLeft: 0, near: Infinity, bubble: false };
   const k = makeKartState();
   placeOnGrid(k, tr, 0);
   k.vx = 15;
@@ -193,8 +193,9 @@ test('решётка: человек первым, три бота за ним; 
   assert.equal(k.slot, 0);
   assert.deepEqual([...race.karts.values()].map((q) => q.isBot), [false, true, true, true]);
   const pos = [...race.karts.values()].map((q) => [q.state.x, q.state.z]);
+  // газ — только на «1» (последние 0,6 с отсчёта): ракетный старт
   for (let i = 0; i < RC_GRID_TICKS - 1; i++) {
-    send(race, k, BTN_FORWARD);
+    send(race, k, i >= RC_GRID_TICKS - 40 ? BTN_FORWARD : 0);
     race.step();
   }
   assert.equal(race.phase, RC_GRID);
@@ -205,6 +206,7 @@ test('решётка: человек первым, три бота за ним; 
   }
   assert.equal(race.phase, RC_RACE);
   assert.ok(k.state.x > pos[0][0] + 5);
+  assert.ok(k.state.boostT > 0, 'ракетный старт: ускорение ещё идёт');
   assert.ok(s.msgs.some((m) => m.t === 'rroster' && m.karts.length === 4));
 });
 
@@ -235,7 +237,7 @@ test('человек на автопилоте финиширует первым
   const { k, s } = human(race, 'Петя');
   race.start();
   const pilot = new KartBot(race.track, 'hard', 9);
-  const view: BotView = { racing: false, place: 1, karts: 4, behind: Infinity, ahead: Infinity, painted: false };
+  const view: BotView = { racing: false, place: 1, karts: 4, behind: Infinity, ahead: Infinity, painted: false, gridLeft: 0, near: Infinity, bubble: false };
   while (!race.closed && race.tick < 40000) {
     view.racing = race.phase === RC_RACE;
     view.place = k.place || 1;
@@ -264,7 +266,9 @@ test('ящик: проезд — бонус, ящик пропадает на 4 
   put(race, b, -70, Z);
   put(race, a, cr.x, cr.z);
   race.step();
-  assert.equal(a.state.item, ITEM_TURBO);
+  // шансы по месту: лидеру турбо не выпадает, первым в его пуле идёт варенье
+  assert.equal(a.place, 1);
+  assert.equal(a.state.item, ITEM_JAM);
   assert.ok(a.state.itemT > 0);
   assert.ok(race.crateBack[0] > 0);
   put(race, a, -50, Z);

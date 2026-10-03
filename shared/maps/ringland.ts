@@ -1,5 +1,5 @@
 // Суша «Портового кольца»: один контур вокруг дороги. Дорога идёт по кромке причалов: где справа нет стены, суша
-// кончается ровно у края дороги (дальше вода), где есть — за стеной ещё полоса бетона шириной LAND_MARGIN. Слева
+// кончается у края обочины (дальше вода), где есть — за стеной ещё полоса бетона шириной LAND_MARGIN. Слева
 // суша — вся середина порта. В местах провала (каналы под трамплинами) контур делает «рукав» воды вглубь суши.
 // Контур обходится по ходу гонки, вода — справа. Считается и для мира (плита, стенки причалов), и для проверок
 // (суша под точкой). Точность как у трассы не нужна: на физику карта не влияет.
@@ -55,11 +55,11 @@ export function buildLand(tr: Track, depths: readonly number[]): LandShape {
       const d = depths[run++] ?? 0;
       // конец подъёма: правый край (с запасом за стеной, если она есть)
       const m0 = tr.openR[prev] ? 0 : LAND_MARGIN;
-      const [ax, az] = right(i, tr.hw[i] + m0);
-      const [bx, bz] = right(i, -(tr.hw[i] + d));
-      const [cx, cz] = right(g1, -(tr.hw[g1] + d));
+      const [ax, az] = right(i, tr.hw[i] + tr.vr[i] + m0);
+      const [bx, bz] = right(i, -(tr.hw[i] + tr.vl[i] + d));
+      const [cx, cz] = right(g1, -(tr.hw[g1] + tr.vl[g1] + d));
       const m1 = tr.openR[g1] ? 0 : LAND_MARGIN;
-      const [ex, ez] = right(g1, tr.hw[g1] + m1);
+      const [ex, ez] = right(g1, tr.hw[g1] + tr.vr[g1] + m1);
       push(ax, az);
       push(bx, bz);
       push(cx, cz);
@@ -71,10 +71,10 @@ export function buildLand(tr: Track, depths: readonly number[]): LandShape {
     // обычная точка: на стыке открытого и закрытого края — ступенька поперёк дороги
     const mPrev = tr.openR[prev] ? 0 : LAND_MARGIN;
     const mNext = tr.openR[i] ? 0 : LAND_MARGIN;
-    const [x, z] = right(i, tr.hw[i] + mPrev);
+    const [x, z] = right(i, tr.hw[i] + tr.vr[i] + mPrev);
     push(x, z);
     if (mNext !== mPrev) {
-      const [x2, z2] = right(i, tr.hw[i] + mNext);
+      const [x2, z2] = right(i, tr.hw[i] + tr.vr[i] + mNext);
       push(x2, z2);
     }
   }

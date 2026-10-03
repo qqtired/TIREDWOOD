@@ -11,14 +11,16 @@ import {
   ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
 } from '../../shared/lobby.ts';
 import { clamp, lerp, lerpAngle } from '../../shared/math.ts';
-import { DEFAULT_OUTFIT, PALETTE, PATTERN_INDEX, type Outfit } from '../../shared/outfit.ts';
+import { DEFAULT_OUTFIT, PALETTE, PATTERN_INDEX, sameOutfit, slotKey, type Outfit } from '../../shared/outfit.ts';
+import { SHELL_ACCS } from '../../shared/fishstyle.ts';
 import { E_ADS, E_ALIVE, E_DASH, E_GROUNDED, E_PROTECTED, E_RELOAD } from '../../shared/protocol.ts';
 import { AWP_MUZZLE, makeAwp } from './awp.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial } from './hatpose.ts';
 import { drawLevelTag } from './leveltag.ts';
 import { LOOK2 } from './look.ts';
 import { JellyFace } from './lookface.ts';
-import { BODY_H, bodyProfile, bodyR, wearOf, type Wear } from './outfit3d.ts';
+import { BODY_H, bodyProfile, bodyR, type Wear } from './outfit3d.ts';
+import { PetRider, wearFor } from './outfitfish.ts';
 import { JELLY_RIM_GLSL, JELLY_SWAY_GLSL, makeGearMaterial, pinTexture, vestGeometry, vestRadius, vestTexture } from './teamgear.ts';
 import { emojiTexture, emoteTexture, metalEnvTexture, softDot, splatAtlas, tomatoSplatTexture } from './textures.ts';
 import { isVoiceSpeaking, makeVoiceIndicator } from './voice-presence.ts';
@@ -426,7 +428,13 @@ export class Avatar {
   private readonly hatAnchor = { value: 0 };
   private hatBounds = { top: BODY_H, radius: 0 };
   private readonly acc: Attach;
+  /** Аксессуары гнутся тем же шейдером, что шапки: якорь — своя высота */
+  private readonly accAnchor = { value: 0 };
   private readonly eyewear: Attach;
+  /** Питомец на плече (награда рыбалки) */
+  private readonly pet: PetRider;
+  /** Золотой якорь у ника: собрал все виды рыб */
+  private badge = false;
   private readonly gun: Gun | null;
   private readonly protBubble: THREE.Mesh;
   private readonly tag: THREE.Sprite;
@@ -567,7 +575,12 @@ export class Avatar {
     this.hat.geo.material = makeHatMaterial(r.outfitMat, this.u, this.hatAnchor);
     this.hat.metal.material = makeHatMaterial(r.metalMat, this.u, this.hatAnchor);
     this.acc = this.makeAttach();
+    // аксессуары гнутся вместе с телом, как шапки: жилет и роба не тонут при ударе и не задираются на бегу
+    this.acc.geo.material = makeHatMaterial(r.outfitMat, this.u, this.accAnchor);
+    this.acc.metal.material = makeHatMaterial(r.metalMat, this.u, this.accAnchor);
     this.eyewear = this.makeAttach();
+    this.pet = new PetRider(r.outfitMat, r.metalMat);
+    this.squashNode.add(this.pet.node);
 
     // командный жилет: тело и жилет качаются одним шейдером, поэтому лежат друг на друге при любых прыжках
     this.gear = new THREE.Mesh(vestGeometry(), makeGearMaterial(this.u));
@@ -667,13 +680,26 @@ export class Avatar {
     this.u.uMetal.value = gold ? 1 : 0;
     this.skinMat.color.copy(c);
     this.lidMat.color.copy(c);
-    const hatWear = wearOf('h', o.h);
+    const hatWear = wearFor('h', o.h);
     this.applyWear(this.hat, hatWear);
     this.hatBounds = headwearBounds(hatWear);
     this.hatAnchor.value = this.hat.y;
-    this.applyWear(this.acc, wearOf('a', o.a));
-    this.applyWear(this.eyewear, wearOf('e', o.e), EYES_Z);
+    this.applyWear(this.acc, wearFor('a', o.a));
+    this.accAnchor.value = this.acc.y;
+    this.applyWear(this.eyewear, wearFor('e', o.e), EYES_Z);
+    this.pet.set(slotKey(o, 's'), o.a);
+    const badge = slotKey(o, 'n') === 'anchor';
+    if (badge !== this.badge) {
+      this.badge = badge;
+      this.tagKey = '';
+    }
+    this.refreshShell();
     this.refreshColors();
+  }
+
+  /** Жилет, роба и китель — оболочки по телу: в пейнтболе под командным жилетом их не видно (иначе пересекутся). */
+  private refreshShell(): void {
+    this.acc.node.visible = !(this.team !== null && SHELL_ACCS.has(this.outfit.a));
   }
 
   /** Команда в пейнтболе (жилет, подсветка контура, баллон, табличка); null — набережная и другие режимы, как были. */
@@ -681,6 +707,7 @@ export class Avatar {
     this.team = team;
     this.gear.visible = team !== null;
     if (team !== null) this.gear.material.map = vestTexture(team);
+    this.refreshShell();
     this.refreshColors();
     this.tagKey = '';
   }
@@ -913,6 +940,8 @@ export class Avatar {
     this.bodyMat.dispose();
     (this.hat.geo.material as THREE.Material).dispose();
     (this.hat.metal.material as THREE.Material).dispose();
+    (this.acc.geo.material as THREE.Material).dispose();
+    (this.acc.metal.material as THREE.Material).dispose();
     this.skinMat.dispose();
     this.lidMat.dispose();
     this.gun?.hopperMat.dispose();
@@ -1104,12 +1133,12 @@ export class Avatar {
     const lx2 = this.lean.x;
     const lz2 = this.lean.y;
     this.eyesNode.position.set(lx2 * 0.55, EYES_Y, EYES_Z + lz2 * 0.55);
-    // Шапка следует за каждой высотой тела в шейдере; жёсткий наклон вокруг узла проваливал её в желе.
-    // Общий squashNode уже передаёт ей бег, прыжок, размеры и нокаут.
-    for (const a of [this.acc, this.eyewear]) {
-      a.node.position.set(lx2 * a.k, a.y, a.z + lz2 * a.k);
-      a.node.rotation.set(lz2 * a.tilt, 0, -lx2 * a.tilt);
-    }
+    // Шапка и аксессуар следуют за каждой высотой тела в шейдере; жёсткий наклон вокруг узла проваливал их в желе
+    // (жилет тонул при ударе и задирался на бегу). Общий squashNode передаёт им бег, прыжок, размеры и нокаут.
+    const ew = this.eyewear;
+    ew.node.position.set(lx2 * ew.k, ew.y, ew.z + lz2 * ew.k);
+    ew.node.rotation.set(lz2 * ew.tilt, 0, -lx2 * ew.tilt);
+    this.pet.update(time, dt, this.u.uTime.value, this.u.uWobble.value, this.lean);
     this.held.position.set(lx2 * 0.36, 0, lz2 * 0.36);
     if (this.gun) this.gun.aim.position.set(lx2 * 0.36, 0.95, lz2 * 0.36);
     for (const m of this.paint) {
@@ -1506,12 +1535,12 @@ export class Avatar {
     const phase = (now + this.level * 271 + this.name.length * 93) % 8000;
     const reduced = LEVEL_REDUCED_MOTION?.matches ?? false;
     const shine = this.level >= 15 && this.team === null && !reduced && phase < 800 ? 1 + Math.floor(phase / 100) : 0;
-    const key = `${this.name}|${this.team}|${this.mate}|${hpBucket}|${this.level}|${shine}`;
+    const key = `${this.name}|${this.team}|${this.mate}|${hpBucket}|${this.level}|${shine}|${this.badge}`;
     if (key === this.tagKey) return;
     this.tagKey = key;
     const cv = this.tagCanvas;
     const ctx = cv.getContext('2d')!;
-    drawLevelTag(ctx, cv.width, cv.height, { name: this.name, level: this.level, team: this.team, mate: this.mate, hpBucket, shine });
+    drawLevelTag(ctx, cv.width, cv.height, { name: this.name, level: this.level, team: this.team, mate: this.mate, hpBucket, shine, anchor: this.badge });
     this.tagTex.needsUpdate = true;
   }
 }
@@ -1562,9 +1591,6 @@ function drawSpeech(cv: HTMLCanvasElement, text: string): void {
   lines.forEach((l, i) => ctx.fillText(l, cv.width / 2, y + 12 + lineH * (i + 0.5)));
 }
 
-function sameOutfit(a: Outfit, b: Outfit): boolean {
-  return a.c === b.c && a.c2 === b.c2 && a.p === b.p && a.e === b.e && a.h === b.h && a.a === b.a;
-}
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();

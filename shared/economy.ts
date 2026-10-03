@@ -57,10 +57,13 @@ export interface Stats {
   rcRaces: number;
   rcWins: number;
   rcPodiums: number;
-  /** Лучший круг, мс (0 — не было) */
+  /** Лучший круг, мс (0 — не было): «Портовое кольцо» первой версии (id port), больше не обновляется */
   rcBestLap: number;
-  /** Лучший круг трассы «Литейная», мс; отдельно от исходной портовой трассы. */
+  /** Лучший круг трассы «Литейный вираж» (id foundry, убрана), мс; больше не обновляется */
   rcBestLapFoundry: number;
+  /** Лучший круг, мс: «Портовое кольцо» второй версии (id harbor) и «Солнечный серпантин» (id hills) */
+  rcBestLapHarbor: number;
+  rcBestLapHills: number;
   /** Рыбалка: вытащено (с хламом) и продано за жетоны */
   fsCaught: number;
   fsSold: number;
@@ -107,22 +110,35 @@ export interface Stats {
   prKos: number;
   brRaces: number;
   brWins: number;
-  /** Лучший круг катера, тики, 0 — не было. */
+  /** Лучший круг катера, тики, 0 — не было (старая «Лазурная бухта»: несравним с новой трассой). */
   brBestLap: number;
+  /** Лучший круг «Портовой регаты» (трасса harbor-v1), тики, 0 — не было. */
+  brBestLapHarbor: number;
   hiGames: number;
   hiWins: number;
   hiFound: number;
   hiSurvived: number;
+  /**
+   * «Выше облаков» (Небесная каланча): подъёмов до колокола, лучшее время (мс, 0 — не было), лучшая медаль
+   * (1 бронза, 2 серебро, 3 золото), значок «без падений» (0/1), день по Москве последнего подъёма (за первый — жетоны)
+   */
+  skRuns: number;
+  skBest: number;
+  skMedal: number;
+  skClean: number;
+  skDay: number;
 }
 
 export function emptyStats(): Stats {
   return {
     pbRounds: 0, pbWins: 0, pbKills: 0, pbMvp: 0, spins: 0, slotWon: 0, bestWin: 0, jackpots: 0, dkGames: 0, dkFools: 0, dkFirst: 0,
-    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, fsCaught: 0, fsSold: 0, aqRuns: 0, aqBest: 0, slotBet: 0, slotPaid: 0,
+    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0, fsCaught: 0, fsSold: 0,
+    aqRuns: 0, aqBest: 0, slotBet: 0, slotPaid: 0,
     fsFish: 0, fsGrams: 0, fsDay: 0, fsDayFish: 0, fsDayGrams: 0, fsChests: 0,
     fsCasts: 0, fsBites: 0, fsLost: 0, fsMaxGrams: 0, fsEarned: 0,
     ftGames: 0, ftWins: 0, ftBest: 0, ftKills: 0, fcFights: 0, fcWins: 0, fcKos: 0,
-    stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
+    stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, brBestLapHarbor: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
+    skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
   };
 }
 

@@ -15,7 +15,7 @@ for (const count of [7, 12, 32, 64]) test(count+' authenticated room participant
  const id=state(p[0]).self;s.router.handle(p[0],{t:'voice',a:'join'});assert.equal(state(p[0]).self,id);
  s.router.handle(p[0],{t:'voice',a:'leave'});assert.equal(state(p[0]).self,null);assert.equal(state(p[1]).peers.length,count-2);
 });
-test('signals validate exact room object, actual self and target, stale ids and sanitized body',()=>{const s=setup(),room={kind:'lobby'},a=s.client(room),b=s.client(room),c=s.client({kind:'lobby'});for(const p of[a,b,c])s.router.handle(p,{t:'voice',a:'join'});const ai=state(a).self!,bi=state(b).self!,ci=state(c).self!;s.router.handle(a,{t:'voiceSignal',self:ai,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(b).length,1);assert.deepEqual(signals(b)[0],{t:'voiceSignal',from:ai,to:bi,signal:{kind:'offer',sdp:SDP}});s.router.handle(a,{t:'voiceSignal',self:ai,to:ci,signal:{kind:'offer',sdp:SDP}});s.router.handle(a,{t:'voiceSignal',self:bi,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(c).length,0);assert.equal(signals(b).length,1);b.closed=true;s.router.handle(a,{t:'voiceSignal',self:ai,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(b).length,1);});
+test('signals validate zone, actual self and target, stale ids and sanitized body',()=>{const s=setup(),room={kind:'lobby'},a=s.client(room),b=s.client(room),c=s.client({kind:'fort'});for(const p of[a,b,c])s.router.handle(p,{t:'voice',a:'join'});const ai=state(a).self!,bi=state(b).self!,ci=state(c).self!;s.router.handle(a,{t:'voiceSignal',self:ai,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(b).length,1);assert.deepEqual(signals(b)[0],{t:'voiceSignal',from:ai,to:bi,signal:{kind:'offer',sdp:SDP}});s.router.handle(a,{t:'voiceSignal',self:ai,to:ci,signal:{kind:'offer',sdp:SDP}});s.router.handle(a,{t:'voiceSignal',self:bi,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(c).length,0);assert.equal(signals(b).length,1);b.closed=true;s.router.handle(a,{t:'voiceSignal',self:ai,to:bi,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(b).length,1);});
 test('move autojoins only prior opt-in, creates monotonic id, and old SDP cannot cross rooms',()=>{const s=setup(),r1={kind:'lobby'},r2={kind:'fort'},a=s.client(r1),b=s.client(r1),c=s.client(r2);for(const p of[a,b,c])s.router.handle(p,{t:'voice',a:'join'});const old=state(a).self!;a.room=r2;s.router.moved(a);const fresh=state(a).self!;assert.ok(fresh>old);assert.equal(state(b).peers.length,0);assert.equal(state(a).room,'fort');s.router.handle(a,{t:'voiceSignal',self:old,to:state(c).self!,signal:{kind:'offer',sdp:SDP}});assert.equal(signals(c).length,0);s.router.handle(a,{t:'voice',a:'leave'});a.room=r1;s.router.moved(a);assert.equal(state(a).self,null);});
 test('talk is self-only with renewable1800ms lease, rename and disconnect notify peers',()=>{const s=setup(),room={kind:'lobby'},a=s.client(room),b=s.client(room);s.router.handle(a,{t:'voice',a:'join'});s.router.handle(b,{t:'voice',a:'join'});const id=state(a).self!;s.router.handle(a,{t:'voice',a:'talk',self:state(b).self,on:true});assert.equal(state(b).peers[0].talking,false);s.router.handle(a,{t:'voice',a:'talk',self:id,on:true});assert.equal(state(b).peers[0].talking,true);s.time(1000+VOICE_TALK_LEASE_MS);s.router.step();assert.equal(state(b).peers[0].talking,false);a.nick='Renamed';s.router.renamed(a);assert.equal(state(b).peers[0].nick,'Renamed');s.router.disconnected(a);assert.equal(state(b).peers.length,0);});
 test('refresh renews config without id change; invalid/flood traffic is bounded without feedback flood',()=>{const s=setup(),room={kind:'lobby'},a=s.client(room),b=s.client(room);s.router.handle(a,{t:'voice',a:'join'});s.router.handle(b,{t:'voice',a:'join'});const id=state(a).self!;s.time(2000);s.router.handle(a,{t:'voice',a:'refresh'});assert.equal(state(a).self,id);assert.ok(a.messages.some(m=>m.t==='voiceConfig'&&m.expiresAt===12000));for(let i=0;i<1000;i++)s.router.handle(a,{t:'voiceSignal',self:id,to:state(b).self,signal:{kind:'ice',candidate:null}});assert.ok(signals(b).length<=120);assert.ok(a.messages.filter(m=>m.t==='voiceError').length<=2);});
@@ -44,7 +44,7 @@ test('nonparticipants receive authoritative entity ids and speaking lease lifecy
  a.id=701; s.router.handle(a,{t:'voice',a:'join'});
  const voiceId=state(a).self!; assert.notEqual(voiceId,a.id);
  s.router.handle(a,{t:'voice',a:'talk',self:voiceId,on:true});
- assert.equal(state(observer).self,null); assert.deepEqual(state(observer).peers,[{id:voiceId,entityId:12,nick:a.nick,talking:true}]);
+ assert.equal(state(observer).self,null); assert.deepEqual(state(observer).peers,[{id:voiceId,entityId:12,pid:a.pid,nick:a.nick,talking:true,mic:false}]);
  s.time(1000+VOICE_TALK_LEASE_MS);s.router.step();assert.equal(state(observer).peers[0].talking,false);
 });
 
@@ -71,4 +71,24 @@ test('per-destination signal quota survives voice ID churn and keeps talk contro
  s.router.handle(a,{t:'voice',a:'talk',self:state(a).self,on:true});assert.equal(state(b).peers[0].talking,true);
  s.router.handle(a,{t:'voice',a:'talk',self:state(a).self,on:false});assert.equal(state(b).peers[0].talking,false);
  s.time(2000);send();assert.equal(signals(b).length,121,'pair quota refills with elapsed time');
+});
+
+// регата теперь на самой набережной; вторая комната «внешнего мира» (будущий баркас, остров) — та же зона
+test('зоны: внешний мир общий для всех его комнат, у каждого инстанса свой голос; микрофон и перезапуск', () => {
+ const s=setup(),lobby={kind:'lobby'},boats={kind:'lobby'},fort1={kind:'fort'},fort2={kind:'fort'};
+ const a=s.client(lobby),b=s.client(boats),c=s.client(fort1),d=s.client(fort2),e=s.client(fort1);
+ for(const p of[a,b,c,d,e])s.router.handle(p,{t:'voice',a:'join'});
+ assert.deepEqual(state(a).peers.map(p=>p.pid),[b.pid]);assert.equal(state(a).zone,'world');
+ assert.equal(state(a).peers[0].entityId,null,'фигурка — только для той же комнаты');
+ assert.deepEqual(state(c).peers.map(p=>p.pid),[e.pid]);assert.equal(state(c).zone,'fort');assert.equal(state(d).peers.length,0);
+ // набережная → катера: тот же номер, соединения живут
+ const id=state(a).self!;a.room=boats;s.router.moved(a);assert.equal(state(a).self,id);assert.equal(state(a).peers[0].entityId,b.id);
+ // в крепость: новая зона, новый номер; набережная его больше не слышит
+ a.room=fort2;s.router.moved(a);assert.ok(state(a).self!>id);assert.deepEqual(state(a).peers.map(p=>p.pid),[d.pid]);assert.equal(state(b).peers.length,0);
+ s.router.handle(a,{t:'voiceSignal',self:state(a).self,to:state(c).self,signal:{kind:'restart'}});assert.equal(signals(c).length,0,'в чужой инстанс сигнал не проходит');
+ s.router.handle(a,{t:'voiceSignal',self:state(a).self,to:state(d).self,signal:{kind:'restart'}});assert.deepEqual(signals(d).at(-1),{t:'voiceSignal',from:state(a).self,to:state(d).self,signal:{kind:'restart'}});
+ s.router.handle(a,{t:'voice',a:'mic',on:true});assert.equal(state(d).peers[0].mic,true);
+ s.router.handle(a,{t:'voice',a:'mic',on:false});assert.equal(state(d).peers[0].mic,false);
+ // назад на набережную — снова вместе с катерами
+ a.room=lobby;s.router.moved(a);assert.deepEqual(state(b).peers.map(p=>p.pid),[a.pid]);
 });

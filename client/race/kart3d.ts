@@ -3,16 +3,21 @@
 // в повороте. Корпус 1,7 × 1,15 м цвета карта: нос, понтоны, бамперы, номер; колёса крутятся по пройденному пути,
 // передние поворачиваются за рулём. За рулём — желейка (Avatar, driving): стоит на сиденье в мировых осях, наклон
 // карта копируется. Тень — мягкое пятно на опоре: в карту теней карт не попадает (тени статики считаются один раз).
+// Всё, что «надето» на карт, — его дочерние объекты и рисуется в его кадре, без отставания: пузырь (переливается,
+// лопается брызгами), трюк — бочка вокруг продольной оси, пружина подвески на приземлении.
 // KartFx — два облака частиц на всех: яркое (искры заноса, пламя турбо, искры от стен) и мягкое (дымок шин,
-// пыль, брызги, щепки ящика, варенье, краска) — и следы шин на асфальте (skids.ts).
+// пыль, песок и трава из-под колёс, брызги, щепки ящика, варенье, краска) — и следы шин на асфальте (skids.ts).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DT, WATER_Y } from '../../shared/constants.ts';
-import { KART_R, SPIN_TICKS, type KartState } from '../../shared/kart.ts';
-import { KE_BOOST, KE_DRIFT, KE_DRIFT_R, KE_GHOST, KE_GROUND, KE_ON, KE_PAINT, KE_SLOW, kartFlags, kartMisc, kartYaw } from '../../shared/kartnet.ts';
+import { BOOST_TURBO, KART_R, SPIN_TICKS, type KartState } from '../../shared/kart.ts';
+import {
+  KE_BOOST, KE_DRIFT, KE_DRIFT_R, KE_GHOST, KE_GROUND, KE_ON, KE_PAINT, KE_SLOW, KM_BUBBLE, KM_BURN, KM_SPARK, KM_TRICK, kartFlags, kartMisc,
+  kartYaw, miscBoost,
+} from '../../shared/kartnet.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
-import { makeLoc, type TrackLoc } from '../../shared/track.ts';
+import { SURF_GRASS, SURF_SAND, makeLoc, type TrackLoc } from '../../shared/track.ts';
 import { Avatar, DRIVE_SQUASH, DRIVE_TURN, DRIVE_WHEEL, type AvatarPose, type GroundQuery } from '../render/avatar.ts';
 import { glowTexture, paint } from '../render/kit.ts';
 import * as tex from '../render/textures.ts';
@@ -60,9 +65,24 @@ const SKID_SLIP = 3.2;
 /** Насколько тёмный след: занос, торможение */
 const SKID_DRIFT_A = 0.62;
 const SKID_BRAKE_A = 0.5;
-/** Искры заноса: мини-турбо 1 — синие, 2 — оранжевые; пламя — по уровню ускорения (3 — турбо из ящика) */
-const SPARK_COLORS = [0xffffff, 0x5ab8ff, 0xff9a2e];
-const FLAME_COLORS = [0xffffff, 0x7cc8ff, 0xff8a2a, 0xffb347];
+/** Искры заноса: мини-турбо 1 — синие, 2 — оранжевые, 3 — фиолетовые; пламя — по уровню ускорения (4 — турбо) */
+const SPARK_COLORS = [0xffffff, 0x5ab8ff, 0xff9a2e, 0xc77dff];
+const FLAME_COLORS = [0xffffff, 0x7cc8ff, 0xff8a2a, 0xc77dff, 0xffb347];
+/** Пузырь: радиус, высота середины над опорой; надувается и лопается за столько секунд */
+const BUBBLE_R = 1.3;
+const BUBBLE_Y = 0.62;
+const BUBBLE_GROW_S = 0.28;
+/** Трюк: бочка вокруг продольной оси за столько секунд */
+const TRICK_S = 0.5;
+/** Подвеска: жёсткость и демпфер пружины корпуса (визуально), на сколько м/с приземления — толчок */
+const SUSP_K = 260;
+const SUSP_C = 15;
+/** Песок и трава из-под колёс: частиц в секунду на скорости и цвета */
+const SPRAY_RATE = 34;
+const SAND_COLOR = 0xe2c27e;
+const GRASS_COLOR = 0x6fae4a;
+/** Пробуксовка на старте: дым из-под задних колёс */
+const BURN_RATE = 40;
 /** Краска на корпусе — ярко-розовая (не совпадает ни с одним цветом карта) */
 const PAINT_COLOR = 0xff3fb0;
 
@@ -83,7 +103,7 @@ export interface KartPose {
   steer: number;
   /** KE_* */
   flags: number;
-  /** Искры заноса 0–2 + 4 × уровень ускорения 0–3 */
+  /** Искры заноса 0–3 + 4 × уровень ускорения 0–4 + флаги KM_* (пузырь, трюк, пробуксовка) */
   misc: number;
 }
 
@@ -118,6 +138,7 @@ interface Shared {
   splat: THREE.Texture;
   shadowTex: THREE.Texture;
   shadowGeo: THREE.BufferGeometry;
+  bubble: THREE.BufferGeometry;
 }
 
 let shared: Shared | null = null;
@@ -129,6 +150,47 @@ function res(): Shared {
     splat: tex.splatAtlas(),
     shadowTex: tex.softDot('rgba(0,0,0,0.62)', 'rgba(0,0,0,0)'),
     shadowGeo: new THREE.PlaneGeometry(1.5, 2.1).rotateX(-Math.PI / 2),
+    bubble: new THREE.SphereGeometry(1, 36, 22),
+  });
+}
+
+/**
+ * Мыльный пузырь: почти прозрачный в середине, к краю — радужная плёнка (оттенок бежит по высоте и времени) и блик
+ * солнца. Без тумана и тонового отображения — как эффекты.
+ */
+function bubbleMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uAlpha: { value: 0 } },
+    vertexShader: /* glsl */ `
+      varying vec3 vN;
+      varying vec3 vV;
+      varying float vY;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vN = normalize(mat3(modelMatrix) * normal);
+        vV = normalize(cameraPosition - wp.xyz);
+        vY = position.y;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform float uTime;
+      uniform float uAlpha;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying float vY;
+      vec3 hue(float h) { return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0); }
+      void main() {
+        vec3 n = normalize(vN);
+        vec3 v = normalize(vV);
+        float f = 1.0 - abs(dot(n, v));
+        float rim = pow(f, 2.4);
+        vec3 film = hue(f * 1.3 + vY * 0.45 + uTime * 0.22) * 0.7 + 0.3;
+        float spec = pow(max(0.0, dot(reflect(-v, n), normalize(vec3(0.35, 0.9, 0.25)))), 48.0);
+        float a = (0.06 + rim * 0.7) * uAlpha + spec * 0.85 * uAlpha;
+        gl_FragColor = vec4(film * (0.55 + rim * 0.9) + spec, a);
+      }`,
+    transparent: true,
+    depthWrite: false,
   });
 }
 
@@ -248,6 +310,21 @@ export class Kart3D {
   private accel = 0;
   /** Чередуем задние колёса для дымка и искр */
   private side = 0;
+  /** Пузырь: сфера на карте, надут ли и сколько секунд надувается */
+  private readonly bubble: THREE.Mesh;
+  private readonly bubbleMat: THREE.ShaderMaterial;
+  private bubbleOn = false;
+  private bubbleT = 0;
+  /** Трюк: сколько секунд ещё крутится и в какую сторону */
+  private trickOn = false;
+  private trickT = 0;
+  private trickDir = 1;
+  /** Подвеска: просадка корпуса, м, и её скорость; был ли на земле */
+  private susp = 0;
+  private suspV = 0;
+  private wasGround = true;
+  private sprayAcc = 0;
+  private burnAcc = 0;
 
   /** id — номер в снимке, color — цвет корпуса, num — номер на панели */
   constructor(id: number, color: number, num: number) {
@@ -337,6 +414,14 @@ export class Kart3D {
     this.shadow.renderOrder = 1;
     this.shadow.visible = false;
 
+    this.bubbleMat = bubbleMaterial();
+    this.bubble = new THREE.Mesh(r.bubble, this.bubbleMat);
+    this.bubble.position.set(0, BUBBLE_Y, 0);
+    this.bubble.renderOrder = 5;
+    this.bubble.visible = false;
+    this.root.add(this.bubble);
+    this.trickDir = id % 2 === 0 ? 1 : -1;
+
     this.avatar = new Avatar(id);
     this.avatar.driving = true;
     this.avatar.root.scale.setScalar(DRIVER_SCALE);
@@ -363,6 +448,7 @@ export class Kart3D {
     for (const m of this.mats) m.dispose();
     (this.decals[0].material as THREE.Material).dispose();
     this.shadowMat.dispose();
+    this.bubbleMat.dispose();
   }
 
   /**
@@ -376,6 +462,9 @@ export class Kart3D {
       this.shadow.visible = false;
       this.avatar.update(null, dt, time, NO_FLOOR, camPos, local);
       this.hasPrev = false;
+      this.bubbleOn = false;
+      this.bubble.visible = false;
+      this.trickT = 0;
       if (fx) this.liftSkids(fx);
       return;
     }
@@ -424,16 +513,51 @@ export class Kart3D {
     this.pitch += (pitchT - this.pitch) * Math.min(1, dt * 9);
     const rollT = grounded ? -p.steer * ROLL * Math.min(1, hs / 18) * (drift ? 1.8 : 1) : 0;
     this.roll += (rollT - this.roll) * Math.min(1, dt * 6);
+    // трюк: бочка вокруг продольной оси (плавно разгоняется и тормозит)
+    const trick = (p.misc & KM_TRICK) !== 0;
+    if (trick && !this.trickOn) this.trickT = TRICK_S;
+    this.trickOn = trick;
+    let flip = 0;
+    if (this.trickT > 0) {
+      this.trickT = Math.max(0, this.trickT - dt);
+      const k = 1 - this.trickT / TRICK_S;
+      flip = this.trickDir * Math.PI * 2 * k * k * (3 - 2 * k);
+    }
+    // подвеска: на приземлении корпус проседает и пружинит
+    if (grounded && !this.wasGround) this.suspV -= Math.min(1.5, Math.max(0, -this.vel.y) * 0.16 + 0.15);
+    this.wasGround = grounded;
+    this.suspV += (-SUSP_K * this.susp - SUSP_C * this.suspV) * Math.min(dt, 0.05);
+    this.susp += this.suspV * Math.min(dt, 0.05);
+    if (this.susp < -0.12) this.susp = -0.12;
 
     const root = this.root;
     root.position.set(p.x, p.y + RIDE_Y, p.z);
-    root.rotation.set(this.pitch, yaw, this.roll);
-    // мотор потряхивает корпус
-    this.bodyNode.position.y = Math.sin(time * 52 + this.id * 2.1) * 0.004;
+    root.rotation.set(this.pitch, yaw, this.roll + flip);
+    // мотор потряхивает корпус; пружина подвески
+    this.bodyNode.position.y = Math.sin(time * 52 + this.id * 2.1) * 0.004 + this.susp;
     root.updateMatrixWorld(true);
 
-    // колёса крутятся по пройденному пути, передние поворачивают; руль — вслед
-    this.dist = (this.dist + (this.vel.x * hx + this.vel.z * hz) * dt) % 1000;
+    // пузырь: надувается с перелётом, слегка дышит; пропал — лопается брызгами
+    const bubble = (p.misc & KM_BUBBLE) !== 0;
+    if (bubble && !this.bubbleOn) this.bubbleT = 0;
+    if (!bubble && this.bubbleOn && fx) {
+      _v.set(0, BUBBLE_Y, 0).applyMatrix4(root.matrixWorld);
+      fx.bubblePop(_v.x, _v.y, _v.z);
+    }
+    this.bubbleOn = bubble;
+    this.bubble.visible = bubble;
+    if (bubble) {
+      this.bubbleT += dt;
+      const g = Math.min(1, this.bubbleT / BUBBLE_GROW_S);
+      const over = 1 + Math.sin(g * Math.PI) * 0.18;
+      const breath = 1 + Math.sin(time * 5.3 + this.id) * 0.025;
+      this.bubble.scale.set(BUBBLE_R * g * over * breath, BUBBLE_R * g * over / breath, BUBBLE_R * g * over * breath);
+      this.bubbleMat.uniforms.uTime.value = time + this.id * 1.7;
+      this.bubbleMat.uniforms.uAlpha.value = g;
+    }
+
+    // колёса крутятся по пройденному пути (буксуют — быстро), передние поворачивают; руль — вслед
+    this.dist = (this.dist + (this.vel.x * hx + this.vel.z * hz) * dt + ((p.misc & KM_BURN) !== 0 ? 9 * dt : 0)) % 1000;
     for (let k = 0; k < 4; k++) this.wheels[k].rotation.x = -this.dist / (k < 2 ? FRONT.r : REAR.r);
     for (const pv of this.pivots) pv.rotation.y = p.steer * WHEEL_STEER;
     this.wheelSpin.rotation.z = p.steer * DRIVE_TURN;
@@ -442,7 +566,7 @@ export class Kart3D {
     _v.copy(SEAT).applyMatrix4(root.matrixWorld);
     const pose = this.pose;
     pose.x = _v.x;
-    pose.y = _v.y;
+    pose.y = _v.y + this.susp;
     pose.z = _v.z;
     pose.yaw = yaw;
     pose.flags = E_ALIVE | (grounded ? E_GROUNDED : 0);
@@ -451,7 +575,7 @@ export class Kart3D {
     av.hidden = this.ghost && Math.floor(time * 8) % 2 === 1;
     av.update(pose, dt, time, NO_FLOOR, camPos, local);
     av.root.rotation.x = this.pitch;
-    av.root.rotation.z = this.roll;
+    av.root.rotation.z = this.roll + flip;
 
     // тень на опоре: выше — бледнее и шире
     const g = ground.groundAt(p.x, p.z, this.loc);
@@ -471,7 +595,37 @@ export class Kart3D {
     if (fx) {
       this.emit(p, dt, fx, grounded, drift, hx, hz, hs);
       this.wheelTrails(p, dt, fx, ground, grounded, drift, hx, hz, hs);
+      this.spray(p, dt, fx, grounded, hx, hz, hs);
     }
+  }
+
+  /** Песок или трава из-под задних колёс на обочине; дым пробуксовки на старте. */
+  private spray(p: KartPose, dt: number, fx: KartFx, grounded: boolean, hx: number, hz: number, hs: number): void {
+    const m = this.root.matrixWorld;
+    const surf = this.loc.surf;
+    if (grounded && hs > 4 && (surf === SURF_SAND || surf === SURF_GRASS)) {
+      const sand = surf === SURF_SAND;
+      this.sprayAcc += dt * SPRAY_RATE * Math.min(1.5, hs / 12);
+      while (this.sprayAcc >= 1) {
+        this.sprayAcc -= 1;
+        this.side ^= 1;
+        _v.set(this.side ? REAR.x : -REAR.x, 0.08, REAR.z + 0.1).applyMatrix4(m);
+        const up = sand ? 1.6 + Math.random() * 2.2 : 1.2 + Math.random() * 1.6;
+        fx.grit(_v.x, _v.y, _v.z, this.vel.x * 0.25 - hx * 2.5 + rnd(1.4), up, this.vel.z * 0.25 - hz * 2.5 + rnd(1.4), sand ? SAND_COLOR : GRASS_COLOR);
+        if (sand && Math.random() < 0.45) {
+          fx.puff(_v.x, _v.y, _v.z, this.vel.x * 0.15 - hx + rnd(0.8), 0.6, this.vel.z * 0.15 - hz + rnd(0.8), 0xe9d7a8, 0.42, 0.7, 2, 0.9);
+        }
+      }
+    } else this.sprayAcc = 0;
+    if ((p.misc & KM_BURN) !== 0) {
+      this.burnAcc += dt * BURN_RATE;
+      while (this.burnAcc >= 1) {
+        this.burnAcc -= 1;
+        this.side ^= 1;
+        _v.set(this.side ? REAR.x : -REAR.x, 0.05, REAR.z + 0.15).applyMatrix4(m);
+        fx.puff(_v.x, _v.y + 0.1, _v.z, -hx * 1.5 + rnd(0.8), 0.6 + Math.random() * 0.6, -hz * 1.5 + rnd(0.8), 0xd8d4cc, 0.55, 0.7, 2.4, 0.8 + Math.random() * 0.4);
+      }
+    } else this.burnAcc = 0;
   }
 
   /**
@@ -569,7 +723,7 @@ export class Kart3D {
         _v.set(this.side ? REAR.x : -REAR.x, 0.05, REAR.z + 0.08).applyMatrix4(m);
         fx.puff(_v.x, _v.y + 0.12, _v.z, vx * 0.25 + rnd(0.8), 0.5 + Math.random() * 0.6, vz * 0.25 + rnd(0.8), 0xe8e4dc, 0.34, 0.55, 1.6, 0.6 + Math.random() * 0.4);
       }
-      const spark = p.misc & 3;
+      const spark = p.misc & KM_SPARK;
       if (spark > 0) {
         // искры летят назад и наружу — туда, куда выносит зад карта
         const so = (p.flags & KE_DRIFT_R) !== 0 ? -1 : 1;
@@ -608,9 +762,9 @@ export class Kart3D {
     }
 
     const boost = (p.flags & KE_BOOST) !== 0;
-    const lvl = (p.misc >> 2) & 3;
+    const lvl = Math.min(BOOST_TURBO, miscBoost(p.misc));
     if (boost && lvl > 0) {
-      const big = lvl === 3;
+      const big = lvl >= 3;
       // в момент включения — вспышка
       this.flameAcc += (this.wasBoost ? 0 : 10) + dt * FLAME_RATE * (big ? 1.5 : 1);
       while (this.flameAcc >= 1) {
@@ -844,6 +998,36 @@ export class KartFx {
   /** Клякса краски прилетела */
   paintSplat(x: number, y: number, z: number): void {
     this.bits(x, y, z, 26, PAINT_COLOR, 3.5, 4, 0.2);
+  }
+
+  /** Песчинка или травинка из-под колеса: летит вверх-назад и падает */
+  grit(x: number, y: number, z: number, vx: number, vy: number, vz: number, color: number): void {
+    this.soft.emit(x, y, z, vx, vy, vz, color, 0.95, 0.12 + Math.random() * 0.1, 0, 0.45 + Math.random() * 0.35, 12, 0.6);
+  }
+
+  /** Пузырь лопнул: радужные капли во все стороны и вспышка */
+  bubblePop(x: number, y: number, z: number): void {
+    const colors = [0x9fe8ff, 0xffc1f3, 0xfff3a8, 0xb9ffd0];
+    for (let i = 0; i < 28; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const b = Math.random() * Math.PI - Math.PI / 2;
+      const sp = 3 + Math.random() * 3;
+      const cx = Math.cos(a) * Math.cos(b);
+      const cz = Math.sin(a) * Math.cos(b);
+      this.glow(x + cx * 1.2, y + Math.sin(b) * 1.2, z + cz * 1.2, cx * sp, Math.sin(b) * sp + 1.5, cz * sp, colors[i % colors.length], 0.16, 0.45 + Math.random() * 0.25, 6, 1.4);
+    }
+    this.puff(x, y, z, 0, 0.4, 0, 0xffffff, 0.35, 2.2, 1.2, 0.35, 0, 3);
+  }
+
+  /** Конфетти: разноцветные кусочки фонтаном (финиш, хлопок) */
+  confetti(x: number, y: number, z: number, n: number, speed: number): void {
+    const colors = [0xff4f6d, 0xffd23f, 0x3fc1ff, 0x5fe08a, 0xc77dff, 0xff9a2e];
+    for (let i = 0; i < n; i++) {
+      this.soft.emit(
+        x + rnd(0.5), y, z + rnd(0.5), rnd(speed), speed * (0.6 + Math.random() * 0.8), rnd(speed), colors[i % colors.length], 1,
+        0.16 + Math.random() * 0.1, 0, 1.4 + Math.random() * 0.8, 5, 1.6,
+      );
+    }
   }
 
   update(dt: number): void {

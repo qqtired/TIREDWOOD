@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';import{test}from'node:test';
 import{Storm}from'../server/lobby/storm.ts';import{LobbyEvents,eventFlag,eveningMoscow}from'../server/lobby/events.ts';
-import{STORM_WARN,STORM_MAX,STORM_PERIOD,STORM_RANK,STORM_GOAL}from'../shared/storm.ts';
+import{STORM_WARN,STORM_MAX,STORM_PERIOD,STORM_RANK,STORM_GOAL,STORM_CALM,STORM_DOOR,STORM_REACH_SLACK,stormReach,stormForce,onStormPier}from'../shared/storm.ts';
 import{stormInput,stormPush}from'../shared/stormdyn.ts';import{makeState,makeInput,makeEvents,stepPlayer,statesEqual,BTN_FORWARD}from'../shared/sim.ts';
 import{CollisionWorld}from'../shared/world.ts';import{buildLobby}from'../shared/maps/lobby.ts';
 function setup(){let players=Array.from({length:4},(_,i)=>({pid:i+1,slot:i+1,nick:`P${i}`,eligible:true,state:makeState()}));let awards:Array<{pid:number,n:number,s:unknown}>=[];const s=new Storm({players:()=>players,award:(pid,n,stats)=>awards.push({pid,n,s:stats}),chat(){},broadcast(){}});return{s,players,awards};}
@@ -27,4 +27,33 @@ test('Predictor masked-input hook preserves original buffer and replays storm pu
  let ack=makeState();const inputs=[];for(let seq=1;seq<=44;seq++){const input=makeInput();Object.assign(input,{seq,buttons:BTN_FORWARD,viewTick:STORM_WARN+STORM_PERIOD+seq-6});inputs.push({...input});predictor.step(input,false);assert.equal(input.buttons,BTN_FORWARD);if(seq===15)Object.assign(ack,predictor.state);}
  ack.x-=.15;const expected={...ack};for(const input of inputs.slice(15)){stepPlayer(expected,stormInput(expected,input,input.viewTick,view),world,false,0,makeEvents());stormPush(expected,world,input.viewTick,view);}
  predictor.reconcile(15,ack);assert.equal(statesEqual(predictor.state,expected),true);
+});
+
+test('маяк зажигается у настоящей двери: дошёл по мосткам — достаёт, в прыжке тоже; издалека и из-за башни — нет',()=>{
+ // идём от конца мостков прямо на дверь, пока не упрёмся в башню
+ const world=new CollisionWorld(buildLobby());const p=makeState();Object.assign(p,{x:STORM_DOOR.x,y:0,z:37,grounded:1});
+ const go=makeInput();go.buttons=BTN_FORWARD;go.yaw=Math.PI;for(let i=0;i<120;i++)stepPlayer(p,go,world,false,1,makeEvents());
+ assert.ok(p.z>40.5&&p.z<STORM_DOOR.z,`упёрся в дверь: z=${p.z.toFixed(2)}`);assert.ok(Math.abs(p.y)<.05);
+ assert.equal(stormReach(p.x,p.y,p.z),true,'у двери — подсказка');
+ const{s,players}=setup();s.start(0,'door');s.step(STORM_WARN);
+ Object.assign(players[0].state,{x:p.x,y:p.y,z:p.z});assert.equal(s.light(1),true,'у двери — зажёг');
+ Object.assign(players[1].state,{x:-20.6,y:1.3,z:40.4});assert.equal(s.light(2),true,'сбоку от двери и в прыжке');
+ Object.assign(players[2].state,{x:-19,y:0,z:36.4});assert.equal(s.light(3),false,'с мостков, в 4 м — нет');
+ Object.assign(players[3].state,{x:-19,y:0,z:45.6});assert.equal(s.light(4),false,'за башней — нет');
+ // сервер прощает отставание на пинг, подсказка — честная: где она горит, там сервер точно засчитает
+ for(let a=0;a<12;a++){const x=-19+Math.cos(a)*STORM_GOAL.r*.999,z=STORM_GOAL.z+Math.sin(a)*STORM_GOAL.r*.999;assert.ok(stormReach(x,0,z)&&stormReach(x,0,z,STORM_REACH_SLACK));}
+ // песчаная отмель у мостков — не мостки: волна по песку не толкает
+ assert.equal(onStormPier(-15.5,-.93,23.5),false);assert.equal(onStormPier(-19,0,28),true);
+ // сила шторма для погоды: тучи сгущаются, в шторм — максимум, после — стихает
+ const v={start:100,end:100+STORM_WARN};assert.ok(stormForce({...v,phase:'warn'},100)<.2&&stormForce({...v,phase:'warn'},100+STORM_WARN-1)>.8);
+ assert.equal(stormForce({...v,phase:'storm'},5000),1);assert.equal(stormForce({phase:'calm',start:100,end:0},100),1);
+ assert.equal(stormForce({phase:'calm',start:100,end:0},100+STORM_CALM),0);assert.equal(stormForce({phase:'idle',start:0,end:0},5),0);
+});
+
+test('фазы шторма: предупреждение → шторм → зажгли → затишье с радугой → конец',()=>{
+ const{s,players}=setup();const seen:string[]=[];const at=(t:number)=>{s.step(t);const ph=s.view().phase;if(seen.at(-1)!==ph)seen.push(ph);};
+ s.start(10,'phases');at(10);at(10+STORM_WARN-1);assert.equal(s.light(1),false,'в предупреждение свет ещё горит — зажигать нечего');
+ at(10+STORM_WARN);for(const p of players)Object.assign(p.state,STORM_GOAL);const lit=10+STORM_WARN+600;at(lit);assert.equal(s.light(1),true);
+ const v=s.view();assert.equal(v.phase,'calm');assert.ok(v.rainbowEnd>v.rankEnd&&v.rankEnd>lit-1);
+ at(v.rankEnd);at(v.rainbowEnd-1);at(v.rainbowEnd);assert.deepEqual(seen,['warn','storm','calm','idle']);
 });

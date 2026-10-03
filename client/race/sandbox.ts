@@ -1,4 +1,4 @@
-// ?track=foundry selects the second course for local acceptance. Default preview remains the legacy port.
+// ?track=hills — «Солнечный серпантин» (по умолчанию — «Портовое кольцо», harbor).
 // Песочница заезда для разработки: открывается только сервером разработки (/tools/race-sandbox/), в сборку не входит.
 // Настоящий клиент гонки (RaceScene: предсказание, камера, интерфейс, звук) против той же гонки, что на сервере,
 // прямо во вкладке — с задержкой сети в обе стороны. Свой карт — с клавиатуры (W/S, A/D, Space, E, R).
@@ -6,7 +6,7 @@
 // ?q=low|medium|high, ?touch=1 — кнопки телефона, как в игре. Часы виртуальные: для снимков из headless Chrome — window.raceSandbox:
 // run(секунды) — прогнать время без рисования, frame() — нарисовать кадр, hold(кнопки, секунды), restart(), state().
 import '../styles.css';
-import { isRaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, isRaceTrackId } from '../../shared/racecourse.ts';
 import { TICK_MS } from '../../shared/constants.ts';
 import { RC_RACE } from '../../shared/kart.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
@@ -27,7 +27,7 @@ import { RaceScene } from './scene.ts';
 
 const params = new URLSearchParams(location.search);
 const requestedTrack = params.get('track');
-const trackId = isRaceTrackId(requestedTrack) ? requestedTrack : 'port';
+const trackId = isRaceTrackId(requestedTrack) ? requestedTrack : DEFAULT_TRACK;
 const latency = Number(params.get('lat') ?? 40);
 const jitter = Number(params.get('jit') ?? 0);
 const auto = params.get('auto') === '1';
@@ -121,7 +121,10 @@ input.sample = (): number => {
   if (pilot) {
     pilot.update(
       me.state,
-      { racing: race.phase === RC_RACE, place: me.place, karts: race.karts.size, behind: Infinity, ahead: Infinity, painted: me.paintT > 0 },
+      {
+        racing: race.phase === RC_RACE, gridLeft: race.phase === RC_RACE ? 0 : race.phaseEnd - race.tick, place: me.place, karts: race.karts.size,
+        behind: Infinity, ahead: Infinity, near: Infinity, painted: me.paintT > 0, bubble: me.bubbleT > 0,
+      },
       race.tick,
       pilotInput,
     );

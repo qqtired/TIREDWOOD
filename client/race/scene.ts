@@ -1,6 +1,6 @@
 // Сцена гонки: трасса «Портовое кольцо» строится при первом заезде и остаётся в памяти,
 // заезд (карты, предсказание, интерфейс гонки) создаётся заново на каждый вход.
-import type { RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, type RaceTrackId } from '../../shared/racecourse.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import { lobbyQuality } from '../lobby/scene.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
@@ -22,7 +22,7 @@ export class RaceScene implements Scene {
 
   readonly trackId: RaceTrackId;
 
-  constructor(d: SceneDeps, trackId: RaceTrackId = 'port') {
+  constructor(d: SceneDeps, trackId: RaceTrackId = DEFAULT_TRACK) {
     this.d = d;
     this.trackId = trackId;
     this.world = new RaceWorld(d.renderer, lobbyQuality(d.settings.quality), trackId);

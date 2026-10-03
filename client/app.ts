@@ -1,5 +1,5 @@
 // Оболочка: экран входа, одно соединение на всё время, переходы между сценами (набережная ⇄ пейнтбол),
-// пауза с настройками и профилем, переподключение после обрыва и общий цикл кадров.
+// меню на Esc (профиль, настройки по категориям — client/ui/menu/), переподключение после обрыва и общий цикл кадров.
 // Сцены и общий интерфейс (чат, жетоны, уведомления, «кто где») создаются один раз.
 // На телефоне — ещё кнопки на экране (touch.ts): пауза там по кнопке ☰ и когда свернули браузер.
 import { MAX_NAME, PROTOCOL_VERSION } from '../shared/constants.ts';
@@ -8,10 +8,9 @@ import { frameForLevel, safeXp } from '../shared/levels.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
 import { CLOSE_SILENCE, type ClientMsg, type ErrorCode, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
-import type { RaceTrackId } from '../shared/racecourse.ts';
+import { DEFAULT_TRACK, RACE_TRACKS, type RaceTrackId } from '../shared/racecourse.ts';
 import { Sound } from './audio.ts';
 import { Chat } from './chat.ts';
-import { BoatRaceScene } from './boatrace/scene.ts';
 import { HideScene } from './hide/scene.ts';
 import { errorReport } from './errors.ts';
 import { FightScene } from './fight/scene.ts';
@@ -20,6 +19,8 @@ import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } f
 import { Input, isMuteKey, isTyping } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
 import { Net } from './net.ts';
+import { Relink } from './relink.ts';
+import { LinkBanner } from './ui/linkbanner.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
@@ -29,13 +30,17 @@ import type { MeState, Scene, SceneDeps } from './scene.ts';
 import { effectiveVolume, loadSettings, saveSettings, toggleMute, type Quality, type Settings } from './settings.ts';
 import { TOUCH, TouchControls } from './touch.ts';
 import { COIN_HTML } from './ui/coin.ts';
+import { GameMenu, applyInterface } from './ui/menu/menu.ts';
 import { OnlineList } from './ui/online.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
 import { TokensHud } from './ui/tokens.ts';
+import { Transition } from './ui/transition.ts';
 import { VoiceController } from './voice.ts';
 import { VoiceUi } from './ui/voice.ts';
 import './ui/voice.css';
+import { loadVoicePrefs, saveVoicePrefs } from './voice-prefs.ts';
+import { setVoiceSource } from './ui/voicepanel.ts';
 import './ui/mobile-fishing.css';
 import { setVoicePresence } from './render/voice-presence.ts';
 
@@ -45,8 +50,13 @@ type JoinMode = 'saved' | 'nick' | 'code';
 
 const NICKS = ['Кругляш', 'Мармеладка', 'Боцман', 'Юнга', 'Шкипер', 'Клякса', 'Пончик', 'Бублик', 'Карамелька', 'Лоцман', 'Тюлька', 'Кок'];
 const CONNECT_TIMEOUT_MS = 9000;
-/** В игре сервер шлёт снимки 30 раз в секунду: 8 с тишины — связь умерла, переподключаемся сами */
-const SILENCE_MS = 8000;
+/**
+ * В игре сервер шлёт снимки 30 раз в секунду: 20 с тишины — связь умерла, возвращаемся в сессию заново (relink.ts).
+ * Было 8 с: при пинге 220–260 мс TCP после короткого провала сети догоняет за 8–12 с, и живые соединения рвались.
+ */
+const SILENCE_MS = 20_000;
+/** Сервер молчит дольше этого — плашка «Связь нестабильна» (игра идёт дальше) */
+const SHAKY_MS = 3000;
 /** Паузы между попытками переподключения, с (дальше — последняя) */
 const RETRY_S = [1, 2, 4, 8, 15];
 const PING_MS = 2000;
@@ -68,12 +78,17 @@ export class App {
   private readonly sound = new Sound();
   private readonly input: Input;
   private readonly net = new Net();
+  /** Возврат в ту же сессию после обрыва связи: сцена остаётся, сервер досылает пропущенное */
+  private readonly relink: Relink;
+  private readonly linkBanner: LinkBanner;
   private readonly shell: HTMLElement;
   private readonly chat: Chat;
   private readonly tokens: TokensHud;
   private readonly toasts: Toasts;
   private readonly online: OnlineList;
   private readonly profile = new ProfilePanel();
+  /** Меню на Esc (на телефоне ☰): профиль, настройки по категориям, клавиши */
+  private readonly menu: GameMenu;
   /** Кнопки на экране — только на телефоне и планшете */
   private readonly touch: TouchControls | null;
   private readonly deps: SceneDeps;
@@ -82,9 +97,8 @@ export class App {
   /** Трасса строится при первом заезде и остаётся в памяти */
   private race: RaceScene | null = null;
   private readonly raceScenes = new Map<RaceTrackId, RaceScene>();
-  private raceTrack: RaceTrackId = 'port';
+  private raceTrack: RaceTrackId = DEFAULT_TRACK;
   private skill: SkillScene | null = null;
-  private boatRace: BoatRaceScene | null = null;
   private hide: HideScene | null = null;
   private voice: VoiceController | null = null;
   private voiceUi: VoiceUi | null = null;
@@ -123,11 +137,12 @@ export class App {
   // экраны
   private readonly joinEl: HTMLElement;
   private readonly pauseEl: HTMLElement;
-  private readonly pauseMain: HTMLElement;
   private readonly lostEl: HTMLElement;
   private readonly reconnectEl: HTMLElement;
   private readonly replacedEl: HTMLElement;
   private readonly fadeEl: HTMLElement;
+  /** Плавный переход между комнатами: экран загрузки, прогрев, «готов» серверу (ui/transition.ts) */
+  private readonly transition: Transition;
   private readonly helloNick: HTMLElement;
   private readonly nameInput: HTMLInputElement;
   private readonly codeInput: HTMLInputElement;
@@ -139,9 +154,8 @@ export class App {
   private readonly rcTitle: HTMLElement;
   private readonly rcSub: HTMLElement;
   private readonly pauseSub: HTMLElement;
-  private readonly pauseHint: HTMLElement;
   private readonly toLobbyBtn: HTMLElement;
-  /** Ползунок громкости и флажок «Без звука» — под текущие настройки (их строит buildSettings) */
+  /** Ползунок громкости и флажок «Без звука» — под текущие настройки (M жмут и в игре) */
   private syncSound: () => void = () => {};
 
   // кадр и качество
@@ -172,6 +186,43 @@ export class App {
     this.online = new OnlineList(shell);
     // уведомления — над меню: ошибка смены ника видна и в профиле
     this.toasts = new Toasts(menus);
+    this.linkBanner = new LinkBanner(menus);
+    this.relink = new Relink({
+      connect: (rs) => {
+        this.hello = { t: 'hello', v: PROTOCOL_VERSION, key: deviceKey(), re: this.lastClose, rs };
+        this.net.connect();
+      },
+      abort: () => this.net.close(),
+      rx: () => this.net.rx,
+      setRx: (n) => { this.net.rx = n; },
+      down: () => { this.voice?.linkDown(); this.input.releaseAll(); this.updateBlocked(); },
+      up: (resumed) => {
+        this.updateBlocked();
+        if (resumed) {
+          this.voice?.linkUp();
+          this.toasts.show('Связь восстановлена', 1800, 'link');
+          return;
+        }
+        // сервер начал сессию заново: голос и жетоны — с нуля, сцену он пришлёт сам
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected(true);
+      },
+      giveUp: () => {
+        this.net.close();
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected(true);
+        this.startReconnect();
+      },
+      banner: (text) => this.linkBanner.show(text, 'down'),
+      now: () => performance.now(),
+      setTimer: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimer: (id) => clearTimeout(id),
+    });
+    window.addEventListener('online', () => this.relink.online());
+    // вкладку закрывают или обновляют — сервер отпустит сразу; заморозка в фоне (persisted) — подождёт возврата
+    window.addEventListener('pagehide', (e) => { if (!e.persisted && this.net.isOpen) this.net.send({ t: 'bye' }); });
     this.deps = {
       renderer: this.renderer,
       input: this.input,
@@ -203,7 +254,7 @@ export class App {
           <input class="name" type="text" maxlength="${MAX_NAME}" autocomplete="off" spellcheck="false" />
         </label>
         <label class="field join-code">
-          <span>Код с другого устройства (там: Esc → Профиль → «Код для входа»)</span>
+          <span>Код с другого устройства (там: меню, Esc или ☰ → «Подарки и коды»)</span>
           <input class="code" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ABCD-2345" />
         </label>
         <div class="join-error"></div>
@@ -222,7 +273,7 @@ export class App {
           <div><b>😊</b><span>эмоции</span></div>
           <div><b>💬</b><span>чат</span></div>
           <div><b>👥</b><span>кто где · счёт</span></div>
-          <div><b>☰</b><span>пауза, профиль</span></div>
+          <div><b>☰</b><span>меню: профиль, настройки</span></div>
         </div>
         <div class="keys desk-keys">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>бег</span></div>
@@ -235,25 +286,31 @@ export class App {
           <div><kbd class="wide">Enter</kbd><span>чат</span></div>
           <div><kbd>Tab</kbd><span>кто где · счёт</span></div>
           <div><kbd>M</kbd><span>звук вкл / выкл</span></div>
-          <div><kbd>Esc</kbd><span>пауза, профиль</span></div>
+          <div><kbd>Esc</kbd><span>меню: профиль, настройки</span></div>
         </div>
         <details class="join-settings"><summary>Настройки</summary></details>
         <div class="tips">Жетоны ${COIN_HTML} — за бои на складе, партии в дурака, гонки и ежедневный бонус · тратятся на автоматы и наряды · в воду не падай 🌊</div>
       </div>`;
-    this.pauseEl = h('div', 'screen pause');
-    this.pauseMain = h('div', 'pause-card main');
-    this.pauseMain.innerHTML = `
-      <div class="pause-title">Пауза</div>
-      <div class="pause-sub"></div>
-      <button class="btn primary resume">Продолжить</button>
-      <div class="pause-hint"></div>
-      <div class="pause-settings"></div>
-      <div class="pause-row">
-        <button class="btn ghost open-profile">Профиль</button>
-        <button class="btn ghost to-lobby">На набережную</button>
-      </div>
-      <button class="btn ghost leave">Выйти в меню</button>`;
-    this.pauseEl.append(this.pauseMain, this.profile.root);
+    this.menu = new GameMenu(this.profile, this.settings, {
+      resume: () => this.resume(),
+      toLobby: () => {
+        // в катере регаты (она на набережной) — сойти на берег, иначе — из режима на набережную
+        if (this.active === this.lobby && this.lobby.racing) this.lobby.quitRace();
+        else this.net.send({ t: 'leave' });
+        this.resume();
+      },
+      leave: () => this.toMenu(),
+      profile: (open) => this.showProfile(open),
+      redeem: (code) => this.net.send({ t: 'redeem', code }),
+      changed: () => this.applySettings(),
+      preview: (kind) => {
+        this.sound.unlock();
+        this.sound.preview(kind);
+      },
+      room: () => this.active?.kind ?? 'lobby',
+      gifts: () => this.me.gifts === true,
+    });
+    this.pauseEl = this.menu.root;
     this.lostEl = h('div', 'screen lost');
     this.lostEl.innerHTML = `
       <div class="pause-card">
@@ -279,6 +336,12 @@ export class App {
       </div>`;
     this.fadeEl = h('div', 'fade');
     menus.append(this.fadeEl, this.joinEl, this.pauseEl, this.lostEl, this.reconnectEl, this.replacedEl);
+    this.transition = new Transition({
+      renderer: this.renderer, active: () => this.active, send: (m) => this.net.send(m), nick: () => this.me.nick, sound: this.sound,
+      build: (kind, epoch) => { this.net.epoch = epoch; this.switchScene(kind, true); return this.active!; },
+      detail: (kind) => (kind === 'race' ? RACE_TRACKS.find((t) => t.id === this.raceTrack)?.name ?? null : null),
+      blockedChanged: () => this.updateBlocked(), freePointer: () => this.input.unlock(),
+    }, this.fadeEl);
 
     this.helloNick = this.joinEl.querySelector('.hello-nick')!;
     this.nameInput = this.joinEl.querySelector('.name')!;
@@ -289,10 +352,10 @@ export class App {
     this.lostReason = this.lostEl.querySelector('.lost-reason')!;
     this.rcTitle = this.reconnectEl.querySelector('.rc-title')!;
     this.rcSub = this.reconnectEl.querySelector('.rc-sub')!;
-    this.pauseSub = this.pauseMain.querySelector('.pause-sub')!;
-    this.pauseHint = this.pauseMain.querySelector('.pause-hint')!;
-    this.toLobbyBtn = this.pauseMain.querySelector('.to-lobby')!;
-    this.settingsEl = this.buildSettings();
+    this.pauseSub = this.menu.sub;
+    this.toLobbyBtn = this.menu.toLobbyBtn;
+    this.settingsEl = this.menu.settings.root;
+    this.syncSound = () => this.menu.settings.sync();
     this.joinEl.querySelector('.join-settings')!.appendChild(this.settingsEl);
 
     this.nameInput.value = oldName();
@@ -309,21 +372,9 @@ export class App {
     this.joinEl.querySelector('.other')!.addEventListener('click', () => this.otherProfile());
     this.joinEl.querySelector('.have-code')!.addEventListener('click', () => this.setJoinMode('code'));
     this.joinEl.querySelector('.back')!.addEventListener('click', () => this.setJoinMode(savedNick() ? 'saved' : 'nick'));
-    this.pauseMain.querySelector('.resume')!.addEventListener('click', () => this.resume());
-    this.pauseEl.addEventListener('mousedown', (e) => {
-      // клик мимо карточки — тоже «продолжить»
-      if (e.target === this.pauseEl) this.resume();
-    });
-    this.pauseMain.querySelector('.open-profile')!.addEventListener('click', () => this.showProfile(true));
-    this.toLobbyBtn.addEventListener('click', () => {
-      this.net.send({ t: 'leave' });
-      this.resume();
-    });
-    this.pauseMain.querySelector('.leave')!.addEventListener('click', () => this.toMenu());
     this.lostEl.querySelector('.retry')!.addEventListener('click', () => this.play());
     this.replacedEl.querySelector('.back-here')!.addEventListener('click', () => this.play());
     for (const el of [this.lostEl, this.reconnectEl, this.replacedEl]) el.querySelector('.menu')!.addEventListener('click', () => this.toMenu());
-    this.profile.onBack = () => this.showProfile(false);
     this.profile.onRename = (nick) => {
       this.renamePending = true;
       this.net.send({ t: 'rename', nick });
@@ -335,7 +386,7 @@ export class App {
       if (this.hello) this.net.send(this.hello);
     };
     this.net.onJson = (m) => this.onJson(m);
-    this.net.onBinary = (buf, at) => this.active?.onSnapshot(buf, at);
+    this.net.onBinary = (buf, at) => this.transition.snapshot(buf, at);
     this.net.onClose = (code, reason) => this.onClose(code, reason);
     // ошибки браузера — серверу, но только из игры (до входа ждут в очереди)
     errorReport.scene = () => this.active?.kind ?? this.screen;
@@ -345,7 +396,8 @@ export class App {
       return true;
     };
     window.setInterval(() => {
-      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now() });
+      // r — подтверждение: сколько сообщений сессии дошло (сервер их забывает, недошедшее дошлёт после обрыва)
+      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now(), r: this.net.rx });
     }, PING_MS);
 
     // --- ввод
@@ -389,7 +441,7 @@ export class App {
         input: this.input,
         send: (m: ClientMsg) => this.net.send(m),
         voice: () => this.voice?.debug() ?? null,
-        state: () => ({ screen: this.screen, scene: this.active?.kind ?? null, paused: this.paused, nick: this.me.nick, tokens: this.me.tokens, epoch: this.net.epoch, ...this.active?.debugState() }),
+        state: () => ({ screen: this.screen, scene: this.active?.kind ?? null, paused: this.paused, nick: this.me.nick, tokens: this.me.tokens, epoch: this.net.epoch, transition: this.transition.debugState(), ...this.active?.debugState() }),
         look: (yaw: number, pitch: number) => {
           this.input.yaw = yaw;
           this.input.pitch = pitch;
@@ -505,6 +557,7 @@ export class App {
   // ------------------------------------------------------------ сообщения сервера
 
   private onJson(m: ServerMsg): void {
+    if (this.relink.active && this.relink.message(m.t)) return;
     switch (m.t) {
       case 'voiceConfig':
         this.ensureVoice();
@@ -554,30 +607,49 @@ export class App {
         }
         return;
       case 'scene':
-        this.net.epoch = m.epoch;
-        this.switchScene(m.scene);
+        if (this.screen === 'game' && this.active) {
+          // в игре — плавно, через экран загрузки; голос сбрасываем сразу: его новое состояние придёт следом
+          setVoicePresence([]);
+          this.voice?.roomChanged();
+          this.transition.begin(m.scene, m.epoch);
+        } else {
+          // вход и переподключение — сразу (их закрывает свой экран)
+          this.net.epoch = m.epoch;
+          this.switchScene(m.scene);
+          this.transition.instant(m.epoch);
+        }
+        return;
+      case 'load':
+      case 'go':
+        this.transition.onJson(m);
         return;
       case 'lobby':
-        this.raceTrack = m.kart.track ?? 'port';
+        this.raceTrack = m.kart.track ?? DEFAULT_TRACK;
         this.lobby.onJson(m);
         return;
       case 'kart':
-        this.raceTrack = m.track ?? 'port';
+        this.raceTrack = m.track ?? DEFAULT_TRACK;
         this.lobby.onJson(m);
         return;
       case 'race': {
-        const track = m.track ?? 'port';
+        const track = m.track ?? DEFAULT_TRACK;
         this.raceTrack = track;
         // Приветствие сервера — источник выбранной трассы, в том числе после переподключения.
         if (this.active?.kind === 'race' && this.race?.trackId !== track) this.switchScene('race');
-        this.active?.onJson(m);
+        this.transition.toScene(m);
         return;
       }
       case 'code':
         this.profile.showCode(m.code, m.until);
         return;
+      case 'redeemResult':
+        // подарочный код вводят и в примерочной, и в меню (Профиль → Подарки и коды)
+        this.menu.giftResult(m.result);
+        this.active?.onJson(m);
+        return;
       case 'restart':
         this.restarting = true;
+        this.relink.restarting = true;
         return;
       case 'error':
         this.onError(m.code, m.text);
@@ -591,7 +663,7 @@ export class App {
         this.chat.add(m, this.me.pid, this.active?.kind ?? 'lobby');
         if (!m.sys && m.pid !== this.me.pid) this.sound.chat();
         // облачка над головой — дело сцены
-        this.active?.onJson(m);
+        this.transition.toScene(m);
         return;
       case 'chatlog':
         this.chat.clear();
@@ -601,7 +673,7 @@ export class App {
         this.online.set(m.list, this.me.nick);
         return;
       default:
-        this.active?.onJson(m);
+        this.transition.toScene(m);
     }
   }
 
@@ -681,6 +753,13 @@ export class App {
   }
 
   private onClose(code: number, reason: string): void {
+    // обрыв посреди игры — возвращаемся в ту же сессию, сцена остаётся (relink.ts); флуд, другое окно, версия — как раньше
+    if (!this.reloading && (this.screen === 'game' || this.relink.active) && code !== 1008 && code !== 4001 && code !== 4002) {
+      if (!this.relink.active) this.lastClose = code;
+      this.relink.lost();
+      return;
+    }
+    this.relink.cancel();
     setVoicePresence([]);
     this.tokens.reset();
     this.voice?.disconnected();
@@ -731,10 +810,13 @@ export class App {
 
   // ------------------------------------------------------------ сцены
 
-  private switchScene(kind: RoomKind): void {
-    setVoicePresence([]);
-    this.voice?.roomChanged();
-    const next = kind === 'boatrace' ? (this.boatRace ??= this.makeBoatRace()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
+  /** quiet — из плавного перехода: голос уже сброшен при письме `scene`, затемнение — у перехода */
+  private switchScene(kind: RoomKind, quiet = false): void {
+    if (!quiet) {
+      setVoicePresence([]);
+      this.voice?.roomChanged();
+    }
+    const next = kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
     // комната — для стилей (телефон стоя: в пейнтболе чат ниже полосы счёта)
@@ -743,7 +825,7 @@ export class App {
     this.lobby.setMenuOpen(kind === 'lobby' && this.paused);
     this.renderer.refreshShadows();
     this.online.show(false);
-    this.flashFade();
+    if (!quiet) this.flashFade();
     if (this.screen !== 'game') this.enterGame();
     else if (this.paused) this.refreshPause();
   }
@@ -764,12 +846,6 @@ export class App {
       this.raceScenes.set(track, scene);
     }
     this.race = scene;
-    return scene;
-  }
-
-  private makeBoatRace(): BoatRaceScene {
-    const scene = new BoatRaceScene(this.deps);
-    scene.setQuality(this.renderQuality()); scene.resize(window.innerWidth, window.innerHeight);
     return scene;
   }
 
@@ -808,7 +884,7 @@ export class App {
     this.showScreen(null);
     this.shell.classList.remove('hidden');
     this.resetPlayButton();
-    this.pauseMain.querySelector('.pause-settings')!.appendChild(this.settingsEl);
+    this.menu.adoptSettings();
     this.setJoinMode('saved');
     this.perfWait = 3;
     try {
@@ -822,14 +898,16 @@ export class App {
 
   /** Уходим из игры (меню, обрыв, ошибка): сцену — прочь, интерфейс — спрятать. */
   private leaveGame(): void {
+    this.transition.cancel();
+    this.relink.cancel();
     setVoicePresence([]);
     this.syncFishingUi(false);
-    this.voice?.disconnected();
+    this.voice?.disconnected(this.screen === 'reconnecting');
     this.active?.exit();
     this.active = null;
     delete document.documentElement.dataset.room;
     this.paused = false;
-    this.pauseEl.classList.remove('show');
+    this.menu.setOpen(false);
     this.showProfile(false);
     this.chat.close();
     this.online.show(false);
@@ -861,6 +939,13 @@ export class App {
       this.toggleSound();
       return;
     }
+    // экран загрузки: клавиши сцене не отдаём (во время затемнения они ушли бы уже в новую комнату)
+    if (this.transition.busy) return;
+    // Esc в открытом меню: спрятать меню сразу (мышь браузер отдаст по клику), ещё раз — меню назад
+    if (down && code === 'Escape' && this.paused) {
+      if (!e.repeat) this.menu.setVeil(!this.menu.veiled);
+      return;
+    }
     if (this.active.onKey(code, down, e)) return;
     if (code === 'Tab') {
       e.preventDefault();
@@ -881,7 +966,7 @@ export class App {
       return;
     }
     void this.input.lock().then(() => {
-      if (!this.input.locked) this.pauseHint.textContent = 'Браузер не отдал мышь — кликни ещё раз через секунду';
+      if (!this.input.locked) this.menu.setHint('Браузер не отдал мышь — кликни ещё раз через секунду');
     });
   }
 
@@ -920,15 +1005,13 @@ export class App {
   }
 
   private setPaused(p: boolean): void {
-    const was = this.paused;
     this.paused = p;
     this.lobby.setMenuOpen(this.active?.kind === 'lobby' && p);
-    this.pauseEl.classList.toggle('show', p);
+    // меню открывается на том разделе, где остановились, с начала; игра за ним идёт дальше
+    this.menu.setOpen(p);
     if (p) {
-      // на невысоком экране меню листается: открываем его с начала, с «Продолжить» (прокрутка — у показанного)
-      if (!was) this.pauseMain.scrollTop = 0;
       this.input.releaseAll();
-      this.pauseHint.textContent = '';
+      this.menu.setHint('');
       this.online.show(false);
       this.refreshPause();
     } else {
@@ -943,18 +1026,19 @@ export class App {
       lobby: 'Набережная подождёт', paintball: 'Бой на складе идёт дальше — не зевай', race: 'Гонка продолжается без тебя', fort: 'Зомби не ждут — крепость держится без тебя',
       fight: 'В подвале дерутся дальше — о клубе никому',
       skill: 'Чекпоинт сохранён; время прохождения продолжается',
-      boatrace: 'Гонка по бухте продолжается — катер тормозит без газа',
       hide: 'Поиск продолжается — укрытие и время остаются в игре',
     };
-    this.pauseSub.textContent = sub[kind];
-    this.toLobbyBtn.style.display = kind === 'lobby' ? 'none' : '';
+    // в катере регаты (она на набережной) — сойти на берег
+    const racing = kind === 'lobby' && this.lobby.racing;
+    this.pauseSub.textContent = racing ? 'Регата идёт — катер сбавляет ход без тебя' : sub[kind];
+    this.toLobbyBtn.style.display = kind === 'lobby' && !racing ? 'none' : '';
+    this.toLobbyBtn.textContent = racing ? 'Сойти на берег' : 'На набережную';
   }
 
   private showProfile(open: boolean): void {
     this.pauseEl.classList.toggle('profile-open', open);
     this.lobby.setMenuOpen(this.active?.kind === 'lobby' && (this.paused || open));
     if (open) {
-      this.profile.root.scrollTop = 0;
       this.profile.update(this.me);
     } else {
       this.profile.reset();
@@ -963,7 +1047,7 @@ export class App {
   }
 
   private updateBlocked(): void {
-    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen;
+    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.transition.busy || this.relink.active;
     this.syncVoiceVisibility();
   }
 
@@ -976,21 +1060,21 @@ export class App {
   /** VOICE=0 never constructs media, listeners or visible controls. */
   private ensureVoice(): void {
     if (this.voice) return;
-    const slot = h('div');
-    this.pauseMain.querySelector('.pause-settings')!.after(slot);
-    this.voiceUi = new VoiceUi({ settingsRoot: slot, hudRoot: this.shell }, {
+    // панель «Голос» монтирует само меню (вкладка «Голос», client/ui/voicepanel.ts)
+    this.voiceUi = new VoiceUi(this.shell, {
       connectMic: () => { void this.voice?.connectMic(); },
-      enable: () => { void this.voice?.enable(); }, disable: () => this.voice?.disable(),
-      enableMic: () => { void this.voice?.enableMic(); }, disableMic: () => this.voice?.disableMic(),
-      push: on => this.voice?.push(on), setReceiving: on => this.voice?.setReceiving(on),
-      setVolume: volume => this.voice?.setVolume(volume), setPeerMuted: (id, muted) => this.voice?.setPeerMuted(id, muted),
-      openSettings: () => { this.input.unlock(); this.setPaused(true); },
+      push: on => this.voice?.push(on),
+      unblock: () => { void this.voice?.unblock(); },
+      openSettings: () => { this.input.unlock(); this.setPaused(true); this.menu.show('voice'); },
     });
     this.voice = new VoiceController({
       send: message => this.net.send(message),
       canTalk: () => this.canTalk(),
       onChange: view => { this.voiceTransmitting = view.transmitting; setVoicePresence(view.presence); this.voiceUi?.render(view); },
+      prefs: loadVoicePrefs(),
+      savePrefs: prefs => saveVoicePrefs(prefs),
     });
+    setVoiceSource(this.voice);
     this.voice.setGameMuted(this.settings.muted);
   }
 
@@ -1103,98 +1187,21 @@ export class App {
 
   // ------------------------------------------------------------ настройки
 
-  private buildSettings(): HTMLElement {
-    const box = h('div', 'settings');
-    const s = this.settings;
-    const range = (label: string, key: 'sens' | 'adsSens' | 'fov' | 'volume', min: number, max: number, step: number, fmt: (v: number) => string) => {
-      const row = h('label', 'set-row');
-      const name = h('span', 'set-name', label);
-      const input = h('input');
-      input.type = 'range';
-      input.min = String(min);
-      input.max = String(max);
-      input.step = String(step);
-      input.value = String(s[key]);
-      const val = h('b', 'set-val', fmt(s[key]));
-      input.addEventListener('input', () => {
-        s[key] = Number(input.value);
-        // двигают громкость при выключенном звуке — значит, хотят слышать
-        if (key === 'volume' && s.volume > 0) s.muted = false;
-        val.textContent = fmt(s[key]);
-        this.applySettings();
-      });
-      // стрелки двигают ползунок — игре не отдаём; M (звук) пропускаем: после клика по ползунку фокус остаётся на нём
-      input.addEventListener('keydown', (e) => {
-        if (e.code !== 'KeyM') e.stopPropagation();
-      });
-      row.append(name, input, val);
-      box.appendChild(row);
-      return { input, val };
-    };
-    range(TOUCH ? 'Обзор пальцем' : 'Мышь', 'sens', 0.1, 4, 0.05, (v) => v.toFixed(2));
-    range(TOUCH ? 'Пальцем в прицеле' : 'Мышь в прицеле', 'adsSens', 0.2, 1.5, 0.05, (v) => v.toFixed(2));
-    range('Обзор', 'fov', 70, 120, 1, (v) => `${Math.round(v)}°`);
-    const vol = range('Громкость', 'volume', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`);
-
-    const muteRow = h('label', 'set-row check');
-    const mute = h('input');
-    mute.type = 'checkbox';
-    mute.checked = s.muted;
-    mute.addEventListener('change', () => {
-      if (mute.checked !== s.muted) toggleMute(s);
-      this.applySettings();
-    });
-    muteRow.append(mute, h('span', 'set-name', TOUCH ? 'Без звука' : 'Без звука (M)'));
-    box.appendChild(muteRow);
-    // без звука ползунок стоит на нуле и подписан «выкл» (сама громкость в настройках цела), звук вернули — встаёт назад
-    this.syncSound = () => {
-      const level = String(effectiveVolume(s));
-      if (vol.input.value !== level) vol.input.value = level;
-      vol.val.textContent = s.muted ? 'выкл' : `${Math.round(s.volume * 100)}%`;
-      mute.checked = s.muted;
-    };
-
-    const qRow = h('label', 'set-row');
-    const sel = h('select');
-    for (const [v, t] of [['auto', 'Авто'], ['high', 'Высокое'], ['medium', 'Среднее'], ['low', 'Низкое']] as const) {
-      const o = h('option');
-      o.value = v;
-      o.textContent = t;
-      sel.appendChild(o);
-    }
-    sel.value = s.quality;
-    sel.addEventListener('change', () => {
-      s.quality = sel.value as Quality;
-      this.applySettings();
-    });
-    qRow.append(h('span', 'set-name', 'Качество'), sel);
-    box.appendChild(qRow);
-
-    const row = h('label', 'set-row check');
-    const check = h('input');
-    check.type = 'checkbox';
-    check.checked = s.showStats;
-    check.addEventListener('change', () => {
-      s.showStats = check.checked;
-      this.applySettings();
-    });
-    row.append(check, h('span', 'set-name', 'Показывать FPS и пинг'));
-    box.appendChild(row);
-    return box;
-  }
-
   private applySettings(): void {
     const s = this.settings;
     this.input.sens = s.sens;
     this.input.adsSens = s.adsSens;
+    this.input.invertY = s.invertY;
     this.sound.setVolume(effectiveVolume(s));
+    this.sound.setMix(s.sfxVolume, s.ambVolume, s.uiVolume, s.musicVolume);
     this.voice?.setGameMuted(s.muted);
     this.syncSound();
+    applyInterface(s);
     saveSettings(s);
     this.applyQuality();
   }
 
-  /** M: без звука ⇄ звук. Запоминается в настройках, как громкость; ползунок и флажок в паузе подстроятся сами. */
+  /** M: без звука ⇄ звук. Запоминается в настройках, как громкость; ползунок и флажок в меню подстроятся сами. */
   private toggleSound(): void {
     const muted = toggleMute(this.settings);
     this.applySettings();
@@ -1217,7 +1224,6 @@ export class App {
     this.lobby.setQuality(detail);
     for (const race of this.raceScenes.values()) race.setQuality(detail);
     this.skill?.setQuality(detail);
-    this.boatRace?.setQuality(detail);
     this.hide?.setQuality(detail);
     this.paintball?.setQuality(detail);
     this.fort?.setQuality(detail);
@@ -1236,7 +1242,6 @@ export class App {
     this.paintball?.resize(w, hh);
     for (const race of this.raceScenes.values()) race.resize(w, hh);
     this.skill?.resize(w, hh);
-    this.boatRace?.resize(w, hh);
     this.hide?.resize(w, hh);
     this.fort?.resize(w, hh);
     this.fight?.resize(w, hh);
@@ -1276,13 +1281,18 @@ export class App {
 
     // вкладка спала (кадров не было больше секунды) — сначала дадим письмам дойти, потом считаем тишину
     if (gap > 1000) this.net.lastRx = Math.max(this.net.lastRx, now);
-    if (this.screen === 'game' && this.net.isOpen && now - this.net.lastRx > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+    if (this.screen === 'game' && this.net.isOpen && !this.relink.active) {
+      const quiet = now - this.net.lastRx;
+      if (quiet > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+      else this.linkBanner.show(quiet > SHAKY_MS ? 'Связь нестабильна — ждём сервер…' : null);
+    } else if (!this.relink.active) this.linkBanner.show(null);
+    this.relink.frame();
 
     if (this.screen === 'connecting' && now - this.connectAt > CONNECT_TIMEOUT_MS) this.showLost('сервер не отвечает');
     if (this.screen === 'reconnecting') this.tickReconnect(now);
     if (this.screen === 'game' && this.active) {
       this.renderer.beginFrame(this.settings.showStats);
-      try { this.active.frame(now, dt); }
+      try { if (!this.transition.frame(now, dt)) this.active.frame(now, dt); }
       finally { this.renderer.endFrame(); }
       this.watchPointer(now);
       const mode = this.active.touchMode;

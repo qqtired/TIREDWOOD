@@ -1,48 +1,41 @@
-.voice-settings, .voice-hud { font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; }
-.voice-settings[hidden], .voice-hud[hidden], .voice-settings [hidden], .voice-hud [hidden] { display: none !important; }
-.voice-settings { border: 1px solid #776d72; border-radius: 12px; background: #242b38; text-align: left; }
-.voice-summary { min-height: 44px; padding: 12px; cursor: pointer; font-weight: 600; box-sizing: border-box; }
-.voice-body { padding: 0 12px 12px; display: grid; gap: 10px; }
-.voice-note, .voice-status, .voice-error, .voice-game-mute, .voice-group { margin: 0; }
-.voice-note, .voice-group { color: #d8cfcb; font-size: 12px; }
-.voice-error, .voice-game-mute { color: #ffd19b; }
-.voice-controls { display: flex; flex-wrap: wrap; gap: 6px; }
-.voice-btn, .voice-hold { min-height: 44px; border: 1px solid #827a80; border-radius: 8px; color: #fff0da; background: #343c4c; font: inherit; line-height: 1.3; padding: 8px 10px; cursor: pointer; touch-action: manipulation; }
-.voice-btn:hover:not(:disabled) { background: #465167; }
-.voice-settings :focus-visible, .voice-hud :focus-visible { outline: 3px solid #ffd19b; outline-offset: 3px; }
-.voice-btn:disabled, .voice-hold:disabled { opacity: .6; cursor: default; }
-.voice-enable { background: #775039; }
-.voice-volume-label { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; align-items: center; }
-.voice-volume { grid-column: 1 / -1; width: 100%; min-height: 44px; margin: 0; accent-color: #ffd19b; }
-.voice-volume-value { font-variant-numeric: tabular-nums; }
-.voice-peers { display: grid; gap: 6px; }
-.voice-peer { display: flex; gap: 8px; align-items: center; justify-content: space-between; border-top: 1px solid #5b5863; padding-top: 6px; }
-.voice-peer-label { min-width: 0; display: grid; }
-.voice-peer-name { overflow-wrap: anywhere; font-weight: 500; }
-.voice-peer-state { font-size: 12px; color: #d8cfcb; }
-.voice-peer.talking .voice-peer-state { color: #b9edc1; }
-.voice-peer-mute { flex-shrink: 0; }
-.voice-hud { position: absolute; z-index: 2; left: 20px; bottom: 18px; pointer-events: none; }
+/* Голос в игре: кнопка микрофона в левом нижнем углу, над ней «Сейчас говорят», справа — короткая подсказка. */
+.voice-hud { position: absolute; z-index: 2; left: 20px; bottom: 18px; display: flex; align-items: center; gap: 10px; font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; pointer-events: none; }
+.voice-hud[hidden], .voice-hud [hidden] { display: none !important; }
+.voice-hud :focus-visible { outline: 3px solid #ffd19b; outline-offset: 3px; }
 .voice-speakers { position: absolute; left: 0; bottom: calc(100% + 10px); display: grid; gap: 4px; width: min(240px, calc(100vw - 40px)); max-height: 92px; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #b9d9bf #26382c; list-style: none; pointer-events: auto; touch-action: pan-y; }
 .voice-speaker { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 4px 8px; box-sizing: border-box; border-radius: 7px; background: #25382de8; color: #f2f6e8; font-size: 12px; line-height: 20px; }
 .voice-speaker-icon { display: flex; flex: 0 0 15px; color: #bce1a1; }
 .voice-speaker-icon svg { width: 15px; height: 15px; }
 .voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .voice-speaker-state { flex-shrink: 0; margin-left: auto; color: #cce7bc; font-size: 11px; }
-.voice-hold { pointer-events: auto; }
-.voice-hold { position: relative; display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 2px solid #e8c6a1; border-radius: 50%; color: #fcead4; background: #514336e8; box-shadow: 0 3px 0 #2d241c99, 0 4px 14px #211c1933; user-select: none; -webkit-user-select: none; touch-action: none; transition: background-color 140ms, color 140ms, transform 140ms; }
-.voice-hold svg { display: block; width: 25px; height: 25px; pointer-events: none; }
+.voice-hold { position: relative; flex: none; display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 2px solid #e8c6a1; border-radius: 50%; color: #fcead4; background: #514336e8; box-shadow: 0 3px 0 #2d241c99, 0 4px 14px #211c1933; font: inherit; cursor: pointer; pointer-events: auto; user-select: none; -webkit-user-select: none; touch-action: none; transition: background-color 140ms, color 140ms, transform 140ms; }
+.voice-hold svg { grid-area: 1 / 1; display: block; width: 25px; height: 25px; pointer-events: none; }
+.voice-hold .voice-speaker-off { display: none; }
+.voice-hold[data-state='blocked'] svg:first-child { display: none; }
+.voice-hold[data-state='blocked'] .voice-speaker-off { display: block; }
 .voice-key { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 5px; border: 1px solid #806b57; background: #fcead4; color: #493428; font-size: 10px; font-weight: 700; pointer-events: none; }
 .touch .voice-key { display: none; }
 .voice-hold .voice-slash { opacity: 0; }
 .voice-hold[data-state='off'] .voice-slash, .voice-hold[data-state='error'] .voice-slash { opacity: 1; }
+.voice-hold[data-state='off'] { opacity: .75; }
+.voice-hold[data-state='listen'] { color: #f1dcc4; background: #4a3e33d9; }
 .voice-hold[data-state='ready'] { background: #f4d2a6; color: #493428; }
 .voice-hold[data-state='talking'] { background: #bce1a1; border-color: #e9f7d7; color: #294521; transform: scale(.96); box-shadow: 0 0 0 5px #c7e4aa40, 0 3px 0 #2d241c66; }
 .voice-hold[data-state='error'] { color: #ffdec9; border-color: #eb9c7d; background: #763f32; }
-.voice-hold[data-state='connecting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: #ffdeb6; border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
+.voice-hold[data-state='blocked'] { color: #493428; border-color: #fff3de; background: #ffb36b; animation: voice-nudge 1.6s ease-in-out infinite; }
+.voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: #ffdeb6; border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
+.voice-hold:disabled { cursor: default; }
 .voice-hold:hover:not(:disabled) { filter: brightness(1.08); }
+.voice-tip { max-width: min(280px, calc(100vw - 110px)); margin: 0; padding: 6px 10px; border-radius: 9px; background: #2b2025e6; color: #fff3de; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 10px #0004; }
+/* в пейнтболе и крепости слева внизу — здоровье (.card.vitals, 260 px): кнопка голоса — справа от него */
+html:not(.touch)[data-room='paintball'] .voice-hud, html:not(.touch)[data-room='fort'] .voice-hud { left: 292px; bottom: 26px; }
 @keyframes voice-connect { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .voice-hold { transition: none; } .voice-hold[data-state='connecting']::after { animation: none; border-style: dashed; border-color: #ffdeb6; } }
+@keyframes voice-nudge { 50% { box-shadow: 0 0 0 7px #ffb36b40, 0 3px 0 #2d241c99; } }
+@media (prefers-reduced-motion: reduce) {
+  .voice-hold { transition: none; }
+  .voice-hold[data-state='blocked'] { animation: none; }
+  .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { animation: none; border-style: dashed; border-color: #ffdeb6; }
+}
 @media (max-width: 600px), (pointer: coarse) {
   .voice-hud { left: 14px; bottom: max(166px, calc(env(safe-area-inset-bottom) + 150px)); }
   .voice-hold { width: 52px; height: 52px; }
@@ -52,6 +45,6 @@
   html.touch[data-fishing] .voice-speakers { width: min(190px, calc(100vw - 170px)); max-height: 60px; bottom: calc(100% + 8px); }
 }
 @media (forced-colors: active) {
-  .voice-settings :focus-visible, .voice-hud :focus-visible { outline-color: Highlight; }
-  .voice-btn:disabled, .voice-hold:disabled { color: GrayText; opacity: 1; }
+  .voice-hud :focus-visible { outline-color: Highlight; }
+  .voice-hold:disabled { color: GrayText; opacity: 1; }
 }

@@ -2,7 +2,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ITEMS } from '../shared/outfit.ts';
-import { bodyR, wearOf } from '../client/render/outfit3d.ts';
+import { bodyR } from '../client/render/outfit3d.ts';
+import { wearFor as wearOf } from '../client/render/outfitfish.ts';
+import { SHELL_ACCS } from '../shared/fishstyle.ts';
 import { VEST_Y0, buildVestGeometry, vestRadius, vestTop } from '../client/render/teamgear.ts';
 
 const geo = buildVestGeometry();
@@ -107,7 +109,9 @@ function zone(slot: 'h' | 'a' | 'e', key: string): { buried: number; pierce: num
 test('жилет не режет наряд: круг и корень хвоста выходят через оболочку, цепочка монокля заправлена под край', () => {
   const touching: string[] = [];
   for (const it of ITEMS) {
-    if (it.slot === 'p') continue;
+    if (it.slot !== 'h' && it.slot !== 'a' && it.slot !== 'e') continue;
+    // рыбацкие жилет, куртки, кукан и сачок на время пейнтбола прячутся (avatar.refreshShell)
+    if (it.slot === 'a' && SHELL_ACCS.has(it.key)) continue;
     const z = zone(it.slot, it.key);
     if (z.inZone === 0) continue;
     touching.push(it.id);
