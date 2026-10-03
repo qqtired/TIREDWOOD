@@ -29,7 +29,8 @@ function skillCamera(controls=input(),collision=new CollisionWorld({...makeSkill
  const camera=new THREE.PerspectiveCamera();
  const s=Object.assign(Object.create(SkillScene.prototype),{active:true,ready:true,tick:0,receivedAt:0,viewTick:0,acc:0,peers:[],hudAt:0,progress:{checkpoint:0},
   cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),cam:new SkillCamera(),lock:0,decor:noop,
-  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},settings:{fov:95}},dynamics:{place:noop},
+  clock:{ready:true,renderTick:0,update:noop},vt0:0,vt1:0,lastVt:0,
+  predictor:{state:{...makeState(),y:40},prev:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},settings:{fov:95}},dynamics:{place:noop},
   world:{camera,collision,update:noop,render:noop}});
  return{s,camera};
 }
