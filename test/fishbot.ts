@@ -6,9 +6,9 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
 import { REEL_BAR, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
 import {
-  CHEST_BANDS, CHEST_PER_10K, COLLECTION, JUNK_PER_10K, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, reelStyleFor,
+  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, JUNK_PER_10K, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, reelStyleFor,
 } from '../shared/fishrules.ts';
-import { fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
+import { fishCatchXp, fishLostXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { makeRng } from '../shared/math.ts';
 
 export interface Skill {
@@ -80,6 +80,8 @@ export interface ReelStats {
   perfectP: number;
   /** Sum time for successful and failed attempts / successes, not just mean fight duration. */
   costTicks: number;
+  /** Сорвалась после CONSOLATION_TICKS борьбы (утешительный опыт эпических и выше) / все попытки */
+  lostLongP: number;
 }
 
 /** Доля поимок/срывов, идеальные поимки и реальная ожидаемая цена успеха по n одинаковым сидам. */
@@ -88,16 +90,20 @@ export function reelStats(style: ReelStyle, skill: Skill, n: number, seed0 = 1):
   let ticks = 0;
   let ct = 0;
   let perfect = 0;
+  let lostLong = 0;
   for (let i = 0; i < n; i++) {
     const r = playReel(style, (seed0 + i * 2654435761) | 0, skill);
     if (r.caught) {
       caught++;
       ct += r.ticks;
       if (r.perfect) perfect++;
-    }
+    } else if (r.ticks >= CONSOLATION_TICKS) lostLong++;
     ticks += r.ticks;
   }
-  return { p: caught / n, failure: 1 - caught / n, ticks: ticks / n, caughtTicks: caught ? ct / caught : 0, perfectP: perfect / n, costTicks: caught ? ticks / caught : Infinity };
+  return {
+    p: caught / n, failure: 1 - caught / n, ticks: ticks / n, caughtTicks: caught ? ct / caught : 0, perfectP: perfect / n,
+    costTicks: caught ? ticks / caught : Infinity, lostLongP: lostLong / n,
+  };
 }
 
 // ------------------------------------------------------------ доход
@@ -175,7 +181,7 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
     coins += share * s.p * m.coins;
     fish += share * s.p;
     hooked += share;
-    xp += share * (s.p * fishCatchXp(sp) + s.perfectP * (fishCatchXp(sp, true) - fishCatchXp(sp)));
+    xp += share * (s.p * fishCatchXp(sp, false, mods) + s.perfectP * (fishCatchXp(sp, true, mods) - fishCatchXp(sp, false, mods)) + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods));
   }
   let chest = 0;
   for (const [sp, share] of [[SP_CHEST, CHEST_PER_10K / 10_000], [SP_BOOT, JUNK_PER_10K / 10_000]] as const) {

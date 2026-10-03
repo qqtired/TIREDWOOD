@@ -207,7 +207,7 @@ test('premium purchases charge exact balance once; old ownership, exclusive rewa
   const p = ok(profiles.login({ key: loginKey, nick: 'Орбитальщик' }, '')).profile;
   p.owned = ['h:panama', 'p:gold', 'h:crown', 'h:angler', 'e:angler', 'a:angler'];
   p.album = { hamsa: [31, 4] };
-  p.fishing = { xp: 1234, questsDone: 5, questCaught: 3, rod: 2, beerUntil: clock.now + 5000 };
+  p.fishing = { xp: 1234, questsDone: 5, questCaught: 3, rod: 2, beerUntil: clock.now + 5000 , aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
   const album = structuredClone(p.album);
   const fishing = { ...p.fishing };
   const oldOwned = [...p.owned];

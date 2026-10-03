@@ -1,6 +1,11 @@
-import { fishLevelView, type FishProgress } from '../../shared/fishprogress.ts';
+import { activeDrink, bagSlots, bagValue, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
+import { ALE, BEER, lureOf } from '../../shared/fishshop.ts';
+import { BARKAS_INCOME } from '../../shared/fishrules.ts';
+import type { FishZone } from '../../shared/fishplaces.ts';
+import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
+import { mul, num, pct } from './fishfmt.ts';
 import { TOUCH } from '../touch.ts';
 
 /** Same compact skill scale in the journal, NPC dialog and profile. */
@@ -9,32 +14,54 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
   const head = block.appendChild(el('div', 'fs-skill-head'));
   head.appendChild(el('b', '', compact ? `🎣 Ур. ${view.level}` : view.level === 0 ? '🎣 Новичок' : `🎣 Уровень ${view.level} из 10`));
-  head.appendChild(el('span', '', compact ? `${view.xp.toLocaleString('ru-RU')} XP` : view.next === null ? `${view.xp.toLocaleString('ru-RU')} XP · максимум` : `${view.xp.toLocaleString('ru-RU')} / ${view.next.toLocaleString('ru-RU')} XP`));
+  head.appendChild(el('span', '', compact ? view.next === null ? `${view.xp.toLocaleString('ru-RU')} XP` : `${view.xp.toLocaleString('ru-RU')} / ${view.next.toLocaleString('ru-RU')}` : view.next === null ? `${view.xp.toLocaleString('ru-RU')} XP · максимум` : `${view.xp.toLocaleString('ru-RU')} / ${view.next.toLocaleString('ru-RU')} XP`));
   const bar = block.appendChild(el('progress', 'fs-xp'));
   bar.max = view.next === null ? 1 : Math.max(1, view.next - view.from);
   bar.value = view.next === null ? 1 : Math.max(0, view.xp - view.from);
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
     ? 'Зелёная зона +25% · опыт продолжает учитываться'
-    : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP · зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}%`));
+    : view.level === 0
+      ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +2,5%`
+      : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}%`));
   return block;
 }
 
+/**
+ * Рядом с уровнем (fisheco): задание («Задание 3 · 7/15», готово — «сдай Семёну»), рюкзак («🎒 6/10 · 84 🪙»: одно
+ * место — жёлтый, полон — красный; клик — окно рюкзака), блесна и место (баркас ×1,25). Справа сверху — напиток с
+ * таймером (пиво или эль).
+ */
 export class FishProgressHud {
+  onBag: () => void = () => {};
   readonly skill: HTMLElement;
+  private readonly quest: HTMLElement;
+  private readonly bag: HTMLButtonElement;
+  private readonly gear: HTMLElement;
   private readonly badge: HTMLElement;
+  private readonly icon: HTMLElement;
+  private readonly name: HTMLElement;
+  private readonly effect: HTMLElement;
   private readonly time: HTMLElement;
   private readonly clock = new FishClock();
-  private until = 0;
+  private progress: FishProgress | null = null;
+  private zone: FishZone = 'pier';
 
   constructor(parent: HTMLElement, overlay: HTMLElement) {
     this.skill = parent.appendChild(el('div', 'f2-skill'));
+    const row = parent.appendChild(el('div', 'fe-chips'));
+    this.quest = row.appendChild(el('div', 'fe-chip fe-quest'));
+    this.bag = row.appendChild(el('button', 'fe-chip fe-bagchip'));
+    this.bag.type = 'button';
+    this.bag.title = 'Рюкзак · I';
+    this.bag.addEventListener('click', () => this.onBag());
+    this.gear = parent.appendChild(el('div', 'fe-gear'));
     this.badge = overlay.appendChild(el('div', 'fs-buff'));
-    const icon = this.badge.appendChild(el('span', 'fs-buff-icon', '🍺'));
-    icon.setAttribute('aria-hidden', 'true');
+    this.icon = this.badge.appendChild(el('span', 'fs-buff-icon', '🍺'));
+    this.icon.setAttribute('aria-hidden', 'true');
     const info = this.badge.appendChild(el('div', ''));
-    info.appendChild(el('b', '', 'Рыбацкое пиво'));
-    info.appendChild(el('span', '', 'Доход от рыбы +10% · редкие чаще'));
+    this.name = info.appendChild(el('b', '', BEER.name));
+    this.effect = info.appendChild(el('span', ''));
     this.time = this.badge.appendChild(el('time', 'fs-buff-time'));
     // This small badge remains accurate while playing another room or sitting in the pause menu.
     window.setInterval(() => this.tick(), 250);
@@ -42,23 +69,57 @@ export class FishProgressHud {
 
   set(progress: FishProgress, serverNow?: number): void {
     if (serverNow !== undefined) this.clock.sync(serverNow);
-    this.until = progress.beerUntil;
+    this.progress = progress;
     // Full level/bonus explanation stays in the journal and NPC; the fishing HUD only needs status.
     this.skill.replaceChildren(fishSkillBlock(progress, TOUCH));
+    const need = questNeed(progress.questsDone);
+    const ready = progress.questCaught >= need;
+    this.quest.textContent = ready ? `📋 Задание ${progress.questsDone + 1} готово — сдай Семёну` : `📋 Задание ${progress.questsDone + 1} · ${progress.questCaught}/${need}`;
+    this.quest.classList.toggle('ready', ready);
+    const slots = bagSlots(progress);
+    const n = progress.bag.length;
+    setCoinText(this.bag, `🎒 ${n}/${slots} · ${num(bagValue(progress.bag))} 🪙`);
+    this.bag.classList.toggle('warn', n === slots - 1);
+    this.bag.classList.toggle('full', n >= slots);
+    this.bag.setAttribute('aria-label', `Рюкзак: ${n} из ${slots} рыб${n >= slots ? ', полон — продай улов Семёну или Сане' : ''}`);
+    this.renderGear();
     this.tick();
   }
 
+  /** Где сидит с удочкой (на баркасе — значок ×1,25) */
+  setZone(zone: FishZone): void {
+    if (zone === this.zone) return;
+    this.zone = zone;
+    this.renderGear();
+  }
+
   clear(): void {
-    this.until = 0;
+    this.progress = null;
     this.tick();
+  }
+
+  private renderGear(): void {
+    const lure = lureOf(this.progress?.lure ?? 0);
+    const parts: string[] = [];
+    if (lure) parts.push(`🪝 ${lure.name.toLowerCase()} · рывки −${Math.round(lure.calm * 100)}%`);
+    if (this.zone === 'barkas') parts.push(`⚓ баркас · цена и опыт ${mul(BARKAS_INCOME)}`);
+    this.gear.textContent = parts.join('  ·  ');
+    this.gear.hidden = parts.length === 0;
   }
 
   private tick(): void {
     const now = this.clock.now();
-    const active = this.until > now;
+    const p = this.progress;
+    const drink = p ? activeDrink(p, now) : 0;
+    const until = drink === 2 ? p!.aleUntil : drink === 1 ? p!.beerUntil : 0;
+    const d = drink === 2 ? ALE : BEER;
+    const active = drink !== 0;
     this.badge.classList.toggle('show', active);
-    this.badge.classList.toggle('ending', active && this.until - now <= 60_000);
-    this.time.textContent = fishTimeLeft(this.until, now);
-    this.badge.setAttribute('aria-label', `Рыбацкое пиво: ${this.time.textContent}. Доход от пойманной рыбы плюс десять процентов, редкие виды клюют чаще. Только рыбалка.`);
+    this.badge.classList.toggle('ending', active && until - now <= 60_000);
+    this.icon.textContent = drink === 2 ? '🍻' : '🍺';
+    this.name.textContent = d.name;
+    this.effect.textContent = `Доход от рыбы ${pct(d.income)} · редкие ${mul(d.rare)}`;
+    this.time.textContent = fishTimeLeft(until, now);
+    this.badge.setAttribute('aria-label', `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
   }
 }

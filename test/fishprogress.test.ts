@@ -21,9 +21,10 @@ test('fishing skill earns exactly ten levels at Stardew cumulative XP thresholds
 });
 
 test('saved fishing progress rejects invalid counters and unearned or fractional rods', () => {
-  assert.deepEqual(normalizeFishProgress(null), { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0 });
+  const empty = { aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
+  assert.deepEqual(normalizeFishProgress(null), { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0, ...empty });
   const raw = { xp: 381.9, questsDone: 5, questCaught: 37.8, rod: 3, beerUntil: 600_001.9 };
-  assert.deepEqual(normalizeFishProgress(raw), { xp: 381, questsDone: 5, questCaught: 37, rod: 2, beerUntil: 600_001 });
+  assert.deepEqual(normalizeFishProgress(raw), { xp: 381, questsDone: 5, questCaught: 37, rod: 2, beerUntil: 600_001, ...empty }, 'старое сохранение без рюкзака — пустой рюкзак');
   assert.equal(raw.rod, 3, 'normalization must not mutate a loaded save');
   assert.equal(normalizeFishProgress({ questsDone: 10, rod: 1.5 }).rod, 0);
   assert.equal(normalizeFishProgress({ questsDone: 10, rod: 1 }).rod, 1, 'earned lower rod is a valid selection');
@@ -82,20 +83,20 @@ test('only landed collection fish earn difficulty-based XP; perfect and legendar
   // Game has no quality grade or simultaneous chest, so normal quality and no treasure XP factor.
   assert.ok(fishCatchXp(sp('hamsa')) >= 1);
   assert.ok(fishCatchXp(sp('bluefish')) > fishCatchXp(sp('hamsa')));
-  assert.equal(fishCatchXp(sp('hamsa'), true), Math.round(Math.trunc(17 * 2.4) * .3333));
+  assert.equal(fishCatchXp(sp('hamsa'), true), Math.round(Math.trunc(17 * 2.4) * .4));
   assert.ok(fishCatchXp(sp('sturgeon')) >= 33);
   assert.ok(fishCatchXp(sp('whiteshark')) >= fishCatchXp(sp('sturgeon')));
   for (const id of ['boot', 'bottle', 'chest', 'goldfish']) assert.equal(fishCatchXp(sp(id)), 0, id);
   assert.equal(fishCatchXp(-1), 0);
 });
 
-test('XP freezes released difficulty and rounds one-third after perfect then legendary factors', () => {
-  // Independently derived from 1200-seed real cost-to-success calibration in the release report.
-  assert.equal(fishCatchXp(sp('hamsa')), 6);
-  assert.equal(fishCatchXp(sp('goby')), 5);
-  assert.equal(fishCatchXp(sp('bluefish')), 10);
-  assert.equal(fishCatchXp(sp('tuna')), 57);
-  assert.equal(fishCatchXp(sp('tuna'), true), 135, '34 → floor(34*2.4)=81 → 81*5=405 → round(405*.3333)=135');
-  assert.equal(fishCatchXp(sp('whiteshark')), 65);
-  assert.equal(fishCatchXp(sp('whiteshark'), true), 155);
+test('XP freezes released difficulty and rounds ×0.4 (+20 %, fisheco) after perfect then legendary factors', () => {
+  // Independently derived from 1200-seed real cost-to-success calibration in the release report; fisheco: ×0,4 вместо ×0,3333.
+  assert.equal(fishCatchXp(sp('hamsa')), 7);
+  assert.equal(fishCatchXp(sp('goby')), 6);
+  assert.equal(fishCatchXp(sp('bluefish')), 12);
+  assert.equal(fishCatchXp(sp('tuna')), 68);
+  assert.equal(fishCatchXp(sp('tuna'), true), 162, '34 → floor(34*2.4)=81 → 81*5=405 → round(405*.4)=162');
+  assert.equal(fishCatchXp(sp('whiteshark')), 78);
+  assert.equal(fishCatchXp(sp('whiteshark'), true), 186);
 });

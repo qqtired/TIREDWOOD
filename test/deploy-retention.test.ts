@@ -14,7 +14,7 @@ function fixture(t: TestContext) {
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const store = new Store(dir, { log: () => {} }); store.load();
   const p = normalizeProfile({ id: 8, nick: 'SyntheticKeep', tokens: 4321, owned: ['h:fisher'], album: { goby: [240, 19] } })!;
-  p.fishingResetVersion = 0; p.levelsVersion = 0; p.fishing = { xp: 9800, questsDone: 7, questCaught: 5, rod: 3, beerUntil: 12345 };
+  p.fishingResetVersion = 0; p.levelsVersion = 0; p.fishing = { xp: 9800, questsDone: 7, questCaught: 5, rod: 3, beerUntil: 12345 , aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
   p.stats.fsCaught = 19; store.state.profiles = [p]; store.state.nextId = 9; store.markDirty(); store.flush(); store.close();
   return { dir, file: path.join(dir, 'state.json') };
 }

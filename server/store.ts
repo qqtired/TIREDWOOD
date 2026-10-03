@@ -30,6 +30,8 @@ export interface Profile {
   /** Зарезервированные жетоны текущей раздачи: возвращаются один раз после аварийного рестарта. */
   blackjackEscrow?: { round: string; amount: number } | null;
   durakEscrow?: { round: string; amount: number } | null;
+  /** Улов на рулетке рыбака (его цена, жетонов) до остановки колеса: после аварийного рестарта возвращается жетонами. */
+  rouletteEscrow?: { round: string; amount: number } | null;
   /** Купленные и выигранные вещи: 'h:tophat', 'p:gold'… */
   owned: string[];
   outfit: Outfit;
@@ -126,6 +128,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
     xp, level: levelFromXp(xp), levelsVersion: LEVELS_VERSION, fishingResetVersion: FISHING_RESET_VERSION,
     blackjackEscrow: normalizeBlackjackEscrow(r.blackjackEscrow),
     durakEscrow: normalizeBlackjackEscrow(r.durakEscrow),
+    rouletteEscrow: normalizeBlackjackEscrow(r.rouletteEscrow),
     owned,
     outfit: r.outfit ? sanitizeOutfit(r.outfit, owned) : { ...DEFAULT_OUTFIT },
     daily: typeof r.daily === 'string' ? r.daily : '',
