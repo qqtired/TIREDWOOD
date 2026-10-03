@@ -116,6 +116,9 @@ export class RouletteHud {
 
   get isOpen(): boolean { return this.root.open; }
 
+  /** Колесо поехало или встало — плашку обновляем сразу (а не по таймеру в четверть секунды), в один кадр с тостом и звуком */
+  refresh(): void { this.renderBanner(); }
+
   open(progress: FishProgress, pid: number): void {
     this.progress = progress;
     this.myPid = pid;

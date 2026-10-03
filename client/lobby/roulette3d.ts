@@ -163,7 +163,8 @@ export class Roulette3D {
     for (const sx of [-1, 1]) legs.push(place(paint(new THREE.BoxGeometry(0.07, 0.05, TABLE_D + 0.12), 0x8a5a34), sx * (TABLE_W / 2 + 0.025), TABLE_H + 0.045, 0));
     // чаша колеса
     legs.push(place(paint(new THREE.CylinderGeometry(R_RIM + 0.05, R_RIM + 0.09, 0.12, 48, 1, true), 0x5b3a23), WHEEL_X, WHEEL_Y - 0.06, 0));
-    legs.push(place(paint(new THREE.CylinderGeometry(R_RIM + 0.06, R_RIM + 0.06, 0.012, 48), 0xc8a45a), WHEEL_X, WHEEL_Y + 0.003, 0));
+    // латунный ободок — кольцо вокруг чаши, а не сплошной диск: диск закрывал лунки, шарик и подсветку (колесо было жёлтой плиткой)
+    legs.push(place(paint(new THREE.RingGeometry(R_RIM, R_RIM + 0.06, 48).rotateX(-Math.PI / 2), 0xc8a45a), WHEEL_X, WHEEL_Y + 0.009, 0));
     legs.push(place(paint(new THREE.CylinderGeometry(R_RIM, R_RIM, 0.02, 48), 0x3b2616), WHEEL_X, WHEEL_Y - 0.05, 0));
     const body = new THREE.Mesh(mergeColored(legs), wood);
     body.castShadow = true;
@@ -349,7 +350,7 @@ export class Roulette3D {
   }
 
   private placeBall(bounce: number, scale: number): void {
-    const y = WHEEL_Y + (this.ballR > R_POCKET + 0.02 ? 0.01 : -0.012) + bounce;
+    const y = WHEEL_Y + (this.ballR > R_POCKET + 0.02 ? 0 : -0.012) + bounce;
     this.ball.position.set(WHEEL_X + Math.cos(this.ballAngle) * this.ballR, y, -Math.sin(this.ballAngle) * this.ballR);
     this.ball.scale.setScalar(scale);
   }

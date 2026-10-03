@@ -228,6 +228,8 @@ export class LobbyScene implements Scene {
   private readonly roulette3d: Roulette3D;
   /** Итог моей ставки: тост и звук — когда шарик остановится (после вращения у меня на экране) */
   private rlResult: Extract<ServerMsg, { t: 'rouletteResult' }> | null = null;
+  /** Крутилось ли колесо в прошлом кадре — по смене обновляем плашку раунда */
+  private rlSpun = false;
   private readonly folk: LobbyFolk;
   /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
   private readonly respects: Respects;
@@ -1724,8 +1726,10 @@ export class LobbyScene implements Scene {
   private updateRoulette(): void {
     const p = this.pose;
     this.fish2.roulette.setNear(this.hasSelf && Math.hypot(p.x - ROULETTE_SPOT.x, p.z - ROULETTE_SPOT.z) <= 9 && Math.abs(p.y - ROULETTE_SPOT.y) < 3);
+    const spin = this.roulette3d.spinning;
+    if (spin !== this.rlSpun) { this.rlSpun = spin; this.fish2.roulette.refresh(); }
     const m = this.rlResult;
-    if (!m || this.roulette3d.spinning) return;
+    if (!m || spin) return;
     this.rlResult = null;
     this.d.ui.toasts.show(RouletteHud.resultText(m), 6000);
     if (m.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(m.payout))));
