@@ -284,6 +284,7 @@ export class LobbyRoom implements Room {
         if (p) hub.toast(p.client, text);
       },
       finished: (r) => hub.onDurakGame(r),
+      balance: (pid) => hub.profiles.byId(pid)?.tokens ?? 0,
       reserve: (round, bets) => {
         const accepted = hub.profiles.reserveDurakBatch(round, bets);
         if (accepted) for (const bet of bets) this.syncBlackjackBalance(bet.pid);

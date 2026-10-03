@@ -91,6 +91,8 @@ export interface DurakResult {
 }
 
 export interface DurakHooks {
+  /** Сколько жетонов у профиля сейчас. Без хука баланс не проверяем: окончательно решает reserve при раздаче. */
+  balance?(pid: number): number;
   reserve?(round: string, bets: readonly { pid: number; amount: number }[]): boolean;
   settle?(round: string, payouts: readonly { pid: number; wager: number; payout: number }[]): boolean;
   /** Одному на набережной */
@@ -230,11 +232,13 @@ export class DurakHall {
         if ((tb.phase === 'wait' || tb.phase === 'count') && ch === this.modeBy(tb) && [10,20,50].includes(n) && tb.ante !== n) {
           tb.ante = n;
           for (const seat of tb.seats) if (seat.k === 1) seat.ready = false;
+          this.dropBroke(tb);
           this.recount(tb);
         }
         return;
       case 'stake':
         if ((tb.phase === 'wait' || tb.phase === 'count' || tb.phase === 'result') && (n === 0 || n === 1) && s.stake !== (n === 1)) {
+          if (n === 1 && !this.canPay(tb, s)) return;
           s.stake = n === 1; s.ready = false; tb.dirty = true;
           if (tb.phase !== 'result') this.recount(tb);
         }
@@ -269,6 +273,34 @@ export class DurakHall {
         this.move(tb, s, { a });
         return;
     }
+  }
+
+  /** Жетонов на ставку стола хватает? Нет — игроку объясняем почему (ставку больше баланса сделать нельзя). */
+  private canPay(tb: DurakTable, s: DurakSeat): boolean {
+    const have = this.hooks.balance?.(s.pid);
+    if (have === undefined || have >= tb.ante) return true;
+    if (s.slot) this.hooks.toast(s.slot, `Для ставки нужно ${tb.ante} 🪙, а у тебя ${have}`);
+    return false;
+  }
+
+  /**
+   * Ставка стола выросла или жетоны кончились к раздаче: кому не хватает — играет бесплатно и подтверждает готовность
+   * заново. Остальные не трогаем. true — кто-то перешёл на бесплатную игру.
+   */
+  private dropBroke(tb: DurakTable): boolean {
+    if (!this.hooks.balance) return false;
+    let any = false;
+    for (const s of tb.seats) {
+      if (s.k !== 1 || !s.stake) continue;
+      const have = this.hooks.balance(s.pid);
+      if (have >= tb.ante) continue;
+      s.stake = false;
+      s.ready = false;
+      any = true;
+      if (s.slot) this.hooks.toast(s.slot, `Ставка ${tb.ante} 🪙 больше твоего баланса (${have}): играешь бесплатно`);
+    }
+    if (any) tb.dirty = true;
+    return any;
   }
 
   private setReady(tb: DurakTable, s: DurakSeat, on: boolean): void {
@@ -485,6 +517,11 @@ export class DurakHall {
     const chairs: number[] = [];
     for (let ch = TABLE_SEATS - 1; ch >= 0; ch--) if (tb.seats[ch].k !== 0) chairs.push(ch);
     if (chairs.length < 2 || !chairs.some((ch) => tb.seats[ch].k === 1)) {
+      this.recount(tb);
+      return;
+    }
+    // жетонов на ставку не хватает (потратил после того, как отметил ставку) — этот игрок бесплатно, отсчёт заново
+    if (this.dropBroke(tb)) {
       this.recount(tb);
       return;
     }
