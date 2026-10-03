@@ -147,6 +147,12 @@ export class Fish2Hud {
 
   closeNpc(): void { this.npc.close(); }
 
+  /** Саня ответил на «домой к Семёну»: отправил — разговор закрыт и тост, нет — причина в разговоре (или тостом). */
+  onBarkasHome(ok: boolean, message: string): void {
+    if (ok || !this.npc.isOpen) this.ui.toasts.show(message);
+    this.npc.onHome(ok, message);
+  }
+
   requestNpcOpen(): void { this.npc.requestOpen(); }
 
   refreshBalance(): void { this.npc.refresh(); }

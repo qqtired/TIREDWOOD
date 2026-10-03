@@ -1,3 +1,4 @@
+import { SANYA_PRICE } from '../../shared/barkas.ts';
 import { BEER_PRICE, RAIN_DRUM_PRICE, emptyFishProgress, questNeed, unlockedRod, rodBonus, type FishProgress, type FishRod } from '../../shared/fishprogress.ts';
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import type { MeState } from '../scene.ts';
@@ -14,6 +15,16 @@ const ROD_URLS = [null,
 const ROD_NAMES = ['Обычная', 'Продвинутая', 'Профессиональная', 'Мастерская'];
 const ROD_QUESTS = [0, 1, 5, 10];
 type NpcAction = Extract<ClientMsg, { t: 'fishNpc' }>['a'];
+/** Кто говорит: Дед Семён у мостков или его брат Саня на баркасе «Альбатрос» — у обоих всё одинаково */
+type Npc = 'semyon' | 'sanya';
+const NPC_HEAD: Record<Npc, { eyebrow: string; title: string; intro: string; close: string }> = {
+  semyon: { eyebrow: 'РЫБАЦКАЯ ЛАВКА', title: 'Дед Семён', intro: 'Заходи, рыбак. Пополним запасы, выберем снасти — и снова к воде.', close: 'Закрыть разговор с рыбаком' },
+  sanya: {
+    eyebrow: 'БАРКАС «АЛЬБАТРОС»', title: 'Саня',
+    intro: 'Я Семёнов брат — у меня всё как у него на пирсе: припасы, задания, удочки. А надоест качка — домой отправлю.',
+    close: 'Закрыть разговор с Саней',
+  },
+};
 
 /** Native modal: focus containment and inert background, with key events kept out of game input. */
 export class FishNpcDialog {
@@ -22,6 +33,16 @@ export class FishNpcDialog {
   onBeer: () => void = () => {};
   private readonly root: HTMLDialogElement;
   private readonly body: HTMLElement;
+  private readonly eyebrow: HTMLElement;
+  private readonly heading: HTMLElement;
+  private readonly intro: HTMLElement;
+  private readonly closeBtn: HTMLButtonElement;
+  /** Саня: «на мостки к Семёну» за жетоны (сервер — barkasHome) */
+  private readonly homeBox: HTMLElement;
+  private readonly homeBtn: HTMLButtonElement;
+  private readonly homeNote: HTMLElement;
+  private npc: Npc = 'semyon';
+  private homePending = 0;
   private readonly balance: HTMLElement;
   private readonly skill: HTMLElement;
   private readonly status: HTMLElement;
@@ -55,18 +76,30 @@ export class FishNpcDialog {
     this.root.setAttribute('aria-describedby', 'fish-npc-intro');
     const head = this.root.appendChild(el('header', 'fn-head'));
     const title = head.appendChild(el('div', 'fn-heading'));
-    title.appendChild(el('span', 'fn-eyebrow', 'РЫБАЦКАЯ ЛАВКА'));
-    title.appendChild(el('h2', '', 'Дед Семён')).id = 'fish-npc-title';
+    this.eyebrow = title.appendChild(el('span', 'fn-eyebrow', NPC_HEAD.semyon.eyebrow));
+    this.heading = title.appendChild(el('h2', '', NPC_HEAD.semyon.title));
+    this.heading.id = 'fish-npc-title';
     this.balance = head.appendChild(el('div', 'fn-balance'));
-    const close = head.appendChild(el('button', 'fn-close', '×'));
+    const close = this.closeBtn = head.appendChild(el('button', 'fn-close', '×'));
     close.type = 'button';
     close.autofocus = true;
-    close.setAttribute('aria-label', 'Закрыть разговор с рыбаком');
+    close.setAttribute('aria-label', NPC_HEAD.semyon.close);
     close.title = 'Закрыть · Esc';
     close.addEventListener('click', () => this.close());
     const body = this.body = this.root.appendChild(el('div', 'fn-body'));
-    const intro = body.appendChild(el('p', 'fn-intro', 'Заходи, рыбак. Пополним запасы, выберем снасти — и снова к воде.'));
+    const intro = this.intro = body.appendChild(el('p', 'fn-intro', NPC_HEAD.semyon.intro));
     intro.id = 'fish-npc-intro';
+    // Саня: домой, к Семёну на мостки — за жетоны сразу, бесплатно — на «Удалой»
+    this.homeBox = body.appendChild(el('section', 'fn-home'));
+    this.homeBox.appendChild(el('span', 'fn-item-icon', '⛵')).setAttribute('aria-hidden', 'true');
+    const homeText = this.homeBox.appendChild(el('div', 'fn-home-text'));
+    homeText.appendChild(el('h3', '', 'Домой, к Семёну'));
+    homeText.appendChild(el('p', 'fn-fine', 'Саня свистнет знакомому катеру — и ты сразу на мостках у Семёна. Или бесплатно на «Удалой»: позвони в колокол у калитки на корме.'));
+    this.homeNote = homeText.appendChild(el('div', 'fn-item-note'));
+    this.homeBtn = this.homeBox.appendChild(el('button', 'fn-action'));
+    this.homeBtn.type = 'button';
+    this.homeBtn.addEventListener('click', () => this.goHome());
+    this.homeBox.hidden = true;
     const overview = body.appendChild(el('div', 'fn-overview'));
     this.skill = overview.appendChild(el('div', 'fn-skill'));
     const shop = body.appendChild(el('section', 'fn-shop'));
@@ -153,6 +186,7 @@ export class FishNpcDialog {
     this.clearPending();
     this.progress = msg.progress;
     this.clock.sync(msg.now);
+    this.setNpc(msg.npc ?? 'semyon');
     if (msg.open && !this.isOpen && this.allowOpen) {
       this.status.textContent = '';
       this.render();
@@ -178,6 +212,42 @@ export class FishNpcDialog {
   }
 
   refresh(): void { if (this.isOpen) this.render(); }
+
+  /** Ответ на «домой к Семёну»: отправил — разговор закрывается (сцена покажет тост), нет — почему. */
+  onHome(ok: boolean, message: string): void {
+    window.clearTimeout(this.homePending);
+    this.homePending = 0;
+    if (ok) {
+      this.close();
+      return;
+    }
+    setCoinText(this.status, message);
+    this.render();
+  }
+
+  private goHome(): void {
+    if (this.homePending || this.pending !== null) return;
+    this.status.textContent = 'Саня свистит знакомому катеру…';
+    this.homePending = window.setTimeout(() => {
+      this.homePending = 0;
+      this.status.textContent = 'Ответ не пришёл — попробуй ещё раз.';
+      this.render();
+    }, 5000);
+    this.render();
+    this.send({ t: 'barkasHome' });
+  }
+
+  /** Шапка, вступление и блок «домой» — по тому, кто говорит. */
+  private setNpc(npc: Npc): void {
+    if (npc === this.npc) return;
+    this.npc = npc;
+    const h = NPC_HEAD[npc];
+    this.eyebrow.textContent = h.eyebrow;
+    this.heading.textContent = h.title;
+    this.intro.textContent = h.intro;
+    this.closeBtn.setAttribute('aria-label', h.close);
+    this.homeBox.hidden = npc !== 'sanya';
+  }
 
   requestOpen(): void {
     this.allowOpen = true;
@@ -238,9 +308,14 @@ export class FishNpcDialog {
     this.questProgress.max = need;
     this.questProgress.value = Math.min(need, p.questCaught);
     this.questProgress.setAttribute('aria-label', `Поймано ${p.questCaught} из ${need} рыб для задания`);
-    this.questNote.textContent = `${p.questCaught} / ${need} рыб · выполнено заданий: ${p.questsDone}. Сорванная рыба и сундуки не считаются. Сдай выполненное задание Семёну: следующее начнётся с нуля.`;
+    this.questNote.textContent = `${p.questCaught} / ${need} рыб · выполнено заданий: ${p.questsDone}. Сорванная рыба и сундуки не считаются. Сдай выполненное задание ${this.npc === 'sanya' ? 'Сане' : 'Семёну'}: следующее начнётся с нуля.`;
     setCoinText(this.claimBtn, `${ready ? 'Получить' : 'Награда'} · ${need * 5} 🪙`);
     this.claimBtn.disabled = busy || !ready;
+    if (this.npc === 'sanya') {
+      this.homeNote.textContent = tokens < SANYA_PRICE ? `Не хватает ${SANYA_PRICE - tokens} жетонов` : 'Сразу — без ожидания лодки';
+      setCoinText(this.homeBtn, `На мостки к Семёну · ${SANYA_PRICE} 🪙`);
+      this.homeBtn.disabled = busy || this.homePending !== 0 || tokens < SANYA_PRICE;
+    }
     const unlocked = unlockedRod(p.questsDone);
     for (let rod = 0; rod < this.rodBtns.length; rod++) {
       const selected = p.rod === rod;

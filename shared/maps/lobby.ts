@@ -5,7 +5,7 @@
 import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSteps } from '../aqua.ts';
 import { BARKAS_BOARD, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../barkas.ts';
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
-import { FERRY_AWAY, FERRY_HOME, ferryBoxes } from '../ferry.ts';
+import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE } from '../fishplaces.ts';
@@ -386,6 +386,8 @@ export function buildLobby(): LobbyMap {
       b.box(k.min, k.max, 'invisible', 0);
     }
   }
+  // табличка «Удалой» у стоянки: столбик (обходить, как кнехт)
+  b.box([FERRY_SIGN.x - 0.05, 0, FERRY_SIGN.z - 0.05], [FERRY_SIGN.x + 0.05, 1.9, FERRY_SIGN.z + 0.05], 'invisible', 0);
   BARKAS_FISH_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_ISLAND_COUNT + i, 'порыбачить'));
   add('ferry', -13.2, 39.5, -Math.PI / 2, 1.9, 0, 'лодка «Удалая»');
   add('ferry', BARKAS_BOARD.x, BARKAS_BOARD.z, BARKAS_BOARD.yaw, BARKAS_BOARD.r, 1, 'лодка «Удалая»');

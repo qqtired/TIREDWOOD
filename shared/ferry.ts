@@ -51,6 +51,9 @@ export const FERRY_SEAT_AT: ReadonlyArray<readonly [number, number]> = [
 /** Моторист Гоша — на корме у румпеля, с левого борта (правый — к причалу, там садятся) */
 export const FERRY_GOSHA: readonly [number, number] = [-0.5, 2.15];
 
+/** Табличка «Удалой» на столбике у стоянки (северо-восточный угол площадки маяка), лицом к мосткам — на север */
+export const FERRY_SIGN = { x: -14.4, z: 38.35 } as const;
+
 /** Куда высаживают у Семёна (на площадку маяка у стоянки, лицом к острову) и куда отправляет Саня */
 export const FERRY_HOME_LANDING = { x: -15.6, z: 39.6, yaw: 0 } as const;
 export const FERRY_HOME_SPOTS: ReadonlyArray<readonly [number, number]> = [

@@ -75,7 +75,8 @@ test('каждое новое место достижимо от входа на
 
 test('новые места не перекрывают фото, декорации рыбаков, снасти, кнехты и прочие старые interactions', () => {
   const map = buildLobby();
-  const props: Point[] = [[-14.6, 40.3], [-14.85, 39.35], [-14.85, 40.72], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
+  // рыбак-декорация с ведром и термосом (client/lobby/folk.ts) — у южного края площадки, второй — у западного
+  const props: Point[] = [[-19.2, 45.5], [-18.3, 45.3], [-19.62, 45.3], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
   for (const [n, s] of NEW_SPOTS.entries()) {
     for (const p of props) assert.ok(Math.hypot(s.x - p[0], s.z - p[1]) > 1.3, `место ${n + 6}: проход возле старого предмета ${p}`);
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && i.kind !== 'fisher')) {

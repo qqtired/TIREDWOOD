@@ -16,6 +16,8 @@ import { EVENING, RAIN, blendFog, blendSky, fogColor, makeSea, makeSky, type Sky
 import * as tex from '../render/textures.ts';
 import { Backdrop, skyHaze } from './backdrop.ts';
 import { GateScreen, HonorBoard, JackpotBoard, RecentBoard } from './boards.ts';
+import { barkasCover } from '../../shared/barkas.ts';
+import { Barkas } from './barkas/index.ts';
 import { Boats } from './boats.ts';
 import { LobbyDecor, swayAttr, windSway } from './decor.ts';
 import { KartStart } from './kartstart.ts';
@@ -205,6 +207,8 @@ export class LobbyWorld {
   private readonly trampolines: Trampolines;
   /** Катер у причала и лодка, что иногда проходит по заливу */
   readonly boats: Boats;
+  /** Баркас «Альбатрос» в море и лодка Семёна «Удалая» */
+  readonly barkas: Barkas;
   /** Дальний берег с горами и посёлками, острова, парусники */
   private readonly backdrop: Backdrop;
   private readonly statue: Statue;
@@ -255,7 +259,8 @@ export class LobbyWorld {
     scene.background = fog.clone();
 
     // --- дождь: где от него укрыто и как в мокром отражается небо (ясное и дождливое)
-    this.cover = new CoverMap(this.map.boxes, -30, -26, 30, 46);
+    // до баркаса «Альбатрос» (−60; 68): на его палубе тоже мокро, под крышей рубки и тентом — сухо
+    this.cover = new CoverMap([...this.map.boxes, ...barkasCover()], -76, -26, 30, 74);
     this.wet = { uWet: { value: 0 }, uCover: { value: this.cover.texture }, uCoverBox: { value: this.cover.box } };
     const pmrem = new THREE.PMREMGenerator(renderer.gl);
     const env = (p: SkyPalette): THREE.Texture => {
@@ -326,6 +331,7 @@ export class LobbyWorld {
     for (const o of scene.children.slice(beforeDeco)) if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshBasicMaterial) this.powered.push(o);
     this.trampolines = new Trampolines(scene, this.map.trampolines);
     this.boats = new Boats(scene, (m) => this.wettable(m));
+    this.barkas = new Barkas(scene, (m) => this.wettable(m), this.wind);
     // фигура грузится фоном: когда появится, тени статики пересчитываются
     this.statue = new Statue(scene, () => renderer.refreshShadows());
     const bulbs: V3[] = [];
@@ -1368,6 +1374,7 @@ export class LobbyWorld {
     updateFloaters(this.floaters, t);
     this.trampolines.update(dt);
     this.boats.update(dt, t, renderTick);
+    this.barkas.update(dt, t, renderTick, this.camera.position, this.effectiveRain, this.renderer.canvas.height);
     this.backdrop.update(t);
     this.look?.update(dt, t);
     const phase = Math.floor(t * 2.6) % 2;

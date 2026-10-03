@@ -67,12 +67,17 @@ export const BARKAS_BELL = { x: -46.32, z: 66.98, y: 1.45 } as const;
 export const BARKAS_AFRAME = { x: -46.48, z0: 64.86, z1: 71.14, h: 4.6 } as const;
 /** Рында на передней стенке рубки (бьёт боцман) */
 export const BARKAS_RYNDA = { x: -68.2, z: 67.1, y: 2.05 } as const;
+/** Штабель рыбных ящиков в северном углу у кормы */
+export const BARKAS_CRATES = { x0: -48.5, x1: -47.05, z0: 64.66, z1: 65.6, h: 0.86 } as const;
 
-/** Матросы: боцман Михалыч на баке, рыбак Толик на люке, баянист Витёк на крыше рубки (сидит на ящике). */
+/**
+ * Матросы: боцман Михалыч на баке у рынды (дотягивается до её шкертика), рыбак Толик на люке, баянист Витёк на крыше
+ * рубки (сидит на ящике).
+ */
 export const BARKAS_CREW = {
-  mikhalych: { x: -69.45, y: BARKAS_BAK_Y, z: 66.35, yaw: -2.3 },
-  tolik: { x: -55.3, y: BARKAS_HATCH.h, z: 68.35, yaw: -1.2 },
-  vityok: { x: -65.6, y: BARKAS_HOUSE.h + 0.42, z: 68.2, yaw: -1.75 },
+  mikhalych: { x: -68.8, y: BARKAS_BAK_Y, z: 66.75, yaw: -1.2 },
+  tolik: { x: -55.2, y: 0, z: 68.3, yaw: -Math.PI / 2 },
+  vityok: { x: -65.6, y: BARKAS_HOUSE.h + 0.12, z: 68.2, yaw: -1.35 },
 } as const;
 
 /** Саня — брат Семёна: за прилавком из ящиков со льдом в углу у кормы, лицом к палубе */
@@ -147,11 +152,14 @@ export function barkasBoxes(): Box[] {
   out.push(bx(W.x0, BARKAS_BAK_Y, W.z0, W.x1, BARKAS_BAK_Y + W.h, W.z1));
   const S = SANYA_STALL;
   out.push(bx(S.x0, 0, S.z0, S.x1, S.h, S.z1));
+  const C = BARKAS_CRATES;
+  out.push(bx(C.x0, 0, C.z0, C.x1, C.h, C.z1));
   out.push(bx(SANYA.x - 0.36, 0, SANYA.z - 0.36, SANYA.x + 0.36, 1.75, SANYA.z + 0.36));
   const M = BARKAS_CREW.mikhalych;
   out.push(bx(M.x - 0.34, M.y, M.z - 0.34, M.x + 0.34, M.y + 1.7, M.z + 0.34));
+  // Толик сидит на краю люка, ноги свешены на палубу: тело и колени
   const L = BARKAS_CREW.tolik;
-  out.push(bx(L.x - 0.34, L.y, L.z - 0.36, L.x + 0.34, L.y + 1.05, L.z + 0.36));
+  out.push(bx(L.x - 0.32, 0, L.z - 0.34, L.x + 0.62, BARKAS_HATCH.h + 1.05, L.z + 0.34));
   out.push(bx(BARKAS_BELL.x - 0.07, 0, BARKAS_BELL.z - 0.07, BARKAS_BELL.x + 0.07, BARKAS_BELL.y + 0.2, BARKAS_BELL.z + 0.07));
   const F = BARKAS_AFRAME;
   for (const z of [F.z0, F.z1]) out.push(bx(F.x - 0.11, 0, z - 0.11, F.x + 0.11, F.h, z + 0.11));
