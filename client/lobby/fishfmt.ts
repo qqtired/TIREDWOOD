@@ -40,6 +40,12 @@ export function levelPerks(level: number): string {
   return `зона +${(level * 2.5).toLocaleString('ru-RU')}% · редкие и выше ${mul(1.025 ** level)}`;
 }
 
+/** «1 рыба», «3 рыбы», «12 рыб» */
+export function fishCount(n: number): string {
+  const d = n % 10, h = n % 100;
+  return `${n} ${d === 1 && h !== 11 ? 'рыба' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'рыбы' : 'рыб'}`;
+}
+
 /** Что откроется на уровне рыбалки level: вещи лавки и баркас */
 export function levelOpens(level: number): string[] {
   const out = [...BAGS, ...LURES].filter((g) => g.level === level).map((g) => g.name.toLowerCase());

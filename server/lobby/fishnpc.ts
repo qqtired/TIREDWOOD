@@ -140,7 +140,9 @@ export class FishNpc {
         if (!r) message = 'Такого в лавке нет';
         else {
           const lvl = [...BAGS, ...LURES].find((g) => g.name === r.name)?.level ?? 0;
-          message = r.state === 'ok' ? `${r.name} — твой!` : r.state === 'owned' ? `${r.name} уже есть` : r.state === 'better' ? 'У тебя уже есть лучше'
+          // рюкзак — «твой», блесна — «твоя»
+          const yours = LURES.some((g) => g.name === r.name) ? 'твоя' : 'твой';
+          message = r.state === 'ok' ? `${r.name} — ${yours}!` : r.state === 'owned' ? `${r.name} уже есть` : r.state === 'better' ? 'У тебя уже есть лучше'
             : r.state === 'level' ? `${r.name} — с ${lvl}-го уровня рыбалки` : 'Не хватает жетонов';
         }
         break;
