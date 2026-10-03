@@ -8,7 +8,7 @@ import { frameForLevel, safeXp } from '../shared/levels.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
 import { CLOSE_SILENCE, type ClientMsg, type ErrorCode, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
-import type { RaceTrackId } from '../shared/racecourse.ts';
+import { DEFAULT_TRACK, type RaceTrackId } from '../shared/racecourse.ts';
 import { Sound } from './audio.ts';
 import { Chat } from './chat.ts';
 import { BoatRaceScene } from './boatrace/scene.ts';
@@ -82,7 +82,7 @@ export class App {
   /** Трасса строится при первом заезде и остаётся в памяти */
   private race: RaceScene | null = null;
   private readonly raceScenes = new Map<RaceTrackId, RaceScene>();
-  private raceTrack: RaceTrackId = 'port';
+  private raceTrack: RaceTrackId = DEFAULT_TRACK;
   private skill: SkillScene | null = null;
   private boatRace: BoatRaceScene | null = null;
   private hide: HideScene | null = null;
@@ -558,15 +558,15 @@ export class App {
         this.switchScene(m.scene);
         return;
       case 'lobby':
-        this.raceTrack = m.kart.track ?? 'port';
+        this.raceTrack = m.kart.track ?? DEFAULT_TRACK;
         this.lobby.onJson(m);
         return;
       case 'kart':
-        this.raceTrack = m.track ?? 'port';
+        this.raceTrack = m.track ?? DEFAULT_TRACK;
         this.lobby.onJson(m);
         return;
       case 'race': {
-        const track = m.track ?? 'port';
+        const track = m.track ?? DEFAULT_TRACK;
         this.raceTrack = track;
         // Приветствие сервера — источник выбранной трассы, в том числе после переподключения.
         if (this.active?.kind === 'race' && this.race?.trackId !== track) this.switchScene('race');

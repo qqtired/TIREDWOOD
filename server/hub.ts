@@ -11,7 +11,7 @@ import type { FortResultRow, FortStatus, FtReward } from '../shared/fort.ts';
 import { CLOSE_SILENCE, type ChatLine, type ClientMsg, type ErrorCode, type HonorInfo, type OnlineEntry, type PbStatus, type RaceResultRow, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, shownOutfit, type Outfit } from '../shared/outfit.ts';
 import { MSG_INPUT, decodeInputs, inputEpoch } from '../shared/protocol.ts';
-import type { RaceTrackId } from '../shared/racecourse.ts';
+import { DEFAULT_TRACK, RACE_RECORD, isRaceTrackId, type RaceTrackId } from '../shared/racecourse.ts';
 import { makeInput, type Input } from '../shared/sim.ts';
 import { sanitizeChat } from '../shared/text.ts';
 import { FightRoom } from './fight/room.ts';
@@ -663,7 +663,7 @@ export class Hub {
   // ------------------------------------------------------------ гонка
 
   /** Круг «Старт» досчитал: новая гонка, все из круга — в неё, старт. */
-  startRace(clients: Client[], track: RaceTrackId = 'port'): void {
+  startRace(clients: Client[], track: RaceTrackId = DEFAULT_TRACK): void {
     this.race.open(track);
     for (const c of clients) this.move(c, this.race, true);
     this.race.launch();
@@ -714,7 +714,7 @@ export class Hub {
     st.rcRaces++;
     if (row.place === 1) st.rcWins++;
     if (row.place >= 1 && row.place <= 3) st.rcPodiums++;
-    const record = row.track === 'foundry' ? 'rcBestLapFoundry' : 'rcBestLap';
+    const record = RACE_RECORD[isRaceTrackId(row.track) ? row.track : DEFAULT_TRACK];
     if (row.best > 0 && (st[record] === 0 || row.best < st[record])) st[record] = row.best;
     if (reward) this.profiles.credit(prof, reward.total, 'mode');
     this.store.markDirty();

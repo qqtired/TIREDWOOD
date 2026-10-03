@@ -1,7 +1,7 @@
 // Общие константы симуляции. Сервер и клиент считают по одним и тем же числам,
 // поэтому предсказание движения на клиенте совпадает с сервером бит в бит.
 
-export const PROTOCOL_VERSION = 12;
+export const PROTOCOL_VERSION = 13;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;

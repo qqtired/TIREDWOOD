@@ -2,7 +2,7 @@
 // и запускает (launch). Итоги людям и «всех обратно» уходят наверх через хуки.
 import { TICK_RATE } from '../../shared/constants.ts';
 import { RC_LAPS, RC_MAX_KARTS, RC_RESULTS } from '../../shared/kart.ts';
-import type { RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, type RaceTrackId } from '../../shared/racecourse.ts';
 import type { RcReward } from '../../shared/economy.ts';
 import type { ClientMsg, KartStatus, RaceResultRow } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -51,7 +51,7 @@ export class RaceRoom implements Room {
   }
 
   /** Новая гонка: принимает людей до launch(). */
-  open(track: RaceTrackId = this.opts.track ?? 'port'): void {
+  open(track: RaceTrackId = this.opts.track ?? DEFAULT_TRACK): void {
     this.byClient.clear();
     this.byKart.clear();
     this.race = new Race(

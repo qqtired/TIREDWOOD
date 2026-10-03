@@ -1,15 +1,17 @@
 // Физика карта: шаг 60 Гц, один и тот же на сервере и в браузере (предсказание, как у пешехода).
 // Только + − × ÷, Math.sqrt/abs/min/max и sinCos — бит в бит в любом движке, снимок сверяется точно.
 // Курс — единичный вектор (hx, hz): yaw = 0 смотрит в −Z, вправо по ходу — (−hz, hx).
-// Управление: W/S — газ и тормоз (задний ход), A/D — руль, Space — подскок и занос, E или ЛКМ — бонус,
-// R — вернуться на последнюю контрольную точку.
+// Управление: W/S — газ и тормоз (задний ход), A/D — руль, Space — подскок и занос (в полёте — трюк), E или ЛКМ —
+// бонус, R — вернуться на последнюю контрольную точку. Газ на «1» отсчёта — ракетный старт, раньше — пробуксовка.
+// На скорости руль слабеет: крутой поворот проходится тормозом или заносом; занос копит мини-турбо трёх уровней.
+// За краем асфальта — трава и песок: там потолок скорости ниже (турбо его не замечает — отсюда срезки).
 // Помехи трассы (shared/hazards.ts): ускорители, лужи, бочки и блоки, движущиеся помехи, настилы. Движущиеся — функция
 // «времени гонки» карта rt (тиков в пути): оно лежит в состоянии карта, поэтому сервер и предсказание совпадают бит в бит.
 import { DT, WATER_Y } from './constants.ts';
 import { collide, deckAt, makeHit, padAt, slickAt } from './hazards.ts';
 import { sinCos } from './math.ts';
 import { BTN_BACK, BTN_FIRE, BTN_FORWARD, BTN_JUMP, BTN_LEFT, BTN_RELOAD, BTN_RIGHT, BTN_USE, type Input } from './sim.ts';
-import { NO_GROUND, locate, locateAny, makeLoc, wrapSeg, type Track, type TrackLoc } from './track.ts';
+import { NO_GROUND, SURF_GRASS, SURF_ROAD, SURF_SAND, locate, locateAny, makeLoc, onGround, type Track, type TrackLoc } from './track.ts';
 
 /** Радиус карта: стены и толчки */
 export const KART_R = 0.75;
@@ -19,11 +21,20 @@ export const ITEM_NONE = 0;
 export const ITEM_TURBO = 1;
 export const ITEM_JAM = 2;
 export const ITEM_PAINT = 3;
-export const ITEM_SHIELD = 4;
-export const ITEM_PULSE = 5;
-export const ITEM_CLEAN = 6;
-export const ITEM_ICONS = ['', '🚀', '🍯', '🎨', '🛡️', '⚡', '🧼'];
-export const ITEM_NAMES = ['', 'Турбо', 'Варенье', 'Краска', 'Щит · один удар, 3 с', 'Импульс · впереди до 12 м', 'Очистка · снять помехи и разогнаться'];
+// 4–6 — щит, импульс и очистка прежней версии: номера в протоколе заняты и больше не выпадают
+/** Пузырь: 8 с или один удар бонусом; при включении снимает краску и замедление */
+export const ITEM_BUBBLE = 7;
+/** Хлопок: волна во все стороны — кто рядом, того закрутит */
+export const ITEM_CLAP = 8;
+export const ITEM_ICONS = ['', '🚀', '🍯', '🎨', '', '', '', '🫧', '💥'];
+export const ITEM_NAMES = ['', 'Турбо', 'Варенье', 'Краска', '', '', '', 'Пузырь', 'Хлопок'];
+/** Подсказка к бонусу (баннер, когда выпал) */
+export const ITEM_HINTS = [
+  '', 'рывок на 1,5 с', 'банка позади: кто наедет — закрутится', 'клякса тому, кто впереди', '', '', '',
+  '8 с защиты от бонусов, снимает краску', 'волна на 8 м вокруг: всех закрутит',
+];
+/** Что выпадает из ящиков (шансы — по месту в гонке, считает сервер) */
+export const ITEM_POOL = [ITEM_TURBO, ITEM_JAM, ITEM_PAINT, ITEM_BUBBLE, ITEM_CLAP];
 
 /** Фазы гонки */
 export const RC_GRID = 0;
@@ -42,29 +53,38 @@ export const RC_SNAP_EVERY = 2;
 export const TURBO_TICKS = 90;
 export const SLOW_TICKS = 120;
 export const SPIN_TICKS = 40;
-export const PAINT_TICKS = 180;
+export const PAINT_TICKS = 150;
+/** Пузырь держится 8 с */
+export const BUBBLE_TICKS = 480;
 /** Рулетка бонуса после ящика */
 export const ITEM_ROLL_TICKS = 48;
 /** Призрак после возврата на трассу; первые FREEZE_TICKS карт стоит */
 export const GHOST_TICKS = 90;
 export const FREEZE_TICKS = 30;
-/** Занос: столько тиков — мини-турбо 1 и 2 */
-export const MT1_TICKS = 50;
-export const MT2_TICKS = 110;
+/** Уровни ускорения: мини-турбо 1–3 (по длине заноса) и турбо (бонус, ускоритель) */
+export const BOOST_MT1 = 1;
+export const BOOST_MT2 = 2;
+export const BOOST_MT3 = 3;
+export const BOOST_TURBO = 4;
+/** Занос: столько тиков — синие, оранжевые и фиолетовые искры (мини-турбо 1, 2, 3) */
+export const MT1_TICKS = 45;
+export const MT2_TICKS = 90;
+export const MT3_TICKS = 140;
 /** Ускоритель на дороге: турбо (как у бонуса) на столько тиков */
 export const PAD_TICKS = 50;
 /** Удар движущейся помехой: закрутка и медленный ход (короче, чем от банки варенья) */
 export const HIT_SPIN_TICKS = 26;
 export const HIT_SLOW_TICKS = 60;
+/** Ракетный старт: газ нажат не раньше стольких тиков до старта (цифра «1» — последние 60) */
+export const ROCKET_WINDOW = 66;
 /** Время гонки карта не идёт дальше этого (в снимке — uint16) */
 export const RT_MAX = 65535;
 
-const MT1_BOOST = 28;
-const MT2_BOOST = 55;
+/** Мини-турбо 1–3: столько тиков рывка */
+const MT_BOOST = [0, 36, 66, 96];
 const MAX_SPEED = 22;
-const TURBO_SPEED = 30;
-const MT1_SPEED = 26;
-const MT2_SPEED = 28;
+/** Потолок скорости по уровню ускорения: без него, мини-турбо 1–3, турбо */
+const BOOST_SPEED = [MAX_SPEED, 25.5, 27, 28.5, 30];
 const SLOW_SPEED = 11;
 const REVERSE_SPEED = 6;
 const ACCEL = 14;
@@ -81,13 +101,14 @@ const GRIP = 0.25;
 const DRIFT_GRIP = 0.06;
 const STEER_RATE = 8;
 const TURN_RATE = 2.3;
-/** На полной скорости руль поворачивает слабее: × (1 − 0,36) — радиус ~15 м на 22 м/с */
-const TURN_FALL = 0.36;
+/** На полной скорости руль поворачивает слабее: × (1 − 0,58) — без заноса радиус ~23 м на 22 м/с */
+const TURN_FALL = 0.58;
 /** На месте руль поворачивает с такой долей силы: карт развернётся, даже стоя носом в стену */
 const TURN_MIN = 0.5;
 /** Полная сила руля — с такой скорости, м/с */
 const TURN_FULL_AT = 5;
-const DRIFT_TURN = 1.15;
+/** Занос поворачивает сильнее: внутрь — радиус ~14 м на полной скорости, наружу — ~40 м */
+const DRIFT_TURN = 1.5;
 const DRIFT_START = 9;
 const DRIFT_KEEP = 7;
 /** Руль дальше этого — занос в его сторону */
@@ -98,25 +119,39 @@ const HOP_VY = 3;
 /** Приземлился с подскока — столько тиков ещё можно довернуть руль и уйти в занос */
 const HOP_WINDOW = 15;
 const KART_GRAVITY = 22;
-/** Дорога под колёсами — ещё 0,5 м за краем (край причала) */
+/** Земля под колёсами — ещё 0,5 м за краем (край причала) */
 const EDGE_GROUND = 0.5;
 /** Приземлиться можно, если ниже дороги не больше чем на столько */
 const LAND_SNAP = 0.45;
+/** Дорога уходит вниз быстрее, чем карт (на столько м/с за тик), — карт отрывается: гребень */
+const TAKEOFF_DV = 1.6;
 /** Стены держат только тех, кто у края, а не тех, кто уже над водой за причалом */
 const WALL_REACH = 1;
 const WALL_BOUNCE = 0.3;
-const WALL_FRICTION = 0.15;
+/** Удар о стену гасит касательную скорость: до 30% при ударе в лоб */
+const WALL_FRICTION = 0.3;
 /** Носом в стену: за тик касания курс доворачивает вдоль стены на такую долю (лоб в лоб — по ходу трассы) */
 const WALL_ALIGN = 0.35;
 /** Трётся о стену — за тик теряет такую долю скорости: ехать по стене выходит медленнее, чем по дороге */
-const WALL_SCRAPE = 0.012;
+const WALL_SCRAPE = 0.02;
+/** Обочина: потолок скорости без ускорения, торможение сверх него и сцепление (трава, песок) */
+const GRASS_SPEED = 15;
+const SAND_SPEED = 11;
+const GRASS_DECEL = 18;
+const SAND_DECEL = 30;
+const GRASS_GRIP = 0.16;
+const SAND_GRIP = 0.1;
+/** Ракетный старт: рывок мини-турбо 2 на столько тиков; газ раньше — пробуксовка на BURN_TICKS */
+const ROCKET_TICKS = 70;
+const BURN_TICKS = 30;
+/** Трюк: засчитывается, если в полёте не меньше стольких тиков; рывок после приземления */
+const TRICK_AIR = 18;
+const TRICK_TICKS = 40;
 /**
- * КТ засчитывается, если карт не дальше стольких отрезков за ней. Окно широкое: после срезки через бухту
- * пропущенные КТ засчитываются подряд, по одной за тик (по порядку, поэтому «перескочить» трассу всё равно нельзя).
- * Но только когда карт стоит колёсами на самой дороге: в полёте и на настиле срезки КТ «по пути» не берутся — иначе
- * упавший в бухту возвращался бы на КТ за срезкой, а не на ту, откуда прыгал.
+ * КТ засчитывается, когда карт стоит колёсами на дороге за её линией, но не дальше CP_AHEAD метров, — и только следующая
+ * по порядку. Перелетел линию на трамплине — засчитается при приземлении; объехать КТ стороной нельзя.
  */
-const CP_WINDOW = 100;
+const CP_AHEAD = 60;
 /** В полёте над водой отрезок ищется по всей трассе, если карт дальше от дороги, чем на столько за краем */
 const FLIGHT_LOOKUP = 1.5;
 
@@ -134,14 +169,14 @@ export interface KartState {
   steer: number;
   /** Отрезок трассы */
   seg: number;
-  /** 1 — колёса на дороге */
+  /** 1 — колёса на земле */
   grounded: number;
   /** Занос −1/0/1 (+ — влево) и сколько тиков длится */
   drift: number;
   driftT: number;
   /** Подскок: 0 — нет, 1 — пробел нажат, ждём земли, 2… — тиков на земле после приземления + 1 */
   hop: number;
-  /** Ускорение: уровень 1 — мини-турбо, 2 — большое мини-турбо, 3 — турбо */
+  /** Ускорение: уровень BOOST_MT1…BOOST_TURBO и сколько тиков ещё */
   boostT: number;
   boostLvl: number;
   /** Варенье: потолок скорости ниже; кружение — без руля и газа */
@@ -158,6 +193,16 @@ export interface KartState {
   prevButtons: number;
   /** Время гонки карта: тиков, которые он ехал (с решётки — 0). От него зависят движущиеся помехи */
   rt: number;
+  /** Тиков в полёте (до 255) */
+  air: number;
+  /** Трюк: 0 — нет, 1 — взлетел с рельефа (можно), 2 — сделал (рывок после приземления) */
+  trick: number;
+  /** На решётке: сколько тиков подряд нажат газ (до 255) — ракетный старт или пробуксовка */
+  gasT: number;
+  /** Пробуксовка на старте: тиков без разгона */
+  burnT: number;
+  /** Поверхность под колёсами в прошлом тике: SURF_ROAD, SURF_GRASS, SURF_SAND */
+  surf: number;
 }
 
 export interface KartEvents {
@@ -176,7 +221,7 @@ export interface KartEvents {
   drift: number;
   /** Подскок на пробел */
   hop: boolean;
-  /** Мини-турбо 1 или 2 */
+  /** Мини-турбо 1–3 */
   mt: number;
   /** Наехал на ускоритель (в этом тике — впервые) */
   dash: boolean;
@@ -185,19 +230,26 @@ export interface KartEvents {
   /** Скорость удара о бочку, блок или движущуюся помеху, 0 — не было; что именно — hitKind (0 бочка, 1 блок, 2 движущаяся) */
   hit: number;
   hitKind: number;
+  /** Старт: 1 — ракетный, 2 — пробуксовка */
+  rocket: number;
+  /** Трюк: 1 — сделал в полёте, 2 — приземлился с трюком (рывок) */
+  trick: number;
+  /** Съехал с асфальта на траву или песок (в этом тике): SURF_GRASS, SURF_SAND */
+  offroad: number;
 }
 
 export function makeKartState(): KartState {
   return {
     x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, hx: 0, hz: -1, steer: 0, seg: 0, grounded: 1, drift: 0, driftT: 0, hop: 0,
     boostT: 0, boostLvl: 0, slowT: 0, spinT: 0, ghostT: 0, cp: 0, lap: 0, done: 0, item: 0, itemT: 0, prevButtons: 0, rt: 0,
+    air: 0, trick: 0, gasT: 0, burnT: 0, surf: 0,
   };
 }
 
 export function makeKartEvents(): KartEvents {
   return {
     used: 0, cp: false, lap: false, finish: false, splash: false, respawn: false, wall: 0, land: 0, drift: 0, hop: false, mt: 0,
-    dash: false, slick: 0, hit: 0, hitKind: 0,
+    dash: false, slick: 0, hit: 0, hitKind: 0, rocket: 0, trick: 0, offroad: 0,
   };
 }
 
@@ -217,6 +269,9 @@ function resetEvents(ev: KartEvents): void {
   ev.slick = 0;
   ev.hit = 0;
   ev.hitKind = 0;
+  ev.rocket = 0;
+  ev.trick = 0;
+  ev.offroad = 0;
 }
 
 export function copyKart(dst: KartState, s: KartState): KartState {
@@ -246,6 +301,11 @@ export function copyKart(dst: KartState, s: KartState): KartState {
   dst.itemT = s.itemT;
   dst.prevButtons = s.prevButtons;
   dst.rt = s.rt;
+  dst.air = s.air;
+  dst.trick = s.trick;
+  dst.gasT = s.gasT;
+  dst.burnT = s.burnT;
+  dst.surf = s.surf;
   return dst;
 }
 
@@ -255,8 +315,15 @@ export function kartsEqual(a: KartState, b: KartState): boolean {
     a.hz === b.hz && a.steer === b.steer && a.seg === b.seg && a.grounded === b.grounded && a.drift === b.drift &&
     a.driftT === b.driftT && a.hop === b.hop && a.boostT === b.boostT && a.boostLvl === b.boostLvl && a.slowT === b.slowT &&
     a.spinT === b.spinT && a.ghostT === b.ghostT && a.cp === b.cp && a.lap === b.lap && a.done === b.done &&
-    a.item === b.item && a.itemT === b.itemT && a.prevButtons === b.prevButtons && a.rt === b.rt
+    a.item === b.item && a.itemT === b.itemT && a.prevButtons === b.prevButtons && a.rt === b.rt && a.air === b.air &&
+    a.trick === b.trick && a.gasT === b.gasT && a.burnT === b.burnT && a.surf === b.surf
   );
+}
+
+/** Уровень искр заноса: 0 — нет, 1–3 — мини-турбо, которое выстрелит, если отпустить пробел сейчас */
+export function sparkLevel(s: KartState): number {
+  if (s.drift === 0) return 0;
+  return s.driftT >= MT3_TICKS ? 3 : s.driftT >= MT2_TICKS ? 2 : s.driftT >= MT1_TICKS ? 1 : 0;
 }
 
 /** Поставить на решётку: стоит, КТ — последняя перед линией, круг 0 (первое пересечение линии — круг 1). */
@@ -294,33 +361,37 @@ export function respawn(k: KartState, tr: Track): void {
   k.slowT = 0;
   k.spinT = 0;
   k.ghostT = GHOST_TICKS;
+  k.air = 0;
+  k.trick = 0;
+  k.burnT = 0;
+  k.surf = SURF_ROAD;
 }
 
 const loc: TrackLoc = makeLoc();
 const sc = { s: 0, c: 0 };
 
 /**
- * Стены: упереть в край, нормальную скорость — назад с отскоком, касательную — чуть погасить.
+ * Стены — за обочиной: упереть в ограждение, нормальную скорость — назад с отскоком, касательную — погасить.
  * В шаге карта (ev есть) ещё и носом в стену — курс доворачивает вдоль неё, а трение о стену тормозит:
  * застрять нельзя, но и ехать «по стенке» медленнее, чем по дороге.
  */
 function walls(k: KartState, tr: Track, lc: TrackLoc, ev: KartEvents | null): void {
-  const hw = lc.hw;
-  const lim = hw - KART_R;
   const j = lc.seg;
+  const edgeR = lc.hw + lc.vr;
+  const edgeL = lc.hw + lc.vl;
   let nx: number;
   let nz: number;
   let depth: number;
-  if (lc.lat > lim && lc.lat < hw + WALL_REACH && !tr.openR[j]) {
+  if (lc.lat > edgeR - KART_R && lc.lat < edgeR + WALL_REACH && !tr.openR[j]) {
     nx = -tr.tz[j];
     nz = tr.tx[j];
-    depth = lc.lat - lim;
-    lc.lat = lim;
-  } else if (lc.lat < -lim && lc.lat > -hw - WALL_REACH && !tr.openL[j]) {
+    depth = lc.lat - (edgeR - KART_R);
+    lc.lat = edgeR - KART_R;
+  } else if (lc.lat < KART_R - edgeL && lc.lat > -edgeL - WALL_REACH && !tr.openL[j]) {
     nx = tr.tz[j];
     nz = -tr.tx[j];
-    depth = -lim - lc.lat;
-    lc.lat = -lim;
+    depth = KART_R - edgeL - lc.lat;
+    lc.lat = KART_R - edgeL;
   } else return;
   k.x -= nx * depth;
   k.z -= nz * depth;
@@ -358,13 +429,19 @@ function approach(v: number, target: number, step: number): number {
   return v < target ? Math.min(target, v + step) : Math.max(target, v - step);
 }
 
+function stop(k: KartState): void {
+  k.vx = 0;
+  k.vy = 0;
+  k.vz = 0;
+  k.drift = 0;
+  k.driftT = 0;
+}
+
 const hit = makeHit();
 const loc2: TrackLoc = makeLoc();
 
 export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, canDrive: boolean): void {
   resetEvents(ev);
-  const beforeX = k.x;
-  const beforeZ = k.z;
   // 0. Время гонки идёт только на трассе (на решётке карт стоит)
   if (canDrive && k.rt < RT_MAX) k.rt++;
   // 1. Кнопки и таймеры
@@ -376,43 +453,60 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
   if (k.spinT > 0) k.spinT--;
   if (k.ghostT > 0) k.ghostT--;
   if (k.itemT > 0) k.itemT--;
+  if (k.burnT > 0) k.burnT--;
 
-  // 3. R — назад на КТ
+  // 2. R — назад на КТ
   if ((pressed & BTN_RELOAD) !== 0 && canDrive && k.ghostT === 0) {
     respawn(k, tr);
     ev.respawn = true;
     return;
   }
 
-  // 4–5. Руль сглаживается всегда; на решётке и сразу после возврата карт стоит
+  // 3. Руль сглаживается всегда; на решётке карт стоит и считает, сколько держат газ
   const steerTo = k.spinT > 0 ? 0 : ((b & BTN_LEFT) !== 0 ? 1 : 0) - ((b & BTN_RIGHT) !== 0 ? 1 : 0);
   k.steer = approach(k.steer, steerTo, STEER_RATE * DT);
-  if (!canDrive || k.ghostT > GHOST_TICKS - FREEZE_TICKS) {
-    k.vx = 0;
-    k.vy = 0;
-    k.vz = 0;
-    k.drift = 0;
-    k.driftT = 0;
+  if (!canDrive) {
+    k.gasT = (b & BTN_FORWARD) !== 0 ? Math.min(255, k.gasT + 1) : 0;
+    stop(k);
+    return;
+  }
+  // первый тик гонки: газ на «1» — рывок, раньше — колёса буксуют полсекунды
+  if (k.rt === 1 && k.gasT > 0) {
+    if (k.gasT <= ROCKET_WINDOW) {
+      k.boostT = ROCKET_TICKS;
+      k.boostLvl = BOOST_MT2;
+      ev.rocket = 1;
+    } else {
+      k.burnT = BURN_TICKS;
+      ev.rocket = 2;
+    }
+  }
+  k.gasT = 0;
+  // сразу после возврата на трассу карт стоит
+  if (k.ghostT > GHOST_TICKS - FREEZE_TICKS) {
+    stop(k);
     return;
   }
 
-  // 6. Бонус
+  // 4. Бонус
   if ((pressed & (BTN_USE | BTN_FIRE)) !== 0 && k.item !== ITEM_NONE && k.itemT === 0) {
     if (k.item === ITEM_TURBO) {
       k.boostT = TURBO_TICKS;
-      k.boostLvl = 3;
-    }
-    if (k.item === ITEM_CLEAN) {
+      k.boostLvl = BOOST_TURBO;
+    } else if (k.item === ITEM_BUBBLE) {
       k.slowT = 0;
       k.spinT = 0;
-      k.boostT = Math.max(k.boostT, 45);
-      k.boostLvl = 3;
     }
     ev.used = k.item;
     k.item = ITEM_NONE;
   }
 
-  // 7. Подскок и занос: нажал пробел — подскок; приземлился, держа пробел и руль, — занос в сторону руля
+  // 5. Трюк: пробел в полёте с рельефа (не с подскока) — сальто, рывок после приземления
+  if ((pressed & BTN_JUMP) !== 0 && !k.grounded && k.trick === 1 && k.spinT === 0) {
+    k.trick = 2;
+    ev.trick = 1;
+  }
+  // 6. Подскок и занос: нажал пробел — подскок; приземлился, держа пробел и руль, — занос в сторону руля
   // (руль можно довернуть и чуть позже, в окне HOP_WINDOW); отпустил пробел — мини-турбо по времени заноса
   let f = k.vx * k.hx + k.vz * k.hz;
   const space = (b & BTN_JUMP) !== 0;
@@ -437,18 +531,18 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
       }
     }
   } else if (!space || f < DRIFT_KEEP || k.spinT > 0) {
-    const lvl = space ? 0 : k.driftT >= MT2_TICKS ? 2 : k.driftT >= MT1_TICKS ? 1 : 0;
+    const lvl = space || k.spinT > 0 ? 0 : sparkLevel(k);
     if (lvl > 0 && k.boostLvl <= lvl) {
       k.boostLvl = lvl;
-      k.boostT = Math.max(k.boostT, lvl === 2 ? MT2_BOOST : MT1_BOOST);
+      k.boostT = Math.max(k.boostT, MT_BOOST[lvl]);
       ev.mt = lvl;
     }
     k.drift = 0;
     k.driftT = 0;
     ev.drift = 2;
-  } else if (k.driftT < 9999) k.driftT++;
+  } else if (k.driftT < 9999 && k.surf === SURF_ROAD) k.driftT++;
 
-  // 8. Поворот курса: на месте — вполсилы, с TURN_FULL_AT — в полную, к полной скорости — слабее.
+  // 7. Поворот курса: на месте — вполсилы, с TURN_FULL_AT — в полную, к полной скорости — заметно слабее.
   // Задним ходом руль наоборот, как у машины; на месте и чуть назад — как вперёд, чтобы не дёргался при смене.
   const af = f < 0 ? -f : f;
   let turn = TURN_RATE * (TURN_MIN + (1 - TURN_MIN) * Math.min(1, af / TURN_FULL_AT)) * (1 - TURN_FALL * Math.min(1, af / MAX_SPEED));
@@ -457,8 +551,8 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
     steer = k.drift * (0.75 + 0.4 * k.steer * k.drift);
     turn *= DRIFT_TURN;
   }
-  // в подскоке рулит как на земле — довернуть перед заносом
-  if (!k.grounded && k.hop !== 1) turn *= AIR_TURN;
+  // в подскоке рулит как на земле — довернуть перед заносом; в настоящем полёте — едва-едва
+  if (!k.grounded && !(k.hop === 1 && k.trick === 0)) turn *= AIR_TURN;
   if (k.spinT > 0) turn = 0;
   const w = steer * turn * (f >= 0 ? 1 : Math.max(-1, 1 + f));
   if (w !== 0) {
@@ -470,24 +564,26 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
     k.hz = hz * inv;
   }
 
-  // 9. Скорость вперёд и вбок по новому курсу
+  // 8. Скорость вперёд и вбок по новому курсу
   if (k.grounded) {
     const rx = -k.hz;
     const rz = k.hx;
     f = k.vx * k.hx + k.vz * k.hz;
     let l = k.vx * rx + k.vz * rz;
-    let cap = MAX_SPEED;
     // ускоритель под колёсами — турбо; лужа — сцепление почти пропадает
     if (tr.hz.pads.length > 0 && padAt(tr.hz, k.x, k.z) !== null) {
       if (k.boostT < PAD_TICKS - 1) ev.dash = true;
       if (k.boostT < PAD_TICKS) k.boostT = PAD_TICKS;
-      k.boostLvl = 3;
+      k.boostLvl = BOOST_TURBO;
     }
     const slick = tr.hz.slicks.length > 0 ? slickAt(tr.hz, k.x, k.z) : null;
-    if (k.boostT > 0) cap = k.boostLvl === 3 ? TURBO_SPEED : k.boostLvl === 2 ? MT2_SPEED : MT1_SPEED;
+    let cap = k.boostT > 0 ? BOOST_SPEED[k.boostLvl] : MAX_SPEED;
+    // обочина: без ускорения — потолок ниже и тормозит сильнее
+    const rough = k.boostT === 0 && k.surf !== SURF_ROAD;
+    if (rough) cap = Math.min(cap, k.surf === SURF_SAND ? SAND_SPEED : GRASS_SPEED);
     if (k.slowT > 0 && cap > SLOW_SPEED) cap = SLOW_SPEED;
     const free = k.done === 0 && k.spinT === 0;
-    const gas = free && (b & BTN_FORWARD) !== 0;
+    const gas = free && k.burnT === 0 && (b & BTN_FORWARD) !== 0;
     // затормозил до нуля — в том же тике разгон в другую сторону: иначе боковая скорость, которая при повороте на месте
     // каждый тик чуть-чуть уходит «назад», не даёт тронуться никогда
     if (k.done) f = approach(f, 0, COAST * 2 * DT);
@@ -502,16 +598,17 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
         f = Math.min(cap, f + a * DT);
       }
     } else f = approach(f, 0, COAST * DT);
-    if (f > cap) f = Math.max(cap, f - OVER_DECEL * DT);
+    if (f > cap) f = Math.max(cap, f - (rough ? (k.surf === SURF_SAND ? SAND_DECEL : GRASS_DECEL) : OVER_DECEL) * DT);
     if (slick) {
       ev.slick = slick.kind + 1;
       l *= 1 - slick.grip;
-    } else l *= 1 - (k.drift !== 0 ? DRIFT_GRIP : GRIP);
+    } else if (k.drift !== 0) l *= 1 - DRIFT_GRIP;
+    else l *= 1 - (k.surf === SURF_SAND ? SAND_GRIP : k.surf === SURF_GRASS ? GRASS_GRIP : GRIP);
     k.vx = k.hx * f + rx * l;
     k.vz = k.hz * f + rz * l;
   }
 
-  // 10–11. Сдвиг, отрезок, стены
+  // 9. Сдвиг, отрезок, помехи, стены
   const ox = k.x;
   const oz = k.z;
   k.x += k.vx * DT;
@@ -535,32 +632,41 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
       k.seg = loc.seg;
     }
   }
-  // в полёте вдали от дороги карт может лететь над другой частью трассы (срезка через бухту): ищем по всей
-  if (!k.grounded && (loc.lat > loc.hw + FLIGHT_LOOKUP || loc.lat < -loc.hw - FLIGHT_LOOKUP)) {
+  // в полёте вдали от дороги карт может лететь над другой частью трассы (срезка через воду): ищем по всей
+  if (!k.grounded && !onGround(loc, FLIGHT_LOOKUP)) {
     locateAny(tr, k.x, k.z, loc2);
-    if (loc2.seg !== loc.seg && Math.abs(loc2.lat) <= loc2.hw + EDGE_GROUND) {
+    if (loc2.seg !== loc.seg && onGround(loc2, EDGE_GROUND)) {
       loc.seg = loc2.seg;
       loc.t = loc2.t;
       loc.lat = loc2.lat;
       loc.ground = loc2.ground;
       loc.hw = loc2.hw;
+      loc.vl = loc2.vl;
+      loc.vr = loc2.vr;
+      loc.surf = loc2.surf;
       k.seg = loc.seg;
     }
   }
   walls(k, tr, loc, ev);
 
-  // 12. Земля и полёт: дорога или настил (трамплин вне оси), что выше
-  let gy = loc.ground !== NO_GROUND && (loc.lat <= loc.hw + EDGE_GROUND && loc.lat >= -loc.hw - EDGE_GROUND) ? loc.ground : NO_GROUND;
+  // 10. Земля и полёт: дорога с обочиной или настил (трамплин вне оси), что выше
+  let gy = loc.ground !== NO_GROUND && onGround(loc, EDGE_GROUND) ? loc.ground : NO_GROUND;
+  let surf = loc.surf;
   if (tr.hz.decks.length > 0) {
     const d = deckAt(tr.hz, k.x, k.z);
-    if (d > gy) gy = d;
+    if (d > gy) {
+      gy = d;
+      surf = SURF_ROAD;
+    }
   }
   const ground = gy !== NO_GROUND;
-  if (k.grounded && ground) {
-    // подъём за тик — вертикальная скорость: с края трамплина карт улетает вверх
+  const wasGrounded = k.grounded;
+  if (k.grounded && ground && (gy - k.y) / DT >= k.vy - TAKEOFF_DV) {
+    // по земле: подъём за тик — вертикальная скорость (с края трамплина карт улетает вверх)
     k.vy = (gy - k.y) / DT;
     k.y = gy;
   } else {
+    // в воздухе: провал, обрыв или гребень, с которого дорога уходит вниз быстрее, чем падает карт
     k.grounded = 0;
     k.vy -= KART_GRAVITY * DT;
     k.y += k.vy * DT;
@@ -570,8 +676,16 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
         k.y = gy;
         k.vy = 0;
         k.grounded = 1;
+        if (k.trick === 2 && k.air >= TRICK_AIR) {
+          if (k.boostLvl <= BOOST_MT1 || k.boostT === 0) {
+            k.boostLvl = Math.max(k.boostLvl, BOOST_MT1);
+            k.boostT = Math.max(k.boostT, TRICK_TICKS);
+          }
+          ev.trick = 2;
+        }
+        k.trick = 0;
       } else {
-        // стенка причала или канала: назад, дальше отвесно вниз
+        // стенка причала или берега: назад, дальше отвесно вниз
         k.x = ox;
         k.z = oz;
         k.vx = 0;
@@ -581,24 +695,32 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
       }
     }
   }
+  // оторвался от земли сам (гребень, трамплин, обрыв), а не подскоком — можно трюк
+  if (wasGrounded && !k.grounded && !ev.hop) k.trick = 1;
+  if (k.grounded) {
+    k.air = 0;
+    if (surf !== SURF_ROAD && k.surf === SURF_ROAD) ev.offroad = surf;
+    k.surf = surf;
+  } else {
+    if (k.air < 255) k.air++;
+    k.surf = SURF_ROAD;
+  }
 
-  // 13. Вода
+  // 11. Вода
   if (k.y < WATER_Y - 0.4) {
     ev.splash = true;
     respawn(k, tr);
     return;
   }
 
-  // 14. Контрольные точки и круги
-  if (k.done || !k.grounded || loc.lat > loc.hw + EDGE_GROUND || loc.lat < -loc.hw - EDGE_GROUND) return;
+  // 12. Контрольные точки и круги: следующая по порядку, когда карт стоит на дороге за её линией (недалеко)
+  if (k.done || !k.grounded || !onGround(loc, EDGE_GROUND)) return;
   const c = k.cp + 1 < tr.cpSeg.length ? k.cp + 1 : 0;
-  const cpSeg = tr.cpSeg[c];
-  const before = (beforeX - tr.px[cpSeg]) * tr.tx[cpSeg] + (beforeZ - tr.pz[cpSeg]) * tr.tz[cpSeg];
-  const after = (k.x - tr.px[cpSeg]) * tr.tx[cpSeg] + (k.z - tr.pz[cpSeg]) * tr.tz[cpSeg];
-  const reached = tr.strictCheckpoints
-    ? wrapSeg(tr, k.seg - cpSeg) < 3 && before <= 0 && after > 0
-    : wrapSeg(tr, k.seg - cpSeg) < CP_WINDOW;
-  if (reached) {
+  const L = tr.length;
+  let d = tr.s[loc.seg] + tr.len[loc.seg] * loc.t - tr.s[tr.cpSeg[c]];
+  if (d > L / 2) d -= L;
+  else if (d <= -L / 2) d += L;
+  if (d >= 0 && d < CP_AHEAD) {
     k.cp = c;
     ev.cp = true;
     if (c === 0) {

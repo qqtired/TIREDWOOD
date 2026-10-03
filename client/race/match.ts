@@ -5,18 +5,18 @@ import * as THREE from 'three';
 import { TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import type { RcReward } from '../../shared/economy.ts';
 import {
-  ITEM_SHIELD, ITEM_PULSE, ITEM_CLEAN, ITEM_NAMES, ITEM_JAM, ITEM_NONE, ITEM_PAINT, ITEM_TURBO, RC_GRID, RC_LAPS, RC_MAX_TICKS, RC_RACE, RC_RESULTS, RC_RESULTS_TICKS, makeKartState,
-  type KartEvents,
+  BOOST_TURBO, ITEM_BUBBLE, ITEM_CLAP, ITEM_HINTS, ITEM_ICONS, ITEM_NAMES, ITEM_NONE, ITEM_TURBO, RC_GRID, RC_LAPS, RC_MAX_TICKS,
+  RC_RACE, RC_RESULTS, RC_RESULTS_TICKS, makeKartState, sparkLevel, type KartEvents,
 } from '../../shared/kart.ts';
 import {
-  KE_BOOST, KE_DRIFT, KE_GROUND, KE_ON, KE_PAINT, decodeKartSnapshot, kartFlags, kartMisc, kartYaw, makeKartHeader, type KartSnap,
-  type TrapSnap,
+  KE_BOOST, KE_DRIFT, KE_GROUND, KE_ON, KE_PAINT, KM_BUBBLE, decodeKartSnapshot, kartFlags, kartMisc, kartYaw, makeKartHeader,
+  type KartSnap, type TrapSnap,
 } from '../../shared/kartnet.ts';
 import { clamp, damp, lerpAngle, wrapAngle } from '../../shared/math.ts';
 import type { KartInfo, RaceEvent, RaceResultRow, ServerMsg } from '../../shared/messages.ts';
 import { SNAP_HAS_SELF, SNAP_SELF_RESET, encodeInputs, type EntitySnap } from '../../shared/protocol.ts';
 import { makeInput, type Input } from '../../shared/sim.ts';
-import { locate, makeLoc } from '../../shared/track.ts';
+import { SURF_SAND, locate, makeLoc } from '../../shared/track.ts';
 import type { Sound } from '../audio.ts';
 import type { Chat } from '../chat.ts';
 import type { Input as InputDevice } from '../input.ts';
@@ -138,6 +138,8 @@ export class RaceMatch {
   private myPlace = 0;
   private total = 0;
   private selfPainted = false;
+  /** Свой пузырь — из снимка сервера (KM_BUBBLE) */
+  private selfBubble = false;
 
   // тики и ввод
   private seq = 0;
@@ -155,7 +157,7 @@ export class RaceMatch {
   private sparkLvl = 0;
   /** Тиков подряд на луже и контрольных точек подряд (срезка) */
   private slickTicks = 0;
-  private cpRun = 0;
+
   private rolling = false;
   private rollTickAt = 0;
   private reward: string | null = null;
@@ -328,7 +330,6 @@ export class RaceMatch {
       } else this.trapPos.set(t.id, { x: t.x, y: t.y, z: t.z });
     }
     world.setTraps(this.trapList, n.traps);
-    world.items.snapshot(this.list, n.karts);
 
     this.total = n.karts;
     this.seen.clear();
@@ -338,6 +339,7 @@ export class RaceMatch {
       if (k.id === this.myId) {
         this.myPlace = k.place;
         this.selfPainted = (k.flags & KE_PAINT) !== 0;
+        this.selfBubble = (k.misc & KM_BUBBLE) !== 0;
         continue;
       }
       let r = this.remotes.get(k.id);
@@ -390,25 +392,33 @@ export class RaceMatch {
         case 'item': {
           // свой бонус уже прозвучал по предсказанию
           const [, kart, item] = e;
-          if (kart === this.myId && item >= ITEM_SHIELD) hud.banner(ITEM_NAMES[item] ?? 'Бонус', 1700);
+          if (kart === this.myId && item === ITEM_BUBBLE) hud.banner('🫧 Пузырь <small>8 с · один удар бонусом</small>', 1600);
           const p = kart === this.myId ? null : this.posOf(kart);
           if (!p) break;
-          if (item === ITEM_TURBO) sound.kartBoost([p.x, p.y + 0.5, p.z], 3);
-          else sound.whoosh([p.x, p.y + 0.8, p.z]);
+          if (item === ITEM_TURBO) sound.kartBoost([p.x, p.y + 0.5, p.z], BOOST_TURBO);
+          else if (item === ITEM_BUBBLE) sound.bubbleUp([p.x, p.y + 0.6, p.z]);
+          else if (item !== ITEM_CLAP) sound.whoosh([p.x, p.y + 0.8, p.z]);
           break;
         }
-        case 'pulse': {
+        case 'clap': {
           const [, from, hit] = e;
           const p = this.posOf(from);
-          if (p) world.items.pulse(p.x, p.y, p.z, p.yaw);
-          if (hit.includes(this.myId)) { hud.banner('⚡ Импульс! <small>замедление</small>', 1250); this.shake = Math.min(1, this.shake + 0.3); }
-          else if (from === this.myId) hud.banner(hit.length ? `⚡ Импульс · попаданий: ${hit.length}` : '⚡ Импульс · впереди никого', 1500);
+          if (p) {
+            world.items.clap(p.x, p.y, p.z);
+            fx.confetti(p.x, p.y + 0.8, p.z, 36, 4.5);
+          }
+          sound.clap(from === this.myId || !p ? null : [p.x, p.y + 0.6, p.z]);
+          if (hit.includes(this.myId)) {
+            hud.banner('💥 Хлопок! <small>закрутило</small>', 1300);
+            this.shake = Math.min(1, this.shake + 0.45);
+          } else if (from === this.myId) hud.banner(hit.length ? `💥 Хлопок · задело: ${hit.length}` : '💥 Хлопок · рядом никого', 1500);
           break;
         }
-        case 'shield': {
-          if (e[1] === this.myId) hud.banner('🛡️ Щит поглотил удар', 1500);
-          const p = this.posOf(e[1]);
-          if (p) world.items.pulse(p.x, p.y, p.z);
+        case 'pop': {
+          const [, kart, from] = e;
+          const p = this.posOf(kart);
+          sound.bubblePop(kart === this.myId || !p ? null : [p.x, p.y + 0.6, p.z]);
+          if (kart === this.myId) hud.banner(from ? '🫧 Пузырь спас!' : '🫧 Пузырь лопнул', 1300, from ? 'gold' : '');
           break;
         }
         case 'jam': {
@@ -440,9 +450,12 @@ export class RaceMatch {
           if (kart === this.myId) {
             this.finishMs = ms;
             this.finishAt = performance.now();
-            const text = place === 1 ? '🏆 Финиш! <b>Первое место!</b>' : `🏁 Финиш! <b>${place}-е место</b>`;
-            hud.banner(text, 3600, place === 1 ? 'gold' : '');
+            hud.banner(place === 1 ? '🏆 Финиш!' : '🏁 Финиш!', 3000, place === 1 ? 'gold' : '');
+            hud.celebrate(place, Math.max(place, this.total));
+            const s = this.predictor.state;
+            fx.confetti(s.x, s.y + 1.2, s.z, place <= 3 ? 90 : 50, place === 1 ? 8 : 6);
             sound.fanfare(null);
+            if (place <= 3) sound.applause(null);
           } else if (place === 1 && !this.predictor.state.done) {
             hud.banner(`🏁 ${escapeHtml(this.nickOf(kart))} — первый на финише`, 2200);
           }
@@ -546,15 +559,32 @@ export class RaceMatch {
     const s = this.predictor.state;
     const p = this.predictor.prev;
     if (ev.used === ITEM_TURBO) {
-      sound.kartBoost(null, 3);
+      sound.kartBoost(null, BOOST_TURBO);
       this.fovKick = Math.max(this.fovKick, 4);
-    } else if (ev.used === ITEM_JAM || ev.used === ITEM_PAINT || ev.used === ITEM_SHIELD || ev.used === ITEM_PULSE || ev.used === ITEM_CLEAN) {
+    } else if (ev.used === ITEM_BUBBLE) {
+      sound.bubbleUp(null);
+    } else if (ev.used !== ITEM_NONE && ev.used !== ITEM_CLAP) {
       sound.whoosh(null);
     }
     if (ev.mt) {
       sound.kartBoost(null, ev.mt);
       this.fovKick = Math.max(this.fovKick, 2 + ev.mt);
     }
+    if (ev.rocket === 1) {
+      hud.banner('🚀 Ракетный старт!', 1500, 'gold');
+      sound.kartBoost(null, 2);
+      this.fovKick = Math.max(this.fovKick, 5);
+    } else if (ev.rocket === 2) {
+      hud.banner('Рано! <small>колёса буксуют</small>', 1300);
+      sound.skid(0.6);
+    }
+    if (ev.trick === 1) sound.trick();
+    else if (ev.trick === 2) {
+      hud.banner('✨ Трюк! <small>ускорение</small>', 1000);
+      sound.kartBoost(null, 1);
+      this.fovKick = Math.max(this.fovKick, 3);
+    }
+    if (ev.offroad !== 0) sound.offroad(ev.offroad === SURF_SAND);
     if (ev.wall > 3) {
       // искры — с той стороны, где стена; веер — обратно к дороге
       const tr = world.track;
@@ -568,7 +598,7 @@ export class RaceMatch {
     }
     if (ev.dash) {
       // плита-ускоритель
-      sound.kartBoost(null, 3);
+      sound.kartBoost(null, BOOST_TURBO);
       this.fovKick = Math.max(this.fovKick, 4);
     }
     if (ev.slick) {
@@ -581,10 +611,6 @@ export class RaceMatch {
       sound.kartBump(null, ev.hit);
       this.shake = Math.min(1, this.shake + ev.hit / (ev.hitKind === 2 ? 8 : 14));
     }
-    if (ev.cp) {
-      // контрольные точки подряд, тик за тиком, — это срезка: пропущенные засчитываются сразу
-      if (++this.cpRun === 2) hud.banner('⚡ Срезка!', 1800, 'gold');
-    } else this.cpRun = 0;
     if (ev.hop) sound.kartHop(false);
     if (ev.land > 4) {
       fx.dust(s.x, s.y, s.z, Math.min(8, Math.round(ev.land / 2)));
@@ -620,12 +646,15 @@ export class RaceMatch {
       this.finishMs = Math.max(1, (this.predTick(now) - this.raceStart) * TICK_MS);
     }
     // занос копит мини-турбо: искры сменили цвет
-    const lvl = s.drift === 0 ? 0 : kartMisc(s) & 3;
+    const lvl = sparkLevel(s);
     if (lvl > this.sparkLvl) sound.driftCharge(lvl);
     this.sparkLvl = lvl;
     // рулетка бонуса остановилась
     const rolling = s.itemT > 0;
-    if (this.rolling && !rolling && s.item !== ITEM_NONE) sound.itemReady();
+    if (this.rolling && !rolling && s.item !== ITEM_NONE) {
+      sound.itemReady();
+      hud.banner(`${ITEM_ICONS[s.item]} ${ITEM_NAMES[s.item]} <small>${ITEM_HINTS[s.item]}</small>`, 1500);
+    }
     this.rolling = rolling;
   }
 
@@ -691,7 +720,7 @@ export class RaceMatch {
     q.yaw = lerpAngle(kartYaw(p), kartYaw(s), alpha);
     q.steer = p.steer + (s.steer - p.steer) * alpha;
     q.flags = kartFlags(s, true, this.selfPainted && !this.paintFlying(this.myId));
-    q.misc = kartMisc(s);
+    q.misc = kartMisc(s) | (this.selfBubble ? KM_BUBBLE : 0);
   }
 
   /** В карт летит краска: кляксы на корпусе — когда долетит */
@@ -815,7 +844,7 @@ export class RaceMatch {
     cam.lookAt(p.x + hx * CAM_AHEAD + ox * 0.5, p.y + 0.8 + oy * 0.5, p.z + hz * CAM_AHEAD);
 
     const lvl = s.boostT > 0 ? s.boostLvl : 0;
-    const fov = FOV_MIN + Math.min(1, speed / 26) * FOV_SPEED + (lvl === 3 ? FOV_TURBO : lvl > 0 ? FOV_TURBO / 2 : 0) + this.fovKick;
+    const fov = FOV_MIN + Math.min(1, speed / 26) * FOV_SPEED + (lvl === BOOST_TURBO ? FOV_TURBO : lvl > 0 ? (FOV_TURBO * (1 + lvl)) / 8 : 0) + this.fovKick;
     this.curFov = damp(this.curFov, fov, 6, dt);
     const f = narrowFov(this.curFov, cam.aspect);
     if (Math.abs(cam.fov - f) > 0.01) {
@@ -834,9 +863,9 @@ export class RaceMatch {
     hud.setTimes(this.raceTime(pt), this.bestMs || null);
     hud.setSpeed(Math.hypot(s.vx, s.vz) * 3.6);
     hud.setCharge(this.hasSelf && s.drift !== 0 && !s.done ? s.driftT : null);
-    // линии скорости: турбо из ящика — в полную силу, мини-турбо — слабее
+    // линии скорости: турбо — в полную силу, мини-турбо — слабее
     const boost = this.hasSelf && !s.done && s.boostT > 0 ? s.boostLvl : 0;
-    hud.setSpeedLines(dt, boost === 3 ? 1 : boost === 2 ? 0.6 : boost === 1 ? 0.45 : 0);
+    hud.setSpeedLines(dt, boost === BOOST_TURBO ? 1 : boost === 3 ? 0.8 : boost === 2 ? 0.6 : boost === 1 ? 0.45 : 0);
     const rolling = this.hasSelf && s.itemT > 0;
     hud.setItem(this.hasSelf ? s.item : ITEM_NONE, rolling, now);
     if (rolling && now - this.rollTickAt > 90) {

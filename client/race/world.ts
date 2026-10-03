@@ -11,11 +11,11 @@ import { WATER_Y } from '../../shared/constants.ts';
 import { deckAt } from '../../shared/hazards.ts';
 import type { TrapSnap } from '../../shared/kartnet.ts';
 import { CRANE_HALF_X, type Ring, type Shed, type Tank } from '../../shared/maps/ring.ts';
-import { buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
 import { landHas, rightNormal } from '../../shared/maps/ringland.ts';
 import type { Deco } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
-import { NO_GROUND, locate, locateAny, makeLoc, type Track, type TrackLoc } from '../../shared/track.ts';
+import { NO_GROUND, locate, locateAny, makeLoc, onGround, type Track, type TrackLoc } from '../../shared/track.ts';
 import type { LobbyQuality } from '../lobby/world.ts';
 import { Gulls, addBox, buildDeco, buildGeo, craneGeometry, fitShadow, glowSprite, glowTexture, paint, parts, place, staticMesh, updateFloaters, type Floater, type V3 } from '../render/kit.ts';
 import type { Renderer } from '../render/renderer.ts';
@@ -148,7 +148,7 @@ export class RaceWorld {
   private readonly toAxisLoc = makeLoc();
   time = 0;
 
-  constructor(renderer: Renderer, quality: LobbyQuality = 'high', trackId: RaceTrackId = 'port') {
+  constructor(renderer: Renderer, quality: LobbyQuality = 'high', trackId: RaceTrackId = DEFAULT_TRACK) {
     this.ring = buildRaceCourse(trackId);
     this.renderer = renderer;
     this.track = this.ring.track;
@@ -576,18 +576,6 @@ export class RaceWorld {
     startMesh.renderOrder = 2;
     this.scene.add(startMesh);
 
-    if (tr.strictCheckpoints) {
-      const cyan = new THREE.Color(0x71c6bf);
-      for (let cp = 1; cp < tr.cpSeg.length; cp++) {
-        const i = tr.cpSeg[cp];
-        const point = (lat: number, fw: number): V3 => [tr.px[i] - tr.tz[i] * lat + tr.tx[i] * fw, MARK_Y + 0.004, tr.pz[i] + tr.tx[i] * lat + tr.tz[i] * fw];
-        face(this.marks, point(-tr.hw[i], -0.15), point(tr.hw[i], -0.15), point(tr.hw[i], 0.15), point(-tr.hw[i], 0.15), [0, 1, 0], [0, 0, 1, 0, 1, 1, 0, 1], same(cyan));
-        for (const side of [-1, 1]) {
-          const p = point(side * (tr.hw[i] + 0.8), 0);
-          this.solid.push(place(paint(new THREE.BoxGeometry(0.14, 1.8, 0.14), 0x71c6bf), p[0], 0.9, p[2]));
-        }
-      }
-    }
 
     // места на решётке: белая «скобка» — поперечная черта впереди и две короткие по бокам
     const white = new THREE.Color(0xeeece4);
@@ -1132,7 +1120,7 @@ export class RaceWorld {
     const tr = this.track;
     locate(tr, x, z, loc.seg, loc);
     if (Math.abs(loc.lat) > loc.hw + 6) locateAny(tr, x, z, loc);
-    let g = Math.abs(loc.lat) <= loc.hw + 0.5 && loc.ground !== NO_GROUND ? loc.ground : NO_GROUND;
+    let g = onGround(loc, 0.5) && loc.ground !== NO_GROUND ? loc.ground : NO_GROUND;
     if (tr.hz.decks.length > 0) {
       const d = deckAt(tr.hz, x, z);
       if (d > g) g = d;

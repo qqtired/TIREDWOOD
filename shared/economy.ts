@@ -57,10 +57,13 @@ export interface Stats {
   rcRaces: number;
   rcWins: number;
   rcPodiums: number;
-  /** Лучший круг, мс (0 — не было) */
+  /** Лучший круг, мс (0 — не было): «Портовое кольцо» первой версии (id port), больше не обновляется */
   rcBestLap: number;
-  /** Лучший круг трассы «Литейная», мс; отдельно от исходной портовой трассы. */
+  /** Лучший круг трассы «Литейный вираж» (id foundry, убрана), мс; больше не обновляется */
   rcBestLapFoundry: number;
+  /** Лучший круг, мс: «Портовое кольцо» второй версии (id harbor) и «Солнечный серпантин» (id hills) */
+  rcBestLapHarbor: number;
+  rcBestLapHills: number;
   /** Рыбалка: вытащено (с хламом) и продано за жетоны */
   fsCaught: number;
   fsSold: number;
@@ -118,7 +121,8 @@ export interface Stats {
 export function emptyStats(): Stats {
   return {
     pbRounds: 0, pbWins: 0, pbKills: 0, pbMvp: 0, spins: 0, slotWon: 0, bestWin: 0, jackpots: 0, dkGames: 0, dkFools: 0, dkFirst: 0,
-    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, fsCaught: 0, fsSold: 0, aqRuns: 0, aqBest: 0, slotBet: 0, slotPaid: 0,
+    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0, fsCaught: 0, fsSold: 0,
+    aqRuns: 0, aqBest: 0, slotBet: 0, slotPaid: 0,
     fsFish: 0, fsGrams: 0, fsDay: 0, fsDayFish: 0, fsDayGrams: 0, fsChests: 0,
     fsCasts: 0, fsBites: 0, fsLost: 0, fsMaxGrams: 0, fsEarned: 0,
     ftGames: 0, ftWins: 0, ftBest: 0, ftKills: 0, fcFights: 0, fcWins: 0, fcKos: 0,

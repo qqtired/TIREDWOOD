@@ -378,10 +378,12 @@ test('итог гонки: жетоны по месту, гонки, побед�
   hub.onRaceResult(c, row, raceReward(1));
   assert.equal(prof.tokens, t0 + raceReward(1).total);
   assert.equal(lastOf(s, 'tokens')!.n, prof.tokens);
-  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLap], [1, 1, 1, 41_300]);
+  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLapHarbor], [1, 1, 1, 41_300]);
   hub.onRaceResult(c, { ...row, place: 3, best: 43_000, tokens: raceReward(3).total }, raceReward(3));
-  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLap], [2, 1, 2, 41_300]);
+  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLapHarbor], [2, 1, 2, 41_300]);
   hub.onRaceResult(c, { ...row, place: 0, time: 0, best: 40_100, tokens: 0 }, null);
-  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLap], [3, 1, 2, 40_100], 'не доехал: без жетонов, но круг засчитан');
+  assert.deepEqual([prof.stats.rcRaces, prof.stats.rcWins, prof.stats.rcPodiums, prof.stats.rcBestLapHarbor], [3, 1, 2, 40_100], 'не доехал: без жетонов, но круг засчитан');
   assert.equal(prof.tokens, t0 + raceReward(1).total + raceReward(3).total);
+  // строка без трассы — рекорд трассы по умолчанию («Портовое кольцо»); старые поля не трогаются
+  assert.equal(prof.stats.rcBestLap, 0);
 });

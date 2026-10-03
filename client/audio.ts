@@ -1065,7 +1065,7 @@ export class Sound {
     return { o1, o2, lfo, lp, out, skid, pan, srcs };
   }
 
-  /** Турбо: свист воздуха и рёв. lvl 1–2 — мини-турбо (короче), 3 — турбо из ящика. */
+  /** Турбо: свист воздуха и рёв. lvl 1–3 — мини-турбо (синее, оранжевое, фиолетовое), 4 — турбо из ящика. */
   kartBoost(pos: V3 | null, lvl: number): void {
     if (!this.ok) return;
     const d = this.out(pos, this.sfx, 0, 4);
@@ -1073,6 +1073,7 @@ export class Sound {
     this.noise(d, big ? 0.7 : 0.4, 'bandpass', 500, 2600, 1.6, big ? 0.32 : 0.2, 0, 0.03);
     this.tone(d, 110, big ? 330 : 240, big ? 0.6 : 0.35, 'sawtooth', big ? 0.09 : 0.06, 0, 0.02);
     if (lvl >= 2) this.tone(d, 900, 1600, 0.12, 'square', 0.04);
+    if (lvl === 3) this.tone(d, 1400, 2600, 0.18, 'triangle', 0.05, 0.04);
   }
 
   /** Подскок карта на пробел: пружинка подвески; land — приземлился (мягкий «тук»). */
@@ -1090,7 +1091,7 @@ export class Sound {
   /** Занос накопил мини-турбо: искры сменили цвет. */
   driftCharge(lvl: number): void {
     if (!this.ok) return;
-    const f = lvl >= 2 ? 1568 : 1175;
+    const f = lvl >= 3 ? 2093 : lvl === 2 ? 1568 : 1175;
     this.tone(this.ui, f, f * 1.06, 0.09, 'triangle', 0.06);
   }
 
@@ -1128,6 +1129,51 @@ export class Sound {
     this.noise(d, 0.12, 'lowpass', 600, 120, 1, 0.25 + g * 0.45, 0, 0.003, true);
     this.tone(d, 95, 48, 0.14, 'sine', 0.15 + g * 0.3);
     this.noise(d, 0.06, 'bandpass', 2400, 1200, 1.5, 0.05 + g * 0.1);
+  }
+
+  /** Пузырь надулся: мягкое «блуп» вверх и переливы. */
+  bubbleUp(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 3);
+    this.tone(d, 260, 820, 0.2, 'sine', 0.16, 0, 0.01);
+    this.tone(d, 1300, 2300, 0.26, 'triangle', 0.035, 0.08, 0.03);
+  }
+
+  /** Пузырь лопнул: звонкий «чпок». */
+  bubblePop(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 3);
+    this.tone(d, 1100, 380, 0.07, 'sine', 0.2);
+    this.noise(d, 0.05, 'highpass', 3600, 2400, 0.8, 0.12);
+  }
+
+  /** «Хлопок»: удар в ладоши великана — хлёсткий треск и низкий гул волны. */
+  clap(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 6);
+    this.noise(d, 0.14, 'bandpass', 1500, 700, 1.1, 0.55);
+    this.noise(d, 0.45, 'lowpass', 500, 90, 0.8, 0.4, 0.01, 0.004, true);
+    this.tone(d, 130, 45, 0.32, 'sine', 0.32);
+  }
+
+  /** Колёса буксуют: короткий визг шин. gain 0…1. */
+  skid(gain: number): void {
+    if (!this.ok) return;
+    this.noise(this.sfx, 0.5, 'bandpass', 2300, 1700, 7, 0.14 * gain, 0, 0.02);
+    this.tone(this.sfx, 820, 700, 0.45, 'sawtooth', 0.025 * gain, 0, 0.02);
+  }
+
+  /** Трюк в прыжке: весёлое «уи-и». */
+  trick(): void {
+    if (!this.ok) return;
+    this.tone(this.ui, 660, 1320, 0.16, 'triangle', 0.07);
+    this.tone(this.ui, 990, 1980, 0.12, 'sine', 0.04, 0.05);
+  }
+
+  /** Съехал на траву (шорох) или в песок (шуршание погуще). */
+  offroad(sand: boolean): void {
+    if (!this.ok) return;
+    this.noise(this.sfx, sand ? 0.32 : 0.22, sand ? 'lowpass' : 'bandpass', sand ? 1300 : 2200, sand ? 380 : 1400, 0.9, sand ? 0.16 : 0.08, 0, 0.02, sand);
   }
 
   /** Отсчёт на решётке: три коротких бипа и высокий на «Вперёд!». */
