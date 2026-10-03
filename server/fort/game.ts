@@ -37,6 +37,7 @@ import type { Sink } from '../paintball/game.ts';
 import { Arsenal } from './arsenal.ts';
 import { WaveEvents, type EventHost } from './events.ts';
 import { Horde, type HordeHost, type HordeTarget, type Zombie } from './horde.ts';
+import { devBossHp } from './kraken.ts';
 import { FortNav } from './nav.ts';
 
 export class FortPlayer {
@@ -712,6 +713,11 @@ export class FortGame implements HordeHost, EventHost {
       const kinds: Record<string, number> = { meteors: EV_METEORS, supply: EV_SUPPLY, gold: EV_GOLD, fog: EV_FOG };
       this.forceEvent = kinds[(arg ?? '').toLowerCase()] ?? EV_NONE;
       this.systemChat(this.forceEvent ? `🛠 Разработка: на следующей волне — ${arg}` : '🛠 /event meteors | supply | gold | fog');
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'hp') {
+      // разработка: всем боссам и щупальцам N % HP (/hp 45 — ярость, /hp 0.05 — гибель)
+      if (devBossHp(this.horde, Number(arg))) this.systemChat(`🛠 Разработка: боссам — ${Number(arg)} % HP`);
       return;
     }
     this.privateChat(p, 'Крепость: E у прилавка — лавка (1–9 — купить), E у ворот, кристалла и мест башен на стенах — их панель, 1/2 или колесо — маркер или тяжёлый ствол, G — граната (держи — дуга), лестницы — W лицом к стене, колокол — «готов», Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');

@@ -64,7 +64,7 @@ export const FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
   bosses: BOSS_CYCLE,
   sea: true,
-  kraken: false,
+  kraken: true,
   events: true,
 };
 

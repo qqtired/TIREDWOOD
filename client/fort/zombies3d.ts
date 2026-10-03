@@ -18,6 +18,8 @@ import { softDot } from '../render/textures.ts';
 import type { Quality } from '../settings.ts';
 import type { GroundQuery } from '../render/avatar.ts';
 import { attackSignal } from './signals.ts';
+import { Z_KRAKEN, Z_TENTACLE } from '../../shared/fort.ts';
+import { Kraken3D } from './kraken3d.ts';
 
 /** Инстансов на часть: живых не больше FORT_MAX_ALIVE, с запасом на тех, кто ещё не пропал из снимков */
 const CAP = 72;
@@ -506,6 +508,8 @@ export class Zombies3D {
   private readonly crewHeads: THREE.InstancedMesh;
   private readonly caps: THREE.InstancedMesh;
   private heads = 0;
+  /** Кракен: голова и щупальца — своя (временная) отрисовка */
+  private readonly kraken: Kraken3D;
   private readonly bodyGeometries: readonly THREE.BufferGeometry[];
   private readonly ground?: GroundQuery;
   private detailDistance = Infinity;
@@ -573,6 +577,7 @@ export class Zombies3D {
     for (const m of this.extras) if (m) scene.add(m);
     scene.add(this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warningFill, this.warning, this.lane, this.laneFill, this.held,
       this.hull, this.crewHeads, this.caps);
+    this.kraken = new Kraken3D(scene);
   }
 
   /** Морской туман: глаза видны сквозь туман — лицо без тумана и чуть светится */
@@ -682,6 +687,7 @@ export class Zombies3D {
     for (const m of this.extras) if (m) m.count = 0;
     for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill, this.lane, this.laneFill, this.held,
       this.hull, this.crewHeads, this.caps]) m.count = 0;
+    this.kraken.clear();
   }
 
   /** Цели прицела — живые зомби на тике t (то же, к чему сервер откатит орду): x, y ног, z, тип. */
@@ -924,6 +930,12 @@ export class Zombies3D {
       _p.set(r.x, r.y + bob - rise * BODY_H * sy * 0.9, r.z);
       _s.set(sxz, sy, sxz);
       _m.compose(_p, _q, _s);
+      // Кракен рисуется своим (голова и руки-щупальца), желейное тело и тень — пустые
+      const kraken = kind === Z_KRAKEN || kind === Z_TENTACLE;
+      if (kraken) {
+        this.kraken.part(kind, r, sq, time);
+        _m.makeScale(0, 0, 0);
+      }
       this.body.setMatrixAt(n, _m);
       const boss = isBossKind(kind);
       if (boss || Math.hypot(r.x - camPos.x, r.z - camPos.z) < this.detailDistance) this.face.setMatrixAt(faces++, _m);
@@ -1017,7 +1029,7 @@ export class Zombies3D {
       // тень на земле (на стене — на её верху: высота ног)
       const shR = k.r * 2.6 * (1 - rise * 0.6);
       _q.identity();
-      const floor = kind === Z_FLYER ? this.ground?.groundBelow(r.x, r.y, r.z) ?? 0 : r.y;
+      const floor = kraken ? NaN : kind === Z_FLYER ? this.ground?.groundBelow(r.x, r.y, r.z) ?? 0 : r.y;
       _p.set(r.x, Number.isFinite(floor) ? floor + 0.03 : -1000, r.z);
       _s.set(shR, 1, shR);
       this.shadow.setMatrixAt(n, _m.compose(_p, _q, _s));
@@ -1074,5 +1086,6 @@ export class Zombies3D {
     this.barBg.instanceMatrix.needsUpdate = true;
     this.barFill.instanceMatrix.needsUpdate = true;
     if (this.barFill.instanceColor) this.barFill.instanceColor.needsUpdate = true;
+    this.kraken.flush();
   }
 }

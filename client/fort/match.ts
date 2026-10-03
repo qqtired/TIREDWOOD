@@ -11,7 +11,7 @@ import {
   CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
-  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, KF_SUPER,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, KF_SUPER, Z_KRAKEN, Z_TENTACLE,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import {
@@ -47,6 +47,9 @@ import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
 import type { EventFxApi, EventMarks } from './marks.ts';
+import { KrakenFx } from './krakenfx.ts';
+import type { BossPart } from './ui/boss.ts';
+import { TENT_COUNT } from '../../shared/fortkraken.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -191,9 +194,17 @@ export class FortMatch {
   private fuseAlertAt = -99;
   private steamAt = 0;
   private wakeAt = 0;
+  /** Кракен: тревоги, брызги и звук его событий; части для полосы босса (щупальца по полосам, голова) */
+  private readonly krakenFx: KrakenFx;
+  private readonly krakenParts: BossPart[] = [
+    ...Array.from({ length: TENT_COUNT }, () => ({ label: 'Щупальце', frac: 0 })), { label: 'Голова', frac: 1 },
+  ];
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
+    this.krakenFx = new KrakenFx({ hud: deps.hud, effects: deps.effects, sound: deps.sound, zombies: deps.zombies, collision: deps.collision,
+      camPos: this.camPos, me: () => this.predictor.state, myId: () => this.myId, shake: (v) => { this.shake = Math.max(this.shake, v); },
+      tick: () => this.clock.estimate(performance.now()) });
     // стволы крепости — вокруг того же шага, что у сервера (shared/fortgun.ts), и при переигровке тоже
     this.predictor = new Predictor(deps.collision, {
       before: (s, inp) => this.ars.before(s, inp),
@@ -575,6 +586,7 @@ export class FortMatch {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
       hud.ui.onEvent(e);
+      if (this.krakenFx.onEvent(e)) continue;
       switch (e[0]) {
         case 'shot': {
           const [, pid, ox, oy, oz, ex, ey, ez, kind, nx, ny, nz] = e;
@@ -1437,8 +1449,20 @@ export class FortMatch {
       const top = boss.y + k.hcy + k.hry;
       this.d.effects.puff(boss.x + (Math.random() - 0.5) * k.hrx, top, boss.z + (Math.random() - 0.5) * k.hrx, 1.1, 0xff8f7a, 0.9, 1.6, 0.45);
     }
+    // Кракен: полоса разбита на части — четыре щупальца (по полосам, stage) и голова
+    let parts: readonly BossPart[] | undefined;
+    if (boss?.kind === Z_KRAKEN) {
+      const kp = this.krakenParts;
+      for (let i = 0; i < TENT_COUNT; i++) kp[i].frac = 0;
+      for (const z of this.zlist) {
+        const lane = z.stage ?? -1;
+        if (z.kind === Z_TENTACLE && z.hp > 0 && lane >= 0 && lane < TENT_COUNT) kp[lane].frac = z.hp;
+      }
+      kp[TENT_COUNT].frac = boss.hp;
+      parts = kp;
+    }
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
-      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
+      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);
     // новый интерфейс: полоса, команда, тревоги со стрелкой, стрелки на угрозы, новичку — раз в кадр
     const me = this.predictor.state;

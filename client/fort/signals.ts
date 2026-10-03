@@ -1,10 +1,14 @@
 import {
   BOSS_BOMB_R, BOSS_PULSE_R, BOSS_WARN_TICKS, FLY_DIVE_TICKS, FLY_R, FLY_WARN_TICKS, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_PULSE,
-  ZS_CHARGE, ZS_CHARGE_WARN, ZS_FLY_DIVE, ZS_FLY_WARN, ZS_PLANT, ZS_QUAKE, ZS_SPIT, ZS_STOMP, ZS_THROW,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_FLY_DIVE, ZS_FLY_WARN, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_QUAKE, ZS_SPIT, ZS_STOMP, ZS_TENT_REST,
+  ZS_TENT_SLAM, ZS_THROW,
 } from '../../shared/fort.ts';
 import { BARREL_R, FUSE_TICKS, QUAKE_R, RAM_LANE, ROCK_R, SPIT_R, SPIT_WARN_TICKS, STOMP_R } from '../../shared/fortkinds.ts';
+import { KRAKEN_SPIT_R, KRAKEN_SPIT_TICKS, TENT_REST_TICKS, TENT_SLAM_R, TENT_WARN_TICKS } from '../../shared/fortkraken.ts';
 
 const RED = 0xff6043;
+/** Голубое — окно для урона (булава щупальца лежит после удара) */
+const OPEN = 0x5fe3f0;
 
 /**
  * Метка атаки по состоянию: сколько тиков от начала до удара, радиус по умолчанию, цвет (красное — будет больно) и цвет
@@ -21,6 +25,9 @@ const SIGNALS: Readonly<Record<number, { total: number; radius: number; color: n
   [ZS_STOMP]: { total: BOSS_WARN_TICKS, radius: STOMP_R, color: RED },
   [ZS_THROW]: { total: BOSS_WARN_TICKS, radius: ROCK_R, color: RED, fill: 0x20140c },
   [ZS_QUAKE]: { total: BOSS_WARN_TICKS, radius: QUAKE_R, color: RED },
+  [ZS_TENT_SLAM]: { total: TENT_WARN_TICKS, radius: TENT_SLAM_R, color: RED },
+  [ZS_KRAKEN_SPIT]: { total: KRAKEN_SPIT_TICKS, radius: KRAKEN_SPIT_R, color: 0xff4f9a, fill: 0x8a2f9e },
+  [ZS_TENT_REST]: { total: TENT_REST_TICKS, radius: TENT_SLAM_R, color: OPEN },
 };
 
 /**

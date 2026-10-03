@@ -63,11 +63,13 @@ test('расписание: босс каждые 7 волн по кругу (Б
   assert.equal(planWave(25, 1, 3, undefined, ALL_FEATURES).kraken, true);
   assert.equal(planWave(10, 1, 3, undefined, ALL_FEATURES).boats.length, 1);
   assert.equal(planWave(10, 1, 3, undefined, ALL_FEATURES).boats[0].crew.length, 4);
-  // в игре: три босса по кругу, десант с 10-й; пока Кракена нет — на супер-волне Барон кругом выше
+  // в игре: три босса по кругу, десант с 10-й, на супер-волне — Кракен (и десант)
   assert.deepEqual([7, 14, 21, 28, 35, 42].map((w) => planWave(w, 1, 3, undefined, FEATURES).boss),
     [F.Z_BOSS, F.Z_RAM, F.Z_GOLEM, F.Z_BOSS, F.Z_RAM, F.Z_GOLEM]);
   assert.equal(planWave(28, 1, 3, undefined, FEATURES).bossTier, 1, 'на 28-й — Барон II');
-  assert.equal(planWave(25, 1, 3, undefined, FEATURES).boss, F.Z_BOSS);
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).kraken, true, 'на 25-й — Кракен');
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).boss, -1);
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).card.boss, F.Z_KRAKEN);
   assert.equal(planWave(10, 1, 3, undefined, FEATURES).boats.length, 1);
   assert.equal(planWave(25, 1, 3, undefined, FEATURES).boats.length, 2, 'на супер-волне — десант');
 });

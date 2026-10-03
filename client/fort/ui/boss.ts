@@ -28,6 +28,10 @@ export interface BossView {
   /** Своё имя и вид (иначе — по виду врага): части супер-босса, превью */
   name?: string;
   super?: boolean;
+  /** Своя строка «что делает» (Кракен: под водой, оглушён …) вместо текста по состоянию */
+  status?: string;
+  /** Полное окно уязвимости, тиков (у Кракена оглушение дольше); по умолчанию — BOSS_OPEN_TICKS */
+  openTicks?: number;
 }
 
 /** Что босс делает сейчас (Барон, Таран, Валун — server/fort/bosses.ts) */
@@ -129,10 +133,10 @@ export class BossBar {
     const open = v.state === ZS_BOSS_OPEN;
     this.root.classList.toggle('open', open);
     if (open) {
-      setText(this.status, `Ядро открыто — огонь! ${(Math.max(0, v.wind) / 60).toFixed(1).replace('.', ',')} с`);
-      this.windowFill.style.transform = `scaleX(${Math.max(0, Math.min(1, v.wind / BOSS_OPEN_TICKS))})`;
+      setText(this.status, v.status ?? `Ядро открыто — огонь! ${(Math.max(0, v.wind) / 60).toFixed(1).replace('.', ',')} с`);
+      this.windowFill.style.transform = `scaleX(${v.wind > 0 ? Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS))) : 1})`;
     } else {
-      setText(this.status, bossAttackText(v.state));
+      setText(this.status, v.status ?? bossAttackText(v.state));
     }
     this.root.classList.toggle('danger', DANGER.has(v.state));
 

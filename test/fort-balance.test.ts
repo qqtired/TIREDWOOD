@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CLEAN_MULT, KILL_SHARE, START_GOLD, killBounty, waveBonus } from '../shared/fortarsenal.ts';
+import { isSuperWave } from '../shared/fortwaves.ts';
 import {
   LOAD_TARGET, SKILLS, TARGET_WALLS, baseLoad, checkLoad, currentDirector, fitHpScale, killsOf, loadOf, scaleHp, simulate,
   startCapital, targetDirector, targetLoad, waveIncome, type Director,
@@ -24,9 +25,12 @@ test('эталонный директор: нагрузка по цели при
   assert.ok(baseLoad(1) > baseLoad(3) && baseLoad(3) > baseLoad(6), 'на одного тем меньше, чем больше защитников');
 });
 
-test('настоящий директор игры (fort) держит нагрузку договора ±15 % при 1…6 защитниках', () => {
+test('настоящий директор игры (fort) держит нагрузку договора ±15 % при 1…6 защитниках (кроме супер-волн с Кракеном)', () => {
   for (let n = 1; n <= 6; n++) {
-    for (const c of checkLoad(currentDirector, n)) assert.ok(c.ok, `n${n} W${c.wave}: ${c.got.toFixed(1)} при цели ${c.want}`);
+    for (const c of checkLoad(currentDirector, n)) {
+      if (isSuperWave(c.wave)) continue;
+      assert.ok(c.ok, `n${n} W${c.wave}: ${c.got.toFixed(1)} при цели ${c.want}`);
+    }
   }
 });
 

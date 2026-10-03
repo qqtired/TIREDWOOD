@@ -11,7 +11,8 @@ import {
   GUN_MARKER, KILL_SHARE, LATE_SHARE, NOPE_FAR, NOPE_GOLD, NOPE_LOCKED, ROW_GRENADES, ROW_GUN0, ROW_POUCH, SHOP_ROWS, START_GOLD, TAR_SLOW,
   TAR_TICKS, TOWERS, TOWER_MAX_LEVEL,
   TOWER_SPOT_COUNT, TOWER_UPGRADE, TW_BALLISTA, TW_BRAZIER, TW_CANNON, TW_TAR, TW_TYPES, UP_CRIT, UP_DMG, UP_MAG, UP_POUCH, UP_RATE,
-  bountyMul, crystalMax, crystalRows, critChance, dmgMul, encodeArsenalTail, gateMax, gateRows, grenadeMax, gunDamage, kindFlags, killBounty,
+  baseBounty, bountyMul, crystalMax, crystalRows, critChance, dmgMul, encodeArsenalTail, gateMax, gateRows, grenadeMax, gunDamage, kindFlags,
+  killBounty,
   makeArsenalTail, shopRows, towerMul, towerRows, waveBonus,
   type ArsenalRow, type Loadout, type PanelRow,
 } from '../../shared/fortarsenal.ts';
@@ -249,6 +250,8 @@ export class Arsenal {
    */
   onKill(z: Zombie): void {
     const g = this.game;
+    // части супер-босса (щупальца Кракена) — без награды
+    if (baseBounty(z.kind) <= 0) return;
     // ступень (элита ×2, чемпион ×5) и экипаж лодки — от орды агента fort; «вызвали раньше» — ×goldMul
     const shooter = killBounty(z.kind, Math.max(1, g.wave), z.tier, z.crew) * g.goldMul;
     const total = shooter / KILL_SHARE;

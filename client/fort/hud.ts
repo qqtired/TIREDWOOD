@@ -4,9 +4,12 @@
 // с ордой, таблица защитников (Tab), карточка волны (wavecard.ts), итоги игры с жетонами и рекордами; арсенал —
 // прилавок справа, полоска стволов и гранат, цифры урона и золота (stall.ts, floaters.ts). Полосу сверху, тревоги,
 // босса, баннеры, подсказки новичку и итоги рисует client/fort/ui (FortUi): сюда — только крючки к нему.
-import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS,
+import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, Z_KRAKEN,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
 import { WaveCardView } from './wavecard.ts';
+import { krakenInfo } from './krakenfx.ts';
+import { KRAKEN_OPEN_RAGE, KRAKEN_OPEN_TICKS } from '../../shared/fortkraken.ts';
+import type { BossPart } from './ui/boss.ts';
 import { FORT, GATE, ROADS, TOWER_SPOTS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
 import { TOUCH } from '../touch.ts';
@@ -192,9 +195,14 @@ export class FortHud {
     this.defenseEl.classList.toggle('active', rally > 0);
   }
 
-  /** Полоса босса (FortUi): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort */
-  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean): void {
-    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage } : null);
+  /**
+   * Полоса босса (FortUi): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort. У Кракена — своя
+   * подсказка (krakenInfo) и части: щупальца и голова.
+   */
+  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean, parts?: readonly BossPart[]): void {
+    const kraken = kind === Z_KRAKEN;
+    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage, parts,
+      status: kraken ? krakenInfo(state, wind) : undefined, openTicks: kraken ? (rage ? KRAKEN_OPEN_RAGE : KRAKEN_OPEN_TICKS) : undefined } : null);
   }
 
   /** Прилавок открыт (немодальный: бегать и стрелять можно) */
