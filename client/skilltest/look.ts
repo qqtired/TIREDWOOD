@@ -248,6 +248,171 @@ export function puffGeometry(rx: number, ry: number, rz: number, seed: number, b
   return mergeGeometries(list, false)!;
 }
 
+// ---------------------------------------------------------------- облака-площадки (участок 5)
+
+/**
+ * Цвета облака-площадки (sRGB). Белое море вокруг — ровно белое, поэтому площадка другая: тёплый золотистый верх («твёрдое»),
+ * белые бока, голубое брюшко; кант — голубая кромка безопасной площадки, перед растаиванием краснеет.
+ */
+export const CLOUD = {
+  top: 0xffd993,
+  topSoft: 0xffecc6,
+  side: 0xf6f8ff,
+  belly: 0x8fb4e8,
+  bellyLow: 0x7ba3e3,
+  rim: C.safe,
+  rimWarn: 0xe5522b,
+  glow: 0xffcc57,
+} as const;
+
+function seeded(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Скруглённый квадрат со стороной 2h, центр в нуле (в плоскости x–y). */
+function roundedSquare<T extends THREE.Path>(p: T, h: number, r: number): T {
+  p.moveTo(-h + r, -h);
+  p.lineTo(h - r, -h);
+  p.absarc(h - r, -h + r, r, -Math.PI / 2, 0, false);
+  p.lineTo(h, h - r);
+  p.absarc(h - r, h - r, r, 0, Math.PI / 2, false);
+  p.lineTo(-h + r, h);
+  p.absarc(-h + r, h - r, r, Math.PI / 2, Math.PI, false);
+  p.lineTo(-h, -h + r);
+  p.absarc(-h + r, -h + r, r, Math.PI, Math.PI * 1.5, false);
+  return p;
+}
+
+/**
+ * Облако, на которое прыгают: ровная «подушка» под ногами (верх — на y = −0,015, ноль — верх площадки), вокруг пушистая кайма
+ * из шаров, снизу голубое брюшко. Один меш, цвета в вершинах: верх золотистый, бока белые, низ голубеет к самому дну.
+ * half — половина стороны площадки, м.
+ */
+export function cloudPadGeometry(seed: number, half: number): THREE.BufferGeometry {
+  const rnd = seeded(seed);
+  const cTop = new THREE.Color(CLOUD.top), cSoft = new THREE.Color(CLOUD.topSoft), cSide = new THREE.Color(CLOUD.side);
+  const cBelly = new THREE.Color(CLOUD.belly), cLow = new THREE.Color(CLOUD.bellyLow);
+  const smooth = THREE.MathUtils.smoothstep, clamp = THREE.MathUtils.clamp;
+  const TOP = -0.015, BOT = -0.95;
+  const parts: THREE.BufferGeometry[] = [];
+  const finish = (g: THREE.BufferGeometry, paint: (y: number, ny: number, out: THREE.Color) => void): void => {
+    const geo = g.index ? g.toNonIndexed() : g;
+    geo.deleteAttribute('uv');
+    const pos = geo.getAttribute('position'), nor = geo.getAttribute('normal');
+    const col = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      paint(pos.getY(i), nor.getY(i), c);
+      col[i * 3] = c.r;
+      col[i * 3 + 1] = c.g;
+      col[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    parts.push(geo);
+  };
+  // подушка: верх ровный и тёплый, бока светлеют к белому, низ голубой
+  const paintPad = (y: number, ny: number, out: THREE.Color): void => {
+    if (ny > 0.7) out.copy(cTop);
+    else if (ny < -0.7) out.copy(cBelly);
+    else out.copy(cSoft).lerp(cSide, clamp((TOP - y) / 0.3, 0, 1)).lerp(cBelly, smooth(TOP - y, 0.2, 0.32) * 0.35);
+  };
+  // шары: от золотистой кромки у верха к белому и голубому брюшку внизу
+  const paintPuff = (y: number, ny: number, out: THREE.Color): void => {
+    const t = clamp((y - BOT) / (TOP - BOT), 0, 1);
+    out.copy(cLow).lerp(cBelly, smooth(t, 0, 0.3)).lerp(cSide, smooth(t, 0.3, 0.72)).lerp(cSoft, smooth(t, 0.8, 1) * 0.6);
+    if (ny < -0.15) out.lerp(cBelly, clamp(-ny, 0, 1) * 0.45);
+  };
+  const puff = (x: number, z: number, top: number, rx: number, ry: number, rz: number, detail: number): void => {
+    const g = new THREE.IcosahedronGeometry(1, detail);
+    g.scale(rx, ry, rz);
+    g.translate(x, top - ry, z);
+    finish(g, paintPuff);
+  };
+  const pad = new THREE.ExtrudeGeometry(roundedSquare(new THREE.Shape(), half + 0.04, 0.55), {
+    depth: 0.16, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 2, curveSegments: 6,
+  });
+  pad.rotateX(-Math.PI / 2);
+  pad.translate(0, TOP - 0.23, 0);
+  finish(pad, paintPad);
+  // нижнее брюшко под подушкой и кучки пониже — объём и голубая тень
+  puff(0, 0, -0.1, half * 1.05, 0.36, half * 1.05, 2);
+  for (let i = 0; i < 5; i++) {
+    const a = rnd() * Math.PI * 2, d = half * (0.25 + rnd() * 0.7);
+    puff(Math.cos(a) * d, Math.sin(a) * d, -0.42 - rnd() * 0.1, 0.5 + rnd() * 0.3, 0.22 + rnd() * 0.08, 0.5 + rnd() * 0.3, 1);
+  }
+  // пушистая кайма по кругу: вровень с подушкой или чуть ниже, дальше от середины — чуть выше
+  const n = 8;
+  for (let i = 0; i < n; i++) {
+    const a = ((i + (rnd() - 0.5) * 0.5) / n) * Math.PI * 2;
+    const d = half * (1.12 + rnd() * 0.3);
+    const r = 0.62 + rnd() * 0.34;
+    puff(Math.cos(a) * d, Math.sin(a) * d, -0.07 + (d > 1.8 ? rnd() * 0.12 : 0), r, 0.3 + rnd() * 0.1, r * (0.85 + rnd() * 0.3), 2);
+  }
+  const geo = mergeGeometries(parts, false)!;
+  geo.computeBoundingSphere();
+  return geo;
+}
+
+/** Плоский кант-рамка по краю верха: тонкое скруглённое кольцо в плоскости x–z, смотрит вверх. */
+export function cloudFrameGeometry(outer: number, inner: number): THREE.BufferGeometry {
+  const shape = roundedSquare(new THREE.Shape(), outer, 0.5);
+  shape.holes.push(roundedSquare(new THREE.Path(), inner, Math.max(0.1, 0.5 - (outer - inner))));
+  const g = new THREE.ShapeGeometry(shape, 6);
+  g.rotateX(-Math.PI / 2);
+  g.deleteAttribute('uv');
+  return g;
+}
+
+/** Мягкое пятно: белое в середине, прозрачное по краю (цвет задаёт материал). */
+let softDisc: THREE.CanvasTexture | null = null;
+export function softDiscTexture(): THREE.CanvasTexture {
+  if (softDisc) return softDisc;
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(0.78, 'rgba(255,255,255,0.14)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  softDisc = new THREE.CanvasTexture(c);
+  softDisc.colorSpace = THREE.SRGBColorSpace;
+  return softDisc;
+}
+
+/**
+ * Шеврон «сюда»: V с остриём вниз, толщина k (по вертикали), плечо поднимается на r, полуширина a; margin > 0 — обводка шире
+ * на столько. Центр по высоте — в нуле, выдавлен назад на depth (лицом к +z).
+ */
+export function chevronGeometry(a: number, r: number, k: number, margin: number, depth: number): THREE.ExtrudeGeometry {
+  const sl = r / a;
+  const dv = margin / (a / Math.hypot(a, r));
+  const ax = a + margin;
+  const lo = (x: number): number => sl * Math.abs(x) - dv;
+  const up = (x: number): number => k + sl * Math.abs(x) + dv;
+  const shape = new THREE.Shape();
+  shape.moveTo(-ax, lo(ax));
+  shape.lineTo(0, lo(0));
+  shape.lineTo(ax, lo(ax));
+  shape.lineTo(ax, up(ax));
+  shape.lineTo(0, up(0));
+  shape.lineTo(-ax, up(ax));
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+  g.translate(0, -(k + r) / 2, 0);
+  return g;
+}
+
 /** Подпись на табличке (canvas → текстура). */
 export function signTexture(title: string, sub: string, w = 512, h = 192, bg = '#2f5f8f'): THREE.CanvasTexture {
   const c = document.createElement('canvas');

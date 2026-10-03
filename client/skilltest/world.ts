@@ -4,10 +4,11 @@
 // что видно, то и бьёт. Предупреждения: таран отъезжает и мигает, облако дрожит и сереет, флажки рвутся перед
 // порывом, ступень трясётся и пылит перед обвалом.
 import * as THREE from 'three';
+import { PLAYER_HALF } from '../../shared/constants.ts';
 import { SKILL_TOWER, makeSkillMap, type SkillMover, type SkillPad, type SkillRect } from '../../shared/skillmap.ts';
-import { barAngle, discAngle, makeSackPose, moverAt, sackAt, type P3 } from '../../shared/skillphysics.ts';
+import { barAngle, discAngle, makeSackPose, moverAt, sackAt, stepHeldBy, type P3 } from '../../shared/skillphysics.ts';
 import {
-  CRUMBLE_PERIOD, CRUMBLE_SPEED, cloudReform, cloudState, crumbleFront, crumbleState, cyc, orbitAngle, ramState, windState, type RamPhase,
+  CLOUD_WARN, CRUMBLE_PERIOD, CRUMBLE_SPEED, cloudReform, cloudSolid, cloudState, crumbleFront, crumbleState, cyc, orbitAngle, ramState, windState, type RamPhase,
 } from '../../shared/skilltraps.ts';
 import { SKILL_SECTIONS } from '../../shared/skilltest.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -15,7 +16,7 @@ import { Gulls, fitShadow } from '../render/kit.ts';
 import type { Renderer } from '../render/renderer.ts';
 import { fogColor, makeSky } from '../render/sky.ts';
 import type { Quality } from '../settings.ts';
-import { Batch, C, SKY_DAY, makeMaterials, puffGeometry, signTexture, stripeTexture } from './look.ts';
+import { Batch, C, CLOUD, SKY_DAY, chevronGeometry, cloudFrameGeometry, cloudPadGeometry, makeMaterials, puffGeometry, signTexture, softDiscTexture, stripeTexture } from './look.ts';
 
 const TICK = 60;
 const SEA_Y = -22;
@@ -24,8 +25,39 @@ interface Flag { cloth: THREE.Mesh; base: Float32Array; cp: number; mat: THREE.M
 interface Mushroom { cap: THREE.Group; box: number; squash: number }
 interface Ram { root: THREE.Group; lamp: THREE.MeshStandardMaterial; dx: number; fx: number; puff: number; last: RamPhase }
 interface Sack { pivot: THREE.Group; shadow: THREE.Mesh; floorY: number }
-interface Cloud { root: THREE.Group; mat: THREE.MeshStandardMaterial; x: number; y: number; z: number; was: number }
-interface Step { mesh: THREE.Group; x: number; y: number; z: number; s: number; down: boolean }
+interface Cloud {
+  root: THREE.Group;
+  /** Тело облака; warn — насколько краска ушла в серо-розовое (0…1) */
+  mat: THREE.MeshStandardMaterial;
+  warn: { value: number };
+  /** Кант по краю верха и мягкая тень снизу */
+  rim: THREE.MeshBasicMaterial;
+  shade: THREE.MeshBasicMaterial;
+  x: number;
+  y: number;
+  z: number;
+  was: number;
+}
+/** Общий маркер «прыгай сюда»: тёплый ореол на верху цели и шеврон над ней; a — видимость 0…1, ready — «цель готова» 0…1 */
+interface Beacon {
+  halo: THREE.Mesh;
+  haloMat: THREE.ShaderMaterial;
+  arrow: THREE.Group;
+  face: THREE.MeshBasicMaterial;
+  edge: THREE.MeshBasicMaterial;
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  d: number;
+  a: number;
+  ready: number;
+}
+/** Желейка игрока (из предсказания клиента): ноги и «стоит на земле» */
+export interface SkillMe { x: number; y: number; z: number; grounded: number }
+const RIM_WARN = new THREE.Color(CLOUD.rimWarn);
+/** Ступень колокольни; у каждой свои материалы (mats): призрак — полупрозрачный только он */
+interface Step { mesh: THREE.Group; x: number; y: number; z: number; s: number; down: boolean; mats: THREE.MeshStandardMaterial[] }
 
 export class SkillWorld {
   readonly map = makeSkillMap();
@@ -51,6 +83,9 @@ export class SkillWorld {
   private readonly sacks: Sack[] = [];
   private readonly rams: Ram[] = [];
   private readonly clouds: Cloud[] = [];
+  private beacon!: Beacon;
+  /** Куда прыгать на участке 5 (память между кадрами): 0…7 — облако, 8 — площадка флажка 5 */
+  private beaconTarget = 0;
   private readonly steps: Step[] = [];
   private readonly disc = new THREE.Group();
   private readonly bar = new THREE.Group();
@@ -165,6 +200,7 @@ export class SkillWorld {
     this.sackArms(b);
     this.ramsBuild(b);
     this.cloudsBuild();
+    this.beaconBuild();
     this.windBuild(b);
     this.cartBuild(b);
     this.carouselBuild(b);
@@ -186,7 +222,15 @@ export class SkillWorld {
       b.span('brick', C.brick, x0, -26, z0, x1, 47.2, z1);
     }
     // карнизы: каждые 12 м и у террасы (не выступают за кромку — стенка гладкая для прыжков рядом)
-    for (const y of [11.5, 23.5, 35.5, 46.6]) b.span('paint', C.trim, -H - 0.05, y, -H - 0.05, H + 0.05, y + 0.4, H + 0.05);
+    for (const y of [11.5, 23.5, 35.5]) b.span('paint', C.trim, -H - 0.05, y, -H - 0.05, H + 0.05, y + 0.4, H + 0.05);
+    // карниз у террасы — рамкой снаружи стены, а не коробкой поверх неё: коробкой его верх (47,0) лежал в одной плоскости с
+    // верхом террасы, и терраса рябила кремовым и белым. Верх рамки на 1,5 см ниже террасы (47,0 — физический верх — не трогаем):
+    // там же стоит настил причала с тем же верхом.
+    const co = H + 0.05, ct = 46.985;
+    b.span('paint', C.trim, -co, 46.6, -co, co, ct, -H);
+    b.span('paint', C.trim, -co, 46.6, H, co, ct, co);
+    b.span('paint', C.trim, -co, 46.6, -H, -H, ct, H);
+    b.span('paint', C.trim, H, 46.6, -H, co, ct, H);
     // окна: на каждой стороне ряды, где нет площадок вплотную
     for (let y = 2.5; y < 45; y += 6) {
       for (const k of [-3, 3]) {
@@ -206,7 +250,14 @@ export class SkillWorld {
         b.span('glass', 0x3a2a26, -4.05, y, k - 0.55, -4.01, y + 2.6, k + 0.55);
       }
     }
-    b.span('paint', C.trim, -4.15, 64.6, -4.15, 4.15, 65, 4.15);
+    // белый карниз галереи — рамкой вокруг кирпича, а не коробкой под ним: коробкой его верх (65,0) совпадал с верхом
+    // колокольни, и пол галереи мигал красным и белым. Пол остаётся кирпичным на 65,00; верх рамки на 1,5 см ниже: последняя
+    // ступень лестницы (верх 65,0) теперь стоит вплотную к стене и заходит на рамку.
+    const gi = 4, go = 4.15, gt = 64.985;
+    b.span('paint', C.trim, -go, 64.6, -go, go, gt, -gi);
+    b.span('paint', C.trim, -go, 64.6, gi, go, gt, go);
+    b.span('paint', C.trim, -go, 64.6, -gi, -gi, gt, gi);
+    b.span('paint', C.trim, gi, 64.6, -gi, go, gt, gi);
     // галерея: белые столбы и шатёр
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.span('paint', C.trim, sx * 3.6 - 0.2, 65, sz * 3.6 - 0.2, sx * 3.6 + 0.2, 69.6, sz * 3.6 + 0.2);
     b.span('paint', C.trim, -4.3, 69.6, -4.3, 4.3, 70.1, 4.3);
@@ -253,7 +304,8 @@ export class SkillWorld {
       case 'tower': case 'belfry': case 'post': case 'disc': case 'start':
         if (pad.look === 'start') {
           b.span('paint', C.tar, x0, y1 - 0.8, z0, x1, y1, z1);
-          b.span('paint', C.trim, x1 - 0.12, y1 - 0.8, z0, x1, y1 + 0.01, z1);
+          // белая кромка крыши чуть крупнее смолы со всех сторон (на 1–2 см): совпадающие боковые грани и дно мигали
+          b.span('paint', C.trim, x1 - 0.12, y1 - 0.82, z0 - 0.01, x1 + 0.015, y1 + 0.02, z1 + 0.01);
         }
         return;
       case 'housing':
@@ -474,20 +526,149 @@ export class SkillWorld {
 
   // ------------------------------------------------------------ 5. облака
 
+  /**
+   * Облако-площадка: подушка с ровным золотистым верхом (там, где можно стоять), пушистая кайма, голубое брюшко, тонкий
+   * кант-рамка по краю верха и мягкая тёмно-голубая тень снизу. Начало координат группы — верх площадки.
+   */
   private cloudsBuild(): void {
+    const first = this.map.clouds[0].rect;
+    const half = (first.x1 - first.x0) / 2;
+    const frameGeo = cloudFrameGeometry(half + 0.02, half - 0.12);
+    const shadeGeo = new THREE.CircleGeometry(3.7, 40);
+    shadeGeo.rotateX(-Math.PI / 2);
+    const shadeTex = softDiscTexture();
     this.map.clouds.forEach((c, i) => {
       const r = c.rect;
-      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.12, transparent: true, opacity: 1 });
-      const geo = puffGeometry((r.x1 - r.x0) * 0.62, 0.55, (r.z1 - r.z0) * 0.62, 77 + i * 13, 8);
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = false;
+      const warn = { value: 0 };
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, emissive: 0x6f87b0, emissiveIntensity: 0.12, transparent: true, opacity: 1 });
+      // «скоро растает»: вся краска уходит в тёплый серо-розовый (uWarn 0…1)
+      mat.onBeforeCompile = (sh) => {
+        sh.uniforms.uWarn = warn;
+        sh.fragmentShader = sh.fragmentShader
+          .replace('#include <common>', '#include <common>\nuniform float uWarn;')
+          .replace('#include <color_fragment>', '#include <color_fragment>\n\tdiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.66, 0.62) * dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15)), uWarn);');
+      };
+      const body = new THREE.Mesh(cloudPadGeometry(77 + i * 13, (r.x1 - r.x0) / 2), mat);
+      body.castShadow = false;
+      const rim = new THREE.MeshBasicMaterial({ color: CLOUD.rim, transparent: true, depthWrite: false });
+      const frame = new THREE.Mesh(frameGeo, rim);
+      frame.position.y = 0.012;
+      // кант рисуется после ореола цели: поверх золотого свечения он остаётся чисто-голубым, а не болотным
+      frame.renderOrder = 2;
+      const shade = new THREE.MeshBasicMaterial({ map: shadeTex, color: 0x2c5598, transparent: true, opacity: 0.5, depthWrite: false });
+      const under = new THREE.Mesh(shadeGeo, shade);
+      under.position.y = -1.35;
+      under.renderOrder = 2;
       const root = new THREE.Group();
-      root.add(mesh);
+      root.add(body, frame, under);
       const x = (r.x0 + r.x1) / 2, z = (r.z0 + r.z1) / 2;
-      root.position.set(x, r.y - 0.42, z);
+      root.position.set(x, r.y - 0.01, z);
       this.scene.add(root);
-      this.clouds.push({ root, mat, x, y: r.y, z, was: 0 });
+      this.clouds.push({ root, mat, warn, rim, shade, x, y: r.y, z, was: 0 });
     });
+  }
+
+  /** Один общий маркер «прыгай сюда»: мягкий тёплый ореол на верху цели и покачивающийся шеврон над ней. */
+  private beaconBuild(): void {
+    const haloMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uSize: { value: new THREE.Vector2(4, 4) }, uBox: { value: new THREE.Vector2(1.4, 1.4) }, uAlpha: { value: 0 }, uPulse: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform vec2 uSize; uniform vec2 uBox; uniform float uAlpha; uniform float uPulse; varying vec2 vUv;
+        float box(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+        void main(){
+          float d = box((vUv - 0.5) * uSize, uBox, 0.5);
+          float a = mix(0.26, 0.78, smoothstep(-1.0, 0.0, d)) * (1.0 - smoothstep(0.0, 0.55 + 0.3 * uPulse, d));
+          gl_FragColor = vec4(1.0, 0.8, 0.34, a * uAlpha);
+        }`,
+    });
+    const planeGeo = new THREE.PlaneGeometry(1, 1);
+    planeGeo.rotateX(-Math.PI / 2);
+    const halo = new THREE.Mesh(planeGeo, haloMat);
+    halo.renderOrder = 1;
+    halo.frustumCulled = false;
+    const face = new THREE.MeshBasicMaterial({ color: C.yellow, transparent: true });
+    const edge = new THREE.MeshBasicMaterial({ color: 0x2f5f8f, transparent: true });
+    const faceMesh = new THREE.Mesh(chevronGeometry(0.62, 0.44, 0.3, 0, 0.12), face);
+    const edgeMesh = new THREE.Mesh(chevronGeometry(0.62, 0.44, 0.3, 0.09, 0.12), edge);
+    edgeMesh.position.z = -0.1;
+    faceMesh.renderOrder = 5;
+    edgeMesh.renderOrder = 4;
+    const arrow = new THREE.Group();
+    arrow.add(edgeMesh, faceMesh);
+    arrow.scale.setScalar(1.1);
+    halo.visible = arrow.visible = false;
+    this.scene.add(halo, arrow);
+    this.beacon = { halo, haloMat, arrow, face, edge, x: 0, y: 0, z: 0, w: 2.8, d: 2.8, a: 0, ready: 1 };
+  }
+
+  /** Куда прыгать: −1 — маркер не нужен; 0…7 — облако; 8 — площадка флажка 5. По предсказанной желейке, с памятью на время прыжка. */
+  private pickTarget(cp: number, me: SkillMe | undefined): number {
+    if (cp !== 4) {
+      this.beaconTarget = 0;
+      return -1;
+    }
+    if (!me) return this.beaconTarget;
+    const map = this.map;
+    const f5 = map.checkpoints[5];
+    // выше площадки флажка 5 участок уже позади
+    if (me.y > f5.y + 3) return -1;
+    if (me.grounded === 1) {
+      const on = (r: SkillRect): boolean => Math.abs(me.y - r.y) < 0.08 && me.x + PLAYER_HALF > r.x0 && me.x - PLAYER_HALF < r.x1 && me.z + PLAYER_HALF > r.z0 && me.z - PLAYER_HALF < r.z1;
+      // дошёл до площадки флажка 5 — цель достигнута
+      if (on(f5)) return -1;
+      let k = -1;
+      map.clouds.forEach((c, i) => {
+        if (on(c.rect)) k = i;
+      });
+      // стоишь на облаке k — прыгай на k + 1 (после последнего — на площадку флажка 5); не на облаке — к первому
+      this.beaconTarget = k >= 0 ? k + 1 : 0;
+    }
+    return this.beaconTarget;
+  }
+
+  /** Маркер «прыгай сюда»: переезжает к цели, пульсирует; цель растаяла — бледнее («ждёт»), собирается — ярче. */
+  private beaconUpdate(t: number, time: number, cp: number, dt: number, me: SkillMe | undefined): void {
+    const b = this.beacon;
+    const tg = this.pickTarget(cp, me);
+    if (tg >= 0) {
+      let tx: number, ty: number, tz: number, tw: number, td: number, ready: number;
+      if (tg < this.map.clouds.length) {
+        const c = this.map.clouds[tg], r = c.rect;
+        tx = (r.x0 + r.x1) / 2; ty = r.y; tz = (r.z0 + r.z1) / 2; tw = r.x1 - r.x0; td = r.z1 - r.z0;
+        ready = cloudSolid(c.phase, t) ? 1 : 0.3 + 0.7 * cloudReform(c.phase, t);
+      } else {
+        const r = this.map.checkpoints[5];
+        tx = (r.x0 + r.x1) / 2; ty = r.y; tz = (r.z0 + r.z1) / 2; tw = r.x1 - r.x0; td = r.z1 - r.z0;
+        ready = 1;
+      }
+      if (b.a < 0.03) {
+        // не виден — ставим сразу, не едем через весь участок
+        b.x = tx; b.y = ty; b.z = tz; b.w = tw; b.d = td; b.ready = ready;
+      } else {
+        const k = 1 - Math.exp(-dt * 12);
+        b.x += (tx - b.x) * k; b.y += (ty - b.y) * k; b.z += (tz - b.z) * k; b.w += (tw - b.w) * k; b.d += (td - b.d) * k;
+        b.ready += (ready - b.ready) * (1 - Math.exp(-dt * 9));
+      }
+    }
+    b.a += ((tg >= 0 ? 1 : 0) - b.a) * (1 - Math.exp(-dt * (tg >= 0 ? 6 : 10)));
+    const show = b.a > 0.01;
+    b.halo.visible = b.arrow.visible = show;
+    if (!show) return;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4.2);
+    const sw = b.w + 1.8, sd = b.d + 1.8;
+    b.halo.position.set(b.x, b.y + 0.04, b.z);
+    b.halo.scale.set(sw, 1, sd);
+    const u = b.haloMat.uniforms;
+    u.uSize.value.set(sw, sd);
+    u.uBox.value.set(b.w / 2, b.d / 2);
+    u.uPulse.value = pulse;
+    u.uAlpha.value = b.a * (0.3 + 0.7 * b.ready) * (0.8 + 0.2 * pulse);
+    const cam = this.camera.position;
+    b.arrow.position.set(b.x, b.y + 2.1 + Math.sin(time * 5.2) * 0.14, b.z);
+    b.arrow.rotation.y = Math.atan2(cam.x - b.x, cam.z - b.z);
+    b.face.opacity = b.edge.opacity = b.a * (0.4 + 0.6 * b.ready);
   }
 
   // ------------------------------------------------------------ 6. ветер
@@ -650,7 +831,8 @@ export class SkillWorld {
       if (m.look !== 'basket') return;
       const root = new THREE.Group();
       const body = new Batch();
-      body.span('wood', C.wicker, -m.w / 2, -m.h, -m.d / 2, m.w / 2, -0.06, m.d / 2);
+      // плетёный бок чуть уже настила (на 2 см): иначе его грани совпадали с боковыми гранями настила и полоска мигала
+      body.span('wood', C.wicker, -m.w / 2 + 0.02, -m.h, -m.d / 2 + 0.02, m.w / 2 - 0.02, -0.06, m.d / 2 - 0.02);
       body.deck(-m.w / 2, m.w / 2, -m.d / 2, m.d / 2, 0, 0.12, C.safe);
       body.span('wood', 0x7a5129, -m.w / 2 - 0.05, -0.02, -m.d / 2 - 0.05, m.w / 2 + 0.05, 0.12, -m.d / 2 + 0.07);
       body.span('wood', 0x7a5129, -m.w / 2 - 0.05, -0.02, m.d / 2 - 0.07, m.w / 2 + 0.05, 0.12, m.d / 2 + 0.05);
@@ -688,9 +870,12 @@ export class SkillWorld {
       const r = st.rect;
       const w = r.x1 - r.x0, d = r.z1 - r.z0;
       const g = new THREE.Group();
-      const top = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d), wood);
+      // материалы свои на каждую ступень и сразу transparent: призрак («ещё не собралась») рисуется с прозрачностью без перекомпиляции
+      const woodM = wood.clone(), sideM = side.clone();
+      woodM.transparent = sideM.transparent = true;
+      const top = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d), woodM);
       top.position.y = -0.05;
-      const body = new THREE.Mesh(new THREE.BoxGeometry(w - 0.04, 0.35, d - 0.04), side);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w - 0.04, 0.35, d - 0.04), sideM);
       body.position.y = -0.27;
       // ступени осыпаются — тень от них застыла бы на стене каланчи
       top.castShadow = body.castShadow = false;
@@ -698,7 +883,7 @@ export class SkillWorld {
       g.add(top, body);
       g.position.set((r.x0 + r.x1) / 2, r.y, (r.z0 + r.z1) / 2);
       this.scene.add(g);
-      this.steps.push({ mesh: g, x: g.position.x, y: r.y, z: g.position.z, s: st.s, down: false });
+      this.steps.push({ mesh: g, x: g.position.x, y: r.y, z: g.position.z, s: st.s, down: false, mats: [woodM, sideM] });
     }
   }
 
@@ -764,8 +949,8 @@ export class SkillWorld {
 
   // ------------------------------------------------------------ кадр
 
-  /** t — время мира в тиках (с дробью), cp — последняя взятая точка, dt — секунды кадра. */
-  update(t: number, cp: number, dt: number): void {
+  /** t — время мира в тиках (с дробью), cp — последняя взятая точка, dt — секунды кадра, me — желейка игрока (из предсказания). */
+  update(t: number, cp: number, dt: number, me?: SkillMe): void {
     const time = t / TICK;
     this.skyMat.uniforms.uTime.value = time;
     this.seaMat.uniforms.uTime.value = time;
@@ -819,27 +1004,43 @@ export class SkillWorld {
       if (st.phase === 'wind') v.root.position.y = (r.y0 + r.y1) / 2 + Math.sin(time * 60) * 0.015;
       else v.root.position.y = (r.y0 + r.y1) / 2;
     });
-    // облака
+    // облака: твёрдое — спокойно; перед растаиванием трясётся, мигает всё чаще (3 → 9 раз в секунду), в «вспышке» серо-розовое
+    // и полупрозрачное, кант краснеет; растаяло — нет; собирается — вздувается
     map.clouds.forEach((c, i) => {
       const v = this.clouds[i];
       const s = cloudState(c.phase, t);
+      let present = 1, dim = 1, warn = 0, rim = 0;
       if (s < 0) {
         const re = cloudReform(c.phase, t);
+        present = re;
         v.root.visible = re > 0;
-        v.mat.opacity = re;
         v.root.scale.setScalar(0.3 + 0.7 * re);
-        v.root.position.set(v.x, v.y - 0.42 - (1 - re) * 0.6, v.z);
+        v.root.position.set(v.x, v.y - 0.01 - (1 - re) * 0.6, v.z);
         if (v.was >= 0) this.onPuff?.(v.x, v.y - 0.3, v.z, 'cloud');
       } else {
         v.root.visible = true;
-        v.mat.opacity = 1 - s * 0.35;
         const shake = s > 0 ? s * 0.09 : 0;
-        v.root.position.set(v.x + Math.sin(time * 47 + i) * shake, v.y - 0.42 + Math.sin(time * 1.2 + i) * 0.04, v.z + Math.cos(time * 41 + i) * shake);
+        v.root.position.set(v.x + Math.sin(time * 47 + i) * shake, v.y - 0.01 + Math.sin(time * 1.2 + i) * 0.01, v.z + Math.cos(time * 41 + i) * shake);
         v.root.scale.set(1 - s * 0.12, 1 - s * 0.3, 1 - s * 0.12);
-        v.mat.color.setRGB(1 - s * 0.32, 1 - s * 0.25, 1 - s * 0.12);
+        if (s > 0) {
+          // частота растёт линейно от 3 до 9 Гц за время предупреждения: фаза — её интеграл
+          const sec = (s * CLOUD_WARN) / TICK, span = CLOUD_WARN / TICK;
+          const ph = 3 * sec + (3 * sec * sec) / span;
+          if (ph % 1 < 0.5) {
+            warn = 0.6 + 0.4 * s;
+            rim = 1;
+            dim = 0.78 - 0.16 * s;
+          }
+        }
       }
+      v.warn.value = warn;
+      v.mat.opacity = present * dim;
+      v.rim.opacity = present;
+      v.rim.color.setHex(CLOUD.rim).lerp(RIM_WARN, rim);
+      v.shade.opacity = 0.5 * present;
       v.was = s;
     });
+    this.beaconUpdate(t, time, cp, dt, me);
     // ветер: вымпелы, паруса, струи
     const wz = map.winds[0];
     const w = wz ? windState(wz.phase, t) : 0;
@@ -858,9 +1059,10 @@ export class SkillWorld {
     // ступени: дрожь → падают, отлетая; в конце цикла взлетают на место
     const front = crumbleFront(t);
     const left = CRUMBLE_PERIOD - cyc(t, 0, CRUMBLE_PERIOD);
-    for (const st of this.steps) {
+    this.steps.forEach((st, i) => {
       const s = crumbleState(st.s, t);
       const m = st.mesh;
+      let alpha = 1;
       if (s < 0) {
         if (left < 30) {
           const k = 1 - left / 30;
@@ -875,6 +1077,13 @@ export class SkillWorld {
           if (!st.down) this.onPuff?.(st.x, st.y - 0.2, st.z, 'step');
         }
         st.down = true;
+      } else if (me && stepHeldBy(map.steps[i], me.x, me.y, me.z, t)) {
+        // ступень «ещё не собралась» для этого игрока (физика её не держит): призрак — полупрозрачная, чуть мерцает, не дрожит
+        st.down = false;
+        m.visible = true;
+        m.position.set(st.x, st.y, st.z);
+        m.rotation.set(0, 0, 0);
+        alpha = 0.3 + 0.06 * Math.sin(time * 17 + st.s * 2);
       } else {
         st.down = false;
         m.visible = true;
@@ -882,7 +1091,8 @@ export class SkillWorld {
         m.position.set(st.x + Math.sin(time * 53 + st.s) * j, st.y + Math.sin(time * 61 + st.s * 3) * j * 0.5, st.z + Math.cos(time * 47 + st.s) * j);
         m.rotation.set(0, 0, s > 0 ? Math.sin(time * 37) * 0.04 * s : 0);
       }
-    }
+      st.mats[0].opacity = st.mats[1].opacity = alpha;
+    });
     // флаги: взятые — со звездой, следующий — ярче
     for (const f of this.flags) {
       const passed = f.cp <= cp;
