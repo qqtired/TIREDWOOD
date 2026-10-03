@@ -243,3 +243,20 @@ test('server restart in the middle of a match returns both stakes', () => {
   assert.equal(profiles2.byId(pb)!.tokens, tb + 25);
   assert.equal(profiles2.byId(pa)!.billiardsEscrow, null);
 });
+
+test('connection lost mid-match: the away window starts at once and ends in technical defeat even while the server still holds the player', () => {
+  const env = setup();
+  const [a, b] = startMatch(env, 20);
+  const b0 = b.c.profile!.tokens;
+  const tb = table(env);
+  steps(env.hub, 2);
+  env.hub.linkLost(a.c, a.s, 'обрыв связи', 1006);
+  steps(env.hub, 2);
+  assert.ok(tb.seats[0]!.awayAt > 0, 'отошёл сразу при обрыве');
+  assert.ok(tb.seats[0]!.slot > 0, 'место за ним, сервер ещё держит соединение');
+  assert.ok(env.hub.lobby.billiards!.view(0).seats[0]!.away > 0);
+  steps(env.hub, BL_AWAY_TICKS);
+  assert.equal(tb.phase, 'result');
+  assert.equal(tb.winner, 1);
+  assert.equal(b.c.profile!.tokens, b0 + 40);
+});

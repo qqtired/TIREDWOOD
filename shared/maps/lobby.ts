@@ -7,7 +7,7 @@ import { BARKAS_BOARD, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../bark
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
-import { BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
+import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
@@ -415,6 +415,9 @@ export function buildLobby(): LobbyMap {
     billiardsBoxes.push(b.boxes.length);
     b.box([x - 0.09, 0, z - 0.09], [x + 0.09, 3.8, z + 0.09], 'invisible', 0);
   }
+  // крыша навеса: камера за спиной не пролезает сквозь неё (снизу не достать — выше прыжка)
+  billiardsBoxes.push(b.boxes.length);
+  b.box([BL_HALL.x0 - 0.1, BL_HALL.eaveY, BL_HALL.z0], [BL_HALL.x1 + 0.2, BL_HALL.roofY + 0.05, BL_HALL.z1 + 0.2], 'invisible', 0);
   BL_TABLES.forEach((t, i) => add('billiards', t.x, t.z, 0, 1.9, i, 'бильярд'));
 
   // --- Далёкая красота: буи и лодки

@@ -33,6 +33,8 @@ export interface BilliardsHooks {
   /** Отказ одному игроку (номер на набережной) — понятной строкой */
   reject(slot: number, table: number, text: string): void;
   balance(pid: number): number;
+  /** Связь с игроком (номер на набережной) пропала, сервер держит его место в ожидании возврата */
+  lost?(slot: number): boolean;
   /** Ставка в банк: списать и запомнить в профиле (возвращается после аварийного рестарта) */
   reserve(pid: number, round: string, amount: number): boolean;
   /** Расчёт банка одной записью: выплаты в сумме равны ставкам (комиссии нет) */
@@ -137,6 +139,7 @@ export class BilliardsHall {
     if (s && s.pid !== pid) return false;
     if (s) {
       s.slot = slot; s.nick = nick; s.awayAt = 0;
+      if (tb.phase === 'match') tb.note = `${nick} вернулся к столу`;
     } else {
       tb.seats[side] = { pid, slot, nick, awayAt: 0 };
     }
@@ -153,7 +156,8 @@ export class BilliardsHall {
     const s = tb.seats[side]!;
     if (tb.phase === 'match') {
       s.slot = 0;
-      s.awayAt = Math.max(1, this.tick);
+      // связь пропала раньше — окно на возврат считаем с того момента
+      if (!s.awayAt) s.awayAt = Math.max(1, this.tick);
       tb.note = `${s.nick} отошёл — ждём ${Math.round(BL_AWAY_TICKS * TICK_MS / 1000)} с`;
     } else {
       if (tb.offer?.by === side) this.cancelOffer(tb);
@@ -320,6 +324,13 @@ export class BilliardsHall {
     this.tick = tick;
     for (const tb of this.tables) {
       if (tb.phase === 'match') {
+        // пропала связь — окно на возврат пошло сразу (сервер ещё держит игрока); вернулся — снова на месте
+        for (const s of tb.seats) {
+          if (!s?.slot || !this.hooks.lost) continue;
+          const lost = this.hooks.lost(s.slot);
+          if (lost && !s.awayAt) { s.awayAt = Math.max(1, tick); tb.note = `${s.nick}: пропала связь — ждём ${Math.round(BL_AWAY_TICKS * TICK_MS / 1000)} с`; this.changed(tb); }
+          else if (!lost && s.awayAt) { s.awayAt = 0; tb.note = `${s.nick} снова на связи`; this.changed(tb); }
+        }
         const gone = [0, 1].filter((i) => tb.seats[i]?.awayAt && tick - tb.seats[i]!.awayAt >= BL_AWAY_TICKS)
           .sort((a, b) => tb.seats[a]!.awayAt - tb.seats[b]!.awayAt);
         if (gone.length) { this.finish(tb, other(gone[0]), 'away'); continue; }

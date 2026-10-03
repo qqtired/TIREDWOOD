@@ -332,6 +332,7 @@ export class LobbyRoom implements Room {
       },
       reject: (slot, table, text) => this.players.get(slot)?.client.sink.sendJson({ t: 'blErr', table, text }),
       balance: (pid) => hub.profiles.byId(pid)?.tokens ?? 0,
+      lost: (slot) => (this.players.get(slot)?.client.lostAt ?? 0) > 0,
       reserve: (pid, round, amount) => {
         const accepted = hub.profiles.reserveBilliards(pid, round, amount);
         if (accepted) this.syncBlackjackBalance(pid);
