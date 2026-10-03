@@ -232,10 +232,10 @@ export class FortHud {
     if (this.set('bossName', title)) this.bossName.textContent = title;
     const phase = rage || stage >= 2 ? 'ярость' : '';
     const attack = state === ZS_BOSS_OPEN ? `Ядро открыто · ${Math.max(0, wind / 60).toFixed(1)} с — огонь!`
-      : state === ZS_BOSS_APPROACH ? 'Идёт к воротам · приготовьтесь'
+      : state === ZS_BOSS_APPROACH ? 'Подходит · приготовьтесь'
       : state === ZS_BOSS_GATE ? 'Замах по воротам · уйдите с метки'
       : state === ZS_BOSS_BOMB ? 'Прицельный залп · уйдите с метки'
-      : state === ZS_BOSS_PULSE ? 'Удар по стене · выйдите из круга или прыгните'
+      : state === ZS_BOSS_PULSE ? 'Волна по кругу · выйдите из круга или прыгните'
       : state === ZS_CHARGE_WARN ? 'Разбег · уйдите с красной дорожки'
       : state === ZS_CHARGE ? 'Рывок!'
       : state === ZS_STOMP ? 'Встаёт на дыбы · прыгайте'

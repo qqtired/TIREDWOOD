@@ -13,7 +13,7 @@ import {
   RAM_CRYSTAL_DMG, RAM_GATE_DMG, RAM_HIT, RAM_HOME_Z, RAM_LANE, RAM_SPEED, ROCK_CRYSTAL_DMG, ROCK_DMG, ROCK_FLIGHT_TICKS,
   ROCK_GATE_DMG, ROCK_R, STOMP_DMG, STOMP_R,
 } from '../../shared/fortkinds.ts';
-import { CRYSTAL, GATE, PEDESTAL, WALL_H } from '../../shared/fortmap.ts';
+import { CRYSTAL, GATE, PEDESTAL, THROAT_Z, WALL_H } from '../../shared/fortmap.ts';
 import type { Horde, HordeHost, HordeTarget, Zombie } from './horde.ts';
 
 /** Что боссу нужно от орды: хозяин (люди, ворота, события) и сама орда (подкрепления, урон волны, круг босса) */
@@ -104,17 +104,46 @@ function open(z: Zombie): void {
 
 // ------------------------------------------------------------ Барон Варенья
 
+/** Барон осаждает с поля: z стоянки, шаг перехода между атаками по x; ворота пали — стоянка во дворе перед кристаллом */
+export const BARON_OUT_Z = -23;
+const BARON_STEP_X = 5;
+export const BARON_IN_Z = -3.5;
+
+/** Барон уже во дворе (протиснулся в ворота) */
+export function baronInside(z: Zombie): boolean {
+  return z.z > INSIDE_Z;
+}
+/** Дальше этого z — прошёл проём ворот (внутренняя грань северной стены — −13) */
+const INSIDE_Z = -12;
+
 /**
- * Барон стоит в 7 м от ворот и по кругу: удар по воротам (пока стоят), залп по людям (метки), волна по стене (прыгни).
- * Ярость — паузы короче, зовёт крылаток (одна стая).
+ * Барон осаждает с поля и между атаками переходит с места на место; по кругу: удар по воротам (пока стоят), залп по
+ * людям (метки), волна по стене (прыгни). Ворота пали — протискивается во двор (желе сжимается в проёме) и бьёт
+ * оттуда: залп по людям и волна вокруг себя (прыгни), кристалл рядом — ему достаётся. Ярость — паузы короче, зовёт
+ * крылаток (одна стая). Застрять не может: ходит напрямую, проём проходит по оси ворот.
  */
 export function stepBaron(c: BossCtx, z: Zombie): void {
   const { host } = c;
   if (rageCheck(c, z)) pack(c, Z_FLYER, packSize(c.horde.defenders), 0, -27, 7);
-  if (z.state === ZS_BOSS_APPROACH) {
-    if (walk(z, 0, -23, bossSpeed(c, z))) return;
+  const inside = baronInside(z);
+  const goIn = inside || !host.gateUp();
+  // ворота пали — объявляем прорыв один раз (встали новые раньше, чем вошёл, — снова осада)
+  if (goIn && !inside && !(z.addsMask & 1)) {
+    z.addsMask |= 1;
+    host.event(['breach', z.id]);
+  } else if (!goIn) z.addsMask &= ~1;
+  if (z.state === ZS_BOSS_APPROACH || (z.state === ZS_WALK && goIn && !inside)) {
+    // к стоянке; ворота пали — во двор (сначала на ось ворот, потом прямо через проём)
+    z.state = ZS_BOSS_APPROACH;
+    const speed = bossSpeed(c, z);
+    if (goIn && !inside && Math.abs(z.x) > 0.3) {
+      if (walk(z, 0, Math.min(z.z, THROAT_Z - 3), speed)) return;
+    }
+    if (walk(z, goIn ? 0 : z.homeX, goIn ? BARON_IN_Z : BARON_OUT_Z, speed)) return;
     z.state = ZS_WALK;
     z.t = pauseOf(z);
+    z.yaw = Math.PI;
+    return;
   }
   if (z.state === ZS_BOSS_OPEN) {
     if (--z.t > 0) return;
@@ -127,25 +156,34 @@ export function stepBaron(c: BossCtx, z: Zombie): void {
     const attack = z.state;
     const r = attack === ZS_BOSS_PULSE ? BOSS_PULSE_R : attack === ZS_BOSS_GATE ? 6 : BOSS_BOMB_R;
     const covered = attack === ZS_BOSS_BOMB && roofCheck(c, z);
+    const ground = attack === ZS_BOSS_PULSE && z.toY < WALL_H;
     for (const p of host.targets()) {
-      const inArea = attack === ZS_BOSS_PULSE
-        ? Math.hypot(p.x - z.toX, p.z - z.toZ) < r && p.y >= WALL_H - 0.4 && p.y < WALL_H + 1.2
-        : Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) < r;
+      const inArea = ground
+        // во дворе: волна по земле вокруг Барона — кто в прыжке, цел
+        ? Math.hypot(p.x - z.toX, p.z - z.toZ) < r && !p.air
+        : attack === ZS_BOSS_PULSE
+          ? Math.hypot(p.x - z.toX, p.z - z.toZ) < r && p.y >= WALL_H - 0.4 && p.y < WALL_H + 1.2
+          : Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) < r;
       const visible = !host.traceAttack(z.toX, z.toY + 0.05, z.toZ, p.x, p.y + 0.8, p.z, _hit);
       if (inArea && visible) host.hitPlayer(z.id, p.id, c.horde.dmgOf(z, attack === ZS_BOSS_GATE ? 20 : attack === ZS_BOSS_BOMB ? 24 : ZK[Z_BOSS].hit));
     }
     if (attack === ZS_BOSS_GATE) {
       if (host.gateUp()) host.hitGate(c.horde.dmgOf(z, BOSS_GATE_DMG));
     } else if (attack === ZS_BOSS_BOMB && z.chase === 0 && !covered) host.hitCrystal(c.horde.dmgOf(z, BOSS_CRYSTAL_DMG));
+    else if (ground && Math.hypot(CRYSTAL.x - z.toX, CRYSTAL.z - z.toZ) < r) host.hitCrystal(c.horde.dmgOf(z, BOSS_CRYSTAL_DMG));
     z.atk = (z.atk + 1) & 255;
     host.event(['blast', attack, r2(z.toX), r2(z.toY), r2(z.toZ), r]);
     open(z);
     return;
   }
+  // между атаками — переходит на новое место вдоль поля (во дворе — стоит у кристалла)
+  if (!inside && walk(z, z.homeX, BARON_OUT_Z, bossSpeed(c, z))) return;
   if (z.t > 0 && --z.t > 0) return;
   const index = z.attackIndex++;
+  if (!inside) z.homeX = ((index % 3) - 1) * BARON_STEP_X;
   const step = index % 3;
-  const attack = step === 0 && host.gateUp() ? ZS_BOSS_GATE : step === 2 ? ZS_BOSS_PULSE : ZS_BOSS_BOMB;
+  const attack = inside ? (index % 2 ? ZS_BOSS_PULSE : ZS_BOSS_BOMB)
+    : step === 0 && host.gateUp() ? ZS_BOSS_GATE : step === 2 ? ZS_BOSS_PULSE : ZS_BOSS_BOMB;
   let target: HordeTarget | null = null;
   if (attack === ZS_BOSS_BOMB) {
     const targets = host.targets();
@@ -153,9 +191,10 @@ export function stepBaron(c: BossCtx, z: Zombie): void {
     if (targets.length) target = targets[index % targets.length];
   }
   z.chase = attack === ZS_BOSS_GATE ? AT_GATE : target?.id ?? 0;
-  z.toX = attack === ZS_BOSS_BOMB ? target?.x ?? CRYSTAL.x : 0;
-  z.toY = attack === ZS_BOSS_GATE ? 1.5 : attack === ZS_BOSS_PULSE ? WALL_H + 0.8 : target ? target.y + 0.8 : CRYSTAL.y;
-  z.toZ = attack === ZS_BOSS_GATE ? GATE.face : attack === ZS_BOSS_PULSE ? -14.6 : target?.z ?? CRYSTAL.z;
+  z.toX = attack === ZS_BOSS_BOMB ? target?.x ?? CRYSTAL.x : attack === ZS_BOSS_PULSE && inside ? z.x : 0;
+  z.toY = attack === ZS_BOSS_GATE ? 1.5 : attack === ZS_BOSS_PULSE ? (inside ? 0.8 : WALL_H + 0.8) : target ? target.y + 0.8 : CRYSTAL.y;
+  z.toZ = attack === ZS_BOSS_GATE ? GATE.face : attack === ZS_BOSS_PULSE ? (inside ? z.z : -14.6) : target?.z ?? CRYSTAL.z;
+  z.yaw = Math.PI;
   // крыша над меткой — отмечаем крышу сразу, на всё время предупреждения
   if (attack === ZS_BOSS_BOMB) roofCheck(c, z);
   z.state = attack;

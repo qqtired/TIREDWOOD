@@ -841,6 +841,11 @@ export class FortGame implements HordeHost {
       this.jumpTo(Number(arg));
       return;
     }
+    if (this.debug && cmd.toLowerCase() === 'gate') {
+      // разработка: снести ворота (проверить прорыв боссов)
+      if (this.gate > 0) this.hitGate(1e9);
+      return;
+    }
     this.privateChat(p, 'Крепость: E у стоек — лавка (ворота, кристалл, краскомёты, варенье), колокол — «готов», Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');
   }
 

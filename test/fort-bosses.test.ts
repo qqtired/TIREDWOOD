@@ -6,7 +6,8 @@ import {
   BOSS_PAUSE, GOLEM_HOME_Z, HOWL_TICKS, QUAKE_DMG, QUAKE_R, RAM_CRYSTAL_DMG, RAM_GATE_DMG, RAM_HIT, RAM_HOME_Z, RAM_LANE,
   ROCK_DMG, ROCK_FLIGHT_TICKS, ROCK_GATE_DMG, STOMP_DMG, STOMP_R,
 } from '../shared/fortkinds.ts';
-import { GATE, PEDESTAL, WALL_H } from '../shared/fortmap.ts';
+import { GATE, PEDESTAL, THROAT_Z, WALL_H } from '../shared/fortmap.ts';
+import { BARON_IN_Z } from '../server/fort/bosses.ts';
 import { ZF_RAGE, type ZombieSnap } from '../shared/fortnet.ts';
 import { BTN_JUMP, makeInput } from '../shared/sim.ts';
 import { FortGame } from '../server/fort/game.ts';
@@ -204,4 +205,81 @@ test('боссы: броня у всех троих, ярость видна в 
   assert.ok((s.flags ?? 0) & ZF_RAGE, 'ярость в снимке');
   assert.equal(s.state, F.ZS_CHARGE_WARN);
   assert.equal(s.r, RAM_LANE);
+});
+
+test('Барон: осаждает, переходя с места на место; ворота пали — протискивается по оси ворот во двор и бьёт оттуда', () => {
+  const { game, players, events } = setup();
+  const p = players[0];
+  Object.assign(p.state, { x: 30, y: 0, z: 30, grounded: 1 }); // далеко, чтобы не мешал
+  const b = game.horde.spawn(F.Z_BOSS, 1)!;
+  Object.assign(b, { x: 0, z: -23, state: F.ZS_WALK, t: 1 });
+  const xs = new Set<number>();
+  for (let i = 0; i < 60 * 30; i++) {
+    game.step();
+    if (b.state === F.ZS_WALK && b.t > 0) xs.add(Math.round(b.x));
+  }
+  assert.ok(xs.size >= 2, `переходит вдоль поля: ${[...xs]}`);
+  assert.ok(b.z < -20, 'пока ворота стоят — снаружи');
+  game.hitGate(99999);
+  const ticks = until(game, () => b.z > -12 && b.state !== F.ZS_BOSS_APPROACH, 60 * 40);
+  game.step();
+  assert.ok(events.some((e) => e[0] === 'breach' && e[1] === b.id), 'прорыв объявлен');
+  assert.ok(ticks < 60 * 25, `дошёл за ${(ticks / 60).toFixed(1)} с`);
+  assert.ok(Math.abs(b.z - BARON_IN_Z) < 0.5 && Math.abs(b.x) < 0.5, 'стоит во дворе перед кристаллом');
+});
+
+test('Барон проходит проём ворот только по оси: в толще стены |x| мал', () => {
+  const { game } = setup();
+  const b = game.horde.spawn(F.Z_BOSS, 1)!;
+  Object.assign(b, { x: 5, z: -23, state: F.ZS_WALK, t: 1, homeX: 5 });
+  game.hitGate(99999);
+  let worst = 0;
+  for (let i = 0; i < 60 * 30 && b.z < BARON_IN_Z - 0.3; i++) {
+    game.step();
+    if (b.z > THROAT_Z - 0.5 && b.z < -12.5) worst = Math.max(worst, Math.abs(b.x));
+  }
+  assert.ok(worst < 0.5, `в проёме смещение ${worst.toFixed(2)} м`);
+});
+
+test('Барон во дворе: волна вокруг себя по земле задевает стоящего и кристалл, прыжок спасает', () => {
+  for (const jump of [false, true]) {
+    const { game, players } = setup();
+    const p = players[0];
+    game.hitGate(99999);
+    const b = game.horde.spawn(F.Z_BOSS, 1)!;
+    Object.assign(b, { x: 0, z: BARON_IN_Z, state: F.ZS_WALK, t: 1, attackIndex: 1 });
+    Object.assign(p.state, { x: 4, y: 0, z: BARON_IN_Z + 2, grounded: 1 });
+    game.step();
+    assert.equal(b.state, F.ZS_BOSS_PULSE);
+    assert.ok(Math.abs(b.toZ - BARON_IN_Z) < 1e-9 && b.toY < WALL_H, 'круг — вокруг Барона на земле');
+    const crystal = game.crystal;
+    const input = makeInput();
+    const wind = b.t;
+    for (let i = 0; i < wind; i++) {
+      input.seq = i + 1;
+      input.buttons = jump && i === wind - 20 ? BTN_JUMP : 0;
+      game.onInputs(p, [input], 1);
+      game.step();
+    }
+    assert.equal(p.hp, jump ? 100 : 100 - F.ZK[F.Z_BOSS].hit);
+    assert.equal(game.crystal, crystal - F.BOSS_CRYSTAL_DMG, 'кристаллу рядом достаётся');
+  }
+});
+
+test('боссы не застревают: без людей, ворота стоят, потом падают — состояние или место меняется хотя бы раз в 6 с', () => {
+  for (const kind of [F.Z_BOSS, F.Z_RAM, F.Z_GOLEM]) {
+    const { game } = setup(0);
+    const b = game.horde.spawn(kind, 1)!;
+    let last = { x: b.x, z: b.z, st: b.state, at: 0 };
+    let worst = 0;
+    for (let i = 0; i < 60 * 90; i++) {
+      if (i === 60 * 30) game.hitGate(99999);
+      game.step();
+      if (!b.alive) break;
+      if (Math.hypot(b.x - last.x, b.z - last.z) > 0.2 || b.state !== last.st) last = { x: b.x, z: b.z, st: b.state, at: i };
+      worst = Math.max(worst, i - last.at);
+    }
+    assert.ok(worst < 60 * 6, `${F.ZK[kind].name}: стоял без дела ${(worst / 60).toFixed(1)} с`);
+    assert.ok(game.crystal < F.CRYSTAL_HP, `${F.ZK[kind].name}: ворота пали — достаёт кристалл`);
+  }
 });

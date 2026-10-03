@@ -151,6 +151,20 @@ export const ROCK_CRYSTAL_DMG = 90;
 export const QUAKE_R = 9;
 export const QUAKE_DMG = 24;
 
+// ------------------------------------------------------------ десант с моря
+
+/** Лодка выходит в море так далеко (z), причаливает в воде у берега (z), экипаж прыгает на берег (z) */
+export const BOAT_FROM_Z = 124;
+export const BOAT_LAND_Z = 27.5;
+export const SHORE_Z = 22.4;
+/** Где причаливает: x по борту (lane −1 — запад, 1 — восток), напротив точки лазанья на южной стене */
+export const BOAT_LANE_X = 12.5;
+/** У берега: один абордажник прыгает раз в столько тиков, прыжок на берег — столько тиков */
+export const HOP_EVERY = 24;
+export const HOP_TICKS = 40;
+/** Пустая лодка отходит столько тиков и пропадает (без награды) */
+export const BOAT_LEAVE_TICKS = 360;
+
 export function kindOf(kind: number): ZombieKind {
   return ZK[kind] ?? ZK[0];
 }

@@ -6,7 +6,8 @@ import '@fontsource/rubik/900.css';
 import '../styles.css';
 import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_WAVE, Z_BOSS, Z_BRUTE, Z_FLYER, Z_WALKER,
   ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK, Z_GOLEM, Z_RAM, ZS_CHARGE_WARN, ZS_QUAKE,
-  ZS_STOMP, ZS_THROW, isBossKind } from '../../shared/fort.ts';
+  ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_BOAT, ZS_BOAT_LAND, ZS_HOP, ZS_CLIMB } from '../../shared/fort.ts';
+import { WATER_Y } from '../../shared/constants.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R } from '../../shared/fortkinds.ts';
@@ -94,9 +95,23 @@ function bossAttack(selected: string, rage: boolean): ZombieSnap[] {
   return [{ ...base, kind: Z_GOLEM, state: ZS_QUAKE, x: 0, z: GOLEM_HOME_Z, wind, tx: 0, ty: WALL_H + 0.8, tz: -14.6, r: QUAKE_R }];
 }
 
+/** Десант: лодка у берега, один прыгает, один на берегу, один лезет на морскую стену; вторая лодка ещё в море */
+function landing(): ZombieSnap[] {
+  const crew = { kind: 0, hp: 1, yaw: 0, atk: 0, flags: ZF_CREW };
+  const sway = Math.sin(elapsed * 2) * 0.5;
+  return [
+    { id: 300, kind: Z_BOAT, state: ZS_BOAT_LAND, hp: 0.7, x: 12.5, y: WATER_Y, z: 27.5, yaw: 0, atk: 0, stage: 3 },
+    { id: 301, kind: Z_BOAT, state: ZS_BOAT, hp: 1, x: -12, y: WATER_Y, z: 60 + sway, yaw: 0, atk: 0, stage: 4 },
+    { ...crew, id: 302, state: ZS_HOP, x: 12.2, y: 0.9, z: 25, wind: 20, tx: 12, ty: 0, tz: 22.4 },
+    { ...crew, id: 303, state: ZS_WALK, x: 11.4, y: 0, z: 19 },
+    { ...crew, id: 304, kind: 3, state: ZS_CLIMB, x: 12.5, y: 1.6, z: 14.5, yaw: Math.PI },
+  ];
+}
+
 function makeSnapshots(): ZombieSnap[] {
   const selected = attack.value;
   if (selected === 'lineup') return lineup();
+  if (selected === 'landing') return landing();
   if (selected === 'ram' || selected === 'stomp' || selected === 'golem' || selected === 'quake') return bossAttack(selected, stage.value === '2');
   const phase = Number(stage.value);
   const isRoof = selected === 'roof';

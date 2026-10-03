@@ -3,7 +3,7 @@
 // (лезут на стену, стоят на ходу, прыгают во двор), пузыри (лопаются, задевая соседей, — цепочкой), застрявшие (обратно
 // на дорогу), урон по области (гранаты arsenal, метеоры), история позиций для отката выстрелов. Пул на FORT_MAX_ALIVE
 // мест, в тике без аллокаций. Люди, ворота, кристалл и награды — через HordeHost (game.ts).
-import { DT, TICK_RATE } from '../../shared/constants.ts';
+import { DT, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import {
   BOSS_ARMOR, BOSS_BOMB_R, BOSS_PULSE_R,
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
@@ -11,6 +11,7 @@ import {
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
   Z_BOSS, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
+  ZS_BOAT, ZS_HOP,
   isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
 import {
@@ -21,11 +22,12 @@ import {
   BARREL_CRYSTAL, BARREL_GATE, BARREL_PLAYER, BARREL_R, BARREL_SHOT_MUL, BARREL_ZOMBIE, CHAMP_AURA_R, CHAMP_HASTE, FUSE_TICKS,
   HEAL_EVERY, HEAL_FRAC, HEAL_R, MEDIC_HOLD, SPIT_COOLDOWN, SPIT_DMG, SPIT_FLIGHT_TICKS, SPIT_MIN, SPIT_R, SPIT_RANGE,
   SPIT_WARN_TICKS, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_RAM, Z_GOLEM, RAM_LANE, STOMP_R, ROCK_R, QUAKE_R,
-  isWalkerKind,
+  isWalkerKind, Z_BOAT, BOAT_FROM_Z, BOAT_LANE_X, HOP_TICKS, SHORE_Z,
 } from '../../shared/fortkinds.ts';
-import { CLIMBS, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
+import { CLIMBS, CLIMB_SEA_E, CLIMB_SEA_W, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
+import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
@@ -103,9 +105,13 @@ export class Zombie {
   stage = 0;
   attackIndex = 0;
   addsMask = 0;
-  /** Босс: сколько ещё атак подряд (ярость), кого уже задел рывком */
+  /** Босс: сколько ещё атак подряд (ярость), кого уже задел рывком, x стоянки (Барон переходит вдоль поля) */
   combo = 0;
+  homeX = 0;
   readonly hits: number[] = [];
+  /** Лодка: экипаж на борту (типы и ступени) */
+  readonly cargo: number[] = [];
+  readonly cargoTier: number[] = [];
   /** Лучшее расстояние до цели и сколько тиков не приближался */
   bestD = 1e9;
   stuck = 0;
@@ -123,6 +129,10 @@ interface Spawn {
   kind: number;
   road: number;
   tier: number;
+  /** Лодка: борт (−1 запад, 1 восток) и экипаж с его ступенями */
+  lane?: number;
+  crew?: readonly number[];
+  tiers?: readonly number[];
 }
 
 /** Шаг сетки расталкивания: не меньше двух самых больших радиусов */
@@ -146,6 +156,11 @@ export class Horde {
   private readonly host: HordeHost;
   private readonly rng: () => number;
   private readonly bossCtx: BossCtx;
+  private readonly seaCtx: SeaCtx;
+  /** Абордажники ещё в лодках (в море и у берега) — в «осталось» */
+  cargo = 0;
+  /** Утонувший абордажник — для награды (в пуле его нет) */
+  private readonly ghost = new Zombie(-1);
   private nextId = 1;
   private queue: Spawn[] = [];
   private queueAt = 0;
@@ -170,6 +185,7 @@ export class Horde {
     this.host = host;
     this.rng = rng;
     this.bossCtx = { host, horde: this };
+    this.seaCtx = this.bossCtx;
     for (let i = 0; i < FORT_MAX_ALIVE; i++) this.zombies.push(new Zombie(i));
     this.hcols = Math.ceil((nav.cols * 0.5) / HASH) + 1;
     this.hrows = Math.ceil((nav.rows * 0.5) / HASH) + 1;
@@ -177,14 +193,16 @@ export class Horde {
     this.next = new Int32Array(FORT_MAX_ALIVE);
   }
 
-  /** Сколько ещё выйдет в этой волне */
+  /** Сколько ещё выйдет в этой волне (с экипажами лодок, которые ещё не вышли в море) */
   get pending(): number {
-    return this.queue.length - this.queueAt;
+    let n = this.queue.length - this.queueAt;
+    for (let i = this.queueAt; i < this.queue.length; i++) n += this.queue[i].crew?.length ?? 0;
+    return n;
   }
 
-  /** В волне: ещё не вышли + живые */
+  /** В волне: ещё не вышли + живые + экипажи в лодках */
   get left(): number {
-    return this.pending + this.alive;
+    return this.pending + this.alive + this.cargo;
   }
 
   /** Все вышли и все сбиты */
@@ -202,6 +220,7 @@ export class Horde {
     this.popBy.length = 0;
     this.barrels.length = 0;
     this.barrelMul.length = 0;
+    this.cargo = 0;
     this.wave = 0;
     this.hpHumans = 1;
     this.plan = null;
@@ -223,6 +242,7 @@ export class Horde {
     this.dmgMul = plan.dmgMul;
     const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
     if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
+    for (const b of plan.boats) queue.push({ at: tick + b.at, kind: Z_BOAT, road: 1, tier: 0, lane: b.lane, crew: b.crew, tiers: b.tiers });
     this.queue = queue.sort((a, b) => a.at - b.at);
     this.queueAt = 0;
   }
@@ -358,7 +378,10 @@ export class Horde {
     z.attackIndex = 0;
     z.addsMask = 0;
     z.combo = 0;
+    z.homeX = 0;
     z.hits.length = 0;
+    z.cargo.length = 0;
+    z.cargoTier.length = 0;
     z.fromY = z.toY = 0;
     z.fromX = z.toX = z.fromZ = z.toZ = 0;
     this.alive++;
@@ -447,12 +470,82 @@ export class Horde {
       this.pops.push(z);
       this.popBy.push(by);
     }
+    if (z.kind === Z_BOAT && z.cargo.length) this.drown(z, by);
     if (z.kind === Z_SAPPER && z.carry) {
       z.carry = false;
       this.barrels.push(z);
       // догорел фитиль — полный взрыв; сбили раньше — бочка рвётся на месте, строениям достаётся меньше
       this.barrelMul.push(z.stage === 2 ? 1 : BARREL_SHOT_MUL);
     }
+  }
+
+  /** Лодку потопили: экипаж тонет — каждый как сбитый абордажник (награда — тем, кто топил) */
+  private drown(boat: Zombie, by: number): void {
+    const g = this.ghost;
+    g.id = boat.id;
+    g.crew = true;
+    g.damageBy.clear();
+    for (const [pid, dmg] of boat.damageBy) g.damageBy.set(pid, dmg);
+    for (let i = 0; i < boat.cargo.length; i++) {
+      g.kind = boat.cargo[i];
+      g.tier = boat.cargoTier[i] ?? 0;
+      this.host.killed(g, by);
+    }
+    this.cargo -= boat.cargo.length;
+    this.host.event(['boat', 0, by, r2(boat.x), r2(boat.y), r2(boat.z)]);
+    boat.cargo.length = 0;
+    boat.cargoTier.length = 0;
+  }
+
+  /** Лодка выходит в море со своим экипажем. false — мест в орде нет. */
+  private launchBoat(s: Spawn): boolean {
+    const z = this.spawn(Z_BOAT, s.road, this.hpHumans, 0);
+    if (!z) return false;
+    const lane = (s.lane ?? 1) < 0 ? -1 : 1;
+    z.x = lane * BOAT_LANE_X + (this.rng() - 0.5) * 2;
+    z.y = WATER_Y;
+    z.z = BOAT_FROM_Z + this.rng() * 8;
+    z.yaw = 0;
+    z.state = ZS_BOAT;
+    for (const k of s.crew ?? []) z.cargo.push(k);
+    for (let i = 0; i < z.cargo.length; i++) z.cargoTier.push(s.tiers?.[i] ?? 0);
+    z.stage = z.cargo.length;
+    this.cargo += z.cargo.length;
+    return true;
+  }
+
+  /** Абордажник прыгает из лодки на берег (последний в списке). false — мест в орде нет, ждёт. */
+  unloadCrew(boat: Zombie): boolean {
+    const n = boat.cargo.length;
+    if (!n) return false;
+    const z = this.spawn(boat.cargo[n - 1], 1, this.hpHumans, boat.cargoTier[n - 1] ?? 0);
+    if (!z) return false;
+    boat.cargo.length = n - 1;
+    boat.cargoTier.length = n - 1;
+    boat.stage = n - 1;
+    this.cargo--;
+    z.crew = true;
+    z.climb = boat.x < 0 ? CLIMB_SEA_W : CLIMB_SEA_E;
+    z.state = ZS_HOP;
+    z.t = HOP_TICKS;
+    z.fromX = boat.x + (this.rng() - 0.5) * 0.8;
+    z.fromY = boat.y + 0.7;
+    z.fromZ = boat.z - 0.8;
+    z.toX = boat.x + (this.rng() - 0.5) * 3;
+    z.toY = 0;
+    z.toZ = SHORE_Z - this.rng() * 1.2;
+    z.x = z.fromX;
+    z.y = z.fromY;
+    z.z = z.fromZ;
+    z.yaw = 0;
+    return true;
+  }
+
+  /** Убрать без награды и без «сбит» (пустая лодка ушла в море) */
+  remove(z: Zombie): void {
+    if (!z.alive) return;
+    z.alive = false;
+    this.alive--;
   }
 
   /** Пузыри и бочки: ворота, кристалл, люди и зомби рядом; сбитые ими лопаются следом (тут же, очередью). */
@@ -529,7 +622,7 @@ export class Horde {
     // расписание волны
     while (this.queueAt < this.queue.length && this.queue[this.queueAt].at <= tick) {
       const s = this.queue[this.queueAt];
-      if (!this.spawn(s.kind, s.road, this.hpHumans, s.tier)) break; // мест нет — подождут
+      if (!(s.kind === Z_BOAT ? this.launchBoat(s) : this.spawn(s.kind, s.road, this.hpHumans, s.tier))) break; // мест нет — подождут
       this.queueAt++;
     }
     const gateUp = this.host.gateUp();
@@ -537,7 +630,9 @@ export class Horde {
     for (const z of this.zombies) {
       if (!z.alive) continue;
       if (z.atkCd > 0) z.atkCd--;
-      if (z.kind === Z_FLYER) this.stepFlyer(z);
+      if (z.state === ZS_HOP) stepHop(z);
+      else if (z.kind === Z_BOAT) stepBoat(this.seaCtx, z);
+      else if (z.kind === Z_FLYER) this.stepFlyer(z);
       else if (z.kind === Z_BOSS) stepBaron(this.bossCtx, z);
       else if (z.kind === Z_RAM) stepRam(this.bossCtx, z);
       else if (z.kind === Z_GOLEM) stepGolem(this.bossCtx, z);

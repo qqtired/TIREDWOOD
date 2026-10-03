@@ -311,6 +311,8 @@ export type FortEvent =
   | ['blast', number, number, number, number, number]
   // босс меняет фазу: номер, фаза (2 — ярость)
   | ['bossphase', number, number]
+  // ворота пали — босс протискивается во двор: номер
+  | ['breach', number]
   // лекарь лечит: какой, где, радиус
   | ['heal', number, number, number, number, number]
   // щит щитоносца разбит: какой, где

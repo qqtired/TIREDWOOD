@@ -79,7 +79,13 @@ export const CLIMBS: readonly ClimbPoint[] = [
   { x: FORT.x0, z: 4, nx: -1, nz: 0 },
   { x: FORT.x1, z: -7, nx: 1, nz: 0 },
   { x: FORT.x1, z: 4, nx: 1, nz: 0 },
+  // морская (южная) стена — для абордажников: спрыгивают во двор сбоку от террасы
+  { x: -12.5, z: FORT.z1, nx: 0, nz: 1 },
+  { x: 12.5, z: FORT.z1, nx: 0, nz: 1 },
 ];
+/** Точки лазанья абордажников на морской стене: запад и восток */
+export const CLIMB_SEA_W = 6;
+export const CLIMB_SEA_E = 7;
 
 /** Толщина стены (ход по стене): липучка перелезает бруствер, встаёт на ход и спрыгивает во двор */
 export const WALL_T = 3;
