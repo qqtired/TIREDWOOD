@@ -70,7 +70,7 @@ function bodyGeo(l: Look): THREE.BufferGeometry {
   } else {
     parts.push(paint(new THREE.SphereGeometry(0.245, 9, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.9, 1).translate(0, 1.17, 0.04), l.hatColor));
     parts.push(paint(new THREE.CylinderGeometry(0.255, 0.255, 0.07, 9).translate(0, 1.18, 0.04), mix(l.hatColor, 0x000000, 0.25)));
-    parts.push(paint(ellipsoid(0.075, 0.075, 0.075, 6, 4).translate(0, 1.42, 0.04), 0xfff4e8));
+    parts.push(paint(ellipsoid(0.075, 0.075, 0.075, 5, 4).translate(0, 1.42, 0.04), 0xfff4e8));
   }
   parts.push(...pupils([[-0.098, 1.13, 0.296], [0.098, 1.13, 0.296]], 0.027));
   parts.push(splat([0.13, 0.48, 0.27], [0.4, -0.1, 0.9], 0.1), splat([-0.19, 1.12, 0.12], [-0.85, 0.2, 0.45], 0.075));
@@ -147,13 +147,15 @@ function poseBeaver(a: MobAnim, out: MobPose): void {
   const breathe = Math.sin(t * 2.6 + sd * 6.3);
   const ph = a.gait * Math.PI * 2;
   const duty = 0.5 - 0.15 * run;
-  const lift = (0.09 + 0.05 * run) * w;
+  // манера бега у каждого своя: выше или ниже поднимает лапы, сильнее или слабее подпрыгивает
+  const style = 0.8 + 0.4 * rnd(sd, 4);
+  const lift = (0.09 + 0.05 * run) * w * style;
 
   // бег: короткие лапы без скольжения, корпус подпрыгивает дважды за цикл и наклонён вперёд под тяжестью
   let lean = 0.08 + 0.18 * w + 0.08 * run + (rnd(sd, 3) - 0.5) * 0.08;
-  let roll = Math.sin(ph) * 0.07 * w;
+  let roll = Math.sin(ph) * 0.07 * w * style + (rnd(sd, 2) - 0.5) * 0.12;
   let yaw = 0.05 * Math.sin(t * 0.7 + sd * 4) * (1 - w);
-  let bob = Math.abs(Math.sin(ph)) * (0.04 + 0.04 * run) * w + 0.008 * breathe;
+  let bob = Math.abs(Math.sin(ph)) * (0.04 + 0.04 * run) * w * style + 0.008 * breathe;
   let bx = 0;
   let bz = 0;
   let sy = 1 + 0.015 * breathe - 0.1 * hit;

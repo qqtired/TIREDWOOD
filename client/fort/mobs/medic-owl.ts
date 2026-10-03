@@ -67,8 +67,8 @@ function bodyGeo(l: Look): THREE.BufferGeometry {
 
 function wingGeo(l: Look, side: number): THREE.BufferGeometry {
   // висит вниз от плеча; полоски на маховых, кончик темнее
-  return paint(ellipsoid(0.075, 0.38, 0.23, 8, 6).translate(side * 0.02, -0.3, -0.02), (x, y) =>
-    mix(((((y * 9) % 1) + 1) % 1 < 0.3 ? mix(l.wing, l.belly, 0.35) : l.wing), mix(l.wing, 0x000000, 0.3), smooth(-0.45, -0.66, y)));
+  return merge([paint(ellipsoid(0.075, 0.38, 0.23, 8, 6).translate(side * 0.02, -0.3, -0.02), (x, y) =>
+    mix(((((y * 9) % 1) + 1) % 1 < 0.3 ? mix(l.wing, l.belly, 0.35) : l.wing), mix(l.wing, 0x000000, 0.3), smooth(-0.45, -0.66, y)))]);
 }
 
 function feetGeo(l: Look): THREE.BufferGeometry {
@@ -126,7 +126,8 @@ function poseOwl(a: MobAnim, out: MobPose): void {
   const hp = a.gait * 2;
   step(hp, 0.625 / scale, 0.45, 0, _st);
   const q = hp - Math.floor(hp);
-  const air = _st.stance ? 0 : Math.sin(((q - 0.45) / 0.55) * Math.PI);
+  // манера прыжков у каждой своя: выше или ниже
+  const air = (_st.stance ? 0 : Math.sin(((q - 0.45) / 0.55) * Math.PI)) * (0.75 + 0.5 * rnd(sd, 4));
   const crouch = _st.stance ? Math.sin((q / 0.45) * Math.PI) : 0;
   let bodyY = HIP + (0.15 * air - 0.05 * crouch) * w + 0.006 * breathe;
   let feetY = (0.15 * air + 0.06 * air) * w;
@@ -159,9 +160,13 @@ function poseOwl(a: MobAnim, out: MobPose): void {
     crossSpin = u * 9;
   }
 
-  // гибель: навзничь как доска, крылья в стороны, подскок, лапки вверх — и в землю
+  // гибель: голова кругом (шатается, крутится на месте), потом навзничь как доска, крылья в стороны, подскок,
+  // лапки вверх — и в землю
   const d = a.die;
-  const fall = smooth(0, 0.4, d);
+  const dizzy = smooth(0, 0.1, d) * (1 - smooth(0.25, 0.4, d));
+  roll += 0.25 * Math.sin(d * 40) * dizzy;
+  yaw += 2.2 * smooth(0, 0.35, d);
+  const fall = smooth(0.18, 0.45, d);
   const bounce = Math.abs(Math.sin(smooth(0.4, 0.62, d) * Math.PI)) * 0.12;
   const sink = smooth(0.62, 1, d);
   lean = lean * (1 - fall) - (Math.PI / 2) * fall;

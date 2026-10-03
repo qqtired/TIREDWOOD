@@ -2,7 +2,8 @@
 // наплечниками и бронированным хвостом. Голова без брони — розовая морда с длинным носом, большими ушами, высунутым
 // языком и красным пером: туда и надо целиться (сервер не режет урон в голову). Ходит тяжело, руки вперёд, как все
 // зомби; атака — молот двумя кулаками сверху. От удара втягивает голову в латы и закрывается руками; гибель —
-// сворачивается в шар, откатывается и уходит в землю. Части: латы, голова, глаза, руки (одной частью), две ноги.
+// сворачивается в шар, качается, как упавший чугунок, и уходит в землю. Части: латы, голова, глаза, руки (одной
+// частью), две ноги.
 import * as THREE from 'three';
 import { ZS_ATTACK } from '../../../shared/fort.ts';
 import { Z_ARMORED } from '../../../shared/fortkinds.ts';
@@ -126,13 +127,15 @@ function poseArmadillo(a: MobAnim, out: MobPose): void {
   const hit = a.hit * a.hit * (3 - 2 * a.hit);
   const breathe = Math.sin(t * 1.8 + sd * 6.3);
   const ph = a.gait * Math.PI * 2;
-  const lift = 0.13 * w;
+  // манера шага у каждого своя: выше поднимает ноги и сильнее переваливается — или топает ниже
+  const style = 0.8 + 0.4 * rnd(sd, 4);
+  const lift = 0.13 * w * style;
 
   // тяжёлый шаг: корпус переваливается, просаживается в двойной опоре
   let lean = 0.06 + 0.06 * w;
-  let roll = Math.sin(ph) * 0.06 * w;
+  let roll = Math.sin(ph) * 0.06 * w * style;
   let yaw = Math.sin(ph) * 0.05 * w;
-  let bob = -Math.abs(Math.cos(ph)) * 0.06 * w + 0.01 * breathe;
+  let bob = -Math.abs(Math.cos(ph)) * 0.06 * w * style + 0.01 * breathe;
   let sy = 1 + 0.012 * breathe;
   let armRx = -1.2 + 0.08 * Math.sin(ph * 2) * w + 0.04 * breathe;
   let armS = 1;
@@ -161,21 +164,23 @@ function poseArmadillo(a: MobAnim, out: MobPose): void {
   headZ -= 0.08 * hit;
   headS -= 0.2 * hit;
 
-  // гибель: сворачивается в шар (голова, руки, ноги прячутся), откатывается назад и уходит в землю
+  // гибель: сворачивается в шар (голова, руки, ноги прячутся), оседает на землю (хвост уходит в землю) и качается,
+  // как упавший чугунок, потом уходит в землю
   const d = a.die;
   const curl = smooth(0, 0.3, d);
-  const rollT = smooth(0.25, 0.8, d);
+  const rockT = smooth(0.25, 0.8, d);
   const sink = smooth(0.75, 1, d);
   headS *= 1 - 0.85 * curl;
   headY -= 0.3 * curl;
   armS = 1 - 0.85 * curl;
   sy *= 1 - 0.28 * curl;
   const ball = 1 + 0.06 * curl;
-  lean = lean * (1 - curl) + 0.5 * curl - Math.PI * 1.6 * rollT;
-  bob = bob * (1 - curl) - 0.12 * curl;
-  roll *= 1 - curl;
+  const rock = Math.sin(rockT * Math.PI * 4) * 0.3 * (1 - rockT);
+  lean = lean * (1 - curl) - 0.08 * curl + 0.6 * rock;
+  bob = bob * (1 - curl) - 0.45 * curl;
+  roll = roll * (1 - curl) + rock;
   yaw *= 1 - curl;
-  const back = -0.9 * rollT;
+  const back = -0.1 * curl;
 
   setBoneS(out.body, 0, HIP + bob, back, lean, yaw, roll, ball, sy, ball);
   attach(out.head, out.body, NECK.x, NECK.y - HIP + headY, NECK.z + headZ, headRx, 0, headRz, Math.max(0.05, headS));

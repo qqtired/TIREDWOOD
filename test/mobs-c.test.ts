@@ -35,7 +35,7 @@ test('набор C: четыре вида, у каждого 2–3 вариан�
       assert.ok(p.geo.getAttribute('normal'), `${d.id}: нормали`);
       tris += (p.geo.index ? p.geo.index.count : pos.count) / 3;
     }
-    assert.ok(tris <= 1520, `${d.id}: треугольников ${tris}`);
+    assert.ok(tris <= 1500, `${d.id}: треугольников ${tris}`);
     assert.ok(d.parts.some((p) => p.glow), `${d.id}: светящиеся глаза`);
     const k = ZK[d.kinds[0]];
     assert.ok(Math.abs(d.height - (k.hcy + k.hry)) < 0.15, `${d.id}: рост ${d.height} под хитбокс ${k.hcy + k.hry}`);

@@ -106,7 +106,7 @@ function shellGeo(l: Look): THREE.BufferGeometry {
 }
 
 function globGeo(): THREE.BufferGeometry {
-  return paint(ellipsoid(0.14, 0.14, 0.14, 7, 5), (x, y, z) => (y > 0.06 && z > -0.02 ? JAM_LIGHT : JAM));
+  return merge([paint(ellipsoid(0.14, 0.14, 0.14, 7, 5), (x, y, z) => (y > 0.06 && z > -0.02 ? JAM_LIGHT : JAM))]);
 }
 
 const _shell = new THREE.Matrix4();
@@ -144,17 +144,19 @@ function poseSnail(a: MobAnim, out: MobPose): void {
   const breathe = Math.sin(t * 2.1 + sd * 6.3);
   // волна подошвы — два толчка на цикл шага
   const g2 = a.gait * Math.PI * 4;
-  const pulse = Math.sin(g2) * w;
+  // манера ползти у каждой своя: сильнее или слабее волна подошвы
+  const pulse = Math.sin(g2) * w * (0.75 + 0.5 * rnd(sd, 4));
   const sway = Math.sin(a.gait * Math.PI * 2) * w;
 
   let bodyRx = 0.05 * w;
-  let bodySy = 1 + 0.02 * breathe - 0.05 * pulse - 0.12 * hit;
-  let bodySz = 1 + 0.08 * pulse + 0.05 * hit;
+  let bodySy = 1 + 0.02 * breathe - 0.07 * pulse - 0.12 * hit;
+  let bodySz = 1 + 0.1 * pulse + 0.05 * hit;
   let headRx = -0.06 + 0.04 * Math.sin(g2 - 0.6) * w - 0.28 * hit;
   let headZ = 0;
-  let shellRx = SHELL_REST + 0.07 * Math.sin(g2 - 0.9) * w + 0.015 * breathe - 0.18 * hit;
+  let shellRx = SHELL_REST + 0.12 * Math.sin(g2 - 0.9) * w + 0.015 * breathe - 0.18 * hit;
   let shellS = 1 + 0.015 * breathe;
-  let shellY = 0;
+  // раковина подскакивает на спине на каждом толчке подошвы
+  let shellY = 0.035 * Math.max(0, Math.sin(g2 - 0.5)) * w;
   let stalkRx = 0.08 * Math.sin(t * 1.7 + sd * 5) + 0.05 * Math.sin(g2 - 1.6) * w;
   let stalkRz = 0.1 * Math.sin(t * 1.1 + sd * 9);
   let stalkSy = 1 - 0.6 * hit - 0.5 * blink(t, sd);
