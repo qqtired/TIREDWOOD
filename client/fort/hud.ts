@@ -6,6 +6,7 @@ import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_O
   ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
 import { WaveCardView, romanTier } from './wavecard.ts';
+import { newBossHudLine } from './bosses-f.ts';
 import { fortShopItems, type FortShopState } from '../../shared/fortshop.ts';
 import { CHUTES, FORT, GATE, ROADS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
@@ -242,7 +243,7 @@ export class FortHud {
       : state === ZS_HOWL ? 'Воет · сейчас выбегут шустрики'
       : state === ZS_THROW ? 'Камень · уйдите из круга'
       : state === ZS_QUAKE ? 'Трясёт стену · прыгайте'
-      : 'Броня · ждите открытия ядра';
+      : newBossHudLine(state) ?? 'Броня · ждите открытия ядра';
     const text = `${pct}%${phase ? ` · ${phase}` : ''} · ${attack}`;
     if (this.set('bossInfo', text)) this.bossInfo.textContent = text;
     this.bossEl.classList.toggle('open', state === ZS_BOSS_OPEN);

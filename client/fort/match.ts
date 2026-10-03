@@ -11,7 +11,7 @@ import {
   FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_PRICE, NEWGATE_PRICE, TURRET_PRICE, WAVE_PTS, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
-  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, Z_WEAVER,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import { ZF_RAGE } from '../../shared/fortnet.ts';
@@ -41,6 +41,7 @@ import type { FortHud, MapDot } from './hud.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
+import { Webs3D, newBossBlast, newBossBreachText, newBossRageText, newBossThrow, newBossWarnText } from './bosses-f.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -178,9 +179,12 @@ export class FortMatch {
   private fuseAlertAt = -99;
   private steamAt = 0;
   private wakeAt = 0;
+  /** Паутина Ткачихи (новые боссы — bosses-f.ts) */
+  private readonly webs: Webs3D;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
+    this.webs = new Webs3D(deps.world.scene);
     let extraReload = false;
     this.predictor = new Predictor(deps.collision, {
       before: (s, inp) => { extraReload = beforeFortWeapon(s, inp, Boolean(this.roster.get(this.myId)?.mag)); },
@@ -223,6 +227,7 @@ export class FortMatch {
     for (const av of this.avatars.values()) av.dispose(this.d.world.scene);
     this.avatars.clear();
     this.localAvatar.dispose(this.d.world.scene);
+    this.webs.dispose();
     this.d.effects.clearSplats();
     this.d.zombies.clear();
     this.d.hud.pb.hideDeath();
@@ -619,7 +624,8 @@ export class FortMatch {
         }
         case 'throw': {
           const [, fx, fy, fz, tx, ty, tz, ticks, what] = e;
-          const kind = what === ZS_SPIT ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT ? PJ_INK : PJ_METEOR;
+          const fresh = newBossThrow(what);
+          const kind = what === ZS_SPIT || fresh === 'glob' ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT || fresh === 'ink' ? PJ_INK : PJ_METEOR;
           this.d.projectiles?.launch(kind, fx, fy, fz, tx, ty, tz, ticks / TICK_RATE, kind === PJ_METEOR ? 0.05 : 0.3);
           if (kind === PJ_GLOB) sound.spit([fx, fy, fz]);
           break;
@@ -627,6 +633,7 @@ export class FortMatch {
         case 'zdie': {
           const [, zid, killer, x, y, z, kind, tier] = e;
           zombies.kill(zid);
+          if (kind === Z_WEAVER) this.webs.clear();
           const k = ZK[kind] ?? ZK[0];
           const boss = isBossKind(kind);
           if (kind === Z_BOAT) {
@@ -792,6 +799,12 @@ export class FortMatch {
             sound.roar([tx, 2, tz], 1.2);
             break;
           }
+          const fresh = newBossWarnText(attack, near, tx, e[4], tz);
+          if (fresh) {
+            hud.alert(fresh, Math.max(1400, sec * 1000));
+            sound.horn(0.22);
+            break;
+          }
           hud.alert(attack === ZS_FLY_WARN ? 'Крылатка пикирует · уйди с метки или сбей её'
             : attack === ZS_BOSS_GATE ? 'Барон бьёт по воротам · отойди от красного круга'
             : attack === ZS_BOSS_PULSE ? 'Волна Барона · выйди из круга или прыгни'
@@ -806,6 +819,11 @@ export class FortMatch {
         case 'blast': {
           const [, attack, x, y, z, r] = e;
           const dist = this.camPos.distanceTo(_v.set(x, y, z));
+          const shake = newBossBlast(attack, x, y, z, r, dist, this.time, effects, sound, this.webs, (text, ms) => hud.alert(text, ms));
+          if (shake >= 0) {
+            this.shake = Math.max(this.shake, shake);
+            break;
+          }
           if (attack === ZS_SPIT) {
             effects.splat(x, y - 0.75, z, 0, 1, 0, r * 0.9, 0xb02a48, -1, 12);
             effects.burst(x, y, z, 0xb02a48, 14, 4, 0, 1, 0, 0.05);
@@ -856,9 +874,9 @@ export class FortMatch {
         case 'bossphase': {
           const [, id] = e;
           const kind = zombies.kindOf(id);
-          hud.alert(kind === Z_RAM ? '🐗 Таран в ярости · рвётся два раза подряд'
+          hud.alert(newBossRageText(kind) ?? (kind === Z_RAM ? '🐗 Таран в ярости · рвётся два раза подряд'
             : kind === Z_GOLEM ? '🪨 Валун в ярости · бросает по два камня'
-            : '👑 Барон в ярости · бьёт чаще и зовёт крылаток', 3200);
+            : '👑 Барон в ярости · бьёт чаще и зовёт крылаток'), 3200);
           const seen = zombies.where(id, _v);
           sound.roar(seen ? [_v.x, _v.y + 3, _v.z] : null, kind === Z_GOLEM ? 0.7 : kind === Z_RAM ? 1.1 : 0.9);
           this.shake = Math.max(this.shake, 0.6);
@@ -877,7 +895,7 @@ export class FortMatch {
         }
         case 'breach': {
           const [, id] = e;
-          hud.alert('👑 Ворота пали — Барон протискивается во двор · к кристаллу!', 3600);
+          hud.alert(newBossBreachText(zombies.kindOf(id)) ?? '👑 Ворота пали — Барон протискивается во двор · к кристаллу!', 3600);
           const seen = zombies.where(id, _v);
           sound.roar(seen ? [_v.x, _v.y + 3, _v.z] : null, 0.8);
           break;
@@ -1009,6 +1027,7 @@ export class FortMatch {
     const d = this.d;
     const dt = Math.min(0.1, dtRaw);
     this.time += dt;
+    this.webs.update(this.time);
     this.fpsFrames++;
     this.fpsTime += dtRaw;
     if (this.fpsTime >= 0.5) {
