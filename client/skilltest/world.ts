@@ -304,13 +304,9 @@ export class SkillWorld {
       if (n >= 2) break;
       if (Math.abs(x) < SKILL_TOWER.half + 0.4 && Math.abs(z) < SKILL_TOWER.half + 0.4) continue;
       if (this.map.movers.some((m) => this.moverSwept(m, x, z, bottom))) continue;
-      // столб встаёт на площадку ниже, если она есть, иначе уходит в облака
-      let floor = SEA_Y + 1;
-      for (const bx of this.map.boxes) {
-        if (bx.max[1] < bottom - 0.1 && bx.max[1] > floor && x > bx.min[0] - 0.2 && x < bx.max[0] + 0.2 && z > bx.min[2] - 0.2 && z < bx.max[2] + 0.2) floor = bx.max[1];
-      }
-      if (bottom - floor < 0.6) continue;
-      b.beam('wood', C.woodDark, [x, floor, z], [x, bottom, z], floor > SEA_Y + 1 ? 0.09 : 0.1, 6);
+      // столб не встаёт на площадку ниже: там бегают — только в облака мимо всех площадок
+      if (this.map.boxes.some((bx) => bx.max[1] < bottom - 0.1 && x > bx.min[0] - 0.2 && x < bx.max[0] + 0.2 && z > bx.min[2] - 0.2 && z < bx.max[2] + 0.2)) continue;
+      b.beam('wood', C.woodDark, [x, SEA_Y + 1, z], [x, bottom, z], 0.1, 6);
       n++;
     }
   }
