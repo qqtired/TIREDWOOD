@@ -167,6 +167,7 @@ export class FortSfx {
 
   /** Не купить: глухой «бум-бум» */
   deny(): void {
+    if (!this.sound.once('deny', 1)) return;
     const d = this.dest(null, 0, 3, this.s.ui);
     if (!d) return;
     this.s.tone(d, 220, 200, 0.09, 'square', 0.035);
@@ -188,6 +189,7 @@ export class FortSfx {
 
   /** Крит: высокий «дзинь» */
   crit(): void {
+    if (!this.sound.once('crit', 1)) return;
     const d = this.dest(null, 0, 3, this.s.ui);
     if (!d) return;
     this.s.tone(d, 1760, 2400, 0.08, 'triangle', 0.08);
