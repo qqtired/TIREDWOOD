@@ -518,11 +518,13 @@ export class RaceMatch {
       hud.showResults(rows, this.myId, (id) => this.cssOf(id));
       if (this.reward) hud.setReward(this.reward);
     };
+    const me = rows.find((r) => r.id === this.myId);
+    // доехал последним: конец гонки приходит раньше события «финиш» (оно едет со снимком тика) — праздник всё равно покажем
+    if (this.finishAt === 0 && me && me.place > 0) this.finishAt = performance.now();
     // только что финишировал сам — таблица чуть позже, иначе (время вышло) — сразу
     const wait = this.finishAt > 0 ? FINISH_SHOW_MS - (performance.now() - this.finishAt) : 0;
     if (wait > 0) this.resultsTimer = window.setTimeout(show, wait);
     else show();
-    const me = rows.find((r) => r.id === this.myId);
     if (me && me.place === 0) sound.horn(0.3);
   }
 
