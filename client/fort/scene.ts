@@ -13,6 +13,7 @@ import { FortWorld } from './world.ts';
 import { Zombies3D } from './zombies3d.ts';
 import { Projectiles } from './projectiles.ts';
 import { EventMarks } from './marks.ts';
+import { EventFx } from './eventfx.ts';
 
 export class FortScene implements Scene {
   readonly kind = 'fort' as const;
@@ -29,6 +30,8 @@ export class FortScene implements Scene {
   private readonly zombies: Zombies3D;
   private readonly projectiles: Projectiles;
   private readonly marks: EventMarks;
+  /** Эффекты событий волны (fort-fx): метеор, ящик на парашюте, морской туман, золотая лихорадка */
+  private readonly eventFx: EventFx;
   private readonly hud: FortHud;
   private match: FortMatch | null = null;
 
@@ -40,6 +43,9 @@ export class FortScene implements Scene {
     this.zombies = new Zombies3D(this.world.scene, this.collision);
     this.projectiles = new Projectiles(this.world.scene);
     this.marks = new EventMarks(this.world.scene);
+    this.eventFx = new EventFx(this.world.scene, this.world.camera, this.collision);
+    // простой ящик marks.ts больше не нужен: ящик рисует EventFx; маяк и круги остаются у marks
+    this.marks.placeholder = false;
     const root = document.createElement('div');
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
@@ -62,6 +68,7 @@ export class FortScene implements Scene {
       zombies: this.zombies,
       projectiles: this.projectiles,
       marks: this.marks,
+      eventFx: this.eventFx,
       hud: this.hud,
       chat: d.ui.chat,
       sound: d.sound,
@@ -108,6 +115,7 @@ export class FortScene implements Scene {
   setQuality(q: Quality, slow = false): void {
     this.world.setQuality(q, slow);
     this.zombies.setQuality(q, slow);
+    this.eventFx.setQuality(q, slow);
   }
 
   debugState(): Record<string, unknown> | null {

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Крепость — эффекты событий и берег</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+      #game { width: 100vw; height: 100vh; display: block; }
+      #qa { position: fixed; z-index: 40; right: 16px; bottom: 16px; width: min(330px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 14px; background: rgba(24, 20, 28, .92); border: 1px solid #8b719c; border-radius: 12px; color: #fff5e5; font: 13px/1.4 system-ui, sans-serif; }
+      #qa.hide { display: none; }
+      #qa b { display: block; margin-bottom: 6px; }
+      #qa .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+      #qa button, #qa select { min-height: 30px; padding: 4px 8px; border: 1px solid #9473a2; border-radius: 5px; color: #fff5e5; background: #42304e; font: inherit; cursor: pointer; }
+      #qa button.on { background: #7a4f8e; }
+      #metrics { display: block; white-space: pre-wrap; color: #d1efea; font-size: 12px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" aria-label="Крепость: эффекты событий"></canvas>
+    <aside id="qa" aria-label="Проверка эффектов">
+      <b>Эффекты событий и берег (fort-fx)</b>
+      <div class="row">
+        <button data-fx="meteor">☄ Метеор</button><button data-fx="rain">☄ Дождь 12 с</button>
+      </div>
+      <div class="row">
+        <button data-fx="crate">📦 Сброс</button><button data-fx="wallcrate">📦 На стену</button><button data-fx="land">Сел</button><button data-fx="take">Подобран</button>
+      </div>
+      <div class="row">
+        <button data-fx="fog">🌫 Туман</button><button data-fx="gold">🌟 Лихорадка</button><button data-fx="kill">Сбить</button><button data-fx="clear">Сброс</button>
+      </div>
+      <div class="row">
+        <select id="cam"><option value="north">Камера: со стены на север</option><option value="wall">Со стены на берег</option><option value="sea">С моря</option><option value="landing">Место высадки</option><option value="pier">Причал</option><option value="yard">Двор</option><option value="crate">Ящик в небе</option><option value="cratenear">Ящик близко</option><option value="sky">Небо на севере</option><option value="top">Сверху</option></select>
+        <select id="quality"><option value="high">Высокое</option><option value="medium">Среднее</option><option value="low">Низкое</option></select>
+      </div>
+      <output id="metrics"></output>
+    </aside>
+    <!-- Только Vite (npm run dev), в сборку игры не входит — как tools/fort-preview. -->
+    <script type="module" src="/client/fort/fxpreview.ts"></script>
+  </body>
+</html>
