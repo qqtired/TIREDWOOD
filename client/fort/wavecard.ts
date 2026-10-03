@@ -1,11 +1,15 @@
-// Карточка волны «Крепости»: в бою — что идёт (значки и число), откуда (стрелки дорог, якорь десанта), элита, босс,
-// событие; в передышке — «Дальше: волна N» с тем же набором. В начале волны — крупное «ВОЛНА N» на полторы секунды,
-// которое уезжает в полосу, и для нового врага — карточка «Новый враг: кто — как с ним быть» (раз за посещение).
+// Карточка волны «Крепости»: в передышке — «Дальше: волна N» целиком: что идёт (значки и число), откуда (стрелки дорог,
+// якорь десанта), элита, босс, событие. В бою — одна строка: тема, самые многочисленные враги (остальные — «+N»), элита,
+// босс и коротко «откуда»; номер волны — в верхней полосе. В начале волны — крупное «ВОЛНА N» на полторы секунды
+// и для нового врага — карточка «Новый враг: кто — как с ним быть» (раз за посещение).
 import { ZK, type FortWaveCard } from '../../shared/fort.ts';
 import { EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY } from '../../shared/fortwaves.ts';
 
 /** Дороги: 0 — запад, 1 — север, 2 — восток */
 const ROAD_ARROW = ['↖ З', '⬆ С', '↗ В'];
+/** В бою — сколько типов врагов в строке (на узком экране меньше), остальные — фишкой «+N» */
+const FIGHT_KINDS = 5;
+const FIGHT_KINDS_NARROW = 2;
 
 export const EVENT_INFO: Readonly<Record<number, { icon: string; name: string; hint: string }>> = {
   [EV_METEORS]: { icon: '☄', name: 'Метеоры', hint: 'красные круги бьют всех — держи орду подальше от ворот' },
@@ -22,9 +26,18 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?:
   return e;
 }
 
+export interface CardChip {
+  icon: string;
+  n: number;
+  name: string;
+  cls: string;
+  /** Подпись вместо «×n» */
+  label?: string;
+}
+
 /** Строка фишек для карточки: «🧟 ×12 · 🏃 ×5 …» — и для подсказок, и для тестов */
-export function cardChips(card: FortWaveCard): Array<{ icon: string; n: number; name: string; cls: string }> {
-  const out: Array<{ icon: string; n: number; name: string; cls: string }> = [];
+export function cardChips(card: FortWaveCard): CardChip[] {
+  const out: CardChip[] = [];
   for (let i = 0; i + 1 < card.chips.length; i += 2) {
     const k = ZK[card.chips[i]];
     if (k) out.push({ icon: k.icon, n: card.chips[i + 1], name: k.name, cls: card.fresh.includes(card.chips[i]) ? 'fresh' : '' });
@@ -32,6 +45,26 @@ export function cardChips(card: FortWaveCard): Array<{ icon: string; n: number; 
   if (card.elite > 0) out.push({ icon: '★', n: card.elite, name: 'элита: толще и злее, награда ×2', cls: 'elite' });
   if (card.champ > 0) out.push({ icon: '✪', n: card.champ, name: 'чемпионы: ×6 HP, награда ×5', cls: 'champ' });
   return out;
+}
+
+/**
+ * Бой — одна строка: из типов врагов — новые и самые многочисленные (фишки уже по убыванию числа), не больше max;
+ * остальные — одной фишкой «+N» (N — сколько их всего, имена — в подсказке). Элита и чемпионы — как есть.
+ */
+export function foldChips(chips: readonly CardChip[], max: number): CardChip[] {
+  const isTier = (c: CardChip) => c.cls === 'elite' || c.cls === 'champ';
+  const kinds = chips.filter((c) => !isTier(c));
+  if (kinds.length <= max + 1) return chips.slice();
+  const keep = new Set<CardChip>();
+  for (const c of kinds) if (c.cls === 'fresh' && keep.size < max) keep.add(c);
+  for (const c of kinds) if (keep.size < max) keep.add(c);
+  const rest = kinds.filter((c) => !keep.has(c));
+  const n = rest.reduce((a, c) => a + c.n, 0);
+  return [
+    ...kinds.filter((c) => keep.has(c)),
+    { icon: '', n, name: `ещё: ${rest.map((c) => `${c.name} ×${c.n}`).join(', ')}`, cls: 'more', label: `+${n}` },
+    ...chips.filter(isTier),
+  ];
 }
 
 export class WaveCardView {
@@ -61,20 +94,24 @@ export class WaveCardView {
 
   /** Карточка: next — это следующая волна (передышка), иначе идущая */
   set(card: FortWaveCard | null, next: boolean): void {
-    const key = card ? `${next}|${JSON.stringify(card)}` : '';
+    const narrow = window.innerWidth <= 720;
+    const key = card ? `${next}|${narrow}|${JSON.stringify(card)}` : '';
     if (key === this.key) return;
     this.key = key;
     this.root.hidden = !card;
     if (!card) return;
+    const fight = !next;
+    this.root.classList.toggle('fight', fight);
     this.head.textContent = next ? `Дальше: волна ${card.w}` : `Волна ${card.w}`;
     this.title.textContent = card.title;
     this.root.classList.toggle('boss', card.boss >= 0);
     this.chips.textContent = '';
-    for (const c of cardChips(card)) {
+    const chips = cardChips(card);
+    for (const c of fight ? foldChips(chips, narrow ? FIGHT_KINDS_NARROW : FIGHT_KINDS) : chips) {
       const chip = el('i', `ft-chip ${c.cls}`, this.chips);
       chip.title = c.name;
-      el('span', 'ft-chip-icon', chip, c.icon);
-      el('span', 'ft-chip-n', chip, `×${c.n}`);
+      if (c.icon) el('span', 'ft-chip-icon', chip, c.icon);
+      el('span', 'ft-chip-n', chip, c.label ?? `×${c.n}`);
     }
     if (card.boss >= 0) {
       const k = ZK[card.boss];
@@ -88,7 +125,8 @@ export class WaveCardView {
     const ev = EVENT_INFO[card.event];
     if (ev) from.push(`${ev.icon} ${ev.name}`);
     if (card.early) from.push('🔔 +10 % золота');
-    this.from.textContent = from.join('  ');
+    this.from.textContent = fight ? short(from) : from.join('  ');
+    this.from.title = fight ? from.join(' · ') : '';
   }
 
   /** Начало волны: крупный номер на полторы секунды и знакомство с новыми врагами */
@@ -141,6 +179,11 @@ export class WaveCardView {
   reset(): void {
     this.met.clear();
   }
+}
+
+/** «⬆ С  ⚓ 3 × 8  ☄ Метеоры» → «⬆ ⚓3 ☄» для строки в бою */
+function short(from: readonly string[]): string {
+  return from.map((s) => (s.startsWith('⚓') ? `⚓${s.split(' ')[1]}` : s.split(' ')[0])).join(' ');
 }
 
 /** Круг босса: 2 → II */
