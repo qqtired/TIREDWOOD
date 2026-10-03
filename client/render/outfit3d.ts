@@ -39,7 +39,7 @@ export function bodyR(y: number): number {
 // ------------------------------------------------------------ помощники
 
 /** Одним цветом (вершинные цвета), без индекса — чтобы склеивать разные примитивы. */
-function col(g: Geo, hex: number): Geo {
+export function col(g: Geo, hex: number): Geo {
   const ng = g.index ? g.toNonIndexed() : g;
   const c = new THREE.Color(hex);
   const n = ng.getAttribute('position').count;
@@ -50,7 +50,7 @@ function col(g: Geo, hex: number): Geo {
 }
 
 /** Цвет по центру каждого треугольника — для полос и секторов с чёткой границей. */
-function colTri(g: Geo, fn: (x: number, y: number, z: number) => number): Geo {
+export function colTri(g: Geo, fn: (x: number, y: number, z: number) => number): Geo {
   const ng = g.index ? g.toNonIndexed() : g;
   const pos = ng.getAttribute('position');
   const arr = new Float32Array(pos.count * 3);
@@ -73,7 +73,7 @@ function bare(g: Geo): Geo {
   return ng;
 }
 
-function merge(list: Geo[]): Geo | null {
+export function merge(list: Geo[]): Geo | null {
   if (!list.length) return null;
   const g = mergeGeometries(list, false);
   if (!g) throw new Error('outfit3d: не склеилось');
@@ -134,7 +134,7 @@ function bandOnBody(yAt: (phi: number) => number, off: number, tube: number, seg
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), seg, tube, 6, true);
 }
 
-function tube(points: V3[], r: number, seg = 24): Geo {
+export function tube(points: V3[], r: number, seg = 24): Geo {
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p))), seg, r, 6, false);
 }
 
@@ -182,7 +182,7 @@ export interface Wear {
 const NONE: Wear = { geo: null, metal: null, y: 0 };
 
 /** Сдвинуть в систему узла крепления (начало — на высоте y). */
-function wear(parts: Geo[], metal: Geo[], y: number): Wear {
+export function wear(parts: Geo[], metal: Geo[], y: number): Wear {
   const shift = (g: Geo) => g.translate(0, -y, 0);
   return { geo: merge(parts.map(shift)), metal: merge(metal.map((g) => shift(bare(g)))), y };
 }
@@ -316,19 +316,7 @@ const HATS: Record<string, () => Wear> = {
       hornAt(-Math.PI / 2, 0xf2c230),
     ], [bell(0), bell(Math.PI), bell(-Math.PI / 2)], 1.48);
   },
-
-  // панама с блёснами (рыбацкий комплект рыбалки 2.0): хаки, на тулье — три блесны с красными бусинами
-  angler: () => {
-    const at = [2.3, 1.8, 1.3];
-    const lure = (phi: number): Geo => new THREE.SphereGeometry(1, 10, 8).scale(0.03, 0.055, 0.01).rotateY(phi).translate(Math.sin(phi) * 0.39, 1.4, Math.cos(phi) * 0.39);
-    const bead = (phi: number): Geo => col(new THREE.SphereGeometry(0.017, 8, 6).translate(Math.sin(phi) * 0.35, 1.458, Math.cos(phi) * 0.35), 0xd23a2a);
-    return wear([
-      col(domeCap(0.045, 1.335, 1.335), 0x8c9a5c),
-      col(new THREE.CylinderGeometry(0.41, 0.6, 0.09, 28, 1, true).translate(0, 1.305, 0), 0x7d8b50),
-      col(new THREE.CylinderGeometry(0.4, 0.415, 0.05, 28, 1, true).translate(0, 1.36, 0), 0x4b5631),
-      ...at.map(bead),
-    ], at.map(lure), 1.42);
-  },
+  // панама и жилет рыболова, сеты и аксессуары рыбалки — в outfitfish.ts
 };
 
 const ACCS: Record<string, () => Wear> = {
@@ -427,22 +415,7 @@ const ACCS: Record<string, () => Wear> = {
     };
     return wear([pad(1), pad(-1)], [...fringe(1), ...fringe(-1)], Y);
   },
-
-  // жилет рыболова (рыбацкий комплект): короткий, хаки, по фигуре на груди и плечах — ниже 0,8 м место командного
-  // жилета пейнтбола (test/teamgear.test.ts), спереди расстёгнут, два кармана с клапанами
-  angler: () => {
-    const pts: THREE.Vector2[] = [];
-    for (let y = 0.82; y <= 1.0401; y += 0.02) pts.push(new THREE.Vector2(bodyR(y) + 0.022, y));
-    const pocket = (phi: number, y: number): Geo[] => {
-      const r = bodyR(y) + 0.04;
-      const put = (g: Geo, dy: number, dr: number): Geo => g.rotateY(phi).translate(Math.sin(phi) * (r + dr), y + dy, Math.cos(phi) * (r + dr));
-      return [col(put(new THREE.BoxGeometry(0.15, 0.12, 0.03), 0, 0), 0x6f7c44), col(put(new THREE.BoxGeometry(0.16, 0.04, 0.035), 0.06, 0.004), 0x5b6636)];
-    };
-    return wear([
-      col(new THREE.LatheGeometry(pts, 40, Math.PI + 0.32, Math.PI * 2 - 0.64), 0x7f8c4e),
-      ...pocket(Math.PI + 0.66, 0.9), ...pocket(Math.PI - 0.66, 0.9),
-    ], [], 0.93);
-  },
+  // жилет рыболова, штормовка, китель, кукан и сачок — в outfitfish.ts
 };
 
 // очки — в системе лица: начало в центре между глазами (0, 1.17, −0.4)

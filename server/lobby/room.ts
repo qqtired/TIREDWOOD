@@ -21,7 +21,8 @@ import {
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, LOBBY_SEAT_COUNT, buildLobby, seatTable, type Interactable, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { AquaRow, ClientMsg, KartStatus, LobbyEvent, LobbyPlayerInfo, RoomKind, ServerMsg } from '../../shared/messages.ts';
-import { itemById, withItem } from '../../shared/outfit.ts';
+import { itemById, sameOutfit, withItem } from '../../shared/outfit.ts';
+import { gearOnly } from '../../shared/fishstyle.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { isRaceTrackId, RACE_TRACKS, type RaceTrackId } from '../../shared/racecourse.ts';
@@ -265,7 +266,13 @@ export class LobbyRoom implements Room {
     };
     this.fishing = new FishingHall(fishHost, hub.profiles, hub.store);
     this.fishing2 = hub.fish2
-      ? new FishingHall2({ ...fishHost, rain: () => this.weather.rain, top: (top) => this.broadcast({ t: 'fishTop', top }) }, hub.profiles, hub.store, this.now)
+      ? new FishingHall2({
+        ...fishHost, rain: () => this.weather.rain, top: (top) => this.broadcast({ t: 'fishTop', top }),
+        outfit: (slot) => {
+          const c = this.players.get(slot)?.client;
+          if (c?.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: slot, o: hub.outfitOf(c.profile) });
+        },
+      }, hub.profiles, hub.store, this.now)
       : null;
     this.fish = this.fishing2 ?? this.fishing;
   }
@@ -893,8 +900,12 @@ export class LobbyRoom implements Room {
   private onOutfit(p: LobbyPlayer, o: unknown): void {
     const c = p.client;
     const prof = c.profile;
-    if (!prof || p.action !== ACT_WARDROBE || !this.hub.limits.hit(`outfit:${c.id}`, 5, 1000)) return;
-    this.hub.profiles.setOutfit(prof, o);
+    if (!prof || !this.hub.limits.hit(`outfit:${c.id}`, 5, 1000)) return;
+    // вне примерочной — только снасти и значок из журнала рыбака (shared/fishstyle.ts), одежда — как была
+    const kiosk = p.action === ACT_WARDROBE;
+    const before = prof.outfit;
+    this.hub.profiles.setOutfit(prof, kiosk ? o : gearOnly(before, o));
+    if (!kiosk && sameOutfit(before, prof.outfit)) return;
     if (!c.ephemeral) this.broadcast({ t: 'outfitOf', id: p.slot, o: this.hub.outfitOf(prof) });
     this.hub.sendMe(c);
   }

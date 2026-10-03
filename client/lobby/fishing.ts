@@ -12,10 +12,12 @@ import {
   FP_IDLE, FP_REEL, FP_WAIT, GOLDFISH, R_RARE, fmtWeight, reelTicks, type FishSpotView,
 } from '../../shared/fishing.ts';
 import { FISH_SPOTS } from '../../shared/fishplaces.ts';
+import { slotKey } from '../../shared/outfit.ts';
 import type { Sound } from '../audio.ts';
 import type { Avatar } from '../render/avatar.ts';
 import type { Effects } from '../render/effects.ts';
 import { makeFish3D } from './fishart.ts';
+import { dressFloat, dressRig, floatSparkles } from './fishgear.ts';
 import type { LobbyFx } from './fx.ts';
 
 /** Удилище: три колена (от рукоятки к кончику), длина и толщина у начала и конца, м */
@@ -132,6 +134,9 @@ interface Spot {
   fish: THREE.Group | null;
   /** Половина размеров рыбы: вдоль, по высоте */
   fishHalf: THREE.Vector3;
+  /** Снасти рыбака — награды коллекции (слоты наряда r и b, fishgear.ts) */
+  rod: string;
+  bob: string;
 }
 
 let rodRes: { parts: Array<[number, number, number]>; blank: THREE.BufferGeometry[]; tipGeo: THREE.BufferGeometry; handle: THREE.BufferGeometry; spool: THREE.BufferGeometry; stem: THREE.BufferGeometry; arm: THREE.BufferGeometry; knob: THREE.BufferGeometry; blankMat: THREE.Material; tipMat: THREE.Material; corkMat: THREE.Material; metalMat: THREE.Material } | null = null;
@@ -367,6 +372,7 @@ export class FishingSpots {
         s.line.visible = false;
         return;
       }
+      this.gear(s, av);
       this.updateSpot(s, i, dt);
     });
     this.tickDone(dt);
@@ -601,12 +607,21 @@ export class FishingSpots {
     return out.set(at.x - Math.sin(at.yaw) * 1.0, WATER_Y, at.z - Math.cos(at.yaw) * 1.0);
   }
 
-  /** Поплавок долетел: «плюп» и круги. */
+  /** Поплавок долетел: «плюп» и круги; золотая рыбка искрит. */
   private landFloat(s: Spot, mine: boolean): void {
     s.ph = FP_WAIT;
     this.effects.ripple(s.x, s.z, 1.2, 1.1);
     this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 5, 1.8, 0, 1, 0, 0.03);
+    if (floatSparkles(s.bob)) this.fx.sparkle(s.x, WATER_Y + 0.25, s.z, 18);
     this.sound.fishPlop(mine ? null : [s.x, WATER_Y, s.z]);
+  }
+
+  /** Удочка и поплавок — по наряду рыбака: сменил в журнале — меняются сразу */
+  private gear(s: Spot, av: Avatar): void {
+    const rod = slotKey(av.outfit, 'r');
+    const bob = slotKey(av.outfit, 'b');
+    if (rod !== s.rod) dressRig(s.rig.root, (s.rod = rod));
+    if (bob !== s.bob) dressFloat(s.float, (s.bob = bob));
   }
 
   /** Леска от кончика до поплавка: квадратичная кривая, провис — sag на метр длины. */
@@ -728,7 +743,7 @@ export class FishingSpots {
     return {
       ph: FP_IDLE, x: 0, z: 0, sp: -1, g: 0, n: 0, t: 0, anim: A_NONE, animT: 0, pending: false, nibT: 99, jerkT: 99, reelDur: 1, prog: -1, fxT: 0,
       kept: false, toBucket: false, from: new THREE.Vector3(), fp: new THREE.Vector3(), fpPrev: new THREE.Vector3(), fpFree: false,
-      av: null, rig: makeRig(), float, line, linePos, fish: null, fishHalf: new THREE.Vector3(0.15, 0.05, 0.03),
+      av: null, rig: makeRig(), float, line, linePos, fish: null, fishHalf: new THREE.Vector3(0.15, 0.05, 0.03), rod: 'basic', bob: 'classic',
     };
   }
 
@@ -816,13 +831,15 @@ function makeRig(): Rig {
     };
   }
   const r = rodRes;
+  // имена частей — для снастей-наград (fishgear.ts): у каждой свой материал
+  const part = (g: THREE.BufferGeometry, m: THREE.Material, name: string): THREE.Mesh => Object.assign(new THREE.Mesh(g, m), { name });
   const root = new THREE.Group();
-  root.add(new THREE.Mesh(r.handle, r.corkMat));
-  root.add(new THREE.Mesh(r.spool, r.metalMat));
-  root.add(new THREE.Mesh(r.stem, r.metalMat));
+  root.add(part(r.handle, r.corkMat, 'handle'));
+  root.add(part(r.spool, r.metalMat, 'reel'));
+  root.add(part(r.stem, r.metalMat, 'reel'));
   const crank = new THREE.Group();
   crank.position.set(-0.03, -0.075, -0.08);
-  crank.add(new THREE.Mesh(r.arm, r.metalMat), new THREE.Mesh(r.knob, r.corkMat));
+  crank.add(part(r.arm, r.metalMat, 'reel'), part(r.knob, r.corkMat, 'knob'));
   root.add(crank);
   const joints: THREE.Group[] = [];
   let parent: THREE.Object3D = root;
@@ -831,8 +848,8 @@ function makeRig(): Rig {
   r.parts.forEach(([len], i) => {
     const j = new THREE.Group();
     j.position.z = z;
-    j.add(new THREE.Mesh(r.blank[i], r.blankMat));
-    if (i === last) j.add(new THREE.Mesh(r.tipGeo, r.tipMat));
+    j.add(part(r.blank[i], r.blankMat, 'blank'));
+    if (i === last) j.add(part(r.tipGeo, r.tipMat, 'tip'));
     parent.add(j);
     joints.push(j);
     parent = j;

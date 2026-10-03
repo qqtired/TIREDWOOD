@@ -72,6 +72,7 @@ import { StartCircle } from './startcircles.ts';
 import { Fish2Hud } from './fish2hud.ts';
 import { FishHud } from './fishhud.ts';
 import { FishingSpots } from './fishing.ts';
+import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
 import { FishDrink } from './fishdrink.ts';
 import { LobbyFolk } from './folk.ts';
@@ -744,6 +745,7 @@ export class LobbyScene implements Scene {
           else if (e[0] === 'fish') this.onFish(e[1], e[2], e[3], e[4]);
           else if (e[0] === 'respect') this.onRespect(e[1], e[2]);
           else if (e[0] === 'aqhit') this.onAquaHit(e[1], e[2], e[3]);
+          else if (e[0] === 'fishMaster') fishMasterCheer(e[1] === this.myId ? this.me : this.remotes.get(e[1])?.avatar, this.fx, this.d.sound);
           else this.onPhoto(e[1]);
         }
         break;

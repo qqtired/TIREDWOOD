@@ -15,15 +15,16 @@ import {
 import { emptyFishProgress, fishCastMods, fishCatchXp, questNeed, type FishCastMods } from '../../shared/fishprogress.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import {
-  ANNOUNCE_TIER, CHEST_ANNOUNCE, COLLECTION_SIZE, NEW_BONUS2, REWARD_ITEMS, RULE, T_CHEST, T_JUNK, T_MYTH, collectionCount, fishPrice2, fmtCatch,
+  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_JUNK, T_MYTH, collectionCount, fishPrice2, fmtCatch,
   isCollected, reelStyleFor, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
 import { FISH_SPOTS } from '../../shared/maps/lobby.ts';
 import type { Profiles } from '../profiles.ts';
-import type { Profile, Store } from '../store.ts';
+import type { Store } from '../store.ts';
 import type { FishingHost } from './fishing.ts';
 import { FishBoard, countCatch } from './fishtop.ts';
+import { grantLadder, ladderAnnounce } from '../fishstyle.ts';
 
 /** Рыба в руках (для остальных — в руках у рыбака): столько тиков, потом удочка снова пустая; заброс — сразу */
 export const HOLD2_TICKS = 3 * TICK_RATE;
@@ -47,6 +48,8 @@ export interface FishingHost2 extends FishingHost {
   rain(): boolean;
   /** Доска рекордов поменялась — разослать всем на набережной */
   top(top: FishBoardView): void;
+  /** Наряд рыбака поменялся (снасти из наград надеты сами) — разослать всем на набережной */
+  outfit?(slot: number): void;
 }
 
 interface Spot {
@@ -350,22 +353,20 @@ export class FishingHall2 {
       this.board.record(prof, s.sp, s.g);
     } else if (rule.tier === T_CHEST) st.fsChests++;
     const got = collectionCount(prof.album);
-    // вся актуальная коллекция — комплект (выдаётся и позже, если чего-то из него нет)
-    const full = fish && got >= COLLECTION_SIZE && this.reward(prof);
+    // награды лестницы коллекции (server/fishstyle.ts): всё положенное по числу видов; full — выдан финал
+    const ladder = fish ? grantLadder(this.profiles, prof) : null;
+    const full = ladder?.master ?? false;
     this.store.markDirty();
     this.host.send(s.slot, {
       t: 'fishLand', sp: s.sp, g: s.g, price, coins: s.coins, bonus, fresh: news.fresh, record: news.record, best, got, full,
+      ...(ladder?.items.length ? { rw: ladder.items } : {}),
     });
     this.host.changed(s.slot);
+    if (ladder?.outfit) this.host.outfit?.(s.slot);
     this.announce(w.nick, s, rule.tier, rule.rain);
-    if (full) this.host.announce(`🎣 ${w.nick} собрал всю коллекцию — все ${COLLECTION_SIZE} рыб! Рыбацкий комплект — в гардеробе`);
-  }
-
-  /** Рыбацкий комплект за полную коллекцию: true — выдан сейчас (чего-то не было). */
-  private reward(prof: Profile): boolean {
-    let any = false;
-    for (const id of REWARD_ITEMS) if (this.profiles.grant(prof, id)) any = true;
-    return any;
+    for (const line of ladder ? ladderAnnounce(w.nick, ladder) : []) this.host.announce(line);
+    // финал: фанфары и золотые искры у рыбака — слышат и видят все рядом
+    if (full) this.host.event(['fishMaster', s.slot]);
   }
 
   private announce(nick: string, s: Spot, tier: number, rain: boolean): void {

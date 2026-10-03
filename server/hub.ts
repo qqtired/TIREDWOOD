@@ -35,6 +35,7 @@ import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
 import type { VoiceIceConfig } from '../shared/voice.ts';
 import { GiftCodes } from './gifts.ts';
+import { grantLadder, ladderAnnounce, ladderToast } from './fishstyle.ts';
 
 export type { Sink };
 
@@ -495,8 +496,14 @@ export class Hub {
     }
     c.profile = profile;
     if (!c.ephemeral) this.byPid.set(profile.id, c);
+    // награды коллекции рыб, положенные по альбому (server/fishstyle.ts): ветеранам — при первом входе
+    const ladder = this.fish2 && !c.ephemeral ? grantLadder(this.profiles, profile) : null;
     this.sendMe(c);
     if (daily > 0) this.toast(c, `Ежедневный бонус: +${daily} 🪙`);
+    if (ladder?.items.length) {
+      this.toast(c, ladderToast(ladder));
+      for (const line of ladderAnnounce(profile.nick, ladder)) this.announce(line);
+    }
     c.sink.sendJson({ t: 'chatlog', list: this.chatLog });
     if (!this.move(c, this.lobby, true)) {
       this.error(c, 'full');

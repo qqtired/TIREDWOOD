@@ -7,6 +7,7 @@ import { COLLECTION_SIZE, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch 
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
+import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
@@ -80,9 +81,11 @@ export class CatchCard2 {
       col.appendChild(el('span', '', `Коллекция: ${m.got} из ${COLLECTION_SIZE}`));
       const bar = col.appendChild(el('i', ''));
       bar.appendChild(el('b', '')).style.width = `${Math.round((m.got / COLLECTION_SIZE) * 100)}%`;
-      if (m.full) card.appendChild(el('div', 'fc2-full', '🎉 Коллекция собрана! Рыбацкий комплект — в гардеробе'));
+      // награды коллекции (лестница по видам): что выдали за этот улов или сколько до следующей
+      const note = catchRewardNote(m);
+      if (note) card.appendChild(note);
     }
-    this.open(m.full ? SHOW_MS + 2500 : SHOW_MS);
+    this.open(m.full || m.rw ? SHOW_MS + 2500 : SHOW_MS);
     if (m.price > 0) this.later(250, () => this.sound.coins(null, Math.min(8, Math.max(2, Math.round(m.price / 4)))));
     if (m.fresh && !junk) this.later(450, () => this.sound.fishAlbum());
     if (m.full) this.later(900, () => this.sound.fanfare(null));
