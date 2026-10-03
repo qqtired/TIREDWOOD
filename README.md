@@ -1127,5 +1127,5 @@ node deploy/smoke.ts ws://127.0.0.1:5190/ws http://localhost:5190 "$(cat data/sm
 - `test/` — тесты логики, протокола, физики, ботов и миграций.
 - `deploy/` — выкладка (`install.sh`, `smoke.ts`, `compress.ts`), служба и флаги (`game-opus.service`), блок nginx,
   переменные (`ENVIRONMENT.md`) и TURN для голоса (`voice-relay/`).
-- `tools/` — стенды для разработки (превью трасс и крепости, `visual-lab`), проверки выпуска (`release/`) и подготовка ассетов.
+- `tools/` — стенды для разработки (превью трасс и крепости, `visual-lab`, боты блэкджека `blackjack-bots/`), проверки выпуска (`release/`) и подготовка ассетов.
 - `docs/` — устройство (`design.md`), текущий план (`STATUS.md`) и отчёты о работе.

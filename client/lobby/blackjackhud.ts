@@ -3,13 +3,17 @@
 // с суммой очков и кольцом таймера хода, полоска «дилер и все за столом» сверху и крупный итог по центру.
 // Панель только показывает вид стола с сервера и отправляет действия с номером версии (rev): ничего не решает сама.
 // Показ чуть отстаёт от сервера, пока в 3D летят карты (`setHold`), — чтобы не выдавать карты раньше, чем они упали.
-import { BJ_CHIPS, BJ_MAX_BET, BJ_TABLE, BJ_TURN_TICKS, isBet, maxBet, type BlackjackAct, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
+import { BJ_CHIPS, BJ_MAX_BET, BJ_TABLE, BJ_TURN_TICKS, isBet, maxBet, seatPrint, type BlackjackAct, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
 import { TICK_MS } from '../../shared/constants.ts';
 import { addChip, canAdd, chipsFor, limitHint, parseAmount } from './bjbet.ts';
 import { BJ_ATLAS, bjAtlasCanvas, bjAtlasPosition } from './bjcards.ts';
 import './blackjack.css';
 
 const TURN_MS = BJ_TURN_TICKS * TICK_MS;
+/** Ответа на действие нет так долго — кнопки оживают (повтор безопасен: сервер не выполнит тот же запрос дважды). */
+const PENDING_MS = 8000;
+/** Красная строка об отказе гаснет сама: отказ про один клик не должен висеть всю раздачу. */
+const ERROR_MS = 4500;
 const RULES = [
   'Набери больше дилера, но не больше 21. Туз — 1 или 11, картинки — 10. Играют шесть колод.',
   'Блэкджек (туз и десятка с первых двух карт) платит 3:2, дробный жетон отбрасывается. Обычная победа — 1:1, ничья возвращает ставку.',
@@ -75,8 +79,10 @@ export class BlackjackHud {
   private recvAt = 0;
   private holdUntil = 0;
   private ready = true;
-  private pending: { rev: number; at: number } | null = null;
+  /** Отправлено, ответа ещё нет. sig — отпечаток моего места при отправке: ответом считается его изменение или отказ. */
+  private pending: { rev: number; sig: string; at: number } | null = null;
   private error = '';
+  private errorAt = 0;
   private signature = '';
   private previousFocus: HTMLElement | null = null;
   private ringFg: SVGElement | null = null;
@@ -193,7 +199,9 @@ export class BlackjackHud {
     if (view.table !== BJ_TABLE || (this.view && view.rev < this.view.rev)) return;
     this.view = view;
     this.recvAt = now;
-    if (this.pending && view.rev > this.pending.rev) {
+    // Чужие ставки, посадки и ходы замок не снимают: иначе при нескольких игроках кнопки оживали бы раньше ответа сервера
+    // и второй клик уходил бы по уже устаревшему виду. Ответ — моё место изменилось (ставка, руки, ход) или пришёл отказ.
+    if (this.pending && this.printOf(view) !== this.pending.sig) {
       this.pending = null;
       this.error = '';
     }
@@ -215,7 +223,14 @@ export class BlackjackHud {
   onError(message = 'Сервер отклонил действие. Проверь состояние стола.'): void {
     this.pending = null;
     this.error = message;
+    this.errorAt = performance.now();
     this.render();
+  }
+
+  /** Отпечаток моего места в виде стола (общий с сервером, shared/blackjack.ts). */
+  private printOf(view: BlackjackView): string {
+    const mine = view.seats[this.chair];
+    return mine ? seatPrint(view, mine, this.chair) : '';
   }
 
   escape(): void {
@@ -282,6 +297,16 @@ export class BlackjackHud {
   /** Раз в кадр: кольцо таймера, секунды до раздачи, готовность после полёта карт. */
   tick(now: number): void {
     if (!this.visible) return;
+    if (this.pending && now - this.pending.at > PENDING_MS) {
+      this.pending = null;
+      this.render();
+      return;
+    }
+    if (this.error && now - this.errorAt > ERROR_MS) {
+      this.error = '';
+      this.render();
+      return;
+    }
     const ready = now >= this.holdUntil;
     if (this.view !== this.shown && ready) {
       this.shown = this.view;
@@ -324,7 +349,7 @@ export class BlackjackHud {
       this.onAct(action, v.rev);
       return;
     }
-    this.pending = { rev: v.rev, at: performance.now() };
+    this.pending = { rev: v.rev, sig: this.printOf(v), at: performance.now() };
     this.error = '';
     if (action === 'bet') this.lastBet = amount!;
     this.render();
