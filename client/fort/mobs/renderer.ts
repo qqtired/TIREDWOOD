@@ -29,6 +29,9 @@ interface KindPick {
   slots: Slot[];
   weights: number[];
   total: number;
+  /** Самый частый обычный вариант — на низком качестве весь вид рисуется им (меньше разных сеток — меньше вызовов) */
+  main: Slot | null;
+  mainWeight: number;
   special: Slot[];
   specialWhen: number[];
   specialWeights: number[];
@@ -81,6 +84,8 @@ export class MobRenderer {
   private readonly material = mobMaterial(false);
   private readonly glowMaterial = mobMaterial(true);
   private readonly castShadow: boolean;
+  /** Разные варианты одного вида; на низком качестве — нет: один вариант на вид */
+  private variety = true;
   private open = false;
   private total = 0;
 
@@ -118,7 +123,7 @@ export class MobRenderer {
       this.slots.push(slot);
       const w = variantWeight(def);
       for (const kind of def.kinds) {
-        const k = this.kinds[kind] ?? (this.kinds[kind] = { slots: [], weights: [], total: 0, special: [], specialWhen: [], specialWeights: [] });
+        const k = this.kinds[kind] ?? (this.kinds[kind] = { slots: [], weights: [], total: 0, main: null, mainWeight: 0, special: [], specialWhen: [], specialWeights: [] });
         if (def.when) {
           k.special.push(slot);
           k.specialWhen.push(def.when);
@@ -127,6 +132,10 @@ export class MobRenderer {
           k.slots.push(slot);
           k.weights.push(w);
           k.total += w;
+          if (w > k.mainWeight) {
+            k.main = slot;
+            k.mainWeight = w;
+          }
         }
       }
     }
@@ -134,9 +143,13 @@ export class MobRenderer {
     this.setQuality(quality);
   }
 
-  /** Тени по качеству: принимать тени стен — на среднем и высоком; отбрасывать — только с castShadow и на высоком */
+  /**
+   * По качеству: принимать тени стен — на среднем и высоком; отбрасывать — только с castShadow и на высоком; на низком
+   * у вида один вариант (самый частый) — разных сеток в кадре втрое меньше.
+   */
   setQuality(q: Quality, slow = false): void {
     const tier = q === 'auto' ? (slow ? 'low' : 'medium') : q;
+    this.variety = tier !== 'low';
     const receive = tier !== 'low';
     const cast = this.castShadow && tier === 'high';
     for (const slot of this.slots) {
@@ -243,7 +256,10 @@ export class MobRenderer {
     this.kinds.length = 0;
   }
 
-  /** Тот же выбор, что pickVariant(defs, kind, seed, flags): особые (when) — если подходят, иначе обычные; по весам */
+  /**
+   * Тот же выбор, что pickVariant(defs, kind, seed, flags): особые (when) — если подходят, иначе обычные; по весам. На
+   * низком качестве обычный вариант — всегда самый частый.
+   */
   private pick(kind: number, seed: number, flags: number): Slot | null {
     const k = this.kinds[kind];
     if (!k) return null;
@@ -264,6 +280,7 @@ export class MobRenderer {
       }
     }
     if (k.total <= 0) return null;
+    if (!this.variety) return k.main;
     let r = u * k.total;
     for (let i = 0; i < k.slots.length; i++) {
       r -= k.weights[i];

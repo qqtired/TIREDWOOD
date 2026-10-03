@@ -37,6 +37,12 @@ test('рендерер: вариант по seed — тот же, что pickVar
   for (const seed of [1, 1.5, -0.2, Number.NaN]) assert.ok(pickVariant(defs, 0, seed), `seed ${seed} не теряет модель`);
   assert.equal(r.variant(0, 0.1)?.id, 'a');
   assert.equal(r.variant(0, 0.9)?.id, 'b');
+  // низкое качество: у вида один вариант — самый частый
+  r.setQuality('low');
+  for (const s of [0, 0.1, 0.5, 0.99]) assert.equal(r.variant(0, s)?.id, 'b');
+  assert.equal(r.variant(1, 0.3)?.id, 'c');
+  r.setQuality('high');
+  assert.equal(r.variant(0, 0.1)?.id, 'a');
   for (let id = 1; id < 500; id++) {
     const s = mobSeed(id);
     assert.ok(s >= 0 && s < 1);

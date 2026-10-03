@@ -10,6 +10,7 @@
 //   &squeeze=<0…1> — сжать корень особей, как босса в воротах (ниже на 42 %, уже на 20 %) — проверить свет
 //   &flags=<ZF_*> — признаки особи в anim.flags (8 — экипаж: в толпе выберет особые варианты when; 16 — щит цел);
 //   &stage=<n> — байт stage в anim.stage (фаза босса, номер щупальца, сколько экипажа в лодке)
+//   &q=low|medium|high — качество толпы (на низком у вида один вариант, без теней)
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ALL_MOBS, MOB_SETS } from '../../client/fort/mobs/index.ts';
@@ -147,7 +148,8 @@ function startCrowd(defs: MobDef[]): void {
   crowd?.r.dispose();
   crowd = null;
   if (!defs.length) return;
-  const r = new MobRenderer(scene, defs, 'high', { castShadow: true });
+  const quality = q.get('q');
+  const r = new MobRenderer(scene, defs, quality === 'low' || quality === 'medium' ? quality : 'high', { castShadow: true });
   // как в крепости: тени стен на мобов падают, своих теней на себе нет (там карта теней статичная)
   r.group.traverse((o) => { o.receiveShadow = false; });
   const kinds = [...new Set(defs.flatMap((d) => d.kinds))];
