@@ -1,0 +1,401 @@
+/* Окно музыкального автомата (client/ui/jukebox.ts): тёплая тёмная плашка, как остальные окна набережной,
+   ретро-акценты — латунная рамка и лампово-оранжевые кнопки. Влезает в 375 px, ✕ всегда видна. */
+
+.jb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 34;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(460px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  padding: 14px 16px 12px;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 2px solid #c9a36a;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 179, 107, 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(58, 36, 30, 0.97), rgba(34, 24, 29, 0.97));
+  box-shadow: 0 10px 34px rgba(12, 6, 10, 0.5), inset 0 0 0 1px rgba(255, 236, 205, 0.08);
+  color: var(--cream);
+  font: 14px/1.35 Rubik, system-ui, sans-serif;
+  text-align: left;
+  pointer-events: auto;
+  animation: jb-in 0.2s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+.jb[hidden] {
+  display: none;
+}
+
+@keyframes jb-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.94);
+  }
+}
+
+.jb .coin {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.17em;
+}
+
+.jb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jb-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--gold);
+  text-shadow: 0 1px 0 #6b3d12, 0 0 14px rgba(255, 179, 107, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-x {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 240, 220, 0.08);
+  color: var(--cream);
+  font: 700 17px/1 Rubik, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.jb-x:hover {
+  background: rgba(255, 240, 220, 0.16);
+}
+
+.jb-cap {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--orange-soft);
+}
+
+/* ---------------------------------------------------------------- сейчас играет */
+
+.jb-now {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 240, 220, 0.06);
+  border: 1px solid var(--line);
+}
+
+.jb-now-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jb-now-emoji {
+  flex: none;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.jb-now:not(.idle) .jb-now-emoji {
+  animation: jb-bob 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes jb-bob {
+  to {
+    transform: translateY(-3px) rotate(-6deg);
+  }
+}
+
+.jb-now-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jb-now-title {
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-now.idle .jb-now-title {
+  font-weight: 600;
+  color: var(--cream-2);
+}
+
+.jb-now-who {
+  font-size: 12px;
+  color: var(--cream-dim);
+}
+
+.jb-bar {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(255, 240, 220, 0.12);
+  overflow: hidden;
+}
+
+.jb-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--orange), var(--gold));
+  transition: width 0.25s linear;
+}
+
+.jb-now.idle .jb-bar {
+  display: none;
+}
+
+.jb-now-time {
+  margin-top: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream-dim);
+  text-align: right;
+}
+
+.jb-now-time:empty {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- список песен */
+
+.jb-banner {
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--orange-soft);
+  background: rgba(255, 138, 28, 0.14);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jb-banner[hidden] {
+  display: none;
+}
+
+.jb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 2px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.jb-song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 8px 6px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: rgba(255, 240, 220, 0.04);
+  cursor: pointer;
+}
+
+.jb-song:hover {
+  background: rgba(255, 240, 220, 0.08);
+}
+
+.jb-song.sel {
+  border-color: rgba(255, 211, 90, 0.7);
+  background: rgba(255, 211, 90, 0.1);
+}
+
+.jb-key {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(255, 240, 220, 0.1);
+  font: 700 11px/20px Rubik, system-ui, sans-serif;
+  text-align: center;
+  color: var(--cream-dim);
+}
+
+.jb-emoji {
+  flex: none;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.jb-meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jb-name {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-mood {
+  font-size: 12px;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-play {
+  flex: none;
+  min-height: 36px;
+  max-width: 46%;
+  padding: 6px 12px;
+  border: 1px solid #ffd59a;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #ffa940, #f07a12);
+  box-shadow: 0 2px 0 #9c4a06;
+  color: #2a1606;
+  font: 700 13px/1.2 Rubik, system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jb-play:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffbb5e, #ff8a1c);
+}
+
+.jb-play:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #9c4a06;
+}
+
+.jb-play:disabled {
+  border-color: var(--line);
+  background: rgba(255, 240, 220, 0.08);
+  box-shadow: none;
+  color: var(--cream-dim);
+  cursor: default;
+}
+
+.jb-song[data-st='playing'] .jb-play:disabled {
+  border-color: rgba(123, 216, 143, 0.6);
+  background: rgba(123, 216, 143, 0.16);
+  color: var(--mint);
+}
+
+.jb-song[data-st='queued'] .jb-play:disabled {
+  color: var(--gold);
+}
+
+
+/* ---------------------------------------------------------------- очередь и подписи */
+
+.jb-queue.empty {
+  display: none;
+}
+
+.jb-qlist {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jb-q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.jb-q[hidden] {
+  display: none;
+}
+
+.jb-q.mine {
+  background: rgba(255, 211, 90, 0.12);
+  color: var(--gold);
+}
+
+.jb-q-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-q-who {
+  max-width: 34%;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jb-q.mine .jb-q-who {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.jb-q-when {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream-dim);
+}
+
+.jb-note {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 240, 220, 0.06);
+  font-size: 13px;
+  color: var(--cream-2);
+}
+
+.jb-note[hidden] {
+  display: none;
+}
+
+.jb-keys {
+  font-size: 11px;
+  color: var(--cream-dim);
+  text-align: center;
+}
+
+/* телефон: крупнее кнопки, без подсказки клавиш */
+@media (pointer: coarse), (max-width: 520px) {
+  .jb {
+    padding: 12px 12px 10px;
+  }
+
+  .jb-key,
+  .jb-keys {
+    display: none;
+  }
+
+  .jb-play {
+    min-height: 42px;
+  }
+}
