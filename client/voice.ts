@@ -297,6 +297,10 @@ export class VoiceController {
       return;
     }
     if (!peer.offerer) return;
+    // ответ из новой сессии: собеседник пересоздал соединение — и мы с нуля, новым предложением
+    const session = sessionOf(signal.sdp);
+    if (peer.remoteSession && session && session !== peer.remoteSession) { const info = peer.info; this.dropPeer(peer); this.addPeer(info); this.changed(); return; }
+    peer.remoteSession = session;
     this.enqueue(peer, async valid => {
       if (peer.pc.signalingState !== 'have-local-offer') return; // ответ на устаревшее предложение
       await peer.pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp }); if (!valid()) return;

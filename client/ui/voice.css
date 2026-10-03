@@ -27,6 +27,8 @@
 .voice-hold:disabled { cursor: default; }
 .voice-hold:hover:not(:disabled) { filter: brightness(1.08); }
 .voice-tip { max-width: min(280px, calc(100vw - 110px)); margin: 0; padding: 6px 10px; border-radius: 9px; background: #2b2025e6; color: #fff3de; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 10px #0004; }
+/* в пейнтболе и крепости слева внизу — здоровье (.card.vitals, 260 px): кнопка голоса — справа от него */
+html:not(.touch)[data-room='paintball'] .voice-hud, html:not(.touch)[data-room='fort'] .voice-hud { left: 292px; bottom: 26px; }
 @keyframes voice-connect { to { transform: rotate(360deg); } }
 @keyframes voice-nudge { 50% { box-shadow: 0 0 0 7px #ffb36b40, 0 3px 0 #2d241c99; } }
 @media (prefers-reduced-motion: reduce) {
