@@ -5,8 +5,9 @@ import type { PlayerState } from './sim.ts';
 import type { HideKind } from './hideprops.ts';
 
 export const HIDE_CAPACITY = 8, HIDE_MIN = 2, HIDE_ROUNDS = 3;
-/** Тики (60 в секунду): сбор (ожидание перед стартом — к нему подключается общая загрузка), подготовка, поиск, финал, итоги, подиум */
-export const HIDE_COUNT_TICKS = 300, HIDE_PREP_TICKS = 1500, HIDE_SEEK_TICKS = 9000, HIDE_FINAL_TICKS = 1800, HIDE_RESULT_TICKS = 480, HIDE_PODIUM_TICKS = 600;
+/** Тики (60 в секунду): сбор (ожидание перед стартом — к нему подключается общая загрузка), подготовка 25 с,
+ *  поиск 100 с (было 150 — владелец: «слишком много времени»), из них финал 30 с, итоги 8 с, подиум 10 с */
+export const HIDE_COUNT_TICKS = 300, HIDE_PREP_TICKS = 1500, HIDE_SEEK_TICKS = 6000, HIDE_FINAL_TICKS = 1800, HIDE_RESULT_TICKS = 480, HIDE_PODIUM_TICKS = 600;
 /** Окно возврата после обрыва связи; через сколько пойманный выходит ищущим */
 export const HIDE_REJOIN_TICKS = 600, HIDE_RESPAWN_TICKS = 180;
 /** Ищущих на старте раунда: 1 при 2–4 игроках, 2 при 5–8 */
@@ -27,8 +28,10 @@ export const HIDE_SHOT_TICKS = 24, HIDE_SHOT_RANGE = 42;
 export const HIDE_MAX_REWIND = 24, HIDE_HISTORY_TICKS = 32;
 /** Превращение: дальность (м), перезарядка в поиске и в подготовке */
 export const HIDE_TAKE_RANGE = 6, HIDE_TAKE_TICKS = 300, HIDE_TAKE_PREP_TICKS = 60;
-/** Насмешки: обязательная раз в 30 с (в финале — раз в 10 с), первая — в случайный момент 10–30 с; своя — не чаще 8 с */
-export const TAUNT = { every: 1800, final: 600, firstMin: 600, firstMax: 1800, cd: 480, cap: 75, pts: [5, 15, 25], near: [12, 6], sounds: 8 } as const;
+/** Насмешки. Обязательная — раз в 30 с (в финале раз в 10 с, первая — в случайный момент 10–30 с): предмет лишь чуть
+ *  вздрагивает, без звука и нот — заметит только тот, кто смотрит прямо на него. Своя (Z) — не чаще 15 с: тихий звук
+ *  из тайника и та же дрожь, очки за дерзость рядом с ищущим. */
+export const TAUNT = { every: 1800, final: 600, firstMin: 600, firstMax: 1800, cd: 900, cap: 75, pts: [5, 15, 25], near: [12, 6], sounds: 8 } as const;
 /** Очки: попадание, поимка, победа ищущих (каждому), дожил до конца; за секунду поиска — 1 (последнему — 2) */
 export const PTS = { hit: 15, catch: 60, teamWin: 30, survive: 40 } as const;
 /** Жетоны: очки ÷ 8 за раунд, не больше 30; за матч при трёх игроках и больше — 1-е место +10, 2-е +5 */
@@ -75,6 +78,8 @@ export type HideEvent =
   | { k: 'shot'; id: number; by: number; from: [number, number, number]; to: [number, number, number]; n: [number, number, number]; hit: HideShotKind; prop: number; size: number }
   | { k: 'catch'; x: number; y: number; z: number; kind: HideKind; who: number; by: number; text: string }
   | { k: 'taunt'; x: number; y: number; z: number; s: number; loud: number }
+  /** лёгкая дрожь предмета id (обязательная насмешка и своя) — ~0,4 с, без звука */
+  | { k: 'wiggle'; id: number }
   | { k: 'puff'; x: number; y: number; z: number }
   | { k: 'feed'; text: string }
   | { k: 'pts'; n: number; why: string }

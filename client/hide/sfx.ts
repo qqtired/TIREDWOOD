@@ -12,7 +12,7 @@ export class HideSfx {
   constructor(sound: Sound) { this.sound = sound; }
   private get kit(): Kit | null { return this.sound.kit; }
 
-  private out(k: Kit, pos: V3 | null, gain = 1, ref = 3): AudioNode {
+  private out(k: Kit, pos: V3 | null, gain = 1, ref = 3, rolloff = 1.05): AudioNode {
     const g = k.ctx.createGain();
     g.gain.value = gain;
     g.connect(k.sfx);
@@ -21,7 +21,7 @@ export class HideSfx {
     p.panningModel = 'HRTF';
     p.distanceModel = 'inverse';
     p.refDistance = ref;
-    p.rolloffFactor = 1.05;
+    p.rolloffFactor = rolloff;
     p.maxDistance = 80;
     if (p.positionX) { p.positionX.value = pos[0]; p.positionY.value = pos[1]; p.positionZ.value = pos[2]; }
     else p.setPosition(pos[0], pos[1], pos[2]);
@@ -88,10 +88,11 @@ export class HideSfx {
   }
 
   /** Насмешка s (0…7) из точки pos; loud — 0/1/2 (рядом с ловцом громче). */
-  taunt(pos: V3, s: number, loud: number): void {
+  /** Своя насмешка (Z): тихо и недалеко — слышно метров на 10, дальше почти не разобрать */
+  taunt(pos: V3, s: number): void {
     const k = this.kit;
     if (!k) return;
-    const d = this.out(k, pos, 0.75 + loud * 0.2, 4);
+    const d = this.out(k, pos, 0.42, 1.6, 1.9);
     switch (s % 8) {
       case 0: // кря-кря
         for (const w of [0, 0.22]) { this.voiced(k, d, 330, 250, 0.16, 'sawtooth', 1150, 3.5, 0.9, w); this.noise(k, d, 0.08, 'bandpass', 1400, 900, 2, 0.2, w); }

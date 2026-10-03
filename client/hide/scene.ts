@@ -1,5 +1,5 @@
 // Сцена пряток «Рыбный двор». Прячущийся видит себя со стороны (камера за предметом, размер камеры — по
-// предмету), наводится на вещь двора и жмёт E — становится такой же; F — замереть, R — повернуть, ЛКМ — дразнить.
+// предмету), наводит прицел на вещь двора и кликает (ЛКМ) — становится такой же; F — замереть, R — повернуть, Z — дразнить.
 // Ловец — от первого лица с краскомётом: ЛКМ — выстрел (сервер откатывает прячущихся к тому, что ловец видел).
 import * as THREE from 'three';
 import { EYE_HEIGHT } from '../../shared/constants.ts';
@@ -162,12 +162,9 @@ export class HideScene implements Scene {
         this.popGhost(e.who, p);
         break;
       }
-      case 'taunt': {
-        const p: V3 = [e.x, e.y, e.z];
-        this.sfx.taunt(p, e.s, e.loud);
-        this.fx.note(p, e.loud);
-        break;
-      }
+      // своя насмешка — тихий звук из тайника, без нот; дрожь предмета приходит отдельным событием
+      case 'taunt': this.sfx.taunt([e.x, e.y, e.z], e.s); break;
+      case 'wiggle': this.props.wiggle(e.id, performance.now() / 1000); break;
       case 'puff': this.fx.puff([e.x, e.y, e.z]); this.sfx.puff([e.x, e.y, e.z]); break;
       case 'feed': this.hud.feed(e.text); break;
       case 'pts': this.hud.points(e.n, e.why); break;
@@ -231,7 +228,7 @@ export class HideScene implements Scene {
     if (!m || m.self.role !== 'prop' || (m.phase !== 'hide' && m.phase !== 'seek')) return;
     if (a === 'take') {
       if (this.target) this.send({ t: 'hide', a: 'take', id: this.target });
-      else this.hud.note('Наведись на предмет двора — и E');
+      else this.hud.note(TOUCH ? 'Наведи прицел на предмет двора — и «стать»' : 'Наведи прицел на предмет двора и кликни');
     } else if (a === 'lock') this.send({ t: 'hide', a: 'lock' });
     else if (a === 'rotate') this.send({ t: 'hide', a: 'rotate', n: 3 });
     else if (a === 'rotateFine') this.send({ t: 'hide', a: 'rotate', n: 1 });
@@ -245,13 +242,15 @@ export class HideScene implements Scene {
     if (!down || e.repeat || this.d.input.blocked) return false;
     if (code === 'KeyF') { this.act('lock'); return true; }
     if (code === 'KeyR' && this.msg?.self.role === 'prop') { this.act(e.shiftKey ? 'rotateFine' : 'rotate'); return true; }
+    if (code === 'KeyZ' && this.msg?.self.role === 'prop') { this.act('taunt'); return true; }
     return false;
   }
 
-  onUse(mouse: boolean): void {
+  /** ЛКМ: ищущий стреляет краской, прячущийся превращается в предмет под прицелом (E — то же самое, кнопка «действие» на телефоне) */
+  onUse(_mouse: boolean): void {
     const role = this.msg?.self.role;
     if (role === 'hunter') this.shoot();
-    else if (role === 'prop') this.act(mouse ? 'taunt' : 'take');
+    else if (role === 'prop') this.act('take');
   }
 
   resize(w: number, h: number): void {

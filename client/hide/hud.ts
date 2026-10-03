@@ -1,5 +1,5 @@
 // Интерфейс пряток: сверху раунд, время и сколько прячется; слева — кто ты; справа — лента (смешная);
-// в центре — прицел и подсказка «E — стать: …»; снизу — кляксы и насмешка прячущегося или бак краски ловца.
+// в центре — прицел и подсказка «ЛКМ — стать: …»; снизу — кляксы и насмешка прячущегося или бак краски ловца.
 // Поверх — ожидание, слепота ловца в сторожке, итоги раунда и пьедестал матча; Tab — таблица.
 import { HIDE_ROUNDS, PAINT, TAUNT, type HideRoundResult, type HideStateMsg } from '../../shared/hide.ts';
 import { HIDE_KIND, hideCap, hideHits, plural, type HideKind } from '../../shared/hideprops.ts';
@@ -56,7 +56,7 @@ export class HideHud {
       }
       this.root.append(this.touch);
     }
-    this.help.innerHTML = '<b>Ты — предмет</b><span><kbd>E</kbd> стать тем, на что смотришь</span><span><kbd>F</kbd> замереть · <kbd>R</kbd> повернуть (<kbd>Shift</kbd> — чуть-чуть)</span><span><kbd>ЛКМ</kbd> дразнить ловцов: ближе — больше очков</span><span>Маленьким быстрее, но хватит 1 кляксы. Прячься среди таких же!</span>';
+    this.help.innerHTML = '<b>Ты — предмет</b><span><kbd>ЛКМ</kbd> стать тем, на что смотришь</span><span><kbd>F</kbd> замереть · <kbd>R</kbd> повернуть (<kbd>Shift</kbd> — чуть-чуть)</span><span><kbd>Z</kbd> подразнить ловцов: ближе — больше очков (раз в 15 с)</span><span>Раз в 30 с ты чуть вздрагиваешь — заметит тот, кто смотрит прямо на тебя</span><span>Маленьким быстрее, но хватит 1 кляксы. Прячься среди таких же!</span>';
     parent.appendChild(this.root);
   }
 
@@ -162,8 +162,8 @@ export class HideHud {
         if (phase === 'hide') taunt.textContent = 'Дразнить — когда выйдут ловцы';
         else if (cd > 0) taunt.textContent = `Дразнить через ${Math.ceil(cd / 60)} с`;
         else if (TOUCH) taunt.textContent = 'Можно дразнить 🦆';
-        else taunt.innerHTML = '<kbd>ЛКМ</kbd> дразнить';
-        if (phase === 'seek') taunt.append(el('small', '', `сам крякнешь через ${Math.ceil(forced / 60)} с`));
+        else taunt.innerHTML = '<kbd>Z</kbd> дразнить';
+        if (phase === 'seek') taunt.append(el('small', '', `вздрогнешь через ${Math.ceil(forced / 60)} с`));
         this.panel.append(el('div', 'hd-kind', hideCap(HIDE_KIND[s.kind].name)), blobs, lock, taunt);
       }
     } else if (hunter && phase === 'seek') {
@@ -203,7 +203,7 @@ export class HideHud {
         c.classList.add('blind');
         c.append(el('h2', '', 'Ты — ловец'), el('div', 'hd-big', clock(toEnd)), el('p', '', 'Предметы прячутся. Дверь сторожки откроется — и вперёд!'));
         const ul = el('ul');
-        for (const t of ['Стреляй краской (ЛКМ) в то, что выглядит подозрительно', `Мимо по пустому предмету — минус ${PAINT.decor} краски, попал — плюс ${PAINT.hit}`, 'Слушай насмешки: кряканье звучит прямо из тайника', 'Пойманные выходят из сторожки ловцами — вместе веселее']) ul.append(el('li', '', t));
+        for (const t of ['Стреляй краской (ЛКМ) в то, что выглядит подозрительно', `Мимо по пустому предмету — минус ${PAINT.decor} краски, попал — плюс ${PAINT.hit}`, 'Присматривайся: раз в 30 с спрятавшиеся чуть вздрагивают, а дразнилки тихо слышно вблизи', 'Пойманные выходят из сторожки ловцами — вместе веселее']) ul.append(el('li', '', t));
         c.append(ul);
       }
     } else if (s.role === 'caught' && m.phase === 'seek') {
@@ -272,9 +272,9 @@ export class HideHud {
   }
 }
 
-/** Подсказка над целью: «E — стать: ведро (быстрое, 1 клякса)» */
+/** Подсказка над целью: «ЛКМ — стать: ведро (быстрое, 1 клякса)»; на телефоне — без клавиши (там кнопка «стать») */
 export function takeHint(kind: HideKind, hits: number, hint: string): string {
-  return hits >= hideHits(kind) ? `Заляпан — ${HIDE_KIND[kind].name} не выдержит` : `E — стать: ${hint}`;
+  return hits >= hideHits(kind) ? `Заляпан — ${HIDE_KIND[kind].name} не выдержит` : `${TOUCH ? 'Стать' : 'ЛКМ — стать'}: ${hint}`;
 }
 
 export const TAUNT_CD = TAUNT.cd;

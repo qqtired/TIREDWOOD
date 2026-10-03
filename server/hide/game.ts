@@ -246,19 +246,23 @@ export class HideGame {
     else if (left.length === 1 && !this.lastOneSaid) { this.lastOneSaid = true; this.emit({ k: 'feed', text: '⏳ Остался последний прячущийся — ему очки вдвойне!' }); }
   }
 
+  /**
+   * Насмешка. Обязательная — только лёгкая дрожь предмета (без звука и нот): заметит тот, кто смотрит прямо на него.
+   * Своя (Z, раз в 15 с) — ещё и тихий звук из тайника (точка с разбросом до 0,7 м), очки за дерзость рядом с ищущим;
+   * в общую ленту о ней больше не пишем — ищущему это подсказка.
+   */
   private taunt(p: HidePlayer, forced: boolean): void {
-    let near = Infinity;
-    for (const q of this.players.values()) if (q.role === 'hunter' && q.connected && q.round === this.round) near = Math.min(near, Math.hypot(q.state.x - p.state.x, q.state.z - p.state.z));
-    let loud = 0;
     if (!forced) {
+      let near = Infinity;
+      for (const q of this.players.values()) if (q.role === 'hunter' && q.connected && q.round === this.round) near = Math.min(near, Math.hypot(q.state.x - p.state.x, q.state.z - p.state.z));
+      const loud = near <= TAUNT.near[1] ? 2 : near <= TAUNT.near[0] ? 1 : 0;
       const pts = Math.min(tauntPoints(near), TAUNT.cap - p.tauntPts);
-      loud = near <= TAUNT.near[1] ? 2 : near <= TAUNT.near[0] ? 1 : 0;
       if (pts > 0) { p.tauntPts += pts; this.award(p, pts, loud === 2 ? 'наглая насмешка' : loud === 1 ? 'дерзкая насмешка' : 'насмешка'); }
       p.tauntCd = this.tick + TAUNT.cd;
-      if (loud === 2) this.emit({ k: 'feed', text: `🦆 Наглая насмешка в ${Math.max(1, Math.round(near))} м от ищущего!` });
+      const a = this.rand(360) * Math.PI / 180, r = this.rand(71) / 100;
+      this.emit({ k: 'taunt', x: r2(p.state.x + Math.cos(a) * r), y: r2(p.state.y + HIDE_KIND[p.kind].h * 0.6), z: r2(p.state.z + Math.sin(a) * r), s: this.rand(TAUNT.sounds), loud });
     }
-    const a = this.rand(360) * Math.PI / 180, r = this.rand(71) / 100;
-    this.emit({ k: 'taunt', x: r2(p.state.x + Math.cos(a) * r), y: r2(p.state.y + HIDE_KIND[p.kind].h * 0.6), z: r2(p.state.z + Math.sin(a) * r), s: this.rand(TAUNT.sounds), loud });
+    this.emit({ k: 'wiggle', id: p.prop });
     p.tauntAt = this.tick + (this.inFinal() ? TAUNT.final : TAUNT.every);
   }
 

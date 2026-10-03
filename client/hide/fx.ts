@@ -11,24 +11,13 @@ interface Ball { mesh: THREE.Mesh; from: THREE.Vector3; to: THREE.Vector3; t: nu
 interface Drop { v: THREE.Vector3; p: THREE.Vector3; life: number; spin: number }
 interface Decal { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; born: number }
 interface Puff { sprite: THREE.Sprite; t: number; dx: number; dz: number }
-interface Note { sprite: THREE.Sprite; t: number; y: number }
+
 
 const DECALS = 48;
 const DROPS = 160;
 const CONFETTI = ['#ff4f7a', '#ffd35a', '#4fc3ff', '#7bd88f', '#c38bff', '#ff8a1c'];
 
-function noteTexture(ch: string, color: string): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const ctx = c.getContext('2d')!;
-  ctx.font = '900 96px Rubik, system-ui, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(40,20,30,0.75)'; ctx.strokeText(ch, 64, 70);
-  ctx.fillStyle = color; ctx.fillText(ch, 64, 70);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
+
 
 export class HideFx {
   private readonly scene: THREE.Scene;
@@ -45,8 +34,7 @@ export class HideFx {
   private readonly puffMat = new THREE.SpriteMaterial({ map: glowTexture(), color: 0xffffff, transparent: true, depthWrite: false, opacity: 0.8 });
   private readonly confetti: THREE.InstancedMesh;
   private readonly bits: (Drop & { color: THREE.Color; rot: THREE.Euler })[] = [];
-  private readonly notes: Note[] = [];
-  private readonly noteMats: THREE.SpriteMaterial[];
+
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly s = new THREE.Vector3();
@@ -69,7 +57,7 @@ export class HideFx {
     this.confetti = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.06, 0.1), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), 120);
     this.confetti.frustumCulled = false; this.confetti.count = 0;
     scene.add(this.confetti);
-    this.noteMats = [['♪', '#ffd35a'], ['♫', '#ff8fb1'], ['!', '#ffffff']].map(([ch, c]) => new THREE.SpriteMaterial({ map: noteTexture(ch, c), transparent: true, depthWrite: false, depthTest: false }));
+
   }
 
   /** Комок краски от from к to (быстро: ~25 м/с); по прилёту — done */
@@ -136,15 +124,6 @@ export class HideFx {
     if (this.bits.length > 120) this.bits.splice(0, this.bits.length - 120);
   }
 
-  /** Нотка над насмешкой (позиция уже с разбросом от сервера) */
-  note(p: V3, loud: number): void {
-    const sprite = new THREE.Sprite(this.noteMats[loud === 2 ? 2 : (Math.random() * 2) | 0].clone());
-    sprite.position.set(p[0], p[1] + 0.3, p[2]);
-    sprite.scale.setScalar(0.45 + loud * 0.12);
-    sprite.renderOrder = 6;
-    this.scene.add(sprite);
-    this.notes.push({ sprite, t: 0, y: p[1] + 0.3 });
-  }
 
   update(dt: number): void {
     this.time += dt;
@@ -206,13 +185,6 @@ export class HideFx {
     }
     this.confetti.count = c;
     if (c) { this.confetti.instanceMatrix.needsUpdate = true; if (this.confetti.instanceColor) this.confetti.instanceColor.needsUpdate = true; }
-    for (let i = this.notes.length - 1; i >= 0; i--) {
-      const nt = this.notes[i];
-      nt.t += dt;
-      if (nt.t > 1.4) { this.scene.remove(nt.sprite); nt.sprite.material.dispose(); this.notes.splice(i, 1); continue; }
-      nt.sprite.position.y = nt.y + nt.t * 0.7;
-      nt.sprite.material.opacity = Math.min(1, (1.4 - nt.t) / 0.5);
-    }
   }
 
   clear(): void {
@@ -225,7 +197,5 @@ export class HideFx {
     this.puffs.length = 0;
     this.bits.length = 0;
     this.confetti.count = 0;
-    for (const nt of this.notes) { this.scene.remove(nt.sprite); nt.sprite.material.dispose(); }
-    this.notes.length = 0;
   }
 }
