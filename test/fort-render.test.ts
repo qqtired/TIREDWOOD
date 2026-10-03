@@ -3,6 +3,7 @@ import { test, type TestContext } from 'node:test';
 import * as THREE from 'three';
 import { Zombies3D } from '../client/fort/zombies3d.ts';
 import { Z_BOSS, Z_FLYER, Z_WALKER, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_FLY_WARN } from '../shared/fort.ts';
+import { LADDERS } from '../shared/fortladder.ts';
 import { buildFort, WALL_H } from '../shared/fortmap.ts';
 import type { ZombieSnap } from '../shared/fortnet.ts';
 import { CollisionWorld } from '../shared/world.ts';
@@ -72,7 +73,7 @@ test('крылатка бросает тень на каменный ход, а 
   assert.equal(pos.z, -17);
 });
 
-test('structure shield renders only at structures; reentry signs match both real stair entrances', async (t) => {
+test('structure shield renders only at structures; reentry signs stand over both outer ladders', async (t) => {
   const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
   const noop=()=>{};
   const ctx=new Proxy({getImageData:(_x:number,_y:number,w:number,h:number)=>({data:new Uint8ClampedArray(w*h*4)}),
@@ -90,9 +91,11 @@ test('structure shield renders only at structures; reentry signs match both real
   assert.ok(field.children.some(c=>Math.abs(c.position.z-2.6)<.01));
   props.setGate(0);props.setRally(true);assert.equal(field.children[1].visible,false);
   props.setRally(false);assert.equal(field.visible,false);
-  const signs=scene.children.filter(c=>c.name==='fort-return-stairs');assert.equal(signs.length,2);
+  const signs=scene.children.filter(c=>c.name==='fort-return-ladder');assert.equal(signs.length,2);
   for(const sign of signs){
-    assert.equal(world.groundBelow(sign.position.x,.1,7.7),0);
-    assert.ok(world.groundBelow(sign.position.x,4,-1) >= WALL_H - .01);
+    const l=LADDERS.find(x=>x.name.endsWith('-out')&&Math.sign(x.x)===Math.sign(sign.position.x))!;
+    assert.equal(world.groundBelow(sign.position.x,.1,sign.position.z),0,'табличка над лугом');
+    assert.ok(Math.abs(sign.position.z-l.z)<.01,'прямо над лестницей');
+    assert.ok(world.groundBelow(l.x-l.nx,4,l.z) >= WALL_H - .01,'наверху лестницы — ход по стене');
   }
 });

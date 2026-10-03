@@ -3,9 +3,12 @@ import { test } from 'node:test';
 import * as F from '../shared/fort.ts';
 import { FortGame } from '../server/fort/game.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
+import { killBounty } from '../shared/fortarsenal.ts';
+import { makeFortStep, stepFort } from '../shared/fortgun.ts';
+import { LADDERS } from '../shared/fortladder.ts';
 import { buildFort, WALL_H } from '../shared/fortmap.ts';
 import { CollisionWorld } from '../shared/world.ts';
-import { BTN_FORWARD, BTN_JUMP, makeEvents, makeInput, makeState, stepPlayer } from '../shared/sim.ts';
+import { BTN_FORWARD, BTN_JUMP, makeEvents, makeInput, makeState } from '../shared/sim.ts';
 const sink = { sendJson() {}, sendBinary() {}, close() {} };
 function add(g: FortGame, pid: number) { return g.addHuman({ pid, nick: `P${pid}`, outfit: DEFAULT_OUTFIT }, sink)!; }
 function start(n = 1, wave = 1) {
@@ -68,21 +71,24 @@ test('combat bell protects structures only, has one team cooldown, and expires e
   g.use(p[1], bell.id); g.hitGate(100);
   assert.equal(g.gate,gate - 200);
 });
-test('both exterior return stairs are walkable after a real wall jump, with intact gates', () => {
+test('both exterior return ladders bring a defender back on the wall after a real wall jump, with intact gates', () => {
   for (const side of [-1,1]) {
     const world = new CollisionWorld(buildFort());
-    const s = makeState(); const i=makeInput(), e=makeEvents();
-    Object.assign(s,{x:side*16.5,y:WALL_H,z:1,grounded:true});
+    const s = makeState(); const i=makeInput(), e=makeEvents(); const f=makeFortStep(); const load={heavy:0,rate:0,mag:0};
+    Object.assign(s,{x:side*16.5,y:WALL_H,z:1,grounded:1});
     i.yaw=-side*Math.PI/2; i.buttons=BTN_FORWARD|BTN_JUMP;
-    for(let t=0;t<70;t++){ i.seq++; if(t>0)i.buttons=BTN_FORWARD; stepPlayer(s,i,world,false,1,e); }
-    i.buttons=0; for(let t=0;t<90;t++)stepPlayer(s,i,world,false,1,e);
+    for(let t=0;t<70;t++){ i.seq++; if(t>0)i.buttons=BTN_FORWARD; stepFort(f,s,i,world,false,1,e,load); }
+    i.buttons=0; for(let t=0;t<90;t++)stepFort(f,s,i,world,false,1,e,load);
     assert.ok(side*s.x>18 && s.y<.01, 'jumped outside and landed');
-    for(const [x,z] of [[side*24,6.5],[side*24,8],[side*21.4,8],[side*21.4,-1],[side*16.5,-1]]) {
+    const l=LADDERS.find(x=>x.name===(side<0?'west-out':'east-out'))!;
+    // to the foot of the ladder, then face the wall: W climbs, at the top a step onto the wall walk
+    for(const [x,z] of [[l.x+l.nx*3,l.z],[l.x+l.nx*.5,l.z],[side*16.5,l.z]]) {
       for(let t=0;t<1200 && Math.hypot(s.x-x,s.z-z)>.22;t++){
-        i.seq++;i.yaw=Math.atan2(-(x-s.x),-(z-s.z));i.buttons=BTN_FORWARD;stepPlayer(s,i,world,false,1,e);
+        i.seq++;i.yaw=Math.atan2(-(x-s.x),-(z-s.z));i.buttons=BTN_FORWARD;stepFort(f,s,i,world,false,1,e,load);
       }
       assert.ok(Math.hypot(s.x-x,s.z-z)<.5,`side ${side}: could not reach ${x},${z}; at ${s.x},${s.y},${s.z}`);
     }
+    i.buttons=0; for(let t=0;t<30;t++)stepFort(f,s,i,world,false,1,e,load);
     assert.ok(Math.abs(s.y-WALL_H)<.02, `returned to wall: y=${s.y}`);
   }
 });
@@ -108,9 +114,10 @@ test('late-join reinforcements have grace, preserve bounty and cannot award fini
   const q=add(g,2); const pending=g.horde.pending;
   g.horde.step(); assert.equal(g.horde.alive,0);assert.equal(g.horde.pending,pending);
   // A single credited kill distributes one bounty even after a roster change.
-  const z=g.horde.spawn(F.Z_WALKER,1)!;const points=p[0].pts+q.pts;
+  const gold=()=>p[0].run.arsenal.gold+q.run.arsenal.gold;
+  const z=g.horde.spawn(F.Z_WALKER,1)!;const before=gold();
   g.horde.damage(z,999,q.id,false,z.x,z.y,z.z);
-  assert.equal(p[0].pts+q.pts-points,F.ZK[F.Z_WALKER].pts);
+  assert.equal(gold()-before,killBounty(F.Z_WALKER,1),'share of one kill goes to the shooter once (rest — to the wave pot)');
   const reused=q.id;g.removePlayer(q.id);const r=add(g,3);assert.equal(r.id,reused);
   // Remove enemies through normal damage; suppress scheduled spawns only to finish this controlled wave.
   g.horde.clear();g.step();
