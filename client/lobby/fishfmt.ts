@@ -1,6 +1,6 @@
 // fisheco: подписи бонусов одним языком везде (лавка, рюкзак, «Шансы сейчас», карточка улова, шкала) и картинки лавки.
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_RAIN, FISH_XP_LEVELS, fishLevel, type FishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
-import { ALE, BEER, lureOf } from '../../shared/fishshop.ts';
+import { ALE, BAGS, BARKAS_LEVEL, BEER, LURES, lureOf } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_TOP_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
 
 const SHOP = import.meta.glob('../assets/fishshop/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -38,6 +38,19 @@ export function bagMarks(m: number): string[] {
 /** Что даёт уровень рыбалки: зона и шанс редких */
 export function levelPerks(level: number): string {
   return `зона +${(level * 2.5).toLocaleString('ru-RU')}% · редкие и выше ${mul(1.025 ** level)}`;
+}
+
+/** Что откроется на уровне рыбалки level: вещи лавки и баркас */
+export function levelOpens(level: number): string[] {
+  const out = [...BAGS, ...LURES].filter((g) => g.level === level).map((g) => g.name.toLowerCase());
+  if (level === BARKAS_LEVEL) out.push('баркас в открытом море');
+  return out;
+}
+
+/** Плашка нового уровня рыбалки: что дал уровень и что открылось (не путать с уровнем персонажа) */
+export function fishLevelUpText(level: number): string {
+  const opens = levelOpens(level);
+  return `🎣 Уровень рыбалки ${level}: ${levelPerks(level)}${opens.length ? ` · открылось: ${opens.join(', ')}` : ''}`;
 }
 
 /** Сколько опыта ещё до уровня level (0 — уже есть) */
