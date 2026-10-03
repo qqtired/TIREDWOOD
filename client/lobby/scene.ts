@@ -331,6 +331,7 @@ export class LobbyScene implements Scene {
       onOpen: () => { d.input.releaseAll(); d.input.unlock(); },
       onClose: () => d.wantPointer(),
       setSolid: (on) => { for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, on); },
+      refreshShadows: () => d.renderer.refreshShadows(),
     });
     this.juke.reset(false);
     const col = this.world.collision;

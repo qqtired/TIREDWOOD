@@ -48,6 +48,8 @@ export interface JukeDeps {
   onClose: () => void;
   /** Корпус стал твёрдым или пропал (флаг сервера) */
   setSolid: (on: boolean) => void;
+  /** Модель появилась или пропала: тени перерисовать (карта теней — по запросу) */
+  refreshShadows: () => void;
 }
 
 /** Окно закрывается, если отошёл дальше этого от места заказа */
@@ -74,6 +76,7 @@ export class LobbyJukebox {
   private nextPanel = 0;
   private nextSync = 0;
   private readonly bands = new Float32Array(7);
+  private modelShown = false;
   private hidden = typeof document !== 'undefined' && document.hidden;
 
   constructor(d: JukeDeps) {
@@ -101,7 +104,19 @@ export class LobbyJukebox {
 
   attachModel(model: JukeModelLike): void {
     this.model = model;
-    model.setVisible(this.on && this.inLobby);
+    const want = this.on && this.inLobby;
+    this.modelShown = want;
+    model.setVisible(want);
+    this.d.refreshShadows();
+  }
+
+  /** Показать или спрятать модель; true — видимость сменилась */
+  private showModel(on: boolean): boolean {
+    if (!this.model || on === this.modelShown) return false;
+    this.modelShown = on;
+    this.model.setVisible(on);
+    this.d.refreshShadows();
+    return true;
   }
 
   /** Вошли в лобби или вышли (в режимы, переподключение): до нового «juke» автомата нет */
@@ -114,7 +129,7 @@ export class LobbyJukebox {
     if (this.panel?.isOpen) this.close();
     this.player?.stop(0.4);
     this.d.sound.duckMusic(1);
-    this.model?.setVisible(false);
+    this.showModel(false);
     this.d.setSolid(false);
   }
 
@@ -122,7 +137,7 @@ export class LobbyJukebox {
     if (msg.t === 'juke') {
       if (!this.on) {
         this.on = true;
-        this.model?.setVisible(this.inLobby);
+        this.showModel(this.inLobby);
         this.d.setSolid(true);
       }
       this.view = msg.v;
