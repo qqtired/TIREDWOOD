@@ -65,7 +65,7 @@ export const FEATURES: DirectorFeatures = {
   bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
   sea: true,
   kraken: false,
-  events: false,
+  events: true,
 };
 
 /** Всё включено — для тестов расписания и симуляции */

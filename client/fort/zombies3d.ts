@@ -575,6 +575,15 @@ export class Zombies3D {
       this.hull, this.crewHeads, this.caps);
   }
 
+  /** Морской туман: глаза видны сквозь туман — лицо без тумана и чуть светится */
+  setFogGlow(on: boolean): void {
+    const m = this.face.material as THREE.MeshStandardMaterial;
+    if (m.fog === !on) return;
+    m.fog = !on;
+    m.emissive.setHex(on ? 0x5a4a1e : 0x000000);
+    m.needsUpdate = true;
+  }
+
   setQuality(q: Quality, slow = false): void {
     const tier = q === 'auto' ? (slow ? 'low' : 'medium') : q;
     this.body.geometry = this.bodyGeometries[tier === 'low' ? 0 : tier === 'medium' ? 1 : 2];

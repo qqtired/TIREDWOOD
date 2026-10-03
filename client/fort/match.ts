@@ -11,13 +11,16 @@ import {
   FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_PRICE, NEWGATE_PRICE, TURRET_PRICE, WAVE_PTS, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
-  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
+import {
+  CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY, FOG_FAR, FOG_NEAR, METEOR_WARN_TICKS, SUPPLY_PICK_R,
+} from '../../shared/fortwaves.ts';
 import { ZF_RAGE } from '../../shared/fortnet.ts';
 import { afterFortWeapon, beforeFortWeapon } from '../../shared/fortweapon.ts';
 import { FT_STRIDE, fortAimPoint, fortShotDir, nearestZombie } from '../../shared/fortaim.ts';
-import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
+import { CRYSTAL, GATE, WALL_H, type FortMap, type FortStation } from '../../shared/fortmap.ts';
 import { decodeFortTail, makeFortTail, type ZombieSnap } from '../../shared/fortnet.ts';
 import { clamp, damp, viewDir, wrapAngle } from '../../shared/math.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
@@ -41,6 +44,7 @@ import type { FortHud, MapDot } from './hud.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
+import type { EventFxApi, EventMarks } from './marks.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -50,6 +54,10 @@ export interface FortMatchDeps {
   zombies: Zombies3D;
   /** Броски дугой (плевки, камни, чернила, метеоры); в тестах можно не давать */
   projectiles?: Projectiles;
+  /** Метки событий: круги метеоров, маяк ящика припасов */
+  marks?: EventMarks;
+  /** Эффекты событий (помощник fort-fx, eventfx.ts) — подключаются при слиянии */
+  eventFx?: EventFxApi | null;
   hud: FortHud;
   chat: Chat;
   sound: Sound;
@@ -110,6 +118,10 @@ export class FortMatch {
   private jams = 0;
   private left = 0;
   private tailSeen = false;
+  /** События волны на экране: туман, лихорадка (по хвосту снимка), ящик — в marks */
+  private fogOn = false;
+  private goldOn = false;
+  private fogK = 0;
   /** Карточка волны: в бою — идущей, в передышке и сборе — следующей */
   private card: FortWaveCard | null = null;
 
@@ -192,6 +204,8 @@ export class FortMatch {
     this.localAvatar.addTo(deps.world.scene);
     deps.effects.clearSplats();
     deps.zombies.clear();
+    deps.marks?.clear();
+    deps.eventFx?.clear();
     if (deps.projectiles) {
       deps.projectiles.clear();
       deps.projectiles.onLand = (kind, x, y, z) => this.onProjectileLand(kind, x, y, z);
@@ -225,6 +239,11 @@ export class FortMatch {
     this.localAvatar.dispose(this.d.world.scene);
     this.d.effects.clearSplats();
     this.d.zombies.clear();
+    this.d.marks?.clear();
+    this.d.eventFx?.clear();
+    this.setFog(false);
+    this.fogK = 0;
+    this.applyFog();
     this.d.hud.pb.hideDeath();
     this.d.hud.hideEnd();
     this.d.hud.showBoard(false, [], 0, 0);
@@ -523,6 +542,7 @@ export class FortMatch {
     this.crystal = t.crystal;
     this.left = t.left;
     props.setGate(t.gate);
+    this.applyEvent();
     props.setCrystal(t.crystal);
     props.setRally((t.rally ?? 0) > 0);
     if (t.turrets !== this.turrets) {
@@ -620,7 +640,9 @@ export class FortMatch {
         case 'throw': {
           const [, fx, fy, fz, tx, ty, tz, ticks, what] = e;
           const kind = what === ZS_SPIT ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT ? PJ_INK : PJ_METEOR;
-          this.d.projectiles?.launch(kind, fx, fy, fz, tx, ty, tz, ticks / TICK_RATE, kind === PJ_METEOR ? 0.05 : 0.3);
+          // метеор: огненный ком у эффектов fort-fx, пока их нет — простой из бросков
+          if (kind === PJ_METEOR && this.d.eventFx) this.d.eventFx.meteor(fx, fy, fz, tx, ty, tz, ticks / TICK_RATE);
+          else this.d.projectiles?.launch(kind, fx, fy, fz, tx, ty, tz, ticks / TICK_RATE, kind === PJ_METEOR ? 0.05 : 0.3);
           if (kind === PJ_GLOB) sound.spit([fx, fy, fz]);
           break;
         }
@@ -649,6 +671,7 @@ export class FortMatch {
             if (kind === Z_BRUTE) hud.pb.bannerMessage('💪 Бугай сбит! Награда поделена с командой', 1800);
             else if ((tier ?? 0) >= 2) hud.pb.bannerMessage(`✪ Чемпион сбит: ${k.name}!`, 1800);
           }
+          if (this.goldOn && kind !== Z_BOAT) this.d.eventFx?.coins(x, y + 1, z, boss || (tier ?? 0) > 0);
           if (boss) hud.pb.centerMessage(`${k.icon} ${k.name} повержен!`, killer ? `Добил ${this.nameOf(killer)} · добейте оставшуюся орду` : 'Добейте оставшуюся орду', '#ffd35a', 2800);
           if ((kind === Z_BRUTE || (tier ?? 0) >= 2 || boss) && killer) hud.pb.killfeed(this.nameOf(killer), -1, k.name, -1, false, 'fort', killer === this.myId);
           break;
@@ -772,10 +795,18 @@ export class FortMatch {
           break;
         }
         case 'warn': {
-          const [, , attack, tx, , tz, , end] = e;
+          const [, , attack, tx, ty, tz, wr, end] = e;
           const sec = Math.max(0, (end - this.clock.estimate(performance.now())) / TICK_RATE);
           // плевки и бочки — часто: тревога только тому, у кого метка рядом
           const near = Math.hypot(tx - this.predictor.state.x, tz - this.predictor.state.z) < 6;
+          if (attack === ZS_METEOR) {
+            this.d.marks?.meteor(tx, ty, tz, wr, end, METEOR_WARN_TICKS);
+            const me = this.predictor.state;
+            if (this.alive && Math.hypot(tx - me.x, tz - me.z) < wr + 0.8 && Math.abs(ty - me.y) < 2.5) {
+              hud.alert('☄ Метеор летит в тебя · уйди из красного круга', Math.max(1000, sec * 1000));
+            }
+            break;
+          }
           if (attack === ZS_SPIT) {
             if (near) hud.alert('💦 Плевальщик целится в тебя · уйди с метки', Math.max(1200, sec * 1000));
             break;
@@ -806,6 +837,19 @@ export class FortMatch {
         case 'blast': {
           const [, attack, x, y, z, r] = e;
           const dist = this.camPos.distanceTo(_v.set(x, y, z));
+          if (attack === ZS_METEOR) {
+            if (this.d.eventFx) this.d.eventFx.meteorHit(x, y, z, r);
+            else {
+              effects.burst(x, y, z, 0xff8a3a, 34, r * 2.2, 0, 1, 0, 0.08);
+              effects.burst(x, y, z, 0xb02a48, 18, r * 1.6, 0, 1, 0, 0.06);
+              effects.puff(x, y + 0.5, z, r * 1.1, 0xffa040, 0.35, 0.5, 0.8);
+              effects.puff(x, y + 0.8, z, r * 1.3, 0x6b625a, 1.3, 1.4, 0.55);
+              effects.splat(x, y - 0.25, z, 0, 1, 0, r * 0.85, 0x5a1a24, -1, 12);
+            }
+            sound.boom([x, y, z], 1.2);
+            if (dist < r + 16) this.shake = Math.max(this.shake, Math.min(1, (r + 16 - dist) / 12));
+            break;
+          }
           if (attack === ZS_SPIT) {
             effects.splat(x, y - 0.75, z, 0, 1, 0, r * 0.9, 0xb02a48, -1, 12);
             effects.burst(x, y, z, 0xb02a48, 14, 4, 0, 1, 0, 0.05);
@@ -880,6 +924,40 @@ export class FortMatch {
           hud.alert('👑 Ворота пали — Барон протискивается во двор · к кристаллу!', 3600);
           const seen = zombies.where(id, _v);
           sound.roar(seen ? [_v.x, _v.y + 3, _v.z] : null, 0.8);
+          break;
+        }
+        case 'event': {
+          const [, kind, on] = e;
+          if (!on) break;
+          if (kind === EV_METEORS) {
+            hud.alert('☄ Метеоры! Уходи из красных кругов · не пускай орду к воротам', 3600);
+            sound.horn(0.3);
+          } else if (kind === EV_GOLD) hud.alert('🌟 Золотая лихорадка · враги быстрее, награда ×2', 3600);
+          else if (kind === EV_FOG) hud.alert('🌫 Морской туман · видно недалеко, смотри на светящиеся глаза', 3600);
+          break;
+        }
+        case 'supply': {
+          const [, what, by, x, y, z] = e;
+          const fx = this.d.eventFx;
+          if (what === 0) {
+            this.d.marks?.crate(CRATE_FALL, x, y, z);
+            fx?.crate(1, x, z, y);
+            hud.alert('📦 Сброс припасов · ящик с жёлтым дымом — подбери (E)', 3600);
+            sound.horn(0.2);
+          } else if (what === 1) {
+            this.d.marks?.crate(CRATE_DOWN, x, y, z);
+            fx?.crate(2, x, z, y);
+            sound.boom([x, y, z], 0.4);
+          } else {
+            this.d.marks?.crate(CRATE_NONE, x, y, z);
+            fx?.crate(0, x, z, y);
+            if (what === 2) {
+              fx?.cratePicked(x, y, z);
+              if (!fx) effects.burst(x, y + 0.5, z, 0xffd04a, 24, 4, 0, 1, 0, 0.06);
+              sound.coin([x, y, z]);
+              if (by === this.myId) hud.alert('📦 Припасы твои!', 2000);
+            }
+          }
           break;
         }
         case 'early': {
@@ -1039,6 +1117,13 @@ export class FortMatch {
     const cam = d.world.camera;
     d.zombies.update(this.clock.renderTick, dt, this.time, cam);
     d.projectiles?.update(dt);
+    d.marks?.update(dt, this.clock.renderTick);
+    d.eventFx?.update(dt);
+    const fogWant = this.fogOn ? 1 : 0;
+    if (this.fogK !== fogWant) {
+      this.fogK += Math.sign(fogWant - this.fogK) * Math.min(Math.abs(fogWant - this.fogK), dt / 3);
+      this.applyFog();
+    }
     d.effects.update(dt);
     d.world.update(dt, this.camPos);
     tickAvatarShared(this.time, d.world.renderer.canvas.clientHeight || window.innerHeight);
@@ -1211,6 +1296,52 @@ export class FortMatch {
     }
   }
 
+  // ------------------------------------------------------------ события волны
+
+  /** Событие волны по хвосту снимка: туман и лихорадка — пока идёт волна; ящик — и для вошедших посреди волны */
+  private applyEvent(): void {
+    const t = this.tail;
+    const ev = this.phase === FT_WAVE ? t.event ?? 0 : 0;
+    const fog = ev === EV_FOG;
+    if (fog !== this.fogOn) this.setFog(fog);
+    const gold = ev === EV_GOLD;
+    if (gold !== this.goldOn) {
+      this.goldOn = gold;
+      this.d.eventFx?.goldRush(gold);
+    }
+    const marks = this.d.marks;
+    const crate = this.phase === FT_WAVE && ev === EV_SUPPLY ? t.crate ?? CRATE_NONE : CRATE_NONE;
+    if (marks && crate !== marks.crateState) {
+      const x = crate === CRATE_NONE ? marks.crateX : t.crateX ?? 0;
+      const z = crate === CRATE_NONE ? marks.crateZ : t.crateZ ?? 0;
+      const y = crate === CRATE_NONE ? marks.crateY : this.crateSurface(x, z);
+      marks.crate(crate, x, y, z);
+      this.d.eventFx?.crate(crate === CRATE_FALL ? 1 : crate === CRATE_DOWN ? 2 : 0, x, z, y);
+    }
+  }
+
+  /** На что сел ящик — как считает сервер (не выше хода по стене) */
+  private crateSurface(x: number, z: number): number {
+    const y = this.d.collision.groundBelow(x, WALL_H + 0.05, z);
+    return Number.isFinite(y) ? y : 0;
+  }
+
+  private setFog(on: boolean): void {
+    this.fogOn = on;
+    this.d.zombies.setFogGlow(on);
+    this.d.eventFx?.fog(on);
+  }
+
+  /** Туман сцены: от дневного к FOG_NEAR…FOG_FAR (видимость ~50 м) по fogK 0…1 */
+  private applyFog(): void {
+    const fog = this.d.world.scene.fog;
+    if (!(fog instanceof THREE.Fog)) return;
+    const p = this.d.world.palette;
+    const k = this.fogK;
+    fog.near = p.fogNear + (FOG_NEAR - p.fogNear) * k;
+    fog.far = p.fogFar + (FOG_FAR - p.fogFar) * k;
+  }
+
   // ------------------------------------------------------------ стойки и таблички
 
   private get calm(): boolean {
@@ -1236,6 +1367,12 @@ export class FortMatch {
     }
     this.station = best;
     const hint = best ? this.stationHint(best) : null;
+    const marks = this.d.marks;
+    if (!hint && marks && marks.crateState === CRATE_DOWN && Math.hypot(s.x - marks.crateX, s.z - marks.crateZ) < SUPPLY_PICK_R - 0.2
+      && Math.abs(s.y - marks.crateY) < 2.5) {
+      hud.setHint('подобрать припасы', 0, true, true);
+      return;
+    }
     if (!hint) {
       hud.setHint(null, 0, false, true);
       return;

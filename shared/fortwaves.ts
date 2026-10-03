@@ -251,6 +251,45 @@ export function eventAllowed(w: number, lastEventWave: number): boolean {
   return w >= EVENT_FROM && !isBossWave(w) && !isSuperWave(w) && w - lastEventWave >= EVENT_GAP;
 }
 
+/**
+ * ☄ Метеоры: начинаются, когда орда уже вышла (45 % выхода, 6–20 с от начала), 12 с, 15 ударов. Каждый — красный
+ * круг METEOR_R за 1,4 с до удара (камень летит на виду): зомби −40 % макс. HP, человек −25, ворота −80. Чётные
+ * бьют в гущу орды, нечётные — в людей (рядом с кем-то из защитников): держи орду подальше от ворот и не стой.
+ */
+export const METEOR_TICKS = 12 * TICK_RATE;
+export const METEOR_COUNT = 15;
+export const METEOR_WARN_TICKS = 84;
+export const METEOR_R = 3;
+export const METEOR_ZOMBIE = 0.4;
+export const METEOR_PLAYER = 25;
+export const METEOR_GATE = 80;
+
+/**
+ * 📦 Сброс припасов: ящик на парашюте падает 7 с (25 % выхода, 5–12 с от начала), в 40 % случаев — в поле за
+ * стеной (назад — по наружным лестницам на флангах). Подобрать: E в SUPPLY_PICK_R или пройти по нему. Не
+ * подобрали до конца волны — пропал. Награда — хук arsenal grantSupply (гранаты); до слияния — золото каждому.
+ */
+export const SUPPLY_FALL_TICKS = 7 * TICK_RATE;
+export const SUPPLY_FIELD = 0.4;
+export const SUPPLY_PICK_R = 2.2;
+export const SUPPLY_TOUCH_R = 0.9;
+/** Ящик: 0 — нет, 1 — падает, 2 — лежит (байт crate в хвосте снимка) */
+export const CRATE_NONE = 0;
+export const CRATE_FALL = 1;
+export const CRATE_DOWN = 2;
+
+export function supplyGold(w: number): number {
+  return Math.round(60 * (1 + 0.05 * (Math.max(1, w) - 1)));
+}
+
+/** 🌟 Золотая лихорадка: враги быстрее, награда ×2 */
+export const GOLD_HASTE = 1.2;
+export const GOLD_MUL = 2;
+
+/** 🌫 Морской туман: дальность видимости, м (туман сцены) */
+export const FOG_NEAR = 6;
+export const FOG_FAR = 50;
+
 // ------------------------------------------------------------ жетоны 🪙 (≈10–11 в минуту боя)
 
 /** За отбитую волну с участием: 6 + ⌊w/10⌋ (до 14), за босса +8, за супер-босса +25 */

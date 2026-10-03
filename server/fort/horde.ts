@@ -15,8 +15,8 @@ import {
   isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
 import {
-  ARMOR_MIN_PASS, BOSS_BASE_HP, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders, shieldHp, teamHpMul,
-  waveHpMul,
+  ARMOR_MIN_PASS, BOSS_BASE_HP, EV_GOLD, GOLD_HASTE, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders,
+  shieldHp, teamHpMul, waveHpMul,
 } from '../../shared/fortwaves.ts';
 import {
   BARREL_CRYSTAL, BARREL_GATE, BARREL_PLAYER, BARREL_R, BARREL_SHOT_MUL, BARREL_ZOMBIE, CHAMP_AURA_R, CHAMP_HASTE, FUSE_TICKS,
@@ -227,6 +227,7 @@ export class Horde {
     this.replan = null;
     this.hpScale = 1;
     this.dmgMul = 1;
+    this.haste = 1;
   }
 
   /**
@@ -240,6 +241,7 @@ export class Horde {
     this.hpHumans = plan.defenders;
     this.hpScale = plan.hpScale;
     this.dmgMul = plan.dmgMul;
+    this.haste = plan.event === EV_GOLD ? GOLD_HASTE : 1;
     const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
     if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
     for (const b of plan.boats) queue.push({ at: tick + b.at, kind: Z_BOAT, road: 1, tier: 0, lane: b.lane, crew: b.crew, tiers: b.tiers });
@@ -251,9 +253,10 @@ export class Horde {
   private wave = 0;
   private plan: WavePlan | null = null;
   private replan: ((humans: number) => WavePlan) | null = null;
-  /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul */
+  /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul; скорость пеших и крылаток × haste (лихорадка) */
   hpScale = 1;
   dmgMul = 1;
+  haste = 1;
 
   get defenders(): number { return this.hpHumans; }
 
@@ -435,6 +438,28 @@ export class Horde {
       let amount = dmg;
       if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
+      hits++;
+    }
+    this.drainPops();
+    return hits;
+  }
+
+  /**
+   * Удар сверху (метеор): всем в круге r по горизонтали (по высоте — от 1,5 м ниже до 3 м выше точки удара) — доля
+   * frac их макс. HP. Щит и кастрюля не спасают, броня боссов вне окна — как от выстрела. Лодки и крылатки в небе —
+   * мимо. Сбитые — ничьи (by 0). Возвращает, скольких задело.
+   */
+  skyStrike(x: number, y: number, z: number, r: number, frac: number): number {
+    if (!(frac > 0) || !(r > 0)) return 0;
+    let hits = 0;
+    for (const o of this.zombies) {
+      if (!o.alive || o.kind === Z_BOAT) continue;
+      if (o.y < y - 1.5 || o.y > y + 3) continue;
+      const k = ZK[o.kind];
+      if (Math.hypot(o.x - x, o.z - z) > r + k.r) continue;
+      let amount = o.maxHp * frac;
+      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      this.hurt(o, amount, 0, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
     this.drainPops();
@@ -716,7 +741,7 @@ export class Horde {
     const dz = tz - 4.5 - z.z;
     const d = Math.hypot(dx, dy, dz);
     if (d > 1.2) {
-      const move = Math.min(d, ZK[Z_FLYER].speed * (TIER_SPEED[z.tier] ?? 1) * DT);
+      const move = Math.min(d, ZK[Z_FLYER].speed * (TIER_SPEED[z.tier] ?? 1) * this.haste * DT);
       z.x += dx / d * move;
       z.y += dy / d * move;
       z.z += dz / d * move;
@@ -986,7 +1011,7 @@ export class Horde {
     }
 
     z.state = attacking ? ZS_ATTACK : ZS_WALK;
-    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * host.slow(z.x, z.z);
+    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * this.haste * host.slow(z.x, z.z);
     z.vx += (dx * speed - z.vx) * 0.25;
     z.vz += (dz * speed - z.vz) * 0.25;
     z.x += z.vx * DT;
