@@ -18,6 +18,8 @@ import { FortGame, type FortPlayer } from '../server/fort/game.ts';
 import type { Zombie } from '../server/fort/horde.ts';
 import type { FortEvent } from '../shared/fort.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
+import { attackSignal } from '../client/fort/signals.ts';
+import { krakenInfo } from '../client/fort/krakenfx.ts';
 
 function setup(n = 1) {
   const game = new FortGame();
@@ -168,7 +170,6 @@ test('урон по стене: людей рядом нет — бьёт по �
   krakenWave(game);
   risen(game);
   const t = arms(game)[0];
-  const lane = TENT_LANES[0];
   const marks: Array<[number, number]> = [];
   for (let k = 0; k < 2; k++) {
     until(game, () => t.state === F.ZS_TENT_SLAM, 1500, () => { p.hp = q.hp = 100; });
@@ -176,6 +177,7 @@ test('урон по стене: людей рядом нет — бьёт по �
     until(game, () => t.state === F.ZS_TENT_IDLE, 400, () => { p.hp = q.hp = 100; });
   }
   assert.deepEqual(marks.map(([, z]) => z).sort((a, b) => a - b), [SEA_WALK_Z, SHORE_HIT_Z], 'по стене и по берегу');
+  assert.ok(Math.abs(t.toX - TENT_LANES[0]) < 1e-9, 'напротив своей полосы');
   assert.ok(marks.some(([y, z]) => z === SEA_WALK_Z && y === Math.round((WALL_H + 0.06) * 10) / 10), 'на ходу стены');
   // человек на стене — метка на нём; второй на террасе у самой метки, но ниже хода стены — удар не достаёт
   const lane1 = TENT_LANES[1];
@@ -244,6 +246,10 @@ test('окна головы: пока щупальца живы — броня; 
   assert.ok(KRAKEN_SPOTS.some((s) => s.x === h.x && s.z === h.z));
   assert.equal(hurt(game, h, 1000, p.id), 1000, 'без щупалец — урон полный');
   assert.equal(h.healT, KRAKEN_LURK_BARE, 'без щупалец ныряет чаще');
+  game.step();
+  assert.equal(h.state, F.ZS_BOSS_OPEN, 'в снимке — открыта');
+  assert.equal(h.t, 0, 'не оглушена — плюётся');
+  until(game, () => h.state === F.ZS_KRAKEN_SPIT, 600);
 });
 
 test('ярость на 50 %: признак в снимке у головы и щупалец, срубленные отрастают, голова ныряет, удары парами, булава лежит меньше', () => {
@@ -385,4 +391,26 @@ test('масштаб: HP на 1/2/4 защитников как у боссов,
   assert.ok(Math.abs(h.maxHp - krakenHp(KRAKEN_HEAD_BASE_HP, 25, 2)) < 1e-6, 'голова — на двоих');
   assert.ok(Math.abs(h.hp / h.maxHp - 0.8) < 1e-9, 'доля HP та же');
   for (const t of arms(game)) assert.ok(Math.abs(t.maxHp - krakenHp(TENTACLE_BASE_HP, 25, 2)) < 1e-6, 'щупальца — на двоих');
+});
+
+test('клиент: метки Кракена из снимка — замах красный и растёт к удару, плевок, окно булавы голубое; подсказка в полосе босса', () => {
+  const start = attackSignal(F.ZS_TENT_SLAM, TENT_WARN_TICKS, TENT_SLAM_R)!;
+  const hit = attackSignal(F.ZS_TENT_SLAM, 0, TENT_SLAM_R)!;
+  assert.equal(start.progress, 0);
+  assert.equal(hit.progress, 1);
+  assert.equal(start.radius, TENT_SLAM_R);
+  const spit = attackSignal(F.ZS_KRAKEN_SPIT, KRAKEN_SPIT_TICKS, KRAKEN_SPIT_R)!;
+  assert.equal(spit.progress, 0);
+  assert.equal(spit.radius, KRAKEN_SPIT_R);
+  const rest = attackSignal(F.ZS_TENT_REST, TENT_REST_TICKS / 2, TENT_SLAM_R)!;
+  assert.notEqual(rest.color, hit.color, 'окно — не красное');
+  assert.ok(rest.progress > 0.4 && rest.progress < 0.6, 'окно тает');
+  // нырок и голова без щупалец — без метки на земле (круги на воде рисует kraken3d)
+  assert.equal(attackSignal(F.ZS_KRAKEN_DIVE, 100), null);
+  assert.equal(attackSignal(F.ZS_BOSS_OPEN, 100), null);
+  assert.match(krakenInfo(F.ZS_WALK, 0), /Броня/);
+  assert.match(krakenInfo(F.ZS_BOSS_OPEN, 120), /Оглушён · 2\.0 с/);
+  assert.match(krakenInfo(F.ZS_BOSS_OPEN, 0), /открыта/);
+  assert.match(krakenInfo(F.ZS_KRAKEN_DIVE, 90), /Под водой/);
+  assert.match(krakenInfo(F.ZS_KRAKEN_SPIT, 40), /метки/);
 });

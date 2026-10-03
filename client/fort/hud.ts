@@ -6,6 +6,8 @@ import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_O
   ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
 import { WaveCardView, romanTier } from './wavecard.ts';
+import { Z_KRAKEN } from '../../shared/fort.ts';
+import { krakenInfo } from './krakenfx.ts';
 import { fortShopItems, type FortShopState } from '../../shared/fortshop.ts';
 import { CHUTES, FORT, GATE, ROADS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
@@ -231,7 +233,8 @@ export class FortHud {
     const title = `${k.icon} ${k.name}${tier > 0 ? ` ${romanTier(tier + 1)}` : ''}`;
     if (this.set('bossName', title)) this.bossName.textContent = title;
     const phase = rage || stage >= 2 ? 'ярость' : '';
-    const attack = state === ZS_BOSS_OPEN ? `Ядро открыто · ${Math.max(0, wind / 60).toFixed(1)} с — огонь!`
+    const attack = kind === Z_KRAKEN ? krakenInfo(state, wind)
+      : state === ZS_BOSS_OPEN ? `Ядро открыто · ${Math.max(0, wind / 60).toFixed(1)} с — огонь!`
       : state === ZS_BOSS_APPROACH ? 'Идёт к воротам · приготовьтесь'
       : state === ZS_BOSS_GATE ? 'Замах по воротам · уйдите с метки'
       : state === ZS_BOSS_BOMB ? 'Прицельный залп · уйдите с метки'

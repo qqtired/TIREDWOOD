@@ -4,8 +4,9 @@
 //    террасы, морской стене, берегу или причале; людей рядом нет — по ходу стены и берегу. После удара булава лежит на
 //    месте удара — окно: урон полный, в остальное время — броня боссов, под водой — неуязвимы.
 //  • Голова плюётся вареньем (метка на человеке по очереди; людей нет — по кристаллу), раз в 25 с ныряет (неуязвима) и
-//    всплывает в другом месте. Пока живо хоть одно щупальце — голова в броне; срубили все — оглушена и открыта, потом
-//    ныряет и остаётся без защиты (урон полный), пока щупальца не отрастут.
+//    всплывает в другом месте. Пока живо хоть одно щупальце — голова в броне (ZS_WALK); срубили все — оглушена (ZS_BOSS_OPEN
+//    с отсчётом), потом ныряет и, пока щупальца не отрастут, на поверхности открыта (ZS_BOSS_OPEN без отсчёта): урон
+//    полный, плюётся, ныряет чаще.
 //  • На 50 % HP — ярость (ZF_RAGE у головы и щупалец): срубленные щупальца отрастают, голова ныряет, удары парами,
 //    булава лежит меньше, плевки по два. Погибла голова — щупальца уходят под воду (без награды).
 // HP — krakenHp (волна, защитники, круг II/III), урон — как у орды (dmgOf). Орда (horde.ts) вызывает stepKraken и
@@ -13,7 +14,7 @@
 // случайностей: тот же вход — тот же бой.
 //
 // Поля Zombie у частей Кракена:
-//  голова — t: отсчёт нырка, плевка, оглушения; healT: до следующего нырка в другое место; atkCd: перезарядка плевка;
+//  голова — t: отсчёт нырка, плевка, оглушения (0 — не оглушена); healT: до следующего нырка в другое место; atkCd: перезарядка плевка;
 //    combo: до приказа следующему щупальцу; attackIndex: сколько плевков (очередь целей); addsMask: какие полосы со
 //    щупальцами (видела живыми); chase: кому плевок (0 — кристалл); from*: откуда нырнула; to*: метка плевка или где
 //    всплывёт; stage: 1, в ярости 2.
@@ -143,36 +144,43 @@ export function stepKraken(c: BossCtx, z: Zombie): void {
       if (z.healT > 0) z.healT--;
       stepSpit(c, z);
       return;
-    case ZS_BOSS_OPEN:
-      // оглушена: щупалец нет, всплыла повыше — глаза над водой
-      z.y += (KRAKEN_OPEN_Y - z.y) * 0.08;
-      z.addsMask = armsMask(c.horde, z);
-      if (--z.t > 0) return;
-      dive(c, z);
-      return;
-    default: {
-      z.state = ZS_WALK;
-      z.y += (KRAKEN_LURK_Y - z.y) * 0.06;
-      z.yaw = turnTo(z.yaw, Math.atan2(z.x, z.z), 0.04);
-      // срубили последнее щупальце (могли и пока голова была под водой) — оглушена и открыта
-      const mask = armsMask(c.horde, z);
-      const lost = z.addsMask !== 0 && mask === 0;
-      z.addsMask = mask;
-      if (lost) {
-        z.state = ZS_BOSS_OPEN;
-        z.t = rage ? KRAKEN_OPEN_RAGE : KRAKEN_OPEN_TICKS;
-        c.host.event(['blast', ZS_BOSS_OPEN, r2(z.x), r2(z.y + ZK[Z_KRAKEN].hcy + 1), r2(z.z), 5]);
-        return;
-      }
-      conduct(c, z);
-      if (z.healT > 0) z.healT--;
-      if (z.healT <= 0) {
-        dive(c, z);
-        return;
-      }
-      if (z.atkCd === 0) startSpit(c, z);
-    }
+    default:
+      lurk(c, z, rage);
   }
+}
+
+/**
+ * На поверхности: со щупальцами — в броне, приказывает им и плюётся; срубили последнее (могли и пока голова была под
+ * водой) — оглушена и открыта; без щупалец — открыта, глаза над водой, плюётся и ныряет чаще.
+ */
+function lurk(c: BossCtx, z: Zombie, rage: boolean): void {
+  const mask = armsMask(c.horde, z);
+  const lost = z.addsMask !== 0 && mask === 0;
+  z.addsMask = mask;
+  const bare = mask === 0;
+  z.y += ((bare ? KRAKEN_OPEN_Y : KRAKEN_LURK_Y) - z.y) * 0.06;
+  if (lost) {
+    z.state = ZS_BOSS_OPEN;
+    z.t = rage ? KRAKEN_OPEN_RAGE : KRAKEN_OPEN_TICKS;
+    c.host.event(['blast', ZS_BOSS_OPEN, r2(z.x), r2(z.y + ZK[Z_KRAKEN].hcy + 1), r2(z.z), 5]);
+    return;
+  }
+  if (z.state === ZS_BOSS_OPEN && z.t > 0) {
+    // оглушена: не плюётся, потом ныряет
+    if (--z.t > 0) return;
+    dive(c, z);
+    return;
+  }
+  z.state = bare ? ZS_BOSS_OPEN : ZS_WALK;
+  z.t = 0;
+  z.yaw = turnTo(z.yaw, Math.atan2(z.x, z.z), 0.04);
+  conduct(c, z);
+  if (z.healT > 0) z.healT--;
+  if (z.healT <= 0) {
+    dive(c, z);
+    return;
+  }
+  if (z.atkCd === 0) startSpit(c, z);
 }
 
 /** Появление: глубоко под первым местом в бухте, щупальца поднимаются по одному, потом голова */

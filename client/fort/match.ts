@@ -41,6 +41,7 @@ import type { FortHud, MapDot } from './hud.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
+import { KrakenFx } from './krakenfx.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -177,9 +178,14 @@ export class FortMatch {
   private armorHintAt = -99;
   private fuseAlertAt = -99;
   private steamAt = 0;
+  /** Кракен: тревоги, брызги и звук его событий */
+  private readonly krakenFx: KrakenFx;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
+    this.krakenFx = new KrakenFx({ hud: deps.hud, effects: deps.effects, sound: deps.sound, zombies: deps.zombies, collision: deps.collision,
+      camPos: this.camPos, me: () => this.predictor.state, myId: () => this.myId, shake: (v) => { this.shake = Math.max(this.shake, v); },
+      tick: () => this.clock.estimate(performance.now()) });
     let extraReload = false;
     this.predictor = new Predictor(deps.collision, {
       before: (s, inp) => { extraReload = beforeFortWeapon(s, inp, Boolean(this.roster.get(this.myId)?.mag)); },
@@ -555,6 +561,7 @@ export class FortMatch {
   private onEvents(list: FortEvent[]): void {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
+      if (this.krakenFx.onEvent(e)) continue;
       switch (e[0]) {
         case 'shot': {
           const [, pid, ox, oy, oz, ex, ey, ez, kind, nx, ny, nz] = e;
