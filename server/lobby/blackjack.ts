@@ -1,8 +1,8 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { TICK_MS } from '../../shared/constants.ts';
 import {
-  BJ_BETS, BJ_COUNT_TICKS, BJ_DEALER_TICKS, BJ_RESULT_TICKS, BJ_TABLE, BJ_TURN_TICKS,
-  handValue, rankOf, type BlackjackAct, type BlackjackHandView, type BlackjackPhase, type BlackjackView,
+  BJ_COUNT_TICKS, BJ_DEALER_TICKS, BJ_MAX_BET, BJ_RESULT_TICKS, BJ_TABLE, BJ_TURN_TICKS,
+  handValue, isBet, naturalPayout, rankOf, type BlackjackAct, type BlackjackHandView, type BlackjackPhase, type BlackjackView,
 } from '../../shared/blackjack.ts';
 
 export interface BlackjackHooks {
@@ -28,8 +28,10 @@ interface Seat {
   hands: Hand[];
   settled: boolean;
   reservation: string;
+  /** Нажал «дальше»: после итога — не ждать конец паузы, после ставок — раздать сразу (когда так решили все участвующие). */
+  skip: boolean;
 }
-const emptySeat = (): Seat => ({ slot: 0, pid: 0, nick: '', bet: 0, participating: false, hands: [], settled: false, reservation: '' });
+const emptySeat = (): Seat => ({ slot: 0, pid: 0, nick: '', bet: 0, participating: false, hands: [], settled: false, reservation: '', skip: false });
 const hand = (cards: number[], bet: number, split = false): Hand => ({ cards, bet, split, status: 'playing', result: null, payout: 0 });
 
 /** Шесть обычных колод; выбирается сервером, новый shoe для каждой раздачи. */
@@ -111,13 +113,15 @@ export class BlackjackHall {
   act(seat: number, slot: number, action: BlackjackAct, rev: number, amount?: number): void {
     const ch = this.chair(seat), s = this.seats[ch];
     if (ch < 0 || !slot || !s || s.slot !== slot || !s.pid) return this.reject(slot, 'Сначала сядьте за свой стол Blackjack.');
+    // «Дальше» безобидно и повторяемо: гонку версий и запоздавший клик молча пропускаем, без тоста об ошибке.
+    if (action === 'skip') return this.skip(ch);
     if (!Number.isSafeInteger(rev) || rev !== this.rev) return this.reject(slot, 'Состояние стола обновилось. Повторите действие.');
     if (!this.actions(ch).includes(action)) return this.reject(slot, 'Это действие сейчас недоступно.');
     if (action === 'bet') {
-      if (amount !== 0 && !BJ_BETS.includes(amount!)) return this.reject(slot, 'Играй бесплатно или выбери ставку 10, 20 или 50 жетонов.');
-      const reservation = amount! > 0 ? randomUUID() : '';
-      if (amount! > 0 && !this.hooks.reserve(s.pid, reservation, amount!)) return this.reject(slot, 'Недостаточно жетонов для ставки.');
-      s.bet = amount!; s.participating = true; s.settled = false; s.reservation = reservation;
+      if (!isBet(amount)) return this.reject(slot, `Ставка — целое число жетонов от 1 до ${BJ_MAX_BET}, или играй бесплатно.`);
+      const reservation = amount > 0 ? randomUUID() : '';
+      if (amount > 0 && !this.hooks.reserve(s.pid, reservation, amount)) return this.reject(slot, 'Недостаточно жетонов для ставки.');
+      s.bet = amount; s.participating = true; s.settled = false; s.reservation = reservation; s.skip = false;
       this.recount();
     } else if (action === 'cancel') {
       if (!this.refund(s)) return this.reject(slot, 'Не удалось вернуть ставку.');
@@ -150,7 +154,11 @@ export class BlackjackHall {
   private actions(ch: number): BlackjackAct[] {
     const s = this.seats[ch];
     if (!s.pid || !s.slot) return [];
-    if (this.phase === 'betting' || this.phase === 'countdown') return s.participating ? ['cancel'] : ['bet'];
+    if (this.phase === 'betting' || this.phase === 'countdown') {
+      if (!s.participating) return ['bet'];
+      return this.phase === 'countdown' && !s.skip ? ['cancel', 'skip'] : ['cancel'];
+    }
+    if (this.phase === 'result') return s.participating && !s.skip ? ['skip'] : [];
     if (this.phase !== 'play' || this.turn !== ch) return [];
     const h = s.hands[this.activeHand];
     if (!h || h.status !== 'playing') return [];
@@ -158,6 +166,24 @@ export class BlackjackHall {
     if (h.cards.length === 2) actions.push('double');
     if (s.hands.length === 1 && h.cards.length === 2 && rankOf(h.cards[0]) === rankOf(h.cards[1])) actions.push('split');
     return actions;
+  }
+
+  /**
+   * «Дальше» — голос участвующих. Пока нажали не все, паузу не трогаем: остальные досматривают итог или успевают поставить.
+   * Один игрок за столом решает сам. Раздать сразу можно, только когда поставили все севшие за стол.
+   */
+  private skipsDone(): boolean {
+    const voters = this.seats.filter((s) => s.participating && s.slot);
+    if (!voters.length || !voters.every((s) => s.skip)) return false;
+    return this.phase === 'result' || (this.phase === 'countdown' && this.seats.every((s) => !s.slot || s.participating));
+  }
+
+  private skip(ch: number): void {
+    if (!this.actions(ch).includes('skip')) return;
+    this.seats[ch].skip = true;
+    if (!this.skipsDone()) this.changed();
+    else if (this.phase === 'result') this.reset();
+    else this.deal();
   }
 
   private recount(): void {
@@ -180,6 +206,7 @@ export class BlackjackHall {
 
   private deal(): void {
     this.shoe = this.deck();
+    for (const s of this.seats) s.skip = false;
     const players = this.seats.filter((s) => s.participating);
     for (const s of players) s.hands = [hand([this.draw()], s.bet)];
     this.dealer = [this.draw()];
@@ -229,7 +256,7 @@ export class BlackjackHall {
         else if (total === dealer) h.result = 'push';
         else if (dealer > 21 || total > dealer) h.result = 'win';
         else h.result = 'loss';
-        h.payout = h.result === 'blackjack' ? h.bet * 2.5 : h.result === 'win' ? h.bet * 2 : h.result === 'push' ? h.bet : 0;
+        h.payout = h.result === 'blackjack' ? naturalPayout(h.bet) : h.result === 'win' ? h.bet * 2 : h.result === 'push' ? h.bet : 0;
         payout += h.payout;
       }
       if (s.bet > 0 && !this.hooks.settle(s.pid, s.reservation, s.bet, payout)) throw new Error('Blackjack settlement rejected');
@@ -240,7 +267,7 @@ export class BlackjackHall {
 
   private refund(s: Seat): boolean {
     if (s.bet > 0 && !this.hooks.settle(s.pid, s.reservation, s.bet, s.bet)) return false;
-    s.bet = 0; s.participating = false; s.settled = false; s.reservation = '';
+    s.bet = 0; s.participating = false; s.settled = false; s.reservation = ''; s.skip = false;
     return true;
   }
 
@@ -248,7 +275,7 @@ export class BlackjackHall {
     for (let i = 0; i < this.seats.length; i++) {
       const s = this.seats[i];
       if (!s.slot) this.seats[i] = emptySeat();
-      else { s.bet = 0; s.participating = false; s.hands = []; s.settled = false; s.reservation = ''; }
+      else { s.bet = 0; s.participating = false; s.hands = []; s.settled = false; s.reservation = ''; s.skip = false; }
     }
     this.dealer = []; this.shoe = [];
     this.phase = 'betting'; this.turn = -1; this.activeHand = 0; this.deadline = 0;
@@ -257,14 +284,15 @@ export class BlackjackHall {
 
   step(tick: number): void {
     this.tick = tick;
-    if (this.phase === 'countdown' && tick >= this.deadline) this.deal();
+    // ушёл или отменил ставку последний, кто ещё не нажал «дальше»: остальные ждать не должны
+    if (this.phase === 'countdown' && (tick >= this.deadline || this.skipsDone())) this.deal();
     else if (this.phase === 'play') {
       if (tick >= this.deadline || !this.seats[this.turn].slot) {
         this.seats[this.turn].hands[this.activeHand].status = 'stood';
         this.advance(); this.changed();
       }
     } else if (this.phase === 'dealer' && tick >= this.deadline) this.dealerStep();
-    else if (this.phase === 'result' && tick >= this.deadline) this.reset();
+    else if (this.phase === 'result' && (tick >= this.deadline || this.skipsDone())) this.reset();
     // Клиент получает свежий таймер; версия остаётся прежней.
     else if (this.phase !== 'betting' && tick % 60 === 0) this.hooks.broadcast(this.view());
   }
@@ -292,7 +320,7 @@ export class BlackjackHall {
       seats: this.seats.map((s, ch) => ({
         k: s.pid ? 1 : 0, id: s.slot, pid: s.pid, nick: s.nick, away: !!s.pid && !s.slot, bet: s.bet, participating: s.participating,
         hands: s.hands.map((h) => ({ cards: [...h.cards], bet: h.bet, ...handValue(h.cards), status: h.status, result: h.result, payout: h.payout })),
-        actions: this.actions(ch),
+        actions: this.actions(ch), skip: s.skip,
       })),
     };
   }

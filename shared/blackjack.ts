@@ -1,10 +1,19 @@
 // Открытые правила и DTO. Колода и закрытая карта дилера остаются на сервере.
 export const BJ_TABLE = 2;
-export const BJ_BETS: readonly number[] = [0, 10, 20, 50];
+/** Фишки в панели ставок: клик добавляет номинал, сумма набирается из любых (на столе — ещё 1 и 5 для остатков). */
+export const BJ_CHIPS: readonly number[] = [10, 20, 50, 100];
+/** Лимит стола: ставка — любое целое от 1 до этого числа (0 — играть бесплатно); баланс проверяет сервер при резерве. */
+export const BJ_MAX_BET = 500;
 export const BJ_COUNT_TICKS = 300;
 export const BJ_TURN_TICKS = 1200;
 export const BJ_DEALER_TICKS = 60;
-export const BJ_RESULT_TICKS = 480;
+export const BJ_RESULT_TICKS = 360;
+/** Сколько жетонов реально можно поставить: не больше баланса и не больше лимита стола. */
+export const maxBet = (balance: number): number => Math.max(0, Math.min(BJ_MAX_BET, Math.floor(Number.isFinite(balance) ? balance : 0)));
+/** Допустимая ставка по правилам стола (без баланса): целое число 0…лимит; 0 — бесплатно. Принимает что угодно: клиенту веры нет. */
+export const isBet = (n: unknown): n is number => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0 && n <= BJ_MAX_BET;
+/** Полный возврат за блэкджек: ставка и ещё 3:2; дробный жетон отбрасывается (ставка 5 → 5 + 7), дробей в кошельке нет. */
+export const naturalPayout = (bet: number): number => bet + Math.floor((bet * 3) / 2);
 export const SUIT_SIGNS = ['♠', '♣', '♦', '♥'] as const;
 export const RANK_NAMES = ['Т', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'В', 'Д', 'К'] as const;
 export const suitOf = (c: number): number => Math.floor(c / 13);
@@ -20,7 +29,8 @@ export function handValue(cards: readonly number[]): { total: number; soft: bool
   while (total > 21 && aces > 0) { total -= 10; aces--; }
   return { total, soft: aces > 0 };
 }
-export type BlackjackAct = 'bet' | 'cancel' | 'hit' | 'stand' | 'double' | 'split';
+/** `skip` — «дальше»: после итога — следующая раздача, после ставок — раздать сейчас; срабатывает, когда нажали все участвующие. */
+export type BlackjackAct = 'bet' | 'cancel' | 'hit' | 'stand' | 'double' | 'split' | 'skip';
 export type BlackjackPhase = 'betting' | 'countdown' | 'play' | 'dealer' | 'result';
 export interface BlackjackHandView {
   cards: number[];
@@ -29,7 +39,7 @@ export interface BlackjackHandView {
   soft: boolean;
   status: 'playing' | 'stood' | 'bust' | 'blackjack';
   result: null | 'win' | 'loss' | 'push' | 'blackjack';
-  /** Полный возврат, включая ставку: 0, ставка, 2× или 2.5×. */
+  /** Полный возврат, включая ставку: 0, ставка, 2× или блэкджек (`naturalPayout`, 3:2 с округлением вниз). */
   payout: number;
 }
 export interface BlackjackSeatView {
@@ -42,6 +52,8 @@ export interface BlackjackSeatView {
   bet: number;
   hands: BlackjackHandView[];
   actions: BlackjackAct[];
+  /** Нажал «дальше» (`skip`) и ждёт остальных участвующих. */
+  skip?: boolean;
 }
 export interface BlackjackView {
   table: typeof BJ_TABLE;

@@ -81,9 +81,13 @@
 .bj-chip { --base: #3b7fd8; --face: #5b97e6; position: relative; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: #fff; background: radial-gradient(circle closest-side, var(--face) 0 58%, rgba(255, 255, 255, .92) 59% 63%, transparent 64%), repeating-conic-gradient(rgba(255, 255, 255, .96) 0 11deg, var(--base) 11deg 30deg); box-shadow: 0 5px 0 rgba(0, 0, 0, .38); transition: transform .1s, filter .12s; }
 .bj-chip b { font-size: 21px; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
 .bj-chip kbd { position: absolute; right: -6px; bottom: -4px; }
-.bj-chip.c10 { --base: #3b7fd8; --face: #5b97e6; }
-.bj-chip.c20 { --base: #d8453b; --face: #e5675c; }
-.bj-chip.c50 { --base: #2f9d5a; --face: #4cb673; }
+.bj-chip.c10, .bj-disc.c10 { --base: #3b7fd8; --face: #5b97e6; }
+.bj-chip.c20, .bj-disc.c20 { --base: #d8453b; --face: #e5675c; }
+.bj-chip.c50, .bj-disc.c50 { --base: #2f9d5a; --face: #4cb673; }
+.bj-chip.c100, .bj-disc.c100 { --base: #2b2f3a; --face: #424857; }
+.bj-disc.c5 { --base: #e0a229; --face: #f1bb4a; }
+.bj-disc.c1 { --base: #d9d2c0; --face: #f1ecdd; }
+.bj-chip.c100 b { font-size: 18px; }
 .bj-chip:hover:not(:disabled) { transform: translateY(-5px) rotate(8deg); filter: brightness(1.08); }
 .bj-chip:active:not(:disabled) { transform: translateY(1px); }
 .bj-chip:disabled { filter: grayscale(.85) brightness(.7); cursor: default; }
@@ -94,6 +98,38 @@
 .bj-free:active:not(:disabled), .bj-button:active:not(:disabled) { transform: translateY(2px); }
 .bj-free:disabled, .bj-button:disabled { opacity: .4; cursor: default; }
 .bj-button.cancel { background: none; color: var(--cream-2); }
+.bj-button.hidden { display: none; }
+
+/* --- окно ставки: клик по фишке добавляет номинал, сумма видна кучкой и числом, любое число можно вписать */
+.bj.betting .bj-me { display: none; }
+.bj.betting .bj-bar { grid-template-columns: minmax(0, 1fr) auto; }
+.bj-bet { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bj-bet.hidden { display: none; }
+.bj-bet-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 18px; }
+.bj-bet-row.sub { gap: 6px 10px; }
+.bj-bet-row.sub .bj-button, .bj-bet-row.sub .bj-free { min-height: 34px; padding: 4px 12px; font-size: 14px; }
+.bj-pot { display: flex; align-items: center; gap: 10px; }
+.bj-pile { display: flex; align-items: center; min-width: 44px; height: 28px; padding-left: 8px; }
+.bj-pile.empty::before { content: ''; width: 24px; height: 24px; margin-left: -8px; border: 2px dashed rgba(255, 236, 205, .35); border-radius: 50%; }
+.bj-pile em { margin-left: 4px; font-size: 12px; font-style: normal; font-weight: 800; color: var(--cream-dim); }
+.bj-disc { flex: none; width: 24px; height: 24px; margin-left: -8px; border-radius: 50%; background: radial-gradient(circle closest-side, var(--face) 0 52%, rgba(255, 255, 255, .92) 53% 60%, transparent 61%), repeating-conic-gradient(rgba(255, 255, 255, .96) 0 12deg, var(--base) 12deg 45deg); box-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
+.bj-amount { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+.bj-amount-coin { font-style: normal; }
+.bj-input { width: 98px; height: 44px; padding: 0 8px; border: 2px solid rgba(255, 236, 205, .35); border-radius: 12px; background: rgba(20, 12, 16, .55); color: var(--cream); font: 900 22px/1 Rubik, system-ui, sans-serif; text-align: center; font-variant-numeric: tabular-nums; outline: none; transition: border-color .12s, box-shadow .12s; }
+.bj-input::placeholder { color: rgba(255, 236, 205, .38); font-size: 14px; font-weight: 600; }
+.bj-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 211, 90, .28); }
+.bj-input:read-only { opacity: .6; }
+.bj-limit { font-size: 12px; font-weight: 600; color: var(--cream-dim); white-space: nowrap; }
+.bj-limit.low { color: var(--gold); }
+.bj-button.bj-place, .bj-button.skip { min-height: 48px; padding: 8px 22px; border: 0; font-size: 18px; font-weight: 900; }
+.bj-button.bj-place { background: linear-gradient(180deg, #ffe08a, #ffbf2f); color: #3a2603; box-shadow: 0 5px 0 #a87612, inset 0 2px 0 rgba(255, 245, 205, .7); }
+.bj-button.bj-place:hover:not(:disabled) { background: linear-gradient(180deg, #ffe9a8, #ffc94d); }
+.bj-button.bj-place:active:not(:disabled) { box-shadow: 0 2px 0 #a87612; }
+.bj-button.skip { background: linear-gradient(180deg, #a6efb4, #6fcf84); color: #12361d; box-shadow: 0 5px 0 #3c8a50, inset 0 2px 0 rgba(230, 255, 235, .6); }
+.bj-button.skip:hover:not(:disabled) { background: linear-gradient(180deg, #b9f4c4, #86dc99); }
+.bj-button.skip:active:not(:disabled) { box-shadow: 0 2px 0 #3c8a50; }
+.bj-button.skip kbd { border-color: rgba(18, 54, 29, .4); background: rgba(18, 54, 29, .18); color: #12361d; }
+.bj-wait { color: var(--cream-dim); font-weight: 700; }
 
 /* --- справа: жетоны, «встать», правила */
 .bj-side { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 112px; }
@@ -133,6 +169,11 @@
   .bj-ring { left: -6px; top: -6px; width: 60px; height: 60px; }
   .bj-act-btn { min-height: 52px; }
   .bj-chip { width: 56px; height: 56px; }
+  .bj-bet { gap: 5px; }
+  .bj-bet-row { gap: 4px 14px; }
+  .bj-input { height: 40px; }
+  .bj-button.bj-place, .bj-button.skip { min-height: 44px; padding: 6px 18px; }
+  .bj-bet-row.sub .bj-button, .bj-bet-row.sub .bj-free { min-height: 30px; font-size: 13px; }
 }
 @media (max-width: 780px) {
   .bj-strip { max-width: calc(100vw - 16px); top: 8px; }
@@ -146,6 +187,10 @@
   .bj-act-btn { min-width: 92px; min-height: 50px; padding: 4px 14px 6px; }
   .bj-act-label { font-size: 18px; }
   .bj-chip { width: 52px; height: 52px; }
+  .bj-chips { gap: 8px; }
+  .bj-bet-row { gap: 6px 10px; }
+  .bj-input { width: 82px; }
+  .bj.betting .bj-bar { grid-template-columns: 1fr; }
   .bj-rules { bottom: 200px; }
   .bj-banner { top: 24%; }
 }

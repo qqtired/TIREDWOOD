@@ -1,22 +1,24 @@
-// Нижняя панель блэкджека: фишки-ставки, крупные «Ещё» / «Хватит» / «Удвоить» / «Разделить» с клавишами, свои карты
+// Нижняя панель блэкджека: окно ставки (клик по фишке добавляет номинал, поле для любой суммы, «Сбросить», «Поставить»),
+// «Следующая раздача» / «Раздать сейчас», крупные «Ещё» / «Хватит» / «Удвоить» / «Разделить» с клавишами, свои карты
 // с суммой очков и кольцом таймера хода, полоска «дилер и все за столом» сверху и крупный итог по центру.
 // Панель только показывает вид стола с сервера и отправляет действия с номером версии (rev): ничего не решает сама.
 // Показ чуть отстаёт от сервера, пока в 3D летят карты (`setHold`), — чтобы не выдавать карты раньше, чем они упали.
-import { BJ_BETS, BJ_TABLE, BJ_TURN_TICKS, type BlackjackAct, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
+import { BJ_CHIPS, BJ_MAX_BET, BJ_TABLE, BJ_TURN_TICKS, isBet, maxBet, type BlackjackAct, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
 import { TICK_MS } from '../../shared/constants.ts';
+import { addChip, canAdd, chipsFor, limitHint, parseAmount } from './bjbet.ts';
 import { BJ_ATLAS, bjAtlasCanvas, bjAtlasPosition } from './bjcards.ts';
 import './blackjack.css';
 
 const TURN_MS = BJ_TURN_TICKS * TICK_MS;
 const RULES = [
   'Набери больше дилера, но не больше 21. Туз — 1 или 11, картинки — 10. Играют шесть колод.',
-  'Блэкджек (туз и десятка с первых двух карт) платит 3:2. Обычная победа — 1:1, ничья возвращает ставку.',
+  'Блэкджек (туз и десятка с первых двух карт) платит 3:2, дробный жетон отбрасывается. Обычная победа — 1:1, ничья возвращает ставку.',
   'Дилер берёт карты до 17 и стоит на любых 17. Его вторая карта закрыта, пока не сходят все игроки.',
   '«Удвоить» — ещё такая же ставка, одна карта и стоп. «Разделить» — пара одного достоинства: две руки, один раз; разделённые тузы получают по одной карте.',
-  'Можно играть бесплатно: ходы те же, но выигрыш и опыт не начисляются. Новая ставка всегда по твоему нажатию.',
+  `Ставка — любая сумма от 1 до ${BJ_MAX_BET} жетонов, не больше, чем у тебя: набери фишками или впиши число. Можно играть бесплатно: ходы те же, но выигрыш не начисляется.`,
+  'Между раздачами «Следующая раздача» и «Раздать сейчас» (N) пропускают ожидание, когда так решили все, кто играет за столом.',
 ];
 const RESULT_WORD = { win: 'победа', loss: 'проигрыш', push: 'ничья', blackjack: 'блэкджек' } as const;
-const CHIPS: readonly number[] = [0, ...BJ_BETS.filter((b) => b > 0)];
 const ACTIONS = [
   { act: 'hit', label: 'Ещё', key: 'H', cls: 'hit' },
   { act: 'stand', label: 'Хватит', key: 'S', cls: 'stand' },
@@ -24,7 +26,12 @@ const ACTIONS = [
   { act: 'split', label: 'Разделить', key: 'P', cls: 'split' },
 ] as const;
 const KEY_ACTION: Record<string, BlackjackAct> = { KeyH: 'hit', KeyS: 'stand', KeyD: 'double', KeyP: 'split' };
-const KEY_CHIP: Record<string, number> = { Digit0: 0, Digit1: 10, Digit2: 20, Digit3: 50, Numpad0: 0, Numpad1: 10, Numpad2: 20, Numpad3: 50 };
+/** 1–4 — фишки по порядку (добавляют номинал к ставке), 0 — играть бесплатно */
+const KEY_CHIP: Record<string, number> = {};
+BJ_CHIPS.forEach((chip, i) => {
+  KEY_CHIP[`Digit${i + 1}`] = chip;
+  KEY_CHIP[`Numpad${i + 1}`] = chip;
+});
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -74,6 +81,18 @@ export class BlackjackHud {
   private previousFocus: HTMLElement | null = null;
   private ringFg: SVGElement | null = null;
   private countdownEl: HTMLElement | null = null;
+  /** Окно ставки: живёт всё время (поле ввода не теряет фокус при перерисовке панели), показывается, когда ставка доступна */
+  private readonly betBox = element('div', 'bj-bet hidden');
+  private readonly amountInput = document.createElement('input');
+  private readonly pileEl = element('span', 'bj-pile');
+  private readonly limitEl = element('small', 'bj-limit');
+  private readonly chipBtns: Array<{ btn: HTMLButtonElement; chip: number }> = [];
+  private readonly placeBtn = element('button', 'bj-button bj-place');
+  private readonly resetBtn = element('button', 'bj-button bj-reset');
+  private readonly freeBtn = element('button', 'bj-free');
+  private readonly againBtn = element('button', 'bj-button again');
+  /** Набранная, ещё не отправленная ставка */
+  private draft = 0;
   /** Сколько карт было в моих руках в прошлой отрисовке: новые карты вылетают в панель с анимацией */
   private cardCounts: number[] = [];
   private atlasSet = false;
@@ -92,7 +111,8 @@ export class BlackjackHud {
     help.classList.add('bj-help');
     help.title = 'Правила';
     side.append(this.balanceEl, leave, help);
-    this.act.append(this.status, this.buttons);
+    this.buildBet();
+    this.act.append(this.status, this.betBox, this.buttons);
     this.bar.append(this.me, this.act, side);
 
     const rulesTitle = element('b', '', 'Правила блэкджека');
@@ -141,6 +161,7 @@ export class BlackjackHud {
     this.pending = null;
     this.error = '';
     this.signature = '';
+    this.draft = 0;
     this.shown = this.view;
     this.root.classList.toggle('hidden', !this.visible);
     this.render();
@@ -155,6 +176,8 @@ export class BlackjackHud {
     this.holdUntil = 0;
     this.cardCounts = [];
     this.signature = '';
+    this.draft = 0;
+    this.amountInput.value = '';
     this.rulesEl.classList.add('hidden');
     this.banner.className = 'bj-banner';
     if (this.previousFocus?.isConnected) this.previousFocus.focus({ preventScroll: true });
@@ -208,7 +231,10 @@ export class BlackjackHud {
     else this.onLeave();
   }
 
-  /** Клавиши: H / S / D / P — ходы, 0 / 1 / 2 / 3 — фишки (бесплатно, 10, 20, 50), R — повторить. */
+  /**
+   * Клавиши: H / S / D / P — ходы; 1–4 — добавить фишку к ставке, C — сбросить набранное, B — поставить, 0 — бесплатно,
+   * R — повторить прошлую; N — «дальше» (следующая раздача / раздать сейчас).
+   */
   onKey(event: KeyboardEvent): boolean {
     if (!this.visible || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return false;
     if (event.code === 'Escape') {
@@ -224,10 +250,26 @@ export class BlackjackHud {
       this.send(action);
       return true;
     }
+    if (event.code === 'KeyN' && allowed.includes('skip')) {
+      this.send('skip');
+      return true;
+    }
     if (!allowed.includes('bet')) return false;
     const chip = KEY_CHIP[event.code];
     if (chip !== undefined) {
-      this.send('bet', chip);
+      this.setDraft(addChip(this.draft, chip, this.balance));
+      return true;
+    }
+    if (event.code === 'Digit0' || event.code === 'Numpad0') {
+      this.send('bet', 0);
+      return true;
+    }
+    if (event.code === 'KeyC') {
+      this.setDraft(0);
+      return true;
+    }
+    if (event.code === 'KeyB') {
+      this.place();
       return true;
     }
     if (event.code === 'KeyR' && this.lastBet >= 0) {
@@ -274,15 +316,129 @@ export class BlackjackHud {
     if (!v || this.pending || v !== this.shown || performance.now() < this.holdUntil) return;
     const mine = v.seats[this.chair];
     if (!mine?.actions.includes(action)) return;
-    if (action === 'bet') {
-      if ((amount !== 0 && !BJ_BETS.some((bet) => bet === amount)) || this.balance < (amount ?? Infinity)) return;
-    }
+    // правила и баланс проверяет сервер; здесь — чтобы не слать заведомо лишнее
+    if (action === 'bet' && (!isBet(amount) || amount > maxBet(this.balance))) return;
     if ((action === 'double' || action === 'split') && this.balance < (mine.hands[v.hand]?.bet ?? Infinity)) return;
+    // «дальше» безобидно: сервер молча пропускает повтор и запоздавший клик, поэтому ответа не ждём и кнопки не запираем
+    if (action === 'skip') {
+      this.onAct(action, v.rev);
+      return;
+    }
     this.pending = { rev: v.rev, at: performance.now() };
     this.error = '';
     if (action === 'bet') this.lastBet = amount!;
     this.render();
     this.onAct(action, v.rev, amount);
+  }
+
+  // ------------------------------------------------------------ окно ставки
+
+  /** Фишки, поле суммы, «Сбросить», «Поставить», «Бесплатно», «Повторить»: строится один раз, дальше только обновляется. */
+  private buildBet(): void {
+    const chips = element('div', 'bj-chips');
+    BJ_CHIPS.forEach((chip, i) => {
+      const btn = element('button', `bj-chip c${chip}`);
+      btn.type = 'button';
+      btn.dataset.bjAction = `chip-${chip}`;
+      btn.setAttribute('aria-label', `Добавить ${chip} к ставке`);
+      btn.append(element('b', '', String(chip)), element('kbd', '', String(i + 1)));
+      btn.addEventListener('click', () => this.setDraft(addChip(this.draft, chip, this.balance)));
+      chips.append(btn);
+      this.chipBtns.push({ btn, chip });
+    });
+
+    const input = this.amountInput;
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.maxLength = String(BJ_MAX_BET).length;
+    input.placeholder = 'сумма';
+    input.className = 'bj-input';
+    input.setAttribute('aria-label', 'Сумма ставки в жетонах');
+    input.enterKeyHint = 'done';
+    input.addEventListener('input', () => {
+      const n = parseAmount(input.value, this.balance);
+      const text = n ? String(n) : '';
+      if (input.value !== text) input.value = text;
+      this.draft = n;
+      this.syncBet();
+    });
+    // что печатают в поле — не команды игры (иначе E поднимет из-за стола, стрелки и пробел — тоже); Enter — поставить, Esc — выйти из поля
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.place();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        input.blur();
+      }
+    });
+    input.addEventListener('keyup', (e) => e.stopPropagation());
+
+    const field = element('label', 'bj-amount');
+    field.append(input, element('i', 'bj-amount-coin', '🪙'));
+    const pot = element('div', 'bj-pot');
+    pot.append(this.pileEl, field);
+    this.placeBtn.type = 'button';
+    this.placeBtn.dataset.bjAction = 'place';
+    this.placeBtn.addEventListener('click', () => this.place());
+    const main = element('div', 'bj-bet-row main');
+    main.append(chips, pot, this.placeBtn);
+
+    this.resetBtn.type = 'button';
+    this.resetBtn.dataset.bjAction = 'reset';
+    this.resetBtn.append(document.createTextNode('Сбросить'), element('kbd', '', 'C'));
+    this.resetBtn.addEventListener('click', () => this.setDraft(0));
+    this.freeBtn.type = 'button';
+    this.freeBtn.dataset.bjAction = 'stake-0';
+    this.freeBtn.append(element('b', '', 'Бесплатно'), element('kbd', '', '0'));
+    this.freeBtn.addEventListener('click', () => this.send('bet', 0));
+    this.againBtn.type = 'button';
+    this.againBtn.dataset.bjAction = 'repeat';
+    this.againBtn.addEventListener('click', () => this.send('bet', this.lastBet));
+    const sub = element('div', 'bj-bet-row sub');
+    sub.append(this.resetBtn, this.freeBtn, this.againBtn, this.limitEl);
+    this.betBox.append(main, sub);
+  }
+
+  private setDraft(n: number): void {
+    this.draft = n;
+    this.syncBet();
+  }
+
+  /** «Поставить»: отправить набранную сумму (меньше 1 — нечего ставить). */
+  private place(): void {
+    if (this.draft >= 1) this.send('bet', this.draft);
+  }
+
+  /** Привести окно ставки к набранной сумме, балансу и состоянию «ждём сервер». */
+  private syncBet(): void {
+    const cap = maxBet(this.balance);
+    if (this.draft > cap) this.draft = cap;
+    const live = !this.pending;
+    for (const { btn, chip } of this.chipBtns) btn.disabled = !live || !canAdd(this.draft, chip, this.balance);
+    const text = this.draft ? String(this.draft) : '';
+    const typing = document.activeElement === this.amountInput;
+    if (this.amountInput.value !== text && (!typing || parseAmount(this.amountInput.value, this.balance) !== this.draft)) this.amountInput.value = text;
+    this.amountInput.readOnly = !live;
+    this.limitEl.textContent = limitHint(this.balance);
+    this.limitEl.classList.toggle('low', cap < BJ_MAX_BET);
+    this.resetBtn.disabled = !live || this.draft === 0;
+    this.placeBtn.replaceChildren(document.createTextNode(this.draft ? `Поставить ${this.draft}` : 'Поставить'), element('kbd', '', 'B'));
+    this.placeBtn.disabled = !live || this.draft < 1;
+    this.freeBtn.disabled = !live;
+    const again = this.lastBet >= 0;
+    this.againBtn.classList.toggle('hidden', !again);
+    if (again) {
+      this.againBtn.replaceChildren(document.createTextNode(this.lastBet ? `↻ Повторить ${this.lastBet}` : '↻ Повторить бесплатно'), element('kbd', '', 'R'));
+      this.againBtn.disabled = !live || this.lastBet > cap;
+    }
+    // кучка набранных фишек: видно, как складывается сумма
+    const stack = chipsFor(this.draft);
+    this.pileEl.replaceChildren(...stack.slice(0, 8).map((den) => element('i', `bj-disc c${den}`)));
+    if (stack.length > 8) this.pileEl.append(element('em', '', `+${stack.length - 8}`));
+    this.pileEl.classList.toggle('empty', stack.length === 0);
   }
 
   // ------------------------------------------------------------ отрисовка
@@ -310,6 +466,8 @@ export class BlackjackHud {
   private panelState(v: BlackjackView | null, mine: BlackjackSeatView | undefined): void {
     const myTurn = !!v && v.phase === 'play' && v.turn === this.chair;
     this.root.classList.toggle('my-turn', myTurn);
+    // пока набираешь ставку, карт в руках нет: место слева отдаём окну ставки
+    this.root.classList.toggle('betting', !!v && v === this.view && this.ready && !!mine?.actions.includes('bet'));
     this.panelStatus(v, mine, myTurn);
   }
 
@@ -385,7 +543,7 @@ export class BlackjackHud {
       } else {
         tail = seat.participating ? (seat.bet > 0 ? `ставка ${seat.bet}` : 'бесплатно') : 'смотрит';
       }
-      pill.textContent = `${active ? '▶ ' : ''}${who} · ${tail}`;
+      pill.textContent = `${active ? '▶ ' : ''}${who} · ${tail}${seat.skip ? ' ✓' : ''}`;
       this.strip.append(pill);
     });
   }
@@ -497,32 +655,29 @@ export class BlackjackHud {
 
   private renderActions(v: BlackjackView | null, mine: BlackjackSeatView | undefined): void {
     this.buttons.replaceChildren();
-    if (!v || !mine || v !== this.view || !this.ready) return;
+    const current = !!v && !!mine && v === this.view && this.ready;
+    const allowed = current ? mine!.actions : [];
+    // окно ставки живёт на месте и только прячется: набранная сумма и фокус в поле не пропадают при перерисовке панели
+    const betting = allowed.includes('bet');
+    this.betBox.classList.toggle('hidden', !betting);
+    if (betting) this.syncBet();
+    else if (current) this.draft = 0;
+    if (!v || !mine || !current) return;
     const live = !this.pending;
-    const allowed = mine.actions;
     const myTurn = v.phase === 'play' && v.turn === this.chair;
-    if (allowed.includes('bet')) {
-      const row = element('div', 'bj-chips');
-      for (const stake of CHIPS) {
-        const chip = element('button', stake ? `bj-chip c${stake}` : 'bj-free');
-        chip.type = 'button';
-        chip.dataset.bjAction = `stake-${stake}`;
-        chip.disabled = !live || this.balance < stake;
-        chip.setAttribute('aria-label', stake ? `Поставить ${stake}` : 'Играть бесплатно');
-        chip.append(element('b', '', stake ? String(stake) : 'Бесплатно'), element('kbd', '', String(BJ_BETS.indexOf(stake))));
-        chip.addEventListener('click', () => this.send('bet', stake));
-        row.append(chip);
-      }
-      this.buttons.append(row);
-      if (this.lastBet >= 0) {
-        const again = element('button', 'bj-button again');
-        again.type = 'button';
-        again.dataset.bjAction = 'repeat';
-        again.disabled = !live || this.balance < this.lastBet;
-        again.append(document.createTextNode(this.lastBet ? `↻ Повторить ${this.lastBet}` : '↻ Повторить бесплатно'), element('kbd', '', 'R'));
-        again.addEventListener('click', () => this.send('bet', this.lastBet));
-        this.buttons.append(again);
-      }
+    if (allowed.includes('skip')) {
+      const next = element('button', 'bj-button skip');
+      next.type = 'button';
+      next.dataset.bjAction = 'skip';
+      next.append(document.createTextNode(v.phase === 'result' ? 'Следующая раздача' : 'Раздать сейчас'), element('kbd', '', 'N'));
+      next.addEventListener('click', () => this.send('skip'));
+      this.buttons.append(next);
+    } else if (mine.skip && (v.phase === 'result' || v.phase === 'countdown')) {
+      const voters = v.seats.filter((s) => s.k && s.participating && !s.away);
+      const done = voters.filter((s) => s.skip).length;
+      // раздать сразу можно, только когда поставили все севшие: иначе ждём их ставок, а не нажатий
+      const undecided = v.phase === 'countdown' && v.seats.some((s) => s.k && !s.away && !s.participating);
+      this.buttons.append(element('span', 'bj-wait', undecided ? 'Ждём ставок остальных за столом' : `Ждём остальных · ${done} из ${voters.length}`));
     }
     if (allowed.includes('cancel')) {
       const cancel = this.button(mine.bet > 0 ? `Убрать ставку ${mine.bet}` : 'Не играть этот раунд', 'cancel', () => this.send('cancel'), !live);

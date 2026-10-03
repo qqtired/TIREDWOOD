@@ -14,28 +14,16 @@ export const CONSOLE_R = 0.545;
 export const CHIP_R = 0.027;
 export const CHIP_H = 0.0055;
 
-/** Номиналы фишек (0 — «играем бесплатно», серая фишка без цены) */
-export const DENOMS = [0, 10, 20, 50] as const;
-
-const STYLE: Record<number, { base: string; edge: string; face: string; label: string }> = {
+/** Цвета фишек по номиналу (0 — «играем бесплатно», серая фишка без цены); цвета те же, что у кнопок-фишек панели */
+const STYLE: Record<number, { base: string; edge: string; face: string; label: string; ink?: string }> = {
   0: { base: '#8f9a9d', edge: '#e5eced', face: '#a9b4b7', label: '0' },
+  1: { base: '#d9d2c0', edge: '#7c8794', face: '#f1ecdd', label: '1', ink: '#3d4651' },
+  5: { base: '#e0a229', edge: '#fff1c9', face: '#f1bb4a', label: '5', ink: '#3f2a05' },
   10: { base: '#3b7fd8', edge: '#e3efff', face: '#5b97e6', label: '10' },
   20: { base: '#d8453b', edge: '#ffe6e1', face: '#e5675c', label: '20' },
   50: { base: '#2f9d5a', edge: '#dcf7e6', face: '#4cb673', label: '50' },
+  100: { base: '#2b2f3a', edge: '#e8dfcb', face: '#424857', label: '100' },
 };
-
-/** Ставка → номиналы фишек снизу вверх: крупные внизу (50, 20, 10 по убыванию). */
-export function chipsFor(amount: number): number[] {
-  let rest = Math.max(0, Math.round(amount / 10) * 10);
-  const out: number[] = [];
-  for (const d of [50, 20, 10]) {
-    while (rest >= d && out.length < 12) {
-      out.push(d);
-      rest -= d;
-    }
-  }
-  return out;
-}
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -68,10 +56,10 @@ function chipTopCanvas(den: number): HTMLCanvasElement {
   g.beginPath();
   g.arc(64, 64, 36, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = '#ffffff';
+  g.fillStyle = st.ink ?? '#ffffff';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = `900 ${st.label.length > 1 ? 34 : 40}px Rubik, system-ui, sans-serif`;
+  g.font = `900 ${st.label.length > 2 ? 28 : st.label.length > 1 ? 34 : 40}px Rubik, system-ui, sans-serif`;
   g.fillText(st.label, 64, 67);
   return c;
 }
