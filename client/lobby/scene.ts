@@ -13,7 +13,7 @@ import { BALL_BYTES } from '../../shared/ball.ts';
 import type { BoatRaceStatus } from '../../shared/boatrace.ts';
 import type { HideStatus } from '../../shared/hide.ts';
 import { START_ZONES, type GatherStatus } from '../../shared/startzones.ts';
-import { emptyStorm, STORM_GOAL } from '../../shared/storm.ts';
+import { emptyStorm } from '../../shared/storm.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { emptyPirates, emptyPirateTail, pirateInput, piratePush } from '../../shared/pirates.ts';
 import { readPirateTail } from '../../shared/piratenet.ts';
@@ -341,12 +341,17 @@ export class LobbyScene implements Scene {
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
     });
     this.storm3d = new Storm3D(this.world.scene, this.hud.root, {
-      climate: (dark, rain, flash, lamps) => this.world.setStormClimate(dark, rain, flash, lamps),
+      climate: (force, lamps) => this.world.setStormClimate(force, lamps),
+      strike: (s) => this.world.strike(s),
+      rainbow: (on) => this.world.setStormRainbow(on),
       lamp: (enabled) => this.world.setLighthouseEnabled(enabled),
       sound: (kind) => d.sound.lobbyEvent(kind),
       light: () => d.net.send({ t: 'stormLight' }),
+      self: () => d.ui.me().pid,
       lampPosition: this.world.lighthouse.lampAnchor.getWorldPosition(new THREE.Vector3()),
     });
+    // молния ударила — гром: с задержкой по расстоянию, громкость по расстоянию, сбоку — где ударило
+    this.world.onStrike((e) => d.sound.thunder(e.dist, e.pan, e.power, e.far));
     this.pirates3d = new Pirates3D(this.world.scene, this.hud.root, {
       swing: () => { d.input.touchButton(0, true); d.input.touchButton(0, false); },
       sound: (kind) => d.sound.lobbyEvent(kind),
@@ -480,11 +485,6 @@ export class LobbyScene implements Scene {
     return this.eventEligible && this.pirateState.phase === 'raid' && this.pirateTail.visible;
   }
 
-  private get nearStormLight(): boolean {
-    const p = this.pose, v = this.stormState;
-    return this.eventEligible && (v.phase === 'storm' || v.phase === 'calm' && this.clock.renderTick < v.rankEnd)
-      && Math.hypot(p.x - STORM_GOAL.x, p.z - STORM_GOAL.z) <= STORM_GOAL.r && Math.abs(p.y - STORM_GOAL.y) <= .75;
-  }
 
   private resetAdditions(): void {
     this.sentMenu = null;
@@ -647,7 +647,7 @@ export class LobbyScene implements Scene {
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
         this.fishing.reset(msg.fish);
-        this.world.setRain(msg.rain === 1, true);
+        this.world.setRain(msg.rain === 1, true, msg.wx);
         this.respects.setCount(msg.respects ?? 0);
         this.setBoat(msg.boat ?? BOAT_DOCKED);
         this.setAquaTop(msg.aqua ?? []);
@@ -691,7 +691,7 @@ export class LobbyScene implements Scene {
         this.tg.add(msg.title, msg.lines);
         break;
       case 'weather':
-        this.world.setRain(msg.rain === 1);
+        this.world.setRain(msg.rain === 1, false, msg.wx);
         this.fish2.weather(msg.rain === 1);
         break;
       case 'kart':
@@ -1438,6 +1438,11 @@ export class LobbyScene implements Scene {
       this.spin();
       return;
     }
+    // у двери маяка в шторм: E, клик мышью или кнопка на телефоне — зажечь
+    if (this.storm3d.canLight) {
+      this.d.net.send({ t: 'stormLight' });
+      return;
+    }
     if (mouse) {
       if (act === ACT_FISH) this.fishPress();
       return;
@@ -1451,7 +1456,6 @@ export class LobbyScene implements Scene {
       if (!isRiding(act)) this.d.net.send({ t: 'unuse' });
       return;
     }
-    if (this.nearStormLight) { this.d.net.send({ t: 'stormLight' }); return; }
     if (this.startZone.kind) {
       const gate = this.world.map.interact.find(i => i.kind === (this.startZone.kind === 'paintball' ? 'pb_gate' : 'fort'));
       if (gate) { this.d.net.send({ t: 'use', id: gate.id }); return; }
@@ -1737,7 +1741,7 @@ export class LobbyScene implements Scene {
     tickAvatarShared(this.time);
     this.world.camera.getWorldDirection(_v);
     sound.setListener(camPos.x, camPos.y, camPos.z, _v.x, _v.y, _v.z);
-    sound.setRain(this.world.effectiveRain);
+    sound.setRain(this.world.effectiveRain, this.hasSelf ? this.world.shelter(this.pose.x, this.pose.y, this.pose.z) : 0);
     this.boatSound();
     sound.tick(dt);
     if (this.ask && performance.now() > this.ask.until) this.clearAsk();
@@ -1989,7 +1993,7 @@ export class LobbyScene implements Scene {
     else if (act === ACT_RIDE) hud.setHint([], `Прогулка по бухте · ещё ${this.boatSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
     else if (act === ACT_WHEEL) hud.setHint([], `Колесо обозрения · внизу через ${this.wheelSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
     else if (isHeld(act)) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], TOUCH ? 'встать · справа пальцем — осмотреться' : 'встать · мышь — осмотреться');
-    else if (this.nearStormLight) hud.setHint(['E'], this.stormState.phase === 'storm' ? 'зажечь маяк' : 'дойти до маяка · получить награду');
+    else if (this.storm3d.hint) hud.setHint(this.storm3d.hint.keys, this.storm3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);
     else if (fd <= FC_HINT_R) this.hintFight(fd);
@@ -2263,7 +2267,7 @@ export class LobbyScene implements Scene {
       storm: this.stormState, pirates: { ...this.pirateState, visible: this.pirateTail.visible, actors: this.pirateTail.pirates.length }, critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
-      weather: { ...this.world.weather }, folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
+      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },
     };

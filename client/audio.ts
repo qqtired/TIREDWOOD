@@ -1,5 +1,6 @@
 // Звук синтезируется на лету (WebAudio) — ни одного файла. Выстрелы и шаги других
-// игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют.
+// игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют. Дождь и гром — weathersound.ts.
+import { RainVoice, thunderSound } from './weathersound.ts';
 
 type Wave = OscillatorType;
 type V3 = [number, number, number];
@@ -33,13 +34,11 @@ export class Sound {
   private outdoor = 1;
   private nextGull = 8;
   private nextHorn = 50;
-  /** Дождь: общий регулятор шума (создаётся с первым дождём), сила 0…1, когда следующее «кап» */
-  private rainBus: GainNode | null = null;
+  /** Дождь: голос дождя (создаётся с первым дождём) и его сила 0…1 */
+  private rainVoice: RainVoice | null = null;
   /** До какого времени звучит мелодия у статуи (пока играет — заново не начинается) */
   private respectEnd = 0;
   private rainLevel = 0;
-  private rainSet = 0;
-  private nextDrip = 0;
   private started = false;
   private readonly engines = new Map<number, EngineVoice>();
 
@@ -111,8 +110,8 @@ export class Sound {
   }
 
   /** Для своих звуков сцены (client/fight/sfx.ts): контекст, шина эффектов и шумы; null — звук ещё не разрешён. */
-  get kit(): { ctx: AudioContext; sfx: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
-    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, noise: this.noiseBuf, brown: this.brownBuf } : null;
+  get kit(): { ctx: AudioContext; sfx: GainNode; amb: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
+    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, amb: this.amb, noise: this.noiseBuf, brown: this.brownBuf } : null;
   }
 
   private makeNoise(brown: boolean): AudioBuffer {
@@ -656,10 +655,14 @@ export class Sound {
     } else if (kind === 'horn') {
       this.tone(d, 110, 108, 1.6, 'triangle', .075, 0, .18);
       this.tone(d, 165, 163, 1.4, 'sine', .035, .08, .2);
-    } else if (kind === 'thunder' || kind === 'cannon') {
-      const thunder = kind === 'thunder';
-      this.noise(d, thunder ? 1.8 : .65, 'lowpass', thunder ? 600 : 950, 90, .7, thunder ? .15 : .12, 0, .07, true);
-      this.tone(d, thunder ? 74 : 120, 36, thunder ? 1.3 : .5, 'sine', .055, .04, .05);
+    } else if (kind === 'thunder') {
+      // далёкий раскат без молнии (удары со вспышкой гремят через thunder): низкие перекаты
+      this.noise(d, 2.6, 'lowpass', 260, 70, .6, .11, 0, .45, true);
+      this.noise(d, 2.2, 'lowpass', 200, 60, .6, .08, .9, .5, true);
+      this.tone(d, 50, 34, 2.4, 'sine', .05, .1, .5);
+    } else if (kind === 'cannon') {
+      this.noise(d, .65, 'lowpass', 950, 90, .7, .12, 0, .07, true);
+      this.tone(d, 120, 36, .5, 'sine', .055, .04, .05);
     } else if (kind === 'wave' || kind === 'splash') {
       this.noise(d, .7, 'lowpass', 1900, 360, .6, .11, 0, .05);
     } else if (kind === 'mop') {
@@ -1278,57 +1281,28 @@ export class Sound {
     lfo2.start();
   }
 
-  /** Дождь: 0 — нет, 1 — во всю силу. Ровный шелест, гул капель по крышам и плитке и близкие «кап» (в tick). */
-  setRain(level: number): void {
+  /**
+   * Дождь: level — 0 нет … 1 ливень, shelter — под крышей (0…1). Мягкий шелест по силе, стук по навесам и редкие
+   * «кап» (в tick) — weathersound.ts, шина «Окружение».
+   */
+  setRain(level: number, shelter = 0): void {
     this.rainLevel = level;
     const ctx = this.ctx;
-    if (!ctx || !this.started || Math.abs(level - this.rainSet) < 0.01) return;
-    if (!this.rainBus) this.rainBus = this.makeRain();
-    this.rainSet = level;
-    this.rainBus.gain.setTargetAtTime(level, ctx.currentTime, 0.25);
+    if (!ctx || !this.started) return;
+    if (!this.rainVoice) {
+      if (level < 0.005) return;
+      this.rainVoice = new RainVoice(ctx, this.amb, this.noiseBuf, this.brownBuf);
+    }
+    this.rainVoice.set(level, shelter);
   }
 
-  private makeRain(): GainNode {
-    const ctx = this.ctx!;
-    const bus = ctx.createGain();
-    bus.gain.value = 0;
-    bus.connect(this.amb);
-    // шелест: белый шум без низов и самого верха; гул: коричневый шум пониже
-    const layer = (buf: AudioBuffer, type: BiquadFilterType, f: number, gain: number, lowpass = 0) => {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      const flt = ctx.createBiquadFilter();
-      flt.type = type;
-      flt.frequency.value = f;
-      const g = ctx.createGain();
-      g.gain.value = gain;
-      let node: AudioNode = src.connect(flt);
-      if (lowpass) {
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = lowpass;
-        node = node.connect(lp);
-      }
-      node.connect(g).connect(bus);
-      src.start(0, Math.random() * 1.5);
-    };
-    layer(this.noiseBuf, 'highpass', 900, 0.25, 6500);
-    layer(this.brownBuf, 'lowpass', 700, 0.2);
-    return bus;
+  /** Гром после молнии: dist — до удара (м), pan — где на слух (−1…1), power — сила, far — далёкая гроза. */
+  thunder(dist: number, pan = 0, power = 0.8, far = false): void {
+    if (!this.ok) return;
+    thunderSound(this.ctx!, this.amb, this.noiseBuf, this.brownBuf, { dist, pan, power, far });
   }
 
-  /** Капля рядом: короткий щелчок шума то слева, то справа. */
-  private drip(): void {
-    const ctx = this.ctx!;
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = Math.random() * 1.8 - 0.9;
-    pan.connect(this.amb);
-    const f = 1400 + Math.random() * 3600;
-    this.noise(pan, 0.025 + Math.random() * 0.03, 'bandpass', f, f * 0.8, 3, (0.02 + Math.random() * 0.05) * this.rainLevel);
-  }
-
-  /** Раз в кадр: изредка кричат чайки (в дождь прячутся), иногда гудит пароход, в дождь — капли рядом. */
+  /** Раз в кадр: изредка кричат чайки (в дождь прячутся), иногда гудит пароход, в дождь — стук и капли рядом. */
   tick(dt: number): void {
     if (!this.ok) return;
     this.nextGull -= dt;
@@ -1336,14 +1310,7 @@ export class Sound {
       this.nextGull = 7 + Math.random() * 14;
       if (this.rainLevel < 0.3) this.gull();
     }
-    if (this.rainLevel > 0.05) {
-      this.nextDrip -= dt;
-      for (let n = 0; this.nextDrip <= 0 && n < 4; n++) {
-        this.nextDrip += (0.03 + Math.random() * 0.09) / this.rainLevel;
-        this.drip();
-      }
-      this.nextDrip = Math.max(this.nextDrip, 0);
-    }
+    this.rainVoice?.tick(dt);
     this.nextHorn -= dt;
     if (this.nextHorn <= 0) {
       this.nextHorn = 70 + Math.random() * 60;
