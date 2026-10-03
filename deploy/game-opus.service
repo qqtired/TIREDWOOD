@@ -30,6 +30,7 @@ Environment=VOICE=1
 EnvironmentFile=/etc/game-opus/voice.env
 # Скрытый набор выдаётся по серверному подарочному коду.
 Environment=GIFTS=1
+Environment=LAB=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
