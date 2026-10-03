@@ -184,12 +184,14 @@ function startUi(): void {
   hud.hideEnd();
   const m = uiMode.value;
   if (m !== 'coach') hud.ui.coach.skip();
+  if (m === 'down') hud.showDeath('Плевок попал — уходи с красной метки');
+  else hud.pb.hideDeath();
   if (m === 'fight') {
     hud.ui.waveStart(6);
     hud.alert('🚪 Ворота трещат!', 60000, { target: 'gate' });
   } else if (m === 'break') {
     hud.ui.cleared(6, 168, 50, true);
-  } else if (m === 'boss') {
+  } else if (m === 'boss' || m === 'down') {
     hud.ui.waveStart(8);
     hud.alert('Залп Барона · уйди с красной метки', 60000, { timed: true });
   } else if (m === 'kraken') {
@@ -211,7 +213,8 @@ function uiFrame(): void {
   const m = uiMode.value;
   const t = elapsed - uiAt;
   const phase = m === 'break' ? FT_BREAK : m === 'coach' ? FT_GATHER : m === 'win' || m === 'lose' ? FT_END : FT_WAVE;
-  const wave = m === 'break' ? 7 : m === 'boss' ? 8 : m === 'kraken' ? 8 : 6;
+  const wave = m === 'break' ? 7 : m === 'boss' || m === 'down' || m === 'kraken' ? 8 : 6;
+  if (m === 'down') hud.pb.setRespawn(5 - (t % 5));
   if (m === 'fight' && Math.floor(t * 2) % 3 === 0) gold += 3;
   const threats: ZombieSnap[] = m === 'fight' || m === 'gate' ? [
     { id: 30, kind: Z_CLIMBER, state: ZS_CLIMB, hp: 1, x: -19, y: 1.5, z: -6, yaw: 0, atk: 0 },
@@ -222,13 +225,13 @@ function uiFrame(): void {
     phase, wave, leftS: phase === FT_WAVE ? 0 : Math.max(0, 20 - t), enemies: phase === FT_WAVE ? Math.max(4, 57 - Math.floor(t * 1.5)) : 0,
     gold, gate: m === 'gate' ? 0 : m === 'fight' ? 520 * 1.5 : 1000, gateMax: gateMax(2), gateTier: 2,
     crystal: m === 'gate' ? 1900 : 2300, crystalMax: crystalMax(1), crystalTier: 1,
-    me: { x: world.camera.position.x, y: 3.4, z: world.camera.position.z, yaw: Math.atan2(-(orbit.target.x - world.camera.position.x), -(orbit.target.z - world.camera.position.z)), alive: true },
-    team, zombies: threats, camera: world.camera, width: window.innerWidth, height: window.innerHeight,
+    me: { x: world.camera.position.x, y: 3.4, z: world.camera.position.z, yaw: Math.atan2(-(orbit.target.x - world.camera.position.x), -(orbit.target.z - world.camera.position.z)), alive: m !== 'down' },
+    team: m === 'down' ? team.map((r) => (r.me ? { ...r, alive: false } : r)) : team, zombies: threats, camera: world.camera, width: window.innerWidth, height: window.innerHeight,
   });
   if (m === 'kraken') {
     hud.ui.boss.set({ frac: 0.62, stage: 2, state: Math.floor(t / 3) % 2 ? ZS_BOSS_OPEN : 0, wind: 150 - ((t * 60) % 180), kind: Z_BOSS, tier: 1, rage: false,
       name: 'Кракен', super: true, parts: [{ label: 'Щупальце', frac: 0 }, { label: 'Щупальце', frac: 0.35 }, { label: 'Щупальце', frac: 0.8 }, { label: 'Щупальце', frac: 1 }, { label: 'Голова', frac: 0.62 }] });
-  } else if (m !== 'boss') {
+  } else if (m !== 'boss' && m !== 'down') {
     hud.setBoss(0, 0, 0, 0);
   }
 }

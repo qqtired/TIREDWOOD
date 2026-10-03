@@ -2,6 +2,8 @@
 // баннеров, подсказки новичку и у лестниц, стрелки на угрозы у края экрана, итоги. FortHud создаёт его и отдаёт
 // сюда свои тревоги, босса и итоги; match.ts раз в кадр передаёт снимок того, что видно (frame). Старые элементы
 // полосы прячет ui.css (класс .fui на корне), «карточка волны» и строка щита (.ft-briefing) встают под полосу.
+// Столбец сверху растёт (босс, тревога, карточка волны) — его нижний край идёт в --fu-below, высота баннера —
+// в --fu-banner-real, и баннер с «Тебя повалили!» встают ниже, а не под них.
 import type * as THREE from 'three';
 import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, type FortEvent, type FortWaveCard } from '../../../shared/fort.ts';
 import { kindFlags, waveBonus } from '../../../shared/fortarsenal.ts';
@@ -54,6 +56,7 @@ export class FortUi {
   private readonly threats: Threat[] = [];
   private gateWas = -1;
   private wave = 0;
+  private down = false;
 
   constructor(root: HTMLElement, pb: Hud) {
     root.classList.add('fui');
@@ -66,18 +69,48 @@ export class FortUi {
     // карточка волны и строка щита (FortHud) — в общий столбец под полосой: ничего не налезает
     const briefing = root.querySelector<HTMLElement>('.ft-briefing');
     if (briefing) stack.appendChild(briefing);
+    // «Тебя повалили!» (общий .death из Hud) — в слой: под местом баннера, ниже столбца; баннеры и итоги поверх
+    const death = root.querySelector<HTMLElement>('.death');
+    if (death) this.layer.appendChild(death);
     this.team = new TeamList(this.layer);
     this.coach = new Coach(this.layer);
     this.ladder = new LadderTip(this.layer);
     this.banners = new Banners(this.layer);
     this.results = new Results(this.layer);
     this.banners.adopt(pb);
+    this.watchLayout(stack, this.layer.querySelector<HTMLElement>('.fu-banner'));
+  }
+
+  /** Нижний край столбца сверху → --fu-below, высота баннера → --fu-banner-real (ui.css берёт не меньше запаса):
+   *  сколько бы плашек ни было в столбце и строк в баннере, баннер и «повален» встают ниже, а не под них */
+  private watchLayout(stack: HTMLElement, banner: HTMLElement | null): void {
+    const last: Record<string, number> = {};
+    const set = (name: string, px: number): void => {
+      if (last[name] === px) return;
+      last[name] = px;
+      this.layer.style.setProperty(name, `${px}px`);
+    };
+    const sync = (): void => {
+      set('--fu-below', Math.max(0, Math.ceil(stack.getBoundingClientRect().bottom - this.layer.getBoundingClientRect().top)));
+      if (banner) set('--fu-banner-real', banner.offsetHeight + 10);
+    };
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(sync);
+      ro.observe(stack);
+      if (banner) ro.observe(banner);
+    }
+    window.addEventListener('resize', sync);
   }
 
   // ------------------------------------------------------------ раз в кадр
 
   frame(v: UiFrame): void {
     this.wave = v.wave;
+    // повален: мелкие подтверждения молчат, на низком телефоне прячется и подсказка — не лезут на «повален»
+    if (this.down !== !v.me.alive) {
+      this.down = !v.me.alive;
+      this.layer.classList.toggle('down', this.down);
+    }
     this.top.update(v);
     this.team.update(v.team, v.phase === FT_GATHER || v.phase === FT_BREAK);
     // ворота пали в бою — тревога со стрелкой к кристаллу
@@ -174,5 +207,7 @@ export class FortUi {
     this.top.reset();
     this.ladder.update(null);
     this.gateWas = -1;
+    this.down = false;
+    this.layer.classList.remove('down');
   }
 }
