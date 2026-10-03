@@ -91,6 +91,10 @@ import { LosersScreen } from './losers.ts';
 import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type PhotoPerson } from './photo.ts';
 import { RegattaClient } from './regatta.ts';
 import { SlotMachines3D } from './slots3d.ts';
+import { LobbyJukebox } from './jukebox.ts';
+import { JukeboxPanel } from '../ui/jukebox.ts';
+import { Jukebox3D } from './jukebox3d.ts';
+import { JUKE_PRICE } from '../../shared/jukebox.ts';
 import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
 import { FerrisWheel } from './wheel.ts';
@@ -217,6 +221,8 @@ export class LobbyScene implements Scene {
   private readonly fishHud: FishHud;
   /** Рыбалка 2.0: шкала вываживания, карточка улова, журнал, доска рекордов (без флага сервера молчит) */
   private readonly fish2: Fish2Hud;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
+  private readonly juke: LobbyJukebox;
   private readonly fishDrink: FishDrink;
   /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
   private readonly roulette3d: Roulette3D;
@@ -350,7 +356,19 @@ export class LobbyScene implements Scene {
     for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
     // корпус музыкального автомата твёрдый, только когда сервер с ним (флаг JUKEBOX: приходит «juke»)
-    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
+    this.juke = new LobbyJukebox({
+      sound: d.sound,
+      send: (m) => d.net.send(m),
+      toast: (text) => d.ui.toasts.show(text, 3400),
+      myPid: () => d.ui.me().pid,
+      tokens: () => d.ui.tokens.shown,
+      ping: () => d.net.pingMs,
+      onOpen: () => { d.input.releaseAll(); d.input.unlock(); },
+      onClose: () => d.wantPointer(),
+      setSolid: (on) => { for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, on); },
+      refreshShadows: () => d.renderer.refreshShadows(),
+    });
+    this.juke.reset(false);
     const col = this.world.collision;
     this.aquaDyn = new AquaDyn(col, this.world.map.aquaMovers);
     const dyn = this.aquaDyn;
@@ -372,6 +390,8 @@ export class LobbyScene implements Scene {
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot);
+    this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
+    this.juke.attachModel(new Jukebox3D(this.world.scene));
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
@@ -478,7 +498,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || this.fish2.modalOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || this.fish2.modalOpen || this.juke.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -490,7 +510,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -549,7 +569,6 @@ export class LobbyScene implements Scene {
     this.skillStatus = this.boatRaceStatus = this.hideStatus = null;
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
-    for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, false);
     for (const circle of this.entryCircles.values()) circle.setVisible(false);
     this.startZone = { kind: null, left: 0 };
     this.stormState = emptyStorm(); this.pirateState = emptyPirates(); this.pirateTail = emptyPirateTail();
@@ -582,6 +601,7 @@ export class LobbyScene implements Scene {
   enter(): void {
     this.entered = true;
     this.resetAdditions();
+    this.juke.reset(true);
     this.myId = -1;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -638,6 +658,7 @@ export class LobbyScene implements Scene {
 
   exit(): void {
     this.resetAdditions();
+    this.juke.reset(false);
     this.entered = false;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -731,7 +752,8 @@ export class LobbyScene implements Scene {
         this.onFightSt(msg.fc ?? null);
         break;
       case 'juke':
-        for (const index of this.world.map.jukeBoxes) this.world.collision.setEnabled(index, true);
+      case 'jukeRes':
+        this.juke.onMsg(msg);
         break;
       case 'fortSt':
         this.onFort(msg);
@@ -1551,6 +1573,8 @@ export class LobbyScene implements Scene {
       if (MOVE_KEYS.has(code) || code === 'KeyE') e.preventDefault();
       return true;
     }
+    // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
+    if (this.juke.onKey(code, e)) return true;
     const act = this.myAct;
     if (act === ACT_WARDROBE && this.wardrobeOpen) {
       if (code === 'Escape') {
@@ -1654,6 +1678,8 @@ export class LobbyScene implements Scene {
     }
     if (mouse) {
       if (act === ACT_FISH) this.fishPress();
+      // клик по музыкальному автомату под подсказкой — окно выбора песни
+      else if (this.target?.kind === 'juke' && !isHeld(act)) this.juke.open();
       return;
     }
     if (act === ACT_WARDROBE) {
@@ -1675,7 +1701,8 @@ export class LobbyScene implements Scene {
       return;
     }
     const it = this.target;
-    if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
+    if (it?.kind === 'juke') this.juke.toggle();
+    else if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
     else if (it?.kind === 'roulette') {
       this.d.net.send({ t: 'use', id: it.id });
       this.fish2.openRoulette();
@@ -1942,6 +1969,7 @@ export class LobbyScene implements Scene {
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, camPos);
     this.roulette3d.update(dt);
+    this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
     this.respects.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
@@ -2380,8 +2408,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
-      // музыкальный автомат: клиент — следующим шагом (client/lobby/jukebox.ts)
-      if (it.kind === 'juke') continue;
+      if (it.kind === 'juke' && !this.juke.enabled) continue;
       // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
       if (it.kind === 'fight') continue;
       if (this.isBusy(it)) {
@@ -2480,6 +2507,9 @@ export class LobbyScene implements Scene {
         break;
       case 'roulette':
         this.hud.setHint(['E'], this.fish2.roulette.hint());
+        break;
+      case 'juke':
+        this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песня за ${JUKE_PRICE} 🪙`);
         break;
       case 'boat':
         if (this.boat.ph === BP_BOARD) this.hud.setHint(['E'], `сесть в катер — бесплатно · отплытие через ${this.boatSecs()} с`);
