@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { JUKE_SONGS, songMs } from '../shared/jukebox.ts';
-import { compileSong, DRUM_BASE, INSTS, type SongDef } from '../client/music/song.ts';
+import { compileSong, DRUM_BASE, INSTS, KITS, type SongDef } from '../client/music/song.ts';
 import { SONG_DEFS, songByIndex } from '../client/music/songs.ts';
 import { chordPcs, midiName } from '../client/music/theory.ts';
 
@@ -28,7 +28,8 @@ test('ноты в пределах: высота, громкость, время
     const s = compileSong(SONG_DEFS[meta.id]);
     for (let i = 0; i < s.n; i++) {
       const v = s.voice[i];
-      assert.ok(v < INSTS.length || (v >= DRUM_BASE && v < DRUM_BASE + 6 * 16), `${meta.id}: голос ${v}`);
+      assert.ok(v < INSTS.length || (v >= DRUM_BASE && v < DRUM_BASE + KITS.length * 16), `${meta.id}: голос ${v}`);
+      if (s.from[i]) assert.ok(v < INSTS.length && Math.abs(s.from[i] - s.midi[i]) <= 24, `${meta.id}: глайд ${s.from[i]} → ${s.midi[i]}`);
       if (v < INSTS.length) assert.ok(s.midi[i] >= 28 && s.midi[i] <= 100, `${meta.id}: ${INSTS[v]} ${midiName(s.midi[i])}`);
       assert.ok(s.vel[i] > 0 && s.vel[i] <= 1, `${meta.id}: громкость ${s.vel[i]}`);
       assert.ok(s.dur[i] > 0 && s.dur[i] < 5, `${meta.id}: длина ноты ${s.dur[i]}`);
@@ -70,4 +71,10 @@ test('нотный формат: «%» повторяет такт, несоше
   const bad = { ...forty, sections: { a: { ...base.sections.a, parts: [{ i: 'whistle' as const, mel: 'd5/1 | d5/4 | d5/4 | d5/4' }] } } };
   assert.throws(() => compileSong(bad), /мелодия whistle, такт 1 — 1 долей из 4/);
   assert.throws(() => compileSong({ ...forty, form: ['a'] }), /4 тактов, а в каталоге 48/);
+  // глайд «>»: нота скользит из прошлой; в первой ноте — не из чего
+  const glide = { ...forty, sections: { a: { ...base.sections.a, parts: [{ i: 'boom' as const, mel: 'd2/2 >a2/2 | a2/4 | d2/2 >d3/2 | d2/4' }] } } };
+  const g = compileSong(glide);
+  assert.deepEqual([...g.midi.slice(0, 6)], [38, 45, 45, 38, 50, 38]);
+  assert.deepEqual([...g.from.slice(0, 6)], [0, 38, 0, 0, 38, 0]);
+  assert.throws(() => compileSong({ ...glide, sections: { a: { ...base.sections.a, parts: [{ i: 'boom' as const, mel: '>d2/4 | d2/4 | d2/4 | d2/4' }] } } }), /глайд/);
 });

@@ -223,6 +223,21 @@
   background: rgba(255, 211, 90, 0.1);
 }
 
+/* особая песня (дороже обычных): сиреневый отлив и золотая звёздочка */
+.jb-song.special {
+  border-color: rgba(201, 163, 255, 0.35);
+  background: linear-gradient(90deg, rgba(168, 120, 255, 0.14), rgba(255, 211, 90, 0.06));
+}
+
+.jb-song.special.sel {
+  border-color: rgba(255, 211, 90, 0.75);
+}
+
+.jb-mood.special,
+.jb-star {
+  color: #ffd35a;
+}
+
 .jb-key {
   flex: none;
   width: 20px;

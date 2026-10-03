@@ -19,7 +19,7 @@ import {
 import { FISH_NPCS } from '../../shared/fishplaces.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
-import { JUKE_PRICE, JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime } from '../../shared/jukebox.ts';
+import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime, songPrice } from '../../shared/jukebox.ts';
 import {
   ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
   ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
@@ -1732,7 +1732,8 @@ export class LobbyRoom implements Room {
 
   /**
    * Заказ песни у музыкального автомата: рядом ли, есть ли такая, своя уже ждёт, очередь, повтор — и только потом
-   * списать 10 🪙. Любой отказ — ответом с причиной, жетоны не тронуты. В чат — «🎵 ник ставит «…»».
+   * списать цену песни (обычная 10 🪙, особая дороже). Любой отказ — ответом с причиной, жетоны не тронуты.
+   * В чат — «🎵 ник ставит «…»».
    */
   private onJuke(p: LobbyPlayer, song: unknown): void {
     const c = p.client;
@@ -1752,7 +1753,8 @@ export class LobbyRoom implements Room {
     const n = song as number;
     const title = JUKE_SONGS[n].title;
     if (why === 'same') return no(`«${title}» уже ${juke.cur?.song === n ? 'играет' : 'в очереди'} — выбери другую`);
-    if (!this.hub.profiles.spend(prof, JUKE_PRICE)) return no(`Песня стоит ${JUKE_PRICE} 🪙, а у тебя ${prof.tokens}`);
+    const price = songPrice(n);
+    if (!this.hub.profiles.spend(prof, price)) return no(`Песня стоит ${price} 🪙, а у тебя ${prof.tokens}`);
     juke.add(prof.id, c.nick, n, now);
     this.hub.tokens(c, prof.tokens);
     this.honorDirty = true;

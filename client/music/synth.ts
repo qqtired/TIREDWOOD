@@ -10,7 +10,7 @@ const I = (name: Inst): number => INSTS.indexOf(name);
 export const V = {
   epiano: I('epiano'), bass: I('bass'), sub: I('sub'), tuba: I('tuba'), nylon: I('nylon'), guitar: I('guitar'), mando: I('mando'),
   pad: I('pad'), strings: I('strings'), accordion: I('accordion'), whistle: I('whistle'), square: I('square'), pulse: I('pulse'),
-  tri: I('tri'), bell: I('bell'), marimba: I('marimba'), lead: I('lead'),
+  tri: I('tri'), bell: I('bell'), marimba: I('marimba'), lead: I('lead'), boom: I('boom'),
 } as const;
 
 /** Детерминированный шум (одинаковые буферы при каждом рендере — уровни песен воспроизводимы) */
@@ -82,6 +82,7 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
   };
   switch (d) {
     case 0: // бочка
+      if (kit === 6) return { len: 0.3, gain: 0.7, fn: kick(165, 52, 0.02, 0.11, 0.55, 2) };
       if (kit === 0) return { len: 0.45, gain: 1, fn: kick(150, 48, 0.035, 0.17, 0.35, 1.6) };
       if (kit === 1) return { len: 0.4, gain: 0.9, fn: kick(115, 46, 0.04, 0.16, 0.12, 1.2) };
       if (kit === 2) return { len: 0.35, gain: 0.7, fn: kick(95, 52, 0.03, 0.13, 0.05, 1.1) };
@@ -89,6 +90,7 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
       if (kit === 4) return { len: 0.7, gain: 1, fn: kick(120, 42, 0.05, 0.3, 0.25, 1.8) };
       return { len: 0.42, gain: 0.95, fn: kick(135, 55, 0.03, 0.15, 0.3, 1.5) };
     case 1: // малый барабан
+      if (kit === 6) return { len: 0.34, gain: 0.9, fn: snare(205, 0.05, 0.16, 0.8), hz: [5200, 0, 0.5] };
       if (kit === 0) return { len: 0.3, gain: 0.85, fn: snare(185, 0.06, 0.11, 0.62), hz: [3200, 0, 0.6] };
       if (kit === 1) return { len: 0.25, gain: 0.7, fn: snare(200, 0.045, 0.08, 0.58), hz: [2000, 0, 0.6] };
       if (kit === 2) return { len: 0.3, gain: 0.5, fn: snare(210, 0.03, 0.13, 0.85), hz: [3800, 0, 0.5] };
@@ -103,6 +105,7 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
       } };
     case 3: // закрытый хэт
       if (kit === 3) return { len: 0.06, gain: 0.45, fn: chipNoise(0.012, 1) };
+      if (kit === 6) return { len: 0.06, gain: 0.55, fn: hat(0.011), hz: [9500, 0, 0.7] };
       return { len: 0.09, gain: kit === 1 ? 0.5 : 0.6, fn: hat(kit === 1 ? 0.016 : 0.022), hz: [kit === 1 ? 6500 : 8000, 0, 0.7] };
     case 4: // открытый хэт
       if (kit === 3) return { len: 0.25, gain: 0.35, fn: chipNoise(0.08, 1) };
@@ -134,6 +137,15 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
       } };
     case 10: // щётка: «шшух»
       return { len: 0.32, gain: 0.45, hz: [3800, 0, 0.6], fn: (t, rnd, st) => st.a.step(rnd()) * Math.min(1, t / 0.04) * env(Math.max(0, t - 0.04), 0.09) * 1.4 };
+    case 11: // треск пластинки: редкие щелчки и тихое шипение; буфер длиннее такта — его запускают раз в такт
+      return { len: 3.4, gain: 0.5, hz: [3000, 0, 0.6], fn: (t, rnd, st) => {
+        if (rnd() > 1 - (2 * 11) / st.sr) st.hold = (rnd() > 0 ? 1 : -1) * (0.2 + 0.8 * Math.abs(rnd())) * (rnd() > 0.8 ? 2 : 1);
+        else st.hold *= 0.55;
+        const click = st.a.step(st.hold) * 2.5;
+        const hiss = st.b.step(rnd()) * 0.035;
+        // мягкие края: стык тактов не щёлкает
+        return (click + hiss) * Math.max(0, Math.min(1, t / 0.05, (3.4 - t) / 0.05));
+      } };
   }
   return null;
 }
@@ -145,6 +157,8 @@ export class Synth {
   private readonly drums = new Map<number, AudioBuffer | null>();
   private readonly plucks = new Map<number, AudioBuffer>();
   private readonly irs = new Map<string, AudioBuffer>();
+  /** Мягкий перегруз «808»: обертоны, чтобы саб был слышен и в маленьких динамиках */
+  private readonly sat: Float32Array<ArrayBuffer>;
 
   constructor(ctx: BaseAudioContext) {
     this.ctx = ctx;
@@ -159,6 +173,12 @@ export class Synth {
     const im = new Float32Array(H);
     for (let n = 1; n < H; n++) re[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * 0.25);
     this.pulseWave = ctx.createPeriodicWave(re, im, { disableNormalization: false });
+    const sn = 1024;
+    this.sat = new Float32Array(new ArrayBuffer(sn * 4));
+    for (let i = 0; i < sn; i++) {
+      const x = (i / (sn - 1)) * 2 - 1;
+      this.sat[i] = Math.tanh(2.5 * x) / Math.tanh(2.5);
+    }
   }
 
   /** Забыть буферы щипковых, которых нет в новой песне (память) */
@@ -190,8 +210,8 @@ export class Synth {
     p.setTargetAtTime(0, Math.max(off, t + attack), rel);
   }
 
-  /** Сыграть ноту: голос (инструмент или ударный), момент t (время контекста), MIDI, длина (с), громкость 0…1 */
-  play(dest: AudioNode, voice: number, t: number, midi: number, dur: number, vel: number): void {
+  /** Сыграть ноту: голос (инструмент или ударный), момент t (время контекста), MIDI, длина (с), громкость 0…1; from — глайд из ноты */
+  play(dest: AudioNode, voice: number, t: number, midi: number, dur: number, vel: number, from = 0): void {
     if (voice >= DRUM_BASE) {
       this.drum(dest, voice, t, vel);
       return;
@@ -424,6 +444,26 @@ export class Synth {
           o.start(t);
           o.stop(t + Math.min(dur + 0.6, tau * 6 + 0.05));
         }
+        return;
+      }
+      case V.boom: {
+        // «808»: синус с толчком высоты на атаке или глайдом из прошлой ноты; перегруз даёт обертоны, спад долгий
+        const o = this.osc('sine', f, t);
+        if (from > 0) {
+          o.frequency.setValueAtTime(midiHz(from), t);
+          o.frequency.setTargetAtTime(f, t + 0.01, 0.05);
+        } else {
+          o.frequency.setValueAtTime(f * 1.45, t);
+          o.frequency.exponentialRampToValueAtTime(f, t + 0.045);
+        }
+        const drive = this.gain(0.85 + 0.3 * vel);
+        const sh = ctx.createWaveShaper();
+        sh.curve = this.sat;
+        const amp = this.gain(0);
+        this.adsr(amp, t, off, 0.4 + 0.2 * vel, 0.004, 1.2, 0.0001, 0.05);
+        o.connect(drive).connect(sh).connect(amp).connect(dest);
+        o.start(t);
+        o.stop(off + 0.35);
         return;
       }
       case V.lead: {

@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
-import { JUKE_GAP_MS, JUKE_LEAD_MS, JUKE_PRICE, JUKE_QUEUE_MAX, JUKE_SONGS, JUKE_USE, jukeGain, songMs, songSeconds } from '../shared/jukebox.ts';
+import { JUKE_GAP_MS, JUKE_LEAD_MS, JUKE_PRICE, JUKE_QUEUE_MAX, JUKE_SONGS, JUKE_USE, jukeGain, songMs, songPrice, songSeconds, songSpecial } from '../shared/jukebox.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { Jukebox } from '../server/lobby/jukebox.ts';
 import { Profiles } from '../server/profiles.ts';
@@ -36,10 +36,15 @@ function player(e: ReturnType<typeof env>, nick: string): { c: Client; s: FakeSi
 
 const order = (e: ReturnType<typeof env>, c: Client, song: unknown): void => { e.hub.onJson(c, { t: 'juke', song } as never); e.clock.now += 2000; };
 
-test('каталог: 8 песен по 60–120 с, громкость по расстоянию — полная до 12 м, дальше до 40 %', () => {
-  assert.equal(JUKE_SONGS.length, 8);
-  assert.equal(new Set(JUKE_SONGS.map((s) => s.id)).size, 8);
+test('каталог: 9 песен по 60–120 с; цена — обычная 10, особая (девятая) 200; громкость — полная до 12 м, дальше до 40 %', () => {
+  assert.equal(JUKE_SONGS.length, 9);
+  assert.equal(new Set(JUKE_SONGS.map((s) => s.id)).size, 9);
   for (const s of JUKE_SONGS) assert.ok(songSeconds(s) >= 60 && songSeconds(s) <= 120, `${s.id}: ${songSeconds(s)} с`);
+  JUKE_SONGS.forEach((_, i) => {
+    assert.equal(songPrice(i), i === 8 ? 200 : JUKE_PRICE, `цена песни ${i}`);
+    assert.equal(songSpecial(i), i === 8);
+  });
+  assert.equal(songPrice(99), JUKE_PRICE);
   assert.equal(jukeGain(0), 1);
   assert.equal(jukeGain(12), 1);
   assert.ok(jukeGain(25) < 1 && jukeGain(25) > 0.4);
@@ -74,7 +79,7 @@ test('очередь: первая песня — через паузу на з�
 test('отказы: нет песни, своя уже ждёт, очередь до 5, повтор той, что играет или ждёт', () => {
   const j = new Jukebox();
   const t = 5_000;
-  for (const bad of [-1, 8, 1.5, '1', null]) assert.equal(j.check(1, bad, t), 'song');
+  for (const bad of [-1, JUKE_SONGS.length, 1.5, '1', null]) assert.equal(j.check(1, bad, t), 'song');
   j.add(1, 'A', 0, t);
   // своя играет — можно поставить ещё одну; своя ждёт — нельзя
   assert.equal(j.check(1, 1, t), null);
@@ -165,6 +170,36 @@ test('отказ — без списания: далеко, нет жетоно�
   order(e, f.c, 3);
   assert.equal(f.c.profile!.tokens, fWas);
   assert.match(lastOf(f.s, 'jukeRes')!.text, /полная/);
+});
+
+test('особая песня: списывается её цена (200 🪙); не хватает — отказ без списания, очередь не тронута', () => {
+  const e = env();
+  const special = JUKE_SONGS.findIndex((_, i) => songSpecial(i));
+  const price = songPrice(special);
+  assert.equal(price, 200);
+  const juke = () => e.hub.lobby.juke!;
+  const a = player(e, 'Tester1');
+  const prof = a.c.profile!;
+  prof.tokens = price - 1;
+  order(e, a.c, special);
+  assert.equal(prof.tokens, price - 1);
+  assert.equal(lastOf(a.s, 'jukeRes')!.ok, false);
+  assert.match(lastOf(a.s, 'jukeRes')!.text, /стоит 200 🪙, а у тебя 199/);
+  assert.equal(juke().cur, null);
+  assert.equal(juke().queue.length, 0);
+  prof.tokens = price + 5;
+  order(e, a.c, special);
+  assert.equal(prof.tokens, 5);
+  assert.equal(lastOf(a.s, 'jukeRes')!.ok, true);
+  assert.equal(juke().cur?.song, special);
+  assert.equal(lastOf(a.s, 'tokens')?.n, 5);
+  assert.ok(allOf(a.s, 'chat').some((m) => m.sys && m.text === `🎵 Tester1 ставит «${JUKE_SONGS[special].title}»`));
+  // обычная после неё — по обычной цене
+  const b = player(e, 'Tester2');
+  const bWas = b.c.profile!.tokens;
+  order(e, b.c, 0);
+  assert.equal(b.c.profile!.tokens, bWas - JUKE_PRICE);
+  assert.equal(juke().queue[0]?.song, 0);
 });
 
 test('без флага JUKEBOX автомата нет: ни состояния, ни заказа, коллизия корпуса выключена', () => {

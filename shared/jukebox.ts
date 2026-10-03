@@ -15,6 +15,8 @@ export interface JukeSong {
   bars: number;
   /** Секунд после последнего такта */
   tail: number;
+  /** Цена в жетонах, если не обычная (JUKE_PRICE): особая песня — дороже */
+  price?: number;
 }
 
 export const JUKE_SONGS: readonly JukeSong[] = [
@@ -26,6 +28,7 @@ export const JUKE_SONGS: readonly JukeSong[] = [
   { id: 'waltz', title: 'Вальс для баркаса', mood: 'морской вальс', emoji: '⚓', bpm: 144, meter: 3, bars: 64, tail: 2.5 },
   { id: 'polka', title: 'Кадриль с притопом', mood: 'полька-кадриль', emoji: '🪗', bpm: 128, meter: 4, bars: 48, tail: 1.5 },
   { id: 'sunset', title: 'Закат над бухтой', mood: 'синти-закат', emoji: '🌅', bpm: 96, meter: 4, bars: 40, tail: 3 },
+  { id: 'parom', title: 'Последний паром', mood: 'эмо-трэп', emoji: '🖤', bpm: 78, meter: 4, bars: 36, tail: 3, price: 200 },
 ];
 
 /** Длина песни в секундах (вместе с хвостом) */
@@ -45,8 +48,18 @@ export function fmtSongTime(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** Цена песни в жетонах */
+/** Обычная цена песни в жетонах (особые — дороже, своё поле price) */
 export const JUKE_PRICE = 10;
+
+/** Цена песни по номеру (сервер списывает именно её); нет такой песни — обычная */
+export function songPrice(song: number): number {
+  return JUKE_SONGS[song]?.price ?? JUKE_PRICE;
+}
+
+/** Особая песня — дороже обычной: в окне — звёздочка */
+export function songSpecial(song: number): boolean {
+  return songPrice(song) > JUKE_PRICE;
+}
 /** Ждут своей очереди не больше стольких песен (без той, что играет) */
 export const JUKE_QUEUE_MAX = 5;
 /** Тишина между песнями */
