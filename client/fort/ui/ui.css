@@ -824,3 +824,132 @@
   .fu-res-table th:nth-child(5), .fu-res-table td:nth-child(5) { display: none; }
   .fu-res-title { font-size: 28px; }
 }
+
+/* --- голосование «сдаться» у белого флага (surrender.ts): в столбце сверху, сразу под полосой — карточка волны, босс и
+   тревоги встают ниже и не перекрыты; кнопки кликабельны, когда мышь свободна (остальное слой пропускает) */
+.fu-surr {
+  position: relative;
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  box-sizing: border-box;
+  min-width: 460px;
+  max-width: min(660px, calc(100vw - 32px));
+  padding: 7px 14px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 240, 0.13), rgba(255, 252, 240, 0) 55%), var(--fu-wood);
+  border: 2px solid var(--fu-edge);
+  box-shadow: var(--fu-shadow), inset 0 0 0 1px var(--fu-hair), inset 0 3px 0 #f4efe2;
+  overflow: hidden;
+}
+.fu-surr.show { display: flex; animation: fu-drop 0.4s var(--fu-ease); }
+.fu-surr-head { display: flex; align-items: center; gap: 10px; }
+.fu-surr-flag { font-size: 26px; line-height: 1; }
+.fu-surr-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fu-surr-title {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-shadow: 0 2px 0 var(--fu-edge);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fu-surr-sub { font-size: 14px; font-weight: 800; color: var(--fu-dim); font-variant-numeric: tabular-nums; }
+.fu-surr-time {
+  min-width: 56px;
+  text-align: right;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--fu-gold);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 var(--fu-edge);
+}
+.fu-surr-time[hidden] { display: none; }
+.fu-surr.urgent .fu-surr-time { color: #ffc27a; animation: fu-blink 0.6s ease-in-out infinite alternate; }
+.fu-surr-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.fu-surr-who { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.fu-surr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--fu-dim);
+}
+.fu-surr-chip i { font-style: normal; font-weight: 900; width: 14px; text-align: center; }
+.fu-surr-chip.yes { color: #cdf6d6; background: rgba(60, 140, 80, 0.4); }
+.fu-surr-chip.yes i { color: #8fe5a4; }
+.fu-surr-chip.no { color: #ffd0c4; background: rgba(170, 52, 40, 0.42); }
+.fu-surr-chip.no i { color: #ff9a88; }
+.fu-surr-chip.me { box-shadow: inset 0 0 0 1.5px rgba(255, 224, 138, 0.8); }
+.fu-surr-act { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.fu-surr-btns { display: flex; gap: 8px; }
+.fu-surr-btns[hidden], .fu-surr-me[hidden] { display: none; }
+.fu-surr-btn {
+  pointer-events: auto;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 15px;
+  border: 2px solid var(--fu-edge);
+  border-radius: 11px;
+  color: #fff6ea;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22), 0 2px 0 var(--fu-edge);
+  touch-action: manipulation;
+  transition: transform 0.12s var(--fu-ease), filter 0.12s;
+}
+.fu-surr-btn.yes { background: linear-gradient(180deg, #5fae6e, #3c8650); }
+.fu-surr-btn.no { background: linear-gradient(180deg, #d9604f, #b0382c); }
+.fu-surr-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.fu-surr-btn:active:not(:disabled) { transform: translateY(1px); }
+.fu-surr-btn:disabled { cursor: default; filter: grayscale(0.55) brightness(0.8); }
+.fu-surr-btn kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: #f4e2bd;
+  color: #3a2416;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-shadow: none;
+  box-shadow: 0 2px 0 #9c7c4c;
+}
+.fu-surr-me { font-size: 15px; font-weight: 900; color: var(--fu-dim); }
+.fu-surr-me.yes { color: #9be8ad; }
+.fu-surr-me.no { color: #ffab9b; }
+.fu-surr-time-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--fu-gold);
+  transform-origin: left;
+}
+.fu-surr.done .fu-surr-time-bar { display: none; }
+.fu-surr.done { background-color: #4a2c22; padding-bottom: 9px; }
+.fu-surr.urgent .fu-surr-time-bar { background: #ffb06a; }
+.touch .fu-surr { min-width: 360px; }
+@media (max-width: 520px) {
+  .fu-surr { min-width: 0; width: calc(100vw - 40px); }
+}
+/* сдались у белого флага: белый заголовок вместо красного — это решение, а не разгром */
+.fu-res-card.surr .fu-res-title { color: #f6efdc; }
+/* телефон: столбец сверху уменьшен — кнопки голосования делаем крупнее, чтобы после уменьшения в них попадал палец */
+.touch .fu-surr-btn { min-height: 60px; padding: 0 26px; font-size: 22px; border-radius: 14px; }
+.touch .fu-surr-me { font-size: 20px; }

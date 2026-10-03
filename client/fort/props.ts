@@ -8,6 +8,7 @@ import { LADDERS } from '../../shared/fortladder.ts';
 import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
 import { clamp } from '../../shared/math.ts';
 import { glowSprite, mergeColored, paint, staticMesh } from '../render/kit.ts';
+import { FortFlag } from './flag.ts';
 import { labelTexture } from './textures.ts';
 
 /** Табличка над стойкой: размер на экране (доля высоты кадра) */
@@ -49,7 +50,8 @@ export class FortProps {
   private bellVel = 0;
   private readonly marks: Mark[] = [];
   private readonly labelCache = new Map<string, THREE.CanvasTexture>();
-
+  /** Белый флаг на террасе (стойка 'flag'): древко и колышущееся полотнище */
+  private readonly flag: FortFlag;
 
   constructor(scene: THREE.Scene, map: FortMap) {
     this.scene = scene;
@@ -98,6 +100,7 @@ export class FortProps {
     scene.add(this.rally);
     this.buildReturnSigns();
     this.buildBell(map);
+    this.flag = new FortFlag(scene);
     this.buildMarks(map);
   }
 
@@ -159,7 +162,7 @@ export class FortProps {
       // постоянного размера на экране (как ники желеек), вдали и вплотную — прячутся
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, sizeAttenuation: false }));
       // над башней — выше её навершия и вымпела (башни client/fort/turrets — до 2,9 м)
-      const baseY = st.y + (st.kind === 'tower' ? 3.2 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : 2.3);
+      const baseY = st.y + (st.kind === 'tower' ? 3.2 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : st.kind === 'flag' ? 5.4 : 2.3);
       sprite.position.set(st.x, baseY, st.z);
       sprite.scale.set(LABEL_W, LABEL_H, 1);
       sprite.renderOrder = 6;
@@ -239,6 +242,7 @@ export class FortProps {
       m.visible = f > i * 0.22;
     });
 
+    this.flag.update(t);
     // колокол качается и затихает
     this.bellVel += (-this.bellAngle * 38 - this.bellVel * 1.6) * dt;
     this.bellAngle += this.bellVel * dt;
@@ -250,7 +254,7 @@ export class FortProps {
       m.sprite.position.y = m.baseY + Math.sin(t * 2 + m.st.id) * 0.06;
       const d = _v.set(m.st.x, m.baseY, m.st.z).distanceTo(camPos);
       // места башен — восемь штук по стенам: табличка только вблизи, иначе со двора — частокол «БАШНЯ»
-      m.sprite.visible = d < (m.st.kind === 'tower' ? 15 : 42) && d > 2.2;
+      m.sprite.visible = d < (m.st.kind === 'tower' ? 15 : m.st.kind === 'flag' ? 24 : 42) && d > 2.2;
     }
   }
 }

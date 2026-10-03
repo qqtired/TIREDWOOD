@@ -390,9 +390,9 @@ export class FortHud {
    * (лучшие забеги), record — команда побила рекорд, prev — прежний рекорд (0 — не было).
    */
   showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number,
-    top: readonly FortRunRec[] = [], record = false, prev = 0): void {
+    top: readonly FortRunRec[] = [], record = false, prev = 0, surr = false): void {
     this.ui.results.show({ win, wave, lastWave: FORT_WAVES, mvp, rows, myId,
-      record: record || prev > 0 ? { best: prev, isNew: record } : null, top });
+      record: record || prev > 0 ? { best: prev, isNew: record } : null, top, surr });
   }
 
   /** Жетоны за игру — строкой в итогах (приходят сразу после них) */

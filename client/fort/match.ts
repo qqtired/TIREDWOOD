@@ -45,6 +45,7 @@ import { FortCam } from './fortcam.ts';
 import { ArsenalClient, TOWER_BY } from './arsenalc.ts';
 import type { FortHud, MapDot } from './hud.ts';
 import type { TeamRow } from './ui/index.ts';
+import { SurrenderUi } from './ui/surrender.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
@@ -211,10 +212,14 @@ export class FortMatch {
 
   /** Паутина Ткачихи (новые боссы — bosses-f.ts) */
   private readonly webs: Webs3D;
+  /** Белый флаг: голосование «сдаться» (ui/surrender.ts) */
+  private readonly surr: SurrenderUi;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
     this.webs = new Webs3D(deps.world.scene);
+    this.surr = new SurrenderUi(deps.hud.ui.layer, { myId: () => this.myId, tick: () => this.clock.estimate(performance.now()),
+      nameOf: (id) => this.nameOf(id), send: (yes) => deps.net.send({ t: 'fortVote', yes }), opened: () => deps.sound.pairAsk() });
     this.krakenFx = new KrakenFx({ hud: deps.hud, effects: deps.effects, sound: deps.sound, zombies: deps.zombies, collision: deps.collision,
       camPos: this.camPos, me: () => this.predictor.state, myId: () => this.myId, shake: (v) => { this.shake = Math.max(this.shake, v); },
       tick: () => this.clock.estimate(performance.now()) });
@@ -282,6 +287,7 @@ export class FortMatch {
     this.avatars.clear();
     this.localAvatar.dispose(this.d.world.scene);
     this.webs.dispose();
+    this.surr.dispose();
     this.d.effects.clearSplats();
     this.d.zombies.clear();
     this.d.marks?.clear();
@@ -318,6 +324,7 @@ export class FortMatch {
       return true;
     }
     if (!down || chat.isOpen || !input.locked) return false;
+    if (this.surr.onKey(code, e)) return true;
     if (code === 'KeyQ') {
       if (!e.repeat) this.shoulder = this.shoulder > 0 ? -1 : 1;
       return true;
@@ -368,10 +375,13 @@ export class FortMatch {
         this.onPhase(m.phase, m.end, m.wave);
         break;
       case 'fend':
-        this.onEnd(m.win, m.wave, m.mvp, m.rows, m.top ?? [], m.record ?? false, m.prev ?? 0);
+        this.onEnd(m.win, m.wave, m.mvp, m.rows, m.top ?? [], m.record ?? false, m.prev ?? 0, m.surr ?? false);
         break;
       case 'fortReward':
         this.onReward(m);
+        break;
+      case 'fsurr':
+        this.surr.onState(m);
         break;
     }
   }
@@ -432,6 +442,7 @@ export class FortMatch {
     hud.ui.onPhase(phase, wave, this.card);
     if (phase === FT_GATHER) {
       hud.hideEnd();
+      this.surr.reset();
       hud.card.reset();
       effects.clearSplats();
       hud.pb.centerMessage('Новая игра', this.gatherSub(), '', 2800);
@@ -447,12 +458,13 @@ export class FortMatch {
     }
   }
 
-  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number): void {
+  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number, surr = false): void {
     const { hud, sound } = this.d;
     this.phase = FT_END;
     this.card = null;
+    this.surr.reset();
     const mvpRow = rows.find((r) => r.id === mvp) ?? null;
-    hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev);
+    hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev, surr);
     if (win || (record && wave > 0)) {
       sound.fanfare(null);
       sound.applause(null);
@@ -1162,6 +1174,7 @@ export class FortMatch {
     tickAvatarShared(this.time, d.world.renderer.canvas.clientHeight || window.innerHeight);
     this.updateStation();
     this.updateMarks();
+    this.surr.frame();
     this.updateHud(dt);
     this.ambience();
 
@@ -1423,6 +1436,7 @@ export class FortMatch {
 
   /** Подсказка у стойки: текст, цена (0 — без цены), сработает ли E; null — сказать нечего (всё цело) */
   private stationHint(st: FortStation): [string, number, boolean] | null {
+    if (st.kind === 'flag') return this.surr.hint(this.phase);
     if (st.kind !== 'bell') return this.ars.hint(st);
     switch (st.kind) {
       case 'bell': {
@@ -1452,6 +1466,9 @@ export class FortMatch {
       if (st.kind === 'bell') {
         if (this.calm) icon = '🔔';
         else if (this.phase === FT_WAVE) { icon = '🛡'; text = (this.tail.rallyCd ?? 0) > 0 ? `${Math.ceil(this.tail.rallyCd! / TICK_RATE)}с` : 'ГОТОВ'; }
+      } else if (st.kind === 'flag') {
+        // белый флаг: значок, пока сдаться можно (волна и передышка)
+        if (this.phase === FT_WAVE || this.phase === FT_BREAK) icon = '🏳️';
       } else {
         const m = this.ars.mark(st);
         if (m) [icon, text] = m;
@@ -1627,7 +1644,7 @@ export class FortMatch {
       gate: this.gate, crystal: this.crystal, left: this.left, pts: this.myPts,
       defenders: this.tail.defenders, rally: this.tail.rally, rallyCd: this.tail.rallyCd,
       pos: [s.x, s.y, s.z], ammo: s.ammo, corrections: this.predictor.corrections, zombies: this.d.zombies.count,
-      station: this.station?.kind ?? null, renderTick: this.clock.renderTick, delay: this.clock.delay, remotes: this.tracks.size,
+      station: this.station?.kind ?? null, vote: this.surr.open, renderTick: this.clock.renderTick, delay: this.clock.delay, remotes: this.tracks.size,
       fps: this.fps, cam: [c.x, c.y, c.z], end: this.d.hud.endShown, arsenal: this.ars.debug(),
     };
   }

@@ -25,9 +25,9 @@ export const TERRACE = { x0: -10, x1: 10, z0: 5, z1: 11, h: 2.2 };
 export const PEDESTAL = { x0: -1.3, x1: 1.3, z0: 1.3, z1: 3.9, h: 1.0 };
 export const CRYSTAL = { x: 0, y: 2.55, z: 2.6 };
 
-export type FortStationKind = 'bell' | 'gate' | 'crystal' | 'tower' | 'shop';
+export type FortStationKind = 'bell' | 'gate' | 'crystal' | 'tower' | 'shop' | 'flag';
 
-/** Стойка: E рядом с ней (лавка, ворота, кристалл, место башни, колокол). arg — номер места башни */
+/** Стойка: E рядом с ней (лавка, ворота, кристалл, место башни, колокол, белый флаг). arg — номер места башни */
 export interface FortStation {
   id: number;
   kind: FortStationKind;
@@ -73,6 +73,13 @@ export const TOWER_MUZZLE = 1.5;
 /** Прилавок лавки на террасе (справа, торговец — за ним у южной стены): коробка и где встать покупателю */
 export const SHOP_COUNTER = { x0: 6.7, x1: 9.3, z0: 9.3, z1: 10.0, h: 1.05 };
 export const SHOP_SPOT = { x: 8, z: 8.3 };
+
+/**
+ * Белый флаг на террасе (стойка 'flag': E — сдаться, решает голосование, server/fort/surrender.ts). Древко стоит
+ * у южной стены по оси крепости — между колоколом и лавкой, не на пути к лестницам; встают перед ним (FLAG_SPOT).
+ */
+export const FLAG_POLE = { x: 0, z: 10.5 };
+export const FLAG_SPOT = { x: 0, z: 10.1 };
 
 /** Дорога: от конца (там появляются зомби) к воротам; точки — для рисования, зомби идут по полю расстояний */
 export interface FortRoad {
@@ -234,6 +241,8 @@ export function buildFort(): FortMap {
   st('crystal', 0, R.h, 5.8, 1.4, 0);
   TOWER_SPOTS.forEach((t, i) => st('tower', t.x, t.y, t.z, 1.6, i));
   st('shop', SHOP_SPOT.x, R.h, SHOP_SPOT.z, 2.4, 0);
+  // белый флаг — всегда последняя: номера стоек выше не сдвигаются
+  st('flag', FLAG_SPOT.x, R.h, FLAG_SPOT.z, 1.6, 0);
 
   // --- игроки появляются на террасе лицом к воротам
   const spawns: SpawnPoint[] = [[-6, 7.2], [-3.6, 7.9], [-1.2, 7.2], [1.2, 7.9], [3.6, 7.2], [6, 7.9]].map(([x, z]) => ({ x, y: R.h, z, yaw: 0, team: 0 }));
