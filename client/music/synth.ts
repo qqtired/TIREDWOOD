@@ -557,6 +557,8 @@ export class Synth {
     const key = decay.toFixed(2);
     const had = this.irs.get(key);
     if (had) return had;
+    // держим один зал — той песни, что играет (прошлый держит её свёртка, пока не отключена)
+    this.irs.clear();
     const sr = this.ctx.sampleRate;
     const len = Math.floor(sr * (decay + 0.1));
     const buf = this.ctx.createBuffer(2, len, sr);
