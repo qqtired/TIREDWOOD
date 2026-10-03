@@ -71,6 +71,8 @@ export class SettingsPanel {
     const now = (): GfxState => this.hooks.gfx();
     const edit = (patch: Partial<GfxItems>): void => editGfx(s, now(), patch);
     let c = this.item('graphics', 'Качество картинки', '');
+    // пять кнопок пресетов — в один ряд: им нужна своя ширина, а не общая колонка управления
+    c.classList.add('set-ctl-wide');
     const hint = c.parentElement!.querySelector('small') ?? c.parentElement!.firstElementChild!.appendChild(el('small', ''));
     this.choice<Quality | 'custom'>(
       c,
