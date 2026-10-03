@@ -53,8 +53,17 @@ export interface MobAnim {
   rage: boolean;
   /** Признаки ZF_* из снимка (shared/fortnet.ts): щит цел, несёт бочку, светится, экипаж, ступень. Может не быть — тогда 0 */
   flags?: number;
+  /**
+   * Байт stage из снимка (ZombieSnap.stage) как есть, смысл — по виду: у босса — фаза 1…3, у щупальца — номер,
+   * у лодки — сколько экипажа ещё в ней (столько пассажиров и показать). Может не быть — тогда 0.
+   */
+  stage?: number;
 }
 
+/**
+ * Матрицы костей. Масштаб может быть неравномерным и у костей (сплющился, раздулся), и у корня особи (босс
+ * протискивается в ворота): нормали инстансов считаются точно. Только не ноль и не зеркало — бери ≥ 0,02.
+ */
 export type MobPose = Record<BoneName, THREE.Matrix4>;
 
 export interface MobDef {
@@ -193,6 +202,24 @@ vMobTint = mobTint;
 vMobFlash = uMobFlash;
 vMobTint = uMobTint;
 #endif`;
+// Нормаль инстанса — присоединённой матрицей (три векторных произведения): точно при любом неравномерном масштабе
+// корня и костей вместе с поворотами (у three — приближение без сдвига, в сжатом боссе свет бы поплыл).
+const FX_NORMAL = /* glsl */ `vec3 transformedNormal = objectNormal;
+#ifdef USE_INSTANCING
+mat3 mobIm = mat3( instanceMatrix );
+transformedNormal = mat3( cross( mobIm[ 1 ], mobIm[ 2 ] ), cross( mobIm[ 2 ], mobIm[ 0 ] ), cross( mobIm[ 0 ], mobIm[ 1 ] ) ) * transformedNormal;
+#endif
+transformedNormal = normalMatrix * transformedNormal;
+#ifdef FLIP_SIDED
+transformedNormal = - transformedNormal;
+#endif
+#ifdef USE_TANGENT
+vec3 transformedTangent = objectTangent;
+#ifdef USE_INSTANCING
+transformedTangent = mat3( instanceMatrix ) * transformedTangent;
+#endif
+transformedTangent = ( modelViewMatrix * vec4( transformedTangent, 0.0 ) ).xyz;
+#endif`;
 const FX_FRAGMENT_PARS = /* glsl */ `#include <common>
 varying float vMobFlash;
 varying vec4 vMobTint;`;
@@ -218,7 +245,8 @@ export function mobMaterial(glow = false): THREE.MeshStandardMaterial {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uMobFlash = fx.uMobFlash;
     shader.uniforms.uMobTint = fx.uMobTint;
-    shader.vertexShader = shader.vertexShader.replace('#include <common>', FX_VERTEX_PARS).replace('#include <color_vertex>', FX_VERTEX);
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', FX_VERTEX_PARS).replace('#include <color_vertex>', FX_VERTEX)
+      .replace('#include <defaultnormal_vertex>', FX_NORMAL);
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FX_FRAGMENT_PARS).replace('#include <color_fragment>', FX_FRAGMENT);
   };
   mat.customProgramCacheKey = () => (glow ? 'mob-glow' : 'mob');

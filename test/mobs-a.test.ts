@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
-import { colored, merge, newPose, pickVariant, setBone, setChild, type MobAnim, type MobDef } from '../client/fort/mobs/kit.ts';
+import { colored, merge, mobMaterial, newPose, pickVariant, setBone, setChild, type MobAnim, type MobDef } from '../client/fort/mobs/kit.ts';
 import { MOB_CAP, MobRenderer, mobRoot, mobSeed } from '../client/fort/mobs/renderer.ts';
 
 function anim(over: Partial<MobAnim> = {}): MobAnim {
@@ -89,4 +89,33 @@ test('рендерер: особи в инстансах — кость × ко�
 
   r.dispose();
   assert.equal(parent.children.length, 0);
+});
+
+test('материал: вставки в шейдер three на месте, нормаль инстанса точна при сжатом корне', () => {
+  for (const glow of [false, true]) {
+    const mat = mobMaterial(glow);
+    const shader = { uniforms: {} as Record<string, unknown>, vertexShader: THREE.ShaderLib.standard.vertexShader, fragmentShader: THREE.ShaderLib.standard.fragmentShader };
+    mat.onBeforeCompile(shader as unknown as THREE.WebGLProgramParametersWithUniforms, undefined as unknown as THREE.WebGLRenderer);
+    assert.ok(!shader.vertexShader.includes('#include <defaultnormal_vertex>'), 'нормаль инстанса — своя');
+    assert.ok(shader.vertexShader.includes('attribute float mobFlash') && shader.vertexShader.includes('vMobFlash = mobFlash'));
+    assert.ok(shader.vertexShader.includes('cross( mobIm[ 1 ], mobIm[ 2 ] )'));
+    assert.ok(shader.fragmentShader.includes('mix( diffuseColor.rgb, vec3( 1.0 ), clamp( vMobFlash, 0.0, 1.0 ) )'), 'вспышка в белый после цвета вершин');
+    assert.ok('uMobFlash' in shader.uniforms && 'uMobTint' in shader.uniforms);
+  }
+  // то же, что шейдер: присоединённая матрица против точной (обратной транспонированной) — корень сжат, кость повёрнута
+  const root = mobRoot(new THREE.Matrix4(), 1, 0, -14, 0.7).multiply(new THREE.Matrix4().makeScale(0.82, 0.58, 0.82));
+  const bone = setBone(new THREE.Matrix4(), 0, 1.2, 0, 0.6, 0.3, -0.4, 1);
+  const m = new THREE.Matrix4().multiplyMatrices(root, bone);
+  const e = m.elements;
+  const c0 = new THREE.Vector3(e[0], e[1], e[2]);
+  const c1 = new THREE.Vector3(e[4], e[5], e[6]);
+  const c2 = new THREE.Vector3(e[8], e[9], e[10]);
+  const adj = new THREE.Matrix3().set(...[new THREE.Vector3().crossVectors(c1, c2), new THREE.Vector3().crossVectors(c2, c0), new THREE.Vector3().crossVectors(c0, c1)]
+    .flatMap((v) => v.toArray()) as [number, number, number, number, number, number, number, number, number]).transpose();
+  const exact = new THREE.Matrix3().getNormalMatrix(m);
+  for (const n of [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.3, -0.5, 0.8).normalize()]) {
+    const a = n.clone().applyMatrix3(adj).normalize();
+    const b = n.clone().applyMatrix3(exact).normalize();
+    assert.ok(a.distanceTo(b) < 1e-6, 'нормаль сжатого босса — без искажения');
+  }
 });

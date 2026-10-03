@@ -158,8 +158,9 @@ export class MobRenderer {
   }
 
   /**
-   * Особь в кадр: root — корень (ноги, курс; см. mobRoot), anim — поза, flash 0…1 — вспышка в белый, tint и tintMix —
-   * оттенок (экипаж, лечение, ярость). false — модели для вида нет или она переполнена: рисуй по-старому.
+   * Особь в кадр: root — корень (ноги, курс; см. mobRoot; масштаб может быть неравномерным — босс в воротах), anim —
+   * поза, flash 0…1 — вспышка в белый, tint и tintMix — оттенок (экипаж, лечение, ярость). false — модели для вида нет
+   * или она переполнена: рисуй по-старому.
    */
   add(kind: number, seed: number, root: THREE.Matrix4, anim: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.3): boolean {
     if (!this.open) return false;

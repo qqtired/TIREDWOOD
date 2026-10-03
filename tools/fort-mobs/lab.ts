@@ -7,6 +7,7 @@
 //   &blow=<с> — как часто «бьёт» в ZS_ATTACK (крепость обнуляет stT на каждом ударе), по умолчанию 0,8
 //   &crowd=<N> — толпа из N особей выбранных моделей идёт к стене через MobRenderer (инстансы, как в крепости):
 //                варианты по seed, скорость вида, вспышки попаданий; вид по умолчанию — со стены
+//   &squeeze=<0…1> — сжать корень особей, как босса в воротах (ниже на 42 %, уже на 20 %) — проверить свет
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ALL_MOBS, MOB_SETS } from '../../client/fort/mobs/index.ts';
@@ -134,12 +135,16 @@ let crowd: { r: MobRenderer; mobs: CrowdMob[] } | null = null;
 let rng = 12345;
 const rand = (): number => ((rng = (Math.imul(rng, 1103515245) + 12345) >>> 0) / 4294967296);
 const _root = new THREE.Matrix4();
+const squeeze = Math.min(1, Math.max(0, num('squeeze', 0)));
+const _squeeze = new THREE.Matrix4().makeScale(1 - 0.2 * squeeze, 1 - 0.42 * squeeze, 1 - 0.2 * squeeze);
 
 function startCrowd(defs: MobDef[]): void {
   crowd?.r.dispose();
   crowd = null;
   if (!defs.length) return;
   const r = new MobRenderer(scene, defs, 'high', { castShadow: true });
+  // как в крепости: тени стен на мобов падают, своих теней на себе нет (там карта теней статичная)
+  r.group.traverse((o) => { o.receiveShadow = false; });
   const kinds = [...new Set(defs.flatMap((d) => d.kinds))];
   rng = 12345;
   const mobs: CrowdMob[] = [];
@@ -175,6 +180,7 @@ function stepCrowd(dt: number, st: number, rage: boolean): void {
     a.hit = Math.max(0, a.hit - dt * 3);
     m.flash = Math.max(0, m.flash - dt * 7);
     mobRoot(_root, m.x, 0, m.z, Math.PI);
+    if (squeeze > 0) _root.multiply(_squeeze);
     r.add(m.kind, m.seed, _root, a, m.flash);
   }
   r.end();
