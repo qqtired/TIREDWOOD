@@ -63,7 +63,7 @@ export interface DirectorFeatures {
 export const FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
   bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
-  sea: false,
+  sea: true,
   kraken: false,
   events: false,
 };

@@ -7,9 +7,10 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BOSS_WARN_TICKS, ZK, ZS_ATTACK, ZS_CLIMB, ZS_DROP, ZS_TOP, Z_BLOATER, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_RUNNER, Z_WALKER, Z_BOSS, Z_FLYER, ZS_BOSS_OPEN, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_FLY_DIVE,
   ZS_PLANT, ZS_SPIT, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_RAM, Z_GOLEM, ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL,
-  ZS_QUAKE, ZS_STOMP, ZS_THROW, isBossKind } from '../../shared/fort.ts';
+  ZS_QUAKE, ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_HOP, ZS_BOAT_LEAVE } from '../../shared/fort.ts';
 import { ROCK_FLIGHT_TICKS } from '../../shared/fortkinds.ts';
 import { FT_STRIDE } from '../../shared/fortaim.ts';
+import { GATE, THROAT_Z } from '../../shared/fortmap.ts';
 import { ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, ZF_TIER, type ZombieSnap } from '../../shared/fortnet.ts';
 import { lerpAngle } from '../../shared/math.ts';
 import { BODY_H, bodyProfile } from '../render/outfit3d.ts';
@@ -20,6 +21,8 @@ import { attackSignal } from './signals.ts';
 
 /** Инстансов на часть: живых не больше FORT_MAX_ALIVE, с запасом на тех, кто ещё не пропал из снимков */
 const CAP = 72;
+/** Лодок одновременно — не больше */
+const BOAT_CAP = 6;
 const HIST = 12;
 /** Скачок больше этого между снимками — телепорт (застрявшего вернули в начало дороги): без «проезда» */
 const TELEPORT = 4;
@@ -28,6 +31,8 @@ const RISE_S = 0.8;
 /** Плечи (в осях тела до масштаба) */
 const SHOULDER_Y = 0.92;
 const SHOULDER_X = 0.44;
+/** Потопленная лодка уходит под воду столько секунд */
+const SINK_S = 1.6;
 /** Полоска здоровья: видна ближе этого */
 const BAR_DIST = 36;
 
@@ -109,6 +114,8 @@ class Track {
   atkT = 9;
   flash = 0;
   dead = false;
+  /** Когда сбит (лодка ещё тонет SINK_S секунд) */
+  deadAt = 0;
   valid = false;
 
   constructor(id: number) {
@@ -356,6 +363,90 @@ function shieldGeometry(): THREE.BufferGeometry {
   return mergeGeometries(parts, false)!;
 }
 
+/** Лодка-баркас: днище, борта, нос, корма, скамьи, мачта с полосатым парусом и флажком (нос — к −Z) */
+function boatGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const col = (g: THREE.BufferGeometry, hex: number) => {
+    const ng = g.index ? g.toNonIndexed() : g;
+    const c = new THREE.Color(hex);
+    const n = ng.getAttribute('position').count;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+    ng.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    ng.deleteAttribute('uv');
+    return ng;
+  };
+  const wood = 0x8a5a34;
+  const dark = 0x6b4426;
+  parts.push(col(new THREE.BoxGeometry(1.1, 0.16, 2.6).translate(0, 0.0, 0.1), dark));
+  for (const s of [-1, 1]) {
+    parts.push(col(new THREE.BoxGeometry(0.1, 0.62, 2.9).rotateZ(s * 0.32).translate(s * 0.66, 0.3, 0.1), wood));
+    parts.push(col(new THREE.BoxGeometry(0.14, 0.08, 2.9).translate(s * 0.78, 0.6, 0.1), 0xd9c7a0));
+    // нос: борта сходятся
+    parts.push(col(new THREE.BoxGeometry(0.1, 0.62, 0.95).rotateZ(s * 0.32).rotateY(-s * 0.62).translate(s * 0.36, 0.3, -1.62), wood));
+  }
+  parts.push(col(new THREE.BoxGeometry(1.4, 0.62, 0.1).translate(0, 0.3, 1.55), wood));
+  for (const z of [-0.6, 0.15, 0.85]) parts.push(col(new THREE.BoxGeometry(1.2, 0.07, 0.26).translate(0, 0.38, z), 0xa57548));
+  // мачта, парус в красно-белую полоску, флажок
+  parts.push(col(new THREE.CylinderGeometry(0.05, 0.06, 2.7, 8).translate(0, 1.5, -0.35), dark));
+  for (let i = 0; i < 4; i++) {
+    parts.push(col(new THREE.BoxGeometry(0.03, 0.42, 1.1 - i * 0.18).translate(0.04, 2.45 - i * 0.42, 0.25 - i * 0.02), i % 2 ? 0xf6f2e8 : 0xd8333a));
+  }
+  parts.push(col(new THREE.BoxGeometry(0.02, 0.22, 0.36).translate(0, 2.78, -0.15), 0x3a7bd5));
+  return mergeGeometries(parts, false)!;
+}
+
+/** Голова абордажника в лодке: зелёная макушка в бескозырке */
+function crewHeadGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const col = (g: THREE.BufferGeometry, hex: number) => {
+    const ng = g.index ? g.toNonIndexed() : g;
+    const c = new THREE.Color(hex);
+    const n = ng.getAttribute('position').count;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+    ng.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    ng.deleteAttribute('uv');
+    return ng;
+  };
+  parts.push(col(new THREE.SphereGeometry(0.24, 10, 8).scale(1, 1.15, 1), 0x8db37a));
+  parts.push(col(new THREE.CylinderGeometry(0.2, 0.22, 0.09, 12).translate(0, 0.25, 0), 0xf6f2e8));
+  parts.push(col(new THREE.CylinderGeometry(0.225, 0.225, 0.04, 12).translate(0, 0.21, 0), 0x2f4f8f));
+  for (const x of [-0.08, 0.08]) parts.push(col(new THREE.SphereGeometry(0.045, 6, 5).translate(x, 0.04, -0.21), 0xf6f2dc));
+  return mergeGeometries(parts, false)!;
+}
+
+/** Бескозырка: белая с синей лентой и красным помпоном */
+function capGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const col = (g: THREE.BufferGeometry, hex: number) => {
+    const ng = g.index ? g.toNonIndexed() : g;
+    const c = new THREE.Color(hex);
+    const n = ng.getAttribute('position').count;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+    ng.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    ng.deleteAttribute('uv');
+    return ng;
+  };
+  parts.push(col(new THREE.CylinderGeometry(0.27, 0.29, 0.1, 14), 0xf6f2e8));
+  parts.push(col(new THREE.CylinderGeometry(0.295, 0.295, 0.05, 14).translate(0, -0.05, 0), 0x2f4f8f));
+  parts.push(col(new THREE.SphereGeometry(0.06, 8, 6).translate(0, 0.08, 0), 0xd8333a));
+  return mergeGeometries(parts, false)!;
+}
+
+/**
+ * Насколько босс в проёме ворот (0 — снаружи, 1 — в толще стены): между «горлом» и внутренней гранью стены, у оси
+ * ворот, с плавным входом и выходом.
+ */
+export function gateSqueeze(x: number, z: number): number {
+  if (Math.abs(x) > GATE.x1 + 3) return 0;
+  const d = z < THROAT_Z ? THROAT_Z - z : z > WALL_IN_Z ? z - WALL_IN_Z : 0;
+  return Math.max(0, Math.min(1, 1 - d / 2.5));
+}
+/** Внутренняя грань северной стены */
+const WALL_IN_Z = -13;
+
 /** Корона чемпиона: кольцо зубцов над головой */
 function crownGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [new THREE.TorusGeometry(0.24, 0.035, 5, 18).rotateX(Math.PI / 2)];
@@ -410,6 +501,11 @@ export class Zombies3D {
   private readonly lane: THREE.InstancedMesh;
   private readonly laneFill: THREE.InstancedMesh;
   private readonly held: THREE.InstancedMesh;
+  /** Лодки: корпус с мачтой и парусом, головы экипажа; бескозырки абордажников */
+  private readonly hull: THREE.InstancedMesh;
+  private readonly crewHeads: THREE.InstancedMesh;
+  private readonly caps: THREE.InstancedMesh;
+  private heads = 0;
   private readonly bodyGeometries: readonly THREE.BufferGeometry[];
   private readonly ground?: GroundQuery;
   private detailDistance = Infinity;
@@ -469,10 +565,14 @@ export class Zombies3D {
     this.laneFill.renderOrder = 5;
     this.held = inst(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x7d7f77, roughness: 0.9, flatShading: true }), false);
     this.held.count = 0;
+    this.hull = inst(boatGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide }), false);
+    this.crewHeads = inst(crewHeadGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }), false);
+    this.caps = inst(capGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), false);
     for (const m of [this.body, this.face, this.armL, this.armR]) m.castShadow = false;
     scene.add(this.body, this.face, this.armL, this.armR, this.shadow, this.barBg, this.barFill);
     for (const m of this.extras) if (m) scene.add(m);
-    scene.add(this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warningFill, this.warning, this.lane, this.laneFill, this.held);
+    scene.add(this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warningFill, this.warning, this.lane, this.laneFill, this.held,
+      this.hull, this.crewHeads, this.caps);
   }
 
   setQuality(q: Quality, slow = false): void {
@@ -492,19 +592,27 @@ export class Zombies3D {
       if (!tr) {
         tr = new Track(s.id);
         // новый посреди игры — вылезает из земли (кроме тех, кто уже был, когда мы вошли)
-        tr.born = this.warm >= 3 && s.kind !== Z_FLYER && !isBossKind(s.kind) ? this.time : -1;
+        tr.born = this.warm >= 3 && s.kind !== Z_FLYER && s.kind !== Z_BOAT && s.state !== ZS_HOP && !isBossKind(s.kind) ? this.time : -1;
         this.tracks.set(s.id, tr);
       }
       tr.push(tick, s);
       tr.seen = this.frame;
     }
-    for (const [id, tr] of this.tracks) if (tr.seen !== this.frame) this.tracks.delete(id);
+    for (const [id, tr] of this.tracks) {
+      if (tr.seen === this.frame) continue;
+      // потопленная лодка ещё тонет — не прячем сразу
+      if (tr.dead && tr.kind === Z_BOAT && this.time - tr.deadAt < SINK_S) continue;
+      this.tracks.delete(id);
+    }
   }
 
   /** Сбит (событие zdie): прячем сразу, не дожидаясь, пока пропадёт из снимков */
   kill(id: number): void {
     const tr = this.tracks.get(id);
-    if (tr) tr.dead = true;
+    if (tr && !tr.dead) {
+      tr.dead = true;
+      tr.deadAt = this.time;
+    }
   }
 
   hit(id: number): void {
@@ -563,7 +671,8 @@ export class Zombies3D {
     this.warm = 0;
     for (const m of [this.body, this.face, this.armL, this.armR, this.shadow, this.barBg, this.barFill]) m.count = 0;
     for (const m of this.extras) if (m) m.count = 0;
-    for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill, this.lane, this.laneFill, this.held]) m.count = 0;
+    for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill, this.lane, this.laneFill, this.held,
+      this.hull, this.crewHeads, this.caps]) m.count = 0;
   }
 
   /** Цели прицела — живые зомби на тике t (то же, к чему сервер откатит орду): x, y ног, z, тип. */
@@ -583,6 +692,39 @@ export class Zombies3D {
   }
 
   /** Кадр: интерполяция на тике t, походка и позы, матрицы инстансов. */
+  /** Лодка: качка, тонет (sink 0…1), экипаж на скамьях (stage — сколько ещё в лодке), полоска здоровья; вернёт bars */
+  private drawBoat(tr: Track, r: ZPose, i: number, time: number, camPos: THREE.Vector3, cam: THREE.Camera, bars: number, sink: number): number {
+    const leaving = r.st === ZS_BOAT_LEAVE;
+    const sway = time * 1.6 + tr.id;
+    const y = r.y + Math.sin(sway) * 0.1 - sink * 2.4;
+    _e.set(Math.sin(time * 1.3 + tr.id) * 0.05 + sink * 0.7, r.yaw, Math.sin(time * 1.1 + tr.id * 2) * 0.06 + sink * 0.35);
+    _q.setFromEuler(_e);
+    _p.set(r.x, y, r.z);
+    _s.set(1.3, 1.3, 1.3);
+    _m.compose(_p, _q, _s);
+    this.hull.setMatrixAt(i, _m);
+    // экипаж: две колонки по скамьям, покачиваются
+    const crew = sink > 0 || leaving ? 0 : Math.min(8, r.stage);
+    for (let c = 0; c < crew && this.heads < BOAT_CAP * 8; c++) {
+      const side = c % 2 ? 0.32 : -0.32;
+      _arm.makeTranslation(side, 0.55 + Math.abs(Math.sin(time * 4 + c + tr.id)) * 0.06, -0.95 + Math.floor(c / 2) * 0.55);
+      this.crewHeads.setMatrixAt(this.heads++, _m2.multiplyMatrices(_m, _arm));
+    }
+    // полоска здоровья (лодку можно потопить издалека — видна дальше)
+    if (sink === 0 && r.hp < 0.999 && r.hp > 0 && camPos.distanceTo(_p) < BAR_DIST * 2.5) {
+      const w = 2;
+      _p.set(r.x, y + 3.4, r.z);
+      _s.set(w + 0.06, 0.16, 1);
+      this.barBg.setMatrixAt(bars, _m2.compose(_p, cam.quaternion, _s));
+      _p.addScaledVector(_right, -w / 2);
+      _s.set(w * r.hp, 0.1, 1);
+      this.barFill.setMatrixAt(bars, _m2.compose(_p, cam.quaternion, _s));
+      this.barFill.setColorAt(bars, _c.setRGB(1, 0.3, 0.25).lerp(_c2.setRGB(0.45, 0.95, 0.35), r.hp));
+      bars++;
+    }
+    return bars;
+  }
+
   update(t: number, dt: number, time: number, cam: THREE.Camera): void {
     this.time = time;
     const camPos = cam.position;
@@ -598,12 +740,21 @@ export class Zombies3D {
     let crowns = 0;
     let lanes = 0;
     let helds = 0;
+    let boats = 0;
+    let caps = 0;
+    this.heads = 0;
     const counts = this.counts;
     counts.fill(0);
     for (const tr of this.tracks.values()) {
       const r = tr.r;
-      tr.valid = !tr.dead && tr.sample(t, r);
+      const sinking = tr.dead && tr.kind === Z_BOAT && this.time - tr.deadAt < SINK_S;
+      tr.valid = (!tr.dead || sinking) && tr.sample(t, r);
       if (!tr.valid || n >= CAP) continue;
+      if (tr.kind === Z_BOAT) {
+        // лодка — своя модель: корпус, мачта с парусом, головы экипажа; качается на волне, потопленная — тонет
+        if (boats < BOAT_CAP) bars = this.drawBoat(tr, r, boats++, time, camPos, cam, bars, sinking ? (this.time - tr.deadAt) / SINK_S : 0);
+        continue;
+      }
       // скорость по пройденному на экране (для походки)
       const moved = Number.isNaN(tr.lastX) ? 0 : Math.hypot(r.x - tr.lastX, r.z - tr.lastZ);
       tr.lastX = r.x;
@@ -657,6 +808,11 @@ export class Zombies3D {
         armL = 2.9;
         armR = 2.9;
         lean = 0.2;
+      }
+      if (st === ZS_HOP) {
+        // прыжок из лодки на берег
+        armL = armR = 2.6;
+        lean = 0.22;
       }
       if (kind === Z_FLYER) {
         bob = Math.sin(time * 5 + tr.id) * 0.07;
@@ -729,8 +885,18 @@ export class Zombies3D {
       const tier = r.flags & ZF_TIER;
       const big = tier === 2 ? 1.12 : 1;
       const bloat = kind === Z_BLOATER ? Math.sin(time * 5 + tr.id) * 0.04 : 0;
-      const sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5) * big;
-      const sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1) * big;
+      let sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5) * big;
+      let sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1) * big;
+      if (isBossKind(kind)) {
+        // в проёме ворот желе протискивается: ниже арки и уже створа, с дрожью
+        const f = gateSqueeze(r.x, r.z);
+        if (f > 0) {
+          const h = k.hcy + k.hry;
+          const wob = Math.sin(time * 14 + tr.id) * 0.04 * f;
+          sy *= 1 - f * Math.max(0, 1 - GATE.h * 0.92 / h) + wob;
+          sxz *= 1 - f * Math.max(0, 1 - (GATE.x1 - GATE.x0) * 0.46 / k.hrx) - wob;
+        }
+      }
       if (kind === Z_SPITTER && st === ZS_SPIT) {
         // набирает воздух: откидывается назад, щёки раздуваются
         const u = 1 - Math.min(1, r.wind / 72);
@@ -767,6 +933,11 @@ export class Zombies3D {
       this.armR.setColorAt(n, _c2);
       const ex = this.extras[kind];
       if (ex) ex.setMatrixAt(counts[kind]++, _m);
+      if ((r.flags & ZF_CREW) && caps < CAP) {
+        // бескозырка абордажника
+        _arm.makeTranslation(0, BODY_H - 0.1, 0);
+        this.caps.setMatrixAt(caps++, _m2.multiplyMatrices(_m, _arm));
+      }
       if (kind === Z_SHIELD && (r.flags & ZF_SHIELD)) {
         _arm.makeTranslation(0, 0.8, -0.62);
         this.shieldMesh.setMatrixAt(shields++, _m2.multiplyMatrices(_m, _arm));
@@ -875,6 +1046,10 @@ export class Zombies3D {
     this.warning.count = this.warningFill.count = warnings;
     this.lane.count = this.laneFill.count = lanes;
     this.held.count = helds;
+    this.hull.count = boats;
+    this.crewHeads.count = this.heads;
+    this.caps.count = caps;
+    for (const m of [this.hull, this.crewHeads, this.caps]) m.instanceMatrix.needsUpdate = true;
     for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill, this.lane, this.laneFill, this.held]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
