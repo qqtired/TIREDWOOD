@@ -105,6 +105,14 @@ test('рендерер: особи в инстансах — кость × ко�
   for (const m of meshes('b')) assert.equal(m.count, 1);
   for (const m of meshes('a')) assert.equal(m.visible, true);
   for (const m of meshes('c')) assert.equal(m.visible, false, 'пустая сетка не рисуется');
+  // морской туман: светящиеся части без тумана, остальные — как были
+  const glowMat = meshes('a').find((m) => m.name.endsWith(':head'))!.material as THREE.MeshStandardMaterial;
+  const bodyMat = meshes('a').find((m) => m.name.endsWith(':body'))!.material as THREE.MeshStandardMaterial;
+  r.setFogGlow(true);
+  assert.equal(glowMat.fog, false);
+  assert.equal(bodyMat.fog, true);
+  r.setFogGlow(false);
+  assert.equal(glowMat.fog, true);
 
   const pose = newPose();
   defs[0].pose(anim({ hit: 1 }), pose);

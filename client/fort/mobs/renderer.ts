@@ -160,6 +160,13 @@ export class MobRenderer {
     }
   }
 
+  /** Морской туман (событие крепости): светящиеся части — глаза, фитили, огоньки — видны сквозь туман */
+  setFogGlow(on: boolean): void {
+    if (this.glowMaterial.fog === !on) return;
+    this.glowMaterial.fog = !on;
+    this.glowMaterial.needsUpdate = true;
+  }
+
   /** Есть ли модель для вида (у особи с признаками flags — с учётом особых вариантов) */
   has(kind: number, flags = 0): boolean {
     return this.pick(kind, 0, flags) !== null;
