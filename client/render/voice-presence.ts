@@ -22,18 +22,19 @@ export function makeVoiceIndicator(): THREE.Sprite {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 128;
     const ctx = canvas.getContext('2d')!;
-    // Dark rim keeps the warm mint microphone readable on both sky and scenery.
+    // Dark rim keeps the mint speaker readable on both sky and scenery. Ник уже над головой — тут только значок:
+    // динамик с волнами, как в списке «кто говорит» (client/ui/voice.ts).
     ctx.fillStyle = '#172a28';
     ctx.beginPath(); ctx.arc(64, 64, 58, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#96e6c6'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = '#e3fff3'; ctx.fillStyle = '#e3fff3';
     ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.roundRect(53, 30, 22, 39, 11); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(42, 59); ctx.lineTo(42, 62);
-    ctx.arc(64, 62, 22, Math.PI, 0, true); ctx.lineTo(86, 59); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(64, 84); ctx.lineTo(64, 97);
-    ctx.moveTo(53, 97); ctx.lineTo(75, 97); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(30, 52); ctx.lineTo(44, 52); ctx.lineTo(62, 36); ctx.lineTo(62, 92); ctx.lineTo(44, 76); ctx.lineTo(30, 76); ctx.closePath();
+    ctx.lineWidth = 5; ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(66, 64, 13, -0.85, 0.85); ctx.stroke();
+    ctx.beginPath(); ctx.arc(66, 64, 26, -0.85, 0.85); ctx.stroke();
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.minFilter = THREE.LinearFilter;

@@ -94,10 +94,22 @@ const JOIN_RETRY = [3_000, 6_000, 12_000, 20_000];
 const NOTICE_MS = 4_000;
 const MIC_ERRORS = ['Доступ к микрофону запрещён', 'Не удалось открыть микрофон', 'Микрофон недоступен', 'Микрофон отключился'];
 /** Цепочка отправки: микрофон (уже с эхо- и шумоподавлением браузера) → громкость → поток, который уходит собеседникам */
-interface SendChain { ctx: AudioContext; source: MediaStreamAudioSourceNode; gain: GainNode; track: MediaStreamTrack }
+interface SendChain { ctx: AudioContext; source: MediaStreamAudioSourceNode; gain: GainNode; track: MediaStreamTrack; meter?: AnalyserNode }
+/** Громкость (линейная амплитуда 0…1) → 0…1 для индикатора: −50 дБ и тише — ноль, −10 дБ и громче — единица */
+function loudness(amplitude: number): number {
+  if (!(amplitude > 0)) return 0;
+  return Math.max(0, Math.min(1, (20 * Math.log10(amplitude) + 50) / 40));
+}
 function typing(target: EventTarget | null | undefined) {
   const el = target as HTMLElement | null;
   return !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color', 'file', 'image'].includes((el as HTMLInputElement).type)));
+}
+/**
+ * Где V — голос: везде в игре — в меню Esc, настройках, окнах, на паузе. Нельзя одно: набор текста (фокус в поле
+ * ввода, открыт чат) — там V просто буква. Плюс технические паузы: экран загрузки и восстановление связи.
+ */
+export function voiceInputAllowed(s: { inGame: boolean; loading: boolean; chatOpen: boolean; focused: EventTarget | null }): boolean {
+  return s.inGame && !s.loading && !s.chatOpen && !typing(s.focused);
 }
 /**
  * Opus DTX в отправляемом описании: при отпущенной V дорожка молчит, и с DTX тишина почти не занимает канал (пакет
@@ -155,8 +167,9 @@ export class VoiceController {
   private refresh: Timer | null = null;
   private readonly blur = () => this.stopTalking();
   private readonly visibility = () => { if (this.deps.hidden()) this.stopTalking(); };
-  // Any focus change relinquishes an existing press. A new eligible press may start again.
-  private readonly focus = () => this.stopTalking();
+  // Фокус ушёл в поле ввода (чат, ник, сумма ставки) — там V буква: тишина сразу. Окна и кнопки фокус тоже забирают,
+  // но говорить там можно: отпускание V игра ловит на window в фазе захвата, его не проглотит ни одно окно.
+  private readonly focus = (event: Event) => { if (typing(event.target)) this.stopTalking(); };
   private readonly gesture = () => { void this.unblock(); };
 
   constructor(opts: Options, dependencies: Partial<VoiceDependencies> = {}) {
@@ -783,6 +796,27 @@ export class VoiceController {
     if (remaining <= 0) return;
     this.refresh = this.deps.setTimer(() => { this.refresh = null; if (this.on) this.send({ t: 'voice', a: 'refresh' }); }, Math.max(1000, remaining - Math.min(60_000, remaining / 5)));
   }
+  /**
+   * Громкость говорящего для индикатора, 0…1: свой голос — с цепочки отправки (после затухания), собеседник — по RTP
+   * (audioLevel пакетов). null — уровня нет (нет движка или браузер не умеет) — индикатор пульсирует спокойно.
+   */
+  speakingLevel(id: number | 'self'): number | null {
+    try {
+      if (id === 'self') {
+        const c = this.chain;
+        if (!c) return null;
+        if (!c.meter) { const meter = c.ctx.createAnalyser(); meter.fftSize = 512; c.gain.connect(meter); c.meter = meter; }
+        const buf = this.meterBuf ??= new Float32Array(512);
+        c.meter.getFloatTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        return loudness(Math.sqrt(sum / buf.length));
+      }
+      const receiver = this.peers.get(id)?.pc.getReceivers?.().find(r => r.track?.kind === 'audio');
+      const source = receiver?.getSynchronizationSources?.()[0];
+      return source && typeof source.audioLevel === 'number' ? loudness(source.audioLevel) : null;
+    } catch { return null; }
+  }
+  private meterBuf: Float32Array<ArrayBuffer> | null = null;
   async debug(): Promise<VoiceDebug> {
     const peers = await Promise.all([...this.peers.values()].map(async p => {
       const row = { id: p.info.id, pid: p.info.pid, connection: p.pc.connectionState, ice: p.pc.iceConnectionState ?? 'new', gathering: p.pc.iceGatheringState ?? 'new', signaling: p.pc.signalingState ?? 'stable', offerer: p.offerer, restarts: p.restarts, localIce: p.localIce, remoteIce: p.remoteIce, descriptionsSent: p.descriptionsSent, descriptionsReceived: p.descriptionsReceived, iceErrors: p.iceErrors, route: 'unknown', bytesSent: 0, bytesReceived: 0, audioEnergy: 0, samplesReceived: 0, codecs: [] as string[], dtx: /usedtx=1/.test(p.pc.remoteDescription?.sdp ?? ''),
