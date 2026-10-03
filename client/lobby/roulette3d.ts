@@ -18,6 +18,8 @@ const WHEEL_Y = 0.98;
 const TABLE_W = 2.3;
 const TABLE_D = 1.15;
 const TABLE_H = 0.86;
+/** Стол в 3D крупнее модели в TABLE_SCALE раз */
+const TABLE_SCALE = 1.25;
 /** Покой: колесо тихо крутится, рад/с */
 const IDLE_W = 0.25;
 const COLORS: Record<RouletteColor, string> = { red: '#b3262b', black: '#1d1d22', green: '#1e7a3d' };
@@ -148,6 +150,8 @@ export class Roulette3D {
     g.name = 'fish-roulette';
     g.position.set(ROULETTE_SPOT.x, ROULETTE_SPOT.y, ROULETTE_SPOT.z);
     g.rotation.y = ROULETTE_SPOT.yaw;
+    // стол крупнее на четверть: колесо и шарик видны с палубы; по ширине (1,44 м) и длине (2,9 м) он под тентом (3,3 × 4,6 м)
+    g.scale.setScalar(TABLE_SCALE);
     g.visible = false;
     const wood = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.08 });
     const legs: THREE.BufferGeometry[] = [];
