@@ -41,6 +41,8 @@ export interface ModeStats {
 const fmt = new Intl.NumberFormat('ru-RU');
 const lap = (ms: number): StatValue => (ms > 0 ? fmtRaceTime(ms) : null);
 const best = (n: number): StatValue => (n > 0 ? n : null);
+const MEDALS = ['', '🥉 бронза', '🥈 серебро', '🥇 золото'];
+const medal = (n: number): StatValue => MEDALS[n] || null;
 
 /** «Рекорды по режимам»: лучший результат каждого режима, у трасс и курсов — по строке на каждую */
 export const RECORDS: readonly RecordLine[] = [
@@ -49,6 +51,7 @@ export const RECORDS: readonly RecordLine[] = [
   // круг катера сервер считает в тиках (60 в секунду)
   { mode: '🚤 Катера', course: 'Лазурный круг', what: 'лучший круг', value: (s) => lap((s.brBestLap * 1000) / 60) },
   { mode: '🌊 Аквапарк', what: 'лучшее время', value: (s) => (s.aqBest > 0 ? fmtAquaTime(s.aqBest) : null) },
+  { mode: '☁️ Выше облаков', course: 'Небесная каланча', what: 'лучшее время', value: (s) => lap(s.skBest) },
   { mode: '🎣 Рыбалка', what: 'самая тяжёлая рыба', value: (s) => (s.fsMaxGrams > 0 ? fmtWeight(s.fsMaxGrams) : null) },
   { mode: '🎰 Автоматы', what: 'самый крупный выигрыш', value: (s) => (s.bestWin > 0 ? `${fmt.format(s.bestWin)} 🪙` : null) },
   { mode: '🏰 Крепость', what: 'лучшая волна', value: (s) => best(s.ftBest), played: (s) => s.ftGames > 0 },
@@ -63,6 +66,7 @@ export const MODE_STATS: readonly ModeStats[] = [
   { mode: '🃏 Дурак', rows: [['партий', (s) => s.dkGames], ['в дураках', (s) => s.dkFools], ['вышел первым', (s) => s.dkFirst]] },
   { mode: '🎰 Автоматы', rows: [['вращений', (s) => s.spins], ['выиграно', (s) => `${fmt.format(s.slotWon)} 🪙`], ['джекпотов', (s) => s.jackpots]] },
   { mode: '🌊 Аквапарк', rows: [['пройдено', (s) => s.aqRuns]] },
+  { mode: '☁️ Выше облаков', rows: [['подъёмов', (s) => s.skRuns], ['медаль', (s) => medal(s.skMedal)], ['без падений', (s) => (s.skClean ? 'есть' : null)]] },
   { mode: '🏰 Крепость', rows: [['игр', (s) => s.ftGames], ['побед', (s) => s.ftWins], ['сбито зомби', (s) => s.ftKills]], played: (s) => s.ftGames > 0 },
   // о клубе — никому: только тем, кто дрался
   { mode: '🥊 Подвал', rows: [['боёв', (s) => s.fcFights], ['побед', (s) => s.fcWins], ['нокаутов', (s) => s.fcKos]], played: (s) => s.fcFights > 0 },
