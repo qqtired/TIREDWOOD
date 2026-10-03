@@ -386,6 +386,7 @@ export class FortMatch {
     if (r.kills) parts.push(`сбитые +${r.kills}`);
     if (r.win) parts.push(`победа +${r.win}`);
     if (r.mvp) parts.push(`лучший +${r.mvp}`);
+    if (r.record) parts.push(`рекорд крепости +${r.record}`);
     this.d.hud.showReward(`+${r.total} ${plural(r.total, 'жетон', 'жетона', 'жетонов')}: ${parts.join(' · ')}`);
   }
 

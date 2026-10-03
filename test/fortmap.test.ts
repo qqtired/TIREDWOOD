@@ -2,7 +2,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
-import { FORT_WAVES, FT_KILL_CAP, FT_MVP, FT_WIN, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_WALKER, ZS_TOP, fortReward, waveCounts, zombieHp } from '../shared/fort.ts';
+import { FORT_WAVES, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_WALKER, ZS_TOP, waveCounts, zombieHp } from '../shared/fort.ts';
+import { FT_TOK_MVP, FT_TOK_WIN, killTokens, waveTokens } from '../shared/fortwaves.ts';
+import { makeRun, settle } from '../server/fort/ledger.ts';
 import { FT_STRIDE, nearestZombie, zombieHead } from '../shared/fortaim.ts';
 import { CLIMBS, FORT, GATE, ROADS, TERRACE, WALL_H, buildFort, insideFort, outsideFort } from '../shared/fortmap.ts';
 import { decodeFortTail, encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
@@ -118,14 +120,29 @@ test('волны растут, с людьми зомби больше и тол
   assert.equal(waveCounts(1, 1).length, Z_KINDS);
 });
 
-test('жетоны: без отбитой волны — ничего; полная победа лучшего — по таблице', () => {
-  assert.equal(fortReward({ waves: 0, kills: 30, win: false, mvp: true }), null);
-  const r = fortReward({ waves: 3, kills: 9, win: false, mvp: false })!;
-  assert.deepEqual(r, { total: 15 + 1, n: 3, waves: 15, kills: 1, win: 0, mvp: 0 });
-  const best = fortReward({ waves: 8, kills: 500, win: true, mvp: true })!;
-  assert.equal(best.total, 40 + FT_KILL_CAP + FT_WIN + FT_MVP);
-  // шкала выпуска 6: победа за 7–8 минут — 90–100 жетонов (около 12 в минуту)
-  assert.ok(best.total >= 90 && best.total <= 100);
+test('жетоны: каждую волну и каждый десяток сбитых платят один раз; бонусы — только в итогах', () => {
+  assert.equal(waveTokens(1), 6);
+  assert.equal(waveTokens(7), 6 + 8, 'босс');
+  assert.equal(waveTokens(25), 8 + 25, 'супер-босс');
+  assert.equal(waveTokens(300), 14 + 25, 'потолок за волну — 14');
+  assert.equal(killTokens(9), 0);
+  assert.equal(killTokens(10_000), 40, 'за сбитых не больше 40 за забег');
+  const run = makeRun(50);
+  assert.equal(settle(run, null), null, 'ничего не нажил — платить нечего');
+  run.waves = 3;
+  run.tokWaves = waveTokens(1) + waveTokens(2) + waveTokens(3);
+  run.kills = 25;
+  const a = settle(run, null)!;
+  assert.deepEqual(a, { total: 18 + 2, n: 3, waves: 18, kills: 2, win: 0, mvp: 0, record: 0 });
+  assert.equal(settle(run, null), null, 'второй раз то же самое не платят');
+  run.tokWaves += waveTokens(4);
+  run.kills = 31;
+  const b = settle(run, { mvp: true, record: true, win: false })!;
+  assert.equal(b.waves, 6);
+  assert.equal(b.kills, 1);
+  assert.equal(b.mvp, FT_TOK_MVP);
+  assert.ok(b.record! > 0);
+  assert.equal(settle(makeRun(0), { mvp: false, record: false, win: true })?.win, FT_TOK_WIN);
 });
 
 test('хвост снимка туда и обратно', () => {

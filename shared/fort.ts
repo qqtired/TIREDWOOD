@@ -230,35 +230,19 @@ export const JAM_TICKS = 45 * TICK_RATE;
 export const JAM_R = 3;
 export const JAM_SLOW = 0.4;
 
-// --- жетоны (шкала выпуска 6: около 8–12 🪙 за минуту боя; полная игра — 7–8 минут, победа — 90–100)
-
-export const FT_WAVE_TOKENS = 5;
-export const FT_KILLS_PER_TOKEN = 5;
-export const FT_KILL_CAP = 30;
-export const FT_WIN = 20;
-export const FT_MVP = 10;
+// --- жетоны (≈10–11 🪙 за минуту боя): за каждую отбитую волну с участием, за сбитых, бонусы итогов — fortwaves.ts.
+// Платятся при выходе или в итогах, каждая волна — один раз (учёт забега по профилю — server/fort/ledger.ts).
 
 export interface FtReward {
   total: number;
-  /** Отбитых волн с участием и жетонов за них */
+  /** Отбитых волн с участием за забег */
   n: number;
+  /** Жетонов за волны, сбитых, победу (300-я), лучшего защитника, новый рекорд крепости — в этой выплате */
   waves: number;
   kills: number;
   win: number;
   mvp: number;
-}
-
-/**
- * Жетоны по итогам игры тому, кто дождался итогов: waves — сколько волн отбил (был в крепости с начала волны до её
- * конца), kills — сколько зомби сбил сам. Ни одной волны — ничего.
- */
-export function fortReward(r: { waves: number; kills: number; win: boolean; mvp: boolean }): FtReward | null {
-  if (r.waves < 1) return null;
-  const waves = FT_WAVE_TOKENS * Math.min(FORT_WAVES, r.waves);
-  const kills = Math.min(FT_KILL_CAP, Math.floor(r.kills / FT_KILLS_PER_TOKEN));
-  const win = r.win ? FT_WIN : 0;
-  const mvp = r.mvp ? FT_MVP : 0;
-  return { total: waves + kills + win + mvp, n: Math.min(FORT_WAVES, r.waves), waves, kills, win, mvp };
+  record?: number;
 }
 
 // --- сообщения (shared/messages.ts берёт отсюда типы)
@@ -297,6 +281,10 @@ export interface FortResultRow {
   pts: number;
   waves: number;
   tokens: number;
+  /** Не первая выплата за этот забег (вышел раньше и вернулся) — игру в статистике уже посчитали */
+  again?: boolean;
+  /** Сбитых с прошлой выплаты — в статистику профиля */
+  kNew?: number;
 }
 
 /** Что купили у стойки (событие 'buy') */

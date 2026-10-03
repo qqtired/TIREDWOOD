@@ -4,10 +4,11 @@ import { test } from 'node:test';
 import { RIG_PB, cameraRig } from '../shared/aim.ts';
 import { TICK_RATE } from '../shared/constants.ts';
 import {
-  BREAK_TICKS, CRYSTAL_HP, FIX_PRICE, FORT_RESPAWN_TICKS, FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, FT_WAVE_TOKENS, FT_WIN, GATE_HP, JAM_SLOW, START_PTS,
+  BREAK_TICKS, CRYSTAL_HP, FIX_PRICE, FORT_RESPAWN_TICKS, FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_SLOW, START_PTS,
   TURRET_PRICE, WAVE_PTS, ZK, ZS_CLIMB, ZS_DROP, ZS_TOP, ZS_WALK, Z_BLOATER, Z_CLIMBER, Z_WALKER, type FortEvent, type FtReward,
 } from '../shared/fort.ts';
 import { CHUTES, GATE, TERRACE, insideFort } from '../shared/fortmap.ts';
+import { FT_TOK_WIN, waveTokens } from '../shared/fortwaves.ts';
 import type { ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { BTN_FIRE, type Input } from '../shared/sim.ts';
@@ -257,6 +258,7 @@ test('кристалл разбит — поражение; жетоны — т�
   manualWave(game);
   game.wave = 3;
   a.waves = 2;
+  a.run.tokWaves = waveTokens(1) + waveTokens(2);
   b.waves = 0;
   game.gate = 0;
   game.world.setEnabled(game.map.gateBox, false);
@@ -273,7 +275,7 @@ test('кристалл разбит — поражение; жетоны — т�
   assert.equal(results.length, 2);
   const ra = results.find((r) => r.p === a)!;
   const rb = results.find((r) => r.p === b)!;
-  assert.ok(ra.reward && ra.reward.waves === 2 * FT_WAVE_TOKENS && !ra.win);
+  assert.ok(ra.reward && ra.reward.waves === waveTokens(1) + waveTokens(2) && !ra.win);
   assert.equal(rb.reward, null);
   assert.ok(sa.msgs.some((m) => m.t === 'fortReward'));
   assert.ok(!sb.msgs.some((m) => m.t === 'fortReward'));
@@ -305,8 +307,8 @@ test(`${FORT_WAVES} волн — победа: жетоны за волны, с�
   assert.ok(r.win);
   assert.equal(r.wave, FORT_WAVES);
   assert.ok(r.reward);
-  assert.equal(r.reward.waves, FT_WAVE_TOKENS * FORT_WAVES);
-  assert.equal(r.reward.win, FT_WIN);
+  assert.equal(r.reward.waves, waveTokens(FORT_WAVES), 'платят за отбитую при нём волну');
+  assert.equal(r.reward.win, FT_TOK_WIN);
   assert.ok(r.reward.kills > 0);
   assert.equal(r.reward.mvp, 0, 'один человек — без «лучшего»');
   const end = s.msgs.find((m) => m.t === 'fend');

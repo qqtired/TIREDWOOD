@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FORT_WAVES, FT_END, FT_GATHER } from '../shared/fort.ts';
+import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER } from '../shared/fort.ts';
 import { buildLobby } from '../shared/maps/lobby.ts';
 import { BTN_FORWARD } from '../shared/sim.ts';
 import { fortEnabled } from '../server/fort/room.ts';
@@ -124,4 +124,37 @@ test('итоги крепости: жетоны и статистика — в �
   assert.equal(prof.stats.ftKills, p.kills);
   assert.equal(lastOf(s, 'tokens')!.n, prof.tokens);
   assert.ok(lastOf(s, 'me')!.stats.ftGames === 1, 'профиль обновлён');
+});
+
+test('выход из крепости посреди забега: жетоны за отбитые волны — в профиль сразу, игра в статистике — один раз', () => {
+  const hub = fortHub();
+  const { c, s } = login(hub, 'Беглец');
+  steps(hub, 3 * TICK_RATE);
+  placeAt(hub, c, point.x, point.z);
+  hub.onJson(c, { t: 'use', id: point.id });
+  const game = hub.fort!.game;
+  const p = hub.fort!.playerOf(c)!;
+  const before = c.profile!.tokens;
+  // волна 1 отбита
+  game.phaseEnd = game.tick + 1;
+  for (let i = 0; i < 80 * TICK_RATE && (game.wave < 1 || game.phase !== FT_BREAK); i++) {
+    for (const z of game.horde.zombies) if (z.alive) game.horde.damage(z, 1e9, p.id, true, z.x, 1, z.z);
+    hub.step();
+  }
+  assert.equal(p.waves, 1);
+  // уходит на набережную: выплата сразу, надпись — в общий тост
+  hub.move(c, hub.lobby, true);
+  const prof = c.profile!;
+  assert.ok(prof.tokens > before, 'жетоны за волну зачислены при выходе');
+  assert.equal(prof.stats.ftGames, 1);
+  assert.ok(s.msgs.some((m) => m.t === 'toast' && m.text.includes('Крепость')));
+  // крепость опустела — вернулся уже в новую игру; ушёл без волны — ни денег, ни второй игры в статистике
+  const mid = prof.tokens;
+  steps(hub, 2 * TICK_RATE);
+  placeAt(hub, c, point.x, point.z);
+  hub.onJson(c, { t: 'use', id: point.id });
+  assert.equal(hub.fort!.playerOf(c)!.waves, 0, 'пустая крепость — новая игра');
+  hub.move(c, hub.lobby, true);
+  assert.equal(prof.tokens, mid);
+  assert.equal(prof.stats.ftGames, 1);
 });

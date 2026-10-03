@@ -73,9 +73,10 @@ export class FortRoom implements Room {
   leave(c: Client): void {
     const p = this.byClient.get(c);
     if (!p) return;
+    // сначала игра: выплата жетонов за отбитые волны идёт через хук result — ему нужно соединение
+    this.game.removePlayer(p.id);
     this.byClient.delete(c);
     this.byPlayer.delete(p);
-    this.game.removePlayer(p.id);
   }
 
   /** Колпак дурака надели или сняли — новый наряд уйдёт в ближайшем составе. */

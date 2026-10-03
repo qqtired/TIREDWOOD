@@ -754,10 +754,11 @@ export class Hub {
     const prof = c.profile;
     if (!prof || c.ephemeral) return;
     const st = prof.stats;
-    st.ftGames++;
+    // выплата по забегу бывает и при выходе: игра считается один раз, сбитые — с прошлой выплаты
+    if (!row.again) st.ftGames++;
     if (win) st.ftWins++;
     if (wave > st.ftBest) st.ftBest = wave;
-    st.ftKills += row.k;
+    st.ftKills += row.kNew ?? row.k;
     if (reward) this.profiles.credit(prof, reward.total, 'mode');
     this.store.markDirty();
     this.tokens(c, prof.tokens);
