@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
-import { reelStart, reelRun, REEL_MAX_TICKS } from '../shared/fishreel.ts';
+import { reelStart, reelRun, reelStep, REEL_MAX_TICKS } from '../shared/fishreel.ts';
 import { COLLECTION, RULE, fishPrice2, reelStyleFor, zoneSpecies } from '../shared/fishrules.ts';
 import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
 import { BARKAS_LEVEL } from '../shared/fishshop.ts';
@@ -54,8 +54,18 @@ test('fisheco: no species is an outlier inside its rarity tier at the place entr
 
 test('perfect is computed by every reel tick and survives chunked authoritative replay', () => {
   const still = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
+  // держит середину зоны на рыбе (без нажатий зона уходит под шкалу — «леска провисла»); нажатия повторяем, как сервер
+  const tracked = reelStart(still, 42);
+  const toggles: number[] = [];
+  let held = false;
+  while (tracked.done === 0) {
+    const h = tracked.z + Math.trunc(tracked.zone / 2) < tracked.f;
+    if (h !== held) { held = h; toggles.push(tracked.t); }
+    reelStep(tracked, held);
+  }
   const easy = reelStart(still, 42);
-  reelRun(easy, [], REEL_MAX_TICKS + 1);
+  reelRun(easy, toggles, REEL_MAX_TICKS + 1);
+  assert.equal(easy.done, 1);
   assert.equal(easy.perfect, true);
   const hard = RULE[COLLECTION.find(sp => RULE[sp]!.tier === 4)!]!.style;
   const played = playReel(hard, 327, TYPICAL);

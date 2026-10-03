@@ -76,6 +76,10 @@
 .fe-stand { display: none; padding: 4px 10px; border-radius: 9px; background: #a8321f; color: #fff1d8; font: 800 15px/1.2 Rubik, system-ui, sans-serif; letter-spacing: .02em; text-shadow: none; }
 .fe-stand.show { display: block; animation: fe-stand .45s ease-out 3; }
 @keyframes fe-stand { from { transform: scale(1.25); } to { transform: scale(1); } }
+/* леска провисла: зона лежит на дне дольше 0,7 с — надпись и бледная зона, пока не подмотает */
+.fe-slack { display: none; padding: 4px 10px; border-radius: 9px; background: #7a5a1c; color: #fff1d8; font: 800 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: .02em; text-shadow: none; }
+.fr.slack .fe-slack { display: block; animation: fe-stand .45s ease-out 2; }
+.fr.slack .fr-zone { opacity: .5; filter: saturate(.35); border-style: dashed; }
 .touch .fe-reelbonus { display: none; }
 .fe-why { font-size: 12px; color: #d6cba4; text-align: center; }
 .fe-xp { font-weight: 700; font-size: 14px; color: #a9d6a0; text-align: center; }
@@ -111,7 +115,7 @@
   .fe-row .fn-action { grid-column: 2 / -1; justify-self: end; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fe-quest.ready, .fe-stand.show { animation: none; }
+  .fe-quest.ready, .fe-stand.show, .fr.slack .fe-slack { animation: none; }
 }
 .touch .fe-chips, .touch .fe-gear, .touch .fe-odds { width: 100%; }
 .touch .fe-chip { padding: 5px 7px; font-size: 11px; }

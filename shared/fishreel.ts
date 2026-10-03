@@ -1,7 +1,9 @@
 // Вываживание (рыбалка 2.0): шкала как в Stardew Valley. Рыба ходит вверх-вниз по шкале в своей манере — плывёт
 // к цели, разгоняется и тормозит, передумывает, делает рывки, зависает; игрок водит зону: держишь кнопку — зона идёт
 // вверх, отпустил — опускается (с инерцией, от дна отскакивает). Рыба в зоне — прогресс растёт, вне — падает;
-// 100 % — поймана, 0 — сорвалась.
+// 100 % — поймана, 0 — сорвалась. Отпустил кнопку надолго — зона уходит под шкалу («леска провисла», через 0,7 с —
+// надпись) и рыбу у дна не держит: раньше зона в покое лежала внизу и сама вываживала рыбу, которая держится у дна, —
+// мифика ловили, вообще не трогая кнопку (и касаясь её вслепую).
 //
 // Одинаково считают клиент (играет у себя, без задержки) и сервер (повторяет по нажатиям и решает, поймана ли):
 // только целые числа и свой генератор случайных (mulberry32 на Math.imul) — никаких Math.sin/exp/pow и Math.random,
@@ -17,6 +19,14 @@ export const REEL_GAIN = 100;
 export const REEL_FILL_TICKS = (REEL_P_MAX - REEL_P_START) / REEL_GAIN;
 /** Дольше этого (тиков) не тянут: леска устала — рыба сходит */
 export const REEL_MAX_TICKS = 90 * 60;
+/**
+ * Леска провисла: кнопка отпущена, а зона целиком ушла под шкалу — дольше стольких тиков (0,7 с) подряд. Тогда улов
+ * не подтягивается (шкала улова тает, как вне зоны) и видна надпись «подматывай». Короткий отпуск кнопки не
+ * наказывается: зона не успевает уйти под шкалу.
+ */
+export const SLACK_TICKS = 42;
+/** Дно для зоны — ниже шкалы на всю её высоту и ещё на столько: отпустил кнопку — зона уходит под шкалу */
+export const ZONE_SINK = 2_000;
 
 /** Зона игрока: ускорение, пока держишь, и вниз, когда отпустил (ед./тик²) */
 export const ZONE_UP = 36;
@@ -138,6 +148,8 @@ export interface Reel {
   patternTarget: number;
   /** «Последний рывок»: 0 — ещё не было, 1 — идёт, 2 — позади */
   stand: number;
+  /** Сколько тиков подряд зона целиком под шкалой с отпущенной кнопкой (больше SLACK_TICKS — леска провисла) */
+  rest: number;
   readonly c: Cfg;
 }
 
@@ -195,7 +207,7 @@ function rnd(r: Reel, n: number): number {
 export function reelStart(style: ReelStyle, seed: number): Reel {
   const c = cfgOf(style);
   const r: Reel = {
-    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, c,
+    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, c,
   };
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
   r.f = div(c.zone, 2);
@@ -395,13 +407,15 @@ function fishStep(r: Reel): void {
 
 function zoneStep(r: Reel, held: boolean): void {
   const top = REEL_BAR - r.zone;
+  // дно — под шкалой: зона в покое рыбу у дна не держит
+  const floor = -r.zone - ZONE_SINK;
   const inZone = r.f >= r.z && r.f <= r.z + r.zone;
   let a = held ? ZONE_UP : -ZONE_DOWN;
   if (inZone) a = div(a * ZONE_ASSIST, 10);
   r.zv += a;
   r.z += r.zv;
-  if (r.z < 0) {
-    r.z = 0;
+  if (r.z < floor) {
+    r.z = floor;
     // отскок от дна; совсем слабый — просто легла
     r.zv = r.zv < -3 * ZONE_DOWN ? -div(r.zv * BOUNCE_NUM, BOUNCE_DEN) : 0;
   } else if (r.z > top) {
@@ -411,14 +425,26 @@ function zoneStep(r: Reel, held: boolean): void {
   }
 }
 
+/** Леска провисла: зона пролежала на дне дольше SLACK_TICKS — улов не подтягивается */
+export function reelSlack(r: Reel): boolean {
+  return r.rest > SLACK_TICKS;
+}
+
+/** Тянет ли сейчас: рыба в зоне и леска натянута (иначе прогресс тает) */
+export function reelPulling(r: Reel): boolean {
+  return r.inZone && r.rest <= SLACK_TICKS;
+}
+
 /** Один тик: рыба, зона (held — держит ли игрок), прогресс. После итога — ничего не меняет. */
 export function reelStep(r: Reel, held: boolean): void {
   if (r.done !== 0) return;
   fishStep(r);
   zoneStep(r, held);
+  r.rest = !held && r.z + r.zone <= 0 ? r.rest + 1 : 0;
   r.inZone = r.f >= r.z && r.f <= r.z + r.zone;
-  if (!r.inZone) r.perfect = false;
-  r.p += r.inZone ? REEL_GAIN : -r.c.drain;
+  const pulling = reelPulling(r);
+  if (!pulling) r.perfect = false;
+  r.p += pulling ? REEL_GAIN : -r.c.drain;
   r.t++;
   if (r.p >= REEL_P_MAX) {
     r.p = REEL_P_MAX;
