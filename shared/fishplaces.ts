@@ -1,5 +1,7 @@
 // Общие координаты рыбацкого причала: серверная коллизия и клиентская сцена используют один настил.
 // X — восток, Z — юг; yaw=0 — север. Старые шесть мест идут первыми: их arg и interaction ID не меняются.
+import { BARKAS_FISH_SPOTS } from './barkas.ts';
+
 export interface FishPlaceBox {
   x0: number;
   y0: number;
@@ -11,7 +13,12 @@ export interface FishPlaceBox {
 
 export const FISH_PIER_COUNT = 8;
 export const FISH_LIGHTHOUSE_COUNT = 4;
-export const FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number }> = [
+/** Где место рыбалки: у острова (пирс и маяк — поле не задано) или на баркасе «Альбатрос» в море */
+export type FishZone = 'pier' | 'barkas';
+/** Мест у острова (пирс и площадка маяка); дальше — на баркасе (shared/barkas.ts) */
+export const FISH_ISLAND_COUNT = FISH_PIER_COUNT + FISH_LIGHTHOUSE_COUNT;
+export const FISH_BARKAS_COUNT = BARKAS_FISH_SPOTS.length;
+export const FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number; zone?: FishZone }> = [
   ...[25, 28.5, 32].flatMap((z) => [
     { x: -20.45, z, yaw: Math.PI / 2 }, { x: -17.55, z, yaw: -Math.PI / 2 },
   ]),
@@ -23,7 +30,14 @@ export const FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number }> = 
   { x: -14.55, z: 42.5, yaw: -Math.PI / 2 },
   { x: -21.65, z: 45.45, yaw: Math.PI },
   { x: -16.35, z: 45.45, yaw: Math.PI },
+  // Восемь мест вдоль бортов баркаса — только в конец: номера прежних мест не меняются.
+  ...BARKAS_FISH_SPOTS,
 ];
+
+/** Зона места рыбалки spot */
+export function fishZone(spot: number): FishZone {
+  return FISH_SPOTS[spot]?.zone ?? 'pier';
+}
 
 /** Рыбак стоит точно на прежнем месте доски, смотрит на приходящих с площади. */
 export const FISHER_NPC = { x: -15.5, y: 0, z: 37.72, yaw: 0 };

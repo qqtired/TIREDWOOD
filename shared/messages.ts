@@ -185,6 +185,8 @@ export type ClientMsg =
   | { t: 'fish'; a: 'cast' | 'hook' | 'keep' | 'sell'; n?: number }
   /** Рыбак: сервер проверяет близость, цену, заработанную удочку и готовность текущего квеста. */
   | { t: 'fishNpc'; a: 'open' | 'beer' | 'rain' | 'claim' | 'rod'; rod?: number }
+  /** Саня на баркасе: за SANYA_PRICE жетонов — на пирс к Семёну (сервер проверяет близость и баланс) */
+  | { t: 'barkasHome' }
   /**
    * Рыбалка 2.0, шкала вываживания: новые переключения кнопки (k — номера тиков, i — номер первого из них с начала),
    * u — до какого тика досчитал у себя, d: 1 — у себя вываживание кончилось на u
@@ -266,6 +268,17 @@ export interface BoatStatus {
   at: number;
   n: number;
   nick: string;
+}
+
+/**
+ * Лодка Семёна «Удалая» (shared/ferry.ts): ph — FE_* (у Семёна стоит, отсчёт, к баркасу, у баркаса, к Семёну); at — тик:
+ * в отсчёте и у баркаса — когда отойдёт, в рейсе — когда отошла; n — сколько сидит; c — 1: позвали колоколом с баркаса.
+ */
+export interface FerryStatus {
+  ph: number;
+  at: number;
+  n: number;
+  c: number;
 }
 
 /** Строка доски «Рекорды полосы» аквапарка: чей профиль (свою строку видно), ник, время, мс */
@@ -402,6 +415,8 @@ export type ServerMsg =
     boatrace?: GatherStatus | BoatRaceStatus;
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    /** Лодка Семёна «Удалая» */
+    ferry: FerryStatus;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
     fort?: FortStatus;
     /** «Fight Club»: круг у двери в подвал кафе — только если режим включён флагом сервера */
@@ -412,6 +427,10 @@ export type ServerMsg =
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)
+  // лодка Семёна «Удалая» (shared/ferry.ts): что с ней — при каждом изменении
+  | ({ t: 'ferry' } & FerryStatus)
+  // Саня отправил на пирс к Семёну (ok) или нет — почему (диалог закрывается только при ok)
+  | { t: 'barkasHome'; ok: boolean; message: string }
   // аквапарк (shared/aqua.ts): доска рекордов — при каждом изменении; свой забег: пошло время (at — номер своего входа,
   // с которого старт: время идёт по своим шагам), снят (вернулся на мостик, упал в воду, пауза), финиш (время по шагам,
   // свой лучший, место на доске: −1 — не попал)
@@ -430,7 +449,8 @@ export type ServerMsg =
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
-  | { t: 'fishNpc'; progress: FishProgress; now: number; open?: boolean; message?: string }
+  /** npc — кто говорит: Дед Семён у мостков или Саня на баркасе */
+  | { t: 'fishNpc'; progress: FishProgress; now: number; open?: boolean; message?: string; npc?: 'semyon' | 'sanya' }
   | { t: 'lroster'; players: LobbyPlayerInfo[] }
   | { t: 'outfitOf'; id: number; o: Outfit; level?: number }
   | { t: 'lev'; e: LobbyEvent[] }

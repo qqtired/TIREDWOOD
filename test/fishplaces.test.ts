@@ -29,16 +29,18 @@ function supportedAndClear(w: CollisionWorld, x: number, z: number, why: string)
   assert.ok(!w.overlaps(x - PLAYER_HALF, 0.002, z - PLAYER_HALF, x + PLAYER_HALF, PLAYER_HEIGHT, z + PLAYER_HALF), `${why}: капсула вне твёрдых предметов`);
 }
 
-test('мест ровно 12: 8 на пирсе и 4 у маяка; прежние 6 позиций и все 46 interaction IDs сохранены', () => {
+test('у острова мест ровно 12: 8 на пирсе и 4 у маяка (дальше — 8 на баркасе); прежние 6 позиций и все 46 interaction IDs сохранены', () => {
   const map = buildLobby();
-  assert.equal(FISH_SPOTS.length, 12);
+  const island = FISH_SPOTS.filter((s) => s.zone !== 'barkas');
+  assert.equal(island.length, 12);
+  assert.equal(FISH_SPOTS.length, 20);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
-  assert.deepEqual(FISH_SPOTS.slice(6), NEW_SPOTS);
-  assert.equal(FISH_SPOTS.filter((s) => s.z < 38).length, 8);
-  assert.equal(FISH_SPOTS.filter((s) => s.z >= 38).length, 4);
+  assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
+  assert.equal(island.filter((s) => s.z < 38).length, 8);
+  assert.equal(island.filter((s) => s.z >= 38).length, 4);
   assert.deepEqual(map.interact.slice(0, 46).map((i) => `${i.kind}:${i.arg}`), OLD_INTERACT);
   assert.ok(map.interact.every((i, n) => i.id === n));
-  assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
+  assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51, 56, 57, 58, 59, 60, 61, 62, 63]);
   assert.equal(map.interact.find(i => i.kind === 'fisher')?.id, 52);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);

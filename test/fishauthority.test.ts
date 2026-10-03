@@ -284,7 +284,7 @@ test('дубли reel не начисляют повторно; сундук/х�
   assert.equal(p.fishing.questCaught, 0);
 });
 
-test('12мест: серверные массивы и welcome содержат все места; все12игроков занимают своё, чужой reel не действует', () => {
+test('12мест у острова (+8 на баркасе): серверные массивы и welcome содержат все места; все12игроков занимают своё, чужой reel не действует', () => {
   const e = setup();
   const players = [e.a];
   for (let i = 1; i < 12; i++) players.push(login(e.hub, `Рыбак${i}`, undefined, `10.0.0.${i + 1}`));
@@ -292,8 +292,8 @@ test('12мест: серверные массивы и welcome содержат 
   hall.rand = () => .5;
   hall.roll = () => ({ sp: sp('scad'), g: 300, coins: 0 });
   const spots = e.hub.lobby.map.interact.filter((i) => i.kind === 'fish');
-  assert.equal(spots.length, 12);
-  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, 12);
+  assert.equal(spots.length, 20);
+  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, 20);
   for (let i = 0; i < players.length; i++) {
     const it = spots.find((s) => s.arg === i)!;
     placeAt(e.hub, players[i].c, it.x, it.z);
@@ -301,8 +301,8 @@ test('12мест: серверные массивы и welcome содержат 
     assert.equal(hall.occupant(i), e.hub.lobby.playerOf(players[i].c)!.slot);
     e.hub.onJson(players[i].c, { t: 'fish', a: 'cast' });
   }
-  assert.equal(hall.views().length, 12);
-  assert.ok(hall.views().every((s) => s.ph > FP_IDLE));
+  assert.equal(hall.views().length, 20);
+  assert.ok(hall.views().slice(0, 12).every((s) => s.ph > FP_IDLE));
   for (const p of players) assert.equal(p.c.profile!.stats.fsCasts, 1);
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   advance(e, 2);

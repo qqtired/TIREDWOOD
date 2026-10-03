@@ -16,7 +16,8 @@ test('кафе сохраняет 18 старых стульев: два сто�
     assert.ok(Math.abs(Math.hypot(i.x - center.x, i.z - center.z) - 1.35) < 1e-9);
   }
   assert.equal(m.interact.find((i) => i.kind === 'fisher')?.id, 52);
-  assert.deepEqual(m.interact.filter((i) => i.kind === 'fish').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
+  // восемь мест на баркасе — в конце списка (56…63)
+  assert.deepEqual(m.interact.filter((i) => i.kind === 'fish').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51, 56, 57, 58, 59, 60, 61, 62, 63]);
 });
 
 test('портал скилл-теста добавлен после старых точек; вход и выход стоят на свободном настиле', () => {

@@ -5,18 +5,23 @@
 import { AQUA_NEAR_X, AQUA_RESPAWN, addRecord, aquaFall, aquaMs, fmtAquaTime } from '../../shared/aqua.ts';
 import { AQUA_QUEUE, AQUA_WAIT, AquaDyn, aquaClock } from '../../shared/aquadyn.ts';
 import { BALL_BYTES, BALL_KICK_TICKS, makeBall, stepBall, touchBall, writeBall, type Ball } from '../../shared/ball.ts';
+import { BARKAS_LANDING, SANYA_PRICE, barkasLanding, barkasWater } from '../../shared/barkas.ts';
 import { BJ_TABLE } from '../../shared/blackjack.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
 import { BR_MAX } from '../../shared/boatrace.ts';
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
 import { COYOTE_TICKS, DROWN_Y, TICK_RATE } from '../../shared/constants.ts';
 import { FC_CHECK_EVERY, FC_SPAWN } from '../../shared/fight.ts';
+import {
+  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_AWAY, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_HOME_SPOTS, FERRY_LEVEL,
+  ferryEta, ferryPose, ferrySeat, inFerry, type FerryPose,
+} from '../../shared/ferry.ts';
 import { FISHER_USE } from '../../shared/fishplaces.ts';
-import { RAIN_DRUM_PRICE, questNeed } from '../../shared/fishprogress.ts';
+import { FISH_XP_LEVELS, RAIN_DRUM_PRICE, fishLevel, questNeed } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
-  KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE, holdMask, isAboard, isHeld,
+  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
+  KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, LOBBY_SEAT_COUNT, buildLobby, seatTable, type Interactable, type LobbyMap } from '../../shared/maps/lobby.ts';
@@ -40,6 +45,7 @@ import type { Client, Hub, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
 import { AquaRuns } from './aqua.ts';
 import { BoatRide } from './boat.ts';
+import { FerryRide, nearSanya, sanyaHome } from './ferry.ts';
 import { BlackjackHall } from './blackjack.ts';
 import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
@@ -150,6 +156,9 @@ export class LobbyRoom implements Room {
   readonly aqua = new AquaRuns();
   /** Аквапарк: подвижные площадки и толчки в шаге игрока (у каждого — по времени его входа) */
   readonly aquaDyn: AquaDyn;
+  /** Лодка Семёна «Удалая»: рейсы к баркасу «Альбатрос» и обратно (shared/ferry.ts) */
+  readonly ferry = new FerryRide();
+  private readonly ferryPoseTmp: FerryPose = { x: FERRY_HOME.x, z: FERRY_HOME.z, yaw: FERRY_HOME.yaw };
   /** Колесо обозрения: кто в какой кабинке (shared/wheel.ts) */
   readonly wheel = new WheelRide();
   private readonly wheelTmp = { x: 0, y: 0, z: 0, yaw: 0 };
@@ -168,6 +177,7 @@ export class LobbyRoom implements Room {
     this.map = buildLobby();
     this.world = new CollisionWorld(this.map);
     if (!hub.skill) for (const box of this.map.skillPortalBoxes) this.world.setEnabled(box, false);
+    this.ferryBoxes();
     this.boatQueue = hub.boatrace ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: BR_MAX, ticks: KART_COUNT_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
       nick: p => p.client.nick, position: p => p.state, idle: () => hub.boatrace!.idle, start: players => hub.startBoatRace(players.map(p => p.client)),
@@ -305,7 +315,7 @@ export class LobbyRoom implements Room {
     c.sink.sendJson({
       t: 'lobby', id: slot, tick: this.tick, yaw: spot.yaw, players: this.infos(), pool: Math.floor(this.hub.store.state.jackpot),
       pb: this.hub.pbStatus(), honor: this.hub.honor(), tables: this.durak.views(), blackjack: this.blackjack.view(), ...(this.hub.skill ? { skill: this.hub.skill.status() } : {}), kart: this.kartStatus(), fish: this.fish.views(),
-      rain: this.weather.rain ? 1 : 0, respects: this.hub.store.state.respects, boat: this.boat.status(), aqua: this.aquaRows(),
+      rain: this.weather.rain ? 1 : 0, respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.boatQueue ? { boatrace: this.boatStatus()! } : {}),
@@ -424,6 +434,9 @@ export class LobbyRoom implements Room {
       case 'fishNpc':
         this.onFishNpc(p, msg.a, msg.rod);
         return;
+      case 'barkasHome':
+        this.onBarkasHome(p);
+        return;
       case 'reel':
         // шкала вываживания: свой лимит (клиент шлёт до 20 в секунду, после замирания связи — пачкой)
         if (p.action === ACT_FISH && this.fishing2 && this.hub.limits.hit(`reel:${c.id}`, 60, 1000)) {
@@ -532,6 +545,9 @@ export class LobbyRoom implements Room {
       case 'boat':
         this.onBoat(p);
         return;
+      case 'ferry':
+        this.onFerry(p, it.arg);
+        return;
       case 'wheel':
         this.onWheel(p);
         return;
@@ -569,10 +585,13 @@ export class LobbyRoom implements Room {
     const prof = c.profile;
     if (!prof || !this.fishing2 || c.ephemeral) return;
     this.hub.profiles.refreshFishing(prof);
+    // рыбаков двое: Дед Семён у мостков и его брат Саня на баркасе — у обоих всё одинаково, в ответе — кто говорит
+    const semyon = Math.hypot(p.state.x - FISHER_USE.x, p.state.z - FISHER_USE.z) <= FISHER_USE.r + .5 && Math.abs(p.state.y - FISHER_USE.y) < 2;
+    const npc = !semyon && nearSanya(p.state) ? 'sanya' : 'semyon';
+    const near = semyon || npc === 'sanya';
     const reply = (message?: string, open = true): void => {
-      c.sink.sendJson({ t: 'fishNpc', progress: { ...prof.fishing }, now: this.now(), open, ...(message ? { message } : {}) });
+      c.sink.sendJson({ t: 'fishNpc', progress: { ...prof.fishing }, now: this.now(), open, npc, ...(message ? { message } : {}) });
     };
-    const near = Math.hypot(p.state.x - FISHER_USE.x, p.state.z - FISHER_USE.z) <= FISHER_USE.r + .5 && Math.abs(p.state.y - FISHER_USE.y) < 2;
     if (!this.hub.limits.hit(`fishNpc:${c.id}`, 6, 1000)) {
       reply('Рыбак занят — подожди секунду', near);
       return;
@@ -663,6 +682,87 @@ export class LobbyRoom implements Room {
     this.hub.toast(c, 'Катер твой, капитан! Отплытие через 30 с — зови друзей: им бесплатно');
     this.hub.announce(`🚤 ${c.nick} заводит катер «Ласточка»: отплытие через 30 с — садись бесплатно, E у причала`);
     this.boatChanged();
+  }
+
+  /**
+   * E у лодки Семёна. У мостков (arg 0): стоит — садишься (с 3-го уровня рыбалки), первый запускает отсчёт; в море —
+   * когда вернётся. У калитки баркаса (arg 1): лодка у борта — садишься, нет — звонишь в колокол, и она идёт за тобой.
+   */
+  private onFerry(p: LobbyPlayer, arg: number): void {
+    const c = p.client;
+    const prof = c.profile;
+    const f = this.ferry;
+    if (!prof || c.ephemeral || isFerry(p.action)) return;
+    if (arg === 1) {
+      if (f.phase === FE_AWAY) {
+        this.ferryBoard(p, true);
+        return;
+      }
+      const r = f.call(this.tick);
+      const eta = secs(ferryEta(f.phase, f.at, this.tick, true));
+      if (r === 'soon') {
+        this.hub.toast(c, `Дзынь-дзынь! Гоша услышал — «Удалая» будет у борта через ${eta} с`);
+        this.ferryChanged();
+      } else this.hub.toast(c, `«Удалая» уже идёт к баркасу — будет через ${eta} с`);
+      return;
+    }
+    if (f.phase !== FE_HOME && f.phase !== FE_BOARD) {
+      this.hub.toast(c, `«Удалая» в море — вернётся к мосткам через ${secs(ferryEta(f.phase, f.at, this.tick, false))} с`);
+      return;
+    }
+    const level = fishLevel(prof.fishing.xp);
+    if (level < FERRY_LEVEL) {
+      const need = Math.max(0, FISH_XP_LEVELS[FERRY_LEVEL] - prof.fishing.xp);
+      this.hub.toast(c, `Семён: «Рано тебе в море, сынок — возьму с ${FERRY_LEVEL}-го уровня рыбалки». У тебя ${level}-й, ещё ${need} опыта — лови на мостках`);
+      return;
+    }
+    this.ferryBoard(p, false);
+  }
+
+  /** Посадить на свободную банку лодки у стоянки (у баркаса — away): сидит лицом к носу, шаг — выйти. */
+  private ferryBoard(p: LobbyPlayer, away: boolean): void {
+    const c = p.client;
+    const f = this.ferry;
+    if (f.full) {
+      this.hub.toast(c, 'В лодке мест нет — подожди следующий рейс');
+      return;
+    }
+    this.release(p);
+    const k = f.take(p.slot, this.tick);
+    if (k < 0) return;
+    const dock = away ? FERRY_AWAY : FERRY_HOME;
+    const at = ferrySeat(dock, k, this.seatTmp);
+    p.action = ACT_FERRY;
+    p.arg = k;
+    p.actionUntil = 0;
+    p.heldYaw = dock.yaw;
+    this.teleport(p, at.x, FERRY_FLOOR_Y, at.z);
+    const left = secs(f.at - this.tick);
+    this.hub.toast(c, away ? `Садись! Обратно к Семёну — отход через ${left} с` : `Садись! На «Альбатрос» — отход через ${left} с`);
+    this.ferryChanged();
+  }
+
+  /** Саня за SANYA_PRICE жетонов отправляет на пирс к Семёну (server/lobby/ferry.ts — sanyaHome). */
+  private onBarkasHome(p: LobbyPlayer): void {
+    const c = p.client;
+    const prof = c.profile;
+    if (!prof || c.ephemeral || isRiding(p.action) || !this.hub.limits.hit(`barkasHome:${c.id}`, 2, 1000)) return;
+    const r = sanyaHome(p.state, {
+      spend: (n) => this.hub.profiles.spend(prof, n),
+      move: () => {
+        this.release(p);
+        const [x, z] = FERRY_HOME_SPOTS[Math.floor(Math.random() * FERRY_HOME_SPOTS.length)];
+        p.heldYaw = FERRY_HOME_LANDING.yaw;
+        this.teleport(p, x, 0, z);
+      },
+    });
+    if (r === 'ok') {
+      this.hub.tokens(c, prof.tokens);
+      this.honorDirty = true;
+    }
+    const message = r === 'ok' ? 'Саня свистнул знакомому катеру — и ты уже на мостках у Семёна'
+      : r === 'far' ? 'Подойди к Сане на баркасе' : `Саня берёт ${SANYA_PRICE} 🪙, а у тебя ${prof.tokens}`;
+    c.sink.sendJson({ t: 'barkasHome', ok: r === 'ok', message });
   }
 
   /** E у кассы колеса: 5 жетонов — садишься в нижнюю кабинку на один оборот. */
@@ -933,6 +1033,9 @@ export class LobbyRoom implements Room {
     if (isAboard(p.action)) {
       this.boat.leave(p.slot);
       this.boatChanged();
+    } else if (isFerry(p.action)) {
+      this.ferry.leave(p.slot);
+      this.ferryChanged();
     } else if (p.action === ACT_WHEEL) this.wheel.leave(p.slot);
     else if (p.action === ACT_SLOT) this.slots.release(p.slot);
     else if (p.action === ACT_SIT || p.action === ACT_DURAK) {
@@ -978,6 +1081,7 @@ export class LobbyRoom implements Room {
     }
     this.checkPairs();
     this.stepBoat();
+    this.stepFerry();
     this.stepWheel();
     this.stepBall();
     this.fish.step(this.tick);
@@ -1030,6 +1134,80 @@ export class LobbyRoom implements Room {
       s.vx = s.vy = s.vz = 0;
       p.heldYaw = pose.yaw;
     }
+  }
+
+  /** «Удалая»: отход, рейс (пассажиров везёт сервер по общему пути, клиенты рисуют лодку по нему же), приход. */
+  private stepFerry(): void {
+    const f = this.ferry;
+    const r = f.step(this.tick);
+    if (r === 'depart' || r === 'leave') this.ferryDepart(r === 'leave');
+    else if (r === 'arrive' || r === 'home') this.ferryArrive(r === 'arrive');
+    if (r) {
+      this.ferryBoxes();
+      this.ferryChanged();
+    }
+    if (f.phase !== FE_OUT && f.phase !== FE_BACK) return;
+    const pose = ferryPose(f.phase, f.at, this.tick, this.ferryPoseTmp);
+    for (let k = 0; k < f.seats.length; k++) {
+      const p = this.players.get(f.seats[k]);
+      if (!p) continue;
+      const at = ferrySeat(pose, k, this.seatTmp);
+      const s = p.state;
+      s.x = at.x;
+      s.y = FERRY_FLOOR_Y;
+      s.z = at.z;
+      s.vx = s.vy = s.vz = 0;
+      p.heldYaw = pose.yaw;
+    }
+  }
+
+  /** Отошли: сидящие — в рейсе; кто стоял в лодке без места — на мостки у Семёна или на палубу баркаса. */
+  private ferryDepart(fromBarkas: boolean): void {
+    const f = this.ferry;
+    const dock = fromBarkas ? FERRY_AWAY : FERRY_HOME;
+    for (const p of this.players.values()) {
+      if (f.seatOf(p.slot) >= 0) {
+        p.action = ACT_FERRY_RIDE;
+        continue;
+      }
+      const s = p.state;
+      if (!inFerry(dock, s.x, s.z, s.y)) continue;
+      this.release(p);
+      this.ferryLand(p, fromBarkas, Math.floor(Math.random() * 6));
+      this.hub.toast(p.client, fromBarkas ? 'Лодка ушла, а места у тебя не было — ты на палубе' : 'Лодка ушла, а места у тебя не было — ты на мостках');
+    }
+  }
+
+  /** Пришли: пассажиров высаживают на палубу баркаса или на мостки у Семёна (каждого — на своё место, без толкотни). */
+  private ferryArrive(atBarkas: boolean): void {
+    const f = this.ferry;
+    for (let k = 0; k < f.seats.length; k++) {
+      const p = this.players.get(f.seats[k]);
+      if (!p) continue;
+      p.action = ACT_NONE;
+      p.arg = 0;
+      this.ferryLand(p, atBarkas, k);
+      this.hub.toast(p.client, atBarkas ? 'Приплыли на «Альбатрос»! Места рыбалки — вдоль бортов, Саня — у кормы' : 'Приплыли к Семёну!');
+    }
+    f.seats.fill(0);
+  }
+
+  /** Поставить на точку высадки k: на палубу баркаса или на мостки у стоянки лодки. */
+  private ferryLand(p: LobbyPlayer, barkas: boolean, k: number): void {
+    const [x, z] = barkas ? barkasLanding(k) : FERRY_HOME_SPOTS[k % FERRY_HOME_SPOTS.length];
+    p.heldYaw = barkas ? BARKAS_LANDING.yaw : FERRY_HOME_LANDING.yaw;
+    this.teleport(p, x, 0, z);
+  }
+
+  /** Боксы лодки — только у той стоянки, где она стоит (в рейсе — ни у одной). */
+  private ferryBoxes(): void {
+    const ph = this.ferry.phase;
+    for (const i of this.map.ferryHomeBoxes) this.world.setEnabled(i, ph === FE_HOME || ph === FE_BOARD);
+    for (const i of this.map.ferryAwayBoxes) this.world.setEnabled(i, ph === FE_AWAY);
+  }
+
+  private ferryChanged(): void {
+    this.broadcast({ t: 'ferry', ...this.ferry.status() });
   }
 
   /** Колесо: сидящих везёт по кабинкам (клиенты рисуют кабинки по тем же часам), приехавших вниз высаживает. */
@@ -1197,6 +1375,11 @@ export class LobbyRoom implements Room {
     p.arg = 0;
     p.actionUntil = 0;
     if (this.aqua.drop(p.slot)) p.client.sink.sendJson({ t: 'aquaRun', a: 'stop' });
+    // у баркаса матросы вытаскивают на палубу (аквапарком aquaFall считает всё западнее площади — баркас раньше)
+    if (barkasWater(p.state.x, p.state.z)) {
+      this.ferryLand(p, true, Math.floor(Math.random() * 6));
+      return;
+    }
     const s = aquaFall(p.state.x) ? AQUA_RESPAWN : this.map.spawn;
     this.placeNear(p, s.x, s.z, s.yaw);
   }
