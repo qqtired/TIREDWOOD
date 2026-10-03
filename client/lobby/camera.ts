@@ -7,13 +7,14 @@ import { clamp, damp } from '../../shared/math.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import { narrowFov } from '../render/renderer.ts';
 
-export type CamMode = 'walk' | 'sit' | 'slot' | 'mirror' | 'table';
+export type CamMode = 'walk' | 'sit' | 'slot' | 'mirror' | 'table' | 'boat';
 
 /** Колесо: от 2 до 6 м за спиной */
 export const ZOOM_MIN = 2;
 export const ZOOM_MAX = 6;
-/** Переход между режимами, с */
+/** Переход между режимами, с; в катер регаты и из него — пролётом подольше */
 const BLEND_S = 0.5;
+const BOAT_BLEND_S = 0.6;
 /**
  * В примерочной: камера в 1,9 м перед желейкой (дальше — стена ларька с зеркалом), чуть сверху и широко,
  * чтобы влезла целиком с шапкой; сама желейка — левее центра (панель справа).
@@ -35,6 +36,8 @@ export class LobbyCamera {
   private dist = -1;
   private mode: CamMode | null = null;
   private blend = 1;
+  /** Переход — из катера регаты (тоже пролётом 0,6 с) */
+  private leftBoat = false;
   private readonly fromPos = new THREE.Vector3();
   private readonly fromQuat = new THREE.Quaternion();
   private fromFov = 60;
@@ -76,6 +79,13 @@ export class LobbyCamera {
     this.apply(cam, mode, dt, fov);
   }
 
+  /** Катер регаты: камера погони из (px, py, pz) на (tx, ty, tz) — её считает регата (client/lobby/regatta.ts). */
+  chase(cam: THREE.PerspectiveCamera, dt: number, px: number, py: number, pz: number, tx: number, ty: number, tz: number, fov: number): void {
+    this.pos.set(px, py, pz);
+    this.lookFrom(tx, ty, tz);
+    this.apply(cam, 'boat', dt, fov);
+  }
+
   /** Примерочная: перед желейкой (x, y, z), которая смотрит по faceYaw, — как отражение в зеркале. */
   mirror(cam: THREE.PerspectiveCamera, dt: number, x: number, y: number, z: number, faceYaw: number, fov: number): void {
     const fx = -Math.sin(faceYaw);
@@ -96,12 +106,13 @@ export class LobbyCamera {
     if (mode !== this.mode) {
       // первый кадр после входа — сразу, смена режима — плавно от того, что было на экране
       this.blend = this.mode === null ? 1 : 0;
+      this.leftBoat = this.mode === 'boat';
       this.mode = mode;
       this.fromPos.copy(cam.position);
       this.fromQuat.copy(cam.quaternion);
       this.fromFov = cam.fov;
     }
-    this.blend = Math.min(1, this.blend + dt / BLEND_S);
+    this.blend = Math.min(1, this.blend + dt / (mode === 'boat' || this.leftBoat ? BOAT_BLEND_S : BLEND_S));
     const k = this.blend * this.blend * (3 - 2 * this.blend);
     cam.position.lerpVectors(this.fromPos, this.pos, k);
     cam.quaternion.slerpQuaternions(this.fromQuat, this.quat, k);

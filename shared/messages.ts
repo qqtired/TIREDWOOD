@@ -11,7 +11,7 @@ import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { RaceTrackId } from './racecourse.ts';
 import type { SkillServerMsg, SkillStatus } from './skilltest.ts';
-import type { BoatRaceServerMsg, BoatRaceStatus } from './boatrace.ts';
+import type { RegattaClientMsg, RegattaServerMsg, RgRecordRow, RgView } from './regatta.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
@@ -20,7 +20,7 @@ import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 
-export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'boatrace' | 'hide';
+export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
 export interface RosterEntry {
   id: number;
@@ -161,6 +161,7 @@ export type ClientMsg =
   | GiftClientMsg
   | VoiceClientMsg
   | HideClientMsg
+  | RegattaClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал) */
   | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number }
   | { t: 'chat'; text: string }
@@ -370,10 +371,9 @@ export type ServerMsg =
   | GiftServerMsg
   | VoiceServerMsg
   | SkillServerMsg
-  | BoatRaceServerMsg
+  | RegattaServerMsg
   | HideServerMsg
   | ({ t: 'skillSt' } & SkillStatus)
-  | { t: 'brSt'; v: GatherStatus | BoatRaceStatus }
   | { t: 'hideSt'; v: GatherStatus | HideStatus }
   | { t: 'startZone'; kind: 'paintball' | 'fort' | null; left: number }
   | { t: 'storm'; v: StormView }
@@ -399,7 +399,8 @@ export type ServerMsg =
     t: 'lobby'; id: number; tick: number; yaw: number; players: LobbyPlayerInfo[]; pool: number; pb: PbStatus; honor: HonorInfo; tables: DurakTableView[];
     blackjack?: BlackjackView;
     skill?: SkillStatus;
-    boatrace?: GatherStatus | BoatRaceStatus;
+    /** «Портовая регата» (флаг BOATRACE): заезд, круг сбора у пирса, рекорды бухты */
+    regatta?: { v: RgView; q: GatherStatus; top: RgRecordRow[] };
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */

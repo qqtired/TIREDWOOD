@@ -673,8 +673,8 @@ export class Sound {
     }
   }
 
-  /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы). */
-  horn(gain = 0.35): void {
+  /** Гудок парохода: конец раунда (и изредка — просто так, для атмосферы); pos — откуда (старт регаты слышно с пирса). */
+  horn(gain = 0.35, pos: V3 | null = null): void {
     if (!this.ok) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime;
@@ -686,7 +686,7 @@ export class Sound {
     g.gain.exponentialRampToValueAtTime(gain, t + 0.25);
     g.gain.setValueAtTime(gain, t + 1.4);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
-    lp.connect(g).connect(this.amb);
+    lp.connect(g).connect(this.out(pos, this.amb, 0, 25));
     for (const f of [92, 138, 184]) {
       const o = ctx.createOscillator();
       o.type = 'sawtooth';

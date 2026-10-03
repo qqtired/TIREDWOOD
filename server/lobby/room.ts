@@ -7,21 +7,21 @@ import { AQUA_QUEUE, AQUA_WAIT, AquaDyn, aquaClock } from '../../shared/aquadyn.
 import { BALL_BYTES, BALL_KICK_TICKS, makeBall, stepBall, touchBall, writeBall, type Ball } from '../../shared/ball.ts';
 import { BJ_TABLE } from '../../shared/blackjack.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
-import { BR_MAX } from '../../shared/boatrace.ts';
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
-import { COYOTE_TICKS, DROWN_Y, TICK_RATE } from '../../shared/constants.ts';
+import { RG_GATHER_TICKS, RG_MAX } from '../../shared/regatta.ts';
+import { COYOTE_TICKS, DROWN_Y, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import { FC_CHECK_EVERY, FC_SPAWN } from '../../shared/fight.ts';
 import { FISHER_USE } from '../../shared/fishplaces.ts';
 import { RAIN_DRUM_PRICE, questNeed } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
+  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS,
   KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE, holdMask, isAboard, isHeld,
   isPair, isRiding, pairReach, stepHeld,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, LOBBY_SEAT_COUNT, buildLobby, seatTable, type Interactable, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { AquaRow, ClientMsg, KartStatus, LobbyEvent, LobbyPlayerInfo, RoomKind, ServerMsg } from '../../shared/messages.ts';
-import { itemById, withItem } from '../../shared/outfit.ts';
+import { DEFAULT_OUTFIT, itemById, withItem } from '../../shared/outfit.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { isRaceTrackId, RACE_TRACKS, type RaceTrackId } from '../../shared/racecourse.ts';
@@ -45,6 +45,7 @@ import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
 import { Pirates } from './pirates.ts';
 import { ModeQueue, syncCircleMembers } from './modequeue.ts';
+import { Regatta } from './regatta.ts';
 import { DurakHall } from './durak.ts';
 import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
@@ -105,7 +106,9 @@ export class LobbyRoom implements Room {
   readonly storm: Storm | null;
   readonly pirates: Pirates | null;
   readonly director: LobbyEvents;
+  /** Круг сбора регаты у пирса и сама «Портовая регата» (null — флаг BOATRACE выключен) */
   private readonly boatQueue: ModeQueue<LobbyPlayer> | null;
+  readonly regatta: Regatta | null;
   private readonly hideQueue: ModeQueue<LobbyPlayer> | null;
   private boatShown = '';
   private hideShown = '';
@@ -168,9 +171,51 @@ export class LobbyRoom implements Room {
     this.map = buildLobby();
     this.world = new CollisionWorld(this.map);
     if (!hub.skill) for (const box of this.map.skillPortalBoxes) this.world.setEnabled(box, false);
-    this.boatQueue = hub.boatrace ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: BR_MAX, ticks: KART_COUNT_TICKS,
+    this.regatta = hub.boatrace ? new Regatta({
+      tick: () => this.tick,
+      players: () => this.players.values(),
+      board: (p, id) => {
+        this.release(p);
+        p.action = ACT_REGATTA;
+        p.arg = id;
+        p.actionUntil = 0;
+        p.selfReset = true;
+      },
+      unboard: (p) => {
+        if (p.action === ACT_REGATTA) {
+          p.action = ACT_NONE;
+          p.arg = 0;
+        }
+        const s = this.map.boatraceSpawn;
+        this.placeNear(p, s.x, s.z, s.yaw);
+      },
+      follow: (p, s) => {
+        const st = p.state;
+        st.x = s.x;
+        st.z = s.z;
+        // на сиденье катера (на воде; в прыжке с трамплина — выше)
+        st.y = WATER_Y + 0.6 + s.y;
+        st.vx = st.vy = st.vz = 0;
+        p.heldYaw = Math.atan2(-s.hx, -s.hz);
+      },
+      outfit: (p) => (p.client.profile ? hub.outfitOf(p.client.profile) : { ...DEFAULT_OUTFIT }),
+      level: (p) => p.client.profile?.level ?? 1,
+      send: (p, msg) => p.client.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      toast: (p, text) => hub.toast(p.client, text),
+      announce: (text) => hub.announce(text),
+      settle: (pid, row) => hub.onRegattaResult(pid, row),
+      record: (pid, nick, ticks) => {
+        const place = hub.regattaRecord(pid, nick, ticks);
+        if (place >= 0) this.broadcast({ t: 'rgTop', top: hub.regattaTop() });
+        return place;
+      },
+      bestLap: (p) => p.client.profile?.stats.brBestLapHarbor ?? 0,
+      queue: (n) => this.boatQueue?.take(n) ?? [],
+    }) : null;
+    this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
-      nick: p => p.client.nick, position: p => p.state, idle: () => hub.boatrace!.idle, start: players => hub.startBoatRace(players.map(p => p.client)),
+      nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => this.regatta!.begin(players),
     }) : null;
     this.hideQueue = hub.hide ? new ModeQueue({ center: HIDE_CIRCLE, min: () => Math.max(1,HIDE_MIN-hub.hide!.humans), max: HIDE_CAPACITY, ticks: KART_COUNT_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
@@ -299,7 +344,7 @@ export class LobbyRoom implements Room {
     const p = new LobbyPlayer(slot, c);
     this.players.set(slot, p);
     this.byClient.set(c, p);
-    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'boatrace' ? this.map.boatraceSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
+    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
     this.placeNear(p, spot.x, spot.z, spot.yaw);
     this.starts.set(p, { armed: this.startZoneAt(p) === null, zone: null, since: 0, shown: '' });
     c.sink.sendJson({
@@ -308,7 +353,7 @@ export class LobbyRoom implements Room {
       rain: this.weather.rain ? 1 : 0, respects: this.hub.store.state.respects, boat: this.boat.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
-      ...(this.boatQueue ? { boatrace: this.boatStatus()! } : {}),
+      ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
@@ -358,20 +403,29 @@ export class LobbyRoom implements Room {
       this.hub.store.markDirty();
       this.broadcast({ t: 'aquaTop', top: this.aquaRows() });
     }
+    // и на доске бухты, и в заезде регаты
+    const rg = this.hub.store.state.regatta.find((r) => r.pid === c.pid);
+    if (rg && rg.nick !== c.nick) {
+      rg.nick = c.nick;
+      this.hub.store.markDirty();
+      if (this.regatta) this.broadcast({ t: 'rgTop', top: this.hub.regattaTop() });
+    }
+    this.regatta?.refresh(this.byClient.get(c)!);
   }
 
   /** Наряд, который видят все, поменялся (колпак дурака надели или сняли). */
   outfitChanged(c: Client): void {
     const p = this.byClient.get(c);
     if (p && c.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: p.slot, o: this.hub.outfitOf(c.profile), level: c.profile.level });
+    if (p) this.regatta?.refresh(p);
   }
 
   // ------------------------------------------------------------ сообщения
 
   onInputs(c: Client, inputs: Input[], count: number): void {
     const p = this.byClient.get(c);
-    // на полосе аквапарка очередь длиннее: после лаг-спайка сервер проходит все шаги игрока, а не последние
-    if (p) p.inq.push(inputs, count, aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
+    // на полосе аквапарка и в регате очередь длиннее: после лаг-спайка сервер проходит все шаги игрока, а не последние
+    if (p) p.inq.push(inputs, count, p.action === ACT_REGATTA || aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
   }
 
   onMessage(c: Client, msg: ClientMsg): void {
@@ -423,6 +477,9 @@ export class LobbyRoom implements Room {
         return;
       case 'fishNpc':
         this.onFishNpc(p, msg.a, msg.rod);
+        return;
+      case 'rg':
+        if (msg.a === 'quit') this.regatta?.quit(p);
         return;
       case 'reel':
         // шкала вываживания: свой лимит (клиент шлёт до 20 в секунду, после замирания связи — пачкой)
@@ -513,7 +570,7 @@ export class LobbyRoom implements Room {
         else this.hub.move(c, this.hub.skill);
         return;
       case 'boatrace':
-        if (this.boatQueue) this.hub.toast(c, 'Стой в круге — катера стартуют автоматически через 15 секунд.');
+        if (this.regatta) this.hub.toast(c, this.regatta.phase === 'idle' ? 'Стой в круге — через 10 секунд катера на старте у арки.' : 'Регата идёт — стой в круге, поедешь в следующем заезде.');
         return;
       case 'hide':
         if (this.hub.hide?.active) {
@@ -930,7 +987,8 @@ export class LobbyRoom implements Room {
   /** Встать: освободить автомат, место, место рыбалки или в катере (эмоции не трогает). В поездке — только force (вышел из игры). */
   private release(p: LobbyPlayer, force = false): void {
     if (!isHeld(p.action) || (isRiding(p.action) && !force)) return;
-    if (isAboard(p.action)) {
+    if (p.action === ACT_REGATTA) this.regatta?.drop(p, 'left');
+    else if (isAboard(p.action)) {
       this.boat.leave(p.slot);
       this.boatChanged();
     } else if (p.action === ACT_WHEEL) this.wheel.leave(p.slot);
@@ -976,6 +1034,7 @@ export class LobbyRoom implements Room {
         p.actionUntil = 0;
       }
     }
+    this.regatta?.step();
     this.checkPairs();
     this.stepBoat();
     this.stepWheel();
@@ -990,8 +1049,8 @@ export class LobbyRoom implements Room {
     if (this.tick % KART_CHECK_EVERY === 0) this.kartStep();
     if (this.tick % KART_CHECK_EVERY === 0 && this.boatQueue) {
       this.boatQueue.step(this.tick);
-      const v = this.boatStatus()!, key = JSON.stringify(v);
-      if (key !== this.boatShown) { this.boatShown = key; this.broadcast({ t: 'brSt', v }); }
+      const v = this.boatQueue.view(this.tick), key = JSON.stringify(v);
+      if (key !== this.boatShown) { this.boatShown = key; this.broadcast({ t: 'rgQ', v }); }
     }
     if (this.tick % KART_CHECK_EVERY === 0 && this.hideQueue) {
       this.hideQueue.step(this.tick);
@@ -1116,6 +1175,15 @@ export class LobbyRoom implements Room {
   }
 
   private processPlayer(p: LobbyPlayer): void {
+    // в катере регаты входы — катеру (server/lobby/regatta.ts)
+    if (p.action === ACT_REGATTA) {
+      if (this.regatta?.has(p)) this.regatta.consume(p);
+      else {
+        p.action = ACT_NONE;
+        p.arg = 0;
+      }
+      return;
+    }
     const q = p.inq;
     const n = q.due();
     for (let i = 0; i < n; i++) {
@@ -1350,7 +1418,8 @@ export class LobbyRoom implements Room {
     return { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: RC_LAPS, ...selection };
   }
 
-  boatStatus() { return this.hub.boatrace?.status() ?? this.boatQueue?.view(this.tick) ?? null; }
+  /** Круг сбора регаты у пирса (null — регата выключена) */
+  boatStatus() { return this.boatQueue?.view(this.tick) ?? null; }
   hideStatus() {
     const queue = this.hideQueue?.view(this.tick);
     return queue?.phase === 'count' ? queue : this.hub.hide && (this.hub.hide.humans || this.hub.hide.active) ? this.hub.hide.status() : queue ?? null;
@@ -1398,6 +1467,7 @@ export class LobbyRoom implements Room {
       if (ev) p.client.sink.sendJson(ev);
     }
     this.events = [];
+    this.regatta?.send();
   }
 
   private infos(): LobbyPlayerInfo[] {

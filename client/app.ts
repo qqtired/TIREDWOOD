@@ -11,7 +11,6 @@ import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import type { RaceTrackId } from '../shared/racecourse.ts';
 import { Sound } from './audio.ts';
 import { Chat } from './chat.ts';
-import { BoatRaceScene } from './boatrace/scene.ts';
 import { HideScene } from './hide/scene.ts';
 import { errorReport } from './errors.ts';
 import { FightScene } from './fight/scene.ts';
@@ -84,7 +83,6 @@ export class App {
   private readonly raceScenes = new Map<RaceTrackId, RaceScene>();
   private raceTrack: RaceTrackId = 'port';
   private skill: SkillScene | null = null;
-  private boatRace: BoatRaceScene | null = null;
   private hide: HideScene | null = null;
   private voice: VoiceController | null = null;
   private voiceUi: VoiceUi | null = null;
@@ -316,7 +314,8 @@ export class App {
     });
     this.pauseMain.querySelector('.open-profile')!.addEventListener('click', () => this.showProfile(true));
     this.toLobbyBtn.addEventListener('click', () => {
-      this.net.send({ t: 'leave' });
+      if (this.active === this.lobby && this.lobby.racing) this.lobby.quitRace();
+      else this.net.send({ t: 'leave' });
       this.resume();
     });
     this.pauseMain.querySelector('.leave')!.addEventListener('click', () => this.toMenu());
@@ -734,7 +733,7 @@ export class App {
   private switchScene(kind: RoomKind): void {
     setVoicePresence([]);
     this.voice?.roomChanged();
-    const next = kind === 'boatrace' ? (this.boatRace ??= this.makeBoatRace()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
+    const next = kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
     // комната — для стилей (телефон стоя: в пейнтболе чат ниже полосы счёта)
@@ -764,12 +763,6 @@ export class App {
       this.raceScenes.set(track, scene);
     }
     this.race = scene;
-    return scene;
-  }
-
-  private makeBoatRace(): BoatRaceScene {
-    const scene = new BoatRaceScene(this.deps);
-    scene.setQuality(this.renderQuality()); scene.resize(window.innerWidth, window.innerHeight);
     return scene;
   }
 
@@ -943,11 +936,13 @@ export class App {
       lobby: 'Набережная подождёт', paintball: 'Бой на складе идёт дальше — не зевай', race: 'Гонка продолжается без тебя', fort: 'Зомби не ждут — крепость держится без тебя',
       fight: 'В подвале дерутся дальше — о клубе никому',
       skill: 'Чекпоинт сохранён; время прохождения продолжается',
-      boatrace: 'Гонка по бухте продолжается — катер тормозит без газа',
       hide: 'Поиск продолжается — укрытие и время остаются в игре',
     };
-    this.pauseSub.textContent = sub[kind];
-    this.toLobbyBtn.style.display = kind === 'lobby' ? 'none' : '';
+    // в катере регаты (она на набережной) — сойти на берег
+    const racing = kind === 'lobby' && this.lobby.racing;
+    this.pauseSub.textContent = racing ? 'Регата идёт — катер сбавляет ход без тебя' : sub[kind];
+    this.toLobbyBtn.style.display = kind === 'lobby' && !racing ? 'none' : '';
+    this.toLobbyBtn.textContent = racing ? 'Сойти на берег' : 'На набережную';
   }
 
   private showProfile(open: boolean): void {
@@ -1217,7 +1212,6 @@ export class App {
     this.lobby.setQuality(detail);
     for (const race of this.raceScenes.values()) race.setQuality(detail);
     this.skill?.setQuality(detail);
-    this.boatRace?.setQuality(detail);
     this.hide?.setQuality(detail);
     this.paintball?.setQuality(detail);
     this.fort?.setQuality(detail);
@@ -1236,7 +1230,6 @@ export class App {
     this.paintball?.resize(w, hh);
     for (const race of this.raceScenes.values()) race.resize(w, hh);
     this.skill?.resize(w, hh);
-    this.boatRace?.resize(w, hh);
     this.hide?.resize(w, hh);
     this.fort?.resize(w, hh);
     this.fight?.resize(w, hh);

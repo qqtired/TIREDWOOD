@@ -42,6 +42,15 @@ export class ModeQueue<T> {
       o.start(players);
     }
   }
+  /** Забрать из круга до n первых (новый заезд сразу после прошлого — «Ещё!» регаты). */
+  take(n: number): T[] {
+    const o = this.options;
+    syncCircleMembers(this.members, o.players(), player => o.inside(player) && inStartCircle(o.position(player), o.center));
+    const out = [...this.members].slice(0, Math.max(0, n));
+    for (const player of out) this.members.delete(player);
+    if (this.members.size < this.minimum()) this.until = 0;
+    return out;
+  }
   view(tick: number): GatherStatus {
     return { phase: this.until ? 'count' : 'idle', left: this.until ? Math.max(0, Math.ceil((this.until - tick) / TICK_RATE)) : 0,
       n: this.members.size, max: this.options.max, names: [...this.members].map(p => this.options.nick(p)) };
