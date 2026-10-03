@@ -3,7 +3,8 @@
 // мелодия в миноре (ми гармонический), медленнее и тише. Звучит из-за рубки, где он сидит; дальше FAR — тишина.
 // Корабль: скрип дерева, шлепки волн о борт, звяканье цепи; рында (склянки бьёт Михалыч — crew.ts), колокол у калитки,
 // чайки (в дождь молчат). Лодка «Удалая»: «тук-тук» мотора (чаще на ходу) и гудок при отходе.
-// Громкость баяна — один регулятор: ACCORDION_VOLUME (узел music). Пока всё идёт в шину эффектов sound.kit.
+// Громкость баяна — один регулятор: ACCORDION_VOLUME (узел music). Баян идёт в шину «Музыка» (kit.music — её приглушает
+// музыкальный автомат, client/audio.ts — duckMusic), корабль, колокола и лодка — в шину эффектов (kit.sfx).
 import * as THREE from 'three';
 import { BARKAS } from '../../../shared/barkas.ts';
 import type { Squeeze } from './crew.ts';
@@ -31,6 +32,8 @@ const AHEAD = 0.3;
 export interface Kit {
   ctx: AudioContext;
   sfx: GainNode;
+  /** Шина «Музыка» (прочая музыка): громкость из микшера, приглушается автоматом */
+  music: GainNode;
   noise: AudioBuffer;
   brown: AudioBuffer;
 }
@@ -176,7 +179,7 @@ export class BarkasAudio {
     this.music.gain.value = ACCORDION_VOLUME;
     this.bellows = ctx.createGain();
     this.musicPan = this.panner(this.vityok.x, this.vityok.y + 0.6, this.vityok.z, 6, 'equalpower');
-    this.bellows.connect(this.music).connect(this.musicPan).connect(kit.sfx);
+    this.bellows.connect(this.music).connect(this.musicPan).connect(kit.music);
     this.ship = ctx.createGain();
     this.ship.gain.value = SHIP_VOLUME;
     this.ship.connect(kit.sfx);
