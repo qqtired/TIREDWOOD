@@ -7,9 +7,9 @@ import {
   Z_SHIELD, Z_SPITTER, Z_WALKER, ZK,
 } from '../../shared/fortkinds.ts';
 import {
-  EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL, bodyCap, bossArchetype,
-  bossHp, bossTier, boatCount, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWave, isSuperWave,
-  releaseTicks, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
+  ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
+  bodyCap, bossArchetype, bossHp, bossTier, boatCount, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWave,
+  isSuperWave, releaseTicks, shieldHp, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
@@ -161,12 +161,17 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
 
   // HP одного врага — плавная кривая s0 (ожидаемая нормировка для смеси этой волны без случайной темы): шаркун
   // 20-й волны всегда толще шаркуна 19-й. Состав набираем не очками, а HP: каждый враг «тратит» свои HP из цели
-  // arsenal, поэтому тяжёлая тема даёт меньше тел, шустрая — больше, а HP волны всегда в цель.
+  // arsenal, поэтому тяжёлая тема даёт меньше тел, шустрая — больше, а HP волны всегда в цель. В бюджете — то, что
+  // команде нужно снять (budgetHp): щит и кастрюля Чугунка тоже. Щит от s0 не зависит — его считаем отдельно.
   const target = waveHpPerDefender(w) * n * teamPressure(n) * landMul;
   const es = eliteShare(w);
   const cs = champShare(w);
   const s0 = enemyHpScale(w, n, f);
-  const hpOf = (kind: number, tier: number) => ZK[kind].hp * TIER_HP[tier] * s0;
+  const shield = shieldHp(w, n);
+  const bodyOf = (kind: number, tier: number) => ZK[kind].hp * TIER_HP[tier] * s0 * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
+  const fixedOf = (kind: number, tier: number) => kind === Z_SHIELD ? SHIELD_BUDGET * shield * (1 + 0.5 * tier) : 0;
+  const hpOf = (kind: number, tier: number) => bodyOf(kind, tier) + fixedOf(kind, tier);
+  let fixed = 0;
   const tierOf = () => {
     const u = rng();
     return u < cs ? TIER_CHAMP : u < cs + es ? TIER_ELITE : TIER_NORMAL;
@@ -181,11 +186,13 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     for (let i = 0; i < b.tiers.length; i++) {
       b.tiers[i] = tierOf();
       sum += hpOf(b.crew[i], b.tiers[i]);
+      fixed += fixedOf(b.crew[i], b.tiers[i]);
     }
   }
   const add = (kind: number, tier = tierOf()) => {
     list.push({ kind, tier });
     sum += hpOf(kind, tier);
+    fixed += fixedOf(kind, tier);
   };
   /** Тема волны и новичок (их тип не срезаем) */
   let theme = -1;
@@ -248,13 +255,17 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
       const s = list[i];
       if (s.tier !== from) continue;
       sum += hpOf(s.kind, to) - hpOf(s.kind, from);
+      fixed += fixedOf(s.kind, to) - fixedOf(s.kind, from);
       s.tier = to;
       have++;
     }
   };
   promote(TIER_NORMAL, TIER_ELITE, Math.floor(list.length * 0.5));
   promote(TIER_ELITE, TIER_CHAMP, Math.floor(list.length * 0.25));
-  const hpScale = sum > 0 ? s0 * target / sum : s0;
+  // точная подгонка: тела масштабируются, щиты — нет (если щиты съели почти всю цель — тела не тоньше min(⅓ цели,
+  // половины своих))
+  const scaled = sum - fixed;
+  const hpScale = scaled > 0 ? s0 * Math.max(target - fixed, Math.min(target / 3, scaled * 0.5)) / scaled : s0;
   const counts = new Array<number>(Z_KINDS).fill(0);
   for (const s of list) counts[s.kind]++;
 
@@ -327,7 +338,7 @@ function hpPerPoint(w: number, f: DirectorFeatures): number {
     let left = 1;
     for (const [kind, share] of HAND[w - 1].mix) {
       if (kind === Z_WALKER || !f.kinds.has(kind)) continue;
-      hp += share * ZK[kind].hp / ZK[kind].cost;
+      hp += share * budgetBase(kind) / ZK[kind].cost;
       left -= share;
     }
     return hp + left * ZK[Z_WALKER].hp;
@@ -336,10 +347,24 @@ function hpPerPoint(w: number, f: DirectorFeatures): number {
   let cost = 0;
   for (const k of f.kinds) {
     if (ZK[k].first > w || !(WEIGHT[k] > 0)) continue;
-    hp += WEIGHT[k] * ZK[k].hp;
+    hp += WEIGHT[k] * budgetBase(k);
     cost += WEIGHT[k] * ZK[k].cost;
   }
   return cost > 0 ? hp / cost : ZK[Z_WALKER].hp;
+}
+
+/** Базовые HP типа в бюджете (щит — в тех же единицах: 200 на HP-множитель волны) */
+function budgetBase(kind: number): number {
+  return ZK[kind].hp * (kind === Z_ARMORED ? ARMOR_BUDGET : 1) + (kind === Z_SHIELD ? SHIELD_BUDGET * 200 : 0);
+}
+
+/**
+ * HP врага в бюджете волны — сколько команде нужно снять: тело × hpScale × ступень (Чугунку ×1,5 — кастрюля режет
+ * попадания в тело) и 70 % щита. Сумма по плану — цель arsenal (тест), и её же видит модель tools/fort-balance.
+ */
+export function budgetHp(kind: number, tier: number, w: number, humans: number, hpScale: number): number {
+  const body = ZK[kind].hp * (TIER_HP[tier] ?? 1) * hpScale * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
+  return body + (kind === Z_SHIELD ? SHIELD_BUDGET * shieldHp(w, humans) * (1 + 0.5 * tier) : 0);
 }
 
 /** Пары [тип, сколько] по убыванию числа */

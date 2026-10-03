@@ -10,7 +10,7 @@ import { GATE, WALL_H } from '../shared/fortmap.ts';
 import { decodeFortTail, encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
 import { BTN_JUMP, BTN_RELOAD, MAG_SIZE, RELOAD_TICKS, makeInput } from '../shared/sim.ts';
 import { planCounts, planWave } from '../server/fort/director.ts';
-import { BOSS_BASE_HP, bossTeamMul } from '../shared/fortwaves.ts';
+import { BOSS_BASE_HP, bossTeamMul, waveHpMul } from '../shared/fortwaves.ts';
 
 function steps(game: FortGame, n: number) { for (let i = 0; i < n; i++) game.step(); }
 function standShop(game: FortGame, p: FortPlayer) {
@@ -210,7 +210,7 @@ test('последняя волна не заканчивается с живы�
   game.phase = F.FT_WAVE;
   game.wave = F.FORT_WAVES;
   const b = game.horde.spawn(F.Z_BOSS, 1, 6)!;
-  assert.equal(b.maxHp, BOSS_BASE_HP * bossTeamMul(6));
+  assert.ok(Math.abs(b.maxHp - BOSS_BASE_HP * waveHpMul(1) * bossTeamMul(6)) < 1e-6);
   for (let i = 1; i < 60; i++) assert.ok(game.horde.spawn(F.Z_WALKER, 1));
   assert.equal(game.horde.spawn(F.Z_FLYER, 1), null);
   b.hp = b.maxHp * 0.3;
@@ -411,12 +411,12 @@ test('зенитный краскомёт предпочитает дальню�
   Object.assign(flyer, { x: -3.4, y: WALL_H + 4, z: -40 });
   game.turrets[0]!.cd = 0;
   game.step();
-  assert.equal(ground.hp, 60);
-  assert.equal(flyer.hp, 52, 'сначала дальняя воздушная цель, 18 урона');
+  assert.equal(ground.hp, ground.maxHp);
+  assert.ok(Math.abs(flyer.hp - (flyer.maxHp - 18)) < 1e-9, 'сначала дальняя воздушная цель, 18 урона');
   game.horde.damage(flyer, 999, p.id, false, flyer.x, flyer.y, flyer.z);
   game.turrets[0]!.cd = 0;
   game.step();
-  assert.equal(ground.hp, 54, 'наземная цель, 6 урона');
+  assert.ok(Math.abs(ground.hp - (ground.maxHp - 6)) < 1e-9, 'наземная цель, 6 урона');
 });
 
 test('новый защитник с переиспользованным номером не наследует убийства краскомёта и помощь ушедшего', () => {

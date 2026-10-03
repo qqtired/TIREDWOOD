@@ -6,8 +6,8 @@ import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { buildFort, WALL_H } from '../shared/fortmap.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { BTN_FORWARD, BTN_JUMP, makeEvents, makeInput, makeState, stepPlayer } from '../shared/sim.ts';
-import { planCounts, planWave, type WavePlan } from '../server/fort/director.ts';
-import { TIER_HP, bossHp } from '../shared/fortwaves.ts';
+import { budgetHp, planCounts, planWave, type WavePlan } from '../server/fort/director.ts';
+import { bossHp, teamPressure } from '../shared/fortwaves.ts';
 const sink = { sendJson() {}, sendBinary() {}, close() {} };
 function add(g: FortGame, pid: number) { return g.addHuman({ pid, nick: `P${pid}`, outfit: DEFAULT_OUTFIT }, sink)!; }
 function start(n = 1, wave = 1) {
@@ -18,19 +18,26 @@ function start(n = 1, wave = 1) {
   g.step();
   return {g, p};
 }
-/** HP всей волны по плану (без босса) */
+/** HP всей волны по плану в бюджете (без босса) */
 function work(plan: WavePlan): number {
   let hp = 0;
-  for (const s of plan.spawns) hp += F.ZK[s.kind].hp * plan.hpScale * TIER_HP[s.tier];
+  for (const s of plan.spawns) hp += budgetHp(s.kind, s.tier, plan.w, plan.defenders, plan.hpScale);
+  for (const b of plan.boats) b.crew.forEach((k, i) => { hp += budgetHp(k, b.tiers[i], plan.w, plan.defenders, plan.hpScale); });
   return hp;
 }
 const total = (plan: WavePlan) => planCounts(plan).reduce((a, b) => a + b, 0);
-test('each 1–6 defender wave has at least proportional HP work; ordinary HP stays bounded', () => {
+test('с людьми HP волны растёт, на одного — по нагрузке команды arsenal; обычные не толстеют без меры', () => {
   for (let w = 1; w <= 40; w++) {
     const one = work(planWave(w, 1, 77));
+    let prev = one;
     for (let n = 2; n <= 6; n++) {
       const many = work(planWave(w, n, 77));
-      assert.ok(many >= n * one * 0.999, `wave ${w}, ${n} defenders: ${many} / ${one}`);
+      assert.ok(many > prev, `wave ${w}, ${n} defenders: ${many} / ${prev}`);
+      // на одного: (3/n)^0,4, соло ×1,77 (щиты и кастрюли в бюджете — допуск на состав)
+      const per = many / n / one;
+      const want = teamPressure(n) / teamPressure(1);
+      assert.ok(Math.abs(per / want - 1) < 0.2, `wave ${w}, ${n}: на одного ${per.toFixed(3)} / ${want.toFixed(3)}`);
+      prev = many;
     }
   }
   const six = planWave(1, 6, 77);
