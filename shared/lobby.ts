@@ -29,6 +29,8 @@ export const ACT_BOAT = 13;
 export const ACT_RIDE = 14;
 /** В кабинке колеса обозрения (аргумент — номер места, shared/wheel.ts): везёт сервер, выйти — только внизу */
 export const ACT_WHEEL = 15;
+/** В катере «Портовой регаты» (аргумент — номер катера, server/lobby/regatta.ts): ведёт сам, шагом не встать */
+export const ACT_REGATTA = 16;
 
 /** Помахать, «устал», смех — 3 с; танец — до первого шага */
 export const EMOTE_TICKS = 180;
@@ -66,13 +68,13 @@ export function pairReach(ax: number, ay: number, az: number, yaw: number, bx: n
 export function isHeld(action: number): boolean {
   return (
     action === ACT_SIT || action === ACT_SLOT || action === ACT_WARDROBE || action === ACT_DURAK || action === ACT_FISH || action === ACT_BOAT ||
-    action === ACT_RIDE || action === ACT_WHEEL
+    action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA
   );
 }
 
-/** Едет: катер в поездке или кабинка колеса — двигает сервер, встать нельзя */
+/** Едет: катер в поездке, кабинка колеса или катер регаты — встать нельзя */
 export function isRiding(action: number): boolean {
-  return action === ACT_RIDE || action === ACT_WHEEL;
+  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA;
 }
 
 /** Сидит в катере: ждёт отплытия или уже плывёт */

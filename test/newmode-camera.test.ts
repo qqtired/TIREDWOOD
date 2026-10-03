@@ -9,9 +9,8 @@ import { makeSkillMap } from '../shared/skillmap.ts';
 import { SkillDynamics } from '../shared/skillphysics.ts';
 import { HidePhysics, hideMotionWorld } from '../shared/hidephysics.ts';
 import { HideMotion } from '../client/hide/motion.ts';
-import { makeBoatCourse } from '../shared/boatracemap.ts';
-import { makeBoatState, makeBoatEvents } from '../shared/boatrace.ts';
-import { placeBoat, stepBoat } from '../shared/boatracephysics.ts';
+import { regattaCourse } from '../shared/regattacourse.ts';
+import { makeRgBoat, makeRgEvents, placeRgBoat, stepRgBoat } from '../shared/regattaphysics.ts';
 import { BTN_FORWARD, BTN_BACK, BTN_RIGHT, makeInput, makeState, makeEvents } from '../shared/sim.ts';
 import { decodeInputs } from '../shared/protocol.ts';
 import { EYE_HEIGHT } from '../shared/constants.ts';
@@ -93,10 +92,10 @@ test('Sky and HIDE W/S align with camera yaw and preserve normalized diagonal sp
  }
 });
 test('Boat W accelerates along bow and S brakes/reverses; mouse pitch does not invert throttle',()=>{
- const course=makeBoatCourse();
+ const course=regattaCourse();
  for(const pitch of[-.7,.7])for(const buttons of[BTN_FORWARD,BTN_BACK]){
-  const state=makeBoatState();placeBoat(state,course,0);const input={...makeInput(),buttons,pitch};
-  for(let i=0;i<10;i++)stepBoat(state,input,course,makeBoatEvents(),true);
+  const state=makeRgBoat();placeRgBoat(state,course,0);const input={...makeInput(),buttons,pitch};
+  for(let i=0;i<10;i++)stepRgBoat(state,input,course,makeRgEvents(),true);
   const forward=state.vx*state.hx+state.vz*state.hz;
   assert.ok(buttons===BTN_FORWARD?forward>0:forward<0);
  }

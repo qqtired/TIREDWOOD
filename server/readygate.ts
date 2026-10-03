@@ -28,8 +28,8 @@ interface RoomWait {
 }
 
 /** Что ворота берут у хаба: часы, соединения, переходы (и для проверочной команды — комнаты). */
-type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'fight' | 'boatrace'
-  | 'move' | 'startRace' | 'startFight' | 'startBoatRace' | 'privateLine'>;
+type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'fight'
+  | 'move' | 'startRace' | 'startFight' | 'privateLine'>;
 
 const FC_MODES: readonly FcMode[] = ['duel', 'team', 'ffa'];
 
@@ -138,10 +138,10 @@ export class ReadyGate {
         else h.startFight([c], [], FC_MODES.includes(arg as FcMode) ? (arg as FcMode) : 'duel');
         break;
       case 'boatrace':
-        if (h.boatrace?.idle) h.startBoatRace([c]); else say('Катера выключены или заняты');
+        say('Регата теперь на набережной — встань в круг у пирса');
         break;
       default:
-        say('/go lobby | paintball | fort | skill | hide | race [port|foundry] | fight [duel|team|ffa] | boatrace');
+        say('/go lobby | paintball | fort | skill | hide | race [port|foundry] | fight [duel|team|ffa]');
     }
     return true;
   }

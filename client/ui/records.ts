@@ -49,7 +49,8 @@ export const RECORDS: readonly RecordLine[] = [
   { mode: '🏁 Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLap) },
   { mode: '🏁 Картинг', course: 'Литейный вираж', what: 'лучший круг', value: (s) => lap(s.rcBestLapFoundry) },
   // круг катера сервер считает в тиках (60 в секунду)
-  { mode: '🚤 Катера', course: 'Лазурный круг', what: 'лучший круг', value: (s) => lap((s.brBestLap * 1000) / 60) },
+  { mode: '🚤 Портовая регата', what: 'лучший круг', value: (s) => lap((s.brBestLapHarbor * 1000) / 60) },
+  { mode: '🚤 Катера', course: 'Лазурная бухта (старая трасса)', what: 'лучший круг', value: (s) => lap((s.brBestLap * 1000) / 60), played: (s) => s.brBestLap > 0 },
   { mode: '🌊 Аквапарк', what: 'лучшее время', value: (s) => (s.aqBest > 0 ? fmtAquaTime(s.aqBest) : null) },
   { mode: '☁️ Выше облаков', course: 'Небесная каланча', what: 'лучшее время', value: (s) => lap(s.skBest) },
   { mode: '🎣 Рыбалка', what: 'самая тяжёлая рыба', value: (s) => (s.fsMaxGrams > 0 ? fmtWeight(s.fsMaxGrams) : null) },
@@ -61,7 +62,7 @@ export const RECORDS: readonly RecordLine[] = [
 export const MODE_STATS: readonly ModeStats[] = [
   { mode: '🎯 Пейнтбол', rows: [['раундов', (s) => s.pbRounds], ['побед', (s) => s.pbWins], ['сбитых', (s) => s.pbKills], ['лучший игрок', (s) => s.pbMvp]] },
   { mode: '🏁 Картинг', rows: [['заездов', (s) => s.rcRaces], ['побед', (s) => s.rcWins], ['подиумов', (s) => s.rcPodiums]] },
-  { mode: '🚤 Катера', rows: [['заездов', (s) => s.brRaces], ['побед', (s) => s.brWins]] },
+  { mode: '🚤 Портовая регата', rows: [['заездов', (s) => s.brRaces], ['побед', (s) => s.brWins]] },
   { mode: '🙈 Прятки', rows: [['игр', (s) => s.hiGames], ['побед', (s) => s.hiWins], ['найдено', (s) => s.hiFound], ['пережито раундов', (s) => s.hiSurvived]] },
   { mode: '🃏 Дурак', rows: [['партий', (s) => s.dkGames], ['в дураках', (s) => s.dkFools], ['вышел первым', (s) => s.dkFirst]] },
   { mode: '🎰 Автоматы', rows: [['вращений', (s) => s.spins], ['выиграно', (s) => `${fmt.format(s.slotWon)} 🪙`], ['джекпотов', (s) => s.jackpots]] },
