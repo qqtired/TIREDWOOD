@@ -2,6 +2,7 @@
 // лавка, сроки фаз, жетоны и типы сообщений. Карта — fortmap.ts, прицел по зомби — fortaim.ts, хвост снимка — fortnet.ts.
 // Всё, что даёт жетоны и очки, решает сервер; клиент по этим же таблицам рисует и подсказывает.
 import { TICK_RATE } from './constants.ts';
+import type { ArsenalEvent, ArsenalRow } from './fortarsenal.ts';
 import type { Outfit } from './outfit.ts';
 
 export const FORT_MAX_HUMANS = 6;
@@ -200,35 +201,7 @@ export function waveSpawnTicks(wave: number): number {
   return (14 + 2 * wave) * TICK_RATE;
 }
 
-// --- очки матча и лавка
-
-export const START_PTS = 50;
-/** Каждому, кто был в крепости с начала волны, — за отбитую волну */
-export const WAVE_PTS = 40;
-/** Опоздавший получает START_PTS и столько за каждую уже отбитую волну */
-export const LATE_PTS = 30;
-
-export const FIX_PRICE = 40;
-export const FIX_HP = 400;
-export const NEWGATE_PRICE = 120;
-export const CRYSTAL_PRICE = 60;
-export const CRYSTAL_FIX = 250;
-export const TURRET_PRICE = 150;
-/** Краскомёт: дальность, темп (тиков между выстрелами), урон */
-export const TURRET_RANGE = 24;
-export const TURRET_EVERY = 12;
-export const TURRET_DMG = 9;
-export const MAGAZINE_PRICE = 90;
-export const FORT_MAGAZINE = 42;
-export const ANTIAIR_PRICE = 100;
-export const ANTIAIR_RANGE = 36;
-export const ANTIAIR_DMG = 18;
-export const ANTIAIR_GROUND_DMG = 6;
-export const JAM_PRICE = 30;
-/** Лужа варенья на дороге: сколько живёт, радиус, во сколько раз медленнее зомби в ней */
-export const JAM_TICKS = 45 * TICK_RATE;
-export const JAM_R = 3;
-export const JAM_SLOW = 0.4;
+// --- золото, прокачка, стволы, гранаты, башни, ворота и кристалл — shared/fortarsenal.ts (агент arsenal)
 
 // --- жетоны (шкала выпуска 6: около 8–12 🪙 за минуту боя; полная игра — 7–8 минут, победа — 90–100)
 
@@ -272,7 +245,7 @@ export interface FortStatus {
   left: number;
 }
 
-/** Защитник: id — номер в снимке, pts — очки матча, k — сбил, d — сбили его, ready — ударил в колокол */
+/** Защитник: id — номер в снимке, pts — золото 💰 на руках, k — сбил, d — сбили его, ready — ударил в колокол */
 export interface FortPlayerRow {
   id: number;
   level?: number;
@@ -284,8 +257,8 @@ export interface FortPlayerRow {
   d: number;
   ready: boolean;
   ping: number;
-  /** Улучшение на текущую игру; не меняет маркер в других режимах. */
-  mag?: boolean;
+  /** Арсенал на эту игру: золото, ступени прокачки, стволы, гранаты (только в крепости) */
+  ar?: ArsenalRow;
 }
 
 /** Строка итогов: волн отбил с участием, жетонов получил */
@@ -299,17 +272,9 @@ export interface FortResultRow {
   tokens: number;
 }
 
-/** Что купили у стойки (событие 'buy') */
-export const BUY_FIX = 0;
-export const BUY_GATE = 1;
-export const BUY_CRYSTAL = 2;
-export const BUY_TURRET = 3;
-export const BUY_JAM = 4;
-export const BUY_MAGAZINE = 5;
-export const BUY_ANTIAIR = 6;
-
-/** События тика крепости (компактные массивы) */
+/** События тика крепости (компактные массивы); события арсенала — ArsenalEvent */
 export type FortEvent =
+  | ArsenalEvent
   // выстрел: кто, откуда, куда, чем кончился (0 — стена, 1 — зомби, 2 — в никуда), нормаль стены
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
   // попадание по зомби: кто, какой зомби, урон, в голову (1/0), где
@@ -324,12 +289,8 @@ export type FortEvent =
   | ['pdown', number, number]
   // игрок появился: кто, где, куда смотрит
   | ['spawn', number, number, number, number, number]
-  // ворота: 0 — пали, 1 — починили, 2 — новые; кто чинил (0 — никто)
+  // ворота: 0 — пали, 1 — починили или укрепили, 2 — новые; кто чинил (0 — никто)
   | ['gate', number, number]
-  // лавка: кто, что (BUY_*), номер места (краскомёт, жёлоб)
-  | ['buy', number, number, number]
-  // краскомёт: какой, в какого зомби, куда попал
-  | ['tshot', number, number, number, number, number]
   // липучка забралась на стену: какой зомби
   | ['climb', number]
   // атака по зафиксированной области: зомби, вид атаки, центр, радиус, тик удара
