@@ -136,6 +136,8 @@ export interface HubOptions {
   fish2?: boolean;
   /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
   roulette?: boolean;
+  /** Крысиные бега на понтоне у набережной (ставка жетонами) — флаг сервера RATRACE, shared/ratrace.ts */
+  ratrace?: boolean;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
   now?: () => number;
@@ -243,6 +245,8 @@ export class Hub {
   readonly fish2: boolean;
   /** Рулетка рыбака включена (флаг ROULETTE вместе с FISH2) */
   readonly roulette: boolean;
+  /** Крысиные бега включены (флаг RATRACE) */
+  readonly ratrace: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
   /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
@@ -289,6 +293,7 @@ export class Hub {
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
     this.roulette = this.fish2 && (o.roulette ?? false);
+    this.ratrace = o.ratrace ?? false;
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой
     this.fight = o.fight
       ? new FightRoom({
@@ -1003,7 +1008,7 @@ export class Hub {
     // Погода не зависит от присутствия рыбаков на набережной и шагается только здесь.
     this.lobby.stepWeather();
     if (this.paintball.humans > 0) this.paintball.step();
-    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy) this.lobby.step();
+    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy || this.lobby.ratrace?.busy) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();

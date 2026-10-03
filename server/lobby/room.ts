@@ -20,6 +20,7 @@ import { FISH_NPCS } from '../../shared/fishplaces.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime, songPrice } from '../../shared/jukebox.ts';
+import { RAT_CENTER, RAT_CHEER_MS, RAT_CHEER_R, isRatIndex } from '../../shared/ratrace.ts';
 import {
   ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
   ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
@@ -62,6 +63,7 @@ import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
 import { FishNpc, type NpcCtx, type NpcResult, type NpcWho } from './fishnpc.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
+import { RatTrack } from './ratrace.ts';
 import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
@@ -138,6 +140,8 @@ export class LobbyRoom implements Room {
   readonly fishNpc: FishNpc | null;
   /** Рулетка рыбака (флаг сервера ROULETTE) */
   readonly roulette: RouletteTable | null;
+  /** Крысиные бега на понтоне (флаг сервера RATRACE) */
+  readonly ratrace: RatTrack | null;
   readonly weather: Weather;
   tick = 0;
   private readonly hub: Hub;
@@ -244,6 +248,8 @@ export class LobbyRoom implements Room {
     }) : null;
     this.juke = eventOptions.jukebox ? new Jukebox() : null;
     if (!this.juke) for (const box of this.map.jukeBoxes) this.world.setEnabled(box, false);
+    // понтон крысиных бегов без флага — снова вода
+    if (!hub.ratrace) for (const box of this.map.ratBoxes) this.world.setEnabled(box, false);
     this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
       nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => { this.circleChat.launched('boatrace', players.length); this.regatta!.begin(players); },
@@ -387,6 +393,17 @@ export class LobbyRoom implements Room {
         this.honorDirty = true;
       },
     }, hub.profiles) : null;
+    this.ratrace = hub.ratrace ? new RatTrack({
+      now: this.now,
+      send: (pid, msg) => hub.clientOf(pid)?.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      announce: (text) => hub.announce(text),
+      changed: (pid) => {
+        const c = hub.clientOf(pid);
+        if (c?.profile) { hub.tokens(c, c.profile.tokens); hub.sendMe(c); }
+        this.honorDirty = true;
+      },
+    }, hub.profiles) : null;
   }
 
   private npcWho(p: LobbyPlayer): NpcWho | null {
@@ -440,6 +457,7 @@ export class LobbyRoom implements Room {
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
+      ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
@@ -588,6 +606,21 @@ export class LobbyRoom implements Room {
           return;
         }
         if (this.hub.limits.hit(`roulette:${c.id}`, 4, 1000)) this.roulette.bet(who, msg.c);
+        return;
+      }
+      case 'rat': {
+        if (!this.ratrace) return;
+        if (msg.a === 'cheer') {
+          this.onRatCheer(p, msg.rat);
+          return;
+        }
+        if (msg.a !== 'bet') return;
+        const who = this.rouletteWho(p);
+        if (!who) {
+          this.hub.toast(c, 'Крысиные бега — только для игроков с профилем');
+          return;
+        }
+        if (this.hub.limits.hit(`rat:${c.id}`, 4, 1000)) this.ratrace.bet(who, msg.rat, msg.amount, msg.race);
         return;
       }
       case 'rg':
@@ -739,6 +772,10 @@ export class LobbyRoom implements Room {
       case 'roulette':
         // окно ставки клиент открывает сам; здесь — только свежий вид стола
         if (this.roulette) c.sink.sendJson({ t: 'roulette', v: this.roulette.view() });
+        return;
+      case 'ratrace':
+        // окно ставки клиент открывает сам; здесь — только свежий вид ипподрома
+        if (this.ratrace) c.sink.sendJson({ t: 'rat', v: this.ratrace.view() });
         return;
     }
   }
@@ -1231,6 +1268,7 @@ export class LobbyRoom implements Room {
     this.stepBall();
     this.fish.step(this.tick);
     this.roulette?.step();
+    this.ratrace?.step();
     this.durak.step(this.tick);
     this.blackjack.step(this.tick);
     this.stepStartZones();
@@ -1812,6 +1850,19 @@ export class LobbyRoom implements Room {
     const place = juke.queue.length;
     c.sink.sendJson({ t: 'jukeRes', ok: true, text: place === 0 ? `«${title}» — сейчас заиграет` : `«${title}» в очереди: ${place}-я, через ${fmtSongTime(juke.etaMs(place - 1, now) / 1000)}` });
     this.hub.announce(`🎵 ${c.nick} ставит «${title}»`);
+  }
+
+  /**
+   * «Болеть» за крысу (только картинка и звук, на забег не влияет): пока идёт приём ставок или забег, не дальше
+   * RAT_CHEER_R от арены, не чаще раза в RAT_CHEER_MS — всей набережной. Иначе молча ничего.
+   */
+  private onRatCheer(p: LobbyPlayer, rat: unknown): void {
+    const c = p.client;
+    const s = p.state;
+    if (!this.ratrace?.cheerable || !c.profile || c.ephemeral || !isRatIndex(rat)) return;
+    if (Math.hypot(s.x - RAT_CENTER.x, s.z - RAT_CENTER.z) > RAT_CHEER_R) return;
+    if (!this.hub.limits.hit(`ratCheer:${c.id}`, 1, RAT_CHEER_MS)) return;
+    this.broadcast({ t: 'ratCheer', id: p.slot, rat });
   }
 }
 

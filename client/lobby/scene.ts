@@ -83,6 +83,10 @@ import { addFishPlaces3d } from './fishplaces3d.ts';
 import { FishDrink } from './fishdrink.ts';
 import { Roulette3D } from './roulette3d.ts';
 import { RouletteHud } from './roulettehud.ts';
+import { RAT_CENTER, RATS } from '../../shared/ratrace.ts';
+import type { CritterVisit } from './critterbrain.ts';
+import { RAT_CAT_APPROACH, RAT_CAT_SEAT, RatRace3D } from './ratrace3d.ts';
+import { RatRaceHud, ratAcc } from './ratracehud.ts';
 import { LobbyFolk } from './folk.ts';
 import { Respects } from './respect.ts';
 import { LobbyFx } from './fx.ts';
@@ -231,6 +235,13 @@ export class LobbyScene implements Scene {
   private rlResult: Extract<ServerMsg, { t: 'rouletteResult' }> | null = null;
   /** Крутилось ли колесо в прошлом кадре — по смене обновляем плашку раунда */
   private rlSpun = false;
+  /** Крысиные бега (флаг RATRACE): понтон, арена, крысы в 3D; окно ставки, плашка, кнопки «болеть» */
+  private readonly rat3d: RatRace3D;
+  private readonly ratHud: RatRaceHud;
+  /** Кот-зритель у арены (пока ставки или забег) и когда болели в последние секунды — шум трибуны */
+  private ratVisit: CritterVisit | null = null;
+  private ratRunning = false;
+  private readonly ratCheers: number[] = [];
   private readonly folk: LobbyFolk;
   /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
   private readonly respects: Respects;
@@ -468,6 +479,22 @@ export class LobbyScene implements Scene {
     addFishPlaces3d(this.world.scene);
     this.fishDrink = new FishDrink(this.me, d.sound);
     this.roulette3d = new Roulette3D(this.world.scene);
+    this.rat3d = new RatRace3D(this.world.scene);
+    this.rat3d.onSqueak = (x, y, z) => d.sound.ratSqueak([x, y, z]);
+    this.rat3d.onGate = () => { if (this.ratDist() < 20) d.sound.countBeep(true); };
+    this.rat3d.onWinner = (rat, x, z) => {
+      if (this.ratDist() > 30) return;
+      this.fx.confetti(x, 0.5, z, 36, 0, 1, 0, 0.5, 3.2);
+      d.sound.fanfare([x, 0.6, z]);
+      void rat;
+    };
+    this.ratHud = new RatRaceHud(d.overlay, (msg) => d.net.send(msg), () => d.ui.me().tokens);
+    this.ratHud.onOpen = () => { d.input.releaseAll(); d.input.unlock(); };
+    this.ratHud.onClose = () => d.wantPointer();
+    this.ratHud.onCheer = (rat) => d.net.send({ t: 'rat', a: 'cheer', rat });
+    this.ratHud.running = () => this.rat3d.running;
+    this.ratHud.standings = () => this.rat3d.standings();
+    this.ratHud.resultOrder = () => this.rat3d.resultOrder();
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = new Respects(this.world.scene, this.fx, d.sound);
     this.boatSign = new BoatSign(this.world.scene);
@@ -641,6 +668,7 @@ export class LobbyScene implements Scene {
     this.fishing.reset(null);
     this.fishHud.reset();
     this.fish2.reset();
+    this.ratHud.reset();
     this.fishDrink.reset();
     this.myFishSpot = -1;
     this.aquaAt = 0;
@@ -696,6 +724,7 @@ export class LobbyScene implements Scene {
     this.fishing.reset(null);
     this.fishHud.reset();
     this.fish2.reset();
+    this.ratHud.reset();
     this.fishDrink.reset();
     this.myFishSpot = -1;
     this.aquaAt = 0;
@@ -745,6 +774,13 @@ export class LobbyScene implements Scene {
         for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, this.fish2.on);
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
+        this.rat3d.setOn(!!msg.ratrace);
+        for (const index of this.world.map.ratBoxes) this.world.collision.setEnabled(index, !!msg.ratrace);
+        this.ratHud.setMe(this.d.ui.me().pid);
+        if (msg.ratrace) {
+          this.rat3d.setView(msg.ratrace, this.d.net.pingMs / 2);
+          this.ratHud.setView(msg.ratrace);
+        }
         this.roulette3d.setOn(!!msg.roulette);
         this.rlResult = null;
         if (msg.roulette) {
@@ -915,6 +951,23 @@ export class LobbyScene implements Scene {
       case 'roulette':
         this.roulette3d.setView(msg.v, this.d.net.pingMs / 2);
         this.fish2.onRoulette(msg.v);
+        break;
+      case 'rat':
+        this.rat3d.setView(msg.v, this.d.net.pingMs / 2);
+        this.ratHud.setView(msg.v);
+        break;
+      case 'ratResult':
+        this.ratHud.onResult(msg);
+        // итог пришёл, когда у меня забег уже добежал, — сказать сейчас
+        if (!this.rat3d.running && this.rat3d.lastRace === msg.race) this.ratFinished(msg.race);
+        break;
+      case 'ratBet':
+        this.ratHud.onBetReply(msg);
+        this.d.ui.toasts.show(msg.ok ? `🐀 ${msg.text}` : msg.text, msg.ok ? 3500 : 4500);
+        if (msg.ok) this.d.sound.chipStack(null, 3);
+        break;
+      case 'ratCheer':
+        this.onRatCheer(msg.id, msg.rat);
         break;
       case 'rouletteResult':
         this.fish2.roulette.onResult(msg);
@@ -1629,6 +1682,8 @@ export class LobbyScene implements Scene {
       }
       if (code === 'Space') this.fishPress();
     }
+    // у арены во время отсчёта и забега 1–6 — болеть за крысу (вместо эмоций)
+    if (this.ratHud.cheerKey(code)) return true;
     const emote = EMOTE_KEYS[code];
     if (emote !== undefined) {
       if (!isHeld(act)) this.emote(emote);
@@ -1714,6 +1769,10 @@ export class LobbyScene implements Scene {
     const it = this.target;
     if (it?.kind === 'juke') this.juke.toggle();
     else if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
+    else if (it?.kind === 'ratrace') {
+      this.d.net.send({ t: 'use', id: it.id });
+      this.ratHud.open(this.d.ui.me().pid);
+    }
     else if (it?.kind === 'roulette') {
       this.d.net.send({ t: 'use', id: it.id });
       this.fish2.openRoulette();
@@ -1725,6 +1784,54 @@ export class LobbyScene implements Scene {
       const cat = this.critters.nearestCat(this.pose);
       if (cat) this.critters.petCat(cat.id, this.clock.renderTick, this.time);
     }
+  }
+
+  /** До середины арены крысиных бегов, м (нет себя — далеко) */
+  private ratDist(): number {
+    const p = this.pose;
+    return this.hasSelf ? Math.hypot(p.x - RAT_CENTER.x, p.z - RAT_CENTER.z) : 99;
+  }
+
+  /** Крысиные бега каждый кадр: плашка и кнопки «болеть» у арены, кот-зритель, итог моей ставки после финиша */
+  private updateRats(): void {
+    if (!this.rat3d.on) return;
+    this.ratHud.setNear(this.ratDist());
+    if (this.rat3d.catWanted) {
+      const look = this.rat3d.lookPoint();
+      if (!this.ratVisit) this.ratVisit = { path: RAT_CAT_APPROACH, seat: RAT_CAT_SEAT, look: { x: look.x, z: look.z } };
+      this.ratVisit.look.x = look.x;
+      this.ratVisit.look.z = look.z;
+      this.critters.setVisit(0, this.ratVisit);
+    } else if (this.ratVisit) {
+      this.ratVisit = null;
+      this.critters.setVisit(0, null);
+    }
+    const running = this.rat3d.running;
+    if (this.ratRunning && !running) this.ratFinished(this.rat3d.lastRace);
+    this.ratRunning = running;
+  }
+
+  /** Забег у меня добежал: тост с итогом моей ставки и монеты */
+  private ratFinished(race: number): void {
+    const r = this.ratHud.finishText(race);
+    if (!r) return;
+    this.d.ui.toasts.show(r.text, 6500);
+    if (r.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(r.payout))));
+  }
+
+  /** Кто-то болеет за крысу: облачко над ним, крыса оживляется, трибуна шумит тем громче, чем больше болеют */
+  private onRatCheer(slot: number, rat: number): void {
+    const name = RATS[rat]?.name;
+    if (!name) return;
+    const av = slot === this.myId ? this.me : this.remotes.get(slot)?.avatar;
+    const lines = [`Давай, ${name}!`, `Жми, ${name}!`, `${name}, вперёд!`, `Беги, ${name}!`, `Ну же, ${name}!`];
+    av?.say(lines[Math.floor(Math.random() * lines.length)]);
+    this.rat3d.cheer(rat);
+    const now = performance.now();
+    this.ratCheers.push(now);
+    while (this.ratCheers.length && now - this.ratCheers[0] > 4000) this.ratCheers.shift();
+    if (this.ratDist() < 30) this.d.sound.ratCrowd([RAT_CENTER.x, 0.8, RAT_CENTER.z], Math.min(1, this.ratCheers.length / 8));
+    void ratAcc;
   }
 
   /** Рулетка каждый кадр: плашка раунда — только у стола; итог моей ставки — когда шарик лёг в лунку */
@@ -1999,6 +2106,8 @@ export class LobbyScene implements Scene {
     this.fish2.updateVisuals(dt, this.time, camPos);
     this.roulette3d.update(dt);
     this.updateRoulette();
+    this.rat3d.update(dt, this.time, camPos);
+    this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
     this.respects.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
@@ -2046,6 +2155,7 @@ export class LobbyScene implements Scene {
     this.folk.update(dt, this.time, cam.position, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, cam.position);
     this.roulette3d.update(dt);
+    this.rat3d.update(dt, this.time, cam.position);
     this.respects.update(dt, this.time, 0);
     this.effects.update(dt);
     this.world.barkas.setListener(this.d.sound.kit, null);
@@ -2306,7 +2416,7 @@ export class LobbyScene implements Scene {
     const dressing = act === ACT_WARDROBE && this.wardrobeOpen;
     if (dressing && !this.wardrobe.isOpen) this.wardrobe.open(this.d.ui.me());
     else if (!dressing && this.wardrobe.isOpen) this.me.setOutfit(this.wardrobe.close());
-    hud.showEmotes(this.hasSelf && !isHeld(act));
+    hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
     const fd = this.fcSt && this.hasSelf ? fightDist(this.pose.x, this.pose.y, this.pose.z) : Infinity;
@@ -2435,6 +2545,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'fort' && !this.fortSt) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;
       if (it.kind === 'roulette' && !this.roulette3d.group.visible) continue;
+      if (it.kind === 'ratrace' && !this.rat3d.on) continue;
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
@@ -2537,6 +2648,9 @@ export class LobbyScene implements Scene {
         break;
       case 'roulette':
         this.hud.setHint(['E'], this.fish2.roulette.hint());
+        break;
+      case 'ratrace':
+        this.hud.setHint(['E'], this.ratHud.hint());
         break;
       case 'juke':
         this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песни от ${JUKE_PRICE} 🪙`);

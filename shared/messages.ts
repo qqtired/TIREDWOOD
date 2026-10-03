@@ -25,6 +25,7 @@ import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
+import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
@@ -171,6 +172,7 @@ export interface DurakTableView {
 }
 
 export type ClientMsg =
+  | RatClientMsg
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
@@ -411,6 +413,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 }
 
 export type ServerMsg =
+  | RatServerMsg
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg
@@ -463,6 +466,8 @@ export type ServerMsg =
     ftop?: FishBoardView;
     /** Рулетка рыбака (флаг сервера ROULETTE) */
     roulette?: RouletteView;
+    /** Крысиные бега на понтоне (флаг сервера RATRACE, shared/ratrace.ts) */
+    ratrace?: RatRaceView;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)

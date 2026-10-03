@@ -1,0 +1,70 @@
+/* Крысиные бега: окно ставки, плашка забега, кнопки «болеть». Окно и кнопки живут в #menus (pointer-events: none) —
+   клики мышью включаем сами, как у .fe-rl и .bj-dialog. */
+.rr-dlg { box-sizing: border-box; width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 16px 20px; border: 1px solid #8a7a5a; border-radius: 18px; color: #f6ecd0; background: #2b3129; box-shadow: 0 20px 70px rgba(0,0,0,.5); font: 14px/1.45 Rubik, system-ui, sans-serif; text-shadow: none; overflow-y: auto; pointer-events: auto; }
+.rr-dlg::backdrop { background: rgba(10, 14, 12, .45); }
+.rr-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rr-top h2 { margin: 0; font-size: 20px; color: #f1e3bd; }
+.rr-close { border: 1px solid #7d7a62; color: #f6ecd0; background: rgba(255,245,220,.08); font: inherit; font-size: 26px; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; }
+.rr-close:hover { background: #4a4b3a; }
+.rr-step { margin: 12px 0 6px; font-weight: 700; color: #e2c27a; }
+.rr-rats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rr-rat { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 64px; padding: 8px 10px; border-radius: 13px; border: 3px solid rgba(255,255,255,.1); background: #3a4136; color: #fff4dc; font: inherit; text-align: left; cursor: pointer; transition: transform .12s, border-color .12s; }
+.rr-rat:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(241,212,136,.5); }
+.rr-rat.on { border-color: #f1d488; background: #4a4a34; box-shadow: 0 0 0 3px rgba(241,212,136,.3); }
+.rr-rat:disabled { cursor: default; }
+.rr-rat:disabled:not(.on) { opacity: .55; }
+.rr-no { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--saddle); border: 3px solid #fffaf0; color: #fff; font: 800 17px/1 Rubik, system-ui, sans-serif; }
+.rr-no.dark { color: #2a2420; }
+.rr-ratText { display: flex; flex-direction: column; min-width: 0; }
+.rr-name { font-size: 17px; }
+.rr-trait { font-size: 12px; color: #d4cdb4; line-height: 1.25; }
+.rr-odds { display: flex; flex-direction: column; align-items: flex-end; }
+.rr-mult { font: 800 22px/1.1 Rubik, system-ui, sans-serif; color: #ffe39a; }
+.rr-chance { font-size: 11px; color: #d4cdb4; white-space: nowrap; }
+.rr-amountRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rr-chips { display: flex; gap: 6px; }
+.rr-chip { min-width: 54px; height: 44px; border-radius: 22px; border: 3px dashed rgba(255,255,255,.55); color: #fff; font: 800 15px/1 Rubik, system-ui, sans-serif; cursor: pointer; }
+.rr-chip.c10 { background: #3f7fd8; }
+.rr-chip.c50 { background: #d64541; }
+.rr-chip.c100 { background: #2f8a4c; }
+.rr-chip.c500 { background: #6c4bb0; }
+.rr-chip:disabled { opacity: .4; cursor: default; }
+.rr-field { display: flex; align-items: center; gap: 4px; padding: 0 10px; height: 44px; border-radius: 12px; border: 1px solid #8a8466; background: rgba(0,0,0,.25); }
+.rr-input { width: 110px; border: 0; outline: 0; background: transparent; color: #fff4dc; font: 700 18px/1 Rubik, system-ui, sans-serif; }
+.rr-coin { font-style: normal; }
+.rr-reset { height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #7d7a62; background: rgba(255,245,220,.08); color: #f6ecd0; font: inherit; cursor: pointer; }
+.rr-reset:disabled { opacity: .45; cursor: default; }
+.rr-limit { margin: 6px 0 0; color: #cfc8ad; font-size: 13px; }
+.rr-go { width: 100%; min-height: 52px; margin-top: 12px; border-radius: 14px; border: 1px solid #8a8466; background: #474a3a; color: #f6ecd0; font: 700 16px/1.2 Rubik, system-ui, sans-serif; cursor: pointer; }
+.rr-go:disabled { cursor: default; color: #cfc8ad; }
+.rr-go.ready { background: #a8561f; border-color: #e8a15f; color: #fff6dc; box-shadow: 0 0 0 3px rgba(232,161,95,.28); }
+.rr-go.ready:hover { background: #bd6527; }
+.rr-state { margin: 10px 0 2px; color: #d9e0c6; font-weight: 700; }
+.rr-state.err { color: #ffb4a6; }
+.rr-fine { margin: 6px 0 0; color: #b9b49c; font-size: 12px; }
+.rr-others[hidden] { display: none; }
+
+.rr-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: min(520px, 92vw); padding: 9px 20px; border-radius: 16px; background: rgba(43, 49, 41, .92); border: 2px solid #d8b86a; color: #f6ecd0; text-shadow: none; box-shadow: 0 8px 26px rgba(0,0,0,.4); pointer-events: none; font: 600 14px/1.3 Rubik, system-ui, sans-serif; text-align: center; }
+.rr-banner[hidden] { display: none; }
+.rr-banner b { font-size: 18px; }
+.rr-banner span:empty { display: none; }
+.rr-banner.run b { animation: rr-pulse .8s ease-in-out infinite alternate; }
+.rr-banner.res { border-color: #f1d488; background: rgba(70, 58, 30, .94); }
+@keyframes rr-pulse { to { color: #ffe39a; } }
+
+.rr-cheer { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3; display: flex; flex-wrap: nowrap; white-space: nowrap; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 14px; background: rgba(43, 49, 41, .9); border: 1px solid #8a8466; pointer-events: auto; font: 600 13px/1 Rubik, system-ui, sans-serif; color: #f6ecd0; }
+.rr-cheer[hidden] { display: none; }
+.rr-cheerTitle { margin-right: 2px; color: #e2c27a; }
+.rr-cheerBtn { display: flex; align-items: center; gap: 5px; height: 32px; padding: 0 9px 0 4px; border-radius: 16px; border: 2px solid var(--saddle); background: rgba(0,0,0,.25); color: #fff4dc; font: inherit; cursor: pointer; }
+.rr-cheerBtn kbd { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--saddle); color: #fff; font: 800 12px/1 Rubik, system-ui, sans-serif; }
+.rr-cheerBtn:hover { background: rgba(255,255,255,.08); }
+.rr-cheerBtn.hit { animation: rr-hit .45s ease-out; }
+@keyframes rr-hit { 0% { transform: scale(1.18); background: var(--saddle); } 100% { transform: scale(1); } }
+
+@media (max-width: 760px) {
+  .rr-rats { grid-template-columns: 1fr; }
+  .rr-rat { min-height: 54px; }
+  .rr-trait { display: none; }
+  .rr-cheer { left: 8px; right: 8px; bottom: 74px; transform: none; justify-content: center; }
+  .rr-cheerBtn span { display: none; }
+}
