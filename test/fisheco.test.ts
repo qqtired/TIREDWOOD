@@ -145,7 +145,7 @@ test('лавка: рюкзаки 250/500/1000 с 0/3/5 уровня, блёсн�
   assert.match(buy('bag2').message!, /лучше/, 'после профессионала рыболова не продают');
   assert.equal(p.fishing.bagTier, 3);
   assert.equal(lastOf(e.a.s, 'fishNpc')!.progress.bagTier, 3);
-  assert.match(buy('lure2').message!, /твой/);
+  assert.equal(buy('lure2').message, 'Серебряная блесна — твоя!');
   assert.match(buy('lure1').message!, /лучше/);
   assert.match(buy('lure3').message!, /с 6-го уровня/);
   p.fishing.xp = FISH_XP_LEVELS[6];

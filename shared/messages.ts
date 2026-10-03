@@ -119,12 +119,6 @@ export interface OnlineEntry {
   level?: number;
 }
 
-// --- Дурак за столиками кафе
-
-/**
- * Действие за столом. Аргументы: card — карта; on — для beat номер пары на столе, для tomato стул-цель,
- * для react номер реакции, для mode 0 — подкидной / 1 — переводной, для ready 0 / 1.
- */
 /**
  * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
  * через FishNpc.register (server/lobby/fishnpc.ts).
@@ -132,6 +126,12 @@ export interface OnlineEntry {
 export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry';
 export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry'];
 
+// --- Дурак за столиками кафе
+
+/**
+ * Действие за столом. Аргументы: card — карта; on — для beat номер пары на столе, для tomato стул-цель,
+ * для react номер реакции, для mode 0 — подкидной / 1 — переводной, для ready 0 / 1.
+ */
 export type DurakAct = 'ready' | 'bot' | 'unbot' | 'mode' | 'ante' | 'stake' | 'attack' | 'beat' | 'transfer' | 'take' | 'pass' | 'tomato' | 'react';
 
 /** wait — собираемся, count — отсчёт до раздачи, play — партия, result — итог */

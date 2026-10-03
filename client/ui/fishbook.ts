@@ -21,7 +21,11 @@ import { fishSkillBlock } from '../lobby/fishprogresshud.ts';
 export type BookZone = 'all' | FishZone;
 
 /** Описание вида одной строкой (подсказка у клетки и строка под сеткой): где и когда, доля поклёвок сейчас, цена. */
-export function fishLine(sp: number, known: boolean, progress: FishProgress = emptyFishProgress(), rain = false, now = 0): string {
+/**
+ * Строка о виде. odds — с долей поклёвок по бонусам игрока (строка под сеткой); без неё — подсказка клетки: доля зависит
+ * от уровня, снастей и погоды, поэтому в подсказке её нет, чтобы не было двух разных чисел на одно и то же.
+ */
+export function fishLine(sp: number, known: boolean, progress: FishProgress = emptyFishProgress(), rain = false, now = 0, odds = true): string {
   const r = RULE[sp];
   const f = FISH[sp];
   if (!r || !f) return '';
@@ -32,7 +36,7 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
   const where = r.zone === 'barkas' ? `⚓ баркас в открытом море (с ${BARKAS_LEVEL}-го уровня рыбалки)` : 'пристань';
   const when = r.rain ? '🌧 только в дождь, цена ×1,5' : 'в любую погоду';
   const now2 = r.rain && !rain ? `в дождь — ${fmt(biteShare(sp, true, mods) * 100)}% поклёвок` : `сейчас — ${fmt(share)}% поклёвок`;
-  return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when} · ${now2} · ${lo}–${hi} 🪙 · ${r.note}`;
+  return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when}${odds ? ` · ${now2}` : ''} · ${lo}–${hi} 🪙 · ${r.note}`;
 }
 
 /** Сетка коллекции: по категориям, в каждой — «сколько из скольких»; compact — для профиля (без цен); zone — фильтр. */
@@ -88,7 +92,7 @@ function cell(sp: number, album: FishAlbum, compact: boolean, onPick?: (sp: numb
     const [lo, hi] = priceRange(sp);
     setCoinText(c.appendChild(el('span', 'fb-price')), `${lo}–${hi} 🪙`);
   }
-  c.title = fishLine(sp, !!e).replace(/ 🪙/, ' жетонов').replace(/ · сейчас — [^·]+/, '');
+  c.title = fishLine(sp, !!e, undefined, false, 0, false).replace(/ 🪙/, ' жетонов');
   if (onPick) {
     c.addEventListener('pointerenter', () => onPick(sp));
     c.addEventListener('focus', () => onPick(sp));

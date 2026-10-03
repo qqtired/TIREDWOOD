@@ -7,7 +7,7 @@ import {
 } from '../../shared/roulette.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
-import { num } from './fishfmt.ts';
+import { fishCount, num } from './fishfmt.ts';
 import './fisheco.css';
 
 const NAMES: Record<RouletteColor, string> = { red: 'Красное', black: 'Чёрное', green: 'Зеро' };
@@ -128,7 +128,7 @@ export class RouletteHud {
     const stake = bagValue(bag);
     const v = this.view;
     const mine = v?.bets.find((b) => b.pid === this.myPid);
-    setCoinText(this.sum, bag.length ? `Ставка — весь улов: ${bag.length} рыб на ${num(stake)} 🪙` : 'Рюкзак пуст — ставить нечего. Поймай рыбу и возвращайся.');
+    setCoinText(this.sum, bag.length ? `Ставка — весь улов: ${fishCount(bag.length)} на ${num(stake)} 🪙` : 'Рюкзак пуст — ставить нечего. Поймай рыбу и возвращайся.');
     this.state.textContent = mine ? `Ты уже поставил на ${ROULETTE_COLOR_NAMES[mine.c]} (${num(mine.stake)} 🪙)` : v?.phase === 'spin' ? 'Колесо крутится — ставь в следующем раунде'
       : v?.phase === 'open' ? `Приём ставок: ${this.left()} с · ставок за столом: ${v.bets.length}` : 'Стол свободен — твоя ставка откроет раунд';
     const can = bag.length > 0 && !mine && v?.phase !== 'spin';

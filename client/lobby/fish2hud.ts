@@ -291,11 +291,13 @@ export class Fish2Hud {
     // уровень, задание и рюкзак видны с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить)
     const near = px !== null && pz !== null && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
     this.tools.classList.toggle('show', (fishing || near) && !this.modalOpen);
-    // «Шансы сейчас» — пока сидишь с удочкой и не тянешь рыбу; место (пристань/баркас) — по своему месту
+    // «Шансы сейчас» — пока сидишь с удочкой, не тянешь рыбу и не смотришь карточку улова (она встаёт на то же место
+    // справа и перекрывала бы шансы); место (пристань/баркас) — по своему месту
     const zone = fishing ? spotZone(spot) : 'pier';
     this.progress.setZone(zone);
-    this.odds.root.hidden = !fishing || this.reel.active;
-    if (fishing && !this.reel.active) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain);
+    const odds = fishing && !this.reel.active && !this.card.shown;
+    this.odds.root.hidden = !odds;
+    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain);
     this.rainBadge.classList.toggle('show', fishing && this.rain && !this.reel.active);
     if (this.rain) this.rainBadge.textContent = TOUCH
       ? `🎣 Событие ×1,5${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''}`
