@@ -21,7 +21,7 @@ export type Slot = 'p' | 'e' | 'h' | 'a' | 's' | 'r' | 'b' | 'w' | 'n';
 export const EXTRA_SLOTS = ['s', 'r', 'b', 'w', 'n'] as const;
 /**
  * jackpot — только с автомата; system — выдаёт игра (выпуск 2); trophy — награда за достижение, не продаётся
- * (выпуск 6: рыбацкий комплект за все 30 рыб, shared/fishrules.ts REWARD_ITEMS); promo — скрытый подарок
+ * (рыбалка: лестница наград по видам в журнале, shared/fishstyle.ts); promo — скрытый подарок
  */
 export type Tier = 'free' | 'common' | 'rare' | 'epic' | 'premium' | 'jackpot' | 'system' | 'trophy' | 'promo';
 
