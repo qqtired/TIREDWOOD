@@ -10,7 +10,7 @@
 - Что на сайте, что лежит в коде и ещё не выложено, — раздел «Состояние» в [README.md](README.md); план дальше —
   [docs/STATUS.md](docs/STATUS.md).
 - Флаги режимов — в `server/main.ts`, на сайте — строки `Environment=…=1` в `deploy/game-opus.service`. Сейчас включены
-  `FORTRESS`, `FIGHT`, `FISH2`, `SKILL`, `BOATRACE`, `HIDE`, `STORM`, `PIRATES`, `VOICE`, `GIFTS`.
+  `FORTRESS`, `FIGHT`, `FISH2`, `SKILL`, `BOATRACE`, `HIDE`, `STORM`, `PIRATES`, `VOICE`, `GIFTS`, `LAB`, `JUKEBOX`, `ROULETTE`.
 - Образцы для нового режима: Fight Club (`shared/fight*.ts`, `server/fight/`, `client/fight/`), прятки (`shared/hide*.ts`,
   `server/hide/`, `client/hide/`), картинг (`server/race/`, `client/race/`).
 - Проверки после каждой задачи: `npm run check && npm test && npm run build`.
