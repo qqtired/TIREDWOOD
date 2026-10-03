@@ -40,7 +40,8 @@
 .fe-row .fn-action { min-height: 34px; padding: 6px 12px; }
 .fe-empty { margin: 10px 0; color: #c4cbb8; }
 .fe-warn { background: #8a4a32 !important; border-color: #c7795b !important; }
-.fe-bag, .fe-rl { box-sizing: border-box; width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); padding: 16px 20px; border: 1px solid #75816a; border-radius: 18px; color: var(--cream); background: #25302a; box-shadow: 0 20px 70px rgba(0,0,0,.5); font: 14px/1.45 Rubik, system-ui, sans-serif; text-shadow: none; overflow-y: auto; }
+/* окна живут в #menus (pointer-events: none) — клики мышью включаем сами, как у .fn-dialog и .bj-dialog */
+.fe-bag, .fe-rl { box-sizing: border-box; width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); padding: 16px 20px; border: 1px solid #75816a; border-radius: 18px; color: var(--cream); background: #25302a; box-shadow: 0 20px 70px rgba(0,0,0,.5); font: 14px/1.45 Rubik, system-ui, sans-serif; text-shadow: none; overflow-y: auto; pointer-events: auto; }
 .fe-bag::backdrop, .fe-rl::backdrop { background: rgba(10, 14, 12, .45); }
 .fe-bag-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .fe-bag-top h2 { margin: 0; font-size: 20px; color: #ede4c9; }
