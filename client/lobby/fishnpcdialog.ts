@@ -209,7 +209,7 @@ export class FishNpcDialog {
     const feedback = footer.appendChild(el('div', 'fn-feedback'));
     this.status = feedback.appendChild(el('div', 'fn-status'));
     this.status.setAttribute('role', 'status');
-    feedback.appendChild(el('div', 'fn-shortcuts', 'Esc — закрыть · I — рюкзак · J — журнал после закрытия'));
+    feedback.appendChild(el('div', 'fn-shortcuts', 'Esc — закрыть · I — рюкзак (вкладка «Продать») · J — журнал после закрытия'));
     const bottomClose = footer.appendChild(el('button', 'fn-action fn-dismiss', 'Закрыть'));
     bottomClose.type = 'button';
     bottomClose.addEventListener('click', () => this.close());
@@ -218,6 +218,10 @@ export class FishNpcDialog {
       if (e.code === 'Escape') {
         e.preventDefault();
         this.close();
+      } else if (e.code === 'KeyI' && !e.repeat) {
+        // рюкзак у торговца — это вкладка «Продать»: там весь улов с ценами
+        e.preventDefault();
+        this.show('sell');
       }
     });
     this.root.addEventListener('keyup', (e) => e.stopPropagation());
