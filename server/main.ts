@@ -11,6 +11,7 @@ import { TICK_MS } from '../shared/constants.ts';
 import { fightEnabled } from './fight/room.ts';
 import { fortEnabled } from './fort/room.ts';
 import { Hub, closeReason, type Sink } from './hub.ts';
+import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
 import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
@@ -57,6 +58,8 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
+// Лаборатория идей /lab (страница + решения владельца в DATA_DIR/lab.json, ключ — DATA_DIR/lab-key): LAB=1 включает, LAB=0 выключает
+const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
@@ -67,6 +70,7 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
@@ -133,6 +137,7 @@ server.on('request', (req, res) => {
     res.end(JSON.stringify({ ok: true, ...hub.health(), stepMs: Math.round(stepMs * 1000) / 1000 }));
     return;
   }
+  if (lab.handle(req, res, url.pathname)) return;
   if (viteMiddleware) {
     viteMiddleware(req, res, () => {
       res.statusCode = 404;
