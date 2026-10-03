@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { PHASE_END, PHASE_PLAY } from '../../shared/constants.ts';
 import { buildRaceCourse, DEFAULT_TRACK, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { KPOS_STRIDE, RECENT_ROWS, type HonorInfo, type HonorRow, type KartStatus, type PbStatus, type RecentRow } from '../../shared/messages.ts';
+import { BOTS_RULE, botsAllowed, botsWord } from '../../shared/solobots.ts';
 import { KART_COLORS } from '../race/kart3d.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
@@ -129,15 +130,19 @@ export class GateScreen {
       ctx.fillText('МАНДАРИН', W / 2 + sw / 2 + 30, y2);
     } else {
       ctx.fillStyle = '#d9a35a';
-      fit(ctx, 'пейнтбол желейками — боты уже ждут', 52, W - 90, 700);
-      ctx.fillText('пейнтбол желейками — боты уже ждут', W / 2, y2);
+      // пустая площадка: ботов на ней нет, они приходят к тому, кто зашёл один
+      const idle = 'пейнтбол желейками — боты, только пока ты один';
+      fit(ctx, idle, 52, W - 90, 700);
+      ctx.fillText(idle, W / 2, y2);
     }
 
     // строка 3: кто играет и мигающее «заходи»
     const y3 = H * 0.8;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e9dcc0';
-    const who = p.humans > 0 ? `играют: ${p.names.join(', ')}${p.humans > p.names.length ? '…' : ''}` : 'E у ворот — и ты в игре';
+    const who = p.humans > 0
+      ? `играют: ${p.names.join(', ')}${p.humans > p.names.length ? '…' : ''}${botsAllowed(p.humans) ? ' + боты' : ''}`
+      : 'E у ворот — и ты в игре';
     fit(ctx, who, 42, W - 330, 700);
     ctx.fillText(who, 40, y3);
     if (blink) {
@@ -514,10 +519,10 @@ export class KartBoard {
     // строка 3: что делать
     const y3 = H * 0.74;
     let hint: string;
-    if (p.phase === 'count') hint = p.n > 6 ? 'мест 6 — остальные поедут следующими' : `гонщиков: ${p.n} из 6 · заходи в круг`;
+    if (p.phase === 'count') hint = p.n > 6 ? 'мест 6 — остальные поедут следующими' : `гонщиков: ${p.n} из 6 · ${botsWord(p.n)}`;
     else if (p.phase === 'results') hint = `круг откроется через ${left} с`;
     else if (p.phase === 'race') hint = 'следующий заезд — после финиша';
-    else hint = 'встань в круг у гаража';
+    else hint = `в круг у гаража · ${BOTS_RULE}`;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#d9a35a';
     fit(ctx, hint, 44, W - 330, 700);

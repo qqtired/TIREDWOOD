@@ -11,6 +11,7 @@ import { buildPier } from '../../shared/maps/pier.ts';
 import type { GameMap } from '../../shared/maps/types.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
 import { randomOutfit, type Outfit } from '../../shared/outfit.ts';
+import { botsAllowed } from '../../shared/solobots.ts';
 import {
   AWP_LYING, E_ADS, E_ALIVE, E_DASH, E_FIRING, E_GROUNDED, E_PROTECTED, E_RELOAD, E_TEAM, PB_TAIL_BYTES, SNAP_SELF_RESET, encodeEntities,
   encodeSnapshot, makeHeader, type EntitySnap,
@@ -253,7 +254,12 @@ export class Game {
     return this.scores[0] <= this.scores[1] ? 0 : 1;
   }
 
-  /** Добиваем команды ботами до botsPerTeam (или до размера большей команды людей). */
+  /**
+   * Боты — только когда в игре ровно один человек (shared/solobots.ts): тогда команды добиваются ботами до botsPerTeam.
+   * Людей двое и больше — ботов нет совсем: пока идёт разминка, они уходят сразу (зашёл до старта — боты убраны), а раунд,
+   * который уже идёт (или чьи итоги на экране), боты доигрывают — чтобы не рвать счёт и таблицу; новая разминка их убирает.
+   * Остался один человек — боты возвращаются сразу, а не после раунда: одному не стоять на пустой площадке до его конца.
+   */
   balanceBots(): void {
     const humans = [0, 0];
     const bots: Player[][] = [[], []];
@@ -261,7 +267,9 @@ export class Game {
       if (p.isBot) bots[p.team].push(p);
       else humans[p.team]++;
     }
-    const target = this.botsPerTeam === 0 ? 0 : Math.max(this.botsPerTeam, humans[0], humans[1]);
+    const total = humans[0] + humans[1];
+    if (total > 1 && this.phase !== PHASE_WARMUP) return;
+    const target = this.botsPerTeam === 0 || !botsAllowed(total) ? 0 : Math.max(this.botsPerTeam, humans[0], humans[1]);
     for (const team of [0, 1] as const) {
       const need = Math.max(0, target - humans[team]);
       while (bots[team].length > need) {
@@ -300,6 +308,8 @@ export class Game {
     this.roundStartedOnce = true;
     this.phase = PHASE_WARMUP;
     this.phaseEnd = this.tick + WARMUP_TICKS;
+    // новый раунд: людей несколько — боты прошлого раунда уходят до старта, один — боты на месте
+    this.balanceBots();
     this.scores[0] = 0;
     this.scores[1] = 0;
     for (const j of this.jars) {
@@ -724,7 +734,11 @@ export class Game {
       case 'боты': {
         const n = Number.parseInt(args[0] ?? '', 10);
         if (!Number.isFinite(n) || n < 0 || n > 7) {
-          this.privateChat(p, 'Использование: /bots 0…7 — размер команды с ботами');
+          this.privateChat(p, 'Использование: /bots 0…7 — размер команды с ботами (только пока ты один в игре)');
+          break;
+        }
+        if (!botsAllowed(this.humanCount)) {
+          this.privateChat(p, 'Боты бывают только когда в игре один человек — сейчас вас несколько, ботов нет');
           break;
         }
         this.botsPerTeam = n;
@@ -770,7 +784,7 @@ export class Game {
         break;
       case 'help':
       case 'помощь':
-        this.privateChat(p, 'Команды: /restart — новый раунд, /bots N — боты до N в команде, /skill easy|normal|hard, /team — сменить команду, /kill — возродиться');
+        this.privateChat(p, 'Команды: /restart — новый раунд, /bots N — боты до N в команде (только пока ты один), /skill easy|normal|hard, /team — сменить команду, /kill — возродиться');
         break;
       default:
         this.privateChat(p, `Не знаю команду /${cmd}. Список: /help`);

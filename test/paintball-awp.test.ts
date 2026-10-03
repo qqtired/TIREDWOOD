@@ -80,15 +80,15 @@ function chatOf(s: TestSink): string[] {
   return s.msgs.filter((m): m is Extract<ServerMsg, { t: 'chat' }> => m.t === 'chat').map((m) => m.text);
 }
 
-/** Двое людей в разных командах, без ботов (или с ботами), уже в бою. */
-function duel(bots = 0): { game: Game; A: Player; B: Player; sa: TestSink; sb: TestSink } {
+/** Двое людей в разных командах, без ботов (при двоих людях ботов не бывает), уже в бою. */
+function duel(): { game: Game; A: Player; B: Player; sa: TestSink; sb: TestSink } {
   const game = new Game();
   const sa = sink();
   const sb = sink();
   const A = game.addHuman({ pid: 1, nick: 'Снайпер', outfit: DEFAULT_OUTFIT }, sa)!;
   const B = game.addHuman({ pid: 2, nick: 'Мишень', outfit: DEFAULT_OUTFIT }, sb)!;
   assert.notEqual(A.team, B.team);
-  game.botsPerTeam = bots;
+  game.botsPerTeam = 0;
   game.balanceBots();
   return { game, A, B, sa, sb };
 }
@@ -185,7 +185,11 @@ test('AWP: лежит посередине верха креста, банка �
 });
 
 test('AWP: в разминке не берётся; бот её не трогает; человек подбирает — 3 выстрела, полный магазин, строка в чат', () => {
-  const { game, A, sa } = duel(2);
+  const { game, A, B, sa } = duel();
+  // боты бывают, только когда человек один: второй вышел — в разминке боты вернулись
+  game.removePlayer(B.id);
+  game.botsPerTeam = 2;
+  game.balanceBots();
   const bot = [...game.players.values()].find((p) => p.isBot)!;
   assert.ok(bot, 'боты есть');
   const awp = game.awp!;

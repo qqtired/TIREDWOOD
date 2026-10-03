@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { BALL_BYTES } from '../../shared/ball.ts';
 import type { HideStatus } from '../../shared/hide.ts';
+import { BOTS_RULE, botsWord } from '../../shared/solobots.ts';
 import { START_ZONES, type GatherStatus } from '../../shared/startzones.ts';
 import { emptyStorm } from '../../shared/storm.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
@@ -595,8 +596,8 @@ export class LobbyScene implements Scene {
     if (!status) return;
     circle.status({ ...status, left: status.phase === 'count' && 'left' in status ? status.left : undefined, max: 'max' in status ? status.max : 6,
       hint: kind === 'boatrace' && this.rg.phase !== 'idle' && status.phase === 'idle' ? 'Регата идёт · встань — поедешь следующим'
-        : status.phase === 'idle' ? kind === 'hide' ? 'Нужно 2–8 игроков' : '1–6 игроков · можно с ботами'
-        : status.phase === 'count' ? 'Сбор игроков' : 'Раунд идёт · дождись окончания' });
+        : status.phase === 'idle' ? kind === 'hide' ? 'Нужно 2–8 игроков' : `1–6 игроков · ${BOTS_RULE}`
+        : status.phase === 'count' ? kind === 'boatrace' ? `Сбор игроков · ${botsWord(status.n)}` : 'Сбор игроков' : 'Раунд идёт · дождись окончания' });
   }
 
   setQuality(q: Quality, slow = false): void {
@@ -2494,9 +2495,9 @@ export class LobbyScene implements Scene {
       case 'hide': {
         const s = it.kind === 'boatrace' ? this.boatRaceStatus : this.hideStatus;
         if (!s) break;
-        this.hud.setHint(it.kind === 'hide' && s.phase !== 'count' && s.phase !== 'idle' ? ['E'] : [], s.phase === 'count' && 'left' in s ? `Старт через ${s.left} с · в круге ${s.n}`
+        this.hud.setHint(it.kind === 'hide' && s.phase !== 'count' && s.phase !== 'idle' ? ['E'] : [], s.phase === 'count' && 'left' in s ? `Старт через ${s.left} с · в круге ${s.n}${it.kind === 'boatrace' ? ` · ${botsWord(s.n)}` : ''}`
           : it.kind === 'boatrace' && this.rg.phase !== 'idle' ? 'Регата идёт — стой в круге, поедешь в следующем заезде'
-          : s.phase === 'idle' ? it.kind === 'hide' ? 'Встаньте в круг вдвоём · прятки 3 минуты' : 'Встань в круг · 3 круга по бухте · можно с ботами'
+          : s.phase === 'idle' ? it.kind === 'hide' ? 'Встаньте в круг вдвоём · прятки 3 минуты' : `Встань в круг · 3 круга по бухте · ${BOTS_RULE}`
           : it.kind === 'hide' ? 'Вернуться в прятки или наблюдать до следующего раунда' : 'Раунд идёт · подожди следующего старта');
         break;
       }

@@ -9,7 +9,7 @@ export const FC_MODES: readonly FcMode[] = ['duel', 'team', 'ffa'];
 export const FC_MODE_NAME: Readonly<Record<FcMode, string>> = { duel: '1 на 1', team: '2 на 2', ffa: 'каждый за себя' };
 /** Бойцов в бою: остальные из круга спускаются зрителями */
 export const FC_FIGHTERS: Readonly<Record<FcMode, number>> = { duel: 2, team: 4, ffa: 8 };
-/** Боты добирают бойцов до стольких */
+/** Боты добирают бойцов до стольких — только если боец-человек один (shared/solobots.ts) */
 export const FC_FILL: Readonly<Record<FcMode, number>> = { duel: 2, team: 4, ffa: 4 };
 /** Людей в подвале (бойцы и зрители) */
 export const FC_CAPACITY = 16;
