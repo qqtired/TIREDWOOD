@@ -55,7 +55,11 @@ test('точки появления и стойки — на опоре и не 
   }
   for (const s of map.spawns) assert.equal(s.y, TERRACE.h);
   const kinds = map.stations.map((s) => s.kind).sort();
-  assert.deepEqual(kinds, ['bell', 'crystal', 'gate', 'shop', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower']);
+  assert.deepEqual(kinds, ['bell', 'crystal', 'flag', 'gate', 'shop', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower']);
+  // белый флаг — последняя стойка: номера старых (колокол, ворота, кристалл, башни, лавка) не сдвинулись
+  assert.equal(map.stations[map.stations.length - 1].kind, 'flag');
+  assert.deepEqual(map.stations.slice(0, 3).map((s) => s.kind), ['bell', 'gate', 'crystal']);
+  assert.equal(map.stations[11].kind, 'shop');
 });
 
 test('с террасы по маршу во двор, по лестнице — на северную стену и дальше на воротную башню', () => {

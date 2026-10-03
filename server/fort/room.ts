@@ -115,8 +115,13 @@ export class FortRoom implements Room {
     if (p) this.game.onInputs(p, inputs, count);
   }
 
-  /** E у стойки: {t:'use', id} — номер стойки на карте крепости */
+  /** E у стойки: {t:'use', id} — номер стойки на карте крепости; {t:'fortVote', yes} — голос «сдаться» (белый флаг) */
   onMessage(c: Client, msg: ClientMsg): void {
+    if (msg.t === 'fortVote') {
+      const voter = this.byClient.get(c);
+      if (voter && typeof msg.yes === 'boolean') this.game.vote(voter, msg.yes);
+      return;
+    }
     if (msg.t !== 'use' || typeof msg.id !== 'number') return;
     const p = this.byClient.get(c);
     if (p) this.game.use(p, msg.id);

@@ -17,6 +17,8 @@ export interface ResultsData {
   record?: { best: number; isNew: boolean } | null;
   /** Лучшие забеги крепости: сколько волн, кто был в итогах */
   top?: readonly FortRunRec[];
+  /** Сдались голосованием у белого флага (волна, на которой сдались, — не отбита и не считается) */
+  surr?: boolean;
 }
 
 export class Results {
@@ -34,10 +36,10 @@ export class Results {
     const rows = [...d.rows].sort((a, b) => b.k - a.k || b.pts - a.pts || a.d - b.d);
     const kills = rows.reduce((n, r) => n + r.k, 0);
     const gold = rows.reduce((n, r) => n + r.pts, 0);
-    const title = d.win ? 'Крепость выстояла!' : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
+    const title = d.win ? 'Крепость выстояла!' : d.surr ? `🏳️ Сдались на волне ${d.wave + 1}` : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
     const sub = d.win
       ? `Отбиты все ${d.lastWave} волн`
-      : d.wave > 0 ? `Отбито волн: ${d.wave}` : 'Ни одной волны не отбили — в следующий раз получится';
+      : d.wave > 0 ? `${d.surr ? 'Решили сдаться голосованием · ' : ''}Отбито волн: ${d.wave}` : d.surr ? 'Решили сдаться голосованием — до первой отбитой волны' : 'Ни одной волны не отбили — в следующий раз получится';
     const r = d.record;
     const recText = !r ? '' : r.isNew && d.wave > 0 ? `🏆 Новый рекорд крепости!${r.best > 0 ? ` (был ${r.best})` : ''}`
       : r.best > 0 ? `Рекорд крепости — ${r.best} ${wavesWord(r.best)}` : '';
@@ -57,7 +59,7 @@ export class Results {
     const body = rows
       .map((r) => `<tr class="${r.id === d.myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${num(r.k)}</td><td>${num(r.d)}</td><td>${num(r.pts)}</td><td>${num(r.waves)}</td><td class="tok">${r.tokens > 0 ? `+${num(r.tokens)}` : '—'}</td></tr>`)
       .join('');
-    this.root.innerHTML = `<div class="fu-res-card ${d.win ? 'win' : 'lose'}">
+    this.root.innerHTML = `<div class="fu-res-card ${d.win ? 'win' : 'lose'}${d.surr ? ' surr' : ''}">
       <div class="fu-res-head"><b class="fu-res-title">${title}</b><span class="fu-res-sub">${sub}</span>${rec}</div>
       ${mvp}
       <div class="fu-res-reward" hidden></div>

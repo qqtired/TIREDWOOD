@@ -9,6 +9,7 @@ import type { FishTop } from './fishrules.ts';
 import type { RouletteColor, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
+import type { FortSurrender } from './fortsurrender.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { RaceTrackId } from './racecourse.ts';
@@ -187,6 +188,8 @@ export type ClientMsg =
   /** Ошибка в браузере игрока: текст, где (файл:строка), начало стека, сцена, браузер; n — ник на устройстве (до входа) */
   | { t: 'err'; m: string; at?: string; st?: string; sc?: string; ua?: string; n?: string }
   | { t: 'use'; id: number }
+  /** Крепость: голос в голосовании «сдаться» (белый флаг) — за или против */
+  | { t: 'fortVote'; yes: boolean }
   | { t: 'unuse' }
   | { t: 'emote'; e: number }
   /** Жест вдвоём (k: 0 — «дай пять», 1 — обняться): позвать того, кто перед тобой, или ответить на приглашение */
@@ -550,8 +553,10 @@ export type ServerMsg =
   | { t: 'fev'; k: number; e: FortEvent[] }
   // card — карточка идущей волны (в бою) или следующей (в передышке и сборе)
   | { t: 'fphase'; phase: number; end: number; wave: number; card?: FortWaveCard }
-  // top — рекорды крепости после этого забега, record — побили рекорд, prev — прежний рекорд
-  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number }
+  // top — рекорды крепости после этого забега, record — побили рекорд, prev — прежний рекорд, surr — сдались голосованием
+  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number; surr?: boolean }
+  // голосование «сдаться» у белого флага (shared/fortsurrender.ts): состояние всем в крепости
+  | ({ t: 'fsurr' } & FortSurrender)
   | ({ t: 'fortReward' } & FtReward)
   | ({ t: 'fortSt' } & FortStatus)
   // --- Fight Club (shared/fight.ts): вход (id — свой номер в снимках, ring — радиус ринга), состав, события тика,

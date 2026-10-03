@@ -39,6 +39,8 @@ import { WaveEvents, type EventHost } from './events.ts';
 import { Horde, type HordeHost, type HordeTarget, type Zombie } from './horde.ts';
 import { devBossHp } from './kraken.ts';
 import { FortNav } from './nav.ts';
+import { SURR_COOLDOWN_TICKS, SURR_VOTE_TICKS } from '../../shared/fortsurrender.ts';
+import { Surrender, type SurrenderOutcome } from './surrender.ts';
 
 export class FortPlayer {
   readonly id: number;
@@ -165,6 +167,8 @@ export class FortGame implements HordeHost, EventHost {
   private pendingAfk: FortPlayer[] = [];
   /** Ушедшие из идущей игры — по номеру профиля (вернутся — получат свой забег) */
   private readonly ledger = new FortLedger();
+  /** Белый флаг на террасе: голосование «сдаться» (surrender.ts) */
+  private readonly surr = new Surrender();
 
   constructor(hooks: FortHooks = {}) {
     this.hooks = hooks;
@@ -209,6 +213,7 @@ export class FortGame implements HordeHost, EventHost {
     sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster(),
       ...(this.card ? { card: this.card } : {}) });
     this.spawn(p);
+    this.sendSurrTo(p);
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
       this.systemChat(`Орда усилена для ${this.horde.defenders} защитников · подкрепление через 3 с`);
     }
@@ -229,6 +234,9 @@ export class FortGame implements HordeHost, EventHost {
     for (const zombie of this.horde.zombies) zombie.damageBy.delete(id);
     this.rosterDirty = true;
     if (this.players.size > 0) this.systemChat(`${p.name} ушёл из крепости`);
+    // ушедший выбывает из подсчёта голосов: без него голосование может пройти или провалиться раньше срока
+    const left = this.surr.leave(id, this.tick);
+    if (left) this.surrenderStep(left.out);
   }
 
   private uniqueName(name: string): string {
@@ -249,6 +257,7 @@ export class FortGame implements HordeHost, EventHost {
     this.debugTeam = 0;
     this.horde.clear();
     this.ledger.clear();
+    this.surr.reset();
     this.wave = 0;
     this.cleared = 0;
     this.seed = Math.floor(this.rng() * 0x7fffffff) + 1;
@@ -384,7 +393,8 @@ export class FortGame implements HordeHost, EventHost {
    * Итоги: таблица, лучший защитник, рекорд крепости (новый — +15 🪙 каждому в итогах), остаток жетонов тем, кто
    * дождался (за волны — то, что ещё не платили), забег — в таблицу рекордов.
    */
-  private finish(win: boolean): void {
+  private finish(win: boolean, surr = false): void {
+    this.surr.cancel();
     this.waveEvents.stop();
     this.card = null;
     this.plan = null;
@@ -403,7 +413,12 @@ export class FortGame implements HordeHost, EventHost {
       this.hooks.saveRun?.({ wave: this.cleared, names: [...this.players.values()].map((p) => p.name).slice(0, FORT_MAX_HUMANS), at: Date.now(), n: this.players.size });
     }
     const top = (this.hooks.top?.() ?? []).slice(0, FORT_TOP);
-    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev });
+    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev, ...(surr ? { surr: true } : {}) });
+    if (surr) {
+      // сдались голосованием у белого флага: отбитые волны — как при поражении, неотбитая текущая не в счёт
+      this.systemChat(`🏳️ Сдались на волне ${this.cleared + 1}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
+      return;
+    }
     this.systemChat(win ? `🏆 Крепость выстояла! Все ${FORT_WAVES} волн отбиты`
       : `💥 Кристалл разбит на волне ${this.wave}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
   }
@@ -643,6 +658,7 @@ export class FortGame implements HordeHost, EventHost {
     }
     const st = this.map.stations[id];
     if (!st || !this.atStation(p, st)) return;
+    if (st.kind === 'flag') return this.useFlag(p);
     if (st.kind === 'bell') {
       if (this.phase === FT_WAVE) {
         if (this.tick < this.rallyReady) return this.toast(p, `Щит восстанавливается: ${Math.ceil((this.rallyReady - this.tick) / TICK_RATE)} с`);
@@ -670,6 +686,74 @@ export class FortGame implements HordeHost, EventHost {
       }
       return;
     }
+  }
+
+  // ------------------------------------------------------------ белый флаг: сдаться голосованием
+
+  /**
+   * E у белого флага (surrender.ts): первое нажатие просит нажать ещё раз (3 с), второе начинает голосование — одному
+   * игроку оно сразу заканчивает игру. Можно во время волны и в передышке; в сборе и на итогах — нет.
+   */
+  private useFlag(p: FortPlayer): void {
+    if (this.phase !== FT_WAVE && this.phase !== FT_BREAK) {
+      if (this.phase === FT_GATHER) this.toast(p, 'Сдаться можно, когда начнётся первая волна');
+      return;
+    }
+    const r = this.surr.press(p.id, p.name, [...this.players.keys()], this.tick);
+    switch (r.k) {
+      case 'ask':
+        p.sink.sendJson({ t: 'fsurr', ...this.surr.view(this.tick), ask: r.until });
+        return;
+      case 'wait':
+        this.toast(p, `Сдаться можно через ${Math.ceil(r.left / TICK_RATE)} с`);
+        return;
+      case 'busy':
+        this.toast(p, 'Голосование уже идёт — Y за, N против');
+        return;
+      case 'started': {
+        const v = this.surr.view(this.tick);
+        this.systemChat(`🏳️ ${p.name} предлагает сдаться — голосуем ${Math.round(SURR_VOTE_TICKS / TICK_RATE)} с: Y — за, N — против (нужно ${v.need} из ${v.voters.length})`);
+        this.sendSurr();
+        return;
+      }
+      case 'ended':
+        this.surrenderStep(r.out);
+        return;
+    }
+  }
+
+  /** {t:'fortVote', yes}: голос в голосовании «сдаться»; голосуют все люди в крепости, сбитые тоже */
+  vote(p: FortPlayer, yes: boolean): void {
+    if (this.players.get(p.id) !== p || this.phase === FT_END) return;
+    const r = this.surr.vote(p.id, yes, this.tick);
+    if (r) this.surrenderStep(r.out);
+  }
+
+  /** Состояние голосования изменилось (out — если оно этим кончилось): разослать, написать в чат, сдаться */
+  private surrenderStep(out: SurrenderOutcome | null): void {
+    if (!out) {
+      this.sendSurr();
+      return;
+    }
+    this.broadcast({ t: 'fsurr', ...out.view });
+    const score = `за ${out.yes} из ${out.voters}`;
+    if (out.result === 'passed') {
+      // в одиночку голосования не было — только итог
+      if (out.voters > 1) this.systemChat(`🏳️ Голосование: прошло — ${score}`);
+      this.finish(false, true);
+    } else {
+      this.systemChat(`🏳️ Голосование: не прошло — ${score}, нужно ${out.need}. Снова сдаться можно через ${Math.round(SURR_COOLDOWN_TICKS / TICK_RATE)} с`);
+    }
+  }
+
+  private sendSurr(): void {
+    this.broadcast({ t: 'fsurr', ...this.surr.view(this.tick) });
+  }
+
+  /** Вошедшему: идёт голосование или действует перезарядка */
+  private sendSurrTo(p: FortPlayer): void {
+    const v = this.surr.view(this.tick);
+    if (v.open || v.cd) p.sink.sendJson({ t: 'fsurr', ...v });
   }
 
   /** Стоит у стойки (как проверяет и клиент, с запасом 0,6 м) */
@@ -720,7 +804,7 @@ export class FortGame implements HordeHost, EventHost {
       if (devBossHp(this.horde, Number(arg))) this.systemChat(`🛠 Разработка: боссам — ${Number(arg)} % HP`);
       return;
     }
-    this.privateChat(p, 'Крепость: E у прилавка — лавка (1–9 — купить), E у ворот, кристалла и мест башен на стенах — их панель, 1/2 или колесо — маркер или тяжёлый ствол, G — граната (держи — дуга), лестницы — W лицом к стене, колокол — «готов», Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');
+    this.privateChat(p, 'Крепость: E у прилавка — лавка (1–9 — купить), E у ворот, кристалла и мест башен на стенах — их панель, 1/2 или колесо — маркер или тяжёлый ствол, G — граната (держи — дуга), лестницы — W лицом к стене, колокол — «готов», белый флаг — сдаться (голосование: Y — за, N — против), Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');
   }
 
   /** Разработка: передышка перед волной w (3 с), орда убрана; очки и жетоны не начисляются */
@@ -774,6 +858,9 @@ export class FortGame implements HordeHost, EventHost {
       if (this.crystal <= 0) this.finish(false);
       else if (this.horde.cleared) this.endWave();
     }
+    // голосование «сдаться»: вышло время — не прошло
+    const timeUp = this.surr.step(tick);
+    if (timeUp) this.surrenderStep(timeUp);
 
     if (tick % FORT_SNAP_EVERY === 0) this.sendSnapshots();
     if (this.rosterDirty && tick - this.rosterSentTick > 12) this.sendRoster();
