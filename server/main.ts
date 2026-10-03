@@ -55,7 +55,7 @@ const hide = hideEnabled(process.env.HIDE, DEV);
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
 const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
-// Рыбалка 2.0 (шкала вываживания, 30 видов, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
+// Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
