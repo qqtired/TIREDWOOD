@@ -235,7 +235,8 @@ export class Kraken3D {
       const u = 1 - Math.min(1, r.wind / TENT_WARN_TICKS);
       _c.lerp(_c2.set(RED), 0.15 + 0.35 * u);
     } else if (r.st === ZS_TENT_REST) {
-      _c.lerp(_c2.set(OPEN), 0.35 + 0.2 * Math.sin(time * 8));
+      // окно: булава и рука заметно голубые и мерцают — руби
+      _c.lerp(_c2.set(OPEN), 0.55 + 0.2 * Math.sin(time * 8));
     }
     if (r.flags & ZF_RAGE) _c.lerp(_c2.set(RAGE), 0.3 + 0.12 * Math.sin(time * 9 + r.stage));
     _c.lerp(WHITE, flash * 0.7);
