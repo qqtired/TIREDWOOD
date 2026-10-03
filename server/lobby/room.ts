@@ -43,6 +43,7 @@ import {
 import { BIG_WIN_MULT, MACHINE_NAMES, SPIN_MS, SPIN_TICKS } from '../../shared/slots.ts';
 import { WHEEL_EXIT, WHEEL_PERIOD, WHEEL_PRICE, CABIN_STEP, bottomCabin, seatAt as wheelSeatAt } from '../../shared/wheel.ts';
 import { CollisionWorld } from '../../shared/world.ts';
+import { FC_CIRCLE, FC_FIGHTERS } from '../../shared/fight.ts';
 import { FightGather } from '../fight/gather.ts';
 import type { Client, Hub, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
@@ -54,6 +55,7 @@ import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
 import { Pirates } from './pirates.ts';
 import { ModeQueue, syncCircleMembers } from './modequeue.ts';
+import { CircleChat, isDoor, type CircleFolk } from './circlechat.ts';
 import { Regatta } from './regatta.ts';
 import { DurakHall } from './durak.ts';
 import { FishingHall, type FishingHost } from './fishing.ts';
@@ -127,6 +129,8 @@ export class LobbyRoom implements Room {
   private readonly hideQueue: ModeQueue<LobbyPlayer> | null;
   private boatShown = '';
   private hideShown = '';
+  /** Строки в общий чат: «ждёт в круге», «поехали», «заходит в» (server/lobby/circlechat.ts) */
+  private readonly circleChat = new CircleChat({ now: () => this.now(), say: text => this.hub.announceLive(text) });
   readonly fishing: FishingHall;
   /** Рыбалка 2.0 (флаг сервера FISH2): null — старая рыбалка */
   readonly fishing2: FishingHall2 | null;
@@ -242,11 +246,11 @@ export class LobbyRoom implements Room {
     if (!this.juke) for (const box of this.map.jukeBoxes) this.world.setEnabled(box, false);
     this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
-      nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => this.regatta!.begin(players),
+      nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => { this.circleChat.launched('boatrace', players.length); this.regatta!.begin(players); },
     }) : null;
     this.hideQueue = hub.hide ? new ModeQueue({ center: HIDE_CIRCLE, min: () => Math.max(1,HIDE_MIN-hub.hide!.humans), max: HIDE_CAPACITY, ticks: KART_COUNT_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
-      nick: p => p.client.nick, position: p => p.state, idle: () => !hub.hide!.active && hub.hide!.hasSpace(), start: players => hub.startHide(players.map(p => p.client)),
+      nick: p => p.client.nick, position: p => p.state, idle: () => !hub.hide!.active && hub.hide!.hasSpace(), start: players => { this.circleChat.launched('hide', players.length); hub.startHide(players.map(p => p.client)); },
     }) : null;
     const eventHost: EventHost = {
       players: () => [...this.players.values()].map(p => ({ pid: p.client.pid, slot: p.slot, nick: p.client.nick, state: p.state, eligible: !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen })),
@@ -272,7 +276,7 @@ export class LobbyRoom implements Room {
         toast: (c, text) => hub.toast(c, text),
         broadcast: (msg) => this.broadcast(msg),
         fight: () => hub.fight?.status() ?? null,
-        start: (fighters, crowd, mode) => hub.startFight(fighters, crowd, mode),
+        start: (fighters, crowd, mode) => { this.circleChat.launched('fight', fighters.length + crowd.length); hub.startFight(fighters, crowd, mode); },
         watch: (c) => hub.watchFight(c),
       })
       : null;
@@ -745,6 +749,33 @@ export class LobbyRoom implements Room {
     this.hub.fishEvent(this.weather.rain, this.weather.eventUntil);
   }
 
+  // ------------------------------------------------------------ чат кругов
+
+  /** Раз в проверку: кто стоит в каждом круге сбора — в «чат кругов» (в выключенных флагом режимах кругов нет). */
+  private circleChatStep(): void {
+    const chat = this.circleChat;
+    chat.update('kart', RC_MAX_KARTS, this.whoStands(KART_START));
+    if (this.boatQueue) chat.update('boatrace', RG_MAX, this.whoStands(BOAT_RACE_CIRCLE));
+    if (this.hideQueue) chat.update('hide', HIDE_CAPACITY, this.whoStands(HIDE_CIRCLE));
+    if (this.fc) chat.update('fight', FC_FIGHTERS[this.fc.mode], this.whoStands(FC_CIRCLE));
+  }
+
+  /** Кто стоит в круге — на тех же условиях, что в кругах сбора (не проверочный вход, не сидит, не в меню). */
+  private whoStands(circle: { x: number; z: number; r: number }): CircleFolk[] {
+    const out: CircleFolk[] = [];
+    for (const p of this.players.values()) {
+      if (!p.client.ephemeral && !isHeld(p.action) && !p.menuOpen && inStartCircle(p.state, circle)) out.push({ pid: p.client.pid, nick: p.client.nick });
+    }
+    return out;
+  }
+
+  /** Хаб перевёл игрока с набережной в комнату режима (круг на 3 с или E): пейнтбол, крепость, «Выше облаков» — в чат. */
+  doorEntered(c: Client, room: Room): void {
+    const kind = room.kind;
+    if (c.ephemeral || !c.profile || !isDoor(kind)) return;
+    this.circleChat.door(kind, { pid: c.pid, nick: c.nick }, room.humans);
+  }
+
   /** E у катера: стоит — первый платит и садится за руль (30 с посадки); идёт посадка — садишься бесплатно. */
   private onBoat(p: LobbyPlayer): void {
     const c = p.client;
@@ -1213,6 +1244,7 @@ export class LobbyRoom implements Room {
       if (key !== this.hideShown) { this.hideShown = key; this.broadcast({ t: 'hideSt', v }); }
     }
     if (this.fc && this.tick % FC_CHECK_EVERY === 0) this.fc.step(this.tick);
+    if (this.tick % KART_CHECK_EVERY === 0) this.circleChatStep();
     if (this.tick % LOBBY_SNAP_EVERY === 0) this.sendSnapshots();
     if (this.tick % TICK_RATE === 0) {
       if (this.poolDirty && this.tick >= this.poolHoldUntil) {
@@ -1626,6 +1658,7 @@ export class LobbyRoom implements Room {
       this.kartCountEnd = 0;
       const all = [...this.circle];
       for (const p of all.slice(RC_MAX_KARTS)) this.hub.toast(p.client, 'Мест нет — поедешь в следующий заезд');
+      this.circleChat.launched('kart', Math.min(all.length, RC_MAX_KARTS));
       this.hub.startRace(all.slice(0, RC_MAX_KARTS).map((p) => p.client), this.kartTrack);
     }
     const st = this.kartStatus();

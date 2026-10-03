@@ -588,6 +588,7 @@ export class Hub {
     }
     this.gate.moved(c, room);
     this.voice?.moved(c);
+    if (from === 'lobby') this.lobby.doorEntered(c, room);
     if (!c.ephemeral) this.broadcastOnline();
     return true;
   }
@@ -646,6 +647,15 @@ export class Hub {
     const send = (): void => this.addChat({ from: '', pid: 0, room: '', team: -1, text, sys: true });
     if (delayTicks > 0) this.later(delayTicks, send);
     else send();
+  }
+
+  /**
+   * Системная строка «только сейчас» (круги сбора, server/lobby/circlechat.ts): её видят все в игре, но в журнал чата
+   * она не попадает — вошедшему через час «ждёт в круге» уже ничего не говорит.
+   */
+  announceLive(text: string): void {
+    const msg: ServerMsg = { t: 'chat', from: '', pid: 0, room: '', team: -1, text, sys: true };
+    for (const c of this.clients) if (c.profile && !c.ephemeral) c.sink.sendJson(msg);
   }
 
   /** Выполнить через столько тиков хаба (итог вращения, объявления). */
