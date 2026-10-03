@@ -17,10 +17,12 @@ import type { BoatRaceServerMsg, BoatRaceStatus } from './boatrace.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
+import type { RainWire } from './weather.ts';
 import type { PirateView } from './pirates.ts';
 import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
+import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'boatrace' | 'hide';
 
@@ -42,7 +44,7 @@ export interface RosterEntry {
   o: Outfit;
 }
 
-/** Код закрытия «клиент 8 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
+/** Код закрытия «клиент 20 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
 export const CLOSE_SILENCE = 4900;
 
 /** Символы однорукого бандита пейнтбола (бонус на раунд) */
@@ -168,12 +170,17 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | GiftClientMsg
+  | LoadClientMsg
   | VoiceClientMsg
   | HideClientMsg
-  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал) */
-  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number }
+  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
+   *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
+  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
   | { t: 'chat'; text: string }
-  | { t: 'ping'; c: number }
+  /** r — сколько JSON-сообщений сессии клиент принял (сервер забывает подтверждённое) */
+  | { t: 'ping'; c: number; r?: number }
+  /** Вкладку закрывают или обновляют: не ждать возврата (без него закрытие 1001 — как заморозка вкладки в фоне) */
+  | { t: 'bye' }
   /** Ошибка в браузере игрока: текст, где (файл:строка), начало стека, сцена, браузер; n — ник на устройстве (до входа) */
   | { t: 'err'; m: string; at?: string; st?: string; sc?: string; ua?: string; n?: string }
   | { t: 'use'; id: number }
@@ -360,7 +367,9 @@ export type LobbyEvent =
   // отдал честь у статуи (кто), сколько всего раз отдавали
   | ['respect', number, number]
   // аквапарк: вертушка или мешок сбили (где: x, z; кто)
-  | ['aqhit', number, number, number];
+  | ['aqhit', number, number, number]
+  // рыбак собрал все виды — «Хозяин глубин»: фанфары и золотые искры у него (кто)
+  | ['fishMaster', number];
 
 export type ErrorCode = 'version' | 'need_nick' | 'nick_taken' | 'bad_nick' | 'bad_code' | 'bad_key' | 'replaced' | 'full' | 'rate';
 
@@ -384,6 +393,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | GiftServerMsg
+  | LoadServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | BoatRaceServerMsg
@@ -402,6 +412,8 @@ export type ServerMsg =
   | { t: 'scene'; scene: RoomKind; epoch: number }
   | { t: 'code'; code: string; until: number }
   | { t: 'restart' }
+  /** Возврат в ту же сессию после обрыва принят: следом — всё, что не дошло, сцена у клиента остаётся */
+  | { t: 'resumed' }
   | { t: 'error'; text: string; code?: ErrorCode }
   | { t: 'pong'; c: number; k: number }
   // --- общий чат и «кто где»
@@ -418,6 +430,8 @@ export type ServerMsg =
     boatrace?: GatherStatus | BoatRaceStatus;
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    /** Идущий дождь (shared/weather.ts): сколько уже идёт, длина, сид, откуда — силу и молнии считает клиент */
+    wx?: RainWire | null;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
     fort?: FortStatus;
     /** «Fight Club»: круг у двери в подвал кафе — только если режим включён флагом сервера */
@@ -443,8 +457,8 @@ export type ServerMsg =
   // выключили), tgUp — только новые и исправленные строки (по id), пачкой, не чаще нескольких раз в секунду
   | { t: 'tg'; title: string; lines: TgLine[] }
   | { t: 'tgUp'; title: string; lines: TgLine[] }
-  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился
-  | { t: 'weather'; rain: number }
+  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился; wx — сам дождь (shared/weather.ts)
+  | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
@@ -467,10 +481,11 @@ export type ServerMsg =
   // рыбалка 2.0: вытащил (сервер повторил вываживание): цена (сундук — что в нём, coins), бонус за новый вид, рекорд
   // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full). fisheco: рыба — в рюкзак
   // (bag — сколько в нём теперь, cap — мест; bagFull — места не нашлось, рыбу отпустили), base — цена без напитка и
-  // места, m — множители (биты BAG_*), xp — опыт рыбалки, perfect — ни тика вне зоны
+  // места, m — множители (биты BAG_*), xp — опыт рыбалки, perfect — ни тика вне зоны; rw — награды лестницы
+  // fishstyle, полученные этим уловом
   | {
     t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean;
-    base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean;
+    base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
   }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { SkillStatus } from '../../shared/skilltest.ts';
+import { SKILL_COURSE, type SkillStatus } from '../../shared/skilltest.ts';
 
 /** Lobby gateway only. Matching colliders and interaction belong to the lobby map. */
 export class SkillPortal {
@@ -23,14 +23,16 @@ export class SkillPortal {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.15, 0.79), new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, side: THREE.DoubleSide })); sign.position.set(0, 3.7, 0.2); this.root.add(sign);
     // A faint flat cloud-shaped threshold, no opaque wall or screen-space glow.
     const threshold = new THREE.Mesh(new THREE.CircleGeometry(1.24, 24), new THREE.MeshBasicMaterial({ color: 0x9ce6ef, transparent: true, opacity: 0.28, depthWrite: false })); threshold.rotation.x = -Math.PI / 2; threshold.position.y = 0.015; this.root.add(threshold);
-    scene.add(this.root); this.status({ n: 0, max: 5, names: [], course: 'sky-islands-v1' });
+    scene.add(this.root); this.status({ n: 0, max: 5, names: [], course: SKILL_COURSE, phase: 'none', left: 0 });
   }
   status(s: SkillStatus): void {
-    const state = `${s.n}/${s.max}`; if (state === this.lastStatus) return; this.lastStatus = state;
+    const state = `${s.n}/${s.max}`;
+    const line = s.n >= s.max ? `Каланча занята · ${state}` : s.phase === 'pre' ? `Сбор забега · старт через ${s.left} с` : s.phase === 'run' ? `Идёт забег · на каланче ${state}` : `Небесная каланча · на каланче ${state}`;
+    if (line === this.lastStatus) return; this.lastStatus = line;
     const ctx = this.label.getContext('2d')!; ctx.clearRect(0, 0, 1024, 256);
     ctx.fillStyle = '#31516a'; ctx.beginPath(); ctx.roundRect(0, 0, 1024, 256, 38); ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f1fbff'; ctx.font = '700 82px Rubik, sans-serif'; ctx.fillText('ВЫШЕ ОБЛАКОВ', 512, 85);
-    ctx.fillStyle = '#b6e8e7'; ctx.font = '500 43px Rubik, sans-serif'; ctx.fillText(s.n >= s.max ? `Полоса занята · ${state}` : `8 этапов · на полосе ${state}`, 512, 181);
+    ctx.fillStyle = s.phase === 'pre' ? '#ffd23f' : '#b6e8e7'; ctx.font = '500 43px Rubik, sans-serif'; ctx.fillText(line, 512, 181);
     this.texture.needsUpdate = true;
   }
   update(_dt: number): void {}

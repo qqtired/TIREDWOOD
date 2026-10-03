@@ -1,384 +1,591 @@
+// Голос в браузере (client/voice.ts) на поддельном WebRTC: слушаем по умолчанию, соединения только там, где есть
+// микрофон, V, перезапуск ICE, заглушение по профилю, обрыв игровой связи, настройки.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { VoiceController, type VoiceDependencies } from '../client/voice.ts';
-import type { VoiceClientMsg } from '../shared/voice.ts';
+import { VoiceController, withDtx, VOICE_FADE_IN_S, VOICE_FADE_OUT_TAU_S, VOICE_ONSET_S, VOICE_TAIL_MS, VOICE_TAIL_PLAIN_MS, type VoiceDependencies, type MicPermission } from '../client/voice.ts';
+import { defaultVoicePrefs, loadVoicePrefs, setPeerPref, type VoicePrefs } from '../client/voice-prefs.ts';
+import { MicTest } from '../client/voice-mictest.ts';
+import type { VoiceClientMsg, VoicePeer } from '../shared/voice.ts';
 
-const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
-function deferred<T>() { let resolve!: (v: T) => void; let reject!: (v: unknown) => void; const promise = new Promise<T>((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; }
-class Track extends EventTarget { enabled = true; stopped = false; kind = 'audio'; readyState = 'live'; stop() { this.stopped = true; this.readyState = 'ended'; } }
+const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
+/** Дождаться, пока все обещания (вся цепочка согласования) отработают: таймеры здесь поддельные */
+const settle = () => new Promise<void>(r => setImmediate(r));
+function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
+class Track extends EventTarget { enabled = true; stopped = false; kind = 'audio'; label = 'Mic'; stop() { this.stopped = true; } }
 class Stream { track = new Track(); getTracks() { return [this.track]; } getAudioTracks() { return [this.track]; } }
-class AudioNode { gain = { value: 1 }; disconnected = false; connect(_to: unknown) { return this; } disconnect() { this.disconnected = true; } }
-class Sink {
-  muted = false; defaultMuted = false; srcObject: unknown = null; plays = 0; pauses = 0; failPlay = false; pending: Promise<void> | null = null;
-  async play() { this.plays++; if (this.pending) await this.pending; if (this.failPlay) throw Error('secret playback details'); }
-  pause() { this.pauses++; }
-}
-class Context { state = 'running'; destination = new AudioNode(); nodes: AudioNode[] = []; closed = false; failResume = false;
-  holdResume: Promise<void> | null = null;
-  async resume() { if (this.holdResume) await this.holdResume; if (this.failResume) throw Error('secret'); this.state = 'running'; }
-  async close() { this.closed = true; this.state = 'closed'; }
-  createGain() { const n = new AudioNode(); this.nodes.push(n); return n; }
-  createMediaStreamSource(_s: unknown) { const n = new AudioNode(); this.nodes.push(n); return n; }
-}
+class Sink { muted = false; volume = 1; autoplay = false; srcObject: unknown = null; plays = 0; failPlay = false; async play() { this.plays++; if (this.failPlay) throw Error('blocked'); } pause() {} }
 interface Sender { track: unknown; replaceTrack(t: unknown): Promise<void>; getParameters(): { encodings: object[] }; setParameters(p: unknown): Promise<void> }
-interface Transceiver { sender: Sender; receiver: { track: { kind: string } }; mid: string | null; direction: string; setCodecPreferences(c: unknown): void }
+let session = 100;
 class Peer {
-  connectionState = 'new'; localDescription: { type: string; sdp: string } | null = null; remoteDescription: unknown = null;
-  onicecandidate: ((e: unknown) => void) | null = null; ontrack: ((e: unknown) => void) | null = null; onconnectionstatechange: (() => void) | null = null;
-  closed = false; offers = 0; configs = 0; ice: unknown[] = []; tracks: unknown[] = []; txs: Transceiver[] = []; answerTrack: unknown; answerDirection: string | undefined; codecs: unknown; parameters: unknown;
-  hold: Promise<void> | null = null;
-  makeSender(): Sender { const sender: Sender = { track: null, replaceTrack: async (t: unknown) => { if (this.hold) await this.hold; sender.track = t; this.tracks.push(t); }, getParameters: () => ({ encodings: [{}] }), setParameters: async (p: unknown) => { this.parameters = p; } }; return sender; }
-  sender = this.makeSender();
-  get transceivers() { return this.txs.length; }
-  tx(sender: Sender, mid: string | null, direction: string): Transceiver { return { sender, receiver: { track: { kind: 'audio' } }, mid, direction, setCodecPreferences: (c: unknown) => { this.codecs = c; } }; }
-  addTransceiver(_kind: string, _opts: unknown) { const tx = this.tx(this.sender, null, 'sendrecv'); this.txs.push(tx); return tx; }
+  connectionState = 'new'; signalingState = 'stable'; localDescription: { type: string; sdp: string } | null = null; remoteDescription: { type: string; sdp: string } | null = null;
+  onicecandidate: ((e: unknown) => void) | null = null; ontrack: ((e: unknown) => void) | null = null; onconnectionstatechange: (() => void) | null = null; onicecandidateerror: (() => void) | null = null;
+  closed = false; offers: Array<{ iceRestart?: boolean }> = []; answers = 0; txs: Array<{ sender: Sender; receiver: { track: { kind: string } }; mid: string | null; direction: string; setCodecPreferences(c: unknown): void }> = [];
+  session = ++session;
+  /** Применённые кандидаты ICE (по порядку); сколько transceiver создали сами; задержка setRemoteDescription */
+  ice: unknown[] = []; added = 0; hold: Promise<void> | null = null;
+  sender(): Sender { const s: Sender = { track: null, replaceTrack: async t => { s.track = t; }, getParameters: () => ({ encodings: [{}] }), setParameters: async () => {} }; return s; }
+  tx(mid: string | null) { return { sender: this.sender(), receiver: { track: { kind: 'audio' } }, mid, direction: 'sendrecv', setCodecPreferences: () => {} }; }
+  addTransceiver() { this.added++; const t = this.tx('0'); this.txs.push(t); return t; }
   getTransceivers() { return this.txs; }
-  async createOffer() { this.offers++; return { type: 'offer', sdp: 'private-offer' }; }
-  async createAnswer() { const tx = this.txs.find(t => t.mid !== null); this.answerTrack = tx?.sender.track; this.answerDirection = tx?.direction; return { type: 'answer', sdp: 'private-answer' }; }
-  async setLocalDescription(d: { type: string; sdp: string }) { this.localDescription = d; }
-  async setRemoteDescription(d: { type: string }) { this.remoteDescription = d; if (d.type === 'offer') this.txs.push(this.tx(this.makeSender(), '0', 'recvonly')); }
+  sdp(kind: string) { return `v=0\r\no=- ${this.session} 2 IN IP4 127.0.0.1\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10\r\na=${kind}\r\n`; }
+  async createOffer(o: { iceRestart?: boolean } = {}) { this.offers.push(o); return { type: 'offer', sdp: this.sdp('offer') }; }
+  async createAnswer() { this.answers++; return { type: 'answer', sdp: this.sdp('answer') }; }
+  async setLocalDescription(d: { type: string; sdp: string }) {
+    if (d.type === 'rollback') { this.signalingState = 'stable'; return; }
+    this.localDescription = d; this.signalingState = d.type === 'offer' ? 'have-local-offer' : 'stable';
+  }
+  async setRemoteDescription(d: { type: string; sdp: string }) {
+    if (this.hold) await this.hold;
+    this.remoteDescription = d;
+    if (d.type === 'offer') { if (!this.txs.length) this.txs.push(this.tx('0')); this.signalingState = 'have-remote-offer'; } else this.signalingState = 'stable';
+  }
   async addIceCandidate(c: unknown) { this.ice.push(c); }
-  setConfiguration(_c: unknown) { this.configs++; }
+  setConfiguration() {}
   close() { this.closed = true; this.connectionState = 'closed'; }
-  async getStats() { return new Map([['a', { type: 'outbound-rtp', kind: 'audio', bytesSent: 123, codecId: 'codec' }], ['codec', { type: 'codec', mimeType: 'audio/opus', clockRate: 48000, sdpFmtpLine: 'SECRET' }]]); }
+  async getStats() { return new Map(); }
+  set(state: string) { this.connectionState = state; this.onconnectionstatechange?.(); }
+  track() { this.ontrack?.({ streams: [new Stream()], track: new Track() }); }
 }
-function setup() {
-  const peers: Peer[] = [], contexts: Context[] = [], sinks: Sink[] = [], sent: VoiceClientMsg[] = [], streams: Stream[] = [];
-  const win = new EventTarget(), doc = new EventTarget(); let hidden = false, eligible = true, time = 0, captures = 0;
-  let gum: (() => Promise<MediaStream>) | null = null; const timers = new Map<number, { at: number; fn: () => void }>(); let serial = 0;
+// Звуковой движок для цепочки отправки: записываем, что делали с громкостью
+class Param {
+  value: number; log: string[] = [];
+  constructor(v: number) { this.value = v; }
+  cancelScheduledValues(t: number) { this.log.push(`cancel@${t}`); return this; }
+  setValueAtTime(v: number, t: number) { this.log.push(`set ${v}@${t}`); this.value = v; return this; }
+  linearRampToValueAtTime(v: number, t: number) { this.log.push(`ramp ${v}@${t}`); this.value = v; return this; }
+  setTargetAtTime(v: number, t: number, tau: number) { this.log.push(`target ${v}@${t}/${tau}`); this.value = v; return this; }
+}
+class AudioPart { links: unknown[] = []; connect(n: unknown) { this.links.push(n); return n; } disconnect() { this.links = []; } }
+class Ctx {
+  state: string; currentTime = 0; resumes = 0; closed = false; failResume = false;
+  gains: Array<AudioPart & { gain: Param }> = []; dests: Stream[] = []; sources: unknown[] = [];
+  constructor(state: string) { this.state = state; }
+  async resume() { this.resumes++; if (!this.failResume) this.state = 'running'; }
+  async close() { this.closed = true; this.state = 'closed'; }
+  createMediaStreamSource(s: unknown) { this.sources.push(s); return new AudioPart(); }
+  createGain() { const g = Object.assign(new AudioPart(), { gain: new Param(1) }); this.gains.push(g); return g; }
+  createMediaStreamDestination() { const stream = new Stream(); this.dests.push(stream); return Object.assign(new AudioPart(), { stream }); }
+}
+const key = (extra: object = {}) => ({ repeat: false, ctrlKey: false, metaKey: false, altKey: false, target: null, ...extra }) as unknown as KeyboardEvent;
+type Who = Partial<VoicePeer> & { id: number };
+
+/** audio: состояние звукового движка; без него — запасной путь (дорожка микрофона, хвост без затухания) */
+function setup(o: { prefs?: VoicePrefs; permission?: MicPermission; audio?: 'running' | 'suspended' | 'broken' } = {}) {
+  const ctxs: Ctx[] = [];
+  const pcs: Peer[] = [], sinks: Sink[] = [], sent: VoiceClientMsg[] = [], streams: Stream[] = [], saved: VoicePrefs[] = [];
+  const win = new EventTarget(), doc = new EventTarget(); let time = 0, captures = 0, serial = 0, blocked = false, hidden = false, eligible = true;
+  let gum: ((c: MediaStreamConstraints) => Promise<MediaStream>) | null = null;
+  const timers = new Map<number, { at: number; fn: () => void }>();
   const deps: VoiceDependencies = {
     supported: () => true,
-    createPeerConnection: () => { const p = new Peer(); peers.push(p); return p as unknown as RTCPeerConnection; },
-    createAudioElement: () => { const sink = new Sink(); sinks.push(sink); return sink as unknown as HTMLAudioElement; },
-    createAudioContext: () => { const c = new Context(); contexts.push(c); return c as unknown as AudioContext; },
-    getUserMedia: async () => { captures++; if (gum) return gum(); const s = new Stream(); streams.push(s); return s as unknown as MediaStream; },
+    createPeerConnection: () => { const p = new Peer(); pcs.push(p); return p as unknown as RTCPeerConnection; },
+    createAudioElement: () => { const s = new Sink(); s.failPlay = blocked; sinks.push(s); return s as unknown as HTMLAudioElement; },
+    createAudioContext: () => {
+      if (!o.audio) return null;
+      if (o.audio === 'broken') throw new Error('no audio');
+      const c = new Ctx(o.audio); ctxs.push(c); return c as unknown as AudioContext;
+    },
+    getUserMedia: async c => { captures++; if (gum) return gum(c); const s = new Stream(); streams.push(s); return s as unknown as MediaStream; },
     createMediaStream: () => new Stream() as unknown as MediaStream,
-    audioCapabilities: () => ({ codecs: [{ mimeType: 'audio/opus', clockRate: 48000, channels: 2 }, { mimeType: 'audio/PCMU', clockRate: 8000 }], headerExtensions: [] }),
+    audioCapabilities: () => null, micPermission: async () => o.permission ?? 'prompt',
     now: () => time, setTimer: (fn, ms) => { const id = ++serial; timers.set(id, { at: time + ms, fn }); return id; }, clearTimer: id => { timers.delete(id as number); },
     window: win, document: doc, hidden: () => hidden,
   };
-  const controller = new VoiceController({ send: m => sent.push(m), canTalk: () => eligible, onChange: () => {} }, deps);
-  controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
-  const state = (self: number | null = 1, ids = [2]) => controller.onMessage({ t: 'voiceState', self, room: 'lobby', peers: ids.map(id => ({ id, entityId: id, nick: `P${id}`, talking: false })) });
+  const prefs = o.prefs ?? defaultVoicePrefs();
+  const voice = new VoiceController({ send: m => sent.push(m), canTalk: () => eligible, onChange: () => {}, prefs, savePrefs: p => saved.push(structuredClone(p)) }, deps);
+  voice.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
+  const state = (self: number | null, who: Who[], zone = 'world') => voice.onMessage({ t: 'voiceState', self, room: 'lobby', zone,
+    peers: who.map(p => ({ entityId: p.id, pid: p.id, nick: `P${p.id}`, talking: false, mic: false, ...p })) });
   const advance = (ms: number) => { time += ms; for (const [id, t] of [...timers]) if (t.at <= time) { timers.delete(id); t.fn(); } };
-  return { controller, peers, contexts, sinks, sent, streams, win, doc, state, advance, timers, captures: () => captures,
-    gum: (fn: () => Promise<MediaStream>) => { gum = fn; }, eligibility: (b: boolean) => { eligible = b; }, hidden: (b: boolean) => { hidden = b; } };
+  const signals = () => sent.filter((m): m is Extract<VoiceClientMsg, { t: 'voiceSignal' }> => m.t === 'voiceSignal');
+  const offerFrom = (pc: Peer, from: number, to: number) => voice.onMessage({ t: 'voiceSignal', from, to, signal: { kind: 'offer', sdp: pc.sdp('offer') } });
+  const blockAudio = (on: boolean) => { blocked = on; for (const k of sinks) k.failPlay = on; };
+  return { voice, pcs, sinks, sent, streams, saved, win, doc, state, advance, signals, offerFrom, blockAudio, ctxs, captures: () => captures,
+    hide: (on: boolean) => { hidden = on; }, canTalk: (on: boolean) => { eligible = on; },
+    gum: (fn: ((c: MediaStreamConstraints) => Promise<MediaStream>) | null) => { gum = fn; } };
+}
+const micMsgs = (sent: VoiceClientMsg[]) => sent.filter(m => m.t === 'voice' && m.a === 'mic').map(m => (m as { on: boolean }).on);
+/** Что сервер слышал про «говорю»: true — говорит, false — замолчал */
+const talkMsgs = (sent: VoiceClientMsg[]) => sent.flatMap(m => m.t === 'voice' && m.a === 'talk' ? [m.on] : []);
+
+test('после входа — сразу в канале и слушаем: без микрофона; слушатели между собой не соединяются', async () => {
+  const s = setup();
+  assert.deepEqual(s.sent, [{ t: 'voice', a: 'join' }]);
+  s.state(1, [{ id: 2 }, { id: 3 }]);
+  await flush();
+  assert.equal(s.captures(), 0, 'микрофон без спроса не открываем');
+  assert.equal(s.pcs.length, 0, 'оба слушают — соединение не нужно');
+  assert.equal(s.voice.view.joined, true); assert.equal(s.voice.view.people.length, 2); assert.equal(s.voice.view.peers.length, 0);
+  // у третьего включился микрофон — к нему подключаемся (мы меньший номер: предлагаем мы)
+  s.state(1, [{ id: 2 }, { id: 3, mic: true }]);
+  await flush();
+  assert.equal(s.pcs.length, 1); assert.equal(s.pcs[0].offers.length, 1);
+  const offer = s.signals()[0].signal;
+  assert.match(offer.kind === 'offer' ? offer.sdp : '', /a=fmtp:111 minptime=10;usedtx=1/, 'Opus DTX в предложении');
+  // и выключился — соединение закрыто
+  s.state(1, [{ id: 2 }, { id: 3 }]);
+  assert.equal(s.pcs[0].closed, true); assert.equal(s.voice.view.peers.length, 0);
+});
+
+test('первое V включает микрофон без передачи; удержание — говорим, отпустил — после короткого хвоста тишина', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2 }, { id: 3 }]);
+  assert.equal(s.voice.handleKey('KeyV', true, key()), true);
+  await flush();
+  assert.equal(s.captures(), 1);
+  const track = s.streams[0].track;
+  assert.equal(track.enabled, false, 'разрешение не превращается в передачу');
+  assert.deepEqual(micMsgs(s.sent), [true]);
+  assert.equal(s.pcs.length, 2, 'с микрофоном — соединения со всеми в зоне');
+  s.voice.handleKey('KeyV', false, key());
+  // пока ни одно соединение не поднялось — не говорим
+  s.voice.handleKey('KeyV', true, key()); assert.equal(track.enabled, false);
+  s.voice.handleKey('KeyV', false, key());
+  s.pcs[0].set('connected');
+  s.voice.handleKey('KeyV', true, key()); assert.equal(track.enabled, true);
+  assert.ok(s.sent.some(m => m.t === 'voice' && m.a === 'talk' && m.on));
+  s.voice.handleKey('KeyV', false, key()); assert.equal(track.enabled, true, 'хвост: последний слог не режем');
+  s.advance(VOICE_TAIL_PLAIN_MS); assert.equal(track.enabled, false);
+  assert.deepEqual(talkMsgs(s.sent), [true, false]);
+  // потеря фокуса — тоже тишина
+  s.voice.handleKey('KeyV', true, key()); s.win.dispatchEvent(new Event('blur')); assert.equal(track.enabled, false);
+  // выключил микрофон — соединения со слушателями закрыты, поток остановлен
+  s.voice.disableMic();
+  assert.deepEqual(micMsgs(s.sent), [true, false]); assert.equal(track.stopped, true);
+  assert.ok(s.pcs.every(p => p.closed));
+});
+
+test('режим «V — вкл/выкл»: нажал — говоришь, нажал ещё раз — замолчал', async () => {
+  const prefs = defaultVoicePrefs(); prefs.mode = 'toggle';
+  const s = setup({ prefs });
+  s.state(1, []);
+  s.voice.handleKey('KeyV', true, key()); await flush();
+  const track = s.streams[0].track;
+  s.voice.handleKey('KeyV', false, key());
+  s.voice.handleKey('KeyV', true, key()); s.voice.handleKey('KeyV', false, key());
+  s.advance(1000);
+  assert.equal(track.enabled, true, 'отпустил — всё ещё говоришь');
+  s.voice.handleKey('KeyV', true, key()); assert.equal(track.enabled, true, 'выключил — короткий хвост');
+  s.advance(VOICE_TAIL_PLAIN_MS); assert.equal(track.enabled, false);
+});
+
+test('связь пропала: предлагающий перезапускает ICE, отвечающий просит его; потом соединение с нуля', async () => {
+  const s = setup();
+  s.state(2, [{ id: 1, mic: true }, { id: 3, mic: true }]);
+  await flush();
+  const [answerer, offerer] = s.pcs; // с 1 мы отвечаем, с 3 — предлагаем
+  assert.equal(offerer.offers.length, 1); assert.equal(answerer.offers.length, 0);
+  offerer.set('failed'); await flush();
+  assert.deepEqual(offerer.offers.at(-1), { iceRestart: true });
+  answerer.set('failed');
+  assert.deepEqual(s.signals().at(-1), { t: 'voiceSignal', self: 2, to: 1, signal: { kind: 'restart' } });
+  // просьба перезапуска от отвечающего (3 — больший номер)
+  s.voice.onMessage({ t: 'voiceSignal', from: 3, to: 2, signal: { kind: 'restart' } }); await flush();
+  assert.equal(offerer.offers.filter(o => o.iceRestart).length, 2);
+  // перезапуски не помогают — новое соединение вместо старого
+  for (let i = 0; i < 10 && !offerer.closed; i++) { s.advance(31_000); await flush(); }
+  assert.ok(offerer.closed); assert.ok(s.pcs.length > 2); assert.deepEqual(s.pcs.at(-1)!.offers, [{}]);
+  // «disconnected» сам часто проходит: перезапуск только через паузу
+  const fresh = s.pcs.at(-1)!; fresh.set('connected'); fresh.set('disconnected'); await flush();
+  assert.equal(fresh.offers.length, 1); s.advance(3_000); await flush(); assert.deepEqual(fresh.offers.at(-1), { iceRestart: true });
+});
+
+test('отвечающий: новое предложение из новой сессии — соединение с нуля; микрофон на согласованном отправителе', async () => {
+  const s = setup();
+  s.state(3, [{ id: 1, mic: true }]);
+  const remote = new Peer();
+  s.offerFrom(remote, 1, 3); await flush();
+  const first = s.pcs[0];
+  assert.equal(first.answers, 1); assert.equal(first.txs.length, 1);
+  assert.match(s.signals().at(-1)!.signal.kind === 'answer' ? (s.signals().at(-1)!.signal as { sdp: string }).sdp : '', /usedtx=1/);
+  s.offerFrom(remote, 1, 3); await flush();
+  assert.equal(s.pcs.length, 1, 'та же сессия (перезапуск ICE) — то же соединение');
+  s.offerFrom(new Peer(), 1, 3); await flush();
+  assert.equal(first.closed, true); assert.equal(s.pcs.length, 2); assert.equal(s.pcs[1].answers, 1);
+});
+
+test('заглушение и громкость — по профилю: переживают смену зоны и номеров, сохраняются', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2, pid: 77, mic: true }]); await flush();
+  s.pcs[0].track();
+  assert.equal(s.sinks[0].muted, false);
+  s.voice.setPeerMuted(77, true); s.voice.setPeerVolume(77, 0.5);
+  assert.equal(s.sinks[0].muted, true); assert.equal(s.sinks[0].volume, 0.5);
+  assert.deepEqual(s.saved.at(-1)!.peers, { 77: { muted: true, volume: 0.5 } });
+  // крепость: новые номера у всех, тот же человек
+  s.state(5, [{ id: 9, pid: 77, mic: true }], 'fort'); await flush();
+  assert.equal(s.pcs[0].closed, true);
+  s.pcs.at(-1)!.track();
+  assert.equal(s.sinks.at(-1)!.muted, true); assert.equal(s.sinks.at(-1)!.volume, 0.5);
+  assert.equal(s.voice.view.people[0].muted, true);
+});
+
+test('обрыв игровой связи: голосовые соединения живут, говорить нельзя до возврата', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2, mic: true }]);
+  await s.voice.enableMic(); await flush();
+  s.pcs[0].set('connected');
+  s.voice.push(true); assert.equal(s.streams[0].track.enabled, true);
+  s.voice.linkDown();
+  assert.equal(s.streams[0].track.enabled, false); assert.equal(s.pcs[0].closed, false);
+  s.voice.push(true); assert.equal(s.streams[0].track.enabled, false);
+  s.voice.linkUp();
+  s.voice.push(true); assert.equal(s.streams[0].track.enabled, true);
+});
+
+test('«Слышать голос» выключено: из канала, микрофон отпущен; включено — снова в канале без микрофона', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2, mic: true }]);
+  await s.voice.enableMic(); await flush();
+  s.voice.setListen(false);
+  assert.ok(s.sent.some(m => m.t === 'voice' && m.a === 'leave')); assert.equal(s.streams[0].track.stopped, true);
+  assert.ok(s.pcs.every(p => p.closed)); assert.equal(s.saved.at(-1)!.listen, false);
+  s.state(null, [{ id: 2, mic: true }]); assert.equal(s.pcs.length, 1, 'вне канала соединений нет');
+  s.voice.setListen(true);
+  assert.deepEqual(s.sent.at(-1), { t: 'voice', a: 'join' }); assert.equal(s.captures(), 1);
+});
+
+test('браузер не дал включить звук: первый клик или клавиша включают', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2, mic: true }]); await flush();
+  s.blockAudio(true); s.pcs[0].track(); await flush();
+  assert.equal(s.voice.view.playbackBlocked, true);
+  s.win.dispatchEvent(new Event('keydown')); await flush();
+  assert.equal(s.voice.view.playbackBlocked, true, 'не вышло — ждём следующего жеста');
+  s.blockAudio(false); s.win.dispatchEvent(new Event('pointerdown')); await flush();
+  assert.equal(s.voice.view.playbackBlocked, false); assert.equal(s.sinks[0].plays, 3);
+});
+
+test('после нового входа микрофон включается сам, только если браузер уже разрешил', async () => {
+  const s = setup({ permission: 'granted' });
+  s.state(1, []); await s.voice.enableMic(); await flush();
+  s.voice.disconnected(true);
+  s.voice.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
+  s.state(4, []); await flush(); await flush();
+  assert.equal(s.captures(), 2); assert.equal(s.streams[1].track.enabled, false); assert.deepEqual(micMsgs(s.sent), [true, true]);
+  // выход в меню — забываем
+  s.voice.disconnected();
+  s.voice.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
+  s.state(6, []); await flush(); await flush();
+  assert.equal(s.captures(), 2);
+});
+
+test('DTX в описании Opus и настройки голоса с нормализацией', () => {
+  const sdp = 'a=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10;useinbandfec=1\r\n';
+  assert.equal(withDtx(sdp), 'a=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10;useinbandfec=1;usedtx=1\r\n');
+  assert.equal(withDtx(withDtx(sdp)), withDtx(sdp));
+  assert.equal(withDtx('a=rtpmap:111 opus/48000/2\r\n'), 'a=rtpmap:111 opus/48000/2\r\na=fmtp:111 usedtx=1\r\n');
+  const store = (v: unknown) => ({ getItem: () => typeof v === 'string' ? v : JSON.stringify(v), setItem: () => {} });
+  assert.deepEqual(loadVoicePrefs(store('{bad json')), defaultVoicePrefs());
+  const p = loadVoicePrefs(store({ listen: false, volume: 7, mode: 'shout', device: 5, noise: false, peers: { 12: { muted: true }, x: { muted: true }, 13: { volume: -1 }, 14: { volume: 1 } } }));
+  assert.deepEqual(p, { listen: false, volume: 1, mode: 'hold', device: '', noise: false, peers: { 12: { muted: true, volume: 1 }, 13: { muted: false, volume: 0 } } });
+  setPeerPref(p, 12, { muted: false }); assert.deepEqual(Object.keys(p.peers), ['13'], 'обычные значения не храним');
+});
+
+// ------------------------------------------------------------ приватность микрофона
+
+test('V не трогает микрофон и не говорит: фокус в поле ввода, повтор, Ctrl/Meta/Alt, скрытая вкладка, canTalk() = false', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2 }]);
+  const ignored: Array<[string, object]> = [
+    ['INPUT text', { target: { tagName: 'INPUT', type: 'text' } }],
+    ['INPUT search', { target: { tagName: 'INPUT', type: 'search' } }],
+    ['TEXTAREA', { target: { tagName: 'TEXTAREA' } }],
+    ['contentEditable', { target: { tagName: 'DIV', isContentEditable: true } }],
+    ['повтор клавиши', { repeat: true }], ['Ctrl', { ctrlKey: true }], ['Meta', { metaKey: true }], ['Alt', { altKey: true }],
+  ];
+  const tryAll = async (when: string) => {
+    for (const [name, extra] of ignored) assert.equal(s.voice.handleKey('KeyV', true, key(extra)), false, `${when}: ${name}`);
+    s.hide(true); assert.equal(s.voice.handleKey('KeyV', true, key()), false, `${when}: скрытая вкладка`); s.hide(false);
+    s.canTalk(false); assert.equal(s.voice.handleKey('KeyV', true, key()), false, `${when}: canTalk() = false`); s.canTalk(true);
+    await settle();
+  };
+  await tryAll('микрофон выключен');
+  assert.equal(s.captures(), 0, 'браузер о микрофоне не спрашивали');
+  assert.equal(s.voice.view.mic, 'off');
+  // микрофон уже включён, связь есть: те же нажатия не включают передачу
+  await s.voice.enableMic(); await settle();
+  s.pcs[0].set('connected');
+  const track = s.streams[0].track;
+  await tryAll('микрофон включён');
+  assert.equal(track.enabled, false); assert.deepEqual(talkMsgs(s.sent), [], '«говорит» не объявляли');
+  // обычное V — говорим: проверка выше не пустая
+  assert.equal(s.voice.handleKey('KeyV', true, key({ target: { tagName: 'CANVAS' } })), true); assert.equal(track.enabled, true);
+});
+
+test('blur окна, скрытие вкладки, фокус в другом месте и запрет говорить гасят track.enabled синхронно', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2 }]);
+  await s.voice.enableMic(); await settle();
+  s.pcs[0].set('connected');
+  const track = s.streams[0].track;
+  const cases: Array<[string, () => void]> = [
+    ['blur окна', () => s.win.dispatchEvent(new Event('blur'))],
+    ['visibilitychange → hidden', () => { s.hide(true); s.doc.dispatchEvent(new Event('visibilitychange')); }],
+    ['фокус ушёл (focusin)', () => s.doc.dispatchEvent(new Event('focusin'))],
+    // игра каждый кадр сверяет право говорить (App.syncVoiceVisibility) и зовёт stopTalking
+    ['canTalk() = false: остановка от игры', () => { s.canTalk(false); s.voice.stopTalking(); }],
+    // сам контроллер перепроверяет право на каждом пульсе «говорю» (600 мс) и не продлевает его
+    ['canTalk() = false: пульс контроллера', () => { s.canTalk(false); s.advance(600); }],
+  ];
+  for (const [name, trigger] of cases) {
+    s.hide(false); s.canTalk(true);
+    s.voice.push(true); assert.equal(track.enabled, true, `${name}: говорим`);
+    const said = talkMsgs(s.sent).length;
+    trigger();
+    assert.equal(track.enabled, false, `${name}: сразу тишина, без await`);
+    assert.deepEqual(talkMsgs(s.sent).slice(said), [false], `${name}: серверу — «замолчал», без продления`);
+  }
+});
+
+test('поздний ответ браузера на микрофон после «Слышать голос» выкл, стопа микрофона или выхода не оживляет захват', async () => {
+  for (const stop of ['«Слышать голос» выкл', 'стоп микрофона', 'выход из игры'] as const) {
+    const s = setup();
+    s.state(1, [{ id: 2 }]);
+    const late = deferred<MediaStream>(); s.gum(() => late.promise);
+    const pending = s.voice.enableMic();
+    assert.equal(s.voice.view.mic, 'requesting', stop);
+    if (stop === '«Слышать голос» выкл') s.voice.setListen(false); else if (stop === 'стоп микрофона') s.voice.disableMic(); else s.voice.disconnected();
+    const stream = new Stream(); late.resolve(stream as unknown as MediaStream); await pending; await settle();
+    assert.equal(stream.track.stopped, true, `${stop}: дорожка остановлена`); assert.equal(stream.track.enabled, false, stop);
+    assert.equal(s.voice.view.mic, 'off', stop);
+    assert.deepEqual(micMsgs(s.sent), [], `${stop}: «микрофон включён» серверу не ушло`);
+    s.voice.push(true); assert.equal(stream.track.enabled, false, `${stop}: V не включает`);
+  }
+});
+
+test('смена устройства и шумоподавления: поздний поток старого поколения сразу останавливается', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2 }]);
+  await s.voice.enableMic(); await settle();
+  s.pcs[0].set('connected');
+  const first = s.streams[0];
+  s.voice.push(true); assert.equal(first.track.enabled, true);
+  const a = deferred<MediaStream>(), b = deferred<MediaStream>();
+  s.gum(() => a.promise); s.voice.setDevice('mic-a');
+  assert.equal(first.track.enabled, false, 'смена устройства прерывает передачу');
+  s.gum(() => b.promise); s.voice.setDevice('mic-b');
+  const sa = new Stream(), sb = new Stream();
+  b.resolve(sb as unknown as MediaStream); await settle();
+  assert.equal(first.track.stopped, true, 'прежний поток отпущен');
+  a.resolve(sa as unknown as MediaStream); await settle();
+  assert.equal(sa.track.stopped, true, 'поздний поток (mic-a) остановлен'); assert.equal(sa.track.enabled, false);
+  assert.equal(sb.track.stopped, false); assert.equal(sb.track.enabled, false, 'новый поток молчит до нажатия');
+  assert.equal(s.pcs[0].txs[0].sender.track, sb.track, 'собеседнику — дорожка нового потока');
+  // шумоподавление переключают, а микрофон тут же выключили: поздний поток — стоп
+  const c = deferred<MediaStream>(); s.gum(() => c.promise);
+  s.voice.setNoise(false); s.voice.disableMic();
+  const sc = new Stream(); c.resolve(sc as unknown as MediaStream); await settle();
+  assert.equal(sc.track.stopped, true); assert.equal(sc.track.enabled, false); assert.equal(sb.track.stopped, true);
+  assert.equal(s.voice.view.mic, 'off');
+});
+
+test('ошибки микрофона — человеческим текстом: имя и сообщение исключения браузера наружу не уходят', async () => {
+  const leak = /private|secret|credential|snd|NotAllowed|Security|NotReadable|Abort|Overconstrained|Error/;
+  const cases: Array<[string, string, RegExp]> = [
+    ['NotAllowedError', 'denied', /^Доступ к микрофону запрещён/], ['SecurityError', 'denied', /^Доступ к микрофону запрещён/],
+    ['NotReadableError', 'unavailable', /^Не удалось открыть микрофон/], ['AbortError', 'unavailable', /^Не удалось открыть микрофон/],
+  ];
+  for (const [name, mic, text] of cases) {
+    const s = setup(); s.state(1, []);
+    s.gum(async () => { throw Object.assign(new Error('private secret device credentials /dev/snd0'), { name }); });
+    await s.voice.enableMic();
+    assert.equal(s.voice.view.mic, mic, name); assert.match(s.voice.view.error, text, name);
+    assert.doesNotMatch(`${s.voice.view.error} ${s.voice.view.notice}`, leak, name);
+  }
+  // выбранного раньше микрофона нет — берём основной, подсказка тоже без подробностей
+  const prefs = defaultVoicePrefs(); prefs.device = 'gone';
+  const s = setup({ prefs }); s.state(1, []);
+  s.gum(async c => {
+    if ((c.audio as MediaTrackConstraints).deviceId) throw Object.assign(new Error('secret device gone'), { name: 'OverconstrainedError' });
+    return new Stream() as unknown as MediaStream;
+  });
+  await s.voice.enableMic();
+  assert.equal(s.voice.view.mic, 'ready'); assert.match(s.voice.view.notice, /взят основной/); assert.doesNotMatch(s.voice.view.notice, leak);
+  // проверка микрофона в меню — так же
+  const check = new MicTest({ getUserMedia: async () => { throw Object.assign(new Error('private secret'), { name: 'NotAllowedError' }); }, createAudioContext: () => { throw new Error('не нужен'); } });
+  const text = await check.start({ audio: true });
+  assert.match(text ?? '', /^Доступ к микрофону запрещён/); assert.doesNotMatch(text ?? '', leak); assert.equal(check.running, false);
+});
+
+test('ICE до предложения копится не больше ICE_LIMIT (64) и сливается по порядку; повторное предложение не плодит transceiver и sender', async () => {
+  const s = setup();
+  s.state(4, [{ id: 2, mic: true }]); // у 2 микрофон, предлагает он (меньший номер)
+  const pc = s.pcs[0];
+  const ice = (i: number) => s.voice.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'ice', candidate: { candidate: `candidate:${i} 1 udp 1 10.0.0.1 ${5000 + i} typ host`, sdpMid: '0', sdpMLineIndex: 0 } } });
+  for (let i = 0; i < 100; i++) ice(i);
+  await settle();
+  assert.equal(pc.ice.length, 0, 'до предложения кандидаты не применяются');
+  const remote = new Peer();
+  s.offerFrom(remote, 2, 4); await settle();
+  const ids = () => pc.ice.map(c => (c as { candidate: string }).candidate.split(' ')[0]);
+  assert.deepEqual(ids(), Array.from({ length: 64 }, (_, i) => `candidate:${i}`), 'первые 64, по порядку');
+  ice(500); await settle(); assert.equal(ids().at(-1), 'candidate:500', 'после предложения — сразу');
+  const sender = pc.txs[0].sender;
+  s.offerFrom(remote, 2, 4); await settle(); // повтор той же сессии (перезапуск ICE)
+  assert.equal(pc.answers, 2); assert.equal(pc.txs.length, 1); assert.equal(pc.added, 0, 'отвечающий transceiver сам не создаёт');
+  assert.equal(pc.txs[0].sender, sender); assert.equal(s.pcs.length, 1);
+});
+
+test('сигналы прошлой зоны не создают соединений и не трогают новые; старое согласование молчит', async () => {
+  const s = setup();
+  s.state(4, [{ id: 2, mic: true }]);
+  const old = s.pcs[0];
+  const gate = deferred<void>(); old.hold = gate.promise;
+  s.offerFrom(new Peer(), 2, 4); await settle(); // ответ на него застрял в setRemoteDescription
+  s.state(9, [{ id: 12, mic: true }], 'fort'); await settle(); // в крепость: новый номер, другие люди
+  assert.equal(old.closed, true);
+  assert.equal(s.pcs.length, 2); const fresh = s.pcs[1];
+  assert.equal(fresh.offers.length, 1, 'с новым собеседником — своё предложение');
+  const before = s.signals().length;
+  gate.resolve(); await settle();
+  assert.equal(s.signals().length, before, 'застрявшее согласование прошлой зоны ничего не шлёт');
+  const late = new Peer();
+  s.voice.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'offer', sdp: late.sdp('offer') } });
+  s.voice.onMessage({ t: 'voiceSignal', from: 2, to: 9, signal: { kind: 'offer', sdp: late.sdp('offer') } });
+  s.voice.onMessage({ t: 'voiceSignal', from: 12, to: 4, signal: { kind: 'answer', sdp: late.sdp('answer') } });
+  s.voice.onMessage({ t: 'voiceSignal', from: 2, to: 9, signal: { kind: 'ice', candidate: null } });
+  s.voice.onMessage({ t: 'voiceSignal', from: 2, to: 9, signal: { kind: 'restart' } });
+  await settle();
+  assert.equal(s.pcs.length, 2, 'новых соединений нет');
+  assert.equal(fresh.remoteDescription, null); assert.equal(fresh.ice.length, 0); assert.equal(fresh.closed, false); assert.equal(fresh.offers.length, 1);
+  assert.equal(s.signals().length, before);
+});
+
+test('«говорит» не объявляется до живого соединения; оборвался последний маршрут — сразу тишина', async () => {
+  const s = setup();
+  s.state(1, [{ id: 2 }, { id: 3 }, { id: 4 }]);
+  await s.voice.enableMic(); await settle();
+  const [p2, p3, p4] = s.pcs; const track = s.streams[0].track;
+  s.voice.push(true);
+  assert.equal(track.enabled, false); assert.equal(s.voice.view.transmitting, false);
+  assert.deepEqual(talkMsgs(s.sent), [], 'пока никто не соединился, «говорит» не объявляем');
+  s.voice.push(false);
+  p2.set('connected'); p3.set('failed');
+  s.voice.push(true); assert.equal(track.enabled, true); assert.deepEqual(talkMsgs(s.sent), [true]);
+  p4.set('connected'); p2.set('disconnected');
+  assert.equal(track.enabled, true, 'один маршрут ещё жив — говорим');
+  p4.set('disconnected');
+  assert.equal(track.enabled, false, 'последний маршрут оборвался — сразу тишина'); assert.deepEqual(talkMsgs(s.sent), [true, false]);
+  s.advance(600); assert.deepEqual(talkMsgs(s.sent), [true, false], 'пульс «говорю» больше не идёт');
+  s.voice.push(true); assert.equal(track.enabled, false, 'и снова не включить, пока нет маршрута');
+});
+
+// ------------------------------------------------------------ затухание при отпускании V
+
+/** Говорим через цепочку движка с одним живым соединением */
+async function talking(audio: 'running' | 'suspended' = 'running') {
+  const s = setup({ audio });
+  s.state(1, [{ id: 2 }]);
+  await s.voice.enableMic(); await settle();
+  s.pcs[0].set('connected');
+  const ctx = s.ctxs[0], mic = s.streams[0].track, out = ctx.dests[0].track, gain = ctx.gains[0].gain;
+  return { s, ctx, mic, out, gain };
 }
 
-test('explicit enable activates playback only; microphone requires separate action and remains disabled', async t => {
-  const s = setup(); t.after(() => s.controller.dispose());
-  assert.equal(s.contexts.length, 0); assert.equal(s.captures(), 0);
-  await s.controller.enable(); s.state(); await flush();
-  assert.equal(s.contexts.length, 1); assert.equal(s.captures(), 0); assert.equal(s.peers[0].transceivers, 1);
-  assert.equal(s.peers[0].offers, 1);
-  await s.controller.enableMic(); await flush();
-  assert.equal(s.streams[0].track.enabled, false); assert.equal(s.controller.view.mic, 'ready');
-  assert.deepEqual(s.peers[0].parameters, { encodings: [{ maxBitrate: 32000 }] });
-  for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true); assert.equal(s.streams[0].track.enabled, true);
-  s.controller.push(false); assert.equal(s.streams[0].track.enabled, false);
-  assert.equal(s.peers[0].offers, 1, 'PTT never renegotiates');
+test('затухание: собеседнику уходит поток цепочки; свежее нажатие — пауза, пока звук дойдёт до движка, и подъём за 25 мс; движок будится нажатием', async () => {
+  const { s, ctx, mic, out, gain } = await talking('suspended');
+  assert.equal(s.pcs[0].txs[0].sender.track, out, 'собеседнику — поток цепочки, а не дорожка микрофона');
+  assert.equal(gain.value, 0); assert.equal(out.enabled, false); assert.equal(mic.enabled, false);
+  ctx.currentTime = 5;
+  assert.equal(s.voice.handleKey('KeyV', true, key()), true);
+  assert.equal(ctx.resumes, 1, 'нажатие V будит движок');
+  assert.equal(mic.enabled, true); assert.equal(out.enabled, true);
+  assert.deepEqual(gain.log.slice(-4), ['cancel@0', 'set 0@5', `set 0@${5 + VOICE_ONSET_S}`, `ramp 1@${5 + VOICE_ONSET_S + VOICE_FADE_IN_S}`], 'ноль, пока звук не дошёл, потом подъём');
+  assert.equal(s.pcs[0].offers.length, 1, 'без пересогласования');
+  // после хвоста нажатие снова свежее: опять пауза и подъём с нуля
+  s.voice.handleKey('KeyV', false, key()); s.advance(VOICE_TAIL_MS); ctx.currentTime = 7;
+  s.voice.handleKey('KeyV', true, key());
+  assert.deepEqual(gain.log.slice(-4), ['cancel@0', 'set 0@7', `set 0@${7 + VOICE_ONSET_S}`, `ramp 1@${7 + VOICE_ONSET_S + VOICE_FADE_IN_S}`]);
 });
 
-test('release, blur, hidden, focus and lost eligibility stop capture synchronously', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await s.controller.enableMic();
-  const track = s.streams[0].track;
-  for (const trigger of [() => s.controller.handleKey('KeyV', false, {} as KeyboardEvent), () => s.win.dispatchEvent(new Event('blur')), () => { s.hidden(true); s.doc.dispatchEvent(new Event('visibilitychange')); }, () => s.doc.dispatchEvent(new Event('focusin')), () => { s.eligibility(false); s.advance(600); }]) {
-    s.hidden(false); s.eligibility(true); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true); assert.equal(track.enabled, true); trigger(); assert.equal(track.enabled, false);
+test('затухание: после отпускания поток ещё идёт до конца хвоста с плавным спадом, потом тишина и «замолчал»', async () => {
+  const { s, ctx, mic, out, gain } = await talking();
+  s.voice.handleKey('KeyV', true, key());
+  s.advance(1000); ctx.currentTime = 1;
+  const pulses = talkMsgs(s.sent).length;
+  s.voice.handleKey('KeyV', false, key());
+  assert.deepEqual(gain.log.slice(-1), [`target 0@1/${VOICE_FADE_OUT_TAU_S}`], 'громкость плавно уходит в ноль');
+  assert.equal(mic.enabled, true); assert.equal(out.enabled, true); assert.equal(s.voice.view.transmitting, true);
+  s.advance(VOICE_TAIL_MS - 1);
+  assert.equal(mic.enabled, true, 'хвост ещё идёт'); assert.equal(talkMsgs(s.sent).length, pulses, '«говорит» пока не сняли и не продлевали');
+  s.advance(1);
+  assert.equal(mic.enabled, false); assert.equal(out.enabled, false); assert.equal(gain.value, 0);
+  assert.deepEqual(talkMsgs(s.sent).slice(pulses), [false]);
+  assert.equal(s.voice.view.transmitting, false);
+});
+
+test('затухание: нажатие посреди хвоста отменяет его — громкость быстро обратно, та же дорожка, без пересогласования', async () => {
+  const { s, ctx, mic, out, gain } = await talking();
+  const sender = s.pcs[0].txs[0].sender, offers = s.pcs[0].offers.length, txs = s.pcs[0].txs.length;
+  s.voice.handleKey('KeyV', true, key()); s.voice.handleKey('KeyV', false, key());
+  s.advance(100); ctx.currentTime = 0.1; gain.value = 0.11; // движок успел приглушить
+  s.voice.handleKey('KeyV', true, key());
+  assert.deepEqual(gain.log.slice(-3), ['cancel@0.1', 'set 0.11@0.1', `ramp 1@${0.1 + VOICE_FADE_IN_S}`], 'с текущей громкости — без щелчка');
+  s.advance(5000);
+  assert.equal(mic.enabled, true, 'хвост отменён'); assert.equal(out.enabled, true);
+  assert.equal(talkMsgs(s.sent).filter(on => !on).length, 0, '«замолчал» не посылали');
+  assert.equal(sender.track, out); assert.equal(s.pcs[0].offers.length, offers); assert.equal(s.pcs[0].txs.length, txs); assert.equal(s.pcs[0].added, 1);
+});
+
+test('затухание: blur, скрытая вкладка, запрет говорить, выключение голоса или микрофона, смена зоны, обрыв и dispose посреди хвоста режут сразу', async () => {
+  const cuts: Array<[string, (t: Awaited<ReturnType<typeof talking>>) => void]> = [
+    ['blur окна', ({ s }) => s.win.dispatchEvent(new Event('blur'))],
+    ['скрытая вкладка', ({ s }) => { s.hide(true); s.doc.dispatchEvent(new Event('visibilitychange')); }],
+    ['запрет говорить (игра)', ({ s }) => { s.canTalk(false); s.voice.stopTalking(); }],
+    ['«Слышать голос» выкл', ({ s }) => s.voice.setListen(false)],
+    ['микрофон выкл', ({ s }) => s.voice.disableMic()],
+    ['смена зоны', ({ s }) => s.state(9, [{ id: 12 }], 'fort')],
+    ['смена комнаты', ({ s }) => s.voice.roomChanged()],
+    ['обрыв связи с сервером', ({ s }) => s.voice.linkDown()],
+    ['выход из игры', ({ s }) => s.voice.disconnected()],
+    ['dispose', ({ s }) => s.voice.dispose()],
+  ];
+  for (const [name, cut] of cuts) {
+    const t = await talking();
+    const { s, mic, out, gain } = t;
+    s.voice.handleKey('KeyV', true, key()); s.voice.handleKey('KeyV', false, key());
+    s.advance(50);
+    assert.equal(mic.enabled, true, `${name}: хвост идёт`);
+    cut(t);
+    assert.equal(mic.enabled, false, `${name}: микрофон сразу`); assert.equal(out.enabled, false, `${name}: поток сразу`);
+    assert.equal(gain.value, 0, `${name}: громкость — ноль сразу`);
+    assert.deepEqual(talkMsgs(s.sent), [true, false], `${name}: «замолчал» один раз, сразу`);
+    s.advance(VOICE_TAIL_MS * 2);
+    assert.equal(mic.enabled, false, name); assert.deepEqual(talkMsgs(s.sent), [true, false], `${name}: хвост не доигрывает`);
   }
-  const typing = { tagName: 'TEXTAREA' } as unknown as EventTarget;
-  assert.equal(s.controller.handleKey('KeyV', true, { target: typing } as KeyboardEvent), false); assert.equal(track.enabled, false);
 });
 
-test('late microphone permission after disable cannot revive capture', async () => {
-  const s = setup(), permission = deferred<MediaStream>(); s.gum(() => permission.promise);
-  await s.controller.enable(); s.state(); const pending = s.controller.enableMic();
-  s.controller.disable(); const stream = new Stream(); permission.resolve(stream as unknown as MediaStream); await pending;
-  assert.equal(stream.track.stopped, true); assert.equal(s.controller.view.mic, 'off'); assert.equal(s.controller.view.enabled, false);
-  assert.equal(s.contexts[0].closed, true); assert.ok(s.peers.every(p => p.closed)); assert.equal(s.timers.size, 0);
-  s.controller.dispose();
+test('затухание: без звукового движка или если он не проснулся — хвост 150 мс без затухания, ничего не ломается', async () => {
+  for (const audio of ['broken', 'suspended'] as const) {
+    const s = setup({ audio });
+    s.state(1, [{ id: 2 }]);
+    await s.voice.enableMic(); await settle();
+    s.pcs[0].set('connected');
+    const mic = s.streams[0].track;
+    if (audio === 'suspended') s.ctxs[0].failResume = true;
+    s.voice.handleKey('KeyV', true, key()); await settle();
+    assert.equal(s.pcs[0].txs[0].sender.track, mic, `${audio}: собеседнику — дорожка микрофона напрямую`);
+    assert.equal(mic.enabled, true, audio);
+    s.voice.handleKey('KeyV', false, key());
+    s.advance(VOICE_TAIL_PLAIN_MS - 1); assert.equal(mic.enabled, true, `${audio}: хвост`);
+    s.advance(1); assert.equal(mic.enabled, false, audio);
+    s.voice.handleKey('KeyV', true, key()); s.win.dispatchEvent(new Event('blur')); assert.equal(mic.enabled, false, `${audio}: blur — сразу`);
+  }
 });
 
-test('microphone permission errors are sanitized and retry is explicit', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state();
-  s.gum(async () => { throw Object.assign(Error('private device credentials'), { name: 'NotAllowedError' }); });
-  await s.controller.enableMic(); assert.equal(s.controller.view.mic, 'denied'); assert.doesNotMatch(s.controller.view.error, /private|credentials/);
-  for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true); s.advance(6000); assert.equal(s.captures(), 1);
-});
-
-test('room generation closes peers and rejects late offer, old self and unknown peers', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(4, [2]); await flush();
-  assert.equal(s.peers[0].offers, 0);
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'ice', candidate: null } }); await flush(); assert.equal(s.peers[0].ice.length, 0);
-  s.controller.roomChanged(); s.state(8, [9]);
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'offer', sdp: 'old' } });
-  s.controller.onMessage({ t: 'voiceSignal', from: 555, to: 8, signal: { kind: 'offer', sdp: 'unknown' } }); await flush();
-  assert.ok(s.peers[0].closed); assert.equal(s.peers.length, 2); assert.equal(s.controller.view.enabled, true);
-  assert.equal(s.peers[1].remoteDescription, null);
-});
-
-test('ICE before offer drains in order, duplicate offers do not create transceivers, bounded ICE queue', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(4, [2]);
-  for (let i = 0; i < 100; i++) s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'ice', candidate: { candidate: `c${i}`, sdpMid: '0', sdpMLineIndex: 0 } } });
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'offer', sdp: 'offer' } }); await flush(); await flush(); await flush();
-  assert.ok(s.peers[0].ice.length <= 64); assert.ok(s.peers[0].ice.length > 0); assert.equal(s.peers[0].transceivers, 1);
-});
-
-test('receive gain controls are independent of outgoing mic and redact debug', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await s.controller.enableMic(); await flush();
-  s.peers[0].ontrack?.({ track: new Track(), streams: [new Stream()] }); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true);
-  s.controller.setVolume(.4); s.controller.setGameMuted(true);
-  assert.equal(s.contexts[0].nodes[0].gain.value, 0); assert.equal(s.streams[0].track.enabled, true);
-  s.controller.setGameMuted(false); assert.equal(s.contexts[0].nodes[0].gain.value, .4);
-  s.controller.setPeerMuted(2, true); assert.equal(s.controller.view.peers[0].muted, true);
-  s.controller.setReceiving(false); assert.equal(s.contexts[0].nodes[0].gain.value, 0);
-  const debug = JSON.stringify(await s.controller.debug()); assert.match(debug, /123/); assert.match(debug, /audio\/opus/); assert.doesNotMatch(debug, /private|SECRET|sdp|candidate|credential/i);
-});
-
-test('talk lease heartbeats stop on release; config refresh is one bounded request', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await s.controller.enableMic(); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true);
-  s.advance(600); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'talk' && m.on).length, 2);
-  s.controller.stopTalking(); s.advance(5000); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'talk' && m.on).length, 2);
-  s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: 9000, relayOnly: false });
-  s.advance(4000); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 1); s.advance(50000);
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 1);
-});
-
-test('pending replaceTrack and disconnected never reenable tracks or send stale signaling', async () => {
-  const s = setup(); await s.controller.enable(); s.state(); await flush();
-  const gate = deferred<void>(); s.peers[0].hold = gate.promise; await s.controller.enableMic(); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true); s.controller.disableMic();
-  assert.equal(s.streams[0].track.enabled, false); assert.equal(s.streams[0].track.stopped, true);
-  s.controller.disconnected(); const count = s.sent.length; gate.resolve(); await flush();
-  assert.equal(s.sent.length, count); assert.ok(s.peers[0].closed); assert.equal(s.controller.view.enabled, false); assert.equal(s.controller.view.mic, 'off'); s.controller.dispose();
-});
-
-test('explicit retry rejoins after full group and denied playback can resume without a new context', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable();
-  s.controller.onMessage({ t: 'voiceError', code: 'full' }); s.state(null, []);
-  await s.controller.enable(); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 2);
-  s.state(); s.contexts[0].state = 'suspended'; s.contexts[0].failResume = true; await s.controller.enable();
-  assert.match(s.controller.view.error, /воспроизведение/); assert.doesNotMatch(s.controller.view.error, /secret/);
-  s.contexts[0].failResume = false; await s.controller.enable(); assert.equal(s.controller.view.error, ''); assert.equal(s.contexts.length, 1);
-});
-
-test('room transition during playback activation preserves explicit join intent', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); const enable = s.controller.enable(); s.controller.roomChanged(); await enable;
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 1);
-});
-
-test('server membership errors immediately stop PTT and disabled tears down resources', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await s.controller.enableMic(); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true);
-  s.controller.onMessage({ t: 'voiceError', code: 'stale' }); assert.equal(s.streams[0].track.enabled, false);
-  s.controller.onMessage({ t: 'voiceError', code: 'disabled' }); assert.equal(s.streams[0].track.stopped, true); assert.equal(s.contexts[0].closed, true); assert.equal(s.controller.view.enabled, false);
-});
-
-test('explicit retry replaces a failed RTC generation; no automatic reconnect loop', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].connectionState = 'failed'; s.peers[0].onconnectionstatechange?.(); s.advance(60000);
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 1);
-  await s.controller.enable(); assert.ok(s.peers[0].closed); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 2);
-  s.state(3, [2]); await flush(); assert.equal(s.peers.length, 2); assert.equal(s.controller.view.transmitting, false);
-});
-
-test('expired configuration does not schedule a refresh churn', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); s.advance(20000);
-  for (let i = 0; i < 4; i++) { s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: 10000, relayOnly: false }); s.advance(2000); }
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 0);
-  assert.match(s.controller.view.error, /истекла/);
-});
-
-for (const code of ['invalid', 'rate_limit'] as const) test(`${code} signaling failure requires one explicit fresh join even while RTC is connecting`, async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  const old = s.peers[0]; assert.equal(s.controller.view.peers[0].link, 'connecting');
-  s.controller.onMessage({ t: 'voiceError', code }); s.advance(60000);
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 1, 'failure alone does not retry');
-  await s.controller.enable();
-  assert.equal(old.closed, true, 'explicit retry closes the rejected signaling generation');
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'leave').length, 1);
-  assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 2);
-  s.state(3, [4]); await flush(); assert.equal(s.peers[1].offers, 1, 'fresh membership negotiates once');
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 1, signal: { kind: 'answer', sdp: 'stale' } }); await flush();
-  assert.equal(s.peers[1].remoteDescription, null);
-  const signalCount = s.sent.length; await s.controller.enable(); assert.equal(s.sent.length, signalCount, 'successful retry clears the restart requirement');
-});
-
-for (const connection of ['failed', 'disconnected']) test(`${connection} RTC event exposes actionable error without auto retry`, async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].connectionState = connection; s.peers[0].onconnectionstatechange?.();
-  assert.equal(s.controller.view.peers[0].link, 'failed'); assert.match(s.controller.view.error, /Переподключите|Повторите подключение/);
-  s.advance(60000); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'join').length, 1);
-});
-
-test('autoplay-only retry resumes existing RTC without leave, join or new offer', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].connectionState = 'connected'; s.contexts[0].state = 'suspended'; s.contexts[0].failResume = true;
-  await s.controller.enable(); assert.match(s.controller.view.error, /воспроизведение/);
-  s.contexts[0].failResume = false; const count = s.sent.length; await s.controller.enable();
-  assert.equal(s.sent.length, count); assert.equal(s.peers[0].closed, false); assert.equal(s.peers[0].offers, 1); assert.equal(s.controller.view.error, '');
-});
-
-test('answerer attaches microphone to the remotely negotiated sender before creating answer', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(4, [2]); await s.controller.enableMic(); await flush();
-  const peer = s.peers[0]; assert.equal(peer.transceivers, 0, 'answerer must not create an unassociated local transceiver');
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'offer', sdp: 'one-audio-offer' } }); await flush(); await flush();
-  assert.equal(peer.transceivers, 1); assert.equal(peer.txs[0].mid, '0'); assert.equal(peer.answerDirection, 'sendrecv');
-  assert.equal(peer.answerTrack, s.streams[0].track, 'the answered m-line uses the microphone sender'); assert.equal(peer.sender.track, null, 'no orphan sender gets a microphone');
-  assert.deepEqual(peer.codecs, [{ mimeType: 'audio/opus', clockRate: 48000, channels: 2 }]);
-  assert.deepEqual(peer.parameters, { encodings: [{ maxBitrate: 32000 }] });
-  s.controller.disableMic(); await flush(); assert.equal(peer.txs[0].sender.track, null);
-});
-
-test('listen-only answerer later enables mic on the same negotiated sender without a second transceiver or offer', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(4, [2]);
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 4, signal: { kind: 'offer', sdp: 'one-audio-offer' } }); await flush(); await flush();
-  const peer = s.peers[0]; assert.equal(peer.answerTrack, null); assert.equal(peer.answerDirection, 'sendrecv');
-  await s.controller.enableMic(); await flush(); assert.equal(peer.txs[0].sender.track, s.streams[0].track);
-  assert.equal(peer.transceivers, 1); assert.equal(peer.offers, 0);
-});
-
-test('connection error clears after every current peer is connected', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(1, [2, 3]); await flush();
-  s.peers[0].connectionState = 'disconnected'; s.peers[0].onconnectionstatechange?.(); assert.match(s.controller.view.error, /прервано/);
-  s.peers[0].connectionState = 'connected'; s.peers[0].onconnectionstatechange?.(); assert.match(s.controller.view.error, /прервано/, 'other current peer is still connecting');
-  s.peers[1].connectionState = 'connected'; s.peers[1].onconnectionstatechange?.(); assert.equal(s.controller.view.error, '');
-});
-
-test('connection error clears when the offending peer leaves without hiding another connection error', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(1, [2, 3]); await flush();
-  for (const p of s.peers) { p.connectionState = 'failed'; p.onconnectionstatechange?.(); }
-  s.state(1, [3]); assert.match(s.controller.view.error, /участник/i, 'second failing peer remains');
-  s.state(1, [4]); assert.equal(s.controller.view.error, '', 'offending peers left, replacement may still connect');
-});
-
-test('RTC recovery or peer departure cannot clear microphone permission error', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].connectionState = 'disconnected'; s.peers[0].onconnectionstatechange?.();
-  s.gum(async () => { throw Object.assign(Error('denied'), { name: 'NotAllowedError' }); }); await s.controller.enableMic();
-  const permissionError = s.controller.view.error; assert.match(permissionError, /Доступ к микрофону/);
-  s.peers[0].connectionState = 'connected'; s.peers[0].onconnectionstatechange?.(); assert.equal(s.controller.view.error, permissionError);
-  s.state(1, []); assert.equal(s.controller.view.error, permissionError);
-});
-
-test('remote audio has one muted decoder sink while audible output stays in WebAudio gain graph', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  const stream = new Stream(); s.peers[0].ontrack?.({ track: stream.track, streams: [stream] }); await flush();
-  assert.equal(s.sinks.length, 1); assert.equal(s.sinks[0].srcObject, stream); assert.equal(s.sinks[0].plays, 1);
-  assert.equal(s.sinks[0].muted, true); assert.equal(s.sinks[0].defaultMuted, true, 'decoder element is never a second audible output');
-  s.controller.setPeerMuted(2, true); assert.equal(s.contexts[0].nodes[2].gain.value, 0); assert.equal(s.sinks[0].muted, true);
-  s.controller.setPeerMuted(2, false); s.controller.setVolume(.3); assert.equal(s.contexts[0].nodes[0].gain.value, .3);
-  s.controller.setGameMuted(true); assert.equal(s.contexts[0].nodes[0].gain.value, 0); assert.equal(s.sinks[0].muted, true);
-  s.state(1, []); assert.equal(s.sinks[0].pauses, 1); assert.equal(s.sinks[0].srcObject, null);
-});
-
-test('replaced remote track and disconnect release every decoder sink', async () => {
-  const s = setup(); await s.controller.enable(); s.state(); await flush();
-  for (let i = 0; i < 2; i++) s.peers[0].ontrack?.({ track: new Track(), streams: [new Stream()] }); await flush();
-  assert.equal(s.sinks.length, 2); assert.equal(s.sinks[0].pauses, 1); assert.equal(s.sinks[0].srcObject, null);
-  s.controller.disconnected(); assert.equal(s.sinks[1].pauses, 1); assert.equal(s.sinks[1].srcObject, null); s.controller.dispose();
-});
-
-test('decoder playback denial is sanitized, explicit enable retries sinks without RTC churn', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].ontrack?.({ track: new Track(), streams: [new Stream()] }); await flush();
-  s.sinks[0].failPlay = true; await s.controller.enable();
-  assert.match(s.controller.view.error, /воспроизведение/); assert.doesNotMatch(s.controller.view.error, /secret|details/);
-  const count = s.sent.length; s.sinks[0].failPlay = false; await s.controller.enable();
-  assert.equal(s.controller.view.error, ''); assert.equal(s.sinks[0].plays, 3); assert.equal(s.sent.length, count); assert.equal(s.peers[0].offers, 1);
-});
-
-test('late decoder play rejection after disconnect does not restore stale playback error', async () => {
-  const s = setup(); await s.controller.enable(); s.state(); await flush(); s.peers[0].ontrack?.({ track: new Track(), streams: [new Stream()] }); await flush();
-  const gate = deferred<void>(); s.sinks[0].pending = gate.promise; const retry = s.controller.enable(); await flush();
-  s.controller.disconnected(); gate.reject(Error('secret late device information')); await retry; await flush();
-  assert.equal(s.controller.view.error, ''); assert.equal(s.sinks[0].srcObject, null); s.controller.dispose();
-});
-
-test('silent signaling and ICE checking have bounded failure states and explicit retry uses fresh membership', async t => {
-  const s = setup(); t.after(() => s.controller.dispose());
-  await s.controller.enable(); s.state(); await flush();
-  s.advance(21_000);
-  assert.equal(s.controller.view.peers[0].link, 'failed');
-  assert.match(s.controller.view.error, /участник|ответ|согласовать/i);
-  assert.equal(s.peers[0].closed, true);
-  await s.controller.enable(); s.state(3, [4]); await flush();
-  s.controller.onMessage({ t: 'voiceSignal', from: 4, to: 3, signal: { kind: 'answer', sdp: 'answer' } }); await flush();
-  s.advance(21_000);
-  assert.equal(s.controller.view.peers[0].link, 'failed');
-  assert.match(s.controller.view.error, /сеть/i);
-  const count = s.sent.length; s.advance(120_000); assert.equal(s.sent.length, count, 'no retry loop');
-});
-
-test('server join silence times out and late successful membership cancels failure', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable();
-  s.advance(11_000); assert.match(s.controller.view.error, /сервер/i);
-  await s.controller.enable(); s.state(5, []); s.advance(11_000); assert.equal(s.controller.view.error, '');
-});
-
-test('public talking presence reaches nonparticipants without capture or peer connections', () => {
-  const s = setup();
-  s.controller.onMessage({ t: 'voiceState', self: null, room: 'lobby', peers: [{ id: 44, entityId: 7, nick: 'P7', talking: true }] });
-  assert.deepEqual(s.controller.view.presence, [{ id: 44, entityId: 7, nick: 'P7', talking: true }]);
-  assert.equal(s.controller.view.enabled, false); assert.equal(s.peers.length, 0); assert.equal(s.captures(), 0);
-  s.controller.roomChanged(); assert.deepEqual(s.controller.view.presence, []); s.controller.dispose();
-});
-
-test('ICE diagnostics retain only states, counters and whitelisted route types', async t => {
-  const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await flush();
-  s.peers[0].onicecandidate?.({ candidate: { candidate: 'candidate:1 1 udp 1 private.invalid 1234 typ relay', sdpMid: '0', sdpMLineIndex: 0 } });
-  s.controller.onMessage({ t: 'voiceSignal', from: 2, to: 1, signal: { kind: 'answer', sdp: 'secret' } }); await flush();
-  const debug = await s.controller.debug();
-  assert.equal(debug.peers[0].localIce, 1); assert.equal(debug.peers[0].descriptionsReceived, 1);
-  assert.doesNotMatch(JSON.stringify(debug), /private|secret|credential|address|candidate:/i);
-});
-
- test('PTT never announces a transmission before media connection and stops synchronously when last route drops', async t => {
- const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();s.state();await s.controller.enableMic();
- s.controller.push(true);assert.equal(s.streams[0].track.enabled,false);assert.equal(s.sent.filter(m=>m.t==='voice'&&m.a==='talk'&&m.on).length,0);
- s.peers[0].connectionState='connected';s.peers[0].onconnectionstatechange?.();s.controller.push(true);assert.equal(s.streams[0].track.enabled,true);
- s.peers[0].connectionState='disconnected';s.peers[0].onconnectionstatechange?.();assert.equal(s.streams[0].track.enabled,false);
- });
-
-test('mixed group keeps PTT to connected peers and mutes only when the final route drops', async t => {
- const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();s.state(1,[2,3,4]);await s.controller.enableMic();await flush();
- s.peers[0].connectionState='connected';s.peers[0].onconnectionstatechange?.();
- s.peers[1].connectionState='failed';s.peers[1].onconnectionstatechange?.();
- s.controller.push(true);assert.equal(s.streams[0].track.enabled,true);
- s.peers[2].connectionState='connected';s.peers[2].onconnectionstatechange?.();
- s.peers[0].connectionState='disconnected';s.peers[0].onconnectionstatechange?.();assert.equal(s.streams[0].track.enabled,true);
- s.peers[2].connectionState='disconnected';s.peers[2].onconnectionstatechange?.();assert.equal(s.streams[0].track.enabled,false);
-});
-
-test('playback failure blocks V until explicit successful resume even with connected transport', async t => {
- const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();s.state();await s.controller.enableMic();
- s.peers[0].connectionState='connected';s.peers[0].onconnectionstatechange?.();s.contexts[0].failResume=true;
- await s.controller.enable();s.controller.push(true);assert.equal(s.streams[0].track.enabled,false);
- s.contexts[0].failResume=false;await s.controller.enable();s.controller.push(true);assert.equal(s.streams[0].track.enabled,true);
-});
-
- test('atomic mic activation cannot revive capture after cancellation and a new listen-only enable', async t => {
- const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();
- const resume=deferred<void>();s.contexts[0].holdResume=resume.promise;const old=s.controller.connectMic();
- s.controller.disable();await s.controller.enable();assert.equal(s.captures(),0);
- resume.resolve();await old;assert.equal(s.captures(),0);assert.equal(s.controller.view.mic,'off');assert.equal(s.controller.view.enabled,true);
- });
-
- test('first V explicitly activates mic but never transmits until the next hold', async t => {
- const s=setup();t.after(()=>s.controller.dispose());
- assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),true);await flush();await flush();
- assert.equal(s.captures(),1);assert.equal(s.controller.view.mic,'ready');assert.equal(s.streams[0].track.enabled,false);
- s.state(1,[]);s.controller.handleKey('KeyV',false,{} as KeyboardEvent);
- assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),true);assert.equal(s.streams[0].track.enabled,true);
- s.controller.handleKey('KeyV',false,{} as KeyboardEvent);assert.equal(s.streams[0].track.enabled,false);
- });
-
- test('first V ignores typing, modifiers, repeat, hidden and ineligible gameplay before requesting mic', async t => {
- const s=setup();t.after(()=>s.controller.dispose());
- for(const event of [{target:{tagName:'TEXTAREA'}},{ctrlKey:true},{altKey:true},{metaKey:true},{repeat:true}]) assert.equal(s.controller.handleKey('KeyV',true,event as unknown as KeyboardEvent),false);
- s.hidden(true);assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),false);s.hidden(false);
- s.eligibility(false);assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),false);await flush();assert.equal(s.captures(),0);assert.equal(s.contexts.length,0);
- });
-
-for(const count of [7,12,32,64]) test(count+' participants create all remote peer connections instead of truncating at five',async t=>{
- const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();const ids=Array.from({length:count-1},(_,i)=>i+2);s.state(1,ids);await flush();
- assert.equal(s.controller.view.peers.length,count-1);assert.equal(s.peers.length,count-1);assert.equal(s.sent.filter(m=>m.t==='voiceSignal'&&m.signal.kind==='offer').length,count-1);
- s.state(1,ids.slice(0,-1));assert.equal(s.controller.view.peers.length,count-2);assert.equal(s.peers.at(-1)!.closed,true);
+test('затухание: смена устройства — поток цепочки тот же у собеседника, поздний поток старого поколения остановлен', async () => {
+  const { s, ctx, out } = await talking();
+  s.voice.handleKey('KeyV', true, key());
+  const a = deferred<MediaStream>(), b = deferred<MediaStream>();
+  s.gum(() => a.promise); s.voice.setDevice('mic-a');
+  s.gum(() => b.promise); s.voice.setDevice('mic-b');
+  const sa = new Stream(), sb = new Stream();
+  b.resolve(sb as unknown as MediaStream); await settle();
+  a.resolve(sa as unknown as MediaStream); await settle();
+  assert.equal(sa.track.stopped, true); assert.equal(sa.track.enabled, false);
+  const fresh = ctx.dests.at(-1)!.track;
+  assert.equal(s.pcs[0].txs[0].sender.track, fresh); assert.equal(fresh.enabled, false, 'новый поток молчит до нажатия');
+  assert.equal(out.stopped, true, 'прежний поток цепочки остановлен');
+  s.voice.dispose(); assert.equal(ctx.closed, true, 'dispose закрывает движок');
 });

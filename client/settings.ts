@@ -1,19 +1,36 @@
-// Настройки игрока — хранятся в localStorage этого браузера.
+// Настройки игрока — хранятся в localStorage этого браузера. Ключ прежний: новые поля дописываются со значениями
+// по умолчанию, старые сохранения читаются как были.
 
 export type Quality = 'auto' | 'high' | 'medium' | 'low';
+/** Сообщения чата на экране: тают через несколько секунд, видны всегда или скрыты (видно, пока чат открыт — Enter) */
+export type ChatFeed = 'fade' | 'keep' | 'hide';
 
 export interface Settings {
   sens: number;
   adsSens: number;
   fov: number;
   volume: number;
-  /** «Без звука» (клавиша M и флажок в паузе): громкость при этом не трогаем — включили, и звук прежний */
+  /** «Без звука» (клавиша M и флажок в меню): громкость при этом не трогаем — включили, и звук прежний */
   muted: boolean;
   quality: Quality;
   showStats: boolean;
+  /** Эффекты (выстрелы, шаги, моторы, кнопки) — доля от общей громкости */
+  sfxVolume: number;
+  /** Окружение (море, чайки, дождь) — доля от общей громкости */
+  ambVolume: number;
+  /** Мышь (палец) вверх — взгляд вниз */
+  invertY: boolean;
+  /** Подсказки клавиш на экране: полоска эмоций, строки «W — газ …» в режимах */
+  keyHints: boolean;
+  /** Масштаб меню, чата, жетонов, «кто где» и уведомлений */
+  uiScale: number;
+  chatFeed: ChatFeed;
 }
 
 const KEY = 'opus.settings.v1';
+
+/** Размеры интерфейса на выбор (меню → Интерфейс) */
+export const UI_SCALES = [0.9, 1, 1.15, 1.3] as const;
 
 export const DEFAULTS: Settings = {
   sens: 1,
@@ -24,6 +41,12 @@ export const DEFAULTS: Settings = {
   muted: false,
   quality: 'auto',
   showStats: true,
+  sfxVolume: 1,
+  ambVolume: 1,
+  invertY: false,
+  keyHints: true,
+  uiScale: 1,
+  chatFeed: 'fade',
 };
 
 export function loadSettings(): Settings {
@@ -38,6 +61,13 @@ export function loadSettings(): Settings {
     s.volume = clampNum(s.volume, 0, 1, DEFAULTS.volume);
     s.muted = s.muted === true;
     if (!['auto', 'high', 'medium', 'low'].includes(s.quality)) s.quality = 'auto';
+    if (typeof s.showStats !== 'boolean') s.showStats = DEFAULTS.showStats;
+    s.sfxVolume = clampNum(s.sfxVolume, 0, 1, DEFAULTS.sfxVolume);
+    s.ambVolume = clampNum(s.ambVolume, 0, 1, DEFAULTS.ambVolume);
+    s.invertY = s.invertY === true;
+    s.keyHints = s.keyHints !== false;
+    s.uiScale = nearestScale(clampNum(s.uiScale, UI_SCALES[0], UI_SCALES[UI_SCALES.length - 1], DEFAULTS.uiScale));
+    if (!['fade', 'keep', 'hide'].includes(s.chatFeed)) s.chatFeed = DEFAULTS.chatFeed;
     return s;
   } catch {
     return { ...DEFAULTS };
@@ -70,4 +100,11 @@ export function saveSettings(s: Settings): void {
 function clampNum(v: unknown, lo: number, hi: number, def: number): number {
   const n = typeof v === 'number' && Number.isFinite(v) ? v : def;
   return Math.min(hi, Math.max(lo, n));
+}
+
+/** Ближайший из предложенных размеров интерфейса */
+function nearestScale(v: number): number {
+  let best: number = UI_SCALES[0];
+  for (const k of UI_SCALES) if (Math.abs(k - v) < Math.abs(best - v)) best = k;
+  return best;
 }

@@ -536,7 +536,7 @@ export function priceRange(sp: number): [number, number] {
   return [fishPrice2(sp, f.g[0], 0, mods), fishPrice2(sp, f.g[1], 0, mods)];
 }
 
-// ------------------------------------------------------------ коллекция и награда
+// ------------------------------------------------------------ коллекция (награды за неё — лестница shared/fishstyle.ts)
 
 /** Сколько видов коллекции уже есть в альбоме */
 export function collectionCount(album: Record<string, readonly [number, number]>): number {
@@ -544,9 +544,6 @@ export function collectionCount(album: Record<string, readonly [number, number]>
   for (const sp of COLLECTION) if (album[FISH[sp].id]) n++;
   return n;
 }
-
-/** Рыбацкий комплект за полную коллекцию: вещи в обычных слотах гардероба (shared/outfit.ts), не продаются */
-export const REWARD_ITEMS: readonly string[] = ['h:angler', 'e:angler', 'a:angler'];
 
 // ------------------------------------------------------------ доски рекордов
 

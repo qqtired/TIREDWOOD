@@ -5,9 +5,11 @@
 // (J или кнопка 📖) и сетка в профиле — одна и та же сетка.
 import { FISH, fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, LEGACY_IDS, REWARD_ITEMS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_MYTH, biteShare,
+  COLLECTION, COLLECTION_SIZE, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_MYTH, biteShare,
   collectionCount, priceRange,
 } from '../../shared/fishrules.ts';
+import { nextStep, stepLabel, stepNeed } from '../../shared/fishstyle.ts';
+import { FishRewards, species } from './fishrewards.ts';
 import { el, fishPic } from '../lobby/fish2.ts';
 import { setCoinText } from './coin.ts';
 import { emptyFishProgress, fishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
@@ -122,6 +124,10 @@ export class FishBook {
   private now = 0;
   private last: { album: FishAlbum; owned: readonly string[]; progress: FishProgress } | null = null;
   private shown = false;
+  /** Вкладка «Награды» (fishrewards.ts): снасти и лестница наград */
+  readonly rewards = new FishRewards();
+  private tab: 'fish' | 'rewards' = 'fish';
+  private readonly tabs: HTMLElement;
 
   constructor(parent: HTMLElement) {
     this.root = el('dialog', 'fb');
@@ -137,6 +143,17 @@ export class FishBook {
     x.addEventListener('click', () => this.close());
     this.bar = panel.appendChild(el('div', 'fb-bar')).appendChild(el('i', ''));
     this.reward = panel.appendChild(el('div', 'fb-reward'));
+    this.tabs = panel.appendChild(el('div', 'fb-tabs'));
+    for (const [tab, name] of [['fish', '🐟 Коллекция'], ['rewards', '🎁 Награды']] as const) {
+      const b = this.tabs.appendChild(el('button', '', name));
+      b.type = 'button';
+      b.dataset.tab = tab;
+      b.addEventListener('click', () => {
+        this.tab = tab;
+        this.body.scrollTop = 0;
+        if (this.last) this.render(this.last.album, this.last.owned, this.last.progress);
+      });
+    }
     this.skill = panel.appendChild(el('div', 'fb-skill'));
     const tabs = panel.appendChild(el('div', 'fe-booktabs'));
     for (const [id, label] of [['all', 'Все'], ['pier', 'Пристань'], ['barkas', '⚓ Баркас']] as const) {
@@ -193,14 +210,27 @@ export class FishBook {
   private render(album: FishAlbum, owned: readonly string[], progress: FishProgress): void {
     this.last = { album, owned, progress };
     for (const [id, b] of this.filter) b.classList.toggle('on', id === this.zone);
+    // фильтр «Все / Пристань / Баркас» — только у коллекции, во вкладке «Награды» он ни к чему
+    const zones = this.filter.get('all')?.parentElement;
+    if (zones) zones.style.display = this.tab === 'rewards' ? 'none' : '';
     const n = collectionCount(album);
     this.count.textContent = `${n} из ${COLLECTION_SIZE}`;
     this.bar.style.width = `${Math.round((n / COLLECTION_SIZE) * 100)}%`;
-    const full = REWARD_ITEMS.every((id) => owned.includes(id));
-    this.reward.textContent = full
-      ? '🎉 Коллекция собрана — рыбацкий комплект твой: панама с блёснами, очки и жилет рыболова (в гардеробе)'
-      : `Собери все ${COLLECTION_SIZE} — получишь рыбацкий комплект: панама с блёснами, очки и жилет рыболова`;
-    this.reward.classList.toggle('done', full);
+    // награды коллекции — лестница по видам (вкладка «Награды»)
+    const next = nextStep(n);
+    this.reward.textContent = next
+      ? `Следующая награда — ${stepLabel(next)}: ещё ${species(stepNeed(next) - n)}`
+      : '🎉 Коллекция собрана — все награды твои: сет «Хозяин глубин», золотые снасти и якорь у ника';
+    this.reward.classList.toggle('done', !next);
+    for (const b of this.tabs.querySelectorAll<HTMLElement>('[data-tab]')) b.classList.toggle('on', b.dataset.tab === this.tab);
+    if (this.tab === 'rewards') {
+      this.skill.replaceChildren();
+      const scroll = this.body.scrollTop;
+      this.body.replaceChildren(this.rewards.view(album, owned));
+      this.body.scrollTop = scroll;
+      this.line.textContent = 'Снасти меняются тут где угодно на набережной — их видят все, кто рядом.';
+      return;
+    }
     this.skill.replaceChildren(fishSkillBlock(progress));
     const scroll = this.body.scrollTop;
     const focused = (document.activeElement as HTMLElement | null)?.dataset.species;

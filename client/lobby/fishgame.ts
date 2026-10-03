@@ -157,6 +157,12 @@ export class ReelGame {
     this.render();
   }
 
+  /** Окно вываживания — награда коллекции рыб (темы в client/ui/fishstyle.css); «wood» — обычное деревянное */
+  theme(key: string): void {
+    if (key === 'wood') delete this.root.dataset.frTheme;
+    else this.root.dataset.frTheme = key;
+  }
+
   setRain(rain: boolean): void {
     this.rainEl.classList.toggle('show', rain);
   }

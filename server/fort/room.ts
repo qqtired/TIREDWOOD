@@ -1,6 +1,7 @@
 // Комната «Крепость» для хаба: одна на процесс (есть, только если режим включён флагом сервера). Связывает соединения
 // с защитниками FortGame, итоги игры и AFK отдаёт наверх через хуки.
 import { FORT_MAX_HUMANS, type FortResultRow, type FortStatus, type FtReward } from '../../shared/fort.ts';
+import { FT_BREAK, FT_GATHER } from '../../shared/fort.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import type { Input } from '../../shared/sim.ts';
@@ -58,6 +59,9 @@ export class FortRoom implements Room {
   hasSpace(): boolean {
     return this.game.humanCount < FORT_MAX_HUMANS;
   }
+
+  /** Ожидание загрузки (server/readygate.ts): сбор и передышка стоят, пока вошедшие не загрузились */
+  get prestart(): { phaseEnd: number } | null { return this.game.phase === FT_GATHER || this.game.phase === FT_BREAK ? this.game : null; }
 
   join(c: Client): boolean {
     const prof = c.profile;

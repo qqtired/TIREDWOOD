@@ -1,7 +1,8 @@
 // Мир «Набережная»: вечерний причал. На севере — павильон автоматов, Склад №3 (вход в пейнтбол) и гараж картинга,
 // на востоке — кафе «Чайка» с террасой под гирляндами, у воды — ларёк-примерочная, на юго-западе — мостки к маяку.
 // Вокруг бухты — город на холмах с огнями в окнах. Статика склеена по материалам; живое — табло, лампочки вывески,
-// луч маяка, батуты, чайки и лодки. Погода — от сервера: изредка дождь (тучи, капли, лужи — плавно, см. setRain).
+// луч маяка, батуты, чайки и лодки. Погода — от сервера: изредка дождь с прогрессией (тучи, морось, дождь, иногда
+// гроза с молниями в море, стихает, бывает радуга — см. setRain, weatherfx.ts, skyfx.ts); шторм маяка — та же погода.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
@@ -20,10 +21,13 @@ import { Boats } from './boats.ts';
 import { LobbyDecor, swayAttr, windSway } from './decor.ts';
 import { KartStart } from './kartstart.ts';
 import { LobbyLook } from './look.ts';
+import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
+import { SkyFx, type StrikeEvent } from './skyfx.ts';
 import { Statue } from './statue.ts';
 import { Tiredwood, signHill, signHillK } from './tiredwood.ts';
 import { TokarevLighthouse } from './tokarev-lighthouse.ts';
+import { WeatherState } from './weatherfx.ts';
 
 export type LobbyQuality = 'high' | 'medium' | 'low';
 
@@ -51,13 +55,8 @@ const SIGN_HALO_K = 0.3;
 const BULB_SIGN_GLOW: readonly [number, number] = [0.2, 0.24];
 /** Свеча на столике кафе: на столько от центра к югу (между стульями 0 и 5, у края столешницы радиусом 0,66) */
 const CANDLE_R = 0.58;
-/** Погода: за сколько секунд собираются и расходятся тучи, начинается и стихает дождь, мокнет и сохнет плитка */
-const OVERCAST_IN = 12;
-const OVERCAST_OUT = 30;
-const RAIN_IN = 8;
-const RAIN_OUT = 6;
-const WET_IN = 30;
-const WET_OUT = 80;
+/** Молния не бьёт ближе стольких метров к камере (игрок — в паре метров от неё): отодвигаем */
+const STRIKE_NEAR = 28;
 /**
  * Свет в ясную погоду и в дождь: небесный (сила, цвет неба, цвет земли), солнце (в дождь — за тучами: ни теней,
  * ни бликов на мокром), луч маяка (во влажном воздухе виднее)
@@ -75,11 +74,10 @@ const BEAM_CLEAR = 0.07;
 const BEAM_RAIN = 0.16;
 
 const _col = new THREE.Color();
+const _right = new THREE.Vector3();
 
-/** Шаг к цели не больше step. */
-function toward(v: number, target: number, step: number): number {
-  return v < target ? Math.min(target, v + step) : Math.max(target, v - step);
-}
+/** Часы погоды, с: событие дождя считается от них (вкладка в фоне — время всё равно идёт) */
+const clockNow = (): number => performance.now() / 1000;
 
 /** Поворот плоскости, чтобы она смотрела в сторону (fx, fz). */
 function facing(fx: number, fz: number): number {
@@ -198,7 +196,6 @@ export class LobbyWorld {
   private readonly windowGlow: THREE.BufferGeometry[] = [];
   private lampQuality: LobbyQuality = 'high';
   private lighthouseEnabled = true;
-  private readonly storm = { dark: 0, rain: 0, flash: 0, lampsOn: true };
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
   private readonly floaters: Floater[] = [];
@@ -228,8 +225,11 @@ export class LobbyWorld {
   private readonly tmp = new THREE.Vector3();
   /** Время ветра для крон и флажков */
   private readonly wind = { value: 0 };
-  /** Погода: on — идёт ли дождь (так сказал сервер); тучи, дождь и мокрота (0…1) догоняют его плавно */
-  readonly weather = { on: false, overcast: 0, rain: 0, wet: 0 };
+  /** Погода: on — идёт ли дождь (так сказал сервер); тучи, дождь, сумрак, ветер, мокрота (0…1) — по событию и плавно */
+  readonly weather = new WeatherState();
+  /** Молнии, вспышка и радуга */
+  readonly sky: SkyFx;
+  private readonly strikeFns = new Set<(e: StrikeEvent) => void>();
   private exposure = EVENING.exposure;
   /** Где укрыто от дождя */
   private readonly cover: CoverMap;
@@ -331,6 +331,7 @@ export class LobbyWorld {
     const bulbs: V3[] = [];
     for (const d of this.map.deco) if (d.kind === 'lamp') bulbs.push([d.x - Math.sin(d.yaw) * 1.2, 4.88, d.z - Math.cos(d.yaw) * 1.2]);
     this.rainFx = new RainFx(scene, this.cover, this.skyMat, bulbs);
+    this.sky = new SkyFx(scene);
     this.look = LOOK2
       ? new LobbyLook({ scene, renderer, sun: this.sun, hemi: this.hemi, sky: this.skyMat, sea: this.seaMat, haze: this.haze, wind: this.wind, wet: (m) => this.wettable(m), map: this.map }, quality)
       : null;
@@ -1243,7 +1244,7 @@ export class LobbyWorld {
   /** Точечные лампы — только на высоком качестве (они дороже всего в кадре); на низком ещё и карта теней меньше. */
   setQuality(q: LobbyQuality): void {
     this.lampQuality = q;
-    for (const l of this.lamps) l.visible = q === 'high' && this.storm.lampsOn;
+    for (const l of this.lamps) l.visible = q === 'high' && this.weather.lampsOn;
     this.statue.setQuality(q);
     this.rainFx.setQuality(q);
     const size = q === 'low' ? 1024 : 2048;
@@ -1267,25 +1268,63 @@ export class LobbyWorld {
     this.camera.updateProjectionMatrix();
   }
 
-  /** Погода от сервера: идёт ли дождь. instant — сразу (только вошли на набережную), иначе — плавно, как в жизни. */
-  setRain(on: boolean, instant = false): void {
-    const w = this.weather;
-    w.on = on;
-    if (instant) w.overcast = w.rain = w.wet = on ? 1 : 0;
+  /**
+   * Погода от сервера: идёт ли дождь и сам дождь (wx — сколько уже идёт, длина, сид: силу по времени и молнии считаем
+   * сами). instant — сразу (только вошли на набережную), иначе — плавно, как в жизни.
+   */
+  setRain(on: boolean, instant = false, wx?: RainWire | null): void {
+    this.weather.set(on, instant, wx, clockNow());
     this.applyWeather();
   }
 
-  /** Transient event layer; weather.on and fishing rain timers are never changed. */
-  setStormClimate(dark: number, rain: number, flash: number, lampsOn: boolean): void {
-    const unit = (v: number) => Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0;
-    dark = unit(dark); rain = unit(rain); flash = unit(flash);
-    const s = this.storm;
-    if (s.dark === dark && s.rain === rain && s.flash === flash && s.lampsOn === lampsOn) return;
-    Object.assign(s, { dark, rain, flash, lampsOn });
+  /** Шторм маяка поверх погоды: force — сила (0…1, тучи, ливень, ветер), lampsOn — свет в городе. Таймеры рыбалки не трогает. */
+  setStormClimate(force: number, lampsOn: boolean): void {
+    const w = this.weather;
+    w.storm = Number.isFinite(force) ? Math.max(0, Math.min(1, force)) : 0;
+    if (w.lampsOn === lampsOn) return;
+    w.lampsOn = lampsOn;
     for (const l of this.lamps) l.visible = lampsOn && this.lampQuality === 'high';
     for (const o of this.powered) o.visible = lampsOn;
     for (const [m, strength] of this.poweredSigns) m.emissiveIntensity = lampsOn ? strength : 0;
-    this.applyWeather();
+  }
+
+  /** Радуга после шторма маяка */
+  setStormRainbow(on: boolean): void {
+    this.weather.stormRainbow = on;
+  }
+
+  /** Молния по расписанию шторма маяка — та же, что в грозу. */
+  strike(s: Strike): void {
+    this.fire(s);
+  }
+
+  /** Подписка на удары молнии (гром, баркас…): отписка — вернувшейся функцией. */
+  onStrike(fn: (e: StrikeEvent) => void): () => void {
+    this.strikeFns.add(fn);
+    return () => this.strikeFns.delete(fn);
+  }
+
+  /** Расписание молний дождя на within секунд вперёд (in — через сколько секунд). */
+  upcomingStrikes(within: number): ReturnType<WeatherState['upcoming']> {
+    return this.weather.upcoming(clockNow(), within);
+  }
+
+  /** Удар: не ближе STRIKE_NEAR к камере (отодвигаем), разряд и вспышка, всем подписчикам — где и насколько далеко. */
+  private fire(s: Strike): void {
+    const cam = this.camera.position;
+    let { x, z } = s;
+    const d = Math.hypot(x - cam.x, z - cam.z);
+    if (!s.far && d < STRIKE_NEAR) {
+      const k = d > 0.5 ? STRIKE_NEAR / d : 0;
+      x = k ? cam.x + (x - cam.x) * k : cam.x;
+      z = k ? cam.z + (z - cam.z) * k : cam.z + STRIKE_NEAR;
+    }
+    this.sky.strike({ ...s, x, z }, cam);
+    const dist = Math.hypot(x - cam.x, z - cam.z);
+    _right.setFromMatrixColumn(this.camera.matrixWorld, 0);
+    const pan = dist > 0.5 ? Math.max(-1, Math.min(1, ((x - cam.x) * _right.x + (z - cam.z) * _right.z) / dist)) : 0;
+    const e: StrikeEvent = { x, z, power: s.power, far: s.far, dist, pan };
+    for (const fn of this.strikeFns) fn(e);
   }
 
   setLighthouseEnabled(on: boolean): void {
@@ -1294,39 +1333,43 @@ export class LobbyWorld {
     this.beam.visible = this.beamFlash.visible = on;
   }
 
-  get effectiveRain(): number { return Math.max(this.weather.rain, this.storm.rain); }
+  /** Сила дождя сейчас (с учётом шторма): для звука и рыбаков */
+  get effectiveRain(): number { return this.weather.rain; }
+
+  /** Под крышей ли точка (навес, павильон): дождь там глуше, зато стучит по крыше над головой. */
+  shelter(x: number, y: number, z: number): number {
+    return this.cover.top(x, z) > y + 1.2 ? 1 : 0;
+  }
 
   /**
-   * Сначала собираются тучи, когда небо затянуло — начинается дождь, пока он идёт — мокнет плитка. Кончился —
-   * дождь стихает, тучи расходятся, а лужи сохнут ещё долго после.
+   * Дождь идёт по событию: тучи собираются, морось, дождь, иногда гроза, стихает; пока идёт — мокнет плитка, после —
+   * тучи расходятся, лужи сохнут ещё долго, иногда выходит радуга. Молнии — по расписанию события.
    */
   private stepWeather(dt: number): void {
     const w = this.weather;
-    const o = toward(w.overcast, w.on || w.rain > 0.05 ? 1 : 0, dt / (w.on ? OVERCAST_IN : OVERCAST_OUT));
-    const r = toward(w.rain, w.on && w.overcast > 0.6 ? 1 : 0, dt / (w.on ? RAIN_IN : RAIN_OUT));
-    const wet = toward(w.wet, w.rain > 0.3 ? 1 : 0, dt / (w.rain > 0.3 ? WET_IN : WET_OUT));
-    if (o !== w.overcast || r !== w.rain || wet !== w.wet) {
-      w.overcast = o;
-      w.rain = r;
-      w.wet = wet;
-      this.applyWeather();
-    }
-    this.rainFx.update(dt, this.camera.position, this.effectiveRain, Math.max(w.wet, this.storm.rain));
+    const now = clockNow();
+    const changed = w.step(dt, now, (s) => this.fire(s));
+    const flashing = this.sky.flash > 0.002;
+    this.sky.rainbow.target = w.rainbow(now);
+    this.sky.update(dt, this.camera.position);
+    if (changed || flashing || this.sky.flash > 0.002) this.applyWeather();
+    this.rainFx.update(dt, this.camera.position, w.rain, w.wet, w.wind);
   }
 
-  /** Небо, туман, свет, мокрота и дымка — по текущей погоде. */
+  /** Небо, туман, свет, мокрота и дымка — по текущей погоде; сумрак грозы и вспышка молнии — поверх. */
   private applyWeather(): void {
     const w = this.weather;
-    const overcast = Math.max(w.overcast, this.storm.dark);
+    const overcast = w.overcast;
     const k = overcast * overcast * (3 - 2 * overcast);
     const lerp = THREE.MathUtils.lerp;
     blendSky(this.skyMat, EVENING, RAIN, k);
     blendSky(this.seaMat, EVENING, RAIN, k);
-    this.seaMat.uniforms.uRain.value = this.effectiveRain;
+    this.seaMat.uniforms.uRain.value = w.rain;
     const fog = this.scene.fog as THREE.Fog;
     fog.color.copy(blendFog(EVENING, RAIN, k));
-    fog.near = lerp(FOG_CLEAR[0], RAIN.fogNear, k);
-    fog.far = lerp(FOG_CLEAR[1], RAIN.fogFar, k);
+    // чем сильнее дождь, тем ближе пелена
+    fog.near = lerp(FOG_CLEAR[0], RAIN.fogNear, k) * (1 - 0.3 * w.rain);
+    fog.far = lerp(FOG_CLEAR[1], RAIN.fogFar, k) * (1 - 0.25 * w.rain);
     (this.scene.background as THREE.Color).copy(fog.color);
     this.exposure = lerp(EVENING.exposure, RAIN.exposure, k);
     this.hemi.intensity = lerp(HEMI_CLEAR[0], HEMI_RAIN[0], k);
@@ -1336,22 +1379,26 @@ export class LobbyWorld {
     this.beamMat.uniforms.uStrength.value = lerp(BEAM_CLEAR, BEAM_RAIN, k);
     this.haze.uHaze.value = k;
     this.haze.uHazeColor.value.copy(fog.color).convertLinearToSRGB();
-    this.wet.uWet.value = Math.max(w.wet, this.storm.rain);
+    this.wet.uWet.value = w.wet;
     const env = k > 0.5 ? this.envRain : this.envClear;
     for (const m of this.wetMats) m.envMap = env;
     this.look?.weather(k);
-    // Apply after both look palettes have rebuilt their base values; never multiply a previous storm frame.
-    const { dark, flash } = this.storm;
+    // Поверх палитр (их пересобирают заново каждый раз — сумрак и вспышка не копятся от кадра к кадру):
+    // гроза темнит небо, туман и свет; молния на миг подсвечивает всё, тучи светятся изнутри
+    const dark = w.dark;
+    const flash = Math.min(1.2, this.sky.flash);
     if (dark > 0 || flash > 0) {
-      const light = 1 - dark * .82 + flash * .75;
-      this.sun.intensity = this.sun.intensity * (1 - dark * .94) + flash * 2;
-      this.hemi.intensity = this.hemi.intensity * (1 - dark * .78) + flash * 1.3;
-      this.exposure *= 1 - dark * .12;
+      const light = 1 - dark * 0.82;
+      this.sun.intensity = this.sun.intensity * (1 - dark * 0.94) + flash * 1.6;
+      this.hemi.intensity = this.hemi.intensity * (1 - dark * 0.78) + flash * 1.1;
+      this.exposure *= 1 - dark * 0.12;
       for (const mat of [this.skyMat, this.seaMat]) {
-        for (const key of ['uHorizon', 'uMid', 'uZenith', 'uCloud', 'uCloudLit']) mat.uniforms[key].value.multiplyScalar(light);
+        for (const key of ['uHorizon', 'uMid', 'uZenith']) mat.uniforms[key].value.multiplyScalar(light * (1 + 0.55 * flash));
+        for (const key of ['uCloud', 'uCloudLit']) mat.uniforms[key].value.multiplyScalar(light * (1 + 1.5 * flash));
       }
-      fog.color.multiplyScalar(light);
-      fog.near = lerp(fog.near, 16, dark); fog.far = lerp(fog.far, 125, dark);
+      fog.color.multiplyScalar(light * (1 + 0.5 * flash));
+      fog.near = lerp(fog.near, 16, dark);
+      fog.far = lerp(fog.far, 140, dark);
       (this.scene.background as THREE.Color).copy(fog.color);
       this.haze.uHazeColor.value.copy(fog.color).convertLinearToSRGB();
     }
@@ -1371,8 +1418,8 @@ export class LobbyWorld {
     this.backdrop.update(t);
     this.look?.update(dt, t);
     const phase = Math.floor(t * 2.6) % 2;
-    this.chase[0].visible = this.storm.lampsOn && phase === 0;
-    this.chase[1].visible = this.storm.lampsOn && phase === 1;
+    this.chase[0].visible = this.weather.lampsOn && phase === 0;
+    this.chase[1].visible = this.weather.lampsOn && phase === 1;
     if (this.signGlow) this.signGlow.material.opacity = BULB_SIGN_GLOW[phase];
     this.gateScreen.tick(t);
     this.kartStart.tick(t);

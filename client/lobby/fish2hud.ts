@@ -8,6 +8,7 @@ import { bagSlots, fishCastMods, type FishProgress } from '../../shared/fishprog
 import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
+import { slotKey, type Outfit } from '../../shared/outfit.ts';
 import type { Sound } from '../audio.ts';
 import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
@@ -88,6 +89,8 @@ export class Fish2Hud {
     this.book.onClose = () => {
       if (!this.quiet) this.onBookClose();
     };
+    // снасти из журнала: сервер меняет их где угодно на набережной
+    this.book.rewards.onEquip = (slot, key) => send({ t: 'outfit', o: { ...this.ui.me().outfit, [slot]: key } as Outfit });
     this.setBookBtn();
   }
 
@@ -216,6 +219,7 @@ export class Fish2Hud {
   onReel(msg: Extract<ServerMsg, { t: 'fishReel' }>, mySpot: number): void {
     if (msg.spot !== mySpot) return;
     this.card.hide();
+    this.reel.theme(slotKey(this.ui.me().outfit, 'w'));
     this.reel.start(msg.sp, msg.seed, this.rain, msg.mods);
   }
 
@@ -241,6 +245,7 @@ export class Fish2Hud {
   /** Профиль с сервера (новый улов, комплект) — журнал и счёт на кнопке. */
   onMe(): void {
     const me = this.ui.me();
+    this.book.rewards.outfit = me.outfit;
     this.book.update(me.album, me.owned, me.fishing);
     this.progress.set(me.fishing);
     this.npc.setProgress(me.fishing);
@@ -295,6 +300,7 @@ export class Fish2Hud {
       return;
     }
     const me = this.ui.me();
+    this.book.rewards.outfit = me.outfit;
     this.book.open(me.album, me.owned, me.fishing);
     this.onBookOpen();
   }

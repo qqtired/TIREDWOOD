@@ -24,14 +24,21 @@ import { PaintballRoom } from './paintball/room.ts';
 import type { Profiles } from './profiles.ts';
 import { RaceRoom } from './race/room.ts';
 import { SkillRoom } from './skilltest/room.ts';
+import type { SkillReward } from './skilltest/game.ts';
+import { applySkillFinish } from '../shared/skilltest.ts';
+import { mskDayNum } from '../shared/fishrules.ts';
 import { BoatRaceRoom } from './boatrace/room.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
+import { ReadyGate } from './readygate.ts';
+import type { Prestart } from '../shared/loading.ts';
 import { emptyStats, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
+import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
 import type { VoiceIceConfig } from '../shared/voice.ts';
 import { GiftCodes } from './gifts.ts';
+import { grantLadder, ladderAnnounce, ladderToast } from './fishstyle.ts';
 
 export type { Sink };
 
@@ -41,6 +48,8 @@ export interface Room {
   readonly tick: number;
   /** Existing per-room actor lookup; identifiers are room-local, never socket/client IDs. */
   playerOf?(c: Client): { id?: number; slot?: number } | undefined;
+  /** Отсчёт перед стартом раунда, который ждёт загрузки всех (server/readygate.ts); null — сейчас ждать нечего */
+  readonly prestart?: Prestart | null;
   hasSpace(): boolean;
   /** from — откуда пришёл (с пейнтбола на набережную — к воротам склада, из гонки — к гаражу) */
   join(c: Client, from: RoomKind | null): boolean;
@@ -52,7 +61,8 @@ export interface Room {
 
 export class Client {
   readonly id: number;
-  readonly sink: Sink;
+  /** Связь сессии: комнаты шлют сюда, а сокет за ней может смениться (возврат после обрыва связи, link.ts) */
+  readonly sink: SessionLink;
   readonly ip: string;
   profile: Profile | null = null;
   /** Временный профиль проверки после выкладки: не сохраняется, никому не виден */
@@ -67,10 +77,17 @@ export class Client {
   since = 0;
   /** Сколько ошибок браузера записано с этого соединения */
   errors = 0;
+  /** Связь оборвалась, игрок ждёт в своей комнате возврата: когда (часы хаба) и почему; 0 — связь есть */
+  lostAt = 0;
+  lostWhy = '';
+  /** Этот сокет вернул прежнюю сессию после обрыва: дальше его сообщения — ей */
+  adopted: Client | null = null;
+  /** Клиент попрощался (закрыл вкладку, обновил страницу): закрытие — сразу выход, без ожидания возврата */
+  bye = false;
 
-  constructor(id: number, sink: Sink, ip: string) {
+  constructor(id: number, sink: LinkSocket, ip: string) {
     this.id = id;
-    this.sink = sink;
+    this.sink = new SessionLink(sink);
     this.ip = ip;
   }
 
@@ -154,7 +171,7 @@ export function closeReason(code: number, reason = ''): string {
     case 4002:
       return 'старая версия';
     case CLOSE_SILENCE:
-      return 'не слышал сервер 8 с';
+      return 'не слышал сервер 20 с';
     default:
       return `код ${code}`;
   }
@@ -174,6 +191,18 @@ export function cleanLog(v: unknown, max: number): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max);
+}
+
+/** Сколько ждём возврата игрока после обрыва связи: всё это время он в своей комнате, на своём месте */
+export const RESUME_MS = 45_000;
+
+/**
+ * Обрыв, после которого игрок может вернуться в ту же сессию. Не считаются: выход в меню (1000/1005), нарушение
+ * и флуд (1008), перезапуск сервера (1012), вход в другом окне и старая версия. 1001 браузер шлёт и когда вкладку
+ * закрыли, и когда заморозил её в фоне — закрытие клиент отмечает сам сообщением «bye».
+ */
+export function resumableClose(code: number): boolean {
+  return ![1000, 1005, 1008, 1012, 4001, 4002].includes(code);
 }
 
 /** Не больше стольких ошибок браузера с одного соединения и в минуту с одного адреса */
@@ -211,6 +240,8 @@ export class Hub {
   readonly roulette: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
+  /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
+  readonly gate = new ReadyGate(this);
   tick = 0;
   private readonly smokeToken: string;
   private readonly build: string;
@@ -262,7 +293,7 @@ export class Hub {
         announce: (text) => this.announce(text),
       })
       : null;
-    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c) }) : null;
+    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = o.boatrace ? new BoatRaceRoom({ outfitOf: p => this.outfitOf(p), result: (c,row,reward) => this.onBoatRaceResult(c,row,reward),
       over: clients => this.onRaceOver(clients), announce: text => this.announce(text), afk: c => this.onPaintballAfk(c) }) : null;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
@@ -294,11 +325,37 @@ export class Hub {
 
   // ------------------------------------------------------------ соединения
 
-  connect(sink: Sink, ip: string): Client {
+  connect(sink: LinkSocket, ip: string): Client {
+    this.sweepLost();
     const c = new Client(this.nextClientId++, sink, ip);
     c.since = this.now();
     this.clients.add(c);
     return c;
+  }
+
+  /**
+   * Сокет соединения закрылся (socket — какой именно: после возврата старый сокет закрывается позже, его не слушаем).
+   * Обрыв в игре — игрок остаётся в комнате без связи RESUME_MS и может вернуться на то же место; выход в меню,
+   * закрытая вкладка, флуд, вход в другом окне — отключаем сразу, как раньше.
+   */
+  linkLost(c: Client, socket: LinkSocket, why: string, code: number): void {
+    if (!this.clients.has(c) || !c.sink.has(socket)) return;
+    if (!resumableClose(code) || c.bye || !c.profile || c.ephemeral || !c.room) {
+      this.disconnect(c, why);
+      return;
+    }
+    c.sink.detach();
+    c.lostAt = this.now();
+    // 1001 без прощания — браузер усыпил вкладку (фон, заморозка), а не закрыл её
+    c.lostWhy = code === 1001 ? 'вкладка уснула' : why;
+  }
+
+  /** Кто не вернулся за RESUME_MS — отключаем по-настоящему. */
+  private sweepLost(): void {
+    const now = this.now();
+    for (const c of this.clients) {
+      if (c.lostAt && now - c.lostAt >= RESUME_MS) this.disconnect(c, `${c.lostWhy}, не вернулся за ${RESUME_MS / 1000} с`);
+    }
   }
 
   /** why — причина для журнала (closeReason, «нет ответа 6 с» и т. п.) */
@@ -306,6 +363,7 @@ export class Hub {
     if (!this.clients.has(c)) return;
     this.clients.delete(c);
     c.closed = true;
+    c.lostAt = 0;
     this.voice?.disconnected(c);
     c.room?.leave(c);
     c.room = null;
@@ -324,6 +382,11 @@ export class Hub {
     const msg = raw as ClientMsg;
     if (msg.t === 'ping') {
       if (typeof msg.c === 'number') c.sink.sendJson({ t: 'pong', c: msg.c, k: c.room?.tick ?? this.tick });
+      c.sink.ack(msg.r);
+      return;
+    }
+    if (msg.t === 'bye') {
+      c.bye = true;
       return;
     }
     if (msg.t === 'err') {
@@ -347,6 +410,9 @@ export class Hub {
         this.voice?.handle(c, msg);
         return;
       case 'hello':
+        return;
+      case 'ready':
+        this.gate.ready(c, msg.e);
         return;
       case 'chat':
         this.onChat(c, msg.text);
@@ -421,21 +487,31 @@ export class Hub {
     if (r.created) this.log(`[новый профиль] ${r.profile.nick} (#${r.profile.id})`);
     const re = msg.re;
     const again = typeof re === 'number' && Number.isInteger(re) && re >= 1000 && re <= 4999 ? `, переподключился: ${closeReason(re)}` : '';
-    this.enter(c, r.profile, r.daily, again);
+    this.enter(c, r.profile, r.daily, again, msg.rs);
   }
 
-  /** note — дописать в строку журнала о входе */
-  private enter(c: Client, profile: Profile, daily: number, note = ''): void {
+  /** note — дописать в строку журнала о входе; rs — клиент просит вернуться в прежнюю сессию после обрыва */
+  private enter(c: Client, profile: Profile, daily: number, note = '', rs?: unknown): void {
     const old = this.byPid.get(profile.id);
     if (old && old !== c) {
-      this.error(old, 'replaced');
-      old.sink.close(4001, 'replaced');
-      this.disconnect(old, closeReason(4001));
+      if (rs !== undefined && this.resume(old, c, rs)) return;
+      if (old.lostAt) this.disconnect(old, `${old.lostWhy}, вошёл заново`);
+      else {
+        this.error(old, 'replaced');
+        old.sink.close(4001, 'replaced');
+        this.disconnect(old, closeReason(4001));
+      }
     }
     c.profile = profile;
     if (!c.ephemeral) this.byPid.set(profile.id, c);
+    // награды коллекции рыб, положенные по альбому (server/fishstyle.ts): ветеранам — при первом входе
+    const ladder = this.fish2 && !c.ephemeral ? grantLadder(this.profiles, profile) : null;
     this.sendMe(c);
     if (daily > 0) this.toast(c, `Ежедневный бонус: +${daily} 🪙`);
+    if (ladder?.items.length) {
+      this.toast(c, ladderToast(ladder));
+      for (const line of ladderAnnounce(profile.nick, ladder)) this.announce(line);
+    }
     c.sink.sendJson({ t: 'chatlog', list: this.chatLog });
     if (!this.move(c, this.lobby, true)) {
       this.error(c, 'full');
@@ -447,6 +523,30 @@ export class Hub {
       this.log(`[вход] ${profile.nick} (#${profile.id}${note}); в игре: ${this.onlineCount()}`);
       this.lobby.honorChanged();
     }
+  }
+
+  /**
+   * Возврат после обрыва: сокет нового соединения c подхватывает прежнюю сессию old. Комната, место, стол, голос —
+   * как были; клиенту досылается всё, что он не принял (с номера from), сцену он не пересоздаёт.
+   */
+  private resume(old: Client, c: Client, from: unknown): boolean {
+    if (old.closed || old.ephemeral || !old.room || !old.sink.canResume(from)) return false;
+    const socket = c.sink.take();
+    if (!socket) return false;
+    const away = old.lostAt ? `без связи ${since(this.now() - old.lostAt)}` : 'старое соединение ещё не закрылось';
+    const why = old.lostAt ? `${old.lostWhy}, ` : '';
+    // старый сокет мог ещё числиться живым (клиент заметил тишину раньше сервера) — закрываем, его закрытие не в счёт
+    old.sink.dropSocket(4003, 'resumed');
+    socket.sendJson({ t: 'resumed' });
+    old.sink.attach(socket, from);
+    old.lostAt = 0;
+    old.lostWhy = '';
+    c.adopted = old;
+    c.closed = true;
+    this.clients.delete(c);
+    this.sendMe(old);
+    this.log(`[возврат] ${old.nick} (#${old.pid}, ${why}${away}); в игре: ${this.onlineCount()}`);
+    return true;
   }
 
   private error(c: Client, code: ErrorCode): void {
@@ -475,6 +575,7 @@ export class Hub {
       if (room !== this.lobby) return this.move(c, this.lobby, true);
       return false;
     }
+    this.gate.moved(c, room);
     this.voice?.moved(c);
     if (!c.ephemeral) this.broadcastOnline();
     return true;
@@ -491,6 +592,7 @@ export class Hub {
       return;
     }
     if (text.startsWith('/')) {
+      if (this.gate.command(c, text)) return;
       if (c.room === this.paintball) this.paintball.command(c, text);
       else if (this.skill && c.room === this.skill) this.skill.command(c, text);
       else if (this.fort !== null && c.room === this.fort) this.fort.command(c, text);
@@ -697,6 +799,16 @@ export class Hub {
     this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
   }
 
+  /** «Выше облаков»: позвонил в колокол — статистика профиля, жетоны (медаль, «без падений», первый за день). */
+  onSkillResult(c: Client, ticks: number, falls: number): SkillReward | null {
+    const p = c.profile;
+    if (!p || c.ephemeral) return null;
+    const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()));
+    if (r.tokens > 0) this.profiles.credit(p, r.tokens, 'mode');
+    this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
+    return r;
+  }
+
   startHide(clients: Client[]): void {
     if (!this.hide || this.hide.active) return;
     for (const c of clients) this.move(c, this.hide, true);
@@ -846,6 +958,7 @@ export class Hub {
 
   step(): void {
     this.tick++;
+    this.gate.step();
     this.voice?.step();
     if (this.delayed.length) {
       const due = this.delayed.filter((d) => d.at <= this.tick);
@@ -881,6 +994,7 @@ export class Hub {
       }
     }
     if (this.tick % TICK_RATE === 0) {
+      this.sweepLost();
       if (this.skill) this.lobby.broadcast({ t: 'skillSt', ...this.skill.status() });
       this.uncap();
       for (const c of this.clients) if (c.profile && !c.ephemeral && this.profiles.refreshFishing(c.profile)) this.sendMe(c);

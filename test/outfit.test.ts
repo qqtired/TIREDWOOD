@@ -6,8 +6,10 @@ import {
   sanitizeOutfit, shownOutfit, withItem, type Slot,
 } from '../shared/outfit.ts';
 
-const SLOTS: Slot[] = ['p', 'e', 'h', 'a'];
-const EMPTY: Record<Slot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none' };
+// Старые слоты (поля наряда всегда есть); новые слоты рыбалки — в test/fishstyle.test.ts
+const SLOTS = ['p', 'e', 'h', 'a'] as const satisfies readonly Slot[];
+type OldSlot = (typeof SLOTS)[number];
+const EMPTY: Record<OldSlot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none' };
 
 test('каталог: id = слот:ключ, без повторов; у каждого слота есть бесплатная «пустая» вещь', () => {
   assert.equal(PALETTE.length, 16);
@@ -81,7 +83,7 @@ test('колпак дурака и погоны поверх наряда — п
 
 // Preserve existing IDs and per-slot catalogue order across the expansion.
 test('expansion: old slot indexes preserved, premium items only appended and require ownership', () => {
-  const old: Record<Slot, string[]> = {
+  const old: Record<OldSlot, string[]> = {
     p: ['none', 'stripes', 'dots', 'spots', 'sunset', 'camo', 'sugar', 'gold'],
     e: ['normal', 'sleepy', 'angry', 'happy', 'glasses', 'shades', 'patch', 'monocle', 'angler'],
     h: ['none', 'cap', 'panama', 'ushanka', 'fisher', 'bandana', 'helmet', 'sailor', 'tophat', 'crown', 'fool', 'angler'],
@@ -93,7 +95,7 @@ test('expansion: old slot indexes preserved, premium items only appended and req
   for (const it of premium) {
     assert.equal(isOwned([], it), false);
     assert.equal(sanitizeOutfit(withItem(DEFAULT_OUTFIT, it), [it.id])[it.slot], it.key);
-    assert.equal(sanitizeOutfit(withItem(DEFAULT_OUTFIT, it), [])[it.slot], EMPTY[it.slot]);
+    assert.equal(sanitizeOutfit(withItem(DEFAULT_OUTFIT, it), [])[it.slot], EMPTY[it.slot as OldSlot]);
   }
   for (const id of ['e:angler', 'h:angler', 'a:angler']) assert.equal(itemById(id)?.tier, 'trophy');
 });

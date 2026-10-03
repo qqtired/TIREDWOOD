@@ -1,7 +1,7 @@
 // Рыбалка 2.0 на сервере (флаг FISH2): честное вываживание засчитывается (рыба — в рюкзак по цене поимки, коллекция,
 // счётчики, бонус за новый вид — сразу жетонами), подделки — нет: ускорение, нажатия под чужой сид, кривые сообщения,
-// молчание; поклёвка по погоде; сундук; доска «Сегодня» / «За всё время» (полночь по Москве); комплект за всю коллекцию
-// (COLLECTION_SIZE видов); без флага — старая рыбалка.
+// молчание; поклёвка по погоде; сундук; доска «Сегодня» / «За всё время» (полночь по Москве); финал лестницы наград
+// fishstyle за всю коллекцию (COLLECTION_SIZE видов); без флага — старая рыбалка.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,8 +10,9 @@ import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_LAND, FE_LOST, FISH, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, NEW_BONUS2, REWARD_ITEMS, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
+  COLLECTION, COLLECTION_SIZE, NEW_BONUS2, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
 } from '../shared/fishrules.ts';
+import { earnedItems } from '../shared/fishstyle.ts';
 import { fishCatchXp } from '../shared/fishprogress.ts';
 import { BAG_BASE } from '../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart } from '../shared/fishreel.ts';
@@ -306,7 +307,7 @@ test('доска у мостков: «Сегодня» и «За всё врем
   assert.equal(t3.ag[0].v, 950);
 });
 
-test('коллекция: последний вид из всей коллекции (COLLECTION_SIZE) — рыбацкий комплект и строка в чат; потом — не повторяется', () => {
+test('коллекция: последний вид из всей коллекции (COLLECTION_SIZE) — вся лестница наград и строка в чат; потом — не повторяется', () => {
   const e = fisher({ sp: sp('goby'), g: 100, coins: 0 });
   const b = login(e.hub, 'Зевака');
   const prof = e.a.c.profile!;
@@ -317,8 +318,11 @@ test('коллекция: последний вид из всей коллекц
   const land = lastOf(e.a.s, 'fishLand')!;
   assert.equal(land.got, COLLECTION_SIZE);
   assert.equal(land.full, true);
-  for (const id of REWARD_ITEMS) assert.ok(prof.owned.includes(id), id);
-  assert.deepEqual(lastOf(e.a.s, 'me')!.owned.filter((id) => REWARD_ITEMS.includes(id)).sort(), [...REWARD_ITEMS].sort());
+  // лестница fishstyle: за все виды — все ступени разом (до улова в альбоме ничего не выдавалось)
+  const all = earnedItems(COLLECTION_SIZE);
+  assert.deepEqual(land.rw, all);
+  for (const id of all) assert.ok(prof.owned.includes(id), id);
+  assert.deepEqual(lastOf(e.a.s, 'me')!.owned.filter((id) => all.includes(id)).sort(), [...all].sort());
   assert.ok(allOf(b.s, 'chat').some((m) => m.sys && m.text.includes('собрал всю коллекцию')));
   advance(e.hub, e.clock, HOLD2_TICKS + 1);
   const h = hookOne(e);

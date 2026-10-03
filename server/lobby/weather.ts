@@ -1,6 +1,9 @@
 // Погода на набережной: обычно ясно, изредка дождь на несколько минут. Решает сервер, у всех она одна:
-// входящему её называют в приветствии, остальным шлют сообщение при смене. Остальное (тучи, капли, лужи) — клиент.
+// входящему её называют в приветствии, остальным шлют сообщение при смене. Дождь — одно событие с прогрессией
+// (тучи, морось, дождь, иногда гроза, стихает): сервер присылает его один раз ({el, dur, seed, k}, shared/weather.ts),
+// силу по времени, молнии, тучи, капли и лужи считает клиент.
 import { TICK_RATE } from '../../shared/constants.ts';
+import type { RainKind, RainWire } from '../../shared/weather.ts';
 
 /** Ясно между дождями, тиков: от и до */
 export const CLEAR_TICKS: readonly [number, number] = [15 * 60 * TICK_RATE, 30 * 60 * TICK_RATE];
@@ -8,9 +11,14 @@ export const CLEAR_TICKS: readonly [number, number] = [15 * 60 * TICK_RATE, 30 *
 export const RAIN_TICKS: readonly [number, number] = [288 * TICK_RATE, 480 * TICK_RATE];
 /** Режим «по кругу» для разработки: столько тиков ясно, потом столько же дождь */
 const CYCLE_TICKS = 45 * TICK_RATE;
+/** DEV_WEATHER=storm: гроза сразу на 4 минуты, потом 40 с ясно — и снова */
+const DEV_STORM_TICKS: readonly [number, number] = [240 * TICK_RATE, 40 * TICK_RATE];
 
-/** auto — как в игре; для разработки (DEV_WEATHER): rain — всегда дождь, clear — всегда ясно, cycle — по 45 с */
-export type WeatherMode = 'auto' | 'rain' | 'clear' | 'cycle';
+/**
+ * auto — как в игре; для разработки (DEV_WEATHER): rain — всегда дождь, clear — всегда ясно, cycle — по 45 с,
+ * storm — гроза почти сразу (и снова через 40 с после конца)
+ */
+export type WeatherMode = 'auto' | 'rain' | 'clear' | 'cycle' | 'storm';
 
 export class Weather {
   rain: boolean;
@@ -22,20 +30,30 @@ export class Weather {
   private untilMs: number;
   /** В режиме DEV clear бубен всё равно вызывает обычное конечное событие. */
   private forced = false;
+  /** Идущее событие дождя: начало (мс), длина (тики; 0 — без конца), сид, откуда */
+  private ev: { atMs: number; dur: number; seed: number; k: RainKind } | null = null;
 
-  /** Сначала всегда ясно (кроме режима «дождь»): после перезапуска сервера дождь не начинается сразу. */
+  /** Сначала всегда ясно (кроме режимов «дождь» и «гроза»): после перезапуска сервера дождь не начинается сразу. */
   constructor(rand: () => number = Math.random, mode: WeatherMode = 'auto', tick = 0, now: () => number = Date.now) {
     this.rand = rand;
     this.mode = mode;
     this.now = now;
-    this.rain = mode === 'rain';
+    this.rain = mode === 'rain' || mode === 'storm';
     const span = this.span(this.rain);
     this.until = tick + span;
     this.untilMs = this.now() + span * 1000 / TICK_RATE;
+    if (this.rain) this.begin(mode === 'rain' ? 0 : span, mode === 'storm' ? 2 : 0);
   }
 
   get eventUntil(): number {
     return !this.rain || this.mode === 'rain' && !this.forced ? 0 : this.untilMs;
+  }
+
+  /** Идущий дождь для сообщений клиентам (сколько уже идёт — по часам, как и eventUntil); null — ясно. */
+  get wire(): RainWire | null {
+    const e = this.ev;
+    if (!this.rain || !e) return null;
+    return { el: Math.max(0, Math.round((this.now() - e.atMs) * TICK_RATE / 1000)), dur: e.dur, seed: e.seed, k: e.k };
   }
 
   /** Тик набережной; true — погода сменилась (пора всем сказать). */
@@ -46,24 +64,31 @@ export class Weather {
     return true;
   }
 
-  /** Бубен использует ровно тот же переход и длительность, что обычный дождь; активный не продлевается. */
+  /** Бубен использует ровно тот же переход и длительность, что обычный дождь (но всегда с грозой); активный не продлевается. */
   startRain(tick: number): boolean {
     if (this.rain) return false;
-    this.setRain(true, tick);
+    this.setRain(true, tick, 1);
     this.forced = true;
     return true;
   }
 
-  private setRain(rain: boolean, tick: number): void {
+  private setRain(rain: boolean, tick: number, kind: RainKind = this.mode === 'storm' ? 2 : 0): void {
     this.rain = rain;
     if (!rain) this.forced = false;
     const span = this.span(rain);
     this.until = tick + span;
     this.untilMs = this.now() + span * 1000 / TICK_RATE;
+    if (rain) this.begin(span, kind);
+    else this.ev = null;
+  }
+
+  private begin(dur: number, k: RainKind): void {
+    this.ev = { atMs: this.now(), dur, seed: Math.floor(this.rand() * 0x7fffffff), k };
   }
 
   private span(rain: boolean): number {
     if (this.mode === 'cycle') return CYCLE_TICKS;
+    if (this.mode === 'storm') return DEV_STORM_TICKS[rain ? 0 : 1];
     const [a, b] = rain ? RAIN_TICKS : CLEAR_TICKS;
     return a + Math.floor(this.rand() * (b - a));
   }
@@ -71,5 +96,5 @@ export class Weather {
 
 /** DEV_WEATHER из окружения: неизвестное — как в игре. */
 export function weatherMode(s: string | undefined): WeatherMode {
-  return s === 'rain' || s === 'clear' || s === 'cycle' ? s : 'auto';
+  return s === 'rain' || s === 'clear' || s === 'cycle' || s === 'storm' ? s : 'auto';
 }

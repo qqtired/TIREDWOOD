@@ -9,8 +9,9 @@ import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
 import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { reelRun, reelStart } from '../shared/fishreel.ts';
-import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, REWARD_ITEMS, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
 import { RAIN_DRUM_PRICE } from '../shared/fishshop.ts';
+import { earnedItems } from '../shared/fishstyle.ts';
 import { Hub, type Room } from '../server/hub.ts';
 import { type FishingHall2 } from '../server/lobby/fishing2.ts';
 import type { WeatherMode } from '../server/lobby/weather.ts';
@@ -441,7 +442,7 @@ test('событие и пиво применены к продаже один �
   }
 });
 
-test('вся коллекция (COLLECTION_SIZE): без двух событийных рыб пристани не завершена; они дают прогресс, подиум и сохраняются; последняя выдаёт комплект', () => {
+test('вся коллекция (COLLECTION_SIZE): без двух событийных рыб пристани не завершена; они дают прогресс, подиум и сохраняются; последняя выдаёт финал лестницы', () => {
   assert.equal(sp('bluemarlin'), 34);
   assert.equal(sp('greenlandshark'), 35);
   const e = setup({ rain: true });
@@ -457,7 +458,9 @@ test('вся коллекция (COLLECTION_SIZE): без двух событи�
   playHonest(e, play);
   assert.equal(lastOf(e.a.s, 'fishLand')!.got, COLLECTION_SIZE - 2);
   assert.equal(lastOf(e.a.s, 'fishLand')!.full, false);
-  assert.equal(p.owned.length, 0);
+  // лестница коллекции (shared/fishstyle.ts): без двух видов — всё до 45 включительно, финал — только за все
+  assert.deepEqual(p.owned, earnedItems(COLLECTION_SIZE - 2));
+  assert.ok(!p.owned.includes('h:captain'));
   const weights = [300];
   for (const [species, got] of [[sp('bluemarlin'), COLLECTION_SIZE - 1], [sp('greenlandshark'), COLLECTION_SIZE]]) {
     const g = FISH[species].g[1];
@@ -479,7 +482,7 @@ test('вся коллекция (COLLECTION_SIZE): без двух событи�
   assert.equal(p.stats.fsGrams, weights.reduce((n, g) => n + g, 0));
   assert.equal(p.stats.fsMaxGrams, Math.max(...weights));
   assert.deepEqual(hall.board.top.podium.map((c) => c.g), [...weights].sort((a, b) => b - a));
-  for (const id of REWARD_ITEMS) assert.ok(p.owned.includes(id));
+  assert.deepEqual(p.owned, earnedItems(COLLECTION_SIZE));
   e.store.flush();
   const restored = new Store(e.store.dir, { now: () => e.clock.now, log: () => {} });
   restored.load();
@@ -488,26 +491,31 @@ test('вся коллекция (COLLECTION_SIZE): без двух событи�
   assert.deepEqual(saved.fishing, p.fishing);
   assert.deepEqual(saved.stats, p.stats);
   assert.deepEqual(restored.state.fishPodium, e.store.state.fishPodium);
-  for (const id of REWARD_ITEMS) assert.ok(saved.owned.includes(id));
+  assert.deepEqual(saved.owned, earnedItems(COLLECTION_SIZE));
   restored.close();
 });
 
-test('32 вида: вещи за прежнюю полную коллекцию30 остаются у старого владельца после улова и сохранения', () => {
+test('ветеран: прежний рыбацкий комплект (за старые 30 видов) остаётся после улова и сохранения; лестница его не дублирует', () => {
+  // что лежит в owned у собравших прежнюю коллекцию (до лестницы fishstyle): панама, очки и жилет рыболова
+  const oldSet = ['h:angler', 'e:angler', 'a:angler'];
   assert.equal(sp('greenlandshark'), 35);
   const e = setup();
   const p = e.a.c.profile!;
   for (const s of COLLECTION.filter((s) => s < 34)) p.album[FISH[s].id] = [FISH[s].g[0], 1];
-  for (const id of REWARD_ITEMS) e.profiles.grant(p, id);
+  for (const id of oldSet) e.profiles.grant(p, id);
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
   const h = hook(e, hall);
   playHonest(e, playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT));
   const land = lastOf(e.a.s, 'fishLand')!;
   assert.equal(land.got, 30);
   assert.equal(land.full, false);
-  for (const id of REWARD_ITEMS) assert.ok(p.owned.includes(id));
+  for (const id of oldSet) assert.ok(p.owned.includes(id));
+  assert.ok(!oldSet.some((id) => land.rw?.includes(id)), 'старый комплект не выдаётся второй раз');
+  assert.equal(new Set(p.owned).size, p.owned.length);
+  assert.deepEqual([...p.owned].sort(), [...earnedItems(30)].sort());
   e.store.flush();
   const restored = new Store(e.store.dir, { now: () => e.clock.now, log: () => {} });
   restored.load();
-  for (const id of REWARD_ITEMS) assert.ok(restored.state.profiles[0].owned.includes(id));
+  for (const id of oldSet) assert.ok(restored.state.profiles[0].owned.includes(id));
   restored.close();
 });

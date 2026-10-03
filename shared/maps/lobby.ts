@@ -13,7 +13,7 @@ import {
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
-import { CRITTERS_ENABLED, CRITTER_SAND } from './critters.ts';
+import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'roulette';
@@ -371,11 +371,8 @@ export function buildLobby(): LobbyMap {
   }
   skillPortalBoxes.push(b.boxes.length);
   b.box([SKILL_PORTAL.x - 1.68, 2.9, SKILL_PORTAL.z - .18], [SKILL_PORTAL.x + 1.68, 3.35, SKILL_PORTAL.z + .18], 'invisible', 0);
-  // Видимый песок — в LobbyCritters; совпадающее твёрдое основание выше воды.
-  if (CRITTERS_ENABLED) {
-    const s = CRITTER_SAND;
-    b.box([s.x0, -1.65, s.z0], [s.x1, s.y, s.z1], 'invisible', 0);
-  }
+  // Песчаная отмель у мостков к маяку рисуется в LobbyCritters; здесь только твёрдая ровная часть (можно спрыгнуть и вернуться).
+  if (CRITTERS_ENABLED) for (const s of coveBoxes()) b.box([s.x0, -1.8, s.z0], [s.x1, s.top, s.z1], 'invisible', 0);
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });

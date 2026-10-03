@@ -11,6 +11,7 @@ import { TICK_MS } from '../shared/constants.ts';
 import { fightEnabled } from './fight/room.ts';
 import { fortEnabled } from './fort/room.ts';
 import { Hub, closeReason, type Sink } from './hub.ts';
+import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
 import { FISH } from '../shared/fishing.ts';
 import { SP_CHEST, rollChest, rollWeight } from '../shared/fishrules.ts';
@@ -24,7 +25,7 @@ import { Store } from './store.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
-import { parseClientJson, sendServerBinary, sendServerJson } from './voice-wire.ts';
+import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -42,7 +43,7 @@ const profiles = new Profiles(store);
 const build = DEV ? 'dev' : buildId();
 // DEV_RIG=777 — автоматы всегда дают три семёрки, чтобы посмотреть джекпот (только в разработке)
 const roll = DEV && process.env.DEV_RIG === '777' ? () => 63 : undefined;
-// DEV_WEATHER=rain / clear / cycle — дождь всегда, никогда или по 45 с (только в разработке)
+// DEV_WEATHER=rain / clear / cycle / storm — дождь всегда, никогда, по 45 с или гроза сразу (только в разработке)
 const weather = DEV ? weatherMode(process.env.DEV_WEATHER) : 'auto';
 // Экран с чатом друзей из Telegram на крыше склада: токен бота владелец кладёт в DATA_DIR/tg-token (deploy/set-tg-token.sh)
 const tg = new TgFeed({ dir: DATA_DIR });
@@ -61,9 +62,13 @@ const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 const fish2 = fish2Enabled(process.env.FISH2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
+// Лаборатория идей /lab (страница + решения владельца в DATA_DIR/lab.json, ключ — DATA_DIR/lab-key): LAB=1 включает, LAB=0 выключает
+const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_DIR, ip: clientIp });
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, storm, pirates, voice, voiceIce,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
+// /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
+hub.gate.devGo = DEV || process.env.DEV_GO === '1';
 tg.start();
 if (roll) console.log('DEV_RIG=777: автоматы подкручены на джекпот');
 if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на набережной не своя`);
@@ -72,6 +77,7 @@ if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
+if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 // DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание)
 const devFish = DEV ? (process.env.DEV_FISH ?? '').split(',').map((id) => FISH.findIndex((f) => f.id === id.trim())).filter((sp) => sp >= 0) : [];
 if (devFish.length && hub.lobby.fishing2) {
@@ -148,6 +154,7 @@ server.on('request', (req, res) => {
     res.end(JSON.stringify({ ok: true, ...hub.health(), stepMs: Math.round(stepMs * 1000) / 1000 }));
     return;
   }
+  if (lab.handle(req, res, url.pathname)) return;
   if (viteMiddleware) {
     viteMiddleware(req, res, () => {
       res.statusCode = 404;
@@ -251,19 +258,23 @@ const conns = new Map<WebSocket, ConnMeta>();
 
 function onConnection(ws: WebSocket, ip: string): void {
   const meta: ConnMeta = { pulse: new Pulse(performance.now()), why: '' };
-  const sink: Sink = {
+  const sink: Sink & { sendText(text: string): void } = {
     sendBinary(data) {
       sendServerBinary(ws, data, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
     sendJson(msg) {
       sendServerJson(ws, msg, voice, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
+    sendText(text) {
+      sendServerText(ws, text, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
+    },
     close(code, reason) {
       if (!meta.why) meta.why = closeReason(code, reason);
       ws.close(code, reason);
     },
   };
-  const client = hub.connect(sink, ip);
+  // После возврата в прежнюю сессию (hub.resume) сообщения этого сокета идут ей — client меняется
+  let client = hub.connect(sink, ip);
   conns.set(ws, meta);
   const budget = new MsgBudget(performance.now());
 
@@ -283,6 +294,7 @@ function onConnection(ws: WebSocket, ip: string): void {
     const msg = parseClientJson(text, voice);
     if (msg === null) return;
     hub.onJson(client, msg);
+    if (client.adopted) client = client.adopted;
     startLoop();
   });
 
@@ -293,7 +305,8 @@ function onConnection(ws: WebSocket, ip: string): void {
 
   ws.on('close', (code, reason) => {
     conns.delete(ws);
-    hub.disconnect(client, meta.why || closeReason(code, reason.toString()));
+    // обрыв в игре — игрок ждёт в комнате возврата (hub.RESUME_MS); выход, флуд, замена окном — отключаем сразу
+    hub.linkLost(client, sink, meta.why || closeReason(code, reason.toString()), code);
   });
   ws.on('error', (e) => {
     if (!meta.why) meta.why = `ошибка сокета: ${String(e.message).slice(0, 80)}`;

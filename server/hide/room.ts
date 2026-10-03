@@ -13,6 +13,8 @@ export class HideRoom implements Room {
  get humans():number{return this.clients.size;}get tick():number{return this.game.tick;}get active():boolean{return this.game.active;}get busy():number{return this.game.busy;}
  canRejoin(pid:number):boolean{return this.hasSpace()&&this.game.canRejoin(pid);}
  hasSpace():boolean{return this.humans<HIDE_CAPACITY;}
+ /** Ожидание загрузки (server/readygate.ts): отсчёт сбора стоит, пока вошедшие не загрузились */
+ get prestart():{phaseEnd:number}|null{return this.game.phase==='gather'&&this.game.phaseEnd>0?this.game:null;}
  join(c:Client):boolean {if(!c.profile||this.clients.has(c))return false;const p=this.game.addHuman({pid:c.pid,nick:c.nick,level:c.profile.level??1,outfit:this.hooks.outfitOf(c.profile)},c.sink);if(!p)return false;this.clients.set(c,p);return true;}
  leave(c:Client):void {const p=this.clients.get(c);if(p)this.game.removePlayer(p.id);this.clients.delete(c);}
  playerOf(c:Client):HidePlayer|undefined{return this.clients.get(c);}

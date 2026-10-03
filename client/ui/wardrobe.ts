@@ -3,10 +3,14 @@
 // на своей желейке и кнопка «Купить». Закрыли — примерка снимается, остаётся надетое.
 import { itemPrice } from '../../shared/economy.ts';
 import {
-  DEFAULT_OUTFIT, ITEMS, PALETTE, PALETTE_NAMES, TIER_NAMES, isOwned, isItemVisible, itemOf, sameOutfit, withItem,
+  DEFAULT_OUTFIT, ITEMS, PALETTE, PALETTE_NAMES, TIER_NAMES, isOwned, isItemVisible, itemOf, sameOutfit, slotKey, withItem,
   type Item, type Outfit, type Slot,
 } from '../../shared/outfit.ts';
+import { collectionCount } from '../../shared/fishrules.ts';
+import { REWARD_INFO, needOf } from '../../shared/fishstyle.ts';
 import { FISH2 } from '../lobby/fish2.ts';
+import { FISH_ICONS } from './fishicons.ts';
+import { species } from './fishrewards.ts';
 import type { MeState } from '../scene.ts';
 import type { GiftResultCode } from '../../shared/gifts.ts';
 import { GiftCodePanel } from './gift-code.ts';
@@ -14,8 +18,8 @@ import { COIN_HTML, setCoinText } from './coin.ts';
 
 type Tab = 'c' | Slot;
 
-const TABS: ReadonlyArray<readonly [Tab, string]> = [['c', 'Цвет'], ['p', 'Узор'], ['e', 'Глаза'], ['h', 'Шапка'], ['a', 'Аксессуар']];
-const SLOTS: readonly Slot[] = ['p', 'e', 'h', 'a'];
+const TABS: ReadonlyArray<readonly [Tab, string]> = [['c', 'Цвет'], ['p', 'Узор'], ['e', 'Глаза'], ['h', 'Шапка'], ['a', 'Аксессуар'], ['s', 'Питомец']];
+const SLOTS: readonly Slot[] = ['p', 'e', 'h', 'a', 's'];
 
 /** Усы и спасательный круг — свои SVG: эмодзи 🥸 и 🛟 появились только в Unicode 13–14, в старых шрифтах их нет */
 const MUSTACHE_SVG =
@@ -58,9 +62,10 @@ const ICONS: Record<string, string> = {
   'h:helmet': '⛑️', 'h:sailor': '⚓', 'h:tophat': '🎩', 'h:crown': '👑', 'h:fool': '🃏',
   'a:none': '∅', 'a:scarf': '🧣', 'a:mustache': MUSTACHE_SVG, 'a:bowtie': '🎀', 'a:headphones': '🎧',
   'a:lifebuoy': LIFEBUOY_SVG, 'a:chain': '⛓️', 'a:epaulets': '🎖️',
-  // рыбацкий комплект (рыбалка 2.0): выдаётся за все 30 рыб
-  'e:angler': '🥽', 'h:angler': '🐟', 'a:angler': '🦺',
+  // награды коллекции рыб (shared/fishstyle.ts): очки — эмодзи, остальное — свои SVG
+  'e:angler': '🥽', 's:none': '∅',
   ...PREMIUM_ICONS,
+  ...FISH_ICONS,
 };
 
 /** Наряд шлём не чаще (сервер принимает 5 в секунду); последний клик всё равно уйдёт */
@@ -93,6 +98,8 @@ export class Wardrobe {
   private shown = false;
   private owned: readonly string[] = [];
   private tokens = 0;
+  /** Видов в журнале рыбака: трофеи открываются по ним */
+  private got = 0;
   /** Что надето (только своё): ответ сервера плюс ещё не подтверждённые клики */
   private wearing: Outfit = { ...DEFAULT_OUTFIT };
   /** Что, по нашим сведениям, сейчас на сервере: последнее отправленное или принятое от него */
@@ -183,6 +190,7 @@ export class Wardrobe {
     this.shown = true;
     this.owned = me.owned;
     this.tokens = me.tokens;
+    this.got = collectionCount(me.album);
     this.wearing = { ...me.outfit };
     this.believed = { ...me.outfit };
     this.sentAt = -Infinity;
@@ -228,6 +236,7 @@ export class Wardrobe {
     const bought = this.picked && isOwned(me.owned, this.picked) ? this.picked : null;
     this.owned = me.owned;
     this.tokens = me.tokens;
+    this.got = collectionCount(me.album);
     // ответ на прошлый клик, а следом идёт новый — наряд не трогаем, иначе он мигнёт назад
     const stale = this.sendTimer !== 0 || (!sameOutfit(me.outfit, this.believed) && performance.now() - this.sentAt < STALE_MS);
     if (!stale) {
@@ -296,31 +305,41 @@ export class Wardrobe {
   private render(): void {
     if (!this.shown) return;
     const d = this.preview;
-    for (const b of this.tabsEl.querySelectorAll<HTMLElement>('[data-tab]')) b.classList.toggle('on', b.dataset.tab === this.tab);
+    // питомцы — награда рыбалки: вкладка, когда она включена (или питомец уже есть)
+    const pets = FISH2.on || this.owned.some((id) => id.startsWith('s:'));
+    if (this.tab === 's' && !pets) this.tab = 'c';
+    for (const b of this.tabsEl.querySelectorAll<HTMLElement>('[data-tab]')) {
+      b.classList.toggle('on', b.dataset.tab === this.tab);
+      if (b.dataset.tab === 's') b.hidden = !pets;
+    }
     const scroll = this.bodyEl.scrollTop;
     if (this.tab === 'c') {
       this.bodyEl.innerHTML = `<div class="wd-label">Цвет желе</div>${swatches('c', d.c, true)}`;
     } else {
       // трофеи рыбалки 2.0 — только когда она включена (или вещь уже есть)
       const available = ITEMS.filter((it) => it.slot === this.tab && isItemVisible(it, this.owned) && (it.tier !== 'trophy' || FISH2.on || isOwned(this.owned, it)));
-      const cards = available.filter(it => it.tier !== 'premium').map(it => this.card(it, d)).join('');
+      const cards = available.filter(it => it.tier !== 'premium' && it.tier !== 'trophy').map(it => this.card(it, d)).join('');
       const premium = available.filter(it => it.tier === 'premium').map(it => this.card(it, d)).join('');
+      const trophy = available.filter(it => it.tier === 'trophy').map(it => this.card(it, d)).join('');
       const collection = premium ? `<div class="wd-label wd-premium-label">Премиальная коллекция</div><p class="wd-collection-note">За игровые жетоны · только внешний вид. Выбери вещь, чтобы примерить.</p><div class="wd-grid">${premium}</div>` : '';
+      const trophies = trophy ? `<div class="wd-label">Трофеи рыбалки</div><p class="wd-collection-note">За виды рыб в журнале рыбака (J) · только внешний вид. Можно примерить заранее.</p><div class="wd-grid">${trophy}</div>` : '';
       const second = this.tab === 'p' ? `<div class="wd-label">Второй цвет узора</div>${swatches('c2', d.c2, false)}` : '';
-      this.bodyEl.innerHTML = `<div class="wd-grid">${cards}</div>${collection}${second}`;
+      this.bodyEl.innerHTML = `${cards ? `<div class="wd-grid">${cards}</div>` : ''}${trophies}${collection}${second}`;
     }
     this.bodyEl.scrollTop = scroll;
     this.renderBuy(d);
   }
 
   private card(it: Item, d: Outfit): string {
-    const on = d[it.slot] === it.key;
+    const on = slotKey(d, it.slot) === it.key;
     const owned = isOwned(this.owned, it);
     const price = itemPrice(it.tier);
+    const need = it.tier === 'trophy' ? needOf(it.id) : null;
     let meta: string;
     if (it.tier === 'free') meta = 'бесплатно';
     else if (owned) meta = '✓ есть';
     else if (price !== null) meta = `${fmt.format(price)} ${COIN_HTML}`;
+    else if (need !== null) meta = `🔒 ${species(need)}`;
     else meta = `🔒 ${TIER_NAMES[it.tier]}`;
     const icon = it.slot === 'p'
       ? `<span class="wd-cloth" style="background:${patternCss(it.key, d.c, d.c2)}"></span>`
@@ -338,13 +357,14 @@ export class Wardrobe {
     this.buyEl.classList.toggle('show', show);
     if (!show || !it) return;
     this.buyName.textContent = `${it.name} · ${TIER_NAMES[it.tier]}`;
-    this.buyEl.querySelector<HTMLElement>('.wd-buy-note')!.textContent = PREMIUM_DETAILS[it.id] ?? '';
+    this.buyEl.querySelector<HTMLElement>('.wd-buy-note')!.textContent = PREMIUM_DETAILS[it.id] ?? REWARD_INFO[it.id]?.text ?? '';
     const price = itemPrice(it.tier);
     const btn = this.buyBtn;
     btn.classList.remove('busy');
+    const need = it.tier === 'trophy' ? needOf(it.id) : null;
     if (price === null) {
       btn.disabled = true;
-      btn.textContent = it.tier === 'jackpot' ? 'Только с джекпота 🎰' : it.tier === 'trophy' ? 'Собери все 30 рыб 🎣' : 'Выдаёт игра';
+      btn.textContent = it.tier === 'jackpot' ? 'Только с джекпота 🎰' : need !== null ? `🔒 ${species(need)} · у тебя ${this.got} 🎣` : 'Выдаёт игра';
     } else if (performance.now() < this.buyingUntil) {
       btn.disabled = true;
       btn.classList.add('busy');
