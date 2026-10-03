@@ -248,6 +248,15 @@ export class ArsenalClient {
     this.d.arsenal3d.setTar(this.tail.tar);
   }
 
+  /** Ступени укрепления ворот и кристалла (для полосы сверху) */
+  get gateTier(): number {
+    return this.tail.gateTier;
+  }
+
+  get crystalTier(): number {
+    return this.tail.crystalTier;
+  }
+
   get gateMax(): number {
     return gateMax(this.tail.gateTier);
   }
@@ -306,7 +315,7 @@ export class ArsenalClient {
     if (digit && (digit[1] === '1' || digit[1] === '2')) {
       if (digit[1] === '1') this.wantHeavy = false;
       else if (this.load.heavy > 0) this.wantHeavy = true;
-      else hud.alert('Второй ствол — в лавке на террасе: дробовик, арбалет или пулемёт', 2400);
+      else hud.pb.bannerMessage('🔫 Второй ствол — в лавке на террасе: дробовик, арбалет или пулемёт', 2400);
       return true;
     }
     return false;
@@ -679,7 +688,8 @@ export class ArsenalClient {
       case 'pot': {
         const [, pid, share, bonus, clean] = e;
         if (pid === me) {
-          hud.pb.bannerMessage(`💰 Общак волны <b>+${share}</b>${clean ? ' (чистая волна ×1,5)' : ''} · бонус <b>+${bonus}</b>`, 3000);
+          // та же плашка «волна отбита» — с общаком; чистая волна — заголовком
+          hud.ui.cleared(this.host.wave(), share, bonus, !!clean);
           this.sfx.pot(share + bonus);
         }
         return true;

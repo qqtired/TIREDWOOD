@@ -2,15 +2,16 @@
 // пейнтбола (paintball/hud.ts), поверх — своё: полоса сверху (волна, ворота, кристалл, сколько зомби осталось или
 // сколько до волны, золото 💰), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка), мини-карта
 // с ордой, таблица защитников (Tab), итоги игры с жетонами; арсенал — прилавок справа, полоска стволов и гранат,
-// цифры урона и золота (stall.ts, floaters.ts).
-import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_OPEN, ZS_BOSS_APPROACH, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE,
+// цифры урона и золота (stall.ts, floaters.ts). Полосу сверху, тревоги, босса, баннеры, подсказки новичку и итоги
+// рисует client/fort/ui (FortUi): сюда — только крючки к нему.
+import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS,
   waveRole, type FortPlayerRow, type FortResultRow } from '../../shared/fort.ts';
 import { FORT, GATE, ROADS, TOWER_SPOTS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
 import { TOUCH } from '../touch.ts';
-import { setCoinText } from '../ui/coin.ts';
 import { FortFloaters } from './floaters.ts';
 import { ArmsStrip, StallPanel } from './stall.ts';
+import { FortUi, type AlarmOpts } from './ui/index.ts';
 import './fort.css';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
@@ -45,6 +46,8 @@ export class FortHud {
   readonly stall: StallPanel;
   readonly arms: ArmsStrip;
   readonly floaters: FortFloaters;
+  /** Новый интерфейс крепости: полоса, команда, тревоги, босс, баннеры, новичку, итоги */
+  readonly ui: FortUi;
   private readonly resumeEl: HTMLElement;
   private readonly waveEl: HTMLElement;
   private readonly phaseEl: HTMLElement;
@@ -66,15 +69,11 @@ export class FortHud {
   private readonly mapCtx: CanvasRenderingContext2D;
   private readonly mapBase: HTMLCanvasElement;
   private readonly board: HTMLElement;
-  private readonly end: HTMLElement;
   private readonly deathTitle: HTMLElement | null;
   private readonly deathBy: HTMLElement | null;
   private readonly roleEl: HTMLElement;
   private readonly bossEl: HTMLElement;
-  private readonly bossFill: HTMLElement;
-  private readonly bossInfo: HTMLElement;
   private last: Record<string, string | number | boolean> = {};
-  private alertTimer = 0;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -115,8 +114,8 @@ export class FortHud {
     bossBar.setAttribute('aria-label', 'Здоровье Барона Варенья');
     bossBar.setAttribute('aria-valuemin', '0');
     bossBar.setAttribute('aria-valuemax', '100');
-    this.bossFill = el('i', '', bossBar);
-    this.bossInfo = el('span', 'ft-boss-info', this.bossEl);
+    el('i', '', bossBar);
+    el('span', 'ft-boss-info', this.bossEl);
 
     // --- подсказка у стойки
     this.hintEl = el('div', 'ft-hint', root);
@@ -144,12 +143,12 @@ export class FortHud {
     this.mapBase = this.drawMapBase(this.map.width, this.map.height);
 
     this.board = el('div', 'board overlay-card ft-board', root);
-    this.end = el('div', 'endscreen ft-end', root);
 
     this.floaters = new FortFloaters(root);
     this.arms = new ArmsStrip(root);
     this.stall = new StallPanel(root);
     this.resumeEl = el('div', 'ars-resume', root, 'Кликни или нажми любую клавишу — обратно в бой');
+    this.ui = new FortUi(root, this.pb);
   }
 
   /** Курсор свободен (закрыли прилавок Esc): подсказка «кликни — обратно» */
@@ -189,22 +188,9 @@ export class FortHud {
     this.defenseEl.classList.toggle('active', rally > 0);
   }
 
-  setBoss(hp: number, stage: number, state: number, wind: number): void {
-    this.bossEl.classList.toggle('show', hp > 0);
-    if (hp <= 0) return;
-    const pct = Math.max(0, Math.min(100, Math.ceil(hp * 100)));
-    this.bossFill.style.width = `${pct}%`;
-    this.bossFill.parentElement!.setAttribute('aria-valuenow', String(pct));
-    const name = ['Осадник', 'Повелитель налёта', 'Ярость'][Math.max(0, stage - 1)] ?? 'Осадник';
-    const attack = state === ZS_BOSS_OPEN ? `Ядро открыто · ${Math.max(0, wind / 60).toFixed(1)} с — огонь!`
-      : state === ZS_BOSS_APPROACH ? 'Идёт к воротам · приготовьтесь'
-      : state === ZS_BOSS_GATE ? 'Замах по воротам · уйдите с метки'
-      : state === ZS_BOSS_BOMB ? 'Прицельный залп · уйдите с метки'
-      : state === ZS_BOSS_PULSE ? 'Удар по стене · выйдите из круга или прыгните'
-      : 'Броня активна · ждите открытия ядра';
-    const text = `${pct}% · ${name} · ${attack}`;
-    if (this.set('bossInfo', text)) this.bossInfo.textContent = text;
-    this.bossEl.classList.toggle('open', state === ZS_BOSS_OPEN);
+  /** Полоса босса (FortUi): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort */
+  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean): void {
+    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage } : null);
   }
 
   /** Прилавок открыт (немодальный: бегать и стрелять можно) */
@@ -229,10 +215,7 @@ export class FortHud {
 
   /** Ворота или кристалл только что получили урон — полоска вздрагивает */
   hurt(which: 'gate' | 'crys'): void {
-    const box = which === 'gate' ? this.gateBox : this.crysBox;
-    box.classList.remove('hit');
-    void box.offsetWidth;
-    box.classList.add('hit');
+    this.ui.hurt(which);
   }
 
   setPoints(n: number): void {
@@ -243,14 +226,9 @@ export class FortHud {
     this.ptsEl.classList.add('pulse');
   }
 
-  /** Тревога под полосой: «ворота ломают», «липучка на стене» */
-  alert(text: string, ms = 2600): void {
-    this.alertEl.textContent = text;
-    this.alertEl.className = 'ft-alert';
-    void this.alertEl.offsetWidth;
-    this.alertEl.className = 'ft-alert show';
-    clearTimeout(this.alertTimer);
-    this.alertTimer = window.setTimeout(() => (this.alertEl.className = 'ft-alert'), ms);
+  /** Тревога под полосой (FortUi): «ворота трещат» со стрелкой к воротам, атаки с отсчётом */
+  alert(text: string, ms = 2600, opts: AlarmOpts = {}): void {
+    this.ui.alarm(text, ms, opts);
   }
 
   // ------------------------------------------------------------ стойки
@@ -394,44 +372,26 @@ export class FortHud {
     if (this.set('board', show)) this.board.classList.toggle('show', show);
   }
 
+  /** Итоги (FortUi): устояла или пала, лучший, таблица с золотом и жетонами, «вся команда» */
   showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number): void {
-    const title = win ? 'Крепость устояла!' : 'Кристалл разбит';
-    const sub = win ? `Все ${FORT_WAVES} волн отбиты` : wave > 0 ? `Отбито волн: ${wave} из ${FORT_WAVES}` : 'Ни одной волны не отбили';
-    const mvpHtml = mvp ? `<div class="mvp">⭐ Лучший защитник: <b>${escapeHtml(mvp.name)}</b> — сбил ${mvp.k}, добыл ${mvp.pts} 💰</div>` : '';
-    const body = rows
-      .map((r) => `<tr class="${r.id === myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${r.k}</td><td>${r.d}</td><td>${r.waves}</td><td>${r.tokens > 0 ? `+${r.tokens} 🪙` : '—'}</td></tr>`)
-      .join('');
-    this.end.innerHTML = `<div class="overlay-card end-card"><div class="end-title ${win ? 'win' : 'lose'}">${title}</div><div class="end-sub">${sub}</div>${mvpHtml}<div class="board-team ft-team"><table><thead><tr><th class="n">Защитник</th><th>Сбил</th><th>Повален</th><th>Волн</th><th>Жетоны</th></tr></thead><tbody>${body}</tbody></table></div><div class="board-hint ft-end-timer">Новая игра начнётся сама через несколько секунд</div></div>`;
-    this.end.classList.add('show');
+    this.ui.results.show({ win, wave, lastWave: FORT_WAVES, mvp, rows, myId });
   }
 
   /** Жетоны за игру — строкой в итогах (приходят сразу после них) */
   showReward(text: string): void {
-    const card = this.end.querySelector('.end-card');
-    if (!card) return;
-    let line = card.querySelector<HTMLElement>('.end-reward');
-    if (!line) {
-      line = el('div', 'end-reward');
-      const table = card.querySelector('.ft-team');
-      if (table) table.before(line);
-      else card.appendChild(line);
-    }
-    setCoinText(line, `🪙 ${text}`);
+    this.ui.results.reward(text);
   }
 
   setEndTimer(sec: number): void {
-    const t = `Новая игра — через ${Math.max(0, Math.ceil(sec))} с · сбор у колокола`;
-    if (!this.set('endT', t)) return;
-    const e = this.end.querySelector('.ft-end-timer');
-    if (e) e.textContent = t;
+    this.ui.results.timer(sec);
   }
 
   hideEnd(): void {
-    this.end.classList.remove('show');
+    this.ui.results.hide();
   }
 
   get endShown(): boolean {
-    return this.end.classList.contains('show');
+    return this.ui.results.shown;
   }
 
   // ------------------------------------------------------------ смерть
@@ -449,6 +409,7 @@ export class FortHud {
       this.setResume(false);
       this.setBoss(0, 0, 0, 0);
       this.hideEnd();
+      this.ui.reset();
       this.showBoard(false, [], 0, 0);
       this.setHint(null, 0, false, true);
     }

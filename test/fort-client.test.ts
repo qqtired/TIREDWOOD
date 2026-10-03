@@ -29,17 +29,19 @@ test('HUD убирает убитого босса, даже если волна
   let bossHealth = 0;
   const noop = () => {};
   const pb = new Proxy({}, { get: () => noop });
-  const hud = new Proxy({ pb, shopShown: false, endShown: false, setBoss: (hp: number) => { bossHealth = hp; } }, {
+  // новый интерфейс (client/fort/ui) — тоже без DOM: матч только отдаёт ему кадр и события
+  const ui = { frame: noop, onPhase: noop, onEvent: noop };
+  const hud = new Proxy({ pb, ui, shopShown: false, endShown: false, setBoss: (hp: number) => { bossHealth = hp; } }, {
     get: (target, key) => Reflect.get(target, key) ?? noop,
   });
   const match = Object.assign(Object.create(FortMatch.prototype), {
     ready: true, myId: 1, clock: new ClockSync(FORT_MIN_DELAY), header: makeHeader(), selfSnap: makeState(),
-    ents: [], tail: makeFortTail(), zlist: [], tracks: new Map(), seen: new Set(), roster: new Map(), rosterList: [],
+    ents: [], tail: makeFortTail(), zlist: [], tracks: new Map(), seen: new Set(), roster: new Map(), rosterList: [], poses: new Map(), teamRows: [],
     predictor: { state: makeState() }, alive: true, mapTimer: Infinity,
     d: { hud, zombies: { push: noop }, world: { camera: new THREE.PerspectiveCamera(), renderer: { canvas: { clientHeight: 800 } } },
-      settings: { showStats: false }, input: { isHeld: () => false }, net: {} },
+      settings: { showStats: false }, input: { isHeld: () => false, yaw: 0 }, net: {} },
     // арсенал — своя часть клиента (arsenalc.ts); здесь только то, что матч у него спрашивает
-    ars: { applyTail: noop, gateMax: 1600, crystalMax: 2500, ammo: () => [30, null], spread: () => 0.01, frame: noop },
+    ars: { applyTail: noop, gateMax: 1600, crystalMax: 2500, gateTier: 0, crystalTier: 0, ammo: () => [30, null], spread: () => 0.01, frame: noop },
     applyTail: noop, updateBlocked: noop,
   });
   const walker: ZombieSnap = { id: 1, kind: Z_WALKER, state: 0, hp: 1, x: 0, y: 0, z: -28, yaw: 0, atk: 0 };

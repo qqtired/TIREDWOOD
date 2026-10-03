@@ -9,10 +9,9 @@ import { DASH_COOLDOWN_TICKS, EYE_HEIGHT, TICK_MS, TICK_RATE } from '../../share
 import { AIM_FALLBACK, PIVOT_Y, RIG_PB, RIG_PB_ADS, cameraRig, type RigParams, type V3 } from '../../shared/aim.ts';
 import {
   CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK,
-  Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, waveRole,
+  Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FtReward,
 } from '../../shared/fort.ts';
-import { waveBonus } from '../../shared/fortarsenal.ts';
 import { FT_STRIDE, fortAimPoint, fortShotDir, nearestZombie } from '../../shared/fortaim.ts';
 import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
 import { decodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../../shared/fortnet.ts';
@@ -37,6 +36,7 @@ import { TOUCH } from '../touch.ts';
 import { setAvatarGun } from './arsenal3d.ts';
 import { ArsenalClient, TOWER_BY } from './arsenalc.ts';
 import type { FortHud, MapDot } from './hud.ts';
+import type { TeamRow } from './ui/index.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 
@@ -156,6 +156,8 @@ export class FortMatch {
   private mapTimer = 0;
   private readonly mapZ: MapDot[] = [];
   private readonly mapM: MapDot[] = [];
+  /** Состав для полосы команды (FortUi) */
+  private readonly teamRows: TeamRow[] = [];
   /** Когда последний раз стучали по воротам, звенел кристалл, стонал зомби, кричали «липучка» (с, по time) */
   private gateSfxAt = -9;
   private gateAlertAt = -99;
@@ -354,6 +356,8 @@ export class FortMatch {
       if (phase === FT_GATHER || phase === FT_BREAK) hud.pb.bannerMessage('🔔 Все готовы — волна через 3 секунды!', 2200);
       return;
     }
+    // баннеры старта волны и «волна отбита» — FortUi (одна очередь, один стиль)
+    hud.ui.onPhase(phase, wave);
     if (phase === FT_GATHER) {
       hud.hideEnd();
       effects.clearSplats();
@@ -361,11 +365,8 @@ export class FortMatch {
     } else if (phase === FT_WAVE) {
       sound.horn(0.32);
       sound.zombieGroan(null, 0.8);
-      const role = waveRole(wave);
-      hud.pb.centerMessage(`Волна ${wave} · ${role.name}`, role.hint, '', 3000);
     } else if (phase === FT_BREAK) {
       sound.fanfare(null);
-      hud.pb.centerMessage('Волна отбита!', `+${waveBonus(wave)} 💰 и доля общака · передышка`, '#ffd35a', 2600);
     }
   }
 
@@ -471,7 +472,7 @@ export class FortMatch {
       }
       if (this.time - this.gateAlertAt > 9) {
         this.gateAlertAt = this.time;
-        hud.alert(t.gate / this.ars.gateMax < 0.35 ? '🚪 Ворота вот-вот падут!' : '🚪 Ворота ломают!');
+        hud.alert(t.gate / this.ars.gateMax < 0.35 ? '🚪 Ворота вот-вот падут!' : '🚪 Ворота трещат!', 2800, { target: 'gate' });
       }
     }
     if (!first && t.crystal < this.crystal) {
@@ -484,7 +485,7 @@ export class FortMatch {
       }
       if (this.time - this.crysAlertAt > 7) {
         this.crysAlertAt = this.time;
-        hud.alert(t.crystal / this.ars.crystalMax < 0.3 ? '💎 Кристалл почти разбит!' : '💎 Зомби у кристалла!');
+        hud.alert(t.crystal / this.ars.crystalMax < 0.3 ? '💎 Кристалл почти разбит!' : '💎 Кристалл под ударом!', 2800, { target: 'crystal' });
       }
     }
     if ((t.gate > 0) !== (this.gate > 0) || first) {
@@ -520,6 +521,7 @@ export class FortMatch {
   private onEvents(list: FortEvent[]): void {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
+      hud.ui.onEvent(e);
       switch (e[0]) {
         case 'shot': {
           const [, pid, ox, oy, oz, ex, ey, ez, kind, nx, ny, nz] = e;
@@ -563,7 +565,6 @@ export class FortMatch {
             sound.kill(false);
             hud.pb.hitmarker(false, true);
             if (kind === Z_BRUTE) hud.pb.bannerMessage('💪 Бугай сбит! Награда поделена с командой', 1800);
-            if (kind === Z_BOSS) hud.pb.bannerMessage('👑 Барон повержен! Добейте оставшуюся орду', 2800);
           }
           if (kind === Z_BRUTE && killer) hud.pb.killfeed(killer >= TOWER_BY ? '🏰 Башня' : this.nameOf(killer), -1, 'Бугай', -1, false, 'fort', killer === this.myId);
           break;
@@ -659,7 +660,7 @@ export class FortMatch {
           hud.alert(attack === ZS_FLY_WARN ? 'Крылатка пикирует · уйди с метки или сбей её'
             : attack === ZS_BOSS_GATE ? 'Барон бьёт по воротам · отойди от красного круга'
             : attack === ZS_BOSS_PULSE ? 'Удар по стене · выйди из круга или прыгни'
-            : 'Залп Барона · уйди с красной метки', Math.max(1400, sec * 1000));
+            : 'Залп Барона · уйди с красной метки', Math.max(1400, sec * 1000), { timed: true });
           sound.horn(attack === ZS_FLY_WARN ? 0.12 : 0.22);
           break;
         }
@@ -1094,6 +1095,22 @@ export class FortMatch {
     const boss = this.zlist.find((z) => z.kind === Z_BOSS && z.hp > 0);
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);
+    // новый интерфейс: полоса, команда, тревоги со стрелкой, стрелки на угрозы, новичку — раз в кадр
+    const me = this.predictor.state;
+    this.teamRows.length = 0;
+    for (const r of this.rosterList) {
+      const mine = r.id === this.myId;
+      const p = this.poses.get(r.id);
+      this.teamRows.push({ id: r.id, name: r.name, gold: r.pts, me: mine, ready: r.ready,
+        alive: mine ? this.alive : p && p.valid ? (p.flags & E_ALIVE) !== 0 : true });
+    }
+    hud.ui.frame({
+      phase: this.phase, wave: this.wave, leftS, enemies: this.left, gold: this.myPts,
+      gate: this.gate, gateMax: this.ars.gateMax, gateTier: this.ars.gateTier,
+      crystal: this.crystal, crystalMax: this.ars.crystalMax, crystalTier: this.ars.crystalTier,
+      me: { x: me.x, y: me.y, z: me.z, yaw: input.yaw, alive: this.alive }, team: this.teamRows, zombies: this.zlist,
+      camera: world.camera, width: window.innerWidth, height: window.innerHeight,
+    });
 
     pb.setVitals(this.alive ? this.hp : 0, FORT_HP, 0, 0, false);
     const s = this.predictor.state;
