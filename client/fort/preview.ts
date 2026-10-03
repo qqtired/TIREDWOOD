@@ -5,9 +5,11 @@ import '@fontsource/rubik/700.css';
 import '@fontsource/rubik/900.css';
 import '../styles.css';
 import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_WAVE, Z_BOSS, Z_BRUTE, Z_FLYER, Z_WALKER,
-  ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK } from '../../shared/fort.ts';
+  ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK, Z_GOLEM, Z_RAM, ZS_CHARGE_WARN, ZS_QUAKE,
+  ZS_STOMP, ZS_THROW, isBossKind } from '../../shared/fort.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
-import { ZF_CARRY, ZF_CREW, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R } from '../../shared/fortkinds.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
@@ -80,9 +82,22 @@ function lineup(): ZombieSnap[] {
   return list;
 }
 
+/** Таран и Валун: разбег (дорожка), топот, камень над головой, землетрясение */
+function bossAttack(selected: string, rage: boolean): ZombieSnap[] {
+  const flags = rage ? ZF_RAGE : 0;
+  const base = { id: 1, hp: rage ? 0.4 : 0.85, y: 0, yaw: Math.PI, atk: 0, flags, stage: rage ? 2 : 1 };
+  const loop = Math.floor(elapsed * 60) % (BOSS_WARN_TICKS + 30);
+  const wind = cycle.checked ? Math.max(0, BOSS_WARN_TICKS - loop) : 54;
+  if (selected === 'ram') return [{ ...base, kind: Z_RAM, state: ZS_CHARGE_WARN, x: 0, z: RAM_HOME_Z, wind, tx: 0, ty: 1.5, tz: GATE.face - 2.2, r: RAM_LANE }];
+  if (selected === 'stomp') return [{ ...base, kind: Z_RAM, state: ZS_STOMP, x: 0, z: GATE.face - 2.2, wind, tx: 0, ty: 0.8, tz: GATE.face - 2.2, r: STOMP_R }];
+  if (selected === 'golem') return [{ ...base, kind: Z_GOLEM, state: ZS_THROW, x: 0, z: GOLEM_HOME_Z, wind: Math.max(ROCK_FLIGHT_TICKS + 1, wind), tx: 5, ty: WALL_H + 0.8, tz: -14.6, r: ROCK_R }];
+  return [{ ...base, kind: Z_GOLEM, state: ZS_QUAKE, x: 0, z: GOLEM_HOME_Z, wind, tx: 0, ty: WALL_H + 0.8, tz: -14.6, r: QUAKE_R }];
+}
+
 function makeSnapshots(): ZombieSnap[] {
   const selected = attack.value;
   if (selected === 'lineup') return lineup();
+  if (selected === 'ram' || selected === 'stomp' || selected === 'golem' || selected === 'quake') return bossAttack(selected, stage.value === '2');
   const phase = Number(stage.value);
   const isRoof = selected === 'roof';
   const chosen = selected === 'open' ? ZS_BOSS_OPEN : selected === 'pulse' ? ZS_BOSS_PULSE
@@ -92,7 +107,7 @@ function makeSnapshots(): ZombieSnap[] {
     : loop < BOSS_WARN_TICKS + BOSS_OPEN_TICKS ? ZS_BOSS_OPEN : ZS_WALK;
   const wind = !cycle.checked || selected === 'open' ? state === ZS_BOSS_OPEN ? 150 : 54 : state === ZS_BOSS_OPEN
     ? BOSS_WARN_TICKS + BOSS_OPEN_TICKS - loop : state === ZS_WALK ? 60 : BOSS_WARN_TICKS - loop;
-  const boss: ZombieSnap = { id: 1, kind: Z_BOSS, state, hp: phase === 1 ? 1 : phase === 2 ? 0.6 : 0.3,
+  const boss: ZombieSnap = { id: 1, kind: Z_BOSS, state, hp: phase === 1 ? 0.85 : 0.4, flags: phase === 2 ? ZF_RAGE : 0,
     x: 0, y: 0, z: -23, yaw: Math.PI, atk: 0, stage: phase, wind,
     tx: isRoof ? -4 : 0, ty: isRoof ? 3.46 : chosen === ZS_BOSS_GATE ? 1.5 : WALL_H + 0.8,
     tz: isRoof ? -17 : chosen === ZS_BOSS_GATE ? GATE.face : -14.6 };
@@ -119,15 +134,14 @@ document.getElementById('shop')!.addEventListener('click', () => {
 });
 document.getElementById('reset')!.addEventListener('click', resetCamera);
 quality.addEventListener('change', setQuality);
-attack.addEventListener('change', () => { elapsed = 0; if (attack.value === 'pulse' && stage.value === '1') stage.value = '2'; });
-stage.addEventListener('change', () => { if (attack.value === 'pulse' && stage.value === '1') stage.value = '2'; });
+attack.addEventListener('change', () => { elapsed = 0; });
 cycle.addEventListener('change', () => { elapsed = 0; });
 window.addEventListener('resize', resize);
 setQuality();
 resetCamera();
 
 const state = () => ({ controlledFixture: true, attack: attack.value, phase: Number(stage.value), quality: quality.value,
-  shield, enemies: snapshots.length, boss: snapshots.find((z) => z.kind === Z_BOSS) ?? null,
+  shield, enemies: snapshots.length, boss: snapshots.find((z) => isBossKind(z.kind)) ?? null,
   render: { ...renderer.gl.info.render }, cpuMs: renderer.cpuMs, gpuMs: renderer.gpuMs });
 function cam(p: [number, number, number], t: [number, number, number]) {
   world.camera.position.set(...p);
@@ -144,11 +158,11 @@ function frame(now: number) {
   snapshots = makeSnapshots();
   zombies.push(++tick, snapshots, snapshots.length);
   zombies.update(tick, dt, now / 1000, world.camera);
-  const boss = snapshots.find((z) => z.kind === Z_BOSS);
+  const boss = snapshots.find((z) => isBossKind(z.kind));
   hud.setWave(FT_WAVE, 8, `${snapshots.length} заданных врагов`, false);
   hud.setDefense(FT_WAVE, 6, shield ? 480 : 0, shield ? 1800 : 0);
   world.props.setRally(shield);
-  hud.setBoss(boss?.hp ?? 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0);
+  hud.setBoss(boss?.hp ?? 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
   world.update(dt, world.camera.position);
   renderer.beginFrame(true);
   world.renderScene();

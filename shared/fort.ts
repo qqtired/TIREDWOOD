@@ -122,6 +122,8 @@ export const ZS_KRAKEN_SPIT = 28;
 export const ZS_METEOR = 29;
 /** Бочка подрывника взорвалась (вспышка) */
 export const ZS_BARREL = 30;
+/** Таран воет — сейчас выбегут шустрики */
+export const ZS_HOWL = 31;
 
 export const FLY_WARN_TICKS = 72;
 export const FLY_DIVE_TICKS = 36;

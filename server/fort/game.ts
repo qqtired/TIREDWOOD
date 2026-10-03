@@ -647,11 +647,12 @@ export class FortGame implements HordeHost {
     let n = 0;
     for (const p of this.players.values()) {
       if (!p.alive) continue;
-      const t = list[n] ?? (list[n] = { id: 0, x: 0, y: 0, z: 0 });
+      const t = list[n] ?? (list[n] = { id: 0, x: 0, y: 0, z: 0, air: false });
       t.id = p.id;
       t.x = p.state.x;
       t.y = p.state.y;
       t.z = p.state.z;
+      t.air = p.state.grounded === 0;
       n++;
     }
     list.length = n;

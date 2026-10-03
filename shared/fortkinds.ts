@@ -115,6 +115,42 @@ export const MEDIC_HOLD = 9;
 export const CHAMP_AURA_R = 5;
 export const CHAMP_HASTE = 1.15;
 
+// ------------------------------------------------------------ боссы (числа общие для сервера и меток на клиенте)
+
+/**
+ * Ярость — при этой доле HP и ниже: быстрее, короче паузы и своё усиление (Барон зовёт крылаток, Таран делает два
+ * рывка подряд, Валун бросает два камня). Каждая метка при этом держится полное время предупреждения.
+ */
+export const BOSS_RAGE = 0.5;
+/** Пауза между атаками, тиков: обычно и в ярости */
+export const BOSS_PAUSE = 60;
+export const BOSS_PAUSE_RAGE = 24;
+/** Ходит быстрее: за круг (II, III …) +10 %, в ярости ещё ×1,25 */
+export const BOSS_TIER_SPEED = 0.1;
+export const BOSS_RAGE_SPEED = 1.25;
+/** Таран: где стоит (z), полуширина дорожки рывка, скорость рывка (м/с), урон воротам, кристаллу и людям на дорожке */
+export const RAM_HOME_Z = -34;
+export const RAM_LANE = 1.8;
+export const RAM_SPEED = 15;
+export const RAM_GATE_DMG = 260;
+export const RAM_CRYSTAL_DMG = 140;
+export const RAM_HIT = 35;
+/** Топот Тарана: радиус и урон (кто в прыжке — цел) */
+export const STOMP_R = 7;
+export const STOMP_DMG = 26;
+/** Вой Тарана: столько тиков, потом стая шустриков */
+export const HOWL_TICKS = 60;
+/** Валун: где стоит (z); камень летит столько тиков (из полного предупреждения), радиус, урон людям, воротам, кристаллу */
+export const GOLEM_HOME_Z = -30;
+export const ROCK_FLIGHT_TICKS = 66;
+export const ROCK_R = 3;
+export const ROCK_DMG = 30;
+export const ROCK_GATE_DMG = 150;
+export const ROCK_CRYSTAL_DMG = 90;
+/** Землетрясение Валуна по стене перед ним: радиус и урон (кто в прыжке — цел) */
+export const QUAKE_R = 9;
+export const QUAKE_DMG = 24;
+
 export function kindOf(kind: number): ZombieKind {
   return ZK[kind] ?? ZK[0];
 }

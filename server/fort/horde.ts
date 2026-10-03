@@ -5,12 +5,13 @@
 // мест, в тике без аллокаций. Люди, ворота, кристалл и награды — через HordeHost (game.ts).
 import { DT, TICK_RATE } from '../../shared/constants.ts';
 import {
-  BOSS_ARMOR, BOSS_BOMB_R, BOSS_CRYSTAL_DMG, BOSS_GATE_DMG, BOSS_OPEN_TICKS, BOSS_PULSE_R, BOSS_WARN_TICKS,
+  BOSS_ARMOR, BOSS_BOMB_R, BOSS_PULSE_R,
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
   CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
-  Z_BOSS, Z_FLYER, Z_RUNNER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
-  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, isBossKind, kindFlags, type FortEvent,
+  Z_BOSS, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
+  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
+  isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
 import {
   ARMOR_MIN_PASS, BOSS_BASE_HP, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders, shieldHp, teamHpMul,
@@ -19,10 +20,12 @@ import {
 import {
   BARREL_CRYSTAL, BARREL_GATE, BARREL_PLAYER, BARREL_R, BARREL_SHOT_MUL, BARREL_ZOMBIE, CHAMP_AURA_R, CHAMP_HASTE, FUSE_TICKS,
   HEAL_EVERY, HEAL_FRAC, HEAL_R, MEDIC_HOLD, SPIT_COOLDOWN, SPIT_DMG, SPIT_FLIGHT_TICKS, SPIT_MIN, SPIT_R, SPIT_RANGE,
-  SPIT_WARN_TICKS, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER,
+  SPIT_WARN_TICKS, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_RAM, Z_GOLEM, RAM_LANE, STOMP_R, ROCK_R, QUAKE_R,
+  isWalkerKind,
 } from '../../shared/fortkinds.ts';
 import { CLIMBS, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
-import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
@@ -34,6 +37,8 @@ export interface HordeTarget {
   x: number;
   y: number;
   z: number;
+  /** В прыжке (не на опоре) — топот и землетрясение не достают */
+  air: boolean;
 }
 
 export interface HordeHost {
@@ -98,6 +103,9 @@ export class Zombie {
   stage = 0;
   attackIndex = 0;
   addsMask = 0;
+  /** Босс: сколько ещё атак подряд (ярость), кого уже задел рывком */
+  combo = 0;
+  readonly hits: number[] = [];
   /** Лучшее расстояние до цели и сколько тиков не приближался */
   bestD = 1e9;
   stuck = 0;
@@ -137,6 +145,7 @@ export class Horde {
   readonly zombies: Zombie[] = [];
   private readonly host: HordeHost;
   private readonly rng: () => number;
+  private readonly bossCtx: BossCtx;
   private nextId = 1;
   private queue: Spawn[] = [];
   private queueAt = 0;
@@ -160,6 +169,7 @@ export class Horde {
     this.nav = nav;
     this.host = host;
     this.rng = rng;
+    this.bossCtx = { host, horde: this };
     for (let i = 0; i < FORT_MAX_ALIVE; i++) this.zombies.push(new Zombie(i));
     this.hcols = Math.ceil((nav.cols * 0.5) / HASH) + 1;
     this.hrows = Math.ceil((nav.rows * 0.5) / HASH) + 1;
@@ -226,6 +236,9 @@ export class Horde {
   dmgMul = 1;
 
   get defenders(): number { return this.hpHumans; }
+
+  /** Круг босса этой волны (0 — первый, 1 — II …) */
+  get bossTier(): number { return this.plan?.bossTier ?? 0; }
 
   /** План идущей волны (null — между волнами и в тестах без волны) */
   get current(): WavePlan | null { return this.plan; }
@@ -297,7 +310,7 @@ export class Horde {
     if (!z) return null;
     const pts = ROADS[road].pts;
     // босс и крылатки — с конца дороги (у леса); остальные — ближе, на SPAWN_NEAR…+SPREAD м от ворот по дороге
-    const far = kind === Z_BOSS || kind === Z_FLYER;
+    const far = isBossKind(kind) || kind === Z_FLYER;
     roadPoint(pts, far ? 1e9 : SPAWN_NEAR + this.rng() * SPAWN_SPREAD, _road);
     const sx = _road.x;
     const sz = _road.z;
@@ -317,7 +330,7 @@ export class Horde {
     z.kind = kind;
     z.tier = isBossKind(kind) ? 0 : Math.max(0, Math.min(2, tier | 0));
     z.crew = false;
-    z.state = kind === Z_BOSS ? ZS_BOSS_APPROACH : ZS_WALK;
+    z.state = isBossKind(kind) ? ZS_BOSS_APPROACH : ZS_WALK;
     z.alive = true;
     z.maxHp = this.hpFor(kind, z.tier, hpHumans);
     z.hp = z.maxHp;
@@ -341,9 +354,11 @@ export class Horde {
     z.stuck = 0;
     z.lastBy = 0;
     z.damageBy.clear();
-    z.stage = kind === Z_BOSS ? 1 : 0;
+    z.stage = isBossKind(kind) ? 1 : 0;
     z.attackIndex = 0;
     z.addsMask = 0;
+    z.combo = 0;
+    z.hits.length = 0;
     z.fromY = z.toY = 0;
     z.fromX = z.toX = z.fromZ = z.toZ = 0;
     this.alive++;
@@ -359,7 +374,7 @@ export class Horde {
   damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
-    if (z.kind === Z_BOSS && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
       const armor = armorFor(Math.max(1, this.wave)) * (1 + 0.5 * z.tier);
@@ -395,7 +410,7 @@ export class Horde {
       const d = Math.hypot(o.x - x, o.y + k.hcy - y, o.z - z) - Math.max(k.hrx, k.hry) * 0.6;
       if (d > r) continue;
       let amount = dmg;
-      if (o.kind === Z_BOSS && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
@@ -523,7 +538,9 @@ export class Horde {
       if (!z.alive) continue;
       if (z.atkCd > 0) z.atkCd--;
       if (z.kind === Z_FLYER) this.stepFlyer(z);
-      else if (z.kind === Z_BOSS) this.stepBoss(z);
+      else if (z.kind === Z_BOSS) stepBaron(this.bossCtx, z);
+      else if (z.kind === Z_RAM) stepRam(this.bossCtx, z);
+      else if (z.kind === Z_GOLEM) stepGolem(this.bossCtx, z);
       else if (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP) this.stepClimber(z);
       else if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
       else if (z.kind === Z_SAPPER) this.stepSapper(z, gateUp);
@@ -532,7 +549,7 @@ export class Horde {
     }
     this.separate();
     for (const z of this.zombies) {
-      if (!z.alive || z.kind === Z_BOSS || z.y > 0.01) continue;
+      if (!z.alive || !isWalkerKind(z.kind) || z.y > 0.01) continue;
       const r = ZK[z.kind].r;
       _p.x = z.x;
       _p.z = z.z;
@@ -619,94 +636,6 @@ export class Horde {
     z.state = ZS_FLY_WARN;
     z.t = FLY_WARN_TICKS;
     this.host.event(['warn', z.id, ZS_FLY_WARN, r2(tx), r2(ty), r2(tz), FLY_R, this.host.tick + z.t + FLY_DIVE_TICKS]);
-  }
-
-  /** The Baron attacks from the north: fixed bomb marks, gate slam, then a broad wall shockwave. */
-  private stepBoss(z: Zombie): void {
-    const stage = z.hp / z.maxHp <= 1 / 3 ? 3 : z.hp / z.maxHp <= 2 / 3 ? 2 : 1;
-    if (stage > z.stage) {
-      z.stage = stage;
-      this.host.event(['bossphase', z.id, stage]);
-    }
-    // One bounded pack per threshold. Full pool means the pack is skipped, never queued without a bound.
-    for (let s = 2; s <= z.stage; s++) {
-      if (z.addsMask & (1 << s)) continue;
-      z.addsMask |= 1 << s;
-      const count = (s === 2 ? 2 : 4) + Math.ceil((this.hpHumans - 1) * (s === 2 ? .6 : 1));
-      for (let i = 0; i < count; i++) {
-        const add = this.spawn(s === 2 ? Z_FLYER : Z_RUNNER, i % 2 ? 0 : 2);
-        if (add) {
-          add.x = (i % 2 ? -1 : 1) * (7 + i);
-          add.z = -29 - i * 2;
-        }
-      }
-    }
-    if (z.state === ZS_BOSS_APPROACH) {
-      const dx = -z.x;
-      const dz = -23 - z.z;
-      const d = Math.hypot(dx, dz);
-      if (d > 0.3) {
-        const move = Math.min(d, ZK[Z_BOSS].speed * DT);
-        z.x += dx / d * move;
-        z.z += dz / d * move;
-        z.yaw = turnTo(z.yaw, Math.atan2(-dx, -dz), 0.12);
-        return;
-      }
-      z.state = ZS_WALK;
-      z.t = z.stage === 3 ? 24 : z.stage === 2 ? 45 : 60;
-    }
-    if (z.state === ZS_BOSS_OPEN) {
-      if (--z.t > 0) return;
-      z.state = ZS_WALK;
-      z.t = z.stage === 3 ? 24 : z.stage === 2 ? 45 : 60;
-      return;
-    }
-    if (z.state === ZS_BOSS_GATE || z.state === ZS_BOSS_BOMB || z.state === ZS_BOSS_PULSE) {
-      if (--z.t > 0) return;
-      const attack = z.state;
-      const r = attack === ZS_BOSS_PULSE ? BOSS_PULSE_R : attack === ZS_BOSS_GATE ? 6 : BOSS_BOMB_R;
-      let covered = false;
-      if (attack === ZS_BOSS_BOMB) {
-        covered = this.host.traceAttack(z.toX, z.toY + 15, z.toZ, z.toX, z.toY, z.toZ, _attack);
-        if (covered) z.toY = _attack.y + 0.06;
-      }
-      for (const p of this.host.targets()) {
-        const inArea = attack === ZS_BOSS_PULSE
-          ? Math.hypot(p.x - z.toX, p.z - z.toZ) < r && p.y >= WALL_H - 0.4 && p.y < WALL_H + 1.2
-          : Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) < r;
-        const visible = !this.host.traceAttack(z.toX, z.toY + 0.05, z.toZ, p.x, p.y + 0.8, p.z, _attack);
-        if (inArea && visible) this.host.hitPlayer(z.id, p.id, this.dmgOf(z, attack === ZS_BOSS_GATE ? 20 : attack === ZS_BOSS_BOMB ? 24 : ZK[Z_BOSS].hit));
-      }
-      if (attack === ZS_BOSS_GATE) {
-        if (this.host.gateUp()) this.host.hitGate(this.dmgOf(z, BOSS_GATE_DMG));
-      } else if (attack === ZS_BOSS_BOMB && !z.chase && !covered) this.host.hitCrystal(this.dmgOf(z, BOSS_CRYSTAL_DMG));
-      z.atk = (z.atk + 1) & 255;
-      this.host.event(['blast', attack, r2(z.toX), r2(z.toY), r2(z.toZ), r]);
-      z.state = ZS_BOSS_OPEN;
-      z.t = BOSS_OPEN_TICKS;
-      return;
-    }
-    if (z.t > 0 && --z.t > 0) return;
-    const index = z.attackIndex++;
-    const attack = index % 2 === 0 && this.host.gateUp() ? ZS_BOSS_GATE
-      : z.stage >= 2 && index % 3 === 2 ? ZS_BOSS_PULSE : ZS_BOSS_BOMB;
-    let target: HordeTarget | null = null;
-    if (attack === ZS_BOSS_BOMB) {
-      const targets = this.host.targets();
-      // Rotate targets; the marked location never follows a player after the windup begins.
-      if (targets.length) target = targets[index % targets.length];
-    }
-    z.chase = attack === ZS_BOSS_GATE ? -1 : target?.id ?? 0;
-    z.toX = attack === ZS_BOSS_GATE || attack === ZS_BOSS_PULSE ? 0 : target?.x ?? CRYSTAL.x;
-    z.toY = attack === ZS_BOSS_GATE ? 1.5 : attack === ZS_BOSS_PULSE ? WALL_H + 0.8 : target ? target.y + 0.8 : CRYSTAL.y;
-    z.toZ = attack === ZS_BOSS_GATE ? GATE.face : attack === ZS_BOSS_PULSE ? -14.6 : target?.z ?? CRYSTAL.z;
-    // Lock the actual roof interception before warning snapshots, so its circle marks the eventual blast.
-    if (attack === ZS_BOSS_BOMB && this.host.traceAttack(z.toX, z.toY + 15, z.toZ, z.toX, z.toY, z.toZ, _attack)) z.toY = _attack.y + 0.06;
-    z.state = attack;
-    // Rage is faster between attacks, but every warning keeps the full readable duration.
-    z.t = BOSS_WARN_TICKS;
-    const r = attack === ZS_BOSS_PULSE ? BOSS_PULSE_R : attack === ZS_BOSS_GATE ? 6 : BOSS_BOMB_R;
-    this.host.event(['warn', z.id, attack, r2(z.toX), r2(z.toY), r2(z.toZ), r, this.host.tick + z.t]);
   }
 
   /** Чемпионы ускоряют соседей (раз в 15 тиков) */
@@ -1073,7 +1002,7 @@ export class Horde {
     const x0 = this.nav.x0;
     const z0 = this.nav.z0;
     for (const z of this.zombies) {
-      if (!z.alive || z.kind === Z_BOSS || z.y > 0.01) continue;
+      if (!z.alive || !isWalkerKind(z.kind) || z.y > 0.01) continue;
       const c = Math.floor((z.x - x0) / HASH);
       const r = Math.floor((z.z - z0) / HASH);
       if (c < 0 || r < 0 || c >= this.hcols || r >= this.hrows) continue;
@@ -1082,7 +1011,7 @@ export class Horde {
       head[h] = z.slot;
     }
     for (const a of this.zombies) {
-      if (!a.alive || a.kind === Z_BOSS || a.y > 0.01) continue;
+      if (!a.alive || !isWalkerKind(a.kind) || a.y > 0.01) continue;
       const ka = ZK[a.kind];
       const c = Math.floor((a.x - x0) / HASH);
       const r = Math.floor((a.z - z0) / HASH);
@@ -1176,7 +1105,8 @@ export class Horde {
       s.kind = z.kind;
       s.state = z.state;
       s.flags = z.tier | (z.crew ? ZF_CREW : 0) | (z.shield > 0 ? ZF_SHIELD : 0) | (z.carry ? ZF_CARRY : 0)
-        | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0);
+        | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0)
+        | (isBossKind(z.kind) && raging(z) ? ZF_RAGE : 0);
       s.r = attackRadius(z.state);
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
@@ -1239,6 +1169,11 @@ function attackRadius(state: number): number {
     case ZS_BOSS_PULSE: return BOSS_PULSE_R;
     case ZS_SPIT: return SPIT_R;
     case ZS_PLANT: return BARREL_R;
+    case ZS_CHARGE_WARN:
+    case ZS_CHARGE: return RAM_LANE;
+    case ZS_STOMP: return STOMP_R;
+    case ZS_THROW: return ROCK_R;
+    case ZS_QUAKE: return QUAKE_R;
     default: return 0;
   }
 }

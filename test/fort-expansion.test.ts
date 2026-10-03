@@ -139,7 +139,7 @@ test('1/2/4/6 defender late waves retain boss warning and open-core duration, wi
     Object.assign(b,{x:0,z:-23,state:F.ZS_WALK,t:0,hp:b.maxHp*.32});
     g.horde.step();
     assert.equal(b.t,F.BOSS_WARN_TICKS);assert.equal(b.state,F.ZS_BOSS_GATE);
-    assert.equal(g.horde.alive,1+2+Math.ceil((n-1)*.6)+4+(n-1));
+    assert.equal(g.horde.alive,1+3+Math.ceil((n-1)*.8),'ярость: одна стая крылаток по числу защитников');
     const adds=g.horde.alive;g.horde.step();assert.equal(g.horde.alive,adds);
     b.t=1;g.horde.step();assert.equal(b.state,F.ZS_BOSS_OPEN);assert.equal(b.t,F.BOSS_OPEN_TICKS);
   }

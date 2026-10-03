@@ -162,7 +162,7 @@ test('крылатка без защитников на стене атакуе�
   assert.equal(game.crystal, hp - F.FLY_CRYSTAL_DMG);
 });
 
-test('босс защищён бронёй, открывает ядро и проходит три фазы с ограниченными подкреплениями', () => {
+test('босс защищён бронёй, открывает ядро; на 50 % — ярость с одной стаей крылаток', () => {
   const { game, players } = setup();
   game.phase = F.FT_WAVE;
   const b = game.horde.spawn(F.Z_BOSS, 1)!;
@@ -174,15 +174,19 @@ test('босс защищён бронёй, открывает ядро и пр�
   game.horde.damage(b, 100, players[0].id, false, b.x, 2, b.z);
   assert.equal(b.hp, hp - 122);
   Object.assign(b, { x: 0, z: -23, hp: b.maxHp * 0.65, t: 40 });
+  const before = game.horde.alive;
   game.step();
-  assert.equal(b.stage, 2);
-  const afterPhase2 = game.horde.alive;
+  assert.equal(b.stage, 1, 'выше половины — без ярости');
+  assert.equal(game.horde.alive, before);
+  b.hp = b.maxHp * 0.45;
+  game.step();
+  assert.equal(b.stage, 2, 'ярость');
+  assert.equal(game.horde.alive, before + 3, 'стая крылаток на одного');
+  assert.ok(game.horde.zombies.filter((z) => z.alive && z.kind === F.Z_FLYER).length === 3);
   steps(game, 10);
-  assert.equal(game.horde.alive, afterPhase2, 'подкрепления выдаются один раз за фазу');
-  b.hp = b.maxHp * 0.32;
-  game.step();
-  assert.equal(b.stage, 3);
-  assert.equal(game.horde.alive, afterPhase2 + 4);
+  b.hp = b.maxHp * 0.2;
+  steps(game, 2);
+  assert.equal(game.horde.alive, before + 3, 'стая — один раз за бой');
 });
 
 test('босс даёт полное предупреждение до урона и окно для ответного огня после', () => {

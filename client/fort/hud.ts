@@ -3,6 +3,7 @@
 // осталось или сколько до волны, очки лавки), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка),
 // мини-карта с ордой, таблица защитников (Tab) и итоги игры с жетонами.
 import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_OPEN, ZS_BOSS_APPROACH, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
 import { WaveCardView, romanTier } from './wavecard.ts';
 import { fortShopItems, type FortShopState } from '../../shared/fortshop.ts';
@@ -235,6 +236,12 @@ export class FortHud {
       : state === ZS_BOSS_GATE ? 'Замах по воротам · уйдите с метки'
       : state === ZS_BOSS_BOMB ? 'Прицельный залп · уйдите с метки'
       : state === ZS_BOSS_PULSE ? 'Удар по стене · выйдите из круга или прыгните'
+      : state === ZS_CHARGE_WARN ? 'Разбег · уйдите с красной дорожки'
+      : state === ZS_CHARGE ? 'Рывок!'
+      : state === ZS_STOMP ? 'Встаёт на дыбы · прыгайте'
+      : state === ZS_HOWL ? 'Воет · сейчас выбегут шустрики'
+      : state === ZS_THROW ? 'Камень · уйдите из круга'
+      : state === ZS_QUAKE ? 'Трясёт стену · прыгайте'
       : 'Броня · ждите открытия ядра';
     const text = `${pct}%${phase ? ` · ${phase}` : ''} · ${attack}`;
     if (this.set('bossInfo', text)) this.bossInfo.textContent = text;

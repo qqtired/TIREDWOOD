@@ -10,7 +10,8 @@ import {
   BUY_ANTIAIR, BUY_CRYSTAL, BUY_JAM, BUY_MAGAZINE, BUY_TURRET, CRYSTAL_FIX, CRYSTAL_HP, CRYSTAL_PRICE, FIX_HP, FIX_PRICE, FORT_HP, FORT_MAX_ALIVE, FORT_MAGAZINE,
   FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_PRICE, NEWGATE_PRICE, TURRET_PRICE, WAVE_PTS, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
-  ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER,
+  ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import { ZF_RAGE } from '../../shared/fortnet.ts';
@@ -175,6 +176,7 @@ export class FortMatch {
   private shieldHintAt = -99;
   private armorHintAt = -99;
   private fuseAlertAt = -99;
+  private steamAt = 0;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
@@ -778,9 +780,18 @@ export class FortMatch {
             }
             break;
           }
+          if (attack === ZS_HOWL) {
+            hud.alert('🐗 Таран воет · сейчас выбегут шустрики', 2200);
+            sound.roar([tx, 2, tz], 1.2);
+            break;
+          }
           hud.alert(attack === ZS_FLY_WARN ? 'Крылатка пикирует · уйди с метки или сбей её'
             : attack === ZS_BOSS_GATE ? 'Барон бьёт по воротам · отойди от красного круга'
             : attack === ZS_BOSS_PULSE ? 'Удар по стене · выйди из круга или прыгни'
+            : attack === ZS_CHARGE_WARN ? '🐗 Таран берёт разбег · уйди с красной дорожки'
+            : attack === ZS_STOMP ? '🐗 Таран встаёт на дыбы · прыгай, когда круг заполнится'
+            : attack === ZS_THROW ? (near ? '🪨 Камень летит в тебя · уйди из круга' : '🪨 Валун бросает камень · следи за тенью')
+            : attack === ZS_QUAKE ? '🪨 Валун трясёт стену · прыгай, когда круг заполнится'
             : 'Залп Барона · уйди с красной метки', Math.max(1400, sec * 1000));
           sound.horn(attack === ZS_FLY_WARN ? 0.12 : 0.22);
           break;
@@ -802,6 +813,33 @@ export class FortMatch {
             if (dist < r + 14) this.shake = Math.max(this.shake, Math.min(1, (r + 14 - dist) / 12));
             break;
           }
+          if (attack === ZS_CHARGE) {
+            // Таран врезался: щепки, пыль, гул
+            effects.burst(x, y, z, 0x8a5a34, 28, 7, 0, 1, -1, 0.08);
+            effects.burst(x, y, z, 0xd9c7a0, 18, 5, 0, 1, 0, 0.05);
+            effects.puff(x, y, z, 2.6, 0xb8a888, 1.0, 1.0, 0.55);
+            sound.boom([x, y, z], 1.3);
+            if (dist < 26) this.shake = Math.max(this.shake, Math.min(1, (26 - dist) / 14));
+            break;
+          }
+          if (attack === ZS_STOMP || attack === ZS_QUAKE) {
+            // топот и землетрясение: кольцо пыли
+            for (let i = 0; i < 10; i++) {
+              const a = (i / 10) * Math.PI * 2;
+              effects.puff(x + Math.cos(a) * r * 0.7, y + 0.3, z + Math.sin(a) * r * 0.7, 1.4, 0xc9b896, 0.9, 0.7, 0.5);
+            }
+            sound.rumble([x, y, z], attack === ZS_QUAKE ? 1.5 : 1);
+            if (dist < r + 10) this.shake = Math.max(this.shake, 0.75);
+            break;
+          }
+          if (attack === ZS_THROW) {
+            // камень раскололся
+            effects.burst(x, y, z, 0x7d7f77, 26, 6, 0, 1, 0, 0.09);
+            effects.puff(x, y, z, r * 0.9, 0xb8b2a2, 0.9, 0.8, 0.55);
+            sound.boom([x, y, z], 0.9);
+            if (dist < r + 12) this.shake = Math.max(this.shake, 0.55);
+            break;
+          }
           effects.burst(x, y, z, attack === ZS_BOSS_OPEN ? 0x69e7ef : 0xff805c, 20, r, 0, 1, 0, 0.065);
           effects.puff(x, y, z, r * 1.1, 0xe883ae, 0.6, 0.65, 0.4);
           sound.bloat([x, y, z]);
@@ -809,10 +847,14 @@ export class FortMatch {
           break;
         }
         case 'bossphase': {
-          const [, , stage] = e;
-          hud.alert(stage === 2 ? 'Барон зовёт крылаток · теперь берегитесь удара по стене'
-            : 'Барон в ярости · шустрики идут с флангов', 3200);
-          sound.zombieGroan(null, 1.2);
+          const [, id] = e;
+          const kind = zombies.kindOf(id);
+          hud.alert(kind === Z_RAM ? '🐗 Таран в ярости · рвётся два раза подряд'
+            : kind === Z_GOLEM ? '🪨 Валун в ярости · бросает по два камня'
+            : '👑 Барон в ярости · бьёт чаще и зовёт крылаток', 3200);
+          const seen = zombies.where(id, _v);
+          sound.roar(seen ? [_v.x, _v.y + 3, _v.z] : null, kind === Z_GOLEM ? 0.7 : kind === Z_RAM ? 1.1 : 0.9);
+          this.shake = Math.max(this.shake, 0.6);
           break;
         }
         case 'early': {
@@ -1280,6 +1322,13 @@ export class FortMatch {
     hud.setCrystal(this.crystal, CRYSTAL_HP);
     hud.setCard(this.card, this.phase);
     const boss = this.zlist.find((z) => isBossKind(z.kind) && z.hp > 0);
+    if (boss && ((boss.flags ?? 0) & ZF_RAGE) && this.time - this.steamAt > 0.14) {
+      // ярость: красный пар над головой
+      this.steamAt = this.time;
+      const k = ZK[boss.kind] ?? ZK[0];
+      const top = boss.y + k.hcy + k.hry;
+      this.d.effects.puff(boss.x + (Math.random() - 0.5) * k.hrx, top, boss.z + (Math.random() - 0.5) * k.hrx, 1.1, 0xff8f7a, 0.9, 1.6, 0.45);
+    }
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
       boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
     if (hud.shopShown) {
