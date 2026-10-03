@@ -5,9 +5,9 @@ import '@fontsource/rubik/700.css';
 import '@fontsource/rubik/900.css';
 import '../styles.css';
 import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_WAVE, Z_BOSS, Z_BRUTE, Z_FLYER, Z_WALKER,
-  ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_WALK } from '../../shared/fort.ts';
+  ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK } from '../../shared/fort.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
-import type { ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CARRY, ZF_CREW, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
@@ -41,6 +41,7 @@ for (const [label, action] of [
   ['Щит строений', () => { shield = !shield; }],
   ['Западная лестница', () => { world.camera.position.set(-33, 8, 13); orbit.target.set(-20, 2, 1); orbit.update(); }],
   ['Восточная лестница', () => { world.camera.position.set(33, 8, 13); orbit.target.set(20, 2, 1); orbit.update(); }],
+  ['Парад врагов', () => { world.camera.position.set(0, 9.5, -15.2); orbit.target.set(0, 0.6, -27.5); orbit.update(); }],
 ] as const) {
   const button = document.createElement('button');
   button.type = 'button'; button.textContent = label; button.addEventListener('click', action);
@@ -63,8 +64,25 @@ function setQuality() {
   resize();
 }
 
+/** Парад всех врагов в ряд перед воротами: типы, элита, чемпион, щит, бочка, экипаж */
+function lineup(): ZombieSnap[] {
+  const list: ZombieSnap[] = [];
+  const kinds = [0, 1, 2, 3, 4, 7, 8, 9, 10, 11];
+  kinds.forEach((kind, i) => {
+    const flags = kind === 7 ? ZF_SHIELD : kind === 9 ? ZF_CARRY : 0;
+    list.push({ id: 100 + i, kind, state: ZS_WALK, hp: 1, x: -13.5 + i * 3, y: 0, z: -24, yaw: Math.PI, atk: 0, flags });
+  });
+  list.push({ id: 120, kind: 0, state: ZS_WALK, hp: 0.7, x: -6, y: 0, z: -30, yaw: Math.PI, atk: 0, flags: 1 });
+  list.push({ id: 121, kind: 2, state: ZS_WALK, hp: 1, x: 0, y: 0, z: -31, yaw: Math.PI, atk: 0, flags: 2 });
+  list.push({ id: 122, kind: 0, state: ZS_WALK, hp: 1, x: 6, y: 0, z: -30, yaw: Math.PI, atk: 0, flags: ZF_CREW });
+  list.push({ id: 123, kind: 8, state: ZS_SPIT, hp: 1, x: 10, y: 0, z: -30, yaw: Math.PI, atk: 0, wind: 30, tx: 4, ty: WALL_H + 0.8, tz: -14.6, r: 1.6 });
+  list.push({ id: 124, kind: 5, state: ZS_WALK, hp: 1, x: -10, y: 8, z: -27, yaw: Math.PI, atk: 0 });
+  return list;
+}
+
 function makeSnapshots(): ZombieSnap[] {
   const selected = attack.value;
+  if (selected === 'lineup') return lineup();
   const phase = Number(stage.value);
   const isRoof = selected === 'roof';
   const chosen = selected === 'open' ? ZS_BOSS_OPEN : selected === 'pulse' ? ZS_BOSS_PULSE
@@ -111,7 +129,12 @@ resetCamera();
 const state = () => ({ controlledFixture: true, attack: attack.value, phase: Number(stage.value), quality: quality.value,
   shield, enemies: snapshots.length, boss: snapshots.find((z) => z.kind === Z_BOSS) ?? null,
   render: { ...renderer.gl.info.render }, cpuMs: renderer.cpuMs, gpuMs: renderer.gpuMs });
-(window as unknown as Record<string, unknown>).__fortPreview = { state };
+function cam(p: [number, number, number], t: [number, number, number]) {
+  world.camera.position.set(...p);
+  orbit.target.set(...t);
+  orbit.update();
+}
+(window as unknown as Record<string, unknown>).__fortPreview = { state, cam };
 
 function frame(now: number) {
   const dt = Math.min(0.1, (now - previous) / 1000);

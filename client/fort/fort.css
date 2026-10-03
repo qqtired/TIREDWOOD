@@ -430,7 +430,7 @@
 .ft-boss.open .ft-boss-bar i { background: #7bf0e4; }
 .ft-boss-info { display: block; font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .fort-hud:has(.ft-boss.show) .ft-alert { top: 224px; }
-.fort-hud .ft-alert { top: 112px; }
+.fort-hud .ft-alert { top: 148px; }
 
 .ft-shop {
   pointer-events: auto;

@@ -283,7 +283,7 @@ export const BUY_ANTIAIR = 6;
 export type FortEvent =
   // выстрел: кто, откуда, куда, чем кончился (0 — стена, 1 — зомби, 2 — в никуда), нормаль стены
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
-  // попадание по зомби: кто, какой зомби, урон, в голову (1/0), где
+  // попадание по зомби: кто, какой зомби, урон, куда (0 — тело, 1 — голова, 2 — в щит, 3 — в броню), где
   | ['zhit', number, number, number, number, number, number, number]
   // зомби сбит: какой, кто (0 — взрыв или само), где, тип, ступень (0 — обычный, 1 — элита, 2 — чемпион)
   | ['zdie', number, number, number, number, number, number, number]

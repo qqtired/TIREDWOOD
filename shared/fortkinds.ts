@@ -75,7 +75,7 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Крылатка', hp: 70, speed: 5.2, gateDps: 0, crystalDps: 0, hit: 18, pts: 25, cost: 3, first: 5, flags: KF_AIR, r: 0.45, hrx: 0.68, hry: 0.72, hcy: 0.65, headY: 1.0, color: 0xcf70d9, icon: '🦇', hint: 'замирает перед пикированием · сбей или уйди с метки' },
   { name: 'Барон Варенья', hp: 2200, speed: 2.5, gateDps: 0, crystalDps: 0, hit: 28, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.1, hrx: 2.3, hry: 2.8, hcy: 2.7, headY: 4.2, color: 0x653d98, icon: '👑', hint: 'бьёт по воротам и меткам · после удара ядро открыто' },
   { name: 'Щитоносец', hp: 120, speed: 2.0, gateDps: 15, crystalDps: 14, hit: 12, pts: 24, cost: 4, first: 6, flags: 0, r: 0.48, hrx: 0.58, hry: 0.85, hcy: 0.82, headY: 1.16, color: 0x9fb86a, icon: '🛡', hint: 'щит держит удары в тело спереди · бей в голову сверху' },
-  { name: 'Плевальщик', hp: 80, speed: 2.2, gateDps: 0, crystalDps: 8, hit: 15, pts: 16, cost: 4, first: 9, flags: 0, r: 0.45, hrx: 0.56, hry: 0.82, hcy: 0.8, headY: 1.12, color: 0x7fc24f, icon: '💦', hint: 'плюёт вареньем по стене издалека · уйди с метки' },
+  { name: 'Плевальщик', hp: 80, speed: 2.2, gateDps: 6, crystalDps: 8, hit: 15, pts: 16, cost: 4, first: 9, flags: 0, r: 0.45, hrx: 0.56, hry: 0.82, hcy: 0.8, headY: 1.12, color: 0x7fc24f, icon: '💦', hint: 'плюёт вареньем по стене издалека · уйди с метки' },
   { name: 'Подрывник', hp: 45, speed: 4.6, gateDps: 0, crystalDps: 0, hit: 30, pts: 9, cost: 4, first: 11, flags: 0, r: 0.36, hrx: 0.45, hry: 0.7, hcy: 0.68, headY: 0.95, color: 0xe7a33e, icon: '💣', hint: 'несёт бочку к воротам · сбей в толпе — бочка рванёт у своих' },
   { name: 'Лекарь', hp: 110, speed: 2.0, gateDps: 5, crystalDps: 6, hit: 8, pts: 22, cost: 5, first: 13, flags: 0, r: 0.42, hrx: 0.52, hry: 0.8, hcy: 0.78, headY: 1.1, color: 0xeee6d2, icon: '⛑', hint: 'лечит соседей зелёной волной · убирайте первым' },
   { name: 'Чугунок', hp: 260, speed: 1.8, gateDps: 25, crystalDps: 25, hit: 18, pts: 52, cost: 6, first: 16, flags: KF_ARMORED, r: 0.55, hrx: 0.66, hry: 0.95, hcy: 0.92, headY: 1.32, color: 0x7d8a90, icon: '🍳', hint: 'кастрюля гасит слабые попадания · голова, тяжёлый ствол, граната' },
@@ -85,6 +85,35 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.15, hry: 3.6, hcy: 3.4, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по морской стене · руби щупальца' },
   { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'голова всплывает в бухте · бей в глаз' },
 ];
+
+// ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)
+
+/** Плевальщик: плюёт по людям в 10–30 м (на стене и во дворе), замах с меткой, перезарядка, радиус и урон */
+export const SPIT_MIN = 10;
+export const SPIT_RANGE = 30;
+export const SPIT_WARN_TICKS = 72;
+export const SPIT_FLIGHT_TICKS = 24;
+export const SPIT_COOLDOWN = 200;
+export const SPIT_R = 1.6;
+export const SPIT_DMG = 15;
+/** Подрывник: фитиль у ворот (кристалла), радиус, урон воротам, кристаллу, людям и своим (×HP-множитель волны) */
+export const FUSE_TICKS = 180;
+export const BARREL_R = 3.5;
+export const BARREL_GATE = 300;
+export const BARREL_CRYSTAL = 200;
+export const BARREL_PLAYER = 30;
+export const BARREL_ZOMBIE = 120;
+/** Сбили подрывника до взрыва — бочка рвётся на месте: по строениям только эта доля */
+export const BARREL_SHOT_MUL = 0.3;
+/** Лекарь: раз в столько тиков лечит соседей в радиусе на долю их HP (боссов — на пятую часть доли) */
+export const HEAL_EVERY = 180;
+export const HEAL_R = 6;
+export const HEAL_FRAC = 0.15;
+/** Лекарь не подходит к воротам ближе */
+export const MEDIC_HOLD = 9;
+/** Чемпион ускоряет соседей в радиусе */
+export const CHAMP_AURA_R = 5;
+export const CHAMP_HASTE = 1.15;
 
 export function kindOf(kind: number): ZombieKind {
   return ZK[kind] ?? ZK[0];

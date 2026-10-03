@@ -10,11 +10,19 @@ import {
   CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
   Z_BOSS, Z_FLYER, Z_RUNNER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
-  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, isBossKind, kindFlags, type FortEvent,
+  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
-import { BOSS_BASE_HP, TIER_DMG, TIER_HP, TIER_SPEED, bossTeamMul, defenders, teamHpMul, waveHpMul } from '../../shared/fortwaves.ts';
+import {
+  ARMOR_MIN_PASS, BOSS_BASE_HP, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders, shieldHp, teamHpMul,
+  waveHpMul,
+} from '../../shared/fortwaves.ts';
+import {
+  BARREL_CRYSTAL, BARREL_GATE, BARREL_PLAYER, BARREL_R, BARREL_SHOT_MUL, BARREL_ZOMBIE, CHAMP_AURA_R, CHAMP_HASTE, FUSE_TICKS,
+  HEAL_EVERY, HEAL_FRAC, HEAL_R, MEDIC_HOLD, SPIT_COOLDOWN, SPIT_DMG, SPIT_FLIGHT_TICKS, SPIT_MIN, SPIT_R, SPIT_RANGE,
+  SPIT_WARN_TICKS, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER,
+} from '../../shared/fortkinds.ts';
 import { CLIMBS, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
-import { ZF_CREW, type ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
@@ -54,6 +62,11 @@ export class Zombie {
   tier = 0;
   /** Абордажник с лодки */
   crew = false;
+  /** Щит щитоносца (прочность), бочка подрывника, отсчёт лекаря, рядом чемпион */
+  shield = 0;
+  carry = false;
+  healT = 0;
+  hasted = false;
   state = ZS_WALK;
   alive = false;
   hp = 0;
@@ -137,9 +150,11 @@ export class Horde {
   // история: на тик — по месту x, y, z, номер (0 — пусто)
   private readonly histTick = new Int32Array(ZHIST_TICKS).fill(-1);
   private readonly hist = new Float64Array(ZHIST_TICKS * FORT_MAX_ALIVE * 4);
-  /** Пузыри, которые лопнут в этом же тике (цепочка), и кто их лопнул */
+  /** Пузыри и бочки, которые лопнут в этом же тике (цепочка), и кто их лопнул */
   private readonly pops: Zombie[] = [];
   private readonly popBy: number[] = [];
+  private readonly barrels: Zombie[] = [];
+  private readonly barrelMul: number[] = [];
 
   constructor(nav: FortNav, host: HordeHost, rng: () => number) {
     this.nav = nav;
@@ -175,6 +190,8 @@ export class Horde {
     this.queueAt = 0;
     this.pops.length = 0;
     this.popBy.length = 0;
+    this.barrels.length = 0;
+    this.barrelMul.length = 0;
     this.wave = 0;
     this.hpHumans = 1;
     this.plan = null;
@@ -312,6 +329,10 @@ export class Horde {
     z.vz = 0;
     z.road = road;
     z.climb = kind === Z_CLIMBER ? climbFor(road, this.rng()) : -1;
+    z.shield = kind === Z_SHIELD ? shieldHp(Math.max(1, this.wave), hpHumans) * (1 + 0.5 * z.tier) : 0;
+    z.carry = kind === Z_SAPPER;
+    z.healT = kind === Z_MEDIC ? 60 + Math.floor(this.rng() * HEAL_EVERY) : 0;
+    z.hasted = false;
     z.atkCd = 0;
     z.atk = 0;
     z.chase = 0;
@@ -331,12 +352,32 @@ export class Horde {
 
   // ------------------------------------------------------------ урон
 
-  /** Попадание (выстрел — by = номер стрелка, краскомёт — 0). */
-  damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number): void {
+  /**
+   * Попадание (выстрел — by = номер стрелка, краскомёт — 0). ox, oz — откуда стреляли (для щита: спереди держит,
+   * голову не закрывает). Чугунок гасит попадание в тело на броню волны (не меньше 30 % проходит), голову — нет.
+   */
+  damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
     if (z.kind === Z_BOSS && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
-    this.hurt(z, dmg, by, head, hx, hy, hz);
+    let mark = head ? 1 : 0;
+    if (!head && z.kind === Z_ARMORED) {
+      const armor = armorFor(Math.max(1, this.wave)) * (1 + 0.5 * z.tier);
+      dmg = Math.max(dmg * ARMOR_MIN_PASS, dmg - armor);
+      mark = 3;
+    }
+    if (!head && z.shield > 0 && frontOf(z, ox, oz)) {
+      const taken = Math.min(z.shield, dmg);
+      z.shield -= taken;
+      dmg -= taken;
+      this.host.event(['zhit', by, z.id, Math.round(taken), 2, r2(hx), r2(hy), r2(hz)]);
+      if (z.shield <= 0) {
+        z.shield = 0;
+        this.host.event(['shield', z.id, r2(z.x), r2(z.y + ZK[z.kind].hcy), r2(z.z)]);
+      }
+      if (dmg <= 0) return;
+    }
+    this.hurt(z, dmg, by, mark, hx, hy, hz);
     this.drainPops();
   }
 
@@ -355,7 +396,7 @@ export class Horde {
       if (d > r) continue;
       let amount = dmg;
       if (o.kind === Z_BOSS && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
-      this.hurt(o, amount, by, false, o.x, o.y + k.hcy, o.z);
+      this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
     this.drainPops();
@@ -367,18 +408,20 @@ export class Horde {
     return kindFlags(z.kind);
   }
 
-  private hurt(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number): void {
+  /** Урон по HP: mark — как отметить попадание (0 тело, 1 голова, 2 щит, 3 броня) */
+  private hurt(z: Zombie, dmg: number, by: number, mark: number, hx: number, hy: number, hz: number): void {
     if (!z.alive) return;
     z.hp -= dmg;
     if (by) {
       z.lastBy = by;
       z.damageBy.set(by, (z.damageBy.get(by) ?? 0) + Math.max(0, Math.min(dmg, z.hp + dmg)));
     }
-    this.host.event(['zhit', by, z.id, Math.round(dmg), head ? 1 : 0, r2(hx), r2(hy), r2(hz)]);
+    this.host.event(['zhit', by, z.id, Math.round(dmg), mark, r2(hx), r2(hy), r2(hz)]);
     if (z.hp <= 0.5) this.kill(z, by);
   }
 
-  private kill(z: Zombie, by: number): void {
+  /** Сбит (by — кто; 0 — взрыв, сам, краскомёт без хозяина). Пузырь и бочка рвутся следом, очередью. */
+  kill(z: Zombie, by: number): void {
     if (!z.alive) return;
     z.alive = false;
     z.hp = 0;
@@ -389,10 +432,53 @@ export class Horde {
       this.pops.push(z);
       this.popBy.push(by);
     }
+    if (z.kind === Z_SAPPER && z.carry) {
+      z.carry = false;
+      this.barrels.push(z);
+      // догорел фитиль — полный взрыв; сбили раньше — бочка рвётся на месте, строениям достаётся меньше
+      this.barrelMul.push(z.stage === 2 ? 1 : BARREL_SHOT_MUL);
+    }
   }
 
-  /** Пузырь лопнул: ворота, кристалл, люди и зомби рядом; сбитые им пузыри лопаются следом (тут же, очередью). */
+  /** Пузыри и бочки: ворота, кристалл, люди и зомби рядом; сбитые ими лопаются следом (тут же, очередью). */
   private drainPops(): void {
+    for (let guard = 0; guard < 8 && (this.pops.length || this.barrels.length); guard++) {
+      this.drainBubbles();
+      this.drainBarrels();
+    }
+  }
+
+  private drainBarrels(): void {
+    const host = this.host;
+    for (let i = 0; i < this.barrels.length; i++) {
+      const b = this.barrels[i];
+      const mul = this.barrelMul[i];
+      const y = b.y + 0.6;
+      host.event(['blast', ZS_BARREL, r2(b.x), r2(y), r2(b.z), BARREL_R]);
+      if (host.gateUp() && rectDist(b.x, b.z, GATE.x0, GATE.face - 0.5, GATE.x1, GATE.z1) < BARREL_R
+        && !host.traceAttack(b.x, y, b.z, clamp(b.x, GATE.x0, GATE.x1), clamp(y, 0, GATE.h), clamp(b.z, GATE.face, GATE.z1), _attack)) host.hitGate(this.dmgOf(b, BARREL_GATE) * mul);
+      const D = PEDESTAL;
+      if (rectDist(b.x, b.z, D.x0, D.z0, D.x1, D.z1) < BARREL_R && b.y < 2
+        && !host.traceAttack(b.x, y, b.z, clamp(b.x, D.x0, D.x1), Math.min(D.h, y), clamp(b.z, D.z0, D.z1), _attack)) host.hitCrystal(this.dmgOf(b, BARREL_CRYSTAL) * mul);
+      for (const p of host.targets()) {
+        if (Math.hypot(p.x - b.x, p.y - b.y, p.z - b.z) < BARREL_R
+          && !host.traceAttack(b.x, y, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, this.dmgOf(b, BARREL_PLAYER));
+      }
+      // своим — полной мерой: сбить подрывника в толпе — лучший выстрел волны
+      const hit = BARREL_ZOMBIE * waveHpMul(Math.max(1, this.wave));
+      for (const o of this.zombies) {
+        if (!o.alive || o === b) continue;
+        if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= BARREL_R) continue;
+        if (host.traceAttack(b.x, y, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
+        o.hp -= isBossKind(o.kind) ? hit * BOSS_ARMOR : hit;
+        if (o.hp <= 0.5) this.kill(o, b.lastBy);
+      }
+    }
+    this.barrels.length = 0;
+    this.barrelMul.length = 0;
+  }
+
+  private drainBubbles(): void {
     for (let i = 0; i < this.pops.length; i++) {
       const b = this.pops[i];
       const by = this.popBy[i];
@@ -432,12 +518,16 @@ export class Horde {
       this.queueAt++;
     }
     const gateUp = this.host.gateUp();
+    if (tick % 15 === 0) this.auras();
     for (const z of this.zombies) {
       if (!z.alive) continue;
       if (z.atkCd > 0) z.atkCd--;
       if (z.kind === Z_FLYER) this.stepFlyer(z);
       else if (z.kind === Z_BOSS) this.stepBoss(z);
       else if (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP) this.stepClimber(z);
+      else if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
+      else if (z.kind === Z_SAPPER) this.stepSapper(z, gateUp);
+      else if (z.kind === Z_MEDIC) this.stepMedic(z, gateUp);
       else this.stepGround(z, gateUp);
     }
     this.separate();
@@ -619,6 +709,140 @@ export class Horde {
     this.host.event(['warn', z.id, attack, r2(z.toX), r2(z.toY), r2(z.toZ), r, this.host.tick + z.t]);
   }
 
+  /** Чемпионы ускоряют соседей (раз в 15 тиков) */
+  private auras(): void {
+    for (const z of this.zombies) z.hasted = false;
+    for (const c of this.zombies) {
+      if (!c.alive || c.tier !== TIER_CHAMP) continue;
+      for (const o of this.zombies) {
+        if (o.alive && o !== c && Math.abs(o.x - c.x) < CHAMP_AURA_R && Math.abs(o.z - c.z) < CHAMP_AURA_R
+          && Math.hypot(o.x - c.x, o.z - c.z) < CHAMP_AURA_R) o.hasted = true;
+      }
+    }
+  }
+
+  /**
+   * Плевальщик: снаружи, в 10–30 м от человека (на стене или во дворе), встаёт, замахивается (метка на месте
+   * человека, 1,2 с) и плюёт навесом; перезарядка — держит дистанцию. Людей в досягаемости нет — идёт как все.
+   */
+  private stepSpitter(z: Zombie, gateUp: boolean): void {
+    const host = this.host;
+    if (z.state === ZS_SPIT) {
+      z.t--;
+      if (z.t === SPIT_FLIGHT_TICKS) {
+        host.event(['throw', r2(z.x), r2(z.y + 1.3), r2(z.z), r2(z.toX), r2(z.toY), r2(z.toZ), SPIT_FLIGHT_TICKS, ZS_SPIT]);
+      }
+      if (z.t > 0) return;
+      for (const p of host.targets()) {
+        if (Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) >= SPIT_R + 0.4) continue;
+        if (host.traceAttack(z.toX, z.toY + 0.05, z.toZ, p.x, p.y + 0.8, p.z, _attack)) continue;
+        host.hitPlayer(z.id, p.id, this.dmgOf(z, SPIT_DMG));
+      }
+      z.atk = (z.atk + 1) & 255;
+      host.event(['blast', ZS_SPIT, r2(z.toX), r2(z.toY), r2(z.toZ), SPIT_R]);
+      z.state = ZS_WALK;
+      z.atkCd = SPIT_COOLDOWN;
+      return;
+    }
+    let target: HordeTarget | null = null;
+    if (!insideFort(z.x, z.z)) {
+      let best = Infinity;
+      for (const p of host.targets()) {
+        const d = Math.hypot(p.x - z.x, p.z - z.z);
+        if (d < SPIT_MIN || d > SPIT_RANGE) continue;
+        // на стене — в первую очередь
+        const score = d - (p.y > 1 ? 15 : 0);
+        if (score < best) { best = score; target = p; }
+      }
+    }
+    if (target && z.atkCd === 0) {
+      z.toX = target.x;
+      z.toY = target.y + 0.8;
+      z.toZ = target.z;
+      // крыша над человеком — метка на крыше (туда и плюнет)
+      if (host.traceAttack(z.toX, z.toY + 15, z.toZ, z.toX, z.toY, z.toZ, _attack)) z.toY = _attack.y + 0.06;
+      z.state = ZS_SPIT;
+      z.t = SPIT_WARN_TICKS;
+      z.chase = target.id;
+      z.vx = z.vz = 0;
+      z.yaw = Math.atan2(-(target.x - z.x), -(target.z - z.z));
+      host.event(['warn', z.id, ZS_SPIT, r2(z.toX), r2(z.toY), r2(z.toZ), SPIT_R, host.tick + z.t]);
+      return;
+    }
+    if (target) {
+      // перезаряжается: стоит на дистанции и смотрит на цель
+      z.vx *= 0.7;
+      z.vz *= 0.7;
+      z.x += z.vx * DT;
+      z.z += z.vz * DT;
+      z.yaw = turnTo(z.yaw, Math.atan2(-(target.x - z.x), -(target.z - z.z)), 0.15);
+      z.state = ZS_WALK;
+      z.stuck = 0;
+      return;
+    }
+    this.stepGround(z, gateUp);
+  }
+
+  /** Подрывник: бежит к воротам (пали — к кристаллу), ставит бочку, фитиль 3 с с меткой — и взрыв. */
+  private stepSapper(z: Zombie, gateUp: boolean): void {
+    if (z.state === ZS_PLANT) {
+      if (--z.t > 0) return;
+      z.stage = 2;
+      this.kill(z, 0);
+      this.drainPops();
+      return;
+    }
+    const k = ZK[z.kind];
+    const inside = insideFort(z.x, z.z);
+    let plant = false;
+    if (!inside && gateUp && Math.abs(z.x) < GATE.x1 - 0.15 && z.z < GATE.face && z.z + k.r >= GATE.face - Z_GATE_GAP - 0.2) {
+      plant = true;
+      z.toX = z.x;
+      z.toY = 0.6;
+      z.toZ = GATE.face - 0.3;
+    } else if (inside && rectDist(z.x, z.z, PEDESTAL.x0, PEDESTAL.z0, PEDESTAL.x1, PEDESTAL.z1) <= k.r + 0.35) {
+      plant = true;
+      z.toX = z.x;
+      z.toY = 0.6;
+      z.toZ = z.z;
+    }
+    if (plant) {
+      z.state = ZS_PLANT;
+      z.t = FUSE_TICKS;
+      z.vx = z.vz = 0;
+      this.host.event(['warn', z.id, ZS_PLANT, r2(z.toX), r2(z.toY), r2(z.toZ), BARREL_R, this.host.tick + z.t]);
+      return;
+    }
+    this.stepGround(z, gateUp);
+  }
+
+  /** Лекарь: держится позади (к воротам не ближе 9 м), раз в 3 с лечит соседей зелёной волной. */
+  private stepMedic(z: Zombie, gateUp: boolean): void {
+    if (--z.healT <= 0) {
+      z.healT = HEAL_EVERY;
+      let healed = 0;
+      for (const o of this.zombies) {
+        if (!o.alive || o === z || o.hp >= o.maxHp) continue;
+        if (Math.hypot(o.x - z.x, o.y - z.y, o.z - z.z) > HEAL_R) continue;
+        o.hp = Math.min(o.maxHp, o.hp + o.maxHp * HEAL_FRAC * (isBossKind(o.kind) ? 0.2 : 1));
+        healed++;
+      }
+      this.host.event(['heal', z.id, r2(z.x), r2(z.y), r2(z.z), HEAL_R]);
+      if (healed) z.atk = (z.atk + 1) & 255;
+    }
+    if (gateUp && !insideFort(z.x, z.z) && Math.hypot(z.x, z.z - GATE.face) < MEDIC_HOLD && z.z < GATE.face) {
+      z.vx *= 0.7;
+      z.vz *= 0.7;
+      z.x += z.vx * DT;
+      z.z += z.vz * DT;
+      z.yaw = turnTo(z.yaw, 0, 0.1);
+      z.state = ZS_WALK;
+      z.stuck = 0;
+      return;
+    }
+    this.stepGround(z, gateUp);
+  }
+
   /** Ходок: цель (человек рядом, точка липучки, ворота, кристалл), удар или шаг по полю. */
   private stepGround(z: Zombie, gateUp: boolean): void {
     const k = ZK[z.kind];
@@ -629,10 +853,11 @@ export class Horde {
     let attacking = false;
     let field: Float32Array | null = null;
 
-    // человек на земле по ту же сторону стены
+    // человек на земле по ту же сторону стены (подрывник и лекарь заняты своим)
     let target: HordeTarget | null = null;
     let best = z.chase ? Z_AGGRO + 2 : Z_AGGRO;
-    for (const p of host.targets()) {
+    const busy = z.kind === Z_SAPPER || z.kind === Z_MEDIC;
+    if (!busy) for (const p of host.targets()) {
       if (p.y > 1 || insideFort(p.x, p.z) !== inside) continue;
       const d = Math.hypot(p.x - z.x, p.z - z.z);
       if (d < best && !host.traceAttack(z.x, z.y + k.hcy, z.z, p.x, p.y + 0.8, p.z, _attack)) {
@@ -737,7 +962,7 @@ export class Horde {
     }
 
     z.state = attacking ? ZS_ATTACK : ZS_WALK;
-    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * host.slow(z.x, z.z);
+    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * host.slow(z.x, z.z);
     z.vx += (dx * speed - z.vx) * 0.25;
     z.vz += (dz * speed - z.vz) * 0.25;
     z.x += z.vx * DT;
@@ -950,7 +1175,8 @@ export class Horde {
       s.id = z.id;
       s.kind = z.kind;
       s.state = z.state;
-      s.flags = z.tier | (z.crew ? ZF_CREW : 0);
+      s.flags = z.tier | (z.crew ? ZF_CREW : 0) | (z.shield > 0 ? ZF_SHIELD : 0) | (z.carry ? ZF_CARRY : 0)
+        | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0);
       s.r = attackRadius(z.state);
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
@@ -1011,8 +1237,17 @@ function attackRadius(state: number): number {
     case ZS_BOSS_GATE: return 6;
     case ZS_BOSS_BOMB: return BOSS_BOMB_R;
     case ZS_BOSS_PULSE: return BOSS_PULSE_R;
+    case ZS_SPIT: return SPIT_R;
+    case ZS_PLANT: return BARREL_R;
     default: return 0;
   }
+}
+
+/** Стреляли спереди: точка выстрела по ту сторону, куда он смотрит (лицом — в −Z при курсе 0) */
+function frontOf(z: Zombie, ox: number, oz: number): boolean {
+  const fx = -Math.sin(z.yaw);
+  const fz = -Math.cos(z.yaw);
+  return (ox - z.x) * fx + (oz - z.z) * fz > 0;
 }
 
 /** Точка липучки для дороги: с запада — западная грань, с севера — северная, с востока — восточная */

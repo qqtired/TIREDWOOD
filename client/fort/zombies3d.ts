@@ -5,9 +5,10 @@
 // удары, лазание, вылезание из земли и вспышка от попадания — здесь же.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { BOSS_WARN_TICKS, ZK, ZS_ATTACK, ZS_CLIMB, ZS_DROP, ZS_TOP, Z_BLOATER, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_RUNNER, Z_WALKER, Z_BOSS, Z_FLYER, ZS_BOSS_OPEN, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_FLY_DIVE } from '../../shared/fort.ts';
+import { BOSS_WARN_TICKS, ZK, ZS_ATTACK, ZS_CLIMB, ZS_DROP, ZS_TOP, Z_BLOATER, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_RUNNER, Z_WALKER, Z_BOSS, Z_FLYER, ZS_BOSS_OPEN, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_FLY_DIVE,
+  ZS_PLANT, ZS_SPIT, Z_ARMORED, Z_MEDIC, Z_SAPPER, Z_SHIELD, Z_SPITTER } from '../../shared/fort.ts';
 import { FT_STRIDE } from '../../shared/fortaim.ts';
-import type { ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CREW, ZF_LIT, ZF_SHIELD, ZF_TIER, type ZombieSnap } from '../../shared/fortnet.ts';
 import { lerpAngle } from '../../shared/math.ts';
 import { BODY_H, bodyProfile } from '../render/outfit3d.ts';
 import { softDot } from '../render/textures.ts';
@@ -61,9 +62,14 @@ interface ZPose {
   ty: number;
   tz: number;
   stage: number;
+  /** Признаки ZF_* и радиус метки из снимка */
+  flags: number;
+  r: number;
 }
 
-const scratch: ZPose = { x: 0, y: 0, z: 0, yaw: 0, st: 0, hp: 1, atk: 0, wind: 0, tx: 0, ty: 0, tz: 0, stage: 0 };
+const scratch: ZPose = { x: 0, y: 0, z: 0, yaw: 0, st: 0, hp: 1, atk: 0, wind: 0, tx: 0, ty: 0, tz: 0, stage: 0, flags: 0, r: 0 };
+/** Ступени: пояс (элита — золото, чемпион — медь с короной) */
+const TIER_COLORS = [0xffffff, 0xffc83a, 0xff6a2a];
 
 class Track {
   readonly id: number;
@@ -81,6 +87,8 @@ class Track {
   private readonly ty = new Float32Array(HIST);
   private readonly tz = new Float32Array(HIST);
   private readonly stage = new Uint8Array(HIST);
+  private readonly flags = new Uint8Array(HIST);
+  private readonly rad = new Float32Array(HIST);
   private head = -1;
   private count = 0;
   /** Кадр, в котором последний раз был в снимке */
@@ -123,6 +131,8 @@ class Track {
     this.ty[h] = s.ty ?? 0;
     this.tz[h] = s.tz ?? 0;
     this.stage[h] = s.stage ?? 0;
+    this.flags[h] = s.flags ?? 0;
+    this.rad[h] = s.r ?? 0;
     if (this.count < HIST) this.count++;
   }
 
@@ -160,6 +170,8 @@ class Track {
     out.ty = this.ty[a];
     out.tz = this.tz[a];
     out.stage = this.stage[a];
+    out.flags = this.flags[a];
+    out.r = this.rad[a];
     return true;
   }
 }
@@ -214,6 +226,41 @@ function extrasGeometry(kind: number): THREE.BufferGeometry | null {
         parts.push(col(new THREE.ConeGeometry(0.045, 0.16, 5).rotateZ(Math.PI).translate(side * 0.09, 0.88, -0.47), 0xffedd0));
       }
       break;
+    case Z_SHIELD:
+      // кожаный шлем с заклёпкой; сам щит — отдельно (пока цел)
+      parts.push(col(new THREE.SphereGeometry(0.3, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.05, 0.7, 1.05).translate(0, 1.3, 0), 0x6e4a2c));
+      parts.push(col(new THREE.SphereGeometry(0.05, 6, 5).translate(0, 1.52, -0.12), 0xb8b0a0));
+      break;
+    case Z_SPITTER:
+      // надутые щёки и банка варенья за спиной
+      for (const s of [-1, 1]) parts.push(col(new THREE.SphereGeometry(0.15, 10, 8).translate(s * 0.27, 1.0, -0.3), 0xa6dd78));
+      parts.push(col(new THREE.CylinderGeometry(0.17, 0.17, 0.34, 12).translate(0, 0.95, 0.42), 0xb02a48));
+      parts.push(col(new THREE.CylinderGeometry(0.18, 0.18, 0.06, 12).translate(0, 1.15, 0.42), 0xf2ecd8));
+      break;
+    case Z_SAPPER:
+      // бочка с порохом в руках: обручи и фитиль
+      parts.push(col(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 14).rotateZ(Math.PI / 2).translate(0, 0.68, -0.58), 0x8a5a34));
+      for (const x of [-0.2, 0.2]) parts.push(col(new THREE.TorusGeometry(0.305, 0.025, 4, 16).rotateY(Math.PI / 2).translate(x, 0.68, -0.58), 0x4a4f55));
+      parts.push(col(new THREE.CylinderGeometry(0.02, 0.02, 0.26, 4).rotateZ(0.5).translate(0.07, 1.02, -0.58), 0x3a2a1a));
+      parts.push(col(new THREE.SphereGeometry(0.07, 8, 6).translate(0.14, 1.13, -0.58), 0xffd04a));
+      break;
+    case Z_MEDIC:
+      // белая шапочка с красным крестом и сумка через плечо
+      parts.push(col(new THREE.CylinderGeometry(0.27, 0.3, 0.18, 14).translate(0, 1.45, 0), 0xf6f2e8));
+      parts.push(col(new THREE.BoxGeometry(0.16, 0.05, 0.03).translate(0, 1.46, -0.29), 0xd8333a));
+      parts.push(col(new THREE.BoxGeometry(0.05, 0.16, 0.03).translate(0, 1.46, -0.29), 0xd8333a));
+      parts.push(col(new THREE.BoxGeometry(0.26, 0.22, 0.12).translate(0.38, 0.55, 0), 0xf6f2e8));
+      parts.push(col(new THREE.BoxGeometry(0.1, 0.03, 0.02).translate(0.38, 0.56, -0.07), 0xd8333a));
+      parts.push(col(new THREE.BoxGeometry(0.03, 0.1, 0.02).translate(0.38, 0.56, -0.07), 0xd8333a));
+      break;
+    case Z_ARMORED:
+      // кастрюля на голове (с ручкой) и нагрудник
+      parts.push(col(new THREE.CylinderGeometry(0.34, 0.31, 0.32, 16).translate(0, 1.48, 0), 0x596267));
+      parts.push(col(new THREE.TorusGeometry(0.34, 0.025, 4, 16).rotateX(Math.PI / 2).translate(0, 1.64, 0), 0x8c969b));
+      parts.push(col(new THREE.BoxGeometry(0.34, 0.05, 0.07).translate(0.48, 1.52, 0), 0x2f2a26));
+      parts.push(col(new THREE.BoxGeometry(0.62, 0.5, 0.1).translate(0, 0.72, -0.4), 0x9aa3a8));
+      for (const x of [-0.2, 0.2]) parts.push(col(new THREE.SphereGeometry(0.035, 6, 5).translate(x, 0.88, -0.46), 0x4a4f55));
+      break;
     case Z_BOSS:
       // Тяжёлый панцирь, золотая корона и наплечники отличают Барона от обычного бугая.
       parts.push(col(new THREE.TorusGeometry(0.28, 0.045, 6, 18).rotateX(Math.PI / 2).translate(0, 1.53, 0), 0xc49b52));
@@ -259,6 +306,36 @@ function faceGeometry(): THREE.BufferGeometry {
   return mergeGeometries(parts, false)!;
 }
 
+/** Дверь-щит щитоносца: три доски и две железные полосы, держит перед собой */
+function shieldGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const col = (g: THREE.BufferGeometry, hex: number) => {
+    const ng = g.index ? g.toNonIndexed() : g;
+    const c = new THREE.Color(hex);
+    const n = ng.getAttribute('position').count;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+    ng.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    ng.deleteAttribute('uv');
+    return ng;
+  };
+  const browns = [0x9a6b42, 0x8a5a34, 0xa57548];
+  for (let i = 0; i < 3; i++) parts.push(col(new THREE.BoxGeometry(0.3, 1.05 - (i % 2) * 0.06, 0.07).translate((i - 1) * 0.31, 0, 0), browns[i]));
+  for (const y of [-0.3, 0.3]) parts.push(col(new THREE.BoxGeometry(0.98, 0.07, 0.09).translate(0, y, -0.01), 0x4a4f55));
+  return mergeGeometries(parts, false)!;
+}
+
+/** Корона чемпиона: кольцо зубцов над головой */
+function crownGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [new THREE.TorusGeometry(0.24, 0.035, 5, 18).rotateX(Math.PI / 2)];
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    parts.push(new THREE.ConeGeometry(0.05, 0.16, 4).translate(Math.sin(a) * 0.24, 0.08, Math.cos(a) * 0.24));
+  }
+  for (const p of parts) p.deleteAttribute('uv');
+  return mergeGeometries(parts, false)!;
+}
+
 /** Рука-варежка: висит вниз от плеча (поворот вокруг X поднимает её вперёд) */
 function armGeometry(): THREE.BufferGeometry {
   const arm = new THREE.CylinderGeometry(0.075, 0.085, 0.6, 8).translate(0, -0.3, 0);
@@ -293,6 +370,9 @@ export class Zombies3D {
   private readonly wingL: THREE.InstancedMesh;
   private readonly wingR: THREE.InstancedMesh;
   private readonly core: THREE.InstancedMesh;
+  private readonly shieldMesh: THREE.InstancedMesh;
+  private readonly band: THREE.InstancedMesh;
+  private readonly crown: THREE.InstancedMesh;
   private readonly warning: THREE.InstancedMesh;
   private readonly warningFill: THREE.InstancedMesh;
   private readonly bodyGeometries: readonly THREE.BufferGeometry[];
@@ -339,6 +419,10 @@ export class Zombies3D {
     this.wingL = inst(wingGeo.clone().scale(-1, 1, 1), wingMat, false);
     this.wingR = inst(wingGeo, wingMat, false);
     this.core = inst(new THREE.IcosahedronGeometry(0.15, 1), new THREE.MeshBasicMaterial(), true);
+    this.shieldMesh = inst(shieldGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }), false);
+    const shiny = new THREE.MeshStandardMaterial({ roughness: 0.28, metalness: 0.55, emissive: 0x3a2400, emissiveIntensity: 0.5 });
+    this.band = inst(new THREE.TorusGeometry(0.55, 0.065, 6, 28).rotateX(Math.PI / 2), shiny, true);
+    this.crown = inst(crownGeometry(), shiny, true);
     this.warning = inst(new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.86, depthWrite: false, depthTest: false, side: THREE.DoubleSide }), true);
     this.warningFill = inst(new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false, depthTest: false, side: THREE.DoubleSide }), true);
     this.warning.renderOrder = 5;
@@ -346,7 +430,7 @@ export class Zombies3D {
     for (const m of [this.body, this.face, this.armL, this.armR]) m.castShadow = false;
     scene.add(this.body, this.face, this.armL, this.armR, this.shadow, this.barBg, this.barFill);
     for (const m of this.extras) if (m) scene.add(m);
-    scene.add(this.wingL, this.wingR, this.core, this.warningFill, this.warning);
+    scene.add(this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warningFill, this.warning);
   }
 
   setQuality(q: Quality, slow = false): void {
@@ -384,6 +468,11 @@ export class Zombies3D {
   hit(id: number): void {
     const tr = this.tracks.get(id);
     if (tr) tr.flash = 1;
+  }
+
+  /** Вид зомби по id (−1 — уже нет на экране) */
+  kindOf(id: number): number {
+    return this.tracks.get(id)?.kind ?? -1;
   }
 
   /** Где зомби на экране (ноги) — для звуков и эффектов */
@@ -432,7 +521,7 @@ export class Zombies3D {
     this.warm = 0;
     for (const m of [this.body, this.face, this.armL, this.armR, this.shadow, this.barBg, this.barFill]) m.count = 0;
     for (const m of this.extras) if (m) m.count = 0;
-    for (const m of [this.wingL, this.wingR, this.core, this.warning, this.warningFill]) m.count = 0;
+    for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill]) m.count = 0;
   }
 
   /** Цели прицела — живые зомби на тике t (то же, к чему сервер откатит орду): x, y ног, z, тип. */
@@ -462,6 +551,9 @@ export class Zombies3D {
     let flyers = 0;
     let bosses = 0;
     let warnings = 0;
+    let shields = 0;
+    let bands = 0;
+    let crowns = 0;
     const counts = this.counts;
     counts.fill(0);
     for (const tr of this.tracks.values()) {
@@ -541,9 +633,23 @@ export class Zombies3D {
         else rise = (1 - e) * (1 - e);
       }
       const sq = tr.flash;
+      const tier = r.flags & ZF_TIER;
+      const big = tier === 2 ? 1.12 : 1;
       const bloat = kind === Z_BLOATER ? Math.sin(time * 5 + tr.id) * 0.04 : 0;
-      const sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5);
-      const sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1);
+      const sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5) * big;
+      const sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1) * big;
+      if (kind === Z_SPITTER && st === ZS_SPIT) {
+        // набирает воздух: откидывается назад, щёки раздуваются
+        const u = 1 - Math.min(1, r.wind / 72);
+        lean = -0.25 * u;
+        armL = armR = 0.6;
+      } else if (kind === Z_SAPPER) {
+        armL = armR = st === ZS_PLANT ? 0.4 : 1.15;
+        if (st === ZS_PLANT) lean = 0.45;
+      } else if (kind === Z_SHIELD && (r.flags & ZF_SHIELD)) {
+        armL = armR = 1.35;
+        lean *= 0.6;
+      }
       // наклон вперёд — к лицу (−Z): поворот вокруг X со знаком минус
       _e.set(-lean - rise * 0.5, r.yaw, roll);
       _q.setFromEuler(_e);
@@ -554,6 +660,8 @@ export class Zombies3D {
       if (kind === Z_BOSS || Math.hypot(r.x - camPos.x, r.z - camPos.z) < this.detailDistance) this.face.setMatrixAt(faces++, _m);
       _c.set(k.color).lerp(WHITE, sq * 0.75);
       if (kind === Z_BOSS && st === ZS_BOSS_OPEN) _c.lerp(_c2.set(0x6ce5e3), 0.4);
+      if (kind === Z_MEDIC && (r.flags & ZF_LIT)) _c.lerp(_c2.set(0x9cff9a), 0.45 + 0.25 * Math.sin(time * 18));
+      if (r.flags & ZF_CREW) _c.lerp(_c2.set(0x5b9bd5), 0.25);
       this.body.setColorAt(n, _c);
       _c2.set(k.color).multiplyScalar(0.82).lerp(WHITE, sq * 0.6);
       _arm.makeRotationX(armL).setPosition(-SHOULDER_X, SHOULDER_Y, -0.04);
@@ -564,6 +672,20 @@ export class Zombies3D {
       this.armR.setColorAt(n, _c2);
       const ex = this.extras[kind];
       if (ex) ex.setMatrixAt(counts[kind]++, _m);
+      if (kind === Z_SHIELD && (r.flags & ZF_SHIELD)) {
+        _arm.makeTranslation(0, 0.8, -0.62);
+        this.shieldMesh.setMatrixAt(shields++, _m2.multiplyMatrices(_m, _arm));
+      }
+      if (tier > 0) {
+        _arm.makeTranslation(0, 0.58, 0);
+        this.band.setMatrixAt(bands, _m2.multiplyMatrices(_m, _arm));
+        this.band.setColorAt(bands++, _c2.set(TIER_COLORS[tier]));
+        if (tier === 2) {
+          _arm.makeRotationY(time * 1.5).setPosition(0, BODY_H + 0.04, 0);
+          this.crown.setMatrixAt(crowns, _m2.multiplyMatrices(_m, _arm));
+          this.crown.setColorAt(crowns++, _c2.set(0xffc83a));
+        }
+      }
       if (kind === Z_FLYER) {
         const flutter = Math.sin(Math.floor(time * this.wingHz) / this.wingHz * 15 + tr.id) * 0.55;
         _arm.makeRotationZ(-flutter).setPosition(-0.36, 0.91, 0.04);
@@ -575,7 +697,7 @@ export class Zombies3D {
         this.core.setMatrixAt(bosses, _m2.multiplyMatrices(_m, _arm));
         this.core.setColorAt(bosses++, _c.set(st === ZS_BOSS_OPEN ? 0x7ffff4 : r.stage >= 3 ? 0xff8055 : 0xbd72dc));
       }
-      const signal = attackSignal(st, r.wind);
+      const signal = attackSignal(st, r.wind, r.r);
       if (signal) {
         // Метка поверх поверхности остаётся читаемой и на низком качестве, в том числе на стене.
         const groundY = this.ground?.groundBelow(r.tx, r.ty, r.tz);
@@ -625,8 +747,11 @@ export class Zombies3D {
     this.face.instanceMatrix.needsUpdate = true;
     this.wingL.count = this.wingR.count = flyers;
     this.core.count = bosses;
+    this.shieldMesh.count = shields;
+    this.band.count = bands;
+    this.crown.count = crowns;
     this.warning.count = this.warningFill.count = warnings;
-    for (const m of [this.wingL, this.wingR, this.core, this.warning, this.warningFill]) {
+    for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }

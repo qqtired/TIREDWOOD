@@ -10,6 +10,7 @@ import {
   BUY_ANTIAIR, BUY_CRYSTAL, BUY_JAM, BUY_MAGAZINE, BUY_TURRET, CRYSTAL_FIX, CRYSTAL_HP, CRYSTAL_PRICE, FIX_HP, FIX_PRICE, FORT_HP, FORT_MAX_ALIVE, FORT_MAGAZINE,
   FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_PRICE, NEWGATE_PRICE, TURRET_PRICE, WAVE_PTS, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
+  ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import { ZF_RAGE } from '../../shared/fortnet.ts';
@@ -38,6 +39,7 @@ import { TOUCH } from '../touch.ts';
 import type { FortHud, MapDot } from './hud.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
+import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -45,6 +47,8 @@ export interface FortMatchDeps {
   world: FortWorld;
   effects: Effects;
   zombies: Zombies3D;
+  /** Броски дугой (плевки, камни, чернила, метеоры); в тестах можно не давать */
+  projectiles?: Projectiles;
   hud: FortHud;
   chat: Chat;
   sound: Sound;
@@ -167,6 +171,10 @@ export class FortMatch {
   private crysAlertAt = -99;
   private groanAt = 0;
   private climbAlertAt = -99;
+  private clangAt = -9;
+  private shieldHintAt = -99;
+  private armorHintAt = -99;
+  private fuseAlertAt = -99;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
@@ -181,6 +189,14 @@ export class FortMatch {
     this.localAvatar.addTo(deps.world.scene);
     deps.effects.clearSplats();
     deps.zombies.clear();
+    if (deps.projectiles) {
+      deps.projectiles.clear();
+      deps.projectiles.onLand = (kind, x, y, z) => this.onProjectileLand(kind, x, y, z);
+      deps.projectiles.trail = (kind, x, y, z) => {
+        if (kind === PJ_METEOR) deps.effects.puff(x, y, z, 1.1, 0xffa060, 0.5, 0.2, 0.55);
+        else deps.effects.puff(x, y, z, 0.6, 0xc8bfae, 0.35, 0.1, 0.35);
+      };
+    }
     deps.effects.onBallHitsPlayer = () => {};
     deps.effects.onImpact = (x, y, z, kind) => {
       if (kind === 0) deps.sound.splat([x, y, z], this.camPos.distanceTo(_v.set(x, y, z)));
@@ -560,12 +576,49 @@ export class FortMatch {
         case 'zhit': {
           const [, pid, zid, dmg, head, x, y, z] = e;
           zombies.hit(zid);
+          // 2 — в щит (щепки), 3 — в кастрюлю Чугунка (искры и звон)
+          if (head === 2) effects.burst(x, y, z, 0x9a6b42, 4, 2.5, 0, 0.5, 0, 0.035);
+          else if (head === 3) {
+            effects.burst(x, y, z, 0xffe08a, 5, 4, 0, 0.6, 0, 0.025);
+            if (this.time - this.clangAt > 0.08) {
+              this.clangAt = this.time;
+              sound.clang([x, y, z]);
+            }
+          }
           if (pid === this.myId) {
             const isHead = head === 1;
             hud.pb.hitmarker(isHead, false);
-            sound.hitmarker(isHead);
+            if (head !== 3) sound.hitmarker(isHead);
             hud.pb.damageNumber(x, y, z, dmg, isHead);
+            if (head === 2 && this.time - this.shieldHintAt > 12) {
+              this.shieldHintAt = this.time;
+              hud.alert('🛡 Попал в щит · стреляй в голову сверху или сбоку', 2200);
+            } else if (head === 3 && this.time - this.armorHintAt > 12) {
+              this.armorHintAt = this.time;
+              hud.alert('🍳 Кастрюля гасит урон · целься в голову', 2200);
+            }
           }
+          break;
+        }
+        case 'shield': {
+          const [, , x, y, z] = e;
+          effects.burst(x, y, z, 0x9a6b42, 22, 6, 0, 0.6, 0, 0.07);
+          effects.burst(x, y, z, 0x4a4f55, 6, 4, 0, 0.6, 0, 0.05);
+          sound.planks([x, y, z]);
+          break;
+        }
+        case 'heal': {
+          const [, , x, y, z, r] = e;
+          effects.puff(x, y + 0.8, z, r * 0.9, 0x9cff9a, 0.7, 0.2, 0.35, 1.4);
+          effects.burst(x, y + 1, z, 0x7dffa0, 10, 3, 0, 1, 0, 0.04);
+          if (this.camPos.distanceTo(_v.set(x, y, z)) < 40) sound.heal([x, y + 1, z]);
+          break;
+        }
+        case 'throw': {
+          const [, fx, fy, fz, tx, ty, tz, ticks, what] = e;
+          const kind = what === ZS_SPIT ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT ? PJ_INK : PJ_METEOR;
+          this.d.projectiles?.launch(kind, fx, fy, fz, tx, ty, tz, ticks / TICK_RATE, kind === PJ_METEOR ? 0.05 : 0.3);
+          if (kind === PJ_GLOB) sound.spit([fx, fy, fz]);
           break;
         }
         case 'zdie': {
@@ -622,7 +675,7 @@ export class FortMatch {
             const s = this.predictor.state;
             this.downBy = zid;
             this.respawnAt = this.clock.estimate(performance.now()) + FORT_RESPAWN_TICKS;
-            hud.showDeath(zid ? 'Зомби добрались до тебя — встанешь на террасе' : 'Снова на террасу');
+            hud.showDeath(zid ? downText(this.d.zombies.kindOf(zid)) : 'Снова на террасу');
             sound.death();
             effects.deathSplat(s.x, s.y, s.z, this.colorOf(pid));
             this.deathX = s.x;
@@ -710,8 +763,21 @@ export class FortMatch {
           break;
         }
         case 'warn': {
-          const [, , attack, , , , , end] = e;
+          const [, , attack, tx, , tz, , end] = e;
           const sec = Math.max(0, (end - this.clock.estimate(performance.now())) / TICK_RATE);
+          // плевки и бочки — часто: тревога только тому, у кого метка рядом
+          const near = Math.hypot(tx - this.predictor.state.x, tz - this.predictor.state.z) < 6;
+          if (attack === ZS_SPIT) {
+            if (near) hud.alert('💦 Плевальщик целится в тебя · уйди с метки', Math.max(1200, sec * 1000));
+            break;
+          }
+          if (attack === ZS_PLANT) {
+            if (this.time - this.fuseAlertAt > 5) {
+              this.fuseAlertAt = this.time;
+              hud.alert('💣 Бочка у ворот · фитиль 3 с — сбейте подрывника!', 2600);
+            }
+            break;
+          }
           hud.alert(attack === ZS_FLY_WARN ? 'Крылатка пикирует · уйди с метки или сбей её'
             : attack === ZS_BOSS_GATE ? 'Барон бьёт по воротам · отойди от красного круга'
             : attack === ZS_BOSS_PULSE ? 'Удар по стене · выйди из круга или прыгни'
@@ -721,10 +787,25 @@ export class FortMatch {
         }
         case 'blast': {
           const [, attack, x, y, z, r] = e;
+          const dist = this.camPos.distanceTo(_v.set(x, y, z));
+          if (attack === ZS_SPIT) {
+            effects.splat(x, y - 0.75, z, 0, 1, 0, r * 0.9, 0xb02a48, -1, 12);
+            effects.burst(x, y, z, 0xb02a48, 14, 4, 0, 1, 0, 0.05);
+            break;
+          }
+          if (attack === ZS_BARREL) {
+            effects.burst(x, y, z, 0xffb347, 36, r * 2, 0, 1, 0, 0.07);
+            effects.burst(x, y, z, 0x8a5a34, 16, r * 1.5, 0, 1, 0, 0.06);
+            effects.puff(x, y + 0.6, z, r * 1.3, 0x6b625a, 1.1, 1.2, 0.6);
+            effects.puff(x, y + 0.3, z, r * 0.9, 0xffa040, 0.35, 0.4, 0.8);
+            sound.boom([x, y, z]);
+            if (dist < r + 14) this.shake = Math.max(this.shake, Math.min(1, (r + 14 - dist) / 12));
+            break;
+          }
           effects.burst(x, y, z, attack === ZS_BOSS_OPEN ? 0x69e7ef : 0xff805c, 20, r, 0, 1, 0, 0.065);
           effects.puff(x, y, z, r * 1.1, 0xe883ae, 0.6, 0.65, 0.4);
           sound.bloat([x, y, z]);
-          if (this.camPos.distanceTo(_v.set(x, y, z)) < r + 8) this.shake = Math.max(this.shake, 0.5);
+          if (dist < r + 8) this.shake = Math.max(this.shake, 0.5);
           break;
         }
         case 'bossphase': {
@@ -750,6 +831,15 @@ export class FortMatch {
         }
       }
     }
+  }
+
+  /** Бросок долетел: плевок — клякса (сама метка — в событии blast), камень — пыль, метеор — вспышка */
+  private onProjectileLand(kind: number, x: number, y: number, z: number): void {
+    const { effects } = this.d;
+    if (kind === PJ_GLOB) effects.burst(x, y, z, 0xb02a48, 8, 3, 0, 1, 0, 0.04);
+    else if (kind === PJ_ROCK) effects.puff(x, y, z, 2.2, 0xc8bfae, 0.9, 0.6, 0.6);
+    else if (kind === PJ_INK) effects.burst(x, y, z, 0x5a2f6e, 14, 4, 0, 1, 0, 0.05);
+    else effects.puff(x, y, z, 2.5, 0xffa060, 0.6, 0.8, 0.7);
   }
 
   /** Угол на зомби (или на ворота, если не видно) относительно взгляда: 0 — впереди, по часовой. */
@@ -881,6 +971,7 @@ export class FortMatch {
     this.updateLocalAvatar(dt, alpha);
     const cam = d.world.camera;
     d.zombies.update(this.clock.renderTick, dt, this.time, cam);
+    d.projectiles?.update(dt);
     d.effects.update(dt);
     d.world.update(dt, this.camPos);
     tickAvatarShared(this.time, d.world.renderer.canvas.clientHeight || window.innerHeight);
@@ -1304,6 +1395,16 @@ export class FortMatch {
 }
 
 /** 1 жетон, 2 жетона, 5 жетонов */
+/** Почему повалили — по виду зомби, чтобы было понятно, от чего беречься */
+function downText(kind: number): string {
+  if (kind === Z_SPITTER) return 'Плевок попал — уходи с красной метки';
+  if (kind === Z_SAPPER) return 'Бочка рванула рядом — бей подрывника издалека';
+  if (kind === Z_BLOATER) return 'Пузырь лопнул рядом — бей его издалека';
+  if (kind === Z_FLYER) return 'Крылатка спикировала — поглядывай в небо';
+  if (isBossKind(kind)) return 'Босс достал — уходи с красных меток';
+  return 'Зомби добрались до тебя — встанешь на террасе';
+}
+
 function plural(n: number, one: string, few: string, many: string): string {
   const m10 = n % 10;
   const m100 = n % 100;

@@ -532,7 +532,7 @@ export class FortGame implements HordeHost {
     if (i >= 0) {
       const z = this.who[i];
       const head = zombieHead(z.kind, ey, tg[i * FT_STRIDE + 1]);
-      this.horde.damage(z, damageAt(best, head), p.id, head, ex, ey, ez);
+      this.horde.damage(z, damageAt(best, head), p.id, head, ex, ey, ez, ox, oz);
     }
   }
 
@@ -694,7 +694,7 @@ export class FortGame implements HordeHost {
       const ey = best.y + ZK[best.kind].hcy;
       this.events.push(['tshot', i, best.id, r2(best.x), r2(ey), r2(best.z)]);
       this.horde.damage(best, t.aa ? best.kind === Z_FLYER ? ANTIAIR_DMG : ANTIAIR_GROUND_DMG : TURRET_DMG,
-        this.players.has(t.owner) ? t.owner : 0, false, best.x, ey, best.z);
+        this.players.has(t.owner) ? t.owner : 0, false, best.x, ey, best.z, ox, oz);
     }
   }
 
