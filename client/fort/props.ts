@@ -209,7 +209,8 @@ export class FortProps {
     for (const st of map.stations) {
       // постоянного размера на экране (как ники желеек), вдали и вплотную — прячутся
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, sizeAttenuation: false }));
-      const baseY = st.y + (st.kind === 'tower' ? 2.3 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : 2.3);
+      // над башней — выше её навершия и вымпела (башни client/fort/turrets — до 2,9 м)
+      const baseY = st.y + (st.kind === 'tower' ? 3.2 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : 2.3);
       sprite.position.set(st.x, baseY, st.z);
       sprite.scale.set(LABEL_W, LABEL_H, 1);
       sprite.renderOrder = 6;

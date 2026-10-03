@@ -47,7 +47,19 @@ function towers(t: number[], l: number[]): void {
     levels[i] = l[i] ?? 1;
   }
   a3.setTowers(types, levels);
+  marks();
 }
+
+/** ?marks=1 — таблички над местами, как в игре («⚔ ур. 5»): видно, не спорят ли они с вымпелами */
+function marks(): void {
+  if (!q.get('marks')) return;
+  for (const st of map.stations) {
+    if (st.kind !== 'tower') continue;
+    const t = types[st.arg] ?? -1;
+    world.props.setMark(st.id, t < 0 ? '🏰' : TOWERS[t].icon, t < 0 ? 'БАШНЯ' : `ур. ${levels[st.arg]}`);
+  }
+}
+marks();
 
 // ------------------------------------------------------------ виды
 const _v = new THREE.Vector3();
@@ -62,8 +74,9 @@ const VIEWS: Record<string, [number, number, number, number, number, number]> = 
   terrace: [0, 6.6, 9.5, 0, 3.2, -16],
   // ряд всех типов во дворе (уровень — ?ll=, или row(level))
   lineup: [0.9, 2.3, 0.6, 0.1, 1.0, -4.4],
-  // тот же ряд сзади-сбоку: щитки со звёздами
-  lineupBack: [5.2, 2.6, -8.6, 0.4, 0.9, -4.0],
+  // тот же ряд спереди-сбоку (как видят враги) и сзади-сбоку (щитки со звёздами — как видят защитники)
+  lineupFront: [5.2, 2.6, -8.6, 0.4, 0.9, -4.0],
+  lineupBack: [6.8, 2.2, -0.6, 0.6, 1.0, -4.6],
 };
 for (let i = 0; i < TOWER_SPOT_COUNT; i++) {
   const s = TOWER_SPOTS[i];
