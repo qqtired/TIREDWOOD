@@ -97,10 +97,18 @@ export const BARKAS_LANDING_SPOTS: ReadonlyArray<readonly [number, number]> = [
   [-49.4, 67], [-49.4, 68], [-49.4, 69], [-50.4, 67], [-50.4, 68], [-50.4, 69],
 ];
 
-/** Места рыбалки на борту: по четыре вдоль каждого борта, шаг 2,5 м. Северные смотрят на остров — их видно с пирса. */
-export const BARKAS_FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number; zone: 'barkas' }> = [-59.5, -57, -54.5, -52].flatMap((x) => [
-  { x, z: BARKAS.z - BARKAS.half + 0.65, yaw: 0, zone: 'barkas' as const },
-  { x, z: BARKAS.z + BARKAS.half - 0.65, yaw: Math.PI, zone: 'barkas' as const },
+/**
+ * Места рыбалки от обшивки внутрь, м: желейка (радиус до 0,53) и руки с удочкой (до 0,95 м вперёд, ниже планширя)
+ * целиком на палубе, не в фальшборте (его толщина 0,16); удочка — над планширем, поплавок — в 6,5–9,5 м, в море.
+ */
+export const BARKAS_SPOT_IN = 1.15;
+/**
+ * Места рыбалки на борту: по четыре вдоль каждого борта, шаг 2,5 м (западная пара — 2,2 м: дальше от стола рулетки
+ * под тентом). Северные смотрят на остров — их видно с пирса.
+ */
+export const BARKAS_FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number; zone: 'barkas' }> = [-59.2, -57, -54.5, -52].flatMap((x) => [
+  { x, z: BARKAS.z - BARKAS.half + BARKAS_SPOT_IN, yaw: 0, zone: 'barkas' as const },
+  { x, z: BARKAS.z + BARKAS.half - BARKAS_SPOT_IN, yaw: Math.PI, zone: 'barkas' as const },
 ]);
 
 /** Вода вокруг баркаса: упал здесь — матросы вытаскивают на палубу (с острова сюда не доплыть: невидимые стены). */

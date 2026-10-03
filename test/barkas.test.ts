@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BARKAS, BARKAS_BOARD, BARKAS_FISH_SPOTS, BARKAS_LANDING_SPOTS, SANYA_PRICE, SANYA_USE, barkasWater,
+  BARKAS, BARKAS_BOARD, BARKAS_FISH_SPOTS, BARKAS_LANDING_SPOTS, BARKAS_RAIL_T, SANYA_PRICE, SANYA_USE, barkasHalf, barkasWater,
 } from '../shared/barkas.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
 import {
@@ -58,6 +58,10 @@ test('баркас: восемь мест рыбалки вдоль бортов
   assert.deepEqual(spots.map((i) => i.arg), [12, 13, 14, 15, 16, 17, 18, 19]);
   for (const s of BARKAS_FISH_SPOTS) {
     standable(w, s.x, s.z, 0, 'место на баркасе');
+    // желейка (радиус до 0,53) и руки с удочкой (до 0,95 м вперёд, ниже планширя) — не в фальшборте
+    const toRail = barkasHalf(s.x) - BARKAS_RAIL_T - Math.abs(s.z - BARKAS.z);
+    assert.ok(toRail >= 0.95, `место (${s.x}, ${s.z}): до фальшборта ${toRail.toFixed(2)} м`);
+    assert.ok(!w.overlaps(s.x - 0.55, 0.002, s.z - 0.55, s.x + 0.55, PLAYER_HEIGHT, s.z + 0.55), `место (${s.x}, ${s.z}): вокруг желейки свободно`);
     for (const d of [6.5, 9.5]) assert.equal(w.groundBelow(s.x - Math.sin(s.yaw) * d, 5, s.z - Math.cos(s.yaw) * d), -Infinity, 'поплавок в воде');
     // зоны точек не наезжают друг на друга: место рыбалки — отдельно от лодки и Сани
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && Math.hypot(i.x - s.x, i.z - s.z) < 20)) {
@@ -201,6 +205,9 @@ test('с баркаса: колокол зовёт пустую лодку; об
   useFerry(hub, a.c, 1);
   assert.match(lastOf(a.s, 'toast')!.text, /Гоша услышал — «Удалая» будет у борта через \d+ с/);
   assert.deepEqual(lastOf(a.s, 'ferry'), { t: 'ferry', ph: FE_BOARD, at: hub.lobby.tick + FERRY_CALL_TICKS, n: 0, c: 1 });
+  // позвонил ещё раз, пока лодка у мостков: не «уже идёт», а «отходит»
+  useFerry(hub, a.c, 1);
+  assert.match(lastOf(a.s, 'toast')!.text, /Гоша уже слышал колокол — «Удалая» отходит от мостков Семёна, у борта будет через \d+ с/);
   steps(hub, FERRY_CALL_TICKS + FERRY_OUT_TICKS);
   assert.equal(hub.lobby.ferry.phase, FE_AWAY, 'пришла пустой');
   useFerry(hub, a.c, 1);
@@ -216,6 +223,30 @@ test('с баркаса: колокол зовёт пустую лодку; об
   hold(hub, [a.c], 0, 90);
   assert.ok(BARKAS_LANDING_SPOTS.some(([x, z]) => Math.hypot(pa.state.x - x, pa.state.z - z) < 1e-6), `на палубе (${pa.state.x}, ${pa.state.z})`);
   assert.equal(pa.state.y, 0);
+});
+
+test('за борт с палубы: под водой унесло за край воды баркаса — всё равно на палубу; с мостков туда же — к аквапарку', () => {
+  const { hub } = setupHub();
+  const a = login(hub, 'Ныряльщик');
+  const pa = lp(hub, a.c);
+  const onDeck = () => BARKAS_LANDING_SPOTS.some(([x, z]) => Math.hypot(pa.state.x - x, pa.state.z - z) < 1e-6);
+  placeAt(hub, a.c, BARKAS_LANDING_SPOTS[2][0], BARKAS_LANDING_SPOTS[2][1]);
+  hold(hub, [a.c], 0, 10);
+  assert.equal(pa.state.grounded, 1, 'стоит на палубе');
+  // с разбега и рывком на север под водой уносит за z = 50 — край barkasWater
+  const lost = { x: -50.6, z: 48.5 };
+  assert.equal(barkasWater(lost.x, lost.z), false);
+  placeAt(hub, a.c, lost.x, lost.z, -1);
+  hold(hub, [a.c], 0, 60);
+  assert.ok(onDeck(), `на палубе (${pa.state.x}, ${pa.state.z})`);
+  assert.equal(pa.state.y, 0);
+  // кто прыгнул с мостков Семёна, того матросы не ловят
+  placeAt(hub, a.c, FERRY_HOME_SPOTS[0][0], FERRY_HOME_SPOTS[0][1]);
+  hold(hub, [a.c], 0, 10);
+  assert.equal(pa.state.grounded, 1, 'стоит на мостках');
+  placeAt(hub, a.c, lost.x, lost.z, -1);
+  hold(hub, [a.c], 0, 60);
+  assert.ok(!onDeck() && !barkasWater(pa.state.x, pa.state.z), `не на баркасе (${pa.state.x}, ${pa.state.z})`);
 });
 
 test('Саня: за 250 🪙 — на пирс к Семёну (действие ferry разговора fisheco); далеко или без денег — нет; E у прилавка — говорит Саня', () => {
