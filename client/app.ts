@@ -625,7 +625,9 @@ export class App {
         return;
       case 'lobby':
         this.raceTrack = m.kart.track ?? DEFAULT_TRACK;
-        this.lobby.onJson(m);
+        // Приветствие набережной — через переход, как у остальных комнат: при возврате из режима сцена набережной
+        // входит (enter) позже письма, и enter() стёр бы свой id — игрок оставался без желейки до перезагрузки.
+        this.transition.toScene(m);
         return;
       case 'kart':
         this.raceTrack = m.track ?? DEFAULT_TRACK;
