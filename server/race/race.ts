@@ -74,6 +74,13 @@ const BUMP_BOUNCE = 0.4;
 const RESPAWN_HIDE = 6;
 /** «Болеют за вас» — не чаще раза в 2 с на всю гонку */
 const CHEER_GAP = 2 * TICK_RATE;
+/**
+ * Ввод человека: клиент держит в очереди 2–5 входов (по разбросу сети); по два за тик тратим, только если их
+ * накопилось больше RC_CATCH_UP. Без ввода карт ждёт RC_STARVE_IDLE тиков и лишь потом едет по последнему вводу:
+ * короткий лаг или подвисший кадр не дают лишних шагов, которые потом откатывают предсказание (рывок у игрока).
+ */
+const RC_CATCH_UP = 8;
+const RC_STARVE_IDLE = 20;
 /** Умения ботов по очереди: так в гонке с одним человеком есть кого обогнать */
 const BOT_SKILLS: KartSkill[] = ['normal', 'easy', 'hard', 'normal', 'easy'];
 /** Хлопок: радиус волны, м; кого задело — закрутка и замедление */
@@ -400,7 +407,7 @@ export class Race {
 
   private processHuman(k: Kart, canDrive: boolean): void {
     const q = k.inq;
-    const n = q.due();
+    const n = q.due(RC_CATCH_UP);
     for (let i = 0; i < n; i++) {
       const inp = q.shift();
       this.simulate(k, inp, canDrive);
@@ -410,7 +417,7 @@ export class Race {
     if (n === 0) {
       q.starve++;
       // Долго нет ввода (вкладка свернулась, лаг) — по последнему вводу без разовых кнопок, потом без кнопок
-      if (q.starve > 8) {
+      if (q.starve > RC_STARVE_IDLE) {
         const idle = this.idleInput;
         idle.buttons = q.starve > 90 ? 0 : k.lastInput.buttons & ~(BTN_FIRE | BTN_USE | BTN_RELOAD | BTN_JUMP);
         this.simulate(k, idle, canDrive);

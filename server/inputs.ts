@@ -25,11 +25,14 @@ export class InputQueue {
     if (this.items.length > max) this.items.splice(0, this.items.length - max);
   }
 
-  /** Сколько входов применить в этом тике (вызывать раз в тик). */
-  due(): number {
+  /**
+   * Сколько входов применить в этом тике (вызывать раз в тик). catchUp — с какой длины очереди тратить по два
+   * (догонять); гонка держит запас побольше и догоняет позже, чтобы карт не прыгал на двойной шаг.
+   */
+  due(catchUp = 3): number {
     this.budget = Math.min(this.budget + 1, 10);
     const q = this.items.length;
-    let n = q > 3 ? 2 : q > 0 ? 1 : 0;
+    let n = q > catchUp ? 2 : q > 0 ? 1 : 0;
     if (n > Math.floor(this.budget)) n = Math.floor(this.budget);
     return n;
   }

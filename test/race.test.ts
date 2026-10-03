@@ -488,3 +488,30 @@ test('снимок гонки — раз в 2 тика, первый со сбр
   decodeKartSnapshot(s.bins[1].slice().buffer, h, self, [], []);
   assert.equal(h.flags & SNAP_SELF_RESET, 0);
 });
+
+test('ввод человека: короткий лаг (12 тиков без пакетов) — без лишних шагов сервера, потом по одному входу в тик', () => {
+  const { race } = newRace({ minKarts: 1 });
+  const { k } = human(race, 'Lag');
+  toRace(race);
+  // запас в очереди, как держит клиент
+  for (let i = 0; i < 3; i++) send(race, k, BTN_FORWARD);
+  for (let t = 0; t < 30; t++) {
+    send(race, k, BTN_FORWARD);
+    race.step();
+  }
+  const rt0 = k.state.rt;
+  const ack0 = k.inq.ack;
+  // 12 тиков пакеты не приходят: запас тратится, потом карт ждёт, а не едет «по последнему вводу»
+  for (let t = 0; t < 12; t++) race.step();
+  assert.equal(k.state.rt - rt0, k.inq.ack - ack0, 'шагов столько же, сколько применено входов');
+  // пачка опоздавших входов: тратятся по одному в тик (очередь не больше RC_CATCH_UP — без двойных шагов)
+  for (let i = 0; i < 12; i++) send(race, k, BTN_FORWARD);
+  let doubles = 0;
+  for (let t = 0; t < 12; t++) {
+    const a = k.inq.ack;
+    race.step();
+    if (k.inq.ack - a > 1) doubles++;
+  }
+  assert.equal(k.state.rt - rt0, k.inq.ack - ack0, 'ни одного шага без входа');
+  assert.ok(doubles <= 4, `двойных шагов мало: ${doubles}`);
+});
