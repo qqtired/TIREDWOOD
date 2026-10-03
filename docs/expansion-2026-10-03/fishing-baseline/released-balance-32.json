@@ -1,0 +1,3898 @@
+{
+  "simulation": {
+    "reelSeedsPerSpecies": 1200,
+    "incomeSeedsPerSpecies": 300,
+    "seedFormula": "(11 + sp * 7919 + i * 2654435761)|0",
+    "rounding": "common round(oldIntegerSale*1.75), then round(uniqueCommon*1.5) if event-only; other round(rawBaseSale*1.076*event1.5); beer round(finalFishSale*1.1)",
+    "noviceScope": "level0/rod0/no beer/discovery/quests/chests",
+    "speciesCount": 32,
+    "uniqueCount": 8
+  },
+  "baselineRelease6": {
+    "typicalClear": {
+      "points": 13.714891432253872,
+      "coins": 13.465547009661105,
+      "chest": 4.478372098722762,
+      "fish": 2.2633512651190775,
+      "perBite": 21.228910395166665,
+      "landed": 0.9410199999999999
+    },
+    "typicalRain": {
+      "points": 14.881133017541384,
+      "coins": 16.994680233920597,
+      "chest": 4.321504864371872,
+      "fish": 2.139820607948711,
+      "perBite": 21.999503178580483,
+      "landed": 0.9219543726235738
+    },
+    "expertClear": {
+      "points": 18.55663512937355,
+      "coins": 18.23402639148296,
+      "chest": 4.716721643219723,
+      "fish": 2.4782337794487517,
+      "perBite": 20.156152342944445,
+      "landed": 0.9782933333333336
+    }
+  },
+  "prior30": {
+    "typicalClear": {
+      "points": 16.381308094894784,
+      "coins": 20.197887505335476,
+      "chest": 4.599316579035137,
+      "fish": 2.3782928145939386,
+      "perBite": 20.67067103694444,
+      "landed": 0.9628066666666666,
+      "xp": 86.98184270779134
+    },
+    "typicalRain": {
+      "points": 18.037398835118346,
+      "coins": 24.315381785723297,
+      "chest": 4.513114230229206,
+      "fish": 2.3257597429916212,
+      "perBite": 21.065489404900717,
+      "landed": 0.9595234474017742,
+      "xp": 84.84277315653614
+    },
+    "expertClear": {
+      "points": 19.944670608183987,
+      "coins": 24.087627601488926,
+      "chest": 4.781261711234378,
+      "fish": 2.532413231291561,
+      "perBite": 19.88407364872222,
+      "landed": 0.9861866666666668,
+      "xp": 115.69765223374318
+    }
+  },
+  "current": {
+    "typicalClear": {
+      "points": 16.964828952976887,
+      "coins": 20.717844430858413,
+      "chest": 4.589998535788232,
+      "fish": 2.368138167321099,
+      "perBite": 20.712634058318635,
+      "landed": 0.9606419753086417,
+      "xp": 87.86775883045908
+    },
+    "typicalRain": {
+      "points": 19.555793402788805,
+      "coins": 28.537761964246947,
+      "chest": 4.4791497843629005,
+      "fish": 2.3000178410711625,
+      "perBite": 21.225224557549055,
+      "landed": 0.9560986126734154,
+      "xp": 85.85483404981785
+    },
+    "expertClear": {
+      "points": 20.72810378892928,
+      "coins": 24.817458874757676,
+      "chest": 4.7746625017504964,
+      "fish": 2.526856332450498,
+      "perBite": 19.91155604509112,
+      "landed": 0.9853827160493827,
+      "xp": 117.03625231886457
+    },
+    "expertRain": {
+      "points": 23.42716294185968,
+      "coins": 33.693137070751575,
+      "chest": 4.727661737326193,
+      "fish": 2.492689890729403,
+      "perBite": 20.109509791994753,
+      "landed": 0.9817229096362956,
+      "xp": 115.53896663370226
+    }
+  },
+  "buffs": {
+    "noviceBeer": {
+      "mods": {
+        "level": 0,
+        "rod": 0,
+        "zoneScale": 1,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.2,
+        "incomeScale": 1.1
+      },
+      "clear": {
+        "points": 17.978717964774,
+        "coins": 23.810687242103118,
+        "chest": 4.5674581064569955,
+        "fish": 2.3462417874241925,
+        "perBite": 20.814851014308942,
+        "landed": 0.9564565853658539,
+        "xp": 89.06400050400826
+      },
+      "rain": {
+        "points": 20.42731012714419,
+        "coins": 32.695075627805,
+        "chest": 4.457335962496696,
+        "fish": 2.2811534218684533,
+        "perBite": 21.329098995433974,
+        "landed": 0.9528975158402898,
+        "xp": 86.60289734077686
+      }
+    },
+    "level1": {
+      "mods": {
+        "level": 1,
+        "rod": 0,
+        "zoneScale": 1.025,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.025,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 17.52834491410391,
+        "coins": 21.287915293528187,
+        "chest": 4.592999731712479,
+        "fish": 2.3821747840793583,
+        "perBite": 20.699099837428736,
+        "landed": 0.9657045375218152,
+        "xp": 90.2256069118632
+      },
+      "rain": {
+        "points": 20.087653098949847,
+        "coins": 29.208198309126978,
+        "chest": 4.499915951716394,
+        "fish": 2.3211936658172636,
+        "perBite": 21.12727460248169,
+        "landed": 0.9604484133032208,
+        "xp": 88.14908784272326
+      }
+    },
+    "level10": {
+      "mods": {
+        "level": 10,
+        "rod": 0,
+        "zoneScale": 1.25,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.25,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 21.530692864943305,
+        "coins": 25.35326339486534,
+        "chest": 4.701785408874051,
+        "fish": 2.4803542817530735,
+        "perBite": 20.220182703482187,
+        "landed": 0.9822408293460922,
+        "xp": 109.77568826929948
+      },
+      "rain": {
+        "points": 23.896966017414965,
+        "coins": 34.12857348120243,
+        "chest": 4.644060659539411,
+        "fish": 2.4480962006869733,
+        "perBite": 20.471515548513302,
+        "landed": 0.9815166360481732,
+        "xp": 107.92080385298847
+      }
+    },
+    "advanced": {
+      "mods": {
+        "level": 0,
+        "rod": 1,
+        "zoneScale": 1.1,
+        "biteSpeed": 1.1,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 19.39953272760464,
+        "coins": 23.486772010329208,
+        "chest": 4.905602007708969,
+        "fish": 2.5657259769023937,
+        "perBite": 19.380080130960394,
+        "landed": 0.9738342151675482,
+        "xp": 101.97977793656355
+      },
+      "rain": {
+        "points": 22.18545921251263,
+        "coins": 32.174300004090675,
+        "chest": 4.819093842774872,
+        "fish": 2.50958633001209,
+        "perBite": 19.727974407997294,
+        "landed": 0.9696250468691412,
+        "xp": 100.43923979292238
+      }
+    },
+    "professional": {
+      "mods": {
+        "level": 0,
+        "rod": 2,
+        "zoneScale": 1.2,
+        "biteSpeed": 1.2,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 21.48570982068127,
+        "coins": 25.88326610465,
+        "chest": 5.216214700069586,
+        "fish": 2.7489342465284485,
+        "perBite": 18.226044261316872,
+        "landed": 0.9812416225749556,
+        "xp": 114.73211909644917
+      },
+      "rain": {
+        "points": 24.40752839845331,
+        "coins": 35.26236249809113,
+        "chest": 5.140880952216491,
+        "fish": 2.6995006619923068,
+        "perBite": 18.493126155549305,
+        "landed": 0.9777165354330706,
+        "xp": 113.73328699097789
+      }
+    },
+    "master": {
+      "mods": {
+        "level": 0,
+        "rod": 3,
+        "zoneScale": 1.3,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 23.478840183092228,
+        "coins": 28.16790118234005,
+        "chest": 5.504332317778687,
+        "fish": 2.91733066351857,
+        "perBite": 17.272024018776282,
+        "landed": 0.9868430335096998,
+        "xp": 127.89327574930712
+      },
+      "rain": {
+        "points": 26.633612584482073,
+        "coins": 38.372398992158296,
+        "chest": 5.438548873985819,
+        "fish": 2.8781659647330926,
+        "perBite": 17.480942472495265,
+        "landed": 0.9853712035995499,
+        "xp": 127.3628674259558
+      }
+    },
+    "max": {
+      "mods": {
+        "level": 10,
+        "rod": 3,
+        "zoneScale": 1.625,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1.25,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 28.276362177156933,
+        "coins": 33.00282128124141,
+        "chest": 5.62810969418009,
+        "fish": 3.0079752089603637,
+        "perBite": 16.892165427818668,
+        "landed": 0.9951275917065391,
+        "xp": 154.1128525885293
+      },
+      "rain": {
+        "points": 31.061052450124727,
+        "coins": 44.05955337007981,
+        "chest": 5.588142365021304,
+        "fish": 2.9880356830341452,
+        "perBite": 17.012981021223062,
+        "landed": 0.995601143090427,
+        "xp": 154.01012061827166
+      }
+    },
+    "maxBeer": {
+      "mods": {
+        "level": 10,
+        "rod": 3,
+        "zoneScale": 1.625,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1.5,
+        "incomeScale": 1.1
+      },
+      "clear": {
+        "points": 30.136286300463134,
+        "coins": 38.31398811644824,
+        "chest": 5.616567386354857,
+        "fish": 3.0004071930559273,
+        "perBite": 16.926879615291305,
+        "landed": 0.994663755458515,
+        "xp": 158.09442118713793
+      },
+      "rain": {
+        "points": 32.46772821382285,
+        "coins": 50.57648446564398,
+        "chest": 5.578097971172446,
+        "fish": 2.9818356624310853,
+        "perBite": 17.043616030289492,
+        "landed": 0.9953243653720981,
+        "xp": 156.57387046457657
+      }
+    }
+  },
+  "species": [
+    {
+      "sp": 0,
+      "id": "hamsa",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03937007874015748,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "pricePrior30": [
+        4,
+        5
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 348.6,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 7,
+          "turn": 30,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 250,
+          "hoverP": 30,
+          "lo": 35,
+          "hi": 90,
+          "roam": 18,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 348.55083333333334,
+          "caughtTicks": 348.55083333333334
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 320.1575,
+          "caughtTicks": 320.1575
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 24,
+          "sharp": 7,
+          "turn": 30,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 250,
+          "hoverP": 30,
+          "lo": 35,
+          "hi": 90,
+          "roam": 18,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 348.55083333333334,
+          "caughtTicks": 348.55083333333334,
+          "perfectP": 0.4866666666666667,
+          "costTicks": 348.55083333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 320.1575,
+          "caughtTicks": 320.1575,
+          "perfectP": 0.7125,
+          "costTicks": 320.1575
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 7,
+          "turn": 30,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 250,
+          "hoverP": 30,
+          "lo": 35,
+          "hi": 90,
+          "roam": 18,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 348.55083333333334,
+          "caughtTicks": 348.55083333333334,
+          "perfectP": 0.4866666666666667,
+          "costTicks": 348.55083333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 320.1575,
+          "caughtTicks": 320.1575,
+          "perfectP": 0.7125,
+          "costTicks": 320.1575
+        }
+      }
+    },
+    {
+      "sp": 1,
+      "id": "goby",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.0421822272215973,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "pricePrior30": [
+        4,
+        7
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 15,
+      "perfectXp": 36,
+      "difficulty": 326.5,
+      "before": {
+        "style": {
+          "spd": 16,
+          "sharp": 6,
+          "turn": 6,
+          "dart": 3,
+          "dartSpd": 45,
+          "dartUp": 70,
+          "hover": 900,
+          "hoverP": 70,
+          "lo": 0,
+          "hi": 35,
+          "roam": 14,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 326.4841666666667,
+          "caughtTicks": 326.4841666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.9375,
+          "caughtTicks": 305.9375
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 16,
+          "sharp": 6,
+          "turn": 6,
+          "dart": 3,
+          "dartSpd": 45,
+          "dartUp": 70,
+          "hover": 900,
+          "hoverP": 70,
+          "lo": 0,
+          "hi": 35,
+          "roam": 14,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 326.4841666666667,
+          "caughtTicks": 326.4841666666667,
+          "perfectP": 0.7491666666666666,
+          "costTicks": 326.4841666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.9375,
+          "caughtTicks": 305.9375,
+          "perfectP": 0.8966666666666666,
+          "costTicks": 305.9375
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 16,
+          "sharp": 6,
+          "turn": 6,
+          "dart": 3,
+          "dartSpd": 45,
+          "dartUp": 70,
+          "hover": 900,
+          "hoverP": 70,
+          "lo": 0,
+          "hi": 35,
+          "roam": 14,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 326.4841666666667,
+          "caughtTicks": 326.4841666666667,
+          "perfectP": 0.7491666666666666,
+          "costTicks": 326.4841666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.9375,
+          "caughtTicks": 305.9375,
+          "perfectP": 0.8966666666666666,
+          "costTicks": 305.9375
+        }
+      }
+    },
+    {
+      "sp": 2,
+      "id": "scad",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03937007874015748,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "pricePrior30": [
+        4,
+        9
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 343.7,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 5,
+          "turn": 12,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 20,
+          "hi": 85,
+          "roam": 30,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 343.68333333333334,
+          "caughtTicks": 343.68333333333334
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 313.71166666666664,
+          "caughtTicks": 313.71166666666664
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 24,
+          "sharp": 5,
+          "turn": 12,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 20,
+          "hi": 85,
+          "roam": 30,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 343.68333333333334,
+          "caughtTicks": 343.68333333333334,
+          "perfectP": 0.545,
+          "costTicks": 343.68333333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 313.71166666666664,
+          "caughtTicks": 313.71166666666664,
+          "perfectP": 0.8108333333333333,
+          "costTicks": 313.71166666666664
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 5,
+          "turn": 12,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 20,
+          "hi": 85,
+          "roam": 30,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 343.68333333333334,
+          "caughtTicks": 343.68333333333334,
+          "perfectP": 0.545,
+          "costTicks": 343.68333333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 313.71166666666664,
+          "caughtTicks": 313.71166666666664,
+          "perfectP": 0.8108333333333333,
+          "costTicks": 313.71166666666664
+        }
+      }
+    },
+    {
+      "sp": 3,
+      "id": "redmullet",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03374578177727784,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "pricePrior30": [
+        4,
+        9
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 330.3,
+      "before": {
+        "style": {
+          "spd": 18,
+          "sharp": 5,
+          "turn": 15,
+          "dart": 2,
+          "dartSpd": 45,
+          "dartUp": 50,
+          "hover": 600,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 40,
+          "roam": 16,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 330.31166666666667,
+          "caughtTicks": 330.31166666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.45416666666665,
+          "caughtTicks": 305.45416666666665
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 18,
+          "sharp": 5,
+          "turn": 15,
+          "dart": 2,
+          "dartSpd": 45,
+          "dartUp": 50,
+          "hover": 600,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 40,
+          "roam": 16,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 330.31166666666667,
+          "caughtTicks": 330.31166666666667,
+          "perfectP": 0.7333333333333333,
+          "costTicks": 330.31166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.45416666666665,
+          "caughtTicks": 305.45416666666665,
+          "perfectP": 0.9083333333333333,
+          "costTicks": 305.45416666666665
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 18,
+          "sharp": 5,
+          "turn": 15,
+          "dart": 2,
+          "dartSpd": 45,
+          "dartUp": 50,
+          "hover": 600,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 40,
+          "roam": 16,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 330.31166666666667,
+          "caughtTicks": 330.31166666666667,
+          "perfectP": 0.7333333333333333,
+          "costTicks": 330.31166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.45416666666665,
+          "caughtTicks": 305.45416666666665,
+          "perfectP": 0.9083333333333333,
+          "costTicks": 305.45416666666665
+        }
+      }
+    },
+    {
+      "sp": 17,
+      "id": "wrasse",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03374578177727784,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "pricePrior30": [
+        4,
+        7
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 335.7,
+      "before": {
+        "style": {
+          "spd": 20,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 3,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 45,
+          "lo": 25,
+          "hi": 70,
+          "roam": 18,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 335.6791666666667,
+          "caughtTicks": 335.6791666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 309.7416666666667,
+          "caughtTicks": 309.7416666666667
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 20,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 3,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 45,
+          "lo": 25,
+          "hi": 70,
+          "roam": 18,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 335.6791666666667,
+          "caughtTicks": 335.6791666666667,
+          "perfectP": 0.5941666666666666,
+          "costTicks": 335.6791666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.7416666666667,
+          "caughtTicks": 309.7416666666667,
+          "perfectP": 0.845,
+          "costTicks": 309.7416666666667
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 3,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 45,
+          "lo": 25,
+          "hi": 70,
+          "roam": 18,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 335.6791666666667,
+          "caughtTicks": 335.6791666666667,
+          "perfectP": 0.5941666666666666,
+          "costTicks": 335.6791666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.7416666666667,
+          "caughtTicks": 309.7416666666667,
+          "perfectP": 0.845,
+          "costTicks": 309.7416666666667
+        }
+      }
+    },
+    {
+      "sp": 18,
+      "id": "karas",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03093363329583802,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "pricePrior30": [
+        4,
+        7
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 329.6,
+      "before": {
+        "style": {
+          "spd": 19,
+          "sharp": 4,
+          "turn": 10,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 40,
+          "lo": 15,
+          "hi": 75,
+          "roam": 22,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 329.56583333333333,
+          "caughtTicks": 329.56583333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 306.015,
+          "caughtTicks": 306.015
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 19,
+          "sharp": 4,
+          "turn": 10,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 40,
+          "lo": 15,
+          "hi": 75,
+          "roam": 22,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.56583333333333,
+          "caughtTicks": 329.56583333333333,
+          "perfectP": 0.6416666666666667,
+          "costTicks": 329.56583333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 306.015,
+          "caughtTicks": 306.015,
+          "perfectP": 0.895,
+          "costTicks": 306.015
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 19,
+          "sharp": 4,
+          "turn": 10,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 40,
+          "lo": 15,
+          "hi": 75,
+          "roam": 22,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.56583333333333,
+          "caughtTicks": 329.56583333333333,
+          "perfectP": 0.6416666666666667,
+          "costTicks": 329.56583333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 306.015,
+          "caughtTicks": 306.015,
+          "perfectP": 0.895,
+          "costTicks": 306.015
+        }
+      }
+    },
+    {
+      "sp": 19,
+      "id": "blenny",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.02530933633295838,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "pricePrior30": [
+        4,
+        5
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 329.1,
+      "before": {
+        "style": {
+          "spd": 16,
+          "sharp": 8,
+          "turn": 8,
+          "dart": 4,
+          "dartSpd": 50,
+          "dartUp": 60,
+          "hover": 1000,
+          "hoverP": 75,
+          "lo": 5,
+          "hi": 50,
+          "roam": 12,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 329.12166666666667,
+          "caughtTicks": 329.12166666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 309.0025,
+          "caughtTicks": 309.0025
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 16,
+          "sharp": 8,
+          "turn": 8,
+          "dart": 4,
+          "dartSpd": 50,
+          "dartUp": 60,
+          "hover": 1000,
+          "hoverP": 75,
+          "lo": 5,
+          "hi": 50,
+          "roam": 12,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.12166666666667,
+          "caughtTicks": 329.12166666666667,
+          "perfectP": 0.6775,
+          "costTicks": 329.12166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.0025,
+          "caughtTicks": 309.0025,
+          "perfectP": 0.85,
+          "costTicks": 309.0025
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 16,
+          "sharp": 8,
+          "turn": 8,
+          "dart": 4,
+          "dartSpd": 50,
+          "dartUp": 60,
+          "hover": 1000,
+          "hoverP": 75,
+          "lo": 5,
+          "hi": 50,
+          "roam": 12,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.12166666666667,
+          "caughtTicks": 329.12166666666667,
+          "perfectP": 0.6775,
+          "costTicks": 329.12166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.0025,
+          "caughtTicks": 309.0025,
+          "perfectP": 0.85,
+          "costTicks": 309.0025
+        }
+      }
+    },
+    {
+      "sp": 20,
+      "id": "sardine",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03093363329583802,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "pricePrior30": [
+        4,
+        5
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 350.6,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 6,
+          "turn": 35,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 45,
+          "hi": 95,
+          "roam": 20,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 350.5783333333333,
+          "caughtTicks": 350.5783333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 317.955,
+          "caughtTicks": 317.955
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 24,
+          "sharp": 6,
+          "turn": 35,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 45,
+          "hi": 95,
+          "roam": 20,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 350.5783333333333,
+          "caughtTicks": 350.5783333333333,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 350.5783333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 317.955,
+          "caughtTicks": 317.955,
+          "perfectP": 0.7233333333333334,
+          "costTicks": 317.955
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 6,
+          "turn": 35,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 45,
+          "hi": 95,
+          "roam": 20,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 350.5783333333333,
+          "caughtTicks": 350.5783333333333,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 350.5783333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 317.955,
+          "caughtTicks": 317.955,
+          "perfectP": 0.7233333333333334,
+          "costTicks": 317.955
+        }
+      }
+    },
+    {
+      "sp": 21,
+      "id": "whiting",
+      "tier": 0,
+      "eventOnly": false,
+      "eventShare": 0.03093363329583802,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "pricePrior30": [
+        4,
+        9
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 328.9,
+      "before": {
+        "style": {
+          "spd": 22,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 40,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 15,
+          "hi": 70,
+          "roam": 28,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 328.9033333333333,
+          "caughtTicks": 328.9033333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.8691666666667,
+          "caughtTicks": 305.8691666666667
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 40,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 15,
+          "hi": 70,
+          "roam": 28,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 328.9033333333333,
+          "caughtTicks": 328.9033333333333,
+          "perfectP": 0.6525,
+          "costTicks": 328.9033333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.8691666666667,
+          "caughtTicks": 305.8691666666667,
+          "perfectP": 0.9058333333333334,
+          "costTicks": 305.8691666666667
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 40,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 15,
+          "hi": 70,
+          "roam": 28,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 328.9033333333333,
+          "caughtTicks": 328.9033333333333,
+          "perfectP": 0.6525,
+          "costTicks": 328.9033333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.8691666666667,
+          "caughtTicks": 305.8691666666667,
+          "perfectP": 0.9058333333333334,
+          "costTicks": 305.8691666666667
+        }
+      }
+    },
+    {
+      "sp": 22,
+      "id": "picarel",
+      "tier": 0,
+      "eventOnly": true,
+      "eventShare": 0.10123734533183353,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "pricePrior30": [
+        4,
+        5
+      ],
+      "priceAfter": [
+        6,
+        8
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 349.5,
+      "before": {
+        "style": {
+          "spd": 23,
+          "sharp": 6,
+          "turn": 22,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 30,
+          "lo": 30,
+          "hi": 80,
+          "roam": 22,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 349.4916666666667,
+          "caughtTicks": 349.4916666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 316.98833333333334,
+          "caughtTicks": 316.98833333333334
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 23,
+          "sharp": 6,
+          "turn": 22,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 30,
+          "lo": 30,
+          "hi": 80,
+          "roam": 22,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 349.4916666666667,
+          "caughtTicks": 349.4916666666667,
+          "perfectP": 0.4666666666666667,
+          "costTicks": 349.4916666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 316.98833333333334,
+          "caughtTicks": 316.98833333333334,
+          "perfectP": 0.765,
+          "costTicks": 316.98833333333334
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 23,
+          "sharp": 6,
+          "turn": 22,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 30,
+          "lo": 30,
+          "hi": 80,
+          "roam": 22,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 349.4916666666667,
+          "caughtTicks": 349.4916666666667,
+          "perfectP": 0.4666666666666667,
+          "costTicks": 349.4916666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 316.98833333333334,
+          "caughtTicks": 316.98833333333334,
+          "perfectP": 0.765,
+          "costTicks": 316.98833333333334
+        }
+      }
+    },
+    {
+      "sp": 4,
+      "id": "mullet",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.02699662542182227,
+      "priceBefore": [
+        4,
+        12
+      ],
+      "pricePrior30": [
+        4,
+        13
+      ],
+      "priceAfter": [
+        4,
+        13
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 476.2,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 6,
+          "turn": 10,
+          "dart": 8,
+          "dartSpd": 95,
+          "dartUp": 85,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 30,
+          "hi": 90,
+          "roam": 32,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9491666666666667,
+          "ticks": 525.0083333333333,
+          "caughtTicks": 535.0790166812994
+        },
+        "expert": {
+          "p": 0.9666666666666667,
+          "ticks": 408.16,
+          "caughtTicks": 411.8637931034483
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 23.8,
+          "sharp": 5.1,
+          "turn": 10,
+          "dart": 8,
+          "dartSpd": 80.75,
+          "dartUp": 85,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 30,
+          "hi": 90,
+          "roam": 32,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9658333333333333,
+          "failure": 0.03416666666666668,
+          "ticks": 459.9575,
+          "caughtTicks": 465.84383088869714,
+          "perfectP": 0.26166666666666666,
+          "costTicks": 476.2286453839517
+        },
+        "expert": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 369.3525,
+          "caughtTicks": 372.0827645051194,
+          "perfectP": 0.4975,
+          "costTicks": 378.1766211604096
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 23.8,
+          "sharp": 5.1,
+          "turn": 10,
+          "dart": 8,
+          "dartSpd": 80.75,
+          "dartUp": 85,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 30,
+          "hi": 90,
+          "roam": 32,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9658333333333333,
+          "failure": 0.03416666666666668,
+          "ticks": 459.9575,
+          "caughtTicks": 465.84383088869714,
+          "perfectP": 0.26166666666666666,
+          "costTicks": 476.2286453839517
+        },
+        "expert": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 369.3525,
+          "caughtTicks": 372.0827645051194,
+          "perfectP": 0.4975,
+          "costTicks": 378.1766211604096
+        }
+      }
+    },
+    {
+      "sp": 5,
+      "id": "mackerel",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.02699662542182227,
+      "priceBefore": [
+        4,
+        10
+      ],
+      "pricePrior30": [
+        4,
+        11
+      ],
+      "priceAfter": [
+        4,
+        11
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 472.4,
+      "before": {
+        "style": {
+          "spd": 30,
+          "sharp": 5,
+          "turn": 14,
+          "dart": 7,
+          "dartSpd": 90,
+          "dartUp": 50,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 15,
+          "hi": 90,
+          "roam": 40,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9683333333333334,
+          "ticks": 569.3175,
+          "caughtTicks": 573.8450946643718
+        },
+        "expert": {
+          "p": 0.99,
+          "ticks": 403.185,
+          "caughtTicks": 403.58417508417506
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 4.25,
+          "turn": 14,
+          "dart": 7,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 15,
+          "hi": 90,
+          "roam": 40,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9758333333333333,
+          "failure": 0.02416666666666667,
+          "ticks": 460.93916666666667,
+          "caughtTicks": 463.8787361229718,
+          "perfectP": 0.28833333333333333,
+          "costTicks": 472.35439795046966
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 364.7008333333333,
+          "caughtTicks": 365.19279128248115,
+          "perfectP": 0.5516666666666666,
+          "costTicks": 366.84073763621126
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 4.25,
+          "turn": 14,
+          "dart": 7,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 15,
+          "hi": 90,
+          "roam": 40,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9758333333333333,
+          "failure": 0.02416666666666667,
+          "ticks": 460.93916666666667,
+          "caughtTicks": 463.8787361229718,
+          "perfectP": 0.28833333333333333,
+          "costTicks": 472.35439795046966
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 364.7008333333333,
+          "caughtTicks": 365.19279128248115,
+          "perfectP": 0.5516666666666666,
+          "costTicks": 366.84073763621126
+        }
+      }
+    },
+    {
+      "sp": 6,
+      "id": "garfish",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.023622047244094488,
+      "priceBefore": [
+        4,
+        10
+      ],
+      "pricePrior30": [
+        4,
+        11
+      ],
+      "priceAfter": [
+        4,
+        11
+      ],
+      "xp": 27,
+      "perfectXp": 64,
+      "difficulty": 535.4,
+      "before": {
+        "style": {
+          "spd": 29,
+          "sharp": 8,
+          "turn": 16,
+          "dart": 8,
+          "dartSpd": 100,
+          "dartUp": 80,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 50,
+          "hi": 100,
+          "roam": 28,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9591666666666666,
+          "ticks": 644.265,
+          "caughtTicks": 640.8166811468288
+        },
+        "expert": {
+          "p": 0.9933333333333333,
+          "ticks": 453.84833333333336,
+          "caughtTicks": 453.9127516778523
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 24.65,
+          "sharp": 6.8,
+          "turn": 16,
+          "dart": 8,
+          "dartSpd": 85,
+          "dartUp": 80,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 50,
+          "hi": 100,
+          "roam": 28,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 522.9491666666667,
+          "caughtTicks": 523.3464163822525,
+          "perfectP": 0.22333333333333333,
+          "costTicks": 535.4428327645052
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 391.11,
+          "caughtTicks": 391.45515507124895,
+          "perfectP": 0.4533333333333333,
+          "costTicks": 393.4048616932104
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24.65,
+          "sharp": 6.8,
+          "turn": 16,
+          "dart": 8,
+          "dartSpd": 85,
+          "dartUp": 80,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 50,
+          "hi": 100,
+          "roam": 28,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 522.9491666666667,
+          "caughtTicks": 523.3464163822525,
+          "perfectP": 0.22333333333333333,
+          "costTicks": 535.4428327645052
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 391.11,
+          "caughtTicks": 391.45515507124895,
+          "perfectP": 0.4533333333333333,
+          "costTicks": 393.4048616932104
+        }
+      }
+    },
+    {
+      "sp": 7,
+      "id": "scorpion",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.023622047244094488,
+      "priceBefore": [
+        5,
+        12
+      ],
+      "pricePrior30": [
+        5,
+        13
+      ],
+      "priceAfter": [
+        5,
+        13
+      ],
+      "xp": 26,
+      "perfectXp": 62,
+      "difficulty": 493.9,
+      "before": {
+        "style": {
+          "spd": 26,
+          "sharp": 9,
+          "turn": 4,
+          "dart": 10,
+          "dartSpd": 105,
+          "dartUp": 50,
+          "hover": 1100,
+          "hoverP": 80,
+          "lo": 0,
+          "hi": 45,
+          "roam": 16,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9516666666666667,
+          "ticks": 494.47333333333336,
+          "caughtTicks": 503.1366024518389
+        },
+        "expert": {
+          "p": 0.9833333333333333,
+          "ticks": 413.4941666666667,
+          "caughtTicks": 415.48728813559325
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22.099999999999998,
+          "sharp": 7.6499999999999995,
+          "turn": 4,
+          "dart": 9,
+          "dartSpd": 89.25,
+          "dartUp": 50,
+          "hover": 1100,
+          "hoverP": 80,
+          "lo": 0,
+          "hi": 45,
+          "roam": 16,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9583333333333334,
+          "failure": 0.04166666666666663,
+          "ticks": 473.28833333333336,
+          "caughtTicks": 481.53913043478263,
+          "perfectP": 0.31416666666666665,
+          "costTicks": 493.8660869565217
+        },
+        "expert": {
+          "p": 0.9891666666666666,
+          "failure": 0.010833333333333361,
+          "ticks": 397.5308333333333,
+          "caughtTicks": 399.06149957877,
+          "perfectP": 0.4825,
+          "costTicks": 401.88458298230836
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.099999999999998,
+          "sharp": 7.6499999999999995,
+          "turn": 4,
+          "dart": 9,
+          "dartSpd": 89.25,
+          "dartUp": 50,
+          "hover": 1100,
+          "hoverP": 80,
+          "lo": 0,
+          "hi": 45,
+          "roam": 16,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9583333333333334,
+          "failure": 0.04166666666666663,
+          "ticks": 473.28833333333336,
+          "caughtTicks": 481.53913043478263,
+          "perfectP": 0.31416666666666665,
+          "costTicks": 493.8660869565217
+        },
+        "expert": {
+          "p": 0.9891666666666666,
+          "failure": 0.010833333333333361,
+          "ticks": 397.5308333333333,
+          "caughtTicks": 399.06149957877,
+          "perfectP": 0.4825,
+          "costTicks": 401.88458298230836
+        }
+      }
+    },
+    {
+      "sp": 8,
+      "id": "flounder",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.023622047244094488,
+      "priceBefore": [
+        5,
+        13
+      ],
+      "pricePrior30": [
+        5,
+        14
+      ],
+      "priceAfter": [
+        5,
+        14
+      ],
+      "xp": 23,
+      "perfectXp": 55,
+      "difficulty": 441.8,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 3,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 90,
+          "dartUp": 70,
+          "hover": 1200,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 30,
+          "roam": 20,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9725,
+          "ticks": 458.3175,
+          "caughtTicks": 463.23221936589545
+        },
+        "expert": {
+          "p": 0.9925,
+          "ticks": 379.8075,
+          "caughtTicks": 380.7691015952981
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 20.4,
+          "sharp": 2.55,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 70,
+          "hover": 1200,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 30,
+          "roam": 20,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9716666666666667,
+          "failure": 0.02833333333333332,
+          "ticks": 429.2891666666667,
+          "caughtTicks": 434.07632933104634,
+          "perfectP": 0.3983333333333333,
+          "costTicks": 441.80703259005145
+        },
+        "expert": {
+          "p": 0.9975,
+          "failure": 0.0024999999999999467,
+          "ticks": 369.2083333333333,
+          "caughtTicks": 369.547201336675,
+          "perfectP": 0.5625,
+          "costTicks": 370.13366750208854
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20.4,
+          "sharp": 2.55,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 70,
+          "hover": 1200,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 30,
+          "roam": 20,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9716666666666667,
+          "failure": 0.02833333333333332,
+          "ticks": 429.2891666666667,
+          "caughtTicks": 434.07632933104634,
+          "perfectP": 0.3983333333333333,
+          "costTicks": 441.80703259005145
+        },
+        "expert": {
+          "p": 0.9975,
+          "failure": 0.0024999999999999467,
+          "ticks": 369.2083333333333,
+          "caughtTicks": 369.547201336675,
+          "perfectP": 0.5625,
+          "costTicks": 370.13366750208854
+        }
+      }
+    },
+    {
+      "sp": 10,
+      "id": "gurnard",
+      "tier": 1,
+      "eventOnly": false,
+      "eventShare": 0.021372328458942633,
+      "priceBefore": [
+        5,
+        12
+      ],
+      "pricePrior30": [
+        5,
+        13
+      ],
+      "priceAfter": [
+        5,
+        13
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 484.4,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 6,
+          "turn": 18,
+          "dart": 8,
+          "dartSpd": 90,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 50,
+          "lo": 0,
+          "hi": 40,
+          "roam": 14,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9533333333333334,
+          "ticks": 491.2708333333333,
+          "caughtTicks": 499.5681818181818
+        },
+        "expert": {
+          "p": 0.9841666666666666,
+          "ticks": 419.405,
+          "caughtTicks": 421.7298899237934
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 5.1,
+          "turn": 18,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 50,
+          "lo": 0,
+          "hi": 40,
+          "roam": 14,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9608333333333333,
+          "failure": 0.03916666666666668,
+          "ticks": 465.4275,
+          "caughtTicks": 471.33217692974847,
+          "perfectP": 0.315,
+          "costTicks": 484.39982653946225
+        },
+        "expert": {
+          "p": 0.99,
+          "failure": 0.010000000000000009,
+          "ticks": 397.45916666666665,
+          "caughtTicks": 399.0311447811448,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 401.4739057239057
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 5.1,
+          "turn": 18,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 50,
+          "lo": 0,
+          "hi": 40,
+          "roam": 14,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9608333333333333,
+          "failure": 0.03916666666666668,
+          "ticks": 465.4275,
+          "caughtTicks": 471.33217692974847,
+          "perfectP": 0.315,
+          "costTicks": 484.39982653946225
+        },
+        "expert": {
+          "p": 0.99,
+          "failure": 0.010000000000000009,
+          "ticks": 397.45916666666665,
+          "caughtTicks": 399.0311447811448,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 401.4739057239057
+        }
+      }
+    },
+    {
+      "sp": 23,
+      "id": "eel",
+      "tier": 1,
+      "eventOnly": true,
+      "eventShare": 0.07874015748031496,
+      "priceBefore": [
+        7,
+        19
+      ],
+      "pricePrior30": [
+        8,
+        21
+      ],
+      "priceAfter": [
+        8,
+        21
+      ],
+      "xp": 26,
+      "perfectXp": 62,
+      "difficulty": 505,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 8,
+          "turn": 45,
+          "dart": 7,
+          "dartSpd": 90,
+          "dartUp": 40,
+          "hover": 150,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 55,
+          "roam": 18,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9458333333333333,
+          "ticks": 610.1491666666667,
+          "caughtTicks": 620.1788546255507
+        },
+        "expert": {
+          "p": 0.9791666666666666,
+          "ticks": 481.51,
+          "caughtTicks": 484.80340425531915
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 6.4,
+          "turn": 45,
+          "dart": 7,
+          "dartSpd": 72,
+          "dartUp": 40,
+          "hover": 150,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 55,
+          "roam": 18,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9733333333333334,
+          "failure": 0.026666666666666616,
+          "ticks": 491.5525,
+          "caughtTicks": 493.8510273972603,
+          "perfectP": 0.24583333333333332,
+          "costTicks": 505.0196917808219
+        },
+        "expert": {
+          "p": 0.9908333333333333,
+          "failure": 0.009166666666666656,
+          "ticks": 401.55083333333334,
+          "caughtTicks": 402.188393608074,
+          "perfectP": 0.4075,
+          "costTicks": 405.26576955424724
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 6.4,
+          "turn": 45,
+          "dart": 7,
+          "dartSpd": 72,
+          "dartUp": 40,
+          "hover": 150,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 55,
+          "roam": 18,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9733333333333334,
+          "failure": 0.026666666666666616,
+          "ticks": 491.5525,
+          "caughtTicks": 493.8510273972603,
+          "perfectP": 0.24583333333333332,
+          "costTicks": 505.0196917808219
+        },
+        "expert": {
+          "p": 0.9908333333333333,
+          "failure": 0.009166666666666656,
+          "ticks": 401.55083333333334,
+          "caughtTicks": 402.188393608074,
+          "perfectP": 0.4075,
+          "costTicks": 405.26576955424724
+        }
+      }
+    },
+    {
+      "sp": 24,
+      "id": "meagre",
+      "tier": 1,
+      "eventOnly": true,
+      "eventShare": 0.07311586051743532,
+      "priceBefore": [
+        7,
+        19
+      ],
+      "pricePrior30": [
+        8,
+        21
+      ],
+      "priceAfter": [
+        8,
+        21
+      ],
+      "xp": 24,
+      "perfectXp": 57,
+      "difficulty": 461.7,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 7,
+          "dartSpd": 95,
+          "dartUp": 30,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 10,
+          "hi": 60,
+          "roam": 34,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9558333333333333,
+          "ticks": 493.1575,
+          "caughtTicks": 498.70357454228423
+        },
+        "expert": {
+          "p": 0.98,
+          "ticks": 392.4166666666667,
+          "caughtTicks": 395.062925170068
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 3.4,
+          "turn": 8,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 30,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 10,
+          "hi": 60,
+          "roam": 34,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.97,
+          "failure": 0.030000000000000027,
+          "ticks": 447.84833333333336,
+          "caughtTicks": 451.22938144329896,
+          "perfectP": 0.3225,
+          "costTicks": 461.6993127147766
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 369.01416666666665,
+          "caughtTicks": 370.3842905405405,
+          "perfectP": 0.5541666666666667,
+          "costTicks": 374.0008445945946
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 3.4,
+          "turn": 8,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 30,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 10,
+          "hi": 60,
+          "roam": 34,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.97,
+          "failure": 0.030000000000000027,
+          "ticks": 447.84833333333336,
+          "caughtTicks": 451.22938144329896,
+          "perfectP": 0.3225,
+          "costTicks": 461.6993127147766
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 369.01416666666665,
+          "caughtTicks": 370.3842905405405,
+          "perfectP": 0.5541666666666667,
+          "costTicks": 374.0008445945946
+        }
+      }
+    },
+    {
+      "sp": 25,
+      "id": "shad",
+      "tier": 1,
+      "eventOnly": true,
+      "eventShare": 0.0843644544431946,
+      "priceBefore": [
+        6,
+        15
+      ],
+      "pricePrior30": [
+        6,
+        16
+      ],
+      "priceAfter": [
+        6,
+        16
+      ],
+      "xp": 27,
+      "perfectXp": 64,
+      "difficulty": 539.5,
+      "before": {
+        "style": {
+          "spd": 30,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 7,
+          "dartSpd": 95,
+          "dartUp": 60,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 35,
+          "hi": 95,
+          "roam": 30,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9333333333333333,
+          "ticks": 654.655,
+          "caughtTicks": 659.6258928571428
+        },
+        "expert": {
+          "p": 0.9741666666666666,
+          "ticks": 489.89166666666665,
+          "caughtTicks": 490.2609067579127
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 5.1,
+          "turn": 20,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 60,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 35,
+          "hi": 95,
+          "roam": 30,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9625,
+          "failure": 0.03749999999999998,
+          "ticks": 519.3158333333333,
+          "caughtTicks": 523.2640692640692,
+          "perfectP": 0.23,
+          "costTicks": 539.5489177489178
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 397.20916666666665,
+          "caughtTicks": 398.62331081081084,
+          "perfectP": 0.42333333333333334,
+          "costTicks": 402.5768581081081
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 5.1,
+          "turn": 20,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 60,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 35,
+          "hi": 95,
+          "roam": 30,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9625,
+          "failure": 0.03749999999999998,
+          "ticks": 519.3158333333333,
+          "caughtTicks": 523.2640692640692,
+          "perfectP": 0.23,
+          "costTicks": 539.5489177489178
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 397.20916666666665,
+          "caughtTicks": 398.62331081081084,
+          "perfectP": 0.42333333333333334,
+          "costTicks": 402.5768581081081
+        }
+      }
+    },
+    {
+      "sp": 9,
+      "id": "bluefish",
+      "tier": 2,
+      "eventOnly": false,
+      "eventShare": 0.015748031496062992,
+      "priceBefore": [
+        10,
+        26
+      ],
+      "pricePrior30": [
+        11,
+        28
+      ],
+      "priceAfter": [
+        11,
+        28
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 623.8,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 8,
+          "turn": 18,
+          "dart": 9,
+          "dartSpd": 120,
+          "dartUp": 55,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 95,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7716666666666666,
+          "ticks": 864.8491666666666,
+          "caughtTicks": 895.3023758099353
+        },
+        "expert": {
+          "p": 0.9333333333333333,
+          "ticks": 546.6458333333334,
+          "caughtTicks": 561.0410714285714
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 6.4,
+          "turn": 18,
+          "dart": 9,
+          "dartSpd": 96,
+          "dartUp": 55,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 95,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.9091666666666667,
+          "failure": 0.09083333333333332,
+          "ticks": 567.1258333333334,
+          "caughtTicks": 581.8982584784601,
+          "perfectP": 0.16166666666666665,
+          "costTicks": 623.7864344637946
+        },
+        "expert": {
+          "p": 0.9708333333333333,
+          "failure": 0.029166666666666674,
+          "ticks": 422.87166666666667,
+          "caughtTicks": 429.3218884120172,
+          "perfectP": 0.33166666666666667,
+          "costTicks": 435.575965665236
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 6.4,
+          "turn": 18,
+          "dart": 9,
+          "dartSpd": 96,
+          "dartUp": 55,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 95,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.9091666666666667,
+          "failure": 0.09083333333333332,
+          "ticks": 567.1258333333334,
+          "caughtTicks": 581.8982584784601,
+          "perfectP": 0.16166666666666665,
+          "costTicks": 623.7864344637946
+        },
+        "expert": {
+          "p": 0.9708333333333333,
+          "failure": 0.029166666666666674,
+          "ticks": 422.87166666666667,
+          "caughtTicks": 429.3218884120172,
+          "perfectP": 0.33166666666666667,
+          "costTicks": 435.575965665236
+        }
+      }
+    },
+    {
+      "sp": 11,
+      "id": "dogfish",
+      "tier": 2,
+      "eventOnly": false,
+      "eventShare": 0.014623172103487065,
+      "priceBefore": [
+        11,
+        28
+      ],
+      "pricePrior30": [
+        12,
+        30
+      ],
+      "priceAfter": [
+        12,
+        30
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 661.7,
+      "before": {
+        "style": {
+          "spd": 32,
+          "sharp": 6,
+          "turn": 14,
+          "dart": 8,
+          "dartSpd": 115,
+          "dartUp": 40,
+          "hover": 250,
+          "hoverP": 15,
+          "lo": 5,
+          "hi": 80,
+          "roam": 45,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7616666666666667,
+          "ticks": 846.0958333333333,
+          "caughtTicks": 899.4835886214443
+        },
+        "expert": {
+          "p": 0.9325,
+          "ticks": 535.8841666666667,
+          "caughtTicks": 550.7319034852547
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 4.800000000000001,
+          "turn": 14,
+          "dart": 10,
+          "dartSpd": 92,
+          "dartUp": 40,
+          "hover": 250,
+          "hoverP": 15,
+          "lo": 5,
+          "hi": 80,
+          "roam": 45,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8908333333333334,
+          "failure": 0.10916666666666663,
+          "ticks": 589.4275,
+          "caughtTicks": 615.645463049579,
+          "perfectP": 0.125,
+          "costTicks": 661.6585594013096
+        },
+        "expert": {
+          "p": 0.9483333333333334,
+          "failure": 0.05166666666666664,
+          "ticks": 424.265,
+          "caughtTicks": 433.908611599297,
+          "perfectP": 0.33416666666666667,
+          "costTicks": 447.37961335676624
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 4.800000000000001,
+          "turn": 14,
+          "dart": 10,
+          "dartSpd": 92,
+          "dartUp": 40,
+          "hover": 250,
+          "hoverP": 15,
+          "lo": 5,
+          "hi": 80,
+          "roam": 45,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8908333333333334,
+          "failure": 0.10916666666666663,
+          "ticks": 589.4275,
+          "caughtTicks": 615.645463049579,
+          "perfectP": 0.125,
+          "costTicks": 661.6585594013096
+        },
+        "expert": {
+          "p": 0.9483333333333334,
+          "failure": 0.05166666666666664,
+          "ticks": 424.265,
+          "caughtTicks": 433.908611599297,
+          "perfectP": 0.33416666666666667,
+          "costTicks": 447.37961335676624
+        }
+      }
+    },
+    {
+      "sp": 12,
+      "id": "ray",
+      "tier": 2,
+      "eventOnly": false,
+      "eventShare": 0.013498312710911136,
+      "priceBefore": [
+        11,
+        28
+      ],
+      "pricePrior30": [
+        12,
+        30
+      ],
+      "priceAfter": [
+        12,
+        30
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 618.6,
+      "before": {
+        "style": {
+          "spd": 32,
+          "sharp": 3,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 118,
+          "dartUp": 60,
+          "hover": 900,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 50,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7791666666666667,
+          "ticks": 708.8008333333333,
+          "caughtTicks": 744.9090909090909
+        },
+        "expert": {
+          "p": 0.9283333333333333,
+          "ticks": 492.32666666666665,
+          "caughtTicks": 501.07360861759423
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 2.4000000000000004,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 94.4,
+          "dartUp": 60,
+          "hover": 900,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 50,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8933333333333333,
+          "failure": 0.10666666666666669,
+          "ticks": 552.6133333333333,
+          "caughtTicks": 571.1147388059702,
+          "perfectP": 0.17583333333333334,
+          "costTicks": 618.5970149253732
+        },
+        "expert": {
+          "p": 0.9633333333333334,
+          "failure": 0.036666666666666625,
+          "ticks": 422.3616666666667,
+          "caughtTicks": 427.11418685121106,
+          "perfectP": 0.425,
+          "costTicks": 438.43771626297575
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 2.4000000000000004,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 94.4,
+          "dartUp": 60,
+          "hover": 900,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 50,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8933333333333333,
+          "failure": 0.10666666666666669,
+          "ticks": 552.6133333333333,
+          "caughtTicks": 571.1147388059702,
+          "perfectP": 0.17583333333333334,
+          "costTicks": 618.5970149253732
+        },
+        "expert": {
+          "p": 0.9633333333333334,
+          "failure": 0.036666666666666625,
+          "ticks": 422.3616666666667,
+          "caughtTicks": 427.11418685121106,
+          "perfectP": 0.425,
+          "costTicks": 438.43771626297575
+        }
+      }
+    },
+    {
+      "sp": 26,
+      "id": "turbot",
+      "tier": 2,
+      "eventOnly": false,
+      "eventShare": 0.012373453318335208,
+      "priceBefore": [
+        13,
+        32
+      ],
+      "pricePrior30": [
+        14,
+        34
+      ],
+      "priceAfter": [
+        14,
+        34
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 677.8,
+      "before": {
+        "style": {
+          "spd": 37,
+          "sharp": 4,
+          "turn": 6,
+          "dart": 10,
+          "dartSpd": 143,
+          "dartUp": 75,
+          "hover": 1300,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 35,
+          "roam": 30,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7233333333333334,
+          "ticks": 770.25,
+          "caughtTicks": 831.7649769585254
+        },
+        "expert": {
+          "p": 0.9041666666666667,
+          "ticks": 564.6958333333333,
+          "caughtTicks": 581.710599078341
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 29.6,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 114.4,
+          "dartUp": 75,
+          "hover": 1300,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 35,
+          "roam": 30,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8591666666666666,
+          "failure": 0.14083333333333337,
+          "ticks": 582.3625,
+          "caughtTicks": 607.1144519883608,
+          "perfectP": 0.13916666666666666,
+          "costTicks": 677.8225024248303
+        },
+        "expert": {
+          "p": 0.9616666666666667,
+          "failure": 0.03833333333333333,
+          "ticks": 463.985,
+          "caughtTicks": 469.4878682842288,
+          "perfectP": 0.30416666666666664,
+          "costTicks": 482.4800693240901
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 29.6,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 114.4,
+          "dartUp": 75,
+          "hover": 1300,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 35,
+          "roam": 30,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8591666666666666,
+          "failure": 0.14083333333333337,
+          "ticks": 582.3625,
+          "caughtTicks": 607.1144519883608,
+          "perfectP": 0.13916666666666666,
+          "costTicks": 677.8225024248303
+        },
+        "expert": {
+          "p": 0.9616666666666667,
+          "failure": 0.03833333333333333,
+          "ticks": 463.985,
+          "caughtTicks": 469.4878682842288,
+          "perfectP": 0.30416666666666664,
+          "costTicks": 482.4800693240901
+        }
+      }
+    },
+    {
+      "sp": 27,
+      "id": "seabass",
+      "tier": 2,
+      "eventOnly": true,
+      "eventShare": 0.06186726659167604,
+      "priceBefore": [
+        16,
+        41
+      ],
+      "pricePrior30": [
+        17,
+        45
+      ],
+      "priceAfter": [
+        17,
+        45
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 664.8,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 7,
+          "turn": 14,
+          "dart": 9,
+          "dartSpd": 113,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 90,
+          "roam": 45,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7083333333333334,
+          "ticks": 881.6175,
+          "caughtTicks": 972.0035294117647
+        },
+        "expert": {
+          "p": 0.9291666666666667,
+          "ticks": 517.6575,
+          "caughtTicks": 535.7399103139013
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 14,
+          "dart": 9,
+          "dartSpd": 90.4,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 90,
+          "roam": 45,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8958333333333334,
+          "failure": 0.10416666666666663,
+          "ticks": 595.555,
+          "caughtTicks": 618.3730232558139,
+          "perfectP": 0.13166666666666665,
+          "costTicks": 664.8055813953488
+        },
+        "expert": {
+          "p": 0.9491666666666667,
+          "failure": 0.050833333333333286,
+          "ticks": 416.1433333333333,
+          "caughtTicks": 427.1562774363477,
+          "perfectP": 0.32416666666666666,
+          "costTicks": 438.43020193151887
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 14,
+          "dart": 9,
+          "dartSpd": 90.4,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 90,
+          "roam": 45,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8958333333333334,
+          "failure": 0.10416666666666663,
+          "ticks": 595.555,
+          "caughtTicks": 618.3730232558139,
+          "perfectP": 0.13166666666666665,
+          "costTicks": 664.8055813953488
+        },
+        "expert": {
+          "p": 0.9491666666666667,
+          "failure": 0.050833333333333286,
+          "ticks": 416.1433333333333,
+          "caughtTicks": 427.1562774363477,
+          "perfectP": 0.32416666666666666,
+          "costTicks": 438.43020193151887
+        }
+      }
+    },
+    {
+      "sp": 28,
+      "id": "leerfish",
+      "tier": 2,
+      "eventOnly": true,
+      "eventShare": 0.0562429696287964,
+      "priceBefore": [
+        19,
+        47
+      ],
+      "pricePrior30": [
+        21,
+        51
+      ],
+      "priceAfter": [
+        21,
+        51
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 644.2,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 7,
+          "turn": 12,
+          "dart": 10,
+          "dartSpd": 118,
+          "dartUp": 55,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 10,
+          "hi": 95,
+          "roam": 50,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7291666666666666,
+          "ticks": 878.7091666666666,
+          "caughtTicks": 955.1931428571429
+        },
+        "expert": {
+          "p": 0.94,
+          "ticks": 516.9908333333333,
+          "caughtTicks": 527.4831560283687
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 12,
+          "dart": 10,
+          "dartSpd": 94.4,
+          "dartUp": 55,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 10,
+          "hi": 95,
+          "roam": 50,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.895,
+          "failure": 0.10499999999999998,
+          "ticks": 576.5841666666666,
+          "caughtTicks": 593.169459962756,
+          "perfectP": 0.17833333333333334,
+          "costTicks": 644.2281191806331
+        },
+        "expert": {
+          "p": 0.9675,
+          "failure": 0.03249999999999997,
+          "ticks": 425.00166666666667,
+          "caughtTicks": 431.8656330749354,
+          "perfectP": 0.3458333333333333,
+          "costTicks": 439.27820844099915
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 12,
+          "dart": 10,
+          "dartSpd": 94.4,
+          "dartUp": 55,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 10,
+          "hi": 95,
+          "roam": 50,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.895,
+          "failure": 0.10499999999999998,
+          "ticks": 576.5841666666666,
+          "caughtTicks": 593.169459962756,
+          "perfectP": 0.17833333333333334,
+          "costTicks": 644.2281191806331
+        },
+        "expert": {
+          "p": 0.9675,
+          "failure": 0.03249999999999997,
+          "ticks": 425.00166666666667,
+          "caughtTicks": 431.8656330749354,
+          "perfectP": 0.3458333333333333,
+          "costTicks": 439.27820844099915
+        }
+      }
+    },
+    {
+      "sp": 13,
+      "id": "sturgeon",
+      "tier": 3,
+      "eventOnly": false,
+      "eventShare": 0.00562429696287964,
+      "priceBefore": [
+        35,
+        103
+      ],
+      "pricePrior30": [
+        38,
+        111
+      ],
+      "priceAfter": [
+        38,
+        111
+      ],
+      "xp": 175,
+      "perfectXp": 420,
+      "difficulty": 902.5,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 4,
+          "turn": 6,
+          "dart": 12,
+          "dartSpd": 115,
+          "dartUp": 15,
+          "hover": 700,
+          "hoverP": 40,
+          "lo": 0,
+          "hi": 40,
+          "roam": 30,
+          "zone": 25,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.43,
+          "ticks": 651.9933333333333,
+          "caughtTicks": 737.7461240310078
+        },
+        "expert": {
+          "p": 0.7383333333333333,
+          "ticks": 566.7675,
+          "caughtTicks": 614.7866817155756
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 12,
+          "dartSpd": 92,
+          "dartUp": 15,
+          "hover": 700,
+          "hoverP": 40,
+          "lo": 0,
+          "hi": 40,
+          "roam": 30,
+          "zone": 25,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6175,
+          "failure": 0.38249999999999995,
+          "ticks": 557.3091666666667,
+          "caughtTicks": 612.5222672064777,
+          "perfectP": 0.14333333333333334,
+          "costTicks": 902.5249662618083
+        },
+        "expert": {
+          "p": 0.8166666666666667,
+          "failure": 0.18333333333333335,
+          "ticks": 477.78833333333336,
+          "caughtTicks": 511.39897959183673,
+          "perfectP": 0.315,
+          "costTicks": 585.0469387755102
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 12,
+          "dartSpd": 92,
+          "dartUp": 15,
+          "hover": 700,
+          "hoverP": 40,
+          "lo": 0,
+          "hi": 40,
+          "roam": 30,
+          "zone": 25,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6175,
+          "failure": 0.38249999999999995,
+          "ticks": 557.3091666666667,
+          "caughtTicks": 612.5222672064777,
+          "perfectP": 0.14333333333333334,
+          "costTicks": 902.5249662618083
+        },
+        "expert": {
+          "p": 0.8166666666666667,
+          "failure": 0.18333333333333335,
+          "ticks": 477.78833333333336,
+          "caughtTicks": 511.39897959183673,
+          "perfectP": 0.315,
+          "costTicks": 585.0469387755102
+        }
+      }
+    },
+    {
+      "sp": 29,
+      "id": "tuna",
+      "tier": 3,
+      "eventOnly": false,
+      "eventShare": 0.0044994375703037125,
+      "priceBefore": [
+        39,
+        108
+      ],
+      "pricePrior30": [
+        42,
+        117
+      ],
+      "priceAfter": [
+        42,
+        117
+      ],
+      "xp": 170,
+      "perfectXp": 405,
+      "difficulty": 835.4,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 6,
+          "turn": 10,
+          "dart": 12,
+          "dartSpd": 106,
+          "dartUp": 50,
+          "hover": 100,
+          "hoverP": 5,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4925,
+          "ticks": 608.6841666666667,
+          "caughtTicks": 688.5888324873097
+        },
+        "expert": {
+          "p": 0.7866666666666666,
+          "ticks": 469.1725,
+          "caughtTicks": 509.77648305084745
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 4.800000000000001,
+          "turn": 10,
+          "dart": 12,
+          "dartSpd": 84.80000000000001,
+          "dartUp": 50,
+          "hover": 100,
+          "hoverP": 5,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6691666666666667,
+          "failure": 0.3308333333333333,
+          "ticks": 559.0266666666666,
+          "caughtTicks": 613.373599003736,
+          "perfectP": 0.14083333333333334,
+          "costTicks": 835.4072229140722
+        },
+        "expert": {
+          "p": 0.8525,
+          "failure": 0.14749999999999996,
+          "ticks": 430.1375,
+          "caughtTicks": 459.57771260997066,
+          "perfectP": 0.33,
+          "costTicks": 504.5601173020528
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 4.800000000000001,
+          "turn": 10,
+          "dart": 12,
+          "dartSpd": 84.80000000000001,
+          "dartUp": 50,
+          "hover": 100,
+          "hoverP": 5,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6691666666666667,
+          "failure": 0.3308333333333333,
+          "ticks": 559.0266666666666,
+          "caughtTicks": 613.373599003736,
+          "perfectP": 0.14083333333333334,
+          "costTicks": 835.4072229140722
+        },
+        "expert": {
+          "p": 0.8525,
+          "failure": 0.14749999999999996,
+          "ticks": 430.1375,
+          "caughtTicks": 459.57771260997066,
+          "perfectP": 0.33,
+          "costTicks": 504.5601173020528
+        }
+      }
+    },
+    {
+      "sp": 30,
+      "id": "swordfish",
+      "tier": 3,
+      "eventOnly": false,
+      "eventShare": 0.0044994375703037125,
+      "priceBefore": [
+        39,
+        108
+      ],
+      "pricePrior30": [
+        42,
+        117
+      ],
+      "priceAfter": [
+        42,
+        117
+      ],
+      "xp": 175,
+      "perfectXp": 420,
+      "difficulty": 895.1,
+      "before": {
+        "style": {
+          "spd": 26,
+          "sharp": 9,
+          "turn": 12,
+          "dart": 14,
+          "dartSpd": 105,
+          "dartUp": 85,
+          "hover": 250,
+          "hoverP": 20,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4658333333333333,
+          "ticks": 637.4433333333334,
+          "caughtTicks": 718.3720930232558
+        },
+        "expert": {
+          "p": 0.8083333333333333,
+          "ticks": 506.7108333333333,
+          "caughtTicks": 532.0154639175257
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 20.8,
+          "sharp": 7.2,
+          "turn": 12,
+          "dart": 14,
+          "dartSpd": 84,
+          "dartUp": 85,
+          "hover": 250,
+          "hoverP": 20,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6541666666666667,
+          "failure": 0.3458333333333333,
+          "ticks": 585.5633333333334,
+          "caughtTicks": 645.5057324840765,
+          "perfectP": 0.1275,
+          "costTicks": 895.1286624203822
+        },
+        "expert": {
+          "p": 0.8875,
+          "failure": 0.11250000000000004,
+          "ticks": 456.48833333333334,
+          "caughtTicks": 480.04413145539905,
+          "perfectP": 0.31666666666666665,
+          "costTicks": 514.3530516431925
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20.8,
+          "sharp": 7.2,
+          "turn": 12,
+          "dart": 14,
+          "dartSpd": 84,
+          "dartUp": 85,
+          "hover": 250,
+          "hoverP": 20,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6541666666666667,
+          "failure": 0.3458333333333333,
+          "ticks": 585.5633333333334,
+          "caughtTicks": 645.5057324840765,
+          "perfectP": 0.1275,
+          "costTicks": 895.1286624203822
+        },
+        "expert": {
+          "p": 0.8875,
+          "failure": 0.11250000000000004,
+          "ticks": 456.48833333333334,
+          "caughtTicks": 480.04413145539905,
+          "perfectP": 0.31666666666666665,
+          "costTicks": 514.3530516431925
+        }
+      }
+    },
+    {
+      "sp": 31,
+      "id": "angler",
+      "tier": 3,
+      "eventOnly": false,
+      "eventShare": 0.0044994375703037125,
+      "priceBefore": [
+        32,
+        94
+      ],
+      "pricePrior30": [
+        34,
+        101
+      ],
+      "priceAfter": [
+        34,
+        101
+      ],
+      "xp": 180,
+      "perfectXp": 430,
+      "difficulty": 961,
+      "before": {
+        "style": {
+          "spd": 34,
+          "sharp": 10,
+          "turn": 4,
+          "dart": 14,
+          "dartSpd": 169,
+          "dartUp": 50,
+          "hover": 1400,
+          "hoverP": 85,
+          "lo": 0,
+          "hi": 45,
+          "roam": 20,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4483333333333333,
+          "ticks": 611.6108333333333,
+          "caughtTicks": 695.3921933085502
+        },
+        "expert": {
+          "p": 0.7458333333333333,
+          "ticks": 518.3275,
+          "caughtTicks": 567.4927374301676
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 27.200000000000003,
+          "sharp": 8,
+          "turn": 4,
+          "dart": 14,
+          "dartSpd": 135.20000000000002,
+          "dartUp": 50,
+          "hover": 1400,
+          "hoverP": 85,
+          "lo": 0,
+          "hi": 45,
+          "roam": 20,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.59,
+          "failure": 0.41000000000000003,
+          "ticks": 566.9725,
+          "caughtTicks": 645.4590395480226,
+          "perfectP": 0.11833333333333333,
+          "costTicks": 960.9703389830509
+        },
+        "expert": {
+          "p": 0.8033333333333333,
+          "failure": 0.19666666666666666,
+          "ticks": 488.8433333333333,
+          "caughtTicks": 531.8526970954357,
+          "perfectP": 0.26666666666666666,
+          "costTicks": 608.5186721991702
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 27.200000000000003,
+          "sharp": 8,
+          "turn": 4,
+          "dart": 14,
+          "dartSpd": 135.20000000000002,
+          "dartUp": 50,
+          "hover": 1400,
+          "hoverP": 85,
+          "lo": 0,
+          "hi": 45,
+          "roam": 20,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.59,
+          "failure": 0.41000000000000003,
+          "ticks": 566.9725,
+          "caughtTicks": 645.4590395480226,
+          "perfectP": 0.11833333333333333,
+          "costTicks": 960.9703389830509
+        },
+        "expert": {
+          "p": 0.8033333333333333,
+          "failure": 0.19666666666666666,
+          "ticks": 488.8433333333333,
+          "caughtTicks": 531.8526970954357,
+          "perfectP": 0.26666666666666666,
+          "costTicks": 608.5186721991702
+        }
+      }
+    },
+    {
+      "sp": 34,
+      "id": "bluemarlin",
+      "tier": 3,
+      "eventOnly": true,
+      "eventShare": 0.01124859392575928,
+      "priceBefore": null,
+      "pricePrior30": null,
+      "priceAfter": [
+        72,
+        199
+      ],
+      "xp": 175,
+      "perfectXp": 420,
+      "difficulty": 879.9,
+      "before": null,
+      "prior30": null,
+      "after": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 5.6000000000000005,
+          "turn": 12,
+          "dart": 13,
+          "dartSpd": 92,
+          "dartUp": 70,
+          "hover": 250,
+          "hoverP": 10,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6741666666666667,
+          "failure": 0.3258333333333333,
+          "ticks": 593.2325,
+          "caughtTicks": 646.3967861557478,
+          "perfectP": 0.12083333333333333,
+          "costTicks": 879.9493201483313
+        },
+        "expert": {
+          "p": 0.8741666666666666,
+          "failure": 0.12583333333333335,
+          "ticks": 447.6408333333333,
+          "caughtTicks": 474.69971401334607,
+          "perfectP": 0.30333333333333334,
+          "costTicks": 512.0772163965681
+        }
+      }
+    },
+    {
+      "sp": 32,
+      "id": "whiteshark",
+      "tier": 4,
+      "eventOnly": false,
+      "eventShare": 0.003374578177727784,
+      "priceBefore": [
+        197,
+        394
+      ],
+      "pricePrior30": [
+        212,
+        424
+      ],
+      "priceAfter": [
+        212,
+        424
+      ],
+      "xp": 195,
+      "perfectXp": 465,
+      "difficulty": 1393.5,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 9,
+          "turn": 16,
+          "dart": 15,
+          "dartSpd": 111,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 22,
+          "drain": 34
+        },
+        "typical": {
+          "p": 0.12166666666666667,
+          "ticks": 476.3516666666667,
+          "caughtTicks": 697.3698630136986
+        },
+        "expert": {
+          "p": 0.565,
+          "ticks": 513.6075,
+          "caughtTicks": 596.9616519174041
+        }
+      },
+      "prior30": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 7.2,
+          "turn": 16,
+          "dart": 15,
+          "dartSpd": 88.80000000000001,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 22,
+          "drain": 34
+        },
+        "typical": {
+          "p": 0.3625,
+          "failure": 0.6375,
+          "ticks": 505.12583333333333,
+          "caughtTicks": 627.0206896551724,
+          "perfectP": 0.07,
+          "costTicks": 1393.4505747126436
+        },
+        "expert": {
+          "p": 0.6891666666666667,
+          "failure": 0.3108333333333333,
+          "ticks": 490.43833333333333,
+          "caughtTicks": 555.0592503022974,
+          "perfectP": 0.1975,
+          "costTicks": 711.639661426844
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 7.2,
+          "turn": 16,
+          "dart": 15,
+          "dartSpd": 88.80000000000001,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 22,
+          "drain": 34
+        },
+        "typical": {
+          "p": 0.3625,
+          "failure": 0.6375,
+          "ticks": 505.12583333333333,
+          "caughtTicks": 627.0206896551724,
+          "perfectP": 0.07,
+          "costTicks": 1393.4505747126436
+        },
+        "expert": {
+          "p": 0.6891666666666667,
+          "failure": 0.3108333333333333,
+          "ticks": 490.43833333333333,
+          "caughtTicks": 555.0592503022974,
+          "perfectP": 0.1975,
+          "costTicks": 711.639661426844
+        }
+      }
+    },
+    {
+      "sp": 35,
+      "id": "greenlandshark",
+      "tier": 4,
+      "eventOnly": true,
+      "eventShare": 0.001687289088863892,
+      "priceBefore": null,
+      "pricePrior30": null,
+      "priceAfter": [
+        350,
+        763
+      ],
+      "xp": 195,
+      "perfectXp": 465,
+      "difficulty": 1704.6,
+      "before": null,
+      "prior30": null,
+      "after": {
+        "style": {
+          "spd": 20.8,
+          "sharp": 5.6000000000000005,
+          "turn": 14,
+          "dart": 18,
+          "dartSpd": 92,
+          "dartUp": 25,
+          "hover": 900,
+          "hoverP": 35,
+          "lo": 0,
+          "hi": 90,
+          "roam": 70,
+          "zone": 21,
+          "drain": 36
+        },
+        "typical": {
+          "p": 0.27666666666666667,
+          "failure": 0.7233333333333334,
+          "ticks": 471.6016666666667,
+          "caughtTicks": 570.6415662650602,
+          "perfectP": 0.07083333333333333,
+          "costTicks": 1704.5843373493976
+        },
+        "expert": {
+          "p": 0.5783333333333334,
+          "failure": 0.42166666666666663,
+          "ticks": 463.33166666666665,
+          "caughtTicks": 535.8847262247839,
+          "perfectP": 0.20416666666666666,
+          "costTicks": 801.149855907781
+        }
+      }
+    }
+  ],
+  "saleOnlyBeer": {
+    "points": 16.964828952976887,
+    "coins": 22.86396088432017,
+    "chest": 4.589998535788232,
+    "fish": 2.368138167321099,
+    "perBite": 20.712634058318635,
+    "landed": 0.9606419753086417,
+    "xp": 87.86775883045908
+  },
+  "questScope": {
+    "fixedNoviceFishPerMin": 2.368138167321099,
+    "questPerMinWhenCyclesClaimed": 11.840690836605495,
+    "basePlusQuestPerMin": 32.55853526746391
+  }
+}

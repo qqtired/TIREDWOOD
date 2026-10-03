@@ -1,0 +1,45 @@
+[Unit]
+Description=Game Opus authenticated voice TURN relay
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+# Dedicated account, separate from game-opus; create only after approval.
+User=game-opus-turn
+Group=game-opus-turn
+# Pinned Linux build must be prepared and verified before installation.
+ExecStart=/opt/game-opus-turn/4.18.0/bin/turnserver -c /etc/game-opus-turn/turnserver.conf
+RuntimeDirectory=game-opus-turn
+RuntimeDirectoryMode=0700
+WorkingDirectory=/run/game-opus-turn
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+LimitNOFILE=4096
+TasksMax=64
+MemoryMax=256M
+CPUQuota=100%
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2370 @@
+{
+  "n": 1200,
+  "rows": [
+    {
+      "sp": 0,
+      "id": "hamsa",
+      "tier": 0,
+      "bite": 70,
+      "rain": false,
+      "val": [
+        2,
+        3
+      ],
+      "style": {
+        "spd": 66.894,
+        "sharp": 7,
+        "turn": 30,
+        "dart": 3,
+        "dartSpd": 160.804,
+        "dartUp": 50,
+        "hover": 250,
+        "hoverP": 30,
+        "lo": 35,
+        "hi": 90,
+        "roam": 18,
+        "zone": 36,
+        "drain": 6,
+        "mainPattern": "Nervous",
+        "secondaryPattern": "Dash",
+        "patternPeriod": 105,
+        "patternAmplitude": 43.575
+      },
+      "note": "мелкая суета у поверхности",
+      "difficulty": 516.8,
+      "xpDifficulty": 348.6,
+      "samples": [
+        {
+          "seed": 11,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 516.8466666666667,
+            "caughtTicks": 516.8466666666667,
+            "perfectP": 0.0125,
+            "costTicks": 516.8466666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 474.0175,
+            "caughtTicks": 474.0175,
+            "perfectP": 0.0125,
+            "costTicks": 474.0175
+          }
+        },
+        {
+          "seed": 1000003,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 514.0733333333334,
+            "caughtTicks": 514.0733333333334,
+            "perfectP": 0.011666666666666667,
+            "costTicks": 514.0733333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 474.7033333333333,
+            "caughtTicks": 474.7033333333333,
+            "perfectP": 0.013333333333333334,
+            "costTicks": 474.7033333333333
+          }
+        }
+      ]
+    },
+    {
+      "sp": 1,
+      "id": "goby",
+      "tier": 0,
+      "bite": 75,
+      "rain": false,
+      "val": [
+        2,
+        4
+      ],
+      "style": {
+        "spd": 13.449,
+        "sharp": 6,
+        "turn": 6,
+        "dart": 3,
+        "dartSpd": 43.646,
+        "dartUp": 70,
+        "hover": 900,
+        "hoverP": 70,
+        "lo": 0,
+        "hi": 35,
+        "roam": 14,
+        "zone": 38,
+        "drain": 21.375,
+        "mainPattern": "HoverDash",
+        "secondaryPattern": "SlowMigration",
+        "patternPeriod": 82,
+        "patternAmplitude": 28.613
+      },
+      "note": "сидит у дна, короткие подскоки",
+      "difficulty": 488.6,
+      "xpDifficulty": 326.5,
+      "samples": [
+        {
+          "seed": 7930,
+          "typical": {
+            "p": 0.9925,
+            "failure": 0.007499999999999951,
+            "ticks": 484.9025,
+            "caughtTicks": 486.57514693534847,
+            "perfectP": 0.195,
+            "costTicks": 488.56675062972295
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 446.0833333333333,
+            "caughtTicks": 446.0833333333333,
+            "perfectP": 0.31,
+            "costTicks": 446.0833333333333
+          }
+        },
+        {
+          "seed": 1001546,
+          "typical": {
+            "p": 0.9891666666666666,
+            "failure": 0.010833333333333361,
+            "ticks": 475.45416666666665,
+            "caughtTicks": 477.75063184498737,
+            "perfectP": 0.2,
+            "costTicks": 480.6613310867734
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 445.39666666666665,
+            "caughtTicks": 445.39666666666665,
+            "perfectP": 0.30083333333333334,
+            "costTicks": 445.39666666666665
+          }
+        }
+      ]
+    },
+    {
+      "sp": 2,
+      "id": "scad",
+      "tier": 0,
+      "bite": 70,
+      "rain": false,
+      "val": [
+        2,
+        5
+      ],
+      "style": {
+        "spd": 25.808,
+        "sharp": 5,
+        "turn": 12,
+        "dart": 3,
+        "dartSpd": 62.039,
+        "dartUp": 50,
+        "hover": 300,
+        "hoverP": 25,
+        "lo": 20,
+        "hi": 85,
+        "roam": 30,
+        "zone": 36,
+        "drain": 16.5,
+        "mainPattern": "Dash",
+        "secondaryPattern": "Wave",
+        "patternPeriod": 183,
+        "patternAmplitude": 36.465
+      },
+      "note": "ровные быстрые проходы",
+      "difficulty": 520.7,
+      "xpDifficulty": 343.7,
+      "samples": [
+        {
+          "seed": 15849,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 520.7108333333333,
+            "caughtTicks": 520.7108333333333,
+            "perfectP": 0.008333333333333333,
+            "costTicks": 520.7108333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 462.11583333333334,
+            "caughtTicks": 462.11583333333334,
+            "perfectP": 0,
+            "costTicks": 462.11583333333334
+          }
+        },
+        {
+          "seed": 1003089,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 524.9225,
+            "caughtTicks": 524.9225,
+            "perfectP": 0.006666666666666667,
+            "costTicks": 524.9225
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 457.9816666666667,
+            "caughtTicks": 457.9816666666667,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 457.9816666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 3,
+      "id": "redmullet",
+      "tier": 0,
+      "bite": 60,
+      "rain": false,
+      "val": [
+        2,
+        5
+      ],
+      "style": {
+        "spd": 69.647,
+        "sharp": 5,
+        "turn": 15,
+        "dart": 2,
+        "dartSpd": 200.904,
+        "dartUp": 50,
+        "hover": 600,
+        "hoverP": 55,
+        "lo": 0,
+        "hi": 40,
+        "roam": 16,
+        "zone": 37,
+        "drain": 3.5,
+        "mainPattern": "SlowMigration",
+        "secondaryPattern": "Sawtooth",
+        "patternPeriod": 99,
+        "patternAmplitude": 59.898
+      },
+      "note": "роется у самого дна",
+      "difficulty": 503.2,
+      "xpDifficulty": 330.3,
+      "samples": [
+        {
+          "seed": 23768,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 503.23833333333334,
+            "caughtTicks": 503.23833333333334,
+            "perfectP": 0.021666666666666667,
+            "costTicks": 503.23833333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 451.8475,
+            "caughtTicks": 451.8475,
+            "perfectP": 0.0225,
+            "costTicks": 451.8475
+          }
+        },
+        {
+          "seed": 1004632,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 512.625,
+            "caughtTicks": 512.625,
+            "perfectP": 0.009166666666666667,
+            "costTicks": 512.625
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 452.7991666666667,
+            "caughtTicks": 452.7991666666667,
+            "perfectP": 0.015,
+            "costTicks": 452.7991666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 17,
+      "id": "wrasse",
+      "tier": 0,
+      "bite": 60,
+      "rain": false,
+      "val": [
+        2,
+        4
+      ],
+      "style": {
+        "spd": 33.377,
+        "sharp": 6,
+        "turn": 20,
+        "dart": 3,
+        "dartSpd": 92.428,
+        "dartUp": 50,
+        "hover": 500,
+        "hoverP": 45,
+        "lo": 25,
+        "hi": 70,
+        "roam": 18,
+        "zone": 37,
+        "drain": 10,
+        "mainPattern": "FakeDash",
+        "secondaryPattern": "Nervous",
+        "patternPeriod": 160,
+        "patternAmplitude": 32.239
+      },
+      "note": "снуёт у камней",
+      "difficulty": 500.3,
+      "xpDifficulty": 335.7,
+      "samples": [
+        {
+          "seed": 134634,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 500.30083333333334,
+            "caughtTicks": 500.30083333333334,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 500.30083333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 466.815,
+            "caughtTicks": 466.815,
+            "perfectP": 0,
+            "costTicks": 466.815
+          }
+        },
+        {
+          "seed": 1026234,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 495.2191666666667,
+            "caughtTicks": 495.2191666666667,
+            "perfectP": 0,
+            "costTicks": 495.2191666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 468.145,
+            "caughtTicks": 468.145,
+            "perfectP": 0,
+            "costTicks": 468.145
+          }
+        }
+      ]
+    },
+    {
+      "sp": 18,
+      "id": "karas",
+      "tier": 0,
+      "bite": 55,
+      "rain": false,
+      "val": [
+        2,
+        4
+      ],
+      "style": {
+        "spd": 36.324,
+        "sharp": 4,
+        "turn": 10,
+        "dart": 2,
+        "dartSpd": 105.882,
+        "dartUp": 50,
+        "hover": 500,
+        "hoverP": 40,
+        "lo": 15,
+        "hi": 75,
+        "roam": 22,
+        "zone": 37,
+        "drain": 4.25,
+        "mainPattern": "Wave",
+        "secondaryPattern": "SlowMigration",
+        "patternPeriod": 175,
+        "patternAmplitude": 39.452
+      },
+      "note": "плавные широкие ходы",
+      "difficulty": 494.6,
+      "xpDifficulty": 329.6,
+      "samples": [
+        {
+          "seed": 142553,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 494.6175,
+            "caughtTicks": 494.6175,
+            "perfectP": 0.004166666666666667,
+            "costTicks": 494.6175
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 457.7525,
+            "caughtTicks": 457.7525,
+            "perfectP": 0.0016666666666666668,
+            "costTicks": 457.7525
+          }
+        },
+        {
+          "seed": 1027777,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 496.6433333333333,
+            "caughtTicks": 496.6433333333333,
+            "perfectP": 0.0016666666666666668,
+            "costTicks": 496.6433333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 456.80333333333334,
+            "caughtTicks": 456.80333333333334,
+            "perfectP": 0.0033333333333333335,
+            "costTicks": 456.80333333333334
+          }
+        }
+      ]
+    },
+    {
+      "sp": 19,
+      "id": "blenny",
+      "tier": 0,
+      "bite": 45,
+      "rain": false,
+      "val": [
+        2,
+        3
+      ],
+      "style": {
+        "spd": 29.54,
+        "sharp": 8,
+        "turn": 8,
+        "dart": 4,
+        "dartSpd": 106.514,
+        "dartUp": 60,
+        "hover": 1000,
+        "hoverP": 75,
+        "lo": 5,
+        "hi": 50,
+        "roam": 12,
+        "zone": 38,
+        "drain": 5.25,
+        "mainPattern": "Ambush",
+        "secondaryPattern": "HoverDash",
+        "patternPeriod": 131,
+        "patternAmplitude": 49.717
+      },
+      "note": "сидит на камне, вдруг прыгает",
+      "difficulty": 498,
+      "xpDifficulty": 329.1,
+      "samples": [
+        {
+          "seed": 150472,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 497.98833333333334,
+            "caughtTicks": 497.98833333333334,
+            "perfectP": 0.0016666666666666668,
+            "costTicks": 497.98833333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 453.9316666666667,
+            "caughtTicks": 453.9316666666667,
+            "perfectP": 0,
+            "costTicks": 453.9316666666667
+          }
+        },
+        {
+          "seed": 1029320,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 500.87333333333333,
+            "caughtTicks": 500.87333333333333,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 500.87333333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 454.5491666666667,
+            "caughtTicks": 454.5491666666667,
+            "perfectP": 0,
+            "costTicks": 454.5491666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 20,
+      "id": "sardine",
+      "tier": 0,
+      "bite": 55,
+      "rain": false,
+      "val": [
+        2,
+        3
+      ],
+      "style": {
+        "spd": 37.111,
+        "sharp": 6,
+        "turn": 35,
+        "dart": 3,
+        "dartSpd": 89.209,
+        "dartUp": 50,
+        "hover": 200,
+        "hoverP": 20,
+        "lo": 45,
+        "hi": 95,
+        "roam": 20,
+        "zone": 36,
+        "drain": 54.5,
+        "mainPattern": "Sawtooth",
+        "secondaryPattern": "Nervous",
+        "patternPeriod": 187,
+        "patternAmplitude": 34.071
+      },
+      "note": "зигзаги стайки у поверхности",
+      "difficulty": 529.3,
+      "xpDifficulty": 350.6,
+      "samples": [
+        {
+          "seed": 158391,
+          "typical": {
+            "p": 0.855,
+            "failure": 0.14500000000000002,
+            "ticks": 452.5316666666667,
+            "caughtTicks": 478.5448343079922,
+            "perfectP": 0.18,
+            "costTicks": 529.2768031189083
+          },
+          "expert": {
+            "p": 0.9725,
+            "failure": 0.02749999999999997,
+            "ticks": 465.88,
+            "caughtTicks": 468.1979434447301,
+            "perfectP": 0.06416666666666666,
+            "costTicks": 479.0539845758355
+          }
+        },
+        {
+          "seed": 1030863,
+          "typical": {
+            "p": 0.8675,
+            "failure": 0.13249999999999995,
+            "ticks": 443.2775,
+            "caughtTicks": 461.39193083573485,
+            "perfectP": 0.17666666666666667,
+            "costTicks": 510.98270893371756
+          },
+          "expert": {
+            "p": 0.9658333333333333,
+            "failure": 0.03416666666666668,
+            "ticks": 468.86,
+            "caughtTicks": 472.3874029335634,
+            "perfectP": 0.050833333333333335,
+            "costTicks": 485.44607420189817
+          }
+        }
+      ]
+    },
+    {
+      "sp": 21,
+      "id": "whiting",
+      "tier": 0,
+      "bite": 55,
+      "rain": false,
+      "val": [
+        2,
+        5
+      ],
+      "style": {
+        "spd": 77.343,
+        "sharp": 4,
+        "turn": 8,
+        "dart": 2,
+        "dartSpd": 194.71,
+        "dartUp": 40,
+        "hover": 400,
+        "hoverP": 30,
+        "lo": 15,
+        "hi": 70,
+        "roam": 28,
+        "zone": 37,
+        "drain": 1,
+        "mainPattern": "SlowMigration",
+        "secondaryPattern": "Wave",
+        "patternPeriod": 86,
+        "patternAmplitude": 67.499
+      },
+      "note": "ровно ходит в толще",
+      "difficulty": 523.9,
+      "xpDifficulty": 328.9,
+      "samples": [
+        {
+          "seed": 166310,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 523.8941666666667,
+            "caughtTicks": 523.8941666666667,
+            "perfectP": 0.0016666666666666668,
+            "costTicks": 523.8941666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 436.8333333333333,
+            "caughtTicks": 436.8333333333333,
+            "perfectP": 0,
+            "costTicks": 436.8333333333333
+          }
+        },
+        {
+          "seed": 1032406,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 526.3383333333334,
+            "caughtTicks": 526.3383333333334,
+            "perfectP": 0.0016666666666666668,
+            "costTicks": 526.3383333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 438.0375,
+            "caughtTicks": 438.0375,
+            "perfectP": 0,
+            "costTicks": 438.0375
+          }
+        }
+      ]
+    },
+    {
+      "sp": 22,
+      "id": "picarel",
+      "tier": 0,
+      "bite": 180,
+      "rain": true,
+      "val": [
+        2,
+        3
+      ],
+      "style": {
+        "spd": 92.624,
+        "sharp": 6,
+        "turn": 22,
+        "dart": 3,
+        "dartSpd": 232.334,
+        "dartUp": 50,
+        "hover": 300,
+        "hoverP": 30,
+        "lo": 30,
+        "hi": 80,
+        "roam": 22,
+        "zone": 36,
+        "drain": 1,
+        "mainPattern": "Nervous",
+        "secondaryPattern": "DoubleDash",
+        "patternPeriod": 103,
+        "patternAmplitude": 59.606
+      },
+      "note": "вертлявая, держится стайкой",
+      "difficulty": 522.7,
+      "xpDifficulty": 349.5,
+      "samples": [
+        {
+          "seed": 174229,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 522.6883333333334,
+            "caughtTicks": 522.6883333333334,
+            "perfectP": 0,
+            "costTicks": 522.6883333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 473.85583333333335,
+            "caughtTicks": 473.85583333333335,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 473.85583333333335
+          }
+        },
+        {
+          "seed": 1033949,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 525.0566666666666,
+            "caughtTicks": 525.0566666666666,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 525.0566666666666
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 472.7841666666667,
+            "caughtTicks": 472.7841666666667,
+            "perfectP": 0.0033333333333333335,
+            "costTicks": 472.7841666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 4,
+      "id": "mullet",
+      "tier": 1,
+      "bite": 48,
+      "rain": false,
+      "val": [
+        4,
+        12
+      ],
+      "style": {
+        "spd": 48.751,
+        "sharp": 5.1,
+        "turn": 10,
+        "dart": 8,
+        "dartSpd": 190.851,
+        "dartUp": 85,
+        "hover": 300,
+        "hoverP": 25,
+        "lo": 30,
+        "hi": 90,
+        "roam": 32,
+        "zone": 31,
+        "drain": 6,
+        "mainPattern": "Dash",
+        "secondaryPattern": "DoubleDash",
+        "patternPeriod": 147,
+        "patternAmplitude": 56.966
+      },
+      "note": "прыгает свечками вверх",
+      "difficulty": 665.8,
+      "xpDifficulty": 476.2,
+      "samples": [
+        {
+          "seed": 31687,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 665.8475,
+            "caughtTicks": 665.8475,
+            "perfectP": 0,
+            "costTicks": 665.8475
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 526.8041666666667,
+            "caughtTicks": 526.8041666666667,
+            "perfectP": 0,
+            "costTicks": 526.8041666666667
+          }
+        },
+        {
+          "seed": 1006175,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 662.825,
+            "caughtTicks": 662.825,
+            "perfectP": 0,
+            "costTicks": 662.825
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 523.7591666666667,
+            "caughtTicks": 523.7591666666667,
+            "perfectP": 0,
+            "costTicks": 523.7591666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 5,
+      "id": "mackerel",
+      "tier": 1,
+      "bite": 48,
+      "rain": false,
+      "val": [
+        4,
+        10
+      ],
+      "style": {
+        "spd": 35.294,
+        "sharp": 4.25,
+        "turn": 14,
+        "dart": 7,
+        "dartSpd": 122.171,
+        "dartUp": 50,
+        "hover": 150,
+        "hoverP": 10,
+        "lo": 15,
+        "hi": 90,
+        "roam": 40,
+        "zone": 30,
+        "drain": 17.25,
+        "mainPattern": "DoubleDash",
+        "secondaryPattern": "SlowMigration",
+        "patternPeriod": 185,
+        "patternAmplitude": 50.474
+      },
+      "note": "носится без остановки",
+      "difficulty": 659.4,
+      "xpDifficulty": 472.4,
+      "samples": [
+        {
+          "seed": 39606,
+          "typical": {
+            "p": 0.9925,
+            "failure": 0.007499999999999951,
+            "ticks": 654.4416666666667,
+            "caughtTicks": 655.3375314861461,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 659.3870696893367
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 507.7108333333333,
+            "caughtTicks": 507.7108333333333,
+            "perfectP": 0,
+            "costTicks": 507.7108333333333
+          }
+        },
+        {
+          "seed": 1007718,
+          "typical": {
+            "p": 0.9916666666666667,
+            "failure": 0.008333333333333304,
+            "ticks": 663.4991666666666,
+            "caughtTicks": 665.8521008403361,
+            "perfectP": 0,
+            "costTicks": 669.0747899159663
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 506.49666666666667,
+            "caughtTicks": 506.49666666666667,
+            "perfectP": 0,
+            "costTicks": 506.49666666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 6,
+      "id": "garfish",
+      "tier": 1,
+      "bite": 42,
+      "rain": false,
+      "val": [
+        4,
+        10
+      ],
+      "style": {
+        "spd": 46.578,
+        "sharp": 6.8,
+        "turn": 16,
+        "dart": 8,
+        "dartSpd": 185.323,
+        "dartUp": 80,
+        "hover": 200,
+        "hoverP": 20,
+        "lo": 50,
+        "hi": 100,
+        "roam": 28,
+        "zone": 30,
+        "drain": 2,
+        "mainPattern": "EdgeSnapback",
+        "secondaryPattern": "Dash",
+        "patternPeriod": 144,
+        "patternAmplitude": 53.817
+      },
+      "note": "у самой поверхности, свечки",
+      "difficulty": 751.6,
+      "xpDifficulty": 535.4,
+      "samples": [
+        {
+          "seed": 47525,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 751.5741666666667,
+            "caughtTicks": 751.5741666666667,
+            "perfectP": 0,
+            "costTicks": 751.5741666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 545.0216666666666,
+            "caughtTicks": 545.0216666666666,
+            "perfectP": 0,
+            "costTicks": 545.0216666666666
+          }
+        },
+        {
+          "seed": 1009261,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 756.3316666666667,
+            "caughtTicks": 756.3316666666667,
+            "perfectP": 0,
+            "costTicks": 756.3316666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 542.2758333333334,
+            "caughtTicks": 542.2758333333334,
+            "perfectP": 0,
+            "costTicks": 542.2758333333334
+          }
+        }
+      ]
+    },
+    {
+      "sp": 7,
+      "id": "scorpion",
+      "tier": 1,
+      "bite": 42,
+      "rain": false,
+      "val": [
+        5,
+        12
+      ],
+      "style": {
+        "spd": 21.846,
+        "sharp": 7.6499999999999995,
+        "turn": 4,
+        "dart": 9,
+        "dartSpd": 101.795,
+        "dartUp": 50,
+        "hover": 1100,
+        "hoverP": 80,
+        "lo": 0,
+        "hi": 45,
+        "roam": 16,
+        "zone": 30,
+        "drain": 8.5,
+        "mainPattern": "Ambush",
+        "secondaryPattern": "FakeDash",
+        "patternPeriod": 210,
+        "patternAmplitude": 46.002
+      },
+      "note": "засада: стоит — и бросок",
+      "difficulty": 676.6,
+      "xpDifficulty": 493.9,
+      "samples": [
+        {
+          "seed": 55444,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 676.62,
+            "caughtTicks": 676.62,
+            "perfectP": 0.0033333333333333335,
+            "costTicks": 676.62
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 558.1133333333333,
+            "caughtTicks": 558.1133333333333,
+            "perfectP": 0,
+            "costTicks": 558.1133333333333
+          }
+        },
+        {
+          "seed": 1010804,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 674.6833333333333,
+            "caughtTicks": 674.6833333333333,
+            "perfectP": 0.0025,
+            "costTicks": 674.6833333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 556.435,
+            "caughtTicks": 556.435,
+            "perfectP": 0,
+            "costTicks": 556.435
+          }
+        }
+      ]
+    },
+    {
+      "sp": 8,
+      "id": "flounder",
+      "tier": 1,
+      "bite": 42,
+      "rain": false,
+      "val": [
+        5,
+        13
+      ],
+      "style": {
+        "spd": 29.648,
+        "sharp": 2.55,
+        "turn": 6,
+        "dart": 8,
+        "dartSpd": 128.284,
+        "dartUp": 70,
+        "hover": 1200,
+        "hoverP": 75,
+        "lo": 0,
+        "hi": 30,
+        "roam": 20,
+        "zone": 31,
+        "drain": 3,
+        "mainPattern": "HoverDash",
+        "secondaryPattern": "Wave",
+        "patternPeriod": 101,
+        "patternAmplitude": 48.191
+      },
+      "note": "лежит на дне, взлетает и планирует",
+      "difficulty": 606.2,
+      "xpDifficulty": 441.8,
+      "samples": [
+        {
+          "seed": 63363,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 606.1766666666666,
+            "caughtTicks": 606.1766666666666,
+            "perfectP": 0,
+            "costTicks": 606.1766666666666
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 518.8908333333334,
+            "caughtTicks": 518.8908333333334,
+            "perfectP": 0,
+            "costTicks": 518.8908333333334
+          }
+        },
+        {
+          "seed": 1012347,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 612.5758333333333,
+            "caughtTicks": 612.5758333333333,
+            "perfectP": 0,
+            "costTicks": 612.5758333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 510.3808333333333,
+            "caughtTicks": 510.3808333333333,
+            "perfectP": 0,
+            "costTicks": 510.3808333333333
+          }
+        }
+      ]
+    },
+    {
+      "sp": 10,
+      "id": "gurnard",
+      "tier": 1,
+      "bite": 38,
+      "rain": false,
+      "val": [
+        5,
+        12
+      ],
+      "style": {
+        "spd": 63.696,
+        "sharp": 5.1,
+        "turn": 18,
+        "dart": 8,
+        "dartSpd": 244.986,
+        "dartUp": 50,
+        "hover": 500,
+        "hoverP": 50,
+        "lo": 0,
+        "hi": 40,
+        "roam": 14,
+        "zone": 30,
+        "drain": 6.375,
+        "mainPattern": "Sawtooth",
+        "secondaryPattern": "HoverDash",
+        "patternPeriod": 133,
+        "patternAmplitude": 61.854
+      },
+      "note": "шагает по дну перебежками",
+      "difficulty": 672.1,
+      "xpDifficulty": 484.4,
+      "samples": [
+        {
+          "seed": 79201,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 672.0741666666667,
+            "caughtTicks": 672.0741666666667,
+            "perfectP": 0,
+            "costTicks": 672.0741666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 559.2908333333334,
+            "caughtTicks": 559.2908333333334,
+            "perfectP": 0.0025,
+            "costTicks": 559.2908333333334
+          }
+        },
+        {
+          "seed": 1015433,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 645.61,
+            "caughtTicks": 645.61,
+            "perfectP": 0,
+            "costTicks": 645.61
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 553.2891666666667,
+            "caughtTicks": 553.2891666666667,
+            "perfectP": 0.006666666666666667,
+            "costTicks": 553.2891666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 23,
+      "id": "eel",
+      "tier": 1,
+      "bite": 140,
+      "rain": true,
+      "val": [
+        5,
+        13
+      ],
+      "style": {
+        "spd": 29.666,
+        "sharp": 6.4,
+        "turn": 45,
+        "dart": 7,
+        "dartSpd": 110.025,
+        "dartUp": 40,
+        "hover": 150,
+        "hoverP": 15,
+        "lo": 0,
+        "hi": 55,
+        "roam": 18,
+        "zone": 30,
+        "drain": 9.25,
+        "mainPattern": "Wave",
+        "secondaryPattern": "FakeDash",
+        "patternPeriod": 162,
+        "patternAmplitude": 48.448
+      },
+      "note": "извивается, то туда, то сюда",
+      "difficulty": 709.8,
+      "xpDifficulty": 505,
+      "samples": [
+        {
+          "seed": 182148,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 709.7708333333334,
+            "caughtTicks": 709.7708333333334,
+            "perfectP": 0.013333333333333334,
+            "costTicks": 709.7708333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 545.6425,
+            "caughtTicks": 545.6425,
+            "perfectP": 0.03666666666666667,
+            "costTicks": 545.6425
+          }
+        },
+        {
+          "seed": 1035492,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 707.5833333333334,
+            "caughtTicks": 707.5833333333334,
+            "perfectP": 0.0125,
+            "costTicks": 707.5833333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 545.045,
+            "caughtTicks": 545.045,
+            "perfectP": 0.03166666666666667,
+            "costTicks": 545.045
+          }
+        }
+      ]
+    },
+    {
+      "sp": 24,
+      "id": "meagre",
+      "tier": 1,
+      "bite": 130,
+      "rain": true,
+      "val": [
+        5,
+        13
+      ],
+      "style": {
+        "spd": 72.191,
+        "sharp": 3.4,
+        "turn": 8,
+        "dart": 7,
+        "dartSpd": 293.085,
+        "dartUp": 30,
+        "hover": 400,
+        "hoverP": 30,
+        "lo": 10,
+        "hi": 60,
+        "roam": 34,
+        "zone": 31,
+        "drain": 1,
+        "mainPattern": "SlowMigration",
+        "secondaryPattern": "EdgeSnapback",
+        "patternPeriod": 100,
+        "patternAmplitude": 76.5
+      },
+      "note": "тяжёлые мощные проводки",
+      "difficulty": 693.6,
+      "xpDifficulty": 461.7,
+      "samples": [
+        {
+          "seed": 190067,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 693.5516666666666,
+            "caughtTicks": 693.5516666666666,
+            "perfectP": 0,
+            "costTicks": 693.5516666666666
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 508.39,
+            "caughtTicks": 508.39,
+            "perfectP": 0,
+            "costTicks": 508.39
+          }
+        },
+        {
+          "seed": 1037035,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 695.5083333333333,
+            "caughtTicks": 695.5083333333333,
+            "perfectP": 0,
+            "costTicks": 695.5083333333333
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 515.0558333333333,
+            "caughtTicks": 515.0558333333333,
+            "perfectP": 0,
+            "costTicks": 515.0558333333333
+          }
+        }
+      ]
+    },
+    {
+      "sp": 25,
+      "id": "shad",
+      "tier": 1,
+      "bite": 150,
+      "rain": true,
+      "val": [
+        4,
+        10
+      ],
+      "style": {
+        "spd": 17.173,
+        "sharp": 5.1,
+        "turn": 20,
+        "dart": 7,
+        "dartSpd": 62.748,
+        "dartUp": 60,
+        "hover": 200,
+        "hoverP": 15,
+        "lo": 35,
+        "hi": 95,
+        "roam": 30,
+        "zone": 30,
+        "drain": 10,
+        "mainPattern": "FakeDash",
+        "secondaryPattern": "Dash",
+        "patternPeriod": 189,
+        "patternAmplitude": 36.127
+      },
+      "note": "серебряная молния у поверхности",
+      "difficulty": 752.6,
+      "xpDifficulty": 539.5,
+      "samples": [
+        {
+          "seed": 197986,
+          "typical": {
+            "p": 0.9991666666666666,
+            "failure": 0.0008333333333333526,
+            "ticks": 751.9358333333333,
+            "caughtTicks": 752.2135112593828,
+            "perfectP": 0,
+            "costTicks": 752.5629691409508
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 555.6775,
+            "caughtTicks": 555.6775,
+            "perfectP": 0,
+            "costTicks": 555.6775
+          }
+        },
+        {
+          "seed": 1038578,
+          "typical": {
+            "p": 0.9991666666666666,
+            "failure": 0.0008333333333333526,
+            "ticks": 738.8516666666667,
+            "caughtTicks": 739.1334445371143,
+            "perfectP": 0,
+            "costTicks": 739.4678899082569
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 551.29,
+            "caughtTicks": 551.29,
+            "perfectP": 0,
+            "costTicks": 551.29
+          }
+        }
+      ]
+    },
+    {
+      "sp": 9,
+      "id": "bluefish",
+      "tier": 2,
+      "bite": 28,
+      "rain": false,
+      "val": [
+        10,
+        26
+      ],
+      "style": {
+        "spd": 25.089,
+        "sharp": 6.4,
+        "turn": 18,
+        "dart": 9,
+        "dartSpd": 105.27,
+        "dartUp": 55,
+        "hover": 200,
+        "hoverP": 15,
+        "lo": 10,
+        "hi": 95,
+        "roam": 40,
+        "zone": 28,
+        "drain": 11.5,
+        "mainPattern": "DoubleDash",
+        "secondaryPattern": "FakeDash",
+        "patternPeriod": 195,
+        "patternAmplitude": 50.472
+      },
+      "note": "агрессивный, резкие броски",
+      "difficulty": 815.6,
+      "xpDifficulty": 623.8,
+      "samples": [
+        {
+          "seed": 71282,
+          "typical": {
+            "p": 0.9983333333333333,
+            "failure": 0.0016666666666667052,
+            "ticks": 814.2316666666667,
+            "caughtTicks": 814.4974958263773,
+            "perfectP": 0,
+            "costTicks": 815.5909849749582
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 581.8058333333333,
+            "caughtTicks": 581.8058333333333,
+            "perfectP": 0,
+            "costTicks": 581.8058333333333
+          }
+        },
+        {
+          "seed": 1013890,
+          "typical": {
+            "p": 0.9991666666666666,
+            "failure": 0.0008333333333333526,
+            "ticks": 811.1016666666667,
+            "caughtTicks": 811.2410341951627,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 811.7781484570476
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 577.5283333333333,
+            "caughtTicks": 577.5283333333333,
+            "perfectP": 0,
+            "costTicks": 577.5283333333333
+          }
+        }
+      ]
+    },
+    {
+      "sp": 11,
+      "id": "dogfish",
+      "tier": 2,
+      "bite": 26,
+      "rain": false,
+      "val": [
+        11,
+        28
+      ],
+      "style": {
+        "spd": 20.763,
+        "sharp": 4.800000000000001,
+        "turn": 14,
+        "dart": 10,
+        "dartSpd": 86.099,
+        "dartUp": 40,
+        "hover": 250,
+        "hoverP": 15,
+        "lo": 5,
+        "hi": 80,
+        "roam": 45,
+        "zone": 28,
+        "drain": 18.75,
+        "mainPattern": "Dash",
+        "secondaryPattern": "EdgeSnapback",
+        "patternPeriod": 250,
+        "patternAmplitude": 47.847
+      },
+      "note": "акулья хватка, длинные проводки",
+      "difficulty": 836,
+      "xpDifficulty": 661.7,
+      "samples": [
+        {
+          "seed": 87120,
+          "typical": {
+            "p": 0.9541666666666667,
+            "failure": 0.04583333333333328,
+            "ticks": 797.7125,
+            "caughtTicks": 810.6087336244542,
+            "perfectP": 0.0033333333333333335,
+            "costTicks": 836.0305676855895
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 592.6275,
+            "caughtTicks": 592.6275,
+            "perfectP": 0,
+            "costTicks": 592.6275
+          }
+        },
+        {
+          "seed": 1016976,
+          "typical": {
+            "p": 0.9641666666666666,
+            "failure": 0.035833333333333384,
+            "ticks": 803.215,
+            "caughtTicks": 813.1037165082109,
+            "perfectP": 0.0025,
+            "costTicks": 833.066551426102
+          },
+          "expert": {
+            "p": 0.9991666666666666,
+            "failure": 0.0008333333333333526,
+            "ticks": 595.2108333333333,
+            "caughtTicks": 595.2977481234362,
+            "perfectP": 0,
+            "costTicks": 595.7072560467055
+          }
+        }
+      ]
+    },
+    {
+      "sp": 12,
+      "id": "ray",
+      "tier": 2,
+      "bite": 24,
+      "rain": false,
+      "val": [
+        11,
+        28
+      ],
+      "style": {
+        "spd": 55.19,
+        "sharp": 2.4000000000000004,
+        "turn": 6,
+        "dart": 8,
+        "dartSpd": 234.825,
+        "dartUp": 60,
+        "hover": 900,
+        "hoverP": 55,
+        "lo": 0,
+        "hi": 50,
+        "roam": 40,
+        "zone": 28,
+        "drain": 1,
+        "mainPattern": "Wave",
+        "secondaryPattern": "HoverDash",
+        "patternPeriod": 145,
+        "patternAmplitude": 69.704
+      },
+      "note": "планирует дугами, липнет ко дну",
+      "difficulty": 806.6,
+      "xpDifficulty": 618.6,
+      "samples": [
+        {
+          "seed": 95039,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 806.5691666666667,
+            "caughtTicks": 806.5691666666667,
+            "perfectP": 0,
+            "costTicks": 806.5691666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 590.4058333333334,
+            "caughtTicks": 590.4058333333334,
+            "perfectP": 0,
+            "costTicks": 590.4058333333334
+          }
+        },
+        {
+          "seed": 1018519,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 805.9483333333334,
+            "caughtTicks": 805.9483333333334,
+            "perfectP": 0,
+            "costTicks": 805.9483333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 590.8041666666667,
+            "caughtTicks": 590.8041666666667,
+            "perfectP": 0,
+            "costTicks": 590.8041666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 26,
+      "id": "turbot",
+      "tier": 2,
+      "bite": 22,
+      "rain": false,
+      "val": [
+        13,
+        32
+      ],
+      "style": {
+        "spd": 27.627,
+        "sharp": 3.2,
+        "turn": 6,
+        "dart": 8,
+        "dartSpd": 123.201,
+        "dartUp": 75,
+        "hover": 1300,
+        "hoverP": 75,
+        "lo": 0,
+        "hi": 35,
+        "roam": 30,
+        "zone": 28,
+        "drain": 1,
+        "mainPattern": "Ambush",
+        "secondaryPattern": "EdgeSnapback",
+        "patternPeriod": 82,
+        "patternAmplitude": 51.257
+      },
+      "note": "лежит пластом — и взмывает",
+      "difficulty": 876.7,
+      "xpDifficulty": 677.8,
+      "samples": [
+        {
+          "seed": 205905,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 876.695,
+            "caughtTicks": 876.695,
+            "perfectP": 0,
+            "costTicks": 876.695
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 596.0583333333333,
+            "caughtTicks": 596.0583333333333,
+            "perfectP": 0,
+            "costTicks": 596.0583333333333
+          }
+        },
+        {
+          "seed": 1040121,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 874.8908333333334,
+            "caughtTicks": 874.8908333333334,
+            "perfectP": 0,
+            "costTicks": 874.8908333333334
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 594.9958333333333,
+            "caughtTicks": 594.9958333333333,
+            "perfectP": 0,
+            "costTicks": 594.9958333333333
+          }
+        }
+      ]
+    },
+    {
+      "sp": 27,
+      "id": "seabass",
+      "tier": 2,
+      "bite": 110,
+      "rain": true,
+      "val": [
+        11,
+        28
+      ],
+      "style": {
+        "spd": 8.432,
+        "sharp": 5.6000000000000005,
+        "turn": 14,
+        "dart": 9,
+        "dartSpd": 33.314,
+        "dartUp": 50,
+        "hover": 200,
+        "hoverP": 15,
+        "lo": 10,
+        "hi": 90,
+        "roam": 45,
+        "zone": 27,
+        "drain": 36,
+        "mainPattern": "FakeDash",
+        "secondaryPattern": "DoubleDash",
+        "patternPeriod": 437,
+        "patternAmplitude": 28.065
+      },
+      "note": "мощные рывки в прибое",
+      "difficulty": 832.5,
+      "xpDifficulty": 664.8,
+      "samples": [
+        {
+          "seed": 213824,
+          "typical": {
+            "p": 0.6508333333333334,
+            "failure": 0.3491666666666666,
+            "ticks": 541.8091666666667,
+            "caughtTicks": 640.2778489116517,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 832.4852752880922
+          },
+          "expert": {
+            "p": 0.9791666666666666,
+            "failure": 0.02083333333333337,
+            "ticks": 577.1866666666666,
+            "caughtTicks": 582.5174468085106,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 589.4672340425532
+          }
+        },
+        {
+          "seed": 1041664,
+          "typical": {
+            "p": 0.6541666666666667,
+            "failure": 0.3458333333333333,
+            "ticks": 547.2333333333333,
+            "caughtTicks": 643.5490445859873,
+            "perfectP": 0.0008333333333333334,
+            "costTicks": 836.5350318471337
+          },
+          "expert": {
+            "p": 0.9866666666666667,
+            "failure": 0.013333333333333308,
+            "ticks": 578.855,
+            "caughtTicks": 582.1807432432432,
+            "perfectP": 0,
+            "costTicks": 586.6773648648649
+          }
+        }
+      ]
+    },
+    {
+      "sp": 28,
+      "id": "leerfish",
+      "tier": 2,
+      "bite": 100,
+      "rain": true,
+      "val": [
+        13,
+        32
+      ],
+      "style": {
+        "spd": 31.056,
+        "sharp": 5.6000000000000005,
+        "turn": 12,
+        "dart": 10,
+        "dartSpd": 128.135,
+        "dartUp": 55,
+        "hover": 150,
+        "hoverP": 10,
+        "lo": 10,
+        "hi": 95,
+        "roam": 50,
+        "zone": 27,
+        "drain": 10,
+        "mainPattern": "EdgeSnapback",
+        "secondaryPattern": "DoubleDash",
+        "patternPeriod": 180,
+        "patternAmplitude": 69.947
+      },
+      "note": "сильный хищник прибоя",
+      "difficulty": 855.8,
+      "xpDifficulty": 644.2,
+      "samples": [
+        {
+          "seed": 221743,
+          "typical": {
+            "p": 0.9983333333333333,
+            "failure": 0.0016666666666667052,
+            "ticks": 854.3491666666666,
+            "caughtTicks": 854.2387312186978,
+            "perfectP": 0,
+            "costTicks": 855.7754590984975
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 587.7983333333333,
+            "caughtTicks": 587.7983333333333,
+            "perfectP": 0,
+            "costTicks": 587.7983333333333
+          }
+        },
+        {
+          "seed": 1043207,
+          "typical": {
+            "p": 0.9975,
+            "failure": 0.0024999999999999467,
+            "ticks": 855.3991666666667,
+            "caughtTicks": 856.4101921470343,
+            "perfectP": 0,
+            "costTicks": 857.5430242272348
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 587.5158333333334,
+            "caughtTicks": 587.5158333333334,
+            "perfectP": 0,
+            "costTicks": 587.5158333333334
+          }
+        }
+      ]
+    },
+    {
+      "sp": 13,
+      "id": "sturgeon",
+      "tier": 3,
+      "bite": 10,
+      "rain": false,
+      "val": [
+        36,
+        105
+      ],
+      "style": {
+        "spd": 10.71,
+        "sharp": 3.2,
+        "turn": 6,
+        "dart": 12,
+        "dartSpd": 50.753,
+        "dartUp": 15,
+        "hover": 700,
+        "hoverP": 40,
+        "lo": 0,
+        "hi": 40,
+        "roam": 30,
+        "zone": 25,
+        "drain": 41.5,
+        "mainPattern": "SlowMigration",
+        "secondaryPattern": "Ambush",
+        "patternPeriod": 83,
+        "patternAmplitude": 41.689
+      },
+      "note": "тянет на дно мощными рывками",
+      "difficulty": 1125.9,
+      "xpDifficulty": 902.5,
+      "samples": [
+        {
+          "seed": 102958,
+          "typical": {
+            "p": 0.6866666666666666,
+            "failure": 0.31333333333333335,
+            "ticks": 773.0908333333333,
+            "caughtTicks": 830.8131067961165,
+            "perfectP": 0.15416666666666667,
+            "costTicks": 1125.860436893204
+          },
+          "expert": {
+            "p": 0.99,
+            "failure": 0.010000000000000009,
+            "ticks": 842.3108333333333,
+            "caughtTicks": 844.4705387205387,
+            "perfectP": 0.18666666666666668,
+            "costTicks": 850.8190235690236
+          }
+        },
+        {
+          "seed": 1020062,
+          "typical": {
+            "p": 0.6891666666666667,
+            "failure": 0.3108333333333333,
+            "ticks": 748.1133333333333,
+            "caughtTicks": 807.9588875453446,
+            "perfectP": 0.18,
+            "costTicks": 1085.5332527206772
+          },
+          "expert": {
+            "p": 0.9916666666666667,
+            "failure": 0.008333333333333304,
+            "ticks": 784.7658333333334,
+            "caughtTicks": 786.3983193277311,
+            "perfectP": 0.24833333333333332,
+            "costTicks": 791.3605042016807
+          }
+        }
+      ]
+    },
+    {
+      "sp": 29,
+      "id": "tuna",
+      "tier": 3,
+      "bite": 8,
+      "rain": false,
+      "val": [
+        40,
+        110
+      ],
+      "style": {
+        "spd": 23.732,
+        "sharp": 4.800000000000001,
+        "turn": 10,
+        "dart": 12,
+        "dartSpd": 107.503,
+        "dartUp": 50,
+        "hover": 100,
+        "hoverP": 5,
+        "lo": 0,
+        "hi": 100,
+        "roam": 60,
+        "zone": 24,
+        "drain": 10,
+        "mainPattern": "Dash",
+        "secondaryPattern": "Sawtooth",
+        "patternPeriod": 158,
+        "patternAmplitude": 64.65
+      },
+      "note": "неутомимый: носится по всей шкале",
+      "difficulty": 1070.3,
+      "xpDifficulty": 835.4,
+      "samples": [
+        {
+          "seed": 229662,
+          "typical": {
+            "p": 0.995,
+            "failure": 0.0050000000000000044,
+            "ticks": 1064.9925,
+            "caughtTicks": 1065.180904522613,
+            "perfectP": 0,
+            "costTicks": 1070.3442211055276
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 668.9908333333333,
+            "caughtTicks": 668.9908333333333,
+            "perfectP": 0,
+            "costTicks": 668.9908333333333
+          }
+        },
+        {
+          "seed": 1044750,
+          "typical": {
+            "p": 0.9916666666666667,
+            "failure": 0.008333333333333304,
+            "ticks": 1064.0191666666667,
+            "caughtTicks": 1059.0596638655463,
+            "perfectP": 0,
+            "costTicks": 1072.9605042016806
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 669.1391666666667,
+            "caughtTicks": 669.1391666666667,
+            "perfectP": 0,
+            "costTicks": 669.1391666666667
+          }
+        }
+      ]
+    },
+    {
+      "sp": 30,
+      "id": "swordfish",
+      "tier": 3,
+      "bite": 8,
+      "rain": false,
+      "val": [
+        40,
+        110
+      ],
+      "style": {
+        "spd": 26.839,
+        "sharp": 7.2,
+        "turn": 12,
+        "dart": 14,
+        "dartSpd": 125.064,
+        "dartUp": 85,
+        "hover": 250,
+        "hoverP": 20,
+        "lo": 20,
+        "hi": 100,
+        "roam": 50,
+        "zone": 24,
+        "drain": 10,
+        "mainPattern": "DoubleDash",
+        "secondaryPattern": "EdgeSnapback",
+        "patternPeriod": 180,
+        "patternAmplitude": 68.633
+      },
+      "note": "свечки и прыжки вверх",
+      "difficulty": 1184.1,
+      "xpDifficulty": 895.1,
+      "samples": [
+        {
+          "seed": 237581,
+          "typical": {
+            "p": 0.995,
+            "failure": 0.0050000000000000044,
+            "ticks": 1178.165,
+            "caughtTicks": 1177.0402010050252,
+            "perfectP": 0,
+            "costTicks": 1184.0854271356784
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 679.2708333333334,
+            "caughtTicks": 679.2708333333334,
+            "perfectP": 0,
+            "costTicks": 679.2708333333334
+          }
+        },
+        {
+          "seed": 1046293,
+          "typical": {
+            "p": 0.9958333333333333,
+            "failure": 0.004166666666666652,
+            "ticks": 1161.5258333333334,
+            "caughtTicks": 1163.2953974895397,
+            "perfectP": 0,
+            "costTicks": 1166.3857740585775
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 684.305,
+            "caughtTicks": 684.305,
+            "perfectP": 0,
+            "costTicks": 684.305
+          }
+        }
+      ]
+    },
+    {
+      "sp": 31,
+      "id": "angler",
+      "tier": 3,
+      "bite": 8,
+      "rain": false,
+      "val": [
+        32,
+        95
+      ],
+      "style": {
+        "spd": 28.037,
+        "sharp": 8,
+        "turn": 4,
+        "dart": 14,
+        "dartSpd": 160.802,
+        "dartUp": 50,
+        "hover": 1400,
+        "hoverP": 85,
+        "lo": 0,
+        "hi": 45,
+        "roam": 20,
+        "zone": 24,
+        "drain": 22.5,
+        "mainPattern": "Ambush",
+        "secondaryPattern": "Nervous",
+        "patternPeriod": 215,
+        "patternAmplitude": 58.435
+      },
+      "note": "замирает надолго — и взрывной бросок",
+      "difficulty": 1323.6,
+      "xpDifficulty": 961,
+      "samples": [
+        {
+          "seed": 245500,
+          "typical": {
+            "p": 0.7291666666666666,
+            "failure": 0.27083333333333337,
+            "ticks": 965.1291666666667,
+            "caughtTicks": 942.3051428571429,
+            "perfectP": 0,
+            "costTicks": 1323.6057142857144
+          },
+          "expert": {
+            "p": 0.9808333333333333,
+            "failure": 0.019166666666666665,
+            "ticks": 783.6625,
+            "caughtTicks": 767.2812234494478,
+            "perfectP": 0,
+            "costTicks": 798.9762107051827
+          }
+        },
+        {
+          "seed": 1047836,
+          "typical": {
+            "p": 0.7175,
+            "failure": 0.2825,
+            "ticks": 992.6833333333333,
+            "caughtTicks": 970.0011614401858,
+            "perfectP": 0,
+            "costTicks": 1383.5307781649244
+          },
+          "expert": {
+            "p": 0.985,
+            "failure": 0.015000000000000013,
+            "ticks": 766.2891666666667,
+            "caughtTicks": 749.8874788494078,
+            "perfectP": 0,
+            "costTicks": 777.9585448392555
+          }
+        }
+      ]
+    },
+    {
+      "sp": 34,
+      "id": "bluemarlin",
+      "tier": 3,
+      "bite": 20,
+      "rain": true,
+      "val": [
+        45,
+        125
+      ],
+      "style": {
+        "spd": 34.379,
+        "sharp": 5.6000000000000005,
+        "turn": 12,
+        "dart": 13,
+        "dartSpd": 168.956,
+        "dartUp": 70,
+        "hover": 250,
+        "hoverP": 10,
+        "lo": 20,
+        "hi": 100,
+        "roam": 50,
+        "zone": 24,
+        "drain": 5.25,
+        "mainPattern": "EdgeSnapback",
+        "secondaryPattern": "Wave",
+        "patternPeriod": 144,
+        "patternAmplitude": 79.048
+      },
+      "note": "длинные быстрые проходы и свечки",
+      "difficulty": 1149.9,
+      "xpDifficulty": 879.9,
+      "samples": [
+        {
+          "seed": 269257,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 1149.8916666666667,
+            "caughtTicks": 1149.8916666666667,
+            "perfectP": 0,
+            "costTicks": 1149.8916666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 672.48,
+            "caughtTicks": 672.48,
+            "perfectP": 0,
+            "costTicks": 672.48
+          }
+        },
+        {
+          "seed": 1052465,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 1139.2666666666667,
+            "caughtTicks": 1139.2666666666667,
+            "perfectP": 0,
+            "costTicks": 1139.2666666666667
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 661.575,
+            "caughtTicks": 661.575,
+            "perfectP": 0,
+            "costTicks": 661.575
+          }
+        }
+      ]
+    },
+    {
+      "sp": 32,
+      "id": "whiteshark",
+      "tier": 4,
+      "bite": 6,
+      "rain": false,
+      "val": [
+        200,
+        400
+      ],
+      "style": {
+        "spd": 8.548,
+        "sharp": 7.2,
+        "turn": 16,
+        "dart": 15,
+        "dartSpd": 40.548,
+        "dartUp": 50,
+        "hover": 200,
+        "hoverP": 15,
+        "lo": 0,
+        "hi": 100,
+        "roam": 60,
+        "zone": 22,
+        "drain": 18,
+        "mainPattern": "FakeDash",
+        "secondaryPattern": "Ambush",
+        "patternPeriod": 250,
+        "patternAmplitude": 42.116
+      },
+      "note": "всё сразу: скорость, рывки, сила",
+      "difficulty": 1795.4,
+      "xpDifficulty": 1393.5,
+      "samples": [
+        {
+          "seed": 253419,
+          "typical": {
+            "p": 0.5533333333333333,
+            "failure": 0.44666666666666666,
+            "ticks": 993.4433333333334,
+            "caughtTicks": 1361.7349397590363,
+            "perfectP": 0,
+            "costTicks": 1795.379518072289
+          },
+          "expert": {
+            "p": 0.9383333333333334,
+            "failure": 0.06166666666666665,
+            "ticks": 847.7308333333333,
+            "caughtTicks": 879.8081705150977,
+            "perfectP": 0,
+            "costTicks": 903.443161634103
+          }
+        },
+        {
+          "seed": 1049379,
+          "typical": {
+            "p": 0.5616666666666666,
+            "failure": 0.43833333333333335,
+            "ticks": 997.7691666666667,
+            "caughtTicks": 1387.593471810089,
+            "perfectP": 0,
+            "costTicks": 1776.4436201780416
+          },
+          "expert": {
+            "p": 0.9408333333333333,
+            "failure": 0.0591666666666667,
+            "ticks": 853.68,
+            "caughtTicks": 885.066430469442,
+            "perfectP": 0,
+            "costTicks": 907.3658104517272
+          }
+        }
+      ]
+    },
+    {
+      "sp": 35,
+      "id": "greenlandshark",
+      "tier": 4,
+      "bite": 3,
+      "rain": true,
+      "val": [
+        220,
+        480
+      ],
+      "style": {
+        "spd": 73.338,
+        "sharp": 5.6000000000000005,
+        "turn": 14,
+        "dart": 18,
+        "dartSpd": 374.287,
+        "dartUp": 25,
+        "hover": 900,
+        "hoverP": 35,
+        "lo": 0,
+        "hi": 90,
+        "roam": 70,
+        "zone": 21,
+        "drain": 1,
+        "mainPattern": "SlowMigration",
+        "secondaryPattern": "DoubleDash",
+        "patternPeriod": 71,
+        "patternAmplitude": 85
+      },
+      "note": "глубокие тяжёлые проводки, мощное сопротивление",
+      "difficulty": 2198,
+      "xpDifficulty": 1704.6,
+      "samples": [
+        {
+          "seed": 277176,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 2198.0375,
+            "caughtTicks": 2198.0375,
+            "perfectP": 0,
+            "costTicks": 2198.0375
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 1049.4316666666666,
+            "caughtTicks": 1049.4316666666666,
+            "perfectP": 0,
+            "costTicks": 1049.4316666666666
+          }
+        },
+        {
+          "seed": 1054008,
+          "typical": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 2198.385,
+            "caughtTicks": 2198.385,
+            "perfectP": 0,
+            "costTicks": 2198.385
+          },
+          "expert": {
+            "p": 1,
+            "failure": 0,
+            "ticks": 1054.7783333333334,
+            "caughtTicks": 1054.7783333333334,
+            "perfectP": 0,
+            "costTicks": 1054.7783333333334
+          }
+        }
+      ]
+    }
+  ],
+  "income": {
+    "typicalClear": {
+      "points": 17.15480824974106,
+      "coins": 20.56109592434916,
+      "chest": 4.042283105192046,
+      "fish": 2.130872061153067,
+      "perBite": 23.5191245951793,
+      "landed": 0.9815167548500882,
+      "xp": 18.942124753258312
+    },
+    "typicalRain": {
+      "points": 19.397716588078254,
+      "coins": 27.957843194009723,
+      "chest": 3.956392180068698,
+      "fish": 2.0505747714828897,
+      "perBite": 24.029710825671792,
+      "landed": 0.9650356205474314,
+      "xp": 19.141385491157763
+    },
+    "expertClear": {
+      "points": 20.407998291708786,
+      "coins": 24.18167703668667,
+      "chest": 4.290236043413112,
+      "fish": 2.2978771361974637,
+      "perBite": 22.159843663139327,
+      "landed": 0.9972698412698412,
+      "xp": 21.348826573455998
+    }
+  }
+}

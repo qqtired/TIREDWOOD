@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.impeccable/hook.cache.json
+**/evidence/
+docs/release-prep/**/*.png
+
+# Локальные данные сервера (профили, токены)
+data/

@@ -1,0 +1,633 @@
+/* «Fight Club»: трафаретный шрифт (узкий жирный, капсом, разреженный, потёртый маской шума), полоски — изолента,
+   метка смены бобины, итоги; кнопки боя на телефоне (раскладка 'fight' в touch.ts). */
+
+.fc-hud {
+  color: #ece6d2;
+  font-family: Rubik, system-ui, sans-serif;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+}
+
+.fc-st {
+  font-family: Impact, 'Haettenschweiler', 'Arial Narrow Bold', 'Arial Narrow', Rubik, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  -webkit-mask-image: var(--fc-noise);
+  mask-image: var(--fc-noise);
+  -webkit-mask-size: 96px 96px;
+  mask-size: 96px 96px;
+}
+
+/* --- полоса сверху */
+
+.fc-top {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  white-space: nowrap;
+  font-size: 20px;
+}
+
+.fc-mid {
+  padding: 4px 14px 2px;
+  background: rgba(20, 22, 18, 0.72);
+  border-top: 2px solid rgba(236, 230, 210, 0.5);
+  border-bottom: 2px solid rgba(236, 230, 210, 0.5);
+  font-size: 24px;
+}
+
+.fc-side {
+  min-width: 140px;
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+.fc-side.a {
+  text-align: right;
+}
+
+.fc-side.mine {
+  color: #f1e3a0;
+  opacity: 1;
+}
+
+.fc-zone {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: #ffd27a;
+  opacity: 0;
+}
+
+.fc-zone.show {
+  animation: fc-blink 0.5s steps(2) infinite;
+}
+
+@keyframes fc-blink {
+  0% { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+/* --- изолента */
+
+.fc-tape {
+  position: relative;
+  height: 16px;
+  background: rgba(30, 30, 28, 0.78);
+  clip-path: polygon(0 12%, 3% 0, 7% 10%, 12% 2%, 100% 0, 98% 30%, 100% 62%, 97% 100%, 6% 92%, 2% 100%, 0 70%);
+  overflow: hidden;
+}
+
+.fc-tape b,
+.fc-tape i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+}
+
+.fc-tape b {
+  background: linear-gradient(180deg, #b8402e, #8c2a1f);
+  transition: width 0.08s linear;
+}
+
+.fc-tape i {
+  background: rgba(255, 236, 190, 0.55);
+  transition: width 0.5s ease-out;
+}
+
+.fc-tape.st b {
+  background: linear-gradient(180deg, #c9b25a, #9a8436);
+}
+
+.fc-tape.thin {
+  height: 6px;
+  margin-top: 3px;
+}
+
+.fc-tape.low b {
+  animation: fc-low 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes fc-low {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.6); }
+}
+
+/* --- свои полоски */
+
+.fc-me {
+  position: absolute;
+  left: 22px;
+  bottom: 26px;
+  width: min(320px, 38vw);
+  display: none;
+}
+
+.fc-me.show {
+  display: block;
+}
+
+.fc-me-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.fc-me-num {
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.fc-me .fc-tape.hp {
+  height: 22px;
+}
+
+.fc-me .fc-tape.st {
+  height: 10px;
+  margin-top: 5px;
+}
+
+.fc-chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  min-height: 20px;
+}
+
+.fc-chip {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  background: rgba(200, 170, 70, 0.85);
+  color: #1d1a14;
+  text-shadow: none;
+}
+
+.fc-chip.dark {
+  background: rgba(20, 20, 20, 0.9);
+  color: #ffcf7a;
+}
+
+/* --- соперники */
+
+.fc-foes {
+  position: absolute;
+  top: 54px;
+  right: 22px;
+  width: min(260px, 34vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fc-foes.many {
+  gap: 4px;
+  width: min(200px, 30vw);
+}
+
+.fc-foe-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fc-foes.many .fc-foe-name {
+  font-size: 11px;
+}
+
+.fc-foes.many .fc-tape.hp {
+  height: 8px;
+}
+
+.fc-foe.mate .fc-foe-name {
+  color: #f1e3a0;
+}
+
+.fc-foe.mate .fc-tape b {
+  background: linear-gradient(180deg, #6f9a5a, #4c7040);
+}
+
+.fc-foe.out {
+  opacity: 0.35;
+}
+
+.fc-foe.out .fc-foe-name {
+  text-decoration: line-through;
+}
+
+/* --- большие надписи */
+
+.fc-center {
+  position: absolute;
+  top: 34%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.fc-center.show {
+  opacity: 1;
+}
+
+.fc-center.pop .fc-big {
+  animation: fc-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes fc-pop {
+  0% { transform: scale(1.6) rotate(-3deg); opacity: 0; }
+  100% { transform: scale(1) rotate(-1deg); opacity: 1; }
+}
+
+.fc-big {
+  display: inline-block;
+  font-size: clamp(42px, 9vw, 104px);
+  line-height: 1;
+  transform: rotate(-1deg);
+  color: #ece6d2;
+}
+
+.fc-center.blood .fc-big {
+  color: #d9553e;
+}
+
+.fc-center.gold .fc-big {
+  color: #f1d27a;
+}
+
+.fc-sub {
+  margin-top: 8px;
+  font-size: clamp(14px, 2.4vw, 20px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* --- лента событий */
+
+.fc-feed {
+  position: absolute;
+  right: 22px;
+  top: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fc-line {
+  padding: 3px 10px;
+  background: rgba(16, 16, 14, 0.7);
+  border-left: 3px solid #b8402e;
+  transition: opacity 0.6s;
+}
+
+.fc-line.gone {
+  opacity: 0;
+}
+
+/* --- подсказка */
+
+.fc-hint {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70vw;
+  padding: 6px 14px;
+  background: rgba(16, 16, 14, 0.72);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.fc-hint.show {
+  opacity: 1;
+}
+
+/* --- метка смены бобины: круг вверху справа, как на старой плёнке */
+
+.fc-reel {
+  position: absolute;
+  top: 7%;
+  right: 6%;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(250, 245, 225, 0.85) 0 52%, rgba(250, 245, 225, 0.25) 60%, rgba(0, 0, 0, 0) 70%);
+  border: 3px solid rgba(20, 16, 10, 0.55);
+  opacity: 0;
+}
+
+.fc-reel.on {
+  animation: fc-reel 0.32s steps(1) forwards;
+}
+
+@keyframes fc-reel {
+  0% { opacity: 0.95; }
+  30% { opacity: 0.7; }
+  60% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* --- получил удар */
+
+.fc-hurt {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 45%, rgba(140, 20, 12, 0.75) 100%);
+}
+
+.fc-hurt.on {
+  animation: fc-hurt 0.5s ease-out forwards;
+}
+
+@keyframes fc-hurt {
+  0% { opacity: var(--k, 0.6); }
+  100% { opacity: 0; }
+}
+
+/* --- итоги */
+
+.fc-results {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-0.6deg);
+  min-width: min(520px, 92vw);
+  max-height: 86vh;
+  overflow: auto;
+  padding: 22px 26px 18px;
+  background: rgba(22, 22, 18, 0.9);
+  border: 2px solid rgba(236, 230, 210, 0.35);
+  display: none;
+  pointer-events: auto;
+}
+
+.fc-results.show {
+  display: block;
+}
+
+.fc-res-title {
+  font-size: 46px;
+  text-align: center;
+  color: #f1d27a;
+}
+
+.fc-res-mode {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.fc-res-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.fc-res-table th {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  text-align: right;
+  padding: 4px 6px;
+}
+
+.fc-res-table td {
+  padding: 5px 6px;
+  text-align: right;
+  border-top: 1px solid rgba(236, 230, 210, 0.1);
+}
+
+.fc-res-table td.nick,
+.fc-res-table th:nth-child(2) {
+  text-align: left;
+}
+
+.fc-res-table td.place {
+  width: 34px;
+  text-align: center;
+}
+
+.fc-res-table tr.me td {
+  color: #f1e3a0;
+  font-weight: 700;
+}
+
+.fc-res-reward {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #f1d27a;
+}
+
+.fc-res-foot {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* --- эмоции зрителя (телефон) */
+
+.fc-emo {
+  position: absolute;
+  right: 14px;
+  bottom: 90px;
+  display: none;
+  grid-template-columns: repeat(3, 52px);
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.fc-emo.show {
+  display: grid;
+}
+
+.fc-emo button {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(236, 230, 210, 0.35);
+  background: rgba(20, 20, 18, 0.6);
+  font-size: 24px;
+}
+
+.fc-stats {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* --- телефон: кнопки боя. Под правым большим пальцем — удар (вести пальцем — заодно поворот), рядом тяжёлый,
+   блок, уклон, захват и прыжок. */
+
+.tc[data-show='all'][data-mode='fight'] .tc-pad[data-m~='fight'] {
+  display: flex;
+}
+
+.p-punch {
+  right: calc(24px + var(--sr));
+  bottom: calc(110px + var(--sb));
+  width: 88px;
+  height: 88px;
+  background: rgba(150, 40, 30, 0.5);
+  border-color: rgba(255, 170, 140, 0.6);
+}
+
+.p-punch b {
+  font-size: 38px;
+}
+
+.p-heavy {
+  right: calc(124px + var(--sr));
+  bottom: calc(150px + var(--sb));
+  width: 66px;
+  height: 66px;
+}
+
+.p-block {
+  right: calc(124px + var(--sr));
+  bottom: calc(52px + var(--sb));
+  width: 66px;
+  height: 66px;
+}
+
+.p-grab {
+  right: calc(40px + var(--sr));
+  bottom: calc(222px + var(--sb));
+  width: 56px;
+  height: 56px;
+}
+
+.tc[data-mode='fight'] .p-jump {
+  right: calc(30px + var(--sr));
+  bottom: calc(22px + var(--sb));
+  width: 62px;
+  height: 62px;
+}
+
+.tc[data-mode='fight'] .p-dash {
+  right: calc(208px + var(--sr));
+  bottom: calc(96px + var(--sb));
+  width: 58px;
+  height: 58px;
+}
+
+@media (max-width: 760px) {
+  .fc-top {
+    font-size: 15px;
+    gap: 10px;
+  }
+
+  .fc-mid {
+    font-size: 17px;
+  }
+
+  .fc-side {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .fc-me {
+    width: 46vw;
+    bottom: 18px;
+  }
+
+  .fc-feed {
+    top: 30%;
+    font-size: 12px;
+  }
+}
+
+/* телефон: слева внизу — джойстик, свои полоски — наверх влево; лента событий и подсказка — повыше кнопок */
+.touch .fc-me {
+  top: 58px;
+  bottom: auto;
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  width: min(240px, 40vw);
+}
+
+.touch .fc-hint {
+  bottom: auto;
+  top: 96px;
+  font-size: 12px;
+}
+
+.touch .fc-feed {
+  right: auto;
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  top: 150px;
+  align-items: flex-start;
+}
+
+.touch .fc-foes {
+  top: 58px;
+}
+
+/* Служебные кнопки занимают первую строку; счёт и здоровье идут ниже, а не под ними. */
+.touch .fc-top {
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  transform: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+}
+.touch .fc-side { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.touch .fc-mid { padding-inline: 8px; }
+.touch .fc-me, .touch .fc-foes { top: calc(104px + env(safe-area-inset-top, 0px)); }
+.touch .fc-hint { top: calc(168px + env(safe-area-inset-top, 0px)); }
+.touch .fc-zone { top: calc(204px + env(safe-area-inset-top, 0px)); font-size: 14px; }
+.touch .fc-feed { top: calc(230px + env(safe-area-inset-top, 0px)); }
+.touch .fc-stats {
+  top: auto;
+  bottom: calc(2px + env(safe-area-inset-bottom, 0px));
+  right: 10px;
+  font-size: 9px;
+  line-height: 1.2;
+}
+.touch .fc-hud:has(.fc-foes.many) .fc-hint { top: calc(224px + env(safe-area-inset-top, 0px)); }
+.touch .fc-hud:has(.fc-foes.many) .fc-zone { top: calc(258px + env(safe-area-inset-top, 0px)); }
+.touch .fc-hud:has(.fc-foes.many) .fc-feed { top: calc(282px + env(safe-area-inset-top, 0px)); }
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .fc-top {
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: calc(224px + env(safe-area-inset-left, 0px));
+    right: calc(128px + env(safe-area-inset-right, 0px));
+    display: flex;
+    justify-content: center;
+  }
+  .touch .fc-top .fc-side { display: none; }
+  .touch .fc-me, .touch .fc-foes { top: calc(64px + env(safe-area-inset-top, 0px)); }
+  .touch .fc-hint, .touch .fc-hud:has(.fc-foes.many) .fc-hint { top: calc(122px + env(safe-area-inset-top, 0px)); max-width: 40vw; }
+  .touch .fc-zone, .touch .fc-hud:has(.fc-foes.many) .fc-zone { top: calc(96px + env(safe-area-inset-top, 0px)); }
+  .touch .fc-feed, .touch .fc-hud:has(.fc-foes.many) .fc-feed { top: calc(162px + env(safe-area-inset-top, 0px)); }
+}

@@ -1,0 +1,281 @@
+{
+  "kind": "native WebRTC/Opus synthetic-audio acceptance",
+  "build": "index-C5qWjsoO.js",
+  "fixture": {
+    "capture": "WebAudio oscillator; no physical microphone",
+    "ice": "test-only host ICE address maps to loopback; native mDNS and STUN path did not connect in IAB",
+    "input": "KeyboardEvents through actual Input/App, pointer-lock availability shim",
+    "output": "real WebAudio graph with test-only zero gain after analyser"
+  },
+  "A": {
+    "calls": 1,
+    "csp": [],
+    "entry": [
+      "http://localhost:5206/assets/index-C5qWjsoO.js"
+    ],
+    "results": {
+      "bToA": {
+        "at": 63348.599999997765,
+        "rms": 0.05636030272456191,
+        "rtc": {
+          "audioState": "running",
+          "enabled": true,
+          "joined": true,
+          "mic": "ready",
+          "peers": [
+            {
+              "audioEnergy": 0,
+              "bytesReceived": 10720,
+              "bytesSent": 7579,
+              "codecs": [
+                "audio/opus",
+                "audio/opus"
+              ],
+              "connection": "connected",
+              "id": 2,
+              "samplesReceived": 202080
+            }
+          ],
+          "self": 1,
+          "transmitting": false
+        },
+        "tracks": [
+          {
+            "enabled": false,
+            "ready": "live"
+          }
+        ],
+        "view": {
+          "available": true,
+          "enabled": true,
+          "error": "",
+          "gameMuted": false,
+          "joined": true,
+          "maxPeers": 6,
+          "mic": "ready",
+          "peers": [
+            {
+              "id": 2,
+              "link": "connected",
+              "muted": false,
+              "nick": "VoiceHarbor",
+              "talking": true
+            }
+          ],
+          "receiving": true,
+          "room": "lobby",
+          "transmitting": false,
+          "volume": 1
+        }
+      },
+      "gain": {
+        "gameMute": 0,
+        "half": 0.02804281306852561,
+        "peerMute": 0,
+        "receiveMute": 0,
+        "restored": 0.05679031197825786
+      },
+      "lifecycle": {
+        "afterBRelease": 0,
+        "blur": {
+          "track": false,
+          "tx": false
+        },
+        "chat": {
+          "track": false,
+          "tx": false
+        },
+        "dialog": {
+          "track": false,
+          "tx": false
+        },
+        "pause": {
+          "track": false,
+          "tx": false
+        },
+        "started": {
+          "track": true,
+          "tx": true
+        },
+        "wardrobe": {
+          "track": false,
+          "tx": false
+        },
+        "wardrobeNewKey": {
+          "track": false,
+          "tx": false
+        }
+      }
+    },
+    "sinks": [
+      {
+        "attached": true,
+        "muted": true,
+        "paused": false
+      }
+    ],
+    "viewport": [
+      1280,
+      720,
+      2
+    ]
+  },
+  "B": {
+    "calls": 1,
+    "csp": [],
+    "results": {
+      "aToB": {
+        "at": 60635.599999997765,
+        "rms": 0.05620949511374602,
+        "rtc": {
+          "audioState": "running",
+          "enabled": true,
+          "joined": true,
+          "mic": "ready",
+          "peers": [
+            {
+              "audioEnergy": 0,
+              "bytesReceived": 6973,
+              "bytesSent": 3006,
+              "codecs": [
+                "audio/opus",
+                "audio/opus"
+              ],
+              "connection": "connected",
+              "id": 1,
+              "samplesReceived": 99360
+            }
+          ],
+          "self": 2,
+          "transmitting": false
+        },
+        "tracks": [
+          {
+            "enabled": false,
+            "ready": "live"
+          }
+        ],
+        "view": {
+          "available": true,
+          "enabled": true,
+          "error": "",
+          "gameMuted": false,
+          "joined": true,
+          "maxPeers": 6,
+          "mic": "ready",
+          "peers": [
+            {
+              "id": 1,
+              "link": "connected",
+              "muted": false,
+              "nick": "VoiceSailor",
+              "talking": true
+            }
+          ],
+          "receiving": true,
+          "room": "lobby",
+          "transmitting": false,
+          "volume": 1
+        }
+      },
+      "afterARelease": {
+        "at": 61685.599999997765,
+        "rms": 0,
+        "rtc": {
+          "audioState": "running",
+          "enabled": true,
+          "joined": true,
+          "mic": "ready",
+          "peers": [
+            {
+              "audioEnergy": 0,
+              "bytesReceived": 7363,
+              "bytesSent": 4861,
+              "codecs": [
+                "audio/opus",
+                "audio/opus"
+              ],
+              "connection": "connected",
+              "id": 1,
+              "samplesReceived": 149760
+            }
+          ],
+          "self": 2,
+          "transmitting": false
+        },
+        "tracks": [
+          {
+            "enabled": false,
+            "ready": "live"
+          }
+        ],
+        "view": {
+          "available": true,
+          "enabled": true,
+          "error": "",
+          "gameMuted": false,
+          "joined": true,
+          "maxPeers": 6,
+          "mic": "ready",
+          "peers": [
+            {
+              "id": 1,
+              "link": "connected",
+              "muted": false,
+              "nick": "VoiceSailor",
+              "talking": false
+            }
+          ],
+          "receiving": true,
+          "room": "lobby",
+          "transmitting": false,
+          "volume": 1
+        }
+      }
+    }
+  },
+  "denial": {
+    "error": "Доступ к микрофону не разрешён. Разрешите его в браузере и повторите.",
+    "joined": true,
+    "mic": "denied",
+    "tx": false
+  },
+  "featureOff": {
+    "controls": 0,
+    "entry": [
+      "http://localhost:5207/assets/index-C5qWjsoO.js"
+    ],
+    "screen": "game",
+    "voiceAbsent": true
+  },
+  "csp": [],
+  "teardown": {
+    "audio": "closed",
+    "peers": [
+      "closed"
+    ],
+    "sinks": [
+      {
+        "attached": false,
+        "paused": true
+      }
+    ],
+    "tracks": [
+      {
+        "enabled": false,
+        "state": "ended"
+      }
+    ]
+  },
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "logs": {
+    "A": [],
+    "B": []
+  },
+  "narrowLayout": {
+    "cssWidth": 390,
+    "overflow": false,
+    "scrollable": true,
+    "minButtonHeight": 44
+  }
+}

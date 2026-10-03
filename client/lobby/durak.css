@@ -1,0 +1,47 @@
+/* Повтор партии остаётся отдельным действием внизу, пока игрок сидит за столом. */
+.dk-play.rematch.show {
+  display: flex;
+  width: min(420px, calc(100vw - 24px));
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.dk-play.rematch .dk-status {
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: var(--panel-strong);
+}
+
+.dk-play.rematch .dk-btn {
+  white-space: normal;
+  pointer-events: auto;
+}
+
+.dk.dk-rematch .dk-lobby {
+  bottom: 110px;
+  max-height: calc(100% - 220px);
+}
+
+.dk.dk-rematch .dk-result {
+  bottom: max(110px, 13%);
+}
+
+@media (max-height: 480px) {
+  .dk.dk-rematch .dk-lobby {
+    max-height: calc(100% - 170px);
+  }
+  .dk-play.rematch.show {
+    left: calc((100vw - 160px) / 2);
+    width: min(420px, calc(100vw - 176px));
+  }
+}
+.dk-stakes { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 7px; margin: 10px 0; padding: 10px; border-radius: 12px; background: var(--panel-strong); font-size: 12px; }
+.dk-stakes .dk-btn { padding: 7px 10px; min-height: 36px; font-size: 12px; }
+.dk-stakes .dk-btn.on { background: #ead198; color: #263a30; }
+.dk-stakes small { flex-basis: 100%; color: #e0dac9; font-size: 11px; max-width: 52ch; }
+.dk-ante { display: flex; align-items: center; gap: 5px; }
+.dk-seat small { display: block; font-size: 10px; color: #e0dac9; }
+.dk-stakes button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }

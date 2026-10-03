@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-03",
+  "tool": "image_gen.imagegen / callable name image_gen__imagegen",
+  "requestedTool": "codex_cli image capability",
+  "executionNote": "Active callable tool inventory contains no codex_cli image-generation capability. Built-in ImageGen was used under the root's explicit fallback instruction. No CLI process, unsupported model attempt, authentication change, or substitute illustration code was used. The ImageGen tool does not expose a model or service-tier argument.",
+  "mode": "Two separate new-image generation calls with transparent_background=true; no image editing, reference-path arguments, or regeneration.",
+  "styleInspection": [
+    "client/assets/fish/tuna.webp",
+    "client/assets/fish/whiteshark.webp",
+    "client/assets/fish/angler.webp"
+  ],
+  "scientificReferences": [
+    {
+      "title": "NOAA Fisheries — Pacific Blue Marlin",
+      "url": "https://www.fisheries.noaa.gov/species/pacific-blue-marlin",
+      "use": "Makaira nigricans identity, cobalt/silver coloration, prominent dorsal fin and spear-shaped bill; species range includes the Atlantic."
+    },
+    {
+      "title": "NOAA Ocean Exploration — Greenland Shark",
+      "url": "https://oceanexplorer.noaa.gov/multimedia/video-playlist-ex1304-greenlandshark/",
+      "use": "Authoritative marine Greenland shark observation; cross-species identity check."
+    },
+    {
+      "title": "ITIS — Makaira nigricans",
+      "url": "https://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=Makaira+nigricans",
+      "use": "Taxonomy reference supplied and verified by the rules worker."
+    },
+    {
+      "title": "NOAA Library — Greenland shark study",
+      "url": "https://repository.library.noaa.gov/view/noaa/8714/noaa_8714_DS1.pdf",
+      "use": "Somniosus microcephalus taxonomy reference supplied and verified by the rules worker."
+    }
+  ],
+  "species": {
+    "bluemarlin": {
+      "id": "bluemarlin",
+      "name": "Синий марлин",
+      "englishName": "Atlantic blue marlin",
+      "scientificName": "Makaira nigricans",
+      "rarity": "Legend",
+      "eventOnly": true,
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Atlantic blue marlin (Makaira nigricans), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: muscular elongated streamlined body, very long round spear-like upper-jaw bill, clearly shorter lower jaw, vivid cobalt-blue back fading to silvery white belly, faint blue vertical flank bars, steep high pointed front of first dorsal fin sweeping down along the back, a small second dorsal fin, slender pointed pectoral fins, and a strong deep crescent forked tail. Make it visually distinct from a swordfish or a sailfish; do not give it an enormous full-body sail.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, head and spear bill on the left and tail on the right; fish level and centered, entire bill, all fins and entire tail visible. Fish spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting, subtle natural metallic silver sheen without glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single fish only; actual marine species, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete fish.",
+      "sourceLibraryFile": "/Users/tired/.codex/generated_images/01a0fe81-c1a0-7f00-bfea-d622b3e3ff0e/exec-31433331-c246-4bd9-81a2-b57d2a160267.png",
+      "original": "client/assets/fish/event-originals-2026-10-03/bluemarlin.png",
+      "asset": "client/assets/fish/bluemarlin.webp",
+      "dimensions": [
+        1918,
+        820
+      ],
+      "originalBytes": 1033608,
+      "assetBytes": 696710,
+      "sourceSha256": "8cf713e9c8cdafb7e96a65d9eaac05b474857dacb6556030f97cccbaf61a8006",
+      "originalSha256": "8cf713e9c8cdafb7e96a65d9eaac05b474857dacb6556030f97cccbaf61a8006",
+      "assetSha256": "e25d073e7d0c40b97691c66a2ef0732f42a8e183edaf407d60d56175eaac2cdf",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 1159463,
+      "fullyOpaquePixels": 333,
+      "nontransparentBounds": [
+        0,
+        10,
+        1909,
+        802
+      ],
+      "losslessRGBAEquality": true,
+      "formatConversion": "Pillow WebP lossless=True, quality=100, method=6, exact=True; no resizing, cropping, recolouring or redrawing"
+    },
+    "greenlandshark": {
+      "id": "greenlandshark",
+      "name": "Гренландская акула",
+      "englishName": "Greenland shark",
+      "scientificName": "Somniosus microcephalus",
+      "rarity": "Myth",
+      "eventOnly": true,
+      "prompt": "Use case: scientific-educational.\nAsset type: Game Opus fishing inventory and catch-card sprite, a unique raster illustration.\nPrimary request: Generate exactly ONE real Greenland shark (Somniosus microcephalus), complete animal, anatomically recognizable, isolated on a genuinely transparent background.\nStyle/medium: naturalistic hand-painted marine field-guide specimen art with fine tactile brushwork, understated realistic shading, crisp silhouette and detailed fins, matching realistic illustrated fish inventory icons. No cartoon exaggeration or vector simplification.\nSubject anatomy: heavy thickset elongated sleeper-shark body, short broad rounded blunt snout, small dark lateral eye without a parasite, a small closed slightly underslung mouth, five short gill slits behind the head, two small low rounded dorsal fins well separated and positioned toward the rear half of body, broad subdued rounded pectoral fins, pelvic fins, no anal fin, asymmetric shark tail with a longer upper lobe and shorter lower lobe. Dull charcoal-grey to brown-grey mottled rough skin, pale muted grey-brown underside; realistic subtle scarring and sparse irregular darker spots. It must look like a Greenland sleeper shark with a blunt nose and small dorsals, visibly unlike a great white shark, with no pointed triangular great-white dorsal fin and no sharp white/black colour division.\nComposition/framing: broad horizontal canvas, strict lateral profile facing LEFT, rounded head on the left and tail on the right; animal level and centered, entire head, all fins and entire tail visible. Fish spans about 90 percent of canvas width, very small transparent margins, clean silhouette readable at small inventory-icon size.\nLighting/mood: soft neutral specimen lighting; muted cold marine colours, no glow.\nScene/backdrop: nothing except transparent alpha, no seabed, water, bubbles, floor or cast shadow.\nText: none.\nConstraints: a single real shark only, normal healthy real anatomy; no rarity badge, halo, gold decoration, fantasy body parts, props, hook, line, frame, captions, text or watermark. Preserve genuine transparency around the complete fish.",
+      "sourceLibraryFile": "/Users/tired/.codex/generated_images/01a0fe81-c1a0-7f00-bfea-d622b3e3ff0e/exec-9eca5533-3ead-429e-b80f-bfaea7f2f01c.png",
+      "original": "client/assets/fish/event-originals-2026-10-03/greenlandshark.png",
+      "asset": "client/assets/fish/greenlandshark.webp",
+      "dimensions": [
+        2172,
+        724
+      ],
+      "originalBytes": 1576861,
+      "assetBytes": 998468,
+      "sourceSha256": "8fa545c7a4761742e6bd1a8476a278fc812f655fdb80f71ccc2e40aed7c25f6d",
+      "originalSha256": "8fa545c7a4761742e6bd1a8476a278fc812f655fdb80f71ccc2e40aed7c25f6d",
+      "assetSha256": "7902dac3e43e20c0e1e8c66603a23efc6e7b1d9f816c64bab39dd108ca8e9584",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "fullyTransparentPixels": 928320,
+      "fullyOpaquePixels": 901,
+      "nontransparentBounds": [
+        17,
+        23,
+        2154,
+        676
+      ],
+      "losslessRGBAEquality": true,
+      "formatConversion": "Pillow WebP lossless=True, quality=100, method=6, exact=True; no resizing, cropping, recolouring or redrawing"
+    }
+  },
+  "validation": "Original copies SHA256-identical to generated library PNGs. Both decoded WebPs match their PNGs byte-for-byte as RGBA pixels, including alpha. Both contain transparent and nontransparent pixels. Generated originals and final WebPs inspected visually; species-defining silhouettes and full animals retained.",
+  "integrationBoundary": "This asset-only task does not prove desktop/mobile rendering, server distribution, fishing rules, release gates or deployment."
+}
+

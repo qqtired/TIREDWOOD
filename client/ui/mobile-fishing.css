@@ -1,0 +1,27 @@
+/* Keep mobile fishing's centre and right reel clear; full screens/other modes keep their normal UI. */
+@media (max-width: 640px), (max-height: 480px) {
+  html.touch[data-fishing] .lobby-hud .lh-hint {
+    left: calc(8px + env(safe-area-inset-left, 0px));
+    bottom: calc(146px + env(safe-area-inset-bottom, 0px));
+    transform: none; max-width: calc(100vw - 170px); padding: 7px 10px; gap: 5px; font-size: 12px;
+  }
+  html.touch[data-fishing] .lobby-hud .lh-hint.show { transform: none; }
+  html.touch[data-fishing] .toasts {
+    left: calc(8px + env(safe-area-inset-left, 0px)); right: auto; top: calc(66px + env(safe-area-inset-top, 0px));
+    width: min(190px, calc(100vw - 212px)); transform: none; align-items: stretch; gap: 0;
+  }
+  html.touch[data-fishing] .toast { max-width: 100%; padding: 6px 8px; font-size: 11px; line-height: 14px; border-radius: 9px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  html.touch[data-fishing] .toast:not(:last-child) { display: none; }
+  /* Catch announcements already have a card; keep the passive feed away from the journal. */
+  html.touch[data-fishing] .chat:not(.open) { width: min(190px, calc(100vw - 212px)); }
+  html.touch[data-fishing] .chat:not(.open) .msg.sys { display: none; }
+  html.touch[data-fishing] .fs-buff {
+    left: calc(8px + env(safe-area-inset-left, 0px)); right: auto; top: calc(124px + env(safe-area-inset-top, 0px));
+    max-width: calc(100vw - 210px); padding: 6px; gap: 5px; border-radius: 9px;
+  }
+  html.touch[data-fishing] .fs-buff-icon { font-size: 16px; }
+  html.touch[data-fishing] .fs-buff b { font-size: 10px; }
+  html.touch[data-fishing] .fs-buff div span { display: none; }
+  html.touch[data-fishing] .fs-buff-time { min-width: 30px; font-size: 11px; }
+  html.touch[data-fishing] .voice-hud { left: calc(8px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 170px); }
+}

@@ -1,0 +1,103 @@
+// Shared pure progression API. The server owns catch/quest commits and cast-time snapshots.
+import { T_LEGEND, T_MYTH, ruleOf } from './fishrules.ts';
+export type FishRod = 0 | 1 | 2 | 3;
+
+export interface FishProgress {
+  xp: number;
+  questsDone: number;
+  questCaught: number;
+  rod: FishRod;
+  beerUntil: number;
+}
+
+export interface FishCastMods {
+  level: number;
+  rod: FishRod;
+  zoneScale: number;
+  biteSpeed: number;
+  rareMultiplier: number;
+  incomeScale: number;
+}
+
+export const BEER_PRICE = 15;
+export const BEER_MS = 600_000;
+export const RAIN_DRUM_PRICE = 500;
+
+export function emptyFishProgress(): FishProgress {
+  return { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0 };
+}
+
+/** Cumulative thresholds from Stardew Valley Fishing, https://stardewvalleywiki.com/Fishing#Experience_Points. */
+export const FISH_XP_LEVELS: readonly number[] = [0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10_000, 15_000];
+
+function count(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.trunc(value))) : 0;
+}
+
+export function normalizeFishProgress(raw: unknown): FishProgress {
+  if (!raw || typeof raw !== 'object') return emptyFishProgress();
+  const r = raw as Record<string, unknown>;
+  const questsDone = count(r.questsDone);
+  const selected = Number.isInteger(r.rod) && typeof r.rod === 'number' && r.rod >= 0 && r.rod <= 3 ? r.rod as FishRod : 0;
+  return {
+    xp: count(r.xp), questsDone, questCaught: count(r.questCaught),
+    rod: Math.min(selected, unlockedRod(questsDone)) as FishRod,
+    beerUntil: count(r.beerUntil),
+  };
+}
+
+export function fishLevel(xp: number): number {
+  const n = count(xp);
+  let level = 0;
+  while (level < 10 && n >= FISH_XP_LEVELS[level + 1]) level++;
+  return level;
+}
+
+export function fishLevelView(xp: number): { level: number; xp: number; from: number; next: number | null } {
+  const n = count(xp);
+  const level = fishLevel(n);
+  return { level, xp: n, from: FISH_XP_LEVELS[level], next: level < 10 ? FISH_XP_LEVELS[level + 1] : null };
+}
+
+export function questNeed(questsDone: number): number {
+  return Math.min(Number.MAX_SAFE_INTEGER, (count(questsDone) + 1) * 5);
+}
+
+export function unlockedRod(questsDone: number): FishRod {
+  const n = count(questsDone);
+  return n >= 10 ? 3 : n >= 5 ? 2 : n >= 1 ? 1 : 0;
+}
+
+export function rodBonus(rod: FishRod): number {
+  return rod === 3 ? .3 : rod === 2 ? .2 : rod === 1 ? .1 : 0;
+}
+
+export function fishCastMods(progress: FishProgress, now: number): FishCastMods {
+  const p = normalizeFishProgress(progress);
+  const level = fishLevel(p.xp);
+  const bonus = rodBonus(p.rod);
+  const beer = Number.isFinite(now) && p.beerUntil > now;
+  return {
+    level, rod: p.rod,
+    zoneScale: (1 + .025 * level) * (1 + bonus),
+    biteSpeed: 1 + bonus,
+    rareMultiplier: (1 + .025 * level) * (beer ? 1.2 : 1),
+    incomeScale: beer ? 1.1 : 1,
+  };
+}
+
+/**
+ * Stardew: trunc(3 + difficulty/3), perfect ×2.4, legendary ×5 (truncated after each factor).
+ * This game has no fish quality grade or simultaneous treasure. Junk/chests do not progress the fish skill.
+ * Rule difficulty is calibrated from successful/failed deterministic reels, not just the rarity number.
+ */
+export function fishCatchXp(sp: number, perfect = false): number {
+  const r = ruleOf(sp);
+  if (!r || r.tier > T_MYTH) return 0;
+  // Convert measured reel effort to Stardew's 5…110 scale: a five-second perfect reel is difficulty30.
+  const difficulty = Math.min(110, Math.max(5, Math.round(30 + 100 * (1 - 300 / r.difficulty))));
+  let xp = Math.trunc(3 + difficulty / 3);
+  if (perfect) xp = Math.trunc(xp * 2.4);
+  if (r.tier >= T_LEGEND) xp *= 5;
+  return xp;
+}

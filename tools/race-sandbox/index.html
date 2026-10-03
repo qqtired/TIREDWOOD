@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Гонка — песочница клиента</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud" class="shell"></div>
+    <!-- Только для сервера разработки: в сборку не входит (Vite собирает index.html, в выкладку tools/ не попадает) -->
+    <script type="module" src="/client/race/sandbox.ts"></script>
+  </body>
+</html>

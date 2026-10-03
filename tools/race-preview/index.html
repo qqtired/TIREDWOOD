@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Портовое кольцо — предпросмотр</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1d22; color: #f4efe6; font: 14px/1.4 system-ui, sans-serif; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      #info { position: fixed; left: 12px; top: 10px; padding: 6px 10px; border-radius: 8px; background: rgba(20, 20, 24, 0.55); white-space: pre; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="info"></div>
+    <!-- Только для сервера разработки: в сборку не входит (Vite собирает index.html, в выкладку tools/ не попадает) -->
+    <script type="module" src="/client/race/preview.ts"></script>
+  </body>
+</html>

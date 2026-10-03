@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>TIREDWOOD</title>
+    <meta name="description" content="мини игры, фарм сабжей, казино и safeplace" />
+    <meta name="theme-color" content="#2a1f2e" />
+    <!-- Critical startup UI must paint without the game bundle, font files or external CSS. -->
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #211a25; }
+      #startup { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; box-sizing: border-box; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 50% 40%, #44303b 0%, #211a25 70%); color: #fff3de; font: 400 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: center; }
+      #startup *, #startup *::before, #startup *::after { box-sizing: border-box; }
+      #startup .startup-content { width: min(100%, 400px); padding: 16px 0; }
+      #startup .startup-brand { margin: 0 0 30px; font-size: 13px; font-weight: 750; letter-spacing: .19em; }
+      #startup .startup-brand b { color: #ffb36b; }
+      #startup .startup-scene { position: relative; width: 180px; height: 142px; margin: 0 auto 28px; }
+      #startup .startup-jelly { position: absolute; left: 42px; top: 5px; width: 96px; height: 104px; border-radius: 48% 48% 41% 41% / 57% 57% 37% 37%; background: #ff9a36; box-shadow: inset -9px -10px 0 #e87523, inset 5px 4px 0 #ffb65d; transform-origin: center bottom; }
+      #startup .startup-jelly::before { content: ''; position: absolute; left: 19px; top: 16px; width: 24px; height: 12px; border-radius: 50%; background: #ffe2b7; transform: rotate(-24deg); }
+      #startup .startup-eye { position: absolute; top: 44px; width: 23px; height: 26px; border-radius: 50%; background: #fff8e8; }
+      #startup .startup-eye:first-child { left: 24px; }
+      #startup .startup-eye:last-child { right: 16px; }
+      #startup .startup-eye::after { content: ''; position: absolute; width: 9px; height: 11px; left: 9px; top: 10px; border-radius: 50%; background: #30242d; }
+      #startup .startup-wave { position: absolute; left: 12px; bottom: 5px; width: 156px; height: 24px; border: 2px solid #83b6b4; border-radius: 50%; opacity: .55; }
+      #startup .startup-wave::after { content: ''; position: absolute; inset: 5px 25px; border: 1px solid #83b6b4; border-radius: 50%; }
+      #startup h1 { margin: 0; font-size: clamp(25px, 5vw, 31px); line-height: 1.2; font-weight: 750; letter-spacing: -.035em; text-wrap: balance; }
+      #startup .startup-sub { margin: 13px 0 30px; color: #d9c3c9; font-size: 15px; }
+      #startup-progress { display: flex; gap: 7px; height: 5px; margin: 0 12px 17px; }
+      #startup-progress span { flex: 1; overflow: hidden; border-radius: 3px; background: #67515c; position: relative; }
+      #startup-progress span::after { content: ''; position: absolute; inset: 0; background: #ffb36b; transform: scaleX(0); transform-origin: left; }
+      #startup[data-stage="modules"] #startup-progress span:nth-child(1)::after,
+      #startup[data-stage="fonts"] #startup-progress span:nth-child(2)::after,
+      #startup[data-stage="world"] #startup-progress span:nth-child(3)::after,
+      #startup[data-stage="frame"] #startup-progress span:nth-child(4)::after { transform: scaleX(1); opacity: .6; }
+      #startup[data-stage="fonts"] #startup-progress span:nth-child(1)::after,
+      #startup[data-stage="world"] #startup-progress span:nth-child(-n+2)::after,
+      #startup[data-stage="frame"] #startup-progress span:nth-child(-n+3)::after { transform: scaleX(1); }
+      #startup-status { min-height: 24px; margin: 0; color: #fff3de; font-size: 14px; }
+      #startup .startup-note { margin: 12px 0 0; color: #cfb8c1; font-size: 12px; }
+      #startup-retry { margin-top: 24px; padding: 12px 23px; min-height: 46px; border: 0; border-radius: 12px; background: #ffb36b; color: #2a1f24; font: 700 15px/1.5 system-ui, sans-serif; cursor: pointer; }
+      #startup-retry:hover { background: #ffc38c; }
+      #startup-retry:focus-visible { outline: 3px solid #fff3de; outline-offset: 5px; }
+      #startup-retry:disabled { cursor: wait; opacity: .65; }
+      #startup [hidden] { display: none; }
+      #startup[data-failed] .startup-sub, #startup[data-failed] .startup-note { display: none; }
+      #startup[data-failed] #startup-status { margin-top: 20px; }
+      #startup noscript p { margin: 20px 0 0; color: #ffd4ac; }
+      #startup .startup-reload { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: #e7b88c; font-size: 13px; text-underline-offset: 3px; }
+      #startup[data-failed] .startup-reload { display: none; }
+      @media (prefers-reduced-motion: no-preference) {
+        #startup:not([data-failed]) .startup-jelly { animation: startup-bob 2.4s ease-in-out infinite; }
+        #startup:not([data-failed]) .startup-wave { animation: startup-wave 2.4s ease-in-out infinite; }
+        #startup[data-stage="modules"] #startup-progress span:nth-child(1)::after,
+        #startup[data-stage="fonts"] #startup-progress span:nth-child(2)::after,
+        #startup[data-stage="world"] #startup-progress span:nth-child(3)::after,
+        #startup[data-stage="frame"] #startup-progress span:nth-child(4)::after { animation: startup-pending 1.6s ease-in-out infinite; }
+        @keyframes startup-bob { 50% { transform: translateY(-9px) rotate(3deg); } }
+        @keyframes startup-wave { 50% { transform: scaleX(.85); opacity: .3; } }
+        @keyframes startup-pending { 50% { opacity: 1; } }
+      }
+      @media (max-height: 520px) and (min-width: 600px) {
+        #startup .startup-content { padding: 0; }
+        #startup .startup-brand { margin-bottom: 10px; }
+        #startup .startup-scene { height: 120px; margin-bottom: 12px; }
+        #startup .startup-sub { margin: 10px 0 20px; }
+      }
+    </style>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%23ff8a1c'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3Cellipse cx='24' cy='16' rx='6' ry='3.5' fill='%23fff' opacity='.45'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud" class="shell hidden" inert></div>
+    <div id="menus" inert></div>
+    <div id="startup" data-stage="modules" aria-labelledby="startup-title">
+      <div class="startup-content">
+        <p class="startup-brand">TIRED<b>WOOD</b></p>
+        <div class="startup-scene" aria-hidden="true">
+          <div class="startup-wave"></div>
+          <div class="startup-jelly"><span class="startup-eye"></span><span class="startup-eye"></span></div>
+        </div>
+        <h1 id="startup-title">Скоро на набережной</h1>
+        <p class="startup-sub">Тёплый вечер и немного желейного хаоса.</p>
+        <div id="startup-progress" role="progressbar" aria-label="Загрузка игры" aria-valuetext="Загружаем игру…">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <p id="startup-status" role="status">Загружаем игру…</p>
+        <p class="startup-note">Первый запуск может занять чуть больше времени.</p>
+        <a class="startup-reload" href="">Обновить страницу, если загрузка остановилась</a>
+        <button id="startup-retry" type="button" hidden>Попробовать ещё раз</button>
+        <noscript><p>Для игры нужен JavaScript. Включите его в настройках браузера и обновите страницу.</p></noscript>
+      </div>
+    </div>
+    <script type="module" src="/client/main.ts"></script>
+  </body>
+</html>

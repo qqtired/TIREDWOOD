@@ -1,0 +1,99 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { COLLECTION, RULE, biteShare, effectiveRareMultiplier, reelStyleFor } from '../shared/fishrules.ts';
+import { emptyFishProgress, fishCastMods, fishCatchXp, FISH_XP_LEVELS, type FishRod } from '../shared/fishprogress.ts';
+import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, type ReelStyle } from '../shared/fishreel.ts';
+import { TYPICAL, reelStats } from './fishbot.ts';
+const baseline = JSON.parse(readFileSync(new URL('../docs/expansion-2026-10-03/fishing-baseline/baseline.json', import.meta.url),'utf8'));
+
+test('XP is one third of frozen released XP, including perfect and legendary multiplication',()=>{
+ for(const row of baseline.rows) for(const perfect of [false,true]) assert.equal(fishCatchXp(row.sp,perfect),Math.max(1,Math.round((perfect?row.perfectXp:row.xp)*.3333)),row.id);
+});
+test('rare probability compounds level and exactly one rod, withdrawing common residual',()=>{
+ const mods=fishCastMods({...emptyFishProgress(),xp:380,questsDone:10,rod:2},0);
+ assert.equal(mods.rareMultiplier,1.025**2*1.10);
+ for(const sp of COLLECTION.filter(sp=>RULE[sp]!.tier>=1&&!RULE[sp]!.rain)) assert.ok(Math.abs(biteShare(sp,false,mods)/biteShare(sp,false)-mods.rareMultiplier)<1e-12);
+});
+test('32 fish have distinct pattern pairs using all ten executable behaviors',()=>{
+ const styles=COLLECTION.map(sp=>RULE[sp]!.style as any);
+ assert.equal(new Set(styles.map(s=>s.mainPattern)).size,10);
+ assert.equal(new Set(styles.map(s=>s.mainPattern+':'+s.secondaryPattern)).size,32);
+ assert.ok(styles.every(s=>s.mainPattern!==s.secondaryPattern));
+});
+test('every fish motion replays exactly from toggles with integer state',()=>{
+ for(const sp of COLLECTION) for(const seed of [19,761,100003]){
+  const a=reelStart(RULE[sp]!.style,seed),b=reelStart(RULE[sp]!.style,seed);
+  const toggles=[0,23,67,109,131,187,219,277,300,373,417,490];
+  for(let t=0;t<550;t++) reelStep(a,toggles.filter(v=>v<=t).length%2===1);
+  let k=0;for(let t=0;t<=600;t+=30) k=reelRun(b,toggles,Math.min(550,t),k);
+  assert.deepEqual(a,b);
+  for(const [key,value] of Object.entries(a)) if(typeof value==='number') assert.ok(Number.isInteger(value),key);
+ }
+});
+
+test('each named pattern executes its characteristic target trajectory', () => {
+ const targets: Record<string, number[]> = {};
+ for (const pattern of REEL_PATTERNS) {
+  const style: ReelStyle = { ...RULE[COLLECTION[0]]!.style, mainPattern: pattern, secondaryPattern: pattern, patternPeriod: 200, patternAmplitude: 30 };
+  const r = reelStart(style, 73);
+  Object.assign(r, { patternTick: 0, patternCycle: 1, patternLength: 200, patternAnchor: 50000, patternDir: 1, patternTarget: 50000, f: 50000 });
+  const trace: number[] = [];
+  for (let i = 0; i < 200; i++) {
+   // Isolate movement from the outcome of an unattended reel.
+   r.done = 0; r.p = 10000; reelStep(r, false); trace.push(r.ft);
+  }
+  targets[pattern] = trace;
+ }
+ assert.equal(new Set(Object.values(targets).map(t => JSON.stringify(t))).size, 10);
+ assert.equal(targets.Dash[39], 50000); assert.equal(targets.Dash[40], 80000);
+ assert.equal(targets.FakeDash[0], 65000); assert.equal(targets.FakeDash[70], 20000);
+ assert.ok(targets.Sawtooth[65] > targets.Sawtooth[67]);
+ assert.equal(targets.HoverDash[109], 50000); assert.equal(targets.HoverDash[110], 80000);
+ assert.ok(targets.SlowMigration.every((v, i, a) => i === 0 || v > a[i - 1]));
+ assert.equal(targets.EdgeSnapback[0], 100000); assert.equal(targets.EdgeSnapback[120], 50000);
+ assert.equal(targets.DoubleDash[29], 50000); assert.equal(targets.DoubleDash[30], 65000); assert.equal(targets.DoubleDash[120], 80000);
+ assert.equal(targets.Wave[50], 80000); assert.equal(targets.Wave[150], 20000);
+ assert.ok(new Set(targets.Nervous).size > 10);
+ assert.equal(targets.Ambush[143], 50000); assert.equal(targets.Ambush[144], 80000);
+});
+
+test('all legal probability combinations sum to one with transparent saturation and unchanged absent event fish', () => {
+ for (const rain of [false, true]) for (let level = 0; level <= 10; level++) for (const rod of [0, 1, 2, 3] as FishRod[]) for (const beer of [false, true]) {
+  const mods = fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level], questsDone: 10, rod, beerUntil: beer ? 1000 : 0 }, 0);
+  assert.ok(Math.abs(mods.rareMultiplier - 1.025 ** level * (1 + .05 * rod) * (beer ? 1.2 : 1)) < 1e-12);
+  const shares = COLLECTION.map(sp => biteShare(sp, rain, mods));
+  assert.ok(shares.every(p => p >= 0 && p <= 1));
+  assert.ok(Math.abs(shares.reduce((a,b)=>a+b,0)-1)<1e-12);
+  const effective = effectiveRareMultiplier(rain, mods);
+  for (const sp of COLLECTION) {
+   if (RULE[sp]!.rain && !rain) assert.equal(biteShare(sp, rain, mods), 0);
+   else if (RULE[sp]!.tier >= 1) assert.ok(Math.abs(biteShare(sp,rain,mods)-biteShare(sp,rain)*effective)<1e-12);
+  }
+  if (effective < mods.rareMultiplier) assert.ok(COLLECTION.filter(sp=>RULE[sp]!.tier===0).every(sp=>biteShare(sp,rain,mods)<1e-12));
+ }
+ const baseTwoPercent = .02;
+ assert.ok(Math.abs(baseTwoPercent * fishCastMods({...emptyFishProgress(),xp:100},0).rareMultiplier - .0205) < 1e-12);
+});
+
+test('difficulty comes from motion without a reduced fill gain or smaller green zone; progression remains useful', () => {
+ assert.equal(REEL_GAIN, 100);
+ const mods = fishCastMods({ ...emptyFishProgress(), xp:15000, questsDone:10, rod:3 },0);
+ for (const old of baseline.rows) {
+  assert.equal(RULE[old.sp]!.style.zone,old.style.zone,old.id);
+  assert.equal(RULE[old.sp]!.xpDifficulty,old.difficulty,old.id);
+  const plain=reelStats(RULE[old.sp]!.style,TYPICAL,300,401+old.sp*1259);
+  const boosted=reelStats(reelStyleFor(old.sp,mods),TYPICAL,300,401+old.sp*1259);
+  assert.ok(boosted.costTicks < plain.costTicks,old.id);
+  assert.ok(boosted.p >= plain.p,old.id);
+ }
+});
+
+test('pattern bursts preserve legacy mode2 used by the reel HUD feedback', () => {
+ const style: ReelStyle={...RULE[COLLECTION[0]]!.style,mainPattern:'Dash',secondaryPattern:'Dash',patternAmplitude:30};
+ const r=reelStart(style,73);
+ Object.assign(r,{patternTick:0,patternCycle:1,patternLength:200,patternAnchor:50000,patternDir:1,f:50000});
+ reelStep(r,false); assert.equal(r.mode,1,'wind-up is a hover');
+ Object.assign(r,{patternTick:40,done:0,p:10000});
+ reelStep(r,false); assert.equal(r.mode,2,'burst must trigger the existing HUD dart effect');
+});

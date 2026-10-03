@@ -1,0 +1,2602 @@
+{
+  "simulation": {
+    "reelSeedsPerSpecies": 1200,
+    "incomeSeedsPerSpecies": 300,
+    "seedFormula": "(11 + sp * 7919 + i * 2654435761)|0",
+    "rounding": "common round(oldIntegerSale*1.75); other round(rawBaseSale*1.076); beer round(finalFishSale*1.1); event unique-only raw*1.5",
+    "noviceScope": "level0/rod0/no beer/discovery/quests/chests"
+  },
+  "baseline": {
+    "typicalClear": {
+      "points": 13.714891432253872,
+      "coins": 13.465547009661105,
+      "chest": 4.478372098722762,
+      "fish": 2.2633512651190775,
+      "perBite": 21.228910395166665,
+      "landed": 0.9410199999999999
+    },
+    "typicalRain": {
+      "points": 14.881133017541384,
+      "coins": 16.994680233920597,
+      "chest": 4.321504864371872,
+      "fish": 2.139820607948711,
+      "perBite": 21.999503178580483,
+      "landed": 0.9219543726235738
+    },
+    "expertClear": {
+      "points": 18.55663512937355,
+      "coins": 18.23402639148296,
+      "chest": 4.716721643219723,
+      "fish": 2.4782337794487517,
+      "perBite": 20.156152342944445,
+      "landed": 0.9782933333333336
+    }
+  },
+  "current": {
+    "typicalClear": {
+      "points": 16.381308094894784,
+      "coins": 20.197887505335476,
+      "chest": 4.599316579035137,
+      "fish": 2.3782928145939386,
+      "perBite": 20.67067103694444,
+      "landed": 0.9628066666666666,
+      "xp": 86.98184270779134
+    },
+    "typicalRain": {
+      "points": 18.037398835118346,
+      "coins": 24.315381785723297,
+      "chest": 4.513114230229206,
+      "fish": 2.3257597429916212,
+      "perBite": 21.065489404900717,
+      "landed": 0.9595234474017742,
+      "xp": 84.84277315653614
+    },
+    "expertClear": {
+      "points": 19.944670608183987,
+      "coins": 24.087627601488926,
+      "chest": 4.781261711234378,
+      "fish": 2.532413231291561,
+      "perBite": 19.88407364872222,
+      "landed": 0.9861866666666668,
+      "xp": 115.69765223374318
+    }
+  },
+  "buffs": {
+    "noviceBeer": {
+      "mods": {
+        "level": 0,
+        "rod": 0,
+        "zoneScale": 1,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.2,
+        "incomeScale": 1.1
+      },
+      "clear": {
+        "points": 17.39143317928074,
+        "coins": 23.21377511329125,
+        "chest": 4.577146849485737,
+        "fish": 2.356669927709701,
+        "perBite": 20.77079087175926,
+        "landed": 0.958674074074074,
+        "xp": 88.18915038369121
+      },
+      "rain": {
+        "points": 18.898729650020115,
+        "coins": 27.85853128686311,
+        "chest": 4.4903786741932565,
+        "fish": 2.306009136135994,
+        "perBite": 21.172147584430725,
+        "landed": 0.9561920438957474,
+        "xp": 85.55572972639519
+      }
+    },
+    "level1": {
+      "mods": {
+        "level": 1,
+        "rod": 0,
+        "zoneScale": 1.025,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.025,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 16.925424276592548,
+        "coins": 20.748707199255158,
+        "chest": 4.603379533233525,
+        "fish": 2.3921755988559585,
+        "perBite": 20.65242705139714,
+        "landed": 0.967572112211221,
+        "xp": 89.38345368117857
+      },
+      "rain": {
+        "points": 18.544013967675628,
+        "coins": 24.891798128460916,
+        "chest": 4.527797768605053,
+        "fish": 2.3446984575728322,
+        "perBite": 20.997174533545905,
+        "landed": 0.9641998186876738,
+        "xp": 87.00749248642992
+      }
+    },
+    "level10": {
+      "mods": {
+        "level": 10,
+        "rod": 0,
+        "zoneScale": 1.25,
+        "biteSpeed": 1,
+        "rareMultiplier": 1.25,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 20.785514939597242,
+        "coins": 24.668035581993603,
+        "chest": 4.7101143759458886,
+        "fish": 2.4869943444258102,
+        "perBite": 20.184427046085858,
+        "landed": 0.9831287878787875,
+        "xp": 108.64855437998278
+      },
+      "rain": {
+        "points": 22.06321034851153,
+        "coins": 28.972754513988537,
+        "chest": 4.661425975536376,
+        "fish": 2.462259295478145,
+        "perBite": 20.395252546954904,
+        "landed": 0.9835174337517434,
+        "xp": 105.86739399359998
+      }
+    },
+    "advanced": {
+      "mods": {
+        "level": 0,
+        "rod": 1,
+        "zoneScale": 1.1,
+        "biteSpeed": 1.1,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 18.714184047401314,
+        "coins": 22.86656016869041,
+        "chest": 4.917035682312429,
+        "fish": 2.575506442842246,
+        "perBite": 19.335015269868684,
+        "landed": 0.9752733333333332,
+        "xp": 101.158111855646
+      },
+      "rain": {
+        "points": 20.38539833414296,
+        "coins": 27.25054142081611,
+        "chest": 4.845274119118825,
+        "fish": 2.530970131113868,
+        "perBite": 19.6213790309329,
+        "landed": 0.9726032953105196,
+        "xp": 98.61801909094036
+      }
+    },
+    "professional": {
+      "mods": {
+        "level": 0,
+        "rod": 2,
+        "zoneScale": 1.2,
+        "biteSpeed": 1.2,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 20.70493346221884,
+        "coins": 25.167577769593066,
+        "chest": 5.226670629633953,
+        "fish": 2.757340616028293,
+        "perBite": 18.189583147055554,
+        "landed": 0.9822733333333334,
+        "xp": 113.65481950226278
+      },
+      "rain": {
+        "points": 22.428416045848667,
+        "coins": 29.83589676144633,
+        "chest": 5.164077488142121,
+        "fish": 2.719329104995906,
+        "perBite": 18.41005682395437,
+        "landed": 0.9804740177439796,
+        "xp": 111.43118840899385
+      }
+    },
+    "master": {
+      "mods": {
+        "level": 0,
+        "rod": 3,
+        "zoneScale": 1.3,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 22.610654146772237,
+        "coins": 27.36550987605787,
+        "chest": 5.515009481862491,
+        "fish": 2.925132999965251,
+        "perBite": 17.238585049158118,
+        "landed": 0.9875666666666667,
+        "xp": 126.69815650018587
+      },
+      "rain": {
+        "points": 24.372683922984038,
+        "coins": 32.289247688787796,
+        "chest": 5.459794249125299,
+        "fish": 2.8941743319379696,
+        "perBite": 17.412919912729514,
+        "landed": 0.9869961977186309,
+        "xp": 124.34860861324746
+      }
+    },
+    "max": {
+      "mods": {
+        "level": 10,
+        "rod": 3,
+        "zoneScale": 1.625,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1.25,
+        "incomeScale": 1
+      },
+      "clear": {
+        "points": 27.24505247496062,
+        "coins": 32.03276378252148,
+        "chest": 5.634285996005652,
+        "fish": 3.0120133688588444,
+        "perBite": 16.873648243521757,
+        "landed": 0.995371212121212,
+        "xp": 152.15592819058847
+      },
+      "rain": {
+        "points": 28.41647519934365,
+        "coins": 36.91612943147991,
+        "chest": 5.603596173921521,
+        "fish": 2.9978099720188722,
+        "perBite": 16.966061980420555,
+        "landed": 0.9961032078103209,
+        "xp": 149.73524508130777
+      }
+    },
+    "maxBeer": {
+      "mods": {
+        "level": 10,
+        "rod": 3,
+        "zoneScale": 1.625,
+        "biteSpeed": 1.3,
+        "rareMultiplier": 1.5,
+        "incomeScale": 1.1
+      },
+      "clear": {
+        "points": 29.109559364808632,
+        "coins": 37.225751909144364,
+        "chest": 5.622734318633049,
+        "fish": 3.0044401889901833,
+        "perBite": 16.908314462759968,
+        "landed": 0.9949083333333334,
+        "xp": 156.12593444174865
+      },
+      "rain": {
+        "points": 29.82893505595225,
+        "coins": 42.45871138927582,
+        "chest": 5.5932104956829924,
+        "fish": 2.9914139669191795,
+        "perBite": 16.997565186108876,
+        "landed": 0.9958236173393121,
+        "xp": 152.3998505959549
+      }
+    }
+  },
+  "species": [
+    {
+      "sp": 0,
+      "id": "hamsa",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 348.6,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 7,
+          "turn": 30,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 250,
+          "hoverP": 30,
+          "lo": 35,
+          "hi": 90,
+          "roam": 18,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 348.55083333333334,
+          "caughtTicks": 348.55083333333334
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 320.1575,
+          "caughtTicks": 320.1575
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 7,
+          "turn": 30,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 250,
+          "hoverP": 30,
+          "lo": 35,
+          "hi": 90,
+          "roam": 18,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 348.55083333333334,
+          "caughtTicks": 348.55083333333334,
+          "perfectP": 0.4866666666666667,
+          "costTicks": 348.55083333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 320.1575,
+          "caughtTicks": 320.1575,
+          "perfectP": 0.7125,
+          "costTicks": 320.1575
+        }
+      }
+    },
+    {
+      "sp": 1,
+      "id": "goby",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 15,
+      "perfectXp": 36,
+      "difficulty": 326.5,
+      "before": {
+        "style": {
+          "spd": 16,
+          "sharp": 6,
+          "turn": 6,
+          "dart": 3,
+          "dartSpd": 45,
+          "dartUp": 70,
+          "hover": 900,
+          "hoverP": 70,
+          "lo": 0,
+          "hi": 35,
+          "roam": 14,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 326.4841666666667,
+          "caughtTicks": 326.4841666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.9375,
+          "caughtTicks": 305.9375
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 16,
+          "sharp": 6,
+          "turn": 6,
+          "dart": 3,
+          "dartSpd": 45,
+          "dartUp": 70,
+          "hover": 900,
+          "hoverP": 70,
+          "lo": 0,
+          "hi": 35,
+          "roam": 14,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 326.4841666666667,
+          "caughtTicks": 326.4841666666667,
+          "perfectP": 0.7491666666666666,
+          "costTicks": 326.4841666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.9375,
+          "caughtTicks": 305.9375,
+          "perfectP": 0.8966666666666666,
+          "costTicks": 305.9375
+        }
+      }
+    },
+    {
+      "sp": 2,
+      "id": "scad",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 343.7,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 5,
+          "turn": 12,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 20,
+          "hi": 85,
+          "roam": 30,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 343.68333333333334,
+          "caughtTicks": 343.68333333333334
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 313.71166666666664,
+          "caughtTicks": 313.71166666666664
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 5,
+          "turn": 12,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 20,
+          "hi": 85,
+          "roam": 30,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 343.68333333333334,
+          "caughtTicks": 343.68333333333334,
+          "perfectP": 0.545,
+          "costTicks": 343.68333333333334
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 313.71166666666664,
+          "caughtTicks": 313.71166666666664,
+          "perfectP": 0.8108333333333333,
+          "costTicks": 313.71166666666664
+        }
+      }
+    },
+    {
+      "sp": 3,
+      "id": "redmullet",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 330.3,
+      "before": {
+        "style": {
+          "spd": 18,
+          "sharp": 5,
+          "turn": 15,
+          "dart": 2,
+          "dartSpd": 45,
+          "dartUp": 50,
+          "hover": 600,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 40,
+          "roam": 16,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 330.31166666666667,
+          "caughtTicks": 330.31166666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.45416666666665,
+          "caughtTicks": 305.45416666666665
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 18,
+          "sharp": 5,
+          "turn": 15,
+          "dart": 2,
+          "dartSpd": 45,
+          "dartUp": 50,
+          "hover": 600,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 40,
+          "roam": 16,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 330.31166666666667,
+          "caughtTicks": 330.31166666666667,
+          "perfectP": 0.7333333333333333,
+          "costTicks": 330.31166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.45416666666665,
+          "caughtTicks": 305.45416666666665,
+          "perfectP": 0.9083333333333333,
+          "costTicks": 305.45416666666665
+        }
+      }
+    },
+    {
+      "sp": 17,
+      "id": "wrasse",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 335.7,
+      "before": {
+        "style": {
+          "spd": 20,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 3,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 45,
+          "lo": 25,
+          "hi": 70,
+          "roam": 18,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 335.6791666666667,
+          "caughtTicks": 335.6791666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 309.7416666666667,
+          "caughtTicks": 309.7416666666667
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 3,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 45,
+          "lo": 25,
+          "hi": 70,
+          "roam": 18,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 335.6791666666667,
+          "caughtTicks": 335.6791666666667,
+          "perfectP": 0.5941666666666666,
+          "costTicks": 335.6791666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.7416666666667,
+          "caughtTicks": 309.7416666666667,
+          "perfectP": 0.845,
+          "costTicks": 309.7416666666667
+        }
+      }
+    },
+    {
+      "sp": 18,
+      "id": "karas",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        4
+      ],
+      "priceAfter": [
+        4,
+        7
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 329.6,
+      "before": {
+        "style": {
+          "spd": 19,
+          "sharp": 4,
+          "turn": 10,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 40,
+          "lo": 15,
+          "hi": 75,
+          "roam": 22,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 329.56583333333333,
+          "caughtTicks": 329.56583333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 306.015,
+          "caughtTicks": 306.015
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 19,
+          "sharp": 4,
+          "turn": 10,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 40,
+          "lo": 15,
+          "hi": 75,
+          "roam": 22,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.56583333333333,
+          "caughtTicks": 329.56583333333333,
+          "perfectP": 0.6416666666666667,
+          "costTicks": 329.56583333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 306.015,
+          "caughtTicks": 306.015,
+          "perfectP": 0.895,
+          "costTicks": 306.015
+        }
+      }
+    },
+    {
+      "sp": 19,
+      "id": "blenny",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 329.1,
+      "before": {
+        "style": {
+          "spd": 16,
+          "sharp": 8,
+          "turn": 8,
+          "dart": 4,
+          "dartSpd": 50,
+          "dartUp": 60,
+          "hover": 1000,
+          "hoverP": 75,
+          "lo": 5,
+          "hi": 50,
+          "roam": 12,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 329.12166666666667,
+          "caughtTicks": 329.12166666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 309.0025,
+          "caughtTicks": 309.0025
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 16,
+          "sharp": 8,
+          "turn": 8,
+          "dart": 4,
+          "dartSpd": 50,
+          "dartUp": 60,
+          "hover": 1000,
+          "hoverP": 75,
+          "lo": 5,
+          "hi": 50,
+          "roam": 12,
+          "zone": 38,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 329.12166666666667,
+          "caughtTicks": 329.12166666666667,
+          "perfectP": 0.6775,
+          "costTicks": 329.12166666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 309.0025,
+          "caughtTicks": 309.0025,
+          "perfectP": 0.85,
+          "costTicks": 309.0025
+        }
+      }
+    },
+    {
+      "sp": 20,
+      "id": "sardine",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 350.6,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 6,
+          "turn": 35,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 45,
+          "hi": 95,
+          "roam": 20,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 350.5783333333333,
+          "caughtTicks": 350.5783333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 317.955,
+          "caughtTicks": 317.955
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24,
+          "sharp": 6,
+          "turn": 35,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 45,
+          "hi": 95,
+          "roam": 20,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 350.5783333333333,
+          "caughtTicks": 350.5783333333333,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 350.5783333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 317.955,
+          "caughtTicks": 317.955,
+          "perfectP": 0.7233333333333334,
+          "costTicks": 317.955
+        }
+      }
+    },
+    {
+      "sp": 21,
+      "id": "whiting",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        5
+      ],
+      "priceAfter": [
+        4,
+        9
+      ],
+      "xp": 16,
+      "perfectXp": 38,
+      "difficulty": 328.9,
+      "before": {
+        "style": {
+          "spd": 22,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 40,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 15,
+          "hi": 70,
+          "roam": 28,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 328.9033333333333,
+          "caughtTicks": 328.9033333333333
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 305.8691666666667,
+          "caughtTicks": 305.8691666666667
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 2,
+          "dartSpd": 48,
+          "dartUp": 40,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 15,
+          "hi": 70,
+          "roam": 28,
+          "zone": 37,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 328.9033333333333,
+          "caughtTicks": 328.9033333333333,
+          "perfectP": 0.6525,
+          "costTicks": 328.9033333333333
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 305.8691666666667,
+          "caughtTicks": 305.8691666666667,
+          "perfectP": 0.9058333333333334,
+          "costTicks": 305.8691666666667
+        }
+      }
+    },
+    {
+      "sp": 22,
+      "id": "picarel",
+      "tier": 0,
+      "eventOnly": false,
+      "priceBefore": [
+        2,
+        3
+      ],
+      "priceAfter": [
+        4,
+        5
+      ],
+      "xp": 17,
+      "perfectXp": 40,
+      "difficulty": 349.5,
+      "before": {
+        "style": {
+          "spd": 23,
+          "sharp": 6,
+          "turn": 22,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 30,
+          "lo": 30,
+          "hi": 80,
+          "roam": 22,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "ticks": 349.4916666666667,
+          "caughtTicks": 349.4916666666667
+        },
+        "expert": {
+          "p": 1,
+          "ticks": 316.98833333333334,
+          "caughtTicks": 316.98833333333334
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 23,
+          "sharp": 6,
+          "turn": 22,
+          "dart": 3,
+          "dartSpd": 50,
+          "dartUp": 50,
+          "hover": 300,
+          "hoverP": 30,
+          "lo": 30,
+          "hi": 80,
+          "roam": 22,
+          "zone": 36,
+          "drain": 10
+        },
+        "typical": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 349.4916666666667,
+          "caughtTicks": 349.4916666666667,
+          "perfectP": 0.4666666666666667,
+          "costTicks": 349.4916666666667
+        },
+        "expert": {
+          "p": 1,
+          "failure": 0,
+          "ticks": 316.98833333333334,
+          "caughtTicks": 316.98833333333334,
+          "perfectP": 0.765,
+          "costTicks": 316.98833333333334
+        }
+      }
+    },
+    {
+      "sp": 4,
+      "id": "mullet",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        4,
+        12
+      ],
+      "priceAfter": [
+        4,
+        13
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 476.2,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 6,
+          "turn": 10,
+          "dart": 8,
+          "dartSpd": 95,
+          "dartUp": 85,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 30,
+          "hi": 90,
+          "roam": 32,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9491666666666667,
+          "ticks": 525.0083333333333,
+          "caughtTicks": 535.0790166812994
+        },
+        "expert": {
+          "p": 0.9666666666666667,
+          "ticks": 408.16,
+          "caughtTicks": 411.8637931034483
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 23.8,
+          "sharp": 5.1,
+          "turn": 10,
+          "dart": 8,
+          "dartSpd": 80.75,
+          "dartUp": 85,
+          "hover": 300,
+          "hoverP": 25,
+          "lo": 30,
+          "hi": 90,
+          "roam": 32,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9658333333333333,
+          "failure": 0.03416666666666668,
+          "ticks": 459.9575,
+          "caughtTicks": 465.84383088869714,
+          "perfectP": 0.26166666666666666,
+          "costTicks": 476.2286453839517
+        },
+        "expert": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 369.3525,
+          "caughtTicks": 372.0827645051194,
+          "perfectP": 0.4975,
+          "costTicks": 378.1766211604096
+        }
+      }
+    },
+    {
+      "sp": 5,
+      "id": "mackerel",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        4,
+        10
+      ],
+      "priceAfter": [
+        4,
+        11
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 472.4,
+      "before": {
+        "style": {
+          "spd": 30,
+          "sharp": 5,
+          "turn": 14,
+          "dart": 7,
+          "dartSpd": 90,
+          "dartUp": 50,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 15,
+          "hi": 90,
+          "roam": 40,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9683333333333334,
+          "ticks": 569.3175,
+          "caughtTicks": 573.8450946643718
+        },
+        "expert": {
+          "p": 0.99,
+          "ticks": 403.185,
+          "caughtTicks": 403.58417508417506
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 4.25,
+          "turn": 14,
+          "dart": 7,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 15,
+          "hi": 90,
+          "roam": 40,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9758333333333333,
+          "failure": 0.02416666666666667,
+          "ticks": 460.93916666666667,
+          "caughtTicks": 463.8787361229718,
+          "perfectP": 0.28833333333333333,
+          "costTicks": 472.35439795046966
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 364.7008333333333,
+          "caughtTicks": 365.19279128248115,
+          "perfectP": 0.5516666666666666,
+          "costTicks": 366.84073763621126
+        }
+      }
+    },
+    {
+      "sp": 6,
+      "id": "garfish",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        4,
+        10
+      ],
+      "priceAfter": [
+        4,
+        11
+      ],
+      "xp": 27,
+      "perfectXp": 64,
+      "difficulty": 535.4,
+      "before": {
+        "style": {
+          "spd": 29,
+          "sharp": 8,
+          "turn": 16,
+          "dart": 8,
+          "dartSpd": 100,
+          "dartUp": 80,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 50,
+          "hi": 100,
+          "roam": 28,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9591666666666666,
+          "ticks": 644.265,
+          "caughtTicks": 640.8166811468288
+        },
+        "expert": {
+          "p": 0.9933333333333333,
+          "ticks": 453.84833333333336,
+          "caughtTicks": 453.9127516778523
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 24.65,
+          "sharp": 6.8,
+          "turn": 16,
+          "dart": 8,
+          "dartSpd": 85,
+          "dartUp": 80,
+          "hover": 200,
+          "hoverP": 20,
+          "lo": 50,
+          "hi": 100,
+          "roam": 28,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9766666666666667,
+          "failure": 0.023333333333333317,
+          "ticks": 522.9491666666667,
+          "caughtTicks": 523.3464163822525,
+          "perfectP": 0.22333333333333333,
+          "costTicks": 535.4428327645052
+        },
+        "expert": {
+          "p": 0.9941666666666666,
+          "failure": 0.005833333333333357,
+          "ticks": 391.11,
+          "caughtTicks": 391.45515507124895,
+          "perfectP": 0.4533333333333333,
+          "costTicks": 393.4048616932104
+        }
+      }
+    },
+    {
+      "sp": 7,
+      "id": "scorpion",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        5,
+        12
+      ],
+      "priceAfter": [
+        5,
+        13
+      ],
+      "xp": 26,
+      "perfectXp": 62,
+      "difficulty": 493.9,
+      "before": {
+        "style": {
+          "spd": 26,
+          "sharp": 9,
+          "turn": 4,
+          "dart": 10,
+          "dartSpd": 105,
+          "dartUp": 50,
+          "hover": 1100,
+          "hoverP": 80,
+          "lo": 0,
+          "hi": 45,
+          "roam": 16,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9516666666666667,
+          "ticks": 494.47333333333336,
+          "caughtTicks": 503.1366024518389
+        },
+        "expert": {
+          "p": 0.9833333333333333,
+          "ticks": 413.4941666666667,
+          "caughtTicks": 415.48728813559325
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.099999999999998,
+          "sharp": 7.6499999999999995,
+          "turn": 4,
+          "dart": 9,
+          "dartSpd": 89.25,
+          "dartUp": 50,
+          "hover": 1100,
+          "hoverP": 80,
+          "lo": 0,
+          "hi": 45,
+          "roam": 16,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9583333333333334,
+          "failure": 0.04166666666666663,
+          "ticks": 473.28833333333336,
+          "caughtTicks": 481.53913043478263,
+          "perfectP": 0.31416666666666665,
+          "costTicks": 493.8660869565217
+        },
+        "expert": {
+          "p": 0.9891666666666666,
+          "failure": 0.010833333333333361,
+          "ticks": 397.5308333333333,
+          "caughtTicks": 399.06149957877,
+          "perfectP": 0.4825,
+          "costTicks": 401.88458298230836
+        }
+      }
+    },
+    {
+      "sp": 8,
+      "id": "flounder",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        5,
+        13
+      ],
+      "priceAfter": [
+        5,
+        14
+      ],
+      "xp": 23,
+      "perfectXp": 55,
+      "difficulty": 441.8,
+      "before": {
+        "style": {
+          "spd": 24,
+          "sharp": 3,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 90,
+          "dartUp": 70,
+          "hover": 1200,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 30,
+          "roam": 20,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9725,
+          "ticks": 458.3175,
+          "caughtTicks": 463.23221936589545
+        },
+        "expert": {
+          "p": 0.9925,
+          "ticks": 379.8075,
+          "caughtTicks": 380.7691015952981
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20.4,
+          "sharp": 2.55,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 70,
+          "hover": 1200,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 30,
+          "roam": 20,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9716666666666667,
+          "failure": 0.02833333333333332,
+          "ticks": 429.2891666666667,
+          "caughtTicks": 434.07632933104634,
+          "perfectP": 0.3983333333333333,
+          "costTicks": 441.80703259005145
+        },
+        "expert": {
+          "p": 0.9975,
+          "failure": 0.0024999999999999467,
+          "ticks": 369.2083333333333,
+          "caughtTicks": 369.547201336675,
+          "perfectP": 0.5625,
+          "costTicks": 370.13366750208854
+        }
+      }
+    },
+    {
+      "sp": 10,
+      "id": "gurnard",
+      "tier": 1,
+      "eventOnly": false,
+      "priceBefore": [
+        5,
+        12
+      ],
+      "priceAfter": [
+        5,
+        13
+      ],
+      "xp": 25,
+      "perfectXp": 60,
+      "difficulty": 484.4,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 6,
+          "turn": 18,
+          "dart": 8,
+          "dartSpd": 90,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 50,
+          "lo": 0,
+          "hi": 40,
+          "roam": 14,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9533333333333334,
+          "ticks": 491.2708333333333,
+          "caughtTicks": 499.5681818181818
+        },
+        "expert": {
+          "p": 0.9841666666666666,
+          "ticks": 419.405,
+          "caughtTicks": 421.7298899237934
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 5.1,
+          "turn": 18,
+          "dart": 8,
+          "dartSpd": 76.5,
+          "dartUp": 50,
+          "hover": 500,
+          "hoverP": 50,
+          "lo": 0,
+          "hi": 40,
+          "roam": 14,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9608333333333333,
+          "failure": 0.03916666666666668,
+          "ticks": 465.4275,
+          "caughtTicks": 471.33217692974847,
+          "perfectP": 0.315,
+          "costTicks": 484.39982653946225
+        },
+        "expert": {
+          "p": 0.99,
+          "failure": 0.010000000000000009,
+          "ticks": 397.45916666666665,
+          "caughtTicks": 399.0311447811448,
+          "perfectP": 0.49166666666666664,
+          "costTicks": 401.4739057239057
+        }
+      }
+    },
+    {
+      "sp": 23,
+      "id": "eel",
+      "tier": 1,
+      "eventOnly": true,
+      "priceBefore": [
+        7,
+        19
+      ],
+      "priceAfter": [
+        8,
+        21
+      ],
+      "xp": 26,
+      "perfectXp": 62,
+      "difficulty": 505,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 8,
+          "turn": 45,
+          "dart": 7,
+          "dartSpd": 90,
+          "dartUp": 40,
+          "hover": 150,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 55,
+          "roam": 18,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9458333333333333,
+          "ticks": 610.1491666666667,
+          "caughtTicks": 620.1788546255507
+        },
+        "expert": {
+          "p": 0.9791666666666666,
+          "ticks": 481.51,
+          "caughtTicks": 484.80340425531915
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 6.4,
+          "turn": 45,
+          "dart": 7,
+          "dartSpd": 72,
+          "dartUp": 40,
+          "hover": 150,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 55,
+          "roam": 18,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9733333333333334,
+          "failure": 0.026666666666666616,
+          "ticks": 491.5525,
+          "caughtTicks": 493.8510273972603,
+          "perfectP": 0.24583333333333332,
+          "costTicks": 505.0196917808219
+        },
+        "expert": {
+          "p": 0.9908333333333333,
+          "failure": 0.009166666666666656,
+          "ticks": 401.55083333333334,
+          "caughtTicks": 402.188393608074,
+          "perfectP": 0.4075,
+          "costTicks": 405.26576955424724
+        }
+      }
+    },
+    {
+      "sp": 24,
+      "id": "meagre",
+      "tier": 1,
+      "eventOnly": true,
+      "priceBefore": [
+        7,
+        19
+      ],
+      "priceAfter": [
+        8,
+        21
+      ],
+      "xp": 24,
+      "perfectXp": 57,
+      "difficulty": 461.7,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 4,
+          "turn": 8,
+          "dart": 7,
+          "dartSpd": 95,
+          "dartUp": 30,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 10,
+          "hi": 60,
+          "roam": 34,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9558333333333333,
+          "ticks": 493.1575,
+          "caughtTicks": 498.70357454228423
+        },
+        "expert": {
+          "p": 0.98,
+          "ticks": 392.4166666666667,
+          "caughtTicks": 395.062925170068
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.95,
+          "sharp": 3.4,
+          "turn": 8,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 30,
+          "hover": 400,
+          "hoverP": 30,
+          "lo": 10,
+          "hi": 60,
+          "roam": 34,
+          "zone": 31,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.97,
+          "failure": 0.030000000000000027,
+          "ticks": 447.84833333333336,
+          "caughtTicks": 451.22938144329896,
+          "perfectP": 0.3225,
+          "costTicks": 461.6993127147766
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 369.01416666666665,
+          "caughtTicks": 370.3842905405405,
+          "perfectP": 0.5541666666666667,
+          "costTicks": 374.0008445945946
+        }
+      }
+    },
+    {
+      "sp": 25,
+      "id": "shad",
+      "tier": 1,
+      "eventOnly": true,
+      "priceBefore": [
+        6,
+        15
+      ],
+      "priceAfter": [
+        6,
+        16
+      ],
+      "xp": 27,
+      "perfectXp": 64,
+      "difficulty": 539.5,
+      "before": {
+        "style": {
+          "spd": 30,
+          "sharp": 6,
+          "turn": 20,
+          "dart": 7,
+          "dartSpd": 95,
+          "dartUp": 60,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 35,
+          "hi": 95,
+          "roam": 30,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9333333333333333,
+          "ticks": 654.655,
+          "caughtTicks": 659.6258928571428
+        },
+        "expert": {
+          "p": 0.9741666666666666,
+          "ticks": 489.89166666666665,
+          "caughtTicks": 490.2609067579127
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.5,
+          "sharp": 5.1,
+          "turn": 20,
+          "dart": 7,
+          "dartSpd": 80.75,
+          "dartUp": 60,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 35,
+          "hi": 95,
+          "roam": 30,
+          "zone": 30,
+          "drain": 20
+        },
+        "typical": {
+          "p": 0.9625,
+          "failure": 0.03749999999999998,
+          "ticks": 519.3158333333333,
+          "caughtTicks": 523.2640692640692,
+          "perfectP": 0.23,
+          "costTicks": 539.5489177489178
+        },
+        "expert": {
+          "p": 0.9866666666666667,
+          "failure": 0.013333333333333308,
+          "ticks": 397.20916666666665,
+          "caughtTicks": 398.62331081081084,
+          "perfectP": 0.42333333333333334,
+          "costTicks": 402.5768581081081
+        }
+      }
+    },
+    {
+      "sp": 9,
+      "id": "bluefish",
+      "tier": 2,
+      "eventOnly": false,
+      "priceBefore": [
+        10,
+        26
+      ],
+      "priceAfter": [
+        11,
+        28
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 623.8,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 8,
+          "turn": 18,
+          "dart": 9,
+          "dartSpd": 120,
+          "dartUp": 55,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 95,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7716666666666666,
+          "ticks": 864.8491666666666,
+          "caughtTicks": 895.3023758099353
+        },
+        "expert": {
+          "p": 0.9333333333333333,
+          "ticks": 546.6458333333334,
+          "caughtTicks": 561.0410714285714
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 6.4,
+          "turn": 18,
+          "dart": 9,
+          "dartSpd": 96,
+          "dartUp": 55,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 95,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.9091666666666667,
+          "failure": 0.09083333333333332,
+          "ticks": 567.1258333333334,
+          "caughtTicks": 581.8982584784601,
+          "perfectP": 0.16166666666666665,
+          "costTicks": 623.7864344637946
+        },
+        "expert": {
+          "p": 0.9708333333333333,
+          "failure": 0.029166666666666674,
+          "ticks": 422.87166666666667,
+          "caughtTicks": 429.3218884120172,
+          "perfectP": 0.33166666666666667,
+          "costTicks": 435.575965665236
+        }
+      }
+    },
+    {
+      "sp": 11,
+      "id": "dogfish",
+      "tier": 2,
+      "eventOnly": false,
+      "priceBefore": [
+        11,
+        28
+      ],
+      "priceAfter": [
+        12,
+        30
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 661.7,
+      "before": {
+        "style": {
+          "spd": 32,
+          "sharp": 6,
+          "turn": 14,
+          "dart": 8,
+          "dartSpd": 115,
+          "dartUp": 40,
+          "hover": 250,
+          "hoverP": 15,
+          "lo": 5,
+          "hi": 80,
+          "roam": 45,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7616666666666667,
+          "ticks": 846.0958333333333,
+          "caughtTicks": 899.4835886214443
+        },
+        "expert": {
+          "p": 0.9325,
+          "ticks": 535.8841666666667,
+          "caughtTicks": 550.7319034852547
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 4.800000000000001,
+          "turn": 14,
+          "dart": 10,
+          "dartSpd": 92,
+          "dartUp": 40,
+          "hover": 250,
+          "hoverP": 15,
+          "lo": 5,
+          "hi": 80,
+          "roam": 45,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8908333333333334,
+          "failure": 0.10916666666666663,
+          "ticks": 589.4275,
+          "caughtTicks": 615.645463049579,
+          "perfectP": 0.125,
+          "costTicks": 661.6585594013096
+        },
+        "expert": {
+          "p": 0.9483333333333334,
+          "failure": 0.05166666666666664,
+          "ticks": 424.265,
+          "caughtTicks": 433.908611599297,
+          "perfectP": 0.33416666666666667,
+          "costTicks": 447.37961335676624
+        }
+      }
+    },
+    {
+      "sp": 12,
+      "id": "ray",
+      "tier": 2,
+      "eventOnly": false,
+      "priceBefore": [
+        11,
+        28
+      ],
+      "priceAfter": [
+        12,
+        30
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 618.6,
+      "before": {
+        "style": {
+          "spd": 32,
+          "sharp": 3,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 118,
+          "dartUp": 60,
+          "hover": 900,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 50,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7791666666666667,
+          "ticks": 708.8008333333333,
+          "caughtTicks": 744.9090909090909
+        },
+        "expert": {
+          "p": 0.9283333333333333,
+          "ticks": 492.32666666666665,
+          "caughtTicks": 501.07360861759423
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 25.6,
+          "sharp": 2.4000000000000004,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 94.4,
+          "dartUp": 60,
+          "hover": 900,
+          "hoverP": 55,
+          "lo": 0,
+          "hi": 50,
+          "roam": 40,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8933333333333333,
+          "failure": 0.10666666666666669,
+          "ticks": 552.6133333333333,
+          "caughtTicks": 571.1147388059702,
+          "perfectP": 0.17583333333333334,
+          "costTicks": 618.5970149253732
+        },
+        "expert": {
+          "p": 0.9633333333333334,
+          "failure": 0.036666666666666625,
+          "ticks": 422.3616666666667,
+          "caughtTicks": 427.11418685121106,
+          "perfectP": 0.425,
+          "costTicks": 438.43771626297575
+        }
+      }
+    },
+    {
+      "sp": 26,
+      "id": "turbot",
+      "tier": 2,
+      "eventOnly": false,
+      "priceBefore": [
+        13,
+        32
+      ],
+      "priceAfter": [
+        14,
+        34
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 677.8,
+      "before": {
+        "style": {
+          "spd": 37,
+          "sharp": 4,
+          "turn": 6,
+          "dart": 10,
+          "dartSpd": 143,
+          "dartUp": 75,
+          "hover": 1300,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 35,
+          "roam": 30,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7233333333333334,
+          "ticks": 770.25,
+          "caughtTicks": 831.7649769585254
+        },
+        "expert": {
+          "p": 0.9041666666666667,
+          "ticks": 564.6958333333333,
+          "caughtTicks": 581.710599078341
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 29.6,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 8,
+          "dartSpd": 114.4,
+          "dartUp": 75,
+          "hover": 1300,
+          "hoverP": 75,
+          "lo": 0,
+          "hi": 35,
+          "roam": 30,
+          "zone": 28,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8591666666666666,
+          "failure": 0.14083333333333337,
+          "ticks": 582.3625,
+          "caughtTicks": 607.1144519883608,
+          "perfectP": 0.13916666666666666,
+          "costTicks": 677.8225024248303
+        },
+        "expert": {
+          "p": 0.9616666666666667,
+          "failure": 0.03833333333333333,
+          "ticks": 463.985,
+          "caughtTicks": 469.4878682842288,
+          "perfectP": 0.30416666666666664,
+          "costTicks": 482.4800693240901
+        }
+      }
+    },
+    {
+      "sp": 27,
+      "id": "seabass",
+      "tier": 2,
+      "eventOnly": true,
+      "priceBefore": [
+        16,
+        41
+      ],
+      "priceAfter": [
+        17,
+        45
+      ],
+      "xp": 31,
+      "perfectXp": 74,
+      "difficulty": 664.8,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 7,
+          "turn": 14,
+          "dart": 9,
+          "dartSpd": 113,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 90,
+          "roam": 45,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7083333333333334,
+          "ticks": 881.6175,
+          "caughtTicks": 972.0035294117647
+        },
+        "expert": {
+          "p": 0.9291666666666667,
+          "ticks": 517.6575,
+          "caughtTicks": 535.7399103139013
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 14,
+          "dart": 9,
+          "dartSpd": 90.4,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 10,
+          "hi": 90,
+          "roam": 45,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.8958333333333334,
+          "failure": 0.10416666666666663,
+          "ticks": 595.555,
+          "caughtTicks": 618.3730232558139,
+          "perfectP": 0.13166666666666665,
+          "costTicks": 664.8055813953488
+        },
+        "expert": {
+          "p": 0.9491666666666667,
+          "failure": 0.050833333333333286,
+          "ticks": 416.1433333333333,
+          "caughtTicks": 427.1562774363477,
+          "perfectP": 0.32416666666666666,
+          "costTicks": 438.43020193151887
+        }
+      }
+    },
+    {
+      "sp": 28,
+      "id": "leerfish",
+      "tier": 2,
+      "eventOnly": true,
+      "priceBefore": [
+        19,
+        47
+      ],
+      "priceAfter": [
+        21,
+        51
+      ],
+      "xp": 30,
+      "perfectXp": 72,
+      "difficulty": 644.2,
+      "before": {
+        "style": {
+          "spd": 33,
+          "sharp": 7,
+          "turn": 12,
+          "dart": 10,
+          "dartSpd": 118,
+          "dartUp": 55,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 10,
+          "hi": 95,
+          "roam": 50,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.7291666666666666,
+          "ticks": 878.7091666666666,
+          "caughtTicks": 955.1931428571429
+        },
+        "expert": {
+          "p": 0.94,
+          "ticks": 516.9908333333333,
+          "caughtTicks": 527.4831560283687
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 26.400000000000002,
+          "sharp": 5.6000000000000005,
+          "turn": 12,
+          "dart": 10,
+          "dartSpd": 94.4,
+          "dartUp": 55,
+          "hover": 150,
+          "hoverP": 10,
+          "lo": 10,
+          "hi": 95,
+          "roam": 50,
+          "zone": 27,
+          "drain": 22
+        },
+        "typical": {
+          "p": 0.895,
+          "failure": 0.10499999999999998,
+          "ticks": 576.5841666666666,
+          "caughtTicks": 593.169459962756,
+          "perfectP": 0.17833333333333334,
+          "costTicks": 644.2281191806331
+        },
+        "expert": {
+          "p": 0.9675,
+          "failure": 0.03249999999999997,
+          "ticks": 425.00166666666667,
+          "caughtTicks": 431.8656330749354,
+          "perfectP": 0.3458333333333333,
+          "costTicks": 439.27820844099915
+        }
+      }
+    },
+    {
+      "sp": 13,
+      "id": "sturgeon",
+      "tier": 3,
+      "eventOnly": false,
+      "priceBefore": [
+        35,
+        103
+      ],
+      "priceAfter": [
+        38,
+        111
+      ],
+      "xp": 175,
+      "perfectXp": 420,
+      "difficulty": 902.5,
+      "before": {
+        "style": {
+          "spd": 28,
+          "sharp": 4,
+          "turn": 6,
+          "dart": 12,
+          "dartSpd": 115,
+          "dartUp": 15,
+          "hover": 700,
+          "hoverP": 40,
+          "lo": 0,
+          "hi": 40,
+          "roam": 30,
+          "zone": 25,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.43,
+          "ticks": 651.9933333333333,
+          "caughtTicks": 737.7461240310078
+        },
+        "expert": {
+          "p": 0.7383333333333333,
+          "ticks": 566.7675,
+          "caughtTicks": 614.7866817155756
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 22.400000000000002,
+          "sharp": 3.2,
+          "turn": 6,
+          "dart": 12,
+          "dartSpd": 92,
+          "dartUp": 15,
+          "hover": 700,
+          "hoverP": 40,
+          "lo": 0,
+          "hi": 40,
+          "roam": 30,
+          "zone": 25,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6175,
+          "failure": 0.38249999999999995,
+          "ticks": 557.3091666666667,
+          "caughtTicks": 612.5222672064777,
+          "perfectP": 0.14333333333333334,
+          "costTicks": 902.5249662618083
+        },
+        "expert": {
+          "p": 0.8166666666666667,
+          "failure": 0.18333333333333335,
+          "ticks": 477.78833333333336,
+          "caughtTicks": 511.39897959183673,
+          "perfectP": 0.315,
+          "costTicks": 585.0469387755102
+        }
+      }
+    },
+    {
+      "sp": 29,
+      "id": "tuna",
+      "tier": 3,
+      "eventOnly": false,
+      "priceBefore": [
+        39,
+        108
+      ],
+      "priceAfter": [
+        42,
+        117
+      ],
+      "xp": 170,
+      "perfectXp": 405,
+      "difficulty": 835.4,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 6,
+          "turn": 10,
+          "dart": 12,
+          "dartSpd": 106,
+          "dartUp": 50,
+          "hover": 100,
+          "hoverP": 5,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4925,
+          "ticks": 608.6841666666667,
+          "caughtTicks": 688.5888324873097
+        },
+        "expert": {
+          "p": 0.7866666666666666,
+          "ticks": 469.1725,
+          "caughtTicks": 509.77648305084745
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 4.800000000000001,
+          "turn": 10,
+          "dart": 12,
+          "dartSpd": 84.80000000000001,
+          "dartUp": 50,
+          "hover": 100,
+          "hoverP": 5,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6691666666666667,
+          "failure": 0.3308333333333333,
+          "ticks": 559.0266666666666,
+          "caughtTicks": 613.373599003736,
+          "perfectP": 0.14083333333333334,
+          "costTicks": 835.4072229140722
+        },
+        "expert": {
+          "p": 0.8525,
+          "failure": 0.14749999999999996,
+          "ticks": 430.1375,
+          "caughtTicks": 459.57771260997066,
+          "perfectP": 0.33,
+          "costTicks": 504.5601173020528
+        }
+      }
+    },
+    {
+      "sp": 30,
+      "id": "swordfish",
+      "tier": 3,
+      "eventOnly": false,
+      "priceBefore": [
+        39,
+        108
+      ],
+      "priceAfter": [
+        42,
+        117
+      ],
+      "xp": 175,
+      "perfectXp": 420,
+      "difficulty": 895.1,
+      "before": {
+        "style": {
+          "spd": 26,
+          "sharp": 9,
+          "turn": 12,
+          "dart": 14,
+          "dartSpd": 105,
+          "dartUp": 85,
+          "hover": 250,
+          "hoverP": 20,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4658333333333333,
+          "ticks": 637.4433333333334,
+          "caughtTicks": 718.3720930232558
+        },
+        "expert": {
+          "p": 0.8083333333333333,
+          "ticks": 506.7108333333333,
+          "caughtTicks": 532.0154639175257
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 20.8,
+          "sharp": 7.2,
+          "turn": 12,
+          "dart": 14,
+          "dartSpd": 84,
+          "dartUp": 85,
+          "hover": 250,
+          "hoverP": 20,
+          "lo": 20,
+          "hi": 100,
+          "roam": 50,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.6541666666666667,
+          "failure": 0.3458333333333333,
+          "ticks": 585.5633333333334,
+          "caughtTicks": 645.5057324840765,
+          "perfectP": 0.1275,
+          "costTicks": 895.1286624203822
+        },
+        "expert": {
+          "p": 0.8875,
+          "failure": 0.11250000000000004,
+          "ticks": 456.48833333333334,
+          "caughtTicks": 480.04413145539905,
+          "perfectP": 0.31666666666666665,
+          "costTicks": 514.3530516431925
+        }
+      }
+    },
+    {
+      "sp": 31,
+      "id": "angler",
+      "tier": 3,
+      "eventOnly": false,
+      "priceBefore": [
+        32,
+        94
+      ],
+      "priceAfter": [
+        34,
+        101
+      ],
+      "xp": 180,
+      "perfectXp": 430,
+      "difficulty": 961,
+      "before": {
+        "style": {
+          "spd": 34,
+          "sharp": 10,
+          "turn": 4,
+          "dart": 14,
+          "dartSpd": 169,
+          "dartUp": 50,
+          "hover": 1400,
+          "hoverP": 85,
+          "lo": 0,
+          "hi": 45,
+          "roam": 20,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.4483333333333333,
+          "ticks": 611.6108333333333,
+          "caughtTicks": 695.3921933085502
+        },
+        "expert": {
+          "p": 0.7458333333333333,
+          "ticks": 518.3275,
+          "caughtTicks": 567.4927374301676
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 27.200000000000003,
+          "sharp": 8,
+          "turn": 4,
+          "dart": 14,
+          "dartSpd": 135.20000000000002,
+          "dartUp": 50,
+          "hover": 1400,
+          "hoverP": 85,
+          "lo": 0,
+          "hi": 45,
+          "roam": 20,
+          "zone": 24,
+          "drain": 28
+        },
+        "typical": {
+          "p": 0.59,
+          "failure": 0.41000000000000003,
+          "ticks": 566.9725,
+          "caughtTicks": 645.4590395480226,
+          "perfectP": 0.11833333333333333,
+          "costTicks": 960.9703389830509
+        },
+        "expert": {
+          "p": 0.8033333333333333,
+          "failure": 0.19666666666666666,
+          "ticks": 488.8433333333333,
+          "caughtTicks": 531.8526970954357,
+          "perfectP": 0.26666666666666666,
+          "costTicks": 608.5186721991702
+        }
+      }
+    },
+    {
+      "sp": 32,
+      "id": "whiteshark",
+      "tier": 4,
+      "eventOnly": false,
+      "priceBefore": [
+        197,
+        394
+      ],
+      "priceAfter": [
+        212,
+        424
+      ],
+      "xp": 195,
+      "perfectXp": 465,
+      "difficulty": 1393.5,
+      "before": {
+        "style": {
+          "spd": 27,
+          "sharp": 9,
+          "turn": 16,
+          "dart": 15,
+          "dartSpd": 111,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 22,
+          "drain": 34
+        },
+        "typical": {
+          "p": 0.12166666666666667,
+          "ticks": 476.3516666666667,
+          "caughtTicks": 697.3698630136986
+        },
+        "expert": {
+          "p": 0.565,
+          "ticks": 513.6075,
+          "caughtTicks": 596.9616519174041
+        }
+      },
+      "after": {
+        "style": {
+          "spd": 21.6,
+          "sharp": 7.2,
+          "turn": 16,
+          "dart": 15,
+          "dartSpd": 88.80000000000001,
+          "dartUp": 50,
+          "hover": 200,
+          "hoverP": 15,
+          "lo": 0,
+          "hi": 100,
+          "roam": 60,
+          "zone": 22,
+          "drain": 34
+        },
+        "typical": {
+          "p": 0.3625,
+          "failure": 0.6375,
+          "ticks": 505.12583333333333,
+          "caughtTicks": 627.0206896551724,
+          "perfectP": 0.07,
+          "costTicks": 1393.4505747126436
+        },
+        "expert": {
+          "p": 0.6891666666666667,
+          "failure": 0.3108333333333333,
+          "ticks": 490.43833333333333,
+          "caughtTicks": 555.0592503022974,
+          "perfectP": 0.1975,
+          "costTicks": 711.639661426844
+        }
+      }
+    }
+  ]
+}

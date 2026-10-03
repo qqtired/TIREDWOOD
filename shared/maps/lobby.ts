@@ -1,0 +1,415 @@
+// Карта «Набережная»: общее лобби. Вечерний причал, на севере — павильон автоматов, Склад №3
+// (вход в пейнтбол) и гараж картинга; на востоке — кафе «Чайка» с террасой; на западе у воды —
+// ларёк «Примерочная»; на юго-западе — мостки к маяку; к западу и юго-западу на воде — аквапарк «Волна»; в юго-восточном углу —
+// колесо обозрения. X — восток, Z — юг, «север» = −Z.
+import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSteps } from '../aqua.ts';
+import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
+import { BJ_TABLE } from '../blackjack.ts';
+import { FC_CIRCLE } from '../fight.ts';
+import { FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE } from '../fishplaces.ts';
+import { WHEEL, WHEEL_GATE } from '../wheel.ts';
+import { Builder } from './builder.ts';
+import type { GameMap } from './types.ts';
+import { CRITTERS_ENABLED, CRITTER_SAND } from './critters.ts';
+
+/** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide';
+
+export interface Interactable {
+  id: number;
+  kind: InteractKind;
+  x: number;
+  y: number;
+  z: number;
+  /** Куда смотрит игрок, вставший в эту точку */
+  yaw: number;
+  /** Радиус, в котором предмет подсвечивается */
+  r: number;
+  /** Номер автомата / номер места */
+  arg: number;
+  label: string;
+}
+
+export interface Spot {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+}
+
+export interface Box2 {
+  x0: number;
+  z0: number;
+  x1: number;
+  z1: number;
+}
+
+export interface LobbyMap extends GameMap {
+  spawn: Spot;
+  /** Где появляется вернувшийся из пейнтбола */
+  gateSpawn: Spot;
+  /** Где появляется вернувшийся из гонки — рядом с кругом «Старт», но не в нём */
+  garageSpawn: Spot;
+  /** Где появляется вернувшийся из «Крепости» — перед аркой */
+  fortSpawn: Spot;
+  /** Возвращение с небесной полосы: перед порталом, вне его стоек. */
+  skillSpawn: Spot;
+  boatraceSpawn: Spot;
+  hideSpawn: Spot;
+  interact: Interactable[];
+  /** Центры корпусов автоматов (передняя грань — z = MACHINE_FRONT_Z) */
+  machines: Array<{ x: number; z: number }>;
+  tables: Array<{ x: number; z: number }>;
+  /** Скамейки: центр и куда смотрят сидящие */
+  benches: Array<{ x: number; z: number; yaw: number }>;
+  lighthouse: { x: number; z: number };
+  /** Места для зеркала примерочной и доски почёта */
+  mirror: Spot;
+  honorBoard: Box2;
+  zones: { arcade: Box2; warehouse: Box2; garage: Box2; cafe: Box2; terrace: Box2; kiosk: Box2 };
+  /** Боксы катера у причала (номера в boxes): на время поездки их убирают */
+  boatBoxes: number[];
+  /** Где у катера стоит пассажир, не севший на место (x0…x1, z0…z1): при отплытии его ставят на причал */
+  boatArea: Box2;
+  /** Боксы подвижных площадок аквапарка (номера в boxes, в порядке AQUA_MOVERS): в мире они только на время шага игрока */
+  aquaMovers: number[];
+  /** NPC, доска и пьедестал видны только с FISH2: при выключенном режиме эти коллизии тоже выключают. */
+  fishPropsBoxes: number[];
+  skillPortalBoxes: number[];
+}
+
+export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
+export const MACHINE_FRONT_Z = -23.7;
+export const TABLE_ZS = [-5, 3, 11];
+export const TABLE_X = 18;
+export const SKILL_PORTAL = { x: -10, z: -12.8, r: 2.1 } as const;
+export const BOAT_RACE_CIRCLE = { x: 16, z: 18, r: 2.25 } as const;
+export const HIDE_CIRCLE = { x: -4, z: 12.5, r: 2.1 } as const;
+export const CHAIR_R = 1.35;
+export const BENCH_XS = [-8, 0, 8];
+export const BENCH_Z = 19.5;
+/** Столбы навеса из гирлянд над террасой (x, z), высота CANOPY_POLE_H */
+export const CANOPY_POLES: ReadonlyArray<readonly [number, number]> = [[14.2, -9], [14.2, 1], [14.2, 11], [24, 11]];
+export const CANOPY_POLE_H = 3.6;
+/** Стульев у стола дурака. Места 0…17 — стулья (стол × 6), 18…23 — скамейки. */
+export const TABLE_SEATS = 6;
+export const LOBBY_SEAT_COUNT = TABLE_ZS.length * TABLE_SEATS + BENCH_XS.length * 2;
+
+export function seatTable(seat: number): number {
+  return Math.floor(seat / TABLE_SEATS);
+}
+
+export function seatChair(seat: number): number {
+  return seat % TABLE_SEATS;
+}
+
+export function tableSeat(table: number, chair: number): number {
+  return table * TABLE_SEATS + chair;
+}
+/** Деревья в кадках на площади (x, z): у моря на западе (на востоке у парапета — колесо обозрения). Кадка — по колено, на неё можно запрыгнуть */
+export const PLANTERS: ReadonlyArray<readonly [number, number]> = [[-24, 7], [-24, 15]];
+export const PLANTER_R = 0.62;
+export const PLANTER_H = 0.55;
+/**
+ * Статуя у входа на мостки к маяку (западнее прохода, у воды): постамент с фигурой — один твёрдый бокс,
+ * наверх не запрыгнуть (прыжок ~1,5 м). yaw — куда смотрит фигура (0 — на −Z): на площадь.
+ */
+export const STATUE = { x: -23.6, z: 19.2, yaw: yawTo(-23.6, 19.2, -6, 8), half: 0.65, height: 3.4 };
+/** Табличка у катера на причале (столбик с доской, лицом к площади): «Отплытие через N с» */
+export const BOAT_SIGN = { x: 10.2, z: 21.3 };
+/** Круг «Старт» перед гаражом: кто в нём стоит, тот через 15 с отсчёта едет в гонку */
+export const KART_START = { x: 20.5, z: -12.6, r: 2.2 };
+/**
+ * Арка «Крепость» (выпуск 6) в проулке между складом и гаражом: середина, ширина проёма. Арку рисует клиент и только
+ * с флагом сервера FORTRESS; твёрдого у неё нет — без флага на набережной ничего не меняется.
+ */
+export const FORT_ARCH = { x: 11, z: -16.2, w: 3.4 };
+/**
+ * Фото у маяка: штатив с фотоаппаратом в конце мостков смотрит на юг, на площадку перед маяком (spot — где встают
+ * в кадр). E — у штатива, с северной стороны, как у фотографа.
+ */
+export const PHOTO = { x: -19, z: 33.75, spotX: -19, spotZ: 39.6 };
+/** Сохранён прежний import path: 8 мест на мостках и 4 на площадке маяка. */
+export { FISH_SPOTS } from '../fishplaces.ts';
+
+const BRICK = 0x9a5a48;
+const BRICK_DARK = 0x7d4a3c;
+const CONCRETE = 0xcfc7b6;
+const WOOD = 0xb07a4a;
+const METAL = 0x5b6670;
+
+/** Поворот взгляда из (x, z) на точку (tx, tz): yaw = 0 смотрит в −Z. */
+function yawTo(x: number, z: number, tx: number, tz: number): number {
+  return Math.atan2(-(tx - x), -(tz - z));
+}
+
+export function buildLobby(): LobbyMap {
+  const b = new Builder(false);
+  const interact: Interactable[] = [];
+  const add = (kind: InteractKind, x: number, z: number, yaw: number, r: number, arg: number, label: string): void => {
+    interact.push({ id: interact.length, kind, x, y: 0, z, yaw, r, arg, label });
+  };
+
+  // --- Настил и бордюр вдоль моря (запад и юг), кроме проходов на мостки к маяку и на мостик аквапарка
+  const J = AQUA_JETTY;
+  b.box([-30, -0.6, -26], [30, 0, 22], 'deck', 0xd2c3aa);
+  b.box([-30, 0, -26], [-29.7, 0.22, J.z0], 'concrete', CONCRETE);
+  b.box([-30, 0, J.z1], [-29.7, 0.22, 22], 'concrete', CONCRETE);
+  b.box([-29.7, 0, 21.7], [-21, 0.22, 22], 'concrete', CONCRETE);
+  b.box([-17, 0, 21.7], [30, 0.22, 22], 'concrete', CONCRETE);
+  // Восток — парапет над улицей (кроме стены кафе)
+  b.box([29.6, 0, -16], [30, 1.0, -10], 'concrete', CONCRETE);
+  b.box([29.6, 0, 4], [30, 1.0, 22], 'concrete', CONCRETE);
+
+  // --- Невидимые стены: далеко в море (на западе — за аквапарком), за зданиями и над парапетом
+  b.box([-98, -6, -30], [-97, 30, 50], 'invisible', 0);
+  b.box([-98, -6, 48], [31.5, 30, 49], 'invisible', 0);
+  b.box([30.5, -6, -30], [31.5, 30, 50], 'invisible', 0);
+  b.box([-98, -6, -27], [31.5, 30, -26], 'invisible', 0);
+
+  // --- Павильон автоматов (x −28..−12): задняя стена, боковые, крыша на столбах
+  b.box([-28, 0, -26], [-12, 5, -25.4], 'brick', BRICK);
+  b.box([-28, 0, -25.4], [-27.4, 5, -16], 'brick', BRICK);
+  b.box([-12.6, 0, -25.4], [-12, 5, -16], 'brick', BRICK);
+  b.box([-28, 4.6, -25.4], [-12, 5.0, -16], 'wood', 0x6b4a36);
+  for (const x of [-22.5, -17.5]) b.box([x - 0.2, 0, -16.4], [x + 0.2, 4.6, -16], 'wood', 0x6b4a36);
+  const machines: Array<{ x: number; z: number }> = [];
+  MACHINE_XS.forEach((x, m) => {
+    b.box([x - 0.55, 0, -25.4], [x + 0.55, 2.1, MACHINE_FRONT_Z], 'metal', METAL);
+    machines.push({ x, z: (-25.4 + MACHINE_FRONT_Z) / 2 });
+    add('slot', x, MACHINE_FRONT_Z + 1, 0, 1.0, m, 'сыграть');
+  });
+
+  // --- Склад №3 (x −9..9, 9 м): два блока, перемычка над воротами, ниша 2 м вглубь
+  b.box([-9, 0, -26], [-3, 9, -16], 'brick', BRICK_DARK);
+  b.box([3, 0, -26], [9, 9, -16], 'brick', BRICK_DARK);
+  b.box([-3, 4.5, -26], [3, 9, -16], 'brick', BRICK_DARK);
+  b.box([-3, 0, -26], [3, 4.5, -18], 'invisible', 0);
+
+  // --- Гараж картинга (x 13..28)
+  b.box([13, 0, -26], [28, 6, -16], 'brick', BRICK);
+
+  // Закутки у моря и за гаражом закрыты низкой стенкой, проулки между зданиями — забором
+  b.box([-30, 0, -16.3], [-28, 1.2, -16], 'brick', BRICK);
+  b.box([28, 0, -16.3], [30, 1.2, -16], 'brick', BRICK);
+  b.box([-12, 0, -25.6], [-9, 2.2, -25.4], 'wood', WOOD);
+  b.box([9, 0, -25.6], [13, 2.2, -25.4], 'wood', WOOD);
+  b.crate(-10.9, 0, -23.8, 1.2, false);
+  b.crate(-10.9, 1.2, -23.8, 1.0, false);
+  b.crate(-10.2, 0, -21.9, 1.0, false);
+  b.barrel(11.2, -23.6, 0x2f6a8a);
+  b.barrel(11.9, -22.8, 0x2f6a8a);
+  b.barrel(10.6, -21.2, 0xb04a36);
+
+  add('pb_gate', 0, -15.2, 0, 2.2, 0, 'в пейнтбол');
+  add('garage', KART_START.x, KART_START.z, 0, KART_START.r, 0, 'Картинг');
+
+  // --- Ларёк «Примерочная» у воды; зеркало на его восточной стене
+  b.box([-29.5, 0, -6], [-25.5, 3.2, 0], 'wood', 0x3f6f8f);
+  const mirror: Spot = { x: -25.4, y: 0, z: -1.4, yaw: -Math.PI / 2 };
+  add('kiosk', -23.4, -1.4, Math.PI / 2, 1.6, 0, 'примерочная');
+
+  // --- Доска почёта на площади (лицом на юг, к точке появления)
+  const honorBoard: Box2 = { x0: 6, z0: -2, x1: 10, z1: -1.6 };
+  b.box([honorBoard.x0, 0, honorBoard.z0], [honorBoard.x1, 3.4, honorBoard.z1], 'wood', 0x5a3e2b);
+  add('honor', 8, -0.3, 0, 1.8, 0, 'Доска почёта');
+
+  // --- Кафе «Чайка»: домик у восточного края, терраса со столиками
+  b.box([24, 0, -10], [30, 4, 4], 'wood', 0xe8dcc4);
+  const tables = TABLE_ZS.map((z) => ({ x: TABLE_X, z }));
+  for (const t of tables) b.box([t.x - 0.55, 0, t.z - 0.55], [t.x + 0.55, 0.75, t.z + 0.55], 'wood', WOOD);
+  for (const [x, z] of CANOPY_POLES) b.box([x - 0.08, 0, z - 0.08], [x + 0.08, CANOPY_POLE_H, z + 0.08], 'invisible', 0);
+
+  // --- Площадь: батуты, фонари, скамейки у моря
+  b.trampoline(-6, 10);
+  b.trampoline(8, 14);
+  for (const [x, z] of [[-14, -2], [-4.5, -11], [11, -11], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
+  const benches = BENCH_XS.map((x) => ({ x, z: BENCH_Z, yaw: Math.PI }));
+
+  // Места: сначала стулья (стол × 6, против часовой стрелки, если смотреть сверху), потом скамейки (по 2)
+  let seat = 0;
+  for (const t of tables) {
+    for (let k = 0; k < TABLE_SEATS; k++) {
+      const a = (k * 60 + 30) * (Math.PI / 180);
+      const x = t.x + Math.sin(a) * CHAIR_R;
+      const z = t.z + Math.cos(a) * CHAIR_R;
+      add(seatTable(seat) === BJ_TABLE ? 'blackjack' : 'durak', x, z, yawTo(x, z, t.x, t.z), 0.7, seat++, 'сесть за стол');
+    }
+  }
+  for (const bn of benches) for (const dx of [-0.5, 0.5]) add('seat', bn.x + dx, bn.z, bn.yaw, 0.7, seat++, 'сесть');
+
+  // Перед табло гонки на стене гаража (табло — x 26,05, на высоте 1,8–3,7 м): E — болеть за гонщиков
+  add('kboard', 26.05, -14.3, Math.PI, 1.6, 0, 'Табло гонки');
+
+  // Кадки с деревьями: сама кадка и ствол над ней
+  for (const [x, z] of PLANTERS) {
+    b.box([x - PLANTER_R, 0, z - PLANTER_R], [x + PLANTER_R, PLANTER_H, z + PLANTER_R], 'invisible', 0);
+    b.box([x - 0.14, PLANTER_H, z - 0.14], [x + 0.14, 3.0, z + 0.14], 'invisible', 0);
+  }
+
+  // --- Кнехты вдоль воды
+  for (const z of [-12, 6, 12, 18]) b.bollard(-29.2, z);
+  for (const x of [-26, -12, -4, 4, 12, 20, 26]) b.bollard(x, 21.2);
+
+  // --- Мостки и маяк на юго-западе
+  b.box([-21, -0.6, 22], [-17, 0, 38], 'wood', 0x8a6a4a);
+  b.box([-24, -0.6, 38], [-14, 0, 46], 'concrete', 0xb9b3a6);
+  b.box([-20.6, 0, 41.4], [-17.4, 12, 44.6], 'concrete', 0xf0ece4);
+  b.bollard(-23.3, 38.7);
+  b.bollard(-14.7, 45.3);
+  // штатив: тонкий, но насквозь не пройти
+  b.box([PHOTO.x - 0.2, 0, PHOTO.z - 0.2], [PHOTO.x + 0.2, 1.4, PHOTO.z + 0.2], 'invisible', 0);
+  add('photo', PHOTO.x, PHOTO.z - 0.9, Math.PI, 1.4, 0, 'фото у маяка');
+  FISH_SPOTS.slice(0, 6).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i, 'порыбачить'));
+  // обратная сторона доски почёта — «Последние входы». Новые точки — только в конец: их номера шлют клиенты
+  add('recent', 8, honorBoard.z0 - 1.3, Math.PI, 1.8, 0, 'Последние входы');
+  // катер у причала: E — покататься (первый платит). Точка — у середины катера: достать и с причала, и из катера
+  add('boat', LAUNCH.x, LAUNCH.z - 0.4, Math.PI, 3.5, 0, 'катер');
+
+  // --- Статуя у входа на мостки
+  b.box([STATUE.x - STATUE.half, 0, STATUE.z - STATUE.half], [STATUE.x + STATUE.half, STATUE.height, STATUE.z + STATUE.half], 'invisible', 0);
+
+  // --- Катер «Ласточка» у причала — твёрдый: пол кокпита, борта, транец, носовая палуба, два пульта. Невидимые боксы
+  // (катер рисует сам клиент); на время поездки сервер и клиенты их убирают. E у причала — покататься (shared/boat.ts)
+  const bx = (lx0: number, lx1: number, lz0: number, lz1: number, y0: number, y1: number): void => {
+    // в осях катера: x — к правому борту (у причала — на юг), z — к корме (у причала — на запад)
+    b.box([LAUNCH.x - lz1, y0, LAUNCH.z + lx0], [LAUNCH.x - lz0, y1, LAUNCH.z + lx1], 'invisible', 0);
+  };
+  const boatBoxes: number[] = [];
+  const first = b.boxes.length;
+  const F = BOAT_FLOOR_Y;
+  bx(-1.12, 1.12, -1.0, 3.0, F - 0.75, F);
+  bx(-1.12, -0.96, -1.0, 3.0, F, F + 0.35);
+  bx(0.96, 1.12, -1.0, 3.0, F, F + 0.35);
+  bx(-0.96, 0.96, 2.82, 3.0, F, F + 0.33);
+  bx(-0.92, 0.92, -3.1, -1.0, F - 0.75, F + 0.43);
+  bx(0.17, 0.79, -0.3, 0.3, F, F + 0.9);
+  bx(-0.79, -0.17, -0.3, 0.3, F, F + 0.9);
+  for (let i = first; i < b.boxes.length; i++) boatBoxes.push(i);
+  const boatArea: Box2 = { x0: LAUNCH.x - 3.5, z0: LAUNCH.z - 1.2, x1: LAUNCH.x + 3.5, z1: LAUNCH.z + 1.2 };
+  // табличка у катера: столбик (обходить, как кнехт)
+  b.box([BOAT_SIGN.x - 0.05, 0, BOAT_SIGN.z - 0.05], [BOAT_SIGN.x + 0.05, 1.9, BOAT_SIGN.z + 0.05], 'invisible', 0);
+
+  // --- Аквапарк «Волна» к западу от площади (shared/aqua.ts): дощатый мостик на сваях — старт, дальше надувная полоса
+  // на воде. Надувное рисует клиент сам (боксы невидимые), батуты подбрасывают, горка — ступеньками. Подвижные площадки —
+  // свои боксы, убранные далеко за карту: на время шага игрока их ставит shared/aquadyn.ts
+  b.box([J.x0, -0.6, J.z0], [J.x1, 0, J.z1], 'wood', 0x8a6a4a);
+  for (const x of [J.x0 + 0.3, J.x0 + 2.4]) for (const z of [J.z0 + 0.3, J.z1 - 0.3]) b.deco.push({ kind: 'piling', x, z });
+  for (const p of AQUA_PIECES) {
+    if (p.kind === 'slide') {
+      for (const s of slideSteps(p)) b.box([s.x0, AQUA_BOTTOM, s.z0], [s.x1, s.top, s.z1], 'invisible', 0);
+    } else {
+      b.box([p.x0, AQUA_BOTTOM, p.z0], [p.x1, p.top, p.z1], p.kind === 'tramp' ? 'tramp' : 'invisible', 0, p.kind === 'tramp' ? { tramp: true } : {});
+    }
+  }
+  const aquaMovers: number[] = [];
+  for (let i = 0; i < AQUA_MOVERS.length; i++) {
+    aquaMovers.push(b.boxes.length);
+    b.box([1e6, -1e6, 1e6], [1e6, -1e6, 1e6], 'invisible', 0);
+  }
+  // доска рекордов: два столбика (обходить)
+  for (const dz of [-0.62, 0.62]) b.box([AQUA_BOARD.x - 0.06, 0, AQUA_BOARD.z + dz - 0.06], [AQUA_BOARD.x + 0.06, 2.4, AQUA_BOARD.z + dz + 0.06], 'invisible', 0);
+
+  // --- Колесо обозрения в юго-восточном углу (shared/wheel.ts): дощатый помост, ноги колеса, оградка вокруг того места,
+  // где низко проходят кабинки (вход — у кассы, с запада), касса. Колесо и кабинки рисует клиент
+  const W = WHEEL;
+  b.box([24.3, 0, 7.2], [29.5, 0.15, 18.8], 'wood', 0x9b7a55);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    // низ ноги: дальше вверх она уходит к оси, над головой
+    const lx = W.x + sx * 2.35;
+    const lz = W.z + sz * 4.6;
+    b.box([lx - 0.25, 0.15, Math.min(lz, lz - sz * 0.9) - 0.2], [lx + 0.25, 1.9, Math.max(lz, lz - sz * 0.9) + 0.2], 'invisible', 0);
+  }
+  b.box([25.55, 0.15, 7.4], [25.65, 1.1, 12.1], 'invisible', 0);
+  b.box([25.55, 0.15, 13.9], [25.65, 1.1, 18.6], 'invisible', 0);
+  b.box([28.35, 0.15, 7.4], [28.45, 1.1, 18.6], 'invisible', 0);
+  b.box([25.55, 0.15, 7.35], [28.45, 1.1, 7.45], 'invisible', 0);
+  b.box([25.55, 0.15, 18.55], [28.45, 1.1, 18.65], 'invisible', 0);
+  b.box([24.6, 0.15, 10.2], [25.5, 2.5, 11.6], 'wood', 0x2f7fb8);
+  // новые точки — только в конец: их номера шлют клиенты
+  add('wheel', WHEEL_GATE.x, WHEEL_GATE.z, -Math.PI / 2, 1.6, 0, 'колесо обозрения');
+  // «Крепость» (выпуск 6): перед аркой — E, в крепость. Точка есть всегда, работает (и арку видно) только с флагом сервера
+  add('fort', FORT_ARCH.x, FORT_ARCH.z + 0.9, 0, 1.6, 0, 'в крепость');
+  // «Fight Club» (выпуск 6): круг мелом у двери в подвал кафе — E, хозяин круга меняет режим (shared/fight.ts).
+  // Точка есть всегда, работает (и дверь видно) только с флагом сервера
+  add('fight', FC_CIRCLE.x, FC_CIRCLE.z, Math.PI, FC_CIRCLE.r, 0, 'Fight Club');
+
+  // Новые места и NPC — строго после всех прежних interactables: номера уже используются клиентами.
+  FISH_SPOTS.slice(6).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
+  add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком');
+  add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
+  add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Гонки на катерах');
+  add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки в городе');
+  // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
+  for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'wood', 0x8a6a4a);
+  for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
+  const fishPropsBoxes: number[] = [];
+  for (const f of [FISHER_BODY, FISH_BOARD_BODY, FISH_PODIUM_BODY, ...FISH_PODIUM_STEP_BOXES, ...FISHER_CANOPY_BOXES]) {
+    fishPropsBoxes.push(b.boxes.length);
+    b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'invisible', 0);
+  }
+  for (const sign of [-1, 1]) {
+    const x = FISH_BOARD.x + sign * (FISH_BOARD.w / 2 + 0.09);
+    fishPropsBoxes.push(b.boxes.length);
+    b.box([x - 0.075, 0, FISH_BOARD.z - 0.075], [x + 0.075, FISH_BOARD.h + 0.45, FISH_BOARD.z + 0.075], 'invisible', 0);
+  }
+
+  // Портал: коллизия совпадает со стойками client/skilltest/portal.ts; центр свободен.
+  const skillPortalBoxes: number[] = [];
+  for (const sign of [-1, 1]) {
+    const x = SKILL_PORTAL.x + sign * 1.5;
+    skillPortalBoxes.push(b.boxes.length);
+    b.box([x - .18, 0, SKILL_PORTAL.z - .18], [x + .18, 3.4, SKILL_PORTAL.z + .18], 'invisible', 0);
+  }
+  skillPortalBoxes.push(b.boxes.length);
+  b.box([SKILL_PORTAL.x - 1.68, 2.9, SKILL_PORTAL.z - .18], [SKILL_PORTAL.x + 1.68, 3.35, SKILL_PORTAL.z + .18], 'invisible', 0);
+  // Видимый песок — в LobbyCritters; совпадающее твёрдое основание выше воды.
+  if (CRITTERS_ENABLED) {
+    const s = CRITTER_SAND;
+    b.box([s.x0, -1.65, s.z0], [s.x1, s.y, s.z1], 'invisible', 0);
+  }
+
+  // --- Далёкая красота: буи и лодки
+  b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
+  b.deco.push({ kind: 'buoy', x: -8, z: 34, color: 0xf2c230 });
+  b.deco.push({ kind: 'boat', x: -44, z: 26, yaw: 0.6, color: 0xe8e2d4 });
+  b.deco.push({ kind: 'boat', x: 6, z: 40, yaw: 2.2, color: 0x5d8fb0 });
+
+  const spawn: Spot = { x: 0, y: 0, z: 6, yaw: 0 };
+  return {
+    name: 'Набережная',
+    boxes: b.boxes,
+    spawns: [{ x: spawn.x, y: 0, z: spawn.z, yaw: spawn.yaw, team: 0 }],
+    trampolines: b.trampolines,
+    pickups: [],
+    deco: b.deco,
+    bounds: { minX: -30, maxX: 30, minZ: -26, maxZ: 46 },
+    spawn,
+    gateSpawn: { x: 0, y: 0, z: -12.5, yaw: Math.PI },
+    garageSpawn: { x: 15.2, y: 0, z: -12.4, yaw: Math.PI },
+    fortSpawn: { x: FORT_ARCH.x, y: 0, z: FORT_ARCH.z + 2.4, yaw: Math.PI },
+    skillSpawn: { x: SKILL_PORTAL.x, y: 0, z: -9.4, yaw: 0 },
+    boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
+    hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },
+    interact,
+    machines,
+    tables,
+    benches,
+    lighthouse: { x: -19, z: 43 },
+    mirror,
+    honorBoard,
+    zones: {
+      arcade: { x0: -28, z0: -26, x1: -12, z1: -16 },
+      warehouse: { x0: -9, z0: -26, x1: 9, z1: -16 },
+      garage: { x0: 13, z0: -26, x1: 28, z1: -16 },
+      cafe: { x0: 24, z0: -10, x1: 30, z1: 4 },
+      terrace: { x0: 14, z0: -9, x1: 23, z1: 15 },
+      kiosk: { x0: -29.5, z0: -6, x1: -25.5, z1: 0 },
+    },
+    boatBoxes,
+    boatArea,
+    aquaMovers,
+    fishPropsBoxes,
+    skillPortalBoxes,
+  };
+}

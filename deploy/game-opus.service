@@ -1,0 +1,61 @@
+[Unit]
+Description=TIREDWOOD multiplayer server (game.tired.solutions)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=game-opus
+Group=game-opus
+WorkingDirectory=/opt/game-opus/current
+ExecStart=/opt/game-opus/runtime/bin/node server/main.ts
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=5190
+Environment=ALLOWED_ORIGINS=https://game.tired.solutions
+# Профили, банк джекпота, копии и токен проверки — вне релиза, переживают выкладки
+Environment=DATA_DIR=/var/lib/game-opus
+# Режимы выпуска 6 — включены по «да» владельца (2026-10-02)
+Environment=FORTRESS=1
+Environment=FIGHT=1
+Environment=FISH2=1
+# Накопленный релиз и экспериментальный голос — разрешены владельцем 2026-10-03
+Environment=SKILL=1
+Environment=BOATRACE=1
+Environment=HIDE=1
+Environment=STORM=1
+Environment=PIRATES=1
+Environment=VOICE=1
+EnvironmentFile=/etc/game-opus/voice.env
+# Скрытый набор выдаётся по серверному подарочному коду.
+Environment=GIFTS=1
+StateDirectory=game-opus
+StateDirectoryMode=0700
+Restart=always
+RestartSec=2
+TimeoutStopSec=10
+
+# Песочница: процессу нужны чтение своих файлов, запись в /var/lib/game-opus и сеть
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

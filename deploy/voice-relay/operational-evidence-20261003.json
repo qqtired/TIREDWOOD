@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-10-03T12:22:02.046Z",
+  "version": "4.18.0",
+  "sourceCommit": "23c6c1d32a3d2b21a56cee65d3203bcc4ea82d2b",
+  "binarySha256": "5a7c23553e6c11a1af09faecc8e3608a30f42e0bc3a51ed887849c370c8780bf",
+  "unit": {
+    "MainPID": "234460",
+    "NRestarts": "0",
+    "MemoryCurrent": "5206016",
+    "User": "game-opus-turn",
+    "ActiveState": "active",
+    "SubState": "running",
+    "UnitFileState": "enabled"
+  },
+  "listeners": [
+    {
+      "transport": "udp",
+      "port": 3478,
+      "wildcard": false
+    },
+    {
+      "transport": "udp",
+      "port": 3478,
+      "wildcard": false
+    },
+    {
+      "transport": "tcp",
+      "port": 3478,
+      "wildcard": false
+    },
+    {
+      "transport": "tcp",
+      "port": 3478,
+      "wildcard": false
+    }
+  ],
+  "configuration": {
+    "totalQuota": 960,
+    "userQuota": 20,
+    "minPort": 49160,
+    "maxPort": 50183,
+    "maxBytesPerSecond": 16000,
+    "capacityBytesPerSecond": 15360000,
+    "hasLoopbackException": false,
+    "secretLength": 64,
+    "configMode": "640",
+    "gameEnvMode": "600",
+    "hasZeroWildcardDeny": false
+  },
+  "dependencySummary": [
+    {
+      "file": "dependencies.log",
+      "summary": "0 upgraded, 37 newly installed, 0 to remove and 1 not upgraded."
+    },
+    {
+      "file": "git-dependency.log",
+      "summary": "0 upgraded, 3 newly installed, 0 to remove and 1 not upgraded."
+    }
+  ],
+  "checks": {
+    "ok": true,
+    "results": [
+      {
+        "transport": "udp",
+        "unauthenticatedDenied": true,
+        "authenticatedAllocation": true,
+        "relayPortInApprovedRange": true,
+        "publicPeerPermissionAllowed": true,
+        "bidirectionalPairData": true,
+        "protectedPermissionDenials": 4,
+        "mappedPrivatePermissionCodes": [
+          443,
+          443
+        ],
+        "deallocated": true,
+        "badCredentialDenied": true,
+        "expiredCredentialDenied": true
+      },
+      {
+        "transport": "tcp",
+        "unauthenticatedDenied": true,
+        "authenticatedAllocation": true,
+        "relayPortInApprovedRange": true,
+        "publicPeerPermissionAllowed": true,
+        "bidirectionalPairData": true,
+        "protectedPermissionDenials": 4,
+        "mappedPrivatePermissionCodes": [
+          443,
+          443
+        ],
+        "deallocated": true,
+        "badCredentialDenied": true,
+        "expiredCredentialDenied": true
+      }
+    ]
+  },
+  "regressionRed": {
+    "ok": false,
+    "failedStage": "udp:permission-public",
+    "reason": "public-peer-permission-denied"
+  }
+}

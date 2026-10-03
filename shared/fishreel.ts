@@ -1,0 +1,412 @@
+// Вываживание (рыбалка 2.0): шкала как в Stardew Valley. Рыба ходит вверх-вниз по шкале в своей манере — плывёт
+// к цели, разгоняется и тормозит, передумывает, делает рывки, зависает; игрок водит зону: держишь кнопку — зона идёт
+// вверх, отпустил — опускается (с инерцией, от дна отскакивает). Рыба в зоне — прогресс растёт, вне — падает;
+// 100 % — поймана, 0 — сорвалась.
+//
+// Одинаково считают клиент (играет у себя, без задержки) и сервер (повторяет по нажатиям и решает, поймана ли):
+// только целые числа и свой генератор случайных (mulberry32 на Math.imul) — никаких Math.sin/exp/pow и Math.random,
+// поэтому Chrome, Safari и Node по одному сиду и одним нажатиям приходят бит в бит к одному итогу.
+
+/** Высота шкалы, единиц (1 % = 1000) */
+export const REEL_BAR = 100_000;
+/** Прогресс: 100 % и с чего начинается (25 %) */
+export const REEL_P_MAX = 40_000;
+export const REEL_P_START = 10_000;
+/** Прибавка за тик, пока рыба в зоне: от начала до 100 % — ровно 300 тиков (5 с) */
+export const REEL_GAIN = 100;
+export const REEL_FILL_TICKS = (REEL_P_MAX - REEL_P_START) / REEL_GAIN;
+/** Дольше этого (тиков) не тянут: леска устала — рыба сходит */
+export const REEL_MAX_TICKS = 90 * 60;
+
+/** Зона игрока: ускорение, пока держишь, и вниз, когда отпустил (ед./тик²) */
+export const ZONE_UP = 36;
+export const ZONE_DOWN = 34;
+/** Рыба в зоне — зона спокойнее: ускорение ×8/10 (в Stardew — ×6/10) */
+const ZONE_ASSIST = 8;
+/** Отскок от дна: скорость ×2/3 обратно */
+const BOUNCE_NUM = 2;
+const BOUNCE_DEN = 3;
+
+/** Рыба дошла до цели: ближе стольких единиц и почти без скорости */
+const ARRIVE = 800;
+/** Рывок — не дольше стольких тиков */
+const DART_TICKS = 40;
+/** Начало: рыба стоит в зоне столько тиков (+ до столько же), чтобы успеть взяться */
+const START_HOVER = 30;
+
+export const REEL_PATTERNS = ['Dash', 'FakeDash', 'Sawtooth', 'HoverDash', 'SlowMigration', 'EdgeSnapback', 'DoubleDash', 'Wave', 'Nervous', 'Ambush'] as const;
+export type ReelPattern = typeof REEL_PATTERNS[number];
+
+/**
+ * Манера рыбы на шкале — в понятных единицах (таблица в shared/fishrules.ts):
+ * spd — скорость, % шкалы в секунду; sharp — резкость разгона и смены направления, 1–10;
+ * turn — сколько раз в минуту передумывает на ходу; dart — рывков в минуту, dartSpd — их скорость (%/с),
+ * dartUp — доля рывков вверх, %; hover — сколько зависает, мс (в среднем), hoverP — как часто, дойдя до цели, %;
+ * lo…hi — где ей привычно, % шкалы снизу; roam — на сколько % шкалы обычно переплывает;
+ * zone — размер зоны игрока, % шкалы; drain — сопротивление: на сколько % в секунду падает прогресс вне зоны.
+ */
+export interface ReelStyle {
+  mainPattern?: ReelPattern;
+  secondaryPattern?: ReelPattern;
+  /** Typical cycle length in ticks; seeded ±20% variation. */
+  patternPeriod?: number;
+  /** Excursion amplitude in percent of the bar. */
+  patternAmplitude?: number;
+  spd: number;
+  sharp: number;
+  turn: number;
+  dart: number;
+  dartSpd: number;
+  dartUp: number;
+  hover: number;
+  hoverP: number;
+  lo: number;
+  hi: number;
+  roam: number;
+  zone: number;
+  drain: number;
+}
+
+/** Манера в единицах шкалы и тиках */
+interface Cfg {
+  mainPattern: number;
+  secondaryPattern: number;
+  patternPeriod: number;
+  patternAmplitude: number;
+  spd: number;
+  acc: number;
+  turn: number;
+  dart: number;
+  dartSpd: number;
+  dartUp: number;
+  hover: number;
+  hoverP: number;
+  lo: number;
+  hi: number;
+  roam: number;
+  zone: number;
+  drain: number;
+}
+
+const M_MOVE = 0;
+const M_HOVER = 1;
+const M_DART = 2;
+
+export interface Reel {
+  /** Сколько тиков прошло */
+  t: number;
+  /** Рыба: где (центр, 0 — дно шкалы), скорость, цель, что делает, сколько ещё (тики) */
+  f: number;
+  fv: number;
+  ft: number;
+  mode: number;
+  timer: number;
+  /** Зона: нижний край и скорость; размер */
+  z: number;
+  zv: number;
+  zone: number;
+  /** Прогресс 0…REEL_P_MAX */
+  p: number;
+  /** 0 — идёт, 1 — поймана, −1 — сорвалась */
+  done: number;
+  /** Рыба в зоне после этого тика */
+  inZone: boolean;
+  /** Ни одного тика вне зоны за всё вываживание; считает и клиент, и authoritative replay. */
+  perfect: boolean;
+  rng: number;
+  patternTick: number;
+  patternCycle: number;
+  patternLength: number;
+  patternAnchor: number;
+  patternDir: number;
+  patternTarget: number;
+  readonly c: Cfg;
+}
+
+function div(a: number, b: number): number {
+  return Math.trunc(a / b);
+}
+
+function clampI(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+function toward(v: number, w: number, a: number): number {
+  return v < w ? (v + a < w ? v + a : w) : v - a > w ? v - a : w;
+}
+
+function cfgOf(s: ReelStyle): Cfg {
+  const pct = REEL_BAR / 100;
+  const lo = Math.round(clampI(s.lo, 0, 100) * pct);
+  return {
+    mainPattern: s.mainPattern === undefined ? -1 : REEL_PATTERNS.indexOf(s.mainPattern),
+    secondaryPattern: s.secondaryPattern === undefined ? -1 : REEL_PATTERNS.indexOf(s.secondaryPattern),
+    patternPeriod: Math.round(clampI(s.patternPeriod ?? 180, 60, 480)),
+    patternAmplitude: Math.round(clampI(s.patternAmplitude ?? s.roam, 5, 85) * pct),
+    spd: div(s.spd * pct, 60),
+    acc: Math.round(6 + clampI(s.sharp, 1, 10) * 9),
+    turn: div(s.turn * 10_000, 3600),
+    dart: div(s.dart * 10_000, 3600),
+    dartSpd: div(s.dartSpd * pct, 60),
+    dartUp: clampI(s.dartUp, 0, 100),
+    hover: div(s.hover * 60, 1000),
+    hoverP: clampI(s.hoverP, 0, 100),
+    lo,
+    hi: Math.max(lo + 5 * pct, Math.round(clampI(s.hi, 0, 100) * pct)),
+    roam: Math.max(2 * pct, Math.round(s.roam * pct)),
+    zone: Math.round(clampI(s.zone, 5, 90) * pct),
+    drain: Math.max(1, div(s.drain * REEL_P_MAX, 6000)),
+  };
+}
+
+/** mulberry32: следующее 32-битное число без знака */
+function next(r: Reel): number {
+  let t = (r.rng = (r.rng + 0x6d2b79f5) | 0);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return (t ^ (t >>> 14)) >>> 0;
+}
+
+/** Случайное целое 0…n−1 */
+function rnd(r: Reel, n: number): number {
+  return n > 0 ? next(r) % n : 0;
+}
+
+/** Новое вываживание: рыба в манере style, сид seed — от сервера. */
+export function reelStart(style: ReelStyle, seed: number): Reel {
+  const c = cfgOf(style);
+  const r: Reel = {
+    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, c,
+  };
+  // рыба сначала стоит посреди зоны (зона — внизу шкалы)
+  r.f = div(c.zone, 2);
+  r.ft = r.f;
+  r.timer = START_HOVER + rnd(r, START_HOVER);
+  return r;
+}
+
+/** Новая цель в привычных местах: туда-сюда на roam (± половина), не за пределы lo…hi. */
+function newTarget(r: Reel): void {
+  const c = r.c;
+  r.mode = M_MOVE;
+  let up: boolean;
+  if (r.f < c.lo) up = true;
+  else if (r.f > c.hi) up = false;
+  else up = rnd(r, 2) === 0;
+  const dist = div(c.roam, 2) + rnd(r, c.roam + 1);
+  let t = clampI(up ? r.f + dist : r.f - dist, c.lo, c.hi);
+  // упёрлась в край привычного — в другую сторону
+  if ((t - r.f < 0 ? r.f - t : t - r.f) < div(c.roam, 4)) t = clampI(up ? r.f - dist : r.f + dist, c.lo, c.hi);
+  r.ft = t;
+}
+
+/** Рывок: далеко и быстро, чаще в свою сторону (вверх — dartUp %); у края — от края. */
+function startDart(r: Reel): void {
+  const c = r.c;
+  r.mode = M_DART;
+  r.timer = DART_TICKS;
+  let up = rnd(r, 100) < c.dartUp;
+  if (up && r.f > REEL_BAR - div(REEL_BAR, 5)) up = false;
+  else if (!up && r.f < div(REEL_BAR, 5)) up = true;
+  const dist = div(REEL_BAR, 5) + rnd(r, div(REEL_BAR, 4));
+  r.ft = clampI(up ? r.f + dist : r.f - dist, 0, REEL_BAR);
+}
+
+/** Дошла до цели (или рывок кончился): зависнуть или дальше. После рывка — всегда короткая остановка. */
+function arrive(r: Reel, afterDart: boolean): void {
+  const c = r.c;
+  if (afterDart || rnd(r, 100) < c.hoverP) {
+    r.mode = M_HOVER;
+    const h = afterDart ? div(c.hover, 2) : c.hover;
+    r.timer = div(h, 2) + rnd(r, h + 1) + 1;
+  } else {
+    newTarget(r);
+  }
+}
+
+function legacyFishStep(r: Reel): void {
+  const c = r.c;
+  if (r.mode === M_HOVER) {
+    r.fv = toward(r.fv, 0, c.acc);
+    if (--r.timer <= 0) newTarget(r);
+  } else {
+    const dart = r.mode === M_DART;
+    const d = r.ft - r.f;
+    const cap = dart ? c.dartSpd : c.spd;
+    const a = dart ? c.acc * 3 : c.acc;
+    // к цели, у самой цели — тише
+    r.fv = toward(r.fv, clampI(div(d, 8), -cap, cap), a);
+    const ad = d < 0 ? -d : d;
+    const av = r.fv < 0 ? -r.fv : r.fv;
+    if (ad <= ARRIVE && av <= a * 2) arrive(r, dart);
+    else if (dart) {
+      if (--r.timer <= 0) arrive(r, true);
+    } else if (rnd(r, 10_000) < c.turn) newTarget(r);
+  }
+  if (r.mode !== M_DART && rnd(r, 10_000) < c.dart) startDart(r);
+  r.f += r.fv;
+  if (r.f < 0) {
+    r.f = 0;
+    r.fv = 0;
+  } else if (r.f > REEL_BAR) {
+    r.f = REEL_BAR;
+    r.fv = 0;
+  }
+}
+
+/** Integer rational approximation of a sine wave (Bhaskara), in -1000…1000. */
+function wave(q: number): number {
+  const negative = q >= 500;
+  const x = (negative ? q - 500 : q) * 2;
+  const product = x * (1000 - x);
+  const value = div(16 * product * 1000, 5_000_000 - 4 * product);
+  return negative ? -value : value;
+}
+
+/** A main/main/secondary cadence gives a recognizable species identity without identical loops.
+ * All phase lengths, directions and targets use the shared seeded integer generator. */
+function patternedFishStep(r: Reel): void {
+  const c = r.c;
+  if (r.patternTick < 0 && r.timer > 0) { r.timer--; return; }
+  if (r.patternTick < 0 || r.patternTick >= r.patternLength) {
+    r.patternTick = 0;
+    r.patternLength = div(c.patternPeriod * (80 + rnd(r, 41)), 100);
+    r.patternAnchor = r.f;
+    r.patternDir = rnd(r, 100) < c.dartUp ? 1 : -1;
+    if (r.f < c.lo + div(c.patternAmplitude, 2)) r.patternDir = 1;
+    if (r.f > c.hi - div(c.patternAmplitude, 2)) r.patternDir = -1;
+    r.patternTarget = r.f;
+    r.patternCycle++;
+  }
+  const q = div(r.patternTick * 1000, r.patternLength);
+  const kind = r.patternCycle % 3 === 0 ? c.secondaryPattern : c.mainPattern;
+  const a = c.patternAmplitude * r.patternDir;
+  const origin = r.patternAnchor;
+  let target = origin;
+  let speed = c.spd;
+  let acceleration = c.acc;
+  switch (kind) {
+    case 0: // Dash: one decisive burst, with a readable short wind-up.
+      target = q < 200 ? origin : origin + a;
+      if (q >= 200) { speed = c.dartSpd; acceleration *= 3; }
+      break;
+    case 1: // FakeDash: commits briefly, then reverses past its starting point.
+      target = q < 350 ? origin + div(a, 2) : origin - a;
+      speed = c.dartSpd; acceleration *= 3;
+      break;
+    case 2: { // Sawtooth: steady climb followed by repeated sharp returns.
+      const tooth = q * 3 % 1000;
+      target = origin + div(a * tooth, 1000);
+      speed = tooth < 120 ? c.dartSpd : c.spd;
+      acceleration *= 2;
+      break;
+    }
+    case 3: // HoverDash: conspicuous pause followed by one burst.
+      target = q < 550 ? origin : origin + a;
+      if (q >= 550) { speed = c.dartSpd; acceleration *= 3; }
+      break;
+    case 4: // SlowMigration: a continuous moving target, no acceleration spike.
+      target = origin + div(a * q, 1000);
+      break;
+    case 5: // EdgeSnapback: approaches an extreme then snaps back to its starting depth.
+      target = q < 600 ? (r.patternDir > 0 ? REEL_BAR : 0) : origin;
+      if (q >= 600) { speed = c.dartSpd; acceleration *= 3; }
+      break;
+    case 6: // DoubleDash: two separate pulses with a braking interval.
+      target = q < 150 ? origin : q < 600 ? origin + div(a, 2) : origin + a;
+      speed = q >= 400 && q < 600 ? div(c.spd, 3) : c.dartSpd;
+      acceleration *= 3;
+      break;
+    case 7: // Wave: smooth reversal, integer-only sine approximation.
+      target = origin + div(a * wave(q), 1000);
+      break;
+    case 8: // Nervous: seeded small target changes, not a cosmetic label.
+      if (r.patternTick % 12 === 0) r.patternTarget = origin + div(a * (rnd(r, 1001) - 500), 500);
+      target = r.patternTarget;
+      acceleration *= 2;
+      break;
+    case 9: // Ambush: longest stillness, then an abrupt committed attack.
+      target = q < 720 ? origin : origin + a;
+      if (q >= 720) { speed = div(c.dartSpd * 6, 5); acceleration *= 4; }
+      break;
+  }
+  r.ft = clampI(target, 0, REEL_BAR);
+  // Existing HUD reads mode 2 for burst feedback. Pattern identity lives in config/cycle;
+  // keep the public move/hover/dart contract, including a calm arrival at the target.
+  r.mode = Math.abs(r.ft - r.f) <= ARRIVE ? M_HOVER : speed > c.spd ? M_DART : M_MOVE;
+  r.fv = toward(r.fv, clampI(div(r.ft - r.f, 6), -speed, speed), acceleration);
+  r.f = clampI(r.f + r.fv, 0, REEL_BAR);
+  if (r.f === 0 || r.f === REEL_BAR) r.fv = 0;
+  r.patternTick++;
+}
+
+function fishStep(r: Reel): void {
+  if (r.c.mainPattern >= 0 && r.c.secondaryPattern >= 0) patternedFishStep(r);
+  else legacyFishStep(r);
+}
+
+function zoneStep(r: Reel, held: boolean): void {
+  const top = REEL_BAR - r.zone;
+  const inZone = r.f >= r.z && r.f <= r.z + r.zone;
+  let a = held ? ZONE_UP : -ZONE_DOWN;
+  if (inZone) a = div(a * ZONE_ASSIST, 10);
+  r.zv += a;
+  r.z += r.zv;
+  if (r.z < 0) {
+    r.z = 0;
+    // отскок от дна; совсем слабый — просто легла
+    r.zv = r.zv < -3 * ZONE_DOWN ? -div(r.zv * BOUNCE_NUM, BOUNCE_DEN) : 0;
+  } else if (r.z > top) {
+    r.z = top;
+    // держишь — прилипла к верху; отпустил — отскок вниз
+    r.zv = held ? 0 : -div(r.zv * BOUNCE_NUM, BOUNCE_DEN);
+  }
+}
+
+/** Один тик: рыба, зона (held — держит ли игрок), прогресс. После итога — ничего не меняет. */
+export function reelStep(r: Reel, held: boolean): void {
+  if (r.done !== 0) return;
+  fishStep(r);
+  zoneStep(r, held);
+  r.inZone = r.f >= r.z && r.f <= r.z + r.zone;
+  if (!r.inZone) r.perfect = false;
+  r.p += r.inZone ? REEL_GAIN : -r.c.drain;
+  r.t++;
+  if (r.p >= REEL_P_MAX) {
+    r.p = REEL_P_MAX;
+    r.done = 1;
+  } else if (r.p <= 0) {
+    r.p = 0;
+    r.done = -1;
+  } else if (r.t >= REEL_MAX_TICKS) {
+    r.done = -1;
+  }
+}
+
+/**
+ * Нажатия игрока — номера тиков, с которых кнопка переключается (по возрастанию, первое — «нажал»): держит ли он кнопку
+ * на тике t.
+ */
+export function heldAt(toggles: readonly number[], t: number): boolean {
+  let n = 0;
+  while (n < toggles.length && toggles[n] <= t) n++;
+  return (n & 1) === 1;
+}
+
+/**
+ * Довести вываживание до тика upTo (не включая) по нажатиям: toggles — все переключения с начала. Возвращает, сколько
+ * переключений уже позади (чтобы в следующий раз продолжить с них).
+ */
+export function reelRun(r: Reel, toggles: readonly number[], upTo: number, from = 0): number {
+  let k = from;
+  while (r.done === 0 && r.t < upTo) {
+    while (k < toggles.length && toggles[k] <= r.t) k++;
+    reelStep(r, (k & 1) === 1);
+  }
+  return k;
+}
+
+/** Доли для рисования: где рыба и зона (0…1 снизу), прогресс 0…1. */
+export function reelView(r: Reel): { fish: number; z0: number; z1: number; p: number } {
+  return { fish: r.f / REEL_BAR, z0: r.z / REEL_BAR, z1: (r.z + r.zone) / REEL_BAR, p: r.p / REEL_P_MAX };
+}

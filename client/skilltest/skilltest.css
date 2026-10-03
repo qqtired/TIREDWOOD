@@ -1,0 +1,20 @@
+/* Game-native shipyard instrument panel: small, opaque, high contrast, never a frosted web card. */
+.skill-hud { position:absolute; inset:0; pointer-events:none; color:#f0e3c8; font-family:Rubik,sans-serif; }
+.skill-hud[hidden] { display:none; }
+.skill-panel { position:absolute; top:82px; left:20px; width:min(344px,calc(100vw - 40px)); padding:14px 17px 13px; border:1px solid #8b815e8c; border-left:3px solid #6faaa0; border-radius:5px; background:#192d39f2; box-shadow:0 3px 0 #10212bc4,0 7px 20px #081a2233; }
+.skill-eyebrow { font-size:9px; font-weight:600; letter-spacing:.11em; color:#bca982; }
+.skill-panel h2 { font-size:19px; font-weight:650; line-height:1.25; margin:8px 0 7px; color:#f3e6c9; }
+.skill-panel p { font-size:11px; line-height:1.5; margin:6px 0 0; color:#d4d8d2; }
+.skill-score { margin-top:11px; padding-top:10px; border-top:1px solid #819d9942; font-size:12px; font-variant-numeric:tabular-nums; font-weight:600; color:#f0d49b; }
+.skill-panel .skill-peers { color:#94aea9; font-size:10px; }
+.skill-panel .skill-notice { color:#9ac6b5; min-height:17px; }
+.skill-controls { position:absolute; right:20px; top:84px; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:395px; pointer-events:auto; }
+.skill-controls button { min-height:36px; padding:8px 11px; border:1px solid #7c8e8a99; border-radius:4px; background:#1e3541f0; color:#e5dfc7; font:500 11px Rubik,sans-serif; cursor:pointer; box-shadow:0 2px 0 #10212b9e; transition:background-color 120ms ease,color 120ms ease,transform 120ms ease; }
+.skill-controls button:hover { background:#30535d; color:#fff1cf; }
+.skill-controls button:active { transform:scale(.96); }
+.skill-controls button:focus-visible { outline:2px solid #e4bf76; outline-offset:3px; }
+.skill-controls button:last-child { color:#bdc8c1; }
+.skill-help { position:absolute; bottom:17px; left:50%; transform:translateX(-50%); margin:0; padding:8px 13px; border:1px solid #6d827d75; border-radius:4px; background:#192d39e8; color:#d4d9cd; font-size:11px; white-space:nowrap; }
+@media(max-width:900px) { .skill-panel{width:290px;padding:12px 14px}.skill-controls{max-width:235px}.skill-panel h2{font-size:17px} }
+@media(max-width:760px) { .skill-panel{top:64px;left:10px;width:min(290px,calc(100vw - 20px));padding:9px 12px}.skill-eyebrow{font-size:8px}.skill-panel h2{font-size:16px;margin:5px 0}.skill-panel p{font-size:10px}.skill-score{font-size:11px;margin-top:7px;padding-top:7px}.skill-peers,.skill-help{display:none}.skill-controls{top:auto;bottom:90px;right:10px;max-width:190px}.skill-controls button{min-height:44px}.skill-panel .skill-notice{min-height:0} }
+@media(prefers-reduced-motion:reduce) { .skill-controls button{transition:none}.skill-controls button:active{transform:none} }

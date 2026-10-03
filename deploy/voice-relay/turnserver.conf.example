@@ -1,0 +1,65 @@
+# REVIEW TEMPLATE ONLY. Replace every __...__ before use; never commit filled secrets.
+# Targets coturn 4.18.0, one directly assigned public IPv4. See PREFLIGHT.md.
+listening-ip=__LOCAL_PUBLIC_IPV4__
+relay-ip=__LOCAL_PUBLIC_IPV4__
+listening-port=3478
+min-port=49160
+max-port=50183
+
+# Existing server/voice-config.ts issues expiry:nonce + base64 HMAC-SHA1.
+realm=__EXISTING_PUBLIC_FQDN__
+use-auth-secret
+static-auth-secret=__SERVER_ONLY_32_RANDOM_BYTES_AS_HEX__
+fingerprint
+stale-nonce=600
+
+# Eight six-person meshes: 30 endpoint connections per room; two client
+# transports and a replacement generation reserve 120 allocations per room.
+# Per-username limit is NOT a per-account abuse limit: usernames are random.
+user-quota=20
+total-quota=960
+max-bps=16000
+bps-capacity=15360000
+max-allocate-lifetime=600
+max-allocate-timeout=30
+relay-threads=2
+
+# UDP relay endpoints, with both UDP and TCP client transports on 3478.
+no-tcp-relay
+# Baseline has no TLS listener. See README before adding turns: URLs.
+no-tls
+# DTLS is disabled by default in 4.18; do not add dtls.
+cli=0
+no-multicast-peers
+no-rfc5780
+# Deprecated STUN compatibility is disabled by default in 4.18.
+stun-backward-compatibility=0
+
+# Prevent TURN permissions to private, link-local, loopback, documentation,
+# benchmark, multicast and reserved peer ranges. No allowed-peer exceptions.
+denied-peer-ip=0.0.0.0-0.255.255.255
+denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=100.64.0.0-100.127.255.255
+denied-peer-ip=127.0.0.0-127.255.255.255
+denied-peer-ip=169.254.0.0-169.254.255.255
+denied-peer-ip=172.16.0.0-172.31.255.255
+denied-peer-ip=192.0.0.0-192.0.0.255
+denied-peer-ip=192.0.2.0-192.0.2.255
+denied-peer-ip=192.168.0.0-192.168.255.255
+denied-peer-ip=198.18.0.0-198.19.255.255
+denied-peer-ip=198.51.100.0-198.51.100.255
+denied-peer-ip=203.0.113.0-203.0.113.255
+denied-peer-ip=224.0.0.0-255.255.255.255
+# Never put :: as an ACL endpoint: coturn treats it as wildcard, which can
+# deny ordinary IPv4 peers too. The built-in zero-address guard rejects ::.
+denied-peer-ip=::1
+denied-peer-ip=fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+denied-peer-ip=fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+denied-peer-ip=ff00::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+denied-peer-ip=2001:db8::-2001:db8:ffff:ffff:ffff:ffff:ffff:ffff
+
+# Operational output may contain peer addresses/usernames; restrict journal
+# access and retention. Do not enable verbose or export raw session logs.
+log-file=stdout
+simple-log
+pidfile=/run/game-opus-turn/turnserver.pid

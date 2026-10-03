@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-03",
+  "gate": {
+    "types": true,
+    "tests": 843,
+    "pass": 843,
+    "fail": 0,
+    "build": true
+  },
+  "htmlSha256": "f35910fc8234f7e073cd2c5845b0451de2f39aa779844468f2df52e040b10be9",
+  "entry": "index-C5qWjsoO.js",
+  "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss://game.tired.solutions; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  "sourceHashes": {
+    "client/app.ts": "ffe6de6aaef81b4604020ab1949139da5490ee62b5d8a4006cbb533ef7ae0074",
+    "client/lobby/scene.ts": "f7c4eb25b611c9082bc54eab049f6a38f780d4bcc56703403cacca53caff3eb0",
+    "client/voice.ts": "c4346d6a41c1f3a50bb8848905ddcad454652e2f87f3863bcc9318925bc15424",
+    "client/ui/voice.ts": "7367547aeef5db442363b766796cd9c16c56cde4e5ec08d26866820e494de40d",
+    "client/ui/voice.css": "84c44f28ecea2b1c5490cd87f9ab4041a23db6bf6170d311a0f85a8fab9d0e08",
+    "server/hub.ts": "758c652f5d8134cd275cd5be024102a4205b75afcd05ff351a1f97edb31ea499",
+    "server/main.ts": "4a81ca101fd85afc3fce45feb7b0079ee49d93be5623260022bc1274c4a6f5c7",
+    "server/voice.ts": "9e7216282518262d8e82409955d37453e9dfbdca8e590258f288d171c414c70a",
+    "server/voice-config.ts": "a11707c42d2f1e32bc81a2f689c1ff4fee12a6ecb73a5608b11330298d23028c",
+    "server/voice-wire.ts": "555fbc18ab548774358f5373e49b08aff8a4d7de7a3484da8230ec89c87a4cda",
+    "shared/voice.ts": "2733476ceb9ee36e499d896e643c674ce77f5738a3cedd17bd53b3063090b950",
+    "shared/messages.ts": "ef9e1ef8b2e83d19c6e431805e36eab6cf910c4abfab2cc16f99ea7c37cedc8e",
+    "shared/constants.ts": "46ecb5ef747551fbe091308e588fa132be13a6445cb965f5144ac9a1f9008dfe",
+    "test/voice-client.test.ts": "cf2b7d24ecb7ded972bc2a7a400ab591e5299db5deed6ec2103fe02ef37d0684",
+    "test/voice-config.test.ts": "d0fb94f2e0bc64cbb9c2c6f29eeef7b5f945c7385cc3ee601d5917900f3936df",
+    "test/voice-hub.test.ts": "36fac4e3f36122c76e0c20112609ecb00131b2dc2277d2b35572a9c2eed2b9b2",
+    "test/voice-server.test.ts": "6ae1a2b9ce943b6836798d96ffc188b0dfa7aacfe53b4181341ab5e10cac6ac8",
+    "test/voice-ui.test.ts": "0ca52416c936d3362c3f6190d6f752707280251631a1cd6ace487c1a55a7cc90",
+    "test/voice-wire.test.ts": "8173f767d3693fcc5e2cf23b538129e7f3b06e68406414978186cf83752050b4"
+  },
+  "browserEvidence": "native-audio.json",
+  "networkAcceptance": "controlled loopback only; unmodified IAB ICE did not connect; WAN and physical mic not accepted",
+  "productionChanged": false
+}

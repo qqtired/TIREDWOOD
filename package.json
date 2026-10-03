@@ -1,0 +1,30 @@
+{
+  "name": "game-opus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Game Opus — браузерный командный шутер с желейными кругляшами",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --watch-path=server --watch-path=shared server/main.ts --dev",
+    "build": "vite build",
+    "start": "node server/main.ts",
+    "play": "vite build && node server/main.ts",
+    "check": "tsc --noEmit -p .",
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@fontsource/rubik": "5.3.0",
+    "@types/node": "24.19.0",
+    "@types/three": "0.186.0",
+    "@types/ws": "8.18.2",
+    "three": "0.186.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.1"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "source": "https://opengameart.org/content/animated-animales-low-poly",
+  "author": "Quaternius",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "name": "cat.glb",
+      "bytes": 504588,
+      "triangles": 1647,
+      "bones": 24,
+      "clips": [
+        {
+          "name": "Idle",
+          "seconds": 1.6666666269302368
+        },
+        {
+          "name": "Walk",
+          "seconds": 1.6666666269302368
+        }
+      ],
+      "originalFBXSha256": "24d03762bcbcdf5414516354b0d80c6580a0ffd7b5abe4d8edd26ad7bf7a0db5",
+      "glbSha256": "7e9e13bf0dcf4152059649a2553dae256883af7dce31b105bbde44c2fcf8bab5"
+    },
+    {
+      "name": "dog.glb",
+      "bytes": 462184,
+      "triangles": 1442,
+      "bones": 24,
+      "clips": [
+        {
+          "name": "Walk",
+          "seconds": 1.6666666269302368
+        },
+        {
+          "name": "Idle",
+          "seconds": 1.6666666269302368
+        }
+      ],
+      "originalFBXSha256": "a7250b3c68857120e6da0fd9ea2cdb4a4493823b6afed371b7aa9208407af039",
+      "glbSha256": "a765b0f7b7fad0b278994223beb641f3b93006b47294a47ec9ef6274f30501e8"
+    }
+  ]
+}
