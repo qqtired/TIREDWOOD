@@ -149,8 +149,9 @@ export class LobbyJukebox {
     this.pending = null;
     this.note = msg.text;
     this.nextPanel = 0;
-    // окно открыто — ответ в его нижней строке; закрыли раньше ответа — тостом
-    if (!this.panel?.isOpen) this.d.toast(msg.ok ? `🎵 ${msg.text}` : msg.text);
+    // отказ — всегда тостом (и строкой в окне); «поставлено» — строкой в окне, а если окно уже закрыли — тостом
+    if (!msg.ok) this.d.toast(msg.text);
+    else if (!this.panel?.isOpen) this.d.toast(`🎵 ${msg.text}`);
     if (msg.ok) this.d.sound.coin(null);
   }
 
