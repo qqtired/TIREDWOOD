@@ -57,7 +57,7 @@ test('beer multiplies fish sale by 1.1 with integer rounding while chest and jun
   assert.equal(rules.fishPrice2(rules.SP_BOOT, 900, 0, mods), 0);
 });
 
-test('fisheco: green zone is one per rarity tier and within 1.5 points of the released high-tier sizes', () => {
+test('fisheco: green zone is one per rarity tier and within 1.5 points of the released high-tier sizes ×0.9 (03.10: zone −10%)', () => {
   const before: Record<string, readonly [number, number, number]> = {
     bluefish: [33, 120, 28], dogfish: [32, 115, 28], ray: [32, 118, 28], turbot: [37, 143, 28],
     seabass: [33, 113, 27], leerfish: [33, 118, 27], sturgeon: [28, 115, 25], tuna: [27, 106, 24],
@@ -68,8 +68,8 @@ test('fisheco: green zone is one per rarity tier and within 1.5 points of the re
     const s = rules.RULE[sp]!.style;
     assert.ok(s.mainPattern && s.secondaryPattern, FISH[sp].id);
     assert.ok(s.spd > 0 && s.dartSpd > 0, FISH[sp].id);
-    assert.equal(s.zone, rules.BAND[rules.RULE[sp]!.tier].zone, FISH[sp].id);
+    assert.equal(s.zone, rules.BAND[rules.RULE[sp]!.tier].zone * rules.ZONE_BASE, FISH[sp].id);
     const old = before[FISH[sp].id];
-    if (old) assert.ok(Math.abs(s.zone - old[2]) <= 1.5, `${FISH[sp].id}: зона почти как в выпуске`);
+    if (old) assert.ok(Math.abs(s.zone - old[2] * rules.ZONE_BASE) <= 1.5, `${FISH[sp].id}: зона почти как в выпуске, −10 %`);
   }
 });

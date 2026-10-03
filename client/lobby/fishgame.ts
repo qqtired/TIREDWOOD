@@ -2,8 +2,10 @@
 // полоса прогресса. Играется у себя без задержки той же симуляцией, что у сервера (shared/fishreel.ts): держишь ЛКМ,
 // пробел или палец — зона вверх. Переключения кнопки (номера тиков) уходят серверу сообщением reel — он повторяет
 // вываживание своим сидом и решает, вытащил ли. Пока рыба в зоне — трещит катушка; рывок рыбы — шкала вздрагивает.
+// Зона — плотный поплавок: ударилась о край шкалы — сплющилась у этого края (сила — по скорости удара, Reel.hit),
+// в быстром полёте чуть вытянулась; фактура зоны — в fish2.css.
 import { TICK_MS } from '../../shared/constants.ts';
-import { REEL_P_MAX, reelPulling, reelRun, reelSlack, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
+import { BOUNCE_FULL, REEL_P_MAX, reelPulling, reelRun, reelSlack, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
 import { RULE, TIER_CSS, TIER_NAMES, T_JUNK, T_LEGEND, T_MYTH, reelStyleFor } from '../../shared/fishrules.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
@@ -25,6 +27,17 @@ const END_SHOW_MS = 900;
 const MAX_STEP_MS = 3000;
 /** Режим рыбы на шкале: рывок (shared/fishreel.ts M_DART) */
 const M_DART = 2;
+/** Сжатие и растяжение зоны (squash & stretch): s — сила удара, 0…1 (скорость удара / BOUNCE_FULL) */
+const SQUASH_Y = 0.22; // по высоте: scaleY = 1 − SQUASH_Y·s
+const SQUASH_X = 0.08; // по ширине: scaleX = 1 + SQUASH_X·s
+const STRETCH_Y = 0.06; // в быстром полёте (|zv| ≥ BOUNCE_FULL) зона вытянута по высоте на столько
+/** Сплющенность гаснет по времени кадра, e^(−dt/τ): за 170 мс остаётся ≈ 5 % (не CSS-transition — при частых ударах он дёргается) */
+const SQUASH_TAU_MS = 55;
+/** Удар о дно сильнее этой доли «полной скорости» — на зоне вспыхивает блик (класс hit, fish2.css), столько мс */
+const FLASH_MIN = 0.15;
+const FLASH_MS = 120;
+/** Слабее этой силы (≈ 60 ед./тик) — не удар, а зона прилипла к верху или легла: не деформируем */
+const HIT_MIN = 0.03;
 
 const FISH_SVG =
   '<svg viewBox="0 0 40 24" width="40" height="24"><path d="M3 12c5-7 14-9 22-6l7-5-1 8 1 7-7-5c-8 3-17 1-22-6z" fill="currentColor"'
@@ -64,6 +77,14 @@ export class ReelGame {
   private wasIn = false;
   private wasDart = false;
   private clickT = 0;
+  /** Удар зоны о край на тиках этого кадра (их бывает несколько): сила самого сильного 0…1 и край — 1 дно, −1 верх */
+  private hitPower = 0;
+  private hitEdge = 1;
+  /** Сплющенность зоны сейчас (0…1): от удара взлетает до его силы, дальше гаснет по времени кадра; край — у которого */
+  private squash = 0;
+  private squashEdge = 1;
+  /** Сколько ещё мс горит блик удара о дно */
+  private flashMs = 0;
 
   constructor(parent: HTMLElement, sound: Sound) {
     this.sound = sound;
@@ -123,6 +144,7 @@ export class ReelGame {
     if (!rule) return;
     const style = reelStyleFor(sp, mods);
     this.r = reelStart(style, seed);
+    this.calm();
     this.wasStand = 0;
     this.standEl.classList.remove('show');
     const base = rule.style.zone;
@@ -187,11 +209,12 @@ export class ReelGame {
       this.acc -= TICK_MS;
       this.k = reelRun(r, this.toggles, r.t + 1, this.k);
       this.feel(r);
+      this.knock(r);
     }
     if (r.done !== 0 || (this.toggles.length > this.sent && r.t - this.sentTick >= SEND_TOGGLES) || r.t - this.sentTick >= SEND_IDLE) this.send(r);
     if (r.done !== 0) this.finish(r.done === 1);
     if (!this.hint.classList.contains('gone') && r.t > 150 && this.toggles.length > 0) this.hint.classList.add('gone');
-    this.render();
+    this.render(dtMs);
   }
 
   /** Сервер сказал «сорвалась» (или ушёл с места) — показать и убрать. */
@@ -200,6 +223,7 @@ export class ReelGame {
     if (this.r.done === 0) {
       this.r.done = -1;
       this.endAt = performance.now();
+      this.calm();
       this.root.classList.add('lost');
       this.result.textContent = text;
     }
@@ -236,6 +260,7 @@ export class ReelGame {
 
   private finish(caught: boolean): void {
     this.endAt = performance.now();
+    this.calm();
     this.root.classList.add(caught ? 'won' : 'lost');
     this.result.textContent = caught ? 'Поймал! 🎣' : 'Сорвалась…';
     this.onEnd(caught);
@@ -270,7 +295,16 @@ export class ReelGame {
     this.wasStand = r.stand;
   }
 
-  private render(): void {
+  /** Удар зоны о край на этом тике (Reel.hit): запоминаем самый сильный за кадр — рисует render(). */
+  private knock(r: Reel): void {
+    if (r.hit === 0) return;
+    const s = Math.min(1, Math.abs(r.hit) / BOUNCE_FULL);
+    if (s < HIT_MIN || s < this.hitPower) return;
+    this.hitPower = s;
+    this.hitEdge = r.hit > 0 ? 1 : -1;
+  }
+
+  private render(dtMs = 0): void {
     const r = this.r;
     if (!r) return;
     const v = reelView(r);
@@ -279,6 +313,7 @@ export class ReelGame {
     this.zone.style.bottom = `${(z0 * 100).toFixed(2)}%`;
     this.zone.style.height = `${((z1 - z0) * 100).toFixed(2)}%`;
     this.zone.style.visibility = z1 > 0.004 ? '' : 'hidden';
+    this.deform(r, dtMs);
     this.fish.style.bottom = `${(v.fish * 100).toFixed(2)}%`;
     const tilt = Math.max(-28, Math.min(28, -r.fv / 25));
     this.fish.style.transform = `translate(-50%, 50%) rotate(${tilt.toFixed(1)}deg)`;
@@ -288,6 +323,42 @@ export class ReelGame {
     this.root.classList.toggle('dart', this.wasDart);
     this.root.classList.toggle('low', v.p < 0.15);
     this.root.classList.toggle('slack', r.done === 0 && reelSlack(r));
+  }
+
+  /**
+   * Зона — плотный поплавок (squash & stretch): удар о край сплющивает её у этого края и за ~170 мс отпускает, быстрый
+   * полёт чуть вытягивает по высоте. Удар о дно посильнее — ещё и блик (класс hit на 120 мс). Звука нет.
+   */
+  private deform(r: Reel, dtMs: number): void {
+    // сначала гасим прежнее за время кадра, потом применяем удар этого кадра — он виден в полную силу
+    this.squash *= Math.exp(-Math.max(0, dtMs) / SQUASH_TAU_MS);
+    this.flashMs = Math.max(0, this.flashMs - dtMs);
+    if (this.hitPower > 0) {
+      // новый удар не слабее остатка прежнего — край и сила переходят к нему
+      if (this.hitPower >= this.squash) {
+        this.squash = this.hitPower;
+        this.squashEdge = this.hitEdge;
+      }
+      if (this.hitEdge === 1 && this.hitPower > FLASH_MIN) this.flashMs = FLASH_MS;
+      this.hitPower = 0;
+    }
+    if (this.squash < 0.01) this.squash = 0;
+    const fly = r.done === 0 ? Math.min(1, Math.abs(r.zv) / BOUNCE_FULL) : 0;
+    const sy = (1 - SQUASH_Y * this.squash) * (1 + STRETCH_Y * fly);
+    const sx = 1 + SQUASH_X * this.squash;
+    // опора — у края удара, пока зона сплющена (дно — снизу, верх — сверху); одно вытягивание — от центра
+    this.zone.style.transformOrigin = this.squash > 0.03 ? (this.squashEdge === 1 ? '50% 100%' : '50% 0%') : '50% 50%';
+    this.zone.style.transform = Math.abs(sy - 1) < 0.001 && Math.abs(sx - 1) < 0.001 ? '' : `scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+    this.zone.classList.toggle('hit', this.flashMs > 0);
+  }
+
+  /** Зона ровная и без блика: шкала началась заново или бой кончился (в итоге зона не стоит сплющенной) */
+  private calm(): void {
+    this.hitPower = 0;
+    this.squash = 0;
+    this.flashMs = 0;
+    this.zone.style.transform = '';
+    this.zone.classList.remove('hit');
   }
 }
 

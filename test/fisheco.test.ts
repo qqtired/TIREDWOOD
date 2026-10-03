@@ -10,14 +10,14 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FISH, FP_BITE, FP_IDLE } from '../shared/fishing.ts';
 import { FISH_NPC_USE, FISH_SPOTS, ROULETTE_SPOT, spotZone } from '../shared/fishplaces.ts';
 import {
-  BAG_ALE, BAG_BARKAS, BAG_BEER, FISH_XP_LEVELS, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp, normalizeFishProgress,
-  type FishGear, type FishProgress, type FishRod,
+  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, FISH_XP_LEVELS, activeDrink, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp,
+  normalizeFishProgress, type FishGear, type FishProgress, type FishRod,
 } from '../shared/fishprogress.ts';
 import {
-  BARKAS_INCOME, BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, COLLECTION, RULE, T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice,
-  fishPrice2, reelStyleFor, tierOdds, type Hooked,
+  BARKAS_INCOME, BARKAS_XP, CHEST_PER_10K, CONSOLATION_SHARE, CONSOLATION_TICKS, COLLECTION, JUNK_PER_10K, RAIN_XP, RULE, SP_BOOT, SP_BOTTLE,
+  T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice, fishPrice2, junkPer10k, reelStyleFor, rollCatch2, tierOdds, type Hooked,
 } from '../shared/fishrules.ts';
-import { ALE, BAGS, BAG_BASE, BAG_MAX, BEER, LURES } from '../shared/fishshop.ts';
+import { ALE, BAGS, BAG_BASE, BAG_MAX, BEER, LORD, LORD_CHEST_CHANCE, LURES } from '../shared/fishshop.ts';
 import { ROULETTE_MAX_PAYOUT, ROULETTE_WHEEL, roulettePayout, rouletteColor } from '../shared/roulette.ts';
 import { Hub } from '../server/hub.ts';
 import { BAG_FULL_TEXT, type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -530,4 +530,96 @@ test('старое сохранение: без рюкзака — пустой 
   assert.ok(p.bag.slice(1).every((f) => f.f === 'cod'));
   assert.equal(p.bagSeq, Math.max(...p.bag.map((f) => f.n)) + 1, 'номер следующей рыбы — после всех');
   assert.deepEqual(normalizeFishProgress(JSON.parse(JSON.stringify(p))), p, 'повторная нормализация ничего не меняет');
+});
+
+// ------------------------------------------------------------ 03.10: дождь, хлам, пиво подводного владыки
+
+test('в дождь опыт рыбалки ×1,15 — и за поимку, и утешительный; на сервере — по погоде в момент поимки', () => {
+  assert.equal(RAIN_XP, 1.15);
+  for (const id of ['scad', 'bluefish', 'sturgeon', 'whiteshark', 'cod', 'oarfish']) {
+    const s = sp(id);
+    const mods = RULE[s]!.zone === 'barkas' ? fishCastMods(progressAt(3, 1), 0, 'barkas') : undefined;
+    for (const perfect of [false, true]) {
+      const dry = fishCatchXp(s, perfect, mods), wet = fishCatchXp(s, perfect, mods, true);
+      assert.ok(wet > dry && Math.abs(wet - dry * RAIN_XP) <= 1, `${id}: ${dry} → ${wet}`);
+    }
+  }
+  assert.ok(fishLostXp(sp('sturgeon'), CONSOLATION_TICKS, undefined, true) >= fishLostXp(sp('sturgeon'), CONSOLATION_TICKS));
+  const e = setup({ rain: true });
+  const p = e.a.c.profile!;
+  const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
+  const xp0 = p.fishing.xp;
+  catchOne(e, hall, { sp: sp('scad'), g: 300, coins: 0 });
+  const land = lastOf(e.a.s, 'fishLand')!;
+  assert.equal(land.xp, fishCatchXp(sp('scad'), land.perfect, { zone: 'pier' }, true));
+  assert.equal(p.fishing.xp, xp0 + land.xp!);
+});
+
+test('хлам реже с каждым уровнем рыбалки: 4,5 % у новичка, на 10-м — ни одного (освободившееся — рыбе)', () => {
+  assert.equal(junkPer10k(0), JUNK_PER_10K);
+  for (let l = 1; l <= 10; l++) assert.ok(junkPer10k(l) < junkPer10k(l - 1), `ур. ${l}`);
+  assert.equal(junkPer10k(10), 0);
+  assert.equal(junkPer10k(5), JUNK_PER_10K / 2);
+  for (const level of [0, 5, 10]) {
+    const odds = tierOdds(false, fishCastMods(progressAt(level), 0));
+    assert.ok(Math.abs(odds[5] - junkPer10k(level) / 10_000) < 1e-12, `ур. ${level}: хлам ${odds[5]}`);
+    assert.ok(Math.abs(odds.reduce((s, x) => s + x, 0) - 1) < 1e-9, 'сумма шансов — 1');
+  }
+  // та же поклёвка из «полосы хлама»: новичку — сапог или бутылка, на 10-м — рыба
+  const seq = (vals: number[]) => { let i = 0; return () => vals[i++ % vals.length]; };
+  const band = (CHEST_PER_10K + 100) / 10_000;
+  const novice = rollCatch2(false, seq([band, 0.5, 0.5, 0.5]), fishCastMods(progressAt(0), 0));
+  const master = rollCatch2(false, seq([band, 0.5, 0.5, 0.5]), fishCastMods(progressAt(10), 0));
+  assert.ok(novice.sp === SP_BOOT || novice.sp === SP_BOTTLE);
+  assert.ok(RULE[master.sp]!.tier <= T_MYTH, 'на 10-м уровне хлама нет — клюёт рыба');
+});
+
+test('сундук: в каждом пятом — пиво подводного владыки, выпивается сразу (доход ×1,2, редкие ×1,4, 10 мин, заменяет эль); пиво и эль поверх не наливают', () => {
+  assert.equal(LORD_CHEST_CHANCE, 0.2);
+  assert.equal(LORD.ms, ALE.ms);
+  const e = setup();
+  const p = e.a.c.profile!;
+  p.fishing = { ...p.fishing, aleUntil: e.clock.now + 300_000 };
+  const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
+  // шанс 20 %: rand 0,5 — не выпало
+  catchOne(e, hall, { sp: sp('chest'), g: 5000, coins: 60 });
+  assert.equal(lastOf(e.a.s, 'fishLand')!.lord, undefined);
+  assert.equal(p.fishing.lordUntil, undefined);
+  hall.lordChance = 1;
+  const t0 = p.tokens;
+  catchOne(e, hall, { sp: sp('chest'), g: 5000, coins: 60 });
+  const land = lastOf(e.a.s, 'fishLand')!;
+  assert.equal(land.lord, true);
+  assert.equal(p.tokens, t0 + 60, 'жетоны сундука — как всегда');
+  assert.ok(p.fishing.lordUntil! > e.clock.now && p.fishing.lordUntil! <= e.clock.now + LORD.ms);
+  assert.equal(p.fishing.aleUntil, 0, 'эль заменён');
+  assert.ok(allOf(e.a.s, 'chat').some((m) => /пиво подводного владыки/.test(JSON.stringify(m))), 'в чате — объявление');
+  const mods = fishCastMods(p.fishing, e.clock.now);
+  assert.equal(mods.drink, 3);
+  assert.equal(mods.incomeScale, 1.2);
+  assert.ok(Math.abs(mods.rareMultiplier - 1.4) < 1e-12);
+  assert.equal(e.profiles.buyFishAle(p), 'lord');
+  assert.equal(e.profiles.buyFishBeer(p), 'lord');
+  // следующая рыба — с меткой и ×1,2
+  catchOne(e, hall, { sp: sp('bluefish'), g: 2000, coins: 0 });
+  const fish = lastOf(e.a.s, 'fishLand')!;
+  assert.equal(fish.m! & BAG_LORD, BAG_LORD);
+  assert.equal(fish.price, Math.round(basePrice(sp('bluefish'), 2000) * LORD.income));
+  // кончилось — снова можно пиво и эль
+  e.clock.now = p.fishing.lordUntil! + 1;
+  assert.equal(activeDrink(p.fishing, e.clock.now), 0);
+  assert.equal(e.profiles.buyFishAle(p), 'ok');
+  assert.equal(p.fishing.lordUntil, undefined, 'истёкшее пиво владыки снято');
+});
+
+test('старые сохранения читаются: без пива владыки — его нет; новое поле и метка рыбы сохраняются и читаются', () => {
+  const old = normalizeFishProgress({ xp: 500, questsDone: 1, questCaught: 2, rod: 1, beerUntil: 5, aleUntil: 0, bagTier: 1, lure: 0, bag: [{ n: 0, f: 'scad', g: 300, p: 9, m: BAG_BEER }], bagSeq: 1 });
+  assert.equal('lordUntil' in old, false);
+  assert.equal(old.bag.length, 1);
+  assert.equal(activeDrink(old, 1), 1);
+  const fresh = normalizeFishProgress({ ...old, lordUntil: 1_000, bag: [{ n: 0, f: 'scad', g: 300, p: 9, m: BAG_LORD | BAG_BARKAS }] });
+  assert.equal(fresh.lordUntil, 1_000);
+  assert.equal(fresh.bag[0].m, BAG_LORD | BAG_BARKAS);
+  assert.equal(activeDrink(fresh, 999), 3);
+  assert.equal(normalizeFishProgress({ ...old, bag: [{ n: 0, f: 'scad', g: 300, p: 9, m: 32 }] }).bag.length, 0, 'неизвестная метка — рыба отбрасывается');
 });

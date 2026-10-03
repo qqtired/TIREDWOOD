@@ -120,3 +120,19 @@
 .touch .fe-chips, .touch .fe-gear, .touch .fe-odds { width: 100%; }
 .touch .fe-chip { padding: 5px 7px; font-size: 11px; }
 .touch .fe-gear { display: none; }
+
+/* Пиво подводного владыки из сундука (каждый пятый): строка на карточке сундука */
+.fe-lord {
+  margin: 8px auto 0;
+  padding: 6px 10px;
+  max-width: 300px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(40, 120, 150, 0.55), rgba(30, 70, 110, 0.55));
+  border: 1px solid rgba(140, 230, 255, 0.6);
+  color: #e6fbff;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.fe-lord b { display: block; font-size: 15px; color: #9ff0ff; }
+.fe-lord span { display: block; opacity: 0.92; }

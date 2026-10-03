@@ -113,6 +113,77 @@
     0 0 14px rgba(150, 255, 140, 0.7);
 }
 
+/* Фактура зоны — отдельным слоем поверх цвета: цвет, рамку и свечение рисуют темы (client/ui/fishstyle.css), а тут —
+   плотный поплавок в плетёной оплётке. Нити в две стороны (светлые «\» и тёмные «/») складываются в сетку, блик сверху,
+   тень снизу и боковая подсветка дают объём. Узор — белый и тёмно-зелёный с прозрачностью, поэтому ложится на цвет
+   любой темы и любого состояния (.in — ярче, .slack — бледнее вместе с зоной). Только градиенты; размер плетения — --fr-w. */
+.fr-zone {
+  --fr-w: 6px;
+}
+
+.fr-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    /* блик сверху */
+    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 14px),
+    /* тень снизу */
+    linear-gradient(to top, rgba(0, 28, 14, 0.4), rgba(0, 28, 14, 0) 16px),
+    /* слева светлее, справа темнее: зона круглится */
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 35%, rgba(0, 28, 14, 0) 60%, rgba(0, 28, 14, 0.26)),
+    /* плетение: нить «\» светлая, «/» тёмная */
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.4) calc(var(--fr-w) * 0.25), rgba(255, 255, 255, 0) calc(var(--fr-w) * 0.5), rgba(255, 255, 255, 0) var(--fr-w)),
+    repeating-linear-gradient(-45deg, rgba(0, 28, 14, 0) 0, rgba(0, 28, 14, 0.34) calc(var(--fr-w) * 0.25), rgba(0, 28, 14, 0) calc(var(--fr-w) * 0.5), rgba(0, 28, 14, 0) var(--fr-w));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 28, 14, 0.35);
+}
+
+/* миниатюра окна в «Наградах» (там же .fr-zone): плетение помельче */
+.frw-win .fr-zone {
+  --fr-w: 3px;
+}
+
+/* морская карта — бледный пергамент: фактура потише, чтобы зона осталась «пунктиром курса» */
+[data-fr-theme='chart'] .fr-zone::before {
+  opacity: 0.55;
+}
+
+/* блик при ударе о дно: fishgame.ts ставит .hit на 120 мс (в покое слой прозрачен) */
+.fr-zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 75%);
+}
+
+.fr-zone.hit::after {
+  animation: fr-zone-flash 0.12s ease-out;
+}
+
+@keyframes fr-zone-flash {
+  from {
+    opacity: 1;
+  }
+}
+
+/* без анимаций: зона не сплющивается (transform ставит fishgame.ts) и не вспыхивает, фактура неподвижна и остаётся */
+@media (prefers-reduced-motion: reduce) {
+  .fr-zone {
+    transform: none !important;
+  }
+
+  .fr-zone.hit::after {
+    animation: none;
+  }
+}
+
 .fr-fish {
   position: absolute;
   left: 50%;

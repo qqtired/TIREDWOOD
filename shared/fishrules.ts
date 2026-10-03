@@ -10,13 +10,14 @@ import { FISH, fmtWeight } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import type { ReelStyle, ReelPattern } from './fishreel.ts';
 import type { FishCastMods } from './fishprogress.ts';
+import { LORD } from './fishshop.ts';
 
 // ------------------------------------------------------------ экономика
 
 /** Справочно: доход обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока). */
-export const FISH_TARGET_PER_MIN = 19.3;
+export const FISH_TARGET_PER_MIN = 17.1;
 /** Сколько очков ценности (поле val) в минуту набирает тот же игрок — меряет тест. */
-export const FISH_POINTS_PER_MIN = 15.7;
+export const FISH_POINTS_PER_MIN = 13.7;
 /** Исходный курс выпуска 6: заморожен, чтобы +75 % считались от старой целой цены, а не от новой цели. */
 export const COIN_PER_POINT = 13.5 / 13.7;
 /** Калибровка только остальных рыб. Это не второй глобальный множитель для обычных. */
@@ -59,11 +60,24 @@ export const RAIN_NUM = 3;
 export const RAIN_DEN = 2;
 /** В дождь легендарные и мифические виды события клюют в 1,5 раза чаще базового */
 export const RAIN_TOP_MUL = 1.5;
+/** В дождь опыт рыбалки ×1,15 (за любую рыбу, пойманную, пока идёт дождь) */
+export const RAIN_XP = 1.15;
+/**
+ * Зелёная зона (хитбокс и то, что видно) — ×0,9 от прежней на всех категориях: владелец 03.10 захотел чуть сложнее;
+ * шансы поимки после этого обратно не подтягивали (цифры — в docs/superpowers/plans/2026-10-03-fisheco.md).
+ */
+export const ZONE_BASE = 0.9;
 
 /** Сундук вместо улова: на столько поклёвок из 10 000 (3 %) */
 export const CHEST_PER_10K = 300;
-/** Хлам (сапог, бутылка): на столько поклёвок из 10 000 */
+/** Хлам (сапог, бутылка): на столько поклёвок из 10 000 — у новичка; с каждым уровнем рыбалки на десятую меньше */
 export const JUNK_PER_10K = 450;
+
+/** Хлам на уровне рыбалки level: 450 из 10 000 у новичка, на 10-м — ни одного (освободившееся — рыбе) */
+export function junkPer10k(level = 0): number {
+  const l = Number.isFinite(level) ? Math.min(10, Math.max(0, Math.trunc(level))) : 0;
+  return Math.round(JUNK_PER_10K * (10 - l) / 10);
+}
 /** Сколько в сундуке: полосы «от, до, вес» — крупное реже, 200 — джекпот */
 export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
   [25, 50, 650],
@@ -109,7 +123,7 @@ export interface FishRule {
   val: readonly [number, number];
   /** Замороженная сложность выпуска 6 — из неё опыт у видов пристани (fishCatchXp) */
   xpDifficulty: number;
-  /** База опыта (до «идеально», легенд ×5 и ×0,4) — у видов баркаса задана прямо */
+  /** База опыта (до «идеально», легенд ×5 и ×0,4) — у видов баркаса задана прямо (03.10 +4,5 %: после −10 % зоны опыт баркаса снова ×1,25 к пристани) */
   xpBase?: number;
   /** Манера на шкале */
   style: ReelStyle;
@@ -174,25 +188,25 @@ const RAW: Record<string, Raw> = {
   greenlandshark: { tier: T_MYTH, bite: 3, rain: true, val: [220, 480], pat: ['SlowMigration', 'Sound'], lo: 0, hi: 70, up: 30, note: 'глубокие тяжёлые проводки, мощное сопротивление' },
 
   // --- баркас, открытое море: свой пул; доход и опыт ×1,25, рыба злее (SEA_FIGHT, SEA_DRAIN)
-  sprat: { tier: T_COMMON, zone: 'barkas', bite: 165, rain: false, val: [2.6, 4], xpBase: 16.5, pat: ['Zigzag', 'Nervous'], lo: 40, hi: 100, note: 'стайка мечется зигзагами' },
-  flyingfish: { tier: T_COMMON, zone: 'barkas', bite: 130, rain: false, val: [2.6, 5.3], xpBase: 16.5, pat: ['Breach', 'Nervous'], lo: 45, hi: 100, up: 85, note: 'выпрыгивает из воды и планирует' },
-  haddock: { tier: T_COMMON, zone: 'barkas', bite: 145, rain: false, val: [2.6, 6.5], xpBase: 16.5, pat: ['Nervous', 'Wave'], lo: 0, hi: 50, note: 'кивает и дёргается у дна' },
-  hake: { tier: T_COMMON, zone: 'barkas', bite: 137, rain: false, val: [2.6, 6.5], xpBase: 16.5, pat: ['SlowMigration', 'Dash'], lo: 10, hi: 70, note: 'уходит в глубину и хватает пастью' },
-  redfish: { tier: T_RARE, zone: 'barkas', bite: 72, rain: false, val: [5.2, 13.7], xpBase: 27.2, pat: ['HoverDash', 'Sawtooth'], lo: 0, hi: 60, note: 'упирается колючками, рвётся рывками' },
-  bonito: { tier: T_RARE, zone: 'barkas', bite: 72, rain: false, val: [5.2, 13.7], xpBase: 27.2, pat: ['Dash', 'Zigzag'], note: 'быстрые броски, как у маленького тунца' },
-  cod: { tier: T_RARE, zone: 'barkas', bite: 69, rain: false, val: [5.2, 14.9], xpBase: 27.2, pat: ['Sound', 'DoubleDash'], lo: 0, hi: 55, up: 35, note: 'тяжело тянет вниз' },
-  barracuda: { tier: T_RARE, zone: 'barkas', bite: 62, rain: false, val: [5.2, 14.9], xpBase: 27.2, pat: ['Ambush', 'Dash'], note: 'стоит в засаде — и молнией' },
-  wolffish: { tier: T_EPIC, zone: 'barkas', bite: 38, rain: false, val: [11.4, 28.4], xpBase: 32, pat: ['Ambush', 'Sawtooth'], lo: 0, hi: 50, note: 'кусается: стоит у дна и резко бьёт' },
-  mahi: { tier: T_EPIC, zone: 'barkas', bite: 36, rain: false, val: [11.4, 29.4], xpBase: 32, pat: ['Breach', 'FakeDash'], up: 75, note: 'акробат: свечки и обманные броски' },
-  amberjack: { tier: T_EPIC, zone: 'barkas', bite: 32, rain: false, val: [12.3, 31.4], xpBase: 32, pat: ['DoubleDash', 'Sound'], up: 30, note: 'рвёт вниз, к самому дну' },
-  sunfish: { tier: T_LEGEND, zone: 'barkas', bite: 11, rain: false, val: [30.6, 89.1], xpBase: 36.9, pat: ['SlowMigration', 'Circle'], note: 'огромная и медленная, но неудержимая' },
-  halibut: { tier: T_LEGEND, zone: 'barkas', bite: 14, rain: false, val: [32.2, 91.8], xpBase: 36.9, pat: ['HoverDash', 'Sound'], lo: 0, hi: 45, up: 30, note: 'лежит пластом и тянет вниз всем весом' },
-  mako: { tier: T_LEGEND, zone: 'barkas', bite: 11, rain: false, val: [34, 97.6], xpBase: 36.9, pat: ['Dash', 'Breach'], up: 70, note: 'самая быстрая акула: броски и прыжки' },
-  oarfish: { tier: T_MYTH, zone: 'barkas', bite: 6, rain: false, val: [187, 373], xpBase: 40.7, pat: ['Circle', 'Sound'], note: 'змеится по всей шкале — и уходит в глубину' },
-  hairtail: { tier: T_RARE, zone: 'barkas', bite: 330, rain: true, val: [5.2, 13.7], xpBase: 27.2, pat: ['Wave', 'Zigzag'], lo: 20, hi: 90, note: 'вьётся серебряной лентой' },
-  wahoo: { tier: T_EPIC, zone: 'barkas', bite: 150, rain: true, val: [12.3, 31.4], xpBase: 32, pat: ['Zigzag', 'DoubleDash'], note: 'самый быстрый: длинные рывки зигзагом' },
-  blueshark: { tier: T_EPIC, zone: 'barkas', bite: 120, rain: true, val: [11.4, 29.4], xpBase: 32, pat: ['Circle', 'FakeDash'], note: 'кружит и обманывает' },
-  hammerhead: { tier: T_LEGEND, zone: 'barkas', bite: 30, rain: true, val: [38.3, 106.1], xpBase: 36.9, pat: ['Circle', 'EdgeSnapback'], note: 'широкие круги и рывки к краю' },
+  sprat: { tier: T_COMMON, zone: 'barkas', bite: 165, rain: false, val: [2.6, 4], xpBase: 17.8, pat: ['Zigzag', 'Nervous'], lo: 40, hi: 100, note: 'стайка мечется зигзагами' },
+  flyingfish: { tier: T_COMMON, zone: 'barkas', bite: 130, rain: false, val: [2.6, 5.3], xpBase: 17.8, pat: ['Breach', 'Nervous'], lo: 45, hi: 100, up: 85, note: 'выпрыгивает из воды и планирует' },
+  haddock: { tier: T_COMMON, zone: 'barkas', bite: 145, rain: false, val: [2.6, 6.5], xpBase: 17.8, pat: ['Nervous', 'Wave'], lo: 0, hi: 50, note: 'кивает и дёргается у дна' },
+  hake: { tier: T_COMMON, zone: 'barkas', bite: 137, rain: false, val: [2.6, 6.5], xpBase: 17.8, pat: ['SlowMigration', 'Dash'], lo: 10, hi: 70, note: 'уходит в глубину и хватает пастью' },
+  redfish: { tier: T_RARE, zone: 'barkas', bite: 72, rain: false, val: [5.2, 13.7], xpBase: 29.3, pat: ['HoverDash', 'Sawtooth'], lo: 0, hi: 60, note: 'упирается колючками, рвётся рывками' },
+  bonito: { tier: T_RARE, zone: 'barkas', bite: 72, rain: false, val: [5.2, 13.7], xpBase: 29.3, pat: ['Dash', 'Zigzag'], note: 'быстрые броски, как у маленького тунца' },
+  cod: { tier: T_RARE, zone: 'barkas', bite: 69, rain: false, val: [5.2, 14.9], xpBase: 29.3, pat: ['Sound', 'DoubleDash'], lo: 0, hi: 55, up: 35, note: 'тяжело тянет вниз' },
+  barracuda: { tier: T_RARE, zone: 'barkas', bite: 62, rain: false, val: [5.2, 14.9], xpBase: 29.3, pat: ['Ambush', 'Dash'], note: 'стоит в засаде — и молнией' },
+  wolffish: { tier: T_EPIC, zone: 'barkas', bite: 38, rain: false, val: [11.4, 28.4], xpBase: 34.5, pat: ['Ambush', 'Sawtooth'], lo: 0, hi: 50, note: 'кусается: стоит у дна и резко бьёт' },
+  mahi: { tier: T_EPIC, zone: 'barkas', bite: 36, rain: false, val: [11.4, 29.4], xpBase: 34.5, pat: ['Breach', 'FakeDash'], up: 75, note: 'акробат: свечки и обманные броски' },
+  amberjack: { tier: T_EPIC, zone: 'barkas', bite: 32, rain: false, val: [12.3, 31.4], xpBase: 34.5, pat: ['DoubleDash', 'Sound'], up: 30, note: 'рвёт вниз, к самому дну' },
+  sunfish: { tier: T_LEGEND, zone: 'barkas', bite: 11, rain: false, val: [30.6, 89.1], xpBase: 35.7, pat: ['SlowMigration', 'Circle'], note: 'огромная и медленная, но неудержимая' },
+  halibut: { tier: T_LEGEND, zone: 'barkas', bite: 14, rain: false, val: [32.2, 91.8], xpBase: 35.7, pat: ['HoverDash', 'Sound'], lo: 0, hi: 45, up: 30, note: 'лежит пластом и тянет вниз всем весом' },
+  mako: { tier: T_LEGEND, zone: 'barkas', bite: 11, rain: false, val: [34, 97.6], xpBase: 35.7, pat: ['Dash', 'Breach'], up: 70, note: 'самая быстрая акула: броски и прыжки' },
+  oarfish: { tier: T_MYTH, zone: 'barkas', bite: 6, rain: false, val: [187, 373], xpBase: 39.5, pat: ['Circle', 'Sound'], note: 'змеится по всей шкале — и уходит в глубину' },
+  hairtail: { tier: T_RARE, zone: 'barkas', bite: 330, rain: true, val: [5.2, 13.7], xpBase: 29.3, pat: ['Wave', 'Zigzag'], lo: 20, hi: 90, note: 'вьётся серебряной лентой' },
+  wahoo: { tier: T_EPIC, zone: 'barkas', bite: 150, rain: true, val: [12.3, 31.4], xpBase: 34.5, pat: ['Zigzag', 'DoubleDash'], note: 'самый быстрый: длинные рывки зигзагом' },
+  blueshark: { tier: T_EPIC, zone: 'barkas', bite: 120, rain: true, val: [11.4, 29.4], xpBase: 34.5, pat: ['Circle', 'FakeDash'], note: 'кружит и обманывает' },
+  hammerhead: { tier: T_LEGEND, zone: 'barkas', bite: 30, rain: true, val: [38.3, 106.1], xpBase: 35.7, pat: ['Circle', 'EdgeSnapback'], note: 'широкие круги и рывки к краю' },
 
   // --- не рыбы: лежат мёртвым грузом
   boot: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
@@ -251,12 +265,12 @@ const CAL: Record<string, readonly [number, number, number, number, number]> = {
   shad: [14.4, 53.28, 29.99, 18.73, 174],
   redfish: [14.4, 53.28, 29.99, 23.42, 174],
   bonito: [11.7, 43.29, 25.7, 26.9, 192],
-  cod: [18, 66.6, 35.7, 28.64, 150],
+  cod: [16.65, 61.61, 33.56, 24.29, 159],
   barracuda: [14.4, 53.28, 29.99, 23.42, 174],
   hairtail: [21, 77.7, 38.85, 16.64, 150],
   bluefish: [14.3, 55.77, 31.82, 26.9, 173],
   dogfish: [14.3, 55.77, 31.82, 24.12, 173],
-  ray: [20.35, 79.37, 41.55, 13.52, 143],
+  ray: [20.35, 79.37, 41.55, 13.17, 143],
   turbot: [11, 42.9, 26.52, 32.64, 189],
   seabass: [14.3, 55.77, 31.82, 19.95, 173],
   leerfish: [14.3, 55.77, 31.82, 25.16, 173],
@@ -270,11 +284,11 @@ const CAL: Record<string, readonly [number, number, number, number, number]> = {
   swordfish: [7.8, 32.76, 23.19, 28.81, 195],
   angler: [16.9, 70.98, 37.94, 24.81, 160],
   bluemarlin: [13, 54.6, 31.62, 38.37, 175],
-  sunfish: [34, 142.8, 62, 30.03, 125],
+  sunfish: [34, 142.8, 62, 29.68, 125],
   halibut: [13, 54.6, 31.62, 32.46, 175],
   mako: [13, 54.6, 31.62, 25.68, 175],
-  hammerhead: [30, 126, 57.35, 27.6, 125],
-  whiteshark: [15, 66, 35.7, 18.56, 161],
+  hammerhead: [34, 142.8, 62, 19.95, 125],
+  whiteshark: [15, 66, 35.7, 17.86, 161],
   greenlandshark: [27.75, 122.1, 55.93, 36.46, 122],
   oarfish: [27.75, 122.1, 55.93, 51.58, 122],
 };
@@ -301,7 +315,7 @@ function styleOf(id: string, r: Raw): ReelStyle {
     lo: r.lo ?? 0,
     hi: r.hi ?? 100,
     roam: 30,
-    zone: b.zone,
+    zone: b.zone * ZONE_BASE,
     drain,
   };
 }
@@ -461,11 +475,11 @@ function weighted(p: Pool, mods?: Readonly<FishCastMods>): number[] {
   return out.map((w, i) => (RULE[p.sps[i]]!.tier >= T_RARE ? w * scale : w * common));
 }
 
-/** Кто клюёт: сундук (3 %), хлам, иначе рыба своего места по частоте — в дождь вместе с дождевыми. */
+/** Кто клюёт: сундук (3 %), хлам (меньше с уровнем), иначе рыба своего места по частоте — в дождь вместе с дождевыми. */
 export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>): Hooked {
   const r = rand() * 10_000;
   if (r < CHEST_PER_10K) return { sp: SP_CHEST, g: rollWeight(SP_CHEST, rand), coins: rollChest(rand) };
-  if (r < CHEST_PER_10K + JUNK_PER_10K) {
+  if (r < CHEST_PER_10K + junkPer10k(mods?.level)) {
     const sp = rand() < 0.7 ? SP_BOOT : SP_BOTTLE;
     return { sp, g: rollWeight(sp, rand), coins: 0 };
   }
@@ -502,8 +516,9 @@ export function biteShare(sp: number, rain: boolean, mods?: Readonly<FishCastMod
 export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>): number[] {
   const p = poolOf(rain, mods);
   const w = weighted(p, mods);
-  const fish = 1 - (CHEST_PER_10K + JUNK_PER_10K) / 10_000;
-  const out = [0, 0, 0, 0, 0, JUNK_PER_10K / 10_000, CHEST_PER_10K / 10_000];
+  const junk = junkPer10k(mods?.level);
+  const fish = 1 - (CHEST_PER_10K + junk) / 10_000;
+  const out = [0, 0, 0, 0, 0, junk / 10_000, CHEST_PER_10K / 10_000];
   p.sps.forEach((sp, i) => { out[RULE[sp]!.tier] += fish * w[i] / p.total; });
   return out;
 }
@@ -521,14 +536,14 @@ export function basePrice(sp: number, g: number): number {
     : Math.max(1, Math.round(v * FISH_OTHER_PRICE_SCALE * event));
 }
 
-/** Цена улова (в рюкзак — фиксируется при поимке): база × напиток (×1,1 пиво, ×1,15 эль) × баркас 1,25, одно округление. */
+/** Цена улова (в рюкзак — фиксируется при поимке): база × напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво владыки) × баркас 1,25, одно округление. */
 export function fishPrice2(sp: number, g: number, coins = 0, mods?: Readonly<FishCastMods>): number {
   const r = RULE[sp];
   if (!r) return 0;
   if (r.tier === T_CHEST) return coins;
   if (r.tier === T_JUNK) return 0;
   const place = mods?.zone === 'barkas' ? BARKAS_INCOME : 1;
-  return Math.round(basePrice(sp, g) * factor(mods?.incomeScale, 1.15) * place);
+  return Math.round(basePrice(sp, g) * factor(mods?.incomeScale, LORD.income) * place);
 }
 
 /** Цена вида: за самую лёгкую и самую тяжёлую (для журнала) — у видов баркаса сразу с ×1,25 */

@@ -209,7 +209,7 @@ export class FishNpcDialog {
     const feedback = footer.appendChild(el('div', 'fn-feedback'));
     this.status = feedback.appendChild(el('div', 'fn-status'));
     this.status.setAttribute('role', 'status');
-    feedback.appendChild(el('div', 'fn-shortcuts', 'Esc — закрыть · I — рюкзак · J — журнал после закрытия'));
+    feedback.appendChild(el('div', 'fn-shortcuts', 'Esc — закрыть · I — рюкзак (вкладка «Продать») · J — журнал после закрытия'));
     const bottomClose = footer.appendChild(el('button', 'fn-action fn-dismiss', 'Закрыть'));
     bottomClose.type = 'button';
     bottomClose.addEventListener('click', () => this.close());
@@ -218,6 +218,10 @@ export class FishNpcDialog {
       if (e.code === 'Escape') {
         e.preventDefault();
         this.close();
+      } else if (e.code === 'KeyI' && !e.repeat) {
+        // рюкзак у торговца — это вкладка «Продать»: там весь улов с ценами
+        e.preventDefault();
+        this.show('sell');
       }
     });
     this.root.addEventListener('keyup', (e) => e.stopPropagation());
@@ -420,15 +424,16 @@ export class FishNpcDialog {
       o.root.classList.toggle('locked', st === 'level');
     });
     const drink = activeDrink(p, now);
-    this.beer.note.textContent = drink === 1 ? `Действует · ${fishTimeLeft(p.beerUntil, now)}` : drink === 2 ? 'Эль крепче — пиво поверх не наливают'
+    const lordNote = `Действует пиво подводного владыки · ${fishTimeLeft(p.lordUntil ?? 0, now)} — поверх не наливают`;
+    this.beer.note.textContent = drink === 3 ? lordNote : drink === 1 ? `Действует · ${fishTimeLeft(p.beerUntil, now)}` : drink === 2 ? 'Эль крепче — пиво поверх не наливают'
       : tokens < BEER_PRICE ? `Не хватает ${BEER_PRICE - tokens} 🪙` : 'Перед следующим забросом';
     setCoinText(this.beer.btn, `Выпить · ${BEER_PRICE} 🪙`);
     this.beer.btn.disabled = busy || drink !== 0 || tokens < BEER_PRICE;
     this.beer.root.classList.toggle('owned', drink === 1);
-    this.ale.note.textContent = drink === 2 ? `Действует · ${fishTimeLeft(p.aleUntil, now)}` : drink === 1 ? 'Заменит пиво — остаток пива пропадёт'
+    this.ale.note.textContent = drink === 3 ? lordNote : drink === 2 ? `Действует · ${fishTimeLeft(p.aleUntil, now)}` : drink === 1 ? 'Заменит пиво — остаток пива пропадёт'
       : tokens < ALE_PRICE ? `Не хватает ${ALE_PRICE - tokens} 🪙` : 'Для опытных: редкие чаще, чем с пивом';
     setCoinText(this.ale.btn, `Выпить · ${ALE_PRICE} 🪙`);
-    this.ale.btn.disabled = busy || drink === 2 || tokens < ALE_PRICE;
+    this.ale.btn.disabled = busy || drink >= 2 || tokens < ALE_PRICE;
     this.ale.root.classList.toggle('owned', drink === 2);
     const eventActive = this.eventOn && (this.eventUntil === 0 || this.eventUntil > now);
     this.drum.note.textContent = eventActive ? `Дождь уже идёт${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, now)}` : ''}`
