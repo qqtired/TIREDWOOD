@@ -597,7 +597,7 @@ export class TrackGeo {
     }
     if (!g.idx.length) return;
     const map = tex.chevronSignTexture();
-    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.22, roughness: 0.55, side: THREE.DoubleSide }), false));
+    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.22, roughness: 0.55 }), false));
   }
 
   /** Большой красно-белый щит перед каждой шпилькой: стоит снаружи, лицом к въезжающим */
@@ -632,7 +632,7 @@ export class TrackGeo {
     }
     if (!g.idx.length) return;
     const map = hairpinSignTexture();
-    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.5, side: THREE.DoubleSide }), false));
+    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.5 }), false));
   }
 
   /** Щит: центр (x, y, z), смотрит по (nx, nz), размер w × h; flip — зеркально (стрелки в другую сторону) */
@@ -644,6 +644,8 @@ export class TrackGeo {
     const u0 = flip ? 1 : 0;
     const u1 = flip ? 0 : 1;
     face(g, p(-1, -1), p(1, -1), p(1, 1), p(-1, 1), [nx, 0, nz], [u0, 0, u1, 0, u1, 1, u0, 1], same(WHITE));
+    // оборот щита — серая жесть (сзади надпись не видна)
+    this.c.solid.push(place(paint(new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.05), 0x7a7e84), x - nx * 0.03, y, z - nz * 0.03, Math.atan2(nx, nz)));
   }
 
   private post(x: number, z: number, y0: number, y1: number, r = 0.05): void {
@@ -686,7 +688,7 @@ export class TrackGeo {
       }
     }
     const map = jumpSignTexture();
-    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.18, roughness: 0.6, side: THREE.DoubleSide }), false));
+    this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.18, roughness: 0.6 }), false));
   }
 }
 

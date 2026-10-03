@@ -14,7 +14,7 @@ import { buildGeo, paint, parts, place, staticMesh, type GeoParts, type V3 } fro
 import * as tex from '../render/textures.ts';
 import { buildGrandstand, type Festive } from './crowd.ts';
 import { face, same, WHITE } from './geom.ts';
-import { bannerTexture, grassTexture, rippleTexture, roofTexture, sandTexture, stoneWallTexture } from './racetex.ts';
+import { arrowSignTexture, bannerTexture, grassTexture, rippleTexture, roofTexture, sandTexture, stoneWallTexture } from './racetex.ts';
 import type { EdgeLayout } from './trackgeo.ts';
 
 /** Река: русло между x0 и x1 с севера до пруда; пруд — круг */
@@ -901,8 +901,8 @@ export class HillsScene {
     const x = d.x - d.fx * (d.hl + 1.5) - d.fz * (d.hw + 1.2);
     const z = d.z - d.fz * (d.hl + 1.5) + d.fx * (d.hw + 1.2);
     const y = this.terrain.height(x, z);
-    const map = tex.signTexture('СРЕЗКА ➜ ПРЫЖОК', '#1d5fae', '#ffffff', 768, 192);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.05), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.6 }));
+    const map = arrowSignTexture('СРЕЗКА', '#1d5fae', '#ffffff', 0);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.4), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.6 }));
     m.position.set(x, y + 2.2, z);
     m.rotation.y = Math.atan2(-d.fx, -d.fz);
     this.c.scene.add(m);
