@@ -92,7 +92,7 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'голова всплывает в бухте · бей в глаз' },
   { name: 'Король-Тыква', hp: 2200, speed: 2.0, gateDps: 0, crystalDps: 0, hit: 26, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.1, hrx: 2.3, hry: 2.05, hcy: 2.05, headY: 3.1, color: 0xe8822e, icon: '🎃', hint: 'сеет тыквят и катится вдоль стены · прыгай, когда круг под тобой' },
   { name: 'Ткачиха', hp: 2200, speed: 2.4, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.2, hry: 1.8, hcy: 1.9, headY: 2.4, color: 0x7a3f86, icon: '🕷', hint: 'висит на стене, плетёт паутину · рви паутину выстрелами' },
-  { name: 'Леший', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 1.8, hrx: 1.9, hry: 3.0, hcy: 3.0, headY: 4.5, color: 0x6f5a3c, icon: '🌳', hint: 'корни из-под земли, лечит армию · сбей колдовство залпом' },
+  { name: 'Леший', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 1.8, hrx: 1.9, hry: 3.4, hcy: 3.4, headY: 4.3, color: 0x6f5a3c, icon: '🌳', hint: 'корни из-под земли, лечит армию · сбей колдовство залпом' },
 ];
 
 // ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)
