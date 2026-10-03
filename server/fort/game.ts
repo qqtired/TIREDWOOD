@@ -35,6 +35,7 @@ import { CollisionWorld, makeRayHit } from '../../shared/world.ts';
 import { InputQueue } from '../inputs.ts';
 import type { Sink } from '../paintball/game.ts';
 import { Horde, type HordeHost, type HordeTarget, type Zombie } from './horde.ts';
+import { devBossHp } from './kraken.ts';
 import { FortNav } from './nav.ts';
 
 export class FortPlayer {
@@ -839,6 +840,10 @@ export class FortGame implements HordeHost {
     }
     if (this.debug && cmd.toLowerCase() === 'wave') {
       this.jumpTo(Number(arg));
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'hp') {
+      if (devBossHp(this.horde, Number(arg))) this.systemChat(`🛠 Разработка: боссам — ${Number(arg)} % HP`);
       return;
     }
     this.privateChat(p, 'Крепость: E у стоек — лавка (ворота, кристалл, краскомёты, варенье), колокол — «готов», Q — плечо, R — перезарядка, M — звук, Esc → «На набережную» — выйти. /kill — снова на террасу');

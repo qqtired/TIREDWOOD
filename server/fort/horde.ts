@@ -11,6 +11,7 @@ import {
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
   Z_BOSS, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
+  ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, ZS_TENT_REST, ZS_TENT_SLAM, Z_KRAKEN, Z_TENTACLE,
   isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
 import {
@@ -25,7 +26,9 @@ import {
 } from '../../shared/fortkinds.ts';
 import { CLIMBS, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { KRAKEN_DIVE_R, KRAKEN_SPIT_R, TENT_SLAM_R } from '../../shared/fortkraken.ts';
 import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
+import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
@@ -223,6 +226,7 @@ export class Horde {
     this.dmgMul = plan.dmgMul;
     const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
     if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
+    if (plan.kraken) queue.unshift({ at: tick + 30, kind: Z_KRAKEN, road: 1, tier: 0 });
     this.queue = queue.sort((a, b) => a.at - b.at);
     this.queueAt = 0;
   }
@@ -374,7 +378,9 @@ export class Horde {
   damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
-    if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    if (z.kind === Z_KRAKEN || z.kind === Z_TENTACLE) dmg *= krakenArmor(this, z);
+    else if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
       const armor = armorFor(Math.max(1, this.wave)) * (1 + 0.5 * z.tier);
@@ -410,7 +416,9 @@ export class Horde {
       const d = Math.hypot(o.x - x, o.y + k.hcy - y, o.z - z) - Math.max(k.hrx, k.hry) * 0.6;
       if (d > r) continue;
       let amount = dmg;
-      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (o.kind === Z_KRAKEN || o.kind === Z_TENTACLE) amount *= krakenArmor(this, o);
+      else if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (!(amount > 0)) continue;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
@@ -541,6 +549,8 @@ export class Horde {
       else if (z.kind === Z_BOSS) stepBaron(this.bossCtx, z);
       else if (z.kind === Z_RAM) stepRam(this.bossCtx, z);
       else if (z.kind === Z_GOLEM) stepGolem(this.bossCtx, z);
+      else if (z.kind === Z_KRAKEN) stepKraken(this.bossCtx, z);
+      else if (z.kind === Z_TENTACLE) stepTentacle(this.bossCtx, z);
       else if (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP) this.stepClimber(z);
       else if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
       else if (z.kind === Z_SAPPER) this.stepSapper(z, gateUp);
@@ -1106,7 +1116,7 @@ export class Horde {
       s.state = z.state;
       s.flags = z.tier | (z.crew ? ZF_CREW : 0) | (z.shield > 0 ? ZF_SHIELD : 0) | (z.carry ? ZF_CARRY : 0)
         | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0)
-        | (isBossKind(z.kind) && raging(z) ? ZF_RAGE : 0);
+        | (isBossKind(z.kind) && raging(z) || tentacleRage(z) ? ZF_RAGE : 0);
       s.r = attackRadius(z.state);
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
@@ -1174,6 +1184,10 @@ function attackRadius(state: number): number {
     case ZS_STOMP: return STOMP_R;
     case ZS_THROW: return ROCK_R;
     case ZS_QUAKE: return QUAKE_R;
+    case ZS_TENT_SLAM:
+    case ZS_TENT_REST: return TENT_SLAM_R;
+    case ZS_KRAKEN_SPIT: return KRAKEN_SPIT_R;
+    case ZS_KRAKEN_DIVE: return KRAKEN_DIVE_R;
     default: return 0;
   }
 }

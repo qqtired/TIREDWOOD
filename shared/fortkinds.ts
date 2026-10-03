@@ -82,7 +82,7 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Таран', hp: 2200, speed: 2.6, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.4, hry: 2.2, hcy: 2.1, headY: 3.3, color: 0x9a6239, icon: '🐗', hint: 'разгоняется по красной дорожке · уйди с неё' },
   { name: 'Валун', hp: 2200, speed: 1.9, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.3, hrx: 2.5, hry: 3.1, hcy: 3.0, headY: 4.6, color: 0x8f9188, icon: '🪨', hint: 'бросает камни в стену · следи за тенью' },
   { name: 'Лодка', hp: 300, speed: 4.0, gateDps: 0, crystalDps: 0, hit: 0, pts: 150, cost: 0, first: NEVER, flags: KF_SEA, r: 1.6, hrx: 1.55, hry: 0.75, hcy: 0.35, headY: 99, color: 0x8a5a34, icon: '⛵', hint: 'десант с моря · потопи до берега' },
-  { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.15, hry: 3.6, hcy: 3.4, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по морской стене · руби щупальца' },
+  { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.25, hry: 1.05, hcy: 0.95, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по стене и берегу · руби булаву, пока лежит после удара' },
   { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'голова всплывает в бухте · бей в глаз' },
 ];
 
