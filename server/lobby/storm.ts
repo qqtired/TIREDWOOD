@@ -1,4 +1,4 @@
-import { STORM_CALM, STORM_GOAL, STORM_MAX, STORM_RAINBOW, STORM_RANK, STORM_WARN, emptyStorm, stormReward, type StormView } from '../../shared/storm.ts';
+import { STORM_CALM, STORM_MAX, STORM_RAINBOW, STORM_RANK, STORM_REACH_SLACK, STORM_WARN, emptyStorm, stormReach, stormReward, type StormView } from '../../shared/storm.ts';
 import type { EventHost, LargeEvent } from './events.ts';
 export interface StormHooks extends EventHost { broadcast(view: StormView): void }
 export class Storm implements LargeEvent {
@@ -20,7 +20,7 @@ export class Storm implements LargeEvent {
     this.tick = tick;
     if (this.state.phase === 'warn' && tick >= this.state.end) {
       this.state.phase = 'storm'; this.state.start = tick; this.state.waveStart = tick; this.state.end = tick + STORM_MAX;
-      this.host.chat('⛈ Шторм! Беги к двери маяка и нажми E. Пена предупреждает волну!'); this.send();
+      this.host.chat('⛈ Шторм! Свет погас — беги к двери маяка: E или клик. Пена предупреждает волну!'); this.send();
     }
     if (this.state.phase === 'storm') {
       for (const p of this.host.players()) if (p.eligible && !this.seen.has(p.pid)) {
@@ -39,8 +39,7 @@ export class Storm implements LargeEvent {
     const v = this.state;
     if (v.phase !== 'storm' && !(v.phase === 'calm' && v.rankEnd > this.tick && v.winners.length)) return false;
     const p = this.host.players().find(p => p.pid === pid && p.eligible);
-    if (!p || v.winners.some(w => w.pid === pid) || Math.abs(p.state.y - STORM_GOAL.y) > .75
-      || Math.hypot(p.state.x - STORM_GOAL.x, p.state.z - STORM_GOAL.z) > STORM_GOAL.r) return false;
+    if (!p || v.winners.some(w => w.pid === pid) || !stormReach(p.state.x, p.state.y, p.state.z, STORM_REACH_SLACK)) return false;
     if (!this.seen.has(pid)) { this.seen.add(pid); this.host.award(pid, 0, { stStorms: 1 }); }
     const place = v.winners.length + 1;
     v.winners.push({ pid, nick: p.nick, place, tokens: stormReward(place) });

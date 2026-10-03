@@ -15,6 +15,7 @@ import type { BoatRaceServerMsg, BoatRaceStatus } from './boatrace.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
+import type { RainWire } from './weather.ts';
 import type { PirateView } from './pirates.ts';
 import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
@@ -413,6 +414,8 @@ export type ServerMsg =
     boatrace?: GatherStatus | BoatRaceStatus;
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    /** Идущий дождь (shared/weather.ts): сколько уже идёт, длина, сид, откуда — силу и молнии считает клиент */
+    wx?: RainWire | null;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
     fort?: FortStatus;
     /** «Fight Club»: круг у двери в подвал кафе — только если режим включён флагом сервера */
@@ -436,8 +439,8 @@ export type ServerMsg =
   // выключили), tgUp — только новые и исправленные строки (по id), пачкой, не чаще нескольких раз в секунду
   | { t: 'tg'; title: string; lines: TgLine[] }
   | { t: 'tgUp'; title: string; lines: TgLine[] }
-  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился
-  | { t: 'weather'; rain: number }
+  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился; wx — сам дождь (shared/weather.ts)
+  | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
