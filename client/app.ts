@@ -20,6 +20,8 @@ import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } f
 import { Input, isMuteKey, isTyping } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
 import { Net } from './net.ts';
+import { Relink } from './relink.ts';
+import { LinkBanner } from './ui/linkbanner.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
@@ -45,8 +47,13 @@ type JoinMode = 'saved' | 'nick' | 'code';
 
 const NICKS = ['Кругляш', 'Мармеладка', 'Боцман', 'Юнга', 'Шкипер', 'Клякса', 'Пончик', 'Бублик', 'Карамелька', 'Лоцман', 'Тюлька', 'Кок'];
 const CONNECT_TIMEOUT_MS = 9000;
-/** В игре сервер шлёт снимки 30 раз в секунду: 8 с тишины — связь умерла, переподключаемся сами */
-const SILENCE_MS = 8000;
+/**
+ * В игре сервер шлёт снимки 30 раз в секунду: 20 с тишины — связь умерла, возвращаемся в сессию заново (relink.ts).
+ * Было 8 с: при пинге 220–260 мс TCP после короткого провала сети догоняет за 8–12 с, и живые соединения рвались.
+ */
+const SILENCE_MS = 20_000;
+/** Сервер молчит дольше этого — плашка «Связь нестабильна» (игра идёт дальше) */
+const SHAKY_MS = 3000;
 /** Паузы между попытками переподключения, с (дальше — последняя) */
 const RETRY_S = [1, 2, 4, 8, 15];
 const PING_MS = 2000;
@@ -68,6 +75,9 @@ export class App {
   private readonly sound = new Sound();
   private readonly input: Input;
   private readonly net = new Net();
+  /** Возврат в ту же сессию после обрыва связи: сцена остаётся, сервер досылает пропущенное */
+  private readonly relink: Relink;
+  private readonly linkBanner: LinkBanner;
   private readonly shell: HTMLElement;
   private readonly chat: Chat;
   private readonly tokens: TokensHud;
@@ -172,6 +182,40 @@ export class App {
     this.online = new OnlineList(shell);
     // уведомления — над меню: ошибка смены ника видна и в профиле
     this.toasts = new Toasts(menus);
+    this.linkBanner = new LinkBanner(menus);
+    this.relink = new Relink({
+      connect: (rs) => {
+        this.hello = { t: 'hello', v: PROTOCOL_VERSION, key: deviceKey(), re: this.lastClose, rs };
+        this.net.connect();
+      },
+      abort: () => this.net.close(),
+      rx: () => this.net.rx,
+      setRx: (n) => { this.net.rx = n; },
+      down: () => { this.voice?.stopTalking(); this.input.releaseAll(); this.updateBlocked(); },
+      up: (resumed) => {
+        this.updateBlocked();
+        if (resumed) {
+          this.toasts.show('Связь восстановлена', 1800, 'link');
+          return;
+        }
+        // сервер начал сессию заново: голос и жетоны — с нуля, сцену он пришлёт сам
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected();
+      },
+      giveUp: () => {
+        this.net.close();
+        setVoicePresence([]);
+        this.tokens.reset();
+        this.voice?.disconnected();
+        this.startReconnect();
+      },
+      banner: (text) => this.linkBanner.show(text, 'down'),
+      now: () => performance.now(),
+      setTimer: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimer: (id) => clearTimeout(id),
+    });
+    window.addEventListener('online', () => this.relink.online());
     this.deps = {
       renderer: this.renderer,
       input: this.input,
@@ -345,7 +389,8 @@ export class App {
       return true;
     };
     window.setInterval(() => {
-      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now() });
+      // r — подтверждение: сколько сообщений сессии дошло (сервер их забывает, недошедшее дошлёт после обрыва)
+      if (this.screen === 'game') this.net.send({ t: 'ping', c: performance.now(), r: this.net.rx });
     }, PING_MS);
 
     // --- ввод
@@ -505,6 +550,7 @@ export class App {
   // ------------------------------------------------------------ сообщения сервера
 
   private onJson(m: ServerMsg): void {
+    if (this.relink.active && this.relink.message(m.t)) return;
     switch (m.t) {
       case 'voiceConfig':
         this.ensureVoice();
@@ -578,6 +624,7 @@ export class App {
         return;
       case 'restart':
         this.restarting = true;
+        this.relink.restarting = true;
         return;
       case 'error':
         this.onError(m.code, m.text);
@@ -681,6 +728,13 @@ export class App {
   }
 
   private onClose(code: number, reason: string): void {
+    // обрыв посреди игры — возвращаемся в ту же сессию, сцена остаётся (relink.ts); флуд, другое окно, версия — как раньше
+    if (!this.reloading && (this.screen === 'game' || this.relink.active) && code !== 1008 && code !== 4001 && code !== 4002) {
+      if (!this.relink.active) this.lastClose = code;
+      this.relink.lost();
+      return;
+    }
+    this.relink.cancel();
     setVoicePresence([]);
     this.tokens.reset();
     this.voice?.disconnected();
@@ -822,6 +876,7 @@ export class App {
 
   /** Уходим из игры (меню, обрыв, ошибка): сцену — прочь, интерфейс — спрятать. */
   private leaveGame(): void {
+    this.relink.cancel();
     setVoicePresence([]);
     this.syncFishingUi(false);
     this.voice?.disconnected();
@@ -963,7 +1018,7 @@ export class App {
   }
 
   private updateBlocked(): void {
-    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen;
+    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.relink.active;
     this.syncVoiceVisibility();
   }
 
@@ -1276,7 +1331,12 @@ export class App {
 
     // вкладка спала (кадров не было больше секунды) — сначала дадим письмам дойти, потом считаем тишину
     if (gap > 1000) this.net.lastRx = Math.max(this.net.lastRx, now);
-    if (this.screen === 'game' && this.net.isOpen && now - this.net.lastRx > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+    if (this.screen === 'game' && this.net.isOpen && !this.relink.active) {
+      const quiet = now - this.net.lastRx;
+      if (quiet > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
+      else this.linkBanner.show(quiet > SHAKY_MS ? 'Связь нестабильна — ждём сервер…' : null);
+    } else if (!this.relink.active) this.linkBanner.show(null);
+    this.relink.frame();
 
     if (this.screen === 'connecting' && now - this.connectAt > CONNECT_TIMEOUT_MS) this.showLost('сервер не отвечает');
     if (this.screen === 'reconnecting') this.tickReconnect(now);

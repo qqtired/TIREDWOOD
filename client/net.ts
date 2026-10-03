@@ -1,5 +1,6 @@
 // Соединение с сервером (одно на всё время, умеет переподключаться) и синхронизация часов.
 import { TICK_RATE } from '../shared/constants.ts';
+import { linkNumbered } from '../shared/link.ts';
 import type { ClientMsg, ServerMsg } from '../shared/messages.ts';
 
 export class Net {
@@ -14,10 +15,16 @@ export class Net {
   pingMs = 0;
   /** Когда последний раз что-то пришло от сервера (performance.now) */
   lastRx = 0;
+  /**
+   * Сколько JSON-сообщений сессии принято (считаем с открытия сокета; при возврате после обрыва приложение
+   * ставит номер, с которого сервер досылает пропущенное). Уходит серверу в пинге — подтверждение.
+   */
+  rx = 0;
 
   /** Открыть новое соединение (старое, если было, закрывается молча). */
   connect(): void {
     this.close();
+    this.rx = 0;
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     ws.binaryType = 'arraybuffer';
@@ -38,6 +45,8 @@ export class Net {
         } catch {
           return;
         }
+        // нумерация общая с сервером (shared/link.ts): частое состояние режимов и «resumed» — вне счёта
+        if (linkNumbered(msg.t)) this.rx++;
         this.onJson(msg);
       } else {
         this.onBinary(e.data as ArrayBuffer, at);
@@ -73,8 +82,12 @@ export class Net {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }
 
+  /**
+   * Ввод. Сервер молчит дольше 2,5 с — связь замерла: ввод не копим (TCP всё равно доставит его пачкой позже,
+   * уже устаревшим, и пачка выглядела бы как флуд).
+   */
   sendBinary(data: Uint8Array<ArrayBuffer>): void {
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(data);
+    if (this.ws?.readyState === WebSocket.OPEN && performance.now() - this.lastRx < INPUT_QUIET_MS) this.ws.send(data);
   }
 
   get isOpen(): boolean {
@@ -91,6 +104,7 @@ export class Net {
   }
 }
 
+const INPUT_QUIET_MS = 2500;
 const WINDOW = 240;
 const RATE = TICK_RATE / 1000; // тиков в миллисекунду
 

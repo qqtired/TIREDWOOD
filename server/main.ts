@@ -22,7 +22,7 @@ import { Store } from './store.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
-import { parseClientJson, sendServerBinary, sendServerJson } from './voice-wire.ts';
+import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -236,19 +236,23 @@ const conns = new Map<WebSocket, ConnMeta>();
 
 function onConnection(ws: WebSocket, ip: string): void {
   const meta: ConnMeta = { pulse: new Pulse(performance.now()), why: '' };
-  const sink: Sink = {
+  const sink: Sink & { sendText(text: string): void } = {
     sendBinary(data) {
       sendServerBinary(ws, data, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
     sendJson(msg) {
       sendServerJson(ws, msg, voice, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
     },
+    sendText(text) {
+      sendServerText(ws, text, () => { if (!meta.why) meta.why = 'переполнена исходящая очередь'; });
+    },
     close(code, reason) {
       if (!meta.why) meta.why = closeReason(code, reason);
       ws.close(code, reason);
     },
   };
-  const client = hub.connect(sink, ip);
+  // После возврата в прежнюю сессию (hub.resume) сообщения этого сокета идут ей — client меняется
+  let client = hub.connect(sink, ip);
   conns.set(ws, meta);
   const budget = new MsgBudget(performance.now());
 
@@ -268,6 +272,7 @@ function onConnection(ws: WebSocket, ip: string): void {
     const msg = parseClientJson(text, voice);
     if (msg === null) return;
     hub.onJson(client, msg);
+    if (client.adopted) client = client.adopted;
     startLoop();
   });
 
@@ -278,7 +283,8 @@ function onConnection(ws: WebSocket, ip: string): void {
 
   ws.on('close', (code, reason) => {
     conns.delete(ws);
-    hub.disconnect(client, meta.why || closeReason(code, reason.toString()));
+    // обрыв в игре — игрок ждёт в комнате возврата (hub.RESUME_MS); выход, флуд, замена окном — отключаем сразу
+    hub.linkLost(client, sink, meta.why || closeReason(code, reason.toString()), code);
   });
   ws.on('error', (e) => {
     if (!meta.why) meta.why = `ошибка сокета: ${String(e.message).slice(0, 80)}`;

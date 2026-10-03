@@ -26,12 +26,18 @@ const SNAPSHOT_HIGH_WATER = 512 * 1024;
 /** All JSON is control/state, not replaceable snapshots. Preserve the established call signature. */
 export function sendServerJson<T extends { t: string }>(socket: JsonSocket, message: T, _voice: boolean, onBackpressure?: () => void): void {
   if (socket.readyState !== socket.OPEN) return;
+  sendServerText(socket, JSON.stringify(message), onBackpressure);
+}
+
+/** То же для готовой строки JSON: связь сессии (link.ts) сериализует один раз и хранит строку для возврата после обрыва. */
+export function sendServerText(socket: JsonSocket, text: string, onBackpressure?: () => void): void {
+  if (socket.readyState !== socket.OPEN) return;
   if (socket.bufferedAmount >= CONTROL_HIGH_WATER) {
     onBackpressure?.();
     socket.close(1013, 'backpressure');
     return;
   }
-  socket.send(JSON.stringify(message));
+  socket.send(text);
 }
 
 /** Ordinary snapshots can be replaced. A one-shot selfReset must reach the client or force a fresh handshake. */
