@@ -75,7 +75,7 @@ test('расписание: босс каждые 7 волн по кругу (Б
   assert.equal(planWave(25, 1, 3, undefined, FEATURES).boats.length, 2, 'на супер-волне — десант');
 });
 
-test('директор: тот же вход — та же волна; новые типы знакомятся в своей волне; элита — с 18-й, чемпионы — с 30-й', () => {
+test('директор: тот же вход — та же волна; новые типы знакомятся в своей волне; элита — с 6-й, чемпионы — с 20-й', () => {
   assert.deepEqual(planWave(37, 3, 99), planWave(37, 3, 99));
   assert.notDeepEqual(planWave(37, 3, 99).spawns, planWave(37, 3, 98).spawns);
   const shield = planWave(6, 1, 1, undefined, ALL_FEATURES);
@@ -83,12 +83,13 @@ test('директор: тот же вход — та же волна; новы�
   assert.ok(planCounts(shield)[F.Z_SHIELD] >= 1);
   const armored = planWave(16, 1, 1, undefined, ALL_FEATURES);
   assert.ok(armored.card.fresh.includes(F.Z_ARMORED));
-  for (let w = 1; w < 18; w++) {
+  for (let w = 1; w < 20; w++) {
     const p = planWave(w, 1, 5);
-    // элита до 18-й — только если не хватило тел (не бывает на ранних волнах)
+    // 04.10: элита — с 6-й, чемпионы — с 20-й (раньше — только если не хватило тел, на ранних волнах не бывает)
     assert.ok(p.spawns.every((s) => s.tier !== TIER_CHAMP), `${w}`);
-    assert.ok(p.spawns.every((s) => s.tier !== TIER_ELITE), `${w}`);
+    if (w < 6) assert.ok(p.spawns.every((s) => s.tier !== TIER_ELITE), `${w}`);
   }
+  assert.ok([10, 12, 14, 16, 18].some((w) => planWave(w, 1, 5).spawns.some((s) => s.tier === TIER_ELITE)), 'элита до 18-й уже есть');
   const late = planWave(60, 4, 5);
   assert.ok(late.spawns.some((s) => s.tier === TIER_ELITE) && late.spawns.some((s) => s.tier === TIER_CHAMP));
   // карточка: фишки — это состав без босса

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CLEAN_MULT, KILL_SHARE, START_GOLD, killBounty, waveBonus } from '../shared/fortarsenal.ts';
-import { FORT_LAST_WAVE, isSuperWave, waveHardness } from '../shared/fortwaves.ts';
+import { FORT_LAST_WAVE, isSuperWave, teamEarlyBoost, waveHardness } from '../shared/fortwaves.ts';
 import {
   LOAD_TARGET, SKILLS, TARGET_WALLS, baseLoad, checkLoad, currentDirector, fitHpScale, killsOf, loadOf, scaleHp, simulate,
   startCapital, targetDirector, targetLoad, waveIncome, type Director,
@@ -28,7 +28,8 @@ test('эталонный директор: нагрузка по цели при
 test('настоящий директор игры (fort) держит нагрузку договора × жёсткость (04.10) ±15 % при 1…6 защитниках, с боссами и Кракеном', () => {
   // 04.10 владелец: «крепость лёгкая» — HP волн × waveHardness(w) поверх договора (1,6 → 2 к 100-й); финал (100-я:
   // Кракен и Барон разом) — нарочно крупнее договора, его не сверяем
-  const soft: Director = (w, n) => scaleHp(currentDirector, 1 / waveHardness(w))(w, n);
+  // прибавка начала команде (teamEarlyBoost) — тоже сверх договора; нагрузка меряется от 1-й волны, её тоже снимаем
+  const soft: Director = (w, n) => scaleHp(currentDirector, 1 / (waveHardness(w) * teamEarlyBoost(w, n)))(w, n);
   let supers = 0;
   for (let n = 1; n <= 6; n++) {
     for (const c of checkLoad(soft, n)) {

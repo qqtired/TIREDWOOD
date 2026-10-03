@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as F from '../shared/fort.ts';
 import {
-  BARREL_GATE, BARREL_SHOT_MUL, FUSE_TICKS, HEAL_EVERY, HEAL_FRAC, SPIT_DMG, SPIT_WARN_TICKS,
+  BARREL_GATE, BARREL_SHOT_MUL, BARREL_ZOMBIE, FUSE_TICKS, HEAL_EVERY, HEAL_FRAC, SPIT_DMG, SPIT_WARN_TICKS,
 } from '../shared/fortkinds.ts';
-import { ARMOR_MIN_PASS, TIER_CHAMP, TIER_ELITE, TIER_HP, armorFor, shieldHp } from '../shared/fortwaves.ts';
+import { ARMOR_MIN_PASS, TIER_CHAMP, TIER_ELITE, TIER_HP, armorFor, shieldHp, waveHpMul } from '../shared/fortwaves.ts';
 import { GATE, WALL_H } from '../shared/fortmap.ts';
 import { ZF_CARRY, ZF_SHIELD, ZF_TIER, type ZombieSnap } from '../shared/fortnet.ts';
 import { FortGame } from '../server/fort/game.ts';
@@ -65,7 +65,7 @@ test('Чугунок: тело — минус броня волны (не мен
   assert.ok(armorFor(50) > armorFor(10) * 5);
 });
 
-test('подрывник: у ворот — фитиль 3 с с меткой и взрыв по воротам; сбит раньше — рвёт своих, воротам меньше', () => {
+test('подрывник: у ворот — фитиль 3 с с меткой и взрыв по воротам; сбит раньше — своих только задевает, соседние бочки не рвёт, воротам меньше', () => {
   {
     const { game, events } = setup();
     const s = game.horde.spawn(F.Z_SAPPER, 1)!;
@@ -84,16 +84,29 @@ test('подрывник: у ворот — фитиль 3 с с меткой и
     assert.ok(events.some((e) => e[0] === 'blast' && e[1] === F.ZS_BARREL));
   }
   {
-    const { game, players } = setup();
+    const { game, players, events } = setup();
     const s = game.horde.spawn(F.Z_SAPPER, 1)!;
+    const s2 = game.horde.spawn(F.Z_SAPPER, 1)!;
     const w = game.horde.spawn(F.Z_WALKER, 1)!;
     Object.assign(s, { x: 0, z: GATE.face - 1.0 });
+    Object.assign(s2, { x: -1.0, z: GATE.face - 1.3 });
     Object.assign(w, { x: 1.2, z: GATE.face - 1.4 });
     const gate = game.gate;
+    const hp0 = w.hp;
+    const blasts = () => events.filter((e) => e[0] === 'blast' && e[1] === F.ZS_BARREL).length;
+    const before = blasts();
     game.horde.damage(s, 1e4, players[0].id, false, s.x, 0.8, s.z);
-    assert.equal(w.alive, false, 'шаркун рядом сбит бочкой');
-    assert.ok(Math.abs(gate - game.gate - BARREL_GATE * BARREL_SHOT_MUL) < 1e-6);
-    assert.ok(players[0].kills >= 2, 'сбитые бочкой — на счёт стрелка');
+    const wave = Math.max(1, (game.horde as unknown as { wave: number }).wave);
+    assert.equal(w.alive, true, 'шаркуна рядом бочка только задела');
+    assert.ok(Math.abs(hp0 - w.hp - BARREL_ZOMBIE * waveHpMul(wave)) < 1e-6, `${hp0 - w.hp}`);
+    assert.ok(BARREL_ZOMBIE * waveHpMul(wave) < 0.35 * F.ZK[F.Z_WALKER].hp * waveHpMul(wave), 'своим — около трети шаркуна');
+    assert.equal(s2.alive, true, 'соседний подрывник цел: взрывы не цепляются друг за друга');
+    assert.equal(s2.hp, s2.maxHp);
+    assert.ok(Math.abs(gate - game.gate - BARREL_GATE * BARREL_SHOT_MUL) < 1e-6, 'воротам — как раньше, один раз');
+    assert.equal(players[0].kills, 1, 'сбит только подрывник');
+    game.step();
+    game.step();
+    assert.equal(blasts() - before, 1, 'одна бочка — один взрыв');
   }
 });
 

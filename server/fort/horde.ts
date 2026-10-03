@@ -610,10 +610,10 @@ export class Horde {
         if (Math.hypot(p.x - b.x, p.y - b.y, p.z - b.z) < BARREL_R
           && !host.traceAttack(b.x, y, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, this.dmgOf(b, BARREL_PLAYER));
       }
-      // своим — полной мерой: сбить подрывника в толпе — лучший выстрел волны
+      // своим — слабо (BARREL_ZOMBIE), и соседних подрывников не трогает: один взрыв не рвёт остальные бочки
       const hit = BARREL_ZOMBIE * waveHpMul(Math.max(1, this.wave));
       for (const o of this.zombies) {
-        if (!o.alive || o === b) continue;
+        if (!o.alive || o === b || o.kind === Z_SAPPER) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= BARREL_R) continue;
         if (host.traceAttack(b.x, y, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
         o.hp -= isBossKind(o.kind) ? hit * BOSS_ARMOR : hit;
