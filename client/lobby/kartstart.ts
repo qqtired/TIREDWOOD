@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { KART_START } from '../../shared/maps/lobby.ts';
 import type { KartStatus } from '../../shared/messages.ts';
+import { botsWord } from '../../shared/solobots.ts';
 import { KartBoard } from './boards.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
@@ -109,7 +110,8 @@ export class KartStart {
     this.num.visible = counting;
     if (!counting) return;
     const text = String(this.left);
-    const sub = `гонщиков: ${Math.min(this.st.n, 6)} из 6`;
+    const racers = Math.min(this.st.n, 6);
+    const sub = `гонщиков: ${racers} из 6 · ${botsWord(racers)}`;
     if (text + sub !== this.numShown) {
       if (!this.numShown.startsWith(text)) this.numAt = time;
       this.numShown = text + sub;
