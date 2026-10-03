@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PHASE_END, PHASE_PLAY, PHASE_WARMUP, TICK_RATE } from '../shared/constants.ts';
-import { FC_FIGHTERS, type FcMode } from '../shared/fight.ts';
+import { FC_CHECK_EVERY, FC_CIRCLE, FC_COUNT_TICKS, FC_FIGHTERS, type FcMode } from '../shared/fight.ts';
 import { RC_GRID, RC_MAX_KARTS, RC_MIN_KARTS } from '../shared/kart.ts';
 import { KART_CHECK_EVERY, KART_COUNT_TICKS } from '../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, KART_START } from '../shared/maps/lobby.ts';
@@ -159,6 +159,24 @@ test('пейнтбол: бой уже идёт — боты доигрывают
   assert.equal(pbBots(g), 7, 'один остался посреди боя — боты сразу вернулись, не пустая площадка');
 });
 
+test('пейнтбол через хаб: один зашёл — боты; второй зашёл в разминку — ботов нет; второй вышел — боты вернулись', () => {
+  const { hub } = setupHub();
+  const [a, b] = [login(hub, 'PbOne'), login(hub, 'PbTwo')];
+  const game = hub.paintball.game;
+  assert.ok(hub.move(a.c, hub.paintball, true));
+  steps(hub, 30);
+  assert.equal(pbBots(game), 7);
+  assert.ok(hub.move(b.c, hub.paintball, true));
+  steps(hub, 30);
+  assert.equal(game.phase, PHASE_WARMUP, 'разминка ещё идёт');
+  assert.equal(pbBots(game), 0);
+  assert.equal(game.players.size, 2);
+  assert.ok(hub.move(b.c, hub.lobby, true));
+  assert.equal(pbBots(game), 7);
+  assert.ok(hub.move(a.c, hub.lobby, true));
+  assert.equal(game.players.size, 0, 'в пустой комнате ботов нет');
+});
+
 test('пейнтбол: /bots вдвоём ничего не меняет и говорит почему, в одиночку работает', () => {
   const g = new Game();
   const sink = fakeSink();
@@ -194,6 +212,20 @@ test('Fight Club: боец-человек один — боты добирают
     const g = fcGame(mode, humans);
     assert.equal(fcBots(g), bots, `${mode}, людей ${humans}`);
     assert.equal(g.fighters, humans + bots);
+  }
+});
+
+test('Fight Club через набережную: один в круге — внизу бот; двое — только они', () => {
+  for (const [n, bots] of [[1, 1], [2, 0]] as const) {
+    const { hub } = setupHub({ fight: true });
+    const who = Array.from({ length: n }, (_, i) => login(hub, `Fc${n}x${i}`));
+    who.forEach((w, i) => placeAt(hub, w.c, FC_CIRCLE.x + i * 0.6, FC_CIRCLE.z));
+    steps(hub, FC_COUNT_TICKS + 2 * FC_CHECK_EVERY);
+    const g = hub.fight!.game;
+    assert.ok(g && g.started, `${n} в круге — бой начался`);
+    assert.equal(fcBots(g), bots, `${n} в круге — ботов ${bots}`);
+    assert.equal(g.fighters, n + bots);
+    assert.ok(who.every((w) => w.c.room === hub.fight));
   }
 });
 

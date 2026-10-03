@@ -8,7 +8,7 @@ export function botsAllowed(humans: number): boolean {
 }
 
 /** Правило одной фразой — для табличек и подсказок. */
-export const BOTS_RULE = 'боты — только если ты один';
+export const BOTS_RULE = 'боты — только соло';
 
 /** «с ботами» или «без ботов» для такого числа людей (0 — пока никого, тогда правило). */
 export function botsWord(humans: number): string {
