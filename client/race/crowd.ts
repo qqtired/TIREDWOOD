@@ -305,7 +305,13 @@ export function buildGrandstand(scene: THREE.Scene, solid: THREE.BufferGeometry[
   const topY = y0 + 0.5 + RISE * ROWS;
   {
     const [x, z] = P(mid, back);
-    box(0.4, topY + 3 - bottom, L, x, (topY + 3 + bottom) / 2, z, 0xd6dbe2);
+    box(0.4, topY + 3 - bottom, L, x, (topY + 3 + bottom) / 2, z, 0xf1e6cc);
+    // изнанка трибуны: крашеная полоса с белой и красной каймой, чтобы сзади не было голой серой стены
+    const [bx, bz] = P(mid, back + 0.23);
+    const band = (topY + bottom) / 2 + 1.2;
+    box(0.06, 1.3, L - 0.8, bx, band, bz, 0x2f8fe0);
+    box(0.06, 0.22, L - 0.8, bx, band + 0.86, bz, 0xffffff);
+    box(0.06, 0.22, L - 0.8, bx, band - 0.86, bz, 0xe8423a);
   }
   const roofY = topY + 3.6;
   const posts = Math.max(2, Math.round(L / 9));

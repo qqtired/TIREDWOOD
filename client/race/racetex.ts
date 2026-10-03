@@ -291,16 +291,17 @@ export function grassTexture(striped: boolean): THREE.CanvasTexture {
   const S = 512;
   const [c, ctx] = canvas(S, S);
   const rng = makeRng(striped ? 401 : 409);
-  ctx.fillStyle = '#72b44e';
+  // тёплая оливково-зелёная, как на арте набережной (не салатовая)
+  ctx.fillStyle = '#80a84c';
   ctx.fillRect(0, 0, S, S);
   if (striped) {
     for (let k = 0; k < 4; k += 2) {
-      ctx.fillStyle = 'rgba(30,80,20,0.15)';
+      ctx.fillStyle = 'rgba(40,70,20,0.14)';
       ctx.fillRect(0, (k * S) / 4, S, S / 4);
     }
   }
-  spots(ctx, S, S, 26, 30, 90, 'rgba(62,118,40,1)', 0.38, rng);
-  spots(ctx, S, S, 16, 20, 70, 'rgba(160,200,100,1)', 0.25, rng);
+  spots(ctx, S, S, 26, 30, 90, 'rgba(78,112,44,1)', 0.38, rng);
+  spots(ctx, S, S, 16, 20, 70, 'rgba(196,196,104,1)', 0.25, rng);
   for (let i = 0; i < 9000; i++) {
     const x = rng() * S;
     const y = rng() * S;

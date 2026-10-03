@@ -174,7 +174,7 @@ export class RaceWorld {
     // --- окружение трассы
     this.festive = new Festive(scene, makeRng(91));
     if (this.theme === 'hills') {
-      this.hills = new HillsScene({ scene, track: tr, layout: this.layout, solid: this.solid, box: b, festive: this.festive, rng: makeRng(53), lite });
+      this.hills = new HillsScene({ scene, track: tr, layout: this.layout, solid: this.solid, box: b, festive: this.festive, rng: makeRng(53), lite, deco: this.deco });
     } else {
       this.harbor = new HarborScene({
         scene, ring: this.ring, track: tr, rx: this.rx, rz: this.rz, layout: this.layout, solid: this.solid, deco: this.deco,

@@ -9,6 +9,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
 import type { Deck } from '../../shared/hazards.ts';
 import { hillsFountain } from '../../shared/maps/hills.ts';
+import type { Deco } from '../../shared/maps/types.ts';
 import type { Track } from '../../shared/track.ts';
 import { buildGeo, paint, parts, place, staticMesh, type GeoParts, type V3 } from '../render/kit.ts';
 import * as tex from '../render/textures.ts';
@@ -197,6 +198,8 @@ export interface HillsCtx {
   rng: () => number;
   /** Телефон: меньше деревьев, лоз и зрителей */
   lite: boolean;
+  /** Декор карты (лодки, буи) — мир строит его общим кодом */
+  deco: Deco[];
 }
 
 interface Drop {
@@ -246,6 +249,76 @@ export class HillsScene {
     this.buildVineyard();
     this.buildTrees();
     this.buildShortcutSign();
+    this.buildFarTown();
+    this.buildSea();
+  }
+
+  /** Городок на склоне гор на западе: белые дома с черепицей ярусами и колокольня (вид издали, как на арте) */
+  private buildFarTown(): void {
+    const rng = this.c.rng;
+    const b = this.c.box;
+    const roof = parts();
+    const out = this.c.solid;
+    const wc = new THREE.Color(1, 1, 1);
+    const n = this.c.lite ? 40 : 75;
+    for (let k = 0; k < n; k++) {
+      const x = b.x0 - 25 - rng() * 110;
+      const z = -150 + rng() * 230;
+      const w = 5 + rng() * 4;
+      const d = 5 + rng() * 3;
+      const h = 4 + rng() * 4;
+      const ry = (rng() < 0.5 ? 0 : Math.PI / 2) + (rng() - 0.5) * 0.3;
+      let base = Infinity;
+      for (const [dx, dz] of [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]) base = Math.min(base, naturalHeight(x + dx, z + dz));
+      if (base < 1) continue;
+      const color = WALLS[Math.floor(rng() * WALLS.length)];
+      out.push(place(paint(new THREE.BoxGeometry(w, h + 3, d), color), x, base + (h - 3) / 2, z, ry));
+      // скаты крыши вдоль длинной стороны
+      const ax = Math.cos(ry);
+      const az = -Math.sin(ry);
+      const nx = Math.sin(ry);
+      const nz = Math.cos(ry);
+      const rise = d * 0.28;
+      const P = (u: number, y: number, v: number): V3 => [x + ax * u + nx * v, base + y, z + az * u + nz * v];
+      for (const v of [-1, 1]) {
+        face(roof, P(-w / 2 - 0.3, h - 0.15, v * (d / 2 + 0.3)), P(w / 2 + 0.3, h - 0.15, v * (d / 2 + 0.3)), P(w / 2 + 0.3, h + rise, 0), P(-w / 2 - 0.3, h + rise, 0), [nx * v * 0.5, 1, nz * v * 0.5], [0, 0, (w + 0.6) / 2, 0, (w + 0.6) / 2, d / 3, 0, d / 3], same(wc));
+      }
+      const gable = new THREE.BufferGeometry();
+      const tri: number[] = [];
+      for (const u of [-w / 2, w / 2]) tri.push(...P(u, h, -d / 2), ...P(u, h, d / 2), ...P(u, h + rise - 0.05, 0), ...P(u, h, -d / 2), ...P(u, h + rise - 0.05, 0), ...P(u, h, d / 2));
+      gable.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3));
+      gable.computeVertexNormals();
+      out.push(paint(gable, color));
+    }
+    // колокольня над городком
+    const tx = b.x0 - 70;
+    const tz = -40;
+    const ty = naturalHeight(tx, tz);
+    out.push(place(paint(new THREE.BoxGeometry(4.2, 22, 4.2), 0xf3e6c9), tx, ty + 9, tz));
+    out.push(place(paint(new THREE.BoxGeometry(4.6, 0.5, 4.6), 0xd8c8a8), tx, ty + 17, tz));
+    out.push(place(paint(new THREE.ConeGeometry(3.4, 5, 4).rotateY(Math.PI / 4), 0xc0603a), tx, ty + 22.5, tz));
+    if (roof.idx.length) this.c.scene.add(staticMesh(buildGeo(roof), new THREE.MeshStandardMaterial({ map: roofTexture(), vertexColors: true, roughness: 0.8 }), false));
+  }
+
+  /** Море на юге: парусники и лодки у пляжа, буи; маяк на скале на востоке */
+  private buildSea(): void {
+    const rng = this.c.rng;
+    const b = this.c.box;
+    const colors = [0xf2efe6, 0x2f5f8f, 0xc9a03a, 0x8f3b2f, 0x3f7f6a];
+    for (let k = 0; k < 7; k++) {
+      const x = b.x0 + 40 + rng() * (b.x1 - b.x0 - 80);
+      const z = 232 + rng() * 70;
+      this.c.deco.push({ kind: 'boat', x, z, yaw: rng() * Math.PI * 2, color: colors[k % colors.length] });
+    }
+    for (let k = 0; k < 6; k++) this.c.deco.push({ kind: 'buoy', x: b.x0 + 60 + k * ((b.x1 - b.x0 - 120) / 5), z: 222, color: k % 2 ? 0xc0392b : 0xf2efe6 });
+    const lx = b.x1 + 30;
+    const lz = 236;
+    const out = this.c.solid;
+    out.push(place(paint(new THREE.CylinderGeometry(7, 9, 4, 9), 0x9a948a), lx, WATER_Y + 1, lz));
+    out.push(place(paint(new THREE.CylinderGeometry(1.6, 2.1, 12, 16), 0xf6f3ec), lx, WATER_Y + 9, lz));
+    for (const y of [5.5, 9.5]) out.push(place(paint(new THREE.CylinderGeometry(1.75, 1.85, 1.6, 16), 0xd23b30), lx, WATER_Y + y, lz));
+    out.push(place(paint(new THREE.CylinderGeometry(1.3, 1.3, 1.6, 12), 0xfff2c0), lx, WATER_Y + 15.8, lz));
+    out.push(place(paint(new THREE.ConeGeometry(1.8, 1.8, 12), 0xd23b30), lx, WATER_Y + 17.5, lz));
   }
 
   /** Высота земли под точкой */
@@ -374,7 +447,7 @@ export class HillsScene {
   vec4 gTex = texture2D( map, vMapUv );
   vec4 sTex = texture2D( uSandMap, vMapUv * 1.4 );
   // трава чуть ярче к свету; песок — тёплый, чистый
-  diffuseColor *= mix( gTex * vec4( 0.92, 0.96, 0.84, 1.0 ), sTex * vec4( 1.02, 0.98, 0.92, 1.0 ), smoothstep( 0.0, 1.0, vSand ) );
+  diffuseColor *= mix( gTex * vec4( 0.96, 0.96, 0.84, 1.0 ), sTex * vec4( 1.02, 0.98, 0.92, 1.0 ), smoothstep( 0.0, 1.0, vSand ) );
 #endif`);
     };
     m.customProgramCacheKey = () => 'race-hills-terrain';
