@@ -10,6 +10,7 @@ import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { reelRun, reelStart } from '../shared/fishreel.ts';
 import { COLLECTION, NEW_BONUS2, REWARD_ITEMS, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { earnedItems } from '../shared/fishstyle.ts';
 import { Hub, type Room } from '../server/hub.ts';
 import { type FishingHall2 } from '../server/lobby/fishing2.ts';
 import type { WeatherMode } from '../server/lobby/weather.ts';
@@ -443,7 +444,8 @@ test('32 вида: прежние30 не завершают коллекцию; 
   playHonest(e, play);
   assert.equal(lastOf(e.a.s, 'fishLand')!.got, 30);
   assert.equal(lastOf(e.a.s, 'fishLand')!.full, false);
-  assert.equal(p.owned.length, 0);
+  // лестница коллекции (shared/fishstyle.ts): за 30 видов — всё до сета «Капитан баркаса», финал — за все
+  assert.deepEqual(p.owned, earnedItems(30));
   const weights = [300];
   for (const [species, got] of [[sp('bluemarlin'), 31], [sp('greenlandshark'), 32]]) {
     const g = FISH[species].g[1];

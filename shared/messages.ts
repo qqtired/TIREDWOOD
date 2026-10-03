@@ -344,7 +344,9 @@ export type LobbyEvent =
   // отдал честь у статуи (кто), сколько всего раз отдавали
   | ['respect', number, number]
   // аквапарк: вертушка или мешок сбили (где: x, z; кто)
-  | ['aqhit', number, number, number];
+  | ['aqhit', number, number, number]
+  // рыбак собрал все виды — «Хозяин глубин»: фанфары и золотые искры у него (кто)
+  | ['fishMaster', number];
 
 export type ErrorCode = 'version' | 'need_nick' | 'nick_taken' | 'bad_nick' | 'bad_code' | 'bad_key' | 'replaced' | 'full' | 'rate';
 
@@ -443,7 +445,7 @@ export type ServerMsg =
   | { t: 'fishReel'; spot: number; sp: number; seed: number; mods: FishCastMods }
   // рыбалка 2.0: вытащил (сервер повторил вываживание): цена (сундук — что в нём, coins), бонус за новый вид, рекорд
   // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full)
-  | { t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean }
+  | { t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean; rw?: string[] }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }
   // line — выигравшая строка таблицы выплат автомата m (−1 — ничего)
