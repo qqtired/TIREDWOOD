@@ -323,8 +323,10 @@ export type RaceEvent =
   | ['crate', number, number]
   // кто, какой бонус применил
   | ['item', number, number]
-  | ['pulse', number, number[]]
-  | ['shield', number, number]
+  // хлопок: кто, кого закрутило
+  | ['clap', number, number[]]
+  // лопнул пузырь: у кого, от кого (0 — кончился сам)
+  | ['pop', number, number]
   // банка, кто наехал (0 — пропала)
   | ['jam', number, number]
   // кто бросил краску, в кого (0 — некому)

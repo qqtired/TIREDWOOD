@@ -26,7 +26,7 @@ import { DEFAULT_OUTFIT, itemById, sameOutfit, withItem } from '../../shared/out
 import { gearOnly } from '../../shared/fishstyle.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
-import { isRaceTrackId, RACE_TRACKS, type RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { inStartCircle, START_DWELL_TICKS, START_ZONES, type StartZoneKind } from '../../shared/startzones.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { pirateInput, piratePush } from '../../shared/pirates.ts';
@@ -138,7 +138,7 @@ export class LobbyRoom implements Room {
   private readonly starts = new Map<LobbyPlayer, { armed: boolean; zone: StartZoneKind | null; since: number; shown: string }>();
   /** Тик конца отсчёта до гонки (0 — отсчёта нет) */
   private kartCountEnd = 0;
-  private kartTrack: RaceTrackId = 'port';
+  private kartTrack: RaceTrackId = DEFAULT_TRACK;
   private kartShown = '';
   /** Табло: последние разосланные позиции картов строкой — шлём, только если поменялись */
   private kposShown = '';
@@ -394,7 +394,7 @@ export class LobbyRoom implements Room {
     this.boatQueue?.drop(p);
     this.hideQueue?.drop(p);
     this.starts.delete(p);
-    if (!this.circle.size) { this.kartTrack = 'port'; this.kartCountEnd = 0; }
+    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
     this.fc?.drop(p);
     this.byClient.delete(c);
     this.players.delete(p.slot);
@@ -583,7 +583,7 @@ export class LobbyRoom implements Room {
         this.hub.move(c, this.hub.paintball);
         return;
       case 'garage':
-        this.chooseKartTrack(p, this.kartTrack === 'port' ? 'foundry' : 'port');
+        this.chooseKartTrack(p, nextRaceTrack(this.kartTrack));
         return;
       case 'skill':
         if (!this.hub.skill) return;
@@ -1382,7 +1382,7 @@ export class LobbyRoom implements Room {
   private syncKartCircle(): void {
     syncCircleMembers(this.circle, this.players.values(), p =>
       !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen && inStartCircle(p.state, KART_START));
-    if (!this.circle.size) { this.kartTrack = 'port'; this.kartCountEnd = 0; }
+    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
   }
 
   private chooseKartTrack(p: LobbyPlayer, track: unknown): void {
@@ -1398,7 +1398,7 @@ export class LobbyRoom implements Room {
       const status = this.kartStatus();
       this.kartShown = JSON.stringify(status);
       this.broadcast({ t: 'kart', ...status });
-      this.hub.toast(p.client, `Выбрана трасса «${RACE_TRACKS.find(t => t.id === track)!.name}». E — сменить.`);
+      this.hub.toast(p.client, `Выбрана трасса «${raceTrackName(track)}». E — сменить.`);
     }
   }
 

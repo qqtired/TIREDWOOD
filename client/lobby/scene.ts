@@ -32,6 +32,7 @@ import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS,
 import { FISH_SPOTS } from '../../shared/fishplaces.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
+import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
 import { clamp } from '../../shared/math.ts';
 import type { AquaRow, BoatStatus, DurakSeatView, DurakTableView, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -1581,7 +1582,7 @@ export class LobbyScene implements Scene {
     }
     const kart = this.world.kartStart.status;
     if (kart.phase === 'count' && kart.hostId === this.myId && this.kartDist() <= KART_START.r) {
-      this.d.net.send({ t: 'kartTrack', track: kart.track === 'foundry' ? 'port' : 'foundry' });
+      this.d.net.send({ t: 'kartTrack', track: nextRaceTrack(kart.track ?? DEFAULT_TRACK) });
       return;
     }
     const it = this.target;
@@ -2188,7 +2189,7 @@ export class LobbyScene implements Scene {
     else if (st.names.indexOf(this.d.ui.me().nick) >= RC_MAX_KARTS) text = 'Мест нет — поедешь в следующий заезд';
     else text = `Старт через ${ks.left} с · гонщиков: ${Math.min(st.n, RC_MAX_KARTS)}`;
     const canChoose = inside && st.phase === 'count' && st.hostId === this.myId;
-    const track = st.track === 'foundry' ? '2 — Литейный вираж' : '1 — Портовое кольцо';
+    const track = raceTrackLabel(st.track);
     this.hud.setHint(canChoose ? ['E'] : [], `${text} · ${track}${canChoose ? ' · сменить трассу' : st.phase === 'count' && st.hostNick ? ` · выбирает ${st.hostNick}` : ''}`);
   }
 
@@ -2309,7 +2310,7 @@ export class LobbyScene implements Scene {
         break;
       case 'garage':
         if (this.world.kartStart.status.hostId === this.myId) {
-          this.hud.setHint(['E'], `выбрать трассу · ${this.world.kartStart.status.track === 'foundry' ? '2 — Литейный вираж' : '1 — Портовое кольцо'}`);
+          this.hud.setHint(['E'], `выбрать трассу · ${raceTrackLabel(this.world.kartStart.status.track)}`);
         } else this.hud.setHint([], this.world.kartStart.status.hostNick ? `Трассу выбирает ${this.world.kartStart.status.hostNick}` : 'Встань первым в круг — выбери трассу');
         break;
       case 'honor':

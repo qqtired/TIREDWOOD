@@ -20,6 +20,7 @@ import {
   type Mover,
 } from '../shared/hazards.ts';
 import {
+  BOOST_TURBO,
   GHOST_TICKS,
   HIT_SLOW_TICKS,
   HIT_SPIN_TICKS,
@@ -41,10 +42,14 @@ const inp = makeInput();
 const ev = makeKartEvents();
 const loc = makeLoc();
 
-/** Трасса кольца только с этими помехами: физику каждой проверяем отдельно от раскладки */
+/**
+ * Трасса кольца только с этими помехами, ровная и без трамплинов: физику каждой проверяем отдельно от раскладки,
+ * на северном причале (нога 8 — прямая на запад длиной ~174 м)
+ */
 function mini(spec: HazardSpec): Track {
-  return buildTrack({ ...RING, hazards: spec });
+  return buildTrack({ ...RING, ramps: [], heights: [], hazards: spec });
 }
+const L = 8;
 
 /** Карт на ноге leg трассы t: курс по ноге, скорость v, время гонки rt; КТ — последняя перед ним */
 function kartAt(t: Track, leg: number, at: number, lat: number, v: number, rt = 0): KartState {
@@ -268,7 +273,8 @@ test('контейнер на рельсах: выехавший на дорог
 test('подвижные помехи бьют не всегда и не никогда: в одних фазах проезд свободен, в других — удар', () => {
   for (const m of hz.movers) {
     const l = locateAny(tr, m.cx, m.cz, loc);
-    const lat = m.kind === MV_SPIN ? -0.3 : 0;
+    // вертушку объезжаем в 2,5 м от оси: бьёт только лопасть, когда смотрит в нашу полосу
+    const lat = m.kind === MV_SPIN ? l.lat + 2.5 : 0;
     let hits = 0;
     let total = 0;
     for (let rt0 = 0; rt0 < m.period; rt0 += Math.max(2, Math.round(m.period / 45))) {
@@ -286,14 +292,14 @@ test('подвижные помехи бьют не всегда и не ник�
 // ------------------------------------------------------------ ускорители, лужи, бочки и блоки
 
 test('ускоритель: наезд — событие dash и турбо на 50 тиков, разгон за обычный потолок; стоять на нём — одно событие', () => {
-  const t = mini({ pads: [{ leg: 0, at: 100, len: 7, w: 4 }] });
+  const t = mini({ pads: [{ leg: L, at: 60, len: 7, w: 4 }] });
   const pad = t.hz.pads[0];
-  const k = kartAt(t, 0, 92, 0, 12);
+  const k = kartAt(t, L, 52, 0, 12);
   let dash = -1;
   for (let i = 0; i < 80 && dash < 0; i++) if (step(t, k).dash) dash = i;
   assert.ok(dash > 10 && dash < 40, `наехал на тике ${dash}`);
   assert.equal(k.boostT, PAD_TICKS);
-  assert.equal(k.boostLvl, 3);
+  assert.equal(k.boostLvl, BOOST_TURBO);
   assert.ok(Math.hypot(k.x - pad.x, k.z - pad.z) < 4.5);
   let top = 0;
   for (let i = 0; i < 60; i++) {
@@ -305,13 +311,13 @@ test('ускоритель: наезд — событие dash и турбо н�
   assert.equal(k.boostT, 0);
   assert.ok(speed(k) <= 22.0001 && speed(k) > 20, `после турбо скорость ${speed(k)}`);
   // стоит на пластине без газа — одно событие, дальше сам разгоняется
-  const s = kartAt(t, 0, 100, 0, 0);
+  const s = kartAt(t, L, 60, 0, 0);
   let n = 0;
   for (let i = 0; i < 30; i++) if (step(t, s, 0).dash) n++;
   assert.equal(n, 1);
   assert.ok(speed(s) > 10, `без газа разгоняется на пластине: ${speed(s)}`);
   // мимо пластины — ничего
-  const away = kartAt(t, 0, 80, 5, 12);
+  const away = kartAt(t, L, 40, -4, 12);
   for (let i = 0; i < 60; i++) assert.equal(step(t, away).dash, false);
   assert.ok(speed(away) <= 22.0001, 'без ускорителя потолок прежний');
 });
@@ -319,13 +325,13 @@ test('ускоритель: наезд — событие dash и турбо н�
 test('лужи: вода — боковая скорость гаснет медленнее (0,09), масло — почти не гаснет (0,02); событие slick 1 и 2', () => {
   const t = mini({
     slicks: [
-      { leg: 0, at: 60, lat: 0, kind: 'oil', rl: 4.5, rw: 3 },
-      { leg: 0, at: 160, lat: 0, kind: 'water', rl: 4.5, rw: 3 },
+      { leg: L, at: 60, lat: 0, kind: 'oil', rl: 4.5, rw: 3 },
+      { leg: L, at: 160, lat: 0, kind: 'water', rl: 4.5, rw: 3 },
     ],
   });
   /** Боковая скорость после 10 тиков, начав с 5 м/с вбок: в центре лужи или (контроль) на чистом асфальте */
   const lateral = (at: number): { v: number; code: number } => {
-    const k = kartAt(t, 0, at, 0, 14);
+    const k = kartAt(t, L, at, 0, 14);
     k.vz += 5;
     let code = 0;
     for (let i = 0; i < 10; i++) code = Math.max(code, step(t, k).slick);
@@ -342,7 +348,7 @@ test('лужи: вода — боковая скорость гаснет мед
   assert.ok(Math.abs(oil.v / 5 - 0.98 ** 10) < 0.04, `масло: осталось ${oil.v / 5}`);
   assert.ok(asphalt.v < water.v && water.v < oil.v);
   // на масле руль почти не поворачивает скорость: за 1 с с рулём влево карт всё ещё едет почти прямо
-  const k = kartAt(t, 0, 57, 0, 14);
+  const k = kartAt(t, L, 57, 0, 14);
   const z0 = k.z;
   for (let i = 0; i < 20; i++) step(t, k, BTN_FORWARD | BTN_LEFT);
   assert.ok(Math.abs(k.z - z0) < 2, `снос на масле ${Math.abs(k.z - z0)}`);
@@ -350,11 +356,11 @@ test('лужи: вода — боковая скорость гаснет мед
 
 test('бочка и бетонный блок: сквозь не проехать, скорость падает, событие hit (hitKind 0 и 1), не закручивают; призрак проезжает', () => {
   const t = mini({
-    barrels: [{ leg: 0, at: 100, lat: 0 }],
-    blocks: [{ leg: 0, at: 200, lat: 0, len: 5, wid: 1.1, yaw: Math.PI / 2 }],
+    barrels: [{ leg: L, at: 60, lat: 0 }],
+    blocks: [{ leg: L, at: 150, lat: 0, len: 5, wid: 1.1, yaw: Math.PI / 2 }],
   });
   const barrel = t.hz.solids[0];
-  const k = kartAt(t, 0, 88, 0, 20);
+  const k = kartAt(t, L, 48, 0, 20);
   const before = speed(k);
   let hit = 0;
   let minD = Infinity;
@@ -371,7 +377,7 @@ test('бочка и бетонный блок: сквозь не проехат�
 
   const blk = t.hz.solids[1];
   assert.equal(blk.kind, 1);
-  const b = kartAt(t, 0, 188, 0, 18);
+  const b = kartAt(t, L, 138, 0, 18);
   let bh = 0;
   for (let i = 0; i < 40; i++) {
     const e = step(t, b);
@@ -383,21 +389,22 @@ test('бочка и бетонный блок: сквозь не проехат�
   assert.equal(b.spinT, 0);
 
   // призрак (после возврата на КТ, когда уже едет): тот же наезд на бочку — насквозь, без ударов
-  const gh = kartAt(t, 0, 88, 0, 20);
+  const gh = kartAt(t, L, 48, 0, 20);
   gh.ghostT = GHOST_TICKS - 40;
   for (let i = 0; i < 40; i++) assert.equal(step(t, gh).hit, 0);
-  assert.ok(gh.x > barrel.ax, 'призрак проехал бочку');
+  assert.ok(gh.x < barrel.ax, 'призрак проехал бочку');
 });
 
 test('настил: высота по склону; на нём карт едет над водой и взлетает с края', () => {
-  // настил после конца ноги 0 не бывает, поэтому ставим его на дорогу: подъём 0 → 1,5 м на 10 м, дальше дорога
-  const t = mini({ decks: [{ leg: 0, at: 100, len: 10, w: 8, y0: 0, y1: 1.5 }] });
-  const g = t.legs[0];
-  assert.equal(deckAt(t.hz, g.x + 95, g.z), 0);
-  assert.ok(Math.abs(deckAt(t.hz, g.x + 100, g.z) - 0.75) < 1e-9, 'середина настила');
-  assert.equal(deckAt(t.hz, g.x + 105.5, g.z), NO_DECK);
-  assert.equal(deckAt(t.hz, g.x + 100, g.z + 4.5), NO_DECK);
-  const k = kartAt(t, 0, 85, 0, 20);
+  // настил прямо на дороге: подъём 0 → 1,5 м на 10 м, дальше дорога
+  const t = mini({ decks: [{ leg: L, at: 100, len: 10, w: 8, y0: 0, y1: 1.5 }] });
+  const g = t.legs[L];
+  const p = (at: number, lat = 0): [number, number] => [g.x + g.dx * at - g.dz * lat, g.z + g.dz * at + g.dx * lat];
+  assert.equal(deckAt(t.hz, ...p(95)), 0);
+  assert.ok(Math.abs(deckAt(t.hz, ...p(100)) - 0.75) < 1e-9, 'середина настила');
+  assert.equal(deckAt(t.hz, ...p(105.5)), NO_DECK);
+  assert.equal(deckAt(t.hz, ...p(100, 4.5)), NO_DECK);
+  const k = kartAt(t, L, 85, 0, 20);
   let maxY = 0;
   for (let i = 0; i < 60; i++) {
     step(t, k);
@@ -408,47 +415,46 @@ test('настил: высота по склону; на нём карт еде�
 
 // ------------------------------------------------------------ срезка через бухту
 
-test('срезка через бухту: прямо по настилу — ускоритель, прыжок, посадка на дорогу и КТ 5–7 по порядку; мимо ускорителя — вода', () => {
+test('срезка через бухту: прямо по настилу — ускоритель, прыжок через воду, посадка на дорогу и КТ 3; правее ускорителя — вода', () => {
   const pad = hz.pads[3];
   assert.ok(deckAt(hz, pad.x, pad.z) !== NO_DECK, 'ускоритель срезки на настиле');
-  // настил: сначала ровный, потом подъём на 2 м
+  // настил продолжает верх мыса на запад: ровный (x 106…90), дальше подъём на 2 м до x 76, за краем — бухта
   assert.equal(deckAt(hz, 100, -62), 0);
-  assert.equal(deckAt(hz, 90, -62), 0);
+  assert.equal(deckAt(hz, 91, -62), 0);
   assert.ok(Math.abs(deckAt(hz, 76.1, -62) - 2) < 0.05, 'край настила на 2 м');
   assert.equal(deckAt(hz, 75.9, -62), NO_DECK, 'за краем — пусто');
   assert.equal(deckAt(hz, 100, -62 - 5.5), NO_DECK, 'сбоку от настила — пусто');
 
-  const k = kartAt(tr, 2, 0, 0, 16);
-  k.cp = 4;
+  const k = kartAt(tr, 4, 0, 0, 16);
+  assert.equal(k.cp, 2);
   const cps: number[] = [];
   let dash = 0;
   let splash = false;
   let landed = false;
   let t = 0;
-  for (; t < 400 && !splash && k.cp < 7; t++) {
+  for (; t < 400 && !splash && k.cp < 3; t++) {
     const e = step(tr, k);
     if (e.dash) dash++;
     if (e.splash) splash = true;
     if (e.land > 0.5) landed = true;
     if (e.cp) cps.push(k.cp);
-    if (!landed && !splash) assert.equal(k.cp, 4, 'до приземления КТ срезки не засчитываются');
+    if (!landed && !splash) assert.equal(k.cp, 2, 'до приземления КТ не засчитываются');
   }
   assert.ok(!splash, 'упал в бухту');
   assert.equal(dash, 1, 'ускоритель на настиле');
-  assert.deepEqual(cps, [5, 6, 7]);
+  assert.deepEqual(cps, [3]);
   assert.ok(landed);
-  // срезка короче: по дороге от начала ноги 2 до КТ 7 — около 200 м, это дольше 9 с на полной скорости
-  const leg2 = tr.leg.findIndex((l) => l === 2);
-  const via = tr.s[tr.cpSeg[7]] - tr.s[leg2];
-  assert.ok(via > 190, `по дороге до КТ 7 ${via} м`);
-  assert.ok(t < ((via / 22) * 60) / 2, `по настилу КТ 7 за ${t} тиков, по дороге не быстрее ${Math.round((via / 22) * 60)}`);
+  // срезка короче вдвое: по дороге вокруг бухты до КТ 3 — больше 190 м
+  const from = locateAny(tr, tr.legs[4].x, tr.legs[4].z, loc).seg;
+  const via = tr.s[tr.cpSeg[3]] - tr.s[from];
+  assert.ok(via > 190, `по дороге до КТ 3 ${via} м`);
+  assert.ok(t < ((via / 22) * 60) / 2, `по настилу КТ 3 за ${t} тиков, по дороге не быстрее ${Math.round((via / 22) * 60)}`);
 
-  // тот же заезд, но правее ускорителя: недолёт, вода, возврат на КТ перед срезкой — а не на КТ 6 за бухтой
-  const w = kartAt(tr, 2, 0, 3, 22);
-  w.cp = 4;
+  // правее ускорителя: без разгона мимо края настила — вода, возврат на КТ перед срезкой
+  const w = kartAt(tr, 4, 0, 3, 22);
   let fell = false;
   for (let i = 0; i < 400 && !fell; i++) fell = step(tr, w).splash;
   assert.ok(fell, 'правее ускорителя — упал в воду');
-  assert.equal(w.cp, 4);
-  assert.equal(w.seg, tr.cpSeg[4]);
+  assert.equal(w.cp, 2);
+  assert.equal(w.seg, tr.cpSeg[2]);
 });

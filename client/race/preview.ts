@@ -1,4 +1,4 @@
-// ?track=foundry selects the second course for local acceptance. Default preview remains the legacy port.
+// ?track=hills — «Солнечный серпантин» (по умолчанию — «Портовое кольцо», harbor).
 // Предпросмотр «Портового кольца» для разработки: открывается только сервером разработки (/tools/race-preview/),
 // в сборку не входит. Гонка идёт прямо в браузере — тот же Race, что на сервере, с пятью ботами; свой карт —
 // с клавиатуры: W/S — газ и тормоз, A/D — руль, Space — занос, E — бонус, R — назад на трассу. Камера — за картом.
@@ -6,7 +6,7 @@
 // северный причал с краном, змейка, контейнеры, всё кольцо сверху); ?auto=1 — свой карт ведёт бот;
 // ?skip=S — промотать S секунд; ?q=low|medium|high. Для снимков: racePreview.hazards(t) ставит подвижные помехи на момент t.
 // Для снимков из headless Chrome: window.racePreview — ff(секунды), cam(n), chase(), hold(кнопки, секунды).
-import { isRaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, isRaceTrackId } from '../../shared/racecourse.ts';
 import { DT } from '../../shared/constants.ts';
 import { RC_GRID, RC_RACE } from '../../shared/kart.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
@@ -23,7 +23,7 @@ import { RaceWorld } from './world.ts';
 
 const params = new URLSearchParams(location.search);
 const requestedTrack = params.get('track');
-const trackId = isRaceTrackId(requestedTrack) ? requestedTrack : 'port';
+const trackId = isRaceTrackId(requestedTrack) ? requestedTrack : DEFAULT_TRACK;
 const quality = (params.get('q') ?? 'high') as LobbyQuality;
 const auto = params.get('auto') === '1';
 
@@ -161,7 +161,10 @@ function stepRace(): void {
   for (const v of vis) Object.assign(v.prev, v.cur);
   for (const t of race.traps) trapPos.set(t.id, { x: t.x, y: t.y, z: t.z });
   if (pilot) {
-    pilot.update(me.state, { racing: race.phase === RC_RACE, place: me.place, karts: race.karts.size, behind: Infinity, ahead: Infinity, painted: me.paintT > 0 }, race.tick, input);
+    pilot.update(me.state, {
+      racing: race.phase === RC_RACE, gridLeft: race.phase === RC_RACE ? 0 : race.phaseEnd - race.tick, place: me.place, karts: race.karts.size,
+      behind: Infinity, ahead: Infinity, near: Infinity, painted: me.paintT > 0, bubble: me.bubbleT > 0,
+    }, race.tick, input);
   } else {
     input.buttons = keyButtons();
   }

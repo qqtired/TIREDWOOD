@@ -1,7 +1,7 @@
 // Интерфейс гонки (DOM поверх игры): место и круг, время, мини-карта, бонус с «рулеткой», скорость, заряд заноса,
 // отсчёт «3 · 2 · 1 · Вперёд!», баннеры, «Не туда!», кляксы краски и таблица итогов.
 // Как у пейнтбола: в кадре трогаем только то, что поменялось. На телефоне значок бонуса — сам кнопка (onTap).
-import { ITEM_ICONS, ITEM_NAMES, ITEM_NONE, MT1_TICKS, MT2_TICKS } from '../../shared/kart.ts';
+import { ITEM_HINTS, ITEM_ICONS, ITEM_NAMES, ITEM_NONE, ITEM_POOL, MT1_TICKS, MT2_TICKS, MT3_TICKS } from '../../shared/kart.ts';
 import type { RaceResultRow } from '../../shared/messages.ts';
 import type { Track } from '../../shared/track.ts';
 import { TOUCH } from '../touch.ts';
@@ -14,8 +14,12 @@ const MAP_W = TOUCH ? 116 : 230;
 const MAP_PAD = TOUCH ? 5 : 10;
 /** Рулетка бонуса: значок меняется раз в столько мс */
 const ROLL_MS = 75;
-/** Кляксы краски держатся 3 с (как PAINT_TICKS на сервере) */
-const SPLAT_MS = 3000;
+/** Кляксы краски держатся 2,5 с (как PAINT_TICKS на сервере) */
+const SPLAT_MS = 2500;
+/** Праздник на финише: крупное место и конфетти, мс */
+const PARTY_MS = 3400;
+const PARTY_BITS = 46;
+const PARTY_COLORS = ['#ff5d73', '#ffd23f', '#3ddc97', '#4cc9f0', '#c77dff', '#ff9a2e', '#f4efe6'];
 
 export interface MapDot {
   x: number;
@@ -148,16 +152,17 @@ export class RaceHud {
     const speed = el('div', 'rc-speed', root);
     this.speedNum = el('b', '', speed, '0');
     el('span', '', speed, 'км/ч');
-    // заряд заноса: белый — копится, синий — мини-турбо, оранжевый — большое; риска — где синий
+    // заряд заноса: белый — копится, синий, оранжевый, фиолетовый — три мини-турбо; риски — где синий и оранжевый
     this.charge = el('div', 'rc-charge', root);
     const bar = el('div', 'rc-charge-bar', this.charge);
     this.chargeFill = el('i', 'rc-charge-fill', bar);
-    el('i', 'rc-charge-mark', bar).style.left = `${(MT1_TICKS / MT2_TICKS) * 100}%`;
+    el('i', 'rc-charge-mark', bar).style.left = `${(MT1_TICKS / MT3_TICKS) * 100}%`;
+    el('i', 'rc-charge-mark', bar).style.left = `${(MT2_TICKS / MT3_TICKS) * 100}%`;
     this.chargeText = el('div', 'rc-charge-text', this.charge);
     this.helpEl = el('div', 'rc-help', root);
     this.helpEl.innerHTML = TOUCH
-      ? '<b>▲</b>/<b>▼</b> газ и тормоз · <b>◀</b>/<b>▶</b> руль — веди пальцем, не отрывая · держи <b>⤴</b> и руль — занос, отпусти — ускорение · бонус — жми на его значок · <b>↺</b> на трассу'
-      : '<b>W</b>/<b>S</b> газ и тормоз · <b>A</b>/<b>D</b> руль · <b>Space</b> + руль — подскок и занос, отпусти — ускорение · <b>E</b> бонус · <b>R</b> на трассу · <b>M</b> звук';
+      ? '<b>▲</b> на «1» — ракетный старт · <b>▲</b>/<b>▼</b> газ и тормоз · <b>◀</b>/<b>▶</b> руль — веди пальцем, не отрывая · держи <b>⤴</b> и руль — занос, отпусти — ускорение · <b>⤴</b> в прыжке — трюк · бонус — жми на его значок · <b>↺</b> на трассу'
+      : '<b>W</b> на «1» — ракетный старт · <b>W</b>/<b>S</b> газ и тормоз · <b>A</b>/<b>D</b> руль · <b>Space</b> + руль — подскок и занос, отпусти — ускорение · <b>Space</b> в прыжке — трюк · <b>E</b> бонус · <b>R</b> на трассу · <b>M</b> звук';
 
     // --- отсчёт, баннеры, «Не туда!», краска, итоги
     this.countEl = el('div', 'rc-count', root);
@@ -187,6 +192,7 @@ export class RaceHud {
   reset(): void {
     this.hideResults();
     this.paintLayer.innerHTML = '';
+    this.root.querySelector('.rc-party')?.remove();
     this.bannerEl.className = 'rc-banner';
     this.countEl.className = 'rc-count';
     this.wrongEl.classList.remove('show');
@@ -217,15 +223,19 @@ export class RaceHud {
     if (this.set('speed', v)) this.speedNum.textContent = String(v);
   }
 
-  /** Бонус: rolling — крутится рулетка (значки меняются), иначе — что лежит (ITEM_NONE — пусто). */
+  /** Бонус: rolling — крутится рулетка (значки меняются), иначе — что лежит (ITEM_NONE — пусто) и что он делает. */
   setItem(item: number, rolling: boolean, nowMs: number): void {
-    const show = rolling ? 1 + (Math.floor(nowMs / ROLL_MS) % (ITEM_ICONS.length - 1)) : item;
+    const show = rolling ? ITEM_POOL[Math.floor(nowMs / ROLL_MS) % ITEM_POOL.length] : item;
     const state = rolling ? 'rolling' : item !== ITEM_NONE ? 'ready' : 'empty';
     if (this.set('itemState', state)) this.itemEl.className = `rc-item ${state}`;
     if (this.set('itemIcon', show)) this.itemIcon.textContent = ITEM_ICONS[show] ?? '';
-    this.itemEl.title = rolling ? 'Выбирается бонус' : ITEM_NAMES[item] ?? '';
-    this.itemName.textContent = this.itemEl.title;
-    this.itemName.hidden = !this.itemEl.title;
+    const name = rolling ? 'Выбирается бонус' : ITEM_NAMES[item] ?? '';
+    const hint = rolling ? '' : ITEM_HINTS[item] ?? '';
+    if (!this.set('itemName', `${name}|${hint}`)) return;
+    this.itemEl.title = hint ? `${name} — ${hint}` : name;
+    this.itemName.textContent = name;
+    if (hint) el('small', 'rc-item-what', this.itemName, hint);
+    this.itemName.hidden = !name;
     this.itemEl.setAttribute('aria-label', this.itemEl.title || 'Бонус: пусто');
   }
 
@@ -246,12 +256,12 @@ export class RaceHud {
     const on = driftT !== null;
     if (this.set('charge', on)) this.charge.classList.toggle('show', on);
     if (driftT === null) return;
-    const lvl = driftT >= MT2_TICKS ? 2 : driftT >= MT1_TICKS ? 1 : 0;
+    const lvl = driftT >= MT3_TICKS ? 3 : driftT >= MT2_TICKS ? 2 : driftT >= MT1_TICKS ? 1 : 0;
     if (this.set('chargeLvl', lvl)) {
       this.charge.dataset.lvl = String(lvl);
-      this.chargeText.textContent = lvl === 2 ? 'Отпускай — турбо!' : lvl === 1 ? 'Можно отпускать' : 'Держи занос';
+      this.chargeText.textContent = ['Держи занос', 'Синее — можно отпускать', 'Оранжевое — держи ещё', 'Фиолетовое — отпускай!'][lvl];
     }
-    const pct = Math.min(100, Math.round((driftT / MT2_TICKS) * 100));
+    const pct = Math.min(100, Math.round((driftT / MT3_TICKS) * 100));
     if (this.set('chargePct', pct)) this.chargeFill.style.width = `${pct}%`;
   }
 
@@ -379,8 +389,34 @@ export class RaceHud {
   }
 
   /**
-   * В тебя попали краской: экран заливают густые кляксы — почти весь, в просветах дорогу чуть видно, — с них бегут
-   * подтёки; держится и тает за 3 с. Один холст на попадание; попали ещё раз — поверх, больше двух не держим.
+   * Финиш: крупное место посреди экрана («1» золотом) и залп конфетти из-за краёв; гаснет само за PARTY_MS.
+   */
+  celebrate(place: number, total: number): void {
+    this.root.querySelector('.rc-party')?.remove();
+    const party = el('div', `rc-party${place === 1 ? ' win' : place <= 3 ? ' podium' : ''}`, this.root);
+    const big = el('div', 'rc-party-place', party);
+    el('b', '', big, String(place));
+    el('span', '', big, place === 1 ? 'место — победа!' : `место из ${total}`);
+    for (let i = 0; i < PARTY_BITS; i++) {
+      const bit = el('i', 'rc-party-bit', party);
+      const fromLeft = i % 2 === 0;
+      const st = bit.style;
+      st.left = fromLeft ? '-2%' : '102%';
+      st.top = `${(55 + Math.random() * 35).toFixed(1)}%`;
+      st.background = PARTY_COLORS[i % PARTY_COLORS.length];
+      st.setProperty('--dx', `${((fromLeft ? 1 : -1) * (18 + Math.random() * 42)).toFixed(1)}vw`);
+      st.setProperty('--dy', `${(-38 - Math.random() * 40).toFixed(1)}vh`);
+      st.setProperty('--rot', `${Math.round(360 + Math.random() * 900) * (Math.random() < 0.5 ? -1 : 1)}deg`);
+      st.animationDelay = `${Math.round(Math.random() * 260)}ms`;
+      st.width = `${(6 + Math.random() * 6).toFixed(1)}px`;
+      st.height = `${(9 + Math.random() * 8).toFixed(1)}px`;
+    }
+    setTimeout(() => party.remove(), PARTY_MS);
+  }
+
+  /**
+   * В тебя попали краской: кляксы ложатся по краям экрана (середина почти чистая — дорогу видно), с них бегут
+   * подтёки; держится и тает за 2,5 с. Один холст на попадание; попали ещё раз — поверх, больше двух не держим.
    */
   paint(): void {
     const w = this.root.clientWidth || window.innerWidth;

@@ -150,29 +150,32 @@ test('oldest entrant hosts track choice; host leaving transfers authority and em
   placeAt(hub, b.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   placeAt(hub, a.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(b.c)?.slot);
-  hub.onJson(a.c, { t: 'kartTrack', track: 'foundry' }); assert.equal(hub.lobby.kartStatus().track, 'port');
-  hub.onJson(b.c, { t: 'kartTrack', track: 'foundry' }); assert.equal(hub.lobby.kartStatus().track, 'foundry');
+  hub.onJson(a.c, { t: 'kartTrack', track: 'hills' }); assert.equal(hub.lobby.kartStatus().track, 'harbor');
+  hub.onJson(b.c, { t: 'kartTrack', track: 'hills' }); assert.equal(hub.lobby.kartStatus().track, 'hills');
   placeAt(hub, b.c, 0, 0); steps(hub, KART_CHECK_EVERY);
   assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)?.slot);
-  hub.onJson(b.c, { t: 'kartTrack', track: 'port' }); assert.equal(hub.lobby.kartStatus().track, 'foundry');
+  hub.onJson(b.c, { t: 'kartTrack', track: 'harbor' }); assert.equal(hub.lobby.kartStatus().track, 'hills');
   placeAt(hub, b.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)?.slot);
   placeAt(hub, b.c, 0, 0); steps(hub, KART_CHECK_EVERY);
-  placeAt(hub, a.c, 0, 0); steps(hub, KART_CHECK_EVERY); assert.equal(hub.lobby.kartStatus().track, 'port');
+  placeAt(hub, a.c, 0, 0); steps(hub, KART_CHECK_EVERY); assert.equal(hub.lobby.kartStatus().track, 'harbor');
 });
 test('selected track is immutable after launch and reaches race hello/status', () => {
-  const { hub } = setupHub(); const a = login(hub, 'FoundryDriver');
+  const { hub } = setupHub(); const a = login(hub, 'HillsDriver');
   placeAt(hub, a.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
-  hub.onJson(a.c, { t: 'kartTrack', track: 'foundry' });
+  hub.onJson(a.c, { t: 'kartTrack', track: 'hills' });
   steps(hub, KART_COUNT_TICKS + KART_CHECK_EVERY);
-  assert.equal(a.c.room, hub.race); assert.equal(hub.race.status()?.track, 'foundry');
-  assert.equal(lastOf(a.s, 'race')?.track, 'foundry');
-  hub.onJson(a.c, { t: 'kartTrack', track: 'port' }); assert.equal(hub.race.status()?.track, 'foundry');
+  assert.equal(a.c.room, hub.race); assert.equal(hub.race.status()?.track, 'hills');
+  assert.equal(lastOf(a.s, 'race')?.track, 'hills');
+  hub.onJson(a.c, { t: 'kartTrack', track: 'harbor' }); assert.equal(hub.race.status()?.track, 'hills');
 });
-test('race records stay separate per track while legacy port record remains intact', () => {
+test('race records stay separate per new track while legacy records remain intact', () => {
   const { hub } = setupHub(); const a = login(hub, 'TrackRecords');
-  const row = { id: 1, nick: a.c.nick, bot: false, place: 1, time: 100000, best: 45000, tokens: 0, track: 'port' as const };
+  a.c.profile!.stats.rcBestLap = 47000; a.c.profile!.stats.rcBestLapFoundry = 61000;
+  const row = { id: 1, nick: a.c.nick, bot: false, place: 1, time: 100000, best: 45000, tokens: 0, track: 'harbor' as const };
   hub.onRaceResult(a.c, row, null);
-  hub.onRaceResult(a.c, { ...row, best: 65000, track: 'foundry' }, null);
-  assert.equal(a.c.profile!.stats.rcBestLap, 45000); assert.equal(a.c.profile!.stats.rcBestLapFoundry, 65000);
+  hub.onRaceResult(a.c, { ...row, best: 65000, track: 'hills' }, null);
+  hub.onRaceResult(a.c, { ...row, best: 70000, track: 'hills' }, null);
+  assert.equal(a.c.profile!.stats.rcBestLapHarbor, 45000); assert.equal(a.c.profile!.stats.rcBestLapHills, 65000);
+  assert.equal(a.c.profile!.stats.rcBestLap, 47000); assert.equal(a.c.profile!.stats.rcBestLapFoundry, 61000);
 });
