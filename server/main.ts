@@ -16,6 +16,7 @@ import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
 import { boatRaceEnabled } from './boatrace/room.ts';
 import { hideEnabled } from '../shared/hide.ts';
+import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
@@ -57,7 +58,9 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
+// Музыкальный автомат на площади: JUKEBOX=1 — включить, JUKEBOX=0 — выключить, без переменной — только с --dev
+const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce, jukebox,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
 // /go <режим> в чате — сразу в режим, для проверки переходов (только разработка или DEV_GO=1)
@@ -71,6 +74,7 @@ if (skill) console.log('SKILL: полоса «Выше облаков» вклю
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (voice) console.log('VOICE: голос по удержанию V включён');
 if (gifts) console.log('GIFTS: подарочные коды включены');
+if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
 /** Токен для проверки после выкладки (deploy/smoke.ts): создаётся один раз, файл только для владельца. */
