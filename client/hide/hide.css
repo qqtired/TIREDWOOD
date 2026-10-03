@@ -120,6 +120,12 @@
   transition: opacity 0.12s;
 }
 .hd-hint.on { opacity: 1; }
+/* этим предметом сейчас не стать: серый прицел и подсказка; по клику подсказка вздрагивает */
+.hd-hint.no { color: #c9c9c9; background: rgba(40, 40, 46, 0.82); }
+.hd-hint.no::before { content: '⛔ '; }
+.hd-hint.shake { animation: hd-shake 0.32s ease-in-out; }
+@keyframes hd-shake { 20% { transform: translateX(calc(-50% - 7px)); } 40% { transform: translateX(calc(-50% + 6px)); } 60% { transform: translateX(calc(-50% - 4px)); } 80% { transform: translateX(calc(-50% + 2px)); } }
+.hd-cross.dot.no { background: rgba(150, 150, 150, 0.9); width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 
 /* --- низ: панель прячущегося и ловца */
 .hd-panel {

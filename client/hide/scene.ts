@@ -4,8 +4,8 @@
 import * as THREE from 'three';
 import { EYE_HEIGHT } from '../../shared/constants.ts';
 import { HIDE_SHOT_TICKS, HIDE_TAKE_RANGE, type HideClientMsg, type HideEvent, type HideRosterMsg, type HideStateMsg } from '../../shared/hide.ts';
-import { HIDE_KIND, hideKindHint } from '../../shared/hideprops.ts';
-import { hideRayBody, hideStaticWorld } from '../../shared/hidephysics.ts';
+import { HIDE_KIND, hideHits, hideKindHint } from '../../shared/hideprops.ts';
+import { hideFillProps, hideFits, hideRayBody, hideStaticWorld } from '../../shared/hidephysics.ts';
 import { viewDir } from '../../shared/math.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -53,6 +53,8 @@ export class HideScene implements Scene {
   private lastHud = 0;
   private lastShotAt = -1e9;
   private target = 0;
+  /** Почему предметом под прицелом сейчас не стать (не помещается, заляпан) — или '' */
+  private refuseWhy = '';
   private lastTickSound = -1;
   private orbit = 0;
   private readonly dir = { x: 0, y: 0, z: -1 };
@@ -227,7 +229,8 @@ export class HideScene implements Scene {
     const m = this.msg;
     if (!m || m.self.role !== 'prop' || (m.phase !== 'hide' && m.phase !== 'seek')) return;
     if (a === 'take') {
-      if (this.target) this.send({ t: 'hide', a: 'take', id: this.target });
+      if (this.target && this.refuseWhy) this.hud.refuse();
+      else if (this.target) this.send({ t: 'hide', a: 'take', id: this.target });
       else this.hud.note(TOUCH ? 'Наведи прицел на предмет двора — и «стать»' : 'Наведи прицел на предмет двора и кликни');
     } else if (a === 'lock') this.send({ t: 'hide', a: 'lock' });
     else if (a === 'rotate') this.send({ t: 'hide', a: 'rotate', n: 3 });
@@ -310,6 +313,7 @@ export class HideScene implements Scene {
 
     // цель превращения: луч из камеры по центру экрана
     this.target = 0;
+    this.refuseWhy = '';
     if (propView && m) {
       let best = 30, id = 0;
       const o = cam.position;
@@ -321,12 +325,19 @@ export class HideScene implements Scene {
       const b = id ? this.motion.bodies.get(id) : undefined;
       if (b && Math.hypot(b.x - pos.x, b.z - pos.z) <= HIDE_TAKE_RANGE + 0.3 && !this.statics.raycast(o.x, o.y, o.z, this.dir.x, this.dir.y, this.dir.z, best, this.hit, true, true)) {
         this.target = id;
-        this.hud.setHint(b.kind === s!.kind && b.yaw === s!.yaw ? `Ты уже ${HIDE_KIND[b.kind].name}` : takeHint(b.kind, s!.hits, hideKindHint(b.kind)));
+        if (b.kind === s!.kind && b.yaw === s!.yaw) this.hud.setHint(`Ты уже ${HIDE_KIND[b.kind].name}`);
+        else {
+          // как проверит сервер: облик в той же точке не должен врезаться в стены и предметы (свой не в счёт)
+          hideFillProps(this.motion.world, this.motion.physics.props, this.motion.ownId);
+          if (s!.hits >= hideHits(b.kind)) this.refuseWhy = `Заляпан — ${HIDE_KIND[b.kind].name} не выдержит`;
+          else if (!hideFits(this.motion.world, pos.x, pos.y, pos.z, b.kind, b.yaw)) this.refuseWhy = 'Не помещается — отойди на свободное место';
+          this.hud.setHint(this.refuseWhy || takeHint(b.kind, s!.hits, hideKindHint(b.kind)), !!this.refuseWhy);
+        }
       } else this.hud.setHint(null);
     }
 
     const t = now / 1000;
-    if (this.props.update(this.motion.shown, t, this.target)) this.d.renderer.refreshShadows();
+    if (this.props.update(this.motion.shown, t, this.target, !!this.refuseWhy)) this.d.renderer.refreshShadows();
     this.updateAvatars(dt, t, hunterView ? s!.id : -1);
     this.fx.update(dt);
     this.world.update(dt);
