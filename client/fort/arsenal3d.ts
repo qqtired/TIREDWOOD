@@ -1,15 +1,17 @@
-// Арсенал «Крепости» в мире: деревянные лестницы у стен, прилавок с навесом и торговцем на террасе, места башен на
-// стенах и сами башни (баллиста, пушка, смоляной котёл, жаровня — целятся, отдают, льют, полыхают), болты и ядра в
-// полёте, гранаты и дуга броска, лужи смолы, огонь на горящих зомби и тяжёлые стволы в руках у желеек. Здесь только
-// меши и их анимация; что и когда — решает ArsenalClient (client/fort/arsenalc.ts) по событиям сервера.
+// Арсенал «Крепости» в мире: деревянные лестницы у стен, прилавок с навесом и торговцем на террасе, башни на стенах
+// (модели и анимации — client/fort/turrets/, здесь только вызовы), болты и ядра в полёте, гранаты и дуга броска, лужи
+// смолы, огонь на горящих зомби и тяжёлые стволы в руках у желеек. Здесь только меши и их анимация; что и когда —
+// решает ArsenalClient (client/fort/arsenalc.ts) по событиям сервера.
 import * as THREE from 'three';
-import { GREN_R, GUN_CROSSBOW, GUN_MG, GUN_SHOTGUN, TOWER_SPOT_COUNT, TW_TAR } from '../../shared/fortarsenal.ts';
+import { GREN_R, GUN_CROSSBOW, GUN_MG, GUN_SHOTGUN, TOWER_SPOT_COUNT } from '../../shared/fortarsenal.ts';
 import { LADDERS } from '../../shared/fortladder.ts';
-import { SHOP_COUNTER, TERRACE, TOWER_MUZZLE, TOWER_SPOTS, WALL_H } from '../../shared/fortmap.ts';
+import { SHOP_COUNTER, TERRACE, TOWER_SPOTS, WALL_H } from '../../shared/fortmap.ts';
 import { damp } from '../../shared/math.ts';
 import type { Avatar } from '../render/avatar.ts';
 import { glowSprite, mergeColored, paint, place, staticMesh } from '../render/kit.ts';
+import type { Quality } from '../settings.ts';
 import { ringTexture } from './textures.ts';
+import { Turrets3D } from './turrets/turrets3d.ts';
 
 const WOOD = 0x9a6438;
 const WOOD_DARK = 0x6b4428;
@@ -236,181 +238,9 @@ export function avatarMuzzle(av: Avatar, out: THREE.Vector3): THREE.Vector3 | nu
   return out.copy(m.muzzle).applyMatrix4(g.node.matrixWorld);
 }
 
-// ------------------------------------------------------------ башни
-
-interface TowerModel {
-  group: THREE.Group;
-  yaw: THREE.Group;
-  pitch: THREE.Group | null;
-  /** Дуло в системе pitch (или yaw) */
-  muzzle: THREE.Vector3;
-  flames: THREE.Sprite[];
-  glow: THREE.Sprite | null;
-  /** Чаша котла (наклоняется, когда льёт) */
-  tilt: THREE.Object3D | null;
-}
-
-interface TowerVis {
-  root: THREE.Group;
-  ring: THREE.Mesh;
-  models: Array<TowerModel | null>;
-  pennant: THREE.Mesh;
-  pennantMat: THREE.MeshStandardMaterial;
-  type: number;
-  level: number;
-  pop: number;
-  yaw: number;
-  wantYaw: number;
-  pitch: number;
-  wantPitch: number;
-  recoil: number;
-  lastShot: number;
-  pour: number;
-  flare: number;
-}
-
-function buildBallista(): TowerModel {
-  const group = new THREE.Group();
-  const stand: THREE.BufferGeometry[] = [];
-  for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]] as const) {
-    stand.push(place(paint(new THREE.BoxGeometry(0.1, 0.95, 0.1), WOOD_DARK), x * 0.8, 0.47, z * 0.8, 0, 0));
-  }
-  stand.push(place(paint(new THREE.BoxGeometry(0.7, 0.1, 0.7), WOOD), 0, 0.92, 0));
-  const sm = new THREE.Mesh(mergeColored(stand), vc());
-  sm.castShadow = true;
-  group.add(sm);
-  const yaw = new THREE.Group();
-  yaw.position.y = 1.05;
-  const pitch = new THREE.Group();
-  const parts: THREE.BufferGeometry[] = [];
-  parts.push(place(paint(new THREE.BoxGeometry(0.18, 0.14, 1.7), WOOD), 0, 0.05, -0.15));
-  // дуга: два плеча
-  for (const s of [-1, 1]) parts.push(place(paint(new THREE.BoxGeometry(0.85, 0.09, 0.09), WOOD_LIGHT), s * 0.42, 0.08, -0.82, s * 0.32));
-  parts.push(place(paint(new THREE.BoxGeometry(0.22, 0.2, 0.22), IRON), 0, 0.08, -0.92));
-  // тетива и болт
-  parts.push(place(paint(new THREE.BoxGeometry(1.5, 0.02, 0.02), 0xefe2c4), 0, 0.12, -0.42));
-  parts.push(place(paint(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 6).rotateX(Math.PI / 2), 0xd8c39a), 0, 0.16, -0.6));
-  parts.push(place(paint(new THREE.ConeGeometry(0.06, 0.18, 6).rotateX(-Math.PI / 2), 0xb8bcc2), 0, 0.16, -1.32));
-  parts.push(place(paint(new THREE.BoxGeometry(0.1, 0.07, 0.14), 0xd9483b), 0, 0.16, 0.0));
-  // ворот сзади
-  parts.push(place(paint(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8).rotateZ(Math.PI / 2), WOOD_DARK), 0, 0.06, 0.62));
-  const m = new THREE.Mesh(mergeColored(parts), vc());
-  m.castShadow = true;
-  pitch.add(m);
-  yaw.add(pitch);
-  group.add(yaw);
-  return { group, yaw, pitch, muzzle: new THREE.Vector3(0, 0.16, -1.4), flames: [], glow: null, tilt: null };
-}
-
-function buildCannon(): TowerModel {
-  const group = new THREE.Group();
-  const yaw = new THREE.Group();
-  const carriage: THREE.BufferGeometry[] = [];
-  for (const s of [-1, 1]) {
-    carriage.push(place(paint(new THREE.BoxGeometry(0.12, 0.42, 1.0), WOOD), s * 0.26, 0.32, 0.05));
-    carriage.push(place(paint(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 14).rotateZ(Math.PI / 2), WOOD_DARK), s * 0.38, 0.3, 0.25));
-    carriage.push(place(paint(new THREE.CylinderGeometry(0.08, 0.08, 0.12, 8).rotateZ(Math.PI / 2), IRON), s * 0.44, 0.3, 0.25));
-  }
-  carriage.push(place(paint(new THREE.BoxGeometry(0.64, 0.1, 0.4), WOOD_DARK), 0, 0.14, 0.2));
-  // ядра у лафета
-  for (const [x, z] of [[0.6, 0.55], [0.75, 0.38], [0.66, 0.42]] as const) carriage.push(place(paint(new THREE.SphereGeometry(0.13, 10, 8), IRON_DARK), x, 0.13, z));
-  const cm = new THREE.Mesh(mergeColored(carriage), vc());
-  cm.castShadow = true;
-  yaw.add(cm);
-  const pitch = new THREE.Group();
-  pitch.position.set(0, 0.52, 0);
-  const barrel: THREE.BufferGeometry[] = [];
-  barrel.push(place(paint(new THREE.CylinderGeometry(0.15, 0.21, 1.35, 16).rotateX(Math.PI / 2), IRON_DARK), 0, 0, -0.35));
-  barrel.push(place(paint(new THREE.TorusGeometry(0.16, 0.035, 6, 16), IRON), 0, 0, -1.02));
-  barrel.push(place(paint(new THREE.TorusGeometry(0.2, 0.03, 6, 16), BRASS), 0, 0, 0.12));
-  barrel.push(place(paint(new THREE.SphereGeometry(0.16, 10, 8), IRON_DARK), 0, 0, 0.32));
-  const bm = new THREE.Mesh(mergeColored(barrel), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.5 }));
-  bm.castShadow = true;
-  pitch.add(bm);
-  yaw.add(pitch);
-  group.add(yaw);
-  return { group, yaw, pitch, muzzle: new THREE.Vector3(0, 0, -1.08), flames: [], glow: null, tilt: null };
-}
-
-function buildTar(): TowerModel {
-  const group = new THREE.Group();
-  const legs: THREE.BufferGeometry[] = [];
-  for (let k = 0; k < 3; k++) {
-    const a = (k / 3) * Math.PI * 2;
-    const leg = paint(new THREE.CylinderGeometry(0.04, 0.05, 1.3, 6), IRON);
-    leg.rotateZ(Math.cos(a) * 0.28);
-    leg.rotateX(Math.sin(a) * 0.28);
-    legs.push(place(leg, Math.cos(a) * 0.42, 0.62, Math.sin(a) * 0.42));
-  }
-  // дрова под котлом
-  for (let k = 0; k < 3; k++) legs.push(place(paint(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 6).rotateZ(Math.PI / 2), WOOD_DARK), 0, 0.08 + k * 0.02, (k - 1) * 0.12, k * 0.9));
-  const lm = new THREE.Mesh(mergeColored(legs), vc());
-  lm.castShadow = true;
-  group.add(lm);
-  const yaw = new THREE.Group();
-  yaw.position.y = 1.0;
-  const tilt = new THREE.Group();
-  const prof = [[0.001, -0.42], [0.22, -0.4], [0.4, -0.25], [0.46, -0.02], [0.43, 0.2], [0.46, 0.24], [0.42, 0.25]].map(([r, y]) => new THREE.Vector2(r, y));
-  const pot = new THREE.Mesh(new THREE.LatheGeometry(prof, 18), new THREE.MeshStandardMaterial({ color: IRON_DARK, roughness: 0.55, metalness: 0.45, side: THREE.DoubleSide }));
-  pot.castShadow = true;
-  const tar = new THREE.Mesh(new THREE.CircleGeometry(0.41, 18).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x15100c, roughness: 0.08, metalness: 0.2 }));
-  tar.position.y = 0.16;
-  const lip = new THREE.Mesh(paint(new THREE.BoxGeometry(0.18, 0.05, 0.3), IRON), vc());
-  lip.position.set(0, 0.22, -0.5);
-  tilt.add(pot, tar, lip);
-  yaw.add(tilt);
-  group.add(yaw);
-  const flames = [flame(0.45), flame(0.38)];
-  flames[0].position.set(0.05, 0.3, 0);
-  flames[1].position.set(-0.08, 0.26, 0.06);
-  group.add(...flames);
-  return { group, yaw, pitch: null, muzzle: new THREE.Vector3(0, 0.22, -0.65), flames, glow: null, tilt };
-}
-
-function buildBrazier(): TowerModel {
-  const group = new THREE.Group();
-  const parts: THREE.BufferGeometry[] = [];
-  for (let k = 0; k < 3; k++) {
-    const a = (k / 3) * Math.PI * 2 + 0.5;
-    const leg = paint(new THREE.CylinderGeometry(0.035, 0.045, 1.0, 6), IRON_DARK);
-    leg.rotateZ(Math.cos(a) * 0.22);
-    leg.rotateX(Math.sin(a) * 0.22);
-    parts.push(place(leg, Math.cos(a) * 0.3, 0.48, Math.sin(a) * 0.3));
-  }
-  // чаша-корзина из прутьев и обода
-  parts.push(place(paint(new THREE.CylinderGeometry(0.44, 0.24, 0.12, 14), IRON_DARK), 0, 0.98, 0));
-  parts.push(place(paint(new THREE.TorusGeometry(0.5, 0.03, 6, 18).rotateX(Math.PI / 2), IRON), 0, 1.36, 0));
-  for (let k = 0; k < 8; k++) {
-    const a = (k / 8) * Math.PI * 2;
-    const bar = paint(new THREE.BoxGeometry(0.035, 0.42, 0.035), IRON);
-    bar.rotateZ(Math.cos(a) * -0.28);
-    bar.rotateX(Math.sin(a) * 0.28);
-    parts.push(place(bar, Math.cos(a) * 0.42, 1.17, Math.sin(a) * 0.42));
-  }
-  // угли
-  for (let k = 0; k < 7; k++) parts.push(place(paint(new THREE.DodecahedronGeometry(0.1 + (k % 3) * 0.02, 0), k % 2 ? 0xff7a2a : 0xffb03a), Math.cos(k * 2.3) * 0.22, 1.1 + (k % 2) * 0.05, Math.sin(k * 2.3) * 0.22));
-  const m = new THREE.Mesh(mergeColored(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, emissive: 0x3a1206 }));
-  m.castShadow = true;
-  group.add(m);
-  const flames = [flame(0.95), flame(0.75), flame(0.7)];
-  flames[0].position.set(0, 1.55, 0);
-  flames[1].position.set(0.18, 1.48, 0.1);
-  flames[2].position.set(-0.17, 1.46, -0.08);
-  const glow = glowSprite(0xff8a3a, 2.6, 0.35);
-  glow.position.set(0, 1.4, 0);
-  group.add(...flames, glow);
-  const yaw = new THREE.Group();
-  group.add(yaw);
-  return { group, yaw, pitch: null, muzzle: new THREE.Vector3(0, 1.4, 0), flames, glow, tilt: null };
-}
-
-const BUILDERS = [buildBallista, buildCannon, buildTar, buildBrazier];
-/** Башни крупнее «натуры»: со двора и с террасы их должно быть видно над зубцами (дуло — около TOWER_MUZZLE) */
-const TOWER_SCALE = 1.25;
 /** Торговец стоит на ящике за прилавком: глаза и усы — над столешницей */
 const MERCHANT_STEP = 0.5;
 const MERCHANT_SCALE = 1.12;
-const LEVEL_COLORS = [0xf4e6c4, 0xf4e6c4, 0x7bd88f, 0x7bd88f, 0x5fb7ff, 0x5fb7ff, 0xffd35a, 0xffd35a, 0xff7a4a, 0xff7a4a, 0xcf70d9];
 
 // ------------------------------------------------------------ снаряды
 
@@ -438,7 +268,10 @@ interface FireVis {
 
 export class Arsenal3D {
   private readonly scene: THREE.Scene;
-  private readonly towers: TowerVis[] = [];
+  /** Башни на стенах: модели, анимации и их частицы (client/fort/turrets) */
+  readonly turrets: Turrets3D;
+  /** Кого последним подожгла жаровня — туда она и смотрит */
+  private lastBurn = -1;
   private readonly bolts: Shot[] = [];
   private readonly balls: Shot[] = [];
   private readonly grenades: THREE.Group[] = [];
@@ -454,11 +287,12 @@ export class Arsenal3D {
   private readonly merchantEyes = new THREE.Group();
   private time = 0;
 
-  constructor(scene: THREE.Scene) {
+  /** camera — чтобы не рисовать башни вне кадра (без неё рисуются все) */
+  constructor(scene: THREE.Scene, camera: THREE.Camera | null = null) {
     this.scene = scene;
     this.buildLadders();
     this.buildStall();
-    this.buildSpots();
+    this.turrets = new Turrets3D(scene, 'high', TOWER_SPOTS, camera);
     // болты баллисты и арбалета
     const boltGeo = mergeColored([
       paint(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 5).rotateX(Math.PI / 2), 0xd8c39a),
@@ -665,102 +499,16 @@ export class Arsenal3D {
     this.scene.add(this.merchant);
   }
 
-  /** Места башен: пунктирный круг на ходу стены; башня встаёт поверх (модели — при первой постройке) */
-  private buildSpots(): void {
-    const ringMat = new THREE.MeshBasicMaterial({ map: ringTexture(), transparent: true, depthWrite: false, color: 0xfff1c8 });
-    const poleMat = new THREE.MeshStandardMaterial({ color: WOOD_DARK, roughness: 0.8 });
-    for (const s of TOWER_SPOTS) {
-      const root = new THREE.Group();
-      root.position.set(s.x, s.y, s.z);
-      // модель смотрит в −z: разворачиваем её наружу, по нормали места
-      root.rotation.y = Math.atan2(-s.nx, -s.nz);
-      const ring = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6).rotateX(-Math.PI / 2), ringMat);
-      ring.position.y = 0.03;
-      root.add(ring);
-      // флажок уровня
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 1.6, 6), poleMat);
-      pole.position.set(0.62, 0.8, 0.45);
-      const pennantMat = new THREE.MeshStandardMaterial({ color: LEVEL_COLORS[1], side: THREE.DoubleSide, roughness: 0.7 });
-      const tri = new THREE.BufferGeometry();
-      tri.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, -0.32, 0, 0.5, -0.16, 0], 3));
-      tri.computeVertexNormals();
-      const pennant = new THREE.Mesh(tri, pennantMat);
-      pennant.position.set(0.62, 1.58, 0.45);
-      pole.visible = pennant.visible = false;
-      root.add(pole, pennant);
-      root.userData.pole = pole;
-      this.scene.add(root);
-      this.towers.push({ root, ring, models: [null, null, null, null], pennant, pennantMat, type: -1, level: 0, pop: 0, yaw: 0, wantYaw: 0, pitch: 0, wantPitch: 0, recoil: 0, lastShot: -9, pour: 0, flare: 0 });
-    }
-  }
-
   // ------------------------------------------------------------ башни
 
-  /** Что стоит на местах (из хвоста снимка): тип (−1 — пусто) и уровень */
+  /** Что стоит на местах (из хвоста снимка): тип (−1 — пусто) и уровень; постройку и улучшение башни видят сами */
   setTowers(types: readonly number[], levels: readonly number[]): void {
-    for (let i = 0; i < this.towers.length; i++) {
-      const t = this.towers[i];
-      const type = types[i] ?? -1;
-      const level = levels[i] ?? 0;
-      if (type === t.type && level === t.level) continue;
-      if (type !== t.type) {
-        for (const m of t.models) if (m) m.group.visible = false;
-        if (type >= 0) {
-          let m = t.models[type];
-          if (!m) {
-            m = BUILDERS[type]();
-            t.models[type] = m;
-            t.root.add(m.group);
-          }
-          m.group.visible = true;
-          t.pop = 1;
-        }
-        t.ring.visible = type < 0;
-        (t.root.userData.pole as THREE.Object3D).visible = t.pennant.visible = type >= 0;
-      } else if (level > t.level) {
-        t.pop = 0.7;
-      }
-      t.type = type;
-      t.level = level;
-      t.pennantMat.color.setHex(LEVEL_COLORS[Math.min(LEVEL_COLORS.length - 1, level)]);
-      const m = type >= 0 ? t.models[type] : null;
-      if (m) m.group.scale.setScalar(TOWER_SCALE * (1 + Math.min(10, level) * 0.025));
-    }
+    this.turrets.setAll(types, levels);
   }
 
-  /** Мировая точка дула башни на месте i, если повернуть её на (x, y, z) */
-  private aim(i: number, x: number, y: number, z: number): void {
-    const t = this.towers[i];
-    const s = TOWER_SPOTS[i];
-    const dx = x - s.x;
-    const dz = z - s.z;
-    // root повёрнут: yaw — в его системе
-    t.wantYaw = Math.atan2(-dx, -dz) - t.root.rotation.y;
-    t.wantPitch = Math.atan2(y - (s.y + TOWER_MUZZLE), Math.hypot(dx, dz));
-    t.yaw = t.wantYaw;
-    t.pitch = t.wantPitch;
-    t.lastShot = this.time;
-  }
-
-  private muzzle(i: number, out: THREE.Vector3): THREE.Vector3 {
-    const t = this.towers[i];
-    const m = t.type >= 0 ? t.models[t.type] : null;
-    if (!m) {
-      const s = TOWER_SPOTS[i];
-      return out.set(s.x, s.y + TOWER_MUZZLE, s.z);
-    }
-    const node = m.pitch ?? m.yaw;
-    m.yaw.rotation.y = t.yaw;
-    if (m.pitch) m.pitch.rotation.x = t.pitch;
-    node.updateWorldMatrix(true, false);
-    return out.copy(m.muzzle).applyMatrix4(node.matrixWorld);
-  }
-
-  /** Баллиста выстрелила в (x, y, z): поворот, отдача, болт в полёт. Возвращает, где дуло (для эффектов). */
-  bolt(i: number, x: number, y: number, z: number, out: THREE.Vector3): THREE.Vector3 {
-    this.aim(i, x, y, z);
-    this.towers[i].recoil = 1;
-    this.muzzle(i, out);
+  /** Баллиста выстрелила в (x, y, z) по зомби zid: поворот, отдача, болт в полёт. Возвращает, где дуло (для эффектов). */
+  bolt(i: number, x: number, y: number, z: number, out: THREE.Vector3, zid = -1): THREE.Vector3 {
+    this.turrets.fire(i, x, y, z, out, zid);
     this.launch(this.bolts, out.x, out.y, out.z, x, y, z, Math.max(0.05, out.distanceTo(_v.set(x, y, z)) / 70), 0, 0.5);
     return out;
   }
@@ -772,11 +520,7 @@ export class Arsenal3D {
 
   /** Пушка: ядро по дуге за ticks тиков */
   cannon(i: number, x: number, y: number, z: number, ticks: number, out: THREE.Vector3): THREE.Vector3 {
-    this.aim(i, x, y, z);
-    const t = this.towers[i];
-    t.pitch = t.wantPitch = Math.min(0.5, t.wantPitch + 0.25);
-    t.recoil = 1;
-    this.muzzle(i, out);
+    this.turrets.fire(i, x, y, z, out);
     const d = out.distanceTo(_v.set(x, y, z));
     this.launch(this.balls, out.x, out.y, out.z, x, y + 0.2, z, ticks / 60, Math.min(5, d * 0.16), 0);
     return out;
@@ -784,10 +528,7 @@ export class Arsenal3D {
 
   /** Котёл вылил смолу в (x, z) */
   pour(i: number, x: number, z: number, out: THREE.Vector3): THREE.Vector3 {
-    const t = this.towers[i];
-    this.aim(i, x, 0, z);
-    t.pour = 1;
-    this.muzzle(i, out);
+    this.turrets.fire(i, x, 0, z, out);
     const m = this.tars[i];
     m.position.set(x, 0.035, z);
     m.rotation.y = Math.random() * Math.PI * 2;
@@ -796,12 +537,16 @@ export class Arsenal3D {
     return out;
   }
 
-  /** Жаровня плюнула углями */
+  /** Жаровня плюнула углями — в сторону последнего подожжённого (события burn приходят перед coals) */
   coals(i: number, out: THREE.Vector3): THREE.Vector3 {
-    const t = this.towers[i];
-    t.flare = 1;
-    t.lastShot = this.time;
-    return this.muzzle(i, out);
+    this.turrets.fire(i, NaN, NaN, NaN, out, this.lastBurn);
+    this.lastBurn = -1;
+    return out;
+  }
+
+  /** Качество: у башен — сколько частиц и мелочей */
+  setQuality(q: Quality, slow = false): void {
+    this.turrets.setQuality(q, slow);
   }
 
   /** Лужи смолы: бит на место (из хвоста) */
@@ -825,6 +570,7 @@ export class Arsenal3D {
     if (!f) f = this.fires.find((x) => x.until <= this.time) ?? this.fires[0];
     f.zid = zid;
     f.until = this.time + sec;
+    this.lastBurn = zid;
   }
 
   private launch(pool: Shot[], fx: number, fy: number, fz: number, tx: number, ty: number, tz: number, dur: number, arc: number, stick: number): void {
@@ -888,7 +634,8 @@ export class Arsenal3D {
 
   /** Новая игра: башни прочь, снаряды и огонь — тоже */
   reset(): void {
-    this.setTowers(new Array(TOWER_SPOT_COUNT).fill(-1), new Array(TOWER_SPOT_COUNT).fill(0));
+    this.turrets.reset();
+    this.lastBurn = -1;
     for (const s of [...this.bolts, ...this.balls]) {
       s.active = false;
       s.obj.visible = false;
@@ -908,7 +655,7 @@ export class Arsenal3D {
 
   // ------------------------------------------------------------ кадр
 
-  /** where(zid, out) — где сейчас зомби (для огня на нём) */
+  /** where(zid, out) — где сейчас зомби (огонь на нём; башни ведут по нему цель) */
   update(dt: number, camPos: THREE.Vector3, where: (zid: number, out: THREE.Vector3) => boolean): void {
     this.time += dt;
     const t = this.time;
@@ -919,40 +666,7 @@ export class Arsenal3D {
     const dz = camPos.z - this.merchant.position.z;
     if (dx * dx + dz * dz < 900) this.merchant.rotation.y = damp(this.merchant.rotation.y, Math.atan2(-dx, -dz), 3, dt);
 
-    for (let i = 0; i < this.towers.length; i++) {
-      const tw = this.towers[i];
-      if (tw.type < 0) continue;
-      const m = tw.models[tw.type];
-      if (!m) continue;
-      tw.pop = Math.max(0, tw.pop - dt * 2.2);
-      const s = TOWER_SCALE * (1 + Math.min(10, tw.level) * 0.025);
-      m.group.scale.setScalar(s * (1 + Math.sin(tw.pop * Math.PI) * 0.25));
-      if (t - tw.lastShot > 2.2) {
-        tw.wantYaw = Math.sin(t * 0.35 + i * 1.7) * 0.7;
-        tw.wantPitch = -0.08;
-      }
-      tw.yaw = dampAngle(tw.yaw, tw.wantYaw, 5, dt);
-      tw.pitch = damp(tw.pitch, tw.wantPitch, 5, dt);
-      tw.recoil = Math.max(0, tw.recoil - dt * 5);
-      m.yaw.rotation.y = tw.yaw;
-      if (m.pitch) {
-        m.pitch.rotation.x = tw.pitch;
-        m.pitch.position.z = tw.recoil * 0.22;
-      }
-      if (m.tilt) {
-        tw.pour = Math.max(0, tw.pour - dt * 0.9);
-        m.tilt.rotation.x = -Math.sin(Math.min(1, tw.pour * 1.4) * Math.PI) * 0.9;
-      }
-      tw.flare = Math.max(0, tw.flare - dt * 2);
-      for (let k = 0; k < m.flames.length; k++) {
-        const f = m.flames[k];
-        const base = tw.type === TW_TAR ? 0.4 : 0.85 - k * 0.1;
-        const h = base * (1 + 0.18 * Math.sin(t * (11 + k * 3) + k) + tw.flare * 0.9);
-        f.scale.set(h * 0.55, h, 1);
-        f.material.opacity = 0.75 + 0.25 * Math.sin(t * 17 + k * 2);
-      }
-      if (m.glow) m.glow.material.opacity = 0.3 + tw.flare * 0.4 + 0.05 * Math.sin(t * 9);
-    }
+    this.turrets.update(dt, camPos, where);
 
     for (const s of this.bolts) this.flyShot(s, dt, true);
     for (const s of this.balls) this.flyShot(s, dt, false);
@@ -1005,11 +719,4 @@ export class Arsenal3D {
       s.obj.position.set(x, y, z);
     }
   }
-}
-
-function dampAngle(a: number, b: number, k: number, dt: number): number {
-  let d = b - a;
-  while (d > Math.PI) d -= Math.PI * 2;
-  while (d < -Math.PI) d += Math.PI * 2;
-  return a + d * (1 - Math.exp(-k * dt));
 }

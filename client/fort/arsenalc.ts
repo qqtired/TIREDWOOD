@@ -721,8 +721,8 @@ export class ArsenalClient {
         return true;
       }
       case 'bolt': {
-        const [, spot, , x, y, z] = e;
-        const m = a3.bolt(spot, x, y, z, _v);
+        const [, spot, zid, x, y, z] = e;
+        const m = a3.bolt(spot, x, y, z, _v, zid);
         this.sfx.ballista([m.x, m.y, m.z], cam.distanceTo(m));
         effects.burst(x, y, z, 0xd8c39a, 8, 3, 0, 0.5, 0, 0.035);
         return true;
