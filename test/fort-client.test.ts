@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { FortMatch } from '../client/fort/match.ts';
+import { cardChips, foldChips } from '../client/fort/wavecard.ts';
 import { ClockSync } from '../client/net.ts';
 import { Predictor } from '../client/predict.ts';
 import { FORT_MIN_DELAY, FT_WAVE, Z_BOSS, Z_WALKER } from '../shared/fort.ts';
 import { GUN_MARKER, gunMag, gunReload } from '../shared/fortarsenal.ts';
 import { fortAfter, fortBefore, makeFortStep } from '../shared/fortgun.ts';
+import { Z_ARMORED, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD } from '../shared/fortkinds.ts';
 import { buildFort } from '../shared/fortmap.ts';
 import { encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
 import { encodeEntities, encodeSnapshot, makeHeader } from '../shared/protocol.ts';
@@ -83,4 +85,24 @@ test('предсказание переигрывает ручную перез�
   assert.equal(predictor.state.reloadT, 0);
   assert.equal(predictor.state.ammo, mag - 1);
   assert.equal(predictor.state.shots, 1);
+});
+
+test('карточка в бою — одна строка: новые и самые многочисленные типы, остальные — «+N», элита и чемпионы остаются', () => {
+  const card = {
+    w: 70, title: 'Барон Варенья', boss: -1, tier: 0, event: 0, roads: [1, 2], boats: 3, crew: 8, elite: 37, champ: 9,
+    chips: [Z_WALKER, 29, Z_RUNNER, 19, Z_CLIMBER, 7, Z_BRUTE, 7, Z_ARMORED, 6, Z_SHIELD, 6, Z_FLYER, 2, Z_MEDIC, 2, Z_SAPPER, 1],
+    fresh: [Z_SAPPER],
+  };
+  const all = cardChips(card);
+  assert.equal(all.length, 9 + 2);
+  const one = foldChips(all, 5);
+  assert.deepEqual(one.map((c) => c.cls), ['', '', '', '', 'fresh', 'more', 'elite', 'champ'], 'новый тип не прячется');
+  assert.deepEqual(one.slice(0, 4).map((c) => c.n), [29, 19, 7, 7], 'остальные места — самым многочисленным');
+  const more = one[5];
+  assert.equal(more.label, '+16', 'в «+N» — все свёрнутые враги: 6 + 6 + 2 + 2');
+  assert.ok(more.name.includes('×6') && more.name.startsWith('ещё:'));
+  assert.equal(one.reduce((a, c) => a + (c.cls === 'more' || c.cls === 'elite' || c.cls === 'champ' ? 0 : c.n), 0) + more.n,
+    all.reduce((a, c) => a + (c.cls === 'elite' || c.cls === 'champ' ? 0 : c.n), 0), 'никого не потеряли');
+  assert.deepEqual(foldChips(all.slice(0, 6), 5), all.slice(0, 6), 'одну лишнюю фишку не сворачиваем в «+1»');
+  assert.equal(foldChips(all, 2).filter((c) => c.cls !== 'more' && c.cls !== 'elite' && c.cls !== 'champ').length, 2);
 });

@@ -13,7 +13,7 @@ import {
 import { GATE, WALL_H, insideFort } from '../../shared/fortmap.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import type { WavePlan } from './director.ts';
-import type { Horde, HordeTarget } from './horde.ts';
+import type { Horde, HordeTarget, Zombie } from './horde.ts';
 
 /** Что событиям нужно от игры (FortGame) */
 export interface EventHost {
@@ -62,6 +62,8 @@ export class WaveEvents {
   private dropAt = -1;
   private landAt = 0;
   private readonly spot = { x: 0, y: 0, z: 0 };
+  /** Кандидаты для удара в толпу (живые на земле) — без выделений памяти */
+  private readonly ground: Zombie[] = [];
 
   constructor(host: EventHost) {
     this.host = host;
@@ -179,15 +181,22 @@ export class WaveEvents {
     h.event(['blast', ZS_METEOR, r2(s.x), r2(s.y + 0.3), r2(s.z), METEOR_R]);
   }
 
-  /** В гущу орды: из нескольких случайных на земле — тот, у кого больше соседей; с упреждением на время полёта */
+  /**
+   * В гущу орды: из нескольких случайных живых на земле — тот, у кого больше соседей; с упреждением на время полёта.
+   * Выбираем среди живых, а не среди мест орды: мест 60, и к концу волны случайные места почти все пустые.
+   */
   private crowdSpot(out: { x: number; y: number; z: number }): boolean {
     const zs = this.host.horde.zombies;
     const rng = this.host.rng;
     const lead = METEOR_WARN_TICKS / TICK_RATE;
+    const ground = this.ground;
+    ground.length = 0;
+    for (const z of zs) {
+      if (z.alive && z.kind !== Z_BOAT && !isBossKind(z.kind) && !(ZK[z.kind].flags & KF_AIR) && z.y <= 0.5) ground.push(z);
+    }
     let best = -1;
-    for (let tries = 0; tries < 10; tries++) {
-      const z = zs[Math.floor(rng() * zs.length)];
-      if (!z.alive || z.kind === Z_BOAT || isBossKind(z.kind) || (ZK[z.kind].flags & KF_AIR) || z.y > 0.5) continue;
+    for (let tries = 0; tries < 10 && ground.length; tries++) {
+      const z = ground[Math.floor(rng() * ground.length)];
       const x = z.x + z.vx * lead;
       const zz = z.z + z.vz * lead;
       let near = 0;

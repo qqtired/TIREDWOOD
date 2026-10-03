@@ -133,6 +133,18 @@ test('метеоры: толпа у ворот — удар задевает и 
   assert.equal(b.log.gate.length, 0);
 });
 
+test('метеор в толпу ищет среди живых, а не среди мест орды: один живой на 60 мест — каждый «толпяной» удар в него', () => {
+  const slots = Array.from({ length: F.FORT_MAX_ALIVE }, (_, i): FakeZombie =>
+    (i === 37 ? { alive: true, kind: F.Z_WALKER, x: 5, y: 0, z: -30, vx: 0, vz: 0 } : { alive: false, kind: F.Z_WALKER, x: 40, y: 0, z: 40, vx: 0, vz: 0 }));
+  const me: HordeTarget = { id: 3, x: 4, y: 2.2, z: 7, air: false };
+  const { ev, log, run } = fake(slots, [me]);
+  ev.start(planOf(EV_METEORS), 0);
+  run(40 * 60);
+  const warns = log.events.filter((e) => e[0] === 'warn') as Array<[string, number, number, number, number, number, number, number]>;
+  assert.equal(warns.length, METEOR_COUNT);
+  for (let i = 0; i < warns.length; i += 2) assert.deepEqual([warns[i][3], warns[i][4], warns[i][5]], [5, 0, -30], `удар ${i}`);
+});
+
 test('метеоры в игре: зомби в круге теряет 40 % макс. HP, человек — 25, сбитый метеором — без стрелка', () => {
   const game = new FortGame();
   const events: FortEvent[] = [];

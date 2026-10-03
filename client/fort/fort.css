@@ -516,6 +516,13 @@
 .ft-chip.champ { color: #ff9f6a; }
 .ft-chip.boss { background: rgba(193, 138, 222, 0.32); }
 .ft-card-from { font-size: 12px; color: #e9dcc6; white-space: nowrap; }
+/* в бою — одна строка: номер волны уже в верхней полосе, лишние типы свёрнуты в «+N» */
+.ft-card.fight { flex-wrap: nowrap; justify-content: flex-start; gap: 8px; padding: 4px 10px; overflow: hidden; white-space: nowrap; }
+.ft-card.fight .ft-card-head { display: none; }
+.ft-card.fight .ft-card-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.ft-card.fight .ft-card-chips { flex-wrap: nowrap; flex: 0 0 auto; }
+.ft-card.fight .ft-card-from { flex: 0 0 auto; white-space: nowrap; }
+.ft-chip.more { color: var(--cream-dim); }
 
 /* крупное «ВОЛНА N» в начале волны: полторы секунды и уезжает вверх */
 .ft-intro {
@@ -586,6 +593,8 @@
   .ft-intro-title { font-size: 17px; }
   .ft-card { font-size: 11px; padding: 4px 8px; }
   .ft-card-from { white-space: normal; }
+  .ft-card.fight { gap: 6px; padding: 3px 8px; }
+  .ft-card.fight .ft-card-title, .ft-card.fight .ft-card-from { display: none; }
   .ft-fresh { top: auto; bottom: calc(190px + env(safe-area-inset-bottom, 0px)); }
 }
 
