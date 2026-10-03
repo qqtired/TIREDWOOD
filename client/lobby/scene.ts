@@ -314,6 +314,9 @@ export class LobbyScene implements Scene {
   private aquaDone: { ms: number; sub: string; until: number } | null = null;
   /** Толкнуло в прошлом шаге предсказания (звук — только в первом) */
   private aquaKnocked = false;
+  /** Где своя желейка последний раз стояла на опоре (как считает сервер): упал с баркаса — тост про матросов */
+  private footX = Number.NaN;
+  private footZ = Number.NaN;
   /** Метки времени своих входов: последняя посланная (не назад) и две последние — по ним препятствия на экране */
   private lastVt = 0;
   private aquaT0 = 0;
@@ -1007,10 +1010,10 @@ export class LobbyScene implements Scene {
     const mine = id === this.myId;
     this.effects.waterSplash(x, z, true);
     this.d.sound.splash(mine ? null : [x, WATER_Y, z]);
-    // у баркаса матросы вытаскивают на палубу, у аквапарка сервер ставит на мостик старта (aquaFall — всё западнее
-    // площади, поэтому баркас проверяем раньше, как на сервере)
+    // у баркаса матросы вытаскивают на палубу (и тех, кого под водой унесло за край — решает, где стоял), у аквапарка
+    // сервер ставит на мостик старта (aquaFall — всё западнее площади, поэтому баркас проверяем раньше, как на сервере)
     if (mine) {
-      this.d.ui.toasts.show(barkasWater(x, z) ? 'Плюх! 🌊 Матросы выудили тебя багром — снова на палубе'
+      this.d.ui.toasts.show(barkasWater(x, z) || barkasWater(this.footX, this.footZ) ? 'Плюх! 🌊 Матросы выудили тебя багром — снова на палубе'
         : aquaFall(x) ? 'Плюх! 🌊 Снова на мостике — ещё попытка' : 'Плюх! 🌊 Выбираемся обратно на площадь');
     }
   }
@@ -1847,6 +1850,11 @@ export class LobbyScene implements Scene {
     }
     this.onLocalEvents(ev);
     this.aquaLocal(inp.seq);
+    const ps = this.predictor.state;
+    if (ps.grounded === 1) {
+      this.footX = ps.x;
+      this.footZ = ps.z;
+    }
     // эмоцию отменяет шаг, прыжок или рывок — показываем сразу (сервер считает так же)
     if (!held && this.me.action !== ACT_NONE && !isHeld(this.me.action) && (buttons & STOP_EMOTE) !== 0) {
       this.me.setAction(ACT_NONE, 0);

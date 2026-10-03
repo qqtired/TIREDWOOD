@@ -201,6 +201,9 @@ test('с баркаса: колокол зовёт пустую лодку; об
   useFerry(hub, a.c, 1);
   assert.match(lastOf(a.s, 'toast')!.text, /Гоша услышал — «Удалая» будет у борта через \d+ с/);
   assert.deepEqual(lastOf(a.s, 'ferry'), { t: 'ferry', ph: FE_BOARD, at: hub.lobby.tick + FERRY_CALL_TICKS, n: 0, c: 1 });
+  // позвонил ещё раз, пока лодка у мостков: не «уже идёт», а «отходит»
+  useFerry(hub, a.c, 1);
+  assert.match(lastOf(a.s, 'toast')!.text, /Гоша уже слышал колокол — «Удалая» отходит от мостков Семёна, у борта будет через \d+ с/);
   steps(hub, FERRY_CALL_TICKS + FERRY_OUT_TICKS);
   assert.equal(hub.lobby.ferry.phase, FE_AWAY, 'пришла пустой');
   useFerry(hub, a.c, 1);
@@ -216,6 +219,30 @@ test('с баркаса: колокол зовёт пустую лодку; об
   hold(hub, [a.c], 0, 90);
   assert.ok(BARKAS_LANDING_SPOTS.some(([x, z]) => Math.hypot(pa.state.x - x, pa.state.z - z) < 1e-6), `на палубе (${pa.state.x}, ${pa.state.z})`);
   assert.equal(pa.state.y, 0);
+});
+
+test('за борт с палубы: под водой унесло за край воды баркаса — всё равно на палубу; с мостков туда же — к аквапарку', () => {
+  const { hub } = setupHub();
+  const a = login(hub, 'Ныряльщик');
+  const pa = lp(hub, a.c);
+  const onDeck = () => BARKAS_LANDING_SPOTS.some(([x, z]) => Math.hypot(pa.state.x - x, pa.state.z - z) < 1e-6);
+  placeAt(hub, a.c, BARKAS_LANDING_SPOTS[2][0], BARKAS_LANDING_SPOTS[2][1]);
+  hold(hub, [a.c], 0, 10);
+  assert.equal(pa.state.grounded, 1, 'стоит на палубе');
+  // с разбега и рывком на север под водой уносит за z = 50 — край barkasWater
+  const lost = { x: -50.6, z: 48.5 };
+  assert.equal(barkasWater(lost.x, lost.z), false);
+  placeAt(hub, a.c, lost.x, lost.z, -1);
+  hold(hub, [a.c], 0, 60);
+  assert.ok(onDeck(), `на палубе (${pa.state.x}, ${pa.state.z})`);
+  assert.equal(pa.state.y, 0);
+  // кто прыгнул с мостков Семёна, того матросы не ловят
+  placeAt(hub, a.c, FERRY_HOME_SPOTS[0][0], FERRY_HOME_SPOTS[0][1]);
+  hold(hub, [a.c], 0, 10);
+  assert.equal(pa.state.grounded, 1, 'стоит на мостках');
+  placeAt(hub, a.c, lost.x, lost.z, -1);
+  hold(hub, [a.c], 0, 60);
+  assert.ok(!onDeck() && !barkasWater(pa.state.x, pa.state.z), `не на баркасе (${pa.state.x}, ${pa.state.z})`);
 });
 
 test('Саня: за 250 🪙 — на пирс к Семёну (действие ferry разговора fisheco); далеко или без денег — нет; E у прилавка — говорит Саня', () => {

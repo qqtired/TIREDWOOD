@@ -101,6 +101,9 @@ export class LobbyPlayer {
   /** Аквапарк: время препятствий прошлого шага (shared/aquadyn.ts; от него едет стоящий на пароме) и толкнуло ли в нём */
   aquaT = 0;
   knocked = false;
+  /** Где последний раз стоял на опоре: упал с баркаса — на палубу, даже если под водой унесло за край его воды */
+  footX = Number.NaN;
+  footZ = Number.NaN;
 
   constructor(slot: number, client: Client) {
     this.slot = slot;
@@ -794,7 +797,10 @@ export class LobbyRoom implements Room {
       if (r === 'soon') {
         this.hub.toast(c, `Дзынь-дзынь! Гоша услышал — «Удалая» будет у борта через ${eta} с`);
         this.ferryChanged();
-      } else this.hub.toast(c, `«Удалая» уже идёт к баркасу — будет через ${eta} с`);
+      } else if (r === 'coming') this.hub.toast(c, `«Удалая» уже идёт к баркасу — будет через ${eta} с`);
+      // уже звали: лодка ещё у мостков (вот-вот отойдёт) или идёт назад к Семёну и оттуда сразу сюда
+      else if (f.phase === FE_BACK) this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» дойдёт до мостков Семёна и сразу сюда: будет через ${eta} с`);
+      else this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» отходит от мостков Семёна, у борта будет через ${eta} с`);
       return;
     }
     if (f.phase !== FE_HOME && f.phase !== FE_BOARD) {
@@ -1464,6 +1470,10 @@ export class LobbyRoom implements Room {
       p.knocked = dyn.knock !== 0;
       this.aquaStep(p, inp.seq, t);
     }
+    if (p.state.grounded === 1) {
+      p.footX = p.state.x;
+      p.footZ = p.state.z;
+    }
     if (p.state.y < DROWN_Y) this.drown(p);
   }
 
@@ -1487,8 +1497,9 @@ export class LobbyRoom implements Room {
     p.arg = 0;
     p.actionUntil = 0;
     if (this.aqua.drop(p.slot)) p.client.sink.sendJson({ t: 'aquaRun', a: 'stop' });
-    // у баркаса матросы вытаскивают на палубу (аквапарком aquaFall считает всё западнее площади — баркас раньше)
-    if (barkasWater(p.state.x, p.state.z)) {
+    // у баркаса матросы вытаскивают на палубу (аквапарком aquaFall считает всё западнее площади — баркас раньше):
+    // тонет в его воде или прыгнул с палубы (с разбега и рывком под водой уносит на несколько метров — за край)
+    if (barkasWater(p.state.x, p.state.z) || barkasWater(p.footX, p.footZ)) {
       this.ferryLand(p, true, Math.floor(Math.random() * 6));
       return;
     }
