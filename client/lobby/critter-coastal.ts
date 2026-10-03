@@ -94,10 +94,10 @@ export class Gull {
   }
 
   update(p: CritterPose, t: number, dt: number, animate = true): void {
+    this.group.position.set(p.x, p.y, p.z); this.group.rotation.set(0, p.yaw, 0);
     if (!animate && this.initialized) return;
     this.initialized = true; dt = clamp(dt, 0, 0.1);
     const B = this.b, P = this.P.reset(), fly = p.action === 'fly';
-    this.group.position.set(p.x, p.y, p.z); this.group.rotation.set(0, p.yaw, 0);
     // state: banking from the heading change, wings unfurl fast and fold slowly, gait from the travelled distance
     const dyaw = wrapPi(p.yaw - this.lastYaw); this.lastYaw = p.yaw;
     this.turn += (clamp(dt > 1e-4 ? dyaw / dt : 0, -2.5, 2.5) - this.turn) * (1 - Math.exp(-dt * 4));
@@ -180,7 +180,7 @@ export class Gull {
 interface CrabColors { shell: number; claw: number; leg: number; belly: number; spot: number }
 const CRAB_COLORS: readonly CrabColors[] = [
   { shell: 0xe4573a, claw: 0xf06f48, leg: 0xd44a31, belly: 0xf6dfb8, spot: 0xff9b73 },
-  { shell: 0xf2993f, claw: 0xf7ae52, leg: 0xe0832f, belly: 0xf8e5bf, spot: 0xffd27a },
+  { shell: 0x78a83d, claw: 0xf2a443, leg: 0x5b9433, belly: 0xf6e6c0, spot: 0xd5ec86 },
 ];
 const LEG_Z = [-0.05, -0.015, 0.02, 0.055];
 
@@ -248,10 +248,10 @@ export class Crab {
   get facingOffset(): number { return this.dir * Math.PI / 2; }
 
   update(p: CritterPose, t: number, dt: number, animate = true): void {
+    this.group.position.set(p.x, p.y, p.z); this.group.rotation.set(0, p.yaw + this.facingOffset, 0);
     if (!animate && this.initialized) return;
     this.initialized = true; dt = clamp(dt, 0, 0.1);
     const B = this.b, P = this.P.reset();
-    this.group.position.set(p.x, p.y, p.z); this.group.rotation.set(0, p.yaw + this.facingOffset, 0);
     if (Number.isFinite(this.lastDistance)) this.gait += clamp(p.distance - this.lastDistance, 0, 0.3) / 0.11;
     this.lastDistance = p.distance;
     const move = ease(p.speed / 0.15), burrow = p.action === 'burrow' ? clamp01(p.restWeight) : 0;
