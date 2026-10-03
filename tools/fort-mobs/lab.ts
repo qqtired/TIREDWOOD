@@ -5,10 +5,13 @@
 //   &freeze=<с> — замереть на этом времени (t, stT, шаг);  &hit=<0…1> &die=<0…1> &flash=<0…1> — в замершем кадре
 //   &yaw=<градусы>;  &view=q34|front|side|wall;  &dist=<м> (со стены — 25);  &rage=1;  &box=0;  &clean=1 (без панелей)
 //   &blow=<с> — как часто «бьёт» в ZS_ATTACK (крепость обнуляет stT на каждом ударе), по умолчанию 0,8
+//   &crowd=<N> — толпа из N особей выбранных моделей идёт к стене через MobRenderer (инстансы, как в крепости):
+//                варианты по seed, скорость вида, вспышки попаданий; вид по умолчанию — со стены
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ALL_MOBS, MOB_SETS } from '../../client/fort/mobs/index.ts';
 import { MOB_STRIDE, buildPreview, newPose, type MobAnim, type MobDef } from '../../client/fort/mobs/kit.ts';
+import { MobRenderer, mobRoot } from '../../client/fort/mobs/renderer.ts';
 import { KF_BOSS, ZK } from '../../shared/fortkinds.ts';
 import { SAMPLE } from './sample.ts';
 
@@ -24,6 +27,8 @@ const q = new URLSearchParams(location.search);
 const num = (key: string, d: number): number => (q.has(key) && Number.isFinite(Number(q.get(key))) ? Number(q.get(key)) : d);
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 if (q.get('clean') === '1') document.body.classList.add('clean');
+/** В атаке крепость обнуляет stT на каждом ударе — стенд «бьёт» раз в blow секунд */
+const blow = num('blow', 0.8);
 
 const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -122,10 +127,75 @@ function listFor(sel: string): MobDef[] {
 let current = '';
 let span = { w: 2, h: 1.6 };
 
+// --- толпа через MobRenderer
+interface CrowdMob { kind: number; seed: number; x: number; z: number; v: number; anim: MobAnim; flash: number }
+const crowdN = Math.min(400, Math.max(0, Math.floor(num('crowd', 0))));
+let crowd: { r: MobRenderer; mobs: CrowdMob[] } | null = null;
+let rng = 12345;
+const rand = (): number => ((rng = (Math.imul(rng, 1103515245) + 12345) >>> 0) / 4294967296);
+const _root = new THREE.Matrix4();
+
+function startCrowd(defs: MobDef[]): void {
+  crowd?.r.dispose();
+  crowd = null;
+  if (!defs.length) return;
+  const r = new MobRenderer(scene, defs, 'high', { castShadow: true });
+  const kinds = [...new Set(defs.flatMap((d) => d.kinds))];
+  rng = 12345;
+  const mobs: CrowdMob[] = [];
+  for (let i = 0; i < crowdN; i++) {
+    const kind = kinds[i % kinds.length];
+    const v = (ZK[kind]?.speed ?? 2.4) * (0.85 + rand() * 0.3);
+    mobs.push({ kind, seed: rand(), x: (rand() - 0.5) * 16, z: -4 - rand() * 40, v, flash: 0,
+      anim: { t: rand() * 10, gait: rand(), speed: v, st: 0, stT: rand(), hit: 0, die: 0, seed: 0, rage: false, flags: 0 } });
+  }
+  crowd = { r, mobs };
+  span = { w: 16, h: 2 };
+}
+
+function stepCrowd(dt: number, st: number, rage: boolean): void {
+  if (!crowd) return;
+  const { r, mobs } = crowd;
+  r.begin();
+  for (const m of mobs) {
+    const a = m.anim;
+    const moving = st === 0;
+    const v = moving ? m.v : 0;
+    m.z += v * dt;
+    if (m.z > 6) m.z -= 46;
+    a.t += dt;
+    a.stT += dt;
+    if (st === 1 && a.stT >= blow) a.stT -= blow;
+    a.gait = (a.gait + (v * dt) / MOB_STRIDE) % 1;
+    a.speed = v;
+    a.st = st;
+    a.rage = rage;
+    a.seed = m.seed;
+    if (rand() < dt * 0.25) { a.hit = 1; m.flash = 1; }
+    a.hit = Math.max(0, a.hit - dt * 3);
+    m.flash = Math.max(0, m.flash - dt * 7);
+    mobRoot(_root, m.x, 0, m.z, Math.PI);
+    r.add(m.kind, m.seed, _root, a, m.flash);
+  }
+  r.end();
+}
+
 function show(sel: string): void {
   current = sel;
   for (const s of shown) scene.remove(s.view.group, s.box);
   const defs = listFor(sel);
+  if (crowdN > 0) {
+    shown = [];
+    startCrowd(defs);
+    placeCamera();
+    const r = 30;
+    sun.position.copy(SUN_DIR).multiplyScalar(60).add(new THREE.Vector3(0, 0, -15));
+    sun.target.position.set(0, 0, -15);
+    Object.assign(sun.shadow.camera, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 160 });
+    sun.shadow.camera.updateProjectionMatrix();
+    note();
+    return;
+  }
   const widths = defs.map((d) => Math.max(1.5, 2 * kindOf(d).hrx + 0.9));
   const total = widths.reduce((a, b) => a + b, 0);
   let x = -total / 2;
@@ -155,6 +225,17 @@ function show(sel: string): void {
 function placeCamera(): void {
   const { w, h } = span;
   const view = $<HTMLSelectElement>('view').value;
+  if (crowd) {
+    // со стены: глаза защитника на ~5 м, враги в 10–40 м
+    const d = num('dist', 10);
+    controls.target.set(0, 0.6, -14);
+    if (view === 'front') camera.position.set(0, 1.6, 8);
+    else if (view === 'side') camera.position.set(22, 4, -14);
+    else camera.position.set(0, 5, d - 4);
+    scene.fog = new THREE.Fog(0x9fd3ef, 60, 160);
+    controls.update();
+    return;
+  }
   const aspect = innerWidth / Math.max(1, innerHeight);
   const fit = (w / 2 + 0.8) / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(aspect, 2.2));
   const near = shown.length > 1 ? Math.max(fit, h * 2.6) : h * 3.1;
@@ -170,6 +251,11 @@ function placeCamera(): void {
 }
 
 function note(): void {
+  if (crowd) {
+    const info = renderer.info.render;
+    $('note').textContent = `толпа: ${crowd.mobs.length} особей · моделей ${listFor(current).length} · вызовов отрисовки ${info.calls} · треугольников ${info.triangles.toLocaleString('ru')}`;
+    return;
+  }
   if (shown.length !== 1) {
     $('note').textContent = `моделей: ${shown.length} · мышь — орбита · колесо — приближение`;
     return;
@@ -197,10 +283,10 @@ mobSel.add(new Option(`${SAMPLE.name}`, 'sample'));
 const stSel = $<HTMLSelectElement>('st');
 for (const [v, label] of STATES) stSel.add(new Option(`${v} · ${label}`, String(v)));
 const viewSel = $<HTMLSelectElement>('view');
-const want = q.get('set') ? `set:${q.get('set')}` : (q.get('mob') ?? (ALL_MOBS[0]?.id ?? 'sample'));
+const want = q.get('set') ? `set:${q.get('set')}` : (q.get('mob') ?? (crowdN > 0 ? 'all' : ALL_MOBS[0]?.id ?? 'sample'));
 mobSel.value = [...mobSel.options].some((o) => o.value === want) ? want : 'sample';
 stSel.value = q.get('st') ?? '0';
-viewSel.value = q.get('view') ?? 'q34';
+viewSel.value = q.get('view') ?? (crowdN > 0 ? 'wall' : 'q34');
 $<HTMLInputElement>('speed').value = String(num('speed', 2.4));
 $<HTMLInputElement>('rage').checked = q.get('rage') === '1';
 $<HTMLInputElement>('box').checked = q.get('box') !== '0';
@@ -213,13 +299,13 @@ $<HTMLInputElement>('box').onchange = (e) => { for (const s of shown) s.box.visi
 show(mobSel.value);
 
 const freeze = q.has('freeze') ? num('freeze', 0) : -1;
-const blow = num('blow', 0.8);
 const DIE_S = 1.2;
 let last = performance.now();
 let lastW = 0;
 let lastH = 0;
+let noteAt = 0;
 function frame(now: number): void {
-  const dt = freeze >= 0 ? 0 : Math.min(0.05, (now - last) / 1000);
+  const dt = freeze >= 0 ? (crowd ? 1 / 60 : 0) : Math.min(0.05, (now - last) / 1000);
   last = now;
   if (innerWidth !== lastW || innerHeight !== lastH) {
     lastW = innerWidth;
@@ -232,6 +318,11 @@ function frame(now: number): void {
   const speed = Number($<HTMLInputElement>('speed').value);
   const st = Number(stSel.value);
   const rage = $<HTMLInputElement>('rage').checked;
+  stepCrowd(dt, st, rage);
+  if (crowd && now - noteAt > 500) {
+    noteAt = now;
+    note();
+  }
   for (const s of shown) {
     const a = s.anim;
     if (freeze >= 0) {
