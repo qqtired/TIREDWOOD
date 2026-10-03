@@ -759,9 +759,9 @@ export class HillsScene {
     const gates = tr.hz.movers.filter((m) => m.kind === 3);
     if (!gates.length) return;
     const g0 = gates[0];
-    // ось улицы в точке шлагбаума: перпендикуляр к стреле
-    const fx = -g0.uz;
-    const fz = g0.ux;
+    // ось улицы в точке шлагбаума по ходу гонки (стрела — поперёк): пути за шлагбаумом, как на настоящем переезде
+    const fx = g0.uz;
+    const fz = -g0.ux;
     const cx = gates.reduce((a, m) => a + m.cx, 0) / gates.length + fx * 3.2;
     const cz = gates.reduce((a, m) => a + m.cz, 0) / gates.length + fz * 3.2;
     const out = this.c.solid;
@@ -775,6 +775,8 @@ export class HillsScene {
       out.push(place(paint(new THREE.BoxGeometry(0.24, 0.07, 2.4), 0x6b4f36), x, y + 0.01, z, ry));
       for (const s of [-0.72, 0.72]) out.push(place(paint(new THREE.BoxGeometry(0.72, 0.09, 0.08), 0x8c9096), x + fx * s, y + 0.07, z + fz * s, ry));
     }
+    // деревья на путях не растут
+    for (let u = -24; u <= 24; u += 2.5) this.taken.push([cx + g0.ux * u, cz + g0.uz * u, 1.6]);
   }
 
   // ------------------------------------------------------------ старт: арка, трибуны, флажки
