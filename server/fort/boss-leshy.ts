@@ -24,6 +24,12 @@ import {
 } from './boss-kit.ts';
 import type { Zombie } from './horde.ts';
 
+/**
+ * Вылез, а корень ещё столько тиков под землёй: снимок с холмом и снимок «уже на земле» не попадают в один отрезок
+ * сглаживания клиента — холм не взлетает (модель рисует холм на LS_UNDER_Y выше корня). Тело в позе вылезания ещё в земле.
+ */
+const RISE_HOLD = 6;
+
 /** Сейчас под землёй (неуязвим) */
 export function leshyUnder(z: Zombie): boolean {
   return z.y < -1;
@@ -61,6 +67,7 @@ export function stepLeshy(c: BossCtx, z: Zombie): void {
       return;
     }
     case ZS_LS_RISE:
+      if (z.y < 0 && z.t <= LS_RISE_TICKS - RISE_HOLD) z.y = 0;
       if (--z.t > 0) return;
       open(z);
       return;
@@ -179,10 +186,9 @@ function underStart(c: BossCtx, z: Zombie, goIn: boolean): void {
   begin(c, z, ZS_LS_UNDER, z.homeX, 0.8, inside ? LS_IN_Z : LS_HOME_Z, LS_EMERGE_R, BOSS_WARN_TICKS);
 }
 
-/** Вылез: удар корнями вокруг себя и «роща» — щитоносцы-лесовики встают перед ним (к крепости) */
+/** Вылез: удар корнями вокруг себя и «роща» — щитоносцы-лесовики встают перед ним (к крепости); на поверхность — в RISE */
 function emerge(c: BossCtx, z: Zombie): void {
   const { host } = c;
-  z.y = 0;
   for (const p of host.targets()) {
     if (Math.abs(p.y) < 1.6 && Math.hypot(p.x - z.x, p.z - z.z) < LS_EMERGE_R) host.hitPlayer(z.id, p.id, c.horde.dmgOf(z, LS_EMERGE_DMG));
   }

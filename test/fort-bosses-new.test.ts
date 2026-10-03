@@ -9,10 +9,11 @@ import {
   LS_BREAK, LS_EMERGE_R, LS_GROVE_BASE, LS_HEAL_FRAC, LS_HEAL_R, LS_HOME_Z, LS_IN_Z, LS_ROOT_CRYSTAL, LS_ROOT_DMG, LS_ROOT_GATE,
   LS_ROOT_R, LS_UNDER_Y, PK_IN_Z, PK_POST_X, PK_POST_Z, PK_ROLL_DMG, PK_ROLL_R, PK_SPIT_DMG, PK_SPIT_R, PK_SUMMON_R,
   WV_BITE_CRYSTAL, WV_FOOT_Z, WV_HANG_Y, WV_HANG_Z, WV_IN_Z, WV_SWEEP_DMG, WV_WEB_DOT, WV_WEB_EVERY, WV_WEB_HIT, WV_WEB_HP,
+  ZF_WV_WALL,
 } from '../shared/fortbosses.ts';
 import { BOSS_ARMOR as ARMOR } from '../shared/fort.ts';
 import { CRYSTAL, GATE, THROAT_Z, WALL_H } from '../shared/fortmap.ts';
-import { ZF_RAGE, isTimedState, type ZombieSnap } from '../shared/fortnet.ts';
+import { ZF_CARRY, ZF_RAGE, isTimedState, type ZombieSnap } from '../shared/fortnet.ts';
 import { bossHp, bossTier, isBossWave } from '../shared/fortwaves.ts';
 import { makeRng } from '../shared/math.ts';
 import { BTN_FIRE, BTN_JUMP, makeInput } from '../shared/sim.ts';
@@ -218,6 +219,10 @@ test('Ткачиха: идёт к той стороне стены, где лю�
   const ticks = until(game, () => w.state === F.ZS_WV_HANG, 60 * 40);
   assert.ok(ticks < 60 * 35, `долезла за ${(ticks / 60).toFixed(1)} с`);
   assert.ok(weaverOnWall(w));
+  const snaps: ZombieSnap[] = [];
+  const sn = snaps.slice(0, game.horde.snap(snaps)).find((s) => s.id === w.id)!;
+  assert.equal(ZF_WV_WALL, ZF_CARRY, 'бит «висит на стене» — бит бочки');
+  assert.ok((sn.flags ?? 0) & ZF_WV_WALL, 'в снимке: висит на стене');
   assert.ok(w.x > 6 && w.x < 15, `восточная сторона: x = ${w.x.toFixed(2)}`);
   assert.ok(Math.abs(w.y - WV_HANG_Y) < 0.01 && Math.abs(w.z - WV_HANG_Z) < 0.01, 'висит на наружной грани');
   const top = w.y + F.ZK[F.Z_WEAVER].hcy + F.ZK[F.Z_WEAVER].hry;
@@ -322,6 +327,7 @@ test('Ткачиха в ярости бросает атаку, перелеза
   }, 400);
   assert.ok(jump < 0.5, `перелезает плавно (шаг ${jump.toFixed(2)} м)`);
   assert.ok(weaverInside(w) && !weaverOnWall(w) && w.y === 0 && w.z > -12, 'во дворе');
+  assert.equal(w.carry, false, 'в снимке: на земле');
   const crystal = game.crystal;
   until(game, () => w.state === F.ZS_WV_BITE, 60 * 20);
   assert.ok(Math.abs(w.x) < 0.5 && Math.abs(w.z - WV_IN_Z) < 0.5, 'у постамента');
@@ -409,6 +415,8 @@ test('Леший: прятки — под землёй неуязвим, выл�
   const left = l.t;
   assert.ok(left >= F.BOSS_WARN_TICKS - 1, 'полное предупреждение');
   until(game, () => l.state === F.ZS_LS_RISE, 200);
+  assert.ok(l.y < -1, 'первые тики вылезания корень ещё в земле — холм не взлетает в сглаживании');
+  steps(game, 8);
   assert.equal(l.y, 0);
   assert.ok(Math.abs(l.x - (w![3] as number)) < 0.01, 'вылез в круге');
   assert.equal(aliveOf(game, F.Z_SHIELD).length, LS_GROVE_BASE, 'роща лесовиков');

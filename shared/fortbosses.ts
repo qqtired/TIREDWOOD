@@ -107,6 +107,12 @@ export const LS_GROVE_AHEAD = 3.2;
 
 // ------------------------------------------------------------ метки в снимке
 
+/**
+ * Ткачиха висит на стене: признак врага в снимке — тот же бит, что ZF_CARRY (fortnet.ts; бочки у босса не бывает).
+ * Числом, а не импортом: fortnet.ts сам берёт отсюда NEW_BOSS_TIMED.
+ */
+export const ZF_WV_WALL = 128;
+
 /** Состояния новых боссов, у которых в снимке есть отсчёт и цель (fortnet.ts, isTimedState) */
 export const NEW_BOSS_TIMED: readonly number[] = [
   ZS_PK_SUMMON, ZS_PK_ROLL_WARN, ZS_PK_ROLL, ZS_PK_SPIT, ZS_WV_SWEEP, ZS_WV_WEB, ZS_WV_BROOD, ZS_WV_BITE, ZS_LS_ROOTS, ZS_LS_HEAL,

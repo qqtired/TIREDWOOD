@@ -48,6 +48,13 @@ export function weaverInside(z: Zombie): boolean {
 
 export function stepWeaver(c: BossCtx, z: Zombie): void {
   stepWebs(c, z);
+  act(c, z);
+  // висит на стене — признак ZF_WV_WALL (= ZF_CARRY, у босса бочки не бывает) в снимке: модели — лежать на грани стены
+  // или стоять на земле в тех же состояниях (атаки и окно — и на стене, и во дворе)
+  z.carry = weaverOnWall(z);
+}
+
+function act(c: BossCtx, z: Zombie): void {
   if (rageCheck(c, z) && weaverOnWall(z)) {
     // ярость на стене: бросает атаку и лезет через стену во двор
     overStart(c, z);
