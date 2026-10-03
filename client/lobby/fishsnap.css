@@ -1,0 +1,14 @@
+/* Снимок 3D-модели вместо картинки (fishsnap.ts): в карточке улова модель «живая» — чуть покачивается. */
+.fc2-pic.f2-snap {
+  animation: f2-snap-float 3.6s ease-in-out infinite;
+  transform-origin: 60% 50%;
+}
+
+@keyframes f2-snap-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-1.6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc2-pic.f2-snap { animation: none; }
+}

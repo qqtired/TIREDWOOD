@@ -1,0 +1,68 @@
+/* Рыба в руках (fishhold.ts): плашка над панелью снизу и кнопка «Взять в руки» в рюкзаке (fishbag.ts). */
+.fh-chip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 8px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 999px;
+  background: rgba(30, 22, 26, 0.72);
+  color: #fff3de;
+  font: 600 14px/1.2 Rubik, system-ui, sans-serif;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.fh-chip.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.fh-put {
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #fff3de;
+  color: #2a1f24;
+  font: 700 13px/1 Rubik, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.fh-put kbd {
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(42, 31, 36, 0.12);
+  font: 700 11px/1.2 Rubik, system-ui, sans-serif;
+}
+
+.fe-row .fe-hold {
+  white-space: nowrap;
+}
+
+.fe-row .fe-hold.on {
+  background: #ffe7a8;
+  color: #2a1f24;
+}
+
+/* в рюкзаке у рыбы две кнопки: «Взять в руки» и «Отпустить» (окно чуть шире; pointer-events у .fe-bag не трогаем) */
+dialog.fe-bag {
+  width: min(700px, calc(100vw - 24px));
+}
+
+.fe-bag .fe-row {
+  grid-template-columns: 74px minmax(0, 1fr) auto auto auto;
+}
+
+@media (max-width: 760px) {
+  .fe-bag .fe-row {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+}

@@ -3,6 +3,7 @@
 // их и data:), картинка-силуэт для ещё не пойманных, подписи категорий.
 import { FISH } from '../../shared/fishing.ts';
 import { RULE, TIER_CSS, TIER_NAMES } from '../../shared/fishrules.ts';
+import { fishSnapUrl } from './fishsnap.ts';
 import './fish2.css';
 
 /** Включена ли рыбалка 2.0 (ставит набережная по приветствию; профиль и гардероб смотрят сюда же) */
@@ -20,15 +21,25 @@ export function fishImgUrl(sp: number): string | null {
   return BY_ID.get(FISH[sp]?.id ?? '') ?? null;
 }
 
-/** Картинка вида; known = false — тёмный силуэт (ещё не ловил). */
+/** Картинка вида; known = false — тёмный силуэт (ещё не ловил). Нет нарисованной — снимок 3D-модели (fishsnap.ts). */
 export function fishPic(sp: number, cls: string, known = true): HTMLElement {
-  const url = fishImgUrl(sp);
+  const drawn = fishImgUrl(sp);
+  const url = drawn ?? (FISH[sp] ? fishSnapUrl(sp) : null);
+  if (url && !drawn) {
+    const img = fishPicImg(sp, cls, known, url);
+    img.classList.add('f2-snap');
+    return img;
+  }
   if (!url) {
     const d = document.createElement('div');
     d.className = `${cls} f2-nopic`;
     d.textContent = known ? '🐟' : '?';
     return d;
   }
+  return fishPicImg(sp, cls, known, url);
+}
+
+function fishPicImg(sp: number, cls: string, known: boolean, url: string): HTMLImageElement {
   const img = document.createElement('img');
   img.className = known ? cls : `${cls} f2-shadow`;
   img.src = url;

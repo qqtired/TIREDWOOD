@@ -203,6 +203,11 @@ export class Fish2Hud {
     this.roulette.open(me.fishing, me.pid);
   }
 
+  /** Рыба в руках (сервер, fishhold.ts): в рюкзаке у неё «Убрать» вместо «Взять в руки» */
+  setHeld(n: number): void {
+    this.bag.setHeld(n);
+  }
+
   /** I или значок 🎒: окно рюкзака */
   toggleBag(): void {
     if (this.npc.isOpen || this.book.isOpen || this.roulette.isOpen) return;

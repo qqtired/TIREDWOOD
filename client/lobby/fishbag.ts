@@ -8,6 +8,8 @@ import { setCoinText } from '../ui/coin.ts';
 import { el, fishPic, tierOf } from './fish2.ts';
 import { bagMarks, num } from './fishfmt.ts';
 import './fisheco.css';
+// плашка «рыба в руках» и кнопка «Взять в руки» (client/lobby/fishhold.ts)
+import './fishhold.css';
 
 export class FishBag {
   onClose: () => void = () => {};
@@ -18,6 +20,8 @@ export class FishBag {
   private progress = emptyFishProgress();
   /** Рыба, которую спросили «точно отпустить?» */
   private ask = -1;
+  /** Рыба в руках (номер в рюкзаке, −1 — руки пустые): «Взять в руки» — желейка держит её, видят все (fishhold.ts) */
+  private held = -1;
 
   constructor(parent: HTMLElement, send: (msg: ClientMsg) => void) {
     this.send = send;
@@ -57,6 +61,13 @@ export class FishBag {
     if (this.isOpen) this.render();
   }
 
+  /** Сервер: какую рыбу держишь в руках (−1 — никакую) */
+  setHeld(n: number): void {
+    if (n === this.held) return;
+    this.held = n;
+    if (this.isOpen) this.render();
+  }
+
   close(): void {
     if (!this.root.open) return;
     this.root.close();
@@ -82,6 +93,15 @@ export class FishBag {
       const marks = bagMarks(f.m);
       if (marks.length) info.appendChild(el('span', 'fe-marks', marks.join(' · ')));
       setCoinText(row.appendChild(el('div', 'fe-row-price')), `${num(f.p)} 🪙`);
+      const inHands = this.held === f.n;
+      const h = row.appendChild(el('button', inHands ? 'fn-action fe-hold on' : 'fn-action fe-hold', inHands ? 'Убрать' : 'Взять в руки'));
+      h.type = 'button';
+      h.title = inHands ? 'Убрать рыбу из рук' : 'Желейка возьмёт рыбу в руки — похвастаться или сфотографироваться у маяка';
+      h.addEventListener('click', () => {
+        this.send({ t: 'fishHold', n: inHands ? -1 : f.n });
+        // взял — окно закрывается: сразу видно рыбу в руках
+        if (!inHands) this.close();
+      });
       const asking = this.ask === f.n;
       const b = row.appendChild(el('button', asking ? 'fn-action fe-warn' : 'fn-action fn-dismiss', asking ? 'Точно отпустить?' : 'Отпустить'));
       b.type = 'button';
