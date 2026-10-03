@@ -121,7 +121,7 @@ export class WaveCardView {
       el('span', 'ft-chip-n', chip, card.tier > 0 ? romanTier(card.tier + 1) : 'босс');
     }
     const from: string[] = card.roads.map((r) => ROAD_ARROW[r] ?? '');
-    if (card.boats > 0) from.push(`⚓ ${card.boats} × ${card.crew}`);
+
     const ev = EVENT_INFO[card.event];
     if (ev) from.push(`${ev.icon} ${ev.name}`);
     if (card.early) from.push('🔔 +10 % золота');

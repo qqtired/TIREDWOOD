@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import * as F from '../shared/fort.ts';
 import {
   CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_FROM, EVENT_GAP, GOLD_HASTE, METEOR_COUNT,
-  METEOR_GATE, METEOR_PLAYER, METEOR_R, METEOR_WARN_TICKS, METEOR_ZOMBIE, SUPPLY_FALL_TICKS, isBossWave, isSuperWave, supplyGold,
+  METEOR_CROWD_EVERY, METEOR_GATE, METEOR_PLAYER, METEOR_R, METEOR_TICKS, METEOR_WARN_TICKS, METEOR_ZOMBIE, SUPPLY_FALL_TICKS, isBossWave, isSuperWave, supplyGold,
 } from '../shared/fortwaves.ts';
 import { GATE, buildFort, insideFort } from '../shared/fortmap.ts';
 import { CollisionWorld } from '../shared/world.ts';
@@ -65,7 +65,7 @@ function planOf(event: number, w = 13): WavePlan {
   return { ...p, event };
 }
 
-test('метеоры: 15 ударов за ~12 с, у каждого — круг за 1,4 с и камень на виду; чётные — в толпу, нечётные — к людям', () => {
+test('метеоры: 24 удара за ~14 с, у каждого — круг за 1 с и камень на виду; каждый третий — в толпу, остальные — к людям', () => {
   const crowd = Array.from({ length: 8 }, (_, i): FakeZombie => ({ alive: true, kind: F.Z_WALKER, x: -8 + (i % 4) * 0.8, y: 0, z: -30 - Math.floor(i / 4), vx: 0, vz: 0 }));
   const me: HordeTarget = { id: 3, x: 4, y: 2.2, z: 7, air: false };
   const { ev, log, run, host } = fake(crowd, [me]);
@@ -82,11 +82,11 @@ test('метеоры: 15 ударов за ~12 с, у каждого — кру�
     assert.equal(w[2], F.ZS_METEOR);
     assert.equal(w[6], METEOR_R);
   }
-  // первый круг — когда орда уже вышла (не раньше 6 с), весь дождь — около 12 с
+  // первый круг — когда орда уже вышла (не раньше 6 с), весь дождь — около METEOR_TICKS
   const first = warns[0][7] - METEOR_WARN_TICKS;
   const last = warns[warns.length - 1][7];
   assert.ok(first >= 6 * 60 && first <= 20 * 60, `первый круг на ${first} тике`);
-  assert.ok(last - warns[0][7] > 10 * 60 && last - warns[0][7] < 13 * 60, `дождь ${(last - warns[0][7]) / 60} с`);
+  assert.ok(last - warns[0][7] > METEOR_TICKS - 2 * 60 && last - warns[0][7] < METEOR_TICKS + 60, `дождь ${(last - warns[0][7]) / 60} с`);
   // камень летит ровно до удара
   for (let i = 0; i < throws.length; i++) {
     const t = throws[i] as [string, number, number, number, number, number, number, number, number];
@@ -94,10 +94,10 @@ test('метеоры: 15 ударов за ~12 с, у каждого — кру�
     assert.equal(t[7], METEOR_WARN_TICKS);
     assert.deepEqual([t[4], t[5], t[6]], [warns[i][3], warns[i][4], warns[i][5]]);
   }
-  // чётные — в гущу (у толпы), нечётные — рядом с человеком (в круге, но не точно в него)
+  // каждый третий — в гущу (у толпы), остальные — рядом с человеком (в круге, но не точно в него)
   for (let i = 0; i < warns.length; i++) {
     const [, , , x, y, z] = warns[i];
-    if (i % 2 === 0) assert.ok(x > -10 && x < -4 && z < -28 && z > -32 && y === 0, `в толпу: ${x}, ${z}`);
+    if (i % METEOR_CROWD_EVERY === 0) assert.ok(x > -10 && x < -4 && z < -28 && z > -32 && y === 0, `в толпу: ${x}, ${z}`);
     else {
       const d = Math.hypot(x - me.x, z - me.z);
       assert.ok(d <= 1.6 + 1e-6, `к человеку: ${d}`);
@@ -107,7 +107,7 @@ test('метеоры: 15 ударов за ~12 с, у каждого — кру�
   assert.equal(log.strikes.length, METEOR_COUNT);
   for (const s of log.strikes) assert.deepEqual([s[3], s[4]], [METEOR_R, METEOR_ZOMBIE]);
   // человек стоял — его задело каждым «своим» метеором
-  assert.equal(log.hits.length, Math.floor(METEOR_COUNT / 2));
+  assert.equal(log.hits.length, METEOR_COUNT - Math.ceil(METEOR_COUNT / METEOR_CROWD_EVERY));
   for (const h of log.hits) assert.deepEqual(h, [0, 3, METEOR_PLAYER]);
   assert.equal(log.gate.length, 0, 'толпа далеко от ворот — ворота целы');
   // начало и конец события
@@ -116,7 +116,7 @@ test('метеоры: 15 ударов за ~12 с, у каждого — кру�
   assert.ok(host.tick > last);
 });
 
-test('метеоры: толпа у ворот — удар задевает и ворота (−80); идущих бьёт с упреждением', () => {
+test('метеоры: толпа у ворот — удар задевает и ворота (−200); идущих бьёт с упреждением', () => {
   const atGate = Array.from({ length: 6 }, (_, i): FakeZombie => ({ alive: true, kind: F.Z_WALKER, x: -1 + (i % 3), y: 0, z: GATE.face - 1 - Math.floor(i / 3) * 0.8, vx: 0, vz: 0 }));
   const { ev, log, run } = fake(atGate, []);
   ev.start(planOf(EV_METEORS), 0);
@@ -133,7 +133,7 @@ test('метеоры: толпа у ворот — удар задевает и 
   assert.equal(b.log.gate.length, 0);
 });
 
-test('метеор в толпу ищет среди живых, а не среди мест орды: один живой на 60 мест — каждый «толпяной» удар в него', () => {
+test('метеор в толпу ищет среди живых, а не среди мест орды: один живой на 60 мест — каждый удар «в толпу» в него', () => {
   const slots = Array.from({ length: F.FORT_MAX_ALIVE }, (_, i): FakeZombie =>
     (i === 37 ? { alive: true, kind: F.Z_WALKER, x: 5, y: 0, z: -30, vx: 0, vz: 0 } : { alive: false, kind: F.Z_WALKER, x: 40, y: 0, z: 40, vx: 0, vz: 0 }));
   const me: HordeTarget = { id: 3, x: 4, y: 2.2, z: 7, air: false };
@@ -142,10 +142,10 @@ test('метеор в толпу ищет среди живых, а не сре�
   run(40 * 60);
   const warns = log.events.filter((e) => e[0] === 'warn') as Array<[string, number, number, number, number, number, number, number]>;
   assert.equal(warns.length, METEOR_COUNT);
-  for (let i = 0; i < warns.length; i += 2) assert.deepEqual([warns[i][3], warns[i][4], warns[i][5]], [5, 0, -30], `удар ${i}`);
+  for (let i = 0; i < warns.length; i += METEOR_CROWD_EVERY) assert.deepEqual([warns[i][3], warns[i][4], warns[i][5]], [5, 0, -30], `удар ${i}`);
 });
 
-test('метеоры в игре: зомби в круге теряет 40 % макс. HP, человек — 25, сбитый метеором — без стрелка', () => {
+test('метеоры в игре: зомби в круге теряет 40 % макс. HP, человек — 40, сбитый метеором — без стрелка', () => {
   const game = new FortGame();
   const events: FortEvent[] = [];
   const sink = { sendJson: (m: { t: string; e?: FortEvent[] }) => { if (m.t === 'fev' && m.e) events.push(...m.e); }, sendBinary() {}, close() {} };

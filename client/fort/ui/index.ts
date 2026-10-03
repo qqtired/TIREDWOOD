@@ -5,7 +5,9 @@
 // Столбец сверху растёт (босс, тревога, карточка волны) — его нижний край идёт в --fu-below, высота баннера —
 // в --fu-banner-real, и баннер с «Тебя повалили!» встают ниже, а не под них.
 import type * as THREE from 'three';
-import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, type FortEvent, type FortWaveCard } from '../../../shared/fort.ts';
+import {
+  FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_BOAT_LAND, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, Z_BOAT, type FortEvent, type FortWaveCard,
+} from '../../../shared/fort.ts';
 import { kindFlags, waveBonus } from '../../../shared/fortarsenal.ts';
 import type { ZombieSnap } from '../../../shared/fortnet.ts';
 import type { Hud } from '../../paintball/hud.ts';
@@ -55,6 +57,8 @@ export class FortUi {
   readonly results: Results;
   private readonly threats: Threat[] = [];
   private gateWas = -1;
+  /** Лодки, что уже у берега (тревога — один раз на лодку) */
+  private readonly landed = new Set<number>();
   private wave = 0;
   private down = false;
 
@@ -120,11 +124,22 @@ export class FortUi {
     this.alarms.update(me);
     this.coach.update(v.phase, v.me.alive);
     this.ladder.update(v.me.alive && v.phase !== FT_END ? ladderHint(v.me.x, v.me.y, v.me.z) : null);
+    // десант — сюрприз: ни слова заранее, короткая тревога — когда лодка уже у берега
+    if (v.phase !== FT_WAVE) this.landed.clear();
+    else {
+      for (const z of v.zombies) {
+        if (z.kind !== Z_BOAT || z.state !== ZS_BOAT_LAND || !(z.hp > 0) || this.landed.has(z.id)) continue;
+        if (this.landed.size === 0) this.alarm('⛵ Десант у берега!', 2200);
+        this.landed.add(z.id);
+      }
+    }
     this.threats.length = 0;
     if (v.phase === FT_WAVE && v.me.alive) {
       for (const z of v.zombies) {
         if (!(z.hp > 0)) continue;
-        const kind = isBossKind(z.kind) ? 'boss' : kindFlags(z.kind).sea ? 'boat'
+        const sea = kindFlags(z.kind).sea;
+        if (sea && !isBossKind(z.kind) && z.state !== ZS_BOAT_LAND) continue;
+        const kind = isBossKind(z.kind) ? 'boss' : sea ? 'boat'
           : z.state === ZS_CLIMB || z.state === ZS_TOP ? 'climb' : z.state === ZS_FLY_WARN ? 'fly' : null;
         if (kind) this.threats.push({ x: z.x, y: z.y + 1, z: z.z, kind });
       }
@@ -150,7 +165,7 @@ export class FortUi {
     const boss = card && card.boss >= 0 ? bossInfo(card.boss) : bossOfWave(wave);
     const ev = card ? EVENT_INFO[card.event] : undefined;
     const title = boss ? `${boss.icon} ${boss.name}` : card?.title || `Волна ${wave}`;
-    const sub = ev ? `${ev.icon} ${ev.name}: ${ev.hint}` : card && card.boats > 0 ? `⚓ Десант с моря: лодок ${card.boats}` : '';
+    const sub = ev ? `${ev.icon} ${ev.name}: ${ev.hint}` : '';
     this.push({ key: 'wave', badge: String(wave), tone: boss ? (boss.super ? 'super' : 'boss') : 'wave', prio: 1, ms: 3400, title, sub });
   }
 

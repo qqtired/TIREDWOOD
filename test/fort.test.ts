@@ -64,6 +64,7 @@ test('сбор → волна 1: зомби выходят по расписан
   assert.equal(game.phase, FT_WAVE);
   assert.equal(game.wave, 1);
   assert.ok(game.horde.left >= 12, `в первой волне ${game.horde.left}`);
+  const total = game.horde.left;
   // сбиваем каждого, кто вышел
   until(game, () => {
     for (const z of game.horde.zombies) if (z.alive) game.horde.damage(z, 999, p.id, false, z.x, z.y + 1, z.z);
@@ -71,11 +72,11 @@ test('сбор → волна 1: зомби выходят по расписан
   }, 60 * TICK_RATE, 'конец волны');
   assert.equal(game.phase, FT_BREAK);
   assert.equal(p.waves, 1);
-  assert.equal(p.kills, 16);
+  assert.equal(p.kills, total);
   // 60 % награды — стрелку сразу, 40 % — в общак; чистая волна: общак ×1,5, и бонус волны каждому
   const b = killBounty(Z_WALKER, 1);
-  const pot = 16 * (b / KILL_SHARE - b);
-  assert.equal(a.gold, START_GOLD + 16 * b + Math.round(pot * CLEAN_MULT) + waveBonus(1));
+  const pot = total * (b / KILL_SHARE - b);
+  assert.equal(a.gold, START_GOLD + total * b + Math.round(pot * CLEAN_MULT) + waveBonus(1));
   assert.ok(s.msgs.some((m) => m.t === 'fphase' && m.phase === FT_BREAK));
   assert.equal(game.phaseEnd - game.tick, BREAK_TICKS);
   // события уходят со снимками — раз в 2 тика

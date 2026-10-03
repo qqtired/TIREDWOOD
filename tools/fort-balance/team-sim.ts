@@ -10,9 +10,9 @@ import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { EYE_HEIGHT, TICK_RATE } from '../../shared/constants.ts';
 import {
-  BUY_CRYSTAL, BUY_FIX, BUY_GATE, CRYSTAL_HP, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_QUAKE,
-  ZS_STOMP, type FortEvent,
+  FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_QUAKE, ZS_STOMP, type FortEvent,
 } from '../../shared/fort.ts';
+import { ACT_CRYSTAL, ACT_GATE, crystalRows, gateRows } from '../../shared/fortarsenal.ts';
 import { KF_AIR, Z_BOAT, isBossKind } from '../../shared/fortkinds.ts';
 import { CRYSTAL, WALL_H } from '../../shared/fortmap.ts';
 import { EV_NONE, isBossWave, isSuperWave } from '../../shared/fortwaves.ts';
@@ -28,7 +28,7 @@ const { values: opt } = parseArgs({
     power: { type: 'string' },
     players: { type: 'string', default: '3' },
     skill: { type: 'string', default: 'experienced' },
-    to: { type: 'string', default: '300' },
+    to: { type: 'string', default: String(FORT_WAVES) },
     seed: { type: 'string', default: '7' },
     quiet: { type: 'boolean', default: false },
   },
@@ -43,7 +43,7 @@ if (opt.power) {
   // модель arsenal (после слияния лежит рядом)
   const model = await import('./model.ts' as string) as { SKILLS: Record<string, unknown>; simulate: (d: unknown, n: number, s: unknown, w: number) => { rows: Array<{ power: { total: number } }> } };
   const { director } = await import('./fort-director.ts');
-  power = model.simulate(director, n, model.SKILLS[skill], 300).rows.map((r) => r.power.total);
+  power = model.simulate(director, n, model.SKILLS[skill], FORT_WAVES).rows.map((r) => r.power.total);
 }
 if (!power) throw new Error(`нет силы для ${n} / ${skill}`);
 const dpsByWave: number[] = power;
@@ -203,20 +203,30 @@ function react(): void {
 }
 
 /** Передышка: на свои очки — новые ворота, починка ворот и кристалла; потом все в колокол (3 с) */
+/** Покупка у ворот и кристалла за золото арсенала, как из панели, но без похода к стойке */
+const ars = game.arsenal as unknown as {
+  apply(p: FortPlayer, id: number, price: number): void;
+  teamView(): { wave: number; calm: boolean; gold: number; gate: number; gateTier: number; crystal: number; crystalTier: number };
+  gateMax: number;
+  crystalMax: number;
+};
+function buy(p: FortPlayer, id: number): boolean {
+  const a = p.run.arsenal;
+  const v = { ...ars.teamView(), gold: a.gold };
+  const row = id >= ACT_CRYSTAL ? crystalRows(v)[id - ACT_CRYSTAL] : gateRows(v)[id - ACT_GATE];
+  if (!row || row.locked || row.price > a.gold) return false;
+  a.gold -= row.price;
+  ars.apply(p, id, row.price);
+  return true;
+}
+
+/** Передышка: новые ворота, ремонт до 80 %, кристалл до 90 % — сила (стволы, башни) уже в модели arsenal */
 function shop(): void {
   for (const b of bots) {
     const p = b.p;
-    if (game.gate <= 0) sim.purchase(p, BUY_GATE, 0, true);
-    while (game.gate > 0 && game.gate < GATE_HP - 200 && p.pts >= 40) {
-      const before = p.pts;
-      sim.purchase(p, BUY_FIX, 0, true);
-      if (p.pts === before) break;
-    }
-    while (game.crystal < CRYSTAL_HP - 150 && p.pts >= 60) {
-      const before = p.pts;
-      sim.purchase(p, BUY_CRYSTAL, 0, true);
-      if (p.pts === before) break;
-    }
+    if (game.gate <= 0) buy(p, ACT_GATE + 2);
+    for (let i = 0; i < 4 && game.gate > 0 && game.gate < ars.gateMax * 0.8; i++) if (!buy(p, ACT_GATE)) break;
+    for (let i = 0; i < 9 && game.crystal < ars.crystalMax * 0.9; i++) if (!buy(p, ACT_CRYSTAL)) break;
   }
   game.phaseEnd = Math.min(game.phaseEnd, game.tick + 3 * TICK_RATE);
   for (const b of bots) {
@@ -253,14 +263,14 @@ for (let guard = 0; guard < 60 * 60 * 60 * 30; guard++) {
     } else if (lastPhase === FT_WAVE) {
       const w = game.phase === FT_END ? game.wave : game.cleared;
       const deaths = bots.reduce((a, b) => a + b.p.deaths, 0) - deaths0;
-      rows.push({ w, s: (game.tick - waveStart) / TICK_RATE, gate: game.gate / GATE_HP, crys: game.crystal / CRYSTAL_HP, deaths, ev: game.lastEvent.wave === w ? game.lastEvent.kind : EV_NONE,
+      rows.push({ w, s: (game.tick - waveStart) / TICK_RATE, gate: game.gate / ars.gateMax, crys: game.crystal / ars.crystalMax, deaths, ev: game.lastEvent.wave === w ? game.lastEvent.kind : EV_NONE,
         tag: isSuperWave(w) ? 'S' : isBossWave(w) ? 'B' : '' });
       if (!opt.quiet || w % 10 === 0) {
         const r = rows[rows.length - 1];
         console.log(`w${String(w).padStart(3)}${r.tag.padEnd(1)} ${r.s.toFixed(0).padStart(3)} с · ворота ${(r.gate * 100).toFixed(0).padStart(3)} % · кристалл ${(r.crys * 100).toFixed(0).padStart(3)} % · гибелей ${r.deaths}${r.ev ? ` · событие ${r.ev}` : ''}`);
       }
       if (game.phase === FT_END) {
-        lost = w;
+        if (game.crystal <= 0) lost = w;
         break;
       }
       if (w >= toWave) break;

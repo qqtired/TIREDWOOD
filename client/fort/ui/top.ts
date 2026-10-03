@@ -5,7 +5,7 @@ import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
 import { CRYSTAL_TIERS, GATE_TIERS } from '../../../shared/fortarsenal.ts';
 import { iconUrl } from '../stall.ts';
 import { el, num, replay, setText } from './dom.ts';
-import { bossOfWave, lastWave, seaWave } from './schedule.ts';
+import { bossOfWave, lastWave } from './schedule.ts';
 import { snapWidth } from './boss.ts';
 
 export interface TeamRow {
@@ -181,13 +181,12 @@ export class TopBar {
     if (v.gold !== this.gold) setText(this.goldN, num(v.gold));
     this.gold = v.gold;
 
-    // впереди босс или десант: в паузе перед ним и всю волну перед ним
+    // впереди босс: в паузе перед ним и всю волну перед ним (десант — сюрприз, о нём заранее ни слова)
     const ahead = calm ? v.wave + 1 : fight ? v.wave + 1 : 0;
     const boss = ahead > 0 ? bossOfWave(ahead) : null;
     const thisBoss = calm ? null : bossOfWave(v.wave);
     let note = '';
     if (boss && !thisBoss) note = `${calm ? 'Волна с боссом' : 'Дальше босс'}: ${boss.icon} ${boss.name}`;
-    else if (ahead > 0 && seaWave(ahead)) note = `${calm ? 'Волна с десантом' : 'Дальше десант'} с моря ⛵`;
     setText(this.next, note ? `⚠ ${note}` : '');
     this.next.classList.toggle('show', !!note);
     this.next.classList.toggle('super', !!boss?.super);
