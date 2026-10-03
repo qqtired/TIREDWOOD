@@ -1,10 +1,12 @@
-// Меню игры (Esc, на телефоне ☰): слева «Продолжить» и разделы — профиль, настройки по категориям, справка
-// «Клавиши»; справа — выбранный раздел. Игра за меню идёт дальше: это онлайн, пауз нет. Захват мыши, сеть и сцены —
+// Меню игры (Esc, на телефоне ☰): слева «Продолжить», «На набережную» (в режимах) и разделы — профиль, настройки по
+// категориям, справка «Клавиши»; справа — выбранный раздел. «Продолжить» и «На набережную» закреплены вверху, «Выйти из
+// игры» — внизу: прокручивается только список разделов. Игра за меню идёт дальше: это онлайн, пауз нет. Захват мыши, сеть и сцены —
 // у App (client/app.ts); здесь вид, разделы и вуаль «Кликни, чтобы играть»: Esc прячет меню сразу, а мышь браузер
 // отдаёт только по клику (Esc — не жест пользователя).
 import type { GiftResultCode } from '../../../shared/gifts.ts';
 import type { RoomKind } from '../../../shared/messages.ts';
 import type { MixPreview } from '../../audio.ts';
+import type { GfxState } from '../../render/gfx.ts';
 import type { Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
 import type { ProfilePanel } from '../profile.ts';
@@ -29,7 +31,7 @@ const HEAD: Record<MenuSection, readonly [title: string, lead: string]> = {
   records: ['Рекорды', 'Лучшие результаты и счёт по режимам — считает сервер'],
   collection: ['Коллекция', TOUCH ? 'Рыбы и находки. На набережной журнал рыбака — кнопка 📖' : 'Рыбы и находки. На набережной журнал рыбака — клавиша J'],
   codes: ['Подарки и коды', 'Подарочный код, вход с другого устройства, примерочная'],
-  graphics: ['Графика', 'Качество картинки, угол обзора, счётчик кадров'],
+  graphics: ['Графика', 'Качество, разрешение, тени, эффекты, дальность, ограничение кадров'],
   sound: ['Звук', 'Общая громкость, музыка, окружение, эффекты, интерфейс и голоса'],
   voice: ['Голос', 'Голосовой чат: включить, проверить микрофон, кого слышно'],
   controls: ['Управление', TOUCH ? 'Обзор пальцем, прицел, инверсия' : 'Мышь, прицел, инверсия'],
@@ -52,6 +54,8 @@ export interface MenuActions {
   redeem(code: string): void;
   /** Настройку поменяли: применить и запомнить */
   changed(): void;
+  /** Что в графике действует сейчас (пресет, «Своё» или «Авто» с текущим разрешением) — пункты меню показывают это */
+  gfx(): GfxState;
   /** Ползунок громкости отпустили: короткий пример звука его шины */
   preview?(kind: MixPreview): void;
   /** Где игрок сейчас: подарочный код принимают только на набережной */
@@ -94,11 +98,13 @@ export class GameMenu {
             <div class="mn-name">Меню</div>
             <div class="mn-sub"></div>
           </div>
-          <button class="btn primary mn-resume" type="button">Продолжить</button>
+          <div class="mn-go">
+            <button class="btn primary mn-resume" type="button">Продолжить</button>
+            <button class="btn mn-lobby" type="button">На набережную</button>
+          </div>
           <div class="mn-hint" role="status"></div>
           <nav class="mn-nav" aria-label="Разделы меню"></nav>
           <div class="mn-exit">
-            <button class="btn ghost mn-lobby" type="button">На набережную</button>
             <button class="btn ghost mn-leave" type="button">Выйти из игры</button>
           </div>
         </aside>
@@ -141,7 +147,7 @@ export class GameMenu {
     }
 
     this.gift = new GiftForm((code) => actions.redeem(code), () => [actions.gifts(), actions.room() === 'lobby']);
-    this.settings = new SettingsPanel(settings, { onChange: () => actions.changed(), go: (s) => this.show(s), preview: (k) => actions.preview?.(k) });
+    this.settings = new SettingsPanel(settings, { onChange: () => actions.changed(), gfx: () => actions.gfx(), go: (s) => this.show(s), preview: (k) => actions.preview?.(k) });
     this.voiceRoot = el('div', 'mn-voice');
     this.pane('overview', profile.overview);
     this.pane('records', profile.records);

@@ -71,6 +71,8 @@ export class LobbyLook {
   private readonly env: THREE.Texture;
   private readonly wetMats: THREE.MeshStandardMaterial[] = [];
   private overcast = 0;
+  /** Версия теней у Renderer, под которую запечена плитка */
+  private shadowGen = 0;
 
   constructor(p: LookParts, quality: LobbyQuality) {
     this.p = p;
@@ -113,8 +115,11 @@ export class LobbyLook {
         this.painted = true;
         this.paintAll();
       }
-      // мир пересчитывает тени статики в этом кадре — плитку запечём заново (до того, как она рисуется)
-      if (p.renderer.gl.shadowMap.needsUpdate) this.bake?.invalidate();
+      // мир пересчитывает тени статики в этом кадре — плитку запечём заново (до того, как она рисуется);
+      // то же, если в меню поменяли тени: при «выкл» карта не рисуется и флага пересчёта нет — тогда смотрим на версию
+      const gen = p.renderer.shadowGen;
+      if (p.renderer.gl.shadowMap.needsUpdate || gen !== this.shadowGen) this.bake?.invalidate();
+      this.shadowGen = gen;
     };
   }
 

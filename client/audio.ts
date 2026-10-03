@@ -1,5 +1,6 @@
 // Звук синтезируется на лету (WebAudio) — ни одного файла. Выстрелы и шаги других
 // игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют. Дождь и гром — weathersound.ts.
+import { DEFAULTS } from './settings.ts';
 import { RainVoice, thunderSound } from './weathersound.ts';
 
 type Wave = OscillatorType;
@@ -38,7 +39,7 @@ export class Sound {
   private sfxMix = 1;
   private ambMix = 1;
   private uiMix = 1;
-  private musicMix = 0.8;
+  private musicMix = DEFAULTS.musicVolume;
   /** Прочая музыка, пока играет автомат: доля громкости (1 — как есть) */
   private duck = 1;
   private outdoor = 1;

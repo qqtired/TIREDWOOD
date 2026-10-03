@@ -1,6 +1,7 @@
 // Эффекты Небесной каланчи: облачка и пыль, звёзды вокруг головы при ударе, конфетти у колокола, искры у флага,
 // всплывающие надписи «БУМС!». Одна система точек (круг, звезда, квадратик) и несколько спрайтов-надписей.
 import * as THREE from 'three';
+import { fxKeep } from '../render/gfx.ts';
 
 const MAX = 600;
 const K_DOT = 0;
@@ -83,6 +84,8 @@ export class SkillFx {
   }
 
   private spawn(x: number, y: number, z: number, vx: number, vy: number, vz: number, color: number, size: number, life: number, kind: number, drag = 1.5, grav = 0): void {
+    // меню → Графика → «Эффекты и частицы»: при «Меньше» часть частиц не рождается
+    if (!fxKeep()) return;
     const i = this.next;
     this.next = (this.next + 1) % MAX;
     this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;

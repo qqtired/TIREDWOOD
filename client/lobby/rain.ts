@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
+import { gfx } from '../render/gfx.ts';
 import type { V3 } from '../render/kit.ts';
 import { RIPPLE_FN, SKY_FN } from '../render/sky.ts';
 import type { LobbyQuality } from './world.ts';
@@ -165,8 +166,9 @@ export function hazy(m: THREE.Material, u: HazeUniforms, glow = false): void {
 /** Капли: коробки вокруг камеры — ближняя и дальняя (полуширина, высота, м); из пяти капель три — ближние */
 const NEAR_BOX: readonly [number, number] = [9, 14];
 const FAR_BOX: readonly [number, number] = [22, 26];
-const MAX_DROPS = 6000;
-const DROPS: Record<LobbyQuality, number> = { high: 6000, medium: 4000, low: 2000 };
+/** Капель «обычно»; запас на «Больше» (меню → Графика → «Эффекты и частицы»: меньше — вдвое, больше — в полтора раза) */
+const BASE_DROPS = 6000;
+const MAX_DROPS = 9000;
 /**
  * Капля падает так (м/с): в морось медленнее, в ливень быстрее; ветер с моря сносит на восток и чуть на юг —
  * в штиль и в бурю (wind 0…1)
@@ -183,7 +185,7 @@ const SPLASH_RATE = 260;
 const SPLASH_R = 10;
 const SPLASH_LIFE = 0.32;
 const MAX_SPLASH = 200;
-const SPLASH_K: Record<LobbyQuality, number> = { high: 1, medium: 0.7, low: 0.4 };
+
 /** Лужи на плитке, где их никто не заслоняет: x, z, полуоси, поворот */
 const PUDDLES: ReadonlyArray<readonly [number, number, number, number, number]> = [
   [-9.5, 3.5, 1.9, 1.2, 0.4],
@@ -299,9 +301,10 @@ export class RainFx {
     scene.add(this.streaks);
   }
 
-  setQuality(q: LobbyQuality): void {
-    this.drops.geometry.instanceCount = DROPS[q];
-    this.splashK = SPLASH_K[q];
+  /** Капли и брызги — по «Эффектам и частицам» (gfx.fx); уровень детализации здесь больше не нужен */
+  setQuality(_q: LobbyQuality): void {
+    this.drops.geometry.instanceCount = Math.min(MAX_DROPS, Math.round(BASE_DROPS * gfx.fx));
+    this.splashK = gfx.fx;
   }
 
   /** Капли — вокруг этой точки (камера; для снимка фотоаппарата — его камера) */

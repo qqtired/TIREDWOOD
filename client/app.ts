@@ -25,7 +25,8 @@ import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
 import { Renderer } from './render/renderer.ts';
-import { assessFrames, nextAutoQuality, sceneQuality } from './render/quality.ts';
+import { EFFECTS_K, FrameLimiter, VIEW_K, gfx, resolveGfx, type GfxState } from './render/gfx.ts';
+import { assessFrames, nextAutoQuality } from './render/quality.ts';
 import type { MeState, Scene, SceneDeps } from './scene.ts';
 import { effectiveVolume, loadSettings, saveSettings, toggleMute, type Quality, type Settings } from './settings.ts';
 import { TOUCH, TouchControls } from './touch.ts';
@@ -164,6 +165,11 @@ export class App {
   private autoRatio = 1;
   /** С чего «авто» начинало: если разрешение пришлось снизить, компьютер слабый */
   private autoStart = 1;
+  /** Ограничение кадров из меню (0 — без ограничения) и ограничитель, который решает, рисовать ли очередной кадр браузера */
+  private fpsCap = 0;
+  private readonly limiter = new FrameLimiter();
+  /** Какой уровень детализации и сколько частиц уже розданы сценам (applyQuality) */
+  private sceneQualityKey = '';
   private readonly frameMs = new Float32Array(72);
   private frameN = 0;
   private frameStats = { median: 0, p95: 0, slow: false };
@@ -303,6 +309,7 @@ export class App {
       profile: (open) => this.showProfile(open),
       redeem: (code) => this.net.send({ t: 'redeem', code }),
       changed: () => this.applySettings(),
+      gfx: () => this.gfxNow(),
       preview: (kind) => {
         this.sound.unlock();
         this.sound.preview(kind);
@@ -448,7 +455,7 @@ export class App {
         },
         info: () => ({ ...this.renderer.gl.info.render, ratio: this.pixelRatio, screen: this.screen, paused: this.paused,
           cpuMs: this.renderer.cpuMs, gpuMs: this.renderer.gpuMs, frameMedianMs: this.frameStats.median, frameP95Ms: this.frameStats.p95,
-          quality: this.renderQuality(), memory: { ...this.renderer.gl.info.memory } }),
+          quality: this.renderQuality(), gfx: { ...this.gfxNow(), ...this.renderer.gfxState(), fx: gfx.fx }, memory: { ...this.renderer.gl.info.memory } }),
       };
     }
   }
@@ -1210,26 +1217,40 @@ export class App {
     this.toasts.show(muted ? 'Звук выключен (M)' : 'Звук включён (M)', 2200, 'mute');
   }
 
-  private renderQuality(): Exclude<Quality, 'auto'> {
-    return sceneQuality(this.settings.quality, this.autoRatio, this.autoStart, TOUCH);
+  /** Что действует сейчас по настройкам графики: пресет, «Своё» или «Авто» (client/render/gfx.ts) */
+  private gfxNow(): GfxState {
+    return resolveGfx(this.settings, { dpr: window.devicePixelRatio || 1, autoRatio: this.autoRatio, autoStart: this.autoStart, touch: TOUCH });
   }
 
+  private renderQuality(): Exclude<Quality, 'auto'> {
+    return this.gfxNow().tier;
+  }
+
+  /**
+   * Применить графику на лету: разрешение (здесь), ограничение кадров (frame), тени и дальность (Renderer), частицы
+   * (gfx.fx — их читают при каждом залпе), уровень детализации — сценам, как раньше.
+   */
   private applyQuality(): void {
-    const dpr = window.devicePixelRatio || 1;
-    const q = this.settings.quality;
-    let r: number;
-    if (q === 'high') r = Math.min(dpr, 2);
-    else if (q === 'medium') r = Math.min(dpr, 1.25);
-    else if (q === 'low') r = Math.min(dpr, 1) * 0.75;
-    else r = this.autoRatio;
-    const detail = this.renderQuality();
-    this.lobby.setQuality(detail);
-    for (const race of this.raceScenes.values()) race.setQuality(detail);
-    this.skill?.setQuality(detail);
-    this.hide?.setQuality(detail);
-    this.paintball?.setQuality(detail);
-    this.fort?.setQuality(detail);
-    this.fight?.setQuality(detail);
+    const g = this.gfxNow();
+    const r = g.ratio;
+    gfx.fx = EFFECTS_K[g.effects];
+    this.fpsCap = g.fpsCap;
+    this.renderer.setShadows(g.shadows);
+    this.renderer.setViewDistance(VIEW_K[g.viewDistance]);
+    const detail = g.tier;
+    // сценам — только когда поменялись уровень детализации или число частиц: этот метод зовут при любой настройке (даже
+    // ползунок громкости), а сцена на «низких» тенях при каждом таком вызове заново выделяла бы карту теней
+    const key = `${detail}|${gfx.fx}`;
+    if (key !== this.sceneQualityKey) {
+      this.sceneQualityKey = key;
+      this.lobby.setQuality(detail);
+      for (const race of this.raceScenes.values()) race.setQuality(detail);
+      this.skill?.setQuality(detail);
+      this.hide?.setQuality(detail);
+      this.paintball?.setQuality(detail);
+      this.fort?.setQuality(detail);
+      this.fight?.setQuality(detail);
+    }
     if (r !== this.pixelRatio) {
       this.pixelRatio = r;
       this.resize();
@@ -1261,12 +1282,14 @@ export class App {
     if (this.frameN < this.frameMs.length) return;
     this.frameN = 0;
     this.frameStats = assessFrames(this.frameMs);
-    if (this.settings.quality !== 'auto') { this.slowWindows = 0; return; }
+    if (this.settings.quality !== 'auto' || this.settings.custom) { this.slowWindows = 0; return; }
     const next = nextAutoQuality(this.frameMs, this.autoRatio, this.slowWindows);
     this.slowWindows = next.slowWindows;
     if (next.ratio === this.autoRatio) return;
     this.autoRatio = next.ratio;
     this.applyQuality();
+    // «Авто» снизило разрешение, а меню открыто — пусть покажет новое
+    if (this.paused) this.syncSound();
     this.perfWait = 1.5;
   }
 
@@ -1275,6 +1298,8 @@ export class App {
   private readonly frame = (): void => {
     requestAnimationFrame(this.frame);
     const now = performance.now();
+    // ограничение кадров (меню → Графика): лишний кадр браузера пропускаем целиком, и отрисовку, и расчёты
+    if (!this.limiter.allow(now, this.fpsCap)) return;
     const gap = this.last ? now - this.last : 0;
     const dt = this.last ? Math.min(0.25, gap / 1000) : 1 / 60;
     this.last = now;
