@@ -177,6 +177,31 @@ test('пейнтбол через хаб: один зашёл — боты; вт
   assert.equal(game.players.size, 0, 'в пустой комнате ботов нет');
 });
 
+test('пейнтбол: случайные заходы, выходы и смены фаз — боты только у одного человека (в бою — доигрывают раунд)', () => {
+  const g = new Game();
+  const rng = makeRng(42);
+  const people: Player[] = [];
+  let seq = 0;
+  for (let i = 0; i < 600; i++) {
+    const before = pbBots(g);
+    const r = rng();
+    if (r < 0.3 && people.length < 5) people.push(pbHuman(g, `Игрок${++seq}`, seq));
+    else if (r < 0.55 && people.length) g.removePlayer(people.splice(Math.floor(rng() * people.length), 1)[0].id);
+    else if (r < 0.8) {
+      g.phaseEnd = g.tick + 1; // следующая фаза: разминка → бой → итоги → новая разминка
+      g.step();
+    } else for (let k = 1 + Math.floor(rng() * 60); k > 0; k--) g.step();
+    const humans = people.length;
+    assert.equal(g.humanCount, humans);
+    if (humans === 0) assert.equal(g.players.size, 0, `шаг ${i}: пустая комната без ботов`);
+    else if (humans === 1) assert.equal(pbBots(g), 7, `шаг ${i}: один человек — боты на месте`);
+    else {
+      assert.ok(pbBots(g) <= before, `шаг ${i}: людей ${humans} — боты не добавляются`);
+      if (g.phase === PHASE_WARMUP) assert.equal(pbBots(g), 0, `шаг ${i}: людей ${humans}, разминка — ботов нет`);
+    }
+  }
+});
+
 test('пейнтбол: /bots вдвоём ничего не меняет и говорит почему, в одиночку работает', () => {
   const g = new Game();
   const sink = fakeSink();
