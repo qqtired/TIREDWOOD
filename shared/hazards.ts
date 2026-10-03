@@ -123,9 +123,13 @@ export function emptyHazards(): Hazards {
 
 // ------------------------------------------------------------ описание (нога / метр / вбок)
 
-/** Точка на ноге трассы: курс (tx, tz) — по дороге; at — метры от начала ноги (можно за концами), lat — вправо */
+/**
+ * Точка на ноге трассы: курс (tx, tz) — по дороге, y — высота дороги на осевой напротив; at — метры от начала ноги
+ * (за конец можно, отрицательное — от конца ноги), lat — вправо
+ */
 export interface FramePoint {
   x: number;
+  y: number;
   z: number;
   tx: number;
   tz: number;
@@ -151,7 +155,7 @@ export interface HazardSpec {
   barrels?: Place[];
   /** Бетонный блок: длина, ширина, поворот относительно дороги */
   blocks?: Array<Place & { len?: number; wid?: number; yaw?: number }>;
-  /** Настил (трамплин вне оси): len — по курсу настила, w — поперёк; высота y0 сзади, y1 спереди */
+  /** Настил (трамплин вне оси): len — по курсу настила, w — поперёк; высота y0 сзади, y1 спереди — над дорогой напротив */
   decks?: Array<Place & { len: number; w: number; y0: number; y1: number; yaw?: number }>;
   movers?: MoverSpec[];
 }
@@ -162,8 +166,8 @@ export type MoverSpec =
   | (Place & { kind: 'swing'; amp: number; r: number; period: number; phase?: number })
   | (Place & { kind: 'spin'; arm: number; both?: boolean; r: number; period: number; phase?: number });
 
-const _p: FramePoint = { x: 0, z: 0, tx: 0, tz: 0 };
-const _q: FramePoint = { x: 0, z: 0, tx: 0, tz: 0 };
+const _p: FramePoint = { x: 0, y: 0, z: 0, tx: 0, tz: 0 };
+const _q: FramePoint = { x: 0, y: 0, z: 0, tx: 0, tz: 0 };
 const _sc = { s: 0, c: 0 };
 
 /** Курс, повёрнутый на yaw вправо */
@@ -213,7 +217,7 @@ export function buildHazards(spec: HazardSpec, fr: Frame): Hazards {
     turned(p.tx, p.tz, s.yaw ?? 0, _d);
     const hl = s.len / 2;
     const hw = s.w / 2;
-    hz.decks.push({ x: p.x, z: p.z, fx: _d.x, fz: _d.z, hl, hw, y0: s.y0, y1: s.y1, seg: fr.seg(p.x, p.z), r2: hl * hl + hw * hw });
+    hz.decks.push({ x: p.x, z: p.z, fx: _d.x, fz: _d.z, hl, hw, y0: p.y + s.y0, y1: p.y + s.y1, seg: fr.seg(p.x, p.z), r2: hl * hl + hw * hw });
   }
   for (const s of spec.movers ?? []) hz.movers.push(mover(s, fr));
   return hz;
@@ -409,10 +413,18 @@ function centre(m: Mover, rt: number, out: { x: number; z: number }): void {
 const _c0 = { x: 0, z: 0 };
 const _c1 = { x: 0, z: 0 };
 
-/** 0=open (green), 1=warning (amber), 2=closed (red). A full second of warning before contact. */
+/** Шлагбаум: предупреждение (мигает и звенит) столько тиков перед тем, как стрела ляжет */
+export const GATE_WARN = 60;
+
+/** Тик внутри цикла шлагбаума 0…period−1 */
+export function gateTime(m: Mover, rt: number): number {
+  return (((rt + m.phase) % m.period) + m.period) % m.period;
+}
+
+/** 0 — открыт, 1 — мигает и звенит (стрела опускается), 2 — стрела лежит поперёк (твёрдая). Секунда предупреждения. */
 export function gatePhase(m: Mover, rt: number): number {
-  const t = ((rt + m.phase) % m.period + m.period) % m.period;
-  return t < m.period * 0.45 ? 0 : t < m.period * 0.45 + 60 ? 1 : 2;
+  const t = gateTime(m, rt);
+  return t < m.period * 0.45 ? 0 : t < m.period * 0.45 + GATE_WARN ? 1 : 2;
 }
 
 export function moverCap(m: Mover, rt: number, out: Cap): Cap {

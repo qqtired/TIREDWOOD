@@ -1,17 +1,28 @@
-// Помехи «Портового кольца» глазами (физика — shared/hazards.ts): плиты-ускорители с бегущими шевронами, лужи масла и
-// воды, бочки и бетонные блоки, настилы срезки на сваях и подвижные помехи — контейнер на рельсах, груз портального
-// крана и шлагбаум-вертушка. Подвижные берут положение у той же функции времени гонки (moverCap), что и физика.
+// Помехи трассы картинга глазами (физика — shared/hazards.ts): плиты-ускорители с бегущими шевронами, лужи масла и
+// воды, бочки и бетонные блоки (на холме — красно-белые стопки шин и тюки сена), настилы срезки на сваях, подвижные
+// помехи — контейнер на рельсах, груз портального крана (на холме — тюк сена на П-раме), шлагбаум-вертушка и переезд
+// со шлагбаумом (hazardvillage.ts). Всё стоит на высоте дороги в своей точке (её даёт мир), плиты и лужи — сеткой по
+// поверхности. Подвижные берут положение у тех же функций времени гонки, что и физика: у всех одинаково, кадр — без
+// выделений памяти.
 import * as THREE from 'three';
-import { MV_GATE, gatePhase, MV_SLIDE, MV_SWING, makeCap, moverCap, spinAngle, swingU, type Deck, type Mover, type Pad, type Slick, type Solid } from '../../shared/hazards.ts';
+import {
+  MV_GATE, MV_SLIDE, MV_SWING, deckAt, makeCap, moverCap, slideU, spinAngle, swingU,
+  type Deck, type Mover, type Pad, type Slick, type Solid,
+} from '../../shared/hazards.ts';
 import { locateAny, makeLoc, type Track } from '../../shared/track.ts';
-import { addBox, buildGeo, paint, parts, place, staticMesh, type V3 } from '../render/kit.ts';
+import { addBox, buildGeo, paint, parts, place, staticMesh, type GeoParts, type V3 } from '../render/kit.ts';
 import * as tex from '../render/textures.ts';
 import { WHITE, face, same } from './geom.ts';
-import { SLICK_FILL, padTexture, slickTexture } from './racetex.ts';
+import { CrossingGates, HaySwings, buildHayStacks, buildTireStacks, type PropCtx } from './hazardvillage.ts';
+import { SLICK_FILL, hayTexture, padTexture, slickTexture } from './racetex.ts';
 
-/** Высота плит и луж над дорогой (под разметкой и бордюрами они выше: polygonOffset) */
+/** Высота плит и луж над полом (под разметкой и бордюрами они выше: polygonOffset) */
 const PAD_Y = 0.036;
 const SLICK_Y = 0.03;
+/** Плиты и лужи ложатся на пол сеткой столько × столько клеток */
+const DRAPE = 4;
+/** Край плиты над водой или провалом не опускаем ниже середины больше чем на столько */
+const DRAPE_DROP = 1;
 /** Настил рисуется чуть выше физической высоты: на дороге асфальт его перекрывает, на суше он не мерцает */
 const DECK_Y = 0.012;
 const DECK_THICK = 0.4;
@@ -35,6 +46,8 @@ const LOAD_H = 2.4;
 const PIVOT_Y = 10.2;
 const LOAD_LOW = 0.2;
 const LOAD_RISE = 0.5;
+/** Высота пути контейнера: столько замеров от A до B */
+const PATH_SAMPLES = 9;
 const UP = new THREE.Vector3(0, 1, 0);
 
 /** Куда складывать статику: мир склеивает solid в один меш; текстуры доски и «опасность» общие с его трамплинами */
@@ -44,6 +57,10 @@ export interface HazardCtx {
   planks: THREE.Texture;
   hazard: THREE.Texture;
   rng: () => number;
+  /** Высота дороги под точкой (вне дороги — земли): помехи стоят на ней */
+  surface(x: number, z: number): number;
+  /** Обстановка трассы: порт или городок на холме (там тюки сена, стопки шин и тюк на П-раме) */
+  theme: 'harbor' | 'hills';
 }
 
 /** Путь подвижного контейнера (там, где он пересекает стену, в ней — проём) */
@@ -61,6 +78,8 @@ interface SlideVis {
   shadow: THREE.Mesh;
   beacon: THREE.Mesh;
   ry: number;
+  /** Высота пола под центром контейнера от A до B */
+  ys: Float64Array;
 }
 
 interface SwingVis {
@@ -75,12 +94,15 @@ interface SwingVis {
   fx: number;
   fz: number;
   ry: number;
+  /** Высота дороги под краном */
+  y0: number;
 }
 
 interface SpinVis {
   m: Mover;
   arm: THREE.Group;
   shadow: THREE.Mesh;
+  y0: number;
 }
 
 const _cap = makeCap();
@@ -90,6 +112,13 @@ const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
 const _d = new THREE.Vector3();
 
+/** Значение по замерам ys (равный шаг) в доле u 0…1 */
+function sample(ys: Float64Array, u: number): number {
+  const f = (u < 0 ? 0 : u > 1 ? 1 : u) * (ys.length - 1);
+  const i = Math.min(ys.length - 2, Math.floor(f));
+  return ys[i] + (ys[i + 1] - ys[i]) * (f - i);
+}
+
 export class HazardVis {
   readonly gates: Gate[] = [];
   private readonly ctx: HazardCtx;
@@ -98,8 +127,12 @@ export class HazardVis {
   private readonly slides: SlideVis[] = [];
   private readonly swings: SwingVis[] = [];
   private readonly spins: SpinVis[] = [];
-  private readonly presses: Array<{ m: Mover; beam: THREE.Mesh; lamp: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> }> = [];
+  private crossing: CrossingGates | null = null;
+  private haySwings: HaySwings | null = null;
   private shadowMat: THREE.MeshBasicMaterial | null = null;
+  private hay: THREE.Texture | null = null;
+  /** Высоты узлов сетки плиты (сборка) */
+  private readonly drapeY = new Float64Array((DRAPE + 1) * (DRAPE + 1));
   private time = 0;
 
   constructor(ctx: HazardCtx, tr: Track) {
@@ -108,23 +141,86 @@ export class HazardVis {
     const hz = tr.hz;
     if (hz.pads.length) this.padTex = this.buildPads(hz.pads);
     this.buildSlicks(hz.slicks);
-    this.buildSolids(hz.solids);
+    if (ctx.theme === 'hills') {
+      buildTireStacks(this.props(), hz.solids.filter((s) => s.kind === 0));
+      buildHayStacks(this.props(), hz.solids.filter((s) => s.kind !== 0), this.hayTexture());
+    } else {
+      this.buildSolids(hz.solids);
+    }
     this.buildDecks(hz.decks);
     this.buildMovers(hz.movers);
     this.setTime(0);
   }
 
+  /** Пол под точкой: дорога (или земля) и настил — что выше */
+  private floor(x: number, z: number): number {
+    return Math.max(this.ctx.surface(x, z), deckAt(this.tr.hz, x, z));
+  }
+
+  private props(): PropCtx {
+    return { scene: this.ctx.scene, solid: this.ctx.solid, tr: this.tr, floor: (x, z) => this.floor(x, z) };
+  }
+
+  private hayTexture(): THREE.Texture {
+    this.hay ??= hayTexture();
+    return this.hay;
+  }
+
   // ------------------------------------------------------------ плиты и лужи
+
+  /**
+   * Прямоугольник по полу сеткой DRAPE × DRAPE: центр (x, z), курс (fx, fz), полуоси hl (вдоль) и hw (поперёк),
+   * над полом на lift. Развёртка: u — от u0 слева до u1 справа, v — от 0 сзади до v1 спереди.
+   */
+  private drape(g: GeoParts, x: number, z: number, fx: number, fz: number, hl: number, hw: number, lift: number, u0: number, u1: number, v1: number): void {
+    const N = DRAPE;
+    const rx = -fz;
+    const rz = fx;
+    const ys = this.drapeY;
+    const base = g.pos.length / 3;
+    const low = this.floor(x, z) - DRAPE_DROP;
+    for (let i = 0; i <= N; i++) {
+      const a = -hl + (2 * hl * i) / N;
+      for (let j = 0; j <= N; j++) {
+        const b = -hw + (2 * hw * j) / N;
+        const px = x + fx * a + rx * b;
+        const pz = z + fz * a + rz * b;
+        const y = Math.max(this.floor(px, pz), low) + lift;
+        ys[i * (N + 1) + j] = y;
+        g.pos.push(px, y, pz);
+        g.uv.push(u0 + ((u1 - u0) * j) / N, (v1 * i) / N);
+        g.col.push(1, 1, 1);
+      }
+    }
+    // нормали — по уклону сетки
+    const da = (2 * hl) / N;
+    const db = (2 * hw) / N;
+    for (let i = 0; i <= N; i++) {
+      const i0 = Math.max(0, i - 1);
+      const i1 = Math.min(N, i + 1);
+      for (let j = 0; j <= N; j++) {
+        const j0 = Math.max(0, j - 1);
+        const j1 = Math.min(N, j + 1);
+        const ga = (ys[i1 * (N + 1) + j] - ys[i0 * (N + 1) + j]) / ((i1 - i0) * da);
+        const gb = (ys[i * (N + 1) + j1] - ys[i * (N + 1) + j0]) / ((j1 - j0) * db);
+        const nx = -ga * fx - gb * rx;
+        const nz = -ga * fz - gb * rz;
+        const l = Math.sqrt(nx * nx + 1 + nz * nz);
+        g.nor.push(nx / l, 1 / l, nz / l);
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const v00 = base + i * (N + 1) + j;
+        const v10 = v00 + N + 1;
+        g.idx.push(v00, v00 + 1, v10, v10, v00 + 1, v10 + 1);
+      }
+    }
+  }
 
   private buildPads(pads: readonly Pad[]): THREE.Texture {
     const g = parts();
-    for (const p of pads) {
-      const rx = -p.fz;
-      const rz = p.fx;
-      const at = (a: number, b: number): V3 => [p.x + p.fx * a + rx * b, PAD_Y, p.z + p.fz * a + rz * b];
-      const v1 = (p.hl * 2) / 7;
-      face(g, at(-p.hl, -p.hw), at(-p.hl, p.hw), at(p.hl, p.hw), at(p.hl, -p.hw), [0, 1, 0], [0, 0, 1, 0, 1, v1, 0, v1], same(WHITE));
-    }
+    for (const p of pads) this.drape(g, p.x, p.z, p.fx, p.fz, p.hl, p.hw, PAD_Y, 0, 1, (p.hl * 2) / 7);
     const map = padTexture();
     const mesh = staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({
       map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.62,
@@ -143,17 +239,10 @@ export class HazardVis {
       polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
     })));
     slicks.forEach((s, i) => {
-      const rx = -s.fz;
-      const rz = s.fx;
-      const hl = s.rl / SLICK_FILL;
-      const hw = s.rw / SLICK_FILL;
       const g = parts();
-      const at = (a: number, b: number): V3 => [s.x + s.fx * a + rx * b, SLICK_Y, s.z + s.fz * a + rz * b];
       // зеркалим развёртку: одинаковые лужи не повторяются
       const flip = i % 2 === 0;
-      const u0 = flip ? 1 : 0;
-      const u1 = flip ? 0 : 1;
-      face(g, at(-hl, -hw), at(-hl, hw), at(hl, hw), at(hl, -hw), [0, 1, 0], [u0, 0, u1, 0, u1, 1, u0, 1], same(WHITE));
+      this.drape(g, s.x, s.z, s.fx, s.fz, s.rl / SLICK_FILL, s.rw / SLICK_FILL, SLICK_Y, flip ? 1 : 0, flip ? 0 : 1, 1);
       const mesh = staticMesh(buildGeo(g), mats[s.kind][i % 2], false);
       mesh.receiveShadow = true;
       mesh.renderOrder = 2;
@@ -161,7 +250,7 @@ export class HazardVis {
     });
   }
 
-  // ------------------------------------------------------------ бочки и блоки
+  // ------------------------------------------------------------ бочки и блоки (порт)
 
   private buildSolids(solids: readonly Solid[]): void {
     const out = this.ctx.solid;
@@ -175,10 +264,11 @@ export class HazardVis {
     const c = BARREL_COLORS[(Math.round(s.ax / 3) * 7 + Math.round(s.az / 3) * 13) & 3];
     const dark = new THREE.Color(c).multiplyScalar(0.55);
     const { ax: x, az: z } = s;
-    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R, BARREL_R, 0.96, 18), c), x, 0.48, z));
-    for (const y of [0.24, 0.72]) out.push(place(paint(new THREE.CylinderGeometry(BARREL_R + 0.018, BARREL_R + 0.018, 0.07, 18), dark), x, y, z));
-    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R - 0.04, BARREL_R, 0.05, 18), 0x4c4f55), x, 0.985, z));
-    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R - 0.12, BARREL_R - 0.12, 0.03, 18), 0x2a2d33), x, 1.01, z));
+    const y0 = this.floor(x, z);
+    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R, BARREL_R, 0.96 + 0.1, 18), c), x, y0 + 0.43, z));
+    for (const y of [0.24, 0.72]) out.push(place(paint(new THREE.CylinderGeometry(BARREL_R + 0.018, BARREL_R + 0.018, 0.07, 18), dark), x, y0 + y, z));
+    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R - 0.04, BARREL_R, 0.05, 18), 0x4c4f55), x, y0 + 0.985, z));
+    out.push(place(paint(new THREE.CylinderGeometry(BARREL_R - 0.12, BARREL_R - 0.12, 0.03, 18), 0x2a2d33), x, y0 + 1.01, z));
   }
 
   /** Бетонный блок — ступенчатый «джерси» с красно-белой полосой сверху: длина — вдоль капсулы, ширина — 2r */
@@ -191,13 +281,15 @@ export class HazardVis {
     const W = s.r * 2;
     const cx = (s.ax + s.bx) / 2;
     const cz = (s.az + s.bz) / 2;
+    // на склоне — по нижнему концу, низ уходит под дорогу
+    const y0 = Math.min(this.floor(s.ax, s.az), this.floor(s.bx, s.bz), this.floor(cx, cz));
     const box = (len: number, h: number, w: number, along: number, y: number, c: number): void => {
       // along — сдвиг вдоль оси блока
       const ox = Math.cos(ry) * along;
       const oz = -Math.sin(ry) * along;
-      out.push(place(paint(new THREE.BoxGeometry(len, h, w), c), cx + ox, y + h / 2, cz + oz, ry));
+      out.push(place(paint(new THREE.BoxGeometry(len, h, w), c), cx + ox, y0 + y + h / 2, cz + oz, ry));
     };
-    box(L, 0.3, W, 0, 0, CONCRETE);
+    box(L, 0.5, W, 0, -0.2, CONCRETE);
     box(L * 0.99, 0.38, W * 0.72, 0, 0.3, 0xd8d3c8);
     // верх — полосы по 0,75 м, красные и белые
     const n = Math.max(1, Math.round(L / 0.75));
@@ -273,12 +365,16 @@ export class HazardVis {
 
   // ------------------------------------------------------------ подвижные помехи
 
-  private shadow(w: number, d: number): THREE.Mesh {
+  private shadowMaterial(): THREE.MeshBasicMaterial {
     this.shadowMat ??= new THREE.MeshBasicMaterial({
       map: tex.softDot('rgba(0,0,0,0.5)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
     });
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), this.shadowMat);
+    return this.shadowMat;
+  }
+
+  private shadow(w: number, d: number): THREE.Mesh {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), this.shadowMaterial());
     m.scale.set(w, 1, d);
     m.renderOrder = 3;
     this.ctx.scene.add(m);
@@ -286,32 +382,23 @@ export class HazardVis {
   }
 
   private buildMovers(movers: readonly Mover[]): void {
+    const hills = this.ctx.theme === 'hills';
     const loc = makeLoc();
     let colorK = 0;
-    const containerMat = new THREE.MeshStandardMaterial({ map: tex.containerTexture(), vertexColors: true, roughness: 0.62, metalness: 0.2 });
+    let containerMat: THREE.MeshStandardMaterial | null = null;
+    const crossings: Mover[] = [];
+    const hay: Mover[] = [];
     for (const m of movers) {
       if (m.kind === MV_GATE) {
-        const yaw = Math.atan2(-m.uz, m.ux);
-        const lc = locateAny(this.tr, m.cx, m.cz, makeLoc());
-        const axisX = m.cx - m.ux * lc.lat;
-        const axisZ = m.cz - m.uz * lc.lat;
-        const span = lc.hw + 1.6;
-        for (const side of [-1, 1]) this.ctx.solid.push(place(paint(new THREE.BoxGeometry(0.5, 6.5, 0.6), STEEL), axisX + m.ux * span * side, 3.25, axisZ + m.uz * span * side, yaw));
-        this.ctx.solid.push(place(paint(new THREE.BoxGeometry(span * 2 + 0.5, 0.5, 0.8), 0xc78d31), axisX, 6.3, axisZ, yaw));
-        for (const side of [-1, 1]) this.ctx.solid.push(place(paint(new THREE.BoxGeometry(0.18, 1.2, 0.18), STEEL), m.cx + m.ux * m.h * side * 0.7, 5.45, m.cz + m.uz * m.h * side * 0.7));
-        const beam = new THREE.Mesh(new THREE.BoxGeometry((m.h + m.r) * 2, 1.4, m.r * 2), new THREE.MeshStandardMaterial({ map: this.ctx.hazard, color: 0xffcc63, roughness: 0.6 }));
-        beam.rotation.y = yaw;
-        beam.position.set(m.cx, 4.2, m.cz);
-        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), new THREE.MeshBasicMaterial({ color: 0x53f4a1, toneMapped: false }));
-        lamp.position.set(m.cx, 5.2, m.cz);
-        this.ctx.scene.add(beam, lamp);
-        this.presses.push({ m, beam, lamp });
-        // Yellow hatch footprint remains visible while the press is raised; the side lane is always clear.
-        const footprint = new THREE.Mesh(new THREE.PlaneGeometry((m.h + m.r) * 2, 2.4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: this.ctx.hazard, transparent: true, opacity: 0.7, depthWrite: false }));
-        footprint.position.set(m.cx, 0.046, m.cz);
-        footprint.rotation.y = yaw;
-        this.ctx.scene.add(footprint);
+        crossings.push(m);
         continue;
+      }
+      if (m.kind === MV_SWING && hills) {
+        hay.push(m);
+        continue;
+      }
+      if (m.kind === MV_SLIDE || m.kind === MV_SWING) {
+        containerMat ??= new THREE.MeshStandardMaterial({ map: tex.containerTexture(), vertexColors: true, roughness: 0.62, metalness: 0.2 });
       }
       if (m.kind === MV_SLIDE) {
         const L = (m.h + m.r) * 2;
@@ -319,7 +406,7 @@ export class HazardVis {
         const color = CONTAINER_COLORS[colorK++ % CONTAINER_COLORS.length];
         const g = parts();
         addBox(g, { min: [-L / 2, 0.14, -W / 2], max: [L / 2, 2.73, W / 2], color, variant: colorK }, 'container', this.ctx.rng, 0.01);
-        const mesh = new THREE.Mesh(buildGeo(g), containerMat);
+        const mesh = new THREE.Mesh(buildGeo(g), containerMat!);
         mesh.receiveShadow = true;
         this.ctx.scene.add(mesh);
         // тележка под контейнером и маячок на крыше
@@ -329,19 +416,26 @@ export class HazardVis {
         const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.3), new THREE.MeshBasicMaterial({ color: 0xffa21a, toneMapped: false }));
         beacon.position.set(L / 2 - 0.4, 2.84, 0);
         mesh.add(beacon);
-        this.slides.push({ m, mesh, shadow: this.shadow(L + 1.2, W + 1.4), beacon, ry: Math.atan2(-m.uz, m.ux) });
+        const ys = new Float64Array(PATH_SAMPLES);
+        for (let k = 0; k < PATH_SAMPLES; k++) {
+          const u = k / (PATH_SAMPLES - 1);
+          ys[k] = this.floor(m.ax + (m.bx - m.ax) * u, m.az + (m.bz - m.az) * u);
+        }
+        this.slides.push({ m, mesh, shadow: this.shadow(L + 1.2, W + 1.4), beacon, ry: Math.atan2(-m.uz, m.ux), ys });
         this.rails(m);
         this.gates.push({ ax: m.ax, az: m.az, bx: m.bx, bz: m.bz, r: m.r });
       } else if (m.kind === MV_SWING) {
         locateAny(this.tr, m.cx, m.cz, loc);
-        this.swings.push(this.crane(m, loc.hw, loc.lat, containerMat, colorK++));
+        this.swings.push(this.crane(m, loc.hw, loc.lat, containerMat!, colorK++));
       } else {
         this.spins.push(this.spinner(m));
       }
     }
+    if (crossings.length) this.crossing = new CrossingGates(this.props(), crossings);
+    if (hay.length) this.haySwings = new HaySwings(this.props(), hay, this.hayTexture());
   }
 
-  /** Рельсы контейнера: две нитки на шпалах от A до B и чуть дальше, упор у A */
+  /** Рельсы контейнера: две нитки на шпалах от A до B и чуть дальше, упор у A; всё — по полу */
   private rails(m: Mover): void {
     const out = this.ctx.solid;
     const lx = m.bx - m.ax;
@@ -354,20 +448,25 @@ export class HazardVis {
     const pz = ex;
     const x0 = -m.h - 0.6;
     const x1 = l + m.h + 0.6;
-    const cx = m.ax + ex * ((x0 + x1) / 2);
-    const cz = m.az + ez * ((x0 + x1) / 2);
-    for (const s of [-0.85, 0.85]) {
-      out.push(place(paint(new THREE.BoxGeometry(x1 - x0, 0.08, 0.14), STEEL), cx + px * s, 0.07, cz + pz * s, ry));
-    }
     const n = Math.floor((x1 - x0) / 0.9);
+    const ys = new Float64Array(n + 1);
     for (let k = 0; k <= n; k++) {
       const a = x0 + (k * (x1 - x0)) / n;
-      out.push(place(paint(new THREE.BoxGeometry(0.22, 0.06, 2.2), 0x6b5238), m.ax + ex * a, 0.04, m.az + ez * a, ry));
+      ys[k] = this.floor(m.ax + ex * a, m.az + ez * a);
+      out.push(place(paint(new THREE.BoxGeometry(0.22, 0.06, 2.2), 0x6b5238), m.ax + ex * a, ys[k] + 0.04, m.az + ez * a, ry));
+    }
+    // нитки — кусками между шпалами
+    for (let k = 0; k < n; k++) {
+      const a = x0 + ((k + 0.5) * (x1 - x0)) / n;
+      const y = (ys[k] + ys[k + 1]) / 2;
+      for (const s of [-0.85, 0.85]) {
+        out.push(place(paint(new THREE.BoxGeometry((x1 - x0) / n + 0.01, 0.08, 0.14), STEEL), m.ax + ex * a + px * s, y + 0.07, m.az + ez * a + pz * s, ry));
+      }
     }
     // упор в начале пути: за ним контейнер стоит, как на стоянке
     const sx = m.ax - ex * (m.h + 0.9);
     const sz = m.az - ez * (m.h + 0.9);
-    out.push(place(paint(new THREE.BoxGeometry(0.4, 0.7, 2.3), 0xd8a21c), sx, 0.35, sz, ry));
+    out.push(place(paint(new THREE.BoxGeometry(0.4, 0.7, 2.3), 0xd8a21c), sx, this.floor(sx, sz) + 0.35, sz, ry));
   }
 
   /** Портальный кран с грузом на тросах: колонна за стеной слева, консоль над дорогой, груз качается поперёк. */
@@ -378,14 +477,17 @@ export class HazardVis {
     const fx = uz;
     const fz = -ux;
     const ry = Math.atan2(-fz, fx);
+    const y0 = this.floor(m.cx, m.cz);
     const box = (len: number, h: number, w: number, x: number, y: number, z: number, c: number, rot = ry): void => {
-      out.push(place(paint(new THREE.BoxGeometry(len, h, w), c), x, y + h / 2, z, rot));
+      out.push(place(paint(new THREE.BoxGeometry(len, h, w), c), x, y0 + y + h / 2, z, rot));
     };
     // колонна: на расстоянии hw + 2,6 слева от оси дороги (с учётом сдвига центра качания)
     const off = hw + 2.6 + lat;
     const px = m.cx - ux * off;
     const pz = m.cz - uz * off;
-    box(2.4, 0.7, 2.4, px, 0, pz, 0x8e8a82);
+    // фундамент — на земле у колонны, колонна — до консоли
+    const gy = Math.min(this.floor(px, pz), y0) - y0;
+    box(2.4, 0.7 - gy, 2.4, px, gy, pz, 0x8e8a82);
     box(1.0, PIVOT_Y + 1.6, 1.0, px, 0.7, pz, CRANE_RED);
     box(0.5, 0.5, 2.0, px, PIVOT_Y + 0.5, pz, CRANE_WHITE);
     // консоль от колонны над дорогой до её правого края, кабина и противовес за колонной
@@ -418,18 +520,19 @@ export class HazardVis {
       this.ctx.scene.add(c);
       cables.push(c);
     }
-    return { m, load, spreader, cables, shadow: this.shadow(3.4, 3.4), ux, uz, fx, fz, ry };
+    return { m, load, spreader, cables, shadow: this.shadow(3.4, 3.4), ux, uz, fx, fz, ry, y0 };
   }
 
   /** Шлагбаум-вертушка: опорная стойка с жёлто-чёрным кольцом и красно-белая стрела, которая крутится */
   private spinner(m: Mover): SpinVis {
     const out = this.ctx.solid;
-    out.push(place(paint(new THREE.CylinderGeometry(0.6, 0.7, 0.3, 16), 0x6b6f76), m.ax, 0.15, m.az));
-    out.push(place(paint(new THREE.CylinderGeometry(0.28, 0.32, 1.35, 14), 0x30343a), m.ax, 0.95, m.az));
-    out.push(place(paint(new THREE.CylinderGeometry(0.34, 0.34, 0.14, 14), 0xf0c020), m.ax, 0.86, m.az));
-    out.push(place(paint(new THREE.CylinderGeometry(0.22, 0.28, 0.12, 14), 0x30343a), m.ax, 1.68, m.az));
+    const y0 = this.floor(m.ax, m.az);
+    out.push(place(paint(new THREE.CylinderGeometry(0.6, 0.7, 0.5, 16), 0x6b6f76), m.ax, y0 + 0.05, m.az));
+    out.push(place(paint(new THREE.CylinderGeometry(0.28, 0.32, 1.35, 14), 0x30343a), m.ax, y0 + 0.95, m.az));
+    out.push(place(paint(new THREE.CylinderGeometry(0.34, 0.34, 0.14, 14), 0xf0c020), m.ax, y0 + 0.86, m.az));
+    out.push(place(paint(new THREE.CylinderGeometry(0.22, 0.28, 0.12, 14), 0x30343a), m.ax, y0 + 1.68, m.az));
     const arm = new THREE.Group();
-    arm.position.set(m.ax, 0, m.az);
+    arm.position.set(m.ax, y0, m.az);
     // стрела вдоль +X от оси на длину h (с короткой пятой у оси); при both — в обе стороны
     const beam = (x0: number, x1: number): void => {
       const n = Math.max(2, Math.round((x1 - x0) / 0.7));
@@ -450,7 +553,7 @@ export class HazardVis {
     beam(0.25, m.h);
     if (m.arm0 < 0) beam(-m.h, -0.25);
     this.ctx.scene.add(arm);
-    return { m, arm, shadow: this.shadow(m.h * 2 + 1, 1.6) };
+    return { m, arm, shadow: this.shadow(m.h * 2 + 1, 1.6), y0 };
   }
 
   // ------------------------------------------------------------ кадр
@@ -459,29 +562,28 @@ export class HazardVis {
   setTime(rt: number): void {
     this.time = rt;
     const cap = _cap;
-    for (const p of this.presses) {
-      const phase = gatePhase(p.m, rt);
-      p.beam.position.y = phase === 2 ? 0.7 : 4.2;
-      p.lamp.material.color.setHex(phase === 2 ? 0xff4a3d : phase === 1 ? 0xffbd39 : 0x53f4a1);
-      p.lamp.scale.setScalar(phase === 1 ? 1 + 0.2 * Math.sin(rt * 0.5) : 1);
-    }
-    for (const s of this.slides) {
+    this.crossing?.set(rt);
+    this.haySwings?.set(rt);
+    for (let i = 0; i < this.slides.length; i++) {
+      const s = this.slides[i];
       moverCap(s.m, rt, cap);
       const x = (cap.ax + cap.bx) / 2;
       const z = (cap.az + cap.bz) / 2;
-      s.mesh.position.set(x, 0, z);
+      const y = sample(s.ys, slideU(s.m, rt));
+      s.mesh.position.set(x, y, z);
       s.mesh.rotation.y = s.ry;
-      s.shadow.position.set(x, 0.045, z);
+      s.shadow.position.set(x, y + 0.045, z);
       s.shadow.rotation.y = s.ry;
       // маячок мигает, пока контейнер едет
       const moving = Math.abs(cap.vx) + Math.abs(cap.vz) > 0.05;
       s.beacon.visible = moving ? Math.floor(rt / 10) % 2 === 0 : true;
     }
-    for (const s of this.swings) this.placeLoad(s, rt);
-    for (const s of this.spins) {
+    for (let i = 0; i < this.swings.length; i++) this.placeLoad(this.swings[i], rt);
+    for (let i = 0; i < this.spins.length; i++) {
+      const s = this.spins[i];
       const a = spinAngle(s.m, rt);
       s.arm.rotation.y = -a;
-      s.shadow.position.set(s.m.ax + Math.cos(a) * s.m.h * 0.5, 0.045, s.m.az + Math.sin(a) * s.m.h * 0.5);
+      s.shadow.position.set(s.m.ax + Math.cos(a) * s.m.h * 0.5, s.y0 + 0.045, s.m.az + Math.sin(a) * s.m.h * 0.5);
       s.shadow.rotation.y = -a;
     }
   }
@@ -494,8 +596,8 @@ export class HazardVis {
     const lz = (m.bz - m.az) / 2;
     const x = m.cx + lx * u;
     const z = m.cz + lz * u;
-    const y = LOAD_LOW + LOAD_H / 2 + LOAD_RISE * u * u;
-    const roll = -0.35 * Math.atan2(Math.sqrt(lx * lx + lz * lz) * u, PIVOT_Y - y);
+    const y = s.y0 + LOAD_LOW + LOAD_H / 2 + LOAD_RISE * u * u;
+    const roll = -0.35 * Math.atan2(Math.sqrt(lx * lx + lz * lz) * u, s.y0 + PIVOT_Y - y);
     _qa.setFromAxisAngle(UP, s.ry);
     _qb.setFromAxisAngle(_v1.set(s.fx, 0, s.fz), roll);
     s.load.position.set(x, y, z);
@@ -503,18 +605,19 @@ export class HazardVis {
     const topY = y + LOAD_H / 2 + 0.1;
     s.spreader.position.set(x, topY, z);
     s.spreader.quaternion.copy(s.load.quaternion);
-    s.shadow.position.set(x, 0.045, z);
+    s.shadow.position.set(x, s.y0 + 0.045, z);
     // тросы: от тележки (над центром пути) к двум концам траверсы
-    s.cables.forEach((c, i) => {
+    for (let i = 0; i < s.cables.length; i++) {
+      const c = s.cables[i];
       const side = i === 0 ? -1 : 1;
-      _v1.set(m.cx, PIVOT_Y + 0.3, m.cz);
+      _v1.set(m.cx, s.y0 + PIVOT_Y + 0.3, m.cz);
       _v2.set(x + s.fx * side * (LOAD_L / 2 - 0.1), topY + 0.1, z + s.fz * side * (LOAD_L / 2 - 0.1));
       _d.subVectors(_v2, _v1);
       const len = _d.length();
       c.position.addVectors(_v1, _v2).multiplyScalar(0.5);
       c.scale.set(1, len, 1);
       c.quaternion.setFromUnitVectors(UP, _d.divideScalar(len));
-    });
+    }
   }
 
   /** Анимация плит-ускорителей: шевроны бегут вперёд. */
@@ -527,4 +630,3 @@ export class HazardVis {
     return this.time;
   }
 }
-

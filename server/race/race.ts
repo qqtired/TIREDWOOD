@@ -1,14 +1,15 @@
-// Гонка: до 6 картов на «Портовом кольце». Люди едут своим вводом (на клиенте — предсказание), боты — KartBot.
+// Гонка: до 6 картов на одной из трасс (racecourse.ts). Люди едут своим вводом (на клиенте — предсказание), боты — KartBot.
 // Фазы: решётка 5 с → гонка → итоги 10 с → всех обратно на набережную. Гонка кончается, когда доехали все люди;
 // через 30 с после первого финиша человека или после того, как доехали все боты; в крайнем случае через 5 минут.
-// Сервер считает толчки, ящики с бонусами, банки варенья, краску, места и время кругов.
+// Сервер считает толчки, ящики с бонусами (шансы — по месту в гонке), банки варенья, краску, пузыри и хлопки,
+// места и время кругов.
 import { BOT_NAMES, TICK_RATE } from '../../shared/constants.ts';
 import { raceReward, type RcReward } from '../../shared/economy.ts';
 import {
+  BUBBLE_TICKS,
+  ITEM_BUBBLE,
+  ITEM_CLAP,
   ITEM_JAM,
-  ITEM_SHIELD,
-  ITEM_PULSE,
-  ITEM_CLEAN,
   ITEM_PAINT,
   ITEM_ROLL_TICKS,
   ITEM_TURBO,
@@ -36,7 +37,7 @@ import {
   type KartState,
 } from '../../shared/kart.ts';
 import {
-  KM_SHIELD,
+  KM_BUBBLE,
   encodeKartSnapshot,
   encodeKarts,
   encodeTraps,
@@ -47,7 +48,7 @@ import {
   type KartSnap,
   type TrapSnap,
 } from '../../shared/kartnet.ts';
-import { buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
 import type { BoardKart, KartInfo, RaceEvent, RaceResultRow, ServerMsg } from '../../shared/messages.ts';
 import { randomOutfit, type Outfit } from '../../shared/outfit.ts';
@@ -75,6 +76,17 @@ const RESPAWN_HIDE = 6;
 const CHEER_GAP = 2 * TICK_RATE;
 /** Умения ботов по очереди: так в гонке с одним человеком есть кого обогнать */
 const BOT_SKILLS: KartSkill[] = ['normal', 'easy', 'hard', 'normal', 'easy'];
+/** Хлопок: радиус волны, м; кого задело — закрутка и замедление */
+const CLAP_R = 8;
+const CLAP_SPIN = 34;
+const CLAP_SLOW = 70;
+/**
+ * Шансы бонусов по месту: [турбо, варенье, краска, пузырь, хлопок] для первого и для последнего места; между ними —
+ * плавно. Лидеру — чем защищаться, отстающим — турбо и краска.
+ */
+const POOL_ITEMS = [ITEM_TURBO, ITEM_JAM, ITEM_PAINT, ITEM_BUBBLE, ITEM_CLAP];
+const POOL_FIRST = [0, 45, 0, 35, 20];
+const POOL_LAST = [50, 0, 25, 10, 15];
 
 export class Kart {
   /** Номер в снимке: место на решётке + 1 */
@@ -104,7 +116,8 @@ export class Kart {
   /** Лучший круг, тиков (0 — не было) */
   bestLap = 0;
   paintT = 0;
-  shieldT = 0;
+  /** Пузырь: тиков ещё (0 — нет) */
+  bubbleT = 0;
   hideT = 0;
   prog = 0;
 
@@ -183,11 +196,13 @@ export class Race {
   private readonly loc = makeLoc();
   private readonly botInput: Input = makeInput();
   private readonly idleInput: Input = makeInput();
-  private readonly view: BotView = { racing: false, place: 1, karts: 1, behind: Infinity, ahead: Infinity, painted: false };
+  private readonly view: BotView = {
+    racing: false, gridLeft: 0, place: 1, karts: 1, behind: Infinity, ahead: Infinity, near: Infinity, painted: false, bubble: false,
+  };
 
   constructor(hooks: RaceHooks, opts: RaceOptions = {}) {
     this.hooks = hooks;
-    this.trackId = opts.track ?? 'port';
+    this.trackId = opts.track ?? DEFAULT_TRACK;
     this.track = buildRaceCourse(this.trackId).track;
     const seed = opts.seed ?? Date.now() & 0xffffffff;
     this.rng = makeRng(seed);
@@ -343,7 +358,7 @@ export class Race {
 
     for (const k of this.karts.values()) {
       if (k.paintT > 0) k.paintT--;
-      if (k.shieldT > 0) k.shieldT--;
+      if (k.bubbleT > 0 && --k.bubbleT === 0) this.events.push(['pop', k.id, 0]);
       if (k.hideT > 0) k.hideT--;
       if (k.bot) {
         this.botViewOf(k);
@@ -426,33 +441,48 @@ export class Race {
   private botViewOf(k: Kart): void {
     const v = this.view;
     v.racing = this.phase === RC_RACE;
+    v.gridLeft = this.phase === RC_GRID ? this.phaseEnd - this.tick : 0;
     v.place = k.place || k.slot + 1;
     v.karts = this.karts.size;
     v.painted = k.paintT > 0;
+    v.bubble = k.bubbleT > 0;
     v.behind = Infinity;
     v.ahead = Infinity;
+    v.near = Infinity;
+    const s = k.state;
     for (const o of this.karts.values()) {
       if (o === k) continue;
       const d = o.prog - k.prog;
       if (d > 0 && d < v.ahead) v.ahead = d;
       else if (d <= 0 && -d < v.behind) v.behind = -d;
+      const t = o.state;
+      if (!t.done && t.ghostT === 0 && o.bubbleT === 0 && Math.abs(t.y - s.y) < 1.5) {
+        const r = Math.sqrt((t.x - s.x) * (t.x - s.x) + (t.z - s.z) * (t.z - s.z));
+        if (r < v.near) v.near = r;
+      }
     }
   }
 
   // ------------------------------------------------------------ бонусы
 
+  /** Бонус из ящика: шансы плавно меняются от первого места к последнему; первому краска не выпадает (некого). */
   private rollItem(k: Kart): number {
-    if (this.trackId === 'foundry') {
-      const pool = [ITEM_TURBO, ITEM_JAM, ITEM_PAINT, ITEM_SHIELD, ITEM_PULSE, ITEM_CLEAN];
-      return pool[Math.min(pool.length - 1, Math.max(0, Math.floor(this.roll() * pool.length)))];
-    }
     const n = this.karts.size;
     const place = k.place || n;
     const f = n > 1 ? (place - 1) / (n - 1) : 0;
-    const turbo = 0.25 + 0.35 * f;
-    const paint = place === 1 ? 0 : 0.3;
-    const r = this.roll();
-    return r < turbo ? ITEM_TURBO : r < turbo + paint ? ITEM_PAINT : ITEM_JAM;
+    let sum = 0;
+    const w: number[] = [];
+    for (let i = 0; i < POOL_ITEMS.length; i++) {
+      const x = place === 1 && POOL_ITEMS[i] === ITEM_PAINT ? 0 : POOL_FIRST[i] + (POOL_LAST[i] - POOL_FIRST[i]) * f;
+      w.push(x);
+      sum += x;
+    }
+    let r = this.roll() * sum;
+    for (let i = 0; i < w.length; i++) {
+      if (r < w[i]) return POOL_ITEMS[i];
+      r -= w[i];
+    }
+    return ITEM_TURBO;
   }
 
   private useItem(k: Kart, item: number): void {
@@ -472,44 +502,37 @@ export class Race {
       this.nextTrap = (this.nextTrap % 250) + 1;
     } else if (item === ITEM_PAINT) {
       let target: Kart | null = null;
-      for (const o of this.karts.values()) if (o !== k && o.place === k.place - 1) target = o;
+      for (const o of this.karts.values()) if (o !== k && o.place === k.place - 1 && !o.state.done) target = o;
       if (target && this.absorb(target, k.id)) target = null;
       if (target) target.paintT = PAINT_TICKS;
       this.events.push(['paint', k.id, target ? target.id : 0]);
-    } else if (item === ITEM_SHIELD) {
-      k.shieldT = 3 * TICK_RATE;
-    } else if (item === ITEM_CLEAN) {
+    } else if (item === ITEM_BUBBLE) {
+      // физика уже сняла варенье и закрутку; краску снимает сервер
+      k.bubbleT = BUBBLE_TICKS;
       k.paintT = 0;
-      for (let i = this.traps.length - 1; i >= 0; i--) {
-        const t = this.traps[i];
-        if ((s.x - t.x) ** 2 + (s.z - t.z) ** 2 > 25 || Math.abs(s.y - t.y) > 1.5) continue;
-        this.traps.splice(i, 1);
-        this.events.push(['jam', t.id, 0]);
-      }
-    } else if (item === ITEM_PULSE) {
+    } else if (item === ITEM_CLAP) {
       const hit: number[] = [];
       for (const o of this.karts.values()) {
         const t = o.state;
         if (o === k || t.done || t.ghostT > 0 || Math.abs(s.y - t.y) > 1.5) continue;
-        const dx = t.x - s.x; const dz = t.z - s.z;
-        const along = dx * s.hx + dz * s.hz;
-        const across = Math.abs(dx * s.hz - dz * s.hx);
-        if (along <= 0 || along > 12 || across > 2 + along * 0.4 || dx * dx + dz * dz > 144) continue;
-        const ds = Math.abs(this.track.s[s.seg] - this.track.s[t.seg]);
-        if (Math.min(ds, this.track.length - ds) > 20 || this.absorb(o, k.id)) continue;
-        t.slowT = Math.max(t.slowT, 75);
-        t.boostT = 0; t.boostLvl = 0;
+        const dx = t.x - s.x;
+        const dz = t.z - s.z;
+        if (dx * dx + dz * dz > CLAP_R * CLAP_R || this.absorb(o, k.id)) continue;
+        if (t.spinT < CLAP_SPIN) t.spinT = CLAP_SPIN;
+        if (t.slowT < CLAP_SLOW) t.slowT = CLAP_SLOW;
+        t.boostT = 0;
+        t.boostLvl = 0;
         hit.push(o.id);
       }
-      this.events.push(['pulse', k.id, hit]);
+      this.events.push(['clap', k.id, hit]);
     }
   }
 
-  /** Shields consume exactly one item hit; they do not cancel track geometry, water or checkpoints. */
+  /** Пузырь принимает ровно один удар бонусом (варенье, краска, хлопок) и лопается; от воды и стен не спасает. */
   private absorb(k: Kart, from: number): boolean {
-    if (k.shieldT <= 0) return false;
-    k.shieldT = 0;
-    this.events.push(['shield', k.id, from]);
+    if (k.bubbleT <= 0) return false;
+    k.bubbleT = 0;
+    this.events.push(['pop', k.id, from]);
     return true;
   }
 
@@ -688,7 +711,7 @@ export class Race {
       const s = k.state;
       list.push({
         id: k.id, flags: kartFlags(s, k.hideT === 0, k.paintT > 0), x: s.x, y: s.y, z: s.z, yaw: kartYaw(s), steer: s.steer,
-        lap: s.lap, place: k.place, misc: kartMisc(s) | (k.shieldT > 0 ? KM_SHIELD : 0),
+        lap: s.lap, place: k.place, misc: kartMisc(s) | (k.bubbleT > 0 ? KM_BUBBLE : 0),
       });
     }
     const traps: TrapSnap[] = this.traps.map((t) => ({ id: t.id, x: t.x, y: t.y, z: t.z }));

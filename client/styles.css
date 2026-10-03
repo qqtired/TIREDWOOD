@@ -3847,6 +3847,14 @@ input[type='checkbox'] {
   letter-spacing: 0.05em;
 }
 
+.rc-item-what {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
 .rc-item.empty {
   opacity: 0.4;
 }
@@ -3988,6 +3996,125 @@ input[type='checkbox'] {
   color: var(--ink);
 }
 
+.rc-charge[data-lvl='3'] .rc-charge-fill {
+  background: #c77dff;
+  box-shadow: 0 0 22px rgba(199, 125, 255, 1);
+}
+
+.rc-charge[data-lvl='3'] .rc-charge-bar {
+  border-color: #dcaaff;
+  animation: pop 0.3s ease-out;
+}
+
+.rc-charge[data-lvl='3'] .rc-charge-text {
+  background: #c77dff;
+  color: var(--ink);
+}
+
+/* праздник на финише: крупное место и конфетти из-за краёв экрана (race/hud.ts celebrate) */
+.rc-party {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rc-party-place {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%);
+  color: var(--cream);
+  text-shadow: 0 4px 0 rgba(34, 20, 26, 0.55), 0 0 30px rgba(0, 0, 0, 0.35);
+  animation: rc-party-in 3.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.rc-party-place b {
+  font-size: 150px;
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.rc-party-place span {
+  padding: 4px 16px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  font-size: 20px;
+  font-weight: 800;
+  text-shadow: none;
+}
+
+.rc-party.podium .rc-party-place b {
+  color: #ffe2a8;
+}
+
+.rc-party.win .rc-party-place b {
+  color: var(--gold);
+  text-shadow: 0 5px 0 #a8620e, 0 0 36px rgba(255, 211, 90, 0.8);
+}
+
+.rc-party.win .rc-party-place span {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.rc-party-bit {
+  position: absolute;
+  border-radius: 2px;
+  animation: rc-party-bit 2.6s cubic-bezier(0.15, 0.6, 0.4, 1) both;
+}
+
+@keyframes rc-party-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.4);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  16%,
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(0.9);
+  }
+}
+
+@keyframes rc-party-bit {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  45% {
+    transform: translate(var(--dx), var(--dy)) rotate(calc(var(--rot) * 0.5));
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx) * 1.25), calc(var(--dy) * -0.2)) rotate(var(--rot));
+  }
+}
+
+@media (max-width: 700px) {
+  .rc-party-place b {
+    font-size: 96px;
+  }
+
+  .rc-party-place span {
+    font-size: 15px;
+  }
+}
+
 /* подсказка по клавишам — на решётке */
 .rc-help {
   position: absolute;
@@ -4113,7 +4240,7 @@ input[type='checkbox'] {
   animation: throb 0.7s ease-in-out infinite;
 }
 
-/* краска: густые розовые кляксы почти на весь экран (холст — race/paint.ts), с них бегут подтёки; 3 с, как PAINT_TICKS */
+/* краска: густые розовые кляксы по краям экрана (холст — race/paint.ts), с них бегут подтёки; 2,5 с, как PAINT_TICKS */
 .rc-paint {
   position: absolute;
   inset: 0;
@@ -4134,7 +4261,7 @@ input[type='checkbox'] {
   position: absolute;
   inset: 0;
   opacity: 0;
-  animation: rc-splat 3s cubic-bezier(0.3, 0.6, 0.5, 1) both;
+  animation: rc-splat 2.5s cubic-bezier(0.3, 0.6, 0.5, 1) both;
 }
 
 .rc-splat canvas {
@@ -4153,7 +4280,7 @@ input[type='checkbox'] {
   position: absolute;
   inset: 0;
   transform: translateY(-100%);
-  animation: rc-drip 3s ease-in both;
+  animation: rc-drip 2.5s ease-in both;
 }
 
 /* струйка — ровно в цвет краски (поверх кляксы её не видно — заметна, где стекает с края), с краёв чуть темнее */

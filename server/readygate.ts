@@ -7,7 +7,7 @@
 import { TICK_RATE } from '../shared/constants.ts';
 import type { FcMode } from '../shared/fight.ts';
 import { GO_TICKS, LOAD_WAIT_TICKS, stillLoading, type LoadServerMsg, type LoadWho } from '../shared/loading.ts';
-import { isRaceTrackId } from '../shared/racecourse.ts';
+import { DEFAULT_TRACK, isRaceTrackId } from '../shared/racecourse.ts';
 import type { Client, Hub, Room } from './hub.ts';
 
 interface Arrival {
@@ -130,7 +130,7 @@ export class ReadyGate {
       case 'race':
       case 'kart':
         if (!h.race.idle) say('Гонка уже идёт');
-        else h.startRace([c], isRaceTrackId(arg) ? arg : 'port');
+        else h.startRace([c], isRaceTrackId(arg) ? arg : DEFAULT_TRACK);
         break;
       case 'fight':
         if (!h.fight) say('Fight Club выключен');
@@ -141,7 +141,7 @@ export class ReadyGate {
         say('Регата теперь на набережной — встань в круг у пирса');
         break;
       default:
-        say('/go lobby | paintball | fort | skill | hide | race [port|foundry] | fight [duel|team|ffa]');
+        say('/go lobby | paintball | fort | skill | hide | race [harbor|hills] | fight [duel|team|ffa]');
     }
     return true;
   }

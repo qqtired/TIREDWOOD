@@ -18,7 +18,7 @@ test('картинг: решётка стоит, пока не загрузил�
   const b = login(hub, 'Второй', undefined, '10.0.0.2');
   readyLobby(hub, a.c);
   readyLobby(hub, b.c);
-  hub.startRace([a.c, b.c], 'port');
+  hub.startRace([a.c, b.c], 'harbor');
   const race = hub.race.race!;
   steps(hub, RC_GRID_TICKS + 60);
   assert.equal(race.phase, RC_GRID, 'пока никто не загрузился, гонка не начинается');
@@ -48,7 +48,7 @@ test('кто не загрузился за 8 с — начинаем без н�
   const a = login(hub, 'Тормоз');
   readyLobby(hub, a.c);
   const lobbyEpoch = a.c.epoch;
-  hub.startRace([a.c], 'port');
+  hub.startRace([a.c], 'harbor');
   hub.onJson(a.c, { t: 'ready', e: lobbyEpoch });
   assert.equal(hub.gate.loading(a.c), true, 'ready с номером набережной — не про гонку');
   steps(hub, LOAD_WAIT_TICKS);
@@ -61,7 +61,7 @@ test('кто не загрузился за 8 с — начинаем без н�
 test('старый клиент без «готов» не задерживает старт; ушёл, не загрузившись, — ждать перестаём', () => {
   const { hub } = setupHub();
   const old = login(hub, 'Старый');
-  hub.startRace([old.c], 'port');
+  hub.startRace([old.c], 'harbor');
   steps(hub, RC_GRID_TICKS + 2);
   assert.equal(hub.race.race!.phase, RC_RACE, 'без ready — как раньше');
   assert.equal(allOf(old.s, 'load').length, 0);
