@@ -1,7 +1,8 @@
 import { GIFT_CODE_MAX_LENGTH, type GiftResultCode } from '../../shared/gifts.ts';
 import './gift-code.css';
 
-const RESULT: Record<GiftResultCode,string> = {
+/** Ответы на подарочный код — и в примерочной, и в меню (Профиль → Подарки и коды) */
+export const GIFT_RESULT_TEXT: Record<GiftResultCode,string> = {
   granted: 'Набор «Чертёнок» получен! Рожки и хвост появились в гардеробе.',
   already: 'Этот набор уже есть у тебя. Рожки — в шапках, хвост — в аксессуарах.',
   invalid: 'Код не подошёл. Проверь его и попробуй ещё раз.',
@@ -42,7 +43,7 @@ export class GiftCodePanel {
   }
   configure(enabled: boolean): void { this.enabled=enabled;this.root.hidden=!enabled;if(!enabled)this.close(); }
   result(result: GiftResultCode): void {
-    this.clearPending();this.status.textContent=RESULT[result];this.status.dataset.success=String(result==='granted'||result==='already');
+    this.clearPending();this.status.textContent=GIFT_RESULT_TEXT[result];this.status.dataset.success=String(result==='granted'||result==='already');
     if(result==='granted'||result==='already')this.input.value='';
   }
   close(): void {this.clearPending();this.root.open=false;this.status.textContent='';this.input.value='';}

@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Renderer } from '../../client/render/renderer.ts';
 import { RaceWorld } from '../../client/race/world.ts';
-import { BoatRaceWorld, BoatModel } from '../../client/boatrace/world.ts';
+import { BoatModel } from '../../client/lobby/regattaboat.ts';
+import { RegattaCourse3D } from '../../client/lobby/regattacourse3d.ts';
 import { SkillWorld } from '../../client/skilltest/world.ts';
 import { LobbyWorld } from '../../client/lobby/world.ts';
 import { LobbyCritters } from '../../client/lobby/critters.ts';
@@ -21,10 +22,12 @@ let playing = true, elapsed = 0, last = performance.now(), lastStats = 0;
 const v = (label, camera, target, tick = 0, cp = 0) => ({label,camera,target,tick,cp});
 function build(name) {
   if (name === 'boats') {
-    const world = new BoatRaceWorld(renderer), g = world.course.gates[0];
-    const boat = {x:g.x-g.hx*7,z:g.z-g.hz*7,hx:g.hx,hz:g.hz,speed:12};
-    const model = new BoatModel(world.scene, 1, {...DEFAULT_OUTFIT,c:7}, '');
-    return {world, boat, model, views:[v('Катер крупно',[boat.x+5,3.0,boat.z+5],[boat.x,1,boat.z]),v('Стартовая акватория',[g.x-g.hx*18,7,g.z-g.hz*18],[g.x+g.hx*18,1,g.z+g.hz*18]),v('Бухта сверху',[150,115,165],[0,0,0]),v('Мыс и порт',[-130,22,-70],[0,3,0])]};
+    // «Портовая регата» — в бухте набережной: трасса, арка с табло, катер на решётке
+    const world = new LobbyWorld(renderer,'high'), course = new RegattaCourse3D(world.scene), g = course.course.gates[0];
+    const boat = {x:g.x-g.tx*7,z:g.z-g.tz*7,hx:g.tx,hz:g.tz,speed:12};
+    const model = new BoatModel(world.scene, 0, -1, false, {...DEFAULT_OUTFIT,c:7}, '');
+    course.setBoard({title:'ПОРТОВАЯ РЕГАТА',phase:'КРУГ 2/3',rows:['Чайка','Tester7','Бриз','Маяк'].map((nick,i)=>({place:String(i+1),nick,info:`${i<2?2:1}/3`,me:i===1,medal:i<3?i+1:0})),foot:'Рекорд бухты: Чайка — 0:41.20'});
+    return {world, course, boat, model, views:[v('Катер крупно',[boat.x+5,-0.2,boat.z+5],[boat.x,-1,boat.z]),v('Арка и табло с площади',[30,2.2,22],[64,7,33]),v('Трасса сверху',[75,140,190],[75,0,75]),v('Трамплин и риф',[44,3,108],[32,-1,92])]};
   }
   if (name === 'skill') {
     const world = new SkillWorld(renderer), avatar = new Avatar(1,{gun:false});
@@ -33,7 +36,8 @@ function build(name) {
   }
   if (name === 'critters') {
     const world = new LobbyWorld(renderer,'high'), animals = new LobbyCritters(world.scene);
-    return {world,animals,views:[v('Кот на скамейке',[-3,1.4,22],[-.7,.35,19.4],0),v('Кот идёт',[-2,1.2,23.8],[0,.35,20.2],42*60),v('Кот у маяка',[-13.7,1.1,41],[-17,.25,40],49*60),v('Пёс',[23.5,1.25,9],[20,.3,6.6],90*60),v('Чайки',[-2.6,1.3,23],[-5,.3,20.5],12*60),v('Крабы',[-7.1,.5,25.4],[-9.0,-.55,23.2],0)]};
+    return {world,animals,views:[v('Кот на скамейке',[-3,1.4,22],[-.7,.35,19.4],0),v('Кот идёт',[-2,1.2,23.8],[0,.35,20.2],42*60),v('Кот у маяка',[-13.7,1.1,41],[-17,.25,40],49*60),v('Пёс',[23.5,1.25,9],[20,.3,6.6],90*60),v('Чайки',[-2.6,1.3,23],[-5,.3,20.5],12*60),
+      v('Отмель с набережной',[-12.2,1.7,19.8],[-15.3,-1.0,23.4],0),v('Отмель с мостков',[-18.5,2.4,28.8],[-15.6,-1.0,23.4],8*60),v('Отмель с моря',[-12.5,.6,31],[-15.4,-.9,23.3],20*60),v('Крабы крупно',[-13.9,-.45,25.6],[-15.5,-.98,23.3],14*60)]};
   }
   const world = new RaceWorld(renderer,'high','port');
   return {world,views:[v('Портовое кольцо',[15,6,34],[35,1,0]),v('Обзор порта',[135,100,165],[0,0,0])]};
@@ -61,7 +65,7 @@ function frame(now) {
   const dt=Math.min(.05,(now-last)/1000);last=now;if(playing)elapsed+=dt;
   const p=active.views[Number(view.value)||0],tick=p.tick+elapsed*60,{world}=active;
   renderer.beginFrame(true); controls.update();
-  if(mode==='boats'){const b=active.boat;active.model.update(b.x,b.z,b.hx,b.hz,Math.sin(elapsed*.5)*.15,b.speed,tick,dt,world.camera.position,true);world.update(tick,1,[b]);}
+  if(mode==='boats'){const b=active.boat;active.model.update(b.x,b.z,0,b.hx,b.hz,Math.sin(elapsed*.5)*.15,b.speed,0,elapsed,dt,world.camera.position,true);active.course.update(elapsed,dt,world.camera.position,1,0,elapsed%4,false);world.update(dt,tick);}
   else if(mode==='skill'){world.update(tick,p.cp);const pad=world.map.pads.find(x=>x.section===p.cp)||world.map.pads[0];active.avatar.update({x:pad.x,y:pad.y,z:1.8,yaw:-Math.PI/2,pitch:0,flags:E_ALIVE|E_GROUNDED},dt,tick/60,{groundBelow:()=>pad.y},world.camera.position,false);tickAvatarShared(tick/60);}
   else if(mode==='critters'){world.update(dt,tick);active.animals.update(tick,elapsed,world.camera.position,{x:1e6,y:0,z:1e6,speed:0});}
   else world.update(dt);

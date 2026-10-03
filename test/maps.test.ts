@@ -55,8 +55,9 @@ test('набережная: предметы пронумерованы, 5 ав�
 test('набережная: точки появления и взаимодействия стоят на настиле и не в стене', () => {
   const spots = [lobby.spawn, lobby.gateSpawn, lobby.garageSpawn, lobby.fortSpawn, ...lobby.interact];
   for (const s of spots) {
-    // точка катера — над кокпитом: до неё достают и с причала, и из самого катера (test/boat.test.ts)
-    if ('kind' in s && s.kind === 'boat') continue;
+    // точка катера — над кокпитом: до неё достают и с причала, и из самого катера (test/boat.test.ts); так же и у лодки
+    // Семёна у мостков (test/barkas.test.ts)
+    if ('kind' in s && (s.kind === 'boat' || (s.kind === 'ferry' && 'arg' in s && s.arg === 0))) continue;
     // касса колеса обозрения — на дощатом помосте (0,15 м)
     const floor = 'kind' in s && s.kind === 'wheel' ? 0.15 : 0;
     assert.ok(Math.abs(lw.groundBelow(s.x, 0.5, s.z) - floor) < 1e-9, `опора под ${s.x},${s.z}`);

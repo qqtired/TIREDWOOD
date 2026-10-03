@@ -1,24 +1,26 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { COLLECTION, RULE, biteShare, effectiveRareMultiplier, reelStyleFor } from '../shared/fishrules.ts';
+import { BAND, COLLECTION, RULE, biteShare, effectiveRareMultiplier, reelStyleFor } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods, fishCatchXp, FISH_XP_LEVELS, type FishRod } from '../shared/fishprogress.ts';
 import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, type ReelStyle } from '../shared/fishreel.ts';
 import { TYPICAL, reelStats } from './fishbot.ts';
 const baseline = JSON.parse(readFileSync(new URL('../docs/expansion-2026-10-03/fishing-baseline/baseline.json', import.meta.url),'utf8'));
 
-test('XP is one third of frozen released XP, including perfect and legendary multiplication',()=>{
- for(const row of baseline.rows) for(const perfect of [false,true]) assert.equal(fishCatchXp(row.sp,perfect),Math.max(1,Math.round((perfect?row.perfectXp:row.xp)*.3333)),row.id);
+test('XP is 0.4 of frozen released XP (fisheco: +20 %), including perfect and legendary multiplication',()=>{
+ for(const row of baseline.rows) for(const perfect of [false,true]) assert.equal(fishCatchXp(row.sp,perfect),Math.max(1,Math.round((perfect?row.perfectXp:row.xp)*.4)),row.id);
 });
 test('rare probability compounds level and exactly one rod, withdrawing common residual',()=>{
  const mods=fishCastMods({...emptyFishProgress(),xp:380,questsDone:10,rod:2},0);
  assert.equal(mods.rareMultiplier,1.025**2*1.10);
- for(const sp of COLLECTION.filter(sp=>RULE[sp]!.tier>=1&&!RULE[sp]!.rain)) assert.ok(Math.abs(biteShare(sp,false,mods)/biteShare(sp,false)-mods.rareMultiplier)<1e-12);
+ for(const sp of COLLECTION.filter(sp=>RULE[sp]!.tier>=1&&!RULE[sp]!.rain&&RULE[sp]!.zone==='pier')) assert.ok(Math.abs(biteShare(sp,false,mods)/biteShare(sp,false)-mods.rareMultiplier)<1e-12);
 });
-test('32 fish have distinct pattern pairs using all ten executable behaviors',()=>{
+test('all 51 fish have distinct pattern pairs using all fourteen executable behaviors as main pattern',()=>{
  const styles=COLLECTION.map(sp=>RULE[sp]!.style as any);
- assert.equal(new Set(styles.map(s=>s.mainPattern)).size,10);
- assert.equal(new Set(styles.map(s=>s.mainPattern+':'+s.secondaryPattern)).size,32);
+ assert.equal(COLLECTION.length,51);
+ assert.equal(new Set(styles.map(s=>s.mainPattern)).size,REEL_PATTERNS.length);
+ assert.equal(REEL_PATTERNS.length,14);
+ assert.equal(new Set(styles.map(s=>s.mainPattern+':'+s.secondaryPattern)).size,51);
  assert.ok(styles.every(s=>s.mainPattern!==s.secondaryPattern));
 });
 test('every fish motion replays exactly from toggles with integer state',()=>{
@@ -45,7 +47,7 @@ test('each named pattern executes its characteristic target trajectory', () => {
   }
   targets[pattern] = trace;
  }
- assert.equal(new Set(Object.values(targets).map(t => JSON.stringify(t))).size, 10);
+ assert.equal(new Set(Object.values(targets).map(t => JSON.stringify(t))).size, 14);
  assert.equal(targets.Dash[39], 50000); assert.equal(targets.Dash[40], 80000);
  assert.equal(targets.FakeDash[0], 65000); assert.equal(targets.FakeDash[70], 20000);
  assert.ok(targets.Sawtooth[65] > targets.Sawtooth[67]);
@@ -56,6 +58,14 @@ test('each named pattern executes its characteristic target trajectory', () => {
  assert.equal(targets.Wave[50], 80000); assert.equal(targets.Wave[150], 20000);
  assert.ok(new Set(targets.Nervous).size > 10);
  assert.equal(targets.Ambush[143], 50000); assert.equal(targets.Ambush[144], 80000);
+ // fisheco: «Свечка» — выше обычного размаха, потом ниже исходной глубины; «Уход на глубину» — ко дну и долгое
+ // покачивание там; «Круги» — размах растёт; «Зигзаг» — короткие броски то вверх, то вниз
+ assert.equal(targets.Breach[0], 95000); assert.equal(targets.Breach[76], 40000); assert.equal(targets.Breach[150], 50000);
+ assert.equal(targets.Sound[0], 4000); assert.ok(targets.Sound.slice(52, 150).every(v => v >= 4000 && v < 12000)); assert.equal(targets.Sound[152], 50000);
+ const swing = (a: number[]) => Math.max(...a.map(v => Math.abs(v - 50000)));
+ assert.ok(swing(targets.Circle.slice(100)) > swing(targets.Circle.slice(0, 50)) * 1.5);
+ assert.deepEqual([targets.Zigzag[0], targets.Zigzag[43], targets.Zigzag[70], targets.Zigzag[100]], [65000, 35000, 65000, 35000]);
+ assert.equal(new Set(targets.Zigzag).size, 2);
 });
 
 test('all legal probability combinations sum to one with transparent saturation and unchanged absent event fish', () => {
@@ -76,16 +86,19 @@ test('all legal probability combinations sum to one with transparent saturation 
  assert.ok(Math.abs(baseTwoPercent * fishCastMods({...emptyFishProgress(),xp:100},0).rareMultiplier - .0205) < 1e-12);
 });
 
-test('difficulty comes from motion without a reduced fill gain or smaller green zone; progression remains useful', () => {
+test('fill gain unchanged, zone per rarity tier (fisheco), frozen XP difficulty kept; progression remains useful', () => {
  assert.equal(REEL_GAIN, 100);
- const mods = fishCastMods({ ...emptyFishProgress(), xp:15000, questsDone:10, rod:3 },0);
- for (const old of baseline.rows) {
-  assert.equal(RULE[old.sp]!.style.zone,old.style.zone,old.id);
-  assert.equal(RULE[old.sp]!.xpDifficulty,old.difficulty,old.id);
-  const plain=reelStats(RULE[old.sp]!.style,TYPICAL,300,401+old.sp*1259);
-  const boosted=reelStats(reelStyleFor(old.sp,mods),TYPICAL,300,401+old.sp*1259);
-  assert.ok(boosted.costTicks < plain.costTicks,old.id);
-  assert.ok(boosted.p >= plain.p,old.id);
+ for (const sp of COLLECTION) assert.equal(RULE[sp]!.style.zone, BAND[RULE[sp]!.tier].zone, `${sp}: зона — по категории`);
+ for (const old of baseline.rows) assert.equal(RULE[old.sp]!.xpDifficulty,old.difficulty,old.id);
+ for (const sp of COLLECTION) {
+  const zone = RULE[sp]!.zone;
+  const start = fishCastMods({ ...emptyFishProgress(), xp: zone === 'barkas' ? 770 : 0 }, 0, zone);
+  const best = fishCastMods({ ...emptyFishProgress(), xp:15000, questsDone:10, rod:3, lure:3 },0, zone);
+  const plain=reelStats(reelStyleFor(sp,start),TYPICAL,300,401+sp*1259);
+  const boosted=reelStats(reelStyleFor(sp,best),TYPICAL,300,401+sp*1259);
+  assert.ok(boosted.costTicks < plain.costTicks,`${sp}: прогресс ускоряет`);
+  // модель игрока шумит на ±2 п.: успех не падает больше чем на 3 п., зато время на рыбу всегда меньше
+  assert.ok(boosted.p >= plain.p - .03,`${sp}: прогресс не ухудшает`);
  }
 });
 

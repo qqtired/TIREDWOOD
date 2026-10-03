@@ -2,7 +2,8 @@
 // Один на процесс. Комнаты (набережная, пейнтбол, гонка) шагаются из общего цикла 60 тиков в секунду.
 import { timingSafeEqual } from 'node:crypto';
 import { PROTOCOL_VERSION, TICK_RATE } from '../shared/constants.ts';
-import type { BoatRaceResultRow, BoatRaceReward } from '../shared/boatrace.ts';
+import { addRecord } from '../shared/aqua.ts';
+import { rgLapMs, type RgRecordRow, type RgRow } from '../shared/regatta.ts';
 import type { HideResult } from '../shared/hide.ts';
 import { FOOL_MS, type PbReward, type RcReward } from '../shared/economy.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
@@ -11,7 +12,7 @@ import type { FortResultRow, FortStatus, FtReward } from '../shared/fort.ts';
 import { CLOSE_SILENCE, type ChatLine, type ClientMsg, type ErrorCode, type HonorInfo, type OnlineEntry, type PbStatus, type RaceResultRow, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, shownOutfit, type Outfit } from '../shared/outfit.ts';
 import { MSG_INPUT, decodeInputs, inputEpoch } from '../shared/protocol.ts';
-import type { RaceTrackId } from '../shared/racecourse.ts';
+import { DEFAULT_TRACK, RACE_RECORD, isRaceTrackId, type RaceTrackId } from '../shared/racecourse.ts';
 import { makeInput, type Input } from '../shared/sim.ts';
 import { sanitizeChat } from '../shared/text.ts';
 import { FightRoom } from './fight/room.ts';
@@ -24,14 +25,20 @@ import { PaintballRoom } from './paintball/room.ts';
 import type { Profiles } from './profiles.ts';
 import { RaceRoom } from './race/room.ts';
 import { SkillRoom } from './skilltest/room.ts';
-import { BoatRaceRoom } from './boatrace/room.ts';
+import type { SkillReward } from './skilltest/game.ts';
+import { applySkillFinish } from '../shared/skilltest.ts';
+import { mskDayNum } from '../shared/fishrules.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
+import { ReadyGate } from './readygate.ts';
+import type { Prestart } from '../shared/loading.ts';
 import { addFortRun, emptyStats, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
+import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
 import type { VoiceIceConfig } from '../shared/voice.ts';
 import { GiftCodes } from './gifts.ts';
+import { grantLadder, ladderAnnounce, ladderToast } from './fishstyle.ts';
 
 export type { Sink };
 
@@ -41,6 +48,8 @@ export interface Room {
   readonly tick: number;
   /** Existing per-room actor lookup; identifiers are room-local, never socket/client IDs. */
   playerOf?(c: Client): { id?: number; slot?: number } | undefined;
+  /** Отсчёт перед стартом раунда, который ждёт загрузки всех (server/readygate.ts); null — сейчас ждать нечего */
+  readonly prestart?: Prestart | null;
   hasSpace(): boolean;
   /** from — откуда пришёл (с пейнтбола на набережную — к воротам склада, из гонки — к гаражу) */
   join(c: Client, from: RoomKind | null): boolean;
@@ -52,7 +61,8 @@ export interface Room {
 
 export class Client {
   readonly id: number;
-  readonly sink: Sink;
+  /** Связь сессии: комнаты шлют сюда, а сокет за ней может смениться (возврат после обрыва связи, link.ts) */
+  readonly sink: SessionLink;
   readonly ip: string;
   profile: Profile | null = null;
   /** Временный профиль проверки после выкладки: не сохраняется, никому не виден */
@@ -67,10 +77,17 @@ export class Client {
   since = 0;
   /** Сколько ошибок браузера записано с этого соединения */
   errors = 0;
+  /** Связь оборвалась, игрок ждёт в своей комнате возврата: когда (часы хаба) и почему; 0 — связь есть */
+  lostAt = 0;
+  lostWhy = '';
+  /** Этот сокет вернул прежнюю сессию после обрыва: дальше его сообщения — ей */
+  adopted: Client | null = null;
+  /** Клиент попрощался (закрыл вкладку, обновил страницу): закрытие — сразу выход, без ожидания возврата */
+  bye = false;
 
-  constructor(id: number, sink: Sink, ip: string) {
+  constructor(id: number, sink: LinkSocket, ip: string) {
     this.id = id;
-    this.sink = sink;
+    this.sink = new SessionLink(sink);
     this.ip = ip;
   }
 
@@ -117,6 +134,10 @@ export interface HubOptions {
   devPirates?: boolean;
   /** Рыбалка 2.0: шкала вываживания, коллекция, доска у мостков — флаг сервера FISH2; нет — старая рыбалка */
   fish2?: boolean;
+  /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
+  roulette?: boolean;
+  /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
+  jukebox?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }
@@ -154,7 +175,7 @@ export function closeReason(code: number, reason = ''): string {
     case 4002:
       return 'старая версия';
     case CLOSE_SILENCE:
-      return 'не слышал сервер 8 с';
+      return 'не слышал сервер 20 с';
     default:
       return `код ${code}`;
   }
@@ -176,6 +197,18 @@ export function cleanLog(v: unknown, max: number): string {
     .slice(0, max);
 }
 
+/** Сколько ждём возврата игрока после обрыва связи: всё это время он в своей комнате, на своём месте */
+export const RESUME_MS = 45_000;
+
+/**
+ * Обрыв, после которого игрок может вернуться в ту же сессию. Не считаются: выход в меню (1000/1005), нарушение
+ * и флуд (1008), перезапуск сервера (1012), вход в другом окне и старая версия. 1001 браузер шлёт и когда вкладку
+ * закрыли, и когда заморозил её в фоне — закрытие клиент отмечает сам сообщением «bye».
+ */
+export function resumableClose(code: number): boolean {
+  return ![1000, 1005, 1008, 1012, 4001, 4002].includes(code);
+}
+
 /** Не больше стольких ошибок браузера с одного соединения и в минуту с одного адреса */
 const ERR_PER_CONN = 20;
 const ERR_PER_MIN = 30;
@@ -195,7 +228,8 @@ export class Hub {
   readonly paintball: PaintballRoom;
   readonly race: RaceRoom;
   readonly skill: SkillRoom | null;
-  readonly boatrace: BoatRaceRoom | null;
+  /** «Портовая регата» включена (флаг BOATRACE): гонка идёт в бухте набережной (server/lobby/regatta.ts) */
+  readonly boatrace: boolean;
   readonly hide: HideRoom | null;
   private readonly voice: VoiceRouter | null;
   private readonly gifts: GiftCodes;
@@ -207,8 +241,12 @@ export class Hub {
   readonly tg: TgFeed | null;
   /** Рыбалка 2.0 включена (флаг FISH2) */
   readonly fish2: boolean;
+  /** Рулетка рыбака включена (флаг ROULETTE вместе с FISH2) */
+  readonly roulette: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
+  /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
+  readonly gate = new ReadyGate(this);
   tick = 0;
   private readonly smokeToken: string;
   private readonly build: string;
@@ -250,6 +288,7 @@ export class Hub {
     this.log = o.log ?? ((s) => console.log(s));
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
+    this.roulette = this.fish2 && (o.roulette ?? false);
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой
     this.fight = o.fight
       ? new FightRoom({
@@ -259,9 +298,8 @@ export class Hub {
         announce: (text) => this.announce(text),
       })
       : null;
-    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c) }) : null;
-    this.boatrace = o.boatrace ? new BoatRaceRoom({ outfitOf: p => this.outfitOf(p), result: (c,row,reward) => this.onBoatRaceResult(c,row,reward),
-      over: clients => this.onRaceOver(clients), announce: text => this.announce(text), afk: c => this.onPaintballAfk(c) }) : null;
+    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
+    this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);
     this.tg = o.tg ?? null;
@@ -293,16 +331,42 @@ export class Hub {
 
   /** Есть ли кто-то в комнатах (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.boatrace?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
 
-  connect(sink: Sink, ip: string): Client {
+  connect(sink: LinkSocket, ip: string): Client {
+    this.sweepLost();
     const c = new Client(this.nextClientId++, sink, ip);
     c.since = this.now();
     this.clients.add(c);
     return c;
+  }
+
+  /**
+   * Сокет соединения закрылся (socket — какой именно: после возврата старый сокет закрывается позже, его не слушаем).
+   * Обрыв в игре — игрок остаётся в комнате без связи RESUME_MS и может вернуться на то же место; выход в меню,
+   * закрытая вкладка, флуд, вход в другом окне — отключаем сразу, как раньше.
+   */
+  linkLost(c: Client, socket: LinkSocket, why: string, code: number): void {
+    if (!this.clients.has(c) || !c.sink.has(socket)) return;
+    if (!resumableClose(code) || c.bye || !c.profile || c.ephemeral || !c.room) {
+      this.disconnect(c, why);
+      return;
+    }
+    c.sink.detach();
+    c.lostAt = this.now();
+    // 1001 без прощания — браузер усыпил вкладку (фон, заморозка), а не закрыл её
+    c.lostWhy = code === 1001 ? 'вкладка уснула' : why;
+  }
+
+  /** Кто не вернулся за RESUME_MS — отключаем по-настоящему. */
+  private sweepLost(): void {
+    const now = this.now();
+    for (const c of this.clients) {
+      if (c.lostAt && now - c.lostAt >= RESUME_MS) this.disconnect(c, `${c.lostWhy}, не вернулся за ${RESUME_MS / 1000} с`);
+    }
   }
 
   /** why — причина для журнала (closeReason, «нет ответа 6 с» и т. п.) */
@@ -310,6 +374,7 @@ export class Hub {
     if (!this.clients.has(c)) return;
     this.clients.delete(c);
     c.closed = true;
+    c.lostAt = 0;
     this.voice?.disconnected(c);
     c.room?.leave(c);
     c.room = null;
@@ -328,6 +393,11 @@ export class Hub {
     const msg = raw as ClientMsg;
     if (msg.t === 'ping') {
       if (typeof msg.c === 'number') c.sink.sendJson({ t: 'pong', c: msg.c, k: c.room?.tick ?? this.tick });
+      c.sink.ack(msg.r);
+      return;
+    }
+    if (msg.t === 'bye') {
+      c.bye = true;
       return;
     }
     if (msg.t === 'err') {
@@ -352,6 +422,9 @@ export class Hub {
         return;
       case 'hello':
         return;
+      case 'ready':
+        this.gate.ready(c, msg.e);
+        return;
       case 'chat':
         this.onChat(c, msg.text);
         return;
@@ -363,7 +436,7 @@ export class Hub {
         c.sink.sendJson({ t: 'code', ...this.profiles.issueCode(c.profile) });
         return;
       case 'leave':
-        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.boatrace !== null && c.room === this.boatrace) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
+        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
         return;
       default:
         c.room?.onMessage(c, msg);
@@ -425,21 +498,31 @@ export class Hub {
     if (r.created) this.log(`[новый профиль] ${r.profile.nick} (#${r.profile.id})`);
     const re = msg.re;
     const again = typeof re === 'number' && Number.isInteger(re) && re >= 1000 && re <= 4999 ? `, переподключился: ${closeReason(re)}` : '';
-    this.enter(c, r.profile, r.daily, again);
+    this.enter(c, r.profile, r.daily, again, msg.rs);
   }
 
-  /** note — дописать в строку журнала о входе */
-  private enter(c: Client, profile: Profile, daily: number, note = ''): void {
+  /** note — дописать в строку журнала о входе; rs — клиент просит вернуться в прежнюю сессию после обрыва */
+  private enter(c: Client, profile: Profile, daily: number, note = '', rs?: unknown): void {
     const old = this.byPid.get(profile.id);
     if (old && old !== c) {
-      this.error(old, 'replaced');
-      old.sink.close(4001, 'replaced');
-      this.disconnect(old, closeReason(4001));
+      if (rs !== undefined && this.resume(old, c, rs)) return;
+      if (old.lostAt) this.disconnect(old, `${old.lostWhy}, вошёл заново`);
+      else {
+        this.error(old, 'replaced');
+        old.sink.close(4001, 'replaced');
+        this.disconnect(old, closeReason(4001));
+      }
     }
     c.profile = profile;
     if (!c.ephemeral) this.byPid.set(profile.id, c);
+    // награды коллекции рыб, положенные по альбому (server/fishstyle.ts): ветеранам — при первом входе
+    const ladder = this.fish2 && !c.ephemeral ? grantLadder(this.profiles, profile) : null;
     this.sendMe(c);
     if (daily > 0) this.toast(c, `Ежедневный бонус: +${daily} 🪙`);
+    if (ladder?.items.length) {
+      this.toast(c, ladderToast(ladder));
+      for (const line of ladderAnnounce(profile.nick, ladder)) this.announce(line);
+    }
     c.sink.sendJson({ t: 'chatlog', list: this.chatLog });
     if (!this.move(c, this.lobby, true)) {
       this.error(c, 'full');
@@ -451,6 +534,30 @@ export class Hub {
       this.log(`[вход] ${profile.nick} (#${profile.id}${note}); в игре: ${this.onlineCount()}`);
       this.lobby.honorChanged();
     }
+  }
+
+  /**
+   * Возврат после обрыва: сокет нового соединения c подхватывает прежнюю сессию old. Комната, место, стол, голос —
+   * как были; клиенту досылается всё, что он не принял (с номера from), сцену он не пересоздаёт.
+   */
+  private resume(old: Client, c: Client, from: unknown): boolean {
+    if (old.closed || old.ephemeral || !old.room || !old.sink.canResume(from)) return false;
+    const socket = c.sink.take();
+    if (!socket) return false;
+    const away = old.lostAt ? `без связи ${since(this.now() - old.lostAt)}` : 'старое соединение ещё не закрылось';
+    const why = old.lostAt ? `${old.lostWhy}, ` : '';
+    // старый сокет мог ещё числиться живым (клиент заметил тишину раньше сервера) — закрываем, его закрытие не в счёт
+    old.sink.dropSocket(4003, 'resumed');
+    socket.sendJson({ t: 'resumed' });
+    old.sink.attach(socket, from);
+    old.lostAt = 0;
+    old.lostWhy = '';
+    c.adopted = old;
+    c.closed = true;
+    this.clients.delete(c);
+    this.sendMe(old);
+    this.log(`[возврат] ${old.nick} (#${old.pid}, ${why}${away}); в игре: ${this.onlineCount()}`);
+    return true;
   }
 
   private error(c: Client, code: ErrorCode): void {
@@ -479,6 +586,7 @@ export class Hub {
       if (room !== this.lobby) return this.move(c, this.lobby, true);
       return false;
     }
+    this.gate.moved(c, room);
     this.voice?.moved(c);
     if (!c.ephemeral) this.broadcastOnline();
     return true;
@@ -495,6 +603,7 @@ export class Hub {
       return;
     }
     if (text.startsWith('/')) {
+      if (this.gate.command(c, text)) return;
       if (c.room === this.paintball) this.paintball.command(c, text);
       else if (this.skill && c.room === this.skill) this.skill.command(c, text);
       else if (this.fort !== null && c.room === this.fort) this.fort.command(c, text);
@@ -518,7 +627,6 @@ export class Hub {
     this.sendMe(c);
     this.lobby.onRename(c);
     this.skill?.onRename(c);
-    this.boatrace?.onRename(c);
     this.hide?.onRename(c);
     this.voice?.renamed(c);
     this.outfitChanged(c.pid);
@@ -587,6 +695,11 @@ export class Hub {
     this.lobby.honorChanged();
   }
 
+  /** Подключённый игрок по номеру профиля (в любой комнате) */
+  clientOf(pid: number): Client | undefined {
+    return this.byPid.get(pid);
+  }
+
   /** Наряд, который видят все: свой, а поверх — колпак дурака и погоны, пока не истёк срок. */
   outfitOf(p: Profile): Outfit {
     return shownOutfit(p.outfit, p.foolUntil, p.epUntil, this.now());
@@ -600,7 +713,6 @@ export class Hub {
     else if (c.room === this.paintball) this.paintball.outfitChanged(c);
     else if (c.room === this.race) this.race.outfitChanged(c);
     else if (this.skill && c.room === this.skill) this.skill.outfitChanged(c);
-    else if (this.boatrace && c.room === this.boatrace) this.boatrace.outfitChanged(c);
     else if (this.hide && c.room === this.hide) this.hide.outfitChanged(c);
     else if (this.fort !== null && c.room === this.fort) this.fort.outfitChanged(c);
     else if (this.fight !== null && c.room === this.fight) this.fight.outfitChanged(c);
@@ -672,28 +784,51 @@ export class Hub {
   // ------------------------------------------------------------ гонка
 
   /** Круг «Старт» досчитал: новая гонка, все из круга — в неё, старт. */
-  startRace(clients: Client[], track: RaceTrackId = 'port'): void {
+  startRace(clients: Client[], track: RaceTrackId = DEFAULT_TRACK): void {
     this.race.open(track);
     for (const c of clients) this.move(c, this.race, true);
     this.race.launch();
   }
 
-  startBoatRace(clients: Client[]): void {
-    const room = this.boatrace;
-    if (!room?.idle) return;
-    room.open();
-    for (const c of clients) this.move(c, room, true);
-    room.launch();
-  }
-
-  onBoatRaceResult(c: Client, row: BoatRaceResultRow, reward: BoatRaceReward | null): void {
-    const p = c.profile;
-    if (!p || c.ephemeral) return;
+  /** «Портовая регата»: итог заезда в профиль (сошедшему посреди гонки — заезд без награды). */
+  onRegattaResult(pid: number, row: RgRow): void {
+    const p = this.profiles.byId(pid);
+    const c = this.byPid.get(pid);
+    if (!p || c?.ephemeral) return;
     p.stats.brRaces++;
     if (row.finished && row.pos === 1) p.stats.brWins++;
-    if (row.bestLap > 0 && (!p.stats.brBestLap || row.bestLap < p.stats.brBestLap)) p.stats.brBestLap = row.bestLap;
-    if (reward) this.profiles.credit(p, reward.total, 'mode');
+    if (row.best > 0 && (!p.stats.brBestLapHarbor || row.best < p.stats.brBestLapHarbor)) p.stats.brBestLapHarbor = row.best;
+    if (row.reward > 0) this.profiles.credit(p, row.reward, 'mode');
+    this.store.markDirty();
+    if (c && c.profile === p) {
+      this.tokens(c, p.tokens);
+      this.sendMe(c);
+    }
+    this.lobby.honorChanged();
+  }
+
+  /** Круг регаты — на доску бухты (5 лучших, у каждого — только свой лучший): место или −1. */
+  regattaRecord(pid: number, nick: string, ticks: number): number {
+    const st = this.store.state;
+    const { top, place } = addRecord(st.regatta, { pid, nick, ms: rgLapMs(ticks), at: this.now() });
+    if (place < 0) return -1;
+    st.regatta = top;
+    this.store.markDirty();
+    return place;
+  }
+
+  regattaTop(): RgRecordRow[] {
+    return this.store.state.regatta.map(r => ({ pid: r.pid, nick: r.nick, ms: r.ms }));
+  }
+
+  /** «Выше облаков»: позвонил в колокол — статистика профиля, жетоны (медаль, «без падений», первый за день). */
+  onSkillResult(c: Client, ticks: number, falls: number): SkillReward | null {
+    const p = c.profile;
+    if (!p || c.ephemeral) return null;
+    const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()));
+    if (r.tokens > 0) this.profiles.credit(p, r.tokens, 'mode');
     this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
+    return r;
   }
 
   startHide(clients: Client[]): void {
@@ -723,7 +858,7 @@ export class Hub {
     st.rcRaces++;
     if (row.place === 1) st.rcWins++;
     if (row.place >= 1 && row.place <= 3) st.rcPodiums++;
-    const record = row.track === 'foundry' ? 'rcBestLapFoundry' : 'rcBestLap';
+    const record = RACE_RECORD[isRaceTrackId(row.track) ? row.track : DEFAULT_TRACK];
     if (row.best > 0 && (st[record] === 0 || row.best < st[record])) st[record] = row.best;
     if (reward) this.profiles.credit(prof, reward.total, 'mode');
     this.store.markDirty();
@@ -846,6 +981,7 @@ export class Hub {
 
   step(): void {
     this.tick++;
+    this.gate.step();
     this.voice?.step();
     if (this.delayed.length) {
       const due = this.delayed.filter((d) => d.at <= this.tick);
@@ -860,7 +996,6 @@ export class Hub {
     if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
-    if (this.boatrace && this.boatrace.humans > 0) this.boatrace.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
     if (this.fort && this.fort.humans > 0) this.fort.step();
     if (this.fight && this.fight.humans > 0) this.fight.step();
@@ -881,6 +1016,7 @@ export class Hub {
       }
     }
     if (this.tick % TICK_RATE === 0) {
+      this.sweepLost();
       if (this.skill) this.lobby.broadcast({ t: 'skillSt', ...this.skill.status() });
       this.uncap();
       for (const c of this.clients) if (c.profile && !c.ephemeral && this.profiles.refreshFishing(c.profile)) this.sendMe(c);
@@ -894,7 +1030,7 @@ export class Hub {
     const fort = this.fort?.humans ?? 0;
     const fight = this.fight?.humans ?? 0;
     const skill = this.skill?.humans ?? 0;
-    const boatrace = this.boatrace?.humans ?? 0;
+    const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
     return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) };
   }

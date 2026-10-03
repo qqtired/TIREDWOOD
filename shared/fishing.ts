@@ -80,6 +80,26 @@ export const FISH: readonly FishKind[] = [
   // Real marine event species; append only, preserving every existing species/album ID.
   { id: 'bluemarlin', name: 'Синий марлин', acc: 'синего марлина', rarity: R_LEGEND, g: [50_000, 650_000], price: [25, 60], w: 0, shape: 'sword', c: [0x174982, 0xe7eef5] },
   { id: 'greenlandshark', name: 'Гренландская акула', acc: 'гренландскую акулу', rarity: R_LEGEND, g: [250_000, 1_400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x655c51, 0xb3ada1] },
+  // Баркас в открытом море (shared/fishrules.ts, zone 'barkas'): 15 своих видов и 4 — только в дождь. Только в конец, ID не менять.
+  { id: 'sprat', name: 'Шпрот', acc: 'шпрота', rarity: R_COMMON, g: [6, 25], price: [1, 1], w: 0, shape: 'fish', c: [0x3f6f86, 0xeef3f5] },
+  { id: 'flyingfish', name: 'Летучая рыба', acc: 'летучую рыбу', rarity: R_COMMON, g: [120, 450], price: [1, 1], w: 0, shape: 'fish', c: [0x24486e, 0xe6eef4] },
+  { id: 'haddock', name: 'Пикша', acc: 'пикшу', rarity: R_COMMON, g: [400, 3000], price: [1, 1], w: 0, shape: 'fish', c: [0x6b6474, 0xeeecef] },
+  { id: 'hake', name: 'Хек', acc: 'хека', rarity: R_COMMON, g: [300, 3000], price: [1, 1], w: 0, shape: 'fish', c: [0x6f7c86, 0xe9edf0] },
+  { id: 'redfish', name: 'Морской окунь', acc: 'морского окуня', rarity: R_RARE, g: [500, 5000], price: [3, 8], w: 0, shape: 'fish', c: [0xd2512f, 0xf3b08e] },
+  { id: 'bonito', name: 'Пеламида', acc: 'пеламиду', rarity: R_RARE, g: [800, 6000], price: [3, 8], w: 0, shape: 'fish', c: [0x2c4f72, 0xe4ebef] },
+  { id: 'cod', name: 'Треска', acc: 'треску', rarity: R_RARE, g: [1000, 15_000], price: [3, 8], w: 0, shape: 'fish', c: [0x6f6a43, 0xe8e2c8] },
+  { id: 'barracuda', name: 'Барракуда', acc: 'барракуду', rarity: R_RARE, g: [800, 8000], price: [3, 8], w: 0, shape: 'long', c: [0x5b6870, 0xe7ebec] },
+  { id: 'wolffish', name: 'Зубатка', acc: 'зубатку', rarity: R_EPIC, g: [2000, 18_000], price: [8, 20], w: 0, shape: 'eel', c: [0x5a6670, 0xb9c0c4] },
+  { id: 'mahi', name: 'Корифена', acc: 'корифену', rarity: R_EPIC, g: [2500, 25_000], price: [8, 20], w: 0, shape: 'fish', c: [0x2f8a6a, 0xf2d34a] },
+  { id: 'amberjack', name: 'Сериола', acc: 'сериолу', rarity: R_EPIC, g: [5000, 60_000], price: [8, 20], w: 0, shape: 'fish', c: [0x5c6a52, 0xe9e6d8] },
+  { id: 'sunfish', name: 'Рыба-луна', acc: 'рыбу-луну', rarity: R_LEGEND, g: [150_000, 1_500_000], price: [25, 60], w: 0, shape: 'fish', c: [0x7d8890, 0xd9dde0] },
+  { id: 'halibut', name: 'Палтус', acc: 'палтуса', rarity: R_LEGEND, g: [10_000, 200_000], price: [25, 60], w: 0, shape: 'flat', c: [0x5a4a35, 0xf1ece0] },
+  { id: 'mako', name: 'Акула-мако', acc: 'акулу-мако', rarity: R_LEGEND, g: [50_000, 500_000], price: [25, 60], w: 0, shape: 'shark', c: [0x2a4f86, 0xf2f3f5] },
+  { id: 'oarfish', name: 'Сельдяной король', acc: 'сельдяного короля', rarity: R_LEGEND, g: [30_000, 270_000], price: [25, 60], w: 0, shape: 'eel', c: [0xc9d0d6, 0xe8ecef] },
+  { id: 'hairtail', name: 'Рыба-сабля', acc: 'рыбу-саблю', rarity: R_RARE, g: [400, 4000], price: [3, 8], w: 0, shape: 'eel', c: [0xaab4bd, 0xe8edf1] },
+  { id: 'wahoo', name: 'Ваху', acc: 'ваху', rarity: R_EPIC, g: [8000, 60_000], price: [8, 20], w: 0, shape: 'fish', c: [0x1f5f7a, 0xdfe7ec] },
+  { id: 'blueshark', name: 'Голубая акула', acc: 'голубую акулу', rarity: R_EPIC, g: [30_000, 200_000], price: [8, 20], w: 0, shape: 'shark', c: [0x2d58a8, 0xf0f2f6] },
+  { id: 'hammerhead', name: 'Рыба-молот', acc: 'рыбу-молот', rarity: R_LEGEND, g: [40_000, 400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x6f7166, 0xeeeeea] },
 ];
 
 /** Номер золотой рыбки: её не продают, а отпускают — за желание */

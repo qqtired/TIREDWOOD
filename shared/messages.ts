@@ -4,23 +4,28 @@ import type { DurakMode, DurakView } from './durak.ts';
 import type { PbReward, RcReward, Stats } from './economy.ts';
 import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
+import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
+import type { RouletteColor, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { RaceTrackId } from './racecourse.ts';
 import type { SkillServerMsg, SkillStatus } from './skilltest.ts';
-import type { BoatRaceServerMsg, BoatRaceStatus } from './boatrace.ts';
+import type { RegattaClientMsg, RegattaServerMsg, RgRecordRow, RgView } from './regatta.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
+import type { RainWire } from './weather.ts';
 import type { PirateView } from './pirates.ts';
 import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
+import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
+import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 
-export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'boatrace' | 'hide';
+export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
 export interface RosterEntry {
   id: number;
@@ -40,7 +45,7 @@ export interface RosterEntry {
   o: Outfit;
 }
 
-/** Код закрытия «клиент 8 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
+/** Код закрытия «клиент 20 с ничего не слышал от сервера» (клиент закрывает сам и переподключается) */
 export const CLOSE_SILENCE = 4900;
 
 /** Символы однорукого бандита пейнтбола (бонус на раунд) */
@@ -114,6 +119,13 @@ export interface OnlineEntry {
   level?: number;
 }
 
+/**
+ * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
+ * через FishNpc.register (server/lobby/fishnpc.ts).
+ */
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry';
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry'];
+
 // --- Дурак за столиками кафе
 
 /**
@@ -159,12 +171,19 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | GiftClientMsg
+  | LoadClientMsg
+  | JukeClientMsg
   | VoiceClientMsg
   | HideClientMsg
-  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал) */
-  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number }
+  | RegattaClientMsg
+  /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
+   *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
+  | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
   | { t: 'chat'; text: string }
-  | { t: 'ping'; c: number }
+  /** r — сколько JSON-сообщений сессии клиент принял (сервер забывает подтверждённое) */
+  | { t: 'ping'; c: number; r?: number }
+  /** Вкладку закрывают или обновляют: не ждать возврата (без него закрытие 1001 — как заморозка вкладки в фоне) */
+  | { t: 'bye' }
   /** Ошибка в браузере игрока: текст, где (файл:строка), начало стека, сцена, браузер; n — ник на устройстве (до входа) */
   | { t: 'err'; m: string; at?: string; st?: string; sc?: string; ua?: string; n?: string }
   | { t: 'use'; id: number }
@@ -183,8 +202,15 @@ export type ClientMsg =
   | { t: 'pull' }
   /** Рыбалка: забросить, подсечь (n — последнее событие поплавка, которое видел), рыбу — в альбом или продать */
   | { t: 'fish'; a: 'cast' | 'hook' | 'keep' | 'sell'; n?: number }
-  /** Рыбак: сервер проверяет близость, цену, заработанную удочку и готовность текущего квеста. */
-  | { t: 'fishNpc'; a: 'open' | 'beer' | 'rain' | 'claim' | 'rod'; rod?: number }
+  /**
+   * Семён или Саня (npc, по умолчанию Семён): сервер проверяет близость, цену, уровень, заработанную удочку, готовность
+   * квеста. buy — item из shared/fishshop.ts (bag1…3, lure1…3); sell — рыба n из рюкзака, sellAll — весь улов.
+   */
+  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number }
+  /** Рюкзак: отпустить рыбу n (где угодно, денег нет) */
+  | { t: 'fishBag'; a: 'release'; n: number }
+  /** Рулетка рыбака: весь улов из рюкзака — на цвет */
+  | { t: 'roulette'; a: 'bet'; c: RouletteColor }
   /**
    * Рыбалка 2.0, шкала вываживания: новые переключения кнопки (k — номера тиков, i — номер первого из них с начала),
    * u — до какого тика досчитал у себя, d: 1 — у себя вываживание кончилось на u
@@ -268,6 +294,17 @@ export interface BoatStatus {
   nick: string;
 }
 
+/**
+ * Лодка Семёна «Удалая» (shared/ferry.ts): ph — FE_* (у Семёна стоит, отсчёт, к баркасу, у баркаса, к Семёну); at — тик:
+ * в отсчёте и у баркаса — когда отойдёт, в рейсе — когда отошла; n — сколько сидит; c — 1: позвали колоколом с баркаса.
+ */
+export interface FerryStatus {
+  ph: number;
+  at: number;
+  n: number;
+  c: number;
+}
+
 /** Строка доски «Рекорды полосы» аквапарка: чей профиль (свою строку видно), ник, время, мс */
 export interface AquaRow {
   pid: number;
@@ -313,8 +350,10 @@ export type RaceEvent =
   | ['crate', number, number]
   // кто, какой бонус применил
   | ['item', number, number]
-  | ['pulse', number, number[]]
-  | ['shield', number, number]
+  // хлопок: кто, кого закрутило
+  | ['clap', number, number[]]
+  // лопнул пузырь: у кого, от кого (0 — кончился сам)
+  | ['pop', number, number]
   // банка, кто наехал (0 — пропала)
   | ['jam', number, number]
   // кто бросил краску, в кого (0 — некому)
@@ -344,7 +383,9 @@ export type LobbyEvent =
   // отдал честь у статуи (кто), сколько всего раз отдавали
   | ['respect', number, number]
   // аквапарк: вертушка или мешок сбили (где: x, z; кто)
-  | ['aqhit', number, number, number];
+  | ['aqhit', number, number, number]
+  // рыбак собрал все виды — «Хозяин глубин»: фанфары и золотые искры у него (кто)
+  | ['fishMaster', number];
 
 export type ErrorCode = 'version' | 'need_nick' | 'nick_taken' | 'bad_nick' | 'bad_code' | 'bad_key' | 'replaced' | 'full' | 'rate';
 
@@ -368,12 +409,13 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | GiftServerMsg
+  | LoadServerMsg
+  | JukeServerMsg
   | VoiceServerMsg
   | SkillServerMsg
-  | BoatRaceServerMsg
+  | RegattaServerMsg
   | HideServerMsg
   | ({ t: 'skillSt' } & SkillStatus)
-  | { t: 'brSt'; v: GatherStatus | BoatRaceStatus }
   | { t: 'hideSt'; v: GatherStatus | HideStatus }
   | { t: 'startZone'; kind: 'paintball' | 'fort' | null; left: number }
   | { t: 'storm'; v: StormView }
@@ -386,6 +428,8 @@ export type ServerMsg =
   | { t: 'scene'; scene: RoomKind; epoch: number }
   | { t: 'code'; code: string; until: number }
   | { t: 'restart' }
+  /** Возврат в ту же сессию после обрыва принят: следом — всё, что не дошло, сцена у клиента остаётся */
+  | { t: 'resumed' }
   | { t: 'error'; text: string; code?: ErrorCode }
   | { t: 'pong'; c: number; k: number }
   // --- общий чат и «кто где»
@@ -399,9 +443,14 @@ export type ServerMsg =
     t: 'lobby'; id: number; tick: number; yaw: number; players: LobbyPlayerInfo[]; pool: number; pb: PbStatus; honor: HonorInfo; tables: DurakTableView[];
     blackjack?: BlackjackView;
     skill?: SkillStatus;
-    boatrace?: GatherStatus | BoatRaceStatus;
+    /** «Портовая регата» (флаг BOATRACE): заезд, круг сбора у пирса, рекорды бухты */
+    regatta?: { v: RgView; q: GatherStatus; top: RgRecordRow[] };
     hide?: GatherStatus | HideStatus;
     kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    /** Лодка Семёна «Удалая» */
+    ferry: FerryStatus;
+    /** Идущий дождь (shared/weather.ts): сколько уже идёт, длина, сид, откуда — силу и молнии считает клиент */
+    wx?: RainWire | null;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
     fort?: FortStatus;
     /** «Fight Club»: круг у двери в подвал кафе — только если режим включён флагом сервера */
@@ -409,9 +458,15 @@ export type ServerMsg =
     /** Рыбалка 2.0 (флаг сервера FISH2): 1 — шкала вываживания, полная коллекция, доска рекордов у мостков (ftop) */
     fish2?: number;
     ftop?: FishBoardView;
+    /** Рулетка рыбака (флаг сервера ROULETTE) */
+    roulette?: RouletteView;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)
+  // лодка Семёна «Удалая» (shared/ferry.ts): что с ней — при каждом изменении
+  | ({ t: 'ferry' } & FerryStatus)
+  // Саня: «Домой, к Семёну» (действие ferry разговора fishNpc) — отправил на пирс (ok: окно закрывается, тост) или нет — почему
+  | { t: 'barkasHome'; ok: boolean; message: string }
   // аквапарк (shared/aqua.ts): доска рекордов — при каждом изменении; свой забег: пошло время (at — номер своего входа,
   // с которого старт: время идёт по своим шагам), снят (вернулся на мостик, упал в воду, пауза), финиш (время по шагам,
   // свой лучший, место на доске: −1 — не попал)
@@ -425,12 +480,17 @@ export type ServerMsg =
   // выключили), tgUp — только новые и исправленные строки (по id), пачкой, не чаще нескольких раз в секунду
   | { t: 'tg'; title: string; lines: TgLine[] }
   | { t: 'tgUp'; title: string; lines: TgLine[] }
-  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился
-  | { t: 'weather'; rain: number }
+  // погода на набережной сменилась: rain — 1, пошёл дождь, 0 — кончился; wx — сам дождь (shared/weather.ts)
+  | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
-  | { t: 'fishNpc'; progress: FishProgress; now: number; open?: boolean; message?: string }
+  | { t: 'fishNpc'; npc: FishNpcId; progress: FishProgress; now: number; open?: boolean; message?: string; sold?: { n: number; coins: number } }
+  // рыбалка 2.0: сорвалась эпическая и выше после 3 с борьбы — утешительный опыт (вид — тайна, только категория)
+  | { t: 'fishLost'; tier: number; xp: number }
+  // рулетка рыбака: стол — при каждом изменении; свой итог — когда колесо остановилось
+  | { t: 'roulette'; v: RouletteView }
+  | { t: 'rouletteResult'; n: number; c: RouletteColor; stake: number; payout: number; fish: number }
   | { t: 'lroster'; players: LobbyPlayerInfo[] }
   | { t: 'outfitOf'; id: number; o: Outfit; level?: number }
   | { t: 'lev'; e: LobbyEvent[] }
@@ -442,8 +502,14 @@ export type ServerMsg =
   // рыбалка 2.0: подсёк — шкала вываживания (вид и сид от сервера; играешь у себя, нажатия — сообщением reel)
   | { t: 'fishReel'; spot: number; sp: number; seed: number; mods: FishCastMods }
   // рыбалка 2.0: вытащил (сервер повторил вываживание): цена (сундук — что в нём, coins), бонус за новый вид, рекорд
-  // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full)
-  | { t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean }
+  // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full). fisheco: рыба — в рюкзак
+  // (bag — сколько в нём теперь, cap — мест; bagFull — места не нашлось, рыбу отпустили), base — цена без напитка и
+  // места, m — множители (биты BAG_*), xp — опыт рыбалки, perfect — ни тика вне зоны; rw — награды лестницы
+  // fishstyle, полученные этим уловом
+  | {
+    t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean;
+    base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
+  }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }
   // line — выигравшая строка таблицы выплат автомата m (−1 — ничего)

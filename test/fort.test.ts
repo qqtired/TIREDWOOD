@@ -1,13 +1,17 @@
-// «Крепость» на сервере: волны, ворота, кристалл, выстрел с откатом, липучки, пузыри, лавка, поражение, победа и жетоны.
+// «Крепость» на сервере: волны, ворота, кристалл, выстрел с откатом, липучки, пузыри, стойки (колокол, ворота, башни),
+// золото за волну, поражение, победа и жетоны. Арсенал подробно — fort-arsenal.test.ts.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { RIG_PB, cameraRig } from '../shared/aim.ts';
 import { TICK_RATE } from '../shared/constants.ts';
 import {
-  BREAK_TICKS, CRYSTAL_HP, FIX_PRICE, FORT_RESPAWN_TICKS, FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_SLOW, START_PTS,
-  TURRET_PRICE, WAVE_PTS, ZK, ZS_CLIMB, ZS_DROP, ZS_TOP, ZS_WALK, Z_BLOATER, Z_CLIMBER, Z_WALKER, type FortEvent, type FtReward,
+  BREAK_TICKS, CRYSTAL_HP, FORT_RESPAWN_TICKS, FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP,
+  ZK, ZS_CLIMB, ZS_DROP, ZS_TOP, ZS_WALK, Z_BLOATER, Z_CLIMBER, Z_WALKER, type FortEvent, type FtReward,
 } from '../shared/fort.ts';
-import { CHUTES, GATE, TERRACE, insideFort } from '../shared/fortmap.ts';
+import {
+  ACT_GATE, ACT_TOWER, CLEAN_MULT, KILL_SHARE, NOPE_GOLD, START_GOLD, TAR_SLOW, TOWERS, TW_BALLISTA, TW_TAR, killBounty, repairPrice, waveBonus,
+} from '../shared/fortarsenal.ts';
+import { GATE, TERRACE, insideFort } from '../shared/fortmap.ts';
 import { FT_TOK_WIN, waveTokens } from '../shared/fortwaves.ts';
 import type { ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
@@ -22,6 +26,11 @@ function sink(): Sink & { msgs: ServerMsg[] } {
 
 function events(s: { msgs: ServerMsg[] }): FortEvent[] {
   return s.msgs.filter((m): m is Extract<ServerMsg, { t: 'fev' }> => m.t === 'fev').flatMap((m) => m.e);
+}
+
+/** События этого тика (ещё не ушли со снимком) */
+function pending(game: FortGame): FortEvent[] {
+  return (game as unknown as { events: FortEvent[] }).events;
 }
 
 function setup(): { game: FortGame; s: ReturnType<typeof sink>; p: FortPlayer } {
@@ -45,10 +54,11 @@ function until(game: FortGame, cond: () => boolean, limit: number, what: string)
   assert.fail(`не дождались: ${what}`);
 }
 
-test('сбор → волна 1: зомби выходят по расписанию; всех сбили — передышка и очки за волну', () => {
+test('сбор → волна 1: зомби выходят по расписанию; всех сбили — передышка и золото за волну', () => {
   const { game, s, p } = setup();
+  const a = p.run.arsenal;
   assert.equal(game.phase, FT_GATHER);
-  assert.equal(p.pts, START_PTS);
+  assert.equal(a.gold, START_GOLD);
   game.phaseEnd = game.tick + 1;
   game.step();
   assert.equal(game.phase, FT_WAVE);
@@ -62,9 +72,16 @@ test('сбор → волна 1: зомби выходят по расписан
   assert.equal(game.phase, FT_BREAK);
   assert.equal(p.waves, 1);
   assert.equal(p.kills, 16);
-  assert.equal(p.pts, START_PTS + WAVE_PTS + 16 * ZK[Z_WALKER].pts);
+  // 60 % награды — стрелку сразу, 40 % — в общак; чистая волна: общак ×1,5, и бонус волны каждому
+  const b = killBounty(Z_WALKER, 1);
+  const pot = 16 * (b / KILL_SHARE - b);
+  assert.equal(a.gold, START_GOLD + 16 * b + Math.round(pot * CLEAN_MULT) + waveBonus(1));
   assert.ok(s.msgs.some((m) => m.t === 'fphase' && m.phase === FT_BREAK));
   assert.equal(game.phaseEnd - game.tick, BREAK_TICKS);
+  // события уходят со снимками — раз в 2 тика
+  game.step();
+  game.step();
+  assert.ok(events(s).some((e) => e[0] === 'pot' && e[1] === p.id && e[4] === 1), 'общак: чистая волна');
 });
 
 test('шаркуны доходят до ворот и ломают их, потом идут во двор и бьют кристалл', () => {
@@ -198,8 +215,9 @@ test('человек на земле рядом с зомби — бьют; сб
   assert.equal(p.state.y, TERRACE.h);
 });
 
-test('лавка: починка ворот, краскомёт стреляет сам, варенье замедляет; колокол — волна раньше', () => {
+test('стойки: колокол — волна раньше; ремонт ворот, башня на стене стреляет сама, смола вяжет; без золота — отказ', () => {
   const { game, s, p } = setup();
+  const a = p.run.arsenal;
   const station = (kind: string, arg = 0) => game.map.stations.find((st) => st.kind === kind && st.arg === arg)!;
   const stand = (kind: string, arg = 0) => {
     const st = station(kind, arg);
@@ -212,40 +230,54 @@ test('лавка: починка ворот, краскомёт стреляет
   game.use(p, stand('bell').id);
   assert.ok(p.ready);
   assert.ok(game.phaseEnd - game.tick <= 3 * TICK_RATE);
-  assert.ok(events({ msgs: [{ t: 'fev', k: 0, e: (game as unknown as { events: FortEvent[] }).events }] }).some((e) => e[0] === 'bell'));
+  assert.ok(pending(game).some((e) => e[0] === 'bell'));
 
+  // ремонт ворот из панели: +25 % прочности за цену ремонта
   game.gate = GATE_HP - 500;
-  p.pts = 1000;
-  game.use(p, stand('gate').id);
-  assert.equal(game.gate, GATE_HP - 100);
-  assert.equal(p.pts, 1000 - FIX_PRICE);
+  a.gold = 1000;
+  stand('gate');
+  game.use(p, ACT_GATE);
+  assert.equal(game.gate, GATE_HP - 500 + GATE_HP * 0.25);
+  assert.equal(a.gold, 1000 - repairPrice(1));
 
-  game.use(p, stand('turret', 1).id);
-  assert.ok(game.turrets[1]);
-  assert.equal(p.pts, 1000 - FIX_PRICE - TURRET_PRICE);
-  // мало очков — отказ
-  p.pts = 5;
-  game.use(p, stand('turret', 0).id);
-  assert.equal(game.turrets[0], null);
-  assert.ok(s.msgs.some((m) => m.t === 'toast'));
+  // баллиста над воротами (место 1)
+  stand('tower', 1);
+  game.use(p, ACT_TOWER + 1 * 10 + TW_BALLISTA);
+  assert.equal(game.arsenal.towers[1].type, TW_BALLISTA);
+  assert.equal(a.gold, 1000 - repairPrice(1) - TOWERS[TW_BALLISTA].price);
+  // мало золота — отказ событием (причину покажет панель)
+  a.gold = 5;
+  stand('tower', 0);
+  game.use(p, ACT_TOWER + TW_BALLISTA);
+  assert.equal(game.arsenal.towers[0].type, -1);
+  assert.equal(a.gold, 5);
+  assert.ok(pending(game).some((e) => e[0] === 'anope' && e[1] === p.id && e[3] === NOPE_GOLD));
 
-  // варенье — только во время волны
+  // смоляной котёл на западной стене (место 4)
+  a.gold = 1000;
+  stand('tower', 4);
+  game.use(p, ACT_TOWER + 4 * 10 + TW_TAR);
+  assert.equal(game.arsenal.towers[4].type, TW_TAR);
+
   manualWave(game);
-  p.pts = 100;
-  game.use(p, stand('jam', 1).id);
-  assert.ok(game.jams[1] > game.tick);
-  assert.equal(game.slow(CHUTES[1].px, CHUTES[1].pz), JAM_SLOW);
-  assert.equal(game.slow(CHUTES[1].px + 10, CHUTES[1].pz), 1);
-
-  // краскомёт бьёт зомби на дороге перед воротами
+  // баллиста бьёт зомби на дороге перед воротами
   const z = game.horde.spawn(Z_WALKER, 1)!;
   z.hp = z.maxHp = 5000;
-  z.x = 2;
+  z.x = 4;
   z.z = -26;
+  // котёл льёт смолу на того, кто у подножия западной стены
+  const w = game.horde.spawn(Z_WALKER, 1)!;
+  w.hp = w.maxHp = 5000;
+  w.x = -19.6;
+  w.z = -9.5;
   s.msgs.length = 0;
-  for (let i = 0; i < 60; i++) game.step();
-  assert.ok(events(s).some((e) => e[0] === 'tshot' && e[1] === 1 && e[2] === z.id), 'краскомёт стреляет');
+  for (let i = 0; i < 90; i++) game.step();
+  const ev = events(s);
+  assert.ok(ev.some((e) => e[0] === 'bolt' && e[1] === 1 && e[2] === z.id), 'баллиста стреляет');
   assert.ok(z.hp < z.maxHp);
+  assert.ok(ev.some((e) => e[0] === 'tar' && e[1] === 4), 'котёл вылил смолу');
+  assert.equal(game.slow(w.x, w.z), TAR_SLOW);
+  assert.equal(game.slow(w.x - 10, w.z), 1);
 });
 
 test('кристалл разбит — поражение; жетоны — только тем, кто отбил волну', () => {
@@ -283,7 +315,7 @@ test('кристалл разбит — поражение; жетоны — т�
   until(game, () => game.phase === FT_GATHER, 20 * TICK_RATE, 'новая игра');
   assert.equal(game.crystal, CRYSTAL_HP);
   assert.equal(game.gate, GATE_HP);
-  assert.equal(a.pts, START_PTS);
+  assert.equal(a.run.arsenal.gold, START_GOLD);
   assert.equal(game.horde.alive, 0);
 });
 

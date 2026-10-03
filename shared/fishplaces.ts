@@ -1,5 +1,7 @@
 // Общие координаты рыбацкого причала: серверная коллизия и клиентская сцена используют один настил.
 // X — восток, Z — юг; yaw=0 — север. Старые шесть мест идут первыми: их arg и interaction ID не меняются.
+import { BARKAS_DECK_Y, BARKAS_FISH_SPOTS, BARKAS_ROULETTE, SANYA_USE } from './barkas.ts';
+
 export interface FishPlaceBox {
   x0: number;
   y0: number;
@@ -9,9 +11,23 @@ export interface FishPlaceBox {
   z1: number;
 }
 
+/** Где место рыбалки: пристань (по умолчанию) или баркас в море — свой пул рыб, ×1,25 и злее рыба (shared/fishrules.ts). */
+export type FishZone = 'pier' | 'barkas';
+
+export interface FishSpot {
+  x: number;
+  z: number;
+  yaw: number;
+  /** По умолчанию 'pier' */
+  zone?: FishZone;
+}
+
 export const FISH_PIER_COUNT = 8;
 export const FISH_LIGHTHOUSE_COUNT = 4;
-export const FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number }> = [
+/** Мест у острова (пирс и площадка маяка); дальше — на баркасе (shared/barkas.ts) */
+export const FISH_ISLAND_COUNT = FISH_PIER_COUNT + FISH_LIGHTHOUSE_COUNT;
+export const FISH_BARKAS_COUNT = BARKAS_FISH_SPOTS.length;
+export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   ...[25, 28.5, 32].flatMap((z) => [
     { x: -20.45, z, yaw: Math.PI / 2 }, { x: -17.55, z, yaw: -Math.PI / 2 },
   ]),
@@ -23,13 +39,40 @@ export const FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number }> = 
   { x: -14.55, z: 42.5, yaw: -Math.PI / 2 },
   { x: -21.65, z: 45.45, yaw: Math.PI },
   { x: -16.35, z: 45.45, yaw: Math.PI },
+  // Восемь мест вдоль бортов баркаса «Альбатрос» (zone: 'barkas') — только в конец: номера прежних мест не меняются.
+  ...BARKAS_FISH_SPOTS,
 ];
+
+/** Пристань или баркас: место рыбалки по номеру. */
+export function spotZone(spot: number): FishZone {
+  return FISH_SPOTS[spot]?.zone ?? 'pier';
+}
+/** То же имя, что в ветке barkas */
+export const fishZone = spotZone;
 
 /** Рыбак стоит точно на прежнем месте доски, смотрит на приходящих с площади. */
 export const FISHER_NPC = { x: -15.5, y: 0, z: 37.72, yaw: 0 };
 /** Посетитель стоит перед рыбаком и смотрит на юг. Полностью поддерживается новым настилом. */
 export const FISHER_USE = { x: -15.5, y: 0, z: 36.5, yaw: Math.PI, r: 1.7 };
 export const FISHER_BODY: FishPlaceBox = { x0: -15.92, y0: 0, z0: 37.3, x1: -15.08, y1: 1.6, z1: 38.14 };
+
+/** Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова. */
+export type FishNpcId = 'semyon' | 'sanya';
+export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya'];
+/**
+ * Где стоит покупатель перед торговцем (arg точки 'fisher' — номер в FISH_NPCS): Семён — на пристани, Саня — у своего
+ * прилавка на палубе баркаса (SANYA_USE, shared/barkas.ts).
+ */
+export const FISH_NPC_USE: Readonly<Record<FishNpcId, { x: number; y: number; z: number; yaw: number; r: number } | null>> = {
+  semyon: FISHER_USE,
+  sanya: SANYA_USE,
+};
+
+/**
+ * Стол рулетки (флаг сервера ROULETTE): центр стола, куда смотрит крупье, радиус «у стола». На палубе баркаса под тентом
+ * за рубкой (BARKAS_ROULETTE) — в дождь там сухо. Табло — к рубке (yaw π/2), игроки подходят со стороны кормы.
+ */
+export const ROULETTE_SPOT = { x: BARKAS_ROULETTE.x, y: BARKAS_DECK_Y, z: BARKAS_ROULETTE.z, yaw: Math.PI / 2, r: 2.6 } as const;
 
 /** Слева при движении к маяку по южной стороне площади; памятник находится западнее мостков. */
 export const FISH_BOARD = { x: -15, y: 0, z: 20.8, yaw: 0, w: 3.6, d: 0.16, h: 2.45, panelY: 0.8 };

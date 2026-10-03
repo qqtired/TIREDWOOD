@@ -380,7 +380,7 @@ test('E в круге «Старт» выбирает следующую тра�
   const a = login(hub, 'Любопытный');
   goUse(hub, a.c, spot(hub, 'garage'));
   assert.equal(a.c.room?.kind, 'lobby');
-  assert.equal(hub.lobby.kartStatus().track, 'foundry');
+  assert.equal(hub.lobby.kartStatus().track, 'hills');
   assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)!.slot);
-  assert.match(lastOf(a.s, 'toast')!.text, /Литейный вираж/);
+  assert.match(lastOf(a.s, 'toast')!.text, /Солнечный серпантин/);
 });

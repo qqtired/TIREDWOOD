@@ -7,41 +7,42 @@ import { viewDir } from '../shared/math.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { makeSkillMap } from '../shared/skillmap.ts';
 import { SkillDynamics } from '../shared/skillphysics.ts';
-import { HidePhysics, hideWorld } from '../shared/hidephysics.ts';
+import { HidePhysics, hideMotionWorld } from '../shared/hidephysics.ts';
 import { HideMotion } from '../client/hide/motion.ts';
-import { makeBoatCourse } from '../shared/boatracemap.ts';
-import { makeBoatState, makeBoatEvents } from '../shared/boatrace.ts';
-import { placeBoat, stepBoat } from '../shared/boatracephysics.ts';
+import { regattaCourse } from '../shared/regattacourse.ts';
+import { makeRgBoat, makeRgEvents, placeRgBoat, stepRgBoat } from '../shared/regattaphysics.ts';
 import { BTN_FORWARD, BTN_BACK, BTN_RIGHT, makeInput, makeState, makeEvents } from '../shared/sim.ts';
 import { decodeInputs } from '../shared/protocol.ts';
 import { EYE_HEIGHT } from '../shared/constants.ts';
 import { HideGame } from '../server/hide/game.ts';
-import { HIDE_COUNT_TICKS, HIDE_PREP_TICKS, type HideServerMsg } from '../shared/hide.ts';
+import { HIDE_COUNT_TICKS, HIDE_PREP_TICKS, type HideStateMsg } from '../shared/hide.ts';
+import { makeRayHit } from '../shared/world.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 
 // Only asset/CSS URL imports are stubbed: frame(), Input.mouse(), Three camera math and simulation run unchanged.
 const hook=registerHooks({load(url,ctx,next){if(/\.(webp|png|jpg|glb|bin|css)$/.test(new URL(url).pathname))return{format:'module',source:`export default ${JSON.stringify(url)}`,shortCircuit:true};return next(url,ctx);}});
-let SkillScene:any,HideScene:any;
-try{SkillScene=(await import('../client/skilltest/scene.ts')).SkillScene;HideScene=(await import('../client/hide/scene.ts')).HideScene;}finally{hook.deregister();}
+let SkillScene:any,HideScene:any,SkillCamera:any;
+try{SkillScene=(await import('../client/skilltest/scene.ts')).SkillScene;SkillCamera=(await import('../client/skilltest/camera.ts')).SkillCamera;HideScene=(await import('../client/hide/scene.ts')).HideScene;}finally{hook.deregister();}
 const noop=()=>{};
 function input(yaw=0,pitch=0){return Object.assign(Object.create(ClientInput.prototype),{locked:true,held:0,yaw,pitch,sens:1,adsSens:1,scopeSens:1});}
 function skillCamera(controls=input(),collision=new CollisionWorld({...makeSkillMap(),boxes:[]})){
  const camera=new THREE.PerspectiveCamera();
  const s=Object.assign(Object.create(SkillScene.prototype),{active:true,ready:true,tick:0,receivedAt:0,viewTick:0,acc:0,peers:[],hudAt:0,progress:{checkpoint:0},
-  cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),
-  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}}},dynamics:{place:noop},
+  cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),cam:new SkillCamera(),lock:0,decor:noop,
+  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},settings:{fov:95}},dynamics:{place:noop},
   world:{camera,collision,update:noop,render:noop}});
  return{s,camera};
 }
 function hideCamera(controls=input(),role:'hunter'|'prop'='hunter'){
  const camera=new THREE.PerspectiveCamera(),listener:number[]=[],collision=new CollisionWorld({...makeSkillMap(),boxes:[]});
- const message:HideServerMsg={t:'hide_state',tick:0,round:1,phase:'seek',phaseEnd:100,
-  self:{id:1,ack:0,reset:1,state:makeState(),role,form:'barrel',propId:role==='prop'?77:0,propYaw:0,locked:false,found:false},
-  props:[],hunter:null,remaining:1,total:1,notice:'',result:null,cue:null,shots:[]};
- const motion=new HideMotion(collision);motion.accept(message,0);
- const s=Object.assign(Object.create(HideScene.prototype),{active:true,message,motion,acc:0,lastHud:0,
-  pos:new THREE.Vector3(),look:new THREE.Vector3(),direction:new THREE.Vector3(),props:{update:noop},shots:{update:noop},hunter:{update:noop},cue:{visible:false},
-  world:{camera,collision,update:noop,render:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},sound:{setListener:(...v:number[])=>listener.splice(0,listener.length,...v)}}});
+ const message:HideStateMsg={t:'hide_state',tick:0,round:1,match:1,phase:'seek',phaseEnd:100,seekAt:0,
+  self:{id:1,ack:0,reset:1,state:makeState(),role,kind:'barrel',prop:role==='prop'?77:0,yaw:0,locked:false,hits:0,paint:100,jam:false,takeAt:0,tauntCd:0,tauntAt:0,back:0},
+  full:true,p:[],gone:[],h:[],left:1,total:1,notice:'',rows:[],res:null};
+ const motion=new HideMotion();motion.accept(message,0);
+ const s=Object.assign(Object.create(HideScene.prototype),{active:true,msg:message,motion,acc:0,lastHud:0,seq:0,inputs:[makeInput()],target:0,lastTickSound:-1,orbit:0,
+  dir:{x:0,y:0,z:-1},look:new THREE.Vector3(),hit:makeRayHit(),statics:collision,avatars:new Map(),ghosts:[],
+  props:{update:()=>false},fx:{update:noop},gun:{visible:false,update:noop,render:noop},sfx:{tick:noop},hud:{setHint:noop,update:noop,root:{classList:{toggle:noop}}},
+  world:{camera,update:noop,render:noop},d:{input:controls,renderer:{canvas:{clientHeight:800},refreshShadows:noop},sound:{setListener:(...v:number[])=>listener.splice(0,listener.length,...v)}}});
  return{s,camera,listener};
 }
 for(const kind of['sky','hide'] as const)test(`${kind}: real mouse up/down follows canonical lobby pitch`,()=>{
@@ -69,18 +70,18 @@ test('HIDE server hits a below-eye prop with canonical negative pitch',()=>{
  const g=new HideGame({finished(){},rand:n=>Math.floor(n*.31)});
  const ps=[1,2].map(pid=>g.addHuman({pid,nick:`Tester${pid}`,level:1,outfit:DEFAULT_OUTFIT},{sendJson(){}})!);
  for(let i=0;i<HIDE_COUNT_TICKS+HIDE_PREP_TICKS;i++)g.step();
- const hunter=ps.find(p=>p.role==='hunter')!,prop=ps.find(p=>p.role==='prop')!;
- Object.assign(hunter.state,{x:0,y:0,z:8});Object.assign(prop.state,{x:0,y:0,z:4});prop.form='crate';prop.propYaw=0;
- hunter.yaw=0;hunter.pitch=Math.atan2(.575-EYE_HEIGHT,4);g.action(hunter,{t:'hide',a:'shoot'});
- assert.equal(prop.found,true,'server ray must point down when canonical pitch is negative');
+ const hunter=ps.find(p=>p.role==='hunter')!,prop=ps.find(p=>p.role==='prop')!;g.decor=[];
+ Object.assign(hunter.state,{x:7,y:0,z:8});Object.assign(prop.state,{x:7,y:0,z:4});prop.kind='crate';prop.propYaw=0;g.step();
+ g.action(hunter,{t:'hide',a:'shoot',aim:[0,Math.atan2(.32-EYE_HEIGHT,4)],view:g.tick+1,seq:hunter.input.ack});g.step();
+ assert.equal(prop.hits,1,'server ray must point down when canonical pitch is negative');
 });
 test('Sky and HIDE W/S align with camera yaw and preserve normalized diagonal speed',()=>{
  for(const mode of['sky','hide'])for(const yaw of[0,-Math.PI/2,.6]){
   const results=[];
   for(const buttons of[BTN_FORWARD,BTN_BACK,BTN_FORWARD|BTN_RIGHT]){
-   const map=makeSkillMap(),world=mode==='sky'?new CollisionWorld(map):hideWorld();
-   const state={...makeState(),y:mode==='sky'?40:0,z:mode==='sky'?0:6,grounded:1};
-   const dyn=mode==='sky'?new SkillDynamics(map,world):new HidePhysics(world);
+   const map=makeSkillMap(),world=mode==='sky'?new CollisionWorld(map):hideMotionWorld();
+   const state={...makeState(),y:mode==='sky'?40:0,z:mode==='sky'?0:9,grounded:1};
+   const dyn=mode==='sky'?new SkillDynamics(map,world):Object.assign(new HidePhysics(world),{mover:'prop',kind:'crate'});
    for(let i=0;i<10;i++){const inp={...makeInput(),buttons,yaw,viewTick:i};if(dyn instanceof SkillDynamics)dyn.step(state,inp,i-1,makeEvents());else dyn.step(state,inp);}
    results.push(state);
   }
@@ -91,10 +92,10 @@ test('Sky and HIDE W/S align with camera yaw and preserve normalized diagonal sp
  }
 });
 test('Boat W accelerates along bow and S brakes/reverses; mouse pitch does not invert throttle',()=>{
- const course=makeBoatCourse();
+ const course=regattaCourse();
  for(const pitch of[-.7,.7])for(const buttons of[BTN_FORWARD,BTN_BACK]){
-  const state=makeBoatState();placeBoat(state,course,0);const input={...makeInput(),buttons,pitch};
-  for(let i=0;i<10;i++)stepBoat(state,input,course,makeBoatEvents(),true);
+  const state=makeRgBoat();placeRgBoat(state,course,0);const input={...makeInput(),buttons,pitch};
+  for(let i=0;i<10;i++)stepRgBoat(state,input,course,makeRgEvents(),true);
   const forward=state.vx*state.hx+state.vz*state.hz;
   assert.ok(buttons===BTN_FORWARD?forward>0:forward<0);
  }
@@ -105,10 +106,10 @@ test('HIDE third-person view and authoritative first-person ray retain the same 
   const g=new HideGame({finished(){},rand:n=>Math.floor(n*.31)});
   const ps=[1,2].map(pid=>g.addHuman({pid,nick:`Aim${pid}`,level:1,outfit:DEFAULT_OUTFIT},{sendJson(){}})!);
   for(let i=0;i<HIDE_COUNT_TICKS+HIDE_PREP_TICKS;i++)g.step();
-  const hunter=ps.find(p=>p.role==='hunter')!;hunter.yaw=yaw;hunter.pitch=pitch;
+  const hunter=ps.find(p=>p.role==='hunter')!;
   let direction:number[]=[];const cast=g.world.raycast.bind(g.world);
   g.world.raycast=(ox,oy,oz,dx,dy,dz,maxT,hit,forShots,skipInvisible)=>{direction=[dx,dy,dz];return cast(ox,oy,oz,dx,dy,dz,maxT,hit,forShots,skipInvisible);};
-  g.action(hunter,{t:'hide',a:'shoot'});
+  g.action(hunter,{t:'hide',a:'shoot',aim:[yaw,pitch],view:g.tick+1,seq:hunter.input.ack});g.step();
   assert.deepEqual(direction,rig.listener.slice(3),'server ray and client listener use bit-identical viewDir output');
   assert.ok(rig.camera.getWorldDirection(new THREE.Vector3()).distanceTo(new THREE.Vector3(...direction as [number,number,number]))<1e-12);
  }

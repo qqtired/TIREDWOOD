@@ -9,7 +9,10 @@ import { devilHeadParts, devilTailParts } from '../client/render/devil3d.ts';
 const ids = ['h:devil', 'a:deviltail'];
 
 test('gift set is appended, hidden until owned, individually equippable and never sold', () => {
-  assert.deepEqual(catalog.ITEMS.slice(-2).map(it => it.id), ids);
+  // подарок дописан сразу после премиальной коллекции (дальше — награды рыбалки, тоже только в конец)
+  const at = catalog.ITEMS.findIndex(it => it.id === ids[0]);
+  assert.equal(catalog.ITEMS[at - 1].id, 'e:prism');
+  assert.deepEqual(catalog.ITEMS.slice(at, at + 2).map(it => it.id), ids);
   const visible = catalog.isItemVisible;
   for (const id of ids) {
     const it = catalog.itemById(id)!;

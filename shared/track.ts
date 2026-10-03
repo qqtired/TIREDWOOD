@@ -1,7 +1,9 @@
 // Трасса картинга: замкнутая осевая линия из узлов со скруглёнными углами, разбитая на отрезки ≤ step.
-// Дорога — коридор вокруг осевой (ширина меняется по ключам widths): края — стены, а где края нет (причал), карт падает
-// в воду. Высота дороги задана в точках осевой (трамплин), отрезки над каналом — провал. К дороге привязаны помехи
-// (shared/hazards.ts): ускорители, лужи, бочки и блоки, движущиеся помехи, настилы-трамплины вне оси.
+// Дорога — коридор вокруг осевой (ширина меняется по ключам widths). За краем асфальта — обочина (трава, местами
+// песок) шириной verge, за ней ограждение; а где ограждения нет (причал, берег реки), карт за обочиной падает в воду.
+// Высота дороги — рельеф по ключам heights (подъёмы, спуски, гребни) плюс трамплины; отрезки над каналом — провал.
+// К дороге привязаны помехи (shared/hazards.ts): ускорители, лужи, бочки и блоки, движущиеся помехи, настилы.
+// Метры от начала ноги (at, from, to) можно задавать и от её конца: отрицательное число — столько метров до конца ноги.
 // Считается только на + − × ÷ и Math.sqrt: сервер и любой браузер строят одну и ту же трассу бит в бит
 // (дуги — делением пополам, без синусов). Тест следит, чтобы сюда не пробрались Math.sin, atan2 и прочие.
 import { buildHazards, emptyHazards, type Frame, type HazardSpec, type Hazards } from './hazards.ts';
@@ -14,7 +16,24 @@ export interface TrackNode {
 }
 
 /**
- * «Нога» leg — прямая между скруглениями узлов leg и leg + 1; at, from, to — метры от её начала.
+ * Обочина на участке: нога leg (от from до to, по умолчанию вся) или дуга узла node (плюс pre метров до неё и post после).
+ * side — по ходу гонки; w — ширина обочины до ограждения, м; sand — песок (иначе трава).
+ */
+export interface VergeSpec {
+  leg?: number;
+  node?: number;
+  from?: number;
+  to?: number;
+  pre?: number;
+  post?: number;
+  side: 'left' | 'right' | 'both';
+  w: number;
+  sand?: boolean;
+}
+
+/**
+ * «Нога» leg — прямая между скруглениями узлов leg и leg + 1; at, from, to — метры от её начала (отрицательные —
+ * от конца).
  */
 export interface TrackDef {
   name: string;
@@ -31,11 +50,14 @@ export interface TrackDef {
   step: number;
   /** Линия старта и финиша — точка 0 */
   start: { leg: number; at: number };
-  /** Контрольные точки 1… по ходу гонки (КТ 0 — линия старта) */
+  /**
+   * Контрольные точки 1… по ходу гонки (КТ 0 — линия старта). Засчитывается только следующая по порядку — когда карт
+   * стоит на дороге за её линией, — поэтому срезка не должна обходить ни одной КТ.
+   */
   checkpoints: Array<{ leg: number; at: number }>;
   /** Трамплин: подъём на height за up метров, дальше провал длиной gap */
   ramps: Array<{ leg: number; at: number; up: number; height: number; gap: number }>;
-  /** Край без стены (причал): side — по ходу гонки */
+  /** Край без стены (причал, берег): side — по ходу гонки; to дальше конца ноги — до конца */
   open: Array<{ leg: number; side: 'left' | 'right'; from: number; to: number }>;
   /** Край дуги узла без стены (причал на повороте) */
   openNodes?: Array<{ node: number; side: 'left' | 'right' }>;
@@ -43,6 +65,15 @@ export interface TrackDef {
   crates: Array<{ leg: number; at: number; count: number; lat?: number }>;
   /** Помехи и зоны: ускорители, лужи, бочки, блоки, движущиеся помехи, настилы */
   hazards?: HazardSpec;
+  /**
+   * Рельеф: высота дороги в точке (нога, метр); между ключами — прямая, у ключа — плавный перегиб, у sharp — излом
+   * (на скорости с него карт взлетает). На линии старта — y0 (по умолчанию 0).
+   */
+  heights?: Array<{ leg: number; at: number; y: number; sharp?: boolean }>;
+  y0?: number;
+  /** Обочина по умолчанию (м, с обеих сторон) и участки с другой шириной или песком */
+  verge?: number;
+  verges?: VergeSpec[];
 }
 
 /** Прямая нога: начало (после скругления узла), курс и длина */
@@ -71,8 +102,6 @@ export interface GridSlot {
 }
 
 export interface Track {
-  /** New technical courses require forward checkpoint-plane crossings; legacy courses retain their original rules. */
-  strictCheckpoints?: boolean;
   readonly name: string;
   /** Точек осевой (столько же отрезков: путь замкнут) */
   readonly n: number;
@@ -97,6 +126,12 @@ export interface Track {
   /** 1 — край отрезка без стены (слева / справа по ходу) */
   readonly openL: Uint8Array;
   readonly openR: Uint8Array;
+  /** Обочина в точке: ширина слева и справа, м (ограждение — за ней) */
+  readonly vl: Float64Array;
+  readonly vr: Float64Array;
+  /** 1 — обочина отрезка песчаная (иначе трава), слева и справа */
+  readonly sl: Uint8Array;
+  readonly sr: Uint8Array;
   /** Кривизна в точке со знаком (+ — поворот влево), 1/м */
   readonly curv: Float64Array;
   /** Точка каждой контрольной точки; cpSeg[0] = 0 — линия старта */
@@ -104,6 +139,8 @@ export interface Track {
   /** Нога и метр от её начала для каждой точки (нога −1 — на дуге): для мира и ботов */
   readonly leg: Int16Array;
   readonly legAt: Float64Array;
+  /** Узел дуги для каждой точки (−1 — на ноге) */
+  readonly node: Int16Array;
   readonly crates: TrackCrate[];
   readonly grid: GridSlot[];
   readonly legs: TrackLeg[];
@@ -120,6 +157,16 @@ export const GRID_SIDE = 2.4;
 export const GRID_SLOTS = 6;
 /** Нет дороги (провал) */
 export const NO_GROUND = -1e9;
+/** Поверхность под колёсами */
+export const SURF_ROAD = 0;
+export const SURF_GRASS = 1;
+export const SURF_SAND = 2;
+/** Поребрик: столько метров за краем асфальта ещё дорога */
+export const KERB_TOL = 0.3;
+/** Плавный перегиб рельефа — не длиннее стольких метров в каждую сторону от ключа */
+const FILLET = 10;
+/** Обочина сужается и расширяется плавно: м ширины на метр пути */
+const VERGE_TAPER = 0.6;
 
 interface Pt {
   x: number;
@@ -165,26 +212,33 @@ export function buildTrack(def: TrackDef): Track {
     if (l < -EPS) throw new Error(`трасса: скругления на ноге ${i} не помещаются`);
     legLen.push(Math.max(0, l));
   }
+  /** Метр на ноге: отрицательный — от её конца */
+  const pos = (leg: number, at: number): number => (at < 0 && leg >= 0 && leg < m ? legLen[leg] + at : at);
+  /** Конец участка: не дальше конца ноги */
+  const upto = (leg: number, at: number): number => Math.min(pos(leg, at), leg >= 0 && leg < m ? legLen[leg] : at);
 
   // точки, которые обязаны попасть в осевую (границы особых участков)
   const marks: number[][] = Array.from({ length: m }, () => []);
-  const mark = (leg: number, at: number, what: string): void => {
-    if (leg < 0 || leg >= m || at < -EPS || at > legLen[leg] + EPS) throw new Error(`трасса: ${what} вне ноги ${leg} (${at})`);
+  const mark = (leg: number, at0: number, what: string): void => {
+    const at = pos(leg, at0);
+    if (leg < 0 || leg >= m || at < -EPS || at > legLen[leg] + EPS) throw new Error(`трасса: ${what} вне ноги ${leg} (${at0})`);
     marks[leg].push(at);
   };
   mark(def.start.leg, def.start.at, 'старт');
   for (const c of def.checkpoints) mark(c.leg, c.at, 'КТ');
   for (const r of def.ramps) {
-    mark(r.leg, r.at, 'трамплин');
-    mark(r.leg, r.at + r.up, 'трамплин');
-    mark(r.leg, r.at + r.up + r.gap, 'провал');
+    const at = pos(r.leg, r.at);
+    mark(r.leg, at, 'трамплин');
+    mark(r.leg, at + r.up, 'трамплин');
+    mark(r.leg, at + r.up + r.gap, 'провал');
   }
   for (const o of def.open) {
     mark(o.leg, o.from, 'причал');
-    mark(o.leg, o.to, 'причал');
+    mark(o.leg, upto(o.leg, o.to), 'причал');
   }
   for (const c of def.crates) mark(c.leg, c.at, 'ящики');
   for (const w of def.widths ?? []) mark(w.leg, w.at, 'ширина');
+  for (const k of def.heights ?? []) mark(k.leg, k.at, 'высота');
 
   const pts: Pt[] = [];
   for (let i = 0; i < m; i++) {
@@ -248,7 +302,8 @@ export function buildTrack(def: TrackDef): Track {
   }
 
   // точка 0 — на линии старта
-  const find = (leg: number, at: number, what: string): number => {
+  const find = (leg: number, at0: number, what: string): number => {
+    const at = pos(leg, at0);
     const k = pts.findIndex((q) => q.leg === leg && Math.abs(q.a - at) < 1e-6);
     if (k >= 0) return k;
     // самый конец ноги — первая точка после неё (начало дуги или следующей ноги)
@@ -268,15 +323,14 @@ export function buildTrack(def: TrackDef): Track {
   const h = new Float64Array(n);
   const leg = new Int16Array(n);
   const legAt = new Float64Array(n);
+  const node = new Int16Array(n);
   for (let i = 0; i < n; i++) {
     const q = ring[i];
     px[i] = q.x;
     pz[i] = q.z;
     leg[i] = q.leg;
     legAt[i] = q.a;
-    for (const r of def.ramps) {
-      if (q.leg === r.leg && q.a >= r.at - EPS && q.a <= r.at + r.up + EPS) h[i] = (r.height * (q.a - r.at)) / r.up;
-    }
+    node[i] = q.node;
   }
 
   const len = new Float64Array(n);
@@ -303,10 +357,11 @@ export function buildTrack(def: TrackDef): Track {
     // последний отрезок ноги кончается в начале дуги — это конец ноги
     const b = ring[j].leg === a.leg ? ring[j].a : legLen[a.leg];
     for (const r of def.ramps) {
-      if (a.leg === r.leg && a.a >= r.at + r.up - EPS && b <= r.at + r.up + r.gap + EPS) gap[i] = 1;
+      const at = pos(r.leg, r.at);
+      if (a.leg === r.leg && a.a >= at + r.up - EPS && b <= at + r.up + r.gap + EPS) gap[i] = 1;
     }
     for (const o of def.open) {
-      if (a.leg !== o.leg || a.a < o.from - EPS || b > o.to + EPS) continue;
+      if (a.leg !== o.leg || a.a < pos(o.leg, o.from) - EPS || b > upto(o.leg, o.to) + EPS) continue;
       if (o.side === 'left') openL[i] = 1;
       else openR[i] = 1;
     }
@@ -325,6 +380,20 @@ export function buildTrack(def: TrackDef): Track {
   def.checkpoints.forEach((c, k) => {
     cpSeg[k + 1] = index(c.leg, c.at, 'КТ');
   });
+
+  // рельеф: ломаная по пути через ключи с перегибами, сверху — трамплины
+  const y0 = def.y0 ?? 0;
+  const hk: Array<{ s: number; y: number; sharp: boolean }> = [{ s: 0, y: y0, sharp: false }];
+  for (const k of def.heights ?? []) hk.push({ s: s[index(k.leg, k.at, 'высота')], y: k.y, sharp: !!k.sharp });
+  hk.sort((p, q) => p.s - q.s);
+  for (let i = 0; i < n; i++) h[i] = relief(hk, length, s[i]);
+  for (let i = 0; i < n; i++) {
+    const q = ring[i];
+    for (const r of def.ramps) {
+      const at = pos(r.leg, r.at);
+      if (q.leg === r.leg && q.a >= at - EPS && q.a <= at + r.up + EPS) h[i] += (r.height * (q.a - at)) / r.up;
+    }
+  }
 
   const crates: TrackCrate[] = [];
   for (const row of def.crates) {
@@ -353,12 +422,41 @@ export function buildTrack(def: TrackDef): Track {
     if (hw[i] > half) half = hw[i];
   }
 
+  // обочины: по умолчанию verge, участки — поверх по порядку; ширина меняется не резче VERGE_TAPER
+  const vl = new Float64Array(n).fill(def.verge ?? 0);
+  const vr = new Float64Array(n).fill(def.verge ?? 0);
+  const sl = new Uint8Array(n);
+  const sr = new Uint8Array(n);
+  for (const v of def.verges ?? []) {
+    for (let i = 0; i < n; i++) {
+      const q = ring[i];
+      let hit = false;
+      if (v.node !== undefined) {
+        const before = (v.node - 1 + m) % m;
+        hit = q.node === v.node || (q.leg === before && q.a >= legLen[before] - (v.pre ?? 0) - EPS) || (q.leg === v.node && q.a <= (v.post ?? 0) + EPS);
+      } else if (v.leg !== undefined && q.leg === v.leg) {
+        hit = q.a >= pos(v.leg, v.from ?? 0) - EPS && q.a <= pos(v.leg, v.to ?? legLen[v.leg]) + EPS;
+      }
+      if (!hit) continue;
+      if (v.side !== 'right') {
+        vl[i] = v.w;
+        sl[i] = v.sand ? 1 : 0;
+      }
+      if (v.side !== 'left') {
+        vr[i] = v.w;
+        sr[i] = v.sand ? 1 : 0;
+      }
+    }
+  }
+  taper(vl, len, n);
+  taper(vr, len, n);
+
   const legs: TrackLeg[] = [];
   for (let i = 0; i < m; i++) legs.push({ x: nodes[i].x + dx[i] * off[i], z: nodes[i].z + dz[i] * off[i], dx: dx[i], dz: dz[i], len: legLen[i] });
 
   const tr: Track = {
-    name: def.name, n, length, half, hw, px, pz, h, s, len, tx, tz, gap, openL, openR, curv, cpSeg, leg, legAt, crates,
-    grid: [], legs, hz: emptyHazards(),
+    name: def.name, n, length, half, hw, px, pz, h, s, len, tx, tz, gap, openL, openR, vl, vr, sl, sr, curv, cpSeg, leg, legAt,
+    node, crates, grid: [], legs, hz: emptyHazards(),
   };
 
   // решётка: через одно влево и вправо, каждое следующее место дальше от линии
@@ -379,13 +477,18 @@ export function buildTrack(def: TrackDef): Track {
   if (def.hazards) {
     const loc = makeLoc();
     const frame: Frame = {
-      at(leg, at, lat, out) {
+      at(leg, at0, lat, out) {
         const g = legs[leg];
         if (!g) throw new Error(`трасса: помеха на ноге ${leg}, а ног ${legs.length}`);
+        const at = at0 < 0 ? g.len + at0 : at0;
         out.x = g.x + g.dx * at - g.dz * lat;
         out.z = g.z + g.dz * at + g.dx * lat;
         out.tx = g.dx;
         out.tz = g.dz;
+        // высота дороги на осевой напротив — от неё считаются настилы
+        locateAny(tr, g.x + g.dx * at, g.z + g.dz * at, loc);
+        const k = loc.seg + 1 < n ? loc.seg + 1 : 0;
+        out.y = h[loc.seg] + (h[k] - h[loc.seg]) * loc.t;
         return out;
       },
       seg: (x, z) => locateAny(tr, x, z, loc).seg,
@@ -393,6 +496,75 @@ export function buildTrack(def: TrackDef): Track {
     tr.hz = buildHazards(def.hazards, frame);
   }
   return tr;
+}
+
+/**
+ * Высота рельефа на пути s: ломаная через ключи (по кругу), у не-острых ключей — парабола-перегиб длиной до 2·FILLET,
+ * которая касается обоих соседних отрезков.
+ */
+function relief(keys: ReadonlyArray<{ s: number; y: number; sharp: boolean }>, L: number, s: number): number {
+  const c = keys.length;
+  if (c === 1) return keys[0].y;
+  // ключ по кругу: i < 0 и i ≥ c — с прошлого и следующего круга
+  const ks = (i: number): number => keys[((i % c) + c) % c].s + Math.floor(i / c) * L;
+  const ky = (i: number): number => keys[((i % c) + c) % c].y;
+  const slope = (i: number): number => (ky(i + 1) - ky(i)) / (ks(i + 1) - ks(i));
+  let a = c - 1;
+  for (let i = 0; i < c; i++) if (keys[i].s <= s) a = i;
+  let y = ky(a) + slope(a) * (s - ks(a));
+  const fillet = (i: number): number => {
+    if (keys[((i % c) + c) % c].sharp) return 0;
+    return Math.min(FILLET, 0.45 * (ks(i) - ks(i - 1)), 0.45 * (ks(i + 1) - ks(i)));
+  };
+  const near = (i: number): void => {
+    const F = fillet(i);
+    const d = s - ks(i);
+    if (F <= 0 || d <= -F || d >= F) return;
+    const g0 = slope(i - 1);
+    const g1 = slope(i);
+    y = ky(i) + g0 * d + ((g1 - g0) * (d + F) * (d + F)) / (4 * F);
+  };
+  near(a);
+  near(a + 1);
+  return y;
+}
+
+/** Ширина обочины меняется не резче VERGE_TAPER: широкие участки сужаются к своим краям (дважды по кругу). */
+function taper(w: Float64Array, len: Float64Array, n: number): void {
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < n; i++) {
+      const j = i + 1 < n ? i + 1 : 0;
+      const lim = w[i] + VERGE_TAPER * len[i];
+      if (w[j] > lim) w[j] = lim;
+    }
+    for (let i = n - 1; i >= 0; i--) {
+      const p = i > 0 ? i - 1 : n - 1;
+      const lim = w[i] + VERGE_TAPER * len[p];
+      if (w[p] > lim) w[p] = lim;
+    }
+  }
+}
+
+/** Дуга узла i: центр, радиус, отступ скругления от узла и сторона (+1 — поворот влево). Для мира и ботов. */
+export function nodeArc(def: TrackDef, i: number): { cx: number; cz: number; r: number; off: number; side: number } {
+  const nodes = def.nodes;
+  const m = nodes.length;
+  const a = nodes[(i - 1 + m) % m];
+  const b = nodes[i];
+  const c = nodes[(i + 1) % m];
+  const l1 = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.z - a.z) * (b.z - a.z));
+  const l2 = Math.sqrt((c.x - b.x) * (c.x - b.x) + (c.z - b.z) * (c.z - b.z));
+  const d1x = (b.x - a.x) / l1;
+  const d1z = (b.z - a.z) / l1;
+  const d2x = (c.x - b.x) / l2;
+  const d2z = (c.z - b.z) / l2;
+  const cross = d1x * d2z - d1z * d2x;
+  const dot = d1x * d2x + d1z * d2z;
+  const off = (b.r * Math.abs(cross)) / (1 + dot);
+  const left = d2x * d1z - d2z * d1x > 0;
+  const nx = left ? d1z : -d1z;
+  const nz = left ? -d1x : d1x;
+  return { cx: b.x - d1x * off + nx * b.r, cz: b.z - d1z * off + nz * b.r, r: b.r, off, side: left ? 1 : -1 };
 }
 
 /** Отрезок и доля на нём для точки осевой в back метрах до линии старта. */
@@ -414,10 +586,15 @@ export interface TrackLoc {
   ground: number;
   /** Полуширина дороги здесь */
   hw: number;
+  /** Обочина здесь: слева и справа, м */
+  vl: number;
+  vr: number;
+  /** Под точкой: SURF_ROAD, SURF_GRASS или SURF_SAND */
+  surf: number;
 }
 
 export function makeLoc(): TrackLoc {
-  return { seg: 0, t: 0, lat: 0, ground: 0, hw: 0 };
+  return { seg: 0, t: 0, lat: 0, ground: 0, hw: 0, vl: 0, vr: 0, surf: 0 };
 }
 
 export function wrapSeg(tr: Track, i: number): number {
@@ -442,10 +619,17 @@ function project(tr: Track, j: number, x: number, z: number, out: { d: number; t
 function fill(tr: Track, j: number, t: number, x: number, z: number, out: TrackLoc): TrackLoc {
   out.seg = j;
   out.t = t;
-  out.lat = (x - tr.px[j]) * -tr.tz[j] + (z - tr.pz[j]) * tr.tx[j];
+  const lat = (x - tr.px[j]) * -tr.tz[j] + (z - tr.pz[j]) * tr.tx[j];
+  out.lat = lat;
   const k = j + 1 < tr.n ? j + 1 : 0;
   out.ground = tr.gap[j] ? NO_GROUND : tr.h[j] + (tr.h[k] - tr.h[j]) * t;
-  out.hw = tr.hw[j] + (tr.hw[k] - tr.hw[j]) * t;
+  const hw = tr.hw[j] + (tr.hw[k] - tr.hw[j]) * t;
+  out.hw = hw;
+  out.vl = tr.vl[j] + (tr.vl[k] - tr.vl[j]) * t;
+  out.vr = tr.vr[j] + (tr.vr[k] - tr.vr[j]) * t;
+  if (lat > hw + KERB_TOL && out.vr > KERB_TOL) out.surf = tr.sr[j] ? SURF_SAND : SURF_GRASS;
+  else if (lat < -hw - KERB_TOL && out.vl > KERB_TOL) out.surf = tr.sl[j] ? SURF_SAND : SURF_GRASS;
+  else out.surf = SURF_ROAD;
   return out;
 }
 
@@ -482,6 +666,11 @@ export function locateAny(tr: Track, x: number, z: number, out: TrackLoc): Track
     }
   }
   return fill(tr, best, bestT, x, z, out);
+}
+
+/** Точка у дороги: под ней земля (асфальт или обочина до ограждения, с запасом edge за краем) */
+export function onGround(loc: TrackLoc, edge: number): boolean {
+  return loc.lat <= loc.hw + loc.vr + edge && loc.lat >= -loc.hw - loc.vl - edge;
 }
 
 /**

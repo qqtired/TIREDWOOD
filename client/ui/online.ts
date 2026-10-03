@@ -2,7 +2,7 @@
 import { frameForLevel } from '../../shared/levels.ts';
 import type { OnlineEntry, RoomKind } from '../../shared/messages.ts';
 
-const ROOM: Record<RoomKind, string> = { lobby: '🏠 Набережная', paintball: '🎯 Склад', race: '🏁 Гонка', fort: '🏰 Крепость', fight: '🥊 Подвал', skill: '☁️ Выше облаков', boatrace: '🚤 Катера', hide: '🔎 Прятки' };
+const ROOM: Record<RoomKind, string> = { lobby: '🏠 Набережная', paintball: '🎯 Склад', race: '🏁 Гонка', fort: '🏰 Крепость', fight: '🥊 Подвал', skill: '☁️ Выше облаков', hide: '🔎 Прятки' };
 
 export class OnlineList {
   private readonly root: HTMLElement;

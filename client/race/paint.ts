@@ -179,9 +179,9 @@ export interface Drip {
 }
 
 /**
- * Краска на экран w×h (css px): по краям — розовая плёнка, сверху кляксы по сетке с разбросом (3×2 лёжа, 2×3 стоя) —
- * ложатся по всему экрану, а не кучей, и почти сходятся; в просветах между ними дорогу чуть видно.
- * dpr — во сколько раз холст плотнее css px. Возвращает холст и где пустить подтёки (с нижнего края клякс).
+ * Краска на экран w×h (css px): кляксы по рамке экрана — по углам и вдоль краёв, с разбросом; к середине тянутся
+ * только их «пальцы», а сама середина, куда смотрит гонщик, почти чистая (по краям — розовая плёнка). Мешает,
+ * но дорогу видно. dpr — во сколько раз холст плотнее css px. Возвращает холст и где пустить подтёки.
  */
 export function paintScreen(w: number, h: number, dpr: number, rng: () => number = Math.random): { canvas: HTMLCanvasElement; drips: Drip[] } {
   preparePaint();
@@ -190,16 +190,13 @@ export function paintScreen(w: number, h: number, dpr: number, rng: () => number
   canvas.height = Math.max(1, Math.round(h * dpr));
   const ctx = canvas.getContext('2d')!;
   ctx.scale(dpr, dpr);
-  const film = ctx.createRadialGradient(w / 2, h * 0.55, Math.min(w, h) * 0.2, w / 2, h * 0.55, Math.hypot(w, h) * 0.6);
-  film.addColorStop(0, 'rgba(255, 63, 176, 0.1)');
-  film.addColorStop(1, 'rgba(196, 16, 128, 0.5)');
+  const m = Math.min(w, h);
+  const film = ctx.createRadialGradient(w / 2, h * 0.5, m * 0.3, w / 2, h * 0.5, Math.hypot(w, h) * 0.56);
+  film.addColorStop(0, 'rgba(255, 63, 176, 0)');
+  film.addColorStop(1, 'rgba(196, 16, 128, 0.45)');
   ctx.fillStyle = film;
   ctx.fillRect(0, 0, w, h);
 
-  const cols = w >= h ? 3 : 2;
-  const rows = w >= h ? 2 : 3;
-  const cw = w / cols;
-  const ch = h / rows;
   const drips: Drip[] = [];
   const splat = (cx: number, cy: number, size: number, drip: boolean): void => {
     const kind = kinds![Math.floor(rng() * KINDS)];
@@ -226,14 +223,19 @@ export function paintScreen(w: number, h: number, dpr: number, rng: () => number
       });
     }
   };
-  for (let j = 0; j < rows; j++) {
-    for (let i = 0; i < cols; i++) {
-      const cx = (i + 0.5 + (rng() - 0.5) * 0.4) * cw;
-      const cy = (j + 0.5 + (rng() - 0.5) * 0.4) * ch;
-      splat(cx, cy, Math.max(cw, ch) * (1.45 + rng() * 0.3), true);
-    }
+  // вдоль верха и низа — по nx клякс, по бокам — по ny; середина клякс — у самой кромки (часть — за экраном)
+  const nx = w >= h ? 4 : 3;
+  const ny = w >= h ? 2 : 3;
+  const size = (): number => m * (0.44 + rng() * 0.16);
+  for (let i = 0; i < nx; i++) {
+    const x = ((i + 0.5) / nx + (rng() - 0.5) * 0.14) * w;
+    splat(x, rng() * 0.07 * h, size(), true);
+    splat(x + (rng() - 0.5) * 0.1 * w, h - rng() * 0.06 * h, size(), false);
   }
-  // и пара поменьше — в случайные места: просветы получаются неровными
-  for (let i = 0; i < 2; i++) splat(rng() * w, rng() * h, Math.max(cw, ch) * (0.7 + rng() * 0.35), false);
+  for (let j = 0; j < ny; j++) {
+    const y = ((j + 0.5) / ny + (rng() - 0.5) * 0.16) * h;
+    splat(rng() * 0.05 * w, y, size(), true);
+    splat(w - rng() * 0.05 * w, y + (rng() - 0.5) * 0.1 * h, size(), true);
+  }
   return { canvas, drips };
 }

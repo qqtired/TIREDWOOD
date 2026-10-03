@@ -1,0 +1,122 @@
+/* fisheco: лавка с вкладками, рюкзак, «Шансы сейчас», значки у уровня, подписи шкалы и карточки, рулетка рыбака.
+   Оформление общих окон рыбалки — в fish2.css (fishstyle); здесь только новые куски. */
+
+/* ---------------------------------------------------------------- Семён и Саня: вкладки */
+.fe-npc[open] { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.fe-npc[data-npc="sanya"] { border-color: #6f8796; background: #233039; }
+.fe-npc[data-npc="sanya"] .fn-head, .fe-npc[data-npc="sanya"] .fe-tabs { background: #233039; }
+.fe-headside { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.fe-extra { display: flex; gap: 6px; }
+.fe-extra:empty { display: none; }
+.fe-tabs { display: flex; gap: 4px; padding: 0 22px; border-bottom: 1px solid #52604e; background: #25302a; }
+.fe-tab { position: relative; display: flex; align-items: center; gap: 6px; padding: 10px 16px 9px; border: 0; border-bottom: 3px solid transparent; background: none; color: #c3ccb7; font: 700 14px/1.2 Rubik, system-ui, sans-serif; cursor: pointer; }
+.fe-tab:hover { color: #f1e8cf; }
+.fe-tab.on { color: #f6eed6; border-bottom-color: #c9b06b; }
+.fe-tab-n { font-style: normal; min-width: 18px; padding: 1px 6px; border-radius: 9px; background: #4d6249; color: #f6eed6; font-size: 11px; }
+.fe-tab-n:empty { display: none; }
+.fe-tab.dot::after { content: ''; position: absolute; top: 7px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #f0c45a; box-shadow: 0 0 0 2px #25302a; }
+.fe-panel[hidden] { display: none; }
+.fe-skillbox { flex-direction: column; align-items: stretch; gap: 8px; }
+.fe-perks { color: #d7cfae; font-size: 12px; line-height: 1.45; }
+.fe-offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fe-offer { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto auto; gap: 8px 10px; padding: 11px; border-radius: 13px; background: rgba(236,229,204,.05); box-shadow: inset 0 0 0 1px rgba(229,220,187,.11); }
+.fe-offer.owned { box-shadow: inset 0 0 0 2px #9fbb8a; }
+.fe-offer.locked .fe-offer-pic { filter: grayscale(.8) opacity(.65); }
+.fe-offer-pic { width: 64px; height: 64px; object-fit: contain; grid-row: 1; }
+.fe-offer-text { min-width: 0; }
+.fe-offer h4 { font-size: 14px !important; }
+.fe-offer-eff { margin: 3px 0 4px; font-size: 12px; color: #d9d2b5; }
+.fe-offer .fn-action { grid-column: 1 / -1; justify-self: stretch; }
+
+/* ---------------------------------------------------------------- рюкзак: строки улова (лавка и окно I) */
+.fe-sell { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.fe-row { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 11px; background: rgba(236,229,204,.05); border-left: 4px solid var(--tc, #8f9aa3); }
+.fe-row-pic { width: 74px; height: 38px; object-fit: contain; font-size: 22px; display: grid; place-items: center; }
+.fe-row-info { display: flex; flex-direction: column; min-width: 0; }
+.fe-row-info b { font-size: 14px; }
+.fe-row-info span { font-size: 12px; color: #c4cbb8; }
+.fe-marks { color: #e3c97f !important; }
+.fe-row-price { font-weight: 700; color: #ecd28e; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fe-row .fn-action { min-height: 34px; padding: 6px 12px; }
+.fe-empty { margin: 10px 0; color: #c4cbb8; }
+.fe-warn { background: #8a4a32 !important; border-color: #c7795b !important; }
+.fe-bag, .fe-rl { box-sizing: border-box; width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); padding: 16px 20px; border: 1px solid #75816a; border-radius: 18px; color: var(--cream); background: #25302a; box-shadow: 0 20px 70px rgba(0,0,0,.5); font: 14px/1.45 Rubik, system-ui, sans-serif; text-shadow: none; overflow-y: auto; }
+.fe-bag::backdrop, .fe-rl::backdrop { background: rgba(10, 14, 12, .45); }
+.fe-bag-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fe-bag-top h2 { margin: 0; font-size: 20px; color: #ede4c9; }
+.fe-bag-note { margin-top: 12px; }
+
+/* ---------------------------------------------------------------- рядом с уровнем: задание, рюкзак, блесна */
+.fe-chips { display: flex; gap: 6px; width: min(310px, 80vw); }
+.fe-chip { flex: 1 1 auto; padding: 6px 10px; border-radius: 11px; background: var(--panel-strong); border: 1px solid var(--line); color: var(--cream); font: 700 12px/1.3 Rubik, system-ui, sans-serif; box-shadow: var(--shadow); text-shadow: none; }
+.fe-quest.ready { border-color: #e2bf62; color: #ffe39a; animation: fe-blink 1.1s ease-in-out infinite alternate; }
+@keyframes fe-blink { to { background: rgba(120, 96, 30, .85); } }
+.fe-bagchip { flex: 0 0 auto; pointer-events: auto; cursor: pointer; white-space: nowrap; }
+.fe-bagchip.warn { border-color: #e2bf62; color: #ffe39a; }
+.fe-bagchip.full { border-color: #e46a5a; color: #ffb4a6; background: rgba(110, 30, 24, .82); }
+.fe-gear { width: min(310px, 80vw); padding: 5px 10px; border-radius: 10px; background: var(--panel-strong); border: 1px solid var(--line); color: #d9d2b5; font-size: 12px; text-align: right; text-shadow: none; }
+.fe-gear[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- «Шансы сейчас» */
+.fe-odds { width: min(310px, 80vw); padding: 8px 10px; border-radius: 12px; background: var(--panel-strong); border: 1px solid var(--line); text-shadow: none; pointer-events: auto; }
+.fe-odds-head { display: flex; justify-content: space-between; font-size: 12px; color: #e7dbc1; margin-bottom: 5px; }
+.fe-odds-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(245,235,205,.12); }
+.fe-odds-bar i { display: block; min-width: 2px; }
+.fe-odds-legend { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 5px; font-size: 11px; color: #e9e1c6; font-variant-numeric: tabular-nums; }
+.fe-odds-legend span::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 2px; background: var(--tc, transparent); }
+.fe-odds-legend .fe-odds-misc { color: #b9c1ad; }
+.fe-odds-legend .fe-odds-misc::before { display: none; }
+.fe-odds-why { margin-top: 4px; font-size: 11px; color: #cfc59d; line-height: 1.35; }
+.touch .fe-odds-why { display: none; }
+.touch .fe-odds.open .fe-odds-why { display: block; }
+
+/* ---------------------------------------------------------------- шкала и карточка улова: подписи */
+.fe-reelbonus { display: flex; flex-direction: column; gap: 2px; max-width: 240px; padding: 4px 8px; border-radius: 8px; background: rgba(20, 26, 22, .72); color: #e6dcb9; font-size: 11px; line-height: 1.35; text-align: center; text-shadow: none; }
+.fe-reelbonus:empty { display: none; }
+.fe-stand { display: none; padding: 4px 10px; border-radius: 9px; background: #a8321f; color: #fff1d8; font: 800 15px/1.2 Rubik, system-ui, sans-serif; letter-spacing: .02em; text-shadow: none; }
+.fe-stand.show { display: block; animation: fe-stand .45s ease-out 3; }
+@keyframes fe-stand { from { transform: scale(1.25); } to { transform: scale(1); } }
+/* леска провисла: зона лежит на дне дольше 0,7 с — надпись и бледная зона, пока не подмотает */
+.fe-slack { display: none; padding: 4px 10px; border-radius: 9px; background: #7a5a1c; color: #fff1d8; font: 800 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: .02em; text-shadow: none; }
+.fr.slack .fe-slack { display: block; animation: fe-stand .45s ease-out 2; }
+.fr.slack .fr-zone { opacity: .5; filter: saturate(.35); border-style: dashed; }
+.touch .fe-reelbonus { display: none; }
+.fe-why { font-size: 12px; color: #d6cba4; text-align: center; }
+.fe-xp { font-weight: 700; font-size: 14px; color: #a9d6a0; text-align: center; }
+.fe-xp.perfect { color: #ffe08a; }
+.fe-bagfull { background: rgba(120, 32, 26, .9) !important; color: #ffd1c4 !important; font-size: 14px !important; }
+.fe-lost .fc2-title b { color: #ffd0c0; }
+
+/* ---------------------------------------------------------------- журнал: фильтр места */
+.fe-booktabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+.fe-booktab { padding: 5px 12px; border-radius: 9px; border: 1px solid rgba(229,220,187,.25); background: rgba(236,229,204,.06); color: inherit; font: 700 12px/1.3 Rubik, system-ui, sans-serif; cursor: pointer; }
+.fe-booktab.on { background: #4d6249; border-color: #9fbb8a; }
+
+/* ---------------------------------------------------------------- рулетка */
+.fe-rl-sum { font-size: 16px; font-weight: 700; color: #f0d996; margin: 12px 0 4px; }
+.fe-rl-picks { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 12px 0; }
+.fe-rl-pick { min-height: 48px; padding: 10px 14px; border-radius: 11px; border: 2px solid transparent; color: #fff4dc; font: 700 15px/1.3 Rubik, system-ui, sans-serif; cursor: pointer; text-align: left; }
+.fe-rl-pick.red { background: #9b2a2a; }
+.fe-rl-pick.black { background: #26262c; }
+.fe-rl-pick.green { background: #22723d; }
+.fe-rl-pick.on { border-color: #f1d488; box-shadow: 0 0 0 3px rgba(241,212,136,.3); }
+.fe-rl-pick:disabled { opacity: .45; cursor: default; }
+.fe-rl-confirm { padding: 10px 12px; border-radius: 11px; background: rgba(236,229,204,.07); }
+.fe-rl-confirm[hidden] { display: none; }
+.fe-rl-confirm p { margin: 0 0 8px; }
+.fe-rl-btns { display: flex; gap: 8px; }
+
+@media (max-width: 760px) {
+  .fe-offers { grid-template-columns: 1fr; }
+  .fe-tabs { padding: 0 10px; }
+  .fe-tab { padding: 9px 10px; font-size: 13px; }
+  .fe-row { grid-template-columns: 56px minmax(0, 1fr) auto; }
+  .fe-row-pic { width: 56px; }
+  .fe-row .fn-action { grid-column: 2 / -1; justify-self: end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fe-quest.ready, .fe-stand.show, .fr.slack .fe-slack { animation: none; }
+}
+.touch .fe-chips, .touch .fe-gear, .touch .fe-odds { width: 100%; }
+.touch .fe-chip { padding: 5px 7px; font-size: 11px; }
+.touch .fe-gear { display: none; }

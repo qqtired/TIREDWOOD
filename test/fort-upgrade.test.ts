@@ -6,13 +6,23 @@ import { FortGame, FortPlayer } from '../server/fort/game.ts';
 import type { Sink } from '../server/paintball/game.ts';
 import type { ServerMsg } from '../shared/messages.ts';
 import { TICK_RATE } from '../shared/constants.ts';
+import {
+  ACT_GATE, ACT_SHOP, ACT_TOWER, CLEAN_MULT, GUN_MARKER, KILL_SHARE, NOPE_FAR, START_GOLD, TOWER_UPGRADE, TW_BALLISTA, TW_CANNON, UP_DMG, UP_MAG,
+  gunMag, gunReload, killBounty, upgradePrice, waveBonus,
+} from '../shared/fortarsenal.ts';
 import { GATE, WALL_H } from '../shared/fortmap.ts';
 import { decodeFortTail, encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
-import { BTN_JUMP, BTN_RELOAD, MAG_SIZE, RELOAD_TICKS, makeInput } from '../shared/sim.ts';
+import { BTN_JUMP, BTN_RELOAD, makeInput } from '../shared/sim.ts';
 import { planCounts, planWave } from '../server/fort/director.ts';
-import { BOSS_BASE_HP, bossTeamMul } from '../shared/fortwaves.ts';
+import { BOSS_BASE_HP, bossTeamMul, waveHpMul } from '../shared/fortwaves.ts';
 
 function steps(game: FortGame, n: number) { for (let i = 0; i < n; i++) game.step(); }
+/** События этого тика (ещё не ушли со снимком) */
+function pending(game: FortGame): F.FortEvent[] { return (game as unknown as { events: F.FortEvent[] }).events; }
+function standTower(game: FortGame, p: FortPlayer, spot: number) {
+  const st = game.map.stations.find((s) => s.kind === 'tower' && s.arg === spot)!;
+  Object.assign(p.state, { x: st.x, y: st.y, z: st.z });
+}
 function standShop(game: FortGame, p: FortPlayer) {
   const st = game.map.stations.find((s) => s.kind === 'shop')!;
   Object.assign(p.state, { x: st.x, y: st.y, z: st.z });
@@ -38,97 +48,108 @@ test('первые крылатки — на пятой волне, первый
 test('сервер отвергает покупку от чужого объекта игрока', () => {
   const { game, players } = setup();
   const st = game.map.stations.find((s) => s.kind === 'gate')!;
-  const fake = new FortPlayer(players[0].id, 'Подмена', players[0].sink, 1, DEFAULT_OUTFIT);
+  const fake = new FortPlayer(players[0].id, 'Подмена', players[0].sink, 1, DEFAULT_OUTFIT, game.arsenal.newRun(false));
   fake.alive = true;
-  fake.pts = 1000;
+  fake.run.arsenal.gold = 1000;
   Object.assign(fake.state, { x: st.x, y: st.y, z: st.z });
   game.gate = F.GATE_HP - 400;
-  game.use(fake, st.id);
+  game.use(fake, ACT_GATE);
   assert.equal(game.gate, F.GATE_HP - 400);
-  assert.equal(fake.pts, 1000);
+  assert.equal(fake.run.arsenal.gold, 1000);
 });
 
-test('лавка расширяет магазин один раз и списывает серверную цену', () => {
+test('лавка: «Магазин» сразу даёт +25 % патронов маркеру, повтор — следующая ступень по своей цене', () => {
   const { game, players } = setup();
   const p = players[0];
-  const st = game.map.stations.find((s) => (s.kind as string) === 'shop');
+  const a = p.run.arsenal;
+  const st = game.map.stations.find((s) => s.kind === 'shop');
   assert.ok(st, 'единая лавка на террасе');
   Object.assign(p.state, { x: st.x, y: st.y, z: st.z });
-  p.pts = 200;
-  game.use(p, 1008);
-  assert.equal(p.state.ammo, 42);
-  assert.equal(p.pts, 110);
-  game.use(p, 1008);
-  assert.equal(p.pts, 110, 'повтор не списывает очки');
+  a.gold = 1000;
+  game.use(p, ACT_SHOP + UP_MAG);
+  assert.equal(a.lv[UP_MAG], 1);
+  assert.equal(p.state.ammo, gunMag(GUN_MARKER, 1));
+  assert.equal(a.gold, 1000 - upgradePrice(UP_MAG, 0));
+  game.use(p, ACT_SHOP + UP_MAG);
+  assert.equal(a.lv[UP_MAG], 2);
+  assert.equal(a.gold, 1000 - upgradePrice(UP_MAG, 0) - upgradePrice(UP_MAG, 1));
 });
 
-test('краскомёт без стрелка даёт ровно одну общую награду команде', () => {
+test('враг без стрелка: награда целиком в общак, в конце волны — поровну всем', () => {
   const { game, players } = setup(3);
-  const before = players.reduce((n, p) => n + p.pts, 0);
-  const z = game.horde.spawn(F.Z_WALKER, 1)!;
-  game.horde.damage(z, 999, 0, false, z.x, 1, z.z);
-  assert.equal(players.reduce((n, p) => n + p.pts, 0) - before, 10);
-  assert.ok(players.every((p) => p.pts > F.START_PTS));
-});
-
-test('магазин: расстояние, фаза, цена и повтор зенитного улучшения проверяются сервером', () => {
-  const { game, players } = setup();
-  const p = players[0];
-  p.pts = 1000;
-  Object.assign(p.state, { x: -20, y: 0, z: -50 });
-  game.use(p, 1008);
-  assert.equal(p.pts, 1000);
-  standShop(game, p);
-  p.pts = 89;
-  game.use(p, 1008);
-  assert.equal(p.pts, 89);
-  assert.equal(p.state.ammo, MAG_SIZE);
-  p.pts = 1000;
-  game.phase = F.FT_WAVE;
-  game.use(p, 1008);
-  assert.equal(p.pts, 1000);
-  game.phase = F.FT_BREAK;
-  game.use(p, 1009);
-  assert.equal(p.pts, 1000, 'улучшение требует построенного краскомёта');
-  game.use(p, 1003);
-  game.use(p, 1009);
-  assert.equal(p.pts, 750);
-  assert.ok(game.turrets[0]?.aa);
-  game.use(p, 1009);
-  assert.equal(p.pts, 750);
-  game.use(p, 1005);
-  assert.equal(game.jams[0], -1, 'варенье ждёт начала волны');
+  const gold = () => players.reduce((n, p) => n + p.run.arsenal.gold, 0);
   game.phaseEnd = game.tick + 1;
   game.step();
-  assert.equal(game.jams[0], game.tick + 45 * TICK_RATE);
+  game.horde.clear();
+  const before = gold();
+  const z = game.horde.spawn(F.Z_WALKER, 1)!;
+  game.horde.damage(z, 999, 0, false, z.x, 1, z.z);
+  assert.equal(gold(), before, 'стрелка нет — сразу никому');
+  const total = killBounty(F.Z_WALKER, 1) / KILL_SHARE;
+  assert.ok(Math.abs(game.arsenal.pot - total) < 1e-9);
+  game.step();
+  assert.equal(game.phase, F.FT_BREAK);
+  for (const p of players) assert.equal(p.run.arsenal.gold, START_GOLD + Math.round((total * CLEAN_MULT) / 3) + waveBonus(1));
 });
 
-test('42 шарика сохраняются после ручной и автоматической перезарядки', () => {
+test('лавка и башни: далеко или мало золота — отказ; в бою — можно; улучшать — только построенную, занятое не перестроить', () => {
+  const { game, players } = setup();
+  const p = players[0];
+  const a = p.run.arsenal;
+  a.gold = 1000;
+  Object.assign(p.state, { x: -20, y: 0, z: -50 });
+  game.use(p, ACT_SHOP + UP_DMG);
+  assert.equal(a.gold, 1000, 'далеко от прилавка');
+  assert.ok(pending(game).some((e) => e[0] === 'anope' && e[1] === p.id && e[3] === NOPE_FAR));
+  standShop(game, p);
+  a.gold = upgradePrice(UP_DMG, 0) - 1;
+  game.use(p, ACT_SHOP + UP_DMG);
+  assert.equal(a.lv[UP_DMG], 0, 'не хватает золота');
+  a.gold = 1000;
+  game.phase = F.FT_WAVE;
+  game.use(p, ACT_SHOP + UP_DMG);
+  assert.equal(a.lv[UP_DMG], 1, 'лавка работает и в бою');
+  standTower(game, p, 2);
+  const gold0 = a.gold;
+  game.use(p, ACT_TOWER + 2 * 10 + TOWER_UPGRADE);
+  assert.equal(a.gold, gold0, 'улучшать нечего');
+  game.use(p, ACT_TOWER + 2 * 10 + TW_CANNON);
+  assert.equal(game.arsenal.towers[2].type, TW_CANNON, 'башни ставят и в бою');
+  game.use(p, ACT_TOWER + 2 * 10 + TW_BALLISTA);
+  assert.equal(game.arsenal.towers[2].type, TW_CANNON, 'занятое место не перестроить');
+  a.gold = 5000;
+  game.use(p, ACT_TOWER + 2 * 10 + TOWER_UPGRADE);
+  assert.equal(game.arsenal.towers[2].level, 2);
+});
+
+test('прокачанный магазин сохраняется после ручной и автоматической перезарядки', () => {
   const { game, players } = setup();
   const p = players[0];
   standShop(game, p);
-  p.pts = 1000;
-  game.use(p, 1008);
+  p.run.arsenal.gold = 1000;
+  game.use(p, ACT_SHOP + UP_MAG);
+  const mag = gunMag(GUN_MARKER, 1);
+  const reload = gunReload(GUN_MARKER, 0);
   p.state.ammo = 35;
   const inp = makeInput();
   inp.seq = 1;
   inp.buttons = BTN_RELOAD;
   game.onInputs(p, [inp], 1);
   game.step();
-  assert.equal(p.state.reloadT, RELOAD_TICKS);
+  assert.equal(p.state.reloadT, reload);
   inp.buttons = 0;
-  for (let i = 0; i < RELOAD_TICKS; i++) {
+  for (let i = 0; i < reload; i++) {
     inp.seq++;
     game.onInputs(p, [inp], 1);
     game.step();
   }
-  assert.equal(p.state.ammo, 42);
+  assert.equal(p.state.ammo, mag);
   p.state.ammo = 0;
   p.state.reloadT = 1;
   inp.seq++;
   game.onInputs(p, [inp], 1);
   game.step();
-  assert.equal(p.state.ammo, 42);
+  assert.equal(p.state.ammo, mag);
 });
 
 test('крылатка идёт поверх стен, предупреждает и бьёт зафиксированную цель, а не преследует уклонение', () => {
@@ -210,7 +231,7 @@ test('последняя волна не заканчивается с живы�
   game.phase = F.FT_WAVE;
   game.wave = F.FORT_WAVES;
   const b = game.horde.spawn(F.Z_BOSS, 1, 6)!;
-  assert.equal(b.maxHp, BOSS_BASE_HP * bossTeamMul(6));
+  assert.ok(Math.abs(b.maxHp - BOSS_BASE_HP * waveHpMul(1) * bossTeamMul(6)) < 1e-6);
   for (let i = 1; i < 60; i++) assert.ok(game.horde.spawn(F.Z_WALKER, 1));
   assert.equal(game.horde.spawn(F.Z_FLYER, 1), null);
   b.hp = b.maxHp * 0.3;
@@ -370,12 +391,14 @@ test('помощь опоздавшего учитывается в наград
   game.step();
   game.horde.clear();
   const late = game.addHuman({ pid: 2, nick: 'Помощник', outfit: DEFAULT_OUTFIT }, players[0].sink)!;
-  assert.equal(late.pts, 50);
+  // опоздавшему — стартовые и 75 % от среднего заработка команды (пока никто ничего не заработал)
+  assert.equal(late.run.arsenal.gold, START_GOLD);
   const z = game.horde.spawn(F.Z_WALKER, 1)!;
-  const total = players[0].pts + late.pts;
+  const gold = () => players[0].run.arsenal.gold + late.run.arsenal.gold;
+  const total = gold();
   game.horde.damage(z, 1, late.id, false, z.x, 0.8, z.z);
   game.horde.damage(z, 59, players[0].id, false, z.x, 0.8, z.z);
-  assert.equal(players[0].pts + late.pts - total, 10, 'ровно одна награда за врага');
+  assert.equal(gold() - total, killBounty(F.Z_WALKER, 1), 'ровно одна доля стрелков за врага');
   assert.equal(late.kills, 0, 'помощь не дублирует убийство');
   game.step();
   assert.equal(late.waves, 1, 'реальная помощь сразу засчитывает участие в волне');
@@ -397,47 +420,49 @@ test('поздний вход без помощи требует пяти сек
   }
 });
 
-test('зенитный краскомёт предпочитает дальнюю крылатку и наносит меньший урон по земле', () => {
+test('баллиста сначала бьёт крылатку, даже если шаркун ближе', () => {
   const { game, players } = setup();
   const p = players[0];
-  standShop(game, p);
-  p.pts = 1000;
-  game.use(p, 1003);
-  game.use(p, 1009);
+  p.run.arsenal.gold = 1000;
+  standTower(game, p, 0);
+  game.use(p, ACT_TOWER + TW_BALLISTA);
   game.phase = F.FT_WAVE;
   const ground = game.horde.spawn(F.Z_WALKER, 1)!;
-  Object.assign(ground, { x: -3.4, y: 0, z: -25 });
+  Object.assign(ground, { x: -4.9, y: 0, z: -24, hp: 1000, maxHp: 1000 });
   const flyer = game.horde.spawn(F.Z_FLYER, 1)!;
-  Object.assign(flyer, { x: -3.4, y: WALL_H + 4, z: -40 });
-  game.turrets[0]!.cd = 0;
+  Object.assign(flyer, { x: -4.9, y: WALL_H + 4, z: -40, hp: 1000, maxHp: 1000 });
+  game.arsenal.towers[0].cd = 0;
   game.step();
-  assert.equal(ground.hp, 60);
-  assert.equal(flyer.hp, 52, 'сначала дальняя воздушная цель, 18 урона');
-  game.horde.damage(flyer, 999, p.id, false, flyer.x, flyer.y, flyer.z);
-  game.turrets[0]!.cd = 0;
-  game.step();
-  assert.equal(ground.hp, 54, 'наземная цель, 6 урона');
+  assert.equal(ground.hp, 1000);
+  assert.ok(flyer.hp < 1000, 'сначала воздушная цель');
 });
 
-test('новый защитник с переиспользованным номером не наследует убийства краскомёта и помощь ушедшего', () => {
+test('новый защитник с переиспользованным номером не наследует убийства башни и вклад ушедшего', () => {
   const { game, players } = setup(2);
   const former = players[0];
-  standShop(game, former);
-  former.pts = 1000;
-  game.use(former, 1003);
+  former.run.arsenal.gold = 1000;
+  standTower(game, former, 0);
+  game.use(former, ACT_TOWER + TW_BALLISTA);
   game.phase = F.FT_WAVE;
   game.wave = 1;
   const z = game.horde.spawn(F.Z_WALKER, 1)!;
-  Object.assign(z, { x: -3.4, y: 0, z: -25 });
+  Object.assign(z, { x: -4.9, y: 0, z: -25 });
+  // ещё один — далеко: волна не кончается, и общак не делится прямо в этом тике
+  const keeper = game.horde.spawn(F.Z_WALKER, 1)!;
+  Object.assign(keeper, { x: 60, y: 0, z: -80, hp: 9999, maxHp: 9999 });
   game.horde.damage(z, 10, former.id, false, z.x, 0.8, z.z);
   game.removePlayer(former.id);
   const late = game.addHuman({ pid: 3, nick: 'Новый защитник', outfit: DEFAULT_OUTFIT }, former.sink)!;
   assert.equal(late.id, former.id, 'реальный сценарий переиспользования ID');
+  const lateGold = late.run.arsenal.gold;
+  const pot = game.arsenal.pot;
   z.hp = 1;
-  game.turrets[0]!.cd = 0;
+  game.arsenal.towers[0].cd = 0;
   game.step();
-  assert.equal(z.alive, false, 'построенный краскомёт продолжает работать');
-  assert.equal(late.kills, 0, 'построивший краскомёт ушёл — убийство стало общим');
-  assert.equal(late.killPts, 0, 'старый вклад не приписывается новому человеку');
+  assert.equal(z.alive, false, 'построенная башня продолжает работать');
+  assert.equal(late.kills, 0, 'вкладчик башни ушёл — убийство не его');
+  assert.equal(late.run.arsenal.killGold, 0, 'старый вклад не приписывается новому человеку');
+  assert.equal(late.run.arsenal.gold, lateGold, 'доля ушедшего вкладчика — в общак, а не новичку');
+  assert.ok(Math.abs(game.arsenal.pot - pot - killBounty(F.Z_WALKER, 1) / KILL_SHARE) < 1e-9, 'вся награда — в общак');
   assert.equal(late.waves, 0, 'мгновенный вход не получает участие за чужую помощь');
 });

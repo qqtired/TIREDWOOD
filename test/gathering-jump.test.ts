@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { KART_CHECK_EVERY, KART_COUNT_TICKS, ACT_RIDE } from '../shared/lobby.ts';
+import { KART_CHECK_EVERY, KART_COUNT_TICKS, ACT_REGATTA, ACT_RIDE } from '../shared/lobby.ts';
+import { RG_GATHER_TICKS } from '../shared/regatta.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START } from '../shared/maps/lobby.ts';
 import { BTN_FORWARD, BTN_JUMP } from '../shared/sim.ts';
 import { START_DWELL_TICKS, START_ZONES } from '../shared/startzones.ts';
@@ -15,13 +16,14 @@ for (const kind of ['paintball', 'fort', 'boatrace', 'hide', 'race'] as const) {
     placeAt(hub, a.c, circle.x, circle.z);
     if (b) placeAt(hub, b.c, circle.x + 0.6, circle.z);
     let apex = 0, previous = Infinity;
-    const deadline = dwell ? START_DWELL_TICKS + 1 : KART_COUNT_TICKS + KART_CHECK_EVERY;
+    // регата — в том же мире: по кругу сбора желейка садится в катер (действие), а не уходит в другую комнату
+    const deadline = dwell ? START_DWELL_TICKS + 1 : (kind === 'boatrace' ? RG_GATHER_TICKS : KART_COUNT_TICKS) + KART_CHECK_EVERY;
     for (let tick = 1; tick <= deadline; tick++) {
       sendInput(hub, a.c, tick % 60 === 10 ? BTN_JUMP : 0);
       if (b) sendInput(hub, b.c, 0);
       hub.step();
       const p = hub.lobby.playerOf(a.c);
-      if (!p) break;
+      if (!p || p.action === ACT_REGATTA) break;
       apex = Math.max(apex, p.state.y);
       if (tick < KART_CHECK_EVERY) continue;
       const status = dwell ? lastOf(a.s, 'startZone') : kind === 'boatrace' ? hub.lobby.boatStatus() : kind === 'hide' ? hub.lobby.hideStatus() : hub.lobby.kartStatus();
@@ -32,7 +34,8 @@ for (const kind of ['paintball', 'fort', 'boatrace', 'hide', 'race'] as const) {
       previous = status.left;
     }
     assert.ok(apex > 1.3, `real input must pass the old height gate; apex=${apex}`);
-    assert.equal(a.c.room?.kind, kind);
+    if (kind === 'boatrace') assert.equal(hub.lobby.playerOf(a.c)?.action, ACT_REGATTA);
+    else assert.equal(a.c.room?.kind, kind);
     if (b) assert.equal(b.c.room?.kind, kind);
   });
   test(`${kind}: roof height and held rides cannot enter a gathering circle`, () => {
@@ -81,14 +84,14 @@ test('kart host keeps the selected map and arrival order while jumping', () => {
   const a = login(hub, 'Host'), b = login(hub, 'Guest');
   placeAt(hub, a.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   placeAt(hub, b.c, KART_START.x + 0.6, KART_START.z); steps(hub, KART_CHECK_EVERY);
-  hub.onJson(a.c, { t: 'kartTrack', track: 'foundry' });
+  hub.onJson(a.c, { t: 'kartTrack', track: 'hills' });
   for (let tick = 0; tick < 60; tick++) {
     sendInput(hub, a.c, tick === 0 ? BTN_JUMP : 0); hub.step();
     const status = hub.lobby.kartStatus();
     assert.equal(status.hostId, hub.lobby.playerOf(a.c)!.slot);
-    assert.equal(status.track, 'foundry');
+    assert.equal(status.track, 'hills');
     assert.deepEqual(status.names, ['Host', 'Guest']);
   }
-  hub.onJson(b.c, { t: 'kartTrack', track: 'port' });
-  assert.equal(hub.lobby.kartStatus().track, 'foundry');
+  hub.onJson(b.c, { t: 'kartTrack', track: 'harbor' });
+  assert.equal(hub.lobby.kartStatus().track, 'hills');
 });

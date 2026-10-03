@@ -3,6 +3,7 @@
 import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, unlinkSync, writeSync } from 'node:fs';
 import path from 'node:path';
 import { AQUA_COURSE, addRecord, type AquaRecord } from '../shared/aqua.ts';
+import { RG_COURSE } from '../shared/regattacourse.ts';
 import { emptyStats, mskDay, type Stats } from '../shared/economy.ts';
 import { FISH, sanitizeAlbum, type FishAlbum } from '../shared/fishing.ts';
 import { FORT_TOP, type FortRunRec } from '../shared/fort.ts';
@@ -31,6 +32,8 @@ export interface Profile {
   /** Зарезервированные жетоны текущей раздачи: возвращаются один раз после аварийного рестарта. */
   blackjackEscrow?: { round: string; amount: number } | null;
   durakEscrow?: { round: string; amount: number } | null;
+  /** Улов на рулетке рыбака (его цена, жетонов) до остановки колеса: после аварийного рестарта возвращается жетонами. */
+  rouletteEscrow?: { round: string; amount: number } | null;
   /** Купленные и выигранные вещи: 'h:tophat', 'p:gold'… */
   owned: string[];
   outfit: Outfit;
@@ -61,6 +64,12 @@ export interface State {
    * в профилях сбрасывается: старые времена с новыми несравнимы (сколько раз прошёл — остаётся)
    */
   aquaCourse: number;
+  /**
+   * «Портовая регата»: пять лучших кругов бухты (мс; у каждого — только свой лучший) и для какой трассы (RG_COURSE).
+   * Трасса новая — доска пустеет (личные лучшие круги — у каждой трассы своё поле в статистике).
+   */
+  regatta: AquaRecord[];
+  regattaCourse: string;
   /** Пять отдельных крупнейших уловов календарного дня по Москве; не личные рекорды игроков. */
   fishPodium: { day: string; catches: FishPodiumCatch[] };
   /** Сроки общих событий, абсолютные миллисекунды; переживают перезапуск. */
@@ -81,7 +90,7 @@ const FILE = 'state.json';
 const BACKUP_RE = /^state-\d{4}-\d{2}-\d{2}\.json$/;
 
 function emptyState(): State {
-  return { v: 1, nextId: 1, jackpot: POOL_MIN, lastJackpot: null, respects: 0, aqua: [], aquaCourse: AQUA_COURSE, fishPodium: { day: '', catches: [] }, lobbyEvents: { stormAt: 0, piratesAt: 0, endedAt: 0, lockUntil: 0 }, profiles: [] };
+  return { v: 1, nextId: 1, jackpot: POOL_MIN, lastJackpot: null, respects: 0, aqua: [], aquaCourse: AQUA_COURSE, regatta: [], regattaCourse: RG_COURSE, fishPodium: { day: '', catches: [] }, lobbyEvents: { stormAt: 0, piratesAt: 0, endedAt: 0, lockUntil: 0 }, profiles: [] };
 }
 
 function num(v: unknown, fallback = 0): number {
@@ -129,6 +138,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
     xp, level: levelFromXp(xp), levelsVersion: LEVELS_VERSION, fishingResetVersion: FISHING_RESET_VERSION,
     blackjackEscrow: normalizeBlackjackEscrow(r.blackjackEscrow),
     durakEscrow: normalizeBlackjackEscrow(r.durakEscrow),
+    rouletteEscrow: normalizeBlackjackEscrow(r.rouletteEscrow),
     owned,
     outfit: r.outfit ? sanitizeOutfit(r.outfit, owned) : { ...DEFAULT_OUTFIT },
     daily: typeof r.daily === 'string' ? r.daily : '',
@@ -162,6 +172,8 @@ function parseState(text: string): State {
     respects: Math.max(0, Math.floor(num(raw.respects))),
     aqua: sameCourse ? parseAqua(raw.aqua) : [],
     aquaCourse: AQUA_COURSE,
+    regatta: raw.regattaCourse === RG_COURSE ? parseAqua(raw.regatta) : [],
+    regattaCourse: RG_COURSE,
     fishPodium: parseFishPodium(raw.fishPodium),
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)

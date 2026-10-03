@@ -12,11 +12,12 @@ import {
   Z_BOSS, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   ZS_BOAT, ZS_HOP,
+  ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, ZS_TENT_REST, ZS_TENT_SLAM, Z_KRAKEN, Z_TENTACLE,
   isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
 import {
-  ARMOR_MIN_PASS, BOSS_BASE_HP, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders, shieldHp, teamHpMul,
-  waveHpMul,
+  ARMOR_MIN_PASS, BOSS_BASE_HP, EV_GOLD, GOLD_HASTE, TIER_CHAMP, TIER_DMG, TIER_HP, TIER_SPEED, armorFor, bossTeamMul, defenders,
+  shieldHp, teamHpMul, waveHpMul,
 } from '../../shared/fortwaves.ts';
 import {
   BARREL_CRYSTAL, BARREL_GATE, BARREL_PLAYER, BARREL_R, BARREL_SHOT_MUL, BARREL_ZOMBIE, CHAMP_AURA_R, CHAMP_HASTE, FUSE_TICKS,
@@ -26,6 +27,7 @@ import {
 } from '../../shared/fortkinds.ts';
 import { CLIMBS, CLIMB_SEA_E, CLIMB_SEA_W, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
+import { KRAKEN_DIVE_R, KRAKEN_SPIT_R, TENT_SLAM_R } from '../../shared/fortkraken.ts';
 import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
 import { stepLeshy } from './boss-leshy.ts';
 import { stepPumpkin } from './boss-pumpkin.ts';
@@ -33,6 +35,7 @@ import { stepWeaver } from './boss-weaver.ts';
 import { Z_LESHY, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
 import { newBossRadius } from '../../shared/fortbosses.ts';
 import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
+import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
@@ -232,6 +235,7 @@ export class Horde {
     this.replan = null;
     this.hpScale = 1;
     this.dmgMul = 1;
+    this.haste = 1;
   }
 
   /**
@@ -245,9 +249,11 @@ export class Horde {
     this.hpHumans = plan.defenders;
     this.hpScale = plan.hpScale;
     this.dmgMul = plan.dmgMul;
+    this.haste = plan.event === EV_GOLD ? GOLD_HASTE : 1;
     const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
     if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
     for (const b of plan.boats) queue.push({ at: tick + b.at, kind: Z_BOAT, road: 1, tier: 0, lane: b.lane, crew: b.crew, tiers: b.tiers });
+    if (plan.kraken) queue.unshift({ at: tick + 30, kind: Z_KRAKEN, road: 1, tier: 0 });
     this.queue = queue.sort((a, b) => a.at - b.at);
     this.queueAt = 0;
   }
@@ -256,9 +262,10 @@ export class Horde {
   private wave = 0;
   private plan: WavePlan | null = null;
   private replan: ((humans: number) => WavePlan) | null = null;
-  /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul */
+  /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul; скорость пеших и крылаток × haste (лихорадка) */
   hpScale = 1;
   dmgMul = 1;
+  haste = 1;
 
   get defenders(): number { return this.hpHumans; }
 
@@ -402,7 +409,9 @@ export class Horde {
   damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
-    if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    if (z.kind === Z_KRAKEN || z.kind === Z_TENTACLE) dmg *= krakenArmor(this, z);
+    else if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
       const armor = armorFor(Math.max(1, this.wave)) * (1 + 0.5 * z.tier);
@@ -438,8 +447,32 @@ export class Horde {
       const d = Math.hypot(o.x - x, o.y + k.hcy - y, o.z - z) - Math.max(k.hrx, k.hry) * 0.6;
       if (d > r) continue;
       let amount = dmg;
-      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (o.kind === Z_KRAKEN || o.kind === Z_TENTACLE) amount *= krakenArmor(this, o);
+      else if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (!(amount > 0)) continue;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
+      hits++;
+    }
+    this.drainPops();
+    return hits;
+  }
+
+  /**
+   * Удар сверху (метеор): всем в круге r по горизонтали (по высоте — от 1,5 м ниже до 3 м выше точки удара) — доля
+   * frac их макс. HP. Щит и кастрюля не спасают, броня боссов вне окна — как от выстрела. Лодки и крылатки в небе —
+   * мимо. Сбитые — ничьи (by 0). Возвращает, скольких задело.
+   */
+  skyStrike(x: number, y: number, z: number, r: number, frac: number): number {
+    if (!(frac > 0) || !(r > 0)) return 0;
+    let hits = 0;
+    for (const o of this.zombies) {
+      if (!o.alive || o.kind === Z_BOAT) continue;
+      if (o.y < y - 1.5 || o.y > y + 3) continue;
+      const k = ZK[o.kind];
+      if (Math.hypot(o.x - x, o.z - z) > r + k.r) continue;
+      let amount = o.maxHp * frac;
+      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      this.hurt(o, amount, 0, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
     this.drainPops();
@@ -641,6 +674,8 @@ export class Horde {
       else if (z.kind === Z_BOSS) stepBaron(this.bossCtx, z);
       else if (z.kind === Z_RAM) stepRam(this.bossCtx, z);
       else if (z.kind === Z_GOLEM) stepGolem(this.bossCtx, z);
+      else if (z.kind === Z_KRAKEN) stepKraken(this.bossCtx, z);
+      else if (z.kind === Z_TENTACLE) stepTentacle(this.bossCtx, z);
       else if (z.kind === Z_PUMPKIN) stepPumpkin(this.bossCtx, z);
       else if (z.kind === Z_WEAVER) stepWeaver(this.bossCtx, z);
       else if (z.kind === Z_LESHY) stepLeshy(this.bossCtx, z);
@@ -724,7 +759,7 @@ export class Horde {
     const dz = tz - 4.5 - z.z;
     const d = Math.hypot(dx, dy, dz);
     if (d > 1.2) {
-      const move = Math.min(d, ZK[Z_FLYER].speed * (TIER_SPEED[z.tier] ?? 1) * DT);
+      const move = Math.min(d, ZK[Z_FLYER].speed * (TIER_SPEED[z.tier] ?? 1) * this.haste * DT);
       z.x += dx / d * move;
       z.y += dy / d * move;
       z.z += dz / d * move;
@@ -994,7 +1029,7 @@ export class Horde {
     }
 
     z.state = attacking ? ZS_ATTACK : ZS_WALK;
-    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * host.slow(z.x, z.z);
+    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * this.haste * host.slow(z.x, z.z);
     z.vx += (dx * speed - z.vx) * 0.25;
     z.vz += (dz * speed - z.vz) * 0.25;
     z.x += z.vx * DT;
@@ -1209,7 +1244,7 @@ export class Horde {
       s.state = z.state;
       s.flags = z.tier | (z.crew ? ZF_CREW : 0) | (z.shield > 0 ? ZF_SHIELD : 0) | (z.carry ? ZF_CARRY : 0)
         | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0)
-        | (isBossKind(z.kind) && raging(z) ? ZF_RAGE : 0);
+        | (isBossKind(z.kind) && raging(z) || tentacleRage(z) ? ZF_RAGE : 0);
       s.r = attackRadius(z.state);
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
@@ -1277,6 +1312,10 @@ function attackRadius(state: number): number {
     case ZS_STOMP: return STOMP_R;
     case ZS_THROW: return ROCK_R;
     case ZS_QUAKE: return QUAKE_R;
+    case ZS_TENT_SLAM:
+    case ZS_TENT_REST: return TENT_SLAM_R;
+    case ZS_KRAKEN_SPIT: return KRAKEN_SPIT_R;
+    case ZS_KRAKEN_DIVE: return KRAKEN_DIVE_R;
     // новые боссы (Король-Тыква, Ткачиха, Леший) — shared/fortbosses.ts
     default: return newBossRadius(state);
   }

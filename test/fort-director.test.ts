@@ -11,6 +11,7 @@ import {
   EARLY_BONUS, FT_TOK_RECORD, TIER_CHAMP, TIER_ELITE, boatCount, bossArchetype, bossTier, breakSecondsAfter, crewSize, isBossWave,
   isSeaWave, isSuperWave, superTier,
 } from '../shared/fortwaves.ts';
+import { killBounty } from '../shared/fortarsenal.ts';
 import { ALL_FEATURES, FEATURES, planCounts, planWave } from '../server/fort/director.ts';
 import { FortGame } from '../server/fort/game.ts';
 import { addFortRun, parseFortTop, Store } from '../server/store.ts';
@@ -62,12 +63,14 @@ test('расписание: босс каждые 7 волн по кругу (Б
   assert.equal(planWave(25, 1, 3, undefined, ALL_FEATURES).kraken, true);
   assert.equal(planWave(10, 1, 3, undefined, ALL_FEATURES).boats.length, 1);
   assert.equal(planWave(10, 1, 3, undefined, ALL_FEATURES).boats[0].crew.length, 4);
-  // в игре: шесть боссов по кругу (новые — с 28-й), десант с 10-й; пока Кракена нет — на супер-волне Барон кругом выше
+  // в игре: шесть боссов по кругу (новые — с 28-й), десант с 10-й, на супер-волне — Кракен (и десант)
   assert.deepEqual([7, 14, 21, 28, 35, 42, 49].map((w) => planWave(w, 1, 3, undefined, FEATURES).boss),
     [F.Z_BOSS, F.Z_RAM, F.Z_GOLEM, F.Z_PUMPKIN, F.Z_WEAVER, F.Z_LESHY, F.Z_BOSS]);
   assert.equal(planWave(28, 1, 3, undefined, FEATURES).bossTier, 0, 'на 28-й — Король-Тыква, первый круг');
   assert.equal(planWave(49, 1, 3, undefined, FEATURES).bossTier, 1, 'на 49-й — Барон II');
-  assert.equal(planWave(25, 1, 3, undefined, FEATURES).boss, F.Z_BOSS);
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).kraken, true, 'на 25-й — Кракен');
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).boss, -1);
+  assert.equal(planWave(25, 1, 3, undefined, FEATURES).card.boss, F.Z_KRAKEN);
   assert.equal(planWave(10, 1, 3, undefined, FEATURES).boats.length, 1);
   assert.equal(planWave(25, 1, 3, undefined, FEATURES).boats.length, 2, 'на супер-волне — десант');
 });
@@ -145,10 +148,11 @@ test('«вызвать волну раньше»: все в колокол в п
   game.step();
   assert.equal(game.phase, F.FT_WAVE);
   const z = game.horde.spawn(F.Z_WALKER, 1)!;
-  const before = players[0].pts + players[1].pts;
+  // золото — у арсенала: стрелку доля KILL_SHARE от награды × (1 + EARLY_BONUS), остальное — в общак волны
+  const before = players[0].run.arsenal.gold + players[1].run.arsenal.gold;
   game.horde.damage(z, 1e9, players[0].id, false, z.x, 1, z.z);
-  const gained = players[0].pts + players[1].pts - before;
-  assert.equal(gained, Math.round(F.fortBounty(F.Z_WALKER, 0, 2, false) * (1 + EARLY_BONUS)));
+  const gained = players[0].run.arsenal.gold + players[1].run.arsenal.gold - before;
+  assert.equal(gained, Math.round(killBounty(F.Z_WALKER, 2) * (1 + EARLY_BONUS)));
   // следующая передышка — без бонуса
   clearWave(game, players[0].id);
   assert.equal(game.early, false);

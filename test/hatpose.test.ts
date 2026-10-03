@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { ITEMS } from '../shared/outfit.ts';
-import { BODY_H, bodyR, wearOf } from '../client/render/outfit3d.ts';
+import { BODY_H, bodyR } from '../client/render/outfit3d.ts';
+import { wearFor as wearOf } from '../client/render/outfitfish.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial, posedHatPoint } from '../client/render/hatpose.ts';
 
 function bodyAt(x: number, y: number, z: number, time: number, wobble: number, lean: THREE.Vector2): THREE.Vector3 {

@@ -57,6 +57,11 @@ const FOOL_R = 0.26;
 const HEAD_Y = 1.33;
 /** Лицо сидящей желейки — на столько ближе стула к середине стола (глаза у неё спереди) */
 const FACE_IN = 0.42;
+/** Сидящая желейка для клика-помидора по экрану: отрезок от таза до макушки; радиус тела — для размера на экране */
+const BODY_LOW_Y = 0.5;
+const BODY_TOP_Y = 1.62;
+const BODY_IN = 0.25;
+export const TORSO_R = 0.42;
 /** Полёты: сыграли, подвинулись, ушли в бито / в руку, погасли; раздача и добор — по одной */
 const PLAY_S = 0.32;
 const MOVE_S = 0.28;
@@ -371,6 +376,19 @@ export class DurakTables3D {
     if (!tb || !it || !this.allowedTables.has(t)) return out.set(0, -100, 0);
     const a = tb.angles[ch];
     return out.set(it.x - Math.sin(a) * FACE_IN, it.y + HEAD_Y, it.z - Math.cos(a) * FACE_IN);
+  }
+
+  /** Сидящий на стуле как отрезок «таз — макушка»: по нему ловится клик-помидор (радиус на экране вокруг отрезка). */
+  bodyEnds(t: number, ch: number, low: THREE.Vector3, top: THREE.Vector3): boolean {
+    const tb = this.tables[t];
+    const it = tb?.chairs[ch];
+    if (!tb || !it || !this.allowedTables.has(t)) return false;
+    const a = tb.angles[ch];
+    const x = it.x - Math.sin(a) * BODY_IN;
+    const z = it.z - Math.cos(a) * BODY_IN;
+    low.set(x, it.y + BODY_LOW_Y, z);
+    top.set(x, it.y + BODY_TOP_Y, z);
+    return true;
   }
 
   /** Помидор летит из from в to; done — когда долетел. */

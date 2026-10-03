@@ -9,16 +9,16 @@ export const Z_BRUTE = 2;
 export const Z_CLIMBER = 3;
 export const Z_BLOATER = 4;
 export const Z_FLYER = 5;
-/** Барон Варенья — босс 7, 28, 49 … */
+/** Барон Варенья — босс 7, 49, 91 … (круг из шести — BOSS_CYCLE) */
 export const Z_BOSS = 6;
 export const Z_SHIELD = 7;
 export const Z_SPITTER = 8;
 export const Z_SAPPER = 9;
 export const Z_MEDIC = 10;
 export const Z_ARMORED = 11;
-/** Таран — босс 14, 35, 56 … */
+/** Таран — босс 14, 56, 98 … */
 export const Z_RAM = 12;
-/** Валун — босс 21, 42, 63 … */
+/** Валун — босс 21, 63, 105 … */
 export const Z_GOLEM = 13;
 export const Z_BOAT = 14;
 export const Z_TENTACLE = 15;
@@ -30,6 +30,9 @@ export const Z_WEAVER = 18;
 /** Леший — босс 42, 84, 126 … */
 export const Z_LESHY = 19;
 export const Z_KINDS = 20;
+
+/** Боссы по кругу на 7-й, 14-й, 21-й … волне (директор — FEATURES.bosses, интерфейс — «дальше босс») */
+export const BOSS_CYCLE: readonly number[] = [Z_BOSS, Z_RAM, Z_GOLEM, Z_PUMPKIN, Z_WEAVER, Z_LESHY];
 
 /** Признаки типа — для правил и автобашен arsenal: летит, на воде, босс, в броне, часть супер-босса */
 export const KF_AIR = 1;
@@ -88,8 +91,8 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Таран', hp: 2200, speed: 2.6, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.4, hry: 2.2, hcy: 2.1, headY: 3.3, color: 0x9a6239, icon: '🐗', hint: 'разгоняется по красной дорожке · уйди с неё' },
   { name: 'Валун', hp: 2200, speed: 1.9, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.3, hrx: 2.5, hry: 3.1, hcy: 3.0, headY: 4.6, color: 0x8f9188, icon: '🪨', hint: 'бросает камни в стену · следи за тенью' },
   { name: 'Лодка', hp: 300, speed: 4.0, gateDps: 0, crystalDps: 0, hit: 0, pts: 150, cost: 0, first: NEVER, flags: KF_SEA, r: 1.6, hrx: 1.55, hry: 0.75, hcy: 0.35, headY: 99, color: 0x8a5a34, icon: '⛵', hint: 'десант с моря · потопи до берега' },
-  { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.15, hry: 3.6, hcy: 3.4, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по морской стене · руби щупальца' },
-  { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'голова всплывает в бухте · бей в глаз' },
+  { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.25, hry: 1.05, hcy: 0.95, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по стене и берегу · руби булаву, пока лежит после удара' },
+  { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'руби щупальца, пока лежат после удара · без них голова открыта' },
   { name: 'Король-Тыква', hp: 2200, speed: 2.0, gateDps: 0, crystalDps: 0, hit: 26, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.1, hrx: 2.3, hry: 2.05, hcy: 2.05, headY: 3.1, color: 0xe8822e, icon: '🎃', hint: 'сеет тыквят и катится вдоль стены · прыгай, когда круг под тобой' },
   { name: 'Ткачиха', hp: 2200, speed: 2.4, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.2, hry: 1.8, hcy: 1.9, headY: 2.4, color: 0x7a3f86, icon: '🕷', hint: 'висит на стене, плетёт паутину · рви паутину выстрелами' },
   { name: 'Леший', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 1.8, hrx: 1.9, hry: 3.4, hcy: 3.4, headY: 4.3, color: 0x6f5a3c, icon: '🌳', hint: 'корни из-под земли, лечит армию · сбей колдовство залпом' },

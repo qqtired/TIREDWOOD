@@ -1,1 +1,297 @@
-.hide-hud{position:absolute;inset:0;pointer-events:none;color:#fff7e8;font-family:Rubik,system-ui,sans-serif}.hide-hud[hidden],.hide-hud [hidden]{display:none!important}.hide-panel{position:absolute;left:20px;top:20px;width:min(360px,calc(100% - 40px));padding:16px 18px;background:rgba(19,33,37,.9);border:1px solid rgba(232,212,169,.35);border-radius:16px;box-shadow:0 6px 24px #0002}.hide-eyebrow{font-size:11px;letter-spacing:.12em;color:#e8c680}.hide-panel h2{font-size:24px;margin:8px 0}.hide-time{font-size:18px;font-variant-numeric:tabular-nums}.hide-info{font-size:12px;line-height:1.5;opacity:.85;margin-bottom:0}.hide-notice{font-size:13px;color:#eace94;min-height:1em;margin-bottom:0}.hide-forms,.hide-actions{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);display:flex;gap:7px;max-width:calc(100% - 30px);pointer-events:auto;flex-wrap:wrap;justify-content:center}.hide-actions{bottom:24px}.hide-hud button{font:500 13px Rubik,system-ui,sans-serif;color:#fff6e8;border:1px solid #bfa16b;background:#243c42;padding:10px 13px;border-radius:10px;white-space:nowrap;cursor:pointer}.hide-hud button.selected{background:#ae803b;color:#fff}.hide-hud button:disabled{opacity:.45;cursor:default}.hide-hud button:focus-visible{outline:3px solid #fff;outline-offset:3px}.hide-cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:26px;text-shadow:0 1px 3px #000}.hide-blind{position:absolute;inset:0;background:#17282d;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:2}.hide-blind strong{font-size:30px}.hide-blind span{font-size:18px}.hide-actions{z-index:3}@media(max-width:600px){.hide-panel{left:10px;top:10px;padding:10px 12px;width:250px}.hide-panel h2{font-size:18px}.hide-info{display:none}.hide-forms{bottom:112px}.hide-actions{bottom:68px}.hide-hud button{font-size:11px;padding:9px}.hide-actions [data-a="leave"]{display:none}}
+/* Прятки «Рыбный двор»: эмалированные таблички порта — тёмные карточки с кремовым текстом, жёлтые акценты,
+   розовая краска ловцов. Без backdrop-filter: интерфейс не ест кадр. */
+
+.hd {
+  color: var(--cream);
+  font-size: 15px;
+}
+
+.hd kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 0.35em;
+  margin: 0 0.15em;
+  border-radius: 6px;
+  background: var(--cream);
+  color: var(--ink);
+  font: 700 0.82em/1.5 Rubik, system-ui, sans-serif;
+  text-align: center;
+  text-shadow: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* --- верх: раунд, время, сколько прячется */
+.hd-top {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.hd-round, .hd-left { font-size: 14px; opacity: 0.85; }
+.hd-time { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 70px; text-align: center; }
+.hd-time.final { color: var(--jam-soft); animation: hd-pulse 1s ease-in-out infinite; }
+@keyframes hd-pulse { 50% { transform: scale(1.12); } }
+
+/* --- кто ты */
+.hd-role {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px 9px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--gold);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  max-width: 280px;
+}
+.hd-role b { font-size: 18px; }
+.hd-role span { font-size: 13px; opacity: 0.8; }
+.hd-role.hunter { border-left-color: #ff3d9a; }
+.hd-role.caught { border-left-color: var(--jam); }
+.hd-role.spectator { border-left-color: var(--steel); }
+
+/* --- лента */
+.hd-feed {
+  position: absolute;
+  top: 64px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  max-width: min(46vw, 460px);
+}
+.hd-line {
+  padding: 5px 12px;
+  background: var(--panel-strong);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.3;
+  animation: hd-in 0.25s ease-out;
+  transition: opacity 0.6s;
+}
+.hd-line.big { font-size: 16px; font-weight: 700; color: var(--gold); }
+.hd-line.out { opacity: 0; }
+@keyframes hd-in { from { transform: translateX(30px); opacity: 0; } }
+
+/* --- прицел и подсказка */
+.hd-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+}
+.hd-cross.gun { border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.hd-cross.gun::after { content: ''; position: absolute; left: 8px; top: 8px; width: 2px; height: 2px; background: #fff; border-radius: 50%; }
+.hd-cross.dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4); }
+.hd-cross.off { display: none; }
+.hd-hit { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; opacity: 0; }
+.hd-hit::before, .hd-hit::after { content: ''; position: absolute; left: 16px; top: -4px; width: 2px; height: 42px; background: #ff3d9a; transform: rotate(45deg); }
+.hd-hit::after { transform: rotate(-45deg); }
+.hd-hit.on { opacity: 1; transition: opacity 0.25s; }
+.hd-hit.big { transform: scale(1.5); }
+.hd-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 26px);
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  background: var(--panel-strong);
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.hd-hint.on { opacity: 1; }
+
+/* --- низ: панель прячущегося и ловца */
+.hd-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.hd-panel.off { display: none; }
+.hd-kind { font-size: 17px; font-weight: 800; }
+.hd-blobs { display: flex; gap: 6px; }
+.hd-blobs i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50% 45% 55% 48%;
+  border: 2px dashed rgba(255, 243, 222, 0.55);
+}
+.hd-blobs i.hit { background: #ff3d9a; border: 2px solid #ff3d9a; box-shadow: 0 0 8px rgba(255, 61, 154, 0.7); }
+.hd-lock { font-size: 13px; opacity: 0.75; }
+.hd-lock.on { opacity: 1; color: var(--gold); font-weight: 700; }
+.hd-taunt { display: flex; flex-direction: column; font-size: 14px; }
+.hd-taunt small { font-size: 12px; opacity: 0.7; }
+.hd-tank { width: 220px; height: 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.hd-tank i { display: block; height: 100%; background: linear-gradient(90deg, #ff3d9a, #ff8fc4); transition: width 0.2s; }
+.hd-panel.jam .hd-tank i { background: #8a8f96; }
+.hd-panel.jam .hd-kind { color: var(--jam-soft); }
+.hd-tip { font-size: 13px; opacity: 0.75; }
+
+/* --- личные подсказки и очки */
+.hd-note {
+  position: absolute;
+  left: 50%;
+  bottom: 86px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: var(--panel-strong);
+  border-radius: 10px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.hd-note.on { opacity: 1; }
+.hd-pts { position: absolute; left: 50%; top: 38%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+.hd-pop { color: var(--gold); font-size: 20px; font-weight: 800; animation: hd-up 1.6s ease-out forwards; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+@keyframes hd-up { from { transform: translateY(10px); opacity: 0; } 15% { opacity: 1; } to { transform: translateY(-40px); opacity: 0; } }
+
+/* --- памятка прячущемуся */
+.hd-help {
+  position: absolute;
+  left: 14px;
+  bottom: 18px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  max-width: 330px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.hd-help.on { display: flex; }
+.hd-help b { font-size: 15px; color: var(--gold); }
+
+/* --- поверх: ожидание, слепота ловца, итоги */
+.hd-over { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+.hd-over.on { display: flex; }
+.hd-card {
+  min-width: 360px;
+  max-width: min(92vw, 560px);
+  padding: 22px 28px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.hd-card h2 { margin: 0 0 8px; font-size: 26px; }
+.hd-card p { margin: 6px 0; }
+.hd-card .dim, .hd .dim { opacity: 0.65; }
+.hd-card.small { min-width: 0; padding: 14px 22px; transform: translateY(-22vh); }
+.hd-card.blind { background: rgba(24, 16, 20, 0.93); }
+.hd-card ul { margin: 12px 0 0; padding: 0 0 0 18px; text-align: left; font-size: 14px; line-height: 1.55; }
+.hd-big { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold); }
+.hd-lines { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; font-size: 16px; }
+.win-hunters { color: #ff8fc4; }
+.win-props { color: var(--mint); }
+.hd-table { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
+.hd-tr { display: grid; grid-template-columns: 1fr 64px 64px 84px; gap: 8px; padding: 4px 10px; border-radius: 8px; text-align: left; font-variant-numeric: tabular-nums; }
+.hd-tr.me { background: rgba(255, 211, 90, 0.16); }
+.hd-tr b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hd-tr .tok { color: var(--gold); }
+.hd-podium { display: flex; justify-content: center; align-items: flex-end; gap: 14px; margin: 14px 0; }
+.hd-place { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; min-width: 120px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); }
+.hd-place i { font-size: 34px; font-style: normal; }
+.hd-place.p1 { order: 2; padding-bottom: 34px; background: rgba(255, 211, 90, 0.18); }
+.hd-place.p2 { order: 1; padding-bottom: 20px; }
+.hd-place.p3 { order: 3; }
+
+/* --- таблица по Tab */
+.hd-board {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  display: none;
+  min-width: 380px;
+  padding: 14px 18px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.hd-board.on { display: block; }
+.hd-board h3 { margin: 0 0 8px; text-align: center; }
+.hd-board .hd-tr { grid-template-columns: 28px 1fr 60px 60px; }
+.hd-board i { font-style: normal; }
+
+/* --- финал: края экрана теплеют */
+.hd.hd-final::before { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 90px rgba(255, 70, 90, 0.28); animation: hd-glow 1s ease-in-out infinite; }
+@keyframes hd-glow { 50% { opacity: 0.4; } }
+
+/* --- телефон: кнопки прячущегося */
+.hd-touch { position: absolute; right: 150px; bottom: 120px; display: none; gap: 10px; pointer-events: auto; }
+.hd.prop-touch .hd-touch { display: flex; }
+.hd-tb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--panel-strong);
+  color: var(--cream);
+  font-size: 11px;
+}
+.hd-tb i { font-size: 22px; font-style: normal; }
+
+@media (max-width: 720px) {
+  .hd-top { gap: 8px; padding: 4px 12px; }
+  .hd-time { font-size: 19px; }
+  .hd-round { display: none; }
+  .hd-role { max-width: 200px; padding: 6px 10px; }
+  .hd-feed { top: 54px; max-width: 60vw; }
+  .hd-card { min-width: 0; padding: 16px 18px; }
+  .hd-tr { grid-template-columns: 1fr 48px 48px 64px; }
+  .hd-panel { gap: 10px; padding: 8px 12px; bottom: 10px; }
+  .hd-tank { width: 140px; }
+}
+
+/* --- телефон вертикально: верх не налезает на кнопки игры, панель и кнопки прячущегося — над джойстиком */
+@media (max-width: 520px) {
+  .hd-top { top: 62px; }
+  .hd-role { top: 106px; left: 8px; max-width: 180px; padding: 5px 9px; }
+  .hd-role b { font-size: 15px; }
+  .hd-role span { font-size: 11px; }
+  .hd-feed { top: 106px; right: 8px; max-width: 50vw; font-size: 12px; }
+  .hd-panel { bottom: 290px; max-width: calc(100vw - 16px); }
+  .hd-tank { width: 110px; }
+  .hd-panel .hd-tip { display: none; }
+  .hd-touch { left: 8px; right: auto; bottom: 150px; width: 140px; flex-wrap: wrap; }
+}
+/* памятка с клавишами на сенсорном экране не нужна */
+@media (pointer: coarse) { .hd-help { display: none !important; } }

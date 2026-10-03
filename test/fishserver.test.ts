@@ -7,6 +7,7 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FISH } from '../shared/fishing.ts';
+import { emptyFishProgress } from '../shared/fishprogress.ts';
 import { buildFishTop, FishBoard } from '../server/lobby/fishtop.ts';
 import { Weather } from '../server/lobby/weather.ts';
 import { Profiles } from '../server/profiles.ts';
@@ -30,7 +31,7 @@ function setup() {
 
 test('старый профиль получает пустую прогрессию, сохраняет прежнюю статистику и восстанавливает максимальный вес настоящей рыбы', () => {
   const p = normalizeProfile({ id: 8, nick: 'Старый', stats: { fsFish: 8, fsGrams: 2400 }, album: { scad: [300, 8], chest: [9000, 1] } })!;
-  assert.deepEqual(p.fishing, { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0 });
+  assert.deepEqual(p.fishing, emptyFishProgress());
   assert.equal(p.stats.fsFish, 8);
   assert.equal(p.stats.fsGrams, 2400);
   assert.equal(p.stats.fsMaxGrams, 300, 'сундук не становится крупнейшей рыбой');
@@ -94,7 +95,7 @@ test('удочки после1/5/10 квестов: лучшая новая вы
 
 test('прогресс и подиум переживают атомарную запись и перезапуск без начисления повторных наград', () => {
   const e = setup();
-  e.p.fishing = { xp: 15000, questsDone: 10, questCaught: 2, rod: 3, beerUntil: e.clock.now + 500000 };
+  e.p.fishing = { xp: 15000, questsDone: 10, questCaught: 2, rod: 3, beerUntil: e.clock.now + 500000 , aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
   e.p.stats.fsCasts = 40;
   e.p.stats.fsBites = 38;
   e.p.stats.fsLost = 5;
@@ -187,7 +188,7 @@ test('старый v1 файл безопасно мигрирует; повре
   const migrated = new Store(e.dir, { now: () => e.clock.now, log: () => {} });
   migrated.load();
   assert.equal(migrated.state.profiles.length, 1);
-  assert.deepEqual(migrated.state.profiles[0].fishing, { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0 });
+  assert.deepEqual(migrated.state.profiles[0].fishing, emptyFishProgress());
   assert.equal(migrated.state.profiles[0].tokens, 90);
   assert.equal(migrated.state.profiles[0].stats.fsFish, 8);
   assert.equal(migrated.state.profiles[0].stats.fsMaxGrams, 300);

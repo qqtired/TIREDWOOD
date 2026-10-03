@@ -1,9 +1,11 @@
 // «Крепость»: десант с моря — лодка плывёт к берегу, экипаж прыгает на берег и лезет через морскую стену во двор;
-// потопленная лодка топит экипаж (награда — тем, кто топил); пустая лодка уходит без награды.
+// потопленная лодка топит экипаж (за экипаж — тем, кто топил, за лодку — команде поровну); пустая лодка уходит без
+// награды.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as F from '../shared/fort.ts';
-import { BOAT_LANE_X, HOP_EVERY, fortBounty } from '../shared/fortkinds.ts';
+import { BOAT_LANE_X, HOP_EVERY } from '../shared/fortkinds.ts';
+import { BOAT_BOUNTY, bountyMul, killBounty } from '../shared/fortarsenal.ts';
 import { CLIMB_SEA_E, CLIMB_SEA_W, insideFort } from '../shared/fortmap.ts';
 import { FortGame } from '../server/fort/game.ts';
 import { planWave, type WavePlan } from '../server/fort/director.ts';
@@ -67,21 +69,24 @@ test('лодка: выходит в море, ~25 с до берега, экип
   assert.equal(game.horde.left, crew, 'пустая лодка ушла без награды');
 });
 
-test('лодку потопили до берега — экипаж тонет, награда тем, кто топил', () => {
-  const { game, players, events } = setup();
+test('лодку потопили до берега — экипаж тонет: за экипаж — тем, кто топил, за лодку — команде поровну', () => {
+  const { game, players, events } = setup(2);
   const plan = seaOnly();
   const crew = plan.boats[0].crew;
   game.horde.startWave(plan, game.tick);
   until(game, () => !!boatOf(game));
   const boat = boatOf(game)!;
-  const pts = players[0].pts;
+  const gold0 = players[0].run.arsenal.gold;
+  const gold1 = players[1].run.arsenal.gold;
   game.horde.damage(boat, 1e7, players[0].id, false, boat.x, boat.y, boat.z);
   assert.equal(boat.alive, false);
   assert.equal(game.horde.cargo, 0);
   assert.equal(game.horde.left, 0, 'и лодка, и экипаж — сбиты');
-  let want = fortBounty(F.Z_BOAT, 0, game.wave, false);
-  crew.forEach((k, i) => { want += fortBounty(k, plan.boats[0].tiers[i], game.wave, true); });
-  assert.equal(players[0].pts - pts, want);
+  const team = Math.round((BOAT_BOUNTY * bountyMul(game.wave)) / 2);
+  let want = team;
+  crew.forEach((k, i) => { want += Math.round(killBounty(k, game.wave, plan.boats[0].tiers[i], true)); });
+  assert.equal(players[0].run.arsenal.gold - gold0, want, 'топил: доли экипажа и половина за лодку');
+  assert.equal(players[1].run.arsenal.gold - gold1, team, 'команде — половина за лодку');
   game.step();
   game.step();
   assert.ok(events.some((e) => e[0] === 'boat' && e[1] === 0 && e[2] === players[0].id), 'потоплена');

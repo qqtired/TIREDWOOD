@@ -16,25 +16,31 @@ import type { Effects } from '../render/effects.ts';
 /** Строка полоски босса для состояния нового босса (null — не их состояние) */
 export function newBossHudLine(state: number): string | null {
   switch (state) {
-    case ZS_PK_SUMMON: return 'Сеет тыквят · лопайте их подальше от ворот';
-    case ZS_PK_ROLL_WARN: return 'Сворачивается · прыгайте, когда круг под вами';
+    case ZS_PK_SUMMON: return 'Сеет тыквят — лопайте их подальше от ворот';
+    case ZS_PK_ROLL_WARN: return 'Сворачивается — прыгайте, когда круг под вами';
     case ZS_PK_ROLL: return 'Катится!';
-    case ZS_PK_SPIT: return 'Семечки · уйдите из круга';
+    case ZS_PK_SPIT: return 'Семечки — уйдите из круга';
     case ZS_WV_CLIMB: return 'Лезет на стену';
-    case ZS_WV_HANG: return 'Висит на стене · бейте сверху';
-    case ZS_WV_SWEEP: return 'Хлёст лапами · уйдите из круга, прыжок не спасёт';
-    case ZS_WV_WEB: return 'Паутина · уйдите из круга, рвите её выстрелами';
-    case ZS_WV_BROOD: return 'Кладка · сейчас полезут паучата';
-    case ZS_WV_BITE: return 'Тянется к кристаллу · бейте!';
+    case ZS_WV_HANG: return 'Висит на стене — бейте сверху';
+    case ZS_WV_SWEEP: return 'Хлёст лапами — уйдите из круга, прыжок не спасёт';
+    case ZS_WV_WEB: return 'Паутина — уйдите из круга, рвите её выстрелами';
+    case ZS_WV_BROOD: return 'Кладка — сейчас полезут паучата';
+    case ZS_WV_BITE: return 'Тянется к кристаллу — бейте!';
     case ZS_WV_OVER: return 'Лезет через стену!';
-    case ZS_LS_ROOTS: return 'Корни · уйдите из круга, прыжок не спасёт';
-    case ZS_LS_HEAL: return 'Лечит армию · бейте, чтобы сорвать!';
+    case ZS_LS_ROOTS: return 'Корни — уйдите из круга, прыжок не спасёт';
+    case ZS_LS_HEAL: return 'Лечит армию — бейте, чтобы сорвать!';
     case ZS_LS_SINK: return 'Уходит под землю';
-    case ZS_LS_UNDER: return 'Под землёй · где круг — там вылезет';
+    case ZS_LS_UNDER: return 'Под землёй — вылезет там, где круг';
     case ZS_LS_RISE: return 'Вылезает!';
   }
   return null;
 }
+
+/** Опасное состояние нового босса — полоса босса краснеет (undefined — не их состояние, решает интерфейс) */
+export function newBossDanger(state: number): boolean | undefined {
+  return newBossHudLine(state) === null ? undefined : DANGER_F.has(state);
+}
+const DANGER_F = new Set([ZS_PK_ROLL_WARN, ZS_PK_ROLL, ZS_PK_SPIT, ZS_WV_SWEEP, ZS_WV_WEB, ZS_WV_BITE, ZS_LS_ROOTS, ZS_LS_UNDER]);
 
 /** Тревога на метку атаки нового босса (null — не их атака); near — метка у меня под ногами */
 export function newBossWarnText(attack: number, near: boolean, tx: number, ty: number, tz: number): string | null {

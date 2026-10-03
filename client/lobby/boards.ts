@@ -3,7 +3,7 @@
 // Холст перерисовывается, только когда меняется то, что на нём видно.
 import * as THREE from 'three';
 import { PHASE_END, PHASE_PLAY } from '../../shared/constants.ts';
-import { buildRaceCourse, RACE_TRACKS, type RaceTrackId } from '../../shared/racecourse.ts';
+import { buildRaceCourse, DEFAULT_TRACK, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { KPOS_STRIDE, RECENT_ROWS, type HonorInfo, type HonorRow, type KartStatus, type PbStatus, type RecentRow } from '../../shared/messages.ts';
 import { KART_COLORS } from '../race/kart3d.ts';
 
@@ -173,7 +173,7 @@ interface RingLayout {
 }
 
 /** Схема трассы вписана в прямоугольник (x0, y0)–(x1, y1) холста; север трассы — вверху, как на мини-карте гонки. */
-function ringLayout(x0: number, y0: number, x1: number, y1: number, id: RaceTrackId = 'port'): RingLayout {
+function ringLayout(x0: number, y0: number, x1: number, y1: number, id: RaceTrackId = DEFAULT_TRACK): RingLayout {
   const tr = buildRaceCourse(id).track;
   let a = Infinity;
   let b = -Infinity;
@@ -247,7 +247,7 @@ export class KartBoard {
   }
 
   update(st: KartStatus): void {
-    if ((st.track ?? 'port') !== (this.st.track ?? 'port')) {
+    if ((st.track ?? DEFAULT_TRACK) !== (this.st.track ?? DEFAULT_TRACK)) {
       this.layout = null;
       this.pos = [];
       for (const d of this.dots.values()) { d.group.visible = false; d.from = d.to = 0; }
@@ -311,7 +311,7 @@ export class KartBoard {
   }
 
   private ring(): RingLayout {
-    return (this.layout ??= ringLayout(MAP.x0, MAP.y0, MAP.x1, MAP.y1, this.st.track ?? 'port'));
+    return (this.layout ??= ringLayout(MAP.x0, MAP.y0, MAP.x1, MAP.y1, this.st.track ?? DEFAULT_TRACK));
   }
 
   private dotSeg(d: BoardDot): number {
@@ -392,7 +392,7 @@ export class KartBoard {
     ctx.fillText(status, W / 2, 68);
     ctx.fillStyle = '#c9baa0';
     ctx.font = `700 25px ${FONT}`;
-    ctx.fillText(RACE_TRACKS.find((t) => t.id === (p.track ?? 'port'))!.name, W / 2, 108);
+    ctx.fillText(raceTrackName(p.track), W / 2, 108);
 
     // схема трассы: тёмная кайма, светлая дорога (ширина меняется), клетчатая линия старта
     const lay = this.ring();
@@ -507,7 +507,7 @@ export class KartBoard {
     let who: string;
     if (p.phase === 'count') who = `в круге: ${p.names.join(', ')}`;
     else if (p.phase === 'race' || p.phase === 'results') who = p.names.length ? `едут: ${p.names.join(', ')}` : 'едут одни боты';
-    else who = `${RACE_TRACKS.find((t) => t.id === (p.track ?? 'port'))!.name} · ${p.laps} круга · до 6 картов`;
+    else who = `${raceTrackName(p.track)} · ${p.laps} круга · до 6 картов`;
     fit(ctx, who, 50, W - 90, 700);
     ctx.fillText(who, W / 2, y2);
 

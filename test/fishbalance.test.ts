@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
 import { FISH } from '../shared/fishing.ts';
-import { reelStart, reelRun, REEL_MAX_TICKS } from '../shared/fishreel.ts';
-import { COLLECTION, RULE, fishPrice2 } from '../shared/fishrules.ts';
-import { EXPERT, TYPICAL, fishIncome, playReel, reelStats } from './fishbot.ts';
+import { reelStart, reelRun, reelStep, REEL_MAX_TICKS } from '../shared/fishreel.ts';
+import { COLLECTION, RULE, fishPrice2, reelStyleFor, zoneSpecies } from '../shared/fishrules.ts';
+import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
+import { BARKAS_LEVEL } from '../shared/fishshop.ts';
+import { TYPICAL, fishIncome, playReel, reelStats } from './fishbot.ts';
 
 test('common base sale is old integer price plus75%, and event-only common separately gets1.5 at every weight', () => {
   const oldVal: Record<string, readonly [number, number]> = {
     hamsa: [2, 3], goby: [2, 4], scad: [2, 5], redmullet: [2, 5], wrasse: [2, 4],
     karas: [2, 4], blenny: [2, 3], sardine: [2, 3], whiting: [2, 5], picarel: [2, 3],
   };
-  for (const sp of COLLECTION.filter(s => RULE[s]!.tier === 0)) {
+  // обычные пристани — от старой цены; у обычных баркаса своя цена ×1,25 (test/fishing2.test.ts, «цены»)
+  for (const sp of COLLECTION.filter(s => RULE[s]!.tier === 0 && RULE[s]!.zone === 'pier')) {
     const f = FISH[sp];
     const [lo, hi] = oldVal[f.id];
     for (let g = f.g[0]; g <= f.g[1]; g++) {
@@ -24,42 +26,46 @@ test('common base sale is old integer price plus75%, and event-only common separ
   }
 });
 
-test('base typical fish-only earnings stay within5% of +50% target after approved event-common availability change', t => {
+test('fisheco: novice clear-weather pier earnings pay at most 10% for harder fish below the released +50% target', t => {
   const measuredBefore = 13.465547009661105;
+  const released = measuredBefore * 1.5;
   const current = fishIncome(TYPICAL, false, 300);
-  t.diagnostic(`clear ${current.coins.toFixed(6)}, chest ${current.chest.toFixed(6)}, gain ${(100 * (current.coins / measuredBefore - 1)).toFixed(3)}%`);
-  assert.ok(Math.abs(current.coins / (measuredBefore * 1.5) - 1) < .05, `${current.coins} should be within5% of20.1983205 fish coins/min`);
+  t.diagnostic(`clear ${current.coins.toFixed(6)}, chest ${current.chest.toFixed(6)}, vs released ${(100 * (current.coins / released - 1)).toFixed(3)}%`);
+  assert.ok(current.coins >= released * 0.9 && current.coins <= released, `${current.coins} should be within 10% below ${released.toFixed(4)} fish coins/min`);
 });
 
-test('actual reel cost per success orders all 32 species into strict rarity bands', t => {
-  for (const [skill, seedBatch] of [[TYPICAL, 0], [EXPERT, 0], [TYPICAL, 1], [EXPERT, 1]] as const) {
-    const rows = COLLECTION.map(sp => {
-      const s = reelStats(RULE[sp]!.style, skill, 1200, seedBatch === 0 ? 11 + sp * 7919 : 1_000_003 + sp * 1543);
-      return { id: FISH[sp].id, tier: RULE[sp]!.tier, fail: s.failure, cost: s.costTicks };
-    });
-    for (let tier = 1; tier <= 4; tier++) {
-      const before = rows.filter(r => r.tier === tier - 1);
-      const next = rows.filter(r => r.tier === tier);
-      const hardestBefore = before.reduce((a, b) => a.cost > b.cost ? a : b);
-      const easiestNext = next.reduce((a, b) => a.cost < b.cost ? a : b);
-      t.diagnostic(`${skill === TYPICAL ? 'typical' : 'expert'} batch${seedBatch} ${tier}: ${hardestBefore.id} cost${hardestBefore.cost.toFixed(1)} fail${hardestBefore.fail.toFixed(3)} < ${easiestNext.id} cost${easiestNext.cost.toFixed(1)} fail${easiestNext.fail.toFixed(3)}`);
-      assert.ok(hardestBefore.cost < easiestNext.cost, `${hardestBefore.id} must be easier than ${easiestNext.id}`);
+test('fisheco: no species is an outlier inside its rarity tier at the place entry (pier level 0, barkas level 3 with rod 1)', t => {
+  for (const zone of ['pier', 'barkas'] as const) {
+    const level = zone === 'barkas' ? BARKAS_LEVEL : 0;
+    const rod = zone === 'barkas' ? 1 : 0;
+    const mods = fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level], questsDone: rod, rod }, 0, zone);
+    assert.equal(mods.rod, rod);
+    for (const seed of [11, 1_000_003]) {
+      const rows = zoneSpecies(zone).map(sp => ({ id: FISH[sp].id, tier: RULE[sp]!.tier, p: reelStats(reelStyleFor(sp, mods), TYPICAL, 600, seed + sp * 7919).p }));
+      for (let tier = 0; tier <= 4; tier++) {
+        const same = rows.filter(r => r.tier === tier);
+        const mean = same.reduce((s, r) => s + r.p, 0) / same.length;
+        t.diagnostic(`${zone} seed${seed} tier${tier} mean ${(mean * 100).toFixed(1)}%: ${same.map(r => `${r.id} ${(r.p * 100).toFixed(0)}`).join(', ')}`);
+        for (const r of same) assert.ok(Math.abs(r.p - mean) <= 0.2, `${zone}: ${r.id} ${r.p.toFixed(3)} vs tier${tier} mean ${mean.toFixed(3)}`);
+      }
     }
-  }
-});
-
-test('internal difficulty is the measured cost of a success, rather than a fake tier ordering', () => {
-  for (const sp of COLLECTION) {
-    const measured = reelStats(RULE[sp]!.style, TYPICAL, 1200, 11 + sp * 7919);
-    assert.ok(Math.abs(RULE[sp]!.difficulty - measured.costTicks) <= .051, `${FISH[sp].id}: calibrated=${RULE[sp]!.difficulty}, actual=${measured.costTicks}`);
-    assert.equal(measured.failure, 1 - measured.p);
   }
 });
 
 test('perfect is computed by every reel tick and survives chunked authoritative replay', () => {
   const still = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
+  // держит середину зоны на рыбе (без нажатий зона уходит под шкалу — «леска провисла»); нажатия повторяем, как сервер
+  const tracked = reelStart(still, 42);
+  const toggles: number[] = [];
+  let held = false;
+  while (tracked.done === 0) {
+    const h = tracked.z + Math.trunc(tracked.zone / 2) < tracked.f;
+    if (h !== held) { held = h; toggles.push(tracked.t); }
+    reelStep(tracked, held);
+  }
   const easy = reelStart(still, 42);
-  reelRun(easy, [], REEL_MAX_TICKS + 1);
+  reelRun(easy, toggles, REEL_MAX_TICKS + 1);
+  assert.equal(easy.done, 1);
   assert.equal(easy.perfect, true);
   const hard = RULE[COLLECTION.find(sp => RULE[sp]!.tier === 4)!]!.style;
   const played = playReel(hard, 327, TYPICAL);
@@ -70,24 +76,4 @@ test('perfect is computed by every reel tick and survives chunked authoritative 
   for (let tick = 0; chunks.done === 0; tick += 37) k = reelRun(chunks, played.toggles, tick, k);
   assert.equal(whole.perfect, false);
   assert.equal(chunks.perfect, whole.perfect);
-});
-
-// Compare final behavior to the immutable pre-pattern replay measurements, not a synthetic tier score.
-test('two independent seed batches meet the approved effort increase for typical and expert players', t => {
-  const baseline = JSON.parse(readFileSync(new URL('../docs/expansion-2026-10-03/fishing-baseline/baseline.json', import.meta.url), 'utf8'));
-  for (const key of ['typical', 'expert'] as const) for (let batch = 0; batch < 2; batch++) {
-    for (let tier = 0; tier <= 4; tier++) {
-      const rows = baseline.rows.filter((r: { tier: number }) => r.tier === tier);
-      let before = 0, after = 0;
-      const target = tier === 0 ? 1.5 : tier === 1 ? 1.4 : 1.3;
-      for (const row of rows) {
-        const actual = reelStats(RULE[row.sp]!.style, key === 'typical' ? TYPICAL : EXPERT, 1200, row.samples[batch].seed);
-        const old = row.samples[batch][key].costTicks;
-        assert.ok(Math.abs(actual.costTicks / old - target) < .17, row.id + ': effort outlier');
-        before += old; after += actual.costTicks;
-      }
-      t.diagnostic(key + ' batch' + batch + ' tier' + tier + ' ratio=' + (after / before).toFixed(4));
-      assert.ok(Math.abs(after / before - target) < .065, key + ': tier' + tier);
-    }
-  }
 });

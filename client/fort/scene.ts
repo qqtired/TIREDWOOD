@@ -12,10 +12,16 @@ import { FortMatch } from './match.ts';
 import { FortWorld } from './world.ts';
 import { Zombies3D } from './zombies3d.ts';
 import { Projectiles } from './projectiles.ts';
+import { EventMarks } from './marks.ts';
+import { EventFx } from './eventfx.ts';
 
 export class FortScene implements Scene {
   readonly kind = 'fort' as const;
-  get wantsPointer(): boolean { return !this.hud.shopShown; }
+  /**
+   * Мышь нужна всегда, кроме открытой панели арсенала (лавка, ворота, кристалл, башня) и «свободного курсора» после Esc
+   * у неё: Esc закрывает только панель, меню игры не встаёт; клик или любая клавиша возвращают мышь в игру.
+   */
+  get wantsPointer(): boolean { return !(this.hud.shopShown || this.match?.cursorFree); }
   private readonly d: SceneDeps;
   readonly map = buildFort();
   readonly collision: CollisionWorld;
@@ -23,6 +29,9 @@ export class FortScene implements Scene {
   private readonly effects: Effects;
   private readonly zombies: Zombies3D;
   private readonly projectiles: Projectiles;
+  private readonly marks: EventMarks;
+  /** Эффекты событий волны (fort-fx): метеор, ящик на парашюте, морской туман, золотая лихорадка */
+  private readonly eventFx: EventFx;
   private readonly hud: FortHud;
   private match: FortMatch | null = null;
 
@@ -33,13 +42,17 @@ export class FortScene implements Scene {
     this.effects = new Effects(this.world.scene, this.collision);
     this.zombies = new Zombies3D(this.world.scene, this.collision);
     this.projectiles = new Projectiles(this.world.scene);
+    this.marks = new EventMarks(this.world.scene);
+    this.eventFx = new EventFx(this.world.scene, this.world.camera, this.collision);
+    // простой ящик marks.ts больше не нужен: ящик рисует EventFx; маяк и круги остаются у marks
+    this.marks.placeholder = false;
     const root = document.createElement('div');
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
     this.hud = new FortHud(root);
   }
 
-  /** Телефон: под итогами стрелять незачем — только верхние кнопки */
+  /** Телефон: под итогами и у открытой панели (она снизу, на месте кнопок) стрелять незачем — только верхние кнопки */
   get touchMode(): TouchMode {
     return this.hud.endShown || this.hud.shopShown ? 'none' : 'shoot';
   }
@@ -54,6 +67,8 @@ export class FortScene implements Scene {
       effects: this.effects,
       zombies: this.zombies,
       projectiles: this.projectiles,
+      marks: this.marks,
+      eventFx: this.eventFx,
       hud: this.hud,
       chat: d.ui.chat,
       sound: d.sound,
@@ -100,6 +115,7 @@ export class FortScene implements Scene {
   setQuality(q: Quality, slow = false): void {
     this.world.setQuality(q, slow);
     this.zombies.setQuality(q, slow);
+    this.eventFx.setQuality(q, slow);
   }
 
   debugState(): Record<string, unknown> | null {

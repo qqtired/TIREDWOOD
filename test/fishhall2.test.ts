@@ -1,6 +1,7 @@
-// Рыбалка 2.0 на сервере (флаг FISH2): честное вываживание засчитывается (жетоны, коллекция, счётчики, бонус за новый
-// вид), подделки — нет: ускорение, нажатия под чужой сид, кривые сообщения, молчание; поклёвка по погоде; сундук;
-// доска «Сегодня» / «За всё время» (полночь по Москве); комплект за все32 вида; без флага — старая рыбалка.
+// Рыбалка 2.0 на сервере (флаг FISH2): честное вываживание засчитывается (рыба — в рюкзак по цене поимки, коллекция,
+// счётчики, бонус за новый вид — сразу жетонами), подделки — нет: ускорение, нажатия под чужой сид, кривые сообщения,
+// молчание; поклёвка по погоде; сундук; доска «Сегодня» / «За всё время» (полночь по Москве); финал лестницы наград
+// fishstyle за всю коллекцию (COLLECTION_SIZE видов); без флага — старая рыбалка.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,8 +10,12 @@ import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_LAND, FE_LOST, FISH, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import {
-  COLLECTION, NEW_BONUS2, REWARD_ITEMS, RULE, SP_BOOT, SP_CHEST, fishPrice2, type Hooked,
+  COLLECTION, COLLECTION_SIZE, NEW_BONUS2, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
 } from '../shared/fishrules.ts';
+import { earnedItems } from '../shared/fishstyle.ts';
+import { fishCatchXp } from '../shared/fishprogress.ts';
+import { BAG_BASE } from '../shared/fishshop.ts';
+import { REEL_MAX_TICKS, reelRun, reelStart } from '../shared/fishreel.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { HOLD2_TICKS, REEL_LAG, fish2Enabled, type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -111,7 +116,7 @@ test('флаг FISH2: «1» — рыбалка 2.0, иначе старая; б�
   assert.deepEqual(l2.ftop, { day: '2026-10-02', dn: [], dg: [], an: [], ag: [], podium: [] });
 });
 
-test('честное вываживание: повтор сервера дошёл до 100 % — жетоны, коллекция, счётчики, бонус за новый вид; потом удочка пустая', () => {
+test('честное вываживание: повтор сервера дошёл до 100 % — рыба в рюкзак по цене поимки, коллекция, счётчики, бонус за новый вид жетонами; потом удочка пустая', () => {
   const e = fisher({ sp: sp('scad'), g: 300, coins: 0 });
   const t0 = e.a.c.profile!.tokens;
   const { seed } = hookOne(e);
@@ -122,11 +127,15 @@ test('честное вываживание: повтор сервера дош�
   const land = lastOf(e.a.s, 'fishLand');
   assert.ok(land, 'улов засчитан');
   const price = fishPrice2(sp('scad'), 300);
+  assert.equal(typeof land.perfect, 'boolean');
   assert.deepEqual(land, {
     t: 'fishLand', sp: sp('scad'), g: 300, price, coins: 0, bonus: NEW_BONUS2[0], fresh: true, record: false, best: 0, got: 1, full: false,
+    base: basePrice(sp('scad'), 300), m: 0, xp: fishCatchXp(sp('scad'), land.perfect), perfect: land.perfect, bag: 1, cap: BAG_BASE,
   });
   const prof = e.a.c.profile!;
-  assert.equal(prof.tokens, t0 + price + NEW_BONUS2[0]);
+  // жетоны за рыбу — при продаже Семёну или Сане; бонус за новый вид — сразу
+  assert.equal(prof.tokens, t0 + NEW_BONUS2[0]);
+  assert.deepEqual(prof.fishing.bag, [{ n: 0, f: 'scad', g: 300, p: price, m: 0 }]);
   assert.deepEqual(prof.album, { scad: [300, 1] });
   assert.equal(prof.stats.fsCaught, 1);
   assert.equal(prof.stats.fsFish, 1);
@@ -173,17 +182,20 @@ test('подделка: нажатия, сыгранные под другой �
   const t0 = e.a.c.profile!.tokens;
   const { seed } = hookOne(e);
   const style = RULE[sp('tuna')]!.style;
-  // ищем «чужую» игру, где тунец пойман (под свой сид он бы тоже, а под настоящий — нет)
+  // ищем «чужую» игру: под свой сид тунец пойман, а те же нажатия под настоящий сид его не вытаскивают
+  // (у спокойных паттернов чужие нажатия иногда и правда вытаскивают — такие не годятся для проверки)
   let fake: Play | null = null;
-  for (let s = 1; s < 200 && !fake; s++) {
+  for (let s = 1; s < 400 && !fake; s++) {
     const p = playReel(style, seed ^ (s * 7919), EXPERT);
-    const real = playReel(style, seed, EXPERT);
-    if (p.caught && JSON.stringify(p.toggles) !== JSON.stringify(real.toggles)) fake = p;
+    if (!p.caught) continue;
+    const real = reelStart(style, seed);
+    reelRun(real, p.toggles, REEL_MAX_TICKS + 1);
+    if (real.done !== 1) fake = p;
   }
   assert.ok(fake, 'нашлась пойманная чужая игра');
   playHonest(e, fake);
   advance(e.hub, e.clock, 2);
-  // по настоящему сиду эти нажатия тунца не вытаскивают (или вытаскивают в другой тик — тогда d: 1 не сходится)
+  // сервер повторяет нажатия по своему сиду — тунец сорвался
   const land = lastOf(e.a.s, 'fishLand');
   if (land) assert.fail('чужие нажатия засчитаны');
   assert.equal(e.a.c.profile!.tokens, t0);
@@ -295,7 +307,7 @@ test('доска у мостков: «Сегодня» и «За всё врем
   assert.equal(t3.ag[0].v, 950);
 });
 
-test('коллекция: последний из32 видов — рыбацкий комплект и строка в чат; потом — не повторяется', () => {
+test('коллекция: последний вид из всей коллекции (COLLECTION_SIZE) — вся лестница наград и строка в чат; потом — не повторяется', () => {
   const e = fisher({ sp: sp('goby'), g: 100, coins: 0 });
   const b = login(e.hub, 'Зевака');
   const prof = e.a.c.profile!;
@@ -304,10 +316,13 @@ test('коллекция: последний из32 видов — рыбацк�
   playHonest(e, playReel(RULE[sp('goby')]!.style, seed, EXPERT));
   advance(e.hub, e.clock, 2);
   const land = lastOf(e.a.s, 'fishLand')!;
-  assert.equal(land.got, 32);
+  assert.equal(land.got, COLLECTION_SIZE);
   assert.equal(land.full, true);
-  for (const id of REWARD_ITEMS) assert.ok(prof.owned.includes(id), id);
-  assert.deepEqual(lastOf(e.a.s, 'me')!.owned.filter((id) => REWARD_ITEMS.includes(id)).sort(), [...REWARD_ITEMS].sort());
+  // лестница fishstyle: за все виды — все ступени разом (до улова в альбоме ничего не выдавалось)
+  const all = earnedItems(COLLECTION_SIZE);
+  assert.deepEqual(land.rw, all);
+  for (const id of all) assert.ok(prof.owned.includes(id), id);
+  assert.deepEqual(lastOf(e.a.s, 'me')!.owned.filter((id) => all.includes(id)).sort(), [...all].sort());
   assert.ok(allOf(b.s, 'chat').some((m) => m.sys && m.text.includes('собрал всю коллекцию')));
   advance(e.hub, e.clock, HOLD2_TICKS + 1);
   const h = hookOne(e);

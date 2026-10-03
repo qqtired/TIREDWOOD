@@ -1,12 +1,18 @@
 // Снимок гонки: своё состояние (с временем гонки rt) — точно, чужие карты — с шагом 1/128 м, ловушки и маска ящиков (23 бита); битый — null.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ITEM_PAINT, kartsEqual, makeKartState } from '../shared/kart.ts';
+import { BOOST_MT3, BOOST_TURBO, ITEM_PAINT, MT3_TICKS, kartsEqual, makeKartState } from '../shared/kart.ts';
 import {
   KE_DRIFT,
   KE_GROUND,
   KE_ON,
+  KM_BUBBLE,
+  KM_BURN,
+  KM_SPARK,
+  KM_TRICK,
   MSG_KART_SNAPSHOT,
+  kartMisc,
+  miscBoost,
   decodeKartSnapshot,
   encodeKartSnapshot,
   encodeKarts,
@@ -28,7 +34,7 @@ test('снимок гонки туда-обратно: своё — точно, 
   Object.assign(self, {
     x: -12.345678901, y: 1.25, z: 40.0000001, vx: 21.9, vy: -3.3, vz: 0.1, hx: 0.6, hz: -0.8, steer: -0.4666, seg: 345,
     grounded: 0, drift: -1, driftT: 1234, hop: 7, boostT: 55, boostLvl: 2, slowT: 120, spinT: 40, ghostT: 90, cp: 7, lap: 3,
-    done: 1, item: ITEM_PAINT, itemT: 48, prevButtons: 1023, rt: 54321,
+    done: 1, item: ITEM_PAINT, itemT: 48, prevButtons: 1023, rt: 54321, air: 37, trick: 2, gasT: 66, burnT: 12, surf: 2,
   });
   const karts: KartSnap[] = [
     { id: 0, flags: KE_ON | KE_DRIFT, x: -99.9921875, y: 1.5, z: 65.5, yaw: 3.1, steer: -1, lap: 2, place: 1, misc: 6 },
@@ -80,4 +86,28 @@ test('курс карта в yaw: yaw = 0 смотрит в −Z, π/2 — в �
   assert.ok(Math.abs(kartYaw({ hx: 0, hz: -1 })) < 1e-12);
   assert.ok(Math.abs(kartYaw({ hx: -1, hz: 0 }) - Math.PI / 2) < 1e-12);
   assert.ok(Math.abs(kartYaw({ hx: 1, hz: 0 }) + Math.PI / 2) < 1e-12);
+});
+
+test('биты misc: искры 0–3, уровень ускорения 0–4, пузырь, трюк и пробуксовка не мешают друг другу', () => {
+  const k = makeKartState();
+  k.drift = 1;
+  k.driftT = MT3_TICKS;
+  k.boostT = 30;
+  k.boostLvl = BOOST_TURBO;
+  k.grounded = 0;
+  k.trick = 2;
+  k.burnT = 5;
+  const m = kartMisc(k) | KM_BUBBLE;
+  assert.equal(m & KM_SPARK, 3);
+  assert.equal(miscBoost(m), BOOST_TURBO);
+  assert.ok(m & KM_BUBBLE && m & KM_TRICK && m & KM_BURN);
+  assert.ok(m < 256, 'misc — один байт');
+  k.boostLvl = BOOST_MT3;
+  k.trick = 0;
+  k.burnT = 0;
+  k.drift = 0;
+  const n = kartMisc(k);
+  assert.deepEqual([n & KM_SPARK, miscBoost(n), n & (KM_BUBBLE | KM_TRICK | KM_BURN)], [0, BOOST_MT3, 0]);
+  k.boostT = 0;
+  assert.equal(miscBoost(kartMisc(k)), 0, 'ускорение кончилось — уровень 0');
 });

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Крепость — стенд замка</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #9cc8ec; }
+      #game { width: 100vw; height: 100vh; display: block; }
+      #qa { position: fixed; z-index: 40; right: 12px; bottom: 12px; width: min(330px, calc(100vw - 24px)); max-height: 70vh; overflow: auto; padding: 12px 14px; background: rgba(36, 26, 20, .9); border: 1px solid #a5794f; border-radius: 12px; color: #fff3e0; font: 13px/1.35 system-ui, sans-serif; }
+      #qa.hide { display: none; }
+      #qa label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 5px 0; }
+      #qa input[type=range] { width: 150px; }
+      #qa button { margin: 3px 4px 3px 0; padding: 4px 8px; border: 1px solid #a5794f; border-radius: 5px; color: #fff3e0; background: #5a3d28; font: inherit; cursor: pointer; }
+      #metrics { display: block; white-space: pre-wrap; color: #ffe2b8; font-size: 12px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" aria-label="Стенд замка крепости"></canvas>
+    <aside id="qa" aria-label="Управление стендом">
+      <b>Стенд замка (без сервера)</b>
+      <label>Открыты <input id="open" type="range" min="0" max="1" step="0.01" value="0" /></label>
+      <label>Прочность <input id="hp" type="range" min="0" max="1" step="0.01" value="1" /></label>
+      <label>Укрепление <input id="tier" type="range" min="0" max="8" step="1" value="0" /></label>
+      <label>Кристалл <input id="ctier" type="range" min="0" max="5" step="1" value="0" /></label>
+      <label><span>Сломаны</span><input id="broken" type="checkbox" /></label>
+      <div><button id="hit" type="button">Удар</button><button id="repair" type="button">Ремонт</button><button id="boss" type="button">Босс в ворота</button><button id="cycle" type="button">Цикл ворот</button></div>
+      <div><button data-cam="wall" type="button">Со стены</button><button data-cam="out" type="button">Снаружи</button><button data-cam="yard" type="button">Двор</button><button data-cam="gate" type="button">Ворота</button><button data-cam="gin" type="button">Ворота со двора</button><button data-cam="high" type="button">Сверху</button></div>
+      <output id="metrics"></output>
+    </aside>
+    <!-- Только для разработки (Vite), в сборку не входит -->
+    <script type="module" src="/client/fort/castle/stand.ts"></script>
+  </body>
+</html>

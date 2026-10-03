@@ -3,13 +3,15 @@
 // пробел или палец — зона вверх. Переключения кнопки (номера тиков) уходят серверу сообщением reel — он повторяет
 // вываживание своим сидом и решает, вытащил ли. Пока рыба в зоне — трещит катушка; рывок рыбы — шкала вздрагивает.
 import { TICK_MS } from '../../shared/constants.ts';
-import { REEL_P_MAX, reelRun, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
+import { REEL_P_MAX, reelPulling, reelRun, reelSlack, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
 import { RULE, TIER_CSS, TIER_NAMES, T_JUNK, T_LEGEND, T_MYTH, reelStyleFor } from '../../shared/fishrules.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
 import { TOUCH } from '../touch.ts';
 import { el } from './fish2.ts';
+import { dartParts } from './fishfmt.ts';
+import { rodBonus } from '../../shared/fishprogress.ts';
 
 /** Новые нажатия уходят серверу не чаще чем раз в столько тиков, без нажатий — раз в столько (сервер ждёт 4 с) */
 const SEND_TOGGLES = 3;
@@ -43,6 +45,10 @@ export class ReelGame {
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly rainEl: HTMLElement;
+  /** fisheco: откуда зона и рывки («Зона 30% → 36% (ур. 4 +10%, удочка +10%)», «рывки −5% блесна») и «Последний рывок!» */
+  private readonly bonus: HTMLElement;
+  private readonly standEl: HTMLElement;
+  private wasStand = 0;
   private readonly result: HTMLElement;
   private readonly hold: HTMLElement | null = null;
   private readonly fingers = new Set<number>();
@@ -72,6 +78,10 @@ export class ReelGame {
     this.fill = prog.appendChild(el('i', ''));
     this.hint = this.root.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
+    this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
+    this.standEl = this.root.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
+    // «Леска провисла — подматывай!»: видна, пока у шкалы класс slack (зона пролежала на дне дольше 0,7 с)
+    this.root.appendChild(el('div', 'fe-slack', 'Леска провисла — подматывай!'));
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
       // телефон: держать можно где угодно на экране (кроме верхних кнопок) — и кнопкой 🎣
@@ -111,7 +121,18 @@ export class ReelGame {
   start(sp: number, seed: number, rain: boolean, mods: Readonly<FishCastMods>): void {
     const rule = RULE[sp];
     if (!rule) return;
-    this.r = reelStart(reelStyleFor(sp, mods), seed);
+    const style = reelStyleFor(sp, mods);
+    this.r = reelStart(style, seed);
+    this.wasStand = 0;
+    this.standEl.classList.remove('show');
+    const base = rule.style.zone;
+    // откуда зона шире: только то, что есть (у новичка без удочки строки нет)
+    const why: string[] = [];
+    if (mods.level) why.push(`ур. ${mods.level} +${(mods.level * 2.5).toLocaleString('ru-RU')}%`);
+    if (mods.rod) why.push(`удочка +${Math.round(rodBonus(mods.rod) * 100)}%`);
+    const zoneLine = why.length ? [`Зона ${Math.round(base)}% → ${Math.round(style.zone)}% (${why.join(', ')})`] : [];
+    const lines = rule.tier < T_JUNK ? [...zoneLine, ...dartParts(mods)] : [];
+    this.bonus.replaceChildren(...lines.map((s) => el('span', '', s)));
     this.toggles = [];
     this.k = 0;
     this.sent = 0;
@@ -129,13 +150,19 @@ export class ReelGame {
     this.label.textContent = odd ? 'Что-то тяжёлое…' : `${cap(TIER_NAMES[rule.tier])} рыба${rule.tier >= T_LEGEND ? '!!' : rule.tier > 0 ? '!' : ''}`;
     this.root.classList.toggle('myth', rule.tier === T_MYTH);
     this.root.classList.toggle('legend', rule.tier === T_LEGEND);
-    this.root.classList.remove('won', 'lost', 'dart', 'in');
+    this.root.classList.remove('won', 'lost', 'dart', 'in', 'slack');
     this.hint.classList.remove('gone');
     this.result.textContent = '';
     this.setRain(rain);
     this.root.classList.add('show');
     this.hold?.classList.add('show');
     this.render();
+  }
+
+  /** Окно вываживания — награда коллекции рыб (темы в client/ui/fishstyle.css); «wood» — обычное деревянное */
+  theme(key: string): void {
+    if (key === 'wood') delete this.root.dataset.frTheme;
+    else this.root.dataset.frTheme = key;
   }
 
   setRain(rain: boolean): void {
@@ -223,22 +250,35 @@ export class ReelGame {
 
   /** Звук и дрожь: рыба в зоне — трещит катушка; рывок — «тук» и шкала вздрагивает. */
   private feel(r: Reel): void {
-    if (r.inZone && ++this.clickT >= 5) {
+    // катушка трещит и зона светится, только пока тянет: в провисшей леске рыба в зоне не идёт
+    const pulling = reelPulling(r);
+    if (pulling && ++this.clickT >= 5) {
       this.clickT = 0;
       this.sound.reelTick();
     }
     const dart = r.mode === M_DART;
     if (dart && !this.wasDart) this.sound.fishNibble(null);
     this.wasDart = dart;
-    this.wasIn = r.inZone;
+    this.wasIn = pulling;
+    if (r.stand === 1 && this.wasStand !== 1) {
+      // легенды и мифик на 70 %: один цикл самого злого паттерна, рывки ×1,3
+      this.standEl.classList.remove('show');
+      void this.standEl.offsetWidth;
+      this.standEl.classList.add('show');
+      this.sound.fishNibble(null);
+    } else if (r.stand !== 1 && this.wasStand === 1) this.standEl.classList.remove('show');
+    this.wasStand = r.stand;
   }
 
   private render(): void {
     const r = this.r;
     if (!r) return;
     const v = reelView(r);
-    this.zone.style.bottom = `${(v.z0 * 100).toFixed(2)}%`;
-    this.zone.style.height = `${((v.z1 - v.z0) * 100).toFixed(2)}%`;
+    // зона может уйти под шкалу (кнопку отпустили) — рисуем только видимую часть
+    const z0 = Math.max(0, v.z0), z1 = Math.max(0, v.z1);
+    this.zone.style.bottom = `${(z0 * 100).toFixed(2)}%`;
+    this.zone.style.height = `${((z1 - z0) * 100).toFixed(2)}%`;
+    this.zone.style.visibility = z1 > 0.004 ? '' : 'hidden';
     this.fish.style.bottom = `${(v.fish * 100).toFixed(2)}%`;
     const tilt = Math.max(-28, Math.min(28, -r.fv / 25));
     this.fish.style.transform = `translate(-50%, 50%) rotate(${tilt.toFixed(1)}deg)`;
@@ -247,6 +287,7 @@ export class ReelGame {
     this.root.classList.toggle('in', this.wasIn);
     this.root.classList.toggle('dart', this.wasDart);
     this.root.classList.toggle('low', v.p < 0.15);
+    this.root.classList.toggle('slack', r.done === 0 && reelSlack(r));
   }
 }
 
