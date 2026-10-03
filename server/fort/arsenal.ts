@@ -24,7 +24,7 @@ import { BTN_ADS, BTN_SHOULDER, SHOT_RANGE, applySpread, damageAt, type Input } 
 import { makeRayHit } from '../../shared/world.ts';
 import type { FortGame, FortPlayer } from './game.ts';
 import type { Zombie } from './horde.ts';
-import { tearWebAt } from './boss-weaver.ts';
+import { tearWebAt, webSlowAt } from './boss-weaver.ts';
 import { makeRun, type FortRun } from './ledger.ts';
 
 /** Деньги и покупки защитника на эту игру (живут в p.run.arsenal: вышел и вернулся — всё на месте) */
@@ -618,7 +618,9 @@ export class Arsenal {
       const t = this.towers[i];
       if (t.type < 0) continue;
       if (t.cd > 0) {
-        t.cd--;
+        // в паутине Ткачихи башня перезаряжается вдвое дольше (server/fort/boss-weaver.ts)
+        const at = TOWER_SPOTS[i];
+        t.cd -= webSlowAt(g.horde, g.tick, at.x, at.y, at.z);
         continue;
       }
       const spec = TOWERS[t.type];

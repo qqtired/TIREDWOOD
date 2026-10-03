@@ -1072,7 +1072,8 @@ export class Zombies3D {
       // неравномерным масштабом корня)
       let gy = 1;
       let gxz = 1;
-      if (isBossKind(kind)) {
+      // под землёй (Леший, холм на поверхности) не сжимаем: корень на −12 м, сжатие увело бы холм в землю
+      if (isBossKind(kind) && r.y > -1) {
         const f = gateSqueeze(r.x, r.z);
         if (f > 0) {
           const h = k.hcy + k.hry;

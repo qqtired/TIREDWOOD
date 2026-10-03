@@ -9,17 +9,18 @@ import {
   LS_BREAK, LS_EMERGE_R, LS_GROVE_BASE, LS_HEAL_FRAC, LS_HEAL_R, LS_HOME_Z, LS_IN_Z, LS_ROOT_CRYSTAL, LS_ROOT_DMG, LS_ROOT_GATE,
   LS_ROOT_R, LS_UNDER_Y, PK_IN_Z, PK_POST_X, PK_POST_Z, PK_ROLL_DMG, PK_ROLL_R, PK_SPIT_DMG, PK_SPIT_R, PK_SUMMON_R,
   WV_BITE_CRYSTAL, WV_FOOT_Z, WV_HANG_Y, WV_HANG_Z, WV_IN_Z, WV_SWEEP_DMG, WV_WEB_DOT, WV_WEB_EVERY, WV_WEB_HIT, WV_WEB_HP,
-  ZF_WV_WALL,
+  WV_WEB_TOWER_SLOW, WV_X_IN, ZF_WV_WALL,
 } from '../shared/fortbosses.ts';
 import { BOSS_ARMOR as ARMOR } from '../shared/fort.ts';
-import { CRYSTAL, GATE, THROAT_Z, WALL_H } from '../shared/fortmap.ts';
+import { CRYSTAL, GATE, THROAT_Z, TOWER_SPOTS, WALL_H } from '../shared/fortmap.ts';
+import { TW_BALLISTA } from '../shared/fortarsenal.ts';
 import { ZF_CARRY, ZF_RAGE, isTimedState, type ZombieSnap } from '../shared/fortnet.ts';
 import { bossHp, bossTier, isBossWave } from '../shared/fortwaves.ts';
 import { makeRng } from '../shared/math.ts';
 import { BTN_FIRE, BTN_JUMP, makeInput } from '../shared/sim.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { packSize } from '../server/fort/bosses.ts';
-import { tearWebAt, webCount, weaverInside, weaverOnWall } from '../server/fort/boss-weaver.ts';
+import { tearWebAt, webCount, webSlowAt, weaverInside, weaverOnWall } from '../server/fort/boss-weaver.ts';
 import { ALL_FEATURES, FEATURES, planWave } from '../server/fort/director.ts';
 import { FortGame } from '../server/fort/game.ts';
 import type { Zombie } from '../server/fort/horde.ts';
@@ -271,6 +272,31 @@ test('Ткачиха: паутина — метка на человеке, ур�
   assert.ok(tearWebAt(s.game, s.game.horde, -9.5, WALL_H, -14.2));
   assert.equal(webCount(s.game.horde, s.game.tick), 0);
   assert.equal(tearWebAt(s.game, s.game.horde, -9.5, WALL_H, -14.2), false, 'больше нечего рвать');
+});
+
+test('Ткачиха: паутина у башни — башня перезаряжается вдвое дольше, порвали — как обычно', () => {
+  const { game, players } = setup(1);
+  const p = players[0];
+  // человек на ходу стены у восточной воротной башни: паутина ляжет под него — и на башню
+  const spot = TOWER_SPOTS[1];
+  place(p, spot.x, WALL_H, -14.6);
+  const w = weaver(game, 0, WV_X_IN);
+  game.step();
+  assert.equal(w.state, F.ZS_WV_WEB);
+  until(game, () => w.state === F.ZS_BOSS_OPEN, 200);
+  assert.equal(webCount(game.horde, game.tick), 1);
+  assert.equal(webSlowAt(game.horde, game.tick, spot.x, spot.y, spot.z), WV_WEB_TOWER_SLOW);
+  assert.equal(webSlowAt(game.horde, game.tick, -spot.x, spot.y, spot.z), 1, 'западная башня — без паутины');
+  const tower = game.arsenal.towers[1];
+  tower.type = TW_BALLISTA;
+  tower.cd = 20;
+  steps(game, 20);
+  assert.equal(tower.cd, 20 - 20 * WV_WEB_TOWER_SLOW, 'в паутине — вдвое медленнее');
+  for (let i = 0; i < WV_WEB_HP; i++) tearWebAt(game, game.horde, spot.x, WALL_H, -14.6);
+  assert.equal(webCount(game.horde, game.tick), 0);
+  const cd = tower.cd;
+  game.step();
+  assert.equal(tower.cd, cd - 1, 'порвали — обычная перезарядка');
 });
 
 test('Ткачиха: хлёст лапами по ходу стены — прыжок не спасает, отойти — спасает', () => {
