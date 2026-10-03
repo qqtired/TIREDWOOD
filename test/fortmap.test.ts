@@ -125,7 +125,7 @@ test('волны растут, с людьми зомби больше и тол
   assert.equal(planCounts(planWave(1, 1, 9)).length, Z_KINDS);
 });
 
-test('HP волны — в цель arsenal: на защитника 33,6 HP/с × L(w) × T(w) × команда (с боссом — 60 %, с Кракеном — половина)', () => {
+test('HP волны — в цель arsenal: на защитника 34,1 HP/с × L(w) × T(w) × команда (с боссом — 60 %, с Кракеном — половина)', () => {
   for (const f of [undefined, ALL_FEATURES]) {
     for (let w = 1; w <= FORT_WAVES; w += w < 40 ? 1 : 7) {
       for (const n of [1, 2, 4, 6]) {

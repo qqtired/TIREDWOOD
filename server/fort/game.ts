@@ -150,8 +150,9 @@ export class FortGame implements HordeHost, EventHost {
   card: FortWaveCard | null = null;
   /** Разработка: /wave N, /gate, /event … в чате */
   debug = false;
-  /** Разработка: событие следующей волны (/event) */
+  /** Разработка: событие следующей волны (/event) и «волна как для N защитников» (/wave W N) */
   private forceEvent = EV_NONE;
+  private debugTeam = 0;
   readonly turrets: Array<Turret | null> = TURRET_SPOTS.map(() => null);
   /** До какого тика лежит лужа на дороге под жёлобом (0 — нет) */
   readonly jams: number[] = CHUTES.map(() => 0);
@@ -254,6 +255,7 @@ export class FortGame implements HordeHost, EventHost {
   /** Новая игра: ворота и кристалл целы, лавка пуста, у всех стартовые очки, сбор 25 с. */
   newGame(): void {
     this.waveEvents.stop();
+    this.debugTeam = 0;
     this.horde.clear();
     this.ledger.clear();
     this.wave = 0;
@@ -287,7 +289,7 @@ export class FortGame implements HordeHost, EventHost {
   }
 
   /** План волны w для нынешнего числа защитников (директор: то же зерно — тот же план) */
-  private planFor(w: number, humans = this.players.size): WavePlan {
+  private planFor(w: number, humans = this.debugTeam || this.players.size): WavePlan {
     return planWave(w, Math.max(1, humans), this.seed, this.lastEvent);
   }
 
@@ -296,7 +298,7 @@ export class FortGame implements HordeHost, EventHost {
     this.rallyUntil = this.rallyReady = 0;
     const w = this.wave;
     const last = this.lastEvent;
-    const plan = planWave(w, Math.max(1, this.players.size), this.seed, last);
+    const plan = planWave(w, Math.max(1, this.debugTeam || this.players.size), this.seed, last);
     if (this.forceEvent !== EV_NONE) {
       plan.event = this.forceEvent;
       plan.card = { ...plan.card, event: this.forceEvent };
@@ -878,6 +880,9 @@ export class FortGame implements HordeHost, EventHost {
       return;
     }
     if (this.debug && cmd.toLowerCase() === 'wave') {
+      // /wave W [N] — к волне W; N — орда как для N защитников (проверить большие волны одному)
+      const team = Number(text.slice(1).split(/\s+/)[2] ?? 0);
+      this.debugTeam = Number.isInteger(team) && team >= 1 && team <= 6 ? team : 0;
       this.jumpTo(Number(arg));
       return;
     }
