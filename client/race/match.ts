@@ -66,6 +66,19 @@ const CAM_FOLLOW = 5.5;
 const CAM_LAG = 0.42;
 /** Едет вперёд — камера смотрит туда, куда он едет (в заносе — по скорости, не по носу), но не дальше от носа */
 const CAM_SLIP = 0.7;
+/**
+ * Снос в цели камеры сглажен (1/с): скорость меняет направление рывком (стена, толчок, приземление), и без
+ * сглаживания цель прыгала на 0,1–0,15 рад за кадр — камера дёргалась вбок до метра.
+ */
+const CAM_SLIP_RATE = 6;
+/** Отстала больше CAM_LAG — догоняет быстро, но плавно (1/с), а не прыжком в кадр */
+const CAM_CATCH = 14;
+/**
+ * Сколько входов держать в очереди на сервере (тиков): сервер тратит по одному в тик и без запаса стоит, как только
+ * пакет опоздал, — чужие видят рывок. Запас растёт с разбросом сети (полджиттера), от QUEUE_MIN до QUEUE_MAX.
+ */
+const QUEUE_MIN = 2;
+const QUEUE_MAX = 5;
 /** Мышью можно оглянуться: взгляд держится секунду после мыши, потом плавно возвращается за карт */
 const LOOK_MAX = 2.8;
 const LOOK_HOLD = 1;
@@ -174,6 +187,8 @@ export class RaceMatch {
   private camInit = false;
   private camYaw = 0;
   private camVel = 0;
+  /** Сглаженный снос (скорость против носа), рад */
+  private camSlip = 0;
   /** Сколько секунд мышь не двигалась */
   private lookIdle = 0;
   private camY = 0;
@@ -680,8 +695,9 @@ export class RaceMatch {
 
     this.clock.update(now, dt * 1000);
     if (this.ready && this.hasSelf && this.clock.ready) {
-      // темп тиков подстраиваем по очереди на сервере: держим там ~1 вход в запасе
-      const rate = clamp(1 - (this.queueAvg - 1.2) * 0.02, 0.97, 1.03);
+      // темп тиков подстраиваем по очереди на сервере: держим там запас входов по разбросу сети
+      const want = clamp(QUEUE_MIN + this.clock.jitter * 0.5, QUEUE_MIN, QUEUE_MAX);
+      const rate = clamp(1 - (this.queueAvg - want) * 0.02, 0.97, 1.03);
       this.acc += dt * 1000 * rate;
       let n = 0;
       while (this.acc >= TICK_MS && n < 8) {
@@ -802,20 +818,22 @@ export class RaceMatch {
     const s = this.predictor.state;
     const p = this.myPose;
     const speed = Math.hypot(s.vx, s.vz);
-    let target = p.yaw;
-    if (s.vx * s.hx + s.vz * s.hz > 3) target += clamp(wrapAngle(Math.atan2(-s.vx, -s.vz) - p.yaw), -CAM_SLIP, CAM_SLIP);
+    const slip = s.vx * s.hx + s.vz * s.hz > 3 ? clamp(wrapAngle(Math.atan2(-s.vx, -s.vz) - p.yaw), -CAM_SLIP, CAM_SLIP) : 0;
     if (!this.camInit) {
       this.camInit = true;
-      this.camYaw = target;
+      this.camYaw = p.yaw + slip;
       this.camVel = 0;
+      this.camSlip = slip;
       this.camY = p.y + CAM_UP;
       this.look = 0;
     }
+    this.camSlip = damp(this.camSlip, slip, CAM_SLIP_RATE, dt);
+    const target = p.yaw + this.camSlip;
     // пружина без перелёта: мягко трогается и мягко догоняет
     this.camVel += (CAM_FOLLOW * CAM_FOLLOW * wrapAngle(target - this.camYaw) - 2 * CAM_FOLLOW * this.camVel) * dt;
     this.camYaw += this.camVel * dt;
     const lag = wrapAngle(target - this.camYaw);
-    if (lag > CAM_LAG || lag < -CAM_LAG) this.camYaw = target - clamp(lag, -CAM_LAG, CAM_LAG);
+    if (lag > CAM_LAG || lag < -CAM_LAG) this.camYaw += (lag - clamp(lag, -CAM_LAG, CAM_LAG)) * (1 - Math.exp(-CAM_CATCH * dt));
     this.camY = Math.abs(p.y + CAM_UP - this.camY) > 6 ? p.y + CAM_UP : damp(this.camY, p.y + CAM_UP, 8, dt);
 
     // мышью — оглядеться; взгляд держится, пока мышь двигают, и ещё секунду, потом плавно за карт
