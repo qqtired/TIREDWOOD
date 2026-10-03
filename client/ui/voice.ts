@@ -13,6 +13,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = '
 }
 function button(cls: string, text: string): HTMLButtonElement { const b = el('button', cls, text); b.type = 'button'; return b; }
 function text(e: HTMLElement, value: string): void { if (e.textContent !== value) e.textContent = value; }
+const MIC_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/></svg>';
 const micLabels: Record<VoiceView['mic'], string> = {
   off: 'Микрофон выключен', requesting: 'Ждём разрешение микрофона…', ready: 'Микрофон готов · удерживайте V',
   denied: 'Доступ к микрофону запрещён. Разрешите его в браузере и повторите.', unavailable: 'Микрофон недоступен. Проверьте устройство и разрешения браузера.',
@@ -36,6 +37,8 @@ export class VoiceUi {
   private readonly peers = el('div', 'voice-peers');
   private readonly group = el('p', 'voice-group');
   private readonly hold = button('voice-hold', '');
+  private readonly speakers = el('ul', 'voice-speakers');
+  private readonly speakerRows = new Map<number | 'self', { root: HTMLElement; name: HTMLElement }>();
   private readonly rows = new Map<number, { root: HTMLElement; name: HTMLElement; state: HTMLElement; mute: HTMLButtonElement }>();
   private readonly cleanup: Array<() => void> = [];
   private view: VoiceView | null = null;
@@ -47,7 +50,7 @@ export class VoiceUi {
   constructor(roots: { settingsRoot: HTMLElement; hudRoot: HTMLElement }, actions: VoiceUiActions) {
     this.actions = actions;
     const body = el('div', 'voice-body');
-    const intro = el('p', 'voice-note', 'Голос текущей комнаты · до 6 участников. Прямое P2P-соединение: участники могут узнать ваш IP-адрес. Игра не записывает разговоры.');
+    const intro = el('p', 'voice-note', 'Голос текущей комнаты. Прямое P2P-соединение: участники могут узнать ваш IP-адрес. Игра не записывает разговоры.');
     const steps = el('p', 'voice-note', 'Нажмите на микрофон в игре и разрешите доступ. Затем удерживайте его или V: отпустили — вас не слышно. Здесь можно подключиться только для прослушивания.');
     const controls = el('div', 'voice-controls'); controls.append(this.enable, this.mic, this.retry);
     const volumeLabel = el('label', 'voice-volume-label');
@@ -57,13 +60,15 @@ export class VoiceUi {
     this.status.setAttribute('role', 'status'); this.error.setAttribute('role', 'status');
     this.hold.setAttribute('aria-label', 'Говорить: удерживайте эту кнопку или V');
     this.hold.setAttribute('aria-pressed', 'false');
-    this.hold.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/><path class="voice-slash" d="m4 4 16 16"/></svg>';
+    this.hold.innerHTML = MIC_SVG.replace('</svg>', '<path class="voice-slash" d="m4 4 16 16"/></svg>');
     const shortcut = el('span', 'voice-key', 'V'); shortcut.setAttribute('aria-hidden', 'true'); this.hold.append(shortcut);
     this.hold.setAttribute('aria-keyshortcuts', 'V Space Enter');
     body.append(intro, steps, controls, this.status, this.error, this.receive, volumeLabel, this.gameMute, this.group, this.peers);
-    this.settings.append(this.summary, body); this.hud.append(this.hold);
+    this.speakers.setAttribute('aria-label', 'Сейчас говорят'); this.speakers.tabIndex = 0; this.speakers.hidden = true;
+    this.settings.append(this.summary, body); this.hud.append(this.speakers, this.hold);
     this.settings.hidden = true; this.hud.hidden = true;
     roots.settingsRoot.append(this.settings); roots.hudRoot.append(this.hud);
+    this.listen(this.speakers, 'wheel', e => e.stopPropagation());
     this.listen(this.enable, 'click', () => { if (this.view?.available) this.view.enabled ? actions.disable() : actions.enable(); });
     this.listen(this.retry, 'click', () => { if (this.view?.available && this.view.enabled) actions.enable(); });
     this.listen(this.mic, 'click', () => {
@@ -120,11 +125,13 @@ export class VoiceUi {
   }
   setVisible(game: boolean): void {
     this.visible = game; if (!game) this.release(); this.hud.hidden = !game || !this.view?.available || this.disposed;
+    this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
   }
   render(view: VoiceView): void {
     if (this.disposed) return;
     this.view = view;
     this.settings.hidden = !view.available; this.hud.hidden = !view.available || !this.visible;
+    this.renderSpeakers(view);
     if (!this.canHold()) this.release();
     if (!view.available) { this.settings.open = false; return; }
     const hasRoute = view.peers.some(p => p.link === 'connected');
@@ -145,7 +152,7 @@ export class VoiceUi {
     this.volume.disabled = !view.enabled;
     const pct = Math.round(Math.max(0, Math.min(1, view.volume)) * 100); this.volume.value = String(pct); text(this.volumeValue, `${pct}%`);
     this.gameMute.hidden = !view.gameMuted;
-    text(this.group, view.joined ? `В голосе: вы${view.peers.length ? ` + ${view.peers.length}` : ''} · максимум ${view.maxPeers}` : `Группа текущей комнаты · максимум ${view.maxPeers}`);
+    text(this.group, `В голосе: ${view.presence.length + (view.joined ? 1 : 0)}`);
     const iconState = failed ? 'error' : !view.enabled ? 'off' : connecting || view.mic === 'requesting' ? 'connecting' : view.transmitting ? 'talking' : view.mic === 'ready' ? 'ready' : 'off';
     const label = failed ? (view.error || 'Нет связи с участником') + '. Нажмите, чтобы повторить подключение.' : iconState === 'connecting' ? 'Подключаем микрофон…' : iconState === 'off' ? 'Включить микрофон: нажмите кнопку или V и разрешите доступ' : view.transmitting ? 'Вас слышат. Отпустите микрофон, чтобы закончить' : view.peers.length ? 'Удерживайте микрофон или V. Настройки — в паузе' : 'Вы одни в голосе. Настройки — в паузе';
     this.hold.hidden = false; this.hold.disabled = view.mic === 'requesting';
@@ -172,7 +179,28 @@ export class VoiceUi {
   dispose(): void {
     if (this.disposed) return; this.release(); this.disposed = true;
     for (const off of this.cleanup) off(); this.cleanup.length = 0;
-    this.rows.clear(); this.settings.remove(); this.hud.remove(); this.view = null;
+    this.rows.clear(); this.speakerRows.clear(); this.settings.remove(); this.hud.remove(); this.view = null;
+  }
+  private renderSpeakers(view: VoiceView): void {
+    const current = new Map<number | 'self', string>();
+    if (view.available) {
+      // Server presence excludes this client and also reaches observers who have not joined voice.
+      for (const peer of view.presence) if (peer.talking) current.set(peer.id, peer.nick);
+      if (view.enabled && view.joined && view.transmitting) current.set('self', 'Вы');
+    }
+    for (const [id, row] of this.speakerRows) if (!current.has(id)) { row.root.remove(); this.speakerRows.delete(id); }
+    for (const [id, nick] of current) {
+      let row = this.speakerRows.get(id);
+      if (!row) {
+        const root = el('li', 'voice-speaker'), name = el('span', 'voice-speaker-name');
+        const icon = el('span', 'voice-speaker-icon'); icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = MIC_SVG;
+        const state = el('span', 'voice-speaker-state', id === 'self' ? 'говорите' : 'говорит');
+        root.append(icon, name, state);
+        row = { root, name }; this.speakerRows.set(id, row); this.speakers.append(root);
+      }
+      text(row.name, nick); row.name.title = nick; row.root.setAttribute('aria-label', id === 'self' ? 'Вы говорите' : `${nick} — говорит`);
+    }
+    this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
   }
   private listen(target: EventTarget, type: string, fn: (event: Event) => void): void {
     target.addEventListener(type, fn); this.cleanup.push(() => target.removeEventListener(type, fn));

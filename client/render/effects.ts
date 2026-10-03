@@ -76,6 +76,10 @@ export class Effects {
   private readonly atlasAttr: THREE.InstancedBufferAttribute;
   private splatNext = 0;
   private splatCount = 0;
+  private splatSerial = 0;
+  private temporarySplats = 0;
+  private readonly splatIds = new Float64Array(MAX_SPLATS);
+  private readonly splatLife = new Float32Array(MAX_SPLATS);
   private readonly balls: Ball[] = [];
   private readonly ballMesh: THREE.InstancedMesh;
   private readonly drops: Drop[] = [];
@@ -233,27 +237,37 @@ export class Effects {
   /**
    * Клякса на поверхности. box — индекс бокса (если известен), по нему размер
    * ограничивается, чтобы клякса не свисала с края. Невидимые боксы и батуты не красим.
+   * box=-2: verified dynamic mesh surface. life=0 preserves the normal round-long paint.
+   * Returns a generation-safe handle, or -1 when no visible paint can be placed.
    */
-  splat(x: number, y: number, z: number, nx: number, ny: number, nz: number, size: number, color: number, box: number): void {
+  splat(x: number, y: number, z: number, nx: number, ny: number, nz: number, size: number, color: number, box: number, life = 0): number {
+    const normalLength = Math.hypot(nx,ny,nz);
+    if (!Number.isFinite(x+y+z+normalLength+size) || normalLength < .001 || size <= 0) return -1;
+    nx/=normalLength;ny/=normalLength;nz/=normalLength;
     const w = this.world;
-    if (box < 0) {
+    if (box === -1) {
       if (w.raycast(x + nx * 0.06, y + ny * 0.06, z + nz * 0.06, -nx, -ny, -nz, 0.25, this.hit, true)) box = this.hit.box;
     }
     if (box >= 0) {
-      if (w.invisible[box] || w.tramp[box]) return;
+      if (w.invisible[box] || w.tramp[box]) return -1;
       // расстояние до краёв грани по двум касательным осям
       let d = Infinity;
       if (nx === 0) d = Math.min(d, x - w.minX[box], w.maxX[box] - x);
       if (ny === 0) d = Math.min(d, y - w.minY[box], w.maxY[box] - y);
       if (nz === 0) d = Math.min(d, z - w.minZ[box], w.maxZ[box] - z);
-      if (d < 0.03) return;
+      if (d < 0.03) return -1;
       size = Math.min(size, Math.max(0.16, d * 2.3));
     } else if (y < -0.2) {
-      return;
+      return -1;
     }
     const i = this.splatNext;
     this.splatNext = (this.splatNext + 1) % MAX_SPLATS;
     if (this.splatCount < MAX_SPLATS) this.splatCount++;
+    const id = ++this.splatSerial * MAX_SPLATS + i;
+    if (this.splatLife[i]>0) this.temporarySplats--;
+    this.splatIds[i] = id;
+    this.splatLife[i] = Number.isFinite(life) && life > 0 ? life : 0;
+    if (this.splatLife[i]>0) this.temporarySplats++;
     // чуть над поверхностью, чтобы не мерцало; соседние кляксы — на разной высоте
     const lift = 0.006 + (i % 16) * 0.0007;
     _v.set(nx, ny, nz);
@@ -273,6 +287,7 @@ export class Effects {
     this.splats.instanceMatrix.needsUpdate = true;
     if (this.splats.instanceColor) this.splats.instanceColor.needsUpdate = true;
     this.atlasAttr.needsUpdate = true;
+    return id;
   }
 
   /** Большая клякса на полу там, где лопнула желейка. */
@@ -287,6 +302,32 @@ export class Effects {
     this.splatCount = 0;
     this.splatNext = 0;
     this.splats.count = 0;
+    this.splatIds.fill(0);
+    this.splatLife.fill(0);
+    this.temporarySplats = 0;
+  }
+
+  /** Safe even when the ring has already reused this handle's old slot. */
+  removeSplat(id: number): void {
+    if (!Number.isSafeInteger(id) || id < MAX_SPLATS) return;
+    const index = id % MAX_SPLATS;
+    if (this.splatIds[index] !== id) return;
+    this.splatIds[index] = 0;
+    if (this.splatLife[index]!==0) this.temporarySplats--;
+    this.splatLife[index] = 0;
+    this.splats.setMatrixAt(index, _m.makeScale(0,0,0));
+    this.splats.instanceMatrix.needsUpdate = true;
+  }
+
+  /** Room exit/round reset: no pending projectile may recreate paint after clearing. */
+  clear(): void {
+    this.clearSplats();
+    for (const ball of this.balls) ball.active = false;
+    this.ballMesh.count = 0;
+    for (const drop of this.drops) {drop.life=0;drop.size=0;}
+    this.dropMesh.count = 0;
+    for (const puff of this.puffs) {puff.life=0;puff.sprite.visible=false;}
+    for (const ring of this.rings) {ring.life=0;ring.mesh.visible=false;}
   }
 
   // ------------------------------------------------------------ брызги и облачка
@@ -362,6 +403,12 @@ export class Effects {
   // ------------------------------------------------------------ кадр
 
   update(dt: number): void {
+    if (this.temporarySplats>0) for (let i=0;i<this.splatCount;i++) {
+      if (this.splatLife[i]<=0) continue;
+      const remaining=this.splatLife[i]-dt;
+      if (remaining<=0) this.removeSplat(this.splatIds[i]);
+      else this.splatLife[i]=remaining;
+    }
     // шарики
     let n = 0;
     for (const b of this.balls) {

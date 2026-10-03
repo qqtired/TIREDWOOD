@@ -7,7 +7,8 @@ export interface VoiceClient {
   sink: { sendJson(message: VoiceServerMsg): void };
 }
 interface Member { id: number; client: VoiceClient; room: { kind: string }; talkingUntil: number }
-interface Session { member: Member | null; messageTokens: number; byteTokens: number; controlTokens: number; at: number; errorAt: number }
+interface SignalBudget { messageTokens: number; byteTokens: number; at: number }
+interface Session extends SignalBudget { member: Member | null; controlTokens: number; errorAt: number; peers: Map<VoiceClient, SignalBudget> }
 const SIGNAL_RATE = 30, SIGNAL_BURST = 120, BYTE_RATE = 32 * 1024, BYTE_BURST = 96 * 1024;
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const exact = (v: Record<string, unknown>, keys: readonly string[]): boolean => Object.keys(v).every(k => keys.includes(k));
@@ -86,7 +87,7 @@ export class VoiceRouter {
   private authenticated(c: VoiceClient): boolean { return !c.closed && !c.ephemeral && !!c.profile && integer(c.id,1,Number.MAX_SAFE_INTEGER) && integer(c.pid,1,Number.MAX_SAFE_INTEGER) && c.profile.id === c.pid; }
   connected(c: VoiceClient): void {
     if (!this.authenticated(c)) return;
-    if (!this.sessions.has(c)) this.sessions.set(c, { member: null, messageTokens: SIGNAL_BURST, byteTokens: BYTE_BURST, controlTokens: 12, at: this.now(), errorAt: -Infinity });
+    if (!this.sessions.has(c)) this.sessions.set(c, { member: null, messageTokens: SIGNAL_BURST, byteTokens: BYTE_BURST, controlTokens: 12, at: this.now(), errorAt: -Infinity, peers: new Map() });
     this.config(c); this.state(c);
   }
   private config(c: VoiceClient): void {
@@ -109,31 +110,49 @@ export class VoiceRouter {
     const session = this.sessions.get(c)!;
     if (session.member) { this.state(c); return; }
     if (!c.room) { this.error(c,'not_joined'); this.state(c); return; }
-    const peers = [...this.members.values()].filter(m => m.room === c.room && this.authenticated(m.client) && m.client.room === m.room);
-    if (peers.length >= VOICE_MAX_PEERS || !Number.isSafeInteger(this.nextId)) { this.error(c,'full'); this.state(c); return; }
+    if (!Number.isSafeInteger(this.nextId)) { this.error(c,'invalid'); this.state(c); return; }
     const member: Member = { id: this.nextId++, client: c, room: c.room, talkingUntil: 0 };
     session.member = member; this.members.set(member.id, member); this.changed(member.room);
   }
   moved(c: VoiceClient): void {
     const session = this.sessions.get(c); if (!session) return;
+    this.clearPeerBudgets(c);
     const joined = this.remove(c);
     if (!this.authenticated(c)) { this.sessions.delete(c); return; }
     if (joined) this.join(c); else this.state(c);
   }
-  disconnected(c: VoiceClient): void { this.remove(c); this.sessions.delete(c); }
+  disconnected(c: VoiceClient): void { this.remove(c); this.clearPeerBudgets(c); this.sessions.delete(c); }
+  private clearPeerBudgets(c: VoiceClient): void {
+    this.sessions.get(c)?.peers.clear();
+    for (const session of this.sessions.values()) session.peers.delete(c);
+  }
   renamed(c: VoiceClient): void { const m = this.sessions.get(c)?.member; if (m && this.authenticated(c)) this.changed(m.room); }
   private error(c: VoiceClient, code: VoiceErrorCode): void {
     const s = this.sessions.get(c), now = this.now();
     if (!s || !this.authenticated(c) || now - s.errorAt < 1000) return;
     s.errorAt = now; c.sink.sendJson({ t: 'voiceError', code });
   }
-  private budget(c: VoiceClient, bytes: number, control: boolean): boolean {
-    const s = this.sessions.get(c)!, now = this.now(), elapsed = Math.max(0, Math.min(10, (now - s.at) / 1000));
-    s.at = now; s.messageTokens = Math.min(SIGNAL_BURST, s.messageTokens + elapsed * SIGNAL_RATE);
-    s.byteTokens = Math.min(BYTE_BURST, s.byteTokens + elapsed * BYTE_RATE); s.controlTokens = Math.min(12, s.controlTokens + elapsed * 4);
-    if (s.messageTokens < 1 || s.byteTokens < bytes || control && s.controlTokens < 1) { this.error(c,'rate_limit'); return false; }
-    s.messageTokens--; s.byteTokens -= bytes; if (control) s.controlTokens--; return true;
+  private budget(c: VoiceClient, bytes: number, control: boolean, target?: VoiceClient): boolean {
+    const session = this.sessions.get(c)!, now = this.now();
+    // Only authenticated members of the same room can allocate a destination budget.
+    // Keep it across voice leave/rejoin, so a new voice ID cannot reset flood protection.
+    let bucket: SignalBudget = session;
+    if (target) {
+      let peer = session.peers.get(target);
+      if (!peer) { peer = { messageTokens: SIGNAL_BURST, byteTokens: BYTE_BURST, at: now }; session.peers.set(target, peer); }
+      bucket = peer;
+    }
+    const elapsed = Math.max(0, Math.min(10, (now - bucket.at) / 1000));
+    bucket.at = now; bucket.messageTokens = Math.min(SIGNAL_BURST, bucket.messageTokens + elapsed * SIGNAL_RATE);
+    bucket.byteTokens = Math.min(BYTE_BURST, bucket.byteTokens + elapsed * BYTE_RATE);
+    if (!target) session.controlTokens = Math.min(12, session.controlTokens + elapsed * 4);
+    if (bucket.messageTokens < 1 || bucket.byteTokens < bytes || control && session.controlTokens < 1) { this.error(c,'rate_limit'); return false; }
+    bucket.messageTokens--; bucket.byteTokens -= bytes; if (control) session.controlTokens--; return true;
   }
+  private rejectSignal(c: VoiceClient, bytes: number, code: VoiceErrorCode): void {
+    if (this.budget(c, Math.min(bytes, VOICE_MAX_SIGNAL_TEXT), false)) this.error(c, code);
+  }
+
   handle(c: VoiceClient, raw: unknown): void {
     if (!this.authenticated(c) || !this.sessions.has(c)) return;
     const session = this.sessions.get(c)!;
@@ -170,12 +189,12 @@ export class VoiceRouter {
     let bytes: number;
     try { bytes = Buffer.byteLength(JSON.stringify(raw)); }
     catch { if (this.budget(c,128,false)) this.error(c,'invalid'); return; }
-    if (!this.budget(c,bytes,false)) return;
-    if (bytes > VOICE_MAX_SIGNAL_TEXT) return this.error(c,'invalid');
-    if (!exact(raw,['t','self','to','signal']) || !integer(raw.self,1,Number.MAX_SAFE_INTEGER) || !integer(raw.to,1,Number.MAX_SAFE_INTEGER)) return this.error(c,'invalid');
+    if (bytes > VOICE_MAX_SIGNAL_TEXT) return this.rejectSignal(c,bytes,'invalid');
+    if (!exact(raw,['t','self','to','signal']) || !integer(raw.self,1,Number.MAX_SAFE_INTEGER) || !integer(raw.to,1,Number.MAX_SAFE_INTEGER)) return this.rejectSignal(c,bytes,'invalid');
     const from = session.member, to = this.members.get(raw.to);
-    if (!from) return this.error(c,'not_joined');
-    if (from.id !== raw.self || !to || to === from || !this.authenticated(to.client) || to.client.room !== to.room || from.room !== c.room || to.room !== c.room) return this.error(c,'stale');
+    if (!from) return this.rejectSignal(c,bytes,'not_joined');
+    if (from.id !== raw.self || !to || to === from || !this.authenticated(to.client) || to.client.room !== to.room || from.room !== c.room || to.room !== c.room) return this.rejectSignal(c,bytes,'stale');
+    if (!this.budget(c,bytes,false,to.client)) return;
     const value = signal(raw.signal); if (!value) return this.error(c,'invalid');
     to.client.sink.sendJson({ t: 'voiceSignal', from: from.id, to: to.id, signal: value });
   }

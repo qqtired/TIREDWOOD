@@ -13,10 +13,12 @@ static-auth-secret=__SERVER_ONLY_32_RANDOM_BYTES_AS_HEX__
 fingerprint
 stale-nonce=600
 
-# Eight six-person meshes: 30 endpoint connections per room; two client
-# transports and a replacement generation reserve 120 allocations per room.
+# Planned per-credential headroom for the largest existing room (64 players):
+# 63 peers * 4 candidate allocations * 2 overlapping generations = 504.
+# These are sizing assumptions, not measured 64-player acceptance.
+# Global quota/ports/bandwidth stay bounded and can still limit a large mesh.
 # Per-username limit is NOT a per-account abuse limit: usernames are random.
-user-quota=20
+user-quota=512
 total-quota=960
 max-bps=16000
 bps-capacity=15360000

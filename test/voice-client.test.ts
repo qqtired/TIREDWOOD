@@ -58,7 +58,7 @@ function setup() {
     window: win, document: doc, hidden: () => hidden,
   };
   const controller = new VoiceController({ send: m => sent.push(m), canTalk: () => eligible, onChange: () => {} }, deps);
-  controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 6, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
+  controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: null, relayOnly: false });
   const state = (self: number | null = 1, ids = [2]) => controller.onMessage({ t: 'voiceState', self, room: 'lobby', peers: ids.map(id => ({ id, entityId: id, nick: `P${id}`, talking: false })) });
   const advance = (ms: number) => { time += ms; for (const [id, t] of [...timers]) if (t.at <= time) { timers.delete(id); t.fn(); } };
   return { controller, peers, contexts, sinks, sent, streams, win, doc, state, advance, timers, captures: () => captures,
@@ -138,7 +138,7 @@ test('talk lease heartbeats stop on release; config refresh is one bounded reque
   const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); await s.controller.enableMic(); for (const pc of s.peers) { pc.connectionState = 'connected'; pc.onconnectionstatechange?.(); } s.controller.push(true);
   s.advance(600); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'talk' && m.on).length, 2);
   s.controller.stopTalking(); s.advance(5000); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'talk' && m.on).length, 2);
-  s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 6, bitrate: 32000, iceServers: [], expiresAt: 9000, relayOnly: false });
+  s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: 9000, relayOnly: false });
   s.advance(4000); assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 1); s.advance(50000);
   assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 1);
 });
@@ -181,7 +181,7 @@ test('explicit retry replaces a failed RTC generation; no automatic reconnect lo
 
 test('expired configuration does not schedule a refresh churn', async t => {
   const s = setup(); t.after(() => s.controller.dispose()); await s.controller.enable(); s.state(); s.advance(20000);
-  for (let i = 0; i < 4; i++) { s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 6, bitrate: 32000, iceServers: [], expiresAt: 10000, relayOnly: false }); s.advance(2000); }
+  for (let i = 0; i < 4; i++) { s.controller.onMessage({ t: 'voiceConfig', enabled: true, maxPeers: 0, bitrate: 32000, iceServers: [], expiresAt: 10000, relayOnly: false }); s.advance(2000); }
   assert.equal(s.sent.filter(m => m.t === 'voice' && m.a === 'refresh').length, 0);
   assert.match(s.controller.view.error, /истекла/);
 });
@@ -376,3 +376,9 @@ test('playback failure blocks V until explicit successful resume even with conne
  s.hidden(true);assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),false);s.hidden(false);
  s.eligibility(false);assert.equal(s.controller.handleKey('KeyV',true,{} as KeyboardEvent),false);await flush();assert.equal(s.captures(),0);assert.equal(s.contexts.length,0);
  });
+
+for(const count of [7,12,32,64]) test(count+' participants create all remote peer connections instead of truncating at five',async t=>{
+ const s=setup();t.after(()=>s.controller.dispose());await s.controller.enable();const ids=Array.from({length:count-1},(_,i)=>i+2);s.state(1,ids);await flush();
+ assert.equal(s.controller.view.peers.length,count-1);assert.equal(s.peers.length,count-1);assert.equal(s.sent.filter(m=>m.t==='voiceSignal'&&m.signal.kind==='offer').length,count-1);
+ s.state(1,ids.slice(0,-1));assert.equal(s.controller.view.peers.length,count-2);assert.equal(s.peers.at(-1)!.closed,true);
+});

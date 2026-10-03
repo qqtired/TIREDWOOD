@@ -1,5 +1,6 @@
 /** Optional live PTT. Signaling carries temporary ICE addresses/credentials, never audio samples or saved profile data; do not log it. */
-export const VOICE_MAX_PEERS = 6;
+/** Wire compatibility: zero means no separate voice participant limit; room admission still applies. */
+export const VOICE_MAX_PEERS = 0;
 export const VOICE_BITRATE = 32_000;
 export const VOICE_MAX_SDP = 12_000;
 export const VOICE_MAX_SIGNAL_TEXT = 16_384;

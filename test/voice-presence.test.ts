@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
-import { Avatar } from '../client/render/avatar.ts';
+import { Avatar, tickAvatarShared } from '../client/render/avatar.ts';
 import { setVoicePresence } from '../client/render/voice-presence.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { wearOf } from '../client/render/outfit3d.ts';
@@ -61,6 +61,37 @@ test('public talking presence follows avatar entity IDs, clears on replacement a
   assert.equal(badge(a), sprite); assert.equal(sprite.material.map, texture); assert.equal(texture.version, version, 'no per-frame texture upload');
   a.photoPose(cam); assert.equal(sprite.visible, false, 'world photo excludes interface badge');
   a.photoPose(null); assert.equal(sprite.visible, true);
+
+  // HIDE used to pass camera world Y as pixels, then Lobby omitted the argument and inherited it.
+  tickAvatarShared(0, 1.25); frame(a);
+  assert.ok(sprite.scale.y < .1, `world height must not make a sky-sized microphone: ${sprite.scale.y}`);
+  tickAvatarShared(0); frame(a);
+  assert.ok(sprite.scale.y < .1, 'returning to Lobby must not preserve the corrupt HIDE size');
+  const camera = new THREE.PerspectiveCamera(60, 16 / 9, .1, 200);
+  for (const viewport of [360, 1080]) for (const fov of [30, 90, 120]) for (const parentScale of [[1, 1, 1], [.55, .55, .55], [.55, 1.2, 1], [1.6, .2, 1.6]]) {
+    camera.fov = fov; camera.updateProjectionMatrix(); camera.position.set(0, 1.25, 8);
+    a.root.scale.set(parentScale[0], parentScale[1], parentScale[2]);
+    for (const invalidHeight of [1.25, 3, 12, NaN, Infinity, -1, 0]) {
+      tickAvatarShared(0, invalidHeight); tickAvatarShared(0); frame(a); scene.updateMatrixWorld();
+      sprite.onBeforeRender({ domElement: { clientHeight: viewport } } as THREE.WebGLRenderer, scene, camera, sprite.geometry, sprite.material, null!);
+      const m = sprite.matrixWorld.elements;
+      const pixels = Math.hypot(m[4], m[5], m[6]) * camera.projectionMatrix.elements[5] * viewport / 2;
+      const width = Math.hypot(m[0], m[1], m[2]) * camera.projectionMatrix.elements[0] * viewport * camera.aspect / 2;
+      assert.ok(Math.abs(pixels - 24) < .001, `24 CSSpx at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${pixels}`);
+      assert.ok(Math.abs(width - 24) < .001, `24 CSSpx wide at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${width}`);
+    }
+  }
+  a.root.scale.setScalar(1);
+  a.setInfo('Игрок', 0, true);
+  tickAvatarShared(0, 360); frame(a);
+  const teamMark = a.root.children.find(o => o instanceof THREE.Sprite && !o.material.depthTest) as THREE.Sprite;
+  assert.ok(teamMark?.visible); assert.equal(teamMark.scale.y, 20 / 360, 'valid small viewport preserves teammate minimum');
+  for (const height of [1.25, 12, NaN, Infinity, 0]) {
+    tickAvatarShared(0, height); frame(a);
+    assert.equal(teamMark.scale.y, 20 / 360, 'invalid values cannot replace the last valid viewport');
+  }
+  tickAvatarShared(0); frame(a);
+  assert.equal(teamMark.scale.y, 20 / 360, 'omitted Lobby height retains a valid viewport');
   setVoicePresence([]); frame(a); frame(other);
   assert.equal(sprite.visible, false); assert.equal(badge(other)?.visible, false, 'scene/disconnect clear');
 });

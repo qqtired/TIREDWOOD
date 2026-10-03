@@ -96,3 +96,13 @@ test('observers outside voice receive talking tied to the room actor, not the co
   hub.disconnect(speaker.c);
   assert.deepEqual(lastOf(observer.s, 'voiceState')!.peers, []);
 });
+
+test('twelve authenticated lobby clients all join voice through Hub admission',t=>{
+ const {hub}=fixture(t),players=Array.from({length:12},(_,i)=>login(hub,'VoiceMember'+i,undefined,'10.0.1.'+(i+1)));
+ for(const p of players){assert.equal(p.c.room,hub.lobby);hub.onJson(p.c,{t:'voice',a:'join'});}
+ for(const p of players){assert.equal(lastOf(p.s,'voiceConfig')!.maxPeers,0);const state=lastOf(p.s,'voiceState')!;
+  assert.ok(state.self);assert.equal(state.peers.length,11);assert.ok(!allOf(p.s,'voiceError').length);
+ }
+ const speaker=players.at(-1)!,self=lastOf(speaker.s,'voiceState')!.self!;
+ hub.onJson(speaker.c,{t:'voice',a:'talk',self,on:true});assert.equal(lastOf(players[0].s,'voiceState')!.peers.find(p=>p.id===self)!.talking,true);
+});

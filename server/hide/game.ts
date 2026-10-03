@@ -2,11 +2,12 @@ import { randomInt } from 'node:crypto';
 import { viewDir } from '../../shared/math.ts';
 import { EYE_HEIGHT } from '../../shared/constants.ts';
 import { HIDE_CAPACITY,HIDE_COUNT_TICKS,HIDE_MIN,HIDE_PREP_TICKS,HIDE_SEEK_TICKS,HIDE_RESULT_TICKS,HIDE_REJOIN_TICKS,HIDE_SHOT_TICKS,HIDE_MISS_TICKS,HIDE_PROPS,HIDE_FORMS,type HideClientMsg,type HideForm,type HidePhase,type HideProp,type HideResult,type HideRole,type HideServerMsg } from '../../shared/hide.ts';
-import { HidePhysics,HIDE_SPAWN,hideFits,hideRayProp,hideWorld } from '../../shared/hidephysics.ts';
+import { HidePhysics,HIDE_SPAWN,hideClearOfProps,hideFits,hideRayProp,hideWorld } from '../../shared/hidephysics.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { makeState,type Input,type PlayerState } from '../../shared/sim.ts';
 import type { RayHit } from '../../shared/world.ts';
 import { InputQueue } from '../inputs.ts';
+import { HIDE_SHOT_HISTORY,HIDE_SHOT_EVENT_TICKS,type HideShot } from '../../shared/hide.ts';
 export interface HideSink {sendJson(msg:HideServerMsg):void}
 export interface HidePlayer {
  id:number;pid:number;nick:string;level:number;outfit:Outfit;sink:HideSink|null;connected:boolean;leftAt:number;
@@ -21,6 +22,7 @@ export class HideGame {
  private readonly hooks:Hooks;private readonly rand:(n:number)=>number;private nextId=1;private hunterPid=0;private lastHunter=0;
  private props:HideProp[]=[];private initialProps=0;private seekAt=0;private nextCue=0;
  private readonly shotDir={x:0,y:0,z:0};
+ private shots:HideShot[]=[];private shotSerial=0;
  private readonly wallHit:RayHit={t:0,nx:0,ny:0,nz:0,box:-1};
  constructor(hooks:Hooks){this.hooks=hooks;this.rand=hooks.rand??randomInt;}
  canRejoin(pid:number):boolean{return [...this.players.values()].some(p=>p.pid===pid&&!p.connected&&!p.found&&p.role!=='spectator'&&this.tick-p.leftAt<HIDE_REJOIN_TICKS);}
@@ -46,7 +48,10 @@ export class HideGame {
  }
  action(p:HidePlayer,msg:HideClientMsg):void {
   if(!p.connected||p.found||(this.phase!=='hide'&&this.phase!=='seek'))return;
-  if(msg.a==='shoot'){if(p.role==='hunter'&&this.phase==='seek')this.shoot(p);return;}
+  if(msg.a==='shoot'){
+   if(msg.aim!==undefined&&(!Array.isArray(msg.aim)||msg.aim.length!==2||!msg.aim.every(v=>typeof v==='number'&&Number.isFinite(v))))return;
+   if(p.role==='hunter'&&this.phase==='seek')this.shoot(p,msg.aim);return;
+  }
   if(p.role!=='prop'||this.tick-p.lastAction<9)return;p.lastAction=this.tick;
   if(msg.a==='form'&&HIDE_PROPS.includes(msg.form!)){
    if(hideFits(this.world,p.state,msg.form!,p.propYaw)&&this.clearOfProps(p,msg.form!,p.propYaw)){p.form=msg.form!;p.chose=true;p.reset++;}
@@ -71,7 +76,7 @@ export class HideGame {
   const players=[...this.players.values()].filter(p=>p.connected).sort((a,b)=>a.pid-b.pid);
   if(players.length<HIDE_MIN){this.phaseEnd=0;return;}
   const hunter=players.find(p=>p.pid>this.lastHunter)??players[0];this.hunterPid=hunter.pid;this.lastHunter=hunter.pid;
-  this.round++;this.phase='hide';this.phaseEnd=this.tick+HIDE_PREP_TICKS;this.result=null;this.notice='20 секунд: выберите предмет и спрячьтесь';this.cue=null;
+  this.round++;this.phase='hide';this.phaseEnd=this.tick+HIDE_PREP_TICKS;this.result=null;this.notice='20 секунд: выберите предмет и спрячьтесь';this.cue=null;this.shots=[];
   this.layout();const choices=[...this.props];
   for(let i=choices.length-1;i>0;i--){const j=this.rand(i+1);[choices[i],choices[j]]=[choices[j],choices[i]];}
   let slot=0;this.initialProps=players.length-1;
@@ -84,14 +89,20 @@ export class HideGame {
  }
  private currentProps():HideProp[]{return this.props.flatMap(prop=>{const p=[...this.players.values()].find(p=>p.propId===prop.id&&p.round===this.round);if(!p)return [{...prop}];if(p.found)return [];return [{id:prop.id,form:p.form,x:p.state.x,y:p.state.y,z:p.state.z,yaw:p.propYaw}];});}
  private clearOfProps(p:HidePlayer,form:HideForm,yaw:number):boolean {
-  const f=HIDE_FORMS[form],rx=Math.abs(Math.cos(yaw))*f.w+Math.abs(Math.sin(yaw))*f.d,rz=Math.abs(Math.sin(yaw))*f.w+Math.abs(Math.cos(yaw))*f.d;
-  return this.currentProps().every(q=>{if(q.id===p.propId)return true;const g=HIDE_FORMS[q.form],qx=Math.abs(Math.cos(q.yaw))*g.w+Math.abs(Math.sin(q.yaw))*g.d,qz=Math.abs(Math.sin(q.yaw))*g.w+Math.abs(Math.cos(q.yaw))*g.d;return Math.abs(q.x-p.state.x)>=rx+qx+.04||Math.abs(q.z-p.state.z)>=rz+qz+.04;});
+  return hideClearOfProps(p.state,form,yaw,p.propId,this.currentProps());
  }
- private shoot(p:HidePlayer):void {
+ private shoot(p:HidePlayer,aim?:[number,number]):void {
   if(this.tick-p.lastShot<HIDE_SHOT_TICKS)return;p.lastShot=this.tick;p.lastHuntAt=this.tick;p.shots++;
-  viewDir(p.yaw,p.pitch,this.shotDir);const {x:dx,y:dy,z:dz}=this.shotDir;
-  let nearest=42,id=0;for(const prop of this.currentProps()){const d=hideRayProp(p.state.x,p.state.y+EYE_HEIGHT,p.state.z,dx,dy,dz,prop);if(d<nearest){nearest=d;id=prop.id;}}
+  // Only orientation comes from this action; origin and collision stay server-authoritative.
+  viewDir(aim?.[0]??p.yaw,Math.max(-1.2,Math.min(1.2,aim?.[1]??p.pitch)),this.shotDir);const {x:dx,y:dy,z:dz}=this.shotDir;
+  let nearest=42,id=0,hitProp:HideProp|undefined;for(const prop of this.currentProps()){const d=hideRayProp(p.state.x,p.state.y+EYE_HEIGHT,p.state.z,dx,dy,dz,prop);if(d<nearest){nearest=d;id=prop.id;hitProp=prop;}}
   const blocked=this.world.raycast(p.state.x,p.state.y+EYE_HEIGHT,p.state.z,dx,dy,dz,nearest,this.wallHit,true);
+  const distance=blocked?this.wallHit.t:nearest;
+  const from:[number,number,number]=[p.state.x,p.state.y+EYE_HEIGHT,p.state.z];
+  const to:[number,number,number]=[from[0]+dx*distance,from[1]+dy*distance,from[2]+dz*distance];
+  const normal:[number,number,number]=blocked?[this.wallHit.nx,this.wallHit.ny,this.wallHit.nz]:hitProp?propNormal(hitProp,to):[0,0,0];
+  this.shots.push({id:++this.shotSerial,tick:this.tick,from,to,normal,kind:blocked?'world':id?'prop':'air',propId:blocked?0:id});
+  this.shots=this.shots.filter(shot=>this.tick-shot.tick<=HIDE_SHOT_EVENT_TICKS).slice(-HIDE_SHOT_HISTORY);
   const target=id&&!blocked?[...this.players.values()].find(q=>q.propId===id&&q.role==='prop'&&q.connected&&!q.found&&q.round===this.round):undefined;
   if(target){target.found=true;target.reset++;p.finds++;this.notice='Нашли предмет!';if(this.remaining().length===0)this.finish('hunter');}
   else{this.phaseEnd=Math.max(this.tick,this.phaseEnd-HIDE_MISS_TICKS);this.notice='Промах: −3 секунды';}
@@ -139,7 +150,7 @@ export class HideGame {
    if(!this.remaining().length)this.finish('cancelled');
    else if(this.tick>=this.phaseEnd)this.finish('props');
    else if(this.tick>=this.nextCue){const props=this.remaining();this.signal(props[this.rand(props.length)]);this.nextCue=this.tick+1800;}
-  }else if(this.phase==='result'&&this.tick>=this.phaseEnd){this.phase='gather';this.phaseEnd=0;this.props=[];this.result=null;for(const p of this.players.values()){p.role='spectator';p.propId=0;p.state=Object.assign(makeState(),HIDE_SPAWN,{grounded:1});p.reset++;}this.recount();this.broadcast();}
+  }else if(this.phase==='result'&&this.tick>=this.phaseEnd){this.phase='gather';this.phaseEnd=0;this.props=[];this.shots=[];this.result=null;for(const p of this.players.values()){p.role='spectator';p.propId=0;p.state=Object.assign(makeState(),HIDE_SPAWN,{grounded:1});p.reset++;}this.recount();this.broadcast();}
   if(this.tick%6===0)this.broadcast();
  }
  view(p:HidePlayer):HideServerMsg {
@@ -147,8 +158,16 @@ export class HideGame {
   return{t:'hide_state',tick:this.tick,round:this.round,phase:this.phase,phaseEnd:this.phaseEnd,
    self:{id:p.id,ack:p.input.ack,reset:p.reset,state:{...p.state},role:p.role,form:p.form,propId:p.propId,propYaw:p.propYaw,locked:p.locked,found:p.found},
    props:blind?[]:this.currentProps(),hunter:blind||!hunter?null:{x:hunter.state.x,y:hunter.state.y,z:hunter.state.z,yaw:hunter.yaw,nick:hunter.nick,level:hunter.level,outfit:hunter.outfit},
-   remaining:this.remaining().length,total:this.initialProps,notice:this.notice,result:this.result,cue:blind?null:this.cue};
+   remaining:this.remaining().length,total:this.initialProps,notice:this.notice,result:this.result,cue:blind?null:this.cue,
+   shots:this.phase==='hide'||this.phase==='gather'?[]:this.shots.filter(shot=>this.tick-shot.tick<=HIDE_SHOT_EVENT_TICKS)};
  }
  send(p:HidePlayer):void{p.sink?.sendJson(this.view(p));}
  private broadcast():void{for(const p of this.players.values())if(p.connected)this.send(p);}
+}
+/** Normal of the same oriented collision box used to judge a prop hit; no hidden metadata. */
+function propNormal(prop:HideProp,point:readonly number[]):[number,number,number] {
+ const f=HIDE_FORMS[prop.form],c=Math.cos(prop.yaw),s=Math.sin(prop.yaw),rx=point[0]-prop.x,rz=point[2]-prop.z;
+ const x=rx*c-rz*s,y=point[1]-prop.y,z=rx*s+rz*c;
+ const faces=[{d:Math.abs(x+f.w),n:[-c,0,s]},{d:Math.abs(x-f.w),n:[c,0,-s]},{d:Math.abs(y),n:[0,-1,0]},{d:Math.abs(y-f.h),n:[0,1,0]},{d:Math.abs(z+f.d),n:[-s,0,-c]},{d:Math.abs(z-f.d),n:[s,0,c]}];
+ return faces.reduce((best,face)=>face.d<best.d?face:best).n as [number,number,number];
 }

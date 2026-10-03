@@ -73,7 +73,7 @@ export class BoatRaceWorld {
  }
  setQuality(q:Quality,slow=false):void{this.low=q==='low'||slow;this.details.visible=!this.low;const size=this.low?1024:q==='medium'?2048:4096;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.mapSize.set(size,size);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.renderer.refreshShadows();}}
  update(tick:number,nextGate:number,boats:WakeBoat[]):void {
-  const t=tick/60,dt=Math.min(.1,Math.max(0,t-this.previous));this.previous=t;this.sky.position.copy(this.camera.position);this.sky.material.uniforms.uTime.value=t;this.sea.material.uniforms.uTime.value=t;tickAvatarShared(t,this.camera.position.y);
+  const t=tick/60,dt=Math.min(.1,Math.max(0,t-this.previous));this.previous=t;this.sky.position.copy(this.camera.position);this.sky.material.uniforms.uTime.value=t;this.sea.material.uniforms.uTime.value=t;tickAvatarShared(t,this.renderer.canvas.clientHeight || window.innerHeight);
   for(let i=0;i<this.buoys.length;i++){const g=this.buoys[i],w=boatWave(g.position.x,g.position.z,tick);g.position.y=w.y;g.rotation.set(w.pitch*.6,0,w.roll*.8);const p=this.flags[i].geometry.getAttribute('position');for(let j=0;j<p.count;j++)p.setZ(j,Math.sin(t*3.2+p.getX(j)*7+i)*.055*(p.getX(j)+.315)/.63);p.needsUpdate=true;}
   this.gateLights.forEach((m,i)=>{m.opacity=i===nextGate?.45:.075;m.color.setHex(i===nextGate?0xf0d09a:0xb4ded2);});this.wake.update(tick,boats,this.low);this.backdrop.update(t);this.gulls.update(dt);
  }

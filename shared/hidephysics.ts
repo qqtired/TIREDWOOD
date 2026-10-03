@@ -16,9 +16,16 @@ export function hideFits(world:CollisionWorld,s:Pick<PlayerState,'x'|'y'|'z'>,fo
   for(const dx of [-hx,hx])for(const dz of [-hz,hz])if(world.groundBelow(s.x+dx,s.y+.06,s.z+dz)<s.y-.08)return false;
   return true;
 }
+/** Anonymous public prop volumes: the predictor and authority reject the same overlap. */
+export function hideClearOfProps(s:Pick<PlayerState,'x'|'z'>,form:HideForm,yaw:number,ownId:number,props:readonly HideProp[]):boolean {
+  const f=HIDE_FORMS[form],rx=Math.abs(Math.cos(yaw))*f.w+Math.abs(Math.sin(yaw))*f.d,rz=Math.abs(Math.sin(yaw))*f.w+Math.abs(Math.cos(yaw))*f.d;
+  return props.every(q=>{if(q.id===ownId)return true;const g=HIDE_FORMS[q.form],qx=Math.abs(Math.cos(q.yaw))*g.w+Math.abs(Math.sin(q.yaw))*g.d,qz=Math.abs(Math.sin(q.yaw))*g.w+Math.abs(Math.cos(q.yaw))*g.d;return Math.abs(q.x-s.x)>=rx+qx+.04||Math.abs(q.z-s.z)>=rz+qz+.04;});
+}
 /** Одинаковая ограниченная ходьба на сервере/клиенте. Прыжок и рывок не открывают крыши/воду. */
 export class HidePhysics {
   form:HideForm='barrel';locked=false;free=true;yaw=0;
+  /** Only prop players collide with these public records; hunter movement keeps its original rules. */
+  props:readonly HideProp[]=[];propId=0;
   private readonly beforeState=makeState();
   private readonly events=makeEvents();
   private readonly world:CollisionWorld;
@@ -28,7 +35,7 @@ export class HidePhysics {
     if(this.locked||!this.free){s.vx=0;s.vz=0;}
   }
   after(s:PlayerState,_input:Input,_events:StepEvents):void {
-    if(!hideFits(this.world,s,this.form,this.yaw))copyState(s,this.beforeState);
+    if(!hideFits(this.world,s,this.form,this.yaw)||(this.propId!==0&&!hideClearOfProps(s,this.form,this.yaw,this.propId,this.props)))copyState(s,this.beforeState);
   }
   step(s:PlayerState,input:Input):void{this.before(s,input);stepPlayer(s,input,this.world,false,0,this.events);this.after(s,input,this.events);}
 }

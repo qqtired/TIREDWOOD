@@ -255,7 +255,7 @@ export class VoiceController {
       if (message.self !== this.self) { this.stopTalking(); this.generation++; this.restartRequired = false; this.clearPeers(); this.self = message.self; }
       this.room = message.room;
       if (this.self === null) { this.changed(); return; }
-      const members = message.peers.filter(p => p.id !== this.self).slice(0, VOICE_MAX_PEERS - 1);
+      const members = message.peers.filter(p => p.id !== this.self);
       const ids = new Set(members.map(p => p.id));
       for (const [id, peer] of this.peers) if (!ids.has(id)) { this.closePeer(peer); this.peers.delete(id); }
       for (const info of members) { const existing = this.peers.get(info.id); if (existing) existing.info = { ...info }; else this.addPeer(info); }

@@ -26,13 +26,33 @@ function geometry(form:HideForm):THREE.BufferGeometry {
 }
 export class HideProps {
  private readonly meshes=new Map<HideForm,THREE.InstancedMesh>();private readonly dummy=new THREE.Object3D();
+ private readonly instances=new Map<number,{mesh:THREE.InstancedMesh;index:number}>();
+ private readonly raycaster=new THREE.Raycaster();private readonly instanceMatrix=new THREE.Matrix4();private readonly normalMatrix=new THREE.Matrix3();
  private readonly material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85});
  constructor(scene:THREE.Scene){for(const form of HIDE_PROPS){const mesh=new THREE.InstancedMesh(geometry(form),this.material,64);mesh.count=0;mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;this.meshes.set(form,mesh);scene.add(mesh);}}
  update(props:readonly HideProp[],ownId=0,own?:{x:number;y:number;z:number}):void {
+  this.instances.clear();
   for(const mesh of this.meshes.values())mesh.count=0;
-  for(const prop of props){const mesh=this.meshes.get(prop.form);if(!mesh||mesh.count>=64)continue;const p=prop.id===ownId&&own?own:prop;this.dummy.position.set(p.x,p.y,p.z);this.dummy.rotation.set(0,prop.yaw,0);this.dummy.updateMatrix();mesh.setMatrixAt(mesh.count++,this.dummy.matrix);}
-  for(const mesh of this.meshes.values())mesh.instanceMatrix.needsUpdate=true;
+  for(const prop of props){const mesh=this.meshes.get(prop.form);if(!mesh||mesh.count>=64)continue;const p=prop.id===ownId&&own?own:prop;this.dummy.position.set(p.x,p.y,p.z);this.dummy.rotation.set(0,prop.yaw,0);this.dummy.updateMatrix();this.instances.set(prop.id,{mesh,index:mesh.count});mesh.setMatrixAt(mesh.count++,this.dummy.matrix);}
+  for(const mesh of this.meshes.values()){mesh.instanceMatrix.needsUpdate=true;mesh.boundingSphere=null;}
  }
- clear():void{for(const mesh of this.meshes.values())mesh.count=0;}
+ /** Paint attaches to a visible triangle of the anonymous prop, never to empty space in its gameplay box. */
+ raycastProp(id:number,origin:THREE.Vector3,direction:THREE.Vector3,maxDistance:number):{point:THREE.Vector3;normal:THREE.Vector3;size:number}|null {
+  const entry=this.instances.get(id);if(!entry)return null;
+  const {mesh,index}=entry;mesh.updateMatrixWorld(true);
+  this.raycaster.set(origin,direction);this.raycaster.near=0;this.raycaster.far=maxDistance;
+  const hits:THREE.Intersection[]=[];mesh.raycast(this.raycaster,hits);
+  const hit=hits.filter(h=>h.instanceId===index&&h.face).sort((a,b)=>a.distance-b.distance)[0];if(!hit?.face)return null;
+  mesh.getMatrixAt(index,this.instanceMatrix);this.instanceMatrix.premultiply(mesh.matrixWorld);this.normalMatrix.getNormalMatrix(this.instanceMatrix);
+  // Box triangles share their face bounds, so the internal triangulation diagonal does not erase centre hits.
+  // Limit the footprint on narrow rendered pieces (bench legs/slats), rather than painting a full gameplay box.
+  const local=hit.point.clone().applyMatrix4(this.instanceMatrix.clone().invert()),vertices=[hit.face.a,hit.face.b,hit.face.c].map(i=>new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.position,i));
+  const axes=['x','y','z'] as const,normalAxis=axes.reduce((a,b)=>Math.abs(hit.face!.normal[a])>Math.abs(hit.face!.normal[b])?a:b);
+  let size=.72;
+  for(const axis of axes){if(axis===normalAxis)continue;const lo=Math.min(...vertices.map(v=>v[axis])),hi=Math.max(...vertices.map(v=>v[axis]));size=Math.min(size,Math.max(0,Math.min(local[axis]-lo,hi-local[axis]))*Math.SQRT2);}
+  if(size<.025)return null;
+  return {point:hit.point.clone(),normal:hit.face.normal.clone().applyMatrix3(this.normalMatrix).normalize(),size};
+ }
+ clear():void{this.instances.clear();for(const mesh of this.meshes.values())mesh.count=0;}
  dispose():void{for(const mesh of this.meshes.values()){mesh.removeFromParent();mesh.geometry.dispose();}this.material.dispose();}
 }

@@ -1249,14 +1249,31 @@ export class Avatar {
     let badge = this.voiceIndicator;
     if (!badge) {
       badge = this.voiceIndicator = makeVoiceIndicator();
-      badge.onBeforeRender = (_renderer, _scene, camera) => this.fitSpeechToCamera(camera);
+      badge.onBeforeRender = (renderer, _scene, camera) => {
+        this.fitVoiceIndicator(renderer, camera);
+        this.fitSpeechToCamera(camera);
+      };
       this.root.add(badge);
     }
-    const size = Math.max(0.03, viewH > 0 ? 22 / viewH : 0);
     badge.position.y = this.tag.position.y;
-    badge.scale.set(size, size, 1);
+    badge.scale.set(0.03, 0.03, 1);
     this.positionVoiceIndicator();
     badge.visible = true;
+  }
+
+  /** 24 CSS pixels under the actual render camera, including wide FOV and scaled kart avatars. */
+  private fitVoiceIndicator(renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
+    const badge = this.voiceIndicator!;
+    const height = renderer.domElement?.clientHeight || viewH || 720;
+    const projection = camera.projectionMatrix.elements[5];
+    const root = this.root.matrixWorld.elements;
+    const parentX = Math.hypot(root[0], root[1], root[2]);
+    const parentY = Math.hypot(root[4], root[5], root[6]);
+    if (!(height > 0 && projection > 0 && parentX > 0 && parentY > 0)) return;
+    const size = 48 / (height * projection);
+    badge.scale.set(size / parentX, size / parentY, 1);
+    badge.updateMatrixWorld();
+    this.positionVoiceIndicator();
   }
 
   private positionVoiceIndicator(): void {
@@ -1565,5 +1582,6 @@ let viewH = 0;
 /** Для одновременного обновления «пузырей» защиты; viewHeight — высота холста, пкс (в пейнтболе, для значка). */
 export function tickAvatarShared(time: number, viewHeight = 0): void {
   if (shared) shared.bubbleMat.uniforms.uTime.value = time;
-  if (viewHeight > 0) viewH = viewHeight;
+  // Keep a valid pixel minimum across scenes that omit height, but reject camera world coordinates.
+  if (Number.isFinite(viewHeight) && viewHeight >= 64) viewH = viewHeight;
 }

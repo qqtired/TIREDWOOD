@@ -25,7 +25,7 @@ Object.defineProperty(globalThis, 'document', { value: doc, configurable: true }
 Object.defineProperty(globalThis, 'window', { value: win, configurable: true });
 function find(root: El, cls: string): El { const all = [root]; while (all.length) { const e = all.shift()!; if (e.className.split(' ').includes(cls)) return e; all.push(...e.children); } throw Error(cls); }
 function fire(el: EventTarget, type: string, props = {}) { const e = Object.assign(new Event(type, { cancelable: true }), props); el.dispatchEvent(e); return e; }
-const base: VoiceView = { available: true, enabled: false, joined: false, room: 'lobby', mic: 'off', playbackBlocked: false, transmitting: false, receiving: true, gameMuted: false, volume: .7, maxPeers: 6, error: '', presence: [], peers: [] };
+const base: VoiceView = { available: true, enabled: false, joined: false, room: 'lobby', mic: 'off', playbackBlocked: false, transmitting: false, receiving: true, gameMuted: false, volume: .7, maxPeers: 0, error: '', presence: [], peers: [] };
 function setup(view = base) {
   const settings = new El('div'), hud = new El('div'); const calls: Array<[string, ...unknown[]]> = [];
   const a: VoiceUiActions = { connectMic: () => { calls.push(['connectMic']); }, enable: () => calls.push(['enable']), disable: () => calls.push(['disable']), enableMic: () => calls.push(['enableMic']), disableMic: () => calls.push(['disableMic']), push: v => calls.push(['push', v]), setReceiving: v => calls.push(['receiving', v]), setVolume: v => calls.push(['volume', v]), setPeerMuted: (id, v) => calls.push(['peer', id, v]), openSettings: () => calls.push(['open']) };
@@ -107,7 +107,7 @@ test('joined peer connection failure offers explicit retry without a general err
 
  test('one microphone icon starts explicit consent without transmitting and represents connection failure', () => {
  const s=setup(), hold=find(s.hud,'voice-hold');
- assert.equal(find(s.hud,'voice-hud').children.length,1);
+ assert.equal(find(s.hud,'voice-speakers').hidden,true);
  assert.equal(hold.textContent,''); assert.match(hold.attrs.get('aria-label')!,/микрофон/i);
  fire(hold,'click'); assert.deepEqual(s.calls,[['connectMic']]);
  s.ui.render({...ready,peers:[{id:2,entityId:2,nick:'P2',talking:false,muted:false,link:'connecting'}]});
@@ -151,4 +151,40 @@ test('focused microphone lets V press and release reach the global controller bu
  assert.equal(route(settings,'KeyV','keydown'),true);assert.equal(route(settings,'KeyV','keyup'),true);
  assert.equal(route(hud,'Space','keydown'),true);assert.equal(route(hud,'Space','keyup'),true);
  assert.deepEqual(s.calls,[['push',true],['push',false]], 'Space remains local to the button');s.ui.dispose();
+});
+
+test('speaking list uses public presence while voice is off, keeps duplicate names distinct and updates literal unsafe nicknames', () => {
+ const p={id:21,entityId:3,nick:'Алексей',talking:true}, quiet={id:22,entityId:4,nick:'Тихий',talking:false};
+ const s=setup({...base,presence:[p,{...p,id:23,entityId:5},quiet]}), list=find(s.hud,'voice-speakers');
+ assert.equal(list.hidden,false);assert.equal(list.children.length,2);
+ assert.equal(find(list.children[0],'voice-speaker-name').textContent,'Алексей');
+ assert.equal(find(list.children[1],'voice-speaker-name').textContent,'Алексей');
+ const first=list.children[0], unsafe='<img src=x onerror=alert(1)> длинный ник';
+ s.ui.render({...base,presence:[{...p,nick:unsafe},quiet]});
+ assert.equal(list.children.length,1);assert.equal(list.children[0],first,'same participant keeps its row');
+ const name=find(first,'voice-speaker-name');assert.equal(name.textContent,unsafe);assert.equal(name.children.length,0);
+ assert.equal(name.title,unsafe);assert.equal(first.attrs.get('aria-label'),`${unsafe} — говорит`);
+ assert.equal(find(first,'voice-speaker-state').textContent,'говорит');
+ assert.equal(find(first,'voice-speaker-icon').attrs.get('aria-hidden'),'true');
+ s.ui.render({...base,presence:[{...p,talking:false}]});assert.equal(list.children.length,0);assert.equal(list.hidden,true);
+ assert.deepEqual(s.calls,[], 'presence display never joins voice or requests a microphone');s.ui.dispose();
+});
+
+test('speaking list includes every simultaneous talker beyond six and own transmission, removes them on room/disconnect and respects HUD visibility', () => {
+ const presence=Array.from({length:9},(_,i)=>({id:100+i,entityId:20+i,nick:`Игрок ${i}`,talking:true}));
+ const s=setup({...ready,presence,transmitting:true}),list=find(s.hud,'voice-speakers');
+ assert.equal(list.children.length,10);
+ assert.deepEqual(list.children.map(row=>find(row,'voice-speaker-name').textContent),[...presence.map(p=>p.nick),'Вы']);
+ assert.equal(find(list.children[9],'voice-speaker-state').textContent,'говорите');
+ assert.equal(list.tabIndex,0,'long list is keyboard-scrollable');
+ s.ui.render({...ready,presence,transmitting:false});assert.equal(list.children.length,9);
+ s.ui.setVisible(false);assert.equal(find(s.hud,'voice-hud').hidden,true);assert.equal(list.hidden,true);
+ s.ui.render({...base,room:'race',presence:[{id:120,entityId:7,nick:'Гонщик',talking:true}]});
+ assert.equal(list.children.length,1);assert.equal(list.hidden,true);
+ s.ui.setVisible(true);assert.equal(list.hidden,false);assert.equal(find(list,'voice-speaker-name').textContent,'Гонщик');
+ // Unavailability wins even if a caller retains its previous presence snapshot.
+ s.ui.render({...base,available:false,presence});assert.equal(list.children.length,0);assert.equal(list.hidden,true);
+ s.ui.render({...base,presence});assert.equal(list.children.length,9);
+ s.ui.render({...base,room:'',presence:[]});assert.equal(list.children.length,0);assert.equal(list.hidden,true);
+ s.ui.dispose();assert.equal(s.hud.children.length,0);
 });

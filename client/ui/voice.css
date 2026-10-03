@@ -22,7 +22,14 @@
 .voice-peer-state { font-size: 12px; color: #d8cfcb; }
 .voice-peer.talking .voice-peer-state { color: #b9edc1; }
 .voice-peer-mute { flex-shrink: 0; }
-.voice-hud { position: absolute; z-index: 2; left: 20px; bottom: 18px; pointer-events: auto; }
+.voice-hud { position: absolute; z-index: 2; left: 20px; bottom: 18px; pointer-events: none; }
+.voice-speakers { position: absolute; left: 0; bottom: calc(100% + 10px); display: grid; gap: 4px; width: min(240px, calc(100vw - 40px)); max-height: 92px; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #b9d9bf #26382c; list-style: none; pointer-events: auto; touch-action: pan-y; }
+.voice-speaker { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 4px 8px; box-sizing: border-box; border-radius: 7px; background: #25382de8; color: #f2f6e8; font-size: 12px; line-height: 20px; }
+.voice-speaker-icon { display: flex; flex: 0 0 15px; color: #bce1a1; }
+.voice-speaker-icon svg { width: 15px; height: 15px; }
+.voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.voice-speaker-state { flex-shrink: 0; margin-left: auto; color: #cce7bc; font-size: 11px; }
+.voice-hold { pointer-events: auto; }
 .voice-hold { position: relative; display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 2px solid #e8c6a1; border-radius: 50%; color: #fcead4; background: #514336e8; box-shadow: 0 3px 0 #2d241c99, 0 4px 14px #211c1933; user-select: none; -webkit-user-select: none; touch-action: none; transition: background-color 140ms, color 140ms, transform 140ms; }
 .voice-hold svg { display: block; width: 25px; height: 25px; pointer-events: none; }
 .voice-key { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 5px; border: 1px solid #806b57; background: #fcead4; color: #493428; font-size: 10px; font-weight: 700; pointer-events: none; }
@@ -39,6 +46,10 @@
 @media (max-width: 600px), (pointer: coarse) {
   .voice-hud { left: 14px; bottom: max(166px, calc(env(safe-area-inset-bottom) + 150px)); }
   .voice-hold { width: 52px; height: 52px; }
+  .voice-speakers { width: min(210px, calc(100vw - 164px)); max-height: min(92px, 16dvh); }
+}
+@media (max-width: 640px), (max-height: 480px) {
+  html.touch[data-fishing] .voice-speakers { width: min(190px, calc(100vw - 170px)); max-height: 60px; bottom: calc(100% + 8px); }
 }
 @media (forced-colors: active) {
   .voice-settings :focus-visible, .voice-hud :focus-visible { outline-color: Highlight; }

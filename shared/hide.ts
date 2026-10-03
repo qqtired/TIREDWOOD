@@ -2,6 +2,7 @@ import type { Outfit } from './outfit.ts';
 import type { PlayerState } from './sim.ts';
 export const HIDE_CAPACITY=8, HIDE_MIN=2, HIDE_COUNT_TICKS=300, HIDE_PREP_TICKS=1200, HIDE_SEEK_TICKS=10800, HIDE_RESULT_TICKS=600;
 export const HIDE_SHOT_TICKS=42, HIDE_MISS_TICKS=180, HIDE_REJOIN_TICKS=600;
+export const HIDE_SHOT_HISTORY=4, HIDE_SHOT_EVENT_TICKS=90;
 export const HIDE_PROPS=['barrel','pot','bench','crate'] as const;
 export type HideForm=typeof HIDE_PROPS[number];
 export type HidePhase='gather'|'hide'|'seek'|'result';
@@ -17,10 +18,12 @@ export interface HideProp {id:number;form:HideForm;x:number;y:number;z:number;ya
 export interface HideHunter {x:number;y:number;z:number;yaw:number;nick:string;level:number;outfit:Outfit}
 export interface HideResult {round:number;role:'hunter'|'prop';won:boolean;found:number;survived:boolean;reward:number}
 export interface HideStatus {n:number;max:number;names:string[];phase:HidePhase}
-export type HideClientMsg={t:'hide';a:'form'|'freeze'|'shoot'|'taunt'|'rotate';form?:HideForm};
+export type HideClientMsg={t:'hide';a:'form'|'freeze'|'shoot'|'taunt'|'rotate';form?:HideForm;aim?:[number,number]};
+/** Accepted server ray only: propId is the same anonymous public decoration ID, never a player identity. */
+export interface HideShot {id:number;tick:number;from:[number,number,number];to:[number,number,number];normal:[number,number,number];kind:'world'|'prop'|'air';propId:number}
 export type HideServerMsg={t:'hide_state';tick:number;round:number;phase:HidePhase;phaseEnd:number;
   self:{id:number;ack:number;reset:number;state:PlayerState;role:HideRole;form:HideForm;propId:number;propYaw:number;locked:boolean;found:boolean};
   props:HideProp[];hunter:HideHunter|null;remaining:number;total:number;notice:string;
-  result:'hunter'|'props'|'cancelled'|null;cue:{x:number;z:number;until:number}|null;
+  result:'hunter'|'props'|'cancelled'|null;cue:{x:number;z:number;until:number}|null;shots:HideShot[];
 };
 export function hideEnabled(raw:string|undefined,dev=false):boolean{return raw==='1'||(raw===undefined&&dev);}

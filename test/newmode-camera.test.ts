@@ -8,6 +8,7 @@ import { CollisionWorld } from '../shared/world.ts';
 import { makeSkillMap } from '../shared/skillmap.ts';
 import { SkillDynamics } from '../shared/skillphysics.ts';
 import { HidePhysics, hideWorld } from '../shared/hidephysics.ts';
+import { HideMotion } from '../client/hide/motion.ts';
 import { makeBoatCourse } from '../shared/boatracemap.ts';
 import { makeBoatState, makeBoatEvents } from '../shared/boatrace.ts';
 import { placeBoat, stepBoat } from '../shared/boatracephysics.ts';
@@ -15,7 +16,7 @@ import { BTN_FORWARD, BTN_BACK, BTN_RIGHT, makeInput, makeState, makeEvents } fr
 import { decodeInputs } from '../shared/protocol.ts';
 import { EYE_HEIGHT } from '../shared/constants.ts';
 import { HideGame } from '../server/hide/game.ts';
-import { HIDE_COUNT_TICKS, HIDE_PREP_TICKS } from '../shared/hide.ts';
+import { HIDE_COUNT_TICKS, HIDE_PREP_TICKS, type HideServerMsg } from '../shared/hide.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 
 // Only asset/CSS URL imports are stubbed: frame(), Input.mouse(), Three camera math and simulation run unchanged.
@@ -28,15 +29,19 @@ function skillCamera(controls=input(),collision=new CollisionWorld({...makeSkill
  const camera=new THREE.PerspectiveCamera();
  const s=Object.assign(Object.create(SkillScene.prototype),{active:true,ready:true,tick:0,receivedAt:0,viewTick:0,acc:0,peers:[],hudAt:0,progress:{checkpoint:0},
   cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),
-  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls},dynamics:{place:noop},
+  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}}},dynamics:{place:noop},
   world:{camera,collision,update:noop,render:noop}});
  return{s,camera};
 }
-function hideCamera(controls=input(),role='hunter'){
- const camera=new THREE.PerspectiveCamera(),listener:number[]=[];
- const s=Object.assign(Object.create(HideScene.prototype),{active:true,message:{tick:0,phase:'seek',self:{role,found:false},props:[]},receivedAt:0,acc:0,lastHud:0,
-  predictor:{state:makeState(),offset:{x:0,y:0,z:0},decay:noop},pos:new THREE.Vector3(),look:new THREE.Vector3(),direction:new THREE.Vector3(),props:{update:noop},hunter:{update:noop},cue:{visible:false},
-  world:{camera,collision:new CollisionWorld({...makeSkillMap(),boxes:[]}),update:noop,render:noop},d:{input:controls,sound:{setListener:(...v:number[])=>listener.splice(0,listener.length,...v)}}});
+function hideCamera(controls=input(),role:'hunter'|'prop'='hunter'){
+ const camera=new THREE.PerspectiveCamera(),listener:number[]=[],collision=new CollisionWorld({...makeSkillMap(),boxes:[]});
+ const message:HideServerMsg={t:'hide_state',tick:0,round:1,phase:'seek',phaseEnd:100,
+  self:{id:1,ack:0,reset:1,state:makeState(),role,form:'barrel',propId:role==='prop'?77:0,propYaw:0,locked:false,found:false},
+  props:[],hunter:null,remaining:1,total:1,notice:'',result:null,cue:null,shots:[]};
+ const motion=new HideMotion(collision);motion.accept(message,0);
+ const s=Object.assign(Object.create(HideScene.prototype),{active:true,message,motion,acc:0,lastHud:0,
+  pos:new THREE.Vector3(),look:new THREE.Vector3(),direction:new THREE.Vector3(),props:{update:noop},shots:{update:noop},hunter:{update:noop},cue:{visible:false},
+  world:{camera,collision,update:noop,render:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},sound:{setListener:(...v:number[])=>listener.splice(0,listener.length,...v)}}});
  return{s,camera,listener};
 }
 for(const kind of['sky','hide'] as const)test(`${kind}: real mouse up/down follows canonical lobby pitch`,()=>{
@@ -111,7 +116,7 @@ test('HIDE third-person view and authoritative first-person ray retain the same 
 
 for(const kind of ['sky','hide'] as const)for(const edge of [-1,1])test(kind+': immediate reversal at '+(edge>0?'upper':'lower')+' pitch bound, including serialized input',()=>{
  const controls=input(.6),rig=kind==='sky'?skillCamera(controls):hideCamera(controls),packets:Uint8Array[]=[];
- rig.s.seq=0;rig.s.inputs=[makeInput()];rig.s.predictor.step=()=>({jumped:false,landed:false});
+ rig.s.seq=0;rig.s.inputs=[makeInput()];if(kind==='sky')rig.s.predictor.step=()=>({jumped:false,landed:false});
  rig.s.d.net={epoch:3,sendBinary:(data:Uint8Array)=>packets.push(data)};
  controls.mouse({movementX:0,movementY:-edge*600});controls.mouse({movementX:0,movementY:-edge*600});rig.s.frame(0,1/60);
  const bound=kind==='sky'?(edge>0?.85:-.6):edge*1.2;

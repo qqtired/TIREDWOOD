@@ -1,5 +1,7 @@
 # Voice relay: configuration and deployment notes
 
+**Local candidate after removing the six-person voice cap:** [capacity note](CAPACITY-VOICE-CAP-REMOVAL.md). The template now proposes `user-quota=512`; existing global/network/process budgets stay unchanged. This later quota edit has not been deployed by this task.
+
 **Deployed after explicit approval on 2026-10-03:** [DEPLOYMENT-20261003.md](DEPLOYMENT-20261003.md) and [operational evidence](operational-evidence-20261003.json) record the pinned Linux service, full 960-allocation budget and fresh protocol checks. The historical preflight/proposal below is retained for its rationale; game activation and public browser acceptance belong to the lead release record.
 
 **Current operator plan:** [PREFLIGHT.md](PREFLIGHT.md) records read-only production checks, the package-version blocker and the explicit single-room versus whole-game capacity decision. It supersedes the earlier generic distribution-install assumption below: do not install the observed old apt candidate blindly.

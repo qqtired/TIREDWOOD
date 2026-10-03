@@ -128,7 +128,7 @@ export class SkillScene implements Scene {
     viewDir(yaw, pitch, this.cameraDir);
     this.world.camera.lookAt(this.cameraLook.copy(this.cameraDir).add(this.world.camera.position));
     this.world.update(this.viewTick, this.progress.checkpoint);
-    tickAvatarShared(now / 1000, this.world.camera.position.y);
+    tickAvatarShared(now / 1000, this.d.renderer.canvas.clientHeight || window.innerHeight);
     for (const p of this.peers) {
       const pose = this.poses.get(p.id)!, local = p.id === this.myId;
       const target = local ? pos : p;
