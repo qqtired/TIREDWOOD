@@ -14,7 +14,11 @@ import { Zombies3D } from './zombies3d.ts';
 
 export class FortScene implements Scene {
   readonly kind = 'fort' as const;
-  get wantsPointer(): boolean { return !this.hud.shopShown; }
+  /**
+   * Мышь нужна всегда, кроме открытой панели арсенала (лавка, ворота, кристалл, башня) и «свободного курсора» после Esc
+   * у неё: Esc закрывает только панель, меню игры не встаёт; клик или любая клавиша возвращают мышь в игру.
+   */
+  get wantsPointer(): boolean { return !(this.hud.shopShown || this.match?.cursorFree); }
   private readonly d: SceneDeps;
   readonly map = buildFort();
   readonly collision: CollisionWorld;
@@ -36,7 +40,7 @@ export class FortScene implements Scene {
     this.hud = new FortHud(root);
   }
 
-  /** Телефон: под итогами стрелять незачем — только верхние кнопки */
+  /** Телефон: под итогами и у открытой панели (она снизу, на месте кнопок) стрелять незачем — только верхние кнопки */
   get touchMode(): TouchMode {
     return this.hud.endShown || this.hud.shopShown ? 'none' : 'shoot';
   }

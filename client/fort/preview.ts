@@ -6,6 +6,7 @@ import '@fontsource/rubik/900.css';
 import '../styles.css';
 import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_WAVE, Z_BOSS, Z_BRUTE, Z_FLYER, Z_WALKER,
   ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_WALK } from '../../shared/fort.ts';
+import { makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import type { ZombieSnap } from '../../shared/fortnet.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -36,11 +37,18 @@ let tick = 0;
 let previous = performance.now();
 let snapshots: ZombieSnap[] = [];
 let shield = false;
+let towers = false;
 const extraControls = document.createElement('div');
 for (const [label, action] of [
   ['Щит строений', () => { shield = !shield; }],
-  ['Западная лестница', () => { world.camera.position.set(-33, 8, 13); orbit.target.set(-20, 2, 1); orbit.update(); }],
-  ['Восточная лестница', () => { world.camera.position.set(33, 8, 13); orbit.target.set(20, 2, 1); orbit.update(); }],
+  ['Западная лестница', () => { world.camera.position.set(-29, 6.5, 5); orbit.target.set(-18, 2.4, -1); orbit.update(); }],
+  ['Восточная лестница', () => { world.camera.position.set(29, 6.5, 5); orbit.target.set(18, 2.4, -1); orbit.update(); }],
+  ['Лавка', () => { world.camera.position.set(5.2, 5.4, 3.4); orbit.target.set(8, 3, 9.6); orbit.update(); }],
+  ['Башни', () => {
+    // все четыре вида по кругу, уровни 1–4: как выглядят на стенах
+    towers = !towers;
+    world.arsenal.setTowers(towers ? [0, 1, 2, 3, 3, 2, 1, 0] : [-1, -1, -1, -1, -1, -1, -1, -1], [1, 2, 3, 4, 1, 2, 3, 4]);
+  }],
 ] as const) {
   const button = document.createElement('button');
   button.type = 'button'; button.textContent = label; button.addEventListener('click', action);
@@ -93,11 +101,13 @@ hud.pb.setAliveUi(false);
 hud.setGate(1000, 1600);
 hud.setCrystal(2300, 2500);
 hud.setPoints(1000);
-hud.onShopClose = () => hud.hideShop();
-hud.onShopBuy = () => hud.shopMessage('В этом превью нет сервера: покупку проверяют в полной игре.');
+hud.stall.onClose = () => hud.stall.close();
+hud.stall.onBuy = () => hud.stall.message('В этом превью нет сервера: покупку проверяют в полной игре.', true);
 document.getElementById('shop')!.addEventListener('click', () => {
-  hud.showShop();
-  hud.updateShop({ phase: 2, pts: 1000, gate: 1000, crystal: 2300, turrets: 3, jams: 0, mag: false }, 7, 20, null);
+  const row = { ...makeArsenalRow(), g: 1000, gr: 2 };
+  row.lv = [2, 1, 0, 0, 0];
+  hud.stall.open('shop', 'Лавка оружейника', 'Превью · без сервера');
+  hud.stall.render(shopRows({ wave: 7, calm: true, row }), row.g, null);
 });
 document.getElementById('reset')!.addEventListener('click', resetCamera);
 quality.addEventListener('change', setQuality);
@@ -127,6 +137,7 @@ function frame(now: number) {
   world.props.setRally(shield);
   hud.setBoss(boss?.hp ?? 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0);
   world.update(dt, world.camera.position);
+  world.arsenal.update(dt, world.camera.position, () => false);
   renderer.beginFrame(true);
   world.renderScene();
   renderer.endFrame();

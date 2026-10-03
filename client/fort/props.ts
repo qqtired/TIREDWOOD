@@ -1,13 +1,14 @@
 // Живое в крепости: ворота (трещины и сквозные дыры по прочности, дрожат от ударов, падают — обломки на земле,
 // новые «вырастают»), кристалл над постаментом (цвет и мерцание по прочности, вспышка от удара, луч в небо),
-// краскомёты на воротных башнях (целятся и стреляют по событиям), колокол на террасе, бочки с вареньем у жёлобов
-// и лужи на дороге, таблички над стойками. Эффекты и звук — у матча, здесь только меши и их анимация.
+// колокол на террасе, таблички над стойками, указатели к лестницам с луга. Башни, лестницы и прилавок — арсенал
+// (arsenal3d.ts). Эффекты и звук — у матча, здесь только меши и их анимация.
 import * as THREE from 'three';
-import { CRYSTAL_HP, GATE_HP, JAM_R } from '../../shared/fort.ts';
-import { CHUTES, CRYSTAL, GATE, TURRET_MUZZLE, TURRET_SPOTS, WALL_H, type FortMap, type FortStation } from '../../shared/fortmap.ts';
-import { clamp, damp, makeRng } from '../../shared/math.ts';
+import { CRYSTAL_HP, GATE_HP } from '../../shared/fort.ts';
+import { LADDERS } from '../../shared/fortladder.ts';
+import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
+import { clamp, makeRng } from '../../shared/math.ts';
 import { glowSprite, mergeColored, paint, place, staticMesh } from '../render/kit.ts';
-import { gateTexture, labelTexture, puddleTexture, ringTexture } from './textures.ts';
+import { gateTexture, labelTexture } from './textures.ts';
 
 /** Табличка над стойкой: размер на экране (доля высоты кадра) */
 const LABEL_H = 0.042;
@@ -17,22 +18,6 @@ const RED = new THREE.Color(0xff5a4a);
 const WHITE = new THREE.Color(0xffffff);
 const _c = new THREE.Color();
 const _v = new THREE.Vector3();
-
-interface TurretVis {
-  spot: THREE.Group;
-  gun: THREE.Group;
-  yawNode: THREE.Group;
-  pitchNode: THREE.Group;
-  barrel: THREE.Object3D;
-  built: boolean;
-  pop: number;
-  yaw: number;
-  pitch: number;
-  wantYaw: number;
-  wantPitch: number;
-  recoil: number;
-  lastShot: number;
-}
 
 interface Mark {
   st: FortStation;
@@ -65,17 +50,13 @@ export class FortProps {
   private readonly beamMat: THREE.MeshBasicMaterial;
   private crystalFrac = 1;
   private crystalFlash = 0;
-  // краскомёты, колокол, лужи, таблички
-  private readonly turrets: TurretVis[] = [];
+  // колокол, таблички
   private readonly bell = new THREE.Group();
   private bellAngle = 0;
   private bellVel = 0;
-  private readonly puddles: THREE.Mesh[] = [];
-  private readonly puddleOn: boolean[] = [];
-  private readonly puddlePop: number[] = [];
   private readonly marks: Mark[] = [];
   private readonly labelCache = new Map<string, THREE.CanvasTexture>();
-  private time = 0;
+
 
   constructor(scene: THREE.Scene, map: FortMap) {
     this.scene = scene;
@@ -150,9 +131,7 @@ export class FortProps {
     this.rally.visible = false;
     scene.add(this.rally);
     this.buildReturnSigns();
-    this.buildTurrets();
     this.buildBell(map);
-    this.buildJams();
     this.buildMarks(map);
   }
 
@@ -161,20 +140,22 @@ export class FortProps {
     this.rally.children[1].visible = this.gateUp;
   }
 
+  /** С луга обратно в крепость: над каждой наружной лестницей — табличка «↑ НА СТЕНУ» и мятный вымпел рядом */
   private buildReturnSigns(): void {
     const texture = labelTexture('↑', 'НА СТЕНУ');
     const mat = new THREE.SpriteMaterial({ map: texture, depthWrite: false });
-    for (const side of [-1, 1]) {
+    for (const l of LADDERS) {
+      if (l.name !== 'west-out' && l.name !== 'east-out') continue;
       const sign = new THREE.Sprite(mat);
-      sign.name = 'fort-return-stairs';
-      sign.position.set(side * 21.4, 2.3, 7.7);
-      sign.scale.set(3.6, 1.35, 1);
+      sign.name = 'fort-return-ladder';
+      sign.position.set(l.x + l.nx * 1.6, 5.4, l.z);
+      sign.scale.set(3.2, 1.2, 1);
       this.scene.add(sign);
-      // Paired mint pennants make the new rescue approaches legible from the field.
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 3.6, 6), new THREE.MeshStandardMaterial({color:0x665343}));
-      pole.position.set(side * 23, 1.8, 7.2);
-      const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4,.8), new THREE.MeshStandardMaterial({color:0x54bbab,side:THREE.DoubleSide}));
-      flag.position.set(side * 23 + .7, 3.05, 7.2);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 3.6, 6), new THREE.MeshStandardMaterial({ color: 0x665343 }));
+      pole.position.set(l.x + l.nx * 2.2, 1.8, l.z + 1.6);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .8), new THREE.MeshStandardMaterial({ color: 0x54bbab, side: THREE.DoubleSide }));
+      flag.position.set(l.x + l.nx * 2.2, 3.05, l.z + 2.3);
+      flag.rotation.y = Math.PI / 2;
       this.scene.add(pole, flag);
     }
   }
@@ -196,53 +177,6 @@ export class FortProps {
     this.debris.add(m);
     this.debris.visible = false;
     this.scene.add(this.debris);
-  }
-
-  /** Краскомёт: треножник, поворотная голова, ствол с бункером краски. Пока не куплен — пунктирный круг. */
-  private buildTurrets(): void {
-    const ringMat = new THREE.MeshBasicMaterial({ map: ringTexture(), transparent: true, depthWrite: false, color: 0xfff1c8 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x7a5232, roughness: 0.85 });
-    const metal = new THREE.MeshStandardMaterial({ color: 0x51565c, roughness: 0.4, metalness: 0.6 });
-    const paintMat = new THREE.MeshStandardMaterial({ color: 0xff8a1c, roughness: 0.35 });
-    for (const t of TURRET_SPOTS) {
-      const spot = new THREE.Group();
-      const ring = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7).rotateX(-Math.PI / 2), ringMat);
-      ring.position.y = 0.02;
-      spot.add(ring);
-      spot.position.set(t.x, t.y, t.z);
-      this.scene.add(spot);
-
-      const gun = new THREE.Group();
-      gun.position.set(t.x, t.y, t.z);
-      for (let k = 0; k < 3; k++) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.25, 6), woodMat);
-        const a = (k / 3) * Math.PI * 2;
-        leg.position.set(Math.cos(a) * 0.32, 0.55, Math.sin(a) * 0.32);
-        leg.rotation.set(Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3);
-        gun.add(leg);
-      }
-      const yawNode = new THREE.Group();
-      yawNode.position.y = TURRET_MUZZLE - 0.18;
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.5), metal);
-      yawNode.add(head);
-      const pitchNode = new THREE.Group();
-      pitchNode.position.y = 0.18;
-      const barrel = new THREE.Group();
-      const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.0, 12).rotateX(Math.PI / 2), metal);
-      tube.position.z = -0.45;
-      const ringM = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.035, 6, 14), paintMat);
-      ringM.position.z = -0.95;
-      const hopper = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), paintMat);
-      hopper.position.set(0, 0.22, 0.12);
-      barrel.add(tube, ringM, hopper);
-      pitchNode.add(barrel);
-      yawNode.add(pitchNode);
-      gun.add(yawNode);
-      gun.traverse((o) => (o.castShadow = true));
-      gun.visible = false;
-      this.scene.add(gun);
-      this.turrets.push({ spot, gun, yawNode, pitchNode, barrel, built: false, pop: 0, yaw: 0, pitch: 0, wantYaw: 0, wantPitch: 0, recoil: 0, lastShot: -9 });
-    }
   }
 
   /** Колокол на террасе: деревянная рама, бронзовый колокол с языком. */
@@ -270,43 +204,12 @@ export class FortProps {
     this.scene.add(this.bell);
   }
 
-  /** Бочки варенья у жёлобов на северной стене и лужи на дороге под ними. */
-  private buildJams(): void {
-    const geos: THREE.BufferGeometry[] = [];
-    for (const c of CHUTES) {
-      geos.push(place(paint(new THREE.CylinderGeometry(0.34, 0.3, 0.8, 12), 0x7a4f2e), c.x + 0.6, WALL_H + 0.4, c.z + 0.5));
-      geos.push(place(paint(new THREE.CylinderGeometry(0.31, 0.31, 0.04, 12), 0xb3122e), c.x + 0.6, WALL_H + 0.81, c.z + 0.5));
-      geos.push(place(paint(new THREE.TorusGeometry(0.335, 0.025, 4, 14).rotateX(Math.PI / 2), 0x3b3a38), c.x + 0.6, WALL_H + 0.62, c.z + 0.5));
-      // жёлоб через бруствер наружу
-      const chute = paint(new THREE.BoxGeometry(0.42, 0.08, 2.0), 0x8a5a34);
-      chute.rotateX(-0.32);
-      geos.push(place(chute, c.x, WALL_H + 1.0, c.z - 1.0));
-      geos.push(place(paint(new THREE.BoxGeometry(0.06, 0.16, 2.0).rotateX(-0.32), 0x6b4a2c), c.x - 0.21, WALL_H + 1.06, c.z - 1.0));
-      geos.push(place(paint(new THREE.BoxGeometry(0.06, 0.16, 2.0).rotateX(-0.32), 0x6b4a2c), c.x + 0.21, WALL_H + 1.06, c.z - 1.0));
-    }
-    this.scene.add(staticMesh(mergeColored(geos), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }), true));
-    const tex = puddleTexture();
-    for (const c of CHUTES) {
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(JAM_R * 2.2, JAM_R * 2.2).rotateX(-Math.PI / 2),
-        new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.15, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
-      );
-      m.position.set(c.px, 0.03, c.pz);
-      m.renderOrder = 2;
-      m.visible = false;
-      this.scene.add(m);
-      this.puddles.push(m);
-      this.puddleOn.push(false);
-      this.puddlePop.push(0);
-    }
-  }
-
   /** Таблички над стойками: значок и цена (что именно — решает matchLabel у матча) */
   private buildMarks(map: FortMap): void {
     for (const st of map.stations) {
       // постоянного размера на экране (как ники желеек), вдали и вплотную — прячутся
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, sizeAttenuation: false }));
-      const baseY = st.y + (st.kind === 'turret' ? 1.6 : st.kind === 'jam' ? 2.0 : st.kind === 'bell' ? 2.9 : 2.3);
+      const baseY = st.y + (st.kind === 'tower' ? 2.3 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : 2.3);
       sprite.position.set(st.x, baseY, st.z);
       sprite.scale.set(LABEL_W, LABEL_H, 1);
       sprite.renderOrder = 6;
@@ -318,8 +221,8 @@ export class FortProps {
 
   // ------------------------------------------------------------ состояние с сервера
 
-  /** Прочность ворот: уровень трещин; 0 — пали (обломки), снова больше 0 — встали. */
-  setGate(hp: number): void {
+  /** Прочность ворот (из max — с укреплением): уровень трещин; 0 — пали (обломки), снова больше 0 — встали. */
+  setGate(hp: number, max = GATE_HP): void {
     const up = hp > 0;
     if (up !== this.gateUp) {
       this.gateUp = up;
@@ -327,7 +230,7 @@ export class FortProps {
       this.debris.visible = !up;
       if (up) this.gateRise = 0;
     }
-    const f = hp / GATE_HP;
+    const f = hp / max;
     const level = f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : 3;
     if (level !== this.gateLevel) {
       this.gateLevel = level;
@@ -341,56 +244,12 @@ export class FortProps {
     this.gateShake = Math.min(1, this.gateShake + 0.5 * power);
   }
 
-  setCrystal(hp: number): void {
-    this.crystalFrac = clamp(hp / CRYSTAL_HP, 0, 1);
+  setCrystal(hp: number, max = CRYSTAL_HP): void {
+    this.crystalFrac = clamp(hp / max, 0, 1);
   }
 
   flashCrystal(): void {
     this.crystalFlash = 1;
-  }
-
-  /** Краскомёты: бит на место */
-  setTurrets(bits: number): void {
-    this.turrets.forEach((t, i) => {
-      const on = (bits & (1 << i)) !== 0;
-      if (on === t.built) return;
-      t.built = on;
-      t.gun.visible = on;
-      t.spot.visible = !on;
-      if (on) t.pop = 1;
-    });
-  }
-
-  /** Краскомёт i выстрелил в (x, y, z): поворот к цели и отдача; в out — где дуло. */
-  turretShot(i: number, x: number, y: number, z: number, out: THREE.Vector3): boolean {
-    const t = this.turrets[i];
-    if (!t) return false;
-    const s = TURRET_SPOTS[i];
-    const oy = s.y + TURRET_MUZZLE;
-    const dx = x - s.x;
-    const dy = y - oy;
-    const dz = z - s.z;
-    t.wantYaw = Math.atan2(-dx, -dz);
-    t.wantPitch = Math.atan2(dy, Math.hypot(dx, dz));
-    // по быстрой цели не догонит плавно — встаёт сразу
-    t.yaw = t.wantYaw;
-    t.pitch = t.wantPitch;
-    t.recoil = 1;
-    t.lastShot = this.time;
-    const len = Math.hypot(dx, dy, dz) || 1;
-    out.set(s.x + (dx / len) * 1.0, oy + (dy / len) * 1.0, s.z + (dz / len) * 1.0);
-    return t.built;
-  }
-
-  /** Лужи: бит на жёлоб */
-  setJams(bits: number): void {
-    for (let i = 0; i < this.puddles.length; i++) {
-      const on = (bits & (1 << i)) !== 0;
-      if (on === this.puddleOn[i]) continue;
-      this.puddleOn[i] = on;
-      this.puddles[i].visible = on;
-      if (on) this.puddlePop[i] = 1;
-    }
   }
 
   ringBell(): void {
@@ -422,7 +281,6 @@ export class FortProps {
   // ------------------------------------------------------------ кадр
 
   update(dt: number, t: number, camPos: THREE.Vector3): void {
-    this.time = t;
     if (this.rally.visible) this.rallyMat.opacity = .15 + Math.sin(t * 3) * .025;
     // ворота: дрожь от ударов, «вырастают» после постройки
     this.gateShake = Math.max(0, this.gateShake - dt * 3.5);
@@ -460,35 +318,10 @@ export class FortProps {
       m.visible = f > i * 0.22;
     });
 
-    // краскомёты: следят за целью, отдача, без дела — осматриваются
-    for (const tr of this.turrets) {
-      if (!tr.built) continue;
-      tr.pop = Math.max(0, tr.pop - dt * 2.5);
-      tr.gun.scale.setScalar(1 + Math.sin(tr.pop * Math.PI) * 0.3);
-      if (t - tr.lastShot > 1.6) {
-        tr.wantYaw = Math.sin(t * 0.4 + tr.spot.position.x) * 0.9;
-        tr.wantPitch = -0.12;
-      }
-      tr.yaw = dampAngle(tr.yaw, tr.wantYaw, 6, dt);
-      tr.pitch = damp(tr.pitch, tr.wantPitch, 6, dt);
-      tr.recoil = Math.max(0, tr.recoil - dt * 6);
-      tr.yawNode.rotation.y = tr.yaw;
-      tr.pitchNode.rotation.x = tr.pitch;
-      tr.barrel.position.z = tr.recoil * 0.14;
-    }
-
     // колокол качается и затихает
     this.bellVel += (-this.bellAngle * 38 - this.bellVel * 1.6) * dt;
     this.bellAngle += this.bellVel * dt;
     this.bell.rotation.x = this.bellAngle * 0.35;
-
-    // лужи «расплёскиваются» при появлении
-    for (let i = 0; i < this.puddles.length; i++) {
-      if (!this.puddleOn[i]) continue;
-      this.puddlePop[i] = Math.max(0, this.puddlePop[i] - dt * 2.5);
-      const k = 1 - this.puddlePop[i];
-      this.puddles[i].scale.setScalar(0.3 + 0.7 * (1 - Math.pow(1 - k, 3)));
-    }
 
     // таблички: покачиваются, вдали прячутся
     for (const m of this.marks) {
@@ -498,11 +331,4 @@ export class FortProps {
       m.sprite.visible = d < 42 && d > 2.2;
     }
   }
-}
-
-function dampAngle(a: number, b: number, k: number, dt: number): number {
-  let d = b - a;
-  while (d > Math.PI) d -= Math.PI * 2;
-  while (d < -Math.PI) d += Math.PI * 2;
-  return a + d * (1 - Math.exp(-k * dt));
 }

@@ -1,14 +1,16 @@
-// Интерфейс «Крепости»: всё «стрелковое» (здоровье, патроны, прицел, метки попаданий, цифры урона, смерть) — общий
-// интерфейс пейнтбола (paintball/hud.ts), поверх — своё: полоса сверху (волна, ворота, кристалл, сколько зомби
-// осталось или сколько до волны, очки лавки), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка),
-// мини-карта с ордой, таблица защитников (Tab) и итоги игры с жетонами.
+// Интерфейс «Крепости»: всё «стрелковое» (здоровье, патроны, прицел, метки попаданий, смерть) — общий интерфейс
+// пейнтбола (paintball/hud.ts), поверх — своё: полоса сверху (волна, ворота, кристалл, сколько зомби осталось или
+// сколько до волны, золото 💰), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка), мини-карта
+// с ордой, таблица защитников (Tab), итоги игры с жетонами; арсенал — прилавок справа, полоска стволов и гранат,
+// цифры урона и золота (stall.ts, floaters.ts).
 import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, ZS_BOSS_OPEN, ZS_BOSS_APPROACH, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE,
   waveRole, type FortPlayerRow, type FortResultRow } from '../../shared/fort.ts';
-import { fortShopItems, type FortShopState } from '../../shared/fortshop.ts';
-import { CHUTES, FORT, GATE, ROADS } from '../../shared/fortmap.ts';
+import { FORT, GATE, ROADS, TOWER_SPOTS } from '../../shared/fortmap.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
 import { TOUCH } from '../touch.ts';
 import { setCoinText } from '../ui/coin.ts';
+import { FortFloaters } from './floaters.ts';
+import { ArmsStrip, StallPanel } from './stall.ts';
 import './fort.css';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
@@ -39,8 +41,11 @@ export class FortHud {
   readonly pb: Hud;
   /** Телефон: нажали на подсказку у стойки */
   onTapUse: () => void = () => {};
-  onShopBuy: (id: number) => void = () => {};
-  onShopClose: () => void = () => {};
+  /** Прилавок (лавка, ворота, кристалл, башни), полоска стволов и гранат, цифры урона и золота */
+  readonly stall: StallPanel;
+  readonly arms: ArmsStrip;
+  readonly floaters: FortFloaters;
+  private readonly resumeEl: HTMLElement;
   private readonly waveEl: HTMLElement;
   private readonly phaseEl: HTMLElement;
   private readonly defenseEl: HTMLElement;
@@ -68,12 +73,6 @@ export class FortHud {
   private readonly bossEl: HTMLElement;
   private readonly bossFill: HTMLElement;
   private readonly bossInfo: HTMLElement;
-  private readonly shop: HTMLDialogElement;
-  private readonly shopBalance: HTMLElement;
-  private readonly shopTime: HTMLElement;
-  private readonly shopNotice: HTMLElement;
-  private readonly shopClose: HTMLButtonElement;
-  private readonly shopRows = new Map<number, { buy: HTMLButtonElement; reason: HTMLElement }>();
   private last: Record<string, string | number | boolean> = {};
   private alertTimer = 0;
 
@@ -101,8 +100,8 @@ export class FortHud {
     };
     [this.gateBox, this.gateFill, this.gateNum] = meter('ft-gate', '🚪');
     [this.crysBox, this.crysFill, this.crysNum] = meter('ft-crys', '💎');
-    this.ptsEl = el('div', 'ft-pts', top, '⭐ 0');
-    this.ptsEl.title = 'Очки лавки: за сбитых и отбитые волны';
+    this.ptsEl = el('div', 'ft-pts', top, '💰 0');
+    this.ptsEl.title = 'Золото этой игры: за сбитых, общак и бонус волны; тратится у прилавка, ворот, кристалла и мест башен';
     this.alertEl = el('div', 'ft-alert', root);
     this.alertEl.setAttribute('role', 'status');
     const briefing = el('div', 'ft-briefing', root);
@@ -132,7 +131,7 @@ export class FortHud {
     }
     if (!TOUCH) {
       el('div', 'ft-help', root).innerHTML =
-        '<b>ЛКМ</b> огонь · <b>ПКМ</b> прицел · <b>E</b> у стоек — лавка · <b>Q</b> плечо · <b>Tab</b> защитники · <b>M</b> звук';
+        '<b>ЛКМ</b> огонь · <b>ПКМ</b> прицел · <b>1</b>/<b>2</b> ствол · <b>G</b> граната · <b>E</b> лавка и стойки · <b>Q</b> плечо · <b>Tab</b> защитники';
     }
 
     // --- мини-карта: подложка (луг, дороги, стены) рисуется один раз
@@ -147,35 +146,15 @@ export class FortHud {
     this.board = el('div', 'board overlay-card ft-board', root);
     this.end = el('div', 'endscreen ft-end', root);
 
-    this.shop = el('dialog', 'ft-shop', root);
-    this.shop.setAttribute('aria-labelledby', 'ft-shop-title');
-    const shopHeader = el('div', 'ft-shop-head', this.shop);
-    const title = el('h2', '', shopHeader, 'Лавка защитника');
-    title.id = 'ft-shop-title';
-    this.shopClose = el('button', 'ft-shop-close', shopHeader, 'Закрыть');
-    this.shopClose.type = 'button';
-    this.shopClose.addEventListener('click', () => this.onShopClose());
-    this.shop.addEventListener('cancel', (e) => { e.preventDefault(); this.onShopClose(); });
-    this.shopBalance = el('b', 'ft-shop-balance', this.shop);
-    this.shopTime = el('span', 'ft-shop-time', this.shop);
-    el('p', 'ft-shop-intro', this.shop, 'Покупки действуют до конца этой игры. Ворота, кристалл и краскомёты — общие для всех защитников.');
-    const grid = el('div', 'ft-shop-grid', this.shop);
-    for (const item of fortShopItems({ phase: FT_GATHER, pts: 0, gate: 0, crystal: 0, turrets: 0, jams: 0, mag: false })) {
-      const row = el('article', 'ft-shop-item', grid);
-      el('h3', '', row, item.label);
-      const detail = el('p', '', row, item.detail);
-      detail.id = `ft-shop-detail-${item.id}`;
-      const reason = el('span', 'ft-shop-reason', row);
-      reason.id = `ft-shop-reason-${item.id}`;
-      const buy = el('button', 'ft-shop-buy', row, `Купить · ${item.price} ⭐`);
-      buy.type = 'button';
-      buy.setAttribute('aria-label', `Купить: ${item.label}, ${item.price} очков`);
-      buy.setAttribute('aria-describedby', `${detail.id} ${reason.id}`);
-      buy.addEventListener('click', () => this.onShopBuy(item.id));
-      this.shopRows.set(item.id, { buy, reason });
-    }
-    this.shopNotice = el('p', 'ft-shop-notice', this.shop);
-    this.shopNotice.setAttribute('role', 'status');
+    this.floaters = new FortFloaters(root);
+    this.arms = new ArmsStrip(root);
+    this.stall = new StallPanel(root);
+    this.resumeEl = el('div', 'ars-resume', root, 'Кликни или нажми любую клавишу — обратно в бой');
+  }
+
+  /** Курсор свободен (закрыли прилавок Esc): подсказка «кликни — обратно» */
+  setResume(show: boolean): void {
+    if (this.set('resume', show)) this.resumeEl.classList.toggle('show', show);
   }
 
   private set(key: string, value: string | number | boolean): boolean {
@@ -228,28 +207,8 @@ export class FortHud {
     this.bossEl.classList.toggle('open', state === ZS_BOSS_OPEN);
   }
 
-  showShop(): void {
-    if (!this.shop.open) {
-      this.shopNotice.textContent = '';
-      this.shop.showModal();
-      this.shopClose.focus();
-    }
-  }
-
-  updateShop(s: FortShopState, wave: number, sec: number, pending: number | null): void {
-    if (!this.shop.open) return;
-    this.shopBalance.textContent = `Твой баланс: ${s.pts} ⭐`;
-    this.shopTime.textContent = `Волна ${Math.min(FORT_WAVES, wave + 1)} через ${Math.max(0, Math.ceil(sec))} с`;
-    for (const item of fortShopItems(s)) {
-      const row = this.shopRows.get(item.id)!;
-      row.reason.textContent = pending === item.id ? 'Покупка…' : item.reason;
-      row.buy.disabled = Boolean(item.reason) || pending !== null;
-    }
-  }
-
-  shopMessage(text: string): void { this.shopNotice.textContent = text; }
-  hideShop(): void { if (this.shop.open) this.shop.close(); }
-  get shopShown(): boolean { return this.shop.open; }
+  /** Прилавок открыт (немодальный: бегать и стрелять можно) */
+  get shopShown(): boolean { return this.stall.shown; }
 
   setGate(hp: number, max: number): void {
     const pct = Math.round((hp / max) * 100);
@@ -278,7 +237,7 @@ export class FortHud {
 
   setPoints(n: number): void {
     if (!this.set('pts', n)) return;
-    this.ptsEl.textContent = `⭐ ${n}`;
+    this.ptsEl.textContent = `💰 ${n.toLocaleString('ru-RU')}`;
     this.ptsEl.classList.remove('pulse');
     void this.ptsEl.offsetWidth;
     this.ptsEl.classList.add('pulse');
@@ -303,7 +262,7 @@ export class FortHud {
     this.hintEl.classList.toggle('show', text !== null);
     if (text === null) return;
     this.hintText.textContent = text;
-    this.hintPrice.textContent = price > 0 ? `${price} ⭐` : '';
+    this.hintPrice.textContent = price > 0 ? `${price} 💰` : '';
     this.hintPrice.classList.toggle('poor', !afford);
     this.hintEl.classList.toggle('can', can);
     this.hintKey.style.display = can ? '' : 'none';
@@ -346,9 +305,14 @@ export class FortHud {
     ctx.fillRect(X(-6), Z(-18.5), 12 * k, 3 * k);
     ctx.fillRect(X(-21), Z(-19), 6 * k, 6 * k);
     ctx.fillRect(X(15), Z(-19), 6 * k, 6 * k);
-    // жёлоба
-    ctx.fillStyle = 'rgba(200,30,50,1)';
-    for (const ch of CHUTES) ctx.fillRect(X(ch.x) - 3, Z(ch.z) - 3, 6, 6);
+    // места башен
+    ctx.strokeStyle = 'rgba(255,236,190,0.9)';
+    ctx.lineWidth = 1.5;
+    for (const s of TOWER_SPOTS) {
+      ctx.beginPath();
+      ctx.arc(X(s.x), Z(s.z), 3.4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.strokeStyle = 'rgba(255,240,215,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -419,12 +383,12 @@ export class FortHud {
       .sort((a, b) => b.k - a.k || a.d - b.d)
       .map((r) => `<tr class="${r.id === myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}${calm && r.ready ? ' <i>🔔 готов</i>' : ''}</td><td>${r.k}</td><td>${r.d}</td><td>${r.pts}</td><td class="ping">${r.ping}</td></tr>`)
       .join('');
-    return `<div class="board-team ft-team"><h3>Защитники крепости</h3><table><thead><tr><th class="n">Игрок</th><th>Сбил</th><th>Повален</th><th>⭐</th><th>мс</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    return `<div class="board-team ft-team"><h3>Защитники крепости</h3><table><thead><tr><th class="n">Игрок</th><th>Сбил</th><th>Повален</th><th>💰</th><th>мс</th></tr></thead><tbody>${body}</tbody></table></div>`;
   }
 
   showBoard(show: boolean, rows: FortPlayerRow[], myId: number, phase: number): void {
     if (show) {
-      const html = `${this.rosterTable(rows, myId, phase)}<div class="board-hint">⭐ — очки лавки: зомби, отбитые волны · у стоек их тратят на ворота, кристалл, краскомёты и варенье</div>`;
+      const html = `${this.rosterTable(rows, myId, phase)}<div class="board-hint">💰 — золото этой игры: 60 % награды — тому, кто бил, 40 % — в общак волны поровну; тратят у прилавка, ворот, кристалла и на башни</div>`;
       if (this.set('boardHtml', html)) this.board.innerHTML = html;
     }
     if (this.set('board', show)) this.board.classList.toggle('show', show);
@@ -433,7 +397,7 @@ export class FortHud {
   showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number): void {
     const title = win ? 'Крепость устояла!' : 'Кристалл разбит';
     const sub = win ? `Все ${FORT_WAVES} волн отбиты` : wave > 0 ? `Отбито волн: ${wave} из ${FORT_WAVES}` : 'Ни одной волны не отбили';
-    const mvpHtml = mvp ? `<div class="mvp">⭐ Лучший защитник: <b>${escapeHtml(mvp.name)}</b> — сбил ${mvp.k}</div>` : '';
+    const mvpHtml = mvp ? `<div class="mvp">⭐ Лучший защитник: <b>${escapeHtml(mvp.name)}</b> — сбил ${mvp.k}, добыл ${mvp.pts} 💰</div>` : '';
     const body = rows
       .map((r) => `<tr class="${r.id === myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${r.k}</td><td>${r.d}</td><td>${r.waves}</td><td>${r.tokens > 0 ? `+${r.tokens} 🪙` : '—'}</td></tr>`)
       .join('');
@@ -480,7 +444,9 @@ export class FortHud {
   setVisible(v: boolean): void {
     this.pb.setVisible(v);
     if (!v) {
-      this.hideShop();
+      this.stall.close();
+      this.floaters.clear();
+      this.setResume(false);
       this.setBoss(0, 0, 0, 0);
       this.hideEnd();
       this.showBoard(false, [], 0, 0);
