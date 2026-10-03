@@ -260,3 +260,269 @@ export function jumpSignTexture(): THREE.CanvasTexture {
   grain(ctx, w, h, 14, makeRng(317));
   return toTexture(c);
 }
+
+// ------------------------------------------------------------ обочины, рельеф, деревня (обе трассы)
+
+/** Мягкие пятна с переносом через край (текстура тайлится без швов) */
+function spots(ctx: CanvasRenderingContext2D, w: number, h: number, n: number, r0: number, r1: number, color: string, alpha: number, rng: () => number): void {
+  for (let i = 0; i < n; i++) {
+    const x = rng() * w;
+    const y = rng() * h;
+    const r = r0 + rng() * (r1 - r0);
+    for (const ox of [-w, 0, w]) {
+      for (const oy of [-h, 0, h]) {
+        const g = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+        g.addColorStop(0, color);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = alpha * (0.4 + rng() * 0.6);
+        ctx.fillStyle = g;
+        ctx.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Трава: сочная зелень пятнами, травинки штрихами. striped — полосы стрижки поперёк v (на обочине: v — вдоль дороги,
+ * полоса — 1/4 холста), иначе ровная (склоны холма). Цвет даёт материал (×1), поэтому холст светлый.
+ */
+export function grassTexture(striped: boolean): THREE.CanvasTexture {
+  const S = 512;
+  const [c, ctx] = canvas(S, S);
+  const rng = makeRng(striped ? 401 : 409);
+  // тёплая оливково-зелёная, как на арте набережной (не салатовая)
+  ctx.fillStyle = '#80a84c';
+  ctx.fillRect(0, 0, S, S);
+  if (striped) {
+    for (let k = 0; k < 4; k += 2) {
+      ctx.fillStyle = 'rgba(40,70,20,0.14)';
+      ctx.fillRect(0, (k * S) / 4, S, S / 4);
+    }
+  }
+  spots(ctx, S, S, 26, 30, 90, 'rgba(78,112,44,1)', 0.38, rng);
+  spots(ctx, S, S, 16, 20, 70, 'rgba(196,196,104,1)', 0.25, rng);
+  for (let i = 0; i < 9000; i++) {
+    const x = rng() * S;
+    const y = rng() * S;
+    const l = 2 + rng() * 5;
+    const a = -Math.PI / 2 + (rng() - 0.5) * 0.9;
+    const light = rng() < 0.45;
+    ctx.strokeStyle = light ? `rgba(190,235,120,${0.2 + rng() * 0.25})` : `rgba(40,95,25,${0.2 + rng() * 0.25})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+    ctx.stroke();
+  }
+  // мелкие цветы на ровной траве
+  if (!striped) {
+    for (let i = 0; i < 220; i++) {
+      ctx.fillStyle = ['#ffffff', '#ffe25a', '#ff8ab0', '#c9a0ff'][Math.floor(rng() * 4)];
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.arc(rng() * S, rng() * S, 1.2 + rng() * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  grain(ctx, S, S, 14, rng);
+  return toTexture(c, true);
+}
+
+/** Песок: тёплый светлый, мелкая рябь-волны и крошка */
+export function sandTexture(): THREE.CanvasTexture {
+  const S = 512;
+  const [c, ctx] = canvas(S, S);
+  const rng = makeRng(419);
+  ctx.fillStyle = '#ecd6a4';
+  ctx.fillRect(0, 0, S, S);
+  spots(ctx, S, S, 24, 30, 110, 'rgba(205,170,110,1)', 0.35, rng);
+  spots(ctx, S, S, 14, 30, 90, 'rgba(255,240,200,1)', 0.35, rng);
+  // рябь: волнистые полосы поперёк
+  for (let k = 0; k < 26; k++) {
+    const y0 = (k / 26) * S + rng() * 6;
+    ctx.strokeStyle = `rgba(170,130,80,${0.12 + rng() * 0.1})`;
+    ctx.lineWidth = 2 + rng() * 2;
+    ctx.beginPath();
+    for (let x = 0; x <= S; x += 16) {
+      const y = y0 + Math.sin((x / S) * Math.PI * 4 + k) * 4;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  for (let i = 0; i < 9000; i++) {
+    const v = rng() < 0.5 ? 120 + rng() * 60 : 230 + rng() * 25;
+    ctx.fillStyle = `rgba(${v},${v * 0.86},${v * 0.62},${0.25 + rng() * 0.3})`;
+    ctx.fillRect(rng() * S, rng() * S, 1 + rng() * 1.5, 1 + rng() * 1.5);
+  }
+  grain(ctx, S, S, 12, rng);
+  return toTexture(c, true);
+}
+
+/** Сухая каменная кладка: тёплый известняк, камни разного размера, тёмные швы (u — вдоль, v — вверх) */
+export function stoneWallTexture(): THREE.CanvasTexture {
+  const W = 512;
+  const H = 256;
+  const [c, ctx] = canvas(W, H);
+  const rng = makeRng(421);
+  ctx.fillStyle = '#8c7a62';
+  ctx.fillRect(0, 0, W, H);
+  let y = 0;
+  while (y < H) {
+    const rh = 22 + rng() * 26;
+    let x = -rng() * 40;
+    while (x < W) {
+      const rw = 34 + rng() * 60;
+      const tone = 190 + rng() * 45;
+      ctx.fillStyle = `rgb(${tone},${tone * 0.9},${tone * 0.74})`;
+      const r = 6;
+      const x0 = x + 2;
+      const y0 = y + 2;
+      const w = rw - 4;
+      const h = Math.min(rh, H - y) - 4;
+      ctx.beginPath();
+      ctx.moveTo(x0 + r, y0);
+      ctx.arcTo(x0 + w, y0, x0 + w, y0 + h, r);
+      ctx.arcTo(x0 + w, y0 + h, x0, y0 + h, r);
+      ctx.arcTo(x0, y0 + h, x0, y0, r);
+      ctx.arcTo(x0, y0, x0 + w, y0, r);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(x0 + 3, y0 + 2, w - 6, 3);
+      x += rw;
+    }
+    y += rh;
+  }
+  grain(ctx, W, H, 20, rng);
+  return toTexture(c, true);
+}
+
+/** Черепица: терракотовые ряды волной (u — вдоль конька, v — от карниза к коньку) */
+export function roofTexture(): THREE.CanvasTexture {
+  const W = 256;
+  const H = 256;
+  const [c, ctx] = canvas(W, H);
+  const rng = makeRng(431);
+  ctx.fillStyle = '#b8552f';
+  ctx.fillRect(0, 0, W, H);
+  const rows = 8;
+  const rh = H / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let x = (r % 2) * 16; x < W + 32; x += 32) {
+      const tone = 0.85 + rng() * 0.3;
+      const g = ctx.createLinearGradient(x - 16, 0, x + 16, 0);
+      g.addColorStop(0, `rgba(${120 * tone},${45 * tone},${25 * tone},1)`);
+      g.addColorStop(0.5, `rgba(${225 * tone},${120 * tone},${75 * tone},1)`);
+      g.addColorStop(1, `rgba(${120 * tone},${45 * tone},${25 * tone},1)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, r * rh + rh * 0.55, 15, rh * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(60,20,10,0.35)';
+    ctx.fillRect(0, r * rh + rh - 2, W, 2);
+  }
+  grain(ctx, W, H, 16, rng);
+  return toTexture(c, true);
+}
+
+/** Солома тюка: золотистые штрихи вдоль, шпагат поперёк (u — вдоль тюка) */
+export function hayTexture(): THREE.CanvasTexture {
+  const S = 256;
+  const [c, ctx] = canvas(S, S);
+  const rng = makeRng(433);
+  ctx.fillStyle = '#e2bd5a';
+  ctx.fillRect(0, 0, S, S);
+  for (let i = 0; i < 2600; i++) {
+    const x = rng() * S;
+    const y = rng() * S;
+    const l = 6 + rng() * 18;
+    const t = rng();
+    ctx.strokeStyle = t < 0.4 ? `rgba(160,110,30,${0.3 + rng() * 0.3})` : `rgba(255,236,150,${0.3 + rng() * 0.3})`;
+    ctx.lineWidth = 1 + rng();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + l, y + (rng() - 0.5) * 3);
+    ctx.stroke();
+  }
+  for (const u of [0.3, 0.7]) {
+    ctx.fillStyle = 'rgba(120,70,20,0.75)';
+    ctx.fillRect(u * S - 3, 0, 6, S);
+  }
+  grain(ctx, S, S, 14, rng);
+  return toTexture(c, true);
+}
+
+/** Баннер «TIREDWOOD GRAND PRIX»: полосы и крупная надпись (на арку старта, ограждения, трибуны) */
+export function bannerTexture(text: string, bg: string, fg: string, accent: string, w = 1024, h = 160): THREE.CanvasTexture {
+  const [c, ctx] = canvas(w, h);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, w, h * 0.1);
+  ctx.fillRect(0, h * 0.9, w, h * 0.1);
+  let size = h * 0.5;
+  ctx.font = `900 ${size}px Rubik, system-ui, sans-serif`;
+  const m = ctx.measureText(text).width;
+  if (m > w * 0.92) {
+    size = Math.floor((size * w * 0.92) / m);
+    ctx.font = `900 ${size}px Rubik, system-ui, sans-serif`;
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size * 0.14;
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.strokeText(text, w / 2, h / 2 + size * 0.04);
+  ctx.fillStyle = fg;
+  ctx.fillText(text, w / 2, h / 2 + size * 0.04);
+  grain(ctx, w, h, 10, makeRng(text.length * 17 + 3));
+  return toTexture(c);
+}
+
+/** Большой щит перед шпилькой: белые шевроны на красном и полосы по краям (как у боксов на трассах) */
+export function hairpinSignTexture(): THREE.CanvasTexture {
+  const W = 512;
+  const H = 256;
+  const [c, ctx] = canvas(W, H);
+  ctx.fillStyle = '#d8302a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  for (let k = 0; k < 3; k++) {
+    const x = 60 + k * 140;
+    ctx.beginPath();
+    ctx.moveTo(x, 30);
+    ctx.lineTo(x + 60, 30);
+    ctx.lineTo(x + 140, H / 2);
+    ctx.lineTo(x + 60, H - 30);
+    ctx.lineTo(x, H - 30);
+    ctx.lineTo(x + 80, H / 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 12;
+  ctx.strokeRect(8, 8, W - 16, H - 16);
+  grain(ctx, W, H, 12, makeRng(439));
+  return toTexture(c);
+}
+
+/** Вода фонтана и реки на поверхности: светлые блики (прозрачный холст, тайлится) */
+export function rippleTexture(): THREE.CanvasTexture {
+  const S = 256;
+  const [c, ctx] = canvas(S, S);
+  const rng = makeRng(443);
+  for (let i = 0; i < 80; i++) {
+    ctx.strokeStyle = `rgba(255,255,255,${0.15 + rng() * 0.35})`;
+    ctx.lineWidth = 1 + rng() * 2;
+    const x = rng() * S;
+    const y = rng() * S;
+    const r = 6 + rng() * 22;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.35, 0, rng() * 2, rng() * 2 + 2);
+    ctx.stroke();
+  }
+  return toTexture(c, true);
+}

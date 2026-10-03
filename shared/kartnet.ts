@@ -1,11 +1,17 @@
 // Снимок гонки (двоичный, 30 раз в секунду): заголовок, своё точное состояние карта (для предсказания),
 // остальные карты и банки варенья на дороге. Чужие позиции — int16 с шагом 1/128 м (трасса в пределах ±256 м).
-import { MT1_TICKS, MT2_TICKS, type KartState } from './kart.ts';
+import { sparkLevel, type KartState } from './kart.ts';
 import { SNAP_HAS_SELF } from './protocol.ts';
 
 export const MSG_KART_SNAPSHOT = 3;
-/** KartSnap.misc bit 4: authoritative, one-hit item shield. Lower bits retain boost/spark encoding. */
-export const KM_SHIELD = 16;
+/** KartSnap.misc: биты 0–1 — искры заноса 0–3, биты 2–4 — уровень ускорения 0–4, дальше флаги */
+export const KM_SPARK = 3;
+/** Пузырь на карте (держит сервер) */
+export const KM_BUBBLE = 32;
+/** Карт в полёте крутит трюк */
+export const KM_TRICK = 64;
+/** Колёса буксуют (фальстарт) */
+export const KM_BURN = 128;
 
 // Флаги карта в снимке
 /** Карт на трассе; снят первые тики после возврата на КТ — его не тянут плавно через полкарты */
@@ -21,7 +27,7 @@ export const KE_PAINT = 128;
 
 const POS_SCALE = 128;
 const HEADER_BYTES = 20;
-const SELF_BYTES = 9 * 8 + 4 * 2 + 13;
+const SELF_BYTES = 9 * 8 + 4 * 2 + 18;
 const KART_BYTES = 14;
 const TRAP_BYTES = 7;
 
@@ -36,7 +42,7 @@ export interface KartHeader {
   crates: number;
 }
 
-/** Карт в снимке. misc: искры заноса 0–2 + 4 × уровень ускорения 0–3 */
+/** Карт в снимке. misc: искры заноса 0–3 + 4 × уровень ускорения 0–4 + флаги KM_* */
 export interface KartSnap {
   id: number;
   flags: number;
@@ -74,10 +80,17 @@ export function kartFlags(s: KartState, on: boolean, painted: boolean): number {
   return flags;
 }
 
-/** «Разное» карта для снимка: искры заноса 0–2 + 4 × уровень ускорения 0–3 */
+/** «Разное» карта для снимка: искры заноса, уровень ускорения, трюк и пробуксовка (пузырь добавляет сервер) */
 export function kartMisc(s: KartState): number {
-  const spark = s.drift === 0 ? 0 : s.driftT >= MT2_TICKS ? 2 : s.driftT >= MT1_TICKS ? 1 : 0;
-  return spark + 4 * (s.boostT > 0 ? s.boostLvl : 0);
+  let m = sparkLevel(s) + 4 * (s.boostT > 0 ? s.boostLvl : 0);
+  if (s.trick === 2 && !s.grounded) m |= KM_TRICK;
+  if (s.burnT > 0) m |= KM_BURN;
+  return m;
+}
+
+/** Уровень ускорения из misc: 0 — нет, 1–3 — мини-турбо, 4 — турбо */
+export function miscBoost(misc: number): number {
+  return (misc >> 2) & 7;
 }
 
 /** Курс → yaw для отрисовки и снимка (yaw = 0 смотрит в −Z). Не в шаге физики: там atan2 нельзя. */
@@ -152,10 +165,10 @@ export function encodeKartSnapshot(h: KartHeader, self: KartState | null, karts:
     o += 8;
     const b = [
       self.grounded, self.drift + 1, self.boostT, self.boostLvl, self.slowT, self.spinT, self.ghostT, self.cp, self.lap,
-      self.done, self.item, self.itemT, self.hop,
+      self.done, self.item, self.itemT, self.hop, self.air, self.trick, self.gasT, self.burnT, self.surf,
     ];
     for (let i = 0; i < b.length; i++) v.setUint8(o + i, b[i]);
-    o += 13;
+    o += 18;
   }
   buf.set(karts, o);
   buf.set(traps, o + karts.length);
@@ -225,6 +238,11 @@ export function decodeKartSnapshot(
     self.item = v.getUint8(o + 10);
     self.itemT = v.getUint8(o + 11);
     self.hop = v.getUint8(o + 12);
+    self.air = v.getUint8(o + 13);
+    self.trick = v.getUint8(o + 14);
+    self.gasT = v.getUint8(o + 15);
+    self.burnT = v.getUint8(o + 16);
+    self.surf = v.getUint8(o + 17);
   }
   o = kartsAt;
   for (let i = 0; i < nk; i++) {

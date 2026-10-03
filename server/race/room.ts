@@ -3,7 +3,7 @@
 import { TICK_RATE } from '../../shared/constants.ts';
 import { RC_LAPS, RC_MAX_KARTS, RC_RESULTS } from '../../shared/kart.ts';
 import { RC_GRID } from '../../shared/kart.ts';
-import type { RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, type RaceTrackId } from '../../shared/racecourse.ts';
 import type { RcReward } from '../../shared/economy.ts';
 import type { ClientMsg, KartStatus, RaceResultRow } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -55,7 +55,7 @@ export class RaceRoom implements Room {
   get prestart(): { phaseEnd: number } | null { const r = this.race; return r && r.started && !r.closed && r.phase === RC_GRID ? r : null; }
 
   /** Новая гонка: принимает людей до launch(). */
-  open(track: RaceTrackId = this.opts.track ?? 'port'): void {
+  open(track: RaceTrackId = this.opts.track ?? DEFAULT_TRACK): void {
     this.byClient.clear();
     this.byKart.clear();
     this.race = new Race(

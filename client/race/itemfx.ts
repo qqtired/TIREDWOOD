@@ -1,56 +1,69 @@
-// Six shield rings and eight short pulse rings at most; no projectiles, hit logic or growing effect arrays.
+// Эффекты бонусов, которые остаются на месте, а не едут с картом: волна «Хлопка» — кольцо по земле и ударная волна
+// вверх, расходятся на радиус хлопка (8 м) за полсекунды. Не больше четырёх волн разом. Пузырь — на самом карте (kart3d.ts).
 import * as THREE from 'three';
-import { KM_SHIELD, KE_ON, type KartSnap } from '../../shared/kartnet.ts';
+
+/** Радиус волны хлопка (как CLAP_R на сервере) и сколько она расходится, с */
+const CLAP_R = 8;
+const CLAP_S = 0.5;
+
+interface Wave {
+  ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
+  dome: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+  age: number;
+}
 
 export class RaceItemFx {
-  private readonly shields: THREE.Mesh[] = [];
-  private readonly pulses: Array<{ mesh: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; age: number }> = [];
+  private readonly waves: Wave[] = [];
   private next = 0;
-  private readonly pulseGeo = new THREE.RingGeometry(0.88, 1, 32).rotateX(-Math.PI / 2);
-  private readonly coneGeo = new THREE.RingGeometry(0.88, 1, 24, 1, -Math.PI / 4, Math.PI / 2).rotateX(-Math.PI / 2);
 
   constructor(scene: THREE.Scene) {
-    const shieldGeo = new THREE.TorusGeometry(1.35, 0.07, 6, 32).rotateX(-Math.PI / 2);
-    const shieldMat = new THREE.MeshBasicMaterial({ color: 0x67e3ff, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false });
-    for (let i = 0; i < 6; i++) {
-      const mesh = new THREE.Mesh(shieldGeo, shieldMat);
-      mesh.visible = false; scene.add(mesh); this.shields.push(mesh);
-    }
-
-    for (let i = 0; i < 8; i++) {
-      const mesh = new THREE.Mesh(this.pulseGeo, new THREE.MeshBasicMaterial({ color: 0xaaccff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
-      mesh.visible = false; scene.add(mesh); this.pulses.push({ mesh, age: 1 });
-    }
-  }
-
-  snapshot(karts: readonly KartSnap[], count: number): void {
-    for (const mesh of this.shields) mesh.visible = false;
-    for (let i = 0; i < count; i++) {
-      const k = karts[i]; const mesh = this.shields[k.id - 1];
-      if (!mesh) continue;
-      mesh.visible = !!(k.misc & KM_SHIELD) && !!(k.flags & KE_ON);
-      mesh.position.set(k.x, k.y + 0.5, k.z);
+    const ringGeo = new THREE.RingGeometry(0.82, 1, 48).rotateX(-Math.PI / 2);
+    const domeGeo = new THREE.SphereGeometry(1, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+    for (let i = 0; i < 4; i++) {
+      const ring = new THREE.Mesh(
+        ringGeo,
+        new THREE.MeshBasicMaterial({ color: 0xfff1b8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
+      );
+      const dome = new THREE.Mesh(
+        domeGeo,
+        new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
+      );
+      ring.visible = dome.visible = false;
+      ring.renderOrder = dome.renderOrder = 4;
+      scene.add(ring, dome);
+      this.waves.push({ ring, dome, age: CLAP_S });
     }
   }
 
-  pulse(x: number, y: number, z: number, yaw?: number): void {
-    const p = this.pulses[this.next++ % this.pulses.length];
-    p.mesh.geometry = yaw === undefined ? this.pulseGeo : this.coneGeo;
-    p.mesh.rotation.y = yaw === undefined ? 0 : yaw + Math.PI / 2;
-    p.age = 0; p.mesh.position.set(x, y + 0.1, z); p.mesh.visible = true;
+  /** Хлопок в точке (x, y, z): волна по земле и купол */
+  clap(x: number, y: number, z: number): void {
+    const w = this.waves[this.next++ % this.waves.length];
+    w.age = 0;
+    w.ring.position.set(x, y + 0.08, z);
+    w.dome.position.set(x, y, z);
+    w.ring.visible = w.dome.visible = true;
   }
 
   clear(): void {
-    for (const mesh of this.shields) mesh.visible = false;
-    for (const p of this.pulses) { p.age = 1; p.mesh.visible = false; }
+    for (const w of this.waves) {
+      w.age = CLAP_S;
+      w.ring.visible = w.dome.visible = false;
+    }
   }
 
   update(dt: number): void {
-    for (const p of this.pulses) {
-      if (p.age >= 0.45) { p.mesh.visible = false; continue; }
-      p.age += dt;
-      p.mesh.scale.setScalar(1 + p.age * 25);
-      p.mesh.material.opacity = Math.max(0, 1 - p.age / 0.45) * 0.7;
+    for (const w of this.waves) {
+      if (w.age >= CLAP_S) {
+        w.ring.visible = w.dome.visible = false;
+        continue;
+      }
+      w.age += dt;
+      const k = Math.min(1, w.age / CLAP_S);
+      const r = 0.6 + (CLAP_R - 0.6) * (1 - (1 - k) * (1 - k));
+      w.ring.scale.setScalar(r);
+      w.ring.material.opacity = (1 - k) * 0.9;
+      w.dome.scale.set(r, r * 0.45, r);
+      w.dome.material.opacity = (1 - k) * (1 - k) * 0.35;
     }
   }
 }

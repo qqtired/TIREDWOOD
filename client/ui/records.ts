@@ -46,8 +46,11 @@ const medal = (n: number): StatValue => MEDALS[n] || null;
 
 /** «Рекорды по режимам»: лучший результат каждого режима, у трасс и курсов — по строке на каждую */
 export const RECORDS: readonly RecordLine[] = [
-  { mode: '🏁 Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLap) },
-  { mode: '🏁 Картинг', course: 'Литейный вираж', what: 'лучший круг', value: (s) => lap(s.rcBestLapFoundry) },
+  { mode: '🏁 Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLapHarbor) },
+  { mode: '🏁 Картинг', course: 'Солнечный серпантин', what: 'лучший круг', value: (s) => lap(s.rcBestLapHills) },
+  // трассы до переделки: рекорды не пропадают, но показываем их только тем, у кого они есть
+  { mode: '🏁 Картинг', course: 'Порт (старая трасса)', what: 'лучший круг', value: (s) => lap(s.rcBestLap), played: (s) => s.rcBestLap > 0 },
+  { mode: '🏁 Картинг', course: 'Литейный вираж (старая трасса)', what: 'лучший круг', value: (s) => lap(s.rcBestLapFoundry), played: (s) => s.rcBestLapFoundry > 0 },
   // круг катера сервер считает в тиках (60 в секунду)
   { mode: '🚤 Портовая регата', what: 'лучший круг', value: (s) => lap((s.brBestLapHarbor * 1000) / 60) },
   { mode: '🚤 Катера', course: 'Лазурная бухта (старая трасса)', what: 'лучший круг', value: (s) => lap((s.brBestLap * 1000) / 60), played: (s) => s.brBestLap > 0 },
