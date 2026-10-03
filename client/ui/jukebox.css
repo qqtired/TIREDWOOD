@@ -199,6 +199,9 @@
   padding: 0 2px 0 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* девять песен на 720p уже прокручиваются: тёмная тонкая полоса вместо белой системной */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 211, 90, 0.4) transparent;
   list-style: none;
 }
 
@@ -221,6 +224,21 @@
 .jb-song.sel {
   border-color: rgba(255, 211, 90, 0.7);
   background: rgba(255, 211, 90, 0.1);
+}
+
+/* особая песня (дороже обычных): сиреневый отлив и золотая звёздочка */
+.jb-song.special {
+  border-color: rgba(201, 163, 255, 0.35);
+  background: linear-gradient(90deg, rgba(168, 120, 255, 0.14), rgba(255, 211, 90, 0.06));
+}
+
+.jb-song.special.sel {
+  border-color: rgba(255, 211, 90, 0.75);
+}
+
+.jb-mood.special,
+.jb-star {
+  color: #ffd35a;
 }
 
 .jb-key {

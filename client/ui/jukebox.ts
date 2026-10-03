@@ -3,7 +3,7 @@
 // Связку (открыть у автомата, мышь, тосты, звук) делает client/lobby/scene.ts; здесь — только разметка и клавиши.
 // update() зовут ~4 раза в секунду: список собран один раз, дальше меняются тексты и классы (и только если изменились).
 import { COIN_HTML } from './coin.ts';
-import { JUKE_GAP_MS, JUKE_PRICE, JUKE_QUEUE_MAX, JUKE_SONGS, fmtSongTime, songMs, type JukeView } from '../../shared/jukebox.ts';
+import { JUKE_GAP_MS, JUKE_QUEUE_MAX, JUKE_SONGS, fmtSongTime, songMs, songPrice, songSpecial, type JukeView } from '../../shared/jukebox.ts';
 import './jukebox.css';
 
 export interface JukeboxPanelState {
@@ -42,8 +42,9 @@ interface QueueRow {
   when: HTMLElement;
 }
 
-const PLAY_HTML = `Поставить · ${JUKE_PRICE} ${COIN_HTML}`;
-const POOR_HTML = `Нужно ${JUKE_PRICE} ${COIN_HTML}`;
+/** Цена у каждой песни своя (особая — дороже) */
+const playHtml = (price: number): string => `Поставить · ${price} ${COIN_HTML}`;
+const poorHtml = (price: number): string => `Нужно ${price} ${COIN_HTML}`;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -110,15 +111,22 @@ export class JukeboxPanel {
     // список песен — один раз
     const list = el('ol', 'jb-list', this.root);
     JUKE_SONGS.forEach((s, i) => {
-      const li = el('li', 'jb-song', list);
+      const special = songSpecial(i);
+      const li = el('li', special ? 'jb-song special' : 'jb-song', list);
       el('kbd', 'jb-key', li).textContent = String(i + 1);
       el('span', 'jb-emoji', li).textContent = s.emoji;
       const meta = el('span', 'jb-meta', li);
-      el('b', 'jb-name', meta).textContent = s.title;
-      el('small', 'jb-mood', meta).textContent = `${s.mood} · ${fmtSongTime(songMs(i) / 1000)}`;
+      const name = el('b', 'jb-name', meta);
+      name.textContent = s.title;
+      // особая (дороже обычных): золотая звёздочка у названия, подсказка — при наведении
+      if (special) {
+        el('span', 'jb-star', name).textContent = ' ★';
+        li.title = `Особая песня — ${songPrice(i)} 🪙`;
+      }
+      el('small', special ? 'jb-mood special' : 'jb-mood', meta).textContent = `${s.mood} · ${fmtSongTime(songMs(i) / 1000)}`;
       const btn = el('button', 'jb-play', li);
       btn.type = 'button';
-      btn.innerHTML = PLAY_HTML;
+      btn.innerHTML = playHtml(songPrice(i));
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.select(i);
@@ -144,7 +152,7 @@ export class JukeboxPanel {
 
     this.noteEl = el('div', 'jb-note', this.root);
     this.noteEl.hidden = true;
-    el('div', 'jb-keys', this.root).textContent = '1–8 или ↑↓ — выбрать · Enter — поставить · Esc — закрыть';
+    el('div', 'jb-keys', this.root).textContent = `1–${JUKE_SONGS.length} или ↑↓ — выбрать · Enter — поставить · Esc — закрыть`;
 
     // клики внутри окна не должны уходить в игру (захват мыши, выстрелы, шаги)
     for (const type of ['mousedown', 'pointerdown', 'touchstart', 'wheel'] as const) {
@@ -206,7 +214,6 @@ export class JukeboxPanel {
     // кнопки песен
     const mineQueued = queue.some((e) => e.pid === s.myPid);
     const full = queue.length >= JUKE_QUEUE_MAX;
-    const poor = s.tokens < JUKE_PRICE;
     const busy = s.pending !== null;
     let bannerText = '';
     if (mineQueued) bannerText = 'Твоя песня уже в очереди — дождись её';
@@ -220,7 +227,7 @@ export class JukeboxPanel {
       else if (queue.some((e) => e.song === i)) label = 'queued';
       else if (busy && s.pending === i) label = 'wait';
       else if (mineQueued || full) label = 'blocked';
-      else if (poor) label = 'poor';
+      else if (s.tokens < songPrice(i)) label = 'poor';
       else label = 'play';
       const disabled = label !== 'play' || busy;
       if (row.btn.disabled !== disabled) row.btn.disabled = disabled;
@@ -231,8 +238,8 @@ export class JukeboxPanel {
           label === 'playing' ? '♪ Играет'
           : label === 'queued' ? 'В очереди'
           : label === 'wait' ? 'Ставим…'
-          : label === 'poor' ? POOR_HTML
-          : PLAY_HTML;
+          : label === 'poor' ? poorHtml(songPrice(i))
+          : playHtml(songPrice(i));
       }
     });
 
@@ -257,7 +264,7 @@ export class JukeboxPanel {
     setText(this.noteEl, s.note ?? '');
   }
 
-  /** Пока открыто: 1–8 и ↑/↓ — выбрать, Enter — поставить выбранную, Esc — закрыть. true — клавиша съедена. */
+  /** Пока открыто: 1–9 и ↑/↓ — выбрать, Enter — поставить выбранную, Esc — закрыть. true — клавиша съедена. */
   onKey(code: string, e: KeyboardEvent): boolean {
     if (!this.open_) return false;
     const n = JUKE_SONGS.length;

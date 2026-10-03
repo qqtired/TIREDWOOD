@@ -1,10 +1,12 @@
-// Стенд окна автомата: те же стили, что в игре, состояния — кнопками внизу или ?s=<состояние>.
+// Стенд окна автомата: те же стили, что в игре, состояния — кнопками внизу или ?s=<состояние>; жетоны — ?tokens=N.
 import '../../client/styles.css';
 import { JukeboxPanel, type JukeboxPanelState } from '../../client/ui/jukebox.ts';
 import { songMs, type JukeView } from '../../shared/jukebox.ts';
 
 const ME = 7;
 const now0 = Date.now();
+const query = new URLSearchParams(location.search);
+const TOKENS = Math.max(0, Math.floor(Number(query.get('tokens') ?? 134))) || 0;
 const panel = new JukeboxPanel(document.getElementById('hud')!, {
   play: (i) => { state.pending = i; state.note = null; render(); setTimeout(() => { state.pending = null; state.note = `«${i + 1}» в очереди: ${(state.view?.queue.length ?? 0) + 1}-я`; render(); }, 900); },
   close: () => { panel.close(); setTimeout(() => panel.open(), 600); },
@@ -20,7 +22,7 @@ function scenario(s: string): JukeboxPanelState {
     { song: 6, pid: 12, nick: 'Очень-длинный-ник-игрока' },
   ];
   const view: JukeView = { now: t, cur, queue };
-  const base: JukeboxPanelState = { view, serverNow: t, myPid: ME, tokens: 134, pending: null, note: null };
+  const base: JukeboxPanelState = { view, serverNow: t, myPid: ME, tokens: TOKENS, pending: null, note: null };
   switch (s) {
     case 'idle': return { ...base, view: { now: t, cur: null, queue: [] } };
     case 'soon': return { ...base, view: { now: t, cur: { ...cur, start: t + 1400 }, queue: [] } };
@@ -42,6 +44,6 @@ function show(s: string): void {
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('#ctl button')) b.onclick = () => show(b.dataset.s!);
 addEventListener('keydown', (e) => { panel.onKey(e.code, e); });
-show(new URLSearchParams(location.search).get('s') ?? 'playing');
+show(query.get('s') ?? 'playing');
 setInterval(render, 250);
 (window as unknown as { __jb: unknown }).__jb = { panel, show, songMs, now0 };

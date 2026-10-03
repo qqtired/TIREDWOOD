@@ -3,13 +3,13 @@
 // Цепочка песни: инструменты → «сухо» + реверберация (+ эхо солистам) → громкость песни → общая шина проигрывателя →
 // мягкий ограничитель → анализатор (эквалайзер на автомате) → «расстояние» (приглушение, панорама, громкость) → выход.
 // Во время игры ничего не выделяется на кадр: ноты — плоские массивы, полосы эквалайзера — в готовый массив.
-import { DRUM_BASE, INSTS, type CompiledSong, type Inst } from './song.ts';
+import { DRUM_BASE, INSTS, KITS, type CompiledSong, type Inst } from './song.ts';
 import { Synth, V } from './synth.ts';
 
 /** Без реверберации: бас мутит «зал» */
-const BASSES: ReadonlySet<number> = new Set([V.bass, V.sub, V.tuba]);
+const BASSES: ReadonlySet<number> = new Set([V.bass, V.sub, V.tuba, V.boom]);
 /** Тянущиеся голоса: вошли посреди такой ноты — дотягиваем её остаток */
-const SUSTAIN: ReadonlySet<number> = new Set([V.pad, V.strings, V.accordion, V.whistle, V.lead, V.sub, V.bass, V.tuba, V.tri, V.square, V.pulse]);
+const SUSTAIN: ReadonlySet<number> = new Set([V.pad, V.strings, V.accordion, V.whistle, V.lead, V.sub, V.bass, V.tuba, V.tri, V.square, V.pulse, V.boom]);
 /** Кому эхо, если песня не сказала */
 const ECHO_DEFAULT: readonly Inst[] = ['lead', 'whistle', 'bell', 'pulse'];
 
@@ -25,6 +25,8 @@ interface Run {
   dest: Array<AudioNode | null>;
   fade: GainNode;
   nodes: AudioNode[];
+  /** Генераторы хоруса: остановить, когда песня снята */
+  lfos: OscillatorNode[];
 }
 
 /** Первая нота не раньше t */
@@ -155,6 +157,7 @@ export class MusicPlayer {
     run.fade.gain.setValueAtTime(run.fade.gain.value, t);
     run.fade.gain.setTargetAtTime(0, t, Math.max(0.01, fade / 4));
     const drop = (): void => {
+      for (const o of run.lfos) o.stop();
       for (const n of run.nodes) n.disconnect();
     };
     if (this.live) setTimeout(drop, (fade + 0.4) * 1000);
@@ -178,7 +181,7 @@ export class MusicPlayer {
       // кадр завис дольше запаса — опоздавшие ноты пропускаем, а не играем пачкой
       if (at < late) continue;
       const v = song.voice[i];
-      this.synth.play(run.dest[v]!, v, at < now ? now : at, song.midi[i], song.dur[i], song.vel[i]);
+      this.synth.play(run.dest[v]!, v, at < now ? now : at, song.midi[i], song.dur[i], song.vel[i], song.from[i]);
     }
     if (run.idx >= song.n && now - run.t0 > song.total + 0.3) this.stop(0.05);
   }
@@ -273,6 +276,34 @@ export class MusicPlayer {
       wet.connect(out);
       wet.connect(revIn);
     }
+    // хорус: две задержки, их время плывёт от медленных генераторов в противофазе, разведены влево и вправо
+    let chorusIn: GainNode | null = null;
+    const chorusOn = new Set(def.chorus?.on ?? []);
+    const lfos: OscillatorNode[] = [];
+    if (def.chorus) {
+      const ch = def.chorus;
+      chorusIn = g(1);
+      const wet = g(ch.wet);
+      wet.connect(out);
+      wet.connect(revIn);
+      for (const side of [-1, 1]) {
+        const d = ctx.createDelay(0.1);
+        d.delayTime.value = ch.ms / 1000;
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = ch.rate * (side < 0 ? 1 : 1.13);
+        const depth = g((ch.depth / 1000) * side);
+        const pan = ctx.createStereoPanner();
+        pan.pan.value = 0.7 * side;
+        nodes.push(d, lfo, pan);
+        lfo.connect(depth);
+        depth.connect(d.delayTime);
+        chorusIn.connect(d);
+        d.connect(pan);
+        pan.connect(wet);
+        lfo.start();
+        lfos.push(lfo);
+      }
+    }
     const dest: Array<AudioNode | null> = new Array(256).fill(null);
     const kits = new Map<number, GainNode>();
     const drumRev = g(0.3);
@@ -283,8 +314,7 @@ export class MusicPlayer {
         const kit = (v - DRUM_BASE) >> 4;
         let kg = kits.get(kit);
         if (!kg) {
-          const name = (['pop', 'lofi', 'brush', 'chip', 'synth', 'surf'] as const)[kit];
-          kg = g(def.mix[name] ?? 0.8);
+          kg = g(def.mix[KITS[kit]] ?? 0.8);
           kg.connect(out);
           kg.connect(drumRev);
           kits.set(kit, kg);
@@ -297,8 +327,9 @@ export class MusicPlayer {
       ig.connect(out);
       if (!BASSES.has(v)) ig.connect(revIn);
       if (echoIn && echoOn.has(inst)) ig.connect(echoIn);
+      if (chorusIn && chorusOn.has(inst)) ig.connect(chorusIn);
       dest[v] = ig;
     }
-    return { song, t0, idx: 0, dest, fade, nodes };
+    return { song, t0, idx: 0, dest, fade, nodes, lfos };
   }
 }

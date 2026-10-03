@@ -2517,7 +2517,7 @@ export class LobbyScene implements Scene {
         this.hud.setHint(['E'], this.fish2.roulette.hint());
         break;
       case 'juke':
-        this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песня за ${JUKE_PRICE} 🪙`);
+        this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песни от ${JUKE_PRICE} 🪙`);
         break;
       case 'boat':
         if (this.boat.ph === BP_BOARD) this.hud.setHint(['E'], `сесть в катер — бесплатно · отплытие через ${this.boatSecs()} с`);

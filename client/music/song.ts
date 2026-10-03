@@ -5,12 +5,13 @@
 import { JUKE_SONGS, type JukeSong } from '../../shared/jukebox.ts';
 import { degree, noteMidi, parseChord, voicing, type Chord } from './theory.ts';
 
-export const INSTS = ['epiano', 'bass', 'sub', 'tuba', 'nylon', 'guitar', 'mando', 'pad', 'strings', 'accordion', 'whistle', 'square', 'pulse', 'tri', 'bell', 'marimba', 'lead'] as const;
+/** boom — «808»: глубокий саб с глайдами (нота с «>» скользит из прошлой) */
+export const INSTS = ['epiano', 'bass', 'sub', 'tuba', 'nylon', 'guitar', 'mando', 'pad', 'strings', 'accordion', 'whistle', 'square', 'pulse', 'tri', 'bell', 'marimba', 'lead', 'boom'] as const;
 export type Inst = typeof INSTS[number];
-export const KITS = ['pop', 'lofi', 'brush', 'chip', 'synth', 'surf'] as const;
+export const KITS = ['pop', 'lofi', 'brush', 'chip', 'synth', 'surf', 'trap'] as const;
 export type Kit = typeof KITS[number];
-/** Ударные: бочка, малый, хлопок, закрытый и открытый хэт, шейкер, римшот, том низкий и средний, тарелка, щётка */
-export const DRUMS = ['k', 's', 'c', 'h', 'o', 'p', 'r', 't', 'm', 'y', 'w'] as const;
+/** Ударные: бочка, малый, хлопок, закрытый и открытый хэт, шейкер, римшот, том низкий и средний, тарелка, щётка, треск пластинки */
+export const DRUMS = ['k', 's', 'c', 'h', 'o', 'p', 'r', 't', 'm', 'y', 'w', 'v'] as const;
 export type DrumKey = typeof DRUMS[number];
 /** Номер голоса ударных: 32 + набор × 16 + звук */
 export const DRUM_BASE = 32;
@@ -56,6 +57,8 @@ export interface SongDef {
   reverb: { wet: number; decay: number };
   /** Эхо: задержка в долях, повторы, доля; on — каким инструментам (без — солирующим) */
   echo?: { beats: number; feedback: number; wet: number; on?: Inst[] };
+  /** Хорус (две плывущие задержки, разведённые по сторонам): мс задержки, глубина мс, частота Гц, доля; on — кому */
+  chorus?: { ms: number; depth: number; rate: number; wet: number; on: Inst[] };
   /** Громкость инструментов и ударных */
   mix: Partial<Record<Inst | Kit, number>>;
   sections: Record<string, Section>;
@@ -75,6 +78,8 @@ export interface CompiledSong {
   voice: Uint8Array;
   midi: Uint8Array;
   vel: Float32Array;
+  /** Глайд: из какой ноты скользит (MIDI), 0 — без глайда */
+  from: Uint8Array;
   /** Самая длинная нота, с (вошёл посреди песни — длинные ноты, начатые раньше, подхватываем) */
   maxDur: number;
   /** Для проверки и подсказок: аккорды по времени (с) и части */
@@ -84,7 +89,7 @@ export interface CompiledSong {
   melody: Array<{ t: number; beats: number; midi: number; beatInBar: number; part: Inst }>;
 }
 
-interface Ev { t: number; dur: number; voice: number; midi: number; vel: number }
+interface Ev { t: number; dur: number; voice: number; midi: number; vel: number; from: number }
 
 const EPS = 1e-6;
 
@@ -145,10 +150,10 @@ export function compileSong(def: SongDef): CompiledSong {
     }
     return (bar * meter + pos) * beat;
   };
-  const push = (t: number, durBeats: number, voice: number, midi: number, vel: number, human = true): void => {
+  const push = (t: number, durBeats: number, voice: number, midi: number, vel: number, human = true, from = 0): void => {
     const jitter = human ? (r() - 0.5) * 0.008 : 0;
     const v = Math.min(1, Math.max(0.05, vel * (human ? 0.94 + r() * 0.12 : 1)));
-    events.push({ t: Math.max(0, t + jitter), dur: durBeats * beat, voice, midi, vel: v });
+    events.push({ t: Math.max(0, t + jitter), dur: durBeats * beat, voice, midi, vel: v, from });
   };
 
   let bar0 = 0;
@@ -222,10 +227,15 @@ export function compileSong(def: SongDef): CompiledSong {
         if (mb.length !== nb) throw new Error(`${where}: мелодия ${part.i} — ${mb.length} тактов, а аккордов ${nb}`);
         const shift = (part.oct ?? 0) * 12;
         let prev: Ev | null = null;
+        let lastMidi = 0;
         mb.forEach((mbar, i) => {
           let b = 0;
           for (const tk of tokens(mbar)) {
-            const { head, beats, acc } = noteToken(tk, `${where} такт ${i + 1}`);
+            const nt = noteToken(tk, `${where} такт ${i + 1}`);
+            const { beats, acc } = nt;
+            // «>c2/1» — скользнуть в ноту из прошлой (808)
+            const glide = nt.head.startsWith('>');
+            const head = glide ? nt.head.slice(1) : nt.head;
             if (head === 'r') { prev = null; b += beats; continue; }
             if (head === '~') {
               if (!prev) throw new Error(`${where} такт ${i + 1}: «~» без ноты`);
@@ -236,8 +246,10 @@ export function compileSong(def: SongDef): CompiledSong {
               continue;
             }
             const midi = noteMidi(head) + shift;
-            push(at(bar0 + i, b), beats * lenK, inst, midi, pv * acc);
+            if (glide && !lastMidi) throw new Error(`${where} такт ${i + 1}: глайд «${tk}» без прошлой ноты`);
+            push(at(bar0 + i, b), beats * lenK, inst, midi, pv * acc, true, glide ? lastMidi : 0);
             prev = events[events.length - 1];
+            lastMidi = midi;
             melody.push({ t: at(bar0 + i, b), beats, midi, beatInBar: b, part: part.i });
             b += beats;
           }
@@ -336,7 +348,7 @@ export function compileSong(def: SongDef): CompiledSong {
   const out: CompiledSong = {
     def, meta, beat, length: meta.bars * meter * beat, total: meta.bars * meter * beat + meta.tail, n,
     t: new Float64Array(n), dur: new Float32Array(n), voice: new Uint8Array(n), midi: new Uint8Array(n), vel: new Float32Array(n),
-    maxDur: 0, chords, sections, melody,
+    from: new Uint8Array(n), maxDur: 0, chords, sections, melody,
   };
   events.forEach((e, i) => {
     out.t[i] = e.t;
@@ -344,6 +356,7 @@ export function compileSong(def: SongDef): CompiledSong {
     out.voice[i] = e.voice;
     out.midi[i] = Math.max(0, Math.min(127, e.midi));
     out.vel[i] = e.vel;
+    out.from[i] = Math.max(0, Math.min(127, e.from));
     if (e.dur > out.maxDur) out.maxDur = e.dur;
   });
   return out;

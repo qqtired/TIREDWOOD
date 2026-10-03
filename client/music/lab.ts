@@ -18,8 +18,9 @@ function soloSong(song: CompiledSong, names: string[]): CompiledSong {
     if (names.includes(name)) keep.push(i);
   }
   const n = keep.length;
-  const out: CompiledSong = { ...song, n, t: new Float64Array(n), dur: new Float32Array(n), voice: new Uint8Array(n), midi: new Uint8Array(n), vel: new Float32Array(n) };
+  const out: CompiledSong = { ...song, n, t: new Float64Array(n), dur: new Float32Array(n), voice: new Uint8Array(n), midi: new Uint8Array(n), vel: new Float32Array(n), from: new Uint8Array(n) };
   keep.forEach((i, j) => {
+    out.from[j] = song.from[i];
     out.t[j] = song.t[i];
     out.dur[j] = song.dur[i];
     out.voice[j] = song.voice[i];

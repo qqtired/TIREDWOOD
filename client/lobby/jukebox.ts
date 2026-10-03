@@ -5,7 +5,7 @@
 import type * as THREE from 'three';
 import type { Sound } from '../audio.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
-import { JUKEBOX, JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_PRICE, JUKE_SONGS, JUKE_USE, jukeGain, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
+import { JUKEBOX, JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_SONGS, JUKE_USE, jukeGain, songPrice, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
 import { MusicPlayer } from '../music/engine.ts';
 import { songByIndex } from '../music/songs.ts';
 
@@ -185,9 +185,11 @@ export class LobbyJukebox {
     const now = performance.now();
     if (this.pending !== null && now < this.pendingUntil) return;
     if (!JUKE_SONGS[song]) return;
-    if (this.d.tokens() < JUKE_PRICE) {
-      this.note = `Песня стоит ${JUKE_PRICE} 🪙`;
+    const price = songPrice(song);
+    if (this.d.tokens() < price) {
+      this.note = `Песня стоит ${price} 🪙, а у тебя ${this.d.tokens()}`;
       this.nextPanel = 0;
+      this.d.toast(this.note);
       return;
     }
     this.pending = song;
