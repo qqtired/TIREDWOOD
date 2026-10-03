@@ -10,7 +10,16 @@ export interface VoiceUiActions {
   unblock(): void;
   /** Правая кнопка или нажатие при выключенном голосе: открыть меню на разделе «Голос» */
   openSettings(): void;
+  /** Громкость говорящего 0…1 для волн значка; null — неизвестна (волны пульсируют спокойно) */
+  level?(id: number | 'self'): number | null;
+  /** Свой ник — в строке «кто говорит» */
+  selfNick?(): string;
 }
+/** Динамик с двумя волнами: волны дышат в такт голосу (--lvl) */
+export const SPEAKER_WAVES_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5h3.3L11.5 5.6v12.8l-4.7-3.9H3.5z" fill="currentColor" stroke-width="1.4"/><path class="vw1" d="M15 9.3a3.8 3.8 0 0 1 0 5.4"/><path class="vw2" d="M17.9 6.5a7.8 7.8 0 0 1 0 11"/></svg>';
+/** Больше стольких строк «кто говорит» не показываем: остальные — «+N» */
+export const SPEAKERS_VISIBLE = 5;
+interface SpeakerRow { root: HTMLElement; name: HTMLElement; vis: number }
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag); e.className = cls; e.textContent = text; return e;
 }
@@ -48,8 +57,17 @@ export class VoiceUi {
   private readonly hud = el('div', 'voice-hud');
   private readonly hold = el('button', 'voice-hold');
   private readonly tip = el('p', 'voice-tip');
+  /** Справа от кнопки: столбик «кто говорит» растёт вверх, под ним — подсказка */
+  private readonly side = el('div', 'voice-side');
   private readonly speakers = el('ul', 'voice-speakers');
-  private readonly speakerRows = new Map<number | 'self', { root: HTMLElement; name: HTMLElement }>();
+  private readonly more = el('li', 'voice-speaker voice-more');
+  private readonly speakerRows = new Map<number | 'self', SpeakerRow>();
+  /** Другие говорящие в порядке, как начали: первые остаются на виду, поздние уходят в «+N» */
+  private order: number[] = [];
+  private frame = 0;
+  private lastPaint = 0;
+  /** Строки, что ещё гаснут: список не прячем, пока они не исчезли */
+  private fading = 0;
   private readonly cleanup: Array<() => void> = [];
   /** Где кнопка живёт обычно; пока открыто модальное окно — в нём (relocate) */
   private readonly home: HTMLElement;
@@ -69,8 +87,10 @@ export class VoiceUi {
     this.hold.innerHTML = MIC_SVG.replace('</svg>', '<path class="voice-slash" d="m4 4 16 16"/></svg>') + SPEAKER_SVG.replace('<svg', '<svg class="voice-speaker-off"');
     const shortcut = el('span', 'voice-key', 'V'); shortcut.setAttribute('aria-hidden', 'true'); this.hold.append(shortcut);
     this.tip.setAttribute('role', 'status'); this.tip.hidden = true;
-    this.speakers.setAttribute('aria-label', 'Сейчас говорят'); this.speakers.tabIndex = 0; this.speakers.hidden = true;
-    this.hud.append(this.speakers, this.hold, this.tip); this.hud.hidden = true;
+    this.speakers.setAttribute('aria-label', 'Сейчас говорят'); this.speakers.hidden = true;
+    this.more.hidden = true; this.speakers.append(this.more);
+    this.side.append(this.speakers, this.tip);
+    this.hud.append(this.hold, this.side); this.hud.hidden = true;
     this.home = hudRoot; hudRoot.append(this.hud);
     // Модальное окно (showModal) — в верхнем слое, а всё вне его браузер делает инертным: кнопку не нажать.
     // Пока такое окно открыто, кнопка живёт в нём (position: fixed — на том же месте экрана).
@@ -79,7 +99,7 @@ export class VoiceUi {
       this.watch.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'] });
       this.relocate();
     }
-    this.listen(this.speakers, 'wheel', e => e.stopPropagation());
+
     this.listen(this.hold, 'click', () => {
       const s = this.state;
       if (s === 'blocked') actions.unblock();
@@ -120,7 +140,7 @@ export class VoiceUi {
     this.visible = game; if (!game) this.release();
     if (this.watch && !this.hud.isConnected) this.relocate();
     this.hud.hidden = !game || this.state === 'hidden' || this.disposed;
-    this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
+    this.syncSpeakers();
   }
   render(view: VoiceView): void {
     if (this.disposed) return;
@@ -137,34 +157,81 @@ export class VoiceUi {
     this.hold.disabled = this.state === 'requesting';
     // подсказка рядом: короткое уведомление, иначе — что сейчас важно
     const tip = view.notice || (this.state === 'blocked' ? 'Кликни, чтобы слышать голос' : this.state === 'error' ? view.error : '');
+    const tipChanged = this.tip.hidden !== !tip;
     text(this.tip, tip); this.tip.hidden = !tip;
+    if (tipChanged) this.limitSpeakers();
   }
   dispose(): void {
     if (this.disposed) return; this.release(); this.disposed = true;
     this.watch?.disconnect(); this.watch = null;
+    if (this.frame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.frame); this.frame = 0;
     for (const off of this.cleanup) off(); this.cleanup.length = 0;
-    this.speakerRows.clear(); this.hud.remove(); this.view = null;
+    this.speakerRows.clear(); this.order = []; this.hud.remove(); this.view = null;
   }
+  /**
+   * «Кто говорит»: плашка — значок динамика и ник, свой — тоже ник (с рамкой). Новые встают сверху: столбик растёт
+   * вверх и не двигает тех, кто уже говорит; ушедшие гаснут и схлопываются. Больше пяти — первые четыре и «+N».
+   */
   private renderSpeakers(view: VoiceView): void {
     const current = new Map<number | 'self', string>();
     if (view.available) {
       // кто говорит — видно и тем, кто голос не слушает (сервер присылает список зоны всем)
       for (const peer of view.people) if (peer.talking && !peer.muted) current.set(peer.id, peer.nick);
-      if (view.enabled && view.joined && view.transmitting) current.set('self', 'Ты');
+      if (view.enabled && view.joined && view.transmitting) current.set('self', this.actions.selfNick?.() || 'Ты');
     }
-    for (const [id, row] of this.speakerRows) if (!current.has(id)) { row.root.remove(); this.speakerRows.delete(id); }
+    let changed = false;
+    for (const [id, row] of this.speakerRows) if (!current.has(id)) { this.speakerRows.delete(id); this.fadeOut(row.root); changed = true; }
+    if (changed) this.order = this.order.filter(id => this.speakerRows.has(id));
     for (const [id, nick] of current) {
       let row = this.speakerRows.get(id);
       if (!row) {
         const root = el('li', 'voice-speaker'), name = el('span', 'voice-speaker-name');
-        const icon = el('span', 'voice-speaker-icon'); icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = MIC_SVG;
-        const state = el('span', 'voice-speaker-state', id === 'self' ? 'говоришь' : 'говорит');
-        root.append(icon, name, state);
-        row = { root, name }; this.speakerRows.set(id, row); this.speakers.append(root);
+        const icon = el('span', 'voice-speaker-icon'); icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = SPEAKER_WAVES_SVG;
+        root.append(icon, name); root.dataset.lvl = 'calm';
+        row = { root, name, vis: 0 }; this.speakerRows.set(id, row); changed = true;
+        if (id === 'self') { root.dataset.self = ''; this.speakers.append(root); }
+        else { this.order.push(id); this.more.after(root); }
       }
-      text(row.name, nick); row.name.title = nick; row.root.setAttribute('aria-label', id === 'self' ? 'Ты говоришь' : `${nick} — говорит`);
+      text(row.name, nick); row.name.title = nick; row.root.setAttribute('aria-label', id === 'self' ? 'Ты говоришь' : `${nick} говорит`);
     }
-    this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
+    if (changed) this.limitSpeakers();
+    this.syncSpeakers();
+    this.pump();
+  }
+  private syncSpeakers(): void { this.speakers.hidden = this.hud.hidden || (this.speakerRows.size === 0 && this.fading === 0); }
+  /** Сколько строк на виду: свой — всегда, из остальных — кто раньше начал; подсказка снизу забирает одну строку */
+  private limitSpeakers(): void {
+    const limit = this.tip.hidden ? SPEAKERS_VISIBLE : SPEAKERS_VISIBLE - 1;
+    let shown = this.speakerRows.has('self') ? 1 : 0, over = 0;
+    const room = this.speakerRows.size > limit ? limit - 1 : limit; // одна строка — под «+N»
+    for (const id of this.order) {
+      const row = this.speakerRows.get(id)!; const show = shown < room; row.root.hidden = !show;
+      if (show) shown++; else over++;
+    }
+    this.more.hidden = over === 0;
+    if (over) { text(this.more, `+${over}`); this.more.setAttribute('aria-label', `и ещё ${over}`); }
+  }
+  private fadeOut(root: HTMLElement): void {
+    root.dataset.out = ''; this.fading++;
+    setTimeout(() => { root.remove(); this.fading--; this.syncSpeakers(); }, 260);
+  }
+  /** Волны значков — по громкости голоса, ~15 раз в секунду, пока кто-то говорит */
+  private pump = (): void => {
+    if (this.frame || this.disposed || !this.speakerRows.size || typeof requestAnimationFrame !== 'function') return;
+    this.frame = requestAnimationFrame(now => {
+      this.frame = 0;
+      if (this.disposed || !this.speakerRows.size) return;
+      if (now - this.lastPaint >= 66) { this.lastPaint = now; for (const [id, row] of this.speakerRows) this.paintLevel(id, row); }
+      this.pump();
+    });
+  };
+  private paintLevel(id: number | 'self', row: SpeakerRow): void {
+    const raw = this.actions.level?.(id) ?? null;
+    if (raw === null) { if (row.root.dataset.lvl !== 'calm') row.root.dataset.lvl = 'calm'; return; }
+    // быстро вверх, плавно вниз: волны не мигают на паузах между слогами
+    row.vis = Math.max(raw, row.vis * 0.8);
+    if (row.root.dataset.lvl !== 'live') row.root.dataset.lvl = 'live';
+    row.root.style.setProperty('--lvl', row.vis.toFixed(2));
   }
   /** Кнопка — в верхнем открытом модальном окне, если оно есть, иначе дома. */
   private relocate(): void {

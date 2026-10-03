@@ -1,14 +1,25 @@
 /* Голос в игре: кнопка микрофона в левом нижнем углу, над ней «Сейчас говорят», справа — короткая подсказка.
    Живёт в body над меню (#menus — 20) и окнами: говорить можно везде; модальное окно забирает её к себе (client/ui/voice.ts). */
-.voice-hud { position: fixed; z-index: 25; left: 20px; bottom: 18px; display: flex; align-items: center; gap: 10px; font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.voice-hud { position: fixed; z-index: 25; left: 20px; bottom: 18px; display: flex; align-items: flex-end; gap: 10px; font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); pointer-events: none; }
 .voice-hud[hidden], .voice-hud [hidden] { display: none !important; }
 .voice-hud :focus-visible { outline: 3px solid #ffd19b; outline-offset: 3px; }
-.voice-speakers { position: absolute; left: 0; bottom: calc(100% + 10px); display: grid; gap: 4px; width: min(240px, calc(100vw - 40px)); max-height: 92px; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #b9d9bf #26382c; list-style: none; pointer-events: auto; touch-action: pan-y; }
-.voice-speaker { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 4px 8px; box-sizing: border-box; border-radius: 7px; background: #25382de8; color: #f2f6e8; font-size: 12px; line-height: 20px; }
-.voice-speaker-icon { display: flex; flex: 0 0 15px; color: #bce1a1; }
-.voice-speaker-icon svg { width: 15px; height: 15px; }
-.voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.voice-speaker-state { flex-shrink: 0; margin-left: auto; color: #cce7bc; font-size: 11px; }
+/* «Кто говорит» — справа от кнопки, столбик растёт вверх (до 5 строк — ниже чата), под ним подсказка */
+.voice-side { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 6px; min-width: 0; }
+.voice-speakers { display: flex; flex-direction: column; align-items: flex-start; margin: -4px 0 0; padding: 0; list-style: none; pointer-events: none; }
+.voice-speaker { display: inline-flex; align-items: center; gap: 6px; max-width: min(210px, calc(100vw - 190px)); height: 24px; max-height: 24px; margin-top: 4px; padding: 0 11px 0 7px; box-sizing: border-box; border-radius: 12px; background: rgba(28, 22, 19, 0.58); box-shadow: 0 1px 5px rgba(0, 0, 0, 0.16); color: #fff3de; font-size: 12.5px; font-weight: 500; line-height: 24px; white-space: nowrap; overflow: hidden; animation: voice-in 180ms ease-out both; transition: opacity 170ms ease, transform 170ms ease, max-height 180ms ease 70ms, margin-top 180ms ease 70ms; }
+/* свой — тот же вид, тёплая рамка */
+.voice-speaker[data-self] { background: rgba(40, 31, 25, 0.66); box-shadow: inset 0 0 0 1.5px rgba(255, 209, 155, 0.8), 0 1px 5px rgba(0, 0, 0, 0.16); }
+.voice-speaker[data-out] { opacity: 0; transform: translateX(-8px); max-height: 0; margin-top: 0; animation: none; }
+.voice-more { padding: 0 10px; color: #f1dcc4; font-size: 12px; font-weight: 600; background: rgba(28, 22, 19, 0.45); animation: none; }
+.voice-speaker-icon { flex: none; display: grid; place-items: center; width: 16px; height: 16px; color: #c4e8a9; }
+.voice-speaker-icon svg { display: block; width: 16px; height: 16px; overflow: visible; }
+.voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* волны: в такт голосу (--lvl 0…1 из client/ui/voice.ts), без уровня — спокойно дышат */
+.voice-speaker .vw1, .voice-speaker .vw2 { transform-box: fill-box; transform-origin: 0 50%; transition: opacity 90ms linear, transform 90ms linear; }
+.voice-speaker[data-lvl='live'] .vw1 { opacity: calc(0.35 + var(--lvl, 0) * 0.65); transform: scale(calc(0.85 + var(--lvl, 0) * 0.2)); }
+.voice-speaker[data-lvl='live'] .vw2 { opacity: calc(0.12 + var(--lvl, 0) * 0.88); transform: scale(calc(0.8 + var(--lvl, 0) * 0.28)); }
+.voice-speaker[data-lvl='calm'] .vw1 { animation: voice-wave 1.6s ease-in-out infinite; }
+.voice-speaker[data-lvl='calm'] .vw2 { animation: voice-wave 1.6s ease-in-out 0.25s infinite; }
 .voice-hold { position: relative; flex: none; display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 2px solid #e8c6a1; border-radius: 50%; color: #fcead4; background: #514336e8; box-shadow: 0 3px 0 #2d241c99, 0 4px 14px #211c1933; font: inherit; cursor: pointer; pointer-events: auto; user-select: none; -webkit-user-select: none; touch-action: none; transition: background-color 140ms, color 140ms, transform 140ms; }
 .voice-hold svg { grid-area: 1 / 1; display: block; width: 25px; height: 25px; pointer-events: none; }
 .voice-hold .voice-speaker-off { display: none; }
@@ -27,23 +38,27 @@
 .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: #ffdeb6; border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
 .voice-hold:disabled { cursor: default; }
 .voice-hold:hover:not(:disabled) { filter: brightness(1.08); }
-.voice-tip { max-width: min(280px, calc(100vw - 110px)); margin: 0; padding: 6px 10px; border-radius: 9px; background: #2b2025e6; color: #fff3de; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 10px #0004; }
+.voice-tip { max-width: min(280px, calc(100vw - 110px)); margin: 0 0 11px; padding: 6px 10px; border-radius: 9px; background: #2b2025e6; color: #fff3de; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 10px #0004; }
 /* в пейнтболе и крепости слева внизу — здоровье (.card.vitals, 260 px): кнопка голоса — справа от него */
 html:not(.touch)[data-room='paintball'] .voice-hud, html:not(.touch)[data-room='fort'] .voice-hud { left: 292px; bottom: 26px; }
 @keyframes voice-connect { to { transform: rotate(360deg); } }
 @keyframes voice-nudge { 50% { box-shadow: 0 0 0 7px #ffb36b40, 0 3px 0 #2d241c99; } }
+@keyframes voice-in { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes voice-wave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .voice-hold { transition: none; }
+  .voice-speaker { animation: none; transition: none; }
+  .voice-speaker .vw1, .voice-speaker .vw2 { animation: none !important; transition: none; }
   .voice-hold[data-state='blocked'] { animation: none; }
   .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { animation: none; border-style: dashed; border-color: #ffdeb6; }
 }
 @media (max-width: 600px), (pointer: coarse) {
   .voice-hud { left: 14px; bottom: max(166px, calc(env(safe-area-inset-bottom) + 150px)); }
   .voice-hold { width: 52px; height: 52px; }
-  .voice-speakers { width: min(210px, calc(100vw - 164px)); max-height: min(92px, 16dvh); }
+  .voice-speaker { max-width: min(200px, calc(100vw - 190px)); }
 }
 @media (max-width: 640px), (max-height: 480px) {
-  html.touch[data-fishing] .voice-speakers { width: min(190px, calc(100vw - 170px)); max-height: 60px; bottom: calc(100% + 8px); }
+  html.touch[data-fishing] .voice-speaker { max-width: min(170px, calc(100vw - 190px)); }
 }
 @media (forced-colors: active) {
   .voice-hud :focus-visible { outline-color: Highlight; }

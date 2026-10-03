@@ -1070,6 +1070,8 @@ export class App {
       push: on => this.voice?.push(on),
       unblock: () => { void this.voice?.unblock(); },
       openSettings: () => { this.input.unlock(); this.setPaused(true); this.menu.show('voice'); },
+      level: id => this.voice?.speakingLevel(id) ?? null,
+      selfNick: () => this.me.nick,
     });
     this.voice = new VoiceController({
       send: message => this.net.send(message),

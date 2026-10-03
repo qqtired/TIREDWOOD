@@ -8,8 +8,10 @@ import type { VoicePerson, VoiceView } from '../shared/voice.ts';
 class El extends EventTarget {
   tagName: string; className = ''; textContent = ''; hidden = false; disabled = false; type = ''; title = ''; tabIndex = 0; innerHTML = '';
   children: El[] = []; parent: El | null = null; attrs = new Map<string, string>(); dataset: Record<string, string> = {}; captured: number | null = null;
+  style = { props: new Map<string, string>(), setProperty(k: string, v: string) { this.props.set(k, v); } };
   constructor(tag: string) { super(); this.tagName = tag.toUpperCase(); }
-  append(...els: El[]) { for (const e of els) { e.parent = this; this.children.push(e); } }
+  append(...els: El[]) { for (const e of els) { e.remove(); e.parent = this; this.children.push(e); } }
+  after(e: El) { const p = this.parent!; e.remove(); e.parent = p; p.children.splice(p.children.indexOf(this) + 1, 0, e); }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(e => e !== this); this.parent = null; }
   setAttribute(k: string, v: string) { this.attrs.set(k, v); }
   focus() { doc.activeElement = this; }
@@ -28,9 +30,9 @@ const person = (id: number, o: Partial<VoicePerson> = {}): VoicePerson => ({ id,
 const base: VoiceView = { available: true, enabled: true, joined: true, room: 'lobby', zone: 'world', mic: 'off', playbackBlocked: false, transmitting: false, receiving: true,
   gameMuted: false, volume: 1, mode: 'hold', noise: true, device: '', linkDown: false, maxPeers: 0, error: '', notice: '', presence: [], people: [], peers: [] };
 const ready: VoiceView = { ...base, mic: 'ready' };
-function setup(view = base) {
+function setup(view = base, extra: Partial<VoiceUiActions> = {}) {
   const root = new El('div'); const calls: Array<[string, ...unknown[]]> = [];
-  const a: VoiceUiActions = { connectMic: () => { calls.push(['connectMic']); }, push: v => calls.push(['push', v]), unblock: () => calls.push(['unblock']), openSettings: () => calls.push(['open']) };
+  const a: VoiceUiActions = { connectMic: () => { calls.push(['connectMic']); }, push: v => calls.push(['push', v]), unblock: () => calls.push(['unblock']), openSettings: () => calls.push(['open']), selfNick: () => 'Tester7', ...extra };
   const ui = new VoiceUi(root as unknown as HTMLElement, a);
   ui.render(view); ui.setVisible(true);
   return { ui, root, calls, hold: find(root, 'voice-hold'), hud: find(root, 'voice-hud') };
@@ -89,17 +91,52 @@ test('клавиши: пробел на кнопке — удержание бе
   s.ui.dispose();
 });
 
-test('«Сейчас говорят»: и без голоса, одинаковые ники раздельно, ник — текстом, заглушённых не показываем, свой — «Ты»', () => {
+test('«кто говорит»: плашка — динамик и ник (свой — свой ник с рамкой), без слов «говорит»; новые сверху; больше пяти — «+N»; ушедшие гаснут', async () => {
   const unsafe = '<img src=x onerror=alert(1)>';
   const s = setup({ ...base, enabled: false, people: [person(21, { nick: 'Алексей', talking: true }), person(23, { nick: 'Алексей', talking: true }), person(24, { talking: true, muted: true }), person(25)] });
-  const list = find(s.root, 'voice-speakers');
-  assert.equal(list.hidden, false); assert.equal(list.children.length, 2);
-  const first = list.children[0];
+  const list = find(s.root, 'voice-speakers'), more = find(s.root, 'voice-more');
+  const rows = () => list.children.filter(r => r !== more && !('out' in r.dataset));
+  const shown = () => rows().filter(r => !r.hidden).map(r => find(r, 'voice-speaker-name').textContent);
+  assert.equal(list.hidden, false); assert.equal(rows().length, 2, 'и без голоса; одинаковые ники — раздельно; заглушённых нет');
+  for (const r of rows()) {
+    assert.deepEqual(r.children.map(c => c.className), ['voice-speaker-icon', 'voice-speaker-name'], 'значок и ник — без «говорит»');
+    assert.match(find(r, 'voice-speaker-icon').innerHTML, /class="vw1".*class="vw2"/, 'динамик с волнами');
+  }
+  const r21 = rows()[1];
+  assert.deepEqual(rows().map(r => r.attrs.get('aria-label')), ['Алексей говорит', 'Алексей говорит']);
   s.ui.render({ ...ready, transmitting: true, people: [person(21, { nick: unsafe, talking: true })] });
-  assert.equal(list.children[0], first, 'тот же человек — та же строка');
-  assert.equal(find(first, 'voice-speaker-name').textContent, unsafe); assert.equal(find(first, 'voice-speaker-name').children.length, 0);
-  assert.deepEqual(list.children.map(r => find(r, 'voice-speaker-name').textContent), [unsafe, 'Ты']);
+  assert.equal(rows()[0], r21, 'тот же человек — та же строка, на месте');
+  assert.equal(find(r21, 'voice-speaker-name').textContent, unsafe); assert.equal(find(r21, 'voice-speaker-name').children.length, 0, 'ник — текстом');
+  assert.deepEqual(shown(), [unsafe, 'Tester7'], 'свой — внизу, у кнопки, своим ником');
+  const self = rows()[1]; assert.equal('self' in self.dataset, true, 'свой — с рамкой'); assert.equal(self.attrs.get('aria-label'), 'Ты говоришь');
+  assert.equal(list.children.filter(r => 'out' in r.dataset).length, 1, 'замолчавший Алексей гаснет');
+  // семеро и я: видны я и трое, кто начал раньше, сверху «+4»; новенькие встают сверху и не двигают остальных
+  const seven = [31, 32, 33, 34, 35, 36, 37].map(id => person(id, { talking: true }));
+  s.ui.render({ ...ready, transmitting: true, people: seven });
+  assert.deepEqual(shown(), ['P33', 'P32', 'P31', 'Tester7']); assert.equal(more.hidden, false); assert.equal(more.textContent, '+4');
+  assert.equal(list.children[0], more, '«+N» — сверху');
+  s.ui.render({ ...ready, transmitting: true, notice: 'Соединяем голос — ещё секунду…', people: seven });
+  assert.deepEqual(shown(), ['P32', 'P31', 'Tester7'], 'под подсказкой — на строку меньше'); assert.equal(more.textContent, '+5');
+  s.ui.render({ ...ready, transmitting: true, people: seven.slice(0, 3) });
+  assert.deepEqual(shown(), ['P33', 'P32', 'P31', 'Tester7']); assert.equal(more.hidden, true);
   s.ui.setVisible(false); assert.equal(list.hidden, true);
-  s.ui.setVisible(true); s.ui.render({ ...base, available: false, people: [person(21, { talking: true })] }); assert.equal(list.children.length, 0);
+  s.ui.setVisible(true); s.ui.render({ ...base, available: false, people: [person(21, { talking: true })] }); assert.equal(rows().length, 0);
+  await new Promise(r => setTimeout(r, 300));
+  assert.deepEqual(list.children, [more], 'погасшие строки убраны'); assert.equal(list.hidden, true);
   assert.deepEqual(s.calls, []); s.ui.dispose();
+});
+
+test('«кто говорит»: волны — по громкости голоса, без уровня — спокойная пульсация', async () => {
+  const frames = globalThis as unknown as { requestAnimationFrame?: (cb: (t: number) => void) => number };
+  frames.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 5) as unknown as number;
+  try {
+    const s = setup(ready, { level: id => id === 'self' ? 0.8 : null });
+    s.ui.render({ ...ready, transmitting: true, people: [person(41, { talking: true })] });
+    await new Promise(r => setTimeout(r, 120));
+    const list = find(s.root, 'voice-speakers'), rows = list.children.filter(r => !r.className.includes('voice-more'));
+    const [other, self] = rows;
+    assert.equal(self.dataset.lvl, 'live'); assert.equal(self.style.props.get('--lvl'), '0.80');
+    assert.equal(other.dataset.lvl, 'calm', 'уровня нет — спокойно');
+    s.ui.dispose();
+  } finally { delete frames.requestAnimationFrame; }
 });
