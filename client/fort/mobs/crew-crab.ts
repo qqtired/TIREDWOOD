@@ -1,10 +1,12 @@
 // Краб-абордажник — экипаж лодки (признак ZF_CREW): красный краб в треуголке и тельняшке, клешни наготове, глаза на
 // стебельках светятся сиреневым. Прыгает из лодки на берег сальто (ZS_HOP), бежит к морской стене, лезет по ней
 // (ZS_CLIMB → ZS_TOP → ZS_DROP), во дворе щиплет клешнями. Гибель — падает на спину, сучит ножками и уходит в землю.
-// Вид у экипажа — шаркун или липучка, поэтому kinds = [Z_WALKER, Z_CLIMBER], но weight 0: обычных шаркунов он не
-// заменяет. Крепость берёт его для экипажа сама — crewVariant(seed). Здесь же — сидячий краб для лодки (seatedCrab).
+// Вид у экипажа — шаркун или липучка, поэтому kinds = [Z_WALKER, Z_CLIMBER] и особый вариант when = ZF_CREW (договор
+// mobs-a): обычных шаркунов краб не заменяет, а экипажу достаётся только он (красный — 2 из 3, скрипач — 1 из 3).
+// Здесь же — сидячий краб для лодки (seatedCrab).
 import * as THREE from 'three';
 import { ZS_ATTACK, ZS_CLIMB, ZS_DROP, ZS_HOP, ZS_TOP, Z_CLIMBER, Z_WALKER } from '../../../shared/fort.ts';
+import { ZF_CREW } from '../../../shared/fortnet.ts';
 import { colored, merge, setBone, setBoneS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { blob, curve, jamDrop, mergeColored, paint, smooth, tricorn, tube } from './sea-shapes.ts';
 
@@ -163,15 +165,16 @@ function crabPose(look: CrabLook, a: MobAnim, out: MobPose): void {
 
   const st = a.st;
   if (st === ZS_ATTACK) {
-    const P = 0.8 / rage;
-    const u = (a.stT % P) / P;
-    const lead = Math.floor(a.stT / P) % 2;
-    const strike = u < 0.4 ? -1.15 * smooth(0, 0.4, u) : u < 0.55 ? -1.15 + 1.5 * smooth(0.4, 0.55, u) : 0.35 - 0.65 * smooth(0.55, 1, u);
+    // крепость обнуляет stT на каждом ударе (ворота — раз в 0,5 с, человек — раз в 0,8 с): замах с 0, щипок к ~0,2 с,
+    // дальше клешня возвращается наизготовку; клешни чередуются от удара к удару (по времени удара)
+    const u = a.stT;
+    const lead = Math.floor((a.t - a.stT) * 2 + seed * 2) & 1;
+    const strike = u < 0.1 ? -1.15 * smooth(0, 0.1, u) : u < 0.2 ? -1.15 + 1.5 * smooth(0.1, 0.2, u) : 0.35 - 0.9 * smooth(0.2, 0.5, u);
     if (lead) clawR = strike;
     else clawL = strike;
     if (lead) clawL = -0.55;
     else clawR = -0.55;
-    pitch = u > 0.4 && u < 0.7 ? 0.25 : 0.05;
+    pitch = 0.05 + 0.2 * smooth(0.08, 0.18, u) * (1 - smooth(0.25, 0.45, u));
   } else if (st === ZS_CLIMB) {
     const c = a.t * 13;
     clawL = -2.3 + 0.5 * Math.sin(c);
@@ -244,12 +247,16 @@ function crabPose(look: CrabLook, a: MobAnim, out: MobPose): void {
   out.legR.multiplyMatrices(b, _tmp);
 }
 
-function crabDef(look: CrabLook): MobDef {
+/** Особый вариант договора (MobDef.when у mobs-a): пока его нет в этой копии kit.ts — поле через пересечение типов */
+export type CrewDef = MobDef & { when?: number };
+
+function crabDef(look: CrabLook): CrewDef {
   return {
     id: look.id,
     name: look.name,
     kinds: [Z_WALKER, Z_CLIMBER],
-    weight: 0,
+    weight: look.weight,
+    when: ZF_CREW,
     height: 1.52,
     parts: [
       { bone: 'body', geo: bodyGeo(look) },
@@ -265,12 +272,7 @@ function crabDef(look: CrabLook): MobDef {
 
 export const CREW_CRAB = crabDef({ id: 'crew-crab', name: 'Краб-абордажник', shell: 0xd9452f, belly: 0xf2a77c, legs: 0xd8573a, clawL: 1, clawR: 1, hatTilt: 0.08, weight: 2 });
 export const CREW_FIDDLER = crabDef({ id: 'crew-fiddler', name: 'Краб-скрипач', shell: 0xe8742e, belly: 0xf6c08a, legs: 0xdf6a35, clawL: 0.72, clawR: 1.55, hatTilt: -0.16, weight: 1 });
-export const CREW_CRABS: readonly MobDef[] = [CREW_CRAB, CREW_FIDDLER];
-
-/** Вариант для абордажника (признак ZF_CREW): по seed особи, двое из трёх — красные, каждый третий — скрипач */
-export function crewVariant(seed: number): MobDef {
-  return fract(seed) < 2 / 3 ? CREW_CRAB : CREW_FIDDLER;
-}
+export const CREW_CRABS: readonly CrewDef[] = [CREW_CRAB, CREW_FIDDLER];
 
 // ------------------------------------------------------------ сидячий краб для лодки
 

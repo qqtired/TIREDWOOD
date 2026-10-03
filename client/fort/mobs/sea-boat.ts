@@ -336,12 +336,15 @@ function boatPose(a: MobAnim, out: MobPose): void {
   setBone(_loc, 0, gunwale(LOCK_Z) + 0.03 + lift, LOCK_Z, oar, 0, 0);
   out.armL.multiplyMatrices(_hull, _loc);
   const sway = 0.08 * Math.sin(t * 2.7 + seed * 7);
-  const hide = 1e-4;
-  setBone(_loc, ORIGIN_A[0], ORIGIN_A[1] + jumpA, ORIGIN_A[2], 0.05, 0, sway, showA ? Math.max(hide, crabS) : hide);
+  // спрятанная группа: сжата до 0,03 (с корпусом не меньше 0,02 — меньше договор не велит: нормали инстансов) и
+  // убрана под днище, под воду
+  const hide = 0.03;
+  const down = -0.6;
+  setBone(_loc, ORIGIN_A[0], ORIGIN_A[1] + (showA ? jumpA : down), ORIGIN_A[2], 0.05, 0, sway, showA ? Math.max(hide, crabS) : hide);
   out.legL.multiplyMatrices(_hull, _loc);
-  setBone(_loc, ORIGIN_B[0], ORIGIN_B[1] + jumpB, ORIGIN_B[2], 0, 0, -sway * 0.8, showB ? Math.max(hide, crabS) : hide);
+  setBone(_loc, ORIGIN_B[0], ORIGIN_B[1] + (showB ? jumpB : down), ORIGIN_B[2], 0, 0, -sway * 0.8, showB ? Math.max(hide, crabS) : hide);
   out.legR.multiplyMatrices(_hull, _loc);
-  setBone(_loc, ORIGIN_C[0], ORIGIN_C[1] + jumpC, ORIGIN_C[2], 0.06 * Math.sin(phi) * rowing, 0, sway * 0.5, showC ? Math.max(hide, crabS) : hide);
+  setBone(_loc, ORIGIN_C[0], ORIGIN_C[1] + (showC ? jumpC : down), ORIGIN_C[2], 0.06 * Math.sin(phi) * rowing, 0, sway * 0.5, showC ? Math.max(hide, crabS) : hide);
   out.tail.multiplyMatrices(_hull, _loc);
 }
 

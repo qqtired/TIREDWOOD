@@ -1,11 +1,12 @@
 // Кракен — супер-босс каждой 25-й волны (Z_KRAKEN): огромная голова-осьминог в капитанской треуголке с золотым кантом,
 // банкой варенья и сиреневым пером; глаза-плошки светятся сиреневым, ухмылка с золотым зубом, в правом щупальце —
-// подзорная труба. Корень — на воде (y = 0), смотрит по +Z.
-// Когда бить: голова над водой и светятся глаза — бей (выше кольца — в глаз). Нырок (ZS_KRAKEN_DIVE) — уходит под
-// воду, на волнах остаётся только шляпа: сейчас не попасть. Плевок (ZS_KRAKEN_SPIT) — раздувается, откидывается,
-// щурится и плюёт вперёд. «Открыт» (ZS_BOSS_OPEN) — оглушён: глаза настежь, качается, шляпа набекрень, щупальца
-// повисли. Ярость (ZF_RAGE) — шляпа подпрыгивает, как крышка на кипящей кастрюле, веки злые, щупальца молотят.
-// Гибель — шляпа слетает и шлёпается в воду, голова кружится и уходит в глубину.
+// подзорная труба. Корень — низ головы (как низ хитбокса у крепости), смотрит по +Z; веки «домиком» — хитрый и злой.
+// В бухте крепость держит корень под водой (в засаде над водой купол и глаза, оглушён — всплывает по рот), нырок и
+// всплытие — движением корня. Нырок (ZS_KRAKEN_DIVE) — зажмурился, вытянулся, шляпа подлетает; если крепость передаёт
+// уровень воды (anim.water), шляпа остаётся плавать на волнах, пока голова под водой. Плевок (ZS_KRAKEN_SPIT) —
+// раздувается, откидывается, щурится и плюёт вперёд. «Открыт» (ZS_BOSS_OPEN) — оглушён: глаза настежь, качается,
+// шляпа набекрень, щупальца повисли. Ярость (ZF_RAGE) — шляпа подпрыгивает, как крышка на кипящей кастрюле, веки
+// злее, щупальца молотят. Гибель — шляпа слетает и шлёпается в воду, голова кружится и уходит в глубину.
 import * as THREE from 'three';
 import { ZS_ATTACK, ZS_BOSS_OPEN, ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, Z_KRAKEN } from '../../../shared/fort.ts';
 import { colored, merge, setBone, setBoneS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
@@ -50,16 +51,26 @@ const EYE_Z = EYE_C.z;
 /** Шляпа: точка посадки на макушке */
 const HAT_Y = 4.36;
 const HAT_Z = lean(HAT_Y) + 0.22;
-/** Плавающая шляпа: поля на воде */
+/** Плавающая шляпа: поля чуть ниже уровня воды */
 const FLOAT_Y = -0.1;
 /** Корни больших щупалец (в воде по бокам, ближе к переду) */
 const ARM_ROOT = [2.45, -0.45, 1.25] as const;
 
 function mantleGeo(): THREE.BufferGeometry {
-  const lathe = new THREE.LatheGeometry(PROFILE.map(([r, y]) => new THREE.Vector2(r, y)), 26);
+  const SEG = 26;
+  const lathe = new THREE.LatheGeometry(PROFILE.map(([r, y]) => new THREE.Vector2(r, y)), SEG);
   const pos = lathe.getAttribute('position');
   for (let i = 0; i < pos.count; i++) pos.setZ(i, pos.getZ(i) + lean(pos.getY(i)));
   lathe.computeVertexNormals();
+  // шов вращения проходит посередине лица (+Z): первый и последний столбцы — одни и те же точки, сглаживаем нормали
+  const nor = lathe.getAttribute('normal');
+  const v = new THREE.Vector3();
+  for (let j = 0; j < PROFILE.length; j++) {
+    const b = SEG * PROFILE.length + j;
+    v.set(nor.getX(j) + nor.getX(b), nor.getY(j) + nor.getY(b), nor.getZ(j) + nor.getZ(b)).normalize();
+    nor.setXYZ(j, v.x, v.y, v.z);
+    nor.setXYZ(b, v.x, v.y, v.z);
+  }
   const spots = [-1.6, 3.4, -1.2, 0.8, 1.4, 3.7, -0.9, 0.7, 2.3, 1.6, -1.2, 0.75, -2.0, 1.0, 1.6, 0.8, 0.4, 4.1, 0.5, 0.55, 2.4, 2.5, 0.8, 0.6,
     -1.35, 3.75, 1.25, 0.5, 1.75, 3.45, 1.25, 0.42, -2.45, 2.2, 0.9, 0.45];
   const light = new THREE.Color(SKIN_LIGHT);
@@ -95,7 +106,8 @@ function mantleGeo(): THREE.BufferGeometry {
   for (const s of [-1, 1]) {
     const c = new THREE.Vector3(s * EYE_X * 0.93, EYE_Y - 0.06, EYE_Z + EYE_R * 0.86);
     parts.push(colored(blob(0.27, 0.31, 0.12, 10, 7).translate(c.x, c.y, c.z), PUPIL));
-    parts.push(colored(new THREE.SphereGeometry(0.075, 6, 4).translate(c.x - 0.09, c.y + 0.12, c.z + 0.1), 0xffffff));
+    // блик неглубоко: опущенное веко его закрывает
+    parts.push(colored(new THREE.SphereGeometry(0.075, 6, 4).translate(c.x - 0.09, c.y + 0.1, c.z + 0.04), 0xffffff));
   }
   // короткие щупальца юбкой по воде (сзади и по бокам), кончики завиты кверху
   for (let k = 0; k < 6; k++) {
@@ -126,14 +138,18 @@ function eyesGeo(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** Веки: шапочки над глазами, злой «домиком» наклон; в осях линии глаз (поворот вокруг X закрывает/открывает) */
+/**
+ * Веки: полусферы над глазами, край — прямая через центр глаза с наклоном «домиком» (внутренние уголки ниже —
+ * сердитый взгляд, а не грустные брови). В осях линии глаз: поворот вокруг X на lid — 0 закрывает верхнюю половину,
+ * −0,9 — глаза настежь, π/2 — зажмурился.
+ */
 function lidsGeo(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  const lash = EYE_R * 1.1 * Math.cos(Math.PI * 0.37);
+  const lash = EYE_R * 1.1 * Math.cos(Math.PI * 0.44);
   for (const s of [-1, 1]) {
     // край века — тёмная «ресница», красим до поворота (по высоте шапочки)
-    const cap = paint(new THREE.SphereGeometry(EYE_R * 1.1, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.42), (p, _n, o) => o.setHex(p.y < lash ? 0x3c1846 : SKIN));
-    parts.push(cap.rotateX(0.35).rotateZ(-s * 0.45).translate(s * EYE_X, 0, 0));
+    const cap = paint(new THREE.SphereGeometry(EYE_R * 1.1, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), (p, _n, o) => o.setHex(p.y < lash ? 0x3c1846 : SKIN));
+    parts.push(cap.rotateZ(s * 0.42).translate(s * EYE_X, 0, 0));
   }
   return merge(parts);
 }
@@ -220,7 +236,9 @@ function krakenPose(a: MobAnim, out: MobPose): void {
   let sy = 1 - 0.015 * Math.sin(t * 1.4);
   const blink = bump((t + a.seed * 3) % 4.3, 0, 0.16);
   const look = st === 0 ? smooth(0, 0.6, bump((t % 9.5) / 9.5, 0.52, 0.8)) : 0;
-  let lid = 0.14 + 0.3 * rage + 1.25 * blink + 0.35 * look;
+  // в ярости веки опущены «домиком», но зрачки видно — сердитый взгляд, а не сонный
+  // веки: спокойно — прикрыты на треть, в ярости — сердитый прищур (зрачки видно), моргает, щурится в трубу
+  let lid = -0.2 + 0.24 * rage + 1.8 * blink + 0.4 * look;
   let hatLift = 0.18 * rage * Math.abs(Math.sin(t * 14));
   let hatRx = -0.04;
   let hatRz = 0.13 + 0.04 * Math.sin(t * 1.1) + 0.08 * rage * Math.sin(t * 17);
@@ -233,25 +251,29 @@ function krakenPose(a: MobAnim, out: MobPose): void {
   let dive = 0;
 
   if (st === ZS_KRAKEN_DIVE) {
-    // нырок: зажмурился и ушёл под воду; (если придёт wind — всплывает к концу отсчёта)
+    // нырок: глубину ведёт крепость (корень уходит вниз, плывёт и всплывает в другом месте) — здесь поза: зажмурился,
+    // вытянулся «торпедой», щупальца прижал, шляпа подлетает от рывка; за 0,6 с до всплытия (если есть wind) — открывает глаза
     const wind = (a as MobAnim & { wind?: number }).wind;
-    dive = smooth(0, 0.9, a.stT);
-    if (typeof wind === 'number' && wind < 0.8) dive = Math.min(dive, smooth(0, 0.8, wind));
-    lid = Math.max(lid, 1.3 * smooth(0, 0.3, a.stT));
-    sxz *= 1 - 0.08 * dive;
-    lRx += 0.5 * dive;
-    rRx += 0.5 * dive;
+    const k = smooth(0, 0.35, a.stT);
+    const open = typeof wind === 'number' && Number.isFinite(wind) ? smooth(0.6, 0, wind) : 0;
+    lid = Math.max(lid, 1.65 * smooth(0, 0.25, a.stT) * (1 - open));
+    sxz *= 1 - 0.1 * k * (1 - open);
+    sy *= 1 + 0.08 * k * (1 - open);
+    lRx += 0.5 * k * (1 - open);
+    rRx += 0.5 * k * (1 - open);
+    hatLift += 0.35 * bump(a.stT, 0, 0.55);
   } else if (st === ZS_KRAKEN_SPIT) {
-    // плевок: набрать варенья (раздулся, откинулся, прищурился), плюнуть вперёд, отдышаться — раз в 1,6 с
-    const P = 1.6 / (1 + 0.25 * rage);
+    // плевок, как у крепости (метка 1,5 с, клякса срывается на 0,83 с): набрать варенья (раздулся, откинулся,
+    // прищурился), плюнуть вперёд, отдышаться
+    const P = 1.5;
     const u = (a.stT % P) / P;
-    const wind = smooth(0, 0.62, u) * (1 - smooth(0.62, 0.7, u));
-    const spit = bump(u, 0.6, 0.85);
-    const rec = smooth(0.78, 1, u);
+    const wind = smooth(0, 0.5, u) * (1 - smooth(0.5, 0.57, u));
+    const spit = bump(u, 0.48, 0.66);
+    const rec = smooth(0.62, 0.9, u);
     sxz *= 1 + 0.12 * wind - 0.04 * spit;
     sy *= 1 + 0.06 * wind - 0.12 * spit;
     pitch += -0.13 * wind + 0.22 * spit;
-    lid = 0.4 + 0.3 * rage - 0.2 * spit;
+    lid = 0.45 + 0.2 * rage - 0.3 * spit;
     hatLift += 0.25 * wind;
     lRx += -0.4 * wind + 0.6 * spit;
     rRx += -0.4 * wind + 0.6 * spit;
@@ -260,7 +282,7 @@ function krakenPose(a: MobAnim, out: MobPose): void {
   } else if (st === ZS_BOSS_OPEN) {
     // оглушён — бей: глаза настежь, качается по кругу, шляпа съехала, щупальца повисли
     const d = smooth(0, 0.4, a.stT);
-    lid = lid * (1 - d) - 0.75 * d;
+    lid = lid * (1 - d) - 0.95 * d;
     pitch += 0.09 * d * Math.sin(t * 3.1);
     roll += 0.09 * d * Math.cos(t * 3.1);
     y -= 0.4 * d;
@@ -272,16 +294,16 @@ function krakenPose(a: MobAnim, out: MobPose): void {
     lRz -= 0.4 * d;
     rRz -= 0.4 * d;
   } else if (st === ZS_ATTACK) {
-    // шлепок левым щупальцем
-    const u = (a.stT % 1.2) / 1.2;
-    lRx += -0.6 * smooth(0, 0.45, u) * (1 - smooth(0.8, 1, u)) + 1.5 * bump(u, 0.45, 0.8);
+    // шлепок левым щупальцем: крепость обнуляет stT на каждом ударе — замах с 0, шлепок к ~0,2 с
+    const u = a.stT;
+    lRx += -0.6 * smooth(0, 0.1, u) * (1 - smooth(0.1, 0.18, u)) + 1.5 * bump(u, 0.1, 0.45);
   }
   // только что появился — всплывает с волной
   if (a.t < 1.6 && a.die === 0 && st !== ZS_KRAKEN_DIVE) dive = Math.max(dive, 1 - smooth(0, 1.6, a.t) * (1 + 0.15 * Math.sin(smooth(0, 1.6, a.t) * Math.PI)));
   if (a.hit > 0) {
     sy *= 1 - 0.08 * a.hit;
     sxz *= 1 + 0.05 * a.hit;
-    lid = Math.max(lid, 1.0 * a.hit);
+    lid = Math.max(lid, 1.15 * a.hit);
     pitch -= 0.06 * a.hit;
     hatLift += 0.3 * a.hit;
   }
@@ -290,7 +312,7 @@ function krakenPose(a: MobAnim, out: MobPose): void {
   let scale = 1;
   if (a.die > 0) {
     const d = a.die;
-    lid = d < 0.25 ? -0.75 * smooth(0, 0.1, d) : -0.75 + 1.35 * smooth(0.25, 0.5, d);
+    lid = d < 0.25 ? -0.95 * smooth(0, 0.1, d) : -0.95 + 1.65 * smooth(0.25, 0.5, d);
     yaw = 1.3 * smooth(0.2, 1, d);
     pitch += 0.12 * Math.sin(t * 5) * smooth(0.1, 0.4, d);
     roll += 0.1 * Math.cos(t * 5) * smooth(0.1, 0.4, d);
@@ -314,20 +336,24 @@ function krakenPose(a: MobAnim, out: MobPose): void {
   out.armL.multiplyMatrices(_body, _loc);
   setBone(_loc, ARM_ROOT[0], ARM_ROOT[1], ARM_ROOT[2], rRx, 0, rRz);
   out.armR.multiplyMatrices(_body, _loc);
-  // шляпа: на макушке, пока макушка над водой; дальше плавает и крутится на волне
+  // шляпа: на макушке, пока макушка над водой; ушла под воду — шляпа плавает и крутится на волне. Уровень воды над
+  // корнем — anim.water (м), если крепость его передаёт: голова Кракена стоит ниже воды (у крепости корень — низ
+  // хитбокса, в бухте на 1,7 м под водой), а ныряет и всплывает она движением корня. Без water вода — на корне (стенд).
+  const wl = (a as MobAnim & { water?: number }).water;
+  const floatY = (typeof wl === 'number' && Number.isFinite(wl) ? wl : 0) + FLOAT_Y;
   const onHeadY = y - sink + HAT_Y * sy + hatLift;
   if (hatOff > 0) {
     const up = 3.4 * bump(hatOff, 0.08, 0.72);
     const fall = smooth(0.72, 1, hatOff);
-    const hy = Math.max(HAT_Y + up - 7.2 * fall, FLOAT_Y - 2.6 * fall);
+    const hy = Math.max(HAT_Y + up - 7.2 * fall, floatY - 2.6 * fall);
     setBone(_loc, 0.6 * smooth(0.08, 0.8, hatOff), hy, HAT_Z + 1.2 * smooth(0.08, 0.8, hatOff), -0.3 - 2.2 * hatOff, 7 * hatOff, 0.5 * hatOff);
     out.head.multiplyMatrices(_root, _loc);
-  } else if (onHeadY > FLOAT_Y) {
+  } else if (onHeadY > floatY) {
     setBone(_loc, hatX, HAT_Y + hatLift / sy, HAT_Z, hatRx, 0, hatRz);
     out.head.multiplyMatrices(_body, _loc);
   } else {
     const spin = 0.6 * Math.max(0, a.stT - 0.45);
-    setBone(_loc, 0, FLOAT_Y + 0.05 * Math.sin(t * 1.8), HAT_Z, 0.08 * Math.sin(t * 1.3), spin, 0.06 * Math.cos(t * 1.1));
+    setBone(_loc, 0, floatY + 0.05 * Math.sin(t * 1.8), HAT_Z, 0.08 * Math.sin(t * 1.3), spin, 0.06 * Math.cos(t * 1.1));
     out.head.multiplyMatrices(_root, _loc);
   }
 }
