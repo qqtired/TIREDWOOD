@@ -92,7 +92,7 @@ export class HideProps {
   /** Предмет id чуть вздрагивает ~0,4 с: наклон на 1–2°, без звука — заметно, только если смотришь прямо на него */
   wiggle(id: number, t: number): void { this.shakes.set(id, t); }
 
-  update(list: readonly PropView[], t: number, target: number): boolean {
+  update(list: readonly PropView[], t: number, target: number, blocked = false): boolean {
     for (const k of HIDE_KINDS) this.used.set(k, 0);
     for (const [id, t0] of this.shakes) if (t - t0 > WIGGLE_S || t < t0 - 1) this.shakes.delete(id);
     let sig = list.length, blobs = 0;
@@ -138,7 +138,9 @@ export class HideProps {
         this.outline.position.set(b.x, b.y, b.z);
         this.outline.rotation.set(0, b.yaw, 0);
         this.outline.scale.set(f.w * 2 + 0.06, f.h + 0.04, f.d * 2 + 0.06);
-        (this.outline.material as THREE.LineBasicMaterial).opacity = 0.65 + Math.sin(t * 6) * 0.25;
+        const om = this.outline.material as THREE.LineBasicMaterial;
+        om.color.set(blocked ? 0x9a9a9a : 0xffe27a);
+        om.opacity = blocked ? 0.55 : 0.65 + Math.sin(t * 6) * 0.25;
       }
     }
     for (const [k, mesh] of this.meshes) {

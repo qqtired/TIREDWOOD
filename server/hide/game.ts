@@ -159,7 +159,7 @@ export class HideGame {
     if (len > 0.4 && this.world.raycast(p.state.x, oy, p.state.z, dx / len, dy / len, dz / len, len - 0.3, this.hit, true, true)) { this.note(p, 'Не видно — подойди ближе'); return; }
     if (p.hits >= hideHits(target.kind)) { this.note(p, `Слишком заляпан для такого — нужен предмет покрепче`); return; }
     hideFillProps(this.motion, this.bodies(), p.prop);
-    if (!hideFits(this.motion, p.state.x, p.state.y, p.state.z, target.kind, target.yaw)) { this.note(p, 'Не помещается здесь — отойди на свободное место'); return; }
+    if (!hideFits(this.motion, p.state.x, p.state.y, p.state.z, target.kind, target.yaw)) { this.note(p, 'Не помещается — отойди на свободное место'); return; }
     p.kind = target.kind; p.propYaw = target.yaw; p.stains = 0; p.chose = true; p.transforms++;
     p.takeAt = this.tick + (this.phase === 'hide' ? HIDE_TAKE_PREP_TICKS : HIDE_TAKE_TICKS);
     p.reset++;

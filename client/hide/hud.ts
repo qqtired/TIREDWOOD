@@ -35,6 +35,7 @@ export class HideHud {
   private readonly help = el('div', 'hd-help');
   private readonly touch = el('div', 'hd-touch');
   private readonly hitmark = el('div', 'hd-hit');
+  private blocked = false;
   private overKey = '';
   private panelKey = '';
   private noteTimer = 0;
@@ -103,9 +104,21 @@ export class HideHud {
 
   // ------------------------------------------------------------ состояние
 
-  setHint(text: string | null): void {
+  /** Подсказка под прицелом; blocked — серый прицел и подсказка: этим предметом сейчас не стать (не помещается, заляпан) */
+  setHint(text: string | null, blocked = false): void {
     this.hint.textContent = text ?? '';
     this.hint.classList.toggle('on', !!text);
+    this.blocked = !!text && blocked;
+    this.hint.classList.toggle('no', this.blocked);
+    this.cross.classList.toggle('no', this.blocked);
+  }
+
+  /** Клик по предмету, которым не стать: причина уже в подсказке под прицелом — она вздрагивает (без тоста внизу: он
+   *  дублировал бы её и на узком окне налезал на памятку) */
+  refuse(): void {
+    this.hint.classList.remove('shake');
+    void this.hint.offsetWidth;
+    this.hint.classList.add('shake');
   }
 
   update(m: HideStateMsg, tick: number): void {
@@ -141,7 +154,7 @@ export class HideHud {
       this.roleName.textContent = 'Зритель';
       this.roleSub.textContent = phase === 'gather' ? 'Ждём игроков' : 'Войдёшь в следующий раунд';
     }
-    this.cross.className = `hd-cross ${hunter && phase === 'seek' ? 'gun' : prop && playing ? 'dot' : 'off'}`;
+    this.cross.className = `hd-cross ${hunter && phase === 'seek' ? 'gun' : prop && playing ? (this.blocked ? 'dot no' : 'dot') : 'off'}`;
     this.help.classList.toggle('on', prop && phase === 'hide');
     if (!(prop && playing)) this.setHint(null);
 
