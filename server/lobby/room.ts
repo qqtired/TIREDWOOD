@@ -305,7 +305,7 @@ export class LobbyRoom implements Room {
     c.sink.sendJson({
       t: 'lobby', id: slot, tick: this.tick, yaw: spot.yaw, players: this.infos(), pool: Math.floor(this.hub.store.state.jackpot),
       pb: this.hub.pbStatus(), honor: this.hub.honor(), tables: this.durak.views(), blackjack: this.blackjack.view(), ...(this.hub.skill ? { skill: this.hub.skill.status() } : {}), kart: this.kartStatus(), fish: this.fish.views(),
-      rain: this.weather.rain ? 1 : 0, respects: this.hub.store.state.respects, boat: this.boat.status(), aqua: this.aquaRows(),
+      rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.boatQueue ? { boatrace: this.boatStatus()! } : {}),
@@ -627,7 +627,7 @@ export class LobbyRoom implements Room {
   }
 
   private publishWeather(): void {
-    this.broadcast({ t: 'weather', rain: this.weather.rain ? 1 : 0 });
+    this.broadcast({ t: 'weather', rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}) });
     this.hub.fishEvent(this.weather.rain, this.weather.eventUntil);
   }
 

@@ -40,7 +40,7 @@ const profiles = new Profiles(store);
 const build = DEV ? 'dev' : buildId();
 // DEV_RIG=777 — автоматы всегда дают три семёрки, чтобы посмотреть джекпот (только в разработке)
 const roll = DEV && process.env.DEV_RIG === '777' ? () => 63 : undefined;
-// DEV_WEATHER=rain / clear / cycle — дождь всегда, никогда или по 45 с (только в разработке)
+// DEV_WEATHER=rain / clear / cycle / storm — дождь всегда, никогда, по 45 с или гроза сразу (только в разработке)
 const weather = DEV ? weatherMode(process.env.DEV_WEATHER) : 'auto';
 // Экран с чатом друзей из Telegram на крыше склада: токен бота владелец кладёт в DATA_DIR/tg-token (deploy/set-tg-token.sh)
 const tg = new TgFeed({ dir: DATA_DIR });
