@@ -27,6 +27,11 @@ import {
 import { CLIMBS, CLIMB_SEA_E, CLIMB_SEA_W, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
+import { stepLeshy } from './boss-leshy.ts';
+import { stepPumpkin } from './boss-pumpkin.ts';
+import { stepWeaver } from './boss-weaver.ts';
+import { Z_LESHY, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
+import { newBossRadius } from '../../shared/fortbosses.ts';
 import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
@@ -636,6 +641,9 @@ export class Horde {
       else if (z.kind === Z_BOSS) stepBaron(this.bossCtx, z);
       else if (z.kind === Z_RAM) stepRam(this.bossCtx, z);
       else if (z.kind === Z_GOLEM) stepGolem(this.bossCtx, z);
+      else if (z.kind === Z_PUMPKIN) stepPumpkin(this.bossCtx, z);
+      else if (z.kind === Z_WEAVER) stepWeaver(this.bossCtx, z);
+      else if (z.kind === Z_LESHY) stepLeshy(this.bossCtx, z);
       else if (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP) this.stepClimber(z);
       else if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
       else if (z.kind === Z_SAPPER) this.stepSapper(z, gateUp);
@@ -1269,7 +1277,8 @@ function attackRadius(state: number): number {
     case ZS_STOMP: return STOMP_R;
     case ZS_THROW: return ROCK_R;
     case ZS_QUAKE: return QUAKE_R;
-    default: return 0;
+    // новые боссы (Король-Тыква, Ткачиха, Леший) — shared/fortbosses.ts
+    default: return newBossRadius(state);
   }
 }
 

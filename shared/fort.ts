@@ -11,6 +11,8 @@ export {
   Z_RAM, Z_GOLEM, Z_BOAT, Z_TENTACLE, Z_KRAKEN, Z_KINDS, KF_AIR, KF_SEA, KF_BOSS, KF_ARMORED, KF_SUPER, ZK, kindOf, kindFlags,
   isBossKind, isWalkerKind, fortBounty, type ZombieKind,
 } from './fortkinds.ts';
+/** Новые боссы: Король-Тыква, Ткачиха, Леший (их числа — fortbosses.ts) */
+export { Z_PUMPKIN, Z_WEAVER, Z_LESHY } from './fortkinds.ts';
 
 export const FORT_MAX_HUMANS = 6;
 /** Волн до победы — 300 (рекорды и так говорят, кто как далеко дошёл) */
@@ -124,6 +126,32 @@ export const ZS_METEOR = 29;
 export const ZS_BARREL = 30;
 /** Таран воет — сейчас выбегут шустрики */
 export const ZS_HOWL = 31;
+/**
+ * Король-Тыква (числа — fortbosses.ts): сеет тыквят (круг вокруг), сворачивается для переката (круг на стене над ним),
+ * катится (круг бежит вместе с ним), плюётся семечками (круг на человеке)
+ */
+export const ZS_PK_SUMMON = 32;
+export const ZS_PK_ROLL_WARN = 33;
+export const ZS_PK_ROLL = 34;
+export const ZS_PK_SPIT = 35;
+/**
+ * Ткачиха: лезет на наружную грань стены, висит на ней (ползёт), хлёст лапами, паутина, кладка паучат, укус кристалла
+ * (во дворе), перелезает во двор (ярость); паутину порвали — только во вспышке ('blast')
+ */
+export const ZS_WV_CLIMB = 36;
+export const ZS_WV_HANG = 37;
+export const ZS_WV_SWEEP = 38;
+export const ZS_WV_WEB = 39;
+export const ZS_WV_BROOD = 40;
+export const ZS_WV_BITE = 41;
+export const ZS_WV_OVER = 42;
+export const ZS_WV_TORN = 43;
+/** Леший: корни (круг под целью), целебная роща (колдует), уходит под землю, ползёт под землёй (круг — где вылезет), вылезает */
+export const ZS_LS_ROOTS = 44;
+export const ZS_LS_HEAL = 45;
+export const ZS_LS_SINK = 46;
+export const ZS_LS_UNDER = 47;
+export const ZS_LS_RISE = 48;
 
 export const FLY_WARN_TICKS = 72;
 export const FLY_DIVE_TICKS = 36;

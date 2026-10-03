@@ -36,6 +36,7 @@ import { InputQueue } from '../inputs.ts';
 import type { Sink } from '../paintball/game.ts';
 import { Horde, type HordeHost, type HordeTarget, type Zombie } from './horde.ts';
 import { FortNav } from './nav.ts';
+import { tearWebAt } from './boss-weaver.ts';
 
 export class FortPlayer {
   readonly id: number;
@@ -529,6 +530,8 @@ export class FortGame implements HordeHost {
     const ey = oy + dy * best;
     const ez = oz + dz * best;
     this.events.push(['shot', p.id, r2(ox), r2(oy), r2(oz), r2(ex), r2(ey), r2(ez), kind, nx, ny, nz]);
+    // паутина Ткачихи рвётся, куда попал выстрел
+    tearWebAt(this, this.horde, ex, ey, ez);
     if (i >= 0) {
       const z = this.who[i];
       const head = zombieHead(z.kind, ey, tg[i * FT_STRIDE + 1]);

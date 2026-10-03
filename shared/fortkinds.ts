@@ -23,7 +23,13 @@ export const Z_GOLEM = 13;
 export const Z_BOAT = 14;
 export const Z_TENTACLE = 15;
 export const Z_KRAKEN = 16;
-export const Z_KINDS = 17;
+/** Король-Тыква — босс 28, 70, 112 … (новые боссы — shared/fortbosses.ts, server/fort/boss-*.ts) */
+export const Z_PUMPKIN = 17;
+/** Ткачиха (паучиха) — босс 35, 77, 119 … */
+export const Z_WEAVER = 18;
+/** Леший — босс 42, 84, 126 … */
+export const Z_LESHY = 19;
+export const Z_KINDS = 20;
 
 /** Признаки типа — для правил и автобашен arsenal: летит, на воде, босс, в броне, часть супер-босса */
 export const KF_AIR = 1;
@@ -84,6 +90,9 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Лодка', hp: 300, speed: 4.0, gateDps: 0, crystalDps: 0, hit: 0, pts: 150, cost: 0, first: NEVER, flags: KF_SEA, r: 1.6, hrx: 1.55, hry: 0.75, hcy: 0.35, headY: 99, color: 0x8a5a34, icon: '⛵', hint: 'десант с моря · потопи до берега' },
   { name: 'Щупальце', hp: 1200, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 0, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER, r: 1.0, hrx: 1.15, hry: 3.6, hcy: 3.4, headY: 99, color: 0x9a55a8, icon: '🐙', hint: 'бьёт по морской стене · руби щупальца' },
   { name: 'Кракен', hp: 3000, speed: 0, gateDps: 0, crystalDps: 0, hit: 30, pts: 1500, cost: 0, first: NEVER, flags: KF_SEA | KF_SUPER | KF_BOSS, r: 4, hrx: 3.6, hry: 2.6, hcy: 1.6, headY: 2.4, color: 0x7d3f8c, icon: '🐙', hint: 'голова всплывает в бухте · бей в глаз' },
+  { name: 'Король-Тыква', hp: 2200, speed: 2.0, gateDps: 0, crystalDps: 0, hit: 26, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.1, hrx: 2.3, hry: 2.3, hcy: 2.3, headY: 3.0, color: 0xe8822e, icon: '🎃', hint: 'сеет тыквят и катится вдоль стены · прыгай, когда круг под тобой' },
+  { name: 'Ткачиха', hp: 2200, speed: 2.4, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.2, hry: 1.8, hcy: 1.9, headY: 2.4, color: 0x7a3f86, icon: '🕷', hint: 'висит на стене, плетёт паутину · рви паутину выстрелами' },
+  { name: 'Леший', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 1.8, hrx: 1.9, hry: 3.0, hcy: 3.0, headY: 4.5, color: 0x6f5a3c, icon: '🌳', hint: 'корни из-под земли, лечит армию · сбей колдовство залпом' },
 ];
 
 // ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)

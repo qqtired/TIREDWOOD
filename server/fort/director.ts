@@ -4,12 +4,12 @@
 // Волны 1–14 — ручные (знакомство с врагами), дальше — взвешенный выбор с «темой» волны. Числа — fortwaves.ts.
 import {
   Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RAM, Z_RUNNER, Z_SAPPER,
-  Z_SHIELD, Z_SPITTER, Z_WALKER, ZK,
+  Z_SHIELD, Z_SPITTER, Z_WALKER, ZK, Z_PUMPKIN, Z_WEAVER, Z_LESHY,
 } from '../../shared/fortkinds.ts';
 import {
-  EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL, bodyCap, bossArchetype,
+  EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL, bodyCap,
   bossHp, bossTier, boatCount, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWave, isSuperWave,
-  releaseTicks, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
+  releaseTicks, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints, bossNumber,
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
@@ -53,7 +53,7 @@ export interface WavePlan {
 /** Что уже умеет игра: директор зовёт только их (пункты плана включают остальное по мере готовности) */
 export interface DirectorFeatures {
   kinds: ReadonlySet<number>;
-  /** Боссы по кругу (bossArchetype → тип); нет своего — Барон */
+  /** Боссы по кругу (по номеру босс-волны: 7 — первый, 14 — второй …); пустой — Барон */
   bosses: readonly number[];
   sea: boolean;
   kraken: boolean;
@@ -62,7 +62,8 @@ export interface DirectorFeatures {
 
 export const FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
-  bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
+  // шесть по кругу от простого к сложному: 7 Барон · 14 Таран · 21 Валун · 28 Король-Тыква · 35 Ткачиха · 42 Леший · 49 Барон II …
+  bosses: [Z_BOSS, Z_RAM, Z_GOLEM, Z_PUMPKIN, Z_WEAVER, Z_LESHY],
   sea: true,
   kraken: false,
   events: false,
@@ -71,7 +72,7 @@ export const FEATURES: DirectorFeatures = {
 /** Всё включено — для тестов расписания и симуляции */
 export const ALL_FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
-  bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
+  bosses: [Z_BOSS, Z_RAM, Z_GOLEM, Z_PUMPKIN, Z_WEAVER, Z_LESHY],
   sea: true,
   kraken: true,
   events: true,
@@ -134,13 +135,19 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   const kraken = superWave && f.kraken;
   let boss = -1;
   let tierOfBoss = 0;
+  /** Рост HP босса — как раньше, по номеру босса (+35 % за каждые три): шесть по кругу не делают боссов тоньше */
+  let hpTier = 0;
   if (isBossWave(w)) {
-    boss = f.bosses[bossArchetype(w)] ?? Z_BOSS;
-    tierOfBoss = bossTier(w);
+    // круг — по всем боссам ротации (II — когда все уже были); он в подписи и скорости
+    const k = Math.max(1, f.bosses.length);
+    boss = f.bosses[(bossNumber(w) - 1) % k] ?? Z_BOSS;
+    tierOfBoss = Math.floor((bossNumber(w) - 1) / k);
+    hpTier = bossTier(w);
   } else if (superWave && !kraken) {
     // Кракена ещё нет — на супер-волне Барон кругом выше
     boss = Z_BOSS;
     tierOfBoss = superTier(w) + 1;
+    hpTier = tierOfBoss;
   }
   const landMul = kraken ? 0.5 : boss >= 0 ? 0.6 : 1;
 
@@ -290,7 +297,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   }
 
   const plan: WavePlan = {
-    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, tierOfBoss) : 0, kraken, event,
+    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, hpTier) : 0, kraken, event,
     hpScale, dmgMul: waveDmgMul(w), roads,
     card: { w, title: kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: boats.length, crew: boats[0]?.crew.length ?? 0,
       boss: kraken ? Z_KRAKEN : boss, tier: kraken ? superTier(w) : tierOfBoss, event, roads: [...roads].sort((a, b) => a - b), fresh: [],
