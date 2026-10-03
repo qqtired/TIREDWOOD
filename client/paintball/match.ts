@@ -882,9 +882,14 @@ export class Match {
     const p = this.predictor.prev;
     const o = this.predictor.offset;
 
-    // пружина приседания при приземлении
-    this.dipV += (-this.dip * 180 - this.dipV * 16) * dt;
-    this.dip += this.dipV * dt;
+    // пружина приседания при приземлении — шагами не длиннее 1/60 с, как в крепости: на редких кадрах (слабый
+    // телефон, вкладка в фоне, кадр до 0,25 с) один шаг с k = 180, c = 16 раскачивает её без предела — камера
+    // уезжала на сотни метров под карту
+    for (let left = dt; left > 1e-6; left -= 1 / 60) {
+      const h = Math.min(left, 1 / 60);
+      this.dipV += (-this.dip * 180 - this.dipV * 16) * h;
+      this.dip += this.dipV * h;
+    }
     this.stepSmooth *= Math.exp(-dt * 16);
     this.shake *= Math.exp(-dt * 7);
     this.fovKick *= Math.exp(-dt * 6);

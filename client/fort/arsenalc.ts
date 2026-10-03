@@ -1,4 +1,4 @@
-// Арсенал «Крепости» на клиенте (агент arsenal): две руки (1 / 2 / колесо), гранаты (G: держишь — дуга, отпустил —
+// Арсенал «Крепости» на клиенте (агент arsenal): две руки (1 / 2; колесо — камера, см. fortcam.ts), гранаты (G: держишь — дуга, отпустил —
 // бросок), предсказание стволов и лестниц (тот же shared/fortgun.ts, что у сервера), немодальная лавка у прилавка,
 // панели ворот, кристалла и мест башен (1–9, E, Esc, отойти — закрыть), подсказки и таблички стоек, события арсенала
 // (золото, общак, крит, выстрелы тяжёлых стволов, гранаты, башни, смола, огонь), цифры урона и золота из пула.
@@ -115,15 +115,8 @@ export class ArsenalClient {
   private readonly dir = { dirX: 0, dirY: 0, dirZ: -1 };
   private readonly pd = { dirX: 0, dirY: 0, dirZ: -1 };
   private time = 0;
-  private wheelAt = 0;
   private rungAt = 0;
   private readonly zombieAt = (zid: number, out: THREE.Vector3): boolean => this.d.zombies.where(zid, out);
-  private readonly onWheel = (e: WheelEvent): void => {
-    if (!this.d.input.locked || TOUCH || !this.host.alive() || this.load.heavy <= 0) return;
-    if (Math.abs(e.deltaY) < 1 || this.time - this.wheelAt < 0.12) return;
-    this.wheelAt = this.time;
-    this.wantHeavy = !this.wantHeavy;
-  };
   private readonly onCanvasDown = (): void => {
     if (this.freeCursor) void this.d.input.lock();
   };
@@ -139,7 +132,6 @@ export class ArsenalClient {
     this.d = d;
     this.host = host;
     this.sfx = new FortSfx(d.sound);
-    window.addEventListener('wheel', this.onWheel, { passive: true });
     d.canvas.addEventListener('mousedown', this.onCanvasDown);
     d.hud.stall.onBuy = (id) => this.buy(id);
     d.hud.stall.onClose = () => this.closePanel();
@@ -148,7 +140,6 @@ export class ArsenalClient {
   }
 
   dispose(): void {
-    window.removeEventListener('wheel', this.onWheel);
     window.removeEventListener('keydown', this.escCapture, true);
     this.d.canvas.removeEventListener('mousedown', this.onCanvasDown);
     this.closePanel();

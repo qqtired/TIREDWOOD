@@ -6,7 +6,7 @@
 // Один объект на одно посещение крепости.
 import * as THREE from 'three';
 import { DASH_COOLDOWN_TICKS, EYE_HEIGHT, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
-import { AIM_FALLBACK, PIVOT_Y, RIG_PB, RIG_PB_ADS, cameraRig, type RigParams, type V3 } from '../../shared/aim.ts';
+import { AIM_FALLBACK, PIVOT_Y, RIG_PB, RIG_PB_ADS, type RigParams, type V3 } from '../../shared/aim.ts';
 import {
   CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
@@ -41,6 +41,7 @@ import type { Settings } from '../settings.ts';
 import { TOUCH } from '../touch.ts';
 import { setAvatarGun } from './arsenal3d.ts';
 import { gatePress } from './castle.ts';
+import { FortCam } from './fortcam.ts';
 import { ArsenalClient, TOWER_BY } from './arsenalc.ts';
 import type { FortHud, MapDot } from './hud.ts';
 import type { TeamRow } from './ui/index.ts';
@@ -163,6 +164,12 @@ export class FortMatch {
   private sideSmooth = 1;
   private adsT = 0;
   private readonly rig: RigParams = { ...RIG_PB };
+  /** Камера за спиной: колесо — ближе/дальше, стены и вид замка не пускают (fortcam.ts) */
+  private readonly fcam = new FortCam();
+  private readonly onWheel = (e: WheelEvent): void => {
+    const { input } = this.d;
+    if (!TOUCH && input.locked && !input.blocked) this.fcam.zoomBy(e.deltaY);
+  };
   private readonly camV: V3 = { x: 0, y: 0, z: 0 };
   private readonly pivot: V3 = { x: 0, y: 0, z: 0 };
   private viewYaw = 0;
@@ -265,9 +272,11 @@ export class FortMatch {
     deps.hud.pb.setBonus(null, []);
     // ворота в мире коллизий — как на сервере (пока не знаем — стоят)
     deps.collision.setEnabled(deps.map.gateBox, true);
+    window.addEventListener('wheel', this.onWheel, { passive: true });
   }
 
   dispose(): void {
+    window.removeEventListener('wheel', this.onWheel);
     this.ars.dispose();
     for (const av of this.avatars.values()) av.dispose(this.d.world.scene);
     this.avatars.clear();
@@ -578,6 +587,7 @@ export class FortMatch {
     this.d.hud.pb.hideDeath();
     this.stepSmooth = 0;
     this.camInit = false;
+    this.fcam.reset();
     this.downBy = 0;
   }
 
@@ -1261,10 +1271,10 @@ export class FortMatch {
       const pitch = clamp(input.pitch + rp, -1.56, 1.56);
       const k = this.adsT;
       const rig = this.rig;
-      rig.back = RIG_PB.back + (RIG_PB_ADS.back - RIG_PB.back) * k;
       rig.side = RIG_PB.side + (RIG_PB_ADS.side - RIG_PB.side) * k;
       rig.up = RIG_PB.up + (RIG_PB_ADS.up - RIG_PB.up) * k;
-      cameraRig(x, y, z, yaw, pitch, rig, this.sideSmooth, this.d.collision, this.camV);
+      // дальше пейнтбола, колесом — ближе/дальше; прицеливание — к плечу, как у сервера (RIG_PB_ADS)
+      this.fcam.place(x, y, z, yaw, pitch, rig, RIG_PB_ADS.back, k, this.sideSmooth, this.d.collision, dt, this.camV);
       cam.position.set(this.camV.x, this.camV.y, this.camV.z);
       this.pivot.x = x;
       this.pivot.y = y;
