@@ -11,7 +11,7 @@ import { WATER_Y } from '../../shared/constants.ts';
 import { crystalMax, gateMax, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
-import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK } from '../../shared/fortkinds.ts';
+import { BOSS_CYCLE, GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK } from '../../shared/fortkinds.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
@@ -103,6 +103,13 @@ function lineup(): ZombieSnap[] {
   return list;
 }
 
+/** Все боссы круга (BOSS_CYCLE) в ряд перед воротами — как их рисует орда; с ?march=1 идут к воротам */
+function bossLineup(): ZombieSnap[] {
+  const z = (kind: number) => (march ? -42 + ((elapsed * (ZK[kind]?.speed ?? 2)) % 8) : -34);
+  return BOSS_CYCLE.map((kind, i) => ({ id: 200 + i, kind, state: ZS_WALK, hp: 1, x: (i - (BOSS_CYCLE.length - 1) / 2) * 6, y: 0, z: z(kind),
+    yaw: Math.PI, atk: 0, flags: 0, stage: 1 }));
+}
+
 /** Таран и Валун: разбег (дорожка), топот, камень над головой, землетрясение */
 function bossAttack(selected: string, rage: boolean): ZombieSnap[] {
   const flags = rage ? ZF_RAGE : 0;
@@ -131,6 +138,7 @@ function landing(): ZombieSnap[] {
 function makeSnapshots(): ZombieSnap[] {
   const selected = attack.value;
   if (selected === 'lineup') return lineup();
+  if (selected === 'bosses') return bossLineup();
   if (selected === 'landing') return landing();
   if (selected === 'ram' || selected === 'stomp' || selected === 'golem' || selected === 'quake') return bossAttack(selected, stage.value === '2');
   const phase = Number(stage.value);
