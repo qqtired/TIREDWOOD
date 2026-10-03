@@ -4,12 +4,13 @@
 // Сервер об анимации ничего не знает: очередь `cursor` лишь растягивает показ — карты летят по одной, рубашка дилера
 // открывается с паузой, фишки съезжают после раздачи. Кнопки панели ждут `busyUntil`, пока карты в воздухе.
 import * as THREE from 'three';
-import { BJ_TABLE, handValue, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
+import { BJ_MAX_BET, BJ_TABLE, handValue, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import type { Sound } from '../audio.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { BJ_ATLAS, bjAtlasTexture } from './bjcards.ts';
-import { BET_R, CHIP_H, FELT_Y, HAND_R, buildDressing, chipGeometry, chipMaterials, chipsFor, type Dressing } from './bjtable.ts';
+import { BJ_DENOMS, chipsFor } from './bjbet.ts';
+import { BET_R, CHIP_H, FELT_Y, HAND_R, buildDressing, chipGeometry, chipMaterials, type Dressing } from './bjtable.ts';
 import { TableSign, type SignModel } from './tablesign.ts';
 import type { LobbyWorld } from './world.ts';
 
@@ -42,8 +43,8 @@ const DEALER_R = 1.5;
 const LABEL_LIFT = 0.13;
 /** Край стола у места игрока: отсюда фишки приезжают на круг ставки и сюда уходят, когда выигрыш забрали */
 const EDGE_R = 0.95;
-/** Стадии итога раунда (с): проигранные ставки в лоток, выплата, остальное — игрокам */
-const STAGE_AT = [0.6, 1.5, 3.9];
+/** Стадии итога раунда (с): проигранные ставки в лоток, выплата, остальное — игрокам (пауза итога на сервере — 6 с) */
+const STAGE_AT = [0.5, 1.2, 3.2];
 
 type Tone = 'plain' | 'turn' | 'bust' | 'win' | 'gold' | 'push' | 'loss';
 
@@ -67,7 +68,9 @@ class HandLabel {
   /** Что нарисовано сейчас, что просили последним, и что ждёт, пока карты долетят */
   private key = '';
   private wanted = '';
-  private queued: { at: number; big: string; sub: string; tone: Tone } | null = null;
+  private queued: { at: number; big: string; sub: string; tone: Tone; result: boolean } | null = null;
+  /** Нарисовано в фазе итога раунда («ПОБЕДА», «ПЕРЕБОР», …): это не переходит в следующую раздачу */
+  private final = false;
 
   constructor() {
     this.canvas.width = 256;
@@ -85,24 +88,37 @@ class HandLabel {
     this.sprite.scale.set(width, width * (112 / 256), 1);
   }
 
-  /** Текст подписи: новый появляется в момент `at` (когда долетела последняя карта руки), а не сразу. */
-  set(big: string, sub: string, tone: Tone, at: number, now: number): void {
+  /**
+   * Текст подписи: новый появляется в момент `at` (когда долетела последняя карта руки), а не сразу.
+   * `result` — это итог раунда: пока он не нарисован, старый итог не висит над новыми картами.
+   */
+  set(big: string, sub: string, tone: Tone, at: number, now: number, result = false): void {
     const key = `${big}|${sub}|${tone}`;
     if (key === this.wanted) return;
+    // итог прошлого раунда не переживает раздачу: рука началась заново — подпись пустая, пока не долетят карты
+    if (this.final && !result) this.clear();
     this.wanted = key;
     if (at > now) {
-      this.queued = { at, big, sub, tone };
+      this.queued = { at, big, sub, tone, result };
       return;
     }
     this.queued = null;
-    this.draw(big, sub, tone);
+    this.draw(big, sub, tone, result);
+  }
+
+  /** Убрать нарисованное: подпись скрыта, пока не придёт новый текст. */
+  clear(): void {
+    this.key = '';
+    this.wanted = '';
+    this.queued = null;
+    this.final = false;
   }
 
   tick(now: number): void {
     if (!this.queued || now < this.queued.at) return;
     const q = this.queued;
     this.queued = null;
-    this.draw(q.big, q.sub, q.tone);
+    this.draw(q.big, q.sub, q.tone, q.result);
   }
 
   /** Есть что показывать (первый текст уже нарисован) */
@@ -110,7 +126,8 @@ class HandLabel {
     return this.key !== '';
   }
 
-  private draw(big: string, sub: string, tone: Tone): void {
+  private draw(big: string, sub: string, tone: Tone, result: boolean): void {
+    this.final = result;
     const key = `${big}|${sub}|${tone}`;
     if (key === this.key) return;
     this.key = key;
@@ -253,7 +270,7 @@ export function blackjackSignModel(v: BlackjackView | null): SignModel {
     state = 'идёт игра';
     tone = 'busy';
   }
-  return { title: 'BLACKJACK', sub: 'выплата 3:2 · шесть колод', stake: '🪙 10 · 20 · 50 или бесплатно', seated, seats: 6, state, tone };
+  return { title: 'BLACKJACK', sub: 'выплата 3:2 · шесть колод', stake: `🪙 ставка 1–${BJ_MAX_BET} или бесплатно`, seated, seats: 6, state, tone };
 }
 
 export class BlackjackTable3D {
@@ -335,7 +352,7 @@ export class BlackjackTable3D {
     this.cards.receiveShadow = true;
     this.group.add(this.cards);
 
-    for (const den of [0, 10, 20, 50]) {
+    for (const den of [0, ...BJ_DENOMS]) {
       const mesh = new THREE.InstancedMesh(chipGeometry(), chipMaterials(den), den === 0 ? 24 : MAX_CHIPS);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
@@ -718,7 +735,7 @@ export class BlackjackTable3D {
     this.ringWant = false;
     const phase = v?.phase ?? 'betting';
     /** Подписи рук получают текст после того, как долетят карты руки (очередь вылетов известна только в конце раскладки) */
-    const jobs: Array<{ l: HandLabel; big: string; sub: string; tone: Tone; keys: string[] }> = [];
+    const jobs: Array<{ l: HandLabel; big: string; sub: string; tone: Tone; keys: string[]; result: boolean }> = [];
     let ringKeys: string[] = [];
 
     // карты дилера: ряд по центру, верх карт — от зрителя
@@ -747,7 +764,7 @@ export class BlackjackTable3D {
       const l = this.label('D');
       l.size(0.25);
       this.local(va, 0, 0.012, CARD_Y + LABEL_LIFT + 0.01, l.sprite.position);
-      jobs.push({ l, big, sub, tone, keys: dealerCards.map((_c, i) => `D${i}`) });
+      jobs.push({ l, big, sub, tone, keys: dealerCards.map((_c, i) => `D${i}`), result: phase === 'result' });
     }
 
     // места: руки, фишки ставок, подписи
@@ -782,8 +799,7 @@ export class BlackjackTable3D {
         });
         // выплата: стопка из лотка рядом со ставкой
         if (hand && phase === 'result' && (hand.result === 'win' || hand.result === 'blackjack') && hand.bet > 0 && this.stage >= 2 && this.stage < 3) {
-          const extra = hand.result === 'blackjack' ? hand.bet * 1.5 : hand.bet;
-          const pile = chipsFor(Math.max(10, extra));
+          const pile = chipsFor(Math.max(1, hand.payout - hand.bet));
           pile.forEach((den, i) => {
             const wk = `W${c}.${h}.${i}.${den}`;
             _pose.p.set(sx * BET_R + tx * (off + (split && h === 0 ? -0.056 : 0.056)), FELT_Y + CHIP_H * (0.5 + i), sz * BET_R + tz * (off + (split && h === 0 ? -0.056 : 0.056)));
@@ -793,8 +809,7 @@ export class BlackjackTable3D {
           });
         }
         if (hand && phase === 'result' && (hand.result === 'win' || hand.result === 'blackjack') && hand.bet > 0 && this.stage >= 3) {
-          const extra = hand.result === 'blackjack' ? hand.bet * 1.5 : hand.bet;
-          chipsFor(Math.max(10, extra)).forEach((den, i) => this.exitHints.set(`W${c}.${h}.${i}.${den}`, 'edge'));
+          chipsFor(Math.max(1, hand.payout - hand.bet)).forEach((den, i) => this.exitHints.set(`W${c}.${h}.${i}.${den}`, 'edge'));
         }
       });
 
@@ -823,7 +838,7 @@ export class BlackjackTable3D {
         l.size(split ? 0.17 : 0.22);
         l.sprite.position.set(sx * HAND_R + tx * hOff, CARD_Y + LABEL_LIFT, sz * HAND_R + tz * hOff);
         const keys = ownKeys;
-        jobs.push({ l, big, sub, tone, keys });
+        jobs.push({ l, big, sub, tone, keys, result: phase === 'result' });
         if (active) {
           this.ringWant = true;
           ringKeys = keys;
@@ -886,7 +901,9 @@ export class BlackjackTable3D {
       return at;
     };
     const settle = phase === 'result' && this.stage === 0 ? this.cursor + 0.25 : 0;
-    for (const j of jobs) j.l.set(j.big, j.sub, j.tone, Math.max(landed(j.keys), phase === 'result' ? settle : 0), this.now);
+    for (const j of jobs) j.l.set(j.big, j.sub, j.tone, Math.max(landed(j.keys), phase === 'result' ? settle : 0), this.now, j.result);
+    // рука ушла со стола: подпись стирается, а не ждёт следующей раздачи со старым текстом («Победа» над новыми картами)
+    for (const l of this.labels.values()) if (!l.used) l.clear();
     this.ringAt = landed(ringKeys);
   }
 

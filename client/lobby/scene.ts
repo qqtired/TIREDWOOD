@@ -24,7 +24,7 @@ import {
   FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat, type FerryPose,
 } from '../../shared/ferry.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
-import { BJ_TABLE, type BlackjackView } from '../../shared/blackjack.ts';
+import { BJ_MAX_BET, BJ_TABLE, type BlackjackView } from '../../shared/blackjack.ts';
 import type { SkillStatus } from '../../shared/skilltest.ts';
 import { MAX_HUMANS, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_EARLY, FE_HOOK, FE_LOST, FE_MISS, FE_OFF, FP_BITE, FP_CAST, FP_HOLD, FP_IDLE, FP_REEL, FP_WAIT } from '../../shared/fishing.ts';
@@ -2453,7 +2453,7 @@ export class LobbyScene implements Scene {
       }
       case 'blackjack': {
         const chair = this.blackjack3d.view()?.seats[seatChair(it.arg)];
-        this.hud.setHint(['E'], chair?.away ? 'вернуться за стол блэкджека' : 'блэкджек · бесплатно или ставка 10 / 20 / 50');
+        this.hud.setHint(['E'], chair?.away ? 'вернуться за стол блэкджека' : `блэкджек · бесплатно или ставка до ${BJ_MAX_BET}`);
         break;
       }
       case 'skill': {
