@@ -91,18 +91,23 @@ export class WaveCardView {
     this.from.textContent = from.join('  ');
   }
 
-  /** Начало волны: крупный номер на полторы секунды и знакомство с новыми врагами */
-  announce(card: FortWaveCard): void {
+  /**
+   * Начало волны: крупный номер на полторы секунды (intro; в игре его показывает баннер FortUi) и знакомство с
+   * новыми врагами и событием.
+   */
+  announce(card: FortWaveCard, intro = true): void {
     const ev = EVENT_INFO[card.event];
-    this.intro.innerHTML = '';
-    el('b', 'ft-intro-n', this.intro, `ВОЛНА ${card.w}`);
-    el('span', 'ft-intro-title', this.intro, card.title + (ev ? ` · ${ev.icon} ${ev.name}` : ''));
-    this.intro.classList.remove('show', 'boss');
-    void this.intro.offsetWidth;
-    this.intro.classList.add('show');
-    this.intro.classList.toggle('boss', card.boss >= 0);
-    clearTimeout(this.introTimer);
-    this.introTimer = window.setTimeout(() => this.intro.classList.remove('show'), card.boss >= 0 ? 2600 : 1600);
+    if (intro) {
+      this.intro.innerHTML = '';
+      el('b', 'ft-intro-n', this.intro, `ВОЛНА ${card.w}`);
+      el('span', 'ft-intro-title', this.intro, card.title + (ev ? ` · ${ev.icon} ${ev.name}` : ''));
+      this.intro.classList.remove('show', 'boss');
+      void this.intro.offsetWidth;
+      this.intro.classList.add('show');
+      this.intro.classList.toggle('boss', card.boss >= 0);
+      clearTimeout(this.introTimer);
+      this.introTimer = window.setTimeout(() => this.intro.classList.remove('show'), card.boss >= 0 ? 2600 : 1600);
+    }
     const fresh = card.fresh.filter((k) => !this.met.has(k));
     if (card.boss >= 0 && !this.met.has(card.boss)) fresh.push(card.boss);
     if (!fresh.length && !ev) return;

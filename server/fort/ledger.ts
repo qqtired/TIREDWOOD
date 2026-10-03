@@ -5,6 +5,7 @@
 // Поля arsenal (золото, прокачка, стволы, гранаты, вклад в башни) добавляются в FortRun — вход заново вернёт их целиком.
 import { FT_TOK_MVP, FT_TOK_RECORD, FT_TOK_WIN, killTokens } from '../../shared/fortwaves.ts';
 import type { FtReward } from '../../shared/fort.ts';
+import { makeArsenalRun, type ArsenalRun } from './arsenal.ts';
 
 export interface FortRun {
   /** Очки лавки (старая лавка; у arsenal — золото) */
@@ -25,10 +26,12 @@ export interface FortRun {
   paidKills: number;
   /** Сколько раз платили по этому забегу (первая выплата считает игру в статистике) */
   payouts: number;
+  /** Арсенал: золото, прокачка, стволы, гранаты, вклад в башни (server/fort/arsenal.ts) */
+  arsenal: ArsenalRun;
 }
 
-export function makeRun(pts: number): FortRun {
-  return { pts, kills: 0, deaths: 0, killPts: 0, waves: 0, magazine: false, tokWaves: 0, paidWaves: 0, paidKillTok: 0, paidKills: 0, payouts: 0 };
+export function makeRun(pts: number, arsenal: ArsenalRun = makeArsenalRun()): FortRun {
+  return { pts, kills: 0, deaths: 0, killPts: 0, waves: 0, magazine: false, tokWaves: 0, paidWaves: 0, paidKillTok: 0, paidKills: 0, payouts: 0, arsenal };
 }
 
 /** Книга забега: ушедшие из идущей игры, по номеру профиля */

@@ -11,7 +11,7 @@ import {
 import { GATE, buildFort, insideFort } from '../shared/fortmap.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { makeRng } from '../shared/math.ts';
-import { fortBounty } from '../shared/fortkinds.ts';
+import { GREN_BUY, UP_POUCH, grenadeMax, killBounty } from '../shared/fortarsenal.ts';
 import { decodeFortTail, makeFortTail } from '../shared/fortnet.ts';
 import { decodeSnapshot, makeHeader, type EntitySnap } from '../shared/protocol.ts';
 import { BTN_USE, makeInput, makeState, type Input } from '../shared/sim.ts';
@@ -263,16 +263,23 @@ test('ящик в игре: снимок несёт где он; подобра�
   assert.equal(tail.event, EV_SUPPLY);
   assert.equal(tail.crate, CRATE_DOWN);
   assert.ok(Math.abs(tail.crateX! - game.waveEvents.crateX) < 0.01 && Math.abs(tail.crateZ! - game.waveEvents.crateZ) < 0.01);
-  const pa = a.pts;
-  const pb = b.pts;
+  // припасы — всей команде: гранаты (арсенал), а у кого подсумок полон — золото
+  const ra = a.run.arsenal;
+  const rb = b.run.arsenal;
+  rb.gr = grenadeMax(rb.lv[UP_POUCH]);
+  const grA = ra.gr;
+  const goldA = ra.gold;
+  const goldB = rb.gold;
   // E рядом с ящиком: кнопка «нажата сейчас» во вводе
   const ev = game.waveEvents;
   Object.assign(a.state, { x: ev.crateX + 1.4, y: ev.crateY, z: ev.crateZ, prevButtons: 0 });
   const inp: Input = { ...makeInput(), buttons: BTN_USE };
   (game as unknown as { simulate(p: unknown, i: Input): void }).simulate(a, inp);
   assert.equal(ev.crate, CRATE_NONE, 'подобрал по E');
-  assert.equal(a.pts - pa, supplyGold(plan.w));
-  assert.equal(b.pts - pb, supplyGold(plan.w));
+  assert.equal(ra.gr, Math.min(grenadeMax(ra.lv[UP_POUCH]), grA + GREN_BUY), 'гранаты');
+  assert.ok(ra.gr > grA);
+  assert.equal(ra.gold, goldA, 'получил гранаты — без золота');
+  assert.equal(rb.gold - goldB, supplyGold(plan.w), 'подсумок полон — золото');
   assert.equal(ev.use(a.id, ev.crateX, ev.crateY, ev.crateZ), false, 'второй раз — нечего');
 });
 
@@ -290,9 +297,10 @@ test('золотая лихорадка: награда ×2, орда на 20 % 
   assert.equal(game.goldMul, 2);
   assert.equal(game.horde.haste, GOLD_HASTE);
   const z = game.horde.spawn(F.Z_WALKER, 1)!;
-  const before = p.pts;
+  const before = p.run.arsenal.gold;
   game.horde.damage(z, 1e9, p.id, true, z.x, z.y, z.z);
-  assert.equal(p.pts - before, Math.round(fortBounty(F.Z_WALKER, 0, plan.w, false) * 2));
+  // доля стрелка у арсенала — killBounty, в лихорадку ×2 (остальное — в общак волны)
+  assert.equal(p.run.arsenal.gold - before, Math.round(killBounty(F.Z_WALKER, plan.w) * 2));
   const fog = { ...planOf(EV_FOG), spawns: [], boats: [], boss: -1 };
   game.plan = fog;
   game.horde.startWave(fog, game.tick);

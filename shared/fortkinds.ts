@@ -25,6 +25,9 @@ export const Z_TENTACLE = 15;
 export const Z_KRAKEN = 16;
 export const Z_KINDS = 17;
 
+/** Боссы по кругу на 7-й, 14-й, 21-й … волне (директор — FEATURES.bosses, интерфейс — «дальше босс») */
+export const BOSS_CYCLE: readonly number[] = [Z_BOSS, Z_RAM, Z_GOLEM];
+
 /** Признаки типа — для правил и автобашен arsenal: летит, на воде, босс, в броне, часть супер-босса */
 export const KF_AIR = 1;
 export const KF_SEA = 2;

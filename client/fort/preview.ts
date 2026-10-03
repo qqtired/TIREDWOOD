@@ -4,20 +4,24 @@ import '@fontsource/rubik/400.css';
 import '@fontsource/rubik/700.css';
 import '@fontsource/rubik/900.css';
 import '../styles.css';
-import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_WAVE, Z_BOSS, Z_BRUTE, Z_FLYER, Z_WALKER,
+import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_WALKER,
   ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK, Z_GOLEM, Z_RAM, ZS_CHARGE_WARN, ZS_QUAKE,
-  ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_BOAT, ZS_BOAT_LAND, ZS_HOP, ZS_CLIMB } from '../../shared/fort.ts';
+  ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_BOAT, ZS_BOAT_LAND, ZS_HOP, ZS_CLIMB, type FortResultRow } from '../../shared/fort.ts';
 import { WATER_Y } from '../../shared/constants.ts';
+import { crystalMax, gateMax, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R } from '../../shared/fortkinds.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
+import { TOUCH } from '../touch.ts';
 import { FortHud } from './hud.ts';
 import { FortWorld } from './world.ts';
 import { Zombies3D } from './zombies3d.ts';
 
+// как в игре (app.ts): на сенсорном экране — раскладка для телефона
+document.documentElement.classList.toggle('touch', TOUCH);
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas);
 const map = buildFort();
@@ -30,6 +34,7 @@ orbit.minDistance = 5;
 orbit.maxDistance = 65;
 orbit.maxPolarAngle = Math.PI * 0.49;
 const attack = document.getElementById('attack') as HTMLSelectElement;
+const uiMode = document.getElementById('ui') as HTMLSelectElement;
 const stage = document.getElementById('stage') as HTMLSelectElement;
 const quality = document.getElementById('quality') as HTMLSelectElement;
 const cycle = document.getElementById('cycle') as HTMLInputElement;
@@ -39,12 +44,19 @@ let tick = 0;
 let previous = performance.now();
 let snapshots: ZombieSnap[] = [];
 let shield = false;
+let towers = false;
 const extraControls = document.createElement('div');
 for (const [label, action] of [
   ['Щит строений', () => { shield = !shield; }],
-  ['Западная лестница', () => { world.camera.position.set(-33, 8, 13); orbit.target.set(-20, 2, 1); orbit.update(); }],
-  ['Восточная лестница', () => { world.camera.position.set(33, 8, 13); orbit.target.set(20, 2, 1); orbit.update(); }],
+  ['Западная лестница', () => { world.camera.position.set(-29, 6.5, 5); orbit.target.set(-18, 2.4, -1); orbit.update(); }],
+  ['Восточная лестница', () => { world.camera.position.set(29, 6.5, 5); orbit.target.set(18, 2.4, -1); orbit.update(); }],
   ['Парад врагов', () => { world.camera.position.set(0, 9.5, -15.2); orbit.target.set(0, 0.6, -27.5); orbit.update(); }],
+  ['Лавка', () => { world.camera.position.set(5.2, 5.4, 3.4); orbit.target.set(8, 3, 9.6); orbit.update(); }],
+  ['Башни', () => {
+    // все четыре вида по кругу, уровни 1–4: как выглядят на стенах
+    towers = !towers;
+    world.arsenal.setTowers(towers ? [0, 1, 2, 3, 3, 2, 1, 0] : [-1, -1, -1, -1, -1, -1, -1, -1], [1, 2, 3, 4, 1, 2, 3, 4]);
+  }],
 ] as const) {
   const button = document.createElement('button');
   button.type = 'button'; button.textContent = label; button.addEventListener('click', action);
@@ -141,19 +153,92 @@ hud.pb.setAliveUi(false);
 hud.setGate(1000, 1600);
 hud.setCrystal(2300, 2500);
 hud.setPoints(1000);
-hud.onShopClose = () => hud.hideShop();
-hud.onShopBuy = () => hud.shopMessage('В этом превью нет сервера: покупку проверяют в полной игре.');
+hud.stall.onClose = () => hud.stall.close();
+hud.stall.onBuy = () => hud.stall.message('В этом превью нет сервера: покупку проверяют в полной игре.', true);
 document.getElementById('shop')!.addEventListener('click', () => {
-  hud.showShop();
-  hud.updateShop({ phase: 2, pts: 1000, gate: 1000, crystal: 2300, turrets: 3, jams: 0, mag: false }, 7, 20, null);
+  const row = { ...makeArsenalRow(), g: 1000, gr: 2 };
+  row.lv = [2, 1, 0, 0, 0];
+  hud.stall.open('shop', 'Лавка оружейника', 'Превью · без сервера');
+  hud.stall.render(shopRows({ wave: 7, calm: true, row }), row.g, null);
 });
 document.getElementById('reset')!.addEventListener('click', resetCamera);
+
+// ------------------------------------------------------------ новый интерфейс (client/fort/ui): заданные сцены
+const team = [
+  { id: 1, name: 'Tester5', gold: 1240, alive: true, me: true, ready: true },
+  { id: 2, name: 'Роман', gold: 2310, alive: true, me: false, ready: true },
+  { id: 3, name: 'Лиса', gold: 860, alive: false, me: false, ready: false },
+  { id: 4, name: 'Пончик', gold: 1975, alive: true, me: false, ready: false },
+];
+const results: FortResultRow[] = [
+  { id: 2, name: 'Роман', k: 412, d: 3, pts: 9840, waves: 8, tokens: 64 },
+  { id: 1, name: 'Tester5', k: 355, d: 5, pts: 8120, waves: 8, tokens: 58 },
+  { id: 4, name: 'Пончик', k: 297, d: 2, pts: 7010, waves: 8, tokens: 52 },
+  { id: 3, name: 'Лиса', k: 188, d: 9, pts: 4400, waves: 6, tokens: 31 },
+];
+let uiAt = 0;
+let gold = 1240;
+function startUi(): void {
+  uiAt = elapsed;
+  hud.ui.reset();
+  hud.hideEnd();
+  const m = uiMode.value;
+  if (m !== 'coach') hud.ui.coach.skip();
+  if (m === 'fight') {
+    hud.ui.waveStart(6);
+    hud.alert('🚪 Ворота трещат!', 60000, { target: 'gate' });
+  } else if (m === 'break') {
+    hud.ui.cleared(6, 168, 50, true);
+  } else if (m === 'boss') {
+    hud.ui.waveStart(8);
+    hud.alert('Залп Барона · уйди с красной метки', 60000, { timed: true });
+  } else if (m === 'kraken') {
+    hud.ui.push({ key: 'kraken', badge: '🐙', tone: 'super', prio: 1, ms: 60000, title: 'Кракен поднимается из моря!', sub: 'Сначала щупальца — потом голова · не стойте у воды' });
+  } else if (m === 'gate') {
+    hud.pb.centerMessage('Ворота пали!', 'Зомби во дворе — защищайте кристалл', '#ff8a6a', 60000);
+    hud.alert('🚪 Ворота пали — все к кристаллу!', 60000, { target: 'crystal' });
+  } else if (m === 'coach') {
+    hud.ui.coach.restart();
+  } else if (m === 'win' || m === 'lose') {
+    const win = m === 'win';
+    hud.showEnd(win, win ? 8 : 5, results[0], results, 1);
+    hud.showReward(`+58 жетонов: волны ${win ? 8 : 5} · +40 · сбитые +12 · лучший +6`);
+  }
+}
+uiMode.addEventListener('change', startUi);
+/** Кадр интерфейса по выбранной сцене; угрозы — вокруг камеры превью, чтобы стрелки встали у краёв */
+function uiFrame(): void {
+  const m = uiMode.value;
+  const t = elapsed - uiAt;
+  const phase = m === 'break' ? FT_BREAK : m === 'coach' ? FT_GATHER : m === 'win' || m === 'lose' ? FT_END : FT_WAVE;
+  const wave = m === 'break' ? 7 : m === 'boss' ? 8 : m === 'kraken' ? 8 : 6;
+  if (m === 'fight' && Math.floor(t * 2) % 3 === 0) gold += 3;
+  const threats: ZombieSnap[] = m === 'fight' || m === 'gate' ? [
+    { id: 30, kind: Z_CLIMBER, state: ZS_CLIMB, hp: 1, x: -19, y: 1.5, z: -6, yaw: 0, atk: 0 },
+    { id: 31, kind: Z_CLIMBER, state: ZS_CLIMB, hp: 1, x: 19, y: 1.5, z: -4, yaw: 0, atk: 0 },
+    { id: 32, kind: Z_FLYER, state: ZS_FLY_WARN, hp: 1, x: 0, y: 8, z: 8, yaw: 0, atk: 0 },
+  ] : [];
+  hud.ui.frame({
+    phase, wave, leftS: phase === FT_WAVE ? 0 : Math.max(0, 20 - t), enemies: phase === FT_WAVE ? Math.max(4, 57 - Math.floor(t * 1.5)) : 0,
+    gold, gate: m === 'gate' ? 0 : m === 'fight' ? 520 * 1.5 : 1000, gateMax: gateMax(2), gateTier: 2,
+    crystal: m === 'gate' ? 1900 : 2300, crystalMax: crystalMax(1), crystalTier: 1,
+    me: { x: world.camera.position.x, y: 3.4, z: world.camera.position.z, yaw: Math.atan2(-(orbit.target.x - world.camera.position.x), -(orbit.target.z - world.camera.position.z)), alive: true },
+    team, zombies: threats, camera: world.camera, width: window.innerWidth, height: window.innerHeight,
+  });
+  if (m === 'kraken') {
+    hud.ui.boss.set({ frac: 0.62, stage: 2, state: Math.floor(t / 3) % 2 ? ZS_BOSS_OPEN : 0, wind: 150 - ((t * 60) % 180), kind: Z_BOSS, tier: 1, rage: false,
+      name: 'Кракен', super: true, parts: [{ label: 'Щупальце', frac: 0 }, { label: 'Щупальце', frac: 0.35 }, { label: 'Щупальце', frac: 0.8 }, { label: 'Щупальце', frac: 1 }, { label: 'Голова', frac: 0.62 }] });
+  } else if (m !== 'boss') {
+    hud.setBoss(0, 0, 0, 0);
+  }
+}
 quality.addEventListener('change', setQuality);
 attack.addEventListener('change', () => { elapsed = 0; });
 cycle.addEventListener('change', () => { elapsed = 0; });
 window.addEventListener('resize', resize);
 setQuality();
 resetCamera();
+startUi();
 
 const state = () => ({ controlledFixture: true, attack: attack.value, phase: Number(stage.value), quality: quality.value,
   shield, enemies: snapshots.length, boss: snapshots.find((z) => isBossKind(z.kind)) ?? null,
@@ -178,7 +263,9 @@ function frame(now: number) {
   hud.setDefense(FT_WAVE, 6, shield ? 480 : 0, shield ? 1800 : 0);
   world.props.setRally(shield);
   hud.setBoss(boss?.hp ?? 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
+  uiFrame();
   world.update(dt, world.camera.position);
+  world.arsenal.update(dt, world.camera.position, () => false);
   renderer.beginFrame(true);
   world.renderScene();
   renderer.endFrame();

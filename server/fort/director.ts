@@ -3,8 +3,8 @@
 // вход — та же волна, поэтому подкрепление при входе новых защитников — разница двух планов (horde.raiseDefenders).
 // Волны 1–14 — ручные (знакомство с врагами), дальше — взвешенный выбор с «темой» волны. Числа — fortwaves.ts.
 import {
-  Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RAM, Z_RUNNER, Z_SAPPER,
-  Z_SHIELD, Z_SPITTER, Z_WALKER, ZK,
+  BOSS_CYCLE, Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD,
+  Z_SPITTER, Z_WALKER, ZK,
 } from '../../shared/fortkinds.ts';
 import {
   ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
@@ -62,7 +62,7 @@ export interface DirectorFeatures {
 
 export const FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
-  bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
+  bosses: BOSS_CYCLE,
   sea: true,
   kraken: false,
   events: true,
@@ -71,7 +71,7 @@ export const FEATURES: DirectorFeatures = {
 /** Всё включено — для тестов расписания и симуляции */
 export const ALL_FEATURES: DirectorFeatures = {
   kinds: new Set([Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED]),
-  bosses: [Z_BOSS, Z_RAM, Z_GOLEM],
+  bosses: BOSS_CYCLE,
   sea: true,
   kraken: true,
   events: true,

@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FIX_PRICE, FT_BREAK, FT_END, FT_WAVE, START_PTS, type FortResultRow, type FtReward } from '../shared/fort.ts';
+import { FT_BREAK, FT_END, FT_WAVE, GATE_HP, type FortResultRow, type FtReward } from '../shared/fort.ts';
+import { ACT_GATE, START_GOLD, repairPrice } from '../shared/fortarsenal.ts';
 import { waveTokens } from '../shared/fortwaves.ts';
 import type { ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
@@ -37,24 +38,25 @@ function clearWave(g: FortGame, killer: FortPlayer): void {
   assert.equal(g.phase, FT_BREAK);
 }
 
-test('P1: выход и вход в ту же игру не возвращает стартовые очки — потраченное остаётся потраченным', () => {
+test('P1: выход и вход в ту же игру не возвращает стартовое золото — потраченное остаётся потраченным', () => {
   const { g } = game();
   const a = g.addHuman({ pid: 11, nick: 'Строитель', outfit: DEFAULT_OUTFIT }, sink())!;
   g.addHuman({ pid: 12, nick: 'Союзник', outfit: DEFAULT_OUTFIT }, sink())!;
-  assert.equal(a.pts, START_PTS);
-  // ремонт ворот у стойки
+  assert.equal(a.run.arsenal.gold, START_GOLD);
+  // ремонт ворот из панели у стойки ворот (+25 % прочности)
   g.gate = 900;
   const st = g.map.stations.find((s) => s.kind === 'gate')!;
   Object.assign(a.state, { x: st.x, y: st.y, z: st.z });
-  g.use(a, st.id);
-  assert.equal(a.pts, START_PTS - FIX_PRICE);
+  g.use(a, ACT_GATE);
+  const left = START_GOLD - repairPrice(g.wave);
+  assert.equal(a.run.arsenal.gold, left);
   g.removePlayer(a.id);
   const back = g.addHuman({ pid: 11, nick: 'Строитель', outfit: DEFAULT_OUTFIT }, sink())!;
-  assert.equal(back.pts, START_PTS - FIX_PRICE, 'вернулся — с тем, что было, а не с новыми 50');
-  assert.equal(g.gate, 900 + 400, 'ремонт тоже сохранился');
+  assert.equal(back.run.arsenal.gold, left, 'вернулся — с тем, что было, а не с новым стартовым золотом');
+  assert.equal(g.gate, 900 + GATE_HP * 0.25, 'ремонт тоже сохранился');
   // другой профиль — свой старт
   const c = g.addHuman({ pid: 13, nick: 'Новенький', outfit: DEFAULT_OUTFIT }, sink())!;
-  assert.equal(c.pts, START_PTS);
+  assert.equal(c.run.arsenal.gold, START_GOLD);
 });
 
 test('жетоны за волны платятся при выходе, при возвращении — только новые; итоги считают игру один раз', () => {
@@ -97,12 +99,12 @@ test('вышел, ничего не отбив, — ни выплаты, ни и
   g.removePlayer(a.id);
   assert.equal(paid.length, 0);
   const again = g.addHuman({ pid: 31, nick: 'Гость', outfit: DEFAULT_OUTFIT }, sink())!;
-  assert.equal(again.pts, START_PTS);
+  assert.equal(again.run.arsenal.gold, START_GOLD);
   clearWave(g, again);
   g.removePlayer(again.id);
   assert.equal(paid.length, 1);
   // все ушли — следующий вход начинает новую игру с чистого листа
   const fresh = g.addHuman({ pid: 31, nick: 'Гость', outfit: DEFAULT_OUTFIT }, sink())!;
   assert.equal(fresh.waves, 0);
-  assert.equal(fresh.pts, START_PTS);
+  assert.equal(fresh.run.arsenal.gold, START_GOLD);
 });

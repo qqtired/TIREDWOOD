@@ -1,4 +1,5 @@
 // «Крепость»: карта (опоры, лестницы, ворота), числа волн и жетонов, хвост снимка.
+// Шаг защитника — как на сервере: stepPlayer со стволами и лестницами крепости (shared/fortgun.ts).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
@@ -10,6 +11,7 @@ import { makeRun, settle } from '../server/fort/ledger.ts';
 import { FT_STRIDE, nearestZombie, zombieHead } from '../shared/fortaim.ts';
 import { CLIMBS, FORT, GATE, ROADS, TERRACE, WALL_H, buildFort, insideFort, outsideFort } from '../shared/fortmap.ts';
 import { decodeFortTail, encodeFortTail, fortTailSize, makeFortTail, type ZombieSnap } from '../shared/fortnet.ts';
+import { makeFortStep, stepFort } from '../shared/fortgun.ts';
 import { BTN_FORWARD, makeEvents, makeInput, makeState, type PlayerState } from '../shared/sim.ts';
 import { stepPlayer } from '../shared/sim.ts';
 import { CollisionWorld } from '../shared/world.ts';
@@ -21,10 +23,12 @@ function freeAt(w: CollisionWorld, x: number, y: number, z: number): boolean {
   return !w.overlaps(x - PLAYER_HALF, y + 0.01, z - PLAYER_HALF, x + PLAYER_HALF, y + PLAYER_HEIGHT, z + PLAYER_HALF);
 }
 
-/** Идём по точкам: взгляд на точку, «вперёд», пока не подойдём на 0,3 м */
+/** Идём по точкам: взгляд на точку, «вперёд», пока не подойдём на 0,3 м (у стены лицом к лестнице — лезем) */
 function walk(w: CollisionWorld, s: PlayerState, pts: ReadonlyArray<readonly [number, number]>): void {
   const inp = makeInput();
   const ev = makeEvents();
+  const f = makeFortStep();
+  const load = { heavy: 0, rate: 0, mag: 0 };
   for (const [x, z] of pts) {
     for (let t = 0; t < 20 * TICK_RATE; t++) {
       const dx = x - s.x;
@@ -33,13 +37,13 @@ function walk(w: CollisionWorld, s: PlayerState, pts: ReadonlyArray<readonly [nu
       inp.seq++;
       inp.yaw = Math.atan2(-dx, -dz);
       inp.buttons = BTN_FORWARD;
-      stepPlayer(s, inp, w, false, 1, ev);
+      stepFort(f, s, inp, w, false, 1, ev, load);
     }
     assert.ok(Math.hypot(x - s.x, z - s.z) < 0.5, `дошли до (${x}, ${z}), а стоим в (${s.x.toFixed(2)}, ${s.y.toFixed(2)}, ${s.z.toFixed(2)})`);
   }
   // постоять: приземлиться
   inp.buttons = 0;
-  for (let t = 0; t < 30; t++) stepPlayer(s, inp, w, false, 1, ev);
+  for (let t = 0; t < 30; t++) stepFort(f, s, inp, w, false, 1, ev, load);
 }
 
 test('точки появления и стойки — на опоре и не в стене', () => {
@@ -51,10 +55,10 @@ test('точки появления и стойки — на опоре и не 
   }
   for (const s of map.spawns) assert.equal(s.y, TERRACE.h);
   const kinds = map.stations.map((s) => s.kind).sort();
-  assert.deepEqual(kinds, ['bell', 'crystal', 'gate', 'jam', 'jam', 'jam', 'shop', 'turret', 'turret']);
+  assert.deepEqual(kinds, ['bell', 'crystal', 'gate', 'shop', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower', 'tower']);
 });
 
-test('с террасы по лестницам — во двор, на северную стену и на воротную башню', () => {
+test('с террасы по маршу во двор, по лестнице — на северную стену и дальше на воротную башню', () => {
   const s = makeState();
   const sp = map.spawns[0];
   s.x = sp.x;
@@ -62,7 +66,8 @@ test('с террасы по лестницам — во двор, на севе
   s.z = sp.z;
   walk(world, s, [[-7.5, 6], [-7.5, 4.6], [-7.5, 0]]);
   assert.ok(s.y < 0.01, `во дворе: y ${s.y}`);
-  walk(world, s, [[-6, -4], [-9, -7.8], [-9, -14.2]]);
+  // лестница north-w у (−9, −13): подошли, лицом к стене — W, наверху шаг на ход
+  walk(world, s, [[-6, -4], [-9, -7.8], [-9, -12.2], [-9, -14.2]]);
   assert.ok(Math.abs(s.y - WALL_H) < 0.01, `на стене: y ${s.y}`);
   walk(world, s, [[-4.25, -15], [-4.25, -17.2]]);
   assert.ok(Math.abs(s.y - WALL_H) < 0.01, `на башне: y ${s.y}`);
