@@ -2239,7 +2239,7 @@ export class LobbyScene implements Scene {
       }
       case 'skill': {
         const s = this.skillStatus;
-        this.hud.setHint(['E'], `Выше облаков · скилл-тест · ${s?.n ?? 0}/${s?.max ?? 5} игроков`);
+        this.hud.setHint(['E'], s?.phase === 'pre' ? `Выше облаков · сбор забега, старт через ${s.left} с — успевай!` : `Выше облаков · Небесная каланча · ${s?.n ?? 0}/${s?.max ?? 5} игроков${s?.phase === 'run' ? ' · идёт забег' : ''}`);
         break;
       }
       case 'boatrace':

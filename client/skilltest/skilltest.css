@@ -1,20 +1,85 @@
-/* Game-native shipyard instrument panel: small, opaque, high contrast, never a frosted web card. */
-.skill-hud { position:absolute; inset:0; pointer-events:none; color:#f0e3c8; font-family:Rubik,sans-serif; }
-.skill-hud[hidden] { display:none; }
-.skill-panel { position:absolute; top:82px; left:20px; width:min(344px,calc(100vw - 40px)); padding:14px 17px 13px; border:1px solid #8b815e8c; border-left:3px solid #6faaa0; border-radius:5px; background:#192d39f2; box-shadow:0 3px 0 #10212bc4,0 7px 20px #081a2233; }
-.skill-eyebrow { font-size:9px; font-weight:600; letter-spacing:.11em; color:#bca982; }
-.skill-panel h2 { font-size:19px; font-weight:650; line-height:1.25; margin:8px 0 7px; color:#f3e6c9; }
-.skill-panel p { font-size:11px; line-height:1.5; margin:6px 0 0; color:#d4d8d2; }
-.skill-score { margin-top:11px; padding-top:10px; border-top:1px solid #819d9942; font-size:12px; font-variant-numeric:tabular-nums; font-weight:600; color:#f0d49b; }
-.skill-panel .skill-peers { color:#94aea9; font-size:10px; }
-.skill-panel .skill-notice { color:#9ac6b5; min-height:17px; }
-.skill-controls { position:absolute; right:20px; top:84px; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:395px; pointer-events:auto; }
-.skill-controls button { min-height:36px; padding:8px 11px; border:1px solid #7c8e8a99; border-radius:4px; background:#1e3541f0; color:#e5dfc7; font:500 11px Rubik,sans-serif; cursor:pointer; box-shadow:0 2px 0 #10212b9e; transition:background-color 120ms ease,color 120ms ease,transform 120ms ease; }
-.skill-controls button:hover { background:#30535d; color:#fff1cf; }
-.skill-controls button:active { transform:scale(.96); }
-.skill-controls button:focus-visible { outline:2px solid #e4bf76; outline-offset:3px; }
-.skill-controls button:last-child { color:#bdc8c1; }
-.skill-help { position:absolute; bottom:17px; left:50%; transform:translateX(-50%); margin:0; padding:8px 13px; border:1px solid #6d827d75; border-radius:4px; background:#192d39e8; color:#d4d9cd; font-size:11px; white-space:nowrap; }
-@media(max-width:900px) { .skill-panel{width:290px;padding:12px 14px}.skill-controls{max-width:235px}.skill-panel h2{font-size:17px} }
-@media(max-width:760px) { .skill-panel{top:64px;left:10px;width:min(290px,calc(100vw - 20px));padding:9px 12px}.skill-eyebrow{font-size:8px}.skill-panel h2{font-size:16px;margin:5px 0}.skill-panel p{font-size:10px}.skill-score{font-size:11px;margin-top:7px;padding-top:7px}.skill-peers,.skill-help{display:none}.skill-controls{top:auto;bottom:90px;right:10px;max-width:190px}.skill-controls button{min-height:44px}.skill-panel .skill-notice{min-height:0} }
-@media(prefers-reduced-motion:reduce) { .skill-controls button{transition:none}.skill-controls button:active{transform:none} }
+/* «Выше облаков»: светлый дневной интерфейс поверх неба — плотные синие плашки, белый текст, жёлтые акценты. */
+.sky-hud { position:absolute; inset:0; pointer-events:none; color:#fff; font-family:Rubik,sans-serif; }
+.sky-hud[hidden] { display:none; }
+.sky-sec { position:absolute; top:78px; left:18px; width:min(330px,calc(100vw - 36px)); padding:12px 16px 13px; border-radius:12px; background:#1f4f86e8; border:2px solid #ffffff3d; box-shadow:0 4px 0 #13355e, 0 10px 24px #0b2a4a40; }
+.sky-sec-num { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#ffd23f; }
+.sky-sec-name { margin:4px 0 4px; font-size:24px; font-weight:800; line-height:1.1; }
+.sky-sec-rule { margin:0; font-size:13px; line-height:1.4; color:#e3f0ff; }
+.sky-clock { position:absolute; top:14px; left:50%; transform:translateX(-50%); text-align:center; padding:8px 18px 9px; border-radius:14px; background:#1f4f86e8; border:2px solid #ffffff3d; box-shadow:0 4px 0 #13355e; min-width:190px; }
+.sky-time { font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:.01em; line-height:1; }
+.sky-time-sub { margin-top:4px; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+.sky-time-sub.gold { color:#ffd23f; }
+.sky-time-sub.silver { color:#dfe7ef; }
+.sky-time-sub.bronze { color:#f0b27a; }
+.sky-best { margin-top:2px; font-size:11px; color:#c7dcf3; font-variant-numeric:tabular-nums; }
+.sky-meter { position:absolute; right:22px; top:50%; transform:translateY(-50%); height:min(380px,52vh); width:30px; display:flex; flex-direction:column; align-items:center; }
+.sky-meter-top { font-size:20px; margin-bottom:6px; filter:drop-shadow(0 2px 0 #13355e); }
+.sky-meter-track { position:relative; flex:1; width:12px; border-radius:6px; background:#1f4f86c0; border:2px solid #ffffff6b; }
+.sky-meter-fill { position:absolute; left:0; right:0; bottom:0; border-radius:6px; background:linear-gradient(#ffd23f,#ffb000); transition:height .25s ease-out; }
+.sky-mark { position:absolute; right:18px; transform:translateY(50%); white-space:nowrap; font-size:12px; font-weight:700; padding:2px 7px; border-radius:8px; background:#1f4f86e8; border:1px solid #ffffff55; transition:bottom .25s ease-out; }
+.sky-mark::after { content:''; position:absolute; right:-10px; top:50%; width:8px; height:2px; background:#fff; }
+.sky-mark-me { background:#ffd23f; color:#1f3550; border-color:#fff; z-index:2; }
+.sky-mark-solo { opacity:.7; font-weight:500; }
+.sky-place { margin-top:8px; font-size:15px; font-weight:800; text-shadow:0 2px 0 #13355e; white-space:nowrap; }
+.sky-count { position:absolute; top:34%; left:50%; transform:translate(-50%,-50%); font-size:min(150px,22vw); font-weight:900; color:#ffd23f; text-shadow:0 6px 0 #c2410c, 0 12px 30px #0b2a4a66; -webkit-text-stroke:4px #fff; }
+.sky-count-sub { position:absolute; top:calc(34% + min(90px,13vw)); left:50%; transform:translateX(-50%); font-size:18px; font-weight:700; text-shadow:0 2px 0 #13355e, 0 0 12px #0b2a4a88; white-space:nowrap; }
+.sky-note { position:absolute; bottom:96px; left:50%; transform:translateX(-50%) translateY(8px); padding:9px 16px; border-radius:12px; background:#1f4f86ee; border:2px solid #ffffff4d; font-size:15px; font-weight:600; opacity:0; transition:opacity .2s, transform .2s; white-space:nowrap; max-width:calc(100vw - 40px); overflow:hidden; text-overflow:ellipsis; }
+.sky-note.on { opacity:1; transform:translateX(-50%) translateY(0); }
+.sky-card { position:absolute; top:22%; left:50%; transform:translateX(-50%); width:min(380px,calc(100vw - 40px)); padding:18px 22px 16px; text-align:center; border-radius:18px; background:#1f4f86f2; border:3px solid #ffd23f; box-shadow:0 6px 0 #13355e, 0 16px 40px #0b2a4a55; }
+.sky-card[hidden], .sky-results[hidden] { display:none; }
+.sky-card-medal { display:inline-block; padding:4px 14px; border-radius:20px; font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.sky-medal-3 { background:#ffd23f; color:#5a3b00; }
+.sky-medal-2 { background:#dfe7ef; color:#2c3e50; }
+.sky-medal-1 { background:#e39a62; color:#3d1f08; }
+.sky-card-title { margin:10px 0 2px; font-size:26px; font-weight:800; }
+.sky-card-time { font-size:44px; font-weight:900; font-variant-numeric:tabular-nums; color:#ffd23f; line-height:1.05; }
+.sky-card-line { margin:6px 0 0; font-size:14px; color:#e3f0ff; }
+.sky-card-prize { margin:10px 0 0; font-size:15px; font-weight:700; color:#bff5c7; }
+.sky-card-hint { margin:12px 0 0; font-size:12px; color:#c7dcf3; }
+.sky-results { position:absolute; top:18%; left:50%; transform:translateX(-50%); width:min(420px,calc(100vw - 40px)); padding:14px 18px; border-radius:16px; background:#1f4f86f2; border:2px solid #ffffff4d; box-shadow:0 6px 0 #13355e; }
+.sky-res-title { margin:0 0 8px; font-size:20px; font-weight:800; text-align:center; }
+.sky-res-list { list-style:none; margin:0; padding:0; }
+.sky-res-row { display:grid; grid-template-columns:28px 1fr auto auto; gap:10px; align-items:center; padding:6px 8px; border-radius:8px; font-size:15px; }
+.sky-res-row:nth-child(odd) { background:#ffffff12; }
+.sky-res-me { background:#ffd23f33 !important; outline:1px solid #ffd23f; }
+.sky-res-place { font-weight:900; color:#ffd23f; text-align:center; }
+.sky-res-time { font-variant-numeric:tabular-nums; font-weight:700; }
+.sky-res-medal { font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
+.sky-res-hint { margin:10px 0 0; text-align:center; font-size:12px; color:#c7dcf3; }
+.sky-controls { position:absolute; right:18px; top:78px; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:420px; pointer-events:auto; }
+.sky-btn { min-height:36px; padding:8px 12px; border-radius:10px; border:2px solid #ffffff55; background:#1f4f86e8; color:#fff; font:600 12px Rubik,sans-serif; cursor:pointer; box-shadow:0 3px 0 #13355e; transition:transform .12s ease, background-color .12s ease; }
+.sky-btn:hover { background:#2a64a8; }
+.sky-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #13355e; }
+.sky-btn:focus-visible { outline:3px solid #ffd23f; outline-offset:2px; }
+.sky-btn-hot { background:#ffd23f; color:#1f3550; border-color:#fff; }
+.sky-btn-hot:hover { background:#ffe27a; }
+.sky-btn-leave { opacity:.85; }
+.sky-help { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); margin:0; padding:7px 14px; border-radius:10px; background:#1f4f86cc; font-size:12px; white-space:nowrap; }
+.sky-pop { animation:sky-pop .45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes sky-pop { from { transform:translate(-50%,-50%) scale(.4); opacity:0; } to { transform:translate(-50%,-50%) scale(1); opacity:1; } }
+.sky-sec-name.sky-pop { animation:sky-name .4s ease-out; }
+.sky-card.sky-pop { animation:sky-card .45s cubic-bezier(.2,1.5,.4,1); }
+@keyframes sky-name { from { transform:translateX(-14px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes sky-card { from { transform:translateX(-50%) scale(.6); opacity:0; } to { transform:translateX(-50%) scale(1); opacity:1; } }
+
+
+@media (prefers-reduced-motion:reduce) { .sky-pop, .sky-sec-name.sky-pop, .sky-card.sky-pop { animation:none; } .sky-meter-fill, .sky-mark { transition:none; } }
+.sky-sec-live { margin:7px 0 0; padding:5px 8px; border-radius:8px; background:#ffd23f; color:#3b2a00; font-size:13px; font-weight:700; }
+.sky-sec-live[hidden] { display:none; }
+.sky-both .sky-card { left:calc(50% - 205px); }
+.sky-both .sky-results { left:calc(50% + 225px); top:22%; }
+
+/* Телефон и узкое окно: справа внизу — кнопки управления пальцами, поэтому свои кнопки — наверх, высотомер прячем */
+@media (max-width:900px), (pointer:coarse) {
+  .sky-meter, .sky-help, .sky-best { display:none; }
+  .sky-controls { top:56px; right:8px; bottom:auto; max-width:46vw; gap:4px; }
+  .sky-btn { min-height:34px; padding:6px 9px; font-size:11px; }
+  .sky-sec { top:56px; left:8px; width:min(260px,44vw); padding:7px 10px; }
+  .sky-sec-name { font-size:16px; } .sky-sec-rule, .sky-sec-live { font-size:11px; }
+  .sky-clock { top:6px; padding:4px 12px; min-width:118px; } .sky-time { font-size:22px; } .sky-time-sub { font-size:11px; }
+  .sky-card { top:16%; padding:12px 14px; } .sky-card-time { font-size:32px; } .sky-card-title { font-size:19px; }
+  .sky-both .sky-card { display:none; }
+  .sky-both .sky-results, .sky-results { left:50%; top:18%; bottom:auto; }
+  .sky-note { bottom:46%; font-size:13px; }
+  .sky-count-sub { font-size:14px; }
+}

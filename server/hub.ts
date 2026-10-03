@@ -24,6 +24,9 @@ import { PaintballRoom } from './paintball/room.ts';
 import type { Profiles } from './profiles.ts';
 import { RaceRoom } from './race/room.ts';
 import { SkillRoom } from './skilltest/room.ts';
+import type { SkillReward } from './skilltest/game.ts';
+import { applySkillFinish } from '../shared/skilltest.ts';
+import { mskDayNum } from '../shared/fishrules.ts';
 import { BoatRaceRoom } from './boatrace/room.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
@@ -285,7 +288,7 @@ export class Hub {
         announce: (text) => this.announce(text),
       })
       : null;
-    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c) }) : null;
+    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = o.boatrace ? new BoatRaceRoom({ outfitOf: p => this.outfitOf(p), result: (c,row,reward) => this.onBoatRaceResult(c,row,reward),
       over: clients => this.onRaceOver(clients), announce: text => this.announce(text), afk: c => this.onPaintballAfk(c) }) : null;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
@@ -784,6 +787,16 @@ export class Hub {
     if (row.bestLap > 0 && (!p.stats.brBestLap || row.bestLap < p.stats.brBestLap)) p.stats.brBestLap = row.bestLap;
     if (reward) this.profiles.credit(p, reward.total, 'mode');
     this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
+  }
+
+  /** «Выше облаков»: позвонил в колокол — статистика профиля, жетоны (медаль, «без падений», первый за день). */
+  onSkillResult(c: Client, ticks: number, falls: number): SkillReward | null {
+    const p = c.profile;
+    if (!p || c.ephemeral) return null;
+    const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()));
+    if (r.tokens > 0) this.profiles.credit(p, r.tokens, 'mode');
+    this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
+    return r;
   }
 
   startHide(clients: Client[]): void {

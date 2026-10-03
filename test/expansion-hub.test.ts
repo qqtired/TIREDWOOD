@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { BJ_COUNT_TICKS, BJ_DEALER_TICKS, BJ_RESULT_TICKS } from '../shared/blackjack.ts';
 import { ACT_DURAK, KART_CHECK_EVERY, KART_COUNT_TICKS } from '../shared/lobby.ts';
 import { KART_START } from '../shared/maps/lobby.ts';
-import { SKILL_CHECKPOINTS } from '../shared/skilltest.ts';
+import { SKILL_GATHER_TICKS } from '../shared/skilltest.ts';
 import type { Client, Hub } from '../server/hub.ts';
 import { lastOf, login, placeAt, setupHub, steps } from './kit.ts';
 
@@ -126,8 +126,9 @@ test('skill leave returns near portal and rejoin restores an earned checkpoint',
   const { hub } = setupHub(); const a = login(hub, 'SkyReturn'); assert.ok(hub.skill);
   steps(hub, 121); useKind(hub, a.c, 'skill');
   const p = hub.skill.playerOf(a.c)!;
-  Object.assign(p.state, { x: 4, y: 40, z: 0, grounded: 1 }); steps(hub, 1);
-  Object.assign(p.state, SKILL_CHECKPOINTS[1], { grounded: 1 }); steps(hub, 1);
+  steps(hub, SKILL_GATHER_TICKS + 1); // первый вошедший ждёт друзей на крыше, потом старт
+  const cp1 = hub.skill.game.map.checkpoints[1];
+  Object.assign(p.state, { x: cp1.px, y: cp1.y, z: cp1.pz, grounded: 1 }); steps(hub, 1);
   assert.equal(p.progress.checkpoint, 1);
   steps(hub, 121); hub.onJson(a.c, { t: 'leave' }); assert.equal(a.c.room, hub.lobby);
   const state = hub.lobby.playerOf(a.c)!.state, spawn = hub.lobby.map.skillSpawn;

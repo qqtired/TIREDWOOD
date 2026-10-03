@@ -21,15 +21,15 @@ import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 
 // Only asset/CSS URL imports are stubbed: frame(), Input.mouse(), Three camera math and simulation run unchanged.
 const hook=registerHooks({load(url,ctx,next){if(/\.(webp|png|jpg|glb|bin|css)$/.test(new URL(url).pathname))return{format:'module',source:`export default ${JSON.stringify(url)}`,shortCircuit:true};return next(url,ctx);}});
-let SkillScene:any,HideScene:any;
-try{SkillScene=(await import('../client/skilltest/scene.ts')).SkillScene;HideScene=(await import('../client/hide/scene.ts')).HideScene;}finally{hook.deregister();}
+let SkillScene:any,HideScene:any,SkillCamera:any;
+try{SkillScene=(await import('../client/skilltest/scene.ts')).SkillScene;SkillCamera=(await import('../client/skilltest/camera.ts')).SkillCamera;HideScene=(await import('../client/hide/scene.ts')).HideScene;}finally{hook.deregister();}
 const noop=()=>{};
 function input(yaw=0,pitch=0){return Object.assign(Object.create(ClientInput.prototype),{locked:true,held:0,yaw,pitch,sens:1,adsSens:1,scopeSens:1});}
 function skillCamera(controls=input(),collision=new CollisionWorld({...makeSkillMap(),boxes:[]})){
  const camera=new THREE.PerspectiveCamera();
  const s=Object.assign(Object.create(SkillScene.prototype),{active:true,ready:true,tick:0,receivedAt:0,viewTick:0,acc:0,peers:[],hudAt:0,progress:{checkpoint:0},
-  cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),
-  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}}},dynamics:{place:noop},
+  cameraPos:new THREE.Vector3(),cameraLook:new THREE.Vector3(),cameraDir:new THREE.Vector3(),cam:new SkillCamera(),lock:0,decor:noop,
+  predictor:{state:{...makeState(),y:40},offset:{x:0,y:0,z:0},decay:noop},d:{input:controls,renderer:{canvas:{clientHeight:800}},settings:{fov:95}},dynamics:{place:noop},
   world:{camera,collision,update:noop,render:noop}});
  return{s,camera};
 }

@@ -113,6 +113,15 @@ export interface Stats {
   hiWins: number;
   hiFound: number;
   hiSurvived: number;
+  /**
+   * «Выше облаков» (Небесная каланча): подъёмов до колокола, лучшее время (мс, 0 — не было), лучшая медаль
+   * (1 бронза, 2 серебро, 3 золото), значок «без падений» (0/1), день по Москве последнего подъёма (за первый — жетоны)
+   */
+  skRuns: number;
+  skBest: number;
+  skMedal: number;
+  skClean: number;
+  skDay: number;
 }
 
 export function emptyStats(): Stats {
@@ -123,6 +132,7 @@ export function emptyStats(): Stats {
     fsCasts: 0, fsBites: 0, fsLost: 0, fsMaxGrams: 0, fsEarned: 0,
     ftGames: 0, ftWins: 0, ftBest: 0, ftKills: 0, fcFights: 0, fcWins: 0, fcKos: 0,
     stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
+    skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
   };
 }
 
