@@ -129,6 +129,10 @@ const TABLE_CAM_D = 1.65;
 const TABLE_CAM_Y = 2.05;
 const TABLE_PITCH = (33 * Math.PI) / 180;
 const TABLE_FOV = 52;
+/** Блэкджек: ближе и круче, чтобы стол целиком ложился над нижней панелью, а карты у края не прятались под ней */
+const BJ_CAM_D = 1.32;
+const BJ_CAM_Y = 1.8;
+const BJ_PITCH = (42 * Math.PI) / 180;
 /** Клик по желейке за столом — помидор: не дальше стольких пикселей от головы */
 const TOMATO_PICK_PX = 80;
 const TOMATO_COLOR = 0xd42a1c;
@@ -383,7 +387,7 @@ export class LobbyScene implements Scene {
     };
     this.dkHud.onLeave = () => this.leaveTable(true);
     const blackjackTable = this.world.map.tables[BJ_TABLE];
-    this.blackjack3d = new BlackjackTable3D(this.world.scene, blackjackTable.x, blackjackTable.z);
+    this.blackjack3d = new BlackjackTable3D(this.world, d.sound, blackjackTable.x, blackjackTable.z);
     this.bjHud = new BlackjackHud(this.hud.root);
     this.bjHud.onAct = (a, rev, amount) => {
       if (this.blackjackSeated) d.net.send({ t: 'blackjack', table: BJ_TABLE, a, rev, amount });
@@ -931,6 +935,8 @@ export class LobbyScene implements Scene {
 
   private onBlackjack(view: BlackjackView): void {
     this.blackjack3d.setView(view);
+    // панель показывает новый вид, когда карты в 3D долетят: не раскрываем очки раньше, чем карта упала на сукно
+    this.bjHud.setHold(this.blackjack3d.busyUntil);
     this.bjHud.setView(view, performance.now());
     this.bjHud.setBalance(this.d.ui.me().tokens);
   }
@@ -1725,6 +1731,7 @@ export class LobbyScene implements Scene {
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
     this.tables3d.update(dt, this.time, camPos);
     this.decor.update(dt, this.time, camPos);
+    this.blackjack3d.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
     this.bjHud.tick(performance.now());
     this.updateHud();
@@ -1870,10 +1877,14 @@ export class LobbyScene implements Scene {
         const l = Math.hypot(it.x - tb.x, it.z - tb.z) || 1;
         const ux = (it.x - tb.x) / l;
         const uz = (it.z - tb.z) / l;
-        const cx = tb.x + ux * TABLE_CAM_D;
-        const cz = tb.z + uz * TABLE_CAM_D;
-        const h = Math.cos(TABLE_PITCH);
-        this.cam.fixed(cam, dt, cx, TABLE_CAM_Y, cz, cx - ux * h, TABLE_CAM_Y - Math.sin(TABLE_PITCH), cz - uz * h, TABLE_FOV, 'table');
+        const bj = seatTable(this.arg) === BJ_TABLE;
+        const camD = bj ? BJ_CAM_D : TABLE_CAM_D;
+        const camY = bj ? BJ_CAM_Y : TABLE_CAM_Y;
+        const pitch = bj ? BJ_PITCH : TABLE_PITCH;
+        const cx = tb.x + ux * camD;
+        const cz = tb.z + uz * camD;
+        const h = Math.cos(pitch);
+        this.cam.fixed(cam, dt, cx, camY, cz, cx - ux * h, camY - Math.sin(pitch), cz - uz * h, TABLE_FOV, 'table');
       }
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
       this.cam.mirror(cam, dt, p.x, p.y, p.z, p.yaw, MIRROR_FOV);

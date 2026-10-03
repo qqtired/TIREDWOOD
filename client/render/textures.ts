@@ -1174,7 +1174,7 @@ function stemPath(ctx: CanvasRenderingContext2D): void {
  * Знак масти контуром: глифы ♠ ♣ ♦ ♥ в разных системах рисуются по-разному, а то и цветными эмодзи.
  * (x, y) — центр, s — размер; цвет — текущий fillStyle. Части заливаются по отдельности, чтобы не вычитались.
  */
-function drawSuit(ctx: CanvasRenderingContext2D, suit: number, x: number, y: number, s: number): void {
+export function drawSuit(ctx: CanvasRenderingContext2D, suit: number, x: number, y: number, s: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(s, s);
@@ -1256,7 +1256,7 @@ function drawCardFace(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 }
 
 /** Рубашка: белая кайма, тёмно-вишнёвое поле с ромбовой сеткой, медальон посередине. */
-function drawCardBack(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+export function drawCardBack(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
   ctx.fillStyle = CARD_PAPER;
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 11);
