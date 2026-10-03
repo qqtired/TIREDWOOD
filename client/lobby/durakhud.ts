@@ -32,6 +32,9 @@ const SMALL_H = 480;
 const SAY_COL_PX = 224;
 /** Масти в руке: чёрная, красная, чёрная, красная — легче различать; козыри — последними */
 const SUIT_ORDER = [0, 2, 1, 3];
+const SUIT_NAMES = ['пики', 'трефы', 'бубны', 'червы'];
+/** Свечение хода переходит на «торопись», когда до конца срока осталось столько */
+const HURRY_MS = 5000;
 const RULES = [
   'Цель — первым избавиться от карт. Последний с картами — <b>дурак</b> 🃏.',
   'Ходящий кладёт любую карту. Отбиваются старшей той же масти или козырем.',
@@ -57,9 +60,6 @@ function cardText(c: number): string {
   return `<b class="${s >= 2 ? 'red' : 'black'}">${RANK_NAMES[rankOf(c)]}${SUIT_SIGNS[s]}︎</b>`;
 }
 
-function suitText(s: number): string {
-  return `<b class="${s >= 2 ? 'red' : 'black'}">${SUIT_SIGNS[s]}︎</b>`;
-}
 
 function esc(t: string): string {
   return t.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -80,12 +80,33 @@ function awaited(gv: DurakView): number[] {
   return list;
 }
 
+/** От меня ждут ход: первую карту, отбой или подкидывание (на «бито» / «взял», после выхода и в итоге — нет). */
+function myTurn(v: DurakTableView | null, g: Durak | null, me: number): boolean {
+  const gv = v?.game;
+  if (!v || !gv || !g || me < 0 || v.phase !== 'play' || gv.over || gv.out.includes(me)) return false;
+  switch (gv.waiting) {
+    case 'lead':
+      return gv.attacker === me;
+    case 'defend':
+      return gv.defender === me;
+    case 'throw':
+    case 'take':
+      return canPass(g, me);
+    default:
+      return false;
+  }
+}
+
 export class DurakHud {
   /** Действие за столом — на сервер */
   onAct: (a: DurakAct, card?: number, on?: number) => void = () => {};
   /** Встать из-за стола */
   onLeave: () => void = () => {};
+  /** Сколько жетонов у меня сейчас (ставку больше баланса сделать нельзя). Не задан — считаем, что хватает. */
+  balance: () => number = () => Number.POSITIVE_INFINITY;
   private readonly root: HTMLElement;
+  /** Свечение по краям экрана: горит, пока от меня ждут ход (клики не ловит) */
+  private readonly edgeEl: HTMLElement;
   private readonly topEl: HTMLElement;
   private readonly lobbyEl: HTMLElement;
   private readonly playEl: HTMLElement;
@@ -118,9 +139,12 @@ export class DurakHud {
   private resultKey = '';
   /** Краткий итог остаётся в лобби до следующей раздачи. */
   private resultSummary = '';
+  /** Баланс, под который нарисована кнопка ставки */
+  private shownBalance = Number.NaN;
 
   constructor(parent: HTMLElement) {
     this.root = el('div', 'dk hidden');
+    this.edgeEl = el('div', 'dk-edge');
     this.topEl = el('div', 'dk-top');
     this.lobbyEl = el('div', 'dk-lobby');
     this.playEl = el('div', 'dk-play');
@@ -139,7 +163,7 @@ export class DurakHud {
     this.aimRing = document.createElement('i');
     this.aimName = document.createElement('b');
     this.aimEl.append(this.aimRing, this.aimName);
-    this.root.append(this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl, this.aimEl);
+    this.root.append(this.edgeEl, this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl, this.aimEl);
     this.root.style.setProperty('--atlas', `url(${cardAtlasCanvas().toDataURL('image/png')})`);
     this.root.style.setProperty('--splat', `url(${tomatoSplatCanvas().toDataURL('image/png')})`);
     this.root.addEventListener('click', (e) => this.onClick(e));
@@ -180,6 +204,7 @@ export class DurakHud {
     this.g = null;
     this.me = -1;
     this.root.classList.add('hidden');
+    this.edgeEl.classList.remove('on', 'hurry');
     this.resultEl.classList.remove('show');
     this.aimEl.classList.remove('show');
   }
@@ -309,6 +334,7 @@ export class DurakHud {
     const v = this.v;
     const left = v ? v.left - (now - this.recvAt) : 0;
     for (const t of this.root.querySelectorAll<HTMLElement>('[data-timer]')) t.textContent = clock(left);
+    this.edgeEl.classList.toggle('hurry', left < HURRY_MS && this.edgeEl.classList.contains('on'));
     if (v?.phase === 'count') for (const c of this.root.querySelectorAll<HTMLElement>('[data-count]')) {
       c.textContent = String(Math.max(1, Math.ceil(left / 1000)));
     }
@@ -323,6 +349,12 @@ export class DurakHud {
     }
     if (this.pending >= 0 && now > this.pendingUntil) {
       this.pending = -1;
+      this.render();
+    }
+    // жетоны прибавились или убыли — кнопка ставки и подсказка «нужно N 🪙» перерисуются
+    const have = this.balance();
+    if (!Object.is(have, this.shownBalance)) {
+      this.shownBalance = have;
       this.render();
     }
     const wait = TOMATO_MS - (now - this.tomatoAt);
@@ -353,6 +385,8 @@ export class DurakHud {
       }
     }
     if (this.menuCard >= 0 && !this.moves.has(this.menuCard)) this.menuCard = -1;
+    // ход мой — по краям экрана свечение; ушёл ход (карта отправлена, «бито», вышел из-за стола) — гаснет
+    this.edgeEl.classList.toggle('on', this.pending < 0 && myTurn(v, this.g, this.me));
     this.renderResult();
     this.set(this.topEl, this.topHtml());
     const before = !v || v.phase === 'wait' || v.phase === 'count';
@@ -382,11 +416,11 @@ export class DurakHud {
     if (v.bank) title += ` · банк ${v.bank} 🪙`;
     let html = `<div class="dk-title">${title}</div>`;
     if (gv) {
-      // козырь — настоящей картой, под ней колода и бито числами
-      const trump = gv.deck > 0
-        ? `<i class="dk-tcard" style="background-position:${atlasPos(gv.trump)}" title="козырь"></i>`
-        : suitText(suitOf(gv.trump));
-      html = `<div class="dk-head">${html}<div class="dk-deck">козырь ${trump}<span>колода <b>${gv.deck}</b></span><span>бито <b>${gv.discard}</b></span></div></div>`;
+      // козырь: крупная масть в золотой оправе — видно сразу; рядом сама карта из-под колоды (пока колода есть)
+      const ts = suitOf(gv.trump);
+      const sign = `<span class="dk-trump ${ts >= 2 ? 'red' : 'black'}" title="козырь — ${SUIT_NAMES[ts]}"><i>${SUIT_SIGNS[ts]}︎</i><span class="dk-tl">козырь</span></span>`;
+      const card = gv.deck > 0 ? `<i class="dk-tcard" style="background-position:${atlasPos(gv.trump)}" title="козырная карта"></i>` : '';
+      html = `<div class="dk-head">${html}<div class="dk-deck">${sign}${card}<span>колода <b>${gv.deck}</b></span><span>бито <b>${gv.discard}</b></span></div></div>`;
     }
     if (!gv) return html;
     const wait = new Set(awaited(gv));
@@ -467,9 +501,15 @@ export class DurakHud {
     if (!v || mine?.k !== 1) return '';
     const ante = v.ante ?? 10;
     const chooser = v.modeBy === this.chair;
+    // жетонов меньше ставки стола — ставку не включить: кнопка серая, рядом сколько нужно (сервер такую ставку тоже не примет)
+    const have = this.balance();
+    const poor = have < ante;
+    const lock = poor && !mine.stake ? ' disabled' : '';
+    const why = poor ? ` title="Не хватает жетонов: нужно ${ante} 🪙, у тебя ${have} 🪙" aria-describedby="dk-need"` : '';
     return `<div class="dk-stakes"><span>Участие</span>` +
       `<button class="dk-btn${mine.stake ? '' : ' on'}" data-a="stake" data-on="0" aria-pressed="${!mine.stake}">Бесплатно</button>` +
-      `<button class="dk-btn${mine.stake ? ' on' : ''}" data-a="stake" data-on="1" aria-pressed="${!!mine.stake}">Со ставкой ${ante} 🪙</button>` +
+      `<button class="dk-btn${mine.stake ? ' on' : ''}" data-a="stake" data-on="1" aria-pressed="${!!mine.stake}"${lock}${why}>Со ставкой ${ante} 🪙</button>` +
+      (poor ? `<span class="dk-need" id="dk-need">нужно ${ante} 🪙</span>` : '') +
       (anteControls ? `<div class="dk-ante"><span>Ставка стола</span>${[10,20,50].map(amount => `<button class="dk-btn${amount === ante ? ' on' : ''}" data-a="ante" data-on="${amount}" aria-pressed="${amount === ante}"${chooser ? '' : ' disabled'}>${amount}</button>`).join('')}</div>` : '') +
       `<small>Списание при раздаче. Бесплатный победитель не получает банк — ставки возвращаются.</small></div>`;
   }
@@ -519,10 +559,7 @@ export class DurakHud {
       else say = 'Ждём, подкинут ли ещё';
     }
     // ход за мной — подсказка светится, чтобы не пропустить
-    const mineTurn = !!g && me >= 0 && v.phase === 'play' && timer && !gv.out.includes(me) && (
-      (gv.waiting === 'lead' && gv.attacker === me) || (gv.waiting === 'defend' && gv.defender === me) ||
-      ((gv.waiting === 'throw' || gv.waiting === 'take') && canPass(g, me))
-    );
+    const mineTurn = myTurn(v, g, me);
     const sayHtml = `<div class="dk-say${mineTurn ? ' me' : ''}">${say}${timer ? ' <span class="dk-time" data-timer></span>' : ''}</div>`;
     if (me < 0 || !g || v.phase !== 'play') return sayHtml;
 
@@ -545,13 +582,14 @@ export class DurakHud {
       const cls = ['dk-card', ok ? 'ok' : 'dim'];
       if (c === this.pending) cls.push('pending');
       if (c === this.menuCard) cls.push('sel');
-      if (suitOf(c) === ts) cls.push('trump');
+      if (suitOf(c) === ts) cls.push('trump', ts >= 2 ? 'red' : 'black');
       const ml = i === 0 ? 0 : step - cardPx;
       // веер: крайние карты чуть наклонены и опущены
       const off = i - (n - 1) / 2;
       const rot = off * Math.min(2.6, 30 / Math.max(n, 1));
       const drop = off * off * Math.min(1.1, 14 / Math.max(n, 1));
-      return `<button class="${cls.join(' ')}" data-card="${c}" style="background-position:${atlasPos(c)};margin-left:${ml.toFixed(1)}px;z-index:${i + 1};--r:${rot.toFixed(2)}deg;--y:${drop.toFixed(1)}px"></button>`;
+      const mark = suitOf(c) === ts ? ` data-ts="${SUIT_SIGNS[ts]}︎"` : '';
+      return `<button class="${cls.join(' ')}" data-card="${c}"${mark} style="background-position:${atlasPos(c)};margin-left:${ml.toFixed(1)}px;z-index:${i + 1};--r:${rot.toFixed(2)}deg;--y:${drop.toFixed(1)}px"></button>`;
     }).join('');
     let menu = '';
     if (this.menuCard >= 0) {
@@ -605,6 +643,7 @@ export class DurakHud {
         this.onAct('ante', undefined, on);
         break;
       case 'stake':
+        if (on === 1 && this.balance() < (this.v?.ante ?? 10)) break;
         this.onAct('stake', undefined, on);
         break;
       case 'leave':

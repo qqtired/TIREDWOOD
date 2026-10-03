@@ -2,6 +2,7 @@
 // Рисуется один раз на холсте и перерисовывается только при смене текста — спрайт всегда лицом к камере,
 // плавно «дышит» по высоте, а вдали увеличивается, чтобы читалась с набережной.
 import * as THREE from 'three';
+import { drawSuit } from '../render/textures.ts';
 
 export type SignTone = 'free' | 'wait' | 'busy';
 export type SignTheme = 'durak' | 'blackjack';
@@ -19,6 +20,8 @@ export interface SignModel {
   /** Плашка состояния и её цвет */
   state: string;
   tone: SignTone;
+  /** Козырная масть идущей партии (0–3): золотая монетка на табличке дурака, чтобы козырь читался издалека */
+  trump?: number;
 }
 
 const W = 1024;
@@ -133,6 +136,22 @@ function paint(c: CanvasRenderingContext2D, theme: SignTheme, m: SignModel): voi
   if (theme === 'durak') {
     drawCard(c, 108, 158, -0.24, null);
     drawCard(c, 168, 150, 0.16, { rank: 'Т', suit: '♠', red: false });
+    if (m.trump !== undefined) {
+      c.beginPath();
+      c.arc(212, 212, 40, 0, Math.PI * 2);
+      c.fillStyle = '#4a2a16';
+      c.fill();
+      c.beginPath();
+      c.arc(212, 212, 36, 0, Math.PI * 2);
+      c.fillStyle = '#f2b92f';
+      c.fill();
+      c.beginPath();
+      c.arc(212, 212, 29, 0, Math.PI * 2);
+      c.fillStyle = '#fff6e0';
+      c.fill();
+      c.fillStyle = m.trump >= 2 ? '#cc2730' : '#1d1f2c';
+      drawSuit(c, m.trump, 212, 212, 40);
+    }
   } else {
     drawCard(c, 108, 158, -0.22, { rank: 'Т', suit: '♠', red: false });
     drawCard(c, 168, 150, 0.16, { rank: 'К', suit: '♥', red: true });

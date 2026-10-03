@@ -11,7 +11,7 @@ import type { DurakTableView } from '../../shared/messages.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import type { Sound } from '../audio.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
-import { CARD_ATLAS, cardAtlasTexture } from '../render/textures.ts';
+import { CARD_ATLAS, cardAtlasTexture, drawSuit } from '../render/textures.ts';
 import type { LobbyWorld } from './world.ts';
 
 const CARD_W = 0.14;
@@ -36,9 +36,24 @@ const DECK_BACKS_MAX = 6;
 /** Табличка «сколько карт в колоде»: над стопкой, ширина, видна не дальше 9 м */
 const COUNT_U = DECK_U + 0.035;
 const COUNT_Y = 0.14;
-const COUNT_W = 0.17;
+const COUNT_W = 0.255;
 const COUNT_FAR = 9;
 const COUNT_FONT = 'Rubik, system-ui, sans-serif';
+/**
+ * Козырь на столе. Значок масти — светящийся круг на клеёнке у колоды, со стороны смотрящего (с дальней его закрывает
+ * табличка с числом карт, висящая над колодой); рамка — под козырной картой, выглядывающей из-под колоды; отметка —
+ * тоньше, под каждым козырем, лежащим на столе. Клеёнка — 0,7775, карты — от 0,780: всё это между ними.
+ */
+const MARK_U = DECK_U + 0.01;
+const MARK_W = -0.27;
+const MARK_Y = TOP_Y - 0.0005;
+/** Диаметр картинки значка (видимый круг — 0,82 от неё) */
+const MARK_SIZE = 0.285;
+/** Ширина свечения вокруг карты: у козыря под колодой и у козырей на столе; опускаем под карту на 0,8 мм */
+const FRAME_PAD = 0.026;
+const MARKS_PAD = 0.015;
+const UNDER_CARD = 0.0008;
+const MAX_MARKS = 64;
 const DISCARD_JITTER: ReadonlyArray<readonly [number, number, number]> = [[0, 0, 0.35], [0.018, 0.012, -0.3], [-0.012, 0.022, 0.12]];
 /** Веер в руках: от стула к столу, высота, наклон назад, шаг, ось вращения ниже карт */
 const FAN_D = 0.55;
@@ -123,6 +138,10 @@ interface Table {
   dirty: boolean;
   /** Табличка над колодой */
   count: DeckCount;
+  /** Значок козырной масти на клеёнке (масть на нём — markSuit) и рамка под козырной картой */
+  mark: THREE.Mesh;
+  markSuit: number;
+  frame: THREE.Mesh;
 }
 
 /** Сколько карт в колоде — табличкой над стопкой (картинка — на холсте, перерисовка при смене числа) */
@@ -130,8 +149,9 @@ interface DeckCount {
   sprite: THREE.Sprite;
   ctx: CanvasRenderingContext2D;
   tex: THREE.CanvasTexture;
-  /** Число на табличке (−1 — ещё не рисовали) */
+  /** Число на табличке (−1 — ещё не рисовали) и козырная масть на ней */
   n: number;
+  suit: number;
   /** Идёт партия и в колоде есть карты */
   on: boolean;
 }
@@ -201,55 +221,152 @@ function handOrder(trumpSuit: number): (a: number, b: number) => number {
 
 function makeDeckCount(scene: THREE.Scene): DeckCount {
   const canvas = document.createElement('canvas');
-  canvas.width = 128;
+  canvas.width = 192;
   canvas.height = 64;
   const ctx = canvas.getContext('2d')!;
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
-  sprite.scale.set(COUNT_W, COUNT_W / 2, 1);
+  sprite.scale.set(COUNT_W, COUNT_W / 3, 1);
   sprite.renderOrder = 5;
   sprite.visible = false;
   scene.add(sprite);
-  return { sprite, ctx, tex, n: -1, on: false };
+  return { sprite, ctx, tex, n: -1, suit: -1, on: false };
 }
 
-/** Табличка: тёмная плашка, слева рубашка карты, справа число. */
-function drawDeckCount(dc: DeckCount, n: number): void {
-  if (dc.n === n) return;
+/** Табличка: тёмная плашка; слева — монетка козырной масти, дальше рубашка карты и число карт в колоде. */
+function drawDeckCount(dc: DeckCount, n: number, suit: number): void {
+  if (dc.n === n && dc.suit === suit) return;
   dc.n = n;
+  dc.suit = suit;
   const c = dc.ctx;
-  c.clearRect(0, 0, 128, 64);
+  c.clearRect(0, 0, 192, 64);
   c.fillStyle = 'rgba(32, 24, 20, 0.84)';
   c.strokeStyle = 'rgba(255, 236, 200, 0.75)';
   c.lineWidth = 3;
   c.beginPath();
-  c.roundRect(3, 5, 122, 54, 18);
+  c.roundRect(3, 5, 186, 54, 18);
   c.fill();
   c.stroke();
+  // монетка козыря: золотой ободок, светлый диск, масть цветом карты
+  c.fillStyle = '#f2b92f';
+  c.beginPath();
+  c.arc(34, 32, 23, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#fff6e0';
+  c.beginPath();
+  c.arc(34, 32, 19, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = suit >= 2 ? '#cc2730' : '#1d1f2c';
+  drawSuit(c, suit, 34, 32, 26);
   // рубашка: красная, с белой рамкой и ромбиком
+  const bx = 68;
   c.fillStyle = '#fff6ea';
   c.beginPath();
-  c.roundRect(14, 13, 28, 38, 5);
+  c.roundRect(bx, 13, 28, 38, 5);
   c.fill();
   c.fillStyle = '#c8323a';
   c.beginPath();
-  c.roundRect(17, 16, 22, 32, 3);
+  c.roundRect(bx + 3, 16, 22, 32, 3);
   c.fill();
   c.fillStyle = '#fff6ea';
   c.beginPath();
-  c.moveTo(28, 22);
-  c.lineTo(34, 32);
-  c.lineTo(28, 42);
-  c.lineTo(22, 32);
+  c.moveTo(bx + 14, 22);
+  c.lineTo(bx + 20, 32);
+  c.lineTo(bx + 14, 42);
+  c.lineTo(bx + 8, 32);
   c.closePath();
   c.fill();
   c.fillStyle = '#ffffff';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.font = `900 ${n >= 10 ? 40 : 44}px ${COUNT_FONT}`;
-  c.fillText(String(n), 84, 34);
+  c.fillText(String(n), 142, 34);
   dc.tex.needsUpdate = true;
+}
+
+const suitMarks: Array<THREE.CanvasTexture | undefined> = [];
+
+/** Значок козырной масти для клеёнки: золотое свечение, тёмный ободок, золото, светлый диск и масть цветом карты. Один на масть. */
+function suitMarkTexture(suit: number): THREE.CanvasTexture {
+  const old = suitMarks[suit];
+  if (old) return old;
+  const S = 256;
+  const m = S / 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = S;
+  canvas.height = S;
+  const ctx = canvas.getContext('2d')!;
+  const glow = ctx.createRadialGradient(m, m, m * 0.7, m, m, m);
+  glow.addColorStop(0, 'rgba(255, 208, 70, 0.85)');
+  glow.addColorStop(1, 'rgba(255, 208, 70, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(m, m, m, 0, Math.PI * 2);
+  ctx.fill();
+  // ободок тёмный, чтобы значок читался и на светлой, и на красной клетке клеёнки
+  for (const [r, color] of [[0.82, '#4a2a16'], [0.77, '#f2b92f'], [0.68, '#fff6e0']] as const) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(m, m, m * r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = suit >= 2 ? '#cc2730' : '#1d1f2c';
+  drawSuit(ctx, suit, m, m, m * 0.95);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  suitMarks[suit] = tex;
+  return tex;
+}
+
+const frames = new Map<number, THREE.CanvasTexture>();
+
+/** Свечение вокруг карты шириной pad (м): золотой ободок с тёмным контуром и мягкий ореол. Саму карту закроет она сама. */
+function frameTexture(pad: number): THREE.CanvasTexture {
+  const old = frames.get(pad);
+  if (old) return old;
+  const K = 1000;
+  const p = Math.round(pad * K);
+  const w = Math.round(CARD_W * K);
+  const h = Math.round(CARD_H * K);
+  const r = Math.round(w * 0.1);
+  const ring = Math.max(5, Math.round(p * 0.28));
+  const canvas = document.createElement('canvas');
+  canvas.width = w + 2 * p;
+  canvas.height = h + 2 * p;
+  const ctx = canvas.getContext('2d')!;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255, 190, 40, 1)';
+  ctx.shadowBlur = p * 0.9;
+  ctx.fillStyle = '#ffc93a';
+  ctx.beginPath();
+  ctx.roundRect(p - 2, p - 2, w + 4, h + 4, r + 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(92, 48, 8, 0.75)';
+  ctx.beginPath();
+  ctx.roundRect(p - ring - 3, p - ring - 3, w + 2 * ring + 6, h + 2 * ring + 6, r + ring + 3);
+  ctx.stroke();
+  ctx.lineWidth = ring;
+  ctx.strokeStyle = '#ffd84d';
+  ctx.beginPath();
+  ctx.roundRect(p - ring / 2 - 1, p - ring / 2 - 1, w + ring + 2, h + ring + 2, r + ring / 2 + 1);
+  ctx.stroke();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  frames.set(pad, tex);
+  return tex;
+}
+
+/**
+ * Светящаяся подкладка: без света и тумана, золото не сереет. Сдвига глубины (polygonOffset) нет: под острым углом он
+ * уносит плоскость глубже клеёнки, и она пропадает; от карт её отделяют миллиметры по высоте.
+ */
+function glowMaterial(map: THREE.Texture, opacity: number): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({ map, transparent: true, opacity, depthWrite: false, fog: false, toneMapped: false });
 }
 
 function newCard(cell: number): Card {
@@ -269,6 +386,10 @@ export class DurakTables3D {
   private readonly tables: Table[] = [];
   private readonly allowedTables: ReadonlySet<number>;
   private readonly tomatoes: Tomato[] = [];
+  /** Рамка под козырной картой (материал общий: мигает у всех столов вместе) и отметки под козырями на столе */
+  private readonly frameMat: THREE.MeshBasicMaterial;
+  private readonly marksMat: THREE.MeshBasicMaterial;
+  private readonly marks: THREE.InstancedMesh;
   private now = 0;
   private markN = 0;
   private flightN = 0;
@@ -291,15 +412,34 @@ export class DurakTables3D {
     this.mesh.receiveShadow = true;
     world.scene.add(this.mesh);
 
+    this.frameMat = glowMaterial(frameTexture(FRAME_PAD), 1);
+    this.marksMat = glowMaterial(frameTexture(MARKS_PAD), 0.85);
+    this.marks = new THREE.InstancedMesh(new THREE.PlaneGeometry(CARD_W + 2 * MARKS_PAD, CARD_H + 2 * MARKS_PAD), this.marksMat, MAX_MARKS);
+    this.marks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.marks.count = 0;
+    this.marks.frustumCulled = false;
+    this.marks.renderOrder = 2;
+    world.scene.add(this.marks);
+    const frameGeo = new THREE.PlaneGeometry(CARD_W + 2 * FRAME_PAD, CARD_H + 2 * FRAME_PAD);
+    const markGeo = new THREE.PlaneGeometry(MARK_SIZE, MARK_SIZE);
+
     const { map } = world;
     map.tables.forEach((tp, t) => {
       const chairs: Interactable[] = [];
       for (const it of map.interact) if (it.kind === 'durak' && seatTable(it.arg) === t) chairs[seatChair(it.arg)] = it;
+      const mark = new THREE.Mesh(markGeo, glowMaterial(suitMarkTexture(0), 1));
+      const frame = new THREE.Mesh(frameGeo, this.frameMat);
+      for (const m of [mark, frame]) {
+        m.visible = false;
+        m.renderOrder = 2;
+        world.scene.add(m);
+      }
       this.tables.push({
         t, x: tp.x, z: tp.z, chairs, angles: chairs.map((it) => Math.atan2(it.x - tp.x, it.z - tp.z)),
         view: null, cards: new Map(), bots: new Array<Avatar | null>(TABLE_SEATS).fill(null),
         botPose: chairs.map((it) => ({ x: it.x, y: it.y, z: it.z, yaw: it.yaw, pitch: 0, flags: E_ALIVE | E_GROUNDED })),
         incoming: new Array<number>(TABLE_SEATS).fill(0), src: new Map(), goneTo: -2, dirty: false, count: makeDeckCount(world.scene),
+        mark, markSuit: 0, frame,
       });
     });
 
@@ -419,7 +559,10 @@ export class DurakTables3D {
       tb.dirty = false;
       tb.count.on = false;
       tb.count.sprite.visible = false;
+      tb.mark.visible = false;
+      tb.frame.visible = false;
     }
+    this.marks.count = 0;
     for (const tm of this.tomatoes) {
       tm.t = -1;
       tm.done = null;
@@ -433,7 +576,13 @@ export class DurakTables3D {
   update(dt: number, time: number, camPos: THREE.Vector3): void {
     this.now += dt;
     let n = 0;
+    let marks = 0;
+    // козырь мягко мигает: рамка и отметки — прозрачностью, значок на клеёнке «дышит» размером (он непрозрачный, чтобы клетка не просвечивала)
+    const pulse = 0.5 + 0.5 * Math.sin(time * 3.2);
+    this.frameMat.opacity = 0.62 + 0.38 * pulse;
+    this.marksMat.opacity = 0.7 + 0.2 * pulse;
     for (const tb of this.tables) {
+      const trump = tb.view?.game ? suitOf(tb.view.game.trump) : -1;
       for (const [key, c] of tb.cards) {
         if (this.now >= c.t0) {
           const k = c.dur > 0 ? Math.min(1, (this.now - c.t0) / c.dur) : 1;
@@ -456,7 +605,21 @@ export class DurakTables3D {
         this.mesh.setMatrixAt(n, _m);
         this.cellAttr.setX(n, c.cell);
         n++;
+        // козырь лежит на столе — под ним свечение, едет вместе с картой (козырь под колодой — отдельно, в рамке)
+        if (trump >= 0 && marks < MAX_MARKS && key !== 'tr' && c.cell < CARD_ATLAS.back && suitOf(c.cell) === trump) {
+          _v.set(0, 0, -UNDER_CARD).applyQuaternion(c.q).add(c.p);
+          _m.compose(_v, c.q, _s.setScalar(c.s));
+          this.marks.setMatrixAt(marks++, _m);
+        }
       }
+      const tr = tb.cards.get('tr');
+      tb.frame.visible = !!tr && !tr.dying && tr.s > 0.001;
+      if (tr && tb.frame.visible) {
+        tb.frame.position.copy(_v.set(0, 0, -UNDER_CARD).applyQuaternion(tr.q).add(tr.p));
+        tb.frame.quaternion.copy(tr.q);
+        tb.frame.scale.setScalar(tr.s);
+      }
+      tb.mark.scale.setScalar(1 + 0.05 * pulse);
       if (tb.dirty) this.layout(tb);
       const dc = tb.count;
       dc.sprite.visible = dc.on && dc.sprite.position.distanceTo(camPos) < COUNT_FAR;
@@ -465,6 +628,8 @@ export class DurakTables3D {
     this.mesh.count = n;
     this.mesh.instanceMatrix.needsUpdate = true;
     this.cellAttr.needsUpdate = true;
+    this.marks.count = marks;
+    this.marks.instanceMatrix.needsUpdate = true;
     this.updateTomatoes(dt);
   }
 
@@ -591,9 +756,11 @@ export class DurakTables3D {
     const v = tb.view;
     const g = v?.game ?? null;
     tb.count.on = !!g && !g.over && g.deck > 0;
+    tb.mark.visible = !!g && !g.over;
     if (v && g) {
       const va = this.viewAngle(tb);
       const chairOf = (p: number): number => v.seats.findIndex((s) => s.p === p);
+      if (tb.mark.visible) this.placeMark(tb, va, suitOf(g.trump));
 
       // пары: до трёх в ряд, по центру ряда
       const n = g.table.length;
@@ -612,7 +779,7 @@ export class DurakTables3D {
       const backs = g.deck >= 2 ? Math.min(DECK_BACKS_MAX, Math.ceil((g.deck - 1) / DECK_PER_BACK)) : 0;
       for (let i = 0; i < backs; i++) this.flat(tb, mark, `k${i}`, CARD_ATLAS.back, va, DECK_U, 0, TOP_Y + 0.004 + i * 0.004, Math.sin(i * 2.1) * 0.04);
       if (tb.count.on) {
-        drawDeckCount(tb.count, g.deck);
+        drawDeckCount(tb.count, g.deck, suitOf(g.trump));
         this.local(tb, va, COUNT_U, 0, TOP_Y + COUNT_Y, tb.count.sprite.position);
       }
 
@@ -661,6 +828,16 @@ export class DurakTables3D {
     }
     tb.src.clear();
     tb.goneTo = -2;
+  }
+
+  /** Значок козырной масти: на клеёнке у колоды, повёрнут к смотрящему (верх значка — от него). */
+  private placeMark(tb: Table, va: number, suit: number): void {
+    if (tb.markSuit !== suit) {
+      tb.markSuit = suit;
+      (tb.mark.material as THREE.MeshBasicMaterial).map = suitMarkTexture(suit);
+    }
+    this.local(tb, va, MARK_U, MARK_W, MARK_Y, tb.mark.position);
+    flatQ(va, tb.mark.quaternion);
   }
 
   /** Карта плашмя в координатах стола: u — вправо от смотрящего, w — от него вдаль, rot — поворот против часовой. */

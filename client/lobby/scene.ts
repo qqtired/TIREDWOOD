@@ -446,6 +446,7 @@ export class LobbyScene implements Scene {
       if (this.dkSeat >= 0) d.net.send({ t: 'durak', table: seatTable(this.dkSeat), a, card, on });
     };
     this.dkHud.onLeave = () => this.leaveTable(true);
+    this.dkHud.balance = () => d.ui.me().tokens;
     const blackjackTable = this.world.map.tables[BJ_TABLE];
     this.blackjack3d = new BlackjackTable3D(this.world, d.sound, blackjackTable.x, blackjackTable.z);
     this.bjHud = new BlackjackHud(this.hud.root);
