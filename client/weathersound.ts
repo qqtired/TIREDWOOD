@@ -54,6 +54,8 @@ export class RainVoice {
     this.bed = ctx.createGain();
     this.bed.gain.value = 0;
     this.bed.connect(this.out);
+    // шум — длинная петля (audio.ts loopBuf): левый и правый края берём из мест, отстоящих на полпетли
+    const from = this.rnd();
     for (const side of [-0.7, 0.7]) {
       const src = ctx.createBufferSource();
       src.buffer = noise;
@@ -69,7 +71,7 @@ export class RainVoice {
       const pan = ctx.createStereoPanner();
       pan.pan.value = side;
       src.connect(lp).connect(hp).connect(pan).connect(this.bed);
-      src.start(0, this.rnd() * 1.5 + (side > 0 ? 0.4 : 0));
+      src.start(0, ((from + (side > 0 ? 0.5 : 0)) % 1) * noise.duration);
       this.lps.push(lp);
     }
     // плотность ливня: низкий шум (капли по воде и плитке издалека)

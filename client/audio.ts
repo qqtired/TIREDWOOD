@@ -1,5 +1,6 @@
 // Звук синтезируется на лету (WebAudio) — ни одного файла. Выстрелы и шаги других
 // игроков — объёмные (HRTF), чтобы на слух понимать, откуда стреляют. Дождь и гром — weathersound.ts.
+import { FAR_GULL_EVERY, GULL_GAP, GULL_NEAR, gullCall, LOOP_FADE, loopNoise, RAIN_LOOP, SURF_LOOPS } from './ambience.ts';
 import { DEFAULTS } from './settings.ts';
 import { compressorMakeup, crowdDuck, type Voice, VoicePool, voicePrio, type VoiceStats } from './voices.ts';
 import { RainVoice, thunderSound } from './weathersound.ts';
@@ -308,6 +309,15 @@ export class Sound {
         d[i] = w;
       }
     }
+    return buf;
+  }
+
+  /** Шум-петля для моря и дождя: длинная и без стыка (ambience.ts) — в отличие от общего шума на 2 с, повтор не слышен. */
+  private loopBuf(seconds: number, brown: boolean): AudioBuffer {
+    const ctx = this.ctx!;
+    const data = loopNoise(Math.round(ctx.sampleRate * seconds), Math.round(ctx.sampleRate * LOOP_FADE), brown);
+    const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+    buf.getChannelData(0).set(data);
     return buf;
   }
 
@@ -896,13 +906,18 @@ export class Sound {
     this.noise(d, .7, 'lowpass', 240, 170, .5, .015, 0, .12, true);
   }
 
-  /** Spatial call for the nearby harbor gulls; global distant ambience remains unchanged. */
+  /**
+   * Крик ближней чайки набережной. Слышен только вблизи (GULL_NEAR: на площади — нет, у берега — да) и не чаще раза в
+   * 7–15 с на всех чаек вместе; каждый раз другой — 1–3 слога, своя высота и громкость (ambience.ts). Раньше шесть чаек
+   * по очереди кричали одним и тем же «ки-йа ки-йа», на площади — раз в 6 с.
+   */
   gullCry(pos: V3): void {
-    if (!this.ok) return;
-    const d = this.out(pos, this.amb, .15, 4);
-    for (let i = 0; i < 2; i++) {
-      this.tone(d, 1200, 1850, .09, 'triangle', .043, i * .28, .025);
-      this.tone(d, 1850, 920, .19, 'triangle', .033, i * .28 + .09, .025);
+    if (!this.ok || Math.hypot(pos[0] - this.lx, pos[2] - this.lz) > GULL_NEAR) return;
+    if (!this.once('gullCry', GULL_GAP[0] + Math.random() * (GULL_GAP[1] - GULL_GAP[0]))) return;
+    const d = this.out(pos, this.amb, .15, 4, 'gullCry');
+    for (const s of gullCall()) {
+      this.tone(d, s.base, s.base * 1.5, .09, 'triangle', .036 * s.gain, s.at, .03);
+      this.tone(d, s.base * 1.5, s.base * .75, .19, 'triangle', .028 * s.gain, s.at + .09, .03);
     }
   }
 
@@ -1654,10 +1669,17 @@ export class Sound {
 
   private startAmbience(): void {
     const ctx = this.ctx!;
-    // прибой: коричневый шум через фильтр, громкость «дышит»
-    const src = ctx.createBufferSource();
-    src.buffer = this.brownBuf;
-    src.loop = true;
+    // прибой: коричневый шум через фильтр, громкость «дышит». Шум — две петли разной длины без стыка (ambience.ts): раньше
+    // была одна петля в 2 с, и на слух ровно раз в две секунды возвращался один и тот же рокот
+    const surf = ctx.createGain();
+    surf.gain.value = Math.SQRT1_2;
+    for (const sec of SURF_LOOPS) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.loopBuf(sec, true);
+      src.loop = true;
+      src.connect(surf);
+      src.start(0, Math.random() * sec);
+    }
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
     lp.frequency.value = 520;
@@ -1673,8 +1695,7 @@ export class Sound {
     const lg2 = ctx.createGain();
     lg2.gain.value = 180;
     lfo2.connect(lg2).connect(lp.frequency);
-    src.connect(lp).connect(g).connect(this.amb);
-    src.start();
+    surf.connect(lp).connect(g).connect(this.amb);
     lfo.start();
     lfo2.start();
   }
@@ -1689,7 +1710,7 @@ export class Sound {
     if (!ctx || !this.started) return;
     if (!this.rainVoice) {
       if (level < 0.005) return;
-      this.rainVoice = new RainVoice(ctx, this.amb, this.noiseBuf, this.brownBuf);
+      this.rainVoice = new RainVoice(ctx, this.amb, this.loopBuf(RAIN_LOOP, false), this.loopBuf(RAIN_LOOP, true));
     }
     this.rainVoice.set(level, shelter);
   }
@@ -1706,7 +1727,7 @@ export class Sound {
     this.crowdTick();
     this.nextGull -= dt;
     if (this.nextGull <= 0) {
-      this.nextGull = 7 + Math.random() * 14;
+      this.nextGull = FAR_GULL_EVERY[0] + Math.random() * (FAR_GULL_EVERY[1] - FAR_GULL_EVERY[0]);
       if (this.rainLevel < 0.3) this.gull();
     }
     this.rainVoice?.tick(dt);
@@ -1717,17 +1738,20 @@ export class Sound {
     }
   }
 
+  /** Далёкая чайка — общий фон: не чаще раза в 5 с вместе с ближними, 1–3 слога, каждый раз другая; тише прежнего. */
   private gull(): void {
     const ctx = this.ctx!;
+    if (!this.once('gullCry', 5)) return;
+    const out = this.out(null, this.amb, 0, 3, 'gull');
+    if (out === this.mute) return;
     const pan = ctx.createStereoPanner();
     pan.pan.value = Math.random() * 1.6 - 0.8;
-    const g = ctx.createGain();
-    g.gain.value = 0.35;
-    pan.connect(g).connect(this.amb);
-    const n = 2 + Math.floor(Math.random() * 3);
-    const base = 1300 + Math.random() * 400;
-    for (let i = 0; i < n; i++) {
-      const t = ctx.currentTime + i * (0.24 + Math.random() * 0.08);
+    pan.connect(out);
+    const call = gullCall();
+    this.hold(out, ctx.currentTime + call[call.length - 1].at + 0.3);
+    for (const s of call) {
+      const base = s.base * 1.2;
+      const t = ctx.currentTime + s.at;
       const o = ctx.createOscillator();
       o.type = 'sawtooth';
       o.frequency.setValueAtTime(base * 0.8, t);
@@ -1739,7 +1763,7 @@ export class Sound {
       bp.Q.value = 2.5;
       const eg = ctx.createGain();
       eg.gain.setValueAtTime(0.0001, t);
-      eg.gain.exponentialRampToValueAtTime(0.09, t + 0.03);
+      eg.gain.exponentialRampToValueAtTime(0.022 * s.gain, t + 0.03);
       eg.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
       o.connect(bp).connect(eg).connect(pan);
       o.start(t);
