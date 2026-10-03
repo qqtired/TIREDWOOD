@@ -14,7 +14,7 @@ import { CollisionWorld } from '../shared/world.ts';
 
 function snapshot(tick: number, zombies: ZombieSnap[]): ArrayBuffer {
   const entities = encodeEntities([]);
-  const body = new Uint8Array(entities.length + fortTailSize(zombies.length));
+  const body = new Uint8Array(entities.length + fortTailSize(zombies, zombies.length));
   body.set(entities);
   encodeFortTail(body, entities.length, { gate: 1600, crystal: 2500, turrets: 0, jams: 0, left: zombies.length }, zombies, zombies.length);
   return encodeSnapshot({ ...makeHeader(), tick, phase: FT_WAVE, scoreA: 8 }, null, body).buffer as ArrayBuffer;

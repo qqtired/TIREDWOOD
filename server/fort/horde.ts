@@ -1,18 +1,21 @@
-// Орда «Крепости»: зомби — появление по расписанию волны, шаг по полю расстояний, расталкивание, ворота (встают
-// перед створками и бьют), кристалл, люди на земле рядом, липучки (лезут на стену, стоят на ходу, прыгают во двор),
-// пузыри (лопаются, задевая соседей, — цепочкой), застрявшие (обратно в начало дороги), история позиций для отката
-// выстрелов. Пул на FORT_MAX_ALIVE мест, в тике без аллокаций. Люди, ворота, кристалл и очки — через HordeHost (game.ts).
+// Орда «Крепости»: враги — появление по плану волны (director.ts: состав, ступени, дороги, HP и урон волны), шаг по
+// полю расстояний, расталкивание, ворота (встают перед створками и бьют), кристалл, люди на земле рядом, липучки
+// (лезут на стену, стоят на ходу, прыгают во двор), пузыри (лопаются, задевая соседей, — цепочкой), застрявшие (обратно
+// на дорогу), урон по области (гранаты arsenal, метеоры), история позиций для отката выстрелов. Пул на FORT_MAX_ALIVE
+// мест, в тике без аллокаций. Люди, ворота, кристалл и награды — через HordeHost (game.ts).
 import { DT, TICK_RATE } from '../../shared/constants.ts';
 import {
   BOSS_ARMOR, BOSS_BOMB_R, BOSS_CRYSTAL_DMG, BOSS_GATE_DMG, BOSS_OPEN_TICKS, BOSS_PULSE_R, BOSS_WARN_TICKS,
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
   CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
-  ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_BRUTE, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS, waveCounts,
+  ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
   Z_BOSS, Z_FLYER, Z_RUNNER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
-  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, defenderCount, waveRole, waveSpawnTicks, zombieHp, type FortEvent,
+  ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, isBossKind, kindFlags, type FortEvent,
 } from '../../shared/fort.ts';
+import { BOSS_BASE_HP, TIER_DMG, TIER_HP, TIER_SPEED, bossTeamMul, defenders, teamHpMul, waveHpMul } from '../../shared/fortwaves.ts';
 import { CLIMBS, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
-import type { ZombieSnap } from '../../shared/fortnet.ts';
+import { ZF_CREW, type ZombieSnap } from '../../shared/fortnet.ts';
+import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 
 /** История для отката выстрелов: тиков (откат — до MAX_REWIND_TICKS) */
@@ -47,6 +50,10 @@ export class Zombie {
   readonly slot: number;
   id = 0;
   kind = 0;
+  /** Ступень: 0 — обычный, 1 — элита, 2 — чемпион (TIER_*) */
+  tier = 0;
+  /** Абордажник с лодки */
+  crew = false;
   state = ZS_WALK;
   alive = false;
   hp = 0;
@@ -94,6 +101,7 @@ interface Spawn {
   at: number;
   kind: number;
   road: number;
+  tier: number;
 }
 
 /** Шаг сетки расталкивания: не меньше двух самых больших радиусов */
@@ -103,6 +111,9 @@ const REACH = 0.42 + 0.4;
 /** Ближе этого к воротам или постаменту — ждёт в толпе, а не «застрял» */
 const QUEUE_GATE = 12;
 const QUEUE_CRYSTAL = 7;
+/** Появляются на дороге в стольких метрах от её конца у ворот (плюс разброс): первые подходят через ~15 с, а не 26 */
+const SPAWN_NEAR = 38;
+const SPAWN_SPREAD = 18;
 
 const _p = { x: 0, z: 0 };
 const _d = { x: 0, z: 0 };
@@ -166,73 +177,74 @@ export class Horde {
     this.popBy.length = 0;
     this.wave = 0;
     this.hpHumans = 1;
+    this.plan = null;
+    this.replan = null;
+    this.hpScale = 1;
+    this.dmgMul = 1;
   }
 
-  /** Расписание волны: состав по числу людей, вперемешку, равномерно за waveSpawnTicks (бугаи — во второй половине). */
-  startWave(wave: number, humans: number, tick: number): void {
-    humans = defenderCount(humans);
-    this.wave = wave;
-    const counts = waveCounts(wave, humans);
-    const kinds: number[] = [];
-    for (let k = 0; k < Z_KINDS; k++) for (let i = 0; i < counts[k]; i++) kinds.push(k);
-    for (let i = kinds.length - 1; i > 0; i--) {
-      const j = Math.floor(this.rng() * (i + 1));
-      [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
-    }
-    // бугаи — не в первых 40 %: сначала мелочь, громилы подходят, когда на стенах уже жарко
-    const early = Math.floor(kinds.length * 0.4);
-    for (let i = 0; i < early; i++) {
-      if (kinds[i] !== Z_BRUTE) continue;
-      for (let tries = 0; tries < 20; tries++) {
-        const j = early + Math.floor(this.rng() * (kinds.length - early));
-        if (kinds[j] === Z_BRUTE) continue;
-        [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
-        break;
-      }
-    }
-    // Boss comes first and shares the same live pool. Each pulse has a visible direction and a gap afterwards.
-    const bossAt = kinds.indexOf(Z_BOSS);
-    if (bossAt >= 0) [kinds[0], kinds[bossAt]] = [kinds[bossAt], kinds[0]];
-    const span = waveSpawnTicks(wave);
-    const role = waveRole(wave);
-    this.queue = kinds.map((kind, i) => {
-      const pulse = Math.min(role.pulses - 1, Math.floor(i * role.pulses / kinds.length));
-      const start = Math.ceil(pulse * kinds.length / role.pulses);
-      const end = Math.ceil((pulse + 1) * kinds.length / role.pulses);
-      const within = (i - start) / Math.max(1, end - start);
-      return { at: tick + 30 + Math.floor(span * (pulse + within * (role.pulses === 1 ? 1 : 0.5)) / role.pulses), kind,
-        road: kind === Z_BOSS ? 1 : role.roads[pulse % role.roads.length] };
-    });
+  /**
+   * Волна по плану директора: очередь выхода (босс — первым), HP и урон волны. replan(n) — тот же план для n защитников
+   * (подкрепление, когда в волну входят новые).
+   */
+  startWave(plan: WavePlan, tick: number, replan: ((humans: number) => WavePlan) | null = null): void {
+    this.plan = plan;
+    this.replan = replan;
+    this.wave = plan.w;
+    this.hpHumans = plan.defenders;
+    this.hpScale = plan.hpScale;
+    this.dmgMul = plan.dmgMul;
+    const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
+    if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
+    this.queue = queue.sort((a, b) => a.at - b.at);
     this.queueAt = 0;
-    this.hpHumans = humans;
   }
 
   private hpHumans = 1;
   private wave = 0;
+  private plan: WavePlan | null = null;
+  private replan: ((humans: number) => WavePlan) | null = null;
+  /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul */
+  hpScale = 1;
+  dmgMul = 1;
 
   get defenders(): number { return this.hpHumans; }
+
+  /** План идущей волны (null — между волнами и в тестах без волны) */
+  get current(): WavePlan | null { return this.plan; }
 
   /** Peak concurrent roster within this wave. Departures never cancel committed pressure.
    * Add only a quota delta, retaining spent/dead enemies and existing damage fraction. */
   raiseDefenders(humans: number, tick: number): boolean {
-    const n = defenderCount(humans);
+    const n = defenders(humans);
     if (!this.wave || n <= this.hpHumans) return false;
-    const before = waveCounts(this.wave, this.hpHumans);
-    const after = waveCounts(this.wave, n);
+    const old = this.plan;
+    const next = this.replan && old ? this.replan(n) : null;
+    const prevHumans = this.hpHumans;
     this.hpHumans = n;
+    const scale = next ? next.hpScale : this.hpScale * teamHpMul(n) / teamHpMul(prevHumans);
+    const ratio = scale / this.hpScale;
+    const bossRatio = bossTeamMul(n) / bossTeamMul(prevHumans);
+    this.hpScale = scale;
     for (const z of this.zombies) {
       if (!z.alive) continue;
       const fraction = z.hp / z.maxHp;
-      z.maxHp = zombieHp(z.kind, n);
+      z.maxHp *= isBossKind(z.kind) ? bossRatio : ratio;
       z.hp = z.maxHp * fraction;
     }
     const extra: Spawn[] = [];
-    const roads = waveRole(this.wave).roads;
-    for (let kind = 0; kind < Z_KINDS; kind++) {
-      for (let i = before[kind]; i < after[kind]; i++) {
-        const at = extra.length;
-        extra.push({ at: tick + 3 * TICK_RATE + at * 10, kind, road: roads[at % roads.length] });
+    if (old && next) {
+      const before = planCounts(old);
+      const after = planCounts(next);
+      const roads = next.roads;
+      for (let kind = 0; kind < Z_KINDS; kind++) {
+        const tiers = next.spawns.filter((s) => s.kind === kind).map((s) => s.tier);
+        for (let i = before[kind]; i < after[kind]; i++) {
+          const at = extra.length;
+          extra.push({ at: tick + 3 * TICK_RATE + at * 10, kind, road: roads[at % roads.length], tier: tiers[i] ?? 0 });
+        }
       }
+      this.plan = { ...next, spawns: old.spawns, boats: old.boats };
     }
     // Consumed prefix is discarded; quota still derives from the locked roster, not queue length.
     this.queue = this.queue.slice(this.queueAt).concat(extra).sort((a, b) => a.at - b.at);
@@ -240,8 +252,23 @@ export class Horde {
     return true;
   }
 
-  /** Выпустить зомби kind с дороги road (тесты и расписание). null — мест нет. */
-  spawn(kind: number, road: number, hpHumans = this.hpHumans): Zombie | null {
+  /** HP врага на этой волне: босс — по формуле боссов, остальные — база × нормировка волны × ступень */
+  hpFor(kind: number, tier: number, hpHumans = this.hpHumans): number {
+    if (isBossKind(kind)) {
+      if (this.plan && this.plan.boss === kind) return this.plan.bossHp * bossTeamMul(hpHumans) / bossTeamMul(this.plan.defenders);
+      return BOSS_BASE_HP * waveHpMul(Math.max(1, this.wave)) * bossTeamMul(hpHumans);
+    }
+    const scale = this.plan ? this.hpScale * teamHpMul(hpHumans) / teamHpMul(this.hpHumans) : teamHpMul(hpHumans) * waveHpMul(Math.max(1, this.wave));
+    return ZK[kind].hp * scale * (TIER_HP[tier] ?? 1);
+  }
+
+  /** Урон врага z (по игроку, воротам, кристаллу): волна × ступень */
+  dmgOf(z: Zombie, base: number): number {
+    return base * this.dmgMul * (TIER_DMG[z.tier] ?? 1);
+  }
+
+  /** Выпустить врага kind с дороги road (тесты и расписание). null — мест нет. */
+  spawn(kind: number, road: number, hpHumans = this.hpHumans, tier = 0): Zombie | null {
     if (!ZK[kind] || !ROADS[road]) return null;
     let z: Zombie | null = null;
     for (const c of this.zombies) {
@@ -252,8 +279,11 @@ export class Horde {
     }
     if (!z) return null;
     const pts = ROADS[road].pts;
-    const [sx, sz] = pts[0];
-    const [nx, nz] = pts[1];
+    // босс и крылатки — с конца дороги (у леса); остальные — ближе, на SPAWN_NEAR…+SPREAD м от ворот по дороге
+    const far = kind === Z_BOSS || kind === Z_FLYER;
+    roadPoint(pts, far ? 1e9 : SPAWN_NEAR + this.rng() * SPAWN_SPREAD, _road);
+    const sx = _road.x;
+    const sz = _road.z;
     let x = sx;
     let zz = sz;
     for (let i = 0; i < 8; i++) {
@@ -268,14 +298,16 @@ export class Horde {
     z.id = this.nextId;
     this.nextId = this.nextId >= 65535 ? 1 : this.nextId + 1;
     z.kind = kind;
+    z.tier = isBossKind(kind) ? 0 : Math.max(0, Math.min(2, tier | 0));
+    z.crew = false;
     z.state = kind === Z_BOSS ? ZS_BOSS_APPROACH : ZS_WALK;
     z.alive = true;
-    z.maxHp = zombieHp(kind, hpHumans);
+    z.maxHp = this.hpFor(kind, z.tier, hpHumans);
     z.hp = z.maxHp;
     z.x = x;
     z.y = kind === Z_FLYER ? WALL_H + 4 : 0;
     z.z = zz;
-    z.yaw = Math.atan2(-(nx - sx), -(nz - sz));
+    z.yaw = Math.atan2(-_road.dx, -_road.dz);
     z.vx = 0;
     z.vz = 0;
     z.road = road;
@@ -304,6 +336,39 @@ export class Horde {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
     if (z.kind === Z_BOSS && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    this.hurt(z, dmg, by, head, hx, hy, hz);
+    this.drainPops();
+  }
+
+  /**
+   * Урон по области (гранаты и снаряды arsenal, метеоры): всем живым, чей хитбокс задевает шар r вокруг (x, y, z).
+   * Взрыв обходит щит и кастрюлю Чугунка (урон полный), броня боссов вне окна уязвимости — как от выстрела.
+   * by — кто бросил (0 — никто). Возвращает, скольких задело.
+   */
+  areaDamage(x: number, y: number, z: number, r: number, dmg: number, by: number): number {
+    if (!(dmg > 0) || !Number.isFinite(dmg) || !(r > 0)) return 0;
+    let hits = 0;
+    for (const o of this.zombies) {
+      if (!o.alive) continue;
+      const k = ZK[o.kind];
+      const d = Math.hypot(o.x - x, o.y + k.hcy - y, o.z - z) - Math.max(k.hrx, k.hry) * 0.6;
+      if (d > r) continue;
+      let amount = dmg;
+      if (o.kind === Z_BOSS && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      this.hurt(o, amount, by, false, o.x, o.y + k.hcy, o.z);
+      hits++;
+    }
+    this.drainPops();
+    return hits;
+  }
+
+  /** Признаки типа (KF_AIR, KF_SEA, KF_BOSS, KF_ARMORED) — для башен arsenal */
+  flagsOf(z: Zombie): number {
+    return kindFlags(z.kind);
+  }
+
+  private hurt(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number): void {
+    if (!z.alive) return;
     z.hp -= dmg;
     if (by) {
       z.lastBy = by;
@@ -311,7 +376,6 @@ export class Horde {
     }
     this.host.event(['zhit', by, z.id, Math.round(dmg), head ? 1 : 0, r2(hx), r2(hy), r2(hz)]);
     if (z.hp <= 0.5) this.kill(z, by);
-    this.drainPops();
   }
 
   private kill(z: Zombie, by: number): void {
@@ -319,7 +383,7 @@ export class Horde {
     z.alive = false;
     z.hp = 0;
     this.alive--;
-    this.host.event(['zdie', z.id, by, r2(z.x), r2(z.y), r2(z.z), z.kind]);
+    this.host.event(['zdie', z.id, by, r2(z.x), r2(z.y), r2(z.z), z.kind, z.tier]);
     this.host.killed(z, by);
     if (z.kind === Z_BLOATER) {
       this.pops.push(z);
@@ -335,19 +399,21 @@ export class Horde {
       const host = this.host;
       host.event(['pop', r2(b.x), r2(b.y + 0.8), r2(b.z)]);
       if (host.gateUp() && rectDist(b.x, b.z, GATE.x0, GATE.face - 0.5, GATE.x1, GATE.z1) < POP_R
-        && !host.traceAttack(b.x, b.y + 0.8, b.z, clamp(b.x, GATE.x0, GATE.x1), clamp(b.y + 0.8, 0, GATE.h), clamp(b.z, GATE.face, GATE.z1), _attack)) host.hitGate(POP_GATE);
+        && !host.traceAttack(b.x, b.y + 0.8, b.z, clamp(b.x, GATE.x0, GATE.x1), clamp(b.y + 0.8, 0, GATE.h), clamp(b.z, GATE.face, GATE.z1), _attack)) host.hitGate(this.dmgOf(b, POP_GATE));
       const D = PEDESTAL;
       if (rectDist(b.x, b.z, D.x0, D.z0, D.x1, D.z1) < POP_R && b.y < 2
-        && !host.traceAttack(b.x, b.y + 0.8, b.z, clamp(b.x, D.x0, D.x1), Math.min(D.h, b.y + 0.8), clamp(b.z, D.z0, D.z1), _attack)) host.hitCrystal(POP_CRYSTAL);
+        && !host.traceAttack(b.x, b.y + 0.8, b.z, clamp(b.x, D.x0, D.x1), Math.min(D.h, b.y + 0.8), clamp(b.z, D.z0, D.z1), _attack)) host.hitCrystal(this.dmgOf(b, POP_CRYSTAL));
       for (const p of host.targets()) {
         if (Math.hypot(p.x - b.x, p.y - b.y, p.z - b.z) < POP_R
-          && !host.traceAttack(b.x, b.y + 0.8, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, POP_PLAYER);
+          && !host.traceAttack(b.x, b.y + 0.8, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, this.dmgOf(b, POP_PLAYER));
       }
+      // по своим — как 100 HP шаркуна на этой волне: цепочка пузырей остаётся оружием и на высоких волнах
+      const popZ = POP_ZOMBIE * waveHpMul(Math.max(1, this.wave));
       for (const o of this.zombies) {
         if (!o.alive || o === b) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= POP_R) continue;
         if (host.traceAttack(b.x, b.y + 0.8, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
-        o.hp -= POP_ZOMBIE;
+        o.hp -= isBossKind(o.kind) ? popZ * BOSS_ARMOR : popZ;
         if (o.hp <= 0.5) this.kill(o, by);
       }
     }
@@ -362,7 +428,7 @@ export class Horde {
     // расписание волны
     while (this.queueAt < this.queue.length && this.queue[this.queueAt].at <= tick) {
       const s = this.queue[this.queueAt];
-      if (!this.spawn(s.kind, s.road)) break; // мест нет — подождут
+      if (!this.spawn(s.kind, s.road, this.hpHumans, s.tier)) break; // мест нет — подождут
       this.queueAt++;
     }
     const gateUp = this.host.gateUp();
@@ -418,9 +484,9 @@ export class Horde {
       if (z.t > 0) return;
       for (const p of this.host.targets()) {
         if (Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) < FLY_R
-          && !this.host.traceAttack(z.x, z.y + 0.5, z.z, p.x, p.y + 0.8, p.z, _attack)) this.host.hitPlayer(z.id, p.id, ZK[Z_FLYER].hit);
+          && !this.host.traceAttack(z.x, z.y + 0.5, z.z, p.x, p.y + 0.8, p.z, _attack)) this.host.hitPlayer(z.id, p.id, this.dmgOf(z, ZK[Z_FLYER].hit));
       }
-      if (!z.chase) this.host.hitCrystal(FLY_CRYSTAL_DMG);
+      if (!z.chase) this.host.hitCrystal(this.dmgOf(z, FLY_CRYSTAL_DMG));
       z.atk = (z.atk + 1) & 255;
       this.host.event(['blast', ZS_FLY_DIVE, r2(z.toX), r2(z.toY), r2(z.toZ), FLY_R]);
       z.state = ZS_FLY_RECOVER;
@@ -448,7 +514,7 @@ export class Horde {
     const dz = tz - 4.5 - z.z;
     const d = Math.hypot(dx, dy, dz);
     if (d > 1.2) {
-      const move = Math.min(d, ZK[Z_FLYER].speed * DT);
+      const move = Math.min(d, ZK[Z_FLYER].speed * (TIER_SPEED[z.tier] ?? 1) * DT);
       z.x += dx / d * move;
       z.y += dy / d * move;
       z.z += dz / d * move;
@@ -519,11 +585,11 @@ export class Horde {
           ? Math.hypot(p.x - z.toX, p.z - z.toZ) < r && p.y >= WALL_H - 0.4 && p.y < WALL_H + 1.2
           : Math.hypot(p.x - z.toX, p.y + 0.8 - z.toY, p.z - z.toZ) < r;
         const visible = !this.host.traceAttack(z.toX, z.toY + 0.05, z.toZ, p.x, p.y + 0.8, p.z, _attack);
-        if (inArea && visible) this.host.hitPlayer(z.id, p.id, attack === ZS_BOSS_GATE ? 20 : attack === ZS_BOSS_BOMB ? 24 : ZK[Z_BOSS].hit);
+        if (inArea && visible) this.host.hitPlayer(z.id, p.id, this.dmgOf(z, attack === ZS_BOSS_GATE ? 20 : attack === ZS_BOSS_BOMB ? 24 : ZK[Z_BOSS].hit));
       }
       if (attack === ZS_BOSS_GATE) {
-        if (this.host.gateUp()) this.host.hitGate(BOSS_GATE_DMG);
-      } else if (attack === ZS_BOSS_BOMB && !z.chase && !covered) this.host.hitCrystal(BOSS_CRYSTAL_DMG);
+        if (this.host.gateUp()) this.host.hitGate(this.dmgOf(z, BOSS_GATE_DMG));
+      } else if (attack === ZS_BOSS_BOMB && !z.chase && !covered) this.host.hitCrystal(this.dmgOf(z, BOSS_CRYSTAL_DMG));
       z.atk = (z.atk + 1) & 255;
       this.host.event(['blast', attack, r2(z.toX), r2(z.toY), r2(z.toZ), r]);
       z.state = ZS_BOSS_OPEN;
@@ -588,7 +654,7 @@ export class Horde {
             this.kill(z, 0);
             return;
           }
-          host.hitPlayer(z.id, target.id, k.hit);
+          host.hitPlayer(z.id, target.id, this.dmgOf(z, k.hit));
         }
       } else if (best > 1e-6) {
         dx = tx / best;
@@ -624,7 +690,7 @@ export class Horde {
               this.kill(z, 0);
               return;
             }
-            host.hitGate((k.gateDps * Z_GATE_EVERY) / TICK_RATE);
+            host.hitGate(this.dmgOf(z, (k.gateDps * Z_GATE_EVERY) / TICK_RATE));
           }
         } else if (inside) {
           const D = PEDESTAL;
@@ -638,7 +704,7 @@ export class Horde {
                 this.kill(z, 0);
                 return;
               }
-              host.hitCrystal((k.crystalDps * Z_GATE_EVERY) / TICK_RATE);
+              host.hitCrystal(this.dmgOf(z, (k.crystalDps * Z_GATE_EVERY) / TICK_RATE));
             }
           }
         }
@@ -671,7 +737,7 @@ export class Horde {
     }
 
     z.state = attacking ? ZS_ATTACK : ZS_WALK;
-    const speed = attacking ? 0 : k.speed * host.slow(z.x, z.z);
+    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * host.slow(z.x, z.z);
     z.vx += (dx * speed - z.vx) * 0.25;
     z.vz += (dz * speed - z.vz) * 0.25;
     z.x += z.vx * DT;
@@ -697,11 +763,11 @@ export class Horde {
     }
   }
 
-  /** Обратно в начало своей дороги */
+  /** Обратно на свою дорогу (туда, где появляются) */
   private restart(z: Zombie): void {
-    const [sx, sz] = ROADS[z.road].pts[0];
-    z.x = sx;
-    z.z = sz;
+    roadPoint(ROADS[z.road].pts, SPAWN_NEAR + SPAWN_SPREAD, _road);
+    z.x = _road.x;
+    z.z = _road.z;
     z.y = 0;
     z.vx = 0;
     z.vz = 0;
@@ -743,7 +809,7 @@ export class Horde {
         if (z.atkCd === 0) {
           z.atkCd = Z_HIT_EVERY;
           z.atk = (z.atk + 1) & 255;
-          this.host.hitPlayer(z.id, target.id, k.hit);
+          this.host.hitPlayer(z.id, target.id, this.dmgOf(z, k.hit));
         }
       } else {
         z.yaw = Math.atan2(c.nx, c.nz);
@@ -880,10 +946,12 @@ export class Horde {
     let n = 0;
     for (const z of this.zombies) {
       if (!z.alive) continue;
-      const s = out[n] ?? (out[n] = { id: 0, kind: 0, state: 0, hp: 1, x: 0, y: 0, z: 0, yaw: 0, atk: 0 });
+      const s = out[n] ?? (out[n] = { id: 0, kind: 0, state: 0, hp: 1, x: 0, y: 0, z: 0, yaw: 0, atk: 0, flags: 0 });
       s.id = z.id;
       s.kind = z.kind;
       s.state = z.state;
+      s.flags = z.tier | (z.crew ? ZF_CREW : 0);
+      s.r = attackRadius(z.state);
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
       s.y = z.y;
@@ -904,6 +972,46 @@ export class Horde {
   byId(id: number): Zombie | null {
     for (const z of this.zombies) if (z.alive && z.id === id) return z;
     return null;
+  }
+}
+
+const _road = { x: 0, z: 0, dx: 0, dz: 1 };
+
+/**
+ * Точка на дороге в dist метрах от её конца у ворот (больше длины — начало дороги); dx, dz — куда дальше идти.
+ * Дорога — ломаная от начала к воротам.
+ */
+export function roadPoint(pts: ReadonlyArray<readonly [number, number]>, dist: number, out: { x: number; z: number; dx: number; dz: number }): void {
+  let left = Math.max(0, dist);
+  for (let i = pts.length - 1; i > 0; i--) {
+    const [x1, z1] = pts[i];
+    const [x0, z0] = pts[i - 1];
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    if (left <= len || i === 1) {
+      const u = len > 0 ? Math.max(0, 1 - Math.min(left, len) / len) : 0;
+      out.x = x0 + (x1 - x0) * u;
+      out.z = z0 + (z1 - z0) * u;
+      out.dx = len > 0 ? (x1 - x0) / len : 0;
+      out.dz = len > 0 ? (z1 - z0) / len : 1;
+      return;
+    }
+    left -= len;
+  }
+  out.x = pts[0][0];
+  out.z = pts[0][1];
+  out.dx = 0;
+  out.dz = 1;
+}
+
+/** Радиус метки атаки в состоянии (для снимка) */
+function attackRadius(state: number): number {
+  switch (state) {
+    case ZS_FLY_WARN:
+    case ZS_FLY_DIVE: return FLY_R;
+    case ZS_BOSS_GATE: return 6;
+    case ZS_BOSS_BOMB: return BOSS_BOMB_R;
+    case ZS_BOSS_PULSE: return BOSS_PULSE_R;
+    default: return 0;
   }
 }
 

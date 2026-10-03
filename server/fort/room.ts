@@ -1,6 +1,6 @@
 // Комната «Крепость» для хаба: одна на процесс (есть, только если режим включён флагом сервера). Связывает соединения
 // с защитниками FortGame, итоги игры и AFK отдаёт наверх через хуки.
-import { FORT_MAX_HUMANS, type FortResultRow, type FortStatus, type FtReward } from '../../shared/fort.ts';
+import { FORT_MAX_HUMANS, type FortResultRow, type FortRunRec, type FortStatus, type FtReward } from '../../shared/fort.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import type { Input } from '../../shared/sim.ts';
@@ -24,6 +24,12 @@ export interface FortRoomHooks {
   result(c: Client, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
   /** 90 с без дела — на набережную */
   afk(c: Client): void;
+  /** Рекорды крепости (State.fortTop) и запись забега; свой лучший защитника */
+  top?(): readonly FortRunRec[];
+  saveRun?(rec: FortRunRec): void;
+  best?(c: Client): number;
+  /** Только в разработке: /wave N в чате */
+  dev?: boolean;
 }
 
 export class FortRoom implements Room {
@@ -44,7 +50,14 @@ export class FortRoom implements Room {
         const c = this.byPlayer.get(p);
         if (c) hooks.afk(c);
       },
+      top: () => hooks.top?.() ?? [],
+      saveRun: (rec) => hooks.saveRun?.(rec),
+      best: (p) => {
+        const c = this.byPlayer.get(p);
+        return c && hooks.best ? hooks.best(c) : 0;
+      },
     });
+    this.game.debug = hooks.dev ?? false;
   }
 
   get humans(): number {

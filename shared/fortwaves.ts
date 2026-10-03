@@ -190,8 +190,9 @@ export function shieldHp(w: number, humans: number): number {
 
 export const BOSS_BASE_HP = 2200;
 
-export function bossHp(w: number, humans: number): number {
-  return BOSS_BASE_HP * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * bossTier(w));
+/** HP босса: круг tier (по умолчанию — круг босс-волны) даёт +35 % за каждый */
+export function bossHp(w: number, humans: number, tier = bossTier(w)): number {
+  return BOSS_BASE_HP * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * tier);
 }
 
 /** Кракен: каждое щупальце и голова */

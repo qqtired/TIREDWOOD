@@ -1,12 +1,20 @@
-// Режим «Крепость» (выпуск 6): кооператив против желейных зомби. Общее для сервера и клиента: типы зомби, волны,
-// лавка, сроки фаз, жетоны и типы сообщений. Карта — fortmap.ts, прицел по зомби — fortaim.ts, хвост снимка — fortnet.ts.
+// Режим «Крепость»: кооператив против желейных зомби, волны до 300. Общее для сервера и клиента: фазы, правила зомби,
+// лавка, сроки, жетоны и типы сообщений. Типы врагов — fortkinds.ts, волны (боссы, десант, события, нагрузка, жетоны)
+// — fortwaves.ts, карта — fortmap.ts, прицел по зомби — fortaim.ts, хвост снимка — fortnet.ts.
 // Всё, что даёт жетоны и очки, решает сервер; клиент по этим же таблицам рисует и подсказывает.
 import { TICK_RATE } from './constants.ts';
+import { FORT_LAST_WAVE } from './fortwaves.ts';
 import type { Outfit } from './outfit.ts';
 
+export {
+  Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_BOSS, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED,
+  Z_RAM, Z_GOLEM, Z_BOAT, Z_TENTACLE, Z_KRAKEN, Z_KINDS, KF_AIR, KF_SEA, KF_BOSS, KF_ARMORED, KF_SUPER, ZK, kindOf, kindFlags,
+  isBossKind, isWalkerKind, fortBounty, type ZombieKind,
+} from './fortkinds.ts';
+
 export const FORT_MAX_HUMANS = 6;
-/** Волн до победы */
-export const FORT_WAVES = 8;
+/** Волн до победы — 300 (рекорды и так говорят, кто как далеко дошёл) */
+export const FORT_WAVES = FORT_LAST_WAVE;
 /** Живых зомби одновременно — не больше */
 export const FORT_MAX_ALIVE = 60;
 
@@ -20,8 +28,9 @@ export const FT_BREAK = 2;
 export const FT_END = 3;
 
 export const GATHER_TICKS = 25 * TICK_RATE;
-export const BREAK_TICKS = 20 * TICK_RATE;
-export const END_TICKS = 12 * TICK_RATE;
+/** Передышка: 15 с, после босса 20, перед супер-боссом 30 (breakSecondsAfter в fortwaves.ts) */
+export const BREAK_TICKS = 15 * TICK_RATE;
+export const END_TICKS = 15 * TICK_RATE;
 /** Колокол: все готовы — волна через столько */
 export const READY_TICKS = 3 * TICK_RATE;
 
@@ -43,49 +52,7 @@ export const FORT_RESPAWN_TICKS = 5 * TICK_RATE;
 export const FORT_REGEN_DELAY = 6 * TICK_RATE;
 export const FORT_REGEN_EVERY = 12;
 
-// --- зомби
-
-export const Z_WALKER = 0;
-export const Z_RUNNER = 1;
-export const Z_BRUTE = 2;
-export const Z_CLIMBER = 3;
-export const Z_BLOATER = 4;
-export const Z_FLYER = 5;
-export const Z_BOSS = 6;
-export const Z_KINDS = 7;
-
-export interface ZombieKind {
-  name: string;
-  hp: number;
-  /** м/с */
-  speed: number;
-  /** Урон воротам и кристаллу в секунду */
-  gateDps: number;
-  crystalDps: number;
-  /** Урон игроку за удар */
-  hit: number;
-  /** Очки матча за сбитого */
-  pts: number;
-  /** Радиус по земле (расталкивание, стены) */
-  r: number;
-  /** Хитбокс — эллипсоид: полуоси и высота центра над ногами */
-  hrx: number;
-  hry: number;
-  hcy: number;
-  /** Выше этого над ногами — в голову */
-  headY: number;
-  color: number;
-}
-
-export const ZK: readonly ZombieKind[] = [
-  { name: 'Шаркун', hp: 60, speed: 2.4, gateDps: 10, crystalDps: 12, hit: 10, pts: 10, r: 0.4, hrx: 0.5, hry: 0.8, hcy: 0.78, headY: 1.1, color: 0x8db37a },
-  { name: 'Шустрик', hp: 30, speed: 5.4, gateDps: 5, crystalDps: 6, hit: 8, pts: 10, r: 0.32, hrx: 0.42, hry: 0.62, hcy: 0.6, headY: 0.84, color: 0xd5e04f },
-  { name: 'Бугай', hp: 520, speed: 1.6, gateDps: 60, crystalDps: 50, hit: 25, pts: 50, r: 0.75, hrx: 0.95, hry: 1.25, hcy: 1.2, headY: 1.75, color: 0x8f5fc6 },
-  { name: 'Липучка', hp: 50, speed: 3.2, gateDps: 6, crystalDps: 8, hit: 10, pts: 20, r: 0.38, hrx: 0.48, hry: 0.78, hcy: 0.76, headY: 1.08, color: 0x3db7ae },
-  { name: 'Пузырь', hp: 40, speed: 1.9, gateDps: 0, crystalDps: 0, hit: 0, pts: 20, r: 0.55, hrx: 0.72, hry: 0.82, hcy: 0.8, headY: 1.18, color: 0xff8a6a },
-  { name: 'Крылатка', hp: 70, speed: 5.2, gateDps: 0, crystalDps: 0, hit: 18, pts: 25, r: 0.45, hrx: 0.68, hry: 0.72, hcy: 0.65, headY: 1.0, color: 0xcf70d9 },
-  { name: 'Барон Варенья', hp: 2600, speed: 2.5, gateDps: 0, crystalDps: 0, hit: 28, pts: 180, r: 2.1, hrx: 2.3, hry: 2.8, hcy: 2.7, headY: 4.2, color: 0x653d98 },
-];
+// --- зомби (типы и их числа — fortkinds.ts)
 
 /** Удар по воротам и кристаллу — раз в столько тиков (урон = dps × доля секунды) */
 export const Z_GATE_EVERY = 30;
@@ -127,6 +94,34 @@ export const ZS_BOSS_BOMB = 9;
 export const ZS_BOSS_PULSE = 10;
 export const ZS_BOSS_OPEN = 11;
 export const ZS_BOSS_APPROACH = 12;
+/** Плевальщик целится (метка на стене) */
+export const ZS_SPIT = 13;
+/** Подрывник поставил бочку: горит фитиль (метка) */
+export const ZS_PLANT = 14;
+/** Абордажник прыгает из лодки на берег */
+export const ZS_HOP = 15;
+/** Лодка: плывёт, у берега (высадка), пустая уходит */
+export const ZS_BOAT = 16;
+export const ZS_BOAT_LAND = 17;
+export const ZS_BOAT_LEAVE = 18;
+/** Таран: метка-дорожка рывка, сам рывок, топот (круг вокруг себя) */
+export const ZS_CHARGE_WARN = 19;
+export const ZS_CHARGE = 20;
+export const ZS_STOMP = 21;
+/** Валун: поднял камень (метка, куда упадёт), землетрясение по стене */
+export const ZS_THROW = 22;
+export const ZS_QUAKE = 23;
+/** Щупальце: покачивается, замах (метка), лежит после удара (открыто) */
+export const ZS_TENT_IDLE = 24;
+export const ZS_TENT_SLAM = 25;
+export const ZS_TENT_REST = 26;
+/** Голова кракена: под водой, плевок (метки), открыта */
+export const ZS_KRAKEN_DIVE = 27;
+export const ZS_KRAKEN_SPIT = 28;
+/** Метеор (событие) — только в метках и вспышках */
+export const ZS_METEOR = 29;
+/** Бочка подрывника взорвалась (вспышка) */
+export const ZS_BARREL = 30;
 
 export const FLY_WARN_TICKS = 72;
 export const FLY_DIVE_TICKS = 36;
@@ -141,63 +136,38 @@ export const BOSS_CRYSTAL_DMG = 85;
 export const BOSS_BOMB_R = 4;
 export const BOSS_PULSE_R = 10;
 
-export interface WaveRole {
-  name: string;
-  hint: string;
-  /** Дороги: запад, север, восток. Чередуются между отдельными выпусками. */
-  roads: readonly number[];
-  pulses: number;
-}
-
-export const WAVE_ROLES: readonly WaveRole[] = [
-  { name: 'Первые шаги', hint: 'Северная дорога · держите ворота и учитесь целиться в голову', roads: [1], pulses: 1 },
-  { name: 'Западный натиск', hint: 'Два захода с запада · шустрики идут вслед за шаркунами', roads: [0], pulses: 2 },
-  { name: 'По стенам', hint: 'Запад и восток · липучки обходят ворота по боковым стенам', roads: [0, 2], pulses: 2 },
-  { name: 'Крылья над стеной', hint: 'Первый налёт · крылатка замирает перед пикированием: стреляйте или уходите с метки', roads: [1, 0, 2], pulses: 3 },
-  { name: 'Взрывоопасная колонна', hint: 'Север · пузыри опасны у ворот, лопайте их вдали от крепости', roads: [1], pulses: 3 },
-  { name: 'Клещи', hint: 'Запад → восток → запад · прикрывайте стены и небо', roads: [0, 2, 0], pulses: 3 },
-  { name: 'Со всех сторон', hint: 'Три дороги, липучки и налёт · разделите позиции, помогайте соседям', roads: [0, 1, 2], pulses: 3 },
-  { name: 'Барон Варенья', hint: 'Уходите с красных меток · после атаки ядро открыто на 3 секунды', roads: [1, 0, 2], pulses: 3 },
-];
-
-export function waveRole(wave: number): WaveRole {
-  return WAVE_ROLES[Math.max(0, Math.min(FORT_WAVES - 1, wave - 1))];
-}
-
-/** Состав волны на одного: шаркуны, шустрики, бугаи, липучки, пузыри */
-export const WAVES: readonly (readonly number[])[] = [
-  [14, 0, 0, 0, 0, 0, 0],
-  [16, 8, 0, 0, 0, 0, 0],
-  [18, 8, 1, 5, 0, 0, 0],
-  [16, 10, 1, 5, 0, 4, 0],
-  [20, 10, 2, 5, 4, 5, 0],
-  [22, 12, 2, 7, 5, 6, 0],
-  [24, 14, 3, 8, 6, 7, 0],
-  [28, 16, 4, 10, 7, 9, 1],
-];
-
-/** Every extra defender adds work and 2.5% coordination pressure per head.
- * Most work comes from bodies/directions, not HP: ordinary HP is capped at 1.4×.
- * Round quotas up: small specialist packs must not disappear through rounding. */
+/** Защитников для сложности: 1…6 */
 export function defenderCount(humans: number): number {
   return Math.max(1, Math.min(FORT_MAX_HUMANS, Math.floor(humans) || 1));
 }
 
-export function waveCounts(wave: number, humans: number): number[] {
-  const base = WAVES[Math.max(0, Math.min(WAVES.length - 1, wave - 1))];
-  const n = defenderCount(humans);
-  const k = n * (1 + .025 * (n - 1)) / (1 + .08 * (n - 1));
-  return base.map((count, kind) => kind === Z_BOSS ? count : Math.ceil(count * k));
-}
-
-/** Boss scales close to total team DPS; normal enemies retain quick marker kills. */
-export function zombieHp(kind: number, humans: number): number {
-  return Math.round(ZK[kind].hp * (1 + (kind === Z_BOSS ? 1.1 : .08) * (defenderCount(humans) - 1)));
-}
-
-/** За сколько тиков волна выпускает всех своих зомби */
-export function waveSpawnTicks(wave: number): number {
-  return (14 + 2 * wave) * TICK_RATE;
+/**
+ * Карточка волны — что идёт (значки и число), откуда, есть ли десант, босс и событие. Сервер шлёт её в начале волны и
+ * в передышке («дальше»), клиент рисует фишки (client/fort/wavecard.ts).
+ */
+export interface FortWaveCard {
+  w: number;
+  /** Короткое название волны */
+  title: string;
+  /** Пары [тип, сколько] — без лодок и боссов */
+  chips: number[];
+  /** Лодок и абордажников в каждой */
+  boats: number;
+  crew: number;
+  /** Тип босса или супер-босса (−1 — нет), его круг */
+  boss: number;
+  tier: number;
+  /** Событие волны (EV_*) */
+  event: number;
+  /** Дороги, откуда идут импульсы: 0 — запад, 1 — север, 2 — восток */
+  roads: number[];
+  /** Новые типы в этой волне (первая встреча) */
+  fresh: number[];
+  /** Элиты и чемпионов среди них */
+  elite: number;
+  champ: number;
+  /** Вызвали раньше: +10 % золота */
+  early?: boolean;
 }
 
 // --- очки матча и лавка
@@ -285,7 +255,20 @@ export interface FortResultRow {
   again?: boolean;
   /** Сбитых с прошлой выплаты — в статистику профиля */
   kNew?: number;
+  /** Свой лучший результат (волн) до этого забега */
+  best?: number;
 }
+
+/** Забег в таблице рекордов крепости: сколько волн отбили, кто был в итогах, когда (мс), сколько защитников */
+export interface FortRunRec {
+  wave: number;
+  names: string[];
+  at: number;
+  n: number;
+}
+
+/** Рекордов крепости храним столько */
+export const FORT_TOP = 5;
 
 /** Что купили у стойки (событие 'buy') */
 export const BUY_FIX = 0;
@@ -302,8 +285,8 @@ export type FortEvent =
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
   // попадание по зомби: кто, какой зомби, урон, в голову (1/0), где
   | ['zhit', number, number, number, number, number, number, number]
-  // зомби сбит: какой, кто (0 — взрыв или само), где, тип
-  | ['zdie', number, number, number, number, number, number]
+  // зомби сбит: какой, кто (0 — взрыв или само), где, тип, ступень (0 — обычный, 1 — элита, 2 — чемпион)
+  | ['zdie', number, number, number, number, number, number, number]
   // пузырь лопнул: где
   | ['pop', number, number, number]
   // зомби ударил игрока: какой зомби, кого, урон
@@ -324,7 +307,21 @@ export type FortEvent =
   | ['warn', number, number, number, number, number, number, number]
   // отыгранный удар по области: вид атаки, центр, радиус
   | ['blast', number, number, number, number, number]
-  // босс меняет фазу: номер, фаза 1…3
+  // босс меняет фазу: номер, фаза (2 — ярость)
   | ['bossphase', number, number]
+  // лекарь лечит: какой, где, радиус
+  | ['heal', number, number, number, number, number]
+  // щит щитоносца разбит: какой, где
+  | ['shield', number, number, number, number]
+  // лодка: 0 — потоплена (кем), 1 — высадка; номер, где
+  | ['boat', number, number, number, number, number]
+  // бросок (камень Валуна, плевок): откуда, куда, тиков полёта, вид (ZS_*)
+  | ['throw', number, number, number, number, number, number, number, number]
+  // событие волны: какое (EV_*), 1 — началось, 0 — кончилось
+  | ['event', number, number]
+  // ящик припасов: 0 — летит, 1 — сел, 2 — подобран (кем), где
+  | ['supply', number, number, number, number, number]
+  // вызов волны раньше: +10 % золота
+  | ['early', number]
   // колокол: кто ударил
   | ['bell', number];

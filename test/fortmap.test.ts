@@ -2,8 +2,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
-import { FORT_WAVES, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_WALKER, ZS_TOP, waveCounts, zombieHp } from '../shared/fort.ts';
+import { FORT_WAVES, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_KINDS, Z_WALKER, ZS_BOSS_BOMB, ZS_TOP } from '../shared/fort.ts';
 import { FT_TOK_MVP, FT_TOK_WIN, killTokens, waveTokens } from '../shared/fortwaves.ts';
+import { ALL_FEATURES, enemyHpScale, planCounts, planWave } from '../server/fort/director.ts';
+import { TIER_HP, teamPressure, waveHpPerDefender } from '../shared/fortwaves.ts';
+import { ZK } from '../shared/fortkinds.ts';
 import { makeRun, settle } from '../server/fort/ledger.ts';
 import { FT_STRIDE, nearestZombie, zombieHead } from '../shared/fortaim.ts';
 import { CLIMBS, FORT, GATE, ROADS, TERRACE, WALL_H, buildFort, insideFort, outsideFort } from '../shared/fortmap.ts';
@@ -106,18 +109,39 @@ test('дороги начинаются на лугу и сходятся к в�
 });
 
 test('волны растут, с людьми зомби больше и толще', () => {
-  let prev = 0;
+  const bodies = (w: number, n: number) => planCounts(planWave(w, n, 9)).reduce((a, b) => a + b, 0);
   for (let w = 1; w <= FORT_WAVES; w++) {
-    const n = waveCounts(w, 1).reduce((a, b) => a + b, 0);
-    assert.ok(n > prev, `волна ${w}: ${n} > ${prev}`);
-    prev = n;
-    const n3 = waveCounts(w, 3).reduce((a, b) => a + b, 0);
-    assert.ok(n3 > n);
+    const n1 = bodies(w, 1);
+    assert.ok(n1 > 0 && n1 <= 60, `волна ${w}: ${n1}`);
+    const n3 = bodies(w, 3);
+    assert.ok(n3 > n1, `волна ${w}: втроём ${n3} > ${n1}`);
   }
-  assert.equal(waveCounts(1, 1)[Z_BRUTE], 0);
-  assert.ok(waveCounts(FORT_WAVES, 1)[Z_CLIMBER] > 0);
-  assert.ok(zombieHp(Z_WALKER, 4) > zombieHp(Z_WALKER, 1));
-  assert.equal(waveCounts(1, 1).length, Z_KINDS);
+  // HP одного врага — плавная кривая (шаркун 20-й толще шаркуна 19-й), план от неё вниз не отходит
+  for (let w = 2; w <= FORT_WAVES; w++) {
+    assert.ok(enemyHpScale(w, 1) > enemyHpScale(w - 1, 1) * 0.8, `кривая HP, волна ${w}`);
+    assert.ok(planWave(w, 1, 9).hpScale >= enemyHpScale(w, 1) * 0.85, `волна ${w}`);
+  }
+  assert.equal(planCounts(planWave(1, 1, 9))[Z_BRUTE], 0);
+  assert.ok(planCounts(planWave(3, 1, 9))[Z_CLIMBER] > 0);
+  assert.equal(planCounts(planWave(1, 1, 9)).length, Z_KINDS);
+});
+
+test('HP волны — в цель arsenal: на защитника 80 HP/с × L(w) × T(w) (с боссом — 60 %, с Кракеном — половина)', () => {
+  for (const f of [undefined, ALL_FEATURES]) {
+    for (let w = 1; w <= FORT_WAVES; w += w < 40 ? 1 : 7) {
+      for (const n of [1, 2, 4, 6]) {
+        const p = planWave(w, n, 31, undefined, f);
+        let hp = 0;
+        for (const s of p.spawns) hp += ZK[s.kind].hp * TIER_HP[s.tier] * p.hpScale;
+        for (const b of p.boats) b.crew.forEach((k, i) => { hp += ZK[k].hp * TIER_HP[b.tiers[i]] * p.hpScale; });
+        const land = p.kraken ? 0.5 : p.boss >= 0 ? 0.6 : 1;
+        const target = waveHpPerDefender(w) * n * teamPressure(n) * land;
+        assert.ok(Math.abs(hp / target - 1) < 0.01, `волна ${w}, ${n}: ${hp.toFixed(0)} / ${target.toFixed(0)}`);
+        const bodies = planCounts(p).reduce((a, b) => a + b, 0);
+        assert.ok(bodies <= 60 + 20 * (n - 1), `волна ${w}, ${n}: тел ${bodies}`);
+      }
+    }
+  }
 });
 
 test('жетоны: каждую волну и каждый десяток сбитых платят один раз; бонусы — только в итогах', () => {
@@ -151,13 +175,14 @@ test('хвост снимка туда и обратно', () => {
     { id: 65000, kind: Z_CLIMBER, state: ZS_TOP, hp: 0.31, x: 17.2, y: 3.4, z: 4.01, yaw: -2.5, atk: 255 },
   ];
   const t = { gate: 1234.2, crystal: 2500, turrets: 2, jams: 5, left: 17 };
-  const buf = new Uint8Array(5 + fortTailSize(list.length));
+  const buf = new Uint8Array(5 + fortTailSize(list, list.length));
   const end = encodeFortTail(buf, 5, t, list, list.length);
   assert.equal(end, buf.length);
   const back = makeFortTail();
   const out: ZombieSnap[] = [];
   assert.equal(decodeFortTail(buf.buffer, 5, back, out), 2);
-  assert.deepEqual(back, { gate: 1235, crystal: 2500, turrets: 2, jams: 5, left: 17, defenders: 1, rally: 0, rallyCd: 0 });
+  assert.deepEqual(back, { gate: 1235, crystal: 2500, turrets: 2, jams: 5, left: 17, defenders: 1, rally: 0, rallyCd: 0,
+    wave: 0, event: 0, mods: 0, crate: 0, crateX: 0, crateZ: 0, extAt: end, extLen: 0 });
   for (let i = 0; i < list.length; i++) {
     const a = list[i];
     const b = out[i];
@@ -185,11 +210,41 @@ test('луч по зомби: у бугая хитбокс больше, гол�
 });
 
 test('expanded tail carries locked roster and shared shield clocks, rejects truncation at new header', () => {
-  const tail={gate:1500,crystal:2400,turrets:0,jams:0,left:345,defenders:6,rally:480,rallyCd:1800};
-  const bytes=new Uint8Array(fortTailSize(0));
+  const tail={gate:1500,crystal:2400,turrets:0,jams:0,left:345,defenders:6,rally:480,rallyCd:1800,wave:287,event:3,mods:1,crate:2,crateX:-12.5,crateZ:31.25};
+  const bytes=new Uint8Array(fortTailSize([],0));
   encodeFortTail(bytes,0,tail,[],0);
   const out=makeFortTail();
   assert.equal(decodeFortTail(bytes.buffer,0,out,[]),0);
-  assert.deepEqual(out,tail);
+  assert.deepEqual(out,{...tail,extAt:bytes.length,extLen:0});
   assert.equal(decodeFortTail(bytes.buffer.slice(0,13),0,makeFortTail(),[]),-1);
+});
+
+test('снимок v13: тип и состояние — целые байты, метка атаки — только у тех, кто целится, блок arsenal — как есть', () => {
+  const list: ZombieSnap[] = [
+    { id: 1, kind: Z_WALKER, state: 0, hp: 1, x: 0, y: 0, z: -30, yaw: 0, atk: 0, flags: 1 },
+    { id: 2, kind: 16, state: ZS_BOSS_BOMB, hp: 0.5, x: 3, y: 0, z: -23, yaw: 0, atk: 9, flags: 2 | 32, wind: 77, tx: -4.5, ty: 3.4, tz: -14.6, r: 4, stage: 2 },
+    { id: 3, kind: Z_BOSS, state: 30, hp: 0.25, x: 1, y: 0, z: -20, yaw: 0, atk: 0, wind: 12, tx: 1, ty: 0, tz: 2, r: 25.5 },
+  ];
+  const ext = new Uint8Array([9, 8, 7, 6, 5]);
+  const tail = { gate: 1, crystal: 2, turrets: 0, jams: 0, left: 3, ext };
+  const size = fortTailSize(list, list.length, ext.length);
+  assert.equal(size, 27 + 3 * 15 + 2 * 9 + 5, 'метка — у двух из трёх');
+  const buf = new Uint8Array(size);
+  assert.equal(encodeFortTail(buf, 0, tail, list, list.length), size);
+  const back = makeFortTail();
+  const out: ZombieSnap[] = [];
+  assert.equal(decodeFortTail(buf.buffer, 0, back, out), 3);
+  assert.equal(out[1].kind, 16);
+  assert.equal(out[1].state, ZS_BOSS_BOMB);
+  assert.equal(out[1].wind, 77);
+  assert.equal(out[1].r, 4);
+  assert.equal(out[1].stage, 2);
+  assert.equal((out[1].flags ?? 0) & 35, 34);
+  assert.equal(out[0].wind, 0);
+  assert.equal((out[0].flags ?? 0) & 3, 1, 'элита');
+  assert.equal(out[2].state, 30);
+  assert.equal(out[2].r, 25.5);
+  assert.deepEqual([...new Uint8Array(buf.buffer, back.extAt!, back.extLen!)], [9, 8, 7, 6, 5]);
+  assert.equal(decodeFortTail(buf.buffer.slice(0, size - 1), 0, makeFortTail(), out), -1, 'обрезанный блок arsenal');
+  assert.equal(Z_BOSS, 6);
 });

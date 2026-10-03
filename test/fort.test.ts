@@ -61,8 +61,8 @@ test('сбор → волна 1: зомби выходят по расписан
   }, 60 * TICK_RATE, 'конец волны');
   assert.equal(game.phase, FT_BREAK);
   assert.equal(p.waves, 1);
-  assert.equal(p.kills, 14);
-  assert.equal(p.pts, START_PTS + WAVE_PTS + 14 * ZK[Z_WALKER].pts);
+  assert.equal(p.kills, 16);
+  assert.equal(p.pts, START_PTS + WAVE_PTS + 16 * ZK[Z_WALKER].pts);
   assert.ok(s.msgs.some((m) => m.t === 'fphase' && m.phase === FT_BREAK));
   assert.equal(game.phaseEnd - game.tick, BREAK_TICKS);
 });

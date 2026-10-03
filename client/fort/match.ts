@@ -9,9 +9,10 @@ import { AIM_FALLBACK, PIVOT_Y, RIG_PB, RIG_PB_ADS, cameraRig, type RigParams, t
 import {
   BUY_ANTIAIR, BUY_CRYSTAL, BUY_JAM, BUY_MAGAZINE, BUY_TURRET, CRYSTAL_FIX, CRYSTAL_HP, CRYSTAL_PRICE, FIX_HP, FIX_PRICE, FORT_HP, FORT_MAX_ALIVE, FORT_MAGAZINE,
   FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, JAM_PRICE, NEWGATE_PRICE, TURRET_PRICE, WAVE_PTS, ZK,
-  Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, waveRole,
-  type FortEvent, type FortPlayerRow, type FortResultRow, type FtReward,
+  Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
+  type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
+import { ZF_RAGE } from '../../shared/fortnet.ts';
 import { afterFortWeapon, beforeFortWeapon } from '../../shared/fortweapon.ts';
 import { FT_STRIDE, fortAimPoint, fortShotDir, nearestZombie } from '../../shared/fortaim.ts';
 import { CRYSTAL, GATE, type FortMap, type FortStation } from '../../shared/fortmap.ts';
@@ -104,6 +105,8 @@ export class FortMatch {
   private jams = 0;
   private left = 0;
   private tailSeen = false;
+  /** Карточка волны: в бою — идущей, в передышке и сборе — следующей */
+  private card: FortWaveCard | null = null;
 
   // свой защитник
   private alive = false;
@@ -276,6 +279,7 @@ export class FortMatch {
         this.phase = m.phase;
         this.phaseEnd = m.phaseEnd;
         this.wave = m.wave;
+        this.card = m.card ?? null;
         this.ready = true;
         this.setRoster(m.players);
         if (m.phase === FT_GATHER) this.d.hud.pb.centerMessage('Крепость', this.gatherSub(), '', 3200);
@@ -287,10 +291,11 @@ export class FortMatch {
         if (this.ready) this.onEvents(m.e);
         break;
       case 'fphase':
+        if (m.card !== undefined) this.card = m.card;
         this.onPhase(m.phase, m.end, m.wave);
         break;
       case 'fend':
-        this.onEnd(m.win, m.wave, m.mvp, m.rows);
+        this.onEnd(m.win, m.wave, m.mvp, m.rows, m.top ?? [], m.record ?? false, m.prev ?? 0);
         break;
       case 'fortReward':
         this.onReward(m);
@@ -349,31 +354,36 @@ export class FortMatch {
     this.wave = wave;
     if (phase !== FT_GATHER && phase !== FT_BREAK) this.closeShop(true);
     if (same) {
-      // все ударили в колокол — волна раньше
-      if (phase === FT_GATHER || phase === FT_BREAK) hud.pb.bannerMessage('🔔 Все готовы — волна через 3 секунды!', 2200);
+      // все ударили в колокол — волна раньше (в передышке ещё и +10 % золота)
+      if (phase === FT_GATHER || phase === FT_BREAK) {
+        hud.pb.bannerMessage(phase === FT_BREAK ? '🔔 Все готовы — волна через 3 секунды · +10 % золота за неё!' : '🔔 Все готовы — волна через 3 секунды!', 2400);
+      }
       return;
     }
     if (phase === FT_GATHER) {
       hud.hideEnd();
+      hud.card.reset();
       effects.clearSplats();
       hud.pb.centerMessage('Новая игра', this.gatherSub(), '', 2800);
     } else if (phase === FT_WAVE) {
-      sound.horn(0.32);
-      sound.zombieGroan(null, 0.8);
-      const role = waveRole(wave);
-      hud.pb.centerMessage(`Волна ${wave} · ${role.name}`, role.hint, '', 3000);
+      const boss = this.card && this.card.boss >= 0;
+      sound.horn(boss ? 0.5 : 0.32);
+      sound.zombieGroan(null, boss ? 1.2 : 0.8);
+      if (this.card) hud.card.announce(this.card);
+      if (boss) this.shake = Math.max(this.shake, 0.55);
     } else if (phase === FT_BREAK) {
       sound.fanfare(null);
       hud.pb.centerMessage('Волна отбита!', `+${WAVE_PTS} ⭐ · передышка — лавка открыта`, '#ffd35a', 2600);
     }
   }
 
-  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[]): void {
+  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number): void {
     const { hud, sound } = this.d;
     this.phase = FT_END;
+    this.card = null;
     const mvpRow = rows.find((r) => r.id === mvp) ?? null;
-    hud.showEnd(win, wave, mvpRow, rows, this.myId);
-    if (win) {
+    hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev);
+    if (win || (record && wave > 0)) {
       sound.fanfare(null);
       sound.applause(null);
     } else {
@@ -559,18 +569,26 @@ export class FortMatch {
           break;
         }
         case 'zdie': {
-          const [, zid, killer, x, y, z, kind] = e;
+          const [, zid, killer, x, y, z, kind, tier] = e;
           zombies.kill(zid);
           const k = ZK[kind] ?? ZK[0];
+          const boss = isBossKind(kind);
           effects.deathSplat(x, y, z, k.color);
+          if (boss) {
+            effects.burst(x, y + 2, z, 0xffd35a, 46, 9, 0, 1.2, 1, 0.07);
+            effects.puff(x, y + 1.5, z, 5, 0xf3c6ff, 0.9, 0.9, 0.7);
+            sound.fanfare([x, y + 2, z]);
+            this.shake = Math.max(this.shake, 0.7);
+          }
           sound.popAt([x, y + 0.8, z], this.camPos.distanceTo(_v.set(x, y, z)));
           if (killer === this.myId) {
             sound.kill(false);
             hud.pb.hitmarker(false, true);
             if (kind === Z_BRUTE) hud.pb.bannerMessage('💪 Бугай сбит! Награда поделена с командой', 1800);
-            if (kind === Z_BOSS) hud.pb.bannerMessage('👑 Барон повержен! Добейте оставшуюся орду', 2800);
+            else if ((tier ?? 0) >= 2) hud.pb.bannerMessage(`✪ Чемпион сбит: ${k.name}!`, 1800);
           }
-          if (kind === Z_BRUTE && killer) hud.pb.killfeed(killer ? this.nameOf(killer) : '', -1, 'Бугай', -1, false, 'fort', killer === this.myId);
+          if (boss) hud.pb.centerMessage(`${k.icon} ${k.name} повержен!`, killer ? `Добил ${this.nameOf(killer)} · добейте оставшуюся орду` : 'Добейте оставшуюся орду', '#ffd35a', 2800);
+          if ((kind === Z_BRUTE || (tier ?? 0) >= 2 || boss) && killer) hud.pb.killfeed(this.nameOf(killer), -1, k.name, -1, false, 'fort', killer === this.myId);
           break;
         }
         case 'pop': {
@@ -714,6 +732,11 @@ export class FortMatch {
           hud.alert(stage === 2 ? 'Барон зовёт крылаток · теперь берегитесь удара по стене'
             : 'Барон в ярости · шустрики идут с флангов', 3200);
           sound.zombieGroan(null, 1.2);
+          break;
+        }
+        case 'early': {
+          const [, pct] = e;
+          hud.alert(`🔔 Волну вызвали раньше: +${pct} % золота за неё`, 2600);
           break;
         }
         case 'bell': {
@@ -1164,8 +1187,10 @@ export class FortMatch {
     hud.setDefense(this.phase, this.tail.defenders ?? this.rosterList.length, this.tail.rally ?? 0, this.tail.rallyCd ?? 0);
     hud.setGate(this.gate, GATE_HP);
     hud.setCrystal(this.crystal, CRYSTAL_HP);
-    const boss = this.zlist.find((z) => z.kind === Z_BOSS && z.hp > 0);
-    hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0);
+    hud.setCard(this.card, this.phase);
+    const boss = this.zlist.find((z) => isBossKind(z.kind) && z.hp > 0);
+    hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
+      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
     if (hud.shopShown) {
       if (this.shopPending !== null && this.time - this.shopPendingAt > 3) {
         this.shopPending = null;

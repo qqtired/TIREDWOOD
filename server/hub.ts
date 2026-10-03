@@ -27,7 +27,7 @@ import { SkillRoom } from './skilltest/room.ts';
 import { BoatRaceRoom } from './boatrace/room.ts';
 import { HideRoom } from './hide/room.ts';
 import { RateLimiter } from './ratelimit.ts';
-import { emptyStats, type Profile, type Store } from './store.ts';
+import { addFortRun, emptyStats, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
 import type { VoiceIceConfig } from '../shared/voice.ts';
@@ -101,6 +101,8 @@ export interface HubOptions {
   tg?: TgFeed;
   /** «Крепость» (выпуск 6): комната есть, только если режим включён флагом сервера (FORTRESS) */
   fort?: boolean;
+  /** Только в разработке (--dev): в чате крепости /wave N — сразу к волне N (проверка боссов и поздних волн) */
+  devFort?: boolean;
   /** «Fight Club» (выпуск 6): комната есть, только если режим включён флагом сервера (FIGHT) */
   fight?: boolean;
   skill?: boolean;
@@ -276,6 +278,13 @@ export class Hub {
         outfitOf: (p) => this.outfitOf(p),
         result: (c, row, reward, win, wave) => this.onFortResult(c, row, reward, win, wave),
         afk: (c) => this.onPaintballAfk(c),
+        top: () => this.store.state.fortTop ?? [],
+        saveRun: (rec) => {
+          this.store.state.fortTop = addFortRun(this.store.state.fortTop ?? [], rec);
+          this.store.markDirty();
+        },
+        best: (c) => c.profile && !c.ephemeral ? c.profile.stats.ftBest : 0,
+        dev: o.devFort ?? false,
       })
       : null;
     const now = this.now();

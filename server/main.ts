@@ -59,7 +59,7 @@ const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 const fish2 = fish2Enabled(process.env.FISH2);
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, storm, pirates, voice, voiceIce,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
-  devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now' });
+  devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now', devFort: DEV });
 tg.start();
 if (roll) console.log('DEV_RIG=777: автоматы подкручены на джекпот');
 if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на набережной не своя`);
