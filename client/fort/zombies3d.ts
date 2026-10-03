@@ -18,8 +18,13 @@ import { softDot } from '../render/textures.ts';
 import type { Quality } from '../settings.ts';
 import type { GroundQuery } from '../render/avatar.ts';
 import { attackSignal } from './signals.ts';
-import { Z_KRAKEN, Z_TENTACLE } from '../../shared/fort.ts';
+import { TICK_RATE, WATER_Y } from '../../shared/constants.ts';
+import { Z_KRAKEN, Z_TENTACLE, ZS_TENT_REST, ZS_TENT_SLAM } from '../../shared/fort.ts';
+import { TENT_WARN_TICKS, tentacleRoot } from '../../shared/fortkraken.ts';
 import { Kraken3D } from './kraken3d.ts';
+import { ALL_MOBS } from './mobs/index.ts';
+import { MOB_STRIDE, type MobAnim, type MobDef } from './mobs/kit.ts';
+import { MobRenderer, mobRoot, mobSeed } from './mobs/renderer.ts';
 
 /** Инстансов на часть: живых не больше FORT_MAX_ALIVE, с запасом на тех, кто ещё не пропал из снимков */
 const CAP = 72;
@@ -35,6 +40,8 @@ const SHOULDER_Y = 0.92;
 const SHOULDER_X = 0.44;
 /** Потопленная лодка уходит под воду столько секунд */
 const SINK_S = 1.6;
+/** Сбитый моб с моделью (client/fort/mobs) доигрывает гибель столько секунд — anim.die 0 → 1 */
+const DIE_S = 1.1;
 /** Полоска здоровья: видна ближе этого */
 const BAR_DIST = 36;
 
@@ -49,6 +56,10 @@ const _s = new THREE.Vector3();
 const _c = new THREE.Color();
 const _c2 = new THREE.Color();
 const _right = new THREE.Vector3();
+const _root = new THREE.Matrix4();
+const _sq = new THREE.Matrix4();
+const _tent = { x: 0, y: 0, z: 0 };
+const _tint = new THREE.Color();
 const WHITE = new THREE.Color(0xffffff);
 
 /** Масштаб желейки под хитбокс типа: высота и ширина */
@@ -57,6 +68,12 @@ function kindScale(kind: number): { sy: number; sxz: number } {
   return { sy: (k.hcy + k.hry) / BODY_H, sxz: k.hrx / 0.5 };
 }
 const SCALES = Array.from({ length: Z_KINDS }, (_, i) => kindScale(i));
+
+/**
+ * Поза модели с полями Кракена (необязательные в договоре; NaN — нет): wind — секунд до конца состояния, water —
+ * вода над корнем головы, tipX/Y/Z — булава щупальца относительно корня в осях модели. У всех особей одна форма объекта.
+ */
+type KrakenAnim = MobAnim & { wind: number; water: number; tipX: number; tipY: number; tipZ: number };
 
 /** Что на экране на тике t: положение, курс, состояние, доля здоровья, счётчик ударов */
 interface ZPose {
@@ -119,9 +136,26 @@ class Track {
   /** Когда сбит (лодка ещё тонет SINK_S секунд) */
   deadAt = 0;
   valid = false;
+  /** Для моделей: путь шага 0…1, когда началось состояние, затухающее вздрагивание, высота прошлого кадра */
+  gait = 0;
+  lastSt = -1;
+  stAt = 0;
+  jolt = 0;
+  lastY = NaN;
+  /** Когда появился на экране (anim.t) */
+  firstAt = -1;
+  /** Отсчёт метки (wind) в прошлом кадре: вырос при том же состоянии — сервер начал его заново */
+  lastWind = 0;
+  /** Идёт задом (сдвиг против курса): моделям — скорость со знаком минус */
+  back = false;
+  /** Постоянный seed особи — вариант модели, рост, походка (у всех игроков одинаковый) */
+  readonly seed: number;
+  readonly anim: KrakenAnim = { t: 0, gait: 0, speed: 0, st: 0, stT: 0, hit: 0, die: 0, seed: 0, rage: false, flags: 0, stage: 0, wind: NaN, water: NaN, tipX: NaN, tipY: NaN, tipZ: NaN };
 
   constructor(id: number) {
     this.id = id;
+    this.seed = mobSeed(id);
+    this.anim.seed = this.seed;
   }
 
   push(tick: number, s: ZombieSnap): void {
@@ -508,7 +542,8 @@ export class Zombies3D {
   private readonly crewHeads: THREE.InstancedMesh;
   private readonly caps: THREE.InstancedMesh;
   private heads = 0;
-  /** Кракен: голова и щупальца — своя (временная) отрисовка */
+  private hulls = 0;
+  /** Кракен без модели — временная отрисовка (голова и руки-щупальца); с моделью — только круги на воде */
   private readonly kraken: Kraken3D;
   private readonly bodyGeometries: readonly THREE.BufferGeometry[];
   private readonly ground?: GroundQuery;
@@ -519,9 +554,12 @@ export class Zombies3D {
   private readonly counts = new Array<number>(Z_KINDS).fill(0);
   /** Первые снимки после входа: кто уже стоит — не «вылезает» */
   private warm = 0;
+  /** Новые модели врагов (client/fort/mobs): у кого есть модель — рисует она, у кого нет — желейка, как раньше */
+  private readonly mobs: MobRenderer;
 
-  constructor(scene: THREE.Scene, ground?: GroundQuery) {
+  constructor(scene: THREE.Scene, ground?: GroundQuery, models: readonly MobDef[] = ALL_MOBS) {
     this.ground = ground;
+    this.mobs = new MobRenderer(scene, models);
     const bodyGeo = new THREE.LatheGeometry(bodyProfile(), 22);
     bodyGeo.computeVertexNormals();
     this.bodyGeometries = [new THREE.LatheGeometry(bodyProfile(), 12), new THREE.LatheGeometry(bodyProfile(), 16), bodyGeo];
@@ -587,6 +625,7 @@ export class Zombies3D {
     m.fog = !on;
     m.emissive.setHex(on ? 0x5a4a1e : 0x000000);
     m.needsUpdate = true;
+    this.mobs.setFogGlow(on);
   }
 
   setQuality(q: Quality, slow = false): void {
@@ -594,6 +633,7 @@ export class Zombies3D {
     this.body.geometry = this.bodyGeometries[tier === 'low' ? 0 : tier === 'medium' ? 1 : 2];
     this.detailDistance = tier === 'low' ? 24 : tier === 'medium' ? 45 : Infinity;
     this.wingHz = tier === 'low' ? 20 : tier === 'medium' ? 30 : 60;
+    this.mobs.setQuality(q, slow);
   }
 
   /** Снимок: зомби по списку; кого нет — пропали (сбиты или ушли в начало дороги — тогда вернутся). */
@@ -614,8 +654,10 @@ export class Zombies3D {
     }
     for (const [id, tr] of this.tracks) {
       if (tr.seen === this.frame) continue;
-      // потопленная лодка ещё тонет — не прячем сразу
-      if (tr.dead && tr.kind === Z_BOAT && this.time - tr.deadAt < SINK_S) continue;
+      // потопленная лодка тонет, сбитый моб с моделью доигрывает гибель — не прячем сразу. Сервер шлёт снимок раньше
+      // события zdie: пропавший из снимка ждёт ещё один снимок, иначе kill() его уже не найдёт
+      const keep = this.dieSeconds(tr.kind);
+      if (keep > 0 && (tr.dead ? this.time - tr.deadAt < keep : tr.seen === this.frame - 1)) continue;
       this.tracks.delete(id);
     }
   }
@@ -631,7 +673,15 @@ export class Zombies3D {
 
   hit(id: number): void {
     const tr = this.tracks.get(id);
-    if (tr) tr.flash = 1;
+    if (tr) {
+      tr.flash = 1;
+      tr.jolt = 1;
+    }
+  }
+
+  /** Сколько сбитый ещё на экране: лодка тонет, моб с моделью доигрывает гибель, желейка пропадает сразу */
+  private dieSeconds(kind: number): number {
+    return kind === Z_BOAT ? SINK_S : this.mobs.has(kind) ? DIE_S : 0;
   }
 
   /** Вид зомби по id (−1 — уже нет на экране) */
@@ -688,6 +738,7 @@ export class Zombies3D {
     for (const m of [this.wingL, this.wingR, this.core, this.shieldMesh, this.band, this.crown, this.warning, this.warningFill, this.lane, this.laneFill, this.held,
       this.hull, this.crewHeads, this.caps]) m.count = 0;
     this.kraken.clear();
+    this.mobs.clear();
   }
 
   /** Цели прицела — живые зомби на тике t (то же, к чему сервер откатит орду): x, y ног, z, тип. */
@@ -708,25 +759,28 @@ export class Zombies3D {
 
   /** Кадр: интерполяция на тике t, походка и позы, матрицы инстансов. */
   /** Лодка: качка, тонет (sink 0…1), экипаж на скамьях (stage — сколько ещё в лодке), полоска здоровья; вернёт bars */
-  private drawBoat(tr: Track, r: ZPose, i: number, time: number, camPos: THREE.Vector3, cam: THREE.Camera, bars: number, sink: number): number {
+  private drawBoat(tr: Track, r: ZPose, time: number, camPos: THREE.Vector3, cam: THREE.Camera, bars: number, sink: number): number {
     const leaving = r.st === ZS_BOAT_LEAVE;
     const sway = time * 1.6 + tr.id;
     const y = r.y + Math.sin(sway) * 0.1 - sink * 2.4;
-    _e.set(Math.sin(time * 1.3 + tr.id) * 0.05 + sink * 0.7, r.yaw, Math.sin(time * 1.1 + tr.id * 2) * 0.06 + sink * 0.35);
-    _q.setFromEuler(_e);
-    _p.set(r.x, y, r.z);
-    _s.set(1.3, 1.3, 1.3);
-    _m.compose(_p, _q, _s);
-    this.hull.setMatrixAt(i, _m);
-    // экипаж: две колонки по скамьям, покачиваются
-    const crew = sink > 0 || leaving ? 0 : Math.min(8, r.stage);
-    for (let c = 0; c < crew && this.heads < BOAT_CAP * 8; c++) {
-      const side = c % 2 ? 0.32 : -0.32;
-      _arm.makeTranslation(side, 0.55 + Math.abs(Math.sin(time * 4 + c + tr.id)) * 0.06, -0.95 + Math.floor(c / 2) * 0.55);
-      this.crewHeads.setMatrixAt(this.heads++, _m2.multiplyMatrices(_m, _arm));
+    // модель лодки (client/fort/mobs) качается, гребёт, высаживает экипаж (anim.stage) и тонет (anim.die) сама: корень — на воде
+    if (!this.mobs.add(Z_BOAT, tr.seed, mobRoot(_root, r.x, r.y, r.z, r.yaw), this.animOf(tr, r, time), tr.flash * 0.6)) {
+      _e.set(Math.sin(time * 1.3 + tr.id) * 0.05 + sink * 0.7, r.yaw, Math.sin(time * 1.1 + tr.id * 2) * 0.06 + sink * 0.35);
+      _q.setFromEuler(_e);
+      _p.set(r.x, y, r.z);
+      _s.set(1.3, 1.3, 1.3);
+      _m.compose(_p, _q, _s);
+      this.hull.setMatrixAt(this.hulls++, _m);
+      // экипаж: две колонки по скамьям, покачиваются
+      const crew = sink > 0 || leaving ? 0 : Math.min(8, r.stage);
+      for (let c = 0; c < crew && this.heads < BOAT_CAP * 8; c++) {
+        const side = c % 2 ? 0.32 : -0.32;
+        _arm.makeTranslation(side, 0.55 + Math.abs(Math.sin(time * 4 + c + tr.id)) * 0.06, -0.95 + Math.floor(c / 2) * 0.55);
+        this.crewHeads.setMatrixAt(this.heads++, _m2.multiplyMatrices(_m, _arm));
+      }
     }
     // полоска здоровья (лодку можно потопить издалека — видна дальше)
-    if (sink === 0 && r.hp < 0.999 && r.hp > 0 && camPos.distanceTo(_p) < BAR_DIST * 2.5) {
+    if (sink === 0 && r.hp < 0.999 && r.hp > 0 && camPos.distanceTo(_p.set(r.x, y, r.z)) < BAR_DIST * 2.5) {
       const w = 2;
       _p.set(r.x, y + 3.4, r.z);
       _s.set(w + 0.06, 0.16, 1);
@@ -738,6 +792,103 @@ export class Zombies3D {
       bars++;
     }
     return bars;
+  }
+
+  /**
+   * Особь с моделью (client/fort/mobs). Корень — ноги и курс из снимка (mobRoot: модели смотрят по +Z), вылезает из
+   * земли (rise: ниже и с наклоном), чемпион крупнее (scale), босс в проёме ворот сжат (gy — высота, gxz — ширина:
+   * неравномерный масштаб корня). Поза — из снимка и часов трека (animOf). false — модели для вида нет или она
+   * переполнена: рисуй желейкой. При true в _m — оси хитбокса вокруг модели (для пояса и короны ступени).
+   */
+  private drawMob(tr: Track, r: ZPose, time: number, rise: number, scale: number, gy: number, gxz: number): boolean {
+    const kind = tr.kind;
+    const def = this.mobs.variant(kind, tr.seed, r.flags);
+    if (!def) return false;
+    const k = ZK[kind] ?? ZK[0];
+    const h = k.hcy + k.hry;
+    mobRoot(_root, r.x, r.y - rise * h * 0.9, r.z, r.yaw, scale, rise * 0.5);
+    if (gy !== 1 || gxz !== 1) _root.multiply(_sq.makeScale(gxz, gy, gxz));
+    // оттенок: босс открыт — бирюза, в ярости — красное мерцание, лекарь лечит — зелёный, экипаж в обычной модели — синий
+    const boss = isBossKind(kind);
+    let mix = 0;
+    if (boss && r.st === ZS_BOSS_OPEN) {
+      _tint.set(0x6ce5e3);
+      mix = 0.4;
+    } else if (boss && (r.flags & ZF_RAGE)) {
+      _tint.set(0xff4a3a);
+      mix = 0.22 + 0.14 * Math.sin(time * 9 + tr.id);
+    } else if (kind === Z_MEDIC && (r.flags & ZF_LIT)) {
+      _tint.set(0x9cff9a);
+      mix = 0.3 + 0.2 * Math.sin(time * 18);
+    } else if ((r.flags & ZF_CREW) && !def.when) {
+      _tint.set(0x5b9bd5);
+      mix = 0.25;
+    }
+    if (!this.mobs.add(kind, tr.seed, _root, this.animOf(tr, r, time), tr.flash * 0.85, mix > 0 ? _tint : null, mix)) return false;
+    const sc = SCALES[kind] ?? SCALES[0];
+    _m.multiplyMatrices(_root, _sq.makeScale(sc.sxz, def.height / BODY_H, sc.sxz));
+    return true;
+  }
+
+  /**
+   * Кракен моделью (client/fort/mobs/kraken*.ts). Голова — корень в низу хитбокса из снимка, anim.water — вода над
+   * корнем (шляпа плавает, пока голова под водой). Щупальце — корень на воде над своей полосой (tentacleRoot), лицом к
+   * крепости (−Z мира: yaw 0), булава из снимка — anim.tipX/Y/Z в осях модели (у модели +X — это −X мира, +Z — −Z):
+   * рука сама дотягивается. anim.wind — секунд до конца состояния (точный взмах, глаза перед всплытием). Оттенки —
+   * как у временной отрисовки: замах краснеет, окно (лежит после удара, голова открыта) — бирюза, ярость — красное
+   * мерцание. false — модели нет или переполнена: рисует Kraken3D.
+   */
+  private drawKraken(tr: Track, r: ZPose, time: number): boolean {
+    const kind = tr.kind;
+    if (!this.mobs.variant(kind, tr.seed, r.flags)) return false;
+    const a = this.animOf(tr, r, time);
+    a.wind = r.wind / TICK_RATE;
+    if (kind === Z_KRAKEN) {
+      mobRoot(_root, r.x, r.y, r.z, r.yaw);
+      a.water = WATER_Y - r.y;
+    } else {
+      tentacleRoot(r.stage, _tent);
+      mobRoot(_root, _tent.x, WATER_Y, _tent.z, 0);
+      a.tipX = _tent.x - r.x;
+      a.tipY = r.y + ZK[Z_TENTACLE].hcy - WATER_Y;
+      a.tipZ = _tent.z - r.z;
+    }
+    let mix = 0;
+    if (r.st === ZS_BOSS_OPEN || r.st === ZS_TENT_REST) {
+      _tint.set(0x6ce5e3);
+      mix = 0.35 + 0.1 * Math.sin(time * 8 + tr.id);
+    } else if (r.st === ZS_TENT_SLAM) {
+      _tint.set(0xd8405a);
+      mix = 0.1 + 0.3 * (1 - Math.min(1, r.wind / TENT_WARN_TICKS));
+    } else if (r.flags & ZF_RAGE) {
+      _tint.set(0xff4a3a);
+      mix = 0.22 + 0.14 * Math.sin(time * 9 + tr.id);
+    }
+    return this.mobs.add(kind, tr.seed, _root, a, tr.flash * 0.85, mix > 0 ? _tint : null, mix);
+  }
+
+  /** Поза модели из снимка и часов трека (в tr.anim, без выделений): время, шаг, состояние, удар, вздрагивание, гибель */
+  private animOf(tr: Track, r: ZPose, time: number): KrakenAnim {
+    const a = tr.anim;
+    if (tr.firstAt < 0) tr.firstAt = time;
+    // новое состояние — или то же заново (вторая метка подряд прошла между снимками): отсчёт метки wind вырос
+    if (r.st !== tr.lastSt || r.wind > tr.lastWind + 6) {
+      tr.lastSt = r.st;
+      tr.stAt = time;
+    }
+    tr.lastWind = r.wind;
+    a.t = time - tr.firstAt;
+    a.gait = tr.gait;
+    a.speed = tr.back ? -tr.speed : tr.speed;
+    a.st = r.st;
+    // в атаке — секунды с последнего удара (счётчик atk из снимка): замах на каждый удар заново
+    a.stT = r.st === ZS_ATTACK ? Math.min(time - tr.stAt, tr.atkT) : time - tr.stAt;
+    a.hit = tr.jolt;
+    a.die = tr.dead ? Math.min(1, (time - tr.deadAt) / (tr.kind === Z_BOAT ? SINK_S : DIE_S)) : 0;
+    a.rage = (r.flags & ZF_RAGE) !== 0;
+    a.flags = r.flags;
+    a.stage = r.stage;
+    return a;
   }
 
   update(t: number, dt: number, time: number, cam: THREE.Camera): void {
@@ -758,29 +909,44 @@ export class Zombies3D {
     let boats = 0;
     let caps = 0;
     this.heads = 0;
+    this.hulls = 0;
+    let jelly = 0;
     const counts = this.counts;
     counts.fill(0);
+    this.mobs.begin();
     for (const tr of this.tracks.values()) {
       const r = tr.r;
-      const sinking = tr.dead && tr.kind === Z_BOAT && this.time - tr.deadAt < SINK_S;
+      // сбитый ещё на экране: лодка тонет, моб с моделью доигрывает гибель — уже не цель, без полоски и меток
+      const dying = tr.dead && this.time - tr.deadAt < this.dieSeconds(tr.kind);
+      const sinking = dying && tr.kind === Z_BOAT;
       tr.valid = (!tr.dead || sinking) && tr.sample(t, r);
-      if (!tr.valid || n >= CAP) continue;
-      if (tr.kind === Z_BOAT) {
-        // лодка — своя модель: корпус, мачта с парусом, головы экипажа; качается на волне, потопленная — тонет
-        if (boats < BOAT_CAP) bars = this.drawBoat(tr, r, boats++, time, camPos, cam, bars, sinking ? (this.time - tr.deadAt) / SINK_S : 0);
-        continue;
-      }
+      if (!(tr.valid || (dying && tr.sample(t, r))) || n >= CAP) continue;
       // скорость по пройденному на экране (для походки)
       const moved = Number.isNaN(tr.lastX) ? 0 : Math.hypot(r.x - tr.lastX, r.z - tr.lastZ);
+      // задом: сдвиг против курса (лицо — (−sin yaw, −cos yaw)) — боссы пятятся, моделям скорость со знаком
+      if (moved > 0.004 && moved < 1.5) tr.back = (r.x - tr.lastX) * Math.sin(r.yaw) + (r.z - tr.lastZ) * Math.cos(r.yaw) > 0.5 * moved;
       tr.lastX = r.x;
       tr.lastZ = r.z;
       const v = dt > 0 && moved < 1.5 ? moved / dt : 0;
       tr.speed += (v - tr.speed) * Math.min(1, dt * 8);
+      // шаг модели — по пройденному пути (и по стене вверх-вниз), MOB_STRIDE метров на цикл: ноги не скользят
+      const climbed = Number.isNaN(tr.lastY) ? 0 : Math.abs(r.y - tr.lastY);
+      tr.lastY = r.y;
+      if (moved < 1.5 && climbed < 1.5) tr.gait = (tr.gait + Math.hypot(moved, climbed) / MOB_STRIDE) % 1;
+      tr.flash = Math.max(0, tr.flash - dt * 7);
+      tr.jolt = Math.max(0, tr.jolt - dt * 3.5);
+      if (tr.kind === Z_BOAT) {
+        // лодка — своя модель: корпус, мачта с парусом, головы экипажа; качается на волне, потопленная — тонет
+        if (boats < BOAT_CAP) {
+          boats++;
+          bars = this.drawBoat(tr, r, time, camPos, cam, bars, sinking ? (this.time - tr.deadAt) / SINK_S : 0);
+        }
+        continue;
+      }
       const kind = tr.kind;
       const k = ZK[kind] ?? ZK[0];
       const sc = SCALES[kind] ?? SCALES[0];
       tr.phase += dt * (tr.speed * (kind === Z_RUNNER ? 4.2 : kind === Z_BRUTE ? 1.9 : 3.1) + 0.6);
-      tr.flash = Math.max(0, tr.flash - dt * 7);
       if (r.atk !== tr.lastAtk) {
         if (tr.lastAtk >= 0) tr.atkT = 0;
         tr.lastAtk = r.atk;
@@ -902,14 +1068,19 @@ export class Zombies3D {
       const bloat = kind === Z_BLOATER ? Math.sin(time * 5 + tr.id) * 0.04 : 0;
       let sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5) * big;
       let sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1) * big;
+      // в проёме ворот босс протискивается: ниже арки и уже створа, с дрожью (gy — по высоте, gxz — по ширине; модели —
+      // неравномерным масштабом корня)
+      let gy = 1;
+      let gxz = 1;
       if (isBossKind(kind)) {
-        // в проёме ворот желе протискивается: ниже арки и уже створа, с дрожью
         const f = gateSqueeze(r.x, r.z);
         if (f > 0) {
           const h = k.hcy + k.hry;
           const wob = Math.sin(time * 14 + tr.id) * 0.04 * f;
-          sy *= 1 - f * Math.max(0, 1 - GATE.h * 0.92 / h) + wob;
-          sxz *= 1 - f * Math.max(0, 1 - (GATE.x1 - GATE.x0) * 0.46 / k.hrx) - wob;
+          gy = 1 - f * Math.max(0, 1 - GATE.h * 0.92 / h) + wob;
+          gxz = 1 - f * Math.max(0, 1 - (GATE.x1 - GATE.x0) * 0.46 / k.hrx) - wob;
+          sy *= gy;
+          sxz *= gxz;
         }
       }
       if (kind === Z_SPITTER && st === ZS_SPIT) {
@@ -924,46 +1095,63 @@ export class Zombies3D {
         armL = armR = 1.35;
         lean *= 0.6;
       }
-      // наклон вперёд — к лицу (−Z): поворот вокруг X со знаком минус
-      _e.set(-lean - rise * 0.5, r.yaw, roll);
-      _q.setFromEuler(_e);
-      _p.set(r.x, r.y + bob - rise * BODY_H * sy * 0.9, r.z);
-      _s.set(sxz, sy, sxz);
-      _m.compose(_p, _q, _s);
-      // Кракен рисуется своим (голова и руки-щупальца), желейное тело и тень — пустые
-      const kraken = kind === Z_KRAKEN || kind === Z_TENTACLE;
-      if (kraken) {
-        this.kraken.part(kind, r, sq, time);
-        _m.makeScale(0, 0, 0);
-      }
-      this.body.setMatrixAt(n, _m);
       const boss = isBossKind(kind);
-      if (boss || Math.hypot(r.x - camPos.x, r.z - camPos.z) < this.detailDistance) this.face.setMatrixAt(faces++, _m);
-      _c.set(k.color).lerp(WHITE, sq * 0.75);
-      if (boss && st === ZS_BOSS_OPEN) _c.lerp(_c2.set(0x6ce5e3), 0.4);
-      else if (boss && (r.flags & ZF_RAGE)) _c.lerp(_c2.set(0xff4a3a), 0.22 + 0.14 * Math.sin(time * 9 + tr.id));
-      if (kind === Z_MEDIC && (r.flags & ZF_LIT)) _c.lerp(_c2.set(0x9cff9a), 0.45 + 0.25 * Math.sin(time * 18));
-      if (r.flags & ZF_CREW) _c.lerp(_c2.set(0x5b9bd5), 0.25);
-      this.body.setColorAt(n, _c);
-      _c2.set(k.color).multiplyScalar(0.82).lerp(WHITE, sq * 0.6);
-      _arm.makeRotationX(armL).setPosition(-SHOULDER_X, SHOULDER_Y, -0.04);
-      this.armL.setMatrixAt(n, _m2.multiplyMatrices(_m, _arm));
-      this.armL.setColorAt(n, _c2);
-      _arm.makeRotationX(armR).setPosition(SHOULDER_X, SHOULDER_Y, -0.04);
-      this.armR.setMatrixAt(n, _m2.multiplyMatrices(_m, _arm));
-      this.armR.setColorAt(n, _c2);
-      const ex = this.extras[kind];
-      if (ex) ex.setMatrixAt(counts[kind]++, _m);
-      if ((r.flags & ZF_CREW) && caps < CAP) {
-        // бескозырка абордажника
-        _arm.makeTranslation(0, BODY_H - 0.1, 0);
-        this.caps.setMatrixAt(caps++, _m2.multiplyMatrices(_m, _arm));
+      // модель (client/fort/mobs) рисует особь целиком: туловище, лицо, руки, приметы, крылья, ядро босса, щит. Нет модели
+      // (или она переполнена) — желейка, как раньше. Пояс и корона ступени, камень Валуна, метки, тень и полоска — общие.
+      // Кракен: модель или временный Kraken3D (он же рисует круги на воде), желейки у него нет
+      const kraken = kind === Z_KRAKEN || kind === Z_TENTACLE;
+      const model = kraken ? this.drawKraken(tr, r, time) : this.drawMob(tr, r, time, rise, big, gy, gxz);
+      if (kraken && !tr.dead) this.kraken.part(kind, r, sq, time, model);
+      if (tr.dead && !model) continue;
+      if (kraken) _m.makeScale(0, 0, 0);
+      else if (!model) {
+        // наклон вперёд — к лицу (−Z): поворот вокруг X со знаком минус
+        _e.set(-lean - rise * 0.5, r.yaw, roll);
+        _q.setFromEuler(_e);
+        _p.set(r.x, r.y + bob - rise * BODY_H * sy * 0.9, r.z);
+        _s.set(sxz, sy, sxz);
+        _m.compose(_p, _q, _s);
+        this.body.setMatrixAt(jelly, _m);
+        if (boss || Math.hypot(r.x - camPos.x, r.z - camPos.z) < this.detailDistance) this.face.setMatrixAt(faces++, _m);
+        _c.set(k.color).lerp(WHITE, sq * 0.75);
+        if (boss && st === ZS_BOSS_OPEN) _c.lerp(_c2.set(0x6ce5e3), 0.4);
+        else if (boss && (r.flags & ZF_RAGE)) _c.lerp(_c2.set(0xff4a3a), 0.22 + 0.14 * Math.sin(time * 9 + tr.id));
+        if (kind === Z_MEDIC && (r.flags & ZF_LIT)) _c.lerp(_c2.set(0x9cff9a), 0.45 + 0.25 * Math.sin(time * 18));
+        if (r.flags & ZF_CREW) _c.lerp(_c2.set(0x5b9bd5), 0.25);
+        this.body.setColorAt(jelly, _c);
+        _c2.set(k.color).multiplyScalar(0.82).lerp(WHITE, sq * 0.6);
+        _arm.makeRotationX(armL).setPosition(-SHOULDER_X, SHOULDER_Y, -0.04);
+        this.armL.setMatrixAt(jelly, _m2.multiplyMatrices(_m, _arm));
+        this.armL.setColorAt(jelly, _c2);
+        _arm.makeRotationX(armR).setPosition(SHOULDER_X, SHOULDER_Y, -0.04);
+        this.armR.setMatrixAt(jelly, _m2.multiplyMatrices(_m, _arm));
+        this.armR.setColorAt(jelly, _c2);
+        jelly++;
+        const ex = this.extras[kind];
+        if (ex) ex.setMatrixAt(counts[kind]++, _m);
+        if ((r.flags & ZF_CREW) && caps < CAP) {
+          // бескозырка абордажника
+          _arm.makeTranslation(0, BODY_H - 0.1, 0);
+          this.caps.setMatrixAt(caps++, _m2.multiplyMatrices(_m, _arm));
+        }
+        if (kind === Z_SHIELD && (r.flags & ZF_SHIELD)) {
+          _arm.makeTranslation(0, 0.8, -0.62);
+          this.shieldMesh.setMatrixAt(shields++, _m2.multiplyMatrices(_m, _arm));
+        }
+        if (kind === Z_FLYER) {
+          const flutter = Math.sin(Math.floor(time * this.wingHz) / this.wingHz * 15 + tr.id) * 0.55;
+          _arm.makeRotationZ(-flutter).setPosition(-0.36, 0.91, 0.04);
+          this.wingL.setMatrixAt(flyers, _m2.multiplyMatrices(_m, _arm));
+          _arm.makeRotationZ(flutter).setPosition(0.36, 0.91, 0.04);
+          this.wingR.setMatrixAt(flyers++, _m2.multiplyMatrices(_m, _arm));
+        } else if (boss) {
+          _arm.makeRotationY(time * 1.4).setPosition(0, 0.73, -0.49);
+          this.core.setMatrixAt(bosses, _m2.multiplyMatrices(_m, _arm));
+          this.core.setColorAt(bosses++, _c.set(st === ZS_BOSS_OPEN ? 0x7ffff4 : (r.flags & ZF_RAGE) ? 0xff8055 : 0xbd72dc));
+        }
       }
-      if (kind === Z_SHIELD && (r.flags & ZF_SHIELD)) {
-        _arm.makeTranslation(0, 0.8, -0.62);
-        this.shieldMesh.setMatrixAt(shields++, _m2.multiplyMatrices(_m, _arm));
-      }
-      if (tier > 0) {
+      if (tier > 0 && !tr.dead) {
+        // пояс и корона ступени — в осях тела желейки или хитбокса вокруг модели (_m)
         _arm.makeTranslation(0, 0.58, 0);
         this.band.setMatrixAt(bands, _m2.multiplyMatrices(_m, _arm));
         this.band.setColorAt(bands++, _c2.set(TIER_COLORS[tier]));
@@ -973,26 +1161,15 @@ export class Zombies3D {
           this.crown.setColorAt(crowns++, _c2.set(0xffc83a));
         }
       }
-      if (kind === Z_FLYER) {
-        const flutter = Math.sin(Math.floor(time * this.wingHz) / this.wingHz * 15 + tr.id) * 0.55;
-        _arm.makeRotationZ(-flutter).setPosition(-0.36, 0.91, 0.04);
-        this.wingL.setMatrixAt(flyers, _m2.multiplyMatrices(_m, _arm));
-        _arm.makeRotationZ(flutter).setPosition(0.36, 0.91, 0.04);
-        this.wingR.setMatrixAt(flyers++, _m2.multiplyMatrices(_m, _arm));
-      } else if (boss) {
-        _arm.makeRotationY(time * 1.4).setPosition(0, 0.73, -0.49);
-        this.core.setMatrixAt(bosses, _m2.multiplyMatrices(_m, _arm));
-        this.core.setColorAt(bosses++, _c.set(st === ZS_BOSS_OPEN ? 0x7ffff4 : (r.flags & ZF_RAGE) ? 0xff8055 : 0xbd72dc));
-        if (kind === Z_GOLEM && st === ZS_THROW && r.wind > ROCK_FLIGHT_TICKS && helds < 4) {
-          // камень над головой, пока поднимает
-          const top = r.y + (k.hcy + k.hry) * (1 - rise) + 1.3;
-          _p.set(r.x, top, r.z);
-          _q.setFromEuler(_e.set(time * 0.7, time, 0));
-          _s.set(1.6, 1.4, 1.6);
-          this.held.setMatrixAt(helds++, _m2.compose(_p, _q, _s));
-        }
+      if (kind === Z_GOLEM && st === ZS_THROW && r.wind > ROCK_FLIGHT_TICKS && helds < 4 && !tr.dead && !model) {
+        // камень над головой, пока поднимает (модель Валуна поднимает свой)
+        const top = r.y + (k.hcy + k.hry) * (1 - rise) + 1.3;
+        _p.set(r.x, top, r.z);
+        _q.setFromEuler(_e.set(time * 0.7, time, 0));
+        _s.set(1.6, 1.4, 1.6);
+        this.held.setMatrixAt(helds++, _m2.compose(_p, _q, _s));
       }
-      const signal = attackSignal(st, r.wind, r.r);
+      const signal = tr.dead ? null : attackSignal(st, r.wind, r.r);
       if (signal && (st === ZS_CHARGE_WARN || st === ZS_CHARGE)) {
         // дорожка рывка: от Тарана до цели, заливка растёт к удару (видна сквозь стены)
         const dx = r.tx - r.x;
@@ -1027,14 +1204,14 @@ export class Zombies3D {
         this.warningFill.setColorAt(warnings++, _c.set(signal.fill));
       }
       // тень на земле (на стене — на её верху: высота ног)
-      const shR = k.r * 2.6 * (1 - rise * 0.6);
+      const shR = k.r * 2.6 * (1 - rise * 0.6) * (tr.dead ? 1 - tr.anim.die : 1);
       _q.identity();
       const floor = kraken ? NaN : kind === Z_FLYER ? this.ground?.groundBelow(r.x, r.y, r.z) ?? 0 : r.y;
       _p.set(r.x, Number.isFinite(floor) ? floor + 0.03 : -1000, r.z);
       _s.set(shR, 1, shR);
       this.shadow.setMatrixAt(n, _m.compose(_p, _q, _s));
       // полоска здоровья над раненым
-      if (r.hp < 0.999 && r.hp > 0) {
+      if (!tr.dead && r.hp < 0.999 && r.hp > 0) {
         const d = camPos.distanceTo(_p.set(r.x, r.y, r.z));
         if (d < BAR_DIST) {
           const top = r.y + (k.hcy + k.hry) + 0.32;
@@ -1053,7 +1230,7 @@ export class Zombies3D {
       n++;
     }
     for (const m of [this.body, this.armL, this.armR, this.shadow]) {
-      m.count = n;
+      m.count = m === this.shadow ? n : jelly;
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
@@ -1067,7 +1244,7 @@ export class Zombies3D {
     this.warning.count = this.warningFill.count = warnings;
     this.lane.count = this.laneFill.count = lanes;
     this.held.count = helds;
-    this.hull.count = boats;
+    this.hull.count = this.hulls;
     this.crewHeads.count = this.heads;
     this.caps.count = caps;
     for (const m of [this.hull, this.crewHeads, this.caps]) m.instanceMatrix.needsUpdate = true;
@@ -1087,5 +1264,6 @@ export class Zombies3D {
     this.barFill.instanceMatrix.needsUpdate = true;
     if (this.barFill.instanceColor) this.barFill.instanceColor.needsUpdate = true;
     this.kraken.flush();
+    this.mobs.end();
   }
 }

@@ -11,13 +11,14 @@ import { WATER_Y } from '../../shared/constants.ts';
 import { crystalMax, gateMax, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
-import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R } from '../../shared/fortkinds.ts';
+import { GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK } from '../../shared/fortkinds.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH } from '../touch.ts';
 import { FortHud } from './hud.ts';
 import { FortWorld } from './world.ts';
+import { ALL_MOBS } from './mobs/index.ts';
 import { Zombies3D } from './zombies3d.ts';
 
 // как в игре (app.ts): на сенсорном экране — раскладка для телефона
@@ -26,7 +27,11 @@ const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas);
 const map = buildFort();
 const world = new FortWorld(renderer, map);
-const zombies = new Zombies3D(world.scene, new CollisionWorld(map));
+// ?mobs=0 — все враги желейками, как до моделей (сравнить); ?march=1 — парад идёт к воротам (походка моделей);
+// ?attack=<значение списка «Состояние»> — сразу это состояние
+const params = new URLSearchParams(location.search);
+const zombies = new Zombies3D(world.scene, new CollisionWorld(map), params.get('mobs') === '0' ? [] : ALL_MOBS);
+const march = params.get('march') === '1';
 const hud = new FortHud(document.getElementById('hud')!);
 const orbit = new OrbitControls(world.camera, canvas);
 orbit.enableDamping = true;
@@ -39,6 +44,7 @@ const stage = document.getElementById('stage') as HTMLSelectElement;
 const quality = document.getElementById('quality') as HTMLSelectElement;
 const cycle = document.getElementById('cycle') as HTMLInputElement;
 const metrics = document.getElementById('metrics')!;
+if (params.has('attack')) attack.value = params.get('attack')!;
 let elapsed = 0;
 let tick = 0;
 let previous = performance.now();
@@ -83,13 +89,15 @@ function setQuality() {
 function lineup(): ZombieSnap[] {
   const list: ZombieSnap[] = [];
   const kinds = [0, 1, 2, 3, 4, 7, 8, 9, 10, 11];
+  // с ?march=1 идут к воротам своей скоростью (8 м по кругу)
+  const z = (base: number, kind: number) => (march ? base - 8 + ((elapsed * (ZK[kind]?.speed ?? 2)) % 8) : base);
   kinds.forEach((kind, i) => {
     const flags = kind === 7 ? ZF_SHIELD : kind === 9 ? ZF_CARRY : 0;
-    list.push({ id: 100 + i, kind, state: ZS_WALK, hp: 1, x: -13.5 + i * 3, y: 0, z: -24, yaw: Math.PI, atk: 0, flags });
+    list.push({ id: 100 + i, kind, state: ZS_WALK, hp: 1, x: -13.5 + i * 3, y: 0, z: z(-24, kind), yaw: Math.PI, atk: 0, flags });
   });
-  list.push({ id: 120, kind: 0, state: ZS_WALK, hp: 0.7, x: -6, y: 0, z: -30, yaw: Math.PI, atk: 0, flags: 1 });
-  list.push({ id: 121, kind: 2, state: ZS_WALK, hp: 1, x: 0, y: 0, z: -31, yaw: Math.PI, atk: 0, flags: 2 });
-  list.push({ id: 122, kind: 0, state: ZS_WALK, hp: 1, x: 6, y: 0, z: -30, yaw: Math.PI, atk: 0, flags: ZF_CREW });
+  list.push({ id: 120, kind: 0, state: ZS_WALK, hp: 0.7, x: -6, y: 0, z: z(-30, 0), yaw: Math.PI, atk: 0, flags: 1 });
+  list.push({ id: 121, kind: 2, state: ZS_WALK, hp: 1, x: 0, y: 0, z: z(-31, 2), yaw: Math.PI, atk: 0, flags: 2 });
+  list.push({ id: 122, kind: 0, state: ZS_WALK, hp: 1, x: 6, y: 0, z: z(-30, 0), yaw: Math.PI, atk: 0, flags: ZF_CREW });
   list.push({ id: 123, kind: 8, state: ZS_SPIT, hp: 1, x: 10, y: 0, z: -30, yaw: Math.PI, atk: 0, wind: 30, tx: 4, ty: WALL_H + 0.8, tz: -14.6, r: 1.6 });
   list.push({ id: 124, kind: 5, state: ZS_WALK, hp: 1, x: -10, y: 8, z: -27, yaw: Math.PI, atk: 0 });
   return list;
@@ -251,7 +259,8 @@ function cam(p: [number, number, number], t: [number, number, number]) {
   orbit.target.set(...t);
   orbit.update();
 }
-(window as unknown as Record<string, unknown>).__fortPreview = { state, cam };
+// kill(id) и hit(id) — как события zdie и zhit: посмотреть гибель и вздрагивание моделей (сбитый в параде больше не встаёт)
+(window as unknown as Record<string, unknown>).__fortPreview = { state, cam, kill: (id: number) => zombies.kill(id), hit: (id: number) => zombies.hit(id) };
 
 function frame(now: number) {
   const dt = Math.min(0.1, (now - previous) / 1000);

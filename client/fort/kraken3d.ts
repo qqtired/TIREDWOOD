@@ -1,4 +1,5 @@
-// Кракен на экране — ВРЕМЕННАЯ отрисовка, пока помощник mobs-e не сделал модели (client/fort/mobs/kraken*.ts):
+// Кракен на экране — ЗАПАСНАЯ отрисовка: обычно голову и щупальца рисуют модели (client/fort/mobs/kraken*.ts), а
+// отсюда — только круги на воде (part(..., ringsOnly)). Без модели (или она переполнена) — как раньше:
 // голова — игрушечный купол с пятнами варенья и большими сиреневыми глазами (смотрит на крепость), щупальце — рука
 // из «бусин» от корня в воде (tentacleRoot) к булаве (её положение — в снимке) с присосками. Цвет — по состоянию:
 // замах темнеет и краснеет к удару, булава после удара светится голубым (окно), голова открыта — глаза голубые,
@@ -169,17 +170,20 @@ export class Kraken3D {
     scene.add(this.beads, this.suckers, this.clubs, this.glow, this.rings);
   }
 
-  /** Часть Кракена в этом кадре: id, тип, поза (интерполированная), вспышка попадания 0…1, время, с */
-  part(kind: number, r: KrakenPose, flash: number, time: number): void {
-    if (kind === Z_KRAKEN) this.drawHead(r, flash, time);
-    else if (kind === Z_TENTACLE) this.drawArm(r, flash, time);
+  /**
+   * Часть Кракена в этом кадре: тип, поза (интерполированная), вспышка попадания 0…1, время, с. ringsOnly — часть
+   * рисует модель, отсюда только круги на воде (где всплывёт голова и вынырнет щупальце).
+   */
+  part(kind: number, r: KrakenPose, flash: number, time: number, ringsOnly = false): void {
+    if (kind === Z_KRAKEN) this.drawHead(r, flash, time, ringsOnly);
+    else if (kind === Z_TENTACLE) this.drawArm(r, flash, time, ringsOnly);
   }
 
-  private drawHead(r: KrakenPose, flash: number, time: number): void {
+  private drawHead(r: KrakenPose, flash: number, time: number, ringsOnly: boolean): void {
     const k = ZK[Z_KRAKEN];
     // под водой — только круг, где всплывёт
     if (r.st === ZS_KRAKEN_DIVE) this.ring(r.tx, r.tz, KRAKEN_DIVE_R * (0.55 + 0.45 * Math.abs(Math.sin(time * 2.2))), 0xe8f6ff);
-    if (r.y + k.hcy + k.hry < WATER_Y - 0.2) return;
+    if (ringsOnly || r.y + k.hcy + k.hry < WATER_Y - 0.2) return;
     this.headSeen = true;
     const h = this.head;
     h.visible = true;
@@ -215,11 +219,12 @@ export class Kraken3D {
     }
   }
 
-  private drawArm(r: KrakenPose, flash: number, time: number): void {
+  private drawArm(r: KrakenPose, flash: number, time: number, ringsOnly: boolean): void {
     if (this.nArms >= ARMS) return;
     const tk = ZK[Z_TENTACLE];
     tentacleRoot(r.stage, _root);
     if (r.st === ZS_KRAKEN_DIVE) this.ring(_root.x, _root.z, 1.4 + 0.6 * Math.abs(Math.sin(time * 3 + r.stage)), 0xe8f6ff);
+    if (ringsOnly) return;
     // кривая руки: от корня вверх, дугой к булаве — подходит к ней сверху со стороны корня
     P0.set(_root.x, _root.y, _root.z);
     P3.set(r.x, r.y + tk.hcy, r.z);

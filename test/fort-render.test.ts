@@ -2,20 +2,27 @@ import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 import * as THREE from 'three';
 import { Zombies3D } from '../client/fort/zombies3d.ts';
-import { Z_BOSS, Z_FLYER, Z_WALKER, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_FLY_WARN } from '../shared/fort.ts';
+import { colored, setBone, type MobDef } from '../client/fort/mobs/kit.ts';
+import type { MobRenderer } from '../client/fort/mobs/renderer.ts';
+import { MOBS_A } from '../client/fort/mobs/set-a.ts';
+import { MOBS_E } from '../client/fort/mobs/set-e.ts';
+import { KRAKEN_TENTACLE } from '../client/fort/mobs/kraken-tentacle.ts';
+import { ZK, Z_BOSS, Z_FLYER, Z_KRAKEN, Z_TENTACLE, Z_WALKER, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_FLY_WARN, ZS_KRAKEN_DIVE, ZS_TENT_REST, ZS_WALK } from '../shared/fort.ts';
+import { KRAKEN_LURK_Y, TENT_LANES, TENT_ROOT_Z } from '../shared/fortkraken.ts';
 import { LADDERS } from '../shared/fortladder.ts';
 import { buildFort, WALL_H } from '../shared/fortmap.ts';
 import type { ZombieSnap } from '../shared/fortnet.ts';
 import { CollisionWorld } from '../shared/world.ts';
 
-function renderer(t: TestContext) {
+/** models — какие модели мобов (client/fort/mobs) рисуют особей; по умолчанию никаких: все — желейки, как раньше */
+function renderer(t: TestContext, models: readonly MobDef[] = []) {
   // Node has no canvas. Only the shadow texture's paint surface is substituted; all geometry/matrices are real Three.js.
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'document');
   Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => ({
     getContext: () => ({ createRadialGradient: () => ({ addColorStop() {} }), fillRect() {} }),
   }) } });
   t.after(() => { if (previous) Object.defineProperty(globalThis, 'document', previous); else Reflect.deleteProperty(globalThis, 'document'); });
-  const zombies = new Zombies3D(new THREE.Scene(), new CollisionWorld(buildFort()));
+  const zombies = new Zombies3D(new THREE.Scene(), new CollisionWorld(buildFort()), models);
   const meshes = zombies as unknown as Record<'body' | 'face' | 'wingL' | 'wingR' | 'core' | 'warning' | 'warningFill' | 'shadow', THREE.InstancedMesh>;
   return { zombies, meshes, camera: new THREE.PerspectiveCamera() };
 }
@@ -56,6 +63,94 @@ test('качество снижает геометрию, сохраняя кр�
   zombies.update(100, 1 / 60, 0, camera);
   assert.equal(meshes.core.count, 0);
   assert.equal(meshes.warning.count, 1, 'мёртвый босс больше не рисует опасную область');
+});
+
+test('модели мобов: у кого есть — рисует модель, остальные — желейки; гибель доигрывается; босс в воротах сжат', (t) => {
+  let stage = -1;
+  const baron: MobDef = {
+    id: 'test-baron', name: 'Барон (проба)', kinds: [Z_BOSS], height: 5.4,
+    parts: [{ bone: 'body', geo: colored(new THREE.BoxGeometry(4, 5.4, 3).translate(0, 2.7, 0), 0x7e2fa8) }],
+    pose(a, out) {
+      stage = a.stage ?? -1;
+      setBone(out.body, 0, 0, 0);
+    },
+  };
+  const { zombies, meshes, camera } = renderer(t, [...MOBS_A, baron]);
+  const mobs = (zombies as unknown as { mobs: MobRenderer }).mobs;
+  camera.position.set(0, 6, 150);
+  // Барон в проёме ворот (gateSqueeze = 1), крылатка без модели — желейка, шаркун — модель набора A
+  const inGate: ZombieSnap = { ...boss, z: -16 };
+  zombies.push(100, [inGate, flyer, walker], 3);
+  zombies.update(100, 1 / 60, 0, camera);
+  assert.equal(mobs.count, 2);
+  assert.equal(meshes.body.count, 1, 'желейка — только крылатка');
+  assert.equal(meshes.wingL.count, 1);
+  assert.equal(meshes.core.count, 0, 'ядро — у модели босса');
+  assert.equal(meshes.shadow.count, 3, 'пятна-тени — у всех');
+  assert.equal(meshes.warning.count, 2, 'метки — у всех');
+  assert.equal(stage, 2, 'anim.stage — байт stage из снимка');
+  const body = mobs.group.children.find((m) => m.name === 'mob:test-baron:body') as THREE.InstancedMesh;
+  const m = new THREE.Matrix4();
+  body.getMatrixAt(0, m);
+  const sx = new THREE.Vector3().setFromMatrixColumn(m, 0).length();
+  const sy = new THREE.Vector3().setFromMatrixColumn(m, 1).length();
+  assert.ok(sy < sx * 0.8, `корень сжат по высоте сильнее, чем по ширине: ${sy.toFixed(2)} против ${sx.toFixed(2)}`);
+  // сбит: снимок без шаркуна приходит раньше события zdie — модель доигрывает гибель, но уже не цель
+  zombies.push(101, [inGate, flyer], 2);
+  zombies.kill(walker.id);
+  zombies.update(101, 1 / 60, 0.5, camera);
+  assert.equal(mobs.count, 2, 'сбитый шаркун ещё падает');
+  const targets = new Float64Array(12);
+  assert.equal(zombies.targets(101, targets), 2, 'сбитый — не цель');
+  zombies.update(101, 1 / 60, 1.7, camera);
+  assert.equal(mobs.count, 1, 'гибель доиграна — пропал');
+  zombies.push(102, [inGate, flyer], 2);
+  assert.equal(zombies.count, 2);
+});
+
+test('Кракен моделями: рука из воды дотягивается до булавы из снимка; временная отрисовка — только круги на воде', (t) => {
+  // щупальце № 1 легло булавой на морскую стену (окно «руби»), голова — в засаде в бухте
+  const arm: ZombieSnap = { id: 7, kind: Z_TENTACLE, state: ZS_TENT_REST, hp: 1, x: -4, y: 4.6, z: 13, yaw: 0, atk: 0, wind: 100,
+    tx: -4, ty: 4.6, tz: 13, stage: 1 };
+  const head: ZombieSnap = { id: 8, kind: Z_KRAKEN, state: ZS_WALK, hp: 1, x: 0, y: KRAKEN_LURK_Y, z: 34, yaw: 0, atk: 0, wind: 0,
+    tx: 0, ty: 0, tz: 0, stage: 0 };
+  {
+    const { zombies, camera } = renderer(t, MOBS_E);
+    const mobs = (zombies as unknown as { mobs: MobRenderer }).mobs;
+    const temp = (zombies as unknown as { kraken: { arms: number; rings: THREE.InstancedMesh } }).kraken;
+    camera.position.set(0, 6, 150);
+    zombies.push(100, [arm, head], 2);
+    zombies.update(100, 1 / 60, 0, camera);
+    assert.equal(mobs.count, 2, 'голова и щупальце — моделями');
+    assert.equal(temp.arms, 0, 'временная рука не рисуется');
+    const club = KRAKEN_TENTACLE.parts.find((p) => p.bone === 'tail' && !p.glow)!;
+    club.geo.computeBoundingBox();
+    const mid = (club.geo.boundingBox!.min.y + club.geo.boundingBox!.max.y) / 2;
+    const find = (geo: THREE.BufferGeometry) => mobs.group.children.find((m) => (m as THREE.InstancedMesh).geometry?.getAttribute('position') === geo.getAttribute('position')) as THREE.InstancedMesh;
+    const m = new THREE.Matrix4();
+    find(club.geo).getMatrixAt(0, m);
+    const c = new THREE.Vector3(0, mid, 0).applyMatrix4(m);
+    const want = new THREE.Vector3(arm.x, arm.y + ZK[Z_TENTACLE].hcy, arm.z);
+    assert.ok(c.distanceTo(want) < 0.9, `булава мимо снимка: ${c.x.toFixed(2)}, ${c.y.toFixed(2)}, ${c.z.toFixed(2)}`);
+    // основание руки — у своей полосы в бухте, а не у булавы
+    const base = KRAKEN_TENTACLE.parts.find((p) => p.bone === 'body')!;
+    find(base.geo).getMatrixAt(0, m);
+    const b = new THREE.Vector3().setFromMatrixPosition(m);
+    assert.ok(Math.hypot(b.x - TENT_LANES[1], b.z - TENT_ROOT_Z) < 1.5, `основание не у полосы: ${b.x.toFixed(2)}, ${b.z.toFixed(2)}`);
+    // нырок: голову рисует модель (шляпа на воде), круг — где всплывёт
+    zombies.push(101, [arm, { ...head, state: ZS_KRAKEN_DIVE, y: KRAKEN_LURK_Y - 6, tx: 8, tz: 36, wind: 90 }], 2);
+    zombies.update(101, 1 / 60, 0.1, camera);
+    assert.equal(mobs.count, 2);
+    assert.ok(temp.rings.count >= 1, 'круг на воде, где всплывёт голова');
+  }
+  {
+    // без моделей — временная отрисовка, как раньше
+    const { zombies, camera } = renderer(t);
+    const temp = (zombies as unknown as { kraken: { arms: number } }).kraken;
+    zombies.push(100, [arm, head], 2);
+    zombies.update(100, 1 / 60, 0, camera);
+    assert.equal(temp.arms, 1);
+  }
 });
 
 test('крылатка бросает тень на каменный ход, а предупреждение залпа лежит на крыше', (t) => {
