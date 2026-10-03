@@ -5,6 +5,8 @@ type Wave = OscillatorType;
 type V3 = [number, number, number];
 export type SoundPos = V3 | null;
 export type LobbyEventSound = 'siren' | 'thunder' | 'wave' | 'success' | 'horn' | 'cannon' | 'splash' | 'victory' | 'loss' | 'mop';
+/** Ползунки меню «Звук»: пример звука шины, когда ползунок отпустили */
+export type MixPreview = 'music' | 'amb' | 'sfx' | 'ui';
 
 /** Мотор карта: пила и квадрат через фильтр, «тарахтение» — модуляция громкости, гул — шум; визг шин — отдельно */
 interface EngineVoice {
@@ -24,12 +26,20 @@ export class Sound {
   private sfx!: GainNode;
   private ui!: GainNode;
   private amb!: GainNode;
+  /** Музыка: общий регулятор (ползунок «Музыка»), вход прочей музыки (его приглушает автомат) и вход автомата */
+  private musicOut!: GainNode;
+  private musicIn!: GainNode;
+  private jukeIn!: GainNode;
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
-  /** Доли эффектов и окружения от общей громкости (меню → Звук) и «на улице ли» (в подвале прибоя не слышно) */
+  /** Доли эффектов, окружения, интерфейса и музыки от общей громкости (меню → Звук) и «на улице ли» (в подвале прибоя не слышно) */
   private sfxMix = 1;
   private ambMix = 1;
+  private uiMix = 1;
+  private musicMix = 0.8;
+  /** Прочая музыка, пока играет автомат: доля громкости (1 — как есть) */
+  private duck = 1;
   private outdoor = 1;
   private nextGull = 8;
   private nextHorn = 50;
@@ -64,11 +74,19 @@ export class Sound {
       this.ui = ctx.createGain();
       this.amb = ctx.createGain();
       this.sfx.gain.value = this.sfxMix;
-      this.ui.gain.value = this.sfxMix;
+      this.ui.gain.value = this.uiMix;
       this.amb.gain.value = 0.55 * this.outdoor * this.ambMix;
       this.sfx.connect(this.master);
       this.ui.connect(this.master);
       this.amb.connect(this.master);
+      this.musicOut = ctx.createGain();
+      this.musicOut.gain.value = this.musicMix;
+      this.musicOut.connect(this.master);
+      this.musicIn = ctx.createGain();
+      this.musicIn.gain.value = this.duck;
+      this.musicIn.connect(this.musicOut);
+      this.jukeIn = ctx.createGain();
+      this.jukeIn.connect(this.musicOut);
       this.noiseBuf = this.makeNoise(false);
       this.brownBuf = this.makeNoise(true);
       const l = ctx.listener;
@@ -93,15 +111,78 @@ export class Sound {
     if (this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
-  /** Громкость эффектов и окружения — доли 0…1 от общей (ползунки «Эффекты» и «Окружение» в меню). */
-  setMix(effects: number, ambience: number): void {
+  /**
+   * Громкость эффектов, окружения, интерфейса и музыки — доли 0…1 от общей (ползунки меню «Звук»). Без интерфейса —
+   * как эффекты, без музыки — прежняя.
+   */
+  setMix(effects: number, ambience: number, ui = effects, music = this.musicMix): void {
     this.sfxMix = effects;
     this.ambMix = ambience;
+    this.uiMix = ui;
+    this.musicMix = music;
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.sfx.gain.setTargetAtTime(effects, t, 0.05);
-    this.ui.gain.setTargetAtTime(effects, t, 0.05);
+    this.ui.gain.setTargetAtTime(ui, t, 0.05);
     this.amb.gain.setTargetAtTime(0.55 * this.outdoor * ambience, t, 0.05);
+    this.musicOut.gain.setTargetAtTime(music, t, 0.05);
+  }
+
+  /** Доля громкости музыки (ползунок «Музыка»): 0 — автомату незачем синтезировать */
+  get musicLevel(): number {
+    return this.musicMix * this.volume;
+  }
+
+  /**
+   * Шина «Музыка» для прочей музыки (баян на баркасе и т. п.): общий ползунок «Музыка», и её приглушает автомат на
+   * площади (duckMusic). null — звук ещё не разрешён.
+   */
+  get music(): GainNode | null {
+    return this.ctx ? this.musicIn : null;
+  }
+
+  /** Для музыкального автомата (client/music): контекст и вход шины «Музыка» мимо приглушения; null — звук не разрешён */
+  get jukeKit(): { ctx: AudioContext; out: GainNode } | null {
+    return this.ok ? { ctx: this.ctx!, out: this.jukeIn } : null;
+  }
+
+  /** Приглушить прочую музыку, пока играет автомат: k — доля громкости 0…1 (1 — как есть), плавно. */
+  duckMusic(k: number): void {
+    const v = Math.min(1, Math.max(0, Number.isFinite(k) ? k : 1));
+    if (Math.abs(v - this.duck) < 0.01) return;
+    this.duck = v;
+    if (this.ctx) this.musicIn.gain.setTargetAtTime(v, this.ctx.currentTime, 0.35);
+  }
+
+  /** Отпустили ползунок в меню: короткий пример его звука — музыка — фраза, окружение — волна, эффекты — щелчок, интерфейс — «дзынь». */
+  preview(kind: MixPreview): void {
+    if (!this.ok) {
+      // звук только что разрешили этим же жестом — сыграем, когда контекст проснётся
+      if (this.ctx?.state === 'suspended') void this.ctx.resume().then(() => { if (this.ok) this.preview(kind); });
+      return;
+    }
+    if (kind === 'amb') {
+      // волна: накат и шипение пены
+      this.noise(this.amb, 1.5, 'lowpass', 420, 1500, 0.7, 0.5, 0, 0.45, true);
+      this.noise(this.amb, 1.1, 'bandpass', 2600, 1300, 0.8, 0.07, 0.5, 0.25);
+    } else if (kind === 'sfx') {
+      // щелчок: сухой «ток» и короткий хлопок
+      this.noise(this.sfx, 0.035, 'bandpass', 2400, 1600, 1.2, 0.45);
+      this.tone(this.sfx, 520, 260, 0.05, 'triangle', 0.22);
+    } else if (kind === 'ui') {
+      this.tone(this.ui, 1568, 1568, 0.35, 'sine', 0.13);
+      this.tone(this.ui, 2349, 2349, 0.28, 'sine', 0.06, 0.02);
+    } else {
+      // фраза электропиано и бас: до мажор, вверх и обратно (через вход автомата — ползунок «Музыка»)
+      const d = this.jukeIn;
+      const notes: ReadonlyArray<readonly [number, number]> = [[523.25, 0], [659.25, 0.16], [783.99, 0.32], [987.77, 0.48], [880, 0.72]];
+      for (const [f, at] of notes) {
+        this.tone(d, f, f, 0.9, 'sine', 0.13, at, 0.006);
+        this.tone(d, f * 2, f * 2, 0.25, 'sine', 0.025, at, 0.004);
+      }
+      this.tone(d, 130.81, 130.81, 1.1, 'triangle', 0.2, 0, 0.01);
+      this.tone(d, 174.61, 174.61, 0.8, 'triangle', 0.18, 0.72, 0.01);
+    }
   }
 
   /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
@@ -110,9 +191,12 @@ export class Sound {
     if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k * this.ambMix, this.ctx.currentTime, 0.3);
   }
 
-  /** Для своих звуков сцены (client/fight/sfx.ts): контекст, шина эффектов и шумы; null — звук ещё не разрешён. */
-  get kit(): { ctx: AudioContext; sfx: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
-    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, noise: this.noiseBuf, brown: this.brownBuf } : null;
+  /**
+   * Для своих звуков сцены (client/fight/sfx.ts): контекст, шины и шумы; null — звук ещё не разрешён.
+   * sfx — эффекты, amb — окружение (ветер, море, толпа), ui — интерфейс, music — прочая музыка (её приглушает автомат).
+   */
+  get kit(): { ctx: AudioContext; sfx: GainNode; amb: GainNode; ui: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {
+    return this.ok ? { ctx: this.ctx!, sfx: this.sfx, amb: this.amb, ui: this.ui, music: this.musicIn, noise: this.noiseBuf, brown: this.brownBuf } : null;
   }
 
   private makeNoise(brown: boolean): AudioBuffer {
@@ -542,19 +626,19 @@ export class Sound {
     o.stop(t + dur + 0.05);
   }
 
-  /** Выигрыш на автомате: size 0 — мелочь меньше ставки, 1 — обычный, 2 — крупный (от ×20). */
+  /** Выигрыш на автомате: size 0 — мелочь меньше ставки, 1 — обычный, 2 — крупный (от ×20). Свой (null) — интерфейс. */
   slotWinAt(pos: V3 | null, size: 0 | 1 | 2): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, pos ? this.sfx : this.ui);
     const notes = size === 2 ? [523, 659, 784, 1047, 784, 1047, 1319, 1568] : size === 1 ? [523, 659, 784, 1047] : [784, 1047];
     notes.forEach((f, i) => this.tone(d, f, f, 0.2, 'square', 0.07, i * 0.085));
     notes.forEach((f, i) => this.tone(d, f * 2, f * 2, 0.12, 'triangle', 0.04, i * 0.085 + 0.02));
   }
 
-  /** Одна монета: звонкое «дзинь». */
+  /** Одна монета: звонкое «дзинь». Свои монетки (null — награда, продажа, уровень) — интерфейс, в мире — эффекты. */
   coin(pos: V3 | null, when = 0): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx);
+    const d = this.out(pos, pos ? this.sfx : this.ui);
     const f = 2500 + Math.random() * 1100;
     this.tone(d, f, f * 0.985, 0.22, 'sine', 0.07, when);
     this.tone(d, f * 1.51, f * 1.5, 0.15, 'sine', 0.04, when);
@@ -594,7 +678,8 @@ export class Sound {
     g.gain.exponentialRampToValueAtTime(0.09, t + 0.15);
     g.gain.setValueAtTime(0.09, t + len - 0.4);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(lp).connect(g).connect(this.ui);
+    // сирена в павильоне — событие мира, а не кнопка: ползунок «Эффекты»
+    o.connect(lp).connect(g).connect(this.sfx);
     o.start(t);
     lfo.start(t);
     o.stop(t + len + 0.05);
@@ -799,10 +884,10 @@ export class Sound {
     });
   }
 
-  /** Вышел из игры не дураком: короткое арпеджио. */
+  /** Вышел из игры не дураком: короткое арпеджио. Своё (null) — интерфейс. */
   fanfare(pos: V3 | null): void {
     if (!this.ok) return;
-    const d = this.out(pos, this.sfx, 0, 3);
+    const d = this.out(pos, pos ? this.sfx : this.ui, 0, 3);
     [523, 659, 784, 1047].forEach((f, i) => {
       this.tone(d, f, f, 0.24, 'triangle', 0.13, i * 0.09);
       this.tone(d, f * 2, f * 2, 0.12, 'square', 0.025, i * 0.09);

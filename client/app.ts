@@ -304,6 +304,10 @@ export class App {
       profile: (open) => this.showProfile(open),
       redeem: (code) => this.net.send({ t: 'redeem', code }),
       changed: () => this.applySettings(),
+      preview: (kind) => {
+        this.sound.unlock();
+        this.sound.preview(kind);
+      },
       room: () => this.active?.kind ?? 'lobby',
       gifts: () => this.me.gifts === true,
     });
@@ -1194,7 +1198,7 @@ export class App {
     this.input.adsSens = s.adsSens;
     this.input.invertY = s.invertY;
     this.sound.setVolume(effectiveVolume(s));
-    this.sound.setMix(s.sfxVolume, s.ambVolume);
+    this.sound.setMix(s.sfxVolume, s.ambVolume, s.uiVolume, s.musicVolume);
     this.voice?.setGameMuted(s.muted);
     this.syncSound();
     applyInterface(s);

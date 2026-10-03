@@ -4,6 +4,7 @@
 // Голос (контроллер) появляется после ответа сервера: если вкладку открыли раньше — панель дождётся его сама.
 import type { VoiceMode, VoicePerson, VoiceView } from '../../shared/voice.ts';
 import { MicTest } from '../voice-mictest.ts';
+import { setVoiceVolumeOwner } from '../voice-prefs.ts';
 import './voicepanel.css';
 
 /** Что панели нужно от голоса (client/voice.ts → VoiceController) */
@@ -29,6 +30,8 @@ const waiting = new Set<() => void>();
 /** Игра регистрирует голос, когда сервер его включил (и null, если выключил совсем). */
 export function setVoiceSource(next: VoicePanelSource | null): void {
   source = next;
+  // громкость голосов в меню «Звук» — та же, что здесь (client/voice-prefs.ts)
+  setVoiceVolumeOwner(next);
   for (const fn of [...waiting]) fn();
 }
 

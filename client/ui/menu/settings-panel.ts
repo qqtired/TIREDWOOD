@@ -1,8 +1,10 @@
 // Настройки по категориям: Графика, Звук, Управление, Интерфейс. Один экземпляр на всё время: в меню видна одна
 // категория (её выбирают слева), на экране входа (⚙ Настройки) — все подряд с заголовками. Значения живут в Settings
 // (client/settings.ts, localStorage); применяет их App.applySettings — через onChange.
+import type { MixPreview } from '../../audio.ts';
 import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, type Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
+import { setVoiceVolume, voiceVolume } from '../../voice-prefs.ts';
 
 export type SettingsCategory = 'graphics' | 'sound' | 'controls' | 'interface';
 
@@ -15,6 +17,8 @@ export interface SettingsPanelHooks {
   onChange(): void;
   /** Ссылка на соседний раздел меню */
   go(section: 'voice' | 'keys'): void;
+  /** Ползунок громкости отпустили: короткий пример звука его шины */
+  preview?(kind: MixPreview): void;
 }
 
 export class SettingsPanel {
@@ -44,6 +48,8 @@ export class SettingsPanel {
   /** Показать одну категорию (в меню); на экране входа CSS показывает все */
   show(cat: SettingsCategory): void {
     for (const [id, sec] of this.cats) sec.hidden = id !== cat;
+    // громкость голосов меняют и во вкладке «Голос» — показываем свежую
+    this.sync();
   }
 
   /** Подогнать ползунки и переключатели под настройки (звук меняют и клавишей M) */
@@ -65,21 +71,29 @@ export class SettingsPanel {
 
   private sound(): void {
     const s = this.s;
-    let c = this.item('sound', 'Общая громкость', 'Всё сразу: эффекты, окружение, интерфейс');
+    // отпустили ползунок — пример его звука: музыка — фраза, окружение — волна, эффекты — щелчок, интерфейс — «дзынь»
+    const hear = (k: MixPreview) => () => this.hooks.preview?.(k);
+    let c = this.item('sound', 'Общая громкость', 'Музыка, окружение, эффекты и интерфейс. Голоса — своим ползунком ниже');
     // без звука ползунок стоит на нуле и подписан «выкл» (сама громкость цела); двигают его — значит, хотят слышать
     this.slider(c, 'Общая громкость', 0, 1, 0.05, () => effectiveVolume(s), (v) => {
       s.volume = v;
       if (v > 0) s.muted = false;
-    }, () => (s.muted ? 'выкл' : pct(s.volume)));
+    }, () => (s.muted ? 'выкл' : pct(s.volume)), hear('ui'));
     c = this.item('sound', 'Без звука', TOUCH ? 'Громкость останется прежней' : 'Клавиша M — в любой момент игры', true);
     this.toggle(c, () => s.muted, (v) => {
       if (v !== s.muted) toggleMute(s);
     });
-    c = this.item('sound', 'Эффекты', 'Выстрелы, шаги, моторы, монеты и кнопки');
-    this.slider(c, 'Эффекты', 0, 1, 0.05, () => s.sfxVolume, (v) => { s.sfxVolume = v; }, () => pct(s.sfxVolume));
-    c = this.item('sound', 'Окружение', 'Море, чайки, дождь и шум набережной. Музыки в игре нет');
-    this.slider(c, 'Окружение', 0, 1, 0.05, () => s.ambVolume, (v) => { s.ambVolume = v; }, () => pct(s.ambVolume));
-    c = this.item('sound', 'Голоса игроков', 'Своя громкость и проверка микрофона — в разделе «Голос»');
+    c = this.item('sound', 'Музыка', 'Музыкальный автомат на площади: песня играет на всю набережную, у автомата — громче');
+    this.slider(c, 'Музыка', 0, 1, 0.05, () => s.musicVolume, (v) => { s.musicVolume = v; }, () => pct(s.musicVolume), hear('music'));
+    c = this.item('sound', 'Окружение', 'Море, чайки, ветер, дождь и гром');
+    this.slider(c, 'Окружение', 0, 1, 0.05, () => s.ambVolume, (v) => { s.ambVolume = v; }, () => pct(s.ambVolume), hear('amb'));
+    c = this.item('sound', 'Эффекты', 'Выстрелы, шаги, моторы, удары');
+    this.slider(c, 'Эффекты', 0, 1, 0.05, () => s.sfxVolume, (v) => { s.sfxVolume = v; }, () => pct(s.sfxVolume), hear('sfx'));
+    c = this.item('sound', 'Интерфейс', 'Кнопки, уведомления, монетки');
+    this.slider(c, 'Интерфейс', 0, 1, 0.05, () => s.uiVolume, (v) => { s.uiVolume = v; }, () => pct(s.uiVolume), hear('ui'));
+    c = this.item('sound', 'Голоса игроков', 'Голосовой чат, всех сразу — та же громкость, что во вкладке «Голос»');
+    this.slider(c, 'Голоса игроков', 0, 1, 0.01, () => voiceVolume(), (v) => setVoiceVolume(v), () => pct(voiceVolume()));
+    c = this.item('sound', 'Голосовой чат', 'Громкость каждого, микрофон и его проверка');
     this.link(c, 'Открыть «Голос»', () => this.hooks.go('voice'));
   }
 
@@ -116,7 +130,8 @@ export class SettingsPanel {
     return row.appendChild(el('div', 'set-ctl'));
   }
 
-  private slider(ctl: HTMLElement, name: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, text: () => string): void {
+  /** release — ползунок отпустили (мышь, палец, стрелки): например, пример звука */
+  private slider(ctl: HTMLElement, name: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, text: () => string, release?: () => void): void {
     const input = el('input', '') as HTMLInputElement;
     input.type = 'range';
     input.min = String(min);
@@ -129,6 +144,7 @@ export class SettingsPanel {
       val.textContent = text();
       this.hooks.onChange();
     });
+    if (release) input.addEventListener('change', release);
     input.addEventListener('keydown', ownKeys);
     ctl.append(input, val);
     this.syncs.push(() => {
