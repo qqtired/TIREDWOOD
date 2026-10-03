@@ -213,12 +213,15 @@ export function bossHp(w: number, humans: number, tier = bossTier(w)): number {
   return BOSS_BASE_HP * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * tier);
 }
 
-/** Кракен: каждое щупальце и голова */
-export const TENTACLE_BASE_HP = 1200;
-export const KRAKEN_HEAD_BASE_HP = 3000;
+/**
+ * Кракен: каждое щупальце и голова. Сведено с экономикой arsenal (агент fort, 03.10): тот же множитель, что у боссов
+ * (HP-множитель волны × bossTeamMul × круг); при суше ×0,5 и броне ×1,3 супер-волна по нагрузке — 1,04–1,10 обычной.
+ */
+export const TENTACLE_BASE_HP = 320;
+export const KRAKEN_HEAD_BASE_HP = 800;
 
 export function krakenHp(base: number, w: number, humans: number): number {
-  return base * waveHpMul(w) * (1 + 1.0 * (defenders(humans) - 1)) * (1 + 0.35 * superTier(w));
+  return base * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * superTier(w));
 }
 
 // ------------------------------------------------------------ передышка

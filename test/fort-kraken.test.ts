@@ -12,7 +12,7 @@ import {
 } from '../shared/fortkraken.ts';
 import { WALL_H } from '../shared/fortmap.ts';
 import { ZF_RAGE, type ZombieSnap } from '../shared/fortnet.ts';
-import { KRAKEN_HEAD_BASE_HP, TENTACLE_BASE_HP, krakenHp } from '../shared/fortwaves.ts';
+import { KRAKEN_HEAD_BASE_HP, TENTACLE_BASE_HP, bossTeamMul, krakenHp } from '../shared/fortwaves.ts';
 import { FEATURES, planWave } from '../server/fort/director.ts';
 import { FortGame, type FortPlayer } from '../server/fort/game.ts';
 import type { Zombie } from '../server/fort/horde.ts';
@@ -376,7 +376,9 @@ test('масштаб: HP на 1/2/4 защитников как у боссов,
     krakenWave(game, n);
     until(game, () => !!head(game), 60);
     const h = head(game)!;
-    assert.ok(Math.abs(h.maxHp / head1 - n) < 1e-9, `голова на ${n}: ×${(h.maxHp / head1).toFixed(2)}`);
+    // как у боссов: × bossTeamMul (n × нагрузка команды)
+    assert.ok(Math.abs(h.maxHp / head1 - bossTeamMul(n) / bossTeamMul(1)) < 1e-9, `голова на ${n}: ×${(h.maxHp / head1).toFixed(2)}`);
+    if (n > 1) assert.ok(h.maxHp > head1, 'на команду — толще');
     for (const t of arms(game)) assert.ok(Math.abs(t.maxHp - krakenHp(TENTACLE_BASE_HP, 25, n)) < 1e-6);
     if (n > 1) assert.ok(krakenSpitEvery(n, false, 0) < krakenSpitEvery(1, false, 0), 'плевки чаще');
     if (n === 4) {
