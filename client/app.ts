@@ -38,6 +38,8 @@ import { TokensHud } from './ui/tokens.ts';
 import { VoiceController } from './voice.ts';
 import { VoiceUi } from './ui/voice.ts';
 import './ui/voice.css';
+import { loadVoicePrefs, saveVoicePrefs } from './voice-prefs.ts';
+import { mountVoicePanel, setVoiceSource } from './ui/voicepanel.ts';
 import './ui/mobile-fishing.css';
 import { setVoicePresence } from './render/voice-presence.ts';
 
@@ -191,23 +193,24 @@ export class App {
       abort: () => this.net.close(),
       rx: () => this.net.rx,
       setRx: (n) => { this.net.rx = n; },
-      down: () => { this.voice?.stopTalking(); this.input.releaseAll(); this.updateBlocked(); },
+      down: () => { this.voice?.linkDown(); this.input.releaseAll(); this.updateBlocked(); },
       up: (resumed) => {
         this.updateBlocked();
         if (resumed) {
+          this.voice?.linkUp();
           this.toasts.show('Связь восстановлена', 1800, 'link');
           return;
         }
         // сервер начал сессию заново: голос и жетоны — с нуля, сцену он пришлёт сам
         setVoicePresence([]);
         this.tokens.reset();
-        this.voice?.disconnected();
+        this.voice?.disconnected(true);
       },
       giveUp: () => {
         this.net.close();
         setVoicePresence([]);
         this.tokens.reset();
-        this.voice?.disconnected();
+        this.voice?.disconnected(true);
         this.startReconnect();
       },
       banner: (text) => this.linkBanner.show(text, 'down'),
@@ -879,7 +882,7 @@ export class App {
     this.relink.cancel();
     setVoicePresence([]);
     this.syncFishingUi(false);
-    this.voice?.disconnected();
+    this.voice?.disconnected(this.screen === 'reconnecting');
     this.active?.exit();
     this.active = null;
     delete document.documentElement.dataset.room;
@@ -1031,21 +1034,26 @@ export class App {
   /** VOICE=0 never constructs media, listeners or visible controls. */
   private ensureVoice(): void {
     if (this.voice) return;
-    const slot = h('div');
+    // до нового меню (ветка rework/menu): панель «Голос» — раскрывающимся блоком в паузе; меню монтирует её само
+    const slot = h('details', 'vp-pause');
+    slot.append(h('summary', '', 'Голос'));
     this.pauseMain.querySelector('.pause-settings')!.after(slot);
-    this.voiceUi = new VoiceUi({ settingsRoot: slot, hudRoot: this.shell }, {
+    let panelOff: (() => void) | null = null;
+    slot.addEventListener('toggle', () => { panelOff?.(); panelOff = slot.open ? mountVoicePanel(slot) : null; });
+    this.voiceUi = new VoiceUi(this.shell, {
       connectMic: () => { void this.voice?.connectMic(); },
-      enable: () => { void this.voice?.enable(); }, disable: () => this.voice?.disable(),
-      enableMic: () => { void this.voice?.enableMic(); }, disableMic: () => this.voice?.disableMic(),
-      push: on => this.voice?.push(on), setReceiving: on => this.voice?.setReceiving(on),
-      setVolume: volume => this.voice?.setVolume(volume), setPeerMuted: (id, muted) => this.voice?.setPeerMuted(id, muted),
-      openSettings: () => { this.input.unlock(); this.setPaused(true); },
+      push: on => this.voice?.push(on),
+      unblock: () => { void this.voice?.unblock(); },
+      openSettings: () => { this.input.unlock(); this.setPaused(true); slot.open = true; },
     });
     this.voice = new VoiceController({
       send: message => this.net.send(message),
       canTalk: () => this.canTalk(),
       onChange: view => { this.voiceTransmitting = view.transmitting; setVoicePresence(view.presence); this.voiceUi?.render(view); },
+      prefs: loadVoicePrefs(),
+      savePrefs: prefs => saveVoicePrefs(prefs),
     });
+    setVoiceSource(this.voice);
     this.voice.setGameMuted(this.settings.muted);
   }
 
