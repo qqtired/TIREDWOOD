@@ -8,7 +8,7 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
 import { REEL_BAR, SLACK_TICKS, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
 import {
-  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, JUNK_PER_10K, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, reelStyleFor,
+  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, reelStyleFor,
 } from '../shared/fishrules.ts';
 import { fishCatchXp, fishLostXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { makeRng } from '../shared/math.ts';
@@ -167,9 +167,10 @@ export function meanChest(): number {
   return CHEST_BANDS.reduce((s, [lo, hi, w]) => s + ((lo + hi) / 2) * (w / total), 0);
 }
 
-/** Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид. */
+/** Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид (хлам — по уровню, опыт в дождь ×1,15). */
 export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly<FishCastMods>): Income {
-  const fishShare = 1 - (CHEST_PER_10K + JUNK_PER_10K) / 10_000;
+  const junk = junkPer10k(mods?.level);
+  const fishShare = 1 - (CHEST_PER_10K + junk) / 10_000;
   let fight = 0;
   let after = 0;
   let points = 0;
@@ -188,10 +189,11 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
     coins += share * s.p * m.coins;
     fish += share * s.p;
     hooked += share;
-    xp += share * (s.p * fishCatchXp(sp, false, mods) + s.perfectP * (fishCatchXp(sp, true, mods) - fishCatchXp(sp, false, mods)) + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods));
+    const plain = fishCatchXp(sp, false, mods, rain);
+    xp += share * (s.p * plain + s.perfectP * (fishCatchXp(sp, true, mods, rain) - plain) + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods, rain));
   }
   let chest = 0;
-  for (const [sp, share] of [[SP_CHEST, CHEST_PER_10K / 10_000], [SP_BOOT, JUNK_PER_10K / 10_000]] as const) {
+  for (const [sp, share] of [[SP_CHEST, CHEST_PER_10K / 10_000], [SP_BOOT, junk / 10_000]] as const) {
     const s = reelStats(reelStyleFor(sp, mods), skill, Math.min(n, 100), 5);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
