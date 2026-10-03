@@ -237,7 +237,7 @@ export class Kraken3D {
     } else if (r.st === ZS_TENT_REST) {
       _c.lerp(_c2.set(OPEN), 0.35 + 0.2 * Math.sin(time * 8));
     }
-    if (r.flags & ZF_RAGE) _c.lerp(_c2.set(RAGE), 0.2);
+    if (r.flags & ZF_RAGE) _c.lerp(_c2.set(RAGE), 0.3 + 0.12 * Math.sin(time * 9 + r.stage));
     _c.lerp(WHITE, flash * 0.7);
     for (let i = 0; i < BEADS; i++) {
       const u = (i + 0.5) / BEADS * 0.94;

@@ -52,6 +52,8 @@ export class KrakenFx {
   private readonly heads = new Set<number>();
   private lastHead = 0;
   private crystalAlertAt = -1e9;
+  /** Тик ярости: нырок сразу после неё — без своей тревоги (иначе затрёт «в ярости») */
+  private rageAt = -1e9;
 
   private readonly h: KrakenFxHost;
 
@@ -69,6 +71,7 @@ export class KrakenFx {
       case 'bossphase': {
         if (this.h.zombies.kindOf(e[1]) !== Z_KRAKEN) return false;
         const { hud, sound, zombies } = this.h;
+        this.rageAt = this.h.tick();
         hud.alert('🐙 Кракен в ярости · щупальца отросли и бьют парами, плевки по два', 3600);
         const seen = zombies.where(e[1], _w);
         sound.roar(seen ? [_w.x, _w.y + 3, _w.z] : null, 0.55);
@@ -117,7 +120,7 @@ export class KrakenFx {
       sound.krakenScare([tx, 2, tz]);
       sound.horn(0.3);
       this.h.shake(0.5);
-    } else {
+    } else if (this.h.tick() - this.rageAt > TICK_RATE) {
       hud.alert('🐙 Кракен нырнул · всплывёт в другом месте', 2000);
     }
     return true;
