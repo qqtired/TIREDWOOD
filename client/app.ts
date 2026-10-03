@@ -16,7 +16,7 @@ import { errorReport } from './errors.ts';
 import { FightScene } from './fight/scene.ts';
 import { FortScene } from './fort/scene.ts';
 import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } from './identity.ts';
-import { Input, isMuteKey, isTyping } from './input.ts';
+import { Input, isMuteKey } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
 import { Net } from './net.ts';
 import { Relink } from './relink.ts';
@@ -36,7 +36,7 @@ import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
 import { TokensHud } from './ui/tokens.ts';
 import { Transition } from './ui/transition.ts';
-import { VoiceController } from './voice.ts';
+import { VoiceController, voiceInputAllowed } from './voice.ts';
 import { VoiceUi } from './ui/voice.ts';
 import './ui/voice.css';
 import { loadVoicePrefs, saveVoicePrefs } from './voice-prefs.ts';
@@ -934,7 +934,8 @@ export class App {
   }
 
   private onKey(code: string, down: boolean, e: KeyboardEvent): void {
-    if (this.voice?.handleKey(code, down, e)) { e.preventDefault(); return; }
+    // V уже разобрал голос — на window в фазе захвата (ensureVoice), до окон и полей, что глотают клавиши
+    if (code === 'KeyV' && e.defaultPrevented) return;
     if (this.screen !== 'game' || !this.active || this.chat.isOpen) return;
     // M — звук: в любой комнате и на паузе, поэтому раньше сцены (ей эта клавиша не нужна)
     if (down && isMuteKey(e)) {
@@ -1062,8 +1063,9 @@ export class App {
   /** VOICE=0 never constructs media, listeners or visible controls. */
   private ensureVoice(): void {
     if (this.voice) return;
-    // панель «Голос» монтирует само меню (вкладка «Голос», client/ui/voicepanel.ts)
-    this.voiceUi = new VoiceUi(this.shell, {
+    // панель «Голос» монтирует само меню (вкладка «Голос», client/ui/voicepanel.ts).
+    // Кнопка микрофона — в body, над меню и окнами: на телефоне ею говорят и там.
+    this.voiceUi = new VoiceUi(document.body, {
       connectMic: () => { void this.voice?.connectMic(); },
       push: on => this.voice?.push(on),
       unblock: () => { void this.voice?.unblock(); },
@@ -1078,20 +1080,24 @@ export class App {
     });
     setVoiceSource(this.voice);
     this.voice.setGameMuted(this.settings.muted);
+    // V — на window в фазе захвата: меню, окна и поля, которые глотают клавиши (stopPropagation), не мешают
+    // ни нажатию, ни отпусканию — микрофон не залипнет, даже если окно открылось или закрылось посреди удержания
+    for (const [type, down] of [['keydown', true], ['keyup', false]] as const) {
+      window.addEventListener(type, e => { if (e.code === 'KeyV' && this.voice?.handleKey(e.code, down, e)) e.preventDefault(); }, true);
+    }
   }
 
+  /** Голос по V — везде в игре: меню Esc, настройки, окна, пауза. Нельзя при наборе текста, на загрузке и при обрыве. */
   private canTalk(): boolean {
-    return this.screen === 'game' && !this.input.blocked && !this.chat.isOpen
-      && !(this.active === this.lobby && this.lobby.voiceBlocked)
-      && !isTyping(document.activeElement as HTMLElement | null) && !document.querySelector('dialog[open]');
+    return voiceInputAllowed({ inGame: this.screen === 'game', loading: this.transition.busy || this.relink.active, chatOpen: this.chat.isOpen, focused: document.activeElement });
   }
 
   private syncVoiceVisibility(): void {
     if (!this.voice) return;
-    const visible = this.screen === 'game' && !this.input.blocked
-      && !(this.active === this.lobby && this.lobby.voiceBlocked) && !document.querySelector('dialog[open]');
+    // кнопка микрофона — в игре всегда, поверх меню и окон; прячем только на экране загрузки
+    const visible = this.screen === 'game' && !this.transition.busy;
     if (visible !== this.voiceHudVisible) { this.voiceHudVisible = visible; this.voiceUi?.setVisible(visible); }
-    if (this.voiceTransmitting && (!visible || isTyping(document.activeElement as HTMLElement | null))) this.voice.stopTalking();
+    if (this.voiceTransmitting && !this.canTalk()) this.voice.stopTalking();
   }
 
   private toMenu(): void {

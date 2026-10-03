@@ -15,6 +15,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = '
   const e = document.createElement(tag); e.className = cls; e.textContent = text; return e;
 }
 function text(e: HTMLElement, value: string): void { if (e.textContent !== value) e.textContent = value; }
+function isModal(d: HTMLDialogElement): boolean { try { return d.matches(':modal'); } catch { return true; } }
 export const MIC_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/></svg>';
 const SPEAKER_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 4 6M21 9l-4 6"/></svg>';
 export type VoiceHudState = 'hidden' | 'off' | 'listen' | 'requesting' | 'connecting' | 'ready' | 'talking' | 'error' | 'blocked';
@@ -50,6 +51,9 @@ export class VoiceUi {
   private readonly speakers = el('ul', 'voice-speakers');
   private readonly speakerRows = new Map<number | 'self', { root: HTMLElement; name: HTMLElement }>();
   private readonly cleanup: Array<() => void> = [];
+  /** Где кнопка живёт обычно; пока открыто модальное окно — в нём (relocate) */
+  private readonly home: HTMLElement;
+  private watch: MutationObserver | null = null;
   private view: VoiceView | null = null;
   private state: VoiceHudState = 'hidden';
   private visible = false;
@@ -67,7 +71,14 @@ export class VoiceUi {
     this.tip.setAttribute('role', 'status'); this.tip.hidden = true;
     this.speakers.setAttribute('aria-label', 'Сейчас говорят'); this.speakers.tabIndex = 0; this.speakers.hidden = true;
     this.hud.append(this.speakers, this.hold, this.tip); this.hud.hidden = true;
-    hudRoot.append(this.hud);
+    this.home = hudRoot; hudRoot.append(this.hud);
+    // Модальное окно (showModal) — в верхнем слое, а всё вне его браузер делает инертным: кнопку не нажать.
+    // Пока такое окно открыто, кнопка живёт в нём (position: fixed — на том же месте экрана).
+    if (typeof MutationObserver !== 'undefined' && typeof document.querySelectorAll === 'function') {
+      this.watch = new MutationObserver(() => this.relocate());
+      this.watch.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'] });
+      this.relocate();
+    }
     this.listen(this.speakers, 'wheel', e => e.stopPropagation());
     this.listen(this.hold, 'click', () => {
       const s = this.state;
@@ -107,12 +118,14 @@ export class VoiceUi {
 
   setVisible(game: boolean): void {
     this.visible = game; if (!game) this.release();
+    if (this.watch && !this.hud.isConnected) this.relocate();
     this.hud.hidden = !game || this.state === 'hidden' || this.disposed;
     this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
   }
   render(view: VoiceView): void {
     if (this.disposed) return;
     this.view = view; this.state = hudState(view);
+    if (this.watch && !this.hud.isConnected) this.relocate(); // окно с кнопкой убрали из страницы целиком
     this.hud.hidden = this.state === 'hidden' || !this.visible;
     this.renderSpeakers(view);
     if (!this.canHold()) this.release();
@@ -128,6 +141,7 @@ export class VoiceUi {
   }
   dispose(): void {
     if (this.disposed) return; this.release(); this.disposed = true;
+    this.watch?.disconnect(); this.watch = null;
     for (const off of this.cleanup) off(); this.cleanup.length = 0;
     this.speakerRows.clear(); this.hud.remove(); this.view = null;
   }
@@ -151,6 +165,14 @@ export class VoiceUi {
       text(row.name, nick); row.name.title = nick; row.root.setAttribute('aria-label', id === 'self' ? 'Ты говоришь' : `${nick} — говорит`);
     }
     this.speakers.hidden = this.hud.hidden || this.speakerRows.size === 0;
+  }
+  /** Кнопка — в верхнем открытом модальном окне, если оно есть, иначе дома. */
+  private relocate(): void {
+    if (this.disposed || !this.watch) return;
+    let modal: HTMLDialogElement | null = null;
+    for (const d of document.querySelectorAll('dialog')) if (d.open && isModal(d)) modal = d;
+    const parent = modal ?? this.home;
+    if (this.hud.parentElement !== parent) parent.append(this.hud);
   }
   private listen(target: EventTarget, type: string, fn: (event: Event) => void): void {
     target.addEventListener(type, fn); this.cleanup.push(() => target.removeEventListener(type, fn));

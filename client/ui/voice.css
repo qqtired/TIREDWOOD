@@ -1,5 +1,6 @@
-/* Голос в игре: кнопка микрофона в левом нижнем углу, над ней «Сейчас говорят», справа — короткая подсказка. */
-.voice-hud { position: absolute; z-index: 2; left: 20px; bottom: 18px; display: flex; align-items: center; gap: 10px; font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; pointer-events: none; }
+/* Голос в игре: кнопка микрофона в левом нижнем углу, над ней «Сейчас говорят», справа — короткая подсказка.
+   Живёт в body над меню (#menus — 20) и окнами: говорить можно везде; модальное окно забирает её к себе (client/ui/voice.ts). */
+.voice-hud { position: fixed; z-index: 25; left: 20px; bottom: 18px; display: flex; align-items: center; gap: 10px; font-family: Rubik, sans-serif; color: #fff0da; font-size: 13px; line-height: 1.4; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); pointer-events: none; }
 .voice-hud[hidden], .voice-hud [hidden] { display: none !important; }
 .voice-hud :focus-visible { outline: 3px solid #ffd19b; outline-offset: 3px; }
 .voice-speakers { position: absolute; left: 0; bottom: calc(100% + 10px); display: grid; gap: 4px; width: min(240px, calc(100vw - 40px)); max-height: 92px; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #b9d9bf #26382c; list-style: none; pointer-events: auto; touch-action: pan-y; }

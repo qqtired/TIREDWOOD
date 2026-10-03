@@ -2,7 +2,7 @@
 // микрофон, V, перезапуск ICE, заглушение по профилю, обрыв игровой связи, настройки.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { VoiceController, withDtx, VOICE_FADE_IN_S, VOICE_FADE_OUT_TAU_S, VOICE_ONSET_S, VOICE_TAIL_MS, VOICE_TAIL_PLAIN_MS, type VoiceDependencies, type MicPermission } from '../client/voice.ts';
+import { VoiceController, withDtx, voiceInputAllowed, VOICE_FADE_IN_S, VOICE_FADE_OUT_TAU_S, VOICE_ONSET_S, VOICE_TAIL_MS, VOICE_TAIL_PLAIN_MS, type VoiceDependencies, type MicPermission } from '../client/voice.ts';
 import { defaultVoicePrefs, loadVoicePrefs, setPeerPref, type VoicePrefs } from '../client/voice-prefs.ts';
 import { MicTest } from '../client/voice-mictest.ts';
 import type { VoiceClientMsg, VoicePeer } from '../shared/voice.ts';
@@ -67,6 +67,8 @@ class Ctx {
   createMediaStreamDestination() { const stream = new Stream(); this.dests.push(stream); return Object.assign(new AudioPart(), { stream }); }
 }
 const key = (extra: object = {}) => ({ repeat: false, ctrlKey: false, metaKey: false, altKey: false, target: null, ...extra }) as unknown as KeyboardEvent;
+/** focusin с тем, кто получил фокус (как в браузере: event.target — новый фокус) */
+const focusIn = (target: object) => { const e = new Event('focusin'); Object.defineProperty(e, 'target', { value: target }); return e; };
 type Who = Partial<VoicePeer> & { id: number };
 
 /** audio: состояние звукового движка; без него — запасной путь (дорожка микрофона, хвост без затухания) */
@@ -313,7 +315,7 @@ test('V не трогает микрофон и не говорит: фокус 
   assert.equal(s.voice.handleKey('KeyV', true, key({ target: { tagName: 'CANVAS' } })), true); assert.equal(track.enabled, true);
 });
 
-test('blur окна, скрытие вкладки, фокус в другом месте и запрет говорить гасят track.enabled синхронно', async () => {
+test('blur окна, скрытие вкладки, фокус в поле ввода и запрет говорить гасят track.enabled синхронно', async () => {
   const s = setup();
   s.state(1, [{ id: 2 }]);
   await s.voice.enableMic(); await settle();
@@ -322,7 +324,7 @@ test('blur окна, скрытие вкладки, фокус в другом �
   const cases: Array<[string, () => void]> = [
     ['blur окна', () => s.win.dispatchEvent(new Event('blur'))],
     ['visibilitychange → hidden', () => { s.hide(true); s.doc.dispatchEvent(new Event('visibilitychange')); }],
-    ['фокус ушёл (focusin)', () => s.doc.dispatchEvent(new Event('focusin'))],
+    ['фокус ушёл в поле ввода (focusin)', () => s.doc.dispatchEvent(focusIn({ tagName: 'INPUT', type: 'text' }))],
     // игра каждый кадр сверяет право говорить (App.syncVoiceVisibility) и зовёт stopTalking
     ['canTalk() = false: остановка от игры', () => { s.canTalk(false); s.voice.stopTalking(); }],
     // сам контроллер перепроверяет право на каждом пульсе «говорю» (600 мс) и не продлевает его
@@ -336,6 +338,36 @@ test('blur окна, скрытие вкладки, фокус в другом �
     assert.equal(track.enabled, false, `${name}: сразу тишина, без await`);
     assert.deepEqual(talkMsgs(s.sent).slice(said), [false], `${name}: серверу — «замолчал», без продления`);
   }
+});
+
+test('V — голос везде в игре (меню, настройки, окна, пауза), кроме набора текста; окно посреди удержания не мешает, отпускание не теряется', async () => {
+  // правило игры (App.canTalk): меню, пауза и окна в нём не участвуют вовсе — только поле ввода, чат, загрузка
+  const inGame = { inGame: true, loading: false, chatOpen: false };
+  const allowed: Array<[string, object | null]> = [['фокуса нет', null], ['кнопка окна', { tagName: 'BUTTON' }], ['окно', { tagName: 'DIALOG' }],
+    ['список устройств', { tagName: 'SELECT' }], ['ползунок громкости', { tagName: 'INPUT', type: 'range' }], ['галочка настроек', { tagName: 'INPUT', type: 'checkbox' }], ['страница', { tagName: 'BODY' }]];
+  for (const [name, focused] of allowed) assert.equal(voiceInputAllowed({ ...inGame, focused: focused as EventTarget | null }), true, `можно: ${name}`);
+  const typingInto: Array<[string, object]> = [['поле чата', { tagName: 'INPUT', type: 'text' }], ['ник', { tagName: 'INPUT', type: '' }],
+    ['сумма ставки', { tagName: 'INPUT', type: 'number' }], ['textarea', { tagName: 'TEXTAREA' }], ['contentEditable', { tagName: 'DIV', isContentEditable: true }]];
+  for (const [name, focused] of typingInto) assert.equal(voiceInputAllowed({ ...inGame, focused: focused as EventTarget }), false, `нельзя: ${name}`);
+  assert.equal(voiceInputAllowed({ ...inGame, chatOpen: true, focused: null }), false, 'открыт чат');
+  assert.equal(voiceInputAllowed({ ...inGame, loading: true, focused: null }), false, 'экран загрузки или восстановление связи');
+  assert.equal(voiceInputAllowed({ ...inGame, inGame: false, focused: null }), false, 'вне игры');
+
+  // контроллер: V из окна — голос; окно открылось посреди удержания и забрало фокус — говорим дальше;
+  // отпускание V доходит, даже если клавишу отпустили над полем; фокус в поле посреди удержания — тишина сразу
+  const s = setup();
+  s.state(1, [{ id: 2 }]);
+  await s.voice.enableMic(); await settle(); s.pcs[0].set('connected');
+  const track = s.streams[0].track, button = { tagName: 'BUTTON' }, field = { tagName: 'INPUT', type: 'text' };
+  assert.equal(s.voice.handleKey('KeyV', true, key({ target: button })), true, 'V на кнопке окна — голос'); assert.equal(track.enabled, true);
+  s.doc.dispatchEvent(focusIn({ tagName: 'DIALOG' })); s.doc.dispatchEvent(focusIn(button));
+  assert.equal(track.enabled, true, 'окно забрало фокус — говорим дальше');
+  s.voice.handleKey('KeyV', false, key({ target: field })); s.advance(VOICE_TAIL_MS);
+  assert.equal(track.enabled, false, 'отпустили V над полем — после хвоста тишина');
+  assert.equal(s.voice.handleKey('KeyV', true, key({ target: button })), true); assert.equal(track.enabled, true);
+  s.doc.dispatchEvent(focusIn(field));
+  assert.equal(track.enabled, false, 'фокус в поле ввода посреди удержания — тишина сразу');
+  assert.equal(s.voice.handleKey('KeyV', true, key({ target: field })), false, 'в поле V — буква'); assert.equal(track.enabled, false);
 });
 
 test('поздний ответ браузера на микрофон после «Слышать голос» выкл, стопа микрофона или выхода не оживляет захват', async () => {

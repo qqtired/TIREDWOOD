@@ -100,6 +100,13 @@ function typing(target: EventTarget | null | undefined) {
   return !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color', 'file', 'image'].includes((el as HTMLInputElement).type)));
 }
 /**
+ * Где V — голос: везде в игре — в меню Esc, настройках, окнах, на паузе. Нельзя одно: набор текста (фокус в поле
+ * ввода, открыт чат) — там V просто буква. Плюс технические паузы: экран загрузки и восстановление связи.
+ */
+export function voiceInputAllowed(s: { inGame: boolean; loading: boolean; chatOpen: boolean; focused: EventTarget | null }): boolean {
+  return s.inGame && !s.loading && !s.chatOpen && !typing(s.focused);
+}
+/**
  * Opus DTX в отправляемом описании: при отпущенной V дорожка молчит, и с DTX тишина почти не занимает канал (пакет
  * раз в 400 мс вместо 50 в секунду) — важно, когда к говорящему подключена вся зона. Параметр читает кодер собеседника.
  */
@@ -155,8 +162,9 @@ export class VoiceController {
   private refresh: Timer | null = null;
   private readonly blur = () => this.stopTalking();
   private readonly visibility = () => { if (this.deps.hidden()) this.stopTalking(); };
-  // Any focus change relinquishes an existing press. A new eligible press may start again.
-  private readonly focus = () => this.stopTalking();
+  // Фокус ушёл в поле ввода (чат, ник, сумма ставки) — там V буква: тишина сразу. Окна и кнопки фокус тоже забирают,
+  // но говорить там можно: отпускание V игра ловит на window в фазе захвата, его не проглотит ни одно окно.
+  private readonly focus = (event: Event) => { if (typing(event.target)) this.stopTalking(); };
   private readonly gesture = () => { void this.unblock(); };
 
   constructor(opts: Options, dependencies: Partial<VoiceDependencies> = {}) {
