@@ -2,6 +2,7 @@
 // и списком бойцов из круга у двери, переводит туда всех из круга (лишние — зрителями) и запускает (launch).
 // Пока бой идёт, спуститься можно зрителем. Итоги людям и «всех наверх» уходят в хаб через хуки.
 import { FC_CAPACITY, type FcMode, type FcResultRow, type FcReward } from '../../shared/fight.ts';
+import { FP_INTRO } from '../../shared/fight.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import type { Input } from '../../shared/sim.ts';
@@ -56,6 +57,9 @@ export class FightRoom implements Room {
   hasSpace(): boolean {
     return !this.idle && this.byClient.size < FC_CAPACITY;
   }
+
+  /** Ожидание загрузки (server/readygate.ts): вступление первого раунда стоит, пока все не загрузились */
+  get prestart(): { phaseEnd: number } | null { const g = this.game; return g && g.started && !g.closed && g.phase === FP_INTRO && g.round === 1 ? g : null; }
 
   /** Новый бой: режим и кто в нём дерётся (по номерам профилей). */
   open(mode: FcMode, fighterPids: number[]): void {
