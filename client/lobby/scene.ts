@@ -58,6 +58,7 @@ import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { LobbyCamera } from './camera.ts';
 import { DurakTables3D } from './durak3d.ts';
+import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
@@ -166,6 +167,7 @@ export class LobbyScene implements Scene {
   private readonly slots: SlotMachines3D;
   private readonly wardrobe: Wardrobe;
   private readonly tables3d: DurakTables3D;
+  private readonly decor: DurakDecor;
   private readonly dkHud: DurakHud;
   private readonly bjHud: BlackjackHud;
   private readonly blackjack3d: BlackjackTable3D;
@@ -374,6 +376,7 @@ export class LobbyScene implements Scene {
     this.wardrobe.onPreview = (o) => this.me.setOutfit(o);
     this.wardrobe.onClose = () => this.leaveWardrobe(true);
     this.tables3d = new DurakTables3D(this.world, d.sound, [0, 1]);
+    this.decor = new DurakDecor(this.world.scene, this.world.map.tables, [0, 1]);
     this.dkHud = new DurakHud(this.hud.root);
     this.dkHud.onAct = (a, card, on) => {
       if (this.dkSeat >= 0) d.net.send({ t: 'durak', table: seatTable(this.dkSeat), a, card, on });
@@ -536,6 +539,7 @@ export class LobbyScene implements Scene {
     this.slots.reset();
     this.fx.clear();
     this.tables3d.reset();
+    this.decor.reset();
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
@@ -588,6 +592,7 @@ export class LobbyScene implements Scene {
     this.slots.reset();
     this.fx.clear();
     this.tables3d.reset();
+    this.decor.reset();
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
@@ -920,6 +925,7 @@ export class LobbyScene implements Scene {
     const now = performance.now();
     this.dkRecv[t] = now;
     this.tables3d.apply(t, v);
+    this.decor.setView(t, v);
     if (this.dkSeat >= 0 && seatTable(this.dkSeat) === t) this.dkHud.setView(v, now);
   }
 
@@ -1114,6 +1120,7 @@ export class LobbyScene implements Scene {
     this.dkSeat = seat;
     this.me.hidden = seat >= 0;
     this.tables3d.setMe(seat);
+    this.decor.setMe(seat >= 0 && seatTable(seat) !== BJ_TABLE ? seatTable(seat) : -1);
     this.blackjack3d.setMe(seat >= 0 ? seatTable(seat) : -1, seat >= 0 ? seatChair(seat) : -1);
     if (seat < 0) {
       this.dkHud.hide();
@@ -1717,6 +1724,7 @@ export class LobbyScene implements Scene {
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
     this.tables3d.update(dt, this.time, camPos);
+    this.decor.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
     this.bjHud.tick(performance.now());
     this.updateHud();

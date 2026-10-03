@@ -799,6 +799,64 @@ export class Sound {
     this.noise(d, 0.03, 'bandpass', 2000, 1200, 1.5, 0.08);
   }
 
+  // ------------------------------------------------------------ блэкджек: фишки, переворот, итоги
+  // pos — стол; null — свой стол (без затухания). when — задержка в секундах.
+
+  /** Фишка легла на сукно: сухой керамический «клац». */
+  chip(pos: V3 | null, when = 0): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const k = 0.92 + Math.random() * 0.2;
+    this.tone(d, 2300 * k, 1500 * k, 0.03, 'triangle', 0.1, when);
+    this.tone(d, 3500 * k, 3000 * k, 0.02, 'sine', 0.05, when + 0.002);
+    this.noise(d, 0.025, 'highpass', 5200, 4000, 0.8, 0.14, when);
+  }
+
+  /** Стопка фишек съехала: несколько клацаний подряд. */
+  chipStack(pos: V3 | null, n = 3, when = 0): void {
+    if (!this.ok) return;
+    let t = when;
+    for (let i = 0; i < n; i++) {
+      this.chip(pos, t);
+      t += 0.04 + Math.random() * 0.025;
+    }
+  }
+
+  /** Карта перевёрнута: шорох воздуха и лёгкий щелчок. */
+  flip(pos: V3 | null, when = 0): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    this.noise(d, 0.07, 'bandpass', 1400, 3200, 1.1, 0.16, when, 0.004);
+    this.noise(d, 0.025, 'highpass', 5800, 4200, 0.7, 0.1, when + 0.05);
+  }
+
+  /** Выигрыш за столом: два звонких «динь» и несколько монет. big — блэкджек: длиннее и ярче. */
+  tableWin(big = false): void {
+    if (!this.ok) return;
+    const d = this.ui;
+    const notes = big ? [659, 784, 988, 1319, 1568] : [784, 1047];
+    notes.forEach((f, i) => {
+      this.tone(d, f, f, big ? 0.28 : 0.22, 'triangle', 0.14, i * 0.085);
+      this.tone(d, f * 2, f * 2, 0.14, 'sine', 0.04, i * 0.085 + 0.01);
+    });
+    this.coins(null, big ? 12 : 5);
+  }
+
+  /** Проигрыш за столом: мягкий низкий «уу-ух», без издевательств. */
+  tableLose(): void {
+    if (!this.ok) return;
+    const d = this.ui;
+    this.tone(d, 330, 247, 0.22, 'triangle', 0.12);
+    this.tone(d, 247, 196, 0.34, 'triangle', 0.12, 0.17);
+  }
+
+  /** Ничья: одна нейтральная нота. */
+  tablePush(): void {
+    if (!this.ok) return;
+    this.tone(this.ui, 523, 523, 0.22, 'triangle', 0.1);
+    this.tone(this.ui, 523, 523, 0.22, 'triangle', 0.1, 0.16);
+  }
+
   /** Болеют у табло гонки: гул толпы, хлопки вразнобой и свист. pos = null — для гонщика, без объёма. */
   applause(pos: V3 | null): void {
     if (!this.ok) return;
