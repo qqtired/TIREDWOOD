@@ -19,9 +19,15 @@ const DRAG_FULL_PX = 230;
 const SWING_S = 1.6;
 /** Дальше этого анимацию удара не считаем — сразу итог */
 const ANIM_FAR = 45;
-/** Кий бьющего — зрителям не чаще, мс */
+/**
+ * Кий бьющего — сопернику и зрителям не чаще, мс; замер с кием — всё равно раз в секунду (иначе у них кий пропадёт
+ * через REMOTE_AIM_MS)
+ */
 const AIM_SEND_MS = 120;
+const AIM_KEEP_MS = 1000;
 const REMOTE_AIM_MS = 2500;
+/** Удар: кий на миг у битка, мс */
+const STROKE_MS = 160;
 
 interface Anim {
   n: number;
@@ -66,7 +72,8 @@ export class BilliardsClient {
   private readonly d: BilliardsDeps;
   private readonly views: Array<BlTableView | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
   private readonly anims: Array<Anim | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
-  private readonly remoteAim: Array<{ ang: number; pw: number; at: number } | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
+  /** Кий бьющего с другого клиента у каждого стола: прицел (at) или удар (hit, по направлению удара) */
+  private readonly remoteAim: Array<{ ang: number; pw: number; at: number; hit: number } | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
   private readonly recvAt: number[] = Array.from({ length: BL_TABLE_COUNT }, () => 0);
   private table = -1;
   private side = -1;
@@ -130,7 +137,10 @@ export class BilliardsClient {
         this.onShot(msg.s);
         return true;
       case 'blAim':
-        if (msg.table >= 0 && msg.table < BL_TABLE_COUNT && msg.table !== this.table) this.remoteAim[msg.table] = { ang: msg.ang, pw: msg.pw, at: performance.now() };
+        // свой стол — только пока бьёт соперник: своё эхо от сервера не нужно, свой кий рисуем сами
+        if (msg.table >= 0 && msg.table < BL_TABLE_COUNT && (msg.table !== this.table || this.oppTurn())) {
+          this.remoteAim[msg.table] = { ang: msg.ang, pw: msg.pw, at: performance.now(), hit: 0 };
+        }
         return true;
       case 'blErr':
         if (msg.table === this.table || msg.table < 0) {
@@ -163,7 +173,9 @@ export class BilliardsClient {
 
   private onShot(s: BlShotWire): void {
     if (s.table < 0 || s.table >= BL_TABLE_COUNT) return;
-    this.remoteAim[s.table] = null;
+    // свой удар — свой кий (strokeAt); бил другой — его кий на миг у битка по направлению удара
+    const mine = s.table === this.table && (s.by >= 0 ? s.by === this.side : this.pending >= 0);
+    this.remoteAim[s.table] = mine ? null : { ang: Math.atan2(s.vx, s.vz), pw: 0, at: 0, hit: performance.now() };
     if (s.table === this.table) {
       this.pending = -1;
       this.charging = null;
@@ -206,7 +218,7 @@ export class BilliardsClient {
     const cue = this.worldOf(s.table, s.pos[0], s.pos[1]);
     const pw = Math.min(1, Math.hypot(s.vx, s.vz) / 5);
     this.d.sound.blCue(s.table === this.table ? null : cue, pw);
-    this.strokeAt = s.table === this.table ? performance.now() : this.strokeAt;
+    this.strokeAt = mine ? performance.now() : this.strokeAt;
   }
 
   // ------------------------------------------------------------ свой стол
@@ -251,6 +263,12 @@ export class BilliardsClient {
     if (!v || this.anims[this.table] || this.pending >= 0 || v.phase === 'result' || !(v.on & 1)) return false;
     if (v.rolling - (now - this.recvAt[this.table]) > 0) return false;
     return v.phase === 'open' || (v.phase === 'match' && v.turn === this.side);
+  }
+
+  /** За своим столом партия, и бьёт соперник */
+  private oppTurn(): boolean {
+    const v = this.table >= 0 ? this.views[this.table] : null;
+    return !!v && v.phase === 'match' && this.side >= 0 && v.turn !== this.side;
   }
 
   private cueLocal(): { x: number; z: number } | null {
@@ -385,28 +403,33 @@ export class BilliardsClient {
       const can = this.canShoot(now);
       if (!can && this.charging) this.cancelCharge();
       if (this.charging) this.hud.setPower(this.power);
-      const stroke = now - this.strokeAt < 160;
-      this.view3d.setCue(this.table, (can && this.aimValid) || stroke, this.ang, stroke ? 0 : this.charging ? this.power : 0.08);
+      const stroke = now - this.strokeAt < STROKE_MS;
+      // свой ход — свой кий; бьёт соперник — его кий, как у зрителей
+      if ((can && this.aimValid) || stroke) this.view3d.setCue(this.table, true, this.ang, stroke ? 0 : this.charging ? this.power : 0.08);
+      else this.remoteCue(this.table, now);
       this.view3d.setAim(this.table, can && this.aimValid, this.ang);
       this.hud.setAnimating(!!this.anims[this.table]);
       this.hud.tick(now);
       if (can && now - this.aimSentAt > AIM_SEND_MS) {
         const key = `${this.ang.toFixed(3)}:${this.charging ? this.power.toFixed(2) : '0'}`;
-        if (key !== this.aimSent) {
+        if (key !== this.aimSent || now - this.aimSentAt > AIM_KEEP_MS) {
           this.aimSent = key;
           this.aimSentAt = now;
           this.d.send({ t: 'bl', a: 'aim', table: this.table, ang: this.ang, pw: this.charging ? this.power : 0 });
         }
       }
     }
-    // чужие столы: кий бьющего, пока он целится
-    for (let t = 0; t < BL_TABLE_COUNT; t++) {
-      if (t === this.table) continue;
-      const a = this.remoteAim[t];
-      const show = !!a && now - a.at < REMOTE_AIM_MS && !this.anims[t];
-      this.view3d.setCue(t, show, a?.ang ?? 0, a ? Math.max(0.08, a.pw) : 0);
-    }
+    // чужие столы: кий бьющего, пока он целится, и удар
+    for (let t = 0; t < BL_TABLE_COUNT; t++) if (t !== this.table) this.remoteCue(t, now);
     this.view3d.update(dt, time, camPos);
+  }
+
+  /** Кий бьющего с другого клиента у стола t: целится (прицел свежий, шары стоят) или только что ударил */
+  private remoteCue(t: number, now: number): void {
+    const a = this.remoteAim[t];
+    const stroke = !!a && a.hit > 0 && now - a.hit < STROKE_MS;
+    const show = stroke || (!!a && !a.hit && now - a.at < REMOTE_AIM_MS && !this.anims[t]);
+    this.view3d.setCue(t, show, a?.ang ?? 0, stroke ? 0 : a ? Math.max(0.08, a.pw) : 0);
   }
 
   private stepAnim(t: number, now: number): void {
