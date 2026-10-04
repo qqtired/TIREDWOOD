@@ -85,6 +85,7 @@ import { FishHud } from './fishhud.ts';
 import { FishingSpots } from './fishing.ts';
 import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
+import { fishSpotOnOff, fishSpotOnSnapshot } from './fishspot.ts';
 import { FishHouse3D } from './fishhouse.ts';
 import { FishDrink } from './fishdrink.ts';
 import { FishHolds } from './fishhold.ts';
@@ -1707,7 +1708,6 @@ export class LobbyScene implements Scene {
         input.yaw = Math.atan2(sp.x - c.x, sp.z - c.z);
         input.pitch = -0.12;
       }
-      if (action === ACT_FISH) this.myFishSpot = arg;
       if (action === ACT_WARDROBE) {
         this.wardrobeOpen = true;
         input.unlock();
@@ -1737,6 +1737,8 @@ export class LobbyScene implements Scene {
         this.d.wantPointer();
       }
     }
+    // своё место рыбалки — по каждому снимку, а не только при смене (баг «нет „Подсекай!“», client/lobby/fishspot.ts)
+    this.myFishSpot = fishSpotOnSnapshot(this.myFishSpot, action, arg);
     if (performance.now() >= this.localUntil && (this.me.action !== action || this.me.arg !== arg)) this.me.setAction(action, arg);
   }
 
@@ -2094,6 +2096,8 @@ export class LobbyScene implements Scene {
       case FE_EARLY:
         hud.showBite(false);
         if (a === 1) this.d.ui.toasts.show('Рано! Это была проба — подсекай, когда поплавок уйдёт под воду', 3200);
+        // нажал, пока поплавок спокоен (пробел по привычке прыжка) — удочка смотана: без строки казалось, что клёва нет
+        else this.d.ui.toasts.show('Рано — удочка смотана. Подсекай, когда поплавок уйдёт под воду', 2600);
         break;
       case FE_MISS:
         hud.showBite(false);
@@ -2111,7 +2115,8 @@ export class LobbyScene implements Scene {
       case FE_OFF:
         hud.reset();
         this.fish2.off();
-        this.myFishSpot = -1;
+        // снимок уже показал нас снова на этом месте (встал и сел между снимками) — место наше
+        this.myFishSpot = fishSpotOnOff(this.myFishSpot, spot, this.action, this.arg);
         break;
     }
   }

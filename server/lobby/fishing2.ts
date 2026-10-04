@@ -46,6 +46,11 @@ export const REEL_AHEAD = 30;
 export const REEL_LAG = 4 * TICK_RATE;
 /** Переключений в одном сообщении не больше */
 export const REEL_BATCH = 120;
+/**
+ * Окно подсечки ждёт замолчавшего рыбака (ввод не приходит: вкладка подвисла, связь замерла) — на столько тиков
+ * больше, не дольше. Иначе поклёвка и «ушла» доходили до него разом: «Подсекай!» вспыхивал и гас в одном кадре.
+ */
+export const BITE_GRACE = TICK_RATE;
 /** Сообщений за одно вываживание не больше (клиент шлёт до 20 в секунду) */
 export const REEL_MSGS = REEL_MAX_TICKS / 2;
 /** Подсказка, когда рюкзак полон: заброс всё равно уходит, улов отпускается в воду (shared/fishrelease.ts) */
@@ -66,6 +71,8 @@ export interface FishingHost2 extends FishingHost {
   top(top: FishBoardView): void;
   /** Наряд рыбака поменялся (снасти из наград надеты сами) — разослать всем на набережной */
   outfit?(slot: number): void;
+  /** Ввод рыбака сейчас не приходит (вкладка подвисла, связь замерла); нет метода — всегда приходит */
+  stalled?(slot: number): boolean;
 }
 
 interface Spot {
@@ -79,6 +86,8 @@ interface Spot {
   biteAt: number;
   n: number;
   nibbled: boolean;
+  /** Окно подсечки уже подождало замолчавшего рыбака столько тиков (BITE_GRACE) */
+  grace: number;
   /** На крючке или в руках: вид (−1 — ничего), граммы, что в сундуке */
   sp: number;
   g: number;
@@ -101,7 +110,7 @@ interface Spot {
 
 function emptySpot(): Spot {
   return {
-    slot: 0, phase: FP_IDLE, until: 0, x: 0, z: 0, nibbles: [], biteAt: 0, n: 0, nibbled: false, sp: -1, g: 0, coins: 0, reel: null, toggles: [],
+    slot: 0, phase: FP_IDLE, until: 0, x: 0, z: 0, nibbles: [], biteAt: 0, n: 0, nibbled: false, grace: 0, sp: -1, g: 0, coins: 0, reel: null, toggles: [],
     k: 0, ack: 0, startMs: 0, msgs: 0, mods: fishCastMods(emptyFishProgress(), 0), bagN: -1, xp: 0, freed: false,
   };
 }
@@ -221,6 +230,11 @@ export class FishingHall2 {
           if (tick >= s.biteAt) this.bite(s, spot, tick);
           break;
         case FP_BITE:
+          // замолчал во время поклёвки — окно ждёт его (до BITE_GRACE), чтобы «Подсекай!» успел дойти и показаться
+          if (s.grace < BITE_GRACE && this.host.stalled?.(s.slot)) {
+            s.until++;
+            s.grace++;
+          }
           if (tick >= s.until) {
             this.countLost(s);
             s.phase = FP_IDLE;
@@ -305,6 +319,7 @@ export class FishingHall2 {
     s.coins = c.coins;
     s.n++;
     s.phase = FP_BITE;
+    s.grace = 0;
     s.until = tick + hookTicks(RULE[c.sp]?.tier ?? 0, this.host.who(s.slot)?.ping ?? 0);
     this.host.event(['fish', FE_BITE, spot, s.n, 0]);
   }
