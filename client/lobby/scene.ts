@@ -1800,6 +1800,8 @@ export class LobbyScene implements Scene {
       this.fish2.toggleBag();
       return true;
     }
+    // рыба в руках после поимки: F — отпустить в воду (+50 % опыта, без жетонов; shared/fishrelease.ts)
+    if (code === 'KeyF' && act === ACT_FISH && this.fish2.release()) return true;
     if (code === 'KeyF' && this.photo.hasCard) {
       this.photo.save();
       return true;
@@ -2063,13 +2065,8 @@ export class LobbyScene implements Scene {
     const spot = this.arg;
     const ph = this.fishing.phaseOf(spot);
     if (ph === FP_IDLE || (ph === FP_HOLD && this.fish2.on)) {
-      // рюкзак полон — заброс не уйдёт (сервер решил бы так же): сразу подсказка
-      if (this.fish2.on && this.fish2.bagFull) {
-        this.d.ui.toasts.show('Рюкзак полон — продай улов Семёну или Сане (I — рюкзак)', 3200);
-        this.fishSentAt = now;
-        return;
-      }
-      // рыбалка 2.0: с рыбой в руках — сразу новый заброс (замах начнётся по событию сервера)
+      // рыбалка 2.0: с рыбой в руках — она в садок и сразу новый заброс (замах начнётся по событию сервера); рюкзак
+      // полон — заброс тоже уходит, улов отпустится (подсказку пришлёт сервер)
       if (ph === FP_IDLE && !this.fishing.castLocal(spot)) return;
       this.d.net.send({ t: 'fish', a: 'cast' });
       this.fish2.cast();
@@ -2103,6 +2100,7 @@ export class LobbyScene implements Scene {
         this.d.ui.toasts.show('Не успел — рыба ушла 💨', 2600);
         break;
       case FE_DONE:
+        this.fish2.done(a);
         // новинка в альбоме — «динь-динь», продал — звон монет
         if (hud.hideCatch(a === 1)) this.d.sound.fishAlbum();
         else if (a === 0 && this.catchPrice > 0) this.d.sound.coins(null, Math.min(8, this.catchPrice));
@@ -2665,14 +2663,14 @@ export class LobbyScene implements Scene {
     const ph = this.fishing.phaseOf(this.arg);
     const h = this.hud;
     const cast = TOUCH ? ['🎣'] : ['Пробел', '/', 'ЛКМ'];
-    if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(TOUCH ? [] : ['I'], 'Рюкзак полон — продай улов Семёну или Сане');
+    if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(cast, TOUCH ? 'Забросить · рюкзак полон' : 'забросить · рюкзак полон — улов отпустишь в воду (+50 % опыта) · I — рюкзак');
     else if (ph === FP_IDLE) h.setHint(cast, TOUCH ? 'Забросить' : `забросить · ${this.fish2.on ? 'J — журнал · I — рюкзак · ' : ''}E или шаг — уйти`);
     else if (ph === FP_CAST) h.setHint([], 'Заброс…');
     else if (ph === FP_WAIT) h.setHint([], TOUCH ? 'Ждём поклёвку' : 'Ждём поклёвку: поплавок уйдёт под воду — тогда жми Пробел');
     else if (ph === FP_BITE) h.setHint(cast, 'ПОДСЕКАЙ!');
     else if (ph === FP_REEL && this.fish2.on) h.setHint(TOUCH ? null : ['ЛКМ', '/', 'Пробел'], 'держи — зелёная зона вверх, отпусти — вниз · рыба в зоне — шкала растёт');
     else if (ph === FP_REEL) h.setHint([], 'Тянем! 🎣');
-    else if (this.fish2.on) h.setHint(cast, `забросить снова${TOUCH ? '' : ' · J — журнал'}`);
+    else if (this.fish2.on) h.setHint(cast, `${this.fish2.choosing ? 'в садок и забросить снова' : 'забросить снова'}${TOUCH ? '' : ' · J — журнал'}`);
     // на телефоне всё видно на самой карточке улова
     else h.setHint(TOUCH ? null : ['1', '/', '2'], 'в коллекцию или продать');
   }

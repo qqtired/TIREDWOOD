@@ -1,0 +1,99 @@
+/* После поимки (shared/fishrelease.ts): на карточке улова — «В садок» (зелёная, ЛКМ) и «Отпустить» (F) с подписью,
+   полоска — сколько ждать выбора; отпущенная — цена голубым «Отпущена». Карточка чуть шире, пока выбираешь. */
+.fc2.choose {
+  width: min(344px, calc(100vw - 36px));
+}
+
+.fc2-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.fc2-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 58px;
+  padding: 9px 10px 8px;
+  border: 2px solid transparent;
+  border-radius: 13px;
+  font: inherit;
+  text-align: left;
+  color: var(--cream);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.fc2-btn.keep {
+  background: var(--mint);
+  color: var(--ink);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.14);
+}
+
+.fc2-btn.free {
+  background: rgba(191, 230, 255, 0.12);
+  border-color: rgba(191, 230, 255, 0.55);
+}
+
+.fc2-btn:hover {
+  filter: brightness(1.08);
+}
+
+.fc2-btn-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.fc2-btn-top b {
+  font-weight: 900;
+}
+
+.fc2-btn.keep kbd {
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: none;
+}
+
+.fc2-btn small {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.fc2-btn.free small {
+  color: #bfe6ff;
+  opacity: 1;
+}
+
+.fc2-wait i {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tc, var(--mint));
+  transform-origin: left;
+  animation: la-bar linear forwards;
+}
+
+.fc2-wait span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--cream-dim);
+  text-align: center;
+}
+
+.fc2.freed .fc2-price {
+  background: rgba(191, 230, 255, 0.16);
+  color: #bfe6ff;
+}
+
+.touch .fc2-btn-top {
+  font-size: 15px;
+}
