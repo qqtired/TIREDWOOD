@@ -16,7 +16,7 @@ export const P_HANG = 0;
 export const P_FRONT = 1;
 export const P_SIDE = 2;
 /** Рука с рыбой за хвост — на уровне груди (ниже лица); рыба двумя руками — на уровне пояса, м от земли */
-const CHEST_Y = 0.92;
+const CHEST_Y = 0.88;
 const WAIST_Y = 0.7;
 
 interface Hold {
@@ -53,11 +53,11 @@ export function placeHeld(f: THREE.Object3D, hands: number[], pose: number, len:
   if (pose === P_HANG) {
     // за хвост (кальмар — за кончик мантии) в правой руке перед собой на уровне груди, висит вниз, чуть качается
     const hy = Math.max(CHEST_Y, 0.3 + len);
-    set(hands, -0.44, 0.62, -0.2, 0.4, hy, -0.44);
+    set(hands, -0.44, 0.62, -0.2, 0.24, hy, -0.58);
     const sway = Math.sin(t * 1.9) * 0.07;
     f.rotation.set(0, wig, (squid ? Math.PI / 2 : -Math.PI / 2) + sway);
     const down = half.x - 0.03;
-    f.position.set(0.4 + Math.sin(sway) * down, hy - Math.cos(sway) * down, -0.44);
+    f.position.set(0.24 + Math.sin(sway) * down, hy - Math.cos(sway) * down, -0.58);
   } else if (pose === P_FRONT) {
     // двумя руками перед собой на уровне пояса, как на фото с уловом: боком к тому, кто смотрит спереди, лицо открыто
     const hx = Math.min(0.46, Math.max(0.2, half.x * 0.62));

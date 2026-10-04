@@ -781,7 +781,8 @@ export class FishingSpots {
         f.position.set(lerp(s.from.x, tx, k), lerp(s.from.y, WATER_Y, k) + Math.sin(Math.PI * k) * 1.4, lerp(s.from.z, tz, k));
         f.rotation.z = -k * 2.2;
         if (k >= 1) {
-          this.effects.waterSplash(tx, tz, s.freed);
+          this.effects.waterSplash(tx, tz, false);
+          if (s.freed) this.effects.ripple(tx, tz, 1.4, 1);
           if (s.sp === GOLDFISH) this.fx.sparkle(tx, WATER_Y + 0.3, tz, 26);
           if (s.freed) this.sound.fishPlop(s.av === this.me ? null : [tx, WATER_Y, tz]);
           this.finishAnim(s);

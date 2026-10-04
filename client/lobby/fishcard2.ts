@@ -154,7 +154,7 @@ export class CatchCard2 {
       return;
     }
     this.card.classList.add('freed');
-    if (this.priceEl) this.priceEl.textContent = '🌊 Отпущена — жетонов нет';
+    if (this.priceEl) this.priceEl.textContent = '🌊 Отпущена · без жетонов';
     if (this.xpEl && m.xp) this.xpEl.textContent = `+${releaseXp(m.xp)} XP · отпустил ×1,5`;
     this.hideIn(FREED_MS);
   }

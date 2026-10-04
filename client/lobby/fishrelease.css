@@ -1,12 +1,12 @@
 /* После поимки (shared/fishrelease.ts): на карточке улова — «В садок» (зелёная, ЛКМ) и «Отпустить» (F) с подписью,
    полоска — сколько ждать выбора; отпущенная — цена голубым «Отпущена». Карточка чуть шире, пока выбираешь. */
 .fc2.choose {
-  width: min(344px, calc(100vw - 36px));
+  width: min(376px, calc(100vw - 36px));
 }
 
 .fc2-choice {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
   margin-top: 2px;
 }
@@ -45,9 +45,13 @@
 .fc2-btn-top {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-size: 16px;
   white-space: nowrap;
+}
+
+.fc2-btn-top kbd {
+  flex: none;
 }
 
 .fc2-btn-top b {
@@ -92,6 +96,7 @@
 .fc2.freed .fc2-price {
   background: rgba(191, 230, 255, 0.16);
   color: #bfe6ff;
+  font-size: 16px;
 }
 
 .touch .fc2-btn-top {
