@@ -77,8 +77,9 @@ test('public talking presence follows avatar entity IDs, clears on replacement a
       const m = sprite.matrixWorld.elements;
       const pixels = Math.hypot(m[4], m[5], m[6]) * camera.projectionMatrix.elements[5] * viewport / 2;
       const width = Math.hypot(m[0], m[1], m[2]) * camera.projectionMatrix.elements[0] * viewport * camera.aspect / 2;
-      assert.ok(Math.abs(pixels - 24) < .001, `24 CSSpx at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${pixels}`);
-      assert.ok(Math.abs(width - 24) < .001, `24 CSSpx wide at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${width}`);
+      // значок говорящего — 28,8 CSS px (было 24, +20 % по просьбе владельца 2026-10-04)
+      assert.ok(Math.abs(pixels - 28.8) < .001, `28.8 CSSpx at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${pixels}`);
+      assert.ok(Math.abs(width - 28.8) < .001, `28.8 CSSpx wide at h${viewport}, FOV${fov}, parent${parentScale}, invalid${invalidHeight}: ${width}`);
     }
   }
   a.root.scale.setScalar(1);
