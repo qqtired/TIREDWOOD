@@ -26,7 +26,7 @@ test('кафе сохраняет 18 старых стульев: два сто�
   const barkasMax = Math.max(...fish.filter((i) => i.arg >= 12 && i.arg < 20).map((i) => i.id));
   for (const i of fish) if (i.arg >= 20 && i.arg < 28) assert.ok(spotZone(i.arg) === 'pier' && i.id > barkasMax, `дальнее место ${i.id} — после баркаса`);
   const farMax = Math.max(...fish.filter((i) => i.arg >= 20 && i.arg < 28).map((i) => i.id));
-  for (const i of fish) if (i.arg >= 28) assert.ok(spotZone(i.arg) === 'barkas' && i.id > farMax && i.id >= m.interact.length - 2, `новое место баркаса ${i.id} — в конце`);
+  for (const i of fish) if (i.arg >= 28) assert.ok(spotZone(i.arg) === 'barkas' && i.id > farMax && i.id > m.interact.find((b) => b.kind === 'banner')!.id, `новое место баркаса ${i.id} — в конце`);
 });
 
 test('портал скилл-теста добавлен после старых точек; вход и выход стоят на свободном настиле', () => {

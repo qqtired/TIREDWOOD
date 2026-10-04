@@ -69,8 +69,9 @@ test('баркас: десять мест рыбалки вдоль бортов
   for (let i = 0; i < FISH_SPOTS.length; i++) assert.equal(fishZone(i), barkasIdx.includes(i) ? 'barkas' : 'pier');
   const spots = map.interact.filter((i) => i.kind === 'fish' && barkasIdx.includes(i.arg));
   assert.deepEqual(spots.map((i) => i.arg), barkasIdx);
-  // точки двух новых мест — в самом конце списка точек (номера прежних точек не меняются)
-  assert.deepEqual(map.interact.slice(-2).map((i) => [i.kind, i.arg]), [['fish', 28], ['fish', 29]]);
+  // точки двух новых мест — после всех прежних точек (последняя прежняя — заказ баннера): номера прежних не меняются
+  const banner = map.interact.find((i) => i.kind === 'banner')!;
+  assert.ok(spots.slice(8).every((i) => i.id > banner.id), 'новые места — в конце списка точек');
   // по пять мест у каждого борта
   assert.equal(BARKAS_FISH_SPOTS.filter((s) => s.z < BARKAS.z).length, 5);
   assert.equal(BARKAS_FISH_SPOTS.filter((s) => s.z > BARKAS.z).length, 5);
