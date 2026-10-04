@@ -93,7 +93,7 @@ b, strong { font-weight: 700; }
 /* таблицы */
 .tbl { width: 100%; border-collapse: collapse; font-size: 15px; }
 .tbl th, .tbl td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); }
-.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th:first-child, .tbl td:first-child, .tbl .l { text-align: left; }
 .tbl thead th { font-size: 13px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
 .tbl tbody tr:last-child td { border-bottom: 0; }
 .tbl .tn { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
@@ -178,6 +178,10 @@ input[type=range] { width: 100%; accent-color: var(--sea); }
 .keys li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
 .keys .k { width: 34px; height: 34px; border-radius: 10px; background: var(--sky); display: grid; place-items: center; font-size: 18px; }
 .keys p { margin: 0; color: var(--ink2); }
+/* «Что нового»: те же строки со значками, в две колонки */
+.news { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 26px; row-gap: 14px; }
+/* строка клада Посейдона в таблице сундука */
+.tbl tr.pos td { background: #fff5d6; color: #7a5200; font-weight: 700; }
 .tips { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .tips li { background: #fff; border-radius: 14px; padding: 12px 16px; box-shadow: var(--shadow); border-left: 5px solid var(--sea); }
 
@@ -201,7 +205,7 @@ footer { margin: 70px 0 0; padding: 30px 0 40px; background: linear-gradient(180
   .lead { font-size: 16px; }
   h2 { font-size: 26px; }
   section { margin-top: 42px; }
-  .g2, .g3, .g4, .myths { grid-template-columns: minmax(0, 1fr); }
+  .g2, .g3, .g4, .myths, .news { grid-template-columns: minmax(0, 1fr); }
   .tiers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .tier { padding: 14px 14px 12px; }
   .tier .big { font-size: 28px; }
