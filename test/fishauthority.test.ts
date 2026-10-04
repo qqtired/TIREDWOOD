@@ -292,11 +292,13 @@ test('дубли reel не начисляют повторно; сундук/х�
   assert.equal(p.fishing.questCaught, 0);
 });
 
-test('все места (12 у пристани + 8 на баркасе): серверные массивы и welcome содержат все; 12 игроков у пристани занимают своё, чужой reel не действует', () => {
+test('все места (20 у пристани + 8 на баркасе): серверные массивы и welcome содержат все; 20 игроков у пристани занимают своё, чужой reel не действует', () => {
   const e = setup();
   const players = [e.a];
-  const pier = FISH_SPOTS.filter((_s, i) => spotZone(i) === 'pier').length;
-  assert.equal(pier, 12);
+  // места пристани: 12 у маяка, потом 8 баркаса, потом 8 на дальних мостках и у дома рыбака
+  const pierIdx = FISH_SPOTS.map((_s, i) => i).filter((i) => spotZone(i) === 'pier');
+  const pier = pierIdx.length;
+  assert.equal(pier, 20);
   for (let i = 1; i < pier; i++) players.push(login(e.hub, `Рыбак${i}`, undefined, `10.0.0.${i + 1}`));
   const hall = e.hub.lobby.fishing2!;
   hall.rand = () => .5;
@@ -305,14 +307,14 @@ test('все места (12 у пристани + 8 на баркасе): сер
   assert.equal(spots.length, FISH_SPOTS.length);
   assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOTS.length);
   for (let i = 0; i < players.length; i++) {
-    const it = spots.find((s) => s.arg === i)!;
+    const it = spots.find((s) => s.arg === pierIdx[i])!;
     placeAt(e.hub, players[i].c, it.x, it.z);
     e.hub.onJson(players[i].c, { t: 'use', id: it.id });
-    assert.equal(hall.occupant(i), e.hub.lobby.playerOf(players[i].c)!.slot);
+    assert.equal(hall.occupant(pierIdx[i]), e.hub.lobby.playerOf(players[i].c)!.slot);
     e.hub.onJson(players[i].c, { t: 'fish', a: 'cast' });
   }
   assert.equal(hall.views().length, FISH_SPOTS.length);
-  assert.ok(hall.views().slice(0, pier).every((s) => s.ph > FP_IDLE));
+  assert.ok(pierIdx.every((i) => hall.views()[i].ph > FP_IDLE));
   for (const p of players) assert.equal(p.c.profile!.stats.fsCasts, 1);
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   advance(e, 2);

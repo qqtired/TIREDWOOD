@@ -17,9 +17,18 @@ export function addFishPlaces3d(parent: THREE.Object3D): void {
     for (const edgeZ of [d.z0 + 0.04, d.z1 - 0.04]) {
       timber.push(place(paint(new THREE.BoxGeometry(w, 0.22, 0.08), 0x705035), x, -0.19, edgeZ));
     }
-    for (const edgeX of [d.x0 + 0.22, d.x1 - 0.22]) for (const edgeZ of [d.z0 + 0.22, d.z1 - 0.22]) {
-      timber.push(place(paint(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 8), 0x5a4937), edgeX, -1.25, edgeZ));
-    }
+    // сваи по периметру: на углах и (у длинных настилов) не реже чем через 3,2 м
+    const nz = Math.max(1, Math.ceil((depth - 0.44) / 3.2));
+    const nx = Math.max(1, Math.ceil((w - 0.44) / 3.2));
+    const posts = new Set<string>();
+    const post = (px: number, pz: number): void => {
+      const key = `${px.toFixed(2)},${pz.toFixed(2)}`;
+      if (posts.has(key)) return;
+      posts.add(key);
+      timber.push(place(paint(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 8), 0x5a4937), px, -1.25, pz));
+    };
+    for (let i = 0; i <= nz; i++) for (const edgeX of [d.x0 + 0.22, d.x1 - 0.22]) post(edgeX, d.z0 + 0.22 + ((depth - 0.44) * i) / nz);
+    for (let i = 0; i <= nx; i++) for (const edgeZ of [d.z0 + 0.22, d.z1 - 0.22]) post(d.x0 + 0.22 + ((w - 0.44) * i) / nx, edgeZ);
   }
   // Every fishing station has the same flush timber inset and brass corner marks.
   // Identical local dimensions follow the cast direction; no rails/props interrupt seated exits.

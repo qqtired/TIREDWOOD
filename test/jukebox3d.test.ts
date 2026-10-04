@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
-import { Jukebox3D } from '../client/lobby/jukebox3d.ts';
-import { JUKEBOX, JUKE_D, JUKE_H, JUKE_W } from '../shared/jukebox.ts';
+import { Jukebox3D, jukeModels } from '../client/lobby/jukebox3d.ts';
+import { JUKEBOX, JUKEBOX_BARKAS, JUKE_D, JUKE_H, JUKE_SPOTS, JUKE_W } from '../shared/jukebox.ts';
 
 const EPS = 1e-3;
 
@@ -48,4 +48,28 @@ test('автомат: setVisible прячет и показывает целик
   juke.setVisible(true);
   assert.equal(juke.group.visible, true);
   juke.update(0.016, true, new Float32Array(3), 0.1);
+});
+
+test('автомат на баке баркаса: та же модель — в своём коллайдере на палубе бака, лицом на север, без теней', () => {
+  const scene = new THREE.Scene();
+  const models = jukeModels(scene);
+  assert.equal(models.length, JUKE_SPOTS.length);
+  const juke = models[1];
+  const bands = new Float32Array(7).fill(0.7);
+  for (let i = 0; i < 120; i++) juke.update(1 / 60, true, bands, (i / 30) % 1);
+  const b = solidBounds(juke);
+  const J = JUKEBOX_BARKAS;
+  assert.ok(b.min.x >= J.x - JUKE_W / 2 - EPS && b.max.x <= J.x + JUKE_W / 2 + EPS, `по X: ${b.min.x}..${b.max.x}`);
+  assert.ok(b.min.z >= J.z - JUKE_D / 2 - EPS && b.max.z <= J.z + JUKE_D / 2 + EPS, `по Z: ${b.min.z}..${b.max.z}`);
+  assert.ok(b.min.y >= J.y - EPS && b.max.y <= J.y + JUKE_H + EPS, `по высоте: ${b.min.y}..${b.max.y}`);
+  // лицо (решётка динамика — на +Z модели) смотрит на север (−Z): перед корпусом — со стороны места заказа
+  const face = new THREE.Vector3(0, 0, 1).applyQuaternion(juke.group.quaternion);
+  assert.ok(face.z < -0.99, `лицом на север: ${face.toArray()}`);
+  let casts = 0;
+  juke.group.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.castShadow) casts++; });
+  assert.equal(casts, 0, 'на баркасе — без теней (вне карты теней)');
+  let plaza = 0;
+  models[0].group.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.castShadow) plaza++; });
+  assert.ok(plaza > 0, 'на площади — с тенью');
+  assert.ok(Math.abs(models[0].group.position.x - JUKEBOX.x) < 1e-9);
 });

@@ -2,7 +2,7 @@
 // с мотористом Гошей, дымки, чайки, табличка у стоянки и звуки. Сцена раз в кадр сообщает звук и где свой игрок
 // (setListener), статус лодки с сервера (setFerry), а мир двигает всё в update.
 import * as THREE from 'three';
-import { BARKAS, BARKAS_BELL, BARKAS_CREW, BARKAS_RYNDA } from '../../../shared/barkas.ts';
+import { BARKAS, BARKAS_BELL, BARKAS_RYNDA } from '../../../shared/barkas.ts';
 import { FE_AWAY, FE_BACK, FE_OUT } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
 import { BarkasAudio, type Kit } from './ambient.ts';
@@ -42,8 +42,7 @@ export class Barkas {
     this.smoke = new Smoke(scene);
     this.gulls = new BarkasGulls(scene);
     this.sign = new FerrySign(scene);
-    const v = BARKAS_CREW.vityok;
-    this.audio = new BarkasAudio(new THREE.Vector3(v.x, v.y, v.z));
+    this.audio = new BarkasAudio();
     this.crew = new Crew(scene, () => {
       this.ship.ringRynda();
       this.audio.rynda(RYNDA_AT, this.cam);
@@ -83,7 +82,7 @@ export class Barkas {
     this.ferry.update(dt, t, renderTick, cam, this.smoke, rain);
     this.sign.update(this.ferry.status, renderTick);
     this.audio.update(dt, this.kit, cam, rain, this.ferry.motor());
-    this.crew.update(dt, t, cam, this.me, this.smoke, this.audio.squeeze, rain);
+    this.crew.update(dt, t, cam, this.me, this.smoke, rain);
     this.gulls.update(dt, t, rain, d < GULLS_FAR);
     // дымок из трубы: в дождь гуще и ниже стелется
     this.funnelT -= dt;
@@ -95,9 +94,9 @@ export class Barkas {
     this.smoke.update(dt);
   }
 
-  /** Для отладки (__opus.info): где лодка и что с ней */
+  /** Для отладки (__opus.info): где лодка и что с ней, чем занят матрос Витёк */
   debug(): Record<string, unknown> {
     const p = this.ferry.pose;
-    return { ferry: this.st, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +p.yaw.toFixed(3), speed: +this.ferry.speed.toFixed(2), music: { ...this.audio.squeeze, tune: this.audio.tune } };
+    return { ferry: this.st, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +p.yaw.toFixed(3), speed: +this.ferry.speed.toFixed(2), matros: this.crew.matrosPhase };
   }
 }

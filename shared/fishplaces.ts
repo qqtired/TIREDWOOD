@@ -27,6 +27,40 @@ export const FISH_LIGHTHOUSE_COUNT = 4;
 /** Мест у острова (пирс и площадка маяка); дальше — на баркасе (shared/barkas.ts) */
 export const FISH_ISLAND_COUNT = FISH_PIER_COUNT + FISH_LIGHTHOUSE_COUNT;
 export const FISH_BARKAS_COUNT = BARKAS_FISH_SPOTS.length;
+
+/**
+ * Пирс дальше в море (выпуск «рыбалка C»): от южного края площадки маяка — дальние мостки шириной 3 м (между местами
+ * 10 и 11, их забросы идут вдоль мостков в воду), на конце — широкая площадка («голова» пирса) с домом рыбака Семёна
+ * у южного края. Верх настилов — y = 0, как у мостков. Лодка «Удалая» обходит пирс с востока и юга (shared/ferry.ts).
+ */
+export const FISH_PIER2: FishPlaceBox = { x0: -20.5, y0: -0.6, z0: 46, x1: -17.5, y1: 0, z1: 54 };
+export const FISH_PIER_HEAD: FishPlaceBox = { x0: -25.5, y0: -0.6, z0: 54, x1: -12.5, y1: 0, z1: 64 };
+/**
+ * Дом рыбака: сруб у южного края площадки (задняя стена — по краю), крыльцо под навесом смотрит на север, к пирсу.
+ * Твёрдое — коробка сруба, две стойки крыльца, бочки и ящики у стен (всё есть и без FISH2: дом — часть пирса).
+ */
+export const FISH_HOUSE = { x0: -22, x1: -16, z0: 59.6, z1: 64, wall: 2.6, ridge: 4.25, porch: 1.2, door: -20.2 } as const;
+export const FISH_HOUSE_BOXES: readonly FishPlaceBox[] = [
+  // сруб (крышу не достать прыжком: стены выше 2,5 м)
+  { x0: FISH_HOUSE.x0, y0: 0, z0: FISH_HOUSE.z0, x1: FISH_HOUSE.x1, y1: FISH_HOUSE.wall, z1: FISH_HOUSE.z1 },
+  // стойки крыльца по углам
+  { x0: -21.93, y0: 0, z0: 58.47, x1: -21.77, y1: 2.5, z1: 58.63 },
+  { x0: -16.23, y0: 0, z0: 58.47, x1: -16.07, y1: 2.5, z1: 58.63 },
+  // бочки у западной стены и штабель ящиков у восточной
+  { x0: -23.05, y0: 0, z0: 61.75, x1: -22.05, y1: 0.95, z1: 63.85 },
+  { x0: -15.95, y0: 0, z0: 62.3, x1: -14.85, y1: 1.1, z1: 63.85 },
+  // ящик с бухтой каната на крыльце, левее двери
+  { x0: -21.95, y0: 0, z0: 59.0, x1: -21.15, y1: 0.62, z1: 59.6 },
+];
+/** Места рыбалки на дальних мостках и на площадке у дома: только в конец FISH_SPOTS (после баркаса), зона — пристань */
+export const FISH_FAR_SPOTS: ReadonlyArray<FishSpot> = [
+  // мостки 3 м: западные и восточные места вразбежку — с сидящими рыбаками проход остаётся
+  { x: -18.05, z: 47.0, yaw: -Math.PI / 2 }, { x: -19.95, z: 48.5, yaw: Math.PI / 2 },
+  { x: -18.05, z: 50.5, yaw: -Math.PI / 2 }, { x: -19.95, z: 52.5, yaw: Math.PI / 2 },
+  // площадка у дома: по два места на западном и восточном краю
+  { x: -24.95, z: 56.2, yaw: Math.PI / 2 }, { x: -24.95, z: 61.2, yaw: Math.PI / 2 },
+  { x: -13.05, z: 56.2, yaw: -Math.PI / 2 }, { x: -13.05, z: 61.2, yaw: -Math.PI / 2 },
+];
 export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   ...[25, 28.5, 32].flatMap((z) => [
     { x: -20.45, z, yaw: Math.PI / 2 }, { x: -17.55, z, yaw: -Math.PI / 2 },
@@ -41,6 +75,8 @@ export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   { x: -16.35, z: 45.45, yaw: Math.PI },
   // Восемь мест вдоль бортов баркаса «Альбатрос» (zone: 'barkas') — только в конец: номера прежних мест не меняются.
   ...BARKAS_FISH_SPOTS,
+  // Восемь мест на дальних мостках и у дома рыбака (пристань) — снова в конец: номера мест баркаса не меняются.
+  ...FISH_FAR_SPOTS,
 ];
 
 /** Пристань или баркас: место рыбалки по номеру. */
@@ -50,11 +86,11 @@ export function spotZone(spot: number): FishZone {
 /** То же имя, что в ветке barkas */
 export const fishZone = spotZone;
 
-/** Рыбак стоит точно на прежнем месте доски, смотрит на приходящих с площади. */
-export const FISHER_NPC = { x: -15.5, y: 0, z: 37.72, yaw: 0 };
-/** Посетитель стоит перед рыбаком и смотрит на юг. Полностью поддерживается новым настилом. */
-export const FISHER_USE = { x: -15.5, y: 0, z: 36.5, yaw: Math.PI, r: 1.7 };
-export const FISHER_BODY: FishPlaceBox = { x0: -15.92, y0: 0, z0: 37.3, x1: -15.08, y1: 1.6, z1: 38.14 };
+/** Дед Семён — на крыльце своего дома на конце пирса (правее двери), смотрит на север, на приходящих по мосткам. */
+export const FISHER_NPC = { x: -17.55, y: 0, z: 59.05, yaw: 0 };
+/** Посетитель стоит перед крыльцом и смотрит на юг, на Семёна. */
+export const FISHER_USE = { x: -17.55, y: 0, z: 57.45, yaw: Math.PI, r: 1.7 };
+export const FISHER_BODY: FishPlaceBox = { x0: -17.97, y0: 0, z0: 58.66, x1: -17.13, y1: 1.75, z1: 59.5 };
 
 /** Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова. */
 export type FishNpcId = 'semyon' | 'sanya';
@@ -85,19 +121,21 @@ export const FISH_PODIUM_STEPS = [
   { rank: 0, x: 0, h: 1.14 }, { rank: 2, x: 1.06, h: 0.76 }, { rank: 4, x: 2.12, h: 0.38 },
 ] as const;
 export const FISH_PODIUM_STEP_WIDTH = 0.98;
-/** Back posts leave the entire northern approach to Semen open. */
-export const FISHER_CANOPY_POSTS = [-1.12, 1.12].map((dx) => ({
-  x: FISHER_NPC.x + dx, z: FISHER_NPC.z + 0.12, r: 0.055, h: 2.45,
-}));
+/** Прежний навес Семёна у маяка снят (Семён — у своего дома); опор больше нет. */
+export const FISHER_CANOPY_POSTS: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = [];
 
-/** Пристройки встык к существующим мосткам / бетону; верх всех настилов — y=0. */
+/** Пристройки встык к существующим мосткам / бетону; верх всех настилов — y=0. Дальние мостки и площадка дома — тоже здесь. */
 export const FISH_DECKS: readonly FishPlaceBox[] = [
   { x0: -17, y0: -0.6, z0: 36, x1: -14, y1: 0, z1: 38 },
+  FISH_PIER2,
+  FISH_PIER_HEAD,
 ];
 
 /** Небольшие швартовные тумбы только на внешних углах; проходы между настилами остаются открыты. */
 export const FISH_MOORINGS: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = [
   { x: -14.18, z: 36.18, r: 0.11, h: 0.72 }, { x: -14.18, z: 37.82, r: 0.11, h: 0.72 },
+  // углы площадки у дома (северные — у выхода с мостков на площадку)
+  { x: -25.25, z: 54.25, r: 0.11, h: 0.72 }, { x: -12.75, z: 54.25, r: 0.11, h: 0.72 },
 ];
 
 /** Exact world-space bounds consumed by the lobby's gated FISH2 collision. */

@@ -1,11 +1,11 @@
-// Музыкальный автомат на площади — связка: что играет (по серверному времени: все слышат одно место песни),
-// синтез песни (client/music), громкость и панорама по расстоянию до автомата, приглушение прочей музыки, окно выбора
-// и модель. В режимах (не в лобби), в скрытой вкладке, без звука и при ползунке «Музыка» на нуле — не синтезируем;
-// вернулся — песня продолжается с нужного места.
+// Музыкальный автомат набережной — связка: что играет (по серверному времени: все слышат одно место песни),
+// синтез песни (client/music), громкость и панорама по расстоянию до ближнего автомата (их два — на площади и на баке
+// баркаса, очередь одна), приглушение прочей музыки, окно выбора и модели. В режимах (не в лобби), в скрытой вкладке,
+// без звука и при ползунке «Музыка» на нуле — не синтезируем; вернулся — песня продолжается с нужного места.
 import type * as THREE from 'three';
 import type { Sound } from '../audio.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
-import { JUKEBOX, JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_SONGS, JUKE_USE, jukeGain, songPrice, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
+import { JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_SONGS, JUKE_SPOTS, jukeGain, jukeNearest, songPrice, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
 import { MusicPlayer } from '../music/engine.ts';
 import { songByIndex } from '../music/songs.ts';
 
@@ -29,7 +29,7 @@ export interface JukePanelLike {
   update(s: JukePanelState): void;
   onKey(code: string, e: KeyboardEvent): boolean;
 }
-/** Модель на площади (client/lobby/jukebox3d.ts) */
+/** Модель автомата (client/lobby/jukebox3d.ts) */
 export interface JukeModelLike {
   setVisible(on: boolean): void;
   update(dt: number, playing: boolean, bands: Float32Array, beat: number): void;
@@ -52,8 +52,10 @@ export interface JukeDeps {
   refreshShadows: () => void;
 }
 
-/** Окно закрывается, если отошёл дальше этого от места заказа */
-const CLOSE_R = JUKE_USE.r + 1.4;
+/** Окно закрывается, если отошёл от места заказа (того автомата, у которого открыл) дальше его радиуса на столько */
+const CLOSE_PAD = 1.4;
+/** Автомат на баркасе дальше этого от камеры не рисуем (с мостков Семёна ≈55 м — видно, с площади ≈100 м — нет) */
+const FAR_MODEL = 80;
 /** Расхождение с нужным местом песни, после которого начинаем заново с верного места, с */
 const RESYNC = 0.35;
 /** Срез высоких вдали: у автомата — без среза, на краю слышимости — глуше */
@@ -69,14 +71,20 @@ export class LobbyJukebox {
   private inLobby = false;
   private player: MusicPlayer | null = null;
   private panel: JukePanelLike | null = null;
-  private model: JukeModelLike | null = null;
+  /** Модели по порядку JUKE_SPOTS (0 — площадь, 1 — баркас) и показана ли каждая */
+  private models: JukeModelLike[] = [];
+  private shown: boolean[] = [];
+  /** У какого автомата открыто окно (номер в JUKE_SPOTS) и где игрок был в последнем кадре */
+  private openAt = 0;
+  private readonly lastMe = { x: 0, z: 0, ok: false };
   private pending: number | null = null;
   private pendingUntil = 0;
   private note: string | null = null;
   private nextPanel = 0;
   private nextSync = 0;
   private readonly bands = new Float32Array(7);
-  private modelShown = false;
+  /** Расстояния от камеры до автоматов (кадр) */
+  private readonly dist = JUKE_SPOTS.map(() => Infinity);
   private hidden = typeof document !== 'undefined' && document.hidden;
 
   constructor(d: JukeDeps) {
@@ -102,21 +110,28 @@ export class LobbyJukebox {
     this.panel = make({ play: (i) => this.order(i), close: () => this.close() });
   }
 
-  attachModel(model: JukeModelLike): void {
-    this.model = model;
-    const want = this.on && this.inLobby;
-    this.modelShown = want;
-    model.setVisible(want);
+  /** Модели автоматов по порядку JUKE_SPOTS (client/lobby/jukebox3d.ts — jukeModels) */
+  attachModels(models: JukeModelLike[]): void {
+    this.models = models;
+    this.shown = models.map(() => false);
+    for (const m of models) m.setVisible(false);
+    this.showModels();
     this.d.refreshShadows();
   }
 
-  /** Показать или спрятать модель; true — видимость сменилась */
-  private showModel(on: boolean): boolean {
-    if (!this.model || on === this.modelShown) return false;
-    this.modelShown = on;
-    this.model.setVisible(on);
-    this.d.refreshShadows();
-    return true;
+  /**
+   * Показать или спрятать модели: обе — только с автоматом на сервере и в лобби, на баркасе — ещё и не дальше FAR_MODEL
+   * от камеры. Тени перерисовываем только за автоматом площади: баркас — вне карты теней.
+   */
+  private showModels(): void {
+    const on = this.on && this.inLobby;
+    for (let i = 0; i < this.models.length; i++) {
+      const want = on && (i === 0 || this.dist[i] < FAR_MODEL);
+      if (want === this.shown[i]) continue;
+      this.shown[i] = want;
+      this.models[i].setVisible(want);
+      if (i === 0) this.d.refreshShadows();
+    }
   }
 
   /** Вошли в лобби или вышли (в режимы, переподключение): до нового «juke» автомата нет */
@@ -129,7 +144,7 @@ export class LobbyJukebox {
     if (this.panel?.isOpen) this.close();
     this.player?.stop(0.4);
     this.d.sound.duckMusic(1);
-    this.showModel(false);
+    this.showModels();
     this.d.setSolid(false);
   }
 
@@ -137,7 +152,7 @@ export class LobbyJukebox {
     if (msg.t === 'juke') {
       if (!this.on) {
         this.on = true;
-        this.showModel(this.inLobby);
+        this.showModels();
         this.d.setSolid(true);
       }
       this.view = msg.v;
@@ -155,8 +170,10 @@ export class LobbyJukebox {
     if (msg.ok) this.d.sound.coin(null);
   }
 
+  /** Открыть окно у ближнего к игроку автомата: от него и считаем «отошёл — закрыть» */
   open(): void {
     if (!this.on || !this.panel || this.panel.isOpen) return;
+    this.openAt = this.lastMe.ok ? jukeNearest(this.lastMe.x, this.lastMe.z) : 0;
     this.note = null;
     this.panel.open();
     this.nextPanel = 0;
@@ -227,13 +244,19 @@ export class LobbyJukebox {
         if (p && (p.current !== song || Math.abs(p.time - pos) > RESYNC)) p.start(song!, pos + 0.05);
       }
     }
-    // громкость, панорама и «глуше вдали»: от камеры до автомата
+    // громкость, панорама и «глуше вдали»: от камеры до ближнего автомата (играет одна песня — звучит из ближнего)
     const cp = cam.position;
-    const dx = JUKEBOX.x - cp.x;
-    const dz = JUKEBOX.z - cp.z;
-    const dy = JUKE_H * 0.6 - cp.y;
-    const dist = Math.hypot(dx, dy, dz);
+    let near = 0;
+    for (let i = 0; i < JUKE_SPOTS.length; i++) {
+      const s = JUKE_SPOTS[i];
+      this.dist[i] = Math.hypot(s.x - cp.x, s.y + JUKE_H * 0.6 - cp.y, s.z - cp.z);
+      if (this.dist[i] < this.dist[near]) near = i;
+    }
+    const dx = JUKE_SPOTS[near].x - cp.x;
+    const dz = JUKE_SPOTS[near].z - cp.z;
+    const dist = this.dist[near];
     const g = jukeGain(dist);
+    this.showModels();
     const playing = !!this.player?.current && want;
     if (this.player) {
       const e = cam.matrixWorld.elements;
@@ -242,22 +265,29 @@ export class LobbyJukebox {
       const k = Math.min(1, Math.max(0, (dist - JUKE_NEAR) / (JUKE_FAR - JUKE_NEAR)));
       this.player.setSpace(g, side * 0.55, LP_NEAR + (LP_FAR - LP_NEAR) * k * k * (3 - 2 * k));
     }
-    // прочая музыка (баян баркаса…) уступает автомату: рядом — сильнее
+    // прочая музыка (шина «Музыка») уступает автомату: рядом — сильнее
     this.d.sound.duckMusic(playing ? 1 - 0.65 * g : 1);
-    // окно: отошёл — закрыть; пока открыто — обновлять 4 раза в секунду
+    // окно: отошёл от своего автомата — закрыть; пока открыто — обновлять 4 раза в секунду
+    this.lastMe.ok = !!me;
+    if (me) {
+      this.lastMe.x = me.x;
+      this.lastMe.z = me.z;
+    }
     if (this.panel?.isOpen) {
-      if (!me || Math.hypot(me.x - JUKE_USE.x, me.z - JUKE_USE.z) > CLOSE_R || Math.abs(me.y) > 2.5) this.close();
+      const at = JUKE_SPOTS[this.openAt];
+      if (!me || Math.hypot(me.x - at.use.x, me.z - at.use.z) > at.use.r + CLOSE_PAD || Math.abs(me.y - at.y) > 2.5) this.close();
       else if (now >= this.nextPanel) {
         this.nextPanel = now + 250;
         this.panel.update({ view: this.view, serverNow: this.serverNow(), myPid: this.d.myPid(), tokens: this.d.tokens(), pending: this.pending, note: this.note });
       }
     }
-    if (this.model) {
+    if (this.models.length) {
       const t = this.player && playing ? this.player.time : NaN;
       if (playing) this.player!.bands(this.bands);
       else this.bands.fill(0);
       const beat = song && t >= 0 ? (t / song.beat) % 1 : 0;
-      this.model.update(dt, playing && t >= 0, this.bands, beat);
+      // одна песня — оба автомата играют её одинаково (спрятанный — пропускает кадр сам)
+      for (const m of this.models) m.update(dt, playing && t >= 0, this.bands, beat);
     }
   }
 }

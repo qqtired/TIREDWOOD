@@ -80,6 +80,7 @@ import { FishHud } from './fishhud.ts';
 import { FishingSpots } from './fishing.ts';
 import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
+import { FishHouse3D } from './fishhouse.ts';
 import { FishDrink } from './fishdrink.ts';
 import { Roulette3D } from './roulette3d.ts';
 import { RouletteHud } from './roulettehud.ts';
@@ -98,7 +99,7 @@ import { RegattaClient } from './regatta.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
 import { JukeboxPanel } from '../ui/jukebox.ts';
-import { Jukebox3D } from './jukebox3d.ts';
+import { jukeModels } from './jukebox3d.ts';
 import { JUKE_PRICE } from '../../shared/jukebox.ts';
 import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
@@ -243,6 +244,8 @@ export class LobbyScene implements Scene {
   private ratRunning = false;
   private readonly ratCheers: number[] = [];
   private readonly folk: LobbyFolk;
+  /** Дом рыбака Семёна на конце пирса (есть всегда: он — часть пирса) */
+  private readonly fishHouse: FishHouse3D;
   /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
   private readonly respects: Respects;
   /** Кто на каком месте рыбалки (желейка) — каждый кадр */
@@ -410,7 +413,7 @@ export class LobbyScene implements Scene {
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
-    this.juke.attachModel(new Jukebox3D(this.world.scene));
+    this.juke.attachModels(jukeModels(this.world.scene));
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
@@ -477,6 +480,7 @@ export class LobbyScene implements Scene {
     this.photo.onBeep = () => d.sound.countBeep(false);
     this.fishing = new FishingSpots(this.world.scene, this.effects, this.fx, d.sound, this.me);
     addFishPlaces3d(this.world.scene);
+    this.fishHouse = new FishHouse3D(this.world.scene);
     this.fishDrink = new FishDrink(this.me, d.sound);
     this.roulette3d = new Roulette3D(this.world.scene);
     this.rat3d = new RatRace3D(this.world.scene);
@@ -2103,7 +2107,8 @@ export class LobbyScene implements Scene {
     this.pirates3d.setDefenders(this.defenders, this.myId);
     this.pirates3d.update(this.clock.renderTick, dt, this.world.camera, this.eventEligible, TOUCH);
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
-    this.fish2.updateVisuals(dt, this.time, camPos);
+    this.fishHouse.update(dt, this.time, camPos, this.world.weather.rain);
+    this.fish2.updateVisuals(dt, this.time, camPos, this.hasSelf ? this.pose : null);
     this.roulette3d.update(dt);
     this.updateRoulette();
     this.rat3d.update(dt, this.time, camPos);
@@ -2153,6 +2158,7 @@ export class LobbyScene implements Scene {
     const cam = this.world.camera;
     this.critters.update(this.time * TICK_RATE, this.time, cam.position, { x: 1e6, y: 0, z: 1e6, speed: 0 });
     this.folk.update(dt, this.time, cam.position, this.world.weather.rain);
+    this.fishHouse.update(dt, this.time, cam.position, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, cam.position);
     this.roulette3d.update(dt);
     this.rat3d.update(dt, this.time, cam.position);

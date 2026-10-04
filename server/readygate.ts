@@ -140,6 +140,12 @@ export class ReadyGate {
       case 'boatrace':
         say('Регата теперь на набережной — встань в круг у пирса');
         break;
+      case 'tp': {
+        // /go tp x z [y] — в точку набережной (проверка дальних мест: конец пирса, баркас)
+        const [, , xs = '', zs = '', ys = '0'] = text.trim().split(/\s+/);
+        if (c.room !== h.lobby || !h.lobby.devTeleport(c, Number(xs), Number(zs), Number(ys))) say('/go tp x z [y] — только на набережной');
+        break;
+      }
       default:
         say('/go lobby | paintball | fort | skill | hide | race [harbor|hills] | fight [duel|team|ffa]');
     }

@@ -2,10 +2,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
-import { FISH_BOARD, FISH_DECKS, FISHER_NPC, FISHER_USE, FISH_PODIUM_STEP_BOXES, FISHER_CANOPY_BOXES } from '../shared/fishplaces.ts';
+import { FISH_BOARD, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE, FISH_HOUSE_BOXES, FISHER_BODY, FISHER_NPC, FISHER_USE, FISH_PODIUM_STEP_BOXES, FISHER_CANOPY_BOXES } from '../shared/fishplaces.ts';
+import { FERRY_BACK_LEN, FERRY_OUT_LEN } from '../shared/ferry.ts';
 import { FISH_SPOTS, PHOTO, buildLobby } from '../shared/maps/lobby.ts';
 import { CollisionWorld } from '../shared/world.ts';
-import { FISH_APPROACH_ROUTES } from './fishpaths.ts';
+import { FISH_APPROACH_ROUTES, FISH_FAR_ROUTES, FISHER_ROUTE } from './fishpaths.ts';
 
 const OLD_SPOTS = [25, 28.5, 32].flatMap((z) => [
   { x: -20.45, z, yaw: Math.PI / 2 }, { x: -17.55, z, yaw: -Math.PI / 2 },
@@ -29,16 +30,19 @@ function supportedAndClear(w: CollisionWorld, x: number, z: number, why: string)
   assert.ok(!w.overlaps(x - PLAYER_HALF, 0.002, z - PLAYER_HALF, x + PLAYER_HALF, PLAYER_HEIGHT, z + PLAYER_HALF), `${why}: капсула вне твёрдых предметов`);
 }
 
-test('у пристани ровно 12 мест: 8 на пирсе и 4 у маяка (дальше — 8 на баркасе); прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
+test('у пристани 20 мест: 8 на мостках, 4 у маяка, (8 на баркасе), 8 на дальних мостках и у дома; прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
   const map = buildLobby();
   const pier = FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier');
-  assert.equal(pier.length, 12);
-  assert.equal(FISH_SPOTS.length, 20);
+  assert.equal(pier.length, 20);
+  assert.equal(FISH_SPOTS.length, 28);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
   assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
-  assert.ok(FISH_SPOTS.slice(12).every((s) => s.zone === 'barkas'), 'места баркаса — только в конце списка');
+  assert.ok(FISH_SPOTS.slice(12, 20).every((s) => s.zone === 'barkas'), 'места баркаса — сразу после мест у маяка, номера прежние');
+  assert.deepEqual(FISH_SPOTS.slice(20), FISH_FAR_SPOTS, 'дальние мостки и дом — в самом конце');
+  assert.ok(FISH_FAR_SPOTS.every((s) => (s.zone ?? 'pier') === 'pier'));
   assert.equal(pier.filter((s) => s.z < 38).length, 8);
-  assert.equal(pier.filter((s) => s.z >= 38).length, 4);
+  assert.equal(pier.filter((s) => s.z >= 38 && s.z < 46).length, 4);
+  assert.equal(pier.filter((s) => s.z >= 46).length, 8);
   assert.deepEqual(map.interact.slice(0, 46).map((i) => `${i.kind}:${i.arg}`), OLD_INTERACT);
   assert.deepEqual(map.interact.slice(46, 56).map((i) => `${i.kind}:${i.arg}`),
     [...Array.from({ length: 6 }, (_, i) => `fish:${i + 6}`), 'fisher:0', 'skill:0', 'boatrace:0', 'hide:0'], 'выпуск 6 — те же номера');
@@ -47,9 +51,10 @@ test('у пристани ровно 12 мест: 8 на пирсе и 4 у ма
   assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id).slice(0, 12), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   assert.equal(map.interact.find(i => i.kind === 'fisher')?.id, 52);
   // музыкальный автомат уже в main (id 56) — после него, в самом конце: места баркаса, лодка «Удалая», Саня, стол рулетки,
-  // крысиные бега (флаг RATRACE)
+  // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса) и места дальних мостков и площадки у дома рыбака
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
-    ['juke:0', ...FISH_SPOTS.slice(12).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0']);
+    ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
+      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`)]);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');
@@ -57,9 +62,10 @@ test('у пристани ровно 12 мест: 8 на пирсе и 4 у ма
 
 test('все места полностью стоят на полу, не пересекают AABB, разнесены; забросы направлены в воду', () => {
   const w = new CollisionWorld(buildLobby());
-  for (const [n, s] of [...OLD_SPOTS, ...NEW_SPOTS].entries()) {
+  const all = [...OLD_SPOTS, ...NEW_SPOTS, ...FISH_FAR_SPOTS];
+  for (const [n, s] of all.entries()) {
     supportedAndClear(w, s.x, s.z, `место ${n}`);
-    for (const other of [...OLD_SPOTS, ...NEW_SPOTS].slice(n + 1)) {
+    for (const other of all.slice(n + 1)) {
       assert.ok(Math.hypot(s.x - other.x, s.z - other.z) > 2 * PLAYER_HALF + 0.5, `место ${n}: чужой рыбак не перекрывает выход`);
     }
     const dx = -Math.sin(s.yaw), dz = -Math.cos(s.yaw);
@@ -69,7 +75,7 @@ test('все места полностью стоят на полу, не пер
 
 test('каждое новое место достижимо от входа на пирс и обратно без прыжка, воды и столкновений', () => {
   const w = new CollisionWorld(buildLobby());
-  for (const [n, route] of FISH_APPROACH_ROUTES.slice(6).entries()) {
+  for (const [n, route] of [...FISH_APPROACH_ROUTES.slice(6), ...FISH_FAR_ROUTES, FISHER_ROUTE].entries()) {
     for (let k = 1; k < route.length; k++) {
       const a = route[k - 1], b = route[k];
       const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.1);
@@ -83,9 +89,10 @@ test('каждое новое место достижимо от входа на
 
 test('новые места не перекрывают фото, декорации рыбаков, снасти, кнехты и прочие старые interactions', () => {
   const map = buildLobby();
-  // рыбак-декорация с ведром и термосом (client/lobby/folk.ts) — у южного края площадки, второй — у западного
-  const props: Point[] = [[-19.2, 45.5], [-18.3, 45.3], [-19.62, 45.3], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
-  for (const [n, s] of NEW_SPOTS.entries()) {
+  // рыбаки-декорации с ведром и термосом (client/lobby/folk.ts): один — в юго-западном углу площадки у дома рыбака,
+  // второй — у западного края площадки маяка
+  const props: Point[] = [[-24.95, 63.3], [-24.3, 63.75], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
+  for (const [n, s] of [...NEW_SPOTS, ...FISH_FAR_SPOTS].entries()) {
     for (const p of props) assert.ok(Math.hypot(s.x - p[0], s.z - p[1]) > 1.3, `место ${n + 6}: проход возле старого предмета ${p}`);
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && i.kind !== 'fisher')) {
       assert.ok(Math.hypot(s.x - it.x, s.z - it.z) > 1 + it.r + 0.2, `место ${n + 6}: зона ${it.kind}:${it.arg} отдельно`);
@@ -93,13 +100,28 @@ test('новые места не перекрывают фото, декорац
   }
 });
 
-test('настил NPC соединён с пирсом и маяком; перед рыбаком есть полный свободный пол, столбы доски совпадают с видимыми', () => {
+test('настил у маяка, дальние мостки и площадка с домом соединены; Семён на крыльце, перед ним свободный пол; столбы доски совпадают с видимыми', () => {
   const map = buildLobby();
   const w = new CollisionWorld(map);
-  assert.deepEqual(FISHER_NPC, { x: -15.5, y: 0, z: 37.72, yaw: 0 }, 'точное прежнее место доски');
+  // Семён — на крыльце своего дома, перед дверью дома и в стороне от неё; лицом к мосткам
+  assert.equal(FISHER_NPC.yaw, 0);
+  assert.ok(FISHER_NPC.z < FISH_HOUSE.z0 && FISHER_NPC.z > FISH_HOUSE.z0 - FISH_HOUSE.porch, 'на крыльце');
+  assert.ok(Math.abs(FISHER_NPC.x - FISH_HOUSE.door) > 1.2, 'дверь свободна');
+  assert.ok(FISHER_BODY.x0 < FISHER_NPC.x && FISHER_BODY.x1 > FISHER_NPC.x && FISHER_BODY.z0 < FISHER_NPC.z && FISHER_BODY.z1 > FISHER_NPC.z);
   supportedAndClear(w, FISHER_USE.x, FISHER_USE.z, 'посетитель NPC');
   assert.equal(w.groundBelow(FISHER_NPC.x, 0, FISHER_NPC.z), 0);
-  for (const [x, z] of [[-17, 36.5], [-16.6, 36.5], [-15.5, 36.5], [-17.25, 38], [-17.25, 38.5]]) supportedAndClear(w, x, z, 'соединение настила NPC');
+  // прежний настил у маяка (на нём стоял Семён) остаётся проходом между мостками и площадкой маяка
+  for (const [x, z] of [[-17, 36.5], [-16.6, 36.5], [-15.5, 36.5], [-17.25, 38], [-17.25, 38.5]]) supportedAndClear(w, x, z, 'соединение настила у маяка');
+  // площадка маяка → дальние мостки → площадка с домом: без щелей
+  for (const [x, z] of [[-19, 45.6], [-19, 46], [-19, 46.4], [-19, 53.8], [-19, 54.2], [-19, 55]]) supportedAndClear(w, x, z, 'стык дальних мостков');
+  // дом твёрдый, внутрь не пройти; крыша недосягаема прыжком
+  const H = FISH_HOUSE_BOXES[0];
+  assert.ok(w.overlaps(-19, 0.1, 61.5, -18.9, 1.5, 61.6), 'внутри сруба — стена');
+  assert.ok(H.y1 >= 2.5);
+  // в воде за пирсом — своя «бухта»: стены не дальше x −31 на западе (вода баркаса — x < −30)
+  assert.ok(map.boxes.some((b) => b.mat === 'invisible' && b.min[0] <= -31 && b.max[0] >= -30 && b.min[2] <= 48 && b.max[2] >= 71), 'западная стена бухты');
+  // лодка «Удалая» обходит пирс: путь длиннее прежнего, но рейс короче полутора минут
+  assert.ok(FERRY_OUT_LEN < 90 && FERRY_BACK_LEN < 95, `${FERRY_OUT_LEN} / ${FERRY_BACK_LEN}`);
   const use = map.interact.find((i) => i.kind === 'fisher')!;
   assert.deepEqual([use.x, use.y, use.z, use.yaw, use.r], [FISHER_USE.x, FISHER_USE.y, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r]);
   for (const s of FISH_SPOTS) assert.ok(Math.hypot(s.x - use.x, s.z - use.z) > use.r + 0.2, 'центры fishing и NPC use раздельны');

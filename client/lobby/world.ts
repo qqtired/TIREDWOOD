@@ -282,7 +282,8 @@ export class LobbyWorld {
     this.sun.position.copy(center).addScaledVector(toSun, 160);
     this.sun.target.position.copy(center);
     this.sun.castShadow = true;
-    fitShadow(this.sun, center, new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 47)));
+    // до z 65 — с пирсом до конца и домом рыбака (shared/fishplaces.ts — FISH_PIER_HEAD)
+    fitShadow(this.sun, center, new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 65)));
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.04;
     this.sun.shadow.radius = 2.5;

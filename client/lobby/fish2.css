@@ -1,4 +1,4 @@
-/* Рыбалка 2.0: шкала вываживания, карточка улова и сундук, журнал рыбака, значок дождя. Стиль — как у остального
+/* Рыбалка 2.0: шкала вываживания, карточка улова и сундук, журнал рыбака, плашки событий. Стиль — как у остального
    интерфейса набережной: тёплые тёмные плашки, кремовый текст, рамка — цвет категории рыбы (--tc). */
 
 /* ---------------------------------------------------------------- шкала вываживания */
@@ -315,7 +315,7 @@
   animation: none;
 }
 
-/* ---------------------------------------------------------------- значок дождя и кнопка журнала у удочки */
+/* ---------------------------------------------------------------- плашки событий и кнопка журнала у удочки */
 
 .f2-tools {
   position: absolute;
@@ -331,27 +331,119 @@
   display: flex;
 }
 
-.f2-rainbadge {
+/* Плашка события или бонуса — один вид на всё (fishprogresshud.ts fishPlate): сезон рыбалки и рыболовное событие
+   (дождь) — сверху колонки у удочки, напиток — в слое меню справа сверху. Крупно — что это и сколько осталось,
+   мелко — что даёт; цвет полосы слева и таймера — вид события (--pc). */
+.f2-plate {
   display: none;
-  padding: 6px 12px;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: min(310px, 80vw);
+  padding: 7px 12px 7px 9px;
   border-radius: 12px;
   background: var(--panel-strong);
-  border: 1px solid rgba(150, 210, 255, 0.5);
-  color: #cfeaff;
-  font-size: 13px;
-  font-weight: 700;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--pc, #e2c887);
   box-shadow: var(--shadow);
+  color: var(--cream);
+  text-shadow: none;
+  pointer-events: none;
 }
 
-.f2-rainbadge.show {
-  display: block;
-  animation: f2-rain 1.2s ease-in-out infinite alternate;
+.f2-plate.show {
+  display: flex;
 }
 
-@keyframes f2-rain {
+.f2-plate-ico {
+  flex: none;
+  width: 26px;
+  font-size: 22px;
+  line-height: 1;
+  text-align: center;
+}
+
+.f2-plate-txt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.f2-plate-txt b {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.f2-plate-txt span {
+  margin-top: 1px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--cream-dim);
+}
+
+.f2-plate-txt span:empty,
+.f2-plate-time:empty {
+  display: none;
+}
+
+.f2-plate-time {
+  flex: none;
+  min-width: 46px;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pc, #e2c887);
+}
+
+/* рыболовное событие — дождь: голубая полоса */
+.f2-rainbadge {
+  --pc: #8fd0ff;
+}
+
+/* сезон рыбалки — праздник: тёплое золото и мягкое свечение */
+.f2-season {
+  --pc: var(--gold);
+  border-color: rgba(255, 211, 90, 0.6);
+  background: linear-gradient(100deg, rgba(128, 66, 14, 0.94), rgba(74, 44, 26, 0.92) 60%, rgba(34, 24, 29, 0.9));
+}
+
+.f2-season .f2-plate-txt b {
+  color: #ffe39a;
+}
+
+.f2-season .f2-plate-txt span {
+  color: var(--cream-2);
+}
+
+@keyframes f2-season-glow {
   to {
-    border-color: rgba(150, 210, 255, 0.95);
+    box-shadow: var(--shadow), 0 0 18px rgba(255, 196, 90, 0.45);
   }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .f2-season.show {
+    animation: f2-season-glow 1.4s ease-in-out infinite alternate;
+  }
+}
+
+/* тост в две строки (ui/toasts.ts, sub): крупно — что случилось, мелко — что даёт. Пока так говорят только
+   рыболовное событие и сезон рыбалки (app.ts) */
+.toast .toast-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.toast .toast-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.78;
 }
 
 .f2-bookbtn {
@@ -916,17 +1008,14 @@
 .fs-xp::-moz-progress-bar { background: #8bb99b; border-radius: 4px; }
 .f2-skill { width: min(310px, 80vw); padding: 10px 12px; border-radius: 12px; background: var(--panel-strong); border: 1px solid var(--line); text-shadow: none; }
 .f2-tools { top: 142px; }
-.f2-rainbadge { max-width: 310px; line-height: 1.4; text-shadow: none; }
-.f2-rainbadge.show { animation: none; }
-.fs-buff { position: absolute; top: 68px; right: 18px; display: none; align-items: center; gap: 10px; max-width: calc(100vw - 36px); padding: 9px 12px; border-radius: 12px; color: var(--cream); background: var(--panel-strong); border: 1px solid #96885e; box-shadow: 0 5px 18px rgba(0,0,0,.2); pointer-events: none; }
-.fs-buff.show { display: flex; }
-.fs-buff-icon { font-size: 23px; }
-.fs-buff b, .fs-buff div span { display: block; }
-.fs-buff b { font-size: 13px; }
-.fs-buff div span { color: var(--cream-dim); font-size: 11px; margin-top: 3px; }
-.fs-buff-time { min-width: 42px; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #e2c887; }
-.fs-buff.ending .fs-buff-time { color: #ffd499; }
-.fs-buff.ending { border-color: #cba564; }
+/* уровень у удочки — одна строка и полоса (что даёт уровень — в подсказке, журнале и у Семёна) */
+.f2-skill { padding: 8px 12px; }
+.f2-skill .compact .fs-skill-sub { display: none; }
+/* «Шансы сейчас»: из чего сложен шанс — мелкой строкой под чертой (те же бонусы видны на плашках выше) */
+.f2-tools .fe-odds-why { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--cream-dim); }
+/* напиток — плашка того же вида (fishprogresshud.ts), справа сверху под жетонами; последняя минута — оранжевая */
+.fs-buff { --pc: #e2c887; position: absolute; top: 68px; right: 18px; max-width: calc(100vw - 36px); }
+.fs-buff.ending { --pc: #ffb36b; border-color: rgba(255, 179, 107, .45); }
 
 /* Native modal keeps the game inert and constrains just its content scroll. */
 dialog.fb { inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; color: var(--cream); background: transparent; }
@@ -1023,7 +1112,7 @@ button.fb-cell { cursor: pointer; }
   .fn-action:active:not(:disabled) { transform: scale(.96); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fb-panel, .f2-rainbadge.show { animation: none; }
+  .fb-panel { animation: none; }
 }
 @media (max-width: 640px), (max-height: 480px) {
   .fn-dialog { width: calc(100vw - 16px); height: min(790px, calc(100dvh - 16px)); max-height: calc(100dvh - 16px); border-radius: 14px; }
@@ -1040,8 +1129,7 @@ button.fb-cell { cursor: pointer; }
   .fn-section-head { align-items: flex-start; }
   .fn-footer { gap: 8px; padding: 8px 12px; }
   .fn-action { min-height: 44px; }
-  .fs-buff { top: 65px; right: 8px; padding: 8px; max-width: calc(100vw - 16px); }
-  .fs-buff div span { font-size: 10px; }
+  .fs-buff { top: 65px; right: 8px; max-width: calc(100vw - 16px); }
   .fs-skill-head { gap: 6px; flex-wrap: wrap; }
   dialog.fb .fb-panel { max-height: calc(100dvh - 16px); }
 }
@@ -1082,7 +1170,16 @@ button.fb-cell { cursor: pointer; }
 .touch .f2-skill .fs-skill-head span { font-size: 11px; }
 .touch .f2-skill .compact .fs-skill-sub { display: none; }
 .touch .f2-skill .fs-xp { height: 5px; }
-.touch .f2-rainbadge { padding: 5px 8px; font-size: 11px; border-radius: 10px; }
+/* плашки событий на телефоне — первыми в узкой колонке и без мелкой строки: значок, коротко что, таймер */
+.touch .f2-tools .f2-plate { order: -3; width: 100%; gap: 6px; padding: 5px 8px 5px 6px; border-radius: 10px; border-left-width: 3px; }
+.touch .f2-tools .f2-plate-ico { width: 18px; font-size: 16px; }
+.touch .f2-tools .f2-plate-txt b { font-size: 11px; }
+.touch .f2-tools .f2-plate-txt span { display: none; }
+.touch .f2-tools .f2-plate-time { min-width: 0; font-size: 13px; }
+/* с удочкой на телефоне тост узкий (ui/mobile-fishing.css): заголовок — до двух строк, «что даёт» — одной строкой */
+html.touch[data-fishing] .toast.two { display: block; }
+html.touch[data-fishing] .toast .toast-title { font-size: 12px; }
+html.touch[data-fishing] .toast .toast-sub { margin-top: 0; overflow: hidden; font-size: 10.5px; white-space: nowrap; text-overflow: ellipsis; }
 
 .touch .fr {
   right: calc(8px + env(safe-area-inset-right, 0px));

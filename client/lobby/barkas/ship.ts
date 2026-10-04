@@ -1,7 +1,8 @@
 // Баркас «Альбатрос»: солидный сейнер в море к юго-западу от маяка (shared/barkas.ts). Тёмно-бирюзовый корпус
 // с кремовой полосой и кирпичной ватерлинией, лакированный планширь, задранный нос с якорем. Кремовая рубка с красной
 // крышей, мачта с марсом и огнями, труба с дымком, тент над рулеткой, трюмный люк с сетью, барабан, жёлтая А-рама
-// с блоком и буем, брашпиль, рында, прилавок Сани, калитка к лодке с колоколом, гирлянда сигнальных флажков.
+// с блоком и буем, брашпиль, рында, прилавок Сани с вывеской «Бизнесмен», ведро матроса, калитка к лодке с колоколом,
+// гирлянда сигнальных флажков.
 // Всё неподвижное склеено в несколько сеток (общие материалы), огни — светящаяся сетка и ореолы. Твёрдое — невидимые
 // боксы карты (barkasBoxes); здесь только картинка.
 import * as THREE from 'three';
@@ -141,14 +142,6 @@ const ROWS: ReadonlyArray<(x: number) => readonly [number, number]> = [
   () => [0, -2.2],
 ];
 const BANDS = [CREAM, TEAL, WHITE, RED, RED, RED];
-
-export interface ShipAnchors {
-  /** Где баянист (источник музыки) */
-  vityok: THREE.Vector3;
-  /** Рында и колокол у калитки (качаются, когда звонят) */
-  rynda: THREE.Object3D;
-  gateBell: THREE.Object3D;
-}
 
 export class BarkasShip {
   readonly group = new THREE.Group();
@@ -347,9 +340,7 @@ export class BarkasShip {
       const k = Math.max(1, Math.round(len / 0.9));
       for (let i = 0; i <= k; i++) metal.push(rod([x0 + ((x1 - x0) * i) / k, top, z0 + ((z1 - z0) * i) / k], [x0 + ((x1 - x0) * i) / k, top + 0.55, z0 + ((z1 - z0) * i) / k], 0.022, WHITE));
     }
-    // ящик баяниста, прожектор, тифон
-    out.push(box(0.55, 0.42, 0.45, -65.62, top + 0.21, CZ + 0.2, 0x8a6b45));
-    out.push(box(0.57, 0.04, 0.47, -65.62, top + 0.43, CZ + 0.2, 0x6d5236));
+    // прожектор на крыше
     metal.push(cyl(0.16, 0.16, 0.22, -67.75, top + 0.32, CZ - 1.2, 0xd8d8d0, 12).rotateZ(0));
     metal.push(cyl(0.05, 0.05, 0.2, -67.75, top + 0.11, CZ - 1.2, DARK));
     glow.push(at(new THREE.CircleGeometry(0.13, 14), 0xfff1c8, -67.92, top + 0.32, CZ - 1.2, -Math.PI / 2));
@@ -447,10 +438,16 @@ export class BarkasShip {
         out.push(crate(x, lvl * 0.28, (C.z0 + C.z1) / 2, 0.44, 0.27, 0.86, lvl === (i === 1 ? 1 : 2)));
       }
     }
-    // бухты каната и ведро у фальшборта
+    // бухты каната у фальшборта
     for (const [x, z] of [[-62.5, 64.95], [-50.9, 71.05]] as const) {
       for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.28 - k * 0.045, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, x, 0.04 + k * 0.035, z));
     }
+    // ведро матроса Витька (он драит палубу рядом — BARKAS_CREW.vityok): оцинковка, вода, дужка
+    const [bx, bz] = [-48.76, 65.02];
+    metal.push(cyl(0.15, 0.115, 0.3, bx, 0.15, bz, 0xa4abae, 14));
+    metal.push(at(new THREE.TorusGeometry(0.15, 0.012, 5, 16).rotateX(Math.PI / 2), 0x8d9497, bx, 0.3, bz));
+    out.push(at(new THREE.CircleGeometry(0.14, 14).rotateX(-Math.PI / 2), 0x5d7f86, bx, 0.26, bz));
+    metal.push(at(new THREE.TorusGeometry(0.15, 0.008, 4, 14, Math.PI), 0x6f7679, bx, 0.3, bz, 0.5, -0.35));
   }
 
   // ------------------------------------------------------------ бак: брашпиль, якорь, рында
@@ -477,8 +474,8 @@ export class BarkasShip {
     metal.push(rod([ax - 0.35, -0.75, az], [ax + 0.35, -0.75, az], 0.04, 0x2d3033));
     for (const s of [-1, 1]) metal.push(rod([ax, -0.85, az], [ax + s * 0.3, -0.62, az - 0.05], 0.05, 0x2d3033));
     metal.push(at(new THREE.TorusGeometry(0.08, 0.025, 4, 10), 0x2d3033, ax, 0.22, az, Math.PI / 2));
-    // бухта на баке
-    for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.3 - k * 0.05, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, -70.6, y + 0.04 + k * 0.035, CZ + 1.8));
+    // бухта на баке: в углу у южного борта между брашпилем и музыкальным автоматом (shared/jukebox.ts — JUKEBOX_BARKAS)
+    for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.28 - k * 0.05, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, -71.62, y + 0.04 + k * 0.035, CZ + 1.32));
     // кронштейн рынды на передней стенке рубки
     metal.push(box(0.3, 0.05, 0.05, BARKAS_RYNDA.x - 0.12, BARKAS_RYNDA.y + 0.06, BARKAS_RYNDA.z, BRASS));
   }
@@ -515,7 +512,7 @@ export class BarkasShip {
       out.push(crate(sx, 0, z, S.x1 - S.x0, 0.46, 0.5, false));
       out.push(crate(sx, 0.46, z, S.x1 - S.x0, 0.46, 0.5, true));
     }
-    // вывеска «Скупка улова» на южной ножке А-рамы, лицом к палубе
+    // вывеска «Бизнесмен» (Саня — скупка улова) на южной ножке А-рамы, лицом к палубе
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.5), new THREE.MeshStandardMaterial({ map: signTexture(), roughness: 0.9, side: THREE.DoubleSide }));
     // висит на подкосе ножки (он западнее самой ножки и на высоте вывески — у x ≈ F.x): доска — перед подкосом
     const braceX = F.x - 0.6 + (0.55 - 0.05 + 0.6) * (1.95 / (F.h - 0.6));
@@ -725,27 +722,38 @@ function crate(x: number, y: number, z: number, w: number, h: number, d: number,
   return mergeColored(parts);
 }
 
-/** Вывеска Сани: доска с надписью от руки */
+/** Вывеска Сани: доска, крупно «БИЗНЕСМЕН», ниже мелко «Саня · скупка улова» (шрифт загрузился — перерисовать) */
 function signTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 170;
   const c = canvas.getContext('2d')!;
-  c.fillStyle = '#2f5f63';
-  c.fillRect(0, 0, 512, 170);
-  c.strokeStyle = '#e9dfc4';
-  c.lineWidth = 6;
-  c.strokeRect(10, 10, 492, 150);
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  c.fillStyle = '#f4ead0';
-  c.font = '800 54px Rubik, system-ui, sans-serif';
-  c.fillText('СКУПКА УЛОВА', 256, 66);
-  c.font = '600 34px Rubik, system-ui, sans-serif';
-  c.fillStyle = '#ffd36b';
-  c.fillText('у Сани · честный безмен', 256, 122);
+  const line = (text: string, weight: number, px: number, y: number, color: string): void => {
+    c.font = `${weight} ${px}px Rubik, system-ui, sans-serif`;
+    const w = c.measureText(text).width;
+    // не шире доски: длинная строка — мельче
+    if (w > 460) c.font = `${weight} ${Math.floor((px * 460) / w)}px Rubik, system-ui, sans-serif`;
+    c.fillStyle = color;
+    c.fillText(text, 256, y);
+  };
+  const draw = (): void => {
+    c.fillStyle = '#2f5f63';
+    c.fillRect(0, 0, 512, 170);
+    c.strokeStyle = '#e9dfc4';
+    c.lineWidth = 6;
+    c.strokeRect(10, 10, 492, 150);
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    line('БИЗНЕСМЕН', 800, 68, 70, '#f4ead0');
+    line('Саня · скупка улова', 600, 32, 126, '#ffd36b');
+  };
+  draw();
   const t = new THREE.CanvasTexture(canvas);
   t.colorSpace = THREE.SRGBColorSpace;
+  document.fonts?.load('800 68px Rubik').then(() => {
+    draw();
+    t.needsUpdate = true;
+  }).catch(() => {});
   return t;
 }
 
