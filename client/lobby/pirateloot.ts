@@ -42,7 +42,7 @@ function fishGeo(len: number, body: number, back: number, seg: number, eye = tru
  */
 export function crateGeo(lite = false): THREE.BufferGeometry {
   const { w, h, d } = CRATE;
-  const rows = lite ? 2 : 3;
+  const rows = 2;
   // доски: ряды по высоте, щели темнее; цвет — по грани (чёткие полосы)
   const box = paint(new THREE.BoxGeometry(w, h, d, 1, rows, 1).translate(0, h / 2, 0), (p, n, o) => {
     if (Math.abs(n.y) > 0.5) o.setHex(WOOD2);
@@ -54,15 +54,13 @@ export function crateGeo(lite = false): THREE.BufferGeometry {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) parts.push(colored(new THREE.BoxGeometry(0.06, h + 0.02, 0.06).translate(sx * (w / 2 - 0.02), h / 2, sz * (d / 2 - 0.02)), POST));
     parts.push(colored(new THREE.BoxGeometry(w + 0.03, 0.05, 0.05).translate(0, h - 0.01, d / 2), POST));
     parts.push(colored(new THREE.BoxGeometry(w + 0.03, 0.05, 0.05).translate(0, h - 0.01, -d / 2), POST));
-    // ярлык спереди: кремовая карточка с синей полосой и красной точкой
+    // ярлык спереди: кремовая карточка
     parts.push(colored(new THREE.BoxGeometry(0.22, 0.13, 0.012).translate(0.12, h * 0.48, d / 2 + 0.006), 0xf6efd8));
-    parts.push(colored(new THREE.BoxGeometry(0.16, 0.025, 0.014).translate(0.12, h * 0.5, d / 2 + 0.008), 0x2f6fc0));
-    parts.push(colored(new THREE.BoxGeometry(0.035, 0.035, 0.014).translate(0.04, h * 0.43, d / 2 + 0.009), 0xd8403a));
   }
   // колотый лёд горкой сверху
   const ice: Array<readonly [number, number, number, number]> = lite
     ? [[0.02, 0, 0.26, 0]]
-    : [[-0.2, 0.06, 0.17, 0], [0.05, -0.08, 0.2, 1], [0.22, 0.08, 0.15, 0], [-0.05, 0.12, 0.14, 1]];
+    : [[-0.2, 0.06, 0.17, 0], [0.05, -0.08, 0.2, 1], [0.22, 0.08, 0.15, 0]];
   for (const [x, z, r, k] of ice) parts.push(colored(new THREE.SphereGeometry(r, 5, 3).scale(1, 0.38, 0.8).translate(x, h + 0.01, z), k ? ICE2 : ICE));
   // рыбы торчат из-подо льда: головы и хвосты
   const fish: Array<readonly [number, number, number, number, number, number]> = lite

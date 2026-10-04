@@ -27,6 +27,7 @@
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 .pr-banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.pr-hud.raid .pr-banner { top: 190px; }
 .pr-banner-t {
   font-size: 26px;
   font-weight: 900;
@@ -221,6 +222,7 @@
   .pr-banner-s { font-size: 15px; }
   .pr-banner-h { font-size: 12px; }
   .pr-panel { top: 52px; padding: 7px 10px 9px; }
+  .pr-hud.raid .pr-banner { top: 150px; }
   .pr-title { font-size: 13px; }
   .pr-lab { width: 54px; font-size: 12px; }
   .pr-slots i { width: 14px; height: 14px; }

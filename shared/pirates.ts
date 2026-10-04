@@ -64,6 +64,8 @@ export const PIRATE_REWARD_CAP = 25;
 export const PIRATE_REWARD_WIN = 20;
 export const PIRATE_REWARD_MVP = 10;
 export const PIRATE_REWARD_LOSS = 5;
+/** Сколько выстрелов (краской или ядром) делают защитника участником и без попаданий: итоговые жетоны получает и он */
+export const PIRATE_PARTICIPATE = 3;
 
 // ------------------------------------------------------------ места
 
@@ -367,12 +369,14 @@ export function wavePlan(wave: number, n: number): WavePlan {
 }
 /** Прочность корабля на n защитников */
 export const shipHpMax = (n: number): number => 8 + 3 * Math.max(1, Math.min(8, Math.floor(n)));
-export interface Score { kos: number; sinks: number; hits: number; saves: number }
+export interface Score { kos: number; sinks: number; hits: number; saves: number; shots?: number }
 /** Условные очки заслуг: лучший защитник — у кого больше */
 export const contribution = (s: Score): number => s.kos * 2 + s.sinks * 4 + s.hits + s.saves * 2;
-/** Жетоны: за заслуги не больше PIRATE_REWARD_CAP, за итог — победа 20 (лучшему ещё 10), поражение 5; без заслуг — 0 */
+/** Участник: есть заслуга или сделано не меньше PIRATE_PARTICIPATE выстрелов (промахи тоже труд) */
+export const tookPart = (s: Score): boolean => contribution(s) > 0 || (s.shots ?? 0) >= PIRATE_PARTICIPATE;
+/** Жетоны: за заслуги не больше PIRATE_REWARD_CAP, за итог — победа 20 (лучшему ещё 10), поражение 5; не участвовал — 0 */
 export function pirateReward(s: Score, win: boolean, mvp: boolean): number {
-  if (contribution(s) <= 0) return 0;
-  const merit = Math.min(PIRATE_REWARD_CAP, s.kos * 2 + s.sinks * 4 + s.hits + s.saves * 2);
+  if (!tookPart(s)) return 0;
+  const merit = Math.min(PIRATE_REWARD_CAP, contribution(s));
   return merit + (win ? PIRATE_REWARD_WIN + (mvp ? PIRATE_REWARD_MVP : 0) : PIRATE_REWARD_LOSS);
 }

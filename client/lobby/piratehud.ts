@@ -107,6 +107,8 @@ export class PirateHud {
     if (!live) { this.hideAll(); return; }
     if (v.id !== this.lastId) { this.lastId = v.id; this.lastWave = 0; this.bannerUntil = 0; this.resultFor = ''; this.result.classList.remove('show'); }
     const secs = Math.max(0, Math.ceil((v.end - tick) / 60));
+    // в набеге панель занимает верх экрана: плашка волны — под ней
+    this.cls(this.root, 'raid', v.phase === 'raid' || v.phase === 'end');
     // плашка
     if (v.phase === 'warn') {
       this.bannerUntil = tick + 60;
@@ -131,7 +133,7 @@ export class PirateHud {
     }
     this.cls(this.banner, 'show', tick < this.bannerUntil && v.phase !== 'end');
     // панель
-    this.cls(this.panel, 'show', v.phase === 'raid' || v.phase === 'end');
+    this.cls(this.panel, 'show', v.phase === 'raid'); // в конце всё то же — в карточке итогов
     if (v.phase === 'raid' || v.phase === 'end') {
       this.text(this.wave, `волна ${Math.max(1, v.wave)}/${v.waves}`);
       this.text(this.time, v.phase === 'raid' ? mmss(secs) : '');
@@ -144,7 +146,7 @@ export class PirateHud {
         this.cls(this.slots[i], 'on', i < v.stolen);
         this.cls(this.slots[i], 'warn', i >= v.stolen && i < v.stolen + Math.min(inTransit, 6 - v.stolen));
       }
-      this.text(this.stolenVal, `${v.stolen}/${v.limit}`);
+      this.text(this.stolenVal, `${Math.min(v.stolen, v.limit)}/${v.limit}`);
     }
     this.fire.classList.toggle('show', touch && v.phase === 'raid');
     // итоги
@@ -169,7 +171,7 @@ export class PirateHud {
     if (v.results.length) {
       const t = el('table', 'pr-table', r);
       const h = el('tr', '', t);
-      for (const s of ['Защитник', 'Пираты', 'Шлюпки', 'Корабль', 'Ящики', '🪙']) el('th', '', h, s);
+      for (const s of ['Защитник', 'Пираты', 'Шлюпки', 'Корабль', 'Ящики', 'Жетоны']) el('th', '', h, s);
       for (const row of v.results) {
         const tr = el('tr', row.pid === this.mePid ? 'me' : '', t);
         el('td', '', tr, `${row.mvp ? '★ ' : ''}${row.nick}`);

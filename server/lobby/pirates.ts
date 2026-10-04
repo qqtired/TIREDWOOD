@@ -49,7 +49,7 @@ interface Item {
   holder: number; boat: number; slot: number; dropAt: number; lockUntil: number;
 }
 interface Shell { at: number; kind: number; ship: boolean; by: number; x: number; y: number; z: number }
-interface Person { pid: number; slot: number; nick: string; kos: number; sinks: number; hits: number; saves: number }
+interface Person { pid: number; slot: number; nick: string; kos: number; sinks: number; hits: number; saves: number; shots: number }
 interface Frame { tick: number; ids: number[]; xs: number[]; zs: number[] }
 interface Launch { at: number; dock: number; crew: number; captain: boolean }
 
@@ -168,8 +168,10 @@ export class Pirates implements LargeEvent {
   /** Сколько вещей где: на причале (куча, на земле, в руках), украдено */
   private count(): void {
     let left = 0, stolen = 0;
+    // проиграли: то, что лежит в уходящих шлюпках, уже украдено — число в итоге не растёт задним числом
+    const lost = this.v.phase === 'end' && !this.v.win;
     for (const it of this.items) {
-      if (it.st === P.LS_STOLEN) stolen++;
+      if (it.st === P.LS_STOLEN || lost && it.st === P.LS_BOAT) stolen++;
       else if (it.st !== P.LS_BOAT) left++;
     }
     const v = this.v;
@@ -474,7 +476,7 @@ export class Pirates implements LargeEvent {
 
   private person(pl: EventPlayer): Person {
     let p = this.people.get(pl.pid);
-    if (!p) { p = { pid: pl.pid, slot: pl.slot, nick: pl.nick, kos: 0, sinks: 0, hits: 0, saves: 0 }; this.people.set(pl.pid, p); }
+    if (!p) { p = { pid: pl.pid, slot: pl.slot, nick: pl.nick, kos: 0, sinks: 0, hits: 0, saves: 0, shots: 0 }; this.people.set(pl.pid, p); }
     p.slot = pl.slot;
     return p;
   }
@@ -508,6 +510,7 @@ export class Pirates implements LargeEvent {
     if (!shot.ok) return false;
     this.cannonAt[ci] = this.tick + P.PIRATE_CANNON_CD;
     const per = this.person(pl);
+    per.shots++;
     this.shells.push({ at: this.tick + shot.ticks, kind: shot.kind, ship: false, by: per.pid, x: shot.x, y: shot.y, z: shot.z });
     this.fx(['fire', ci, pl.slot, r2(shot.x), r2(shot.y), r2(shot.z), shot.ticks, shot.kind]);
     return true;
@@ -517,6 +520,7 @@ export class Pirates implements LargeEvent {
     const tick = this.tick;
     if (tick < (this.markerAt.get(pl.pid) ?? 0)) return false;
     this.markerAt.set(pl.pid, tick + P.PIRATE_MARKER_CD);
+    this.person(pl).shots++;
     const s = pl.state, f = { x: 0, y: 0, z: 0 };
     viewDir(input.yaw, input.pitch, f);
     const o = P.aimOrigin(s.x, s.y, s.z, input.yaw), ox = o.x, oy = o.y, oz = o.z;
@@ -716,15 +720,15 @@ export class Pirates implements LargeEvent {
     this.lootDirty = true;
     this.count();
     // итоги и награды: один раз, только начисления
-    const list = [...this.people.values()].filter(p => p.kos + p.sinks + p.hits + p.saves > 0);
+    const list = [...this.people.values()].filter(p => P.tookPart(p));
     list.sort((a, b) => P.contribution(b) - P.contribution(a) || a.pid - b.pid);
     v.results = list.map((p, i) => {
-      const mvp = i === 0;
+      const mvp = i === 0 && P.contribution(p) > 0;
       const tokens = P.pirateReward(p, win, mvp);
       this.host.award(p.pid, tokens, { prRaids: 1, prWins: win ? 1 : 0, prKos: p.kos });
       return { pid: p.pid, nick: p.nick, kos: p.kos, sinks: p.sinks, hits: p.hits, saves: p.saves, tokens, mvp };
     });
-    const best = v.results[0]?.nick;
+    const best = v.results.find(r => r.mvp)?.nick;
     this.host.chat(win
       ? `🏆 Набег отбит! ${why === 'ship' ? 'Корабль пробит и уходит' : 'Пираты уходят ни с чем'}. Украдено ${v.stolen} из ${v.total}.${best ? ` Лучший защитник: ${best}.` : ''}`
       : `🏴‍☠️ Пираты утащили добычу: ${v.stolen} из ${v.total}. Награда — за заслуги.${best ? ` Лучший защитник: ${best}.` : ''}`);

@@ -96,6 +96,10 @@ test('волны и корабль: состав ограничен и раст�
 test('награды: только за заслуги, один раз, никаких списаний; победа и лучший защитник — больше', () => {
   const none = { kos: 0, sinks: 0, hits: 0, saves: 0 };
   for (const win of [true, false]) for (const mvp of [true, false]) assert.equal(P.pirateReward(none, win, mvp), 0, 'кто ничего не делал — не получает');
+  // три выстрела (хоть мимо) — участник: итоговые жетоны есть, а заслуг нет; меньше трёх — нет
+  assert.equal(P.pirateReward({ ...none, shots: P.PIRATE_PARTICIPATE - 1 }, true, false), 0);
+  assert.equal(P.pirateReward({ ...none, shots: P.PIRATE_PARTICIPATE }, false, false), P.PIRATE_REWARD_LOSS);
+  assert.equal(P.pirateReward({ ...none, shots: P.PIRATE_PARTICIPATE }, true, false), P.PIRATE_REWARD_WIN);
   const one = { kos: 1, sinks: 0, hits: 0, saves: 0 };
   assert.equal(P.pirateReward(one, false, false), 2 + P.PIRATE_REWARD_LOSS);
   assert.equal(P.pirateReward(one, true, false), 2 + P.PIRATE_REWARD_WIN);
@@ -200,6 +204,7 @@ test('никто не защищает: пираты утаскивают доб
   const v = t.raid.view();
   assert.equal(v.win, false);
   assert.ok(v.stolen >= P.PIRATE_LIMIT_STOLEN, `украдено ${v.stolen}`);
+  const atEnd = v.stolen;
   assert.ok(t.tick - P.PIRATE_WARN < P.PIRATE_LIMIT, 'проиграли раньше конца времени');
   assert.ok(maxPirates > 0 && maxPirates <= 9 + 3, `пиратов в кадре ${maxPirates}`);
   assert.ok(maxBoats > 0 && maxBoats <= 6, `шлюпок в кадре ${maxBoats}`);
@@ -208,6 +213,8 @@ test('никто не защищает: пираты утаскивают доб
   assert.ok(t.log.chat.some(s => /утащили/.test(s)));
   assert.ok(t.log.fx.some(e => e[0] === 'lose'));
   // после итога — 14 секунд и тишина; игроки и профили не трогаются
+  t.go(P.PIRATE_END - 60);
+  assert.equal(t.raid.view().stolen, atEnd, 'число украденного в итоге не растёт задним числом, когда шлюпки доплывают');
   t.until(() => !t.raid.active, P.PIRATE_END + 600);
   assert.equal(t.raid.active, false);
   assert.equal(t.raid.snapshot(), null);
@@ -250,6 +257,22 @@ test('маркер: два попадания заляпывают вора, о�
   assert.ok(t.log.awards.every(a => a.tokens >= 0 && (a.stats.prKos ?? 0) >= 0), 'ничего не списывается');
   t.go(P.PIRATE_END * 2);
   assert.equal(t.log.awards.filter(a => a.pid === 1).length, 1, 'награда ровно один раз');
+});
+
+test('участие без попаданий: три выстрела краской мимо — итоговые жетоны, но не «лучший защитник»; два выстрела — ничего', () => {
+  const t = setup({ n: 2, map: open() });
+  t.begin();
+  t.stand(0, 11, 16.5);
+  t.stand(1, 7, 16.5);
+  const sky = { yaw: Math.PI, pitch: 0.4 };
+  for (let k = 0; k < 3; k++) { assert.equal(t.shoot(1, sky, 'pt').ok, true); t.go(P.PIRATE_MARKER_CD + 1); }
+  for (let k = 0; k < 2; k++) { assert.equal(t.shoot(2, sky, 'pt').ok, true); t.go(P.PIRATE_MARKER_CD + 1); }
+  for (let i = 0; i < P.PIRATE_LIMIT_STOLEN; i++) t.inner.items[i].st = P.LS_STOLEN;
+  t.go(2);
+  assert.equal(t.raid.view().phase, 'end');
+  assert.deepEqual(t.log.awards.map(a => [a.pid, a.tokens]), [[1, P.PIRATE_REWARD_LOSS]]);
+  assert.equal(t.raid.view().results[0].mvp, false, 'без заслуг лучшим не назовут');
+  assert.ok(!t.log.chat.some(s => /Лучший защитник/.test(s)));
 });
 
 test('стена между стрелком и вором: краска не проходит, но выстрел засчитывается как выстрел', () => {
