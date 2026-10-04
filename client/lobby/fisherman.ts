@@ -3,12 +3,12 @@
 // жилетом с карманами, тёплые штаны и резиновые сапоги. Руки — с локтями (плечо и предплечье двигаются отдельно).
 // Живёт по кругу: чинит сеть челноком, курит трубку (рука к трубке, клуб дыма), поглядывает на море, переминается.
 // Подошёл игрок — машет ему; открыт разговор — поворачивается к игроку, кивает и разводит руками. Вдали — обновляется
-// реже. Рядом — вывеска «Снасти у Семёна» над крыльцом и доска со временем до сезона рыбалки на стойке крыльца.
+// реже. Рядом — вывеска «Снасти у Семёна» над крыльцом; время до сезона рыбалки — на большой вывеске на коньке крыши
+// (client/lobby/seasonsign.ts).
 import * as THREE from 'three';
 import { FISHER_NPC, FISH_HOUSE } from '../../shared/fishplaces.ts';
 import { glowTexture, mergeColored, paint, place } from '../render/kit.ts';
 import { makeFish3D } from './fishart.ts';
-import { FISH_SEASON, seasonLeft, seasonWait } from './fishseason.ts';
 
 const SKIN = 0xd59f80;
 const CHEEK = 0xe0907a;
@@ -78,14 +78,12 @@ export class Fisherman3D {
   private readonly puffs: THREE.Sprite[] = [];
   private readonly puffAge: number[] = [];
   private puffNext = 0;
-  private readonly board: { ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture; key: string };
   private readonly tmp = new THREE.Vector3();
   private acc = 0;
   private yaw = 0;
   private near = false;
   private waveT = -1;
   private waveAt = -1e9;
-  private boardT = 0;
   /** Где был круг курения в прошлом кадре: клуб дыма — один раз, когда время перешло отметку (при любом FPS) */
   private smokePrev = 0;
 
@@ -120,7 +118,7 @@ export class Fisherman3D {
       this.group.add(s);
     }
     this.addGear();
-    this.board = this.addSigns();
+    this.addSign();
     this.group.visible = false;
     scene.add(this.group);
   }
@@ -136,11 +134,6 @@ export class Fisherman3D {
     if (far && this.acc < 0.125) return;
     const step = Math.min(0.25, this.acc);
     this.acc = 0;
-    this.boardT -= step;
-    if (this.boardT <= 0) {
-      this.boardT = 1;
-      this.drawBoard();
-    }
 
     const dMe = me && Math.abs(me.y) < 2 ? Math.hypot(me.x - FISHER_NPC.x, me.z - FISHER_NPC.z) : Infinity;
     const isNear = dMe < WAVE_R;
@@ -463,8 +456,8 @@ export class Fisherman3D {
     }
   }
 
-  /** Вывеска над крыльцом и доска «до сезона рыбалки» на восточной стойке крыльца */
-  private addSigns(): { ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture; key: string } {
+  /** Вывеска над крыльцом */
+  private addSign(): void {
     const lx = (x: number): number => x - FISHER_NPC.x;
     const lz = (z: number): number => z - FISHER_NPC.z;
     // вывеска: доска на цепочках под краем навеса
@@ -497,57 +490,7 @@ export class Fisherman3D {
     this.group.add(sign);
     const wood: G[] = [at(new THREE.BoxGeometry(signW + 0.08, signW * 0.195 + 0.08, 0.05), 0x4e3a27, lx(-19), 2.02, lz(58.47) - 0.02)];
     for (const dx of [-0.9, 0.9]) wood.push(at(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 5), METAL, lx(-19) + dx, 2.3, lz(58.47) - 0.02));
-    // доска сезона: чёрная грифельная в раме на стойке крыльца
-    const bx = lx(-16.15);
-    const bz = lz(58.55) - 0.11;
-    wood.push(at(new THREE.BoxGeometry(0.7, 0.5, 0.04), 0x5d4630, bx, 1.5, bz + 0.02));
-    wood.push(at(new THREE.CylinderGeometry(0.006, 0.006, 0.2, 4), METAL, bx, 1.83, bz + 0.03));
     this.group.add(mesh(wood, this.mat));
-    const bc = document.createElement('canvas');
-    bc.width = 512;
-    bc.height = 352;
-    const ctx = bc.getContext('2d')!;
-    const btex = new THREE.CanvasTexture(bc);
-    btex.colorSpace = THREE.SRGBColorSpace;
-    btex.anisotropy = 4;
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.426), new THREE.MeshStandardMaterial({ map: btex, roughness: 0.9, emissive: 0xffffff, emissiveMap: btex, emissiveIntensity: 0.12 }));
-    face.position.set(bx, 1.5, bz - 0.005);
-    face.rotation.y = Math.PI;
-    this.group.add(face);
-    return { ctx, tex: btex, key: '' };
-  }
-
-  /** Доска у крыльца: «до сезона рыбалки» или «сезон идёт» — мелом; перерисовывается, только когда меняется текст */
-  private drawBoard(): void {
-    const st = FISH_SEASON.state();
-    // как в окне Семёна: «до сезона рыбалки: 1 ч 12 мин» / «Сезон рыбалки идёт! осталось 6:40»
-    const big = !st ? 'скоро' : st.on ? seasonLeft(st.left) : seasonWait(st.left);
-    const title = !st ? 'СЕЗОН РЫБАЛКИ' : st.on ? 'СЕЗОН РЫБАЛКИ ИДЁТ!' : 'ДО СЕЗОНА РЫБАЛКИ';
-    const foot = !st ? 'спроси у Семёна' : st.on ? 'осталось · беги к воде!' : 'готовь удочку';
-    const key = `${title}|${big}`;
-    if (key === this.board.key) return;
-    this.board.key = key;
-    const c = this.board.ctx;
-    c.fillStyle = '#2f3a35';
-    c.fillRect(0, 0, 512, 352);
-    c.fillStyle = 'rgba(255,255,255,.05)';
-    for (let i = 0; i < 40; i++) c.fillRect((i * 97) % 512, (i * 61) % 352, 60, 2);
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillStyle = st?.on ? '#ffd36b' : '#efeadc';
-    c.font = '700 40px Rubik, system-ui, sans-serif';
-    c.fillText(title, 256, 78, 450);
-    c.font = '800 96px Rubik, system-ui, sans-serif';
-    c.fillStyle = st?.on ? '#ffe9a8' : '#ffffff';
-    c.fillText(big, 256, 190, 450);
-    c.font = '500 40px Rubik, system-ui, sans-serif';
-    c.fillStyle = '#c9d6cc';
-    c.fillText(foot, 256, 290, 450);
-    // рамка мелом
-    c.strokeStyle = 'rgba(239,234,220,.55)';
-    c.lineWidth = 5;
-    c.strokeRect(18, 18, 476, 316);
-    this.board.tex.needsUpdate = true;
   }
 }
 

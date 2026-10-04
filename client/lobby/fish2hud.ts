@@ -29,6 +29,7 @@ import { FishBag } from './fishbag.ts';
 import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText } from './fishfmt.ts';
+import { SeasonSigns } from './seasonsign.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -60,6 +61,8 @@ export class Fish2Hud {
   private readonly odds: FishOdds;
   readonly roulette: RouletteHud;
   private readonly fisherman: Fisherman3D;
+  /** Вывески «Сезон рыбалки»: на доме Семёна и на рубке баркаса */
+  private readonly seasonSigns: SeasonSigns;
   private readonly podium: FishPodium3D;
   private readonly clock = new FishClock();
   private readonly ui: Ui;
@@ -78,6 +81,7 @@ export class Fish2Hud {
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
+    this.seasonSigns = new SeasonSigns(scene);
     this.tools = parent.appendChild(el('div', 'f2-tools'));
     this.seasonPlate = fishPlate(this.tools, 'f2-season', '🎉');
     this.seasonPlate.root.title = `Сезон рыбалки: ${SEASON_PERKS}. Идёт — особый дождь для всех на набережной.`;
@@ -133,6 +137,7 @@ export class Fish2Hud {
     this.board.group.visible = on;
     this.podium.group.visible = on;
     this.fisherman.group.visible = on;
+    this.seasonSigns.group.visible = on;
     this.rain = rain;
     this.reel.setRain(rain);
     this.npc.setEvent(rain, this.eventUntil);
@@ -279,6 +284,7 @@ export class Fish2Hud {
   /** Кадр 3D рыбалки: Семён смотрит на своего игрока (me) и оборачивается к нему, пока открыт разговор с ним */
   updateVisuals(dt: number, time: number, camera: THREE.Vector3, me: { x: number; y: number; z: number } | null = null): void {
     this.fisherman.update(dt, time, camera, me, this.npc.isOpen && this.npc.who === 'semyon');
+    this.seasonSigns.update(dt, camera);
   }
 
   /** Подсёк — шкала вываживания (сид и вид прислал сервер); mySpot — своё место рыбалки. */
