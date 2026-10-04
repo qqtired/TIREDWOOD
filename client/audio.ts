@@ -1300,6 +1300,17 @@ export class Sound {
     }
   }
 
+  /**
+   * Ветер в полёте (гидроплан «Стриж», только своему пилоту): мягкий порыв бурого шума через фильтр. Пилот зовёт
+   * раз в 1–1,6 с — порывы перекрываются в ровный шум; level 0…1 — от скорости.
+   */
+  planeWind(level: number): void {
+    if (!this.ok) return;
+    const d = this.out(null, this.amb, 0, 3, 'planeWind');
+    const f = 240 + level * 360;
+    this.noise(d, 2.6, 'lowpass', f, f * (0.75 + Math.random() * 0.5), 0.7, 0.05 + level * 0.07, 0, 1.1, true);
+  }
+
   engineStop(id: number): void {
     const v = this.engines.get(id);
     if (!v || !this.ctx) return;

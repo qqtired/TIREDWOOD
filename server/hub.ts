@@ -138,6 +138,8 @@ export interface HubOptions {
   roulette?: boolean;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
+  /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
+  plane?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }
@@ -1042,7 +1044,7 @@ export class Hub {
     const skill = this.skill?.humans ?? 0;
     const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
-    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) };
+    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.plane?.busy ?? 0) };
   }
 
   /** Перезапуск сервера: предупредить всех, сохранить, закрыть с кодом 1012 (клиенты переподключатся). */

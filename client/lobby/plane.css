@@ -1,0 +1,108 @@
+/* Гидроплан «Стриж»: интерфейс пилота (client/lobby/plane.ts) */
+.pl-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-hud[hidden] {
+  display: none;
+}
+
+.pl-top {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px 9px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pl-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.pl-title b {
+  color: var(--gold);
+}
+
+.pl-sub {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cream-dim);
+}
+
+.pl-help {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 7px 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pl-help.pl-ask {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.pl-land {
+  position: absolute;
+  right: 18px;
+  bottom: 22px;
+  padding: 9px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--cream);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pl-land[hidden] {
+  display: none;
+}
+
+.pl-aim {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.pl-aim[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .pl-help {
+    bottom: 96px;
+    font-size: 12px;
+  }
+
+  .pl-land {
+    bottom: 150px;
+  }
+}

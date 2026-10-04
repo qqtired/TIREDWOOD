@@ -6,7 +6,7 @@
  * (как бинарные снимки), и ответ на пинг. Их не нумеруем и не храним для досылки: после возврата придёт свежее.
  * Новый режим шлёт своё состояние JSON-ом каждые несколько тиков — допиши тип сюда.
  */
-export const LINK_VOLATILE: ReadonlySet<string> = new Set(['pong', 'skill_state', 'brState', 'hide_state']);
+export const LINK_VOLATILE: ReadonlySet<string> = new Set(['pong', 'skill_state', 'brState', 'hide_state', 'planePos', 'planeMe']);
 
 /** Входит ли сообщение в нумерацию сессии. «resumed» — ответ на сам возврат, тоже вне счёта. */
 export function linkNumbered(t: unknown): boolean {
