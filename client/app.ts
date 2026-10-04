@@ -582,7 +582,9 @@ export class App {
     this.fishSeasonOn = m.on;
     if (!m.on) return;
     this.fishSeasonRain = true;
-    if (was === false) this.toasts.show(`🎉 Сезон рыбалки · ${seasonWait(m.endsAt - FISH_SEASON.now())}`, 7500, 'fish-event', SEASON_PERKS);
+    // минуты — до ближайшей: только что начавшийся сезон — «10 мин» (вверх из-за миллисекунд задержки было «11 мин»)
+    const left = Math.max(60_000, Math.round((m.endsAt - FISH_SEASON.now()) / 60_000) * 60_000);
+    if (was === false) this.toasts.show(`🎉 Сезон рыбалки · ${seasonWait(left)}`, 7500, 'fish-event', SEASON_PERKS);
   }
 
   private onJson(m: ServerMsg): void {
