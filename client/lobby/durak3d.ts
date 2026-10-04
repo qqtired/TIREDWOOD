@@ -1,5 +1,6 @@
 // Дурак на столиках кафе в 3D: карты на столах, веера в руках, колода с козырем (стопка худеет, над ней — сколько карт
-// осталось), бито, рука дурака в итоге; боты — желейки на своих стульях; полёт помидора; звуки стола (тасовка, карты, итог).
+// осталось), бито, рука дурака в итоге; боты — желейки на своих стульях; полёт помидора; звуки стола (тасовка, карты, итог);
+// «щик» по кромке клеёнки — кто на кого ходит: огонёк бежит по краю стола от ходящего к отбивающемуся.
 // Все карты всех столов — один инстансный меш с атласом. У каждой карты свой ключ: при новом виде стола она
 // едет к новой цели (сыграли из руки, отбили, ушли в бито, забрал отбивавшийся, раздача и добор из колоды).
 // Раскладка стола развёрнута к тому, кто за ним сидит; столы, за которыми не сидишь, — к площади (на запад).
@@ -55,8 +56,8 @@ const MARKS_PAD = 0.015;
 const UNDER_CARD = 0.0008;
 const MAX_MARKS = 64;
 const DISCARD_JITTER: ReadonlyArray<readonly [number, number, number]> = [[0, 0, 0.35], [0.018, 0.012, -0.3], [-0.012, 0.022, 0.12]];
-/** Веер в руках: от стула к столу, высота, наклон назад, шаг, ось вращения ниже карт */
-const FAN_D = 0.55;
+/** Веер в руках: от стула к столу (чтобы и десять карт не заходили в тело желейки), высота, наклон назад, шаг, ось вращения ниже карт */
+const FAN_D = 0.65;
 const FAN_Y = 1.02;
 const FAN_TILT = -0.3;
 const FAN_STEP = (9 * Math.PI) / 180;
@@ -88,6 +89,32 @@ const DRAW_GAP = 0.08;
 const TOMATO_S = 0.45;
 const TOMATO_ARC = 0.45;
 const MAX_TOMATOES = 6;
+
+// «Щик» по кромке стола — кто на кого ходит: по краю клеёнки от ходящего к отбивающемуся пробегает золотой огонёк
+// с хвостом и гаснет у отбивающегося; повторяется раз в SWISH_PERIOD_S, сменилась пара (новый отбой, перевод) — сразу.
+// Бежит коротким путём, а если сидят ровно напротив — по ходу игры (ход идёт к меньшему номеру стула).
+/** Огонёк — «комета» вдоль края клеёнки: внешний край — чуть за кромкой, по валику — яркая светлая линия (в SWISH_LINE м
+ *  от внешнего края), к середине стола — оранжевое свечение, гаснет; ширина у головы SWISH_W, у конца хвоста SWISH_W0;
+ *  голова скруглена (SWISH_CAP, рад); высота над полом */
+const SWISH_R = 0.712;
+const SWISH_W = 0.1;
+const SWISH_W0 = 0.03;
+const SWISH_CAP = 0.1;
+const SWISH_Y = 0.786;
+const SWISH_LINE = 0.023;
+/** Хвост, рад; пробег — SWISH_T0 + SWISH_T1 × угол (рад), с; у отбивающегося гаснет за SWISH_OUT_S */
+const SWISH_TAIL = 0.8;
+const SWISH_T0 = 0.3;
+const SWISH_T1 = 0.25;
+const SWISH_OUT_S = 0.45;
+const SWISH_PERIOD_S = 2.4;
+/** Отрезков хвоста и скруглённой головы; дальше SWISH_FAR м от камеры не рисуем (последние 2 м — гаснет) */
+const SWISH_SEG = 24;
+const CAP_SEG = 5;
+const SWISH_FAR = 12;
+/** Подпись игрока на панели (ник, карты, кто ходит) — под животом сидящего: от стула к столу и высота над полом */
+const TAG_IN = 0.4;
+const TAG_Y = 0.7;
 /** Куда развёрнуты столы, за которыми не сидишь: к площади */
 const DEFAULT_VIEW = (270 * Math.PI) / 180;
 
@@ -142,6 +169,19 @@ interface Table {
   mark: THREE.Mesh;
   markSuit: number;
   frame: THREE.Mesh;
+  swish: Swish;
+}
+
+/** «Щик» стола: стулья ходящего и отбивающегося (−1 — партии нет), сколько идёт нынешний круг, с, и полоса */
+interface Swish {
+  a: number;
+  d: number;
+  t: number;
+  mesh: THREE.Mesh;
+  /** Вершины полосы и на каждой: близость к огоньку (1 — он сам, 0 — конец хвоста), поперёк (0 — к середине, 1 — край),
+   *  сколько метров до внешнего края, прозрачность */
+  pos: THREE.BufferAttribute;
+  uvk: THREE.BufferAttribute;
 }
 
 /** Сколько карт в колоде — табличкой над стопкой (картинка — на холсте, перерисовка при смене числа) */
@@ -369,6 +409,64 @@ function glowMaterial(map: THREE.Texture, opacity: number): THREE.MeshBasicMater
   return new THREE.MeshBasicMaterial({ map, transparent: true, opacity, depthWrite: false, fog: false, toneMapped: false });
 }
 
+/**
+ * Полоса «щика»: по валику клеёнки — яркая светлая линия (на красном валике и тёмном полу за столом видна чётко), к
+ * середине стола — насыщенное оранжевое свечение, гаснет; хвост — к красному и прозрачнее. Без света и тумана, как свечения.
+ */
+function swishMaterial(): THREE.MeshBasicMaterial {
+  const mat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = `attribute vec4 aSwish;\nvarying vec4 vSwish;\n${sh.vertexShader}`.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n  vSwish = aSwish;',
+    );
+    sh.fragmentShader = `varying vec4 vSwish;\n${sh.fragmentShader}`.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      {
+        float near = vSwish.x;
+        float v = vSwish.y;
+        float line = (1.0 - smoothstep(0.004, 0.012, abs(vSwish.z - ${SWISH_LINE.toFixed(3)}))) * smoothstep(0.1, 0.6, near);
+        float glow = smoothstep(0.0, 0.45, v) * (1.0 - smoothstep(0.95, 1.0, v));
+        vec3 col = mix(vec3(0.95, 0.25, 0.0), vec3(1.0, 0.55, 0.0), near);
+        diffuseColor.rgb = mix(col, vec3(1.0, 0.93, 0.6), line);
+        diffuseColor.a = vSwish.w * pow(near, 0.8) * max(glow * 0.95, line);
+      }`,
+    );
+  };
+  mat.customProgramCacheKey = () => 'durak-swish';
+  return mat;
+}
+
+/** Пар вершин в полосе «щика» (у середины стола и у края): хвост до головы и скругление головы */
+const SWISH_PAIRS = SWISH_SEG + 1 + CAP_SEG;
+
+/**
+ * Полоса «щика» одного стола: между соседними парами вершин — по два треугольника. Меш всегда «видим», без огонька у
+ * него пустой диапазон отрисовки: прогрев при входе (compileAsync берёт только видимое) соберёт шейдер заранее, и первый
+ * «щик» в партии не дёрнет кадр.
+ */
+function swishMesh(mat: THREE.Material): Pick<Swish, 'mesh' | 'pos' | 'uvk'> {
+  const geo = new THREE.BufferGeometry();
+  const pos = new THREE.BufferAttribute(new Float32Array(SWISH_PAIRS * 6), 3);
+  const uvk = new THREE.BufferAttribute(new Float32Array(SWISH_PAIRS * 8), 4);
+  pos.setUsage(THREE.DynamicDrawUsage);
+  uvk.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('position', pos);
+  geo.setAttribute('aSwish', uvk);
+  const idx: number[] = [];
+  for (let i = 0; i < SWISH_PAIRS - 1; i++) {
+    const a = i * 2;
+    idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, mat);
+  geo.setDrawRange(0, 0);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 6;
+  return { mesh, pos, uvk };
+}
+
 function newCard(cell: number): Card {
   return {
     cell, p: new THREE.Vector3(), q: new THREE.Quaternion(), s: 1,
@@ -420,6 +518,7 @@ export class DurakTables3D {
     this.marks.frustumCulled = false;
     this.marks.renderOrder = 2;
     world.scene.add(this.marks);
+    const swishMat = swishMaterial();
     const frameGeo = new THREE.PlaneGeometry(CARD_W + 2 * FRAME_PAD, CARD_H + 2 * FRAME_PAD);
     const markGeo = new THREE.PlaneGeometry(MARK_SIZE, MARK_SIZE);
 
@@ -434,12 +533,14 @@ export class DurakTables3D {
         m.renderOrder = 2;
         world.scene.add(m);
       }
+      const swish = { a: -1, d: -1, t: 0, ...swishMesh(swishMat) };
+      world.scene.add(swish.mesh);
       this.tables.push({
         t, x: tp.x, z: tp.z, chairs, angles: chairs.map((it) => Math.atan2(it.x - tp.x, it.z - tp.z)),
         view: null, cards: new Map(), bots: new Array<Avatar | null>(TABLE_SEATS).fill(null),
         botPose: chairs.map((it) => ({ x: it.x, y: it.y, z: it.z, yaw: it.yaw, pitch: 0, flags: E_ALIVE | E_GROUNDED })),
         incoming: new Array<number>(TABLE_SEATS).fill(0), src: new Map(), goneTo: -2, dirty: false, count: makeDeckCount(world.scene),
-        mark, markSuit: 0, frame,
+        mark, markSuit: 0, frame, swish,
       });
     });
 
@@ -482,6 +583,7 @@ export class DurakTables3D {
     this.syncBots(tb);
     const ch = this.diff(tb, prev, v);
     this.layout(tb);
+    this.aimSwish(tb);
     this.playSounds(tb, prev, v, ch);
   }
 
@@ -516,6 +618,16 @@ export class DurakTables3D {
     if (!tb || !it || !this.allowedTables.has(t)) return out.set(0, -100, 0);
     const a = tb.angles[ch];
     return out.set(it.x - Math.sin(a) * FACE_IN, it.y + HEAD_Y, it.z - Math.cos(a) * FACE_IN);
+  }
+
+  /** Где подпись сидящего на стуле (ник, карты, кто ходит): под животом, со стороны стола. */
+  tagPos(t: number, ch: number, out: THREE.Vector3): boolean {
+    const tb = this.tables[t];
+    const it = tb?.chairs[ch];
+    if (!tb || !it || !this.allowedTables.has(t)) return false;
+    const a = tb.angles[ch];
+    out.set(it.x - Math.sin(a) * TAG_IN, it.y + TAG_Y, it.z - Math.cos(a) * TAG_IN);
+    return true;
   }
 
   /** Сидящий на стуле как отрезок «таз — макушка»: по нему ловится клик-помидор (радиус на экране вокруг отрезка). */
@@ -561,6 +673,8 @@ export class DurakTables3D {
       tb.count.sprite.visible = false;
       tb.mark.visible = false;
       tb.frame.visible = false;
+      Object.assign(tb.swish, { a: -1, d: -1, t: 0 });
+      tb.swish.mesh.geometry.setDrawRange(0, 0);
     }
     this.marks.count = 0;
     for (const tm of this.tomatoes) {
@@ -630,7 +744,76 @@ export class DurakTables3D {
     this.cellAttr.needsUpdate = true;
     this.marks.count = marks;
     this.marks.instanceMatrix.needsUpdate = true;
+    this.updateSwish(dt, camPos);
     this.updateTomatoes(dt);
+  }
+
+  // ------------------------------------------------------------ «щик» по кромке: кто на кого ходит
+
+  /** Кто на кого ходит: стулья ходящего и отбивающегося. Сменилась пара — огонёк бежит сразу; нет партии или итог — нет. */
+  private aimSwish(tb: Table): void {
+    const v = tb.view;
+    const g = v?.game;
+    let a = -1;
+    let d = -1;
+    if (v && g && !g.over && g.attacker !== g.defender) {
+      a = v.seats.findIndex((s) => s.p === g.attacker);
+      d = v.seats.findIndex((s) => s.p === g.defender);
+      if (a < 0 || d < 0 || !tb.chairs[a] || !tb.chairs[d]) a = d = -1;
+    }
+    const sw = tb.swish;
+    if (a === sw.a && d === sw.d) return;
+    sw.a = a;
+    sw.d = d;
+    sw.t = 0;
+  }
+
+  /**
+   * Огонёк с хвостом по краю клеёнки: голова за SWISH_T0 + SWISH_T1 × угол с доезжает от ходящего до отбивающегося
+   * (с замедлением), потом хвост подтягивается к ней и всё гаснет; пауза до конца круга — и снова.
+   */
+  private updateSwish(dt: number, camPos: THREE.Vector3): void {
+    for (const tb of this.tables) {
+      const sw = tb.swish;
+      sw.mesh.geometry.setDrawRange(0, 0);
+      if (sw.a < 0) continue;
+      sw.t = (sw.t + dt) % SWISH_PERIOD_S;
+      const far = 1 - THREE.MathUtils.smoothstep(Math.hypot(tb.x - camPos.x, tb.z - camPos.z), SWISH_FAR - 2, SWISH_FAR);
+      if (far <= 0) continue;
+      const from = tb.angles[sw.a];
+      let turn = Math.atan2(Math.sin(tb.angles[sw.d] - from), Math.cos(tb.angles[sw.d] - from));
+      // ровно напротив — по ходу игры: к меньшему номеру стула, это меньший угол
+      if (Math.abs(turn) > Math.PI - 0.01) turn = -Math.PI;
+      const len = Math.abs(turn);
+      const run = SWISH_T0 + SWISH_T1 * len;
+      if (sw.t > run + SWISH_OUT_S) continue;
+      const k = Math.min(1, sw.t / run);
+      const head = len * (1 - (1 - k) * (1 - k));
+      const out = sw.t > run ? (sw.t - run) / SWISH_OUT_S : 0;
+      const tail = Math.max(0, head - SWISH_TAIL * (1 - out));
+      const alpha = far * (1 - out);
+      const y = tb.chairs[sw.a].y + SWISH_Y;
+      // голова растёт из точки: пока огонёк не отъехал на скругление, оно меньше
+      const cap = Math.min(SWISH_CAP, head);
+      for (let i = 0; i < SWISH_PAIRS; i++) {
+        // хвост: от конца к голове, ширина растёт к голове; скругление: дальше головы, ширина — по полуокружности
+        const inCap = i > SWISH_SEG;
+        const c = inCap ? (i - SWISH_SEG) / CAP_SEG : 0;
+        const s = inCap ? head + cap * c : tail + ((head - tail) * i) / SWISH_SEG;
+        const near = inCap ? 1 : Math.max(0, 1 - (head - s) / SWISH_TAIL);
+        const w = inCap ? SWISH_W * Math.sqrt(Math.max(0, 1 - c * c)) : SWISH_W0 + (SWISH_W - SWISH_W0) * near * near;
+        const ang = from + Math.sign(turn) * (s - cap);
+        const sn = Math.sin(ang);
+        const cs = Math.cos(ang);
+        sw.pos.setXYZ(i * 2, tb.x + sn * (SWISH_R - w), y, tb.z + cs * (SWISH_R - w));
+        sw.pos.setXYZ(i * 2 + 1, tb.x + sn * SWISH_R, y, tb.z + cs * SWISH_R);
+        sw.uvk.setXYZW(i * 2, near, 0, w, alpha);
+        sw.uvk.setXYZW(i * 2 + 1, near, 1, 0, alpha);
+      }
+      sw.pos.needsUpdate = true;
+      sw.uvk.needsUpdate = true;
+      sw.mesh.geometry.setDrawRange(0, Infinity);
+    }
   }
 
   // ------------------------------------------------------------ боты

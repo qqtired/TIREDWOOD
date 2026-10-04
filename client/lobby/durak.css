@@ -209,3 +209,12 @@
 .dk .dk-trump.red i { color: #cc2730; }
 .dk .dk-trump.black i { color: #1d1f2c; }
 .dk .dk-trump .dk-tl { color: #5a3a10; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+
+/* --- игроки партии: подписи под своими желейками (место ставит placeTags из сцены); клик проходит сквозь — к желейке, помидор */
+.dk-tags { position: absolute; inset: 0; pointer-events: none; }
+.dk .dk-tags .dk-p { position: absolute; transform: translate(-50%, -50%); pointer-events: none; background: var(--panel-strong); box-shadow: var(--shadow); }
+.dk .dk-tags .dk-p.off { display: none; }
+@media (max-height: 480px) {
+  .dk .dk-tags .dk-p { gap: 4px; padding: 2px 5px 2px 8px; font-size: 12px; }
+  .dk .dk-tags .dk-cnt { height: 20px; font-size: 11px; }
+}

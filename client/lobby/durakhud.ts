@@ -1,5 +1,6 @@
 // Панель стола дурака — HTML поверх 3D (мышь за столом отпущена):
-// сверху — стол, режим, козырь, колода, бито и игроки по кругу (кто ходит, кто отбивается, сколько карт, таймер);
+// сверху — стол, режим, козырь, колода и бито; игроки — подписями под своими желейками (кто ходит, кто отбивается,
+// сколько карт, таймер; место на экране ставит сцена через placeTags);
 // до партии — режим, места, «Готов», боты и короткие правила; в партии — рука, кнопки «Беру» / «Бито» / «Пас» /
 // «Перевести» и подсказка, что делать; справа — «Встать», реакции и помидор; итог партии; вопрос перед выходом.
 import { TICK_MS } from '../../shared/constants.ts';
@@ -109,6 +110,9 @@ export class DurakHud {
   private readonly root: HTMLElement;
   /** Свечение по краям экрана: горит, пока от меня ждут ход (клики не ловит) */
   private readonly edgeEl: HTMLElement;
+  /** Подписи игроков под желейками и где каждая стоит (стул → «left:…%;top:…%», нет — не видно) */
+  private readonly tagsEl: HTMLElement;
+  private readonly tagAt = new Map<number, string>();
   private readonly topEl: HTMLElement;
   private readonly lobbyEl: HTMLElement;
   private readonly playEl: HTMLElement;
@@ -147,6 +151,7 @@ export class DurakHud {
   constructor(parent: HTMLElement) {
     this.root = el('div', 'dk hidden');
     this.edgeEl = el('div', 'dk-edge');
+    this.tagsEl = el('div', 'dk-tags');
     this.topEl = el('div', 'dk-top');
     this.lobbyEl = el('div', 'dk-lobby');
     this.playEl = el('div', 'dk-play');
@@ -165,7 +170,7 @@ export class DurakHud {
     this.aimRing = document.createElement('i');
     this.aimName = document.createElement('b');
     this.aimEl.append(this.aimRing, this.aimName);
-    this.root.append(this.edgeEl, this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl, this.aimEl);
+    this.root.append(this.edgeEl, this.tagsEl, this.topEl, this.lobbyEl, this.playEl, this.sideEl, this.resultEl, this.confirmEl, this.aimEl);
     this.root.style.setProperty('--atlas', `url(${cardAtlasCanvas().toDataURL('image/png')})`);
     this.root.style.setProperty('--splat', `url(${tomatoSplatCanvas().toDataURL('image/png')})`);
     this.root.addEventListener('click', (e) => this.onClick(e));
@@ -194,6 +199,7 @@ export class DurakHud {
     this.rulesOpen = false;
     this.resultKey = '';
     this.resultSummary = '';
+    this.tagAt.clear();
     this.root.classList.remove('hidden');
     this.render();
   }
@@ -271,19 +277,46 @@ export class DurakHud {
     this.onAct('react', undefined, k);
   }
 
-  /** Реакция игрока на стуле ch — всплывает у его ника (в партии — в полоске игроков, до неё — в местах). */
+  /**
+   * Реакция игрока на стуле ch — всплывает у его ника: в партии — над подписью под желейкой (своя — над рукой),
+   * до неё — под местом в панели.
+   */
   showReact(ch: number, k: number): void {
     if (this.table < 0) return;
-    const at = this.root.querySelector<HTMLElement>(`.dk-p[data-ch="${ch}"], .dk-lobby.show .dk-seat[data-ch="${ch}"]`);
-    if (!at) return;
-    const r = at.getBoundingClientRect();
+    const at = this.root.querySelector<HTMLElement>(`.dk-tags .dk-p[data-ch="${ch}"]:not(.off), .dk-lobby.show .dk-seat[data-ch="${ch}"]`);
     const box = this.root.getBoundingClientRect();
     const e = el('div', 'dk-rx');
     e.textContent = REACTIONS[k] ?? '';
-    e.style.left = `${r.left - box.left + r.width / 2}px`;
-    e.style.top = `${r.bottom - box.top}px`;
+    if (at) {
+      const r = at.getBoundingClientRect();
+      const tag = !!at.closest('.dk-tags');
+      e.style.left = `${r.left - box.left + r.width / 2}px`;
+      e.style.top = `${tag ? r.top - box.top - 40 : r.bottom - box.top}px`;
+    } else if (ch === this.chair && this.v?.game) {
+      e.style.left = '50%';
+      e.style.top = '60%';
+    } else {
+      return;
+    }
     this.root.appendChild(e);
     setTimeout(() => e.remove(), REACT_SHOW_MS);
+  }
+
+  /**
+   * Подписи игроков — под их желейками: at(ch) даёт точку на экране (−1…1 по осям, как у камеры), false — не видно.
+   * Раз в кадр; пишет только изменившееся (за столом камера стоит — почти никогда).
+   */
+  placeTags(at: (ch: number, out: { x: number; y: number }) => boolean): void {
+    if (this.table < 0) return;
+    for (const node of this.tagsEl.children) {
+      const e = node as HTMLElement;
+      const ch = Number(e.dataset.ch);
+      const style = at(ch, _pt) ? `left:${((_pt.x + 1) * 50).toFixed(2)}%;top:${((1 - _pt.y) * 50).toFixed(2)}%` : '';
+      if (this.tagAt.get(ch) === style && e.classList.contains('off') === !style) continue;
+      this.tagAt.set(ch, style);
+      e.style.cssText = style;
+      e.classList.toggle('off', !style);
+    }
   }
 
   /**
@@ -391,6 +424,7 @@ export class DurakHud {
     this.edgeEl.classList.toggle('on', this.pending < 0 && myTurn(v, this.g, this.me));
     this.renderResult();
     this.set(this.topEl, this.topHtml());
+    this.set(this.tagsEl, this.tagsHtml());
     const before = !v || v.phase === 'wait' || v.phase === 'count';
     const rematch = !!this.resultSummary && v?.phase !== 'play';
     this.root.classList.toggle('dk-rematch', rematch);
@@ -426,13 +460,20 @@ export class DurakHud {
       const card = gv.deck > 0 ? `<i class="dk-tcard" style="background-position:${atlasPos(gv.trump)}" title="козырная карта"></i>` : '';
       html = `<div class="dk-head">${html}<div class="dk-deck">${sign}${card}<span>колода <b>${gv.deck}</b></span><span>бито <b>${gv.discard}</b></span></div></div>`;
     }
-    if (!gv) return html;
+    return html;
+  }
+
+  /** Игроки партии — подписями под желейками (место ставит placeTags, пока не поставил — подпись прячется). Себя не подписываем. */
+  private tagsHtml(): string {
+    const v = this.v;
+    const gv = v?.game;
+    if (!v || !gv) return '';
     const wait = new Set(awaited(gv));
     const chips: string[] = [];
     for (let p = 0; p < gv.n; p++) {
       const ch = v.seats.findIndex((s) => s.p === p);
       const s = v.seats[ch];
-      if (!s) continue;
+      if (!s || ch === this.chair) continue;
       let ic = '';
       if (gv.over && gv.fool === p) ic += '🃏';
       else if (gv.out.includes(p)) ic += '🏁';
@@ -442,16 +483,17 @@ export class DurakHud {
       if (s.k === 2) ic += '🤖';
       const away = s.k === 1 && s.id === 0 && s.away > 0 ? `<span class="dk-away">💤<i data-away="${s.away}"></i></span>` : '';
       const cls = ['dk-p'];
-      if (ch === this.chair) cls.push('me');
       if (wait.has(p)) cls.push('turn');
       if (gv.out.includes(p)) cls.push('out');
       if (gv.over && gv.fool === p) cls.push('fool');
+      const style = this.tagAt.get(ch) ?? '';
+      if (!style) cls.push('off');
       chips.push(
-        `<div class="${cls.join(' ')}" data-ch="${ch}"><span class="dk-ic">${ic}</span><span class="dk-nick">${esc(s.nick)}</span>` +
+        `<div class="${cls.join(' ')}" data-ch="${ch}"${style ? ` style="${style}"` : ''}><span class="dk-ic">${ic}</span><span class="dk-nick">${esc(s.nick)}</span>` +
         `<span class="dk-cnt">${gv.counts[p]}</span>${away}${wait.has(p) && v.phase === 'play' ? '<i class="dk-bar"><b data-bar></b></i>' : ''}</div>`,
       );
     }
-    return html + `<div class="dk-players">${chips.join('')}</div>`;
+    return chips.join('');
   }
 
   /**
@@ -775,6 +817,8 @@ export class DurakHud {
     }
   }
 }
+
+const _pt = { x: 0, y: 0 };
 
 function el(tag: string, cls: string): HTMLElement {
   const e = document.createElement(tag);

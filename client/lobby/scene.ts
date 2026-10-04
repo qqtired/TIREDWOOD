@@ -192,6 +192,8 @@ const _tq = new THREE.Vector3();
 const _th = new THREE.Vector3();
 const _tm = new THREE.Vector3();
 const _tr = new THREE.Vector3();
+/** Точка подписи игрока за столом дурака (на экран) */
+const _tag = new THREE.Vector3();
 /** Голоса моторов: лодки в заливе и катера «Ласточка» (номера картов — меньше) */
 const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
@@ -1470,6 +1472,22 @@ export class LobbyScene implements Scene {
     if (this.dkHand?.table === t) this.dkHud.setHand(this.dkHand.cards);
   }
 
+  /** Подписи игроков за своим столом дурака — под их желейками: точки из 3D на экран (HUD и холст — во весь экран). */
+  private placeDurakTags(): void {
+    if (this.dkSeat < 0 || !this.dkHud.visible || seatTable(this.dkSeat) === BJ_TABLE) return;
+    const t = seatTable(this.dkSeat);
+    const cam = this.world.camera;
+    cam.updateMatrixWorld();
+    this.dkHud.placeTags((ch, out) => {
+      if (!this.tables3d.tagPos(t, ch, _tag)) return false;
+      _tag.project(cam);
+      if (_tag.z > 1 || Math.abs(_tag.x) > 1.1 || Math.abs(_tag.y) > 1.1) return false;
+      out.x = _tag.x;
+      out.y = _tag.y;
+      return true;
+    });
+  }
+
   /** Встать из-за стола: по кнопке и Esc / E просим сервер, шагом встанем сами. Мышь — сразу, пока идёт жест. */
   private leaveTable(send: boolean): void {
     if (send) this.d.net.send({ t: 'unuse' });
@@ -2314,6 +2332,7 @@ export class LobbyScene implements Scene {
     this.blackjack3d.update(dt, this.time, camPos);
     this.billiards.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
+    this.placeDurakTags();
     this.bjHud.tick(performance.now());
     this.updateHud();
 
