@@ -53,7 +53,7 @@ test('fisheco: no species is an outlier inside its rarity tier at the place entr
   }
 });
 
-test('perfect is computed by every reel tick and survives chunked authoritative replay', () => {
+test('errors (fish leaving the zone) are counted by every reel tick and survive chunked authoritative replay', () => {
   const still = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
   // держит середину зоны на рыбе; зона полежала на дне полсекунды — подматывает (иначе через 0,7 с «леска провисла»);
   // нажатия повторяем, как сервер
@@ -68,7 +68,7 @@ test('perfect is computed by every reel tick and survives chunked authoritative 
   const easy = reelStart(still, 42);
   reelRun(easy, toggles, REEL_MAX_TICKS + 1);
   assert.equal(easy.done, 1);
-  assert.equal(easy.perfect, true);
+  assert.equal(easy.err, 0);
   const hard = RULE[COLLECTION.find(sp => RULE[sp]!.tier === 4)!]!.style;
   const played = playReel(hard, 327, TYPICAL);
   const whole = reelStart(hard, 327);
@@ -76,6 +76,7 @@ test('perfect is computed by every reel tick and survives chunked authoritative 
   reelRun(whole, played.toggles, REEL_MAX_TICKS + 1);
   let k = 0;
   for (let tick = 0; chunks.done === 0; tick += 37) k = reelRun(chunks, played.toggles, tick, k);
-  assert.equal(whole.perfect, false);
-  assert.equal(chunks.perfect, whole.perfect);
+  assert.ok(whole.err > 0, `у «обычного» с легендой рыба выходит из зоны: ${whole.err}`);
+  assert.equal(whole.err, played.err);
+  assert.equal(chunks.err, whole.err);
 });

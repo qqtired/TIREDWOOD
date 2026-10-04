@@ -15,7 +15,7 @@ import {
 import { earnedItems } from '../shared/fishstyle.ts';
 import { fishCatchXp } from '../shared/fishprogress.ts';
 import { BAG_BASE } from '../shared/fishshop.ts';
-import { REEL_MAX_TICKS, reelRun, reelStart } from '../shared/fishreel.ts';
+import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart } from '../shared/fishreel.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { HOLD2_TICKS, REEL_LAG, fish2Enabled, type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -127,10 +127,10 @@ test('честное вываживание: повтор сервера дош�
   const land = lastOf(e.a.s, 'fishLand');
   assert.ok(land, 'улов засчитан');
   const price = fishPrice2(sp('scad'), 300);
-  assert.equal(typeof land.perfect, 'boolean');
+  // оценка — по ошибкам того же вываживания, что сыграл клиент (сервер повторил его и насчитал столько же выходов из зоны)
   assert.deepEqual(land, {
     t: 'fishLand', sp: sp('scad'), g: 300, price, coins: 0, bonus: NEW_BONUS2[0], fresh: true, record: false, best: 0, got: 1, full: false,
-    base: basePrice(sp('scad'), 300), m: 0, xp: fishCatchXp(sp('scad'), land.perfect), perfect: land.perfect, bag: 1, cap: BAG_BASE,
+    base: basePrice(sp('scad'), 300), m: 0, xp: fishCatchXp(sp('scad'), reelGrade(play.err)), gr: reelGrade(play.err), er: play.err, bag: 1, cap: BAG_BASE,
   });
   const prof = e.a.c.profile!;
   // жетоны за рыбу — при продаже Семёну или Сане; бонус за новый вид — сразу

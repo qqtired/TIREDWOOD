@@ -85,24 +85,25 @@ test('beer expires at wall-clock boundary and affects rare weights and fish sale
   assert.equal(active.incomeScale, 1.1, 'a saved cast snapshot stays active after expiry');
 });
 
-test('only landed collection fish earn difficulty-based XP; perfect and legendary follow Stardew truncation', () => {
+test('only landed collection fish earn difficulty-based XP; reel grade and legendary multiply it', () => {
   // Game has no quality grade or simultaneous chest, so normal quality and no treasure XP factor.
   assert.ok(fishCatchXp(sp('hamsa')) >= 1);
   assert.ok(fishCatchXp(sp('bluefish')) > fishCatchXp(sp('hamsa')));
-  assert.equal(fishCatchXp(sp('hamsa'), true), Math.round(Math.trunc(17 * 2.4) * .4));
+  assert.equal(fishCatchXp(sp('hamsa'), 0), Math.round(17 * .4 * 2.5));
   assert.ok(fishCatchXp(sp('sturgeon')) >= 33);
   assert.ok(fishCatchXp(sp('whiteshark')) >= fishCatchXp(sp('sturgeon')));
   for (const id of ['boot', 'bottle', 'chest', 'goldfish']) assert.equal(fishCatchXp(sp(id)), 0, id);
   assert.equal(fishCatchXp(-1), 0);
 });
 
-test('XP freezes released difficulty and rounds ×0.4 (+20 %, fisheco) after perfect then legendary factors', () => {
+test('XP freezes released difficulty and rounds ×0.4 (+20 %, fisheco) after legendary and reel-grade factors (04.10)', () => {
   // Independently derived from 1200-seed real cost-to-success calibration in the release report; fisheco: ×0,4 вместо ×0,3333.
   assert.equal(fishCatchXp(sp('hamsa')), 7);
   assert.equal(fishCatchXp(sp('goby')), 6);
   assert.equal(fishCatchXp(sp('bluefish')), 12);
   assert.equal(fishCatchXp(sp('tuna')), 68);
-  assert.equal(fishCatchXp(sp('tuna'), true), 162, '34 → floor(34*2.4)=81 → 81*5=405 → round(405*.4)=162');
+  assert.equal(fishCatchXp(sp('tuna'), 0), 170, '«Идеально»: 34*5=170 → round(170*.4*2,5)=170');
+  assert.equal(fishCatchXp(sp('tuna'), 4), 34, '«Ну ты и червь»: round(170*.4*.5)=34');
   assert.equal(fishCatchXp(sp('whiteshark')), 78);
-  assert.equal(fishCatchXp(sp('whiteshark'), true), 186);
+  assert.equal(fishCatchXp(sp('whiteshark'), 0), 195);
 });

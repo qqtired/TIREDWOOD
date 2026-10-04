@@ -9,6 +9,7 @@ import {
   BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, T_MYTH, XP_SCALE, isCollected, ruleOf, tierRank,
 } from './fishrules.ts';
 import { ALE, BAGS, BAG_MAX, BEER, LORD, LURES, RAIN_DRUM_PRICE as DRUM_PRICE, VODKA, bagCapacity, lureOf, type ShopDrink } from './fishshop.ts';
+import { GRADE_PLAIN, gradeXp, type ReelGrade } from './fishreel.ts';
 
 /** Удочка за задания: 0 — обычная, 1 — продвинутая, 2 — профессиональная, 3 — мастерская, 4 — легендарная */
 export type FishRod = 0 | 1 | 2 | 3 | 4;
@@ -259,28 +260,27 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
 }
 
 /**
- * Stardew: trunc(3 + difficulty/3), perfect ×2.4, legendary ×5 (truncated after each factor). Виды пристани — от
- * замороженной сложности выпуска 6, виды баркаса — от заданной базы. Итог ×0,4 (+20 % к прежней трети), на баркасе ещё
- * ×1,25, в дождь ещё ×1,15 (rain), с водкой эпические, легендарные и мифические ещё ×2, одно округление. Хлам и сундук
- * опыта не дают.
+ * Stardew: trunc(3 + difficulty/3), legendary ×5. Виды пристани — от замороженной сложности выпуска 6, виды баркаса —
+ * от заданной базы. Итог ×0,4 (+20 % к прежней трети), на баркасе ещё ×1,25, в дождь ещё ×1,15 (rain), с водкой
+ * эпические, легендарные и мифические ещё ×2, и × оценка вываживания (grade, shared/fishreel.ts REEL_GRADES: «Идеально»
+ * ×2,5 … «Ну ты и червь» ×0,5; 04.10 — вместо прежнего «идеально» ×2,4), одно округление. Хлам и сундук опыта не дают.
  */
-export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<FishCastMods, 'zone'> & Partial<Pick<FishCastMods, 'drink'>>>, rain = false): number {
+export function fishCatchXp(sp: number, grade: ReelGrade = GRADE_PLAIN, mods?: Readonly<Pick<FishCastMods, 'zone'> & Partial<Pick<FishCastMods, 'drink'>>>, rain = false): number {
   const r = ruleOf(sp);
   if (!r || !isCollected(sp)) return 0;
   // Convert measured reel effort to Stardew's 5…110 scale: a five-second perfect reel is difficulty30.
   const difficulty = Math.min(110, Math.max(5, Math.round(30 + 100 * (1 - 300 / r.xpDifficulty))));
   let xp = r.xpBase ?? Math.trunc(3 + difficulty / 3);
-  if (perfect) xp = Math.trunc(xp * 2.4);
   if (tierRank(r.tier) >= T_LEGEND) xp *= 5;
   const place = mods?.zone === 'barkas' ? BARKAS_XP : 1;
   const rank = tierRank(r.tier);
   const vodka = mods?.drink === 4 && rank >= T_EPIC && rank <= T_MYTH ? VODKA.topXp ?? 1 : 1;
-  return Math.max(1, Math.round(xp * XP_SCALE * place * (rain ? RAIN_XP : 1) * vodka));
+  return Math.max(1, Math.round(xp * XP_SCALE * place * (rain ? RAIN_XP : 1) * vodka * gradeXp(grade)));
 }
 
 /** Утешение: эпическая и выше сорвалась после 3 с борьбы — четверть опыта за поимку (не меньше 1). Иначе 0. */
 export function fishLostXp(sp: number, ticks: number, mods?: Readonly<Pick<FishCastMods, 'zone'> & Partial<Pick<FishCastMods, 'drink'>>>, rain = false): number {
   const r = ruleOf(sp);
   if (!r || !isCollected(sp) || tierRank(r.tier) < T_EPIC || !(ticks >= CONSOLATION_TICKS)) return 0;
-  return Math.max(1, Math.round(fishCatchXp(sp, false, mods, rain) * CONSOLATION_SHARE));
+  return Math.max(1, Math.round(fishCatchXp(sp, GRADE_PLAIN, mods, rain) * CONSOLATION_SHARE));
 }

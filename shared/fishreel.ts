@@ -8,6 +8,11 @@
 // толкнуть зону вверх (скорость от PUMP, это от ~3 тиков удержания): касание вслепую не считается. У самого края шкалы
 // (ближе 1 %) зона накрывает и край: подмотка подбрасывает зону на доли процента — рыбу у дна это не выпускает.
 // 04.10: зона больше не уходит под шкалу — снизу отскакивает по инерции, как сверху; провисание — по лежанию на дне.
+// 04.10 (вечер, владелец): рыба держится в 2…98 % шкалы (лежащую на дне рыбу подматывали — зона уходила с неё);
+// «натяжение лески» — зеркало провисания у верха (держишь зону прижатой к верху дольше 0,7 с — улов не идёт);
+// ошибки — сколько раз рыба вышла из зоны, по ним оценка и множитель опыта (REEL_GRADES); водка — отпустил кнопку,
+// а зона ещё 0,1 с едет по инерции, и икота (лёгкий толчок зоны вверх по сиду заброса). Моргание, покачивание и
+// «двоится» — только у клиента (client/lobby/fishgame.ts): они не меняют модель.
 //
 // Одинаково считают клиент (играет у себя, без задержки) и сервер (повторяет по нажатиям и решает, поймана ли):
 // только целые числа и свой генератор случайных (mulberry32 на Math.imul) — никаких Math.sin/exp/pow и Math.random,
@@ -29,8 +34,30 @@ export const REEL_MAX_TICKS = 90 * 60;
  * Короткий отпуск кнопки не наказывается: 0,7 с — это много.
  */
 export const SLACK_TICKS = 42;
+/**
+ * Натяжение лески — зеркало провисания: зону держат прижатой к верху шкалы дольше стольких тиков (0,7 с) — улов не
+ * подтягивается и тает, у шкалы надпись, в чат «Леска слишком натянута, возможен обрыв!». Ослабить — отпустить кнопку:
+ * зона пошла вниз быстрее PUMP. Иначе рыбу, которая держится у верха, вываживали бы, просто не отпуская кнопку.
+ */
+export const TAUT_TICKS = SLACK_TICKS;
 /** Прежде зона уходила под шкалу на столько (до 04.10); теперь не уходит — оставлено для старых проверок */
 export const ZONE_SINK = 0;
+/** Рыба не опускается ниже и не поднимается выше стольких единиц от края шкалы (2 %) */
+export const FISH_EDGE = 2_000;
+const FISH_LO = FISH_EDGE;
+const FISH_HI = REEL_BAR - FISH_EDGE;
+/**
+ * Водка: отпустил кнопку — зона ещё столько тиков (0,1 с) едет по инерции с той же скоростью (не падает). Замер
+ * модели игрока (test/fishbot.ts): «опытный» с водкой на эпической рыбе — 85 % поимок без опьянения, ~65 % пьяным.
+ */
+export const DRUNK_LAG = 6;
+/**
+ * Водка, икота: первая через 2…7 с, дальше раз в 5…10 с (по сиду заброса); зону толкает вверх на столько ед./тик —
+ * заметно (почти на 1 % шкалы), но не срывает: сильнее толчок вместе с инерцией валил и «опытного».
+ */
+export const HIC_FIRST = 120;
+export const HIC_EVERY = 300;
+export const HIC_KICK = 250;
 
 /** Зона игрока: ускорение, пока держишь, и вниз, когда отпустил (ед./тик²) */
 export const ZONE_UP = 36;
@@ -156,8 +183,8 @@ export interface Reel {
   done: number;
   /** Рыба в зоне после этого тика */
   inZone: boolean;
-  /** Ни одного тика вне зоны за всё вываживание; считает и клиент, и authoritative replay. */
-  perfect: boolean;
+  /** Ошибки: сколько раз рыба вышла из зоны (по одной за выход); считают и клиент, и повтор сервера — по ним оценка */
+  err: number;
   rng: number;
   patternTick: number;
   patternCycle: number;
@@ -171,6 +198,13 @@ export interface Reel {
   rest: number;
   /** Удар о край на этом тике, ед./тик: больше 0 — о дно шкалы (отскочила), меньше 0 — о верх; 0 — не было */
   hit: number;
+  /** Сколько тиков зону держат прижатой к верху шкалы (больше TAUT_TICKS — леска натянута) */
+  taut: number;
+  /** Водка: задержка (сколько ещё тиков зона едет вверх после отпускания), тик следующей икоты, свой генератор икоты */
+  readonly drunk: boolean;
+  lag: number;
+  hic: number;
+  hr: number;
   readonly c: Cfg;
 }
 
@@ -211,12 +245,23 @@ function cfgOf(s: ReelStyle): Cfg {
   };
 }
 
-/** mulberry32: следующее 32-битное число без знака */
-function next(r: Reel): number {
-  let t = (r.rng = (r.rng + 0x6d2b79f5) | 0);
-  t = Math.imul(t ^ (t >>> 15), t | 1);
+/** mulberry32: 32-битное число без знака из уже сдвинутого состояния */
+function m32(s: number): number {
+  let t = Math.imul(s ^ (s >>> 15), s | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return (t ^ (t >>> 14)) >>> 0;
+}
+
+/** Следующее число генератора рыбы */
+function next(r: Reel): number {
+  r.rng = (r.rng + 0x6d2b79f5) | 0;
+  return m32(r.rng);
+}
+
+/** Икота — свой генератор: с водкой рыба ходит ровно так же, как без неё */
+function hicRnd(r: Reel, n: number): number {
+  r.hr = (r.hr + 0x6d2b79f5) | 0;
+  return m32(r.hr) % n;
 }
 
 /** Случайное целое 0…n−1 */
@@ -224,16 +269,18 @@ function rnd(r: Reel, n: number): number {
   return n > 0 ? next(r) % n : 0;
 }
 
-/** Новое вываживание: рыба в манере style, сид seed — от сервера. */
-export function reelStart(style: ReelStyle, seed: number): Reel {
+/** Новое вываживание: рыба в манере style, сид seed — от сервера; drunk — рыбак пьёт водку (задержка зоны и икота). */
+export function reelStart(style: ReelStyle, seed: number, drunk = false): Reel {
   const c = cfgOf(style);
   const r: Reel = {
-    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, perfect: true, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0, c,
+    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, err: 0, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0,
+    taut: 0, drunk, lag: 0, hic: 0, hr: (seed ^ 0x2545f491) | 0, c,
   };
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
-  r.f = div(c.zone, 2);
+  r.f = clampI(div(c.zone, 2), FISH_LO, FISH_HI);
   r.ft = r.f;
   r.timer = START_HOVER + rnd(r, START_HOVER);
+  if (drunk) r.hic = HIC_FIRST + hicRnd(r, HIC_EVERY + 1);
   return r;
 }
 
@@ -249,7 +296,7 @@ function newTarget(r: Reel): void {
   let t = clampI(up ? r.f + dist : r.f - dist, c.lo, c.hi);
   // упёрлась в край привычного — в другую сторону
   if ((t - r.f < 0 ? r.f - t : t - r.f) < div(c.roam, 4)) t = clampI(up ? r.f - dist : r.f + dist, c.lo, c.hi);
-  r.ft = t;
+  r.ft = clampI(t, FISH_LO, FISH_HI);
 }
 
 /** Рывок: далеко и быстро, чаще в свою сторону (вверх — dartUp %); у края — от края. */
@@ -261,7 +308,7 @@ function startDart(r: Reel): void {
   if (up && r.f > REEL_BAR - div(REEL_BAR, 5)) up = false;
   else if (!up && r.f < div(REEL_BAR, 5)) up = true;
   const dist = div(REEL_BAR, 5) + rnd(r, div(REEL_BAR, 4));
-  r.ft = clampI(up ? r.f + dist : r.f - dist, 0, REEL_BAR);
+  r.ft = clampI(up ? r.f + dist : r.f - dist, FISH_LO, FISH_HI);
 }
 
 /** Дошла до цели (или рывок кончился): зависнуть или дальше. После рывка — всегда короткая остановка. */
@@ -297,11 +344,11 @@ function legacyFishStep(r: Reel): void {
   }
   if (r.mode !== M_DART && rnd(r, 10_000) < c.dart) startDart(r);
   r.f += r.fv;
-  if (r.f < 0) {
-    r.f = 0;
+  if (r.f < FISH_LO) {
+    r.f = FISH_LO;
     r.fv = 0;
-  } else if (r.f > REEL_BAR) {
-    r.f = REEL_BAR;
+  } else if (r.f > FISH_HI) {
+    r.f = FISH_HI;
     r.fv = 0;
   }
 }
@@ -421,13 +468,13 @@ function patternedFishStep(r: Reel): void {
     }
   }
   if (r.stand === 1) speed = div(speed * c.stand, 100);
-  r.ft = clampI(target, 0, REEL_BAR);
+  r.ft = clampI(target, FISH_LO, FISH_HI);
   // Existing HUD reads mode 2 for burst feedback. Pattern identity lives in config/cycle;
   // keep the public move/hover/dart contract, including a calm arrival at the target.
   r.mode = Math.abs(r.ft - r.f) <= ARRIVE ? M_HOVER : speed > c.spd ? M_DART : M_MOVE;
   r.fv = toward(r.fv, clampI(div(r.ft - r.f, 6), -speed, speed), acceleration);
-  r.f = clampI(r.f + r.fv, 0, REEL_BAR);
-  if (r.f === 0 || r.f === REEL_BAR) r.fv = 0;
+  r.f = clampI(r.f + r.fv, FISH_LO, FISH_HI);
+  if (r.f === FISH_LO || r.f === FISH_HI) r.fv = 0;
   r.patternTick++;
 }
 
@@ -456,12 +503,18 @@ export function zoneCovers(r: Reel): boolean {
   return r.f >= lo && r.f <= hi;
 }
 
-function zoneStep(r: Reel, held: boolean): void {
+function zoneStep(r: Reel, held: boolean, coast: boolean): void {
   const top = REEL_BAR - r.zone;
   const inZone = zoneCovers(r);
-  let a = held ? ZONE_UP : -ZONE_DOWN;
+  // водка: только что отпустил — зона по инерции едет с той же скоростью (не тянет вверх и не падает)
+  let a = coast ? 0 : held ? ZONE_UP : -ZONE_DOWN;
   if (inZone) a = div(a * ZONE_ASSIST, 10);
   r.zv += a;
+  // водка: икота — зону подбрасывает вверх (следующая — через 4…8 с)
+  if (r.drunk && r.t === r.hic) {
+    r.zv += HIC_KICK;
+    r.hic = r.t + HIC_EVERY + hicRnd(r, HIC_EVERY + 1);
+  }
   r.z += r.zv;
   r.hit = 0;
   if (r.z < 0) {
@@ -484,21 +537,38 @@ export function reelSlack(r: Reel): boolean {
   return r.rest > SLACK_TICKS;
 }
 
-/** Тянет ли сейчас: рыба в зоне и леска натянута (иначе прогресс тает) */
+/** Леска натянута: зону держали прижатой к верху дольше TAUT_TICKS — улов не подтягивается и тает */
+export function reelTaut(r: Reel): boolean {
+  return r.taut > TAUT_TICKS;
+}
+
+/** Тянет ли сейчас: рыба в зоне, леска не провисла и не перетянута (иначе прогресс тает) */
 export function reelPulling(r: Reel): boolean {
-  return r.inZone && r.rest <= SLACK_TICKS;
+  return r.inZone && r.rest <= SLACK_TICKS && r.taut <= TAUT_TICKS;
 }
 
 /** Один тик: рыба, зона (held — держит ли игрок), прогресс. После итога — ничего не меняет. */
 export function reelStep(r: Reel, held: boolean): void {
   if (r.done !== 0) return;
+  // водка: отпустил — зона ещё DRUNK_LAG тиков едет по инерции с той же скоростью
+  let coast = false;
+  if (r.drunk) {
+    if (held) r.lag = DRUNK_LAG;
+    else if (r.lag > 0) {
+      r.lag--;
+      coast = true;
+    }
+  }
   fishStep(r);
-  zoneStep(r, held);
+  zoneStep(r, held, coast);
   // легла на дно шкалы — счёт идёт, пока зону не подмотают (вверх от PUMP; касание вслепую — нет); пока скачет — не идёт
   r.rest = r.zv >= PUMP ? 0 : r.rest > 0 || (r.z === 0 && r.zv === 0) ? r.rest + 1 : 0;
+  // прижата к верху (держат кнопку) — зеркально: счёт идёт, пока зону не отпустят вниз быстрее PUMP
+  r.taut = r.zv <= -PUMP ? 0 : r.taut > 0 || (r.z === REEL_BAR - r.zone && r.zv === 0) ? r.taut + 1 : 0;
+  const was = r.inZone;
   r.inZone = zoneCovers(r);
+  if (was && !r.inZone) r.err++;
   const pulling = reelPulling(r);
-  if (!pulling) r.perfect = false;
   r.p += pulling ? REEL_GAIN : -r.c.drain;
   r.t++;
   if (r.p >= REEL_P_MAX) {
@@ -533,6 +603,38 @@ export function reelRun(r: Reel, toggles: readonly number[], upTo: number, from 
     reelStep(r, (k & 1) === 1);
   }
   return k;
+}
+
+/**
+ * Оценка вываживания по ошибкам (выходам рыбы из зоны), 04.10, владелец: название и множитель опыта за улов; upTo —
+ * до скольких ошибок включительно. 8–9 ошибок — тоже «Обычное вываживание» (владелец подтвердил).
+ */
+export interface ReelGradeInfo {
+  readonly name: string;
+  readonly xp: number;
+  readonly upTo: number;
+}
+export const REEL_GRADES: readonly ReelGradeInfo[] = [
+  { name: 'Идеально', xp: 2.5, upTo: 0 },
+  { name: 'Хорошо', xp: 1.5, upTo: 1 },
+  { name: 'Сойдёт', xp: 1.25, upTo: 3 },
+  { name: 'Обычное вываживание', xp: 1, upTo: 9 },
+  { name: 'Ну ты и червь', xp: 0.5, upTo: Number.POSITIVE_INFINITY },
+];
+/** Номер оценки: 0 — «Идеально» … 4 — «Ну ты и червь» */
+export type ReelGrade = 0 | 1 | 2 | 3 | 4;
+/** «Обычное вываживание» (×1): опыт без оценки — утешительный, подсчёты */
+export const GRADE_PLAIN: ReelGrade = 3;
+
+/** Оценка по числу ошибок */
+export function reelGrade(errors: number): ReelGrade {
+  const e = Number.isFinite(errors) && errors > 0 ? Math.trunc(errors) : 0;
+  return REEL_GRADES.findIndex((g) => e <= g.upTo) as ReelGrade;
+}
+
+/** Множитель опыта оценки (неизвестная — ×1) */
+export function gradeXp(grade: number): number {
+  return REEL_GRADES[grade]?.xp ?? 1;
 }
 
 /** Доли для рисования: где рыба и зона (0…1 снизу), прогресс 0…1. */

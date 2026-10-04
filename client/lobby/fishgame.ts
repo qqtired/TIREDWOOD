@@ -4,8 +4,14 @@
 // вываживание своим сидом и решает, вытащил ли. Пока рыба в зоне — трещит катушка; рывок рыбы — шкала вздрагивает.
 // Зона — плотный поплавок: ударилась о край шкалы — сплющилась у этого края (сила — по скорости удара, Reel.hit),
 // в быстром полёте чуть вытянулась; фактура зоны — в fish2.css.
+// 04.10 (вечер): под полосой улова — живой счёт ошибок и оценка («2 ошибки · Сойдёт ×1,25»), в итоге — оценка крупно;
+// «натяжение лески» (зона прижата к верху дольше 0,7 с) — надпись у шкалы и строка в чат. Водка — рыбак пьян: шкала
+// покачивается, рыба двоится, шкала моргает (пропадает на 0,2–0,3 с), «ик!» — это только на экране; задержка зоны
+// и икота — в общей модели (shared/fishreel.ts), их считает и сервер. Стили нового — fishreel.css.
 import { TICK_MS } from '../../shared/constants.ts';
-import { BOUNCE_FULL, REEL_P_MAX, reelPulling, reelRun, reelSlack, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
+import {
+  BOUNCE_FULL, REEL_BAR, REEL_P_MAX, reelGrade, reelPulling, reelRun, reelSlack, reelStart, reelTaut, reelView, type Reel,
+} from '../../shared/fishreel.ts';
 import { RULE, TIER_CSS, TIER_NAMES, T_DIVINE, T_JUNK, T_LEGEND, T_MYTH, isFishTier, reelStyleFor } from '../../shared/fishrules.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
@@ -14,6 +20,8 @@ import { TOUCH } from '../touch.ts';
 import { el } from './fish2.ts';
 import { dartParts } from './fishfmt.ts';
 import { rodBonus } from '../../shared/fishprogress.ts';
+import { VODKA } from '../../shared/fishshop.ts';
+import { errorsText, gradeClass, gradeMul, gradeName } from './fishgrade.ts';
 
 /** Новые нажатия уходят серверу не чаще чем раз в столько тиков, без нажатий — раз в столько (сервер ждёт 4 с) */
 const SEND_TOGGLES = 3;
@@ -38,6 +46,15 @@ const FLASH_MIN = 0.15;
 const FLASH_MS = 120;
 /** Слабее этой силы (≈ 60 ед./тик) — не удар, а зона прилипла к верху или легла: не деформируем */
 const HIT_MIN = 0.03;
+/** Натяжение лески: строка в чат — не чаще раза в столько мс */
+const TAUT_TEXT = 'Леска слишком натянута, возможен обрыв!';
+const TAUT_CHAT_MS = 4000;
+/** Водка: моргание — раз в 3…6,5 с; шкала пропадает на 0,2…0,3 с (только на экране, модель не меняет) */
+const BLINK_GAP_MS = [3000, 6500] as const;
+const BLINK_MS = [200, 300] as const;
+/** «ик!» видно столько мс */
+const HIC_SHOW_MS = 650;
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const FISH_SVG =
   '<svg viewBox="0 0 40 24" width="40" height="24"><path d="M3 12c5-7 14-9 22-6l7-5-1 8 1 7-7-5c-8 3-17 1-22-6z" fill="currentColor"'
@@ -49,6 +66,8 @@ export class ReelGame {
   onSend: (msg: ReelMsg) => void = () => {};
   /** Кончилось у себя: true — вытащил (карточку пришлёт сервер), false — сорвалась */
   onEnd: (caught: boolean) => void = () => {};
+  /** Строка в чат только себе («Леска слишком натянута, возможен обрыв!») */
+  onWarn: (text: string) => void = () => {};
   private readonly sound: Sound;
   private readonly root: HTMLElement;
   private readonly bar: HTMLElement;
@@ -85,6 +104,21 @@ export class ReelGame {
   private squashEdge = 1;
   /** Сколько ещё мс горит блик удара о дно */
   private flashMs = 0;
+  /** Живой счёт ошибок и оценка под полосой улова; сколько ошибок уже показано (−1 — ещё ничего) */
+  private readonly gradeEl: HTMLElement;
+  private shownErr = -1;
+  /** Улов — рыба (у хлама и сундука опыта нет — и оценки нет) */
+  private fishTier = false;
+  private wasTaut = false;
+  private tautChatAt = Number.NEGATIVE_INFINITY;
+  /** Водка: двойник рыбы, «ик!», часы покачивания (мс), моргание — когда следующее и когда кончится (0 — глаза открыты) */
+  private readonly ghost: HTMLElement;
+  private readonly hicEl: HTMLElement;
+  private lastHic = 0;
+  private hicMs = 0;
+  private drunkMs = 0;
+  private blinkAt = 0;
+  private blinkEnd = 0;
 
   constructor(parent: HTMLElement, sound: Sound) {
     this.sound = sound;
@@ -93,10 +127,15 @@ export class ReelGame {
     this.bar = this.root.appendChild(el('div', 'fr-bar'));
     this.bar.appendChild(el('div', 'fr-water'));
     this.zone = this.bar.appendChild(el('div', 'fr-zone'));
+    // водка: двойник рыбы — под настоящей
+    this.ghost = this.bar.appendChild(el('div', 'fr-fish fr-ghost'));
+    this.ghost.innerHTML = FISH_SVG;
     this.fish = this.bar.appendChild(el('div', 'fr-fish'));
     this.fish.innerHTML = FISH_SVG;
     const prog = this.root.appendChild(el('div', 'fr-prog'));
     this.fill = prog.appendChild(el('i', ''));
+    this.gradeEl = this.root.appendChild(el('div', 'fr-grade'));
+    this.hicEl = this.root.appendChild(el('div', 'fr-hic', 'ик!'));
     // место под шкалой: подсказка, а поверх неё — срочное «Последний рывок!» и «Леска провисла — приподними зону!»
     // (видна, пока у шкалы класс slack: зона пролежала на дне дольше 0,7 с; подмотать — приподнять зону над дном,
     // короткое касание вслепую не считается). Срочные надписи не раздвигают колонку (fish2.css, .fr-slot): шкала не
@@ -104,6 +143,7 @@ export class ReelGame {
     const slot = this.root.appendChild(el('div', 'fr-slot'));
     this.standEl = slot.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
     slot.appendChild(el('div', 'fe-slack', 'Леска провисла — приподними зону!'));
+    slot.appendChild(el('div', 'fe-taut', 'Леска натянута — отпусти!'));
     this.hint = slot.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
@@ -147,15 +187,18 @@ export class ReelGame {
     const rule = RULE[sp];
     if (!rule) return;
     const style = reelStyleFor(sp, mods);
-    this.r = reelStart(style, seed);
+    // водка — рыбак пьян на любой поклёвке (задержка зоны и икота — в модели, как у сервера)
+    const drunk = mods.drink === 4;
+    this.r = reelStart(style, seed, drunk);
     this.calm();
     this.wasStand = 0;
     this.standEl.classList.remove('show');
     const base = rule.style.zone;
-    // откуда зона шире: только то, что есть (у новичка без удочки строки нет)
+    // откуда зона шире или уже: только то, что есть (у новичка без удочки строки нет)
     const why: string[] = [];
     if (mods.level) why.push(`ур. ${mods.level} +${(mods.level * 2.5).toLocaleString('ru-RU')}%`);
     if (mods.rod) why.push(`удочка +${Math.round(rodBonus(mods.rod) * 100)}%`);
+    if (drunk && isFishTier(rule.tier)) why.push(`водка −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}%`);
     const zoneLine = why.length ? [`Зона ${Math.round(base)}% → ${Math.round(style.zone)}% (${why.join(', ')})`] : [];
     const lines = isFishTier(rule.tier) ? [...zoneLine, ...dartParts(mods)] : [];
     this.bonus.replaceChildren(...lines.map((s) => el('span', '', s)));
@@ -179,9 +222,19 @@ export class ReelGame {
     this.root.classList.toggle('myth', rule.tier === T_MYTH || rule.tier === T_DIVINE);
     this.root.classList.toggle('divine', rule.tier === T_DIVINE);
     this.root.classList.toggle('legend', rule.tier === T_LEGEND);
-    this.root.classList.remove('won', 'lost', 'dart', 'in', 'slack');
+    this.root.classList.remove('won', 'lost', 'dart', 'in', 'slack', 'taut', 'blink');
+    this.root.classList.toggle('drunk', drunk);
     this.hint.classList.remove('gone');
     this.result.textContent = '';
+    this.fishTier = !odd;
+    this.gradeEl.hidden = odd;
+    this.shownErr = -1;
+    this.wasTaut = false;
+    this.lastHic = this.r.hic;
+    this.hicMs = 0;
+    this.hicEl.classList.remove('show');
+    this.drunkMs = 0;
+    this.blinkAt = this.lastNow + between(BLINK_GAP_MS);
     this.setRain(rain);
     this.root.classList.add('show');
     this.hold?.classList.add('show');
@@ -238,10 +291,7 @@ export class ReelGame {
 
   /** Убрать сразу (вышли с набережной) */
   reset(): void {
-    this.r = null;
-    this.root.classList.remove('show');
-    this.hold?.classList.remove('show');
-    this.fingers.clear();
+    this.hide();
   }
 
   /** Переключение кнопки с тика t; в тот же тик второй раз — отмена (если ещё не ушло) или со следующего. */
@@ -266,15 +316,23 @@ export class ReelGame {
   }
 
   private finish(caught: boolean): void {
+    const r = this.r;
     this.endAt = performance.now();
     this.calm();
     this.root.classList.add(caught ? 'won' : 'lost');
-    this.result.textContent = caught ? 'Поймал! 🎣' : 'Сорвалась…';
+    // вытащил рыбу — ниже оценка крупно её цветом («Идеально · ×2,5 опыта»; сервер считает так же — она же в карточке);
+    // сорвалась, пока леска была натянута, — оборвалась
+    this.result.textContent = caught ? 'Поймал! 🎣' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…';
+    if (caught && r && this.fishTier) {
+      const g = reelGrade(r.err);
+      this.result.appendChild(el('small', gradeClass(g), `${gradeName(g)} · ${gradeMul(g)} опыта`));
+    }
     this.onEnd(caught);
   }
 
   private hide(): void {
     this.r = null;
+    this.calm();
     this.root.classList.remove('show');
     this.hold?.classList.remove('show');
     this.fingers.clear();
@@ -300,6 +358,22 @@ export class ReelGame {
       this.sound.fishNibble(null);
     } else if (r.stand !== 1 && this.wasStand === 1) this.standEl.classList.remove('show');
     this.wasStand = r.stand;
+    // натяжение лески: надпись у шкалы (класс taut) и — раз за натяжение, не чаще раза в 4 с — строка в чат
+    const taut = reelTaut(r);
+    if (taut && !this.wasTaut && performance.now() - this.tautChatAt > TAUT_CHAT_MS) {
+      this.tautChatAt = performance.now();
+      this.onWarn(TAUT_TEXT);
+    }
+    this.wasTaut = taut;
+    // водка: икнул — зону подбросило (модель), на экране «ик!» и «чпок»
+    if (r.hic !== this.lastHic) {
+      this.lastHic = r.hic;
+      this.hicMs = HIC_SHOW_MS;
+      this.hicEl.classList.remove('show');
+      void this.hicEl.offsetWidth;
+      this.hicEl.classList.add('show');
+      this.sound.pop(null);
+    }
   }
 
   /** Удар зоны о край на этом тике (Reel.hit): запоминаем самый сильный за кадр — рисует render(). */
@@ -330,6 +404,48 @@ export class ReelGame {
     this.root.classList.toggle('dart', this.wasDart);
     this.root.classList.toggle('low', v.p < 0.15);
     this.root.classList.toggle('slack', r.done === 0 && reelSlack(r));
+    this.root.classList.toggle('taut', r.done === 0 && reelTaut(r));
+    if (r.err !== this.shownErr) this.showErrors(r.err);
+    if (r.drunk) this.drunkFx(r, dtMs);
+  }
+
+  /** Живой счёт: «2 ошибки · Сойдёт ×1,25»; новая ошибка — плашка вздрагивает красным */
+  private showErrors(err: number): void {
+    const g = reelGrade(err);
+    const e = this.gradeEl;
+    e.className = `fr-grade ${gradeClass(g)}`;
+    e.replaceChildren(el('span', '', errorsText(err)), el('b', '', `${gradeName(g)} ${gradeMul(g)}`));
+    if (this.shownErr >= 0 && err > this.shownErr) {
+      void e.offsetWidth;
+      e.classList.add('bump');
+    }
+    this.shownErr = err;
+  }
+
+  /**
+   * Водка — только на экране (модель не трогает): колонка шкалы покачивается, рядом с рыбой — бледный двойник, шкала
+   * моргает — на 0,2–0,3 с пропадает раз в 3–6,5 с, «ик!» гаснет.
+   */
+  private drunkFx(r: Reel, dtMs: number): void {
+    const run = r.done === 0;
+    this.drunkMs += dtMs;
+    const s = this.drunkMs / 1000;
+    const sway = run && !REDUCED;
+    this.root.style.rotate = sway ? `${(2.4 * Math.sin(s * 2.1) + 0.9 * Math.sin(s * 3.7 + 1)).toFixed(2)}deg` : '';
+    this.root.style.translate = sway ? `${(7 * Math.sin(s * 1.3 + 0.5)).toFixed(1)}px 0` : '';
+    const dy = 4.5 * Math.sin(s * 1.7) + 1.5 * Math.sin(s * 4.3);
+    const dx = 9 * Math.sin(s * 1.1 + 2);
+    this.ghost.style.bottom = `${Math.min(100, Math.max(0, (r.f / REEL_BAR) * 100 + dy)).toFixed(2)}%`;
+    this.ghost.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), 50%) rotate(${(-r.fv / 25 + 8 * Math.sin(s * 2.6)).toFixed(1)}deg)`;
+    const now = this.lastNow;
+    if (!run) this.blinkEnd = 0;
+    else if (this.blinkEnd > 0 && now >= this.blinkEnd) {
+      this.blinkEnd = 0;
+      this.blinkAt = now + between(BLINK_GAP_MS);
+    } else if (this.blinkEnd === 0 && now >= this.blinkAt) this.blinkEnd = now + between(BLINK_MS);
+    this.root.classList.toggle('blink', this.blinkEnd > 0);
+    this.hicMs = Math.max(0, this.hicMs - dtMs);
+    if (this.hicMs === 0) this.hicEl.classList.remove('show');
   }
 
   /**
@@ -359,16 +475,25 @@ export class ReelGame {
     this.zone.classList.toggle('hit', this.flashMs > 0);
   }
 
-  /** Зона ровная и без блика: шкала началась заново или бой кончился (в итоге зона не стоит сплющенной) */
+  /** Зона ровная и без блика: шкала началась заново или бой кончился (в итоге зона не стоит сплющенной, шкала — ровно и не моргает) */
   private calm(): void {
     this.hitPower = 0;
     this.squash = 0;
     this.flashMs = 0;
     this.zone.style.transform = '';
     this.zone.classList.remove('hit');
+    this.blinkEnd = 0;
+    this.root.classList.remove('blink');
+    this.root.style.rotate = '';
+    this.root.style.translate = '';
   }
 }
 
 function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Случайное число в [lo, hi] */
+function between([lo, hi]: readonly [number, number]): number {
+  return lo + Math.random() * (hi - lo);
 }

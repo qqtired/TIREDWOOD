@@ -22,7 +22,7 @@ import {
 } from '../../shared/fishprogress.ts';
 import { spotZone } from '../../shared/fishplaces.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
-import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
+import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import {
   ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
   isCollected, reelStyleFor, rollCatch2, type Hooked,
@@ -311,7 +311,8 @@ export class FishingHall2 {
     if (!rule) return;
     const seed = Math.floor(this.rand() * 0x1_0000_0000) | 0;
     s.phase = FP_REEL;
-    s.reel = reelStart(reelStyleFor(s.sp, s.mods), seed);
+    // с водкой рыбак на шкале пьян (задержка зоны и икота) — как у клиента
+    s.reel = reelStart(reelStyleFor(s.sp, s.mods), seed, s.mods.drink === 4);
     s.toggles = [];
     s.k = 0;
     s.ack = 0;
@@ -361,7 +362,9 @@ export class FishingHall2 {
 
   /** Повтор дошёл до 100 %: рыба — в рюкзак и коллекцию, опыт, счётчики; сундук и бонус — жетонами; награды лестницы, объявление. */
   private land(s: Spot, spot: number, tick: number): void {
-    const perfect = s.reel?.perfect ?? false;
+    // оценка вываживания: сколько раз рыба выходила из зоны (повтор сервера — та же модель, что у клиента)
+    const errors = s.reel?.err ?? 0;
+    const grade = reelGrade(errors);
     s.phase = FP_HOLD;
     s.until = tick + HOLD2_TICKS;
     s.reel = null;
@@ -392,7 +395,7 @@ export class FishingHall2 {
       bagFull = !put;
       if (put) this.profiles.modeXp(prof, price);
       st.fsMaxGrams = Math.max(st.fsMaxGrams, s.g);
-      xp = fishCatchXp(s.sp, perfect, s.mods, this.wet());
+      xp = fishCatchXp(s.sp, grade, s.mods, this.wet());
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
       prof.fishing.questCaught = Math.min(questNeed(prof.fishing.questsDone), prof.fishing.questCaught + 1);
       countCatch(prof, s.g, this.now());
@@ -416,7 +419,7 @@ export class FishingHall2 {
     this.store.markDirty();
     this.host.send(s.slot, {
       t: 'fishLand', sp: s.sp, g: s.g, price, coins: s.coins, bonus, fresh: news.fresh, record: news.record, best, got, full,
-      ...(fish ? { base: basePrice(s.sp, s.g), m, xp, perfect, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
+      ...(fish ? { base: basePrice(s.sp, s.g), m, xp, gr: grade, er: errors, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
       ...(ladder?.items.length ? { rw: ladder.items } : {}),
       ...(lord ? { lord: true } : {}),
     });

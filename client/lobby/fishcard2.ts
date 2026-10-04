@@ -1,5 +1,5 @@
 // Карточка улова рыбалки 2.0 (выбирать нечего): картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
-// и из чего она (база · баркас · напиток), опыт («Идеально! ×2,4»), «Новый вид!» с бонусом или «Рекорд!», уникальный
+// и из чего она (база · баркас · напиток), опыт и оценка вываживания («+45 XP · Идеально ×2,5»), «Новый вид!» с бонусом или «Рекорд!», уникальный
 // вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
 // крышка отскакивает, сыплются монеты, сумма набегает; 200 — джекпот. Сама уходит через несколько секунд или
 // при следующем забросе.
@@ -13,6 +13,7 @@ import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
 import { mul, pct } from './fishfmt.ts';
+import { errorsText, gradeClass, gradeMul, gradeName } from './fishgrade.ts';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
 
@@ -90,7 +91,11 @@ export class CatchCard2 {
       else if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
       else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
       if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
-      if (m.xp) card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`)).classList.toggle('perfect', !!m.perfect);
+      if (m.xp) {
+        // оценка вываживания (сервер): «+45 XP · Идеально ×2,5», «+12 XP · Сойдёт ×1,25 · 3 ошибки»
+        const xp = card.appendChild(el('div', 'fe-xp', `+${m.xp} XP`));
+        if (m.gr !== undefined) xp.append(' · ', el('b', `fe-grade ${gradeClass(m.gr)}`, `${gradeName(m.gr)} ${gradeMul(m.gr)}`), m.er ? ` · ${errorsText(m.er)}` : '');
+      }
     } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
     if (!junk) {
       const col = card.appendChild(el('div', 'fc2-col'));

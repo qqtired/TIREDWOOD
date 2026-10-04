@@ -1,0 +1,119 @@
+/* Вываживание, 04.10 (вечер): оценка улова, натяжение лески и водка на шкале (client/lobby/fishgame.ts, fishgrade.ts).
+   Шкала и её подписи — fish2.css и fisheco.css; здесь только новое. Цвета — те, что уже есть у рыбалки. */
+
+/* ---------------------------------------------------------------- оценка: цвет */
+.frg0 { --grc: var(--gold); }
+.frg1 { --grc: #a9d6a0; }
+.frg2 { --grc: #bfe6ff; }
+.frg3 { --grc: var(--cream); }
+.frg4 { --grc: #ffb0a0; }
+
+/* живой счёт под полосой улова: «2 ошибки · Сойдёт ×1,25»; ошибка — плашка вздрагивает красным */
+.fr-grade {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: #e6dcb9;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: none;
+}
+.fr-grade[hidden] { display: none; }
+.fr-grade b { color: var(--grc); font-size: 14px; font-weight: 900; }
+.fr-grade.bump { animation: fr-grade-bump 0.45s ease-out; }
+@keyframes fr-grade-bump {
+  from {
+    transform: scale(1.22);
+    border-color: var(--jam-soft);
+    box-shadow: 0 0 14px rgba(255, 80, 80, 0.6);
+  }
+}
+
+/* итог на шкале: «Поймал! 🎣» и ниже оценка крупно её цветом — «Идеально · ×2,5 опыта» */
+.fr-res { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fr-res small { color: var(--grc); font-size: 20px; font-weight: 900; }
+.touch .fr-res small { font-size: 14px; }
+
+/* карточка улова: «+45 XP · Идеально ×2,5 · …» — оценка её цветом */
+.fe-xp .fe-grade { color: var(--grc); font-weight: 900; }
+
+/* ---------------------------------------------------------------- натяжение лески: зеркало «леска провисла» */
+.fe-taut {
+  display: none;
+  padding: 4px 10px;
+  border-radius: 9px;
+  background: rgba(120, 32, 26, 0.92);
+  color: #ffd1c4;
+  font: 800 14px/1.2 Rubik, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+}
+.fr-slot > .fe-taut {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max-content;
+  text-align: center;
+}
+.fr.taut .fe-taut { display: block; animation: fe-stand 0.45s ease-out 2; }
+.fr.taut .fr-slot > .fr-hint { opacity: 0; transition: none; }
+.fr.taut .fr-slot > .fe-stand { display: none; }
+/* зона прижата к верху и звенит: краснеет и мелко дрожит (дрожь — translate: transform зоны ставит fishgame.ts) */
+.fr.taut .fr-zone { filter: hue-rotate(-95deg) saturate(1.5); animation: fr-taut 0.1s linear infinite; }
+@keyframes fr-taut { 50% { translate: 0 1.5px; } }
+.touch .fr-slot > .fe-taut { position: static; translate: none; width: auto; max-width: 100%; }
+
+/* ---------------------------------------------------------------- водка: пьяный рыбак */
+/* в глазах двоится: бледный двойник рыбы чуть в стороне */
+.fr-ghost { display: none; opacity: 0.38; filter: blur(0.6px); }
+.fr.drunk .fr-ghost { display: block; }
+.fr.won .fr-ghost,
+.fr.lost .fr-ghost { display: none; }
+
+/* моргание: шкала и полоса улова на 0,2–0,3 с пропадают — «веки» сходятся к середине и расходятся */
+.fr-bar,
+.fr-prog { transition: opacity 0.09s ease-out, scale 0.09s ease-out; }
+.fr.blink .fr-bar,
+.fr.blink .fr-prog {
+  opacity: 0;
+  scale: 1 0.05;
+  transition-duration: 0.06s;
+  transition-timing-function: ease-in;
+}
+
+/* икота: «ик!» слева от шкалы — зону в этот миг подбрасывает */
+.fr-hic {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  translate: -100px 0;
+  display: none;
+  padding: 3px 9px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--cream);
+  color: #3b2a1e;
+  font: 900 17px/1.1 Rubik, system-ui, sans-serif;
+  text-shadow: none;
+  box-shadow: 0 4px 12px rgba(10, 5, 8, 0.4);
+  rotate: -12deg;
+}
+.fr-hic.show { display: block; animation: fr-hic 0.65s ease-out forwards; }
+@keyframes fr-hic {
+  0% { transform: scale(0.4); opacity: 0; }
+  18% { transform: scale(1.15); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateY(-14px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fr-grade.bump,
+  .fr.taut .fe-taut,
+  .fr.taut .fr-zone,
+  .fr-hic.show { animation: none; }
+}

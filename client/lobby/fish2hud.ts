@@ -74,6 +74,7 @@ export class Fish2Hud {
     this.ui = ui;
     this.reel = new ReelGame(parent, sound);
     this.reel.onSend = send;
+    this.reel.onWarn = (text) => ui.chat.note(text);
     this.card = new CatchCard2(parent, sound);
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);

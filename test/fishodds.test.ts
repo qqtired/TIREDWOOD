@@ -71,8 +71,8 @@ test('уровень: +2,5 % за уровень от базы — редкие,
   }
 });
 
-test('водка рыбацкая: 100 жетонов, 10 минут; эпические, легендарные и мифические ×2 (редкие и божественная — нет), зона вдвое меньше, рывки ×1,2, опыт за эпик…мифик ×2', () => {
-  assert.deepEqual([VODKA.price, VODKA.ms, VODKA.top, VODKA.topXp, VODKA.zone, VODKA.jerk, VODKA.income, VODKA.rare], [100, 600_000, 2, 2, 0.5, 1.2, 1, 1]);
+test('водка рыбацкая: 100 жетонов, 10 минут; эпические, легендарные и мифические ×2 (редкие и божественная — нет), зона −20 % (04.10, было −50 %), рывки ×1,2, опыт за эпик…мифик ×2', () => {
+  assert.deepEqual([VODKA.price, VODKA.ms, VODKA.top, VODKA.topXp, VODKA.zone, VODKA.jerk, VODKA.income, VODKA.rare], [100, 600_000, 2, 2, 0.8, 1.2, 1, 1]);
   const plain = at('pier', 4);
   const vodka = at('pier', 4, { vodkaUntil: 1e15 });
   assert.equal(vodka.drink, 4);
@@ -83,19 +83,19 @@ test('водка рыбацкая: 100 жетонов, 10 минут; эпиче
   for (const t of [T_EPIC, T_LEGEND, T_MYTH]) near(b[t] / a[t], 2, `категория ${t}`);
   near(b[T_DIVINE], a[T_DIVINE], 'божественная — без водки');
   for (const t of [T_EPIC, T_MYTH]) near(tierOddsParts(t, false, vodka).bonus, plain.rareMultiplier * 2, 'панель: ×2 в бонусах');
-  // шкала: зона ×0,5, рывки ×1,2 — у рыбы; хлам и сундук как были
+  // шкала: зона ×0,8, рывки ×1,2 — у рыбы; хлам и сундук как были
   for (const id of ['tuna', 'hamsa', 'kalmar']) {
     const s0 = reelStyleFor(sp(id), plain), s1 = reelStyleFor(sp(id), vodka);
-    near(s1.zone, s0.zone * 0.5, `${id}: зона`);
+    near(s1.zone, s0.zone * 0.8, `${id}: зона`);
     near(s1.dartSpd, s0.dartSpd * 1.2, `${id}: рывки`, 1e-6);
     near(s1.drain, s0.drain, `${id}: сопротивление то же`);
   }
   // опыт: эпические…мифические ×2, остальные — как были
   for (const id of ['bluefish', 'tuna', 'whiteshark']) {
-    const x0 = fishCatchXp(sp(id), false, plain), x1 = fishCatchXp(sp(id), false, vodka);
+    const x0 = fishCatchXp(sp(id), undefined, plain), x1 = fishCatchXp(sp(id), undefined, vodka);
     assert.ok(Math.abs(x1 - 2 * x0) <= 1, `${id}: ${x0} → ${x1}`);
   }
-  for (const id of ['hamsa', 'mullet', 'kalmar']) assert.equal(fishCatchXp(sp(id), false, vodka), fishCatchXp(sp(id), false, plain), id);
+  for (const id of ['hamsa', 'mullet', 'kalmar']) assert.equal(fishCatchXp(sp(id), undefined, vodka), fishCatchXp(sp(id), undefined, plain), id);
 });
 
 test('пиво подводного владыки работает: редкие, эпические, легендарные, мифические (и божественная) ×1,4 — в ясную погоду и в дождь; в сезон — до потолка; бросок сервера — так же', () => {
