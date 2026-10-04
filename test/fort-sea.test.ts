@@ -7,6 +7,7 @@ import * as F from '../shared/fort.ts';
 import { BOAT_LANE_X, HOP_EVERY } from '../shared/fortkinds.ts';
 import { BOAT_BOUNTY, bountyMul, killBounty } from '../shared/fortarsenal.ts';
 import { CLIMB_SEA_E, CLIMB_SEA_W, insideFort } from '../shared/fortmap.ts';
+import { boatCountFor, isSeaWaveFor } from '../shared/fortwaves.ts';
 import { FortGame } from '../server/fort/game.ts';
 import { planWave, type WavePlan } from '../server/fort/director.ts';
 import type { Zombie } from '../server/fort/horde.ts';
@@ -116,3 +117,13 @@ test('у берега нет мест в орде — экипаж ждёт в �
 function steps(game: FortGame, n: number): void {
   for (let i = 0; i < n; i++) game.step();
 }
+
+test('вчетвером море — четвёртая сторона сразу, с 1-й волны (владелец 04.10: «при 4 игроках — сразу с 4 сторон»); в одиночку на 1-й волне лодок нет', () => {
+  for (const w of [1, 2, 3, 4, 5]) {
+    assert.ok(isSeaWaveFor(w, 4), `вчетвером, волна ${w}`);
+    assert.ok(boatCountFor(w, 4) >= 2, `вчетвером лодок на одну больше (волна ${w})`);
+  }
+  assert.ok(!isSeaWaveFor(1, 1) && boatCountFor(1, 1) === 0, 'в одиночку на 1-й волне — без десанта');
+  // план настоящего директора: на 1-й волне вчетвером лодки правда есть
+  assert.ok(planWave(1, 4, 7).boats.length >= 2);
+});

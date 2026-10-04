@@ -58,12 +58,12 @@ export function boatCount(w: number): number {
 
 /**
  * Десант по числу защитников (04.10, владелец: «при 4 игроках — сразу с 4 сторон»). Один — как isSeaWave; двое-трое —
- * с 6-й каждая вторая; от четверых море — постоянная четвёртая сторона: лодки на каждой волне с 3-й и на одну больше.
+ * с 6-й каждая вторая; от четверых море — постоянная четвёртая сторона: лодки сразу, с 1-й волны, и на одну больше.
  * Лодки идут к причалам, экипаж лезет через морскую стену — та же проверенная дорога, что у обычного десанта.
  */
 export function isSeaWaveFor(w: number, humans: number): boolean {
   const n = defenders(humans);
-  if (n >= 4) return isSuperWave(w) || w >= 3;
+  if (n >= 4) return true;
   if (n >= 2) return isSuperWave(w) || (w >= 6 && w % 2 === 0) || isSeaWave(w);
   return isSeaWave(w);
 }
