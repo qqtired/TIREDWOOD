@@ -37,6 +37,8 @@ export type LobbyQuality = 'high' | 'medium' | 'low';
 
 /** Тёплый свет ламп накаливания */
 const LAMP = 0xffb46a;
+/** Ближняя плоскость камеры набережной, м (была 0,05): чем она дальше, тем точнее буфер глубины, тем реже борьба плоскостей издали */
+const NEAR_PLANE = 0.15;
 /** Точечные источники: павильон, ворота склада, терраса, ларёк (горят только на высоком качестве) */
 const POINT_LIGHTS: ReadonlyArray<readonly [number, number, number, number, number]> = [
   [-20, 3, -20, 30, 15],
@@ -180,7 +182,8 @@ function beamMaterial(): THREE.ShaderMaterial {
 export class LobbyWorld {
   readonly renderer: Renderer;
   readonly scene = new THREE.Scene();
-  readonly camera = new THREE.PerspectiveCamera(60, 16 / 9, 0.05, 1600);
+  /** Ближняя плоскость 0,15 м (камера не подходит к стене ближе CAM_PAD = 0,2 м): глубина точнее втрое, чем при 0,05, и накладки не моргают издали */
+  readonly camera = new THREE.PerspectiveCamera(60, 16 / 9, NEAR_PLANE, 1600);
   readonly map: LobbyMap = buildLobby();
   readonly collision: CollisionWorld;
   /** Середина передней грани автомата у пола; модель строится назад, по −z */

@@ -710,10 +710,16 @@ function buildBoard(b: Buckets): THREE.Mesh {
   b.decor.push(box(x - w / 2, top - h, POST_Z - 0.025, x + w / 2, top, POST_Z + 0.025, COL.lampBar));
   for (const s of [-1, 1]) b.metal.push(part(new THREE.CylinderGeometry(0.008, 0.008, 0.07, 6), COL.brass, x + s * (w / 2 - 0.25), top + 0.035, POST_Z));
   const tex = boardTexture();
+  // Надпись лежит на щите «поверх», а не в его плоскости: раньше она была в 1,2 мм от доски и издали (от 25 м) моргала
+  // (борьба глубины). Теперь зазор 1,5 см и сдвиг глубины к камере — не моргает ни вблизи, ни с другого конца площади.
+  const FACE_OFF = 0.04;
   const face = (z: number, ry: number): THREE.BufferGeometry => new THREE.PlaneGeometry(w - 0.1, h - 0.09).rotateY(ry).translate(x, yc, z);
   return new THREE.Mesh(
-    mergeGeometries([face(POST_Z + 0.0262, 0), face(POST_Z - 0.0262, Math.PI)], false)!,
-    new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.75 }),
+    mergeGeometries([face(POST_Z + FACE_OFF, 0), face(POST_Z - FACE_OFF, Math.PI)], false)!,
+    new THREE.MeshStandardMaterial({
+      map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.75,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+    }),
   );
 }
 

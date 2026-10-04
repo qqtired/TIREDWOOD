@@ -173,8 +173,8 @@ function hullShape(k: number, grow = 0): THREE.Shape {
   return s;
 }
 
-/** Катер в своих осях: нос в −z, борт в ±x, киль на 0,25 м над нулём. Верх палубы — ровно REGATTA_BOAT_SIZE.h. */
-function speedboat(m: Mesher, hull: number, accent: number): void {
+/** Катер в своих осях: нос в −z, борт в ±x, киль на 0,25 м над нулём. Верх палубы — ровно REGATTA_BOAT_SIZE.h. ball — шарик на флагштоке. */
+function speedboat(m: Mesher, hull: number, accent: number, ball = YELLOW): void {
   const slab = (k: number, y0: number, h: number, color: number, grow = 0): void => {
     const g = new THREE.ExtrudeGeometry(hullShape(k, grow), { depth: h, bevelEnabled: false, curveSegments: 6 });
     g.rotateX(-Math.PI / 2);
@@ -201,7 +201,7 @@ function speedboat(m: Mesher, hull: number, accent: number): void {
   // носовой кнехт и флагшток
   m.cyl(0.14, 0.14, 0.1, 0, 1.05, -1.75, IRON, 10);
   m.cyl(0.022, 0.03, POLE_H, 0, 1.0 + POLE_H / 2, -0.9, WHITE, 6);
-  m.ball(0.05, 0, 1.0 + POLE_H, -0.9, YELLOW, 6, 5);
+  m.ball(0.05, 0, 1.0 + POLE_H, -0.9, ball, 6, 5);
   // кранцы вдоль борта, обращённого к стенке (+x): белые шары на верёвках
   for (const z of [-0.2, 1.1]) {
     m.rod([0.9, 0.9, z], [1.0, 0.72, z], 0.012, WHITE, 4);
@@ -222,7 +222,7 @@ function buildRegatta(ctx: VenueCtx): { venue: Venue; bobs: Bob[] } {
   // две лодки у стенки на воде: носом на запад, к кругу сбора; номера на бортах; швартов к кнехту на кромке
   REGATTA_BOATS.forEach((b, i) => {
     const m = new Mesher();
-    speedboat(m, b.hull, b.accent);
+    speedboat(m, b.hull, b.accent, b.ball);
     const hull = detailMesh(m, ctx.wet, true);
     if (!hull) return;
     hull.matrixAutoUpdate = true;
@@ -233,7 +233,7 @@ function buildRegatta(ctx: VenueCtx): { venue: Venue; bobs: Bob[] } {
     sway.position.y = REGATTA_BOAT_SIZE.h;
     hull.position.y = -REGATTA_BOAT_SIZE.h;
     sway.add(hull);
-    const plate = paintTexture(256, 148, (c, W, H) => drawNumberPlate(c, W, H, b.num));
+    const plate = paintTexture(256, 148, (c, W, H) => drawNumberPlate(c, W, H, b.num, b.ink));
     for (const side of [1, -1]) {
       const p = wallPlate(plate, side * 0.945, 0.7 - REGATTA_BOAT_SIZE.h, 0.25, 0.62, 0.36, side * (Math.PI / 2), 0.1);
       sway.add(p);
