@@ -2162,6 +2162,11 @@ html:not(.touch)[data-room='lobby']:has(.lobby-storm-status:not([hidden])) .toas
   top: 152px;
 }
 
+/* пиратский набег: сверху панель набега (70…≈178 px), под ней баннер волны (190…≈280 px) — тосты ниже обоих */
+html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
+  top: 292px;
+}
+
 .toast {
   max-width: min(520px, 90vw);
   padding: 10px 18px;

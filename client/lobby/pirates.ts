@@ -268,7 +268,7 @@ export class Pirates3D {
     const cur = this.pickSnap(tick);
     this.updateShip(tick, dt);
     this.updateBoats(tick, dt, cur);
-    this.updateCannons(tick, dt);
+    this.updateCannons(tick, dt, cam.position);
     this.updateLoot(tick, dt);
     this.updatePirates(tick, dt, cur);
     this.updateMarks(tick);
@@ -434,7 +434,7 @@ export class Pirates3D {
 
   // ------------------------------------------------------------ пушки
 
-  private updateCannons(tick: number, dt: number): void {
+  private updateCannons(tick: number, dt: number, camPos: THREE.Vector3): void {
     const v = this.view;
     const out = tick >= v.t0 + P.PIRATE_GUNS_AT && v.phase !== 'idle';
     const retract = v.phase === 'end' ? clamp01((v.end - tick) / TICK_RATE) : 1;
@@ -478,7 +478,12 @@ export class Pirates3D {
       }
       const near = me ? Math.hypot(me.x - pos.x, me.z - pos.z) : 99;
       label.visible = showRing && near < 16 && this.nearCannon !== i;
-      if (label.visible) label.position.y = 2.3 + 0.08 * Math.sin(this.time * 2 + i);
+      if (label.visible) {
+        label.position.y = 2.3 + 0.08 * Math.sin(this.time * 2 + i);
+        // камера за спиной проходит вплотную к надписи — гаснет, а не закрывает пол-экрана огромным «ПУШКА»
+        const dc = camPos.distanceTo(label.position);
+        (label.material as THREE.SpriteMaterial).opacity = Math.min(1, Math.max(0, (dc - 2) / 3));
+      }
     }
   }
 
