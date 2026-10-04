@@ -327,7 +327,7 @@ export class SkillScene implements Scene {
       cam.position.set(this.photo[0], this.photo[1], this.photo[2]);
       cam.lookAt(this.photo[3], this.photo[4], this.photo[5]);
     }
-    this.world.update(this.viewTick, this.progress.checkpoint, dt);
+    this.world.update(this.viewTick, this.progress.checkpoint, dt, this.predictor.state);
     this.decor(now, dt);
     this.world.render();
   }
