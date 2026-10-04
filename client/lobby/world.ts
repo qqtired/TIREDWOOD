@@ -332,7 +332,8 @@ export class LobbyWorld {
     buildDeco(scene, [...this.map.deco, ...pilings], this.floaters);
     // Only the just-built local lamp bulbs: never the memorial or distant building windows.
     for (const o of scene.children.slice(beforeDeco)) if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshBasicMaterial) this.powered.push(o);
-    this.trampolines = new Trampolines(scene, this.map.trampolines);
+    // батуты на площади: красный, жёлтый и синий обод на зелёной резиновой подложке
+    this.trampolines = new Trampolines(scene, this.map.trampolines, { rims: [0xe5483b, 0xf2b330, 0x3f86c9], pads: [0x4a9466], wet: (m) => this.wettable(m) });
     this.boats = new Boats(scene, (m) => this.wettable(m));
     this.barkas = new Barkas(scene, (m) => this.wettable(m), this.wind);
     // фигура грузится фоном: когда появится, тени статики пересчитываются
@@ -663,7 +664,8 @@ export class LobbyWorld {
     this.solidBox(0.16, 4.3, 0.14, 16.92, 2.15, -15.93, steel);
     this.solidBox(0.16, 4.3, 0.14, 24.08, 2.15, -15.93, steel);
     this.solidBox(7.5, 0.55, 0.4, 20.5, 4.48, -15.8, 0x666c70);
-    this.sign(tex.kartSignTexture(), 6.2, 1.03, 20.5, 5.38, -15.95, 0, 0.35);
+    // при новом оформлении площади над гаражом — неоновая вывеска «КАРТИНГ» (client/lobby/plaza/north.ts), табличка не нужна
+    if (!PLAZA2) this.sign(tex.kartSignTexture(), 6.2, 1.03, 20.5, 5.38, -15.95, 0, 0.35);
     // боковая дверь и лампа над ней
     this.solidBox(1.0, 2.1, 0.06, 14.9, 1.05, -15.97, 0x2f4a3f);
     this.solidBox(0.08, 0.08, 0.08, 15.25, 1.0, -15.92, 0xb0a070);

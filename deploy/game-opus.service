@@ -34,6 +34,10 @@ Environment=LAB=1
 # Музыкальный автомат на площади и рулетка на баркасе (потолок выигрыша 25 000) — «да» владельца 2026-10-03
 Environment=JUKEBOX=1
 Environment=ROULETTE=1
+# Крысиные бега, бильярд у «Автоматов», гидроплан «Стриж» с баннером — «да» владельца 2026-10-04
+Environment=RATRACE=1
+Environment=BILLIARDS=1
+Environment=PLANE=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always

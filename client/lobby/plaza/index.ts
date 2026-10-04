@@ -38,6 +38,7 @@ export class PlazaDress {
   private readonly seen = new Set<PlazaMode>();
   private readonly touts: Listed[] = [];
   private fortText = '';
+  private skyText = '';
   private readonly refreshShadows: () => void;
 
   constructor(ctx: VenueCtx, ground: GroundQuery, refreshShadows: () => void) {
@@ -92,6 +93,13 @@ export class PlazaDress {
     if (line === this.fortText) return;
     this.fortText = line;
     this.north.fortPlate.set(line);
+  }
+
+  /** Строка статуса каланчи на облаке-вывеске «Выше облаков» (табличка на арке при этом оформлении не строится) */
+  setSkyLine(line: string, hot: boolean): void {
+    if (line === this.skyText) return;
+    this.skyText = line;
+    this.north.skyLine(line, hot);
   }
 
   /** Кадр: время мира, камера, своя желейка, статусы режимов, горит ли свет в сети. */

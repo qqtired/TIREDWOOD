@@ -114,7 +114,8 @@ try {
       canvas: !!canvas && canvas.width > 0 && canvas.height > 0,
       build: [...document.scripts].map((s) => s.src.split('/').pop()).filter(Boolean),
       coins: [...document.querySelectorAll('img.coin')].map((image) => image.complete && image.naturalWidth > 0),
-      flags: { fortress: !!lobby?.fortGate, fight: !!lobby?.fcDoor, fish2: !!lobby?.fish2?.on },
+      // крепость: прежняя арка или (новое оформление площади, client/lobby/plaza) пришедший статус крепости
+      flags: { fortress: !!(lobby?.fortGate || lobby?.fortSt), fight: !!lobby?.fcDoor, fish2: !!lobby?.fish2?.on },
     };
   })()`);
   const d = report.desktop;

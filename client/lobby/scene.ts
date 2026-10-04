@@ -71,7 +71,7 @@ import { BlackjackHud } from './blackjackhud.ts';
 import { BilliardsClient } from './billiards.ts';
 import { billiardsCover } from '../../shared/billiards.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
-import { SkillPortal } from '../skilltest/portal.ts';
+import { SkillPortal, skyStatusLine } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
 import { LobbyCritters } from './critters.ts';
 import { Mermaid3D } from './mermaid.ts';
@@ -509,7 +509,8 @@ export class LobbyScene implements Scene {
       pointerFree: () => !d.input.locked && !d.input.blocked,
       refreshShadows: () => d.renderer.refreshShadows(),
     });
-    this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z);
+    // при новом оформлении площади арка без таблички: заголовок и статус — на облаке-вывеске
+    this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z, !PLAZA2);
     this.skillPortal.setVisible(false);
     this.kraken = new Kraken(this.world.scene, { onScare: (p) => d.sound.krakenScare([p.x, p.y, p.z]) });
     this.photo = new PhotoBooth(this.hud.root, d.overlay);
@@ -652,6 +653,12 @@ export class LobbyScene implements Scene {
     return this.eventEligible && this.pirates3d.phase === 'raid';
   }
 
+
+  /** Статус каланчи: табличка на арке или (новое оформление площади) вторая строка облака-вывески. */
+  private skyStatus(s: SkillStatus): void {
+    this.skillPortal.status(s);
+    this.plaza?.setSkyLine(skyStatusLine(s), s.phase === 'pre');
+  }
 
   /** Режим за флагом включён сервером (пришёл его статус) или нет: оформление площади (если оно есть) и его твёрдые предметы. */
   private plazaMode(mode: PlazaMode, on: boolean): void {
@@ -833,7 +840,7 @@ export class LobbyScene implements Scene {
         this.skillPortal.setVisible(!!msg.skill);
         this.plazaMode('sky', !!msg.skill);
         for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, !!msg.skill);
-        if (msg.skill) this.skillPortal.status(msg.skill);
+        if (msg.skill) this.skyStatus(msg.skill);
         this.entryCircles.get('paintball')!.setVisible(true);
         this.entryCircles.get('paintball')!.status({ hint: 'Встань на 3 секунды · E — сразу' });
         this.rg.setMyId(msg.id);
@@ -981,7 +988,7 @@ export class LobbyScene implements Scene {
         break;
       case 'skillSt':
         this.skillStatus = msg;
-        this.skillPortal.status(msg);
+        this.skyStatus(msg);
         break;
       case 'rgQ': this.rg.onJson(msg); this.onGather('boatrace', msg.v); break;
       case 'rg': case 'rgTop': case 'rgFin': this.rg.onJson(msg); if (msg.t === 'rg') this.onGather('boatrace', this.boatRaceStatus); break;

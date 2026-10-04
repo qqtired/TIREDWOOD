@@ -231,7 +231,7 @@ export function drawWarning(ctx: Ctx, W: number, H: number, top: string, bottom:
 // ------------------------------------------------------------ «Выше облаков»
 
 /** Вывеска в форме облака: белые «клубы» с голубой тенью снизу, текст. Вне облака — прозрачно. */
-export function drawCloudSign(ctx: Ctx, W: number, H: number, title: string, sub: string): void {
+export function drawCloudSign(ctx: Ctx, W: number, H: number, title: string, sub: string, subColor = '#2f6fb8'): void {
   ctx.clearRect(0, 0, W, H);
   const puffs: Array<[number, number, number]> = [
     [0.13, 0.62, 0.2], [0.27, 0.42, 0.26], [0.45, 0.33, 0.3], [0.64, 0.4, 0.27], [0.8, 0.52, 0.22], [0.9, 0.66, 0.16],
@@ -258,7 +258,7 @@ export function drawCloudSign(ctx: Ctx, W: number, H: number, title: string, sub
   ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
   bigText(ctx, title, W / 2, H * 0.5, H * 0.36, W * 0.74, '#1f58a8', '#ffffff', H * 0.05, 900, 'rgba(60,110,170,0.25)');
-  ctx.fillStyle = '#2f6fb8';
+  ctx.fillStyle = subColor;
   fitFont(ctx, sub, H * 0.13, W * 0.6, 700);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

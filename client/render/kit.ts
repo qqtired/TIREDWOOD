@@ -329,17 +329,42 @@ export interface TrampolineVis {
   vel: number;
 }
 
+/** Вид батутов: обод своего цвета у каждого (по кругу) и резиновая подложка с каймой; по умолчанию — синий обод, без подложки. */
+export interface TrampolineLook {
+  rims?: readonly number[];
+  pads?: readonly number[];
+  /** Подложка мокнет в дождь */
+  wet?: (m: THREE.MeshStandardMaterial) => THREE.MeshStandardMaterial;
+}
+
 export class Trampolines {
   readonly list: TrampolineVis[] = [];
 
-  constructor(scene: THREE.Scene, trampolines: readonly Trampoline[]) {
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x3f86c9, roughness: 0.55 });
+  constructor(scene: THREE.Scene, trampolines: readonly Trampoline[], look: TrampolineLook = {}) {
+    const frameMats = (look.rims ?? [0x3f86c9]).map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.55 }));
     const legMat = new THREE.MeshStandardMaterial({ color: 0x40464d, roughness: 0.5, metalness: 0.5 });
     const matMat = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.35, metalness: 0.1 });
-    for (const t of trampolines) {
+    const flat = (color: number) => {
+      const m = new THREE.MeshStandardMaterial({ color, roughness: 0.92, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+      return look.wet ? look.wet(m) : m;
+    };
+    const padMats = (look.pads ?? []).map(flat);
+    const edgeMat = padMats.length ? flat(0xf1e6cf) : null;
+    for (const [i, t] of trampolines.entries()) {
       const g = new THREE.Group();
       g.position.set(t.x, 0, t.z);
-      const frame = new THREE.Mesh(new THREE.TorusGeometry(t.r - 0.05, 0.11, 10, 40), frameMat);
+      if (edgeMat) {
+        // резиновая подложка, как на детской площадке, с кремовой каймой — батут виден издалека
+        const pad = new THREE.Mesh(new THREE.CircleGeometry(t.r + 0.62, 48).rotateX(-Math.PI / 2), padMats[i % padMats.length]);
+        pad.position.y = 0.007;
+        pad.receiveShadow = true;
+        g.add(pad);
+        const edge = new THREE.Mesh(new THREE.RingGeometry(t.r + 0.62, t.r + 0.8, 48).rotateX(-Math.PI / 2), edgeMat);
+        edge.position.y = 0.007;
+        edge.receiveShadow = true;
+        g.add(edge);
+      }
+      const frame = new THREE.Mesh(new THREE.TorusGeometry(t.r - 0.05, 0.11, 10, 40), frameMats[i % frameMats.length]);
       frame.rotation.x = Math.PI / 2;
       frame.position.y = t.top;
       frame.castShadow = true;

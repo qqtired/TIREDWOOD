@@ -115,6 +115,11 @@ export const SKILL_PORTAL = { x: -10, z: -12.8, r: 2.1 } as const;
 export const LAMP_FORT = { x: 14.9, z: -11 } as const;
 export const BOAT_RACE_CIRCLE = { x: 16, z: 18, r: 2.25 } as const;
 export const HIDE_CIRCLE = { x: -4, z: 12.5, r: 2.1 } as const;
+/**
+ * Три батута треугольником вокруг розы ветров (0; 3,6): сторона 14,5 м — как было между двумя прежними батутами;
+ * треугольник повёрнут на 16°: угол не упирается в арку «Рыбного двора», а мяч из центра катится на запад свободно.
+ */
+export const PLAZA_TRAMPOLINES: ReadonlyArray<readonly [number, number]> = [[2.32, -4.47], [5.84, 9.64], [-8.15, 5.63]];
 export const CHAIR_R = 1.35;
 export const BENCH_XS = [-8, 0, 8];
 export const BENCH_Z = 19.5;
@@ -252,8 +257,7 @@ export function buildLobby(): LobbyMap {
   for (const [x, z] of CANOPY_POLES) b.box([x - 0.08, 0, z - 0.08], [x + 0.08, CANOPY_POLE_H, z + 0.08], 'invisible', 0);
 
   // --- Площадь: батуты, фонари, скамейки у моря
-  b.trampoline(-10.6, 9.4);
-  b.trampoline(8, 14);
+  for (const [x, z] of PLAZA_TRAMPOLINES) b.trampoline(x, z);
   for (const [x, z] of [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
   const benches = BENCH_XS.map((x) => ({ x, z: BENCH_Z, yaw: Math.PI }));
 

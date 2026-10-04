@@ -31,6 +31,8 @@ export interface NorthParts {
   fortPlate: LinePlate;
   sky: Venue;
   skyTower: Venue;
+  /** Вторая строка облака-вывески «Выше облаков» — живой статус каланчи (hot — идёт сбор забега) */
+  skyLine: (text: string, hot: boolean) => void;
 }
 
 // ------------------------------------------------------------ пейнтбол
@@ -218,17 +220,22 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
 
 // ------------------------------------------------------------ «Выше облаков»
 
-function buildSky(ctx: VenueCtx): { near: Venue; tower: Venue } {
+function buildSky(ctx: VenueCtx): { near: Venue; tower: Venue; line: (text: string, hot: boolean) => void } {
   const near = new Venue('sky', ctx, 31);
   const d = near.detail;
   const { x, z } = SKILL_PORTAL;
-  // облако-вывеска над порталом, видно с обеих сторон
+  // облако-вывеска над порталом, видно с обеих сторон; вторая строка — живой статус каланчи (табличка на арке не нужна)
   const cloudTex = paintTexture(1100, 420, (c, W, H) => drawCloudSign(c, W, H, 'ВЫШЕ ОБЛАКОВ', 'небесная каланча · до 5 человек'));
+  const line = (text: string, hot: boolean) => {
+    const canvas = cloudTex.image as HTMLCanvasElement;
+    drawCloudSign(canvas.getContext('2d')!, canvas.width, canvas.height, 'ВЫШЕ ОБЛАКОВ', text, hot ? '#e8590c' : undefined);
+    cloudTex.needsUpdate = true;
+  };
   near.group.add(wallPlate(cloudTex, x, 5.55, z + 0.1, 5.5, 2.1, 0, 0.5));
   const back = wallPlate(cloudTex, x, 5.55, z - 0.1, 5.5, 2.1, Math.PI, 0.5);
   near.group.add(back);
   for (const sx of [-1, 1]) d.cyl(0.04, 0.04, 2.3, x + sx * 1.3, 4.5, z, 0xf4f8fb, 8);
-  // клубы по нижним краям облака-вывески (не на табличке портала: на ней живая строка «сбор забега — старт через N с»)
+  // клубы по нижним краям облака-вывески
   for (const sx of [-1, 1]) cloud(near.flat, x + sx * 3.0, 4.7, z, 0.45, 1.1);
   // облачный порог на плитке
   const pad = paintTexture(920, 680, drawCloudPad, false, PAD_SCALE);
@@ -270,7 +277,7 @@ function buildSky(ctx: VenueCtx): { near: Venue; tower: Venue } {
   cloud(tower.flat, TX + 2.8, 18.4, TZ + 1.8, 1.1);
   cloud(tower.flat, TX - 0.6, 23.4, TZ + 0.2, 1.0);
   tower.finish(false);
-  return { near: near.finish(false), tower };
+  return { near: near.finish(false), tower, line };
 }
 
 export function buildNorth(ctx: VenueCtx): NorthParts {
@@ -278,5 +285,5 @@ export function buildNorth(ctx: VenueCtx): NorthParts {
   const kart = buildKarting(ctx);
   const f = buildFort(ctx);
   const s = buildSky(ctx);
-  return { paint, kart, fort: f.near, fortKeep: f.keep, fortPlate: f.plate, sky: s.near, skyTower: s.tower };
+  return { paint, kart, fort: f.near, fortKeep: f.keep, fortPlate: f.plate, sky: s.near, skyTower: s.tower, skyLine: s.line };
 }
