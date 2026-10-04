@@ -25,7 +25,7 @@ Strictly: no text, no letters, no numbers, no words, no signs with writing, no l
 | Набережная (возврат; в бухте — регата) | `lobby.webp`, 61.0 КБ | `lobby-jelly.webp`, 14.7 КБ |
 | Пейнтбол | `paintball.webp`, 56.5 КБ | `paintball-jelly.webp`, 17.1 КБ |
 | Картинг | `race.webp`, 58.6 КБ | `race-jelly.webp`, 18.9 КБ |
-| Крепость | `fort.webp`, 61.8 КБ | `fort-jelly.webp`, 19.8 КБ |
+| Крепость | `fort.webp`, 62.9 КБ | `fort-jelly.webp`, 19.8 КБ |
 | Fight Club | `fight.webp`, 59.2 КБ | `fight-jelly.webp`, 14.8 КБ |
 | «Выше облаков» | `skill.webp`, 56.8 КБ | `skill-jelly.webp`, 14.7 КБ |
 | Прятки «Рыбный двор» | `hide.webp`, 60.9 КБ | `hide-jelly.webp`, 17.9 КБ |
@@ -39,6 +39,7 @@ Strictly: no text, no letters, no numbers, no words, no signs with writing, no l
 **race.webp** — Scene: a go-kart race on a sunny seaside go-kart track inside an old harbor. A winding asphalt track with red-and-white striped curbs, colorful stacks of old tires as barriers, a checkered start gantry with colorful bunting flags, a couple of red harbor cranes and stacked shipping containers in the background, the turquoise sea and a small lighthouse on the horizon. A small grandstand full of cheering jelly spectators waving. In the center, three jelly characters in round racing helmets drive small colorful go-karts drifting around a curve toward the viewer, little dust puffs and tire smoke behind them, motion and fun.
 
 **fort.webp** — Scene: a cozy cartoon stone castle (a small fortress) on a grassy seaside hill on a bright summer day, with colorful banners, bunting and a big wooden gate. Jelly defenders stand on the battlements with toy crossbows and paint markers, cheering; a large glowing green crystal stands on a pedestal in the castle courtyard; a goofy crowd of cute cartoon zombies (green-gray, silly, round, clumsy, slow, not scary at all) shambles up the dirt road toward the gate. The blue sea and the little town are in the distance.
+Затем флаги и знамёна перекрашены из сине-жёлтых в красно-белые правкой этой же картинки через Codex image_gen («repaint all blue-and-yellow flags and banners into red and white, keep everything else the same»), WebP 0,30.
 
 **fight.webp** — Scene (indoors, so the sky is visible only through a small high window): an underground fight club in a cozy brick basement under a seaside house. A small boxing ring with red ropes and a worn canvas floor in the center, warm hanging lamps casting round pools of golden light, sun rays slanting in through the small high window, old posters without any writing, a crowd of jelly spectators around the ring cheering and waving. Two jelly boxers in big red boxing gloves face each other in the ring in a fighting stance, one wears a white headband. Warm, playful and sporty, not grim, not dark, no blood.
 
