@@ -27,6 +27,7 @@ import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
+import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
@@ -181,6 +182,7 @@ export type ClientMsg =
   | VoiceClientMsg
   | HideClientMsg
   | RegattaClientMsg
+  | PlaneClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
    *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
   | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
@@ -425,6 +427,7 @@ export type ServerMsg =
   | VoiceServerMsg
   | SkillServerMsg
   | RegattaServerMsg
+  | PlaneServerMsg
   | HideServerMsg
   | ({ t: 'skillSt' } & SkillStatus)
   | { t: 'hideSt'; v: GatherStatus | HideStatus }
@@ -475,6 +478,8 @@ export type ServerMsg =
     roulette?: RouletteView;
     /** Крысиные бега на понтоне (флаг сервера RATRACE, shared/ratrace.ts) */
     ratrace?: RatRaceView;
+    /** Гидроплан «Стриж» (флаг сервера PLANE, shared/plane.ts) */
+    plane?: PlaneView;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)

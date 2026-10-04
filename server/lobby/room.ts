@@ -23,7 +23,7 @@ import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, jukeUseDist, songPrice } from '../../shared/jukebox.ts';
 import { RAT_CENTER, RAT_CHEER_MS, RAT_CHEER_R, isRatIndex } from '../../shared/ratrace.ts';
 import {
-  ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
+  ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
   ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
   holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
@@ -66,6 +66,8 @@ import { FishSeason, mskClock } from './fishseason.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
 import { RatTrack } from './ratrace.ts';
 import { Jukebox } from './jukebox.ts';
+import { PlaneHall } from './plane.ts';
+import { PLANE_EXIT } from '../../shared/plane.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
 import { WheelRide } from './wheel.ts';
@@ -203,8 +205,10 @@ export class LobbyRoom implements Room {
   private readonly fish: FishingHall | FishingHall2;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
   readonly juke: Jukebox | null;
+  /** Гидроплан «Стриж» (флаг сервера PLANE): null — его нет */
+  readonly plane: PlaneHall | null;
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean } = {}) {
     this.hub = hub;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
@@ -440,6 +444,56 @@ export class LobbyRoom implements Room {
         this.honorDirty = true;
       },
     }, hub.profiles) : null;
+    this.plane = eventOptions.plane ? this.makePlane() : null;
+    if (!this.plane) for (const box of this.map.planeBoxes) this.world.setEnabled(box, false);
+  }
+
+  /** Гидроплан: посадка, высадка, жетоны — через комнату (server/lobby/plane.ts) */
+  private makePlane(): PlaneHall {
+    const hub = this.hub;
+    return new PlaneHall({
+      tick: () => this.tick,
+      players: () => this.players.values(),
+      can: (p) => !!p.client.profile && !p.client.ephemeral,
+      balance: (p) => p.client.profile?.tokens ?? 0,
+      pay: (p, n) => {
+        const prof = p.client.profile;
+        if (!prof || !hub.profiles.spend(prof, n)) return false;
+        hub.tokens(p.client, prof.tokens);
+        this.honorDirty = true;
+        return true;
+      },
+      board: (p) => {
+        this.release(p);
+        p.action = ACT_PLANE;
+        p.arg = 0;
+        p.actionUntil = 0;
+        p.selfReset = true;
+      },
+      unboard: (p) => {
+        if (p.action === ACT_PLANE) {
+          p.action = ACT_NONE;
+          p.arg = 0;
+        }
+        p.heldYaw = PLANE_EXIT.yaw;
+        this.teleport(p, PLANE_EXIT.x, 0, PLANE_EXIT.z);
+      },
+      follow: (p, s) => {
+        // в пределах снимка (±128 м): желейку пилота клиенты рисуют в кабине, а не здесь
+        const st = p.state;
+        st.x = Math.max(-126, Math.min(126, s.x));
+        st.y = Math.max(0, Math.min(120, s.y));
+        st.z = Math.max(-126, Math.min(126, s.z));
+        st.vx = st.vy = st.vz = 0;
+        p.heldYaw = s.yaw;
+      },
+      outfit: (p) => (p.client.profile ? hub.outfitOf(p.client.profile) : { ...DEFAULT_OUTFIT }),
+      level: (p) => p.client.profile?.level ?? 1,
+      send: (p, msg) => p.client.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      toast: (p, text) => hub.toast(p.client, text),
+      announce: (text) => hub.announce(text),
+    });
   }
 
   private npcWho(p: LobbyPlayer): NpcWho | null {
@@ -503,6 +557,7 @@ export class LobbyRoom implements Room {
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
+      ...(this.plane ? { plane: this.plane.view() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
@@ -533,6 +588,7 @@ export class LobbyRoom implements Room {
     const p = this.byClient.get(c);
     if (!p) return;
     this.release(p, true);
+    this.plane?.drop(p);
     this.aqua.drop(p.slot);
     this.circle.delete(p);
     this.boatQueue?.drop(p);
@@ -577,6 +633,7 @@ export class LobbyRoom implements Room {
       if (this.regatta) this.broadcast({ t: 'rgTop', top: this.hub.regattaTop() });
     }
     this.regatta?.refresh(this.byClient.get(c)!);
+    this.plane?.refresh(this.byClient.get(c)!);
   }
 
   /** Наряд, который видят все, поменялся (колпак дурака надели или сняли). */
@@ -584,6 +641,7 @@ export class LobbyRoom implements Room {
     const p = this.byClient.get(c);
     if (p && c.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: p.slot, o: this.hub.outfitOf(c.profile), level: c.profile.level });
     if (p) this.regatta?.refresh(p);
+    if (p) this.plane?.refresh(p);
   }
 
   // ------------------------------------------------------------ сообщения
@@ -591,7 +649,7 @@ export class LobbyRoom implements Room {
   onInputs(c: Client, inputs: Input[], count: number): void {
     const p = this.byClient.get(c);
     // на полосе аквапарка и в регате очередь длиннее: после лаг-спайка сервер проходит все шаги игрока, а не последние
-    if (p) p.inq.push(inputs, count, p.action === ACT_REGATTA || aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
+    if (p) p.inq.push(inputs, count, p.action === ACT_REGATTA || p.action === ACT_PLANE || aquaFall(p.state.x) ? AQUA_QUEUE : undefined);
   }
 
   onMessage(c: Client, msg: ClientMsg): void {
@@ -691,6 +749,9 @@ export class LobbyRoom implements Room {
       }
       case 'rg':
         if (msg.a === 'quit') this.regatta?.quit(p);
+        return;
+      case 'plane':
+        if (this.hub.limits.hit(`plane:${p.client.id}`, 4, 2000)) this.plane?.message(p, msg);
         return;
       case 'reel':
         // шкала вываживания: свой лимит (клиент шлёт до 20 в секунду, после замирания связи — пачкой)
@@ -879,6 +940,10 @@ export class LobbyRoom implements Room {
         this.hold(p, ACT_BILLIARDS, { ...it, x: spot.x, z: spot.z, yaw: spot.yaw, arg: it.arg * 2 + side });
         return;
       }
+      case 'plane':
+        // гидроплан выключен флагом — точки как бы нет
+        this.plane?.use(p);
+        return;
     }
   }
 
@@ -1351,6 +1416,7 @@ export class LobbyRoom implements Room {
   private release(p: LobbyPlayer, force = false): void {
     if (!isHeld(p.action) || (isRiding(p.action) && !force)) return;
     if (p.action === ACT_REGATTA) this.regatta?.drop(p, 'left');
+    else if (p.action === ACT_PLANE) this.plane?.drop(p);
     else if (isAboard(p.action)) {
       this.boat.leave(p.slot);
       this.boatChanged();
@@ -1403,6 +1469,7 @@ export class LobbyRoom implements Room {
       }
     }
     this.regatta?.step();
+    this.plane?.step();
     this.checkPairs();
     // музыкальный автомат: песня доиграла — следующая (раз в треть секунды; время — по часам, не по тикам)
     if (this.juke && this.tick % 10 === 0 && this.juke.step(this.now())) this.broadcastJuke();
@@ -1628,6 +1695,15 @@ export class LobbyRoom implements Room {
   }
 
   private processPlayer(p: LobbyPlayer): void {
+    // пилоту гидроплана входы — самолёту (server/lobby/plane.ts)
+    if (p.action === ACT_PLANE) {
+      if (this.plane?.isPilot(p)) this.plane.consume(p);
+      else {
+        p.action = ACT_NONE;
+        p.arg = 0;
+      }
+      return;
+    }
     // в катере регаты входы — катеру (server/lobby/regatta.ts)
     if (p.action === ACT_REGATTA) {
       if (this.regatta?.has(p)) this.regatta.consume(p);
