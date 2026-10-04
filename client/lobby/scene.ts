@@ -71,6 +71,8 @@ import { BlackjackTable3D } from './blackjack3d.ts';
 import { SkillPortal } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
 import { LobbyCritters } from './critters.ts';
+import { Mermaid3D } from './mermaid.ts';
+import { lobbyMermaidLayout } from '../../shared/mermaid.ts';
 import { Storm3D } from './storm.ts';
 import { Pirates3D } from './pirates.ts';
 import { StartCircle } from './startcircles.ts';
@@ -198,6 +200,8 @@ export class LobbyScene implements Scene {
   private readonly kraken: Kraken;
   private skillStatus: SkillStatus | null = null;
   private readonly critters: LobbyCritters;
+  /** Русалка у мостков: раз в ~5 минут выныривает у мест рыбалки (shared/mermaid.ts); отладка — __opus.mermaid() */
+  readonly mermaid: Mermaid3D;
   private readonly storm3d: Storm3D;
   private readonly pirates3d: Pirates3D;
   private stormState = emptyStorm();
@@ -404,6 +408,10 @@ export class LobbyScene implements Scene {
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
       onWoof: (x, y, z) => d.sound.woof([x, y, z]),
       collision: col,
+    });
+    this.mermaid = new Mermaid3D(this.world.scene, {
+      layout: lobbyMermaidLayout(this.world.map.boxes), effects: this.effects,
+      onSplash: (x, y, z, dive) => d.sound.mermaidSplash([x, y, z], dive),
     });
     this.storm3d = new Storm3D(this.world.scene, this.hud.root, {
       climate: (force, lamps) => this.world.setStormClimate(force, lamps),
@@ -1989,6 +1997,7 @@ export class LobbyScene implements Scene {
     this.critterOthers.length = 0;
     for (const [id, r] of this.remotes) if (r.pose.valid) this.critterOthers.push({ id, x: r.pose.x, y: r.pose.y, z: r.pose.z });
     this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters, this.critterOthers);
+    this.mermaid.update(this.clock.ready ? this.clock.renderTick : -1, dt, this.time, this.world.camera);
     this.storm3d.update(this.clock.renderTick, dt, this.pose, this.eventEligible, lobbyQuality(this.d.settings.quality) === 'low');
     this.defenders.length = 0;
     for (const [id, r] of this.remotes) if (r.pose.valid) this.defenders.push({ id, ...r.pose, eligible: !isHeld(r.avatar.action) });
@@ -2642,7 +2651,7 @@ export class LobbyScene implements Scene {
       storm: this.stormState, pirates: { ...this.pirateState, visible: this.pirateTail.visible, actors: this.pirateTail.pirates.length }, critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
-      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
+      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(), mermaid: this.mermaid.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },
     };
