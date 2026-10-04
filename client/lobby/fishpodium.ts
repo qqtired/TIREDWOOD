@@ -78,7 +78,8 @@ export class FishPodium3D {
     for (const step of FISH_PODIUM_STEPS) {
       const {x,h,rank}=step;
       parts.push(place(paint(new THREE.BoxGeometry(FISH_PODIUM_STEP_WIDTH,h-FISH_PODIUM.h,1.28),rank===0 ? 0x8b7957 : 0x6e7767),x,(h+FISH_PODIUM.h)/2,0));
-      parts.push(place(paint(new THREE.BoxGeometry(.96,.035,1.26),0xa7a08a),x,h-.018,0));
+      // Светлая плита-накладка лежала целиком внутри ступени, верх на 0,5 мм ниже её верха: вблизи её не видно, а издали (от ~30 м)
+      // она пробивалась пятнами сквозь верх ступени (борьба глубины). Скрытую деталь убрали — вид вблизи не изменился.
       parts.push(place(paint(new THREE.BoxGeometry(.9,.035,.028),COLORS[rank]),x,h-.04,-.65));
       const canvas=document.createElement('canvas'); canvas.width=PANEL_PX_W;canvas.height=PANEL_PX_H;
       const ctx=canvas.getContext('2d')!;
@@ -89,8 +90,9 @@ export class FishPodium3D {
       // Slim stems are fixed to the base; front faces remain inside the original 1.4 m depth.
       for(const dx of [-.32,.32]) labels.add(holderBox(.025,labelTop(h)-FISH_PODIUM.h,.025,x+dx,(labelTop(h)+FISH_PODIUM.h)/2,-.652));
       labels.add(holderBox(PANEL_WIDTH+.025,PANEL_HEIGHT+.025,.022,x,panelY,-.665));
-      const panel=new THREE.Mesh(new THREE.PlaneGeometry(PANEL_WIDTH,PANEL_HEIGHT),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));
-      panel.name='podium-catch-label';panel.position.set(x,panelY,-.678);panel.rotation.y=Math.PI;
+      // Таблички — на 7 мм перед держателем (было 2 мм) и со сдвигом глубины к камере: иначе издали текст моргал с задником
+      const panel=new THREE.Mesh(new THREE.PlaneGeometry(PANEL_WIDTH,PANEL_HEIGHT),new THREE.MeshBasicMaterial({map:tex,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
+      panel.name='podium-catch-label';panel.position.set(x,panelY,-.683);panel.rotation.y=Math.PI;
       labels.add(panel);
       const rankCanvas=document.createElement('canvas');rankCanvas.width=640;rankCanvas.height=110;
       const rankContext=rankCanvas.getContext('2d')!;
@@ -100,8 +102,8 @@ export class FishPodium3D {
       const rankTexture=new THREE.CanvasTexture(rankCanvas);rankTexture.colorSpace=THREE.SRGBColorSpace;rankTexture.anisotropy=4;
       const rankY=bottom+PANEL_HEIGHT+RANK_GAP+RANK_HEIGHT/2;
       labels.add(holderBox(PANEL_WIDTH+.025,RANK_HEIGHT+.018,.022,x,rankY,-.665));
-      const rankPanel=new THREE.Mesh(new THREE.PlaneGeometry(PANEL_WIDTH,RANK_HEIGHT),new THREE.MeshBasicMaterial({map:rankTexture,toneMapped:false}));
-      rankPanel.name='podium-rank-label';rankPanel.position.set(x,rankY,-.678);rankPanel.rotation.y=Math.PI;
+      const rankPanel=new THREE.Mesh(new THREE.PlaneGeometry(PANEL_WIDTH,RANK_HEIGHT),new THREE.MeshBasicMaterial({map:rankTexture,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
+      rankPanel.name='podium-rank-label';rankPanel.position.set(x,rankY,-.683);rankPanel.rotation.y=Math.PI;
       labels.add(rankPanel);this.group.add(labels);
     }
     // The title belongs to a real rear rail with two uprights, never a floating caption.
@@ -121,8 +123,8 @@ export class FishPodium3D {
     c.fillText('КРУПНЕЙШИЕ РЫБЫ СЕГОДНЯ',768,43);
     c.font='25px Rubik,system-ui,sans-serif';c.fillText('5 уловов · новый день по Москве — новый подиум',768,96);
     const texture=new THREE.CanvasTexture(title);texture.colorSpace=THREE.SRGBColorSpace;
-    const label=new THREE.Mesh(new THREE.PlaneGeometry(5.06,.265),new THREE.MeshStandardMaterial({map:texture,roughness:.9}));
-    label.position.set(0,0,.579);label.rotation.y=Math.PI;this.titleRail.add(label);
+    const label=new THREE.Mesh(new THREE.PlaneGeometry(5.06,.265),new THREE.MeshStandardMaterial({map:texture,roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
+    label.position.set(0,0,.574);label.rotation.y=Math.PI;this.titleRail.add(label);
     this.group.visible=false;scene.add(this.group);this.set([]);
   }
 
