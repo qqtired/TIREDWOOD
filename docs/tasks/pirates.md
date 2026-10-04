@@ -1,3 +1,5 @@
+> **Набег переделан 04.10.2026 (ветка `feat/pirates2`, см. [pirates-2026-10-04.md](../pirates-2026-10-04.md)); ниже — первая версия.**
+>
 > **Статус: сделано Codex 02–03.10.2026 и выложено (релиз `20261003-122419`)** — пираты: `shared/pirates.ts`, `shared/piratenet.ts`, `server/lobby/pirates.ts`, `client/lobby/pirates.ts`, флаг `PIRATES`. Отчёты — `docs/expansion-2026-10-03/`. Дальнейшие улучшения — в `docs/STATUS.md`. Ниже — исходное задание.
 
 # Задание: «Пираты» — набег на набережную

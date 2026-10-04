@@ -2,8 +2,9 @@
 // у автомата — неподвижно на барабаны, за столом дурака — из-за спины сверху на стол, в примерочной — спереди,
 // как из зеркала. Между режимами — плавный переход.
 import * as THREE from 'three';
-import { PIVOT_Y, RIG_LOBBY, cameraRig } from '../../shared/aim.ts';
+import { PIVOT_Y, RIG_LOBBY, cameraRig, type RigParams } from '../../shared/aim.ts';
 import { clamp, damp } from '../../shared/math.ts';
+import { PIRATE_SHOULDER } from '../../shared/pirates.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import { narrowFov } from '../render/renderer.ts';
 
@@ -24,6 +25,8 @@ const MIRROR_EYE = 1.2;
 const MIRROR_LOOK = 0.72;
 const MIRROR_SHIFT = 0.72;
 
+/** Камера над правым плечом в набеге пиратов: прицел в центре экрана, желейка левее (shared/pirates.ts aimOrigin считает тот же луч) */
+const RIG_SHOULDER: RigParams = { ...RIG_LOBBY, side: PIRATE_SHOULDER };
 const _e = new THREE.Euler(0, 0, 0, 'YXZ');
 const _m = new THREE.Matrix4();
 const _up = new THREE.Vector3(0, 1, 0);
@@ -34,6 +37,8 @@ export class LobbyCamera {
   private zoomTo = RIG_LOBBY.back;
   /** Сколько от опоры до камеры сейчас: к стене подъезжаем сразу, обратно — плавно */
   private dist = -1;
+  /** Насколько камера сдвинута на плечо: 0 — по центру, 1 — набег (плавно) */
+  private shoulder = 0;
   private mode: CamMode | null = null;
   private blend = 1;
   /** Переход — из катера регаты (тоже пролётом 0,6 с) */
@@ -56,10 +61,12 @@ export class LobbyCamera {
   }
 
   /** За спиной (walk) или облёт сидящего (sit): опора над ногами, взгляд — куда смотрит мышь. */
-  follow(cam: THREE.PerspectiveCamera, dt: number, mode: 'walk' | 'sit', x: number, y: number, z: number, yaw: number, pitch: number, world: CollisionWorld, fov: number): void {
+  follow(cam: THREE.PerspectiveCamera, dt: number, mode: 'walk' | 'sit', x: number, y: number, z: number, yaw: number, pitch: number, world: CollisionWorld, fov: number, shoulder = 0): void {
     if (mode !== this.mode) this.dist = -1;
     this.zoom = damp(this.zoom, this.zoomTo, 12, dt);
-    const d = cameraRig(x, y, z, yaw, pitch, RIG_LOBBY, 0, world, this.pos, this.zoom);
+    this.shoulder = damp(this.shoulder, shoulder, 5, dt);
+    if (Math.abs(this.shoulder - shoulder) < 0.002) this.shoulder = shoulder;
+    const d = cameraRig(x, y, z, yaw, pitch, RIG_SHOULDER, this.shoulder, world, this.pos, this.zoom);
     if (this.dist < 0 || d < this.dist) this.dist = d;
     else this.dist = damp(this.dist, d, 5, dt);
     if (d > 1e-6 && this.dist < d) {

@@ -20,7 +20,7 @@ import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
 import type { RainWire } from './weather.ts';
-import type { PirateView } from './pirates.ts';
+import type { PirateFxMsg, PirateSnapMsg, PirateView } from './pirates.ts';
 import type { GatherStatus } from './startzones.ts';
 import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
@@ -431,6 +431,8 @@ export type ServerMsg =
   | { t: 'startZone'; kind: 'paintball' | 'fort' | null; left: number }
   | { t: 'storm'; v: StormView }
   | { t: 'pirates'; v: PirateView }
+  | PirateSnapMsg
+  | PirateFxMsg
   // --- вход и профиль
   | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; build: string }
   | ({ t: 'levelUp'; pid: number } & LevelUp)

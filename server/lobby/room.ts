@@ -37,8 +37,6 @@ import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSna
 import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { inStartCircle, START_DWELL_TICKS, START_ZONES, type StartZoneKind } from '../../shared/startzones.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
-import { pirateInput, piratePush } from '../../shared/pirates.ts';
-import { pirateTailSize, writePirateTail } from '../../shared/piratenet.ts';
 import {
   BTN_DASH, BTN_FIRE, BTN_JUMP, BTN_RELOAD, BTN_USE, makeEvents, makeInput, makeState, type Input, type PlayerState, type StepEvents,
 } from '../../shared/sim.ts';
@@ -277,7 +275,7 @@ export class LobbyRoom implements Room {
       },
     };
     this.storm = eventOptions.storm ? new Storm({ ...eventHost, broadcast: v => this.broadcast({ t: 'storm', v }) }) : null;
-    this.pirates = eventOptions.pirates ? new Pirates({ ...eventHost, broadcast: v => this.broadcast({ t: 'pirates', v }) }, this.map, this.world) : null;
+    this.pirates = eventOptions.pirates ? new Pirates({ ...eventHost, view: v => this.broadcast({ t: 'pirates', v }), snap: m => this.broadcast(m), fx: m => this.broadcast(m) }, this.map, this.world) : null;
     this.director = new LobbyEvents({ storm: this.storm, pirates: this.pirates, now: this.now, humans: () => this.humans,
       rain: () => this.weather.rain, meta: hub.store.state.lobbyEvents, devStorm: eventOptions.devStorm, devPirates: eventOptions.devPirates,
       save: meta => { hub.store.state.lobbyEvents = meta; hub.store.markDirty(); hub.store.flush(); },
@@ -506,7 +504,11 @@ export class LobbyRoom implements Room {
     });
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
-    if (this.pirates) c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
+    if (this.pirates) {
+      c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
+      const snap = this.pirates.snapshot();
+      if (snap) c.sink.sendJson(snap);
+    }
     this.billiards?.welcome((m) => c.sink.sendJson(m));
     // музыкальный автомат: что играет и с какого места (вошедшему позже — то же место песни, что у всех)
     if (this.juke) {
@@ -911,6 +913,16 @@ export class LobbyRoom implements Room {
     const kind = room.kind;
     if (c.ephemeral || !c.profile || !isDoor(kind)) return;
     this.circleChat.door(kind, { pid: c.pid, nick: c.nick }, room.humans);
+  }
+
+  /** Команды разработчика в чате набережной (зовёт hub только при --dev или DEV_GO=1): /pirates — набег сразу, /pirates stop — прервать */
+  devCommand(c: Client, text: string): boolean {
+    const m = /^\/pirates(?:\s+(\w+))?\s*$/i.exec(text);
+    if (!m) return false;
+    if (!this.pirates) { this.hub.toast(c, 'Пираты выключены: нужен флаг PIRATES'); return true; }
+    if (m[1] === 'stop') { this.pirates.abort(); this.hub.toast(c, 'Набег прерван'); return true; }
+    this.hub.toast(c, this.director.force('pirates', this.tick) ? 'Набег пиратов: через 30 секунд' : 'Сейчас идёт другое событие');
+    return true;
   }
 
   /** E у катера: стоит — первый платит и садится за руль (30 с посадки); идёт посадка — садишься бесплатно. */
@@ -1623,9 +1635,8 @@ export class LobbyRoom implements Room {
     const original = inp;
     const eligible = !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen;
     if (this.storm) inp = stormInput(p.state, inp, t, this.storm.view(), eligible);
-    const knock = this.pirates?.knockOf(p.client.pid);
-    if (knock) inp = pirateInput(p.state, inp, t, knock);
-    if (real && eligible && (original.buttons & BTN_FIRE) && this.pirates?.view().phase === 'raid') this.pirates.swing(p.client.pid, original);
+    // ЛКМ в набеге пиратов: маркер или береговая пушка (решает сервер; пока событие идёт — никого не двигает)
+    if (real && eligible && (original.buttons & BTN_FIRE) && this.pirates?.active) this.pirates.fire(p.client.pid, original);
     const hold = holdMask(p.action);
     if (hold === 0 && p.action !== ACT_NONE && (inp.buttons & STOP_EMOTE) !== 0) {
       // эмоцию отменяет шаг, прыжок или рывок (жест вдвоём — у обоих: партнёра отпустит checkPairs)
@@ -1640,7 +1651,6 @@ export class LobbyRoom implements Room {
     if (stepHeld(p.state, hold, inp, this.world, false, 0, p.ev) === 0 && hold !== 0) this.release(p);
     dyn.post(p.state, p.ev, t);
     if (this.storm) stormPush(p.state, this.world, t, this.storm.view(), eligible);
-    if (knock) piratePush(p.state, this.world, t, knock);
     p.aquaT = t;
     if (real) {
       // толкнуло — всем «бум» (себе клиент уже показал по предсказанию)
@@ -1874,13 +1884,7 @@ export class LobbyRoom implements Room {
       h.queue = p.inq.length;
       h.flags = p.selfReset ? SNAP_SELF_RESET : 0;
       p.selfReset = false;
-      let tail = entities;
-      if (this.pirates) {
-        const raid = this.pirates.tail(p.client.pid);
-        tail = new Uint8Array(entities.length + pirateTailSize(raid.pirates.length));
-        tail.set(entities); writePirateTail(tail, entities.length, raid);
-      }
-      p.client.sink.sendBinary(encodeSnapshot(h, p.state, tail));
+      p.client.sink.sendBinary(encodeSnapshot(h, p.state, entities));
       if (ev) p.client.sink.sendJson(ev);
     }
     this.events = [];
