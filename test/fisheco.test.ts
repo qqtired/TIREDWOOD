@@ -14,7 +14,7 @@ import {
   normalizeFishProgress, type FishGear, type FishProgress, type FishRod,
 } from '../shared/fishprogress.ts';
 import {
-  BARKAS_INCOME, BARKAS_XP, CHEST_PER_10K, CONSOLATION_SHARE, CONSOLATION_TICKS, COLLECTION, JUNK_PER_10K, RAIN_XP, RULE, SP_BOOT, SP_BOTTLE,
+  BARKAS_INCOME, BARKAS_XP, CHEST_PER_10K, COMMON_FLOOR, CONSOLATION_SHARE, CONSOLATION_TICKS, COLLECTION, JUNK_PER_10K, RAIN_XP, RULE, SP_BOOT, SP_BOTTLE,
   T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice, fishPrice2, junkPer10k, reelStyleFor, rollCatch2, tierOdds, type Hooked,
 } from '../shared/fishrules.ts';
 import { ALE, BAGS, BAG_BASE, BAG_MAX, BEER, LORD, LORD_CHEST_CHANCE, LURES } from '../shared/fishshop.ts';
@@ -381,9 +381,9 @@ test('«Шансы сейчас»: доли категорий в сумме 1 �
       prev = clear;
     }
   }
-  // явный потолок: обычных не осталось — редкие и выше делят всё в прежних пропорциях, сумма та же
+  // явный потолок: редкие и выше заняли 95 % рыбы (сверху вниз), обычным — пол 5 %, сумма та же
   const top = tierOdds(false, { ...fishCastMods(progressAt(10, 3, 3), 0, 'barkas'), rareMultiplier: 4, epicMultiplier: 1.1 });
-  assert.equal(top[T_COMMON], 0);
+  assert.ok(Math.abs(top[T_COMMON] - COMMON_FLOOR * (1 - top[5] - top[6])) < 1e-12);
   assert.ok(Math.abs(top.reduce((a, b) => a + b, 0) - 1) < 1e-9);
   // блесна поднимает только эпических и выше (с божественной)
   const plain = tierOdds(false, fishCastMods(progressAt(6), 0, 'pier'));

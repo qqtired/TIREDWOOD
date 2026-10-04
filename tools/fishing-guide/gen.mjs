@@ -85,7 +85,7 @@ for (const e of EX) e.p = odds(e.o);
 function breakdown(o) {
   const m = mods(o);
   const b = BASE[o.zone];
-  let left = 1;
+  let left = 1 - fr.COMMON_FLOOR;
   const parts = [5, 4, 3, 2, 1].map((k) => {
     const wm = fr.weatherMul(k, o.weather), bm = fr.bonusMul(k, m);
     const v = b[k] * wm * bm, got = Math.min(left, v);
@@ -114,6 +114,7 @@ const chestMin = Math.min(...CHEST_BANDS.map((b) => b[0])), chestMax = Math.max(
 const drinkLi = (d, where) => `<li>${d.name}${where}: <b>${mul(d.rare)}</b>, доход ${mul(d.income)}</li>`;
 // сезон к дождю у прокачанного (примеры C и D)
 const exC = EX[2].p, exD = EX[3].p;
+const floorPct = `${num(fr.COMMON_FLOOR * 100, 1)} %`;
 const exRatio = (k) => mul(Math.round((exD[k] / exC[k]) * 10) / 10);
 const exTop = [3, 4, 7].every((k) => Math.abs(exD[k] / exC[k] - fr.SEASON_MUL) < 1e-9)
   ? `легендарных, мифических и кальмаров — ровно ${fr.SEASON_MUL === 2 ? 'вдвое' : mul(fr.SEASON_MUL)} больше`
@@ -250,7 +251,7 @@ const html = `<!doctype html>
   <p class="sub">Все бонусы <b>умножают</b> шанс категорий от редких до божественной — ни один не делает крупную рыбу реже. Обычным достаётся то, что осталось. Ниже — каждый фактор с точными множителями.</p>
   <div class="grid g2">
     <div class="card factor"><div class="ic">🌧</div><div><h3>Дождь</h3><p>Все от редких до божественного кальмара клюют в <b>${num(fr.RAIN_MUL, 1)} раза</b> чаще — вместе со всеми твоими бонусами. Приходят «дождевые» рыбы: ${vidov(pierRain)} у пристани и ${barkRain} на баркасе, они платят в полтора раза больше. Опыт в дождь ×1,15.</p><p class="small muted">Дождь идёт 5–8 минут, между дождями 15–30 минут ясно. Бубен дождя у Семёна (1000 🪙) зовёт дождь сразу для всех.</p></div></div>
-    <div class="card factor"><div class="ic">🎣</div><div><h3>Сезон рыбалки — сильнее всего</h3><p>Каждые <b>2 часа, в чётный час по Москве</b> (…, 18:00, 20:00, 22:00), ровно на 10 минут. Это особый дождь: дождевые рыбы клюют, а <b>все твои шансы</b> от редких до кальмара — <b>${mul(fr.SEASON_MUL)} к дождю</b>, со всеми бонусами. Обычных в сезон нет ни у кого.</p><ul class="mults"><li>к дождю <b>${mul(fr.SEASON_MUL)}</b></li><li>к ясной погоде <b>${mul(fr.RAIN_MUL * fr.SEASON_MUL)}</b></li><li>кальмар — тоже</li></ul></div></div>
+    <div class="card factor"><div class="ic">🎣</div><div><h3>Сезон рыбалки — сильнее всего</h3><p>Каждые <b>2 часа, в чётный час по Москве</b> (…, 18:00, 20:00, 22:00), ровно на 10 минут. Это особый дождь: дождевые рыбы клюют, а <b>все твои шансы</b> от редких до кальмара — <b>${mul(fr.SEASON_MUL)} к дождю</b>, со всеми бонусами. Обычных в сезон у всех — только пол, ${floorPct} рыбы.</p><ul class="mults"><li>к дождю <b>${mul(fr.SEASON_MUL)}</b></li><li>к ясной погоде <b>${mul(fr.RAIN_MUL * fr.SEASON_MUL)}</b></li><li>кальмар — тоже</li></ul></div></div>
     <div class="card factor"><div class="ic">⭐</div><div><h3>Уровень рыбалки</h3><p><b>+${num(fp.LEVEL_ODDS * 100, 1)} %</b> к шансу всех от редких до кальмара за каждый уровень, до ${LMAX}-го (на 10-м — ${mul(fp.levelOdds(10))}, на ${LMAX}-м — ${mul(fp.levelOdds(LMAX))}). Хлама на десятую меньше за уровень, с 10-го его нет. Зона на шкале тоже +2,5 % за уровень.</p><ul class="mults"><li>5-й ур. <b>${mul(fp.levelOdds(5))}</b></li><li>10-й ур. <b>${mul(fp.levelOdds(10))}</b></li><li>${LMAX}-й ур. <b>${mul(fp.levelOdds(LMAX))}</b></li></ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/rod-legendary.webp" alt=""></div><div><h3>Удочка — за задания Деда Семёна</h3><p>Редкие и выше: ×1,05 за каждую ступень. Ещё удочка увеличивает зону на шкале и ускоряет поклёвку на 10 / 20 / 30 / 40 %. Каждое следующее задание — на 5 рыб больше.</p><ul class="mults">${rods}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-lure4.webp" alt=""></div><div><h3>Блесна — покупается навсегда</h3><p>Только <b>эпические и выше</b> (и кальмар) — блесна для крупной рыбы, на редких не действует. Ещё делает рывки рыбы мягче на ${sh.LURES.map((l) => Math.round(l.calm * 100)).join(' / ')} %.</p><ul class="mults">${lures}</ul></div></div>
@@ -261,7 +262,7 @@ const html = `<!doctype html>
   <div class="card" style="margin-top:16px">
     <h3>Как бонусы складываются</h3>
     <p style="margin:0 0 8px">Шанс категории = <b>база</b> × погода × уровень × удочка × напиток × (блесна и водка — для эпических и выше). Обычные — остаток до 100 %.</p>
-    <p class="note" style="margin:10px 0 0"><b>Потолок.</b> Если редких и выше набралось больше 100 %, всем места не хватает. Тогда старшие категории получают свою долю целиком — божественная, мифическая, легендарная, эпическая, — а нехватку отдают младшие: сначала обычные, потом редкие. Поэтому любой бонус только поднимает шанс поймать «эту категорию или выше» и средний доход за поклёвку. В сезон рыбалки обычных нет ни у кого, а у прокачанного рыбака${exD[1] > 0 ? ' почти нет и редких' : ' нет и редких: каждая поклёвка — эпическая или лучше'}.</p>
+    <p class="note" style="margin:10px 0 0"><b>Потолок.</b> Редкие и выше вместе занимают не больше ${num((1 - fr.COMMON_FLOOR) * 100, 1)} % рыбы: ${floorPct} всегда остаётся обычным — так обычная пикарель в дождь ловится у всех. Если редких и выше набралось больше, всем места не хватает. Тогда старшие категории получают свою долю целиком — божественная, мифическая, легендарная, эпическая, — а нехватку отдают младшие: сначала обычные (до этих ${floorPct}), потом редкие. Поэтому любой бонус только поднимает шанс поймать «эту категорию или выше» и средний доход за поклёвку. В сезон рыбалки обычных у всех — только ${floorPct} рыбы, а у прокачанного рыбака${exD[1] > 0 ? ' и редких почти нет' : ' нет и редких: остальные поклёвки — эпические или лучше'}.</p>
     <p class="okno" style="margin:10px 0 0"><b>Когда что считается.</b> Бонусы (уровень, удочка, блесна, напиток) запоминаются в момент <b>заброса</b> — выпил эль, потом забрасывай. А погода и сезон берутся в момент <b>поклёвки</b>: начался дождь, пока поплавок в воде, — он уже работает.</p>
   </div>
   <h3 style="margin:28px 0 12px">Что на шансы НЕ влияет</h3>
@@ -300,9 +301,9 @@ const html = `<!doctype html>
   <h2>Разобранные примеры</h2>
   <p class="sub">Посчитано по формуле игры. Проценты — доля от всех поклёвок, включая сундуки и хлам.</p>
   <div class="ex">
-    ${EX.slice(0, 3).map((e) => `<div class="card"><h3>${esc(e.title)}</h3><p class="who">${esc(e.who)}</p>${bar(e.p)}${legend(e.p)}${e.key === 'c' ? `<div class="calcline"><b>Как посчитано — сверху вниз, в долях рыбы (без сундука и хлама).</b> ${BC.parts.map((x) => `${TN[RANK_T[x.k]]}: ${pct(x.base)} × ${num(x.wm, 2)} × ${num(x.bm, 3)} = <b>${pct(x.v)}</b>${x.got < x.v - 1e-12 ? ` — но места осталось только <b>${pct(x.got)}</b>` : ''}`).join('; ')}. ${BC.left > 1e-12 ? `Обычным — остаток ${pct(BC.left)}.` : 'Обычным места не осталось.'} Потом ×${dec(1 - (fr.CHEST_PER_10K + fr.junkPer10k(LMAX)) / 10_000, 2)}: ${chestPct} % поклёвок — сундук, хлама с 10-го уровня нет. <br>Здесь ${num(BC.parts[0].wm, 2)} — дождь, ${num(BC.parts[4].bm, 3)} — уровень ${mul(fp.levelOdds(LMAX))}, удочка ${mul(fp.rodOdds(4))} и эль ${mul(sh.ALE.rare)}; у эпических и выше ещё блесна ${mul(sh.LURE_MAX.epic)}.${BC_CUT ? ` ${TN[RANK_T[BC_CUT.k]]} — нижние под потолком: старшие взяли своё целиком.` : ''}</div>` : ''}</div>`).join('')}
+    ${EX.slice(0, 3).map((e) => `<div class="card"><h3>${esc(e.title)}</h3><p class="who">${esc(e.who)}</p>${bar(e.p)}${legend(e.p)}${e.key === 'c' ? `<div class="calcline"><b>Как посчитано — сверху вниз, в долях рыбы (без сундука и хлама).</b> ${BC.parts.map((x) => `${TN[RANK_T[x.k]]}: ${pct(x.base)} × ${num(x.wm, 2)} × ${num(x.bm, 3)} = <b>${pct(x.v)}</b>${x.got < x.v - 1e-12 ? ` — но места осталось только <b>${pct(x.got)}</b>` : ''}`).join('; ')}. ${BC.left > 1e-12 ? `Обычным — остаток ${pct(BC.left + fr.COMMON_FLOOR)}.` : `Обычным — только пол, ${floorPct}: меньше не бывает.`} Потом ×${dec(1 - (fr.CHEST_PER_10K + fr.junkPer10k(LMAX)) / 10_000, 2)}: ${chestPct} % поклёвок — сундук, хлама с 10-го уровня нет. <br>Здесь ${num(BC.parts[0].wm, 2)} — дождь, ${num(BC.parts[4].bm, 3)} — уровень ${mul(fp.levelOdds(LMAX))}, удочка ${mul(fp.rodOdds(4))} и эль ${mul(sh.ALE.rare)}; у эпических и выше ещё блесна ${mul(sh.LURE_MAX.epic)}.${BC_CUT ? ` ${TN[RANK_T[BC_CUT.k]]} — нижние под потолком: старшие взяли своё целиком.` : ''}</div>` : ''}</div>`).join('')}
     <div class="card"><h3>Все примеры рядом</h3><div class="scroll"><table class="tbl"><thead><tr><th>Категория</th>${EX.map((e) => `<th>${esc(e.title)}</th>`).join('')}</tr></thead><tbody>${exRows}</tbody></table></div>
-    <p class="muted small" style="margin:12px 0 0">Вывод: у прокачанного рыбака в дождь обычных уже нет — каждая поклёвка не хуже редкой. Сезон рыбалки удваивает все шансы, пока хватает места: ${exTop}, эпических — ${exRatio(2)}, а ${exD[1] > 0 ? 'редких становится меньше' : 'редких не остаётся совсем'} — их место занимают эпические и выше.</p></div>
+    <p class="muted small" style="margin:12px 0 0">Вывод: у прокачанного рыбака в дождь обычных — только пол, остальные поклёвки не хуже редкой. Сезон рыбалки удваивает все шансы, пока хватает места: ${exTop}, эпических — ${exRatio(2)}, а ${exD[1] > 0 ? 'редких становится меньше' : 'редких не остаётся совсем'} — их место занимают эпические и выше.</p></div>
   </div>
 </section>
 
@@ -359,7 +360,7 @@ fs.writeFileSync(OUT + 'index.html', html);
 
 // ---------- app.js: данные калькулятора из кода
 const DATA = {
-  BASE, LEVEL_ODDS: fp.LEVEL_ODDS, LEVEL_MAX: LMAX, SEASON_MUL: fr.SEASON_MUL, RAIN_MUL: fr.RAIN_MUL, EPIC_MAX: sh.LURE_MAX.epic,
+  BASE, LEVEL_ODDS: fp.LEVEL_ODDS, LEVEL_MAX: LMAX, SEASON_MUL: fr.SEASON_MUL, RAIN_MUL: fr.RAIN_MUL, EPIC_MAX: sh.LURE_MAX.epic, COMMON_FLOOR: fr.COMMON_FLOOR,
   JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K, VODKA_ZONE: VZ, VODKA_JERK: sh.VODKA.jerk ?? 1,
   lures: [null, ...sh.LURES.map((l) => ({ epic: l.epic }))],
   drinks: [null, ...[sh.BEER, sh.ALE, sh.LORD, sh.VODKA].map((d) => ({ rare: d.rare, ...(d.top ? { top: d.top } : {}) }))],

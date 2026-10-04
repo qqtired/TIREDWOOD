@@ -4,10 +4,11 @@
 // погоде, сезон — ещё ×2 к дождю; потолок — сверху вниз. Перебор: места × ясно/дождь/сезон × уровни 0–15 × удочки ×
 // блёсны × напитки.
 //
-// Что держит перебор. Когда редких и выше набирается больше 100 % рыбы, поднять одну категорию можно только за счёт
-// другой. Потолок сверху вниз отдаёт место старшим: срезается нижняя оставшаяся категория (сначала обычные, потом
-// редкие…). Поэтому от любого бонуса не уменьшаются: шанс «эта категория или выше» у каждой категории, каждая категория
-// выше нижней оставшейся, ожидаемые жетоны и опыт за поклёвку. Пока обычные есть — не уменьшается ни одна категория.
+// Что держит перебор. Редкие и выше делят не больше 95 % рыбы (обычным пол 5 % — COMMON_FLOOR: пикарель ловится у
+// всех). Когда их набирается больше, поднять одну категорию можно только за счёт другой. Потолок сверху вниз отдаёт место
+// старшим: срезается нижняя оставшаяся категория (сначала обычные до пола, потом редкие…). Поэтому от любого бонуса не
+// уменьшаются: шанс «эта категория или выше» у каждой категории, каждая категория выше нижней оставшейся, ожидаемые
+// жетоны и опыт за поклёвку. Пока потолка нет — не уменьшается ни одна категория.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
@@ -15,7 +16,7 @@ import {
   FISH_XP_LEVELS, drinkOf, emptyFishProgress, fishCastMods, fishCatchXp, levelOdds, rodOdds, type FishCastMods, type FishGear, type FishProgress, type FishRod,
 } from '../shared/fishprogress.ts';
 import {
-  CHEST_BANDS, COLLECTION, DIVINE_BASE, MYTH_ADD, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE,
+  CHEST_BANDS, COLLECTION, COMMON_FLOOR, DIVINE_BASE, MYTH_ADD, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE,
   biteShare, fishPrice2, junkPer10k, rollCatch2, tierOdds, tierRank,
 } from '../shared/fishrules.ts';
 import { ALE, BEER, LORD, LURES, VODKA } from '../shared/fishshop.ts';
@@ -55,6 +56,8 @@ function ranks(p: readonly number[]): number[] {
 }
 /** Шанс «ранг k или выше» среди рыбы, k = 1…5 */
 const atLeast = (r: readonly number[], k: number): number => r.slice(k).reduce((a, b) => a + b, 0);
+/** Нижняя оставшаяся категория под потолком (обычным — только пол); 0 — потолка нет */
+const floorOf = (r: readonly number[]): number => (r[0] > COMMON_FLOOR + 1e-12 ? 0 : r.findIndex((x, k) => k > 0 && x > EPS));
 
 const meanChest = (() => {
   const total = CHEST_BANDS.reduce((s, b) => s + b[2], 0);
@@ -133,7 +136,8 @@ test('(а) любой добавленный бонус — уровень, уд
     assert.ok(Math.abs(a.p.reduce((x, y) => x + y, 0) - 1) < 1e-9, `${tag(c)}: сумма`);
     assert.ok(a.p.every((x) => x >= 0), `${tag(c)}: без отрицательных`);
     // нижняя оставшаяся категория под потолком (0 — обычные ещё есть, потолка нет)
-    const floor = a.r[0] > EPS ? 0 : a.r.findIndex((x, k) => k > 0 && x > EPS);
+    assert.ok(a.r[0] >= COMMON_FLOOR - 1e-12, `${tag(c)}: обычных ${a.r[0]} — меньше пола`);
+    const floor = floorOf(a.r);
     if (floor > 0) capped++;
     for (const [what, prev] of without(c)) {
       const b = look(prev);
@@ -157,14 +161,14 @@ test('(б) дождь — ×1,5 к ясной погоде у всех от ре
   for (const c of all()) {
     if (c.w !== 1) continue;
     const rain = look(c), clear = look({ ...c, w: 0 });
-    const floor = rain.r[0] > EPS ? 0 : rain.r.findIndex((x, k) => k > 0 && x > EPS);
+    const floor = floorOf(rain.r);
     if (floor === 0) free++;
     for (let k = floor + 1; k <= 5; k++) {
       const t = RANK_T[k];
       assert.ok(Math.abs(rain.p[t] - RAIN_MUL * clear.p[t]) < 1e-12, `${tag(c)}: категория ${k} ${clear.p[t]} → ${rain.p[t]}`);
     }
   }
-  assert.ok(free > 1000, `без потолка в дождь: ${free}`);
+  assert.ok(free > 500, `без потолка в дождь: ${free}`);
 });
 
 test('(в) сезон рыбалки — ×2 к дождю со всеми бонусами: «категория или выше» ровно вдвое (до 100 %), категории выше нижней — ровно ×2; жетоны за поклёвку — заметно больше дождя у всех', (t) => {
@@ -175,9 +179,9 @@ test('(в) сезон рыбалки — ×2 к дождю со всеми бо�
     const season = look(c), rain = look({ ...c, w: 1 });
     assert.deepEqual(tierOdds(true, cast(c.zone, c.level, c.rod, c.lure, c.drink), true), season.p, 'сезон и дождь вместе — тот же сезон');
     for (let k = 1; k <= 5; k++) {
-      assert.ok(Math.abs(atLeast(season.r, k) - Math.min(1, SEASON_MUL * atLeast(rain.r, k))) < 1e-12, `${tag(c)}: «ранг ${k} и выше»`);
+      assert.ok(Math.abs(atLeast(season.r, k) - Math.min(1 - COMMON_FLOOR, SEASON_MUL * atLeast(rain.r, k))) < 1e-12, `${tag(c)}: «ранг ${k} и выше»`);
     }
-    const floor = season.r[0] > EPS ? 0 : season.r.findIndex((x, k) => k > 0 && x > EPS);
+    const floor = floorOf(season.r);
     for (let k = floor + 1; k <= 5; k++) {
       const t = RANK_T[k];
       assert.ok(Math.abs(season.p[t] - SEASON_MUL * rain.p[t]) < 1e-12, `${tag(c)}: категория ${k}`);
@@ -245,11 +249,30 @@ test('каждый бонус по отдельности (новичок у п�
   }
 });
 
-test('бросок сервера в сезон у прокачанного рыбака — те же доли, что в таблице (потолок сверху вниз: обычных и редких нет)', () => {
+test('пол обычных: не меньше 5 % рыбы при любом снаряжении, погоде и месте — пикарель (обычная дождевая) в дождь и в сезон клюёт у всех', () => {
+  assert.equal(COMMON_FLOOR, 0.05);
+  const picarel = FISH.findIndex((f) => f.id === 'picarel');
+  assert.ok(RULE[picarel]!.rain && RULE[picarel]!.tier === T_COMMON);
+  let worst = Infinity;
+  for (const c of all()) {
+    const m = cast(c.zone, c.level, c.rod, c.lure, c.drink);
+    const r = look(c).r;
+    assert.ok(r[0] >= COMMON_FLOOR - 1e-12, `${tag(c)}: обычных ${r[0]}`);
+    if (c.zone === 'pier' && c.w > 0) {
+      const s = biteShare(picarel, true, m, c.w === 2);
+      assert.ok(s > 0, `${tag(c)}: пикарель не клюёт`);
+      worst = Math.min(worst, s);
+    }
+  }
+  // худший случай — потолок: обычным 5 % рыбы, пикарели из них — по её весу среди обычных дождя
+  assert.ok(worst > 0.01, `пикарель — не реже 1 % рыбы, хуже всего ${worst}`);
+});
+
+test('бросок сервера в сезон у прокачанного рыбака — те же доли, что в таблице (потолок сверху вниз: обычным пол 5 %, редких нет)', () => {
   const m = cast('pier', 10, 4, 4, 3);
   const p = odds(m, 2);
-  assert.equal(p[T_COMMON], 0);
-  assert.equal(p[T_RARE], 0, 'редких тоже нет — их место заняли старшие');
+  assert.ok(Math.abs(p[T_COMMON] - COMMON_FLOOR * (1 - p[5] - p[6])) < 1e-12, 'обычных — пол');
+  assert.equal(p[T_RARE], 0, 'редких нет — их место заняли старшие');
   const rng = makeRng(2026);
   const N = 120_000;
   const n = [0, 0, 0, 0, 0, 0, 0, 0];

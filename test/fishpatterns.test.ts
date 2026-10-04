@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { BAND, COLLECTION, RULE, ZONE_BASE, biteShare, effectiveRareMultiplier, reelStyleFor, tierRank } from '../shared/fishrules.ts';
+import { BAND, COLLECTION, COMMON_FLOOR, RULE, ZONE_BASE, biteShare, effectiveRareMultiplier, reelStyleFor, tierRank } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods, fishCatchXp, FISH_XP_LEVELS, levelOdds, rodOdds, type FishRod } from '../shared/fishprogress.ts';
 import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, type ReelStyle } from '../shared/fishreel.ts';
 import { EXPERT, TYPICAL, reelStats } from './fishbot.ts';
@@ -101,7 +101,7 @@ test('all legal probability combinations sum to one with transparent top-down sa
    if (cut) assert.ok(x < 1e-12, `ранг ${rank} под потолком`);
    else if (Math.abs(x - mods.rareMultiplier) > 1e-9) { cut = true; assert.ok(x < mods.rareMultiplier); }
   }
-  if (cut) assert.ok(COLLECTION.filter(sp=>RULE[sp]!.tier===0).every(sp=>biteShare(sp,rain,mods)<1e-12), 'потолок — обычных нет');
+  if (cut) assert.ok(Math.abs(COLLECTION.filter(sp=>RULE[sp]!.tier===0).reduce((a,sp)=>a+biteShare(sp,rain,mods),0)-COMMON_FLOOR)<1e-12, 'потолок — обычным пол 5 %');
   assert.ok(Math.abs(effectiveRareMultiplier(rain, mods) - k.get(1)!) < 1e-9);
  }
  const baseTwoPercent = .02;

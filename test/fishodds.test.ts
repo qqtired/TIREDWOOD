@@ -13,7 +13,7 @@ import {
   type FishCastMods, type FishProgress,
 } from '../shared/fishprogress.ts';
 import {
-  DIVINE_BASE, DIVINE_RATIO, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE, basePrice, biteShare,
+  COMMON_FLOOR, DIVINE_BASE, DIVINE_RATIO, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE, basePrice, biteShare,
   reelStyleFor, rollCatch2, rollWeight, tierOdds, tierOddsParts, tierRank,
 } from '../shared/fishrules.ts';
 import { LORD, LURES, VODKA } from '../shared/fishshop.ts';
@@ -50,14 +50,15 @@ test('сезон рыбалки: ×2 к дождю со всеми бонуса�
       near(season[t] / clear[t], RAIN_MUL * SEASON_MUL, `${zone}: категория ${t} к ясной`);
       near(season[t] / rain[t], SEASON_MUL, `${zone}: категория ${t} к дождю`);
     }
-    // редких и выше набралось больше 100 % рыбы: потолок сверху вниз — обычных нет, редким то, что осталось после старших
-    assert.equal(season[T_COMMON], 0, `${zone}: обычных в сезон нет`);
-    near(season[T_RARE], 1 - season[5] - season[6] - [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE].reduce((a, t) => a + season[t], 0), `${zone}: редким — остаток`);
+    // редких и выше набралось больше 95 % рыбы: потолок сверху вниз — обычным пол 5 %, редким то, что осталось после старших
+    const fish = 1 - season[5] - season[6];
+    near(season[T_COMMON], COMMON_FLOOR * fish, `${zone}: обычных в сезон — пол 5 % рыбы`);
+    near(season[T_RARE], fish - season[T_COMMON] - [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE].reduce((a, t) => a + season[t], 0), `${zone}: редким — остаток`);
     assert.ok(season[T_RARE] > rain[T_RARE], `${zone}: редких в сезон всё равно больше, чем в дождь`);
     assert.deepEqual(tierOdds(true, mods, true), season, 'сезон и дождь вместе — тот же сезон');
-    // виды дождя клюют и в сезон — кроме обычных: обычных в сезон нет совсем, пикарель ловят в обычный дождь
+    // виды дождя клюют и в сезон — и обычная пикарель тоже (пол обычных)
     for (const s of COLLECTION.filter((x) => RULE[x]!.rain && RULE[x]!.zones.includes(zone))) {
-      assert.equal(biteShare(s, false, mods, true) > 0, RULE[s]!.tier !== T_COMMON, `${zone}: ${RULE[s]!.id} в сезон`);
+      assert.ok(biteShare(s, false, mods, true) > 0, `${zone}: ${RULE[s]!.id} в сезон`);
       assert.ok(biteShare(s, true, mods) > 0, `${zone}: ${RULE[s]!.id} в дождь`);
     }
   }
@@ -120,11 +121,11 @@ test('пиво подводного владыки работает: все от
     const a = tierOdds(rain, plain), b = tierOdds(rain, lord);
     for (const t of TOP) near(b[t] / a[t], 1.4, `дождь ${rain}: категория ${t}`);
   }
-  // сезон: у новичка обычных уже нет (редкие и выше ×3 — больше 100 % рыбы). Потолок сверху вниз: эпик и выше с пивом
-  // получают свои ×1,4 целиком, редким — остаток (их становится меньше: место заняли старшие); панель показывает то же
+  // сезон: у новичка обычных уже только пол (редкие и выше ×3 — больше 95 % рыбы). Потолок сверху вниз: эпик и выше с
+  // пивом получают свои ×1,4 целиком, редким — остаток (их становится меньше: место заняли старшие); панель — то же
   const s0 = tierOdds(false, plain, true), s1 = tierOdds(false, lord, true);
-  assert.equal(s0[T_COMMON], 0, 'сезон: обычных нет и без пива');
-  assert.equal(s1[T_COMMON], 0, 'сезон с пивом владыки: потолок');
+  near(s0[T_COMMON], COMMON_FLOOR * (1 - s0[5] - s0[6]), 'сезон: обычных — пол и без пива');
+  near(s1[T_COMMON], COMMON_FLOOR * (1 - s1[5] - s1[6]), 'сезон с пивом владыки: потолок, обычных — пол');
   for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) near(s1[t] / s0[t], 1.4, `сезон: категория ${t} ×1,4`);
   assert.ok(s1[T_RARE] < s0[T_RARE], 'сезон: редких меньше — их место заняли эпические и выше');
   for (const t of TOP) near(tierOddsParts(tierRank(t), false, lord, true).now, s1[t], `сезон: панель = бросок, ${t}`);

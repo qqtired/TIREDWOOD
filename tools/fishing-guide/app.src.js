@@ -30,19 +30,20 @@ var FishCalc = (function () {
     return k;
   }
   // Доли всех поклёвок: обычные, редкие, эпические, легендарные, мифические, хлам, сундук, божественная.
-  // Потолок сверху вниз: старшие получают свою долю целиком, нехватку отдают обычные, потом редкие…
+  // Потолок сверху вниз: редкие и выше — не больше (1 − COMMON_FLOOR) рыбы; старшие получают свою долю целиком, нехватку
+  // отдают обычные (до пола COMMON_FLOOR), потом редкие…
   function odds(o) {
     var m = mods(o);
     var base = D.BASE[o.zone === 'barkas' ? 'barkas' : 'pier'];
     var w = o.weather;
     var out = [0, 0, 0, 0, 0, 0];
-    var left = 1;
+    var left = 1 - D.COMMON_FLOOR;
     for (var k = 5; k >= 1; k--) {
       out[k] = Math.min(left, base[k] * weatherMul(k, w) * bonusMul(k, m));
       left -= out[k];
     }
-    out[0] = left;
-    var capped = out[0] <= 0;
+    out[0] = left + D.COMMON_FLOOR;
+    var capped = left <= 1e-12;
     var junk = Math.round(D.JUNK * (10 - Math.min(10, m.level)) / 10);
     var fish = 1 - (D.CHEST + junk) / 10000;
     var res = out.slice(0, 5).map(function (x) { return fish * x; });
@@ -110,7 +111,7 @@ if (typeof document !== 'undefined') (function () {
       rows.appendChild(row);
     });
     var notes = [];
-    if (r.capped) notes.push('<b>Обычные рыбы закончились.</b> Редких и выше набралось больше 100 %: старшие категории взяли свою долю целиком, а нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
+    if (r.capped) notes.push('<b>Потолок.</b> Редкие и выше заняли всё, что можно, — ' + Math.round((1 - D.COMMON_FLOOR) * 100) + ' % рыбы: обычным остался пол, ' + Math.round(D.COMMON_FLOOR * 100) + ' % (так пикарель в дождь ловится у всех). Старшие категории взяли свою долю целиком, нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
     if (o.drink === 4) notes.push('<b>Водка:</b> зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', рывки рыбы на ' + Math.round((D.VODKA_JERK - 1) * 100) + ' % быстрее — вытащить труднее.');
     if (o.zone === 'barkas') notes.push('<b>Баркас</b> пускает с 3-го уровня. Рыба там своя и злее, зато платит и даёт опыта ×1,25.');
     hint.innerHTML = notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');

@@ -3,7 +3,7 @@
 // Цифры ниже выгружены из кода игры; проверка — сверка со всеми сочетаниями настроек.
 'use strict';
 var FishCalc = (function () {
-  var D = {"BASE":{"pier":[0.5677466037466037,0.2751322751322751,0.10582010582010581,0.03597883597883598,0.010673530673530673,0.004648648648648649],"barkas":[0.5681351351351351,0.275,0.106,0.036,0.010324324324324324,0.00454054054054054]},"LEVEL_ODDS":0.025,"LEVEL_MAX":15,"SEASON_MUL":2,"RAIN_MUL":1.5,"EPIC_MAX":1.15,"JUNK":450,"CHEST":300,"VODKA_ZONE":0.5,"VODKA_JERK":1.2,"lures":[null,{"epic":1.03},{"epic":1.05},{"epic":1.1},{"epic":1.15}],"drinks":[null,{"rare":1.2},{"rare":1.3},{"rare":1.4},{"rare":1,"top":2}]};
+  var D = {"BASE":{"pier":[0.5677466037466037,0.2751322751322751,0.10582010582010581,0.03597883597883598,0.010673530673530673,0.004648648648648649],"barkas":[0.5681351351351351,0.275,0.106,0.036,0.010324324324324324,0.00454054054054054]},"LEVEL_ODDS":0.025,"LEVEL_MAX":15,"SEASON_MUL":2,"RAIN_MUL":1.5,"EPIC_MAX":1.15,"COMMON_FLOOR":0.05,"JUNK":450,"CHEST":300,"VODKA_ZONE":0.5,"VODKA_JERK":1.2,"lures":[null,{"epic":1.03},{"epic":1.05},{"epic":1.1},{"epic":1.15}],"drinks":[null,{"rare":1.2},{"rare":1.3},{"rare":1.4},{"rare":1,"top":2}]};
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
   // Снимок бонусов заброса: как fishCastMods (шанс растёт с уровнем до D.LEVEL_MAX)
   function mods(o) {
@@ -30,19 +30,20 @@ var FishCalc = (function () {
     return k;
   }
   // Доли всех поклёвок: обычные, редкие, эпические, легендарные, мифические, хлам, сундук, божественная.
-  // Потолок сверху вниз: старшие получают свою долю целиком, нехватку отдают обычные, потом редкие…
+  // Потолок сверху вниз: редкие и выше — не больше (1 − COMMON_FLOOR) рыбы; старшие получают свою долю целиком, нехватку
+  // отдают обычные (до пола COMMON_FLOOR), потом редкие…
   function odds(o) {
     var m = mods(o);
     var base = D.BASE[o.zone === 'barkas' ? 'barkas' : 'pier'];
     var w = o.weather;
     var out = [0, 0, 0, 0, 0, 0];
-    var left = 1;
+    var left = 1 - D.COMMON_FLOOR;
     for (var k = 5; k >= 1; k--) {
       out[k] = Math.min(left, base[k] * weatherMul(k, w) * bonusMul(k, m));
       left -= out[k];
     }
-    out[0] = left;
-    var capped = out[0] <= 0;
+    out[0] = left + D.COMMON_FLOOR;
+    var capped = left <= 1e-12;
     var junk = Math.round(D.JUNK * (10 - Math.min(10, m.level)) / 10);
     var fish = 1 - (D.CHEST + junk) / 10000;
     var res = out.slice(0, 5).map(function (x) { return fish * x; });
@@ -110,7 +111,7 @@ if (typeof document !== 'undefined') (function () {
       rows.appendChild(row);
     });
     var notes = [];
-    if (r.capped) notes.push('<b>Обычные рыбы закончились.</b> Редких и выше набралось больше 100 %: старшие категории взяли свою долю целиком, а нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
+    if (r.capped) notes.push('<b>Потолок.</b> Редкие и выше заняли всё, что можно, — ' + Math.round((1 - D.COMMON_FLOOR) * 100) + ' % рыбы: обычным остался пол, ' + Math.round(D.COMMON_FLOOR * 100) + ' % (так пикарель в дождь ловится у всех). Старшие категории взяли свою долю целиком, нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
     if (o.drink === 4) notes.push('<b>Водка:</b> зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', рывки рыбы на ' + Math.round((D.VODKA_JERK - 1) * 100) + ' % быстрее — вытащить труднее.');
     if (o.zone === 'barkas') notes.push('<b>Баркас</b> пускает с 3-го уровня. Рыба там своя и злее, зато платит и даёт опыта ×1,25.');
     hint.innerHTML = notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');

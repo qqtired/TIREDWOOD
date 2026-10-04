@@ -3,7 +3,7 @@
 // (shared/fishrules.ts tierOdds): итог честный — со всеми бонусами сразу. Наведи на категорию — видно, из чего он сложен:
 // база места × погода × бонусы; у нижней категории под потолком — ещё и сколько ей осталось после старших.
 import type { FishCastMods } from '../../shared/fishprogress.ts';
-import { FISH_TIERS, T_CHEST, T_COMMON, T_JUNK, TIER_CSS, TIER_NAMES, TIER_SHORT, tierOdds, tierOddsParts, tierRank } from '../../shared/fishrules.ts';
+import { COMMON_FLOOR, FISH_TIERS, T_CHEST, T_COMMON, T_JUNK, TIER_CSS, TIER_NAMES, TIER_SHORT, tierOdds, tierOddsParts, tierRank } from '../../shared/fishrules.ts';
 import { el } from './fish2.ts';
 import { mul, oddsParts } from './fishfmt.ts';
 import './fisheco.css';
@@ -65,7 +65,10 @@ export class FishOdds {
     extra.textContent = `сундук ${oddsPct(odds[T_CHEST])} · ${odds[T_JUNK] > 0 ? `хлам ${oddsPct(odds[T_JUNK])}` : 'хлама нет'}`;
     const parts = oddsParts(mods, rain, season);
     this.why.textContent = parts.join(' · ');
-    const full = odds[T_COMMON] <= 0 ? ' Потолок: обычных не осталось — всё место заняли редкие и выше, старшие — в первую очередь.' : '';
+    // потолок: редкие и выше заняли всё, что можно (95 % рыбы), обычным — пол 5 %
+    const fish = 1 - odds[T_JUNK] - odds[T_CHEST];
+    const full = odds[T_COMMON] <= fish * COMMON_FLOOR + 1e-9
+      ? ` Потолок: редкие и выше заняли ${Math.round((1 - COMMON_FLOOR) * 100)} % рыбы, старшие — в первую очередь; обычным всегда остаётся ${Math.round(COMMON_FLOOR * 100)} %.` : '';
     this.root.title = `Что клюнет при следующем забросе. Редкие и выше: ${parts.join(', ')}.${full}`;
   }
 }
