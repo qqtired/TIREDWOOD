@@ -214,6 +214,8 @@ export type ClientMsg =
   | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number }
   /** Рюкзак: отпустить рыбу n (где угодно, денег нет) */
   | { t: 'fishBag'; a: 'release'; n: number }
+  /** Рюкзак: взять рыбу n в руки (похвастаться, сфотографироваться у маяка); n = −1 — убрать */
+  | { t: 'fishHold'; n: number }
   /** Рулетка рыбака: весь улов из рюкзака — на цвет */
   | { t: 'roulette'; a: 'bet'; c: RouletteColor }
   /**
@@ -492,7 +494,11 @@ export type ServerMsg =
   | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
+  /** ВРЕМЕННО до слияния с A (сезон рыбалки делает A): идёт ли сезон, когда кончится и когда следующий — мс сервера */
+  | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
+  /** Рыба в руках у игрока id (номер в снимках): n — номер в его рюкзаке, вид и граммы; n = −1 — руки пустые */
+  | { t: 'fishHold'; id: number; n: number; sp: number; g: number }
   | { t: 'fishNpc'; npc: FishNpcId; progress: FishProgress; now: number; open?: boolean; message?: string; sold?: { n: number; coins: number } }
   // рыбалка 2.0: сорвалась эпическая и выше после 3 с борьбы — утешительный опыт (вид — тайна, только категория)
   | { t: 'fishLost'; tier: number; xp: number }

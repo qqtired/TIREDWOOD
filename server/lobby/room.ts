@@ -68,6 +68,7 @@ import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
 import { WheelRide } from './wheel.ts';
+import { FishHolds } from './fishhold.ts';
 
 const ONE_SHOT = BTN_FIRE | BTN_JUMP | BTN_DASH | BTN_RELOAD | BTN_USE;
 /** «Болеть» у табло — с одного игрока не чаще раза в 4 с */
@@ -138,6 +139,8 @@ export class LobbyRoom implements Room {
   readonly fishing2: FishingHall2 | null;
   /** Семён и Саня: задания, лавка, продажа улова (с рыбалкой 2.0); register — свои действия других модулей */
   readonly fishNpc: FishNpc | null;
+  /** Рыба в руках (рюкзак → «Взять в руки»): кто что держит */
+  readonly fishHolds = new FishHolds();
   /** Рулетка рыбака (флаг сервера ROULETTE) */
   readonly roulette: RouletteTable | null;
   /** Крысиные бега на понтоне (флаг сервера RATRACE) */
@@ -482,6 +485,7 @@ export class LobbyRoom implements Room {
     if (kpos) c.sink.sendJson({ t: 'kpos', p: kpos });
     // экран с чатом друзей из Telegram на крыше склада — всё, что на нём сейчас (дальше — только новое)
     if (this.hub.tg) c.sink.sendJson({ t: 'tg', ...this.hub.tg.view() });
+    for (const m of this.fishHolds.views()) c.sink.sendJson(m);
     if (!c.ephemeral) this.broadcastRoster();
     return true;
   }
@@ -499,6 +503,9 @@ export class LobbyRoom implements Room {
     this.fc?.drop(p);
     this.byClient.delete(c);
     this.players.delete(p.slot);
+    // рыба из рук — у всех (номер может достаться другому)
+    const held = this.fishHolds.drop(p.slot);
+    if (held) this.broadcast(held);
     // номер освободился: его приглашения и приглашения ему — снимаем (номер может достаться другому)
     this.dropAsk(p.slot);
     for (const [from, a] of this.asks) if (a.to === p.slot) this.asks.delete(from);
@@ -605,6 +612,13 @@ export class LobbyRoom implements Room {
       case 'fishBag': {
         const who = this.npcWho(p);
         if (who && this.fishNpc && msg.a === 'release') this.fishNpc.release(who, msg.n);
+        return;
+      }
+      case 'fishHold': {
+        // рыба из рюкзака — в руки (сервер проверяет, что она правда там) или обратно; видят все на набережной
+        if (!this.fishing2 || !c.profile || c.ephemeral || !this.hub.limits.hit(`fishHold:${c.id}`, 4, 1000)) return;
+        const m = this.fishHolds.hold(p.slot, c.profile.fishing.bag, msg.n);
+        if (m) this.broadcast(m);
         return;
       }
       case 'roulette': {
@@ -1276,6 +1290,10 @@ export class LobbyRoom implements Room {
     this.stepWheel();
     this.stepBall();
     this.fish.step(this.tick);
+    // продал, отпустил, поставил на рулетку — рыба из рук пропадает
+    if (this.fishHolds.size && this.tick % 15 === 0) {
+      for (const m of this.fishHolds.sweep((slot) => this.players.get(slot)?.client.profile?.fishing.bag ?? null)) this.broadcast(m);
+    }
     this.roulette?.step();
     this.ratrace?.step();
     this.durak.step(this.tick);

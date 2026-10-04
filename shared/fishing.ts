@@ -20,7 +20,7 @@ export const HOOK_MS = [1000, 900, 800, 700, 650, 1000] as const;
 /** С этой редкости улов объявляется в общем чате (хлам — никогда) */
 export const ANNOUNCE_FROM = R_RARE;
 
-export type FishShape = 'fish' | 'long' | 'flat' | 'ray' | 'shark' | 'boot' | 'bottle' | 'eel' | 'sword' | 'angler' | 'chest';
+export type FishShape = 'fish' | 'long' | 'flat' | 'ray' | 'shark' | 'boot' | 'bottle' | 'eel' | 'sword' | 'angler' | 'chest' | 'squid';
 
 export interface FishKind {
   /** Ключ в альбоме профиля: не менять */
@@ -100,6 +100,8 @@ export const FISH: readonly FishKind[] = [
   { id: 'wahoo', name: 'Ваху', acc: 'ваху', rarity: R_EPIC, g: [8000, 60_000], price: [8, 20], w: 0, shape: 'fish', c: [0x1f5f7a, 0xdfe7ec] },
   { id: 'blueshark', name: 'Голубая акула', acc: 'голубую акулу', rarity: R_EPIC, g: [30_000, 200_000], price: [8, 20], w: 0, shape: 'shark', c: [0x2d58a8, 0xf0f2f6] },
   { id: 'hammerhead', name: 'Рыба-молот', acc: 'рыбу-молот', rarity: R_LEGEND, g: [40_000, 400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x6f7166, 0xeeeeea] },
+  // ВРЕМЕННО (ветка feat/fishB, модель кальмара): строка придёт от A — при слиянии взять её
+  { id: 'kalmar', name: 'Дальневосточный кальмар', acc: 'дальневосточного кальмара', rarity: R_LEGEND, g: [6000, 60_000], price: [25, 60], w: 0, shape: 'squid', c: [0xb3452c, 0xf4cdbd] },
 ];
 
 /** Номер золотой рыбки: её не продают, а отпускают — за желание */

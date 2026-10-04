@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { FISH, type FishKind } from '../../shared/fishing.ts';
 import { paint } from '../render/kit.ts';
+import { squidGeometry, squidMaterials, tickSquid } from './fishsquid.ts';
 
 /** Приметы рыбы обычной формы: высота и толщина (доли длины), где тело выше всего (0 — хвост, 1 — нос) */
 interface FishLook {
@@ -73,6 +74,9 @@ export function fishLength(sp: number, g: number): number {
       return clamp(0.06 * c, 0.4, 1.3);
     case 'chest':
       return 0.55;
+    case 'squid':
+      // со щупальцами: 6 кг — 1,4 м, от 19 кг — 2 м
+      return clamp(0.075 * c, 0.6, 2.0);
     default:
       return clamp(0.065 * c, 0.26, 1.6);
   }
@@ -100,12 +104,16 @@ export function makeFish3D(sp: number, g: number): THREE.Group {
     cache.set(sp, c);
   }
   const grp = new THREE.Group();
-  const mesh = new THREE.Mesh(c.geo, FISH[sp]?.id === 'goldfish' ? goldMat : fishMat);
+  // кальмар: свои материалы (шейдер колышет руки и щупальца), плавники — полупрозрачные
+  const squid = FISH[sp]?.shape === 'squid' ? squidMaterials() : null;
+  const mesh = new THREE.Mesh(c.geo, squid ? squid.body : FISH[sp]?.id === 'goldfish' ? goldMat : fishMat);
   mesh.castShadow = true;
+  if (squid) mesh.onBeforeRender = tickSquid;
   grp.add(mesh);
   if (c.glass) {
-    const glass = new THREE.Mesh(c.glass, glassMat);
+    const glass = new THREE.Mesh(c.glass, squid ? squid.fins : glassMat);
     glass.renderOrder = 2;
+    if (squid) glass.onBeforeRender = tickSquid;
     grp.add(glass);
   }
   const len = fishLength(sp, g);
@@ -151,6 +159,9 @@ function buildGeo(sp: number): { geo: THREE.BufferGeometry; glass: THREE.BufferG
       break;
     case 'chest':
       chestBox(parts, back, belly);
+      break;
+    case 'squid':
+      glass = squidGeometry(parts);
       break;
     default:
       plainFish(parts, back, belly, lookOf(f));

@@ -16,7 +16,7 @@ function labelTop(stepHeight:number):number { return labelBottom(stepHeight)+PAN
  * The small additive floor keeps tiny catches visible; it does not flatten their growth. */
 export function podiumFishLength(sp: number, grams: number): number {
   const f=FISH[sp];
-  const coefficient = f?.shape==='shark' ? .18 : f?.shape==='long' || f?.shape==='eel' ? .24 : f?.shape==='sword' ? .15 : f?.shape==='flat' || f?.shape==='ray' ? .13 : .125;
+  const coefficient = f?.shape==='shark' ? .18 : f?.shape==='long' || f?.shape==='eel' ? .24 : f?.shape==='sword' ? .15 : f?.shape==='flat' || f?.shape==='ray' ? .13 : f?.shape==='squid' ? .2 : .125;
   // Malformed legacy weights must not turn a trophy into geometry across the whole harbour.
   const g=Math.min(f?.g[1] ?? 1000, Number.isFinite(grams) ? Math.max(1,grams) : 1);
   return .12 + coefficient*Math.pow(g/1000,.4);

@@ -82,6 +82,9 @@ import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
 import { FishHouse3D } from './fishhouse.ts';
 import { FishDrink } from './fishdrink.ts';
+import { FishHolds } from './fishhold.ts';
+import { FishJumps } from './fishjumps.ts';
+import { setFishSnapRenderer } from './fishsnap.ts';
 import { Roulette3D } from './roulette3d.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { RAT_CENTER, RATS } from '../../shared/ratrace.ts';
@@ -230,6 +233,10 @@ export class LobbyScene implements Scene {
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
   private readonly fishDrink: FishDrink;
+  /** Сезон рыбалки: рыбы выпрыгивают у мест рыбалки (без сервера: ?fishseason или __opus.app.lobby.fishJumps.setDev(true)) */
+  readonly fishJumps: FishJumps;
+  /** Рыба в руках у желеек (рюкзак → «Взять в руки»; сервер рассылает fishHold) */
+  private readonly fishHolds: FishHolds;
   /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
   private readonly roulette3d: Roulette3D;
   /** Итог моей ставки: тост и звук — когда шарик остановится (после вращения у меня на экране) */
@@ -482,6 +489,11 @@ export class LobbyScene implements Scene {
     addFishPlaces3d(this.world.scene);
     this.fishHouse = new FishHouse3D(this.world.scene);
     this.fishDrink = new FishDrink(this.me, d.sound);
+    // картинка вида без нарисованной (кальмар) — снимок его 3D-модели общим рендером
+    setFishSnapRenderer(d.renderer.gl);
+    this.fishJumps = new FishJumps(this.world.scene, this.effects, d.sound, (x, z) => this.world.collision.groundBelow(x, 0, z) === -Infinity);
+    this.fishHolds = new FishHolds(this.hud.root);
+    this.fishHolds.onPutAway = () => d.net.send({ t: 'fishHold', n: -1 });
     this.roulette3d = new Roulette3D(this.world.scene);
     this.rat3d = new RatRace3D(this.world.scene);
     this.rat3d.onSqueak = (x, y, z) => d.sound.ratSqueak([x, y, z]);
@@ -674,6 +686,8 @@ export class LobbyScene implements Scene {
     this.fish2.reset();
     this.ratHud.reset();
     this.fishDrink.reset();
+    this.fishHolds.reset();
+    this.fishJumps.reset();
     this.myFishSpot = -1;
     this.aquaAt = 0;
     this.aquaFin = 0;
@@ -730,6 +744,8 @@ export class LobbyScene implements Scene {
     this.fish2.reset();
     this.ratHud.reset();
     this.fishDrink.reset();
+    this.fishHolds.reset();
+    this.fishJumps.reset();
     this.myFishSpot = -1;
     this.aquaAt = 0;
     this.aquaFin = 0;
@@ -754,6 +770,7 @@ export class LobbyScene implements Scene {
         return;
       case 'lobby':
         this.myId = msg.id;
+        this.fishHolds.setMe(msg.id);
         this.d.input.yaw = msg.yaw;
         this.d.input.pitch = -0.12;
         this.setInfos(msg.players);
@@ -979,6 +996,13 @@ export class LobbyScene implements Scene {
         break;
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
+        break;
+      case 'fishSeason':
+        this.fishJumps.setSeason(msg.on);
+        break;
+      case 'fishHold':
+        this.fishHolds.set(msg.id, msg.n, msg.sp, msg.g);
+        if (msg.id === this.myId) this.fish2.setHeld(this.fishHolds.myN);
         break;
       case 'tokens':
         this.fish2.refreshBalance();
@@ -1655,6 +1679,11 @@ export class LobbyScene implements Scene {
     }
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
+    // рыба в руках: Esc — убрать
+    if (code === 'Escape' && this.fishHolds.myN >= 0 && !this.fish2.bookOpen) {
+      this.d.net.send({ t: 'fishHold', n: -1 });
+      return true;
+    }
     // журнал рыбака (рыбалка 2.0): J — открыть или закрыть, Esc — закрыть
     if (this.fish2.bookOpen && code === 'Escape') {
       this.fish2.closeBook();
@@ -2093,6 +2122,7 @@ export class LobbyScene implements Scene {
     const camPos = this.world.camera.position;
     this.wirePartner(this.me);
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
+    this.fishHolds.update(dt, (id) => (id === this.myId ? (this.hasSelf ? this.me : null) : this.remotes.get(id)?.avatar ?? null));
     this.me.update(this.hasSelf ? this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose) : null, dt, this.time, this.ground, camPos, true);
     this.updateRemotes(dt);
     this.updateFishing(dt);
@@ -2109,6 +2139,7 @@ export class LobbyScene implements Scene {
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
     this.fishHouse.update(dt, this.time, camPos, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, camPos, this.hasSelf ? this.pose : null);
+    this.fishJumps.update(dt, camPos, lobbyQuality(this.d.settings.quality) === 'low');
     this.roulette3d.update(dt);
     this.updateRoulette();
     this.rat3d.update(dt, this.time, camPos);
@@ -2763,6 +2794,7 @@ export class LobbyScene implements Scene {
       storm: this.stormState, pirates: { ...this.pirateState, visible: this.pirateTail.visible, actors: this.pirateTail.pirates.length }, critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
+      fishHold: this.fishHolds.of(this.myId), fishJumps: { on: this.fishJumps.on, flying: this.fishJumps.flying },
       weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },

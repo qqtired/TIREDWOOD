@@ -43,15 +43,17 @@ export const T_LEGEND = 3;
 export const T_MYTH = 4;
 export const T_JUNK = 5;
 export const T_CHEST = 6;
-export const TIER_NAMES = ['обычная', 'редкая', 'эпическая', 'легендарная', 'мифическая', 'находка', 'сундук'] as const;
+// ВРЕМЕННО (ветка feat/fishB): тир «Божественный» и его подписи придут от A — при слиянии взять его версию
+export const T_DIVINE = 7;
+export const TIER_NAMES = ['обычная', 'редкая', 'эпическая', 'легендарная', 'мифическая', 'находка', 'сундук', 'божественная'] as const;
 /** Во множественном числе — для журнала */
-export const TIER_TITLES = ['Обычные', 'Редкие', 'Эпические', 'Легендарные', 'Мифические', 'Находки', 'Сундук'] as const;
+export const TIER_TITLES = ['Обычные', 'Редкие', 'Эпические', 'Легендарные', 'Мифические', 'Находки', 'Сундук', 'Божественные'] as const;
 /** Коротко — для полосы «Шансы сейчас» */
-export const TIER_SHORT = ['обычн.', 'редк.', 'эпик', 'лег.', 'миф.', 'хлам', 'сундук'] as const;
+export const TIER_SHORT = ['обычн.', 'редк.', 'эпик', 'лег.', 'миф.', 'хлам', 'сундук', 'бож.'] as const;
 /** Цвет категории: рамки, подписи, шкала */
-export const TIER_CSS = ['#8f9aa3', '#2f86d8', '#9a4ee0', '#eb9a12', '#e8364f', '#8a7766', '#d9a521'] as const;
+export const TIER_CSS = ['#8f9aa3', '#2f86d8', '#9a4ee0', '#eb9a12', '#e8364f', '#8a7766', '#d9a521', '#f2c94c'] as const;
 /** Новый вид в коллекции — бонус, жетонов (один раз) */
-export const NEW_BONUS2 = [5, 10, 20, 40, 100, 0, 0] as const;
+export const NEW_BONUS2 = [5, 10, 20, 40, 100, 0, 0, 0] as const;
 /** С этой категории улов объявляется в общем чате */
 export const ANNOUNCE_TIER = T_EPIC;
 
@@ -207,6 +209,9 @@ const RAW: Record<string, Raw> = {
   wahoo: { tier: T_EPIC, zone: 'barkas', bite: 150, rain: true, val: [12.3, 31.4], xpBase: 34.5, pat: ['Zigzag', 'DoubleDash'], note: 'самый быстрый: длинные рывки зигзагом' },
   blueshark: { tier: T_EPIC, zone: 'barkas', bite: 120, rain: true, val: [11.4, 29.4], xpBase: 34.5, pat: ['Circle', 'FakeDash'], note: 'кружит и обманывает' },
   hammerhead: { tier: T_LEGEND, zone: 'barkas', bite: 30, rain: true, val: [38.3, 106.1], xpBase: 35.7, pat: ['Circle', 'EdgeSnapback'], note: 'широкие круги и рывки к краю' },
+
+  // ВРЕМЕННО (ветка feat/fishB): кальмар не клюёт (bite 0) — строку с шансами и ценой даст A
+  kalmar: { tier: T_DIVINE, zone: 'barkas', bite: 0, rain: false, val: [400, 900], pat: ['Circle', 'Sound'], note: 'царь морей' },
 
   // --- не рыбы: лежат мёртвым грузом
   boot: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
