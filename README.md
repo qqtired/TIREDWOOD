@@ -1150,7 +1150,7 @@ Jelly Arena — прошлая игра на game.tired.solutions, её напи
 предыдущий релиз. На сервере хранятся пять последних релизов.
 
 Флаги режимов на сайте — строки `Environment=…=1` в [deploy/game-opus.service](deploy/game-opus.service): сейчас включены
-`FORTRESS`, `FIGHT`, `FISH2`, `SKILL`, `BOATRACE`, `HIDE`, `STORM`, `PIRATES`, `VOICE`, `GIFTS`, `LAB`, `JUKEBOX`, `ROULETTE`. Блок nginx для `/lab/` лежит в `deploy/game.nginx.conf` и ставится вручную (на сервере стоит с релиза `20261003-185704`): `deploy.sh` nginx не меняет. Служба при выкладке ставится
+`FORTRESS`, `FIGHT`, `FISH2`, `SKILL`, `BOATRACE`, `HIDE`, `STORM`, `PIRATES`, `VOICE`, `GIFTS`, `LAB`, `JUKEBOX`, `ROULETTE`, `RATRACE`, `BILLIARDS`, `PLANE`, `VOTEKICK`. Пошаговый чек-лист выкладки — в [AGENTS.md](AGENTS.md) (раздел 10). Блок nginx для `/lab/` лежит в `deploy/game.nginx.conf` и ставится вручную (на сервере стоит с релиза `20261003-185704`): `deploy.sh` nginx не меняет. Служба при выкладке ставится
 из архива, поэтому смена флага — это правка этого файла и новый релиз. Настройки TURN для голоса служба берёт из
 закрытого файла окружения на сервере. Сам TURN (coturn) — отдельная служба, `deploy.sh` её не трогает; как она
 устроена и как её обновлять — [deploy/voice-relay/](deploy/voice-relay/).
