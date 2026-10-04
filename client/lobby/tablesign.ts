@@ -31,6 +31,10 @@ const FONT = 'Rubik, system-ui, sans-serif';
 const BASE_W = 1.7;
 const FAR_FROM = 5;
 const FAR_MAX = 2;
+/** Камера ближе NEAR_HIDE — табличку не видно, к NEAR_FULL проявляется: у бильярда камера за спиной игрока у стола
+ * проходит сквозь табличку соседнего стола, и та закрывала весь экран */
+const NEAR_HIDE = 0.9;
+const NEAR_FULL = 2.2;
 
 interface Theme {
   top: string;
@@ -317,6 +321,7 @@ export class TableSign {
     this.sprite.position.y = this.baseY + Math.sin(time * 1.5 + this.phase) * 0.03;
     this.sprite.getWorldPosition(_wp);
     const d = _wp.distanceTo(camPos);
+    this.sprite.material.opacity = Math.min(1, Math.max(0, (d - NEAR_HIDE) / (NEAR_FULL - NEAR_HIDE)));
     const k = Math.min(FAR_MAX, Math.max(1, d / FAR_FROM));
     const w = this.baseW * k;
     this.sprite.scale.set(w, w * (H / W), 1);
