@@ -76,7 +76,9 @@ function buildYard(ctx: VenueCtx): Venue {
     });
   }
   w.box('plank', [gx - half - 0.4, 3.4, gz - 0.22], [gx + half + 0.4, 3.74, gz + 0.22], TIMBER_DARK);
-  v.sign({ w: 3.7, h: 0.98, x: gx, y: 2.82, z: gz, ry: Math.PI, frame: 0x6b4423, bulbs: 0xfff0c0, glow: 0.42, halo: 0xfff0c0, haloK: 0.12, draw: drawYardSign });
+  const yardSign = v.sign({ w: 3.7, h: 0.98, x: gx, y: 2.82, z: gz, ry: Math.PI, frame: 0x6b4423, bulbs: 0xfff0c0, glow: 0.42, halo: 0xfff0c0, haloK: 0.12, draw: drawYardSign });
+  // с двора (с юга) видна обратная сторона: тот же рисунок, а не голая доска
+  v.group.add(wallPlate(yardSign.panel.material.map!, gx, 2.82, gz + 0.14, 3.7, 0.98, 0, 0.35));
   // флюгер-рыба над серединой балки
   d.rod([gx, 3.74, gz], [gx, 4.3, gz], 0.025, IRON, 6);
   d.ball(0.26, gx, 4.55, gz, 0xd7e1e8, 10, 8, 1.7, 0.85, 0.3);
@@ -262,7 +264,8 @@ function buildRegatta(ctx: VenueCtx): { venue: Venue; bobs: Bob[] } {
   }
   const yardY = 6.2;
   d.box(m1.x - m0.x, 0.08, 0.08, cx, yardY, m0.z, WHITE);
-  v.sign({ w: 4.9, h: 1.4, x: cx, y: 4.35, z: m0.z - 0.12, ry: Math.PI, frame: 0x14275c, bulbs: 0xfff0b0, glow: 0.42, halo: 0x8fb8ff, haloK: 0.16, draw: drawRegattaSign });
+  const regattaSign = v.sign({ w: 4.9, h: 1.4, x: cx, y: 4.35, z: m0.z - 0.12, ry: Math.PI, frame: 0x14275c, bulbs: 0xfff0b0, glow: 0.42, halo: 0x8fb8ff, haloK: 0.16, draw: drawRegattaSign });
+  v.group.add(wallPlate(regattaSign.panel.material.map!, cx, 4.35, m0.z - 0.12 + 0.14, 4.9, 1.4, 0, 0.35));
   for (const sx of [-1, 1]) {
     d.rod([cx + sx * 2.5, yardY - 0.04, m0.z], [cx + sx * 2.5, 5.2, m0.z - 0.12], 0.014, 0xd9c9a0, 4);
   }
@@ -298,7 +301,8 @@ function buildBoat(ctx: VenueCtx): { venue: Venue; plate: LinePlate } {
   }
   d.box(x1 - x0 + 0.5, 0.2, 0.3, cx, 3.7, z, WHITE);
   d.box(x1 - x0 + 0.5, 0.05, 0.32, cx, 3.82, z, NAVY);
-  v.sign({ w: 4.9, h: 1.1, x: cx, y: 2.95, z, ry: Math.PI, frame: NAVY, bulbs: 0xfff0c0, glow: 0.42, halo: 0xbfe0ff, haloK: 0.12, draw: drawBoatGateSign });
+  const gateSign = v.sign({ w: 4.9, h: 1.1, x: cx, y: 2.95, z, ry: Math.PI, frame: NAVY, bulbs: 0xfff0c0, glow: 0.42, halo: 0xbfe0ff, haloK: 0.12, draw: drawBoatGateSign });
+  v.group.add(wallPlate(gateSign.panel.material.map!, cx, 2.95, z + 0.14, 4.9, 1.1, 0, 0.35));
   for (const sx of [-1, 1]) v.flags.pennant(cx + sx * 3.0, 3.95, z, 0.9, 0.3, sx > 0 ? RED : YELLOW, sx > 0 ? 0 : Math.PI, sx + 1.3);
 
   // строка статуса катера — живая: свободен / посадка / в поездке; висит под вывеской на двух цепях

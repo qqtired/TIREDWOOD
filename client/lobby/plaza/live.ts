@@ -75,7 +75,7 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
     case 'hide': {
       const h = s.hide;
       if (!h) return [];
-      if (h.phase === 'gather') return [cut(`Сбор в рыбном дворе: ${h.n} из ${h.max}. Нужно двое!`)];
+      if (h.phase === 'gather') return [h.n > 0 ? cut(`Сбор в рыбном дворе: ${h.n} из ${h.max}. Нужно двое!`) : 'Во дворе пока никого. Зови друзей — нужно двое!'];
       return ['Прячутся! Дождись окончания раунда'];
     }
     case 'regatta': {
