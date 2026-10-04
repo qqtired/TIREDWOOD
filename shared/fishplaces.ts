@@ -1,6 +1,6 @@
 // Общие координаты рыбацкого причала: серверная коллизия и клиентская сцена используют один настил.
 // X — восток, Z — юг; yaw=0 — север. Старые шесть мест идут первыми: их arg и interaction ID не меняются.
-import { BARKAS_DECK_Y, BARKAS_FISH_SPOTS, BARKAS_ROULETTE, SANYA_USE } from './barkas.ts';
+import { BARKAS_DECK_Y, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, BARKAS_ROULETTE, SANYA_USE } from './barkas.ts';
 
 export interface FishPlaceBox {
   x0: number;
@@ -31,7 +31,7 @@ export const FISH_BARKAS_COUNT = BARKAS_FISH_SPOTS.length;
 /**
  * Пирс дальше в море (выпуск «рыбалка C»): от южного края площадки маяка — дальние мостки шириной 3 м (между местами
  * 10 и 11, их забросы идут вдоль мостков в воду), на конце — широкая площадка («голова» пирса) с домом рыбака Семёна
- * у южного края. Верх настилов — y = 0, как у мостков. Лодка «Удалая» обходит пирс с востока и юга (shared/ferry.ts).
+ * у южного края. Верх настилов — y = 0, как у мостков. Лодка «Удалая» стоит за домом, у южного края (shared/ferry.ts).
  */
 export const FISH_PIER2: FishPlaceBox = { x0: -20.5, y0: -0.6, z0: 46, x1: -17.5, y1: 0, z1: 54 };
 export const FISH_PIER_HEAD: FishPlaceBox = { x0: -25.5, y0: -0.6, z0: 54, x1: -12.5, y1: 0, z1: 64 };
@@ -74,10 +74,18 @@ export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   { x: -21.65, z: 45.45, yaw: Math.PI },
   { x: -16.35, z: 45.45, yaw: Math.PI },
   // Восемь мест вдоль бортов баркаса «Альбатрос» (zone: 'barkas') — только в конец: номера прежних мест не меняются.
-  ...BARKAS_FISH_SPOTS,
+  ...BARKAS_FISH_SPOTS.slice(0, BARKAS_FISH_FIRST),
   // Восемь мест на дальних мостках и у дома рыбака (пристань) — снова в конец: номера мест баркаса не меняются.
   ...FISH_FAR_SPOTS,
+  // Ещё два места на удлинённом баркасе — опять в конец: номера всех прежних мест те же.
+  ...BARKAS_FISH_SPOTS.slice(BARKAS_FISH_FIRST),
 ];
+/** Номер в FISH_SPOTS первого места на дальних мостках */
+export const FISH_FAR_FIRST = FISH_ISLAND_COUNT + BARKAS_FISH_FIRST;
+/** Номер в FISH_SPOTS i-го места баркаса (BARKAS_FISH_SPOTS): первые восемь — подряд за островом, остальные — в конце */
+export function barkasSpotIndex(i: number): number {
+  return i < BARKAS_FISH_FIRST ? FISH_ISLAND_COUNT + i : FISH_FAR_FIRST + FISH_FAR_SPOTS.length + (i - BARKAS_FISH_FIRST);
+}
 
 /** Пристань или баркас: место рыбалки по номеру. */
 export function spotZone(spot: number): FishZone {

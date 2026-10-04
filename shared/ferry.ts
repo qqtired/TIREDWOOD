@@ -1,11 +1,13 @@
-// Лодка Семёна «Удалая»: рейсы по требованию между мостками у маяка и баркасом «Альбатрос» (shared/barkas.ts).
+// Лодка Семёна «Удалая»: рейсы по требованию между причалом за хижиной Семёна (на конце пирса) и баркасом «Альбатрос»
+// (shared/barkas.ts).
 // Общее для сервера и клиента: стоянки, места, оба пути и где лодка в каждый тик рейса. Сервер по этому двигает
 // пассажиров, клиент рисует лодку по тем же часам — желейки сидят ровно на банках (как у «Ласточки», shared/boat.ts).
 //
 // Рейс по требованию: лодка ждёт у Семёна. Первый сел — отход через 10 с (все места заняты — через 3 с). У баркаса
-// высадка, 12 с ждёт обратных пассажиров и в любом случае идёт назад. С баркаса лодку зовут колоколом у калитки:
-// пустая лодка выходит через 3 с. Обратно лодка подходит к мосткам носом на север и разворачивается на месте
-// (у стенки корма отходит от неё) — в тупиковом канале у маяка по-другому не развернуться.
+// высадка, 12 с ждёт обратных пассажиров и в любом случае идёт назад: сначала разворачивается на месте у транца (нос
+// с юга через восток на север — дальше на юг снимок не пускает, shared/barkas.ts), у причала подходит носом на север
+// (поперёк края площадки) и снова разворачивается на месте — носом на запад, бортом к причалу, не задевая настил и сваи.
+import { BARKAS } from './barkas.ts';
 import { TICK_RATE, WATER_Y } from './constants.ts';
 import type { Vec3 } from './maps/types.ts';
 
@@ -32,15 +34,16 @@ export interface FerryPose {
   yaw: number;
 }
 
-/** Стоянка у Семёна: вдоль восточного края площадки маяка, нос на юг (правый борт — к настилу) */
-export const FERRY_HOME: FerryPose = { x: -12.85, z: 39.6, yaw: Math.PI };
+/**
+ * Стоянка у Семёна: за его хижиной, вдоль южного края площадки на конце пирса (shared/fishplaces.ts — FISH_PIER_HEAD,
+ * край z 64), нос на запад (правый борт — к настилу). Борт — по линии свай перед краем (x −25,25 и −19, до z 64,47):
+ * между ними, и на отходе на запад нос проходит мимо угловой сваи.
+ */
+export const FERRY_HOME: FerryPose = { x: -22.45, z: 65.62, yaw: Math.PI / 2 };
 /** Стоянка у баркаса: у транца, нос на юг (правый борт — к калитке) */
-export const FERRY_AWAY: FerryPose = { x: -44.5, z: 68, yaw: Math.PI };
+export const FERRY_AWAY: FerryPose = { x: BARKAS.stern + 1.5, z: BARKAS.z, yaw: Math.PI };
 /** Пол лодки — над водой на 0,3 м (как у катера); сидят на банках выше на BOAT_SIT_LIFT */
 export const FERRY_FLOOR_Y = WATER_Y + 0.3;
-/** Корпус 5 × 2,2 м: половины длины и ширины (для проверок зазоров) */
-export const FERRY_HALF_L = 2.5;
-export const FERRY_HALF_B = 1.1;
 /**
  * Места: в осях лодки (x — к правому борту, z — к корме), лицом к носу. Банки — от носа к корме, по двое; у правого
  * борта (к причалу) — первые.
@@ -51,37 +54,56 @@ export const FERRY_SEAT_AT: ReadonlyArray<readonly [number, number]> = [
 /** Моторист Гоша — на корме у румпеля, с левого борта (правый — к причалу, там садятся) */
 export const FERRY_GOSHA: readonly [number, number] = [-0.5, 2.15];
 
-/** Табличка «Удалой» на столбике у стоянки (северо-восточный угол площадки маяка), лицом к мосткам — на север */
-export const FERRY_SIGN = { x: -14.4, z: 38.35 } as const;
-
-/** Куда высаживают у Семёна (на площадку маяка у стоянки, лицом к острову) и куда отправляет Саня */
-export const FERRY_HOME_LANDING = { x: -15.6, z: 39.6, yaw: 0 } as const;
-export const FERRY_HOME_SPOTS: ReadonlyArray<readonly [number, number]> = [
-  [-15.1, 38.9], [-15.1, 39.9], [-15.1, 40.9], [-16.1, 38.9], [-16.1, 39.9], [-16.1, 40.9],
-];
+/** Табличка «Удалой» на столбике у угла хижины (за бочками у западной стены), лицом на север — к идущим с мостков */
+export const FERRY_SIGN = { x: -22.75, z: 61.35 } as const;
+/**
+ * Где садиться (E): точка — над носовой банкой лодки, достаёт с юго-западного угла площадки у хижины (и не задевает
+ * места рыбалки на краях площадки)
+ */
+export const FERRY_HOME_BOARD = { x: -23.6, z: 64.95, yaw: Math.PI, r: 1.9 } as const;
 
 /**
- * Путь к баркасу: от мостков на юг вдоль восточного края дальних мостков и площадки с домом рыбака
- * (shared/fishplaces.ts — FISH_PIER_HEAD), мимо дома с юга, дальше на запад и к корме баркаса с севера.
+ * Куда высаживают у Семёна (на площадку у хижины, к западу от неё, лицом к мосткам) и куда отправляет Саня: у лодки
+ * и вдоль западной стены — мимо бочек, таблички и места рыбалки на западном краю.
+ */
+export const FERRY_HOME_LANDING = { x: -24.2, z: 62.4, yaw: 0 } as const;
+export const FERRY_HOME_SPOTS: ReadonlyArray<readonly [number, number]> = [
+  [-24.95, 63.35], [-24.0, 63.35], [-24.95, 62.4], [-24.0, 62.4], [-23.45, 60.95], [-23.45, 60.0],
+];
+
+/** Корпус 5 × 2,2 м: половины длины и ширины (для проверок зазоров) */
+export const FERRY_HALF_L = 2.5;
+export const FERRY_HALF_B = 1.1;
+/** Откуда начинается разворот у причала: нос на север, у линии свай */
+const PIVOT_FROM = { x: FERRY_HOME.x, z: FERRY_HOME.z + FERRY_HALF_L - FERRY_HALF_B };
+
+/**
+ * Путь к баркасу: от причала за хижиной на запад, вдоль сваи у угла с зазором, дальше на юго-запад — западнее петли
+ * «Ласточки» (shared/boat.ts) и восточнее аквапарка, и к корме баркаса с севера.
  */
 const OUT_POINTS: ReadonlyArray<readonly [number, number]> = [
-  [FERRY_HOME.x, FERRY_HOME.z], [-12.3, 42.4], [-11.1, 45.8], [-9.6, 50.5], [-9.1, 56], [-9.2, 61.5], [-10.6, 65.6], [-14.5, 68.1],
-  [-20.5, 68.6], [-27, 67.6], [-32.5, 64.6], [-37.3, 61], [-41.4, 60.2], [-43.8, 62], [-44.4, 65], [FERRY_AWAY.x, FERRY_AWAY.z],
+  [FERRY_HOME.x, FERRY_HOME.z], [-26, 66.4], [-30.5, 68.6], [-34.5, 73], [-37.5, 80], [-39.5, 89], [-40.8, 98.5], [-41.6, 106.5],
+  [FERRY_AWAY.x, FERRY_AWAY.z - 5.5], [FERRY_AWAY.x, FERRY_AWAY.z],
 ];
-/** Путь назад: от кормы на юг, петлёй на восток, мимо дома рыбака с юга, вверх вдоль дальних мостков — к мосткам у маяка */
+/**
+ * Путь назад (после разворота у транца носом на север): на север западнее петли «Ласточки», к хижине с юго-запада
+ * и последние метры — носом на север, поперёк края площадки (потом — разворот на месте).
+ */
 const BACK_POINTS: ReadonlyArray<readonly [number, number]> = [
-  [FERRY_AWAY.x, FERRY_AWAY.z], [-44.45, 72.6], [-43.9, 75.6], [-41.6, 77.6], [-38.2, 77], [-35.2, 73.8], [-30, 70.4], [-23, 69.4],
-  [-16, 69.2], [-11, 67.4], [-8.4, 63], [-8.2, 57], [-9, 52], [-10.3, 48.6], [-10.9, 46.2], [-12.2, 42.6], [FERRY_HOME.x, FERRY_HOME.z],
+  [FERRY_AWAY.x, FERRY_AWAY.z], [FERRY_AWAY.x + 0.1, FERRY_AWAY.z - 5.5], [-40.6, 104], [-38.6, 95], [-36.4, 86.5], [-32.4, 78.8],
+  [-27.8, 73.9], [-24.2, 71.2], [-22.6, 69], [PIVOT_FROM.x, PIVOT_FROM.z],
 ];
 
 /** Ход: ровно 3,6 м/с, разгон и торможение по 2,5 с; у стоянок нос плавно сводится к курсу стоянки на последних 4 м */
 export const FERRY_SPEED = 3.6;
 const EASE_S = 2.5;
 const DOCK_BLEND_M = 4;
-/** Разворот у мостков: 4 с, нос уходит от стенки (через восток), корма отходит от неё — лодка не задевает настил */
-const PIVOT_S = 4;
+/** Разворот у причала: 3 с, нос с севера через северо-запад на запад, корма отходит от края площадки и подходит к нему бортом */
+const PIVOT_S = 3;
 /** Зазор до стенки на развороте, м */
 const PIVOT_GAP = 0.05;
+/** Разворот у баркаса перед обратным рейсом: 4 с, нос с юга через восток на север, западный край — у транца */
+const AWAY_PIVOT_S = 4;
 
 const SAMPLES_PER_SEG = 32;
 
@@ -190,37 +212,51 @@ function smooth(k: number): number {
 }
 
 const OUT = new Path(OUT_POINTS, FERRY_HOME.yaw, FERRY_AWAY.yaw);
-/** Назад подходит носом на север (yaw 0) — потом разворот на месте */
-const BACK = new Path(BACK_POINTS, FERRY_AWAY.yaw, 0);
+/** Назад — после разворота у транца (нос на север) и подходит носом на север, поперёк края площадки — потом разворот на месте */
+const BACK = new Path(BACK_POINTS, 0, 0);
 
 /** Сколько идёт рейс туда и обратно (с разворотом у мостков), тиков */
 export const FERRY_OUT_TICKS = Math.ceil(OUT.secs * TICK_RATE);
-export const FERRY_BACK_TICKS = Math.ceil((BACK.secs + PIVOT_S) * TICK_RATE);
+export const FERRY_BACK_TICKS = Math.ceil((AWAY_PIVOT_S + BACK.secs + PIVOT_S) * TICK_RATE);
 /** Длины путей, м (для проверок) */
 export const FERRY_OUT_LEN = OUT.len;
 export const FERRY_BACK_LEN = BACK.len;
 
-/** Разворот у мостков через t с после подхода: нос через восток с севера на юг, корма отходит от стенки и возвращается */
+/** Разворот у причала через t с после подхода: нос с севера на запад, северный край корпуса — у края площадки */
 function pivotPose(t: number, out: FerryPose): FerryPose {
   const k = smooth(Math.min(1, Math.max(0, t / PIVOT_S)));
-  const a = -Math.PI * k;
-  // западный край корпуса при повороте a: половина ширины · |cos| + половина длины · |sin| — держим его у стенки
+  const a = FERRY_HOME.yaw * k;
+  // северный край корпуса при курсе a: половина длины · |cos| + половина ширины · |sin| — держим его у края площадки
+  const reach = FERRY_HALF_L * Math.abs(Math.cos(a)) + FERRY_HALF_B * Math.abs(Math.sin(a));
+  out.x = FERRY_HOME.x;
+  out.z = FERRY_HOME.z + (reach - FERRY_HALF_B) + PIVOT_GAP * Math.sin(Math.PI * k);
+  out.yaw = a;
+  return out;
+}
+
+/** Разворот у баркаса через t с после начала обратного рейса: нос с юга через восток на север, корма — у транца */
+function awayPivotPose(t: number, out: FerryPose): FerryPose {
+  const k = smooth(Math.min(1, Math.max(0, t / AWAY_PIVOT_S)));
+  const a = FERRY_AWAY.yaw + Math.PI * k;
+  // западный край корпуса (к транцу) при курсе a: половина ширины · |cos| + половина длины · |sin|
   const reach = FERRY_HALF_B * Math.abs(Math.cos(a)) + FERRY_HALF_L * Math.abs(Math.sin(a));
-  out.x = FERRY_HOME.x + (reach - FERRY_HALF_B) + PIVOT_GAP * Math.sin(Math.PI * k);
-  out.z = FERRY_HOME.z;
+  out.x = FERRY_AWAY.x + (reach - FERRY_HALF_B) + PIVOT_GAP * Math.sin(Math.PI * k);
+  out.z = FERRY_AWAY.z;
   out.yaw = a;
   return out;
 }
 
 /**
  * Где лодка в тик tick, если сейчас фаза ph с тиком at (FerryStatus): в рейсе — на пути по часам, иначе у стоянки.
- * В конце обратного рейса — разворот на месте; yaw тогда от 0 до −π (−π и π — один и тот же курс стоянки).
+ * Обратный рейс — разворот у транца (yaw от π до 2π), путь и разворот у причала (yaw от 0 до π/2 — курс стоянки).
  */
 export function ferryPose(ph: number, at: number, tick: number, out: FerryPose = { x: 0, z: 0, yaw: 0 }): FerryPose {
   if (ph === FE_OUT) return OUT.pose((tick - at) / TICK_RATE, out);
   if (ph === FE_BACK) {
     const t = (tick - at) / TICK_RATE;
-    return t < BACK.secs ? BACK.pose(t, out) : pivotPose(t - BACK.secs, out);
+    if (t < AWAY_PIVOT_S) return awayPivotPose(t, out);
+    const u = t - AWAY_PIVOT_S;
+    return u < BACK.secs ? BACK.pose(u, out) : pivotPose(u - BACK.secs, out);
   }
   const d = ph === FE_AWAY ? FERRY_AWAY : FERRY_HOME;
   out.x = d.x;

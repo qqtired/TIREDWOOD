@@ -30,15 +30,16 @@ function supportedAndClear(w: CollisionWorld, x: number, z: number, why: string)
   assert.ok(!w.overlaps(x - PLAYER_HALF, 0.002, z - PLAYER_HALF, x + PLAYER_HALF, PLAYER_HEIGHT, z + PLAYER_HALF), `${why}: капсула вне твёрдых предметов`);
 }
 
-test('у пристани 20 мест: 8 на мостках, 4 у маяка, (8 на баркасе), 8 на дальних мостках и у дома; прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
+test('у пристани 20 мест: 8 на мостках, 4 у маяка, (8 на баркасе), 8 на дальних мостках и у дома, (ещё 2 на баркасе); прежние позиции и все interaction IDs сохранены, новое — в конце', () => {
   const map = buildLobby();
   const pier = FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier');
   assert.equal(pier.length, 20);
-  assert.equal(FISH_SPOTS.length, 28);
+  assert.equal(FISH_SPOTS.length, 30);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
   assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
   assert.ok(FISH_SPOTS.slice(12, 20).every((s) => s.zone === 'barkas'), 'места баркаса — сразу после мест у маяка, номера прежние');
-  assert.deepEqual(FISH_SPOTS.slice(20), FISH_FAR_SPOTS, 'дальние мостки и дом — в самом конце');
+  assert.deepEqual(FISH_SPOTS.slice(20, 28), FISH_FAR_SPOTS, 'дальние мостки и дом — после баркаса');
+  assert.ok(FISH_SPOTS.slice(28).every((s) => s.zone === 'barkas'), 'ещё два места удлинённого баркаса — в самом конце');
   assert.ok(FISH_FAR_SPOTS.every((s) => (s.zone ?? 'pier') === 'pier'));
   assert.equal(pier.filter((s) => s.z < 38).length, 8);
   assert.equal(pier.filter((s) => s.z >= 38 && s.z < 46).length, 4);
@@ -54,7 +55,7 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса), места дальних мостков и площадки у дома рыбака, три бильярдных стола, гидроплан и заказ баннера (PLANE)
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
     ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
-      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0']);
+      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29']);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');
@@ -89,9 +90,9 @@ test('каждое новое место достижимо от входа на
 
 test('новые места не перекрывают фото, декорации рыбаков, снасти, кнехты и прочие старые interactions', () => {
   const map = buildLobby();
-  // рыбаки-декорации с ведром и термосом (client/lobby/folk.ts): один — в юго-западном углу площадки у дома рыбака,
-  // второй — у западного края площадки маяка
-  const props: Point[] = [[-24.95, 63.3], [-24.3, 63.75], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
+  // рыбаки-декорации с ведром и термосом (client/lobby/folk.ts): один — в юго-восточном углу площадки у дома рыбака
+  // (юго-западный — у причала «Удалой»), второй — у западного края площадки маяка
+  const props: Point[] = [[-13.05, 63.3], [-13.7, 62.85], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
   for (const [n, s] of [...NEW_SPOTS, ...FISH_FAR_SPOTS].entries()) {
     for (const p of props) assert.ok(Math.hypot(s.x - p[0], s.z - p[1]) > 1.3, `место ${n + 6}: проход возле старого предмета ${p}`);
     for (const it of map.interact.filter((i) => i.kind !== 'fish' && i.kind !== 'fisher')) {

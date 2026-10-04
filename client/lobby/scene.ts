@@ -193,7 +193,7 @@ const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
 /** Катер у причала — пока статуса с сервера нет (в меню) */
 const BOAT_DOCKED: BoatStatus = { ph: BP_DOCK, at: 0, n: 0, nick: '' };
-/** Лодка «Удалая» у мостков Семёна — пока статуса с сервера нет */
+/** Лодка «Удалая» у причала за хижиной Семёна — пока статуса с сервера нет */
 const FERRY_DOCKED: FerryStatus = { ph: FE_HOME, at: 0, n: 0, c: 0 };
 
 export class LobbyScene implements Scene {
@@ -1222,7 +1222,7 @@ export class LobbyScene implements Scene {
   private checkFerryLevel(xp: number): void {
     const lvl = fishLevel(xp);
     if (this.fishLvl >= 0 && this.fishLvl < FERRY_LEVEL && lvl >= FERRY_LEVEL) {
-      this.d.ui.toasts.show('Семён берёт тебя в море! Лодка «Удалая» ждёт у его мостков — на баркас «Альбатрос»');
+      this.d.ui.toasts.show('Семён берёт тебя в море! Лодка «Удалая» ждёт за его хижиной на конце пирса — на баркас «Альбатрос»');
     }
     this.fishLvl = lvl;
   }
@@ -2879,7 +2879,7 @@ export class LobbyScene implements Scene {
   }
 
   /**
-   * Лодка «Удалая»: у мостков Семёна (arg 0) — сесть (с FERRY_LEVEL-го уровня рыбалки) или когда вернётся; у калитки
+   * Лодка «Удалая»: у причала за хижиной Семёна (arg 0) — сесть (с FERRY_LEVEL-го уровня рыбалки) или когда вернётся; у калитки
    * баркаса (arg 1) — сесть или позвонить в колокол.
    */
   private hintFerry(arg: number): void {
@@ -2894,7 +2894,7 @@ export class LobbyScene implements Scene {
       return;
     }
     if (f.ph !== FE_HOME && f.ph !== FE_BOARD) {
-      this.hud.setHint([], `«Удалая» в море · вернётся к мосткам через ${Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)} с`);
+      this.hud.setHint([], `«Удалая» в море · вернётся к хижине Семёна через ${Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)} с`);
       return;
     }
     const xp = this.d.ui.me().fishing?.xp ?? 0;

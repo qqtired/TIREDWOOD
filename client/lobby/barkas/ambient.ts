@@ -86,7 +86,7 @@ export class BarkasAudio {
     }
     if (this.nextClink <= 0) {
       this.nextClink = 15 + Math.random() * 20;
-      this.clink(-71.5, 0.8, BARKAS.z);
+      this.clink(BARKAS.x - 14, 0.8, BARKAS.z);
     }
     if (this.nextGull <= 0) {
       this.nextGull = 9 + Math.random() * 16;

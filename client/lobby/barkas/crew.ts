@@ -14,7 +14,7 @@ import type { Smoke } from './smoke.ts';
 /** Чем занят матрос Витёк */
 export type MatrosPhase = 'stand' | 'smoke' | 'swab' | 'sea';
 
-/** Дальше — экипажа не видно (с площади ≈90 м люди с палец — не рисуем, с мостков Семёна ≈55 м — видно);
+/** Дальше — экипажа не видно (с площади ≈130 м люди с палец — не рисуем, от хижины Семёна ≈65–70 м — видно);
  *  дальше LAZY — анимация 8 раз в секунду */
 const HIDE = 75;
 const LAZY = 40;
@@ -63,7 +63,7 @@ function wrap(a: number): number {
  * Повернуть руку так, чтобы кисть оказалась в точке (x, y, z) в осях туловища (плечо — arm.position, длина руки до
  * кисти ~0,38 м: дальше — тянется по направлению). Положительный rotation.x — вперёд (к −Z), z — в сторону.
  */
-function reach(arm: THREE.Group, x: number, y: number, z: number, k = 1): void {
+export function reach(arm: THREE.Group, x: number, y: number, z: number, k = 1): void {
   const dx = x - arm.position.x;
   const dy = y - arm.position.y;
   const dz = z - arm.position.z;

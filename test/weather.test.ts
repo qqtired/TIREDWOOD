@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { makeRng } from '../shared/math.ts';
 import { CLEAR_TICKS, RAIN_TICKS, Weather, weatherMode } from '../server/lobby/weather.ts';
 import { TICK_RATE } from '../shared/constants.ts';
-import { landDist, rainAt, rainEvent, rainPlan, rainStrikes, seedOf, stormRumbles, stormStrikes, strikeClear, STRIKE_CLEAR, type RainEvent } from '../shared/weather.ts';
+import { BARKAS_AT, landDist, rainAt, rainEvent, rainPlan, rainStrikes, seedOf, stormRumbles, stormStrikes, strikeClear, STRIKE_CLEAR, type RainEvent } from '../shared/weather.ts';
 import { allOf, lastOf, login, setupHub, steps } from './kit.ts';
 
 test('погода: сначала ясно, дальше ясно и дождь по очереди, каждый — в своих сроках', () => {
@@ -112,8 +112,8 @@ test('кривая дождя: тот же сид — та же погода; т
     }
     if (!p.storm) assert.equal(rainStrikes(ev, p).length, 0, 'без грозы — без молний');
   }
-  // суша, отмель у мостков, аквапарк и баркас — не цели
-  for (const [x, z] of [[0, 0], [10, -40], [-15, 25], [-19, 43], [-60, 68], [-50, 20], [-60, 600]]) assert.equal(strikeClear(x, z), false, `${x}, ${z}`);
+  // суша, отмель у мостков, пирс с хижиной Семёна, аквапарк и баркас — не цели
+  for (const [x, z] of [[0, 0], [10, -40], [-15, 25], [-19, 43], [-19, 62], [BARKAS_AT.x, BARKAS_AT.z], [-50, 20], [-60, 600]]) assert.equal(strikeClear(x, z), false, `${x}, ${z}`);
   assert.equal(strikeClear(-40, 240), true);
   // шторм маяка: удары чаще, на всё время шторма; перед ним — далёкие раскаты всё громче
   const st = stormStrikes(seedOf('storm:1'), 180);
