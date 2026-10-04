@@ -3,6 +3,7 @@
 // Панель только показывает стол с сервера и шлёт действия; деньги, очереди и итог решает сервер.
 import { BL_CHIPS, BL_MAX_BET, BL_RULES_FOUL, BL_RULES_SHORT, BL_TURN_TICKS, BL_WIN, blMaxBet, type BlTableView } from '../../shared/billiards.ts';
 import { TICK_MS } from '../../shared/constants.ts';
+import { TOUCH } from '../touch.ts';
 import './billiards.css';
 
 export type BlHudAction = { a: 'offer'; amount: number } | { a: 'cancel' } | { a: 'accept'; amount: number } | { a: 'rack' } | { a: 'resign' };
@@ -349,7 +350,9 @@ export class BilliardsHud {
     }
     this.help.innerHTML = v.phase === 'result' ? '' : v.phase === 'match' && v.turn !== me
       ? 'Смотри удар соперника · <kbd>Esc</kbd> — сдаться'
-      : 'Курсор — прицел · зажми <kbd>ЛКМ</kbd> и тяни — сила, отпусти — удар · <kbd>ПКМ</kbd> — отмена · <kbd>Пробел</kbd> — замах';
+      : TOUCH
+        ? 'Коснись сукна — прицел · тяни палец — сила · отпусти — удар'
+        : 'Курсор — прицел · зажми <kbd>ЛКМ</kbd> и тяни — сила, отпусти — удар · <kbd>ПКМ</kbd> — отмена · <kbd>Пробел</kbd> — замах';
     this.renderStatus(performance.now());
   }
 
@@ -362,7 +365,7 @@ export class BilliardsHud {
     if (v.phase === 'open') {
       const offer = v.offer;
       const other = v.seats[1 - me];
-      if (!offer) parts.push(['', other ? `Тренировка вдвоём с ${other.nick}. Предложи партию — второй примет` : 'Тренировка: бей сколько хочешь. Предложи партию — и жди соперника']);
+      if (!offer) parts.push(['', other ? `Тренировка вдвоём с ${other.nick} · предложи партию — второй примет` : 'Тренировка: бей сколько хочешь · или предложи партию']);
       else if (offer.by === me) parts.push(['gold', offer.amount ? `Ставка ${offer.amount} 🪙 в банке — ждём соперника` : 'Ждём соперника, партия без ставки'], ['', ' · пока можно тренироваться']);
       else parts.push(['gold', `${v.seats[offer.by]?.nick ?? 'Соперник'} предлагает партию${offer.amount ? ` на ${offer.amount} 🪙 · банк ${offer.amount * 2}, победителю всё, комиссии нет` : ' без ставки'}`]);
     } else if (v.phase === 'match') {

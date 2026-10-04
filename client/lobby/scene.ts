@@ -2033,6 +2033,8 @@ export class LobbyScene implements Scene {
     this.wirePartner(this.me);
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
     this.me.update(this.hasSelf ? this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose) : null, dt, this.time, this.ground, camPos, true);
+    // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
+    if (act === ACT_BILLIARDS) this.me.root.visible = false;
     this.updateRemotes(dt);
     this.updateFishing(dt);
     this.fishForCritters.length = 0;
