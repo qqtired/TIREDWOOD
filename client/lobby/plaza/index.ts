@@ -38,6 +38,7 @@ export class PlazaDress {
   private readonly seen = new Set<PlazaMode>();
   private readonly touts: Listed[] = [];
   private fortText = '';
+  private fortRecText = '';
   private skyText = '';
   private readonly refreshShadows: () => void;
 
@@ -88,11 +89,16 @@ export class PlazaDress {
     }
   }
 
-  /** Строка статуса на табличке крепости */
-  setFortLine(line: string): void {
-    if (line === this.fortText) return;
-    this.fortText = line;
-    this.north.fortPlate.set(line);
+  /** Строка статуса на табличке крепости и под ней — рекорд крепости */
+  setFortLine(line: string, rec = ''): void {
+    if (line !== this.fortText) {
+      this.fortText = line;
+      this.north.fortPlate.set(line);
+    }
+    if (rec !== this.fortRecText) {
+      this.fortRecText = rec;
+      this.north.fortRecPlate.set(rec);
+    }
   }
 
   /** Строка статуса каланчи на облаке-вывеске «Выше облаков» (табличка на арке при этом оформлении не строится) */

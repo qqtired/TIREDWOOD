@@ -196,6 +196,31 @@ export class FortSfx {
     this.s.tone(d, 2640, 2640, 0.12, 'sine', 0.05, 0.03);
   }
 
+  /**
+   * Рекорд крепости: big — побит (труба вверх, аккорд, салют и хлопки толпы), иначе — повторён или свой рекорд (короткая
+   * фанфара). Свой звук интерфейса — слышно, где бы ни стоял.
+   */
+  record(big: boolean): void {
+    if (!this.sound.once(big ? 'recBig' : 'rec', 1.5)) return;
+    const d = this.dest(null, 0, 3, this.s.ui);
+    if (!d) return;
+    const notes = big ? [392, 523, 659, 784, 1047] : [523, 659, 784, 1047];
+    const step = big ? 0.12 : 0.09;
+    notes.forEach((f, i) => {
+      this.s.tone(d, f, f, 0.3, 'square', 0.045, i * step);
+      this.s.tone(d, f, f, 0.36, 'triangle', 0.12, i * step);
+    });
+    const end = notes.length * step;
+    // финал: аккорд держится (в большом — подольше и с верхней нотой)
+    for (const f of big ? [523, 659, 784, 1047, 1568] : [784, 1047]) {
+      this.s.tone(d, f, f * 1.003, big ? 1.4 : 0.5, 'triangle', big ? 0.07 : 0.06, end, 0.02);
+      if (big) this.s.tone(d, f * 2, f * 2, 0.9, 'sine', 0.02, end + 0.02, 0.03);
+    }
+    if (!big) return;
+    this.sound.firework(null);
+    this.sound.applause(null);
+  }
+
   /** Лестница: деревянный скрип ступеньки */
   rung(): void {
     const d = this.dest(null, 0);

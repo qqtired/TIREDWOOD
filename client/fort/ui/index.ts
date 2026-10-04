@@ -17,10 +17,13 @@ import { Banners, type BannerSpec } from './banners.ts';
 import { BossBar } from './boss.ts';
 import { Coach, EdgeArrows, LadderTip, ladderHint, type Threat } from './coach.ts';
 import { el } from './dom.ts';
+import { RecordPlate, hotBanner } from './record.ts';
 import { Results } from './results.ts';
 import { bossInfo, bossOfWave, isBossKind, lastWave } from './schedule.ts';
 import { TeamList, TopBar, type TeamRow, type TopView } from './top.ts';
 import './ui.css';
+// стили рекорда — здесь, а не в record.ts: его баннеры берёт и match.ts, а тесты грузят match.ts без CSS
+import './record.css';
 
 export type { AlarmTarget } from './alarms.ts';
 export type { BossView } from './boss.ts';
@@ -28,6 +31,8 @@ export type { ResultsData } from './results.ts';
 export type { TeamRow } from './top.ts';
 
 export interface UiFrame extends TopView {
+  /** Сколько волн отбито в этой игре (рекорд крепости — плашка record) */
+  cleared?: number;
   me: { x: number; y: number; z: number; yaw: number; alive: boolean };
   team: readonly TeamRow[];
   zombies: readonly ZombieSnap[];
@@ -55,6 +60,8 @@ export class FortUi {
   readonly ladder: LadderTip;
   readonly edges: EdgeArrows;
   readonly results: Results;
+  /** Рекорд крепости: плашка в полосе сверху (record.ts) */
+  readonly record: RecordPlate;
   private readonly threats: Threat[] = [];
   private gateWas = -1;
   /** Лодки, что уже у берега (тревога — один раз на лодку) */
@@ -68,6 +75,7 @@ export class FortUi {
     this.edges = new EdgeArrows(this.layer);
     const stack = el('div', 'fu-stack', this.layer);
     this.top = new TopBar(stack);
+    this.record = new RecordPlate(this.top.root);
     this.boss = new BossBar(stack);
     this.alarms = new Alarms(stack);
     // карточка волны и строка щита (FortHud) — в общий столбец под полосой: ничего не налезает
@@ -116,6 +124,7 @@ export class FortUi {
       this.layer.classList.toggle('down', this.down);
     }
     this.top.update(v);
+    this.record.update(v.cleared ?? 0, v.wave, v.phase);
     this.team.update(v.team, v.phase === FT_GATHER || v.phase === FT_BREAK);
     // ворота пали в бою — тревога со стрелкой к кристаллу
     if (this.gateWas > 0 && v.gate <= 0 && v.phase === FT_WAVE) this.alarm('🚪 Ворота пали — все к кристаллу!', 5000, { target: 'crystal' });
@@ -167,6 +176,8 @@ export class FortUi {
     const title = boss ? `${boss.icon} ${boss.name}` : card?.title || `Волна ${wave}`;
     const sub = ev ? `${ev.icon} ${ev.name}: ${ev.hint}` : '';
     this.push({ key: 'wave', badge: String(wave), tone: boss ? (boss.super ? 'super' : 'boss') : 'wave', prio: 1, ms: 3400, title, sub });
+    // волна, отбив которую команда побьёт рекорд крепости, — следом своим баннером
+    if (this.record.recordWave(wave)) this.push(hotBanner(wave));
   }
 
   /** Волна отбита; с общаком (событие pot) — та же плашка обновляется */
@@ -220,6 +231,7 @@ export class FortUi {
     this.boss.set(null);
     this.results.hide();
     this.top.reset();
+    this.record.reset();
     this.ladder.update(null);
     this.gateWas = -1;
     this.down = false;

@@ -52,7 +52,8 @@ import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
 import { Wardrobe } from '../ui/wardrobe.ts';
-import { FortGate, fortHint, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
+import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
+import { noteFortStatus } from '../fort/record.ts';
 import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
 import { FC_HINT_R, FightDoor, fightDist, fightHint } from '../fight/door.ts';
 import { AquaPark } from './aquapark.ts';
@@ -1150,7 +1151,9 @@ export class LobbyScene implements Scene {
     this.entryCircles.get('fort')!.status({ left: this.startZone.kind === 'fort' ? this.startZone.left : 0, hint: 'Встань на 3 секунды · E — сразу' });
     // при новом оформлении площади крепость — надвратная башня и донжон (client/lobby/plaza), прежняя арка не нужна
     this.plazaMode('fort', !!st);
-    if (st) this.plaza?.setFortLine(fortStatusLine(st));
+    // рекорд крепости — экрану загрузки и профилю (client/fort/record.ts), на табличке — второй строкой
+    noteFortStatus(st);
+    if (st) this.plaza?.setFortLine(fortStatusLine(st), fortRecordLine(st));
     if (st && !this.fortGate && !this.plaza) {
       this.fortGate = new FortGate(this.world.scene);
       this.d.renderer.refreshShadows();

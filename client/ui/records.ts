@@ -5,14 +5,16 @@ import { fmtAquaTime } from '../../shared/aqua.ts';
 import type { Stats } from '../../shared/economy.ts';
 import { fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
 import type { FishProgress } from '../../shared/fishprogress.ts';
+import { namesLine, recWhen, type FortRecView } from '../../shared/fortrecord.ts';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
 import { fmtRaceTime } from '../race/hud.ts';
 
-/** Что известно о игроке: счётчики сервера, альбом рыбака и прогресс рыбалки */
+/** Что известно о игроке: счётчики сервера, альбом рыбака и прогресс рыбалки; крепость — есть ли она и её рекорд */
 export interface ProfileFacts {
   stats: Stats;
   album: FishAlbum;
   fishing: FishProgress;
+  fort?: { on: boolean; top: FortRecView | null };
 }
 
 /** Значение строки: число (покажем с разрядами), готовая строка (🪙 станет значком) или null — ещё нет («—») */
@@ -24,11 +26,12 @@ export interface RecordLine {
   mode: string;
   /** Трасса или курс, если их в режиме несколько */
   course?: string;
-  /** Что за рекорд */
+  /** Что за рекорд; whatOf — подпись по данным (чей рекорд и когда) */
   what: string;
+  whatOf?: (p: ProfileFacts) => string;
   value: Get;
   /** Только тем, кто играл: тайные режимы и события */
-  played?: (s: Stats) => boolean;
+  played?: (s: Stats, p: ProfileFacts) => boolean;
 }
 
 export interface ModeStats {
@@ -43,6 +46,15 @@ const lap = (ms: number): StatValue => (ms > 0 ? fmtRaceTime(ms) : null);
 const best = (n: number): StatValue => (n > 0 ? n : null);
 const MEDALS = ['', '🥉 бронза', '🥈 серебро', '🥇 золото'];
 const medal = (n: number): StatValue => MEDALS[n] || null;
+/** Крепость в рекордах — тем, кто в ней играл, и всем, когда она открыта на сервере (зовёт побить рекорд) */
+const fortShown = (s: Stats, p: ProfileFacts): boolean => s.ftGames > 0 || !!p.fort?.on;
+/** Рекорд крепости: чей и когда */
+function fortHolder(p: ProfileFacts): string {
+  const t = p.fort?.top;
+  if (!t) return 'рекорд крепости — ещё ничей';
+  const when = recWhen(t.at, Date.now());
+  return `рекорд крепости${t.live ? ' — бьют прямо сейчас' : ''} · ${namesLine(t.names)}${when && !t.live ? ` · ${when}` : ''}`;
+}
 
 /** «Рекорды по режимам»: лучший результат каждого режима, у трасс и курсов — по строке на каждую */
 export const RECORDS: readonly RecordLine[] = [
@@ -58,7 +70,9 @@ export const RECORDS: readonly RecordLine[] = [
   { mode: '☁️ Выше облаков', course: 'Небесная каланча', what: 'лучшее время', value: (s) => lap(s.skBest) },
   { mode: '🎣 Рыбалка', what: 'самая тяжёлая рыба', value: (s) => (s.fsMaxGrams > 0 ? fmtWeight(s.fsMaxGrams) : null) },
   { mode: '🎰 Автоматы', what: 'самый крупный выигрыш', value: (s) => (s.bestWin > 0 ? `${fmt.format(s.bestWin)} 🪙` : null) },
-  { mode: '🏰 Крепость', what: 'лучшая волна', value: (s) => best(s.ftBest), played: (s) => s.ftGames > 0 },
+  // рекорд крепости — отбитые волны (последняя полностью отбитая): свой и всей крепости
+  { mode: '🏰 Крепость', what: 'твой рекорд — отбито волн', value: (s) => best(s.ftBest), played: fortShown },
+  { mode: '🏰 Крепость', what: 'рекорд крепости', whatOf: fortHolder, value: (_s, p) => p.fort?.top?.wave ?? null, played: fortShown },
 ];
 
 /** Счёт по режимам: карточка на режим */

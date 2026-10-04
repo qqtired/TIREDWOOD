@@ -1,7 +1,8 @@
-// Итоги игры «Крепости»: устояла или пала, на какой волне, рекорд крепости и твой лучший, лучший защитник, таблица
-// (сбил, повален, золото, волн, жетоны) со строкой «вся команда», лучшие забеги крепости, жетоны тебе — когда
-// придут, отсчёт до новой игры.
+// Итоги игры «Крепости»: устояла или пала, на какой волне, рекорд крепости (новый — золотой лентой) и свой рекорд,
+// лучший защитник, таблица (сбил, повален, золото, волн, жетоны) со строкой «вся команда», лучшие забеги крепости
+// (этот — подсвечен), жетоны тебе — когда придут, отсчёт до новой игры.
 import type { FortResultRow, FortRunRec } from '../../../shared/fort.ts';
+import { namesLine, recWhen, wavesText } from '../../../shared/fortrecord.ts';
 import { setCoinText } from '../../ui/coin.ts';
 import { el, escapeHtml, num, setText } from './dom.ts';
 
@@ -15,8 +16,9 @@ export interface ResultsData {
   myId: number;
   /** Рекорд крепости: прежний лучший (0 — не было) и побит ли */
   record?: { best: number; isNew: boolean } | null;
-  /** Лучшие забеги крепости: сколько волн, кто был в итогах */
+  /** Лучшие забеги крепости: сколько волн, кто держал стены, когда; run — номер этой игры (её строка подсвечена) */
   top?: readonly FortRunRec[];
+  run?: number;
   /** Сдались голосованием у белого флага (волна, на которой сдались, — не отбита и не считается) */
   surr?: boolean;
 }
@@ -41,17 +43,26 @@ export class Results {
       ? `Отбиты все ${d.lastWave} волн`
       : d.wave > 0 ? `${d.surr ? 'Решили сдаться голосованием · ' : ''}Отбито волн: ${d.wave}` : d.surr ? 'Решили сдаться голосованием — до первой отбитой волны' : 'Ни одной волны не отбили — в следующий раз получится';
     const r = d.record;
-    const recText = !r ? '' : r.isNew && d.wave > 0 ? `🏆 Новый рекорд крепости!${r.best > 0 ? ` (был ${r.best})` : ''}`
-      : r.best > 0 ? `Рекорд крепости — ${r.best} ${wavesWord(r.best)}` : '';
-    // свой лучший результат до этого забега (best) — побит или нет
+    const isNew = !!r?.isNew && d.wave > 0;
+    const holder = d.top?.[0];
+    // рекорд крепости: новый — золотой лентой с прежним; не побит — каким он стоит и чей
+    const recText = isNew ? '' : r && r.best > 0
+      ? `Рекорд крепости — ${wavesText(r.best)}${holder && holder.wave === r.best ? ` · ${namesLine(holder.names)}` : ''}` : '';
+    // свой рекорд (волны, отбитые командой к последней волне, засчитанной тебе): до этой игры — best, в ней — my
     const me = d.rows.find((x) => x.id === d.myId);
     const best = me?.best ?? 0;
-    const mine = !me || d.wave <= 0 || best <= 0 ? '' : me.waves > best ? `твой лучший — ${me.waves}, новый!` : `твой лучший — ${Math.max(best, me.waves)}`;
-    const rec = recText || mine
-      ? `<div class="fu-res-record${r?.isNew && d.wave > 0 ? ' new' : ''}">${[recText, mine].filter(Boolean).join(' · ')}</div>`
+    const my = me?.my ?? 0;
+    const mine = !me || (best <= 0 && my <= 0) ? ''
+      : my > best ? `⭐ Твой рекорд — ${wavesText(my)}, новый!${best > 0 ? ` (был ${best})` : ''}` : `Твой рекорд — ${wavesText(Math.max(best, my))}`;
+    const ribbon = isNew
+      ? `<div class="fu-res-newrec"><span class="fu-res-cup">🏆</span><div><b>Новый рекорд крепости!</b><span>${wavesText(d.wave)}${r && r.best > 0 ? ` — прежний ${r.best}` : ''}</span></div></div>`
       : '';
+    const rec = recText || mine
+      ? `<div class="fu-res-record${my > best && best > 0 ? ' mine' : ''}">${[recText, mine].filter(Boolean).join(' · ')}</div>`
+      : '';
+    const now = Date.now();
     const top = d.top?.length
-      ? `<div class="fu-res-top"><b>Рекорды крепости</b><ol>${d.top.map((t) => `<li><b>${num(t.wave)}</b> <span>${escapeHtml(t.names.join(', '))}</span></li>`).join('')}</ol></div>`
+      ? `<div class="fu-res-top"><b>Рекорды крепости</b><ol>${d.top.map((t) => `<li${d.run && t.id === d.run ? ' class="this"' : ''}><b>${num(t.wave)}</b> <span>${escapeHtml(t.names.join(', '))}</span>${t.at ? ` <small>${recWhen(t.at, now)}</small>` : ''}</li>`).join('')}</ol></div>`
       : '';
     const mvp = d.mvp
       ? `<div class="fu-res-mvp"><span class="fu-res-crown">👑</span><div><b>${escapeHtml(d.mvp.name)}</b><span>лучший защитник · сбил ${num(d.mvp.k)} · добыл ${num(d.mvp.pts)} 💰</span></div></div>`
@@ -59,7 +70,8 @@ export class Results {
     const body = rows
       .map((r) => `<tr class="${r.id === d.myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${num(r.k)}</td><td>${num(r.d)}</td><td>${num(r.pts)}</td><td>${num(r.waves)}</td><td class="tok">${r.tokens > 0 ? `+${num(r.tokens)}` : '—'}</td></tr>`)
       .join('');
-    this.root.innerHTML = `<div class="fu-res-card ${d.win ? 'win' : 'lose'}${d.surr ? ' surr' : ''}">
+    this.root.innerHTML = `<div class="fu-res-card ${d.win ? 'win' : 'lose'}${d.surr ? ' surr' : ''}${isNew ? ' record' : ''}">
+      ${ribbon}
       <div class="fu-res-head"><b class="fu-res-title">${title}</b><span class="fu-res-sub">${sub}</span>${rec}</div>
       ${mvp}
       <div class="fu-res-reward" hidden></div>
@@ -94,11 +106,3 @@ export class Results {
   }
 }
 
-/** «волна / волны / волн» по числу */
-function wavesWord(n: number): string {
-  const d = n % 10;
-  const h = n % 100;
-  if (d === 1 && h !== 11) return 'волна';
-  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return 'волны';
-  return 'волн';
-}

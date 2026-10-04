@@ -17,6 +17,7 @@ import {
   waveTokens,
 } from '../../shared/fortwaves.ts';
 import { FM_EARLY } from '../../shared/fortnet.ts';
+import { namesLine, recView, wavesText, type FortRecIntro } from '../../shared/fortrecord.ts';
 import { planWave, type LastEvent, type WavePlan } from './director.ts';
 import { FortLedger, settle, type FortRun, type SettleFinal } from './ledger.ts';
 import { BOAT_BOUNTY, GREN_BUY, waveBonus, type Loadout } from '../../shared/fortarsenal.ts';
@@ -79,6 +80,8 @@ export class FortPlayer {
   waveContribution = 0;
   /** Ударил в колокол */
   ready = false;
+  /** Свой рекорд крепости (волн): из профиля при входе, растёт после каждой отбитой волны, засчитанной ему */
+  best = 0;
   readonly inq = new InputQueue();
   readonly lastInput: Input = makeInput();
   selfReset = true;
@@ -101,6 +104,8 @@ export interface FortHumanInfo {
   nick: string;
   level?: number;
   outfit: Outfit;
+  /** Свой рекорд крепости из профиля (волн) */
+  best?: number;
 }
 
 export interface FortHooks {
@@ -108,11 +113,16 @@ export interface FortHooks {
   result?(p: FortPlayer, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
   /** Человек 90 с ничего не нажимал */
   afk?(p: FortPlayer): void;
-  /** Рекорды крепости (лучшие FORT_TOP забегов, по убыванию волн) и запись нового забега */
+  /**
+   * Рекорды крепости (лучшие FORT_TOP забегов, по убыванию волн) и запись забега — после каждой отбитой волны, с номером
+   * игры (rec.id): та же игра обновляет свою запись
+   */
   top?(): readonly FortRunRec[];
   saveRun?(rec: FortRunRec): void;
-  /** Свой лучший результат защитника (волн) — до этой выплаты */
-  best?(p: FortPlayer): number;
+  /** Свой рекорд защитника вырос (волн) — сразу в профиль */
+  progress?(p: FortPlayer, wave: number): void;
+  /** Строка всему серверу (рекорд крепости побит) */
+  announce?(text: string): void;
 }
 
 /** Навигация считается один раз на процесс: карта у всех игр одна */
@@ -146,6 +156,14 @@ export class FortGame implements HordeHost, EventHost {
   card: FortWaveCard | null = null;
   /** Разработка: /wave N, /gate, /event … в чате */
   debug = false;
+  /**
+   * Рекорды (shared/fortrecord.ts): номер игры (запись в таблице рекордов), рекорд крепости до этой игры (его и бьют),
+   * было ли уже «рекорд побит» и «рекорд повторён» в этой игре
+   */
+  runId = 0;
+  recBase: FortRunRec | null = null;
+  private recTeamSaid = false;
+  private recTieSaid = false;
   /** Арсенал: золото и покупки, башни, гранаты, ступени ворот и кристалла */
   readonly arsenal: Arsenal;
   /** Блок арсенала в хвосте снимка (FortTail.ext) */
@@ -206,12 +224,15 @@ export class FortGame implements HordeHost, EventHost {
     const p = new FortPlayer(id, this.uniqueName(sanitizeName(info.nick) || `Игрок${id}`), sink, hash32(id, Date.now() & 0xffff), info.outfit, run);
     p.pid = info.pid;
     p.level = info.level ?? 1;
+    p.best = Math.max(0, Math.floor(info.best ?? 0), run.recWave);
+    // свой рекорд до этой игры — при первом входе в неё (вернулся — тот же забег, тот же «до»)
+    if (!back) run.best0 = p.best;
     this.arsenal.loadout(p, p.load);
     this.players.set(id, p);
     p.waveJoinTick = this.tick;
     // приветствие — строго первым, до снимков и событий
     sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster(),
-      ...(this.card ? { card: this.card } : {}) });
+      ...(this.card ? { card: this.card } : {}), rec: this.recIntro(p) });
     this.spawn(p);
     this.sendSurrTo(p);
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
@@ -260,6 +281,10 @@ export class FortGame implements HordeHost, EventHost {
     this.surr.reset();
     this.wave = 0;
     this.cleared = 0;
+    // новая игра — новая строка в таблице рекордов; бьём рекорд, что был до неё
+    this.runId = Math.max(Date.now(), this.runId + 1);
+    this.recBase = (this.hooks.top?.() ?? [])[0] ?? null;
+    this.recTeamSaid = this.recTieSaid = false;
     this.seed = Math.floor(this.rng() * 0x7fffffff) + 1;
     this.lastEvent = { wave: -99, kind: EV_NONE };
     this.plan = null;
@@ -271,6 +296,7 @@ export class FortGame implements HordeHost, EventHost {
     this.arsenal.newGame();
     for (const p of this.players.values()) {
       p.run = this.arsenal.newRun(false);
+      p.run.best0 = p.best;
       this.arsenal.loadout(p, p.load);
       p.inWave = false;
       p.waveContribution = 0;
@@ -278,6 +304,8 @@ export class FortGame implements HordeHost, EventHost {
       this.spawn(p);
     }
     this.card = this.planFor(1).card;
+    // рекорды новой игры (бьют уже, возможно, свой же рекорд прошлой игры) — до смены фазы: «Новая игра» с ними
+    for (const p of this.players.values()) p.sink.sendJson({ t: 'frecNew', rec: this.recIntro(p) });
     this.setPhase(FT_GATHER, this.tick + GATHER_TICKS);
     // новый арсенал — сразу, до снимка со сбросом предсказания
     this.flushRoster();
@@ -322,6 +350,8 @@ export class FortGame implements HordeHost, EventHost {
     const boss = plan.boss >= 0 ? ` · 👑 ${ZK[plan.boss].name}${plan.bossTier ? ` ${roman(plan.bossTier + 1)}` : ''}` : '';
     this.systemChat(w === FORT_WAVES ? `🧟 Последняя волна — ${FORT_WAVES}-я! Держимся!` : `🧟 Волна ${w} · ${plan.card.title}${boss}`);
     if (this.early) this.systemChat(`🔔 Волну вызвали раньше: +${Math.round(EARLY_BONUS * 100)} % золота за неё`);
+    const base = this.recBase?.wave ?? 0;
+    if (base > 0 && w === base + 1) this.systemChat(`🏆 Волна ${w} — рекордная: отбейте её, и рекорд крепости ваш!`);
   }
 
   /** Множитель награды за сбитых в этой волне: вызвали раньше (+10 %), золотая лихорадка (×2) */
@@ -360,13 +390,16 @@ export class FortGame implements HordeHost, EventHost {
   private endWave(): void {
     this.waveEvents.stop();
     this.cleared = this.wave;
+    const credited: FortPlayer[] = [];
     for (const p of this.players.values()) {
       if (p.inWave || p.waveContribution > 0 || this.tick - p.waveJoinTick >= 5 * TICK_RATE) {
         p.waves++;
         p.run.tokWaves += waveTokens(this.wave);
+        credited.push(p);
       }
       p.inWave = false;
     }
+    this.recordWave(credited);
     const clean = this.arsenal.downs === 0 && !this.arsenal.gateFell;
     this.arsenal.onWaveEnd();
     if (this.wave >= FORT_WAVES) {
@@ -390,8 +423,51 @@ export class FortGame implements HordeHost, EventHost {
   }
 
   /**
-   * Итоги: таблица, лучший защитник, рекорд крепости (новый — +15 🪙 каждому в итогах), остаток жетонов тем, кто
-   * дождался (за волны — то, что ещё не платили), забег — в таблицу рекордов.
+   * Рекорды после отбитой волны (решает сервер). Забег — сразу в таблицу рекордов (одна запись на игру: если все уйдут
+   * посреди игры или сервер упадёт, рекорд не пропадёт), ники — кому засчитана эта волна. Свой рекорд растёт у каждого,
+   * кому засчитана волна, — сразу в профиль. Впервые за игру побили или повторили рекорд крепости — событие всем в
+   * крепости (баннер и звук), побили — ещё и строка всему серверу; свой рекорд — событие ему. Рекорда до игры не было
+   * (base 0) или своего не было — молча: бить нечего.
+   */
+  private recordWave(credited: FortPlayer[]): void {
+    const w = this.cleared;
+    if (w <= 0) return;
+    const base = this.recBase?.wave ?? 0;
+    const names = credited.map((p) => p.name).slice(0, FORT_MAX_HUMANS);
+    if (credited.length) this.hooks.saveRun?.({ wave: w, names, at: Date.now(), n: credited.length, id: this.runId });
+    if (base > 0 && w > base && !this.recTeamSaid) {
+      this.recTeamSaid = true;
+      this.broadcast({ t: 'frec', k: 'team', wave: w, prev: base });
+      // строка всему серверу (её видят и здесь); без неё — только в крепости
+      if (this.hooks.announce && names.length) this.hooks.announce(`🏆 Крепость: ${namesLine(names)} — новый рекорд, ${wavesText(w)} (прежний — ${base})! Бой ещё идёт`);
+      else this.systemChat(`🏆 Новый рекорд крепости: ${wavesText(w)}! Прежний — ${base}. Держимся дальше!`);
+    } else if (base > 0 && w === base && !this.recTieSaid) {
+      this.recTieSaid = true;
+      this.broadcast({ t: 'frec', k: 'tie', wave: w, prev: base });
+      this.systemChat(`⚔️ Рекорд крепости повторён: ${wavesText(w)}! Ещё одна волна — и он ваш`);
+    }
+    for (const p of credited) {
+      p.run.recWave = w;
+      if (w > p.best) {
+        p.best = w;
+        this.hooks.progress?.(p, w);
+      }
+      if (w > p.run.best0) {
+        p.sink.sendJson({ t: 'frec', k: 'me', wave: w, prev: p.run.best0, ...(p.run.recSaid ? {} : { first: true }) });
+        p.run.recSaid = true;
+      }
+    }
+  }
+
+  /** Рекорды вошедшему: рекорд крепости сейчас (его ставит эта игра — live), рекорд до игры, свой до игры и в ней */
+  private recIntro(p: FortPlayer): FortRecIntro {
+    const top = (this.hooks.top?.() ?? [])[0];
+    return { top: recView(top, !!top && top.id === this.runId && this.phase !== FT_END), base: this.recBase?.wave ?? 0, best: p.run.best0, my: p.run.recWave };
+  }
+
+  /**
+   * Итоги: таблица, лучший защитник, рекорд крепости (побили тот, что был до игры, — +15 🪙 каждому в итогах), остаток
+   * жетонов тем, кто дождался (за волны — то, что ещё не платили). Забег в таблице рекордов — с последней отбитой волны.
    */
   private finish(win: boolean, surr = false): void {
     this.surr.cancel();
@@ -403,17 +479,16 @@ export class FortGame implements HordeHost, EventHost {
     if (this.players.size >= 2) {
       for (const p of this.players.values()) if (p.run.arsenal.killGold > 0 && (!mvp || p.run.arsenal.killGold > mvp.run.arsenal.killGold)) mvp = p;
     }
-    const before = this.hooks.top?.() ?? [];
-    const prev = before[0]?.wave ?? 0;
+    // рекорд — против того, что был до этой игры (сама игра уже стоит в таблице с последней отбитой волны)
+    const prev = this.recBase?.wave ?? 0;
     const record = this.cleared > prev;
     const rows: FortResultRow[] = [];
     for (const p of this.players.values()) rows.push(this.payout(p, { mvp: p === mvp, record, win }, win)!);
     rows.sort((a, b) => b.pts - a.pts || b.k - a.k);
-    if (this.cleared > 0 && this.players.size > 0) {
-      this.hooks.saveRun?.({ wave: this.cleared, names: [...this.players.values()].map((p) => p.name).slice(0, FORT_MAX_HUMANS), at: Date.now(), n: this.players.size });
-    }
     const top = (this.hooks.top?.() ?? []).slice(0, FORT_TOP);
-    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev, ...(surr ? { surr: true } : {}) });
+    this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev, run: this.runId, ...(surr ? { surr: true } : {}) });
+    const mine = top.find((r) => r.id === this.runId);
+    if (record && prev > 0 && mine) this.hooks.announce?.(`🏰 Новый рекорд крепости — ${wavesText(mine.wave)}: ${namesLine(mine.names)}`);
     if (surr) {
       // сдались голосованием у белого флага: отбитые волны — как при поражении, неотбитая текущая не в счёт
       this.systemChat(`🏳️ Сдались на волне ${this.cleared + 1}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
@@ -434,7 +509,7 @@ export class FortGame implements HordeHost, EventHost {
     const reward = settle(run, final);
     if (!final && !reward && kNew <= 0) return null;
     const row: FortResultRow = { id: p.id, name: p.name, k: p.kills, d: p.deaths, pts: Math.round(run.arsenal.killGold), waves: p.waves, tokens: reward?.total ?? 0, again: run.payouts > 0, kNew,
-      best: this.hooks.best?.(p) ?? 0 };
+      best: run.best0, my: run.recWave };
     run.paidKills = run.kills;
     run.payouts++;
     // в итогах — панель наград; при выходе — короткая надпись (игрок уже уходит на набережную)
@@ -799,6 +874,16 @@ export class FortGame implements HordeHost, EventHost {
       this.systemChat(this.forceEvent ? `🛠 Разработка: на следующей волне — ${arg}` : '🛠 /event meteors | supply | gold | fog');
       return;
     }
+    if (this.debug && cmd.toLowerCase() === 'clear') {
+      // разработка: волна отбита (орда убрана — в ближайший тик сработает «волна отбита»)
+      if (this.phase === FT_WAVE) this.horde.clear();
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'lose') {
+      // разработка: кристалл разбит — итоги
+      if (this.phase === FT_WAVE || this.phase === FT_BREAK) this.finish(false);
+      return;
+    }
     if (this.debug && cmd.toLowerCase() === 'hp') {
       // разработка: всем боссам и щупальцам N % HP (/hp 45 — ярость, /hp 0.05 — гибель)
       if (devBossHp(this.horde, Number(arg))) this.systemChat(`🛠 Разработка: боссам — ${Number(arg)} % HP`);
@@ -877,12 +962,16 @@ export class FortGame implements HordeHost, EventHost {
   status(): FortStatus {
     const names = [...this.players.values()].map((p) => p.name);
     const timed = this.phase === FT_GATHER || this.phase === FT_BREAK || this.phase === FT_END;
+    // рекорд крепости — для таблички и подсказки у входа на набережной; live — его ставит игра, что идёт сейчас
+    const top = (this.hooks.top?.() ?? [])[0];
+    const rec = recView(top, !!top && top.id === this.runId && names.length > 0 && this.phase !== FT_END);
     return {
       phase: this.phase,
       wave: this.wave,
       humans: names.length,
       names: names.slice(0, 6),
       left: timed ? Math.max(0, Math.ceil((this.phaseEnd - this.tick) / TICK_RATE)) : 0,
+      ...(rec ? { rec } : {}),
     };
   }
 

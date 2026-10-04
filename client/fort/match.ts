@@ -19,6 +19,7 @@ import {
 } from '../../shared/fortwaves.ts';
 import { ZF_RAGE } from '../../shared/fortnet.ts';
 import { FT_STRIDE, fortAimPoint, fortShotDir, nearestZombie } from '../../shared/fortaim.ts';
+import type { FortRecIntro, FortRecKind } from '../../shared/fortrecord.ts';
 import { CRYSTAL, GATE, WALL_H, type FortMap, type FortStation } from '../../shared/fortmap.ts';
 import { decodeFortTail, makeFortTail, type ZombieSnap } from '../../shared/fortnet.ts';
 import { clamp, damp, viewDir, wrapAngle } from '../../shared/math.ts';
@@ -54,6 +55,8 @@ import { KrakenFx } from './krakenfx.ts';
 import type { BossPart } from './ui/boss.ts';
 import { TENT_COUNT } from '../../shared/fortkraken.ts';
 import { Webs3D, newBossBlast, newBossBreachText, newBossRageText, newBossThrow, newBossWarnText } from './bosses-f.ts';
+import { noteFortRecord } from './record.ts';
+import { eventBanner, introBanner } from './ui/record.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -214,6 +217,17 @@ export class FortMatch {
   private readonly webs: Webs3D;
   /** Белый флаг: голосование «сдаться» (ui/surrender.ts) */
   private readonly surr: SurrenderUi;
+  /**
+   * Рекорды (ui/record.ts): что сказал сервер при входе или в новой игре; баннер «Рекорд: …» ждёт, пока игру видно
+   * (экран загрузки ушёл, меню закрыто); на какой волне команда побила рекорд (свой рекорд тогда — без второго
+   * баннера); какой рост рекорда уже отдан профилю и табличке; салют — сколько залпов осталось и когда следующий
+   */
+  private rec: FortRecIntro | null = null;
+  private recIntroPending = false;
+  private recTeamWave = 0;
+  private recNoted = 0;
+  private salute = 0;
+  private saluteAt = 0;
 
   constructor(deps: FortMatchDeps) {
     this.d = deps;
@@ -363,6 +377,13 @@ export class FortMatch {
         this.ready = true;
         this.setRoster(m.players);
         if (m.phase === FT_GATHER) this.d.hud.pb.centerMessage('Крепость', this.gatherSub(), '', 3200);
+        if (m.rec) this.onRecIntro(m.rec);
+        break;
+      case 'frecNew':
+        this.onRecIntro(m.rec);
+        break;
+      case 'frec':
+        this.onRecord(m.k, m.wave, m.prev, m.first === true);
         break;
       case 'froster':
         this.setRoster(m.players);
@@ -375,7 +396,7 @@ export class FortMatch {
         this.onPhase(m.phase, m.end, m.wave);
         break;
       case 'fend':
-        this.onEnd(m.win, m.wave, m.mvp, m.rows, m.top ?? [], m.record ?? false, m.prev ?? 0, m.surr ?? false);
+        this.onEnd(m.win, m.wave, m.mvp, m.rows, m.top ?? [], m.record ?? false, m.prev ?? 0, m.surr ?? false, m.run ?? 0);
         break;
       case 'fortReward':
         this.onReward(m);
@@ -458,18 +479,92 @@ export class FortMatch {
     }
   }
 
-  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number, surr = false): void {
+  private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number, surr = false, run = 0): void {
     const { hud, sound } = this.d;
     this.phase = FT_END;
     this.card = null;
     this.surr.reset();
     const mvpRow = rows.find((r) => r.id === mvp) ?? null;
-    hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev, surr);
+    hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev, surr, run);
+    // игра кончилась: рекорд крепости — первая строка таблицы, его уже не «бьют прямо сейчас» (профиль, загрузка)
+    if (top[0]) noteFortRecord({ wave: top[0].wave, names: [...top[0].names], at: top[0].at });
     if (win || (record && wave > 0)) {
       sound.fanfare(null);
       sound.applause(null);
     } else {
       sound.foolHorn(null);
+    }
+  }
+
+  // ------------------------------------------------------------ рекорды
+
+  /** Рекорды от сервера: плашка в полосе, баннер «Рекорд: N волн — ники / Твой рекорд: M» — как только игру видно */
+  private onRecIntro(r: FortRecIntro): void {
+    this.rec = r;
+    this.recIntroPending = true;
+    this.recTeamWave = 0;
+    this.recNoted = 0;
+    this.d.hud.ui.record.set(r);
+    noteFortRecord(r.top);
+  }
+
+  /**
+   * Рекорд после отбитой волны (решает сервер): побит — золотой баннер, фанфара с салютом и хлопками; повторён —
+   * баннер и короткая фанфара; свой рекорд — плашка, профиль и (впервые за игру, если он был) свой баннер.
+   */
+  private onRecord(k: FortRecKind, wave: number, prev: number, first: boolean): void {
+    const { hud } = this.d;
+    if (k === 'me') {
+      hud.ui.record.grow(wave);
+      // профиль (Esc → Профиль → Рекорды) — сразу; сервер записал то же самое
+      const st = this.d.me().stats;
+      if (st && wave > st.ftBest) st.ftBest = wave;
+      if (first && prev > 0 && this.recTeamWave !== wave) {
+        hud.ui.push(eventBanner('me', wave, prev));
+        this.ars.sfx.record(false);
+      }
+      return;
+    }
+    hud.ui.push(eventBanner(k, wave, prev));
+    if (k === 'tie') {
+      this.ars.sfx.record(false);
+      return;
+    }
+    // «рекордная волна» могла ещё ждать своей очереди — она уже не нужна
+    hud.ui.banners.drop('rec-hot');
+    this.recTeamWave = wave;
+    this.ars.sfx.record(true);
+    this.shake = Math.max(this.shake, 0.3);
+    this.salute = 7;
+    this.saluteAt = this.time;
+  }
+
+  /** Раз в кадр: баннер рекорда при входе, салют, рост рекорда — в профиль и табличку */
+  private recordFrame(): void {
+    const { hud, input, effects, world } = this.d;
+    if (this.recIntroPending && this.rec && !input.blocked) {
+      this.recIntroPending = false;
+      hud.ui.push(introBanner(this.rec, Date.now()));
+    }
+    if (this.salute > 0 && this.time >= this.saluteAt) {
+      // залп в небе перед камерой: золото, красный, белый, бирюза
+      this.salute--;
+      this.saluteAt = this.time + 0.2 + Math.random() * 0.15;
+      world.camera.getWorldDirection(_v2);
+      const side = (Math.random() - 0.5) * 12;
+      const x = this.camPos.x + _v2.x * 11 - _v2.z * side;
+      const z = this.camPos.z + _v2.z * 11 + _v2.x * side;
+      const y = this.camPos.y + 3.5 + Math.random() * 3.5;
+      const colors = [0xffd35a, 0xff5a4a, 0xfff3de, 0x8ef0ff, 0x7bd88f];
+      const color = colors[this.salute % colors.length];
+      effects.puff(x, y, z, 1.5, color, 0.35, 0, 0.85, 2.6);
+      effects.burst(x, y, z, color, 44, 10, 0, 0.1, 0, 0.2);
+      effects.burst(x, y, z, 0xffd35a, 18, 6, 0, 0.3, 0, 0.14);
+    }
+    // рекорд до этой игры — из приветствия (rec.base); не знаем его — молчим
+    if (this.rec && this.cleared > this.rec.base && this.cleared !== this.recNoted) {
+      this.recNoted = this.cleared;
+      noteFortRecord({ wave: this.cleared, names: this.rosterList.map((r) => r.name), at: Date.now(), live: true });
     }
   }
 
@@ -1538,8 +1633,9 @@ export class FortMatch {
       this.teamRows.push({ id: r.id, name: r.name, gold: r.pts, me: mine, ready: r.ready,
         alive: mine ? this.alive : p && p.valid ? (p.flags & E_ALIVE) !== 0 : true });
     }
+    this.recordFrame();
     hud.ui.frame({
-      phase: this.phase, wave: this.wave, leftS, enemies: this.left, gold: this.myPts,
+      phase: this.phase, wave: this.wave, cleared: this.cleared, leftS, enemies: this.left, gold: this.myPts,
       gate: this.gate, gateMax: this.ars.gateMax, gateTier: this.ars.gateTier,
       crystal: this.crystal, crystalMax: this.ars.crystalMax, crystalTier: this.ars.crystalTier,
       me: { x: me.x, y: me.y, z: me.z, yaw: input.yaw, alive: this.alive }, team: this.teamRows, zombies: this.zlist,
