@@ -52,7 +52,7 @@ git pull origin main
 
 ## Правила проекта
 
-Подробно — в [AGENTS.md](AGENTS.md), [ASTRA.md](ASTRA.md) и [docs/design.md](docs/design.md). Коротко:
+Подробно — в [AGENTS.md](AGENTS.md) (единственный файл правил) и [docs/design.md](docs/design.md). Коротко:
 
 - **Десктоп — главная платформа.** Клавиатура, мышь, обычный браузер. Телефон не ломаем, но и не задерживаем
   ради него десктоп.
@@ -83,4 +83,5 @@ git pull origin main
 
 ## Если работаете с ИИ-помощником
 
-Попросите его сначала прочитать `ASTRA.md`, `AGENTS.md` и этот файл. Codex читает `AGENTS.md` сам.
+Попросите его сначала прочитать `AGENTS.md` и этот файл. Codex читает `AGENTS.md` сам, Claude — через ссылку
+`CLAUDE.md`, для Астры есть ссылка `ASTRA.md`: все они ведут на один и тот же `AGENTS.md`.
