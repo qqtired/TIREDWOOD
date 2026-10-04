@@ -9,6 +9,13 @@ const fp = await import(S + 'fishprogress.ts');
 const sh = await import(S + 'fishshop.ts');
 const fi = await import(S + 'fishing.ts');
 const bk = await import(S + 'barkas.ts');
+const rl = await import(S + 'fishreel.ts');
+/** Оценки вываживания одной строкой: «0 — «Идеально» ×2,5, 1 — «Хорошо» ×1,5, …» */
+const gradesText = rl.REEL_GRADES.map((g, i, all) => {
+  const from = i === 0 ? 0 : all[i - 1].upTo + 1;
+  const errs = g.upTo === Infinity ? `${from} и больше` : from === g.upTo ? `${from}` : `${from}–${g.upTo}`;
+  return `${errs} — «${g.name}» ×${String(g.xp).replace('.', ',')}`;
+}).join(', ');
 const { FISH, HOOK_MS } = fi;
 const { RULE, COLLECTION, tierRank, NEW_BONUS2, tierOdds, BAND, ZONE_BASE, CHEST_BANDS, fishPrice2 } = fr;
 
@@ -257,7 +264,7 @@ const html = `<!doctype html>
     <div class="card factor"><div class="ic"><img src="/fishing/img/rod-legendary.webp" alt=""></div><div><h3>Удочка — за задания Деда Семёна</h3><p>Редкие и выше: ×1,05 за каждую ступень. Ещё удочка увеличивает зону на шкале и ускоряет поклёвку на 10 / 20 / 30 / 40 %. Каждое следующее задание — на 5 рыб больше.</p><ul class="mults">${rods}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-lure4.webp" alt=""></div><div><h3>Блесна — покупается навсегда</h3><p>Только <b>эпические и выше</b> (и кальмар) — блесна для крупной рыбы, на редких не действует. Ещё делает рывки рыбы мягче на ${sh.LURES.map((l) => Math.round(l.calm * 100)).join(' / ')} %.</p><ul class="mults">${lures}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-ale.webp" alt=""></div><div><h3>Напитки — на 10 минут</h3><p>Действует один — последний выпитый. Пиво, эль и пиво владыки поднимают все категории от редких до кальмара и цену улова.</p><ul class="mults">${drinkLi(sh.BEER, `, ${sh.BEER.price} 🪙`)}${drinkLi(sh.ALE, `, ${sh.ALE.price} 🪙`)}${drinkLi(sh.LORD, ` (в 1 из ${lordIn} сундуков)`)}</ul></div></div>
-    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>${sh.VODKA.price} 🪙, ${Math.round(sh.VODKA.ms / 60_000)} минут. Эпические и выше, вместе с кальмаром, — <b>${mul(sh.VODKA.top ?? 1)}</b>, опыт за них ${mul(sh.VODKA.topXp ?? 1)}. Но зона на шкале <b>${vodkaZone}</b>, а рывки рыбы на ${vodkaJerk} % быстрее. На редких не действует, доход не меняет.</p></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>${sh.VODKA.price} 🪙, ${Math.round(sh.VODKA.ms / 60_000)} минут. Эпические и выше, вместе с кальмаром, — <b>${mul(sh.VODKA.top ?? 1)}</b>, опыт за них ${mul(sh.VODKA.topXp ?? 1)}. Но зона на шкале <b>${vodkaZone}</b>, а рывки рыбы на ${vodkaJerk} % быстрее, и ты пьян: зона после отпускания ещё 0,1 с едет по инерции, икаешь, шкала моргает. На редких не действует, доход не меняет.</p></div></div>
     <div class="card factor"><div class="ic">⚓</div><div><h3>Место: пристань или баркас</h3><p>Все 20 мест у острова одинаковые. Баркас (с 3-го уровня, туда везёт Семён): своя рыба — ${vidov(barkCount)}, доли категорий почти как у пристани. Доход и опыт <b>×1,25</b>, но рыба злее: рывки ×1,15, сопротивление ×1,2 (кальмара море не злит).</p></div></div>
   </div>
   <div class="card" style="margin-top:16px">
@@ -338,9 +345,10 @@ const html = `<!doctype html>
     <li><b>Не подсекай на пробах.</b> Поплавок дёрнулся, но не ушёл под воду — это проба. Подсечёшь сейчас — рыба уйдёт.</li>
     <li><b>Подсекай сразу.</b> У мифических на это 0,65 с, у кальмара — 0,6 с.</li>
     <li><b>Не роняй зону на дно.</b> Рыба у дна? Держи зону внизу короткими нажатиями — иначе «леска провиснет».</li>
-    <li><b>«Идеально» — опыта ×2,4.</b> Если рыба ни разу не вышла из зоны, опыт за неё умножается на 2,4.</li>
+    <li><b>Не прижимай зону к верху.</b> Держишь её у самого верха дольше 0,7 с — «леска натянута», улов не идёт: отпусти на миг.</li>
+    <li><b>Оценка — до ×2,5 опыта.</b> Каждый выход рыбы из зоны — ошибка: ${gradesText}.</li>
     <li><b>Сорвалась крупная — не всё потеряно.</b> Эпическая и выше после 3 секунд боя даёт четверть опыта даже если ушла.</li>
-    <li><b>Водку бери, только если уверенно держишь шкалу.</b> Крупных клюёт вдвое больше, но зона ${vodkaZone}.</li>
+    <li><b>Водку бери, только если уверенно держишь шкалу.</b> Крупных клюёт вдвое больше, но зона ${vodkaZone}, а рыбак пьян.</li>
   </ul>
 </section>
 
@@ -349,7 +357,7 @@ const html = `<!doctype html>
   <div class="grid g3">
     <div class="card"><h3>Что в сундуке</h3><p class="muted small" style="margin:0 0 8px">Сундук — ${chestPct} % всех поклёвок. В 1 из ${lordIn} ещё и пиво подводного владыки: выпивается сразу.</p><table class="tbl"><thead><tr><th>Жетоны</th><th>Шанс</th></tr></thead><tbody>${chestRows}</tbody></table></div>
     <div class="card"><h3>Сколько хлама</h3><p class="muted small" style="margin:0 0 8px">Сапог (7 из 10) или бутылка с запиской. Ничего не стоят.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Хлам</th></tr></thead><tbody>${junkRows}</tbody></table></div>
-    <div class="card"><h3>Уровни рыбалки</h3><p class="muted small" style="margin:0 0 8px">Опыт за каждую рыбу: чем реже, тем больше. Легендарные и выше — ×5, «идеально» — ×2,4, дождь — ×1,15, баркас — ×1,25.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Опыта всего</th></tr></thead><tbody>${fp.FISH_XP_LEVELS.slice(1).map((x, i) => `<tr><td>${i + 1}${i + 1 === 3 ? ' · баркас' : ''}</td><td class="num">${x.toLocaleString('ru-RU').replace(/\s/g, ' ')}</td></tr>`).join('')}</tbody></table></div>
+    <div class="card"><h3>Уровни рыбалки</h3><p class="muted small" style="margin:0 0 8px">Опыт за каждую рыбу: чем реже, тем больше. Легендарные и выше — ×5, оценка вываживания — от ×0,5 до ×2,5, дождь — ×1,15, баркас — ×1,25.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Опыта всего</th></tr></thead><tbody>${fp.FISH_XP_LEVELS.slice(1).map((x, i) => `<tr><td>${i + 1}${i + 1 === 3 ? ' · баркас' : ''}</td><td class="num">${x.toLocaleString('ru-RU').replace(/\s/g, ' ')}</td></tr>`).join('')}</tbody></table></div>
   </div>
 </section>
 </main>
