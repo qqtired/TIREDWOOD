@@ -141,7 +141,7 @@ export class RouletteBoard {
       g.font = `700 62px ${FONT}`;
       g.fillText('Пока никто не играл', W / 2, ROW0 + 170);
       g.font = `600 44px ${FONT}`;
-      g.fillText('Поставь весь улов — и твоя ставка будет первой', W / 2, ROW0 + 250);
+      if (s.head.kind === 'idle') g.fillText('Поставь весь улов — и твоя ставка будет первой', W / 2, ROW0 + 250);
     } else {
       s.rows.slice(0, ROULETTE_LOG_SIZE).forEach((r, i) => this.row(r, COLS[Math.floor(i / PER_COL)].x, ROW0 + (i % PER_COL) * ROW_H, i % PER_COL, r.pid === s.me));
       g.fillStyle = 'rgba(216, 184, 106, 0.28)';
