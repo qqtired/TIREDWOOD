@@ -228,8 +228,8 @@ function buildSky(ctx: VenueCtx): { near: Venue; tower: Venue } {
   const back = wallPlate(cloudTex, x, 5.55, z - 0.1, 5.5, 2.1, Math.PI, 0.5);
   near.group.add(back);
   for (const sx of [-1, 1]) d.cyl(0.04, 0.04, 2.3, x + sx * 1.3, 4.5, z, 0xf4f8fb, 8);
-  // клубы по краям: «облако присело на столбы»
-  for (const sx of [-1, 1]) cloud(near.flat, x + sx * 1.55, 3.75, z, 0.55, 1.2);
+  // клубы по нижним краям облака-вывески (не на табличке портала: на ней живая строка «сбор забега — старт через N с»)
+  for (const sx of [-1, 1]) cloud(near.flat, x + sx * 3.0, 4.7, z, 0.45, 1.1);
   // облачный порог на плитке
   const pad = paintTexture(920, 680, drawCloudPad);
   near.group.add(floorPad(pad, x, z + 0.1, 4.6, 3.4, ctx.wet, 0.005));
