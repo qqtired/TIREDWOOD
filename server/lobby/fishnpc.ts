@@ -3,7 +3,7 @@
 // готовность задания. Чужие действия (перевоз Сани — модуль баркаса) подключаются через register, не трогая этот файл.
 import { FISH_NPC_USE, FISH_NPCS, type FishNpcId } from '../../shared/fishplaces.ts';
 import { ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, VODKA_PRICE, questNeed } from '../../shared/fishprogress.ts';
-import { BAGS, LURES } from '../../shared/fishshop.ts';
+import { BAGS, LURES, VODKA } from '../../shared/fishshop.ts';
 import { FISH_NPC_ACTIONS, type FishNpcAction, type ServerMsg } from '../../shared/messages.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Profile } from '../store.ts';
@@ -120,7 +120,7 @@ export class FishNpc {
       }
       case 'vodka': {
         const r = this.profiles.buyFishVodka(prof);
-        message = r === 'ok' ? 'Водка рыбацкая действует 10 минут: зона вдвое меньше, рыба дёргает быстрее — зато эпик, легенды, мифик и царь морей клюют вдвое чаще'
+        message = r === 'ok' ? `Водка рыбацкая действует 10 минут: зона на ${Math.round((1 - (VODKA.zone ?? 1)) * 100)} % меньше, рыба дёргает быстрее — зато эпик, легенды, мифик и царь морей клюют вдвое чаще`
           : r === 'active' ? 'Водка уже действует — дождись окончания' : `Водка стоит ${VODKA_PRICE} жетонов`;
         break;
       }
@@ -131,7 +131,7 @@ export class FishNpc {
         else if (!this.profiles.spend(prof, RAIN_DRUM_PRICE)) message = `Бубен дождя стоит ${RAIN_DRUM_PRICE} жетонов`;
         else {
           this.host.startRain();
-          message = 'Пошёл дождь — клюют виды дождя, редкие, эпик, легенды и мифик в полтора раза чаще!';
+          message = 'Пошёл дождь — виды дождя, редкие и выше, вместе с царём морей, клюют в полтора раза чаще!';
         }
         break;
       }

@@ -169,7 +169,7 @@ export class FishProgressHud {
     setText(this.effect, drinkEffect(d));
     setText(this.time, fishTimeLeft(until, now));
     this.badge.setAttribute('aria-label', d.top
-      ? `${d.name}: ${this.time.textContent}. Эпические, легендарные и мифические ${mul(d.top)}, опыт за них ${mul(d.topXp ?? 1)}, зона ${pct(d.zone ?? 1)}, рывки ${pct(d.jerk ?? 1)}. Только рыбалка.`
+      ? `${d.name}: ${this.time.textContent}. Эпические и выше, с божественной, ${mul(d.top)}, опыт за них ${mul(d.topXp ?? 1)}, зона ${pct(d.zone ?? 1)}, рывки ${pct(d.jerk ?? 1)}. Только рыбалка.`
       : `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
   }
 }
