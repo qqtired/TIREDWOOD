@@ -1,15 +1,17 @@
 // Крысиные бега в 3D (флаг RATRACE): понтон у набережной, арена с бортиком, овальная дорожка, газон с домиком и сыром,
-// финишная арка, воротца старта, табло лицом к площади и шесть крыс в попонах с номерами. Забег у всех одинаковый:
+// финишная арка, воротца старта, большое табло лицом к площади (client/lobby/ratraceboard.ts) и шесть крыс в попонах
+// с номерами. Забег у всех одинаковый:
 // сервер шлёт сид и порядок на финише, план (shared/ratrace.ts ratPlan) проигрываем по серверному времени с поправкой
 // на сеть. Между забегами крысы живут сами (у каждого игрока своя жизнь — это просто фон): спят, умываются, грызут сыр,
 // бегают и гоняются друг за другом; перед стартом выстраиваются у воротец. Всё — простые меши, дёшево.
 import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import {
-  RAT_BOARD, RAT_COUNT, RAT_DECK, RAT_GATE_MS, RAT_LAP, RAT_PEN, RAT_RUN_MS, RAT_TRACK, RATS, ratAt, ratPlan, ratStandings, ratTrackPoint, ratWon,
-  type RatPlan, type RatRaceView,
+  RAT_COUNT, RAT_DECK, RAT_GATE_MS, RAT_LAP, RAT_PEN, RAT_RUN_MS, RAT_TRACK, RATS, ratAt, ratPlan, ratStandings, ratTrackPoint,
+  type RatBetView, type RatPlan, type RatRaceView,
 } from '../../shared/ratrace.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { RatBoard, type BoardState } from './ratraceboard.ts';
 
 type Mode = 'sleep' | 'groom' | 'sit' | 'wander' | 'chase' | 'flee' | 'eat' | 'line' | 'race' | 'win';
 
@@ -117,8 +119,12 @@ export class RatRace3D {
   onWinner: (rat: number, x: number, z: number) => void = () => {};
   private readonly rats: Rat[] = [];
   private readonly gateArm: THREE.Group;
-  private readonly sign: { ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture };
+  private readonly board: RatBoard;
   private view: RatRaceView | null = null;
+  /** Мой номер игрока: своя ставка на табло подсвечена */
+  private me = 0;
+  /** Ставки забега, который бежит (или только что добежал), — из вида фазы run: для итога на табло */
+  private runBets: { race: number; bets: RatBetView[]; odds: number[] } | null = null;
   private viewAt = 0;
   private latency = 0;
   private race: Race | null = null;
@@ -135,7 +141,8 @@ export class RatRace3D {
   private time = 0;
   private readonly tp = { x: 0, z: 0, yaw: 0 };
 
-  constructor(scene: THREE.Scene) {
+  /** signs — вывески мира, что гаснут в грозу без света (табло — одна из них) */
+  constructor(scene: THREE.Scene, signs?: Map<THREE.MeshStandardMaterial, number>) {
     const g = this.group;
     g.name = 'rat-race';
     g.visible = false;
@@ -190,43 +197,24 @@ export class RatRace3D {
     }
     // финишный столб — с внешней (северной) стороны линии, табличка смотрит на площадь
     box(0.05, 0.78, 0.05, 0xf2ece0, T.x, 0.39, fz0 - 0.05);
-    // --- табло на столбах у южного края, лицом к площади
-    const B = RAT_BOARD;
-    for (const sx of [-1, 1]) box(0.1, B.y + B.h + 0.1, 0.1, 0x7a5232, B.x + sx * (B.w / 2 + 0.05), (B.y + B.h + 0.1) / 2, B.z);
-    box(B.w + 0.14, B.h + 0.14, 0.05, 0x5a3e2b, B.x, B.y + B.h / 2, B.z + 0.03);
-    box(B.w + 0.3, 0.06, 0.16, 0xb07a4a, B.x, B.y + B.h + 0.1, B.z);
+    // --- табло на столбах у южного края, лицом к площади (дерево — в общий меш, щит с холстом — ниже)
+    RatBoard.frame(parts);
     // --- газон: домик (стенки и красная крыша), миска, сыр
     box(0.42, 0.24, 0.34, 0xe9dcc0, HOUSE.x, 0.13, HOUSE.z);
     box(0.12, 0.13, 0.02, 0x3a2a20, HOUSE.x + 0.21, 0.08, HOUSE.z);
     parts.push(place(paint(new THREE.CylinderGeometry(0.001, 0.3, 0.18, 4, 1).rotateY(Math.PI / 4).scale(1, 1, 0.8), 0xc0473a), HOUSE.x, 0.34, HOUSE.z));
     parts.push(place(paint(new THREE.CylinderGeometry(0.09, 0.07, 0.05, 14), 0x6a8fb0), BOWL.x, 0.04, BOWL.z));
     parts.push(place(paint(new THREE.CylinderGeometry(0.1, 0.1, 0.08, 3).rotateY(0.4), 0xf2c94c), CHEESE.x, 0.055, CHEESE.z));
-    // --- флажки над табло
-    const flags: THREE.BufferGeometry[] = [];
-    const fcols = [0xd64541, 0xf2c230, 0x3f7fd8, 0x3fa65a, 0xf08a2c];
-    for (let i = 0; i < 11; i++) {
-      const x = B.x - B.w / 2 - 0.1 + (i + 0.5) * ((B.w + 0.2) / 11);
-      const sag = 0.06 * Math.sin((Math.PI * (i + 0.5)) / 11);
-      flags.push(place(paint(new THREE.ConeGeometry(0.06, 0.13, 3).rotateX(Math.PI), fcols[i % fcols.length]), x, B.y + B.h + 0.06 - sag, B.z - 0.06));
-    }
-    parts.push(...flags);
     const body = new THREE.Mesh(mergeColored(parts), wood);
     body.castShadow = true;
     body.receiveShadow = true;
     g.add(body);
-    // --- табло: холст
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 464;
-    const ctx = canvas.getContext('2d')!;
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
-    this.sign = { ctx, tex };
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(B.w, B.h * 0.96), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
-    board.rotation.y = Math.PI;
-    board.position.set(B.x, B.y + B.h / 2, B.z - 0.003);
-    g.add(board);
+    // --- табло: щит с холстом и полоски хода
+    this.board = new RatBoard();
+    g.add(this.board.group);
+    signs?.set(this.board.material, this.board.material.emissiveIntensity);
+    // шрифт табло мог ещё не загрузиться — перерисуем, когда загрузится
+    void document.fonts?.ready.then(() => { this.signKey = ''; });
     const finish = this.textPlane('ФИНИШ', 0.5, 0.14, '#d64541');
     finish.position.set(T.x, 0.84, fz0 - 0.08);
     finish.rotation.y = Math.PI;
@@ -257,6 +245,14 @@ export class RatRace3D {
     this.view = null;
     this.race = null;
     this.playedRace = 0;
+    this.runBets = null;
+    this.signKey = '';
+  }
+
+  /** Мой номер игрока — своя ставка на табло подсвечена */
+  setMe(pid: number): void {
+    if (pid === this.me) return;
+    this.me = pid;
     this.signKey = '';
   }
 
@@ -267,6 +263,18 @@ export class RatRace3D {
 
   /** Номер последнего забега, который у этого игрока уже добежал (0 — ни одного) */
   get lastRace(): number { return this.endedRace; }
+
+  /** Идёт приём ставок (отсчёт до старта) */
+  get opening(): boolean { return this.view?.phase === 'open'; }
+
+  /** Номер забега, который сейчас бежит у этого игрока (0 — не бежит) */
+  get playing(): number { return this.race && !this.race.ended ? this.race.race : 0; }
+
+  /** Забег для камеры на трассу: бежит у меня или на него идёт приём ставок (0 — ни того, ни другого) */
+  get camRace(): number {
+    if (this.race && !this.race.ended) return this.race.race;
+    return this.view?.phase === 'open' ? this.view.race : 0;
+  }
 
   /** Сколько мс до старта (open) и идёт ли отсчёт */
   get countdown(): number {
@@ -299,6 +307,13 @@ export class RatRace3D {
     return ratStandings(r.plan, Math.max(0, performance.now() - r.start));
   }
 
+  /** Сколько пробежала крыса в забеге у этого игрока — доля круга 0…1 (забега нет — 0) */
+  progress(rat: number): number {
+    const r = this.race;
+    if (!r || r.ended) return 0;
+    return Math.max(0, Math.min(1, ratAt(r.plan, rat, Math.max(0, performance.now() - r.start)).dist / RAT_LAP));
+  }
+
   /** Порядок прошлого забега, пока висит итог */
   resultOrder(): number[] | null {
     return this.lastOrder && performance.now() - this.endedAt < RAT_RESULT_MS ? this.lastOrder : null;
@@ -314,6 +329,7 @@ export class RatRace3D {
     this.latency = Math.min(500, Math.max(0, latencyMs));
     this.view = v;
     this.viewAt = now - this.latency;
+    if (v.phase === 'run') this.runBets = { race: v.race, bets: v.bets, odds: v.odds };
     if (v.phase === 'run' && v.seed !== undefined && v.order && v.race !== this.playedRace) {
       this.playedRace = v.race;
       const start = now - this.latency + v.left - RAT_RUN_MS;
@@ -359,8 +375,13 @@ export class RatRace3D {
       for (const rat of this.rats) this.pose(rat, dt, now, r && !r.ended ? ms : -1);
     }
     const left = this.view && this.view.phase !== 'idle' ? Math.ceil(Math.max(0, this.view.left - (now - this.viewAt)) / 1000) : 0;
-    const st = r && !r.ended ? ratStandings(r.plan, Math.max(0, ms)).join('') : '';
-    const key = `${phase}|${left}|${this.view?.bets.length}|${st}|${this.resultOrder() ? 1 : 0}|${this.view?.race}`;
+    const running = r !== null && !r.ended;
+    const standings = running ? ratStandings(r.plan, Math.max(0, ms)) : null;
+    // полоски хода под строками табло: доля круга у каждой крысы (после финиша — полная)
+    if (standings && r) this.board.setProgress(standings, (rat) => ratAt(r.plan, rat, Math.max(0, ms)).dist / RAT_LAP);
+    else this.board.setProgress(null, () => 0);
+    const bets = this.view ? this.view.bets.map((b) => `${b.pid}:${b.rat}:${b.stake}`).join(',') : '';
+    const key = `${phase}|${left}|${bets}|${standings?.join('') ?? ''}|${this.resultOrder() ? 1 : 0}|${this.view?.race}|${this.view?.last?.race ?? 0}|${this.me}`;
     if (key !== this.signKey) {
       this.signKey = key;
       this.drawSign(now);
@@ -675,71 +696,28 @@ export class RatRace3D {
   // ------------------------------------------------------------ табло
 
   private drawSign(now: number): void {
-    const { ctx: g, tex } = this.sign;
     const v = this.view;
-    const W = 1024, H = 464;
-    g.fillStyle = '#2f3a33';
-    g.fillRect(0, 0, W, H);
-    g.strokeStyle = '#e2c27a';
-    g.lineWidth = 10;
-    g.strokeRect(8, 8, W - 16, H - 16);
-    g.textBaseline = 'alphabetic';
-    g.textAlign = 'center';
-    g.fillStyle = '#f4e8c8';
-    g.font = 'bold 58px Rubik, system-ui, sans-serif';
-    g.fillText('🐀 КРЫСИНЫЕ БЕГА', W / 2, 78);
-    const odds = v?.odds ?? [];
     const st = this.standings();
     const res = st ? null : this.resultOrder();
-    const row = (list: number[], label: (rat: number, place: number) => string): void => {
-      list.forEach((rat, k) => {
-        const col = k % 2, line = Math.floor(k / 2);
-        const x = 60 + col * 470, y = 168 + line * 80;
-        g.fillStyle = RATS[rat].saddle;
-        g.beginPath(); g.arc(x + 26, y - 18, 26, 0, Math.PI * 2); g.fill();
-        g.fillStyle = RATS[rat].saddle === '#e8b923' ? '#2a2420' : '#ffffff';
-        g.font = 'bold 34px Rubik, system-ui, sans-serif';
-        g.textAlign = 'center';
-        g.fillText(String(rat + 1), x + 26, y - 6);
-        g.textAlign = 'left';
-        g.fillStyle = '#f4e8c8';
-        g.font = '38px Rubik, system-ui, sans-serif';
-        g.fillText(label(rat, k), x + 66, y - 4);
-      });
-    };
-    let footer = '';
+    const run = this.runBets;
+    let s: BoardState;
     if (st) {
-      g.fillStyle = '#e7c77a';
-      g.font = 'bold 44px Rubik, system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.fillText('Забег идёт!', W / 2, 128);
-      row(st, (rat, k) => `${k + 1}. ${RATS[rat].name}`);
-    } else if (res) {
-      g.fillStyle = '#e7c77a';
-      g.font = 'bold 44px Rubik, system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.fillText(`${ratWon(res[0])} · ×${this.lastWinMult}`, W / 2, 128);
-      row(res, (rat, k) => `${k + 1}. ${RATS[rat].name}`);
-      footer = v?.phase === 'open' ? 'Приём ставок на следующий забег' : 'E — ставка на следующий забег';
+      const bets = run && run.race === this.race?.race ? run.bets : (v?.bets ?? []);
+      s = { phase: 'run', secs: 0, odds: run?.odds ?? v?.odds ?? [], bets, me: this.me, order: st, winMult: 0, wins: [] };
+    } else if (res && (v?.phase !== 'open' || now - this.endedAt < 5000)) {
+      // итог: коэффициенты и ставки прошедшего забега (новый вид сервера несёт уже следующие)
+      const last = v?.last && v.last.race === this.endedRace ? v.last : null;
+      const mine = run && run.race === this.endedRace ? run : null;
+      const odds = last?.odds ?? mine?.odds ?? v?.odds ?? [];
+      const wins = last?.wins ?? [];
+      // вошёл после забега — ставок не видел: победители из итога сервера
+      const bets = mine ? mine.bets : wins.map((w) => ({ pid: -1, nick: w.nick, rat: res[0], stake: Math.max(1, Math.round(w.payout / (odds[res[0]] || 1))) }));
+      s = { phase: 'result', secs: 0, odds, bets, me: this.me, order: res, winMult: this.lastWinMult, wins };
     } else {
-      const order = [0, 1, 2, 3, 4, 5];
-      g.fillStyle = '#e7c77a';
-      g.font = 'bold 44px Rubik, system-ui, sans-serif';
-      g.textAlign = 'center';
-      if (v?.phase === 'open') {
-        const secs = Math.max(0, Math.ceil((v.left - (now - this.viewAt)) / 1000));
-        g.fillText(`Старт через ${secs} с · ставок: ${v.bets.length}`, W / 2, 128);
-      } else g.fillText('Коэффициенты забега', W / 2, 128);
-      row(order, (rat) => `${RATS[rat].name}  ×${odds[rat] ?? '?'}`);
-      footer = v?.phase === 'open' ? 'Ставь сейчас: E у арены' : 'E — сделать ставку · старт через 15 с после первой';
+      const secs = v?.phase === 'open' ? Math.max(0, Math.ceil((v.left - (now - this.viewAt)) / 1000)) : 0;
+      s = { phase: v?.phase === 'open' ? 'open' : 'idle', secs, odds: v?.odds ?? [], bets: v?.bets ?? [], me: this.me, order: null, winMult: 0, wins: [] };
     }
-    if (footer) {
-      g.textAlign = 'center';
-      g.fillStyle = '#b9c4ad';
-      g.font = '30px Rubik, system-ui, sans-serif';
-      g.fillText(footer, W / 2, H - 30);
-    }
-    tex.needsUpdate = true;
+    this.board.draw(s);
   }
 }
 
