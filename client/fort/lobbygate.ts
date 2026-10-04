@@ -27,7 +27,7 @@ export function fortHint(st: FortStatus): { keys: string[]; text: string } {
 }
 
 /** Строка на табличке под вывеской */
-function statusLine(st: FortStatus): string {
+export function statusLine(st: FortStatus): string {
   if (st.humans === 0) return 'зомби идут — заходи';
   if (st.phase === FT_WAVE) return `волна ${st.wave} · держат ${st.humans}`;
   if (st.phase === FT_BREAK) return `передышка · ${st.humans} на стенах`;

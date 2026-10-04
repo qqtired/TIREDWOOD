@@ -52,13 +52,16 @@ import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
 import { Wardrobe } from '../ui/wardrobe.ts';
-import { FortGate, fortHint } from '../fort/lobbygate.ts';
+import { FortGate, fortHint, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
 import { FC_HINT_R, FightDoor, fightDist, fightHint } from '../fight/door.ts';
 import { AquaPark } from './aquapark.ts';
 import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
+import { PLAZA2 } from './plaza/flag.ts';
+import { PLAZA_MODES, PlazaDress } from './plaza/index.ts';
+import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera } from './camera.ts';
 import { DurakTables3D, TORSO_R } from './durak3d.ts';
 import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, tomatoRadius, type PickPoint } from './tomatopick.ts';
@@ -328,6 +331,9 @@ export class LobbyScene implements Scene {
   /** Куда смотрел нос в прошлом кадре: в поездке взгляд поворачивает вместе с катером */
   private boatYaw = LAUNCH.yaw;
   private readonly boatSign: BoatSign;
+  /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
+  private readonly plaza: PlazaDress | null;
+  private readonly plazaLive: LiveIn = emptyLive();
   /** Над катером во время посадки: отсчёт и «Садись!» */
   private readonly boatBanner: BoatBanner;
   private readonly seatTmp = { x: 0, z: 0 };
@@ -535,6 +541,7 @@ export class LobbyScene implements Scene {
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = new Respects(this.world.scene, this.fx, d.sound);
     this.boatSign = new BoatSign(this.world.scene);
+    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows()) : null;
     this.boatBanner = new BoatBanner(this.world.scene);
     this.aqua = new AquaPark(this.world.scene, this.effects);
     this.rg = new RegattaClient({
@@ -650,6 +657,7 @@ export class LobbyScene implements Scene {
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
     for (const circle of this.entryCircles.values()) circle.setVisible(false);
+    for (const mode of PLAZA_MODES) this.plaza?.setMode(mode, false);
     this.startZone = { kind: null, left: 0 };
     this.stormState = emptyStorm();
     this.storm3d.set(this.stormState);
@@ -662,6 +670,7 @@ export class LobbyScene implements Scene {
     else this.hideStatus = status as GatherStatus | HideStatus | null;
     const circle = this.entryCircles.get(kind)!;
     circle.setVisible(!!status);
+    this.plaza?.setMode(kind === 'boatrace' ? 'regatta' : 'hide', !!status);
     if (!status) return;
     circle.status({ ...status, left: status.phase === 'count' && 'left' in status ? status.left : undefined, max: 'max' in status ? status.max : 6,
       hint: kind === 'boatrace' && this.rg.phase !== 'idle' && status.phase === 'idle' ? 'Регата идёт · встань — поедешь следующим'
@@ -813,6 +822,7 @@ export class LobbyScene implements Scene {
         this.billiards.off();
         this.skillStatus = msg.skill ?? null;
         this.skillPortal.setVisible(!!msg.skill);
+        this.plaza?.setMode('sky', !!msg.skill);
         for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, !!msg.skill);
         if (msg.skill) this.skillPortal.status(msg.skill);
         this.entryCircles.get('paintball')!.setVisible(true);
@@ -1111,7 +1121,10 @@ export class LobbyScene implements Scene {
     this.fortSt = st;
     this.entryCircles.get('fort')!.setVisible(!!st);
     this.entryCircles.get('fort')!.status({ left: this.startZone.kind === 'fort' ? this.startZone.left : 0, hint: 'Встань на 3 секунды · E — сразу' });
-    if (st && !this.fortGate) {
+    // при новом оформлении площади крепость — надвратная башня и донжон (client/lobby/plaza), прежняя арка не нужна
+    this.plaza?.setMode('fort', !!st);
+    if (st) this.plaza?.setFortLine(fortStatusLine(st));
+    if (st && !this.fortGate && !this.plaza) {
       this.fortGate = new FortGate(this.world.scene);
       this.d.renderer.refreshShadows();
     }
@@ -1121,6 +1134,7 @@ export class LobbyScene implements Scene {
   /** Круг «Fight Club»: первый статус — ставим дверь в стене кафе, дальше — картон и мел. */
   private onFightSt(st: FcStatus | null): void {
     this.fcSt = st;
+    this.plaza?.setMode('fight', !!st);
     if (st && !this.fcDoor) this.fcDoor = new FightDoor(this.world.scene);
     if (st) this.fcDoor?.setStatus(st);
   }
@@ -2247,6 +2261,7 @@ export class LobbyScene implements Scene {
     this.tg.update(this.time);
     this.fortGate?.update(this.time);
     this.fcDoor?.update(this.time);
+    this.updatePlaza(dt, camPos);
     tickAvatarShared(this.time);
     this.world.camera.getWorldDirection(_v);
     sound.setListener(camPos.x, camPos.y, camPos.z, _v.x, _v.y, _v.z);
@@ -2257,6 +2272,19 @@ export class LobbyScene implements Scene {
     this.photo.update(dt);
     this.runLater();
     this.world.render();
+  }
+
+  /** Оформление площади: зазывалы и бегущие лампочки. Статусы режимов — те же, что у табло и кругов сбора. */
+  private updatePlaza(dt: number, camPos: THREE.Vector3): void {
+    const plaza = this.plaza;
+    if (!plaza) return;
+    const ks = this.world.kartStart;
+    fillLive(this.plazaLive, {
+      pbHumans: this.pbHumans, fort: this.fortSt, skill: this.skillStatus, kart: ks.status, kartLeft: ks.left, hide: this.hideStatus,
+      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', fight: this.fcSt, boat: this.boat,
+      tick: this.clock.renderTick, tickRate: TICK_RATE,
+    });
+    plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);
   }
 
   /** Фон меню: облёт площади по кругу. */
@@ -2282,6 +2310,7 @@ export class LobbyScene implements Scene {
     if (this.pool >= 0) this.world.jackpotBoard.update(this.pool, this.time);
     this.world.recentBoard.tick(performance.now());
     this.tg.update(this.time);
+    this.updatePlaza(dt, cam.position);
     tickAvatarShared(this.time);
     cam.getWorldDirection(_v);
     this.d.sound.setListener(cam.position.x, cam.position.y, cam.position.z, _v.x, _v.y, _v.z);
