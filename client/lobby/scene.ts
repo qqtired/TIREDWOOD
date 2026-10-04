@@ -600,12 +600,13 @@ export class LobbyScene implements Scene {
   }
 
   /**
-   * В примерочной и за столом дурака мышь отпущена — пауза при этом не нужна. Встал из-за стола (стол уже убран) —
-   * мышь нужна сразу, не дожидаясь ответа сервера: не удался захват — пауза, а не курсор без камеры.
+   * В примерочной, за столом дурака и в окне ставок крысиных бегов мышь отпущена — пауза при этом не нужна. Встал
+   * из-за стола (стол уже убран) — мышь нужна сразу, не дожидаясь ответа сервера: не удался захват — пауза, а не
+   * курсор без камеры.
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.juke.isOpen || this.plane.bannerOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -617,7 +618,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen || this.plane.bannerOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -656,14 +657,14 @@ export class LobbyScene implements Scene {
 
   private syncMenu(): void {
     if (!this.entered || this.myId < 0) return;
-    const open = this.outerMenu || this.wardrobeOpen || this.fish2.modalOpen;
+    const open = this.outerMenu || this.wardrobeOpen || this.fish2.modalOpen || this.ratHud.isOpen;
     if (open === this.sentMenu) return;
     this.sentMenu = open;
     this.d.net.send({ t: 'lobbyMenu', open });
   }
 
   private get eventEligible(): boolean {
-    return this.hasSelf && !this.outerMenu && !this.wardrobeOpen && !this.fish2.modalOpen && !isHeld(this.myAct);
+    return this.hasSelf && !this.outerMenu && !this.wardrobeOpen && !this.fish2.modalOpen && !this.ratHud.isOpen && !isHeld(this.myAct);
   }
 
   /** Набег пиратов идёт и я свободен: ЛКМ — маркер или пушка, камера над плечом */
