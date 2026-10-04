@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
-import { CANOPY_POLES, CANOPY_POLE_H, MACHINE_FRONT_Z, PHOTO, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, MACHINE_FRONT_Z, PHOTO, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { Deco, MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -23,6 +23,8 @@ import { Boats } from './boats.ts';
 import { LobbyDecor, swayAttr, windSway } from './decor.ts';
 import { KartStart } from './kartstart.ts';
 import { LobbyLook } from './look.ts';
+import { PLAZA2 } from './plaza/flag.ts';
+import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
 import { SkyFx, type StrikeEvent } from './skyfx.ts';
@@ -345,6 +347,11 @@ export class LobbyWorld {
     this.setQuality(quality);
   }
 
+  /** Что мир даёт оформлению площади (client/lobby/plaza): ветер, мокрота в дождь, огни, которые гаснут вместе со светом. */
+  get plazaCtx(): VenueCtx {
+    return { scene: this.scene, wind: this.wind, wet: (m) => this.wettable(m), signs: this.poweredSigns, powered: this.powered };
+  }
+
   // ------------------------------------------------------------ общие помощники
 
   private box(key: string, min: V3, max: V3, color: number, groundY = 0.01): void {
@@ -631,7 +638,8 @@ export class LobbyWorld {
     this.solidBox(6.3, 2.5, 0.12, 0, 6.05, -15.98, 0x161616);
     this.gateScreen.mesh.position.set(0, 6.05, -15.91);
     this.scene.add(this.gateScreen.mesh);
-    // вывеска и две лампы над ней
+    // вывеска и две лампы над ней (при новом оформлении площади над воротами — вывеска «ПЕЙНТБОЛ», client/lobby/plaza/north.ts)
+    if (PLAZA2) return;
     this.sign(tex.signTexture('СКЛАД №3', '#33465c', '#f4efe6'), 5.2, 1.3, 0, 8.05, -15.95, 0, 0.5, true);
     for (const x of [-1.6, 1.6]) {
       this.solidBox(0.05, 0.05, 0.5, x, 8.95, -15.75, 0x2a2a2a);
@@ -895,10 +903,10 @@ export class LobbyWorld {
     const strings: Array<[V3, V3, number, boolean]> = [
       [post(-14, 16), post(2, 16), 1.1, false],
       [post(2, 16), post(14, 16), 0.9, false],
-      [post(-4.5, -11), post(11, -11), 1.1, false],
+      [post(-4.5, -11), post(LAMP_FORT.x, LAMP_FORT.z), 1.6, false],
       [post(-14, -2), post(-14, 16), 1.2, false],
       [post(-14, -2), post(-4.5, -11), 1.0, false],
-      [post(11, -11), pole(14.2, -9), 0.4, false],
+      [post(LAMP_FORT.x, LAMP_FORT.z), pole(14.2, -9), 0.3, false],
     ];
     const W = [pole(14.2, -9), pole(14.2, 1), pole(14.2, 11)];
     const E = [wall(-9), wall(1), pole(24, 11)];

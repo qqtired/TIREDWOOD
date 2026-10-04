@@ -16,6 +16,7 @@ import {
 } from '../fishplaces.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
+import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
@@ -99,6 +100,10 @@ export interface LobbyMap extends GameMap {
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
   planeBoxes: number[];
+  /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее, в самом конце списка боксов */
+  plazaBoxes: number[];
+  /** Из них — предметы режимов за флагами (двор прятков, мачты регаты, столбики Fight Club): без флага их выключают, как на экране */
+  plazaModeBoxes: Record<PlazaSolidMode, number[]>;
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -106,6 +111,8 @@ export const MACHINE_FRONT_Z = -23.7;
 export const TABLE_ZS = [-5, 3, 11];
 export const TABLE_X = 18;
 export const SKILL_PORTAL = { x: -10, z: -12.8, r: 2.1 } as const;
+/** Фонарь у проулка крепости: стоял на оси арки (11; −11) и закрывал её с площади, теперь — правее, у картинга */
+export const LAMP_FORT = { x: 14.9, z: -11 } as const;
 export const BOAT_RACE_CIRCLE = { x: 16, z: 18, r: 2.25 } as const;
 export const HIDE_CIRCLE = { x: -4, z: 12.5, r: 2.1 } as const;
 export const CHAIR_R = 1.35;
@@ -245,9 +252,9 @@ export function buildLobby(): LobbyMap {
   for (const [x, z] of CANOPY_POLES) b.box([x - 0.08, 0, z - 0.08], [x + 0.08, CANOPY_POLE_H, z + 0.08], 'invisible', 0);
 
   // --- Площадь: батуты, фонари, скамейки у моря
-  b.trampoline(-6, 10);
+  b.trampoline(-10.6, 9.4);
   b.trampoline(8, 14);
-  for (const [x, z] of [[-14, -2], [-4.5, -11], [11, -11], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
+  for (const [x, z] of [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
   const benches = BENCH_XS.map((x) => ({ x, z: BENCH_Z, yaw: Math.PI }));
 
   // Места: сначала стулья (стол × 6, против часовой стрелки, если смотреть сверху), потом скамейки (по 2)
@@ -480,6 +487,15 @@ export function buildLobby(): LobbyMap {
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 
+  // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
+  const plazaBoxes: number[] = [];
+  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
+  for (const p of plazaSolids()) {
+    plazaBoxes.push(b.boxes.length);
+    if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
+    b.box([p.x - p.hx, p.y ?? 0, p.z - p.hz], [p.x + p.hx, (p.y ?? 0) + p.h, p.z + p.hz], 'invisible', 0);
+  }
+
   const spawn: Spot = { x: 0, y: 0, z: 6, yaw: 0 };
   return {
     name: 'Набережная',
@@ -522,5 +538,7 @@ export function buildLobby(): LobbyMap {
     ratBoxes,
     billiardsBoxes,
     planeBoxes,
+    plazaBoxes,
+    plazaModeBoxes,
   };
 }
