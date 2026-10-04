@@ -171,7 +171,8 @@ export class PirateHud {
     if (v.results.length) {
       const t = el('table', 'pr-table', r);
       const h = el('tr', '', t);
-      for (const s of ['Защитник', 'Пираты', 'Шлюпки', 'Корабль', 'Ящики', 'Жетоны']) el('th', '', h, s);
+      // «Попадания» — все попадания (краска, шлюпки, корабль): так их и считает сервер, по жетону за каждое
+      for (const s of ['Защитник', 'Пираты', 'Шлюпки', 'Попадания', 'Ящики', 'Жетоны']) el('th', '', h, s);
       for (const row of v.results) {
         const tr = el('tr', row.pid === this.mePid ? 'me' : '', t);
         el('td', '', tr, `${row.mvp ? '★ ' : ''}${row.nick}`);
