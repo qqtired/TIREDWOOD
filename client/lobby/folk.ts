@@ -25,7 +25,7 @@ const FISHER_RAIN = 'В дождь самый клёв!';
 const FISHERS: ReadonlyArray<{ place: FishPlace; outfit: Outfit; extra: 'thermos' | 'tackle' }> = [
   {
     // юго-восточный угол площадки у дома Семёна на конце пирса, лицом в море на восток (с южного края маяка ушёл — там
-    // начинаются дальние мостки; с юго-западного — там теперь причал лодки «Удалая», shared/ferry.ts)
+    // начинаются дальние мостки; с юго-западного — там теперь место рыбалки у причала лодки «Удалая», shared/ferry.ts)
     place: { x: -13.05, z: 63.3, yaw: -Math.PI / 2, bucket: [-13.7, 0, 62.85] },
     outfit: { c: 13, c2: 15, p: 'stripes', e: 'sleepy', h: 'fisher', a: 'mustache' },
     extra: 'thermos',

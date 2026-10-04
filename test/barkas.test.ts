@@ -37,8 +37,8 @@ function ferryId(hub: Hub, arg: number): number {
   return it.id;
 }
 
-/** Где встать у лодки за хижиной Семёна: юго-западный угол площадки */
-const HOME_STAND = { x: -24.1, z: 63.5 } as const;
+/** Где встать у лодки у хижины Семёна: западный край площадки напротив носа */
+const HOME_STAND = { x: -25.0, z: 60.5 } as const;
 
 /** Подойти к лодке у хижины Семёна (arg 0) или к калитке баркаса (arg 1) и нажать E */
 function useFerry(hub: Hub, c: Client, arg: number): void {
@@ -368,30 +368,41 @@ test('баркас — на уровне дальнего края регаты:
   assert.ok(hull.x1 < -4 - 30 && hull.z0 > 30);
 });
 
-test('«Удалая» у хижины Семёна: бортом к краю площадки за хижиной, между сваями; посадка, табличка и высадка — рядом', () => {
+test('«Удалая» у хижины Семёна: справа от хижины (с мостков), бортом к западному краю площадки; посадка, табличка и высадка — рядом', () => {
   const map = buildLobby();
   const w = new CollisionWorld(map);
   const P = FISH_PIER_HEAD;
   const H = FISH_HOUSE;
-  // нос на запад, правый борт — к южному краю площадки, по линии свай перед ним (сваи — до z1 + 0,47), корпус — у задней стены хижины
-  assert.equal(FERRY_HOME.yaw, Math.PI / 2);
-  const north = FERRY_HOME.z - FERRY_HALF_B;
-  assert.ok(north - P.z1 >= 0.5 && north - P.z1 <= 0.6, `зазор до площадки ${(north - P.z1).toFixed(2)}`);
-  const x0 = FERRY_HOME.x - FERRY_HALF_L;
-  const x1 = FERRY_HOME.x + FERRY_HALF_L;
-  assert.ok(x0 < H.x0 && x1 > H.x0 && x1 < H.x1, 'корпус — за хижиной, нос — у юго-западного угла');
-  // сваи у южного края (shared/maps/lobby.ts: x0 + 0,25, −19, x1 − 0,25; радиус 0,22) — мимо
-  for (const px of [P.x0 + 0.25, -19, P.x1 - 0.25]) assert.ok(px + 0.22 < x0 || px - 0.22 > x1, `свая x ${px}`);
-  // точка посадки — над носом лодки, достаёт с угла площадки; табличка и места высадки — на площадке, свободны
+  // нос на север, правый борт — к западному краю площадки с небольшим зазором, корпус — вдоль края рядом с хижиной
+  assert.equal(FERRY_HOME.yaw, 0);
+  const gap = P.x0 - (FERRY_HOME.x + FERRY_HALF_B);
+  assert.ok(gap >= 0.1 && gap <= 0.2, `зазор до площадки ${gap.toFixed(2)}`);
+  const z0 = FERRY_HOME.z - FERRY_HALF_L;
+  const z1 = FERRY_HOME.z + FERRY_HALF_L;
+  assert.ok(z0 > P.z0 && z0 < H.z0 && z1 > H.z0 && z1 <= P.z1 + 0.2, 'корпус — вдоль края площадки, рядом с хижиной');
+  // свая у юго-западного угла (shared/maps/lobby.ts: x0 + 0,25, z1 + 0,25; радиус 0,22) — мимо
+  for (const [lx, lz] of [[FERRY_HALF_B, FERRY_HALF_L], [0, FERRY_HALF_L], [FERRY_HALF_B, 0]] as const) {
+    const q = ferryLocal(FERRY_HOME, lx, lz);
+    assert.ok(Math.hypot(q.x - (P.x0 + 0.25), q.z - (P.z1 + 0.25)) > 0.22 + 0.15, 'свая у угла');
+  }
+  // точка посадки — над лодкой, достаёт с края площадки; табличка и места высадки — на площадке, свободны
   standable(w, HOME_STAND.x, HOME_STAND.z, 0, 'у лодки');
-  assert.ok(Math.hypot(FERRY_HOME_BOARD.x - HOME_STAND.x, FERRY_HOME_BOARD.z - HOME_STAND.z) < FERRY_HOME_BOARD.r - 0.3, 'с угла площадки — достать');
-  assert.ok(Math.abs(FERRY_HOME_BOARD.x - FERRY_HOME.x) < FERRY_HALF_L && Math.abs(FERRY_HOME_BOARD.z - FERRY_HOME.z) < FERRY_HALF_B, 'точка — над лодкой');
+  assert.ok(Math.hypot(FERRY_HOME_BOARD.x - HOME_STAND.x, FERRY_HOME_BOARD.z - HOME_STAND.z) < FERRY_HOME_BOARD.r - 0.3, 'с края площадки — достать');
+  assert.ok(Math.abs(FERRY_HOME_BOARD.x - FERRY_HOME.x) < FERRY_HALF_B && Math.abs(FERRY_HOME_BOARD.z - FERRY_HOME.z) < FERRY_HALF_L, 'точка — над лодкой');
   for (const [x, z] of FERRY_HOME_SPOTS) standable(w, x, z, 0, 'высадка у хижины');
   assert.ok(FERRY_SIGN.x > P.x0 && FERRY_SIGN.x < P.x1 && FERRY_SIGN.z > P.z0 && FERRY_SIGN.z < P.z1, 'табличка на площадке');
-  // места рыбалки на краях площадки не задеты: до лодки — дальше заброса вбок
+  // места рыбалки на площадке не задеты: зона посадки — отдельно, леска (до 9,5 м) — дальше 1,5 м от корпуса
+  const c = Math.cos(FERRY_HOME.yaw);
+  const sn = Math.sin(FERRY_HOME.yaw);
   for (const s of FISH_SPOTS.filter((f) => f.x >= P.x0 && f.x <= P.x1 && f.z >= P.z0 && f.z <= P.z1)) {
     assert.ok(Math.hypot(s.x - FERRY_HOME_BOARD.x, s.z - FERRY_HOME_BOARD.z) > 1 + FERRY_HOME_BOARD.r + 0.2, `место (${s.x}, ${s.z}) и посадка`);
-    assert.ok(Math.abs(s.z - FERRY_HOME.z) > FERRY_HALF_B + 1.5 || s.x > x1 + 2, `леска места (${s.x}, ${s.z}) не ложится на лодку`);
+    for (let d = 0; d <= 9.5; d += 0.5) {
+      const dx = s.x - Math.sin(s.yaw) * d - FERRY_HOME.x;
+      const dz = s.z - Math.cos(s.yaw) * d - FERRY_HOME.z;
+      const lx = dx * c - dz * sn;
+      const lz = dx * sn + dz * c;
+      assert.ok(Math.abs(lx) > FERRY_HALF_B + 1.5 || Math.abs(lz) > FERRY_HALF_L + 1.5, `леска места (${s.x}, ${s.z}) не ложится на лодку`);
+    }
   }
 });
 
@@ -410,8 +421,8 @@ test('пути «Удалой» ничего не задевают: сваи, п
       for (let lx = -FERRY_HALF_B; lx <= FERRY_HALF_B + 1e-9; lx += FERRY_HALF_B / 2) for (let lz = -FERRY_HALF_L; lz <= FERRY_HALF_L + 1e-9; lz += 0.5) {
         const q = ferryLocal(p, lx, lz);
         for (const s of piles) assert.ok(Math.hypot(q.x - s.x, q.z - s.z) > s.r + 0.03, `тик ${t}: свая (${s.x}) задета`);
-        // площадка у хижины и сама хижина: корпус — южнее края
-        if (q.x > P.x0 - 0.05 && q.x < P.x1 + 0.05) assert.ok(q.z > P.z1 + 0.04, `тик ${t}: корпус у площадки (${q.x.toFixed(2)}, ${q.z.toFixed(2)})`);
+        // площадка у хижины и сама хижина: корпус — снаружи, не ближе 0,1 м к краю
+        assert.ok(!(q.x > P.x0 - 0.1 && q.x < P.x1 + 0.1 && q.z > P.z0 - 0.1 && q.z < P.z1 + 0.1), `тик ${t}: корпус у площадки (${q.x.toFixed(2)}, ${q.z.toFixed(2)})`);
         // корма баркаса: лодка не заходит внутрь корпуса
         assert.ok(!(q.x > BARKAS.bow && q.x < BARKAS.stern + 0.2 && Math.abs(q.z - BARKAS.z) < BARKAS.half + 0.2), `тик ${t}: в корпусе баркаса`);
         for (const a of [...AQUA_PIECES, ...AQUA_MOVERS]) assert.ok(q.x < a.x0 - 5 || q.x > a.x1 + 5 || q.z < a.z0 - 5 || q.z > a.z1 + 5, 'аквапарк');

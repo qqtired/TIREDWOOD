@@ -1,5 +1,5 @@
 // Табличка лодки «Удалая» на столбике у хижины Семёна (shared/ferry.ts — FERRY_SIGN), лицом к мосткам: куда возит, кого
-// берёт (с 3-го уровня рыбалки) и что с лодкой сейчас — у причала за хижиной, отсчёт до отхода, в море (когда вернётся).
+// берёт (с 3-го уровня рыбалки) и что с лодкой сейчас — у причала у хижины, отсчёт до отхода, в море (когда вернётся).
 // Холст перерисовывается, только когда меняется текст.
 import * as THREE from 'three';
 import { BARKAS_FISH_SPOTS } from '../../../shared/barkas.ts';
@@ -51,7 +51,7 @@ export class FerrySign {
     let color: string;
     const s = (ticks: number): number => Math.max(0, Math.ceil(ticks / TICK_RATE));
     if (st.ph === FE_HOME) {
-      line = 'За хижиной, у причала — подойди и нажми E';
+      line = 'Справа, у причала — подойди и нажми E';
       color = '#8ff0a4';
     } else if (st.ph === FE_BOARD) {
       const free = FERRY_SEATS - st.n;

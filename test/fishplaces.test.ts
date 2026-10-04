@@ -76,6 +76,8 @@ test('все места полностью стоят на полу, не пер
 
 test('каждое новое место достижимо от входа на пирс и обратно без прыжка, воды и столкновений', () => {
   const w = new CollisionWorld(buildLobby());
+  // маршруты к дальним местам кончаются на самих местах
+  FISH_FAR_ROUTES.forEach((route, i) => assert.deepEqual(route[route.length - 1], [FISH_FAR_SPOTS[i].x, FISH_FAR_SPOTS[i].z], `маршрут к месту ${i + 20}`));
   for (const [n, route] of [...FISH_APPROACH_ROUTES.slice(6), ...FISH_FAR_ROUTES, FISHER_ROUTE].entries()) {
     for (let k = 1; k < route.length; k++) {
       const a = route[k - 1], b = route[k];
@@ -91,7 +93,7 @@ test('каждое новое место достижимо от входа на
 test('новые места не перекрывают фото, декорации рыбаков, снасти, кнехты и прочие старые interactions', () => {
   const map = buildLobby();
   // рыбаки-декорации с ведром и термосом (client/lobby/folk.ts): один — в юго-восточном углу площадки у дома рыбака
-  // (юго-западный — у причала «Удалой»), второй — у западного края площадки маяка
+  // (в юго-западном — место рыбалки у причала «Удалой»), второй — у западного края площадки маяка
   const props: Point[] = [[-13.05, 63.3], [-13.7, 62.85], [-23.4, 43.6], [-23.25, 44.55], [-23.15, 43.15], [PHOTO.x, PHOTO.z]];
   for (const [n, s] of [...NEW_SPOTS, ...FISH_FAR_SPOTS].entries()) {
     for (const p of props) assert.ok(Math.hypot(s.x - p[0], s.z - p[1]) > 1.3, `место ${n + 6}: проход возле старого предмета ${p}`);
