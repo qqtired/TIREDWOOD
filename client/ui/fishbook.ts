@@ -31,12 +31,12 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
   if (!r || !f) return '';
   const [lo, hi] = priceRange(sp);
   const mods = fishCastMods(progress, now, r.zone);
-  // в сезон рыбалки — как в «Шансах сейчас»: эпик и выше ×3
+  // в сезон рыбалки — как в «Шансах сейчас»: редкие и выше ×2 к дождю (×3 к ясной погоде)
   const share = biteShare(sp, rain, mods, season) * 100;
   const fmt = (v: number): string => (v >= 1 ? v.toFixed(1) : v.toFixed(2)).replace('.', ',');
   const sea = `баркас в открытом море (с ${BARKAS_LEVEL}-го уровня рыбалки)`;
   const where = r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? `⚓ ${sea}` : 'пристань';
-  const when = r.rain ? '🌧 только в дождь, цена ×1,5' : r.tier === T_DIVINE ? 'в любую погоду, в сезон рыбалки — втрое чаще' : 'в любую погоду';
+  const when = r.rain ? '🌧 только в дождь, цена ×1,5' : r.tier === T_DIVINE ? 'в любую погоду; в дождь — в 1,5 раза чаще, в сезон рыбалки — ещё вдвое' : 'в любую погоду';
   const now2 = r.rain && !rain ? `в дождь — ${fmt(biteShare(sp, true, mods) * 100)}% поклёвок` : `сейчас — ${fmt(share)}% поклёвок`;
   return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when}${odds ? ` · ${now2}` : ''} · ${lo}–${hi} 🪙 · ${r.note}`;
 }

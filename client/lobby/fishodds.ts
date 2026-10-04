@@ -1,9 +1,9 @@
 // «Шансы сейчас» (fisheco): пока сидишь с удочкой — цветная полоса по категориям с процентами и строка «что их
 // поднимает» (сезон или дождь, уровень, удочка, напиток или водка, блесна, баркас). Те же формулы, что у броска сервера
 // (shared/fishrules.ts tierOdds): итог честный — со всеми бонусами сразу. Наведи на категорию — видно, из чего он сложен:
-// база места × погода × бонусы.
+// база места × погода × бонусы; у нижней категории под потолком — ещё и сколько ей осталось после старших.
 import type { FishCastMods } from '../../shared/fishprogress.ts';
-import { FISH_TIERS, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, TIER_SHORT, tierOdds, tierOddsParts, tierRank } from '../../shared/fishrules.ts';
+import { COMMON_FLOOR, FISH_TIERS, T_CHEST, T_COMMON, T_JUNK, TIER_CSS, TIER_NAMES, TIER_SHORT, tierOdds, tierOddsParts, tierRank } from '../../shared/fishrules.ts';
 import { el } from './fish2.ts';
 import { mul, oddsParts } from './fishfmt.ts';
 import './fisheco.css';
@@ -54,7 +54,10 @@ export class FishOdds {
       const rank = tierRank(t);
       if (rank > 0) {
         const p = tierOddsParts(rank, rain, mods, season);
-        item.title = `${TIER_NAMES[t]}: база ${oddsPct(p.base)} × погода ${mul(p.weather)} × бонусы ${mul(p.bonus)} = ${oddsPct(p.now)}`;
+        const want = p.base * p.weather * p.bonus;
+        // потолок сверху вниз: старшие взяли своё целиком, нижней оставшейся — остаток до 100 %
+        const cap = p.now < want - 1e-9 ? ` → ${oddsPct(p.now)}: старшие категории взяли своё, этой — остаток` : '';
+        item.title = `${TIER_NAMES[t]}: база ${oddsPct(p.base)} × погода ${mul(p.weather)} × бонусы ${mul(p.bonus)} = ${oddsPct(want)}${cap}`;
       } else item.title = `${TIER_NAMES[t]}: всё, что осталось от остальных категорий`;
     }
     const extra = this.legend.appendChild(el('span', 'fe-odds-misc'));
@@ -62,6 +65,10 @@ export class FishOdds {
     extra.textContent = `сундук ${oddsPct(odds[T_CHEST])} · ${odds[T_JUNK] > 0 ? `хлам ${oddsPct(odds[T_JUNK])}` : 'хлама нет'}`;
     const parts = oddsParts(mods, rain, season);
     this.why.textContent = parts.join(' · ');
-    this.root.title = `Что клюнет при следующем забросе. Редкие и выше: ${parts.join(', ')}.`;
+    // потолок: редкие и выше заняли всё, что можно (95 % рыбы), обычным — пол 5 %
+    const fish = 1 - odds[T_JUNK] - odds[T_CHEST];
+    const full = odds[T_COMMON] <= fish * COMMON_FLOOR + 1e-9
+      ? ` Потолок: редкие и выше заняли ${Math.round((1 - COMMON_FLOOR) * 100)} % рыбы, старшие — в первую очередь; обычным всегда остаётся ${Math.round(COMMON_FLOOR * 100)} %.` : '';
+    this.root.title = `Что клюнет при следующем забросе. Редкие и выше: ${parts.join(', ')}.${full}`;
   }
 }

@@ -21,7 +21,7 @@ import type { FishingSpots } from './fishing.ts';
 import { FishNpcDialog } from './fishnpcdialog.ts';
 import { SanyaHome } from './barkas/sanyahome.ts';
 import { FishProgressHud, fishPlate, setText, type FishPlate } from './fishprogresshud.ts';
-import { FISH_SEASON, SEASON_PERKS } from './fishseason.ts';
+import { FISH_SEASON, SEASON_PERKS, SEASON_PERKS_LONG } from './fishseason.ts';
 import { Fisherman3D } from './fisherman.ts';
 import { FishPodium3D } from './fishpodium.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
@@ -33,8 +33,8 @@ import { SeasonSigns } from './seasonsign.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
-/** Рыболовное событие (дождь): уникальные виды — только в дождь, их цена ×1,5 (RAIN_NUM / RAIN_DEN) */
-const RAIN_PERKS = 'уникальные виды · их цена ×1,5';
+/** Рыболовное событие (дождь): уникальные виды — только в дождь (их цена ×1,5, RAIN_NUM / RAIN_DEN), редкие и выше ×1,5 (RAIN_MUL) */
+const RAIN_PERKS = 'уникальные виды · редкие и выше ×1,5';
 
 export class Fish2Hud {
   /** Открыли журнал — отпустить мышь; закрыли — снова захватить */
@@ -84,9 +84,9 @@ export class Fish2Hud {
     this.seasonSigns = new SeasonSigns(scene);
     this.tools = parent.appendChild(el('div', 'f2-tools'));
     this.seasonPlate = fishPlate(this.tools, 'f2-season', '🎉');
-    this.seasonPlate.root.title = `Сезон рыбалки: ${SEASON_PERKS}. Идёт — особый дождь для всех на набережной.`;
+    this.seasonPlate.root.title = `Сезон рыбалки: ${SEASON_PERKS_LONG}.`;
     this.rainPlate = fishPlate(this.tools, 'f2-rainbadge', '🌧');
-    this.rainPlate.root.title = 'Рыболовное событие — дождь: уникальные виды рыб ловятся только сейчас, их цена ×1,5; легенды и мифик клюют чаще';
+    this.rainPlate.root.title = 'Рыболовное событие — дождь: уникальные виды рыб ловятся только сейчас, их цена ×1,5; все от редких до царя морей клюют в 1,5 раза чаще';
     this.bookBtn = this.tools.appendChild(el('button', 'f2-bookbtn'));
     this.bookBtn.addEventListener('click', () => this.toggleBook());
     // журнал — поверх всего на набережной (кнопки и шкала под ним)
@@ -161,7 +161,7 @@ export class Fish2Hud {
     this.npc.setEvent(rain, this.eventUntil);
   }
 
-  /** Сезон рыбалки (server/lobby/fishseason.ts): «Шансы сейчас» считают его сами — эпик и выше ×3 */
+  /** Сезон рыбалки (server/lobby/fishseason.ts): «Шансы сейчас» считают его сами — редкие и выше ×2 к дождю (×3 к ясной) */
   onSeason(on: boolean, endsAt: number): void {
     this.seasonEnds = on ? endsAt : 0;
     this.bookWeather();

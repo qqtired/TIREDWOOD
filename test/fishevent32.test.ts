@@ -56,11 +56,14 @@ test('unique event-only pools: pier keeps all five tiers with picarel; barkas ad
   }
 });
 
-test('event myth is the rarest pier fish (only the divine kalmar is rarer), harder than its legend, and still catchable', () => {
+test('event myth is the rarest pier fish of its tiers (only the divine tier is rarer than the myth tier), harder than its legend, and still catchable', () => {
   const legend = sp('bluemarlin'), myth = sp('greenlandshark');
   assert.ok(legend >= 0 && myth >= 0, 'both species exist');
   const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier' && RULE[s]!.tier !== T_DIVINE);
-  assert.ok(biteShare(sp('kalmar'), true) < biteShare(myth, true), 'реже мифика — только божественный кальмар');
+  // 04.10 (причёсанные шансы): божественная — 0,43 % против 0,99 % мифических; в дождь мифические делят долю на двоих,
+  // и гренландской акуле (трети мифических) достаётся меньше, чем кальмару, — сравниваем категории, а не виды
+  const mythTier = pier.filter(s => RULE[s]!.tier === T_MYTH).reduce((a, s) => a + biteShare(s, true), 0);
+  assert.ok(biteShare(sp('kalmar'), true) < mythTier, 'реже мифических — только божественная');
   const eventRares = pier.filter(s => RULE[s]!.rain && RULE[s]!.tier >= 1 && RULE[s]!.tier <= 2);
   assert.ok(biteShare(myth, true) < biteShare(legend, true));
   for (const s of eventRares) assert.ok(biteShare(legend, true) < biteShare(s, true));

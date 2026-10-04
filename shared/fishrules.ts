@@ -8,10 +8,16 @@
 // Баркас — своё море: рывки и резкость ×1,15, сопротивление ×1,2; блесна гасит рывки.
 //
 // 04.10 (патч рыбалки): божественная категория T_DIVINE = 7 (номера 0–6 уже в данных игроков) — дальневосточный кальмар,
-// царь морей: у пристани и с баркаса, в любую погоду, база шанса — мифик / 2,5. Шансы считаются по категориям
-// (tierOdds): база категории своего места × погода × бонусы, обычные — остаток; внутри категории — по весу вида.
-// Дождь — редкие, эпик, лег и мифик ×1,5 к обычной ловле; сезон рыбалки (особый дождь раз в 2 часа) — эпик, лег, мифик
-// и божественная ×3 от базы. Гренландская акула в дождь клюёт и у пристани, и с баркаса.
+// царь морей: у пристани и с баркаса, в любую погоду. Шансы считаются по категориям (tierOdds): база категории своего
+// места × погода × бонусы, обычные — остаток; внутри категории — по весу вида. Гренландская акула в дождь клюёт и у
+// пристани, и с баркаса.
+//
+// 04.10, причёсанные шансы (владелец): база мифической +0,4 п. п., божественная задана явно (+0,2 п. п.). Уровень,
+// удочка, пиво, эль, пиво владыки, дождь и сезон умножают ВСЕ категории от редкой до божественной; блесна и водка —
+// эпическую и выше (с божественной: «крупная рыба»). Дождь ×1,5 к ясной погоде, сезон рыбалки — ещё ×2 к дождю (×3).
+// Потолок — сверху вниз: старшие категории получают свою долю целиком, нехватку отдают обычные (до пола 5 % рыбы —
+// COMMON_FLOOR, чтобы пикарель ловилась у всех), потом редкие, потом эпические… Поэтому шанс «эта категория или выше» и
+// ожидаемые жетоны и опыт за поклёвку от любого бонуса только растут.
 import { FISH, fmtWeight } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import type { ReelStyle, ReelPattern } from './fishreel.ts';
@@ -22,8 +28,8 @@ import { LORD, LURE_MAX } from './fishshop.ts';
 
 /** Справочно: доход обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока). */
 export const FISH_TARGET_PER_MIN = 17.1;
-/** Сколько очков ценности (поле val) в минуту набирает тот же игрок — меряет тест. */
-export const FISH_POINTS_PER_MIN = 13.7;
+/** Сколько очков ценности (поле val) в минуту набирает тот же игрок — меряет тест (04.10: мифик и божественная чаще — 13,7 → 14,2). */
+export const FISH_POINTS_PER_MIN = 14.2;
 /** Исходный курс выпуска 6: заморожен, чтобы +75 % считались от старой целой цены, а не от новой цели. */
 export const COIN_PER_POINT = 13.5 / 13.7;
 /** Калибровка только остальных рыб. Это не второй глобальный множитель для обычных. */
@@ -78,14 +84,23 @@ export function tierRank(tier: number): number {
 /** Дождевые виды платят ×3/2 */
 export const RAIN_NUM = 3;
 export const RAIN_DEN = 2;
-/** В дождь шанс редких, эпических, легендарных и мифических — ×1,5 к обычной ловле (обычные — остаток) */
+/** В дождь шанс всех категорий от редкой до божественной — ×1,5 к ясной погоде (обычные — остаток) */
 export const RAIN_MUL = 1.5;
-/** Прежнее имя RAIN_MUL (подписи клиента): дождь ×1,5 — теперь у всех четырёх категорий от редких до мифических */
+/** Прежнее имя RAIN_MUL (подписи клиента): дождь ×1,5 — у всех категорий от редкой до божественной */
 export const RAIN_TOP_MUL = RAIN_MUL;
-/** Сезон рыбалки: эпические, легендарные, мифические и божественная — ×3 от базы (редкие — как в дождь, ×1,5) */
-export const SEASON_MUL = 3;
-/** Божественная клюёт в 2,5 раза реже мифических своего места (база, ясно) */
+/** Сезон рыбалки (особый дождь): ещё ×2 к дождю — ко всем твоим шансам от редкой до божественной (к ясной погоде ×3) */
+export const SEASON_MUL = 2;
+/** Божественная дороже мифических своего места в 2,5 раза (цена и опыт); её шанс задан явно — DIVINE_BASE */
 export const DIVINE_RATIO = 2.5;
+/** Мифическая: +0,4 п. п. ко всем поклёвкам новичка в ясную погоду сверх весов видов (у пристани 0,587 → 0,987 %, на баркасе 0,555 → 0,955 %) */
+export const MYTH_ADD = 0.004;
+/** Божественная — явно, доля всех поклёвок новичка в ясную погоду (было мифическая / 2,5: 0,23 и 0,22 % — стало +0,2 п. п.) */
+export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042 };
+/**
+ * Пол обычных: не меньше этой доли поклёвок рыбы при любых бонусах и погоде — редкие и выше делят не больше 95 %. Иначе
+ * у прокачанного рыбака в дождь обычных не остаётся и пикарель (обычная дождевая) не ловится — коллекцию не закрыть.
+ */
+export const COMMON_FLOOR = 0.05;
 /** В дождь опыт рыбалки ×1,15 (за любую рыбу, пойманную, пока идёт дождь) */
 export const RAIN_XP = 1.15;
 /**
@@ -515,17 +530,23 @@ const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
 
 /**
  * База категорий места (ясно, без бонусов), доли поклёвок рыбы по рангам 0…5: обычные … мифические — по весам видов
- * ясной погоды, божественная — мифические / DIVINE_RATIO (сверх единицы: её доля в итоге берётся из обычных).
+ * ясной погоды, мифическим ещё MYTH_ADD, божественная — DIVINE_BASE (обе прибавки — из обычных: им остаток).
+ * MYTH_ADD и DIVINE_BASE — доли всех поклёвок новичка, а здесь доли рыбы: делим на долю рыбы у новичка (92,5 %).
  */
 function makeBase(zone: FishZone): readonly number[] {
   const p = POOLS[zone][0];
   const total = p.rankW.slice(0, 5).reduce((a, b) => a + b, 0);
   const out = p.rankW.map((w) => (total > 0 ? w / total : 0));
-  out[5] = out[4] / DIVINE_RATIO;
+  const novice = 1 - (CHEST_PER_10K + junkPer10k(0)) / 10_000;
+  out[4] += MYTH_ADD / novice;
+  out[5] = DIVINE_BASE[zone] / novice;
+  out[0] = 1 - out.slice(1).reduce((a, b) => a + b, 0);
   return out;
 }
 
 const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas') };
+/** База категорий места — для страницы /fishing (tools/fishing-guide): доли рыбы по рангам 0…5 в ясную погоду без бонусов */
+export const TIER_BASE: Readonly<Record<FishZone, readonly number[]>> = BASE;
 
 function placeOf(mods?: Readonly<FishCastMods>): FishZone {
   return mods?.zone === 'barkas' ? 'barkas' : 'pier';
@@ -535,47 +556,54 @@ function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {
   return POOLS[placeOf(mods)][rain ? 1 : 0];
 }
 
-/** Множитель шанса редких и выше (и божественной): уровень × удочка × напиток (снимок заброса) */
+/** Множитель шанса всех от редкой до божественной: уровень × удочка × напиток (снимок заброса) */
 function rareMul(mods?: Readonly<FishCastMods>): number {
   return mods?.rareMultiplier !== undefined && Number.isFinite(mods.rareMultiplier) ? Math.min(4, Math.max(1, mods.rareMultiplier)) : 1;
 }
 
-/** Ещё множитель эпических и выше (и божественной): блесна */
+/**
+ * Ещё множитель эпической и выше (с божественной): блесна. На редких не действует нарочно: иначе у прокачанного
+ * рыбака (14–15-й уровень с платиновой) в любой дождь не остаётся обычных и пикарель (обычная дождевая) не клюёт вовсе.
+ */
 function epicMul(mods?: Readonly<FishCastMods>): number {
   return mods?.epicMultiplier !== undefined && Number.isFinite(mods.epicMultiplier) ? Math.min(LURE_MAX.epic, Math.max(1, mods.epicMultiplier)) : 1;
 }
 
-/** Ещё множитель эпических, легендарных и мифических: водка (×2) */
+/** Ещё множитель эпической и выше (с божественной): водка (×2) — крупная рыба «на риск» */
 function topMul(mods?: Readonly<FishCastMods>): number {
   return mods?.topMultiplier !== undefined && Number.isFinite(mods.topMultiplier) ? Math.min(2, Math.max(1, mods.topMultiplier)) : 1;
 }
 
-/** Погода по рангу категории: дождь — редкие…мифические ×1,5; сезон — редкие ×1,5, эпик…божественная ×3 */
+/** Погода по рангу категории: от редкой до божественной — дождь ×1,5, сезон ещё ×2 (всё вместе ×3); обычным — остаток */
 export function weatherMul(rank: number, weather: FishWeather): number {
   if (weather === 0 || rank < 1) return 1;
-  if (weather === 2 && rank >= 2) return SEASON_MUL;
-  return rank <= 4 ? RAIN_MUL : 1;
+  return weather === 2 ? RAIN_MUL * SEASON_MUL : RAIN_MUL;
 }
 
 /** Множитель категории (ранг 1…5) от бонусов: всё, кроме погоды */
 export function bonusMul(rank: number, mods?: Readonly<FishCastMods>): number {
   if (rank < 1) return 1;
   let k = rareMul(mods);
-  if (rank >= 2) k *= epicMul(mods);
-  if (rank >= 2 && rank <= 4) k *= topMul(mods);
+  if (rank >= 2) k *= epicMul(mods) * topMul(mods);
   return k;
 }
 
 /**
  * Доли поклёвок рыбы по рангам 0…5 (сумма 1): база места × погода × бонусы у редких и выше, обычным — остаток.
- * Остатка не хватило — обычных нет, остальные делят всё в прежних пропорциях (явный потолок).
+ * Потолок — сверху вниз: божественная, мифическая, легендарная… получают свою долю целиком, пока есть место (всего у
+ * редких и выше — до 95 %, обычным пол COMMON_FLOOR); нехватку отдают обычные, потом редкие, потом эпические. Шанс «эта
+ * категория или выше» = min(95 %, сумма желаемых долей) — от любого бонуса не падает, а ниже потолка каждая категория —
+ * ровно база × погода × бонусы.
  */
 function rankShares(weather: FishWeather, mods?: Readonly<FishCastMods>): number[] {
   const base = BASE[placeOf(mods)];
-  const out = base.map((b, k) => (k === 0 ? 0 : b * weatherMul(k, weather) * bonusMul(k, mods)));
-  const top = out.reduce((a, b) => a + b, 0);
-  if (top > 1) return out.map((x) => x / top);
-  out[0] = 1 - top;
+  const out = [0, 0, 0, 0, 0, 0];
+  let left = 1 - COMMON_FLOOR;
+  for (let k = 5; k >= 1; k--) {
+    out[k] = Math.min(left, base[k] * weatherMul(k, weather) * bonusMul(k, mods));
+    left -= out[k];
+  }
+  out[0] = left + COMMON_FLOOR;
   return out;
 }
 
@@ -608,7 +636,7 @@ export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<Fi
   return { sp, g: rollWeight(sp, rand), coins: 0 };
 }
 
-/** Насколько на деле выросли шансы редких (с потолком — когда обычных не осталось) против той же погоды без бонусов. Для проверок. */
+/** Насколько на деле выросли шансы редких (с потолком — когда обычным остался пол) против той же погоды без бонусов. Для проверок. */
 export function effectiveRareMultiplier(rain: boolean, mods?: Readonly<FishCastMods>, season = false): number {
   const weather = fishWeather(rain, season);
   const plain = rankShares(weather, mods ? { ...mods, rareMultiplier: 1, epicMultiplier: 1, topMultiplier: 1 } : undefined);
@@ -636,7 +664,10 @@ export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>, season = 
   return [...shares.slice(0, 5).map((x) => fish * x), junk / 10_000, CHEST_PER_10K / 10_000, fish * shares[5]];
 }
 
-/** Из чего сложен шанс категории (для «Шансов сейчас»): база места, погода, бонусы и итог — доли всех поклёвок */
+/**
+ * Из чего сложен шанс категории (для «Шансов сейчас»): база места, погода, бонусы и итог — доли всех поклёвок. Итог
+ * меньше base × weather × bonus только у нижней категории под потолком: старшие забрали своё, ей — остаток.
+ */
 export function tierOddsParts(rank: number, rain: boolean, mods?: Readonly<FishCastMods>, season = false): { base: number; weather: number; bonus: number; now: number } {
   const weather = fishWeather(rain, season);
   const junk = junkPer10k(mods?.level);

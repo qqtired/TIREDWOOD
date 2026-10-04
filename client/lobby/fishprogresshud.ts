@@ -12,8 +12,8 @@ const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3:
 
 /** Что даёт напиток — строка бейджа. У водки свои эффекты (доход и редкие она не меняет): крупная чаще, держать труднее. */
 function drinkEffect(d: ShopDrink): string {
-  if (!d.top) return `доход ${pct(d.income)} · редкие ${mul(d.rare)}`;
-  return `эпик, лег. и миф. ${mul(d.top)} · опыт ${mul(d.topXp ?? 1)} · зона ${pct(d.zone ?? 1)} · рывки ${pct(d.jerk ?? 1)}`;
+  if (!d.top) return `доход ${pct(d.income)} · редкие и выше ${mul(d.rare)}`;
+  return `эпик и выше ${mul(d.top)} · опыт ${mul(d.topXp ?? 1)} · зона ${pct(d.zone ?? 1)} · рывки ${pct(d.jerk ?? 1)}`;
 }
 
 /**
