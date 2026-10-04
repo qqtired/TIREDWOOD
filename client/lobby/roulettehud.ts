@@ -8,18 +8,21 @@ import { bagValue, emptyFishProgress, type FishProgress } from '../../shared/fis
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import {
   ROULETTE_COLORS, ROULETTE_COLOR_NAMES, ROULETTE_MAX_PAYOUT, ROULETTE_OPEN_MS, ROULETTE_PAYOUT, rouletteChance, rouletteColor, rouletteWin,
-  type RouletteColor, type RouletteView,
+  type RouletteColor, type RouletteLogRow, type RouletteView,
 } from '../../shared/roulette.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el, fishPic, tierOf } from './fish2.ts';
 import { fishCount, num } from './fishfmt.ts';
 import './fisheco.css';
+import './roulettelog.css';
 
 const NAMES: Record<RouletteColor, string> = { red: 'Красное', black: 'Чёрное', green: 'Зеро' };
 /** Клавиши выбора поля: 1 — красное, 2 — чёрное, 3 — зеро */
 const PICK_KEYS: Record<string, RouletteColor> = { Digit1: 'red', Digit2: 'black', Digit3: 'green', Numpad1: 'red', Numpad2: 'black', Numpad3: 'green' };
 /** Сколько висит итог после остановки шарика, мс */
 const RESULT_MS = 9000;
+/** Сколько последних ставок показываем в окне ставки (на табло на баркасе — все десять) */
+const RECENT_ROWS = 4;
 /** Итог твоей ставки (rouletteResult) */
 type Outcome = Extract<ServerMsg, { t: 'rouletteResult' }>;
 
@@ -36,6 +39,8 @@ export class RouletteHud {
   private readonly picks = new Map<RouletteColor, { btn: HTMLButtonElement; win: HTMLElement }>();
   private readonly go: HTMLButtonElement;
   private readonly others: HTMLElement;
+  private readonly recent: HTMLElement;
+  private log: readonly RouletteLogRow[] = [];
   private readonly banner: HTMLElement;
   private readonly badge: HTMLElement;
   private readonly bannerHead: HTMLElement;
@@ -90,6 +95,8 @@ export class RouletteHud {
     this.go.addEventListener('click', () => this.submit());
     this.state = this.root.appendChild(el('p', 'fe-rl-state'));
     this.others = this.root.appendChild(el('p', 'fn-fine fe-rl-others'));
+    this.recent = this.root.appendChild(el('div', 'fe-rl-recent'));
+    this.recent.hidden = true;
     const cap = Number.isFinite(ROULETTE_MAX_PAYOUT) ? ` Выплата — не больше ${num(ROULETTE_MAX_PAYOUT)} 🪙.` : '';
     setCoinText(this.root.appendChild(el('p', 'fn-fine')), `Европейская рулетка: 37 лунок — 18 красных, 18 чёрных и зеро. Выиграл — жетоны сразу; проиграл — улов пропадает.${cap} Колесо крутится через ${ROULETTE_OPEN_MS / 1000} с после первой ставки или сразу, когда поставили все у стола. Клавиши: 1, 2, 3 — поле, Enter — поставить, Esc — закрыть.`);
     this.root.addEventListener('keydown', (e) => {
@@ -123,6 +130,7 @@ export class RouletteHud {
     this.progress = progress;
     this.myPid = pid;
     this.pick = null;
+    this.renderRecent();
     this.render();
     if (!this.root.open) {
       this.root.showModal();
@@ -141,6 +149,12 @@ export class RouletteHud {
     this.viewAt = performance.now();
     if (this.isOpen) this.render();
     this.renderBanner();
+  }
+
+  /** Последние ставки с табло на баркасе (свежие сверху): короткий список в окне — как сыграли другие и ты сам */
+  setLog(rows: readonly RouletteLogRow[]): void {
+    this.log = rows;
+    this.renderRecent();
   }
 
   /** Рядом ли игрок со столом: плашка раунда видна только там */
@@ -206,6 +220,23 @@ export class RouletteHud {
   private tick(): void {
     if (this.isOpen) this.render();
     this.renderBanner();
+  }
+
+  private renderRecent(): void {
+    const rows = this.log.slice(0, RECENT_ROWS);
+    this.recent.hidden = rows.length === 0;
+    if (rows.length === 0) return;
+    const head = el('p', 'fe-rl-rhead', 'Последние ставки');
+    this.recent.replaceChildren(head, ...rows.map((r) => {
+      const row = el('div', r.pid === this.myPid ? 'fe-rl-rrow mine' : 'fe-rl-rrow');
+      row.title = `Выпало ${r.n} — ${ROULETTE_COLOR_NAMES[rouletteColor(r.n)]}`;
+      row.appendChild(el('span', `fe-rl-rdot ${rouletteColor(r.n)}`, String(r.n)));
+      row.appendChild(el('span', 'fe-rl-rnick', r.nick));
+      row.appendChild(el('span', `fe-rl-rbet ${r.c}`, `${ROULETTE_COLOR_NAMES[r.c]} ${num(r.stake)}`));
+      const res = row.appendChild(el('span', r.payout > 0 ? 'fe-rl-rres win' : 'fe-rl-rres loss'));
+      setCoinText(res, r.payout > 0 ? `+${num(r.payout)} 🪙` : `−${num(r.stake)}`);
+      return row;
+    }));
   }
 
   private render(): void {

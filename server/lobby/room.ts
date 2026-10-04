@@ -63,6 +63,7 @@ import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
 import { FishNpc, type NpcCtx, type NpcResult, type NpcWho } from './fishnpc.ts';
 import { FishSeason, mskClock } from './fishseason.ts';
+import { onBarkas } from '../../shared/roulette.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
 import { RatTrack } from './ratrace.ts';
 import { Jukebox } from './jukebox.ts';
@@ -436,6 +437,7 @@ export class LobbyRoom implements Room {
         if (c?.profile) { hub.tokens(c, c.profile.tokens); hub.sendMe(c); }
         this.honorDirty = true;
       },
+      aboard: () => [...this.players.values()].flatMap((p) => onBarkas(p.state.x, p.state.y, p.state.z) ? [{ id: p.client.id, send: (m: ServerMsg) => p.client.sink.sendJson(m) }] : []),
     }, hub.profiles) : null;
     this.ratrace = hub.ratrace ? new RatTrack({
       now: this.now,

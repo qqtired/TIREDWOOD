@@ -6,7 +6,7 @@ import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
 import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
-import type { RouletteColor, RouletteView } from './roulette.ts';
+import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
@@ -523,6 +523,9 @@ export type ServerMsg =
   // рулетка рыбака: стол — при каждом изменении; свой итог — когда колесо остановилось
   | { t: 'roulette'; v: RouletteView }
   | { t: 'rouletteResult'; n: number; c: RouletteColor; stake: number; payout: number; fish: number }
+  // табло рулетки на баркасе — только тем, кто стоит на баркасе: rows — последние ставки (свежие сверху); сразу при выходе
+  // на палубу — как есть, после розыгрыша — с fresh: сколько верхних строк только что сыграло (клиент ждёт остановки шарика)
+  | { t: 'rouletteLog'; rows: RouletteLogRow[]; fresh?: number }
   | { t: 'lroster'; players: LobbyPlayerInfo[] }
   | { t: 'outfitOf'; id: number; o: Outfit; level?: number }
   | { t: 'lev'; e: LobbyEvent[] }

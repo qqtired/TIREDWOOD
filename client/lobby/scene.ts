@@ -90,6 +90,7 @@ import { FishDrink } from './fishdrink.ts';
 import { FishHolds } from './fishhold.ts';
 import { FishJumps } from './fishjumps.ts';
 import { setFishSnapRenderer } from './fishsnap.ts';
+import { rouletteDrawText } from '../../shared/roulette.ts';
 import { Roulette3D } from './roulette3d.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { RAT_CENTER, RATS } from '../../shared/ratrace.ts';
@@ -249,7 +250,7 @@ export class LobbyScene implements Scene {
   private readonly fishHolds: FishHolds;
   /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
   private readonly roulette3d: Roulette3D;
-  /** Итог моей ставки: тост и звук — когда шарик остановится (после вращения у меня на экране) */
+  /** Итог моей ставки: звук (и тост, если плашки раунда нет) — когда шарик остановится (после вращения у меня на экране) */
   private rlResult: Extract<ServerMsg, { t: 'rouletteResult' }> | null = null;
   /** Крутилось ли колесо в прошлом кадре — по смене обновляем плашку раунда */
   private rlSpun = false;
@@ -578,6 +579,12 @@ export class LobbyScene implements Scene {
     this.fish2.onNpcOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.fish2.onNpcClose = () => d.wantPointer();
     this.fish2.roulette.isSpinning = () => this.roulette3d.spinning;
+    // табло рулетки на баркасе обновилось (шарик лёг в лунку): список в окне ставки и один тост о розыгрыше
+    this.roulette3d.onLogShown = (rows, fresh) => {
+      this.fish2.roulette.setLog(rows);
+      const text = fresh ? rouletteDrawText(rows.slice(0, fresh), d.ui.me().pid) : null;
+      if (text) d.ui.toasts.show(text, 5500, 'roulette-draw');
+    };
     this.fish2.onBeer = () => this.fishDrink.start();
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
@@ -1073,6 +1080,9 @@ export class LobbyScene implements Scene {
       case 'rouletteResult':
         this.fish2.roulette.onResult(msg);
         this.rlResult = msg;
+        break;
+      case 'rouletteLog':
+        this.roulette3d.onLog(msg, this.d.ui.me().pid);
         break;
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
@@ -1997,13 +2007,15 @@ export class LobbyScene implements Scene {
   /** Рулетка каждый кадр: плашка раунда — только у стола; итог моей ставки — когда шарик лёг в лунку */
   private updateRoulette(): void {
     const p = this.pose;
-    this.fish2.roulette.setNear(this.hasSelf && Math.hypot(p.x - ROULETTE_SPOT.x, p.z - ROULETTE_SPOT.z) <= 9 && Math.abs(p.y - ROULETTE_SPOT.y) < 3);
+    const near = this.hasSelf && Math.hypot(p.x - ROULETTE_SPOT.x, p.z - ROULETTE_SPOT.z) <= 9 && Math.abs(p.y - ROULETTE_SPOT.y) < 3;
+    this.fish2.roulette.setNear(near);
     const spin = this.roulette3d.spinning;
     if (spin !== this.rlSpun) { this.rlSpun = spin; this.fish2.roulette.refresh(); }
     const m = this.rlResult;
     if (!m || spin) return;
     this.rlResult = null;
-    this.d.ui.toasts.show(RouletteHud.resultText(m), 6000);
+    // у стола свой итог уже в плашке раунда — второй раз тостом не повторяем; тост — тому, кто отошёл и плашки не видит
+    if (!near) this.d.ui.toasts.show(RouletteHud.resultText(m), 6000);
     if (m.payout > 0) this.d.sound.coins(null, Math.min(8, 3 + Math.round(Math.log10(m.payout))));
   }
 
