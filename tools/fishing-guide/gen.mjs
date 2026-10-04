@@ -1,0 +1,352 @@
+// Генератор страницы /fishing (public/fishing/): все цифры — из кода игры (shared/*.ts). Запуск: node tools/fishing-guide/gen.mjs
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const ROOT = fileURLToPath(new URL('../../', import.meta.url)); // корень репозитория
+const S = ROOT + 'shared/';
+const OUT = ROOT + 'public/fishing/';
+const fr = await import(S + 'fishrules.ts');
+const fp = await import(S + 'fishprogress.ts');
+const sh = await import(S + 'fishshop.ts');
+const fi = await import(S + 'fishing.ts');
+const { FISH, HOOK_MS } = fi;
+const { RULE, COLLECTION, tierRank, NEW_BONUS2, tierOdds, BAND, ZONE_BASE, CHEST_BANDS, fishPrice2 } = fr;
+
+// ---------- данные
+function base(zone) {
+  const rankW = [0, 0, 0, 0, 0, 0];
+  for (const sp of COLLECTION) { const r = RULE[sp]; if (!r.zones.includes(zone) || r.rain) continue; rankW[tierRank(r.tier)] += r.bite; }
+  const total = rankW.slice(0, 5).reduce((a, b) => a + b, 0);
+  const out = rankW.map((w) => w / total); out[5] = out[4] / fr.DIVINE_RATIO; return out;
+}
+const BASE = { pier: base('pier'), barkas: base('barkas') };
+function mods({ level = 0, rod = 0, lure = 0, drink = 0, zone = 'pier' }) {
+  const now = 1_000_000;
+  const p = { ...fp.emptyFishProgress(), xp: fp.FISH_XP_LEVELS[level], questsDone: [0, 1, 5, 10, 15][rod], rod, lure };
+  if (drink === 1) p.beerUntil = now + 1000; if (drink === 2) p.aleUntil = now + 1000; if (drink === 3) p.lordUntil = now + 1000; if (drink === 4) p.vodkaUntil = now + 1000;
+  return fp.fishCastMods(p, now, zone);
+}
+const W = { clear: 0, rain: 1, season: 2 };
+function odds(o) { return tierOdds(o.weather === 1 || o.weather === 2, mods(o), o.weather === 2); }
+
+// ---------- формат
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const dec = (v, d) => v.toFixed(d).replace('.', ',');
+const num = (v, d) => String(Math.round(v * 10 ** d) / 10 ** d).replace('.', ',');
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return `${n} ${a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many}`; };
+const vidov = (n) => plural(n, 'вид', 'вида', 'видов');
+function pct(x) { const v = x * 100; if (v === 0) return '0 %'; if (Math.abs(v - 100) < 1e-9) return '100 %'; return (v >= 10 ? dec(v, 1) : v >= 0.1 ? dec(v, 2) : dec(v, 3)) + ' %'; }
+function oneIn(x) { if (x <= 0) return '—'; const n = 1 / x; return n < 20 ? '≈ 1 из ' + dec(Math.round(n * 10) / 10, (Math.round(n * 10) % 10) ? 1 : 0) : '≈ 1 из ' + Math.round(n).toLocaleString('ru-RU').replace(/\s/g, ' '); }
+const mul = (k) => '×' + String(Math.round(k * 1000) / 1000).replace('.', ',');
+const coins = (a, b) => (a === b ? `${a}` : `${a}–${b}`) + ' 🪙';
+const wt = (g) => fr.fmtCatch(g);
+const wrange = (g) => `${wt(g[0])} – ${wt(g[1])}`;
+
+// категории: номера tierOdds: 0..4 обычные…мифические, 5 хлам, 6 сундук, 7 божественная
+const TN = ['Обычные', 'Редкие', 'Эпические', 'Легендарные', 'Мифические', 'Хлам', 'Сундук', 'Божественная'];
+const TN1 = ['обычная', 'редкая', 'эпическая', 'легендарная', 'мифическая', 'хлам', 'сундук', 'божественная'];
+const RANK_T = [0, 1, 2, 3, 4, 7]; // ранг → номер категории
+const ORDER = [0, 1, 2, 3, 4, 7, 5, 6];
+
+function bar(p, label = true) {
+  const segs = ORDER.filter((k) => p[k] > 0).map((k) => `<span style="--c:var(--t${k});width:${(p[k] * 100).toFixed(4)}%" title="${TN[k]}: ${pct(p[k])}">${label && p[k] >= 0.06 ? `<b>${pct(p[k])}</b>` : ''}</span>`).join('');
+  return `<div class="bar" role="img" aria-label="${ORDER.map((k) => `${TN[k]} ${pct(p[k])}`).join(', ')}">${segs}</div>`;
+}
+const legend = (p) => `<ul class="legend">${ORDER.map((k) => `<li><i class="dot" style="--c:var(--t${k})"></i>${TN[k]} <b class="num">${pct(p[k])}</b></li>`).join('')}</ul>`;
+
+// виды места
+function zoneList(zone) {
+  const out = [];
+  const share = (rain) => {
+    const rankW = [0, 0, 0, 0, 0, 0];
+    for (const sp of COLLECTION) { const r = RULE[sp]; if (!r.zones.includes(zone) || (r.rain && !rain)) continue; rankW[tierRank(r.tier)] += r.bite; }
+    return (sp) => { const r = RULE[sp]; if (!r.zones.includes(zone) || (r.rain && !rain)) return 0; return r.bite / rankW[tierRank(r.tier)]; };
+  };
+  const clear = share(false), rain = share(true);
+  for (const sp of COLLECTION) {
+    const r = RULE[sp]; if (!r.zones.includes(zone)) continue;
+    const f = FISH[sp];
+    const m = { zone };
+    out.push({ sp, id: f.id, name: f.name, rank: tierRank(r.tier), rain: r.rain, g: f.g, price: [fishPrice2(sp, f.g[0], 0, m), fishPrice2(sp, f.g[1], 0, m)], note: r.note, both: r.zones.length > 1, inClear: clear(sp), inRain: rain(sp) });
+  }
+  return out;
+}
+const ZL = { pier: zoneList('pier'), barkas: zoneList('barkas') };
+
+// ---------- примеры
+const EX = [
+  { key: 'a', title: 'Новичок', who: '0-й уровень, обычная удочка, без блесны и напитков, у пристани, ясно.', o: { level: 0, rod: 0, lure: 0, drink: 0, zone: 'pier', weather: 0 } },
+  { key: 'b', title: 'Тот же новичок под дождём', who: 'Всё то же, но идёт дождь.', o: { level: 0, rod: 0, lure: 0, drink: 0, zone: 'pier', weather: 1 } },
+  { key: 'c', title: 'Прокачанный рыбак в дождь', who: '10-й уровень, легендарная удочка, платиновая блесна, рыбацкий эль, у пристани, дождь.', o: { level: 10, rod: 4, lure: 4, drink: 2, zone: 'pier', weather: 1 } },
+  { key: 'd', title: 'Он же в сезон рыбалки', who: 'Те же снасти и эль, но идёт сезон рыбалки (особый дождь раз в 2 часа).', o: { level: 10, rod: 4, lure: 4, drink: 2, zone: 'pier', weather: 2 } },
+];
+for (const e of EX) e.p = odds(e.o);
+
+// разбор примера C по шагам
+function breakdown(o) {
+  const m = mods(o);
+  const b = BASE[o.zone];
+  const parts = [1, 2, 3, 4, 5].map((k) => {
+    const wm = fr.weatherMul(k, o.weather), bm = fr.bonusMul(k, m);
+    return { k, base: b[k], wm, bm, v: b[k] * wm * bm };
+  });
+  const sum = parts.reduce((a, x) => a + x.v, 0);
+  return { parts, sum, m };
+}
+const BC = breakdown(EX[2].o);
+
+// ---------- категории: цены, бонусы, окна
+function tierPrice(rank, zone) {
+  const l = ZL[zone].filter((s) => s.rank === rank && (zone === 'pier' || !s.both || rank === 5 || rank === 4));
+  return [Math.min(...l.map((s) => s.price[0])), Math.max(...l.map((s) => s.price[1]))];
+}
+const newbie = EX[0].p;
+const drainBy = {}; for (const sp of COLLECTION) { const r = RULE[sp]; const k = tierRank(r.tier); (drainBy[k] ??= []).push(r.style.drain); }
+const SUCCESS = ['~99 %', '~93 %', '~80 %', '~55 %', '~36 %', '~5 %'];
+const FIGHT = ['~6 с', '~9 с', '~12 с', '~15 с', '~18 с', 'дольше всех'];
+
+function tierCard(k) {
+  const rank = RANK_T.indexOf(k);
+  const isFish = rank >= 0;
+  let dl = '';
+  if (isFish) {
+    const pp = tierPrice(rank, 'pier');
+    dl = `<dl><dt>Цена у пристани</dt><dd class="num">${coins(pp[0], pp[1])}</dd><dt>Новый вид в журнал</dt><dd class="num">+${NEW_BONUS2[k]} 🪙</dd><dt>Подсечь за</dt><dd class="num">${dec(HOOK_MS[k] / 1000, HOOK_MS[k] % 100 ? 2 : 1)} с</dd><dt>Зона на шкале</dt><dd class="num">${dec(BAND[rank].zone * ZONE_BASE, 1)} %</dd></dl>`;
+  } else if (k === 5) {
+    dl = `<dl><dt>Что это</dt><dd>сапог или бутылка</dd><dt>Цена</dt><dd>0 🪙</dd><dt>С уровнем</dt><dd>реже, на 10-м — нет</dd></dl>`;
+  } else {
+    dl = `<dl><dt>Внутри</dt><dd class="num">25–200 🪙</dd><dt>Пиво владыки</dt><dd>в 1 из 5</dd><dt>Подсечь за</dt><dd class="num">1,0 с</dd></dl>`;
+  }
+  return `<div class="tier" style="--c:var(--t${k})"><div class="nm">${TN[k]}</div><div class="big num">${pct(newbie[k])}</div><div class="one">${oneIn(newbie[k])} поклёвок</div>${dl}</div>`;
+}
+
+// ---------- рыбы
+function fishCard(s, zone) {
+  const k = RANK_T[s.rank];
+  const img = `/fishing/img/${s.id}.webp`;
+  const tags = [];
+  if (s.rain) tags.push('<span class="tag rain">🌧 только в дождь</span>');
+  if (s.both) tags.push(`<span class="tag both">${zone === 'pier' ? 'и на баркасе' : 'и у пристани'}</span>`);
+  const inCat = s.rain ? `<dt>В категории</dt><dd class="num">в дождь ${pct(s.inRain)}</dd>`
+    : s.inClear === 1 && s.inRain === 1 ? `<dt>В категории</dt><dd class="num">единственная</dd>`
+    : `<dt>В категории</dt><dd class="num">${pct(s.inClear)}${Math.abs(s.inRain - s.inClear) > 1e-9 ? ` · в дождь ${pct(s.inRain)}` : ''}</dd>`;
+  return `<div class="f" style="--c:var(--t${k})"><div class="pic"><img src="${img}" alt="${esc(s.name)}" loading="lazy" decoding="async"></div><div class="nm">${esc(s.name)}</div><div class="tags">${tags.join('')}</div><p class="say">${esc(s.note)}</p><dl><dt>Вес</dt><dd class="num">${wrange(s.g)}</dd><dt>Цена</dt><dd class="num">${coins(s.price[0], s.price[1])}</dd>${inCat}</dl></div>`;
+}
+function fishZone(zone) {
+  let h = '';
+  for (let rank = 0; rank <= 5; rank++) {
+    const l = ZL[zone].filter((s) => s.rank === rank);
+    if (!l.length) continue;
+    const k = RANK_T[rank];
+    h += `<div class="tier-h" style="--c:var(--t${k})">${TN[k]} · ${l.length}</div><div class="fish">${l.map((s) => fishCard(s, zone)).join('')}</div>`;
+  }
+  return h;
+}
+
+// ---------- таблицы
+const baseRows = ORDER.map((k) => {
+  const pier = newbie[k];
+  const bark = odds({ level: 0, rod: 0, lure: 0, drink: 0, zone: 'barkas', weather: 0 })[k];
+  return `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td><td class="num">${pct(pier)}</td><td class="num">${oneIn(pier)}</td><td class="num">${pct(bark)}</td></tr>`;
+}).join('');
+const exRows = ORDER.map((k) => `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td>${EX.map((e) => `<td class="num">${pct(e.p[k])}</td>`).join('')}</tr>`).join('');
+const chestTotal = CHEST_BANDS.reduce((s, b) => s + b[2], 0);
+const chestRows = CHEST_BANDS.map(([lo, hi, w]) => `<tr><td>${lo === hi ? `${lo} 🪙 — джекпот` : `${lo}–${hi} 🪙`}</td><td class="num">${dec(w / chestTotal * 100, w / chestTotal * 100 % 1 ? 1 : 0)} %</td></tr>`).join('');
+const junkRows = [0, 1, 2, 3, 5, 7, 10].map((l) => `<tr><td>${l}-й уровень</td><td class="num">${pct(fr.junkPer10k(l) / 10000)}</td></tr>`).join('');
+const reelRows = [0, 1, 2, 3, 4, 5].map((rank) => {
+  const k = RANK_T[rank]; const d = drainBy[rank];
+  return `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td><td class="num">${dec(BAND[rank].zone * ZONE_BASE, 1)} %</td><td class="num">${dec(HOOK_MS[k] / 1000, HOOK_MS[k] % 100 ? 2 : 1)} с</td><td class="num">${Math.min(...d) === Math.max(...d) ? dec(d[0], 1) : `${dec(Math.min(...d), 1)}–${dec(Math.max(...d), 1)}`} %/с</td><td class="num">${FIGHT[rank]}</td><td class="num">${SUCCESS[rank]}</td></tr>`;
+}).join('');
+const lvlRows = fp.FISH_XP_LEVELS.slice(1).map((x, i) => `<td class="num">${x.toLocaleString('ru-RU').replace(/\s/g, ' ')}</td>`).join('');
+
+const rods = fp.RODS.slice(1).map((r) => `<li>${r.name} (${r.quests}-е задание): <b>${mul(fp.rodOdds(r.rod))}</b></li>`).join('');
+const lures = sh.LURES.map((l) => `<li>${l.name.replace(' блесна', '')}: <b>${mul(l.epic)}</b> <span class="muted">· ${l.price} 🪙, с ${l.level} ур.</span></li>`).join('');
+const pierCount = ZL.pier.length, barkCount = ZL.barkas.length;
+const pierRain = ZL.pier.filter((s) => s.rain).length, barkRain = ZL.barkas.filter((s) => s.rain).length;
+
+const html = `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рыбалка в TIREDWOOD — справочник рыбака</title>
+<meta name="description" content="Что клюёт, как часто и что влияет на шансы: категории рыб, удочки, блёсны, напитки, дождь и сезон рыбалки. Цифры из игры.">
+<meta name="theme-color" content="#d7efff">
+<link rel="preload" href="/fishing/fonts/rubik-cyrillic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fishing/style.css">
+<script src="/fishing/app.js" defer></script>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-img" role="img" aria-label="Деревянный пирс, лодка и море в солнечный день"></div>
+  <div class="hero-card">
+    <span class="kicker">Справочник рыбака</span>
+    <h1>Рыбалка в TIREDWOOD</h1>
+    <p class="lead">Что клюёт, как часто и что на это влияет. Удочки, блёсны, пиво, дождь и сезон рыбалки — с точными цифрами из игры. И что из слухов — миф.</p>
+  </div>
+</header>
+<nav class="nav" aria-label="Разделы">
+  <a href="#how">Как устроено</a><a href="#tiers">Категории</a><a href="#base">Шансы</a><a href="#factors">Что влияет</a><a href="#calc-s">Калькулятор</a><a href="#examples">Примеры</a><a href="#fish">Все рыбы</a><a href="#reel">Вываживание</a><a href="#chest">Сундуки и хлам</a>
+</nav>
+<main class="wrap">
+
+<section id="how">
+  <h2>Как это устроено</h2>
+  <p class="sub">Рыбачат у острова — с мостков, у маяка и у дома Деда Семёна (20 мест) — и с баркаса в открытом море (8 мест). Одна рыбалка — четыре шага.</p>
+  <div class="grid g4 steps">
+    <div class="card step"><h3>Заброс</h3><p>Встаёшь на место и забрасываешь. В этот момент запоминаются твои бонусы: уровень, удочка, блесна и напиток.</p></div>
+    <div class="card step"><h3>Поклёвка</h3><p>Через 6–18 секунд (с хорошей удочкой — быстрее) поплавок дёргается — это пробы, не подсекай. Ушёл под воду — подсекай, на это 0,6–1 секунды.</p></div>
+    <div class="card step"><h3>Вываживание</h3><p>Появляется шкала: держи зелёную зону на рыбе. Рыба в зоне — улов подтягивается, вне — уходит. 100 % — поймал, 0 % — сорвалась.</p></div>
+    <div class="card step"><h3>Улов</h3><p>Рыба — в рюкзак, продать Деду Семёну или Сане. Новый вид — в журнал рыбака с бонусом. Сундук — сразу жетонами.</p></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Как выбирается, что клюнет</h3>
+    <p class="muted" style="margin:0 0 10px">В момент поклёвки игра тянет жребий в три шага:</p>
+    <div class="grid g3">
+      <div><span class="pill" style="--c:var(--t6)">1</span> <b>3 из 100</b> поклёвок — сундук с жетонами. Всегда, у всех.</div>
+      <div><span class="pill" style="--c:var(--t5)">2</span> <b>4,5 из 100</b> — хлам (сапог или бутылка) у новичка. С каждым уровнем рыбалки хлама на десятую часть меньше, на 10-м — ни одного.</div>
+      <div><span class="pill" style="--c:var(--t1)">3</span> Остальное — <b>рыба</b>. Сначала выбирается категория (обычная, редкая, …), потом вид внутри неё — у каждого вида своя частота.</div>
+    </div>
+  </div>
+</section>
+
+<section id="tiers">
+  <h2>Категории редкости</h2>
+  <p class="sub">Шесть категорий рыбы, хлам и сундук. Крупный процент в карточке — шанс у новичка у пристани в ясную погоду (доля от всех поклёвок). Чем реже рыба, тем она дороже, злее на шкале и тем быстрее надо подсечь.</p>
+  <div class="tiers">${ORDER.map(tierCard).join('')}</div>
+  <p class="muted small" style="margin-top:12px">На баркасе рыба платит ×1,25. Рыбы «только в дождь» платят в полтора раза больше. Пиво, эль и пиво владыки ещё поднимают цену улова (×1,1 / ×1,15 / ×1,2).</p>
+</section>
+
+<section id="base">
+  <h2>Базовые шансы</h2>
+  <p class="sub">Так клюёт у новичка: 0-й уровень, обычная удочка, без блесны и напитков, ясная погода. На баркасе доли категорий почти те же — меняется сама рыба.</p>
+  <div class="card">
+    <h3>У пристани</h3>
+    ${bar(newbie)}
+    ${legend(newbie)}
+    <div class="scroll" style="margin-top:18px"><table class="tbl"><thead><tr><th>Категория</th><th>У пристани</th><th>Как часто</th><th>На баркасе</th></tr></thead><tbody>${baseRows}</tbody></table></div>
+  </div>
+</section>
+
+<section id="factors">
+  <h2>Что влияет на шансы</h2>
+  <p class="sub">Все бонусы <b>умножают</b> шанс категорий от редких и выше. Обычным достаётся то, что осталось. Ниже — каждый фактор с точными множителями.</p>
+  <div class="grid g2">
+    <div class="card factor"><div class="ic">🌧</div><div><h3>Дождь</h3><p>Редкие, эпические, легендарные и мифические клюют в <b>1,5 раза</b> чаще. Божественный кальмар — без изменений. Приходят «дождевые» рыбы: ${vidov(pierRain)} у пристани и ${barkRain} на баркасе, они платят в полтора раза больше. Опыт в дождь ×1,15.</p><p class="small muted">Дождь идёт 5–8 минут, между дождями 15–30 минут ясно. Бубен дождя у Семёна (1000 🪙) зовёт дождь сразу для всех.</p></div></div>
+    <div class="card factor"><div class="ic">🎣</div><div><h3>Сезон рыбалки — сильнее всего</h3><p>Каждые <b>2 часа, в чётный час по Москве</b> (…, 18:00, 20:00, 22:00), ровно на 10 минут. Это особый дождь: дождевые рыбы клюют, редкие ×1,5, а эпические, легендарные, мифические и божественная — <b>×3</b>.</p><ul class="mults"><li>редкие <b>×1,5</b></li><li>эпические и выше <b>×3</b></li><li>кальмар <b>×3</b></li></ul></div></div>
+    <div class="card factor"><div class="ic">⭐</div><div><h3>Уровень рыбалки</h3><p><b>+2,5 %</b> к шансу редких и выше за каждый уровень (на 10-м — ×1,25). Хлама на десятую меньше за уровень, на 10-м его нет. Зона на шкале тоже +2,5 % за уровень.</p><ul class="mults"><li>5-й ур. <b>×1,125</b></li><li>10-й ур. <b>×1,25</b></li></ul></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/rod-legendary.webp" alt=""></div><div><h3>Удочка — за задания Деда Семёна</h3><p>Редкие и выше: ×1,05 за каждую ступень. Ещё удочка увеличивает зону на шкале и ускоряет поклёвку на 10 / 20 / 30 / 40 %. Каждое следующее задание — на 5 рыб больше.</p><ul class="mults">${rods}</ul></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-lure4.webp" alt=""></div><div><h3>Блесна — покупается навсегда</h3><p>Только <b>эпические и выше</b> (и кальмар). На редких не действует. Ещё делает рывки рыбы мягче на 3 / 5 / 10 / 15 %.</p><ul class="mults">${lures}</ul></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-ale.webp" alt=""></div><div><h3>Напитки — на 10 минут</h3><p>Действует один — последний выпитый. Пиво, эль и пиво владыки поднимают редких и выше (и кальмара) и цену улова.</p><ul class="mults"><li>Рыбацкое пиво, 15 🪙: <b>×1,2</b>, доход ×1,1</li><li>Рыбацкий эль, 30 🪙: <b>×1,3</b>, доход ×1,15</li><li>Пиво подводного владыки (в 1 из 5 сундуков): <b>×1,4</b>, доход ×1,2</li></ul></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>100 🪙, 10 минут. Эпические, легендарные и мифические — <b>×2</b>, опыт за них ×2. Но зона на шкале <b>вдвое меньше</b>, а рывки рыбы на 20 % быстрее. На редких и на кальмара не действует, доход не меняет.</p></div></div>
+    <div class="card factor"><div class="ic">⚓</div><div><h3>Место: пристань или баркас</h3><p>Все 20 мест у острова одинаковые. Баркас (с 3-го уровня, туда везёт Семён): своя рыба — ${vidov(barkCount)}, доли категорий почти как у пристани. Доход и опыт <b>×1,25</b>, но рыба злее: рывки ×1,15, сопротивление ×1,2 (кальмара море не злит).</p></div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Как бонусы складываются</h3>
+    <p style="margin:0 0 8px">Шанс категории = <b>база</b> × погода × уровень × удочка × напиток × (блесна — для эпических и выше) × (водка — для эпических, легендарных, мифических). Обычные — остаток до 100 %.</p>
+    <p class="note" style="margin:10px 0 0"><b>Потолок.</b> Если редких и выше набралось больше 100 %, обычных не остаётся совсем, а остальные категории делят всё в тех же пропорциях. С этого момента уровень, удочка и пиво/эль уже ничего не добавляют — они поднимают все категории одинаково. Сдвинуть улов к крупной рыбе могут только <b>блесна, водка и сезон рыбалки</b>. В дождь у прокачанного рыбака потолок наступает быстро.</p>
+    <p class="okno" style="margin:10px 0 0"><b>Когда что считается.</b> Бонусы (уровень, удочка, блесна, напиток) запоминаются в момент <b>заброса</b> — выпил эль, потом забрасывай. А погода и сезон берутся в момент <b>поклёвки</b>: начался дождь, пока поплавок в воде, — он уже работает.</p>
+  </div>
+  <h3 style="margin:28px 0 12px">Что на шансы НЕ влияет</h3>
+  <div class="myths">
+    <div class="myth"><h4>Счастливое место на пирсе</h4><p>Нет: все 20 мест у острова одинаковые. Разница только между островом и баркасом.</p></div>
+    <div class="myth"><h4>Время суток</h4><p>Ночью и днём клюёт одинаково. По часам идёт только сезон рыбалки — в чётные часы по Москве.</p></div>
+    <div class="myth"><h4>Долгое ожидание</h4><p>Сколько ждал поклёвку — неважно. Что клюнет, решает только жребий в момент поклёвки.</p></div>
+    <div class="myth"><h4>Удочки из наград за журнал</h4><p>Только для красоты. На шансы влияет лишь удочка за задания Деда Семёна.</p></div>
+    <div class="myth"><h4>Рюкзак</h4><p>Влияет только на то, сколько рыбы помещается: 5 без рюкзака, 10 / 15 / 20 с рюкзаками.</p></div>
+    <div class="myth"><h4>Пинг и лаги</h4><p>На то, что клюнет, не влияют. Пинг лишь немного растягивает окно подсечки (до +0,6 с), чтобы было честно.</p></div>
+  </div>
+</section>
+
+<section id="calc-s">
+  <h2>Калькулятор шансов</h2>
+  <p class="sub">Выбери снасти, погоду и место — увидишь шансы на каждую поклёвку. Считает по той же формуле, что и игра.</p>
+  <div class="calc">
+    <form class="card" id="calc" autocomplete="off">
+      <div class="fld"><span>Место</span><div class="seg"><label><input type="radio" name="zone" value="pier" checked><span>Пристань</span></label><label><input type="radio" name="zone" value="barkas"><span>Баркас</span></label></div></div>
+      <div class="fld"><span>Погода</span><div class="seg"><label><input type="radio" name="weather" value="0" checked><span>☀️ Ясно</span></label><label><input type="radio" name="weather" value="1"><span>🌧 Дождь</span></label><label><input type="radio" name="weather" value="2"><span>🎣 Сезон рыбалки</span></label></div></div>
+      <div class="fld"><span>Уровень рыбалки: <b id="calc-level-v">0</b></span><input type="range" id="calc-level" name="level" min="0" max="10" step="1" value="0"><div class="lvl"><span>0</span><span>5</span><span>10</span></div></div>
+      <label class="fld"><span>Удочка</span><select name="rod">${fp.RODS.map((r) => `<option value="${r.rod}">${r.name}${r.rod ? ` — ${mul(fp.rodOdds(r.rod))}` : ''}</option>`).join('')}</select></label>
+      <label class="fld"><span>Блесна</span><select name="lure"><option value="0">Без блесны</option>${sh.LURES.map((l) => `<option value="${l.tier}">${l.name} — ${mul(l.epic)} к эпическим+</option>`).join('')}</select></label>
+      <label class="fld"><span>Напиток</span><select name="drink"><option value="0">Без напитка</option><option value="1">Рыбацкое пиво — ×1,2</option><option value="2">Рыбацкий эль — ×1,3</option><option value="3">Пиво подводного владыки — ×1,4</option><option value="4">Водка рыбацкая — ×2 к эпик / лег / миф</option></select></label>
+    </form>
+    <div class="card res">
+      <h3>Шансы на одну поклёвку</h3>
+      <div class="bar" id="calc-bar">${bar(newbie).replace(/^<div class="bar"[^>]*>|<\/div>$/g, '')}</div>
+      <div class="rows" id="calc-rows"></div>
+      <div class="hint" id="calc-hint"></div>
+    </div>
+  </div>
+</section>
+
+<section id="examples">
+  <h2>Разобранные примеры</h2>
+  <p class="sub">Посчитано по формуле игры. Проценты — доля от всех поклёвок, включая сундуки и хлам.</p>
+  <div class="ex">
+    ${EX.slice(0, 3).map((e) => `<div class="card"><h3>${esc(e.title)}</h3><p class="who">${esc(e.who)}</p>${bar(e.p)}${legend(e.p)}${e.key === 'c' ? `<div class="calcline"><b>Как посчитано.</b> ${BC.parts.map((x) => `${TN[RANK_T[x.k]]}: ${pct(x.base)} × ${num(x.wm, 2)} × ${num(x.bm, 3)} = <b>${pct(x.v)}</b>`).join('; ')}. Вместе ${pct(BC.sum)} — больше 100 %, значит обычных нет, а всё делится на ${dec(BC.sum, 3)}. Потом ×0,97: 3 % поклёвок — сундук, хлама на 10-м уровне нет. <br>Здесь ${num(BC.parts[0].wm, 2)} — дождь, ${num(BC.parts[0].bm, 3)} — уровень ×1,25, удочка ×1,2 и эль ×1,3; у эпических и выше ещё блесна ×1,15. Кальмару дождь не помогает.</div>` : ''}</div>`).join('')}
+    <div class="card"><h3>Все примеры рядом</h3><div class="scroll"><table class="tbl"><thead><tr><th>Категория</th>${EX.map((e) => `<th>${esc(e.title)}</th>`).join('')}</tr></thead><tbody>${exRows}</tbody></table></div>
+    <p class="muted small" style="margin:12px 0 0">Вывод: у прокачанного рыбака в дождь обычных уже нет — каждая поклёвка не хуже редкой. Сезон рыбалки сдвигает улов ещё сильнее: эпических почти в полтора раза больше, кальмаров — вдвое.</p></div>
+  </div>
+</section>
+
+<section id="fish">
+  <h2>Все рыбы</h2>
+  <p class="sub">«В категории» — как часто клюёт этот вид среди рыб своей категории. В дождь приходят дождевые виды и забирают часть поклёвок у остальных. Вес у крупных экземпляров выпадает реже, цена растёт с весом.</p>
+  <div class="zone-h"><h3>У пристани</h3><span class="muted">${vidov(pierCount)}, из них ${pierRain} — только в дождь</span></div>
+  ${fishZone('pier')}
+  <div class="zone-h"><h3>На баркасе, в открытом море</h3><span class="muted">${vidov(barkCount)}, из них ${barkRain} — только в дождь · с 3-го уровня · цены ×1,25 уже учтены</span></div>
+  ${fishZone('barkas')}
+</section>
+
+<section id="reel">
+  <h2>Вываживание: почему рыба срывается</h2>
+  <p class="sub">Подсёк вовремя — начинается шкала. Шансы решают, <i>кто</i> клюнет, а шкала — <i>вытащишь ли</i>.</p>
+  <div class="card reel">
+    <div class="meter" aria-hidden="true"><div class="scale"><div class="zone"></div><div class="fishmark">🐟</div></div><div class="prog"><i></i></div></div>
+    <ul class="keys">
+      <li><span class="k">⬆️</span><p><b>Держишь кнопку — зона идёт вверх, отпустил — опускается.</b> Зона с инерцией и отскакивает от краёв.</p></li>
+      <li><span class="k">🟢</span><p><b>Рыба в зоне — улов подтягивается</b> на 15 % в секунду. Начинается с 25 %, так что чистых 5 секунд в зоне хватит.</p></li>
+      <li><span class="k">🔻</span><p><b>Рыба вне зоны — улов тает</b> со скоростью её сопротивления (таблица ниже). Дошло до 0 % — сорвалась.</p></li>
+      <li><span class="k">🪢</span><p><b>Леска провисла:</b> зона лежит на дне и ты не подматываешь дольше 0,7 с — улов тает, даже если рыба в зоне.</p></li>
+      <li><span class="k">⚡</span><p><b>Последний рывок:</b> легендарные и мифические на 70 % ускоряются в 1,3 раза, кальмар — в 1,5.</p></li>
+      <li><span class="k">⏱</span><p>Бой дольше 90 секунд — леска устаёт, рыба сходит.</p></li>
+    </ul>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="scroll"><table class="tbl"><thead><tr><th>Категория</th><th>Зона</th><th>Подсечь за</th><th>Сопротивление</th><th>Бой</th><th>Вытаскивают*</th></tr></thead><tbody>${reelRows}</tbody></table></div>
+  <p class="muted small" style="margin:12px 0 0">Зона — у новичка; растёт на 2,5 % за уровень и на 10–40 % от удочки (максимум в 1,75 раза), водка делит её пополам. Подсечь — после того как поплавок ушёл под воду (плюс твой пинг, до 0,6 с). * Замер разработчиков на модели «среднего» игрока 0-го уровня без бонусов; кальмара на 10-м уровне с легендарной удочкой и платиновой блесной вытаскивают в 66–91 % случаев.</p></div>
+  <h3 style="margin:28px 0 12px">Советы</h3>
+  <ul class="tips">
+    <li><b>Не подсекай на пробах.</b> Поплавок дёрнулся, но не ушёл под воду — это проба. Подсечёшь сейчас — рыба уйдёт.</li>
+    <li><b>Подсекай сразу.</b> У мифических на это 0,65 с, у кальмара — 0,6 с.</li>
+    <li><b>Не роняй зону на дно.</b> Рыба у дна? Держи зону внизу короткими нажатиями — иначе «леска провиснет».</li>
+    <li><b>«Идеально» — опыта ×2,4.</b> Если рыба ни разу не вышла из зоны, опыт за неё умножается на 2,4.</li>
+    <li><b>Сорвалась крупная — не всё потеряно.</b> Эпическая и выше после 3 секунд боя даёт четверть опыта даже если ушла.</li>
+    <li><b>Водку бери, только если уверенно держишь шкалу.</b> Крупных клюёт вдвое больше, но зона вдвое меньше.</li>
+  </ul>
+</section>
+
+<section id="chest">
+  <h2>Сундуки, хлам и уровни</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Что в сундуке</h3><p class="muted small" style="margin:0 0 8px">Сундук — 3 % всех поклёвок. В каждом пятом ещё и пиво подводного владыки: выпивается сразу.</p><table class="tbl"><thead><tr><th>Жетоны</th><th>Шанс</th></tr></thead><tbody>${chestRows}</tbody></table></div>
+    <div class="card"><h3>Сколько хлама</h3><p class="muted small" style="margin:0 0 8px">Сапог (7 из 10) или бутылка с запиской. Ничего не стоят.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Хлам</th></tr></thead><tbody>${junkRows}</tbody></table></div>
+    <div class="card"><h3>Уровни рыбалки</h3><p class="muted small" style="margin:0 0 8px">Опыт за каждую рыбу: чем реже, тем больше. Легендарные и выше — ×5, «идеально» — ×2,4, дождь — ×1,15, баркас — ×1,25.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Опыта всего</th></tr></thead><tbody>${fp.FISH_XP_LEVELS.slice(1).map((x, i) => `<tr><td>${i + 1}${i + 1 === 3 ? ' · баркас' : ''}</td><td class="num">${x.toLocaleString('ru-RU').replace(/\s/g, ' ')}</td></tr>`).join('')}</tbody></table></div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">Все цифры взяты из кода игры TIREDWOOD (рыбалка 2.0, обновление 4 октября 2026). Проценты — доля от всех поклёвок. Если в патче что-то поменяется — страница обновится вместе с игрой.</div></footer>
+</body>
+</html>
+`;
+fs.writeFileSync(OUT + 'index.html', html);
+
+// ---------- app.js: данные калькулятора из кода
+const DATA = {
+  BASE, LEVEL_ODDS: fp.LEVEL_ODDS, SEASON_MUL: fr.SEASON_MUL, RAIN_MUL: fr.RAIN_MUL, EPIC_MAX: sh.LURE_MAX.epic,
+  JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K,
+  lures: [null, ...sh.LURES.map((l) => ({ epic: l.epic }))],
+  drinks: [null, ...[sh.BEER, sh.ALE, sh.LORD, sh.VODKA].map((d) => ({ rare: d.rare, ...(d.top ? { top: d.top } : {}) }))],
+};
+const src = fs.readFileSync(new URL('./app.src.js', import.meta.url), 'utf8').replace('__DATA__', JSON.stringify(DATA));
+fs.writeFileSync(OUT + 'app.js', src);
+console.log('ok', html.length, src.length);
+process.exit(0);
