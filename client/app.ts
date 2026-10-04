@@ -18,6 +18,7 @@ import { FortScene } from './fort/scene.ts';
 import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } from './identity.ts';
 import { Input, isMuteKey } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
+import { FISH_SEASON, SEASON_PERKS, isFishSeasonMsg, seasonWait, type FishSeasonMsg } from './lobby/fishseason.ts';
 import { Net } from './net.ts';
 import { Relink } from './relink.ts';
 import { LinkBanner } from './ui/linkbanner.ts';
@@ -115,6 +116,10 @@ export class App {
   private me: MeState = { pid: 0, xp: 0, level: 1, nick: '', tokens: 0, owned: [], outfit: { ...DEFAULT_OUTFIT }, stats: emptyStats(), album: {}, fishing: emptyFishProgress() };
   private fishEventOn = false;
   private fishEventKnown = false;
+  /** Сезон рыбалки по последнему письму сервера (null — писем ещё не было) */
+  private fishSeasonOn: boolean | null = null;
+  /** Этот дождь — дождь сезона рыбалки: о нём сказал тост сезона, про дождь молчим */
+  private fishSeasonRain = false;
   /** Сборка сервера с последнего входа: сменилась — значит, вышла новая версия */
   private build = '';
 
@@ -563,8 +568,27 @@ export class App {
 
   // ------------------------------------------------------------ сообщения сервера
 
+  /**
+   * Сезон рыбалки (раз в 2 часа особый дождь на 10 минут — решает сервер): часы сезона для окна Семёна и плашки у удочки;
+   * начался при нас — короткий тост. Конец объявляет чат сервера; первое письмо после входа тоста не даёт.
+   */
+  private onFishSeason(m: FishSeasonMsg): void {
+    const was = this.fishSeasonOn;
+    FISH_SEASON.onMsg(m);
+    this.fishSeasonOn = m.on;
+    if (!m.on) return;
+    this.fishSeasonRain = true;
+    if (was === false) this.toasts.show(`🎉 Сезон рыбалки · ${seasonWait(m.endsAt - FISH_SEASON.now())}`, 7500, 'fish-event', SEASON_PERKS);
+  }
+
   private onJson(m: ServerMsg): void {
     if (this.relink.active && this.relink.message(m.t)) return;
+    // сезон рыбалки: типа письма ещё нет в ServerMsg (его добавляет сервер) — проверяем поля сами
+    const season = m as unknown;
+    if (isFishSeasonMsg(season)) {
+      this.onFishSeason(season);
+      return;
+    }
     switch (m.t) {
       case 'voiceConfig':
         this.ensureVoice();
@@ -597,10 +621,14 @@ export class App {
       case 'fishEvent': {
         const changed = m.on !== this.fishEventOn;
         this.lobby.onJson(m);
+        // тост: строка-заголовок (что и надолго ли) и коротко, что даёт; во время сезона рыбалки — его тост
         if (m.on && (changed || !this.fishEventKnown)) {
-          this.toasts.show('🎣 Рыболовное событие! Во время рыболовного события доступны уникальные виды рыб! Доход от уникальных рыб ×1,5.', 7500, 'fish-event');
+          const left = m.until ? m.until - FISH_SEASON.now() : 0;
+          const long = left > 0 && left < 3_600_000 ? ` · ${seasonWait(left)}` : '';
+          if (this.fishSeasonOn !== true) this.toasts.show(`🌧 Рыболовное событие${long}`, 7500, 'fish-event', 'уникальные виды рыб · их цена ×1,5');
         } else if (!m.on && changed && this.fishEventKnown) {
-          this.toasts.show('Рыболовное событие завершилось. Обычная рыбалка продолжается.', 4200, 'fish-event');
+          if (!this.fishSeasonRain) this.toasts.show('🌧 Рыболовное событие закончилось', 4200, 'fish-event');
+          this.fishSeasonRain = false;
         }
         this.fishEventOn = m.on;
         this.fishEventKnown = true;

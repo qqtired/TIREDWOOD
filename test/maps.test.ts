@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
+import { BARKAS_BAK_Y } from '../shared/barkas.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
 import { CHAIR_R, LOBBY_SEAT_COUNT, PLANTERS, PLANTER_H, PLANTER_R, TABLE_SEATS, buildLobby, seatChair, seatTable, tableSeat } from '../shared/maps/lobby.ts';
 import { buildPier } from '../shared/maps/pier.ts';
@@ -58,8 +59,8 @@ test('набережная: точки появления и взаимодей�
     // точка катера — над кокпитом: до неё достают и с причала, и из самого катера (test/boat.test.ts); так же и у лодки
     // Семёна у мостков (test/barkas.test.ts)
     if ('kind' in s && (s.kind === 'boat' || (s.kind === 'ferry' && 'arg' in s && s.arg === 0))) continue;
-    // касса колеса обозрения — на дощатом помосте (0,15 м)
-    const floor = 'kind' in s && s.kind === 'wheel' ? 0.15 : 0;
+    // касса колеса обозрения — на дощатом помосте (0,15 м); второй музыкальный автомат — на баке баркаса (на ступень выше палубы)
+    const floor = 'kind' in s && s.kind === 'wheel' ? 0.15 : 'kind' in s && s.kind === 'juke' && 'arg' in s && s.arg === 1 ? BARKAS_BAK_Y : 0;
     assert.ok(Math.abs(lw.groundBelow(s.x, 0.5, s.z) - floor) < 1e-9, `опора под ${s.x},${s.z}`);
     if ('kind' in s && (s.kind === 'seat' || s.kind === 'durak')) continue;
     assert.ok(freeSpot(s.x, s.z, floor), `свободно в ${s.x},${s.z}`);

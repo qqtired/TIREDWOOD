@@ -19,7 +19,7 @@ import {
 import { FISH_NPCS } from '../../shared/fishplaces.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
-import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, JUKE_USE, fmtSongTime, songPrice } from '../../shared/jukebox.ts';
+import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, jukeUseDist, songPrice } from '../../shared/jukebox.ts';
 import {
   ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
   ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
@@ -411,6 +411,15 @@ export class LobbyRoom implements Room {
 
   playerOf(c: Client): LobbyPlayer | undefined {
     return this.byClient.get(c);
+  }
+
+  /** Только разработка (`/go tp x z [y]` — server/readygate.ts): встать в точку набережной — для проверок дальних мест */
+  devTeleport(c: Client, x: number, z: number, y = 0): boolean {
+    const p = this.playerOf(c);
+    if (!p || ![x, y, z].every(Number.isFinite)) return false;
+    this.release(p, true);
+    this.teleport(p, x, y, z);
+    return true;
   }
 
   seatOwner(seat: number): number {
@@ -1781,9 +1790,9 @@ export class LobbyRoom implements Room {
   }
 
   /**
-   * Заказ песни у музыкального автомата: рядом ли, есть ли такая, своя уже ждёт, очередь, повтор — и только потом
-   * списать цену песни (обычная 10 🪙, особая дороже). Любой отказ — ответом с причиной, жетоны не тронуты.
-   * В чат — «🎵 ник ставит «…»».
+   * Заказ песни у музыкального автомата: рядом ли с любым из двух (площадь, бак баркаса — очередь у них одна), есть ли
+   * такая, своя уже ждёт, очередь, повтор — и только потом списать цену песни (обычная 10 🪙, особая дороже). Любой
+   * отказ — ответом с причиной, жетоны не тронуты. В чат — «🎵 ник ставит «…»».
    */
   private onJuke(p: LobbyPlayer, song: unknown): void {
     const c = p.client;
@@ -1793,7 +1802,7 @@ export class LobbyRoom implements Room {
     const no = (text: string): void => c.sink.sendJson({ t: 'jukeRes', ok: false, text });
     if (!this.hub.limits.hit(`juke:${c.id}`, 1, JUKE_RATE_MS)) return no('Не так быстро 🙂');
     const s = p.state;
-    if (isHeld(p.action) || Math.abs(s.y) > 2 || Math.hypot(s.x - JUKE_USE.x, s.z - JUKE_USE.z) > JUKE_SERVER_R) return no('Подойди к музыкальному автомату');
+    if (isHeld(p.action) || Math.abs(s.y) > 2 || jukeUseDist(s.x, s.z) > JUKE_SERVER_R) return no('Подойди к музыкальному автомату');
     const now = this.now();
     if (juke.step(now)) this.broadcastJuke();
     const why = juke.check(prof.id, song, now);

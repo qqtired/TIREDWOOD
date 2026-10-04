@@ -19,8 +19,11 @@ test('кафе сохраняет 18 старых стульев: два сто�
   assert.equal(m.interact.find((i) => i.kind === 'fisher')?.id, 52);
   // места у пристани — прежние номера; места баркаса (fisheco, barkas) добавляются только после прежних точек
   const fish = m.interact.filter((i) => i.kind === 'fish');
-  assert.deepEqual(fish.filter((i) => spotZone(i.arg) === 'pier').map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
+  assert.deepEqual(fish.filter((i) => spotZone(i.arg) === 'pier' && i.arg < 12).map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   for (const i of fish) if (spotZone(i.arg) === 'barkas') assert.ok(i.id > 52, `место баркаса ${i.id} — после прежних точек`);
+  // места дальних мостков и у дома рыбака (пристань, номера с 20) — в самом конце списка, после мест баркаса
+  const barkasMax = Math.max(...fish.filter((i) => spotZone(i.arg) === 'barkas').map((i) => i.id));
+  for (const i of fish) if (i.arg >= 20) assert.ok(spotZone(i.arg) === 'pier' && i.id > barkasMax, `дальнее место ${i.id} — после баркаса`);
 });
 
 test('портал скилл-теста добавлен после старых точек; вход и выход стоят на свободном настиле', () => {

@@ -1,9 +1,10 @@
 // Баркас «Альбатрос» и лодка Семёна «Удалая»: палуба и места рыбалки, пути лодки, рейсы по требованию, 3-й уровень,
-// колокол с баркаса, возрождение на палубе, Саня отправляет на пирс к Семёну.
+// колокол с баркаса, возрождение на палубе, Саня отправляет на пирс к Семёну, матрос Витёк на палубе не мешает.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BARKAS, BARKAS_BOARD, BARKAS_FISH_SPOTS, BARKAS_LANDING_SPOTS, BARKAS_RAIL_T, SANYA_PRICE, SANYA_USE, barkasHalf, barkasWater,
+  BARKAS, BARKAS_AWNING, BARKAS_BOARD, BARKAS_CREW, BARKAS_DECK_Y, BARKAS_FISH_SPOTS, BARKAS_HOUSE, BARKAS_LANDING_SPOTS, BARKAS_RAIL_T,
+  SANYA, SANYA_PRICE, SANYA_USE, VITYOK_HALF, barkasHalf, barkasWater,
 } from '../shared/barkas.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
 import {
@@ -11,7 +12,7 @@ import {
   FERRY_FULL_TICKS, FERRY_HALF_B, FERRY_HALF_L, FERRY_HOME, FERRY_HOME_SPOTS, FERRY_OUT_TICKS, FERRY_SEATS, FERRY_WAIT_TICKS, ferryLocal,
   ferryPose, ferrySeat,
 } from '../shared/ferry.ts';
-import { FISH_ISLAND_COUNT, FISH_SPOTS, fishZone } from '../shared/fishplaces.ts';
+import { FISH_ISLAND_COUNT, FISH_SPOTS, ROULETTE_SPOT, fishZone } from '../shared/fishplaces.ts';
 import { ACT_FERRY, ACT_FERRY_RIDE, ACT_NONE } from '../shared/lobby.ts';
 import { buildLobby } from '../shared/maps/lobby.ts';
 import { BTN_FORWARD, BTN_JUMP } from '../shared/sim.ts';
@@ -48,13 +49,16 @@ function standable(w: CollisionWorld, x: number, z: number, y: number, why: stri
   assert.ok(!w.overlaps(x - PLAYER_HALF, y + 0.002, z - PLAYER_HALF, x + PLAYER_HALF, y + PLAYER_HEIGHT, z + PLAYER_HALF), `${why}: свободно (${x}, ${z})`);
 }
 
-test('баркас: восемь мест рыбалки вдоль бортов (в конце списка, зона barkas), палуба держит, поплавок — в море', () => {
+test('баркас: восемь мест рыбалки вдоль бортов (сразу после мест острова, зона barkas), палуба держит, поплавок — в море', () => {
   const map = buildLobby();
   const w = new CollisionWorld(map);
-  assert.equal(FISH_SPOTS.length, FISH_ISLAND_COUNT + 8);
-  assert.deepEqual(FISH_SPOTS.slice(FISH_ISLAND_COUNT), BARKAS_FISH_SPOTS);
-  for (let i = 0; i < FISH_SPOTS.length; i++) assert.equal(fishZone(i), i < FISH_ISLAND_COUNT ? 'pier' : 'barkas');
-  const spots = map.interact.filter((i) => i.kind === 'fish' && i.arg >= FISH_ISLAND_COUNT);
+  // после мест баркаса в конец списка могут добавляться новые места пристани (дальние мостки) — номера баркаса те же
+  const end = FISH_ISLAND_COUNT + BARKAS_FISH_SPOTS.length;
+  assert.equal(BARKAS_FISH_SPOTS.length, 8);
+  assert.ok(FISH_SPOTS.length >= end);
+  assert.deepEqual(FISH_SPOTS.slice(FISH_ISLAND_COUNT, end), BARKAS_FISH_SPOTS);
+  for (let i = 0; i < FISH_SPOTS.length; i++) assert.equal(fishZone(i), i >= FISH_ISLAND_COUNT && i < end ? 'barkas' : 'pier');
+  const spots = map.interact.filter((i) => i.kind === 'fish' && i.arg >= FISH_ISLAND_COUNT && i.arg < end);
   assert.deepEqual(spots.map((i) => i.arg), [12, 13, 14, 15, 16, 17, 18, 19]);
   for (const s of BARKAS_FISH_SPOTS) {
     standable(w, s.x, s.z, 0, 'место на баркасе');
@@ -279,4 +283,29 @@ test('Саня: за 250 🪙 — на пирс к Семёну (действи�
   const p = lp(hub, a.c).state;
   assert.ok(FERRY_HOME_SPOTS.some(([x, z]) => Math.hypot(p.x - x, p.z - z) < 1e-6), 'на мостках у стоянки лодки');
   assert.equal(TICK_RATE, 60);
+});
+
+test('матрос Витёк: на палубе в своём углу, твёрдый; не у мест рыбалки, высадки, калитки, Сани и рулетки; проходы на бак свободны', () => {
+  const map = buildLobby();
+  const w = new CollisionWorld(map);
+  const v = BARKAS_CREW.vityok;
+  assert.equal(v.y, BARKAS_DECK_Y, 'стоит на главной палубе, не на крыше рубки');
+  assert.ok(Math.abs(v.z - BARKAS.z) + VITYOK_HALF < barkasHalf(v.x) - BARKAS_RAIL_T, 'внутри фальшборта');
+  assert.equal(w.groundBelow(v.x, 0.5, v.z), BARKAS_DECK_Y, 'под ногами палуба');
+  assert.ok(w.overlaps(v.x - 0.1, 0.4, v.z - 0.1, v.x + 0.1, 1.4, v.z + 0.1), 'сквозь него не пройти');
+  const far = (x: number, z: number, d: number, what: string): void => {
+    assert.ok(Math.hypot(x - v.x, z - v.z) >= d, `${what} (${x}, ${z}) — дальше ${d} м от матроса`);
+  };
+  for (const s of BARKAS_FISH_SPOTS) far(s.x, s.z, 1.5, 'место рыбалки');
+  for (const [x, z] of BARKAS_LANDING_SPOTS) far(x, z, 1.5, 'высадка');
+  far(BARKAS_BOARD.x, BARKAS_BOARD.z, 2, 'калитка');
+  far(SANYA_USE.x, SANYA_USE.z, 2, 'у Сани');
+  far(SANYA.x, SANYA.z, 2, 'Саня');
+  far(ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.r + 2, 'рулетка');
+  const A = BARKAS_AWNING;
+  assert.ok(v.x - VITYOK_HALF > A.x1 + 1, 'не под тентом');
+  // проходы вдоль бортов рубки на бак (к брашпилю и автомату) свободны во всю длину
+  const H = BARKAS_HOUSE;
+  const lanes = [(BARKAS.z - BARKAS.half + BARKAS_RAIL_T + H.z0) / 2, (H.z1 + BARKAS.z + BARKAS.half - BARKAS_RAIL_T) / 2];
+  for (const z of lanes) for (const x of [H.x0 + 0.5, (H.x0 + H.x1) / 2, H.x1 - 0.5]) standable(w, x, z, 0, 'проход вдоль рубки');
 });

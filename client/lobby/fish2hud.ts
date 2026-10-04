@@ -1,7 +1,7 @@
 // Рыбалка 2.0 на набережной — всё, что видит рыбак, кроме удочки в 3D (fishing.ts): шкала вываживания, карточка улова
-// и сундук, журнал рыбака, значок дождя и кнопка журнала у удочки, доска рекордов на сваях у маяка, уведомления о
-// дожде. Сцена набережной (scene.ts) передаёт сюда сообщения сервера и кадр; без поля fish2 в приветствии всё молчит,
-// и работает старая рыбалка.
+// и сундук, журнал рыбака, плашки событий (сезон рыбалки, рыболовное событие — дождь) и кнопка журнала у удочки, доска
+// рекордов на сваях у маяка. Сцена набережной (scene.ts) передаёт сюда сообщения сервера и кадр; без поля fish2 в
+// приветствии всё молчит, и работает старая рыбалка.
 import type * as THREE from 'three';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
 import { bagSlots, fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
@@ -20,7 +20,8 @@ import { ReelGame } from './fishgame.ts';
 import type { FishingSpots } from './fishing.ts';
 import { FishNpcDialog } from './fishnpcdialog.ts';
 import { SanyaHome } from './barkas/sanyahome.ts';
-import { FishProgressHud } from './fishprogresshud.ts';
+import { FishProgressHud, fishPlate, setText, type FishPlate } from './fishprogresshud.ts';
+import { FISH_SEASON, SEASON_PERKS } from './fishseason.ts';
 import { Fisherman3D } from './fisherman.ts';
 import { FishPodium3D } from './fishpodium.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
@@ -31,6 +32,8 @@ import { fishLevelUpText } from './fishfmt.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
+/** Рыболовное событие (дождь): уникальные виды — только в дождь, их цена ×1,5 (RAIN_NUM / RAIN_DEN) */
+const RAIN_PERKS = 'уникальные виды · их цена ×1,5';
 
 export class Fish2Hud {
   /** Открыли журнал — отпустить мышь; закрыли — снова захватить */
@@ -44,7 +47,9 @@ export class Fish2Hud {
   private readonly book: FishBook;
   private readonly board: FishBoard3D;
   private readonly tools: HTMLElement;
-  private readonly rainBadge: HTMLElement;
+  /** Плашки событий над кнопкой журнала: сезон рыбалки (он же особый дождь) и рыболовное событие (дождь) */
+  private readonly seasonPlate: FishPlate;
+  private readonly rainPlate: FishPlate;
   private readonly bookBtn: HTMLElement;
   private readonly progress: FishProgressHud;
   /** Разговор с Семёном и Саней; npc.extra — шапка для чужих кнопок (перевоз Сани) */
@@ -72,8 +77,10 @@ export class Fish2Hud {
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
     this.tools = parent.appendChild(el('div', 'f2-tools'));
-    this.rainBadge = this.tools.appendChild(el('div', 'f2-rainbadge', '🎣 Рыболовное событие · уникальные виды · доход от них ×1,5'));
-    this.rainBadge.title = 'Рыболовное событие: доступны уникальные виды, доход от них ×1,5';
+    this.seasonPlate = fishPlate(this.tools, 'f2-season', '🎉');
+    this.seasonPlate.root.title = `Сезон рыбалки: ${SEASON_PERKS}. Идёт — особый дождь для всех на набережной.`;
+    this.rainPlate = fishPlate(this.tools, 'f2-rainbadge', '🌧');
+    this.rainPlate.root.title = 'Рыболовное событие — дождь: уникальные виды рыб ловятся только сейчас, их цена ×1,5; легенды и мифик клюют чаще';
     this.bookBtn = this.tools.appendChild(el('button', 'f2-bookbtn'));
     this.bookBtn.addEventListener('click', () => this.toggleBook());
     // журнал — поверх всего на набережной (кнопки и шкала под ним)
@@ -177,6 +184,7 @@ export class Fish2Hud {
   onProgress(progress: FishProgress, now: number): void {
     this.levelCheck(progress);
     this.clock.sync(now);
+    FISH_SEASON.sync(now);
     this.progress.set(progress, now);
     this.npc.setProgress(progress, now);
     this.bag.set(progress);
@@ -223,6 +231,7 @@ export class Fish2Hud {
     }
     this.levelCheck(msg.progress);
     this.clock.sync(msg.now);
+    FISH_SEASON.sync(msg.now);
     this.progress.set(msg.progress, msg.now);
     this.npc.onState(msg);
     this.sanyaHome.refresh();
@@ -244,8 +253,9 @@ export class Fish2Hud {
     this.sanyaHome.refresh();
   }
 
-  updateVisuals(dt: number, time: number, camera: THREE.Vector3): void {
-    this.fisherman.update(dt, time, camera);
+  /** Кадр 3D рыбалки: Семён смотрит на своего игрока (me) и оборачивается к нему, пока открыт разговор с ним */
+  updateVisuals(dt: number, time: number, camera: THREE.Vector3, me: { x: number; y: number; z: number } | null = null): void {
+    this.fisherman.update(dt, time, camera, me, this.npc.isOpen && this.npc.who === 'semyon');
   }
 
   /** Подсёк — шкала вываживания (сид и вид прислал сервер); mySpot — своё место рыбалки. */
@@ -309,10 +319,32 @@ export class Fish2Hud {
     const odds = fishing && !this.reel.active && !this.card.shown;
     this.odds.root.hidden = !odds;
     if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain);
-    this.rainBadge.classList.toggle('show', fishing && this.rain && !this.reel.active);
-    if (this.rain) this.rainBadge.textContent = TOUCH
-      ? `🎣 Событие ×1,5${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''}`
-      : `🎣 Рыболовное событие${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''} · уникальные виды · доход от них ×1,5`;
+    this.plates();
+  }
+
+  /**
+   * Плашки событий (видны вместе с колонкой: с удочкой, у доски и у Семёна; пока тянешь рыбу — убраны): крупно — что
+   * за событие и сколько осталось, мелко — что даёт. Сезон рыбалки сам по себе дождь — тогда одна его плашка.
+   */
+  private plates(): void {
+    const now = this.clock.now();
+    const st = FISH_SEASON.state();
+    const season = !!st?.on && !this.reel.active;
+    const s = this.seasonPlate;
+    s.root.classList.toggle('show', season);
+    if (season && st) {
+      setText(s.title, 'Сезон рыбалки');
+      setText(s.sub, SEASON_PERKS);
+      setText(s.time, fishTimeLeft(st.left, 0));
+    }
+    const r = this.rainPlate;
+    const rain = this.rain && !st?.on && !this.reel.active;
+    r.root.classList.toggle('show', rain);
+    if (rain) {
+      setText(r.title, TOUCH ? 'Событие ×1,5' : 'Рыболовное событие');
+      setText(r.sub, RAIN_PERKS);
+      setText(r.time, this.eventUntil ? fishTimeLeft(this.eventUntil, now) : '');
+    }
   }
 
   /** Рядом с Семёном или Саней */

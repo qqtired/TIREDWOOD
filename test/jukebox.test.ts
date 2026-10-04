@@ -1,11 +1,16 @@
 // Музыкальный автомат: очередь и время (server/lobby/jukebox.ts) и заказ через настоящий хаб — жетоны, отказы без
-// списания, рассылка, вошедший позже, флаг.
+// списания, рассылка, вошедший позже, флаг; второй автомат на баке баркаса — та же очередь, стоит на палубе бака.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
-import { JUKE_GAP_MS, JUKE_LEAD_MS, JUKE_PRICE, JUKE_QUEUE_MAX, JUKE_SONGS, JUKE_USE, jukeGain, songMs, songPrice, songSeconds, songSpecial } from '../shared/jukebox.ts';
+import {
+  JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_GAP_MS, JUKE_H, JUKE_LEAD_MS, JUKE_PRICE, JUKE_QUEUE_MAX, JUKE_SERVER_R, JUKE_SONGS, JUKE_SPOTS,
+  JUKE_USE, JUKE_W, jukeGain, jukeNearest, jukeUseDist, songMs, songPrice, songSeconds, songSpecial,
+} from '../shared/jukebox.ts';
+import { BARKAS_BAK_Y } from '../shared/barkas.ts';
+import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { Jukebox } from '../server/lobby/jukebox.ts';
 import { Profiles } from '../server/profiles.ts';
@@ -216,4 +221,71 @@ test('без флага JUKEBOX автомата нет: ни состояния
   assert.equal(e.hub.lobby.world.overlaps(cx - 0.1, 0.5, cz - 0.1, cx + 0.1, 1, cz + 0.1), false);
   const on = env(true);
   assert.equal(on.hub.lobby.world.overlaps(cx - 0.1, 0.5, cz - 0.1, cx + 0.1, 1, cz + 0.1), true);
+});
+
+test('автомат на баке баркаса: заказ оттуда принимается — в ту же очередь, что на площади; далеко от обоих — «Подойди»', () => {
+  const e = env();
+  const juke = () => e.hub.lobby.juke!;
+  const a = player(e, 'Tester1');
+  const onDeck = (nick: string) => {
+    const r = login(e.hub, nick, newKey(), `10.0.1.${++ip}`);
+    placeAt(e.hub, r.c, JUKE_BARKAS_USE.x, JUKE_BARKAS_USE.z, JUKEBOX_BARKAS.y);
+    return r;
+  };
+  const b = onDeck('Tester2');
+  const bWas = b.c.profile!.tokens;
+  order(e, a.c, 0);
+  order(e, b.c, 1);
+  assert.equal(lastOf(b.s, 'jukeRes')?.ok, true, lastOf(b.s, 'jukeRes')?.text);
+  assert.match(lastOf(b.s, 'jukeRes')!.text, /в очереди: 1-я/);
+  assert.equal(b.c.profile!.tokens, bWas - JUKE_PRICE);
+  // одна очередь: на площади играет песня Tester1, за ней — песня с баркаса; оба видят одно и то же
+  assert.equal(juke().cur?.nick, 'Tester1');
+  assert.deepEqual(juke().queue.map((q) => [q.song, q.nick]), [[1, 'Tester2']]);
+  assert.deepEqual(lastOf(a.s, 'juke')!.v, lastOf(b.s, 'juke')!.v);
+  // с баркаса нельзя поставить ту, что играет на площади
+  const c = onDeck('Tester3');
+  const cWas = c.c.profile!.tokens;
+  order(e, c.c, 0);
+  assert.equal(c.c.profile!.tokens, cWas);
+  assert.match(lastOf(c.s, 'jukeRes')!.text, /играет/);
+  // посреди палубы баркаса (у рулетки) — далеко от обоих автоматов
+  placeAt(e.hub, c.c, -60, 68, 0);
+  assert.ok(jukeUseDist(-60, 68) > JUKE_SERVER_R);
+  order(e, c.c, 2);
+  assert.equal(c.c.profile!.tokens, cWas);
+  assert.match(lastOf(c.s, 'jukeRes')!.text, /Подойди к музыкальному автомату/);
+  assert.equal(juke().queue.length, 1);
+});
+
+test('автомат на баке: корпус на палубе бака ни во что не врезается, у места заказа можно стоять; ближний — по месту', () => {
+  assert.equal(JUKE_SPOTS.length, 2);
+  assert.equal(jukeNearest(JUKE_USE.x, JUKE_USE.z), 0);
+  assert.equal(jukeNearest(JUKE_BARKAS_USE.x, JUKE_BARKAS_USE.z), 1);
+  assert.equal(jukeUseDist(JUKE_BARKAS_USE.x + 1, JUKE_BARKAS_USE.z), 1);
+  const e = env();
+  const map = e.hub.lobby.map;
+  const w = e.hub.lobby.world;
+  assert.equal(map.jukeBoxes.length, 2);
+  const k = map.jukeBoxes[1];
+  const box = map.boxes[k];
+  const J = JUKEBOX_BARKAS;
+  assert.deepEqual([box.min, box.max], [[J.x - JUKE_W / 2, J.y, J.z - JUKE_D / 2], [J.x + JUKE_W / 2, J.y + JUKE_H, J.z + JUKE_D / 2]]);
+  // точка «juke» с arg 1 — у места заказа на баке
+  const it = map.interact.find((i) => i.kind === 'juke' && i.arg === 1);
+  assert.ok(it && Math.hypot(it.x - JUKE_BARKAS_USE.x, it.z - JUKE_BARKAS_USE.z) < 1e-9);
+  w.setEnabled(k, false);
+  for (const x of [box.min[0], box.max[0]]) for (const z of [box.min[2], box.max[2]]) {
+    assert.equal(w.groundBelow(x, J.y + 0.3, z), BARKAS_BAK_Y, `угол корпуса (${x}, ${z}) — на палубе бака`);
+  }
+  const s = 0.01;
+  assert.ok(!w.overlaps(box.min[0] + s, box.min[1] + s, box.min[2] + s, box.max[0] - s, box.max[1] - s, box.max[2] - s), 'корпус не врезается в фальшборт, брашпиль, людей');
+  w.setEnabled(k, true);
+  const u = JUKE_BARKAS_USE;
+  assert.equal(w.groundBelow(u.x, BARKAS_BAK_Y + 0.5, u.z), BARKAS_BAK_Y, 'у автомата — палуба бака');
+  assert.ok(!w.overlaps(u.x - PLAYER_HALF, BARKAS_BAK_Y + 0.002, u.z - PLAYER_HALF, u.x + PLAYER_HALF, BARKAS_BAK_Y + PLAYER_HEIGHT, u.z + PLAYER_HALF), 'у автомата свободно');
+  // без флага JUKEBOX корпус на баке тоже не твёрдый
+  const off = env(false);
+  assert.equal(off.hub.lobby.world.overlaps(J.x - 0.1, J.y + 0.5, J.z - 0.1, J.x + 0.1, J.y + 1, J.z + 0.1), false);
+  assert.equal(w.overlaps(J.x - 0.1, J.y + 0.5, J.z - 0.1, J.x + 0.1, J.y + 1, J.z + 0.1), true);
 });

@@ -38,7 +38,9 @@ export const BOAT_SEAT_AT: ReadonlyArray<readonly [number, number]> = [[0.48, 0.
  */
 const PATH: ReadonlyArray<readonly [number, number]> = [
   [LAUNCH.x, LAUNCH.z], [12.8, 24.7], [16.4, 27.4], [18.5, 31.5], [19.1, 38.5], [19, 55], [18.5, 72], [15, 90], [4, 103], [-14, 107],
-  [-30, 96], [-30, 80], [-18, 68], [-6, 56], [-4, 44], [-3.5, 35.5], [-2.2, 30], [0, 26.8], [3.5, 24.7], [LAUNCH.x, LAUNCH.z],
+  // назад — южнее дома рыбака на конце пирса (shared/fishplaces.ts — FISH_PIER_HEAD) и восточнее его площадки
+  [-28, 97], [-29, 85], [-21, 77.5], [-10, 73.5], [-2.6, 65], [-1.8, 54], [-3.2, 44], [-3.5, 35.5], [-2.2, 30], [0, 26.8], [3.5, 24.7],
+  [LAUNCH.x, LAUNCH.z],
 ];
 
 export interface BoatPose {

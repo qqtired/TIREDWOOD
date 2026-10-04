@@ -1,5 +1,6 @@
 // Люди баркаса — в стиле Деда Семёна (client/lobby/fisherman.ts), не желейки: боцман Михалыч с трубкой, рыбак Толик
-// с сетью, баянист Витёк, Саня (младший брат Семёна — то же лицо и нос, тёмные усы, плечистее) и моторист Гоша.
+// с сетью, матрос Витёк в бескозырке, Саня (младший брат Семёна — то же лицо и нос, тёмные усы, плечистее)
+// и моторист Гоша.
 // Каждый — несколько склеенных сеток: ноги и всё неподвижное — одна, туловище, голова и руки — свои (их двигает
 // анимация). Материал один на всех. Смотрят в −Z своей группы (yaw, как у игроков).
 import * as THREE from 'three';
@@ -19,7 +20,8 @@ export interface PersonSpec {
   pants: number;
   boots: number;
   apron?: number;
-  hat: 'captain' | 'souwester' | 'beret' | 'knit' | 'none';
+  /** sailor — бескозырка: белый верх, тёмный околыш, две ленточки сзади */
+  hat: 'captain' | 'souwester' | 'beret' | 'knit' | 'sailor' | 'none';
   hatColor: number;
   hatBand?: number;
   hair: number;
@@ -191,6 +193,15 @@ function face(s: PersonSpec): THREE.BufferGeometry[] {
       g.push(at(new THREE.SphereGeometry(0.195, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.8).scale(1, 0.95, 0.97), hc, 0, 0.095, 0.01));
       g.push(at(new THREE.CylinderGeometry(0.196, 0.196, 0.075, 14).scale(1, 1, 0.97), s.hatBand ?? darker(hc, 0.85), 0, 0.08, 0.005));
       break;
+    case 'sailor': {
+      // бескозырка: околыш по голове, белый «блин» чуть набекрень и на затылок, тёмный кант, две ленточки с затылка
+      const band = s.hatBand ?? 0x1b2333;
+      g.push(at(new THREE.CylinderGeometry(0.188, 0.19, 0.075, 16).scale(1, 1, 0.97), band, 0, 0.128, 0.005));
+      g.push(at(new THREE.CylinderGeometry(0.23, 0.196, 0.06, 18).scale(1, 1, 0.97).rotateZ(-0.07), hc, 0.008, 0.2, 0.012, 0, 0.08));
+      g.push(at(new THREE.TorusGeometry(0.226, 0.009, 4, 22).rotateX(Math.PI / 2).scale(1, 1, 0.97).rotateZ(-0.07), band, 0.008, 0.229, 0.012, 0, 0.08));
+      for (const sx of [-1, 1]) g.push(at(new THREE.BoxGeometry(0.036, 0.26, 0.006).rotateZ(sx * 0.12), band, sx * 0.035, -0.03, 0.2, 0, -0.18));
+      break;
+    }
     case 'none':
       break;
   }

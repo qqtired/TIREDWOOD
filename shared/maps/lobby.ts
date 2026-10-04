@@ -8,10 +8,10 @@ import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { FC_CIRCLE } from '../fight.ts';
-import { JUKEBOX, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
+import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
-  FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY,
-  FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
+  FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
+  FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
 } from '../fishplaces.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
@@ -173,9 +173,10 @@ export function buildLobby(): LobbyMap {
   b.box([29.6, 0, -16], [30, 1.0, -10], 'concrete', CONCRETE);
   b.box([29.6, 0, 4], [30, 1.0, 22], 'concrete', CONCRETE);
 
-  // --- Невидимые стены: далеко в море (на западе — за аквапарком), за зданиями и над парапетом
+  // --- Невидимые стены: далеко в море (на западе — за аквапарком), за зданиями и над парапетом. Южная — с проёмом
+  // x −30…−5 у пирса: вокруг дальних мостков и дома рыбака своя «бухта» (стены — в блоке пирса ниже)
   b.box([-98, -6, -30], [-97, 30, 50], 'invisible', 0);
-  b.box([-98, -6, 48], [31.5, 30, 49], 'invisible', 0);
+  b.box([-98, -6, 48], [-30, 30, 49], 'invisible', 0);
   b.box([30.5, -6, -30], [31.5, 30, 50], 'invisible', 0);
   b.box([-98, -6, -27], [31.5, 30, -26], 'invisible', 0);
 
@@ -402,6 +403,24 @@ export function buildLobby(): LobbyMap {
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
   // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
   add('roulette', ROULETTE_SPOT.x, ROULETTE_SPOT.z, ROULETTE_SPOT.yaw, ROULETTE_SPOT.r, 0, 'рулетка рыбака');
+  // второй музыкальный автомат — на баке баркаса (та же очередь, что на площади); корпус твёрдый только с флагом JUKEBOX
+  add('juke', JUKE_BARKAS_USE.x, JUKE_BARKAS_USE.z, JUKEBOX_BARKAS.yaw + Math.PI, JUKE_BARKAS_USE.r, 1, 'музыкальный автомат');
+  jukeBoxes.push(b.boxes.length);
+  b.box([JUKEBOX_BARKAS.x - JUKE_W / 2, JUKEBOX_BARKAS.y, JUKEBOX_BARKAS.z - JUKE_D / 2], [JUKEBOX_BARKAS.x + JUKE_W / 2, JUKEBOX_BARKAS.y + JUKE_H, JUKEBOX_BARKAS.z + JUKE_D / 2], 'invisible', 0);
+
+  // --- Пирс дальше в море (shared/fishplaces.ts): дальние мостки и площадка с домом рыбака — настилы уже в FISH_DECKS.
+  // Вода вокруг — своя «бухта» в стенах: к баркасу (x < −30, его вода — shared/barkas.ts) не доплыть и не долететь рывком.
+  b.box([-5, -6, 48], [31.5, 30, 49], 'invisible', 0);
+  b.box([-31, -6, 48], [-30, 30, 72], 'invisible', 0);
+  b.box([-5, -6, 48], [-4, 30, 72], 'invisible', 0);
+  b.box([-31, -6, 71], [-4, 30, 72], 'invisible', 0);
+  // дом рыбака: сруб, стойки крыльца, бочки и ящики (рисует client/lobby/fishhouse.ts)
+  for (const h of FISH_HOUSE_BOXES) b.box([h.x0, h.y0, h.z0], [h.x1, h.y1, h.z1], 'invisible', 0);
+  // сваи под дальними мостками и площадкой (как у мостков к маяку)
+  for (const x of [FISH_PIER2.x0 + 0.25, FISH_PIER2.x1 - 0.25]) for (const z of [48, 52]) b.deco.push({ kind: 'piling', x, z });
+  for (const x of [FISH_PIER_HEAD.x0 + 0.25, -19, FISH_PIER_HEAD.x1 - 0.25]) b.deco.push({ kind: 'piling', x, z: FISH_PIER_HEAD.z1 + 0.25 });
+  // места рыбалки на дальних мостках и у дома — в самый конец: номера прежних точек не меняются
+  FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_SPOTS.length - FISH_FAR_SPOTS.length + i, 'порыбачить'));
 
   // --- Далёкая красота: буи и лодки
   b.deco.push({ kind: 'buoy', x: -42, z: -12, color: 0xe0492f });
@@ -417,7 +436,7 @@ export function buildLobby(): LobbyMap {
     trampolines: b.trampolines,
     pickups: [],
     deco: b.deco,
-    bounds: { minX: -30, maxX: 30, minZ: -26, maxZ: 46 },
+    bounds: { minX: -30, maxX: 30, minZ: -26, maxZ: FISH_PIER_HEAD.z1 },
     spawn,
     gateSpawn: { x: 0, y: 0, z: -12.5, yaw: Math.PI },
     garageSpawn: { x: 15.2, y: 0, z: -12.4, yaw: Math.PI },

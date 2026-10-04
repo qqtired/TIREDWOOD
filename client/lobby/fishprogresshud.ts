@@ -6,10 +6,37 @@ import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { mul, num, pct } from './fishfmt.ts';
-import { TOUCH } from '../touch.ts';
 
 /** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки */
 const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱' };
+
+/**
+ * Плашка события или бонуса — один вид на всё (fish2.css .f2-plate): значок, что это (крупно), что даёт (мелко),
+ * сколько осталось (крупно справа). Напиток — здесь, сезон рыбалки и рыболовное событие (дождь) — fish2hud.ts.
+ */
+export interface FishPlate {
+  root: HTMLElement;
+  icon: HTMLElement;
+  title: HTMLElement;
+  sub: HTMLElement;
+  time: HTMLElement;
+}
+
+export function fishPlate(parent: HTMLElement, cls: string, icon: string): FishPlate {
+  const root = parent.appendChild(el('div', `f2-plate ${cls}`));
+  const ico = root.appendChild(el('span', 'f2-plate-ico', icon));
+  ico.setAttribute('aria-hidden', 'true');
+  const txt = root.appendChild(el('div', 'f2-plate-txt'));
+  const title = txt.appendChild(el('b', ''));
+  const sub = txt.appendChild(el('span', ''));
+  const time = root.appendChild(el('time', 'f2-plate-time'));
+  return { root, icon: ico, title, sub, time };
+}
+
+/** Текст — только если поменялся (плашки обновляются каждый кадр) */
+export function setText(e: HTMLElement, text: string): void {
+  if (e.textContent !== text) e.textContent = text;
+}
 
 /** Same compact skill scale in the journal, NPC dialog and profile. */
 export function fishSkillBlock(progress: FishProgress, compact = false): HTMLElement {
@@ -64,13 +91,16 @@ export class FishProgressHud {
     this.bag.title = 'Рюкзак · I';
     this.bag.addEventListener('click', () => this.onBag());
     this.gear = parent.appendChild(el('div', 'fe-gear'));
-    this.badge = overlay.appendChild(el('div', 'fs-buff'));
-    this.icon = this.badge.appendChild(el('span', 'fs-buff-icon', '🍺'));
-    this.icon.setAttribute('aria-hidden', 'true');
-    const info = this.badge.appendChild(el('div', ''));
-    this.name = info.appendChild(el('b', '', BEER.name));
-    this.effect = info.appendChild(el('span', ''));
-    this.time = this.badge.appendChild(el('time', 'fs-buff-time'));
+    // напиток — плашка того же вида, что события; живёт в слое меню (видна и на паузе, и в других комнатах)
+    const drink = fishPlate(overlay, 'fs-buff f2-plate-drink', '🍺');
+    this.badge = drink.root;
+    this.icon = drink.icon;
+    this.icon.classList.add('fs-buff-icon');
+    this.name = drink.title;
+    this.name.textContent = BEER.name;
+    this.effect = drink.sub;
+    this.time = drink.time;
+    this.time.classList.add('fs-buff-time');
     // This small badge remains accurate while playing another room or sitting in the pause menu.
     window.setInterval(() => this.tick(), 250);
   }
@@ -78,8 +108,11 @@ export class FishProgressHud {
   set(progress: FishProgress, serverNow?: number): void {
     if (serverNow !== undefined) this.clock.sync(serverNow);
     this.progress = progress;
-    // Full level/bonus explanation stays in the journal and NPC; the fishing HUD only needs status.
-    this.skill.replaceChildren(fishSkillBlock(progress, TOUCH));
+    // Full level/bonus explanation stays in the journal and NPC; the fishing HUD only needs status: у удочки — одна
+    // строка «🎣 Ур. 5 · 450 / 1 150» и полоса, что даёт уровень — в подсказке (и в журнале, и у Семёна).
+    const skill = fishSkillBlock(progress, true);
+    this.skill.title = skill.querySelector('.fs-skill-sub')?.textContent ?? '';
+    this.skill.replaceChildren(skill);
     const need = questNeed(progress.questsDone);
     const ready = progress.questCaught >= need;
     this.quest.textContent = ready ? `📋 Задание ${progress.questsDone + 1} готово — сдай Семёну` : `📋 Задание ${progress.questsDone + 1} · ${progress.questCaught}/${need}`;
@@ -125,10 +158,10 @@ export class FishProgressHud {
     const active = drink !== 0;
     this.badge.classList.toggle('show', active);
     this.badge.classList.toggle('ending', active && until - now <= 60_000);
-    this.icon.textContent = DRINK_ICONS[drink] ?? '🍺';
-    this.name.textContent = d.name;
-    this.effect.textContent = `Доход от рыбы ${pct(d.income)} · редкие ${mul(d.rare)}`;
-    this.time.textContent = fishTimeLeft(until, now);
+    setText(this.icon, DRINK_ICONS[drink] ?? '🍺');
+    setText(this.name, d.name);
+    setText(this.effect, `доход ${pct(d.income)} · редкие ${mul(d.rare)}`);
+    setText(this.time, fishTimeLeft(until, now));
     this.badge.setAttribute('aria-label', `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
   }
 }

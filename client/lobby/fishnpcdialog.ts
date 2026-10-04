@@ -1,7 +1,9 @@
-// Разговор с Дедом Семёном (пристань) и Саней (баркас) — один диалог на двоих (fisheco): вкладки «Квесты» (уровень,
+// Разговор с Дедом Семёном (пристань) и Саней (баркас) — один диалог на двоих (fisheco): вкладки «Задания» (уровень,
 // что он даёт, задание, удочки), «Лавка» (рюкзаки, блёсны, напитки, бубен — эффект, требование, цена) и «Продать»
 // (улов из рюкзака по цене поимки). Решает сервер (server/lobby/fishnpc.ts); здесь — только просьбы и показ.
 // Контейнер extra в шапке — для чужих кнопок (перевоз Сани — модуль баркаса), этот файл трогать не нужно.
+// Вид — как журнал рыбака и меню Esc (тёплая тёмная карточка, вкладки-«таблетки»): стили .fe-npc в fisheco.css.
+// В шапке — таймер сезона рыбалки (client/lobby/fishseason.ts), обновляется раз в секунду вместе с окном.
 import { FISH } from '../../shared/fishing.ts';
 import type { FishNpcId } from '../../shared/fishplaces.ts';
 import {
@@ -17,6 +19,7 @@ import { el, fishPic, tierOf } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { bagMarks, levelOpens, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
 import { fishSkillBlock } from './fishprogresshud.ts';
+import { FISH_SEASON, SEASON_PERKS, seasonLeft, seasonWait } from './fishseason.ts';
 import './fisheco.css';
 
 const ROD_URLS = [null,
@@ -32,8 +35,10 @@ const NPC_INTRO: Record<FishNpcId, string> = {
   semyon: 'Заходи, рыбак. Сдашь улов, возьмёшь снасти — и снова к воде.',
   sanya: 'В море рыба крупнее и злее. Улов возьму, снасти продам.',
 };
+/** Лицо в шапке: дед с пристани и Саня с баркаса */
+const NPC_AVATAR: Record<FishNpcId, string> = { semyon: '👴', sanya: '⚓' };
 type Tab = 'quests' | 'shop' | 'sell';
-const TABS: ReadonlyArray<[Tab, string]> = [['quests', 'Квесты'], ['shop', 'Лавка'], ['sell', 'Продать']];
+const TABS: ReadonlyArray<[Tab, string, string]> = [['quests', '📋', 'Задания'], ['shop', '🛒', 'Лавка'], ['sell', '💰', 'Продать']];
 
 interface Offer {
   root: HTMLElement;
@@ -53,7 +58,14 @@ export class FishNpcDialog {
   private readonly title: HTMLElement;
   private readonly eyebrow: HTMLElement;
   private readonly intro: HTMLElement;
+  private readonly avatar: HTMLElement;
   private readonly balance: HTMLElement;
+  /** Сезон рыбалки: строка под шапкой (идёт — празднично, с таймером) */
+  private readonly season: HTMLElement;
+  private readonly seasonText: HTMLElement;
+  private readonly seasonSub: HTMLElement;
+  private readonly seasonTime: HTMLElement;
+  private seasonKey = '';
   private readonly status: HTMLElement;
   private readonly tabBtns = new Map<Tab, HTMLButtonElement>();
   private readonly panels = new Map<Tab, HTMLElement>();
@@ -98,12 +110,18 @@ export class FishNpcDialog {
     this.root.setAttribute('aria-labelledby', 'fish-npc-title');
     this.root.setAttribute('aria-describedby', 'fish-npc-intro');
     const head = this.root.appendChild(el('header', 'fn-head'));
+    this.avatar = head.appendChild(el('div', 'fe-avatar'));
+    this.avatar.setAttribute('aria-hidden', 'true');
     const titleBox = head.appendChild(el('div', 'fn-heading'));
     this.eyebrow = titleBox.appendChild(el('span', 'fn-eyebrow'));
     this.title = titleBox.appendChild(el('h2', ''));
     this.title.id = 'fish-npc-title';
+    // слова торговца — под именем, как подпись в журнале: не уезжают при прокрутке вкладки
+    this.intro = titleBox.appendChild(el('p', 'fn-intro'));
+    this.intro.id = 'fish-npc-intro';
     const side = head.appendChild(el('div', 'fe-headside'));
     this.balance = side.appendChild(el('div', 'fn-balance'));
+    this.balance.title = 'Твои жетоны';
     this.extra = side.appendChild(el('div', 'fe-extra'));
     const close = head.appendChild(el('button', 'fn-close', '×'));
     close.type = 'button';
@@ -112,22 +130,29 @@ export class FishNpcDialog {
     close.title = 'Закрыть · Esc';
     close.addEventListener('click', () => this.close());
 
-    const tabs = this.root.appendChild(el('nav', 'fe-tabs'));
+    // строка вкладок: слева «Задания / Лавка / Продать», справа — сезон рыбалки (ничего не знаем — скрыт)
+    const tabbar = this.root.appendChild(el('div', 'fe-tabbar'));
+    const tabs = tabbar.appendChild(el('nav', 'fe-tabs'));
     tabs.setAttribute('role', 'tablist');
-    for (const [id, label] of TABS) {
+    this.season = tabbar.appendChild(el('div', 'fe-season'));
+    this.season.appendChild(el('span', 'fe-season-ico')).setAttribute('aria-hidden', 'true');
+    const seasonInfo = this.season.appendChild(el('div', 'fe-season-info'));
+    this.seasonText = seasonInfo.appendChild(el('b', ''));
+    this.seasonSub = seasonInfo.appendChild(el('span', ''));
+    this.seasonTime = this.season.appendChild(el('time', 'fe-season-time'));
+    for (const [id, icon, label] of TABS) {
       const b = tabs.appendChild(el('button', 'fe-tab'));
       b.type = 'button';
       b.setAttribute('role', 'tab');
       b.dataset.tab = id;
+      b.appendChild(el('span', 'fe-tab-ico', icon)).setAttribute('aria-hidden', 'true');
       b.appendChild(el('span', '', label));
       b.appendChild(el('i', 'fe-tab-n'));
       b.addEventListener('click', () => this.show(id));
       this.tabBtns.set(id, b);
     }
 
-    const body = this.body = this.root.appendChild(el('div', 'fn-body'));
-    this.intro = body.appendChild(el('p', 'fn-intro'));
-    this.intro.id = 'fish-npc-intro';
+    this.body = this.root.appendChild(el('div', 'fn-body'));
 
     // --- Квесты: уровень и что он даёт, задание, удочки
     const quests = this.panel('quests');
@@ -209,7 +234,12 @@ export class FishNpcDialog {
     const feedback = footer.appendChild(el('div', 'fn-feedback'));
     this.status = feedback.appendChild(el('div', 'fn-status'));
     this.status.setAttribute('role', 'status');
-    feedback.appendChild(el('div', 'fn-shortcuts', 'Esc — закрыть · I — рюкзак (вкладка «Продать») · J — журнал после закрытия'));
+    const keys = feedback.appendChild(el('div', 'fn-shortcuts'));
+    for (const [k, what] of [['Esc', 'закрыть'], ['I', 'рюкзак (вкладка «Продать»)'], ['J', 'журнал — после закрытия']]) {
+      const item = keys.appendChild(el('span', ''));
+      item.appendChild(el('kbd', '', k));
+      item.appendChild(document.createTextNode(` ${what}`));
+    }
     const bottomClose = footer.appendChild(el('button', 'fn-action fn-dismiss', 'Закрыть'));
     bottomClose.type = 'button';
     bottomClose.addEventListener('click', () => this.close());
@@ -365,8 +395,11 @@ export class FishNpcDialog {
     this.title.textContent = NPC_TITLE[this.npc];
     this.eyebrow.textContent = NPC_EYEBROW[this.npc];
     this.intro.textContent = NPC_INTRO[this.npc];
+    this.avatar.textContent = NPC_AVATAR[this.npc];
     this.root.dataset.npc = this.npc;
-    setCoinText(this.balance, `У тебя 🪙 ${num(tokens)}`);
+    setCoinText(this.balance, `🪙 ${num(tokens)}`);
+    this.balance.setAttribute('aria-label', `У тебя ${num(tokens)} жетонов`);
+    this.renderSeason();
     const need = questNeed(p.questsDone);
     const ready = p.questCaught >= need;
     for (const [id, b] of this.tabBtns) {
@@ -401,6 +434,7 @@ export class FishNpcDialog {
       btn.disabled = busy || selected || !earned;
       btn.setAttribute('aria-pressed', String(selected));
       btn.parentElement!.classList.toggle('selected', selected);
+      btn.parentElement!.classList.toggle('locked', !earned);
       this.rodNotes[rod].textContent = earned ? selected ? rod ? 'В руках · бонус действует' : 'В руках' : 'Получена за задания' : `После ${ROD_QUESTS[rod]}-го задания`;
     }
 
@@ -451,6 +485,23 @@ export class FishNpcDialog {
       this.sellKey = key;
       this.sellList.replaceChildren(...(p.bag.length ? p.bag.map((f) => this.sellRow(f.n, f.f, f.g, f.p, f.m, busy)) : [el('p', 'fe-empty', 'Рюкзак пуст. Пойманная рыба ложится сюда по цене поимки.')]));
     }
+  }
+
+  /** Сезон рыбалки: до него — спокойная строка «До сезона рыбалки: 1 ч 12 мин», идёт — праздничная с таймером */
+  private renderSeason(): void {
+    const st = FISH_SEASON.state();
+    const key = st ? `${st.on}|${st.on ? seasonLeft(st.left) : seasonWait(st.left)}` : '';
+    if (key === this.seasonKey) return;
+    this.seasonKey = key;
+    this.season.hidden = !st;
+    if (!st) return;
+    this.season.classList.toggle('on', st.on);
+    this.season.firstElementChild!.textContent = st.on ? '🎉' : '🎣';
+    this.seasonText.textContent = st.on ? 'Сезон рыбалки идёт!' : 'До сезона рыбалки:';
+    // до сезона — что он даст, в подсказке; идёт — прямо в строке
+    this.seasonSub.textContent = st.on ? SEASON_PERKS : '';
+    this.season.title = `Сезон рыбалки: ${SEASON_PERKS}`;
+    this.seasonTime.textContent = st.on ? `осталось ${seasonLeft(st.left)}` : seasonWait(st.left);
   }
 
   private sellRow(n: number, id: string, g: number, price: number, m: number, busy: boolean): HTMLElement {

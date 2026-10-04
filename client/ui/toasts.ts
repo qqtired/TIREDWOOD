@@ -12,8 +12,11 @@ export class Toasts {
     parent.appendChild(this.root);
   }
 
-  /** key — вид уведомления: новое заменяет прежнее такого же вида, а не встаёт в стопку (M жмут подряд) */
-  show(text: string, ms = 3800, key = ''): void {
+  /**
+   * key — вид уведомления: новое заменяет прежнее такого же вида, а не встаёт в стопку (M жмут подряд);
+   * sub — вторая строка помельче (заголовок + коротко «что это даёт», как у рыболовного события)
+   */
+  show(text: string, ms = 3800, key = '', sub = ''): void {
     const t = document.createElement('div');
     t.className = 'toast';
     if (key) {
@@ -21,7 +24,15 @@ export class Toasts {
       for (const old of Array.from(this.root.children)) if ((old as HTMLElement).dataset.key === key) old.remove();
     }
     // текст сервера: 🪙 — значком, остальное — только как текст
-    setCoinText(t, text);
+    if (sub) {
+      t.classList.add('two');
+      const title = t.appendChild(document.createElement('b'));
+      title.className = 'toast-title';
+      setCoinText(title, text);
+      const line = t.appendChild(document.createElement('span'));
+      line.className = 'toast-sub';
+      setCoinText(line, sub);
+    } else setCoinText(t, text);
     this.root.appendChild(t);
     while (this.root.childElementCount > MAX) this.root.firstElementChild?.remove();
     setTimeout(() => t.classList.add('out'), ms);

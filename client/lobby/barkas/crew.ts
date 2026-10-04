@@ -1,9 +1,9 @@
 // Экипаж «Альбатроса» — живые, но без беготни: каждый занят своим делом на своём месте (твёрдые тела — в карте).
 // Боцман Михалыч на баке попыхивает трубкой и раз в пару минут бьёт склянки в рынду (звук — в такт ударам). Рыбак
-// Толик на краю люка чинит сеть челноком, иногда потягивается. Баянист Витёк на крыше рубки играет — меха ходят в
-// такт музыке (ambient.ts), в паузах отдыхает. Саня за прилавком взвешивает рыбу безменом, пересчитывает монеты,
-// оборачивается к покупателю и машет лодке, когда она подходит. Вдали (дальше HIDE) экипаж не рисуется, дальше
-// LAZY — двигается реже.
+// Толик на краю люка чинит сеть челноком, иногда потягивается. Матрос Витёк в северном углу у кормы — без музыки, по
+// кругу: стоит, курит папиросу (рука ко рту, клуб дыма), драит палубу шваброй, смотрит в море из-под ладони. Саня за
+// прилавком взвешивает рыбу безменом, пересчитывает монеты, оборачивается к покупателю и машет лодке, когда она
+// подходит. Вдали (дальше HIDE) экипаж не рисуется, дальше LAZY — двигается реже.
 import * as THREE from 'three';
 import { BARKAS, BARKAS_CREW, BARKAS_RYNDA, SANYA, SANYA_USE } from '../../../shared/barkas.ts';
 import { FERRY_AWAY } from '../../../shared/ferry.ts';
@@ -11,12 +11,8 @@ import { makeFish3D } from '../fishart.ts';
 import { at, crewMesh, ease, makePerson, type Person } from './people.ts';
 import type { Smoke } from './smoke.ts';
 
-/** Что сейчас с баяном (ambient.ts): играет ли, насколько растянуты меха (0…1), доля текущей доли такта (0…1) */
-export interface Squeeze {
-  playing: boolean;
-  bellows: number;
-  beat: number;
-}
+/** Чем занят матрос Витёк */
+export type MatrosPhase = 'stand' | 'smoke' | 'swab' | 'sea';
 
 /** Дальше — экипажа не видно (с площади ≈90 м люди с палец — не рисуем, с мостков Семёна ≈55 м — видно);
  *  дальше LAZY — анимация 8 раз в секунду */
@@ -35,6 +31,24 @@ const LANYARD = new THREE.Vector3(BARKAS_RYNDA.x - 0.12, BARKAS_RYNDA.y - 0.45, 
 const M = BARKAS_CREW.mikhalych;
 const L = BARKAS_CREW.tolik;
 const V = BARKAS_CREW.vityok;
+/** Круг дел матроса, с: [0, SMOKE) стоит, [SMOKE, SWAB) курит, [SWAB, SEA) драит палубу, [SEA, CYCLE) смотрит в море */
+const V_CYCLE = 36;
+const V_SMOKE = 6;
+const V_SWAB = 15;
+const V_SEA = 27;
+/** Затяжки: начало от начала перекура, с, и сколько рука у рта */
+const V_DRAGS = [0.6, 4.8];
+const V_DRAG = 1.9;
+/** Клубы изо рта после затяжки: через столько секунд */
+const V_PUFFS = [0.15, 0.45];
+/** Куда смотрит, когда драит (на восток, к ящикам — свой угол палубы) и когда смотрит в море (на север, на остров) */
+const V_YAW_SWAB = -1.75;
+const V_YAW_SEA = 0.1;
+/** Швабра: черенок, где руки на черенке (м от низа) */
+const MOP_LEN = 1.36;
+const MOP_GRIP_R = 0.78;
+const MOP_GRIP_L = 1.1;
+const UP = new THREE.Vector3(0, 1, 0);
 
 /** Курс, чтобы смотреть из (x, z) в (tx, tz) (как yaw игрока: 0 — на −Z) */
 function yawTo(x: number, z: number, tx: number, tz: number): number {
@@ -69,6 +83,31 @@ function rest(p: Person, dt: number, tau = 0.25): void {
   }
 }
 
+/** Плавно повернуть часть к (x, y, z) */
+function turn(o: THREE.Object3D, x: number, y: number, z: number, dt: number, tau: number): void {
+  o.rotation.x = ease(o.rotation.x, x, dt, tau);
+  o.rotation.y = ease(o.rotation.y, y, dt, tau);
+  o.rotation.z = ease(o.rotation.z, z, dt, tau);
+}
+
+/** Цилиндр между двумя точками (пряди швабры) */
+function strand(a: THREE.Vector3, b: THREE.Vector3, r0: number, r1: number, color: number): THREE.BufferGeometry {
+  const len = a.distanceTo(b);
+  const g = new THREE.CylinderGeometry(r1, r0, len, 4).translate(0, len / 2, 0);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, b.clone().sub(a).normalize()));
+  g.translate(a.x, a.y, a.z);
+  return at(g, color, 0, 0, 0);
+}
+
+/** Папироса: гильза и тлеющий кончик спереди (−Z), ось вдоль Z; droop — насколько кончик опущен */
+function papirosa(droop: number): THREE.Mesh {
+  const dir = new THREE.Vector3(0, -Math.sin(droop), -Math.cos(droop));
+  return crewMesh([
+    strand(dir.clone().multiplyScalar(-0.035), dir.clone().multiplyScalar(0.03), 0.0075, 0.0075, 0xf3efe6),
+    strand(dir.clone().multiplyScalar(0.03), dir.clone().multiplyScalar(0.042), 0.0082, 0.0078, 0xff5a1f),
+  ]);
+}
+
 export class Crew {
   readonly group = new THREE.Group();
   private readonly mikhalych: Person;
@@ -77,8 +116,23 @@ export class Crew {
   private readonly sanya: Person;
   /** Трубка боцмана: где дымится (в осях головы) */
   private readonly pipeBowl = new THREE.Vector3(0.1, -0.06, -0.31);
-  private readonly accLeft: THREE.Group;
-  private readonly accBellows: THREE.Mesh;
+  /** Витёк: папироса в пальцах и в зубах (видна одна), швабра (только когда драит), кончики и рот — где дымится */
+  private readonly cigHand: THREE.Mesh;
+  private readonly cigMouth: THREE.Mesh;
+  private readonly mop: THREE.Group;
+  private readonly cigHandTip = new THREE.Vector3(0, -0.4 - 0.042 * Math.sin(0.15), -0.075 - 0.042 * Math.cos(0.15));
+  private readonly cigMouthTip = new THREE.Vector3(0.035, -0.095 - 0.042 * Math.sin(0.2), -0.21 - 0.042 * Math.cos(0.2));
+  private readonly mouth = new THREE.Vector3(0.0, -0.08, -0.2);
+  private readonly mopAim = new THREE.Vector3();
+  private readonly grip = new THREE.Vector3();
+  /** Руки на черенке: правая ниже, левая выше (м от низа швабры) */
+  private readonly grips: ReadonlyArray<readonly [THREE.Group, number]>;
+  private vYaw: number = V.yaw;
+  private cigT = 1;
+  private exhaled = -1;
+  private exhaleT = -1;
+  /** Чем занят Витёк (для отладки, Barkas.debug) */
+  matrosPhase: MatrosPhase = 'stand';
   private readonly needle: THREE.Mesh;
   private readonly steelyard: THREE.Group;
   private readonly onStrike: () => void;
@@ -90,7 +144,6 @@ export class Crew {
   private sYaw: number = SANYA.yaw;
   private waveT = -1;
   private lazy = 0;
-  private open = 0.1;
   private readonly tmp = new THREE.Vector3();
 
   /** onStrike — боцман ударил в рынду (качнуть её и дать звук) */
@@ -117,33 +170,34 @@ export class Crew {
     this.needle.position.set(0, -0.42, -0.04);
     this.tolik.armR.add(this.needle);
     this.place(this.tolik, L.x, L.y, L.z, L.yaw);
-    // баянист: тельняшка, берет, на ящике; баян — правая половина у груди, левая ходит с мехами
+    // матрос: тельняшка, бескозырка с ленточками, клёши; папироса — в пальцах правой руки или в зубах
     this.vityok = makePerson({
-      skin: 0xdcae8e, coat: 0xeeeae2, stripes: 0x26407a, pants: 0x2a3550, boots: 0x1b1d20, hat: 'beret', hatColor: 0x1d2b4a,
-      hair: 0x3d2b1f, brows: 0x3a2a1e, young: true, seat: 0.46, build: 0.95,
+      skin: 0xd9a888, coat: 0xf1eee6, stripes: 0x284a8e, pants: 0x1f2a44, boots: 0x18191b, hat: 'sailor', hatColor: 0xf7f5ef,
+      hatBand: 0x1b2333, hair: 0x7a5232, brows: 0x6a4630, young: true, build: 0.96,
     });
-    const acc = new THREE.Group();
-    acc.position.set(0, 0.2, -0.31);
-    acc.add(crewMesh([
-      at(new THREE.BoxGeometry(0.1, 0.36, 0.2), 0x9e1f2a, 0.19, 0, 0),
-      at(new THREE.BoxGeometry(0.03, 0.32, 0.05), 0xf3efe4, 0.155, 0, -0.1),
-      ...[-0.12, -0.06, 0, 0.06, 0.12].map((y) => at(new THREE.BoxGeometry(0.032, 0.02, 0.03), 0x1a1a1a, 0.155, y + 0.02, -0.115)),
-      at(new THREE.BoxGeometry(0.104, 0.05, 0.204), 0xd9c27a, 0.19, 0.16, 0),
-    ]));
-    this.accLeft = new THREE.Group();
-    this.accLeft.add(crewMesh([
-      at(new THREE.BoxGeometry(0.09, 0.34, 0.2), 0x9e1f2a, -0.045, 0, 0),
-      ...[-0.08, 0, 0.08].flatMap((y) => [-0.05, 0.05].map((z) => at(new THREE.SphereGeometry(0.014, 6, 4), 0xf3efe4, -0.092, y, z))),
-      at(new THREE.BoxGeometry(0.094, 0.05, 0.204), 0xd9c27a, -0.045, 0.15, 0),
-    ]));
-    acc.add(this.accLeft);
-    // меха: складки поперёк, ширина 1 — растягиваются масштабом
-    const folds: THREE.BufferGeometry[] = [];
-    for (let i = 0; i < 8; i++) folds.push(at(new THREE.BoxGeometry(1 / 8, 0.31, 0.19), i % 2 ? 0x1c1c1e : 0xb8323c, -(i + 0.5) / 8, 0, 0));
-    this.accBellows = crewMesh(folds);
-    this.accBellows.position.x = 0.14;
-    acc.add(this.accBellows);
-    this.vityok.torso.add(acc);
+    this.cigHand = papirosa(0.15);
+    this.cigHand.position.set(0, -0.4, -0.075);
+    this.vityok.armR.add(this.cigHand);
+    this.cigMouth = papirosa(0.2);
+    this.cigMouth.position.set(0.035, -0.095, -0.21);
+    this.cigMouth.visible = false;
+    this.vityok.head.add(this.cigMouth);
+    // швабра: черенок, жестяная обойма и веер прядей до палубы; точка группы — низ прядей
+    const mop: THREE.BufferGeometry[] = [
+      at(new THREE.CylinderGeometry(0.017, 0.019, MOP_LEN - 0.1, 6), 0xc59b66, 0, 0.1 + (MOP_LEN - 0.1) / 2, 0),
+      at(new THREE.CylinderGeometry(0.032, 0.03, 0.07, 8), 0x7d8386, 0, 0.11, 0),
+    ];
+    const top = new THREE.Vector3(0, 0.1, 0);
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 11) * Math.PI * 2 + 0.3;
+      const r = 0.13 + (i % 3) * 0.03;
+      mop.push(strand(top, new THREE.Vector3(Math.cos(a) * r, 0.015, Math.sin(a) * r * 0.8), 0.016, 0.011, i % 3 === 1 ? 0xb4ab97 : 0xd3cbb8));
+    }
+    this.grips = [[this.vityok.armR, MOP_GRIP_R], [this.vityok.armL, MOP_GRIP_L]];
+    this.mop = new THREE.Group();
+    this.mop.add(crewMesh(mop));
+    this.mop.visible = false;
+    this.vityok.group.add(this.mop);
     this.place(this.vityok, V.x, V.y, V.z, V.yaw);
     // Саня: лицо Семёна, тёмные усы и виски с проседью, тельняшка с закатанными рукавами, оранжевый фартук
     this.sanya = makePerson({
@@ -181,10 +235,10 @@ export class Crew {
   }
 
   /**
-   * cam — камера (вдали не рисуем), me — где свой игрок (Саня поворачивается к покупателю), smoke — дым трубки,
-   * squeeze — баян, rain — дождь 0…1.
+   * cam — камера (вдали не рисуем), me — где свой игрок (Саня поворачивается к покупателю), smoke — дым трубки и
+   * папиросы, rain — дождь 0…1.
    */
-  update(dt: number, t: number, cam: THREE.Vector3, me: THREE.Vector3 | null, smoke: Smoke, squeeze: Squeeze, rain: number): void {
+  update(dt: number, t: number, cam: THREE.Vector3, me: THREE.Vector3 | null, smoke: Smoke, rain: number): void {
     const d = Math.hypot(cam.x - BARKAS.x, cam.z - BARKAS.z);
     this.group.visible = d < HIDE;
     // склянки идут по часам и вдали — чтобы звон не сбивался
@@ -196,7 +250,7 @@ export class Crew {
     this.lazy = 0;
     this.animMikhalych(step, t, smoke, rain);
     this.animTolik(step, t);
-    this.animVityok(step, t, squeeze);
+    this.animVityok(step, t, smoke, rain);
     this.animSanya(step, t, me);
   }
 
@@ -288,37 +342,94 @@ export class Crew {
     p.head.rotation.y = ease(p.head.rotation.y, Math.sin(t * 0.3) * 0.15, dt, 0.4);
   }
 
-  private animVityok(dt: number, t: number, sq: Squeeze): void {
+  /**
+   * Матрос Витёк, без музыки, по кругу V_CYCLE: стоит и поглядывает по сторонам (папироса в опущенной руке) → курит
+   * (две затяжки: рука ко рту, потом клуб дыма) → драит палубу шваброй (наклонился, швабра ходит взад-вперёд, папироса
+   * в зубах) → смотрит в море (повернулся к борту, ладонь козырьком, другая рука на планшире).
+   */
+  private animVityok(dt: number, t: number, smoke: Smoke, rain: number): void {
     const p = this.vityok;
-    const open = sq.playing ? 0.07 + 0.2 * sq.bellows : 0.05;
-    this.open = ease(this.open, open, dt, sq.playing ? 0.05 : 0.6);
-    this.accLeft.position.x = 0.14 - this.open;
-    this.accBellows.scale.x = this.open;
-    // правая рука на клавиатуре (пальцы бегают в такт), левая держит левую половину за ремень
-    const beat = sq.playing ? Math.sin(sq.beat * Math.PI * 2) : 0;
-    const k = Math.min(1, dt / 0.06);
-    reach(p.armR, 0.2 + beat * 0.012, 0.24 + beat * 0.02, -0.4, k);
-    reach(p.armL, 0.14 - this.open - 0.1, 0.22, -0.33, k);
-    if (sq.playing) {
-      // качается в такт, кивает на сильную долю
-      p.torso.rotation.z = Math.sin(t * 1.6) * 0.06;
-      p.torso.rotation.x = 0.05 + Math.max(0, beat) * 0.03;
-      p.head.rotation.x = 0.08 + Math.max(0, beat) * 0.08;
-      p.head.rotation.y = ease(p.head.rotation.y, Math.sin(t * 0.4) * 0.3, dt, 0.5);
-      p.head.rotation.z = -0.12;
-    } else {
-      // отдыхает: откинулся, поглядывает на палубу, поправляет берет
-      p.torso.rotation.z = ease(p.torso.rotation.z, 0, dt, 0.5);
-      p.torso.rotation.x = ease(p.torso.rotation.x, -0.08, dt, 0.5);
-      p.head.rotation.z = ease(p.head.rotation.z, 0, dt, 0.5);
-      p.head.rotation.x = ease(p.head.rotation.x, 0.1, dt, 0.5);
-      p.head.rotation.y = ease(p.head.rotation.y, Math.sin(t * 0.5) * 0.7, dt, 0.5);
-      const ph = t % 9;
-      if (ph > 5 && ph < 6.6) {
-        const w = Math.sin(((ph - 5) / 1.6) * Math.PI);
-        p.armR.rotation.x = p.armR.rotation.x * (1 - w) + 2.7 * w;
-        p.armR.rotation.z = p.armR.rotation.z * (1 - w) + 0.15 * w;
+    const ph = (t + 11) % V_CYCLE;
+    const phase: MatrosPhase = ph < V_SMOKE ? 'stand' : ph < V_SWAB ? 'smoke' : ph < V_SEA ? 'swab' : 'sea';
+    this.matrosPhase = phase;
+    const k = Math.min(1, dt / 0.18);
+    const want = phase === 'swab' ? V_YAW_SWAB : phase === 'sea' ? V_YAW_SEA + Math.sin(t * 0.21) * 0.12 : V.yaw + Math.sin(t * 0.13) * 0.18;
+    this.vYaw += wrap(want - this.vYaw) * Math.min(1, dt / 0.55);
+    p.group.rotation.y = this.vYaw;
+    p.torso.position.y = p.hip + Math.sin(t * 0.85) * 0.006;
+    let atMouth = false;
+    if (phase === 'swab') {
+      // швабра на палубе перед собой: ходит из стороны в сторону, на каждом проходе — чуть вперёд-назад
+      const a = (ph - V_SWAB) * 2.5;
+      const sx = Math.sin(a) * 0.3;
+      this.mop.visible = true;
+      this.mop.position.set(sx, 0, -0.92 + Math.cos(2 * a) * 0.06);
+      this.mopAim.set(0.08 + sx * 0.3, 1.18, -0.2).sub(this.mop.position).normalize();
+      this.mop.quaternion.setFromUnitVectors(UP, this.mopAim);
+      // наклонился вперёд (у туловища и головы отрицательный поворот по X — вперёд и вниз), плечи за шваброй
+      turn(p.torso, -0.32, -sx * 0.45, 0, dt, 0.3);
+      turn(p.head, -0.22, sx * 0.35, 0, dt, 0.3);
+      // руки — на черенок: правая ниже, левая выше (точки черенка — в оси туловища)
+      p.group.updateMatrixWorld(true);
+      for (const [arm, along] of this.grips) {
+        this.grip.copy(this.mopAim).multiplyScalar(along).add(this.mop.position);
+        const g = p.torso.worldToLocal(p.group.localToWorld(this.grip));
+        reach(arm, g.x, g.y, g.z, k);
       }
+    } else {
+      this.mop.visible = false;
+      if (phase === 'sea') {
+        // к борту: правая ладонь козырьком над глазами, левая рука на планшире, оглядывает горизонт
+        turn(p.torso, -0.08, 0, 0, dt, 0.4);
+        turn(p.head, 0.1, Math.sin(t * 0.33) * 0.4, 0, dt, 0.5);
+        reach(p.armR, 0.06, 0.76, -0.27, Math.min(1, dt / 0.3));
+        reach(p.armL, -0.22, 0.17, -0.45, Math.min(1, dt / 0.3));
+      } else {
+        // стоит: переминается, смотрит то на палубу, то на рыбаков; курит — две затяжки
+        turn(p.torso, 0, 0, Math.sin(t * 0.7) * 0.025, dt, 0.4);
+        let drag = -1;
+        if (phase === 'smoke') for (let i = 0; i < V_DRAGS.length; i++) if (ph - V_SMOKE >= V_DRAGS[i] && ph - V_SMOKE < V_DRAGS[i] + V_DRAG) drag = i;
+        if (drag >= 0) {
+          const u = ph - V_SMOKE - V_DRAGS[drag];
+          atMouth = u > 0.55 && u < V_DRAG - 0.45;
+          reach(p.armR, 0.06, 0.56, -0.25, Math.min(1, dt / 0.22));
+          turn(p.head, -0.04, -0.08, 0, dt, 0.3);
+          this.exhaled = drag;
+        } else {
+          turn(p.armR, 0.12, 0, -0.06, dt, 0.35);
+          // выдох после затяжки: голова чуть вверх, густой клуб изо рта
+          if (this.exhaled >= 0) {
+            this.exhaled = -1;
+            this.exhaleT = 0;
+          }
+          const look = this.exhaleT >= 0 && this.exhaleT < 1.2 ? 0.2 : -0.02;
+          turn(p.head, look, this.exhaleT >= 0 && this.exhaleT < 1.2 ? 0.1 : Math.sin(t * 0.29) * 0.55, 0, dt, 0.4);
+        }
+        turn(p.armL, 0, 0, 0.07, dt, 0.35);
+      }
+    }
+    this.cigMouth.visible = phase === 'swab' || phase === 'sea' || atMouth;
+    this.cigHand.visible = !this.cigMouth.visible;
+    // дымок: тонкая струйка с кончика папиросы; после затяжки — два клуба изо рта
+    if (this.exhaleT >= 0) {
+      const was = this.exhaleT;
+      this.exhaleT += dt;
+      for (const at of V_PUFFS) {
+        if (was < at && this.exhaleT >= at) {
+          p.group.updateMatrixWorld(true);
+          const w = p.head.localToWorld(this.tmp.copy(this.mouth));
+          smoke.puff(w.x, w.y, w.z, 0xe9e6df, 2.4, 0.08, 0.55, 0.24, 0.55 * (1 - 0.5 * rain));
+        }
+      }
+      if (this.exhaleT > 2) this.exhaleT = -1;
+    }
+    this.cigT -= dt;
+    if (this.cigT <= 0) {
+      this.cigT = 0.9 + Math.random() * 0.8;
+      const holder = this.cigMouth.visible ? p.head : p.armR;
+      p.group.updateMatrixWorld(true);
+      const w = holder.localToWorld(this.tmp.copy(this.cigMouth.visible ? this.cigMouthTip : this.cigHandTip));
+      smoke.puff(w.x, w.y + 0.01, w.z, 0xe4e1da, 1.6, 0.03, 0.17, 0.28, 0.32 * (1 - 0.5 * rain));
     }
   }
 

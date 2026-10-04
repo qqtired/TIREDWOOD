@@ -1,16 +1,17 @@
-// Музыкальный автомат на площади набережной (место, размеры и песни — shared/jukebox.ts). Тёплый ретро-автомат:
+// Музыкальный автомат набережной (места, размеры и песни — shared/jukebox.ts): на площади и такой же на баке баркаса
+// (jukeModels). Тёплый ретро-автомат:
 // ореховый корпус с аркой, медовая рама, две светящиеся трубки по арке, хромированная решётка динамика, окошко с
 // пластинкой и эквалайзером, клавиши выбора, монетоприёмник, карточка песен и табличка с ценой.
 // Играет: огни трубок шагают по долям (beat), по арке на каждую долю бежит волна света и вспыхивает; семь полос
 // эквалайзера идут за bands; пластинка крутится; из решётки вылетают ноты и тают. Молчит: огни мягко дышат, по нижним
 // лампам эквалайзера идёт тихая волна, пластинка стоит.
-// Неподвижное склеено в четыре меша по материалу (они и отбрасывают тень, как остальная статика площади); цвета трубок
+// Неподвижное склеено в четыре меша по материалу (на площади они и отбрасывают тень, как остальная статика); цвета трубок
 // считает шейдер, лампы эквалайзера и ноты — по одному InstancedMesh. В update() ничего не создаётся.
 // Габарит — коробка JUKE_W × JUKE_D × JUKE_H (она же коллайдер); наружу выходят только ноты, ореолы огней и тёплое
 // пятно на плитке (у них userData.fx).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { JUKEBOX, JUKE_D, JUKE_SONGS } from '../../shared/jukebox.ts';
+import { JUKEBOX, JUKE_D, JUKE_SONGS, JUKE_SPOTS } from '../../shared/jukebox.ts';
 import { glowTexture } from '../render/kit.ts';
 import { metalEnvTexture } from '../render/textures.ts';
 
@@ -634,9 +635,57 @@ void main() {
 
 // ------------------------------------------------------------ автомат
 
+interface JukeTextures {
+  atlas: THREE.CanvasTexture;
+  rec: THREE.CanvasTexture;
+  back: THREE.CanvasTexture;
+  glass: THREE.CanvasTexture;
+  note: THREE.CanvasTexture;
+}
+let sharedTex: JukeTextures | null = null;
+
+/** Холсты автомата — одни на оба автомата (площадь и баркас), в видеопамяти один раз; без DOM (тесты) — нет */
+function jukeTextures(): JukeTextures | null {
+  if (!HAS_DOM) return null;
+  if (sharedTex) return sharedTex;
+  const [ac, actx] = makeCanvas(ATLAS_W, ATLAS_H);
+  const [rc, rctx] = makeCanvas(512, 512);
+  drawAtlas(actx);
+  drawRecord(rctx);
+  const atlas = toTex(ac);
+  const rec = toTex(rc);
+  // Rubik мог ещё не загрузиться: перерисовать, когда загрузится (один раз)
+  document.fonts?.load(`700 25px ${FONT}`).then(() => document.fonts.load(`900 22px ${FONT}`)).then(() => {
+    drawAtlas(actx);
+    drawRecord(rctx);
+    atlas.needsUpdate = true;
+    rec.needsUpdate = true;
+  }).catch(() => {});
+  sharedTex = { atlas, rec, back: backTexture(), glass: glassTexture(), note: noteTexture() };
+  return sharedTex;
+}
+
+/** Где стоит автомат: середина корпуса у пола (y — высота пола), yaw — куда смотрит лицо (0 — на −Z, как игрок) */
+export interface JukeAt {
+  x: number;
+  y?: number;
+  z: number;
+  yaw: number;
+}
+
+/**
+ * Оба автомата набережной по порядку JUKE_SPOTS: на площади — с тенью; на баке баркаса — без (он вне карты теней,
+ * client/lobby/world.ts — fitShadow).
+ */
+export function jukeModels(scene: THREE.Scene): Jukebox3D[] {
+  return JUKE_SPOTS.map((at, i) => new Jukebox3D(scene, at, { shadows: i === 0 }));
+}
+
 export class Jukebox3D {
-  /** Весь автомат: стоит в JUKEBOX, лицом на юг */
+  /** Весь автомат: стоит в at (по умолчанию — JUKEBOX на площади, лицом на юг) */
   readonly group = new THREE.Group();
+  /** Отбрасывает ли тень (карта теней площади обновляется по запросу — при показе автомата) */
+  private readonly shadows: boolean;
   private readonly record: THREE.Mesh;
   private readonly eq: THREE.InstancedMesh;
   private readonly notes: THREE.InstancedMesh;
@@ -673,7 +722,8 @@ export class Jukebox3D {
   private readonly nVel = new Float32Array(NOTES * 3);
   private readonly nPh = new Float32Array(NOTES);
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, at: JukeAt = JUKEBOX, opts: { shadows?: boolean } = {}) {
+    this.shadows = opts.shadows ?? true;
     const env = HAS_DOM ? metalEnvTexture() : null;
     const wood: THREE.BufferGeometry[] = [];
     const lacquer: THREE.BufferGeometry[] = [];
@@ -757,8 +807,8 @@ export class Jukebox3D {
     const darkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
     for (const [list, mat] of [[wood, woodMat], [lacquer, lacquerMat], [chrome, chromeMat], [dark, darkMat]] as const) {
       const mesh = new THREE.Mesh(mergeGeometries(list, false)!, mat);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
+      mesh.castShadow = this.shadows;
+      mesh.receiveShadow = this.shadows;
       this.addStatic(mesh);
     }
 
@@ -773,7 +823,7 @@ export class Jukebox3D {
     const tubes = new THREE.Mesh(mergeGeometries(tubeGeos, false)!, tubeMat);
     tubes.frustumCulled = false;
     tubes.onBeforeRender = (renderer) => {
-      if (!this.shadowDirty) return;
+      if (!this.shadowDirty || !this.shadows) return;
       this.shadowDirty = false;
       renderer.shadowMap.needsUpdate = true;
     };
@@ -791,36 +841,20 @@ export class Jukebox3D {
     halo.userData.fx = true;
     this.addStatic(halo);
 
-    // подсветка окошка и стекло
-    this.backMat = new THREE.MeshBasicMaterial({ map: HAS_DOM ? backTexture() : null, toneMapped: false });
+    // подсветка окошка и стекло (холсты — общие у обоих автоматов)
+    const tex = jukeTextures();
+    this.backMat = new THREE.MeshBasicMaterial({ map: tex?.back ?? null, toneMapped: false });
     this.addStatic(new THREE.Mesh(windowGeometry(FRAME_HI, WIN_Y0, BODY_Z1 + 0.003), this.backMat));
     const glass = new THREE.Mesh(
       windowGeometry(FRAME_HI, WIN_Y0, FRAME_Z - 0.022),
-      new THREE.MeshBasicMaterial({ map: HAS_DOM ? glassTexture() : null, transparent: true, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ map: tex?.glass ?? null, transparent: true, depthWrite: false }),
     );
     glass.renderOrder = 2;
     this.addStatic(glass);
 
     // пластинка (крутится) и надписи (карточка песен, цена, медальон) — холсты
-    let atlas: THREE.CanvasTexture | null = null;
-    let recTex: THREE.CanvasTexture | null = null;
-    if (HAS_DOM) {
-      const [ac, actx] = makeCanvas(ATLAS_W, ATLAS_H);
-      const [rc, rctx] = makeCanvas(512, 512);
-      drawAtlas(actx);
-      drawRecord(rctx);
-      atlas = toTex(ac);
-      recTex = toTex(rc);
-      // Rubik мог ещё не загрузиться: перерисовать, когда загрузится (один раз)
-      const a = atlas;
-      const r = recTex;
-      document.fonts?.load(`700 25px ${FONT}`).then(() => document.fonts.load(`900 22px ${FONT}`)).then(() => {
-        drawAtlas(actx);
-        drawRecord(rctx);
-        a.needsUpdate = true;
-        r.needsUpdate = true;
-      }).catch(() => {});
-    }
+    const atlas = tex?.atlas ?? null;
+    const recTex = tex?.rec ?? null;
     this.record = new THREE.Mesh(
       new THREE.CircleGeometry(REC_R, 56),
       new THREE.MeshStandardMaterial({ map: recTex, roughness: 0.3, metalness: 0.1, envMap: env, envMapIntensity: 0.7 }),
@@ -863,7 +897,7 @@ export class Jukebox3D {
     noteGeo.setAttribute('aFade', this.noteFade);
     noteGeo.setAttribute('aGlyph', this.noteGlyph);
     this.notes = new THREE.InstancedMesh(noteGeo, new THREE.ShaderMaterial({
-      uniforms: { map: { value: HAS_DOM ? noteTexture() : null } },
+      uniforms: { map: { value: tex?.note ?? null } },
       vertexShader: NOTE_VERT,
       fragmentShader: NOTE_FRAG,
       transparent: true,
@@ -890,9 +924,9 @@ export class Jukebox3D {
     floor.userData.fx = true;
     this.addStatic(floor);
 
-    this.group.position.set(JUKEBOX.x, 0, JUKEBOX.z);
+    this.group.position.set(at.x, at.y ?? 0, at.z);
     // yaw: 0 — лицом на −Z; модель построена лицом на +Z
-    this.group.rotation.y = JUKEBOX.yaw + Math.PI;
+    this.group.rotation.y = at.yaw + Math.PI;
     this.group.updateMatrixWorld(true);
     scene.add(this.group);
     this.update(0, false, new Float32Array(EQ_N), 0);
