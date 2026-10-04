@@ -6,7 +6,8 @@
 // Семёну или Сане, server/lobby/fishnpc.ts), сундук и бонус за новый вид — сразу жетонами; коллекция (альбом), опыт
 // рыбалки и общий опыт (по цене рыбы), счётчики доски рекордов, награды лестницы коллекции (server/fishstyle.ts).
 // Полный рюкзак — заброс не уходит. Эпическая и выше сорвалась после 3 с борьбы — утешительный опыт (fishLostXp).
-// В дождь опыт рыбалки ×1,15 (и за поимку, и утешительный).
+// В дождь опыт рыбалки ×1,15 (и за поимку, и утешительный). Сезон рыбалки (server/lobby/fishseason.ts) — особый дождь:
+// клюют виды дождя, эпик, лег, мифик и божественный кальмар ×3 от базы; опыт — как в дождь.
 //
 // Подделать трудно: тики нажатий — целые, по возрастанию, не раньше уже подтверждённого; клиент не может досчитать
 // дальше, чем прошло настоящего времени с начала вываживания (+0,5 с), — ускорить бой нельзя; отстал больше чем на 4 с
@@ -23,7 +24,7 @@ import { spotZone } from '../../shared/fishplaces.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import {
-  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
+  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
   isCollected, reelStyleFor, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
@@ -56,6 +57,8 @@ export function fish2Enabled(v: string | undefined): boolean {
 export interface FishingHost2 extends FishingHost {
   /** Идёт ли сейчас дождь */
   rain(): boolean;
+  /** Идёт ли сейчас сезон рыбалки (особый дождь); нет метода — сезона нет */
+  season?(): boolean;
   /** Доска рекордов поменялась — разослать всем на набережной */
   top(top: FishBoardView): void;
   /** Наряд рыбака поменялся (снасти из наград надеты сами) — разослать всем на набережной */
@@ -99,7 +102,7 @@ function emptySpot(): Spot {
 export class FishingHall2 {
   /** Случайное 0…1 и что клюнуло (в тестах подменяются) */
   rand: () => number;
-  roll: (rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>) => Hooked = rollCatch2;
+  roll: (rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>, season?: boolean) => Hooked = rollCatch2;
   /** Шанс пива подводного владыки в сундуке (в тестах и в разработке подменяется) */
   lordChance = LORD_CHEST_CHANCE;
   readonly board: FishBoard;
@@ -233,6 +236,16 @@ export class FishingHall2 {
     this.board.touch();
   }
 
+  /** Сезон рыбалки сейчас */
+  private season(): boolean {
+    return this.host.season?.() ?? false;
+  }
+
+  /** Дождь для рыбы: настоящий или сезон (он сам по себе дождь) */
+  private wet(): boolean {
+    return this.host.rain() || this.season();
+  }
+
   private cast(s: Spot, spot: number, tick: number): void {
     const prof = this.host.who(s.slot)?.profile;
     if (!prof) return;
@@ -265,9 +278,10 @@ export class FishingHall2 {
     this.host.event(['fish', FE_CAST, spot, s.x, s.z]);
   }
 
-  /** Поклёвка: что клюнуло — решено сейчас, по погоде сейчас; окно подсечки — по категории и пингу. */
+  /** Поклёвка: что клюнуло — решено сейчас, по погоде сейчас (и сезону); окно подсечки — по категории и пингу. */
   private bite(s: Spot, spot: number, tick: number): void {
-    const c = this.roll(this.host.rain(), this.rand, s.mods);
+    const season = this.season();
+    const c = this.roll(this.host.rain() || season, this.rand, s.mods, season);
     const prof = this.host.who(s.slot)?.profile;
     if (prof) {
       prof.stats.fsBites++;
@@ -310,7 +324,7 @@ export class FishingHall2 {
   private lose(s: Spot, spot: number): void {
     this.countLost(s);
     // эпическая и выше сорвалась после 3 с борьбы — утешительный опыт рыбалки (вид не раскрываем, только категорию)
-    const xp = fishLostXp(s.sp, s.ack, s.mods, this.host.rain());
+    const xp = fishLostXp(s.sp, s.ack, s.mods, this.wet());
     const prof = xp > 0 ? this.host.who(s.slot)?.profile : undefined;
     if (prof) {
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
@@ -378,7 +392,7 @@ export class FishingHall2 {
       bagFull = !put;
       if (put) this.profiles.modeXp(prof, price);
       st.fsMaxGrams = Math.max(st.fsMaxGrams, s.g);
-      xp = fishCatchXp(s.sp, perfect, s.mods, this.host.rain());
+      xp = fishCatchXp(s.sp, perfect, s.mods, this.wet());
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
       prof.fishing.questCaught = Math.min(questNeed(prof.fishing.questsDone), prof.fishing.questCaught + 1);
       countCatch(prof, s.g, this.now());
@@ -423,6 +437,11 @@ export class FishingHall2 {
     }
     if (tier === T_JUNK || tier < ANNOUNCE_TIER) return;
     const sea = s.mods.zone === 'barkas';
+    if (tier === T_DIVINE) {
+      // божественная: отдельная строка на весь пирс — царь морей
+      this.host.announce(`🦑 ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)}${sea ? ' в открытом море' : ''}! Божественный улов — сам царь морей!`);
+      return;
+    }
     const mark = tier === T_MYTH ? '🦈' : rain ? '🌧' : sea ? '⚓' : '🎣';
     const what = tier === T_MYTH ? ' Мифическая рыба!' : '';
     this.host.announce(`${mark} ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)}${sea ? ' в открытом море' : ''}!${what}`);

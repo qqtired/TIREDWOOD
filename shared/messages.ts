@@ -126,8 +126,8 @@ export interface OnlineEntry {
  * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
  * через FishNpc.register (server/lobby/fishnpc.ts).
  */
-export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry';
-export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry'];
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka';
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka'];
 
 // --- Дурак за столиками кафе
 
@@ -499,7 +499,9 @@ export type ServerMsg =
   | { t: 'weather'; rain: number; wx?: RainWire | null }
   /** Единое рыболовное событие для всех комнат; until — конец по серверным часам, 0 — постоянный DEV дождь. */
   | { t: 'fishEvent'; on: boolean; until: number }
-  /** ВРЕМЕННО до слияния с A (сезон рыбалки делает A): идёт ли сезон, когда кончится и когда следующий — мс сервера */
+  // сезон рыбалки (особый дождь раз в 2 часа на 10 минут, server/lobby/fishseason.ts) — всем на набережной при смене и
+  // входящему: on — идёт ли; endsAt — конец идущего сезона (нет сезона — конец ближайшего); nextAt — начало следующего
+  // (идёт — того, что после него); мс серверных часов
   | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
   | { t: 'fishProgress'; progress: FishProgress; now: number }
   /** Рыба в руках у игрока id (номер в снимках): n — номер в его рюкзаке, вид и граммы; n = −1 — руки пустые */

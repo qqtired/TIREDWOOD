@@ -6,11 +6,17 @@
 // Сложность (fisheco, 03.10): чем ценнее рыба, тем она злее — зона меньше, рывки резче, успех ниже (BAND, CAL); у каждого
 // вида свой характер: пара паттернов и где держится. Легенды и мифик делают «последний рывок» на 70 % прогресса.
 // Баркас — своё море: рывки и резкость ×1,15, сопротивление ×1,2; блесна гасит рывки.
+//
+// 04.10 (патч рыбалки): божественная категория T_DIVINE = 7 (номера 0–6 уже в данных игроков) — дальневосточный кальмар,
+// царь морей: у пристани и с баркаса, в любую погоду, база шанса — мифик / 2,5. Шансы считаются по категориям
+// (tierOdds): база категории своего места × погода × бонусы, обычные — остаток; внутри категории — по весу вида.
+// Дождь — редкие, эпик, лег и мифик ×1,5 к обычной ловле; сезон рыбалки (особый дождь раз в 2 часа) — эпик, лег, мифик
+// и божественная ×3 от базы. Гренландская акула в дождь клюёт и у пристани, и с баркаса.
 import { FISH, fmtWeight } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import type { ReelStyle, ReelPattern } from './fishreel.ts';
 import type { FishCastMods } from './fishprogress.ts';
-import { LORD } from './fishshop.ts';
+import { LORD, LURE_MAX } from './fishshop.ts';
 
 // ------------------------------------------------------------ экономика
 
@@ -43,7 +49,7 @@ export const T_LEGEND = 3;
 export const T_MYTH = 4;
 export const T_JUNK = 5;
 export const T_CHEST = 6;
-// ВРЕМЕННО (ветка feat/fishB): тир «Божественный» и его подписи придут от A — при слиянии взять его версию
+/** Божественная: выше мифической (номер 7 — после хлама и сундука, старые номера в данных игроков не сдвигаются) */
 export const T_DIVINE = 7;
 export const TIER_NAMES = ['обычная', 'редкая', 'эпическая', 'легендарная', 'мифическая', 'находка', 'сундук', 'божественная'] as const;
 /** Во множественном числе — для журнала */
@@ -51,17 +57,35 @@ export const TIER_TITLES = ['Обычные', 'Редкие', 'Эпически�
 /** Коротко — для полосы «Шансы сейчас» */
 export const TIER_SHORT = ['обычн.', 'редк.', 'эпик', 'лег.', 'миф.', 'хлам', 'сундук', 'бож.'] as const;
 /** Цвет категории: рамки, подписи, шкала */
-export const TIER_CSS = ['#8f9aa3', '#2f86d8', '#9a4ee0', '#eb9a12', '#e8364f', '#8a7766', '#d9a521', '#f2c94c'] as const;
+export const TIER_CSS = ['#8f9aa3', '#2f86d8', '#9a4ee0', '#eb9a12', '#e8364f', '#8a7766', '#d9a521', '#18b7a6'] as const;
 /** Новый вид в коллекции — бонус, жетонов (один раз) */
-export const NEW_BONUS2 = [5, 10, 20, 40, 100, 0, 0, 0] as const;
+export const NEW_BONUS2 = [5, 10, 20, 40, 100, 0, 0, 250] as const;
 /** С этой категории улов объявляется в общем чате */
 export const ANNOUNCE_TIER = T_EPIC;
+/** Категории рыб по ценности (журнал, «Шансы сейчас»): обычная … мифическая, божественная */
+export const FISH_TIERS: readonly number[] = [T_COMMON, T_RARE, T_EPIC, T_LEGEND, T_MYTH, T_DIVINE];
+
+/** Рыба коллекции (не хлам и не сундук) */
+export function isFishTier(tier: number): boolean {
+  return (tier >= T_COMMON && tier <= T_MYTH) || tier === T_DIVINE;
+}
+
+/** Ранг ценности категории: обычная 0 … мифическая 4, божественная 5; хлам и сундук — −1. Сравнения «эпическая и выше» — по нему. */
+export function tierRank(tier: number): number {
+  return tier === T_DIVINE ? 5 : tier >= T_COMMON && tier <= T_MYTH ? tier : -1;
+}
 
 /** Дождевые виды платят ×3/2 */
 export const RAIN_NUM = 3;
 export const RAIN_DEN = 2;
-/** В дождь легендарные и мифические виды события клюют в 1,5 раза чаще базового */
-export const RAIN_TOP_MUL = 1.5;
+/** В дождь шанс редких, эпических, легендарных и мифических — ×1,5 к обычной ловле (обычные — остаток) */
+export const RAIN_MUL = 1.5;
+/** Прежнее имя RAIN_MUL (подписи клиента): дождь ×1,5 — теперь у всех четырёх категорий от редких до мифических */
+export const RAIN_TOP_MUL = RAIN_MUL;
+/** Сезон рыбалки: эпические, легендарные, мифические и божественная — ×3 от базы (редкие — как в дождь, ×1,5) */
+export const SEASON_MUL = 3;
+/** Божественная клюёт в 2,5 раза реже мифических своего места (база, ясно) */
+export const DIVINE_RATIO = 2.5;
 /** В дождь опыт рыбалки ×1,15 (за любую рыбу, пойманную, пока идёт дождь) */
 export const RAIN_XP = 1.15;
 /**
@@ -104,9 +128,13 @@ export const BAND: ReadonlyArray<{ zone: number; spd: number; dart: number; amp:
   { zone: 27.5, spd: 33, dart: 130, amp: 52, per: 135, drain: 16, sharp: 7 },
   { zone: 25, spd: 38, dart: 160, amp: 62, per: 125, drain: 14, sharp: 8 },
   { zone: 22.5, spd: 43, dart: 190, amp: 70, per: 115, drain: 12, sharp: 9 },
+  // божественная (по рангу 5): зона меньше всех, резкость — предел
+  { zone: 20, spd: 48, dart: 220, amp: 76, per: 110, drain: 12, sharp: 10 },
 ];
 /** «Последний рывок» легенд и мификов: скорость ×1,3 на один цикл */
 export const LAST_STAND = 130;
+/** «Последний рывок» божественной: ×1,5 */
+export const LAST_STAND_DIVINE = 150;
 
 // ------------------------------------------------------------ виды
 
@@ -115,9 +143,11 @@ export interface FishRule {
   sp: number;
   id: string;
   tier: number;
-  /** Где ловится: у пристани или на баркасе в открытом море */
+  /** Где ловится: у пристани или на баркасе в открытом море (родное место: журнал, опыт) */
   zone: FishZone;
-  /** Как часто клюёт: вес в пуле своего места (дождевые добавляются в дождь) */
+  /** Все места, где клюёт (гренландская акула и кальмар — и там, и там) */
+  zones: readonly FishZone[];
+  /** Как часто клюёт: вес внутри своей категории в пуле места (дождевые добавляются в дождь) */
   bite: number;
   /** Только в дождь (и платит ×1,5) */
   rain: boolean;
@@ -139,6 +169,8 @@ interface Raw {
   rain: boolean;
   val: readonly [number, number];
   zone?: FishZone;
+  /** Клюёт и во втором месте (по умолчанию — только в своём) */
+  also?: FishZone;
   xpBase?: number;
   /** Главный и второй паттерн (скорость, рывок, размах, цикл и сопротивление — в таблице CAL) */
   pat: readonly [ReelPattern, ReelPattern];
@@ -187,7 +219,7 @@ const RAW: Record<string, Raw> = {
   bluemarlin: { tier: T_LEGEND, bite: 20, rain: true, val: [45, 125], pat: ['EdgeSnapback', 'Wave'], up: 70, note: 'длинные быстрые проходы и свечки' },
   // --- мифические: событие на весь пирс
   whiteshark: { tier: T_MYTH, bite: 6, rain: false, val: [200, 400], pat: ['FakeDash', 'Ambush'], note: 'всё сразу: скорость, рывки, сила' },
-  greenlandshark: { tier: T_MYTH, bite: 3, rain: true, val: [220, 480], pat: ['SlowMigration', 'Sound'], lo: 0, hi: 70, up: 30, note: 'глубокие тяжёлые проводки, мощное сопротивление' },
+  greenlandshark: { tier: T_MYTH, also: 'barkas', bite: 3, rain: true, val: [220, 480], pat: ['SlowMigration', 'Sound'], lo: 0, hi: 70, up: 30, note: 'глубокие тяжёлые проводки, мощное сопротивление; в дождь — и у пристани, и с баркаса' },
 
   // --- баркас, открытое море: свой пул; доход и опыт ×1,25, рыба злее (SEA_FIGHT, SEA_DRAIN)
   sprat: { tier: T_COMMON, zone: 'barkas', bite: 165, rain: false, val: [2.6, 4], xpBase: 17.8, pat: ['Zigzag', 'Nervous'], lo: 40, hi: 100, note: 'стайка мечется зигзагами' },
@@ -210,8 +242,8 @@ const RAW: Record<string, Raw> = {
   blueshark: { tier: T_EPIC, zone: 'barkas', bite: 120, rain: true, val: [11.4, 29.4], xpBase: 34.5, pat: ['Circle', 'FakeDash'], note: 'кружит и обманывает' },
   hammerhead: { tier: T_LEGEND, zone: 'barkas', bite: 30, rain: true, val: [38.3, 106.1], xpBase: 35.7, pat: ['Circle', 'EdgeSnapback'], note: 'широкие круги и рывки к краю' },
 
-  // ВРЕМЕННО (ветка feat/fishB): кальмар не клюёт (bite 0) — строку с шансами и ценой даст A
-  kalmar: { tier: T_DIVINE, zone: 'barkas', bite: 0, rain: false, val: [400, 900], pat: ['Circle', 'Sound'], note: 'царь морей' },
+  // --- божественная: царь морей — у пристани и с баркаса, в любую погоду; цена и опыт ×2,5 к мифику (и шанс в 2,5 раза меньше)
+  kalmar: { tier: T_DIVINE, also: 'barkas', bite: 1, rain: false, val: [500, 1000], xpBase: 98, pat: ['Jet', 'Sound'], up: 60, note: 'царь морей: реактивные рывки во всю шкалу, чернильный обман и уход в глубину' },
 
   // --- не рыбы: лежат мёртвым грузом
   boot: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
@@ -243,72 +275,81 @@ const XP_DIFFICULTY: Record<string, number> = {
  * Перекалибровано под «леску провисла» (зона без нажатий уходит под шкалу): рыбу у дна теперь надо держать зоной.
  * Меч-рыба подобрана на более спокойной сетке (GRID от −1,8): на обычной её бой тянулся 25 с. Махи-махи море ломало
  * сильнее соседей (успех 38 % против 63 %) — она подобрана уже в море, к успеху соседей (SEA=0.63).
+ * 04.10: зона у дна пружинит, как у верха, а «леска провисла» — только когда зона лежит на дне. Сопротивление
+ * (4-я цифра) пересчитано у каждого вида так, чтобы успех «обычного» остался прежним (±1 п. п.). Ремень-рыбе — середина
+ * между «обычным» и «опытным»: под прежние 33 % «обычного» «опытный» падал с 90 до 42 %, теперь 44 и 77 %. Донным
+ * барабульке, губану и треске — мягче: успех тот же (~100 %), а бой не вдвое длиннее прежнего (6–7 с).
  */
 const CAL: Record<string, readonly [number, number, number, number, number]> = {
   hamsa: [14, 49, 27.2, 14.73, 170],
   goby: [9.1, 31.85, 19.58, 23.08, 218],
-  scad: [11.2, 39.2, 22.85, 25.34, 197],
-  redmullet: [14, 49, 27.2, 21.16, 170],
-  wrasse: [7, 24.5, 16.32, 18.73, 238],
+  scad: [11.2, 39.2, 22.85, 29.7, 197],
+  redmullet: [14, 49, 27.2, 10.47, 170],
+  wrasse: [7, 24.5, 16.32, 5.9, 238],
   karas: [12.95, 45.33, 25.57, 19.08, 180],
   blenny: [7, 24.5, 16.32, 27.6, 238],
-  sardine: [24, 84, 36.8, 21.16, 170],
+  sardine: [24, 84, 36.8, 28.8, 170],
   whiting: [21.5, 75.25, 34.4, 24.64, 170],
-  picarel: [21.5, 75.25, 34.4, 23.42, 170],
+  picarel: [21.5, 75.25, 34.4, 29.85, 170],
   sprat: [7, 24.5, 16.32, 19.6, 238],
-  flyingfish: [7, 24.5, 16.32, 19.43, 238],
+  flyingfish: [7, 24.5, 16.32, 49, 238],
   haddock: [24, 84, 36.8, 20.47, 170],
   hake: [12.95, 45.33, 25.57, 21.86, 180],
-  mullet: [9, 33.3, 21.42, 16.99, 210],
-  mackerel: [21, 77.7, 38.85, 24.64, 150],
-  garfish: [9, 33.3, 21.42, 16.82, 210],
-  scorpion: [11.7, 43.29, 25.7, 26.38, 192],
-  flounder: [11.7, 43.29, 25.7, 27.77, 192],
-  gurnard: [24, 88.8, 42, 22.9, 150],
-  eel: [21, 77.7, 38.85, 16.99, 150],
-  meagre: [30, 111, 48.3, 20.47, 150],
-  shad: [14.4, 53.28, 29.99, 18.73, 174],
-  redfish: [14.4, 53.28, 29.99, 23.42, 174],
-  bonito: [11.7, 43.29, 25.7, 26.9, 192],
-  cod: [16.65, 61.61, 33.56, 24.29, 159],
-  barracuda: [14.4, 53.28, 29.99, 23.42, 174],
-  hairtail: [21, 77.7, 38.85, 16.64, 150],
-  bluefish: [14.3, 55.77, 31.82, 26.9, 173],
-  dogfish: [14.3, 55.77, 31.82, 24.12, 173],
-  ray: [20.35, 79.37, 41.55, 13.17, 143],
-  turbot: [11, 42.9, 26.52, 32.64, 189],
-  seabass: [14.3, 55.77, 31.82, 19.95, 173],
-  leerfish: [14.3, 55.77, 31.82, 25.16, 173],
-  wolffish: [14.3, 55.77, 31.82, 26.03, 173],
-  mahi: [8.8, 34.32, 22.98, 20.29, 200],
-  amberjack: [17.6, 68.64, 37.13, 25.68, 157],
-  wahoo: [11, 42.9, 26.52, 20.82, 189],
-  blueshark: [22, 85.8, 44.2, 28.29, 135],
-  sturgeon: [42, 176.4, 71.3, 20.47, 125],
-  tuna: [13, 54.6, 31.62, 32.98, 175],
-  swordfish: [7.8, 32.76, 23.19, 28.81, 195],
-  angler: [16.9, 70.98, 37.94, 24.81, 160],
-  bluemarlin: [13, 54.6, 31.62, 38.37, 175],
-  sunfish: [34, 142.8, 62, 29.68, 125],
-  halibut: [13, 54.6, 31.62, 32.46, 175],
-  mako: [13, 54.6, 31.62, 25.68, 175],
-  hammerhead: [34, 142.8, 62, 19.95, 125],
-  whiteshark: [15, 66, 35.7, 17.86, 161],
-  greenlandshark: [27.75, 122.1, 55.93, 36.46, 122],
-  oarfish: [27.75, 122.1, 55.93, 51.58, 122],
+  mullet: [9, 33.3, 21.42, 27.45, 210],
+  mackerel: [21, 77.7, 38.85, 29.55, 150],
+  garfish: [9, 33.3, 21.42, 28.05, 210],
+  scorpion: [11.7, 43.29, 25.7, 34.65, 192],
+  flounder: [11.7, 43.29, 25.7, 35.7, 192],
+  gurnard: [24, 88.8, 42, 28.35, 150],
+  eel: [21, 77.7, 38.85, 25.95, 150],
+  meagre: [30, 111, 48.3, 25.95, 150],
+  shad: [14.4, 53.28, 29.99, 26.4, 174],
+  redfish: [14.4, 53.28, 29.99, 26.63, 174],
+  bonito: [11.7, 43.29, 25.7, 32, 192],
+  cod: [16.65, 61.61, 33.56, 7.65, 159],
+  barracuda: [14.4, 53.28, 29.99, 28.25, 174],
+  hairtail: [21, 77.7, 38.85, 26, 150],
+  bluefish: [14.3, 55.77, 31.82, 31.2, 173],
+  dogfish: [14.3, 55.77, 31.82, 27.9, 173],
+  ray: [20.35, 79.37, 41.55, 18.9, 143],
+  turbot: [11, 42.9, 26.52, 47.4, 189],
+  seabass: [14.3, 55.77, 31.82, 23.25, 173],
+  leerfish: [14.3, 55.77, 31.82, 33, 173],
+  wolffish: [14.3, 55.77, 31.82, 34, 173],
+  mahi: [8.8, 34.32, 22.98, 26.5, 200],
+  amberjack: [17.6, 68.64, 37.13, 27, 157],
+  wahoo: [11, 42.9, 26.52, 26, 189],
+  blueshark: [22, 85.8, 44.2, 30.12, 135],
+  sturgeon: [42, 176.4, 71.3, 52.95, 125],
+  tuna: [13, 54.6, 31.62, 36, 175],
+  swordfish: [7.8, 32.76, 23.19, 34.65, 195],
+  angler: [16.9, 70.98, 37.94, 28.5, 160],
+  bluemarlin: [13, 54.6, 31.62, 49.95, 175],
+  sunfish: [34, 142.8, 62, 37.5, 125],
+  halibut: [13, 54.6, 31.62, 31.63, 175],
+  mako: [13, 54.6, 31.62, 27.25, 175],
+  hammerhead: [34, 142.8, 62, 26.13, 125],
+  whiteshark: [15, 66, 35.7, 18, 161],
+  greenlandshark: [27.75, 122.1, 55.93, 46.2, 122],
+  oarfish: [27.75, 122.1, 55.93, 56, 122],
+  // божественная (04.10): труднее всех и везде одинаково (море его не злит). «Обычный» / «опытный»: ур. 0 — 5 / 7 %,
+  // ур. 3 с удочкой — 22 / 28 %, ур. 5 — 45 / 44 %, ур. 10 с легендарной удочкой и платиновой блесной — 66 / 91 %
+  // (мифики там же: 9–19 / 98 %, 35–47 / 77–100 %, 62–80 / 96–100 %, 77–100 / 100 %)
+  kalmar: [31.6, 190, 64.7, 7.5, 135.6],
 };
 
 /** Манера вида на шкале: паттерны и место вида, цифры из CAL, зона и резкость — по категории. */
 function styleOf(id: string, r: Raw): ReelStyle {
-  if (r.tier > T_MYTH) return { ...DEAD[id] };
-  const b = BAND[r.tier];
+  const rank = tierRank(r.tier);
+  if (rank < 0) return { ...DEAD[id] };
+  const b = BAND[rank];
   const [spd, dartSpd, amp, drain, per] = CAL[id] ?? [b.spd, b.dart, b.amp, b.drain, b.per];
   return {
     mainPattern: r.pat[0],
     secondaryPattern: r.pat[1],
     patternPeriod: per,
     patternAmplitude: amp,
-    ...(r.tier >= T_LEGEND ? { lastStand: LAST_STAND } : {}),
+    ...(rank >= T_LEGEND ? { lastStand: r.tier === T_DIVINE ? LAST_STAND_DIVINE : LAST_STAND } : {}),
     spd,
     sharp: b.sharp,
     turn: 10,
@@ -329,8 +370,9 @@ function styleOf(id: string, r: Raw): ReelStyle {
 export const RULE: ReadonlyArray<FishRule | null> = FISH.map((f, sp) => {
   const r = RAW[f.id];
   if (!r) return null;
+  const zone = r.zone ?? 'pier';
   return {
-    sp, id: f.id, tier: r.tier, zone: r.zone ?? 'pier', bite: r.bite, rain: r.rain, val: r.val, note: r.note,
+    sp, id: f.id, tier: r.tier, zone, zones: r.also && r.also !== zone ? [zone, r.also] : [zone], bite: r.bite, rain: r.rain, val: r.val, note: r.note,
     style: styleOf(f.id, r), xpDifficulty: XP_DIFFICULTY[f.id] ?? 0, ...(r.xpBase ? { xpBase: r.xpBase } : {}),
   };
 });
@@ -342,11 +384,11 @@ function spOf(id: string): number {
 }
 
 const ORDER = Object.keys(RAW);
-/** Все виды коллекции — по порядку журнала: по категориям, внутри — пристань, потом баркас, как в таблице */
-export const COLLECTION: readonly number[] = RULE.filter((r): r is FishRule => r !== null && r.tier <= T_MYTH)
-  .sort((a, b) => a.tier - b.tier || ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
+/** Все виды коллекции — по порядку журнала: по категориям (божественная — последней), внутри — пристань, потом баркас, как в таблице */
+export const COLLECTION: readonly number[] = RULE.filter((r): r is FishRule => r !== null && isFishTier(r.tier))
+  .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
   .map((r) => r.sp);
-/** Сколько видов в коллекции (51): число не зашито — растёт с таблицей */
+/** Сколько видов в коллекции (52): число не зашито — растёт с таблицей */
 export const COLLECTION_SIZE = COLLECTION.length;
 /** Хлам и сундук */
 export const SP_BOOT = spOf('boot');
@@ -359,39 +401,49 @@ export function ruleOf(sp: number): FishRule | null {
   return RULE[sp] ?? null;
 }
 
-/** Виды коллекции места: пристань или баркас */
+/** Виды коллекции места: пристань или баркас (гренландская акула и кальмар — в обоих) */
 export function zoneSpecies(zone: FishZone): number[] {
-  return COLLECTION.filter((sp) => RULE[sp]!.zone === zone);
+  return COLLECTION.filter((sp) => RULE[sp]!.zones.includes(zone));
 }
 
 function factor(value: number | undefined, max: number): number {
   return value !== undefined && Number.isFinite(value) ? Math.min(max, Math.max(1, value)) : 1;
 }
 
+/** Зона от уровня и удочки — не больше этого: 10-й уровень (×1,25) × легендарная удочка (×1,4) */
+export const ZONE_SCALE_MAX = 1.25 * 1.4;
+
 /**
- * Манера на шкале с бонусами заброса: зона — от уровня и удочки; рывки и резкость — мягче от блесны (calm), злее в море
- * (sea); сопротивление — злее в море (seaDrain). Таблицу вида и снимок заброса не меняет.
+ * Манера на шкале с бонусами заброса: зона — от уровня и удочки (водка — вдвое меньше); рывки и резкость — мягче от блесны
+ * (calm), злее в море (sea); скорость рывков — ×1,2 с водкой; сопротивление — злее в море (seaDrain). Божественную море
+ * не злит: царь морей везде одинаков. Таблицу вида и снимок заброса не меняет.
  */
 export function reelStyleFor(sp: number, mods?: Readonly<FishCastMods>): ReelStyle {
   const r = ruleOf(sp);
   if (!r) throw new RangeError(`fishrules: unknown reel species ${sp}`);
-  const calm = mods?.calm !== undefined && Number.isFinite(mods.calm) ? Math.min(0.1, Math.max(0, mods.calm)) : 0;
-  const sea = r.tier <= T_MYTH ? factor(mods?.sea, SEA_FIGHT) : 1;
-  const seaDrain = r.tier <= T_MYTH ? factor(mods?.seaDrain, SEA_DRAIN) : 1;
+  const fish = isFishTier(r.tier);
+  const calm = mods?.calm !== undefined && Number.isFinite(mods.calm) ? Math.min(LURE_MAX.calm, Math.max(0, mods.calm)) : 0;
+  // царь морей везде одинаково зол: море не злит его сильнее (иначе с баркаса его почти не вытащить)
+  const wild = fish && r.tier !== T_DIVINE;
+  const sea = wild ? factor(mods?.sea, SEA_FIGHT) : 1;
+  const seaDrain = wild ? factor(mods?.seaDrain, SEA_DRAIN) : 1;
+  // водка: зона ×0,5 (не меньше), рывки ×1,2 (не больше) — только у рыбы
+  const cut = fish && mods?.zoneMul !== undefined && Number.isFinite(mods.zoneMul) ? Math.min(1, Math.max(0.5, mods.zoneMul)) : 1;
+  const fast = fish ? factor(mods?.jerkMul, 1.2) : 1;
   const jerk = (1 - calm) * sea;
   return {
     ...r.style,
-    zone: r.style.zone * factor(mods?.zoneScale, 1.625),
-    dartSpd: r.style.dartSpd * jerk,
+    zone: r.style.zone * factor(mods?.zoneScale, ZONE_SCALE_MAX) * cut,
+    dartSpd: r.style.dartSpd * jerk * fast,
     sharp: r.style.sharp * jerk,
     drain: r.style.drain * seaDrain,
   };
 }
 
-/** Вид — из коллекции (одна из 51 рыбы) */
+/** Вид — из коллекции (одна из 52 рыб: обычные … мифические и божественная) */
 export function isCollected(sp: number): boolean {
   const r = RULE[sp];
-  return !!r && r.tier <= T_MYTH;
+  return !!r && isFishTier(r.tier);
 }
 
 // ------------------------------------------------------------ улов
@@ -423,26 +475,37 @@ export function rollWeight(sp: number, rand: () => number): number {
   return Math.min(f.g[1], Math.max(f.g[0], g));
 }
 
+/** Погода для шансов: 0 — ясно, 1 — дождь, 2 — сезон рыбалки (особый дождь: виды дождя клюют, как в дождь) */
+export type FishWeather = 0 | 1 | 2;
+
+/** Погода по флагам: сезон — сам по себе дождь */
+export function fishWeather(rain: boolean, season = false): FishWeather {
+  return season ? 2 : rain ? 1 : 0;
+}
+
+/** Пул места и погоды: виды, их ранги и веса, сумма весов по рангам (0 — обычные … 5 — божественная) */
 interface Pool {
   sps: number[];
-  /** Базовые веса (в дождь легенды и мифик события ×1,5) */
+  rank: number[];
   w: number[];
-  total: number;
-  commonTotal: number;
+  rankW: number[];
 }
 
 function makePool(zone: FishZone, rain: boolean): Pool {
   const sps: number[] = [];
+  const rank: number[] = [];
   const w: number[] = [];
+  const rankW = [0, 0, 0, 0, 0, 0];
   for (const sp of COLLECTION) {
     const r = RULE[sp]!;
-    if (r.zone !== zone || (r.rain && !rain)) continue;
+    if (!r.zones.includes(zone) || (r.rain && !rain)) continue;
+    const k = tierRank(r.tier);
     sps.push(sp);
-    w.push(r.bite * (r.rain && r.tier >= T_LEGEND ? RAIN_TOP_MUL : 1));
+    rank.push(k);
+    w.push(r.bite);
+    rankW[k] += r.bite;
   }
-  const total = w.reduce((a, b) => a + b, 0);
-  const commonTotal = sps.reduce((n, sp, i) => n + (RULE[sp]!.tier === T_COMMON ? w[i] : 0), 0);
-  return { sps, w, total, commonTotal };
+  return { sps, rank, w, rankW };
 }
 
 const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
@@ -450,47 +513,90 @@ const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
   barkas: [makePool('barkas', false), makePool('barkas', true)],
 };
 
-function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {
-  return POOLS[mods?.zone === 'barkas' ? 'barkas' : 'pier'][rain ? 1 : 0];
+/**
+ * База категорий места (ясно, без бонусов), доли поклёвок рыбы по рангам 0…5: обычные … мифические — по весам видов
+ * ясной погоды, божественная — мифические / DIVINE_RATIO (сверх единицы: её доля в итоге берётся из обычных).
+ */
+function makeBase(zone: FishZone): readonly number[] {
+  const p = POOLS[zone][0];
+  const total = p.rankW.slice(0, 5).reduce((a, b) => a + b, 0);
+  const out = p.rankW.map((w) => (total > 0 ? w / total : 0));
+  out[5] = out[4] / DIVINE_RATIO;
+  return out;
 }
 
-/** Множитель шанса редких и выше: уровень × удочка × напиток (снимок заброса) */
+const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas') };
+
+function placeOf(mods?: Readonly<FishCastMods>): FishZone {
+  return mods?.zone === 'barkas' ? 'barkas' : 'pier';
+}
+
+function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {
+  return POOLS[placeOf(mods)][rain ? 1 : 0];
+}
+
+/** Множитель шанса редких и выше (и божественной): уровень × удочка × напиток (снимок заброса) */
 function rareMul(mods?: Readonly<FishCastMods>): number {
   return mods?.rareMultiplier !== undefined && Number.isFinite(mods.rareMultiplier) ? Math.min(4, Math.max(1, mods.rareMultiplier)) : 1;
 }
 
-/** Ещё множитель эпических и выше: блесна */
+/** Ещё множитель эпических и выше (и божественной): блесна */
 function epicMul(mods?: Readonly<FishCastMods>): number {
-  return mods?.epicMultiplier !== undefined && Number.isFinite(mods.epicMultiplier) ? Math.min(1.1, Math.max(1, mods.epicMultiplier)) : 1;
+  return mods?.epicMultiplier !== undefined && Number.isFinite(mods.epicMultiplier) ? Math.min(LURE_MAX.epic, Math.max(1, mods.epicMultiplier)) : 1;
+}
+
+/** Ещё множитель эпических, легендарных и мифических: водка (×2) */
+function topMul(mods?: Readonly<FishCastMods>): number {
+  return mods?.topMultiplier !== undefined && Number.isFinite(mods.topMultiplier) ? Math.min(2, Math.max(1, mods.topMultiplier)) : 1;
+}
+
+/** Погода по рангу категории: дождь — редкие…мифические ×1,5; сезон — редкие ×1,5, эпик…божественная ×3 */
+export function weatherMul(rank: number, weather: FishWeather): number {
+  if (weather === 0 || rank < 1) return 1;
+  if (weather === 2 && rank >= 2) return SEASON_MUL;
+  return rank <= 4 ? RAIN_MUL : 1;
+}
+
+/** Множитель категории (ранг 1…5) от бонусов: всё, кроме погоды */
+export function bonusMul(rank: number, mods?: Readonly<FishCastMods>): number {
+  if (rank < 1) return 1;
+  let k = rareMul(mods);
+  if (rank >= 2) k *= epicMul(mods);
+  if (rank >= 2 && rank <= 4) k *= topMul(mods);
+  return k;
 }
 
 /**
- * Веса пула с бонусами: редкие и выше ×(уровень, удочка, напиток), эпические и выше ещё ×блесна; обычным — остаток до
- * прежней суммы. Остатка не хватило — обычных нет, редкие и выше делят всё в прежних пропорциях (явный потолок).
+ * Доли поклёвок рыбы по рангам 0…5 (сумма 1): база места × погода × бонусы у редких и выше, обычным — остаток.
+ * Остатка не хватило — обычных нет, остальные делят всё в прежних пропорциях (явный потолок).
  */
-function weighted(p: Pool, mods?: Readonly<FishCastMods>): number[] {
-  const R = rareMul(mods), E = epicMul(mods);
-  const out = p.w.map((w, i) => {
-    const t = RULE[p.sps[i]]!.tier;
-    return t >= T_RARE ? w * R * (t >= T_EPIC ? E : 1) : w;
-  });
-  const rare = out.reduce((n, w, i) => n + (RULE[p.sps[i]]!.tier >= T_RARE ? w : 0), 0);
-  const common = p.commonTotal > 0 ? Math.max(0, (p.total - rare) / p.commonTotal) : 0;
-  const scale = rare > p.total ? p.total / rare : 1;
-  return out.map((w, i) => (RULE[p.sps[i]]!.tier >= T_RARE ? w * scale : w * common));
+function rankShares(weather: FishWeather, mods?: Readonly<FishCastMods>): number[] {
+  const base = BASE[placeOf(mods)];
+  const out = base.map((b, k) => (k === 0 ? 0 : b * weatherMul(k, weather) * bonusMul(k, mods)));
+  const top = out.reduce((a, b) => a + b, 0);
+  if (top > 1) return out.map((x) => x / top);
+  out[0] = 1 - top;
+  return out;
 }
 
-/** Кто клюёт: сундук (3 %), хлам (меньше с уровнем), иначе рыба своего места по частоте — в дождь вместе с дождевыми. */
-export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>): Hooked {
+/** Доля каждого вида пула среди поклёвок рыбы: доля категории делится по весам видов внутри неё */
+function speciesShares(p: Pool, weather: FishWeather, mods?: Readonly<FishCastMods>): number[] {
+  const shares = rankShares(weather, mods);
+  return p.w.map((w, i) => (p.rankW[p.rank[i]] > 0 ? shares[p.rank[i]] * w / p.rankW[p.rank[i]] : 0));
+}
+
+/** Кто клюёт: сундук (3 %), хлам (меньше с уровнем), иначе рыба своего места по категориям — в дождь и сезон вместе с дождевыми. */
+export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>, season = false): Hooked {
   const r = rand() * 10_000;
   if (r < CHEST_PER_10K) return { sp: SP_CHEST, g: rollWeight(SP_CHEST, rand), coins: rollChest(rand) };
   if (r < CHEST_PER_10K + junkPer10k(mods?.level)) {
     const sp = rand() < 0.7 ? SP_BOOT : SP_BOTTLE;
     return { sp, g: rollWeight(sp, rand), coins: 0 };
   }
-  const pool = poolOf(rain, mods);
-  const w = weighted(pool, mods);
-  let x = rand() * pool.total;
+  const weather = fishWeather(rain, season);
+  const pool = poolOf(weather > 0, mods);
+  const w = speciesShares(pool, weather, mods);
+  let x = rand();
   let sp = pool.sps[pool.sps.length - 1];
   for (let i = 0; i < pool.sps.length; i++) {
     x -= w[i];
@@ -502,36 +608,47 @@ export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<Fi
   return { sp, g: rollWeight(sp, rand), coins: 0 };
 }
 
-/** Насколько на деле выросли шансы редких у пристани (потолок — когда обычных не осталось). Для проверок. */
-export function effectiveRareMultiplier(rain: boolean, mods?: Readonly<FishCastMods>): number {
-  const p = poolOf(rain, mods);
-  const rare = p.total - p.commonTotal;
-  return rare > 0 ? Math.min(rareMul(mods), p.total / rare) : 1;
+/** Насколько на деле выросли шансы редких (с потолком — когда обычных не осталось) против той же погоды без бонусов. Для проверок. */
+export function effectiveRareMultiplier(rain: boolean, mods?: Readonly<FishCastMods>, season = false): number {
+  const weather = fishWeather(rain, season);
+  const plain = rankShares(weather, mods ? { ...mods, rareMultiplier: 1, epicMultiplier: 1, topMultiplier: 1 } : undefined);
+  const now = rankShares(weather, mods);
+  return plain[1] > 0 ? now[1] / plain[1] : 1;
 }
 
 /** Доля поклёвок вида среди рыб своего места (для журнала и проверок); вид другого места — 0 */
-export function biteShare(sp: number, rain: boolean, mods?: Readonly<FishCastMods>): number {
-  const p = poolOf(rain, mods);
+export function biteShare(sp: number, rain: boolean, mods?: Readonly<FishCastMods>, season = false): number {
+  const weather = fishWeather(rain, season);
+  const p = poolOf(weather > 0, mods);
   const i = p.sps.indexOf(sp);
   if (i < 0) return 0;
-  return weighted(p, mods)[i] / p.total;
+  return speciesShares(p, weather, mods)[i];
 }
 
-/** «Шансы сейчас»: доли поклёвок по категориям 0…4 среди всех поклёвок, плюс хлам [5] и сундук [6]; сумма 1. */
-export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>): number[] {
-  const p = poolOf(rain, mods);
-  const w = weighted(p, mods);
+/**
+ * «Шансы сейчас»: доли всех поклёвок по номерам категорий — обычные … мифические [0…4], хлам [5], сундук [6],
+ * божественная [7]; сумма 1. Те же формулы, что у броска сервера (rollCatch2).
+ */
+export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>, season = false): number[] {
+  const shares = rankShares(fishWeather(rain, season), mods);
   const junk = junkPer10k(mods?.level);
   const fish = 1 - (CHEST_PER_10K + junk) / 10_000;
-  const out = [0, 0, 0, 0, 0, junk / 10_000, CHEST_PER_10K / 10_000];
-  p.sps.forEach((sp, i) => { out[RULE[sp]!.tier] += fish * w[i] / p.total; });
-  return out;
+  return [...shares.slice(0, 5).map((x) => fish * x), junk / 10_000, CHEST_PER_10K / 10_000, fish * shares[5]];
+}
+
+/** Из чего сложен шанс категории (для «Шансов сейчас»): база места, погода, бонусы и итог — доли всех поклёвок */
+export function tierOddsParts(rank: number, rain: boolean, mods?: Readonly<FishCastMods>, season = false): { base: number; weather: number; bonus: number; now: number } {
+  const weather = fishWeather(rain, season);
+  const junk = junkPer10k(mods?.level);
+  const fish = 1 - (CHEST_PER_10K + junk) / 10_000;
+  const base = BASE[placeOf(mods)][rank] ?? 0;
+  return { base: fish * base, weather: weatherMul(rank, weather), bonus: bonusMul(rank, mods), now: fish * (rankShares(weather, mods)[rank] ?? 0) };
 }
 
 /** Цена без напитка и места: обычные — старая целая цена +75 %, остальные откалиброваны; дождевые ×1,5. */
 export function basePrice(sp: number, g: number): number {
   const r = RULE[sp];
-  if (!r || r.tier > T_MYTH) return 0;
+  if (!r || !isFishTier(r.tier)) return 0;
   const f = FISH[sp];
   const k = f.g[1] > f.g[0] ? Math.min(1, Math.max(0, (g - f.g[0]) / (f.g[1] - f.g[0]))) : 0;
   const v = (r.val[0] + (r.val[1] - r.val[0]) * k) * COIN_PER_POINT;

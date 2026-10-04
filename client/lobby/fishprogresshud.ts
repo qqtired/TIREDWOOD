@@ -1,5 +1,5 @@
 import { activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
-import { BEER, lureOf } from '../../shared/fishshop.ts';
+import { BEER, lureOf, type ShopDrink } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME } from '../../shared/fishrules.ts';
 import type { FishZone } from '../../shared/fishplaces.ts';
 import { setCoinText } from '../ui/coin.ts';
@@ -7,8 +7,14 @@ import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { mul, num, pct } from './fishfmt.ts';
 
-/** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки */
-const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱' };
+/** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки, водка */
+const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱', 4: '🥃' };
+
+/** Что даёт напиток — строка бейджа. У водки свои эффекты (доход и редкие она не меняет): крупная чаще, держать труднее. */
+function drinkEffect(d: ShopDrink): string {
+  if (!d.top) return `доход ${pct(d.income)} · редкие ${mul(d.rare)}`;
+  return `эпик, лег. и миф. ${mul(d.top)} · опыт ${mul(d.topXp ?? 1)} · зона ${pct(d.zone ?? 1)} · рывки ${pct(d.jerk ?? 1)}`;
+}
 
 /**
  * Плашка события или бонуса — один вид на всё (fish2.css .f2-plate): значок, что это (крупно), что даёт (мелко),
@@ -152,7 +158,7 @@ export class FishProgressHud {
     const now = this.clock.now();
     const p = this.progress;
     const drink = p ? activeDrink(p, now) : 0;
-    // Напиток и срок по номеру: 1 — пиво, 2 — эль, 3 — пиво владыки; без напитка значок скрыт (текст — от пива)
+    // Напиток и срок по номеру: 1 — пиво, 2 — эль, 3 — пиво владыки, 4 — водка; без напитка значок скрыт (текст — от пива)
     const d = drinkOf(drink) ?? BEER;
     const until = p ? drinkUntil(p, drink) : 0;
     const active = drink !== 0;
@@ -160,8 +166,10 @@ export class FishProgressHud {
     this.badge.classList.toggle('ending', active && until - now <= 60_000);
     setText(this.icon, DRINK_ICONS[drink] ?? '🍺');
     setText(this.name, d.name);
-    setText(this.effect, `доход ${pct(d.income)} · редкие ${mul(d.rare)}`);
+    setText(this.effect, drinkEffect(d));
     setText(this.time, fishTimeLeft(until, now));
-    this.badge.setAttribute('aria-label', `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
+    this.badge.setAttribute('aria-label', d.top
+      ? `${d.name}: ${this.time.textContent}. Эпические, легендарные и мифические ${mul(d.top)}, опыт за них ${mul(d.topXp ?? 1)}, зона ${pct(d.zone ?? 1)}, рывки ${pct(d.jerk ?? 1)}. Только рыбалка.`
+      : `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
   }
 }

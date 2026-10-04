@@ -4,8 +4,11 @@
 import { TICK_RATE } from './constants.ts';
 import { hash32, hashFloat, makeRng } from './math.ts';
 
-/** Откуда дождь: 0 — пришёл сам, 1 — бубен Семёна (платный — всегда с грозой), 2 — DEV_WEATHER=storm (гроза почти сразу) */
-export type RainKind = 0 | 1 | 2;
+/**
+ * Откуда дождь: 0 — пришёл сам, 1 — бубен Семёна (платный — всегда с грозой), 2 — DEV_WEATHER=storm (гроза почти сразу),
+ * 3 — сезон рыбалки (особый дождь на 10 минут: быстро набирает силу, гроза — как у обычного, в конце — радуга)
+ */
+export type RainKind = 0 | 1 | 2 | 3;
 
 /** Событие по сети: el — сколько тиков оно уже идёт, dur — длина в тиках (0 — без конца), seed, k — откуда */
 export interface RainWire {
@@ -23,7 +26,7 @@ export interface RainEvent {
 }
 
 export function rainEvent(w: Pick<RainWire, 'dur' | 'seed' | 'k'>): RainEvent {
-  return { dur: Math.max(0, w.dur) / TICK_RATE, seed: w.seed >>> 0, k: w.k === 1 || w.k === 2 ? w.k : 0 };
+  return { dur: Math.max(0, w.dur) / TICK_RATE, seed: w.seed >>> 0, k: w.k === 1 || w.k === 2 || w.k === 3 ? w.k : 0 };
 }
 
 /** Сид из строки (id шторма): FNV-1a */
@@ -67,9 +70,11 @@ export function rainPlan(ev: RainEvent): RainPlan {
     return { dur: D, gather: 4, drizzle: 10, build: 16, base, storm: { from: 20, to, level: 0.95 + 0.05 * r5 }, fade: Math.min(to + 8, D - 16), last: D - 12, rainbow: true };
   }
   const drum = ev.k === 1;
-  const gather = drum ? 10 : clamp(0.055 * D, 8, 24);
-  const drizzle = gather + (drum ? 14 : clamp(0.11 * D, 10, 45));
-  const build = drizzle + (drum ? 14 : clamp(0.09 * D, 8, 35));
+  // бубен и сезон рыбалки набирают силу быстро — событие короткое, ждать его некогда
+  const quick = drum || ev.k === 3;
+  const gather = quick ? 10 : clamp(0.055 * D, 8, 24);
+  const drizzle = gather + (quick ? 14 : clamp(0.11 * D, 10, 45));
+  const build = drizzle + (quick ? 14 : clamp(0.09 * D, 8, 35));
   let storm: RainPlan['storm'] = null;
   // гроза — примерно в половине обычных дождей; бубен платный — у него всегда, и пораньше
   if (drum || r2 < 0.5) {
@@ -79,7 +84,7 @@ export function rainPlan(ev: RainEvent): RainPlan {
   }
   const last = D - clamp(0.07 * D, 6, 30);
   const fade = Math.min(last - 4, Math.max(storm ? storm.to + 12 : 0, D * 0.74));
-  return { dur: D, gather, drizzle, build, base, storm, fade, last, rainbow: ev.k === 0 && r6 < 0.5 };
+  return { dur: D, gather, drizzle, build, base, storm, fade, last, rainbow: (ev.k === 0 && r6 < 0.5) || ev.k === 3 };
 }
 
 /** Насколько сейчас гроза (0…1): нарастает 14 с до пика, спадает 16 с после */

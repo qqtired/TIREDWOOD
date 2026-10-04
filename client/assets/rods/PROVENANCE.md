@@ -9,3 +9,5 @@ All three prompts requested one complete fishing rod, diagonal lower-left to upp
 - `master.png`: premium walnut/graphite, brass/gold fittings, green silk wraps, elegant precision reel and dark leather grip. Source `exec-e99f676e-8c2b-40e2-862a-b5dc60c2446a.png`.
 
 The generated images were visually inspected for entire-rod framing, distinct equipment tiers and consistent illustration style; alpha is preserved in the project copies.
+
+- `legendary.png` (04.10, за 15-е задание): deep midnight-blue lacquered blank, gold-leaf wraps, brass-and-gold guides, an engraved gold-and-silver big-game reel, leather/cork grip and a pale whalebone-coloured butt cap. Generated the same way (Codex CLI v0.153.4, built-in `image_gen`, transparent background, one call, no manual edits); prompt and checksums — `../fish/FISHA-PROVENANCE.md`.

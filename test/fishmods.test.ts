@@ -68,7 +68,7 @@ test('fisheco: green zone is one per rarity tier and within 1.5 points of the re
     const s = rules.RULE[sp]!.style;
     assert.ok(s.mainPattern && s.secondaryPattern, FISH[sp].id);
     assert.ok(s.spd > 0 && s.dartSpd > 0, FISH[sp].id);
-    assert.equal(s.zone, rules.BAND[rules.RULE[sp]!.tier].zone * rules.ZONE_BASE, FISH[sp].id);
+    assert.equal(s.zone, rules.BAND[rules.tierRank(rules.RULE[sp]!.tier)].zone * rules.ZONE_BASE, FISH[sp].id);
     const old = before[FISH[sp].id];
     if (old) assert.ok(Math.abs(s.zone - old[2] * rules.ZONE_BASE) <= 1.5, `${FISH[sp].id}: зона почти как в выпуске, −10 %`);
   }

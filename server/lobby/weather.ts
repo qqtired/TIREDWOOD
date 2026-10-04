@@ -72,6 +72,32 @@ export class Weather {
     return true;
   }
 
+  /**
+   * Сезон рыбалки (server/lobby/fishseason.ts) — сам по себе дождь: дождь идёт хотя бы до untilMs. Ясно — начинается
+   * особый дождь (k = 3) ровно до конца сезона; идёт дождь, который кончится раньше, — продлевается до него; бесконечный
+   * дождь разработки (DEV_WEATHER=rain) не трогаем. true — погода поменялась (пора всем сказать).
+   */
+  holdRain(tick: number, untilMs: number): boolean {
+    const left = untilMs - this.now();
+    if (left <= 0) return false;
+    const ticks = Math.ceil(left * TICK_RATE / 1000);
+    if (!this.rain) {
+      this.rain = true;
+      this.until = tick + ticks;
+      this.untilMs = untilMs;
+      this.begin(ticks, 3);
+      // как бубен: в режимах разработки «всегда ясно/дождь» особый дождь всё равно кончается вовремя
+      this.forced = true;
+      return true;
+    }
+    const e = this.ev;
+    if (this.untilMs >= untilMs || !e || e.dur === 0 || (this.mode === 'rain' && !this.forced)) return false;
+    this.until = Math.max(this.until, tick + ticks);
+    this.untilMs = untilMs;
+    e.dur = Math.max(e.dur, Math.ceil((untilMs - e.atMs) * TICK_RATE / 1000));
+    return true;
+  }
+
   private setRain(rain: boolean, tick: number, kind: RainKind = this.mode === 'storm' ? 2 : 0): void {
     this.rain = rain;
     if (!rain) this.forced = false;

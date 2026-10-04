@@ -219,6 +219,9 @@
 .fe-odds-legend .fe-odds-misc { color: #b9c1ad; }
 .fe-odds-legend .fe-odds-misc::before { display: none; }
 .fe-odds-why { margin-top: 4px; font-size: 11px; color: #cfc59d; line-height: 1.35; }
+/* сезон рыбалки: рамка панели шансов — цвета божественной категории */
+.fe-odds.season { border-color: rgba(24, 183, 166, .75); box-shadow: 0 0 0 1px rgba(24, 183, 166, .35); }
+.fe-odds.season .fe-odds-head b { color: #9fe8dc; }
 .touch .fe-odds-why { display: none; }
 .touch .fe-odds.open .fe-odds-why { display: block; }
 

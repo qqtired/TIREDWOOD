@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, COIN_PER_POINT, FISH_OTHER_PRICE_SCALE, RULE, T_COMMON, T_LEGEND, T_MYTH,
+  COLLECTION, COLLECTION_SIZE, COIN_PER_POINT, FISH_OTHER_PRICE_SCALE, RULE, T_COMMON, T_DIVINE, T_LEGEND, T_MYTH,
   biteShare, collectionCount, fishPrice2, isCollected, rollCatch2,
 } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
@@ -11,18 +11,21 @@ import { TYPICAL, EXPERT, fishIncome, reelStats } from './fishbot.ts';
 
 const sp = (id: string) => FISH.findIndex(f => f.id === id);
 
-test('appended real species expand completion (32 at the pier + 19 on the barkas) without shifting old species IDs', () => {
-  assert.equal(COLLECTION_SIZE, 51);
-  assert.equal(COLLECTION.length, 51);
+test('appended real species expand completion (32 at the pier + 19 on the barkas + the divine kalmar everywhere) without shifting old species IDs', () => {
+  assert.equal(COLLECTION_SIZE, 52);
+  assert.equal(COLLECTION.length, 52);
   assert.equal(sp('whiteshark'), 32);
   assert.equal(sp('chest'), 33);
   assert.equal(sp('bluemarlin'), 34);
   assert.equal(sp('greenlandshark'), 35);
   assert.equal(sp('sprat'), 36, 'виды баркаса — строго после прежних');
   assert.equal(sp('hammerhead'), 54);
+  assert.equal(sp('kalmar'), 55, '04.10: кальмар — в самый конец, номера прежних не сдвинуты');
+  assert.equal(RULE[55]!.tier, T_DIVINE);
+  assert.deepEqual(RULE[55]!.zones, ['pier', 'barkas'], 'божественный — и у пристани, и с баркаса');
   assert.equal(RULE[34]!.tier, T_LEGEND);
   assert.equal(RULE[35]!.tier, T_MYTH);
-  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier');
+  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier' && RULE[s]!.tier !== T_DIVINE);
   assert.equal(pier.length, 32);
   assert.ok(pier.every(s => s < 36));
   const oldAlbum = Object.fromEntries(pier.map(s => [FISH[s].id, [FISH[s].g[0], 1] as const]));
@@ -30,7 +33,7 @@ test('appended real species expand completion (32 at the pier + 19 on the barkas
   assert.ok(collectionCount(oldAlbum) < COLLECTION_SIZE, 'для полной — нужен баркас');
 });
 
-test('unique event-only pools: pier keeps all five tiers with picarel; barkas adds its own four', () => {
+test('unique event-only pools: pier keeps all five tiers with picarel; barkas adds its own four; greenland shark bites at both (04.10)', () => {
   const unique = COLLECTION.filter(s => RULE[s]!.rain);
   const pier = unique.filter(s => RULE[s]!.zone === 'pier');
   const sea = unique.filter(s => RULE[s]!.zone === 'barkas');
@@ -44,18 +47,20 @@ test('unique event-only pools: pier keeps all five tiers with picarel; barkas ad
     const mods = fishCastMods({ ...emptyFishProgress(), xp: 15_000, beerUntil: 1_000_000 }, 0, zone);
     const rng = makeRng(337);
     for (let i = 0; i < 50_000; i++) assert.ok(!RULE[rollCatch2(false, rng, mods).sp]!.rain);
+    assert.equal(biteShare(sp('greenlandshark'), true, mods) > 0, true, `${zone}: гренландская акула в дождь — и у пристани, и с баркаса`);
     for (const s of unique) {
       assert.equal(biteShare(s, false, mods), 0);
-      assert.equal(biteShare(s, true, mods) > 0, RULE[s]!.zone === zone, `${FISH[s].id}: только в своём месте`);
+      assert.equal(biteShare(s, true, mods) > 0, RULE[s]!.zones.includes(zone), `${FISH[s].id}: только в своём месте`);
       assert.ok(isCollected(s));
     }
   }
 });
 
-test('event myth is the rarest pier fish, harder than its legend, and still catchable', () => {
+test('event myth is the rarest pier fish (only the divine kalmar is rarer), harder than its legend, and still catchable', () => {
   const legend = sp('bluemarlin'), myth = sp('greenlandshark');
   assert.ok(legend >= 0 && myth >= 0, 'both species exist');
-  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier');
+  const pier = COLLECTION.filter(s => RULE[s]!.zone === 'pier' && RULE[s]!.tier !== T_DIVINE);
+  assert.ok(biteShare(sp('kalmar'), true) < biteShare(myth, true), 'реже мифика — только божественный кальмар');
   const eventRares = pier.filter(s => RULE[s]!.rain && RULE[s]!.tier >= 1 && RULE[s]!.tier <= 2);
   assert.ok(biteShare(myth, true) < biteShare(legend, true));
   for (const s of eventRares) assert.ok(biteShare(legend, true) < biteShare(s, true));

@@ -1024,6 +1024,7 @@ export class LobbyScene implements Scene {
         break;
       case 'fishSeason':
         this.fishJumps.setSeason(msg.on);
+        this.fish2.onSeason(msg.on, msg.endsAt);
         break;
       case 'fishHold':
         this.fishHolds.set(msg.id, msg.n, msg.sp, msg.g);

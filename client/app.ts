@@ -591,6 +591,8 @@ export class App {
     const season = m as unknown;
     if (isFishSeasonMsg(season)) {
       this.onFishSeason(season);
+      // и набережной: рыбы прыгают у мест рыбалки, «Шансы сейчас» считают сезон
+      this.lobby.onJson(m);
       return;
     }
     switch (m.t) {

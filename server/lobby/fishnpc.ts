@@ -1,8 +1,8 @@
 // Дед Семён у пристани и Саня на баркасе (fisheco): один разговор на двоих — задания, лавка (рюкзаки, блёсны, пиво, эль,
-// бубен дождя) и продажа улова из рюкзака. Сервер проверяет близость к тому, с кем говоришь, цену, уровень рыбалки и
+// водка, бубен дождя) и продажа улова из рюкзака. Сервер проверяет близость к тому, с кем говоришь, цену, уровень рыбалки и
 // готовность задания. Чужие действия (перевоз Сани — модуль баркаса) подключаются через register, не трогая этот файл.
 import { FISH_NPC_USE, FISH_NPCS, type FishNpcId } from '../../shared/fishplaces.ts';
-import { ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, questNeed } from '../../shared/fishprogress.ts';
+import { ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, VODKA_PRICE, questNeed } from '../../shared/fishprogress.ts';
 import { BAGS, LURES } from '../../shared/fishshop.ts';
 import { FISH_NPC_ACTIONS, type FishNpcAction, type ServerMsg } from '../../shared/messages.ts';
 import type { Profiles } from '../profiles.ts';
@@ -118,6 +118,12 @@ export class FishNpc {
           : r === 'lord' ? 'Пиво подводного владыки крепче — поверх него не наливаю' : `Эль стоит ${ALE_PRICE} жетонов`;
         break;
       }
+      case 'vodka': {
+        const r = this.profiles.buyFishVodka(prof);
+        message = r === 'ok' ? 'Водка рыбацкая действует 10 минут: зона вдвое меньше, рыба дёргает быстрее — зато эпик, легенды и мифик клюют вдвое чаще'
+          : r === 'active' ? 'Водка уже действует — дождись окончания' : `Водка стоит ${VODKA_PRICE} жетонов`;
+        break;
+      }
       case 'rain': {
         const state = this.host.rainState();
         if (state === 'busy') message = 'Сейчас идёт большое событие. Бубен дождя — после его окончания.';
@@ -125,7 +131,7 @@ export class FishNpc {
         else if (!this.profiles.spend(prof, RAIN_DRUM_PRICE)) message = `Бубен дождя стоит ${RAIN_DRUM_PRICE} жетонов`;
         else {
           this.host.startRain();
-          message = 'Пошёл дождь — клюют виды дождя, легенды и мифик чаще!';
+          message = 'Пошёл дождь — клюют виды дождя, редкие, эпик, легенды и мифик в полтора раза чаще!';
         }
         break;
       }

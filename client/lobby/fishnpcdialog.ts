@@ -7,11 +7,11 @@
 import { FISH } from '../../shared/fishing.ts';
 import type { FishNpcId } from '../../shared/fishplaces.ts';
 import {
-  ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, activeDrink, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, rodBonus, unlockedRod,
-  type FishProgress, type FishRod,
+  ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, RODS, ROD_MAX, VODKA_PRICE, activeDrink, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, rodBonus,
+  rodOdds, unlockedRod, type FishProgress, type FishRod,
 } from '../../shared/fishprogress.ts';
-import { ALE, BAGS, BEER, LURES, gearState, type GearState } from '../../shared/fishshop.ts';
-import { RAIN_TOP_MUL, fmtCatch } from '../../shared/fishrules.ts';
+import { ALE, BAGS, BEER, LURES, VODKA, gearState, type GearState } from '../../shared/fishshop.ts';
+import { RAIN_MUL, fmtCatch } from '../../shared/fishrules.ts';
 import type { ClientMsg, FishNpcAction, ServerMsg } from '../../shared/messages.ts';
 import type { MeState } from '../scene.ts';
 import { setCoinText } from '../ui/coin.ts';
@@ -26,9 +26,10 @@ const ROD_URLS = [null,
   new URL('../assets/rods/advanced.png', import.meta.url).href,
   new URL('../assets/rods/professional.png', import.meta.url).href,
   new URL('../assets/rods/master.png', import.meta.url).href,
+  new URL('../assets/rods/legendary.png', import.meta.url).href,
 ];
-const ROD_NAMES = ['Обычная', 'Продвинутая', 'Профессиональная', 'Мастерская'];
-const ROD_QUESTS = [0, 1, 5, 10];
+const ROD_NAMES = RODS.map((r) => r.name);
+const ROD_QUESTS = RODS.map((r) => r.quests);
 const NPC_TITLE: Record<FishNpcId, string> = { semyon: 'Дед Семён', sanya: 'Саня' };
 const NPC_EYEBROW: Record<FishNpcId, string> = { semyon: 'ПРИСТАНЬ · ЛАВКА И ЗАДАНИЯ', sanya: 'БАРКАС · ЛАВКА И ЗАДАНИЯ' };
 const NPC_INTRO: Record<FishNpcId, string> = {
@@ -83,6 +84,7 @@ export class FishNpcDialog {
   private readonly lures: Offer[] = [];
   private readonly beer: Offer;
   private readonly ale: Offer;
+  private readonly vodka: Offer;
   private readonly drum: Offer;
   // продажа
   private readonly sellHead: HTMLElement;
@@ -172,7 +174,7 @@ export class FishNpcDialog {
     rods.appendChild(el('h3', '', 'Удочки за задания'));
     rods.appendChild(el('p', 'fn-fine', 'В руках одна удочка — выбери любую заработанную.'));
     const grid = rods.appendChild(el('div', 'fn-rod-grid'));
-    for (let rod = 0; rod <= 3; rod++) {
+    for (let rod = 0; rod <= ROD_MAX; rod++) {
       const card = grid.appendChild(el('article', 'fn-rod'));
       const src = ROD_URLS[rod];
       if (src) {
@@ -184,7 +186,7 @@ export class FishNpcDialog {
       } else card.appendChild(el('div', 'fn-rod-base', '🎣')).setAttribute('aria-hidden', 'true');
       card.appendChild(el('h4', '', ROD_NAMES[rod]));
       const b = Math.round(rodBonus(rod as FishRod) * 100);
-      card.appendChild(el('span', 'fn-rod-bonus', rod ? `зона +${b}% · поклёвка быстрее на ${b}% · редкие ${mul(1 + 0.05 * rod)}` : 'Без бонуса'));
+      card.appendChild(el('span', 'fn-rod-bonus', rod ? `зона +${b}% · поклёвка быстрее на ${b}% · редкие ${mul(rodOdds(rod))}` : 'Без бонуса'));
       this.rodNotes.push(card.appendChild(el('span', 'fn-fine')));
       const button = card.appendChild(el('button', 'fn-action'));
       button.type = 'button';
@@ -211,13 +213,16 @@ export class FishNpcDialog {
       this.lures.push(o);
     }
     shop.appendChild(el('h3', '', 'Напитки и бубен'));
-    shop.appendChild(el('p', 'fn-fine', 'Напиток действует 10 минут, один за раз: эль сильнее и заменяет пиво. Бонус — только к рыбе.'));
+    shop.appendChild(el('p', 'fn-fine', 'Напиток действует 10 минут, один за раз: эль сильнее и заменяет пиво; водка с пивом не складывается — действует последнее выпитое. Бонус — только к рыбе.'));
     const more = shop.appendChild(el('div', 'fe-offers'));
     this.beer = this.offer(more, 'beer', BEER.name, `доход от рыбы ${pct(BEER.income)} · редкие и выше ${mul(BEER.rare)}`);
     this.beer.btn.addEventListener('click', () => this.request('beer'));
     this.ale = this.offer(more, 'ale', ALE.name, `доход от рыбы ${pct(ALE.income)} · редкие и выше ${mul(ALE.rare)}`);
     this.ale.btn.addEventListener('click', () => this.request('ale'));
-    this.drum = this.offer(more, 'drum', 'Бубен дождя', `сразу дождь для всех: виды дождя (${mul(1.5)} к цене), легенды и мифик ${mul(RAIN_TOP_MUL)}`);
+    this.vodka = this.offer(more, 'vodka', VODKA.name,
+      `эпик, легенды и мифик ${mul(VODKA.top ?? 1)} · опыт за них ${mul(VODKA.topXp ?? 1)} · зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}%`);
+    this.vodka.btn.addEventListener('click', () => this.request('vodka'));
+    this.drum = this.offer(more, 'drum', 'Бубен дождя', `сразу дождь для всех: виды дождя (${mul(1.5)} к цене), редкие, эпик, легенды и мифик ${mul(RAIN_MUL)}`);
     this.drum.btn.addEventListener('click', () => this.request('rain'));
 
     // --- Продать
@@ -272,7 +277,8 @@ export class FishNpcDialog {
 
   onState(msg: Extract<ServerMsg, { t: 'fishNpc' }>): void {
     const drank = (this.pending === 'beer' && msg.progress.beerUntil > this.drinkBefore && msg.progress.beerUntil > msg.now)
-      || (this.pending === 'ale' && msg.progress.aleUntil > this.drinkBefore && msg.progress.aleUntil > msg.now);
+      || (this.pending === 'ale' && msg.progress.aleUntil > this.drinkBefore && msg.progress.aleUntil > msg.now)
+      || (this.pending === 'vodka' && (msg.progress.vodkaUntil ?? 0) > this.drinkBefore && (msg.progress.vodkaUntil ?? 0) > msg.now);
     this.clearPending();
     this.progress = msg.progress;
     this.clock.sync(msg.now);
@@ -361,7 +367,7 @@ export class FishNpcDialog {
   private request(a: FishNpcAction, extra: { rod?: number; item?: string; n?: number } = {}): void {
     if (this.pending !== null) return;
     this.pending = a;
-    this.drinkBefore = a === 'ale' ? this.progress.aleUntil : this.progress.beerUntil;
+    this.drinkBefore = a === 'ale' ? this.progress.aleUntil : a === 'vodka' ? this.progress.vodkaUntil ?? 0 : this.progress.beerUntil;
     if (a !== 'open') this.status.textContent = this.npc === 'sanya' ? 'Саня считает…' : 'Семён считает…';
     this.pendingTimer = window.setTimeout(() => {
       this.clearPending();
@@ -422,7 +428,7 @@ export class FishNpcDialog {
     this.questProgress.max = need;
     this.questProgress.value = Math.min(need, p.questCaught);
     this.questProgress.setAttribute('aria-label', `Поймано ${p.questCaught} из ${need} рыб для задания`);
-    this.questNote.textContent = `${p.questCaught} / ${need} рыб · выполнено заданий: ${p.questsDone}. Сорванная рыба и сундуки не считаются. Удочки — за 1-е, 5-е и 10-е задание.`;
+    this.questNote.textContent = `${p.questCaught} / ${need} рыб · выполнено заданий: ${p.questsDone}. Сорванная рыба и сундуки не считаются. Удочки — за ${ROD_QUESTS.slice(1, -1).map((n) => `${n}-е`).join(', ')} и ${ROD_QUESTS[ROD_QUESTS.length - 1]}-е задание.`;
     setCoinText(this.claimBtn, `${ready ? 'Получить' : 'Награда'} · ${need * 5} 🪙`);
     this.claimBtn.disabled = busy || !ready;
     const unlocked = unlockedRod(p.questsDone);
@@ -459,16 +465,22 @@ export class FishNpcDialog {
     });
     const drink = activeDrink(p, now);
     const lordNote = `Действует пиво подводного владыки · ${fishTimeLeft(p.lordUntil ?? 0, now)} — поверх не наливают`;
+    const vodkaNote = 'Заменит водку — остаток водки пропадёт';
     this.beer.note.textContent = drink === 3 ? lordNote : drink === 1 ? `Действует · ${fishTimeLeft(p.beerUntil, now)}` : drink === 2 ? 'Эль крепче — пиво поверх не наливают'
-      : tokens < BEER_PRICE ? `Не хватает ${BEER_PRICE - tokens} 🪙` : 'Перед следующим забросом';
+      : tokens < BEER_PRICE ? `Не хватает ${BEER_PRICE - tokens} 🪙` : drink === 4 ? vodkaNote : 'Перед следующим забросом';
     setCoinText(this.beer.btn, `Выпить · ${BEER_PRICE} 🪙`);
-    this.beer.btn.disabled = busy || drink !== 0 || tokens < BEER_PRICE;
+    this.beer.btn.disabled = busy || (drink >= 1 && drink <= 3) || tokens < BEER_PRICE;
     this.beer.root.classList.toggle('owned', drink === 1);
     this.ale.note.textContent = drink === 3 ? lordNote : drink === 2 ? `Действует · ${fishTimeLeft(p.aleUntil, now)}` : drink === 1 ? 'Заменит пиво — остаток пива пропадёт'
-      : tokens < ALE_PRICE ? `Не хватает ${ALE_PRICE - tokens} 🪙` : 'Для опытных: редкие чаще, чем с пивом';
+      : tokens < ALE_PRICE ? `Не хватает ${ALE_PRICE - tokens} 🪙` : drink === 4 ? vodkaNote : 'Для опытных: редкие чаще, чем с пивом';
     setCoinText(this.ale.btn, `Выпить · ${ALE_PRICE} 🪙`);
-    this.ale.btn.disabled = busy || drink >= 2 || tokens < ALE_PRICE;
+    this.ale.btn.disabled = busy || drink === 2 || drink === 3 || tokens < ALE_PRICE;
     this.ale.root.classList.toggle('owned', drink === 2);
+    this.vodka.note.textContent = drink === 4 ? `Действует · ${fishTimeLeft(p.vodkaUntil ?? 0, now)}` : tokens < VODKA_PRICE ? `Не хватает ${VODKA_PRICE - tokens} 🪙`
+      : drink !== 0 ? 'Заменит напиток — действует последнее выпитое' : 'На риск: рыбу держать труднее, зато крупная клюёт вдвое чаще';
+    setCoinText(this.vodka.btn, `Выпить · ${VODKA_PRICE} 🪙`);
+    this.vodka.btn.disabled = busy || drink === 4 || tokens < VODKA_PRICE;
+    this.vodka.root.classList.toggle('owned', drink === 4);
     const eventActive = this.eventOn && (this.eventUntil === 0 || this.eventUntil > now);
     this.drum.note.textContent = eventActive ? `Дождь уже идёт${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, now)}` : ''}`
       : tokens < RAIN_DRUM_PRICE ? `Не хватает ${num(RAIN_DRUM_PRICE - tokens)} 🪙` : 'Начнётся сразу';
