@@ -28,13 +28,16 @@ test('saved fishing progress rejects invalid counters and unearned or fractional
   assert.equal(raw.rod, 3, 'normalization must not mutate a loaded save');
   assert.equal(normalizeFishProgress({ questsDone: 10, rod: 1.5 }).rod, 0);
   assert.equal(normalizeFishProgress({ questsDone: 10, rod: 1 }).rod, 1, 'earned lower rod is a valid selection');
+  assert.equal(normalizeFishProgress({ questsDone: 15, rod: 4 }).rod, 4, '04.10: легендарная — за 15-е задание');
+  assert.equal(normalizeFishProgress({ questsDone: 14, rod: 4 }).rod, 3, 'не заработанная легендарная — лучшая заработанная');
+  assert.equal(normalizeFishProgress({ questsDone: 99, rod: 5 }).rod, 0, 'удочки 5 нет');
   assert.deepEqual(normalizeFishProgress({ xp: NaN, questsDone: Infinity, questCaught: -2, beerUntil: '600000' }), emptyFishProgress());
   assert.equal(fishLevel(-1), 0);
   assert.equal(fishLevel(Infinity), 0);
 });
 
-test('each quest requires five more real fish; only quests one, five and ten unlock a rod', () => {
-  for (const [done, need, rod] of [[0, 5, 0], [1, 10, 1], [4, 25, 1], [5, 30, 2], [9, 50, 2], [10, 55, 3], [100, 505, 3]] as const) {
+test('each quest requires five more real fish; only quests one, five, ten and fifteen unlock a rod (04.10: legendary)', () => {
+  for (const [done, need, rod] of [[0, 5, 0], [1, 10, 1], [4, 25, 1], [5, 30, 2], [9, 50, 2], [10, 55, 3], [14, 75, 3], [15, 80, 4], [100, 505, 4]] as const) {
     assert.equal(questNeed(done), need);
     assert.equal(unlockedRod(done), rod);
     assert.equal(need * 5, (done + 1) * 25, 'NPC reward is exactly N*5; claims owned by server');
@@ -42,16 +45,19 @@ test('each quest requires five more real fish; only quests one, five and ten unl
   assert.equal(questNeed(-1), 5);
 });
 
-test('one selected rod grants its own 10/20/30 percent bonus without stacking', () => {
-  for (const [rod, bonus] of [[0, 0], [1, .1], [2, .2], [3, .3]] as const) {
+test('one selected rod grants its own 10/20/30/40 percent bonus without stacking', () => {
+  for (const [rod, bonus] of [[0, 0], [1, .1], [2, .2], [3, .3], [4, .4]] as const) {
     assert.equal(rodBonus(rod), bonus);
-    const mods = fishCastMods({ ...emptyFishProgress(), questsDone: 10, rod }, 1000);
+    const mods = fishCastMods({ ...emptyFishProgress(), questsDone: 15, rod }, 1000);
     assert.equal(mods.biteSpeed, 1 + bonus);
     assert.equal(mods.zoneScale, 1 + bonus);
+    // «40 и 1,2»: зона и скорость поклёвки +40 %, шанс редких и выше ×1,2 (по +5 % за ступень удочки)
+    assert.ok(Math.abs(mods.rareMultiplier - (1 + 0.05 * rod)) < 1e-12);
   }
-  const best = fishCastMods({ ...emptyFishProgress(), xp: 15_000, questsDone: 10, rod: 3 }, 1000);
-  assert.equal(best.zoneScale, 1.25 * 1.3);
-  assert.equal(best.biteSpeed, 1.3);
+  const best = fishCastMods({ ...emptyFishProgress(), xp: 15_000, questsDone: 15, rod: 4 }, 1000);
+  assert.equal(best.zoneScale, 1.25 * 1.4);
+  assert.equal(best.biteSpeed, 1.4);
+  assert.ok(Math.abs(best.rareMultiplier - 1.25 * 1.2) < 1e-12);
 });
 
 test('skill increases only reel zone 2.5 percent per level and rare weighting', () => {

@@ -15,12 +15,15 @@ export const RARITY_NAMES = ['обычная', 'необычная', 'редка
 export const RARITY_CSS = ['#8f9aa3', '#3fa463', '#2f86d8', '#9a4ee0', '#eb9a12', '#8a7766'] as const;
 /** Новый вид в альбоме — бонус, жетонов */
 export const NEW_BONUS = [5, 10, 20, 40, 80, 5] as const;
-/** Подсечь надо успеть за столько мс после поклёвки (плюс пинг рыбака): чем реже рыба, тем быстрее */
-export const HOOK_MS = [1000, 900, 800, 700, 650, 1000] as const;
+/**
+ * Подсечь надо успеть за столько мс после поклёвки (плюс пинг рыбака): чем реже рыба, тем быстрее. Старая рыбалка берёт
+ * номер по редкости (0–5), рыбалка 2.0 — по категории shared/fishrules.ts (сундук — 6, божественная — 7).
+ */
+export const HOOK_MS = [1000, 900, 800, 700, 650, 1000, 1000, 600] as const;
 /** С этой редкости улов объявляется в общем чате (хлам — никогда) */
 export const ANNOUNCE_FROM = R_RARE;
 
-export type FishShape = 'fish' | 'long' | 'flat' | 'ray' | 'shark' | 'boot' | 'bottle' | 'eel' | 'sword' | 'angler' | 'chest';
+export type FishShape = 'fish' | 'long' | 'flat' | 'ray' | 'shark' | 'boot' | 'bottle' | 'eel' | 'sword' | 'angler' | 'chest' | 'squid';
 
 export interface FishKind {
   /** Ключ в альбоме профиля: не менять */
@@ -95,11 +98,14 @@ export const FISH: readonly FishKind[] = [
   { id: 'sunfish', name: 'Рыба-луна', acc: 'рыбу-луну', rarity: R_LEGEND, g: [150_000, 1_500_000], price: [25, 60], w: 0, shape: 'fish', c: [0x7d8890, 0xd9dde0] },
   { id: 'halibut', name: 'Палтус', acc: 'палтуса', rarity: R_LEGEND, g: [10_000, 200_000], price: [25, 60], w: 0, shape: 'flat', c: [0x5a4a35, 0xf1ece0] },
   { id: 'mako', name: 'Акула-мако', acc: 'акулу-мако', rarity: R_LEGEND, g: [50_000, 500_000], price: [25, 60], w: 0, shape: 'shark', c: [0x2a4f86, 0xf2f3f5] },
-  { id: 'oarfish', name: 'Сельдяной король', acc: 'сельдяного короля', rarity: R_LEGEND, g: [30_000, 270_000], price: [25, 60], w: 0, shape: 'eel', c: [0xc9d0d6, 0xe8ecef] },
+  // 04.10: веса подняты (были 30–270 кг) — в среднем на ~18 % тяжелее большой белой акулы, чтобы хай-тир баркаса шёл в топ дня
+  { id: 'oarfish', name: 'Сельдяной король', acc: 'сельдяного короля', rarity: R_LEGEND, g: [360_000, 1_050_000], price: [25, 60], w: 0, shape: 'eel', c: [0xc9d0d6, 0xe8ecef] },
   { id: 'hairtail', name: 'Рыба-сабля', acc: 'рыбу-саблю', rarity: R_RARE, g: [400, 4000], price: [3, 8], w: 0, shape: 'eel', c: [0xaab4bd, 0xe8edf1] },
   { id: 'wahoo', name: 'Ваху', acc: 'ваху', rarity: R_EPIC, g: [8000, 60_000], price: [8, 20], w: 0, shape: 'fish', c: [0x1f5f7a, 0xdfe7ec] },
   { id: 'blueshark', name: 'Голубая акула', acc: 'голубую акулу', rarity: R_EPIC, g: [30_000, 200_000], price: [8, 20], w: 0, shape: 'shark', c: [0x2d58a8, 0xf0f2f6] },
   { id: 'hammerhead', name: 'Рыба-молот', acc: 'рыбу-молот', rarity: R_LEGEND, g: [40_000, 400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x6f7166, 0xeeeeea] },
+  // Божественный тир (shared/fishrules.ts T_DIVINE): царь морей — у пристани и с баркаса, в любую погоду. Только в конец.
+  { id: 'kalmar', name: 'Дальневосточный кальмар', acc: 'дальневосточного кальмара', rarity: R_LEGEND, g: [500_000, 2_500_000], price: [25, 60], w: 0, shape: 'squid', c: [0xb5523a, 0xf1d9c8] },
 ];
 
 /** Номер золотой рыбки: её не продают, а отпускают — за желание */

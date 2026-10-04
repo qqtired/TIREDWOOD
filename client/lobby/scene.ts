@@ -922,6 +922,9 @@ export class LobbyScene implements Scene {
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
         break;
+      case 'fishSeason':
+        this.fish2.onSeason(msg.on, msg.endsAt);
+        break;
       case 'tokens':
         this.fish2.refreshBalance();
         this.bjHud.setBalance(this.d.ui.me().tokens);

@@ -62,6 +62,8 @@ export class Fish2Hud {
   private rain = false;
   private quiet = false;
   private eventUntil = 0;
+  /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
+  private seasonEnds = 0;
 
   constructor(parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement) {
     this.ui = ui;
@@ -145,6 +147,16 @@ export class Fish2Hud {
     this.rain = rain;
     this.reel.setRain(rain);
     this.npc.setEvent(rain, this.eventUntil);
+  }
+
+  /** Сезон рыбалки (server/lobby/fishseason.ts): «Шансы сейчас» считают его сами — эпик и выше ×3 */
+  onSeason(on: boolean, endsAt: number): void {
+    this.seasonEnds = on ? endsAt : 0;
+  }
+
+  /** Идёт ли сезон рыбалки по часам сервера */
+  private get season(): boolean {
+    return this.seasonEnds > this.clock.now();
   }
 
   /** Global notice belongs to app.ts. Here only the local badge and shop state change. */
@@ -308,7 +320,7 @@ export class Fish2Hud {
     this.progress.setZone(zone);
     const odds = fishing && !this.reel.active && !this.card.shown;
     this.odds.root.hidden = !odds;
-    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain);
+    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain || this.season, this.season);
     this.rainBadge.classList.toggle('show', fishing && this.rain && !this.reel.active);
     if (this.rain) this.rainBadge.textContent = TOUCH
       ? `🎣 Событие ×1,5${this.eventUntil ? ` · ${fishTimeLeft(this.eventUntil, this.clock.now())}` : ''}`
@@ -359,7 +371,7 @@ export class Fish2Hud {
   }
 
   debug(): Record<string, unknown> {
-    return { on: FISH2.on, reel: this.reel.active, running: this.reel.running, p: this.reel.progress, card: this.card.shown, book: this.book.isOpen, npc: this.npc.isOpen, rain: this.rain, eventUntil: this.eventUntil, board: FISH_BOARD_AT, podium: this.top?.podium ?? [], progress: this.ui.me().fishing };
+    return { on: FISH2.on, reel: this.reel.active, running: this.reel.running, p: this.reel.progress, card: this.card.shown, book: this.book.isOpen, npc: this.npc.isOpen, rain: this.rain, season: this.season, seasonEnds: this.seasonEnds, eventUntil: this.eventUntil, board: FISH_BOARD_AT, podium: this.top?.podium ?? [], progress: this.ui.me().fishing };
   }
 
   private setBookBtn(): void {

@@ -1,16 +1,18 @@
-// Рыбалка 2.0, общие правила: 51 вид (32 у пристани, 19 на баркасе; 12 только в дождь), старые ключи альбома на месте;
+// Рыбалка 2.0, общие правила: 52 вида (32 у пристани, 19 на баркасе, 12 только в дождь; божественный кальмар — везде),
+// старые ключи альбома на месте;
 // вываживание — детерминизм, целые числа, 5 с в зоне до улова, зона и кнопка; ценнее — злее, уровень помогает; доход
 // обычного игрока по модели (test/fishbot.ts) — в коридоре вокруг одной константы; сундук 3 % и его полосы; дождь ×1,5.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import {
-  BOUNCE_FULL, REEL_BAR, REEL_FILL_TICKS, REEL_MAX_TICKS, REEL_P_MAX, REEL_P_START, heldAt, reelRun, reelStart, reelStep, type Reel, type ReelStyle,
+  BOUNCE_FULL, REEL_BAR, REEL_FILL_TICKS, REEL_MAX_TICKS, REEL_P_MAX, REEL_P_START, SLACK_TICKS, heldAt, reelPulling, reelRun, reelSlack, reelStart, reelStep,
+  type Reel, type ReelStyle,
 } from '../shared/fishreel.ts';
 import {
   BARKAS_INCOME, CHEST_BANDS, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_POINTS_PER_MIN, FISH_TARGET_PER_MIN,
-  JUNK_PER_10K, LEGACY_IDS, RAIN_DEN, RAIN_NUM, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, T_COMMON, T_EPIC, T_MYTH, T_RARE, biteShare,
-  collectionCount, fishPrice2, fmtKg, isCollected, mskDayNum, priceRange, reelStyleFor, rollCatch2, rollChest, rollWeight, zoneSpecies,
+  JUNK_PER_10K, LEGACY_IDS, RAIN_DEN, RAIN_NUM, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, T_COMMON, T_DIVINE, T_EPIC, T_MYTH, T_RARE, biteShare,
+  collectionCount, fishPrice2, fmtKg, isCollected, mskDayNum, priceRange, reelStyleFor, rollCatch2, rollChest, rollWeight, tierRank, zoneSpecies,
 } from '../shared/fishrules.ts';
 import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods, type FishCastMods, type FishGear, type FishRod } from '../shared/fishprogress.ts';
 import type { FishZone } from '../shared/fishplaces.ts';
@@ -24,28 +26,32 @@ const OLD_IDS = ['hamsa', 'goby', 'scad', 'redmullet', 'mullet', 'mackerel', 'ga
 
 // ------------------------------------------------------------ виды
 
-test('коллекция: 51 вид — 32 у пристани (8 в дождь) и 19 на баркасе (4 в дождь), 3 мифических; старые ключи на месте, золотая рыбка — старая находка', () => {
-  assert.equal(COLLECTION.length, 51);
+test('коллекция: 52 вида — 32 у пристани (8 в дождь) и 19 на баркасе (4 в дождь), 3 мифических и божественный кальмар везде; старые ключи на месте, золотая рыбка — старая находка', () => {
+  assert.equal(COLLECTION.length, 52);
   assert.equal(COLLECTION_SIZE, COLLECTION.length, 'размер коллекции не зашит — считается по таблице');
   const ids = COLLECTION.map((s) => FISH[s].id);
   assert.equal(new Set(ids).size, COLLECTION.length);
   for (const id of OLD_IDS) assert.ok(ids.includes(id), `старый вид ${id} — в коллекции`);
   assert.deepEqual(LEGACY_IDS, ['goldfish']);
   assert.ok(!isCollected(sp('goldfish')) && !isCollected(SP_BOOT) && !isCollected(SP_CHEST), 'хлам и сундук — не из коллекции');
+  // по рангу: обычные … мифические, божественная (T_DIVINE = 7) — шестой столбец
   const tiers = (list: readonly number[]) => {
-    const byTier = [0, 0, 0, 0, 0];
-    for (const s of list) byTier[rule(s).tier]++;
+    const byTier = [0, 0, 0, 0, 0, 0];
+    for (const s of list) byTier[tierRank(rule(s).tier)]++;
     return byTier;
   };
-  assert.deepEqual(tiers(COLLECTION), [14, 14, 11, 9, 3], '14 обычных, 14 редких, 11 эпических, 9 легендарных, 3 мифических');
-  assert.deepEqual(tiers(zoneSpecies('pier')), [10, 9, 6, 5, 2], 'пристань — прежние 32');
-  assert.deepEqual(tiers(zoneSpecies('barkas')), [4, 5, 5, 4, 1], 'баркас — свои 19');
+  assert.deepEqual(tiers(COLLECTION), [14, 14, 11, 9, 3, 1], '14 обычных, 14 редких, 11 эпических, 9 легендарных, 3 мифических, 1 божественная');
+  assert.deepEqual(tiers(zoneSpecies('pier')), [10, 9, 6, 5, 2, 1], 'пристань — прежние 32 и кальмар');
+  assert.deepEqual(tiers(zoneSpecies('barkas')), [4, 5, 5, 4, 2, 1], 'баркас — свои 19, гренландская акула в дождь (04.10) и кальмар');
   assert.deepEqual(COLLECTION.filter((s) => rule(s).tier === T_MYTH).map((s) => FISH[s].id), ['whiteshark', 'greenlandshark', 'oarfish']);
+  assert.deepEqual(COLLECTION.filter((s) => rule(s).tier === T_DIVINE).map((s) => FISH[s].id), ['kalmar']);
+  assert.deepEqual(rule(sp('kalmar')).zones, ['pier', 'barkas']);
   const rain = COLLECTION.filter((s) => rule(s).rain);
   assert.equal(rain.length, 12);
   assert.equal(rain.filter((s) => rule(s).zone === 'barkas').length, 4);
+  assert.deepEqual(rain.filter((s) => rule(s).zones.length > 1).map((s) => FISH[s].id), ['greenlandshark'], 'в дождь и у пристани, и с баркаса');
   // журнал — по категориям; у каждой рыбы — манера словами, ценность растёт с весом
-  for (let i = 1; i < COLLECTION.length; i++) assert.ok(rule(COLLECTION[i]).tier >= rule(COLLECTION[i - 1]).tier);
+  for (let i = 1; i < COLLECTION.length; i++) assert.ok(tierRank(rule(COLLECTION[i]).tier) >= tierRank(rule(COLLECTION[i - 1]).tier));
   for (const s of COLLECTION) {
     const r = rule(s);
     assert.ok(r.note.length > 3 && r.val[0] > 0 && r.val[1] > r.val[0] && r.bite > 0, FISH[s].id);
@@ -79,8 +85,8 @@ test('вес: в границах вида, тяжёлые реже; вес дл
 
 const still: ReelStyle = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
 
-/** Держит середину зоны на рыбе: без нажатий зона уходит под шкалу («леска провисла») и рыбу у дна не держит */
-const track = (r: Reel): boolean => r.z + Math.trunc(r.zone / 2) < r.f;
+/** Держит середину зоны на рыбе; зона полежала на дне полсекунды — подматывает (иначе через 0,7 с «леска провисла») */
+const track = (r: Reel): boolean => r.z + Math.trunc(r.zone / 2) < r.f || r.rest >= 30;
 
 function snapshot(r: Reel): number[] {
   return [r.t, r.f, r.fv, r.ft, r.mode, r.timer, r.z, r.zv, r.p, r.done, r.rng];
@@ -95,7 +101,7 @@ test('вываживание: рыба всё время в зоне — от 25
   assert.equal(r.t, 300);
 });
 
-test('вываживание: держишь — зона вверх (прилипает к верху); отпустил с верха — о дно шкалы на полной скорости сильный отскок, удары всё слабее, потом легла и ушла под шкалу; рыба вне зоны — прогресс падает', () => {
+test('вываживание: держишь — зона вверх (прилипает к верху); отпустил с верха — о дно шкалы на полной скорости сильный отскок, удары всё слабее, потом легла на дно (под шкалу не уходит, 04.10); рыба вне зоны — прогресс падает', () => {
   const r = reelStart({ ...still, drain: 1 }, 1);
   for (let i = 0; i < 40; i++) reelStep(r, true);
   assert.ok(r.z > 10_000 && r.zv > 0, `зона пошла вверх: ${r.z}`);
@@ -111,16 +117,16 @@ test('вываживание: держишь — зона вверх (прили
     reelStep(r, false);
     if (r.hit > 0) hits.push(r.hit);
     else if (hits.length === 1) peak = Math.max(peak, r.z);
-    if (r.z + r.zone <= 0) under = true;
+    if (r.z < 0) under = true;
   }
   assert.ok(hits[0] >= BOUNCE_FULL, `с верха — полная скорость удара: ${hits[0]}`);
   assert.ok(peak > REEL_BAR / 4, `с полной скорости — сильный отскок: до ${peak}`);
   for (let k = 1; k < hits.length; k++) assert.ok(hits[k] < hits[k - 1], `удары всё слабее: ${hits.join(', ')}`);
-  assert.ok(under, 'отскакала, легла — зона ушла под шкалу');
-  assert.ok(!r.inZone, 'зона в покое рыбу у дна не держит');
-  // из-под шкалы подматывать дольше: зона разгоняется снизу, проскакивает рыбу и успокаивается на ней
+  assert.ok(!under && r.z === 0 && r.zv === 0, 'отскакала и легла на дно — под шкалу не уходит');
+  assert.ok(r.rest > SLACK_TICKS && reelSlack(r) && !reelPulling(r), 'зона в покое рыбу у дна не тянет: леска провисла');
+  // подмотал — зона снова натянута и на рыбе
   for (let i = 0; i < 240 && r.done === 0; i++) reelStep(r, track(r));
-  assert.ok(r.inZone, 'подмотал — снова на рыбе');
+  assert.ok(r.inZone && !reelSlack(r), 'подмотал — снова на рыбе');
   // сопротивление побольше — сорвалась
   const q = reelStart(still, 1);
   while (q.done === 0) reelStep(q, true);
@@ -179,8 +185,9 @@ function castAt(zone: FishZone, level: number, rod: FishRod = 0, lure: FishGear 
 function tierSuccess(zone: FishZone, mods: FishCastMods, skill: Skill, n: number, seed: number): { p: number[]; fight: number[] } {
   const p = [0, 0, 0, 0, 0], fight = [0, 0, 0, 0, 0], k = [0, 0, 0, 0, 0];
   for (const s of zoneSpecies(zone)) {
-    const st = reelStats(reelStyleFor(s, mods), skill, n, seed);
     const t = rule(s).tier;
+    if (t > T_MYTH) continue; // божественная — отдельно
+    const st = reelStats(reelStyleFor(s, mods), skill, n, seed);
     assert.ok(st.p > 0, `${FISH[s].id}: вытащить можно`);
     p[t] += st.p;
     fight[t] += st.caughtTicks / 60;
@@ -199,7 +206,8 @@ test('трудность: ценнее — злее (успех падает, б
   [0.99, 0.93, 0.77, 0.45, 0.14].forEach((want, tier) => assert.ok(Math.abs(pier0.p[tier] - want) < 0.08, `категория ${tier}: ${pier0.p[tier]}`));
   for (let tier = 1; tier <= T_MYTH; tier++) {
     assert.ok(pier0.p[tier] < pier0.p[tier - 1], `пристань: категория ${tier} труднее`);
-    assert.ok(pier0.fight[tier] > pier0.fight[tier - 1] - 0.3, `пристань: категория ${tier} бьётся не короче`);
+    // 04.10: допуск 1 с — у мификов удачных боёв мало (2 вида × 10–20 % из 200), средняя длина шумит на ±1 с
+    assert.ok(pier0.fight[tier] > pier0.fight[tier - 1] - 1, `пристань: категория ${tier} бьётся не короче`);
     assert.ok(pierPro.p[tier] >= pier0.p[tier], `опытный у пристани: категория ${tier}`);
   }
   // баркас — с BARKAS_LEVEL и первой удочкой: та же лестница, а эпические и выше злее пристани
@@ -209,6 +217,13 @@ test('трудность: ценнее — злее (успех падает, б
   t.diagnostic(`ур. ${entry}, удочка 1: пристань ${pct(land.p)}, баркас ${pct(sea.p)}`);
   for (let tier = 1; tier <= T_MYTH; tier++) assert.ok(sea.p[tier] < sea.p[tier - 1], `баркас: категория ${tier} труднее`);
   for (let tier = T_EPIC; tier <= T_MYTH; tier++) assert.ok(sea.p[tier] < land.p[tier] - 0.03, `баркас злее пристани: категория ${tier}`);
+  // божественный кальмар (04.10) — труднее любого мифика у пристани и на баркасе, но вытащить можно
+  for (const [zone, low] of [['pier', pier0], ['barkas', sea]] as const) {
+    const mods = zone === 'pier' ? castAt('pier', 0) : castAt('barkas', entry, 1);
+    const kal = reelStats(reelStyleFor(sp('kalmar'), mods), TYPICAL, 200, 3).p;
+    t.diagnostic(`${zone}: кальмар ${Math.round(kal * 100)} %`);
+    assert.ok(kal > 0 && kal < low.p[T_MYTH], `${zone}: кальмар ${kal} труднее мификов ${low.p[T_MYTH]}`);
+  }
   // верх прогресса: ур. 10, третья удочка, золотая блесна — легенды и мифик вытаскиваются заметно чаще
   for (const zone of ['pier', 'barkas'] as const) {
     const low = zone === 'pier' ? pier0 : sea;
@@ -242,7 +257,7 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
 });
 
 test('цены: обычные от исходной целой цены +75 %, остальные откалиброваны; дождевые ×1,5, баркас ×1,25, хлам даром, сундук без множителей', () => {
-  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], []], barkas: [[], [], [], [], []] };
+  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], [], []], barkas: [[], [], [], [], [], []] };
   for (const s of COLLECTION) {
     const r = rule(s);
     const f = FISH[s];
@@ -259,10 +274,11 @@ test('цены: обычные от исходной целой цены +75 %, 
     const mid = Math.round((f.g[0] + f.g[1]) / 2);
     const mods = r.zone === 'barkas' ? castAt('barkas', BARKAS_LEVEL) : undefined;
     assert.ok(fishPrice2(s, mid, 0, mods) >= lo && fishPrice2(s, mid, 0, mods) <= hi, f.id);
-    mean[r.zone][r.tier].push((lo + hi) / 2);
+    mean[r.zone][tierRank(r.tier)].push((lo + hi) / 2);
   }
   for (const zone of ['pier', 'barkas'] as const) {
-    const avg = mean[zone].map((a) => a.reduce((x, y) => x + y, 0) / a.length);
+    // божественный кальмар записан за пристанью (ловится и с баркаса) — у баркаса его столбец пуст
+    const avg = mean[zone].filter((a) => a.length).map((a) => a.reduce((x, y) => x + y, 0) / a.length);
     for (let i = 1; i < avg.length; i++) assert.ok(avg[i] > avg[i - 1], `${zone}: категория ${i} дороже: ${avg}`);
   }
   assert.equal(fishPrice2(SP_BOOT, 900), 0);
@@ -317,7 +333,7 @@ test('виды дождя: только в дождь и только у сво�
       if (rule(s).tier <= T_EPIC) assert.ok(biteShare(s, true, mods) > maxRare, `${FISH[s].id} клюёт чаще обычных редких`);
       else assert.ok(biteShare(s, true, mods) < maxRare, `${FISH[s].id}: легенда/миф дождя намеренно редки`);
     }
-    for (const s of COLLECTION.filter((x) => rule(x).zone !== zone)) assert.equal(biteShare(s, true, mods), 0, `${FISH[s].id} — не с ${zone}`);
+    for (const s of COLLECTION.filter((x) => !rule(x).zones.includes(zone))) assert.equal(biteShare(s, true, mods), 0, `${FISH[s].id} — не с ${zone}`);
     const rng = makeRng(zone === 'pier' ? 3 : 4);
     const seen = new Map<number, number>();
     const N = 200_000;
@@ -325,7 +341,7 @@ test('виды дождя: только в дождь и только у сво�
       const c = rollCatch2(false, rng, mods);
       assert.ok(!rule(c.sp).rain, 'в ясную погоду дождевые не клюют');
       const d = rollCatch2(true, rng, mods);
-      if (isCollected(d.sp)) assert.equal(rule(d.sp).zone, zone, `${zone}: чужая рыба ${FISH[d.sp].id}`);
+      if (isCollected(d.sp)) assert.ok(rule(d.sp).zones.includes(zone), `${zone}: чужая рыба ${FISH[d.sp].id}`);
       seen.set(d.sp, (seen.get(d.sp) ?? 0) + 1);
     }
     for (const s of mine) assert.ok(Math.abs((seen.get(s) ?? 0) / N - biteShare(s, true, mods) * fishShare) < 0.003, FISH[s].id);

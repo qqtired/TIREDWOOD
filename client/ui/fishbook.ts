@@ -5,7 +5,7 @@
 // (J или кнопка 📖) и сетка в профиле — одна и та же сетка.
 import { FISH, fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_MYTH, biteShare,
+  COLLECTION, COLLECTION_SIZE, FISH_TIERS, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_DIVINE, biteShare,
   collectionCount, priceRange,
 } from '../../shared/fishrules.ts';
 import { nextStep, stepLabel, stepNeed } from '../../shared/fishstyle.ts';
@@ -33,8 +33,9 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
   const mods = fishCastMods(progress, now, r.zone);
   const share = biteShare(sp, rain, mods) * 100;
   const fmt = (v: number): string => (v >= 1 ? v.toFixed(1) : v.toFixed(2)).replace('.', ',');
-  const where = r.zone === 'barkas' ? `⚓ баркас в открытом море (с ${BARKAS_LEVEL}-го уровня рыбалки)` : 'пристань';
-  const when = r.rain ? '🌧 только в дождь, цена ×1,5' : 'в любую погоду';
+  const sea = `баркас в открытом море (с ${BARKAS_LEVEL}-го уровня рыбалки)`;
+  const where = r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? `⚓ ${sea}` : 'пристань';
+  const when = r.rain ? '🌧 только в дождь, цена ×1,5' : r.tier === T_DIVINE ? 'в любую погоду, в сезон рыбалки — втрое чаще' : 'в любую погоду';
   const now2 = r.rain && !rain ? `в дождь — ${fmt(biteShare(sp, true, mods) * 100)}% поклёвок` : `сейчас — ${fmt(share)}% поклёвок`;
   return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when}${odds ? ` · ${now2}` : ''} · ${lo}–${hi} 🪙 · ${r.note}`;
 }
@@ -42,8 +43,8 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
 /** Сетка коллекции: по категориям, в каждой — «сколько из скольких»; compact — для профиля (без цен); zone — фильтр. */
 export function collectionGrid(album: FishAlbum, compact: boolean, onPick?: (sp: number) => void, zone: BookZone = 'all'): HTMLElement {
   const root = el('div', compact ? 'fb-grid compact' : 'fb-grid');
-  for (let tier = 0; tier <= T_MYTH; tier++) {
-    const list = COLLECTION.filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zone === zone));
+  for (const tier of FISH_TIERS) {
+    const list = COLLECTION.filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
     if (!list.length) continue;
     const got = list.filter((sp) => album[FISH[sp].id]).length;
     const sec = root.appendChild(el('div', 'fb-sec'));
@@ -78,9 +79,11 @@ function cell(sp: number, album: FishAlbum, compact: boolean, onPick?: (sp: numb
   c.dataset.species = f.id;
   c.style.setProperty('--tc', TIER_CSS[r.tier]);
   c.appendChild(fishPic(sp, 'fb-pic', !!e));
-  if (r.rain || r.zone === 'barkas') {
-    const marks = c.appendChild(el('span', 'fb-rain', `${r.zone === 'barkas' ? '⚓' : ''}${r.rain ? '🌧' : ''}`));
-    const what = [r.zone === 'barkas' ? 'ловится только с баркаса' : '', r.rain ? 'только в дождь' : ''].filter(Boolean).join(', ');
+  const seaOnly = r.zone === 'barkas' && r.zones.length === 1;
+  const both = r.zones.length > 1;
+  if (r.rain || seaOnly || both) {
+    const marks = c.appendChild(el('span', 'fb-rain', `${seaOnly ? '⚓' : both ? '⚓+' : ''}${r.rain ? '🌧' : ''}`));
+    const what = [seaOnly ? 'ловится только с баркаса' : both ? 'ловится и у пристани, и с баркаса' : '', r.rain ? 'только в дождь' : ''].filter(Boolean).join(', ');
     marks.title = what;
     marks.setAttribute('aria-label', what);
   }

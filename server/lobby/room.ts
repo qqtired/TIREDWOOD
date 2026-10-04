@@ -61,6 +61,7 @@ import { DurakHall } from './durak.ts';
 import { FishingHall, type FishingHost } from './fishing.ts';
 import { FishingHall2 } from './fishing2.ts';
 import { FishNpc, type NpcCtx, type NpcResult, type NpcWho } from './fishnpc.ts';
+import { FishSeason, mskClock } from './fishseason.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
 import { Jukebox } from './jukebox.ts';
 import { Weather, type WeatherMode } from './weather.ts';
@@ -136,6 +137,8 @@ export class LobbyRoom implements Room {
   readonly fishing2: FishingHall2 | null;
   /** Семён и Саня: задания, лавка, продажа улова (с рыбалкой 2.0); register — свои действия других модулей */
   readonly fishNpc: FishNpc | null;
+  /** Сезон рыбалки раз в 2 часа (с рыбалкой 2.0, server/lobby/fishseason.ts) */
+  readonly fishSeason: FishSeason | null;
   /** Рулетка рыбака (флаг сервера ROULETTE) */
   readonly roulette: RouletteTable | null;
   readonly weather: Weather;
@@ -341,9 +344,10 @@ export class LobbyRoom implements Room {
       announce: (text) => hub.announce(text),
     };
     this.fishing = new FishingHall(fishHost, hub.profiles, hub.store);
+    this.fishSeason = hub.fish2 ? new FishSeason(this.now) : null;
     this.fishing2 = hub.fish2
       ? new FishingHall2({
-        ...fishHost, rain: () => this.weather.rain, top: (top) => this.broadcast({ t: 'fishTop', top }),
+        ...fishHost, rain: () => this.weather.rain, season: () => this.fishSeason?.on ?? false, top: (top) => this.broadcast({ t: 'fishTop', top }),
         outfit: (slot) => {
           const c = this.players.get(slot)?.client;
           if (c?.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: slot, o: hub.outfitOf(c.profile) });
@@ -444,6 +448,7 @@ export class LobbyRoom implements Room {
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
+    if (this.fishSeason) c.sink.sendJson({ t: 'fishSeason', ...this.fishSeason.view() });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
     if (this.pirates) c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
     // музыкальный автомат: что играет и с какого места (вошедшему позже — то же место песни, что у всех)
@@ -747,6 +752,35 @@ export class LobbyRoom implements Room {
   stepWeather(): void {
     this.weatherTick++;
     if ((!this.director.busy || this.weather.rain) && this.weather.step(this.weatherTick)) this.publishWeather();
+    this.stepFishSeason();
+  }
+
+  /**
+   * Сезон рыбалки: начался или кончился — всем на набережной fishSeason и строка в чат. Пока идёт — это дождь: погода
+   * держит дождь до конца сезона (ясно — особый дождь, идущий продлевается); во время шторма или пиратов небо у них —
+   * дождь начнётся, когда они кончатся, а рыба всё равно клюёт как в сезон.
+   */
+  private stepFishSeason(): void {
+    const season = this.fishSeason;
+    if (!season) return;
+    const change = season.step();
+    const v = season.view();
+    if (change) {
+      this.broadcast({ t: 'fishSeason', ...v });
+      this.hub.announce(change === 'start'
+        ? '🎣 Начался сезон рыбалки! 10 минут особого дождя: эпические, легендарные и мифические клюют втрое чаще — и сам царь морей тоже.'
+        : `🎣 Сезон рыбалки закончился. Следующий — в ${mskClock(v.nextAt)} по Москве.`);
+    }
+    if (v.on && !this.director.busy && this.weather.holdRain(this.weatherTick, v.endsAt)) this.publishWeather();
+  }
+
+  /** Команда разработчика в чате набережной: /season — сезон рыбалки сразу. true — команда съедена. */
+  devCommand(c: Client, text: string): boolean {
+    if (!this.hub.gate.devGo || !/^\/season(\s|$)/.test(text)) return false;
+    if (!this.fishSeason) this.hub.privateLine(c, 'Сезон рыбалки — только с рыбалкой 2.0 (FISH2=1)');
+    else if (!this.fishSeason.force()) this.hub.privateLine(c, 'Сезон рыбалки уже идёт');
+    else this.stepFishSeason();
+    return true;
   }
 
   private publishWeather(): void {

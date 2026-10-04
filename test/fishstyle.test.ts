@@ -73,11 +73,12 @@ test('пороги считаются от числа видов в коде: в
   assert.equal(nextStep(51, 51), null);
 });
 
-test('51 вид в игре (fisheco): ступени 35/40/45 и финал на 51 выдаются ровно на пороге, раньше — ничего', () => {
-  assert.equal(COLLECTION.length, 51);
+test('52 вида в игре (04.10: + кальмар): ступени 35/40/45 и финал на 52 выдаются ровно на пороге, раньше — ничего', () => {
+  assert.equal(COLLECTION.length, 52);
   assert.equal(COLLECTION_SIZE, COLLECTION.length);
-  assert.equal(fishTotal(), 51);
-  assert.deepEqual(LADDER.map((s) => stepNeed(s)), [5, 10, 15, 20, 25, 30, 35, 40, 45, 51]);
+  assert.equal(fishTotal(), 52);
+  assert.equal(FISH[COLLECTION[51]].id, 'kalmar', 'божественный — последним в журнале');
+  assert.deepEqual(LADDER.map((s) => stepNeed(s)), [5, 10, 15, 20, 25, 30, 35, 40, 45, 52]);
   const e = env();
   const p = login(e.hub, 'Коллекционер').c.profile!;
   const at = new Map(LADDER.map((s) => [stepNeed(s), s.items]));
@@ -86,13 +87,19 @@ test('51 вид в игре (fisheco): ступени 35/40/45 и финал н�
     p.album = album(n);
     const g = grantLadder(e.profiles, p);
     assert.deepEqual(g.items, at.get(n) ?? [], `${n} видов`);
-    assert.equal(g.master, n === 51, `${n} видов: финал`);
+    assert.equal(g.master, n === 52, `${n} видов: финал`);
     assert.deepEqual(p.owned, earnedItems(n), `${n} видов: всё положенное и только оно`);
   }
-  for (const [id, need] of [['a:net', 35], ['w:night', 40], ['b:firefly', 45], ['h:captain', 51], ['n:anchor', 51]] as const) {
+  for (const [id, need] of [['a:net', 35], ['w:night', 40], ['b:firefly', 45], ['h:captain', 52], ['n:anchor', 52]] as const) {
     assert.equal(needOf(id), need, id);
     assert.equal(earnedItems(need - 1).includes(id), false, `${id}: не раньше ${need}`);
   }
+  // кто собрал все 51 до 04.10, награды финала не теряет: лестница только выдаёт, не отбирает
+  const old = login(e.hub, 'Старожил').c.profile!;
+  for (const id of ['h:captain', 'n:anchor']) e.profiles.grant(old, id);
+  old.album = album(51);
+  assert.equal(grantLadder(e.profiles, old).master, false);
+  assert.ok(old.owned.includes('h:captain') && old.owned.includes('n:anchor'), 'финал 51 вида остаётся');
 });
 
 test('наряд: новые слоты только когда надето не «пустое»; чужое — снимается; старые наряды не меняются', () => {

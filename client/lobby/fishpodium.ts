@@ -19,8 +19,11 @@ export function podiumFishLength(sp: number, grams: number): number {
   const coefficient = f?.shape==='shark' ? .18 : f?.shape==='long' || f?.shape==='eel' ? .24 : f?.shape==='sword' ? .15 : f?.shape==='flat' || f?.shape==='ray' ? .13 : .125;
   // Malformed legacy weights must not turn a trophy into geometry across the whole harbour.
   const g=Math.min(f?.g[1] ?? 1000, Number.isFinite(grams) ? Math.max(1,grams) : 1);
-  return .12 + coefficient*Math.pow(g/1000,.4);
+  const length=.12 + coefficient*Math.pow(g/1000,.4);
+  // 04.10: сельдяной король теперь до тонны — длиннее 3,1 м трофей растёт впятеро медленнее (стенд не бесконечный)
+  return length<=PODIUM_SOFT_MAX ? length : PODIUM_SOFT_MAX+(length-PODIUM_SOFT_MAX)*.2;
 }
+const PODIUM_SOFT_MAX=3.1;
 
 const HOLDER_GEOMETRY = new THREE.BoxGeometry(1,1,1);
 const HOLDER_MATERIAL = new THREE.MeshStandardMaterial({color:0x536357,metalness:.55,roughness:.5});
@@ -40,7 +43,11 @@ export function makePodiumFish(sp:number,grams:number,step:Pick<typeof FISH_PODI
   const size=new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
   model.scale.setScalar(podiumFishLength(sp,grams)/Math.max(size.x,size.z,.01));
   model.rotation.z=Math.PI/2;
-  const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3());
+  let box=new THREE.Box3().setFromObject(model);
+  // 04.10: трофей не шире своей ступени (кальмар со щупальцами шире рыбы той же длины)
+  const wide=(box.max.x-box.min.x)/(FISH_PODIUM_STEP_WIDTH*.9);
+  if(wide>1){model.scale.multiplyScalar(1/wide);box=new THREE.Box3().setFromObject(model);}
+  const center=box.getCenter(new THREE.Vector3());
   // Short steps need a taller rear support so their labels never conceal a small catch.
   const fishBottom=Math.max(.12,labelTop(step.h)+.06-step.h);
   model.position.set(-center.x,fishBottom-box.min.y,-center.z);

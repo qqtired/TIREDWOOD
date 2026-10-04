@@ -55,12 +55,13 @@ test('fisheco: no species is an outlier inside its rarity tier at the place entr
 
 test('perfect is computed by every reel tick and survives chunked authoritative replay', () => {
   const still = { spd: 0, sharp: 5, turn: 0, dart: 0, dartSpd: 0, dartUp: 50, hover: 60_000, hoverP: 100, lo: 0, hi: 30, roam: 2, zone: 30, drain: 10 };
-  // держит середину зоны на рыбе (без нажатий зона уходит под шкалу — «леска провисла»); нажатия повторяем, как сервер
+  // держит середину зоны на рыбе; зона полежала на дне полсекунды — подматывает (иначе через 0,7 с «леска провисла»);
+  // нажатия повторяем, как сервер
   const tracked = reelStart(still, 42);
   const toggles: number[] = [];
   let held = false;
   while (tracked.done === 0) {
-    const h = tracked.z + Math.trunc(tracked.zone / 2) < tracked.f;
+    const h = tracked.z + Math.trunc(tracked.zone / 2) < tracked.f || tracked.rest >= 30;
     if (h !== held) { held = h; toggles.push(tracked.t); }
     reelStep(tracked, held);
   }

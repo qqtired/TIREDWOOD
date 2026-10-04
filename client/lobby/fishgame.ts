@@ -6,7 +6,7 @@
 // в быстром полёте чуть вытянулась; фактура зоны — в fish2.css.
 import { TICK_MS } from '../../shared/constants.ts';
 import { BOUNCE_FULL, REEL_P_MAX, reelPulling, reelRun, reelSlack, reelStart, reelView, type Reel } from '../../shared/fishreel.ts';
-import { RULE, TIER_CSS, TIER_NAMES, T_JUNK, T_LEGEND, T_MYTH, reelStyleFor } from '../../shared/fishrules.ts';
+import { RULE, TIER_CSS, TIER_NAMES, T_DIVINE, T_JUNK, T_LEGEND, T_MYTH, isFishTier, reelStyleFor } from '../../shared/fishrules.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
@@ -101,8 +101,9 @@ export class ReelGame {
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
     this.standEl = this.root.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
-    // «Леска провисла — подматывай!»: видна, пока у шкалы класс slack (зона пролежала на дне дольше 0,7 с)
-    this.root.appendChild(el('div', 'fe-slack', 'Леска провисла — подматывай!'));
+    // «Леска провисла — подмотай!»: видна, пока у шкалы класс slack (зона пролежала на дне дольше 0,7 с); подмотать —
+    // приподнять зону над дном (короткое касание вслепую не считается)
+    this.root.appendChild(el('div', 'fe-slack', 'Леска провисла — приподними зону!'));
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
       // телефон: держать можно где угодно на экране (кроме верхних кнопок) — и кнопкой 🎣
@@ -153,7 +154,7 @@ export class ReelGame {
     if (mods.level) why.push(`ур. ${mods.level} +${(mods.level * 2.5).toLocaleString('ru-RU')}%`);
     if (mods.rod) why.push(`удочка +${Math.round(rodBonus(mods.rod) * 100)}%`);
     const zoneLine = why.length ? [`Зона ${Math.round(base)}% → ${Math.round(style.zone)}% (${why.join(', ')})`] : [];
-    const lines = rule.tier < T_JUNK ? [...zoneLine, ...dartParts(mods)] : [];
+    const lines = isFishTier(rule.tier) ? [...zoneLine, ...dartParts(mods)] : [];
     this.bonus.replaceChildren(...lines.map((s) => el('span', '', s)));
     this.toggles = [];
     this.k = 0;
@@ -166,11 +167,14 @@ export class ReelGame {
     this.wasDart = false;
     this.fingers.clear();
     // вид — тайна до улова: на шкале только категория; хлам и сундук — «что-то тяжёлое»
-    const odd = rule.tier >= T_JUNK;
+    const odd = !isFishTier(rule.tier);
     const css = odd ? TIER_CSS[T_JUNK] : TIER_CSS[rule.tier];
     this.root.style.setProperty('--tc', css);
-    this.label.textContent = odd ? 'Что-то тяжёлое…' : `${cap(TIER_NAMES[rule.tier])} рыба${rule.tier >= T_LEGEND ? '!!' : rule.tier > 0 ? '!' : ''}`;
-    this.root.classList.toggle('myth', rule.tier === T_MYTH);
+    // божественная (кальмар) — не «рыба»: царь морей
+    this.label.textContent = odd ? 'Что-то тяжёлое…' : rule.tier === T_DIVINE ? 'Божественный улов!!!'
+      : `${cap(TIER_NAMES[rule.tier])} рыба${rule.tier >= T_LEGEND ? '!!' : rule.tier > 0 ? '!' : ''}`;
+    this.root.classList.toggle('myth', rule.tier === T_MYTH || rule.tier === T_DIVINE);
+    this.root.classList.toggle('divine', rule.tier === T_DIVINE);
     this.root.classList.toggle('legend', rule.tier === T_LEGEND);
     this.root.classList.remove('won', 'lost', 'dart', 'in', 'slack');
     this.hint.classList.remove('gone');
@@ -308,7 +312,7 @@ export class ReelGame {
     const r = this.r;
     if (!r) return;
     const v = reelView(r);
-    // зона может уйти под шкалу (кнопку отпустили) — рисуем только видимую часть
+    // с 04.10 зона под шкалу не уходит (отскакивает от дна и ложится на него); видимую часть рисуем на всякий случай
     const z0 = Math.max(0, v.z0), z1 = Math.max(0, v.z1);
     this.zone.style.bottom = `${(z0 * 100).toFixed(2)}%`;
     this.zone.style.height = `${((z1 - z0) * 100).toFixed(2)}%`;

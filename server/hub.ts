@@ -604,7 +604,7 @@ export class Hub {
       return;
     }
     if (text.startsWith('/')) {
-      if (this.gate.command(c, text)) return;
+      if (this.gate.command(c, text) || (c.room === this.lobby && this.lobby.devCommand(c, text))) return;
       if (c.room === this.paintball) this.paintball.command(c, text);
       else if (this.skill && c.room === this.skill) this.skill.command(c, text);
       else if (this.fort !== null && c.room === this.fort) this.fort.command(c, text);

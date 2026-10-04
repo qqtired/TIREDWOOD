@@ -120,7 +120,7 @@ function progressAt(level: number, rod: FishRod = 0, lure: FishGear = 0): FishPr
 
 // ------------------------------------------------------------ лавка
 
-test('лавка: рюкзаки 250/500/1000 с 0/3/5 уровня, блёсны 250/1000/3000 с 1/4/6; действует лучший, младший после старшего не продаётся', () => {
+test('лавка: рюкзаки 250/500/1000 с 0/3/5 уровня, блёсны 250/1000/3000/5000 с 1/4/6/8; действует лучший, младший после старшего не продаётся', () => {
   const e = setup();
   const p = e.a.c.profile!;
   toNpc(e, 'semyon');
@@ -130,7 +130,7 @@ test('лавка: рюкзаки 250/500/1000 с 0/3/5 уровня, блёсн�
     return lastOf(e.a.s, 'fishNpc')!;
   };
   assert.deepEqual(BAGS.map((b) => [b.price, b.level, b.slots]), [[250, 0, 10], [500, 3, 15], [1000, 5, 20]]);
-  assert.deepEqual(LURES.map((l) => [l.price, l.level, l.calm, l.epic]), [[250, 1, .03, 1.03], [1000, 4, .05, 1.05], [3000, 6, .1, 1.1]]);
+  assert.deepEqual(LURES.map((l) => [l.price, l.level, l.calm, l.epic]), [[250, 1, .03, 1.03], [1000, 4, .05, 1.05], [3000, 6, .1, 1.1], [5000, 8, .15, 1.15]]);
   p.tokens = 5000;
   assert.match(buy('bag2').message!, /с 3-го уровня/);
   assert.match(buy('lure1').message!, /с 1-го уровня/);
@@ -154,6 +154,18 @@ test('лавка: рюкзаки 250/500/1000 с 0/3/5 уровня, блёсн�
   assert.equal(p.fishing.lure, 2);
   assert.match(buy('nope').message!, /нет/);
   assert.equal(p.tokens, 2999);
+  // 04.10: платиновая — 5000 с 8-го уровня; после неё младшие не продаются
+  p.tokens = 5000;
+  assert.match(buy('lure4').message!, /Платиновая блесна — с 8-го уровня/);
+  p.fishing.xp = FISH_XP_LEVELS[8];
+  assert.equal(buy('lure4').message, 'Платиновая блесна — твоя!');
+  assert.equal(p.fishing.lure, 4);
+  assert.equal(p.tokens, 0);
+  assert.match(buy('lure3').message!, /лучше/);
+  const mods = fishCastMods(p.fishing, e.clock.now);
+  assert.equal(mods.lure, 4);
+  assert.equal(mods.calm, 0.15);
+  assert.equal(mods.epicMultiplier, 1.15);
 });
 
 test('напитки: пиво 15 (+10 % к цене, редкие ×1,2), эль 30 (+15 %, ×1,3); эль заменяет пиво, пиво поверх эля не наливают', () => {
@@ -622,4 +634,28 @@ test('старые сохранения читаются: без пива вла
   assert.equal(fresh.bag[0].m, BAG_LORD | BAG_BARKAS);
   assert.equal(activeDrink(fresh, 999), 3);
   assert.equal(normalizeFishProgress({ ...old, bag: [{ n: 0, f: 'scad', g: 300, p: 9, m: 32 }] }).bag.length, 0, 'неизвестная метка — рыба отбрасывается');
+});
+
+// ------------------------------------------------------------ 04.10: сезон рыбалки и божественный кальмар
+
+test('сезон рыбалки на сервере: поклёвка решается с сезоном (виды дождя, ×3), опыт — как в дождь; кальмар — строка «Божественный улов» на весь пирс', () => {
+  const e = setup();
+  e.clock.now = Date.UTC(2026, 9, 4, 15, 1); // 18:01 по Москве — идёт сезон
+  advance(e, 2);
+  assert.equal(e.hub.lobby.fishSeason!.on, true);
+  const what: Hooked = { sp: sp('kalmar'), g: 1_234_000, coins: 0 };
+  const hall = sit(e, what);
+  const seen: Array<[boolean, boolean | undefined]> = [];
+  hall.roll = (rain, _rand, _mods, season) => { seen.push([rain, season]); return { ...what }; };
+  const xp0 = e.a.c.profile!.fishing.xp;
+  const { play } = hookWith(e, hall, (style, seed) => { const p = playReel(style, seed, EXPERT); return p.caught ? p : null; });
+  assert.ok(seen.some(([rain, season]) => rain && season === true), 'бросок сервера — с сезоном');
+  playHonest(e, play);
+  const land = lastOf(e.a.s, 'fishLand')!;
+  assert.equal(land.sp, sp('kalmar'));
+  const gained = e.a.c.profile!.fishing.xp - xp0;
+  const mods = fishCastMods(e.a.c.profile!.fishing, e.clock.now);
+  assert.ok([false, true].some((perfect) => gained === fishCatchXp(sp('kalmar'), perfect, mods, true)), `опыт как в дождь: ${gained}`);
+  const line = allOf(e.a.s, 'chat').map((m) => m.text).find((t) => /Божественный улов/.test(t));
+  assert.ok(line && /дальневосточного кальмара на 1\s234 кг/.test(line), `строка в чат: ${line}`);
 });
