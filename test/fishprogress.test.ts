@@ -8,16 +8,17 @@ import {
 
 const sp = (id: string) => FISH.findIndex((f) => f.id === id);
 
-test('fishing skill earns exactly ten levels at Stardew cumulative XP thresholds', () => {
-  const thresholds = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10_000, 15_000];
+test('fishing skill earns exactly fifteen levels: ten Stardew cumulative XP thresholds, then five smooth ones (04.10)', () => {
+  const thresholds = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10_000, 15_000, 22_000, 31_500, 44_000, 60_000, 80_000];
   assert.equal(fishLevel(0), 0);
   for (let i = 0; i < thresholds.length; i++) {
     assert.equal(fishLevel(thresholds[i] - 1), i);
     assert.equal(fishLevel(thresholds[i]), i + 1);
   }
   assert.deepEqual(fishLevelView(379), { level: 1, xp: 379, from: 100, next: 380 });
-  assert.deepEqual(fishLevelView(16_000), { level: 10, xp: 16_000, from: 15_000, next: null });
-  assert.equal(fishLevel(Number.MAX_SAFE_INTEGER), 10);
+  assert.deepEqual(fishLevelView(16_000), { level: 10, xp: 16_000, from: 15_000, next: 22_000 });
+  assert.deepEqual(fishLevelView(95_000), { level: 15, xp: 95_000, from: 80_000, next: null });
+  assert.equal(fishLevel(Number.MAX_SAFE_INTEGER), 15);
 });
 
 test('saved fishing progress rejects invalid counters and unearned or fractional rods', () => {
@@ -65,7 +66,7 @@ test('skill increases only reel zone 2.5 percent per level and rare weighting', 
   const level1 = fishCastMods({ ...emptyFishProgress(), xp: 100 }, 1000);
   const max = fishCastMods({ ...emptyFishProgress(), xp: 100_000 }, 1000);
   assert.equal(level1.zoneScale, 1.025);
-  assert.equal(max.zoneScale, 1.25);
+  assert.equal(max.zoneScale, 1.375, '15-й уровень: зона +37,5 %');
   assert.ok(level1.rareMultiplier > fresh.rareMultiplier);
   assert.ok(max.rareMultiplier > level1.rareMultiplier);
   assert.equal(max.biteSpeed, 1);

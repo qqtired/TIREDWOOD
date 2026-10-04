@@ -20,8 +20,9 @@ export function podiumFishLength(sp: number, grams: number): number {
   // Malformed legacy weights must not turn a trophy into geometry across the whole harbour.
   const g=Math.min(f?.g[1] ?? 1000, Number.isFinite(grams) ? Math.max(1,grams) : 1);
   const length=.12 + coefficient*Math.pow(g/1000,.4);
-  // 04.10: сельдяной король теперь до тонны — длиннее 3,1 м трофей растёт впятеро медленнее (стенд не бесконечный)
-  return length<=PODIUM_SOFT_MAX ? length : PODIUM_SOFT_MAX+(length-PODIUM_SOFT_MAX)*.2;
+  // 04.10: сельдяной король теперь до тонны — длиннее 3,1 м трофей растёт впятеро медленнее (стенд не бесконечный); кальмар до 3 т
+  // (700–3000 кг) — ещё медленнее (в 6–7 раз): самый тяжёлый трофей остаётся ниже 4,7 м, как и был при прежних 2,5 т
+  return length<=PODIUM_SOFT_MAX ? length : PODIUM_SOFT_MAX+(length-PODIUM_SOFT_MAX)*.15;
 }
 const PODIUM_SOFT_MAX=3.1;
 

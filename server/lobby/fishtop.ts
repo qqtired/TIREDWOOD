@@ -1,7 +1,8 @@
 // Доска рекордов рыбалки 2.0 у мостков: «Сегодня» (календарный день по Москве) и «За всё время», в каждой —
-// по числу рыб и по весу улова, по 10 строк. Считается по профилям (stats.fsFish, fsGrams, fsDay, fsDayFish,
-// fsDayGrams) — их немного, пересчёт только по событиям (улов, смена ника, полночь), не чаще раза в секунду.
-import { FISH_TOP_ROWS, isCollected, mskDayNum, type FishTopRow } from '../../shared/fishrules.ts';
+// по числу рыб и по весу улова, по 10 строк; и «Коллекция» — у кого сколько видов закрыто в журнале (альбом профиля).
+// Считается по профилям (stats.fsFish, fsGrams, fsDay, fsDayFish, fsDayGrams, album) — их немного, пересчёт только
+// по событиям (улов, смена ника, полночь), не чаще раза в секунду.
+import { FISH_TOP_ROWS, collectionCount, isCollected, mskDayNum, type FishTopRow } from '../../shared/fishrules.ts';
 import { mskDay } from '../../shared/economy.ts';
 import type { FishBoardView, FishPodiumCatch } from '../../shared/messages.ts';
 import type { Profile, Store } from '../store.ts';
@@ -25,6 +26,7 @@ export function buildFishTop(profiles: readonly Profile[], now: number, catches:
     dg: rows((p) => (today(p) ? p.stats.fsDayGrams : 0)),
     an: rows((p) => p.stats.fsFish),
     ag: rows((p) => p.stats.fsGrams),
+    cl: rows((p) => collectionCount(p.album)),
     podium: catches.filter((c) => mskDay(c.at) === mskDay(now))
       .map((c) => ({ ...c, nick: profiles.find((p) => p.id === c.pid)?.nick ?? c.nick }))
       .sort((a, b) => b.g - a.g || a.at - b.at || a.pid - b.pid || a.sp - b.sp).slice(0, 5),

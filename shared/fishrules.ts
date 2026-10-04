@@ -104,16 +104,29 @@ export function junkPer10k(level = 0): number {
   const l = Number.isFinite(level) ? Math.min(10, Math.max(0, Math.trunc(level))) : 0;
   return Math.round(JUNK_PER_10K * (10 - l) / 10);
 }
-/** Сколько в сундуке: полосы «от, до, вес» — крупное реже, 200 — джекпот */
+/**
+ * Сколько в сундуке: полосы «от, до, вес» — крупное реже, 250 — джекпот. 04.10: все суммы ×1,25 к прежним (25–50, 51–100,
+ * 101–150, 151–199 и 200), веса полос те же — средний сундук стал на 25 % богаче (было 57,4 🪙, стало 71,9 🪙).
+ */
 export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
-  [25, 50, 650],
-  [51, 100, 250],
-  [101, 150, 70],
-  [151, 199, 25],
-  [200, 200, 5],
+  [31, 63, 650],
+  [64, 125, 250],
+  [126, 188, 70],
+  [189, 249, 25],
+  [250, 250, 5],
 ];
-/** С этой суммы сундук объявляется в общем чате */
-export const CHEST_ANNOUNCE = 151;
+/** С этой суммы сундук объявляется в общем чате: верхние две полосы (3 % сундуков) — прежние 151 ×1,25 */
+export const CHEST_ANNOUNCE = 189;
+/** Джекпот обычного сундука — последняя полоса (прежние 200 ×1,25) */
+export const CHEST_JACKPOT = 250;
+/** «Сокровища Посейдона»: так много жетонов в кладе (вместо обычной суммы), ничем не множится */
+export const POSEIDON_COINS = 3000;
+/** Доля сундуков, что оказываются кладом Посейдона: 3 % (то есть 9 поклёвок из 100 000), решает сервер при поклёвке */
+export const POSEIDON_SHARE = 0.03;
+/** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_JACKPOT) */
+export function isPoseidon(coins: number): boolean {
+  return coins >= POSEIDON_COINS;
+}
 
 // ------------------------------------------------------------ полосы сложности
 
@@ -410,8 +423,8 @@ function factor(value: number | undefined, max: number): number {
   return value !== undefined && Number.isFinite(value) ? Math.min(max, Math.max(1, value)) : 1;
 }
 
-/** Зона от уровня и удочки — не больше этого: 10-й уровень (×1,25) × легендарная удочка (×1,4) */
-export const ZONE_SCALE_MAX = 1.25 * 1.4;
+/** Зона от уровня и удочки — не больше этого: 15-й уровень (×1,375, +2,5 % за уровень) × легендарная удочка (×1,4). До 04.10 потолок был на 10-м уровне. */
+export const ZONE_SCALE_MAX = (1 + 0.025 * 15) * (1 + 0.4);
 
 /**
  * Манера на шкале с бонусами заброса: зона — от уровня и удочки (водка — вдвое меньше); рывки и резкость — мягче от блесны
@@ -588,7 +601,12 @@ function speciesShares(p: Pool, weather: FishWeather, mods?: Readonly<FishCastMo
 /** Кто клюёт: сундук (3 %), хлам (меньше с уровнем), иначе рыба своего места по категориям — в дождь и сезон вместе с дождевыми. */
 export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>, season = false): Hooked {
   const r = rand() * 10_000;
-  if (r < CHEST_PER_10K) return { sp: SP_CHEST, g: rollWeight(SP_CHEST, rand), coins: rollChest(rand) };
+  if (r < CHEST_PER_10K) {
+    const g = rollWeight(SP_CHEST, rand);
+    const coins = rollChest(rand);
+    // клад Посейдона — нижние 3 % полосы сундука (тот же бросок r; сумму по полосам бросаем всё равно — поток случайных чисел не сдвигается)
+    return { sp: SP_CHEST, g, coins: r < CHEST_PER_10K * POSEIDON_SHARE ? POSEIDON_COINS : coins };
+  }
   if (r < CHEST_PER_10K + junkPer10k(mods?.level)) {
     const sp = rand() < 0.7 ? SP_BOOT : SP_BOTTLE;
     return { sp, g: rollWeight(sp, rand), coins: 0 };
@@ -696,17 +714,22 @@ export interface FishTopRow {
   v: number;
 }
 
-/** Доска у мостков: «Сегодня» (по Москве) и «За всё время» — по числу рыб и по весу улова (граммы) */
+/**
+ * Доска у мостков: «Сегодня» (по Москве) и «За всё время» — по числу рыб и по весу улова (граммы), и «Коллекция» (04.10) —
+ * у кого сколько видов из COLLECTION_SIZE закрыто в журнале (v — число видов).
+ */
 export interface FishTop {
   day: string;
   dn: FishTopRow[];
   dg: FishTopRow[];
   an: FishTopRow[];
   ag: FishTopRow[];
+  /** Коллекция: игроки по числу закрытых видов (нет — старый сервер; для клиента это пустой список) */
+  cl?: FishTopRow[];
 }
 
 export function emptyTop(day = ''): FishTop {
-  return { day, dn: [], dg: [], an: [], ag: [] };
+  return { day, dn: [], dg: [], an: [], ag: [], cl: [] };
 }
 
 /** Номер календарного дня по Москве (UTC+3) — для счётчиков «сегодня» в профиле */

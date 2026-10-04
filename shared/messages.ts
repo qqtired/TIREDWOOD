@@ -446,7 +446,8 @@ export type ServerMsg =
   | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; build: string }
   | ({ t: 'levelUp'; pid: number } & LevelUp)
   | { t: 'tokens'; n: number; delay?: number }
-  | { t: 'toast'; text: string }
+  /** Тост; sub — вторая строка, ms — сколько висит, key — новый того же вида заменяет прежний, big — крупный золотой (клад Посейдона) */
+  | { t: 'toast'; text: string; sub?: string; ms?: number; key?: string; big?: boolean }
   | { t: 'scene'; scene: RoomKind; epoch: number }
   | { t: 'code'; code: string; until: number }
   | { t: 'restart' }

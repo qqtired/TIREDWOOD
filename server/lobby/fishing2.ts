@@ -1,6 +1,7 @@
 // Рыбалка 2.0 с мостков к маяку (флаг сервера FISH2): заброс, пробы и поклёвка — как в старой рыбалке
 // (server/lobby/fishing.ts); что клюёт — по погоде (дождевые виды — только в дождь), 3 % — сундук (в каждом пятом ещё
-// и пиво подводного владыки — выпивается сразу), хлам — реже с каждым уровнем рыбалки; подсёк вовремя —
+// и пиво подводного владыки — выпивается сразу, а в 3 % сундуков вместо суммы «Сокровища Посейдона»: 3000 🪙, строка в
+// чат и крупный тост всем на сервере), хлам — реже с каждым уровнем рыбалки; подсёк вовремя —
 // шкала вываживания (shared/fishreel.ts). Клиент играет её у себя и шлёт нажатия, сервер повторяет вываживание своим
 // сидом и засчитывает улов, только если его повтор дошёл до 100 %. Улов: рыба — в рюкзак по цене поимки (продаётся
 // Семёну или Сане, server/lobby/fishnpc.ts), сундук и бонус за новый вид — сразу жетонами; коллекция (альбом), опыт
@@ -24,8 +25,8 @@ import { spotZone } from '../../shared/fishplaces.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import {
-  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
-  isCollected, reelStyleFor, rollCatch2, type Hooked,
+  ANNOUNCE_TIER, CHEST_ANNOUNCE, CHEST_JACKPOT, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
+  isCollected, isPoseidon, reelStyleFor, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
 import { FISH_SPOTS } from '../../shared/maps/lobby.ts';
@@ -63,6 +64,8 @@ export interface FishingHost2 extends FishingHost {
   top(top: FishBoardView): void;
   /** Наряд рыбака поменялся (снасти из наград надеты сами) — разослать всем на набережной */
   outfit?(slot: number): void;
+  /** Крупный тост всем игрокам сервера, в любой комнате («Сокровища Посейдона»); нет метода — только строка в чат */
+  shout?(text: string): void;
 }
 
 interface Spot {
@@ -431,8 +434,12 @@ export class FishingHall2 {
   private announce(nick: string, s: Spot, tier: number, rain: boolean, lord = false): void {
     const f = FISH[s.sp];
     if (tier === T_CHEST) {
-      if (lord) this.host.announce(`🔱 ${nick} вылавливает сундук: ${s.coins} 🪙 и пиво подводного владыки!`);
-      else if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук${s.coins >= 200 ? ' с джекпотом' : ''}: ${s.coins} 🪙!`);
+      if (isPoseidon(s.coins)) {
+        // клад Посейдона: строка в общий чат и крупный тост — всем на сервере, где бы они ни были
+        this.host.announce(`🔱 ${nick} нашёл Сокровища Посейдона! ${s.coins} 🪙${lord ? ' и пиво подводного владыки' : ''}`);
+        this.host.shout?.(`🔱 ${nick} нашёл Сокровища Посейдона! ${s.coins} 🪙`);
+      } else if (lord) this.host.announce(`🔱 ${nick} вылавливает сундук: ${s.coins} 🪙 и пиво подводного владыки!`);
+      else if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук${s.coins >= CHEST_JACKPOT ? ' с джекпотом' : ''}: ${s.coins} 🪙!`);
       return;
     }
     if (tier === T_JUNK || tier < ANNOUNCE_TIER) return;

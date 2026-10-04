@@ -112,8 +112,15 @@ export function emptyFishProgress(): FishProgress {
   return { xp: 0, questsDone: 0, questCaught: 0, rod: 0, beerUntil: 0, aleUntil: 0, bagTier: 0, lure: 0, bag: [], bagSeq: 0 };
 }
 
-/** Cumulative thresholds from Stardew Valley Fishing, https://stardewvalleywiki.com/Fishing#Experience_Points. */
-export const FISH_XP_LEVELS: readonly number[] = [0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10_000, 15_000];
+/**
+ * Накопленный опыт на каждый уровень рыбалки. Уровни 0–10 — пороги Stardew Valley Fishing,
+ * https://stardewvalleywiki.com/Fishing#Experience_Points. 04.10: уровни 11–15 продолжают ту же кривую без скачка — опыт
+ * на уровень растёт плавно, каждый следующий шаг больше прежнего на 2 000, 2 500, 3 000, 3 500, 4 000: 5 000 (10-й) →
+ * 7 000 → 9 500 → 12 500 → 16 000 → 20 000. Опыт игроков не трогаем: у кого было больше 15 000, новые уровни — сразу.
+ */
+export const FISH_XP_LEVELS: readonly number[] = [0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10_000, 15_000, 22_000, 31_500, 44_000, 60_000, 80_000];
+/** Высший уровень рыбалки (15-й): всё, что «до максимума», считается по нему */
+export const FISH_MAX_LEVEL = FISH_XP_LEVELS.length - 1;
 
 function count(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.trunc(value))) : 0;
@@ -163,14 +170,14 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
 export function fishLevel(xp: number): number {
   const n = count(xp);
   let level = 0;
-  while (level < 10 && n >= FISH_XP_LEVELS[level + 1]) level++;
+  while (level < FISH_MAX_LEVEL && n >= FISH_XP_LEVELS[level + 1]) level++;
   return level;
 }
 
 export function fishLevelView(xp: number): { level: number; xp: number; from: number; next: number | null } {
   const n = count(xp);
   const level = fishLevel(n);
-  return { level, xp: n, from: FISH_XP_LEVELS[level], next: level < 10 ? FISH_XP_LEVELS[level + 1] : null };
+  return { level, xp: n, from: FISH_XP_LEVELS[level], next: level < FISH_MAX_LEVEL ? FISH_XP_LEVELS[level + 1] : null };
 }
 
 export function questNeed(questsDone: number): number {

@@ -10,7 +10,7 @@ import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_LAND, FE_LOST, FISH, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, NEW_BONUS2, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
+  CHEST_ANNOUNCE, CHEST_JACKPOT, COLLECTION, COLLECTION_SIZE, NEW_BONUS2, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
 } from '../shared/fishrules.ts';
 import { earnedItems } from '../shared/fishstyle.ts';
 import { fishCatchXp } from '../shared/fishprogress.ts';
@@ -113,7 +113,7 @@ test('флаг FISH2: «1» — рыбалка 2.0, иначе старая; б�
   const b = login(on.hub, 'Новый');
   const l2 = lastOf(b.s, 'lobby')!;
   assert.equal(l2.fish2, 1);
-  assert.deepEqual(l2.ftop, { day: '2026-10-02', dn: [], dg: [], an: [], ag: [], podium: [] });
+  assert.deepEqual(l2.ftop, { day: '2026-10-02', dn: [], dg: [], an: [], ag: [], cl: [], podium: [] });
 });
 
 test('честное вываживание: повтор сервера дошёл до 100 % — рыба в рюкзак по цене поимки, коллекция, счётчики, бонус за новый вид жетонами; потом удочка пустая', () => {
@@ -243,21 +243,21 @@ test('поклёвка по погоде: в дождь сервер спраш�
   }
 });
 
-test('сундук: сколько внутри — решено при поклёвке, жетоны — когда вытащил; от 151 — в общий чат; хлам — даром', () => {
-  const e = fisher({ sp: SP_CHEST, g: 5000, coins: 180 });
+test('сундук: сколько внутри — решено при поклёвке, жетоны — когда вытащил; от 189 — в общий чат; хлам — даром', () => {
+  const e = fisher({ sp: SP_CHEST, g: 5000, coins: 230 });
   const b = login(e.hub, 'Зевака');
   const t0 = e.a.c.profile!.tokens;
   const { seed } = hookOne(e);
   playHonest(e, playReel(RULE[SP_CHEST]!.style, seed, EXPERT));
   advance(e.hub, e.clock, 2);
   const land = lastOf(e.a.s, 'fishLand')!;
-  assert.equal(land.coins, 180);
-  assert.equal(land.price, 180);
+  assert.equal(land.coins, 230);
+  assert.equal(land.price, 230);
   assert.equal(land.bonus, 0);
-  assert.equal(e.a.c.profile!.tokens, t0 + 180);
+  assert.equal(e.a.c.profile!.tokens, t0 + 230);
   assert.equal(e.a.c.profile!.stats.fsChests, 1);
   assert.equal(e.a.c.profile!.stats.fsFish, 0, 'сундук — не рыба');
-  assert.ok(allOf(b.s, 'chat').some((m) => m.sys && m.text === '💰 Рыбак вылавливает сундук: 180 🪙!'));
+  assert.ok(allOf(b.s, 'chat').some((m) => m.sys && m.text === '💰 Рыбак вылавливает сундук: 230 🪙!'));
   advance(e.hub, e.clock, HOLD2_TICKS + 1);
   e.hall.roll = () => ({ sp: SP_BOOT, g: 800, coins: 0 });
   const t1 = e.a.c.profile!.tokens;
@@ -283,10 +283,13 @@ test('доска у мостков: «Сегодня» и «За всё врем
   assert.deepEqual(top.dg, [{ pid, nick: 'Рыбак', v: 750 }]);
   assert.deepEqual(top.an, top.dn);
   assert.deepEqual(top.ag, top.dg);
+  // «Коллекция» (04.10): один вид из коллекции закрыт (скумбрию ловили дважды — вид всё равно один)
+  assert.deepEqual(top.cl, [{ pid, nick: 'Рыбак', v: 1 }]);
   // новый ник — на доске
   e.hub.onJson(e.a.c, { t: 'rename', nick: 'Рыболов' });
   advance(e.hub, e.clock, TICK_RATE);
   assert.equal(lastOf(b.s, 'fishTop')!.top.an[0].nick, 'Рыболов');
+  assert.equal(lastOf(b.s, 'fishTop')!.top.cl![0].nick, 'Рыболов');
   // полночь по Москве (21:00 UTC): «Сегодня» — пусто, «За всё время» — как было
   e.clock.now = Date.UTC(2026, 9, 2, 21, 0, 5);
   advance(e.hub, e.clock, TICK_RATE);
@@ -341,4 +344,63 @@ test('ушёл с места посреди вываживания — рыба 
   assert.equal(e.hall.occupant(0), 0);
   assert.equal(e.a.c.profile!.tokens, t0);
   assert.ok(!COLLECTION.includes(sp('goldfish')));
+});
+
+test('«Коллекция» на доске: новый вид поднимает игрока в списке и доска уходит всем; тот же вид — не меняет число', () => {
+  const e = fisher({ sp: sp('scad'), g: 300, coins: 0 });
+  const b = login(e.hub, 'Зевака');
+  const pid = e.a.c.pid;
+  const play = (id: string): void => {
+    e.hall.roll = () => ({ sp: sp(id), g: 300, coins: 0 });
+    const { seed } = hookOne(e);
+    playHonest(e, playReel(RULE[sp(id)]!.style, seed, EXPERT));
+    advance(e.hub, e.clock, HOLD2_TICKS + TICK_RATE);
+  };
+  play('scad');
+  assert.deepEqual(lastOf(b.s, 'fishTop')!.top.cl, [{ pid, nick: 'Рыбак', v: 1 }]);
+  const n = allOf(b.s, 'fishTop').length;
+  play('scad');
+  assert.deepEqual(lastOf(b.s, 'fishTop')!.top.cl, [{ pid, nick: 'Рыбак', v: 1 }], 'тот же вид — число видов то же');
+  assert.ok(allOf(b.s, 'fishTop').length > n, 'улов всё равно меняет «Рыб» и «Вес» — доска ушла');
+  play('goby');
+  assert.deepEqual(lastOf(b.s, 'fishTop')!.top.cl, [{ pid, nick: 'Рыбак', v: 2 }]);
+  // входящему — свежая доска с «Коллекцией»
+  const c = login(e.hub, 'Новенький');
+  assert.deepEqual(lastOf(c.s, 'lobby')!.ftop!.cl, [{ pid, nick: 'Рыбак', v: 2 }]);
+});
+
+test('«Сокровища Посейдона»: 3000 🪙 жетонами, строка в общий чат и крупный тост — всем на сервере; обычный сундук — тост не шлёт, а 188 🪙 молчит', () => {
+  const e = fisher({ sp: SP_CHEST, g: 5000, coins: POSEIDON_COINS });
+  const b = login(e.hub, 'Зевака');
+  const t0 = e.a.c.profile!.tokens;
+  const { seed } = hookOne(e);
+  playHonest(e, playReel(RULE[SP_CHEST]!.style, seed, EXPERT));
+  advance(e.hub, e.clock, 2);
+  const land = lastOf(e.a.s, 'fishLand')!;
+  assert.equal(land.coins, POSEIDON_COINS);
+  assert.equal(land.price, POSEIDON_COINS);
+  assert.equal(e.a.c.profile!.tokens, t0 + POSEIDON_COINS);
+  assert.equal(e.a.c.profile!.stats.fsChests, 1);
+  const line = '🔱 Рыбак нашёл Сокровища Посейдона! 3000 🪙';
+  for (const who of [b, e.a]) {
+    assert.ok(allOf(who.s, 'chat').some((m) => m.sys && m.text === line), 'строка в общий чат — всем, и самому рыбаку');
+    const toast = allOf(who.s, 'toast').find((m) => m.big);
+    assert.ok(toast, 'крупный тост — всем');
+    assert.equal(toast.text, line);
+    assert.equal(toast.key, 'poseidon');
+    assert.ok((toast.ms ?? 0) >= 8000, 'висит заметно дольше обычного');
+  }
+  // обычный сундук с джекпотом (250): только строка в чат, без большого тоста; 188 — ни строки, ни тоста
+  for (const coins of [CHEST_JACKPOT, CHEST_ANNOUNCE - 1]) {
+    advance(e.hub, e.clock, HOLD2_TICKS + 1);
+    e.hall.roll = () => ({ sp: SP_CHEST, g: 5000, coins });
+    b.s.msgs.length = 0;
+    const h = hookOne(e);
+    playHonest(e, playReel(RULE[SP_CHEST]!.style, h.seed, EXPERT));
+    advance(e.hub, e.clock, 2);
+    assert.ok(!allOf(b.s, 'toast').some((m) => m.big), `${coins}: большого тоста нет`);
+    const said = allOf(b.s, 'chat').filter((m) => m.sys && m.text.includes('вылавливает сундук'));
+    if (coins >= CHEST_ANNOUNCE) assert.equal(said[0]?.text, `💰 Рыбак вылавливает сундук с джекпотом: ${coins} 🪙!`);
+    else assert.equal(said.length, 0, `${coins} 🪙 — ниже порога чата`);
+  }
 });

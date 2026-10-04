@@ -709,6 +709,12 @@ export class Hub {
     for (const c of this.clients) if (c.profile && !c.ephemeral) c.sink.sendJson(msg);
   }
 
+  /** Крупный тост всем игрокам в любой комнате (клад Посейдона у рыбаков): в журнал чата не попадает. */
+  toastAll(text: string, opts: { ms?: number; key?: string; sub?: string; big?: boolean } = {}): void {
+    const msg: ServerMsg = { t: 'toast', text, ...opts };
+    for (const c of this.clients) if (c.profile && !c.ephemeral) c.sink.sendJson(msg);
+  }
+
   /** Выполнить через столько тиков хаба (итог вращения, объявления). */
   later(delayTicks: number, fn: () => void): void {
     this.delayed.push({ at: this.tick + delayTicks, fn });

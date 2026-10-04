@@ -1,5 +1,6 @@
 // Всплывающие уведомления сверху по центру: бонус, покупка, «автомат занят». Тают сами.
 import { setCoinText } from './coin.ts';
+import './toastbig.css';
 
 const MAX = 4;
 
@@ -14,11 +15,12 @@ export class Toasts {
 
   /**
    * key — вид уведомления: новое заменяет прежнее такого же вида, а не встаёт в стопку (M жмут подряд);
-   * sub — вторая строка помельче (заголовок + коротко «что это даёт», как у рыболовного события)
+   * sub — вторая строка помельче (заголовок + коротко «что это даёт», как у рыболовного события);
+   * big — крупный золотой тост для редкого события на весь сервер (клад Посейдона)
    */
-  show(text: string, ms = 3800, key = '', sub = ''): void {
+  show(text: string, ms = 3800, key = '', sub = '', big = false): void {
     const t = document.createElement('div');
-    t.className = 'toast';
+    t.className = big ? 'toast big' : 'toast';
     if (key) {
       t.dataset.key = key;
       for (const old of Array.from(this.root.children)) if ((old as HTMLElement).dataset.key === key) old.remove();

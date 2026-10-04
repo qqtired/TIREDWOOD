@@ -1,10 +1,10 @@
 // Карточка улова рыбалки 2.0 (выбирать нечего): картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
 // и из чего она (база · баркас · напиток), опыт («Идеально! ×2,4»), «Новый вид!» с бонусом или «Рекорд!», уникальный
 // вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
-// крышка отскакивает, сыплются монеты, сумма набегает; 200 — джекпот. Сама уходит через несколько секунд или
-// при следующем забросе.
+// крышка отскакивает, сыплются монеты, сумма набегает; 250 — джекпот, 3000 — «Сокровища Посейдона» (fishtreasure.ts).
+// Сама уходит через несколько секунд или при следующем забросе.
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
-import { BARKAS_INCOME, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, CHEST_JACKPOT, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
 import { ALE, BEER, LORD } from '../../shared/fishshop.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
@@ -13,6 +13,7 @@ import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
 import { mul, pct } from './fishfmt.ts';
+import { POSEIDON_TEXT, poseidonPic } from './fishtreasure.ts';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
 
@@ -129,41 +130,46 @@ export class CatchCard2 {
   /** Сундук: трясётся → крышка отскакивает, монеты, сумма набегает с нуля. */
   private chest(m: Land): void {
     const card = this.card;
-    const jackpot = m.coins >= 200;
+    // «Сокровища Посейдона» (3 000 🪙, fishtreasure.ts) — тот же сундук, но своя картинка, лучи и дольше висит
+    const poseidon = isPoseidon(m.coins);
+    const jackpot = poseidon || m.coins >= CHEST_JACKPOT;
     card.classList.add('chest');
     if (jackpot) card.classList.add('jackpot');
+    if (poseidon) card.classList.add('poseidon');
     card.style.setProperty('--tc', TIER_CSS[T_CHEST]);
-    card.appendChild(el('div', 'fc2-head')).appendChild(el('span', 'fc2-tier', jackpot ? 'сундук · джекпот!' : 'сундук'));
+    card.appendChild(el('div', 'fc2-head')).appendChild(el('span', 'fc2-tier', poseidon ? POSEIDON_TEXT.tier : jackpot ? 'сундук · джекпот!' : 'сундук'));
     const box = card.appendChild(el('div', 'fc2-box'));
-    box.appendChild(fishPic(m.sp, 'fc2-chest'));
+    box.appendChild(poseidon ? poseidonPic('fc2-chest') : fishPic(m.sp, 'fc2-chest'));
     box.appendChild(el('div', 'fc2-lid'));
     const coins = box.appendChild(el('div', 'fc2-coins'));
-    for (let i = 0; i < (jackpot ? 22 : 12); i++) {
+    for (let i = 0; i < (poseidon ? 40 : jackpot ? 22 : 12); i++) {
       const c = coins.appendChild(el('i', ''));
       c.innerHTML = COIN_HTML;
       c.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 220)}px`);
       c.style.setProperty('--dy', `${Math.round(-60 - Math.random() * 110)}px`);
       c.style.animationDelay = `${SHAKE_MS + Math.round(Math.random() * 260)}ms`;
     }
-    card.appendChild(el('div', 'fc2-title')).appendChild(el('b', '', jackpot ? 'Сундук с сокровищем!' : 'Сундук со дна!'));
+    card.appendChild(el('div', 'fc2-title')).appendChild(el('b', '', poseidon ? POSEIDON_TEXT.title : jackpot ? 'Сундук с сокровищем!' : 'Сундук со дна!'));
     const sum = card.appendChild(el('div', 'fc2-price big'));
     setCoinText(sum, '+0 🪙');
-    card.appendChild(el('div', 'fc2-sub', jackpot ? 'Двести жетонов — такое бывает раз на тысячи поклёвок' : 'Сундук — сверх улова: 3 % поклёвок'));
+    card.appendChild(el('div', 'fc2-sub', poseidon ? POSEIDON_TEXT.sub : jackpot ? `${CHEST_JACKPOT} жетонов — такое бывает раз на тысячи поклёвок` : 'Сундук — сверх улова: 3 % поклёвок'));
     // в каждом пятом сундуке — пиво подводного владыки, уже выпито (сервер включил его сразу)
     if (m.lord) {
       const lord = card.appendChild(el('div', 'fe-lord'));
       lord.appendChild(el('b', '', `🔱 ${LORD.name}!`));
       lord.appendChild(el('span', '', `Выпито сразу: доход от рыбы ${pct(LORD.income)}, редкие ${mul(LORD.rare)} · ${Math.round(LORD.ms / 60_000)} мин`));
     }
-    this.open(m.lord ? CHEST_MS + 2500 : CHEST_MS);
+    this.open((poseidon ? CHEST_MS + 3500 : CHEST_MS) + (m.lord ? 2500 : 0));
     this.sound.fishNibble(null);
     this.later(SHAKE_MS, () => {
       card.classList.add('open');
       this.sound.coins(null, jackpot ? 8 : Math.min(8, 3 + Math.round(m.coins / 40)));
       if (jackpot) this.sound.slotWin(true);
+      if (poseidon) this.later(700, () => this.sound.fanfare(null));
       const t0 = performance.now();
+      const countMs = poseidon ? 2000 : COUNT_MS;
       const step = (): void => {
-        const k = Math.min(1, (performance.now() - t0) / COUNT_MS);
+        const k = Math.min(1, (performance.now() - t0) / countMs);
         setCoinText(sum, `+${Math.round(m.coins * (1 - (1 - k) * (1 - k)))} 🪙`);
         if (k < 1) this.timers.push(requestAnimationFrame(step) * -1);
       };

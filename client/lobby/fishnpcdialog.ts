@@ -7,7 +7,7 @@
 import { FISH } from '../../shared/fishing.ts';
 import type { FishNpcId } from '../../shared/fishplaces.ts';
 import {
-  ALE_PRICE, BEER_PRICE, RAIN_DRUM_PRICE, RODS, ROD_MAX, VODKA_PRICE, activeDrink, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, rodBonus,
+  ALE_PRICE, BEER_PRICE, FISH_MAX_LEVEL, RAIN_DRUM_PRICE, RODS, ROD_MAX, VODKA_PRICE, activeDrink, bagSlots, bagValue, emptyFishProgress, fishLevel, questNeed, rodBonus,
   rodOdds, unlockedRod, type FishProgress, type FishRod,
 } from '../../shared/fishprogress.ts';
 import { ALE, BAGS, BEER, LURES, VODKA, gearState, type GearState } from '../../shared/fishshop.ts';
@@ -419,10 +419,10 @@ export class FishNpcDialog {
 
     // --- квесты
     this.skill.replaceChildren(fishSkillBlock(p));
-    const next = Math.min(10, level + 1);
+    const next = Math.min(FISH_MAX_LEVEL, level + 1);
     const opens = levelOpens(next);
-    this.perks.textContent = level >= 10
-      ? `Ур. 10: ${levelPerks(10)} — максимум`
+    this.perks.textContent = level >= FISH_MAX_LEVEL
+      ? `Ур. ${FISH_MAX_LEVEL}: ${levelPerks(FISH_MAX_LEVEL)} — максимум`
       : `${level ? `Сейчас — ${levelPerks(level)}` : 'Бонусов уровня пока нет'}. На ур. ${next}: ${levelPerks(next)}${opens.length ? ` · откроется: ${opens.join(', ')}` : ''}.`;
     this.questTitle.textContent = `Задание ${p.questsDone + 1} · поймай ${need} рыб`;
     this.questProgress.max = need;

@@ -1,6 +1,6 @@
 // fisheco: подписи бонусов одним языком везде (лавка, рюкзак, «Шансы сейчас», карточка улова, шкала) и картинки лавки.
 import {
-  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_XP_LEVELS, fishLevel, levelOdds, rodOdds, type FishCastMods, type FishProgress,
+  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_MAX_LEVEL, FISH_XP_LEVELS, fishLevel, levelOdds, rodOdds, type FishCastMods, type FishProgress,
 } from '../../shared/fishprogress.ts';
 import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES, VODKA, lureOf } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_MUL, SEASON_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
@@ -64,7 +64,7 @@ export function fishLevelUpText(level: number): string {
 
 /** Сколько опыта ещё до уровня level (0 — уже есть) */
 export function xpTo(progress: Readonly<FishProgress>, level: number): number {
-  return fishLevel(progress.xp) >= level ? 0 : Math.max(0, FISH_XP_LEVELS[Math.min(10, level)] - progress.xp);
+  return fishLevel(progress.xp) >= level ? 0 : Math.max(0, FISH_XP_LEVELS[Math.min(FISH_MAX_LEVEL, level)] - progress.xp);
 }
 
 /**
