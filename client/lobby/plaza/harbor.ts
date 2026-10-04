@@ -302,7 +302,7 @@ function buildBoat(ctx: VenueCtx): { venue: Venue; plate: LinePlate } {
   for (const sx of [-1, 1]) v.flags.pennant(cx + sx * 3.0, 3.95, z, 0.9, 0.3, sx > 0 ? RED : YELLOW, sx > 0 ? 0 : Math.PI, sx + 1.3);
 
   // строка статуса катера — живая: свободен / посадка / в поездке; висит под вывеской на двух цепях
-  const plate = new LinePlate(3.4, 0.34, { bg: '#10304e', border: '#9fd6ff', fg: '#fff3c4', ppm: 300 });
+  const plate = new LinePlate(3.4, 0.34, { bg: '#10304e', border: '#9fd6ff', fg: '#fff3c4', ppm: 300 }, ctx.signs);
   plate.mesh.position.set(cx, 1.96, z - 0.02);
   plate.mesh.rotation.y = Math.PI;
   v.group.add(plate.mesh);

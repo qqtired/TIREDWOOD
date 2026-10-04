@@ -2,6 +2,8 @@
 // ни одного нового сообщения). Чистые функции без three.js и DOM: их проверяют тесты. Реплика — не длиннее 60 знаков.
 import { BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_RIDE } from '../../../shared/boat.ts';
 import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
+import { RC_MAX_KARTS } from '../../../shared/kart.ts';
+import { RG_MAX } from '../../../shared/regatta.ts';
 import type { ToutKey } from './data.ts';
 
 /** Статусы режимов в том виде, как их хранит сцена набережной (null — режим выключен или данных нет) */
@@ -61,7 +63,7 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
     case 'kart': {
       const k = s.kart;
       if (!k) return [];
-      if (k.phase === 'count') return [cut(`Старт через ${k.left} с! Гонщиков: ${k.n} из 6`)];
+      if (k.phase === 'count') return [cut(`Старт через ${k.left} с! Гонщиков: ${k.n} из ${RC_MAX_KARTS}`)];
       if (k.phase === 'race') return [cut(`Гонка идёт, круг ${Math.min(k.lap, k.laps)} из ${k.laps}. Смотри табло`)];
       if (k.phase === 'results') return ['Финиш! Результаты — на табло у гаража'];
       return [];
@@ -97,9 +99,110 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
       if (f.phase === 'fight') return ['Внизу идёт бой! Подойди к двери — посмотришь'];
       return [];
     }
+    case 'cafe': {
+      // бариста читает афишу вслух — только те строки, где что-то идёт или набирают людей; в тишине говорит свои обычные
+      const out: string[] = [];
+      for (const r of agendaRows(s)) if (r.hot) out.push(cut(`${r.name}: ${r.text}`));
+      return out;
+    }
     default:
       return [];
   }
+}
+
+/** Порядок мест в афише и в речи бариста: как по улице — дома 2, 3, 4, дальше каланча, подвал кафе и вода */
+export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'fight', 'regatta', 'boat', 'hide'];
+
+const AGENDA_NAME: Readonly<Record<string, string>> = {
+  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', fight: 'Fight Club', regatta: 'Регата', boat: 'Ласточка', hide: 'Прятки',
+};
+
+/** Строка афиши «Сегодня в городе»: место, что в нём сейчас (до 28 знаков) и «горит» ли (что-то идёт или можно присоединиться) */
+export interface AgendaRow {
+  key: ToutKey;
+  name: string;
+  text: string;
+  hot: boolean;
+}
+
+/**
+ * Афиша по живым статусам, в порядке AGENDA_ORDER. Режимы, выключенные флагом сервера (статуса нет), в ней не показываются:
+ * без флагов — только пейнтбол, картинг и «Ласточка».
+ */
+export function agendaRows(s: LiveIn): AgendaRow[] {
+  const rows: AgendaRow[] = [];
+  const row = (key: ToutKey, text: string, hot: boolean): void => {
+    rows.push({ key, name: AGENDA_NAME[key] ?? key, text, hot });
+  };
+  for (const key of AGENDA_ORDER) {
+    switch (key) {
+      case 'paint':
+        row(key, s.pbHumans > 0 ? `в бою ${s.pbHumans} ${plural(s.pbHumans, 'желейка', 'желейки', 'желеек')}` : 'пусто — заходи первым', s.pbHumans > 0);
+        break;
+      case 'fort': {
+        const f = s.fort;
+        if (!f) break;
+        if (f.humans >= FORT_MAX_HUMANS) row(key, 'на стенах тесно · мест нет', true);
+        else if (f.humans === 0) row(key, 'на стенах пусто — зови', false);
+        else if (f.phase === FT_WAVE) row(key, `волна ${f.wave} · держат ${f.humans}`, true);
+        else if (f.phase === FT_BREAK) row(key, `передышка · волна ${f.wave + 1}`, true);
+        else if (f.phase === FT_GATHER) row(key, `сбор · волна через ${f.left} с`, true);
+        else row(key, 'итоги боя', true);
+        break;
+      }
+      case 'kart': {
+        const k = s.kart;
+        if (k && k.phase === 'count') row(key, `старт через ${k.left} с · ${k.n} из ${RC_MAX_KARTS}`, true);
+        else if (k && k.phase === 'race') row(key, `гонка · круг ${Math.min(k.lap, k.laps)} из ${k.laps}`, true);
+        else if (k && k.phase === 'results') row(key, 'финиш · итоги на табло', true);
+        else row(key, 'трасса свободна', false);
+        break;
+      }
+      case 'sky': {
+        const k = s.skill;
+        if (!k) break;
+        if (k.n >= k.max) row(key, 'каланча занята', true);
+        else if (k.phase === 'pre') row(key, `забег через ${k.left} с · ${k.n} из ${k.max}`, true);
+        else if (k.phase === 'run') row(key, `забег идёт · ${k.n} из ${k.max}`, true);
+        else row(key, k.n > 0 ? `на каланче ${k.n} из ${k.max}` : 'каланча свободна', k.n > 0);
+        break;
+      }
+      case 'fight': {
+        const f = s.fight;
+        if (!f) break;
+        if (f.phase === 'count') row(key, `спуск через ${f.left} с · в круге ${f.n}`, true);
+        else if (f.phase === 'fight') row(key, 'внизу идёт бой', true);
+        else row(key, f.n > 0 ? `в круге ${f.n} · ждут бой` : 'в подвале тихо', f.n > 0);
+        break;
+      }
+      case 'regatta': {
+        const r = s.regatta;
+        if (!r.q && !r.running) break;
+        if (r.running) row(key, 'идёт заезд в бухте', true);
+        else if (r.q && r.q.phase === 'count') row(key, `старт через ${r.q.left ?? 0} с · ${r.q.n} из ${RG_MAX}`, true);
+        else if (r.q && r.q.n > 0) row(key, `у круга ${r.q.n} из ${RG_MAX} · ждём ещё`, true);
+        else row(key, 'бухта свободна', false);
+        break;
+      }
+      case 'boat': {
+        const b = s.boat;
+        if (b && b.ph === BP_BOARD) row(key, BOAT_SEATS - b.n > 0 ? `отплытие через ${b.left} с · мест ${BOAT_SEATS - b.n}` : `мест нет · через ${b.left} с`, true);
+        else if (b && b.ph === BP_RIDE) row(key, `в поездке · ещё ${b.left} с`, true);
+        else row(key, 'катер свободен · жми E', false);
+        break;
+      }
+      case 'hide': {
+        const h = s.hide;
+        if (!h) break;
+        if (h.phase === 'gather') row(key, h.n > 0 ? `сбор ${h.n} из ${h.max} · нужно двое` : 'во дворе никого', h.n > 0);
+        else row(key, 'идёт раунд', true);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return rows;
 }
 
 /** Строка на табличке конторы порта: что сейчас с катером «Ласточка» (в тех же словах, что столбик у причала) */

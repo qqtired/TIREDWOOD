@@ -139,7 +139,7 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
   for (const bx of [9.45, 12.55]) d.box(0.13, 0.75, 0.05, bx, 5.9, -15.53, 0x181818);
   // вывеска и строка статуса
   near.sign({ w: 3.6, h: 0.95, x, y: 5.55, z: -15.5, glow: 0.38, draw: drawFortSign });
-  const plate = new LinePlate(2.1, 0.36, { bg: '#3b2a1d', border: '#c9a46a', fg: '#ffe9b8' });
+  const plate = new LinePlate(2.1, 0.36, { bg: '#3b2a1d', border: '#c9a46a', fg: '#ffe9b8' }, ctx.signs);
   plate.mesh.position.set(x, 4.62, -15.5);
   near.group.add(plate.mesh);
   // поднятая решётка под перемычкой

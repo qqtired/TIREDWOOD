@@ -13,7 +13,7 @@ import { FIGHT_POSTS, PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_B
 import { FC_CIRCLE } from '../shared/fight.ts';
 import { TOUT_INFO, type ToutKey } from '../client/lobby/plaza/data.ts';
 import { DEFAULT_PLAZA, pickPlaza } from '../client/lobby/plaza/flag.ts';
-import { boatPlateLine, emptyLive, fillLive, liveLines, plural, type LiveIn, type LiveRaw } from '../client/lobby/plaza/live.ts';
+import { AGENDA_ORDER, agendaRows, boatPlateLine, emptyLive, fillLive, liveLines, plural, type LiveIn, type LiveRaw } from '../client/lobby/plaza/live.ts';
 
 const KEYS = Object.keys(TOUT_INFO) as ToutKey[];
 
@@ -77,6 +77,74 @@ test('живые реплики: по каждому статусу — коро
     }
   }
   assert.ok(produced >= 40, `живых реплик ${produced}`);
+});
+
+test('афиша кафе: без флагов — три строки, с флагами — все восемь по порядку улицы, строки короткие', () => {
+  const idle = agendaRows(emptyLive());
+  assert.deepEqual(idle.map((r) => r.key), ['paint', 'kart', 'boat'], 'пейнтбол, картинг и катер есть всегда');
+  assert.ok(idle.every((r) => !r.hot), 'тишина — ни одной горящей точки');
+
+  const all = (over: Partial<LiveIn> = {}): LiveIn => ({
+    pbHumans: 3,
+    fort: { phase: FT_WAVE, wave: 17, humans: 4, left: 0 },
+    skill: { n: 2, max: 4, phase: 'pre', left: 12 },
+    kart: { phase: 'count', n: 4, left: 9, lap: 0, laps: 3 },
+    hide: { phase: 'gather', n: 1, max: 8 },
+    regatta: { q: { phase: 'count', n: 5, left: 11 }, running: false },
+    fight: { phase: 'count', left: 14, n: 2 },
+    boat: { ph: BP_BOARD, n: 1, left: 25 },
+    ...over,
+  });
+  const rows = agendaRows(all());
+  assert.deepEqual(rows.map((r) => r.key), [...AGENDA_ORDER], 'все режимы, порядок как на улице');
+  assert.ok(rows.every((r) => r.hot), 'везде что-то идёт');
+  for (const r of rows) {
+    assert.ok(r.name.length > 0 && r.name.length <= 14, `имя «${r.name}»`);
+    assert.ok(r.text.length > 0 && r.text.length <= 28, `«${r.text}» ${r.text.length} знаков`);
+  }
+  const text = (key: string, s: LiveIn): string => agendaRows(s).find((r) => r.key === key)?.text ?? '';
+  assert.equal(text('fort', all()), 'волна 17 · держат 4');
+  assert.equal(text('kart', all()), 'старт через 9 с · 4 из 6');
+  assert.equal(text('boat', all()), 'отплытие через 25 с · мест 3');
+  assert.equal(text('paint', all({ pbHumans: 0 })), 'пусто — заходи первым');
+  assert.ok(!agendaRows(all({ pbHumans: 0 })).find((r) => r.key === 'paint')?.hot);
+  assert.ok(!agendaRows(all({ fort: { phase: FT_GATHER, wave: 0, humans: 0, left: 20 } })).find((r) => r.key === 'fort')?.hot, 'на стенах пусто — точка не горит');
+  assert.equal(text('fort', all({ fort: { phase: FT_WAVE, wave: 3, humans: FORT_MAX_HUMANS, left: 0 } })), 'на стенах тесно · мест нет');
+  assert.equal(text('sky', all({ skill: { n: 4, max: 4, phase: 'run', left: 0 } })), 'каланча занята');
+  assert.equal(text('regatta', all({ regatta: { q: null, running: true } })), 'идёт заезд в бухте');
+  assert.equal(text('regatta', all({ regatta: { q: { phase: 'idle', n: 0 }, running: false } })), 'бухта свободна');
+
+  // перебор всех состояний: ни одной кривой строки
+  const phases = { fort: [FT_GATHER, FT_WAVE, FT_BREAK, FT_END], kart: ['idle', 'count', 'race', 'results'], hide: ['gather', 'hide'], skill: ['pre', 'run', 'idle'], fight: ['idle', 'count', 'fight'] };
+  for (const fp of phases.fort) for (const humans of [0, 2, FORT_MAX_HUMANS]) {
+    for (const kp of phases.kart) for (const hp of phases.hide) for (const sp of phases.skill) for (const gp of phases.fight) {
+      for (const boat of [0, BP_BOARD, BP_RIDE]) {
+        const s = all({
+          fort: { phase: fp, wave: 99, humans, left: 30 }, kart: { phase: kp, n: 6, left: 30, lap: 9, laps: 3 }, hide: { phase: hp, n: 0, max: 8 },
+          skill: { n: 0, max: 4, phase: sp, left: 30 }, fight: { phase: gp, left: 30, n: 0 }, boat: { ph: boat, n: BOAT_SEATS, left: 99 },
+        });
+        for (const r of agendaRows(s)) {
+          assert.ok(r.text.length > 0 && r.text.length <= 28, `«${r.name}: ${r.text}»`);
+          assert.ok(!/undefined|NaN|\[object/.test(r.text), `«${r.text}»`);
+        }
+      }
+    }
+  }
+});
+
+test('бариста: читает афишу вслух — «режим: что сейчас», только горящие строки; в тишине — свои реплики', () => {
+  assert.deepEqual(liveLines('cafe', emptyLive()), []);
+  const busy: LiveIn = {
+    pbHumans: 2, fort: { phase: FT_WAVE, wave: 9, humans: 3, left: 0 }, skill: { n: 0, max: 4, phase: 'idle', left: 0 },
+    kart: { phase: 'race', n: 3, left: 0, lap: 2, laps: 3 }, hide: null, regatta: { q: null, running: true }, fight: null, boat: { ph: BP_RIDE, n: 2, left: 20 },
+  };
+  assert.deepEqual(liveLines('cafe', busy), [
+    'Пейнтбол: в бою 2 желейки', 'Крепость: волна 9 · держат 3', 'Картинг: гонка · круг 2 из 3', 'Регата: идёт заезд в бухте', 'Ласточка: в поездке · ещё 20 с',
+  ]);
+  // тихая крепость и пустая каланча — не новости
+  const quiet = liveLines('cafe', { ...emptyLive(), fort: { phase: FT_GATHER, wave: 0, humans: 0, left: 20 }, skill: { n: 0, max: 4, phase: 'idle', left: 0 } });
+  assert.deepEqual(quiet, []);
+  for (const line of liveLines('cafe', busy)) assert.ok(line.length <= BUBBLE_CHARS, `«${line}»`);
 });
 
 test('строка конторы порта: свободен / посадка (места) / в поездке', () => {

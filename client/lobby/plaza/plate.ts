@@ -23,7 +23,8 @@ export class LinePlate {
   readonly h: number;
   private readonly style: PlateStyle;
 
-  constructor(w: number, h: number, style: PlateStyle) {
+  /** signs — табличка гаснет вместе со светом в сети (гроза): материал заносится в общий список вывесок */
+  constructor(w: number, h: number, style: PlateStyle, signs?: Map<THREE.MeshStandardMaterial, number>) {
     this.w = w;
     this.h = h;
     this.style = style;
@@ -36,6 +37,7 @@ export class LinePlate {
       new THREE.PlaneGeometry(w, h),
       new THREE.MeshStandardMaterial({ map: this.tex, emissiveMap: this.tex, emissive: 0xffffff, emissiveIntensity: glow, roughness: 0.8 }),
     );
+    signs?.set(this.mesh.material, glow);
     this.set('');
   }
 
