@@ -5,7 +5,7 @@
 import type { Hud } from '../../paintball/hud.ts';
 import { el } from './dom.ts';
 
-export type Tone = 'neutral' | 'wave' | 'gold' | 'danger' | 'sea' | 'boss' | 'super';
+export type Tone = 'neutral' | 'wave' | 'gold' | 'danger' | 'sea' | 'boss' | 'super' | 'record';
 
 export interface BannerSpec {
   title: string;
@@ -85,6 +85,12 @@ export class Banners {
     // срочный не ждёт неважный: тот уходит через мгновение
     if (this.cur && e.prio >= 2 && this.cur.prio < e.prio) this.curEnd = Math.min(this.curEnd, Math.max(now + 160, this.curAt + 500));
     else if (this.cur && e.prio > this.cur.prio) this.curEnd = Math.min(this.curEnd, Math.max(now + 300, this.curAt + MIN_SHOW_MS));
+  }
+
+  /** Убрать баннер: ждущий — из очереди, показанный — уходит сейчас (устарел: «рекордная волна» после побитого рекорда) */
+  drop(key: string): void {
+    this.queue = this.queue.filter((q) => q.key !== key);
+    if (this.cur?.key === key) this.curEnd = Math.min(this.curEnd, performance.now());
   }
 
   /** Мелкое подтверждение строкой внизу (HTML из своих строк) */

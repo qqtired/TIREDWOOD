@@ -1,0 +1,145 @@
+/* Рекорд крепости (client/fort/ui/record.ts): плашка в полосе сверху и баннер «Новый рекорд». Цвета — из ui.css. */
+
+/* одна ширина во всех состояниях: полоса сверху не растёт и не наезжает на жетоны в углу */
+.fu-rec {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 140px;
+  padding: 5px 10px 6px 8px;
+}
+.fu-rec[hidden] { display: none; }
+.fu-rec-cup {
+  flex: none;
+  font-style: normal;
+  font-size: 23px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.45));
+}
+.fu-rec-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
+.fu-rec-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.fu-rec-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fu-dim);
+}
+.fu-rec-n {
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--fu-gold);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 var(--fu-edge);
+}
+.fu-rec-me {
+  font-size: 12px;
+  font-weight: 800;
+  color: #f3e3c6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+/* рекордная волна или рекорд повторён — плашка зовёт */
+.fu-rec.hot { border-color: #9a6c1e; box-shadow: var(--fu-shadow), inset 0 0 0 1px var(--fu-hair), 0 0 0 2px rgba(255, 211, 90, 0.55); }
+.fu-rec.hot .fu-rec-me { color: #ffe08a; animation: fu-blink 0.7s ease-in-out infinite alternate; }
+/* рекорд — ваш: золотая плашка */
+.fu-rec.ours {
+  background: linear-gradient(180deg, #ffe9a6, #f4c04a 55%, #d99a24);
+  border-color: #6b4410;
+  box-shadow: var(--fu-shadow), inset 0 0 0 1px rgba(255, 250, 220, 0.7), 0 0 14px rgba(255, 200, 70, 0.55);
+}
+.fu-rec.ours .fu-rec-label,
+.fu-rec.ours .fu-rec-me { color: #5a3510; }
+.fu-rec.ours .fu-rec-n { color: #fffaf0; text-shadow: 0 2px 0 #7a4a10, 0 0 8px rgba(122, 74, 16, 0.5); }
+.fu-rec.flash { animation: fu-rec-flash 1.2s var(--fu-ease); }
+@keyframes fu-rec-flash {
+  0% { transform: scale(1); }
+  18% { transform: scale(1.22); }
+  40% { transform: scale(0.96); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* баннер «Новый рекорд крепости!» — золото с бликом */
+.fu-banner.tone-record {
+  background: linear-gradient(180deg, #fff1bf 0%, #f6c84e 48%, #dc9a23 100%);
+  border-color: #6b4410;
+  box-shadow: 0 12px 34px rgba(60, 30, 4, 0.55), 0 0 0 3px rgba(255, 236, 160, 0.55), 0 0 40px rgba(255, 196, 64, 0.65);
+  overflow: hidden;
+}
+.fu-banner.tone-record::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -40%;
+  width: 30%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
+  transform: skewX(-18deg);
+  animation: fu-rec-shine 1.6s ease-in-out 0.3s 2;
+}
+.fu-banner.tone-record .fu-bbadge { background: #fff8e1; color: #3a2416; box-shadow: inset 0 -4px 0 rgba(160, 100, 20, 0.35), 0 2px 0 #6b4410; }
+.fu-banner.tone-record .fu-btitle { color: #fffdf4; font-size: 34px; text-shadow: 0 2px 0 #7a4a10, 0 0 10px rgba(122, 74, 16, 0.45); }
+.fu-banner.tone-record .fu-bsub { color: #4a2c0e; font-weight: 800; }
+@keyframes fu-rec-shine { from { left: -40%; } to { left: 120%; } }
+
+/* узкое окно на компьютере: полоса и так почти до жетонов — плашка короче, ещё уже — прячется (рекорд — в баннерах) */
+@media (max-width: 1240px) {
+  .fu-rec { width: 104px; }
+  .fu-rec-label { display: none; }
+}
+@media (max-width: 1150px) {
+  .fu-rec { display: none; }
+}
+@media (max-width: 900px) {
+  .fu-banner.tone-record .fu-btitle { font-size: 24px; }
+}
+/* телефон: полоса уменьшена и переносится — плашка остаётся */
+.touch .fu-rec { display: flex; width: 140px; }
+.touch .fu-rec[hidden] { display: none; }
+.touch .fu-rec-label { display: inline; }
+@media (max-height: 500px) {
+  .fu-banner.tone-record .fu-btitle { font-size: 20px; }
+}
+
+/* итоги (results.ts): новый рекорд — золотая лента над заголовком, свой рекорд — строкой, эта игра в таблице — подсвечена */
+.fu-res-newrec {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 10px 18px 11px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff1bf 0%, #f6c84e 48%, #dc9a23 100%);
+  border: 2px solid #6b4410;
+  box-shadow: 0 0 0 3px rgba(255, 236, 160, 0.45), 0 0 26px rgba(255, 196, 64, 0.5);
+  overflow: hidden;
+  animation: fu-rec-flash 1.2s var(--fu-ease) 0.3s;
+}
+.fu-res-newrec::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -40%;
+  width: 26%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  transform: skewX(-18deg);
+  animation: fu-rec-shine 1.8s ease-in-out 0.6s 3;
+}
+.fu-res-cup { font-size: 42px; line-height: 1; filter: drop-shadow(0 2px 1px rgba(90, 50, 10, 0.45)); }
+.fu-res-newrec b { display: block; font-size: 30px; font-weight: 900; line-height: 1.05; color: #fffdf4; text-shadow: 0 2px 0 #7a4a10, 0 0 10px rgba(122, 74, 16, 0.4); }
+.fu-res-newrec span { display: block; margin-top: 2px; font-size: 15px; font-weight: 800; color: #4a2c0e; }
+.fu-res-record.mine { background: rgba(255, 211, 90, 0.26); color: #fff0b8; }
+.fu-res-top li.this span { color: #ffe08a; font-weight: 800; }
+.fu-res-top li.this::after { content: ' ← эта игра'; font-size: 11.5px; font-weight: 800; color: var(--fu-gold); }
+.fu-res-top li small { margin-left: 4px; font-size: 11.5px; color: var(--fu-dim); }
+@media (max-width: 520px) {
+  .fu-res-newrec { gap: 10px; padding: 8px 12px; }
+  .fu-res-cup { font-size: 32px; }
+  .fu-res-newrec b { font-size: 22px; }
+  .fu-res-newrec span { font-size: 13px; }
+}
