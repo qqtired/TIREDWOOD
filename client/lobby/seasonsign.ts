@@ -9,13 +9,14 @@
 import * as THREE from 'three';
 import { BARKAS, BARKAS_HOUSE } from '../../shared/barkas.ts';
 import { FISH_HOUSE } from '../../shared/fishplaces.ts';
+import { SEASON_MUL } from '../../shared/fishrules.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { FISH_SEASON, seasonLeft, type FishSeasonState } from './fishseason.ts';
 
 /** «Скоро сезон!» — за столько до начала, мс */
 export const SEASON_SOON_MS = 5 * 60_000;
 /** Что даёт сезон (shared/fishrules.ts — множитель шансов) */
-export const SEASON_SIGN_PERK = 'Все шансы ×2';
+export const SEASON_SIGN_PERK = `Все шансы ×${String(SEASON_MUL).replace('.', ',')}`;
 /** Сколько идёт сезон, мин (server/lobby/fishseason.ts — SEASON_MS) */
 const SEASON_MIN = 10;
 
