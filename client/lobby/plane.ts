@@ -2,14 +2,16 @@
 // planePos с плавностью (на 3 тика позже часов отрисовки, при задержке — по скорости вперёд), у пилота — предсказанием
 // тем же шагом, что на сервере (сверка с planeMe). Пилоту: камера сзади и чуть сверху (колесо — ближе/дальше),
 // мышь ведёт нос (цель — кружок впереди), интерфейс с временем и «сесть раньше» (E дважды), мотор и ветер.
+// Баннер: у таблички E — окошко заказа пролёта с надписью, в своём полёте B — прицепить баннер (planebanner.ts).
 // Сцена набережной (scene.ts) зовёт: welcome, onJson, tickInput, frameInput, frame, camera, avatarPose, hint, onKey.
 import * as THREE from 'three';
 import { TICK_RATE } from '../../shared/constants.ts';
 import { ACT_PLANE } from '../../shared/lobby.ts';
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import {
-  PL_DOCK, PL_FLY, PL_HOME, PL_LAND, PL_START, PLANE_DOCK, PLANE_FAST, PLANE_FLOAT_Y, PLANE_FLY_TICKS, PLANE_LEAD, PLANE_PITCH_MAX, PLANE_PRICE,
-  copyPlane, emptyPlaneView, makePlane, planeCeil, planeFloor, readPlane, samePlane, stepPlane, wrapAngle, type PlaneState, type PlaneView,
+  BANNER_MAX, BANNER_PRICE, BANNER_TRIP_TICKS, PL_DOCK, PL_FLY, PL_HOME, PL_LAND, PL_START, PLANE_DOCK, PLANE_FAST, PLANE_FLOAT_Y, PLANE_FLY_TICKS,
+  PLANE_LEAD, PLANE_PITCH_MAX, PLANE_PRICE, PLANE_TRIP_TICKS, copyPlane, emptyPlaneView, makePlane, planeCeil, planeFloor, readPlane, samePlane,
+  stepPlane, wrapAngle, type PlaneState, type PlaneView,
 } from '../../shared/plane.ts';
 import type { Input as NetInput } from '../../shared/sim.ts';
 import type { Sound } from '../audio.ts';
@@ -17,6 +19,7 @@ import type { Input } from '../input.ts';
 import type { AvatarPose } from '../render/avatar.ts';
 import { TOUCH } from '../touch.ts';
 import { PlaneModel, PlaneSign } from './plane3d.ts';
+import { BannerPanel } from './planebanner.ts';
 import './plane.css';
 
 /** Голоса мотора: чужой самолёт (в мире) и свой (без объёма) */
@@ -30,6 +33,8 @@ const EXTRAPOLATE = 8;
 const CAM_DIST = 12;
 const CAM_MIN = 6;
 const CAM_MAX = 26;
+/** С баннером камера не дальше этого — полотнище висит за ней (трос — planebanner.ts) */
+const CAM_MAX_BANNER = 13;
 /** «Сесть сейчас» — второе нажатие E в течение 3 с */
 const ASK_MS = 3000;
 const RING = 256;
@@ -42,6 +47,8 @@ export interface PlaneDeps {
   toast: (text: string, ms?: number) => void;
   send: (msg: ClientMsg) => void;
   me: () => { nick: string; tokens: number };
+  /** Окошко баннера открылось (отпустить мышь) или закрылось (захватить снова) */
+  modal: (open: boolean) => void;
 }
 
 interface Pose {
@@ -274,8 +281,10 @@ export class PlaneClient {
   private readonly hudSub: HTMLElement;
   private readonly hudHelp: HTMLElement;
   private readonly hudLand: HTMLButtonElement;
+  private readonly hudBanner: HTMLButtonElement;
   private readonly aim: HTMLElement;
   private hudKey = '';
+  private readonly panel: BannerPanel;
 
   constructor(d: PlaneDeps) {
     this.d = d;
@@ -292,7 +301,16 @@ export class PlaneClient {
     this.hudLand = el('button', 'pl-land', this.hud, 'Сесть сейчас');
     this.hudLand.type = 'button';
     this.hudLand.addEventListener('click', () => this.askLand());
+    this.hudBanner = el('button', 'pl-banner', this.hud, `${TOUCH ? '' : 'B — '}баннер +${BANNER_PRICE} 🪙`);
+    this.hudBanner.type = 'button';
+    this.hudBanner.addEventListener('click', () => this.openBanner());
     this.aim = el('div', 'pl-aim', this.hud);
+    this.panel = new BannerPanel({
+      root: d.hudRoot,
+      send: (text) => d.send({ t: 'plane', a: 'banner', text }),
+      onOpen: () => d.modal(true),
+      onClose: () => d.modal(false),
+    });
     window.addEventListener('wheel', (e) => {
       if (this.flying && this.d.input.locked && !this.d.input.blocked) this.zoom = Math.min(CAM_MAX, Math.max(CAM_MIN, this.zoom * (1 + e.deltaY * 0.0012)));
     }, { passive: true });
@@ -301,6 +319,36 @@ export class PlaneClient {
   /** Я — пилот и самолёт не у стоянки */
   get flying(): boolean {
     return this.mine && this.pose.ph !== PL_DOCK;
+  }
+
+  /** Открыто окошко баннера (мышь свободна, клавиши — ему) */
+  get bannerOpen(): boolean {
+    return this.panel.isOpen;
+  }
+
+  /**
+   * Окошко баннера: в своём полёте (взлёт или свободный полёт, баннера ещё нет) — прицепить к самолёту, иначе —
+   * заказать пролёт над набережной.
+   */
+  openBanner(): void {
+    if (!this.enabled || this.panel.isOpen) return;
+    if (this.flying) {
+      const ph = this.pred.state.ph;
+      if (this.view.b) this.d.toast('Баннер уже летит за самолётом');
+      else if (ph !== PL_START && ph !== PL_FLY) this.d.toast('Самолёт уже идёт на посадку — баннер в следующий раз');
+      else this.panel.open(true, `${BANNER_MAX} знаков · ${BANNER_PRICE} 🪙 — сразу`);
+      return;
+    }
+    this.panel.open(false, this.bannerNote());
+  }
+
+  /** Когда взлетит заказанный сейчас баннер */
+  private bannerNote(): string {
+    const v = this.view;
+    if (v.ph === PL_DOCK && !v.hold && v.q.length === 0) return 'Небо свободно — взлетит сразу';
+    let t = v.ph === PL_DOCK ? (v.hold ? PLANE_TRIP_TICKS : 0) : this.eta();
+    for (let i = 0; i < v.q.length; i++) t += v.qb[i] ? BANNER_TRIP_TICKS : PLANE_TRIP_TICKS;
+    return `Небо занято — взлетит через ~${soon(t)} · оплата при взлёте`;
   }
 
 
@@ -314,6 +362,7 @@ export class PlaneClient {
   }
 
   reset(): void {
+    this.panel.close();
     this.pred.stop();
     this.track.s.length = 0;
     this.mine = false;
@@ -339,6 +388,7 @@ export class PlaneClient {
   private applyView(): void {
     const v = this.view;
     this.model.setPilot(v.slot, v.nick, v.o, v.level);
+    this.model.setBanner(v.ph !== PL_DOCK ? (v.b ?? '') : '');
   }
 
   /** Свой вход (каждый тик): пилоту — шаг предсказания. */
@@ -440,7 +490,8 @@ export class PlaneClient {
     let line: string;
     let color: string;
     if (v.ph !== PL_DOCK) {
-      line = v.nick ? `В полёте: ${v.nick} · вернётся через ${soon(this.eta())}` : `Летит домой · будет через ${soon(this.eta())}`;
+      line = v.nick ? `В полёте: ${v.nick} · вернётся через ${soon(this.eta())}` : v.b ? `Катает баннер ${v.bn} · вернётся через ${soon(this.eta())}`
+        : `Летит домой · будет через ${soon(this.eta())}`;
       color = '#9fd6ff';
     } else if (v.hold) {
       line = `Ждёт ${v.hold} по очереди · ${Math.max(1, Math.ceil((v.hu - this.renderTick) / TICK_RATE))} с`;
@@ -449,7 +500,9 @@ export class PlaneClient {
       line = 'Свободен — подойди и нажми E';
       color = '#8ff0a4';
     }
-    this.sign.update(line, color, v.q.length ? `В очереди: ${v.q.length} · ${v.q.slice(0, 3).join(', ')}${v.q.length > 3 ? '…' : ''}` : '');
+    const q = v.q.map((n, i) => (v.qb?.[i] ? `${n} (баннер)` : n));
+    this.sign.update(line, color, q.length ? `В очереди: ${q.length} · ${q.slice(0, 3).join(', ')}${q.length > 3 ? '…' : ''}` : '');
+    if (this.panel.isOpen && !this.flying) this.panel.setNote(this.bannerNote());
   }
 
   private hudUpdate(): void {
@@ -475,7 +528,7 @@ export class PlaneClient {
       help = TOUCH ? 'Пальцем — осмотреться' : 'Мышь — осмотреться · колесо — камера';
     }
     const sub = `высота ${Math.max(0, Math.round(p.y - PLANE_FLOAT_Y))} м · ${Math.round(p.v * 3.6)} км/ч`;
-    const key = `${title}|${help}|${sub}|${asking}|${s.ph}`;
+    const key = `${title}|${help}|${sub}|${asking}|${s.ph}|${this.view.b}`;
     if (key === this.hudKey) return;
     this.hudKey = key;
     this.hudTitle.innerHTML = `✈ «Стриж» · ${title}`;
@@ -484,6 +537,7 @@ export class PlaneClient {
     this.hudHelp.classList.toggle('pl-ask', asking);
     this.hudLand.hidden = s.ph !== PL_FLY;
     this.hudLand.textContent = asking ? 'Точно сесть?' : 'Сесть сейчас';
+    this.hudBanner.hidden = (s.ph !== PL_START && s.ph !== PL_FLY) || !!this.view.b;
   }
 
   /** E в полёте: первый раз — спросить, второй (в течение 3 с) — домой. */
@@ -509,6 +563,10 @@ export class PlaneClient {
     }
     if (down && !e.repeat && code === 'KeyE') {
       this.askLand();
+      return true;
+    }
+    if (code === 'KeyB') {
+      if (down && !e.repeat) this.openBanner();
       return true;
     }
     return false;
@@ -543,7 +601,7 @@ export class PlaneClient {
     const fx = -Math.sin(this.camYaw) * Math.cos(cp);
     const fz = -Math.cos(this.camYaw) * Math.cos(cp);
     const fy = Math.sin(cp);
-    const dist = this.zoom;
+    const dist = this.view.b ? Math.min(this.zoom, CAM_MAX_BANNER) : this.zoom;
     _v.set(p.x - fx * dist, p.y - fy * dist + 1.7 + dist * 0.17, p.z - fz * dist);
     if (_v.y < PLANE_FLOAT_Y + 1.2) _v.y = PLANE_FLOAT_Y + 1.2;
     this.camLook.set(p.x + fx * 10, p.y + fy * 10 + 0.9, p.z + fz * 10);
@@ -598,9 +656,17 @@ export class PlaneClient {
       if (v.hold && v.hold !== me.nick) return [['E'], `в очередь · самолёт ждёт ${v.hold}`];
       return [['E'], `полёт над городом — ${PLANE_PRICE} 🪙 · 3 минуты${me.tokens < PLANE_PRICE ? ` (у тебя ${me.tokens})` : ''}`];
     }
-    const i = v.q.indexOf(me.nick);
+    const i = v.q.findIndex((n, j) => n === me.nick && !v.qb?.[j]);
     if (i >= 0) return [[], `Ты ${i + 1}-й в очереди на самолёт · он вернётся через ${soon(this.eta())}`];
-    return [['E'], `в очередь на самолёт · сейчас летит ${v.nick || 'домой'}, вернётся через ${soon(this.eta())}`];
+    return [['E'], `в очередь на самолёт · сейчас ${v.nick ? `летит ${v.nick}` : v.b ? `катает баннер ${v.bn}` : 'летит домой'}, вернётся через ${soon(this.eta())}`];
+  }
+
+  /** Подсказка у таблички: заказать баннер */
+  bannerHint(): [string[], string] {
+    const v = this.view;
+    const me = this.d.me();
+    if (v.q.some((n, j) => n === me.nick && v.qb?.[j])) return [[], 'Твой баннер в очереди — взлетит, когда небо освободится'];
+    return [['E'], `баннер с надписью над набережной — ${BANNER_PRICE} 🪙${me.tokens < BANNER_PRICE ? ` (у тебя ${me.tokens})` : ''}`];
   }
 
   debug(): object {

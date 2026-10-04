@@ -4,10 +4,11 @@
 // на столбике у угла павильона: что за самолёт, цена и что с ним сейчас.
 // Начало координат самолёта — его опорная точка: нос смотрит на −Z, поплавки снизу на PLANE_FLOAT_Y ниже.
 import * as THREE from 'three';
-import { PLANE_DOCK, PLANE_FLOAT_Y, PLANE_PRICE, PLANE_SIGN } from '../../shared/plane.ts';
+import { BANNER_PRICE, PLANE_DOCK, PLANE_FLOAT_Y, PLANE_PRICE, PLANE_SIGN } from '../../shared/plane.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { BannerCloth } from './planebanner.ts';
 
 const CREAM = 0xf6efe2;
 const RED = 0xe8573c;
@@ -102,6 +103,8 @@ export class PlaneModel {
   private readonly scene: THREE.Scene;
   private spin = 0;
   private readonly seat = new THREE.Vector3();
+  /** Баннер на тросе за хвостом (пусто — нет) */
+  private readonly banner = new BannerCloth();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -123,6 +126,7 @@ export class PlaneModel {
     this.root.add(this.prop);
     this.root.position.set(PLANE_DOCK.x, PLANE_FLOAT_Y, PLANE_DOCK.z);
     this.root.rotation.set(0, PLANE_DOCK.yaw, 0, 'YXZ');
+    this.root.add(this.banner.group);
     scene.add(this.root);
     // верёвка от кнехта на набережной к левому поплавку (на стоянке)
     this.rope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 5), new THREE.MeshStandardMaterial({ color: 0xc9b48a, roughness: 0.9 }));
@@ -153,6 +157,11 @@ export class PlaneModel {
 
   get visible(): boolean {
     return this.root.visible;
+  }
+
+  /** Надпись на баннере за самолётом ('' — без баннера) */
+  setBanner(text: string): void {
+    this.banner.set(text);
   }
 
   /** Пилот сменился: своя желейка в кабине (с его нарядом), ник над самолётом */
@@ -209,6 +218,9 @@ export class PlaneModel {
     this.root.position.set(x, y + bob, z);
     this.root.rotation.set(pitch + (onWater ? Math.sin(time * 1.1 + 0.5) * 0.012 : 0), yaw, roll + sway, 'YXZ');
     this.root.updateMatrixWorld(true);
+    // на воде (разбег, рулёжка) полотнище не тащим: оно появляется в воздухе, перед посадкой — отцепляется
+    this.banner.group.visible = this.banner.on && y > PLANE_FLOAT_Y + 3;
+    if (this.root.visible) this.banner.update(time);
     this.spin += dt * prop * 48;
     this.prop.rotation.z = this.spin;
     const fast = Math.min(1, Math.max(0, (prop - 0.45) / 0.4));
@@ -237,6 +249,7 @@ export class PlaneModel {
   dispose(): void {
     this.rider?.dispose(this.scene);
     this.rider = null;
+    this.banner.dispose();
   }
 }
 
@@ -315,13 +328,15 @@ export class PlaneSign {
     fit(c, 'Полёт над городом · 3 минуты', 116, 100, W - 140, 700, 26);
     c.textAlign = 'center';
     c.fillStyle = '#ffffff';
-    fit(c, `${PLANE_PRICE} 🪙 · E у самолёта`, W / 2, 152, W - 50, 800, 34);
+    fit(c, `${PLANE_PRICE} 🪙 · E у самолёта`, W / 2, 146, W - 50, 800, 34);
+    c.fillStyle = '#ffe7a8';
+    fit(c, `Баннер с надписью над набережной — ${BANNER_PRICE} 🪙 · E у таблички`, W / 2, 186, W - 50, 700, 22);
     if (queue) {
       c.fillStyle = '#ffd35c';
-      fit(c, queue, W / 2, 200, W - 50, 700, 24);
+      fit(c, queue, W / 2, 222, W - 50, 700, 22);
     }
     c.fillStyle = color;
-    fit(c, line, W / 2, 250, W - 50, 900, 28);
+    fit(c, line, W / 2, 262, W - 50, 900, 28);
     this.tex.needsUpdate = true;
   }
 }

@@ -484,6 +484,7 @@ export class LobbyScene implements Scene {
     this.plane = new PlaneClient({
       scene: this.world.scene, sound: d.sound, hudRoot: this.hud.root, input: d.input,
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg), me: () => d.ui.me(),
+      modal: (open) => { if (open) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
     });
     this.losers = new LosersScreen(this.world.scene);
     this.tg = new TgScreen(this.world.scene);
@@ -514,7 +515,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || this.fish2.modalOpen || this.juke.isOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || this.fish2.modalOpen || this.juke.isOpen || this.plane.bannerOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -526,7 +527,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen || this.plane.bannerOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -1726,6 +1727,7 @@ export class LobbyScene implements Scene {
     const it = this.target;
     if (it?.kind === 'juke') this.juke.toggle();
     else if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
+    else if (it?.kind === 'banner') this.plane.openBanner();
     else if (it?.kind === 'roulette') {
       this.d.net.send({ t: 'use', id: it.id });
       this.fish2.openRoulette();
@@ -2459,7 +2461,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
       if (it.kind === 'juke' && !this.juke.enabled) continue;
-      if (it.kind === 'plane' && !this.plane.enabled) continue;
+      if ((it.kind === 'plane' || it.kind === 'banner') && !this.plane.enabled) continue;
       // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
       if (it.kind === 'fight') continue;
       if (this.isBusy(it)) {
@@ -2571,6 +2573,9 @@ export class LobbyScene implements Scene {
         break;
       case 'plane':
         this.hud.setHint(...this.plane.hint());
+        break;
+      case 'banner':
+        this.hud.setHint(...this.plane.bannerHint());
         break;
       case 'fort': {
         const h = this.fortSt ? fortHint(this.fortSt) : null;

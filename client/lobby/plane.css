@@ -96,6 +96,130 @@
   display: none;
 }
 
+.pl-banner {
+  position: absolute;
+  right: 18px;
+  bottom: 70px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--gold);
+  background: var(--panel);
+  color: var(--gold);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pl-banner[hidden] {
+  display: none;
+}
+
+/* Окошко баннера (client/lobby/planebanner.ts) */
+.pb-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 16, 28, 0.35);
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.pb-back[hidden] {
+  display: none;
+}
+
+.pb-card {
+  width: min(440px, 100%);
+  padding: 18px 20px 16px;
+  border-radius: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+}
+
+.pb-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.pb-sub {
+  margin: 6px 0 12px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--cream-dim);
+}
+
+.pb-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2a2a33;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  outline: none;
+}
+
+.pb-input:focus {
+  border-color: var(--gold);
+}
+
+.pb-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--cream-dim);
+}
+
+.pb-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.pb-note {
+  text-align: right;
+}
+
+.pb-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pb-btns button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pb-btns .pb-go {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #2a2016;
+}
+
+.pb-btns .pb-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @media (max-width: 640px) {
   .pl-help {
     bottom: 96px;
@@ -104,5 +228,9 @@
 
   .pl-land {
     bottom: 150px;
+  }
+
+  .pl-banner {
+    bottom: 196px;
   }
 }

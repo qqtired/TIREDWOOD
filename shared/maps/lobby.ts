@@ -22,7 +22,7 @@ import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
 /** plane — гидроплан «Стриж» у западного края площади (флаг PLANE, shared/plane.ts) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'plane';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'plane' | 'banner';
 
 export interface Interactable {
   id: number;
@@ -413,9 +413,10 @@ export function buildLobby(): LobbyMap {
   b.deco.push({ kind: 'boat', x: -44, z: 26, yaw: 0.6, color: 0xe8e2d4 });
   b.deco.push({ kind: 'boat', x: 6, z: 40, yaw: 2.2, color: 0x5d8fb0 });
 
-  // --- Гидроплан «Стриж» (флаг PLANE, shared/plane.ts): самолёт на воде рисует клиент, здесь — точка у кнехта
-  // напротив него и столбик таблички. Точка — в самый конец списка
+  // --- Гидроплан «Стриж» (флаг PLANE, shared/plane.ts): самолёт на воде рисует клиент, здесь — точка у края
+  // набережной напротив него, точка заказа баннера перед табличкой и столбик таблички. Точки — в самый конец списка
   add('plane', PLANE_USE.x, PLANE_USE.z, Math.PI / 2, PLANE_USE.r, 0, 'Полёт над городом');
+  add('banner', PLANE_SIGN.x + 1, PLANE_SIGN.z, Math.PI / 2, 1.8, 0, 'Баннер над набережной');
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 

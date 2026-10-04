@@ -10,6 +10,7 @@
 import { TICK_RATE, WATER_Y } from './constants.ts';
 import type { Outfit } from './outfit.ts';
 import { BTN_BACK, BTN_DASH, BTN_FORWARD, type Input } from './sim.ts';
+import { sanitizeChat } from './text.ts';
 import { WHEEL } from './wheel.ts';
 
 /** Цена полёта, жетонов */
@@ -33,8 +34,8 @@ export const PL_LAND = 4;
 
 /** Стоянка на воде у западного края площади (берег — x = −30): нос на юг, к аквапарку */
 export const PLANE_DOCK = { x: -38, z: -11, yaw: Math.PI } as const;
-/** E — у самого края набережной напротив самолёта (кто подошёл к воде лицом к самолёту — в радиусе) */
-export const PLANE_USE = { x: -29.6, z: -11.2, r: 2.6 } as const;
+/** E — у края набережной напротив самолёта (кто подошёл к воде лицом к самолёту — в радиусе), рядом с кнехтом */
+export const PLANE_USE = { x: -29.2, z: -10.9, r: 2.6 } as const;
 /** Сюда встаёт пилот после посадки (лицом к самолёту) */
 export const PLANE_EXIT = { x: -28.6, z: -10.2, yaw: Math.PI / 2 } as const;
 /** Табличка на столбике у угла павильона, лицом к площади */
@@ -505,8 +506,12 @@ export interface PlaneView {
   nick: string;
   o: Outfit | null;
   level: number;
-  /** Очередь: ники по порядку */
+  /** Очередь: ники по порядку; qb[i] = 1 — это заказ баннера, а не полёт */
   q: string[];
+  qb: number[];
+  /** Баннер за самолётом в этом полёте: текст и чей ('' — без баннера) */
+  b: string;
+  bn: string;
   /** Самолёт ждёт этого по очереди до тика hu (пусто — никого) */
   hold: string;
   hu: number;
@@ -516,7 +521,7 @@ export interface PlaneView {
 }
 
 export function emptyPlaneView(): PlaneView {
-  return { ph: PL_DOCK, slot: 0, pid: 0, nick: '', o: null, level: 1, q: [], hold: '', hu: 0, k: 0, eta: 0 };
+  return { ph: PL_DOCK, slot: 0, pid: 0, nick: '', o: null, level: 1, q: [], qb: [], b: '', bn: '', hold: '', hu: 0, k: 0, eta: 0 };
 }
 
 export type PlaneServerMsg =
@@ -526,8 +531,8 @@ export type PlaneServerMsg =
   /** Пилоту: точное состояние после его входа ack (для сверки предсказания) */
   | { t: 'planeMe'; ack: number; s: PlaneState };
 
-/** «Сесть сейчас»: начиная со своего входа at — автопилот домой */
-export type PlaneClientMsg = { t: 'plane'; a: 'land'; at: number };
+/** «Сесть сейчас»: начиная со своего входа at — автопилот домой. «Баннер»: пилоту — за свой самолёт, остальным — пролёт */
+export type PlaneClientMsg = { t: 'plane'; a: 'land'; at: number } | { t: 'plane'; a: 'banner'; text: string };
 
 /** Позиция для planePos: округлённая до сантиметров и тысячных радиана */
 export function planePosArray(s: PlaneState): number[] {
@@ -535,3 +540,76 @@ export function planePosArray(s: PlaneState): number[] {
   const r3 = (v: number): number => Math.round(v * 1000) / 1000;
   return [s.ph, r2(s.x), r2(s.y), r2(s.z), r3(s.yaw), r3(s.pitch), r3(s.roll), r2(s.v)];
 }
+
+// ------------------------------------------------------------ баннер
+
+/** Баннер за самолётом: 50 жетонов, текст до 40 знаков, не чаще раза в 5 минут на игрока */
+export const BANNER_PRICE = 50;
+export const BANNER_MAX = 40;
+export const BANNER_COOLDOWN_TICKS = 5 * 60 * TICK_RATE;
+
+/**
+ * Пролёт с баннером без пилота: точки [x, z, высота, медленно] — после взлёта над северной частью города, по городу
+ * к площади, медленно над площадью, мостками к маяку и вдоль южного берега на восток, назад над городом и ещё раз
+ * медленно над площадью; оттуда — обычным автопилотом домой.
+ */
+export const BANNER_ROUTE: readonly (readonly [number, number, number, number])[] = [
+  [-70, -230, 40, 0],
+  [10, -200, 42, 0],
+  [25, -90, 36, 0],
+  [2, -18, 32, 1],
+  [-19, 42, 30, 1],
+  [25, 48, 30, 1],
+  [130, 30, 32, 0],
+  [160, -40, 40, 0],
+  [60, -40, 36, 0],
+  [-10, 0, 32, 1],
+];
+/** Точку маршрута считаем пройденной ближе этого: на ровной скорости радиус разворота ~30 м, на медленной ~18 м */
+const ROUTE_NEAR = 30;
+const ROUTE_NEAR_SLOW = 15;
+
+/** Текст баннера — как строка чата (sanitizeChat), и не длиннее BANNER_MAX знаков; null — пустой или длинный */
+export function bannerText(raw: unknown): string | null {
+  const t = sanitizeChat(raw);
+  const n = [...t].length;
+  return n === 0 || n > BANNER_MAX ? null : t;
+}
+
+/** Вход «пилота» пролёта с баннером: к точке маршрута at.i (пройденные — пропускает). true — маршрут пройден. */
+export function routeInput(s: Pick<PlaneState, 'x' | 'y' | 'z'>, at: { i: number }, out: Input): boolean {
+  while (at.i < BANNER_ROUTE.length) {
+    const [x, z, y, slow] = BANNER_ROUTE[at.i];
+    const dx = x - s.x;
+    const dz = z - s.z;
+    if (Math.hypot(dx, dz) < (slow ? ROUTE_NEAR_SLOW : ROUTE_NEAR)) {
+      at.i++;
+      continue;
+    }
+    out.yaw = Math.atan2(-dx, -dz);
+    out.pitch = clamp((y - s.y) / 30, -0.3, 0.3);
+    out.buttons = slow ? BTN_BACK : 0;
+    return false;
+  }
+  out.buttons = 0;
+  return true;
+}
+
+/** Шаг пролёта с баннером (без пилота): взлёт, маршрут, домой, посадка — тот же stepPlane */
+export function stepBanner(s: PlaneState, at: { i: number }, inp: Input): void {
+  stepPlane(s, inp, s.ph !== PL_FLY || routeInput(s, at, inp));
+}
+
+/** Весь пролёт с баннером от взлёта до стоянки, тиков (детерминирован — считаем один раз) — для очереди */
+export const BANNER_TRIP_TICKS = ((): number => {
+  const s = makePlane();
+  startPlane(s);
+  const at = { i: 0 };
+  const inp: Input = { seq: 0, buttons: 0, yaw: 0, pitch: 0, viewTick: 0 };
+  let n = 0;
+  while (s.ph !== PL_DOCK && n < 30 * 60 * TICK_RATE) {
+    stepBanner(s, at, inp);
+    n++;
+  }
+  return n;
+})();

@@ -652,7 +652,7 @@ export class LobbyRoom implements Room {
         if (msg.a === 'quit') this.regatta?.quit(p);
         return;
       case 'plane':
-        this.plane?.message(p, msg);
+        if (this.hub.limits.hit(`plane:${p.client.id}`, 4, 2000)) this.plane?.message(p, msg);
         return;
       case 'reel':
         // шкала вываживания: свой лимит (клиент шлёт до 20 в секунду, после замирания связи — пачкой)

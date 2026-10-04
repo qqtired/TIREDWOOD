@@ -1,6 +1,7 @@
 // Гидроплан «Стриж» (shared/plane.ts, server/lobby/plane.ts): цена и отказ без денег, очередь, полёт по входам пилота,
 // пол и потолок, широкий круг с мягким разворотом, автопосадка по времени, «сесть сейчас», выход пилота в полёте,
-// позиции всем и точное состояние пилоту, флаг PLANE.
+// позиции всем и точное состояние пилоту, флаг PLANE. Баннер: 50 жетонов, текст как в чате и до 40 знаков, пролёт
+// над площадью и берегом без пилота, общая очередь с оплатой при взлёте, раз в 5 минут на игрока, +50 к своему полёту.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,8 +11,9 @@ import { TICK_RATE, WATER_Y } from '../shared/constants.ts';
 import { ACT_NONE, ACT_PLANE, isHeld, isRiding } from '../shared/lobby.ts';
 import { linkNumbered } from '../shared/link.ts';
 import {
-  PL_DOCK, PL_FLY, PL_HOME, PL_LAND, PL_START, PLANE_AREA, PLANE_DOCK, PLANE_EXIT, PLANE_FLOAT_Y, PLANE_FLY_TICKS, PLANE_HOLD_TICKS, PLANE_LAND_TICKS, PLANE_PRICE,
-  PLANE_SIGN, PLANE_TAKEOFF_TICKS, PLANE_USE, copyPlane, makePlane, planeCeil, planeEnabled, planeFloor, samePlane, startPlane, stepPlane, wrapAngle, type PlaneState,
+  BANNER_COOLDOWN_TICKS, BANNER_PRICE, BANNER_TRIP_TICKS, PL_DOCK, PL_FLY, PL_HOME, PL_LAND, PL_START, PLANE_AREA, PLANE_DOCK, PLANE_EXIT, PLANE_FLOAT_Y,
+  PLANE_FLY_TICKS, PLANE_HOLD_TICKS, PLANE_LAND_TICKS, PLANE_PRICE, PLANE_SIGN, PLANE_TAKEOFF_TICKS, PLANE_USE, bannerText, copyPlane, makePlane, planeCeil,
+  planeEnabled, planeFloor, samePlane, startPlane, stepPlane, wrapAngle, type PlaneState,
 } from '../shared/plane.ts';
 import { BTN_BACK, BTN_DASH, makeInput } from '../shared/sim.ts';
 import { Hub, type Client } from '../server/hub.ts';
@@ -25,15 +27,22 @@ after(() => {
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
 });
 
-function planeHub(plane = true): Hub {
+/** clock.t — часы хаба (можно двигать: частота сообщений считается по ним) */
+function planeHub(plane = true, clock = { t: Date.UTC(2026, 9, 1, 12) }): Hub {
   const dir = mkdtempSync(path.join(tmpdir(), 'opus-plane-'));
   dirs.push(dir);
-  const now = Date.UTC(2026, 9, 1, 12);
-  const store = new Store(dir, { log: () => {}, saveDelayMs: 60_000, now: () => now });
+  const now = (): number => clock.t;
+  const store = new Store(dir, { log: () => {}, saveDelayMs: 60_000, now });
   store.load();
-  const profiles = new Profiles(store, { now: () => now });
-  return new Hub({ store, profiles, smokeToken: 'f'.repeat(64), build: 'test', now: () => now, log: () => {}, plane });
+  const profiles = new Profiles(store, { now });
+  return new Hub({ store, profiles, smokeToken: 'f'.repeat(64), build: 'test', now, log: () => {}, plane });
 }
+
+function banner(hub: Hub, c: Client, text: unknown): void {
+  hub.onJson(c, { t: 'plane', a: 'banner', text } as never);
+}
+
+const chats = (s: { msgs: Array<{ t: string }> }): string[] => allOf(s as never, 'chat').map((m) => (m as { text: string }).text);
 
 function planeId(hub: Hub): number {
   const it = hub.lobby.map.interact.find((i) => i.kind === 'plane');
@@ -402,4 +411,148 @@ test('проверочный вход (без профиля) не летает'
   usePlane(hub, c);
   hub.step();
   assert.equal(hub.lobby.plane!.s.ph, PL_DOCK);
+});
+
+test('баннер: 50 жетонов — самолёт без пилота пролетает над площадью, мостками и берегом с надписью; все видят, строка в чате', () => {
+  const hub = planeHub();
+  const a = login(hub, 'Tester7');
+  const b = login(hub, 'Tester8');
+  a.c.profile!.tokens = 120;
+  placeAt(hub, a.c, PLANE_SIGN.x + 1, PLANE_SIGN.z);
+  banner(hub, a.c, '  С днём   рождения, Миша! ');
+  hub.step();
+  assert.equal(a.c.profile!.tokens, 120 - BANNER_PRICE, 'списали 50');
+  assert.equal(lastOf(a.s, 'tokens')?.n, 70);
+  const pl = hub.lobby.plane!;
+  assert.equal(pl.s.ph, PL_START, 'взлетает');
+  assert.equal(pl.pilot, null, 'без пилота');
+  assert.equal(lp(hub, a.c).action, ACT_NONE, 'заказчик стоит на набережной');
+  const v = lastOf(b.s, 'plane')?.v;
+  assert.ok(v && v.b === 'С днём рождения, Миша!' && v.bn === 'Tester7' && v.nick === '', `все видят баннер: ${JSON.stringify(v)}`);
+  assert.ok(chats(b.s).includes('✈ Tester7 запустил баннер: «С днём рождения, Миша!»'), `строка в чате: ${chats(b.s).join(' | ')}`);
+  let plaza = Infinity;
+  let pier = Infinity;
+  let east = -Infinity;
+  let low = Infinity;
+  let n = 1;
+  for (; n < BANNER_TRIP_TICKS + 60 && (pl.s.ph as number) !== PL_DOCK; n++) {
+    hub.step();
+    if ((pl.s.ph as number) !== PL_FLY) continue;
+    plaza = Math.min(plaza, Math.hypot(pl.s.x, pl.s.z));
+    pier = Math.min(pier, Math.hypot(pl.s.x + 19, pl.s.z - 30));
+    east = Math.max(east, pl.s.x);
+    low = Math.min(low, pl.s.y - planeFloor(pl.s.x, pl.s.z));
+  }
+  assert.equal(pl.s.ph as number, PL_DOCK, 'вернулся к стоянке');
+  assert.ok(Math.abs(n - BANNER_TRIP_TICKS) <= 2, `время пролёта как в оценке: ${n} и ${BANNER_TRIP_TICKS}`);
+  assert.ok(BANNER_TRIP_TICKS < 3 * 60 * TICK_RATE, 'пролёт короче 3 минут');
+  assert.ok(plaza < 20, `над площадью: ${plaza.toFixed(1)}`);
+  assert.ok(pier < 20, `над мостками к маяку: ${pier.toFixed(1)}`);
+  assert.ok(east > 90, `вдоль берега на восток: ${east.toFixed(0)}`);
+  assert.ok(low > -1, `не ниже пола: ${low.toFixed(2)}`);
+  assert.ok(allOf(b.s, 'planePos').length > BANNER_TRIP_TICKS / 6, 'позиции — всем');
+  assert.equal(lastOf(b.s, 'plane')?.v.b, '', 'сел — баннер снят');
+});
+
+test('баннер: текст как в чате (без управляющих символов) и не длиннее 40 знаков; без денег — отказ с причиной', () => {
+  assert.equal(bannerText('  При\u202eвет\u0007   мир  '), 'Привет мир', 'чистка как у чата');
+  assert.equal(bannerText(''), null);
+  assert.equal(bannerText('   '), null);
+  assert.equal(bannerText(42), null, 'не строка');
+  assert.equal(bannerText('я'.repeat(40)), 'я'.repeat(40), '40 знаков — можно');
+  assert.equal(bannerText('я'.repeat(41)), null, '41 — нельзя');
+  assert.equal(bannerText('🎉'.repeat(40)), '🎉'.repeat(40), 'эмодзи — один знак');
+  const hub = planeHub();
+  const a = login(hub, 'Tester7');
+  const b = login(hub, 'Tester8');
+  const c = login(hub, 'Tester9');
+  a.c.profile!.tokens = 500;
+  banner(hub, a.c, '   ');
+  banner(hub, a.c, 'Длинно'.repeat(7));
+  hub.step();
+  assert.equal(a.c.profile!.tokens, 500, 'не списали');
+  assert.equal(hub.lobby.plane!.s.ph, PL_DOCK, 'не взлетел');
+  assert.ok(toasts(a.s).filter((t) => t.includes('от 1 до 40 знаков')).length === 2, `отказы: ${toasts(a.s).join(' | ')}`);
+  c.c.profile!.tokens = 30;
+  banner(hub, c.c, 'Хочу баннер');
+  hub.step();
+  assert.equal(c.c.profile!.tokens, 30);
+  assert.ok((toasts(c.s).at(-1) ?? '').includes(`${BANNER_PRICE} 🪙, а у тебя 30`), `без денег: ${toasts(c.s).at(-1)}`);
+  assert.equal(hub.lobby.plane!.s.ph, PL_DOCK);
+  b.c.profile!.tokens = 100;
+  banner(hub, b.c, 'При\u202eвет\u0000 с   моря');
+  hub.step();
+  assert.equal(lastOf(a.s, 'plane')?.v.b, 'Привет с моря', 'на полотнище — чистый текст');
+  assert.equal(b.c.profile!.tokens, 50);
+});
+
+test('баннер в очереди: небо занято — «через ~N», оплата при взлёте; ушёл с набережной — снят без оплаты', () => {
+  const hub = planeHub();
+  const a = login(hub, 'Tester7');
+  const b = login(hub, 'Tester8');
+  const c = login(hub, 'Tester9');
+  for (const x of [a, b, c]) x.c.profile!.tokens = 500;
+  usePlane(hub, a.c);
+  hub.step();
+  banner(hub, b.c, 'Ура набережной!');
+  banner(hub, c.c, 'Привет от Tester9');
+  hub.step();
+  assert.equal(b.c.profile!.tokens, 500, 'в очереди — без оплаты');
+  const tb = toasts(b.s).at(-1) ?? '';
+  assert.ok(tb.includes('твой баннер через ~') && /~\d+ (с|мин)/.test(tb), `ожидание: ${tb}`);
+  const v = lastOf(a.s, 'plane')!.v;
+  assert.deepEqual([v.q, v.qb], [['Tester8', 'Tester9'], [1, 1]], 'очередь с пометкой «баннер»');
+  banner(hub, b.c, 'Второй баннер');
+  hub.step();
+  assert.ok((toasts(b.s).at(-1) ?? '').includes('уже в очереди'), 'второй — нельзя');
+  hub.disconnect(c.c);
+  hub.step();
+  assert.deepEqual(lastOf(a.s, 'plane')!.v.q, ['Tester8'], 'ушёл — из очереди');
+  // пилот садится раньше: «сесть сейчас» после взлёта
+  fly(hub, a.c, PLANE_TAKEOFF_TICKS + 5);
+  hub.onJson(a.c, { t: 'plane', a: 'land', at: 1 });
+  for (let i = 0; i < 200 * TICK_RATE && lp(hub, a.c).action === ACT_PLANE; i++) fly(hub, a.c, 1);
+  assert.equal(lp(hub, a.c).action, ACT_NONE, 'пилот сел и вышел');
+  assert.equal(hub.lobby.plane!.s.ph as number, PL_START, 'сразу следом взлетает баннер');
+  assert.equal(b.c.profile!.tokens, 500 - BANNER_PRICE, 'оплата — при взлёте');
+  assert.equal(c.c.profile!.tokens, 500, 'ушедшему — ничего не списали');
+  assert.equal(lastOf(a.s, 'plane')?.v.b, 'Ура набережной!');
+  assert.ok(chats(a.s).includes('✈ Tester8 запустил баннер: «Ура набережной!»'));
+});
+
+test('баннер не чаще раза в 5 минут; пилот цепляет баннер к своему полёту за +50, второй — нельзя', () => {
+  const clock = { t: Date.UTC(2026, 9, 1, 12) };
+  const hub = planeHub(true, clock);
+  const a = login(hub, 'Tester7');
+  const b = login(hub, 'Tester8');
+  a.c.profile!.tokens = 500;
+  usePlane(hub, a.c);
+  hub.step();
+  assert.equal(a.c.profile!.tokens, 400);
+  banner(hub, a.c, 'Привет с неба!');
+  hub.step();
+  assert.equal(a.c.profile!.tokens, 350, 'баннер к полёту — ещё 50');
+  const pl = hub.lobby.plane!;
+  assert.equal(pl.pilot, lp(hub, a.c), 'пилот тот же');
+  assert.equal(lastOf(b.s, 'plane')?.v.b, 'Привет с неба!', 'все видят баннер за самолётом');
+  assert.ok(chats(b.s).includes('✈ Tester7 запустил баннер: «Привет с неба!»'));
+  banner(hub, a.c, 'Ещё один');
+  hub.step();
+  assert.equal(a.c.profile!.tokens, 350);
+  assert.ok((toasts(a.s).at(-1) ?? '').includes('не чаще раза в 5 минут'), `второй — нельзя: ${toasts(a.s).at(-1)}`);
+  fly(hub, a.c, PLANE_TAKEOFF_TICKS + 5);
+  hub.onJson(a.c, { t: 'plane', a: 'land', at: 1 });
+  for (let i = 0; i < 200 * TICK_RATE && (pl.s.ph as number) !== PL_DOCK; i++) fly(hub, a.c, 1);
+  assert.equal(pl.s.ph as number, PL_DOCK);
+  clock.t += 5000;
+  banner(hub, a.c, 'Пролёт');
+  hub.step();
+  assert.equal(pl.s.ph as number, PL_DOCK, 'раньше 5 минут — нет');
+  assert.ok(/следующий через \d+ (с|мин)/.test(toasts(a.s).at(-1) ?? ''), `сколько ждать: ${toasts(a.s).at(-1)}`);
+  for (let i = 0; i < BANNER_COOLDOWN_TICKS; i++) hub.step();
+  clock.t += 5000;
+  banner(hub, a.c, 'Пролёт');
+  hub.step();
+  assert.equal(pl.s.ph as number, PL_START, 'через 5 минут — можно');
+  assert.equal(a.c.profile!.tokens, 300);
 });
