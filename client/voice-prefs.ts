@@ -60,7 +60,16 @@ export function saveVoicePrefs(p: VoicePrefs, storage: Storage | null = store())
 }
 
 /** Работающий голос (VoiceController): его громкость — живая, меняет звук сразу и сохраняется им самим */
-export interface VoiceVolumeOwner { readonly view: { volume: number }; setVolume(volume: number): void }
+export interface VoiceVolumeOwner {
+  readonly view: { volume: number; presence?: ReadonlyArray<VoiceTalker> };
+  setVolume(volume: number): void;
+  /** Громкость и «заглушить» одного человека: меню Tab и вкладка «Голос» меняют одно и то же */
+  setPeerMuted?(pid: number, muted: boolean): void;
+  setPeerVolume?(pid: number, volume: number): void;
+  subscribe?(fn: () => void): () => void;
+}
+/** Человек в голосе (номер профиля), говорит ли сейчас, включён ли микрофон */
+export interface VoiceTalker { pid: number; talking: boolean; mic: boolean }
 let volumeOwner: VoiceVolumeOwner | null = null;
 /** Голос включился или пропал (client/ui/voicepanel.ts → setVoiceSource) */
 export function setVoiceVolumeOwner(owner: VoiceVolumeOwner | null): void { volumeOwner = owner; }
@@ -82,6 +91,39 @@ export function setVoiceVolume(volume: number, storage: Storage | null = store()
 
 export function peerPref(p: VoicePrefs, pid: number): VoicePeerPref {
   return p.peers[String(pid)] ?? { muted: false, volume: 1 };
+}
+
+/**
+ * Настройки людей для меню Tab: читаем сохранённое (работающий голос сохраняет каждое изменение сразу), так что и тот,
+ * кого сейчас нет в голосе, — со своей громкостью.
+ */
+export function peerVoices(storage: Storage | null = store()): (pid: number) => VoicePeerPref {
+  const p = loadVoicePrefs(storage);
+  return (pid) => peerPref(p, pid);
+}
+
+/** Поменять громкость или «заглушить» человека: голос работает — через него (звук меняется сразу), иначе — в сохранение */
+export function setPeerVoice(pid: number, patch: Partial<VoicePeerPref>, storage: Storage | null = store()): void {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return;
+  const owner = volumeOwner;
+  if (owner?.setPeerMuted && owner.setPeerVolume) {
+    if (patch.volume !== undefined && Number.isFinite(patch.volume)) owner.setPeerVolume(pid, patch.volume);
+    if (patch.muted !== undefined) owner.setPeerMuted(pid, patch.muted);
+    return;
+  }
+  const p = loadVoicePrefs(storage);
+  setPeerPref(p, pid, patch);
+  saveVoicePrefs(p, storage);
+}
+
+/** Кто сейчас в голосе (без себя); голоса нет — никого */
+export function voiceTalkers(): ReadonlyArray<VoiceTalker> {
+  return volumeOwner?.view.presence ?? [];
+}
+
+/** Подписка на перемены голоса (кто говорит); голоса нет — ничего */
+export function onVoiceChange(fn: () => void): () => void {
+  return volumeOwner?.subscribe?.(fn) ?? (() => {});
 }
 
 /** Записать настройку человека; обычные (не заглушён, 100 %) не храним. */

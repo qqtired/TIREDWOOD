@@ -34,6 +34,7 @@ import { TOUCH, TouchControls } from './touch.ts';
 import { COIN_HTML } from './ui/coin.ts';
 import { GameMenu, applyInterface } from './ui/menu/menu.ts';
 import { OnlineList } from './ui/online.ts';
+import { KickVoteUi } from './ui/kickvote.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
 import { TokensHud } from './ui/tokens.ts';
@@ -88,6 +89,8 @@ export class App {
   private readonly tokens: TokensHud;
   private readonly toasts: Toasts;
   private readonly online: OnlineList;
+  /** Плашка голосования «выгнать игрока» (меню Tab → 👢, shared/votekick.ts) */
+  private readonly kickVote: KickVoteUi;
   private readonly profile = new ProfilePanel();
   /** Меню на Esc (на телефоне ☰): профиль, настройки по категориям, клавиши */
   private readonly menu: GameMenu;
@@ -194,7 +197,16 @@ export class App {
     this.touch = TOUCH ? new TouchControls(shell, this.input) : null;
     this.chat = new Chat(shell);
     this.tokens = new TokensHud(shell);
-    this.online = new OnlineList(shell);
+    // «кто где» (Tab): громкость голоса каждого и 👢; ПКМ, пока держишь Tab, — мышь в список, игра ждёт
+    this.online = new OnlineList(shell, {
+      kick: (pid) => this.net.send({ t: 'kick', a: 'start', pid }),
+      pinned: (on) => {
+        if (on) { this.input.unlock(); this.input.releaseAll(); }
+        this.updateBlocked();
+      },
+      restorePointer: () => { if (this.active?.wantsPointer !== false) this.wantPointer(); },
+    });
+    this.kickVote = new KickVoteUi(document.body, { myPid: () => this.me.pid, send: (m) => this.net.send(m), opened: () => this.sound.pairAsk() });
     // уведомления — над меню: ошибка смены ника видна и в профиле
     this.toasts = new Toasts(menus);
     this.linkBanner = new LinkBanner(menus);
@@ -430,7 +442,7 @@ export class App {
     this.input.onLockChange = (locked) => {
       if (this.screen !== 'game') return;
       if (locked) this.setPaused(false);
-      else if (this.active?.wantsPointer !== false) {
+      else if (this.active?.wantsPointer !== false && !this.online.pinned) {
         this.chat.close();
         this.setPaused(true);
       }
@@ -716,7 +728,11 @@ export class App {
         for (const line of m.list) this.chat.add(line, this.me.pid, this.active?.kind ?? 'lobby');
         return;
       case 'online':
-        this.online.set(m.list, this.me.nick);
+        this.online.set(m.list, this.me.nick, this.me.pid);
+        return;
+      case 'kickVote':
+        this.kickVote.onState(m);
+        this.online.setKick(this.kickVote.enabled, this.kickVote.active);
         return;
       default:
         this.transition.toScene(m);
@@ -776,6 +792,11 @@ export class App {
       case 'replaced':
         // следом придёт закрытие 4001
         return;
+      case 'kicked':
+        // выгнали голосованием (или ещё не прошло 10 минут): экран с причиной, сами не переподключаемся
+        this.lastError = text;
+        this.showLost(text, true);
+        return;
       case 'need_nick':
         this.backToJoin('nick', savedNick() ? 'Сервер тебя не узнал — впиши ник ещё раз' : text);
         return;
@@ -800,7 +821,7 @@ export class App {
 
   private onClose(code: number, reason: string): void {
     // обрыв посреди игры — возвращаемся в ту же сессию, сцена остаётся (relink.ts); флуд, другое окно, версия — как раньше
-    if (!this.reloading && (this.screen === 'game' || this.relink.active) && code !== 1008 && code !== 4001 && code !== 4002) {
+    if (!this.reloading && (this.screen === 'game' || this.relink.active) && code !== 1008 && code !== 4001 && code !== 4002 && code !== 4004) {
       if (!this.relink.active) this.lastClose = code;
       this.relink.lost();
       return;
@@ -816,6 +837,10 @@ export class App {
     }
     if (code === 4001) {
       this.showReplaced();
+      return;
+    }
+    if (code === 4004) {
+      this.showLost(this.lastError || 'Так решили игроки голосованием.', true);
       return;
     }
     switch (this.screen) {
@@ -957,6 +982,7 @@ export class App {
     this.showProfile(false);
     this.chat.close();
     this.online.show(false);
+    this.kickVote.reset();
     this.shell.classList.add('hidden');
     this.input.releaseAll();
     this.updateBlocked();
@@ -993,7 +1019,22 @@ export class App {
       if (!e.repeat) this.menu.setVeil(!this.menu.veiled);
       return;
     }
+    // голосование «выгнать»: Y / N (F1 / F2), пока можешь голосовать; в крепости сначала — белый флаг
+    const fort = this.active.kind === 'fort';
+    if (!fort && this.kickVote.onKey(code, down, e)) return;
+    // список Tab с мышью: Tab — закрыть и снова в игру, Esc — закрыть и в меню; остальные клавиши — не игре
+    if (this.online.pinned) {
+      if (down && !e.repeat && (code === 'Tab' || code === 'Escape')) {
+        e.preventDefault();
+        this.online.show(false);
+        if (this.active.wantsPointer === false) return;
+        if (code === 'Tab') this.wantPointer();
+        else this.setPaused(true);
+      }
+      return;
+    }
     if (this.active.onKey(code, down, e)) return;
+    if (fort && this.kickVote.onKey(code, down, e)) return;
     if (code === 'Tab') {
       e.preventDefault();
       this.online.show(down && !this.paused);
@@ -1041,7 +1082,7 @@ export class App {
    * камеру — помогал только перезаход. Телефону «захват» — просто включить управление пальцами.
    */
   private watchPointer(now: number): void {
-    const stuck = !this.paused && !this.chat.isOpen && !this.input.locked && !this.input.lockPending && this.active?.wantsPointer !== false;
+    const stuck = !this.paused && !this.chat.isOpen && !this.online.pinned && !this.input.locked && !this.input.lockPending && this.active?.wantsPointer !== false;
     if (!stuck) this.unlockedAt = 0;
     else if (this.unlockedAt === 0) this.unlockedAt = now;
     else if (now - this.unlockedAt > POINTER_GRACE_MS) {
@@ -1094,7 +1135,7 @@ export class App {
   }
 
   private updateBlocked(): void {
-    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.transition.busy || this.relink.active;
+    this.input.blocked = this.screen !== 'game' || this.paused || this.chat.isOpen || this.online.pinned || this.transition.busy || this.relink.active;
     this.syncVoiceVisibility();
   }
 
@@ -1160,7 +1201,8 @@ export class App {
     this.pollHealth();
   }
 
-  private showLost(text: string): void {
+  /** kicked — выгнали голосованием (shared/votekick.ts): свой заголовок и кнопка */
+  private showLost(text: string, kicked = false): void {
     this.stopRetry();
     this.net.close();
     this.screen = 'lost';
@@ -1168,6 +1210,8 @@ export class App {
     this.input.unlock();
     this.resetPlayButton();
     this.lostReason.textContent = text;
+    this.lostEl.querySelector('.pause-title')!.textContent = kicked ? 'Тебя выгнали' : 'Связь потеряна';
+    this.lostEl.querySelector('.retry')!.textContent = kicked ? 'Войти снова' : 'Переподключиться';
     this.showScreen(this.lostEl);
   }
 

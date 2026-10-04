@@ -128,6 +128,11 @@ export class Profiles {
     return this.ids.size;
   }
 
+  /** Номер профиля по ключу устройства — без входа (проверка «выгнан голосованием» до входа); 0 — ключ не знаем */
+  pidOfKey(key: unknown): number {
+    return validKey(key) ? this.byKey.get(hashKey(key))?.id ?? 0 : 0;
+  }
+
   login(req: { key: unknown; nick?: unknown; code?: unknown }, ip: string): LoginResult {
     if (!validKey(req.key)) return { ok: false, code: 'bad_key' };
     const h = hashKey(req.key);

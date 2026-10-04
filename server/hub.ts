@@ -39,6 +39,7 @@ import { VoiceRouter, type VoiceClient } from './voice.ts';
 import type { VoiceIceConfig } from '../shared/voice.ts';
 import { GiftCodes } from './gifts.ts';
 import { grantLadder, ladderAnnounce, ladderToast } from './fishstyle.ts';
+import { KickVotes } from './votekick.ts';
 
 export type { Sink };
 
@@ -144,6 +145,8 @@ export interface HubOptions {
   billiards?: boolean;
   /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
   plane?: boolean;
+  /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
+  votekick?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }
@@ -158,6 +161,7 @@ const ERROR_TEXT: Record<ErrorCode, string> = {
   replaced: 'Ты зашёл в игру в другом окне',
   full: 'Сейчас мест нет, попробуй чуть позже',
   rate: 'Слишком много попыток — подожди немного',
+  kicked: 'Тебя выгнали голосованием игроков',
 };
 
 /** Причина закрытия соединения по коду — для журнала. */
@@ -180,6 +184,8 @@ export function closeReason(code: number, reason = ''): string {
       return 'зашёл в другом окне';
     case 4002:
       return 'старая версия';
+    case 4004:
+      return 'выгнали голосованием';
     case CLOSE_SILENCE:
       return 'не слышал сервер 20 с';
     default:
@@ -212,7 +218,7 @@ export const RESUME_MS = 45_000;
  * закрыли, и когда заморозил её в фоне — закрытие клиент отмечает сам сообщением «bye».
  */
 export function resumableClose(code: number): boolean {
-  return ![1000, 1005, 1008, 1012, 4001, 4002].includes(code);
+  return ![1000, 1005, 1008, 1012, 4001, 4002, 4004].includes(code);
 }
 
 /** Не больше стольких ошибок браузера с одного соединения и в минуту с одного адреса */
@@ -255,6 +261,8 @@ export class Hub {
   readonly limits: RateLimiter;
   /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
   readonly gate = new ReadyGate(this);
+  /** Голосование «выгнать игрока» из меню Tab (server/votekick.ts) */
+  readonly kick: KickVotes;
   tick = 0;
   private readonly smokeToken: string;
   private readonly build: string;
@@ -336,6 +344,20 @@ export class Hub {
       : null;
     const now = this.now();
     for (const p of this.store.state.profiles) if (p.foolUntil > now || p.epUntil > now) this.capped.add(p.id);
+    this.kick = new KickVotes({
+      now: () => this.now(),
+      online: () => [...this.clients].filter((c) => c.profile && !c.ephemeral && c.room),
+      clientOf: (pid) => this.byPid.get(pid),
+      announce: (text) => this.announce(text),
+      toast: (c, text) => this.toast(c, text),
+      kickOut: (c, text) => {
+        c.sink.sendJson({ t: 'error', code: 'kicked', text });
+        c.sink.close(4004, 'kicked');
+        this.disconnect(c, closeReason(4004));
+      },
+      allow: (key, n, ms) => this.limits.hit(key, n, ms),
+      log: (s) => this.log(s),
+    }, o.votekick ?? false);
   }
 
   /** Есть ли кто-то в комнатах (иначе цикл спит). */
@@ -394,6 +416,7 @@ export class Hub {
       this.log(`[выход] ${c.nick} (#${c.pid}, пинг ~${Math.round(c.ping)} мс${reason}, был ${since(this.now() - c.since)}); в игре: ${this.onlineCount()}`);
       this.broadcastOnline();
       this.lobby.honorChanged();
+      this.kick.left();
     }
   }
 
@@ -428,6 +451,9 @@ export class Hub {
       case 'voice':
       case 'voiceSignal':
         this.voice?.handle(c, msg);
+        return;
+      case 'kick':
+        this.kick.onMessage(c, msg);
         return;
       case 'hello':
         return;
@@ -499,9 +525,21 @@ export class Hub {
       }, 0);
       return;
     }
+    // выгнан голосованием (server/votekick.ts): до входа — по ключу устройства и IP, после — по профилю (вход по коду)
+    const known = this.profiles.pidOfKey(msg.key);
+    const banned = this.kick.banLeft(c.ip, known);
+    if (banned > 0) {
+      this.kick.refuse(c, banned, known ? `#${known}` : 'новый профиль');
+      return;
+    }
     const r = this.profiles.login({ key: msg.key, nick: msg.nick, code: msg.code }, c.ip);
     if (!r.ok) {
       this.error(c, r.code);
+      return;
+    }
+    const left = this.kick.banLeft(c.ip, r.profile.id);
+    if (left > 0) {
+      this.kick.refuse(c, left, `${r.profile.nick} (#${r.profile.id})`);
       return;
     }
     if (r.created) this.log(`[новый профиль] ${r.profile.nick} (#${r.profile.id})`);
@@ -539,6 +577,7 @@ export class Hub {
       return;
     }
     this.voice?.connected(c);
+    this.kick.joined(c);
     if (!c.ephemeral) {
       this.log(`[вход] ${profile.nick} (#${profile.id}${note}); в игре: ${this.onlineCount()}`);
       this.lobby.honorChanged();
@@ -982,7 +1021,7 @@ export class Hub {
 
   broadcastOnline(): void {
     const list: OnlineEntry[] = [];
-    for (const c of this.clients) if (c.profile && !c.ephemeral && c.room) list.push({ nick: c.nick, room: c.room.kind, level: c.profile.level });
+    for (const c of this.clients) if (c.profile && !c.ephemeral && c.room) list.push({ nick: c.nick, room: c.room.kind, level: c.profile.level, pid: c.pid });
     list.sort((a, b) => a.nick.localeCompare(b.nick, 'ru'));
     const msg: ServerMsg = { t: 'online', list };
     for (const c of this.clients) if (c.profile && c.room) c.sink.sendJson(msg);
@@ -1003,6 +1042,7 @@ export class Hub {
     this.tick++;
     this.gate.step();
     this.voice?.step();
+    this.kick.step();
     if (this.delayed.length) {
       const due = this.delayed.filter((d) => d.at <= this.tick);
       if (due.length) {

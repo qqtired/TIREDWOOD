@@ -28,6 +28,7 @@ import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
+import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
 
@@ -121,6 +122,8 @@ export interface OnlineEntry {
   nick: string;
   room: RoomKind;
   level?: number;
+  /** Профиль: громкость голоса в меню Tab и «выгнать» (shared/votekick.ts) */
+  pid?: number;
 }
 
 /**
@@ -174,6 +177,7 @@ export interface DurakTableView {
 }
 
 export type ClientMsg =
+  | KickClientMsg
   | RatClientMsg
   | BilliardsClientMsg
   | GiftClientMsg
@@ -398,7 +402,7 @@ export type LobbyEvent =
   // рыбак собрал все виды — «Хозяин глубин»: фанфары и золотые искры у него (кто)
   | ['fishMaster', number];
 
-export type ErrorCode = 'version' | 'need_nick' | 'nick_taken' | 'bad_nick' | 'bad_code' | 'bad_key' | 'replaced' | 'full' | 'rate';
+export type ErrorCode = 'version' | 'need_nick' | 'nick_taken' | 'bad_nick' | 'bad_code' | 'bad_key' | 'replaced' | 'full' | 'rate' | 'kicked';
 
 /** Один отдельный улов дня; один игрок может занимать несколько мест. at — серверные миллисекунды. */
 export interface FishPodiumCatch {
@@ -419,6 +423,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 }
 
 export type ServerMsg =
+  | KickServerMsg
   | RatServerMsg
   | BilliardsServerMsg
   | GiftServerMsg
