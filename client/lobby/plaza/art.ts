@@ -550,15 +550,15 @@ export function drawBoatGateSign(ctx: Ctx, W: number, H: number): void {
   ctx.fillText(sub, W / 2, H * 0.82);
 }
 
-export function drawNumberPlate(ctx: Ctx, W: number, H: number, n: number): void {
+export function drawNumberPlate(ctx: Ctx, W: number, H: number, n: number, ink = '#1b2f4d'): void {
   ctx.clearRect(0, 0, W, H);
   roundRectPath(ctx, 3, 3, W - 6, H - 6, H * 0.22);
   ctx.fillStyle = '#f6f2e8';
   ctx.fill();
-  ctx.strokeStyle = '#1b2f4d';
+  ctx.strokeStyle = ink;
   ctx.lineWidth = H * 0.06;
   ctx.stroke();
-  bigText(ctx, String(n).padStart(2, '0'), W / 2, H * 0.54, H * 0.7, W * 0.8, '#1b2f4d', '#f6f2e8', 0, 900, '');
+  bigText(ctx, String(n).padStart(2, '0'), W / 2, H * 0.54, H * 0.7, W * 0.8, ink, '#f6f2e8', 0, 900, '');
 }
 
 // ------------------------------------------------------------ Fight Club

@@ -59,9 +59,10 @@ const YARD_SOLIDS: PlazaSolid[] = [
  * Лодки — по оси x, носом на запад, к кругу. Мачты твёрдые и стоят вне путей пиратов (shared/pirates.ts: выходы с причалов
  * (16; 21) и (23; 21), пушки, кучи).
  */
-export const REGATTA_BOATS: ReadonlyArray<{ x: number; z: number; hull: number; accent: number; num: number }> = [
+export const REGATTA_BOATS: ReadonlyArray<{ x: number; z: number; hull: number; accent: number; num: number; ball?: number; ink?: string }> = [
   { x: 19.9, z: 23.55, hull: 0xd9372b, accent: 0xf4f1e8, num: 7 },
-  { x: 27.1, z: 23.4, hull: 0x2f6ad8, accent: 0xffd23f, num: 12 },
+  // второй катер: бирюзовый с белым корпусом-рубкой и оранжевой полосой (был сине-жёлтый); ball — шарик на флагштоке, ink — цвет цифр номера
+  { x: 27.1, z: 23.4, hull: 0x14a094, accent: 0xff8a2b, num: 12, ball: 0xff8a2b, ink: '#0d5a52' },
 ];
 /** Размеры лодки (длина, ширина, высота до палубы), м — для рисунка */
 export const REGATTA_BOAT_SIZE = { len: 4.7, beam: 1.9, h: 1.0 } as const;
