@@ -51,10 +51,10 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id).slice(0, 12), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   assert.equal(map.interact.find(i => i.kind === 'fisher')?.id, 52);
   // музыкальный автомат уже в main (id 56) — после него, в самом конце: места баркаса, лодка «Удалая», Саня, стол рулетки,
-  // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса) и места дальних мостков и площадки у дома рыбака
+  // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса), места дальних мостков и площадки у дома рыбака, три бильярдных стола
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
     ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
-      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`)]);
+      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2']);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');

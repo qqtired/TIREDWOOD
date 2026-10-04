@@ -31,7 +31,7 @@ import { MAX_HUMANS, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.
 import { FE_BITE, FE_DONE, FE_EARLY, FE_HOOK, FE_LOST, FE_MISS, FE_OFF, FP_BITE, FP_CAST, FP_HOLD, FP_IDLE, FP_REEL, FP_WAIT } from '../../shared/fishing.ts';
 import type { FortStatus } from '../../shared/fort.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
+  ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
   ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
@@ -68,6 +68,7 @@ import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, t
 import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
+import { BilliardsClient } from './billiards.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
 import { SkillPortal } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
@@ -203,6 +204,8 @@ export class LobbyScene implements Scene {
   private readonly dkHud: DurakHud;
   private readonly bjHud: BlackjackHud;
   private readonly blackjack3d: BlackjackTable3D;
+  /** Бильярд в пристройке казино (флаг BILLIARDS): столы, панель, прицел */
+  private readonly billiards: BilliardsClient;
   private readonly skillPortal: SkillPortal;
   private readonly kraken: Kraken;
   private skillStatus: SkillStatus | null = null;
@@ -480,6 +483,15 @@ export class LobbyScene implements Scene {
       if (this.blackjackSeated) d.net.send({ t: 'blackjack', table: BJ_TABLE, a, rev, amount });
     };
     this.bjHud.onLeave = () => this.leaveTable(true);
+    for (const index of this.world.map.billiardsBoxes) this.world.collision.setEnabled(index, false);
+    this.billiards = new BilliardsClient({
+      scene: this.world.scene, hudRoot: this.hud.root, canvas: d.renderer.canvas, camera: () => this.world.camera,
+      send: (msg) => d.net.send(msg), me: () => d.ui.me(), sound: d.sound,
+      setSolid: (on) => { for (const index of this.world.map.billiardsBoxes) this.world.collision.setEnabled(index, on); },
+      leave: () => { d.net.send({ t: 'unuse' }); this.billiards.setSeat(-1, -1); d.wantPointer(); },
+      pointerFree: () => !d.input.locked && !d.input.blocked,
+      refreshShadows: () => d.renderer.refreshShadows(),
+    });
     this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z);
     this.skillPortal.setVisible(false);
     this.kraken = new Kraken(this.world.scene, { onScare: (p) => d.sound.krakenScare([p.x, p.y, p.z]) });
@@ -551,7 +563,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || this.fish2.modalOpen || this.juke.isOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.juke.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -563,7 +575,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.juke.isOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -673,6 +685,7 @@ export class LobbyScene implements Scene {
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
+    this.billiards.reset();
     this.kraken.reset();
     this.dkSeat = -1;
     this.dkHand = null;
@@ -731,6 +744,7 @@ export class LobbyScene implements Scene {
     this.dkHud.hide();
     this.bjHud.hide();
     this.blackjack3d.reset();
+    this.billiards.reset();
     this.kraken.reset();
     this.dkSeat = -1;
     this.dkHand = null;
@@ -779,6 +793,8 @@ export class LobbyScene implements Scene {
         this.onHonor(msg.honor);
         msg.tables.forEach((v, t) => this.onTable(t, v));
         if (msg.blackjack) this.onBlackjack(msg.blackjack);
+        // столы бильярда приходят следом отдельными сообщениями; нет их — флаг BILLIARDS выключен
+        this.billiards.off();
         this.skillStatus = msg.skill ?? null;
         this.skillPortal.setVisible(!!msg.skill);
         for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, !!msg.skill);
@@ -921,6 +937,12 @@ export class LobbyScene implements Scene {
       case 'blackjackError':
         this.bjHud.onError(msg.message);
         break;
+      case 'bl':
+      case 'blShot':
+      case 'blAim':
+      case 'blErr':
+        this.billiards.onMessage(msg);
+        break;
       case 'skillSt':
         this.skillStatus = msg;
         this.skillPortal.status(msg);
@@ -1007,6 +1029,7 @@ export class LobbyScene implements Scene {
       case 'tokens':
         this.fish2.refreshBalance();
         this.bjHud.setBalance(this.d.ui.me().tokens);
+        this.billiards.setBalance(this.d.ui.me().tokens);
         break;
       case 'me':
         this.onMe();
@@ -1042,6 +1065,7 @@ export class LobbyScene implements Scene {
     this.fish2.onMe();
     if (me.fishing) this.checkFerryLevel(me.fishing.xp);
     this.bjHud.setBalance(me.tokens);
+    this.billiards.setBalance(me.tokens);
     // свой лучший на доске аквапарка
     this.setAquaTop(this.aquaTop);
   }
@@ -1636,6 +1660,18 @@ export class LobbyScene implements Scene {
         this.setTableSeat(-1);
         this.d.wantPointer();
       }
+      // у бильярдного стола мышь — прицел и кнопки панели
+      if (action === ACT_BILLIARDS) {
+        input.releaseAll();
+        input.unlock();
+        // лицом к столу: запад (сторона 0) смотрит на восток
+        input.yaw = arg % 2 === 0 ? -Math.PI / 2 : Math.PI / 2;
+        input.pitch = -0.2;
+        this.billiards.setSeat(Math.floor(arg / 2), arg % 2);
+      } else if (prev === ACT_BILLIARDS) {
+        this.billiards.setSeat(-1, -1);
+        this.d.wantPointer();
+      }
     }
     if (performance.now() >= this.localUntil && (this.me.action !== action || this.me.arg !== arg)) this.me.setAction(action, arg);
   }
@@ -1707,6 +1743,19 @@ export class LobbyScene implements Scene {
       return true;
     }
     if (act === ACT_DURAK) return this.tableKey(code, e);
+    if (act === ACT_BILLIARDS) {
+      if (this.billiards.onKey(code, e)) return true;
+      if (code === 'KeyE') {
+        this.billiards.hud.escape();
+        return true;
+      }
+      // в партии шаг не поднимает (снимается в тике); на тренировке — отошёл, мышь обратно сразу
+      if (MOVE_KEYS.has(code) && !this.billiards.locked) {
+        this.billiards.setSeat(-1, -1);
+        this.d.wantPointer();
+      }
+      return false;
+    }
     if (act === ACT_FISH) {
       // 1 / 2 — что делать с уловом; пробел — заброс и подсечка (в тике он снимается с прыжка)
       if (code === 'Digit1' || code === 'Digit2') {
@@ -2018,6 +2067,8 @@ export class LobbyScene implements Scene {
     if (this.action === ACT_SLOT || this.action === ACT_FISH) buttons &= ~BTN_JUMP;
     // идёт партия, у меня карты — шаг и прыжок не поднимают из-за стола
     if (this.action === ACT_DURAK && (this.blackjackSeated ? this.bjHud.locked : this.dkHud.locked)) buttons &= ~LEAVE_SEAT;
+    // у бильярдного стола пробел — замах; в партии и шаг не уводит от стола (выйти — Esc)
+    if (this.action === ACT_BILLIARDS) buttons &= this.billiards.locked ? ~LEAVE_SEAT : ~BTN_JUMP;
     inp.buttons = buttons;
     inp.yaw = Math.fround(input.yaw);
     inp.pitch = Math.fround(input.pitch);
@@ -2124,6 +2175,8 @@ export class LobbyScene implements Scene {
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
     this.fishHolds.update(dt, (id) => (id === this.myId ? (this.hasSelf ? this.me : null) : this.remotes.get(id)?.avatar ?? null));
     this.me.update(this.hasSelf ? this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose) : null, dt, this.time, this.ground, camPos, true);
+    // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
+    if (act === ACT_BILLIARDS) this.me.root.visible = false;
     this.updateRemotes(dt);
     this.updateFishing(dt);
     this.fishForCritters.length = 0;
@@ -2151,6 +2204,7 @@ export class LobbyScene implements Scene {
     this.tables3d.update(dt, this.time, camPos);
     this.decor.update(dt, this.time, camPos);
     this.blackjack3d.update(dt, this.time, camPos);
+    this.billiards.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
     this.bjHud.tick(performance.now());
     this.updateHud();
@@ -2338,6 +2392,9 @@ export class LobbyScene implements Scene {
         const h = Math.cos(pitch);
         this.cam.fixed(cam, dt, cx, camY, cz, cx - ux * h, camY - Math.sin(pitch), cz - uz * h, TABLE_FOV, 'table');
       }
+    } else if (act === ACT_BILLIARDS && this.billiards.cameraPose()) {
+      const c = this.billiards.cameraPose()!;
+      this.cam.fixed(cam, dt, c.px, c.py, c.pz, c.lx, c.ly, c.lz, c.fov, 'table');
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
       this.cam.mirror(cam, dt, p.x, p.y, p.z, p.yaw, MIRROR_FOV);
     } else {
@@ -2460,7 +2517,7 @@ export class LobbyScene implements Scene {
     this.fightBeeps(fd);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
     else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · шаг — отойти`);
-    else if (act === ACT_DURAK) hud.setHint(null);
+    else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
     else if (act === ACT_FISH) this.hintFish();
     else if (act === ACT_BOAT) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из катера · отплытие через ${this.boatSecs()} с`);
     else if (act === ACT_RIDE) hud.setHint([], `Прогулка по бухте · ещё ${this.boatSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
@@ -2587,6 +2644,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
       if (it.kind === 'juke' && !this.juke.enabled) continue;
+      if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS)) continue;
       // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
       if (it.kind === 'fight') continue;
       if (this.isBusy(it)) {
@@ -2634,6 +2692,9 @@ export class LobbyScene implements Scene {
         this.hud.setHint(['E'], chair?.away ? 'вернуться за стол блэкджека' : `блэкджек · бесплатно или ставка до ${BJ_MAX_BET}`);
         break;
       }
+      case 'billiards':
+        this.hud.setHint(['E'], this.billiards.hint(it.arg));
+        break;
       case 'skill': {
         const s = this.skillStatus;
         this.hud.setHint(['E'], s?.phase === 'pre' ? `Выше облаков · сбор забега, старт через ${s.left} с — успевай!` : `Выше облаков · Небесная каланча · ${s?.n ?? 0}/${s?.max ?? 5} игроков${s?.phase === 'run' ? ' · идёт забег' : ''}`);
@@ -2789,7 +2850,7 @@ export class LobbyScene implements Scene {
       renderTick: this.clock.renderTick, delay: this.clock.delay, jitter: this.clock.jitter,
       remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, seq: this.seq,
       dkSeat: this.dkSeat, dkLocked: this.dkHud.locked, dkHand: this.dkHand?.cards.length ?? -1,
-      blackjack: this.blackjack3d.view(), blackjackOpen: this.bjHud.visible, skill: this.skillStatus, kraken: this.kraken.debug(),
+      blackjack: this.blackjack3d.view(), blackjackOpen: this.bjHud.visible, billiards: this.billiards.debug(), skill: this.skillStatus, kraken: this.kraken.debug(),
       boatrace: this.boatRaceStatus, regatta: this.rg.debug(), hide: this.hideStatus, startZone: this.startZone,
       storm: this.stormState, pirates: { ...this.pirateState, visible: this.pirateTail.visible, actors: this.pirateTail.pirates.length }, critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),

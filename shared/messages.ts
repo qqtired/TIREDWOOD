@@ -12,6 +12,7 @@ import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, F
 import type { FortSurrender } from './fortsurrender.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
+import type { BilliardsClientMsg, BilliardsServerMsg } from './billiards.ts';
 import type { RaceTrackId } from './racecourse.ts';
 import type { SkillServerMsg, SkillStatus } from './skilltest.ts';
 import type { RegattaClientMsg, RegattaServerMsg, RgRecordRow, RgView } from './regatta.ts';
@@ -173,6 +174,7 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | RatClientMsg
+  | BilliardsClientMsg
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
@@ -416,6 +418,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | RatServerMsg
+  | BilliardsServerMsg
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg

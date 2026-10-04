@@ -62,7 +62,8 @@ test('набережная: точки появления и взаимодей�
     // касса колеса обозрения — на дощатом помосте (0,15 м); второй музыкальный автомат — на баке баркаса (на ступень выше палубы)
     const floor = 'kind' in s && s.kind === 'wheel' ? 0.15 : 'kind' in s && s.kind === 'juke' && 'arg' in s && s.arg === 1 ? BARKAS_BAK_Y : 0;
     assert.ok(Math.abs(lw.groundBelow(s.x, 0.5, s.z) - floor) < 1e-9, `опора под ${s.x},${s.z}`);
-    if ('kind' in s && (s.kind === 'seat' || s.kind === 'durak')) continue;
+    // бильярд — точка в центре стола: E достаёт с любой его стороны, а встаёт игрок к длинному борту (blSpot)
+    if ('kind' in s && (s.kind === 'seat' || s.kind === 'durak' || s.kind === 'billiards')) continue;
     assert.ok(freeSpot(s.x, s.z, floor), `свободно в ${s.x},${s.z}`);
   }
 });

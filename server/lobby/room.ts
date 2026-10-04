@@ -7,6 +7,7 @@ import { AQUA_QUEUE, AQUA_WAIT, AquaDyn, aquaClock } from '../../shared/aquadyn.
 import { BALL_BYTES, BALL_KICK_TICKS, makeBall, stepBall, touchBall, writeBall, type Ball } from '../../shared/ball.ts';
 import { BARKAS_LANDING, SANYA_PRICE, barkasLanding, barkasWater } from '../../shared/barkas.ts';
 import { BJ_TABLE } from '../../shared/blackjack.ts';
+import { BL_TABLES, blSpot } from '../../shared/billiards.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
 import { RG_GATHER_TICKS, RG_MAX } from '../../shared/regatta.ts';
@@ -22,7 +23,7 @@ import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, jukeUseDist, songPrice } from '../../shared/jukebox.ts';
 import { RAT_CENTER, RAT_CHEER_MS, RAT_CHEER_R, isRatIndex } from '../../shared/ratrace.ts';
 import {
-  ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
+  ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_WARDROBE, ACT_WAVE,
   ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
   holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
@@ -52,6 +53,7 @@ import { AquaRuns } from './aqua.ts';
 import { BoatRide } from './boat.ts';
 import { FerryRide, sanyaHome } from './ferry.ts';
 import { BlackjackHall } from './blackjack.ts';
+import { BilliardsHall } from './billiards.ts';
 import { LobbyEvents, type EventHost } from './events.ts';
 import { Storm } from './storm.ts';
 import { Pirates } from './pirates.ts';
@@ -145,6 +147,8 @@ export class LobbyRoom implements Room {
   readonly roulette: RouletteTable | null;
   /** Крысиные бега на понтоне (флаг сервера RATRACE) */
   readonly ratrace: RatTrack | null;
+  /** Бильярд в пристройке казино (флаг сервера BILLIARDS) */
+  readonly billiards: BilliardsHall | null;
   readonly weather: Weather;
   tick = 0;
   private readonly hub: Hub;
@@ -199,7 +203,7 @@ export class LobbyRoom implements Room {
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
   readonly juke: Jukebox | null;
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean } = {}) {
     this.hub = hub;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
@@ -329,6 +333,33 @@ export class LobbyRoom implements Room {
         return accepted;
       },
     }, { deck: blackjackDeck });
+    this.billiards = eventOptions.billiards ? new BilliardsHall({
+      broadcast: (msg) => this.broadcast(msg),
+      near: (table, msg) => {
+        const t = BL_TABLES[table];
+        for (const p of this.players.values()) if (Math.abs(p.state.x - t.x) < 14 && Math.abs(p.state.z - t.z) < 14) p.client.sink.sendJson(msg);
+      },
+      reject: (slot, table, text) => this.players.get(slot)?.client.sink.sendJson({ t: 'blErr', table, text }),
+      balance: (pid) => hub.profiles.byId(pid)?.tokens ?? 0,
+      lost: (slot) => (this.players.get(slot)?.client.lostAt ?? 0) > 0,
+      reserve: (pid, round, amount) => {
+        const accepted = hub.profiles.reserveBilliards(pid, round, amount);
+        if (accepted) this.syncBlackjackBalance(pid);
+        return accepted;
+      },
+      settle: (round, payouts) => {
+        const accepted = hub.profiles.settleBilliards(round, payouts);
+        if (accepted) for (const p of payouts) this.syncBlackjackBalance(p.pid);
+        return accepted;
+      },
+      finished: (r) => {
+        const bank = r.bet * 2;
+        const how = r.why === 'score' ? ` ${Math.max(...r.score)}:${Math.min(...r.score)}` : r.why === 'resign' ? ' (соперник сдался)' : ' (соперник не вернулся)';
+        hub.announce(`🎱 ${r.winner.nick} обыграл ${r.loser.nick} в бильярд${how}${bank ? ` и забрал банк ${bank} 🪙` : ''}`);
+      },
+      log: (text) => console.log(text),
+    }) : null;
+    if (!this.billiards) for (const box of this.map.billiardsBoxes) this.world.setEnabled(box, false);
     const fishHost: FishingHost = {
       event: (e) => this.events.push(e),
       who: (slot) => {
@@ -476,6 +507,7 @@ export class LobbyRoom implements Room {
     if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
     if (this.pirates) c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });
+    this.billiards?.welcome((m) => c.sink.sendJson(m));
     // музыкальный автомат: что играет и с какого места (вошедшему позже — то же место песни, что у всех)
     if (this.juke) {
       if (this.juke.step(this.now())) this.broadcastJuke();
@@ -519,6 +551,7 @@ export class LobbyRoom implements Room {
     // и на доске рекордов рыбалки 2.0
     this.fishing2?.renamed();
     this.blackjack.rename(c.pid, c.nick);
+    this.billiards?.rename(c.pid, c.nick);
     if (!this.byClient.has(c)) return;
     this.broadcastRoster();
     this.durak.rename(c.pid, c.nick);
@@ -595,6 +628,9 @@ export class LobbyRoom implements Room {
         if (c.ephemeral || p.action !== ACT_DURAK || msg.table !== BJ_TABLE || seatTable(p.arg) !== BJ_TABLE) this.rejectBlackjack(c, 'Сначала сядь за стол блэкджека.');
         else this.blackjack.act(p.arg, p.slot, msg.a, msg.rev, msg.amount);
         return;
+      case 'bl':
+        this.onBilliards(p, msg);
+        return;
       case 'kartTrack':
         this.chooseKartTrack(p, msg.track);
         return;
@@ -655,6 +691,28 @@ export class LobbyRoom implements Room {
           this.fishing2.reel(p.arg, p.slot, msg.i, msg.k, msg.u, msg.d, this.tick);
         }
         return;
+    }
+  }
+
+  /** Бильярд: всё — только у своего стола (номер стола в сообщении должен совпасть с тем, у которого стоишь). */
+  private onBilliards(p: LobbyPlayer, msg: Extract<ClientMsg, { t: 'bl' }>): void {
+    const hall = this.billiards, c = p.client;
+    if (!hall || c.ephemeral) return;
+    const aim = msg.a === 'aim';
+    if (!this.hub.limits.hit(`${aim ? 'blAim' : 'bl'}:${c.id}`, aim ? 14 : 6, 1000)) return;
+    const table = p.action === ACT_BILLIARDS ? Math.floor(p.arg / 2) : -1;
+    if (table < 0 || msg.table !== table) {
+      if (!aim) c.sink.sendJson({ t: 'blErr', table: typeof msg.table === 'number' ? msg.table : -1, text: 'Сначала подойди к столу (E)' });
+      return;
+    }
+    switch (msg.a) {
+      case 'shoot': hall.shoot(table, p.slot, msg.n, msg.ang, msg.pw); return;
+      case 'aim': hall.aim(table, p.slot, msg.ang, msg.pw); return;
+      case 'offer': hall.offer(table, p.slot, msg.amount); return;
+      case 'cancel': hall.cancel(table, p.slot); return;
+      case 'accept': hall.accept(table, p.slot, msg.amount); return;
+      case 'rack': hall.rerack(table, p.slot); return;
+      case 'resign': hall.resign(table, p.slot); return;
     }
   }
 
@@ -800,6 +858,20 @@ export class LobbyRoom implements Room {
         // окно ставки клиент открывает сам; здесь — только свежий вид ипподрома
         if (this.ratrace) c.sink.sendJson({ t: 'rat', v: this.ratrace.view() });
         return;
+      case 'billiards': {
+        const hall = this.billiards;
+        if (!hall || c.ephemeral || (p.action === ACT_BILLIARDS && Math.floor(p.arg / 2) === it.arg)) return;
+        const side = hall.sideFor(it.arg, c.pid, p.state.x);
+        if (typeof side === 'string') {
+          this.hub.toast(c, side);
+          return;
+        }
+        this.release(p);
+        if (!hall.sit(it.arg, side, p.slot, c.pid, c.nick)) return;
+        const spot = blSpot(it.arg, side);
+        this.hold(p, ACT_BILLIARDS, { ...it, x: spot.x, z: spot.z, yaw: spot.yaw, arg: it.arg * 2 + side });
+        return;
+      }
     }
   }
 
@@ -1245,6 +1317,8 @@ export class LobbyRoom implements Room {
       if (p.action === ACT_DURAK) (seatTable(p.arg) === BJ_TABLE ? this.blackjack : this.durak).stand(p.arg, p.slot);
     } else if (p.action === ACT_FISH) {
       this.fish.stand(p.arg, p.slot);
+    } else if (p.action === ACT_BILLIARDS) {
+      this.billiards?.stand(Math.floor(p.arg / 2), p.slot);
     }
     p.action = ACT_NONE;
     p.arg = 0;
@@ -1298,6 +1372,7 @@ export class LobbyRoom implements Room {
     this.ratrace?.step();
     this.durak.step(this.tick);
     this.blackjack.step(this.tick);
+    this.billiards?.step(this.tick);
     this.stepStartZones();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)
     const losers = this.slots.losers.step(this.tick);

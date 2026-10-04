@@ -1,11 +1,11 @@
-// Плавающая табличка над столом карточной игры (дурак, блэкджек): название, места, ставка, состояние стола.
+// Плавающая табличка над столом карточной игры (дурак, блэкджек) и бильярдным столом: название, места, ставка, состояние стола.
 // Рисуется один раз на холсте и перерисовывается только при смене текста — спрайт всегда лицом к камере,
 // плавно «дышит» по высоте, а вдали увеличивается, чтобы читалась с набережной.
 import * as THREE from 'three';
 import { drawSuit } from '../render/textures.ts';
 
 export type SignTone = 'free' | 'wait' | 'busy';
-export type SignTheme = 'durak' | 'blackjack';
+export type SignTheme = 'durak' | 'blackjack' | 'billiards';
 
 export interface SignModel {
   /** Крупно: «ДУРАК», «BLACKJACK» */
@@ -47,6 +47,8 @@ const THEMES: Record<SignTheme, Theme> = {
   durak: { top: '#6a4430', bottom: '#44291b', edge: '#f4dcab', title: '#fff1d0', sub: '#f4d9a2', stake: '#ffd35c', shadow: 'rgba(30,14,6,0.55)' },
   // казино набережной: тёмно-зелёное сукно и золото
   blackjack: { top: '#1d6a52', bottom: '#103f31', edge: '#ecc983', title: '#fbe7ad', sub: '#d9f0d8', stake: '#ffd35c', shadow: 'rgba(5,28,20,0.55)' },
+  // бильярд: сукно зеленее и глубже, латунная кайма
+  billiards: { top: '#1f6a3f', bottom: '#0f3c22', edge: '#e2bd72', title: '#fbe7ad', sub: '#dcefd2', stake: '#ffd35c', shadow: 'rgba(4,26,14,0.55)' },
 };
 
 const TONES: Record<SignTone, { bg: string; fg: string }> = {
@@ -109,6 +111,46 @@ function drawCard(c: CanvasRenderingContext2D, x: number, y: number, rot: number
   c.restore();
 }
 
+/** Бильярдный шар: цветной круг с объёмом и бликом; num — номер в белом кружке. */
+export function drawPoolBall(c: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, num?: number): void {
+  c.save();
+  c.shadowColor = 'rgba(0,0,0,0.38)';
+  c.shadowBlur = r * 0.3;
+  c.shadowOffsetY = r * 0.12;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fillStyle = color;
+  c.fill();
+  c.shadowColor = 'transparent';
+  if (num !== undefined) {
+    c.beginPath();
+    c.arc(x + r * 0.06, y + r * 0.04, r * 0.46, 0, Math.PI * 2);
+    c.fillStyle = '#fffbf2';
+    c.fill();
+    c.fillStyle = '#17120d';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = `900 ${Math.round(r * (num > 9 ? 0.5 : 0.62))}px ${FONT}`;
+    c.fillText(String(num), x + r * 0.06, y + r * 0.08);
+  }
+  // объём: тень к краю снизу справа
+  const sh = c.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.2, x, y, r);
+  sh.addColorStop(0, 'rgba(0,0,0,0)');
+  sh.addColorStop(0.75, 'rgba(0,0,0,0.04)');
+  sh.addColorStop(1, 'rgba(0,0,0,0.32)');
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fillStyle = sh;
+  c.fill();
+  // блик
+  const hl = c.createRadialGradient(x - r * 0.38, y - r * 0.42, 0, x - r * 0.38, y - r * 0.42, r * 0.45);
+  hl.addColorStop(0, 'rgba(255,255,255,0.9)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = hl;
+  c.fill();
+  c.restore();
+}
+
 function paint(c: CanvasRenderingContext2D, theme: SignTheme, m: SignModel): void {
   const t = THEMES[theme];
   c.clearRect(0, 0, W, H);
@@ -152,7 +194,7 @@ function paint(c: CanvasRenderingContext2D, theme: SignTheme, m: SignModel): voi
       c.fillStyle = m.trump >= 2 ? '#cc2730' : '#1d1f2c';
       drawSuit(c, m.trump, 212, 212, 40);
     }
-  } else {
+  } else if (theme === 'blackjack') {
     drawCard(c, 108, 158, -0.22, { rank: 'Т', suit: '♠', red: false });
     drawCard(c, 168, 150, 0.16, { rank: 'К', suit: '♥', red: true });
     c.beginPath();
@@ -168,6 +210,11 @@ function paint(c: CanvasRenderingContext2D, theme: SignTheme, m: SignModel): voi
     c.font = `900 36px ${FONT}`;
     c.fillText('21', 206, 210);
     c.textBaseline = 'alphabetic';
+  } else {
+    // бильярд: два номерных шара и красный биток треугольником
+    drawPoolBall(c, 100, 124, 38, '#efe4c7', 8);
+    drawPoolBall(c, 178, 124, 38, '#efe4c7', 15);
+    drawPoolBall(c, 139, 192, 38, '#c4242b');
   }
 
   // название, режим, ставка
@@ -227,9 +274,12 @@ export class TableSign {
   private phase = 0;
 
   private readonly theme: SignTheme;
+  /** Ширина у стола, м (издали растёт до FAR_MAX раз) */
+  private readonly baseW: number;
 
-  constructor(theme: SignTheme, phase = 0) {
+  constructor(theme: SignTheme, phase = 0, width = BASE_W) {
     this.theme = theme;
+    this.baseW = width;
     this.canvas.width = W;
     this.canvas.height = H;
     this.ctx = this.canvas.getContext('2d')!;
@@ -237,7 +287,7 @@ export class TableSign {
     this.tex.colorSpace = THREE.SRGBColorSpace;
     this.tex.anisotropy = 4;
     this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex, transparent: true, depthWrite: false, fog: false }));
-    this.sprite.scale.set(BASE_W, BASE_W * (H / W), 1);
+    this.sprite.scale.set(width, width * (H / W), 1);
     this.sprite.renderOrder = 6;
     this.phase = phase;
   }
@@ -268,7 +318,7 @@ export class TableSign {
     this.sprite.getWorldPosition(_wp);
     const d = _wp.distanceTo(camPos);
     const k = Math.min(FAR_MAX, Math.max(1, d / FAR_FROM));
-    const w = BASE_W * k;
+    const w = this.baseW * k;
     this.sprite.scale.set(w, w * (H / W), 1);
   }
 

@@ -36,6 +36,8 @@ export interface Profile {
   rouletteEscrow?: { round: string; amount: number } | null;
   /** Ставка на крысиных бегах до конца забега: после аварийного рестарта возвращается жетонами. */
   ratEscrow?: { round: string; amount: number } | null;
+  /** Ставка в банке бильярдной партии (предложена или идёт партия): после аварийного рестарта возвращается. */
+  billiardsEscrow?: { round: string; amount: number } | null;
   /** Купленные и выигранные вещи: 'h:tophat', 'p:gold'… */
   owned: string[];
   outfit: Outfit;
@@ -142,6 +144,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
     durakEscrow: normalizeBlackjackEscrow(r.durakEscrow),
     rouletteEscrow: normalizeBlackjackEscrow(r.rouletteEscrow),
     ratEscrow: normalizeBlackjackEscrow(r.ratEscrow),
+    billiardsEscrow: normalizeBlackjackEscrow(r.billiardsEscrow),
     owned,
     outfit: r.outfit ? sanitizeOutfit(r.outfit, owned) : { ...DEFAULT_OUTFIT },
     daily: typeof r.daily === 'string' ? r.daily : '',

@@ -1151,6 +1151,46 @@ export class Sound {
     this.noise(d, 0.035, 'bandpass', 1500 * k, 900, 1.2, 0.12 * g);
   }
 
+  // ------------------------------------------------------------ бильярд
+
+  /** Шар о шар: сухой костяной «клак». v — скорость сближения, м/с. */
+  blClack(pos: V3 | null, v: number): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const g = Math.min(1, 0.12 + v / 3.5);
+    const k = 0.94 + Math.random() * 0.12;
+    this.tone(d, 3100 * k, 2500 * k, 0.025, 'triangle', 0.16 * g);
+    this.tone(d, 1650 * k, 1400 * k, 0.03, 'sine', 0.1 * g, 0.001);
+    this.noise(d, 0.018, 'highpass', 4200, 3600, 0.7, 0.16 * g);
+  }
+
+  /** Шар о борт: глухой резиновый толчок. */
+  blRail(pos: V3 | null, v: number): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const g = Math.min(1, 0.1 + v / 4);
+    this.tone(d, 180, 120, 0.07, 'sine', 0.22 * g);
+    this.noise(d, 0.04, 'lowpass', 900, 500, 0.8, 0.12 * g);
+  }
+
+  /** Шар упал в лузу: стук о дерево и шорох по сетке. */
+  blPocket(pos: V3 | null): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    this.tone(d, 420, 260, 0.09, 'triangle', 0.2);
+    this.tone(d, 260, 180, 0.12, 'sine', 0.16, 0.06);
+    this.noise(d, 0.16, 'bandpass', 900, 600, 1.1, 0.08, 0.05, 0.01);
+  }
+
+  /** Удар кия по битку: короткий деревянный «тук». power 0…1. */
+  blCue(pos: V3 | null, power: number): void {
+    if (!this.ok) return;
+    const d = this.out(pos, this.sfx, 0, 2);
+    const g = 0.3 + 0.7 * Math.min(1, Math.max(0, power));
+    this.tone(d, 900, 600, 0.03, 'triangle', 0.18 * g);
+    this.noise(d, 0.02, 'bandpass', 2200, 1800, 1.2, 0.12 * g);
+  }
+
   // ------------------------------------------------------------ вдвоём и фото у маяка
 
   /** «Дай пять»: звонкий шлепок ладоней и искорка следом. */
