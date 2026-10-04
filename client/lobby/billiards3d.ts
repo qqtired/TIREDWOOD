@@ -61,8 +61,8 @@ const ROOF_X1 = BL_HALL.x1 + 0.2;
 const ROOF_T = 0.05;
 /** Пол: южнее ковра павильона (он до z −15,7), чтобы не спорить с ним по глубине */
 const FLOOR_Z0 = -15.7;
-/** Линия прицела: длина и ширина, м */
-const AIM_LEN = 0.4;
+/** Линия прицела: длина (короче — до первого шара или борта, куда пойдёт биток) и ширина, м */
+const AIM_LEN = 1.2;
 const AIM_W = 0.008;
 /** Кий: длина; зазор от шара до наклейки при pull 0 и 1; наклон (приподнят комель) — обычный и предельный */
 const CUE_LEN = 1.45;
@@ -989,7 +989,7 @@ export class Billiards3D {
     this.placeCue(tb);
   }
 
-  /** Короткая линия прицела от битка по направлению ang (не траектория — только направление). */
+  /** Линия прицела от битка по направлению ang: до первого шара или борта (не дальше AIM_LEN). */
   setAim(t: number, visible: boolean, ang: number): void {
     const tb = this.tables[t];
     if (!tb) return;
@@ -1108,8 +1108,35 @@ export class Billiards3D {
     const show = tb.aimOn && tb.on[0];
     tb.aim.visible = show;
     if (!show) return;
+    const dx = Math.sin(tb.aimAng);
+    const dz = Math.cos(tb.aimAng);
     const d = BL_R + 0.006;
-    tb.aim.position.set(tb.x[0] + Math.sin(tb.aimAng) * d, Y + 0.0015, tb.z[0] + Math.cos(tb.aimAng) * d);
+    tb.aim.position.set(tb.x[0] + dx * d, Y + 0.0015, tb.z[0] + dz * d);
     tb.aim.rotation.set(0, tb.aimAng, 0);
+    // не сквозь шары и борт: до первого, во что упрётся биток
+    tb.aim.scale.z = Math.max(0.02, aimReach(tb, dx, dz) - d) / AIM_LEN;
   }
+}
+
+/** Сколько пройдёт центр битка по направлению (dx, dz) до первого шара или борта, но не больше AIM_LEN, м */
+function aimReach(tb: TableVis, dx: number, dz: number): number {
+  const x0 = tb.x[0];
+  const z0 = tb.z[0];
+  let t = AIM_LEN;
+  // борт: центр шара — на радиус от линии резины
+  if (dx > 1e-6) t = Math.min(t, (BL_HX - BL_R - x0) / dx);
+  else if (dx < -1e-6) t = Math.min(t, (-BL_HX + BL_R - x0) / dx);
+  if (dz > 1e-6) t = Math.min(t, (BL_HZ - BL_R - z0) / dz);
+  else if (dz < -1e-6) t = Math.min(t, (-BL_HZ + BL_R - z0) / dz);
+  // шар: центры сходятся на два радиуса
+  const r2 = 4 * BL_R * BL_R;
+  for (let i = 1; i < tb.on.length; i++) {
+    if (!tb.on[i]) continue;
+    const wx = tb.x[i] - x0;
+    const wz = tb.z[i] - z0;
+    const along = wx * dx + wz * dz;
+    const off2 = wx * wx + wz * wz - along * along;
+    if (along > 0 && off2 < r2) t = Math.min(t, along - Math.sqrt(r2 - off2));
+  }
+  return Math.max(0, t);
 }
