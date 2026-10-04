@@ -5,9 +5,9 @@
 // сидом и засчитывает улов, только если его повтор дошёл до 100 %. Улов: рыба — в рюкзак по цене поимки (продаётся
 // Семёну или Сане, server/lobby/fishnpc.ts), сундук и бонус за новый вид — сразу жетонами; коллекция (альбом), опыт
 // рыбалки и общий опыт (по цене рыбы), счётчики доски рекордов, награды лестницы коллекции (server/fishstyle.ts).
-// Рыба в руках — выбор (shared/fishrelease.ts): «В садок» (ЛКМ — и сразу заброс) или «Отпустить» (F) — из рюкзака
-// в воду, жетонов нет, опыт рыбалки за поимку ×1,5; не выбрал — остаётся в рюкзаке. Полный рюкзак — заброс уходит,
-// улов отпускается сразу (×1,5). Эпическая и выше сорвалась после 3 с борьбы — утешительный опыт (fishLostXp).
+// Рыба в руках — выбор (shared/fishrelease.ts): «В рюкзак» (ЛКМ — и сразу заброс) или «Отпустить» (F) — из рюкзака
+// в воду, жетонов нет, опыт рыбалки за поимку ×1,5; не выбрал — остаётся в рюкзаке. Полный рюкзак — заброс не уходит
+// (подсказка: продать или отпустить из рюкзака). Эпическая и выше сорвалась после 3 с борьбы — утешительный опыт (fishLostXp).
 // В дождь опыт рыбалки ×1,15 (и за поимку, и утешительный). Сезон рыбалки (server/lobby/fishseason.ts) — особый дождь:
 // клюют виды дождя, эпик, лег, мифик и божественный кальмар ×3 от базы; опыт — как в дождь.
 //
@@ -25,7 +25,7 @@ import {
 import { spotZone } from '../../shared/fishplaces.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
-import { BAG_FULL_RELEASE, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
+import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
 import {
   ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
   isCollected, reelStyleFor, rollCatch2, type Hooked,
@@ -53,8 +53,8 @@ export const REEL_BATCH = 120;
 export const BITE_GRACE = TICK_RATE;
 /** Сообщений за одно вываживание не больше (клиент шлёт до 20 в секунду) */
 export const REEL_MSGS = REEL_MAX_TICKS / 2;
-/** Подсказка, когда рюкзак полон: заброс всё равно уходит, улов отпускается в воду (shared/fishrelease.ts) */
-export const BAG_FULL_TEXT = BAG_FULL_RELEASE;
+/** Подсказка, когда рюкзак полон (заброс не уходит): продать или отпустить рыбу из рюкзака (shared/fishrelease.ts) */
+export const BAG_FULL_TEXT = BAG_FULL_HINT;
 
 /** Флаг сервера FISH2: 1 — рыбалка 2.0, иначе старая (до включения по умолчанию) */
 export function fish2Enabled(v: string | undefined): boolean {
@@ -277,8 +277,10 @@ export class FishingHall2 {
   private cast(s: Spot, spot: number, tick: number): void {
     const prof = this.host.who(s.slot)?.profile;
     if (!prof) return;
-    // рюкзак полон — заброс уходит, улов отпустят в воду (×1,5 опыта): подсказка, где продать
-    if (prof.fishing.bag.length >= bagSlots(prof.fishing)) this.host.toast(s.slot, BAG_FULL_TEXT);
+    if (prof.fishing.bag.length >= bagSlots(prof.fishing)) {
+      this.host.toast(s.slot, BAG_FULL_TEXT);
+      return;
+    }
     this.profiles.refreshFishing(prof);
     s.mods = Object.freeze(fishCastMods(prof.fishing, this.now(), spotZone(spot)));
     prof.stats.fsCasts++;
@@ -377,7 +379,7 @@ export class FishingHall2 {
     this.host.changed(s.slot);
   }
 
-  /** «В руках» кончилось (или снова забросил, или «В садок») — рыба в рюкзаке (отпущенная — в воде), удочка пустая. */
+  /** «В руках» кончилось (или снова забросил, или «В рюкзак») — рыба в рюкзаке (отпущенная — в воде), удочка пустая. */
   private done(s: Spot, spot: number): void {
     this.host.event(['fish', FE_DONE, spot, s.freed ? DONE_RELEASE : 1, 0]);
     s.phase = FP_IDLE;
@@ -439,8 +441,7 @@ export class FishingHall2 {
       if (put) this.profiles.modeXp(prof, price);
       st.fsMaxGrams = Math.max(st.fsMaxGrams, s.g);
       xp = fishCatchXp(s.sp, perfect, s.mods, this.wet());
-      // отпустить (shared/fishrelease.ts): рюкзак полон — отпущена сразу, ×1,5; иначе выбор — F, пока в руках
-      if (bagFull) xp = releaseXp(xp);
+      // отпустить (shared/fishrelease.ts) — F, пока в руках; не легла (рюкзак полон) — уже в воде, отпускать нечего
       s.bagN = put ? put.n : -1;
       s.xp = xp;
       s.freed = bagFull;

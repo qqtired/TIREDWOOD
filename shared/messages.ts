@@ -216,7 +216,7 @@ export type ClientMsg =
   | { t: 'pull' }
   /**
    * Рыбалка: забросить, подсечь (n — последнее событие поплавка, которое видел), рыбу — в альбом или продать;
-   * рыбалка 2.0: рыба в руках — keep (в садок) или release (отпустить, shared/fishrelease.ts)
+   * рыбалка 2.0: рыба в руках — keep (в рюкзак) или release (отпустить, shared/fishrelease.ts)
    */
   | { t: 'fish'; a: 'cast' | 'hook' | 'keep' | 'sell' | 'release'; n?: number }
   /**

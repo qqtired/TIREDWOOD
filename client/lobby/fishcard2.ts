@@ -2,8 +2,8 @@
 // и из чего она (база · баркас · напиток), опыт («Идеально! ×2,4»), «Новый вид!» с бонусом или «Рекорд!», уникальный
 // вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
 // крышка отскакивает, сыплются монеты, сумма набегает; 200 — джекпот. Сама уходит через несколько секунд или
-// при следующем забросе. Рыба — выбор (shared/fishrelease.ts): «В садок» (ЛКМ) или «Отпустить» (F, +50 % опыта,
-// без жетонов) и полоска — сколько ждать; не выбрал — осталась в садке.
+// при следующем забросе. Рыба — выбор (shared/fishrelease.ts): «В рюкзак» (ЛКМ) или «Отпустить» (F, +50 % опыта,
+// без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке.
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
 import { BARKAS_INCOME, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
@@ -43,7 +43,7 @@ const NOTES = [
 ];
 
 export class CatchCard2 {
-  /** Кнопки выбора мышью (пока мышь свободна) или пальцем: в садок, отпустить */
+  /** Кнопки выбора мышью (пока мышь свободна) или пальцем: в рюкзак, отпустить */
   onKeep: () => void = () => {};
   onRelease: () => void = () => {};
   private readonly card: HTMLElement;
@@ -104,7 +104,7 @@ export class CatchCard2 {
     else sub.textContent = r.note;
     if (m.bag !== undefined) {
       // fisheco: рыба — в рюкзак по цене поимки; ниже — из чего цена и сколько опыта
-      if (m.bagFull) card.appendChild(el('div', 'fc2-price fe-bagfull', 'Рюкзак полон — рыбу отпустили в воду'));
+      if (m.bagFull) card.appendChild(el('div', 'fc2-price fe-bagfull', 'Рюкзак полон — рыбу пришлось отпустить'));
       else setCoinText((this.priceEl = card.appendChild(el('div', 'fc2-price'))), `+${m.price} 🪙 в рюкзак (${m.bag}/${m.cap})`);
       const why: string[] = [];
       const f = m.m ?? 0;
@@ -114,7 +114,6 @@ export class CatchCard2 {
       else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
       if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
       if (m.xp) (this.xpEl = card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`))).classList.toggle('perfect', !!m.perfect);
-      if (m.bagFull && this.xpEl) this.xpEl.textContent += ' · отпущена ×1,5';
       if (!m.bagFull) this.choice(m);
     } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
     if (!junk) {
@@ -139,7 +138,7 @@ export class CatchCard2 {
   }
 
   /**
-   * Сервер убрал рыбу из рук (FE_DONE): отпущена — цена зачёркнута, опыт ×1,5, карточка ещё немного видна; в садке —
+   * Сервер убрал рыбу из рук (FE_DONE): отпущена — цена зачёркнута, опыт ×1,5, карточка ещё немного видна; в рюкзаке —
    * карточка уходит. Выбирать больше нечего.
    */
   done(freed: boolean): void {
@@ -159,18 +158,18 @@ export class CatchCard2 {
     this.hideIn(FREED_MS);
   }
 
-  /** Две кнопки выбора и полоска — сколько осталось (потом рыба остаётся в садке). */
+  /** Две кнопки выбора и полоска — сколько осталось (потом рыба остаётся в рюкзаке). */
   private choice(m: Land): void {
     this.choosing = m;
     const card = this.card;
     card.classList.add('choose');
     const row = card.appendChild(el('div', 'fc2-choice'));
-    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : 'ЛКМ', '🎒 В садок', 'жетоны — при продаже'));
+    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : 'ЛКМ', '🎒 В рюкзак', 'жетоны — при продаже'));
     const free = row.appendChild(choiceBtn('free', TOUCH ? '' : 'F', '🌊 Отпустить', RELEASE_NOTE));
     keep.addEventListener('click', () => this.onKeep());
     free.addEventListener('click', () => this.onRelease());
     card.appendChild(el('div', 'fc2-wait')).appendChild(el('i', '')).style.animationDuration = `${CHOICE_MS}ms`;
-    card.lastElementChild!.appendChild(el('span', '', 'Не выберешь — останется в садке'));
+    card.lastElementChild!.appendChild(el('span', '', 'Не выберешь — останется в рюкзаке'));
   }
 
   private hideIn(ms: number): void {

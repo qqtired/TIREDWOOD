@@ -1,6 +1,6 @@
-// После поимки (shared/fishrelease.ts): рыба в руках — «В садок» (keep, ЛКМ-заброс, или не выбрал) или «Отпустить»
+// После поимки (shared/fishrelease.ts): рыба в руках — «В рюкзак» (keep, ЛКМ-заброс, или не выбрал) или «Отпустить»
 // (release, F): из рюкзака в воду, жетонов нет, опыт рыбалки за поимку ×1,5, альбом и счётчики уже засчитаны. Полный
-// рюкзак — заброс уходит, улов отпускается сразу (×1,5). Всё — через настоящие Hub/LobbyRoom и временный диск.
+// рюкзак — заброс не уходит, подсказка «продай или отпусти из рюкзака (I)». Всё — через настоящие Hub/LobbyRoom и диск.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -114,7 +114,7 @@ test('отпустить (F): рыба из рюкзака — в воду, же
   assert.notEqual(e.hall.phase(0), FP_IDLE);
 });
 
-test('в садок: ЛКМ (заброс из рук), кнопка keep или не выбрал за CHOICE_TICKS — рыба в рюкзаке, опыт обычный; потом отпустить нельзя', () => {
+test('в рюкзак: ЛКМ (заброс из рук), кнопка keep или не выбрал за CHOICE_TICKS — рыба в рюкзаке, опыт обычный; потом отпустить нельзя', () => {
   const e = setup();
   catchOne(e, { sp: sp('scad'), g: 300, coins: 0 });
   const xp0 = e.p.fishing.xp;
@@ -134,7 +134,7 @@ test('в садок: ЛКМ (заброс из рук), кнопка keep или
   advance(e, 6);
   assert.equal(e.hall.phase(0), FP_IDLE);
   assert.equal(e.p.fishing.bag.length, 2);
-  // ЛКМ с рыбой в руках — в садок и сразу заброс
+  // ЛКМ с рыбой в руках — в рюкзак и сразу заброс
   catchOne(e, { sp: sp('scad'), g: 400, coins: 0 });
   e.clock.now += 1100;
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
@@ -163,28 +163,34 @@ test('отпустить нечего: сундук; рыбы уже нет в �
   assert.equal(e.hall.phase(0), FP_HOLD);
 });
 
-test('полный рюкзак: заброс уходит с подсказкой, улов отпускается сразу — ×1,5 опыта, рюкзак и жетоны не меняются', () => {
+test('полный рюкзак: заброс не уходит, подсказка «продай или отпусти из рюкзака (I)»; рыба заняла последнее место — F его освобождает', () => {
+  const full = setup();
+  full.p.fishing.bag = Array.from({ length: BAG_BASE }, (_v, n) => ({ n, f: 'goby', g: 100, p: 5, m: 0 }));
+  full.p.fishing.bagSeq = BAG_BASE;
+  full.clock.now += 1100;
+  full.hub.onJson(full.a.c, { t: 'fish', a: 'cast' });
+  assert.equal(full.hall.phase(0), FP_IDLE, 'заброс не ушёл');
+  assert.equal(lastOf(full.a.s, 'toast')!.text, BAG_FULL_TEXT);
+  assert.equal(BAG_FULL_TEXT, 'Рюкзак полон — продай улов Семёну или Сане или отпусти рыбу из рюкзака (I)');
+  // отпустил из рюкзака (I → «Отпустить», где угодно) — место есть, заброс уходит
+  full.clock.now += 1100;
+  full.hub.onJson(full.a.c, { t: 'fishBag', a: 'release', n: 0 });
+  assert.equal(full.p.fishing.bag.length, BAG_BASE - 1);
+  full.clock.now += 1100;
+  full.hub.onJson(full.a.c, { t: 'fish', a: 'cast' });
+  assert.notEqual(full.hall.phase(0), FP_IDLE);
+  // рыба заняла последнее место — F: она в воде, место снова есть, заброс уходит
   const e = setup();
-  e.p.fishing.bag = Array.from({ length: BAG_BASE }, (_v, n) => ({ n, f: 'goby', g: 100, p: 5, m: 0 }));
-  e.p.fishing.bagSeq = BAG_BASE;
-  e.p.album = { scad: [500, 3] };
-  const t0 = e.p.tokens;
-  const bag = e.p.fishing.bag.map((f) => ({ ...f }));
-  const xp0 = e.p.fishing.xp;
+  e.p.fishing.bag = Array.from({ length: BAG_BASE - 1 }, (_v, n) => ({ n, f: 'goby', g: 100, p: 5, m: 0 }));
+  e.p.fishing.bagSeq = BAG_BASE - 1;
   catchOne(e, { sp: sp('scad'), g: 300, coins: 0 });
-  assert.equal(lastOf(e.a.s, 'toast')!.text, BAG_FULL_TEXT);
-  const land = lastOf(e.a.s, 'fishLand')!;
-  assert.equal(land.bagFull, true);
-  assert.deepEqual(e.p.fishing.bag, bag);
-  assert.equal(e.p.tokens, t0);
-  assert.equal(e.p.fishing.xp, xp0 + land.xp!);
-  assert.equal(land.xp! % 1, 0);
-  assert.ok(land.xp! >= 2, 'опыт за отпущенную');
-  // F ничего не добавляет (уже отпущена); не выбрал — все видят, как рыба уходит в воду
+  assert.equal(e.p.fishing.bag.length, BAG_BASE);
   e.clock.now += 1100;
   e.hub.onJson(e.a.c, { t: 'fish', a: 'release' });
-  assert.equal(e.p.fishing.xp, xp0 + land.xp!);
-  advance(e, CHOICE_TICKS + 1);
-  assert.equal(e.hall.phase(0), FP_IDLE);
+  assert.equal(e.p.fishing.bag.length, BAG_BASE - 1);
+  advance(e, 2);
   assert.deepEqual(fishEvents(e).at(-1), [FE_DONE, 0, DONE_RELEASE, 0]);
+  e.clock.now += 1100;
+  e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
+  assert.notEqual(e.hall.phase(0), FP_IDLE);
 });

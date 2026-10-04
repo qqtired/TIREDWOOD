@@ -145,7 +145,7 @@ test('честное вываживание: повтор сервера дош�
   assert.equal(e.hall.phase(0), FP_HOLD);
   assert.ok(fishEvents(e.a.s).some((x) => x[0] === FE_LAND && x[2] === sp('scad') && x[3] === 300));
   assert.deepEqual(lastOf(e.a.s, 'me')!.album, { scad: [300, 1] }, 'альбом — в профиль клиента');
-  // рыба в руках ждёт выбора «В садок» / «Отпустить» (shared/fishrelease.ts) — не выбрал: осталась в рюкзаке
+  // рыба в руках ждёт выбора «В рюкзак» / «Отпустить» (shared/fishrelease.ts) — не выбрал: осталась в рюкзаке
   advance(e.hub, e.clock, CHOICE_TICKS + 1);
   assert.equal(e.hall.phase(0), FP_IDLE);
   assert.deepEqual(fishEvents(e.a.s).find((x) => x[0] === FE_DONE), [FE_DONE, 0, 1, 0]);

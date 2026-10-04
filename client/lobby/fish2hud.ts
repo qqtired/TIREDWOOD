@@ -126,7 +126,7 @@ export class Fish2Hud {
   get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
   get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
 
-  /** Рюкзак полон — улов отпустится в воду (подсказка внизу; сервер решает сам) */
+  /** Рюкзак полон — заброс не уйдёт (сервер скажет то же самое) */
   get bagFull(): boolean {
     const f = this.ui.me().fishing;
     return f.bag.length >= bagSlots(f);
@@ -314,7 +314,7 @@ export class Fish2Hud {
     this.card.hide();
   }
 
-  /** Рыба в руках ждёт выбора («В садок» / «Отпустить») */
+  /** Рыба в руках ждёт выбора («В рюкзак» / «Отпустить») */
   get choosing(): boolean {
     return this.card.canRelease;
   }
