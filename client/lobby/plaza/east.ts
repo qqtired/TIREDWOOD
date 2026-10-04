@@ -64,7 +64,7 @@ export function buildFight(ctx: VenueCtx): Venue {
   }
 
   // коврик под кругом: бетон с красно-чёрной каймой
-  const pad = paintTexture(920, 760, drawFightPad);
+  const pad = paintTexture(920, 760, drawFightPad, false, 0.55);
   v.group.add(floorPad(pad, FC_CIRCLE.x, FC_CIRCLE.z - 0.03, 3.7, 3.04, ctx.wet, 0.004));
 
   v.touts.push({ ...TOUT_INFO.fight, key: 'fight', x: 29.55, z: 5.0, yaw: (Math.PI * 3) / 4, arms: 'hips' });

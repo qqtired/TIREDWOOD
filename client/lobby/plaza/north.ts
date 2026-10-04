@@ -8,7 +8,7 @@ import {
   drawBanner, drawClock, drawCloudPad, drawCloudSign, drawDrawbridge, drawFortSign, drawHouseNumber, drawKartPad, drawKarting, drawPaintPad, drawPaintball,
 } from './art.ts';
 import { TOUT_INFO } from './data.ts';
-import { Decals, cloud, floorPad, paintTexture, wallPlate } from './gfx.ts';
+import { Decals, PAD_SCALE, cloud, floorPad, paintTexture, wallPlate } from './gfx.ts';
 import { LinePlate } from './plate.ts';
 import { Venue, type VenueCtx } from './venue.ts';
 
@@ -39,7 +39,7 @@ function buildPaintball(ctx: VenueCtx): Venue {
   const v = new Venue('paint', ctx, 11);
   const d = v.detail;
   // вывеска над воротами склада вместо «СКЛАД №3»
-  v.sign({ w: 9.2, h: 1.75, x: 0, y: 9.5, z: -15.9, frame: 0x14275c, bulbs: 0xfff0b0, glow: 0.42, halo: 0x8fb8ff, haloK: 0.2, draw: drawPaintball });
+  v.sign({ w: 9.2, h: 1.75, x: 0, y: 9.5, z: -15.9, frame: 0x14275c, bulbs: 0xfff0b0, glow: 0.42, halo: 0x8fb8ff, haloK: 0.2, ppm: 150, draw: drawPaintball });
   for (const x of [-4.2, 4.2]) d.box(0.2, 0.8, 0.28, x, 9.2, -16.12, IRON);
   // флаги команд над краями крыши
   for (const [x, hex] of [[-8.3, RED], [8.3, BLUE]] as const) {
@@ -60,7 +60,7 @@ function buildPaintball(ctx: VenueCtx): Venue {
     d.cyl(0.1, 0.1, 0.16, b.x - 0.1, b.h + 0.09, b.z, b.color === RED ? 0xffd23f : 0xf4f1e8, 10);
   }
   // коврик перед воротами: красная и синяя половины, стрелки внутрь
-  const pad = paintTexture(1400, 640, drawPaintPad);
+  const pad = paintTexture(1400, 640, drawPaintPad, false, PAD_SCALE);
   v.group.add(floorPad(pad, 0, -14.6, 7.0, 3.2, ctx.wet, 0.005));
   // кляксы на кирпиче и на плитке
   const dec = new Decals();
@@ -86,7 +86,7 @@ function buildPaintball(ctx: VenueCtx): Venue {
 function buildKarting(ctx: VenueCtx): Venue {
   const v = new Venue('kart', ctx, 17);
   const d = v.detail;
-  v.sign({ w: 9.6, h: 1.85, x: 20.5, y: 7.6, z: -15.9, frame: 0x2a2a2e, bulbs: 0xffe8a0, glow: 0.4, halo: 0xffd9a0, haloK: 0.18, draw: drawKarting });
+  v.sign({ w: 9.6, h: 1.85, x: 20.5, y: 7.6, z: -15.9, frame: 0x2a2a2e, bulbs: 0xffe8a0, glow: 0.4, halo: 0xffd9a0, haloK: 0.18, ppm: 150, draw: drawKarting });
   for (const x of [16.6, 24.4]) d.box(0.2, 0.7, 0.28, x, 6.9, -16.12, IRON);
   // стопки красно-белых покрышек у ворот (твёрдые — shared/plaza2.ts)
   for (const t of KART_TIRES) {
@@ -102,7 +102,7 @@ function buildKarting(ctx: VenueCtx): Venue {
   d.cyl(0.14, 0.14, 0.42, 14.55, 0.21, -15.2, 0xd9372b, 12);
   d.box(0.46, 0.22, 0.26, 25.4, 0.11, -15.45, 0x2f6ad8);
   // пит-лейн: асфальт с белой решёткой и красно-белым поребриком вокруг круга «Старт»
-  const pad = paintTexture(1900, 1120, drawKartPad);
+  const pad = paintTexture(1900, 1120, drawKartPad, false, PAD_SCALE);
   v.group.add(floorPad(pad, KART_START.x, -13.2, 9.5, 5.6, ctx.wet, 0.004));
   // дом 4: номер слева от рольставни, правее знамени проулка крепости
   v.plaques.add({ x: 14.6, y: 2.2, z: -15.985, ry: 0, w: 0.5, h: 0.5, draw: (c, W, H) => drawHouseNumber(c, W, H, 4), ppm: 240 });
@@ -167,7 +167,7 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
     near.lampGlow(0xff9a3c, 2.4, tx - sx * 0.12, 3.35, tz, 0.55);
   }
   // подъёмный мост: доски на земле от порога, цепи к перемычке
-  const bridge = paintTexture(640, 300, drawDrawbridge);
+  const bridge = paintTexture(640, 300, drawDrawbridge, false, 0.8);
   near.group.add(floorPad(bridge, x, -14.7, 3.6, 2.6, ctx.wet, 0.004));
   for (const sx of [-1, 1]) d.rod([x + sx * 1.74, 0.05, -13.45], [x + sx * 1.74, 4.0, -15.5], 0.022, IRON, 5);
   // мешки с песком у стен
@@ -231,7 +231,7 @@ function buildSky(ctx: VenueCtx): { near: Venue; tower: Venue } {
   // клубы по нижним краям облака-вывески (не на табличке портала: на ней живая строка «сбор забега — старт через N с»)
   for (const sx of [-1, 1]) cloud(near.flat, x + sx * 3.0, 4.7, z, 0.45, 1.1);
   // облачный порог на плитке
-  const pad = paintTexture(920, 680, drawCloudPad);
+  const pad = paintTexture(920, 680, drawCloudPad, false, PAD_SCALE);
   near.group.add(floorPad(pad, x, z + 0.1, 4.6, 3.4, ctx.wet, 0.005));
   near.touts.push({ ...TOUT_INFO.sky, key: 'sky', x: x + 3.1, z: z + 1.1, yaw: Math.PI - 0.5 });
 

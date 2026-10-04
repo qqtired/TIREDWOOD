@@ -673,10 +673,17 @@ export function wallPlate(map: THREE.Texture, x: number, y: number, z: number, w
   return m;
 }
 
+/** Масштаб холста крупных напольных ковриков: ~140 пикселей на метр хватает с запасом, а памяти видеокарты — вдвое меньше */
+export const PAD_SCALE = 0.7;
+
 /** Холст w × h пикселей, нарисованный функцией, — в текстуру. */
-export function paintTexture(w: number, h: number, draw: (ctx: CanvasRenderingContext2D, W: number, H: number) => void, repeat = false): THREE.CanvasTexture {
-  const [c, ctx] = makeCanvas(w, h);
-  draw(ctx, c.width, c.height);
+export function paintTexture(w: number, h: number, draw: (ctx: CanvasRenderingContext2D, W: number, H: number) => void, repeat = false, scale = 1): THREE.CanvasTexture {
+  // scale < 1: рисуем в прежней «логической» сетке w × h, а холст берём меньше — картинка та же, памяти меньше (крупные коврики)
+  const [c, ctx] = makeCanvas(w * scale, h * scale);
+  const W = Math.max(1, Math.round(w));
+  const H = Math.max(1, Math.round(h));
+  if (scale !== 1) ctx.scale(c.width / W, c.height / H);
+  draw(ctx, W, H);
   return canvasTexture(c, repeat);
 }
 
@@ -714,7 +721,9 @@ export class Plaques {
     if (!this.list.length) return null;
     const sized = this.list.map((p) => ({ p, pw: Math.max(8, Math.round(p.w * (p.ppm ?? 200))), ph: Math.max(8, Math.round(p.h * (p.ppm ?? 200))) }));
     const order = sized.map((_, i) => i).sort((a, b) => sized[b].ph - sized[a].ph);
-    const AW = 2048;
+    // атлас в одну строку, если табличек мало: ширина — степень двойки по сумме ширин (не всегда 2048)
+    const need = sized.reduce((sum, q) => sum + q.pw + 2, 0);
+    const AW = need <= 2048 ? Math.max(32, Math.pow(2, Math.ceil(Math.log2(need)))) : 2048;
     let x = 0;
     let y = 0;
     let rowH = 0;

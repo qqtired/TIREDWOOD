@@ -7,7 +7,7 @@ import { AQUA_JETTY } from '../../../shared/aqua.ts';
 import { WATER_Y } from '../../../shared/constants.ts';
 import { drawAquaGate, drawAquaPad } from './art.ts';
 import { TOUT_INFO } from './data.ts';
-import { detailMesh, floorPad, Mesher, paintTexture, wallPlate } from './gfx.ts';
+import { detailMesh, floorPad, Mesher, PAD_SCALE, paintTexture, wallPlate } from './gfx.ts';
 import { Venue, type VenueCtx } from './venue.ts';
 
 const BLUE = 0x1f7ae0;
@@ -169,7 +169,7 @@ function buildGate(ctx: VenueCtx): Venue {
   }
 
   // коврик на настиле у мостика: стрелка «на старт»
-  const pad = paintTexture(920, 600, drawAquaPad);
+  const pad = paintTexture(920, 600, drawAquaPad, false, PAD_SCALE);
   v.group.add(floorPad(pad, -27.65, zc, 4.6, AQUA_JETTY.z1 - AQUA_JETTY.z0, ctx.wet, 0.005));
 
   // спасатель Лёва — на настиле севернее входа, лицом к подходящим

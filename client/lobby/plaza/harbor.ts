@@ -137,7 +137,7 @@ function buildYard(ctx: VenueCtx): Venue {
   d.cyl(0.03, 0.03, 0.34, YARD_CRATES[1].x + 0.9, 0.3, YARD_CRATES[1].z + 0.5, IRON, 4, 0, 0, Math.PI / 2);
 
   // брезент с сетью на земле под кругом
-  const pad = paintTexture(1344, 1024, drawYardPad);
+  const pad = paintTexture(1344, 1024, drawYardPad, false, 0.85);
   v.group.add(floorPad(pad, HIDE_CIRCLE.x, HIDE_CIRCLE.z + 0.45, 8.4, 6.4, ctx.wet, 0.004));
 
   v.touts.push({ ...TOUT_INFO.hide, key: 'hide', x: YARD_BARREL.x, z: YARD_BARREL.z, y: 0.02, yaw: 0 });
@@ -275,7 +275,7 @@ function buildRegatta(ctx: VenueCtx): { venue: Venue; bobs: Bob[] } {
   v.flags.pennant(cx + 1.6, yardY, m0.z, 1.0, 0.3, BLUE, Math.PI / 2, 1.1);
 
   // стапель-площадка с шашечками линии старта под кругом
-  const pad = paintTexture(1190, 1020, drawRegattaPad);
+  const pad = paintTexture(1190, 1020, drawRegattaPad, false, 0.8);
   v.group.add(floorPad(pad, BOAT_RACE_CIRCLE.x + 0.2, BOAT_RACE_CIRCLE.z + 0.1, 7.0, 6.0, ctx.wet, 0.004));
   // бухта каната у основания мачты
   d.torus(0.22, 0.07, m0.x + 0.75, 0.07, m0.z - 0.4, 0xd9c9a0, Math.PI / 2, 0, 0, 6, 14);
