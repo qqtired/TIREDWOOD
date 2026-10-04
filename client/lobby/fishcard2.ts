@@ -1,19 +1,24 @@
-// Карточка улова рыбалки 2.0 (выбирать нечего): картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
+// Карточка улова рыбалки 2.0: картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
 // и из чего она (база · баркас · напиток), опыт («Идеально! ×2,4»), «Новый вид!» с бонусом или «Рекорд!», уникальный
 // вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
 // крышка отскакивает, сыплются монеты, сумма набегает; 250 — джекпот, 3000 — «Сокровища Посейдона» (fishtreasure.ts).
-// Сама уходит через несколько секунд или при следующем забросе.
+// Сама уходит через несколько секунд или при следующем забросе. Рыба — выбор (shared/fishrelease.ts): «В рюкзак» (ЛКМ)
+// или «Отпустить» (F, +50 % опыта, без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке.
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
 import { BARKAS_INCOME, CHEST_JACKPOT, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
 import { ALE, BEER, LORD } from '../../shared/fishshop.ts';
+import { CHOICE_TICKS, RELEASE_NOTE, releaseXp } from '../../shared/fishrelease.ts';
+import { TICK_RATE } from '../../shared/constants.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
+import { TOUCH } from '../touch.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
 import { mul, pct } from './fishfmt.ts';
 import { POSEIDON_TEXT, poseidonPic } from './fishtreasure.ts';
+import './fishrelease.css';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
 
@@ -23,6 +28,10 @@ const CHEST_MS = 6500;
 /** Сундук: трясётся, потом открывается; сумма набегает за */
 const SHAKE_MS = 750;
 const COUNT_MS = 1100;
+/** Рыба в руках ждёт выбора, мс (как сервер); после выбора карточка ещё видна */
+const CHOICE_MS = (CHOICE_TICKS / TICK_RATE) * 1000;
+const KEPT_MS = 900;
+const FREED_MS = 2600;
 
 /** Что пишут в бутылке (по весу) */
 const NOTES = [
@@ -35,10 +44,17 @@ const NOTES = [
 ];
 
 export class CatchCard2 {
+  /** Кнопки выбора мышью (пока мышь свободна) или пальцем: в рюкзак, отпустить */
+  onKeep: () => void = () => {};
+  onRelease: () => void = () => {};
   private readonly card: HTMLElement;
   private readonly sound: Sound;
   private hideTimer = 0;
   private timers: number[] = [];
+  /** Улов, который ждёт выбора (null — выбирать нечего), и его строки цены и опыта */
+  private choosing: Land | null = null;
+  private priceEl: HTMLElement | null = null;
+  private xpEl: HTMLElement | null = null;
 
   constructor(parent: HTMLElement, sound: Sound) {
     this.sound = sound;
@@ -50,6 +66,11 @@ export class CatchCard2 {
     return this.card.classList.contains('show');
   }
 
+  /** Рыба в руках ждёт выбора: F — отпустить */
+  get canRelease(): boolean {
+    return this.choosing !== null && this.shown;
+  }
+
   show(m: Land): void {
     const r = RULE[m.sp];
     const f = FISH[m.sp];
@@ -58,6 +79,8 @@ export class CatchCard2 {
     const card = this.card;
     card.textContent = '';
     card.className = 'fc2';
+    this.choosing = null;
+    this.priceEl = this.xpEl = null;
     if (r.tier === T_CHEST) {
       this.chest(m);
       return;
@@ -83,7 +106,7 @@ export class CatchCard2 {
     if (m.bag !== undefined) {
       // fisheco: рыба — в рюкзак по цене поимки; ниже — из чего цена и сколько опыта
       if (m.bagFull) card.appendChild(el('div', 'fc2-price fe-bagfull', 'Рюкзак полон — рыбу пришлось отпустить'));
-      else setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙 в рюкзак (${m.bag}/${m.cap})`);
+      else setCoinText((this.priceEl = card.appendChild(el('div', 'fc2-price'))), `+${m.price} 🪙 в рюкзак (${m.bag}/${m.cap})`);
       const why: string[] = [];
       const f = m.m ?? 0;
       if (f & BAG_BARKAS) why.push(`баркас ${mul(BARKAS_INCOME)}`);
@@ -91,7 +114,8 @@ export class CatchCard2 {
       else if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
       else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
       if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
-      if (m.xp) card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`)).classList.toggle('perfect', !!m.perfect);
+      if (m.xp) (this.xpEl = card.appendChild(el('div', 'fe-xp', m.perfect ? `+${m.xp} XP · Идеально! ×2,4` : `+${m.xp} XP`))).classList.toggle('perfect', !!m.perfect);
+      if (!m.bagFull) this.choice(m);
     } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
     if (!junk) {
       const col = card.appendChild(el('div', 'fc2-col'));
@@ -102,7 +126,7 @@ export class CatchCard2 {
       const note = catchRewardNote(m);
       if (note) card.appendChild(note);
     }
-    this.open(m.full || m.rw ? SHOW_MS + 2500 : SHOW_MS);
+    this.open(this.choosing ? CHOICE_MS + 1500 : m.full || m.rw ? SHOW_MS + 2500 : SHOW_MS);
     if (m.price > 0 && !m.bagFull) this.later(250, () => this.sound.coins(null, Math.min(8, Math.max(2, Math.round(m.price / 4)))));
     if (m.fresh && !junk) this.later(450, () => this.sound.fishAlbum());
     if (m.full) this.later(900, () => this.sound.fanfare(null));
@@ -110,12 +134,54 @@ export class CatchCard2 {
 
   hide(): void {
     this.clear();
+    this.choosing = null;
     this.card.classList.remove('show');
+  }
+
+  /**
+   * Сервер убрал рыбу из рук (FE_DONE): отпущена — цена зачёркнута, опыт ×1,5, карточка ещё немного видна; в рюкзаке —
+   * карточка уходит. Выбирать больше нечего.
+   */
+  done(freed: boolean): void {
+    const m = this.choosing;
+    if (!m) return;
+    this.choosing = null;
+    this.card.classList.remove('choose');
+    this.card.querySelector('.fc2-choice')?.remove();
+    this.card.querySelector('.fc2-wait')?.remove();
+    if (!freed) {
+      this.hideIn(KEPT_MS);
+      return;
+    }
+    this.card.classList.add('freed');
+    if (this.priceEl) this.priceEl.textContent = '🌊 Отпущена · без жетонов';
+    if (this.xpEl && m.xp) this.xpEl.textContent = `+${releaseXp(m.xp)} XP · отпустил ×1,5`;
+    this.hideIn(FREED_MS);
+  }
+
+  /** Две кнопки выбора и полоска — сколько осталось (потом рыба остаётся в рюкзаке). */
+  private choice(m: Land): void {
+    this.choosing = m;
+    const card = this.card;
+    card.classList.add('choose');
+    const row = card.appendChild(el('div', 'fc2-choice'));
+    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : 'ЛКМ', '🎒 В рюкзак', 'жетоны — при продаже'));
+    const free = row.appendChild(choiceBtn('free', TOUCH ? '' : 'F', '🌊 Отпустить', RELEASE_NOTE));
+    keep.addEventListener('click', () => this.onKeep());
+    free.addEventListener('click', () => this.onRelease());
+    card.appendChild(el('div', 'fc2-wait')).appendChild(el('i', '')).style.animationDuration = `${CHOICE_MS}ms`;
+    card.lastElementChild!.appendChild(el('span', '', 'Не выберешь — останется в рюкзаке'));
+  }
+
+  private hideIn(ms: number): void {
+    clearTimeout(this.hideTimer);
+    this.hideTimer = window.setTimeout(() => this.card.classList.remove('show'), ms);
   }
 
   /** Сорвалась эпическая и выше после 3 с борьбы: утешительный опыт (вид — тайна, только категория). */
   lost(tier: number, xp: number): void {
     this.clear();
+    this.choosing = null;
     const card = this.card;
     card.textContent = '';
     card.className = 'fc2 fe-lost';
@@ -197,4 +263,16 @@ export class CatchCard2 {
     }
     this.timers = [];
   }
+}
+
+/** Кнопка выбора: клавиша значком (на телефоне — без неё), что делает и мелко — что за это. */
+function choiceBtn(cls: string, key: string, text: string, sub: string): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `fc2-btn ${cls}`;
+  const top = b.appendChild(el('span', 'fc2-btn-top'));
+  if (key) top.appendChild(el('kbd', key.length > 1 ? 'wide' : '', key));
+  top.appendChild(el('b', '', text));
+  b.appendChild(el('small', '', sub));
+  return b;
 }

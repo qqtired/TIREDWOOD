@@ -30,6 +30,7 @@ import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
+import { DONE_RELEASE } from '../../shared/fishrelease.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -66,6 +67,7 @@ export class Fish2Hud {
   private readonly podium: FishPodium3D;
   private readonly clock = new FishClock();
   private readonly ui: Ui;
+  private readonly send: (msg: ClientMsg) => void;
   private top: FishBoardView | null = null;
   private rain = false;
   private quiet = false;
@@ -75,9 +77,13 @@ export class Fish2Hud {
 
   constructor(parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement) {
     this.ui = ui;
+    this.send = send;
     this.reel = new ReelGame(parent, sound);
     this.reel.onSend = send;
     this.card = new CatchCard2(parent, sound);
+    // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
+    this.card.onKeep = () => send({ t: 'fish', a: 'keep' });
+    this.card.onRelease = () => this.release();
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
@@ -312,6 +318,23 @@ export class Fish2Hud {
   /** Снова забросил — карточка прошлого улова уходит */
   cast(): void {
     this.card.hide();
+  }
+
+  /** Рыба в руках ждёт выбора («В рюкзак» / «Отпустить») */
+  get choosing(): boolean {
+    return this.card.canRelease;
+  }
+
+  /** F или кнопка «Отпустить»: рыбу из рук — в воду (решает сервер). false — отпускать нечего. */
+  release(): boolean {
+    if (!this.card.canRelease) return false;
+    this.send({ t: 'fish', a: 'release' });
+    return true;
+  }
+
+  /** Сервер убрал рыбу из рук (FE_DONE на своём месте): a — DONE_RELEASE, если отпустили */
+  done(a: number): void {
+    this.card.done(a === DONE_RELEASE);
   }
 
   /** Профиль с сервера (новый улов, комплект) — журнал и счёт на кнопке. */

@@ -396,6 +396,8 @@ export class LobbyRoom implements Room {
       ? new FishingHall2({
         ...fishHost, rain: () => this.weather.rain, season: () => this.fishSeason?.on ?? false, top: (top) => this.broadcast({ t: 'fishTop', top }),
         shout: (text) => hub.toastAll(text, { ms: 9000, key: 'poseidon', big: true }),
+        // ввод не приходит дольше 8 тиков (как «додумывание» в processPlayer) — окно подсечки подождёт (BITE_GRACE)
+        stalled: (slot) => (this.players.get(slot)?.inq.starve ?? 0) > 8,
         outfit: (slot) => {
           const c = this.players.get(slot)?.client;
           if (c?.profile && !c.ephemeral) this.broadcast({ t: 'outfitOf', id: slot, o: hub.outfitOf(c.profile) });

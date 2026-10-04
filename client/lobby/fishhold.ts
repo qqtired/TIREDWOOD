@@ -1,7 +1,9 @@
 // Рыба в руках (рюкзак рыбака → «Взять в руки»): модель пойманной рыбы у желейки в руках — у своей и у чужих (сервер
-// проверяет рюкзак и рассылает fishHold всем на набережной). Мелкая — в поднятой руке за хвост, средняя — двумя руками
-// перед собой, крупная — на плече; кальмар висит за мантию, щупальца колышутся. Пока руки заняты другим (удочка, пиво,
-// эмоция, сидит, едет) — рыба спрятана, потом снова в руках. Своя — плашка «в руках · Esc — убрать».
+// проверяет рюкзак и рассылает fishHold всем на набережной). Как на фото с уловом — рыба ниже лица (глаза — 1,17 м):
+// мелкая — за хвост в руке перед собой на уровне груди, средняя — двумя руками перед собой на уровне пояса, крупная
+// (акула, кальмар) — стоит рядом во весь рост, хвостом на настиле, рука на ней; маленький кальмар висит за мантию.
+// Пока руки заняты другим (удочка, пиво, эмоция, сидит, едет) — рыба спрятана, потом снова в руках. Своя — плашка
+// «в руках · Esc — убрать».
 import * as THREE from 'three';
 import { FISH } from '../../shared/fishing.ts';
 import { ACT_NONE } from '../../shared/lobby.ts';
@@ -9,10 +11,13 @@ import type { Avatar } from '../render/avatar.ts';
 import { TOUCH } from '../touch.ts';
 import { makeFish3D } from './fishart.ts';
 
-/** Как держит: за хвост в поднятой руке, двумя руками перед собой, на плече */
-const P_HANG = 0;
-const P_FRONT = 1;
-const P_SHOULDER = 2;
+/** Как держит: за хвост в руке на уровне груди, двумя руками перед собой, стоит рядом во весь рост */
+export const P_HANG = 0;
+export const P_FRONT = 1;
+export const P_SIDE = 2;
+/** Рука с рыбой за хвост — на уровне груди (ниже лица); рыба двумя руками — на уровне пояса, м от земли */
+const CHEST_Y = 0.88;
+const WAIST_Y = 0.7;
 
 interface Hold {
   n: number;
@@ -30,10 +35,47 @@ interface Hold {
   t: number;
 }
 
-/** Как держать рыбу длиной len, м. */
+/** Как держать рыбу длиной len, м (длинный кальмар за мантию касался бы щупальцами настила — двумя руками или рядом). */
 export function holdPose(len: number, squid: boolean): number {
-  if (squid) return len <= 1.5 ? P_HANG : P_FRONT;
-  return len <= 0.55 ? P_HANG : len <= 1.25 ? P_FRONT : P_SHOULDER;
+  if (squid) return len <= 0.65 ? P_HANG : len <= 1.25 ? P_FRONT : P_SIDE;
+  return len <= 0.55 ? P_HANG : len <= 1.25 ? P_FRONT : P_SIDE;
+}
+
+/**
+ * Поза: где рыба (f — в осях желейки: +X вправо, −Z вперёд, y — от земли) и где варежки (hands: левая x, y, z, правая
+ * x, y, z); half — половина размеров модели (вдоль, по высоте, толщина), t — сколько секунд в руках (бьёт хвостом).
+ */
+export function placeHeld(f: THREE.Object3D, hands: number[], pose: number, len: number, half: THREE.Vector3, squid: boolean, t: number): void {
+  // рыба ещё живая: изредка бьёт хвостом (первые секунды — чаще)
+  const cyc = t % (t < 4 ? 1.6 : 4.2);
+  const flap = cyc < 0.45 ? Math.sin((cyc / 0.45) * Math.PI) * (squid ? 0 : 1) : 0;
+  const wig = Math.sin(t * 19) * 0.22 * flap;
+  if (pose === P_HANG) {
+    // за хвост (кальмар — за кончик мантии) в правой руке перед собой на уровне груди, висит вниз, чуть качается
+    const hy = Math.max(CHEST_Y, 0.3 + len);
+    set(hands, -0.44, 0.62, -0.2, 0.24, hy, -0.58);
+    const sway = Math.sin(t * 1.9) * 0.07;
+    f.rotation.set(0, wig, (squid ? Math.PI / 2 : -Math.PI / 2) + sway);
+    const down = half.x - 0.03;
+    f.position.set(0.24 + Math.sin(sway) * down, hy - Math.cos(sway) * down, -0.58);
+  } else if (pose === P_FRONT) {
+    // двумя руками перед собой на уровне пояса, как на фото с уловом: боком к тому, кто смотрит спереди, лицо открыто
+    const hx = Math.min(0.46, Math.max(0.2, half.x * 0.62));
+    const bob = Math.sin(t * 2.2) * 0.012;
+    const y = WAIST_Y + bob;
+    const z = -0.58 - half.z;
+    set(hands, -hx, y - 0.04, z + 0.02, hx, y - 0.04, z + 0.02);
+    f.rotation.set(0, Math.PI + wig * 0.5, squid ? 0.05 : -0.04 + flap * 0.08);
+    f.position.set(0, y + half.y * 0.25, z);
+  } else {
+    // крупная — стоит рядом справа во весь рост, головой вверх, хвостом (щупальцами) на настиле; правая рука держит
+    // её на уровне груди, левая — у пояса: видно и рыбу целиком, и лицо
+    const bob = Math.sin(t * 2) * 0.006;
+    const x = 0.6 + half.y;
+    set(hands, -0.46, 0.68, -0.24, 0.6, 0.98 + bob, -0.2);
+    f.rotation.set(0, wig * 0.3, Math.PI / 2);
+    f.position.set(x, half.x + 0.03 + bob, -0.12);
+  }
 }
 
 export class FishHolds {
@@ -146,41 +188,9 @@ export class FishHolds {
     if (h) this.chipName.textContent = `🐟 ${FISH[h.sp].name} в руках`;
   }
 
-  /** Поза: где рыба и где варежки (оси желейки: +X вправо, −Z вперёд, y — от земли). */
+  /** Поза: где рыба и где варежки (placeHeld). */
   private pose(h: Hold): void {
-    const f = h.fish;
-    const hd = h.hands;
-    const t = h.t;
-    // рыба ещё живая: изредка бьёт хвостом (первые секунды — чаще)
-    const cyc = t % (t < 4 ? 1.6 : 4.2);
-    const flap = cyc < 0.45 ? Math.sin((cyc / 0.45) * Math.PI) * (h.squid ? 0 : 1) : 0;
-    const wig = Math.sin(t * 19) * 0.22 * flap;
-    if (h.pose === P_HANG) {
-      // за хвост (кальмар — за кончик мантии) в поднятой правой руке, висит вниз, чуть качается
-      const hy = Math.min(1.6, Math.max(1.28, 0.35 + h.len));
-      set(hd, -0.44, 0.66, -0.16, 0.47, hy, -0.24);
-      const sway = Math.sin(t * 1.9) * 0.07;
-      f.rotation.set(0, wig, (h.squid ? Math.PI / 2 : -Math.PI / 2) + sway);
-      const down = h.half.x - 0.03;
-      f.position.set(0.47 + Math.sin(sway) * down, hy - Math.cos(sway) * down, -0.24);
-    } else if (h.pose === P_FRONT) {
-      // двумя руками перед собой, как на фото с уловом: боком к тому, кто смотрит спереди
-      const hx = Math.min(0.46, Math.max(0.2, h.half.x * 0.62));
-      const bob = Math.sin(t * 2.2) * 0.012;
-      const y = 0.98 + bob;
-      const z = -0.5 - h.half.z;
-      set(hd, -hx, y - 0.04, z + 0.02, hx, y - 0.04, z + 0.02);
-      f.rotation.set(0, Math.PI + wig * 0.5, h.squid ? 0.05 : -0.04 + flap * 0.08);
-      f.position.set(0, y + h.half.y * 0.25, z);
-    } else {
-      // на плече: лежит поперёк на правом плече, голова чуть вниз; правая рука держит снизу, левая — сверху
-      const bob = Math.sin(t * 2) * 0.01;
-      const y = 1.5 + h.half.y * 0.7 + bob;
-      const cx = Math.min(0.32, h.half.x * 0.28);
-      set(hd, -0.12, 1.66 + bob, -0.3, 0.52, 1.36 + bob, -0.08);
-      f.rotation.set(0, wig * 0.3, -0.22);
-      f.position.set(cx, y, 0.02);
-    }
+    placeHeld(h.fish, h.hands, h.pose, h.len, h.half, h.squid, h.t);
   }
 }
 

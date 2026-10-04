@@ -274,7 +274,7 @@ test('продать можно только рядом с Семёном или
   assert.equal(calls.length, 1, 'издали — не вызывается');
 });
 
-test('полный рюкзак: заброс не уходит, подсказка «продай Семёну или Сане»; отпустить рыбу можно где угодно — и снова ловится', () => {
+test('полный рюкзак: заброс не уходит, подсказка «продай Семёну или Сане или отпусти рыбу из рюкзака (I)»; отпустить рыбу можно где угодно — и снова ловится', () => {
   const e = setup();
   const p = e.a.c.profile!;
   p.fishing.bag = Array.from({ length: BAG_BASE }, (_v, n) => ({ n, f: 'goby', g: 100, p: 5, m: 0 }));
@@ -286,7 +286,7 @@ test('полный рюкзак: заброс не уходит, подсказ�
   assert.equal(hall.phase(0), FP_IDLE);
   assert.equal(p.stats.fsCasts, casts);
   assert.equal(lastOf(e.a.s, 'toast')!.text, BAG_FULL_TEXT);
-  assert.equal(BAG_FULL_TEXT, 'Рюкзак полон — продай улов Семёну или Сане');
+  assert.equal(BAG_FULL_TEXT, 'Рюкзак полон — продай улов Семёну или Сане или отпусти рыбу из рюкзака (I)');
   e.clock.now += 1100;
   e.hub.onJson(e.a.c, { t: 'fishBag', a: 'release', n: 3 });
   assert.equal(p.fishing.bag.length, BAG_BASE - 1);

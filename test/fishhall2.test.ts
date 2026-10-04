@@ -16,6 +16,7 @@ import { earnedItems } from '../shared/fishstyle.ts';
 import { fishCatchXp } from '../shared/fishprogress.ts';
 import { BAG_BASE } from '../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelRun, reelStart } from '../shared/fishreel.ts';
+import { CHOICE_TICKS } from '../shared/fishrelease.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { HOLD2_TICKS, REEL_LAG, fish2Enabled, type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -144,7 +145,8 @@ test('честное вываживание: повтор сервера дош�
   assert.equal(e.hall.phase(0), FP_HOLD);
   assert.ok(fishEvents(e.a.s).some((x) => x[0] === FE_LAND && x[2] === sp('scad') && x[3] === 300));
   assert.deepEqual(lastOf(e.a.s, 'me')!.album, { scad: [300, 1] }, 'альбом — в профиль клиента');
-  advance(e.hub, e.clock, HOLD2_TICKS + 1);
+  // рыба в руках ждёт выбора «В рюкзак» / «Отпустить» (shared/fishrelease.ts) — не выбрал: осталась в рюкзаке
+  advance(e.hub, e.clock, CHOICE_TICKS + 1);
   assert.equal(e.hall.phase(0), FP_IDLE);
   assert.deepEqual(fishEvents(e.a.s).find((x) => x[0] === FE_DONE), [FE_DONE, 0, 1, 0]);
   // второй раз — тяжелее: рекорд, бонуса нет; заброс прямо из «в руках»

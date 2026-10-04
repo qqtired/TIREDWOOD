@@ -12,6 +12,7 @@ import {
   FP_IDLE, FP_REEL, FP_WAIT, GOLDFISH, R_RARE, fmtWeight, reelTicks, type FishSpotView,
 } from '../../shared/fishing.ts';
 import { FISH_SPOTS } from '../../shared/fishplaces.ts';
+import { DONE_RELEASE } from '../../shared/fishrelease.ts';
 import { slotKey } from '../../shared/outfit.ts';
 import type { Sound } from '../audio.ts';
 import type { Avatar } from '../render/avatar.ts';
@@ -120,6 +121,8 @@ interface Spot {
   kept: boolean;
   /** Рыба летит в ведро (рыбак-сосед) */
   toBucket: boolean;
+  /** Рыбу отпустили (FE_DONE, DONE_RELEASE): дугой в море, плюх */
+  freed: boolean;
   /** Откуда летит поплавок или рыба (вода) */
   from: THREE.Vector3;
   /** Поплавок на леске у не заброшенной удочки (качается, как маятник) и его прошлое место */
@@ -339,11 +342,12 @@ export class FishingSpots {
         const pl = this.places[spot];
         const npc = pl.bucket !== undefined;
         s.toBucket = npc && a === DONE_BUCKET;
+        s.freed = a === DONE_RELEASE;
         const p = s.fish.getWorldPosition(_v);
         if (s.kept) this.fx.sparkle(p.x, p.y, p.z, 22);
-        else if (!npc && (FISH[s.sp]?.price[1] ?? 0) > 0 && s.sp !== GOLDFISH) this.fx.coins(p.x, p.y, p.z, 6, -Math.sin(pl.yaw), -Math.cos(pl.yaw));
-        // золотую рыбку отпускают (рыбаки-соседи — и хлам): летит в море; в ведро — тоже из рук в мир
-        if (s.toBucket || (!s.kept && (s.sp === GOLDFISH || npc))) {
+        else if (!npc && !s.freed && (FISH[s.sp]?.price[1] ?? 0) > 0 && s.sp !== GOLDFISH) this.fx.coins(p.x, p.y, p.z, 6, -Math.sin(pl.yaw), -Math.cos(pl.yaw));
+        // золотую рыбку и отпущенную (F) — в море (рыбаки-соседи — и хлам); в ведро — тоже из рук в мир
+        if (s.toBucket || (!s.kept && (s.sp === GOLDFISH || npc || s.freed))) {
           this.scene.attach(s.fish);
           s.from.copy(s.fish.position);
         }
@@ -725,6 +729,7 @@ export class FishingSpots {
     s.jerkT = 99;
     s.fpFree = false;
     s.toBucket = false;
+    s.freed = false;
     this.dropFish(s);
   }
 
@@ -742,7 +747,7 @@ export class FishingSpots {
     this.scene.add(float);
     return {
       ph: FP_IDLE, x: 0, z: 0, sp: -1, g: 0, n: 0, t: 0, anim: A_NONE, animT: 0, pending: false, nibT: 99, jerkT: 99, reelDur: 1, prog: -1, fxT: 0,
-      kept: false, toBucket: false, from: new THREE.Vector3(), fp: new THREE.Vector3(), fpPrev: new THREE.Vector3(), fpFree: false,
+      kept: false, toBucket: false, freed: false, from: new THREE.Vector3(), fp: new THREE.Vector3(), fpPrev: new THREE.Vector3(), fpFree: false,
       av: null, rig: makeRig(), float, line, linePos, fish: null, fishHalf: new THREE.Vector3(0.15, 0.05, 0.03), rod: 'basic', bob: 'classic',
     };
   }
@@ -777,7 +782,9 @@ export class FishingSpots {
         f.rotation.z = -k * 2.2;
         if (k >= 1) {
           this.effects.waterSplash(tx, tz, false);
+          if (s.freed) this.effects.ripple(tx, tz, 1.4, 1);
           if (s.sp === GOLDFISH) this.fx.sparkle(tx, WATER_Y + 0.3, tz, 26);
+          if (s.freed) this.sound.fishPlop(s.av === this.me ? null : [tx, WATER_Y, tz]);
           this.finishAnim(s);
         }
       } else {

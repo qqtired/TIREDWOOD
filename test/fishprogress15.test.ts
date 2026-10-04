@@ -153,7 +153,8 @@ test('кальмар в подиуме дня: с 700 кг он тяжелее �
   assert.deepEqual(giants, ['greenlandshark', 'oarfish', 'sunfish', 'whiteshark']);
   // и тяжелее кальмара любого веса — никто: самый крупный из них 1,5 т, а кальмар до 3 т
   assert.ok(Math.max(...FISH.filter((_, i) => i !== k).map((f) => f.g[1])) < FISH[k].g[1]);
-  // шанс, что чужая поклёвка тяжелее самого лёгкого кальмара: не больше 0,6 % на любом месте и в любую погоду
+  // шанс, что чужая поклёвка тяжелее самого лёгкого кальмара: меньше 1 % на любом месте и в любую погоду
+  // (04.10 мифики клюют чаще — у новичка на баркасе 0,67 %, в дождь 0,79 %)
   for (const zone of ['pier', 'barkas'] as const) for (const rain of [false, true]) {
     const mods = fishCastMods(emptyFishProgress(), 0, zone);
     let heavier = 0;
@@ -163,7 +164,7 @@ test('кальмар в подиуме дня: с 700 кг он тяжелее �
       if (b <= SQUID_MIN) continue;
       heavier += biteShare(s, rain, mods) * 0.95 * (a >= SQUID_MIN ? 1 : 1 - Math.sqrt((SQUID_MIN - a) / (b - a)));
     }
-    assert.ok(heavier < 0.006, `${zone}${rain ? ', дождь' : ''}: ${(heavier * 100).toFixed(2)} % поклёвок тяжелее 700 кг`);
+    assert.ok(heavier < 0.01, `${zone}${rain ? ', дождь' : ''}: ${(heavier * 100).toFixed(2)} % поклёвок тяжелее 700 кг`);
   }
   // подиум — пять самых тяжёлых отдельных уловов дня: кальмар в 700 кг входит, даже когда четыре гиганта дня — рекордные
   const store = { state: { fishPodium: { day: '', catches: [] as Array<{ pid: number; nick: string; sp: number; g: number; at: number }> }, profiles: [] as Profile[] }, markDirty() {} };
