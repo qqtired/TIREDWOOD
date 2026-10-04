@@ -561,8 +561,9 @@ export class LobbyRoom implements Room {
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
-    if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
+    // сезон — раньше рыболовного события: по нему клиент решает, чей тост показать (в сезон дождь — это сезон)
     if (this.fishSeason) c.sink.sendJson({ t: 'fishSeason', ...this.fishSeason.view() });
+    if (this.fishing2 && from === null && !weatherChanged) c.sink.sendJson({ t: 'fishEvent', on: this.weather.rain, until: this.weather.eventUntil });
     if (this.storm) c.sink.sendJson({ t: 'storm', v: this.storm.view() });
     if (this.pirates) {
       c.sink.sendJson({ t: 'pirates', v: this.pirates.view() });

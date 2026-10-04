@@ -25,6 +25,11 @@
   pointer-events: auto;
 }
 
+/* компьютер: над подсказкой внизу экрана («E — поговорить…»: её верх — 134 px от низа), а не поверх неё */
+html:not(.touch) .fh-chip {
+  bottom: 142px;
+}
+
 .fh-put {
   border: 0;
   border-radius: 999px;

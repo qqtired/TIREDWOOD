@@ -25,13 +25,14 @@ export type BookZone = 'all' | FishZone;
  * Строка о виде. odds — с долей поклёвок по бонусам игрока (строка под сеткой); без неё — подсказка клетки: доля зависит
  * от уровня, снастей и погоды, поэтому в подсказке её нет, чтобы не было двух разных чисел на одно и то же.
  */
-export function fishLine(sp: number, known: boolean, progress: FishProgress = emptyFishProgress(), rain = false, now = 0, odds = true): string {
+export function fishLine(sp: number, known: boolean, progress: FishProgress = emptyFishProgress(), rain = false, now = 0, odds = true, season = false): string {
   const r = RULE[sp];
   const f = FISH[sp];
   if (!r || !f) return '';
   const [lo, hi] = priceRange(sp);
   const mods = fishCastMods(progress, now, r.zone);
-  const share = biteShare(sp, rain, mods) * 100;
+  // в сезон рыбалки — как в «Шансах сейчас»: эпик и выше ×3
+  const share = biteShare(sp, rain, mods, season) * 100;
   const fmt = (v: number): string => (v >= 1 ? v.toFixed(1) : v.toFixed(2)).replace('.', ',');
   const sea = `баркас в открытом море (с ${BARKAS_LEVEL}-го уровня рыбалки)`;
   const where = r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? `⚓ ${sea}` : 'пристань';
@@ -128,6 +129,7 @@ export class FishBook {
   private readonly filter = new Map<BookZone, HTMLButtonElement>();
   private zone: BookZone = 'all';
   private rain = false;
+  private season = false;
   private now = 0;
   private last: { album: FishAlbum; owned: readonly string[]; progress: FishProgress } | null = null;
   private shown = false;
@@ -188,10 +190,11 @@ export class FishBook {
     return this.shown;
   }
 
-  /** Погода и часы сервера — для «сейчас N% поклёвок» */
-  setWeather(rain: boolean, now: number): void {
+  /** Погода, сезон рыбалки и часы сервера — для «сейчас N% поклёвок» */
+  setWeather(rain: boolean, now: number, season = false): void {
     this.rain = rain;
     this.now = now;
+    this.season = season;
   }
 
   open(album: FishAlbum, owned: readonly string[], progress: FishProgress): void {
@@ -242,7 +245,7 @@ export class FishBook {
     const scroll = this.body.scrollTop;
     const focused = (document.activeElement as HTMLElement | null)?.dataset.species;
     this.body.textContent = '';
-    this.body.appendChild(collectionGrid(album, false, (sp) => setCoinText(this.line, fishLine(sp, !!album[FISH[sp].id], progress, this.rain, this.now)), this.zone));
+    this.body.appendChild(collectionGrid(album, false, (sp) => setCoinText(this.line, fishLine(sp, !!album[FISH[sp].id], progress, this.rain, this.now, true, this.season)), this.zone));
     this.body.scrollTop = scroll;
     if (focused) {
       const cell = [...this.body.querySelectorAll<HTMLElement>('[data-species]')].find((c) => c.dataset.species === focused);

@@ -1737,8 +1737,8 @@ export class LobbyScene implements Scene {
     }
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
-    // рыба в руках: Esc — убрать
-    if (code === 'Escape' && this.fishHolds.myN >= 0 && !this.fish2.bookOpen) {
+    // рыба в руках: Esc — убрать (пока она видна в руках — с удочкой Esc как обычно)
+    if (code === 'Escape' && this.fishHolds.myShown && !this.fish2.bookOpen) {
       this.d.net.send({ t: 'fishHold', n: -1 });
       return true;
     }

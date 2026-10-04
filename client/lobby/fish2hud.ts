@@ -159,6 +159,12 @@ export class Fish2Hud {
   /** Сезон рыбалки (server/lobby/fishseason.ts): «Шансы сейчас» считают его сами — эпик и выше ×3 */
   onSeason(on: boolean, endsAt: number): void {
     this.seasonEnds = on ? endsAt : 0;
+    this.bookWeather();
+  }
+
+  /** Журналу — погода и сезон для «сейчас N% поклёвок» (как «Шансы сейчас») */
+  private bookWeather(now = this.clock.now()): void {
+    this.book.setWeather(this.rain || this.season, now, this.season);
   }
 
   /** Идёт ли сезон рыбалки по часам сервера */
@@ -202,7 +208,7 @@ export class Fish2Hud {
     this.bag.set(progress);
     this.roulette.setProgress(progress);
     const me = this.ui.me();
-    this.book.setWeather(this.rain, now);
+    this.bookWeather(now);
     this.book.update(me.album, me.owned, progress);
   }
 
@@ -386,6 +392,7 @@ export class Fish2Hud {
     }
     const me = this.ui.me();
     this.book.rewards.outfit = me.outfit;
+    this.bookWeather();
     this.book.open(me.album, me.owned, me.fishing);
     this.onBookOpen();
   }

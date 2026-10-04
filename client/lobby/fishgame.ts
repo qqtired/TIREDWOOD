@@ -97,13 +97,16 @@ export class ReelGame {
     this.fish.innerHTML = FISH_SVG;
     const prog = this.root.appendChild(el('div', 'fr-prog'));
     this.fill = prog.appendChild(el('i', ''));
-    this.hint = this.root.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
+    // место под шкалой: подсказка, а поверх неё — срочное «Последний рывок!» и «Леска провисла — приподними зону!»
+    // (видна, пока у шкалы класс slack: зона пролежала на дне дольше 0,7 с; подмотать — приподнять зону над дном,
+    // короткое касание вслепую не считается). Срочные надписи не раздвигают колонку (fish2.css, .fr-slot): шкала не
+    // прыгает, и низ колонки не наезжает на подсказку внизу экрана.
+    const slot = this.root.appendChild(el('div', 'fr-slot'));
+    this.standEl = slot.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
+    slot.appendChild(el('div', 'fe-slack', 'Леска провисла — приподними зону!'));
+    this.hint = slot.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
-    this.standEl = this.root.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
-    // «Леска провисла — подмотай!»: видна, пока у шкалы класс slack (зона пролежала на дне дольше 0,7 с); подмотать —
-    // приподнять зону над дном (короткое касание вслепую не считается)
-    this.root.appendChild(el('div', 'fe-slack', 'Леска провисла — приподними зону!'));
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
       // телефон: держать можно где угодно на экране (кроме верхних кнопок) — и кнопкой 🎣

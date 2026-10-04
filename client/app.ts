@@ -574,7 +574,8 @@ export class App {
 
   /**
    * Сезон рыбалки (раз в 2 часа особый дождь на 10 минут — решает сервер): часы сезона для окна Семёна и плашки у удочки;
-   * начался при нас — короткий тост. Конец объявляет чат сервера; первое письмо после входа тоста не даёт.
+   * начался при нас или уже идёт, когда вошли, — короткий тост (сервер шлёт сезон раньше рыболовного события, и тост
+   * дождя в сезон не показывается). Конец объявляет чат сервера.
    */
   private onFishSeason(m: FishSeasonMsg): void {
     const was = this.fishSeasonOn;
@@ -582,7 +583,9 @@ export class App {
     this.fishSeasonOn = m.on;
     if (!m.on) return;
     this.fishSeasonRain = true;
-    if (was === false) this.toasts.show(`🎉 Сезон рыбалки · ${seasonWait(m.endsAt - FISH_SEASON.now())}`, 7500, 'fish-event', SEASON_PERKS);
+    // минуты — до ближайшей: только что начавшийся сезон — «10 мин» (вверх из-за миллисекунд задержки было «11 мин»)
+    const left = Math.max(60_000, Math.round((m.endsAt - FISH_SEASON.now()) / 60_000) * 60_000);
+    if (was !== true) this.toasts.show(`🎉 Сезон рыбалки · ${seasonWait(left)}`, 7500, 'fish-event', SEASON_PERKS);
   }
 
   private onJson(m: ServerMsg): void {
