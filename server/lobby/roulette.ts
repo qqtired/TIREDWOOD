@@ -1,13 +1,15 @@
 // Рулетка рыбака (fisheco, флаг сервера ROULETTE): стол у ROULETTE_SPOT. Ставка — весь улов из рюкзака на цвет; первая
 // ставка открывает приём на 10 с (все у стола поставили — крутим сразу), колесо крутится 7 с у всех на глазах, число —
 // crypto.randomInt на сервере. Улов уходит в залог профиля и пишется на диск; выплата — жетонами при остановке колеса,
-// даже если игрок ушёл; после аварийного рестарта залог возвращается жетонами (server/profiles.ts).
+// даже если игрок ушёл; после аварийного рестарта залог возвращается жетонами (server/profiles.ts). Табло на баркасе:
+// последние ROULETTE_LOG_SIZE ставок с итогом держим в памяти; их получает (и тост о розыгрыше) только тот, кто стоит
+// на баркасе, — сразу при выходе на палубу и после каждого розыгрыша.
 import { randomInt } from 'node:crypto';
 import { ROULETTE_SPOT } from '../../shared/fishplaces.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import {
-  ROULETTE_ANNOUNCE, ROULETTE_COLOR_NAMES, ROULETTE_OPEN_MS, ROULETTE_SPIN_MS, isRouletteColor, roulettePayout, rouletteColor, type RouletteBetView,
-  type RouletteView,
+  ROULETTE_ANNOUNCE, ROULETTE_COLOR_NAMES, ROULETTE_OPEN_MS, ROULETTE_SPIN_MS, isRouletteColor, pushRouletteLog, roulettePayout, rouletteColor,
+  type RouletteBetView, type RouletteLogRow, type RouletteView,
 } from '../../shared/roulette.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Profile } from '../store.ts';
@@ -31,6 +33,8 @@ export interface RouletteHost {
   announce(text: string): void;
   /** Жетоны или рюкзак поменялись */
   changed(pid: number): void;
+  /** Кто сейчас стоит на баркасе (shared/roulette.ts onBarkas): id — стабильный номер соединения, send — письмо ему одному */
+  aboard(): Array<{ id: number; send(msg: ServerMsg): void }>;
 }
 
 /** Стоит ли у стола */
@@ -61,6 +65,11 @@ export class RouletteTable {
   private round = 0;
   private bets: Bet[] = [];
   private n: number | undefined;
+  /** Табло: последние ставки с итогом, свежие сверху */
+  private log: RouletteLogRow[] = [];
+  /** Кто был на баркасе в прошлый тик (и пустой набор под следующий): вышедшему на палубу отдаём табло один раз */
+  private aboard = new Set<number>();
+  private aboardNext = new Set<number>();
   private readonly tag = `${Date.now().toString(36)}-${randomInt(1 << 30).toString(36)}`;
 
   constructor(host: RouletteHost, profiles: Profiles) {
@@ -71,6 +80,11 @@ export class RouletteTable {
   /** Идёт ли раунд (приём ставок или вращение): комнату надо шагать, даже если в ней никого нет, — иначе ставки зависнут */
   get busy(): boolean {
     return this.phase !== 'idle';
+  }
+
+  /** Последние ставки с итогом для табло (свежие сверху) */
+  history(): readonly RouletteLogRow[] {
+    return this.log;
   }
 
   view(): RouletteView {
@@ -109,6 +123,7 @@ export class RouletteTable {
 
   /** Каждый тик комнаты: конец приёма (или все у стола поставили) — вращение; конец вращения — выплаты */
   step(): void {
+    this.greet();
     const now = this.host.now();
     if (this.phase === 'open') {
       const near = this.host.nearby();
@@ -124,12 +139,26 @@ export class RouletteTable {
     }
   }
 
+  /** Вышедший на палубу баркаса получает табло; ушедший с неё забывается — вернётся и получит снова */
+  private greet(): void {
+    const here = this.aboardNext;
+    here.clear();
+    for (const w of this.host.aboard()) {
+      here.add(w.id);
+      if (!this.aboard.has(w.id) && this.log.length) w.send({ t: 'rouletteLog', rows: this.log });
+    }
+    this.aboardNext = this.aboard;
+    this.aboard = here;
+  }
+
   private settle(): void {
     const n = this.n ?? 0;
     const c = rouletteColor(n);
+    const rows: RouletteLogRow[] = [];
     for (const b of this.bets) {
       const payout = roulettePayout(b.stake, b.c, n);
       if (!this.profiles.settleRoulette(b.pid, b.round, payout)) continue;
+      rows.push({ round: this.round, pid: b.pid, nick: b.nick, c: b.c, stake: b.stake, payout, n });
       this.host.send(b.pid, { t: 'rouletteResult', n, c, stake: b.stake, payout, fish: b.fish });
       this.host.changed(b.pid);
       if (payout > 0 && (b.c === 'green' || payout >= ROULETTE_ANNOUNCE)) {
@@ -140,6 +169,11 @@ export class RouletteTable {
     this.phase = 'idle';
     this.until = 0;
     this.publish();
+    // табло и тост о розыгрыше — всем на баркасе (в том числе тому, кто поставил: ему табло обновится, свой тост — отдельный)
+    if (rows.length) {
+      this.log = pushRouletteLog(this.log, rows);
+      for (const w of this.host.aboard()) w.send({ t: 'rouletteLog', rows: this.log, fresh: rows.length });
+    }
   }
 
   private publish(): void {

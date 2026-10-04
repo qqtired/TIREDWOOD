@@ -2,6 +2,8 @@
 // или зелёное. Европейская рулетка: 37 лунок — 18 красных, 18 чёрных и зеро. Красное и чёрное платят ×2, зеро — 35:1
 // (×36). Число выбирает сервер (crypto.randomInt), раунд общий: приём ставок, вращение, выплата жетонами.
 
+import { BARKAS, BARKAS_DECK_Y, barkasHalf } from './barkas.ts';
+
 export type RouletteColor = 'red' | 'black' | 'green';
 export const ROULETTE_COLORS: readonly RouletteColor[] = ['red', 'black', 'green'];
 export const ROULETTE_COLOR_NAMES: Readonly<Record<RouletteColor, string>> = { red: 'красное', black: 'чёрное', green: 'зеро' };
@@ -58,6 +60,57 @@ export interface RouletteBetView {
   stake: number;
   /** Сколько рыб */
   fish: number;
+}
+
+/** Строка табло рулетки: итог одной ставки в закончившемся розыгрыше (табло на баркасе и тост «кто выиграл») */
+export interface RouletteLogRow {
+  /** Номер раунда: у ставок одного розыгрыша он один */
+  round: number;
+  pid: number;
+  nick: string;
+  /** На что поставил и сколько (цена улова, жетонов) */
+  c: RouletteColor;
+  stake: number;
+  /** Выплачено жетонами; 0 — проиграл */
+  payout: number;
+  /** Выпавшее число раунда */
+  n: number;
+}
+
+/** Сколько последних ставок помнит табло (сервер хранит их в памяти) */
+export const ROULETTE_LOG_SIZE = 10;
+
+/** Новый розыгрыш — в начало журнала (самые свежие сверху), старше ROULETTE_LOG_SIZE отбрасываем */
+export function pushRouletteLog(log: readonly RouletteLogRow[], rows: readonly RouletteLogRow[]): RouletteLogRow[] {
+  return [...rows, ...log].slice(0, ROULETTE_LOG_SIZE);
+}
+
+/**
+ * Стоит ли игрок на баркасе: внутри корпуса по обводу (shared/barkas.ts — едет вместе с баркасом, где бы он ни стоял), на
+ * палубе или рядом над ней, не в воде. Табло и тосты рулетки идут только таким игрокам.
+ */
+export function onBarkas(x: number, y: number, z: number): boolean {
+  return x >= BARKAS.bow && x <= BARKAS.stern && Math.abs(z - BARKAS.z) <= barkasHalf(x) && y > BARKAS_DECK_Y - 1.5 && y < BARKAS_DECK_Y + 4;
+}
+
+const fmt = new Intl.NumberFormat('ru-RU');
+const num = (n: number): string => fmt.format(n);
+
+/**
+ * Тост о розыгрыше для тех, кто на баркасе: как сыграли остальные. Свои ставки в тост не входят — свой итог игрок видит
+ * отдельно («Ты выиграл…»). Один розыгрыш — один тост: ставка одна — «Ник: 120 на красное — выиграл 240!» или «— проиграл»,
+ * ставок несколько — одной строкой, не больше трёх имён. Нечего сказать (играл только ты сам) — null.
+ */
+export function rouletteDrawText(rows: readonly RouletteLogRow[], myPid: number): string | null {
+  const rest = rows.filter((r) => r.pid !== myPid);
+  if (rest.length === 0) return null;
+  if (rest.length === 1) {
+    const r = rest[0];
+    return `🎡 ${r.nick}: ${num(r.stake)} на ${ROULETTE_COLOR_NAMES[r.c]} — ${r.payout > 0 ? `выиграл ${num(r.payout)}!` : 'проиграл'}`;
+  }
+  const head = rest.slice(0, 3).map((r) => `${r.nick} ${r.payout > 0 ? `+${num(r.payout)}` : `−${num(r.stake)}`}`).join(' · ');
+  const n = rest[0].n;
+  return `🎡 Выпало ${n} — ${ROULETTE_COLOR_NAMES[rouletteColor(n)]}: ${head}${rest.length > 3 ? ` · ещё ${rest.length - 3}` : ''}`;
 }
 
 /** Стол для всех на набережной: фаза, сколько мс до её конца (в момент отправки), ставки, номер раунда, выпавшее число */

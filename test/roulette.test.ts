@@ -8,7 +8,11 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { ROULETTE_SPOT } from '../shared/fishplaces.ts';
-import { ROULETTE_MAX_PAYOUT, ROULETTE_OPEN_MS, ROULETTE_SPIN_MS, ROULETTE_WHEEL, rouletteColor, roulettePayout } from '../shared/roulette.ts';
+import { BARKAS, BARKAS_LANDING } from '../shared/barkas.ts';
+import {
+  ROULETTE_LOG_SIZE, ROULETTE_MAX_PAYOUT, ROULETTE_OPEN_MS, ROULETTE_SPIN_MS, ROULETTE_WHEEL, onBarkas, pushRouletteLog, rouletteColor, rouletteDrawText, roulettePayout,
+  type RouletteColor, type RouletteLogRow,
+} from '../shared/roulette.ts';
 import { Hub } from '../server/hub.ts';
 import { Profiles } from '../server/profiles.ts';
 import { Store } from '../server/store.ts';
@@ -264,4 +268,119 @@ test('стол: тот, кто зашёл посреди вращения или
   assert.equal(e.table.view().phase, 'idle', 'раунд закончился без игроков');
   assert.equal(pa.rouletteEscrow, null);
   assert.equal(pa.tokens, e.profiles.byId(pa.id)!.tokens);
+});
+
+// ------------------------------------------------------------ табло на баркасе: последние ставки, тосты, кто их получает
+
+test('табло: журнал хранит последние 10 ставок, свежие сверху; в одном розыгрыше — по порядку ставок', () => {
+  const row = (round: number, nick: string): RouletteLogRow => ({ round, pid: 1, nick, c: 'red', stake: 10, payout: 0, n: 5 });
+  let log: RouletteLogRow[] = [];
+  for (let i = 1; i <= 4; i++) log = pushRouletteLog(log, [row(i, `a${i}`), row(i, `b${i}`)]);
+  assert.deepEqual(log.map((r) => r.nick), ['a4', 'b4', 'a3', 'b3', 'a2', 'b2', 'a1', 'b1'], 'пока меньше десяти — все, свежий розыгрыш сверху');
+  for (let i = 5; i <= 8; i++) log = pushRouletteLog(log, [row(i, `a${i}`), row(i, `b${i}`)]);
+  assert.equal(log.length, ROULETTE_LOG_SIZE, 'старше десяти отбрасываем');
+  assert.deepEqual(log.map((r) => r.nick), ['a8', 'b8', 'a7', 'b7', 'a6', 'b6', 'a5', 'b5', 'a4', 'b4']);
+});
+
+test('табло: на баркасе — по обводу корпуса и над палубой, в воде и на набережной — нет', () => {
+  const mid = (BARKAS.bow + BARKAS.stern) / 2;
+  assert.ok(onBarkas(ROULETTE_SPOT.x, ROULETTE_SPOT.y, ROULETTE_SPOT.z), 'у стола рулетки');
+  assert.ok(onBarkas(mid, 0, BARKAS.z) && onBarkas(BARKAS.stern - 0.1, 0, BARKAS.z), 'палуба и корма');
+  assert.ok(onBarkas(mid, 1.2, BARKAS.z + BARKAS.half - 0.2), 'прыжок у борта');
+  assert.ok(onBarkas(BARKAS.bow + 1.5, 0.45, BARKAS.z), 'бак');
+  assert.ok(!onBarkas(mid, 0, BARKAS.z + BARKAS.half + 1), 'за бортом по Z');
+  assert.ok(!onBarkas(BARKAS.stern + 2, 0, BARKAS.z), 'за кормой (там лодка)');
+  assert.ok(!onBarkas(BARKAS.bow - 1, 0, BARKAS.z), 'перед носом');
+  assert.ok(!onBarkas(BARKAS.bow + 1, 0, BARKAS.z + 2), 'на носу борта сходятся к форштевню');
+  assert.ok(!onBarkas(mid, -3, BARKAS.z), 'под водой');
+  assert.ok(!onBarkas(0, 0, 0), 'на набережной');
+});
+
+test('тост о розыгрыше: одна ставка — «Ник: N на цвет — выиграл/проиграл», свои не повторяем, много ставок — одна строка', () => {
+  const r = (pid: number, nick: string, c: RouletteLogRow['c'], stake: number, payout: number): RouletteLogRow => ({ round: 1, pid, nick, c, stake, payout, n: 17 });
+  assert.equal(rouletteDrawText([r(1, 'Tester7', 'red', 120, 240)], 2), '🎡 Tester7: 120 на красное — выиграл 240!');
+  assert.equal(rouletteDrawText([r(1, 'Tester7', 'black', 50, 0)], 2), '🎡 Tester7: 50 на чёрное — проиграл');
+  assert.equal(rouletteDrawText([r(1, 'Tester7', 'green', 20, 720)], 1), null, 'играл только ты сам — тост не нужен, свой итог отдельно');
+  const two = [r(1, 'Tester7', 'red', 120, 0), r(2, 'Tester8', 'black', 80, 160)];
+  assert.equal(rouletteDrawText(two, 3), '🎡 Выпало 17 — чёрное: Tester7 −120 · Tester8 +160');
+  assert.equal(rouletteDrawText(two, 1), '🎡 Tester8: 80 на чёрное — выиграл 160!', 'без своей строки осталась одна ставка');
+  const five = [1, 2, 3, 4, 5].map((i) => r(i, `P${i}`, 'black', 10 * i, 20 * i));
+  assert.equal(rouletteDrawText(five, 9), '🎡 Выпало 17 — чёрное: P1 +20 · P2 +40 · P3 +60 · ещё 2');
+});
+
+test('табло на баркасе: 10 последних в правильном порядке; письма — только тем, кто на баркасе; пришедшему на палубу — история', () => {
+  const e = setup();
+  const pa = e.a.c.profile!, pb = e.b.c.profile!;
+  const onPlaza = login(e.hub, 'Tester9', undefined, '10.0.0.9');
+  const newcomer = login(e.hub, 'Tester10', undefined, '10.0.0.10');
+  toTable(e, e.a); toTable(e, e.b, -1);
+  const logs = (s: typeof e.a.s) => allOf(s, 'rouletteLog');
+  e.advance(2);
+  assert.equal(logs(e.a.s).length, 0, 'пока никто не играл — табло молчит');
+  const spinTicks = Math.floor((ROULETTE_SPIN_MS * TICK_RATE) / 1000) + 2;
+  // розыгрыш: что выпало и кто на что (цена улова) ставит; ставят по порядку списка
+  const rounds: Array<{ n: number; bets: Array<['a' | 'b', RouletteColor, number]> }> = [
+    { n: 1, bets: [['a', 'red', 100], ['b', 'black', 50]] },
+    { n: 1, bets: [['a', 'black', 40]] },
+    { n: 0, bets: [['b', 'green', 20]] },
+    { n: 19, bets: [['a', 'red', 60], ['b', 'red', 30]] },
+    { n: 2, bets: [['a', 'black', 10]] },
+    { n: 20, bets: [['b', 'black', 15]] },
+    { n: 3, bets: [['a', 'red', 25]] },
+    { n: 4, bets: [['a', 'black', 5], ['b', 'red', 5]] },
+  ];
+  const played: RouletteLogRow[] = [];
+  let k = 0;
+  for (const [i, round] of rounds.entries()) {
+    e.table.spin = () => round.n;
+    pa.fishing.bag = [];
+    pb.fishing.bag = [];
+    // у кого есть улов — тот и ставит: пока кто-то у стола ещё не поставил, приём открыт
+    for (const [who, , price] of round.bets) (who === 'a' ? pa : pb).fishing.bag = [fish(k++, price)];
+    for (const [who, c, price] of round.bets) {
+      const prof = who === 'a' ? pa : pb;
+      e.hub.onJson((who === 'a' ? e.a : e.b).c, { t: 'roulette', a: 'bet', c });
+      played.push({ round: i + 1, pid: prof.id, nick: prof.nick, c, stake: price, payout: roulettePayout(price, c, round.n), n: round.n });
+    }
+    e.advance(spinTicks);
+    // после розыгрыша оба на баркасе получили одно и то же табло; fresh — сколько верхних строк только что сыграли
+    const last = lastOf(e.a.s, 'rouletteLog')!;
+    assert.equal(last.fresh, round.bets.length, `розыгрыш ${i + 1}: сколько верхних строк свежие`);
+    assert.deepEqual(lastOf(e.b.s, 'rouletteLog'), last, 'у обоих на палубе одно табло');
+  }
+  assert.equal(played.length, 11);
+  // свежие розыгрыши сверху, внутри розыгрыша — по порядку ставок; из одиннадцати ставок остались десять последних
+  const want = [...rounds.keys()].reverse().flatMap((i) => played.filter((r) => r.round === i + 1)).slice(0, ROULETTE_LOG_SIZE);
+  const got = lastOf(e.a.s, 'rouletteLog')!.rows;
+  assert.equal(got.length, ROULETTE_LOG_SIZE, 'табло держит десять последних');
+  assert.deepEqual(got, want);
+  assert.deepEqual(got[0], { round: 8, pid: pa.id, nick: 'Tester7', c: 'black', stake: 5, payout: 10, n: 4 });
+  assert.deepEqual(got[1], { round: 8, pid: pb.id, nick: 'Tester8', c: 'red', stake: 5, payout: 0, n: 4 });
+  assert.deepEqual(got.at(-1), { round: 1, pid: pa.id, nick: 'Tester7', c: 'red', stake: 100, payout: 200, n: 1 }, 'одиннадцатая с конца (ставка B в первом розыгрыше) уже выпала');
+  assert.deepEqual(e.table.history(), got, 'сервер хранит тот же журнал');
+  // тем, кто не на баркасе, — ни письма; новичок на набережной тоже ничего не получил
+  assert.equal(logs(onPlaza.s).length, 0, 'на набережной табло не шлют');
+  assert.equal(logs(newcomer.s).length, 0, 'пока не вышел на палубу — тоже нет');
+  // новичок вышел на баркас — получает историю один раз, без fresh (тоста о розыгрыше для него нет)
+  placeAt(e.hub, newcomer.c, BARKAS_LANDING.x, BARKAS_LANDING.z);
+  e.advance(2);
+  assert.equal(logs(newcomer.s).length, 1);
+  assert.deepEqual(logs(newcomer.s)[0], { t: 'rouletteLog', rows: got });
+  e.advance(30);
+  assert.equal(logs(newcomer.s).length, 1, 'стоит на палубе — повторно не шлём');
+  // ушёл на набережную: розыгрыш его не касается; вернулся — получает снова, уже со свежим розыгрышем
+  placeAt(e.hub, newcomer.c, 0, 0);
+  e.advance(2);
+  pa.fishing.bag = [fish(99, 70)];
+  e.table.spin = () => 5;
+  e.hub.onJson(e.a.c, { t: 'roulette', a: 'bet', c: 'red' });
+  e.advance(spinTicks);
+  assert.equal(logs(newcomer.s).length, 1, 'на набережной уведомлений о розыгрыше нет');
+  assert.equal(logs(onPlaza.s).length, 0);
+  assert.equal(lastOf(e.a.s, 'rouletteLog')!.fresh, 1);
+  placeAt(e.hub, newcomer.c, BARKAS_LANDING.x, BARKAS_LANDING.z);
+  e.advance(2);
+  assert.equal(logs(newcomer.s).length, 2);
+  assert.deepEqual(logs(newcomer.s)[1].rows[0], { round: 9, pid: pa.id, nick: 'Tester7', c: 'red', stake: 70, payout: 140, n: 5 });
+  assert.equal(logs(newcomer.s)[1].rows.length, ROULETTE_LOG_SIZE);
 });
