@@ -6,7 +6,9 @@
 //    compileAsync (шейдеры компилируются параллельно, кадр не стоит), текстуры заливаются по нескольку за кадр;
 //    второй проход ловит то, что появилось из первых снимков (игроки, зомби).
 // 4. Пара настоящих кадров под экраном → {t:'ready'} серверу → проявление 0,4 с, сразу вид от игрока.
-// Экран анимируется только transform/opacity: эти анимации ведёт compositor, и они не замирают, пока строится мир.
+// Экран — картина режима на весь экран, желейка-ведущая с подсказками, название и полоса (вид — transition.css,
+// картины и тексты — transition-art.ts). Анимируется только transform/opacity: эти анимации ведёт compositor,
+// и они не замирают, пока строится мир.
 // После проявления — плашка «Ждём: …», пока грузятся остальные, и крупный отсчёт 3-2-1 по письму сервера `go`.
 // 15 с без готовности или ошибка стройки — сообщение и назад на набережную.
 import type * as THREE from 'three';
@@ -15,7 +17,7 @@ import type { ClientMsg, RoomKind, ServerMsg } from '../../shared/messages.ts';
 import { errorReport } from '../errors.ts';
 import type { Renderer } from '../render/renderer.ts';
 import type { Scene } from '../scene.ts';
-import { MODE_CARDS, nextTip } from './transition-art.ts';
+import { MODE_CARDS, nextTips, preloadArt } from './transition-art.ts';
 import './transition.css';
 
 /** Затемнение до экрана загрузки и проявление мира, мс (такие же — в transition.css) */
@@ -36,6 +38,8 @@ const FAIL_RETRY_MS = 2500;
 const FAIL_FIRST_MS = 2100;
 /** Режимы со своим крупным отсчётом на старте */
 const OWN_COUNT: ReadonlySet<RoomKind> = new Set(['race', 'skill']);
+/** Картины режимов — в кэш через столько после входа в игру (не мешать загрузке самой набережной), мс */
+const PRELOAD_MS = 4000;
 
 type Phase = 'idle' | 'out' | 'build' | 'warm' | 'frames' | 'in' | 'fail';
 
@@ -114,44 +118,73 @@ export class Transition {
   private goHideAt = 0;
   private goWord = '';
 
+  private readonly artEl: HTMLElement;
+  private readonly picEl: HTMLImageElement;
+  private readonly jellyEl: HTMLImageElement;
+  private readonly tipsEl: HTMLElement;
   private readonly titleEl: HTMLElement;
   private readonly subEl: HTMLElement;
-  private readonly iconEl: HTMLElement;
-  private readonly medalEl: HTMLElement;
   private readonly barEl: HTMLElement;
   private readonly statusEl: HTMLElement;
   private readonly whoEl: HTMLElement;
-  private readonly tipEl: HTMLElement;
   private readonly retryEl: HTMLButtonElement;
   private readonly waitEl: HTMLElement;
+  private readonly waitTextEl: HTMLElement;
+  private readonly waitLeftEl: HTMLElement;
+  private waitKey = '';
   private readonly countEl: HTMLElement;
+  private readonly countNumEl: HTMLElement;
+  private preloadAt = 0;
 
   constructor(host: TransitionHost, after: HTMLElement) {
     this.h = host;
     this.root = el('div', 'tr');
     this.root.setAttribute('aria-hidden', 'true');
+    // картина режима (пока не пришла — небо в цвет режима) и облака, что плывут поверх неё
+    this.artEl = el('div', 'tr-art', this.root);
+    this.picEl = el('img', 'tr-pic', this.artEl);
+    this.picEl.alt = '';
+    this.picEl.decoding = 'async';
+    this.picEl.draggable = false;
+    this.picEl.addEventListener('load', () => this.artEl.classList.add('ready'));
+    const clouds = el('div', 'tr-clouds', this.root);
+    for (let i = 1; i <= 3; i++) el('i', `tr-cloud c${i}`, clouds);
+    el('div', 'tr-shade', this.root);
+    const brand = el('p', 'tr-brand', this.root);
+    brand.innerHTML = 'TIRED<b>WOOD</b>';
+    // желейка-ведущая: подпрыгивает и подсказывает (подсказки сменяются сами, CSS)
+    const hostEl = el('div', 'tr-host', this.root);
+    const bubble = el('div', 'tr-bubble', hostEl);
+    el('b', 'tr-bubble-label', bubble).textContent = 'Совет';
+    this.tipsEl = el('div', 'tr-tips', bubble);
+    const jelly = el('div', 'tr-jelly', hostEl);
+    el('i', 'tr-jelly-shadow', jelly);
+    this.jellyEl = el('img', '', jelly);
+    this.jellyEl.alt = '';
+    this.jellyEl.decoding = 'async';
+    this.jellyEl.draggable = false;
     const card = el('div', 'tr-card', this.root);
     card.setAttribute('role', 'status');
-    const brand = el('p', 'tr-brand', card);
-    brand.innerHTML = 'TIRED<b>WOOD</b>';
-    this.medalEl = el('div', 'tr-medal', card);
-    this.iconEl = el('div', 'tr-icon', this.medalEl);
-    el('div', 'tr-shadow', card);
     this.titleEl = el('h2', 'tr-title', card);
     this.subEl = el('p', 'tr-sub', card);
     const bar = el('div', 'tr-bar', card);
     this.barEl = el('i', '', bar);
-    el('b', '', bar);
     this.statusEl = el('p', 'tr-status', card);
     this.whoEl = el('div', 'tr-who', card);
-    this.tipEl = el('p', 'tr-tip', card);
     this.retryEl = el('button', 'btn primary tr-retry', card);
     this.retryEl.textContent = 'Обновить страницу';
     this.retryEl.hidden = true;
     this.retryEl.addEventListener('click', () => location.reload());
     this.hud = el('div', 'tr-hud');
     this.waitEl = el('div', 'tr-wait', this.hud);
+    el('i', 'tr-wait-ico', this.waitEl);
+    this.waitTextEl = el('span', 'tr-wait-text', this.waitEl);
+    this.waitLeftEl = el('b', 'tr-wait-left', this.waitEl);
     this.countEl = el('div', 'tr-count', this.hud);
+    el('i', 'tr-count-burst', this.countEl);
+    el('i', 'tr-count-ring', this.countEl);
+    el('i', 'tr-count-disc', this.countEl);
+    this.countNumEl = el('b', 'tr-count-num', this.countEl);
     after.after(this.root, this.hud);
   }
 
@@ -206,6 +239,8 @@ export class Transition {
   instant(epoch: number): void {
     this.instantEpoch = epoch;
     this.instantFrames = 0;
+    // вошли в игру: картины режимов — в кэш чуть позже, когда набережная уже грузится не будет
+    if (!this.preloadAt) this.preloadAt = performance.now() + PRELOAD_MS;
   }
 
   /** Письмо для сцены: во время затемнения — в очередь новой комнаты, иначе — текущей сцене. */
@@ -256,7 +291,7 @@ export class Transition {
     this.scene = null;
     this.textures = [];
     this.compiling = null;
-    this.root.classList.remove('on', 'failed');
+    this.root.classList.remove('on', 'failed', 'play');
     this.goAt = 0;
     this.hideCount();
     this.who = [];
@@ -272,6 +307,10 @@ export class Transition {
    */
   frame(now: number, dt: number): boolean {
     this.tickCount(now);
+    if (this.preloadAt > 0 && now > this.preloadAt) {
+      this.preloadAt = -1;
+      preloadArt();
+    }
     if (this.missedUntil && now > this.missedUntil) {
       this.missedUntil = 0;
       this.syncWait();
@@ -313,7 +352,11 @@ export class Transition {
         return false;
       }
       case 'in':
-        if (now - this.phaseAt >= IN_MS) this.phase = 'idle';
+        if (now - this.phaseAt >= IN_MS) {
+          this.phase = 'idle';
+          // экран растаял: его бесконечные анимации (облака, желейка, подсказки) — стоп
+          this.root.classList.remove('play');
+        }
         return false;
       case 'fail':
         if (this.kind !== 'lobby' && this.elapsed > this.failRetryAt) {
@@ -505,20 +548,35 @@ export class Transition {
     const card = MODE_CARDS[kind];
     this.titleEl.textContent = card.title;
     this.subEl.textContent = this.h.detail(kind) ?? card.sub;
-    this.iconEl.innerHTML = card.svg;
-    this.medalEl.style.setProperty('--tint', card.tint);
-    this.tipEl.textContent = nextTip(kind);
     this.root.dataset.kind = kind;
+    this.root.style.setProperty('--tint', card.tint);
+    this.root.style.setProperty('--focus', card.focus);
+    this.hud.style.setProperty('--tint', card.tint);
+    // картина: та же — уже на месте; новая — проявится, когда придёт (обычно она уже в кэше, см. preloadArt)
+    if (this.picEl.getAttribute('src') !== card.art) {
+      this.artEl.classList.remove('ready');
+      if (card.art) this.picEl.src = card.art;
+      else this.picEl.removeAttribute('src');
+    }
+    if (card.jelly) this.jellyEl.src = card.jelly;
+    else this.jellyEl.removeAttribute('src');
+    this.tipsEl.replaceChildren(...nextTips(kind).map((t) => {
+      const p = document.createElement('p');
+      p.textContent = t;
+      return p;
+    }));
+    // бесконечные анимации экрана идут, пока он виден (снимаются, когда растает)
+    this.root.classList.add('play');
   }
 
   private status(text: string): void {
     this.statusEl.textContent = text;
   }
 
-  /** Полоса: transform с переходом — её дотягивает compositor, даже если кадр стоит. */
+  /** Полоса: transform с переходом — её дотягивает compositor, даже если кадр стоит. Сдвиг, а не растяжение: полоски заливки не мнутся. */
   private progress(p: number, seconds: number): void {
     this.barEl.style.transitionDuration = `${seconds}s`;
-    this.barEl.style.transform = `scaleX(${Math.max(0.02, Math.min(1, p)).toFixed(3)})`;
+    this.barEl.style.transform = `translateX(${((Math.max(0.04, Math.min(1, p)) - 1) * 100).toFixed(1)}%)`;
   }
 
   private renderWho(): void {
@@ -538,9 +596,18 @@ export class Transition {
     const me = this.h.nick();
     const late = this.who.filter((w) => !w.ok && w.nick !== me).map((w) => w.nick);
     let text = '';
-    if (!this.busy && this.waiting > 0 && late.length) text = `Ждём ${names(late)} · до ${this.waiting} с`;
-    else if (!this.busy && this.missedUntil && late.length) text = `Не дождались: ${names(late)} — начинаем`;
-    if (this.waitEl.textContent !== text) this.waitEl.textContent = text;
+    let left = '';
+    if (!this.busy && this.waiting > 0 && late.length) {
+      text = `Ждём ${names(late)}`;
+      left = `до ${this.waiting} с`;
+    } else if (!this.busy && this.missedUntil && late.length) text = `Не дождались: ${names(late)} — начинаем`;
+    const key = `${text}|${left}`;
+    if (this.waitKey !== key) {
+      this.waitKey = key;
+      this.waitTextEl.textContent = text;
+      this.waitLeftEl.textContent = left;
+      this.waitEl.classList.toggle('missed', text !== '' && !left);
+    }
     this.waitEl.classList.toggle('show', text !== '');
   }
 
@@ -567,7 +634,8 @@ export class Transition {
   }
 
   private showCount(text: string, go: boolean): void {
-    this.countEl.textContent = text;
+    this.countNumEl.textContent = text;
+    this.countEl.dataset.n = go ? 'go' : text;
     this.countEl.className = 'tr-count';
     void this.countEl.offsetWidth;
     this.countEl.className = `tr-count show${go ? ' go' : ''}`;
