@@ -803,3 +803,177 @@ export function drawFightPad(ctx: Ctx, W: number, H: number): void {
   ctx.restore();
   ctx.restore();
 }
+
+// ------------------------------------------------------------ улица: лента, номера домов, уличные доски, указатели
+
+/** Номер дома: синяя эмалевая табличка с белой каймой и цифрой. */
+export function drawHouseNumber(ctx: Ctx, W: number, H: number, n: number): void {
+  ctx.clearRect(0, 0, W, H);
+  roundRectPath(ctx, 1, 1, W - 2, H - 2, H * 0.22);
+  ctx.fillStyle = '#1f4a72';
+  ctx.fill();
+  ctx.strokeStyle = '#f6f2e8';
+  ctx.lineWidth = Math.max(2, H * 0.06);
+  roundRectPath(ctx, H * 0.08, H * 0.08, W - H * 0.16, H - H * 0.16, H * 0.16);
+  ctx.stroke();
+  bigText(ctx, String(n), W / 2, H * 0.54, H * 0.66, W * 0.7, '#ffffff', '#1f4a72', 0, 900, '');
+}
+
+/** Уличная доска: «УЛИЦА АТТРАКЦИОНОВ» со стрелкой вдоль улицы (dir > 0 — вправо). */
+export function drawStreetPlate(ctx: Ctx, W: number, H: number, dir: 1 | -1): void {
+  ctx.clearRect(0, 0, W, H);
+  roundRectPath(ctx, 1, 1, W - 2, H - 2, H * 0.2);
+  ctx.fillStyle = '#1f5aa6';
+  ctx.fill();
+  ctx.strokeStyle = '#f6f2e8';
+  ctx.lineWidth = Math.max(2, H * 0.05);
+  roundRectPath(ctx, H * 0.07, H * 0.07, W - H * 0.14, H - H * 0.14, H * 0.15);
+  ctx.stroke();
+  // стрелка
+  const ax = dir > 0 ? W - H * 0.62 : H * 0.62;
+  ctx.fillStyle = '#ffd23f';
+  ctx.beginPath();
+  ctx.moveTo(ax + dir * H * 0.3, H * 0.5);
+  ctx.lineTo(ax - dir * H * 0.02, H * 0.22);
+  ctx.lineTo(ax - dir * H * 0.02, H * 0.38);
+  ctx.lineTo(ax - dir * H * 0.3, H * 0.38);
+  ctx.lineTo(ax - dir * H * 0.3, H * 0.62);
+  ctx.lineTo(ax - dir * H * 0.02, H * 0.62);
+  ctx.lineTo(ax - dir * H * 0.02, H * 0.78);
+  ctx.closePath();
+  ctx.fill();
+  const x0 = dir > 0 ? H * 0.2 : H * 1.2;
+  const x1 = dir > 0 ? W - H * 1.2 : W - H * 0.2;
+  bigText(ctx, 'УЛИЦА АТТРАКЦИОНОВ', (x0 + x1) / 2, H * 0.53, H * 0.42, x1 - x0, '#ffffff', '#1f5aa6', 0, 800, '');
+}
+
+/** Стрелка-указатель на столбе: доска с острым концом (tipRight — остриё справа), название и расстояние. */
+export function drawArm(ctx: Ctx, W: number, H: number, label: string, meters: number, tipRight: boolean): void {
+  ctx.clearRect(0, 0, W, H);
+  const tip = H * 0.55;
+  const x0 = tipRight ? 1 : tip;
+  const x1 = tipRight ? W - tip : W - 1;
+  ctx.beginPath();
+  if (tipRight) {
+    ctx.moveTo(x0, 2);
+    ctx.lineTo(x1, 2);
+    ctx.lineTo(W - 2, H / 2);
+    ctx.lineTo(x1, H - 2);
+    ctx.lineTo(x0, H - 2);
+  } else {
+    ctx.moveTo(x1, 2);
+    ctx.lineTo(x0, 2);
+    ctx.lineTo(2, H / 2);
+    ctx.lineTo(x0, H - 2);
+    ctx.lineTo(x1, H - 2);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#b98a56';
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  plankLines(ctx, W, H, H / 3, 'rgba(60,35,15,0.22)');
+  speckle(ctx, W, H, 91 + label.length, 'rgba(255,240,200,0.12)', 'rgba(60,35,15,0.14)', 18);
+  ctx.restore();
+  ctx.strokeStyle = '#6b4423';
+  ctx.lineWidth = Math.max(2, H * 0.06);
+  ctx.stroke();
+  const textX0 = tipRight ? H * 0.2 : tip + H * 0.1;
+  const textX1 = tipRight ? W - tip - H * 0.1 : W - H * 0.2;
+  const dist = `${Math.round(meters)} м`;
+  ctx.fillStyle = '#3a2410';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  const dSize = fitFont(ctx, dist, H * 0.34, H * 1.5, 700);
+  const dW = ctx.measureText(dist).width;
+  const lSize = fitFont(ctx, label, H * 0.5, textX1 - textX0 - dW - H * 0.2, 900);
+  ctx.fillStyle = '#2a1608';
+  ctx.fillText(label, textX0, H * 0.53);
+  ctx.font = `700 ${dSize}px Rubik, system-ui, sans-serif`;
+  ctx.fillStyle = '#6b3d14';
+  ctx.textAlign = 'right';
+  ctx.fillText(dist, textX1, H * 0.55);
+  void lSize;
+}
+
+/** Дорожка вдоль фасадов (период 2 м по x): тёплая плитка, синяя кайма с белыми «заклёпками» у проезжей части, цепочка ромбов. Верх — север (к домам). */
+export function drawStreetRibbon(ctx: Ctx, W: number, H: number): void {
+  const mx = W / 2;
+  ctx.fillStyle = '#eddcb8';
+  ctx.fillRect(0, 0, W, H);
+  // плитка 0,5 м: слабые швы
+  ctx.strokeStyle = 'rgba(120,88,56,0.16)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i <= 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo((i * W) / 4, 0);
+    ctx.lineTo((i * W) / 4, H);
+    ctx.stroke();
+  }
+  const rows = Math.round(H / (W / 4));
+  for (let j = 0; j <= rows; j++) {
+    ctx.beginPath();
+    ctx.moveTo(0, (j * H) / rows);
+    ctx.lineTo(W, (j * H) / rows);
+    ctx.stroke();
+  }
+  speckle(ctx, W, H, 97, 'rgba(255,255,255,0.18)', 'rgba(120,88,56,0.10)', 30);
+  // кайма у домов — тонкая; у проезжей части (низ) — широкая с белыми точками
+  ctx.fillStyle = '#1f4a72';
+  ctx.fillRect(0, 0, W, H * 0.022);
+  ctx.fillRect(0, H * 0.935, W, H * 0.065);
+  ctx.fillStyle = '#e8923a';
+  ctx.fillRect(0, H * 0.912, W, H * 0.018);
+  ctx.fillStyle = '#f6f2e8';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(mx / 2 + (i * W) / 4, H * 0.968, H * 0.009, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // цепочка ромбов посередине: синий и оранжевый через раз, между ними — светлые точки
+  const cy = H * 0.5;
+  const r = H * 0.075;
+  for (let i = 0; i < 2; i++) {
+    const cx = W * (0.25 + i * 0.5);
+    ctx.fillStyle = i % 2 ? '#e8923a' : '#1f4a72';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 1.25);
+    ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r * 1.25);
+    ctx.lineTo(cx - r, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f6f2e8';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(31,74,114,0.5)';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc((i * W) / 4 + W / 8 + 0, cy, H * 0.014, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // тонкие линии по бокам ромбов
+  ctx.strokeStyle = 'rgba(31,74,114,0.35)';
+  ctx.lineWidth = H * 0.008;
+  ctx.beginPath();
+  ctx.moveTo(0, cy - r * 1.9);
+  ctx.lineTo(W, cy - r * 1.9);
+  ctx.moveTo(0, cy + r * 1.9);
+  ctx.lineTo(W, cy + r * 1.9);
+  ctx.stroke();
+}
+
+/** Верхняя табличка указателя: тёмно-синяя, жёлтые буквы. */
+export function drawSignTop(ctx: Ctx, W: number, H: number, text: string): void {
+  ctx.clearRect(0, 0, W, H);
+  roundRectPath(ctx, 1, 1, W - 2, H - 2, H * 0.28);
+  ctx.fillStyle = '#16365e';
+  ctx.fill();
+  ctx.strokeStyle = '#ffd23f';
+  ctx.lineWidth = Math.max(2, H * 0.06);
+  roundRectPath(ctx, H * 0.1, H * 0.1, W - H * 0.2, H - H * 0.2, H * 0.2);
+  ctx.stroke();
+  bigText(ctx, text, W / 2, H * 0.54, H * 0.5, W - H * 0.7, '#ffd23f', '#16365e', 0, 900, '');
+}

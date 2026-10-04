@@ -643,3 +643,116 @@ export function paintTexture(w: number, h: number, draw: (ctx: CanvasRenderingCo
   draw(ctx, c.width, c.height);
   return canvasTexture(c, repeat);
 }
+
+// ------------------------------------------------------------ таблички одним мешем
+
+export interface PlaqueSpec {
+  /** Центр, м; плоскость смотрит в (sin ry, cos ry) */
+  x: number;
+  y: number;
+  z: number;
+  ry: number;
+  w: number;
+  h: number;
+  /** Рисует табличку на холсте W × H пикселей (прозрачное — не рисуется: alphaTest) */
+  draw: (ctx: CanvasRenderingContext2D, W: number, H: number) => void;
+  /** Пикселей на метр (по умолчанию 200) */
+  ppm?: number;
+}
+
+/** Много табличек (номера домов, указатели, уличные доски) — один атлас и один меш: один вызов отрисовки на все. */
+export class Plaques {
+  private readonly list: PlaqueSpec[] = [];
+
+  add(p: PlaqueSpec): this {
+    this.list.push(p);
+    return this;
+  }
+
+  get empty(): boolean {
+    return this.list.length === 0;
+  }
+
+  /** Склеить: атлас раскладывается полками, табличка с альфой режется (alphaTest) и чуть светится. */
+  mesh(wet: Wet, glow = 0.22): THREE.Mesh | null {
+    if (!this.list.length) return null;
+    const sized = this.list.map((p) => ({ p, pw: Math.max(8, Math.round(p.w * (p.ppm ?? 200))), ph: Math.max(8, Math.round(p.h * (p.ppm ?? 200))) }));
+    const order = sized.map((_, i) => i).sort((a, b) => sized[b].ph - sized[a].ph);
+    const AW = 2048;
+    let x = 0;
+    let y = 0;
+    let rowH = 0;
+    const rect: Array<[number, number]> = [];
+    for (const i of order) {
+      const s = sized[i];
+      if (x + s.pw + 2 > AW) {
+        x = 0;
+        y += rowH + 2;
+        rowH = 0;
+      }
+      rect[i] = [x, y];
+      x += s.pw + 2;
+      rowH = Math.max(rowH, s.ph);
+    }
+    const AH = Math.max(16, Math.pow(2, Math.ceil(Math.log2(y + rowH + 2))));
+    const [cv, ctx] = makeCanvas(AW, AH);
+    sized.forEach((s, i) => {
+      const [rx, ry] = rect[i];
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.beginPath();
+      ctx.rect(0, 0, s.pw, s.ph);
+      ctx.clip();
+      s.p.draw(ctx, s.pw, s.ph);
+      ctx.restore();
+    });
+    const map = canvasTexture(cv);
+    const pos: number[] = [];
+    const nor: number[] = [];
+    const uv: number[] = [];
+    const idx: number[] = [];
+    sized.forEach((s, i) => {
+      const [rx, ry] = rect[i];
+      const { p } = s;
+      const ax = Math.cos(p.ry);
+      const az = -Math.sin(p.ry);
+      const nx = Math.sin(p.ry);
+      const nz = Math.cos(p.ry);
+      const u0 = rx / AW;
+      const u1 = (rx + s.pw) / AW;
+      const v1 = 1 - ry / AH;
+      const v0 = 1 - (ry + s.ph) / AH;
+      const base = pos.length / 3;
+      for (const [sx, sy, u, v] of [[-1, -1, u0, v0], [1, -1, u1, v0], [1, 1, u1, v1], [-1, 1, u0, v1]] as const) {
+        pos.push(p.x + ax * sx * (p.w / 2), p.y + sy * (p.h / 2), p.z + az * sx * (p.w / 2));
+        nor.push(nx, 0, nz);
+        uv.push(u, v);
+      }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, wet(new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: glow, roughness: 0.75, alphaTest: 0.4 })));
+    m.matrixAutoUpdate = false;
+    return m;
+  }
+}
+
+/**
+ * Лента-«дорожка» вдоль фасадов: прямоугольник w × d с повторяющимся по x холстом (map.repeat задаёт сколько раз), чуть выше
+ * настила и ниже ковриков у входов (те лежат с большим сдвигом глубины).
+ */
+export function floorRibbon(map: THREE.Texture, cx: number, cz: number, w: number, d: number, wet: Wet, y = 0.003): THREE.Mesh {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2),
+    wet(new THREE.MeshStandardMaterial({ map, roughness: 0.86, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })),
+  );
+  m.position.set(cx, y, cz);
+  m.receiveShadow = true;
+  m.renderOrder = 0;
+  return m;
+}

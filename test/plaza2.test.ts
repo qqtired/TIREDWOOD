@@ -7,9 +7,9 @@ import { BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_RIDE } from '../shared/boat.t
 import { TICK_RATE } from '../shared/constants.ts';
 import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../shared/fort.ts';
 import { BUBBLE_CHARS } from '../shared/lobby.ts';
-import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, SKILL_PORTAL, buildLobby } from '../shared/maps/lobby.ts';
+import { BOAT_RACE_CIRCLE, FORT_ARCH, HIDE_CIRCLE, KART_START, LAMP_FORT, SKILL_PORTAL, buildLobby } from '../shared/maps/lobby.ts';
 import { itemOf } from '../shared/outfit.ts';
-import { FIGHT_POSTS, PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, YARD_BARREL, YARD_CRATES, YARD_GATE, plazaSolids } from '../shared/plaza2.ts';
+import { FIGHT_POSTS, PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_BARREL, YARD_CRATES, YARD_GATE, plazaSolids } from '../shared/plaza2.ts';
 import { FC_CIRCLE } from '../shared/fight.ts';
 import { TOUT_INFO, type ToutKey } from '../client/lobby/plaza/data.ts';
 import { DEFAULT_PLAZA, pickPlaza } from '../client/lobby/plaza/flag.ts';
@@ -182,4 +182,14 @@ test('оформление у входов: столбики и мачты ст�
   for (const c of YARD_CRATES) assert.ok(at(c.x, c.z), 'ящик двора');
   // лодки регаты — на воде, у них коллизии нет: они не должны стоять на суше (z > 22 — за кромкой)
   for (const b of REGATTA_BOATS) assert.ok(b.z - 0.95 > 22, `лодка ${b.num} у стенки, не на настиле`);
+});
+
+test('улица: фонарь не стоит на оси проулка крепости, указатель у звезды твёрдый и не на месте появления', () => {
+  const lamps = lobby.deco.filter((d) => d.kind === 'lamp');
+  assert.ok(lamps.some((d) => d.x === LAMP_FORT.x && d.z === LAMP_FORT.z), 'фонарь на новом месте');
+  assert.ok(!lamps.some((d) => d.x === 11 && d.z === -11), 'старого фонаря на оси арки нет');
+  for (const l of lamps) assert.ok(Math.abs(l.x - FORT_ARCH.x) > FORT_ARCH.w / 2 + 0.5 || l.z > -5 || l.z < -16, `фонарь (${l.x}; ${l.z}) закрывает проулок крепости с площади`);
+  assert.ok(solids.some((s) => s.x === SIGNPOST.x && s.z === SIGNPOST.z), 'столб указателя в карте');
+  assert.ok(Math.hypot(SIGNPOST.x - lobby.spawn.x, SIGNPOST.z - lobby.spawn.z) > 3, 'указатель не на месте появления');
+  assert.ok(Math.hypot(SIGNPOST.x - 0, SIGNPOST.z - 3.6) > 2, 'указатель не на самой звезде');
 });

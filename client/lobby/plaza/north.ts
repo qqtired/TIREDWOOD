@@ -5,7 +5,7 @@
 import { FORT_ARCH, KART_START, SKILL_PORTAL } from '../../../shared/maps/lobby.ts';
 import { KART_TIRES, PB_BARRELS } from '../../../shared/plaza2.ts';
 import {
-  drawBanner, drawClock, drawCloudPad, drawCloudSign, drawDrawbridge, drawFortSign, drawKartPad, drawKarting, drawPaintPad, drawPaintball,
+  drawBanner, drawClock, drawCloudPad, drawCloudSign, drawDrawbridge, drawFortSign, drawHouseNumber, drawKartPad, drawKarting, drawPaintPad, drawPaintball,
 } from './art.ts';
 import { TOUT_INFO } from './data.ts';
 import { Decals, cloud, floorPad, paintTexture, wallPlate } from './gfx.ts';
@@ -75,6 +75,8 @@ function buildPaintball(ctx: VenueCtx): Venue {
   ];
   for (const [x, z, size, cell, hex] of floor) dec.floor(x, z, size, cell, hex, x * 1.7);
   v.group.add(dec.mesh(ctx.wet));
+  // номер дома на кирпиче слева от ниши ворот (дом 2 улицы Аттракционов)
+  v.plaques.add({ x: -3.45, y: 2.2, z: -15.985, ry: 0, w: 0.5, h: 0.5, draw: (c, W, H) => drawHouseNumber(c, W, H, 2), ppm: 240 });
   v.touts.push({ ...TOUT_INFO.paint, key: 'paint', x: -4.45, z: -13.2, yaw: Math.PI, gun: true });
   return v.finish();
 }
@@ -102,6 +104,8 @@ function buildKarting(ctx: VenueCtx): Venue {
   // пит-лейн: асфальт с белой решёткой и красно-белым поребриком вокруг круга «Старт»
   const pad = paintTexture(1900, 1120, drawKartPad);
   v.group.add(floorPad(pad, KART_START.x, -13.2, 9.5, 5.6, ctx.wet, 0.004));
+  // дом 4: номер слева от рольставни, правее знамени проулка крепости
+  v.plaques.add({ x: 14.6, y: 2.2, z: -15.985, ry: 0, w: 0.5, h: 0.5, draw: (c, W, H) => drawHouseNumber(c, W, H, 4), ppm: 240 });
   v.touts.push({ ...TOUT_INFO.kart, key: 'kart', x: 17.0, z: -11.5, yaw: Math.PI * 0.85 });
   return v.finish();
 }
@@ -174,6 +178,8 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
     }
     d.ball(0.3, x + sx * 1.62, 0.4, -15.12, 0xc8b283, 8, 6, 1.5, 0.5, 1);
   }
+  // дом 3 — крепость: номер на кирпиче под знаменем у западной стены проулка
+  near.plaques.add({ x: 8.2, y: 1.4, z: -15.985, ry: 0, w: 0.5, h: 0.5, draw: (c, W, H) => drawHouseNumber(c, W, H, 3), ppm: 240 });
   near.touts.push({ ...TOUT_INFO.fort, key: 'fort', x: 13.45, z: -13.7, yaw: Math.PI - 0.5, arms: 'zombie' });
 
   // донжон за линией зданий: виден над крышами и в конце проулка

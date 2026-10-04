@@ -72,6 +72,9 @@ export const BOAT_GATE = { x0: 4.9, x1: 10.9, z: 21.3 } as const;
  */
 export const FIGHT_POSTS: readonly PlazaSolid[] = [solid(27.15, 4.42, 0.07, 0.07, 0.95), solid(29.05, 4.42, 0.07, 0.07, 0.95)];
 
+/** Указатель «Куда идти» у звезды (центр (0; 3,6)): столб на основании, стрелки — над головой */
+export const SIGNPOST = { x: -3.8, z: 1.4, h: 3.4 } as const;
+
 /** Все твёрдые предметы оформления в порядке добавления в карту (новые — только в конец) */
 export function plazaSolids(): PlazaSolid[] {
   return [
@@ -80,5 +83,6 @@ export function plazaSolids(): PlazaSolid[] {
     ...REGATTA_MASTS.map((m) => solid(m.x, m.z, 0.17, 0.17, 3.2)),
     solid(BOAT_GATE.x0, BOAT_GATE.z, 0.13, 0.13, 3.6), solid(BOAT_GATE.x1, BOAT_GATE.z, 0.13, 0.13, 3.6),
     ...FIGHT_POSTS,
+    solid(SIGNPOST.x, SIGNPOST.z, 0.12, 0.12, SIGNPOST.h),
   ];
 }

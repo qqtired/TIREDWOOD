@@ -8,6 +8,7 @@ import { REGATTA_BOAT_SIZE } from '../../../shared/plaza2.ts';
 import { buildFight } from './east.ts';
 import { setBulbPhase } from './gfx.ts';
 import { buildHarbor, type HarborParts } from './harbor.ts';
+import { buildStreet } from './street.ts';
 import { boatPlateLine, liveLines, type LiveIn } from './live.ts';
 import { buildNorth, type NorthParts } from './north.ts';
 import { Tout } from './touts.ts';
@@ -46,6 +47,7 @@ export class PlazaDress {
     this.add(this.harbor.regatta, 'regatta');
     this.add(this.harbor.boat, null);
     this.add(buildFight(ctx), 'fight');
+    this.add(buildStreet(ctx), null);
     for (const venue of this.venues) {
       for (const def of venue.touts) this.touts.push({ tout: new Tout(ctx.scene, def, ground), venue });
     }

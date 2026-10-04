@@ -109,6 +109,8 @@ export const MACHINE_FRONT_Z = -23.7;
 export const TABLE_ZS = [-5, 3, 11];
 export const TABLE_X = 18;
 export const SKILL_PORTAL = { x: -10, z: -12.8, r: 2.1 } as const;
+/** Фонарь у проулка крепости: стоял на оси арки (11; −11) и закрывал её с площади, теперь — правее, у картинга */
+export const LAMP_FORT = { x: 14.9, z: -11 } as const;
 export const BOAT_RACE_CIRCLE = { x: 16, z: 18, r: 2.25 } as const;
 export const HIDE_CIRCLE = { x: -4, z: 12.5, r: 2.1 } as const;
 export const CHAIR_R = 1.35;
@@ -250,7 +252,7 @@ export function buildLobby(): LobbyMap {
   // --- Площадь: батуты, фонари, скамейки у моря
   b.trampoline(-10.6, 9.4);
   b.trampoline(8, 14);
-  for (const [x, z] of [[-14, -2], [-4.5, -11], [11, -11], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
+  for (const [x, z] of [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
   const benches = BENCH_XS.map((x) => ({ x, z: BENCH_Z, yaw: Math.PI }));
 
   // Места: сначала стулья (стол × 6, против часовой стрелки, если смотреть сверху), потом скамейки (по 2)

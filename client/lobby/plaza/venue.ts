@@ -2,7 +2,7 @@
 // флагов и лампочек, зазывалы и боксы коллизии. Строители входов (north.ts, harbor.ts, east.ts) работают с ней.
 import * as THREE from 'three';
 import { glowSprite } from '../../render/kit.ts';
-import { Bulbs, Flags, Mesher, TexBoxes, detailMesh, marquee, type MarqueeOut, type MarqueeSpec, type Wet } from './gfx.ts';
+import { Bulbs, Flags, Mesher, Plaques, TexBoxes, detailMesh, marquee, type MarqueeOut, type MarqueeSpec, type Wet } from './gfx.ts';
 import type { ToutDef } from './touts.ts';
 
 /** Что мир даёт оформлению: ветер, мокрота в дождь, погасание огней в грозу */
@@ -32,6 +32,8 @@ export class Venue {
   readonly walls: TexBoxes;
   readonly bulbs = new Bulbs();
   readonly flags = new Flags();
+  /** Таблички (номера домов, указатели): один атлас и один меш */
+  readonly plaques = new Plaques();
   readonly touts: ToutDef[] = [];
 
   readonly key: string;
@@ -80,6 +82,11 @@ export class Venue {
       this.ctx.powered.push(m);
     }
     if (!this.flags.empty) this.group.add(this.flags.mesh(this.ctx.wind, this.ctx.wet));
+    const pq = this.plaques.mesh(this.ctx.wet);
+    if (pq) {
+      this.group.add(pq);
+      this.ctx.signs.set(pq.material as THREE.MeshStandardMaterial, 0.22);
+    }
     this.bulbs.build(this.group);
     this.group.visible = visible;
     this.ctx.scene.add(this.group);

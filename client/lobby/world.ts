@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
-import { CANOPY_POLES, CANOPY_POLE_H, MACHINE_FRONT_Z, PHOTO, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, MACHINE_FRONT_Z, PHOTO, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { Deco, MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -903,10 +903,10 @@ export class LobbyWorld {
     const strings: Array<[V3, V3, number, boolean]> = [
       [post(-14, 16), post(2, 16), 1.1, false],
       [post(2, 16), post(14, 16), 0.9, false],
-      [post(-4.5, -11), post(11, -11), 1.1, false],
+      [post(-4.5, -11), post(LAMP_FORT.x, LAMP_FORT.z), 1.6, false],
       [post(-14, -2), post(-14, 16), 1.2, false],
       [post(-14, -2), post(-4.5, -11), 1.0, false],
-      [post(11, -11), pole(14.2, -9), 0.4, false],
+      [post(LAMP_FORT.x, LAMP_FORT.z), pole(14.2, -9), 0.3, false],
     ];
     const W = [pole(14.2, -9), pole(14.2, 1), pole(14.2, 11)];
     const E = [wall(-9), wall(1), pole(24, 11)];
