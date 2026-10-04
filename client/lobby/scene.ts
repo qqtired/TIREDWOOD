@@ -66,6 +66,7 @@ import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
 import { BilliardsClient } from './billiards.ts';
+import { billiardsCover } from '../../shared/billiards.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
 import { SkillPortal } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
@@ -488,7 +489,11 @@ export class LobbyScene implements Scene {
     this.billiards = new BilliardsClient({
       scene: this.world.scene, hudRoot: this.hud.root, canvas: d.renderer.canvas, camera: () => this.world.camera,
       send: (msg) => d.net.send(msg), me: () => d.ui.me(), sound: d.sound,
-      setSolid: (on) => { for (const index of this.world.map.billiardsBoxes) this.world.collision.setEnabled(index, on); },
+      setSolid: (on) => {
+        for (const index of this.world.map.billiardsBoxes) this.world.collision.setEnabled(index, on);
+        // навес — укрытие от дождя, как крыши павильонов
+        if (on) this.world.addCover(billiardsCover());
+      },
       leave: () => { d.net.send({ t: 'unuse' }); this.billiards.setSeat(-1, -1); d.wantPointer(); },
       pointerFree: () => !d.input.locked && !d.input.blocked,
       refreshShadows: () => d.renderer.refreshShadows(),

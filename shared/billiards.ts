@@ -6,6 +6,7 @@
 // никаких sin/cos/exp/hypot. Начальную скорость битка (vx, vz) считает сервер и шлёт числами — клиенты проигрывают тот же
 // расчёт бит в бит, а конечные позиции всё равно приходят с сервера в виде стола.
 import { TICK_RATE } from './constants.ts';
+import type { MapBox } from './maps/types.ts';
 
 // ------------------------------------------------------------ зал
 
@@ -62,6 +63,21 @@ export const BL_RAILS: ReadonlyArray<readonly [number, number, number, number]> 
 export const BL_HEAD = { x: 0, z: -BL_HZ / 2 } as const;
 export const BL_FOOT = { x: 0, z: BL_HZ / 2 } as const;
 
+/**
+ * Крыша навеса для карты укрытий от дождя (у клиента, как рубка баркаса): полосы по 0,5 м с севера на юг по скату от
+ * roofY к eaveY. Дождь под навесом не идёт, пол не мокнет, брызги — на крыше. Коллизия у крыши своя (невидимый бокс).
+ */
+export function billiardsCover(): MapBox[] {
+  const H = BL_HALL;
+  const x0 = H.x0 - 0.12, x1 = H.x1 + 0.22, z1 = H.z1 + 0.2;
+  const out: MapBox[] = [];
+  for (let z = H.z0; z < z1 - 1e-6; z += 0.5) {
+    const top = H.roofY + ((z - H.z0) * (H.eaveY - H.roofY)) / (H.z1 - H.z0) + 0.05;
+    out.push({ min: [x0, top - 0.1, z], max: [x1, top, Math.min(z1, z + 0.5)], mat: 'wood', color: 0x6b4a36 });
+  }
+  return out;
+}
+
 /** Места игроков у стола: 0 — западная длинная сторона, 1 — восточная. Где стоит желейка и куда смотрит. */
 export function blSpot(table: number, side: number): { x: number; z: number; yaw: number } {
   const t = BL_TABLES[table];
@@ -78,14 +94,26 @@ export const SIM_DT = 1 / SIM_HZ;
 export const SIM_MAX_STEPS = 12 * SIM_HZ;
 /** Кадр анимации у клиента — каждые столько шагов (60 кадров в секунду) */
 export const SIM_FRAME_STEPS = 10;
-/** Качение: постоянное торможение (м/с²) и пропорциональное скорости (1/с); ниже V_STOP шар стоит */
+/** Качение: постоянное торможение (м/с²) и пропорциональное скорости (1/с) — быстрые шары после разбоя гаснут заметнее,
+ *  слабые катятся как раньше; ниже V_STOP шар стоит */
 const ROLL_A = 0.3;
-const ROLL_K = 0.2;
+const ROLL_K = 0.35;
 const V_STOP = 0.006;
 /** Упругость шар–шар и шар–борт; трение вдоль борта при ударе */
-const E_BALL = 0.95;
-const E_RAIL = 0.78;
+const E_BALL = 0.93;
+const E_RAIL = 0.7;
 const RAIL_SLIP = 0.94;
+/**
+ * Шар о шар — жёсткая пружина на время касания CONTACT_S (несколько подшагов): толчок расходится по всей пирамиде сразу,
+ * как в настоящем бильярде, и сильный разбой разводит шары по столу. Одиночный удар — тот же обмен скоростью вдоль линии
+ * центров с упругостью E_BALL: сжатие жёсткостью K_PRESS, отдача — K_RELEASE = E²·K_PRESS.
+ */
+const CONTACT_S = 0.0015;
+const SUB = 8;
+const SUB_DT = SIM_DT / SUB;
+const CONTACT_W = Math.PI / CONTACT_S;
+const K_PRESS = (CONTACT_W * CONTACT_W) / 2;
+const K_RELEASE = K_PRESS * E_BALL * E_BALL;
 /** Скорость битка по силе удара 0…1, м/с */
 export const BL_VMIN = 0.25;
 export const BL_VMAX = 5;
@@ -191,12 +219,18 @@ export function simulate(balls: BlBall[], vx: number, vz: number, ev?: BlSimEven
   cue.vx = vx;
   cue.vz = vz;
   const n = balls.length;
-  const R2 = 4 * BL_R * BL_R;
+  const D = 2 * BL_R;
+  const D2 = D * D;
+  // пары, которые могут коснуться за шаг (i, j подряд), и номер подшага, на котором пара последний раз касалась
+  const cand: number[] = [];
+  const touched = new Int32Array(n * n).fill(-2);
+  let sub = 0;
   let step = 0;
   while (step < SIM_MAX_STEPS) {
     step++;
     let moving = false;
-    // качение: торможение и сдвиг
+    let vmax = 0;
+    // качение: торможение
     for (let i = 0; i < n; i++) {
       const b = balls[i];
       if (!b.on || (b.vx === 0 && b.vz === 0)) continue;
@@ -208,33 +242,61 @@ export function simulate(balls: BlBall[], vx: number, vz: number, ev?: BlSimEven
       }
       const f = ns / s;
       b.vx *= f; b.vz *= f;
-      b.x += b.vx * SIM_DT;
-      b.z += b.vz * SIM_DT;
+      if (ns > vmax) vmax = ns;
       moving = true;
     }
     if (!moving) break;
-    // шар о шар: раздвинуть и обменяться скоростью вдоль линии центров
+    // кто может коснуться за этот шаг: оба навстречу на полной скорости
+    cand.length = 0;
+    const reach = D + 2 * vmax * SIM_DT;
+    const reach2 = reach * reach;
     for (let i = 0; i < n; i++) {
       const a = balls[i];
       if (!a.on) continue;
       for (let j = i + 1; j < n; j++) {
         const b = balls[j];
-        if (!b.on) continue;
+        if (!b.on || (a.vx === 0 && a.vz === 0 && b.vx === 0 && b.vz === 0)) continue;
         const dx = b.x - a.x, dz = b.z - a.z;
-        const d2 = dx * dx + dz * dz;
-        if (d2 >= R2 || d2 === 0) continue;
-        const d = Math.sqrt(d2);
-        const nx = dx / d, nz = dz / d;
-        const push = (2 * BL_R - d) * 0.5;
-        a.x -= nx * push; a.z -= nz * push;
-        b.x += nx * push; b.z += nz * push;
-        const rv = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
-        if (rv <= 0) continue;
-        const k = rv * (1 + E_BALL) * 0.5;
-        a.vx -= k * nx; a.vz -= k * nz;
-        b.vx += k * nx; b.vz += k * nz;
-        if (i === 0 && res.firstHit < 0) res.firstHit = j;
-        ev?.hit?.(step, i, j, rv);
+        if (dx * dx + dz * dz < reach2) cand.push(i, j);
+      }
+    }
+    if (cand.length === 0) {
+      for (let i = 0; i < n; i++) {
+        const b = balls[i];
+        if (!b.on) continue;
+        b.x += b.vx * SIM_DT;
+        b.z += b.vz * SIM_DT;
+      }
+      sub += SUB;
+    } else {
+      // касание — подшагами: пружина вдоль линии центров, сдвиг понемногу
+      for (let s = 0; s < SUB; s++, sub++) {
+        for (let c = 0; c < cand.length; c += 2) {
+          const i = cand[c], j = cand[c + 1];
+          const a = balls[i], b = balls[j];
+          const dx = b.x - a.x, dz = b.z - a.z;
+          const d2 = dx * dx + dz * dz;
+          if (d2 >= D2 || d2 === 0) continue;
+          const d = Math.sqrt(d2);
+          const nx = dx / d, nz = dz / d;
+          const rv = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
+          const pair = i * n + j;
+          if (touched[pair] !== sub - 1 && rv > 0) {
+            // новое касание: для звука и правил
+            if (i === 0 && res.firstHit < 0) res.firstHit = j;
+            ev?.hit?.(step, i, j, rv);
+          }
+          touched[pair] = sub;
+          const k = (rv > 0 ? K_PRESS : K_RELEASE) * (D - d) * SUB_DT;
+          a.vx -= k * nx; a.vz -= k * nz;
+          b.vx += k * nx; b.vz += k * nz;
+        }
+        for (let i = 0; i < n; i++) {
+          const b = balls[i];
+          if (!b.on) continue;
+          b.x += b.vx * SUB_DT;
+          b.z += b.vz * SUB_DT;
+        }
       }
     }
     // лузы и борта
@@ -279,9 +341,38 @@ export function simulate(balls: BlBall[], vx: number, vz: number, ev?: BlSimEven
     if (frame && step % SIM_FRAME_STEPS === 0) frame(step);
   }
   for (const b of balls) { b.vx = 0; b.vz = 0; }
+  relax(balls);
   res.steps = step;
   if (frame && step % SIM_FRAME_STEPS !== 0) frame(step);
   return res;
+}
+
+/** Остановились на касании и чуть вдавлены — раздвинуть, не выпуская за борта (доли миллиметра). */
+function relax(balls: BlBall[]): void {
+  const D = 2 * BL_R;
+  const lx = BL_HX - BL_R, lz = BL_HZ - BL_R;
+  const keep = (v: number, old: number, lim: number) => (v > lim && old <= lim ? lim : v < -lim && old >= -lim ? -lim : v);
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i];
+      if (!a.on) continue;
+      for (let j = i + 1; j < balls.length; j++) {
+        const b = balls[j];
+        if (!b.on) continue;
+        const dx = b.x - a.x, dz = b.z - a.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 >= D * D || d2 === 0) continue;
+        const d = Math.sqrt(d2);
+        const push = (D - d) * 0.5 + 1e-6;
+        const nx = dx / d, nz = dz / d;
+        a.x = keep(a.x - nx * push, a.x, lx); a.z = keep(a.z - nz * push, a.z, lz);
+        b.x = keep(b.x + nx * push, b.x, lx); b.z = keep(b.z + nz * push, b.z, lz);
+        moved = true;
+      }
+    }
+    if (!moved) return;
+  }
 }
 
 function nearestPocket(x: number, z: number): number {

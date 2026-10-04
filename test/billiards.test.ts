@@ -55,6 +55,40 @@ test('balls stop, stay inside the cushions and never overlap after a full-power 
   }
 });
 
+/** После удара по пирамиде: разброс оставшихся шаров (ср. кв., м), сколько ушло дальше 0,3 м (или в лузу), сколько докатилось
+ *  до половины стола с битком (z < 0). */
+function opened(start: BlBall[], end: BlBall[]): { spread: number; moved: number; far: number } {
+  const left = end.slice(1).filter((b) => b.on);
+  const cx = left.reduce((s, b) => s + b.x, 0) / left.length;
+  const cz = left.reduce((s, b) => s + b.z, 0) / left.length;
+  const spread = Math.sqrt(left.reduce((s, b) => s + (b.x - cx) ** 2 + (b.z - cz) ** 2, 0) / left.length);
+  let moved = 0, far = 0;
+  for (let i = 1; i < 16; i++) {
+    if (!end[i].on || Math.hypot(end[i].x - start[i].x, end[i].z - start[i].z) > 0.3) moved++;
+    if (end[i].on && end[i].z < 0) far++;
+  }
+  return { spread, moved, far };
+}
+
+test('a full-power break spreads the rack over the whole table; a soft shot only nudges it', () => {
+  for (const ang of [0, 0.01, -0.01, 0.02, -0.02]) {
+    const balls = rack();
+    const v = cueVelocity(ang, 1);
+    const r = simulate(balls, v.vx, v.vz);
+    assert.equal(r.firstHit, 1);
+    const o = opened(rack(), balls);
+    assert.ok(o.spread > 0.5, `разбой ${ang}: разброс ${o.spread.toFixed(2)} м`);
+    assert.ok(o.moved >= 10, `разбой ${ang}: разошлись только ${o.moved} шаров из 15`);
+    assert.ok(o.far >= 4, `разбой ${ang}: до половины битка докатились ${o.far}`);
+  }
+  // слабый удар по пирамиде — послушный: толкнул, но не разбросал
+  const soft = rack();
+  const v = cueVelocity(0, 0.4);
+  assert.equal(simulate(soft, v.vx, v.vz).firstHit, 1);
+  const o = opened(rack(), soft);
+  assert.ok(o.moved <= 3 && o.spread < 0.25, `слабый удар разбросал ${o.moved} шаров, разброс ${o.spread.toFixed(2)} м`);
+});
+
 test('pockets: straight into a corner and into a middle pocket; cue ball alone into a pocket is a scratch', () => {
   // шар 1 у угловой лузы (−HX, −HZ), биток за ним на той же линии
   const corner = two(-0.3, -0.6, -0.43, -0.86);

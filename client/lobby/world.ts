@@ -1343,6 +1343,11 @@ export class LobbyWorld {
   /** Сила дождя сейчас (с учётом шторма): для звука и рыбаков */
   get effectiveRain(): number { return this.weather.rain; }
 
+  /** Дописать крыши в карту укрытий от дождя (навес бильярда появляется только с флагом сервера). */
+  addCover(boxes: readonly MapBox[]): void {
+    this.cover.add(boxes);
+  }
+
   /** Под крышей ли точка (навес, павильон): дождь там глуше, зато стучит по крыше над головой. */
   shelter(x: number, y: number, z: number): number {
     return this.cover.top(x, z) > y + 1.2 ? 1 : 0;

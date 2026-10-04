@@ -297,6 +297,12 @@ export class BilliardsClient {
     this.power = 0;
     this.dragX = e.clientX;
     this.dragY = e.clientY;
+    // замах тянут вниз — через панель стола: без захвата холст перестаёт слышать мышь у её края и сила не растёт
+    try {
+      this.d.canvas.setPointerCapture(e.pointerId);
+    } catch {
+      // указатель уже отпущен — замах закончится на pointerup как обычно
+    }
   }
 
   private onUp(e: PointerEvent): void {
