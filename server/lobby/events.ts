@@ -14,7 +14,7 @@ export interface LargeEvent { readonly active: boolean; start(tick: number, id: 
 export const BIG_GAP_MS = 30 * 60_000;
 export const STORM_COOLDOWN_MS = 2 * 60 * 60_000;
 export const PIRATE_COOLDOWN_MS = 3 * 60 * 60_000;
-const MAX_DURATION_MS = { storm: 60_000 + 180_000 + 30_000, pirates: 40_000 + 240_000 + 15_000 };
+const MAX_DURATION_MS = { storm: 60_000 + 180_000 + 30_000, pirates: 30_000 + 240_000 + 14_000 };
 export function eveningMoscow(ms: number): boolean { const hour = new Date(ms + 3 * 3600_000).getUTCHours(); return hour >= 18; }
 export function eventFlag(raw: string | undefined, dev: boolean): boolean { return raw === '1' || raw === undefined && dev; }
 export interface EventDirectorOptions {
@@ -61,6 +61,12 @@ export class LobbyEvents {
     this.nextCheck = tick + 60 * TICK_RATE;
     const order: BigEventKind[] = this.random() < .5 ? ['storm', 'pirates'] : ['pirates', 'storm'];
     for (const kind of order) if (this.o[kind] && this.canStart(kind) && this.random() < .12) { this.begin(kind, tick); return; }
+  }
+  /** Команда разработчика: начать событие сразу, если сейчас не идёт другое (правила вечера, паузы и дождя не проверяются) */
+  force(kind: BigEventKind, tick: number): boolean {
+    if (this.busy || !this.o[kind]) return false;
+    this.begin(kind, tick);
+    return true;
   }
   private begin(kind: BigEventKind, tick: number): void {
     const now = this.now();

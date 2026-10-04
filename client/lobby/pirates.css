@@ -1,0 +1,228 @@
+/* «Набег пиратов»: интерфейс защитника (client/lobby/piratehud.ts) — плашка, полоски корабля и добычи, прицел, стрелки, итоги */
+.pr-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  font-family: Rubik, system-ui, sans-serif;
+}
+.pr-hud[hidden] { display: none; }
+
+/* большая плашка: «Пираты на горизонте!» и «Набег!» */
+.pr-banner {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  transform: translate(-50%, -10px) scale(0.96);
+  min-width: 300px;
+  max-width: min(640px, calc(100vw - 24px));
+  padding: 12px 26px 13px;
+  border-radius: 22px;
+  text-align: center;
+  color: var(--cream);
+  background: linear-gradient(180deg, rgba(122, 36, 30, 0.94), rgba(70, 22, 24, 0.94));
+  border: 2px solid rgba(255, 211, 90, 0.75);
+  box-shadow: 0 10px 28px rgba(12, 6, 10, 0.5);
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.pr-banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.pr-banner-t {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold);
+  -webkit-text-stroke: 3px rgba(34, 12, 12, 0.55);
+  paint-order: stroke fill;
+}
+.pr-banner-s { margin-top: 3px; font-size: 18px; font-weight: 700; }
+.pr-banner-h { margin-top: 6px; font-size: 14px; font-weight: 500; color: var(--cream-2); line-height: 1.35; }
+.pr-banner-h b { color: var(--gold); font-weight: 700; }
+
+/* панель набега: корабль, добыча, волна */
+.pr-panel {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  width: min(430px, calc(100vw - 24px));
+  padding: 9px 14px 11px;
+  border-radius: 18px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.pr-panel.show { opacity: 1; transform: translate(-50%, 0); }
+.pr-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 7px; }
+.pr-title { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; }
+.pr-wave { font-size: 14px; font-weight: 700; color: var(--gold); }
+.pr-time { min-width: 38px; text-align: right; font-size: 14px; font-weight: 700; color: var(--cream-dim); }
+.pr-row { display: flex; align-items: center; gap: 9px; min-height: 22px; }
+.pr-row + .pr-row { margin-top: 5px; }
+.pr-lab { width: 62px; font-size: 13px; font-weight: 700; color: var(--cream-dim); }
+.pr-bar { position: relative; flex: 1; height: 14px; border-radius: 8px; background: rgba(0, 0, 0, 0.38); overflow: hidden; border: 1px solid rgba(255, 236, 205, 0.18); }
+.pr-fill { position: absolute; inset: 0 auto 0 0; width: 100%; border-radius: 8px; background: linear-gradient(180deg, #ffb35a, #ff7a2a); transition: width 0.35s ease, background 0.35s ease; }
+.pr-fill.low { background: linear-gradient(180deg, #ff6b5a, #d6342a); }
+.pr-val { min-width: 46px; text-align: right; font-size: 15px; font-weight: 800; }
+.pr-have { min-width: 20px; font-size: 17px; font-weight: 900; color: var(--gold); text-align: center; }
+.pr-sub { font-size: 12px; font-weight: 600; color: var(--cream-dim); }
+.pr-slots { display: flex; gap: 4px; margin-left: auto; }
+.pr-slots i {
+  display: block;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 107, 90, 0.75);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.pr-slots i.on { background: #e0283a; border-color: #ffd0cc; transform: scale(1.08); }
+.pr-slots i.warn { animation: pr-warn 0.6s ease-in-out infinite; }
+@keyframes pr-warn { 50% { background: rgba(255, 107, 90, 0.55); } }
+.pr-flash { animation: pr-flash 0.5s ease; }
+@keyframes pr-flash { 0% { transform: translate(-50%, 0) scale(1.06); } 100% { transform: translate(-50%, 0) scale(1); } }
+
+/* прицел: маркер — кружок цвета краски, пушка — большой прицел с таймом перезарядки */
+.pr-ret { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; transition: opacity 0.15s ease; }
+.pr-ret.show { opacity: 1; }
+.pr-ret-ring {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--pr-c, #fff);
+  box-shadow: 0 0 0 2px rgba(20, 12, 16, 0.55), inset 0 0 0 1px rgba(20, 12, 16, 0.35);
+  transition: transform 0.12s ease, width 0.15s ease, height 0.15s ease, left 0.15s ease, top 0.15s ease, border-color 0.15s ease;
+}
+.pr-ret-dot { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--pr-c, #fff); box-shadow: 0 0 0 2px rgba(20, 12, 16, 0.55); }
+.pr-ret.kick .pr-ret-ring { transform: scale(0.78); }
+.pr-ret.cannon .pr-ret-ring { left: -34px; top: -34px; width: 68px; height: 68px; border-style: dashed; border-width: 3px; }
+.pr-ret.bad .pr-ret-ring { border-color: #ff5a4f; }
+.pr-ret.wait .pr-ret-ring { border-color: rgba(255, 243, 222, 0.6); }
+.pr-ret.good .pr-ret-ring { border-color: #7bd88f; }
+.pr-ret-txt {
+  position: absolute;
+  left: 50%;
+  top: 44px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 3px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cream);
+  background: rgba(34, 24, 29, 0.78);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pr-ret.cannon .pr-ret-txt { opacity: 1; }
+.pr-ret.cannon.bad .pr-ret-txt { color: #ffb3ac; }
+.pr-hit { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; }
+.pr-hit::before, .pr-hit::after { content: ''; position: absolute; left: -17px; top: -2px; width: 34px; height: 4px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(20, 12, 16, 0.5); }
+.pr-hit::before { transform: rotate(45deg); }
+.pr-hit::after { transform: rotate(-45deg); }
+.pr-hit.on { animation: pr-hit 0.32s ease-out; }
+.pr-hit.ko::before, .pr-hit.ko::after { background: var(--gold); width: 46px; left: -23px; height: 6px; top: -3px; }
+@keyframes pr-hit { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(1.4); } }
+
+/* стрелки к угрозам у края экрана */
+.pr-arrow { position: absolute; left: 0; top: 0; width: 38px; height: 38px; margin: -19px 0 0 -19px; opacity: 0; transition: opacity 0.12s ease; will-change: transform; }
+.pr-arrow.show { opacity: 0.95; }
+.pr-arrow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--pr-a, #ff6b5a);
+  clip-path: polygon(100% 50%, 18% 4%, 38% 50%, 18% 96%);
+  filter: drop-shadow(0 0 3px rgba(20, 12, 16, 0.8));
+}
+.pr-arrow i {
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  min-width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: rgba(20, 12, 16, 0.82);
+  color: #fff;
+  font: 800 11px/18px Rubik, system-ui, sans-serif;
+  text-align: center;
+  font-style: normal;
+}
+.pr-arrow.thief { --pr-a: #ff4d3d; }
+.pr-arrow.pirate { --pr-a: #ffa63a; }
+.pr-arrow.boat { --pr-a: #4fc1ff; }
+.pr-arrow.loot { --pr-a: #ffe066; }
+
+/* телефон: кнопка огня (держать) */
+.pr-fire {
+  position: absolute;
+  right: 20px;
+  bottom: 190px;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none;
+  font: 800 14px Rubik, system-ui, sans-serif;
+  color: #fff3de;
+  background: radial-gradient(circle at 35% 30%, #ff8d5a, #c9362a);
+  border: 3px solid #ffd35a;
+  box-shadow: 0 6px 16px rgba(12, 6, 10, 0.5);
+}
+.pr-fire.show { display: flex; }
+.pr-fire.down { transform: scale(0.94); filter: brightness(1.15); }
+
+/* итоги */
+.pr-result {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translate(-50%, 8px);
+  width: min(460px, calc(100vw - 24px));
+  padding: 16px 18px 14px;
+  border-radius: 22px;
+  background: var(--panel-strong);
+  border: 2px solid rgba(255, 211, 90, 0.6);
+  box-shadow: 0 14px 34px rgba(12, 6, 10, 0.55);
+  color: var(--cream);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pr-result.show { opacity: 1; transform: translate(-50%, 0); }
+.pr-result-t { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gold); }
+.pr-result.lose .pr-result-t { color: #ff9a8f; }
+.pr-result-s { margin: 3px 0 10px; font-size: 14px; color: var(--cream-dim); }
+.pr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pr-table th { padding: 2px 5px; font-weight: 700; color: var(--cream-dim); text-align: right; white-space: nowrap; }
+.pr-table th:first-child, .pr-table td:first-child { text-align: left; }
+.pr-table td { padding: 5px 5px; text-align: right; border-top: 1px solid var(--line); font-weight: 600; }
+.pr-table td:first-child { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-table tr.me td { color: var(--gold); }
+.pr-table td b { font-size: 15px; font-weight: 900; }
+.pr-result-n { margin-top: 9px; font-size: 13px; color: var(--cream-dim); }
+.pr-result-me { margin-top: 8px; font-size: 20px; font-weight: 900; color: var(--gold); }
+
+@media (max-width: 640px), (pointer: coarse) {
+  .pr-banner { top: 56px; padding: 9px 16px 10px; min-width: 0; }
+  .pr-banner-t { font-size: 20px; }
+  .pr-banner-s { font-size: 15px; }
+  .pr-banner-h { font-size: 12px; }
+  .pr-panel { top: 52px; padding: 7px 10px 9px; }
+  .pr-title { font-size: 13px; }
+  .pr-lab { width: 54px; font-size: 12px; }
+  .pr-slots i { width: 14px; height: 14px; }
+  .pr-result { top: 16%; }
+}
