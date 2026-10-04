@@ -1,15 +1,19 @@
 // Стол рулетки рыбака в 3D (fisheco, флаг ROULETTE): деревянный стол с зелёным сукном (поля «красное ×2», «чёрное ×2»,
-// «зеро ×36» и фишки ставок на них), европейское колесо на 37 лунок с латунной крестовиной и шариком, табличка с
-// приёмом ставок и итогом. Вращение у всех одинаковое: сервер шлёт выпавшее число и сколько осталось крутить, клиент
+// «зеро ×36» и фишки ставок на них), европейское колесо на 37 лунок с латунной крестовиной и шариком, табло позади стола.
+// Вращение у всех одинаковое: сервер шлёт выпавшее число и сколько осталось крутить, клиент
 // считает кадр по времени с начала вращения (client/lobby/roulettespin.ts) с поправкой на сеть — колесо раскручивается,
 // шарик бежит навстречу, замедляется, сходит с бортика и прыгает по лункам; в конце лежит ровно в лунке этого числа.
-// Остановилось — выигрышная лунка и поле цвета светятся, на табличке число. Место — ROULETTE_SPOT (shared/fishplaces.ts).
+// Остановилось — выигрышная лунка и поле цвета светятся, на табло число. Табло позади стола (rouletteboard.ts): что со столом
+// и последние 10 ставок с итогом; новые строки и тост о розыгрыше — только когда шарик лёг в лунку у меня на экране.
+// Место — ROULETTE_SPOT (shared/fishplaces.ts).
 import * as THREE from 'three';
 import { ROULETTE_SPOT } from '../../shared/fishplaces.ts';
+import type { ServerMsg } from '../../shared/messages.ts';
 import {
-  ROULETTE_COLOR_NAMES, ROULETTE_PAYOUT, ROULETTE_SPIN_MS, ROULETTE_WHEEL, rouletteColor, type RouletteColor, type RouletteView,
+  ROULETTE_COLOR_NAMES, ROULETTE_PAYOUT, ROULETTE_SPIN_MS, ROULETTE_WHEEL, rouletteColor, type RouletteColor, type RouletteLogRow, type RouletteView,
 } from '../../shared/roulette.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { RouletteBoard, type BoardHead } from './rouletteboard.ts';
 import { POCKET, R_DISK, R_POCKET, R_RIM, TAU, pocketAngle, spinEndWheel, spinFrame, spinStartAt } from './roulettespin.ts';
 
 /** Колесо: центр на столе (вдоль длинной стороны) */
@@ -127,7 +131,15 @@ export class Roulette3D {
   /** Подсветка выигрышной лунки (на колесе) и выигрышного поля (на сукне) */
   private readonly pocketGlow: THREE.Mesh;
   private readonly fieldGlow: THREE.Mesh;
-  private readonly sign: { ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture };
+  /** Табло позади стола: состояние стола и последние ставки */
+  private readonly board = new RouletteBoard();
+  /** Что на табло сейчас: последние ставки (свежие сверху) и мой номер игрока (своя строка — золотом) */
+  private rows: readonly RouletteLogRow[] = [];
+  private me = 0;
+  /** Пришедшее письмо о розыгрыше ждёт, пока шарик не ляжет в лунку: табло и тост не выдают результат раньше колеса */
+  private pendingLog: Extract<ServerMsg, { t: 'rouletteLog' }> | null = null;
+  /** Табло обновилось: новые строки и сколько верхних из них свежие (розыгрыш только что закончился у меня на экране) */
+  onLogShown: (rows: readonly RouletteLogRow[], fresh: number) => void = () => {};
   private view: RouletteView | null = null;
   /** Идущее вращение: число, раунд, локальное время начала, угол колеса в начале */
   private spin: { n: number; round: number; start: number; w0: number } | null = null;
@@ -217,27 +229,10 @@ export class Roulette3D {
     this.fieldGlow.visible = false;
     g.add(this.fieldGlow);
     g.add(this.chips);
-    // табличка: приём ставок, кто на что поставил, итог
-    const canvas = document.createElement('canvas');
-    canvas.width = 768;
-    canvas.height = 384;
-    const ctx = canvas.getContext('2d')!;
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
-    this.sign = { ctx, tex };
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.65), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 }));
-    board.position.set(0.45, 1.95, -TABLE_D / 2 - 0.08);
-    g.add(board);
-    const back = new THREE.Mesh(mergeColored([
-      place(paint(new THREE.BoxGeometry(1.4, 0.75, 0.04), 0x4a3221), 0.45, 1.95, -TABLE_D / 2 - 0.105),
-      place(paint(new THREE.BoxGeometry(0.06, 1.6, 0.06), 0x4a3221), -0.17, 0.8, -TABLE_D / 2 - 0.1),
-      place(paint(new THREE.BoxGeometry(0.06, 1.6, 0.06), 0x4a3221), 1.07, 0.8, -TABLE_D / 2 - 0.1),
-    ]), wood);
-    back.castShadow = true;
-    g.add(back);
+    // табло позади стола (оно в осях стола — ездит вместе со столом и баркасом)
+    g.add(this.board.group);
     this.placeBall(0, 1);
-    this.drawSign(performance.now());
+    this.drawBoard(performance.now());
     scene.add(g);
   }
 
@@ -247,7 +242,29 @@ export class Roulette3D {
     this.spunRound = 0;
     this.spin = null;
     this.view = null;
+    this.rows = [];
+    this.pendingLog = null;
+    this.onLogShown([], 0);
     this.setShown(undefined);
+  }
+
+  /**
+   * Письмо сервера «табло на баркасе» (rouletteLog): сразу при выходе на палубу — как есть; после розыгрыша (fresh) — когда
+   * шарик ляжет в лунку у меня на экране. me — мой номер игрока, чтобы подсветить свои строки.
+   */
+  onLog(m: Extract<ServerMsg, { t: 'rouletteLog' }>, me: number): void {
+    this.me = me;
+    this.pendingLog = m;
+    this.flushLog();
+  }
+
+  private flushLog(): void {
+    const m = this.pendingLog;
+    if (!m || (m.fresh && this.spin)) return;
+    this.pendingLog = null;
+    this.rows = m.rows;
+    this.signKey = '';
+    this.onLogShown(m.rows, m.fresh ?? 0);
   }
 
   /** Идёт ли вращение у этого игрока (шарик ещё не лёг в лунку) — итог показываем после него */
@@ -303,6 +320,7 @@ export class Roulette3D {
     }
     this.wheel.rotation.y = this.wheelAngle;
     this.placeBall(bounce, scale);
+    if (this.pendingLog && !this.spin) this.flushLog();
     // подсветка выигрыша мигает спокойно
     if (this.pocketGlow.visible) {
       const pulse = 0.5 + 0.5 * Math.sin(now / 260);
@@ -312,7 +330,7 @@ export class Roulette3D {
     const key = `${this.view?.phase}|${this.view?.round}|${this.phaseEnd ? Math.ceil((this.phaseEnd - now) / 1000) : 0}|${this.view?.bets.length}|${this.spin ? 1 : 0}|${this.shown}`;
     if (key !== this.signKey) {
       this.signKey = key;
-      this.drawSign(now);
+      this.drawBoard(now);
     }
   }
 
@@ -373,67 +391,16 @@ export class Roulette3D {
     }
   }
 
-  private drawSign(now: number): void {
-    const { ctx: g, tex } = this.sign;
+  /** Табло: шапка по состоянию стола и последние ставки */
+  private drawBoard(now: number): void {
     const v = this.view;
-    g.fillStyle = '#26332b';
-    g.fillRect(0, 0, 768, 384);
-    g.strokeStyle = '#d8b86a';
-    g.lineWidth = 8;
-    g.strokeRect(10, 10, 748, 364);
-    g.fillStyle = '#f2e6c4';
-    g.textAlign = 'center';
-    g.textBaseline = 'alphabetic';
-    g.font = 'bold 46px Rubik, system-ui, sans-serif';
-    g.fillText('РУЛЕТКА РЫБАКА', 384, 72);
     const bets = v?.bets.length ?? 0;
-    if (this.spin) {
-      g.font = 'bold 54px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#e7c77a';
-      g.fillText('Колесо крутится…', 384, 200);
-      g.font = '32px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#f2e6c4';
-      g.fillText(`Ставки сделаны · ${bets}`, 384, 262);
-    } else if (v?.phase === 'open') {
-      const secs = Math.max(0, Math.ceil((this.phaseEnd - now) / 1000));
-      g.font = 'bold 54px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#e7c77a';
-      g.fillText(`Приём ставок · ${secs} с`, 384, 190);
-      g.font = '32px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#f2e6c4';
-      const list = v.bets.slice(0, 2).map((b) => `${b.nick}: ${ROULETTE_COLOR_NAMES[b.c]}`).join(' · ') + (bets > 2 ? ` · ещё ${bets - 2}` : '');
-      g.fillText(list.length > 36 ? `${list.slice(0, 35)}…` : list, 384, 250);
-    } else if (this.shown !== undefined) {
-      const col = rouletteColor(this.shown);
-      g.fillStyle = col === 'black' ? '#3a3a42' : COLORS[col];
-      g.beginPath(); g.arc(210, 205, 76, 0, TAU); g.fill();
-      g.strokeStyle = '#f2e6c4';
-      g.lineWidth = 6;
-      g.stroke();
-      g.fillStyle = '#ffffff';
-      g.font = 'bold 84px Rubik, system-ui, sans-serif';
-      g.textBaseline = 'middle';
-      g.fillText(String(this.shown), 210, 210);
-      g.textBaseline = 'alphabetic';
-      g.textAlign = 'left';
-      g.font = 'bold 52px Rubik, system-ui, sans-serif';
-      g.fillStyle = col === 'black' ? '#f2e6c4' : col === 'red' ? '#f08a7e' : '#8fe0a4';
-      g.fillText(ROULETTE_COLOR_NAMES[col].toUpperCase(), 320, 205);
-      g.font = '30px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#f2e6c4';
-      g.fillText('E — новая ставка', 320, 255);
-      g.textAlign = 'center';
-    } else {
-      g.font = 'bold 44px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#e7c77a';
-      g.fillText('E — поставить весь улов', 384, 190);
-      g.font = '32px Rubik, system-ui, sans-serif';
-      g.fillStyle = '#f2e6c4';
-      g.fillText('Красное ×2 · Чёрное ×2 · Зеро ×36', 384, 252);
-    }
-    g.font = '24px Rubik, system-ui, sans-serif';
-    g.fillStyle = '#b9c4ad';
-    g.fillText('Проиграл — улов пропадает. Число выбирает сервер.', 384, 334);
-    tex.needsUpdate = true;
+    let head: BoardHead = { kind: 'idle' };
+    if (this.spin) head = { kind: 'spin', bets };
+    else if (v?.phase === 'open') {
+      const names = v.bets.slice(0, 2).map((b) => `${b.nick}: ${ROULETTE_COLOR_NAMES[b.c]}`).join(' · ') + (bets > 2 ? ` · ещё ${bets - 2}` : '');
+      head = { kind: 'open', secs: Math.max(0, Math.ceil((this.phaseEnd - now) / 1000)), names };
+    } else if (this.shown !== undefined) head = { kind: 'result', n: this.shown };
+    this.board.draw({ head, rows: this.rows, me: this.me });
   }
 }

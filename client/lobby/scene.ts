@@ -90,6 +90,7 @@ import { FishDrink } from './fishdrink.ts';
 import { FishHolds } from './fishhold.ts';
 import { FishJumps } from './fishjumps.ts';
 import { setFishSnapRenderer } from './fishsnap.ts';
+import { rouletteDrawText } from '../../shared/roulette.ts';
 import { Roulette3D } from './roulette3d.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { RAT_CENTER, RATS } from '../../shared/ratrace.ts';
@@ -578,6 +579,12 @@ export class LobbyScene implements Scene {
     this.fish2.onNpcOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.fish2.onNpcClose = () => d.wantPointer();
     this.fish2.roulette.isSpinning = () => this.roulette3d.spinning;
+    // табло рулетки на баркасе обновилось (шарик лёг в лунку): список в окне ставки и один тост о розыгрыше
+    this.roulette3d.onLogShown = (rows, fresh) => {
+      this.fish2.roulette.setLog(rows);
+      const text = fresh ? rouletteDrawText(rows.slice(0, fresh), d.ui.me().pid) : null;
+      if (text) d.ui.toasts.show(text, 5500, 'roulette-draw');
+    };
     this.fish2.onBeer = () => this.fishDrink.start();
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
@@ -1073,6 +1080,9 @@ export class LobbyScene implements Scene {
       case 'rouletteResult':
         this.fish2.roulette.onResult(msg);
         this.rlResult = msg;
+        break;
+      case 'rouletteLog':
+        this.roulette3d.onLog(msg, this.d.ui.me().pid);
         break;
       case 'fishEvent':
         this.fish2.onEvent(msg.on, msg.until);
