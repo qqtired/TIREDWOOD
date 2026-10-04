@@ -18,7 +18,7 @@ import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods, type FishCastMods, typ
 import type { FishZone } from '../shared/fishplaces.ts';
 import { BARKAS_LEVEL } from '../shared/fishshop.ts';
 import { makeRng } from '../shared/math.ts';
-import { EXPERT, TYPICAL, fishIncome, meanChest, playReel, reelStats, type Skill } from './fishbot.ts';
+import { EXPERT, TYPICAL, fishIncome, meanBands, meanChest, playReel, reelStats, type Skill } from './fishbot.ts';
 
 const sp = (id: string): number => FISH.findIndex((f) => f.id === id);
 const rule = (s: number) => RULE[s]!;
@@ -252,9 +252,13 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
   // их почти всегда вытаскивает опытный, поэтому его отрыв вырос с ×1,56 до ×1,69 (было «до ×1,6»)
   assert.ok(rain.coins > clear.coins * 1.15 && rain.coins < clear.coins * 1.6, `дождь: ${rain.coins}`);
   assert.ok(pro.coins > clear.coins && pro.coins < clear.coins * 1.75, `опытный: ${pro.coins}`);
-  // сундуки — сверху: 3 % поклёвок по ~57 🪙
-  assert.ok(Math.abs(meanChest() - 57.4) < 0.1);
-  assert.ok(clear.chest > 3 && clear.chest < 6, `сундуки: ${clear.chest}`);
+  // сундуки — сверху: 3 % поклёвок. 04.10: суммы ×1,25 (в среднем 71,9 🪙 вместо 57,4) и 3 % сундуков — «Сокровища Посейдона» по 3000 🪙
+  assert.ok(Math.abs(meanBands() / 57.4 - 1.25) < 0.005, `средний сундук по полосам: ${meanBands()}`);
+  assert.ok(Math.abs(meanChest() - (0.97 * meanBands() + 0.03 * 3000)) < 1e-9);
+  const plain = (clear.chest * 0.97 * meanBands()) / meanChest();
+  t.diagnostic(`сундуки: ${plain.toFixed(2)} 🪙/мин по полосам и ${(clear.chest - plain).toFixed(2)} 🪙/мин от клада Посейдона`);
+  assert.ok(plain > 4 && plain < 7, `сундуки по полосам: ${plain}`);
+  assert.ok(clear.chest > 9 && clear.chest < 15, `сундуки вместе с кладом: ${clear.chest}`);
 });
 
 test('цены: обычные от исходной целой цены +75 %, остальные откалиброваны; дождевые ×1,5, баркас ×1,25, хлам даром, сундук без множителей', () => {
@@ -288,7 +292,7 @@ test('цены: обычные от исходной целой цены +75 %, 
   assert.equal(fishPrice2(sp('goldfish'), 300), 0, 'золотая рыбка в рыбалке 2.0 не продаётся');
 });
 
-test('сундук: 3 % поклёвок, 25–200 🪙, крупное реже, 200 — джекпот; хлам 4,5 %', () => {
+test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к прежним), крупное реже, 250 — джекпот, клад Посейдона — 3000; хлам 4,5 %', () => {
   const rng = makeRng(11);
   const N = 400_000;
   let chests = 0;
@@ -297,7 +301,7 @@ test('сундук: 3 % поклёвок, 25–200 🪙, крупное реже
     const c = rollCatch2(false, rng);
     if (c.sp === SP_CHEST) {
       chests++;
-      assert.ok(Number.isInteger(c.coins) && c.coins >= 25 && c.coins <= 200);
+      assert.ok(Number.isInteger(c.coins) && ((c.coins >= 31 && c.coins <= 250) || c.coins === 3000));
     } else {
       assert.equal(c.coins, 0);
       if (c.sp === SP_BOOT || c.sp === SP_BOTTLE) junk++;
@@ -305,7 +309,7 @@ test('сундук: 3 % поклёвок, 25–200 🪙, крупное реже
   }
   assert.ok(Math.abs(chests / N - CHEST_PER_10K / 10_000) < 0.002, `сундуков ${chests / N}`);
   assert.ok(Math.abs(junk / N - JUNK_PER_10K / 10_000) < 0.002, `хлама ${junk / N}`);
-  // полосы: 25–50 — часто, 51–100 — средне, 101–150 — редко, 151–199 — очень редко, 200 — крайне редко
+  // полосы: 31–63 — часто, 64–125 — средне, 126–188 — редко, 189–249 — очень редко, 250 — крайне редко
   const bands = CHEST_BANDS.map(() => 0);
   const M = 200_000;
   for (let i = 0; i < M; i++) {
@@ -317,8 +321,11 @@ test('сундук: 3 % поклёвок, 25–200 🪙, крупное реже
     assert.ok(Math.abs(bands[i] / M - w / total) < 0.005, `${lo}–${hi}: ${bands[i] / M}`);
     if (i > 0) assert.ok(bands[i] < bands[i - 1] / 2.5, 'каждая полоса заметно реже прошлой');
   });
-  assert.deepEqual(CHEST_BANDS.map(([lo, hi]) => [lo, hi]), [[25, 50], [51, 100], [101, 150], [151, 199], [200, 200]]);
-  assert.ok(bands[4] > 0 && bands[4] / M < 0.01, 'джекпот 200 бывает, но крайне редко');
+  assert.deepEqual(CHEST_BANDS.map(([lo, hi]) => [lo, hi]), [[31, 63], [64, 125], [126, 188], [189, 249], [250, 250]]);
+  // все суммы — прежние ×1,25 (с округлением), веса полос те же
+  const OLD = [[25, 50, 650], [51, 100, 250], [101, 150, 70], [151, 199, 25], [200, 200, 5]];
+  assert.deepEqual(CHEST_BANDS.map(([lo, hi, w]) => [lo, hi, w]), OLD.map(([lo, hi, w]) => [Math.round(lo * 1.25), Math.round(hi * 1.25), w]));
+  assert.ok(bands[4] > 0 && bands[4] / M < 0.01, 'джекпот 250 бывает, но крайне редко');
 });
 
 test('виды дождя: только в дождь и только у своего места; обычные, редкие и эпические клюют чаще обычных редких, легенды и мифик намеренно редки', () => {

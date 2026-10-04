@@ -657,7 +657,7 @@ export class App {
         return;
       }
       case 'toast':
-        this.toasts.show(m.text);
+        this.toasts.show(m.text, m.ms, m.key, m.sub, m.big);
         if (this.renamePending && this.pauseEl.classList.contains('profile-open')) {
           this.renamePending = false;
           this.profile.setNote(m.text);

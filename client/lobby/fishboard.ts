@@ -1,9 +1,10 @@
-// Рыбацкая доска на площади перед входом на пирс: четыре прежних рейтинга, деревянная рама
-// и отдельная скульптура мифической гренландской акулы на крыше. День считает сервер.
+// Рыбацкая доска на площади перед входом на пирс: четыре прежних рейтинга («Сегодня» и «За всё время» — по числу рыб и
+// по весу) и «Коллекция» (у кого сколько видов закрыто), деревянная рама и отдельная скульптура мифической гренландской
+// акулы на крыше. День и места считает сервер.
 import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import { FISH_BOARD } from '../../shared/fishplaces.ts';
-import { fmtKg, type FishTop, type FishTopRow } from '../../shared/fishrules.ts';
+import { COLLECTION_SIZE, fmtKg, type FishTop, type FishTopRow } from '../../shared/fishrules.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 
 /** Единые координаты с серверной коллизией. */
@@ -16,7 +17,13 @@ const BOTTOM = FISH_BOARD.panelY;
 const W = 1024;
 const H = Math.round((W * BH) / BW);
 const FONT = 'Rubik, system-ui, sans-serif';
-const PAD = 26;
+const PAD = 22;
+/** Три раздела подряд: ширина списка «Рыб», «Вес» и «Коллекция» и промежутки, px (вместе — вся ширина холста) */
+const COUNT_W = 160;
+const WEIGHT_W = 192;
+const COLUMN_GAP = 8;
+const SECTION_GAP = 22;
+const COLL_W = W - 2 * PAD - 2 * (COUNT_W + WEIGHT_W + COLUMN_GAP) - 2 * SECTION_GAP;
 const MEDALS = ['#f5c542', '#d3d8e2', '#d98c4f'];
 const PAINT = '#1f4a5e';
 const CREAM = '#f6ead2';
@@ -99,31 +106,42 @@ export class FishBoard3D {
     c.fillText('🎣 РЕКОРДЫ РЫБАКОВ', W / 2, 42);
     c.fillStyle = 'rgba(246, 234, 210, 0.35)';
     c.fillRect(PAD, 76, W - 2 * PAD, 3);
-    c.fillRect(W / 2 - 1.5, 92, 3, H - 92 - 16);
-    const half = (W - 2 * PAD) / 2;
-    this.half(c, PAD, half - 14, 'СЕГОДНЯ', top?.dn ?? [], top?.dg ?? [], myPid, 'Сегодня ещё никто — будь первым!');
-    this.half(c, PAD + half + 14, half - 14, 'ЗА ВСЁ ВРЕМЯ', top?.an ?? [], top?.ag ?? [], myPid, 'Пока пусто — закидывай удочку!');
+    // три раздела подряд: «Сегодня» и «За всё время» (рыб и вес) и «Коллекция» (сколько видов закрыто из всех)
+    let x = PAD;
+    const part = (w: number): number => { const at = x; x += w + SECTION_GAP; return at; };
+    const dayW = COUNT_W + WEIGHT_W + COLUMN_GAP;
+    const today = part(dayW);
+    const all = part(dayW);
+    const coll = part(COLL_W);
+    for (const sep of [today + dayW + SECTION_GAP / 2, all + dayW + SECTION_GAP / 2]) c.fillRect(sep - 1.5, 92, 3, H - 92 - 16);
+    this.section(c, today, 'СЕГОДНЯ', [['Рыб', COUNT_W, top?.dn ?? [], (v) => `${v}`], ['Вес', WEIGHT_W, top?.dg ?? [], fmtKg]], myPid, 'Сегодня ещё никто — будь первым!');
+    this.section(c, all, 'ЗА ВСЁ ВРЕМЯ', [['Рыб', COUNT_W, top?.an ?? [], (v) => `${v}`], ['Вес', WEIGHT_W, top?.ag ?? [], fmtKg]], myPid, 'Пока пусто — закидывай удочку!');
+    this.section(c, coll, 'КОЛЛЕКЦИЯ', [['закрыто видов', COLL_W, top?.cl ?? [], (v) => `${v}`, ` из ${COLLECTION_SIZE}`]], myPid, 'Закрой первый вид — лови!');
     this.tex.needsUpdate = true;
   }
 
-  private half(c: CanvasRenderingContext2D, x: number, w: number, title: string, byN: readonly FishTopRow[], byG: readonly FishTopRow[], myPid: number, empty: string): void {
+  /** Раздел доски: заголовок и один или два списка рядом; все пусты — одна подпись по центру. */
+  private section(c: CanvasRenderingContext2D, x: number, title: string, cols: ReadonlyArray<readonly [string, number, readonly FishTopRow[], (v: number) => string, string?]>, myPid: number, empty: string): void {
+    const w = cols.reduce((s, col) => s + col[1], 0) + COLUMN_GAP * (cols.length - 1);
     c.textAlign = 'center';
     c.fillStyle = CREAM;
-    c.font = `900 30px ${FONT}`;
+    c.font = `900 28px ${FONT}`;
     c.fillText(title, x + w / 2, 108);
-    const colW = (w - 12) / 2;
     const top = 168;
-    if (byN.length === 0) {
+    if (cols.every((col) => col[2].length === 0)) {
       c.fillStyle = 'rgba(246, 234, 210, 0.55)';
       fit(c, empty, 700, 24, w - 20);
       c.fillText(empty, x + w / 2, top + 150);
       return;
     }
-    this.column(c, x, colW, 'Рыб', byN, top, myPid, (v) => `${v}`);
-    this.column(c, x + colW + 12, colW, 'Вес', byG, top, myPid, (v) => fmtKg(v));
+    let cx = x;
+    for (const [head, cw, rows, fmt, suffix] of cols) {
+      this.column(c, cx, cw, head, rows, top, myPid, fmt, suffix);
+      cx += cw + COLUMN_GAP;
+    }
   }
 
-  private column(c: CanvasRenderingContext2D, x: number, w: number, head: string, rows: readonly FishTopRow[], top: number, myPid: number, fmt: (v: number) => string): void {
+  private column(c: CanvasRenderingContext2D, x: number, w: number, head: string, rows: readonly FishTopRow[], top: number, myPid: number, fmt: (v: number) => string, suffix = ''): void {
     c.textAlign = 'center';
     c.fillStyle = 'rgba(246, 234, 210, 0.6)';
     c.font = `700 20px ${FONT}`;
@@ -142,34 +160,54 @@ export class FishBoard3D {
       c.textAlign = 'center';
       if (i < 3) {
         c.beginPath();
-        c.arc(x + 14, y, 13, 0, Math.PI * 2);
+        c.arc(x + 12, y, 11.5, 0, Math.PI * 2);
         c.fillStyle = MEDALS[i];
         c.fill();
         c.fillStyle = '#2a1708';
       } else {
         c.fillStyle = 'rgba(246, 234, 210, 0.55)';
       }
-      c.font = `900 17px ${FONT}`;
-      c.fillText(String(i + 1), x + 14, y + 1);
-      const val = fmt(r.v);
+      c.font = `900 15px ${FONT}`;
+      c.fillText(String(i + 1), x + 12, y + 1);
+      // число золотом; у коллекции «из 52» — тише, а под строкой полоса «сколько закрыто»
       c.textAlign = 'right';
+      let vw = 0;
+      if (suffix) {
+        c.fillStyle = 'rgba(246, 234, 210, 0.62)';
+        c.font = `700 16px ${FONT}`;
+        c.fillText(suffix, x + w, y + 1);
+        vw = c.measureText(suffix).width;
+        c.fillStyle = 'rgba(246, 234, 210, 0.14)';
+        c.fillRect(x + 28, y + rowH / 2 - 5, w - 28, 3);
+        c.fillStyle = mine ? '#ffd36a' : '#5fd0bf';
+        c.fillRect(x + 28, y + rowH / 2 - 5, (w - 28) * Math.min(1, r.v / COLLECTION_SIZE), 3);
+      }
+      const val = fmt(r.v);
       c.fillStyle = '#ffd36a';
-      c.font = `900 21px ${FONT}`;
-      c.fillText(val, x + w, y + 1);
-      const vw = c.measureText(val).width;
+      c.font = `900 20px ${FONT}`;
+      c.fillText(val, x + w - vw, y + 1);
+      vw += c.measureText(val).width;
       c.textAlign = 'left';
       c.fillStyle = mine ? '#ffe39a' : CREAM;
-      fit(c, r.nick, mine ? 900 : 700, 21, w - 36 - vw - 10);
-      c.fillText(r.nick, x + 34, y + 1);
+      fit(c, r.nick, mine ? 900 : 700, 19, w - 28 - vw - 8, 13);
+      c.fillText(ellipsis(c, r.nick, w - 28 - vw - 8), x + 28, y + (suffix ? -2 : 1));
     }
   }
 }
 
-/** Шрифт размера size, уменьшенный, чтобы текст влез в maxW. */
-function fit(c: CanvasRenderingContext2D, text: string, weight: number, size: number, maxW: number): void {
+/** Ник, обрезанный многоточием, если и в самом мелком шрифте (fit) не помещается в maxW. */
+function ellipsis(c: CanvasRenderingContext2D, text: string, maxW: number): string {
+  if (c.measureText(text).width <= maxW) return text;
+  let s = text;
+  while (s.length > 1 && c.measureText(`${s}…`).width > maxW) s = s.slice(0, -1);
+  return `${s}…`;
+}
+
+/** Шрифт размера size, уменьшенный (не меньше min), чтобы текст влез в maxW. */
+function fit(c: CanvasRenderingContext2D, text: string, weight: number, size: number, maxW: number, min = 10): void {
   c.font = `${weight} ${size}px ${FONT}`;
   const w = c.measureText(text).width;
-  if (w > maxW) c.font = `${weight} ${Math.max(10, Math.floor((size * maxW) / w))}px ${FONT}`;
+  if (w > maxW) c.font = `${weight} ${Math.max(min, Math.floor((size * maxW) / w))}px ${FONT}`;
 }
 
 /** Solid carved shark silhouette, muted mythic bronze/sea-green patina; no image texture. */

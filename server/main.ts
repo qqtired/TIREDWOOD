@@ -14,7 +14,7 @@ import { Hub, closeReason, type Sink } from './hub.ts';
 import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
 import { FISH } from '../shared/fishing.ts';
-import { SP_CHEST, rollChest, rollWeight } from '../shared/fishrules.ts';
+import { POSEIDON_COINS, SP_CHEST, rollChest, rollWeight } from '../shared/fishrules.ts';
 import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
 import { regattaEnabled } from './lobby/regatta.ts';
@@ -93,13 +93,14 @@ if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
-// DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание)
+// DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание);
+// DEV_POSEIDON=1 вместе с DEV_FISH=chest — каждый сундук оказывается «Сокровищами Посейдона» (3000 🪙)
 const devFish = DEV ? (process.env.DEV_FISH ?? '').split(',').map((id) => FISH.findIndex((f) => f.id === id.trim())).filter((sp) => sp >= 0) : [];
 if (devFish.length && hub.lobby.fishing2) {
   let next = 0;
   hub.lobby.fishing2.roll = (_rain, rand) => {
     const sp = devFish[next++ % devFish.length];
-    return { sp, g: rollWeight(sp, rand), coins: sp === SP_CHEST ? rollChest(rand) : 0 };
+    return { sp, g: rollWeight(sp, rand), coins: sp === SP_CHEST ? (process.env.DEV_POSEIDON === '1' ? POSEIDON_COINS : rollChest(rand)) : 0 };
   };
   console.log(`DEV_FISH: клюют по очереди ${devFish.map((sp) => FISH[sp].id).join(', ')}`);
 }

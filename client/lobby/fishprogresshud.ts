@@ -1,4 +1,4 @@
-import { activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
+import { FISH_MAX_LEVEL, activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
 import { BEER, lureOf, type ShopDrink } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME } from '../../shared/fishrules.ts';
 import type { FishZone } from '../../shared/fishplaces.ts';
@@ -49,7 +49,7 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
   const view = fishLevelView(progress.xp);
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
   const head = block.appendChild(el('div', 'fs-skill-head'));
-  head.appendChild(el('b', '', compact ? `🎣 Ур. ${view.level}` : view.level === 0 ? '🎣 Новичок' : `🎣 Уровень ${view.level} из 10`));
+  head.appendChild(el('b', '', compact ? `🎣 Ур. ${view.level}` : view.level === 0 ? '🎣 Новичок' : `🎣 Уровень ${view.level} из ${FISH_MAX_LEVEL}`));
   // Шкала на каждом уровне идёт с нуля: опыт внутри уровня / сколько нужно на весь уровень (5-й: «0 / 1 150 XP»).
   // На максимальном уровне следующего нет — пишем накопленный опыт.
   const gained = Math.max(0, view.xp - view.from);
@@ -61,7 +61,7 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
   bar.value = view.next === null ? 1 : gained;
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
-    ? 'Зелёная зона +25% · опыт продолжает учитываться'
+    ? `Высший уровень · зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}% · опыт продолжает учитываться`
     : view.level === 0
       ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +2,5%`
       : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}%`));

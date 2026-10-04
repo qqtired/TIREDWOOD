@@ -179,13 +179,13 @@ test('божественная: база задана явно — 0,43 % все
   assert.equal(rodOdds(4), 1.2);
 });
 
-test('кальмар клюёт везде и в любую погоду, до 2,5 т, дороже и опытнее мификов; гренландская акула в дождь — и у пристани, и с баркаса', () => {
+test('кальмар клюёт везде и в любую погоду, 700–3000 кг, дороже и опытнее мификов; гренландская акула в дождь — и у пристани, и с баркаса', () => {
   const k = sp('kalmar');
   assert.equal(RULE[k]!.tier, T_DIVINE);
   assert.equal(FISH[k].name, 'Дальневосточный кальмар');
   assert.equal(FISH[k].acc, 'дальневосточного кальмара');
   assert.equal(FISH[k].shape, 'squid');
-  assert.equal(FISH[k].g[1], 2_500_000);
+  assert.deepEqual(FISH[k].g, [700_000, 3_000_000]);
   for (const zone of ['pier', 'barkas'] as const) for (const [rain, season] of [[false, false], [true, false], [false, true]] as const) {
     assert.ok(biteShare(k, rain, at(zone), season) > 0, `${zone}, дождь ${rain}, сезон ${season}`);
   }

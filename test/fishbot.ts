@@ -8,7 +8,7 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
 import { REEL_BAR, SLACK_TICKS, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
 import {
-  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, reelStyleFor,
+  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, POSEIDON_COINS, POSEIDON_SHARE, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, reelStyleFor,
 } from '../shared/fishrules.ts';
 import { fishCatchXp, fishLostXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { makeRng } from '../shared/math.ts';
@@ -161,10 +161,15 @@ function meanPrice(sp: number, mods?: Readonly<FishCastMods>): { coins: number; 
   return { coins: coins / N, points: points / N };
 }
 
-/** Средний сундук: точно по полосам CHEST_BANDS */
-export function meanChest(): number {
+/** Средний сундук без клада Посейдона: точно по полосам CHEST_BANDS */
+export function meanBands(): number {
   const total = CHEST_BANDS.reduce((s, b) => s + b[2], 0);
   return CHEST_BANDS.reduce((s, [lo, hi, w]) => s + ((lo + hi) / 2) * (w / total), 0);
+}
+
+/** Средний сундук: 3 % сундуков — «Сокровища Посейдона» (3000 🪙 вместо обычной суммы), остальные — по полосам */
+export function meanChest(): number {
+  return (1 - POSEIDON_SHARE) * meanBands() + POSEIDON_SHARE * POSEIDON_COINS;
 }
 
 /** Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид (хлам — по уровню, опыт в дождь ×1,15). */

@@ -2783,7 +2783,7 @@ export class LobbyScene implements Scene {
     const it = free ?? taken;
     if (!it) {
       if (this.respectHere) this.hud.setHint(['F'], 'Press F to pay respects');
-      else if (this.fish2.nearBoard(p.x, p.z)) this.hud.setHint(TOUCH ? [] : ['J'], TOUCH ? 'Рекорды рыбаков: сегодня и за всё время · 📖 — журнал' : 'журнал рыбака · на доске — рекорды: сегодня и за всё время');
+      else if (this.fish2.nearBoard(p.x, p.z)) this.hud.setHint(TOUCH ? [] : ['J'], TOUCH ? 'Рекорды рыбаков: сегодня, за всё время и коллекция · 📖 — журнал' : 'журнал рыбака · на доске — рекорды: сегодня, за всё время и коллекция');
       else {
         const cat = this.eventEligible ? this.critters.nearestCat(this.pose) : null;
         if (cat) this.hud.setHint(['E'], cat.label);
