@@ -33,10 +33,11 @@ function shoot(sp: number): string | null {
   const f = FISH[sp];
   if (!r || !f || typeof document === 'undefined' || r.getContext().isContextLost()) return null;
   const scene = new THREE.Scene();
-  scene.add(new THREE.HemisphereLight(0xe4f1ff, 0x9a7a62, 2.1));
-  const key = new THREE.DirectionalLight(0xfff1dc, 2.6);
+  // заливки меньше, чем в мире: полотно без тональной кривой ACES, и при ровном свете цвет выцветал (кальмар был розовым)
+  scene.add(new THREE.HemisphereLight(0xe4f1ff, 0x9a7a62, 1.25));
+  const key = new THREE.DirectionalLight(0xfff1dc, 2.5);
   key.position.set(-1.5, 2.4, 3);
-  const rim = new THREE.DirectionalLight(0xffd6e6, 1.6);
+  const rim = new THREE.DirectionalLight(0xffd6e6, 1.3);
   rim.position.set(1.5, 1, -2.5);
   scene.add(key, rim);
   const fish = makeFish3D(sp, f.g[1]);
