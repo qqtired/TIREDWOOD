@@ -175,6 +175,8 @@ export class BannerPanel {
   private readonly go: HTMLButtonElement;
   private readonly d: BannerPanelDeps;
   private open_ = false;
+  /** Отправленная надпись, пока сервер её не принял: при отказе (пауза, жетоны, очередь) текст остаётся в поле */
+  private pending = '';
 
   constructor(d: BannerPanelDeps) {
     this.d = d;
@@ -267,8 +269,16 @@ export class BannerPanel {
   private submit(): void {
     const t = this.text();
     if (!t) return;
+    this.pending = t;
     this.d.send(t);
-    this.input.value = '';
     this.close();
+  }
+
+  /** Сервер принял баннер (летит или стоит в очереди) — поле можно очистить */
+  accepted(): void {
+    if (!this.pending) return;
+    this.pending = '';
+    this.input.value = '';
+    this.recount();
   }
 }

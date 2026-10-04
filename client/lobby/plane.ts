@@ -389,6 +389,9 @@ export class PlaneClient {
     const v = this.view;
     this.model.setPilot(v.slot, v.nick, v.o, v.level);
     this.model.setBanner(v.ph !== PL_DOCK ? (v.b ?? '') : '');
+    // мой баннер летит или стоит в очереди — заказ принят, поле окошка очищаем (при отказе текст остаётся)
+    const me = this.d.me();
+    if ((v.ph !== PL_DOCK && v.b && v.bn === me.nick) || v.q.some((n, j) => n === me.nick && v.qb?.[j])) this.panel.accepted();
   }
 
   /** Свой вход (каждый тик): пилоту — шаг предсказания. */
