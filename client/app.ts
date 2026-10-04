@@ -647,7 +647,7 @@ export class App {
         if (m.on && (changed || !this.fishEventKnown)) {
           const left = m.until ? m.until - FISH_SEASON.now() : 0;
           const long = left > 0 && left < 3_600_000 ? ` · ${seasonWait(left)}` : '';
-          if (this.fishSeasonOn !== true) this.toasts.show(`🌧 Рыболовное событие${long}`, 7500, 'fish-event', 'уникальные виды рыб · их цена ×1,5');
+          if (this.fishSeasonOn !== true) this.toasts.show(`🌧 Рыболовное событие${long}`, 7500, 'fish-event', 'уникальные виды рыб · редкие и выше ×1,5');
         } else if (!m.on && changed && this.fishEventKnown) {
           if (!this.fishSeasonRain) this.toasts.show('🌧 Рыболовное событие закончилось', 4200, 'fish-event');
           this.fishSeasonRain = false;

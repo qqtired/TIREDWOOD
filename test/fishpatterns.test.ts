@@ -79,19 +79,30 @@ test('each named pattern executes its characteristic target trajectory', () => {
  assert.ok(targets.Jet.slice(124).every(v => Math.abs(v - 35000) <= 5000));
 });
 
-test('all legal probability combinations sum to one with transparent saturation and unchanged absent event fish', () => {
+// 04.10: потолок сверху вниз — старшие категории получают свой множитель целиком, срезается только нижняя оставшаяся
+test('all legal probability combinations sum to one with transparent top-down saturation and unchanged absent event fish', () => {
  for (const rain of [false, true]) for (let level = 0; level <= 10; level++) for (const rod of [0, 1, 2, 3, 4] as FishRod[]) for (const beer of [false, true]) {
   const mods = fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level], questsDone: 15, rod, beerUntil: beer ? 1000 : 0 }, 0);
   assert.ok(Math.abs(mods.rareMultiplier - (1 + .025 * level) * (1 + .05 * rod) * (beer ? 1.2 : 1)) < 1e-12);
   const shares = COLLECTION.map(sp => biteShare(sp, rain, mods));
   assert.ok(shares.every(p => p >= 0 && p <= 1));
   assert.ok(Math.abs(shares.reduce((a,b)=>a+b,0)-1)<1e-12);
-  const effective = effectiveRareMultiplier(rain, mods);
+  // внутри категории виды делят её долю по весам, как без бонусов: множитель у всех видов категории один
+  const k = new Map<number, number>();
   for (const sp of COLLECTION) {
-   if (RULE[sp]!.rain && !rain) assert.equal(biteShare(sp, rain, mods), 0);
-   else if (RULE[sp]!.tier >= 1) assert.ok(Math.abs(biteShare(sp,rain,mods)-biteShare(sp,rain)*effective)<1e-12);
+   if ((RULE[sp]!.rain && !rain) || biteShare(sp, rain) === 0) { assert.equal(biteShare(sp, rain, mods), 0); continue; }
+   const rank = tierRank(RULE[sp]!.tier), x = biteShare(sp, rain, mods) / biteShare(sp, rain);
+   if (k.has(rank)) assert.ok(Math.abs(k.get(rank)! - x) < 1e-9, `${RULE[sp]!.id}`); else k.set(rank, x);
   }
-  if (effective < mods.rareMultiplier) assert.ok(COLLECTION.filter(sp=>RULE[sp]!.tier===0).every(sp=>biteShare(sp,rain,mods)<1e-12));
+  // сверху вниз: полный множитель (уровень × удочка × пиво), пока есть место; ниже первой срезанной — ничего, обычных нет
+  let cut = false;
+  for (let rank = 5; rank >= 1; rank--) {
+   const x = k.get(rank)!;
+   if (cut) assert.ok(x < 1e-12, `ранг ${rank} под потолком`);
+   else if (Math.abs(x - mods.rareMultiplier) > 1e-9) { cut = true; assert.ok(x < mods.rareMultiplier); }
+  }
+  if (cut) assert.ok(COLLECTION.filter(sp=>RULE[sp]!.tier===0).every(sp=>biteShare(sp,rain,mods)<1e-12), 'потолок — обычных нет');
+  assert.ok(Math.abs(effectiveRareMultiplier(rain, mods) - k.get(1)!) < 1e-9);
  }
  const baseTwoPercent = .02;
  assert.ok(Math.abs(baseTwoPercent * fishCastMods({...emptyFishProgress(),xp:100},0).rareMultiplier - .0205) < 1e-12);

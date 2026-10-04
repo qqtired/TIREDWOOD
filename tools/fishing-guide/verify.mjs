@@ -7,12 +7,15 @@ const fr = await import(ROOT + 'shared/fishrules.ts');
 const fp = await import(ROOT + 'shared/fishprogress.ts');
 const calc = vm.runInNewContext(fs.readFileSync(ROOT + 'public/fishing/app.js', 'utf8') + '\nFishCalc', {});
 let n = 0, maxd = 0, exact = 0;
-for (const zone of ['pier', 'barkas']) for (let weather = 0; weather <= 2; weather++) for (let level = 0; level <= 10; level++)
+// уровни — до последнего, на котором ещё растёт шанс (15); выше таблицы опыта — тот же снимок с этим уровнем
+const XP_TOP = fp.FISH_XP_LEVELS.length - 1;
+for (const zone of ['pier', 'barkas']) for (let weather = 0; weather <= 2; weather++) for (let level = 0; level <= fp.LEVEL_ODDS_MAX; level++)
   for (let rod = 0; rod <= 4; rod++) for (let lure = 0; lure <= 4; lure++) for (let drink = 0; drink <= 4; drink++) {
     const now = 1_000_000;
-    const p = { ...fp.emptyFishProgress(), xp: fp.FISH_XP_LEVELS[level], questsDone: [0, 1, 5, 10, 15][rod], rod, lure };
+    const p = { ...fp.emptyFishProgress(), xp: fp.FISH_XP_LEVELS[Math.min(level, XP_TOP)], questsDone: [0, 1, 5, 10, 15][rod], rod, lure };
     if (drink === 1) p.beerUntil = now + 1; if (drink === 2) p.aleUntil = now + 1; if (drink === 3) p.lordUntil = now + 1; if (drink === 4) p.vodkaUntil = now + 1;
-    const m = fp.fishCastMods(p, now, zone);
+    let m = fp.fishCastMods(p, now, zone);
+    if (m.level !== level) m = { ...m, level, rareMultiplier: fp.levelOdds(level) * fp.rodOdds(rod) * (fp.drinkOf(drink)?.rare ?? 1) };
     if (m.level !== level || m.rod !== rod || m.drink !== drink || m.lure !== lure) throw new Error('mods mismatch');
     const want = fr.tierOdds(weather > 0, m, weather === 2);
     const got = calc.odds({ zone, weather, level, rod, lure, drink }).p;

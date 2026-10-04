@@ -972,7 +972,7 @@ export class LobbyRoom implements Room {
     if (change) {
       this.broadcast({ t: 'fishSeason', ...v });
       this.hub.announce(change === 'start'
-        ? '🎣 Начался сезон рыбалки! 10 минут особого дождя: эпические, легендарные и мифические клюют втрое чаще — и сам царь морей тоже.'
+        ? '🎣 Начался сезон рыбалки! 10 минут особого дождя: все шансы ×2 к дождю — от редких рыб до царя морей.'
         : `🎣 Сезон рыбалки закончился. Следующий — в ${mskClock(v.nextAt)} по Москве.`);
     }
     if (v.on && !this.director.busy && this.weather.holdRain(this.weatherTick, v.endsAt)) this.publishWeather();

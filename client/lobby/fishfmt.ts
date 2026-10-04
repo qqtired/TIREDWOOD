@@ -70,19 +70,20 @@ export function xpTo(progress: Readonly<FishProgress>, level: number): number {
 /**
  * Разбивка шанса и манеры для подсказок: что сейчас поднимает редких и выше и что делает рыбу мягче/злее. Тот же
  * порядок и те же множители, что в броске сервера (shared/fishrules.ts: погода × уровень × удочка × напиток × блесна).
+ * Уровень, удочка, пиво и погода умножают все категории от редкой до божественной; блесна и водка — эпическую и выше.
  */
 export function oddsParts(mods: Readonly<FishCastMods>, rain: boolean, season = false): string[] {
   const parts: string[] = [];
-  if (season) parts.push(`сезон рыбалки: эпик, лег., миф. и бож. ${mul(SEASON_MUL)}, редкие ${mul(RAIN_MUL)}`);
-  else if (rain) parts.push(`дождь: виды дождя, редкие, эпик, лег. и миф. ${mul(RAIN_MUL)}`);
+  if (season) parts.push(`сезон рыбалки: виды дождя, все шансы ${mul(SEASON_MUL)} к дождю — редкие и выше ${mul(RAIN_MUL * SEASON_MUL)}`);
+  else if (rain) parts.push(`дождь: виды дождя, редкие и выше ${mul(RAIN_MUL)}`);
   parts.push(`ур. ${mods.level} ${mul(levelOdds(mods.level))}`);
   if (mods.rod) parts.push(`удочка ${mul(rodOdds(mods.rod))}`);
-  if (mods.drink === 4) parts.push(`водка: эпик, лег. и миф. ${mul(VODKA.top ?? 1)}, зона ${mul(VODKA.zone ?? 1)}`);
+  if (mods.drink === 4) parts.push(`водка: эпик и выше ${mul(VODKA.top ?? 1)}, зона ${mul(VODKA.zone ?? 1)}`);
   else if (mods.drink === 3) parts.push(`пиво владыки ${mul(LORD.rare)}`);
   else if (mods.drink === 2) parts.push(`эль ${mul(ALE.rare)}`);
   else if (mods.drink === 1) parts.push(`пиво ${mul(BEER.rare)}`);
   const lure = lureOf(mods.lure);
-  if (lure) parts.push(`${lure.name.split(' ')[0].toLowerCase()}: эпик+ ${mul(lure.epic)}`);
+  if (lure) parts.push(`${lure.name.split(' ')[0].toLowerCase()} блесна: эпик и выше ${mul(lure.epic)}`);
   if (mods.zone === 'barkas') parts.push(`баркас: цена и опыт ${mul(BARKAS_INCOME)}`);
   return parts;
 }

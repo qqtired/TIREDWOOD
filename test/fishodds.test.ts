@@ -1,17 +1,19 @@
-// Шансы рыбалки (патч 04.10): дождь — редкие, эпические, легендарные и мифические ×1,5 к ясной погоде; сезон рыбалки —
-// эпические…божественная ×3 от базы (редкие — как в дождь); уровень — +2,5 % за уровень от базы; водка — эпические…
-// мифические ×2; пиво подводного владыки — ×1,4 всем от редких; божественная — база мифических / 2,5. Панель «Шансы
-// сейчас» складывает ровно те же множители, что бросок сервера. Ещё: сельдяной король тяжелее белой акулы, гренландская
-// акула в дождь — и с баркаса, кальмар — везде и в любую погоду; напитки не складываются (действует последний).
+// Шансы рыбалки (патч 04.10, причёсаны): дождь — все от редкой до божественной ×1,5 к ясной погоде; сезон рыбалки —
+// ещё ×2 к дождю со всеми бонусами; уровень — +2,5 % за уровень от базы (до 15-го); водка — эпическая и выше ×2 (с
+// божественной); пиво подводного владыки — ×1,4 всем от редких; божественная — явно 0,43 % у пристани. Потолок — сверху
+// вниз (перебор всех сочетаний — test/fishing-odds-balance.test.ts). Панель «Шансы сейчас» складывает ровно те же
+// множители, что бросок сервера. Ещё: сельдяной король тяжелее белой акулы, гренландская акула в дождь — и с баркаса,
+// кальмар — везде и в любую погоду; напитки не складываются (действует последний).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
+import { COLLECTION } from '../shared/fishrules.ts';
 import {
   FISH_XP_LEVELS, activeDrink, emptyFishProgress, fishCastMods, fishCatchXp, levelOdds, normalizeFishProgress, rodOdds,
   type FishCastMods, type FishProgress,
 } from '../shared/fishprogress.ts';
 import {
-  DIVINE_RATIO, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE, basePrice, biteShare,
+  DIVINE_BASE, DIVINE_RATIO, RAIN_MUL, RULE, SEASON_MUL, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE, basePrice, biteShare,
   reelStyleFor, rollCatch2, rollWeight, tierOdds, tierOddsParts, tierRank,
 } from '../shared/fishrules.ts';
 import { LORD, LURES, VODKA } from '../shared/fishshop.ts';
@@ -23,45 +25,55 @@ const sp = (id: string): number => FISH.findIndex((f) => f.id === id);
 const near = (a: number, b: number, msg: string, eps = 1e-9) => assert.ok(Math.abs(a - b) <= eps, `${msg}: ${a} ≠ ${b}`);
 /** Доля категории среди поклёвок рыбы (без хлама и сундука — их доля от уровня своя) */
 const fishOf = (odds: number[], t: number) => odds[t] / (1 - odds[5] - odds[6]);
-const TOP = [T_RARE, T_EPIC, T_LEGEND, T_MYTH] as const;
+const TOP = [T_RARE, T_EPIC, T_LEGEND, T_MYTH, T_DIVINE] as const;
 const at = (zone: 'pier' | 'barkas', level = 0, extra: Partial<FishProgress> = {}): FishCastMods =>
   fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level], ...extra }, 0, zone);
 
-test('дождь: редкие, эпические, легендарные и мифические — ровно ×1,5 к ясной погоде у пристани и на баркасе (раньше легенды и мифик в дождь редели)', () => {
+test('дождь: все от редкой до божественной — ровно ×1,5 к ясной погоде у пристани и на баркасе (раньше божественной дождь не прибавлял, а легенды и мифик когда-то редели)', () => {
   assert.equal(RAIN_MUL, 1.5);
   for (const zone of ['pier', 'barkas'] as const) {
     for (const mods of [at(zone), at(zone, 5, { questsDone: 5, rod: 2, lure: 2 }), at(zone, 3, { beerUntil: 1e15 })]) {
       const clear = tierOdds(false, mods), rain = tierOdds(true, mods);
       for (const t of TOP) near(rain[t] / clear[t], RAIN_MUL, `${zone} ур. ${mods.level}: категория ${t}`);
-      near(rain[T_DIVINE], clear[T_DIVINE], `${zone}: божественной дождь не прибавляет`);
       assert.ok(rain[T_COMMON] < clear[T_COMMON], 'обычных в дождь меньше — им остаток');
       near(rain.reduce((a, b) => a + b, 0), 1, 'сумма');
     }
   }
 });
 
-test('сезон рыбалки: эпические, легендарные, мифические и божественная — ×3 от базы, редкие — ×1,5; сезон — сам дождь', () => {
-  assert.equal(SEASON_MUL, 3);
+test('сезон рыбалки: ×2 к дождю со всеми бонусами — у новичка эпик и выше ×3 к ясной, обычных нет, редким — остаток (больше, чем в дождь); сезон — сам дождь', () => {
+  assert.equal(SEASON_MUL, 2);
   for (const zone of ['pier', 'barkas'] as const) {
     const mods = at(zone);
-    const clear = tierOdds(false, mods), season = tierOdds(false, mods, true);
-    near(season[T_RARE] / clear[T_RARE], RAIN_MUL, `${zone}: редкие`);
-    for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) near(season[t] / clear[t], SEASON_MUL, `${zone}: категория ${t}`);
+    const clear = tierOdds(false, mods), rain = tierOdds(true, mods), season = tierOdds(false, mods, true);
+    for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) {
+      near(season[t] / clear[t], RAIN_MUL * SEASON_MUL, `${zone}: категория ${t} к ясной`);
+      near(season[t] / rain[t], SEASON_MUL, `${zone}: категория ${t} к дождю`);
+    }
+    // редких и выше набралось больше 100 % рыбы: потолок сверху вниз — обычных нет, редким то, что осталось после старших
+    assert.equal(season[T_COMMON], 0, `${zone}: обычных в сезон нет`);
+    near(season[T_RARE], 1 - season[5] - season[6] - [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE].reduce((a, t) => a + season[t], 0), `${zone}: редким — остаток`);
+    assert.ok(season[T_RARE] > rain[T_RARE], `${zone}: редких в сезон всё равно больше, чем в дождь`);
     assert.deepEqual(tierOdds(true, mods, true), season, 'сезон и дождь вместе — тот же сезон');
-    // виды дождя клюют и в сезон
-    for (const s of [sp('greenlandshark'), sp('picarel')]) assert.ok(biteShare(s, false, mods, true) > 0 || !RULE[s]!.zones.includes(zone));
+    // виды дождя клюют и в сезон — кроме обычных: обычных в сезон нет совсем, пикарель ловят в обычный дождь
+    for (const s of COLLECTION.filter((x) => RULE[x]!.rain && RULE[x]!.zones.includes(zone))) {
+      assert.equal(biteShare(s, false, mods, true) > 0, RULE[s]!.tier !== T_COMMON, `${zone}: ${RULE[s]!.id} в сезон`);
+      assert.ok(biteShare(s, true, mods) > 0, `${zone}: ${RULE[s]!.id} в дождь`);
+    }
   }
 });
 
-test('уровень: +2,5 % за уровень от базы — редкие, эпические, легендарные, мифические и божественная (на 10-м ×1,25); панель показывает это множителем', () => {
+test('уровень: +2,5 % за уровень от базы — редкие, эпические, легендарные, мифические и божественная (на 10-м ×1,25, на 15-м ×1,375); панель показывает это множителем', () => {
   const base = tierOdds(false, at('pier'));
-  for (let level = 0; level <= 10; level++) {
-    const mods = at('pier', level);
+  for (let level = 0; level <= 15; level++) {
+    // уровни выше таблицы опыта (их добавляет прогресс рыбалки) — тот же снимок с подставленным уровнем
+    const plain = at('pier', Math.min(level, FISH_XP_LEVELS.length - 1));
+    const mods = plain.level === level ? plain : { ...plain, level, rareMultiplier: levelOdds(level) };
     assert.equal(levelOdds(level), 1 + 0.025 * level);
     near(mods.rareMultiplier, 1 + 0.025 * level, `ур. ${level}`);
-    near(mods.zoneScale, 1 + 0.025 * level, `ур. ${level}: зелёная зона`);
+    if (level <= 10) near(mods.zoneScale, 1 + 0.025 * level, `ур. ${level}: зелёная зона`);
     const odds = tierOdds(false, mods);
-    for (const t of [...TOP, T_DIVINE]) {
+    for (const t of TOP) {
       near(fishOf(odds, t) / fishOf(base, t), 1 + 0.025 * level, `ур. ${level}: категория ${t}`, 1e-9);
       const parts = tierOddsParts(tierRank(t), false, mods);
       near(parts.bonus, 1 + 0.025 * level, `ур. ${level}: множитель на панели`);
@@ -71,7 +83,7 @@ test('уровень: +2,5 % за уровень от базы — редкие,
   }
 });
 
-test('водка рыбацкая: 100 жетонов, 10 минут; эпические, легендарные и мифические ×2 (редкие и божественная — нет), зона вдвое меньше, рывки ×1,2, опыт за эпик…мифик ×2', () => {
+test('водка рыбацкая: 100 жетонов, 10 минут; эпическая и выше ×2 (с божественной; редкие — нет), зона вдвое меньше, рывки ×1,2, опыт за эпик и выше ×2', () => {
   assert.deepEqual([VODKA.price, VODKA.ms, VODKA.top, VODKA.topXp, VODKA.zone, VODKA.jerk, VODKA.income, VODKA.rare], [100, 600_000, 2, 2, 0.5, 1.2, 1, 1]);
   const plain = at('pier', 4);
   const vodka = at('pier', 4, { vodkaUntil: 1e15 });
@@ -80,8 +92,7 @@ test('водка рыбацкая: 100 жетонов, 10 минут; эпиче
   near(vodka.rareMultiplier, plain.rareMultiplier, 'редкие — как без водки');
   const a = tierOdds(false, plain), b = tierOdds(false, vodka);
   near(b[T_RARE], a[T_RARE], 'редкие');
-  for (const t of [T_EPIC, T_LEGEND, T_MYTH]) near(b[t] / a[t], 2, `категория ${t}`);
-  near(b[T_DIVINE], a[T_DIVINE], 'божественная — без водки');
+  for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) near(b[t] / a[t], 2, `категория ${t}`);
   for (const t of [T_EPIC, T_MYTH]) near(tierOddsParts(t, false, vodka).bonus, plain.rareMultiplier * 2, 'панель: ×2 в бонусах');
   // шкала: зона ×0,5, рывки ×1,2 — у рыбы; хлам и сундук как были
   for (const id of ['tuna', 'hamsa', 'kalmar']) {
@@ -90,15 +101,15 @@ test('водка рыбацкая: 100 жетонов, 10 минут; эпиче
     near(s1.dartSpd, s0.dartSpd * 1.2, `${id}: рывки`, 1e-6);
     near(s1.drain, s0.drain, `${id}: сопротивление то же`);
   }
-  // опыт: эпические…мифические ×2, остальные — как были
-  for (const id of ['bluefish', 'tuna', 'whiteshark']) {
+  // опыт: эпическая и выше (с божественной) ×2, обычные и редкие — как были
+  for (const id of ['bluefish', 'tuna', 'whiteshark', 'kalmar']) {
     const x0 = fishCatchXp(sp(id), false, plain), x1 = fishCatchXp(sp(id), false, vodka);
     assert.ok(Math.abs(x1 - 2 * x0) <= 1, `${id}: ${x0} → ${x1}`);
   }
-  for (const id of ['hamsa', 'mullet', 'kalmar']) assert.equal(fishCatchXp(sp(id), false, vodka), fishCatchXp(sp(id), false, plain), id);
+  for (const id of ['hamsa', 'mullet']) assert.equal(fishCatchXp(sp(id), false, vodka), fishCatchXp(sp(id), false, plain), id);
 });
 
-test('пиво подводного владыки работает: редкие, эпические, легендарные, мифические (и божественная) ×1,4 — в ясную погоду и в дождь; в сезон — до потолка; бросок сервера — так же', () => {
+test('пиво подводного владыки работает: все от редкой до божественной ×1,4 — в ясную погоду и в дождь; в сезон — до потолка сверху вниз; бросок сервера — так же', () => {
   assert.equal(LORD.rare, 1.4);
   const plain = at('pier');
   const lord = at('pier', 0, { lordUntil: 1e15 });
@@ -107,18 +118,16 @@ test('пиво подводного владыки работает: редки�
   near(lord.incomeScale, LORD.income, 'цена');
   for (const rain of [false, true]) {
     const a = tierOdds(rain, plain), b = tierOdds(rain, lord);
-    for (const t of [...TOP, T_DIVINE]) near(b[t] / a[t], 1.4, `дождь ${rain}: категория ${t}`);
+    for (const t of TOP) near(b[t] / a[t], 1.4, `дождь ${rain}: категория ${t}`);
   }
-  // сезон: эпик…божественная ×3 уже забирают почти всех обычных (остаётся ~12 %), пиво сверху упирается в потолок —
-  // обычных не остаётся, остальные делят всё в прежних пропорциях; панель показывает то же самое
+  // сезон: у новичка обычных уже нет (редкие и выше ×3 — больше 100 % рыбы). Потолок сверху вниз: эпик и выше с пивом
+  // получают свои ×1,4 целиком, редким — остаток (их становится меньше: место заняли старшие); панель показывает то же
   const s0 = tierOdds(false, plain, true), s1 = tierOdds(false, lord, true);
-  assert.ok(s0[T_COMMON] > 0 && s0[T_COMMON] < 0.2, `сезон: обычных ${s0[T_COMMON]}`);
+  assert.equal(s0[T_COMMON], 0, 'сезон: обычных нет и без пива');
   assert.equal(s1[T_COMMON], 0, 'сезон с пивом владыки: потолок');
-  for (const t of [...TOP, T_DIVINE]) {
-    assert.ok(s1[t] > s0[t], `сезон: категория ${t} чаще с пивом`);
-    near(tierOddsParts(tierRank(t), false, lord, true).now, s1[t], `сезон: панель = бросок, ${t}`);
-  }
-  near(s1[T_EPIC] / s1[T_RARE], s0[T_EPIC] / s0[T_RARE], 'потолок не меняет пропорций');
+  for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) near(s1[t] / s0[t], 1.4, `сезон: категория ${t} ×1,4`);
+  assert.ok(s1[T_RARE] < s0[T_RARE], 'сезон: редких меньше — их место заняли эпические и выше');
+  for (const t of TOP) near(tierOddsParts(tierRank(t), false, lord, true).now, s1[t], `сезон: панель = бросок, ${t}`);
   // сам бросок: 300 тыс. поклёвок с пивом и без — доли категорий как в таблице
   const N = 300_000;
   const count = (mods: FishCastMods) => {
@@ -140,11 +149,13 @@ test('пиво подводного владыки работает: редки�
   assert.ok(Math.abs(b[T_MYTH] / a[T_MYTH] - 1.4) < 0.2, `бросок: мифические ×${(b[T_MYTH] / a[T_MYTH]).toFixed(3)}`);
 });
 
-test('божественная: база — мифические / 2,5 у каждого места; удочка, блесна и пиво её поднимают; сумма шансов — 1 при любом наборе', () => {
-  assert.equal(DIVINE_RATIO, 2.5);
+test('божественная: база задана явно — 0,43 % всех поклёвок новичка у пристани, 0,42 % на баркасе; удочка, блесна и пиво её поднимают; сумма шансов — 1 при любом наборе', () => {
+  assert.equal(DIVINE_RATIO, 2.5, 'в 2,5 раза дороже мифических — цена и опыт');
+  assert.deepEqual(DIVINE_BASE, { pier: 0.0043, barkas: 0.0042 });
   for (const zone of ['pier', 'barkas'] as const) {
     const odds = tierOdds(false, at(zone));
-    near(odds[T_DIVINE], odds[T_MYTH] / 2.5, `${zone}: база`);
+    near(odds[T_DIVINE], DIVINE_BASE[zone], `${zone}: база`, 1e-12);
+    assert.ok(odds[T_DIVINE] < odds[T_MYTH] / 2, `${zone}: больше чем вдвое реже мифических`);
   }
   // всё сразу: 10-й уровень, легендарная удочка, платиновая блесна, водка или пиво владыки, дождь или сезон
   for (const zone of ['pier', 'barkas'] as const) for (const drink of [{}, { vodkaUntil: 1e15 }, { lordUntil: 1e15 }, { aleUntil: 1e15 }]) {
@@ -153,9 +164,10 @@ test('божественная: база — мифические / 2,5 у ка�
       const odds = tierOdds(rain, mods, season);
       near(odds.reduce((x, y) => x + y, 0), 1, `${zone} сумма`);
       assert.ok(odds.every((v) => v >= 0), `${zone}: без отрицательных`);
-      for (const t of [...TOP, T_DIVINE]) {
+      for (const t of TOP) {
         const p = tierOddsParts(tierRank(t), rain, mods, season);
         near(p.now, odds[t], `${zone} ${t}: панель = бросок`);
+        assert.ok(p.now <= p.base * p.weather * p.bonus + 1e-12, `${zone} ${t}: итог не больше база × погода × бонусы (меньше — только под потолком)`);
       }
     }
   }

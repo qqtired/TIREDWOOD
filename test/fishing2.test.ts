@@ -248,9 +248,10 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
   assert.ok(Math.abs(clear.coins / FISH_TARGET_PER_MIN - 1) < 0.05, `жетонов в минуту ${clear.coins.toFixed(2)}`);
   // 03.10 зона −10 % (владелец: чуть сложнее) — новичок теряет ещё ~8 %: от выпуска 6 −15 %
   assert.ok(clear.coins >= 20.2 * 0.8 && clear.coins <= 20.2, 'новичок платит за трудность не больше 20 % дохода выпуска 6');
-  // в дождь заметно выгоднее, опытный зарабатывает больше, но не в разы
+  // в дождь заметно выгоднее, опытный зарабатывает больше, но не в разы. 04.10: мифик и кальмар клюют чаще (владелец) —
+  // их почти всегда вытаскивает опытный, поэтому его отрыв вырос с ×1,56 до ×1,69 (было «до ×1,6»)
   assert.ok(rain.coins > clear.coins * 1.15 && rain.coins < clear.coins * 1.6, `дождь: ${rain.coins}`);
-  assert.ok(pro.coins > clear.coins && pro.coins < clear.coins * 1.6, `опытный: ${pro.coins}`);
+  assert.ok(pro.coins > clear.coins && pro.coins < clear.coins * 1.75, `опытный: ${pro.coins}`);
   // сундуки — сверху: 3 % поклёвок по ~57 🪙
   assert.ok(Math.abs(meanChest() - 57.4) < 0.1);
   assert.ok(clear.chest > 3 && clear.chest < 6, `сундуки: ${clear.chest}`);

@@ -19,7 +19,7 @@ import { el, fishPic, tierOf } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { bagMarks, levelOpens, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
 import { fishSkillBlock } from './fishprogresshud.ts';
-import { FISH_SEASON, SEASON_PERKS, seasonLeft, seasonWait } from './fishseason.ts';
+import { FISH_SEASON, SEASON_PERKS, SEASON_PERKS_LONG, seasonLeft, seasonWait } from './fishseason.ts';
 import './fisheco.css';
 
 const ROD_URLS = [null,
@@ -186,7 +186,7 @@ export class FishNpcDialog {
       } else card.appendChild(el('div', 'fn-rod-base', '🎣')).setAttribute('aria-hidden', 'true');
       card.appendChild(el('h4', '', ROD_NAMES[rod]));
       const b = Math.round(rodBonus(rod as FishRod) * 100);
-      card.appendChild(el('span', 'fn-rod-bonus', rod ? `зона +${b}% · поклёвка быстрее на ${b}% · редкие ${mul(rodOdds(rod))}` : 'Без бонуса'));
+      card.appendChild(el('span', 'fn-rod-bonus', rod ? `зона +${b}% · поклёвка быстрее на ${b}% · редкие и выше ${mul(rodOdds(rod))}` : 'Без бонуса'));
       this.rodNotes.push(card.appendChild(el('span', 'fn-fine')));
       const button = card.appendChild(el('button', 'fn-action'));
       button.type = 'button';
@@ -205,10 +205,10 @@ export class FishNpcDialog {
       this.bags.push(o);
     }
     shop.appendChild(el('h3', '', 'Блёсны'));
-    shop.appendChild(el('p', 'fn-fine', 'Покупаются навсегда, на леске — лучшая. Рыба дёргает мягче, эпические и выше клюют чаще.'));
+    shop.appendChild(el('p', 'fn-fine', 'Покупаются навсегда, на леске — лучшая. Рыба дёргает мягче, эпические и выше (и царь морей) клюют чаще.'));
     const lureGrid = shop.appendChild(el('div', 'fe-offers'));
     for (const l of LURES) {
-      const o = this.offer(lureGrid, l.id, l.name, `рывки −${Math.round(l.calm * 100)}% · эпические и выше ${mul(l.epic)}`);
+      const o = this.offer(lureGrid, l.id, l.name, `рывки −${Math.round(l.calm * 100)}% · эпик и выше ${mul(l.epic)}`);
       o.btn.addEventListener('click', () => this.request('buy', { item: l.id }));
       this.lures.push(o);
     }
@@ -220,9 +220,9 @@ export class FishNpcDialog {
     this.ale = this.offer(more, 'ale', ALE.name, `доход от рыбы ${pct(ALE.income)} · редкие и выше ${mul(ALE.rare)}`);
     this.ale.btn.addEventListener('click', () => this.request('ale'));
     this.vodka = this.offer(more, 'vodka', VODKA.name,
-      `эпик, легенды и мифик ${mul(VODKA.top ?? 1)} · опыт за них ${mul(VODKA.topXp ?? 1)} · зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}%`);
+      `эпик и выше ${mul(VODKA.top ?? 1)} · опыт за них ${mul(VODKA.topXp ?? 1)} · зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}%`);
     this.vodka.btn.addEventListener('click', () => this.request('vodka'));
-    this.drum = this.offer(more, 'drum', 'Бубен дождя', `сразу дождь для всех: виды дождя (${mul(1.5)} к цене), редкие, эпик, легенды и мифик ${mul(RAIN_MUL)}`);
+    this.drum = this.offer(more, 'drum', 'Бубен дождя', `сразу дождь для всех: виды дождя (${mul(1.5)} к цене), редкие и выше ${mul(RAIN_MUL)}`);
     this.drum.btn.addEventListener('click', () => this.request('rain'));
 
     // --- Продать
@@ -472,7 +472,7 @@ export class FishNpcDialog {
     this.beer.btn.disabled = busy || (drink >= 1 && drink <= 3) || tokens < BEER_PRICE;
     this.beer.root.classList.toggle('owned', drink === 1);
     this.ale.note.textContent = drink === 3 ? lordNote : drink === 2 ? `Действует · ${fishTimeLeft(p.aleUntil, now)}` : drink === 1 ? 'Заменит пиво — остаток пива пропадёт'
-      : tokens < ALE_PRICE ? `Не хватает ${ALE_PRICE - tokens} 🪙` : drink === 4 ? vodkaNote : 'Для опытных: редкие чаще, чем с пивом';
+      : tokens < ALE_PRICE ? `Не хватает ${ALE_PRICE - tokens} 🪙` : drink === 4 ? vodkaNote : 'Для опытных: редкие и выше чаще, чем с пивом';
     setCoinText(this.ale.btn, `Выпить · ${ALE_PRICE} 🪙`);
     this.ale.btn.disabled = busy || drink === 2 || drink === 3 || tokens < ALE_PRICE;
     this.ale.root.classList.toggle('owned', drink === 2);
@@ -512,7 +512,7 @@ export class FishNpcDialog {
     this.seasonText.textContent = st.on ? 'Сезон рыбалки идёт!' : 'До сезона рыбалки:';
     // до сезона — что он даст, в подсказке; идёт — прямо в строке
     this.seasonSub.textContent = st.on ? SEASON_PERKS : '';
-    this.season.title = `Сезон рыбалки: ${SEASON_PERKS}`;
+    this.season.title = `Сезон рыбалки: ${SEASON_PERKS_LONG}`;
     this.seasonTime.textContent = st.on ? `осталось ${seasonLeft(st.left)}` : seasonWait(st.left);
   }
 

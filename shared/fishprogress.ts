@@ -3,10 +3,11 @@
 // (пристань/баркас), напитком и блесной; опыт ×0,4 (+20 %), баркас ×1,25, утешение за сорвавшуюся эпическую+.
 // 04.10: легендарная удочка за 15-е задание (зона и поклёвка +40 %, редкие и выше ×1,2), платиновая блесна, водка
 // рыбацкая (vodkaUntil), уровень — ровно +2,5 % за уровень от базы (редкие и выше, теперь и божественная).
+// 04.10, причёсанные шансы: шанс от уровня — до 15-го (×1,375); водка — эпик и выше вместе с божественной, опыт за них ×2.
 import { FISH } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import {
-  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, T_MYTH, XP_SCALE, isCollected, ruleOf, tierRank,
+  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, XP_SCALE, isCollected, ruleOf, tierRank,
 } from './fishrules.ts';
 import { ALE, BAGS, BAG_MAX, BEER, LORD, LURES, RAIN_DRUM_PRICE as DRUM_PRICE, VODKA, bagCapacity, lureOf, type ShopDrink } from './fishshop.ts';
 
@@ -24,8 +25,10 @@ export const RODS: ReadonlyArray<{ rod: FishRod; name: string; quests: number; b
 ];
 /** Лучшая удочка */
 export const ROD_MAX = RODS[RODS.length - 1].rod;
-/** +2,5 % к шансу за уровень рыбалки от базового (редкие и выше, и божественная) */
+/** +2,5 % к шансу за уровень рыбалки от базового (все от редкой до божественной) */
 export const LEVEL_ODDS = 0.025;
+/** Шанс растёт с уровнем до этого уровня (15-й — ×1,375); выше — не растёт */
+export const LEVEL_ODDS_MAX = 15;
 
 /** Рыба в рюкзаке: цена и множители зафиксированы при поимке */
 export interface BagFish {
@@ -72,7 +75,7 @@ export interface FishCastMods {
   rod: FishRod;
   zoneScale: number;
   biteSpeed: number;
-  /** Шанс редких и выше (и божественной): уровень (1 + 0,025·ур) × удочка × напиток */
+  /** Шанс всех от редкой до божественной: уровень (1 + 0,025·ур) × удочка × напиток */
   rareMultiplier: number;
   /** Доход от рыбы: напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво подводного владыки) */
   incomeScale: number;
@@ -82,14 +85,14 @@ export interface FishCastMods {
   drink: FishDrink;
   /** Блесна на леске */
   lure: FishGear;
-  /** Ещё шанс эпических и выше: блесна */
+  /** Ещё шанс эпической и выше (с божественной): блесна */
   epicMultiplier: number;
   /** Рывки мягче на долю: блесна */
   calm: number;
   /** Море: рывки ×sea, сопротивление ×seaDrain */
   sea: number;
   seaDrain: number;
-  /** Водка: шанс эпических, легендарных и мифических ×top (нет — 1) */
+  /** Водка: шанс эпической и выше (с божественной) ×top (нет — 1) */
   topMultiplier?: number;
   /** Водка: зона на шкале ×zoneMul (нет — 1) */
   zoneMul?: number;
@@ -190,14 +193,14 @@ export function rodBonus(rod: FishRod): number {
   return RODS[rod]?.bonus ?? 0;
 }
 
-/** Шанс редких и выше от удочки: ×(1 + 0,05·удочка) — 1,05 … 1,2 */
+/** Шанс всех от редкой до божественной от удочки: ×(1 + 0,05·удочка) — 1,05 … 1,2 */
 export function rodOdds(rod: number): number {
   return 1 + 0.05 * (RODS[rod]?.rod ?? 0);
 }
 
-/** Шанс от уровня рыбалки: +2,5 % за уровень от базового (на 10-м ×1,25) */
+/** Шанс от уровня рыбалки: +2,5 % за уровень от базового — ровно, до 15-го (на 10-м ×1,25, на 15-м ×1,375) */
 export function levelOdds(level: number): number {
-  return 1 + LEVEL_ODDS * Math.min(10, Math.max(0, Math.trunc(level) || 0));
+  return 1 + LEVEL_ODDS * Math.min(LEVEL_ODDS_MAX, Math.max(0, Math.trunc(level) || 0));
 }
 
 /** Мест в рюкзаке сейчас */
@@ -261,7 +264,7 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
 /**
  * Stardew: trunc(3 + difficulty/3), perfect ×2.4, legendary ×5 (truncated after each factor). Виды пристани — от
  * замороженной сложности выпуска 6, виды баркаса — от заданной базы. Итог ×0,4 (+20 % к прежней трети), на баркасе ещё
- * ×1,25, в дождь ещё ×1,15 (rain), с водкой эпические, легендарные и мифические ещё ×2, одно округление. Хлам и сундук
+ * ×1,25, в дождь ещё ×1,15 (rain), с водкой эпическая и выше (с божественной) ещё ×2, одно округление. Хлам и сундук
  * опыта не дают.
  */
 export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<FishCastMods, 'zone'> & Partial<Pick<FishCastMods, 'drink'>>>, rain = false): number {
@@ -274,7 +277,7 @@ export function fishCatchXp(sp: number, perfect = false, mods?: Readonly<Pick<Fi
   if (tierRank(r.tier) >= T_LEGEND) xp *= 5;
   const place = mods?.zone === 'barkas' ? BARKAS_XP : 1;
   const rank = tierRank(r.tier);
-  const vodka = mods?.drink === 4 && rank >= T_EPIC && rank <= T_MYTH ? VODKA.topXp ?? 1 : 1;
+  const vodka = mods?.drink === 4 && rank >= T_EPIC ? VODKA.topXp ?? 1 : 1;
   return Math.max(1, Math.round(xp * XP_SCALE * place * (rain ? RAIN_XP : 1) * vodka));
 }
 
