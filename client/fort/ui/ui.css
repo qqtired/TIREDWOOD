@@ -817,8 +817,9 @@
   .fu-banner { max-width: calc(100vw - 24px); }
   .fu-btitle { font-size: 19px; }
   .fu-bsub { font-size: 12.5px; }
-  /* стволы и гранаты — не под полосой сверху, а слева над джойстиком */
-  .touch .ars-arms { top: auto; right: auto; left: 10px; bottom: calc(236px + env(safe-area-inset-bottom, 0px)); }
+  /* стволы и гранаты — не под полосой сверху, а слева над джойстиком: между здоровьем (низ 136 px, верх ≈ 191–208 px) и
+     патронами (низ 262 px), отсчёт как у них — без safe-area; на 236 px полоска закрывала «Рывок» внизу карточки патронов */
+  .touch .ars-arms { top: auto; right: auto; left: 10px; bottom: 210px; }
   /* итоги: без «повален» и «волн» — таблица влезает по ширине */
   .fu-res-table th:nth-child(3), .fu-res-table td:nth-child(3),
   .fu-res-table th:nth-child(5), .fu-res-table td:nth-child(5) { display: none; }

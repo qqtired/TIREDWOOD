@@ -3,7 +3,7 @@
 // с суммой очков и кольцом таймера хода, полоска «дилер и все за столом» сверху и крупный итог по центру.
 // Панель только показывает вид стола с сервера и отправляет действия с номером версии (rev): ничего не решает сама.
 // Показ чуть отстаёт от сервера, пока в 3D летят карты (`setHold`), — чтобы не выдавать карты раньше, чем они упали.
-import { BJ_CHIPS, BJ_MAX_BET, BJ_TABLE, BJ_TURN_TICKS, isBet, maxBet, seatPrint, type BlackjackAct, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
+import { BJ_CHIPS, BJ_MAX_BET, BJ_TABLE, BJ_TURN_TICKS, isBet, maxBet, seatPrint, type BlackjackAct, type BlackjackPhase, type BlackjackSeatView, type BlackjackView } from '../../shared/blackjack.ts';
 import { TICK_MS } from '../../shared/constants.ts';
 import { addChip, canAdd, chipsFor, limitHint, parseAmount } from './bjbet.ts';
 import { BJ_ATLAS, bjAtlasCanvas, bjAtlasPosition } from './bjcards.ts';
@@ -30,6 +30,8 @@ const ACTIONS = [
   { act: 'split', label: 'Разделить', key: 'P', cls: 'split' },
 ] as const;
 const KEY_ACTION: Record<string, BlackjackAct> = { KeyH: 'hit', KeyS: 'stand', KeyD: 'double', KeyP: 'split' };
+/** Ставки и отсчёт: карт в воздухе нет, летят только фишки */
+const calm = (phase: BlackjackPhase | undefined): boolean => phase === 'betting' || phase === 'countdown';
 /** 1–4 — фишки по порядку (добавляют номинал к ставке), 0 — играть бесплатно */
 const KEY_CHIP: Record<string, number> = {};
 BJ_CHIPS.forEach((chip, i) => {
@@ -197,6 +199,9 @@ export class BlackjackHud {
 
   setView(view: BlackjackView, now = performance.now()): void {
     if (view.table !== BJ_TABLE || (this.view && view.rev < this.view.rev)) return;
+    // Между ставками ждать нечего: чужие фишки не должны прятать окно ставки. Вдвоём за столом окно пропадало на 0,1–0,4 с,
+    // пока летели фишки соседа, и клик по «Поставить» в это время терялся молча (ставка не уходила).
+    if (calm(view.phase) && calm(this.shown?.phase)) this.holdUntil = Math.min(this.holdUntil, now);
     this.view = view;
     this.recvAt = now;
     // Чужие ставки, посадки и ходы замок не снимают: иначе при нескольких игроках кнопки оживали бы раньше ответа сервера

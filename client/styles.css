@@ -2157,6 +2157,11 @@ input[type='checkbox'] {
   pointer-events: none;
 }
 
+/* шторм: плашка с таймером сверху по центру (76…≈142 px) — тосты под ней, иначе «Плюх!» от волны закрывает «Зажги маяк · N с» */
+html:not(.touch)[data-room='lobby']:has(.lobby-storm-status:not([hidden])) .toasts {
+  top: 152px;
+}
+
 .toast {
   max-width: min(520px, 90vw);
   padding: 10px 18px;

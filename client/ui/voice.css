@@ -42,6 +42,10 @@
 .voice-tip { max-width: min(280px, calc(100vw - 110px)); margin: 0 0 11px; padding: 6px 10px; border-radius: 9px; background: #2b2025e6; color: #fff3de; font-size: 12.5px; line-height: 1.35; box-shadow: 0 3px 10px #0004; }
 /* в пейнтболе и крепости слева внизу — здоровье (.card.vitals, 260 px): кнопка голоса — справа от него */
 html:not(.touch)[data-room='paintball'] .voice-hud, html:not(.touch)[data-room='fort'] .voice-hud { left: 292px; bottom: 26px; }
+/* Fight Club: слева внизу — полоска «ТЫ» (.fc-me, 22…342 px); прятки: памятка прячущемуся (.hd-help, 14…344 px, пока прячутся) —
+   кнопка закрывала их начало. Справа от них и выше нижней подсказки по центру (.fc-hint — до двух строк; в прятках — Мешок · F) */
+html:not(.touch)[data-room='fight']:has(.fc-me.show) .voice-hud { left: 356px; bottom: 80px; }
+html:not(.touch)[data-room='hide']:has(.hd-help.on) .voice-hud { left: 358px; bottom: 74px; }
 @keyframes voice-connect { to { transform: rotate(360deg); } }
 @keyframes voice-nudge { 50% { box-shadow: 0 0 0 7px #ffb36b40, 0 3px 0 #2d241c99; } }
 @keyframes voice-in { from { opacity: 0; transform: translateX(-8px); } }
@@ -57,6 +61,14 @@ html:not(.touch)[data-room='paintball'] .voice-hud, html:not(.touch)[data-room='
   .voice-hud { left: 14px; bottom: max(166px, calc(env(safe-area-inset-bottom) + 150px)); }
   .voice-hold { width: 52px; height: 52px; }
   .voice-speaker { max-width: min(240px, calc(100vw - 190px)); }
+}
+/* телефон, картинг: над окошком бонуса (.rc-item, низ 136–140 px + 68 px) — иначе кнопка закрывала его, и касание по бонусу
+   включало микрофон */
+html.touch[data-room='race'] .voice-hud { bottom: calc(218px + env(safe-area-inset-bottom, 0px)); }
+/* телефон стоя, пейнтбол и крепость: слева над джойстиком здоровье (низ 136 px) и патроны (низ 262 px, ≈ 63 px) — кнопка выше
+   патронов, а не на сердце со здоровьем */
+@media (max-width: 480px) {
+  html.touch[data-room='paintball'] .voice-hud, html.touch[data-room='fort'] .voice-hud { bottom: 335px; }
 }
 @media (max-width: 640px), (max-height: 480px) {
   html.touch[data-fishing] .voice-speaker { max-width: min(170px, calc(100vw - 190px)); }
