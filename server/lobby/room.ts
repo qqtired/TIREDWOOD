@@ -1087,12 +1087,12 @@ export class LobbyRoom implements Room {
         this.ferryChanged();
       } else if (r === 'coming') this.hub.toast(c, `«Удалая» уже идёт к баркасу — будет через ${eta} с`);
       // уже звали: лодка ещё у мостков (вот-вот отойдёт) или идёт назад к Семёну и оттуда сразу сюда
-      else if (f.phase === FE_BACK) this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» дойдёт до мостков Семёна и сразу сюда: будет через ${eta} с`);
-      else this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» отходит от мостков Семёна, у борта будет через ${eta} с`);
+      else if (f.phase === FE_BACK) this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» дойдёт до хижины Семёна и сразу сюда: будет через ${eta} с`);
+      else this.hub.toast(c, `Гоша уже слышал колокол — «Удалая» отходит от хижины Семёна, у борта будет через ${eta} с`);
       return;
     }
     if (f.phase !== FE_HOME && f.phase !== FE_BOARD) {
-      this.hub.toast(c, `«Удалая» в море — вернётся к мосткам через ${secs(ferryEta(f.phase, f.at, this.tick, false))} с`);
+      this.hub.toast(c, `«Удалая» в море — вернётся к хижине Семёна через ${secs(ferryEta(f.phase, f.at, this.tick, false))} с`);
       return;
     }
     const level = fishLevel(prof.fishing.xp);
@@ -1147,7 +1147,7 @@ export class LobbyRoom implements Room {
       },
     });
     // жетоны, профиль и доску почёта после обработчика обновляет FishNpc (host.changed)
-    const message = r === 'ok' ? 'Саня свистнул знакомому катеру — и ты уже на мостках у Семёна'
+    const message = r === 'ok' ? 'Саня свистнул знакомому катеру — и ты уже у хижины Семёна'
       : r === 'far' ? 'Подойди к Сане на баркасе' : `Саня берёт ${SANYA_PRICE} 🪙, а у тебя ${prof.tokens}`;
     c.sink.sendJson({ t: 'barkasHome', ok: r === 'ok', message });
     return r === 'ok' ? { open: false } : message;
@@ -1582,7 +1582,7 @@ export class LobbyRoom implements Room {
       if (!inFerry(dock, s.x, s.z, s.y)) continue;
       this.release(p);
       this.ferryLand(p, fromBarkas, Math.floor(Math.random() * 6));
-      this.hub.toast(p.client, fromBarkas ? 'Лодка ушла, а места у тебя не было — ты на палубе' : 'Лодка ушла, а места у тебя не было — ты на мостках');
+      this.hub.toast(p.client, fromBarkas ? 'Лодка ушла, а места у тебя не было — ты на палубе' : 'Лодка ушла, а места у тебя не было — ты у хижины Семёна');
     }
   }
 

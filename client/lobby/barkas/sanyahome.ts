@@ -54,7 +54,7 @@ export class SanyaHome {
     if (!sanya) return;
     const short = SANYA_PRICE - this.tokens();
     this.btn.disabled = this.pending !== 0 || short > 0;
-    this.btn.title = short > 0 ? `Не хватает ${short} 🪙 · ${FREE}` : `Саня свистнет знакомому катеру — и ты сразу на мостках у Семёна. Или ${FREE}`;
+    this.btn.title = short > 0 ? `Не хватает ${short} 🪙 · ${FREE}` : `Саня свистнет знакомому катеру — и ты сразу у хижины Семёна. Или ${FREE}`;
     const note = short > 0 ? `Не хватает ${short} 🪙 · бесплатно — колокол у калитки` : NOTE;
     if (this.note.dataset.t !== note) {
       this.note.dataset.t = note;

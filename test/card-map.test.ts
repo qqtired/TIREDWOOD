@@ -21,9 +21,12 @@ test('кафе сохраняет 18 старых стульев: два сто�
   const fish = m.interact.filter((i) => i.kind === 'fish');
   assert.deepEqual(fish.filter((i) => spotZone(i.arg) === 'pier' && i.arg < 12).map((i) => i.id), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   for (const i of fish) if (spotZone(i.arg) === 'barkas') assert.ok(i.id > 52, `место баркаса ${i.id} — после прежних точек`);
-  // места дальних мостков и у дома рыбака (пристань, номера с 20) — в самом конце списка, после мест баркаса
-  const barkasMax = Math.max(...fish.filter((i) => spotZone(i.arg) === 'barkas').map((i) => i.id));
-  for (const i of fish) if (i.arg >= 20) assert.ok(spotZone(i.arg) === 'pier' && i.id > barkasMax, `дальнее место ${i.id} — после баркаса`);
+  // места дальних мостков и у дома рыбака (пристань, номера 20…27) — после первых восьми мест баркаса (12…19); два новых
+  // места удлинённого баркаса (28, 29) — в самом конце списка
+  const barkasMax = Math.max(...fish.filter((i) => i.arg >= 12 && i.arg < 20).map((i) => i.id));
+  for (const i of fish) if (i.arg >= 20 && i.arg < 28) assert.ok(spotZone(i.arg) === 'pier' && i.id > barkasMax, `дальнее место ${i.id} — после баркаса`);
+  const farMax = Math.max(...fish.filter((i) => i.arg >= 20 && i.arg < 28).map((i) => i.id));
+  for (const i of fish) if (i.arg >= 28) assert.ok(spotZone(i.arg) === 'barkas' && i.id > farMax && i.id > m.interact.find((b) => b.kind === 'banner')!.id, `новое место баркаса ${i.id} — в конце`);
 });
 
 test('портал скилл-теста добавлен после старых точек; вход и выход стоят на свободном настиле', () => {

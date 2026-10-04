@@ -17,9 +17,10 @@ import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { AQUA_NEAR_X, AQUA_PIECES, aquaFall, aquaMs, fmtAquaTime, onFinish, onJetty } from '../../shared/aqua.ts';
 import { AquaDyn, KNOCK_BAG, quantTick } from '../../shared/aquadyn.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_DOCK, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
-import { barkasWater } from '../../shared/barkas.ts';
+import { BARKAS, BARKAS_LANDING, barkasWater } from '../../shared/barkas.ts';
 import {
-  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat, type FerryPose,
+  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat,
+  type FerryPose,
 } from '../../shared/ferry.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { BJ_MAX_BET, BJ_TABLE, type BlackjackView } from '../../shared/blackjack.ts';
@@ -194,7 +195,7 @@ const BOAT_ENGINE = 9000;
 const LAUNCH_ENGINE = 9001;
 /** Катер у причала — пока статуса с сервера нет (в меню) */
 const BOAT_DOCKED: BoatStatus = { ph: BP_DOCK, at: 0, n: 0, nick: '' };
-/** Лодка «Удалая» у мостков Семёна — пока статуса с сервера нет */
+/** Лодка «Удалая» у причала за хижиной Семёна — пока статуса с сервера нет */
 const FERRY_DOCKED: FerryStatus = { ph: FE_HOME, at: 0, n: 0, c: 0 };
 
 export class LobbyScene implements Scene {
@@ -1232,7 +1233,7 @@ export class LobbyScene implements Scene {
   private checkFerryLevel(xp: number): void {
     const lvl = fishLevel(xp);
     if (this.fishLvl >= 0 && this.fishLvl < FERRY_LEVEL && lvl >= FERRY_LEVEL) {
-      this.d.ui.toasts.show('Семён берёт тебя в море! Лодка «Удалая» ждёт у его мостков — на баркас «Альбатрос»');
+      this.d.ui.toasts.show('Семён берёт тебя в море! Лодка «Удалая» ждёт за его хижиной на конце пирса — на баркас «Альбатрос»');
     }
     this.fishLvl = lvl;
   }
@@ -1709,6 +1710,12 @@ export class LobbyScene implements Scene {
           input.pitch = WHEEL_VIEW.pitch;
           this.wheelUntil = this.clock.ready ? wheelArrival(Math.floor(arg / WHEEL_SEATS), Math.round(this.clock.renderTick)) : 0;
         }
+      }
+      // сошёл с лодки «Удалая» — лицом, как высаживают: у хижины Семёна — к мосткам (камера за спиной — не в хижине),
+      // на баркасе — вдоль палубы к носу
+      if (prev === ACT_FERRY_RIDE && action === ACT_NONE) {
+        input.yaw = this.ferryPose.z > (FERRY_HOME.z + BARKAS.z) / 2 ? BARKAS_LANDING.yaw : FERRY_HOME_LANDING.yaw;
+        input.pitch = -0.12;
       }
       // сошёл с катера регаты (сервер ставит у круга сбора) — лицом к площади, не к воде
       if (prev === ACT_REGATTA && action !== ACT_REGATTA) {
@@ -2891,7 +2898,7 @@ export class LobbyScene implements Scene {
   }
 
   /**
-   * Лодка «Удалая»: у мостков Семёна (arg 0) — сесть (с FERRY_LEVEL-го уровня рыбалки) или когда вернётся; у калитки
+   * Лодка «Удалая»: у причала за хижиной Семёна (arg 0) — сесть (с FERRY_LEVEL-го уровня рыбалки) или когда вернётся; у калитки
    * баркаса (arg 1) — сесть или позвонить в колокол.
    */
   private hintFerry(arg: number): void {
@@ -2906,7 +2913,7 @@ export class LobbyScene implements Scene {
       return;
     }
     if (f.ph !== FE_HOME && f.ph !== FE_BOARD) {
-      this.hud.setHint([], `«Удалая» в море · вернётся к мосткам через ${Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)} с`);
+      this.hud.setHint([], `«Удалая» в море · вернётся к хижине Семёна через ${Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)} с`);
       return;
     }
     const xp = this.d.ui.me().fishing?.xp ?? 0;

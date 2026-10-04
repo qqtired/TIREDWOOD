@@ -17,7 +17,7 @@ import { EVENING, RAIN, blendFog, blendSky, fogColor, makeSea, makeSky, type Sky
 import * as tex from '../render/textures.ts';
 import { Backdrop, skyHaze } from './backdrop.ts';
 import { GateScreen, HonorBoard, JackpotBoard, RecentBoard } from './boards.ts';
-import { barkasCover } from '../../shared/barkas.ts';
+import { BARKAS, barkasCover } from '../../shared/barkas.ts';
 import { Barkas } from './barkas/index.ts';
 import { Boats } from './boats.ts';
 import { LobbyDecor, swayAttr, windSway } from './decor.ts';
@@ -265,7 +265,8 @@ export class LobbyWorld {
 
     // --- дождь: где от него укрыто и как в мокром отражается небо (ясное и дождливое)
     // до баркаса «Альбатрос» (−60; 68): на его палубе тоже мокро, под крышей рубки и тентом — сухо
-    this.cover = new CoverMap([...this.map.boxes, ...barkasCover()], -76, -26, 30, 74);
+    // до баркаса включительно (он далеко в море — карта укрытий длиннее на юг)
+    this.cover = new CoverMap([...this.map.boxes, ...barkasCover()], Math.floor(BARKAS.bow) - 2, -26, 30, Math.ceil(BARKAS.z + BARKAS.half) + 3);
     this.wet = { uWet: { value: 0 }, uCover: { value: this.cover.texture }, uCoverBox: { value: this.cover.box } };
     const pmrem = new THREE.PMREMGenerator(renderer.gl);
     const env = (p: SkyPalette): THREE.Texture => {

@@ -8,15 +8,18 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
-  BARKAS, BARKAS_AFRAME, BARKAS_AWNING, BARKAS_BAK_Y, BARKAS_BELL, BARKAS_CRATES, BARKAS_DRUM, BARKAS_GATE, BARKAS_HATCH, BARKAS_HOUSE,
+  BARKAS, BARKAS_AFRAME, BARKAS_AWNING, BARKAS_BAK_X, BARKAS_BAK_Y, BARKAS_BELL, BARKAS_CRATES, BARKAS_DRUM, BARKAS_GATE, BARKAS_HATCH, BARKAS_HOUSE,
   BARKAS_RAIL_H, BARKAS_RAIL_T, BARKAS_RYNDA, BARKAS_WINDLASS, SANYA_STALL, barkasHalf,
 } from '../../../shared/barkas.ts';
 import { mergeColored, paint, place, staticMesh, type V3 } from '../../render/kit.ts';
 import { makeFish3D } from '../fishart.ts';
 import { Halos, type Halo } from './halos.ts';
 
+const CX = BARKAS.x;
 const CZ = BARKAS.z;
 const STERN = BARKAS.stern;
+/** Ступень бака: от неё к носу палуба выше */
+const BAK_X = BARKAS_BAK_X;
 const STEM = BARKAS.bow;
 const TEAL = 0x1f5a5e;
 const CREAM = 0xeee4cb;
@@ -37,14 +40,14 @@ const ROPE = 0xc9b48a;
 
 /** Высота борта (верх фальшборта) в сечении x: у бака выше, к форштевню задирается */
 function railY(x: number): number {
-  const bak = smooth((-67.4 - x) / 1.2) * 0.45;
-  const rise = x < -68.6 ? 0.45 * ((-68.6 - x) / (-68.6 - STEM)) ** 2 : 0;
+  const bak = smooth((BAK_X + 0.6 - x) / 1.2) * 0.45;
+  const rise = x < BAK_X - 0.6 ? 0.45 * ((BAK_X - 0.6 - x) / (BAK_X - 0.6 - STEM)) ** 2 : 0;
   return BARKAS_RAIL_H + bak + rise;
 }
 
 /** Высота палубы в сечении x: бак — на ступень выше */
 function deckY(x: number): number {
-  return x <= -68 ? BARKAS_BAK_Y : 0;
+  return x <= BAK_X ? BARKAS_BAK_Y : 0;
 }
 
 function smooth(k: number): number {
@@ -126,8 +129,8 @@ function label(text: string, w: number, h: number, font: string, color: string, 
 /** Сечения корпуса по длине: от транца к форштевню (у носа гуще) */
 function sections(): number[] {
   const xs: number[] = [];
-  for (let x = STERN; x > -68; x -= 1.1) xs.push(x);
-  for (let i = 0; i <= 18; i++) xs.push(-68 + (STEM + 68) * (i / 18));
+  for (let x = STERN; x > BAK_X; x -= 1.1) xs.push(x);
+  for (let i = 0; i <= 18; i++) xs.push(BAK_X + (STEM - BAK_X) * (i / 18));
   return xs;
 }
 
@@ -152,7 +155,7 @@ export class BarkasShip {
   private ryndaT = 9;
   private gateT = 9;
   private readonly buoy: THREE.Group;
-  readonly funnelTop = new THREE.Vector3(-64.55, 4.25, 69.45);
+  readonly funnelTop = new THREE.Vector3(BARKAS_HOUSE.x1 - 0.55, 4.25, CZ + 1.45);
   private readonly flagMat: THREE.MeshStandardMaterial;
 
   /** wet — материал мокнет в дождь; wind — время ветра (флажки трепещут, как на площади) */
@@ -267,7 +270,7 @@ export class BarkasShip {
       out.push(grid(n, 2, (i, j) => [xs[i], j ? railY(xs[i]) : deckY(xs[i]) - 0.01, CZ + side * inner(xs[i])], 0xe2dac4));
       out.push(grid(n, 2, (i, j) => [xs[i], railY(xs[i]) + 0.045, CZ + side * (j ? barkasHalf(xs[i]) + 0.03 : inner(xs[i]) - 0.03)], VARNISH));
       // шпигаты: тёмные прорези у палубы снаружи
-      for (let x = -48; x > -67; x -= 2.2) out.push(box(0.36, 0.1, 0.03, x, 0.06, CZ + side * (BARKAS.half + 0.005), 0x16282a));
+      for (let x = STERN - 2; x > BAK_X + 1; x -= 2.2) out.push(box(0.36, 0.1, 0.03, x, 0.06, CZ + side * (BARKAS.half + 0.005), 0x16282a));
       // привальный брус над ватерлинией
       out.push(grid(n, 2, (i, j) => [xs[i], -0.5 + j * 0.09, CZ + side * (barkasHalf(xs[i]) * 0.993 + 0.03)], 0x173f42));
     }
@@ -281,20 +284,20 @@ export class BarkasShip {
     for (let j = 0; j < n; j++) {
       const z0 = CZ - half + j * plank;
       const tone = j % 3 === 0 ? DECK_B : j % 3 === 1 ? DECK_A : 0xa9855a;
-      out.push(grid(2, 2, (i, k) => [i ? -68 : STERN - BARKAS_RAIL_T, 0.002, z0 + k * plank], tone));
-      out.push(grid(2, 2, (i, k) => [i ? -68 : STERN - BARKAS_RAIL_T, 0.004, z0 + k * 0.012], SEAM));
+      out.push(grid(2, 2, (i, k) => [i ? BAK_X : STERN - BARKAS_RAIL_T, 0.002, z0 + k * plank], tone));
+      out.push(grid(2, 2, (i, k) => [i ? BAK_X : STERN - BARKAS_RAIL_T, 0.004, z0 + k * 0.012], SEAM));
       // бак: доска от ступени до места, где обвод уже неё
       const need = Math.max(Math.abs(z0 - CZ), Math.abs(z0 + plank - CZ));
-      let xf = -68;
+      let xf = BAK_X;
       while (xf > STEM + 0.4 && barkasHalf(xf - 0.05) - BARKAS_RAIL_T >= need) xf -= 0.05;
-      if (xf < -68.05) {
-        out.push(grid(2, 2, (i, k) => [i ? xf : -68, BARKAS_BAK_Y + 0.002, z0 + k * plank], tone));
-        out.push(grid(2, 2, (i, k) => [i ? xf : -68, BARKAS_BAK_Y + 0.004, z0 + k * 0.012], SEAM));
+      if (xf < BAK_X - 0.05) {
+        out.push(grid(2, 2, (i, k) => [i ? xf : BAK_X, BARKAS_BAK_Y + 0.002, z0 + k * plank], tone));
+        out.push(grid(2, 2, (i, k) => [i ? xf : BAK_X, BARKAS_BAK_Y + 0.004, z0 + k * 0.012], SEAM));
       }
     }
     // ступень на бак (лицом к корме) и её окантовка
-    out.push(grid(2, 2, (i, j) => [-68, i * BARKAS_BAK_Y, CZ - half + j * 2 * half], 0x8c6a45));
-    out.push(box(0.06, 0.03, 2 * half, -67.98, BARKAS_BAK_Y + 0.01, CZ, 0x6b5036));
+    out.push(grid(2, 2, (i, j) => [BAK_X, i * BARKAS_BAK_Y, CZ - half + j * 2 * half], 0x8c6a45));
+    out.push(box(0.06, 0.03, 2 * half, BAK_X + 0.02, BARKAS_BAK_Y + 0.01, CZ, 0x6b5036));
   }
 
   // ------------------------------------------------------------ рубка, мачта, труба
@@ -316,7 +319,7 @@ export class BarkasShip {
       out.push(at(new THREE.BoxGeometry(0.05, hh, 0.05), 0x5c6168, x, 1.75, z, ry));
     };
     for (const z of [-1.25, 0, 1.25]) win(H.x0 - 0.011, CZ + z, 1.0, 0.62, -Math.PI / 2);
-    for (const side of [-1, 1]) for (const x of [-67.1, -65.2]) win(x, CZ + side * (d / 2 + 0.011), 0.9, 0.6, side < 0 ? Math.PI : 0);
+    for (const side of [-1, 1]) for (const x of [H.x0 + 0.9, H.x0 + 2.8]) win(x, CZ + side * (d / 2 + 0.011), 0.9, 0.6, side < 0 ? Math.PI : 0);
     win(H.x1 + 0.011, CZ + 1.15, 0.8, 0.55, Math.PI / 2);
     // дверь сзади: тёмная, с иллюминатором и ручкой
     out.push(box(0.05, 1.85, 0.8, H.x1 + 0.02, 0.97, CZ - 0.55, 0x2f5f63));
@@ -325,10 +328,10 @@ export class BarkasShip {
     // спасательные круги на бортах рубки
     for (const side of [-1, 1]) {
       const ring = new THREE.TorusGeometry(0.3, 0.075, 8, 18);
-      out.push(at(ring.clone(), ORANGE, -66.2, 1.3, CZ + side * (d / 2 + 0.08), side < 0 ? Math.PI : 0));
+      out.push(at(ring.clone(), ORANGE, H.x0 + 1.8, 1.3, CZ + side * (d / 2 + 0.08), side < 0 ? Math.PI : 0));
       for (let k = 0; k < 4; k++) {
         const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-        out.push(at(new THREE.BoxGeometry(0.1, 0.16, 0.17), WHITE, -66.2 + Math.cos(a) * 0.3, 1.3 + Math.sin(a) * 0.3, CZ + side * (d / 2 + 0.08), 0, 0));
+        out.push(at(new THREE.BoxGeometry(0.1, 0.16, 0.17), WHITE, H.x0 + 1.8 + Math.cos(a) * 0.3, 1.3 + Math.sin(a) * 0.3, CZ + side * (d / 2 + 0.08), 0, 0));
       }
     }
     // поручни на крыше
@@ -341,11 +344,11 @@ export class BarkasShip {
       for (let i = 0; i <= k; i++) metal.push(rod([x0 + ((x1 - x0) * i) / k, top, z0 + ((z1 - z0) * i) / k], [x0 + ((x1 - x0) * i) / k, top + 0.55, z0 + ((z1 - z0) * i) / k], 0.022, WHITE));
     }
     // прожектор на крыше
-    metal.push(cyl(0.16, 0.16, 0.22, -67.75, top + 0.32, CZ - 1.2, 0xd8d8d0, 12).rotateZ(0));
-    metal.push(cyl(0.05, 0.05, 0.2, -67.75, top + 0.11, CZ - 1.2, DARK));
-    glow.push(at(new THREE.CircleGeometry(0.13, 14), 0xfff1c8, -67.92, top + 0.32, CZ - 1.2, -Math.PI / 2));
+    metal.push(cyl(0.16, 0.16, 0.22, H.x0 + 0.25, top + 0.32, CZ - 1.2, 0xd8d8d0, 12).rotateZ(0));
+    metal.push(cyl(0.05, 0.05, 0.2, H.x0 + 0.25, top + 0.11, CZ - 1.2, DARK));
+    glow.push(at(new THREE.CircleGeometry(0.13, 14), 0xfff1c8, H.x0 + 0.08, top + 0.32, CZ - 1.2, -Math.PI / 2));
     // мачта на передней кромке крыши: марс, рея, топовый огонь, антенна
-    const mx = -67.25;
+    const mx = H.x0 + 0.75;
     out.push(cyl(0.07, 0.11, 6.6, mx, top + 3.3, CZ, 0xd9d2bf, 10));
     out.push(cyl(0.48, 0.48, 0.06, mx, 6.75, CZ, 0x7a5a3a, 14));
     for (let k = 0; k < 10; k++) {
@@ -356,8 +359,8 @@ export class BarkasShip {
     out.push(at(new THREE.CylinderGeometry(0.035, 0.05, 2.6, 6).rotateX(Math.PI / 2), 0xd9d2bf, mx, 8.0, CZ));
     // ванты: от мачты к фальшборту у рубки
     for (const side of [-1, 1]) {
-      metal.push(rod([mx, 7.9, CZ], [-66.4, railY(-66.4) + 0.05, CZ + side * (BARKAS.half - 0.08)], 0.012, 0x3a3e42, 4));
-      metal.push(rod([mx, 7.9, CZ], [-68.8, railY(-68.8) + 0.05, CZ + side * (barkasHalf(-68.8) - 0.08)], 0.012, 0x3a3e42, 4));
+      metal.push(rod([mx, 7.9, CZ], [H.x0 + 1.6, railY(H.x0 + 1.6) + 0.05, CZ + side * (BARKAS.half - 0.08)], 0.012, 0x3a3e42, 4));
+      metal.push(rod([mx, 7.9, CZ], [H.x0 - 0.8, railY(H.x0 - 0.8) + 0.05, CZ + side * (barkasHalf(H.x0 - 0.8) - 0.08)], 0.012, 0x3a3e42, 4));
     }
     // труба: кремовая с красной полосой и чёрным верхом
     const [fx, , fz] = [this.funnelTop.x, 0, this.funnelTop.z];
@@ -439,11 +442,11 @@ export class BarkasShip {
       }
     }
     // бухты каната у фальшборта
-    for (const [x, z] of [[-62.5, 64.95], [-50.9, 71.05]] as const) {
+    for (const [x, z] of [[CX - 5, CZ - 3.05], [CX + 11.6, CZ + 3.05]] as const) {
       for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.28 - k * 0.045, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, x, 0.04 + k * 0.035, z));
     }
     // ведро матроса Витька (он драит палубу рядом — BARKAS_CREW.vityok): оцинковка, вода, дужка
-    const [bx, bz] = [-48.76, 65.02];
+    const [bx, bz] = [CX + 13.74, CZ - 2.98];
     metal.push(cyl(0.15, 0.115, 0.3, bx, 0.15, bz, 0xa4abae, 14));
     metal.push(at(new THREE.TorusGeometry(0.15, 0.012, 5, 16).rotateX(Math.PI / 2), 0x8d9497, bx, 0.3, bz));
     out.push(at(new THREE.CircleGeometry(0.14, 14).rotateX(-Math.PI / 2), 0x5d7f86, bx, 0.26, bz));
@@ -461,21 +464,21 @@ export class BarkasShip {
     metal.push(at(new THREE.CylinderGeometry(0.2, 0.2, 0.9, 14).rotateX(Math.PI / 2), 0x4a5055, wx, y + 0.38, CZ));
     // якорная цепь: от брашпиля к клюзу
     const a: V3 = [W.x0, y + 0.3, CZ - 0.1];
-    const b: V3 = [-73.25, y + 0.22, CZ - 0.55];
+    const b: V3 = [CX - 15.75, y + 0.22, CZ - 0.55];
     for (let i = 0; i < 12; i++) {
       const k = i / 11;
       const p: V3 = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k + 0.02, a[2] + (b[2] - a[2]) * k];
       metal.push(at(new THREE.TorusGeometry(0.05, 0.016, 4, 8), 0x2d3033, p[0], p[1], p[2], Math.PI / 2 + (i % 2) * 0.3, (i % 2) * Math.PI / 2));
     }
     // якорь снаружи у клюза
-    const ax = -73.05;
+    const ax = CX - 15.55;
     const az = CZ - barkasHalf(ax) - 0.06;
     metal.push(rod([ax, -0.85, az], [ax, 0.15, az], 0.05, 0x2d3033));
     metal.push(rod([ax - 0.35, -0.75, az], [ax + 0.35, -0.75, az], 0.04, 0x2d3033));
     for (const s of [-1, 1]) metal.push(rod([ax, -0.85, az], [ax + s * 0.3, -0.62, az - 0.05], 0.05, 0x2d3033));
     metal.push(at(new THREE.TorusGeometry(0.08, 0.025, 4, 10), 0x2d3033, ax, 0.22, az, Math.PI / 2));
     // бухта на баке: в углу у южного борта между брашпилем и музыкальным автоматом (shared/jukebox.ts — JUKEBOX_BARKAS)
-    for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.28 - k * 0.05, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, -71.62, y + 0.04 + k * 0.035, CZ + 1.32));
+    for (let k = 0; k < 4; k++) out.push(at(new THREE.TorusGeometry(0.28 - k * 0.05, 0.035, 5, 16).rotateX(Math.PI / 2), ROPE, CX - 14.12, y + 0.04 + k * 0.035, CZ + 1.32));
     // кронштейн рынды на передней стенке рубки
     metal.push(box(0.3, 0.05, 0.05, BARKAS_RYNDA.x - 0.12, BARKAS_RYNDA.y + 0.06, BARKAS_RYNDA.z, BRASS));
   }
@@ -537,8 +540,8 @@ export class BarkasShip {
       planes.push(new THREE.PlaneGeometry(w, w * 0.1875).rotateY(ry).translate(x, y, z));
     };
     // на скулах: борт у бака сужается — надпись повёрнута по нему
-    const x0 = -71.3;
-    const x1 = -69.1;
+    const x0 = CX - 13.8;
+    const x1 = CX - 11.6;
     const slope = Math.atan2(barkasHalf(x1) - barkasHalf(x0), x1 - x0);
     const xm = (x0 + x1) / 2;
     const hm = barkasHalf(xm) + 0.035;
@@ -552,7 +555,7 @@ export class BarkasShip {
   }
 
   private flags(wind: THREE.IUniform<number>): THREE.MeshStandardMaterial {
-    const mastTop: V3 = [-67.25, 9.15, CZ];
+    const mastTop: V3 = [BARKAS_HOUSE.x0 + 0.75, 9.15, CZ];
     const lines: Array<[V3, V3, number]> = [
       [[STEM + 0.05, railY(STEM) + 0.25, CZ], mastTop, 0.6],
       [mastTop, [BARKAS_AFRAME.x + 0.55, BARKAS_AFRAME.h, CZ], 1.2],
@@ -626,7 +629,7 @@ export class BarkasShip {
     const add = (color: number, size: number, x: number, y: number, z: number, opacity: number): void => {
       out.push({ color, size, x, y, z, opacity });
     };
-    add(0xfff3d6, 1.6, -67.25, top + 6.66, CZ, 0.55);
+    add(0xfff3d6, 1.6, H.x0 + 0.75, top + 6.66, CZ, 0.55);
     add(0x47e07a, 1.0, H.x0 + 0.3, top + 0.27, H.z0 - 0.3, 0.55);
     add(0xff4a3a, 1.0, H.x0 + 0.3, top + 0.27, H.z1 + 0.3, 0.55);
     // фонари под тентом и рабочий свет на А-раме — тёплые, освещают палубу

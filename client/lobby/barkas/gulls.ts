@@ -1,7 +1,7 @@
 // Чайки «Альбатроса»: две кружат над кормой (ждут рыбу у Сани; в дождь улетают), две сидят — на перекладине А-рамы
 // и на марсе мачты: вертят головой, иногда встряхивают крыльями. Кричат — ambient.ts.
 import * as THREE from 'three';
-import { BARKAS, BARKAS_AFRAME } from '../../../shared/barkas.ts';
+import { BARKAS, BARKAS_AFRAME, BARKAS_HOUSE } from '../../../shared/barkas.ts';
 
 interface Flyer {
   obj: THREE.Group;
@@ -54,7 +54,7 @@ export class BarkasGulls {
     // где сидят (верх перекладины А-рамы, поручень марса) и куда смотрят; лапы — 0,29 м под центром
     const perches: ReadonlyArray<readonly [number, number, number, number]> = [
       [BARKAS_AFRAME.x + 0.55, BARKAS_AFRAME.h + 0.12, BARKAS.z - 1.6, 1.9],
-      [-67.25 + 0.46, 7.27, BARKAS.z, -2.6],
+      [BARKAS_HOUSE.x0 + 0.75 + 0.46, 7.27, BARKAS.z, -2.6],
     ];
     perches.forEach(([x, y, z, yaw], i) => {
       const obj = new THREE.Group();

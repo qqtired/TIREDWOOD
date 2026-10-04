@@ -1,7 +1,8 @@
-// Табличка лодки «Удалая» на столбике у стоянки (shared/ferry.ts — FERRY_SIGN), лицом к мосткам: куда возит, кого
-// берёт (с 3-го уровня рыбалки) и что с лодкой сейчас — у мостков, отсчёт до отхода, в море (когда вернётся).
+// Табличка лодки «Удалая» на столбике у хижины Семёна (shared/ferry.ts — FERRY_SIGN), лицом к мосткам: куда возит, кого
+// берёт (с 3-го уровня рыбалки) и что с лодкой сейчас — у причала за хижиной, отсчёт до отхода, в море (когда вернётся).
 // Холст перерисовывается, только когда меняется текст.
 import * as THREE from 'three';
+import { BARKAS_FISH_SPOTS } from '../../../shared/barkas.ts';
 import { TICK_RATE } from '../../../shared/constants.ts';
 import { FE_AWAY, FE_BOARD, FE_HOME, FE_OUT, FERRY_LEVEL, FERRY_SEATS, FERRY_SIGN, ferryEta } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
@@ -50,7 +51,7 @@ export class FerrySign {
     let color: string;
     const s = (ticks: number): number => Math.max(0, Math.ceil(ticks / TICK_RATE));
     if (st.ph === FE_HOME) {
-      line = 'У мостков — подойди и нажми E';
+      line = 'За хижиной, у причала — подойди и нажми E';
       color = '#8ff0a4';
     } else if (st.ph === FE_BOARD) {
       const free = FERRY_SEATS - st.n;
@@ -86,7 +87,7 @@ export class FerrySign {
     c.fillStyle = '#ffe7a8';
     fit(c, `Семён берёт с ${FERRY_LEVEL}-го уровня рыбалки`, W / 2, 150, W - 50, 800, 28);
     c.fillStyle = '#d9efe9';
-    fit(c, `Бесплатно · до ${FERRY_SEATS} человек · на борту 8 мест рыбалки`, W / 2, 186, W - 50, 600, 24);
+    fit(c, `Бесплатно · до ${FERRY_SEATS} человек · на борту ${BARKAS_FISH_SPOTS.length} мест рыбалки`, W / 2, 186, W - 50, 600, 24);
     if (line) {
       c.fillStyle = color;
       fit(c, line, W / 2, 248, W - 50, 900, 30);

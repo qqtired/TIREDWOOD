@@ -6,6 +6,7 @@ import { BARKAS, BARKAS_BELL, BARKAS_RYNDA } from '../../../shared/barkas.ts';
 import { FE_AWAY, FE_BACK, FE_OUT } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
 import { BarkasAudio, type Kit } from './ambient.ts';
+import { Angler } from './angler.ts';
 import { Crew } from './crew.ts';
 import { Ferry3D } from './ferry3d.ts';
 import { BarkasGulls } from './gulls.ts';
@@ -23,6 +24,8 @@ export class Barkas {
   readonly ship: BarkasShip;
   readonly ferry: Ferry3D;
   private readonly crew: Crew;
+  /** Матрос Колян с удочкой у северного борта */
+  private readonly angler: Angler;
   private readonly smoke: Smoke;
   private readonly gulls: BarkasGulls;
   private readonly audio: BarkasAudio;
@@ -47,6 +50,7 @@ export class Barkas {
       this.ship.ringRynda();
       this.audio.rynda(RYNDA_AT, this.cam);
     });
+    this.angler = new Angler(scene);
   }
 
   /** Звук (sound.kit; null — не разрешён) и где свой игрок (null — нет: меню) — раз в кадр до update. */
@@ -83,6 +87,7 @@ export class Barkas {
     this.sign.update(this.ferry.status, renderTick);
     this.audio.update(dt, this.kit, cam, rain, this.ferry.motor());
     this.crew.update(dt, t, cam, this.me, this.smoke, rain);
+    this.angler.update(dt, cam, this.smoke);
     this.gulls.update(dt, t, rain, d < GULLS_FAR);
     // дымок из трубы: в дождь гуще и ниже стелется
     this.funnelT -= dt;
@@ -97,6 +102,9 @@ export class Barkas {
   /** Для отладки (__opus.info): где лодка и что с ней, чем занят матрос Витёк */
   debug(): Record<string, unknown> {
     const p = this.ferry.pose;
-    return { ferry: this.st, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +p.yaw.toFixed(3), speed: +this.ferry.speed.toFixed(2), matros: this.crew.matrosPhase };
+    return {
+      ferry: this.st, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +p.yaw.toFixed(3), speed: +this.ferry.speed.toFixed(2), matros: this.crew.matrosPhase,
+      angler: this.angler.debug(),
+    };
   }
 }

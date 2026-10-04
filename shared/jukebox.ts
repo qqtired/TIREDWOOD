@@ -2,6 +2,7 @@
 // расстоянию и сообщения. Автоматов два — на площади и на баке баркаса, очередь у них одна (JUKE_SPOTS). Песни целиком
 // синтезирует клиент (client/music/), здесь — только то, что нужно серверу и обоим: номер, название, настроение, темп
 // и число тактов.
+import { BARKAS, BARKAS_BAK_Y } from './barkas.ts';
 
 /** Песня в каталоге: длина = такты × доли × 60 / темп + хвост (звенит последний аккорд и реверберация) */
 export interface JukeSong {
@@ -87,7 +88,7 @@ export const JUKE_SERVER_R = 4.2;
  * Второй автомат — на баркасе «Альбатрос» (shared/barkas.ts): на баке у южного борта, лицом на север (к брашпилю).
  * Очередь и песня — те же, что у автомата на площади (одна музыка на всю набережную, автоматов два); y — палуба бака.
  */
-export const JUKEBOX_BARKAS = { x: -70.3, y: 0.45, z: 70.15, yaw: 0 } as const;
+export const JUKEBOX_BARKAS = { x: BARKAS.x - 12.8, y: BARKAS_BAK_Y, z: BARKAS.z + 2.15, yaw: 0 } as const;
 export const JUKE_BARKAS_USE = { x: JUKEBOX_BARKAS.x, z: JUKEBOX_BARKAS.z - JUKE_D / 2 - 0.85, r: 1.6 } as const;
 
 /**

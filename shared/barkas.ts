@@ -1,11 +1,20 @@
-// Баркас «Альбатрос» в море к юго-западу от маяка: общее для сервера и клиента. Где стоит, твёрдые боксы палубы,
+// Баркас «Альбатрос» на якоре далеко в море к юго-западу от маяка — на уровне дальнего края «Портовой регаты»
+// (её дальняя прямая — z 119, shared/regattacourse.ts): общее для сервера и клиента. Где стоит, твёрдые боксы палубы,
 // фальшборта и надстроек (рисует их сам клиент — боксы невидимые), места рыбалки на борту, матросы, Саня с прилавком,
 // калитка к лодке Семёна (shared/ferry.ts), куда высаживают с лодки и где возрождают упавших за борт.
 // Оси: X — восток, Z — юг. Нос — на запад, корма — к острову. Корпус строго по осям: коллизия — только AABB.
+// Всё на борту задано от середины (BX, BZ): переставить баркас — поменять две цифры. Дальше z ≈ 124 его не ставить:
+// позиции в снимке — int16 / 256, то есть до ±128 м (shared/protocol.ts), а с палубы ещё прыгают за борт.
 import type { MapBox, Vec3 } from './maps/types.ts';
 
-/** Середина и корпус: нос x −74, корма (транец) x −46, борта z 64,5 и 71,5 */
-export const BARKAS = { x: -60, z: 68, bow: -74.2, stern: -46, half: 3.5 } as const;
+/** Середина корпуса (точка отсчёта всего на борту) */
+const BX = -60;
+const BZ = 118;
+/**
+ * Середина и корпус 33,2 м (удлинён на 5 м: между тентом рулетки и местами рыбалки): нос x −76,7, корма (транец)
+ * x −43,5, борта z 114,5 и 121,5
+ */
+export const BARKAS = { x: BX, z: BZ, bow: BX - 16.7, stern: BX + 16.5, half: 3.5 } as const;
 /** Палуба — на высоте пирса (y = 0): посадка на место рыбалки ставит на y = 0 без правок. Бак (нос) выше на ступень. */
 export const BARKAS_DECK_Y = 0;
 export const BARKAS_BAK_Y = 0.45;
@@ -17,8 +26,11 @@ const HULL_Y = -1.6;
 
 /** Обвод палубы (x, полуширина): к носу сужается. Клиент рисует борт по нему, коллизия — ступеньками внутри. */
 export const BARKAS_PROFILE: ReadonlyArray<readonly [number, number]> = [
-  [-74.2, 0.15], [-73.5, 1.05], [-73, 1.6], [-72, 2.35], [-71, 2.85], [-70, 3.17], [-69, 3.38], [-68, 3.5], [-46, 3.5],
+  [BX - 16.7, 0.15], [BX - 16, 1.05], [BX - 15.5, 1.6], [BX - 14.5, 2.35], [BX - 13.5, 2.85], [BX - 12.5, 3.17], [BX - 11.5, 3.38],
+  [BX - 10.5, 3.5], [BX + 16.5, 3.5],
 ];
+/** Где кончается бак (нос выше на ступень) и начинается главная палуба */
+export const BARKAS_BAK_X = BX - 10.5;
 
 /** Полуширина палубы в точке x (по обводу, линейно между точками) */
 export function barkasHalf(x: number): number {
@@ -33,74 +45,79 @@ export function barkasHalf(x: number): number {
   return P[P.length - 1][1];
 }
 
-/** Участки палубы для коллизии (от носа к корме): x0…x1, полуширина (не шире обвода), верх. Бак — до x −68. */
+/** Участки палубы для коллизии (от носа к корме): x0…x1, полуширина (не шире обвода), верх. Бак — до BARKAS_BAK_X. */
 export const BARKAS_DECKS: ReadonlyArray<{ x0: number; x1: number; hb: number; y: number }> = [
-  { x0: -73.5, x1: -73, hb: 1.05, y: BARKAS_BAK_Y },
-  { x0: -73, x1: -72, hb: 1.6, y: BARKAS_BAK_Y },
-  { x0: -72, x1: -71, hb: 2.35, y: BARKAS_BAK_Y },
-  { x0: -71, x1: -70, hb: 2.85, y: BARKAS_BAK_Y },
-  { x0: -70, x1: -69, hb: 3.17, y: BARKAS_BAK_Y },
-  { x0: -69, x1: -68, hb: 3.38, y: BARKAS_BAK_Y },
-  { x0: -68, x1: -46, hb: 3.5, y: BARKAS_DECK_Y },
+  { x0: BX - 16, x1: BX - 15.5, hb: 1.05, y: BARKAS_BAK_Y },
+  { x0: BX - 15.5, x1: BX - 14.5, hb: 1.6, y: BARKAS_BAK_Y },
+  { x0: BX - 14.5, x1: BX - 13.5, hb: 2.35, y: BARKAS_BAK_Y },
+  { x0: BX - 13.5, x1: BX - 12.5, hb: 2.85, y: BARKAS_BAK_Y },
+  { x0: BX - 12.5, x1: BX - 11.5, hb: 3.17, y: BARKAS_BAK_Y },
+  { x0: BX - 11.5, x1: BX - 10.5, hb: 3.38, y: BARKAS_BAK_Y },
+  { x0: BX - 10.5, x1: BX + 16.5, hb: 3.5, y: BARKAS_DECK_Y },
 ];
 
 /**
  * Рубка (ходовая): глухой короб, крыша на 2,5 м — не запрыгнуть. Вдоль её бортов — узкие проходы (1,34 м) на бак, к
  * брашпилю и музыкальному автомату (shared/jukebox.ts): их ничем не загораживаем.
  */
-export const BARKAS_HOUSE = { x0: -68, x1: -64, z0: 66, z1: 70, h: 2.5 } as const;
+export const BARKAS_HOUSE = { x0: BX - 10.5, x1: BX - 6.5, z0: BZ - 2, z1: BZ + 2, h: 2.5 } as const;
 /**
  * Рулетка (ставит `fisheco`): середина и размер площадки под тентом за рубкой — в дождь там сухо.
  * w — вдоль корабля (X), d — поперёк (Z).
  */
-export const BARKAS_ROULETTE = { x: -62.25, z: 68, w: 3.5, d: 4 } as const;
+export const BARKAS_ROULETTE = { x: BX - 4.75, z: BZ, w: 3.5, d: 4 } as const;
 /** Тент над рулеткой: четыре стойки по углам, полотно на высоте h */
-export const BARKAS_AWNING = { x0: -63.9, x1: -60.6, z0: 65.7, z1: 70.3, h: 2.45, post: 0.06 } as const;
+export const BARKAS_AWNING = { x0: BX - 6.4, x1: BX - 3.1, z0: BZ - 2.3, z1: BZ + 2.3, h: 2.45, post: 0.06 } as const;
 /** Трюмный люк — на нём Толик чинит сеть; верх 0,5 м: на него можно шагнуть */
-export const BARKAS_HATCH = { x0: -57.6, x1: -55, z0: 66.8, z1: 69.2, h: 0.5 } as const;
+export const BARKAS_HATCH = { x0: BX + 4.9, x1: BX + 7.5, z0: BZ - 1.2, z1: BZ + 1.2, h: 0.5 } as const;
 /** Барабан с сетью за люком: ось вдоль Z, на стойках */
-export const BARKAS_DRUM = { x: -53.3, z: 68, r: 0.6, len: 2.1, y: 0.8 } as const;
+export const BARKAS_DRUM = { x: BX + 9.2, z: BZ, r: 0.6, len: 2.1, y: 0.8 } as const;
 /** Брашпиль на баке (якорная лебёдка) */
-export const BARKAS_WINDLASS = { x0: -72.1, x1: -71, z0: 67.4, z1: 68.6, h: 0.55 } as const;
+export const BARKAS_WINDLASS = { x0: BX - 14.6, x1: BX - 13.5, z0: BZ - 0.6, z1: BZ + 0.6, h: 0.55 } as const;
 /** Калитка в транце (проём в фальшборте) — к лодке «Удалая» */
-export const BARKAS_GATE = { z0: 67.2, z1: 68.8 } as const;
+export const BARKAS_GATE = { z0: BZ - 0.8, z1: BZ + 0.8 } as const;
 /** Колокол вызова лодки — на северном столбике калитки */
-export const BARKAS_BELL = { x: -46.32, z: 66.98, y: 1.45 } as const;
+export const BARKAS_BELL = { x: BX + 16.18, z: BZ - 1.02, y: 1.45 } as const;
 /** Ножки жёлтой А-рамы над транцем */
-export const BARKAS_AFRAME = { x: -46.48, z0: 64.86, z1: 71.14, h: 4.6 } as const;
+export const BARKAS_AFRAME = { x: BX + 16.02, z0: BZ - 3.14, z1: BZ + 3.14, h: 4.6 } as const;
 /** Рында на передней стенке рубки (бьёт боцман) */
-export const BARKAS_RYNDA = { x: -68.2, z: 67.1, y: 2.05 } as const;
+export const BARKAS_RYNDA = { x: BX - 10.7, z: BZ - 0.9, y: 2.05 } as const;
 /** Штабель рыбных ящиков в северном углу у кормы */
-export const BARKAS_CRATES = { x0: -48.5, x1: -47.05, z0: 64.66, z1: 65.6, h: 0.86 } as const;
+export const BARKAS_CRATES = { x0: BX + 14, x1: BX + 15.45, z0: BZ - 3.34, z1: BZ - 2.4, h: 0.86 } as const;
 
 /**
  * Матросы: боцман Михалыч на баке у рынды (дотягивается до её шкертика), рыбак Толик на люке, матрос Витёк — на палубе
  * в северном углу у кормы, между последним местом рыбалки и ящиками с рыбой (тупичок: не проход, до мест рыбалки и
  * высадки — больше 1,5 м). Стоит, курит, драит палубу шваброй, смотрит в море; yaw — куда смотрит, когда просто стоит.
+ * Матрос Колян рыбачит у северного борта за тентом рулетки — на своём месте в ряду мест рыбалки (не занимает
+ * место игрока): удочка над планширем, иногда тащит рыбу (client/lobby/barkas/angler.ts).
  */
 export const BARKAS_CREW = {
-  mikhalych: { x: -68.8, y: BARKAS_BAK_Y, z: 66.75, yaw: -1.2 },
-  tolik: { x: -55.2, y: 0, z: 68.3, yaw: -Math.PI / 2 },
-  vityok: { x: -50.15, y: 0, z: 65.2, yaw: 2.64 },
+  mikhalych: { x: BX - 11.3, y: BARKAS_BAK_Y, z: BZ - 1.25, yaw: -1.2 },
+  tolik: { x: BX + 7.3, y: 0, z: BZ + 0.3, yaw: -Math.PI / 2 },
+  vityok: { x: BX + 12.35, y: 0, z: BZ - 2.8, yaw: 2.64 },
+  kolyan: { x: BX - 1.7, y: 0, z: BZ - 2.55, yaw: 0 },
 } as const;
 /** Полуширина тела матроса Витька (твёрдый столбик; поворачивается он на месте) */
 export const VITYOK_HALF = 0.36;
+/** Полуширина тела Коляна (стоит у борта с удочкой) */
+export const KOLYAN_HALF = 0.34;
 
 /** Саня — брат Семёна: за прилавком из ящиков со льдом в углу у кормы, лицом к палубе */
-export const SANYA = { x: -46.95, y: 0, z: 70.55, yaw: 0.93 } as const;
+export const SANYA = { x: BX + 15.55, y: 0, z: BZ + 2.55, yaw: 0.93 } as const;
 /** Где встаёт посетитель (лицом к Сане через прилавок) */
-export const SANYA_USE = { x: -48.9, y: 0, z: 70.4, yaw: -Math.PI / 2, r: 1.4 } as const;
+export const SANYA_USE = { x: BX + 13.6, y: 0, z: BZ + 2.4, yaw: -Math.PI / 2, r: 1.4 } as const;
 /** Прилавок Сани и он сам — твёрдые */
-export const SANYA_STALL = { x0: -48.3, x1: -47.5, z0: 69.7, z1: 71.34, h: 0.92 } as const;
+export const SANYA_STALL = { x0: BX + 14.2, x1: BX + 15, z0: BZ + 1.7, z1: BZ + 3.34, h: 0.92 } as const;
 /** Отправить к Семёну на пирс — 250 жетонов (Саня свистит знакомому катеру) */
 export const SANYA_PRICE = 250;
 
 /** Точка у калитки: лодка у борта — E, сесть; нет — E, позвонить в колокол (лодка придёт за тобой) */
-export const BARKAS_BOARD = { x: -47.4, z: 68, yaw: -Math.PI / 2, r: 1.4 } as const;
+export const BARKAS_BOARD = { x: BX + 15.1, z: BZ, yaw: -Math.PI / 2, r: 1.4 } as const;
 /** Куда высаживают с лодки и возрождают упавших за борт: у кормы, лицом к палубе (на запад). Сетка 2 × 3. */
-export const BARKAS_LANDING = { x: -49.9, z: 68, yaw: Math.PI / 2 } as const;
+export const BARKAS_LANDING = { x: BX + 12.6, z: BZ, yaw: Math.PI / 2 } as const;
 export const BARKAS_LANDING_SPOTS: ReadonlyArray<readonly [number, number]> = [
-  [-49.4, 67], [-49.4, 68], [-49.4, 69], [-50.4, 67], [-50.4, 68], [-50.4, 69],
+  [BX + 13.1, BZ - 1], [BX + 13.1, BZ], [BX + 13.1, BZ + 1], [BX + 12.1, BZ - 1], [BX + 12.1, BZ], [BX + 12.1, BZ + 1],
 ];
 
 /**
@@ -109,17 +126,24 @@ export const BARKAS_LANDING_SPOTS: ReadonlyArray<readonly [number, number]> = [
  */
 export const BARKAS_SPOT_IN = 1.15;
 /**
- * Места рыбалки на борту: по четыре вдоль каждого борта, шаг 2,5 м (западная пара — 2,2 м: дальше от стола рулетки
- * под тентом). Северные смотрят на остров — их видно с пирса.
+ * Места рыбалки на борту: по пять вдоль каждого борта, шаг 2,5 м (у люка — 2,2). Первые восемь — прежние (пары с
+ * x +3,3 … +10,5 от середины, номера мест не меняются), последние два — новая пара у тента рулетки (x +0,8). Северные
+ * смотрят на остров. Ещё западнее у северного борта (x −1,7) рыбачит матрос Колян — его место не для игроков.
  */
-export const BARKAS_FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number; zone: 'barkas' }> = [-59.2, -57, -54.5, -52].flatMap((x) => [
-  { x, z: BARKAS.z - BARKAS.half + BARKAS_SPOT_IN, yaw: 0, zone: 'barkas' as const },
-  { x, z: BARKAS.z + BARKAS.half - BARKAS_SPOT_IN, yaw: Math.PI, zone: 'barkas' as const },
-]);
+const spotPair = (x: number) => [
+  { x, z: BZ - BARKAS.half + BARKAS_SPOT_IN, yaw: 0, zone: 'barkas' as const },
+  { x, z: BZ + BARKAS.half - BARKAS_SPOT_IN, yaw: Math.PI, zone: 'barkas' as const },
+];
+export const BARKAS_FISH_SPOTS: ReadonlyArray<{ x: number; z: number; yaw: number; zone: 'barkas' }> = [
+  ...[BX + 3.3, BX + 5.5, BX + 8, BX + 10.5].flatMap(spotPair),
+  ...spotPair(BX + 0.8),
+];
+/** Сколько мест баркаса было до удлинения: они идут подряд за местами острова, новые — в самом конце FISH_SPOTS */
+export const BARKAS_FISH_FIRST = 8;
 
 /** Вода вокруг баркаса: упал здесь — матросы вытаскивают на палубу (с острова сюда не доплыть: невидимые стены). */
 export function barkasWater(x: number, z: number): boolean {
-  return x > -96 && x < -30 && z > 50 && z < 92;
+  return x > BX - 36 && x < BX + 30 && z > BZ - 18 && z < BZ + 24;
 }
 
 /** Точка высадки k (0…5) */
@@ -133,7 +157,7 @@ const bx = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: numb
 /**
  * Твёрдое баркаса: палуба ступеньками, фальшборт (на баке — «толстый», до обвода следующего участка, чтобы ступеньки
  * не оставляли щелей), транец с калиткой, рубка, стойки тента, люк, барабан, брашпиль, прилавок, тела матросов (боцман,
- * Толик, Витёк) и Сани,
+ * Толик, Витёк, Колян) и Сани,
  * столбик колокола, ножки А-рамы. Всё невидимое: рисует client/lobby/barkas.
  */
 export function barkasBoxes(): Box[] {
@@ -174,6 +198,8 @@ export function barkasBoxes(): Box[] {
   out.push(bx(M.x - 0.34, M.y, M.z - 0.34, M.x + 0.34, M.y + 1.7, M.z + 0.34));
   const V = BARKAS_CREW.vityok;
   out.push(bx(V.x - VITYOK_HALF, V.y, V.z - VITYOK_HALF, V.x + VITYOK_HALF, V.y + 1.75, V.z + VITYOK_HALF));
+  const N = BARKAS_CREW.kolyan;
+  out.push(bx(N.x - KOLYAN_HALF, N.y, N.z - KOLYAN_HALF, N.x + KOLYAN_HALF, N.y + 1.75, N.z + KOLYAN_HALF));
   // Толик сидит на краю люка, ноги свешены на палубу: тело и колени
   const L = BARKAS_CREW.tolik;
   out.push(bx(L.x - 0.32, 0, L.z - 0.34, L.x + 0.62, BARKAS_HATCH.h + 1.05, L.z + 0.34));

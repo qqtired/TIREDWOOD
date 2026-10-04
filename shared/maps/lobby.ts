@@ -3,16 +3,17 @@
 // ларёк «Примерочная»; на юго-западе — мостки к маяку; к западу и юго-западу на воде — аквапарк «Волна»; в юго-восточном углу —
 // колесо обозрения. X — восток, Z — юг, «север» = −Z.
 import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSteps } from '../aqua.ts';
-import { BARKAS_BOARD, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../barkas.ts';
+import { BARKAS_BOARD, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../barkas.ts';
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
-import { FERRY_AWAY, FERRY_HOME, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
+import { FERRY_AWAY, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
 import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
-  FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
+  FISH_FAR_FIRST, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
+  barkasSpotIndex,
 } from '../fishplaces.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
@@ -422,8 +423,8 @@ export function buildLobby(): LobbyMap {
   }
   // табличка «Удалой» у стоянки: столбик (обходить, как кнехт)
   b.box([FERRY_SIGN.x - 0.05, 0, FERRY_SIGN.z - 0.05], [FERRY_SIGN.x + 0.05, 1.9, FERRY_SIGN.z + 0.05], 'invisible', 0);
-  BARKAS_FISH_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_ISLAND_COUNT + i, 'порыбачить'));
-  add('ferry', -13.2, 39.5, -Math.PI / 2, 1.9, 0, 'лодка «Удалая»');
+  BARKAS_FISH_SPOTS.slice(0, BARKAS_FISH_FIRST).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_ISLAND_COUNT + i, 'порыбачить'));
+  add('ferry', FERRY_HOME_BOARD.x, FERRY_HOME_BOARD.z, FERRY_HOME_BOARD.yaw, FERRY_HOME_BOARD.r, 0, 'лодка «Удалая»');
   add('ferry', BARKAS_BOARD.x, BARKAS_BOARD.z, BARKAS_BOARD.yaw, BARKAS_BOARD.r, 1, 'лодка «Удалая»');
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
   // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
@@ -453,7 +454,7 @@ export function buildLobby(): LobbyMap {
   b.box([JUKEBOX_BARKAS.x - JUKE_W / 2, JUKEBOX_BARKAS.y, JUKEBOX_BARKAS.z - JUKE_D / 2], [JUKEBOX_BARKAS.x + JUKE_W / 2, JUKEBOX_BARKAS.y + JUKE_H, JUKEBOX_BARKAS.z + JUKE_D / 2], 'invisible', 0);
 
   // --- Пирс дальше в море (shared/fishplaces.ts): дальние мостки и площадка с домом рыбака — настилы уже в FISH_DECKS.
-  // Вода вокруг — своя «бухта» в стенах: к баркасу (x < −30, его вода — shared/barkas.ts) не доплыть и не долететь рывком.
+  // Вода вокруг — своя «бухта» в стенах: к баркасу (его вода — shared/barkas.ts) не доплыть и не долететь рывком.
   b.box([-5, -6, 48], [31.5, 30, 49], 'invisible', 0);
   b.box([-31, -6, 48], [-30, 30, 72], 'invisible', 0);
   b.box([-5, -6, 48], [-4, 30, 72], 'invisible', 0);
@@ -464,7 +465,7 @@ export function buildLobby(): LobbyMap {
   for (const x of [FISH_PIER2.x0 + 0.25, FISH_PIER2.x1 - 0.25]) for (const z of [48, 52]) b.deco.push({ kind: 'piling', x, z });
   for (const x of [FISH_PIER_HEAD.x0 + 0.25, -19, FISH_PIER_HEAD.x1 - 0.25]) b.deco.push({ kind: 'piling', x, z: FISH_PIER_HEAD.z1 + 0.25 });
   // места рыбалки на дальних мостках и у дома — в самый конец: номера прежних точек не меняются
-  FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_SPOTS.length - FISH_FAR_SPOTS.length + i, 'порыбачить'));
+  FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_FAR_FIRST + i, 'порыбачить'));
 
   // бильярд (флаг BILLIARDS; места столов — в самый конец списка) — навес к югу от павильона автоматов: столы и столбы твёрдые, E — у стола (shared/billiards.ts)
   const billiardsBoxes: number[] = [];
@@ -496,6 +497,8 @@ export function buildLobby(): LobbyMap {
   // набережной напротив него, точка заказа баннера перед табличкой и столбик таблички. Точки — в самый конец списка
   add('plane', PLANE_USE.x, PLANE_USE.z, Math.PI / 2, PLANE_USE.r, 0, 'Полёт над городом');
   add('banner', PLANE_SIGN.x + 1, PLANE_SIGN.z, Math.PI / 2, 1.8, 0, 'Баннер над набережной');
+  // ещё два места рыбалки на удлинённом баркасе — точки в самый конец списка (номера прежних не меняются)
+  BARKAS_FISH_SPOTS.slice(BARKAS_FISH_FIRST).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, barkasSpotIndex(BARKAS_FISH_FIRST + i), 'порыбачить'));
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 
