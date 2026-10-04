@@ -255,6 +255,75 @@
   display: block;
 }
 
+/* место под шкалой (fishgame.ts): подсказка — в потоке, «Последний рывок!» и «Леска провисла» — поверх неё. Срочные
+   надписи не раздвигают колонку: шкала не прыгает, а низ колонки не наезжает на подсказку внизу экрана. */
+.fr-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  gap: 6px;
+}
+
+.fr-slot > .fe-stand,
+.fr-slot > .fe-slack {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max-content;
+  text-align: center;
+}
+
+/* срочное — вместо подсказки; провисла леска — важнее последнего рывка */
+.fr-slot > .fe-stand.show ~ .fr-hint,
+.fr.slack .fr-slot > .fr-hint {
+  opacity: 0;
+  transition: none;
+}
+
+.fr.slack .fr-slot > .fe-stand {
+  display: none;
+}
+
+/* невысокое окно (ноутбук, 720 px и меньше): колонка — над подсказкой внизу экрана (её верх — 134 px от низа) и не выше
+   58 px сверху, а с напитком — ниже его плашки сверху справа (до 140 px); не влезает — ужимается шкала. По центру низ
+   колонки (дождь или сезон, бонусы, водка) наезжал на подсказку «держи — зелёная зона вверх…», а длинная надпись
+   сверху («Легендарная рыба!!») — на плашку водки. */
+@media (max-height: 820px) {
+  html:not(.touch) .fr {
+    top: auto;
+    bottom: 142px;
+    max-height: calc(100vh - 200px);
+    transform: none;
+  }
+
+  html:not(.touch):has(.fs-buff.show) .fr {
+    max-height: calc(100vh - 282px);
+  }
+
+  html:not(.touch) .fr.show {
+    animation-name: fr-in-low;
+  }
+
+  html:not(.touch) .fr > * {
+    flex-shrink: 0;
+  }
+
+  html:not(.touch) .fr > .fr-bar {
+    flex-shrink: 1;
+    min-height: 150px;
+  }
+}
+
+@keyframes fr-in-low {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
 .fr-res {
   position: absolute;
   left: 50%;
@@ -1209,6 +1278,14 @@ html.touch[data-fishing] .toast .toast-sub { margin-top: 0; overflow: hidden; fo
   text-align: center;
 }
 .touch .fr-rain { font-size: 11px; }
+/* телефон: колонка узкая и подсказки внизу экрана при вываживании нет — срочные надписи в потоке, как раньше */
+.touch .fr-slot > .fe-stand,
+.touch .fr-slot > .fe-slack {
+  position: static;
+  translate: none;
+  width: auto;
+  max-width: 100%;
+}
 .touch .fr-res { font-size: 19px; }
 .touch .fr-hold { top: calc(64px + env(safe-area-inset-top, 0px)); }
 
