@@ -146,8 +146,17 @@ function ropeGeometry(lines: number[][], width: number): THREE.BufferGeometry {
 function rockGeometry(x: number, z: number, r: number, rnd: () => number, flat = 0.75): THREE.BufferGeometry {
   const g = new THREE.IcosahedronGeometry(1, 1);
   const p = g.getAttribute('position');
+  // Неровность — по ПОЗИЦИИ вершины, а не по её номеру в списке. Геометрия без индексов: одна и та же точка входит в несколько
+  // граней отдельными вершинами, и со своим случайным сдвигом у каждой грань отрывалась от соседей — камень рассыпался
+  // осколками со щелями, сквозь которые были видны вода и буйки («полупрозрачные камни»). Теперь общая точка уходит одинаково.
+  const kAt = new Map<string, number>();
   for (let i = 0; i < p.count; i++) {
-    const k = 0.85 + rnd() * 0.3;
+    const key = `${Math.round(p.getX(i) * 1000)},${Math.round(p.getY(i) * 1000)},${Math.round(p.getZ(i) * 1000)}`;
+    let k = kAt.get(key);
+    if (k === undefined) {
+      k = 0.85 + rnd() * 0.3;
+      kAt.set(key, k);
+    }
     p.setXYZ(i, p.getX(i) * k * r * 1.05, p.getY(i) * k * r * flat, p.getZ(i) * k * r * 1.05);
   }
   g.rotateY(rnd() * Math.PI);
