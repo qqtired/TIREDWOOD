@@ -513,8 +513,12 @@ export class DurakHud {
       `<div class="dk-status" role="status">${status}</div>` +
       `<div class="dk-pot">${pot}</div>` +
       `<div class="dk-lbtns">${readyBtn}` +
-      `<button class="dk-btn" data-a="bot"${occupied >= 6 ? ' disabled' : ''}>+ бот</button>` +
-      `<button class="dk-btn" data-a="unbot"${bots ? '' : ' disabled'}>− бот</button></div>` +
+      // бот — только для игры одному (сел второй человек — боты уходят, так решает сервер)
+      (humans.length < 2
+        ? `<button class="dk-btn" data-a="bot"${occupied >= 6 ? ' disabled' : ''}>+ бот</button>` +
+          `<button class="dk-btn" data-a="unbot"${bots ? '' : ' disabled'}>− бот</button>`
+        : '') +
+      `</div>` +
       `</div></div>`
     );
   }

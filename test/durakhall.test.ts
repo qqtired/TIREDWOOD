@@ -126,7 +126,7 @@ test('бот и раздача: «Готов» — отсчёт 5 с — пар�
   assert.ok(!JSON.stringify(v).includes('"hands"'));
 });
 
-test('новый человек сел во время отсчёта — отсчёт сбрасывается, ждём его «Готов»', () => {
+test('новый человек сел во время отсчёта — отсчёт сбрасывается, бот уходит, ждём его «Готов»', () => {
   const { hub } = setupHub();
   const a = login(hub, 'Первый');
   const b = login(hub, 'Опоздал');
@@ -137,12 +137,16 @@ test('новый человек сел во время отсчёта — отс
   assert.equal(hub.lobby.durak.table(0).phase, 'count');
   sit(hub, b.c, 0, 3);
   assert.equal(hub.lobby.durak.table(0).phase, 'wait');
+  assert.equal(hub.lobby.durak.table(0).seats.filter((s) => s.k === 2).length, 0, 'бот — только для игры одному');
+  assert.match(lastOf(a.s, 'toast')!.text, /боты ушли/);
+  act(hub, b.c, 'bot');
+  assert.equal(hub.lobby.durak.table(0).seats.filter((s) => s.k === 2).length, 0, 'вдвоём бота не добавить');
   act(hub, b.c, 'ready', undefined, 1);
   assert.equal(hub.lobby.durak.table(0).phase, 'count');
   steps(hub, DK_COUNT_TICKS + 1);
   const t = hub.lobby.durak.table(0);
   assert.equal(t.phase, 'play');
-  assert.equal(t.game!.n, 3);
+  assert.equal(t.game!.n, 2);
 });
 
 test('ходы: неправильный не меняет стол, правильный меняет; 30 с без хода — ход делает сервер', () => {

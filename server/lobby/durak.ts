@@ -181,7 +181,10 @@ export class DurakHall {
     if (s.k !== 0) return;
     Object.assign(s, emptySeat(), { k: 1, slot, pid, nick, seq: ++this.seq });
     tb.dirty = true;
-    if (tb.phase === 'wait' || tb.phase === 'count') this.recount(tb);
+    if (tb.phase === 'wait' || tb.phase === 'count') {
+      this.dropBots(tb);
+      this.recount(tb);
+    }
   }
 
   /** Встал или ушёл. Участник идущей партии — место держится за ним, за него ходит автопилот. */
@@ -311,8 +314,10 @@ export class DurakHall {
     if (tb.phase !== 'result') this.recount(tb);
   }
 
+  /** Бот — только для игры одному: при двух людях за столом не добавить. */
   private addBot(tb: DurakTable): void {
     if (tb.phase !== 'wait' && tb.phase !== 'count') return;
+    if (this.humans(tb) > 1) return;
     const ch = tb.seats.findIndex((s) => s.k === 0);
     if (ch < 0) return;
     const name = this.botName(tb);
@@ -330,6 +335,18 @@ export class DurakHall {
     Object.assign(last, emptySeat());
     tb.dirty = true;
     this.recount(tb);
+  }
+
+  private humans(tb: DurakTable): number {
+    return tb.seats.filter((s) => s.k === 1).length;
+  }
+
+  /** Сел второй человек — боты уходят (до раздачи или после итога): играют люди. */
+  private dropBots(tb: DurakTable): void {
+    if (this.humans(tb) < 2 || !tb.seats.some((s) => s.k === 2)) return;
+    for (const s of tb.seats) if (s.k === 2) Object.assign(s, emptySeat());
+    tb.dirty = true;
+    for (const s of tb.seats) if (s.k === 1 && s.slot) this.hooks.toast(s.slot, 'За столом уже не один — боты ушли');
   }
 
   private setMode(tb: DurakTable, ch: number, s: DurakSeat, n: number): void {
@@ -612,6 +629,7 @@ export class DurakHall {
     tb.botAt = 0;
     tb.showUntil = 0;
     tb.dirty = true;
+    this.dropBots(tb);
     this.afterLeave(tb);
   }
 

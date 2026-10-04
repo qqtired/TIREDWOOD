@@ -186,3 +186,35 @@ test('выключенный стол не принимает места и де
   assert.ok(hall.view(2).seats.every((s) => s.k === 0));
   assert.equal(hall.canSit(tableSeat(1, 5), 105), true);
 });
+
+test('бот — только для игры одному: вдвоём не добавить; сел второй — боты уходят', () => {
+  const { hall, act, sit } = setup();
+  const tb = hall.table(0);
+  const bots = () => tb.seats.filter((s) => s.k === 2).length;
+  sit(5);
+  sit(4);
+  act(5, 'bot');
+  assert.equal(bots(), 0, 'двое людей — бота не добавить');
+  hall.stand(tableSeat(0, 4), 5);
+  act(5, 'bot');
+  act(5, 'bot');
+  assert.equal(bots(), 2, 'один человек — боты садятся');
+  act(5, 'ready', 1);
+  assert.equal(tb.phase, 'count');
+  sit(3);
+  assert.equal(bots(), 0, 'сел второй — боты ушли');
+  assert.equal(tb.phase, 'wait', 'ждём «Готов» второго');
+});
+
+test('сел второй, пока показан итог партии с ботом, — после итога бот уходит', () => {
+  const { hall, advance, sit, start, finish } = setup();
+  start([5], true);
+  finish();
+  const tb = hall.table(0);
+  sit(4);
+  assert.equal(tb.seats[0].k, 2, 'итог досматривают как был');
+  advance(DK_RESULT_TICKS);
+  assert.equal(tb.phase, 'wait');
+  assert.equal(tb.seats.filter((s) => s.k === 2).length, 0);
+  assert.equal(tb.seats.filter((s) => s.k === 1).length, 2);
+});

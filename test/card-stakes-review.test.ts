@@ -93,9 +93,10 @@ test('review: draw settlement returns the complete original bank without XP',()=
 });
 
 test('review: real bot joins the round without ever entering its paid reservation ledger',()=>{
- const e=durak();e.hall.stand(2,3);e.act(0,'bot');
- assert.ok(e.hall.table(0).seats.some(s=>s.k===2));e.start([0,1]);e.finish();
- assert.equal(e.reserves.length,1);assert.deepEqual(new Set(e.reserves[0].map(p=>p.pid)),new Set([e.people[0].id,e.people[1].id]));
+ // бот — только для игры одному: двое встают, остаётся один человек
+ const e=durak();e.hall.stand(1,2);e.hall.stand(2,3);e.act(0,'bot');
+ assert.ok(e.hall.table(0).seats.some(s=>s.k===2));e.start([0]);e.finish();
+ assert.equal(e.reserves.length,1);assert.deepEqual(new Set(e.reserves[0].map(p=>p.pid)),new Set([e.people[0].id]));
  assert.equal(e.people.reduce((sum,p)=>sum+p.tokens,0),400);
  const totalXp=e.people.reduce((sum,p)=>sum+p.xp,0);assert.ok(totalXp===0||totalXp===10);
  assert.ok(e.people.every(p=>p.durakEscrow===null));
