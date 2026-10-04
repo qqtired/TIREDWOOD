@@ -62,6 +62,14 @@ html:not(.touch)[data-room='hide']:has(.hd-help.on) .voice-hud { left: 358px; bo
   .voice-hold { width: 52px; height: 52px; }
   .voice-speaker { max-width: min(240px, calc(100vw - 190px)); }
 }
+/* телефон, картинг: над окошком бонуса (.rc-item, низ 136–140 px + 68 px) — иначе кнопка закрывала его, и касание по бонусу
+   включало микрофон */
+html.touch[data-room='race'] .voice-hud { bottom: calc(218px + env(safe-area-inset-bottom, 0px)); }
+/* телефон стоя, пейнтбол и крепость: слева над джойстиком здоровье (низ 136 px) и патроны (низ 262 px, ≈ 63 px) — кнопка выше
+   патронов, а не на сердце со здоровьем */
+@media (max-width: 480px) {
+  html.touch[data-room='paintball'] .voice-hud, html.touch[data-room='fort'] .voice-hud { bottom: 335px; }
+}
 @media (max-width: 640px), (max-height: 480px) {
   html.touch[data-fishing] .voice-speaker { max-width: min(170px, calc(100vw - 190px)); }
 }
