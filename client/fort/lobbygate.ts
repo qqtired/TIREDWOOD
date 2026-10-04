@@ -1,8 +1,10 @@
 // Арка «Крепость» на набережной (выпуск 6): каменные столбы в проулке между складом и гаражом, зубчатая перемычка,
-// вывеска «КРЕПОСТЬ», флажки и строка «что внутри». Появляется, только если сервер прислал статус крепости
-// (режим включён флагом FORTRESS): без флага на набережной ничего не меняется.
+// вывеска «КРЕПОСТЬ», флажки и строка «что внутри» с рекордом крепости под ней. Появляется, только если сервер прислал
+// статус крепости (режим включён флагом FORTRESS): без флага на набережной ничего не меняется. Строки таблички и
+// подсказки у входа — и для нового оформления площади (client/lobby/plaza: надвратная башня).
 import * as THREE from 'three';
 import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, type FortStatus } from '../../shared/fort.ts';
+import { namesLine, wavesText } from '../../shared/fortrecord.ts';
 import { FORT_ARCH } from '../../shared/maps/lobby.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 
@@ -10,20 +12,30 @@ const STONE = 0xcbbfa6;
 const STONE_DARK = 0xa99b80;
 const WOOD = 0x7a4f2e;
 
-/** Подсказка у точки «fort» на набережной */
+/** Подсказка у точки «fort» на набережной (в конце — рекорд крепости) */
 export function fortHint(st: FortStatus): { keys: string[]; text: string } {
-  if (st.humans >= FORT_MAX_HUMANS) return { keys: [], text: `Крепость: мест нет (${st.humans} из ${FORT_MAX_HUMANS})` };
+  const r = st.rec;
+  const rec = !r ? '' : r.live ? ` · 🏆 рекорд бьют: уже ${wavesText(r.wave)}` : ` · 🏆 рекорд ${wavesText(r.wave)}`;
+  if (st.humans >= FORT_MAX_HUMANS) return { keys: [], text: `Крепость: мест нет (${st.humans} из ${FORT_MAX_HUMANS})${rec}` };
   const who = st.humans > 0 ? ` · защитников: ${st.humans}` : '';
   switch (st.phase) {
     case FT_WAVE:
-      return { keys: ['E'], text: `в крепость — идёт волна ${st.wave}${who}` };
+      return { keys: ['E'], text: `в крепость — идёт волна ${st.wave}${who}${rec}` };
     case FT_BREAK:
-      return { keys: ['E'], text: `в крепость — передышка перед волной ${st.wave + 1}${who}` };
+      return { keys: ['E'], text: `в крепость — передышка перед волной ${st.wave + 1}${who}${rec}` };
     case FT_END:
-      return { keys: ['E'], text: `в крепость — итоги, новая игра через ${st.left} с${who}` };
+      return { keys: ['E'], text: `в крепость — итоги, новая игра через ${st.left} с${who}${rec}` };
     default:
-      return { keys: ['E'], text: st.humans > 0 ? `в крепость — сбор, волна через ${st.left} с${who}` : 'в крепость — оборона от зомби, до 6 человек' };
+      return { keys: ['E'], text: st.humans > 0 ? `в крепость — сбор, волна через ${st.left} с${who}${rec}` : `в крепость — оборона от зомби, до 6 человек${rec}` };
   }
+}
+
+/** Строка рекорда на табличке у входа — под строкой «что внутри» */
+export function recordLine(st: FortStatus): string {
+  const r = st.rec;
+  if (!r) return 'рекордов пока нет — поставь первый';
+  if (r.live) return `🏆 рекорд бьют: уже ${wavesText(r.wave)}!`;
+  return `🏆 рекорд: ${wavesText(r.wave)} · ${namesLine(r.names, 2)}`;
 }
 
 /** Строка на табличке под вывеской */
@@ -80,13 +92,13 @@ export class FortGate {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.6, 0.5), new THREE.MeshStandardMaterial({ map: signTexture(), roughness: 0.7 }));
     sign.position.set(x, 3.86, z + 0.44);
     this.group.add(sign);
-    // табличка «что внутри» на правом столбе
+    // табличка «что внутри» и рекорд крепости — под вывеской
     this.lineCanvas.width = 512;
-    this.lineCanvas.height = 96;
+    this.lineCanvas.height = 168;
     this.lineTex = new THREE.CanvasTexture(this.lineCanvas);
     this.lineTex.colorSpace = THREE.SRGBColorSpace;
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.3), new THREE.MeshStandardMaterial({ map: this.lineTex, roughness: 0.8 }));
-    plate.position.set(x, 3.38, z + 0.44);
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.525), new THREE.MeshStandardMaterial({ map: this.lineTex, roughness: 0.8 }));
+    plate.position.set(x, 3.27, z + 0.44);
     this.group.add(plate);
     scene.add(this.group);
   }
@@ -95,19 +107,23 @@ export class FortGate {
     this.group.visible = st !== null;
     if (!st) return;
     const line = statusLine(st);
-    if (line === this.line) return;
-    this.line = line;
+    const rec = recordLine(st);
+    if (`${line}\n${rec}` === this.line) return;
+    this.line = `${line}\n${rec}`;
     const ctx = this.lineCanvas.getContext('2d')!;
     ctx.fillStyle = '#3b2a1d';
-    ctx.fillRect(0, 0, 512, 96);
+    ctx.fillRect(0, 0, 512, 168);
     ctx.strokeStyle = '#c9a46a';
     ctx.lineWidth = 6;
-    ctx.strokeRect(5, 5, 502, 86);
+    ctx.strokeRect(5, 5, 502, 158);
     ctx.font = '700 44px Rubik, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffe9b8';
-    ctx.fillText(line, 256, 50, 480);
+    ctx.fillText(line, 256, 52, 480);
+    ctx.font = '700 36px Rubik, system-ui, sans-serif';
+    ctx.fillStyle = '#ffd35a';
+    ctx.fillText(rec, 256, 120, 480);
     this.lineTex.needsUpdate = true;
   }
 

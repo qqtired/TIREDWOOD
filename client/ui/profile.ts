@@ -7,6 +7,7 @@ import type { Stats } from '../../shared/economy.ts';
 import type { FishAlbum } from '../../shared/fishing.ts';
 import type { FishProgress } from '../../shared/fishprogress.ts';
 import { frameForLevel } from '../../shared/levels.ts';
+import { fortKnown, fortRecord } from '../fort/record.ts';
 import { FISH2 } from '../lobby/fish2.ts';
 import { fishSkillBlock } from '../lobby/fishprogresshud.ts';
 import { drawLevelTag } from '../render/leveltag.ts';
@@ -121,13 +122,15 @@ export class ProfilePanel {
     this.drawTag(p.nick, p.level);
     setCoinText(this.tokensEl, `🪙 ${fmt.format(p.tokens)}`);
     this.levelProgress.update(p.xp);
-    const f: ProfileFacts = { stats: p.stats, album: p.album, fishing: p.fishing };
-    this.bestEl.replaceChildren(...RECORDS.filter((r) => !r.played || r.played(p.stats)).map((r) => {
+    // рекорд крепости — что последним сказал сервер (client/fort/record.ts)
+    const f: ProfileFacts = { stats: p.stats, album: p.album, fishing: p.fishing, fort: { on: fortKnown(), top: fortRecord() } };
+    this.bestEl.replaceChildren(...RECORDS.filter((r) => !r.played || r.played(p.stats, f)).map((r) => {
       const v = r.value(p.stats, f);
       const row = el('div', v === null ? 'prof-rec none' : 'prof-rec');
       const name = row.appendChild(el('span', 'prof-rec-name'));
       name.appendChild(el('b', '')).textContent = r.mode;
-      name.appendChild(el('small', '')).textContent = r.course ? `${r.course} · ${r.what}` : r.what;
+      const what = r.whatOf?.(f) ?? r.what;
+      name.appendChild(el('small', '')).textContent = r.course ? `${r.course} · ${what}` : what;
       setCoinText(row.appendChild(el('span', 'prof-rec-val')), statText(v));
       return row;
     }));

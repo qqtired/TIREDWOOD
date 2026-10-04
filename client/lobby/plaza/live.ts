@@ -2,6 +2,7 @@
 // ни одного нового сообщения). Чистые функции без three.js и DOM: их проверяют тесты. Реплика — не длиннее 60 знаков.
 import { BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_RIDE } from '../../../shared/boat.ts';
 import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
+import { wavesText } from '../../../shared/fortrecord.ts';
 import { RC_MAX_KARTS } from '../../../shared/kart.ts';
 import { RG_MAX } from '../../../shared/regatta.ts';
 import { fmtAquaTime } from '../../../shared/aqua.ts';
@@ -11,7 +12,8 @@ import { TOUT_INFO, type ToutKey } from './data.ts';
 export interface LiveIn {
   /** Сколько людей сейчас в пейнтболе */
   pbHumans: number;
-  fort: { phase: number; wave: number; humans: number; left: number } | null;
+  /** rec — рекорд крепости (live — его бьют прямо сейчас) */
+  fort: { phase: number; wave: number; humans: number; left: number; rec?: { wave: number; live?: boolean } } | null;
   skill: { n: number; max: number; phase: string; left: number } | null;
   kart: { phase: string; n: number; left: number; lap: number; laps: number } | null;
   hide: { phase: string; n: number; max: number; left?: number } | null;
@@ -49,9 +51,10 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
     case 'fort': {
       const f = s.fort;
       if (!f) return [];
+      const r = f.rec;
       if (f.humans >= FORT_MAX_HUMANS) return ['На стенах тесно: мест нет. Жди следующую волну'];
-      if (f.humans === 0) return f.phase === FT_END ? [] : ['Никого на стенах! Заходи — нужна помощь'];
-      if (f.phase === FT_WAVE) return [cut(`Волна ${f.wave}, держат ${f.humans}. Нужна помощь!`), 'Зомби прут! Бери оружие и на стену'];
+      if (f.humans === 0) return f.phase === FT_END ? [] : [...(r ? [cut(`Рекорд крепости — ${wavesText(r.wave)}. Побьёте?`)] : []), 'Никого на стенах! Заходи — нужна помощь'];
+      if (f.phase === FT_WAVE) return [cut(`Волна ${f.wave}, держат ${f.humans}. Нужна помощь!`), r?.live ? cut(`Бьют рекорд крепости: уже ${wavesText(r.wave)}!`) : 'Зомби прут! Бери оружие и на стену'];
       if (f.phase === FT_BREAK) return [cut(`Передышка перед волной ${f.wave + 1}. Успеешь!`)];
       if (f.phase === FT_GATHER) return [cut(`Сбор: ${f.humans} на стенах, волна через ${f.left} с`)];
       return [cut(`Итоги боя. Новая игра через ${f.left} с`)];
@@ -151,9 +154,11 @@ export function agendaRows(s: LiveIn): AgendaRow[] {
       case 'fort': {
         const f = s.fort;
         if (!f) break;
+        const r = f.rec;
         if (f.humans >= FORT_MAX_HUMANS) row(key, 'на стенах тесно · мест нет', true);
-        else if (f.humans === 0) row(key, 'на стенах пусто — зови', false);
-        else if (f.phase === FT_WAVE) row(key, `волна ${f.wave} · держат ${f.humans}`, true);
+        // пусто — зовём побить рекорд; бьют его прямо сейчас — так и пишем
+        else if (f.humans === 0) row(key, r ? fit28(`рекорд ${wavesText(r.wave)} · побей!`) : 'на стенах пусто — зови', false);
+        else if (f.phase === FT_WAVE) row(key, r?.live ? `волна ${f.wave} · бьют рекорд!` : `волна ${f.wave} · держат ${f.humans}`, true);
         else if (f.phase === FT_BREAK) row(key, `передышка · волна ${f.wave + 1}`, true);
         else if (f.phase === FT_GATHER) row(key, `сбор · волна через ${f.left} с`, true);
         else row(key, 'итоги боя', true);

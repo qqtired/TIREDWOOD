@@ -29,6 +29,8 @@ export interface NorthParts {
   fort: Venue;
   fortKeep: Venue;
   fortPlate: LinePlate;
+  /** Под строкой статуса — рекорд крепости */
+  fortRecPlate: LinePlate;
   sky: Venue;
   skyTower: Venue;
   /** Вторая строка облака-вывески «Выше облаков» — живой статус каланчи (hot — идёт сбор забега) */
@@ -114,7 +116,7 @@ function buildKarting(ctx: VenueCtx): Venue {
 
 // ------------------------------------------------------------ крепость
 
-function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate } {
+function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate; rec: LinePlate } {
   const near = new Venue('fort', ctx, 23);
   const d = near.detail;
   const w = near.walls;
@@ -144,6 +146,10 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
   const plate = new LinePlate(2.1, 0.36, { bg: '#3b2a1d', border: '#c9a46a', fg: '#ffe9b8' }, ctx.signs);
   plate.mesh.position.set(x, 4.62, -15.5);
   near.group.add(plate.mesh);
+  // рекорд крепости — второй строкой, золотом, над проходом
+  const rec = new LinePlate(2.1, 0.3, { bg: '#2e2016', border: '#9a7a44', fg: '#ffd35a' }, ctx.signs);
+  rec.mesh.position.set(x, 4.24, -15.5);
+  near.group.add(rec.mesh);
   // поднятая решётка под перемычкой
   for (let i = 0; i < 12; i++) {
     const bx = 9.35 + i * 0.3;
@@ -215,7 +221,7 @@ function buildFort(ctx: VenueCtx): { near: Venue; keep: Venue; plate: LinePlate 
   keep.flags.add(KX, 20.1, KZ, 3.1, 1.8, [0xc0392b, 0xf2c230, 0xc0392b], 0, 1.3);
   keep.flags.add(KX + 2.7, 21.3, KZ + 2.7, 1.5, 0.8, [0xf2c230], 0, 2.1);
   keep.finish(false);
-  return { near: near.finish(false), keep, plate };
+  return { near: near.finish(false), keep, plate, rec };
 }
 
 // ------------------------------------------------------------ «Выше облаков»
@@ -285,5 +291,5 @@ export function buildNorth(ctx: VenueCtx): NorthParts {
   const kart = buildKarting(ctx);
   const f = buildFort(ctx);
   const s = buildSky(ctx);
-  return { paint, kart, fort: f.near, fortKeep: f.keep, fortPlate: f.plate, sky: s.near, skyTower: s.tower, skyLine: s.line };
+  return { paint, kart, fort: f.near, fortKeep: f.keep, fortPlate: f.plate, fortRecPlate: f.rec, sky: s.near, skyTower: s.tower, skyLine: s.line };
 }

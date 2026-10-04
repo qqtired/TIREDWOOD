@@ -15,6 +15,7 @@ import { HideScene } from './hide/scene.ts';
 import { errorReport } from './errors.ts';
 import { FightScene } from './fight/scene.ts';
 import { FortScene } from './fort/scene.ts';
+import { fortLoadingLine } from './fort/record.ts';
 import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } from './identity.ts';
 import { Input, isMuteKey } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
@@ -351,7 +352,7 @@ export class App {
     this.transition = new Transition({
       renderer: this.renderer, active: () => this.active, send: (m) => this.net.send(m), nick: () => this.me.nick, sound: this.sound,
       build: (kind, epoch) => { this.net.epoch = epoch; this.switchScene(kind, true); return this.active!; },
-      detail: (kind) => (kind === 'race' ? RACE_TRACKS.find((t) => t.id === this.raceTrack)?.name ?? null : null),
+      detail: (kind) => (kind === 'race' ? RACE_TRACKS.find((t) => t.id === this.raceTrack)?.name ?? null : kind === 'fort' ? fortLoadingLine(this.me.stats?.ftBest ?? 0) : null),
       blockedChanged: () => this.updateBlocked(), freePointer: () => this.input.unlock(),
     }, this.fadeEl);
 
