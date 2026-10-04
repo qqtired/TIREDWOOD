@@ -977,3 +977,159 @@ export function drawSignTop(ctx: Ctx, W: number, H: number, text: string): void 
   ctx.stroke();
   bigText(ctx, text, W / 2, H * 0.54, H * 0.5, W - H * 0.7, '#ffd23f', '#16365e', 0, 900, '');
 }
+
+// ------------------------------------------------------------ надувной ПВХ (аквапарк)
+
+/**
+ * Плитка надувного ПВХ: две «трубы» одна над другой, как у надувного матраса — между ними сварной шов, посередине блик,
+ * к швам — тень. Бесшовная. Оттенок нейтральный (цвет даёт вершина), яркость — ещё и высота для рельефа (bumpMap): шов — канавка.
+ */
+export function drawPvc(ctx: Ctx, W: number, H: number): void {
+  const ribs = 2;
+  const rh = H / ribs;
+  for (let i = 0; i < ribs; i++) {
+    const y0 = i * rh;
+    const g = ctx.createLinearGradient(0, y0, 0, y0 + rh);
+    g.addColorStop(0, '#76849a');
+    g.addColorStop(0.07, '#aab5c4');
+    g.addColorStop(0.22, '#f6f9fc');
+    g.addColorStop(0.34, '#ffffff');
+    g.addColorStop(0.58, '#e9eef4');
+    g.addColorStop(0.9, '#b4bfcd');
+    g.addColorStop(1, '#76849a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y0, W, rh);
+  }
+  // чуть светлее и темнее вдоль трубы: бесшовно по ширине
+  const along = ctx.createLinearGradient(0, 0, W, 0);
+  along.addColorStop(0, 'rgba(255,255,255,0)');
+  along.addColorStop(0.25, 'rgba(255,255,255,0.1)');
+  along.addColorStop(0.5, 'rgba(60,76,100,0.06)');
+  along.addColorStop(0.75, 'rgba(255,255,255,0.1)');
+  along.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = along;
+  ctx.fillRect(0, 0, W, H);
+  speckle(ctx, W, H, 71, 'rgba(255,255,255,0.14)', 'rgba(70,86,110,0.06)', 30);
+}
+
+// ------------------------------------------------------------ вход в аквапарк
+
+/** Вывеска ворот аквапарка: синяя доска с волнами, солнцем и именем. */
+export function drawAquaGate(ctx: Ctx, W: number, H: number): void {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#2d8ef2');
+  g.addColorStop(1, '#0f4ea6');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // волны по нижней кромке: голубая и белая
+  for (let k = 0; k < 2; k++) {
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) ctx.lineTo(x, H * (0.9 - k * 0.05) + Math.sin(x / (W * 0.028) + k * 1.4) * H * 0.028);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fillStyle = k === 0 ? 'rgba(150,222,255,0.4)' : 'rgba(255,255,255,0.3)';
+    ctx.fill();
+  }
+  // солнце слева, завиток волны справа
+  const sx = H * 0.52;
+  const sy = H * 0.46;
+  ctx.fillStyle = '#ffd23f';
+  ctx.beginPath();
+  ctx.arc(sx, sy, H * 0.17, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffd23f';
+  ctx.lineWidth = H * 0.04;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(sx + Math.cos(a) * H * 0.23, sy + Math.sin(a) * H * 0.23);
+    ctx.lineTo(sx + Math.cos(a) * H * 0.31, sy + Math.sin(a) * H * 0.31);
+    ctx.stroke();
+  }
+  const wx = W - H * 0.52;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = H * 0.06;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const x = wx - H * 0.3 + t * H * 0.6;
+      const y = sy - H * 0.16 + k * H * 0.16 + Math.sin(t * Math.PI * 2) * H * 0.05;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  bigText(ctx, 'АКВАПАРК «ВОЛНА»', W / 2, H * 0.4, H * 0.42, W - H * 1.6, '#ffffff', '#0a3a82', H * 0.05, 900, 'rgba(0,30,80,0.45)');
+  ctx.fillStyle = '#ffe48a';
+  const t = 'ПОЛОСА ПРЕПЯТСТВИЙ · ПРОБЕГИ НА ВРЕМЯ';
+  fitFont(ctx, t, H * 0.1, W - H * 1.8, 800);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(t, W / 2, H * 0.7);
+}
+
+/**
+ * Коврик у мостика: синий, в белых волнах, с большой стрелкой на запад — на воду. Верх холста — север, но читать его будут,
+ * идя на запад: рисуем в повёрнутых осях (вверх — на запад, вправо — на север).
+ */
+export function drawAquaPad(ctx: Ctx, W: number, H: number): void {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  const lw = H;
+  const lh = W;
+  ctx.translate(-lw / 2, -lh / 2);
+  const m = Math.min(lw, lh) * 0.03;
+  roundRectPath(ctx, m, m, lw - 2 * m, lh - 2 * m, lw * 0.12);
+  const g = ctx.createLinearGradient(0, 0, 0, lh);
+  g.addColorStop(0, '#1f7ae0');
+  g.addColorStop(1, '#0f4ea6');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  // волны через весь коврик
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = lw * 0.018;
+  for (let k = 0; k < 9; k++) {
+    ctx.beginPath();
+    for (let x = 0; x <= lw; x += 8) {
+      const y = lh * (0.08 + k * 0.115) + Math.sin(x / (lw * 0.09) + k) * lh * 0.012;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#f6f2e8';
+  ctx.lineWidth = Math.max(4, lw * 0.03);
+  roundRectPath(ctx, m + lw * 0.04, m + lw * 0.04, lw - 2 * (m + lw * 0.04), lh - 2 * (m + lw * 0.04), lw * 0.09);
+  ctx.stroke();
+  // стрелка вверх (= на запад)
+  const cx = lw / 2;
+  ctx.fillStyle = '#ffd23f';
+  ctx.beginPath();
+  ctx.moveTo(cx, lh * 0.12);
+  ctx.lineTo(cx + lw * 0.3, lh * 0.36);
+  ctx.lineTo(cx + lw * 0.13, lh * 0.36);
+  ctx.lineTo(cx + lw * 0.13, lh * 0.56);
+  ctx.lineTo(cx - lw * 0.13, lh * 0.56);
+  ctx.lineTo(cx - lw * 0.13, lh * 0.36);
+  ctx.lineTo(cx - lw * 0.3, lh * 0.36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#0a3a82';
+  ctx.lineWidth = lw * 0.014;
+  ctx.stroke();
+  bigText(ctx, 'НА СТАРТ', cx, lh * 0.73, lw * 0.19, lw * 0.8, '#ffffff', '#0a3a82', lw * 0.02, 900, '');
+  ctx.fillStyle = '#d9efff';
+  fitFont(ctx, 'сошёл с мостика — пошло время', lw * 0.06, lw * 0.8, 700);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('сошёл с мостика — пошло время', cx, lh * 0.87);
+  ctx.restore();
+}

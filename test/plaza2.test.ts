@@ -27,8 +27,8 @@ test('оформление: ?plaza= в адресе сильнее запомн�
   assert.equal(pickPlaza('?plaza=7', 'oops', 2), 2);
 });
 
-test('зазывалы: девять, номера от 960 и все разные, имена короткие, наряды из каталога, реплики влезают в облачко', () => {
-  assert.equal(KEYS.length, 9);
+test('зазывалы: десять, номера от 960 и все разные, имена короткие, наряды из каталога, реплики влезают в облачко', () => {
+  assert.equal(KEYS.length, 10);
   const ids = new Set<number>();
   for (const k of KEYS) {
     const t = TOUT_INFO[k];
@@ -79,9 +79,9 @@ test('живые реплики: по каждому статусу — коро
   assert.ok(produced >= 40, `живых реплик ${produced}`);
 });
 
-test('афиша кафе: без флагов — три строки, с флагами — все восемь по порядку улицы, строки короткие', () => {
+test('афиша кафе: без флагов — пейнтбол, картинг, катер, аквапарк; с флагами — все девять по порядку улицы, строки короткие', () => {
   const idle = agendaRows(emptyLive());
-  assert.deepEqual(idle.map((r) => r.key), ['paint', 'kart', 'boat'], 'пейнтбол, картинг и катер есть всегда');
+  assert.deepEqual(idle.map((r) => r.key), ['paint', 'kart', 'boat', 'aqua'], 'пейнтбол, картинг, катер и аквапарк есть всегда');
   assert.ok(idle.every((r) => !r.hot), 'тишина — ни одной горящей точки');
 
   const all = (over: Partial<LiveIn> = {}): LiveIn => ({
@@ -93,11 +93,15 @@ test('афиша кафе: без флагов — три строки, с фл�
     regatta: { q: { phase: 'count', n: 5, left: 11 }, running: false },
     fight: { phase: 'count', left: 14, n: 2 },
     boat: { ph: BP_BOARD, n: 1, left: 25 },
+    aqua: { nick: 'Tester7', ms: 41200 },
     ...over,
   });
   const rows = agendaRows(all());
   assert.deepEqual(rows.map((r) => r.key), [...AGENDA_ORDER], 'все режимы, порядок как на улице');
-  assert.ok(rows.every((r) => r.hot), 'везде что-то идёт');
+  assert.ok(rows.every((r) => r.hot === (r.key !== 'aqua')), 'везде что-то идёт, кроме аквапарка: у него в строке рекорд');
+  assert.equal(rows.find((r) => r.key === 'aqua')?.text, 'рекорд 0:41.20 · Tester7');
+  assert.equal(agendaRows(all({ aqua: { nick: 'ОченьДлинныйНикНаДвадцать', ms: 125340 } })).find((r) => r.key === 'aqua')?.text.length, 28);
+  assert.equal(agendaRows(all({ aqua: null })).find((r) => r.key === 'aqua')?.text, 'рекордов нет — будь первым');
   for (const r of rows) {
     assert.ok(r.name.length > 0 && r.name.length <= 14, `имя «${r.name}»`);
     assert.ok(r.text.length > 0 && r.text.length <= 28, `«${r.text}» ${r.text.length} знаков`);
@@ -137,6 +141,7 @@ test('бариста: читает афишу вслух — «режим: чт�
   const busy: LiveIn = {
     pbHumans: 2, fort: { phase: FT_WAVE, wave: 9, humans: 3, left: 0 }, skill: { n: 0, max: 4, phase: 'idle', left: 0 },
     kart: { phase: 'race', n: 3, left: 0, lap: 2, laps: 3 }, hide: null, regatta: { q: null, running: true }, fight: null, boat: { ph: BP_RIDE, n: 2, left: 20 },
+    aqua: { nick: 'Tester7', ms: 41200 },
   };
   assert.deepEqual(liveLines('cafe', busy), [
     'Пейнтбол: в бою 2 желейки', 'Крепость: волна 9 · держат 3', 'Картинг: гонка · круг 2 из 3', 'Регата: идёт заезд в бухте', 'Ласточка: в поездке · ещё 20 с',
@@ -145,6 +150,14 @@ test('бариста: читает афишу вслух — «режим: чт�
   const quiet = liveLines('cafe', { ...emptyLive(), fort: { phase: FT_GATHER, wave: 0, humans: 0, left: 20 }, skill: { n: 0, max: 4, phase: 'idle', left: 0 } });
   assert.deepEqual(quiet, []);
   for (const line of liveLines('cafe', busy)) assert.ok(line.length <= BUBBLE_CHARS, `«${line}»`);
+});
+
+test('спасатель аквапарка: при рекорде — он первой репликой и обычные подсказки следом, без рекорда — свои', () => {
+  assert.deepEqual(liveLines('aqua', emptyLive()), []);
+  const lines = liveLines('aqua', { ...emptyLive(), aqua: { nick: 'Tester7', ms: 41200 } });
+  assert.equal(lines[0], 'Рекорд полосы — 0:41.20, Tester7. Побьёшь?');
+  assert.deepEqual(lines.slice(1), TOUT_INFO.aqua.lines);
+  for (const line of liveLines('aqua', { ...emptyLive(), aqua: { nick: 'ОченьДлинныйНикНаДвадцатьЗнаковПодряд', ms: 3599990 } })) assert.ok(line.length <= BUBBLE_CHARS, `«${line}»`);
 });
 
 test('строка конторы порта: свободен / посадка (места) / в поездке', () => {
@@ -162,10 +175,11 @@ test('fillLive: статусы сцены → строки, секунды сч�
   const raw = (over: Partial<LiveRaw> = {}): LiveRaw => ({
     pbHumans: 2, fort: null, skill: null, kart: { phase: 'count', n: 3, lap: 0, laps: 3 }, kartLeft: 8, hide: { phase: 'idle', n: 1, max: 8 },
     boatrace: { phase: 'count', n: 2, left: 6 }, regattaRunning: false, fight: { phase: 'count', left: 10, names: ['a', 'b'] },
-    boat: { ph: BP_BOARD, at: 1000 + 30 * TICK_RATE, n: 1 }, tick: 1000, tickRate: TICK_RATE, ...over,
+    boat: { ph: BP_BOARD, at: 1000 + 30 * TICK_RATE, n: 1 }, aqua: { nick: 'Tester7', ms: 41200 }, tick: 1000, tickRate: TICK_RATE, ...over,
   });
   fillLive(out, raw());
   assert.equal(out.pbHumans, 2);
+  assert.equal(out.aqua?.nick, 'Tester7');
   assert.equal(out.kart?.left, 8);
   assert.equal(out.hide?.phase, 'gather', 'круг сбора пряток — это сбор');
   assert.equal(out.regatta.q?.n, 2);

@@ -94,6 +94,42 @@ export function plankLines(ctx: CanvasRenderingContext2D, w: number, h: number, 
 
 // ------------------------------------------------------------ склейка раскрашенных деталей
 
+/**
+ * Развёртка «с коробки» для склеенной геометрии без UV (раскрашенные части): каждому треугольнику — проекция вдоль той оси, к
+ * которой его нормаль ближе всего (верх — по x, z; бока — по z, y и по x, y). scale — тайлов на метр. Узор не зависит от
+ * того, из каких фигур собрана деталь, и стыкуется на соседних кусках.
+ */
+export function planarUV(g: THREE.BufferGeometry, scale: number): THREE.BufferGeometry {
+  const src = g.index ? g.toNonIndexed() : g;
+  const pos = src.getAttribute('position') as THREE.BufferAttribute;
+  const n = pos.count;
+  const uv = new Float32Array(n * 2);
+  for (let i = 0; i + 2 < n; i += 3) {
+    const ax = pos.getX(i);
+    const ay = pos.getY(i);
+    const az = pos.getZ(i);
+    const ux = pos.getX(i + 1) - ax;
+    const uy = pos.getY(i + 1) - ay;
+    const uz = pos.getZ(i + 1) - az;
+    const vx = pos.getX(i + 2) - ax;
+    const vy = pos.getY(i + 2) - ay;
+    const vz = pos.getZ(i + 2) - az;
+    const cx = Math.abs(uy * vz - uz * vy);
+    const cy = Math.abs(uz * vx - ux * vz);
+    const cz = Math.abs(ux * vy - uy * vx);
+    const axis = cy >= cx && cy >= cz ? 1 : cx >= cz ? 0 : 2;
+    for (let k = 0; k < 3; k++) {
+      const x = pos.getX(i + k);
+      const y = pos.getY(i + k);
+      const z = pos.getZ(i + k);
+      uv[(i + k) * 2] = (axis === 0 ? z : x) * scale;
+      uv[(i + k) * 2 + 1] = (axis === 1 ? z : y) * scale;
+    }
+  }
+  src.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return src;
+}
+
 function placeEuler(g: THREE.BufferGeometry, x: number, y: number, z: number, rx: number, ry: number, rz: number): void {
   const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ'));
   m.setPosition(x, y, z);

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { GroundQuery } from '../../render/avatar.ts';
 import { REGATTA_BOAT_SIZE } from '../../../shared/plaza2.ts';
 import { type AgendaBoard } from './agenda.ts';
+import { buildAqua, bobToys, type Toy } from './aqua.ts';
 import { buildCafe } from './cafe.ts';
 import { buildFight } from './east.ts';
 import { setBulbPhase } from './gfx.ts';
@@ -30,6 +31,7 @@ export class PlazaDress {
   readonly north: NorthParts;
   readonly harbor: HarborParts;
   private readonly board: AgendaBoard;
+  private readonly toys: Toy[];
   private agendaT = -1;
   private readonly venues: Venue[] = [];
   private readonly modes = new Map<PlazaMode, Venue[]>();
@@ -57,6 +59,10 @@ export class PlazaDress {
     const cafe = buildCafe(ctx);
     this.board = cafe.board;
     this.add(cafe.venue, null);
+    const aqua = buildAqua(ctx);
+    this.toys = aqua.toys;
+    this.add(aqua.gate, null);
+    this.add(aqua.far, null);
     for (const venue of this.venues) {
       for (const def of venue.touts) this.touts.push({ tout: new Tout(ctx.scene, def, ground), venue });
     }
@@ -101,6 +107,7 @@ export class PlazaDress {
       this.agendaT = time;
       this.board.set(agendaRows(live));
     }
+    bobToys(this.toys, time);
     // лодки у стенки покачиваются: чуть вверх-вниз и с боку на бок, каждая в своём такте
     for (const b of this.harbor.bobs) {
       b.sway.position.y = REGATTA_BOAT_SIZE.h + Math.sin(time * 1.3 + b.phase) * 0.035;

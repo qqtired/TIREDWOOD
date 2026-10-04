@@ -543,7 +543,7 @@ export class LobbyScene implements Scene {
     this.boatSign = new BoatSign(this.world.scene);
     this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows()) : null;
     this.boatBanner = new BoatBanner(this.world.scene);
-    this.aqua = new AquaPark(this.world.scene, this.effects);
+    this.aqua = new AquaPark(this.world.scene, this.effects, PLAZA2);
     this.rg = new RegattaClient({
       scene: this.world.scene, effects: this.effects, sound: d.sound, hudRoot: this.hud.root,
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg),
@@ -2281,7 +2281,7 @@ export class LobbyScene implements Scene {
     const ks = this.world.kartStart;
     fillLive(this.plazaLive, {
       pbHumans: this.pbHumans, fort: this.fortSt, skill: this.skillStatus, kart: ks.status, kartLeft: ks.left, hide: this.hideStatus,
-      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', fight: this.fcSt, boat: this.boat,
+      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', fight: this.fcSt, boat: this.boat, aqua: this.aquaTop[0] ?? null,
       tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
     plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);

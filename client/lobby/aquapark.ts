@@ -15,6 +15,8 @@ import { PLAYER_HALF, WATER_Y } from '../../shared/constants.ts';
 import type { AquaRow } from '../../shared/messages.ts';
 import type { Effects } from '../render/effects.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { drawPvc } from './plaza/art.ts';
+import { paintTexture, planarUV } from './plaza/gfx.ts';
 
 /** Надувное уходит под воду на столько */
 const SINK = 0.25;
@@ -41,6 +43,9 @@ const GANTRY_Y = 4.45;
 const LIFT_T = 0.5;
 /** Подушка уходит под воду и прячется, когда верх ниже воды на столько */
 const PAD_HIDE = 0.6;
+/** Фактура ПВХ (plaza2): метров на плитку узора и сила рельефа */
+const PVC_M = 1.0;
+const PVC_BUMP = 0.9;
 
 interface TrampVis {
   x: number;
@@ -84,8 +89,10 @@ export class AquaPark {
   private boardKey = '';
   private time = 0;
 
-  constructor(scene: THREE.Scene, effects: Effects) {
+  /** skin — «кожа» надувного ПВХ (стёганые подушки со швами; оформление plaza2): та же полоса, только вид */
+  constructor(scene: THREE.Scene, effects: Effects, skin = false) {
     this.effects = effects;
+    const uv = (g: THREE.BufferGeometry): THREE.BufferGeometry => (skin ? planarUV(g, 1 / PVC_M) : g);
     const parts: THREE.BufferGeometry[] = [];
     for (const p of AQUA_PIECES) this.piece(parts, scene, p);
     arch(parts, AQUA_START_X, AQUA_JETTY.z0 - 0.3, AQUA_JETTY.z1 + 0.3, 2.9, BASE, YELLOW);
@@ -94,7 +101,12 @@ export class AquaPark {
     AQUA_RINGS.forEach((r, i) => ring(parts, r.x, r.z, r.y, i % 2 === 0 ? RED : YELLOW));
     gantry(parts);
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.02 });
-    const mesh = new THREE.Mesh(mergeColored(parts), mat);
+    if (skin) {
+      mat.map = mat.bumpMap = paintTexture(256, 256, drawPvc, true);
+      mat.bumpScale = PVC_BUMP;
+      mat.color.setScalar(1.22);
+    }
+    const mesh = new THREE.Mesh(uv(mergeColored(parts)), mat);
     mesh.matrixAutoUpdate = false;
     scene.add(mesh);
     scene.add(banner('СТАРТ', '#1f7ae0', AQUA_START_X, (AQUA_JETTY.z0 + AQUA_JETTY.z1) / 2, 2.9));
@@ -104,15 +116,15 @@ export class AquaPark {
     for (const m of AQUA_MOVERS) {
       let geo: THREE.BufferGeometry;
       let mm = mat;
-      if (m.kind === 'ferry') geo = ferryGeo(m);
+      if (m.kind === 'ferry') geo = uv(ferryGeo(m));
       else if (m.kind === 'lift') {
-        geo = liftGeo(m);
-        const col = new THREE.Mesh(bellowsGeo(m), mat);
+        geo = uv(liftGeo(m));
+        const col = new THREE.Mesh(uv(bellowsGeo(m)), mat);
         col.position.set((m.x0 + m.x1) / 2, WATER_Y - SINK, (m.z0 + m.z1) / 2);
         scene.add(col);
         this.liftCol = col;
       } else {
-        geo = padGeo(m);
+        geo = uv(padGeo(m));
         mm = mat.clone();
         mm.emissive.set(0xffffff);
         mm.emissiveIntensity = 0;
@@ -121,10 +133,10 @@ export class AquaPark {
       scene.add(mv);
       this.movers.push({ m, mesh: mv, mat: m.kind === 'sink' ? mm : null, under: false, lx: (m.x0 + m.x1) / 2, wakeT: 0 });
     }
-    this.sweeper = new THREE.Mesh(sweeperGeo(), mat);
+    this.sweeper = new THREE.Mesh(uv(sweeperGeo()), mat);
     this.sweeper.position.set(AQUA_SWEEPER.x, AQUA_SWEEPER.top, AQUA_SWEEPER.z);
     scene.add(this.sweeper);
-    this.bags = new THREE.InstancedMesh(bagGeo(), mat, AQUA_BAGS.length);
+    this.bags = new THREE.InstancedMesh(uv(bagGeo()), mat, AQUA_BAGS.length);
     this.bags.frustumCulled = false;
     scene.add(this.bags);
     this.update(0, 0);

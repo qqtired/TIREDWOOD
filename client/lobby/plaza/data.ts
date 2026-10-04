@@ -2,7 +2,7 @@
 // Реплика в облачке — не длиннее BUBBLE_CHARS (60) знаков: больше обрежется.
 import type { Outfit } from '../../../shared/outfit.ts';
 
-export type ToutKey = 'paint' | 'fort' | 'sky' | 'kart' | 'hide' | 'regatta' | 'boat' | 'fight' | 'cafe';
+export type ToutKey = 'paint' | 'fort' | 'sky' | 'kart' | 'hide' | 'regatta' | 'boat' | 'fight' | 'cafe' | 'aqua';
 
 export interface ToutInfo {
   id: number;
@@ -58,6 +58,16 @@ export const TOUT_INFO: Readonly<Record<ToutKey, ToutInfo>> = {
     id: 968, name: 'Бариста Тоня', accent: '#ffd23f',
     outfit: { c: 12, c2: 15, p: 'dots', e: 'happy', h: 'bandana', a: 'bowtie' },
     lines: ['Афиша на окне: что сегодня в городе', 'Чай, карты и последние новости', 'Заходи на террасу — столы свободны'],
+  },
+  aqua: {
+    id: 969, name: 'Спасатель Лёва', accent: '#ff4d6d',
+    outfit: { c: 0, c2: 15, p: 'none', e: 'shades', h: 'panama', a: 'lifebuoy' },
+    lines: [
+      'Аквапарк «Волна»! Сойди с мостика — пойдёт время',
+      'Упал в воду — не беда, вернёшься на мостик',
+      'Зелёный батут — на ступень, красный — на башню',
+      'Верхняя палуба — только на лифте',
+    ],
   },
 };
 

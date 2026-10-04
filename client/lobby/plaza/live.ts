@@ -4,7 +4,8 @@ import { BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_RIDE } from '../../../shared/
 import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
 import { RC_MAX_KARTS } from '../../../shared/kart.ts';
 import { RG_MAX } from '../../../shared/regatta.ts';
-import type { ToutKey } from './data.ts';
+import { fmtAquaTime } from '../../../shared/aqua.ts';
+import { TOUT_INFO, type ToutKey } from './data.ts';
 
 /** Статусы режимов в том виде, как их хранит сцена набережной (null — режим выключен или данных нет) */
 export interface LiveIn {
@@ -18,10 +19,12 @@ export interface LiveIn {
   regatta: { q: { phase: string; n: number; left?: number } | null; running: boolean };
   fight: { phase: string; left: number; n: number } | null;
   boat: { ph: number; n: number; left: number } | null;
+  /** Лучший результат аквапарка (первая строка доски рекордов); null — рекордов ещё нет */
+  aqua: { nick: string; ms: number } | null;
 }
 
 export function emptyLive(): LiveIn {
-  return { pbHumans: 0, fort: null, skill: null, kart: null, hide: null, regatta: { q: null, running: false }, fight: null, boat: null };
+  return { pbHumans: 0, fort: null, skill: null, kart: null, hide: null, regatta: { q: null, running: false }, fight: null, boat: null, aqua: null };
 }
 
 /** «1 желейка, 2 желейки, 5 желеек» */
@@ -34,6 +37,7 @@ export function plural(n: number, one: string, few: string, many: string): strin
 }
 
 const cut = (s: string): string => (s.length > 60 ? `${s.slice(0, 59)}…` : s);
+const fit28 = (s: string): string => (s.length > 28 ? `${s.slice(0, 27)}…` : s);
 
 /** Реплики зазывалы по статусу; пусто — говорит свои обычные. */
 export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
@@ -99,6 +103,11 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
       if (f.phase === 'fight') return ['Внизу идёт бой! Подойди к двери — посмотришь'];
       return [];
     }
+    case 'aqua': {
+      // рекорд — первой репликой, дальше его обычные подсказки
+      const a = s.aqua;
+      return a ? [cut(`Рекорд полосы — ${fmtAquaTime(a.ms)}, ${a.nick}. Побьёшь?`), ...TOUT_INFO.aqua.lines] : [];
+    }
     case 'cafe': {
       // бариста читает афишу вслух — только те строки, где что-то идёт или набирают людей; в тишине говорит свои обычные
       const out: string[] = [];
@@ -111,10 +120,10 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
 }
 
 /** Порядок мест в афише и в речи бариста: как по улице — дома 2, 3, 4, дальше каланча, подвал кафе и вода */
-export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'fight', 'regatta', 'boat', 'hide'];
+export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'fight', 'regatta', 'boat', 'aqua', 'hide'];
 
 const AGENDA_NAME: Readonly<Record<string, string>> = {
-  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', fight: 'Fight Club', regatta: 'Регата', boat: 'Ласточка', hide: 'Прятки',
+  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', fight: 'Fight Club', regatta: 'Регата', boat: 'Ласточка', aqua: 'Аквапарк', hide: 'Прятки',
 };
 
 /** Строка афиши «Сегодня в городе»: место, что в нём сейчас (до 28 знаков) и «горит» ли (что-то идёт или можно присоединиться) */
@@ -191,6 +200,12 @@ export function agendaRows(s: LiveIn): AgendaRow[] {
         else row(key, 'катер свободен · жми E', false);
         break;
       }
+      case 'aqua': {
+        // в аквапарке время у каждого своё — «горящим» он не бывает, в строке — рекорд полосы
+        const a = s.aqua;
+        row(key, a ? fit28(`рекорд ${fmtAquaTime(a.ms)} · ${a.nick}`) : 'рекордов нет — будь первым', false);
+        break;
+      }
       case 'hide': {
         const h = s.hide;
         if (!h) break;
@@ -232,6 +247,7 @@ export interface LiveRaw {
   regattaRunning: boolean;
   fight: { phase: string; left: number; names: readonly string[] } | null;
   boat: { ph: number; at: number; n: number };
+  aqua: { nick: string; ms: number } | null;
   /** Часы отрисовки, тики сервера */
   tick: number;
   tickRate: number;
@@ -275,6 +291,7 @@ export function fillLive(out: LiveIn, r: LiveRaw): LiveIn {
   const b = (out.boat ??= { ph: 0, n: 0, left: 0 });
   b.ph = r.boat.ph;
   b.n = r.boat.n;
+  out.aqua = r.aqua;
   b.left = r.boat.ph === BP_RIDE ? secs(r.boat.at + BOAT_RIDE_TICKS - r.tick, r.tickRate) : secs(r.boat.at - r.tick, r.tickRate);
   return out;
 }
