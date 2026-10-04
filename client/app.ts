@@ -453,6 +453,10 @@ export class App {
         input: this.input,
         send: (m: ClientMsg) => this.net.send(m),
         voice: () => this.voice?.debug() ?? null,
+        // русалка у мостков сразу: __opus.mermaid() — как повезёт, __opus.mermaid(0) / (1) — с первого или второго борта (номера — в state().mermaid.sides)
+        // (второй номер — застыть на этой секунде появления, для снимков; __opus.mermaidOff() — убрать)
+        mermaid: (side?: number, hold?: number) => this.lobby.mermaid.call(side, hold),
+        mermaidOff: () => this.lobby.mermaid.clear(),
         state: () => ({ screen: this.screen, scene: this.active?.kind ?? null, paused: this.paused, nick: this.me.nick, tokens: this.me.tokens, epoch: this.net.epoch, transition: this.transition.debugState(), ...this.active?.debugState() }),
         look: (yaw: number, pitch: number) => {
           this.input.yaw = yaw;

@@ -638,6 +638,21 @@ export class Sound {
     for (let i = 0; i < 6; i++) this.tone(d, 300 + Math.random() * 500, 700 + Math.random() * 600, 0.05, 'sine', 0.12, 0.08 + i * 0.07);
   }
 
+  /**
+   * Русалка выныривает или ныряет (client/lobby/mermaid.ts): мягкий всплеск и три «буль» — заметно тише падения игрока
+   * в воду (splash). Идёт через out(), поэтому предел голосов её видит: в толпе дальний тихий всплеск не сыграется.
+   * Дальше 45 м от слушателя не нужен.
+   */
+  mermaidSplash(pos: V3, dive = false): void {
+    if (!this.ok || Math.hypot(pos[0] - this.lx, pos[2] - this.lz) > 45) return;
+    const d = this.out(pos, this.sfx, .15, 4, 'mermaid');
+    this.noise(d, dive ? .5 : .62, 'lowpass', dive ? 1500 : 2100, 320, .6, dive ? .05 : .065, 0, .03);
+    for (let i = 0; i < 3; i++) {
+      const f = dive ? 640 - i * 110 : 380 + i * 130;
+      this.tone(d, f, dive ? f * .6 : f * 1.5, .07, 'sine', .035 - i * .006, .1 + i * .08, .01);
+    }
+  }
+
   jam(pos: [number, number, number] | null): void {
     if (!this.ok) return;
     const d = this.out(pos, this.sfx);
