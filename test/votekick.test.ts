@@ -63,7 +63,7 @@ test('голосование: плашка всем, инициатор сраз
   assert.deepEqual(end.end, { pid: t.c.pid, nick: 'Tester4', kicked: true, yes: 2, no: 0 });
   const err = lastOf(t.s, 'error')!;
   assert.equal(err.code, 'kicked');
-  assert.match(err.text, /выгнали голосованием.*10 мин/);
+  assert.match(err.text, /игроки голосованием \(за 2, против 0\)\. Вернуться можно через 10 мин/);
   assert.equal(t.s.closed?.code, 4004);
   assert.equal(hub.clientOf(t.c.pid), undefined, 'выгнанный отключён');
   assert.ok(sysChat(b).some((s) => s.includes('Tester4 выгнан голосованием на 10 мин (за 2, против 0)')));

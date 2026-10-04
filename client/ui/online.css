@@ -1,0 +1,242 @@
+/* «Кто где» (Tab): строки с громкостью голоса и 👢 — client/ui/online.ts. Основа окна — .online-list в styles.css */
+
+.online-list.ol {
+  width: min(580px, calc(100vw - 24px));
+  max-height: 78vh;
+  gap: 8px;
+}
+
+.online-list.ol.show {
+  pointer-events: auto;
+}
+
+/* с мышью (ПКМ): рамка ярче — видно, что кнопки работают */
+.online-list.ol.pinned {
+  border-color: rgba(255, 179, 107, 0.55);
+  box-shadow: 0 24px 60px rgba(10, 5, 8, 0.55), 0 0 0 3px rgba(255, 138, 28, 0.18);
+}
+
+.ol .ol-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ol .ol-hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orange-soft);
+  white-space: nowrap;
+}
+
+.ol .ol-hint:empty {
+  display: none;
+}
+
+.ol.pinned .ol-rows {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.online-list.ol .ol-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 122px 124px 32px;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 6px 4px 10px;
+  box-sizing: border-box;
+}
+
+.ol .ol-row.talking {
+  box-shadow: inset 0 0 0 1.5px rgba(123, 216, 143, 0.75);
+}
+
+.ol .ol-row.asking {
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 107, 0.85);
+}
+
+.ol .ol-who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.online-list.ol .ol-row .ol-lvl {
+  display: inline-block;
+  flex: none;
+  min-width: 23px;
+  padding: 2px 5px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.online-list.ol .ol-row .ol-nick {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cream);
+  font-size: 15px;
+}
+
+.ol .ol-mic {
+  flex: none;
+  font-style: normal;
+  font-size: 13px;
+  opacity: 0.55;
+}
+
+.ol .ol-mic[hidden] {
+  display: none;
+}
+
+.ol .ol-row.talking .ol-mic {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(123, 216, 143, 0.9));
+}
+
+.online-list.ol .ol-row .ol-room {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.online-list.ol .ol-row .ol-self {
+  grid-column: span 2;
+  text-align: center;
+  font-size: 12px;
+  color: var(--orange-soft);
+}
+
+.online-list.ol .ol-row .ol-voice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  color: var(--cream);
+}
+
+.online-list.ol .ol-row .ol-vol {
+  min-width: 38px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+
+.ol .ol-row.muted .ol-vol {
+  color: var(--jam-soft);
+}
+
+.ol button {
+  display: inline-grid;
+  place-items: center;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 240, 220, 0.1);
+  color: var(--cream);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  text-shadow: none;
+}
+
+.ol button:hover:not(:disabled) {
+  background: rgba(255, 240, 220, 0.2);
+  border-color: rgba(255, 236, 205, 0.35);
+}
+
+.ol button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ol button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.ol .ol-row.muted .ol-mute {
+  background: rgba(224, 40, 58, 0.28);
+  border-color: rgba(255, 107, 107, 0.5);
+  color: #ffb3a8;
+}
+
+.ol .ol-mute svg {
+  display: block;
+}
+
+.ol .ol-kick {
+  width: 32px;
+  font-size: 16px;
+}
+
+.ol .ol-kick:hover:not(:disabled) {
+  background: rgba(224, 40, 58, 0.35);
+  border-color: rgba(255, 107, 107, 0.6);
+}
+
+/* 👢 нажат: «Выгнать <ник>?» под списком */
+.ol .ol-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(224, 40, 58, 0.16);
+  border: 1px solid rgba(255, 107, 107, 0.45);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.ol .ol-ask[hidden] {
+  display: none;
+}
+
+.ol .ol-ask span {
+  flex: 1 1 260px;
+}
+
+.ol .ol-ask button {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.ol .ol-ask .ol-ask-yes {
+  background: linear-gradient(180deg, #d9604f, #b0382c);
+  border-color: rgba(0, 0, 0, 0.25);
+  color: #fff6ea;
+}
+
+.ol .ol-ask .ol-ask-yes:hover:not(:disabled) {
+  background: linear-gradient(180deg, #e6705f, #bf4336);
+}
+
+/* телефон и узкий экран: комнату прячем — остаются ник, громкость и 👢 */
+@media (max-width: 600px) {
+  .online-list.ol .ol-row {
+    grid-template-columns: minmax(0, 1fr) 124px 32px;
+  }
+
+  .online-list.ol .ol-row .ol-room {
+    display: none;
+  }
+}
+
+.touch .ol button {
+  height: 34px;
+  min-width: 34px;
+}

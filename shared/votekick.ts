@@ -78,7 +78,7 @@ export function kickWait(ms: number): string {
   return `${Math.ceil(ms / 60_000)} мин`;
 }
 
-/** Текст выгнанному: при кике и когда пробует войти раньше срока */
+/** Текст выгнанному (под заголовком «Тебя выгнали»): при кике и когда пробует войти раньше срока */
 export function kickedText(left: number, score = ''): string {
-  return `Тебя выгнали голосованием игроков${score ? ` (${score})` : ''}. Вернуться можно через ${kickWait(left)}.`;
+  return `Так решили игроки голосованием${score ? ` (${score})` : ''}. Вернуться можно через ${kickWait(left)}.`;
 }
