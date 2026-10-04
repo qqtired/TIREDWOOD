@@ -184,6 +184,8 @@ export class App {
   private frameStats = { median: 0, p95: 0, slow: false };
   /** С какого кадра мышь не захвачена, хотя сцене нужна (0 — всё в порядке) */
   private unlockedAt = 0;
+  /** Мышь забрало окошко браузера «разрешить микрофон» (первый V) — на паузе вуаль, ответ вернёт мышь (micAnswered) */
+  private micAsk = false;
   private slowWindows = 0;
   private perfWait = 3;
   private healthTimer = 5;
@@ -446,6 +448,13 @@ export class App {
       else if (this.active?.wantsPointer !== false && !this.online.pinned) {
         this.chat.close();
         this.setPaused(true);
+        // первый V: мышь забрало окошко браузера «разрешить микрофон» — не меню, а вуаль «Кликни, чтобы играть»;
+        // ответил — мышь вернём сами (micAnswered), не дал браузер без клика — клик по вуали
+        if (this.voice?.view.mic === 'requesting') {
+          this.micAsk = true;
+          this.menu.setVeil(true);
+          this.menu.setHint('Браузер спрашивает про микрофон — ответь в его окошке');
+        }
       }
     };
     this.chat.onOpenChange = (open) => {
@@ -1162,7 +1171,10 @@ export class App {
     this.voice = new VoiceController({
       send: message => this.net.send(message),
       canTalk: () => this.canTalk(),
-      onChange: view => { this.voiceTransmitting = view.transmitting; setVoicePresence(view.presence); this.voiceUi?.render(view); },
+      onChange: view => {
+        this.voiceTransmitting = view.transmitting; setVoicePresence(view.presence); this.voiceUi?.render(view);
+        if (this.micAsk && view.mic !== 'requesting') this.micAnswered();
+      },
       prefs: loadVoicePrefs(),
       savePrefs: prefs => saveVoicePrefs(prefs),
     });
@@ -1173,6 +1185,17 @@ export class App {
     for (const [type, down] of [['keydown', true], ['keyup', false]] as const) {
       window.addEventListener(type, e => { if (e.code === 'KeyV' && this.voice?.handleKey(e.code, down, e)) e.preventDefault(); }, true);
     }
+  }
+
+  /**
+   * Ответили на вопрос браузера про микрофон (первый V): вуаль ещё висит — вернуть мышь. Без жеста браузер может её не
+   * отдать (Safari) — тогда вуаль остаётся, хватит одного клика.
+   */
+  private micAnswered(): void {
+    this.micAsk = false;
+    if (!this.paused || !this.menu.veiled) return;
+    this.menu.setHint('');
+    void this.input.lock();
   }
 
   /** Голос по V — везде в игре: меню Esc, настройки, окна, пауза. Нельзя при наборе текста, на загрузке и при обрыве. */
