@@ -220,7 +220,7 @@ export class FishNpcDialog {
     this.ale = this.offer(more, 'ale', ALE.name, `доход от рыбы ${pct(ALE.income)} · редкие и выше ${mul(ALE.rare)}`);
     this.ale.btn.addEventListener('click', () => this.request('ale'));
     this.vodka = this.offer(more, 'vodka', VODKA.name,
-      `эпик и выше ${mul(VODKA.top ?? 1)} · опыт за них ${mul(VODKA.topXp ?? 1)} · зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}%`);
+      `эпик и выше ${mul(VODKA.top ?? 1)} · опыт за них ${mul(VODKA.topXp ?? 1)} · зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}% · на шкале пьяный: зона с задержкой, икота, моргаешь`);
     this.vodka.btn.addEventListener('click', () => this.request('vodka'));
     this.drum = this.offer(more, 'drum', 'Бубен дождя', `сразу дождь для всех: виды дождя (${mul(1.5)} к цене), редкие и выше ${mul(RAIN_MUL)}`);
     this.drum.btn.addEventListener('click', () => this.request('rain'));

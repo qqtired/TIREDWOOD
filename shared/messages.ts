@@ -543,11 +543,12 @@ export type ServerMsg =
   // рыбалка 2.0: вытащил (сервер повторил вываживание): цена (сундук — что в нём, coins), бонус за новый вид, рекорд
   // (best — прежний, граммы), сколько видов в коллекции и собрана ли она этим уловом (full). fisheco: рыба — в рюкзак
   // (bag — сколько в нём теперь, cap — мест; bagFull — места не нашлось, рыбу отпустили), base — цена без напитка и
-  // места, m — множители (биты BAG_*), xp — опыт рыбалки, perfect — ни тика вне зоны; rw — награды лестницы
-  // fishstyle, полученные этим уловом
+  // места, m — множители (биты BAG_*), xp — опыт рыбалки; rw — награды лестницы fishstyle, полученные этим уловом
   | {
     t: 'fishLand'; sp: number; g: number; price: number; coins: number; bonus: number; fresh: boolean; record: boolean; best: number; got: number; full: boolean;
-    base?: number; m?: number; xp?: number; perfect?: boolean; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
+    base?: number; m?: number; xp?: number; bag?: number; cap?: number; bagFull?: boolean; rw?: string[];
+    /** Оценка вываживания (shared/fishreel.ts REEL_GRADES): gr — 0 «Идеально» … 4 «Ну ты и червь», er — сколько раз рыба выходила из зоны */
+    gr?: number; er?: number;
     /** В сундуке было пиво подводного владыки — уже выпито (shared/fishshop.ts LORD) */
     lord?: boolean;
   }

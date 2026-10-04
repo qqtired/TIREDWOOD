@@ -3,10 +3,11 @@
 // (кнопка остаётся как была), свою зону чувствует: хочет, чтобы середина зоны шла к рыбе со скоростью по расстоянию,
 // с упреждением по скорости рыбы. «Обычный» — реакция ~230 мс, «опытный» — ~150 мс, внимательнее и точнее.
 // Леска провисла (зона лежит на дне дольше 0,7 с): «обычный» подматывает, увидев надпись (через свою реакцию),
-// «опытный» не даёт зоне залежаться и касается кнопки заранее.
+// «опытный» не даёт зоне залежаться и касается кнопки заранее. Натяжение лески (зона прижата к верху дольше 0,7 с) —
+// так же, только отпускает кнопку; «обычный» после первого предупреждения за вываживание уже знает и отпускает заранее.
 import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
-import { REEL_BAR, SLACK_TICKS, reelStart, reelStep, type ReelStyle } from '../shared/fishreel.ts';
+import { REEL_BAR, REEL_GRADES, SLACK_TICKS, TAUT_TICKS, reelGrade, reelStart, reelStep, type ReelGrade, type ReelStyle } from '../shared/fishreel.ts';
 import {
   CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, POSEIDON_COINS, POSEIDON_SHARE, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, reelStyleFor,
 } from '../shared/fishrules.ts';
@@ -31,30 +32,41 @@ export interface Skill {
   lapse: number;
   /** Зона пролежала на дне столько тиков — коснуться кнопки (подмотать) */
   slackTap: number;
+  /** Зону держат прижатой к верху столько тиков — отпустить кнопку (ослабить леску); после первого натяжения — tautLearn */
+  tautTap: number;
+  tautLearn: number;
 }
 
-export const TYPICAL: Skill = { delay: 14, jitter: 4, period: 5, noise: 3000, lead: 8, k: 14, vmax: 1500, lapseEvery: 240, lapse: 24, slackTap: SLACK_TICKS + 14 };
-export const EXPERT: Skill = { delay: 9, jitter: 2, period: 3, noise: 1500, lead: 12, k: 12, vmax: 2200, lapseEvery: 900, lapse: 12, slackTap: 24 };
+export const TYPICAL: Skill = {
+  delay: 14, jitter: 4, period: 5, noise: 3000, lead: 8, k: 14, vmax: 1500, lapseEvery: 240, lapse: 24, slackTap: SLACK_TICKS + 14, tautTap: TAUT_TICKS + 14, tautLearn: 30,
+};
+export const EXPERT: Skill = { delay: 9, jitter: 2, period: 3, noise: 1500, lead: 12, k: 12, vmax: 2200, lapseEvery: 900, lapse: 12, slackTap: 24, tautTap: 24, tautLearn: 24 };
 /** «Без рук»: ни одного нажатия за всё вываживание (проверка, что так рыбу не вытащить) */
-export const AFK: Skill = { delay: 0, jitter: 0, period: 1, noise: 0, lead: 0, k: 1, vmax: 0, lapseEvery: 1, lapse: 1_000_000, slackTap: Number.POSITIVE_INFINITY };
+export const AFK: Skill = {
+  delay: 0, jitter: 0, period: 1, noise: 0, lead: 0, k: 1, vmax: 0, lapseEvery: 1, lapse: 1_000_000, slackTap: Number.POSITIVE_INFINITY, tautTap: Number.POSITIVE_INFINITY,
+  tautLearn: Number.POSITIVE_INFINITY,
+};
 
 export interface Play {
   caught: boolean;
-  perfect: boolean;
+  /** Ошибки: сколько раз рыба выходила из зоны (по ним оценка) */
+  err: number;
   ticks: number;
   /** Переключения кнопки: номера тиков, с которых она нажата / отпущена */
   toggles: number[];
 }
 
-/** Сыграть одно вываживание: манера рыбы, сид сервера, умение; rngSeed — случайности самого игрока. */
-export function playReel(style: ReelStyle, seed: number, skill: Skill, rngSeed = seed ^ 0x5bd1e995): Play {
-  const r = reelStart(style, seed);
+/** Сыграть одно вываживание: манера рыбы, сид сервера, умение; rngSeed — случайности самого игрока; drunk — водка. */
+export function playReel(style: ReelStyle, seed: number, skill: Skill, rngSeed = seed ^ 0x5bd1e995, drunk = false): Play {
+  const r = reelStart(style, seed, drunk);
   const me = makeRng(rngSeed);
   const hist: number[] = [];
   const toggles: number[] = [];
   let held = false;
   let away = 0;
+  let tautTap = skill.tautTap;
   while (r.done === 0) {
+    if (r.taut > TAUT_TICKS) tautTap = skill.tautLearn;
     hist.push(r.f);
     if (away > 0) away--;
     else if (me() * skill.lapseEvery < 1) away = Math.round(skill.lapse * (0.5 + me()));
@@ -66,8 +78,8 @@ export function playReel(style: ReelStyle, seed: number, skill: Skill, rngSeed =
       const seen = hist[i] + vel * skill.lead + (me() * 2 - 1) * skill.noise;
       const err = Math.min(REEL_BAR, Math.max(0, seen)) - (r.z + r.zone / 2);
       const want = Math.max(-skill.vmax, Math.min(skill.vmax, err / skill.k));
-      // леска провисла (или вот-вот): коснуться кнопки, даже если рыба внизу
-      const h = r.zv < want || r.rest >= skill.slackTap;
+      // леска провисла (или вот-вот): коснуться кнопки, даже если рыба внизу; натянута — отпустить, даже если рыба вверху
+      const h = (r.zv < want || r.rest >= skill.slackTap) && r.taut < tautTap;
       if (h !== held) {
         held = h;
         toggles.push(r.t);
@@ -75,7 +87,7 @@ export function playReel(style: ReelStyle, seed: number, skill: Skill, rngSeed =
     }
     reelStep(r, held);
   }
-  return { caught: r.done === 1, perfect: r.perfect, ticks: r.t, toggles };
+  return { caught: r.done === 1, err: r.err, ticks: r.t, toggles };
 }
 
 export interface ReelStats {
@@ -83,32 +95,33 @@ export interface ReelStats {
   failure: number;
   ticks: number;
   caughtTicks: number;
-  /** Perfect landed reels / all attempts; disjoint from failed reels. */
-  perfectP: number;
+  /** Поимки с оценкой g / все попытки (в сумме — p) */
+  gradeP: number[];
   /** Sum time for successful and failed attempts / successes, not just mean fight duration. */
   costTicks: number;
   /** Сорвалась после CONSOLATION_TICKS борьбы (утешительный опыт эпических и выше) / все попытки */
   lostLongP: number;
 }
 
-/** Доля поимок/срывов, идеальные поимки и реальная ожидаемая цена успеха по n одинаковым сидам. */
-export function reelStats(style: ReelStyle, skill: Skill, n: number, seed0 = 1): ReelStats {
+/** Доля поимок/срывов, оценки поимок и реальная ожидаемая цена успеха по n одинаковым сидам; drunk — водка. */
+export function reelStats(style: ReelStyle, skill: Skill, n: number, seed0 = 1, drunk = false): ReelStats {
   let caught = 0;
   let ticks = 0;
   let ct = 0;
-  let perfect = 0;
+  const grades = REEL_GRADES.map(() => 0);
   let lostLong = 0;
   for (let i = 0; i < n; i++) {
-    const r = playReel(style, (seed0 + i * 2654435761) | 0, skill);
+    const seed = (seed0 + i * 2654435761) | 0;
+    const r = playReel(style, seed, skill, seed ^ 0x5bd1e995, drunk);
     if (r.caught) {
       caught++;
       ct += r.ticks;
-      if (r.perfect) perfect++;
+      grades[reelGrade(r.err)]++;
     } else if (r.ticks >= CONSOLATION_TICKS) lostLong++;
     ticks += r.ticks;
   }
   return {
-    p: caught / n, failure: 1 - caught / n, ticks: ticks / n, caughtTicks: caught ? ct / caught : 0, perfectP: perfect / n,
+    p: caught / n, failure: 1 - caught / n, ticks: ticks / n, caughtTicks: caught ? ct / caught : 0, gradeP: grades.map((g) => g / n),
     costTicks: caught ? ticks / caught : Infinity, lostLongP: lostLong / n,
   };
 }
@@ -183,10 +196,11 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
   let fish = 0;
   let hooked = 0;
   let xp = 0;
+  const drunk = mods?.drink === 4;
   for (const sp of COLLECTION) {
     const share = biteShare(sp, rain, mods) * fishShare;
     if (share === 0) continue;
-    const s = reelStats(reelStyleFor(sp, mods), skill, n, 11 + sp * 7919);
+    const s = reelStats(reelStyleFor(sp, mods), skill, n, 11 + sp * 7919, drunk);
     const m = meanPrice(sp, mods);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
@@ -194,12 +208,12 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
     coins += share * s.p * m.coins;
     fish += share * s.p;
     hooked += share;
-    const plain = fishCatchXp(sp, false, mods, rain);
-    xp += share * (s.p * plain + s.perfectP * (fishCatchXp(sp, true, mods, rain) - plain) + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods, rain));
+    const caught = s.gradeP.reduce((sum, p, g) => sum + p * fishCatchXp(sp, g as ReelGrade, mods, rain), 0);
+    xp += share * (caught + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods, rain));
   }
   let chest = 0;
   for (const [sp, share] of [[SP_CHEST, CHEST_PER_10K / 10_000], [SP_BOOT, junk / 10_000]] as const) {
-    const s = reelStats(reelStyleFor(sp, mods), skill, Math.min(n, 100), 5);
+    const s = reelStats(reelStyleFor(sp, mods), skill, Math.min(n, 100), 5, drunk);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
     if (sp === SP_CHEST) chest = share * s.p * meanChest();

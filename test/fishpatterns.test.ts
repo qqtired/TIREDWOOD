@@ -3,12 +3,13 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { BAND, COLLECTION, COMMON_FLOOR, RULE, ZONE_BASE, biteShare, effectiveRareMultiplier, reelStyleFor, tierRank } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods, fishCatchXp, FISH_XP_LEVELS, levelOdds, rodOdds, type FishRod } from '../shared/fishprogress.ts';
-import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, type ReelStyle } from '../shared/fishreel.ts';
+import { reelStart, reelStep, reelRun, REEL_PATTERNS, REEL_GAIN, gradeXp, type ReelGrade, type ReelStyle } from '../shared/fishreel.ts';
 import { EXPERT, TYPICAL, reelStats } from './fishbot.ts';
 const baseline = JSON.parse(readFileSync(new URL('../docs/expansion-2026-10-03/fishing-baseline/baseline.json', import.meta.url),'utf8'));
 
-test('XP is 0.4 of frozen released XP (fisheco: +20 %), including perfect and legendary multiplication',()=>{
- for(const row of baseline.rows) for(const perfect of [false,true]) assert.equal(fishCatchXp(row.sp,perfect),Math.max(1,Math.round((perfect?row.perfectXp:row.xp)*.4)),row.id);
+// 04.10: вместо «идеально» ×2,4 — оценка вываживания (×2,5 … ×0,5) поверх прежней формулы
+test('XP is 0.4 of frozen released XP (fisheco: +20 %), times the reel grade, legendary included',()=>{
+ for(const row of baseline.rows) for(const g of [0,1,2,3,4] as ReelGrade[]) assert.equal(fishCatchXp(row.sp,g),Math.max(1,Math.round(row.xp*.4*gradeXp(g))),row.id);
 });
 // 04.10: уровень — +2,5 % за каждый от базы (линейно: ур. 10 — ×1,25), а не ×1,025 за уровень сложно
 test('rare probability compounds level and exactly one rod, withdrawing common residual',()=>{
@@ -59,7 +60,7 @@ test('each named pattern executes its characteristic target trajectory', () => {
  assert.ok(targets.Sawtooth[65] > targets.Sawtooth[67]);
  assert.equal(targets.HoverDash[109], 50000); assert.equal(targets.HoverDash[110], 80000);
  assert.ok(targets.SlowMigration.every((v, i, a) => i === 0 || v > a[i - 1]));
- assert.equal(targets.EdgeSnapback[0], 100000); assert.equal(targets.EdgeSnapback[120], 50000);
+ assert.equal(targets.EdgeSnapback[0], 98000, '04.10: к краю — до 98 %'); assert.equal(targets.EdgeSnapback[120], 50000);
  assert.equal(targets.DoubleDash[29], 50000); assert.equal(targets.DoubleDash[30], 65000); assert.equal(targets.DoubleDash[120], 80000);
  assert.equal(targets.Wave[50], 80000); assert.equal(targets.Wave[150], 20000);
  assert.ok(new Set(targets.Nervous).size > 10);

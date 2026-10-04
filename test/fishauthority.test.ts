@@ -8,7 +8,7 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
 import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
-import { reelRun, reelStart } from '../shared/fishreel.ts';
+import { reelGrade, reelRun, reelStart } from '../shared/fishreel.ts';
 import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
 import { RAIN_DRUM_PRICE } from '../shared/fishshop.ts';
 import { earnedItems } from '../shared/fishstyle.ts';
@@ -243,7 +243,7 @@ test('уровень/удочка/пиво фиксируются при заб�
   // цена с пивом заброса — в рюкзак (жетоны при продаже); бонус за новый вид — сразу
   assert.equal(p.tokens, t0 + NEW_BONUS2[0]);
   assert.deepEqual(p.fishing.bag, [{ n: 0, f: 'scad', g: 300, p: land.price, m: BAG_BEER }]);
-  assert.equal(p.fishing.xp, 100 + fishCatchXp(h.sp, replay.perfect));
+  assert.equal(p.fishing.xp, 100 + fishCatchXp(h.sp, reelGrade(replay.err)));
   assert.equal(p.fishing.questCaught, 1);
   assert.equal(p.stats.fsFish, 1);
   assert.equal(p.stats.fsMaxGrams, 300);

@@ -79,7 +79,7 @@ test('review: completed quest cannot carry an old excess into next quest or pay 
     assert.equal(p.tokens,initialTokens+25);assert.equal(p.xp,initialGeneralXp+25);assert.equal(p.fishing.xp,fishingXp);
     // fisheco: опыт за рыбу ×0,4 вместо трети (+20 %)
     assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='hamsa')),7,'old frozen17 XP rounds to7 after ×0.4');
-    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='tuna'),true),162,'old perfect405 XP rounds to162 after ×0.4');
+    assert.equal(fishCatchXp(FISH.findIndex(f=>f.id==='tuna'),0),170,'04.10: «Идеально» — 170 ×0,4 ×2,5 = 170 (было ×2,4 до ×5: 162)');
   } finally { store.close();rmSync(dir,{recursive:true,force:true}); }
 });
 

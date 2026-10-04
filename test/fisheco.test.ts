@@ -18,6 +18,7 @@ import {
   T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice, fishPrice2, junkPer10k, reelStyleFor, rollCatch2, tierOdds, type Hooked,
 } from '../shared/fishrules.ts';
 import { ALE, BAGS, BAG_BASE, BAG_MAX, BEER, LORD, LORD_CHEST_CHANCE, LURES } from '../shared/fishshop.ts';
+import { GRADE_PLAIN, reelGrade } from '../shared/fishreel.ts';
 import { ROULETTE_MAX_PAYOUT, ROULETTE_WHEEL, roulettePayout, rouletteColor } from '../shared/roulette.ts';
 import { Hub } from '../server/hub.ts';
 import { BAG_FULL_TEXT, type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -324,11 +325,11 @@ test('опыт рыбалки: прежняя формула ×0,4 (+20 %), на
     const base = fishCatchXp(s);
     if (r.zone === 'barkas') {
       const raw = r.xpBase! * (r.tier >= 3 ? 5 : 1);
-      assert.equal(fishCatchXp(s, false, { zone: 'barkas' }), Math.max(1, Math.round(raw * XP_SCALE * BARKAS_XP)), FISH[s].id);
+      assert.equal(fishCatchXp(s, GRADE_PLAIN, { zone: 'barkas' }), Math.max(1, Math.round(raw * XP_SCALE * BARKAS_XP)), FISH[s].id);
     }
-    assert.ok(fishCatchXp(s, true) >= base, FISH[s].id);
+    assert.ok(fishCatchXp(s, 0) >= base && fishCatchXp(s, 4) <= base, FISH[s].id);
     const lost = fishLostXp(s, CONSOLATION_TICKS, { zone: r.zone });
-    if (r.tier >= T_EPIC) assert.equal(lost, Math.max(1, Math.round(fishCatchXp(s, false, { zone: r.zone }) * CONSOLATION_SHARE)), FISH[s].id);
+    if (r.tier >= T_EPIC) assert.equal(lost, Math.max(1, Math.round(fishCatchXp(s, GRADE_PLAIN, { zone: r.zone }) * CONSOLATION_SHARE)), FISH[s].id);
     else assert.equal(lost, 0, `${FISH[s].id}: обычные и редкие — без утешения`);
     assert.equal(fishLostXp(s, CONSOLATION_TICKS - 1, { zone: r.zone }), 0, 'раньше 3 с — без утешения');
   }
@@ -349,7 +350,7 @@ test('сорвалась эпическая после 3 с борьбы — с�
   assert.equal(p.fishing.bag.length, 0);
   // держит кнопку с первой секунды: зона у верха, рыба внизу — сорвалась быстро, без опыта
   const n = allOf(e.a.s, 'fishLost').length;
-  hookWith(e, hall, () => ({ caught: false, perfect: false, ticks: 1, toggles: [0] }));
+  hookWith(e, hall, () => ({ caught: false, err: 0, ticks: 1, toggles: [0] }));
   for (let u = 15; hall.phase(0) !== FP_IDLE && u < 600; u += 15) {
     advance(e, 15);
     e.hub.onJson(e.a.c, { t: 'reel', i: u === 15 ? 0 : 1, k: u === 15 ? [0] : [], u });
@@ -429,7 +430,8 @@ test('на баркасе клюют только его виды, рыба в �
   assert.equal(land.m, BAG_BARKAS | BAG_ALE);
   assert.equal(land.base, basePrice(sp('cod'), 2000));
   assert.equal(land.price, Math.round(land.base! * ALE.income * BARKAS_INCOME));
-  assert.equal(land.xp, fishCatchXp(sp('cod'), land.perfect, { zone: 'barkas' }));
+  assert.equal(land.gr, reelGrade(play.err));
+  assert.equal(land.xp, fishCatchXp(sp('cod'), reelGrade(play.err), { zone: 'barkas' }));
   assert.deepEqual(p.fishing.bag.map((f) => [f.f, f.p, f.m]), [['cod', land.price, BAG_BARKAS | BAG_ALE]]);
 });
 
@@ -553,8 +555,8 @@ test('в дождь опыт рыбалки ×1,15 — и за поимку, и 
   for (const id of ['scad', 'bluefish', 'sturgeon', 'whiteshark', 'cod', 'oarfish']) {
     const s = sp(id);
     const mods = RULE[s]!.zone === 'barkas' ? fishCastMods(progressAt(3, 1), 0, 'barkas') : undefined;
-    for (const perfect of [false, true]) {
-      const dry = fishCatchXp(s, perfect, mods), wet = fishCatchXp(s, perfect, mods, true);
+    for (const grade of [GRADE_PLAIN, 0] as const) {
+      const dry = fishCatchXp(s, grade, mods), wet = fishCatchXp(s, grade, mods, true);
       assert.ok(wet > dry && Math.abs(wet - dry * RAIN_XP) <= 1, `${id}: ${dry} → ${wet}`);
     }
   }
@@ -565,7 +567,7 @@ test('в дождь опыт рыбалки ×1,15 — и за поимку, и 
   const xp0 = p.fishing.xp;
   catchOne(e, hall, { sp: sp('scad'), g: 300, coins: 0 });
   const land = lastOf(e.a.s, 'fishLand')!;
-  assert.equal(land.xp, fishCatchXp(sp('scad'), land.perfect, { zone: 'pier' }, true));
+  assert.equal(land.xp, fishCatchXp(sp('scad'), reelGrade(land.er!), { zone: 'pier' }, true));
   assert.equal(p.fishing.xp, xp0 + land.xp!);
 });
 
@@ -657,7 +659,7 @@ test('сезон рыбалки на сервере: поклёвка решае
   assert.equal(land.sp, sp('kalmar'));
   const gained = e.a.c.profile!.fishing.xp - xp0;
   const mods = fishCastMods(e.a.c.profile!.fishing, e.clock.now);
-  assert.ok([false, true].some((perfect) => gained === fishCatchXp(sp('kalmar'), perfect, mods, true)), `опыт как в дождь: ${gained}`);
+  assert.equal(gained, fishCatchXp(sp('kalmar'), reelGrade(play.err), mods, true), `опыт как в дождь: ${gained}`);
   const line = allOf(e.a.s, 'chat').map((m) => m.text).find((t) => /Божественный улов/.test(t));
   assert.ok(line && /дальневосточного кальмара на 1\s234 кг/.test(line), `строка в чат: ${line}`);
 });

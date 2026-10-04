@@ -92,7 +92,7 @@ function perBite(m: FishCastMods, w: Weather): { coins: number; xp: number } {
     const s = biteShare(sp, rain, m, w === 2) * fish;
     if (s <= 0) continue;
     coins += s * meanPrice(sp, m);
-    xp += s * fishCatchXp(sp, false, m, rain);
+    xp += s * fishCatchXp(sp, undefined, m, rain);
   }
   return { coins, xp };
 }
@@ -245,7 +245,7 @@ test('каждый бонус по отдельности (новичок у п�
   const plain = cast('pier', 4, 0, 0, 0), vodka = cast('pier', 4, 0, 0, 4);
   for (const id of ['bluefish', 'tuna', 'whiteshark', 'kalmar']) {
     const s = FISH.findIndex((f) => f.id === id);
-    assert.ok(Math.abs(fishCatchXp(s, false, vodka) - 2 * fishCatchXp(s, false, plain)) <= 1, id);
+    assert.ok(Math.abs(fishCatchXp(s, undefined, vodka) - 2 * fishCatchXp(s, undefined, plain)) <= 1, id);
   }
 });
 
