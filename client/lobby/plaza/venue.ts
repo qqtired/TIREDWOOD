@@ -88,6 +88,11 @@ export class Venue {
       this.ctx.signs.set(pq.material as THREE.MeshStandardMaterial, 0.22);
     }
     this.bulbs.build(this.group);
+    // самосветящиеся наклейки на холстах (облако-вывеска, часы, флаги, обратные стороны вывесок) гаснут вместе со светом в сети
+    this.group.traverse((o) => {
+      const m = (o as THREE.Mesh).material;
+      if (m instanceof THREE.MeshStandardMaterial && m.emissiveMap && m.emissiveIntensity > 0) this.ctx.signs.set(m, m.emissiveIntensity);
+    });
     this.group.visible = visible;
     this.ctx.scene.add(this.group);
     return this;
