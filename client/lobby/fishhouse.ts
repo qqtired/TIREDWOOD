@@ -165,6 +165,9 @@ export class FishHouse3D {
       const midY = H.ridge - (run / 2) * SLOPE + 0.06;
       box(out, w, 0.07, len, CX, midY, midZ, ROOF[1], 0, s * ang);
       const rows = Math.floor(len / 0.26);
+      // глубина дранки = шаг рядов вдоль ската: соседние ряды стыкуются кромка в кромку, а не налезают друг на друга одной
+      // плоскостью (раньше перехлёст в 4 см давал бегающие полосы разного цвета)
+      const step = len / rows;
       for (let r = 0; r < rows; r++) {
         const t = (r + 0.5) / rows;
         const z = CZ + s * run * t;
@@ -173,11 +176,14 @@ export class FishHouse3D {
         const pieces = 9;
         for (let k = 0; k < pieces; k++) {
           const px = CX - w / 2 + (k + 0.5) * (w / pieces) + ((r % 2) * w) / pieces / 2 - w / pieces / 4;
-          box(out, w / pieces - 0.02, 0.035, 0.3, px, y, z, ROOF[(k + r) % ROOF.length], 0, s * ang);
+          box(out, w / pieces - 0.02, 0.035, step, px, y, z, ROOF[(k + r) % ROOF.length], 0, s * ang);
         }
       }
-      // торцевые доски-ветровки по фронтонам
-      for (const x of [H.x0 - GABLE + 0.04, H.x1 + GABLE - 0.04]) box(out, 0.08, 0.16, len, x, midY + 0.02, midZ, TRIM, 0, s * ang);
+      // торцевые доски-ветровки по фронтонам: наружная грань на 1,5 см дальше торца доски основы (раньше они лежали в одной
+      // плоскости, и светлая боковина крыши моргала цветом основы)
+      for (const [x, dir] of [[H.x0 - GABLE + 0.04, -1], [H.x1 + GABLE - 0.04, 1]] as const) {
+        box(out, 0.095, 0.16, len + 0.06, x + dir * 0.0075, midY + 0.02, midZ, TRIM, 0, s * ang);
+      }
     }
     // конёк
     box(out, w + 0.04, 0.12, 0.2, CX, H.ridge + 0.12, CZ, ROOF[0]);
