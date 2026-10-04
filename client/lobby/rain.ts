@@ -59,6 +59,23 @@ export class CoverMap {
     const h = (this.h = Math.round((z1 - z0) / CELL));
     const data = (this.data = new Uint8Array(w * h * 4));
     for (let k = 0; k < w * h; k++) data[k * 4] = enc(WATER_Y);
+    this.paint(boxes);
+    const t = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.UnsignedByteType);
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = THREE.NearestFilter;
+    t.needsUpdate = true;
+    this.texture = t;
+    this.box = new THREE.Vector4(x0, z0, 1 / (x1 - x0), 1 / (z1 - z0));
+  }
+
+  /** Дописать крыши после постройки — навес, который включается флагом сервера (бильярд). */
+  add(boxes: readonly MapBox[]): void {
+    this.paint(boxes);
+    this.texture.needsUpdate = true;
+  }
+
+  private paint(boxes: readonly MapBox[]): void {
+    const { data, w, h, x0, z0 } = this;
     for (const b of boxes) {
       if (b.mat === 'invisible' || (b.max[0] - b.min[0]) * (b.max[2] - b.min[2]) < 0.6) continue;
       // клетки, чей центр внутри бокса
@@ -75,12 +92,6 @@ export class CoverMap {
         }
       }
     }
-    const t = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.UnsignedByteType);
-    t.magFilter = THREE.NearestFilter;
-    t.minFilter = THREE.NearestFilter;
-    t.needsUpdate = true;
-    this.texture = t;
-    this.box = new THREE.Vector4(x0, z0, 1 / (x1 - x0), 1 / (z1 - z0));
   }
 
   /** Высота верхней поверхности в точке */
