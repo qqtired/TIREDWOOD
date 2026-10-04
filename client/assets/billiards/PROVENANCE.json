@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-04",
+  "tool": "OpenAI Codex CLI v0.153.4 (codex exec), встроенная генерация изображений (imagegen) — по разрешению владельца",
+  "mode": "По одному новому изображению на шар, прозрачный фон (настоящий альфа-канал), без редактирования и без референсов.",
+  "postprocess": "Оригиналы 1024×1024 PNG (~0,8 МБ) обрезаны по кругу шара (края у оригиналов шероховатые), уменьшены до 128×128 и перекодированы в WebP с альфой, качество 0,9 (canvas.toDataURL в headless Chrome). Оригиналы в репозиторий не кладём.",
+  "use": "Все места — через client/lobby/blball.ts: подменить картинку — заменить файл с тем же именем.",
+  "icons": {
+    "ball": {
+      "file": "ball.webp",
+      "use": "табло бильярда: ряд забитых шаров (до 8), тренировка — шары в лузах, правила",
+      "source": "ball-ivory.png — сгенерирован главной сессией (оркестратор) в том же стиле: глянцевый шар «американки» цвета слоновой кости",
+      "size": "128x128",
+      "bytes": 4508
+    },
+    "cue": {
+      "file": "cue.webp",
+      "use": "табло и панель бильярда: «чей удар» (красный биток), фол",
+      "source": "ball-red.png — сгенерирован главной сессией (оркестратор): красный биток",
+      "size": "128x128",
+      "bytes": 5402
+    },
+    "ball8": {
+      "file": "ball8.webp",
+      "use": "табло (середина: «до 8»), заголовок панели стола, тренировка",
+      "prompt": "Image: a single game UI icon of one glossy billiard ball. The ball is warm ivory / cream colored (like old ivory, #efe4c7), seen straight on, perfectly round. On its front, slightly up and to the left of center, a small white round label with a bold black number 8 (the only text in the image). Style: cozy warm cartoon game icon for a sunny seaside fairground game, chunky clean shape, soft cel shading, a bright soft specular highlight at the top-left, gentle warm shading toward the bottom-right edge, thin dark-brown outline so it reads well on a dark UI panel and at 16 px size. No table, no cue, no other balls, no cast shadow, no glow, no frame, no background scenery, no watermark. Square 1024x1024 canvas, the ball centered and filling about 88% of the frame, on a genuinely transparent background (real alpha channel, no checkerboard pattern, no white box).",
+      "size": "128x128",
+      "bytes": 6890
+    }
+  }
+}
