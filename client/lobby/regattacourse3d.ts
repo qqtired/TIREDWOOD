@@ -404,8 +404,10 @@ export class RegattaCourse3D {
       parts.push(paint(new THREE.BoxGeometry(1.3, BEAM_Y + 0.4, 1.3).translate(x, (BEAM_Y + 0.4) / 2 + 0.3, 0), 0x2f5d73));
       for (const y of [1.6, 3.2, 4.6]) parts.push(paint(new THREE.BoxGeometry(1.38, 0.32, 1.38).translate(x, y, 0), 0xfff3de));
     }
-    parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.6, 0.8, 1.3).translate(0, BEAM_Y + 0.4, 0), 0xfff3de));
-    parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.6, 0.18, 1.34).translate(0, BEAM_Y + 0.02, 0), 0x2f5d73));
+    // Балка шире пилонов (1,34 против 1,3 м): раньше грани были в одной плоскости, и верх колонн (бирюзовый) моргал цветом балки
+    // (кремовый). Полоса под балкой ещё шире (1,4 м), чтобы не совпасть с балкой по плоскости.
+    parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.6, 0.8, 1.34).translate(0, BEAM_Y + 0.4, 0), 0xfff3de));
+    parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.64, 0.18, 1.4).translate(0, BEAM_Y + 0.02, 0), 0x2f5d73));
     // рама табло и вышка стартёра у северного пилона (площадка с перилами, лицом к решётке)
     parts.push(paint(new THREE.BoxGeometry(BOARD_W + 0.6, BOARD_H + 0.6, 0.3).translate(0, BEAM_Y + 0.8 + BOARD_H / 2, 0), 0x2f5d73));
     parts.push(paint(new THREE.BoxGeometry(1.8, 0.2, 1.6).translate(half, STARTER_Y - 0.1, -1.45), 0xa8473a));
@@ -413,8 +415,11 @@ export class RegattaCourse3D {
     const frame = new THREE.Mesh(mergeColored(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
     frame.castShadow = true;
     arch.add(frame);
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_H), new THREE.MeshBasicMaterial({ map: this.boardTex, toneMapped: false }));
-    front.position.set(0, BEAM_Y + 0.8 + BOARD_H / 2, -0.17);
+    // Табло — на 4 см перед рамой (было 2 см) и со сдвигом глубины к камере: стороны огромные (16 × 8 м), их видно за сотню метров
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_H), new THREE.MeshBasicMaterial({
+      map: this.boardTex, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+    }));
+    front.position.set(0, BEAM_Y + 0.8 + BOARD_H / 2, -0.19);
     front.rotation.y = Math.PI;
     front.name = 'regatta-board';
     arch.add(front);
@@ -430,8 +435,10 @@ export class RegattaCourse3D {
       x.fillText('ПОРТОВАЯ', 512, 190);
       x.fillText('РЕГАТА', 512, 320);
     });
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_H), new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.8 }));
-    back.position.set(0, BEAM_Y + 0.8 + BOARD_H / 2, 0.17);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_H), new THREE.MeshStandardMaterial({
+      map: backTex, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+    }));
+    back.position.set(0, BEAM_Y + 0.8 + BOARD_H / 2, 0.19);
     arch.add(back);
     this.root.add(arch);
     arch.updateMatrixWorld(true);
