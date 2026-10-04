@@ -17,9 +17,10 @@ import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import { AQUA_NEAR_X, AQUA_PIECES, aquaFall, aquaMs, fmtAquaTime, onFinish, onJetty } from '../../shared/aqua.ts';
 import { AquaDyn, KNOCK_BAG, quantTick } from '../../shared/aquadyn.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BOAT_SEATS, BP_BOARD, BP_DOCK, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
-import { barkasWater } from '../../shared/barkas.ts';
+import { BARKAS, BARKAS_LANDING, barkasWater } from '../../shared/barkas.ts';
 import {
-  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat, type FerryPose,
+  FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_LEVEL, FERRY_SEATS, ferryEta, ferryPose, ferrySeat,
+  type FerryPose,
 } from '../../shared/ferry.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { BJ_MAX_BET, BJ_TABLE, type BlackjackView } from '../../shared/blackjack.ts';
@@ -1699,6 +1700,12 @@ export class LobbyScene implements Scene {
           input.pitch = WHEEL_VIEW.pitch;
           this.wheelUntil = this.clock.ready ? wheelArrival(Math.floor(arg / WHEEL_SEATS), Math.round(this.clock.renderTick)) : 0;
         }
+      }
+      // сошёл с лодки «Удалая» — лицом, как высаживают: у хижины Семёна — к мосткам (камера за спиной — не в хижине),
+      // на баркасе — вдоль палубы к носу
+      if (prev === ACT_FERRY_RIDE && action === ACT_NONE) {
+        input.yaw = this.ferryPose.z > (FERRY_HOME.z + BARKAS.z) / 2 ? BARKAS_LANDING.yaw : FERRY_HOME_LANDING.yaw;
+        input.pitch = -0.12;
       }
       // сошёл с катера регаты (сервер ставит у круга сбора) — лицом к площади, не к воде
       if (prev === ACT_REGATTA && action !== ACT_REGATTA) {

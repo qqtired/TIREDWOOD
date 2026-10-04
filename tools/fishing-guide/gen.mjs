@@ -8,6 +8,7 @@ const fr = await import(S + 'fishrules.ts');
 const fp = await import(S + 'fishprogress.ts');
 const sh = await import(S + 'fishshop.ts');
 const fi = await import(S + 'fishing.ts');
+const bk = await import(S + 'barkas.ts');
 const { FISH, HOOK_MS } = fi;
 const { RULE, COLLECTION, tierRank, NEW_BONUS2, tierOdds, BAND, ZONE_BASE, CHEST_BANDS, fishPrice2 } = fr;
 
@@ -191,7 +192,7 @@ const html = `<!doctype html>
 
 <section id="how">
   <h2>Как это устроено</h2>
-  <p class="sub">Рыбачат у острова — с мостков, у маяка и у дома Деда Семёна (20 мест) — и с баркаса в открытом море (8 мест). Одна рыбалка — четыре шага.</p>
+  <p class="sub">Рыбачат у острова — с мостков, у маяка и у дома Деда Семёна (20 мест) — и с баркаса в открытом море (${bk.BARKAS_FISH_SPOTS.length} мест). Одна рыбалка — четыре шага.</p>
   <div class="grid g4 steps">
     <div class="card step"><h3>Заброс</h3><p>Встаёшь на место и забрасываешь. В этот момент запоминаются твои бонусы: уровень, удочка, блесна и напиток.</p></div>
     <div class="card step"><h3>Поклёвка</h3><p>Через 6–18 секунд (с хорошей удочкой — быстрее) поплавок дёргается — это пробы, не подсекай. Ушёл под воду — подсекай, на это 0,6–1 секунды.</p></div>
