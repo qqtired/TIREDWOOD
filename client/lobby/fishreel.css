@@ -18,13 +18,13 @@
   background: var(--panel-strong);
   border: 1px solid var(--line);
   color: #e6dcb9;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   text-shadow: none;
 }
 .fr-grade[hidden] { display: none; }
-.fr-grade b { color: var(--grc); font-size: 14px; font-weight: 900; }
+.fr-grade b { color: var(--grc); font-size: 15px; font-weight: 900; }
 .fr-grade.bump { animation: fr-grade-bump 0.45s ease-out; }
 @keyframes fr-grade-bump {
   from {
@@ -36,7 +36,12 @@
 
 /* итог на шкале: «Поймал! 🎣» и ниже оценка крупно её цветом — «Идеально · ×2,5 опыта» */
 .fr-res { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.fr-res small { color: var(--grc); font-size: 20px; font-weight: 900; }
+.fr-res small {
+  color: var(--grc);
+  font-size: 20px;
+  font-weight: 900;
+  text-shadow: 0 2px 4px rgba(10, 5, 8, 0.85), 0 0 3px rgba(10, 5, 8, 0.9);
+}
 .touch .fr-res small { font-size: 14px; }
 
 /* карточка улова: «+45 XP · Идеально ×2,5 · …» — оценка её цветом */
@@ -65,13 +70,18 @@
 .fr.taut .fr-slot > .fr-hint { opacity: 0; transition: none; }
 .fr.taut .fr-slot > .fe-stand { display: none; }
 /* зона прижата к верху и звенит: краснеет и мелко дрожит (дрожь — translate: transform зоны ставит fishgame.ts) */
-.fr.taut .fr-zone { filter: hue-rotate(-95deg) saturate(1.5); animation: fr-taut 0.1s linear infinite; }
+.fr.taut .fr-zone {
+  background: rgba(222, 62, 44, 0.85);
+  border-color: rgba(255, 178, 160, 1);
+  box-shadow: 0 0 16px rgba(255, 70, 50, 0.8);
+  animation: fr-taut 0.1s linear infinite;
+}
 @keyframes fr-taut { 50% { translate: 0 1.5px; } }
 .touch .fr-slot > .fe-taut { position: static; translate: none; width: auto; max-width: 100%; }
 
 /* ---------------------------------------------------------------- водка: пьяный рыбак */
 /* в глазах двоится: бледный двойник рыбы чуть в стороне */
-.fr-ghost { display: none; opacity: 0.38; filter: blur(0.6px); }
+.fr-ghost { display: none; opacity: 0.5; }
 .fr.drunk .fr-ghost { display: block; }
 .fr.won .fr-ghost,
 .fr.lost .fr-ghost { display: none; }

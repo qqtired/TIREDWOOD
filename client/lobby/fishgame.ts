@@ -434,7 +434,7 @@ export class ReelGame {
     this.root.style.rotate = sway ? `${(2.4 * Math.sin(s * 2.1) + 0.9 * Math.sin(s * 3.7 + 1)).toFixed(2)}deg` : '';
     this.root.style.translate = sway ? `${(7 * Math.sin(s * 1.3 + 0.5)).toFixed(1)}px 0` : '';
     const dy = 4.5 * Math.sin(s * 1.7) + 1.5 * Math.sin(s * 4.3);
-    const dx = 9 * Math.sin(s * 1.1 + 2);
+    const dx = 12 * Math.sin(s * 1.1 + 2);
     this.ghost.style.bottom = `${Math.min(100, Math.max(0, (r.f / REEL_BAR) * 100 + dy)).toFixed(2)}%`;
     this.ghost.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), 50%) rotate(${(-r.fv / 25 + 8 * Math.sin(s * 2.6)).toFixed(1)}deg)`;
     const now = this.lastNow;
