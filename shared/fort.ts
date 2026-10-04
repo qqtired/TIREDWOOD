@@ -5,6 +5,7 @@
 import { TICK_RATE } from './constants.ts';
 import { FORT_LAST_WAVE } from './fortwaves.ts';
 import type { ArsenalEvent, ArsenalRow } from './fortarsenal.ts';
+import type { FortRecView } from './fortrecord.ts';
 import type { Outfit } from './outfit.ts';
 
 export {
@@ -220,13 +221,14 @@ export interface FtReward {
 
 // --- сообщения (shared/messages.ts берёт отсюда типы)
 
-/** Что в крепости — для подсказки у арки на набережной. left — секунд до конца фазы */
+/** Что в крепости — для подсказки у арки на набережной. left — секунд до конца фазы; rec — рекорд крепости (fortrecord.ts) */
 export interface FortStatus {
   phase: number;
   wave: number;
   humans: number;
   names: string[];
   left: number;
+  rec?: FortRecView;
 }
 
 /** Защитник: id — номер в снимке, pts — золото 💰 на руках, k — сбил, d — сбили его, ready — ударил в колокол */
@@ -258,16 +260,22 @@ export interface FortResultRow {
   again?: boolean;
   /** Сбитых с прошлой выплаты — в статистику профиля */
   kNew?: number;
-  /** Свой лучший результат (волн) до этого забега */
+  /** Свой рекорд (волн) до этой игры */
   best?: number;
+  /** Свой результат в этой игре: сколько волн отбила команда к последней волне, засчитанной тебе */
+  my?: number;
 }
 
-/** Забег в таблице рекордов крепости: сколько волн отбили, кто был в итогах, когда (мс), сколько защитников */
+/**
+ * Забег в таблице рекордов крепости: сколько волн отбили, кто держал стены (кому засчитана последняя отбитая волна),
+ * когда (мс), сколько защитников; id — номер игры (запись обновляется после каждой отбитой волны, одна на игру)
+ */
 export interface FortRunRec {
   wave: number;
   names: string[];
   at: number;
   n: number;
+  id?: number;
 }
 
 /** Рекордов крепости храним столько */

@@ -9,6 +9,7 @@ import type { FishTop } from './fishrules.ts';
 import type { RouletteColor, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
+import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
@@ -571,16 +572,22 @@ export type ServerMsg =
   | { t: 'cheer'; nick: string }
   // --- крепость (shared/fort.ts): вход (id — свой номер в снимках, wave — какая волна идёт или была последней),
   // состав, события тика, смена фазы, итоги, жетоны; на набережную — что в крепости (раз в секунду, если менялось)
-  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[]; card?: FortWaveCard }
+  // rec — рекорд крепости и свой рекорд (shared/fortrecord.ts)
+  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[]; card?: FortWaveCard; rec?: FortRecIntro }
   | { t: 'froster'; players: FortPlayerRow[] }
   | { t: 'fev'; k: number; e: FortEvent[] }
   // card — карточка идущей волны (в бою) или следующей (в передышке и сборе)
   | { t: 'fphase'; phase: number; end: number; wave: number; card?: FortWaveCard }
-  // top — рекорды крепости после этого забега, record — побили рекорд, prev — прежний рекорд, surr — сдались голосованием
-  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number; surr?: boolean }
+  // top — рекорды крепости после этого забега (run — номер этой игры, её строка в top), record — побили рекорд, что был
+  // до игры, prev — он, surr — сдались голосованием
+  | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number; run?: number; surr?: boolean }
   // голосование «сдаться» у белого флага (shared/fortsurrender.ts): состояние всем в крепости
   | ({ t: 'fsurr' } & FortSurrender)
   | ({ t: 'fortReward' } & FtReward)
+  // рекорд после отбитой волны: k — team (побит рекорд крепости), tie (повторён), me (свой); prev — что было до этой игры
+  | { t: 'frec'; k: FortRecKind; wave: number; prev: number; first?: boolean }
+  // новая игра в крепости (после итогов): рекорды заново — как в приветствии
+  | { t: 'frecNew'; rec: FortRecIntro }
   | ({ t: 'fortSt' } & FortStatus)
   // --- Fight Club (shared/fight.ts): вход (id — свой номер в снимках, ring — радиус ринга), состав, события тика,
   // смена фазы (win — кто взял раунд: команда или номер бойца, −1 — никто), итоги, жетоны; на набережную — круг у двери

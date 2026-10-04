@@ -25,10 +25,15 @@ export interface FortRoomHooks {
   result(c: Client, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
   /** 90 с без дела — на набережную */
   afk(c: Client): void;
-  /** Рекорды крепости (State.fortTop) и запись забега; свой лучший защитника */
+  /**
+   * Рекорды крепости (State.fortTop) и запись забега (после каждой отбитой волны); свой рекорд защитника из профиля и
+   * его рост в бою; строка всему серверу (рекорд побит)
+   */
   top?(): readonly FortRunRec[];
   saveRun?(rec: FortRunRec): void;
   best?(c: Client): number;
+  progress?(c: Client, wave: number): void;
+  announce?(text: string): void;
   /** Только в разработке: /wave N в чате */
   dev?: boolean;
 }
@@ -53,10 +58,11 @@ export class FortRoom implements Room {
       },
       top: () => hooks.top?.() ?? [],
       saveRun: (rec) => hooks.saveRun?.(rec),
-      best: (p) => {
+      progress: (p, wave) => {
         const c = this.byPlayer.get(p);
-        return c && hooks.best ? hooks.best(c) : 0;
+        if (c) hooks.progress?.(c, wave);
       },
+      announce: (text) => hooks.announce?.(text),
     });
     this.game.debug = hooks.dev ?? false;
   }
@@ -79,7 +85,7 @@ export class FortRoom implements Room {
   join(c: Client): boolean {
     const prof = c.profile;
     if (!prof || this.byClient.has(c)) return false;
-    const p = this.game.addHuman({ pid: prof.id, nick: prof.nick, level: prof.level, outfit: this.hooks.outfitOf(prof) }, c.sink);
+    const p = this.game.addHuman({ pid: prof.id, nick: prof.nick, level: prof.level, outfit: this.hooks.outfitOf(prof), best: this.hooks.best?.(c) ?? 0 }, c.sink);
     if (!p) return false;
     p.ping = c.ping;
     this.byClient.set(c, p);

@@ -78,7 +78,10 @@ export interface State {
   fishPodium: { day: string; catches: FishPodiumCatch[] };
   /** Сроки общих событий, абсолютные миллисекунды; переживают перезапуск. */
   lobbyEvents?: { stormAt: number; piratesAt: number; endedAt: number; lockUntil?: number };
-  /** Рекорды «Крепости»: лучшие забеги (волн отбито, кто был в итогах), по убыванию; старые сохранения — пусто */
+  /**
+   * Рекорды «Крепости»: лучшие забеги (волн отбито, кто держал стены, когда), по убыванию; первая строка — рекорд
+   * крепости. Забег обновляется после каждой отбитой волны (id — номер игры). Старые сохранения — пусто
+   */
   fortTop?: FortRunRec[];
   profiles: Profile[];
 }
@@ -197,14 +200,19 @@ export function parseFortTop(raw: unknown): FortRunRec[] {
     const o = r as Record<string, unknown>;
     const wave = Math.floor(num(o.wave));
     if (wave <= 0 || wave > 100000) continue;
-    out.push({ wave, names: strings(o.names).slice(0, 6).map((s) => s.slice(0, 40)), at: Math.max(0, num(o.at)), n: Math.max(1, Math.min(6, Math.floor(num(o.n, 1)))) });
+    const id = Number.isSafeInteger(o.id) && (o.id as number) > 0 ? { id: o.id as number } : {};
+    out.push({ wave, names: strings(o.names).slice(0, 6).map((s) => s.slice(0, 40)), at: Math.max(0, num(o.at)), n: Math.max(1, Math.min(6, Math.floor(num(o.n, 1)))), ...id });
   }
   return sortFortTop(out);
 }
 
-/** Забег в таблицу рекордов: по убыванию волн, при равенстве — кто раньше; не больше FORT_TOP */
+/**
+ * Забег в таблицу рекордов: по убыванию волн, при равенстве — кто раньше; не больше FORT_TOP. Забег с номером игры (id),
+ * который уже есть в таблице, заменяет свою прежнюю запись (игра идёт — рекорд растёт), а не добавляет вторую.
+ */
 export function addFortRun(top: readonly FortRunRec[], rec: FortRunRec): FortRunRec[] {
-  return sortFortTop([...top, rec]);
+  const rest = rec.id ? top.filter((r) => r.id !== rec.id) : top;
+  return sortFortTop([...rest, rec]);
 }
 
 function sortFortTop(list: FortRunRec[]): FortRunRec[] {

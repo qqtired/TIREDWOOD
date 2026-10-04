@@ -28,10 +28,18 @@ export interface FortRun {
   payouts: number;
   /** Арсенал: золото, прокачка, стволы, гранаты, вклад в башни (server/fort/arsenal.ts) */
   arsenal: ArsenalRun;
+  /**
+   * Рекорды (shared/fortrecord.ts): свой рекорд до этой игры, свой результат в ней (сколько волн отбила команда к
+   * последней волне, засчитанной ему), было ли уже «свой рекорд!» в этой игре
+   */
+  best0: number;
+  recWave: number;
+  recSaid: boolean;
 }
 
 export function makeRun(pts: number, arsenal: ArsenalRun = makeArsenalRun()): FortRun {
-  return { pts, kills: 0, deaths: 0, killPts: 0, waves: 0, magazine: false, tokWaves: 0, paidWaves: 0, paidKillTok: 0, paidKills: 0, payouts: 0, arsenal };
+  return { pts, kills: 0, deaths: 0, killPts: 0, waves: 0, magazine: false, tokWaves: 0, paidWaves: 0, paidKillTok: 0, paidKills: 0, payouts: 0, arsenal,
+    best0: 0, recWave: 0, recSaid: false };
 }
 
 /** Книга забега: ушедшие из идущей игры, по номеру профиля */

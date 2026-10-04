@@ -331,6 +331,8 @@ export class Hub {
           this.store.markDirty();
         },
         best: (c) => c.profile && !c.ephemeral ? c.profile.stats.ftBest : 0,
+        progress: (c, wave) => this.onFortProgress(c, wave),
+        announce: (text) => this.announce(text),
         dev: o.devFort ?? false,
       })
       : null;
@@ -921,13 +923,23 @@ export class Hub {
     // выплата по забегу бывает и при выходе: игра считается один раз, сбитые — с прошлой выплаты
     if (!row.again) st.ftGames++;
     if (win) st.ftWins++;
-    if (wave > st.ftBest) st.ftBest = wave;
+    // свой рекорд — волны, отбитые командой к последней волне, засчитанной ему (row.my), а не просто «сколько было в игре»
+    const my = row.my ?? wave;
+    if (my > st.ftBest) st.ftBest = my;
     st.ftKills += row.kNew ?? row.k;
     if (reward) this.profiles.credit(prof, reward.total, 'mode');
     this.store.markDirty();
     this.tokens(c, prof.tokens);
     this.sendMe(c);
     this.lobby.honorChanged();
+  }
+
+  /** Свой рекорд крепости вырос посреди игры (волна отбита и засчитана ему) — сразу в профиль */
+  onFortProgress(c: Client, wave: number): void {
+    const prof = c.profile;
+    if (!prof || c.ephemeral || !(wave > prof.stats.ftBest)) return;
+    prof.stats.ftBest = wave;
+    this.store.markDirty();
   }
 
   // ------------------------------------------------------------ Fight Club
