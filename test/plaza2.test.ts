@@ -13,6 +13,7 @@ import { FIGHT_POSTS, PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_B
 import { FC_CIRCLE } from '../shared/fight.ts';
 import { TOUT_INFO, type ToutKey } from '../client/lobby/plaza/data.ts';
 import { DEFAULT_PLAZA, pickPlaza } from '../client/lobby/plaza/flag.ts';
+import { setupHub } from './kit.ts';
 import { AGENDA_ORDER, agendaRows, boatPlateLine, emptyLive, fillLive, liveLines, plural, type LiveIn, type LiveRaw } from '../client/lobby/plaza/live.ts';
 
 const KEYS = Object.keys(TOUT_INFO) as ToutKey[];
@@ -274,4 +275,29 @@ test('улица: фонарь не стоит на оси проулка кре
   assert.ok(solids.some((s) => s.x === SIGNPOST.x && s.z === SIGNPOST.z), 'столб указателя в карте');
   assert.ok(Math.hypot(SIGNPOST.x - lobby.spawn.x, SIGNPOST.z - lobby.spawn.z) > 3, 'указатель не на месте появления');
   assert.ok(Math.hypot(SIGNPOST.x - 0, SIGNPOST.z - 3.6) > 2, 'указатель не на самой звезде');
+});
+
+test('твёрдое оформление режимов за флагами: без флага предметов нет (как и на экране), с флагом — есть; остальные всегда на месте', () => {
+  const off = setupHub({ skill: false });
+  const on = setupHub({ hide: true, boatrace: true, fight: true });
+  const solidAt = (hub: ReturnType<typeof setupHub>['hub'], index: number): boolean => {
+    const b = lobby.boxes[index];
+    const x = (b.min[0] + b.max[0]) / 2;
+    const z = (b.min[2] + b.max[2]) / 2;
+    return hub.lobby.world.overlaps(x - 0.01, b.min[1] + 0.05, z - 0.01, x + 0.01, b.min[1] + 0.1, z + 0.01);
+  };
+  for (const mode of ['hide', 'regatta', 'fight'] as const) {
+    assert.ok(lobby.plazaModeBoxes[mode].length > 0, `у режима ${mode} есть твёрдые предметы`);
+    for (const i of lobby.plazaModeBoxes[mode]) {
+      assert.equal(solidAt(off.hub, i), false, `${mode}: без флага бокс ${i} выключен`);
+      assert.equal(solidAt(on.hub, i), true, `${mode}: с флагом бокс ${i} твёрдый`);
+    }
+  }
+  const gated = new Set(Object.values(lobby.plazaModeBoxes).flat());
+  const always = lobby.plazaBoxes.filter((i) => !gated.has(i));
+  assert.equal(always.length, 7, 'две бочки пейнтбола, две стопки покрышек, две стойки ворот катера и указатель — всегда');
+  for (const i of always) {
+    assert.equal(solidAt(off.hub, i), true, `бокс ${i} без флагов на месте`);
+    assert.equal(solidAt(on.hub, i), true, `бокс ${i} с флагами на месте`);
+  }
 });

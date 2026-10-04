@@ -3,6 +3,9 @@
 // позиции лежат в одном месте, чтобы видимое совпадало с твёрдым. Остальное оформление — над головой, на стенах,
 // на земле и за линией зданий: коллизии у него нет.
 
+/** Режим за флагом сервера, чьё оформление твёрдое: без флага режима его предметов нет — ни на экране, ни в карте */
+export type PlazaSolidMode = 'hide' | 'regatta' | 'fight';
+
 export interface PlazaSolid {
   /** Центр на земле */
   x: number;
@@ -13,9 +16,12 @@ export interface PlazaSolid {
   h: number;
   /** Низ бокса над землёй (по умолчанию 0): верхний ящик в стопке стоит на нижних */
   y?: number;
+  /** Режим за флагом, которому предмет принадлежит; нет — предмет всегда на месте */
+  mode?: PlazaSolidMode;
 }
 
 const solid = (x: number, z: number, hx: number, hz = hx, h = 1): PlazaSolid => ({ x, z, hx, hz, h });
+const forMode = <T extends PlazaSolid>(mode: PlazaSolidMode, list: readonly T[]): Array<T & { mode: PlazaSolidMode }> => list.map((s) => ({ ...s, mode }));
 
 /** Бочки-мишени по бокам ворот пейнтбола (красная и синяя) */
 export const PB_BARRELS: ReadonlyArray<PlazaSolid & { color: number }> = [
@@ -78,11 +84,11 @@ export const SIGNPOST = { x: -3.8, z: 1.4, h: 3.4 } as const;
 /** Все твёрдые предметы оформления в порядке добавления в карту (новые — только в конец) */
 export function plazaSolids(): PlazaSolid[] {
   return [
-    ...PB_BARRELS, ...KART_TIRES, ...YARD_SOLIDS,
-    ...YARD_CRATES,
-    ...REGATTA_MASTS.map((m) => solid(m.x, m.z, 0.17, 0.17, 3.2)),
+    ...PB_BARRELS, ...KART_TIRES, ...forMode('hide', YARD_SOLIDS),
+    ...forMode('hide', YARD_CRATES),
+    ...forMode('regatta', REGATTA_MASTS.map((m) => solid(m.x, m.z, 0.17, 0.17, 3.2))),
     solid(BOAT_GATE.x0, BOAT_GATE.z, 0.13, 0.13, 3.6), solid(BOAT_GATE.x1, BOAT_GATE.z, 0.13, 0.13, 3.6),
-    ...FIGHT_POSTS,
+    ...forMode('fight', FIGHT_POSTS),
     solid(SIGNPOST.x, SIGNPOST.z, 0.12, 0.12, SIGNPOST.h),
   ];
 }

@@ -60,7 +60,7 @@ import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { PLAZA2 } from './plaza/flag.ts';
-import { PLAZA_MODES, PlazaDress } from './plaza/index.ts';
+import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera } from './camera.ts';
 import { DurakTables3D, TORSO_R } from './durak3d.ts';
@@ -395,6 +395,8 @@ export class LobbyScene implements Scene {
     this.world = new LobbyWorld(d.renderer, lobbyQuality(d.settings.quality));
     for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
+    // твёрдое оформление площади у режимов за флагами включается вместе с режимом (пришёл его статус), как на сервере
+    for (const boxes of Object.values(this.world.map.plazaModeBoxes)) for (const index of boxes) this.world.collision.setEnabled(index, false);
     // корпус музыкального автомата твёрдый, только когда сервер с ним (флаг JUKEBOX: приходит «juke»)
     this.juke = new LobbyJukebox({
       sound: d.sound,
@@ -651,13 +653,20 @@ export class LobbyScene implements Scene {
   }
 
 
+  /** Режим за флагом включён сервером (пришёл его статус) или нет: оформление площади (если оно есть) и его твёрдые предметы. */
+  private plazaMode(mode: PlazaMode, on: boolean): void {
+    this.plaza?.setMode(mode, on);
+    const boxes = (this.world.map.plazaModeBoxes as Partial<Record<PlazaMode, number[]>>)[mode];
+    if (boxes) for (const index of boxes) this.world.collision.setEnabled(index, on);
+  }
+
   private resetAdditions(): void {
     this.sentMenu = null;
     this.skillStatus = this.boatRaceStatus = this.hideStatus = null;
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
     for (const circle of this.entryCircles.values()) circle.setVisible(false);
-    for (const mode of PLAZA_MODES) this.plaza?.setMode(mode, false);
+    for (const mode of PLAZA_MODES) this.plazaMode(mode, false);
     this.startZone = { kind: null, left: 0 };
     this.stormState = emptyStorm();
     this.storm3d.set(this.stormState);
@@ -670,7 +679,7 @@ export class LobbyScene implements Scene {
     else this.hideStatus = status as GatherStatus | HideStatus | null;
     const circle = this.entryCircles.get(kind)!;
     circle.setVisible(!!status);
-    this.plaza?.setMode(kind === 'boatrace' ? 'regatta' : 'hide', !!status);
+    this.plazaMode(kind === 'boatrace' ? 'regatta' : 'hide', !!status);
     if (!status) return;
     circle.status({ ...status, left: status.phase === 'count' && 'left' in status ? status.left : undefined, max: 'max' in status ? status.max : 6,
       hint: kind === 'boatrace' && this.rg.phase !== 'idle' && status.phase === 'idle' ? 'Регата идёт · встань — поедешь следующим'
@@ -822,7 +831,7 @@ export class LobbyScene implements Scene {
         this.billiards.off();
         this.skillStatus = msg.skill ?? null;
         this.skillPortal.setVisible(!!msg.skill);
-        this.plaza?.setMode('sky', !!msg.skill);
+        this.plazaMode('sky', !!msg.skill);
         for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, !!msg.skill);
         if (msg.skill) this.skillPortal.status(msg.skill);
         this.entryCircles.get('paintball')!.setVisible(true);
@@ -1122,7 +1131,7 @@ export class LobbyScene implements Scene {
     this.entryCircles.get('fort')!.setVisible(!!st);
     this.entryCircles.get('fort')!.status({ left: this.startZone.kind === 'fort' ? this.startZone.left : 0, hint: 'Встань на 3 секунды · E — сразу' });
     // при новом оформлении площади крепость — надвратная башня и донжон (client/lobby/plaza), прежняя арка не нужна
-    this.plaza?.setMode('fort', !!st);
+    this.plazaMode('fort', !!st);
     if (st) this.plaza?.setFortLine(fortStatusLine(st));
     if (st && !this.fortGate && !this.plaza) {
       this.fortGate = new FortGate(this.world.scene);
@@ -1134,7 +1143,7 @@ export class LobbyScene implements Scene {
   /** Круг «Fight Club»: первый статус — ставим дверь в стене кафе, дальше — картон и мел. */
   private onFightSt(st: FcStatus | null): void {
     this.fcSt = st;
-    this.plaza?.setMode('fight', !!st);
+    this.plazaMode('fight', !!st);
     if (st && !this.fcDoor) this.fcDoor = new FightDoor(this.world.scene);
     if (st) this.fcDoor?.setStatus(st);
   }

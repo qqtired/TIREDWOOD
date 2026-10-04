@@ -16,7 +16,7 @@ import {
 } from '../fishplaces.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
-import { plazaSolids } from '../plaza2.ts';
+import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
@@ -100,8 +100,10 @@ export interface LobbyMap extends GameMap {
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
   planeBoxes: number[];
-  /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее — всегда включены, в самом конце списка боксов */
+  /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее, в самом конце списка боксов */
   plazaBoxes: number[];
+  /** Из них — предметы режимов за флагами (двор прятков, мачты регаты, столбики Fight Club): без флага их выключают, как на экране */
+  plazaModeBoxes: Record<PlazaSolidMode, number[]>;
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -487,8 +489,10 @@ export function buildLobby(): LobbyMap {
 
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
+  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
   for (const p of plazaSolids()) {
     plazaBoxes.push(b.boxes.length);
+    if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
     b.box([p.x - p.hx, p.y ?? 0, p.z - p.hz], [p.x + p.hx, (p.y ?? 0) + p.h, p.z + p.hz], 'invisible', 0);
   }
 
@@ -535,5 +539,6 @@ export function buildLobby(): LobbyMap {
     billiardsBoxes,
     planeBoxes,
     plazaBoxes,
+    plazaModeBoxes,
   };
 }
