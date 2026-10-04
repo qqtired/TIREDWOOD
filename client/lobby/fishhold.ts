@@ -39,6 +39,11 @@ export function holdPose(len: number, squid: boolean): number {
 export class FishHolds {
   /** Своя рыба в руках: номер в рюкзаке (−1 — руки пустые) */
   myN = -1;
+  /**
+   * Своя рыба сейчас видна в руках (руки не заняты удочкой, пивом, эмоцией): плашка «в руках · Убрать» и Esc — только
+   * тогда. С удочкой плашка не нужна (рыбы в руках не видно) и наезжала бы на шкалу вываживания.
+   */
+  myShown = false;
   /** Нажали «Убрать» на плашке */
   onPutAway: () => void = () => {};
   private readonly by = new Map<number, Hold>();
@@ -94,6 +99,7 @@ export class FishHolds {
    * заняты другим (удочка, пиво, эмоция, сидит) — рыбу прячем и руки не трогаем.
    */
   update(dt: number, avatarOf: (id: number) => Avatar | null): void {
+    let mine = false;
     for (const [id, h] of this.by) {
       const av = avatarOf(id);
       if (av !== h.av) {
@@ -105,6 +111,7 @@ export class FishHolds {
       if (!av) continue;
       const free = av.inWorld && av.action === ACT_NONE && (av.hands === null || av.hands === h.hands);
       h.fish.visible = free;
+      if (id === this.myId) mine = free;
       if (!free) {
         if (av.hands === h.hands) av.hands = null;
         continue;
@@ -113,12 +120,17 @@ export class FishHolds {
       this.pose(h);
       av.hands = h.hands;
     }
+    if (mine !== this.myShown) {
+      this.myShown = mine;
+      this.showChip();
+    }
   }
 
   /** Ушли с набережной: всё убрать. */
   reset(): void {
     for (const [id, h] of this.by) this.remove(id, h);
     this.myN = -1;
+    this.myShown = false;
     this.showChip();
   }
 
@@ -130,7 +142,7 @@ export class FishHolds {
 
   private showChip(): void {
     const h = this.by.get(this.myId);
-    this.chip.classList.toggle('show', !!h);
+    this.chip.classList.toggle('show', !!h && this.myShown);
     if (h) this.chipName.textContent = `🐟 ${FISH[h.sp].name} в руках`;
   }
 
