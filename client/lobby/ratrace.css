@@ -1,4 +1,4 @@
-/* Крысиные бега: окно ставки, плашка забега, кнопки «болеть». Окно и кнопки живут в #menus (pointer-events: none) —
+/* Крысиные бега: окно ставки, одна плашка забега справа, вспышка выигрыша. Всё живёт в #menus (pointer-events: none) —
    клики мышью включаем сами, как у .fe-rl и .bj-dialog. */
 .rr-dlg { box-sizing: border-box; width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 16px 20px; border: 1px solid #8a7a5a; border-radius: 18px; color: #f6ecd0; background: #2b3129; box-shadow: 0 20px 70px rgba(0,0,0,.5); font: 14px/1.45 Rubik, system-ui, sans-serif; text-shadow: none; overflow-y: auto; pointer-events: auto; }
 .rr-dlg::backdrop { background: rgba(10, 14, 12, .45); }
@@ -42,29 +42,87 @@
 .rr-state { margin: 10px 0 2px; color: #d9e0c6; font-weight: 700; }
 .rr-state.err { color: #ffb4a6; }
 .rr-fine { margin: 6px 0 0; color: #b9b49c; font-size: 12px; }
-.rr-others[hidden] { display: none; }
 
-.rr-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: min(520px, 92vw); padding: 9px 20px; border-radius: 16px; background: rgba(43, 49, 41, .92); border: 2px solid #d8b86a; color: #f6ecd0; text-shadow: none; box-shadow: 0 8px 26px rgba(0,0,0,.4); pointer-events: none; font: 600 14px/1.3 Rubik, system-ui, sans-serif; text-align: center; }
-.rr-banner[hidden] { display: none; }
-.rr-banner b { font-size: 18px; }
-.rr-banner span:empty { display: none; }
-.rr-banner.run b { animation: rr-pulse .8s ease-in-out infinite alternate; }
-.rr-banner.res { border-color: #f1d488; background: rgba(70, 58, 30, .94); }
-@keyframes rr-pulse { to { color: #ffe39a; } }
+/* окно: что сейчас и банк — под заголовком; у каждой крысы — кто уже поставил */
+.rr-bank { margin: 6px 0 0; color: #e2c27a; font-weight: 700; }
+.rr-who { margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #ffe39a; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-who[hidden] { display: none; }
 
-.rr-cheer { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3; display: flex; flex-wrap: nowrap; white-space: nowrap; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 14px; background: rgba(43, 49, 41, .9); border: 1px solid #8a8466; pointer-events: auto; font: 600 13px/1 Rubik, system-ui, sans-serif; color: #f6ecd0; }
-.rr-cheer[hidden] { display: none; }
-.rr-cheerTitle { margin-right: 2px; color: #e2c27a; }
-.rr-cheerBtn { display: flex; align-items: center; gap: 5px; height: 32px; padding: 0 9px 0 4px; border-radius: 16px; border: 2px solid var(--saddle); background: rgba(0,0,0,.25); color: #fff4dc; font: inherit; cursor: pointer; }
-.rr-cheerBtn kbd { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--saddle); color: #fff; font: 800 12px/1 Rubik, system-ui, sans-serif; }
-.rr-cheerBtn:hover { background: rgba(255,255,255,.08); }
-.rr-cheerBtn.hit { animation: rr-hit .45s ease-out; }
-@keyframes rr-hit { 0% { transform: scale(1.18); background: var(--saddle); } 100% { transform: scale(1); } }
+/* --- плашка забега: справа под жетонами, одна на всё (что сейчас, крысы по номеру или по местам, своя ставка, клавиши) */
+.rr-panel { --row: 32px; position: absolute; top: 76px; right: 18px; z-index: 4; box-sizing: border-box; width: 344px; padding: 11px 14px 12px; border-radius: 18px; background: rgba(28, 50, 38, 0.94); border: 2px solid #d9b45a; color: #fff4d8; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font: 500 14px/1.3 Rubik, system-ui, sans-serif; text-shadow: none; pointer-events: none; }
+.rr-panel[hidden] { display: none; }
+.rr-pHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 18px; }
+.rr-pTitle { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #e2c27a; }
+.rr-pCam { pointer-events: auto; width: 40px; height: 32px; border-radius: 10px; border: 1px solid #8a8466; background: rgba(255, 245, 220, 0.08); color: #fff4d8; font: inherit; font-size: 17px; cursor: pointer; }
+.rr-pCam.rr-on { background: #a8561f; border-color: #e8a15f; }
+.rr-pCam[hidden] { display: none; }
+.rr-pStateRow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 3px; }
+.rr-pState { font-size: 21px; font-weight: 800; line-height: 1.15; color: #ffe39a; }
+.rr-pTime { font-size: 17px; font-weight: 700; color: #fff4d8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rr-pTime:empty { display: none; }
+.rr-pBar { height: 6px; margin: 8px 0 2px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.rr-pBar[hidden] { display: none; }
+.rr-pBar i { display: block; height: 100%; background: #ffd45c; transform-origin: left; transition: transform 0.25s linear; }
+.rr-pBar.rr-hot i { background: #ff9b4a; }
+/* строки двигаются на своё место плавно — видно обгоны */
+.rr-pList { position: relative; height: calc(6 * var(--row)); margin-top: 9px; }
+.rr-pRow { position: absolute; left: 0; right: 0; top: 0; box-sizing: border-box; height: calc(var(--row) - 3px); transform: translateY(calc(var(--k, 0) * var(--row))); transition: transform 0.35s ease; display: grid; grid-template-columns: 16px 24px 74px 34px minmax(0, 1fr); align-items: center; gap: 6px; padding: 0 8px 0 4px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.05); color: inherit; font: inherit; text-align: left; pointer-events: none; }
+.rr-pRow.rr-mine { background: rgba(255, 212, 92, 0.22); box-shadow: inset 4px 0 0 #ffd45c; }
+.rr-pRow.rr-lead .rr-pPlace { color: #ffd45c; }
+.rr-pRow.rr-lost { opacity: 0.55; }
+.rr-pRow.rr-mine.rr-lost { opacity: 0.85; }
+.rr-pPlace { font-weight: 800; font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+.rr-pNo { display: grid; place-items: center; box-sizing: border-box; width: 23px; height: 23px; border-radius: 50%; background: var(--saddle); border: 2px solid #fffaf0; color: #fff; font-size: 12px; font-weight: 800; }
+.rr-pNo.dark { color: #2a2420; }
+.rr-pName { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.rr-pOdds { font-weight: 800; color: #ffe39a; }
+.rr-pWho { font-size: 12.5px; color: #d6dec4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-pRow.rr-mine .rr-pWho { color: #fff4d8; font-weight: 600; }
+.rr-panel.rr-result .rr-pRow.rr-lead .rr-pWho { color: #9fe3a6; font-weight: 700; }
+.rr-pProg { position: absolute; left: 26px; right: 8px; bottom: 1px; height: 3px; border-radius: 2px; background: var(--saddle); transform-origin: left; transform: scaleX(0); transition: transform 0.2s linear; }
+.rr-panel:not(.rr-run) .rr-pProg { display: none; }
+.rr-pRow.rr-hit { animation: rr-row-hit 0.55s ease-out; }
+@keyframes rr-row-hit { 0% { background: var(--saddle); } 100% { } }
+.rr-pFoot { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.rr-pMine { font-size: 14.5px; font-weight: 700; }
+.rr-pMine.rr-bet { color: #ffe39a; }
+.rr-pMine.rr-won { font-size: 23px; font-weight: 900; color: #ffd45c; }
+.rr-pMine:empty { display: none; }
+.rr-pBank { font-size: 13px; color: #cfd8bf; }
+.rr-pBank:empty { display: none; }
+.rr-pKeys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: #d6dec4; }
+.rr-pKeys:empty { display: none; }
+.rr-pKeys kbd { display: inline-grid; place-items: center; box-sizing: border-box; min-width: 21px; height: 21px; margin-right: 3px; padding: 0 5px; border-radius: 5px; background: #fff4d8; color: #2a2420; font: 700 12px/1 Rubik, system-ui, sans-serif; }
+
+/* --- выигрыш: крупно в середине экрана */
+.rr-win { position: absolute; left: 50%; top: 36%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 36px 16px; border-radius: 24px; background: rgba(58, 45, 18, 0.93); border: 3px solid #ffd45c; color: #fff4d8; text-align: center; text-shadow: none; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); pointer-events: none; font-family: Rubik, system-ui, sans-serif; transform: translate(-50%, -50%); }
+.rr-win[hidden] { display: none; }
+.rr-winHead { font-size: 20px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #ffe39a; }
+.rr-winSum { font-size: 56px; font-weight: 900; line-height: 1.05; color: #ffd45c; white-space: nowrap; }
+.rr-win.rr-show { animation: rr-win-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both, rr-win-out 0.5s ease-in 2.7s forwards; }
+@keyframes rr-win-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes rr-win-out { to { opacity: 0; transform: translate(-50%, -62%) scale(0.96); } }
 
 @media (max-width: 760px) {
   .rr-rats { grid-template-columns: 1fr; }
   .rr-rat { min-height: 54px; }
   .rr-trait { display: none; }
-  .rr-cheer { left: 8px; right: 8px; bottom: 74px; transform: none; justify-content: center; }
-  .rr-cheerBtn span { display: none; }
+  /* телефон: плашка сверху на всю ширину, крысы — плитками 3 × 2 (нажать — болеть) */
+  .rr-panel { top: 58px; left: 8px; right: 8px; width: auto; padding: 8px 10px 9px; border-radius: 14px; }
+  .rr-pState { font-size: 17px; }
+  .rr-pTime { font-size: 15px; }
+  .rr-pList { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; height: auto; margin-top: 6px; }
+  .rr-pRow { position: relative; order: var(--k, 0); height: 30px; transform: none; grid-template-columns: auto 22px minmax(0, 1fr); gap: 4px; padding: 0 6px 0 4px; }
+  .rr-pOdds, .rr-pWho { display: none; }
+  .rr-pName { font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .rr-pPlace { font-size: 13px; }
+  .rr-pPlace:empty { display: none; }
+  .rr-pProg { left: 4px; right: 4px; }
+  .rr-pFoot { margin-top: 6px; gap: 2px; }
+  .rr-pMine { font-size: 13px; }
+  .rr-pMine.rr-won { font-size: 19px; }
+  .rr-pBank, .rr-pKeys { font-size: 12px; }
+  .rr-winSum { font-size: 44px; }
 }
+/* на телефоне по крысе в плашке можно нажать — болеть */
+.touch .rr-pRow { pointer-events: auto; cursor: pointer; }
