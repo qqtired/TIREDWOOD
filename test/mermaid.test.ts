@@ -73,7 +73,11 @@ test('между соседними появлениями 4–6 минут (240
   }
 });
 
-test('борта и промежутки выведены из мест рыбалки и настила: два борта мостков, промежутки между рядами мест, на кромке настила', () => {
+/** Точка на настиле (как в shared/mermaid.ts: верх у пола, низ под водой) */
+const decks = map.boxes.filter((b) => b.max[1] > -0.1 && b.max[1] < 0.3 && b.min[1] < -0.2);
+const onDeck = (x: number, z: number): boolean => decks.some((d) => x >= d.min[0] && x <= d.max[0] && z >= d.min[2] && z <= d.max[2]);
+
+test('борта и промежутки выведены из мест рыбалки и настила: два борта мостков, промежутки между соседними местами, на кромке настила', () => {
   const rows = [...new Set(FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier' && s.z < 38).map((s) => s.z))].sort((a, b) => a - b);
   assert.deepEqual(rows, [25, 28.5, 32, 35.5]);
   assert.equal(layout.sides.length, 2, 'у мостков два борта: восточный и западный');
@@ -83,13 +87,21 @@ test('борта и промежутки выведены из мест рыба
     const same = FISH_SPOTS.filter((p) => (p.zone ?? 'pier') === 'pier' && Math.abs(-Math.sin(p.yaw) - side.dx) < 1e-9 && Math.abs(-Math.cos(p.yaw) - side.dz) < 1e-9);
     assert.equal(side.spots, same.length);
     const zs = side.lanes.map((l) => l.z).sort((a, b) => a - b);
-    // каждый промежуток — ровно посередине между двумя соседними рядами мест на мостках; на кромке настила
-    for (const z of zs) assert.ok(rows.some((r, i) => i + 1 < rows.length && Math.abs(z - (r + rows[i + 1]) / 2) < 1e-9), `промежуток z ${z} — между соседними рядами ${rows}`);
-    for (const lane of side.lanes) assert.ok(Math.abs(lane.x - (side.dx < 0 ? -21 : -17)) < 0.06, `промежуток на кромке настила (x ${lane.x})`);
+    // каждый промежуток — ровно посередине между двумя соседними местами борта (вдоль кромки) и на самой кромке настила:
+    // чуть ближе к мосткам — настил, чуть дальше — вода. Так и для ближних мостков, и для дальних, и для площадки у дома рыбака
+    const along = (p: { x: number; z: number }): number => -p.x * side.dz + p.z * side.dx;
+    const us = same.map(along).sort((a, b) => a - b);
+    for (const lane of side.lanes) {
+      const u = along(lane);
+      assert.ok(us.some((v, i) => i + 1 < us.length && Math.abs(u - (v + us[i + 1]) / 2) < 1e-6), `${side.name}: промежуток (${lane.x}, ${lane.z}) — посередине между соседними местами`);
+      assert.ok(onDeck(lane.x - side.dx * 0.1, lane.z - side.dz * 0.1) && !onDeck(lane.x + side.dx * 0.1, lane.z + side.dz * 0.1), `${side.name}: промежуток (${lane.x}, ${lane.z}) на кромке настила`);
+    }
     assert.ok(zs.includes(30.25) && zs.includes(33.75), 'середина и юг мостков — у обоих бортов');
-    // первый промежуток у берега (26,75) — у памятника: с западного борта его нет (тихая зона), с восточного — есть
-    assert.equal(zs.includes(26.75), side.dx > 0, `${side.name}: первый промежуток`);
+    // первый промежуток у берега (26,75) с западного борта — у памятника: там её нет (тихая зона)
+    if (side.dx < 0) assert.ok(!zs.includes(26.75), 'запад: у памятника не всплывает');
   }
+  // пирс удлинили (дальние мостки и площадка с домом рыбака) — она всплывает и там, раскладка подхватила новые места сама
+  assert.ok(layout.sides.every((d) => d.lanes.some((l) => l.z > 45)), 'у дальних мостков — с обоих бортов');
   // перепутанный порядок мест даёт те же борта
   const shuffled = [...FISH_SPOTS].reverse();
   assert.deepEqual(buildMermaidLayout(shuffled, map.boxes), layout);
@@ -121,7 +133,11 @@ test('стороны случайные: обе встречаются поро�
   assert.ok(Math.abs(sides[0] - sides[1]) < N * 0.06, `борта ${sides}`);
   assert.ok(longest < 20, `самая длинная серия одного борта — ${longest}`);
   assert.equal(lanes.size, layout.sides.reduce((n, d) => n + d.lanes.length, 0), 'все промежутки всех бортов в деле');
-  for (const c of lanes.values()) assert.ok(c > N * 0.12, 'ни один промежуток не забыт');
+  // каждый промежуток — не реже 60 % своей ровной доли (борт — половина показов, внутри борта — поровну)
+  for (const [key, c] of lanes) {
+    const side = layout.sides[Number(key.split(':')[0])];
+    assert.ok(c > 0.6 * N / layout.sides.length / side.lanes.length, `ни один промежуток не забыт (${key}: ${c})`);
+  }
   // принудительный борт (отладка) меняет только борт и место
   const a = show(7, layout, 0);
   const b = show(7, layout, 1);
