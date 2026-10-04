@@ -18,6 +18,7 @@ import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
+import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
@@ -254,6 +255,8 @@ export function buildLobby(): LobbyMap {
   b.box([24, 0, -10], [30, 4, 4], 'wood', 0xe8dcc4);
   const tables = TABLE_ZS.map((z) => ({ x: TABLE_X, z }));
   for (const t of tables) b.box([t.x - 0.55, 0, t.z - 0.55], [t.x + 0.55, 0.75, t.z + 0.55], 'wood', WOOD);
+  // невидимые колпаки над столиками: на стол не запрыгнуть и не встать (shared/tableguard.ts)
+  for (const g of cafeTableGuards(tables)) b.box(g.min, g.max, 'invisible', 0);
   for (const [x, z] of CANOPY_POLES) b.box([x - 0.08, 0, z - 0.08], [x + 0.08, CANOPY_POLE_H, z + 0.08], 'invisible', 0);
 
   // --- Площадь: батуты, фонари, скамейки у моря
@@ -468,6 +471,11 @@ export function buildLobby(): LobbyMap {
   for (const t of BL_TABLES) {
     billiardsBoxes.push(b.boxes.length);
     b.box([t.x - BL_OUT_HX, 0, t.z - BL_OUT_HZ], [t.x + BL_OUT_HX, BL_SURFACE_Y + 0.04, t.z + BL_OUT_HZ], 'invisible', 0);
+  }
+  // колпаки над столами до крыши: на стол не запрыгнуть и не встать (shared/tableguard.ts)
+  for (const g of billiardsTableGuards()) {
+    billiardsBoxes.push(b.boxes.length);
+    b.box(g.min, g.max, 'invisible', 0);
   }
   for (const [x, z] of BL_POSTS) {
     billiardsBoxes.push(b.boxes.length);
