@@ -84,7 +84,6 @@ export class BilliardsClient {
   private strokeAt = 0;
   private aimSentAt = 0;
   private aimSent = '';
-  private resultKey = '';
   private readonly camPos = new THREE.Vector3();
 
   constructor(d: BilliardsDeps) {
@@ -93,6 +92,8 @@ export class BilliardsClient {
     this.hud = new BilliardsHud(d.hudRoot);
     this.hud.onAction = (act) => this.act(act);
     this.hud.onLeave = () => d.leave();
+    // итог — когда шары остановились и панель его показала
+    this.hud.onResult = (won, bet) => (won ? d.sound.tableWin(bet > 0) : d.sound.tableLose());
     d.canvas.addEventListener('pointermove', (e) => this.onMove(e));
     d.canvas.addEventListener('pointerdown', (e) => this.onDown(e));
     window.addEventListener('pointerup', (e) => this.onUp(e));
@@ -157,13 +158,6 @@ export class BilliardsClient {
     if (v.table === this.table) {
       this.hud.setView(v);
       this.hud.setBalance(this.d.me().tokens);
-      const mine = v.seats[this.side]?.pid === this.d.me().pid;
-      const key = `${v.table}:${v.shot}:${v.winner}`;
-      if (v.phase === 'result' && mine && key !== this.resultKey) {
-        this.resultKey = key;
-        if (v.winner === this.side) this.d.sound.tableWin(v.bet > 0);
-        else this.d.sound.tableLose();
-      }
     }
   }
 
@@ -203,7 +197,11 @@ export class BilliardsClient {
       n: s.n, frames: new Float32Array(frames), masks: new Uint16Array(masks), count: masks.length, t0: performance.now(),
       events, ei: 0, end: packBalls(balls),
     };
-    if (s.table === this.table) this.hud.setAnimating(true);
+    if (s.table === this.table) {
+      // панель держит стол до удара, пока шары катятся; что упало — для строки события
+      this.hud.shot(s.n, s.by, events.filter((e) => e.k === 2).map((e) => e.b));
+      this.hud.setAnimating(true);
+    }
     // тычок кия и «тук» — у всех, кто рядом
     const cue = this.worldOf(s.table, s.pos[0], s.pos[1]);
     const pw = Math.min(1, Math.hypot(s.vx, s.vz) / 5);
@@ -336,6 +334,8 @@ export class BilliardsClient {
       this.cancelCharge();
       return true;
     }
+    // Esc — наш: иначе браузер тем же нажатием закроет только что открытый вопрос «Сдаться?»
+    if (code === 'Escape') e.preventDefault();
     if (code === 'Space') {
       e.preventDefault();
       if (!this.charging && this.canShoot() && this.aimValid) {
