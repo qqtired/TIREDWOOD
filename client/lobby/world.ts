@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
-import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, MACHINE_FRONT_Z, PHOTO, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, MACHINE_FRONT_Z, PHOTO, STATUE_SHOWN, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
 import type { Deco, MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -213,7 +213,7 @@ export class LobbyWorld {
   readonly barkas: Barkas;
   /** Дальний берег с горами и посёлками, острова, парусники */
   private readonly backdrop: Backdrop;
-  private readonly statue: Statue;
+  private readonly statue: Statue | null;
   /** Луч маяка вращается вокруг фонаря; вспышка ярче, когда луч смотрит на камеру */
   readonly lighthouse = new TokarevLighthouse();
   private readonly beam = new THREE.Group();
@@ -340,8 +340,8 @@ export class LobbyWorld {
     this.trampolines = new Trampolines(scene, this.map.trampolines, { rims: [0xe5483b, 0xf2b330, 0x3f86c9], pads: [0x4a9466], wet: (m) => this.wettable(m) });
     this.boats = new Boats(scene, (m) => this.wettable(m));
     this.barkas = new Barkas(scene, (m) => this.wettable(m), this.wind);
-    // фигура грузится фоном: когда появится, тени статики пересчитываются
-    this.statue = new Statue(scene, () => renderer.refreshShadows());
+    // фигура грузится фоном: когда появится, тени статики пересчитываются; памятник скрыт — не грузим вовсе
+    this.statue = STATUE_SHOWN ? new Statue(scene, () => renderer.refreshShadows()) : null;
     const bulbs: V3[] = [];
     for (const d of this.map.deco) if (d.kind === 'lamp') bulbs.push([d.x - Math.sin(d.yaw) * 1.2, 4.88, d.z - Math.cos(d.yaw) * 1.2]);
     this.rainFx = new RainFx(scene, this.cover, this.skyMat, bulbs);
@@ -1266,7 +1266,7 @@ export class LobbyWorld {
   setQuality(q: LobbyQuality): void {
     this.lampQuality = q;
     for (const l of this.lamps) l.visible = q === 'high' && this.weather.lampsOn;
-    this.statue.setQuality(q);
+    this.statue?.setQuality(q);
     this.rainFx.setQuality(q);
     const size = q === 'low' ? 1024 : 2048;
     const sh = this.sun.shadow;

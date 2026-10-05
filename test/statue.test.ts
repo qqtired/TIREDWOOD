@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { decodeStatue } from '../client/lobby/statueFormat.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
-import { STATUE, buildLobby } from '../shared/maps/lobby.ts';
+import { STATUE, STATUE_SHOWN, buildLobby } from '../shared/maps/lobby.ts';
 import { CollisionWorld, makeRayHit } from '../shared/world.ts';
 
 const lobby = buildLobby();
@@ -58,9 +58,11 @@ test('модель статуи: голова и тело, индексы в п�
   assert.ok(maxX > 0.2 && maxX < 0.3, `левая рука: ${maxX}`);
 });
 
-test('статуя у мостков: твёрдая, проход на мостки и дорога от точки появления свободны', () => {
-  assert.ok(!freeSpot(STATUE.x, STATUE.z), 'сквозь статую не пройти');
-  assert.ok(lw.groundBelow(STATUE.x, 2.5, STATUE.z) < 0.5 || lw.overlaps(STATUE.x - 0.1, 2.4, STATUE.z - 0.1, STATUE.x + 0.1, 2.5, STATUE.z + 0.1), 'наверх не запрыгнуть');
+test('статуя у мостков: твёрдая (скрыта — место свободно), проход на мостки и дорога от точки появления свободны', () => {
+  if (STATUE_SHOWN) {
+    assert.ok(!freeSpot(STATUE.x, STATUE.z), 'сквозь статую не пройти');
+    assert.ok(lw.groundBelow(STATUE.x, 2.5, STATUE.z) < 0.5 || lw.overlaps(STATUE.x - 0.1, 2.4, STATUE.z - 0.1, STATUE.x + 0.1, 2.5, STATUE.z + 0.1), 'наверх не запрыгнуть');
+  } else assert.ok(freeSpot(STATUE.x, STATUE.z), 'памятник скрыт — на его месте нет невидимой стены');
   // проход на мостки (x −21…−17) у края набережной
   for (const x of [-20.2, -19, -17.8]) for (const z of [19.5, 21, 23]) assert.ok(freeSpot(x, z), `проход ${x},${z}`);
   // от точки появления к мосткам — прямая дорога на высоте желейки

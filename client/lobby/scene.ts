@@ -32,7 +32,7 @@ import {
   ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
   ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
-import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
+import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, STATUE_SHOWN, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
 import { FISH_NPCS, FISH_SPOTS, ROULETTE_SPOT } from '../../shared/fishplaces.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
@@ -270,8 +270,8 @@ export class LobbyScene implements Scene {
   private readonly folk: LobbyFolk;
   /** Дом рыбака Семёна на конце пирса (есть всегда: он — часть пирса) */
   private readonly fishHouse: FishHouse3D;
-  /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия */
-  private readonly respects: Respects;
+  /** «Press F to pay respects» у статуи: свечи, огоньки, свет, плита со счётом, мелодия (памятник скрыт — нет) */
+  private readonly respects: Respects | null;
   /** Кто на каком месте рыбалки (желейка) — каждый кадр */
   private readonly fishOcc: Array<Avatar | null> = FISH_SPOTS.map(() => null);
   /** Своё место рыбалки (до «ушёл с места» от сервера), −1 — не рыбачим */
@@ -556,7 +556,7 @@ export class LobbyScene implements Scene {
     this.ratHud.camAvail = () => this.ratCam.avail;
     this.ratHud.onCam = () => this.ratCam.toggle(this.rat3d.camRace);
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
-    this.respects = new Respects(this.world.scene, this.fx, d.sound);
+    this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
     this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows()) : null;
     this.boatBanner = new BoatBanner(this.world.scene);
@@ -893,7 +893,7 @@ export class LobbyScene implements Scene {
         }
         this.fishing.reset(msg.fish);
         this.world.setRain(msg.rain === 1, true, msg.wx);
-        this.respects.setCount(msg.respects ?? 0);
+        this.respects?.setCount(msg.respects ?? 0);
         this.setBoat(msg.boat ?? BOAT_DOCKED);
         this.setFerry(msg.ferry ?? FERRY_DOCKED, true);
         this.fishLvl = fishLevel(this.d.ui.me().fishing?.xp ?? 0);
@@ -2054,7 +2054,7 @@ export class LobbyScene implements Scene {
   private get respectHere(): boolean {
     const act = this.myAct;
     const p = this.pose;
-    return this.hasSelf && !isHeld(act) && !isPair(act) && act !== ACT_RESPECT && respectReach(p.x, p.y, p.z);
+    return STATUE_SHOWN && this.hasSelf && !isHeld(act) && !isPair(act) && act !== ACT_RESPECT && respectReach(p.x, p.y, p.z);
   }
 
   /** F у статуи: честь отдаётся сразу у себя, свечи и мелодия — по событию сервера (у всех одинаково). */
@@ -2070,6 +2070,7 @@ export class LobbyScene implements Scene {
   /** Кто-то отдал честь: огонёк из его руки к подножию, «F» над головой, мелодия, счёт на плите. */
   private onRespect(slot: number, total: number): void {
     const p = slot === this.myId ? (this.hasSelf ? this.pose : null) : (this.remotes.get(slot)?.pose ?? null);
+    if (!this.respects) return;
     if (!p || ('valid' in p && !p.valid)) {
       this.respects.setCount(total);
       return;
@@ -2324,7 +2325,7 @@ export class LobbyScene implements Scene {
     this.rat3d.update(dt, this.time, camPos);
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
-    this.respects.update(dt, this.time, this.respecting());
+    this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
     this.tables3d.update(dt, this.time, camPos);
@@ -2388,7 +2389,7 @@ export class LobbyScene implements Scene {
     this.fish2.updateVisuals(dt, this.time, cam.position);
     this.roulette3d.update(dt);
     this.rat3d.update(dt, this.time, cam.position);
-    this.respects.update(dt, this.time, 0);
+    this.respects?.update(dt, this.time, 0);
     this.effects.update(dt);
     this.world.barkas.setListener(this.d.sound.kit, null);
     this.world.update(dt);
@@ -3014,7 +3015,7 @@ export class LobbyScene implements Scene {
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
       fishHold: this.fishHolds.of(this.myId), fishJumps: { on: this.fishJumps.on, flying: this.fishJumps.flying },
-      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects.debug(), mermaid: this.mermaid.debug(),
+      weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects?.debug() ?? null, mermaid: this.mermaid.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },
     };
