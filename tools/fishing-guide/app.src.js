@@ -56,6 +56,7 @@ var FishCalc = (function () {
 if (typeof document !== 'undefined') (function () {
   var form = document.getElementById('calc');
   if (!form) return;
+  var D = FishCalc.D;
   var bar = document.getElementById('calc-bar');
   var rows = document.getElementById('calc-rows');
   var hint = document.getElementById('calc-hint');
@@ -112,7 +113,7 @@ if (typeof document !== 'undefined') (function () {
     });
     var notes = [];
     if (r.capped) notes.push('<b>Потолок.</b> Редкие и выше заняли всё, что можно, — ' + Math.round((1 - D.COMMON_FLOOR) * 100) + ' % рыбы: обычным остался пол, ' + Math.round(D.COMMON_FLOOR * 100) + ' % (так пикарель в дождь ловится у всех). Старшие категории взяли свою долю целиком, нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
-    if (o.drink === 4) notes.push('<b>Водка:</b> эпик и выше (с божественной) ×2, но зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', рывки рыбы на ' + Math.round((D.VODKA_JERK - 1) * 100) + ' % быстрее, а ты пьян (зона по инерции, икота, моргание) — вытащить труднее.');
+    if (o.drink === 4) notes.push('<b>Водка:</b> эпик и выше (с божественной) ×2, но зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', а ты пьян (зона по инерции, икота, моргание) — вытащить труднее.');
     if (o.zone === 'barkas') notes.push('<b>Баркас</b> пускает с 3-го уровня. Рыба там своя и злее, зато платит и даёт опыта ×1,25.');
     hint.innerHTML = notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');
   }

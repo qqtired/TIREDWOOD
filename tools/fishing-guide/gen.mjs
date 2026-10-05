@@ -115,10 +115,10 @@ const newbie = EX[0].p;
 // числа, которые меняют соседние задачи (водка, сундук, пиво владыки), — из кода
 const VZ = sh.VODKA.zone ?? 1;
 const vodkaZone = VZ === 0.5 ? 'вдвое меньше' : `на ${Math.round((1 - VZ) * 100)} % меньше`;
-const vodkaJerk = Math.round(((sh.VODKA.jerk ?? 1) - 1) * 100);
 // обновление 4 октября — тоже из кода: клад Посейдона, выбор после поимки, натяжение и край шкалы, оценки, кальмар
 const sec = (ticks) => num(ticks / cn.TICK_RATE, 1);
 const posPct = num(fr.POSEIDON_SHARE * 100, 1);
+const posMinPct = num(fr.poseidonShare(1) * 100, 1);
 const posCoins = fr.POSEIDON_COINS.toLocaleString('ru-RU').replace(/\s/g, ' ');
 const relXp = mul(rel.RELEASE_XP);
 const choiceSec = sec(rel.CHOICE_TICKS);
@@ -155,7 +155,7 @@ function tierCard(k) {
   } else if (k === 5) {
     dl = `<dl><dt>Что это</dt><dd>сапог или бутылка</dd><dt>Цена</dt><dd>0 🪙</dd><dt>С уровнем</dt><dd>реже, на 10-м — нет</dd></dl>`;
   } else {
-    dl = `<dl><dt>Внутри</dt><dd class="num">${chestMin}–${chestMax} 🪙</dd><dt>Клад Посейдона</dt><dd class="num">${posCoins} 🪙 · ${posPct} из 100</dd><dt>Пиво владыки</dt><dd>в 1 из ${lordIn}</dd><dt>Подсечь за</dt><dd class="num">1,0 с</dd></dl>`;
+    dl = `<dl><dt>Внутри</dt><dd class="num">${chestMin}–${chestMax} 🪙</dd><dt>Клад Посейдона</dt><dd class="num">${posCoins} 🪙 · ${posMinPct}–${posPct} % сундуков по уровню</dd><dt>Пиво владыки</dt><dd>в 1 из ${lordIn}</dd><dt>Подсечь за</dt><dd class="num">1,0 с</dd></dl>`;
   }
   return `<div class="tier" style="--c:var(--t${k})"><div class="nm">${TN[k]}</div><div class="big num">${pct(newbie[k])}</div><div class="one">${oneIn(newbie[k])} поклёвок</div>${dl}</div>`;
 }
@@ -191,9 +191,9 @@ const baseRows = ORDER.map((k) => {
 }).join('');
 const exRows = ORDER.map((k) => `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td>${EX.map((e) => `<td class="num">${pct(e.p[k])}</td>`).join('')}</tr>`).join('');
 const chestTotal = CHEST_BANDS.reduce((s, b) => s + b[2], 0);
-// полосы делят сундуки, кроме клада Посейдона (POSEIDON_SHARE), — доли от всех сундуков
-const chestRows = CHEST_BANDS.map(([lo, hi, w]) => `<tr><td>${lo === hi ? `${lo} 🪙 — джекпот` : `${lo}–${hi} 🪙`}</td><td class="num">${num(w / chestTotal * (1 - fr.POSEIDON_SHARE) * 100, 1)} %</td></tr>`).join('')
-  + `<tr class="pos"><td>${posCoins} 🪙 — «Сокровища Посейдона»</td><td class="num">${posPct} %</td></tr>`;
+// Доли всех сундуков на начальном и максимальном уровне; клад вытесняет обычные суммы.
+const chestRows = CHEST_BANDS.map(([lo, hi, w]) => `<tr><td>${lo === hi ? `${lo} 🪙 — джекпот` : `${lo}–${hi} 🪙`}</td>${[1, 15].map(level => `<td class="num">${num(w / chestTotal * (1 - fr.poseidonShare(level)) * 100, 1)} %</td>`).join('')}</tr>`).join('')
+  + `<tr class="pos"><td>${posCoins} 🪙 — «Сокровища Посейдона»</td><td class="num">${posMinPct} %</td><td class="num">${posPct} %</td></tr>`;
 const junkRows = [0, 1, 2, 3, 5, 7, 10].map((l) => `<tr><td>${l}-й уровень</td><td class="num">${pct(fr.junkPer10k(l) / 10000)}</td></tr>`).join('');
 const reelRows = [0, 1, 2, 3, 4, 5].map((rank) => {
   const k = RANK_T[rank]; const d = drainBy[rank];
@@ -234,7 +234,7 @@ const html = `<!doctype html>
 
 <section id="new">
   <h2>Что нового</h2>
-  <p class="sub">Обновление рыбалки 4 октября 2026: крупная рыба клюёт чаще, все бонусы работают на все категории, а шкала теперь оценивает, как чисто ты вёл рыбу.</p>
+  <p class="sub">Патч рыбалки 5 октября 2026: водка больше не ускоряет рывки, зона остаётся ${vodkaZone}. Клад Посейдона — ${posCoins} жетонов, его шанс в сундуке растёт с ${posMinPct} % на 1-м уровне рыбалки до ${posPct} % на 15-м.</p>
   <div class="card"><ul class="keys news">
     <li><span class="k">📈</span><p><b>Крупная рыба — чаще.</b> У новичка мифическая — ${pct(newbie[4])} поклёвок, кальмар — ${pct(newbie[7])}. Удочки, блёсны, напитки, уровень и события поднимают шансы и цену всех категорий — вместе с кальмаром.</p></li>
     <li><span class="k">🌧</span><p><b>Дождь — и для кальмара.</b> В дождь все от редких до кальмара клюют ${mul(fr.RAIN_MUL)} — раньше кальмар в дождь, наоборот, попадался реже.</p></li>
@@ -243,8 +243,8 @@ const html = `<!doctype html>
     <li><span class="k">🎯</span><p><b>Оценка вываживания.</b> Каждый выход рыбы из зоны — ошибка. Без ошибок — «${gBest.name}» ${mul(gBest.xp)} опыта, ${gradeSpan(G.length - 1)} — «${gWorst.name}» ${mul(gWorst.xp)}. Счёт ошибок — под шкалой.</p></li>
     <li><span class="k">🪢</span><p><b>Леска натянута.</b> Зона прижата к самому верху дольше ${tautSec} с — улов тает, игра предупредит в чате. Рыба больше не прячется у краёв: держится в ${edgePct}–${edgeTop} % шкалы.</p></li>
     <li><span class="k">🌊</span><p><b>Поймал — выбери.</b> «В рюкзак» (ЛКМ) — жетоны при продаже. «Отпустить» (F) — рыба в воду, жетонов нет, опыт ${relXp}. Не выбрал за ${choiceSec} с — рыба остаётся в рюкзаке.</p></li>
-    <li><span class="k">🍶</span><p><b>Водка мягче, но пьянит.</b> Зона ${vodkaZone} (раньше — вдвое), рывки на ${vodkaJerk} % быстрее, а на шкале ты пьян: зона ещё ${drunkLag} с едет по инерции, икота, шкала моргает.</p></li>
-    <li><span class="k">💰</span><p><b>Сундуки щедрее на 25 %.</b> А в ${posPct} сундуках из 100 — «Сокровища Посейдона»: ${posCoins} 🪙, и об этом узнаёт весь сервер.</p></li>
+    <li><span class="k">🍶</span><p><b>Водка мягче, но пьянит.</b> Зона ${vodkaZone}, ускорения рывков больше нет. На шкале ты пьян: зона ещё ${drunkLag} с едет по инерции, икота, шкала моргает.</p></li>
+    <li><span class="k">💰</span><p><b>«Сокровища Посейдона» — ${posCoins} 🪙.</b> Шанс клада в сундуке плавно растёт с ${posMinPct} % на 1-м уровне рыбалки до ${posPct} % на 15-м. О находке узнаёт весь сервер.</p></li>
     <li><span class="k">🦑</span><p><b>Кальмар — ${wrange(squid.g)}.</b> На подиуме дня его почти никто не перевесит.</p></li>
     <li><span class="k">⚓</span><p><b>Баркас ушёл дальше в море.</b> Стоит у дальнего края регаты и стал длиннее: ${bk.BARKAS_FISH_SPOTS.length} мест, рядом рыбачит матрос Колян. Лодка «Удалая» отходит от хижины Деда Семёна.</p></li>
     <li><span class="k">📋</span><p><b>Доски.</b> На доске рекордов у пирса — колонка «Коллекция»: у кого больше видов в журнале. У рулетки на баркасе — табло последних 10 ставок.</p></li>
@@ -264,7 +264,7 @@ const html = `<!doctype html>
     <h3>Как выбирается, что клюнет</h3>
     <p class="muted" style="margin:0 0 10px">В момент поклёвки игра тянет жребий в три шага:</p>
     <div class="grid g3">
-      <div><span class="pill" style="--c:var(--t6)">1</span> <b>${chestPct} из 100</b> поклёвок — сундук с жетонами (в ${posPct} из 100 сундуков — клад Посейдона). Всегда, у всех.</div>
+      <div><span class="pill" style="--c:var(--t6)">1</span> <b>${chestPct} из 100</b> поклёвок — сундук с жетонами, у всех. Внутри него шанс клада Посейдона растёт с ${posMinPct} % на 1-м уровне рыбалки до ${posPct} % на 15-м.</div>
       <div><span class="pill" style="--c:var(--t5)">2</span> <b>${junkPct} из 100</b> — хлам (сапог или бутылка) у новичка. С каждым уровнем рыбалки хлама на десятую часть меньше, с 10-го — ни одного.</div>
       <div><span class="pill" style="--c:var(--t1)">3</span> Остальное — <b>рыба</b>. Сначала выбирается категория (обычная, редкая, …), потом вид внутри неё — у каждого вида своя частота.</div>
     </div>
@@ -299,7 +299,7 @@ const html = `<!doctype html>
     <div class="card factor"><div class="ic"><img src="/fishing/img/rod-legendary.webp" alt=""></div><div><h3>Удочка — за задания Деда Семёна</h3><p>Редкие и выше: ×1,05 за каждую ступень. Ещё удочка увеличивает зону на шкале и ускоряет поклёвку на 10 / 20 / 30 / 40 %. Каждое следующее задание — на 5 рыб больше.</p><ul class="mults">${rods}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-lure4.webp" alt=""></div><div><h3>Блесна — покупается навсегда</h3><p>Только <b>эпические и выше</b> (и кальмар) — блесна для крупной рыбы, на редких не действует. Ещё делает рывки рыбы мягче на ${sh.LURES.map((l) => Math.round(l.calm * 100)).join(' / ')} %.</p><ul class="mults">${lures}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-ale.webp" alt=""></div><div><h3>Напитки — на 10 минут</h3><p>Действует один — последний выпитый. Пиво, эль и пиво владыки поднимают все категории от редких до кальмара и цену улова.</p><ul class="mults">${drinkLi(sh.BEER, `, ${sh.BEER.price} 🪙`)}${drinkLi(sh.ALE, `, ${sh.ALE.price} 🪙`)}${drinkLi(sh.LORD, ` (в 1 из ${lordIn} сундуков)`)}</ul></div></div>
-    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>${sh.VODKA.price} 🪙, ${Math.round(sh.VODKA.ms / 60_000)} минут. Эпические и выше, вместе с кальмаром, — <b>${mul(sh.VODKA.top ?? 1)}</b>, опыт за них ${mul(sh.VODKA.topXp ?? 1)}. Но зона на шкале <b>${vodkaZone}</b>, а рывки рыбы на ${vodkaJerk} % быстрее, и ты пьян: зона после отпускания ещё 0,1 с едет по инерции, икаешь, шкала моргает. На редких не действует, доход не меняет.</p></div></div>
+    <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>${sh.VODKA.price} 🪙, ${Math.round(sh.VODKA.ms / 60_000)} минут. Эпические и выше, вместе с кальмаром, — <b>${mul(sh.VODKA.top ?? 1)}</b>, опыт за них ${mul(sh.VODKA.topXp ?? 1)}. Но зона на шкале <b>${vodkaZone}</b>, и ты пьян: зона после отпускания ещё 0,1 с едет по инерции, икаешь, шкала моргает. На редких не действует, доход не меняет.</p></div></div>
     <div class="card factor"><div class="ic">⚓</div><div><h3>Место: пристань или баркас</h3><p>Все 20 мест у острова одинаковые. Баркас (с 3-го уровня, туда везёт Семён): своя рыба — ${vidov(barkCount)}, доли категорий почти как у пристани. Доход и опыт <b>×1,25</b>, но рыба злее: рывки ×1,15, сопротивление ×1,2 (кальмара море не злит).</p></div></div>
   </div>
   <div class="card" style="margin-top:16px">
@@ -394,13 +394,13 @@ const html = `<!doctype html>
 <section id="chest">
   <h2>Сундуки, хлам и уровни</h2>
   <div class="grid g3">
-    <div class="card"><h3>Что в сундуке</h3><p class="muted small" style="margin:0 0 8px">Сундук — ${chestPct} % всех поклёвок. В ${posPct} сундуках из 100 — «Сокровища Посейдона» на ${posCoins} 🪙: о находке узнаёт весь сервер. В 1 из ${lordIn} ещё и пиво подводного владыки: выпивается сразу.</p><table class="tbl"><thead><tr><th>Жетоны</th><th>Шанс</th></tr></thead><tbody>${chestRows}</tbody></table></div>
+    <div class="card"><h3>Что в сундуке</h3><p class="muted small" style="margin:0 0 8px">Сундук — ${chestPct} % всех поклёвок. Клад Посейдона — ${posCoins} 🪙: шанс внутри сундука линейно растёт с ${posMinPct} % на 1-м уровне рыбалки до ${posPct} % на 15-м (на 0-м тоже ${posMinPct} %). О находке узнаёт весь сервер. В 1 из ${lordIn} сундуков ещё и пиво подводного владыки: выпивается сразу.</p><table class="tbl"><thead><tr><th>Жетоны</th><th>Ур. 0–1</th><th>Ур. 15</th></tr></thead><tbody>${chestRows}</tbody></table></div>
     <div class="card"><h3>Сколько хлама</h3><p class="muted small" style="margin:0 0 8px">Сапог (7 из 10) или бутылка с запиской. Ничего не стоят.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Хлам</th></tr></thead><tbody>${junkRows}</tbody></table></div>
     <div class="card"><h3>Уровни рыбалки</h3><p class="muted small" style="margin:0 0 8px">Опыт за каждую рыбу: чем реже, тем больше. Легендарные и выше — ×5, оценка вываживания — от ${mul(gWorst.xp)} до ${mul(gBest.xp)}, отпустить рыбу — ${relXp}, дождь — ×1,15, баркас — ×1,25. Каждый уровень — +2,5 % к зоне и к шансам редких и выше; ${XP_TOP}-й — высший.</p><table class="tbl"><thead><tr><th>Уровень</th><th>Опыта всего</th></tr></thead><tbody>${fp.FISH_XP_LEVELS.slice(1).map((x, i) => `<tr><td>${i + 1}${i + 1 === 3 ? ' · баркас' : ''}</td><td class="num">${x.toLocaleString('ru-RU').replace(/\s/g, ' ')}</td></tr>`).join('')}</tbody></table></div>
   </div>
 </section>
 </main>
-<footer><div class="wrap">Все цифры взяты из кода игры TIREDWOOD (рыбалка 2.0, большое обновление 4 октября 2026). Проценты — доля от всех поклёвок. Если в патче что-то поменяется — страница обновится вместе с игрой.</div></footer>
+<footer><div class="wrap">Все цифры взяты из кода игры TIREDWOOD с учётом патча рыбалки 5 октября 2026. Шансы категорий — доли всех поклёвок; шансы находок в сундуке — доли сундуков. Справочник обновляется вместе с игрой.</div></footer>
 </body>
 </html>
 `;
@@ -409,7 +409,7 @@ fs.writeFileSync(OUT + 'index.html', html);
 // ---------- app.js: данные калькулятора из кода
 const DATA = {
   BASE, LEVEL_ODDS: fp.LEVEL_ODDS, LEVEL_MAX: LMAX, SEASON_MUL: fr.SEASON_MUL, RAIN_MUL: fr.RAIN_MUL, EPIC_MAX: sh.LURE_MAX.epic, COMMON_FLOOR: fr.COMMON_FLOOR,
-  JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K, VODKA_ZONE: VZ, VODKA_JERK: sh.VODKA.jerk ?? 1,
+  JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K, VODKA_ZONE: VZ,
   lures: [null, ...sh.LURES.map((l) => ({ epic: l.epic }))],
   drinks: [null, ...[sh.BEER, sh.ALE, sh.LORD, sh.VODKA].map((d) => ({ rare: d.rare, ...(d.top ? { top: d.top } : {}) }))],
 };

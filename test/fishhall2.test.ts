@@ -371,7 +371,7 @@ test('«Коллекция» на доске: новый вид поднимае
   assert.deepEqual(lastOf(c.s, 'lobby')!.ftop!.cl, [{ pid, nick: 'Рыбак', v: 2 }]);
 });
 
-test('«Сокровища Посейдона»: 3000 🪙 жетонами, строка в общий чат и крупный тост — всем на сервере; обычный сундук — тост не шлёт, а 188 🪙 молчит', () => {
+test('«Сокровища Посейдона»: 1500 🪙 жетонами, строка в общий чат и крупный тост — всем на сервере; обычный сундук — тост не шлёт, а 188 🪙 молчит', () => {
   const e = fisher({ sp: SP_CHEST, g: 5000, coins: POSEIDON_COINS });
   const b = login(e.hub, 'Зевака');
   const t0 = e.a.c.profile!.tokens;
@@ -379,11 +379,11 @@ test('«Сокровища Посейдона»: 3000 🪙 жетонами, с�
   playHonest(e, playReel(RULE[SP_CHEST]!.style, seed, EXPERT));
   advance(e.hub, e.clock, 2);
   const land = lastOf(e.a.s, 'fishLand')!;
-  assert.equal(land.coins, POSEIDON_COINS);
-  assert.equal(land.price, POSEIDON_COINS);
-  assert.equal(e.a.c.profile!.tokens, t0 + POSEIDON_COINS);
+  assert.equal(land.coins, 1500);
+  assert.equal(land.price, 1500);
+  assert.equal(e.a.c.profile!.tokens, t0 + 1500);
   assert.equal(e.a.c.profile!.stats.fsChests, 1);
-  const line = '🔱 Рыбак нашёл Сокровища Посейдона! 3000 🪙';
+  const line = '🔱 Рыбак нашёл Сокровища Посейдона! 1500 🪙';
   for (const who of [b, e.a]) {
     assert.ok(allOf(who.s, 'chat').some((m) => m.sys && m.text === line), 'строка в общий чат — всем, и самому рыбаку');
     const toast = allOf(who.s, 'toast').find((m) => m.big);

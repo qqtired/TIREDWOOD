@@ -135,9 +135,14 @@ export const CHEST_ANNOUNCE = 189;
 /** Джекпот обычного сундука — последняя полоса (прежние 200 ×1,25) */
 export const CHEST_JACKPOT = 250;
 /** «Сокровища Посейдона»: так много жетонов в кладе (вместо обычной суммы), ничем не множится */
-export const POSEIDON_COINS = 3000;
-/** Доля сундуков, что оказываются кладом Посейдона: 3 % (то есть 9 поклёвок из 100 000), решает сервер при поклёвке */
+export const POSEIDON_COINS = 1500;
+/** Максимальная доля сундуков с кладом Посейдона, с 15-го уровня рыбалки */
 export const POSEIDON_SHARE = 0.03;
+/** До 1-го уровня включительно — 1 % сундуков с кладом; дальше линейно до 3 % на 15-м. */
+export function poseidonShare(level = 0): number {
+  const l = Number.isFinite(level) ? Math.min(15, Math.max(1, Math.floor(level))) : 1;
+  return 0.01 + (POSEIDON_SHARE - 0.01) * (l - 1) / 14;
+}
 /** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_JACKPOT) */
 export function isPoseidon(coins: number): boolean {
   return coins >= POSEIDON_COINS;
@@ -442,8 +447,8 @@ function factor(value: number | undefined, max: number): number {
 export const ZONE_SCALE_MAX = (1 + 0.025 * 15) * (1 + 0.4);
 
 /**
- * Манера на шкале с бонусами заброса: зона — от уровня и удочки (водка — вдвое меньше); рывки и резкость — мягче от блесны
- * (calm), злее в море (sea); скорость рывков — ×1,2 с водкой; сопротивление — злее в море (seaDrain). Божественную море
+ * Манера на шкале с бонусами заброса: зона — от уровня и удочки (водка — на 20 % меньше); рывки и резкость — мягче от блесны
+ * (calm), злее в море (sea); сопротивление — злее в море (seaDrain). Божественную море
  * не злит: царь морей везде одинаков. Таблицу вида и снимок заброса не меняет.
  */
 export function reelStyleFor(sp: number, mods?: Readonly<FishCastMods>): ReelStyle {
@@ -455,7 +460,7 @@ export function reelStyleFor(sp: number, mods?: Readonly<FishCastMods>): ReelSty
   const wild = fish && r.tier !== T_DIVINE;
   const sea = wild ? factor(mods?.sea, SEA_FIGHT) : 1;
   const seaDrain = wild ? factor(mods?.seaDrain, SEA_DRAIN) : 1;
-  // водка: зона ×0,5 (не меньше), рывки ×1,2 (не больше) — только у рыбы
+  // Только у рыбы: водка уменьшает зону; прежние снимки модификаторов поддерживают ускорение рывков до ×1,2.
   const cut = fish && mods?.zoneMul !== undefined && Number.isFinite(mods.zoneMul) ? Math.min(1, Math.max(0.5, mods.zoneMul)) : 1;
   const fast = fish ? factor(mods?.jerkMul, 1.2) : 1;
   const jerk = (1 - calm) * sea;
@@ -628,12 +633,13 @@ function speciesShares(p: Pool, weather: FishWeather, mods?: Readonly<FishCastMo
 
 /** Кто клюёт: сундук (3 %), хлам (меньше с уровнем), иначе рыба своего места по категориям — в дождь и сезон вместе с дождевыми. */
 export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>, season = false): Hooked {
-  const r = rand() * 10_000;
+  const roll = rand();
+  const r = roll * 10_000;
   if (r < CHEST_PER_10K) {
     const g = rollWeight(SP_CHEST, rand);
     const coins = rollChest(rand);
-    // клад Посейдона — нижние 3 % полосы сундука (тот же бросок r; сумму по полосам бросаем всё равно — поток случайных чисел не сдвигается)
-    return { sp: SP_CHEST, g, coins: r < CHEST_PER_10K * POSEIDON_SHARE ? POSEIDON_COINS : coins };
+    // Клад — нижние 1…3 % полосы сундука по уровню заброса. Поток случайных чисел тот же, что у обычного сундука.
+    return { sp: SP_CHEST, g, coins: roll < (CHEST_PER_10K / 10_000) * poseidonShare(mods?.level) ? POSEIDON_COINS : coins };
   }
   if (r < CHEST_PER_10K + junkPer10k(mods?.level)) {
     const sp = rand() < 0.7 ? SP_BOOT : SP_BOTTLE;

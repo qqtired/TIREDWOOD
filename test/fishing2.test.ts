@@ -252,13 +252,15 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
   // их почти всегда вытаскивает опытный, поэтому его отрыв вырос с ×1,56 до ×1,69 (было «до ×1,6»)
   assert.ok(rain.coins > clear.coins * 1.15 && rain.coins < clear.coins * 1.6, `дождь: ${rain.coins}`);
   assert.ok(pro.coins > clear.coins && pro.coins < clear.coins * 1.75, `опытный: ${pro.coins}`);
-  // сундуки — сверху: 3 % поклёвок. 04.10: суммы ×1,25 (в среднем 71,9 🪙 вместо 57,4) и 3 % сундуков — «Сокровища Посейдона» по 3000 🪙
+  // Сундуки — 3 % поклёвок; у новичка 1 % сундуков — клад Посейдона по 1500 🪙.
   assert.ok(Math.abs(meanBands() / 57.4 - 1.25) < 0.005, `средний сундук по полосам: ${meanBands()}`);
-  assert.ok(Math.abs(meanChest() - (0.97 * meanBands() + 0.03 * 3000)) < 1e-9);
-  const plain = (clear.chest * 0.97 * meanBands()) / meanChest();
+  assert.ok(Math.abs(meanChest() - (0.99 * meanBands() + 0.01 * 1500)) < 1e-9);
+  assert.ok(Math.abs(meanChest(8) - (0.98 * meanBands() + 0.02 * 1500)) < 1e-9);
+  assert.ok(Math.abs(meanChest(15) - (0.97 * meanBands() + 0.03 * 1500)) < 1e-9);
+  const plain = (clear.chest * 0.99 * meanBands()) / meanChest();
   t.diagnostic(`сундуки: ${plain.toFixed(2)} 🪙/мин по полосам и ${(clear.chest - plain).toFixed(2)} 🪙/мин от клада Посейдона`);
   assert.ok(plain > 4 && plain < 7, `сундуки по полосам: ${plain}`);
-  assert.ok(clear.chest > 9 && clear.chest < 15, `сундуки вместе с кладом: ${clear.chest}`);
+  assert.ok(clear.chest > 5 && clear.chest < 8, `сундуки вместе с кладом: ${clear.chest}`);
 });
 
 test('цены: обычные от исходной целой цены +75 %, остальные откалиброваны; дождевые ×1,5, баркас ×1,25, хлам даром, сундук без множителей', () => {
@@ -292,7 +294,7 @@ test('цены: обычные от исходной целой цены +75 %, 
   assert.equal(fishPrice2(sp('goldfish'), 300), 0, 'золотая рыбка в рыбалке 2.0 не продаётся');
 });
 
-test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к прежним), крупное реже, 250 — джекпот, клад Посейдона — 3000; хлам 4,5 %', () => {
+test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к прежним), крупное реже, 250 — джекпот, клад Посейдона — 1500; хлам 4,5 %', () => {
   const rng = makeRng(11);
   const N = 400_000;
   let chests = 0;
@@ -301,7 +303,7 @@ test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к 
     const c = rollCatch2(false, rng);
     if (c.sp === SP_CHEST) {
       chests++;
-      assert.ok(Number.isInteger(c.coins) && ((c.coins >= 31 && c.coins <= 250) || c.coins === 3000));
+      assert.ok(Number.isInteger(c.coins) && ((c.coins >= 31 && c.coins <= 250) || c.coins === 1500));
     } else {
       assert.equal(c.coins, 0);
       if (c.sp === SP_BOOT || c.sp === SP_BOTTLE) junk++;

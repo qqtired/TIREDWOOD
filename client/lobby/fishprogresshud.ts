@@ -13,7 +13,7 @@ const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3:
 /** Что даёт напиток — строка бейджа. У водки свои эффекты (доход и редкие она не меняет): крупная чаще, держать труднее. */
 function drinkEffect(d: ShopDrink): string {
   if (!d.top) return `доход ${pct(d.income)} · редкие и выше ${mul(d.rare)}`;
-  return `эпик и выше ${mul(d.top)} · опыт ${mul(d.topXp ?? 1)} · зона ${pct(d.zone ?? 1)} · рывки ${pct(d.jerk ?? 1)}`;
+  return `эпик и выше ${mul(d.top)} · опыт ${mul(d.topXp ?? 1)} · зона ${pct(d.zone ?? 1)}`;
 }
 
 /**
@@ -169,7 +169,7 @@ export class FishProgressHud {
     setText(this.effect, drinkEffect(d));
     setText(this.time, fishTimeLeft(until, now));
     this.badge.setAttribute('aria-label', d.top
-      ? `${d.name}: ${this.time.textContent}. Эпические и выше, с божественной, ${mul(d.top)}, опыт за них ${mul(d.topXp ?? 1)}, зона ${pct(d.zone ?? 1)}, рывки ${pct(d.jerk ?? 1)}. Только рыбалка.`
+      ? `${d.name}: ${this.time.textContent}. Эпические и выше, с божественной, ${mul(d.top)}, опыт за них ${mul(d.topXp ?? 1)}, зона ${pct(d.zone ?? 1)}. Только рыбалка.`
       : `${d.name}: ${this.time.textContent}. Доход от пойманной рыбы ${pct(d.income)}, редкие и выше ${mul(d.rare)}. Только рыбалка.`);
   }
 }

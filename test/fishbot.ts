@@ -9,7 +9,7 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
 import { REEL_BAR, REEL_GRADES, SLACK_TICKS, TAUT_TICKS, reelGrade, reelStart, reelStep, type ReelGrade, type ReelStyle } from '../shared/fishreel.ts';
 import {
-  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, POSEIDON_COINS, POSEIDON_SHARE, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, reelStyleFor,
+  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, poseidonShare, reelStyleFor,
 } from '../shared/fishrules.ts';
 import { fishCatchXp, fishLostXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { makeRng } from '../shared/math.ts';
@@ -180,9 +180,10 @@ export function meanBands(): number {
   return CHEST_BANDS.reduce((s, [lo, hi, w]) => s + ((lo + hi) / 2) * (w / total), 0);
 }
 
-/** Средний сундук: 3 % сундуков — «Сокровища Посейдона» (3000 🪙 вместо обычной суммы), остальные — по полосам */
-export function meanChest(): number {
-  return (1 - POSEIDON_SHARE) * meanBands() + POSEIDON_SHARE * POSEIDON_COINS;
+/** Средний сундук: 1…3 % по уровню — клад Посейдона, остальные — по полосам. */
+export function meanChest(level = 0): number {
+  const share = poseidonShare(level);
+  return (1 - share) * meanBands() + share * POSEIDON_COINS;
 }
 
 /** Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид (хлам — по уровню, опыт в дождь ×1,15). */
@@ -216,7 +217,7 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
     const s = reelStats(reelStyleFor(sp, mods), skill, Math.min(n, 100), 5, drunk);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
-    if (sp === SP_CHEST) chest = share * s.p * meanChest();
+    if (sp === SP_CHEST) chest = share * s.p * meanChest(mods?.level);
   }
   const wait = (CAST_TICKS + (WAIT_MIN + WAIT_MAX) / (2 * (mods?.biteSpeed ?? 1))) / TICK_RATE + REACT_S;
   const perBite = wait + P_HOOK * (fight + after) + (1 - P_HOOK) * AFTER_LOST_S;

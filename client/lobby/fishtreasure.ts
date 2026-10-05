@@ -1,6 +1,6 @@
-// «Сокровища Посейдона»: клад в 3 % сундуков (shared/fishrules.ts POSEIDON_COINS) — своя картинка (сундук с трезубцем и
+// «Сокровища Посейдона»: клад в 1…3 % сундуков по уровню рыбалки (shared/fishrules.ts) — своя картинка (сундук с трезубцем и
 // сиянием, нарисована Codex CLI, см. client/assets/poseidon/PROVENANCE.md) и подписи карточки улова (fishcard2.ts).
-import { POSEIDON_COINS } from '../../shared/fishrules.ts';
+import { POSEIDON_COINS, poseidonShare } from '../../shared/fishrules.ts';
 import poseidonUrl from '../assets/poseidon/poseidon.webp';
 import './fishtreasure.css';
 
@@ -19,5 +19,5 @@ export function poseidonPic(cls: string): HTMLImageElement {
 export const POSEIDON_TEXT = {
   tier: 'сундук · клад Посейдона',
   title: 'Сокровища Посейдона!',
-  sub: `${POSEIDON_COINS.toLocaleString('ru-RU')} жетонов — клад морского владыки, он бывает в 3 сундуках из 100. Весь сервер уже знает!`,
+  sub: `${POSEIDON_COINS.toLocaleString('ru-RU')} жетонов! Шанс в сундуке: ${Math.round(poseidonShare(1) * 100)}% на 1-м уровне рыбалки → ${Math.round(poseidonShare(15) * 100)}% на 15-м. Весь сервер уже знает!`,
 } as const;

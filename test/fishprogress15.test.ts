@@ -8,7 +8,7 @@ import {
 } from '../shared/fishprogress.ts';
 import {
   CHEST_ANNOUNCE, CHEST_BANDS, CHEST_JACKPOT, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_TOP_ROWS,
-  POSEIDON_COINS, POSEIDON_SHARE, ZONE_SCALE_MAX, basePrice, biteShare, isPoseidon, priceRange, reelStyleFor, rollCatch2, rollWeight,
+  POSEIDON_COINS, ZONE_SCALE_MAX, basePrice, biteShare, isPoseidon, priceRange, reelStyleFor, rollCatch2, rollWeight,
   SP_CHEST,
 } from '../shared/fishrules.ts';
 import { makeRng } from '../shared/math.ts';
@@ -78,20 +78,18 @@ test('сундук ×1,25: суммы полос — прежние ×1,25, ве
   assert.ok(CHEST_BANDS[4][0] < POSEIDON_COINS);
 });
 
-test('«Сокровища Посейдона»: нижние 3 % полосы сундука — 3000 🪙 (фиксированный rand); остальные сундуки — по полосам, не клад', () => {
-  assert.equal(POSEIDON_COINS, 3000);
-  assert.equal(POSEIDON_SHARE, 0.03);
+test('«Сокровища Посейдона»: новичку 1500 🪙 в нижнем 1 % полосы сундука; граница и остальные сундуки — по полосам', () => {
   const seq = (...v: number[]) => { let i = 0; return () => v[i++ % v.length]; };
   const chestRoll = CHEST_PER_10K / 10_000;
-  // r = rand × 10 000 < 9 (3 % от 300 сундучных) — клад: жетоны 3000, сундук как сундук (вид тот же)
-  for (const r of [0, 0.0001, 0.0005, 0.000899]) {
+  // 1 % от 3 % поклёвок — 0,03 %: при rand < 0,0003 новичок находит клад
+  for (const r of [0, 0.0001, 0.000299]) {
     const c = rollCatch2(false, seq(r, 0.5, 0.5, 0.5));
     assert.equal(c.sp, SP_CHEST);
-    assert.equal(c.coins, POSEIDON_COINS, `r=${r}`);
+    assert.equal(c.coins, 1500, `r=${r}`);
     assert.ok(isPoseidon(c.coins));
   }
-  // с 9 до 300 — обычный сундук по полосам; ровно на границе — уже не клад
-  for (const r of [0.0009, 0.001, 0.01, chestRoll - 0.00001]) {
+  // ровно на границе — уже обычный сундук
+  for (const r of [0.0003, 0.0009, 0.001, 0.01, chestRoll - 0.00001]) {
     const c = rollCatch2(false, seq(r, 0.5, 0.5, 0.5));
     assert.equal(c.sp, SP_CHEST);
     assert.ok(c.coins >= CHEST_BANDS[0][0] && c.coins <= CHEST_JACKPOT, `r=${r}: ${c.coins}`);
@@ -102,25 +100,41 @@ test('«Сокровища Посейдона»: нижние 3 % полосы �
   assert.ok(!isPoseidon(CHEST_JACKPOT), 'самый крупный обычный сундук — не клад');
   // поток случайных чисел клад не сдвигает: те же вызовы rand у клада и у обычного сундука
   const count = (r: number): number => { let n = 0; rollCatch2(false, () => (n++ === 0 ? r : 0.5)); return n; };
-  assert.equal(count(0.0005), count(0.01));
+  assert.equal(count(0.0001), count(0.01));
 });
 
-test('«Сокровища Посейдона» — ровно 3 % сундуков (0,09 % поклёвок): по всей сетке бросков, при любом уровне и погоде', () => {
-  const GRID = 50_000;
-  for (const [rain, level] of [[false, 0], [true, 0], [false, 15]] as const) {
-    const mods = fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level] }, 0);
-    let chests = 0;
-    let treasure = 0;
-    for (let i = 0; i < GRID; i++) {
-      const r = (i + 0.5) / GRID;
-      let n = 0;
-      const c = rollCatch2(rain, () => (n++ === 0 ? r : 0.5), mods);
-      if (c.sp !== SP_CHEST) continue;
-      chests++;
-      if (isPoseidon(c.coins)) treasure++;
+test('«Сокровища Посейдона»: 1 % сундуков на уровнях 0–1, 2 % на 8-м, 3 % на 15-м; погода, место и снасти шанс не множат', () => {
+  const GRID = 10_000;
+  for (const [level, want] of [[0, 100], [1, 100], [8, 200], [15, 300]] as const) {
+    for (const boosted of [false, true]) {
+      const mods = fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level],
+        ...(boosted ? { questsDone: 15, rod: 4, lure: 4, vodkaUntil: 1e15 } : {}),
+      }, 0, boosted ? 'barkas' : 'pier');
+      let chests = 0;
+      let treasure = 0;
+      for (let i = 0; i < GRID; i++) {
+        const r = (i + 0.5) / GRID * 0.03;
+        let n = 0;
+        const c = rollCatch2(boosted, () => (n++ === 0 ? r : 0.5), mods, boosted);
+        if (c.sp !== SP_CHEST) continue;
+        chests++;
+        if (isPoseidon(c.coins)) treasure++;
+      }
+      assert.equal(chests, GRID, 'вся полоса сундука сохранена');
+      assert.equal(treasure, want, `уровень ${level}, бонусы ${boosted}: ${treasure} из ${chests} сундуков`);
     }
-    assert.equal(chests, GRID * 0.03, 'сундуков 3 % поклёвок, как и раньше');
-    assert.equal(treasure, chests * POSEIDON_SHARE, `клад: ${treasure} из ${chests} сундуков`);
+  }
+});
+
+test('клад: точная граница на 1-м, 8-м и 15-м уровне, ниже 0 и выше 15 шанс ограничен', () => {
+  const base = fishCastMods(emptyFishProgress(), 0);
+  for (const [level, boundary] of [[-1, 0.0003], [0, 0.0003], [1, 0.0003], [8, 0.0006], [15, 0.0009], [99, 0.0009]]) {
+    for (const [r, treasure] of [[boundary - 1e-10, true], [boundary, false]] as const) {
+      let n = 0;
+      const c = rollCatch2(false, () => n++ === 0 ? r : 0.5, { ...base, level });
+      assert.equal(c.sp, SP_CHEST);
+      assert.equal(c.coins === 1500, treasure, `уровень ${level}, бросок ${r}`);
+    }
   }
 });
 

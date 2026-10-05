@@ -88,11 +88,11 @@ export function oddsParts(mods: Readonly<FishCastMods>, rain: boolean, season = 
   return parts;
 }
 
-/** Рывки рыбы: блесна мягче, море и водка злее */
+/** Подсказки сложности: блесна смягчает рывки, море усиливает их; водка сужает зону и пьянит. */
 export function dartParts(mods: Readonly<FishCastMods>): string[] {
   const out: string[] = [];
   if (mods.calm > 0) out.push(`рывки −${Math.round(mods.calm * 100)}% блесна`);
   if (mods.zone === 'barkas') out.push(`рывки +${Math.round((SEA_FIGHT - 1) * 100)}% море · сопротивление +${Math.round((SEA_DRAIN - 1) * 100)}%`);
-  if (mods.drink === 4) out.push(`водка: зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · рывки +${Math.round(((VODKA.jerk ?? 1) - 1) * 100)}% · шатает, икаешь`);
+  if (mods.drink === 4) out.push(`водка: зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · шатает, икаешь`);
   return out;
 }

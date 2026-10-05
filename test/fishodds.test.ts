@@ -84,8 +84,8 @@ test('уровень: +2,5 % за уровень от базы — редкие,
   }
 });
 
-test('водка рыбацкая: 100 жетонов, 10 минут; эпическая и выше ×2 (с божественной; редкие — нет), зона −20 % (04.10, было −50 %), рывки ×1,2, опыт за эпик и выше ×2', () => {
-  assert.deepEqual([VODKA.price, VODKA.ms, VODKA.top, VODKA.topXp, VODKA.zone, VODKA.jerk, VODKA.income, VODKA.rare], [100, 600_000, 2, 2, 0.8, 1.2, 1, 1]);
+test('водка рыбацкая: 100 жетонов, 10 минут; эпическая и выше ×2 (с божественной; редкие — нет), зона −20 %, без ускорения рывков, опыт за эпик и выше ×2', () => {
+  assert.deepEqual([VODKA.price, VODKA.ms, VODKA.top, VODKA.topXp, VODKA.zone, VODKA.income, VODKA.rare], [100, 600_000, 2, 2, 0.8, 1, 1]);
   const plain = at('pier', 4);
   const vodka = at('pier', 4, { vodkaUntil: 1e15 });
   assert.equal(vodka.drink, 4);
@@ -95,11 +95,11 @@ test('водка рыбацкая: 100 жетонов, 10 минут; эпиче
   near(b[T_RARE], a[T_RARE], 'редкие');
   for (const t of [T_EPIC, T_LEGEND, T_MYTH, T_DIVINE]) near(b[t] / a[t], 2, `категория ${t}`);
   for (const t of [T_EPIC, T_MYTH]) near(tierOddsParts(t, false, vodka).bonus, plain.rareMultiplier * 2, 'панель: ×2 в бонусах');
-  // шкала: зона ×0,8, рывки ×1,2 — у рыбы; хлам и сундук как были
+  // шкала: зона ×0,8, скорость рывков прежняя — у рыбы; хлам и сундук как были
   for (const id of ['tuna', 'hamsa', 'kalmar']) {
     const s0 = reelStyleFor(sp(id), plain), s1 = reelStyleFor(sp(id), vodka);
     near(s1.zone, s0.zone * 0.8, `${id}: зона`);
-    near(s1.dartSpd, s0.dartSpd * 1.2, `${id}: рывки`, 1e-6);
+    near(s1.dartSpd, s0.dartSpd, `${id}: рывки`, 1e-6);
     near(s1.drain, s0.drain, `${id}: сопротивление то же`);
   }
   // опыт: эпическая и выше (с божественной) ×2, обычные и редкие — как были
