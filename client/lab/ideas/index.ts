@@ -7,5 +7,6 @@ import { MODE_IDEAS } from './modes.ts';
 import { OUTFIT_IDEAS } from './outfit.ts';
 import { SOCIAL_IDEAS } from './social.ts';
 import { WORLD_IDEAS } from './world.ts';
+import { RESEARCH_IDEAS } from './research.ts';
 
-export const IDEAS: readonly Idea[] = [...MODE_IDEAS, ...WORLD_IDEAS, ...ANIMAL_IDEAS, ...OUTFIT_IDEAS, ...SOCIAL_IDEAS, ...EVENT_IDEAS, ...COMFORT_IDEAS];
+export const IDEAS: readonly Idea[] = [...MODE_IDEAS, ...WORLD_IDEAS, ...ANIMAL_IDEAS, ...OUTFIT_IDEAS, ...SOCIAL_IDEAS, ...EVENT_IDEAS, ...COMFORT_IDEAS, ...RESEARCH_IDEAS];

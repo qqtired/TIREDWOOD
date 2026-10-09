@@ -15,11 +15,15 @@ import type { MeState } from '../scene.ts';
 import type { GiftResultCode } from '../../shared/gifts.ts';
 import { GiftCodePanel } from './gift-code.ts';
 import { COIN_HTML, setCoinText } from './coin.ts';
+import rotateOrbitUrl from '../assets/wardrobe/rotate-orbit.png';
+import './wardrobe-inspect.css';
 
 type Tab = 'c' | Slot;
 
 const TABS: ReadonlyArray<readonly [Tab, string]> = [['c', 'Цвет'], ['p', 'Узор'], ['e', 'Глаза'], ['h', 'Шапка'], ['a', 'Аксессуар'], ['s', 'Питомец']];
 const SLOTS: readonly Slot[] = ['p', 'e', 'h', 'a', 's'];
+/** 68px стрелки + 32px кнопка + 12px низ + 12px зазор до тела. */
+export const WARDROBE_FOOTER_PX = 124;
 
 /** Усы и спасательный круг — свои SVG: эмодзи 🥸 и 🛟 появились только в Unicode 13–14, в старых шрифтах их нет */
 const MUSTACHE_SVG =
@@ -79,6 +83,7 @@ const fmt = new Intl.NumberFormat('ru-RU');
 
 export class Wardrobe {
   readonly root: HTMLElement;
+  readonly inspect: HTMLElement;
   /** Надеть своё: наряд целиком, только из того, что есть */
   onWear: (o: Outfit) => void = () => {};
   onBuy: (itemId: string) => void = () => {};
@@ -112,6 +117,9 @@ export class Wardrobe {
   private picked: Item | null = null;
   private buyingUntil = 0;
   private buyTimer = 0;
+  private inspectYaw = 0;
+  private inspectDrag: { id: number; x: number; moved: number; orbit: boolean } | null = null;
+  private skipInspectClick = false;
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
@@ -142,6 +150,35 @@ export class Wardrobe {
     });
     this.root.querySelector('.wd-close')!.addEventListener('click', () => this.onClose());
     this.root.querySelector('.wd-done')!.addEventListener('click', () => this.onClose());
+    const inspect = this.inspect = document.createElement('div');
+    inspect.className = 'wd-inspect';
+    inspect.setAttribute('role', 'group');
+    inspect.setAttribute('aria-label', 'Осмотр персонажа');
+    inspect.innerHTML = `<div class="wd-orbit" title="Потяни персонажа или стрелки, чтобы повернуть">
+      <img src="${rotateOrbitUrl}" alt="" aria-hidden="true" draggable="false">
+      <button type="button" data-turn="-1" aria-label="Повернуть персонажа влево" title="Повернуть влево"></button>
+      <button type="button" data-turn="1" aria-label="Повернуть персонажа вправо" title="Повернуть вправо"></button>
+      </div><button type="button" data-turn="0" class="wd-inspect-reset">Спереди</button>`;
+    inspect.addEventListener('click', e => {
+      if (this.skipInspectClick && (e as MouseEvent).detail > 0) {
+        this.skipInspectClick = false;
+        return;
+      }
+      const button = (e.target as HTMLElement).closest<HTMLElement>('[data-turn]');
+      if (!button) return;
+      const turn = Number(button.dataset.turn);
+      if (turn === 0) this.resetInspect();
+      else this.rotatePreview(turn * Math.PI / 4);
+    });
+    inspect.addEventListener('keydown', event => {
+      const e = event as KeyboardEvent;
+      // Стрелки и пробел осматривают наряд, а не поднимают игрока из примерочной.
+      if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.stopPropagation();
+        e.preventDefault();
+        this.rotatePreview((e.code === 'ArrowLeft' ? -1 : 1) * Math.PI / 4);
+      } else if (e.code === 'Space' || e.code === 'Enter') e.stopPropagation();
+    });
     this.tabsEl.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
       if (!b || b.dataset.tab === this.tab) return;
@@ -168,11 +205,65 @@ export class Wardrobe {
       this.onBuy(this.picked.id);
       this.render();
     });
-    parent.appendChild(this.root);
+    parent.append(this.inspect, this.root);
   }
 
   get isOpen(): boolean {
     return this.shown;
+  }
+
+  /** Поворот только местной примерки: серверный взгляд и наряд не меняются. */
+  get previewYaw(): number { return this.inspectYaw; }
+
+  rotatePreview(delta: number): void {
+    if (!this.shown) return;
+    const yaw = this.inspectYaw + delta;
+    this.inspectYaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
+  }
+
+  resetInspect(): void {
+    this.inspectYaw = 0;
+    this.inspectDrag = null;
+    this.skipInspectClick = false;
+  }
+
+  /** Под ногами желейки, независимо от ширины правой панели и высоты шляпы. */
+  placeInspect(x: number): void {
+    this.inspect.style.left = `clamp(136px, ${Math.round(x)}px, calc(100% - 136px))`;
+  }
+
+  /** Свободная мышь/палец над сценой вращают желейку, панель вещей остаётся доступной. */
+  bindInspect(canvas: HTMLCanvasElement): void {
+    const orbit = this.inspect.querySelector<HTMLElement>('.wd-orbit')!;
+    const down = (e: PointerEvent) => {
+      if (!this.shown || e.button !== 0 || this.inspectDrag) return;
+      const target = (e.target as HTMLElement).closest<HTMLElement>('[data-turn]') ?? canvas;
+      this.inspectDrag = { id: e.pointerId, x: e.clientX, moved: 0, orbit: e.currentTarget === orbit };
+      this.skipInspectClick = false;
+      target.setPointerCapture(e.pointerId);
+      if (target instanceof HTMLButtonElement) target.focus({ preventScroll: true });
+      e.preventDefault();
+    };
+    const move = (e: PointerEvent) => {
+      const drag = this.inspectDrag;
+      if (!this.shown || !drag || drag.id !== e.pointerId) return;
+      const dx = e.clientX - drag.x;
+      this.rotatePreview(dx * 0.008);
+      drag.moved += Math.abs(dx);
+      drag.x = e.clientX;
+    };
+    const end = (e: PointerEvent) => {
+      if (this.inspectDrag?.id !== e.pointerId) return;
+      this.skipInspectClick = this.inspectDrag.orbit && this.inspectDrag.moved > 5;
+      this.inspectDrag = null;
+    };
+    for (const target of [canvas, orbit]) {
+      target.addEventListener('pointerdown', down);
+      target.addEventListener('pointermove', move);
+      target.addEventListener('pointerup', end);
+      target.addEventListener('pointercancel', end);
+      target.addEventListener('lostpointercapture', end);
+    }
   }
 
   /** Что на желейке в примерочной: надетое плюс примерка. */
@@ -186,6 +277,7 @@ export class Wardrobe {
   }
 
   open(me: MeState): void {
+    this.resetInspect();
     this.gift.configure(me.gifts === true);
     this.shown = true;
     this.owned = me.owned;
@@ -198,7 +290,9 @@ export class Wardrobe {
     this.picked = null;
     this.buyingUntil = 0;
     this.root.classList.add('show');
+    this.inspect.classList.add('show');
     this.render();
+    this.inspect.querySelector<HTMLButtonElement>('[data-turn="0"]')!.focus({ preventScroll: true });
   }
 
   /**
@@ -206,6 +300,7 @@ export class Wardrobe {
    * Возвращает наряд, который уже у сервера, — его и показать на желейке.
    */
   close(): Outfit {
+    this.resetInspect();
     this.gift.close();
     clearTimeout(this.sendTimer);
     this.sendTimer = 0;
@@ -214,6 +309,7 @@ export class Wardrobe {
     this.picked = null;
     clearTimeout(this.buyTimer);
     this.root.classList.remove('show');
+    this.inspect.classList.remove('show');
     return { ...this.believed };
   }
 

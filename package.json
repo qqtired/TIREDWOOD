@@ -13,7 +13,14 @@
     "start": "node server/main.ts",
     "play": "vite build && node server/main.ts",
     "check": "tsc --noEmit -p .",
-    "test": "node --test \"test/*.test.ts\""
+    "test": "node --test \"test/*.test.ts\"",
+    "fitting:dev": "vite --config tools/fitting-room/vite.config.ts",
+    "fitting:build": "vite build --config tools/fitting-room/vite.config.ts",
+    "fitting:preview": "vite preview --config tools/fitting-room/vite.config.ts",
+    "bench:dev": "vite --config tools/render-bench/vite.config.ts",
+    "bench:check": "tsc --noEmit -p tools/render-bench/tsconfig.json",
+    "bench:build": "vite build --config tools/render-bench/vite.config.ts",
+    "bench:preview": "vite preview --config tools/render-bench/vite.config.ts"
   },
   "dependencies": {
     "ws": "8.22.0"

@@ -26,6 +26,8 @@ import { emojiTexture, emoteTexture, metalEnvTexture, softDot, splatAtlas, tomat
 import { isVoiceSpeaking, makeVoiceIndicator } from './voice-presence.ts';
 
 const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035, -0.62);
+/** В первом лице варежка ближе к боковому рычагу и не уходит за нижний край кадра при тяге. */
+const SLOT_HAND_OFFSET = new THREE.Matrix4().makeTranslation(0.3, 0.35, -0.55);
 const WHITE = new THREE.Color(0xffffff);
 const LEVEL_REDUCED_MOTION = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
 const GOLD = 0xd4a93a;
@@ -417,6 +419,8 @@ export class Avatar {
   private readonly body: THREE.Mesh;
   private readonly lids: [THREE.Mesh, THREE.Mesh];
   private readonly mittens: [THREE.Mesh, THREE.Mesh];
+  /** Только своя рука у автомата: тот же меш и материал, отдельный от скрытой шляпы. */
+  private slotHand: THREE.Mesh | null = null;
   /** Командный жилет (пейнтбол): оболочка вокруг живота, общие uniforms с телом */
   private readonly gear: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   /** Значок над своими в пейнтболе (создаётся, когда впервые понадобится) */
@@ -664,6 +668,19 @@ export class Avatar {
     a.tilt = (2 * hh) / BODY_H;
     a.node.position.set(0, w.y, z);
     a.node.rotation.set(0, 0, 0);
+  }
+
+  /** Локальная примерка: те же крепления и изгиб, без изменения игрового наряда и каталога. */
+  setPreviewWear(slot: 'h' | 'a' | 'e', wear: Wear): void {
+    const attachment = slot === 'h' ? this.hat : slot === 'a' ? this.acc : this.eyewear;
+    this.applyWear(attachment, wear, slot === 'e' ? EYES_Z : 0);
+    if (slot === 'h') {
+      this.hatBounds = headwearBounds(wear);
+      this.hatAnchor.value = wear.y;
+    } else if (slot === 'a') {
+      this.accAnchor.value = wear.y;
+      this.acc.node.visible = true;
+    }
   }
 
   /** Наряд: цвет, узор, шапка, аксессуар, глаза. Тот же наряд второй раз не перестраивается. */
@@ -937,6 +954,7 @@ export class Avatar {
 
   dispose(scene: THREE.Scene): void {
     scene.remove(this.root, this.shadow);
+    if (this.slotHand) scene.remove(this.slotHand);
     this.bodyMat.dispose();
     (this.hat.geo.material as THREE.Material).dispose();
     (this.hat.metal.material as THREE.Material).dispose();
@@ -1043,6 +1061,27 @@ export class Avatar {
   /** В руках AWP */
   get awpOn(): boolean {
     return this.gun?.awp?.visible ?? false;
+  }
+
+  /** Верх наряда для кадра в примерочной; границы уже посчитаны при смене шляпы. */
+  get outfitHeight(): number { return this.hatBounds.top; }
+
+  /** После update: от первого лица показываем только правую варежку с настоящей анимацией рычага. */
+  slotView(on: boolean): void {
+    if (!on) {
+      if (this.slotHand) this.slotHand.visible = false;
+      return;
+    }
+    const mitten = this.mittens[1];
+    if (!this.slotHand) {
+      this.slotHand = mitten.clone();
+      this.slotHand.matrixAutoUpdate = false;
+      this.root.parent?.add(this.slotHand);
+    }
+    this.root.updateMatrixWorld(true);
+    this.slotHand.matrix.copy(mitten.matrixWorld).multiply(SLOT_HAND_OFFSET);
+    this.slotHand.visible = this.inWorld && mitten.visible;
+    this.root.visible = false;
   }
 
   /**

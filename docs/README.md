@@ -13,6 +13,8 @@
 
 Перед работой с площадью, графикой и сетью прочитай ещё [optimization.md](optimization.md). Лучшие образцы режима — Fight Club, прятки и картинг (в таблице помечены «образец»).
 
+Локальный исследовательский стенд сравнения WebGL/WebGPU — [`tools/render-bench/`](../tools/render-bench/README.md), команды `bench:check`, `bench:build`, `bench:preview`; тесты `test/render-bench-*.test.ts`. В игровую сборку не входит. План эксперимента — [2026-10-06-render-benchmark.md](superpowers/plans/2026-10-06-render-benchmark.md).
+
 ## 2. Карта кода по системам
 
 Как читать:
@@ -20,7 +22,7 @@
 - **Флаг** — переменная окружения сервера (`server/main.ts`). Без неё режим включён только в `npm run dev`; `FISH2` — только явная `1`. Что включено на сайте — строки `Environment=…=1` в `deploy/game-opus.service`.
 - **Документ:** «design» — [design.md](design.md), раздел в кавычках; «README» — корневой `README.md`; «план `тема`» — `docs/superpowers/plans/<дата>-<тема>.md`.
 - Своё пиши в новых файлах. В общих (`client/app.ts`, `client/lobby/scene.ts`, `server/hub.ts`, `server/lobby/room.ts`, `shared/messages.ts`, `shared/maps/lobby.ts`) — только короткие подключения (AGENTS §8).
-- Корень репозитория: `index.html` — страница игры (экран загрузки уже в HTML); `lab/index.html` — страница лаборатории; `vite.config.ts` — сборка двух страниц; `package.json` — команды `dev`, `build`, `check`, `test`; `public/` — статика как есть.
+- Корень репозитория: `index.html` — страница игры (экран загрузки уже в HTML); `lab/index.html` — страница лаборатории; `lab/fitting-room/index.html` — примерочная; `vite.config.ts` — сборка трёх страниц; `package.json` — команды `dev`, `build`, `check`, `test`; `public/` — статика как есть.
 
 ### 2.1 Основа
 
@@ -33,12 +35,16 @@
 | Движение игрока и столкновения | `sim.ts`, `world.ts`, `aim.ts`, `maps/builder.ts` | — | `predict.ts`, `input.ts` | — | `sim.test.ts`, `aim.test.ts` | design «Симуляция», «Прицел от третьего лица» |
 | Сеть и протокол | `protocol.ts`, `messages.ts`, `constants.ts` (`PROTOCOL_VERSION`), `link.ts` | `main.ts`, `hub.ts`, `inputs.ts`, `link.ts` | `net.ts`, `predict.ts`, `remote.ts`, `relink.ts` | — | `hub.test.ts`, `resume.test.ts` | design «Сеть»; AGENTS §8 «Протокол» |
 | Отрисовка и качество графики | — | — | `render/renderer.ts`, `render/gfx.ts`, `render/quality.ts`, `settings.ts` | — | `quality.test.ts`, `graphics-settings.test.ts` | [optimization.md](optimization.md), design «Отрисовка» |
-| Аватары (желейки) и одежда | `outfit.ts`, `fishstyle.ts` | `profiles.ts`, `fishstyle.ts` | `render/avatar.ts`, `render/outfit*.ts`, `ui/wardrobe.ts`, `lobby/dress.ts` | — | `outfit.test.ts` | design «Наряды и подарки» |
+| Аватары (желейки) и одежда, осмотр и три места в примерочной | `outfit.ts`, `fishstyle.ts`, `wardrobe.ts` | `profiles.ts`, `fishstyle.ts`, `lobby/room.ts` | `render/avatar.ts`, `render/outfit*.ts`, `ui/wardrobe.ts`, `ui/wardrobe-inspect.css`, `assets/wardrobe/` (стрелки и PROVENANCE), `lobby/camera.ts`, `lobby/dress.ts` | — | `outfit.test.ts`, `lobby-view.test.ts`, `wardrobe-places.test.ts` | design «Наряды и подарки» |
 | Голос | `voice.ts` | `voice.ts`, `voice-config.ts`, `voice-wire.ts` | `voice.ts`, `voice-prefs.ts`, `ui/voice.ts`, `ui/voicepanel.ts` | `VOICE` | `voice-server.test.ts`, `voice-client.test.ts` | [voice-mvp.md](voice-mvp.md), `deploy/voice-relay/README.md` |
 | Чат | `text.ts`, `messages.ts` | `hub.ts`, `lobby/circlechat.ts` | `chat.ts` | — | `circlechat.test.ts`, `hub.test.ts` | план `circle-chat` |
 | Экономика и жетоны | `economy.ts` | `profiles.ts` | `ui/tokens.ts`, `ui/coin.ts` | — | `economy.test.ts`, `tokens-reconnect.test.ts` | план `progression-economy`; AGENTS §8 (8–15 жетонов в минуту) |
 | Уровни игрока | `levels.ts` | `profiles.ts` | `render/leveltag.ts`, `ui/levelprogress.ts` | — | `levels.test.ts`, `mode-levels.test.ts` | план `mode-levels`, [tasks/levels.md](tasks/levels.md) |
 | Меню Esc, список Tab | — | — | `ui/menu/`, `ui/online.ts`, `settings.ts` | — | `menu-settings.test.ts`, `tabmenu.test.ts` | планы `menu`, `tabmenu` |
+
+Лаборатория примерки — `client/fitting-room/`, контракт `shared/fitting-room.ts`,
+страница `lab/fitting-room/index.html`; отдельная сборка `tools/fitting-room/vite.config.ts`,
+тесты `test/fitting-room-*.test.ts`, руководство [fitting-room.md](fitting-room.md).
 
 ### 2.2 Рыбалка, баркас, рулетка (рыбалка 2.0, флаг `FISH2`; без него идёт старая)
 
@@ -67,7 +73,7 @@
 | Дурак | `durak.ts` | `lobby/durak.ts` | `lobby/durak*.ts`, `lobby/tomatopick.ts` | — | `durak.test.ts`, `durak-stakes.test.ts` | design «Дурак за столиками кафе» |
 | Бильярд | `billiards.ts` | `lobby/billiards.ts` | `lobby/billiards*.ts`, `lobby/blball.ts` | `BILLIARDS` | `billiards.test.ts` | [billiards-2026-10-04.md](billiards-2026-10-04.md) |
 | Крысиные бега | `ratrace.ts` | `lobby/ratrace.ts` | `lobby/ratrace*.ts` | `RATRACE` | `ratrace.test.ts` | [ratrace-2026-10-04.md](ratrace-2026-10-04.md) |
-| Автоматы и «Топ проигравших» | `slots.ts` | `lobby/slots.ts`, `lobby/losers.ts` | `lobby/slots3d.ts`, `lobby/losers.ts` | — | `slots.test.ts`, `losers.test.ts` | design «Автоматы набережной» |
+| Автоматы и «Топ проигравших» | `slots.ts` | `lobby/slots.ts`, `lobby/losers.ts` | `lobby/slots3d.ts`, `lobby/camera.ts`, `lobby/losers.ts` | — | `slots.test.ts`, `lobby-view.test.ts`, `losers.test.ts` | design «Автоматы набережной» |
 | Столы: таблички и защита от залезания | `tableguard.ts` | — | `lobby/tablesign.ts` | — | `table-guard.test.ts` | план `tables-noclimb` |
 | Катера и «Портовая регата» | `regatta*.ts`, `boat.ts` | `lobby/regatta.ts`, `lobby/regattabot.ts`, `lobby/boat.ts` | `lobby/regatta*.ts`, `lobby/boat*.ts`, `lobby/kraken.ts` | `BOATRACE` | `regatta.test.ts`, `boat.test.ts` | план `boats` (design «Гонки на катерах» — старая версия) |
 | Гидроплан «Стриж» | `plane.ts` | `lobby/plane.ts` | `lobby/plane*.ts` | `PLANE` | `plane.test.ts` | план `plane` |
@@ -98,7 +104,7 @@
 |---|---|---|---|---|---|---|
 | Подарки по коду | `gifts.ts` | `gifts.ts`, `gift-config.ts` | `ui/gift-code.ts`, `ui/menu/gift.ts` | `GIFTS` | `gifts-server.test.ts`, `gifts-hub.test.ts` | [devil-mobile-20261003/REPORT.md](devil-mobile-20261003/REPORT.md) |
 | Голосование «выгнать» | `votekick.ts` | `votekick.ts` | `ui/kickvote.ts`, `ui/online.ts` | `VOTEKICK` | `votekick.test.ts` | план `tabmenu` |
-| Лаборатория идей `/lab` | `lab.ts` | `lab/http.ts`, `lab/store.ts` | `lab/` (страница — `lab/index.html` в корне репозитория) | `LAB` | `lab.test.ts`, `lab-registry.test.ts` | план `lab` |
+| Лаборатория идей `/lab` | `lab.ts`, `lab-*.ts` (правила локальных примеров) | `lab/http.ts`, `lab/store.ts` | `lab/` (страница — `lab/index.html` в корне репозитория) | `LAB` | `lab.test.ts`, `lab-registry.test.ts`, `lab-*.test.ts` | план `lab`, [примеры ревью](lab-research-examples.md) |
 | Страница `/fishing` | — | — | — (страница — `public/fishing/` в корне) | — | `tools/fishing-guide/verify.mjs`, `test/fishing-guide.test.ts` (подсказки калькулятора) | [STATUS.md](STATUS.md); пересборка — `node tools/fishing-guide/gen.mjs` |
 | Экраны загрузки | `loading.ts` | `readygate.ts` | `ui/transition.ts`, `ui/transition-art.ts`, `startup.ts`, `assets/loading/` | — | `loading.test.ts`, `startup.test.ts` | план `loading` |
 | Звук (sfx.ts лежит в папке каждого режима) | — | — | `audio.ts`, `ambience.ts`, `voices.ts`, `music/` | — | `ambience.test.ts`, `settings-mix.test.ts` | план `sound`, design «Звук» |

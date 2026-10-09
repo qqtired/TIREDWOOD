@@ -8,8 +8,8 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 1500,
     rolldownOptions: {
-      // Две страницы: игра и лаборатория идей (/lab/, см. server/lab/http.ts)
-      input: { index: 'index.html', lab: 'lab/index.html' },
+      // Игра, лаборатория идей и отдельная примерочная; /lab/ управляется LAB.
+      input: { index: 'index.html', lab: 'lab/index.html', fitting: 'lab/fitting-room/index.html' },
       output: {
         // Keep Three reusable across game updates, behind the dynamic startup import.
         codeSplitting: {

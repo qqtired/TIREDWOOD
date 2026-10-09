@@ -7,7 +7,7 @@ import { CATALOG } from './experiments.ts';
 import { stage, type LiveHost } from './stage.ts';
 import { CATEGORIES, CATEGORY_LABEL, SIZE_HINT, type Category, type Experiment, type Idea } from './types.ts';
 
-type CatFilter = 'all' | 'proto' | 'island' | Category;
+type CatFilter = 'all' | 'proto' | 'new' | 'island' | Category;
 
 interface CardView {
   entry: Idea;
@@ -150,9 +150,18 @@ export class LabPage {
         h('div', {}, h('p', { class: 'lab-eyebrow' }, 'TIREDWOOD'), h('h1', {}, 'Лаборатория')),
       ),
       h('p', { class: 'lab-lead' }, 'Новые идеи для игры и живые прототипы. Смотри, крути, пробуй. Что из этого возьмём в игру, решает владелец.'),
+      h('a', { href: './fitting-room/', class: 'lab-btn' }, 'Примерочная: референсы, вещи и сеты'),
       this.ownerBar,
       this.banner,
     );
+    const fresh = CATALOG.filter((e) => e.research);
+    if (fresh.length) {
+      head.append(h('p', { class: 'lab-research-intro' },
+        h('span', { class: 'lab-new' }, 'New'),
+        ` ${fresh.length} примеров из продуктового ревью: ${fresh.filter((e) => e.live).length} с живым превью. `,
+        'Открой новинки, попробуй выбор и посмотри, что проверять с друзьями.',
+      ));
+    }
 
     const stats = h('nav', { class: 'lab-stats', 'aria-label': 'Статусы' });
     const all = h('button', { class: 'lab-chip', type: 'button', onclick: () => this.setStatusFilter('all') }, 'Все ', h('b', {}, '0'));
@@ -168,6 +177,7 @@ export class LabPage {
     const cats = h('div', { class: 'lab-cats', role: 'group', 'aria-label': 'Категории' });
     const catList: Array<[CatFilter, string]> = [
       ['all', 'Всё'],
+      ['new', `New · ${fresh.length}`],
       ['proto', 'С живым превью'],
       ...CATEGORIES.map((c): [CatFilter, string] => [c, CATEGORY_LABEL[c]]),
       ['island', 'Остров и паром'],
@@ -255,6 +265,7 @@ export class LabPage {
       'div',
       { class: 'lab-meta' },
       h('span', { class: 'lab-num' }, `№${e.n}`),
+      e.research ? h('span', { class: 'lab-new' }, 'New') : null,
       h('span', { class: 'lab-cat' }, CATEGORY_LABEL[e.category]),
       h('span', { class: 'lab-size', title: SIZE_HINT[e.size] }, e.size),
       e.island ? h('span', { class: 'lab-tag' }, 'остров и паром') : null,
@@ -300,8 +311,18 @@ export class LabPage {
         { class: 'lab-card-body' },
         meta,
         h('h2', { class: 'lab-title' }, e.title),
+        e.research ? h('p', { class: 'lab-research-facts' }, `${e.research.focus} · ${e.research.players} · ${e.research.round}`) : null,
         h('p', { class: 'lab-pitch' }, e.pitch),
         h('p', { class: 'lab-fun' }, h('b', {}, 'Почему весело. '), e.fun),
+        e.research ? h('details', { class: 'lab-research' },
+          h('summary', {}, 'Что пробуем и как выбирать'),
+          h('p', {}, h('b', {}, 'Выбор игрока. '), e.research.decision),
+          h('p', {}, h('b', {}, e.live ? 'Границы превью. ' : 'Первый шаг. '), e.research.scope),
+          h('p', {}, h('b', {}, 'Проверка с друзьями. '), e.research.test),
+          h('p', { class: 'lab-research-refs' }, h('b', {}, 'Референсы. '),
+            ...e.research.references.map((r) => h('a', { href: r.url, target: '_blank', rel: 'noopener noreferrer' }, r.title)),
+          ),
+        ) : null,
         e.touches ? h('p', { class: 'lab-touch' }, h('b', {}, 'Стыки. '), e.touches) : null,
         e.net ? h('p', { class: 'lab-net' }, 'Видно другим игрокам: понадобится новый протокол.') : null,
         noteView,
@@ -356,10 +377,11 @@ export class LabPage {
 
   private matches(e: Idea): boolean {
     if (this.cat === 'proto' && !e.live) return false;
+    if (this.cat === 'new' && !e.research) return false;
     if (this.cat === 'island' && !e.island) return false;
-    if (this.cat !== 'all' && this.cat !== 'proto' && this.cat !== 'island' && e.category !== this.cat) return false;
+    if (this.cat !== 'all' && this.cat !== 'proto' && this.cat !== 'new' && this.cat !== 'island' && e.category !== this.cat) return false;
     if (this.status !== 'all' && this.statusOf(e) !== this.status) return false;
-    if (this.query && !`${e.title} ${e.pitch} ${e.fun}`.toLowerCase().includes(this.query)) return false;
+    if (this.query && !`${e.title} ${e.pitch} ${e.fun} ${e.research ? `${e.research.focus} ${e.research.decision} ${e.research.references.map((r) => r.title).join(' ')}` : ''}`.toLowerCase().includes(this.query)) return false;
     return true;
   }
 

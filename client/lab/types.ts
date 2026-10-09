@@ -21,6 +21,21 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 export type Size = 'S' | 'M' | 'L';
 export const SIZE_HINT: Record<Size, string> = { S: 'до пары дней', M: 'несколько дней', L: 'неделя и больше' };
 
+/** Отобранный пример продуктового исследования. Не меняет решение владельца. */
+export interface ResearchNote {
+  sourceId: string;
+  focus: string;
+  players: string;
+  round: string;
+  /** Интересный выбор игрока, который проверяет идея. */
+  decision: string;
+  /** Что должно произойти на повторной попытке. */
+  test: string;
+  /** Что показывает локальное превью и что ещё требует проверки. */
+  scope: string;
+  references: readonly { title: string; url: string }[];
+}
+
 export interface Idea {
   /** Латиница и дефисы, до 40 знаков: он же ключ решения в lab.json */
   id: string;
@@ -45,6 +60,8 @@ export interface Idea {
   touches?: string;
   /** Живое превью: есть только у прототипов */
   live?: LiveDef;
+  /** Новая карточка из продуктового ревью, с меткой New и основанием выбора. */
+  research?: ResearchNote;
 }
 
 /** Идея с живым превью */

@@ -43,6 +43,7 @@ import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_HAS_SELF, SNAP_SELF_RESET, decodeSnapshot, encodeInputs, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { BTN_FIRE, BTN_JUMP, makeInput, makeState, type Input, type StepEvents } from '../../shared/sim.ts';
 import { SPIN_MS, STAKES } from '../../shared/slots.ts';
+import { wardrobePlace } from '../../shared/wardrobe.ts';
 import { WHEEL_PERIOD, WHEEL_PRICE, WHEEL_SEATS, seatAt as wheelSeatAt, wheelArrival } from '../../shared/wheel.ts';
 import { ClockSync } from '../net.ts';
 import { Predictor, type StepHook } from '../predict.ts';
@@ -52,7 +53,7 @@ import { Effects } from '../render/effects.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
-import { Wardrobe } from '../ui/wardrobe.ts';
+import { Wardrobe, WARDROBE_FOOTER_PX } from '../ui/wardrobe.ts';
 import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { noteFortStatus } from '../fort/record.ts';
 import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
@@ -64,7 +65,7 @@ import { BoatSign } from './boatsign.ts';
 import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
-import { LobbyCamera } from './camera.ts';
+import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { DurakTables3D, TORSO_R } from './durak3d.ts';
 import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, tomatoRadius, type PickPoint } from './tomatopick.ts';
 import { DurakDecor } from './durakdecor.ts';
@@ -141,18 +142,8 @@ const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown
 /** Взгляд вверх-вниз за спиной: ниже — камера упирается в пол */
 const PITCH_MIN = -1.2;
 const PITCH_MAX = 0.55;
-/** Поле зрения неподвижной камеры у автомата, по вертикали */
-const FIXED_FOV = 46;
 /** Примерочная: желейка в двух метрах — шире, чтобы влезла целиком */
 const MIRROR_FOV = 68;
-/**
- * Камера у автомата: сзади и чуть правее, высоко — взгляд на барабаны проходит над головой желейки
- * (сбоку она всё равно заслоняет полавтомата). Смещение от центра автомата и от его передней грани.
- */
-const SLOT_CAM_DX = 0.35;
-const SLOT_CAM_Y = 3.0;
-const SLOT_CAM_DZ = 3.2;
-const REELS_Y = 1.3;
 /** Эмоции не чаще (сервер пускает 2 в секунду) */
 const EMOTE_GAP_MS = 450;
 /**
@@ -292,6 +283,7 @@ export class LobbyScene implements Scene {
   /** Последняя своя рука: приходит раньше, чем снимок посадит за стол */
   private dkHand: { table: number; cards: number[] } | null = null;
   private readonly cam = new LobbyCamera();
+  private readonly wardrobeAnchor = new THREE.Vector3();
   private readonly me = new Avatar(0, { gun: false });
   private readonly header = makeHeader();
   private readonly selfSnap = makeState();
@@ -485,6 +477,7 @@ export class LobbyScene implements Scene {
     this.slots = new SlotMachines3D(this.world, d.sound, this.fx);
     this.slots.onJackpot = (nick, win) => this.hud.showJackpot(nick, win);
     this.wardrobe = new Wardrobe(this.hud.root);
+    this.wardrobe.bindInspect(d.renderer.canvas);
     this.wardrobe.onWear = (o) => d.net.send({ t: 'outfit', o });
     this.wardrobe.onBuy = (item) => d.net.send({ t: 'buy', item });
     this.wardrobe.onRedeem = code => d.net.send({ t: 'redeem', code });
@@ -799,6 +792,7 @@ export class LobbyScene implements Scene {
     this.remotes.clear();
     this.infos.clear();
     this.me.update(null, 0, this.time, this.world.collision, this.world.camera.position, true);
+    this.me.slotView(false);
     this.slots.reset();
     this.fx.clear();
     this.tables3d.reset();
@@ -1781,11 +1775,14 @@ export class LobbyScene implements Scene {
 
   /** Точка, куда ставит действие: автомат, место, примерочная. */
   private spotOf(action: number, arg: number): Interactable | undefined {
+    if (action === ACT_WARDROBE) {
+      const base = this.world.map.interact.find(it => it.kind === 'kiosk');
+      return base ? wardrobePlace(base, arg) : undefined;
+    }
     const kind =
       action === ACT_SLOT ? 'slot'
       : action === ACT_SIT ? 'seat'
       : action === ACT_DURAK ? (seatTable(arg) === BJ_TABLE ? 'blackjack' : 'durak')
-      : action === ACT_WARDROBE ? 'kiosk'
       : action === ACT_FISH ? 'fish'
       : null;
     return kind ? this.world.map.interact.find((it) => it.kind === kind && it.arg === arg) : undefined;
@@ -1810,6 +1807,8 @@ export class LobbyScene implements Scene {
     if (this.juke.onKey(code, e)) return true;
     const act = this.myAct;
     if (act === ACT_WARDROBE && this.wardrobeOpen) {
+      // В панели Tab переводит фокус по кнопкам, а не открывает список игроков.
+      if (code === 'Tab') return true;
       if (code === 'Escape') {
         this.leaveWardrobe(true);
         return true;
@@ -2262,11 +2261,13 @@ export class LobbyScene implements Scene {
     }
     this.lastFrameMs = dtRaw * 1000;
 
-    // У автомата мышь взгляд не крутит: отойдёшь — спиной к нему. За спиной — не ниже пола.
+    // У автомата — небольшой свободный взгляд вокруг барабанов. За спиной — не ниже пола.
     const act = this.myAct;
     if (act === ACT_SLOT) {
-      input.yaw = this.spotOf(ACT_SLOT, this.arg)?.yaw ?? input.yaw;
-      input.pitch = 0;
+      const face = this.spotOf(ACT_SLOT, this.arg)?.yaw ?? 0;
+      const turn = Math.atan2(Math.sin(input.yaw - face), Math.cos(input.yaw - face));
+      input.yaw = face + clamp(turn, -SLOT_LOOK_YAW, SLOT_LOOK_YAW);
+      input.pitch = clamp(input.pitch, -SLOT_LOOK_PITCH, SLOT_LOOK_PITCH);
     } else {
       input.pitch = clamp(input.pitch, PITCH_MIN, PITCH_MAX);
     }
@@ -2302,6 +2303,7 @@ export class LobbyScene implements Scene {
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
     this.fishHolds.update(dt, (id) => (id === this.myId ? (this.hasSelf ? this.me : null) : this.remotes.get(id)?.avatar ?? null));
     this.me.update(this.hasSelf ? this.plane.avatarPose(this.myId, act === ACT_PLANE, this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose)) : null, dt, this.time, this.ground, camPos, true);
+    this.me.slotView(act === ACT_SLOT);
     // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
     if (act === ACT_BILLIARDS) this.me.root.visible = false;
     this.updateRemotes(dt);
@@ -2499,6 +2501,7 @@ export class LobbyScene implements Scene {
     } else {
       const spot = isHeld(act) ? this.spotOf(act, this.arg) : undefined;
       pose.yaw = spot ? spot.yaw : this.d.input.yaw;
+      if (act === ACT_WARDROBE && this.wardrobeOpen) pose.yaw += this.wardrobe.previewYaw;
       pose.pitch = spot ? 0 : this.d.input.pitch;
     }
     pose.flags = E_ALIVE | (s.grounded ? E_GROUNDED : 0) | (s.dashT > 0 ? E_DASH : 0);
@@ -2520,7 +2523,7 @@ export class LobbyScene implements Scene {
     const act = this.myAct;
     if (act === ACT_SLOT) {
       const mx = MACHINE_XS[this.arg] ?? p.x;
-      this.cam.fixed(cam, dt, mx + SLOT_CAM_DX, SLOT_CAM_Y, MACHINE_FRONT_Z + SLOT_CAM_DZ, mx, REELS_Y, MACHINE_FRONT_Z, FIXED_FOV);
+      this.cam.slot(cam, dt, p.x, p.y, p.z, mx, MACHINE_FRONT_Z, input.yaw - (this.spotOf(ACT_SLOT, this.arg)?.yaw ?? 0), input.pitch);
     } else if (act === ACT_DURAK) {
       const tb = this.world.map.tables[seatTable(this.arg)];
       const it = this.spotOf(ACT_DURAK, this.arg);
@@ -2541,7 +2544,7 @@ export class LobbyScene implements Scene {
       const c = this.billiards.cameraPose()!;
       this.cam.fixed(cam, dt, c.px, c.py, c.pz, c.lx, c.ly, c.lz, c.fov, 'table');
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
-      this.cam.mirror(cam, dt, p.x, p.y, p.z, p.yaw, MIRROR_FOV);
+      this.cam.mirror(cam, dt, p.x, p.y, p.z, this.spotOf(act, this.arg)?.yaw ?? p.yaw, MIRROR_FOV, this.me.outfitHeight, WARDROBE_FOOTER_PX / Math.max(1, this.d.renderer.canvas.clientHeight));
     } else if (this.ratCam.active) {
       // крысиные бега: сверху на трассу, над головами
       const c = this.ratCam.pose(cam.aspect);
@@ -2659,13 +2662,18 @@ export class LobbyScene implements Scene {
     const dressing = act === ACT_WARDROBE && this.wardrobeOpen;
     if (dressing && !this.wardrobe.isOpen) this.wardrobe.open(this.d.ui.me());
     else if (!dressing && this.wardrobe.isOpen) this.me.setOutfit(this.wardrobe.close());
+    if (dressing) {
+      this.world.camera.updateMatrixWorld();
+      this.wardrobeAnchor.set(this.pose.x, this.pose.y, this.pose.z).project(this.world.camera);
+      this.wardrobe.placeInspect((this.wardrobeAnchor.x + 1) * this.d.renderer.canvas.clientWidth / 2);
+    }
     hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
     const fd = this.fcSt && this.hasSelf ? fightDist(this.pose.x, this.pose.y, this.pose.z) : Infinity;
     this.fightBeeps(fd);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
-    else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · шаг — отойти`);
+    else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться · шаг — отойти`);
     else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
     else if (act === ACT_FISH) this.hintFish();
     else if (act === ACT_BOAT) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из катера · отплытие через ${this.boatSecs()} с`);
@@ -2786,7 +2794,7 @@ export class LobbyScene implements Scene {
       const dz = it.z - p.z;
       const dist = Math.hypot(dx, dz);
       if (dist > it.r || Math.abs(p.y - it.y) >= 2) continue;
-      if (dist > 1 && (dx * fx + dz * fz) / dist <= 0.2) continue;
+      if (it.kind !== 'kiosk' && dist > 1 && (dx * fx + dz * fz) / dist <= 0.2) continue;
       // арка «Крепости» — только когда режим включён
       if (it.kind === 'fort' && !this.fortSt) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;

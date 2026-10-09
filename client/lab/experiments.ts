@@ -11,10 +11,17 @@ import { islandCampfire } from './proto/island-campfire.ts';
 import { prankShop } from './proto/prank-shop.ts';
 import { skipStones } from './proto/skip-stones.ts';
 import { strongman } from './proto/strongman.ts';
+import { bayMosaic } from './proto/research-bay-mosaic.ts';
+import { paintClap } from './proto/research-paint-clap.ts';
+import { researchKeepnet } from './proto/research-keepnet.ts';
+import { floatBuilder } from './proto/research-float-builder.ts';
 import type { Experiment, Idea } from './types.ts';
 
 /** Прототипы с живой сценой, в порядке показа: сначала те, что нужнее для решения */
-export const PROTOTYPES: readonly Experiment[] = [hotMelon, congaTrain, prankShop, skipStones, bannerPlane, strongman, islandCampfire];
+export const PROTOTYPES: readonly Experiment[] = [
+  bayMosaic, paintClap, researchKeepnet, floatBuilder,
+  hotMelon, congaTrain, prankShop, skipStones, bannerPlane, strongman, islandCampfire,
+];
 
 /** Весь каталог: прототипы первыми, дальше идеи по номеру из плана */
 export const CATALOG: readonly Idea[] = [...PROTOTYPES, ...[...IDEAS].sort((a, b) => a.n - b.n)];

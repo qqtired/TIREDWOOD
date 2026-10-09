@@ -43,6 +43,7 @@ import {
 import { BIG_WIN_MULT, MACHINE_NAMES, SPIN_MS, SPIN_TICKS } from '../../shared/slots.ts';
 import { WHEEL_EXIT, WHEEL_PERIOD, WHEEL_PRICE, CABIN_STEP, bottomCabin, seatAt as wheelSeatAt } from '../../shared/wheel.ts';
 import { CollisionWorld } from '../../shared/world.ts';
+import { WARDROBE_OFFSETS, wardrobePlace } from '../../shared/wardrobe.ts';
 import { FC_CIRCLE, FC_FIGHTERS } from '../../shared/fight.ts';
 import { FightGather } from '../fight/gather.ts';
 import type { Client, Hub, Room } from '../hub.ts';
@@ -815,6 +816,8 @@ export class LobbyRoom implements Room {
     if (isRiding(p.action) || !this.hub.limits.hit(`use:${c.id}`, 4, 1000)) return;
     const it = typeof id === 'number' && Number.isInteger(id) ? this.map.interact[id] : undefined;
     if (!it) return;
+    // Повторное E сохраняет своё место; дальнее место находится за радиусом основной точки.
+    if (it.kind === 'kiosk' && p.action === ACT_WARDROBE) return;
     const s = p.state;
     if (Math.hypot(s.x - it.x, s.z - it.z) > it.r + 0.5 || Math.abs(s.y - it.y) >= 2) return;
     switch (it.kind) {
@@ -854,10 +857,18 @@ export class LobbyRoom implements Room {
         hall.sit(it.arg, p.slot, c.pid, c.nick);
         return;
       }
-      case 'kiosk':
+      case 'kiosk': {
+        const occupied = new Set<number>();
+        for (const other of this.players.values()) if (other.action === ACT_WARDROBE) occupied.add(other.arg);
+        const spot = wardrobePlace(it, WARDROBE_OFFSETS.findIndex((_, place) => !occupied.has(place)));
+        if (!spot) {
+          this.hub.toast(c, 'Все места в примерочной заняты — подожди немного');
+          return;
+        }
         this.release(p);
-        this.hold(p, ACT_WARDROBE, it);
+        this.hold(p, ACT_WARDROBE, spot);
         return;
+      }
       case 'pb_gate':
         if (!this.hub.paintball.hasSpace()) {
           this.hub.toast(c, 'На складе нет мест — подожди немного');

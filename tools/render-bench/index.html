@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TIREDWOOD — сравнение рендереров</title></head>
+<body>
+  <main>
+    <header><p class="eyebrow">TIREDWOOD · локальный эксперимент</p><h1>WebGL и WebGPU на одной сцене</h1><p>Общие геометрия, движение и настройки. A — текущий рендерер, B — новый через WebGL, C — настоящий WebGPU.</p></header>
+    <section class="controls" aria-label="Настройки сравнения">
+      <label>Рендерер<select id="variant"><option value="legacy">A · WebGLRenderer</option><option value="modern-webgl">B · новый → WebGL 2</option><option value="webgpu">C · новый → WebGPU</option></select></label>
+      <label>Сцена<select id="scenario"><option value="normal">Набережная · 160 персонажей</option><option value="rain">Дождь · 640 персонажей</option></select></label>
+      <label>Нагрузка<select id="complexity"><option value="1">1× · исходная</option><option value="10" selected>10× · тяжёлая</option></select></label>
+      <label>Буфер · DPR 1<select id="resolution"><option value="1280">1280 × 720</option><option value="1920">1920 × 1080</option></select></label>
+      <label>Прогрев, с<input id="warmup" type="number" min="1" max="30" step="1" value="3"></label>
+      <label>Замер, с<input id="duration" type="number" min="2" max="60" step="1" value="10"></label>
+      <label>Повторы<select id="repetitions"><option value="1">1</option><option value="3" selected>3 · с ротацией</option></select></label>
+    </section>
+    <div class="actions"><button id="preview">Показать сцену</button><button id="single">Измерить выбранный</button><button id="suite" class="primary">Сравнить A / B / C</button><button id="stop" disabled>Остановить</button></div>
+    <div class="status-box"><p id="status" role="status" aria-live="polite">Готово к проверке. Сначала покажи сцену.</p><progress id="progress" max="1" value="0" aria-label="Ход измерений"></progress></div>
+    <section class="stage" id="stage" aria-label="Сравниваемая трёхмерная сцена"><div class="placeholder">Сцена появится здесь</div></section>
+    <div class="capture-actions"><button id="freeze" disabled>Кадр на 2-й секунде</button><a id="png" hidden download>Скачать PNG</a><button id="spector" disabled>Захватить WebGL через Spector</button><a id="capture" hidden download>Скачать захват Spector</a><span id="backend">Рендерер не запущен</span></div>
+    <details><summary>Что именно сравниваем</summary><p>Представительная процедурная сцена: набережная, море, здания, деревья, желейки и дождь. Это не полная сцена работающей игры. Перенесённые эффекты упрощены; совпадение картинки проверяется отдельно.</p><p>В режиме 10× — 160 или 640 персонажей, 100 зданий, 240 деревьев, 18 000 дождевых полос и в 10 раз больше треугольников воды. Разрешение и качество материалов прежние. Реальное число отрисовок и треугольников кадра сохраняется в JSON; множитель объектов не обещает ровно десятикратное время кадра.</p><p>Основной прогон идёт без GPU-таймеров и инспекторов. Затем отдельно выполняется один прогон с GPU-таймерами на сочетание сцены и рендерера. Отсутствующие таймеры остаются пустыми. «Настройка сцены» не означает холодный старт браузера или драйвера.</p><p>Общий тест: две сцены выбранной нагрузки, выбранное число повторов, порядок A/B/C → B/C/A → C/A/B. Вкладка должна оставаться видимой. Изменение размера, потеря контекста и остановка помечают результат недействительным.</p><pre id="environment"></pre></details>
+    <section class="results-section"><div class="results-heading"><h2>Результаты</h2><div><a id="export" hidden download="render-benchmark-results.json">Скачать JSON</a><button id="clear">Очистить таблицу</button></div></div>
+    <div class="table-scroll"><table><thead><tr><th>Сцена / режим</th><th>Проход</th><th>Кадр, медиана</th><th>Кадр, p95</th><th>CPU, медиана</th><th>GPU, медиана</th><th>FPS</th><th>Статус</th></tr></thead><tbody id="results"></tbody></table></div><p id="result-count">Измерений пока нет.</p></section>
+    <footer>Локальный исследовательский стенд · <span id="source"></span> · Измерения относятся к этому браузеру и устройству.</footer>
+  </main><script type="module" src="./main.ts"></script>
+</body></html>

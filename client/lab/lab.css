@@ -68,6 +68,8 @@ button, summary { -webkit-tap-highlight-color: transparent; }
 .lab-eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--tangerine-dark); }
 .lab-head h1 { margin: 0; font-size: clamp(30px, 7vw, 44px); line-height: 1.05; font-weight: 900; letter-spacing: -.02em; }
 .lab-lead { margin: 0; max-width: 60ch; color: #5b4a52; text-wrap: pretty; }
+.lab-research-intro { margin: 0; max-width: 75ch; color: #355b48; font-size: 14px; }
+.lab-new { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #245d4a; color: #fff; font-size: 11px; font-weight: 800; line-height: 1.5; white-space: nowrap; }
 .lab-banner { margin: 0; padding: 10px 14px; border-radius: 14px; background: #fff0c8; border: 2px solid var(--gold); font-size: 14px; }
 .lab-owner {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px;
@@ -201,6 +203,11 @@ button, summary { -webkit-tap-highlight-color: transparent; }
 .lab-pitch, .lab-fun, .lab-touch, .lab-net { margin: 0; font-size: 15px; text-wrap: pretty; }
 .lab-fun { color: #5b4a52; }
 .lab-fun b, .lab-touch b { color: var(--ink); font-weight: 700; }
+.lab-research-facts { margin: 0; color: #355b48; font-size: 12px; line-height: 1.5; }
+.lab-research { border-top: 1px solid var(--line); padding-top: 4px; }
+.lab-research summary { min-height: 42px; padding: 9px 0; color: #245d4a; font-size: 14px; font-weight: 700; cursor: pointer; }
+.lab-research p { font-size: 13px; line-height: 1.55; margin: 0 0 12px; }
+.lab-research-refs a { display: block; padding: 3px 0; overflow-wrap: anywhere; }
 .lab-touch { font-size: 13px; color: var(--muted); }
 .lab-net { font-size: 12px; color: var(--muted); }
 .lab-note { margin: 4px 0 0; padding: 8px 12px; border-left: 4px solid var(--gold); border-radius: 0 12px 12px 0; background: #fff6d8; font-size: 14px; white-space: pre-line; }

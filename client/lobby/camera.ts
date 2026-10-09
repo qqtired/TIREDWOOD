@@ -1,5 +1,5 @@
 // Камера набережной. Обычно — за спиной (колесо мыши — ближе/дальше), сидя — облёт вокруг желейки мышью,
-// у автомата — неподвижно на барабаны, за столом дурака — из-за спины сверху на стол, в примерочной — спереди,
+// у автомата — от первого лица на барабаны, за столом дурака — из-за спины сверху на стол, в примерочной — спереди,
 // как из зеркала. Между режимами — плавный переход.
 import * as THREE from 'three';
 import { PIVOT_Y, RIG_LOBBY, cameraRig, type RigParams } from '../../shared/aim.ts';
@@ -13,14 +13,17 @@ export type CamMode = 'walk' | 'sit' | 'slot' | 'mirror' | 'table' | 'boat';
 /** Колесо: от 2 до 6 м за спиной */
 export const ZOOM_MIN = 2;
 export const ZOOM_MAX = 6;
+/** У автомата можно оглядеться, но экран остаётся перед игроком. */
+export const SLOT_LOOK_YAW = Math.PI / 6;
+export const SLOT_LOOK_PITCH = 0.28;
 /** Переход между режимами, с; в катер регаты и из него — пролётом подольше */
 const BLEND_S = 0.5;
 const BOAT_BLEND_S = 0.6;
 /**
- * В примерочной: камера в 1,9 м перед желейкой (дальше — стена ларька с зеркалом), чуть сверху и широко,
+ * В примерочной: камера в 1,65 м перед желейкой, перед выступающим прилавком, чуть сверху и широко,
  * чтобы влезла целиком с шапкой; сама желейка — левее центра (панель справа).
  */
-const MIRROR_DIST = 1.9;
+const MIRROR_DIST = 1.65;
 const MIRROR_EYE = 1.2;
 const MIRROR_LOOK = 0.72;
 const MIRROR_SHIFT = 0.72;
@@ -86,6 +89,15 @@ export class LobbyCamera {
     this.apply(cam, mode, dt, fov);
   }
 
+  /** Автомат: глаза желейки, барабаны по центру; шляпу скрывает Avatar.slotView. */
+  slot(cam: THREE.PerspectiveCamera, dt: number, x: number, y: number, z: number, machineX: number, frontZ: number, lookYaw = 0, lookPitch = 0): void {
+    this.pos.set(x, y + 1.17, z);
+    const yaw = Math.atan2(x - machineX, z - frontZ);
+    const pitch = Math.atan2(0.11, Math.hypot(x - machineX, z - frontZ));
+    this.quat.setFromEuler(_e.set(pitch + clamp(lookPitch, -SLOT_LOOK_PITCH, SLOT_LOOK_PITCH), yaw + clamp(lookYaw, -SLOT_LOOK_YAW, SLOT_LOOK_YAW), 0, 'YXZ'));
+    this.apply(cam, 'slot', dt, 70);
+  }
+
   /** Катер регаты: камера погони из (px, py, pz) на (tx, ty, tz) — её считает регата (client/lobby/regatta.ts). */
   chase(cam: THREE.PerspectiveCamera, dt: number, px: number, py: number, pz: number, tx: number, ty: number, tz: number, fov: number): void {
     this.pos.set(px, py, pz);
@@ -94,13 +106,22 @@ export class LobbyCamera {
   }
 
   /** Примерочная: перед желейкой (x, y, z), которая смотрит по faceYaw, — как отражение в зеркале. */
-  mirror(cam: THREE.PerspectiveCamera, dt: number, x: number, y: number, z: number, faceYaw: number, fov: number): void {
+  mirror(cam: THREE.PerspectiveCamera, dt: number, x: number, y: number, z: number, faceYaw: number, fov: number, height = 1.58, footerFraction = 124 / 900): void {
     const fx = -Math.sin(faceYaw);
     const fz = -Math.cos(faceYaw);
-    this.pos.set(x + fx * MIRROR_DIST, y + MIRROR_EYE, z + fz * MIRROR_DIST);
+    const lookY = Math.max(MIRROR_LOOK, height / 2);
+    this.pos.set(x + fx * MIRROR_DIST, y + Math.max(MIRROR_EYE, lookY + 0.1), z + fz * MIRROR_DIST);
     // смотрим правее желейки (вправо от камеры — это (fz, −fx)), чтобы она стояла слева от панели
-    this.lookFrom(x + fz * MIRROR_SHIFT, y + MIRROR_LOOK, z - fx * MIRROR_SHIFT);
-    this.apply(cam, 'mirror', dt, fov);
+    this.lookFrom(x + fz * MIRROR_SHIFT, y + lookY, z - fx * MIRROR_SHIFT);
+    // Наряд целиком, плюс реальное место под стрелки и на низком окне; камера остаётся перед прилавком.
+    const footer = clamp(footerFraction, 0, 0.35);
+    const bodyFraction = 1 - footer;
+    const fitFov = THREE.MathUtils.radToDeg(2 * Math.atan((height / 2 + 0.4) / (MIRROR_DIST * 0.9 * bodyFraction)));
+    // Запас только снизу: слегка опускаем взгляд, сохраняя крупный показ наряда.
+    _e.setFromQuaternion(this.quat, 'YXZ');
+    _e.x -= Math.atan(footer * 0.5 * Math.tan(THREE.MathUtils.degToRad(Math.max(fov, fitFov)) / 2));
+    this.quat.setFromEuler(_e);
+    this.apply(cam, 'mirror', dt, Math.max(fov, fitFov));
   }
 
   private lookFrom(tx: number, ty: number, tz: number): void {
