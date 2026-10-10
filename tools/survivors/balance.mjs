@@ -41,7 +41,8 @@ function levelFor(xp) { let L = 1; while (xp >= need(L)) { xp -= need(L); L++; }
 // Сборка: первые k выборов типичного порядка
 function buildAfter(k) {
   const b = { w: { lantern: 1 }, p: {}, evo: new Set(), sum: 0 };
-  for (let i = 0; i < Math.floor(k); i++) { const id = M.typicalPicks[i] ?? 'SUM'; // список кончился — «Закалка»
+  for (let i = 0, used = 0; used < Math.floor(k); i++) { const id = M.typicalPicks[i] ?? 'SUM'; // список кончился — «Закалка»
+    if (!id.startsWith('EVO:')) used++; // эволюция — из сундука, выбор не тратит
     if (id === 'SUM') b.sum = Math.min(D.levelUp.temper.max, b.sum + 1);
     else if (id.startsWith('EVO:')) { const e = EVO[id.slice(4)]; if (b.w[e.from] === 7 && b.p[e.with]) b.evo.add(e.from); }
     else if (WP[id]) b.w[id] = Math.min(7, (b.w[id] ?? 0) + 1);
@@ -78,7 +79,8 @@ const rows = []; let xp = 0, chests = 0, t = 0, tok = 0;
 const pad = (s, n) => String(s).padStart(n);
 log('w  сек врагов  HP волны  нужно/с  ур. DPS толпа  давл.  🪙  мин  сборка (в начале волны)');
 for (let w = 1; w <= LAST; w++) {
-  const L = levelFor(xp), b = buildAfter(L - 1 + chests * M.chestLevels), d = dps(b, L), T = waveTotals(w);
+  const T = waveTotals(w), L = levelFor(xp), Lmid = levelFor(xp + M.midWaveShare * T.xp * M.killShare); // карточки сразу: к середине волны
+  const b = buildAfter(Lmid - 1 + chests * M.chestLevels), d = dps(b, Lmid);
   let dur = durOf(w), req, pres, note = '';
   if (isBoss(w)) {
     const hp = bossHp(w), fight = hp / (d.boss * D.boss.uptime);
