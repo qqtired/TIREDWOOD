@@ -8,7 +8,7 @@ import { BOAT_SIT_LIFT } from '../../shared/boat.ts';
 import { TEAM_COLORS } from '../../shared/constants.ts';
 import { REACTIONS } from '../../shared/durak.ts';
 import {
-  ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
+  ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
 } from '../../shared/lobby.ts';
 import { clamp, lerp, lerpAngle } from '../../shared/math.ts';
 import { DEFAULT_OUTFIT, PALETTE, PATTERN_INDEX, sameOutfit, slotKey, type Outfit } from '../../shared/outfit.ts';
@@ -1241,7 +1241,7 @@ export class Avatar {
     let contact = 0;
     let breath = 0;
     // за рулём карта, в катере и на колесе везут — ногами не перебирает
-    if (this.driving || isAboard(this.action) || isFerry(this.action) || this.action === ACT_WHEEL) {
+    if (this.driving || isAboard(this.action) || isFerry(this.action) || this.action === ACT_WHEEL || this.action === ACT_OWNBOAT) {
       this.hopPhase = 0;
     } else if (grounded && hs > 0.8) {
       this.hopPhase += dt * (5 + hs * 0.9);
@@ -1266,7 +1266,7 @@ export class Avatar {
     if (this.driving) {
       sy *= DRIVE_SQUASH.y;
       sxz *= DRIVE_SQUASH.xz;
-    } else if (act === ACT_SIT || act === ACT_DURAK || act === ACT_WHEEL || isAboard(act) || isFerry(act)) {
+    } else if (act === ACT_SIT || act === ACT_DURAK || act === ACT_WHEEL || isAboard(act) || isFerry(act) || act === ACT_OWNBOAT) {
       // в катере и лодке «Удалая» стоит на полу, а подушка кресла и банка — выше скамейки
       lift = isAboard(act) || isFerry(act) ? BOAT_SIT_LIFT : SIT_LIFT;
       sy *= 0.88;

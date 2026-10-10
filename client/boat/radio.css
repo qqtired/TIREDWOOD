@@ -72,7 +72,8 @@
   flex-direction: column;
   gap: 9px;
   width: min(380px, calc(100% - 32px));
-  max-height: calc(100% - 210px);
+  /* сверху справа — панель своей лодки (стрелки к острову, client/boat/ownboats.css): окно до неё не дорастает */
+  max-height: calc(100% - 192px - 250px);
   padding: 12px 14px;
   overflow-y: auto;
   border: 2px solid #c9a36a;

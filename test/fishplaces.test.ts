@@ -5,6 +5,7 @@ import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
 import { FISH_BOARD, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE, FISH_HOUSE_BOXES, FISHER_BODY, FISHER_NPC, FISHER_USE, FISH_PODIUM_STEP_BOXES, FISHER_CANOPY_BOXES } from '../shared/fishplaces.ts';
 import { FERRY_BACK_LEN, FERRY_OUT_LEN } from '../shared/ferry.ts';
 import { FISH_SPOTS, PHOTO, buildLobby } from '../shared/maps/lobby.ts';
+import { BERTHS } from '../shared/ownboat.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { FISH_APPROACH_ROUTES, FISH_FAR_ROUTES, FISHER_ROUTE } from './fishpaths.ts';
 
@@ -58,7 +59,7 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
     ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
       ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29',
-      ...Array.from({ length: 8 }, (_, i) => `fish:${i + 30}`), 'fisher:2']);
+      ...Array.from({ length: 8 }, (_, i) => `fish:${i + 30}`), 'fisher:2', ...BERTHS.map((_, i) => `oboat:${i}`)]);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');

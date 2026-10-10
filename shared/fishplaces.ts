@@ -24,6 +24,8 @@ export interface FishSpot {
   yaw: number;
   /** По умолчанию 'pier' */
   zone?: FishZone;
+  /** Эхолот своей лодки (shared/fishboat.ts): ожидание поклёвки короче на эту долю */
+  sonar?: number;
 }
 
 export const FISH_PIER_COUNT = 8;
@@ -97,9 +99,30 @@ export function barkasSpotIndex(i: number): number {
   return i < BARKAS_FISH_FIRST ? FISH_ISLAND_COUNT + i : FISH_FAR_FIRST + FISH_FAR_SPOTS.length + (i - BARKAS_FISH_FIRST);
 }
 
+/**
+ * Места рыбалки в своих лодках на якоре (флаг ISLE, shared/ownboat.ts): по 3 на лодку (до 16 лодок), номера — сразу
+ * за FISH_SPOTS: первое + номер лодки × 3 + место. Где они и куда заброс, ставит лодка, когда бросает якорь (сервер и
+ * клиент одинаково, по её позе); пул — баркас (у острова — по точке, shared/fishisle.ts — fishZoneAtSea).
+ */
+export const BOAT_FISH_FIRST = FISH_SPOTS.length;
+export const BOAT_FISH_SPOTS: FishSpot[] = Array.from({ length: 16 * 3 }, () => ({ x: 0, z: 0, yaw: 0, zone: 'barkas' as const }));
+/** Всего мест рыбалки: на причалах и баркасе, потом в лодках */
+export const FISH_SPOT_COUNT = BOAT_FISH_FIRST + BOAT_FISH_SPOTS.length;
+
+/** Место рыбалки по номеру: на причалах и баркасе или в лодке на якоре */
+export function fishSpotAt(spot: number): FishSpot | undefined {
+  return spot < BOAT_FISH_FIRST ? FISH_SPOTS[spot] : BOAT_FISH_SPOTS[spot - BOAT_FISH_FIRST];
+}
+
+/** Место в своей лодке: номер лодки и место в ней (или null) */
+export function boatSpotOf(spot: number): { boat: number; seat: number } | null {
+  const i = spot - BOAT_FISH_FIRST;
+  return Number.isInteger(i) && i >= 0 && i < BOAT_FISH_SPOTS.length ? { boat: Math.floor(i / 3), seat: i % 3 } : null;
+}
+
 /** Пристань или баркас: место рыбалки по номеру. */
 export function spotZone(spot: number): FishZone {
-  return FISH_SPOTS[spot]?.zone ?? 'pier';
+  return fishSpotAt(spot)?.zone ?? 'pier';
 }
 /** То же имя, что в ветке barkas */
 export const fishZone = spotZone;
