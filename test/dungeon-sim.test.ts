@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DgEvent } from '../shared/dungeon/api.ts';
+import { hurtMob } from '../shared/dungeon/core.ts';
 import { blocked } from '../shared/dungeon/map.ts';
 import { applyEvent, createRun, dgHash, dgResult, step, wrapD, wrapP, type DgSim } from '../shared/dungeon/sim.ts';
 
@@ -146,4 +147,78 @@ test('тор: координаты по модулю 240, разница — к�
   for (let i = 0; i < 30; i++) step(sim);
   assert.ok(sim.hero.x >= 0 && sim.hero.x < 240);
   assert.ok(sim.hero.x > 2 && sim.hero.x < 6, `x = ${sim.hero.x}`);
+});
+
+test('постройки срабатывают, если постоять в круге (без E); лестница у старта твёрдая', () => {
+  const sim = createRun(3);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  const altar = sim.props.find((p) => p.k === 'altar' && p.st === 0)!;
+  sim.hero.x = altar.x;
+  sim.hero.z = altar.z;
+  for (let i = 0; i < 5; i++) step(sim);
+  assert.equal(sim.hero.useId, altar.id, 'отсчёт пошёл');
+  for (let i = 0; i < 30; i++) step(sim);
+  assert.equal(altar.st, 2, 'алтарь сработал');
+  assert.equal(sim.hero.buffs.length, 1);
+  // лестница: старт свободен, сама лестница — нет; идти на запад от колодца — упрёшься
+  assert.equal(blocked(120, 120, 0.45), false);
+  assert.equal(blocked(112, 120, 0.45), true);
+  const s2 = createRun(4);
+  applyEvent(s2, { t: 0, k: 'mv', x: -100, y: 0 });
+  for (let i = 0; i < 60; i++) step(s2);
+  assert.ok(s2.hero.x > 114, `упёрся в лестницу: x = ${s2.hero.x}`);
+});
+
+test('таймер волны: следующая сразу, без передышки; недобитые остаются и звереют', () => {
+  const sim = createRun(21);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  sim.weapons.length = 0; // никого не убиваем — все доживут до таймера
+  applyEvent(sim, { t: 0, k: 'go' });
+  let rageFx = 0;
+  let breather = false;
+  for (let i = 0; i < 30 * 70 && sim.wave.n < 2; i++) {
+    step(sim);
+    if (sim.wave.stage === 'breather') breather = true;
+    for (const f of sim.fx) if (f.k === 'rage') rageFx = f.n;
+  }
+  assert.equal(sim.wave.n, 2, 'началась 2-я');
+  assert.equal(sim.wave.stage, 'wave', 'сразу волна');
+  assert.equal(breather, false, 'передышки нет');
+  assert.equal(sim.stats.waves, 1, '1-я засчитана по таймеру');
+  const angry = sim.mobs.filter((m) => !m.die && m.rage === 1).length;
+  assert.ok(angry > 50, `озверели ${angry}`);
+  assert.equal(rageFx, angry);
+  step(sim);
+  assert.ok(sim.wave.old >= angry - 2, `остатки на HUD: ${sim.wave.old}`);
+  // ещё один таймер — уровень 2 (не выше 3)
+  for (let i = 0; i < 30 * 70 && sim.wave.n < 3; i++) step(sim);
+  assert.ok(sim.mobs.some((m) => !m.die && m.rage === 2));
+  assert.ok(sim.mobs.every((m) => m.rage <= 3));
+});
+
+test('зачистка до таймера: «Зачистка!», передышка, Enter — следующая волна', () => {
+  const sim = createRun(22);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  applyEvent(sim, { t: 0, k: 'go' });
+  for (let i = 0; i < 30 * 4; i++) step(sim);
+  assert.equal(sim.wave.stage, 'wave');
+  sim.wave.pend.fill(0);
+  for (const e of sim.wave.ev) e.done = 1;
+  let swept = 0;
+  for (let i = 0; i < 60 && sim.wave.stage === 'wave'; i++) {
+    for (const m of sim.mobs) if (!m.die) hurtMob(sim, m, 1e9, 'q', m.x, m.z, 0, 0, 0);
+    if (sim.choice) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+    if (sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+    step(sim);
+    for (const f of sim.fx) if (f.k === 'sweep') swept = f.n;
+  }
+  assert.equal(sim.wave.stage, 'breather');
+  assert.equal(sim.wave.swept, 1);
+  assert.equal(swept, 1, 'fx sweep');
+  assert.equal(sim.stats.waves, 1);
+  assert.equal(sim.wave.n, 2, 'передышка перед 2-й');
+  applyEvent(sim, { t: sim.t, k: 'go' });
+  step(sim);
+  assert.equal(sim.wave.stage, 'wave');
+  assert.equal(sim.wave.swept, 0);
 });
