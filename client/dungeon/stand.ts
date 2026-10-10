@@ -251,6 +251,26 @@ const real = (): DgSim | null => {
   /** снимок постройки по id */
   prop: (id: number) => (run instanceof SimRun ? run.sim.props.find((p) => p.id === id) ?? null : null),
   hero: () => (run instanceof SimRun ? { x: run.sim.hero.x, z: run.sim.hero.z, hp: run.sim.hero.hp, hpMax: run.sim.hero.hpMax, useId: run.sim.hero.useId, buffs: run.sim.hero.buffs, ride: run.sim.hero.ride, jump: run.sim.hero.jumpT1 > run.sim.t, xp: run.sim.hero.xp, level: run.sim.hero.level, chest: !!run.sim.chest, freeze: run.sim.freezeT > run.sim.t, items: run.sim.items.length } : null),
+  /** озверение для снимка: столбцы врагов с уровнями 0…3 слева направо, стоят (песочные часы); flash — вспышка озверения */
+  rageRow: (flash = false) => {
+    const s = real();
+    if (!s || !(run instanceof SimRun)) return;
+    s.mobs.length = 0;
+    s.hero.hp = s.hero.hpMax = 1e7;
+    const kinds = ['rat', 'slime', 'shroom', 'beetle'] as const;
+    for (let lv = 0; lv < 4; lv++) {
+      kinds.forEach((k, ki) => {
+        const m = spawnMob(s, k, s.hero.x + (lv - 1.5) * 5, s.hero.z - 6 + ki * 3, 0);
+        m.rage = lv;
+        m.hp = m.hpMax = 1e6;
+        m.dx = 0;
+        m.dz = 1;
+      });
+    }
+    s.freezeT = s.t + 30 * 600;
+    s.weapons.length = 0;
+    if (flash) (run as unknown as { rageAt: number }).rageAt = s.t;
+  },
   /** сундук-барабан (big — как у босса) */
   chest: (big = false) => {
     const s = real();

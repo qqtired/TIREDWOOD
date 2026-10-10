@@ -169,10 +169,12 @@ attribute float aPart;
 attribute vec3 aEmi;
 attribute float aRough;
 attribute vec4 aAnim;
+attribute float aRage;
 uniform highp sampler2D uPose;
 varying vec3 vEmi;
 varying float vRough;
 varying float vFlash;
+varying float vRage;
 mat4 dgPose(int row, int part) {
   int x = part * 3;
   vec4 r0 = texelFetch(uPose, ivec2(x, row), 0);
@@ -182,22 +184,40 @@ mat4 dgPose(int row, int part) {
 }
 `;
 
+/** Время для пульса озверения (одно на все виды) */
+const uTime = { value: 0 };
+
+/**
+ * Озверение (aRage: целая часть — уровень 0…3, дробная — вспышка в момент озверения, 0…0,9): глаза и светящиеся
+ * части краснеют и горят ярче с каждым уровнем, тело слегка уходит в сливово-красный, на 3-м — пульс; вспышка — алая.
+ */
+const RAGE_FRAG = /* glsl */ `
+  float dgLv = floor(vRage + 0.001);
+  float dgRf = fract(vRage + 0.001) / 0.9;
+  float dgPulse = dgLv > 2.5 ? 0.5 + 0.5 * sin(uTime * 7.0) : 0.0;
+  vec3 dgRed = vec3(1.0, 0.1, 0.25);
+  float dgEye = max(vEmi.r, max(vEmi.g, vEmi.b));
+  totalEmissiveRadiance += dgRed * dgEye * dgLv * 1.6;
+  totalEmissiveRadiance += dgRed * (0.05 * dgLv * dgLv / 3.0 + 0.13 * dgPulse) + vec3(1.0, 0.3, 0.45) * dgRf * 0.9;
+`;
+
 function mobMaterial(tex: THREE.DataTexture): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0 });
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uPose = { value: tex };
+    sh.uniforms.uTime = uTime;
     sh.vertexShader = VERT_HEAD + sh.vertexShader
       .replace('#include <beginnormal_vertex>', `
         int dgPart = int(aPart + 0.5);
         mat4 dgM = dgPose(int(aAnim.x + 0.5), dgPart) * (1.0 - aAnim.z) + dgPose(int(aAnim.y + 0.5), dgPart) * aAnim.z;
         vec3 objectNormal = mat3(dgM) * normal;
-        vEmi = aEmi; vRough = aRough; vFlash = aAnim.w;
+        vEmi = aEmi; vRough = aRough; vFlash = aAnim.w; vRage = aRage;
       `)
       .replace('#include <begin_vertex>', 'vec3 transformed = (dgM * vec4(position, 1.0)).xyz;');
-    sh.fragmentShader = 'varying vec3 vEmi;\nvarying float vRough;\nvarying float vFlash;\n' + sh.fragmentShader
-      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.97, 0.92), vFlash);')
+    sh.fragmentShader = 'uniform float uTime;\nvarying vec3 vEmi;\nvarying float vRough;\nvarying float vFlash;\nvarying float vRage;\n' + sh.fragmentShader
+      .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.05, 0.14), 0.2 * floor(vRage + 0.001));\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.97, 0.92), vFlash);')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = vRough;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += vEmi + diffuseColor.rgb * 0.22 + vec3(0.9, 0.85, 0.8) * vFlash;');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += vEmi + diffuseColor.rgb * 0.22 + vec3(0.9, 0.85, 0.8) * vFlash;\n' + RAGE_FRAG);
   };
   mat.customProgramCacheKey = () => 'dg-mob-vat';
   return mat;
@@ -208,6 +228,7 @@ interface KindMesh {
   baked: Baked;
   mesh: THREE.InstancedMesh;
   anim: THREE.InstancedBufferAttribute;
+  rage: THREE.InstancedBufferAttribute;
   n: number;
   cap: number;
   scale: number;
@@ -241,13 +262,16 @@ export class MobRenderer {
       const anim = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4);
       anim.setUsage(THREE.DynamicDrawUsage);
       geo.setAttribute('aAnim', anim);
+      const rage = new THREE.InstancedBufferAttribute(new Float32Array(cap), 1);
+      rage.setUsage(THREE.DynamicDrawUsage);
+      geo.setAttribute('aRage', rage);
       const mesh = new THREE.InstancedMesh(geo, mobMaterial(baked.tex), cap);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
       mesh.name = `dg-mob-${kind}`;
       this.root.add(mesh);
-      this.kinds.set(kind, { kind, baked, mesh, anim, n: 0, cap, scale: spec.scale });
+      this.kinds.set(kind, { kind, baked, mesh, anim, rage, n: 0, cap, scale: spec.scale });
     }
   }
 
@@ -264,14 +288,16 @@ export class MobRenderer {
   }
 
   begin(): void {
+    uTime.value = performance.now() / 1000;
     for (const k of this.kinds.values()) k.n = 0;
   }
 
   /**
    * Один враг. t — время клипа, с (цикл ходьбы крутится сам); over — второй клип поверх с весом w (вздрог при
-   * попадании); flash 0…1 — белая вспышка; s — масштаб сверх обычного (элиты из сундука, рождение).
+   * попадании); flash 0…1 — белая вспышка; s — масштаб сверх обычного (элиты из сундука, рождение); rage — озверение
+   * (уровень 0…3, дробная часть — вспышка озверения).
    */
-  push(kind: MobKind, x: number, y: number, z: number, yaw: number, key: ClipKey, t: number, flash: number, s = 1, over: ClipKey | null = null, overT = 0, overW = 0): void {
+  push(kind: MobKind, x: number, y: number, z: number, yaw: number, key: ClipKey, t: number, flash: number, s = 1, over: ClipKey | null = null, overT = 0, overW = 0, rage = 0): void {
     const km = this.target(kind);
     if (!km || km.n >= km.cap) return;
     const i = km.n++;
@@ -303,6 +329,7 @@ export class MobRenderer {
     arr[i * 4 + 1] = b;
     arr[i * 4 + 2] = f;
     arr[i * 4 + 3] = flash;
+    (km.rage.array as Float32Array)[i] = rage;
   }
 
   end(): void {
@@ -316,6 +343,9 @@ export class MobRenderer {
         k.anim.clearUpdateRanges();
         k.anim.addUpdateRange(0, k.n * 4);
         k.anim.needsUpdate = true;
+        k.rage.clearUpdateRanges();
+        k.rage.addUpdateRange(0, k.n);
+        k.rage.needsUpdate = true;
       }
     }
   }
