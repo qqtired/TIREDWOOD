@@ -97,8 +97,6 @@ export class ReelAbilityFx {
   private stormAt = 0;
   private senseUntil = 0;
   private senseDir = 1;
-  /** Пролом: на сколько px шкала выросла и в какую сторону (0 — не росла) */
-  private grown = 0;
 
   constructor(parts: { parent: HTMLElement; root: HTMLElement; bar: HTMLElement; zone: HTMLElement; fish: HTMLElement; label: HTMLElement; prog: HTMLElement; slot: HTMLElement }, sound: Sound) {
     this.sound = sound;
@@ -177,7 +175,6 @@ export class ReelAbilityFx {
   clear(): void {
     this.end();
     this.lb = null;
-    this.grown = 0;
     this.bar.style.height = '';
     this.bar.style.marginTop = '';
     this.bar.style.marginBottom = '';
@@ -448,7 +445,6 @@ export class ReelAbilityFx {
     if (g <= 0) return;
     const before = this.root.getBoundingClientRect();
     const barBox = this.bar.getBoundingClientRect();
-    this.grown = g;
     this.bar.style.height = `${this.bar.offsetHeight + g}px`;
     if (side > 0) {
       this.bar.style.marginTop = `${-g}px`;
@@ -511,7 +507,10 @@ export class ReelAbilityFx {
     this.pulse(this.splat, 'on');
   }
 
-  /** Значки ветра и хлыста — справа от шкалы, мини-шкалы селёдок и «Король ждёт» — слева (по месту шкалы сейчас) */
+  /**
+   * Значки ветра и хлыста — справа от шкалы; слева — плашка фазы (у верха шкалы, рыбу и зону не закрывает), мини-шкалы
+   * селёдок и под ними «Король ждёт» (по месту шкалы сейчас)
+   */
   private placeSide(): void {
     const b = this.bar;
     const mid = b.offsetTop + b.offsetHeight / 2;
@@ -525,8 +524,9 @@ export class ReelAbilityFx {
     this.minis.style.top = `${mid - h / 2}px`;
     for (const m of this.minis.children) (m as HTMLElement).style.height = `${h}px`;
     this.wait.style.right = `${this.root.clientWidth - b.offsetLeft + 12}px`;
-    this.wait.style.top = `${mid - h / 2 - 30}px`;
-    this.banner.style.top = `${Math.max(-40, this.label.offsetTop - (this.grown && this.label.style.translate ? this.grown : 0) - 10)}px`;
+    this.wait.style.top = `${mid + h / 2 + 8}px`;
+    this.banner.style.right = `${this.root.clientWidth - b.offsetLeft + 16}px`;
+    this.banner.style.top = `${b.offsetTop + 6}px`;
   }
 
   private markMini(i: number, cls: 'on' | 'done' | 'gone'): void {
