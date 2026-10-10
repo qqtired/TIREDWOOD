@@ -101,6 +101,13 @@ export class BoatRadios {
     this.changed();
   }
 
+  /** Лодка появилась (пакет B): у хозяина и пассажиров появляется кнопка радио (выключено) */
+  boatUp(id: number): void {
+    if (id < 0 || this.states.has(id) || !this.host.boat(id)) return;
+    this.states.set(id, radioDefault());
+    this.changed();
+  }
+
   /** Носитель исчез (лодку убрали): его радио молчит у всех */
   drop(id: number): void {
     if (this.states.delete(id)) this.changed();

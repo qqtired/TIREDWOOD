@@ -31,6 +31,7 @@ import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 import type { RadioClientMsg, RadioServerMsg } from './boatradio.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
+import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
@@ -133,8 +134,9 @@ export interface OnlineEntry {
  * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
  * через FishNpc.register (server/lobby/fishnpc.ts).
  */
-export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka';
-export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka'];
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka' | 'buyBoat';
+/** buyBoat — своя лодка у Семёна (флаг ISLE, обработчик подключает server/lobby/ownboats.ts через FishNpc.register) */
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka', 'buyBoat'];
 
 // --- Дурак за столиками кафе
 
@@ -191,6 +193,7 @@ export type ClientMsg =
   | HideClientMsg
   | RegattaClientMsg
   | PlaneClientMsg
+  | ObClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
    *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
   | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
@@ -226,7 +229,7 @@ export type ClientMsg =
    * Семён или Саня (npc, по умолчанию Семён): сервер проверяет близость, цену, уровень, заработанную удочку, готовность
    * квеста. buy — item из shared/fishshop.ts (bag1…3, lure1…3); sell — рыба n из рюкзака, sellAll — весь улов.
    */
-  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number }
+  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number; boat?: string }
   /** Рюкзак: отпустить рыбу n (где угодно, денег нет) */
   | { t: 'fishBag'; a: 'release'; n: number }
   /** Рюкзак: взять рыбу n в руки (похвастаться, сфотографироваться у маяка); n = −1 — убрать */
@@ -441,6 +444,7 @@ export type ServerMsg =
   | SkillServerMsg
   | RegattaServerMsg
   | PlaneServerMsg
+  | ObServerMsg
   | HideServerMsg
   | ({ t: 'skillSt' } & SkillStatus)
   | { t: 'hideSt'; v: GatherStatus | HideStatus }

@@ -25,7 +25,7 @@ import {
 import {
   BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp, questNeed, type FishCastMods,
 } from '../../shared/fishprogress.ts';
-import { spotZone } from '../../shared/fishplaces.ts';
+import { FISH_SPOT_COUNT, fishSpotAt, spotZone } from '../../shared/fishplaces.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
@@ -35,7 +35,6 @@ import {
 } from '../../shared/fishrules.ts';
 import { gradeErrors, hookBonusMs, reelStyle2 } from '../../shared/fishability.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
-import { FISH_SPOTS } from '../../shared/maps/lobby.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Store } from '../store.ts';
 import type { FishingHost } from './fishing.ts';
@@ -128,7 +127,8 @@ export class FishingHall2 {
   /** Шанс пива подводного владыки в сундуке (в тестах и в разработке подменяется) */
   lordChance = LORD_CHEST_CHANCE;
   readonly board: FishBoard;
-  private readonly spots: Spot[] = FISH_SPOTS.map(emptySpot);
+  /** Места на причалах и баркасе, за ними — в своих лодках на якоре (shared/fishplaces.ts) */
+  private readonly spots: Spot[] = Array.from({ length: FISH_SPOT_COUNT }, emptySpot);
   private readonly host: FishingHost2;
   private readonly profiles: Profiles;
   private readonly store: Store;
@@ -306,7 +306,7 @@ export class FishingHall2 {
     prof.stats.fsCasts++;
     this.store.markDirty();
     this.host.changed(s.slot);
-    const at = FISH_SPOTS[spot];
+    const at = fishSpotAt(spot)!;
     const fx = -Math.sin(at.yaw);
     const fz = -Math.cos(at.yaw);
     const d = 6.5 + this.rand() * 3;
@@ -316,8 +316,10 @@ export class FishingHall2 {
     s.phase = FP_CAST;
     s.until = tick + CAST_TICKS;
     const plan = planBite(this.rand);
-    s.nibbles = plan.nibbles.map((t) => s.until + Math.max(1, Math.round(t / s.mods.biteSpeed)));
-    s.biteAt = s.until + Math.max(1, Math.round(plan.bite / s.mods.biteSpeed));
+    // эхолот своей лодки на якоре: ждать поклёвку короче
+    const speed = s.mods.biteSpeed / (1 - (at.sonar ?? 0));
+    s.nibbles = plan.nibbles.map((t) => s.until + Math.max(1, Math.round(t / speed)));
+    s.biteAt = s.until + Math.max(1, Math.round(plan.bite / speed));
     s.n = 0;
     s.nibbled = false;
     s.sp = -1;
