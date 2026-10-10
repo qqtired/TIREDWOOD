@@ -66,10 +66,43 @@ export type DgServerMsg =
   /** волна отбита по серверной копии: жетоны за неё */
   | { t: 'dg_wave'; wave: number; coins: number }
   /** итог забега */
-  | { t: 'dg_end'; result: DgResult; coins: number; newBest: boolean; weekRank: number };
+  /** coins — всего за забег (волны и боссы уже пришли в dg_wave); pay — из чего они сложились (для экрана итогов) */
+  | { t: 'dg_end'; result: DgResult; coins: number; newBest: boolean; weekRank: number; pay?: DgPay };
 
 /** Строка таблицы рекордов */
-export interface DgRec { nick: string; waves: number; ms: number; at: number }
+/** pid — профиль (у каждого одна строка, лучшая; по нему же своя строка — золотом) */
+export interface DgRec { nick: string; waves: number; ms: number; at: number; pid?: number }
 
 /** Что сервер кладёт в статус набережной для таблички у входа (null — режим выключен флагом) */
 export interface DgStatus { top: DgRec[]; week: DgRec[] }
+
+// ------------------------------------------------------------ журнал ввода и сервер (часть B, server/dungeon/*)
+//
+// Порядок шага — один у клиента и у сервера, иначе копии разойдутся:
+//   пока у следующего события журнала t ≤ sim.tick — applyEvent(sim, ev); затем step(sim) (sim.tick растёт на 1).
+// `upto` в dg_log — sim.tick после последнего шага клиента; `h` — dgHash(sim) сразу после этого шага (до событий с t = upto).
+// События в журнале идут по неубыванию t. Клиент шлёт dg_log, когда накопились события, и не реже раза в секунду
+// (ev может быть пустым): по нему сервер шагает свою копию. Подтверждённое (dg_ack n) клиент выбрасывает; `need` —
+// прислать заново начиная с этого индекса. Пока забег на паузе (Esc, свёрнутая вкладка, обрыв связи) — клиент не шагает.
+
+/** Не больше событий в одном dg_log (и JSON сообщения ≤ 2000 символов) */
+export const DG_LOG_MAX = 20;
+/** Пауза (или тишина без журнала) дольше — забег закрывается с итогом `timeout` */
+export const DG_PAUSE_MAX_MS = 10 * 60_000;
+/** Обрыв связи: столько сервер держит забег на паузе, ждёт возврата (решение владельца 3б); не вернулся — итог `leave` */
+export const DG_LOST_MS = 60_000;
+/** Строк каждой таблицы рекордов у входа (всё время / неделя) */
+export const DG_TOP_SHOWN = 5;
+
+/** Жетоны за забег (design.md §13): волна — min(18, 5 + w), босс n — 25 + 5 × (n − 1), новый личный рекорд волн — 15, потолок 600 */
+export const DG_RECORD_COINS = 15;
+export const DG_RUN_CAP = 600;
+export function dgWaveCoins(wave: number): number {
+  return Math.min(18, 5 + wave);
+}
+export function dgBossCoins(n: number): number {
+  return 25 + 5 * (n - 1);
+}
+
+/** Из чего сложились жетоны забега */
+export interface DgPay { waves: number; bosses: number; record: number }
