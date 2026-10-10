@@ -945,7 +945,8 @@ async function selectCos(key, start) {
 function renderQuestions() {
   const Q = D.review.questions;
   const KEY = 'tw-isle-review-answers';
-  const ans = store.get(KEY, {});
+  const chosen = Object.fromEntries(Q.filter((q) => q.chosen).map((q) => [q.id, q.chosen]));
+  const ans = { ...chosen, ...store.get(KEY, {}) };
   $('#q-list').innerHTML = Q.map((q, i) => `
     <article class="panel q" id="q-${esc(q.id)}">
       <span class="qn">${i + 1}</span>
@@ -956,7 +957,7 @@ function renderQuestions() {
       </div>
     </article>`).join('');
   const text = () => {
-    const a = store.get(KEY, {});
+    const a = { ...chosen, ...store.get(KEY, {}) };
     const lines = Q.map((q, i) => {
       const o = q.options.find((x) => x.id === a[q.id]);
       return o ? `${i + 1}. ${q.title} — ${o.label}` : null;

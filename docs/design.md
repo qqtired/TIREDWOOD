@@ -708,6 +708,40 @@ deploy/
   `fishserver` (задания, удочки, пиво, подиум), `fishprogress`, `fishpatterns`, `fishbalance`, `fishplaces`
   (все 12 мест), `fishpodium`, `fishing-migration-review` и др.
 
+### Рыбалка 10.10: приёмы мификов, остров «Последний свет», свои лодки (флаги `FISH2`, `ISLE`)
+
+Вышло релизом `20261010-204608` (протокол 16). План и решения владельца — `superpowers/plans/2026-10-10-fishing-*.md`,
+страница ревью — `lab/fishing-review/`.
+
+- **Приёмы мификов и божественной** (под `FISH2`) — блоки той же целочисленной симуляции шкалы: `shared/fishability.ts`
+  (`SPECIES_ABILITY`, `ISLE_ABILITY`, `reelStyle2`), `shared/fishreel.ts` (`AbilitySpec`, `abilityView`). Клиент и сервер
+  переигрывают их одинаково (`test/fishability.test.ts` сверяет бит в бит). Награды уровней — `LEVEL_PERKS` / `levelBonus`
+  (окно подсечки — `hookBonusMs`, «Спокойная рука» — `gradeErrors`; их зовёт `server/lobby/fishing2.ts`), зона +1,5 % за уровень
+  (`ZONE_PER_LEVEL`). Отрисовка приёмов — `client/lobby/fishabfx.ts`. Осётр «чует ловушку» — `WARY_HOLD`.
+- **Флаг `ISLE`** — `isleEnabled()` в `shared/isle.ts`, работает только с `FISH2`; `hub.isle`, клиенту — `me.isle` и
+  поле `isle` в приветствии набережной. Без флага коробки острова выключены, места на моле и Игнат на сервере не работают,
+  лодок нет, цены ×0,65.
+- **Остров в мире** — тот же мир набережной, без загрузки: центр (−2364,9; 557,6), воды острова — 300 м
+  (`shared/maps/isle.ts`: причал, мол, Игнат, буи F1–F6; коллизия `shared/maps/isleboxes.ts` строится
+  `tools/isle/collision.mjs` из GLB). Клиент (`client/lobby/isle/`) грузит модели ближе 2 км, полный остров — ближе 520 м,
+  туман по дальности — `isleClimate`. Сервер (`server/lobby/isle.ts`): туман-событие (ясно 15–30 мин, туман 4:48–8:00),
+  сезон острова в нечётные часы МСК (`ISLE_SEASON_SHIFT_MS`), «на большую землю» за 250, упал в воду — на причал.
+- **Рыба острова** — 20 видов в конце `FISH` (ключи прежних не сдвинуты), свои `RAW`/`CAL`; пул выбирает сервер по точке,
+  куда упал поплавок (`castZone`, `fishZoneAtSea` в `shared/fishisle.ts`). Свой счётчик — `isleCaught` /
+  `ISLE_SPECIES` (`shared/islestyle.ts`), лестница наград — `ISLE_LADDER`, выдача — `grantLadder` (`server/fishstyle.ts`).
+  Цена рыбы пристани и баркаса ×0,4 включается `setIsleEconomy`.
+- **Свои лодки** — `shared/fishboat.ts` (`BOATS`, профиль `fishing.boats`), `shared/ownboat.ts` (берты, `stepOwnBoat`,
+  сообщения `ob`), `server/lobby/ownboats.ts`: покупка, вызов, посадка, якорь (`OB_ANCHOR_CLEAR` = 12 м). Стоянка держит
+  не больше 8 лодок; без хозяина лодка у причала ждёт 30 мин, в море уходит через 10 с. Места ловли с лодок —
+  `BOAT_FISH_SPOTS` (16 лодок × 3) после мест на берегу. В снимке x/z сущностей — int24 (`ENTITY_BYTES` = 16),
+  игроков дальше 900 м друг от друга не шлём (`OB_SNAP_RANGE`).
+- **Лайвел** — `shared/fishlivewell.ts`, профиль `fishing.livewell` (нумерация общая с рюкзаком, старые сохранения грузятся);
+  сервер — `server/lobby/fishlivewell.ts` (`sellCatch`, `sellFromBoat`), у скупщиков — действия `sellWell` / `sellEvery`;
+  в `fishLand` — `well`, `wcap`, `isle`.
+- **Радио** — сервер (`shared/boatradio.ts`, `server/lobby/boatradio.ts`) хранит только станцию, вкл и «все на борту»;
+  звук синтезирует клиент (`client/boat/radio*.ts`, станции — `client/boat/stations/`) движком музыкального автомата
+  (`startFeed` в `client/music/engine.ts`). Эфир идёт по часам сервера: лодки на одной станции звучат в такт; к 45 м тишина.
+
 ## Погода
 
 **Сервер** (`server/lobby/weather.ts`, `Weather`) решает погоду на всю набережную: после запуска ясно
