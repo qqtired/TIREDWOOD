@@ -17,7 +17,7 @@ import type { MeState } from '../scene.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el, fishPic, tierOf } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
-import { bagMarks, levelOpens, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
+import { bagMarks, levelOpens, levelPerkText, levelPerks, mul, num, pct, shopImg, xpTo } from './fishfmt.ts';
 import { fishSkillBlock } from './fishprogresshud.ts';
 import { FISH_SEASON, SEASON_PERKS, SEASON_PERKS_LONG, seasonLeft, seasonWait } from './fishseason.ts';
 import './fisheco.css';
@@ -423,7 +423,7 @@ export class FishNpcDialog {
     const opens = levelOpens(next);
     this.perks.textContent = level >= FISH_MAX_LEVEL
       ? `Ур. ${FISH_MAX_LEVEL}: ${levelPerks(FISH_MAX_LEVEL)} — максимум`
-      : `${level ? `Сейчас — ${levelPerks(level)}` : 'Бонусов уровня пока нет'}. На ур. ${next}: ${levelPerks(next)}${opens.length ? ` · откроется: ${opens.join(', ')}` : ''}.`;
+      : `${level ? `Сейчас — ${levelPerks(level)}` : 'Бонусов уровня пока нет'}. На ур. ${next}: ★ ${levelPerkText(next)} · ${levelPerks(next)}${opens.length ? ` · откроется: ${opens.join(', ')}` : ''}.`;
     this.questTitle.textContent = `Задание ${p.questsDone + 1} · поймай ${need} рыб`;
     this.questProgress.max = need;
     this.questProgress.value = Math.min(need, p.questCaught);

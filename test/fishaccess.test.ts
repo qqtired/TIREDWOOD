@@ -6,8 +6,8 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT, TICK_RATE } from '../shared/constants.ts';
 import { FISH_BOARD, FISH_MOORINGS, FISH_PODIUM, FISHER_NPC } from '../shared/fishplaces.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
 import { FE_BITE, FE_CAST, FE_LAND, FISH, FP_BITE, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
-import { reelStyleFor } from '../shared/fishrules.ts';
 import { ACT_FISH, ACT_NONE } from '../shared/lobby.ts';
 import { FISH_SPOTS } from '../shared/maps/lobby.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
@@ -123,7 +123,7 @@ function hookAll(e: Env, fishers: Array<{ a: Fisher; spot: number }>): Play[] {
     assert.ok(m, `сервер выдал seed шкалы места ${spot}`);
     assert.equal(m.spot, spot);
     assert.equal(hall.phase(spot), FP_REEL);
-    const play = playReel(reelStyleFor(m.sp, m.mods), m.seed, EXPERT);
+    const play = playReel(reelStyle2(m.sp, m.mods), m.seed, EXPERT);
     assert.ok(play.caught, 'ставрида поймана моделью честных нажатий');
     return play;
   });
