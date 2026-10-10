@@ -2,7 +2,9 @@
 // и питомцы на плече. Координаты тела, как в outfit3d.ts: макушка y = 1,58, лицо в −Z, φ = 0 — спина, φ = π — лицо,
 // +X — правая сторона желейки (в правой руке удочка). Шапки и аксессуары гнутся вместе с телом шейдером (hatpose.ts),
 // питомец — жёсткий узел, который каждый кадр встаёт в точку тела под собой (avatar.ts).
+// Остров «Последний свет»: шапка и свитер смотрителя и тупик — из GLB (islegear.ts) в те же Wear и PetRider.
 import * as THREE from 'three';
+import { islePuffin, isleWear } from './islegear.ts';
 import { BODY_H, bodyR, col, colTri, merge, tube, wear, wearOf, type Wear } from './outfit3d.ts';
 
 type Geo = THREE.BufferGeometry;
@@ -699,7 +701,7 @@ const PERCH_Y = 1.0;
 /** Лапы над телом: тело выше сужается к макушке, птица не должна в него уходить */
 const PERCH_OFF = 0.03;
 /** На куртках с воротником лапы выше: воротник лежит на плече */
-const PERCH_LIFT: Record<string, number> = { oilskin: 0.016, tunic: 0.018 };
+const PERCH_LIFT: Record<string, number> = { oilskin: 0.016, tunic: 0.018, keeper: 0.012 };
 
 interface PetDef {
   geo: Geo | null;
@@ -783,7 +785,21 @@ function parrot(): PetDef {
   return { geo: merge(parts), metal: null, yaw: 0.28, look: 0.32 };
 }
 
-const PETS: Record<string, () => PetDef> = { gull, parrot };
+const PETS: Record<string, () => PetDef> = {
+  gull,
+  parrot,
+  // тупик — узлы из GLB (islegear.ts): голова, веки, крылья, мойва в клюве; здесь — только как оглядывается
+  puffin: () => ({ geo: null, metal: null, yaw: 0.28, look: 0.55 }),
+};
+
+/** Узлы тупика, которые двигает код (как в GLB: puffin_body, head, lid_L/R, capelin, wing_L/R) */
+interface PuffinParts {
+  body: THREE.Object3D;
+  head: THREE.Object3D;
+  lids: THREE.Object3D[];
+  capelin: THREE.Object3D;
+  wings: [THREE.Object3D, THREE.Object3D];
+}
 const petCache = new Map<string, PetDef | null>();
 
 function petDef(key: string): PetDef | null {
@@ -811,8 +827,17 @@ export class PetRider {
   private target = 0;
   private nextLook = 0;
   private nod = 0;
+  private readonly mat: THREE.Material;
+  /** Тупик: своя копия узлов GLB на эту желейку (геометрии общие), заводится при первом тупике */
+  private rig: THREE.Object3D | null = null;
+  private parts: PuffinParts | null = null;
+  private blinkAt = 0;
+  private blinkT = -1;
+  /** С поимки рыбы хозяином, с (−1 — нет) */
+  private cheerT = -1;
 
   constructor(mat: THREE.Material, metalMat: THREE.Material) {
+    this.mat = mat;
     this.geo = new THREE.Mesh(undefined, mat);
     this.metal = new THREE.Mesh(undefined, metalMat);
     this.node.add(this.geo, this.metal);
@@ -826,16 +851,85 @@ export class PetRider {
     this.def = d;
     this.perch.copy(onBody(PERCH_PHI, PERCH_Y, PERCH_OFF + (Object.hasOwn(PERCH_LIFT, acc) ? PERCH_LIFT[acc] : 0)));
     this.node.visible = d !== null;
+    if (this.rig) this.rig.visible = key === 'puffin';
     if (!d) return;
+    // тупик ещё грузится: не видно, желейка переоденется сама (avatar.ts → whenIsleOutfit)
+    if (key === 'puffin' && !this.puffinRig()) this.node.visible = false;
     this.geo.visible = d.geo !== null;
     if (d.geo) this.geo.geometry = d.geo;
     this.metal.visible = d.metal !== null;
     if (d.metal) this.metal.geometry = d.metal;
   }
 
+  /** Хозяин поймал рыбу: тупик машет крыльями и держит мойву, остальные кивают */
+  cheer(): void {
+    if (this.rig?.visible) this.cheerT = 0;
+    else this.nod = 1;
+  }
+
+  /** Копия тупика из GLB на эту желейку; null — модель ещё грузится */
+  private puffinRig(): THREE.Object3D | null {
+    if (this.rig) return this.rig;
+    const tpl = islePuffin();
+    if (!tpl) return null;
+    const rig = tpl.clone(true);
+    rig.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = this.mat;
+    });
+    const by = (name: string): THREE.Object3D => rig.getObjectByName(name)!;
+    this.parts = { body: by('puffin_body'), head: by('head'), lids: [by('lid_L'), by('lid_R')], capelin: by('capelin'), wings: [by('wing_L'), by('wing_R')] };
+    for (const o of [...this.parts.lids, this.parts.capelin]) o.visible = false;
+    this.rig = rig;
+    this.node.add(rig);
+    return rig;
+  }
+
+  /** Тупик живёт (как анимации idle, blink, catch в GLB): дышит, моргает, на поимке — подскок, взмахи, мойва в клюве */
+  private animatePuffin(time: number, dt: number): void {
+    const p = this.parts!;
+    const s = (1 - Math.cos(((time % 4) / 4) * Math.PI * 2)) / 2;
+    p.body.scale.set(1 + 0.015 * s, 1 + 0.03 * s, 1 + 0.015 * s);
+    let head = 0.06 * s;
+    let wing = 0.05 * s;
+    let hop = 0;
+    let fish = 0;
+    if (time >= this.blinkAt) {
+      this.blinkT = 0;
+      this.blinkAt = time + 2 + Math.random() * 3;
+    }
+    let lid = 0;
+    if (this.blinkT >= 0) {
+      this.blinkT += dt;
+      lid = this.blinkT >= 0.3 ? 0 : Math.min(1, Math.sin((Math.PI * this.blinkT) / 0.3) * 1.6);
+      if (this.blinkT >= 0.3) this.blinkT = -1;
+    }
+    if (this.cheerT >= 0) {
+      this.cheerT += dt;
+      const t = this.cheerT;
+      if (t >= 2) this.cheerT = -1;
+      else {
+        fish = t < 0.2 ? t / 0.2 : t < 1.85 ? 1 : 0;
+        head = Math.max(head, 0.32 * Math.sin(Math.min(1, t / 1.6) * Math.PI));
+        if (t < 0.7) wing = 0.85 * Math.abs(Math.sin((t / 0.7) * Math.PI * 2));
+        if (t < 0.45) hop = 0.011 * Math.sin((t / 0.45) * Math.PI);
+      }
+    }
+    for (const l of p.lids) {
+      l.visible = lid > 0.01;
+      l.scale.setScalar(Math.max(0.001, lid));
+    }
+    p.capelin.visible = fish > 0.01;
+    p.capelin.scale.setScalar(Math.max(0.001, fish));
+    p.head.rotation.x = head;
+    p.wings[0].rotation.z = -wing;
+    p.wings[1].rotation.z = wing;
+    p.body.position.y = hop;
+  }
+
   update(time: number, dt: number, uTime: number, wobble: number, lean: THREE.Vector2): void {
     const d = this.def;
     if (!d) return;
+    if (this.rig?.visible) this.animatePuffin(time, dt);
     const p = this.perch;
     const h = Math.min(1, Math.max(0, p.y / BODY_H));
     const wob = Math.sin(uTime * 2.7 + h * 2.5) * 0.014 + wobble * Math.sin(uTime * 23 - h * 6) * h * 0.17;
@@ -872,6 +966,8 @@ const cache = new Map<string, Wear>();
 
 /** Геометрия вещи: награды рыбалки отсюда, остальное — из outfit3d.ts. Общая для всех желеек. */
 export function wearFor(slot: 'h' | 'a' | 'e', key: string): Wear {
+  const isle = isleWear(slot, key);
+  if (isle !== undefined) return isle;
   const table = slot === 'h' ? HATS : slot === 'a' ? ACCS : null;
   if (!table || !Object.hasOwn(table, key)) return wearOf(slot, key);
   const id = `${slot}:${key}`;

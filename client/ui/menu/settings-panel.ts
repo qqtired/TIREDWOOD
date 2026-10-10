@@ -119,7 +119,7 @@ export class SettingsPanel {
     this.toggle(c, () => s.muted, (v) => {
       if (v !== s.muted) toggleMute(s);
     });
-    c = this.item('sound', 'Музыка', 'Музыкальный автомат на площади: песня играет на всю набережную, у автомата — громче');
+    c = this.item('sound', 'Музыка', 'Музыкальный автомат на площади (песня — на всю набережную, у автомата громче) и радио на лодках');
     this.slider(c, 'Музыка', 0, 1, 0.05, () => s.musicVolume, (v) => { s.musicVolume = v; }, () => pct(s.musicVolume), hear('music'));
     c = this.item('sound', 'Окружение', 'Море, чайки, ветер, дождь и гром');
     this.slider(c, 'Окружение', 0, 1, 0.05, () => s.ambVolume, (v) => { s.ambVolume = v; }, () => pct(s.ambVolume), hear('amb'));

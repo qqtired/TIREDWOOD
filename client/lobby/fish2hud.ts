@@ -4,7 +4,9 @@
 // приветствии всё молчит, и работает старая рыбалка.
 import type * as THREE from 'three';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
-import { bagSlots, fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
+import { fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
+import { catchFullHint, catchRoom } from '../../shared/fishlivewell.ts';
+import { ISLE, castZone, setIsle } from '../../shared/fishisle.ts';
 import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
@@ -30,7 +32,7 @@ import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
-import { DONE_RELEASE } from '../../shared/fishrelease.ts';
+import { BAG_FULL_HINT, CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -70,6 +72,9 @@ export class Fish2Hud {
   private readonly send: (msg: ClientMsg) => void;
   private top: FishBoardView | null = null;
   private rain = false;
+  /** Остров (флаг ISLE): туман и сезон острова — свои события (isleWeather); «Шансы сейчас» у острова считают по ним */
+  private isleFog = false;
+  private isleSeason = false;
   private quiet = false;
   private eventUntil = 0;
   /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
@@ -81,10 +86,13 @@ export class Fish2Hud {
     this.reel = new ReelGame(parent, sound);
     this.reel.onSend = send;
     this.reel.onWarn = (text) => ui.chat.note(text);
+    this.reel.onToast = (text) => ui.toasts.show(text, 3500, 'fish-ability');
     this.card = new CatchCard2(parent, sound);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
-    this.card.onKeep = () => send({ t: 'fish', a: 'keep' });
-    this.card.onRelease = () => this.release();
+    this.card.onKeep = () => this.choose(true);
+    this.card.onRelease = () => this.choose(false);
+    // конец вываживания (поймал, сорвалась, сдался): 0,75 с никакие нажатия не принимаются, потом — выбор
+    this.reel.onEnd = () => this.lockInput();
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
@@ -131,16 +139,21 @@ export class Fish2Hud {
   get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
   get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
 
-  /** Рюкзак полон — заброс не уйдёт (сервер скажет то же самое) */
+  /** Рыбу некуда положить (рюкзак полон, а лайвела своей лодки нет или он полон) — заброс не уйдёт (сервер скажет то же самое) */
   get bagFull(): boolean {
-    const f = this.ui.me().fishing;
-    return f.bag.length >= bagSlots(f);
+    return catchRoom(this.ui.me().fishing) === null;
+  }
+
+  /** Почему заброс не уходит, когда bagFull: без лодки — как раньше, с лодкой — рюкзак и лайвел полны */
+  get fullHint(): string {
+    return catchFullHint(this.ui.me().fishing, ISLE.on) ?? BAG_FULL_HINT;
   }
 
   /** Приветствие набережной: включена ли, доска рекордов, дождь. true — доска только что появилась (пересчитать тени). */
-  lobby(on: boolean, top: FishBoardView | null, rain: boolean): boolean {
+  lobby(on: boolean, top: FishBoardView | null, rain: boolean, isle = false): boolean {
     const was = this.board.group.visible;
     FISH2.on = on;
+    setIsle(on && isle);
     this.board.group.visible = on;
     this.podium.group.visible = on;
     this.fisherman.group.visible = on;
@@ -176,7 +189,14 @@ export class Fish2Hud {
 
   /** Журналу — погода и сезон для «сейчас N% поклёвок» (как «Шансы сейчас») */
   private bookWeather(now = this.clock.now()): void {
-    this.book.setWeather(this.rain || this.season, now, this.season);
+    this.book.setWeather(this.rain || this.season, now, this.season, this.isleFog || this.isleSeason, this.isleSeason);
+  }
+
+  /** Погода острова (письмо isle): «Туман наступает» и сезон острова — для «Шансов сейчас» и журнала у видов острова */
+  isleWeather(fog: boolean, season: boolean): void {
+    this.isleFog = fog;
+    this.isleSeason = season;
+    this.bookWeather();
   }
 
   /** Идёт ли сезон рыбалки по часам сервера */
@@ -304,11 +324,36 @@ export class Fish2Hud {
 
   onLand(msg: Extract<ServerMsg, { t: 'fishLand' }>): void {
     this.card.show(msg);
+    // кнопки выбора притушены, пока не кончилась пауза после вываживания (она идёт с конца шкалы, а карточка пришла от сервера позже)
+    this.card.lockFor(this.lockUntil - performance.now());
   }
 
   /** Сервер: рыба сорвалась (или кривое сообщение) — показать на шкале и убрать. */
   lost(): void {
     this.reel.stop();
+    this.lockInput();
+  }
+
+  /** До этого момента (performance.now) нажатия после вываживания игнорируются */
+  private lockUntil = 0;
+
+  private lockInput(): void {
+    this.lockUntil = Math.max(this.lockUntil, performance.now() + CHOICE_LOCK_MS);
+  }
+
+  /** Первые CHOICE_LOCK_MS после конца вываживания не принимаются ни ЛКМ с пробелом, ни кнопки и клавиши выбора (ложные срабатывания) */
+  get inputLocked(): boolean {
+    return performance.now() < this.lockUntil;
+  }
+
+  /** Идёт вываживание (шкала играет): персонаж стоит на месте, ходить нельзя */
+  get reelRunning(): boolean {
+    return this.reel.running;
+  }
+
+  /** X или кнопка «Прекратить»: сдаться — рыба срывается, управление возвращается. false — шкала не идёт. */
+  giveUp(): boolean {
+    return this.reel.giveUp();
   }
 
   /** Ушёл с места рыбалки: шкалу — сразу; карточка улова уйдёт сама. */
@@ -326,10 +371,18 @@ export class Fish2Hud {
     return this.card.canRelease;
   }
 
-  /** F или кнопка «Отпустить»: рыбу из рук — в воду (решает сервер). false — отпускать нечего. */
-  release(): boolean {
+  /** Куда ляжет рыба в руках: «в рюкзак» или «в лайвел» (рюкзак полон — лайвел своей лодки) */
+  get keepWhere(): string {
+    return this.card.inWell ? 'в лайвел' : 'в рюкзак';
+  }
+
+  /**
+   * Выбор с рыбой в руках — кнопка карточки или клавиша (1 — «В рюкзак», F или 2 — «Отпустить»); решает сервер.
+   * true — выбор был открыт и нажатие съедено (пока идёт пауза после вываживания, оно ничего не делает); false — выбирать нечего.
+   */
+  choose(keep: boolean): boolean {
     if (!this.card.canRelease) return false;
-    this.send({ t: 'fish', a: 'release' });
+    if (!this.inputLocked) this.send({ t: 'fish', a: keep ? 'keep' : 'release' });
     return true;
   }
 
@@ -367,11 +420,13 @@ export class Fish2Hud {
     this.tools.classList.toggle('show', (fishing || near) && !this.modalOpen);
     // «Шансы сейчас» — пока сидишь с удочкой, не тянешь рыбу и не смотришь карточку улова (она встаёт на то же место
     // справа и перекрывала бы шансы); место (пристань/баркас) — по своему месту
-    const zone = fishing ? spotZone(spot) : 'pier';
+    // в море (баркас, лодка на якоре) пул — по точке: в водах острова клюёт остров (shared/fishisle.ts)
+    const zone = !fishing ? 'pier' : px !== null && pz !== null ? castZone(spotZone(spot), px, pz) : spotZone(spot);
     this.progress.setZone(zone);
     const odds = fishing && !this.reel.active && !this.card.shown;
     this.odds.root.hidden = !odds;
-    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain || this.season, this.season);
+    const isle = zone === 'isle';
+    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), isle ? this.isleFog || this.isleSeason : this.rain || this.season, isle ? this.isleSeason : this.season);
     this.plates();
   }
 

@@ -1,4 +1,5 @@
-// После поимки (shared/fishrelease.ts): рыба в руках — «В рюкзак» (keep, ЛКМ-заброс, или не выбрал) или «Отпустить»
+// После поимки (shared/fishrelease.ts): рыба в руках — «В рюкзак» (keep, клавиша 1, или не выбрал; заброс с рыбой в руках, пока
+// она ждёт выбора, не принимается) или «Отпустить»
 // (release, F): из рюкзака в воду, жетонов нет, опыт рыбалки за поимку ×1,5, альбом и счётчики уже засчитаны. Полный
 // рюкзак — заброс не уходит, подсказка «продай или отпусти из рюкзака (I)». Всё — через настоящие Hub/LobbyRoom и диск.
 import assert from 'node:assert/strict';
@@ -8,7 +9,8 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FISH, FP_BITE, FP_HOLD, FP_IDLE } from '../shared/fishing.ts';
-import { reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
+import { type Hooked } from '../shared/fishrules.ts';
 import { BAG_BASE } from '../shared/fishshop.ts';
 import { CHOICE_TICKS, DONE_RELEASE, RELEASE_XP, releaseXp } from '../shared/fishrelease.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
@@ -58,7 +60,7 @@ function catchOne(e: Env, what: Hooked): void {
   for (let i = 0; i < 30 * TICK_RATE && e.hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   advance(e, 2);
   const mods = e.hall.views()[0].mods!;
-  const style = reelStyleFor(what.sp, mods);
+  const style = reelStyle2(what.sp, mods);
   let play: Play | null = null;
   let seed = 0;
   for (let c = 1; c <= 400 && !play; c++) { const p = playReel(style, c, EXPERT); if (p.caught) { play = p; seed = c; } }
@@ -114,7 +116,7 @@ test('отпустить (F): рыба из рюкзака — в воду, же
   assert.notEqual(e.hall.phase(0), FP_IDLE);
 });
 
-test('в рюкзак: ЛКМ (заброс из рук), кнопка keep или не выбрал за CHOICE_TICKS — рыба в рюкзаке, опыт обычный; потом отпустить нельзя', () => {
+test('в рюкзак: кнопка keep или не выбрал за CHOICE_TICKS — рыба в рюкзаке, опыт обычный; потом отпустить нельзя', () => {
   const e = setup();
   catchOne(e, { sp: sp('scad'), g: 300, coins: 0 });
   const xp0 = e.p.fishing.xp;
@@ -134,11 +136,17 @@ test('в рюкзак: ЛКМ (заброс из рук), кнопка keep ил
   advance(e, 6);
   assert.equal(e.hall.phase(0), FP_IDLE);
   assert.equal(e.p.fishing.bag.length, 2);
-  // ЛКМ с рыбой в руках — в рюкзак и сразу заброс
+  // заброс с рыбой в руках, пока она ждёт выбора, не принимается (хотфикс 10.10); выбрал «В рюкзак» — заброс идёт
   catchOne(e, { sp: sp('scad'), g: 400, coins: 0 });
   e.clock.now += 1100;
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
-  assert.equal(e.p.fishing.bag.length, 3);
+  assert.equal(e.hall.phase(0), FP_HOLD, 'пока не выбрал — заброса нет, за игрока ничего не решено');
+  assert.equal(e.p.fishing.bag.length, 3, 'рыба уже в рюкзаке с момента поимки');
+  e.clock.now += 1100;
+  e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
+  assert.equal(e.hall.phase(0), FP_IDLE);
+  e.clock.now += 1100;
+  e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   assert.notEqual(e.hall.phase(0), FP_IDLE);
   advance(e, 2);
   assert.ok(fishEvents(e).some((x) => x[0] === FE_DONE && x[2] === 1));

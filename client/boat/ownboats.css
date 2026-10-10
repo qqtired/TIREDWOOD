@@ -1,0 +1,80 @@
+/* Свои лодки: панель в лодке, окно вызова, вкладка «⛵ Лодки» у Семёна (client/boat/boatui.ts) */
+
+.ob-hud { position: absolute; inset: 0; pointer-events: none; font-variant-numeric: tabular-nums; }
+.ob-hud[hidden] { display: none; }
+.ob-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 8px 20px 9px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); text-align: center; white-space: nowrap; }
+.ob-line { display: flex; align-items: baseline; gap: 14px; }
+.ob-title { font-size: 20px; font-weight: 800; }
+.ob-speed { font-size: 20px; font-weight: 800; color: var(--gold); min-width: 82px; text-align: right; }
+.ob-phase { margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--cream-dim); }
+.ob-phase[hidden] { display: none; }
+
+/* стрелки к острову и к стоянке — справа сверху */
+.ob-nav { position: absolute; top: 76px; right: 18px; display: grid; gap: 6px; width: 270px; padding: 10px 12px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.ob-nav[hidden] { display: none; }
+.ob-navrow { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 10px; }
+.ob-arrow { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-style: normal; font-size: 18px; background: rgba(255, 240, 220, .1); transition: transform .12s linear; }
+.ob-isle .ob-arrow { color: #8ff0a4; box-shadow: inset 0 0 0 2px rgba(143, 240, 164, .55); }
+.ob-park .ob-arrow { color: #ffb36b; box-shadow: inset 0 0 0 2px rgba(255, 179, 107, .5); font-size: 15px; }
+.ob-navtxt { display: flex; flex-direction: column; min-width: 0; }
+.ob-navtxt span { font-size: 12.5px; line-height: 1.25; color: var(--cream-dim); }
+.ob-navtxt b { font-size: 17px; font-weight: 800; }
+.ob-sonar { margin-top: 2px; font-size: 12px; color: var(--cream-dim); border-top: 1px solid var(--line); padding-top: 6px; }
+
+/* кнопки: якорь, продать улов, место радио — справа снизу */
+.ob-side { position: absolute; right: 18px; bottom: 22px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.ob-radio:empty { display: none; }
+.ob-btn { padding: 9px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); color: inherit; font: 700 15px/1.2 Rubik, system-ui, sans-serif; pointer-events: auto; cursor: pointer; }
+.ob-btn:hover { border-color: var(--gold); }
+.ob-btn[hidden] { display: none; }
+.ob-sell { color: var(--gold); }
+
+/* окно вызова: лодки и схема пирса */
+.fn-dialog.ob-dialog { width: min(760px, calc(100vw - 40px)); height: auto; max-height: calc(100dvh - 40px); }
+.ob-dialog[open] { grid-template-rows: auto minmax(0, 1fr) auto; }
+.ob-dialog .ob-body { padding: 14px 22px 18px; overflow-y: auto; }
+.ob-dialog h3 { margin: 6px 0 8px; font-size: 15px; font-weight: 800; color: var(--cream-2); }
+.ob-boats { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-boatpick { display: grid; grid-template-columns: 74px minmax(0, 1fr); grid-template-rows: auto auto; gap: 0 10px; align-items: center; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--np-card, rgba(255, 240, 220, .05)); color: var(--cream); text-align: left; cursor: pointer; font: inherit; }
+.ob-boatpick img { grid-row: 1 / 3; width: 74px; height: 48px; object-fit: cover; border-radius: 9px; }
+.ob-boatpick b { font-size: 15px; }
+.ob-boatpick span { font-size: 12px; color: var(--cream-dim); }
+.ob-boatpick[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255, 211, 90, .45); }
+.ob-map { display: grid; grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr); gap: 8px; padding: 12px; border-radius: 16px; background: linear-gradient(180deg, #2f5b6b, #24495a); }
+.ob-map.isle { grid-template-columns: minmax(0, 1fr); }
+.ob-map.isle .ob-col { flex-direction: row; flex-wrap: wrap; }
+.ob-col { display: flex; flex-direction: column; gap: 6px; }
+.ob-walk { border-radius: 8px; background: repeating-linear-gradient(180deg, #a07a52 0 9px, #8d6a46 9px 11px); }
+.ob-slip { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(207, 232, 207, .55); background: rgba(207, 232, 207, .18); color: #eaf7ea; font: inherit; text-align: left; cursor: pointer; }
+.ob-slip b { font-size: 20px; font-weight: 900; min-width: 22px; }
+.ob-slip span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-slip:hover:not(:disabled) { background: rgba(207, 232, 207, .3); }
+.ob-slip[aria-pressed="true"]:not(:disabled) { border-color: var(--gold); background: rgba(255, 211, 90, .25); box-shadow: 0 0 0 2px rgba(255, 211, 90, .5); color: #fff6dc; }
+.ob-slip.busy { border-color: rgba(255, 236, 205, .2); background: rgba(20, 20, 20, .25); color: var(--cream-dim); cursor: default; }
+.ob-slip.mine { color: var(--gold); }
+.ob-note { margin: 10px 0 0; }
+.ob-dialog .fn-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ob-dialog .ob-go:not(:disabled) { background: linear-gradient(180deg, #ffa14a, #ff7d1a); color: #3a1a06; box-shadow: 0 3px 0 #b4520c, inset 0 2px 0 rgba(255, 230, 190, .55); }
+
+/* вкладка «⛵ Лодки» у Семёна */
+.ob-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.ob-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; background: var(--np-card); border: 1px solid var(--line); }
+.ob-card.owned { border-color: rgba(255, 211, 90, .6); background: rgba(255, 211, 90, .07); }
+.ob-card.locked .ob-card-pic { filter: grayscale(.7) opacity(.75); }
+.ob-card-pic { width: 100%; aspect-ratio: 16 / 8; object-fit: cover; background: #2f5b6b; }
+.ob-card-bd { display: grid; gap: 7px; padding: 10px 12px 12px; }
+.fe-npc .ob-card h4 { margin: 0; font-size: 20px; font-weight: 900; }
+.ob-proto { font-size: 12px; color: var(--cream-dim); }
+.ob-meter { display: grid; grid-template-columns: 62px minmax(0, 1fr) 74px; gap: 8px; align-items: center; font-size: 12px; color: var(--cream-2); }
+.ob-tr { height: 6px; border-radius: 3px; background: rgba(255, 240, 220, .1); overflow: hidden; }
+.ob-tr i { display: block; height: 100%; border-radius: 3px; background: var(--cream-2); }
+.ob-meter b { text-align: right; color: var(--cream); font-variant-numeric: tabular-nums; }
+.ob-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ob-chip { padding: 2px 8px; border-radius: 999px; font-size: 11.5px; background: rgba(255, 240, 220, .08); color: var(--cream-2); }
+.ob-chip.hot { background: rgba(143, 240, 164, .16); color: #b8f5c4; }
+.ob-trip { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px dashed var(--line); padding-top: 6px; font-size: 12px; color: var(--cream-dim); }
+.ob-trip b { font-size: 22px; font-weight: 900; color: var(--gold); }
+.ob-card .fn-item-note { font-size: 12px; color: var(--cream-dim); }
+.ob-card.owned .fn-item-note { color: var(--gold); font-weight: 700; }
+.fe-npc .ob-buy:not(:disabled) { background: linear-gradient(180deg, #ffa14a, #ff7d1a); color: #3a1a06; box-shadow: 0 3px 0 #b4520c, inset 0 2px 0 rgba(255, 230, 190, .55); }
+@media (max-width: 860px) { .ob-cards { grid-template-columns: 1fr; } .ob-nav { width: 220px; } }

@@ -10,7 +10,7 @@ const I = (name: Inst): number => INSTS.indexOf(name);
 export const V = {
   epiano: I('epiano'), bass: I('bass'), sub: I('sub'), tuba: I('tuba'), nylon: I('nylon'), guitar: I('guitar'), mando: I('mando'),
   pad: I('pad'), strings: I('strings'), accordion: I('accordion'), whistle: I('whistle'), square: I('square'), pulse: I('pulse'),
-  tri: I('tri'), bell: I('bell'), marimba: I('marimba'), lead: I('lead'), boom: I('boom'),
+  tri: I('tri'), bell: I('bell'), marimba: I('marimba'), lead: I('lead'), boom: I('boom'), dist: I('dist'), saw: I('saw'),
 } as const;
 
 /** Детерминированный шум (одинаковые буферы при каждом рендере — уровни песен воспроизводимы) */
@@ -58,7 +58,7 @@ interface DrumState { ph: number; sr: number; a: Svf; b: Svf; c: Svf; hold: numb
 
 const env = (t: number, tau: number): number => Math.exp(-t / tau);
 
-/** Звуки ударных по наборам: [длина, функция отсчёта]. Наборы: pop, lofi, brush, chip, synth, surf */
+/** Звуки ударных по наборам: [длина, функция отсчёта]. Наборы: pop, lofi, brush, chip, synth, surf, trap, break */
 function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumFn; hz?: [number, number, number] } | null {
   // d: k s c h o p r t m y w
   const kick = (f0: number, f1: number, ptau: number, atau: number, click: number, drive: number): DrumFn => (t, rnd, st) => {
@@ -82,6 +82,7 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
   };
   switch (d) {
     case 0: // бочка
+      if (kit === 7) return { len: 0.32, gain: 1, fn: kick(170, 50, 0.022, 0.12, 0.6, 2.4) };
       if (kit === 6) return { len: 0.3, gain: 0.7, fn: kick(165, 52, 0.02, 0.11, 0.55, 2) };
       if (kit === 0) return { len: 0.45, gain: 1, fn: kick(150, 48, 0.035, 0.17, 0.35, 1.6) };
       if (kit === 1) return { len: 0.4, gain: 0.9, fn: kick(115, 46, 0.04, 0.16, 0.12, 1.2) };
@@ -90,6 +91,7 @@ function drumDef(kit: number, d: number): { len: number; gain: number; fn: DrumF
       if (kit === 4) return { len: 0.7, gain: 1, fn: kick(120, 42, 0.05, 0.3, 0.25, 1.8) };
       return { len: 0.42, gain: 0.95, fn: kick(135, 55, 0.03, 0.15, 0.3, 1.5) };
     case 1: // малый барабан
+      if (kit === 7) return { len: 0.3, gain: 0.95, fn: snare(200, 0.045, 0.12, 0.74), hz: [4600, 0, 0.55] };
       if (kit === 6) return { len: 0.34, gain: 0.9, fn: snare(205, 0.05, 0.16, 0.8), hz: [5200, 0, 0.5] };
       if (kit === 0) return { len: 0.3, gain: 0.85, fn: snare(185, 0.06, 0.11, 0.62), hz: [3200, 0, 0.6] };
       if (kit === 1) return { len: 0.25, gain: 0.7, fn: snare(200, 0.045, 0.08, 0.58), hz: [2000, 0, 0.6] };
@@ -157,8 +159,12 @@ export class Synth {
   private readonly drums = new Map<number, AudioBuffer | null>();
   private readonly plucks = new Map<number, AudioBuffer>();
   private readonly irs = new Map<string, AudioBuffer>();
+  /** Усилители гитары dist по выходам партий */
+  private readonly amps = new WeakMap<AudioNode, AudioNode>();
   /** Мягкий перегруз «808»: обертоны, чтобы саб был слышен и в маленьких динамиках */
   private readonly sat: Float32Array<ArrayBuffer>;
+  /** Перегруз гитары (dist): жёстче, с лёгкой несимметрией — «ламповый» призвук */
+  private readonly fuzz: Float32Array<ArrayBuffer>;
 
   constructor(ctx: BaseAudioContext) {
     this.ctx = ctx;
@@ -178,6 +184,11 @@ export class Synth {
     for (let i = 0; i < sn; i++) {
       const x = (i / (sn - 1)) * 2 - 1;
       this.sat[i] = Math.tanh(2.5 * x) / Math.tanh(2.5);
+    }
+    this.fuzz = new Float32Array(new ArrayBuffer(sn * 4));
+    for (let i = 0; i < sn; i++) {
+      const x = (i / (sn - 1)) * 2 - 1;
+      this.fuzz[i] = Math.tanh(5 * x + 0.35 * x * x) / Math.tanh(5.35);
     }
   }
 
@@ -466,6 +477,47 @@ export class Synth {
         o.stop(off + 0.35);
         return;
       }
+      case V.dist: {
+        // перегруженная гитара: нота — «пауэр-аккорд» (тон, квинта, октава); перегруз и «кабинет» — один на партию
+        // (как один усилитель на гитару, и дешевле: узлы на ноту — только генераторы и огибающая)
+        const env = this.gain(0);
+        // короткая нота — «глушёная» (ладонью): гаснет быстрее
+        const short = dur < 0.2;
+        this.adsr(env, t, off, 0.3 + 0.2 * vel, 0.003, short ? 0.07 : 0.9, short ? 0.2 : 0.75, 0.04);
+        const oscs: OscillatorNode[] = [];
+        for (const [k, det, g] of [[1, -5, 1], [1.4983, 4, 0.8], [2, 2, 0.45]] as const) {
+          const o = this.osc('sawtooth', f * k, t);
+          o.detune.value = det;
+          const og = this.gain(g);
+          o.connect(og).connect(env);
+          oscs.push(o);
+        }
+        env.connect(this.distAmp(dest));
+        for (const o of oscs) { o.start(t); o.stop(off + 0.25); }
+        return;
+      }
+      case V.saw: {
+        // «суперпила»: три пилы с расстройкой, фильтр щипком (яркая атака, быстро темнеет) — арпеджио и аккорды-стабы
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.Q.value = 2.2;
+        const bright = 900 + 5200 * vel;
+        lp.frequency.setValueAtTime(bright, t);
+        lp.frequency.setTargetAtTime(Math.min(bright, 650 + f * 1.5), t, dur > 0.4 ? 0.28 : 0.09);
+        const mix = this.gain(0.34);
+        const oscs: OscillatorNode[] = [];
+        for (const det of [-13, 0, 13]) {
+          const o = this.osc('sawtooth', f, t);
+          o.detune.value = det;
+          o.connect(mix);
+          oscs.push(o);
+        }
+        const amp = this.gain(0);
+        this.adsr(amp, t, off, 0.11 + 0.07 * vel, 0.003, 0.22, 0.4, 0.07);
+        mix.connect(lp).connect(amp).connect(dest);
+        for (const o of oscs) { o.start(t); o.stop(off + 0.3); }
+        return;
+      }
       case V.lead: {
         const o1 = this.osc('sawtooth', f, t);
         const o2 = this.osc('square', f, t);
@@ -493,6 +545,31 @@ export class Synth {
         return;
       }
     }
+  }
+
+  /** Усилитель перегруженной гитары: перегруз и «кабинет» (полоса 95 Гц…3,6 кГц) — один на каждый выход партии */
+  private distAmp(dest: AudioNode): AudioNode {
+    const had = this.amps.get(dest);
+    if (had) return had;
+    const ctx = this.ctx;
+    const sh = ctx.createWaveShaper();
+    sh.curve = this.fuzz;
+    sh.oversample = '2x';
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 95;
+    const mid = ctx.createBiquadFilter();
+    mid.type = 'peaking';
+    mid.frequency.value = 1500;
+    mid.Q.value = 0.9;
+    mid.gain.value = 3;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 3600;
+    lp.Q.value = 0.9;
+    sh.connect(hp).connect(mid).connect(lp).connect(this.gain(0.25)).connect(dest);
+    this.amps.set(dest, sh);
+    return sh;
   }
 
   // ------------------------------------------------------------ щипковые: Карплус-Стронг

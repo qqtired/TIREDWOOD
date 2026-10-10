@@ -49,6 +49,7 @@ import { loadVoicePrefs, saveVoicePrefs } from './voice-prefs.ts';
 import { setVoiceSource } from './ui/voicepanel.ts';
 import './ui/mobile-fishing.css';
 import { setVoicePresence } from './render/voice-presence.ts';
+import { ISLE } from './render/islegear.ts';
 
 type Screen = 'join' | 'connecting' | 'game' | 'reconnecting' | 'lost' | 'replaced';
 /** Экран входа: «Привет, ник!», поле ника или поле кода с другого устройства */
@@ -766,6 +767,8 @@ export class App {
       return;
     }
     this.build = m.build;
+    // остров «Последний свет» (флаг ISLE): вещи острова в примерочной и журнале, светящаяся «Золотая рыбка»
+    ISLE.on = m.isle === true;
     const renamed = this.renamePending && m.nick !== this.me.nick;
     if (this.me.pid !== m.pid) this.celebratedLevel = Math.max(1, m.level ?? 1);
     this.me = { pid: m.pid, xp: safeXp(m.xp ?? 0), level: Math.max(1, Math.floor(m.level ?? 1)), nick: m.nick, tokens: m.tokens, owned: m.owned, outfit: m.outfit, stats: m.stats, album: m.album ?? {}, fishing: m.fishing ?? emptyFishProgress(), gifts: m.gifts === true };

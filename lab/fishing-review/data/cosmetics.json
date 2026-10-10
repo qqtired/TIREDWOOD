@@ -1,0 +1,79 @@
+{
+  "note": "Косметика острова для страницы ревью. base — папка с моделями. glb — файлы модели (несколько = собираются вместе, например желейка + шапка). Если файла нет, страница покажет карточку «модель в работе». anims — имена анимаций в GLB и подписи кнопок.",
+  "base": "cosmetics/",
+  "counter": "Остров: N из 20 — свой счётчик видов острова в альбоме. Лестница 52 видов пристани и баркаса не меняется.",
+  "ladder": [
+    { "need": 4, "items": ["b:bellbuoy"] },
+    { "need": 8, "items": ["r:lighthouse"] },
+    { "need": 12, "items": ["w:fog"] },
+    { "need": 16, "items": ["s:puffin"] },
+    { "need": 20, "items": ["h:keeper", "a:keeper", "n:lighthouse"], "set": "Смотритель маяка" }
+  ],
+  "rework": ["b:goldfish"],
+  "items": {
+    "b:bellbuoy": {
+      "kind": "поплавок", "name": "Колокольный буй", "glow": true,
+      "text": "Красно-белый буёк с огоньком наверху и колокольчиком: на поклёвке «дзынь».",
+      "glb": ["bellbuoy.glb"], "stage": "water", "anims": { "ring": "Поклёвка: колокол" },
+      "thumb": "data/thumbs/cos-bellbuoy.jpg", "png": "bellbuoy.png"
+    },
+    "r:lighthouse": {
+      "kind": "удочка", "name": "Маячная", "glow": true,
+      "text": "Бело-красная спираль, латунная катушка, огонёк на кончике вспыхивает раз в 6 с, как маяк.",
+      "glb": ["rod-lighthouse.glb"], "stage": "ground", "blink": 6,
+      "thumb": "data/thumbs/cos-rod-lighthouse.jpg", "png": "rod-lighthouse.png"
+    },
+    "w:fog": {
+      "kind": "окно вываживания", "name": "Туман",
+      "text": "Рама из выбеленного плавника с канатом, жемчужная вода. По шкале ползут клочья тумана (не гуще 15 %, рыбу не прячут), зона — тёплый луч маяка.",
+      "html": "fog-window.html"
+    },
+    "s:puffin": {
+      "kind": "питомец", "name": "Тупик",
+      "text": "Атлантический тупик на плече: моргает, вертит головой, на поимке держит в клюве мойву.",
+      "glb": ["puffin.glb"], "stage": "ground", "anims": { "idle": "Дышит", "look": "Оглядывается", "blink": "Моргает", "catch": "Поймал мойву" },
+      "thumb": "data/thumbs/cos-puffin.jpg", "png": "puffin.png"
+    },
+    "h:keeper": {
+      "kind": "шапка", "name": "Шапка смотрителя",
+      "text": "Вязаная шапка в бело-красную маячную полоску с помпоном.",
+      "glb": ["jelly.glb", "keeper-hat.glb"], "stage": "ground", "mannequin": "jelly.glb",
+      "thumb": "data/thumbs/cos-keeper-hat-on-jelly.jpg", "png": "keeper-hat-on-jelly.png"
+    },
+    "a:keeper": {
+      "kind": "свитер", "name": "Свитер смотрителя", "glow": true,
+      "text": "Свитер-«норвежец» с узором-маяками и фонарь «летучая мышь» на поясе — светится.",
+      "glb": ["jelly.glb", "keeper-sweater.glb"], "stage": "ground", "mannequin": "jelly.glb",
+      "thumb": "data/thumbs/cos-keeper-sweater-on-jelly.jpg", "png": "keeper-sweater-on-jelly.png"
+    },
+    "n:lighthouse": {
+      "kind": "значок у ника", "name": "Маяк", "glow": true,
+      "text": "Маленький маяк у ника мигает раз в 6 с, его видят все.",
+      "svg": "lighthouse-badge.svg", "html": "nick-badge.html"
+    },
+    "b:goldfish": {
+      "kind": "поплавок, реворк", "name": "Золотая рыбка", "glow": true,
+      "text": "Тот же ключ: у кого есть, обновится сам. Золото светится, вокруг тёплый ореол, на воде — мягкий круг света. Хорошо видна в тумане.",
+      "glb": ["goldfish-glow.glb"], "stage": "water",
+      "thumb": "data/thumbs/cos-goldfish-glow.jpg", "png": "goldfish-glow.png"
+    }
+  },
+  "set": {
+    "name": "Смотритель маяка", "text": "Весь сет на желейке: шапка и свитер с фонарём. Сет объявляется в общий чат.",
+    "glb": ["jelly.glb", "keeper-hat.glb", "keeper-sweater.glb"], "stage": "ground",
+    "thumb": "data/thumbs/cos-set-keeper-front.jpg", "png": "set-keeper-front.png"
+  },
+  "lineups": [
+    { "thumb": "data/thumbs/cos-lineup-floats.jpg", "png": "lineup-floats.png", "caption": "Поплавки: обычный, «Светлячок», старая и новая «Золотая рыбка», «Колокольный буй»" },
+    { "thumb": "data/thumbs/cos-lineup-pets.jpg", "png": "lineup-pets.png", "caption": "Питомцы: тупик (новый), попугай, чайка" },
+    { "thumb": "data/thumbs/cos-lineup-jellies.jpg", "png": "lineup-jellies.png", "caption": "Сеты: «Капитан баркаса», «Смотритель маяка», «Хозяин глубин»" }
+  ],
+  "npc": {
+    "ignat": {
+      "name": "Смотритель Игнат",
+      "text": "Старый друг Семёна, сухонький, в бушлате, маячной шапке и круглых очках, с фонарём. Окно — как у Сани: задания, лавка, продажа. В лавке напитки и «На большую землю — 250 🪙»: застрять на острове нельзя.",
+      "glb": ["ignat.glb"], "anims": { "idle": "Смотрит в туман", "wave": "Машет" },
+      "thumb": "data/thumbs/cos-ignat.jpg", "png": "ignat.png"
+    }
+  }
+}

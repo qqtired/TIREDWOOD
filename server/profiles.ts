@@ -8,6 +8,7 @@ import {
   type BagFish, type FishRod,
 } from '../shared/fishprogress.ts';
 import { BAGS, LURES, gearState, type GearState } from '../shared/fishshop.ts';
+import { livewellCap, type SellWhat } from '../shared/fishlivewell.ts';
 import { RECENT_ROWS, type RecentRow } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, PALETTE, itemById, sanitizeOutfit, type Outfit } from '../shared/outfit.ts';
 import { sanitizeName } from '../shared/text.ts';
@@ -476,24 +477,39 @@ export class Profiles {
     return { state: 'ok', name: g.name };
   }
 
-  /** Рыба в рюкзак по цене поимки; null — места нет. */
-  bagPut(p: Profile, fish: Omit<BagFish, 'n'>): BagFish | null {
+  /**
+   * Рыба в рюкзак по цене поимки; рюкзак полон — в лайвел своей лодки (shared/fishlivewell.ts, где бы ни ловил); null — места
+   * нет нигде. well — легла в лайвел.
+   */
+  bagPut(p: Profile, fish: Omit<BagFish, 'n'>): (BagFish & { well?: true }) | null {
     const f = p.fishing;
-    if (f.bag.length >= bagSlots(f)) return null;
+    const well = f.bag.length >= bagSlots(f);
+    if (well && (f.livewell?.length ?? 0) >= livewellCap(f)) return null;
     const item: BagFish = { n: f.bagSeq, ...fish };
     f.bagSeq = Math.min(Number.MAX_SAFE_INTEGER, f.bagSeq + 1);
-    f.bag.push(item);
+    if (well) (f.livewell ??= []).push(item);
+    else f.bag.push(item);
     this.store.markDirty();
-    return item;
+    return well ? { ...item, well: true } : item;
   }
 
-  /** Продать Семёну или Сане одну рыбу (n) или весь улов (n не задан): жетоны по цене поимки, без общего опыта. */
-  sellFish(p: Profile, n?: number): { n: number; coins: number } {
+  /**
+   * Продать скупщику (Семён, Саня, Игнат) или из меню своей лодки: одну рыбу (n — из рюкзака или лайвела) или весь улов
+   * what — рюкзак (по умолчанию), лайвел или всё. Жетоны по цене поимки, без общего опыта.
+   */
+  sellFish(p: Profile, n?: number, what: SellWhat = 'bag'): { n: number; coins: number } {
     const f = p.fishing;
-    const sold = n === undefined ? f.bag : f.bag.filter((x) => x.n === n);
+    const well = f.livewell ?? [];
+    const sold = n !== undefined ? [...f.bag, ...well].filter((x) => x.n === n)
+      : what === 'bag' ? f.bag : what === 'well' ? well : [...f.bag, ...well];
     if (!sold.length) return { n: 0, coins: 0 };
     const coins = bagValue(sold);
-    f.bag = n === undefined ? [] : f.bag.filter((x) => x.n !== n);
+    const gone = new Set(sold.map((x) => x.n));
+    f.bag = f.bag.filter((x) => !gone.has(x.n));
+    if (f.livewell) {
+      f.livewell = f.livewell.filter((x) => !gone.has(x.n));
+      if (!f.livewell.length) delete f.livewell;
+    }
     if (coins > 0) this.credit(p, coins, 'other');
     p.stats.fsSold += sold.length;
     p.stats.fsEarned += coins;
@@ -501,12 +517,16 @@ export class Profiles {
     return { n: sold.length, coins };
   }
 
-  /** Отпустить рыбу из рюкзака: место освобождается, денег нет. */
+  /** Отпустить рыбу из рюкзака или лайвела: место освобождается, денег нет. */
   releaseFish(p: Profile, n: unknown): boolean {
     const f = p.fishing;
-    const before = f.bag.length;
+    const before = f.bag.length + (f.livewell?.length ?? 0);
     f.bag = f.bag.filter((x) => x.n !== n);
-    if (f.bag.length === before) return false;
+    if (f.livewell) {
+      f.livewell = f.livewell.filter((x) => x.n !== n);
+      if (!f.livewell.length) delete f.livewell;
+    }
+    if (f.bag.length + (f.livewell?.length ?? 0) === before) return false;
     this.store.markDirty();
     return true;
   }

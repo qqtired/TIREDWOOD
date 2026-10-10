@@ -139,4 +139,47 @@ export const FISH_ICONS: Readonly<Record<string, string>> = {
     '<circle cx="20" cy="20" r="16" fill="#1b2a4f" stroke="#e0b030" stroke-width="2.6"/>'
     + '<path d="M20 11v18M15 15h10M12 23q8 10 16 0" stroke="#f2cf63" stroke-width="2.4" fill="none"/><circle cx="20" cy="10" r="2.2" fill="none" stroke="#f2cf63" stroke-width="1.6"/>',
   ),
+  // ---- остров «Последний свет» (render/islegear.ts, макеты — lab/fishing-review/cosmetics/)
+  'b:bellbuoy': svg(
+    '<circle cx="20" cy="9" r="7" fill="#ffd27a" opacity=".4"/><path d="M3 31h34" stroke="#5fb7d8" stroke-width="1.4"/>'
+    + '<path d="M11 27q9 6 18 0l-1.5 6q-7.5 3-15 0Z" fill="#f6f3ea" stroke="#c9c2b0" stroke-width=".7"/><path d="M10.5 24h19l.5 3.5q-10 4.5-20 0Z" fill="#d8322a"/>'
+    + '<path d="M10 24.5h20" stroke="#1c1c1c" stroke-width="1.6"/>'
+    + '<path d="M14 24l3-12M26 24l-3-12M15.2 19h9.6M16.2 15h7.6" stroke="#d8322a" stroke-width="1.5" fill="none"/><path d="M14.6 21.6l10.6-2.4M15.6 17.4l8.8-2.2" stroke="#f6f3ea" stroke-width=".9"/>'
+    + '<path d="M18 16.5q2-3.2 4 0l.6 2.2h-5.2Z" fill="#c9a24a" stroke="#8a6a20" stroke-width=".5"/>'
+    + '<path d="M16.5 12h7v-2h-7Z" fill="#1c1c1c"/><circle cx="20" cy="8.6" r="2.4" fill="#ffe6a0" stroke="#ffb43a" stroke-width="1"/>',
+  ),
+  'r:lighthouse': rod('#f6f1e6', '#d23a2a', '#1f4a3a', '#c9a24a',
+    '<path d="M8 32L33 7" stroke="#d23a2a" stroke-width="2.6" stroke-dasharray="1.8 2.2" stroke-linecap="butt"/>',
+    '<circle cx="33" cy="7" r="4.6" fill="#ffd27a" opacity=".45"/><circle cx="33" cy="7" r="1.9" fill="#fff1d6" stroke="#ffb43a" stroke-width=".9"/>'),
+  's:puffin': svg(
+    '<path d="M17 32l-1.6 5h4M23 32l1.6 5h-4" stroke="#f08a2a" stroke-width="1.6" fill="none"/>'
+    + '<ellipse cx="20" cy="23" rx="8.5" ry="10" fill="#1b1c20"/><ellipse cx="21.6" cy="25" rx="5.4" ry="7.6" fill="#f6f6f1"/>'
+    + '<circle cx="17" cy="11.5" r="6.4" fill="#1b1c20"/><ellipse cx="15.6" cy="12.2" rx="4.2" ry="4.4" fill="#f2f0ea"/>'
+    + '<path d="M11.6 10.4L5 12.4l6.6 3.6Z" fill="#f08a2a" stroke="#c4582a" stroke-width=".6"/><path d="M11.6 10.6l-1.6 1 1.6 3.6Z" fill="#8f9aa3"/><path d="M9.2 11.3l-.4 3.1" stroke="#f2c230" stroke-width=".8"/>'
+    + '<circle cx="15" cy="11.4" r="1.2" fill="#101114"/><path d="M14 10l2.2.4" stroke="#d23a2a" stroke-width=".7"/>',
+  ),
+  'h:keeper': svg(
+    '<circle cx="20" cy="6.6" r="4.2" fill="#f6f3ea" stroke="#d6cfc0" stroke-width=".7"/>'
+    + '<path d="M8.6 26C8 14 32 14 31.4 26Z" fill="#f6f3ea"/><path d="M9.1 19.6h21.8l.6 3.4H8.5ZM11.9 14.6h16.2l1.4 2.6H10.5Z" fill="#d8322a"/>'
+    + '<path d="M7 25.6h26v6.2Q20 34 7 31.8Z" fill="#d8322a" stroke="#b02a20" stroke-width=".8"/><path d="M10 26v5.6M14 26v6.2M18 26v6.4M22 26v6.4M26 26v6.2M30 26v5.6" stroke="#b02a20" stroke-width=".7"/>',
+  ),
+  'a:keeper': svg(
+    '<path d="M9 10l7-3h8l7 3 2 25H7Z" fill="#1f4a3a" stroke="#163629" stroke-width="1.2"/><path d="M15 7q5 4 10 0" stroke="#163629" stroke-width="2.6" fill="none"/>'
+    + '<path d="M8.4 14.5h23.2M8 26.5h24" stroke="#f6f3ea" stroke-width="1.6" stroke-dasharray="1.6 1.6"/>'
+    + '<path d="M12.6 25l1-8h2.4l1 8ZM23 25l1-8h2.4l1 8Z" fill="#f6f3ea"/><path d="M12.9 22.2h3.8M23.3 22.2h3.8M13.3 19h3M23.7 19h3" stroke="#d8322a" stroke-width="1.3"/>'
+    + '<rect x="13.4" y="15.4" width="1.8" height="1.6" fill="#f5962a"/><rect x="23.8" y="15.4" width="1.8" height="1.6" fill="#f5962a"/>'
+    + '<path d="M7.2 30.6h25.6l.2 4.4H7Z" fill="#d8322a"/><path d="M7.4 28.4h25.2" stroke="#5a3a22" stroke-width="1.6"/>'
+    + '<circle cx="10" cy="33" r="4.2" fill="#ffd27a" opacity=".45"/><rect x="8.2" y="30.6" width="3.6" height="4.6" rx="1" fill="#ffe6a0" stroke="#c4582a" stroke-width=".8"/>',
+  ),
+  'w:fog': win('#ddd5c6', '#c9b998', '#d9ddd3', 'rgba(255,190,120,.6)', '#ffdcb0',
+    '<path d="M13 5h14M13 35h14" stroke="#f2ecdf" stroke-width="1.2" stroke-dasharray="1.4 1.4"/>'
+    + '<path d="M21.6 15.5l.6-6h2l.6 6z" fill="#b3b7ae"/><rect x="22.3" y="7.4" width="1.8" height="2" fill="#ffc07a"/><circle cx="23.2" cy="8.4" r="2.8" fill="#ffb062" opacity=".45"/>'
+    + '<path d="M14.5 13.5q3-1.6 6 0t5 0M14.5 30q3-1.4 5.5 0t6 0" stroke="#fff" stroke-width="1.3" opacity=".7" fill="none"/>'),
+  'n:lighthouse': svg(
+    '<circle cx="20" cy="20" r="16" fill="#1f4a3a" stroke="#e0b030" stroke-width="2.6"/>'
+    + '<path d="M20 12.5 5.4 9.8v5.4zM20 12.5l14.6-2.7v5.4z" fill="#ffb062" opacity=".5"/><circle cx="20" cy="12.5" r="6" fill="#ffd27a" opacity=".45"/>'
+    + '<path d="M7 32.4q6.5-4.6 13-4.6t13 4.6v1.2q-5 4-13 4t-13-4z" fill="#2f5f4c"/>'
+    + '<path d="M16.6 30 17.9 15.4h4.2L23.4 30z" fill="#f4efe6"/><path d="M17.3 22.6h5.4l.32 3.3h-6.04zM17.75 17.8h4.5l.22 2.4h-4.94z" fill="#d23a2a"/>'
+    + '<path d="M16.2 14.6h7.6v1.4h-7.6z" fill="#d23a2a"/><rect x="18" y="10.6" width="4" height="4" fill="#fff1d6"/><path d="M17.2 10.8 20 7.6l2.8 3.2z" fill="#d23a2a"/>',
+  ),
 };

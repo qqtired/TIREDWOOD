@@ -6,6 +6,7 @@ import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
 import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
+import type { IsleView } from './isle.ts';
 import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
@@ -27,8 +28,10 @@ import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
+import type { RadioClientMsg, RadioServerMsg } from './boatradio.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
+import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 
@@ -132,8 +135,12 @@ export interface OnlineEntry {
  * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
  * через FishNpc.register (server/lobby/fishnpc.ts).
  */
-export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka';
-export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka'];
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka' | 'buyBoat' | 'sellWell' | 'sellEvery';
+/**
+ * buyBoat — своя лодка у Семёна (флаг ISLE, обработчик подключает server/lobby/ownboats.ts через FishNpc.register);
+ * sellWell / sellEvery — лайвел своей лодки (флаг ISLE, shared/fishlivewell.ts): продать весь лайвел / рюкзак и лайвел вместе
+ */
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka', 'buyBoat', 'sellWell', 'sellEvery'];
 
 // --- Дурак за столиками кафе
 
@@ -186,10 +193,12 @@ export type ClientMsg =
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
+  | RadioClientMsg
   | VoiceClientMsg
   | HideClientMsg
   | RegattaClientMsg
   | PlaneClientMsg
+  | ObClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
    *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
   | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
@@ -225,7 +234,7 @@ export type ClientMsg =
    * Семён или Саня (npc, по умолчанию Семён): сервер проверяет близость, цену, уровень, заработанную удочку, готовность
    * квеста. buy — item из shared/fishshop.ts (bag1…3, lure1…3); sell — рыба n из рюкзака, sellAll — весь улов.
    */
-  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number }
+  | { t: 'fishNpc'; npc?: FishNpcId; a: FishNpcAction; rod?: number; item?: string; n?: number; boat?: string }
   /** Рюкзак: отпустить рыбу n (где угодно, денег нет) */
   | { t: 'fishBag'; a: 'release'; n: number }
   /** Рюкзак: взять рыбу n в руки (похвастаться, сфотографироваться у маяка); n = −1 — убрать */
@@ -438,10 +447,12 @@ export type ServerMsg =
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg
+  | RadioServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | RegattaServerMsg
   | PlaneServerMsg
+  | ObServerMsg
   | HideServerMsg
   | ({ t: 'skillSt' } & SkillStatus)
   | { t: 'hideSt'; v: GatherStatus | HideStatus }
@@ -451,7 +462,7 @@ export type ServerMsg =
   | PirateSnapMsg
   | PirateFxMsg
   // --- вход и профиль
-  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; build: string }
+  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; isle?: boolean; build: string }
   | ({ t: 'levelUp'; pid: number } & LevelUp)
   | { t: 'tokens'; n: number; delay?: number }
   /** Тост; sub — вторая строка, ms — сколько висит, key — новый того же вида заменяет прежний, big — крупный золотой (клад Посейдона) */
@@ -489,6 +500,8 @@ export type ServerMsg =
     /** Рыбалка 2.0 (флаг сервера FISH2): 1 — шкала вываживания, полная коллекция, доска рекордов у мостков (ftop) */
     fish2?: number;
     ftop?: FishBoardView;
+    /** Остров «Последний свет» (флаг сервера ISLE, shared/fishisle.ts): 1 — виды острова, лайвел, цена рыбы ×0,4 */
+    isle?: number;
     /** Рулетка рыбака (флаг сервера ROULETTE) */
     roulette?: RouletteView;
     /** Крысиные бега на понтоне (флаг сервера RATRACE, shared/ratrace.ts) */
@@ -525,6 +538,9 @@ export type ServerMsg =
   // входящему: on — идёт ли; endsAt — конец идущего сезона (нет сезона — конец ближайшего); nextAt — начало следующего
   // (идёт — того, что после него); мс серверных часов
   | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
+  // остров «Последний свет» (флаг ISLE, server/lobby/isle.ts): «Туман наступает» и сезон острова — всем на набережной
+  // при смене и входящему; now — часы сервера
+  | ({ t: 'isle'; now: number } & IsleView)
   | { t: 'fishProgress'; progress: FishProgress; now: number }
   /** Рыба в руках у игрока id (номер в снимках): n — номер в его рюкзаке, вид и граммы; n = −1 — руки пустые */
   | { t: 'fishHold'; id: number; n: number; sp: number; g: number }
@@ -558,6 +574,10 @@ export type ServerMsg =
     gr?: number; er?: number;
     /** В сундуке было пиво подводного владыки — уже выпито (shared/fishshop.ts LORD) */
     lord?: boolean;
+    /** Рюкзак был полон — рыба легла в лайвел своей лодки (флаг ISLE): well — сколько в нём теперь, wcap — мест */
+    well?: number; wcap?: number;
+    /** Сколько видов острова в альбоме (shared/islestyle.ts) — у видов острова вместо got */
+    isle?: number;
   }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }

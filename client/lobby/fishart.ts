@@ -27,6 +27,8 @@ interface FishLook {
   spots?: boolean;
   /** Ряды костяных жучков (осётр) */
   scutes?: boolean;
+  /** Голова-«молот»: широкая плоская перекладина на носу, глаза — на её концах (рыба-молот) */
+  hammer?: boolean;
 }
 
 const LOOK: Record<string, Partial<FishLook>> = {
@@ -42,6 +44,9 @@ const LOOK: Record<string, Partial<FishLook>> = {
   goldfish: { h: 0.36, w: 0.13, crown: true },
   dogfish: { spots: true },
   sturgeon: { scutes: true },
+  // id 'whiteshark' — это РЫБА-МОЛОТ (обмен с большой белой акулой 10.10, см. shared/fishing.ts): молот рисуем по id; белая акула
+  // (id 'hammerhead') — обычное акулье тело без молота
+  whiteshark: { hammer: true },
 };
 
 function lookOf(f: FishKind): FishLook {
@@ -435,7 +440,11 @@ function sharkFish(parts: THREE.BufferGeometry[], back: THREE.Color, belly: THRE
     const z = ww(0.72) * 0.85 * sz;
     parts.push(fin([[px, -0.03, z], [px - 0.1, -0.06, z + 0.11 * sz], [px - 0.07, -0.03, z]], finC));
   }
-  eyes(parts, xs(0.86), hh(0.86) * 0.25, ww(0.86) * 0.85, 0.022);
+  if (look.hammer) {
+    // молот: широкая плоская перекладина поперёк носа (вчетверо шире тела), глаза — на концах
+    parts.push(ball(x1 - 0.05, 0.004, 0, 0.05, back.clone().lerp(belly, 0.2), 0.9, 0.42, 3.9));
+    eyes(parts, x1 - 0.05, 0.006, 0.19, 0.02);
+  } else eyes(parts, xs(0.86), hh(0.86) * 0.25, ww(0.86) * 0.85, 0.022);
   if (look.spots) {
     const dot = back.clone().lerp(new THREE.Color(0xffffff), 0.6);
     for (const [s, z] of [[0.3, 0.03], [0.38, -0.035], [0.47, 0.025], [0.56, -0.02], [0.66, 0.03], [0.74, -0.028]] as const) {
@@ -733,7 +742,15 @@ export function drawFishIcon(canvas: HTMLCanvasElement, sp: number, known: boole
           ctx.stroke();
         }
       }
-      eye(look.scutes ? 0.42 : 0.38, -0.02, 0.018);
+      if (look.hammer) {
+        // молот: перекладина поперёк носа (вид сверху), глаза на её концах
+        ctx.beginPath();
+        ctx.ellipse(0.45, 0, 0.034, 0.135, 0, 0, Math.PI * 2);
+        fill(grad(-0.13, 0.13));
+        outline();
+        eye(0.45, -0.115, 0.016);
+        eye(0.45, 0.115, 0.016);
+      } else eye(look.scutes ? 0.42 : 0.38, -0.02, 0.018);
       break;
     }
     case 'boot': {

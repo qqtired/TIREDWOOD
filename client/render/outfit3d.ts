@@ -177,6 +177,10 @@ export interface Wear {
   metal: Geo | null;
   /** Высота крепления: по ней считается сдвиг и наклон вместе с макушкой */
   y: number;
+  /** Светится (фонарь свитера смотрителя, islegear.ts): цвет в вершинах, материал с emissive — гасится яркостью */
+  glow?: Geo | null;
+  /** Ореол-спрайт у светящегося: точка в осях узла крепления и размер, м */
+  halo?: { x: number; y: number; z: number; size: number } | null;
 }
 
 const NONE: Wear = { geo: null, metal: null, y: 0 };
