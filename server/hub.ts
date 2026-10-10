@@ -145,6 +145,8 @@ export interface HubOptions {
   billiards?: boolean;
   /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
   plane?: boolean;
+  /** Остров «Последний свет» и свои лодки рыбаков (флаг сервера ISLE, нужна FISH2; shared/fishisle.ts, server/lobby/ownboats.ts) */
+  isle?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
   now?: () => number;

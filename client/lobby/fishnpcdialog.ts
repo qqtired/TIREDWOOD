@@ -38,7 +38,14 @@ const NPC_INTRO: Record<FishNpcId, string> = {
 };
 /** Лицо в шапке: дед с пристани и Саня с баркаса */
 const NPC_AVATAR: Record<FishNpcId, string> = { semyon: '👴', sanya: '⚓' };
-type Tab = 'quests' | 'shop' | 'sell';
+/** Свои вкладки — «Задания», «Лавка», «Продать»; чужие (addTab, например «⛵ Лодки» у Семёна) — по своему id */
+type Tab = 'quests' | 'shop' | 'sell' | (string & {});
+
+/** Чужая вкладка (addTab): у кого из торговцев она есть и как её показать */
+interface ExtraTab {
+  npcs: readonly FishNpcId[];
+  render: (panel: HTMLElement, p: FishProgress, busy: boolean) => void;
+}
 const TABS: ReadonlyArray<[Tab, string, string]> = [['quests', '📋', 'Задания'], ['shop', '🛒', 'Лавка'], ['sell', '💰', 'Продать']];
 
 interface Offer {
@@ -70,6 +77,8 @@ export class FishNpcDialog {
   private readonly status: HTMLElement;
   private readonly tabBtns = new Map<Tab, HTMLButtonElement>();
   private readonly panels = new Map<Tab, HTMLElement>();
+  private readonly tabsNav: HTMLElement;
+  private readonly extraTabs = new Map<Tab, ExtraTab>();
   // квесты
   private readonly skill: HTMLElement;
   private readonly perks: HTMLElement;
@@ -104,6 +113,8 @@ export class FishNpcDialog {
   private eventOn = false;
   private quiet = false;
   private sellKey = '';
+  /** Открыть на этой вкладке (openTab) */
+  private wantTab: Tab | null = null;
 
   constructor(parent: HTMLElement, me: () => MeState, send: (msg: ClientMsg) => void) {
     this.me = me;
@@ -136,23 +147,14 @@ export class FishNpcDialog {
     const tabbar = this.root.appendChild(el('div', 'fe-tabbar'));
     const tabs = tabbar.appendChild(el('nav', 'fe-tabs'));
     tabs.setAttribute('role', 'tablist');
+    this.tabsNav = tabs;
     this.season = tabbar.appendChild(el('div', 'fe-season'));
     this.season.appendChild(el('span', 'fe-season-ico')).setAttribute('aria-hidden', 'true');
     const seasonInfo = this.season.appendChild(el('div', 'fe-season-info'));
     this.seasonText = seasonInfo.appendChild(el('b', ''));
     this.seasonSub = seasonInfo.appendChild(el('span', ''));
     this.seasonTime = this.season.appendChild(el('time', 'fe-season-time'));
-    for (const [id, icon, label] of TABS) {
-      const b = tabs.appendChild(el('button', 'fe-tab'));
-      b.type = 'button';
-      b.setAttribute('role', 'tab');
-      b.dataset.tab = id;
-      b.appendChild(el('span', 'fe-tab-ico', icon)).setAttribute('aria-hidden', 'true');
-      b.appendChild(el('span', '', label));
-      b.appendChild(el('i', 'fe-tab-n'));
-      b.addEventListener('click', () => this.show(id));
-      this.tabBtns.set(id, b);
-    }
+    for (const [id, icon, label] of TABS) this.tabButton(id, icon, label);
 
     this.body = this.root.appendChild(el('div', 'fn-body'));
 
@@ -272,6 +274,41 @@ export class FishNpcDialog {
 
   get isOpen(): boolean { return this.root.open; }
 
+  /**
+   * Своя вкладка другого модуля (например, «⛵ Лодки» у Семёна — client/boat/boatshop.ts): кнопка в строке вкладок,
+   * панель и отрисовка вместе с окном; npcs — у кого из торговцев она есть. Возвращает панель.
+   */
+  addTab(id: string, icon: string, label: string, npcs: readonly FishNpcId[], render: ExtraTab['render']): HTMLElement {
+    this.tabButton(id, icon, label);
+    this.extraTabs.set(id, { npcs, render });
+    const p = this.panel(id);
+    p.hidden = true;
+    return p;
+  }
+
+  /** Просьба торговцу из чужой вкладки (ответ — как у своих: строка состояния и окно) */
+  ask(a: FishNpcAction, extra: { boat?: string } = {}): void {
+    this.request(a, extra);
+  }
+
+  /** Открыть окно сразу на вкладке tab (например, «⛵ Лодки») */
+  openTab(npc: FishNpcId, tab: string): void {
+    this.wantTab = tab;
+    this.requestOpen(npc);
+  }
+
+  private tabButton(id: Tab, icon: string, label: string): void {
+    const b = this.tabsNav.appendChild(el('button', 'fe-tab'));
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.dataset.tab = id;
+    b.appendChild(el('span', 'fe-tab-ico', icon)).setAttribute('aria-hidden', 'true');
+    b.appendChild(el('span', '', label));
+    b.appendChild(el('i', 'fe-tab-n'));
+    b.addEventListener('click', () => this.show(id));
+    this.tabBtns.set(id, b);
+  }
+
   /** С кем сейчас разговор */
   get who(): FishNpcId { return this.npc; }
 
@@ -285,7 +322,8 @@ export class FishNpcDialog {
     if (msg.open && !this.isOpen && this.allowOpen) {
       this.npc = msg.npc;
       this.status.textContent = '';
-      this.tab = msg.progress.bag.length > 0 ? 'sell' : 'quests';
+      this.tab = this.wantTab ?? (msg.progress.bag.length > 0 ? 'sell' : 'quests');
+      this.wantTab = null;
       this.sellKey = '';
       this.render();
       this.root.showModal();
@@ -364,7 +402,7 @@ export class FishNpcDialog {
     this.body.scrollTop = 0;
   }
 
-  private request(a: FishNpcAction, extra: { rod?: number; item?: string; n?: number } = {}): void {
+  private request(a: FishNpcAction, extra: { rod?: number; item?: string; n?: number; boat?: string } = {}): void {
     if (this.pending !== null) return;
     this.pending = a;
     this.drinkBefore = a === 'ale' ? this.progress.aleUntil : a === 'vodka' ? this.progress.vodkaUntil ?? 0 : this.progress.beerUntil;
@@ -408,12 +446,18 @@ export class FishNpcDialog {
     this.renderSeason();
     const need = questNeed(p.questsDone);
     const ready = p.questCaught >= need;
+    // чужая вкладка не у этого торговца — на первую
+    const xt = this.extraTabs.get(this.tab);
+    if (xt && !xt.npcs.includes(this.npc)) this.tab = 'quests';
     for (const [id, b] of this.tabBtns) {
       const on = id === this.tab;
       b.classList.toggle('on', on);
       b.setAttribute('aria-selected', String(on));
       this.panels.get(id)!.hidden = !on;
+      const x = this.extraTabs.get(id);
+      if (x) b.hidden = !x.npcs.includes(this.npc);
     }
+    for (const [id, x] of this.extraTabs) if (id === this.tab) x.render(this.panels.get(id)!, p, busy);
     this.tabBtns.get('quests')!.classList.toggle('dot', ready);
     this.tabBtns.get('sell')!.querySelector('.fe-tab-n')!.textContent = p.bag.length ? String(p.bag.length) : '';
 

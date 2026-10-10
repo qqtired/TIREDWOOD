@@ -89,7 +89,8 @@ export const AWP_LYING = 255;
 const POS_SCALE = 256;
 const HEADER_BYTES = 22;
 const SELF_BYTES = 11 * 8 + 4 + 2 + 9;
-export const ENTITY_BYTES = 14;
+/** x и z — int24 / 256 (±32 км, шаг 4 мм: остров в 2,4 км от площади), y — int16 / 256 */
+export const ENTITY_BYTES = 16;
 
 export interface SnapshotHeader {
   tick: number;
@@ -130,15 +131,15 @@ export function encodeEntities(list: readonly EntitySnap[]): Uint8Array {
   for (const e of list) {
     v.setUint8(o, e.id);
     v.setUint8(o + 1, e.flags);
-    v.setInt16(o + 2, clampI16(Math.round(e.x * POS_SCALE)), true);
-    v.setInt16(o + 4, clampI16(Math.round(e.y * POS_SCALE)), true);
-    v.setInt16(o + 6, clampI16(Math.round(e.z * POS_SCALE)), true);
+    setI24(v, o + 2, Math.round(e.x * POS_SCALE));
+    v.setInt16(o + 5, clampI16(Math.round(e.y * POS_SCALE)), true);
+    setI24(v, o + 7, Math.round(e.z * POS_SCALE));
     let yaw = e.yaw % (Math.PI * 2);
     if (yaw < 0) yaw += Math.PI * 2;
-    v.setUint16(o + 8, Math.round((yaw / (Math.PI * 2)) * 65536) & 0xffff, true);
-    v.setInt16(o + 10, clampI16(Math.round((e.pitch / (Math.PI / 2)) * 32767)), true);
-    v.setUint8(o + 12, Math.max(0, Math.min(255, Math.ceil(e.hp))));
-    v.setUint8(o + 13, Math.max(0, Math.min(255, Math.ceil(e.armor))));
+    v.setUint16(o + 10, Math.round((yaw / (Math.PI * 2)) * 65536) & 0xffff, true);
+    v.setInt16(o + 12, clampI16(Math.round((e.pitch / (Math.PI / 2)) * 32767)), true);
+    v.setUint8(o + 14, Math.max(0, Math.min(255, Math.ceil(e.hp))));
+    v.setUint8(o + 15, Math.max(0, Math.min(255, Math.ceil(e.armor))));
     o += ENTITY_BYTES;
   }
   return buf;
@@ -146,6 +147,19 @@ export function encodeEntities(list: readonly EntitySnap[]): Uint8Array {
 
 function clampI16(v: number): number {
   return v < -32768 ? -32768 : v > 32767 ? 32767 : v;
+}
+
+/** Целое со знаком в 3 байтах (младший вперёд), с зажимом в ±8 388 607 */
+function setI24(v: DataView, o: number, n: number): void {
+  const c = n < -8388608 ? -8388608 : n > 8388607 ? 8388607 : n;
+  const u = c & 0xffffff;
+  v.setUint8(o, u & 0xff);
+  v.setUint16(o + 1, u >>> 8, true);
+}
+
+function getI24(v: DataView, o: number): number {
+  const u = v.getUint8(o) | (v.getUint16(o + 1, true) << 8);
+  return u & 0x800000 ? u - 0x1000000 : u;
 }
 
 /** Полный снимок для конкретного игрока: заголовок + (его точное состояние) + общий список. */
@@ -237,13 +251,13 @@ export function decodeSnapshot(buf: ArrayBuffer, h: SnapshotHeader, self: Player
     const e = out[i] ?? (out[i] = { id: 0, flags: 0, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, hp: 0, armor: 0 });
     e.id = v.getUint8(o);
     e.flags = v.getUint8(o + 1);
-    e.x = v.getInt16(o + 2, true) / POS_SCALE;
-    e.y = v.getInt16(o + 4, true) / POS_SCALE;
-    e.z = v.getInt16(o + 6, true) / POS_SCALE;
-    e.yaw = (v.getUint16(o + 8, true) / 65536) * Math.PI * 2;
-    e.pitch = (v.getInt16(o + 10, true) / 32767) * (Math.PI / 2);
-    e.hp = v.getUint8(o + 12);
-    e.armor = v.getUint8(o + 13);
+    e.x = getI24(v, o + 2) / POS_SCALE;
+    e.y = v.getInt16(o + 5, true) / POS_SCALE;
+    e.z = getI24(v, o + 7) / POS_SCALE;
+    e.yaw = (v.getUint16(o + 10, true) / 65536) * Math.PI * 2;
+    e.pitch = (v.getInt16(o + 12, true) / 32767) * (Math.PI / 2);
+    e.hp = v.getUint8(o + 14);
+    e.armor = v.getUint8(o + 15);
     o += ENTITY_BYTES;
   }
   h.tail = o;

@@ -205,6 +205,8 @@ export class LobbyWorld {
   private lighthouseEnabled = true;
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
+  /** Море — идёт за камерой (update) */
+  private readonly sea: THREE.Mesh;
   private readonly floaters: Floater[] = [];
   private readonly trampolines: Trampolines;
   /** Катер у причала и лодка, что иногда проходит по заливу */
@@ -307,6 +309,7 @@ export class LobbyWorld {
     scene.add(sky);
     const sea = makeSea(EVENING);
     this.seaMat = sea.material;
+    this.sea = sea;
     scene.add(sea);
 
     this.buildMapBoxes();
@@ -1437,6 +1440,10 @@ export class LobbyWorld {
     this.stepWeather(dt);
     this.skyMat.uniforms.uTime.value = t;
     this.seaMat.uniforms.uTime.value = t;
+    // море идёт за камерой (шагами по 50 м: волны в шейдере — по мировым координатам) — до острова и дальше
+    const cam = this.camera.position;
+    this.sea.position.x = Math.round(cam.x / 50) * 50;
+    this.sea.position.z = Math.round(cam.z / 50) * 50;
     this.wind.value = t;
     updateFloaters(this.floaters, t);
     this.trampolines.update(dt);

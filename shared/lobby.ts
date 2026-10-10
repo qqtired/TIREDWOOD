@@ -39,6 +39,8 @@ export const ACT_FERRY_RIDE = 18;
 export const ACT_BILLIARDS = 19;
 /** Пилот гидроплана «Стриж» (shared/plane.ts): ведёт самолёт мышью, шагом не встать — только после посадки */
 export const ACT_PLANE = 20;
+/** В своей лодке (флаг ISLE, shared/ownboat.ts): аргумент — номер лодки × 4 + место (0 — штурвал); шагом не встать — выйти у причала */
+export const ACT_OWNBOAT = 21;
 
 /** Помахать, «устал», смех — 3 с; танец — до первого шага */
 export const EMOTE_TICKS = 180;
@@ -77,13 +79,13 @@ export function isHeld(action: number): boolean {
   return (
     action === ACT_SIT || action === ACT_SLOT || action === ACT_WARDROBE || action === ACT_DURAK || action === ACT_FISH || action === ACT_BOAT ||
     action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY || action === ACT_FERRY_RIDE ||
-    action === ACT_BILLIARDS || action === ACT_PLANE
+    action === ACT_BILLIARDS || action === ACT_PLANE || action === ACT_OWNBOAT
   );
 }
 
 /** Едет: катер в поездке, кабинка колеса, катер регаты или лодка Семёна в рейсе — двигает сервер, встать нельзя */
 export function isRiding(action: number): boolean {
-  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY_RIDE || action === ACT_PLANE;
+  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY_RIDE || action === ACT_PLANE || action === ACT_OWNBOAT;
 }
 
 /** Сидит в лодке Семёна: ждёт отхода или уже плывёт */

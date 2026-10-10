@@ -69,6 +69,8 @@ export interface FishProgress {
   lure: FishGear;
   bag: BagFish[];
   bagSeq: number;
+  /** Купленные лодки (id из shared/fishboat.ts, пакет лодок); нет — лодок нет */
+  boats?: string[];
 }
 
 export interface FishCastMods {
@@ -156,6 +158,7 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
     const f = bagFish(item);
     if (f && !seen.has(f.n) && bag.length < BAG_MAX) { seen.add(f.n); bag.push(f); }
   }
+  const boats = Array.isArray(r.boats) ? [...new Set(r.boats.filter((b): b is string => typeof b === 'string' && b.length > 0 && b.length <= 32))].slice(0, 8) : [];
   const top = bag.reduce((m, f) => Math.max(m, f.n + 1), 0);
   return {
     xp: count(r.xp), questsDone, questCaught: count(r.questCaught),
@@ -168,6 +171,7 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
     lure: gear(r.lure, LURES.length),
     bag,
     bagSeq: Math.max(count(r.bagSeq), top),
+    ...(boats.length ? { boats } : {}),
   };
 }
 

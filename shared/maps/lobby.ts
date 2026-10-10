@@ -17,6 +17,7 @@ import {
 } from '../fishplaces.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
+import { BERTHS, parkDeckBoxes } from '../ownboat.ts';
 import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
@@ -27,8 +28,9 @@ import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
 /** ratrace — крысиные бега на понтоне у набережной (флаг RATRACE); billiards — бильярдный стол (флаг BILLIARDS);
- * plane — гидроплан «Стриж» у западного края площади, banner — заказ баннера (флаг PLANE, shared/plane.ts) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner';
+ * plane — гидроплан «Стриж» у западного края площади, banner — заказ баннера (флаг PLANE, shared/plane.ts);
+ * oboat — берт своей лодки (arg 0–9 — стоянка за домом Семёна, 10–15 — причал острова; флаг ISLE, shared/ownboat.ts) */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat';
 
 export interface Interactable {
   id: number;
@@ -102,6 +104,8 @@ export interface LobbyMap extends GameMap {
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
   planeBoxes: number[];
+  /** Пирс лодочной стоянки за домом Семёна (флаг сервера ISLE, shared/ownboat.ts): без флага коллизию выключают */
+  parkBoxes: number[];
   /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее, в самом конце списка боксов */
   plazaBoxes: number[];
   /** Из них — предметы режимов за флагами (двор прятков, мачты регаты, столбики Fight Club): без флага их выключают, как на экране */
@@ -507,6 +511,15 @@ export function buildLobby(): LobbyMap {
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 
+  // --- Своя лодочная стоянка за домом Семёна (флаг ISLE, shared/ownboat.ts): сходни, мостик и пальцы пирса (без флага
+  // коллизию выключают), точки E у бертов стоянки и причала острова — в самый конец списка
+  const parkBoxes: number[] = [];
+  for (const k of parkDeckBoxes()) {
+    parkBoxes.push(b.boxes.length);
+    b.box(k.min, k.max, 'invisible', 0);
+  }
+  BERTHS.forEach((t, i) => add('oboat', t.px, t.pz, t.yaw, 1.5, i, 'своя лодка'));
+
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
   const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
@@ -558,6 +571,7 @@ export function buildLobby(): LobbyMap {
     ratBoxes,
     billiardsBoxes,
     planeBoxes,
+    parkBoxes,
     plazaBoxes,
     plazaModeBoxes,
   };

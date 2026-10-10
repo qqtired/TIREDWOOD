@@ -21,6 +21,7 @@ import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
 import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { planeEnabled } from '../shared/plane.ts';
+import { isleEnabled, setIsle } from '../shared/fishisle.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
@@ -78,8 +79,11 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 // Гидроплан «Стриж» (полёт над городом за 100 🪙): PLANE=1 — включить, PLANE=0 — выключить, без переменной — только с --dev
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
+// Остров «Последний свет» и свои лодки рыбаков: ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = isleEnabled(process.env.ISLE, DEV, fish2);
+setIsle(isle);
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, isle, votekick,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -115,6 +119,7 @@ if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
 if (plane) console.log('PLANE: гидроплан «Стриж» (полёт над городом) включён');
+if (isle) console.log('ISLE: остров «Последний свет» и свои лодки рыбаков включены');
 if (votekick) console.log('VOTEKICK: голосование «выгнать игрока» (меню Tab) включено');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
