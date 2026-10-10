@@ -1,9 +1,12 @@
 // «Подземелье»: постройки с состоянием (алтари, жаровни, сундуки, родники, фонари-маяки, бочки, батуты, кузни,
 // вагонетки) — инстансами по видам: на вид две отрисовки (непрозрачное с цветами вершин и свечение). Состояние —
 // яркостью свечения на экземпляр (гасим яркостью, не видимостью), вариантом модели (жаровня стоит/опрокинута) и
-// матрицей части (уровень воды в роднике). Рисуются только те, что рядом с камерой.
+// матрицей части (уровень воды в роднике). Рисуются только те, что рядом с камерой. Проклятый сундук открыт/рассыпался —
+// второй вариант модели (крышка откинута, без цепей и замка, тусклый). Сундуки-подборы карты и островка — та же модель
+// без проклятия, поменьше, покачиваются, под ними пятно света.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { D_RING, D_SOFT, type FloorDecals } from './fx.ts';
 import type { BuildingKind, VBuilding } from './view.ts';
 
 interface Baked {
@@ -11,8 +14,14 @@ interface Baked {
   glow: THREE.BufferGeometry | null;
 }
 
-/** Склеить узел (с детьми, кроме skip) в две геометрии в системе узла: цвет материала — в цвет вершин */
-export function bakeNode(node: THREE.Object3D, skip: (o: THREE.Object3D) => boolean = () => false): Baked {
+/** Перекраска материала при склейке: [цвет, светится] или undefined — как есть */
+type Recolor = (mat: THREE.MeshStandardMaterial) => [THREE.Color, boolean] | undefined;
+
+/**
+ * Склеить узел (с детьми, кроме skip) в две геометрии в системе узла: цвет материала — в цвет вершин;
+ * dim — множитель непрозрачных цветов, recolor — своя краска по материалу
+ */
+export function bakeNode(node: THREE.Object3D, skip: (o: THREE.Object3D) => boolean = () => false, dim = 1, recolor?: Recolor): Baked {
   node.updateMatrixWorld(true);
   const inv = node.matrixWorld.clone().invert();
   const op: THREE.BufferGeometry[] = [];
@@ -28,8 +37,10 @@ export function bakeNode(node: THREE.Object3D, skip: (o: THREE.Object3D) => bool
       for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
       rel.copy(inv).multiply(m.matrixWorld);
       g.applyMatrix4(rel);
-      const glow = /glow/.test(mat.name) || (mat.emissive && mat.emissiveIntensity > 0 && mat.emissive.getHex() !== 0);
-      const c = glow && mat.emissive && mat.emissive.getHex() !== 0 ? mat.emissive.clone().multiplyScalar(Math.min(2.2, mat.emissiveIntensity || 1)) : mat.color.clone();
+      const rc = recolor?.(mat);
+      const glow = rc ? rc[1] : /glow/.test(mat.name) || (mat.emissive && mat.emissiveIntensity > 0 && mat.emissive.getHex() !== 0);
+      const c = rc ? rc[0].clone() : glow && mat.emissive && mat.emissive.getHex() !== 0 ? mat.emissive.clone().multiplyScalar(Math.min(2.2, mat.emissiveIntensity || 1)) : mat.color.clone();
+      if (!glow) c.multiplyScalar(dim);
       const n = g.attributes.position.count;
       const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
@@ -55,7 +66,7 @@ interface Part {
   n: number;
 }
 
-const CAP: Record<string, number> = { altar: 6, brazier: 48, brazier_tipped: 48, chest: 4, spring: 4, spring_water: 4, lamppost: 16, keg: 60, trampoline: 10, forge: 4, minecart: 4 };
+const CAP: Record<string, number> = { altar: 6, brazier: 48, brazier_tipped: 48, chest: 4, chest_open: 4, pchest_map: 12, pchest_isle: 2, spring: 4, spring_water: 4, lamppost: 16, keg: 60, trampoline: 10, forge: 4, minecart: 4 };
 
 const tmpM = new THREE.Matrix4();
 const tmpM2 = new THREE.Matrix4();
@@ -64,6 +75,17 @@ const tmpP = new THREE.Vector3();
 const tmpS = new THREE.Vector3();
 const tmpC = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
+const tmpE = new THREE.Euler(0, 0, 0, 'YXZ');
+/** верх песка островка озера (lake_island в kit_grotto) */
+const ISLE_Y = 0.42;
+/** откинутая крышка проклятого сундука — последний кадр клипа chest_open */
+const LID_OPEN = new THREE.Quaternion(-0.799, 0, 0, 0.602).normalize();
+const isMat = (o: THREE.Object3D, re: RegExp): boolean => {
+  const m = o as THREE.Mesh;
+  if (!m.isMesh) return false;
+  const mat = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.Material;
+  return re.test(mat.name);
+};
 
 export class BuildingRenderer {
   readonly root = new THREE.Group();
@@ -73,9 +95,9 @@ export class BuildingRenderer {
 
   constructor(kits: Map<string, THREE.Object3D>) {
     this.root.name = 'dg-buildings';
-    const make = (key: string, node: THREE.Object3D | undefined, skip?: (o: THREE.Object3D) => boolean): void => {
+    const make = (key: string, node: THREE.Object3D | undefined, skip?: (o: THREE.Object3D) => boolean, dim = 1, recolor?: Recolor): void => {
       if (!node) return;
-      const b = bakeNode(node, skip);
+      const b = bakeNode(node, skip, dim, recolor);
       const cap = CAP[key] ?? 8;
       const mk = (g: THREE.BufferGeometry | null, mat: THREE.Material): THREE.InstancedMesh | null => {
         if (!g) return null;
@@ -93,7 +115,21 @@ export class BuildingRenderer {
     make('altar', kits.get('altar'));
     make('brazier', kits.get('brazier'));
     make('brazier_tipped', kits.get('brazier_tipped'));
-    make('chest', kits.get('cursed_chest'));
+    const cursed = kits.get('cursed_chest');
+    make('chest', cursed);
+    if (cursed) {
+      // открыт/рассыпался: крышка откинута, цепей, замка и золота внутри нет, тусклый
+      const open = cursed.clone(true);
+      open.getObjectByName('cursed_chest_lid')?.quaternion.copy(LID_OPEN);
+      make('chest_open', open, (o) => /chain|lock/.test(o.name) || isMat(o, /brass/), 0.55);
+      // сундуки карты: без цепей, замка и повидла; дерево светлее — видно на тёмном полу
+      const plain = (o: THREE.Object3D): boolean => /chain|lock/.test(o.name) || isMat(o, /jam/);
+      const wood = (m: THREE.MeshStandardMaterial): [THREE.Color, boolean] | undefined =>
+        /wood/.test(m.name) ? [m.color.clone().multiplyScalar(/dark/.test(m.name) ? 2.6 : 2), false] : undefined;
+      make('pchest_map', cursed, plain, 1, (m) => (/brass/.test(m.name) ? [m.color.clone().multiplyScalar(1.6), false] : wood(m)));
+      // островок: оковки и замок светятся бирюзой
+      make('pchest_isle', cursed, plain, 1, (m) => (/brass|iron/.test(m.name) ? [new THREE.Color(0.22, 0.85, 0.75), true] : wood(m)));
+    }
     const spring = kits.get('healing_spring');
     const water = spring?.getObjectByName('healing_spring_water');
     make('spring', spring, (o) => o === water);
@@ -144,6 +180,7 @@ export class BuildingRenderer {
         break;
       case 'chest':
         if (b.s > 0) this.put('chest', tmpM, b.on ? 1 + 0.4 * Math.sin(time * 4 + b.id) : 0.3);
+        else this.put('chest_open', tmpM, 0.08);
         break;
       case 'spring': {
         this.put('spring', tmpM, 1);
@@ -169,6 +206,32 @@ export class BuildingRenderer {
       case 'minecart':
         this.put('minecart', tmpM, 1);
         break;
+    }
+  }
+
+  /**
+   * Сундук-подбор на полу: 'map' — обычный деревянный, 'isle' — сундук островка с бирюзовым отливом. Чуть покачивается,
+   * под ним пятно света и кольцо (декали пола — без настоящих ламп)
+   */
+  chest(src: 'map' | 'isle', x: number, z: number, id: number, time: number, decA: FloorDecals): void {
+    const isle = src === 'isle';
+    const ph = time * 2.3 + id * 1.7;
+    tmpE.set(0.05 * Math.sin(ph * 0.8), (id * 2.399) % 6.283, 0.08 * Math.sin(ph));
+    tmpQ.setFromEuler(tmpE);
+    const sc = isle ? 0.9 : 0.75;
+    // сундук островка стоит на песке островка (~0,4 м над водой)
+    const y = isle ? ISLE_Y : 0;
+    tmpM.compose(tmpP.set(x, y, z), tmpQ, tmpS.set(sc, sc, sc));
+    const pulse = 0.5 + 0.5 * Math.sin(time * 3 + id);
+    if (isle) {
+      this.put('pchest_isle', tmpM, 1 + 0.5 * pulse);
+      // песок островка неровный (до ~0,7 м) — пятно и кольцо чуть выше
+      decA.add(x, 0.75, z, 3, 3, 0, D_SOFT, 1.4, 0, 0.3, 1, 0.88, 0.55 + 0.25 * pulse);
+      decA.add(x, 0.76, z, 1.7, 1.7, 0, D_RING, 0.78, 0.12, 0.35, 1, 0.9, 0.5 + 0.35 * pulse);
+    } else {
+      this.put('pchest_map', tmpM, 1);
+      decA.add(x, 0.05, z, 2.6, 2.6, 0, D_SOFT, 1.4, 0, 1, 0.72, 0.38, 0.42 + 0.18 * pulse);
+      decA.add(x, 0.055, z, 1.3, 1.3, 0, D_RING, 0.78, 0.12, 1, 0.8, 0.45, 0.3 + 0.3 * pulse);
     }
   }
 

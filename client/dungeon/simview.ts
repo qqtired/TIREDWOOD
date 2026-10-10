@@ -75,7 +75,8 @@ function chestView(sim: DgSim): HudChest | null {
       items.push({ id: r.id, kind: r.k === 'w' ? 'weapon' : 'passive', icon: info?.icon ?? '•', name: info?.name ?? r.id, from: r.lv - 1, to: r.lv });
     }
   }
-  return { items, big: ch.kind === 'big', fallback: items.length ? undefined : fallback ?? '+50 опыта и +30 HP' };
+  const title = ch.kind === 'plain' ? 'Сундук' : ch.kind === 'isle' ? 'Сундук островка' : undefined;
+  return { items, big: ch.kind === 'big', title, fallback: items.length ? undefined : fallback ?? '+50 опыта и +30 HP' };
 }
 
 /** Состояние врага → что играть */
@@ -472,7 +473,7 @@ export class SimRun implements RunSource {
     }));
     const pickups: VPickup[] = [];
     for (const g of sim.gems) pickups.push({ id: g.id, kind: g.v >= 25 ? 'gem25' : g.v >= 5 ? 'gem5' : 'gem1', x: g.x, z: g.z });
-    for (const it of sim.items) pickups.push({ id: it.id, kind: it.k === 'bigchest' ? 'chest' : it.k, x: it.x, z: it.z });
+    for (const it of sim.items) pickups.push({ id: it.id, kind: it.k === 'bigchest' ? 'chest' : it.k, x: it.x, z: it.z, src: it.k === 'chest' ? it.src : undefined });
     // постройки
     const buildings: VBuilding[] = [];
     for (const p of sim.props) {
@@ -490,8 +491,10 @@ export class SimRun implements RunSource {
           s = p.st === 0 ? 1 : 0;
           break;
         case 'chest':
+          // 2 — открыт/рассыпался до t1: крышка откинута, без свечения (s 0)
           if (p.st === 3) skip = true;
-          on = true;
+          s = p.st === 2 ? 0 : 1;
+          on = p.st !== 2;
           break;
         case 'spring':
           s = p.v;

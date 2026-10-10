@@ -770,7 +770,7 @@ export class DungeonHud implements DungeonHudApi {
     L.textContent = '';
     if (!c) return;
     const win = el('div', `dg-window dg-chest${c.big ? ' big' : ''}`);
-    win.append(el('h2', 'dg-chest-title', c.big ? 'Большой сундук!' : 'Сундук!'));
+    win.append(el('h2', 'dg-chest-title', c.title ?? (c.big ? 'Большой сундук!' : 'Сундук!')));
     // лента барабана: свои вещи и все оружия/пассивки
     const pool: [DgIconKind, string, string][] = [
       ...Object.entries(WEAPONS).filter(([id]) => !id.endsWith('_evo')).map(([id, w]) => ['weapon', id, w.icon] as [DgIconKind, string, string]),

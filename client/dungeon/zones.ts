@@ -2,7 +2,8 @@
 // когда герой внутри), заполнение во время активации (hero.useT0 → useT1, у фонаря-маяка — его заряд) и вспышка в конце;
 // полная подпись (имя и что даёт) — раз за забег на каждый вид постройки, при первом подходе, ~6,5 с, потом тает;
 // дальше над постройкой только короткая строка, когда она недоступна («через 45 с», «откроется во время волны»).
-// У гриба-батута и пороховых бочек подписей нет вовсе.
+// У гриба-батута и пороховых бочек подписей нет вовсе. Встал в круг, а сейчас нельзя (hero.lockId, причина — prop.why) —
+// короткая плашка над героем один раз при входе.
 // Родник, пока лечит: пузыри, свечение и зелёные «+HP». Только декали пола, частицы и DOM-подписи — без настоящих ламп.
 import * as THREE from 'three';
 import { DG_DATA, type DgProp, type DgSim } from '../../shared/dungeon/sim.ts';
@@ -23,6 +24,8 @@ const NOTE_NEAR = 9;
 const NO_LABEL = new Set<DgProp['k']>(['tramp', 'keg']);
 /** проклятие: столько секунд на элиту (props.ts CURSE_TIME) */
 const CURSE_S = 45;
+/** плашка «почему нельзя» над героем, с */
+const TOAST_S = 2.4;
 
 const inter = (id: string): Record<string, unknown> => (DG_DATA.interactables.find((i) => i.id === id) ?? { id }) as Record<string, unknown>;
 const num = (id: string, key: string, def: number): number => {
@@ -62,12 +65,6 @@ function present(p: DgProp): boolean {
   return true;
 }
 
-/** Причина «не сработает» от симуляции (поле why, если оно есть): '' — сработает; undefined — симуляция его не даёт */
-function whyOf(p: DgProp): string | undefined {
-  const w = (p as { why?: unknown }).why;
-  return typeof w === 'string' ? w : undefined;
-}
-
 const CSS = `
 .dgz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
 .dgz-l { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); max-width: 340px; padding: 7px 12px 8px; border-radius: 12px;
@@ -78,6 +75,9 @@ const CSS = `
 .dgz-s { margin-top: 4px; font-size: 13px; color: #c9b9a2; }
 .dgz-n { position: absolute; left: 0; top: 0; padding: 2px 9px 3px; border-radius: 99px; background: rgba(24, 17, 14, .7);
   border: 1px solid rgba(255, 220, 160, .14); color: #e6d8c2; font: 600 12px/1.3 Rubik, system-ui, sans-serif; white-space: nowrap; transition: opacity .2s; }
+.dgz-toast { position: absolute; left: 0; top: 0; padding: 4px 13px 5px; border-radius: 99px; background: rgba(38, 20, 14, .86);
+  border: 1px solid rgba(255, 170, 120, .35); color: #ffc9a0; font: 700 14px/1.3 Rubik, system-ui, sans-serif; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
 .dgz-s.ok, .dgz-n.ok { color: #8ef0b0; }
 .dgz-s.warn, .dgz-n.warn { color: #ffb38a; }
 `;
@@ -104,6 +104,11 @@ export class BuildingZones {
   private readonly seen = new Map<DgProp['k'], { id: number; t0: number }>();
   private simRef: DgSim | null = null;
   private lastT = -1;
+  /** плашка над героем: постройка, текст, шаг появления */
+  private toastEl: HTMLElement | null = null;
+  private lastLock = -1;
+  private toastId = -1;
+  private toastT0 = -1e9;
   private healAcc = 0;
   private healT = 0;
   private healIdle = 9;
@@ -188,6 +193,8 @@ export class BuildingZones {
       if (p.k === 'spring' && p.v > 0.02) decA.add(x, 0.06, z, 1.1, 1.1, 0, D_SOFT, 1.4, 0, 0.3, 0.85, 0.9, 0.12 + 0.3 * p.v);
     }
     this.spring(sim, inSpring, X, Z, pool, decA, time, still, dt);
+    this.toast(sim, camera, X, Z, w, hh);
+    const toastOn = (t - this.toastT0) / HZ < TOAST_S ? this.toastId : -1;
     near.sort((a, b) => a.d - b.d);
     // полная подпись: первый подход к виду постройки в этом забеге, если другая сейчас не показана
     let cur: { p: DgProp; d: number; age: number } | null = null;
@@ -218,7 +225,8 @@ export class BuildingZones {
         // тает в конце и при отходе
         const a = Math.min(1, age / 0.25, 1 - (age - FULL_S) / FADE_S, (NOTE_NEAR - d) / 2);
         lb.el.style.opacity = String(Math.max(0, a).toFixed(2));
-        const st = this.state(sim, p, d < k.r + 0.3);
+        // причина уже над героем плашкой — не повторять
+        const st = p.id === toastOn ? { text: '', cls: '' } : this.state(sim, p, d < k.r + 0.3);
         const key = `${p.id}|${st.text}|${st.cls}`;
         if (key !== lb.key) {
           lb.key = key;
@@ -236,7 +244,7 @@ export class BuildingZones {
     let n = 0;
     for (const { p, d } of near) {
       if (n >= NOTE_MAX) break;
-      if (p.id === fullId) continue;
+      if (p.id === fullId || p.id === toastOn) continue;
       const st = this.state(sim, p, d < KINDS[p.k].r + 0.3);
       if (!st.text) continue;
       const at = this.screen(camera, X(p.x), Z(p.z), p.k === 'cart' ? 2.2 : 3.4, w, hh);
@@ -263,15 +271,11 @@ export class BuildingZones {
   }
 
   private ready(sim: DgSim, p: DgProp): boolean {
-    const why = whyOf(p);
-    if (why !== undefined && (p.k === 'altar' || p.k === 'chest' || p.k === 'forge')) return why === '';
     switch (p.k) {
       case 'altar':
-        return p.st === 0;
       case 'chest':
-        return p.st === 0 && sim.wave.stage === 'wave';
       case 'forge':
-        return p.st === 0 && sim.hero.xp >= sim.hero.xpNext * num('forge', 'minXpShare', 0.5) && sim.weapons.length > 0;
+        return p.why === '' && (p.k !== 'chest' || p.st === 0);
       case 'spring':
         return p.v > 0.02;
       case 'lamp':
@@ -287,7 +291,7 @@ export class BuildingZones {
 
   /**
    * Короткая строка состояния — только когда постройка сейчас не сработает (и почему), плюс вода родника, пока стоишь
-   * в чаше. Пусто — постройка готова: хватает круга и кольца. Причину берём у симуляции (why), если она её даёт.
+   * в чаше. Пусто — постройка готова: хватает круга и кольца. Причину даёт симуляция (prop.why).
    */
   private state(sim: DgSim, p: DgProp, inside: boolean): { text: string; cls: string } {
     const t = sim.t;
@@ -295,36 +299,63 @@ export class BuildingZones {
     const secs = (to: number): number => Math.max(1, Math.ceil((to - t) / HZ));
     const no = { text: '', cls: '' };
     const warn = (text: string): { text: string; cls: string } => ({ text, cls: 'warn' });
-    let why = whyOf(p);
-    if (why === undefined) {
-      // симуляция без why — считаем сами
-      why = '';
-      if (p.k === 'altar' && p.st === 2) why = 'cool';
-      if (p.k === 'chest') why = p.st === 1 ? 'busy' : p.st === 2 ? 'cool' : sim.wave.stage !== 'wave' ? 'wave' : '';
-      if (p.k === 'forge') why = p.st === 3 ? 'out' : sim.weapons.length === 0 || h.xp < h.xpNext * num('forge', 'minXpShare', 0.5) ? 'xp' : '';
-    }
+    const why = p.why;
     switch (p.k) {
       case 'altar':
-        return why === 'cool' ? warn(`снова через ${secs(p.t1)} с`) : why ? warn('сейчас не сработает') : no;
+        return why === 'cool' ? warn(`Остывает — снова через ${secs(p.t1)} с`) : why ? warn('Сейчас не сработает') : no;
       case 'chest':
-        if (why === 'busy') return warn(`убей элиту — ${secs(p.t1)} с`);
-        if (why === 'wave') return warn('откроется во время волны');
-        if (why === 'boss') return warn('не на волне босса');
-        if (why === 'cool') return warn('пуст — новый появится в другом месте');
-        return why ? warn('сейчас не откроется') : no;
+        if (why === 'busy') return warn(`Убей элиту — ${secs(p.t1)} с`);
+        if (why === 'wave') return warn('Откроется во время волны');
+        if (why === 'boss') return warn('Не на волне босса');
+        if (why === 'cool') return warn(`Рассыпался — новый через ${secs(p.t1)} с`);
+        return why ? warn('Сейчас не откроется') : no;
       case 'forge':
-        if (why === 'out') return warn(`разгорится на ${p.v}-й волне`);
-        if (why === 'xp') return warn('нужно полполосы опыта');
-        return why ? warn('сейчас не сработает') : no;
+        if (why === 'out') return warn(`Погасла — разгорится на ${p.v}-й волне`);
+        if (why === 'xp') return warn('Нужно полполосы опыта');
+        return why ? warn('Сейчас не сработает') : no;
       case 'spring':
-        if (p.v <= 0.02) return warn('пусто — наберётся за минуту');
-        if (inside && h.hp >= h.hpMax) return { text: `здоровье полное · вода ${Math.round(p.v * 100)} %`, cls: '' };
-        if (inside) return { text: `вода ${Math.round(p.v * 100)} %`, cls: 'ok' };
+        if (p.v <= 0.02) return warn('Пусто — наберётся за минуту');
+        if (inside && h.hp >= h.hpMax) return { text: `Здоровье полное · вода ${Math.round(p.v * 100)} %`, cls: '' };
+        if (inside) return { text: `Вода ${Math.round(p.v * 100)} %`, cls: 'ok' };
         return no;
       case 'cart':
-        return p.st === 0 && t < p.t1 ? warn(`через ${secs(p.t1)} с`) : no;
+        return p.st === 0 && t < p.t1 ? warn(`Готова через ${secs(p.t1)} с`) : no;
     }
     return no;
+  }
+
+  /** Встал в круг постройки, которая сейчас не сработает (hero.lockId сменился) — плашка с причиной над героем */
+  private toast(sim: DgSim, camera: THREE.Camera, X: (x: number) => number, Z: (z: number) => number, w: number, hh: number): void {
+    const h = sim.hero;
+    const t = sim.t;
+    if (h.lockId !== this.lastLock) {
+      this.lastLock = h.lockId;
+      const p = h.lockId >= 0 ? sim.props.find((o) => o.id === h.lockId) : undefined;
+      const st = p ? this.state(sim, p, true) : null;
+      if (p && st?.text) {
+        this.toastId = p.id;
+        this.toastT0 = t;
+        if (!this.toastEl) {
+          this.toastEl = document.createElement('div');
+          this.toastEl.className = 'dgz-toast';
+          this.layer.appendChild(this.toastEl);
+        }
+        this.toastEl.textContent = st.text;
+      }
+    }
+    const el = this.toastEl;
+    if (!el) return;
+    const age = (t - this.toastT0) / HZ;
+    const at = age < TOAST_S ? this.screen(camera, X(h.x), Z(h.z), 2.7, w, hh) : null;
+    if (!at) {
+      el.style.display = 'none';
+      return;
+    }
+    // всплывает на 12 px и тает в последние 0,5 с
+    const rise = Math.round(12 * Math.min(1, age / 0.2));
+    el.style.transform = `translate(${at[0]}px, ${at[1] - rise}px) translate(-50%, -100%)`;
+    el.style.opacity = Math.max(0, Math.min(1, age / 0.12, (TOAST_S - age) / 0.5)).toFixed(2);
+    el.style.display = '';
   }
 
   /** Родник лечит: пузыри, свечение, «+HP» зелёным */

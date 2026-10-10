@@ -1053,7 +1053,8 @@ export class DungeonGame {
           this.gems.setColorAt(gn, gc);
           gn++;
           this.bbA.add(x, bob, z, 0.7 * big, 0.7 * big, 0, A_SOFT, gc.r * 0.4, gc.g * 0.4, gc.b * 0.4, 0.7);
-        } else {
+        } else if (pk.kind === 'chest' && pk.src) this.buildings.chest(pk.src, x, z, pk.id, time, this.decA);
+        else {
           const cell = ICONS[pk.kind] ?? ICONS.chest;
           this.bbN.add(x, 0.9 + Math.sin(time * 3 + pk.id) * 0.12, z, 1.1, 1.1, 0, cell, 1, 1, 1, 1);
           this.decA.add(x, 0.05, z, 1.4, 1.4, 0, D_RING, 0.7, 0.15, 1, 0.85, 0.4, 0.6 + 0.3 * Math.sin(time * 4));
@@ -1194,7 +1195,7 @@ export class DungeonGame {
     // постройки: [вид в HUD, приоритет, дальность, годится ли]
     const rules: Partial<Record<BuildingKind, [HudPoiKind, number, number, (b: VBuilding) => boolean]>> = {
       spring: ['spring', hp01 < 0.35 ? 1 : 3, 140, (b) => hp01 < 0.7 && b.s > 0.25],
-      chest: ['cursed', 4, 110, () => true],
+      chest: ['cursed', 4, 110, (b) => b.s > 0],
       altar: ['altar', 5, 100, (b) => b.s >= 1],
       forge: ['forge', 6, 110, (b) => b.s > 0 && v.xp01 >= 0.5],
       minecart: ['cart', 7, 70, (b) => !b.on],
@@ -1265,7 +1266,7 @@ export class DungeonGame {
       const dz = wrap(b.z - z0);
       if (dx * dx + dz * dz > R * R * 1.1) continue;
       const kind = POI_OF[b.kind];
-      const on = b.kind === 'altar' ? b.s >= 1 : b.kind === 'spring' ? b.s > 0.25 : b.kind === 'lamppost' ? b.on : b.kind === 'keg' ? !b.on : b.kind === 'chest' || b.kind === 'minecart' ? true : b.s > 0;
+      const on = b.kind === 'altar' ? b.s >= 1 : b.kind === 'spring' ? b.s > 0.25 : b.kind === 'lamppost' ? b.on : b.kind === 'keg' ? !b.on : b.kind === 'minecart' ? true : b.s > 0;
       pois.push({ kind, x: dx, z: dz, on });
     }
     for (const p of v.pickups) if (p.kind === 'chest') pois.push({ kind: 'chest', x: wrap(p.x - x0), z: wrap(p.z - z0), on: true });
