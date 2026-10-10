@@ -3,6 +3,7 @@
 // поэтому всё склеивается и рисуется инстансами без лишних шейдеров. CSP: файлы — свои ассеты сборки (не data:).
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const URLS = import.meta.glob('../assets/farm/models/*.glb', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -34,8 +35,17 @@ function sharedMaterial(src: THREE.Material): THREE.Material {
   if (m) return m;
   const s = src as THREE.MeshStandardMaterial;
   if (name.startsWith('farm_glow')) {
-    // светящееся (лампы, угли, золотой ободок спелой грядки) — без освещения, цвет из вершин
-    m = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: true });
+    // светящееся (лампы, угли, золотой ободок спелой грядки, светлячок) — без освещения, цвет из вершин
+    m = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: true, color: (src as THREE.MeshBasicMaterial).color?.clone() ?? new THREE.Color(1, 1, 1) });
+  } else if (src.transparent) {
+    // стекло банки светлячка: прозрачное, без записи глубины
+    m = new THREE.MeshStandardMaterial({
+      vertexColors: true, color: s.color.clone(), roughness: Math.max(0.2, s.roughness ?? 0.1), transparent: true, opacity: s.opacity, depthWrite: false,
+    });
+  } else if (name.startsWith('tree_')) {
+    // Древо разлома: вершины светлые, оттенок — цвет материала (меняется по фазам, extras.phaseTints)
+    m = new THREE.MeshStandardMaterial({ vertexColors: true, color: s.color.clone(), roughness: Math.max(0.35, s.roughness ?? 0.7), side: THREE.DoubleSide });
+    m.userData.phaseTints = src.userData.phaseTints;
   } else {
     m = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -201,5 +211,87 @@ export class PartInstances {
 
   addTo(parent: THREE.Object3D): void {
     for (const m of this.meshes) parent.add(m);
+  }
+}
+
+// ------------------------------------------------------------ персонажи со скелетом
+
+/**
+ * Копия модели со скелетом (питомцы, свины, шишки): свой скелет, общие сетки и материалы. Тени на ферме запечены
+ * (renderer.shadowMap.autoUpdate = false) — бегающие персонажи их не отбрасывают.
+ */
+export function cloneRig(model: FarmModel): THREE.Object3D {
+  const root = cloneSkinned(model.gltf.scene);
+  root.traverse((o) => {
+    const mesh = o as THREE.SkinnedMesh;
+    if (mesh.isSkinnedMesh) {
+      mesh.castShadow = false;
+      mesh.frustumCulled = false;
+    }
+  });
+  return root;
+}
+
+/**
+ * Персонаж с клипами: базовый клип по кругу (idle, follow…) и разовые (greet, happy…) с плавным переходом;
+ * разовый доигрывает и возвращает базовый.
+ */
+export class Actor {
+  readonly root: THREE.Object3D;
+  readonly mixer: THREE.AnimationMixer;
+  private readonly clips = new Map<string, THREE.AnimationAction>();
+  private base = '';
+  private cur: THREE.AnimationAction | null = null;
+  /** Сколько ещё играет разовый клип, с */
+  private once = 0;
+
+  constructor(model: FarmModel, own = false) {
+    this.root = own ? model.gltf.scene : cloneRig(model);
+    this.mixer = new THREE.AnimationMixer(this.root);
+    for (const clip of model.gltf.animations) this.clips.set(clip.name, this.mixer.clipAction(clip));
+  }
+
+  has(name: string): boolean {
+    return this.clips.has(name);
+  }
+
+  get playing(): string {
+    return this.cur?.getClip().name ?? '';
+  }
+
+  /** Базовый клип по кругу (если он уже базовый — ничего) */
+  loop(name: string, fade = 0.3): void {
+    if (this.base === name || !this.clips.has(name)) return;
+    this.base = name;
+    if (this.once <= 0) this.go(name, fade, true);
+  }
+
+  /** Разовый клип; потом — обратно к базовому. Нет такого — ничего */
+  play(name: string, fade = 0.2): boolean {
+    const a = this.clips.get(name);
+    if (!a) return false;
+    this.go(name, fade, false);
+    this.once = a.getClip().duration - fade;
+    return true;
+  }
+
+  private go(name: string, fade: number, loop: boolean): void {
+    const a = this.clips.get(name)!;
+    a.reset();
+    a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    a.clampWhenFinished = !loop;
+    a.enabled = true;
+    a.setEffectiveWeight(1);
+    a.play();
+    if (this.cur && this.cur !== a) this.cur.crossFadeTo(a, fade, false);
+    this.cur = a;
+  }
+
+  update(dt: number): void {
+    if (this.once > 0) {
+      this.once -= dt;
+      if (this.once <= 0 && this.base) this.go(this.base, 0.25, true);
+    }
+    this.mixer.update(dt);
   }
 }

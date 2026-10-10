@@ -3,10 +3,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { ITEMS } from '../shared/outfit.ts';
-import { FARM_ITEM_IDS } from '../shared/farmdata.ts';
+import { readFileSync } from 'node:fs';
 import { BODY_H, bodyR } from '../client/render/outfit3d.ts';
 import { wearFor as wearOf } from '../client/render/outfitfish.ts';
+import { loadFarmWearSync } from '../client/render/farmwear.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial, posedHatPoint } from '../client/render/hatpose.ts';
+
+// шапки фермы — модели из Blender (client/render/farmwear.ts): в браузере грузятся при первом спросе, здесь — сразу
+loadFarmWearSync((url) => readFileSync(url));
 
 function bodyAt(x: number, y: number, z: number, time: number, wobble: number, lean: THREE.Vector2): THREE.Vector3 {
   const h = Math.max(0, Math.min(1, y / BODY_H));
@@ -22,8 +26,7 @@ test('all hats stay at their body surface through idle, acceleration, jump stret
     new THREE.Matrix4().makeScale(0.65, 1.25, 0.65),
     new THREE.Matrix4().makeScale(1.4, 1.4, 1.4),
   ];
-  // шапки фермы — без геометрии, пока их не сделает 3D-часть фермы (тогда убрать исключение)
-  for (const item of ITEMS.filter(it => it.slot === 'h' && it.key !== 'none' && !FARM_ITEM_IDS.has(it.id))) {
+  for (const item of ITEMS.filter(it => it.slot === 'h' && it.key !== 'none')) {
     const wear = wearOf('h', item.key);
     let samples = 0;
     for (const geo of [wear.geo, wear.metal]) {
