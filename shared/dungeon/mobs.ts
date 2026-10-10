@@ -127,7 +127,7 @@ export function stepMobs(sim: DgSim): void {
       const far = m.elite && d > 30 ? 2 : 1;
       switch (m.k) {
         case 'bat': {
-          const ds = def.dashSpeed ?? 8;
+          const ds = (def.dashSpeed ?? 8) * rageMul(m);
           if (m.sw > sim.t) {
             vx = m.ax * ds;
             vz = m.az * ds;
@@ -366,8 +366,8 @@ function barrelAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
       return;
     case 'dash':
       enemyHitsKegs(sim, m.x, m.z, m.r);
-      m.vx = m.ax * ch.speed;
-      m.vz = m.az * ch.speed;
+      m.vx = m.ax * ch.speed * rageMul(m);
+      m.vz = m.az * ch.speed * rageMul(m);
       m.dx = m.ax;
       m.dz = m.az;
       if (sim.t - m.stT >= Math.round((ch.laneLength / ch.speed) * 30)) setSt(sim, m, 'rest');
@@ -526,7 +526,28 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
 import { bossDeath } from './boss.ts';
 setKillHook(onKill);
 
-/** Все живые уходят в норы (конец волны) */
+/** Озверение за пережитый конец волны: +rage.speed скорости и +rage.dmg урона за уровень, не больше rage.max. true — поднялось */
+export function enrage(m: DgMob): boolean {
+  const R = rageRule();
+  if (m.rage >= R.max) return false;
+  const fs = (1 + R.speed * (m.rage + 1)) / (1 + R.speed * m.rage);
+  const fd = (1 + R.dmg * (m.rage + 1)) / (1 + R.dmg * m.rage);
+  m.rage++;
+  m.spd *= fs;
+  m.dmg *= fd;
+  return true;
+}
+/** Числа озверения (design-data mobRules.rage) */
+export function rageRule(): { speed: number; dmg: number; max: number } {
+  const r = (D.mobRules as { rage?: { speed?: number; dmg?: number; max?: number } }).rage;
+  return { speed: r?.speed ?? 0.1, dmg: r?.dmg ?? 0.1, max: r?.max ?? 3 };
+}
+/** Множитель озверения для скоростей из таблиц (рывок мыши, таран Бочара) */
+function rageMul(m: DgMob): number {
+  return 1 + rageRule().speed * m.rage;
+}
+
+/** Все живые уходят в норы (сейчас не используется: остатки волны остаются и звереют) */
 export function fleeAll(sim: DgSim): void {
   for (const m of sim.mobs) {
     if (m.die || m.st === 'flee') continue;

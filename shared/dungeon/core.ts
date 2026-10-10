@@ -256,8 +256,8 @@ export function hurtHero(sim: DgSim, dmg: number, by: string): boolean {
   h.hurtT = sim.t;
   h.invT = sim.t + ticks(D.hero.hitInvuln);
   fx(sim, { k: 'hurt', n, by });
-  // удар сбивает ковку в кузне
-  if (h.useId >= 0) h.useId = -1;
+  // удар сбивает ковку в кузне (алтарь и сундук — нет)
+  if (h.useId >= 0) for (const p of sim.props) if (p.id === h.useId && p.k === 'forge') h.useId = -1;
   if (h.hp <= 0) {
     h.hp = 0;
     h.dead = sim.t;
@@ -283,7 +283,7 @@ export function makeMob(sim: DgSim, k: MobKind, x: number, z: number, hpMul: num
   const m: DgMob = {
     id: newId(sim), k, elite: def.tier === 'elite' ? 1 : 0, x: wrapP(x), z: wrapP(z), dx: 1, dz: 0, vx: 0, vz: 0, kx: 0, kz: 0,
     hp, hpMax: hp, dmg: def.dmg * dmgMulV, spd: def.speed, r: def.radius, st: 'walk', stT: sim.t, hitT: -1, die: 0, cd: 0, cd2: 0, touch: 0,
-    stunT: 0, burnT: 0, burnD: 0, sq, ax: 0, az: 0, sw: 0, castHp: 0, under: 0, vulT: 0, chkT: sim.t, chkD: 1e9, ffT: 0, bmT: 0, curse: -1,
+    stunT: 0, burnT: 0, burnD: 0, sq, rage: 0, ax: 0, az: 0, sw: 0, castHp: 0, under: 0, vulT: 0, chkT: sim.t, chkD: 1e9, ffT: 0, bmT: 0, curse: -1,
   };
   sim.mobs.push(m);
   return m;
