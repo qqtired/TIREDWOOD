@@ -211,7 +211,9 @@ test('твёрдое оформление: боксы лежат в самом �
   last.forEach((b, i) => {
     const s = solids[i];
     assert.ok(Math.abs((b.min[0] + b.max[0]) / 2 - s.x) < 1e-9 && Math.abs((b.min[2] + b.max[2]) / 2 - s.z) < 1e-9, `бокс ${i} в своём месте`);
-    assert.ok(b.max[1] - b.min[1] > 0.5 && b.max[0] - b.min[0] <= 3 && b.max[2] - b.min[2] <= 3, `бокс ${i} размер`);
+    // скала «Подземелья» — единственный крупный предмет (основной бокс 6,4 × 4,8 м): остальные не больше 3 м
+    const cap = s.mode === 'dungeon' ? 7 : 3;
+    assert.ok(b.max[1] - b.min[1] > 0.5 && b.max[0] - b.min[0] <= cap && b.max[2] - b.min[2] <= cap, `бокс ${i} размер`);
   });
 });
 
@@ -286,11 +288,12 @@ test('твёрдое оформление режимов за флагами: б
     const z = (b.min[2] + b.max[2]) / 2;
     return hub.lobby.world.overlaps(x - 0.01, b.min[1] + 0.05, z - 0.01, x + 0.01, b.min[1] + 0.1, z + 0.01);
   };
-  for (const mode of ['hide', 'regatta', 'fight'] as const) {
+  for (const mode of ['hide', 'regatta', 'fight', 'dungeon'] as const) {
     assert.ok(lobby.plazaModeBoxes[mode].length > 0, `у режима ${mode} есть твёрдые предметы`);
     for (const i of lobby.plazaModeBoxes[mode]) {
       assert.equal(solidAt(off.hub, i), false, `${mode}: без флага бокс ${i} выключен`);
-      assert.equal(solidAt(on.hub, i), true, `${mode}: с флагом бокс ${i} твёрдый`);
+      // флаг «Подземелья» и поле hub.dungeon добавляет серверная ветка режима — там же включить проверку «с флагом»
+      if (mode !== 'dungeon') assert.equal(solidAt(on.hub, i), true, `${mode}: с флагом бокс ${i} твёрдый`);
     }
   }
   const gated = new Set(Object.values(lobby.plazaModeBoxes).flat());
