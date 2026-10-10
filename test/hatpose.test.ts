@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { ITEMS } from '../shared/outfit.ts';
-import { readFileSync } from 'node:fs';
 import { BODY_H, bodyR } from '../client/render/outfit3d.ts';
 import { wearFor as wearOf } from '../client/render/outfitfish.ts';
 import { loadFarmWearSync } from '../client/render/farmwear.ts';

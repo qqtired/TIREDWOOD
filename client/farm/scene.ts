@@ -133,7 +133,7 @@ export class FarmScene implements Scene {
   }
 
   /** Модели ещё грузятся: экран загрузки ждёт (client/ui/transition.ts) */
-  get loading(): boolean {
+  get modelsLoading(): boolean {
     return this.world.loading;
   }
 

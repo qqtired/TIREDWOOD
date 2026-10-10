@@ -78,7 +78,7 @@ export interface Scene {
   /** Для window.__opus.state() */
   debugState(): Record<string, unknown> | null;
   /** Сцена ещё грузит модели: экран загрузки ждёт их (не дольше LOAD_MAX_MS, client/ui/transition.ts) */
-  readonly loading?: boolean;
+  readonly modelsLoading?: boolean;
   /** Меню открылось или закрылось (Esc, потеря мыши): соло-режим ставит игру на паузу («Подземелье») */
   setPaused?(paused: boolean): void;
 }

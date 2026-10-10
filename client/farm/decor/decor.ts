@@ -651,7 +651,8 @@ export class FarmDecor {
     scene.add(this.group);
     const t0 = performance.now();
     const zones = new FarmZones();
-    const plan = makePlan(zones, TOUCH ? 0.55 : 1);
+    // 0,85 на компьютере — режим вместе с уровнем не больше 500 тыс. треугольников (AGENTS.md, раздел 7)
+    const plan = makePlan(zones, TOUCH ? 0.55 : 0.85);
     const t1 = performance.now();
     this.group.add(nearMesh(paintNear(zones, plan.marks, TOUCH ? 1024 : 2048)));
     this.group.add(farMesh(paintFar(TOUCH ? 1024 : 2048, TOUCH ? 512 : 1024, plan.feats)));
