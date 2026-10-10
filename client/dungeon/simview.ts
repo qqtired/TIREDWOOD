@@ -5,7 +5,7 @@ import type { DgEvent, DgResult } from '../../shared/dungeon/api.ts';
 import { DG_HZ } from '../../shared/dungeon/api.ts';
 import {
   applyEvent, beamDir, createRun, dgHash, dgResult, DG_DATA, orbCount, orbPos, step, wstats,
-  type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
+  type DgBoss, type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
 } from '../../shared/dungeon/sim.ts';
 import { BOSS_NAME, BUFFS, MISC, MOBS, PASSIVES, WEAPONS } from './data.ts';
 import type { HudBuff, HudCard, HudChest, HudItem } from './hudtypes.ts';
@@ -127,9 +127,8 @@ export class SimRun implements RunSource {
   private cached: DgView | null = null;
   private fx: VFx[] = [];
   private lastShot = 0;
-  private bossSt = '';
-  private bossAt = 0;
-  private bossAnimNow: VBoss['anim'] = 'under';
+  /** Каждый червь-босс (у Близнецов два): состояние, текущий клип и с какого шага он идёт, масштаб */
+  private readonly bossTrack = new Map<number, { st: string; anim: VBoss['anim']; at: number; scale: number }>();
   private bossSeen = false;
   private readonly buffTotal = new Map<string, number>();
 
@@ -187,24 +186,31 @@ export class SimRun implements RunSource {
     return BOSS_NAMES[b ? b.kind : Math.max(0, (Math.floor(this.sim.wave.n / 10) - 1) % 4)] ?? BOSS_NAME;
   }
 
-  /** Босс: смена состояния → крик, нырок, вынырок */
+  /** Боссы (каждый червь): смена состояния → крик, нырок, вынырок. Идём по червям в `mobs`, а не по `sim.bosses`: павший
+   *  уже вычеркнут из `bosses`, но ещё лежит и доигрывает клип смерти. */
   private trackBoss(): void {
-    const b = this.sim.bosses[0];
-    const m = b ? this.mob(b.id) : undefined;
-    if (!m) {
-      this.bossSt = '';
-      this.bossSeen = false;
-      return;
-    }
-    const anim = bossAnim(m);
-    if (anim !== this.bossAnimNow) {
-      this.bossAnimNow = anim;
-      this.bossAt = this.sim.t;
-    }
-    if (m.st !== this.bossSt) {
-      const was = this.bossSt;
-      this.bossSt = m.st;
+    const track = this.bossTrack;
+    let n = 0;
+    for (const m of this.sim.mobs) {
+      if (m.k !== 'povidl') continue;
+      n++;
+      let s = track.get(m.id);
+      if (!s) {
+        s = { st: '', anim: 'under', at: this.sim.t, scale: 1 };
+        track.set(m.id, s);
+      }
+      const anim = bossAnim(m);
+      if (anim !== s.anim) {
+        s.anim = anim;
+        s.at = this.sim.t;
+      }
+      const b = this.bossOf(m.id);
+      if (b) s.scale = b.scale;
+      if (m.st === s.st) continue;
+      const was = s.st;
+      s.st = m.st;
       const at = { x: m.x, z: m.z };
+      // крик «появился» и плашка с именем — один раз на бой, даже если боссов двое
       if (!this.bossSeen) {
         this.bossSeen = true;
         this.fx.push({ k: 'boss', what: 'spawn', ...at });
@@ -214,6 +220,17 @@ export class SimRun implements RunSource {
       else if (m.st === 'roar') this.fx.push({ k: 'boss', what: 'roar', ...at });
       else if (m.st === 'tail') this.fx.push({ k: 'boss', what: 'slam', ...at });
     }
+    if (n === 0) {
+      track.clear();
+      this.bossSeen = false;
+    } else if (track.size > n) {
+      for (const id of [...track.keys()]) if (!this.mob(id)) track.delete(id);
+    }
+  }
+
+  private bossOf(id: number): DgBoss | undefined {
+    for (const b of this.sim.bosses) if (b.id === id) return b;
+    return undefined;
   }
 
   private onFx(f: DgFx): void {
@@ -222,7 +239,7 @@ export class SimRun implements RunSource {
     switch (f.k) {
       case 'hit': {
         const m = this.mob(f.id);
-        out.push({ k: 'hit', id: m?.k === 'povidl' ? -1 : f.id, x: f.x, z: f.z, dmg: f.n, big: f.big === 1 });
+        out.push({ k: 'hit', id: m?.k === 'povidl' ? -1 : f.id, boss: m?.k === 'povidl' ? f.id : undefined, x: f.x, z: f.z, dmg: f.n, big: f.big === 1 });
         break;
       }
       case 'die': {
@@ -334,15 +351,15 @@ export class SimRun implements RunSource {
     const bossName = this.bossName();
     // враги и босс
     const enemies: VEnemy[] = [];
-    let boss: VBoss | null = null;
+    const bosses: VBoss[] = [];
     for (const m of sim.mobs) {
       if (m.k === 'povidl') {
-        if (!boss) {
-          boss = {
-            x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: Math.max(0, m.hp), hpMax: m.hpMax,
-            anim: bossAnim(m), animAt: this.bossAnimNow === bossAnim(m) ? this.bossAt : t, phase: sim.bosses[0]?.phase ?? 1, name: bossName,
-          };
-        }
+        const s = this.bossTrack.get(m.id);
+        const anim = bossAnim(m);
+        bosses.push({
+          id: m.id, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: Math.max(0, m.hp), hpMax: m.hpMax,
+          anim, animAt: s && s.anim === anim ? s.at : t, phase: this.bossOf(m.id)?.phase ?? 1, name: bossName, scale: s?.scale ?? 1,
+        });
         continue;
       }
       if (m.die) continue;
@@ -481,7 +498,7 @@ export class SimRun implements RunSource {
       puddles,
       pickups,
       buildings,
-      boss,
+      bosses,
       rays,
       fx: this.fx,
       level: h.level,

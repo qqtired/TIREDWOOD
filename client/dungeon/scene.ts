@@ -58,6 +58,7 @@ export class DungeonScene implements Scene {
       reroll: () => this.game?.reroll(),
       ban: (i) => this.game?.ban(i),
       go: () => this.game?.go(),
+      q: (on) => this.game?.touchQ(on),
       chestDone: () => this.game?.chestDone(),
       pause: () => this.game?.setPaused(true),
       resume: () => {

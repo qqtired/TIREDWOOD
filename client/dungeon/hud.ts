@@ -108,6 +108,8 @@ export class DungeonHud implements DungeonHudApi {
   private readonly passiveRow = el('div', 'dg-items');
   private readonly dash: Ring;
   private readonly strike: Ring;
+  /** Телефон: кнопка Q справа у большого пальца (на компьютере скрыта в CSS) */
+  private readonly qPad: Ring;
 
   // --- передышка
   private readonly breather = el('div', 'dg-breather');
@@ -190,8 +192,10 @@ export class DungeonHud implements DungeonHudApi {
     this.dash = this.ring('dash', '💨', 'Пробел', 'Рывок');
     this.strike = this.ring('strike', '🏮', 'Q', 'Удар');
     bc.append(this.dash.root, this.strike.root);
+    this.qPad = this.ring('strike dg-qpad', '🏮', '', 'удар');
+    this.bindQPad(this.qPad.root);
 
-    this.hud.append(tl, tc, tr, bl, bc);
+    this.hud.append(tl, tc, tr, bl, bc, this.qPad.root);
     r.append(this.hud, this.arrowLayer);
 
     // передышка
@@ -282,8 +286,36 @@ export class DungeonHud implements DungeonHudApi {
     disc.append(el('span', 'dg-ring-ic', icon));
     root.append(disc, el('div', 'dg-ring-label'));
     const lab = root.lastElementChild as HTMLElement;
-    lab.append(kbd(key), document.createTextNode(` ${label}`));
+    if (key) lab.append(kbd(key), document.createTextNode(` ${label}`));
+    else lab.append(label);
     return { root, p: -1, cls: '' };
+  }
+
+  /** Кнопка Q пальцем: держишь — заряд, отпустил — удар (как клавиша Q); палец съехал или окно закрыло кнопку — отпущено */
+  private bindQPad(node: HTMLElement): void {
+    let id = -1;
+    const up = (): void => {
+      if (id < 0) return;
+      id = -1;
+      node.classList.remove('down');
+      this.act.q(false);
+    };
+    node.addEventListener('pointerdown', (e) => {
+      if (id >= 0) return;
+      e.preventDefault();
+      id = e.pointerId;
+      try {
+        node.setPointerCapture(id);
+      } catch {
+        // палец уже убрали
+      }
+      node.classList.add('down');
+      this.act.q(true);
+    });
+    node.addEventListener('pointerup', (e) => e.pointerId === id && up());
+    node.addEventListener('pointercancel', (e) => e.pointerId === id && up());
+    node.addEventListener('lostpointercapture', (e) => e.pointerId === id && up());
+    node.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   private setRing(r: Ring, p: number, state: string): void {
@@ -346,8 +378,10 @@ export class DungeonHud implements DungeonHudApi {
     this.updateItems('p', this.passiveRow, f.passives, f.passiveSlots);
 
     this.setRing(this.dash, f.dash01, f.dash01 >= 1 ? 'ready' : '');
-    if (f.qCharge >= 0) this.setRing(this.strike, f.qCharge, f.qCharge >= 1 ? 'full' : 'charge');
-    else this.setRing(this.strike, f.q01, f.q01 >= 1 ? 'ready' : '');
+    for (const ring of [this.strike, this.qPad]) {
+      if (f.qCharge >= 0) this.setRing(ring, f.qCharge, f.qCharge >= 1 ? 'full' : 'charge');
+      else this.setRing(ring, f.q01, f.q01 >= 1 ? 'ready' : '');
+    }
 
     this.updateBreather(f.breather);
   }

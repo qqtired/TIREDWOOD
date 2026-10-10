@@ -259,7 +259,7 @@ export class MockRun implements RunSource {
   }
 
   private spawnBoss(): void {
-    this.boss = { x: mod(this.hero.x + 2), z: mod(this.hero.z - 4), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', t: 0, tx: 0, tz: 0 };
+    this.boss = { x: mod(this.hero.x + 2), z: mod(this.hero.z - 4), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', id: 1, scale: 1, t: 0, tx: 0, tz: 0 };
     this.fx.push({ k: 'boss', what: 'spawn', x: this.boss.x, z: this.boss.z });
     this.fx.push({ k: 'boss', what: 'emerge', x: this.boss.x, z: this.boss.z });
   }
@@ -763,7 +763,7 @@ export class MockRun implements RunSource {
       puddles: this.puddles,
       pickups: this.pickups,
       buildings: this.buildings,
-      boss: this.boss,
+      bosses: this.boss ? [this.boss] : [],
       rays: [],
       fx: this.fx,
       level: this.lv,
