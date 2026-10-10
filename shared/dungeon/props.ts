@@ -1,6 +1,7 @@
 // «Подземелье»: постройки. Базовые — алтарь света, жаровни, проклятый сундук, целебный родник. Выбранные владельцем —
 // фонари-маяки, вагонетка, пороховые бочки, гриб-батут, забытая кузня. Места — level-data, числа — design-data
-// (interactables), запасные значения — здесь. E (событие use) начинает «держать»: стой в круге до конца отсчёта.
+// (interactables), запасные значения — здесь. Алтарь, проклятый сундук и кузня срабатывают, если постоять в круге
+// (hero.useId/useT0/useT1 — отсчёт, вышел из круга — сброс); E (событие use) нужно только для вагонетки.
 import { dmgMul, fx, healHero, hurtHero, hurtMob, KB_V, newId } from './core.ts';
 import { D, interNum, LV } from './data.ts';
 import { blocked } from './map.ts';
@@ -49,7 +50,7 @@ const CURSE_RESPAWN = 120;
 const BRAZIER_ACTIVE = 36;
 const BUFFS: DgBuff['id'][] = ['fury', 'haste', 'wind', 'pull'];
 
-/** Радиус «встать в круг» и время удержания E по видам */
+/** Радиус круга и сколько стоять в нём (алтарь, сундук, кузня); вагонетка — по E */
 const USE_R: Record<string, number> = { altar: 2.5, chest: 2.5, forge: 2.5, cart: 2.2 };
 const USE_T: Record<string, number> = { altar: 1, chest: 1.5, forge: 3, cart: 0 };
 
@@ -247,11 +248,13 @@ function kegBoom(sim: DgSim, p: DgProp): void {
 export function stepProps(sim: DgSim): void {
   const h = sim.hero;
   const inp = sim.in;
-  // E: начать «держать» у ближайшей постройки
+  // E: у вагонетки — сесть (у остальных — то же, что встать в круг)
   if (inp.use) {
     inp.use = 0;
-    if (!h.dead && h.useId < 0) startUse(sim);
+    if (!h.dead && h.useId < 0) startUse(sim, true);
   }
+  // алтарь, проклятый сундук, кузня: встал в круг — пошёл отсчёт (без E)
+  if (!h.dead && h.useId < 0 && h.dashT === 0 && h.ride < 0 && h.jumpT1 <= sim.t) startUse(sim, false);
   // идёт удержание
   if (h.useId >= 0) {
     const p = sim.props.find((x) => x.id === h.useId);
@@ -276,7 +279,9 @@ export function stepProps(sim: DgSim): void {
         break;
       case 'spring': {
         const near = inRange(h, p, 2.2);
+        p.st = 0;
         if (near && p.v > 0 && h.hp < h.hpMax && !h.dead) {
+          p.st = 1; // лечит прямо сейчас
           const n = (SPRING_HEAL * DT) / SPRING_POOL;
           const take = Math.min(n, p.v);
           p.v -= take;
@@ -338,13 +343,13 @@ function usable(sim: DgSim, p: DgProp): boolean {
   return false;
 }
 
-function startUse(sim: DgSim): void {
+function startUse(sim: DgSim, byE: boolean): void {
   const h = sim.hero;
   let best: DgProp | null = null;
   let bd = 1e9;
   for (const p of sim.props) {
     const r = USE_R[p.k];
-    if (r === undefined || !usable(sim, p)) continue;
+    if (r === undefined || (p.k === 'cart' && !byE) || !usable(sim, p)) continue;
     const dx = wrapD(p.x - h.x);
     const dz = wrapD(p.z - h.z);
     const d = dx * dx + dz * dz;

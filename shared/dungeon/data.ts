@@ -100,6 +100,7 @@ export type Shape = Circle | Capsule;
 export interface Spot { id?: string; x: number; z: number; zone?: string; count?: number }
 export interface LevelData {
   map: { L: number; heroSpawn: { x: number; z: number } };
+  landmarks?: { id: string; x: number; z: number }[];
   spawnRing: { inner: number; outer: number; aheadConeDeg: number; recycleDistance: number; retries: number };
   camera: { groundCornersFromHero: { topLeft: number[]; topRight: number[]; bottomLeft: number[]; bottomRight: number[] } };
   hazards: Shape[];

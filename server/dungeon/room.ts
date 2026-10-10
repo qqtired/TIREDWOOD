@@ -234,6 +234,9 @@ export class DungeonRoom implements Room {
       } else if (stage !== this.stage) {
         this.stage = stage;
         this.settleWaves();
+      } else if (api.tick(sim) % DG_HZ === 0) {
+        // волны идут подряд без смены стадии (таймер кончился — сразу следующая): сверяем раз в игровую секунду
+        this.settleWaves();
       }
     }
     if (this.head > 256 && this.head * 2 > this.events.length) {

@@ -1,11 +1,11 @@
 // «Подземелье»: директор волн — отряд по таблице (1–10), события (стая, налёт, кольцо, элита, Орда, босс),
 // бесконечные 11+ (смеси, рост, предел тел), конец волны и передышка. Враги рождаются в полосе за краем экрана.
 import { spawnBosses } from './boss.ts';
-import { fx, newId } from './core.ts';
+import { fx, healHero, newId } from './core.ts';
 import { D, LV, MOB_KINDS, mobDef, type MobKind, type WaveDef } from './data.ts';
 import { blocked } from './map.ts';
-import { aliveCount, fleeAll, spawnMob } from './mobs.ts';
-import { vacuum } from './pickups.ts';
+import { aliveCount, enrage, spawnMob } from './mobs.ts';
+import { dropGem, vacuum } from './pickups.ts';
 import { wavePropsReset } from './props.ts';
 import type { DgAlert, DgSim, DgWave } from './types.ts';
 import { dirOf, powi, rnd, rndRange, ticks, wrapD, wrapP } from './util.ts';
@@ -21,11 +21,15 @@ const HW = (Math.abs(corners.topLeft[0]) + Math.abs(corners.bottomLeft[0])) / 2;
 const HH = (Math.abs(corners.topLeft[1]) + Math.abs(corners.bottomLeft[1])) / 2;
 const SPRINGS = LV.buildings.spring;
 const V = { x: 0, z: 0 };
+/** Таймер босс-волны, с (из данных или 120) */
+const BOSS_DUR = (D.waveRules as { bossDur?: number }).bossDur ?? 120;
+/** Бонус опыта за зачистку: × номер волны */
+const SWEEP_XP = (D.waveRules as { sweepXp?: number }).sweepXp ?? 5;
 
 export function emptyWave(): DgWave {
   return {
     n: 1, stage: 'intro', t0: 0, t1: 0, total: 0, left: 0, spawned: 0, boss: 0, horde: 0, hpMul: 1, dmgMul: 1, minAlive: 0,
-    pend: MOB_KINDS.map(() => 0), prog: 0, ev: [], mix: '',
+    pend: MOB_KINDS.map(() => 0), prog: 0, ev: [], mix: '', debt: 0, old: 0, swept: 0,
   };
 }
 
@@ -134,7 +138,7 @@ export function startWave(sim: DgSim, n: number): void {
   const def = waveDef(n);
   if (def) {
     w.minAlive = def.minAlive;
-    w.t1 = def.dur > 0 && !boss ? sim.t + ticks(def.dur) : 0;
+    w.t1 = sim.t + ticks(boss || def.dur <= 0 ? BOSS_DUR : def.dur);
     for (const [k, c] of Object.entries(def.mobs)) {
       w.pend[MOB_KINDS.indexOf(k as MobKind)] += c as number;
       total += c as number;
@@ -147,7 +151,7 @@ export function startWave(sim: DgSim, n: number): void {
     // бесконечные босс-волны: фон крыс, как на 10-й
     const w10 = waveDef(10)!;
     w.minAlive = w10.minAlive;
-    w.t1 = 0;
+    w.t1 = sim.t + ticks(BOSS_DUR);
     for (const [k, c] of Object.entries(w10.mobs)) {
       w.pend[MOB_KINDS.indexOf(k as MobKind)] += c as number;
       total += c as number;
@@ -158,7 +162,7 @@ export function startWave(sim: DgSim, n: number): void {
   }
   w.total = total;
   w.left = total;
-  sim.alerts.length = 0;
+  w.swept = 0;
   wavePropsReset(sim);
   if (boss) sim.bossT0 = sim.t;
   fx(sim, { k: 'wave', n, what: 'start' });
@@ -262,7 +266,8 @@ function spawnOne(sim: DgSim, k: MobKind): boolean {
     sim.wave.pend[MOB_KINDS.indexOf(k)]++;
     return false;
   }
-  spawnMob(sim, k, P.x, P.z, 1);
+  const m = spawnMob(sim, k, P.x, P.z, 1);
+  payDebt(sim.wave, m, 1);
   sim.wave.spawned++;
   return true;
 }
@@ -276,6 +281,7 @@ function alert(sim: DgSim, k: DgAlert['k'], x: number, z: number, mob: string, d
 /** Шаг директора */
 export function stepDirector(sim: DgSim): void {
   const w = sim.wave;
+  if (sim.end !== 'running') return;
   // устаревшие объявления
   if (sim.alerts.length) {
     let j = 0;
@@ -286,6 +292,10 @@ export function stepDirector(sim: DgSim): void {
     if (sim.t >= w.t1) startWave(sim, w.n);
     return;
   }
+  // живые остатки прошлых волн — для HUD
+  let old = 0;
+  for (const m of sim.mobs) if (!m.die && m.rage > 0) old++;
+  w.old = old;
   if (w.stage !== 'wave' && w.stage !== 'boss') return;
   const el = sim.t - w.t0;
   // события (с тревогой заранее)
@@ -302,28 +312,43 @@ export function stepDirector(sim: DgSim): void {
   const alive = aliveCount(sim);
   const left = pendTotal(w);
   if (left > 0 && alive < MAX_ALIVE) {
-    let want = 0;
-    if (w.boss) {
-      const def = waveDef(10);
-      const every = ticks(def ? def.interval : 2);
-      if (el % every === 0) want = 1;
-    } else {
-      const T = (w.t1 - w.t0) * 0.85;
-      w.prog += (w.horde ? 2 : 1) / T;
-      const regTotal = w.spawned + left; // всё, что ещё выйдет обычным потоком, плюс вышедшие
-      want = Math.floor(Math.min(1, w.prog) * regTotal) - w.spawned;
-    }
+    const T = (w.t1 - w.t0) * 0.85;
+    w.prog += (w.horde ? 2 : 1) / T;
+    const regTotal = w.spawned + left; // всё, что ещё выйдет обычным потоком, плюс вышедшие
+    let want = Math.floor(Math.min(1, w.prog) * regTotal) - w.spawned;
     if (alive < w.minAlive * (w.horde ? 1.5 : 1)) want = Math.max(want, Math.min(4, w.minAlive - alive));
     for (let i = 0; i < want && i < 6 && aliveCount(sim) < MAX_ALIVE; i++) {
       const k = takePend(sim);
       if (!k) break;
       spawnOne(sim, k);
     }
+  } else if (left === 0 && w.debt >= 1 && alive < w.minAlive && alive < MAX_ALIVE) {
+    // очередь пуста, а долг остался — добираем им (крысы с HP из долга)
+    for (let i = 0; i < 4 && w.debt >= 1 && aliveCount(sim) < Math.min(w.minAlive, MAX_ALIVE); i++) {
+      if (!spawnPoint(sim, mobDef('rat').radius, false, false, P)) break;
+      const m = spawnMob(sim, 'rat', P.x, P.z, 0);
+      payDebt(w, m, 3);
+    }
   }
-  // конец волны
-  if (w.boss) {
-    if (sim.bosses.length === 0 && el > 5) endWave(sim);
-  } else if (sim.t >= w.t1 || w.left <= 0) endWave(sim);
+  // босс повержен — фон босс-волны больше не идёт
+  if (w.boss && sim.bosses.length === 0 && el > 5) w.pend.fill(0);
+  // конец волны: зачистка (все живые перебиты, отряд и долг вышли) или таймер
+  if (el >= ticks(3) && pendTotal(w) === 0 && w.debt < 1 && eventsDone(w) && aliveCount(sim) === 0) sweep(sim);
+  else if (sim.t >= w.t1) timerEnd(sim);
+}
+
+function eventsDone(w: DgWave): boolean {
+  for (const e of w.ev) if (!e.done && e.type !== 'horde') return false;
+  return true;
+}
+
+/** Новый враг забирает часть долга: до mul × своего HP */
+function payDebt(w: DgWave, m: { hp: number; hpMax: number }, mul: number): void {
+  if (w.debt < 1) return;
+  const add = Math.min(w.debt, m.hpMax * mul);
+  m.hp += add;
+  m.hpMax += add;
+  w.debt -= add;
 }
 
 function preEvent(sim: DgSim, e: DgWave['ev'][number]): void {
@@ -435,21 +460,58 @@ function runEvent(sim: DgSim, e: DgWave['ev'][number]): void {
   }
 }
 
-/** Волна отбита: враги в норы, опыт к герою, передышка */
-export function endWave(sim: DgSim): void {
-  const w = sim.wave;
-  sim.stats.waves = w.n;
+/** Волна засчитана (таймер или зачистка): время рекорда */
+function countWave(sim: DgSim): void {
+  sim.stats.waves = sim.wave.n;
   sim.stats.ms = Math.round((sim.t * 1000) / 30);
-  fleeAll(sim);
+  fx(sim, { k: 'wave', n: sim.wave.n, what: 'clear' });
+}
+
+/**
+ * Таймер волны кончился, герой жив: волна засчитана, следующая начинается сразу. Живые остаются и звереют
+ * (+1 уровень, до 3), невышедшие из-за предела 300 уходят в долг HP. Босс жив — в ярость, следующая волна поверх.
+ */
+export function timerEnd(sim: DgSim): void {
+  const w = sim.wave;
+  countWave(sim);
+  let n = 0;
+  let top = 0;
+  for (const m of sim.mobs) {
+    if (m.die || m.st === 'flee') continue;
+    if (m.k === 'povidl') {
+      for (const b of sim.bosses) if (b.id === m.id) b.rage = 1;
+      continue;
+    }
+    m.sq = 0;
+    if (enrage(m)) n++;
+    if (m.rage > top) top = m.rage;
+  }
+  if (n > 0) fx(sim, { k: 'rage', n, level: top });
+  // осколки на полу слетаются к герою (как раньше в конце волны); выстоял — немного здоровья
   vacuum(sim);
-  fx(sim, { k: 'wave', n: w.n, what: 'clear' });
+  const heal = (D.waveRules as { timerHeal?: number }).timerHeal ?? 0;
+  if (heal > 0) healHero(sim, heal);
+  for (let i = 0; i < w.pend.length; i++) {
+    if (w.pend[i] > 0) w.debt += w.pend[i] * mobDef(MOB_KINDS[i]).hp * w.hpMul;
+    w.pend[i] = 0;
+  }
+  startWave(sim, w.n + 1);
+}
+
+/** «Зачистка!»: все живые перебиты до таймера — бонус опыта, опыт к герою, передышка 5 с (Enter — раньше) */
+function sweep(sim: DgSim): void {
+  const w = sim.wave;
+  countWave(sim);
+  const xp = SWEEP_XP * w.n;
+  dropGem(sim, sim.hero.x, sim.hero.z, xp);
+  vacuum(sim);
+  fx(sim, { k: 'sweep', n: w.n, xp });
+  w.swept = 1;
   w.n++;
   w.stage = 'breather';
   w.t0 = sim.t;
   w.t1 = sim.t + ticks(D.waveRules.breather);
   w.horde = 0;
-  sim.alerts.length = 0;
-  for (const m of sim.marks) if (m.own === 0) m.t1 = sim.t;
 }
 
 /** Enter: начать раньше */
