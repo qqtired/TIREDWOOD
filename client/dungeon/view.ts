@@ -129,6 +129,8 @@ export interface VBoss {
   name: string;
   /** масштаб модели (Близнецы 0,75) */
   scale: number;
+  /** босс в ярости (паузы между атаками короче) */
+  rage: boolean;
 }
 
 /** События шага для эффектов и звука */
@@ -149,6 +151,10 @@ export type VFx =
   | { k: 'elite'; kind: MobKind; name: string; x: number; z: number }
   | { k: 'wave'; wave: number; title: string; sub: string }
   | { k: 'waveWin'; wave: number }
+  /** «Зачистка!»: перебиты все до таймера, xp — бонус опыта, дальше передышка */
+  | { k: 'sweep'; wave: number; xp: number }
+  /** таймер волны кончился: n живых озверели (ступень level) */
+  | { k: 'rage'; n: number; level: number }
   | { k: 'event'; title: string }
   | { k: 'boss'; what: 'spawn' | 'roar' | 'burrow' | 'emerge' | 'slam' | 'spit' | 'phase' | 'death'; x: number; z: number }
   | { k: 'spawnFx'; x: number; z: number }
@@ -190,7 +196,14 @@ export interface DgView {
   cards: HudCards | null;
   /** открыт сундук (мир стоит) */
   chest: HudChest | null;
-  breather: { left: number; next: number; mobs: { icon: string; name: string }[]; event: string } | null;
+  breather: { left: number; next: number; mobs: { id?: string; icon: string; name: string }[]; event: string } | null;
+  /** живых врагов прошлых волн (озверевших) — «+N с прошлых волн» */
+  old: number;
+  /** передышка после «Зачистки!» */
+  swept: boolean;
+  /** до готовности рывка и Q, с */
+  dashLeft: number;
+  qLeft: number;
   alarm: boolean;
   /** отбито волн (для «Выйти (засчитать N волн)») */
   wavesDone: number;

@@ -15,12 +15,12 @@ import { BOSS_NAME, WEAPONS, plural } from './data.ts';
 import { A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
 import { DungeonHud } from './hud.ts';
-import type { HudArrow, HudResults } from './hudtypes.ts';
+import type { HudArrow, HudFrame, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
 import { Journal } from './journal.ts';
 import { MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { DungeonSfx } from './sfx.ts';
 import type { RunSource } from './source.ts';
-import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type DgView, type MobKind, type VFx } from './view.ts';
+import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBuilding, type VFx } from './view.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT } from '../../shared/sim.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -33,6 +33,15 @@ const CAM_PITCH = (62 * Math.PI) / 180;
 const CAM_DIST = 31;
 const CAM_LOOK_Z = 2;
 const HFOV_HALF_TAN = Math.tan((18 * Math.PI) / 180) * (16 / 9);
+/** Стрелок у края экрана — не больше */
+const ARROW_MAX = 6;
+/** Радар: радиус, м, и сколько рядовых врагов рисовать */
+const RADAR_RANGE = 70;
+const RADAR_MOBS = 260;
+/** Тряска камеры — не сильнее (владелец: «плавнее») */
+const SHAKE_MAX = 0.42;
+/** Цифры урона: попадания по одному врагу копятся столько секунд и всплывают одной цифрой */
+const NUM_MERGE = 0.22;
 /** Видно от камеры по x и z (для отсечения), м */
 const VIEW_X = 30;
 const VIEW_Z = 24;
@@ -126,6 +135,15 @@ export class DungeonGame {
   private lastDashReady = true;
   private lastQReady = true;
   private lastStage = '';
+  private readonly tmpV = new THREE.Vector3();
+  private vw = window.innerWidth / 2;
+  private vh = window.innerHeight / 2;
+  private radarAt = 0;
+  /** герой на экране в этом кадре (несвёрнутые координаты) — для радара */
+  private drawHX = 0;
+  private drawHZ = 0;
+  /** цифры урона в ожидании (по врагу): копим мелкие попадания и показываем суммой */
+  private readonly numAcc = new Map<number, { n: number; x: number; z: number; t: number; blocked: boolean }>();
 
   constructor(d: GameDeps, assets: DungeonAssets, world: WorldLike | null) {
     this.d = d;
@@ -180,7 +198,7 @@ export class DungeonGame {
   }
 
   /** Полоса босса в HUD: одна на всех (у Близнецов — общая, сумма HP живых к сумме в начале боя) */
-  private bossHud(v: DgView): { name: string; hp01: number; marks: number[] } | null {
+  private bossHud(v: DgView): HudFrame['boss'] {
     const bs = v.bosses;
     if (bs.length === 0) {
       this.bossHpMax = 0;
@@ -196,7 +214,7 @@ export class DungeonGame {
     this.bossHpMax = Math.max(this.bossHpMax, max);
     this.bossCount = Math.max(this.bossCount, bs.length);
     // отметки фаз (66 % и 33 %) — только у одиночного босса
-    return { name: bs[0].name || BOSS_NAME, hp01: hp / this.bossHpMax, marks: this.bossCount > 1 ? [] : [0.66, 0.33] };
+    return { name: bs[0].name || BOSS_NAME, hp01: hp / this.bossHpMax, marks: this.bossCount > 1 ? [] : [0.66, 0.33], rage: bs.some((b) => b.rage) };
   }
 
   async warm(): Promise<void> {
@@ -223,6 +241,7 @@ export class DungeonGame {
     this.firstSeen.clear();
     this.flashAt.clear();
     this.hitAt.clear();
+    this.numAcc.clear();
     this.corpses = [];
     this.pool.clear();
     this.queue = [];
@@ -301,7 +320,8 @@ export class DungeonGame {
       this.journal.ack(m.n, m.need);
       if (m.need !== undefined) this.flush();
     } else if (m.t === 'dg_wave') {
-      if (m.coins > 0) this.d.hud.banner(`Волна ${m.wave} отбита!`, `+${m.coins} 🪙`, 'win');
+      // волна засчитана (таймер или зачистка): маленькая плашка, жетоны дописываются в ту же
+      if (m.coins > 0) this.d.hud.toast(`w${m.wave}`, `Волна ${m.wave} выстояна · +${m.coins} 🪙`, 'ok');
     } else if (m.t === 'dg_end') {
       const r = this.results ?? this.buildResults();
       const coins: { label: string; n: number }[] = [];
@@ -518,6 +538,7 @@ export class DungeonGame {
       for (const m of [this.firstSeen, this.flashAt, this.hitAt]) for (const id of m.keys()) if (!alive.has(id)) m.delete(id);
     }
     for (const f of v.fx) this.onFx(f, v);
+    if (this.numAcc.size) for (const id of this.numAcc.keys()) this.flushNum(id, false);
     this.syncUi(v);
   }
 
@@ -550,6 +571,14 @@ export class DungeonGame {
     }
   }
 
+  /** Показать накопленную цифру урона врага (now — сразу, иначе когда накопилось NUM_MERGE с) */
+  private flushNum(id: number, now: boolean): void {
+    const a = this.numAcc.get(id);
+    if (!a || (!now && this.wtime - a.t < NUM_MERGE)) return;
+    this.numAcc.delete(id);
+    this.pool.number(a.x, a.z, a.n, false, a.blocked ? 0.7 : 1, a.blocked ? 0.75 : 0.98, a.blocked ? 0.8 : 0.92);
+  }
+
   private pan(x: number): number {
     return Math.max(-1, Math.min(1, wrap(x - this.camX) / 18));
   }
@@ -561,7 +590,17 @@ export class DungeonGame {
       case 'hit': {
         this.flashAt.set(f.id, this.wtime);
         this.hitAt.set(f.id, this.wtime);
-        P.number(f.x, f.z, f.dmg, f.big, f.big ? 1 : f.blocked ? 0.7 : 1, f.big ? 0.84 : f.blocked ? 0.75 : 0.98, f.big ? 0.35 : f.blocked ? 0.8 : 0.92);
+        if (f.big) P.number(f.x, f.z, f.dmg, true, 1, 0.84, 0.35);
+        else {
+          const key = f.id === -1 ? -1 - (f.boss ?? 0) : f.id;
+          const a = this.numAcc.get(key);
+          if (a) {
+            a.n += f.dmg;
+            a.x = f.x;
+            a.z = f.z;
+            a.blocked &&= !!f.blocked;
+          } else this.numAcc.set(key, { n: f.dmg, x: f.x, z: f.z, t: this.wtime, blocked: !!f.blocked });
+        }
         if (f.blocked) {
           sfx.shieldBlock(this.pan(f.x));
           P.burst(f.x, 0.6, f.z, 4, 3, A_SPARK, 1, 0.9, 0.6, 0.25, 0.25);
@@ -575,6 +614,7 @@ export class DungeonGame {
         break;
       }
       case 'kill': {
+        this.flushNum(f.id, true);
         const prev = this.prev.get(f.id);
         const dur = this.mobs.duration(f.kind, 'death');
         this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.wtime, dur: Math.min(dur, 1.3), elite: f.elite });
@@ -686,8 +726,14 @@ export class DungeonGame {
         this.d.hud.banner(f.title, f.sub, f.sub === 'Босс' ? 'boss' : 'wave');
         break;
       case 'waveWin':
+        this.d.hud.toast(`w${f.wave}`, `Волна ${f.wave} выстояна`, 'ok');
+        break;
+      case 'sweep':
         sfx.waveWin();
-        this.d.hud.banner(`Волна ${f.wave} отбита!`, '', 'win');
+        this.d.hud.banner('Зачистка!', f.xp > 0 ? `+${f.xp} опыта · передышка` : 'Передышка', 'clear');
+        break;
+      case 'rage':
+        if (f.n > 0) this.d.hud.toast('rage', `${f.n} ${plural(f.n, 'враг озверел', 'врага озверели', 'врагов озверели')}`, 'warn');
         break;
       case 'event':
         this.d.hud.banner(f.title, '', 'warn');
@@ -737,8 +783,9 @@ export class DungeonGame {
       this.camera.updateProjectionMatrix();
     }
     const dist = CAM_DIST * (1 + 0.08 * this.bossZoom);
-    const sx = this.shake > 0 ? (Math.sin(this.time * 71) + Math.sin(this.time * 43)) * this.shake * 0.35 : 0;
-    const sz = this.shake > 0 ? (Math.sin(this.time * 59) + Math.sin(this.time * 37)) * this.shake * 0.35 : 0;
+    const sh = Math.min(SHAKE_MAX, this.shake) * 0.32;
+    const sx = sh > 0 ? (Math.sin(this.time * 71) + Math.sin(this.time * 43)) * sh : 0;
+    const sz = sh > 0 ? (Math.sin(this.time * 59) + Math.sin(this.time * 37)) * sh : 0;
     const tx = this.camX + sx;
     const tz = this.camZ + CAM_LOOK_Z + sz;
     this.camera.position.set(tx, Math.sin(CAM_PITCH) * dist, tz + Math.cos(CAM_PITCH) * dist);
@@ -776,6 +823,8 @@ export class DungeonGame {
     }
     this.shake = Math.max(0, this.shake - dt * 1.6);
     this.bossZoom += ((v && v.bosses.length > 0 ? 1 : 0) - this.bossZoom) * Math.min(1, dt * 1.5);
+    this.drawHX = hx;
+    this.drawHZ = hz;
     this.layoutCamera();
     this.world?.update(this.camX, this.camZ, time);
     const still = this.paused || this.d.input.blocked || !!this.run?.frozen;
@@ -991,7 +1040,9 @@ export class DungeonGame {
         const bob = 0.45 + Math.sin(time * 3 + pk.id) * 0.1;
         if (pk.kind.startsWith('gem')) {
           if (gn >= 700) continue;
-          const big = pk.kind === 'gem25' ? 1.9 : pk.kind === 'gem5' ? 1.35 : 1;
+          // у героя осколок втягивается: тает в последние 1,4 м
+          const near01 = Math.min(1, Math.hypot(x - hx, z - hz) / 1.4);
+          const big = (pk.kind === 'gem25' ? 1.9 : pk.kind === 'gem5' ? 1.35 : 1) * (0.25 + 0.75 * near01);
           q.setFromAxisAngle(up, time * 2 + pk.id);
           pv.set(x, bob, z);
           m4.compose(pv, q, new THREE.Vector3(big, big, big));
@@ -1074,12 +1125,19 @@ export class DungeonGame {
       dash01: v.dash01,
       q01: v.q01,
       qCharge: v.hero.qCharge,
+      dashLeft: v.dashLeft,
+      qLeft: v.qLeft,
       boss: this.bossHud(v),
       breather: v.breather,
+      old: v.old,
       alarm: v.alarm,
       lowHp: v.hero.hp < v.hero.hpMax * 0.25 && !v.hero.dead,
     }, now);
     hud.arrows(this.arrows(v));
+    if (now - this.radarAt >= 80 || now < this.radarAt) {
+      this.radarAt = now;
+      this.radar(v, this.drawHX, this.drawHZ);
+    }
     if (this.ended && this.endShownAt > 0 && this.time >= this.endShownAt) {
       this.endShownAt = -1;
       this.results ??= this.buildResults();
@@ -1091,7 +1149,7 @@ export class DungeonGame {
     const v = this.view!;
     const r = this.run!.result();
     const dmg = Object.entries(r.dmg)
-      .map(([id, n]) => ({ icon: WEAPONS[id]?.icon ?? (id === 'q' ? '💥' : '•'), name: WEAPONS[id]?.name ?? (id === 'q' ? 'Удар Q' : id), n: Math.round(n) }))
+      .map(([id, n]) => ({ id, icon: WEAPONS[id]?.icon ?? (id === 'q' ? '💥' : '•'), name: WEAPONS[id]?.name ?? (id === 'q' ? 'Удар Q' : id), n: Math.round(n) }))
       .sort((a, b) => b.n - a.n);
     return {
       waves: r.waves,
@@ -1111,46 +1169,122 @@ export class DungeonGame {
     };
   }
 
+  /**
+   * Стрелки к целям за кадром: по одной ближайшей цели каждого вида (элит — до двух), у каждого вида своя дальность и
+   * условие (родник — когда ранен, кузня — когда хватает опыта, жаровня — когда мало HP). Не больше ARROW_MAX, важные
+   * первыми. Направление — на экране от центра кадра (с учётом наклона камеры).
+   */
   private arrows(v: DgView): HudArrow[] {
-    const out: HudArrow[] = [];
+    const hx = v.hero.x;
+    const hz = v.hero.z;
+    type Cand = { id: string; kind: HudPoiKind; x: number; z: number; pr: number; d: number };
+    const cands: Cand[] = [];
+    const dist = (x: number, z: number): number => Math.hypot(wrap(x - hx), wrap(z - hz));
+    const hp01 = v.hero.hp / Math.max(1, v.hero.hpMax);
+    for (const b of v.bosses) if (b.anim !== 'under') cands.push({ id: `boss${b.id}`, kind: 'boss', x: b.x, z: b.z, pr: 0, d: dist(b.x, b.z) });
+    const elites = v.enemies.filter((e) => e.elite).map((e) => ({ e, d: dist(e.x, e.z) })).sort((a, b) => a.d - b.d).slice(0, 2);
+    for (const { e, d } of elites) cands.push({ id: `e${e.id}`, kind: 'elite', x: e.x, z: e.z, pr: 1, d });
+    let chest: Cand | null = null;
+    for (const p of v.pickups) {
+      if (p.kind !== 'chest') continue;
+      const d = dist(p.x, p.z);
+      if (d < 160 && (!chest || d < chest.d)) chest = { id: `c${p.id}`, kind: 'chest', x: p.x, z: p.z, pr: 2, d };
+    }
+    if (chest) cands.push(chest);
+    // постройки: [вид в HUD, приоритет, дальность, годится ли]
+    const rules: Partial<Record<BuildingKind, [HudPoiKind, number, number, (b: VBuilding) => boolean]>> = {
+      spring: ['spring', hp01 < 0.35 ? 1 : 3, 140, (b) => hp01 < 0.7 && b.s > 0.25],
+      chest: ['cursed', 4, 110, () => true],
+      altar: ['altar', 5, 100, (b) => b.s >= 1],
+      forge: ['forge', 6, 110, (b) => b.s > 0 && v.xp01 >= 0.5],
+      minecart: ['cart', 7, 70, (b) => !b.on],
+      keg: ['keg', 8, 55, (b) => !b.on],
+      lamppost: ['lamp', 9, 50, (b) => !b.on],
+      trampoline: ['tramp', 10, 40, (b) => b.s > 0],
+      brazier: ['brazier', 11, 40, (b) => b.s > 0 && hp01 < 0.5],
+    };
+    const best = new Map<HudPoiKind, Cand>();
+    for (const b of v.buildings) {
+      const r = rules[b.kind];
+      if (!r || !r[3](b)) continue;
+      const d = dist(b.x, b.z);
+      if (d > r[2]) continue;
+      const cur = best.get(r[0]);
+      if (!cur || d < cur.d) best.set(r[0], { id: `b${b.id}`, kind: r[0], x: b.x, z: b.z, pr: r[1], d });
+    }
+    cands.push(...best.values());
+    cands.sort((a, b) => a.pr - b.pr || a.d - b.d);
+    // на экране или нет и направление от центра кадра
     const cam = this.camera;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const vec = new THREE.Vector3();
-    const add = (x: number, z: number, kind: HudArrow['kind']): void => {
-      const dx = wrap(x - this.camX);
-      const dz = wrap(z - this.camZ);
-      vec.set(this.camX + dx, 0.5, this.camZ + dz).project(cam);
-      if (Math.abs(vec.x) < 0.92 && Math.abs(vec.y) < 0.9 && vec.z < 1) return;
-      const ang = Math.atan2(dz, dx);
-      const m = 46;
-      const c = Math.cos(ang);
-      const s = Math.sin(ang);
-      const kx = (w / 2 - m) / Math.max(1e-3, Math.abs(c));
-      const ky = (h / 2 - m) / Math.max(1e-3, Math.abs(s));
-      const k = Math.min(kx, ky);
-      out.push({ x: Math.max(70, Math.min(w - 70, w / 2 + c * k)), y: Math.max(120, Math.min(h - 170, h / 2 + s * k)), angle: ang, kind, dist: Math.round(Math.hypot(dx, dz)) });
-    };
-    for (const e of v.enemies) if (e.elite && out.length < 4) add(e.x, e.z, 'elite');
-    for (const b of v.bosses) if (b.anim !== 'under') add(b.x, b.z, 'boss');
-    const nearestOf = (kind: string, ok: (b: DgView['buildings'][number]) => boolean, maxD: number): void => {
-      let best: DgView['buildings'][number] | null = null;
-      let bd = maxD;
-      for (const b of v.buildings) {
-        if (b.kind !== kind || !ok(b)) continue;
-        const d = Math.hypot(wrap(b.x - v.hero.x), wrap(b.z - v.hero.z));
-        if (d < bd) { bd = d; best = b; }
-      }
-      if (best) add(best.x, best.z, kind === 'chest' ? 'chest' : kind === 'spring' ? 'spring' : 'altar');
-    };
-    nearestOf('chest', (b) => b.s > 0 && b.on, 90);
-    if (v.hero.hp < v.hero.hpMax * 0.6) nearestOf('spring', (b) => b.s > 0.3, 110);
-    nearestOf('altar', (b) => b.s >= 1, 60);
+    const vec = this.tmpV;
+    const lookX = this.camX;
+    const lookZ = this.camZ + CAM_LOOK_Z;
+    vec.set(lookX, 0, lookZ).project(cam);
+    const c0x = vec.x;
+    const c0y = vec.y;
+    const out: HudArrow[] = [];
+    for (const c of cands) {
+      if (out.length >= ARROW_MAX) break;
+      const dx = wrap(c.x - lookX);
+      const dz = wrap(c.z - lookZ);
+      vec.set(lookX + dx, 0.6, lookZ + dz).project(cam);
+      if (Math.abs(vec.x) < 0.9 && Math.abs(vec.y) < 0.86 && vec.z < 1) continue;
+      const n = Math.hypot(dx, dz) || 1;
+      vec.set(lookX + (dx / n) * 8, 0, lookZ + (dz / n) * 8).project(cam);
+      const angle = Math.atan2(-(vec.y - c0y) * this.vh, (vec.x - c0x) * this.vw);
+      out.push({ id: c.id, kind: c.kind, angle, dist: c.d });
+    }
     return out;
+  }
+
+  /** Радар: враги точками (с потолком), элиты и боссы, постройки и сундуки, рамка кадра; 12 раз в секунду */
+  private radar(v: DgView, hx: number, hz: number): void {
+    const R = RADAR_RANGE;
+    const x0 = v.hero.x;
+    const z0 = v.hero.z;
+    const mobs: number[] = [];
+    const elites: number[] = [];
+    const bosses: number[] = [];
+    for (const e of v.enemies) {
+      const dx = wrap(e.x - x0);
+      const dz = wrap(e.z - z0);
+      if (e.elite) {
+        if (elites.length < 16) elites.push(dx, dz);
+        continue;
+      }
+      if (mobs.length >= RADAR_MOBS * 2 || Math.abs(dx) > R || Math.abs(dz) > R) continue;
+      mobs.push(dx, dz);
+    }
+    for (const b of v.bosses) bosses.push(wrap(b.x - x0), wrap(b.z - z0));
+    const pois: HudRadar['pois'] = [];
+    const POI_OF: Record<BuildingKind, HudPoiKind> = {
+      altar: 'altar', brazier: 'brazier', chest: 'cursed', spring: 'spring', lamppost: 'lamp', minecart: 'cart', keg: 'keg', trampoline: 'tramp', forge: 'forge',
+    };
+    for (const b of v.buildings) {
+      const dx = wrap(b.x - x0);
+      const dz = wrap(b.z - z0);
+      if (dx * dx + dz * dz > R * R * 1.1) continue;
+      const kind = POI_OF[b.kind];
+      const on = b.kind === 'altar' ? b.s >= 1 : b.kind === 'spring' ? b.s > 0.25 : b.kind === 'lamppost' ? b.on : b.kind === 'keg' ? !b.on : b.kind === 'chest' || b.kind === 'minecart' ? true : b.s > 0;
+      pois.push({ kind, x: dx, z: dz, on });
+    }
+    for (const p of v.pickups) if (p.kind === 'chest') pois.push({ kind: 'chest', x: wrap(p.x - x0), z: wrap(p.z - z0), on: true });
+    // углы кадра на полу (несвёрнутые координаты камеры) относительно героя
+    const view: number[] = [];
+    const cam = this.camera;
+    const o = cam.position;
+    for (const [nx, ny] of [[-1, 1], [1, 1], [1, -1], [-1, -1]] as const) {
+      this.tmpV.set(nx, ny, 0.5).unproject(cam).sub(o);
+      const t = this.tmpV.y < -1e-3 ? -o.y / this.tmpV.y : 200;
+      view.push(o.x + this.tmpV.x * t - hx, o.z + this.tmpV.z * t - hz);
+    }
+    this.d.hud.radar({ range: R, yaw: v.hero.yaw, mobs, elites, bosses, pois, view });
   }
 
   resize(w: number, h: number): void {
     this.aspect = w / Math.max(1, h);
+    this.vw = w / 2;
+    this.vh = h / 2;
   }
 
   debugState(): Record<string, unknown> {

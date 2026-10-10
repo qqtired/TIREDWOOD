@@ -12,6 +12,14 @@ export interface HudItem {
   max: number;
   /** эволюция (золотая рамка) */
   evo?: boolean;
+  /** оружие: перезарядка 0…1 (1 — готово), −1 — бьёт всё время (светляки, лучи Маяка) */
+  cd01?: number;
+  /** оружие: счётчик выстрелов — сменился, значит выстрелило (вспышка значка) */
+  fires?: number;
+  /** оружие на 7-м и нужная пассивка есть — эволюция выпадет из ближайшего сундука */
+  evoReady?: boolean;
+  /** оружие на 7-м, но для эволюции не хватает пассивки — какой */
+  need?: { id: string; icon: string; name: string };
 }
 
 export interface HudBuff {
@@ -50,10 +58,15 @@ export interface HudFrame {
   /** удар Q: готовность 0…1; charge — идёт заряд (0…1, 1 — полный) или −1 */
   q01: number;
   qCharge: number;
+  /** до готовности рывка и Q, с (0 — готов) */
+  dashLeft: number;
+  qLeft: number;
   /** босс на экране: имя, HP 0…1 и риски фаз (доли HP) */
-  boss: { name: string; hp01: number; marks: number[] } | null;
-  /** передышка: карточка следующей волны */
-  breather: { left: number; next: number; mobs: { icon: string; name: string }[]; event: string } | null;
+  boss: { name: string; hp01: number; marks: number[]; rage?: boolean } | null;
+  /** передышка: карточка следующей волны (id врага — для картинки) */
+  breather: { left: number; next: number; mobs: { id?: string; icon: string; name: string }[]; event: string } | null;
+  /** живых врагов прошлых волн (озверевших) — «+N с прошлых волн» рядом с таймером */
+  old?: number;
   /** «Орда» и прочая тревога — красноватая рамка */
   alarm: boolean;
   /** герой при смерти (HP < 25 %) — пульс рамки */
@@ -62,6 +75,8 @@ export interface HudFrame {
 
 /** Карточка улучшения */
 export interface HudCard {
+  /** id вещи (картинка через dgIcon): оружие, пассивка или stew/temper */
+  id?: string;
   icon: string;
   name: string;
   /** «Ур. 3 → 4» — from = 0 значит новая вещь */
@@ -84,7 +99,7 @@ export interface HudCards {
 
 /** Сундук-барабан: что выпало (1–3 строки), эволюция — золотом */
 export interface HudChest {
-  items: { icon: string; name: string; from: number; to: number; evo?: boolean }[];
+  items: { id?: string; kind?: 'weapon' | 'passive' | 'evo'; icon: string; name: string; from: number; to: number; evo?: boolean }[];
   /** большой (босса) */
   big: boolean;
   /** всё собрано: вместо вещей — «+50 опыта и +30 HP» */
@@ -107,7 +122,7 @@ export interface HudResults {
   weapons: HudItem[];
   passives: HudItem[];
   /** урон по оружиям: сильнейшее сверху */
-  dmg: { icon: string; name: string; n: number }[];
+  dmg: { id?: string; icon: string; name: string; n: number }[];
   kills: number;
   level: number;
   chests: number;
@@ -115,18 +130,38 @@ export interface HudResults {
   pending: boolean;
 }
 
-/** Стрелка у края экрана к цели за кадром */
+/** Точки интереса: стрелки у края экрана и значки на радаре */
+export type HudPoiKind = 'boss' | 'elite' | 'chest' | 'cursed' | 'spring' | 'altar' | 'forge' | 'cart' | 'lamp' | 'keg' | 'tramp' | 'brazier';
+
+/** Стрелка у края экрана к цели за кадром (место у края, раздвигание и плавность — в интерфейсе) */
 export interface HudArrow {
-  /** точка у края экрана, px, и куда смотрит (рад, 0 — вправо, по часовой — вниз) */
-  x: number;
-  y: number;
+  /** постоянный ключ цели (чтобы стрелка плавно ехала, а не прыгала между целями) */
+  id: string;
+  kind: HudPoiKind;
+  /** направление на цель на экране от центра, рад (0 — вправо, по часовой — вниз) */
   angle: number;
-  kind: 'elite' | 'chest' | 'spring' | 'altar' | 'boss';
   /** до цели, м */
   dist: number;
 }
 
-export type HudBannerStyle = 'wave' | 'win' | 'elite' | 'boss' | 'level' | 'warn';
+/** Радар (рисуется 10–15 раз в секунду): всё в метрах от героя, x — вправо, z — вниз экрана */
+export interface HudRadar {
+  /** радиус радара, м */
+  range: number;
+  /** куда смотрит герой, рад (atan2(dx, dz)) */
+  yaw: number;
+  /** враги парами x, z (уже с потолком числа) */
+  mobs: number[];
+  /** элиты парами x, z */
+  elites: number[];
+  bosses: number[];
+  /** постройки и сундуки; on — готова/горит (погасшие — бледнее) */
+  pois: { kind: HudPoiKind; x: number; z: number; on: boolean }[];
+  /** что видно на экране: 4 угла кадра на полу парами x, z (м от героя) */
+  view: number[];
+}
+
+export type HudBannerStyle = 'wave' | 'win' | 'elite' | 'boss' | 'level' | 'warn' | 'clear';
 
 /** Что интерфейс просит у сцены (клик мышью; те же действия сцена делает по клавишам) */
 export interface HudActions {
@@ -162,9 +197,12 @@ export interface DungeonHudApi {
   pause(open: boolean, wavesDone: number): void;
   results(r: HudResults | null): void;
   banner(title: string, sub: string, style: HudBannerStyle): void;
+  /** маленькая плашка под волной (2,5 с); тот же key — обновить текст той же плашки */
+  toast(key: string, text: string, style?: 'ok' | 'warn'): void;
   /** звёздочка нового уровня прыгает в угол / вспышка */
   levelFlash(level: number): void;
   arrows(list: HudArrow[]): void;
+  radar(r: HudRadar): void;
   /** «Загрузка…» поверх, пока грузятся модели (0…1) */
   loading(p: number | null): void;
   /** телефон: заглушка вместо игры */
