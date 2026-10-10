@@ -899,7 +899,7 @@ export class DungeonGame {
         const s = (e.elite && e.kind !== 'barrel' && e.kind !== 'shaman' ? 1.35 : 1) * (0.2 + 0.8 * born);
         this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0);
         const r = e.elite ? 1.3 : e.kind === 'rat' || e.kind === 'slimelet' || e.kind === 'larva' ? 0.42 : e.kind === 'bat' ? 0.38 : 0.62;
-        this.decN.add(X(x), 0.02, Z(z), r, r, 0, D_SHADOW, 0, 0, 0.03, 0.02, 0.02, 0.55);
+        this.decN.add(X(x), 0.02, Z(z), r * 1.7, r * 1.7, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.02, 0.85);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол
         if (e.elite) this.decA.add(X(x), 0.05, Z(z), 2.4, 2.4, 0, D_SOFT, 1.6, 0, 0.55, 0.25, 0.8, 0.5);
       }
@@ -916,7 +916,7 @@ export class DungeonGame {
       if (this.ended) this.lanternK = Math.max(0, this.lanternK - dt * 0.6);
       if (h.qCharge >= 0 && !this.hero.isCharging) this.hero.chargeStart();
       this.hero.update(still ? 0 : dt, hx, hz, hyaw, still ? 0 : h.speed, h.qCharge >= 0, h.invuln, time, this.lanternK, h.y);
-      this.decN.add(hx, 0.02, hz, 0.55 / (1 + h.y * 0.3), 0.55 / (1 + h.y * 0.3), 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.6);
+      this.decN.add(hx, 0.02, hz, 0.95 / (1 + h.y * 0.3), 0.95 / (1 + h.y * 0.3), 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.85);
       // Маяк: два крутящихся луча из героя
       for (let i = 0; i < v.rays.length; i++) {
         const r = v.rays[i];
