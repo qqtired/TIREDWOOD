@@ -27,6 +27,8 @@ export interface VEnemy {
   /** с какого шага идёт act (для фазы разового клипа) */
   actAt: number;
   elite: boolean;
+  /** озверение 0…3 (пережил конец волны); дробная часть — вспышка в момент озверения */
+  rage?: number;
 }
 
 export interface VHero {

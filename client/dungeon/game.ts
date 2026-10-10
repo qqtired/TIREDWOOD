@@ -883,7 +883,7 @@ export class DungeonGame {
         } else if (e.act === ACT_STUN) t = (e.id % 7) * 0.1;
         const over: ClipKey | null = hitT < 0.33 ? 'hit' : null;
         const s = (e.elite && e.kind !== 'barrel' && e.kind !== 'shaman' ? 1.35 : 1) * (0.2 + 0.8 * born);
-        this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0);
+        this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0);
         const r = e.elite ? 1.3 : e.kind === 'rat' || e.kind === 'slimelet' || e.kind === 'larva' ? 0.42 : e.kind === 'bat' ? 0.38 : 0.62;
         this.decN.add(X(x), 0.02, Z(z), r, r, 0, D_SHADOW, 0, 0, 0.03, 0.02, 0.02, 0.55);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол

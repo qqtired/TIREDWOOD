@@ -131,6 +131,8 @@ export class SimRun implements RunSource {
   /** Каждый червь-босс (у Близнецов два): состояние, текущий клип и с какого шага он идёт, масштаб */
   private readonly bossTrack = new Map<number, { st: string; anim: VBoss['anim']; at: number; scale: number }>();
   private bossSeen = false;
+  /** шаг последнего озверения (вспышка на озверевших 0,4 с) */
+  private rageAt = -100;
   private readonly buffTotal = new Map<string, number>();
   /** перезарядка оружий для HUD: полная (шагов) — с последнего выстрела, выстрелов всего */
   private readonly wcd = new Map<string, { max: number; prev: number; fires: number; idle: boolean }>();
@@ -157,6 +159,7 @@ export class SimRun implements RunSource {
     this.cached = null;
     this.fx = [];
     for (const f of this.sim.fx) this.onFx(f);
+    for (const f of this.sim.fx) if (f.k === 'rage') this.rageAt = this.sim.t;
     this.trackBoss();
     this.trackWeapons();
     // новые снаряды — звук выстрела
@@ -414,6 +417,7 @@ export class SimRun implements RunSource {
       enemies.push({
         id: m.id, kind: m.k as MobKind, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: m.hp, hpMax: m.hpMax,
         act, actAt: act === ACT_ATTACK ? t - (m.id % 9) : m.stT, elite: m.elite === 1,
+        rage: m.rage > 0 && t - this.rageAt < 12 ? m.rage + 0.9 * (1 - (t - this.rageAt) / 12) : m.rage,
       });
     }
     // снаряды: угольки, кирки, шашки, падающие сталактиты, плевки по дуге, светляки
