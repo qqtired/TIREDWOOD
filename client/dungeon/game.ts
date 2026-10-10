@@ -1212,10 +1212,9 @@ export class DungeonGame {
       altar: ['altar', 5, 100, (b) => b.s >= 1],
       forge: ['forge', 6, 110, (b) => b.s > 0 && v.xp01 >= 0.5],
       minecart: ['cart', 7, 70, (b) => !b.on],
-      keg: ['keg', 8, 55, (b) => !b.on],
       lamppost: ['lamp', 9, 50, (b) => !b.on],
-      trampoline: ['tramp', 10, 40, (b) => b.s > 0],
-      brazier: ['brazier', 11, 40, (b) => b.s > 0 && hp01 < 0.5],
+      // грибы-батуты и пороховые бочки — без стрелок (найдёшь сам, видны на радаре); жаровня — только когда мало HP
+      brazier: ['brazier', 11, 40, (b) => b.s > 0 && hp01 < 0.4],
     };
     const best = new Map<HudPoiKind, Cand>();
     for (const b of v.buildings) {
