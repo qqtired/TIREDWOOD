@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
+import { FISHER_USE, FISH_SPOTS, FISH_SPOT_COUNT, spotZone } from '../shared/fishplaces.ts';
 import { reelStyle2 } from '../shared/fishability.ts';
 import { FE_BITE, FISH, FP_BITE, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
@@ -308,7 +308,8 @@ test('все места (20 у пристани + 8 на баркасе): сер
   hall.roll = () => ({ sp: sp('scad'), g: 300, coins: 0 });
   const spots = e.hub.lobby.map.interact.filter((i) => i.kind === 'fish');
   assert.equal(spots.length, FISH_SPOTS.length);
-  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOTS.length);
+  // в welcome и у сервера ещё места с лодок на якоре (BOAT_FISH_SPOTS) — после мест на берегу
+  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOT_COUNT);
   for (let i = 0; i < players.length; i++) {
     const it = spots.find((s) => s.arg === pierIdx[i])!;
     placeAt(e.hub, players[i].c, it.x, it.z);
@@ -316,7 +317,7 @@ test('все места (20 у пристани + 8 на баркасе): сер
     assert.equal(hall.occupant(pierIdx[i]), e.hub.lobby.playerOf(players[i].c)!.slot);
     e.hub.onJson(players[i].c, { t: 'fish', a: 'cast' });
   }
-  assert.equal(hall.views().length, FISH_SPOTS.length);
+  assert.equal(hall.views().length, FISH_SPOT_COUNT);
   assert.ok(pierIdx.every((i) => hall.views()[i].ph > FP_IDLE));
   for (const p of players) assert.equal(p.c.profile!.stats.fsCasts, 1);
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
