@@ -24,6 +24,7 @@ import { planeEnabled } from '../shared/plane.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
+import { StorageFailure } from './storage-failure.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
@@ -39,7 +40,9 @@ const EXTRA_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => 
 const DATA_DIR = path.resolve(ROOT, process.env.DATA_DIR ?? 'data');
 
 mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-const store = new Store(DATA_DIR);
+let stopping = false;
+let storageFailure: StorageFailure | null = null;
+const store = new Store(DATA_DIR, { onWriteError: () => storageFailure?.fail() });
 store.load();
 const profiles = new Profiles(store);
 const build = DEV ? 'dev' : buildId();
@@ -138,6 +141,19 @@ function buildId(): string {
 }
 
 const server = http.createServer();
+let closeStorageClients = (): void => {};
+const persistence = new StorageFailure({
+  flush: () => store.flush(),
+  stop: () => {
+    stopping = true;
+    tg.stop();
+    closeStorageClients();
+    server.close(() => {});
+  },
+  finish: () => process.exit(1),
+  log: message => console.error(message),
+});
+storageFailure = persistence;
 
 // ------------------------------------------------------------ HTTP
 
@@ -268,7 +284,7 @@ server.on('upgrade', (req, socket, head) => {
     return;
   }
   const ip = clientIp(req);
-  wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, ip));
+  wss.handleUpgrade(req, socket, head, (ws) => persistence.run(() => onConnection(ws, ip)));
 });
 
 interface ConnMeta {
@@ -277,6 +293,12 @@ interface ConnMeta {
   why: string;
 }
 const conns = new Map<WebSocket, ConnMeta>();
+closeStorageClients = () => {
+  for (const ws of conns.keys()) {
+    sendServerJson(ws, { t: 'restart' }, voice, () => {});
+    ws.close(1012, 'storage unavailable');
+  }
+};
 
 function onConnection(ws: WebSocket, ip: string): void {
   const meta: ConnMeta = { pulse: new Pulse(performance.now()), why: '' };
@@ -296,11 +318,12 @@ function onConnection(ws: WebSocket, ip: string): void {
     },
   };
   // После возврата в прежнюю сессию (hub.resume) сообщения этого сокета идут ей — client меняется
-  let client = hub.connect(sink, ip);
   conns.set(ws, meta);
+  let client = hub.connect(sink, ip);
   const budget = new MsgBudget(performance.now());
 
-  ws.on('message', (data, isBinary) => {
+  ws.on('message', (data, isBinary) => persistence.run(() => {
+    if (stopping) return;
     const now = performance.now();
     meta.pulse.alive(now);
     if (!budget.take(now)) {
@@ -318,7 +341,7 @@ function onConnection(ws: WebSocket, ip: string): void {
     hub.onJson(client, msg);
     if (client.adopted) client = client.adopted;
     startLoop();
-  });
+  }));
 
   ws.on('pong', (data) => {
     const rtt = meta.pulse.pong(performance.now(), data.toString());
@@ -327,8 +350,9 @@ function onConnection(ws: WebSocket, ip: string): void {
 
   ws.on('close', (code, reason) => {
     conns.delete(ws);
+    if (stopping) return;
     // обрыв в игре — игрок ждёт в комнате возврата (hub.RESUME_MS); выход, флуд, замена окном — отключаем сразу
-    hub.linkLost(client, sink, meta.why || closeReason(code, reason.toString()), code);
+    persistence.run(() => hub.linkLost(client, sink, meta.why || closeReason(code, reason.toString()), code));
   });
   ws.on('error', (e) => {
     if (!meta.why) meta.why = `ошибка сокета: ${String(e.message).slice(0, 80)}`;
@@ -357,7 +381,7 @@ let startTime = 0;
 let done = 0;
 
 function startLoop(): void {
-  if (running || !hub.active) return;
+  if (stopping || running || !hub.active) return;
   running = true;
   startTime = performance.now();
   done = 0;
@@ -365,7 +389,7 @@ function startLoop(): void {
 }
 
 function loop(): void {
-  if (!hub.active) {
+  if (stopping || !hub.active) {
     // никого нет — не тратим процессор
     running = false;
     return;
@@ -375,7 +399,7 @@ function loop(): void {
   let n = 0;
   while (done < due && n < 4) {
     const t0 = performance.now();
-    hub.step();
+    if (!persistence.run(() => hub.step())) return;
     const dt = performance.now() - t0;
     stepMs = stepMs * 0.95 + dt * 0.05;
     done++;
@@ -386,21 +410,19 @@ function loop(): void {
   setTimeout(loop, Math.max(0, next - performance.now()));
 }
 
-server.listen(PORT, HOST, () => {
+if (!stopping) server.listen(PORT, HOST, () => {
   const where = HOST === '0.0.0.0' ? `http://localhost:${PORT} (и по IP в локальной сети)` : `http://${HOST}:${PORT}`;
   console.log(`Game Opus ${DEV ? '[разработка]' : `[сборка ${build}]`} → ${where}`);
 });
 
 // ------------------------------------------------------------ завершение
 
-let stopping = false;
-
 /** Перезапуск: игроков предупреждаем, профили сохраняем, соединения закрываем с кодом 1012 (клиент переподключится). */
 function shutdown(): void {
   if (stopping) return;
   stopping = true;
   tg.stop();
-  hub.shutdown();
+  if (!persistence.run(() => hub.shutdown())) return;
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 800).unref();
 }

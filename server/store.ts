@@ -91,6 +91,12 @@ export interface StoreOptions {
   now?: () => number;
   log?: (s: string) => void;
   keepBackups?: number;
+  onWriteError?: (error: StoreWriteError) => void;
+}
+
+/** The primary snapshot was not committed; callers must stop gameplay until restart. */
+export class StoreWriteError extends Error {
+  constructor() { super('Хранилище: запись не завершена'); this.name = 'StoreWriteError'; }
 }
 
 const FILE = 'state.json';
@@ -265,6 +271,7 @@ export class Store {
   private readonly now: () => number;
   private readonly log: (s: string) => void;
   private readonly keepBackups: number;
+  private readonly onWriteError?: (error: StoreWriteError) => void;
   private dirty = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   /** Не позволяем продолжить запись, если вызывающий код перехватил отказ загрузки существовавшей базы. */
@@ -280,6 +287,7 @@ export class Store {
     this.now = opts.now ?? Date.now;
     this.log = opts.log ?? ((s) => console.log(s));
     this.keepBackups = opts.keepBackups ?? 7;
+    this.onWriteError = opts.onWriteError;
   }
 
   private get backupDir(): string {
@@ -360,7 +368,12 @@ export class Store {
     if (this.timer) return;
     this.timer = setTimeout(() => {
       this.timer = null;
-      this.flush();
+      try { this.flush(); }
+      catch (error) {
+        if (!(error instanceof StoreWriteError)) throw error;
+        // flush has already notified the runtime; never throw a disk error out of a timer.
+        if (!this.onWriteError) this.log(error.message);
+      }
     }, this.saveDelayMs);
     this.timer.unref?.();
   }
@@ -373,21 +386,30 @@ export class Store {
       this.timer = null;
     }
     if (!this.dirty) return;
+    let text: string;
     try {
-      const text = JSON.stringify(this.state);
+      text = JSON.stringify(this.state);
       const file = path.join(this.dir, FILE);
       writeAtomic(file, text);
-      this.committedRevision++;
+    } catch {
+      // Keep pending memory intact. Even a caller which catches this error must stop the runtime.
+      const error = new StoreWriteError();
+      try { this.onWriteError?.(error); }
+      finally { throw error; }
+    }
+    this.committedRevision++;
+    this.dirty = false;
+    try {
       const backup = path.join(this.backupDir, `state-${mskDay(this.now())}.json`);
       if (!existsSync(backup)) {
         writeAtomic(backup, text);
         const list = this.backups();
         for (const old of list.slice(0, Math.max(0, list.length - this.keepBackups))) unlinkSync(path.join(this.backupDir, old));
       }
-      this.dirty = false;
     } catch {
-      // Явный повтор после восстановления диска/прав должен сохранить то же pending-состояние.
-      throw new Error('Хранилище: запись не завершена');
+      // Primary is durable: an unavailable daily copy must not reject an already committed action.
+      // A later save will retry the missing daily copy.
+      this.log('Хранилище: основной файл сохранён, резервная копия не обновлена');
     }
   }
 

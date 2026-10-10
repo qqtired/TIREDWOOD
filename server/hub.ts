@@ -362,9 +362,9 @@ export class Hub {
     }, o.votekick ?? false);
   }
 
-  /** Есть ли кто-то в комнатах (иначе цикл спит). */
+  /** Есть ли игроки или незавершённые раунды (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.billiards?.busy || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
