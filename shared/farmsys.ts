@@ -66,9 +66,13 @@ export interface FarmBossResult {
   mine: { share: number; place: number; buff: FarmBuffKind | null; rep: number };
 }
 
-/** Награда для тоста: откуда, id (шаблон заказа, достижение, ступень репутации), что выдано */
+/**
+ * Награда для тоста: откуда, id (шаблон заказа, достижение, ступень репутации, pid соседа, день Древа), что выдано.
+ * items — вещи каталога или убранства; у Древа — 'buff:xp' | 'buff:price' | 'buff:grow' (BUFFS). Сделка Фургона
+ * приходит обычным farmEv 'sold' + 'xp'.
+ */
 export interface FarmGot {
-  src: 'order' | 'van' | 'help' | 'ach' | 'rep' | 'boss';
+  src: 'order' | 'help' | 'ach' | 'rep' | 'boss';
   id: string;
   coins: number;
   xp: number;
