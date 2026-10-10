@@ -4,6 +4,7 @@ import type { DungeonAssets } from './assets.ts';
 import type { WorldLike } from './game.ts';
 import { DungeonWorld, type LevelData } from './world.ts';
 import level from '../assets/dungeon/level-data.json';
+import { DG_LEVEL } from '../../shared/dungeon/sim.ts';
 
 /** Текстуры пола по зонам: бесшовные 1024 px (Codex image_gen, см. client/assets/dungeon/floor/PROVENANCE.md) */
 const FLOOR_FILES: Record<string, string> = {
@@ -46,7 +47,9 @@ async function loadFloor(files: Record<string, string>, color: boolean): Promise
 
 export async function makeWorld(assets: DungeonAssets, progress: (p: number) => void): Promise<WorldLike | null> {
   const [floor, floorN] = await Promise.all([loadFloor(FLOOR_FILES, true), loadFloor(FLOOR_NRM, false)]);
-  const world = new DungeonWorld(assets.kits, level as unknown as LevelData, { lazy: true, floor, floorN });
+  // озеро с бродом и островком — из данных симуляции (та же форма, что у столкновений)
+  const lv = { ...(level as unknown as LevelData), lake: DG_LEVEL.lake };
+  const world = new DungeonWorld(assets.kits, lv, { lazy: true, floor, floorN });
   let n = 0;
   let t = performance.now();
   while (!world.buildStep()) {
