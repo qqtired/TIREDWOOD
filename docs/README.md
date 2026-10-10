@@ -67,6 +67,7 @@
 | Дед Семён и Саня | `fishplaces.ts` (`FISHER_NPC`), `barkas.ts` | `lobby/fishnpc.ts` | `lobby/fisherman.ts`, `lobby/fishhouse.ts`, `lobby/fishnpcdialog.ts`, `lobby/barkas/sanyahome.ts` | `FISH2` | `fisheco.test.ts`, `fishplaces.test.ts` | план `fishC` |
 | Журнал, награды, модели рыб | `fishstyle.ts`, `fishrules.ts` (`COLLECTION`) | `fishstyle.ts` | `ui/fishbook.ts`, `ui/fishrewards.ts`, `lobby/fishart.ts`, `lobby/fishgear.ts` | `FISH2` | `fishstyle.test.ts`, `fishstyle3d.test.ts` | план `fishstyle` |
 | Баркас «Альбатрос» (10 мест, матрос-рыбак Колян) и лодка Семёна «Удалая» (от хижины) | `barkas.ts`, `ferry.ts` | `lobby/ferry.ts` | `lobby/barkas/` (Колян — `barkas/angler.ts`) | `FISH2` | `barkas.test.ts` | план `barkas` |
+| Способности мификов и божественной (и острова), +20 % времени в зоне, бонусы уровней 1–15 (прототип 10.10, в игру не подключено) | `fishability.ts` (`SPECIES_ABILITY`, `LEVEL_PERKS`, `reelStyle2`), блоки способностей — `fishreel.ts` (`AbilitySpec`, `abilityView`) | — | — (страница-прототип `lab/fishing-abilities/`) | — | симуляции `tools/fish/abilities-sim.ts`; остров — `tools/fish/islestyle.ts`, `isle-reel.ts` (числа — `plans/2026-10-10-fishing-island-reel.json`) | план `fishing-abilities` |
 | Рулетка рыбака и табло последних 10 ставок | `roulette.ts` | `lobby/roulette.ts` | `lobby/roulette*.ts`, `lobby/rouletteboard.ts`, `lobby/roulettelog.css` | `ROULETTE` (нужна `FISH2`) | `roulette.test.ts` | план `fisheco` |
 
 ### 2.3 Набережная: столы, события, мелочи
@@ -182,7 +183,7 @@
 | `blackjack-bots/` | боты блэкджека по WebSocket: проверка чужих ставок и ходов |
 | `boat-assets/` | подготовка моделей катеров (GLB набора Kenney) |
 | `critters/` | стенд поз животных набережной |
-| `fish/` | калибровка манеры рыб (`calibrate.ts`), стенд кальмара |
+| `fish/` | калибровка манеры рыб (`calibrate.ts`), стенд кальмара; способности мификов — симуляции (`abilities-sim.ts`, бот `abilitybot.ts`) и сборка страницы-прототипа (`build-abilities-lab.ts`) |
 | `fishing-guide/` | генератор страницы `/fishing` (`gen.mjs`) и сверка калькулятора с кодом (`verify.mjs`) |
 | `fitting-room/` | конфигурация самостоятельной лаборатории; `fitting:dev`, `fitting:build`, `fitting:preview`, выход `dist-fitting-room/` |
 | `fort-balance/` | модель экономики крепости против директора волн |
