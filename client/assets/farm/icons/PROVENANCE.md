@@ -150,3 +150,20 @@ Style: a single bold game inventory icon for a cozy fairytale farming game set o
 ## Сводка
 
 `_sheet.png` — все 36 иконок сеткой 4 × 9, id и тип подписаны сбоку (SVG-текст поверх, через sharp). Фон листа кремовый, чтобы был виден край иконок.
+
+## Дополнение 10 октября 2026: иконки для интерфейса фермы (часть B2)
+
+Владелец: «сгенерируй нормальные иконки и сделай блоки побольше, чтобы было понятно, что это лейка, сколько в ней воды».
+Ещё 7 иконок для HUD и окон: **тем же способом** — Codex CLI 0.153.4, `codex exec` со встроенным `image_gen`, прозрачный фон, одна иконка на вызов, по три вызова одновременно, та же обёртка и тот же общий стиль (см. выше), без правок руками. Постобработка та же: альфа ≤6 → 0 и ≥248 → 255, обрезка по альфе >24, Lanczos до 240 px, холст 256×256, PNG (sharp 0.34.5 из соседнего проекта, только на чтение). Исходники 1254×1254 в репозиторий не кладём.
+
+Всего теперь 43 иконки (36 + 7). Строка «Subject» каждого вызова:
+
+- **`well.png`** — Колодец (карточка «Колодец» в HUD). Subject: a cozy round fieldstone farm well with a small peaked wooden roof with terracotta tiles on two wooden posts, a rope winch with a wooden bucket hanging on it, clear fresh water visible in the shaft, three-quarter view. С первого раза, в игре.
+- **`bucket.png`** — Ведро с водой (наборы воды колодца: четыре ведёрка). Subject: a sturdy wooden water bucket with dark iron hoops and a rope handle, filled to the brim with clear fresh water, a few water droplets splashing from the surface. С первого раза.
+- **`xp-star.png`** — Звёздочка опыта фермы. Subject: a plump shiny five-pointed star in fresh leaf green with a lighter mint highlight on its edges and a clearly readable star silhouette, with two small fresh green sprout leaves growing from the top notch. С первого раза.
+- **`level-badge.png`** — Значок уровня: венок с пустой серединой, номер уровня накладывает интерфейс (HUD и экран уровня). Subject: a round medal badge in warm honey-wood brown with a wreath of fresh green leaves around a plain empty smooth cream center disc (completely blank, nothing written on it), a small terracotta-red ribbon bow at the bottom. С первого раза.
+- **`van.png`** — Фургон (чип в HUD, окно Фургона). Subject: a cute little vintage farm delivery van with a rounded body in terracotta red and cream, a striped cream and green awning over the windshield, a few wooden crates of vegetables on its roof, front three-quarter view. С первого раза.
+- **`help-hands.png`** — Помощь соседям. Subject: a friendly handshake between two hands wearing cream gardening gloves, one with a green cuff and the other with a terracotta cuff, a tiny green sprout with two leaves above them. С первого раза.
+- **`basket.png`** — Корзина «Хозяйство» (кнопка в HUD, окно «Хозяйство»). Subject: a woven wicker harvest basket with two handles and a folded cream linen cloth, filled with fresh vegetables: an orange carrot, a red radish, green lettuce leaves and a small pumpkin peeking out. С первого раза.
+
+Монету не рисовали: жетон в игре уже есть (`client/ui/coin.ts`), HUD фермы берёт его.
