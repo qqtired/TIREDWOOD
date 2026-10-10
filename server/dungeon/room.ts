@@ -8,7 +8,7 @@ import {
 } from '../../shared/dungeon/api.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Client, Room } from '../hub.ts';
-import type { DgSimApi, DgSimLike } from './simport.ts';
+import type { DgSimApi } from './simport.ts';
 
 /**
  * Флаг сервера DUNGEON: '1' — режим включён, '0' — выключен, без переменной — только в разработке (--dev).
@@ -57,7 +57,7 @@ export class DungeonRoom implements Room {
   private readonly host: DgRoomHost;
   private client: Client | null = null;
   private closedRoom = false;
-  private sim!: DgSimLike;
+  private sim!: object;
   private seed = 0;
   /** Принятые события журнала, которые ещё не применены (с head) */
   private events: DgEvent[] = [];
@@ -98,12 +98,13 @@ export class DungeonRoom implements Room {
   }
 
   get tick(): number {
-    return this.sim.tick;
+    return this.host.api.tick(this.sim);
   }
 
   /** Для тестов и отладки */
   get state(): { seed: number; tick: number; stage: DgStage; upto: number; received: number; coins: number; over: boolean; paused: boolean } {
-    return { seed: this.seed, tick: this.sim.tick, stage: this.sim.stage, upto: this.upto, received: this.received, coins: this.coins, over: this.over, paused: this.pauseAt > 0 };
+    const api = this.host.api;
+    return { seed: this.seed, tick: api.tick(this.sim), stage: api.stage(this.sim), upto: this.upto, received: this.received, coins: this.coins, over: this.over, paused: this.pauseAt > 0 };
   }
 
   hasSpace(): boolean {
@@ -221,14 +222,18 @@ export class DungeonRoom implements Room {
   private advance(target: number, max: number): void {
     const api = this.host.api;
     const sim = this.sim;
-    for (let n = 0; n < max && sim.tick < target && !this.over; n++) {
-      while (this.head < this.events.length && this.events[this.head].t <= sim.tick) api.applyEvent(sim, this.events[this.head++]);
+    // открыт выбор карточек или сундук — шаг не двигает t, пока не придёт pick: такие шаги пустые и дешёвые
+    for (let n = 0; n < max && api.tick(sim) < target && !this.over; n++) {
+      while (this.head < this.events.length && this.events[this.head].t <= api.tick(sim)) api.applyEvent(sim, this.events[this.head++]);
       api.step(sim);
       this.check();
-      if (sim.stage !== this.stage) {
-        this.stage = sim.stage;
+      const stage = api.stage(sim);
+      if (api.over(sim)) {
         this.settleWaves();
-        if (sim.stage === 'over') this.finish('death');
+        this.finish('death');
+      } else if (stage !== this.stage) {
+        this.stage = stage;
+        this.settleWaves();
       }
     }
     if (this.head > 256 && this.head * 2 > this.events.length) {
@@ -239,7 +244,7 @@ export class DungeonRoom implements Room {
 
   /** Сверка суммы состояния с клиентской на том же шаге: расхождение — только в журнал */
   private check(): void {
-    const tick = this.sim.tick;
+    const tick = this.host.api.tick(this.sim);
     while (this.checks.length && this.checks[0].tick < tick) this.checks.shift();
     if (!this.checks.length || this.checks[0].tick !== tick) return;
     const { h } = this.checks.shift()!;
@@ -304,7 +309,7 @@ export class DungeonRoom implements Room {
     const r: DgResult = { ...this.host.api.dgResult(this.sim), end };
     const prevBest = c.profile?.stats.dgBest ?? 0;
     if (r.waves > prevBest) this.pay.record = this.credit(DG_RECORD_COINS);
-    const { newBest, weekRank } = this.host.settle(c, r, { coins: this.coins, ticks: this.sim.tick, mismatches: this.mismatches, bad: this.bad });
+    const { newBest, weekRank } = this.host.settle(c, r, { coins: this.coins, ticks: this.host.api.tick(this.sim), mismatches: this.mismatches, bad: this.bad });
     c.sink.sendJson({ t: 'dg_end', result: r, coins: this.coins, newBest, weekRank, pay: { ...this.pay } });
   }
 
@@ -324,7 +329,7 @@ export class DungeonRoom implements Room {
     this.pausedMs = 0;
     this.pauseAt = 0;
     this.lastHeard = now;
-    this.stage = this.sim.stage;
+    this.stage = this.host.api.stage(this.sim);
     this.paidWaves = 0;
     this.paidBosses = 0;
     this.pay = { waves: 0, bosses: 0, record: 0 };

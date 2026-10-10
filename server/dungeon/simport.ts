@@ -1,26 +1,33 @@
 // Одна точка, через которую сервер берёт симуляцию «Подземелья» (часть A, shared/dungeon/sim.ts). Пока её нет в этой
 // ветке — тонкая заглушка с тем же API: волна раз в 30 с, передышка 5 с, каждая 10-я — босс, смерти нет. После вехи «М1»
 // здесь остаётся только реэкспорт настоящей симуляции (DG_SIM = { createRun, applyEvent, step, dgResult, dgHash }).
+// После слияния mode/survivors-sim — вместо заглушки:
+//   import { applyEvent, createRun, dgHash, dgResult, step, type DgSim } from '../../shared/dungeon/sim.ts';
+//   export const DG_SIM: DgSimApi<DgSim> = { createRun: (seed) => Object.assign(createRun(seed), { noFx: true }), applyEvent, step,
+//     dgResult, dgHash, tick: (s) => s.t, stage: (s) => s.wave.stage, over: (s) => s.end !== 'running' };
 import { DG_HZ, type DgEvent, type DgResult, type DgStage } from '../../shared/dungeon/api.ts';
 
-/** Что сервер читает у забега сам: номер шага и стадию (волны и итог — через dgResult) */
-export interface DgSimLike {
-  tick: number;
-  stage: DgStage;
-}
-
-/** API симуляции, как его видит сервер (в тестах подменяется быстрой управляемой копией) */
-export interface DgSimApi<S extends DgSimLike = DgSimLike> {
+/**
+ * API симуляции, как его видит сервер (в тестах подменяется быстрой управляемой копией). Сверх договора A — три чтения
+ * состояния: номер шага (у настоящей — sim.t; не растёт, пока открыт выбор карточек или сундук), стадия (sim.wave.stage)
+ * и «забег кончился» (sim.end !== 'running'). Волны, боссы и итог — через dgResult.
+ */
+export interface DgSimApi<S extends object = object> {
   createRun(seed: number): S;
   applyEvent(sim: S, ev: DgEvent): void;
   step(sim: S): void;
   dgResult(sim: S): DgResult;
   dgHash(sim: S): number;
+  tick(sim: S): number;
+  stage(sim: S): DgStage;
+  over(sim: S): boolean;
 }
 
 // ------------------------------------------------------------ заглушка до вехи «М1»
 
-interface StubSim extends DgSimLike {
+interface StubSim {
+  tick: number;
+  stage: DgStage;
   until: number;
   wave: number;
   cleared: number;
@@ -59,6 +66,9 @@ const stub: DgSimApi<StubSim> = {
   },
   dgResult: (sim) => ({ waves: sim.cleared, ms: sim.ms, kills: sim.kills, level: 1 + sim.cleared, bosses: sim.bosses, killedBy: '', dmg: {}, end: sim.stage === 'over' ? 'death' : 'running' }),
   dgHash: (sim) => sim.hash,
+  tick: (sim) => sim.tick,
+  stage: (sim) => sim.stage,
+  over: (sim) => sim.stage === 'over',
 };
 
 /** Симуляция для сервера: сейчас — заглушка, после вехи «М1» — настоящая */

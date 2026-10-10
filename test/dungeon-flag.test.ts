@@ -34,6 +34,9 @@ const fake: DgSimApi<Fake> = {
   },
   dgResult: (s) => ({ waves: s.waves, ms: s.ms, kills: s.kills, level: 1, bosses: s.bosses, killedBy: s.stage === 'over' ? 'cooper' : '', dmg: {}, end: s.stage === 'over' ? 'death' : 'running' }),
   dgHash: (s) => s.h,
+  tick: (s) => s.tick,
+  stage: (s) => s.stage,
+  over: (s) => s.stage === 'over',
 };
 
 const point = buildLobby().interact.find((i) => i.kind === 'dungeon')!;
