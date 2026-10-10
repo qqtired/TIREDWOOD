@@ -27,6 +27,21 @@ export function buildFarmMap(on: readonly FarmToggle[] = []): GameMap {
   };
 }
 
+/** Номера боксов событий в карте buildFarmMap(['van', 'boss']) (0 — земля) */
+const TOGGLE_BOXES: Record<FarmToggle, number[]> = { van: [], boss: [] };
+FARM_LAYOUT.boxes.forEach((box, i) => {
+  const toggle = (box as { toggle?: string }).toggle as FarmToggle | undefined;
+  if (toggle) TOGGLE_BOXES[toggle].push(i + 1);
+});
+
+/**
+ * Фургон приехал, Древо проснулось — его боксы твёрдые. Мир построен из buildFarmMap(['van', 'boss']); сервер и клиент
+ * переключают одинаково (сервер — по своему времени, клиент — по farmVan / farmBoss).
+ */
+export function setFarmToggle(world: { setEnabled(i: number, on: boolean): void }, toggle: FarmToggle, on: boolean): void {
+  for (const i of TOGGLE_BOXES[toggle]) world.setEnabled(i, on);
+}
+
 export interface FarmPlotGeo {
   /** Номер участка с 0 (на табличке — n = номер + 1) */
   i: number;

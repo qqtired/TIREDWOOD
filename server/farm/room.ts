@@ -14,8 +14,9 @@ import {
   WELL_SETS, WELL_TRY_MS,
 } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
-import { bedDist, buildFarmMap, nearTrough, nearUse, plotToWorld, type FarmObjectId } from '../../shared/farmmap.ts';
+import { bedDist, buildFarmMap, nearTrough, nearUse, plotToWorld, setFarmToggle, type FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmAction, FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow, FarmServerMsg, FarmStatus } from '../../shared/farmnet.ts';
+import { vanTime } from '../../shared/farmvan.ts';
 import { WELL_MAX_SAMPLES, wellShare } from '../../shared/farmwell.ts';
 import { stepHeld } from '../../shared/lobby.ts';
 import type { ClientMsg, RoomKind } from '../../shared/messages.ts';
@@ -107,7 +108,9 @@ export interface FarmCtx {
 
 export class FarmRoom implements Room, FarmCtx {
   readonly kind = 'farm' as const;
-  readonly world = new CollisionWorld(buildFarmMap());
+  readonly world = new CollisionWorld(buildFarmMap(['van', 'boss']));
+  /** Твёрдые ли сейчас Фургон и ствол Древа (setFarmToggle) */
+  private solid = { van: true, boss: true };
   readonly plots: FarmPlots;
   tick = 0;
   private readonly hooks: FarmHooks;
@@ -125,6 +128,7 @@ export class FarmRoom implements Room, FarmCtx {
     this.hooks = hooks;
     this.plots = new FarmPlots(hooks.seats());
     this.sys = new FarmSystems(this);
+    this.toggles(this.now());
   }
 
   get humans(): number {
@@ -560,7 +564,16 @@ export class FarmRoom implements Room, FarmCtx {
         }
       }
       this.sys.second(now);
+      this.toggles(now);
     }
+  }
+
+  /** Фургон на стоянке и проснувшееся Древо твёрдые, иначе сквозь их место можно пройти */
+  private toggles(now: number): void {
+    const van = vanTime(now).open;
+    const boss = this.sys.boss.awake(now);
+    if (van !== this.solid.van) setFarmToggle(this.world, 'van', (this.solid.van = van));
+    if (boss !== this.solid.boss) setFarmToggle(this.world, 'boss', (this.solid.boss = boss));
   }
 
   private stepPlayer(p: FarmPlayer): void {

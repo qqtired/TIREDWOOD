@@ -9,7 +9,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bedStage } from '../../shared/farm.ts';
 import { FARM_BEDS, FARM_PLOTS, cropById } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
-import { bedWorld, buildFarmMap } from '../../shared/farmmap.ts';
+import { bedWorld, buildFarmMap, setFarmToggle } from '../../shared/farmmap.ts';
 import type { FarmBedView, FarmEvent, FarmPlotView } from '../../shared/farmnet.ts';
 import type { FarmSysMsg } from '../../shared/farmsys.ts';
 import { makeRng } from '../../shared/math.ts';
@@ -118,7 +118,7 @@ export class FarmWorld {
   readonly renderer: Renderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(60, 16 / 9, 0.05, 1500);
-  readonly collision = new CollisionWorld(buildFarmMap());
+  readonly collision = new CollisionWorld(buildFarmMap(['van', 'boss']));
   readonly sun = new THREE.DirectionalLight(0xffc48a, SUN);
   readonly hemi = new THREE.HemisphereLight(HEMI[1], HEMI[2], HEMI[0]);
   /** Модели ещё грузятся (экран загрузки ждёт) */
@@ -159,6 +159,9 @@ export class FarmWorld {
 
   constructor(renderer: Renderer) {
     this.renderer = renderer;
+    // Фургон и ствол Древа твёрдые только по сообщению сервера (onSys)
+    setFarmToggle(this.collision, 'van', false);
+    setFarmToggle(this.collision, 'boss', false);
     this.camera.rotation.order = 'YXZ';
     const scene = this.scene;
     const fog = LOOK2 ? new THREE.Color(SKY.horizon) : fogColor(SKY);
@@ -417,6 +420,10 @@ export class FarmWorld {
    * у FarmHud.onSys; здесь только 3D.
    */
   onSys(m: FarmSysMsg): void {
+    // твёрдые Фургон и ствол Древа — как на сервере (server/farm/room.ts toggles), и пока сцена грузится
+    if (m.t === 'farmVan') setFarmToggle(this.collision, 'van', m.v.open);
+    else if (m.t === 'farmBoss') setFarmToggle(this.collision, 'boss', m.b.st === 'awake');
+    else if (m.t === 'farmBossEnd') setFarmToggle(this.collision, 'boss', false);
     if (this.loading) {
       if (m.t === 'farmVan' || m.t === 'farmBoss' || m.t === 'farmBossEnd') this.early.push(m);
       return;

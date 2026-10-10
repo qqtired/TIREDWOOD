@@ -2327,6 +2327,7 @@ export class LobbyScene implements Scene {
     pm.x = this.pose.x; pm.y = this.pose.y; pm.z = this.pose.z; pm.yaw = this.d.input.yaw; pm.pitch = this.d.input.pitch; pm.slot = this.myId; pm.pid = this.d.ui.me().pid;
     this.pirates3d.update(this.clock.ready ? this.clock.renderTick : 0, dt, this.world.camera, this.hasSelf ? pm : null, this.eventEligible, TOUCH);
     this.folk.update(dt, this.time, camPos, this.world.weather.rain);
+    this.farmGate.update(dt, camPos);
     this.fishHouse.update(dt, this.time, camPos, this.world.weather.rain);
     this.fish2.updateVisuals(dt, this.time, camPos, this.hasSelf ? this.pose : null);
     this.fishJumps.update(dt, camPos, lobbyQuality(this.d.settings.quality) === 'low');

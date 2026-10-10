@@ -93,6 +93,8 @@ export class FarmScene implements Scene {
   private lastVt = 0;
   private time = 0;
   private target: Target = null;
+  /** Когда можно снова просить шишку (performance.now, мс) */
+  private coneAt = 0;
   private readonly ray = new THREE.Raycaster();
   private readonly hit = new THREE.Vector3();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.1);
@@ -106,7 +108,7 @@ export class FarmScene implements Scene {
     this.hud = new FarmHud(d.hudRoot, {
       plant: (crop) => this.plant(crop),
       sell: (item, n) => d.net.send({ t: 'farm', a: 'sell', item, n }),
-      closed: () => d.wantPointer(),
+      closed: () => { this.world.talk('grib', false); this.world.talk('semechkin', false); d.wantPointer(); },
       send: (m) => d.net.send(m),
       tokens: () => d.ui.me().tokens,
       plots: () => this.plots,
@@ -200,7 +202,7 @@ export class FarmScene implements Scene {
         for (const row of m.list) if (row.id === this.myId) this.plot = row.plot;
         return;
       case 'farmEv':
-        for (const e of m.e) this.onEvent(e);
+        for (const e of m.e) { this.onEvent(e); this.world.onEvent(e); }
         return;
       default:
         // сообщения частей B1 (shared/farmsys.ts): окнам и 3D
@@ -332,6 +334,7 @@ export class FarmScene implements Scene {
     if (id.startsWith('trough')) net.send({ t: 'farm', a: 'fillStart' });
     else if (id === 'cart') net.send({ t: 'leave' });
     else if (this.hud.object(id, this.farm, this.now())) {
+      this.world.talk(id, true);
       this.d.input.releaseAll();
       this.d.input.unlock();
     } else this.d.ui.toasts.show(USE_TEXT[id] ?? 'Скоро', 2200, 'farm');
@@ -486,9 +489,19 @@ export class FarmScene implements Scene {
     }
     tickAvatarShared(now / 1000, this.d.renderer.canvas.clientHeight || window.innerHeight);
     this.updateHint();
+    this.pickCone(now);
     this.world.update(dt, this.now());
     this.audio.update(this.d.sound, this.world.camera);
     this.world.render();
+  }
+
+  /** Прошёл сквозь шишку-ворчунью — подобрал (сервер проверит расстояние); запрос не чаще раза в 0,5 с */
+  private pickCone(now: number): void {
+    if (!this.hasSelf || now < this.coneAt) return;
+    const id = this.world.coneAt(this.pose.x, this.pose.z);
+    if (id === null) return;
+    this.coneAt = now + 500;
+    this.d.net.send({ t: 'farm', a: 'cone', id });
   }
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
