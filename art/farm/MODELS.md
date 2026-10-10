@@ -301,3 +301,19 @@ LOD нет.
 
 Не сделано: GIF (вместо них полосы по 4 кадра), LOD для NPC, анимация «вырастания» листвы и цветов. Слои
 листвы и цветов включаются целиком: плавное появление — масштабом в игре.
+
+## Декор земли: трава, цветы, кусты, камни, сено
+
+Автор раздела: farm-decor. Скрипт `art/farm/scripts/decor_models.py` (фоновый Blender, запуск — в начале файла),
+превью `art/farm/renders/decor_<набор>.png`. Узел на вид, origin у основания, цвет вершинный, материалы общие
+(`farm_plant`, `farm_soft`). В игре (`client/farm/decor/`) растения — по InstancedMesh на вид с ветром в вершинном
+шейдере, предметы — одна склейка с тенями.
+
+| файл | узлы (треуг.) |
+|---|---|
+| `decor_grass.glb` | `tuft` 66, `tuft_tall` 66 (кромка луга), `clover` 132, `fuzz` 12 (ковёр вблизи) |
+| `decor_flowers.glb` | `daisy` 128, `poppy` 150, `cornflower` 100, `lavender` 150, `marigold` 108 |
+| `decor_bushes.glb` | `bush_round` 450, `bush_bloom` 760 (цветущий), `bush_low` 300 |
+| `decor_props.glb` | `stone_s` 128, `stone_m` 164, `boulder` 232, `stump` 290, `bale_round` 320, `bale_block` 204, `pumpkin` 191, `barrel` 300, `log_seat` 84, `woodpile` 260, `planks` 96, `planter` 108 |
+
+Подсолнухи за северным забором — готовый `sunflower_decor` из `trees.glb`, дальние деревья — `tree_*` оттуда же.
