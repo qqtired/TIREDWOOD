@@ -469,6 +469,13 @@ html.touch .dg-lv-n { font-size: 17px; }
 html.touch .dg-hp { height: 20px; }
 html.touch .dg-tc { top: calc(64px + env(safe-area-inset-top, 0px)); }
 html.touch .dg-bl, html.touch .dg-weapons { display: none; }
+/* радар — под кнопками оболочки слева сверху (меню, чат), меньше */
+html.touch .dg { --dg-radar-size: 96px; }
+html.touch .dg-arrow-disc { left: -20px; top: -20px; width: 40px; height: 40px; font-size: 21px; }
+html.touch .dg-arrow-tip { left: -26px; top: -26px; width: 52px; height: 52px; }
+html.touch .dg-arrow-lab { top: 22px; }
+html.touch .dg-arrow-name { display: none; }
+html.touch .dg-radar { top: calc(92px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); }
 
 @media (prefers-reduced-motion: reduce) {
   .dg *, .dg *::before, .dg *::after { animation: none !important; transition: none !important; }

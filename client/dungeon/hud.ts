@@ -270,7 +270,7 @@ export class DungeonHud implements DungeonHudApi {
   private arrowAt = 0;
   /** рамка стрелок: края радара и верх нижнего HUD (перемеряются 2 раза в секунду, не каждый кадр) */
   private edgeAt = 0;
-  private readonly edge = { rx: 0, ry: 0, bottom: 0 };
+  private readonly edge = { bottom: 0, boxes: [] as { l: number; t: number; r: number; b: number }[] };
   private readonly loadLayer = el('div', 'dg-loading');
   private readonly loadFill = el('i', 'dg-load-fill');
   private readonly phoneLayer = el('div', 'dg-phone');
@@ -985,23 +985,60 @@ export class DungeonHud implements DungeonHudApi {
     const touch = document.documentElement.classList.contains('touch');
     if (now - this.edgeAt > 500 || now < this.edgeAt) {
       this.edgeAt = now;
-      const rad = this.radarBox.getBoundingClientRect();
       const vit = this.vitals.getBoundingClientRect();
-      this.edge.rx = rad.width > 0 ? rad.right + 34 : 0;
-      this.edge.ry = rad.height > 0 ? rad.bottom + 34 : 0;
       this.edge.bottom = vit.height > 0 ? vit.top : H - 200;
+      // где стрелкам нельзя стоять: радар, волна, здоровье, кольца, убито/пауза (+ кнопки оболочки на телефоне)
+      const m = touch ? 26 : 34;
+      const boxes: { l: number; t: number; r: number; b: number }[] = [];
+      for (const n of [this.radarBox, this.hud.querySelector('.dg-tc'), this.hud.querySelector('.dg-tr'), touch ? this.vitals : null, touch ? this.hud.querySelector('.dg-bc') : null]) {
+        const r = n?.getBoundingClientRect();
+        if (r && r.width > 0) boxes.push({ l: r.left - m, t: r.top - m, r: r.right + m, b: r.bottom + m });
+      }
+      if (touch) {
+        boxes.push({ l: 0, t: 0, r: 240, b: 80 }); // меню и чат оболочки
+        boxes.push({ l: 0, t: H - 170, r: 300, b: H }); // джойстик
+        boxes.push({ l: W - 290, t: 160, r: W, b: H }); // удар, рывок, действие, прыжок
+      }
+      this.edge.boxes = boxes;
     }
-    const T = touch ? 120 : 118;
-    // снизу — выше здоровья и баффов (диск 29 px и подпись под ним)
-    const B = touch ? H - 120 : Math.min(H - 250, this.edge.bottom - 66);
-    const Lx = touch ? 64 : 48;
-    const R = W - (touch ? 150 : 48);
+    // рамка: компьютер — выше здоровья и баффов (диск и подпись под ним); телефон — почти весь экран, HUD обходим
+    const T = touch ? 46 : 118;
+    const B = touch ? H - 40 : Math.min(H - 250, this.edge.bottom - 66);
+    const Lx = touch ? 46 : 48;
+    const R = W - (touch ? 46 : 48);
     const cx = W / 2;
     const cy = Math.max(T + 1, Math.min(B - 1, H / 2));
-    const { rx, ry } = this.edge;
+    const boxes = this.edge.boxes;
+    /** вытолкнуть точку из запретных мест — в ближайшую сторону, не выходя из рамки */
+    const clear = (x: number, y: number): [number, number] => {
+      for (let it = 0; it < 3; it++) {
+        let moved = false;
+        for (const b of boxes) {
+          if (x <= b.l || x >= b.r || y <= b.t || y >= b.b) continue;
+          const opts: [number, number][] = [[b.l, y], [b.r, y], [x, b.t], [x, b.b]];
+          let best: [number, number] | null = null;
+          let bd = Infinity;
+          for (const [ox, oy] of opts) {
+            if (ox < Lx || ox > R || oy < T || oy > B) continue;
+            // лучше остаться у края экрана, чем уехать к герою: отход от края рамки — со штрафом
+            const d = Math.abs(ox - x) + Math.abs(oy - y) + 4 * Math.min(ox - Lx, R - ox, oy - T, B - oy);
+            if (d < bd) {
+              bd = d;
+              best = [ox, oy];
+            }
+          }
+          if (best) {
+            [x, y] = best;
+            moved = true;
+          }
+        }
+        if (!moved) break;
+      }
+      return [x, y];
+    };
     const live = new Set<string>();
     const placed: ArrowEl[] = [];
-    for (const a of list) {
+    for (const a of touch ? list.slice(0, 4) : list) {
       live.add(a.id);
       let e = this.arrowEls.get(a.id);
       const c = Math.cos(a.angle);
@@ -1009,13 +1046,7 @@ export class DungeonHud implements DungeonHudApi {
       const kx = c > 1e-4 ? (R - cx) / c : c < -1e-4 ? (Lx - cx) / c : Infinity;
       const ky = s > 1e-4 ? (B - cy) / s : s < -1e-4 ? (T - cy) / s : Infinity;
       const k = Math.min(kx, ky);
-      let x = cx + c * k;
-      let y = cy + s * k;
-      // радар в левом верхнем углу: стрелка — под ним или правее
-      if (x < rx && y < ry) {
-        if (ry - y < rx - x) y = ry;
-        else x = rx;
-      }
+      const [x, y] = clear(cx + c * k, cy + s * k);
       if (!e) {
         e = this.arrowEl(a.kind);
         e.x = x;
@@ -1037,7 +1068,7 @@ export class DungeonHud implements DungeonHudApi {
       placed.push(e);
     }
     // раздвинуть соседей (по 3 прохода), не выходя за рамку
-    const MIN = 74;
+    const MIN = touch ? 66 : 76;
     for (let it = 0; it < 3; it++) {
       for (let i = 0; i < placed.length; i++) {
         for (let j = i + 1; j < placed.length; j++) {
@@ -1060,8 +1091,7 @@ export class DungeonHud implements DungeonHudApi {
         }
       }
       for (const p of placed) {
-        p.tx = Math.max(Lx, Math.min(R, p.tx));
-        p.ty = Math.max(T, Math.min(B, p.ty));
+        [p.tx, p.ty] = clear(Math.max(Lx, Math.min(R, p.tx)), Math.max(T, Math.min(B, p.ty)));
       }
     }
     const kk = 1 - Math.exp(-dt * 12);
