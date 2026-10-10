@@ -77,4 +77,6 @@ export interface Scene {
   readonly touchUseIcon?: string;
   /** Для window.__opus.state() */
   debugState(): Record<string, unknown> | null;
+  /** Меню открылось или закрылось (Esc, потеря мыши): соло-режим ставит игру на паузу («Подземелье») */
+  setPaused?(paused: boolean): void;
 }

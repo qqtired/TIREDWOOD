@@ -30,8 +30,9 @@ import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
+import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 
-export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
+export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide' | 'dungeon';
 
 export interface RosterEntry {
   id: number;
@@ -179,6 +180,7 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | KickClientMsg
+  | DgClientMsg
   | RatClientMsg
   | BilliardsClientMsg
   | GiftClientMsg
@@ -428,6 +430,9 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | KickServerMsg
+  | DgServerMsg
+  /** «Подземелье»: табличка рекордов у входа в пещеру — когда поменялась (флаг DUNGEON) */
+  | ({ t: 'dgSt' } & DgStatus)
   | RatServerMsg
   | BilliardsServerMsg
   | GiftServerMsg
@@ -490,6 +495,8 @@ export type ServerMsg =
     ratrace?: RatRaceView;
     /** Гидроплан «Стриж» (флаг сервера PLANE, shared/plane.ts) */
     plane?: PlaneView;
+    /** «Подземелье» (флаг сервера DUNGEON): рекорды для таблички у пещеры; нет поля — режим выключен */
+    dg?: DgStatus;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)
