@@ -699,15 +699,18 @@ export class OwnBoatsClient {
     const yaw = this.d.input.yaw;
     const mine = b.v.pid === this.d.me().pid;
     const docked = s.ph === OB_DOCK || nearDock(p.x, p.z, 10) !== null;
+    // с удочкой справа — панель рыбалки: стрелки прячем, эхолот — строкой под названием
+    const fishing = this.act === ACT_FISH;
     this.hud.show({
       title: `«${kind.name}»${mine ? '' : ` · лодка ${b.v.nick}`}`,
       speed: `${Math.round(Math.abs(b.speed) * 3.6)} км/ч`,
-      phase: s.ph === OB_ANCHORED ? '⚓ на якоре' : s.ph === OB_DROP ? '⚓ якорь идёт вниз' : s.ph === OB_RAISE ? '⚓ поднимаем якорь' : s.ph === OB_DOCK ? 'у причала'
+      phase: s.ph === OB_ANCHORED ? (fishing ? `⚓ на якоре · эхолот: клёв +${Math.round(kind.sonar * 100)} %` : '⚓ на якоре') : s.ph === OB_DROP ? '⚓ якорь идёт вниз' : s.ph === OB_RAISE ? '⚓ поднимаем якорь' : s.ph === OB_DOCK ? 'у причала'
         : s.ph === OB_MOOR ? 'швартуемся' : b.speed < -0.3 ? 'задний ход' : '',
       isle: { label: isle.label, dist: km(isle.d), rot: this.arrow(p.x, p.z, isle.x, isle.z, yaw) },
       park: { label: home ? 'Причал острова' : 'Стоянка у Семёна', dist: km(Math.hypot((home ?? PARK_CENTER).x - p.x, (home ?? PARK_CENTER).z - p.z)),
         rot: this.arrow(p.x, p.z, (home ?? PARK_CENTER).x, (home ?? PARK_CENTER).z, yaw) },
       sonar: `эхолот: поклёвка с якоря на ${Math.round(kind.sonar * 100)} % быстрее`,
+      nav: !fishing,
       anchor: mine && at.seat === 0 && (s.ph === OB_SEA || s.ph === OB_ANCHORED),
       anchorDown: s.ph === OB_ANCHORED,
       sell: mine && docked,
@@ -734,7 +737,7 @@ export class OwnBoatsClient {
 
   debug(): object {
     return {
-      enabled: this.enabled, driving: this.driving, ready: this.pred.ready, corrections: this.pred.corrections, fleet: this.fleet.ready, drawn: this.fleet.drawn,
+      enabled: this.enabled, driving: this.driving, ready: this.pred.ready, corrections: this.pred.corrections, fleet: this.fleet.ready, drawn: this.fleet.drawn, buoys: this.buoys.shown,
       boats: [...this.boats.values()].map((b) => ({ i: b.v.i, kind: BOATS[b.v.k].id, nick: b.v.nick, ph: b.s.ph, b: b.s.b, x: Math.round(b.pose.x * 10) / 10, z: Math.round(b.pose.z * 10) / 10, seats: b.v.s })),
       pred: this.pred.ready ? { ...this.pred.state } : null,
     };

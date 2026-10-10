@@ -34,6 +34,8 @@ export interface HudView {
   isle: { label: string; dist: string; rot: number };
   park: { label: string; dist: string; rot: number };
   sonar: string;
+  /** Стрелки к острову и стоянке (с удочкой на якоре прячем: справа — панель рыбалки) */
+  nav: boolean;
   /** Показать кнопку якоря (хозяин за штурвалом в море) и опущен ли он */
   anchor: boolean;
   anchorDown: boolean;
@@ -49,6 +51,7 @@ export class BoatHud {
   private readonly speed: HTMLElement;
   private readonly phase: HTMLElement;
   private readonly sonar: HTMLElement;
+  private readonly navBox: HTMLElement;
   private readonly nav: Array<{ arrow: HTMLElement; label: HTMLElement; dist: HTMLElement }> = [];
   private readonly anchorBtn: HTMLButtonElement;
   private readonly sellBtn: HTMLButtonElement;
@@ -62,7 +65,7 @@ export class BoatHud {
     this.title = el('b', 'ob-title', line);
     this.speed = el('span', 'ob-speed', line);
     this.phase = el('div', 'ob-phase', top);
-    const nav = el('div', 'ob-nav', this.root);
+    const nav = this.navBox = el('div', 'ob-nav', this.root);
     for (const cls of ['isle', 'park']) {
       const row = el('div', `ob-navrow ob-${cls}`, nav);
       const arrow = el('i', 'ob-arrow', row, '➤');
@@ -88,7 +91,7 @@ export class BoatHud {
     for (const [i, n] of [v.isle, v.park].entries()) {
       this.nav[i].arrow.style.transform = `rotate(${(n.rot * 180) / Math.PI - 90}deg)`;
     }
-    const key = `${v.title}|${v.speed}|${v.phase}|${v.isle.label}|${v.isle.dist}|${v.park.label}|${v.park.dist}|${v.anchor}|${v.anchorDown}|${v.sell}`;
+    const key = `${v.title}|${v.speed}|${v.phase}|${v.isle.label}|${v.isle.dist}|${v.park.label}|${v.park.dist}|${v.anchor}|${v.anchorDown}|${v.sell}|${v.nav}`;
     if (key === this.key) return;
     this.key = key;
     this.title.textContent = `⛵ ${v.title}`;
@@ -100,6 +103,7 @@ export class BoatHud {
     this.nav[1].label.textContent = v.park.label;
     this.nav[1].dist.textContent = v.park.dist;
     this.sonar.textContent = v.sonar;
+    this.navBox.hidden = !v.nav;
     this.anchorBtn.hidden = !v.anchor;
     this.anchorBtn.textContent = v.anchorDown ? 'Z — Поднять якорь' : 'Z — Бросить якорь';
     this.sellBtn.hidden = !v.sell;

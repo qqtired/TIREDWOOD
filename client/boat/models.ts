@@ -448,6 +448,11 @@ export class RouteBuoys {
     scene.add(this.mesh);
   }
 
+  /** Сколько вех сейчас рисуется (отладка) */
+  get shown(): number {
+    return this.mesh.count;
+  }
+
   update(on: boolean, time: number, cam: THREE.Vector3, waterY: number): void {
     const m = this.mesh;
     m.count = 0;

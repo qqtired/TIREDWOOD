@@ -122,6 +122,9 @@ test('вызов, посадка хозяина и пассажира, якор�
   hub.step();
   assert.equal(lp(hub, b.c).action, ACT_OWNBOAT, 'пассажир сел');
   assert.equal(lp(hub, b.c).arg, 1, 'место 1');
+  // радио лодки (пакет F): у лодки есть радио, хозяин — Tester7, на борту оба
+  assert.equal(hub.lobby.radios!.wires().find((w) => w.id === 0)?.owner, a.c.profile!.id, 'у лодки есть радио');
+  assert.deepEqual(hub.lobby.radios!.carrier(0)?.aboard, [a.c.profile!.id, b.c.profile!.id]);
   // задним ходом — отошли от берта
   steps(hub, 20, [a.c, b.c], BTN_BACK);
   assert.equal(boat.s.ph, OB_SEA);
@@ -189,6 +192,7 @@ test('хозяин вышел в море — через 10 с лодка ухо
   hub.disconnect(a.c);
   steps(hub, OB_GONE_SEA_TICKS + 2, [b.c]);
   assert.equal(hub.lobby.ownboats!.count, 0, 'лодка ушла');
+  assert.ok(!hub.lobby.radios!.wires().some((w) => w.id === 0), 'радио ушедшей лодки молчит');
   const p = lp(hub, b.c);
   assert.equal(p.action, ACT_NONE, 'пассажир на берегу');
   assert.ok(toasts(b.s).some((t) => t.includes('Гоша')));

@@ -543,8 +543,9 @@ export class LobbyRoom implements Room {
         return r.n ? `Продано рыб: ${r.n}, +${r.coins} 🪙` : 'Продавать нечего — улова нет';
       },
       boatChanged: (pid, i, on) => {
-        // лодка ушла — её радио молчит (номер лодки займёт другая)
-        if (!on) this.radios?.drop(i);
+        // лодка пришла — у неё есть радио (выключено); ушла — её радио молчит (номер лодки займёт другая)
+        if (on) this.radios?.boatUp(i);
+        else this.radios?.drop(i);
         for (const f of this.ownBoatHooks) f(pid, i, on);
       },
     });
