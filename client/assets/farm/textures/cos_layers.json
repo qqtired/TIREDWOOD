@@ -1,0 +1,110 @@
+{
+ "order": [
+  "l",
+  "u"
+ ],
+ "order_note": "слои рисуются по порядку: сначала l, поверх u (u закрывает l на 0.27–0.711). Исключение l:overalls — нагрудник (до 0.86) и лямки поверх u. Если надет u, детали l выше 0.27 (шлёвки, карманы, заплатки, отворот сапог) прятать",
+ "u_band": "подол 0.27 (17 %); верх: спереди 0.885 (под лицом), бока 1.09 (69 %), спина 1.25 (79 %); у курток распах спереди 0.03–0.13 м",
+ "uv": "u = atan2(x, z) / 2pi (0 — спина, 0.5 — лицо), v = y / 1.58 (верх PNG — v = 1); x, y, z — vObj тела до покачивания",
+ "alpha": "A — покрытие тканью; цвет RGB — sRGB",
+ "layers": {
+  "u:workshirt": {
+   "png": "cos_u_workshirt.png",
+   "roughness": 0.85,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:sprout": {
+   "png": "cos_u_sprout.png",
+   "roughness": 0.85,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:plaid": {
+   "png": "cos_u_plaid.png",
+   "roughness": 0.9,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:windbreaker": {
+   "png": "cos_u_windbreaker.png",
+   "roughness": 0.55,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:stargardener": {
+   "png": "cos_u_stargardener.png",
+   "glow": "cos_u_stargardener_glow.png",
+   "roughness": 0.85,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:sweater": {
+   "png": "cos_u_sweater.png",
+   "roughness": 0.95,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "u:treevest": {
+   "png": "cos_u_treevest.png",
+   "roughness": 0.92,
+   "y": [
+    0.27,
+    1.251
+   ]
+  },
+  "l:jeans": {
+   "png": "cos_l_jeans.png",
+   "roughness": 0.85,
+   "y": [
+    0.002,
+    0.711
+   ]
+  },
+  "l:boots": {
+   "png": "cos_l_boots.png",
+   "roughness": 0.22,
+   "clearcoat": 1,
+   "y": [
+    0.002,
+    0.397
+   ]
+  },
+  "l:overalls": {
+   "png": "cos_l_overalls.png",
+   "roughness": 0.85,
+   "y": [
+    0.002,
+    0.859
+   ]
+  },
+  "l:patched": {
+   "png": "cos_l_patched.png",
+   "roughness": 0.9,
+   "y": [
+    0.002,
+    0.711
+   ]
+  },
+  "l:sneakers": {
+   "png": "cos_l_sneakers.png",
+   "roughness": 0.8,
+   "y": [
+    0.002,
+    0.319
+   ]
+  }
+ }
+}

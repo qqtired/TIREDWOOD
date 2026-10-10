@@ -1,0 +1,15 @@
+# Farm cart «В город» (design-v11 §16.3, ~2k tris): spoked wheels, shafts (оглобли) forward = Blender +Y = game -Z,
+# hay with straw tufts, sacks, a crate of produce, a warm lantern. layout: (-8.4, -15.4), shafts to the west.
+exec(open(LIB + '/props_common.py').read(), globals())
+exec(open(LIB + '/crops.py').read(), globals())
+exec(open(LIB + '/carts.py').read(), globals())
+reset()
+ob = build_cart('town')
+attach(ob, 'attach_lantern', (0.5, 1.25, 1.71))
+fit_all([ob], {'cart_town': 2000})
+report([ob])
+save_blend('cart_town')
+export_glb([ob], f'{GLB_DIR}/cart_town.glb')
+preview([ob], f'{PNG_DIR}/cart_town.png', yaw=-125, pitch=20, margin=0.7)
+save_blend('cart_town')
+print('FINAL cart_town', tris(ob))
