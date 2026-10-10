@@ -98,9 +98,10 @@ export function patchJelly(mat: THREE.MeshPhysicalMaterial, u: ClothUniforms): v
     Object.assign(shader.uniforms, u);
     shader.fragmentShader = 'uniform sampler2D uClothU;\nuniform sampler2D uClothL;\nuniform sampler2D uClothG;\nuniform vec4 uCloth;\nuniform vec4 uClothR;\n' + shader.fragmentShader
       .replace('diffuseColor.rgb = patternColor(diffuseColor.rgb);', `diffuseColor.rgb = patternColor(diffuseColor.rgb);\n${CLOTH_GLSL}`)
-      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, clothRough, clothA);')
+      // после правки металла и шероховатости у золотого желе (avatar.ts): ткань не блестит и не металл
+      .replace('roughnessFactor = mix(roughnessFactor, 0.28, uMetal);', 'roughnessFactor = mix(roughnessFactor, 0.28, uMetal);\n  metalnessFactor *= 1.0 - clothA;\n  roughnessFactor = mix(roughnessFactor, clothRough, clothA);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance = totalEmissiveRadiance * (1.0 - clothA) + clothGlow;')
-      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n  material.clearcoat *= 1.0 - clothA * (1.0 - clothCoat);\n  material.metalness *= 1.0 - clothA;')
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_CLEARCOAT\n  material.clearcoat *= 1.0 - clothA * (1.0 - clothCoat);\n#endif')
       .replace('outgoingLight += uRim * rimF * uRimK;', 'outgoingLight += uRim * rimF * uRimK * (1.0 - 0.75 * clothA);');
   };
   mat.customProgramCacheKey = () => `${key}-cloth1`;
@@ -158,7 +159,6 @@ interface Detail {
   cloth: THREE.Mesh;
   gloss: THREE.Mesh;
   metal: THREE.Mesh;
-  hi: THREE.Mesh | null;
 }
 
 // ------------------------------------------------------------ питомцы: кто где
@@ -249,7 +249,7 @@ export class AvatarCloth {
         return m;
       };
       const node = new THREE.Group();
-      d = { node, anchor, cloth: mk('cloth'), gloss: mk('gloss'), metal: mk('metal'), hi: null };
+      d = { node, anchor, cloth: mk('cloth'), gloss: mk('gloss'), metal: mk('metal') };
       node.add(d.cloth, d.gloss, d.metal);
       this.body.add(node);
       this.details[slot] = d;
