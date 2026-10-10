@@ -11,7 +11,8 @@ const wrap = (d: number): number => d - L * Math.round(d / L);
 const HZ = 30;
 /** Подпись видна ближе, м */
 const LABEL_NEAR = 6.5;
-const LABEL_MAX = 3;
+/** одна подпись — ближайшей постройки: спокойно и без наложений */
+const LABEL_MAX = 1;
 
 const inter = (id: string): Record<string, unknown> => (DG_DATA.interactables.find((i) => i.id === id) ?? { id }) as Record<string, unknown>;
 const num = (id: string, key: string, def: number): number => {
@@ -83,6 +84,7 @@ export class BuildingZones {
   private inSince = new Map<number, number>();
   private healAcc = 0;
   private healT = 0;
+  private healIdle = 9;
   private lastHp = -1;
   private readonly v3 = new THREE.Vector3();
 
@@ -173,7 +175,8 @@ export class BuildingZones {
       if (this.v3.z > 1 || Math.abs(this.v3.x) > 1.1 || Math.abs(this.v3.y) > 1.1) continue;
       const lb = this.label(n++);
       const sx = (this.v3.x * 0.5 + 0.5) * w;
-      const sy = (-this.v3.y * 0.5 + 0.5) * hh;
+      // не выше полосы волны и не ниже кнопок рывка/удара
+      const sy = Math.max(205, Math.min(hh - 150, (-this.v3.y * 0.5 + 0.5) * hh));
       lb.el.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px) translate(-50%, -100%)`;
       lb.el.style.opacity = String(Math.min(1, (LABEL_NEAR - d) / 1.2 + 0.25));
       const st = this.state(sim, p, d < k.r + 0.3, time);
@@ -270,25 +273,30 @@ export class BuildingZones {
   private spring(sim: DgSim, p: DgProp | null, X: (x: number) => number, Z: (z: number) => number, pool: FxPool, decA: FloorDecals, time: number, still: boolean, dt: number): void {
     const h = sim.hero;
     const hp = h.hp;
-    const healing = !!p && p.v > 0 && hp < h.hpMax + 0.01 && this.lastHp >= 0 && hp > this.lastHp + 0.001;
-    if (p && healing && !still) {
+    // шаг симуляции — 30 Гц, кадр — чаще: «лечит» держим 0,2 с после последней прибавки
+    const gained = this.lastHp >= 0 && hp > this.lastHp + 0.001;
+    if (p && gained) {
       this.healAcc += hp - this.lastHp;
+      this.healIdle = 0;
+    } else if (!still) this.healIdle += dt;
+    if (p && this.healIdle < 0.2 && !still) {
       const x = X(p.x);
       const z = Z(p.z);
       decA.add(x, 0.06, z, 2.6, 2.6, 0, D_SOFT, 1.3, 0, 0.35, 1, 0.65, 0.35 + 0.1 * Math.sin(time * 6));
-      if (pool.rnd() < 0.6) {
+      if (pool.rnd() < 0.5) {
         const a = pool.rnd() * Math.PI * 2;
         const r = pool.rnd() * 1.6;
-        pool.spark(p.x + Math.cos(a) * r, 0.25, p.z + Math.sin(a) * r, 0, 1.2 + pool.rnd(), 0, 0.7, 0.22, A_SOFT, 0.45, 1, 0.85);
+        pool.spark(p.x + Math.cos(a) * r, 0.25, p.z + Math.sin(a) * r, 0, 1.2 + pool.rnd(), 0, 0.7, 0.24, A_SOFT, 0.45, 1, 0.85);
       }
     }
     if (!still) this.healT += dt;
-    if (this.healAcc >= 1 && (this.healT > 0.45 || this.healAcc >= 8)) {
-      pool.number(h.x, h.z, Math.round(this.healAcc), false, 0.45, 1, 0.5);
+    if (this.healAcc >= 1 && (this.healT > 0.8 || this.healAcc >= 12)) {
+      pool.number(h.x, h.z, Math.round(this.healAcc), true, 0.45, 1, 0.5);
       this.healAcc = 0;
       this.healT = 0;
-    } else if (!healing && this.healAcc > 0 && this.healT > 0.6) {
+    } else if (this.healIdle > 0.6) {
       this.healAcc = 0;
+      this.healT = 0;
     }
     this.lastHp = hp;
   }
