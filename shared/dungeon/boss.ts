@@ -5,7 +5,7 @@
 import { fx, hurtHero, makeMob, newId } from './core.ts';
 import { D, type BossAttack } from './data.ts';
 import { cycleOf } from './director.ts';
-import { addMark, pushHero, spawnMob } from './mobs.ts';
+import { addMark, pushHero, roomForExtra, spawnMob } from './mobs.ts';
 import { dropGem, dropItem } from './pickups.ts';
 import type { DgBoss, DgMob, DgSim } from './types.ts';
 import { DT, dirOf, powi, rnd, rotate, ticks, wrapD, wrapP } from './util.ts';
@@ -82,6 +82,7 @@ function rotation(b: DgBoss): string[] {
 function larvae(sim: DgSim, x: number, z: number, n: number, r: number): void {
   for (let i = 0; i < n; i++) {
     dirOf((i / n) * Math.PI * 2, V);
+    if (!roomForExtra(sim)) break;
     spawnMob(sim, 'larva', x + V.x * r, z + V.z * r, 0);
   }
 }

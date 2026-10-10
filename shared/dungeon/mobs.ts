@@ -28,6 +28,11 @@ let TURN_S = 0;
   TURN_S = SC.s;
 }
 
+/** Есть место для добавки сверх отряда (свита, слизнята, личинки): живых меньше 300 */
+export function roomForExtra(sim: DgSim, n = 1): boolean {
+  return aliveCount(sim) + n <= D.mobRules.maxAlive;
+}
+
 /** Живых (без умирающих) */
 export function aliveCount(sim: DgSim): number {
   let n = 0;
@@ -461,7 +466,7 @@ function shamanAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
 }
 
 /** Свита из бюджета волны: если в отряде есть невышедшие такого вида — берём их (они часть отряда) */
-export function summonFromBudget(sim: DgSim, k: MobKind, x: number, z: number): DgMob {
+export function summonFromBudget(sim: DgSim, k: MobKind, x: number, z: number): DgMob | null {
   const w = sim.wave;
   const ki = KIND_IDX[k];
   let sq: 0 | 1 = 0;
@@ -470,6 +475,7 @@ export function summonFromBudget(sim: DgSim, k: MobKind, x: number, z: number): 
     w.spawned++;
     sq = 1;
   }
+  if (!sq && !roomForExtra(sim)) return null;
   return spawnMob(sim, k, x, z, sq);
 }
 import { MOB_KINDS } from './data.ts';
@@ -505,7 +511,7 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
     return;
   }
   dropGem(sim, m.x, m.z, def.xp);
-  if (def.splitInto) {
+  if (def.splitInto && roomForExtra(sim, def.splitInto.n)) {
     for (let j = 0; j < def.splitInto.n; j++) {
       const c = spawnMob(sim, def.splitInto.id, m.x + (j ? 0.4 : -0.4), m.z + (j ? -0.3 : 0.3), 0);
       c.kx = (j ? 1 : -1) * 2 * KB_V;

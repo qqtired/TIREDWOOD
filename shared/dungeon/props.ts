@@ -4,7 +4,7 @@
 import { dmgMul, fx, healHero, hurtHero, hurtMob, KB_V, newId } from './core.ts';
 import { D, interNum, LV } from './data.ts';
 import { blocked } from './map.ts';
-import { spawnMob } from './mobs.ts';
+import { roomForExtra, spawnMob } from './mobs.ts';
 import { dropGem, dropItem } from './pickups.ts';
 import { openChest, openForge } from './progress.ts';
 import type { DgBuff, DgMob, DgProp, DgSim } from './types.ts';
@@ -423,7 +423,7 @@ function startCurse(sim: DgSim, p: DgProp): void {
     dirOf((i / 12) * Math.PI * 2, V);
     const x = p.x + V.x * 11;
     const z = p.z + V.z * 11;
-    if (blocked(wrapP(x), wrapP(z), 0.5)) continue;
+    if (blocked(wrapP(x), wrapP(z), 0.5) || !roomForExtra(sim)) continue;
     spawnMob(sim, sim.wave.n >= 5 && i % 3 === 0 ? 'shroom' : 'rat', x, z, 0);
   }
   sim.alerts.push({ k: 'curse', x: p.x, z: p.z, mob: k, t0: sim.t, t1: p.t1 });
