@@ -74,7 +74,7 @@ function groups(): Group[] {
     { name: 'редкие', sps: pier(T_RARE) },
     { name: 'эпические', sps: pier(T_EPIC) },
     { name: 'легенды', sps: pier(T_LEGEND) },
-    { name: 'акула-молот', sps: [spById('whiteshark')] },
+    { name: 'рыба-молот', sps: [spById('whiteshark')] },
     { name: 'гренл. акула', sps: [spById('greenlandshark')] },
     { name: 'сельд. король', sps: [spById('oarfish')] },
     { name: 'кальмар', sps: [spById('kalmar')] },

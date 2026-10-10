@@ -4,7 +4,10 @@
 //   зоне) — старается держать зону на месте; чернила стекают сверху — рыбу выше их края снова видно;
 // - мини-шкала: кнопка ведёт зону мини-шкалы к мелкой рыбе (своя история глаза, реакция та же);
 // - разлом шкалы: видит новые края (цель — в пределах шкалы сейчас);
-// - зубы: не наезжает на зуб, если видит его заранее (за lookTeeth тиков движения зоны);
+// - зубы: не наезжает на зуб, если видит его заранее (за 12 тиков движения зоны);
+// - пелена: в стене тумана рыбы не видно (как под чернилами), в полосе — бледная тень (шум глаза ×1,5);
+// - хлыст: удар сбивает «привычку» — своя зона видна глазами с реакцией, пока не придёт в себя (время реакции);
+// - зубы острые или мерцают — цель не ближе края зуба + ползоны + 4 %; тупые — едет как обычно;
 // - кемпер (camp): за рыбой не гоняется — держит зону у дна (1) или у верха (−1) и подматывает, чтобы леска не провисла.
 // Без способности в манере — ход бота бит в бит как playReel из test/fishbot.ts (тот же генератор и порядок решений).
 import { REEL_BAR, abilityView, reelStart, reelStep, type Reel, type ReelStyle } from '../../shared/fishreel.ts';
@@ -77,7 +80,11 @@ export function playReel2(style: ReelStyle, seed: number, skill: Skill, rngSeed 
     // глаз: что видно на главной шкале (под чернилами рыбы нет — запоминаем, где видели)
     const inkTop = v && v.id === 'ink' && !o.seeThroughInk ? v.ink : 0;
     const span = r.hi - r.lo;
-    const visible = inkTop <= 0 || r.f > r.lo + inkTop * span;
+    const fy = (r.f - r.lo) / span;
+    const inWall = !!v && v.wall.length > 0 && !o.seeThroughInk && fy >= v.wall[0] && fy <= v.wall[1];
+    let pale = false;
+    if (v && v.fog.length && !o.seeThroughInk) for (let k = 0; k < v.fog.length; k += 2) if (fy >= v.fog[k] && fy <= v.fog[k + 1]) pale = true;
+    const visible = (inkTop <= 0 || r.f > r.lo + inkTop * span) && !inWall;
     if (visible) lastSeen = r.f;
     hist.push(visible ? r.f : lastSeen);
     zh.push(r.z);
@@ -107,21 +114,33 @@ export function playReel2(style: ReelStyle, seed: number, skill: Skill, rngSeed 
         const d = skill.delay + Math.round((me() * 2 - 1) * skill.jitter);
         const i = Math.max(0, hist.length - 1 - d);
         const j = Math.max(0, i - 4);
-        const blind = inkTop > 0 && !visible;
+        const blind = !visible;
         const vel = blind ? 0 : (hist[i] - hist[j]) / Math.max(1, i - j);
-        const seen = hist[i] + vel * skill.lead + (me() * 2 - 1) * skill.noise;
+        const seen = hist[i] + vel * skill.lead + (me() * 2 - 1) * skill.noise * (pale ? 1.5 : 1);
         // под ветром своя зона — как её видно с реакцией (где была d тиков назад)
-        const windy = r.wind !== 0;
+        const windy = r.wind !== 0 || (!!v && v.struckAt >= 0 && r.t - v.struckAt <= skill.delay);
         const zi = windy ? Math.max(0, zh.length - 1 - d) : zh.length - 1;
         const myZ = zh[zi];
         const myV = zvh[zi];
-        let err = Math.min(r.hi, Math.max(r.lo, seen)) - (myZ + r.zone / 2);
+        let aim = Math.min(r.hi, Math.max(r.lo, seen));
+        // зубы: цель — не ближе края зуба + ползоны + запас (за рыбой в зубы не идёт)
+        if (v && v.teeth.length && v.toothState > 0) {
+          const gap = span * 0.04;
+          const mid = r.z + r.zone / 2;
+          for (let t = 0; t < v.teeth.length; t += 2) {
+            const a = r.lo + v.teeth[t] * span;
+            const b = r.lo + v.teeth[t + 1] * span;
+            if (mid >= (a + b) / 2) aim = Math.max(aim, b + r.zone / 2 + gap);
+            else aim = Math.min(aim, a - r.zone / 2 - gap);
+          }
+        }
+        let err = aim - (myZ + r.zone / 2);
         // вслепую: катушка трещит — держать зону, где есть
         if (blind && r.inZone) err = 0;
         let want = Math.max(-skill.vmax, Math.min(skill.vmax, err / skill.k));
         // зубы: видит заранее — не едет на них
-        if (v && v.teeth.length && (v.phase === 1 || v.phase === 2)) {
-          const ahead = r.z + r.zv * 12;
+        if (v && v.teeth.length && v.toothState > 0) {
+          const ahead = r.z + r.zv * 20;
           for (let t = 0; t < v.teeth.length; t += 2) {
             const a = r.lo + v.teeth[t] * span;
             const b = r.lo + v.teeth[t + 1] * span;

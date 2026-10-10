@@ -169,6 +169,25 @@ header.top kbd {
 .bar.bite { animation: bite 0.35s ease-out; }
 @keyframes bite { 0% { box-shadow: 0 0 0 4px #ff3030, 0 0 30px #ff3030; } }
 
+.tooth svg path { transition: opacity 0.15s; }
+.tooth.dull { opacity: 0.45; filter: grayscale(0.8); }
+.tooth.flick { animation: flick 0.16s steps(2) infinite; }
+@keyframes flick { 50% { opacity: 0.25; } }
+.tooth.sharp svg rect { fill: rgba(220, 30, 40, 0.45); }
+
+/* пелена: полосы тумана и стена */
+.fogband, .fogwall { position: absolute; left: -2px; right: -2px; z-index: 5; pointer-events: none; }
+.fogband { background: linear-gradient(rgba(225, 230, 236, 0), rgba(225, 230, 236, 0.92) 30%, rgba(225, 230, 236, 0.92) 70%, rgba(225, 230, 236, 0)); }
+.fogwall { background: linear-gradient(rgba(214, 220, 228, 0), rgba(214, 220, 228, 0.99) 14%, rgba(214, 220, 228, 0.99) 86%, rgba(214, 220, 228, 0)); animation: fogin 0.35s ease-out; }
+@keyframes fogin { from { opacity: 0; transform: scaleY(0.4); } }
+.stage.fog { filter: saturate(0.7) brightness(0.95); transition: filter 0.8s; }
+.fish.pale { opacity: 0.15; }
+.fish.hidden { opacity: 0; }
+.bar.whip { animation: whip 0.32s ease-out; }
+@keyframes whip { 20% { transform: translateX(-7px) rotate(-2deg); } 45% { transform: translateX(5px) rotate(1.5deg); } 70% { transform: translateX(-2px); } }
+.prog.drop { animation: drop 0.6s ease-out 2; }
+@keyframes drop { 50% { box-shadow: 0 0 0 3px #ff6040, 0 0 18px #ff6040; } }
+
 /* мини-шкалы селёдок */
 .minis { position: absolute; z-index: 4; display: flex; gap: 10px; pointer-events: none; }
 .mini { position: relative; width: 36px; border-radius: 10px; border: 4px solid var(--wood); background: var(--wood-dark); overflow: hidden;
@@ -260,7 +279,7 @@ table.st td s { color: #a8957f; text-decoration: none; }
 <div class="wrap">
   <header class="top">
     <h1>Способности мификов — прототип шкалы</h1>
-    <p>Выбери рыбу и уровень, нажми «Подсечь». Держи <kbd>ЛКМ</kbd> или <kbd>Пробел</kbd> — зона вверх, отпусти — вниз. Способность срабатывает один раз за бой, когда улов дошёл до 60–75 %. Модель и цифры — те же, что пойдут в игру.</p>
+    <p>Выбери рыбу и уровень, нажми «Подсечь». Держи <kbd>ЛКМ</kbd> или <kbd>Пробел</kbd> — зона вверх, отпусти — вниз. Способность срабатывает один раз за бой, когда улов дошёл до 60–75 %; эффект может длиться до конца боя. Справа от кальмара — рыбы острова «Последний свет» (снаряжение острова). Модель и цифры — те же, что пойдут в игру.</p>
   </header>
   <nav class="tabs" id="tabs"></nav>
   <div class="layout">
@@ -274,6 +293,7 @@ table.st td s { color: #a8957f; text-decoration: none; }
         <div class="seam" id="seam"><svg viewBox="0 0 48 10" preserveAspectRatio="none"><path d="M0 5 L4 1 L8 8 L12 2 L16 7 L20 1 L24 9 L28 3 L32 8 L36 1 L40 7 L44 2 L48 6" fill="none" stroke="#3a2210" stroke-width="2.4"/><path d="M0 5 L4 1 L8 8 L12 2 L16 7 L20 1 L24 9 L28 3 L32 8 L36 1 L40 7 L44 2 L48 6" fill="none" stroke="#d9a76f" stroke-width="0.9" transform="translate(0 -1)"/></svg></div>
         <div class="cracks" id="cracks"><svg viewBox="0 0 48 100" preserveAspectRatio="none" width="100%" height="100%"><path d="M24 0 L20 18 L27 30 L22 52 L26 70"/><path d="M20 18 L8 28 L4 44"/><path d="M27 30 L40 38 L44 58"/><path d="M22 52 L12 62"/></svg></div>
         <div id="teeth"></div>
+        <div id="fog"></div>
         <div class="zone" id="zone"><div class="wind-streaks"></div></div>
         <div class="ink" id="ink"><div class="drips" id="drips"></div><svg class="edge" viewBox="0 0 48 12" preserveAspectRatio="none"><path d="M0 12 L0 6 Q4 0 8 6 T16 6 T24 5 T32 7 T40 5 T48 6 L48 12 Z" fill="#2a1d33"/></svg><div class="body"></div></div>
         <div class="fish" id="fish"><span class="arrow" id="arrow">↑</span></div>
@@ -282,13 +302,14 @@ table.st td s { color: #a8957f; text-decoration: none; }
       <div class="minis" id="minis"></div>
       <div class="pill wait" id="wait">Король ждёт…</div>
       <div class="windb" id="windb"><svg viewBox="0 0 40 40"><path d="M20 34 V8 M10 17 L20 6 L30 17" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 26 h6 M28 30 h7 M30 22 h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/></svg><b id="windt">ветер</b></div>
+      <div class="windb" id="whipb"><svg viewBox="0 0 40 40"><path d="M20 34 V8 M10 17 L20 6 L30 17" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 30 q6 -8 14 -4 q8 4 12 -6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.75"/></svg><b id="whipt">хлыст</b></div>
       <div class="pill prog" id="prog"><i id="fill"></i><span class="mark" id="mark"></span></div>
       <div class="pill grade" id="grade">0 ошибок<b>Идеально ×2,5</b></div>
       <div class="pill warnline" id="warnline">Леска провисла — приподними зону!</div>
       <div class="pill hint" id="hint">Держи ЛКМ или Пробел — зона вверх</div>
       <div class="banner" id="banner"></div>
       <div class="result" id="result"></div>
-      <div class="startcard" id="startcard"><h2 id="sc-title">Акула-молот</h2><p id="sc-text">Мифик пристани.</p><button id="go" type="button">🎣 Подсечь</button></div>
+      <div class="startcard" id="startcard"><h2 id="sc-title">Рыба-молот</h2><p id="sc-text">Мифик пристани.</p><button id="go" type="button">🎣 Подсечь</button></div>
       <div class="sound"><button id="snd" type="button">🔊 Звук</button></div>
       <div class="seed" id="seed"></div>
     </section>
@@ -313,10 +334,9 @@ table.st td s { color: #a8957f; text-decoration: none; }
 const RULES = {
   whiteshark: [
     'Срабатывает: улов впервые дошёл до точки 60–75 % (по сиду боя), один раз за бой.',
-    '0,6 с — акула разгоняется к краю шкалы (верх или низ 50/50), край трескается.',
-    'Пролом: шкала +50 % в ту сторону, зона того же размера в пикселях — ловить труднее. Акула ныряет в пролом (1 с, рывок ×1,2), размах её ходов ×1,25.',
-    'Держится 12 с (стойкость уровня — короче), потом шкала срастается за 1 с. У «опытного» 6–7 боёв из 10 кончаются раньше.',
-    'Характер: быстрые короткие броски (скорость ×1,05, размах ×0,6), сопротивление 24,4 %/с. Время в зоне — 120 %.',
+    '0,6 с — рыба-молот разгоняется к краю шкалы (верх или низ 50/50), край трескается.',
+    'Пролом: шкала +50 % в ту сторону — до конца боя. Новый кусок дорисован со своей рамкой, зона того же размера в пикселях. Рыба-молот ныряет в пролом (1 с, рывок ×1,2), размах её ходов ×1,25.',
+    'Характер: быстрые короткие броски (скорость ×1,25, размах ×0,5 к большой белой), сопротивление 25,2 %/с. Время в зоне — 120 %.',
   ],
   greenlandshark: [
     'Срабатывает на 60–75 % улова, один раз за бой. 0,6 с — свист ветра, значок показывает, куда подует.',
@@ -338,33 +358,53 @@ const RULES = {
     'Чует ловушку: зона ждёт у дна или верха 1 с без него — он держится за её краем. Ждать внизу больше нельзя (было 100 %, стало 0 %).',
     'Сопротивление 6,2 %/с (было 7,5), время в зоне — 120 %. Характер боя тот же.',
   ],
-  teeth: [
-    'Пример каркаса для нового острова (здесь — на ходу акулы-молота). Цифры — заготовка соседнему дизайнеру.',
-    '0,75 с — из стенок шкалы вырастают 2 зуба по 9 % (не на зоне и не друг на друге).',
-    '6 с: наехал зоной на зуб — минус 50 % улова и «Леска еле держится!». Второй раз — «Леска перекушена!», рыба ушла.',
-    'Стойкость уровня укорачивает время зубов.',
+  beluga: [
+    'Остров, мифик. Срабатывает один раз на 60–75 % улова. 0,6 с — белуга всплывает за воздухом.',
+    '«Второе дыхание!» — улов откатывается на 12 п. п. (не ниже 10 %), и до конца боя белуга быстрее ×1,1, а зона меньше ×0,95.',
+    'Ход соседа (уход на глубину и отскок от края), сопротивление 28,7 %/с ×1,4 места, время в зоне — 120 %.',
+  ],
+  thresher: [
+    'Остров, мифик. Срабатывает один раз на 60–75 % улова — и хлещет до конца боя.',
+    'Раз в 4–6 с: замах хвоста 0,6 с (свист, значок показывает, куда) и удар — зону отбрасывает на ~15 % шкалы, 2 удара из 3 — вниз.',
+    'Чует ловушку уже через 0,5 с. Сопротивление 15,1 %/с ×1,4 места, время в зоне — 120 %.',
+  ],
+  baskingshark: [
+    'Остров, мифик тумана. Срабатывает один раз на 60–75 % улова — и туман уже не уходит.',
+    'Две полосы тумана по 15 % плывут по шкале 6–9 %/с: рыба в них — бледная тень. Раз в 8 с полосы смыкаются в стену на 40 % шкалы на 1,5 с — там рыбы не видно.',
+    'Прогресс считается как обычно — пелена только на глаза. Ход спокойнее соседского (×0,75), сопротивление 7,3 %/с ×1,4 места.',
+  ],
+  frilledshark: [
+    'Остров, божественная. Срабатывает один раз на 60–75 % улова: 0,8 с из стенок шкалы вырастают 2 зуба по 5 %.',
+    'Зубы остаются до конца боя и щёлкают: 3,5 с острые, 2 с тупые (можно проехать), 0,8 с мерцают «клац-клац» — сейчас станут острыми.',
+    'Задел острый зуб — минус 50 % улова и «Леска еле держится!». Второй раз — «Леска перекушена!», рыба ушла. Рыба плывёт сквозь зубы.',
+    'Сопротивление 15,8 %/с (место божественную не трогает), время в зоне — 120 %.',
   ],
 };
 const STATS = {
-  whiteshark: [[0, '20/98', '3/57'], [3, '48/99', '22/63'], [5, '78/100', '48/74'], [10, '98/100', '70/89'], [15, '100/100', '88/94']],
+  whiteshark: [[0, '19/98', '6/27'], [3, '50/99', '26/47'], [5, '79/100', '44/61'], [10, '99/100', '68/88'], [15, '99/100', '85/93']],
   greenlandshark: [[0, '9/99', '5/77'], [3, '59/100', '21/88'], [5, '78/100', '45/98'], [10, '88/100', '70/99'], [15, '96/100', '79/100']],
   oarfish: [[0, '12/2', '3/100'], [3, '49/76', '26/100'], [5, '67/96', '49/100'], [10, '77/100', '70/100'], [15, '81/100', '75/100']],
   kalmar: [[0, '3/11', '0/3'], [3, '21/30', '4/10'], [5, '51/47', '23/36'], [10, '66/67', '49/65'], [15, '72/88', '71/95']],
-  teeth: null,
 };
 const SUBTITLE = {
   whiteshark: 'Мифик пристани (место «большой белой»). Пробивает край шкалы.',
   greenlandshark: 'Мифик ненастья. Ветер сдувает зону.',
   oarfish: 'Мифик баркаса. Зовёт трёх селёдок.',
   kalmar: 'Божественный улов. Чернила на шкалу.',
-  teeth: 'Каркас для нового острова: опасные зоны.',
+  beluga: 'Остров. Второе дыхание: откат улова, быстрее до конца боя.',
+  thresher: 'Остров. Хвост-хлыст отбрасывает зону.',
+  baskingshark: 'Остров, туман. Пелена прячет рыбу.',
+  frilledshark: 'Остров, божественная. Зубы на шкале до конца боя.',
 };
 const BANNERS = {
-  breach: ['Акула идёт на таран!', 'Пролом! Шкала +50 %', 'Шкала срослась'],
+  breach: ['Рыба-молот идёт на таран!', 'Пролом! Шкала +50 %', 'Шкала срослась'],
   ink: ['Кальмар набирает чернила…', 'Чернила!', 'Чернила стекли'],
   wind: ['Поднимается ветер…', 'Ветер!', 'Ветер стих'],
   herring: ['Король зовёт селёдок!', 'Поймай 3 селёдки!', 'Король рванул!'],
-  teeth: ['Рыба скалит зубы!', 'Не задень зубы!', 'Зубы спрятала'],
+  teeth: ['Акула скалит зубы!', 'Не задень острые зубы!', 'Зубы спрятала'],
+  surge: ['Белуга всплывает за воздухом…', 'Второе дыхание!', ''],
+  whip: ['Хвост замахивается…', 'Хлыст!', ''],
+  fog: ['Наползает туман…', 'Пелена!', ''],
 };
 
 const SVG = {
@@ -374,7 +414,7 @@ const SVG = {
   ribbon: '<svg viewBox="0 0 40 24"><path d="M3 13c5-5 9 4 15 0s9-4 14 0 5 1 6 0" fill="none" stroke="rgba(20,12,16,.75)" stroke-width="6" stroke-linecap="round"/><path d="M3 13c5-5 9 4 15 0s9-4 14 0 5 1 6 0" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M4 9l-1-6M7 9l1-6M10 10l2-5M16 11l1-5M22 10l2-5M28 11l1-5" stroke="#e8364f" stroke-width="1.8" stroke-linecap="round"/><circle cx="5" cy="12.5" r="1.3" fill="#1b1216"/></svg>',
   herring: '<svg viewBox="0 0 40 24"><path d="M3 12c5-6 14-8 22-5l7-5-1 8 1 7-7-5c-8 3-17 1-22-5z" fill="currentColor" stroke="rgba(20,30,40,.8)" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 13h16" stroke="#8fb0c4" stroke-width="1.4"/><circle cx="8" cy="10.5" r="1.8" fill="#1b1216"/></svg>',
 };
-const FISH_SVG = { whiteshark: SVG.hammer, greenlandshark: SVG.fish, oarfish: SVG.ribbon, kalmar: SVG.squid, teeth: SVG.hammer };
+const FISH_SVG = { whiteshark: SVG.hammer, greenlandshark: SVG.fish, oarfish: SVG.ribbon, kalmar: SVG.squid, beluga: SVG.fish, thresher: SVG.fish, baskingshark: SVG.fish, frilledshark: SVG.ribbon };
 
 // ---------------------------------------------------------------- состояние
 const $ = (id) => document.getElementById(id);
@@ -448,6 +488,11 @@ const SFX = {
   bite: () => { tone(1300, 600, 0.05, 'square', 0.25); noise(0.08, 2500, 2, 0.25); },
   snap: () => { noise(0.2, 3000, 0.8, 0.5); tone(900, 120, 0.25, 'sawtooth', 0.2); },
   gust: () => noise(0.6, 700, 0.8, 0.25),
+  whistle: () => tone(500, 1500, 0.55, 'sine', 0.08),
+  whip: () => { noise(0.08, 3500, 1.5, 0.5); tone(1800, 300, 0.09, 'square', 0.12); },
+  clack: () => { tone(900, 500, 0.04, 'square', 0.12); tone(900, 500, 0.04, 'square', 0.12, 0.12); },
+  breath: () => { noise(0.5, 400, 0.7, 0.22, 'lowpass'); tone(160, 90, 0.5, 'sine', 0.2, 0.15); },
+  horn: () => { tone(110, 104, 1.2, 'sawtooth', 0.07); tone(55, 52, 1.2, 'sine', 0.18); },
   win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.18, 'triangle', 0.18, i * 0.09)); },
   lose: () => { tone(392, 196, 0.5, 'triangle', 0.18); },
 };
@@ -477,8 +522,8 @@ function windSound(on, gust) {
 }
 
 // ---------------------------------------------------------------- интерфейс: вкладки, уровень
-const FISH_KEYS = ['whiteshark', 'greenlandshark', 'oarfish', 'kalmar', 'teeth'];
-const TAB_NOTE = { whiteshark: 'пролом', greenlandshark: 'ветер', oarfish: 'селёдки', kalmar: 'чернила', teeth: 'каркас' };
+const FISH_KEYS = ['whiteshark', 'greenlandshark', 'oarfish', 'kalmar', 'beluga', 'thresher', 'baskingshark', 'frilledshark'];
+const TAB_NOTE = { whiteshark: 'пролом', greenlandshark: 'ветер', oarfish: 'селёдки', kalmar: 'чернила', beluga: 'остров · дыхание', thresher: 'остров · хлыст', baskingshark: 'остров · пелена', frilledshark: 'остров · зубы' };
 function buildTabs() {
   const tabs = $('tabs');
   for (const k of FISH_KEYS) {
@@ -501,18 +546,19 @@ function select(k) {
   $('sc-text').textContent = SUBTITLE[k];
   $('rules-t').textContent = `${f.name}: как работает`;
   $('rules').innerHTML = RULES[k].map((s) => `<li>${s}</li>`).join('');
-  const st = STATS[k];
-  $('stats').innerHTML = st
-    ? '<tr><th>Уровень</th><th>было</th><th>стало</th></tr>' + st.map(([l, a, b]) => `<tr><td>ур. ${l}</td><td><s>${a}</s></td><td><b>${b}</b></td></tr>`).join('')
-    : '<tr><td>Пример каркаса — не откалиброван. На долгом бою кальмара модель вытаскивает 2–9 % (ур. 10–15): зубы — рыбе с коротким боем.</td></tr>';
+  const st = f.stats ?? STATS[k];
+  $('stats').innerHTML = (f.isle ? '<tr><th>Уровень</th><th>без способности</th><th>со способностью</th></tr>' : '<tr><th>Уровень</th><th>было</th><th>стало</th></tr>')
+    + st.map(([l, a, b]) => `<tr><td>ур. ${l}</td><td><s>${a}</s></td><td><b>${b}</b></td></tr>`).join('');
   setLevel(level);
-  $('stats-n').textContent = st ? '«обычный» / «опытный» игрок модели (реакция ~230 и ~150 мс); снаряжение типичное: ур. 3 — удочка 1 + бронза, 5 — 2 + серебро, 10 — 3 + золото, 15 — легендарная + платина.' : '';
+  $('stats-n').textContent = f.isle
+    ? `«обычный» / «опытный» игрок модели. Снаряжение острова: ур. 6 — удочка 2 + золото, 8 — 3 + платина, 10 и 15 — легендарная + платина. «Без способности» — с прежним «последним рывком». Бой на 10-м — ${String(f.fightS10).replace('.', ',')} с.`
+    : '«обычный» / «опытный» игрок модели (реакция ~230 и ~150 мс); снаряжение типичное: ур. 3 — удочка 1 + бронза, 5 — 2 + серебро, 10 — 3 + золото, 15 — легендарная + платина.';
   reset();
 }
 function setLevel(l) {
   level = l;
   $('lvo').textContent = l;
-  const L = DATA.levels[l];
+  const L = DATA.fish[cur].gears[l];
   const st = DATA.fish[cur].styles[l];
   $('gear').innerHTML = `Удочка: ${L.rod} · блесна: ${L.lure}<br>Зона ${Math.round(st.zoneBase)} % → <b>${Math.round(st.zone)} %</b> (×${st.zoneMul.toFixed(2).replace('.', ',')}: +1,5 % за уровень × удочка)`;
   $('perks').innerHTML = DATA.perks.map((p) => `<li class="${p.level <= l ? 'have' : ''} ${p.level === l ? 'now' : ''}"><b>${p.level}</b><span>${p.name} <em>— ${p.text}</em></span></li>`).join('');
@@ -534,7 +580,7 @@ function start() {
   seed = (Math.random() * 0x7fffffff) | 0;
   const st = DATA.fish[cur].styles[level];
   r = reelStart(st, seed, false);
-  prev = { phase: 0, side: 0, n: 0, bites: 0, err: 0, stand: 0, mode: 0 };
+  prev = { phase: 0, side: 0, n: 0, bites: 0, err: 0, stand: 0, mode: 0, strikes: 0, swing: 0, tooth: 0, wall: 0 };
   $('startcard').classList.add('hide');
   $('result').className = 'result';
   $('seed').textContent = `сид ${seed} · повтор боя — тот же итог на сервере`;
@@ -555,7 +601,8 @@ function clearFx() {
   inkEl.className = 'ink'; $('splat').className = 'splat';
   $('teeth').innerHTML = ''; $('cracks').className = 'cracks';
   $('windb').className = 'windb'; $('wait').className = 'pill wait';
-  $('minis').innerHTML = ''; stage.classList.remove('storm');
+  $('minis').innerHTML = ''; stage.classList.remove('storm'); stage.classList.remove('fog');
+  $('fog').innerHTML = ''; $('whipb').className = 'windb'; fishEl.classList.remove('pale', 'hidden', 'puff');
   windSound(false);
   barEl.style.opacity = '';
 }
@@ -578,6 +625,13 @@ function step() {
     barEl.classList.remove('bite'); void barEl.offsetWidth; barEl.classList.add('bite');
     if (v.bites === 1) { SFX.bite(); warn('Леска еле держится!'); } else SFX.snap();
   }
+  if (ab.id === 'whip') {
+    if (v.swing > 0 && prev.swing === 0) SFX.whistle();
+    if (v.strikes !== prev.strikes && v.strikes > 1) { SFX.whip(); barEl.classList.remove('whip'); void barEl.offsetWidth; barEl.classList.add('whip'); banner('Хлыст!', 0.6); }
+    prev.swing = v.swing; prev.strikes = v.strikes;
+  }
+  if (ab.id === 'teeth' && v.phase === 2 && v.toothState !== prev.tooth) { if (v.toothState === 1) SFX.clack(); prev.tooth = v.toothState; }
+  if (ab.id === 'fog' && v.phase === 2 && (v.wall.length > 0) !== (prev.wall > 0)) { if (v.wall.length) SFX.gust(); prev.wall = v.wall.length; }
   prev.phase = v.phase; prev.side = v.wind; prev.n = ab.n; prev.bites = v.bites;
 }
 
@@ -590,13 +644,18 @@ function onPhase(v, was) {
     if (ab.id === 'ink') { fishEl.classList.add('puff'); SFX.inkWarn(); }
     if (ab.id === 'wind') { $('windb').className = `windb on warn ${v.wind < 0 ? 'down' : ''}`; stage.classList.add('storm'); windSound(true, v.wind); }
     if (ab.id === 'herring') { SFX.call(); }
-    if (ab.id === 'teeth') { drawTeeth(true); SFX.bite(); }
+    if (ab.id === 'teeth') { drawTeeth(true); SFX.clack(); }
+    if (ab.id === 'surge') { fishEl.classList.add('puff'); SFX.breath(); }
+    if (ab.id === 'whip') { $('whipb').className = `windb on warn ${v.whipSide < 0 ? 'down' : ''}`; SFX.whistle(); }
+    if (ab.id === 'fog') { stage.classList.add('fog'); SFX.horn(); }
   } else if (v.phase === 2) {
     banner(B[1], 1.2);
     if (ab.id === 'breach') { $('cracks').className = 'cracks'; SFX.shatter(); burst(ab.side); }
     if (ab.id === 'ink') { fishEl.classList.remove('puff'); SFX.ink(); splat(); }
     if (ab.id === 'wind') { $('windb').classList.remove('warn'); SFX.gust(); }
     if (ab.id === 'herring') { markMini(0, 'on'); $('wait').className = 'pill wait on'; barEl.style.opacity = '0.55'; }
+    if (ab.id === 'surge') { fishEl.classList.remove('puff'); SFX.ink(); const pg = $('prog'); pg.classList.remove('drop'); void pg.offsetWidth; pg.classList.add('drop'); warn('Улов откатился — белуга быстрее!'); }
+    if (ab.id === 'whip') { $('whipb').classList.remove('warn'); SFX.whip(); barEl.classList.remove('whip'); void barEl.offsetWidth; barEl.classList.add('whip'); }
   } else if (v.phase === 3) {
     banner(B[2], 0.9);
     if (ab.id === 'breach') SFX.heal();
@@ -604,6 +663,7 @@ function onPhase(v, was) {
     if (ab.id === 'wind') { $('windb').className = 'windb'; stage.classList.remove('storm'); windSound(false); }
     if (ab.id === 'herring') { for (let i = 0; i < 3; i++) if (!$('mini' + i).classList.contains('done')) markMini(i, 'gone'); $('wait').className = 'pill wait'; barEl.style.opacity = ''; SFX.dart(); }
     if (ab.id === 'teeth') $('teeth').innerHTML = '';
+    if (ab.id === 'fog') { $('fog').innerHTML = ''; stage.classList.remove('fog'); }
   }
 }
 
@@ -629,7 +689,7 @@ function finish() {
 
 // ---------------------------------------------------------------- рисование
 function layout() {
-  // шкала — как в игре (до 300 px), а сцена — с запасом по 0,5 шкалы сверху и снизу под пролом акулы-молота
+  // шкала — как в игре (до 300 px), а сцена — с запасом по 0,5 шкалы сверху и снизу под пролом рыбы-молота
   H = Math.round(Math.min(300, Math.max(170, (innerHeight - 380) / 2)));
   stage.style.height = `${2 * H + 170}px`;
   const sh = stage.clientHeight;
@@ -673,6 +733,7 @@ function placeColumn(lo, hi) {
   $('result').style.top = `${(top + bottom) / 2}px`;
   const cx = stage.clientWidth / 2;
   $('windb').style.left = `${cx + 52}px`; $('windb').style.top = `${(top + bottom) / 2}px`;
+  $('whipb').style.left = `${cx + 52}px`; $('whipb').style.top = `${(top + bottom) / 2}px`;
   $('minis').style.right = `${stage.clientWidth - cx + 50}px`; $('minis').style.top = `${(top + bottom) / 2 - H * 0.3}px`;
   $('wait').style.top = `${(top + bottom) / 2 - H * 0.3 - 34}px`;
   $('wait').style.left = `${cx - 50 - 70}px`;
@@ -710,6 +771,32 @@ function render(now) {
   // чутьё (ур. 4+): рыба вздрагивает перед рывком; острое (12+) — стрелка
   const b = DATA.levels[level].bonus;
   fishEl.classList.toggle('sense', now < senseUntil && r.done === 0 && inkTop < 0.999);
+  // пелена: полосы и стена; рыба в полосе — бледная тень, в стене — не видна
+  if (v && v.id === 'fog') {
+    const box = $('fog');
+    const parts = [];
+    for (let i = 0; i < v.fog.length; i += 2) parts.push(`<div class="fogband" style="bottom:${v.fog[i] * 100}%;height:${(v.fog[i + 1] - v.fog[i]) * 100}%"></div>`);
+    if (v.wall.length) parts.push(`<div class="fogwall" style="bottom:${v.wall[0] * 100}%;height:${(v.wall[1] - v.wall[0]) * 100}%"></div>`);
+    const html = parts.join('');
+    if (box.dataset.k !== String(v.wall.length) || box.childElementCount !== parts.length) { box.innerHTML = html; box.dataset.k = String(v.wall.length); }
+    else for (let i = 0; i < v.fog.length / 2; i++) { const e = box.children[i]; e.style.bottom = `${v.fog[2 * i] * 100}%`; e.style.height = `${(v.fog[2 * i + 1] - v.fog[2 * i]) * 100}%`; }
+    const fy = (r.f - lo) / (hi - lo);
+    const inWall = v.wall.length > 0 && fy >= v.wall[0] && fy <= v.wall[1];
+    let pale = false;
+    for (let i = 0; i < v.fog.length; i += 2) if (fy >= v.fog[i] && fy <= v.fog[i + 1]) pale = true;
+    fishEl.classList.toggle('hidden', inWall);
+    fishEl.classList.toggle('pale', pale && !inWall);
+  }
+  // хлыст: значок — куда ударит, мигает в замахе
+  if (v && v.id === 'whip' && (v.phase === 1 || v.phase === 2)) {
+    const wb = $('whipb');
+    wb.classList.add('on');
+    wb.classList.toggle('down', v.whipSide < 0);
+    wb.classList.toggle('turn', v.swing > 0);
+    $('whipt').textContent = v.swing > 0 ? (v.whipSide < 0 ? 'удар вниз!' : 'удар вверх!') : 'хлыст';
+  }
+  // зубы: острые / тупые / мерцают
+  if (v && v.id === 'teeth' && v.phase === 2) for (const t of $('teeth').children) t.className = `tooth ${['dull', 'flick', 'sharp'][v.toothState]}`;
   const ar = fishEl.querySelector('.arrow');
   if (ar) { ar.classList.toggle('on', b.senseArrow); ar.textContent = senseDir > 0 ? '↑' : '↓'; }
   barEl.classList.toggle('dart', r.mode === 2 && r.done === 0);

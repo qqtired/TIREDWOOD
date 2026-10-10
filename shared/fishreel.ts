@@ -23,7 +23,9 @@
 // действие, конец. Пять строительных блоков: разлом шкалы (breach — шкала растёт, рыба ныряет в пролом), чернила (ink —
 // только экран: модель та же, игрок не видит рыбу), ветер (wind — сила на зону, меняет сторону), мини-шкалы (herring —
 // главная шкала стоит, улов медленно откатывается, кнопка ведёт зону мини-шкалы), опасные зоны (teeth — наехал зоной —
-// половина улова, второй раз — обрыв). Ещё: fill — время в зоне до поимки, % (120 — на 20 % дольше), wary — рыба чует
+// половина улова, второй раз — обрыв). Для острова ещё три: второе дыхание (surge — улов откатывается, рыба быстрее,
+// зона меньше), хлыст (whip — удары по зоне раз в несколько секунд), пелена (fog — полосы тумана и стена, только экран).
+// dur 0 — эффект до конца боя (срабатывает всё равно один раз). Ещё: fill — время в зоне до поимки, % (120 — на 20 % дольше), wary — рыба чует
 // ловушку (зона ждёт у края без рыбы — обходит её), JetHang — реактивный рывок с зависанием наверху. Без этих полей в
 // манере модель считает бит в бит как прежде (проверено отпечатком на всех видах).
 
@@ -162,7 +164,7 @@ export interface ReelStyle {
 }
 
 /** Способности рыб: строительные блоки (см. шапку файла) */
-export const ABILITIES = ['breach', 'ink', 'wind', 'herring', 'teeth'] as const;
+export const ABILITIES = ['breach', 'ink', 'wind', 'herring', 'teeth', 'surge', 'whip', 'fog'] as const;
 export type AbilityId = typeof ABILITIES[number];
 
 /**
@@ -175,7 +177,7 @@ export interface AbilitySpec {
   at: readonly [number, number];
   /** Предупреждение, тики: рыба готовит удар (игра идёт как обычно, клиент показывает, что будет) */
   warn: number;
-  /** Сколько действует, тики (breach: 0 — до конца боя) */
+  /** Сколько действует, тики (0 — до конца боя; у ink, wind, herring — нужно больше 0) */
   dur: number;
   /** breach: шкала растёт на столько % (50); сторона — 1 верх, −1 низ (нет — по сиду); размах рыбы после, % (150) */
   grow?: number;
@@ -205,6 +207,23 @@ export interface AbilitySpec {
   /** teeth: размер зуба, % шкалы; первый укус — минус cut % улова, второй — обрыв */
   size?: number;
   cut?: number;
+  /** teeth: зубы остаются на шкале и щёлкают по кругу: острые cycle[0] тиков, тупые cycle[1] (можно проехать), мерцают cycle[2] (сейчас станут острыми); нет — острые всё время */
+  cycle?: readonly [number, number, number];
+  /** surge: улов падает на drop п. п. (не ниже floor %), рыба быстрее ×spdMul/100, зона ×zoneMul/100 — до конца действия */
+  drop?: number;
+  spdMul?: number;
+  zoneMul?: number;
+  /** whip: удар раз в every[0]…every[1] тиков; замах swing тиков (виден); отбрасывает зону на kick % шкалы; вниз — down % ударов */
+  every?: readonly [number, number];
+  swing?: number;
+  kick?: number;
+  down?: number;
+  /** fog: две полосы по band % плывут drift[0]…drift[1] %/с; раз в wallEvery тиков — стена wall % на wallDur тиков (только экран) */
+  band?: number;
+  drift?: readonly [number, number];
+  wall?: number;
+  wallEvery?: number;
+  wallDur?: number;
 }
 
 /** Манера в единицах шкалы и тиках */
@@ -298,6 +317,8 @@ export interface Reel {
   campSide: number;
   /** «Последний рывок»: множитель скорости, % (свой у рыбы; способность может назначить свой) */
   standMul: number;
+  /** Скорость рыбы ×spdMul/100 всегда (второе дыхание; 100 — как есть) */
+  spdMul: number;
   camp: number;
   /** Способность: null — у рыбы её нет */
   ab: AbilityState | null;
@@ -410,7 +431,7 @@ export function reelStart(style: ReelStyle, seed: number, drunk = false): Reel {
   const r: Reel = {
     t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: c.pStart, done: 0, inZone: true, err: 0, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0,
     taut: 0, drunk, lag: 0, hic: 0, hr: (seed ^ 0x2545f491) | 0, c,
-    lo: 0, hi: REEL_BAR, hlo: c.lo, hhi: c.hi, amp: c.patternAmplitude, wind: 0, pacc: 0, campSide: 0, camp: 0, standMul: c.stand, ab: null,
+    lo: 0, hi: REEL_BAR, hlo: c.lo, hhi: c.hi, amp: c.patternAmplitude, wind: 0, pacc: 0, campSide: 0, camp: 0, standMul: c.stand, spdMul: 100, ab: null,
   };
   if (c.ab) r.ab = abilityNew(c.ab, c.resist, seed);
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
@@ -623,6 +644,7 @@ function patternedFishStep(r: Reel): void {
     else if (r.campSide < 0 && target > r.z - gap) target = r.z - gap;
   }
   if (r.stand === 1) speed = div(speed * r.standMul, 100);
+  if (r.spdMul !== 100) speed = div(speed * r.spdMul, 100);
   moveFish(r, target, speed, acceleration);
   r.patternTick++;
 }
@@ -883,6 +905,16 @@ function abilityPhase(r: Reel, ab: AbilityState, phase: number): void {
         ab.fs = div(c.spd, 4);
         ab.ftimer = Math.max(1, s.warn);
         break;
+      case 'surge':
+        // рыба всплывает за воздухом
+        ab.ft = r.hi - FISH_EDGE - div(r.hi - r.lo, 10);
+        ab.fs = c.spd;
+        ab.ftimer = Math.max(1, s.warn);
+        break;
+      case 'whip':
+        // первый замах: куда ударит (вниз — down % ударов)
+        ab.side = abRnd(ab, 100) < clampI(s.down ?? 67, 0, 100) ? -1 : 1;
+        break;
       case 'teeth': {
         // зубы — сразу на своих местах (растут во время предупреждения): не на зоне и не друг на друге
         const span = r.hi - r.lo;
@@ -933,6 +965,35 @@ function abilityPhase(r: Reel, ab: AbilityState, phase: number): void {
         ab.sub = minionNew(ab);
         r.zv = 0;
         break;
+      case 'surge': {
+        // второе дыхание: улов откатывается, рыба быстрее, зона меньше (середина — на месте)
+        const floor = div(REEL_P_MAX * clampI(s.floor ?? 10, 0, 90), 100);
+        const drop = div(REEL_P_MAX * clampI(s.drop ?? 20, 0, 90), 100);
+        if (r.p > floor) r.p = Math.max(floor, r.p - drop);
+        const zone = Math.max(div(REEL_BAR, 20), div(r.zone * clampI(s.zoneMul ?? 90, 30, 100), 100));
+        r.z += div(r.zone - zone, 2);
+        r.zone = zone;
+        r.spdMul = clampI(Math.round(s.spdMul ?? 115), 50, 200);
+        r.patternTick = r.patternLength;
+        keepInside(r);
+        break;
+      }
+      case 'whip':
+        whipStrike(r, ab);
+        break;
+      case 'fog': {
+        // две полосы тумана: место и скорость — по сиду; ab.marks = [центр, скорость] ×2
+        const half = div(div((r.hi - r.lo) * clampI(s.band ?? 22, 5, 50), 100), 2);
+        const d0 = clampI(Math.round(s.drift?.[0] ?? 6), 1, 50);
+        const d1 = clampI(Math.round(s.drift?.[1] ?? 9), d0, 50);
+        for (let i = 0; i < 2; i++) {
+          const c0 = r.lo + half + abRnd(ab, Math.max(1, r.hi - r.lo - 2 * half));
+          const v = div(REEL_BAR * (d0 + abRnd(ab, d1 - d0 + 1)), 6000) * (abRnd(ab, 2) === 0 ? 1 : -1);
+          ab.marks.push(c0, v);
+        }
+        ab.n = -1;
+        break;
+      }
     }
   } else if (phase === 3) {
     ab.ftimer = 0;
@@ -960,10 +1021,27 @@ function abilityPhase(r: Reel, ab: AbilityState, phase: number): void {
         }
         break;
       case 'teeth':
+      case 'fog':
         ab.marks = [];
+        break;
+      case 'surge':
+        r.spdMul = 100;
         break;
     }
   }
+}
+
+/** Хлыст: удар по зоне (скорость — чтобы её отбросило на kick % шкалы, как если бы рука не мешала), следующий замах */
+function whipStrike(r: Reel, ab: AbilityState): void {
+  const s = ab.spec;
+  const d = div((r.hi - r.lo) * clampI(s.kick ?? 25, 1, 80), 100);
+  r.zv += ab.side * Math.floor(Math.sqrt((ZONE_UP + ZONE_DOWN) * d));
+  ab.n++;
+  ab.bit = r.t;
+  const e0 = Math.max(60, Math.round(s.every?.[0] ?? 240));
+  const e1 = Math.max(e0, Math.round(s.every?.[1] ?? 360));
+  ab.hold = e0 + abRnd(ab, e1 - e0 + 1);
+  ab.side = abRnd(ab, 100) < clampI(s.down ?? 67, 0, 100) ? -1 : 1;
 }
 
 /** Тик способности (в начале тика): true — главная шкала на этом тике стоит (мини-шкала) */
@@ -990,9 +1068,36 @@ function abilityTick(r: Reel, held: boolean, coast: boolean): boolean {
         break;
       }
       case 'ink':
-      case 'teeth':
         if (ab.t >= ab.dur) abilityPhase(r, ab, 3);
         break;
+      case 'teeth':
+      case 'surge':
+        if (ab.dur > 0 && ab.t >= ab.dur) abilityPhase(r, ab, 3);
+        break;
+      case 'whip':
+        if (ab.dur > 0 && ab.t >= ab.dur) abilityPhase(r, ab, 3);
+        else if (--ab.hold <= 0) whipStrike(r, ab);
+        break;
+      case 'fog': {
+        if (ab.dur > 0 && ab.t >= ab.dur) {
+          abilityPhase(r, ab, 3);
+          break;
+        }
+        // полосы плывут и отражаются от краёв шкалы; раз в wallEvery тиков — стена посередине между ними
+        const half = div(div((r.hi - r.lo) * clampI(s.band ?? 22, 5, 50), 100), 2);
+        for (let i = 0; i < 4; i += 2) {
+          let c0 = ab.marks[i] + ab.marks[i + 1];
+          if (c0 < r.lo + half) { c0 = 2 * (r.lo + half) - c0; ab.marks[i + 1] = -ab.marks[i + 1]; }
+          else if (c0 > r.hi - half) { c0 = 2 * (r.hi - half) - c0; ab.marks[i + 1] = -ab.marks[i + 1]; }
+          ab.marks[i] = c0;
+        }
+        const every = Math.max(60, Math.round(s.wallEvery ?? 480));
+        const wd = Math.max(1, shorten(s.wallDur ?? 90, ab.resist));
+        const wh = div(div((r.hi - r.lo) * clampI(s.wall ?? 50, 10, 90), 100), 2);
+        if (ab.t > 0 && ab.t % every === 0) ab.n = clampI(div(ab.marks[0] + ab.marks[2], 2), r.lo + wh, r.hi - wh);
+        else if (ab.n >= 0 && ab.t % every >= wd) ab.n = -1;
+        break;
+      }
       case 'wind':
         if (ab.t >= ab.dur) abilityPhase(r, ab, 3);
         else {
@@ -1029,9 +1134,22 @@ function abilityTick(r: Reel, held: boolean, coast: boolean): boolean {
 }
 
 /** Зубы: зона наехала на зуб (с этого тика) — первый раз минус cut % улова, второй — леска перекушена */
+function teethTouch(r: Reel, ab: AbilityState): boolean {
+  if (teethState(ab) !== 2) return false;
+  for (let i = 0; i < ab.marks.length; i += 2) if (r.z < ab.marks[i + 1] && r.z + r.zone > ab.marks[i]) return true;
+  return false;
+}
+
+/** Зубы сейчас: 2 — острые, 1 — мерцают (сейчас станут острыми), 0 — тупые; без cycle — острые всё действие */
+function teethState(ab: AbilityState): number {
+  const c = ab.spec.cycle;
+  if (!c || ab.phase !== 2) return ab.phase === 2 ? 2 : 0;
+  const q = ab.t % Math.max(3, c[0] + c[1] + c[2]);
+  return q < c[0] ? 2 : q < c[0] + c[1] ? 0 : 1;
+}
+
 function teethBite(r: Reel, ab: AbilityState): void {
-  let touch = false;
-  for (let i = 0; i < ab.marks.length; i += 2) if (r.z < ab.marks[i + 1] && r.z + r.zone > ab.marks[i]) touch = true;
+  const touch = teethTouch(r, ab);
   if (touch && !ab.touch) {
     ab.n++;
     ab.bit = r.t;
@@ -1074,9 +1192,18 @@ export interface AbilityView {
   side: number;
   /** herring: какая мелкая рыба, сколько всего, сколько она уже в зоне из нужного, где она и зона мини-шкалы (0…1) */
   minion: { n: number; count: number; hold: number; need: number; fish: number; z0: number; z1: number } | null;
-  /** teeth: зубы [низ, верх] долями шкалы; сколько раз укусил */
+  /** teeth: зубы [низ, верх] долями шкалы; сколько раз укусил; сейчас: 2 — острые, 1 — мерцают, 0 — тупые */
   teeth: number[];
   bites: number;
+  toothState: number;
+  /** whip: куда ударит следующий (1 — вверх, −1 — вниз), замах 0…1 (0 — нет замаха), сколько ударов было, тик последнего */
+  whipSide: number;
+  swing: number;
+  strikes: number;
+  struckAt: number;
+  /** fog: полосы [низ, верх, низ, верх] и стена [низ, верх] (пусто — нет) долями шкалы */
+  fog: number[];
+  wall: number[];
 }
 
 export function abilityView(r: Reel): AbilityView | null {
@@ -1101,7 +1228,36 @@ export function abilityView(r: Reel): AbilityView | null {
     } : null,
     teeth: ab.marks.length && ab.id === 'teeth' ? ab.marks.map((y) => (y - r.lo) / span) : [],
     bites: ab.id === 'teeth' ? ab.n : 0,
+    toothState: ab.id === 'teeth' ? (ab.phase === 1 ? 1 : teethState(ab)) : 0,
+    whipSide: ab.id === 'whip' ? ab.side : 0,
+    swing: ab.id === 'whip' && ab.phase > 0 && ab.phase < 3 ? whipSwing(ab) : 0,
+    strikes: ab.id === 'whip' ? ab.n : 0,
+    struckAt: ab.id === 'whip' ? ab.bit : -1,
+    fog: ab.id === 'fog' && ab.phase === 2 ? fogBands(r, ab).map((y) => (y - r.lo) / span) : [],
+    wall: ab.id === 'fog' && ab.phase === 2 && ab.n >= 0 ? fogWall(r, ab).map((y) => (y - r.lo) / span) : [],
   };
+}
+
+/** Хлыст: замах 0…1 (предупреждение — первый замах; дальше — последние swing тиков перед ударом) */
+function whipSwing(ab: AbilityState): number {
+  const sw = Math.max(1, ab.spec.swing ?? 36);
+  if (ab.phase === 1) return Math.min(1, ab.t / Math.max(1, ab.spec.warn));
+  return ab.hold <= sw ? 1 - ab.hold / sw : 0;
+}
+
+/** Пелена: полосы тумана [низ, верх, низ, верх], ед. */
+export function fogBands(r: Reel, ab: AbilityState): number[] {
+  const half = div(div((r.hi - r.lo) * clampI(ab.spec.band ?? 22, 5, 50), 100), 2);
+  const out: number[] = [];
+  for (let i = 0; i < ab.marks.length; i += 2) out.push(ab.marks[i] - half, ab.marks[i] + half);
+  return out;
+}
+
+/** Пелена: стена [низ, верх], ед. (пусто — нет стены) */
+export function fogWall(r: Reel, ab: AbilityState): number[] {
+  if (ab.n < 0) return [];
+  const wh = div(div((r.hi - r.lo) * clampI(ab.spec.wall ?? 50, 10, 90), 100), 2);
+  return [ab.n - wh, ab.n + wh];
 }
 
 /**
