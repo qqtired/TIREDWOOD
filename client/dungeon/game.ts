@@ -10,6 +10,7 @@ import type { Renderer } from '../render/renderer.ts';
 import type { DungeonAssets } from './assets.ts';
 import { BossView } from './boss.ts';
 import { BuildingRenderer } from './buildings.ts';
+import { BuildingZones } from './zones.ts';
 import { BOSS_NAME, WEAPONS, plural } from './data.ts';
 import { A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
@@ -86,6 +87,7 @@ export class DungeonGame {
   private readonly bbN = new Billboards(500, false, false, 6);
   private readonly bbA = new Billboards(1400, true, true, 5);
   private readonly pool = new FxPool();
+  private readonly zones = new BuildingZones();
   private readonly journal = new Journal();
   private readonly projMeshes = new Map<string, THREE.InstancedMesh>();
   private readonly gems: THREE.InstancedMesh;
@@ -305,6 +307,7 @@ export class DungeonGame {
   }
 
   stop(): void {
+    this.zones.hide();
     this.run = null;
     this.view = null;
     this.d.sfx.stopAll();
@@ -427,6 +430,11 @@ export class DungeonGame {
       this.d.hud.setBanMode(false);
       this.d.sfx.reroll();
     }
+  }
+
+  /** E с кнопки телефона */
+  use(): void {
+    if (this.run && !this.paused && !this.ended) this.push({ t: 0, k: 'use' });
   }
 
   go(): void {
@@ -969,8 +977,8 @@ export class DungeonGame {
         else if (bd.kind === 'chest' && bd.s > 0 && bd.on) this.decA.add(x, 0.05, z, 4, 4, 0, D_SOFT, 1.5, 0, 0.6, 0.25, 0.85, 0.5 * fl);
         else if (bd.kind === 'keg' && bd.on) this.decA.add(x, 0.05, z, 2, 2, 0, D_SOFT, 1.5, 0, 1, 0.3, 0.1, 0.6 * fl);
         else if (bd.kind === 'forge') this.decA.add(x, 0.05, z, 4, 4, 0, D_SOFT, 1.5, 0, 1, 0.45, 0.15, 0.5 * fl);
-        if (bd.use >= 0) this.decN.add(x, 0.045, z, 2, 2, 0, D_TCIRCLE, bd.use, 0, 1, 0.8, 0.35, 0.8);
       }
+      this.zones.draw(this.run, this.camera, X, Z, this.decN, this.decA, this.pool, time, still, dt);
       // метки, лужи
       for (const t of v.teles) {
         if (!near(t.x, t.z, 18)) continue;
