@@ -26,7 +26,7 @@
 // половина улова, второй раз — обрыв). Для острова ещё три: второе дыхание (surge — улов откатывается, рыба быстрее,
 // зона меньше), хлыст (whip — удары по зоне раз в несколько секунд), пелена (fog — полосы тумана и стена, только экран).
 // dur 0 — эффект до конца боя (срабатывает всё равно один раз). Ещё: fill — время в зоне до поимки, % (120 — на 20 % дольше), wary — рыба чует
-// ловушку (зона ждёт у края без рыбы — обходит её), JetHang — реактивный рывок с зависанием наверху. Без этих полей в
+// ловушку (зона ждёт у края без рыбы — обходит её; waryHold — и с рыбой: зона давно стоит у края — рыба уходит), JetHang — реактивный рывок с зависанием наверху. Без этих полей в
 // манере модель считает бит в бит как прежде (проверено отпечатком на всех видах).
 
 /** Высота шкалы, единиц (1 % = 1000) */
@@ -157,6 +157,9 @@ export interface ReelStyle {
   abilityResist?: number;
   /** Чует ловушку: зона ждёт у края шкалы без рыбы дольше стольких тиков — рыба её обходит (0 — нет) */
   wary?: number;
+  /** Чует ловушку и с рыбой в зоне: зона стоит у края шкалы столько тиков подряд (рыба в ней или нет) — рыба уходит из неё
+   * и держится за её краем, пока зона не отойдёт от края (0 — нет; остров: легенды и выше) */
+  waryHold?: number;
   /** Леска провисла / натянута — через столько тиков (нет — SLACK_TICKS / TAUT_TICKS) */
   slack?: number;
   /** С какого улова начинается бой, % (нет — 25) */
@@ -252,6 +255,7 @@ interface Cfg {
   ab: AbilitySpec | null;
   resist: number;
   wary: number;
+  waryHold: number;
   slack: number;
   pStart: number;
 }
@@ -320,6 +324,8 @@ export interface Reel {
   /** Скорость рыбы ×spdMul/100 всегда (второе дыхание; 100 — как есть) */
   spdMul: number;
   camp: number;
+  /** Сколько тиков подряд зона у края campSide — рыба в ней или нет (waryHold) */
+  campAll: number;
   /** Способность: null — у рыбы её нет */
   ab: AbilityState | null;
 }
@@ -396,6 +402,7 @@ function cfgOf(s: ReelStyle): Cfg {
     ab: s.ability ?? null,
     resist: Math.round(clampI(s.abilityResist ?? 0, 0, 90)),
     wary: Math.round(clampI(s.wary ?? 0, 0, 100_000)),
+    waryHold: Math.round(clampI(s.waryHold ?? 0, 0, 100_000)),
     slack: Math.round(clampI(s.slack ?? SLACK_TICKS, 1, 600)),
     pStart: Math.round(clampI(s.pStart ?? 25, 1, 99) * (REEL_P_MAX / 100)),
   };
@@ -431,7 +438,7 @@ export function reelStart(style: ReelStyle, seed: number, drunk = false): Reel {
   const r: Reel = {
     t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: c.pStart, done: 0, inZone: true, err: 0, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0,
     taut: 0, drunk, lag: 0, hic: 0, hr: (seed ^ 0x2545f491) | 0, c,
-    lo: 0, hi: REEL_BAR, hlo: c.lo, hhi: c.hi, amp: c.patternAmplitude, wind: 0, pacc: 0, campSide: 0, camp: 0, standMul: c.stand, spdMul: 100, ab: null,
+    lo: 0, hi: REEL_BAR, hlo: c.lo, hhi: c.hi, amp: c.patternAmplitude, wind: 0, pacc: 0, campSide: 0, camp: 0, campAll: 0, standMul: c.stand, spdMul: 100, ab: null,
   };
   if (c.ab) r.ab = abilityNew(c.ab, c.resist, seed);
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
@@ -638,7 +645,7 @@ function patternedFishStep(r: Reel): void {
     }
   }
   // чует ловушку: зона давно ждёт у края без рыбы — рыба держится по ту сторону её края (дразнит, но не заходит)
-  if (c.wary > 0 && r.camp >= c.wary) {
+  if ((c.wary > 0 && r.camp >= c.wary) || (c.waryHold > 0 && r.campAll >= c.waryHold)) {
     const gap = div(r.hi - r.lo, 16);
     if (r.campSide > 0 && target < r.z + r.zone + gap) target = r.z + r.zone + gap;
     else if (r.campSide < 0 && target > r.z - gap) target = r.z - gap;
@@ -768,7 +775,7 @@ export function reelStep(r: Reel, held: boolean): void {
   const was = r.inZone;
   r.inZone = zoneCovers(r);
   if (was && !r.inZone) r.err++;
-  if (r.c.wary > 0) campStep(r);
+  if (r.c.wary > 0 || r.c.waryHold > 0) campStep(r);
   const pulling = reelPulling(r);
   if (ab && ab.phase === 2 && ab.spec.stall && ab.t <= shorten(ab.spec.full ?? 90, ab.resist)) {
     // чернила: катушка молчит — в зоне улов стоит, вне зоны тает
@@ -1167,8 +1174,10 @@ function campStep(r: Reel): void {
   if (side !== r.campSide) {
     r.campSide = side;
     r.camp = 0;
+    r.campAll = 0;
   }
   if (side !== 0 && !r.inZone) r.camp++;
+  if (side !== 0) r.campAll++;
 }
 
 /** Леска перекушена (зубы, второй укус) — для надписи итога */

@@ -11,8 +11,14 @@ import { LURE_MAX } from '../../shared/fishshop.ts';
 
 /** Место острова (план острова, economy.islePlace): рывки и резкость ×1,3, сопротивление ×1,4, зона ×0,95. Божественную не трогает */
 export const ISLE_PLACE = { fight: 1.3, drain: 1.4, zone: 0.95 } as const;
-/** Чуют ловушку (тики): мифики и божественная острова — как мифики пристани и баркаса */
+/** Чуют ловушку (тики): легенды, мифики и божественная острова — зона 1 с у края без рыбы, рыба её обходит */
 export const ISLE_WARY = 60;
+/**
+ * И с рыбой в зоне (этап 3, остров — новый контент, «АФК у дна» закрыт сразу): зона 4 с подряд у края — рыба уходит из неё.
+ * Одного ISLE_WARY мало: у донных рыб (Тунец-альбакор, Латимерия, Белуга, Плащеносная) рыба почти всё время в зоне у дна,
+ * счёт «без рыбы» не копится, и кемпер брал 23–88 %. 3 с бьют по честной игре (белуга 55 → 13 %), 5 с — мало (альбакор 67 %).
+ */
+export const ISLE_WARY_HOLD = 240;
 
 /**
  * Поправки вида к плану соседа (tools/fish/isle-reel.ts): гигантская акула — ход ×0,75 (с ходом соседа «обычный» 0 % на 6-м
@@ -75,6 +81,8 @@ export interface IsleOpts {
   ability?: AbilitySpec;
   /** Свой «чует ловушку» (0 — нет) */
   wary?: number;
+  /** Свой «чует ловушку и с рыбой в зоне» (0 — нет) */
+  waryHold?: number;
 }
 
 /** Манера вида острова: база по категории (BAND) и ход вида, правила 10.10 (зона +1,5 %/ур., бонусы, 120 %, способность), место острова */
@@ -105,8 +113,12 @@ export function isleStyle(s: IsleSpecies, mods: Readonly<FishCastMods>, o: IsleO
       style.ability = ability;
       style.abilityResist = lv.resist;
     }
+  }
+  if (rank >= T_LEGEND) {
     const wary = o.wary ?? tune.wary ?? ISLE_WARY;
     if (wary) style.wary = wary;
+    const hold = o.waryHold ?? ISLE_WARY_HOLD;
+    if (hold) style.waryHold = hold;
   }
   return style;
 }

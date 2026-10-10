@@ -38,7 +38,8 @@
    "note": "мифик и божественная — сопротивление под цель со способностью; «без способности 62 %» одновременно не выходит (снятый «последний рывок» у хлыста и пелены сам стоит 5–26 п. п.), lvl10NoAbility — для сравнения"
   },
   "fillBig": 120,
-  "wary": "мифики и божественная: 60 тиков; thresher — 30, frilledshark — 30",
+  "wary": "легенды, мифики и божественная: зона у края без рыбы 60 тиков (thresher — 30, frilledshark — 30) или 240 тиков подряд с рыбой или без (waryHold) — рыба обходит зону",
+  "campBottomMax": "легенды и выше: кемпер у дна ≤ 5 % (опытный, ур. 10, N=200)",
   "tune": {
    "baskingshark": {
     "move": 0.75
@@ -162,7 +163,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "smelt",
@@ -208,7 +210,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "navaga",
@@ -254,7 +257,8 @@
     "bottom": 35,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "lanternfish",
@@ -300,7 +304,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "lumpfish",
@@ -346,7 +351,8 @@
     "bottom": 47,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "saithe",
@@ -392,7 +398,8 @@
     "bottom": 53,
     "top": 3
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "grenadier",
@@ -438,7 +445,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "lamprey",
@@ -484,7 +492,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "salmon",
@@ -530,7 +539,8 @@
     "bottom": 6,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "ling",
@@ -576,7 +586,8 @@
     "bottom": 99,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "chimaera",
@@ -622,7 +633,8 @@
     "bottom": 100,
     "top": 0
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "roughy",
@@ -668,7 +680,8 @@
     "bottom": 0,
     "top": 26
    },
-   "wary": 0
+   "wary": 0,
+   "waryHold": 0
   },
   {
    "id": "opah",
@@ -697,24 +710,25 @@
      10
     ],
     "lvl8": [
-     37,
+     36,
      73
     ],
     "lvl10": [
-     72,
+     71,
      96
     ],
     "lvl15": [
      83,
-     98
+     97
     ]
    },
-   "fightS10": 13.1,
+   "fightS10": 13.2,
    "camp10": {
-    "bottom": 89,
+    "bottom": 1,
     "top": 0
    },
-   "wary": 0
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "albacore",
@@ -732,35 +746,36 @@
     "spd": 13,
     "dartSpd": 54.6,
     "amp": 31.62,
-    "drain": 27.05,
+    "drain": 24.72,
     "per": 175
    },
    "calEstimateDrain": 28.64,
    "move": 1,
    "success": {
     "lvl6": [
-     22,
-     75
+     1,
+     15
     ],
     "lvl8": [
-     60,
-     91
+     35,
+     87
     ],
     "lvl10": [
-     70,
-     95
+     71,
+     97
     ],
     "lvl15": [
-     82,
+     86,
      99
     ]
    },
-   "fightS10": 16.3,
+   "fightS10": 18.6,
    "camp10": {
-    "bottom": 88,
+    "bottom": 3,
     "top": 0
    },
-   "wary": 0
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "coelacanth",
@@ -778,35 +793,36 @@
     "spd": 16.9,
     "dartSpd": 70.98,
     "amp": 37.94,
-    "drain": 28.06,
+    "drain": 28.21,
     "per": 160
    },
    "calEstimateDrain": 31.59,
    "move": 1,
    "success": {
     "lvl6": [
-     25,
-     71
+     28,
+     74
     ],
     "lvl8": [
      49,
-     84
+     86
     ],
     "lvl10": [
      70,
-     96
+     97
     ],
     "lvl15": [
-     81,
+     79,
      100
     ]
    },
-   "fightS10": 16.3,
+   "fightS10": 16.7,
    "camp10": {
-    "bottom": 23,
+    "bottom": 1,
     "top": 0
    },
-   "wary": 0
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "goblinshark",
@@ -831,15 +847,15 @@
    "move": 1,
    "success": {
     "lvl6": [
-     24,
+     26,
      82
     ],
     "lvl8": [
-     46,
+     48,
      97
     ],
     "lvl10": [
-     72,
+     71,
      99
     ],
     "lvl15": [
@@ -847,12 +863,13 @@
      100
     ]
    },
-   "fightS10": 19.2,
+   "fightS10": 19.1,
    "camp10": {
-    "bottom": 7,
+    "bottom": 1,
     "top": 0
    },
-   "wary": 0
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "beluga",
@@ -870,7 +887,7 @@
     "spd": 24,
     "dartSpd": 105.6,
     "amp": 49.98,
-    "drain": 28.65,
+    "drain": 27.19,
     "per": 133
    },
    "calEstimateDrain": 28.64,
@@ -890,34 +907,35 @@
    },
    "success": {
     "lvl6": [
-     24,
-     97
+     23,
+     99
     ],
     "lvl8": [
-     45,
+     43,
      99
     ],
     "lvl10": [
-     54,
-     98
+     55,
+     99
     ],
     "lvl15": [
-     47,
-     98
+     55,
+     99
     ]
    },
    "lvl10NoAbility": [
-    59,
-    100
+    57,
+    84
    ],
-   "fightS10": 25.8,
-   "afterAbility10": 65,
-   "fired10": 83,
+   "fightS10": 24.8,
+   "afterAbility10": 66,
+   "fired10": 84,
    "camp10": {
-    "bottom": 14,
+    "bottom": 0,
     "top": 0
    },
-   "wary": 60
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "thresher",
@@ -935,7 +953,7 @@
     "spd": 15,
     "dartSpd": 66,
     "amp": 35.7,
-    "drain": 15.11,
+    "drain": 14.97,
     "per": 161
    },
    "calEstimateDrain": 24.81,
@@ -959,33 +977,34 @@
    "success": {
     "lvl6": [
      3,
-     65
+     54
     ],
     "lvl8": [
-     22,
+     23,
      88
     ],
     "lvl10": [
-     54,
-     98
+     55,
+     97
     ],
     "lvl15": [
-     76,
-     99
+     74,
+     98
     ]
    },
    "lvl10NoAbility": [
-    73,
-    99
+    69,
+    98
    ],
-   "fightS10": 29.9,
-   "afterAbility10": 65,
+   "fightS10": 30.8,
+   "afterAbility10": 66,
    "fired10": 83,
    "camp10": {
-    "bottom": 1,
+    "bottom": 0,
     "top": 0
    },
-   "wary": 30
+   "wary": 30,
+   "waryHold": 240
   },
   {
    "id": "baskingshark",
@@ -1027,7 +1046,7 @@
    },
    "success": {
     "lvl6": [
-     33,
+     32,
      55
     ],
     "lvl8": [
@@ -1047,14 +1066,15 @@
     84,
     100
    ],
-   "fightS10": 34.7,
+   "fightS10": 34.6,
    "afterAbility10": 64,
    "fired10": 89,
    "camp10": {
     "bottom": 0,
     "top": 2
    },
-   "wary": 60
+   "wary": 60,
+   "waryHold": 240
   },
   {
    "id": "frilledshark",
@@ -1072,7 +1092,7 @@
     "spd": 20.8,
     "dartSpd": 124.8,
     "amp": 46.51,
-    "drain": 15.84,
+    "drain": 15.26,
     "per": 141
    },
    "calEstimateDrain": 23.95,
@@ -1096,34 +1116,35 @@
    },
    "success": {
     "lvl6": [
-     2,
-     8
+     1,
+     12
     ],
     "lvl8": [
-     22,
-     46
+     29,
+     51
     ],
     "lvl10": [
-     52,
-     76
+     50,
+     74
     ],
     "lvl15": [
-     63,
-     85
+     61,
+     81
     ]
    },
    "lvl10NoAbility": [
-    87,
+    91,
     99
    ],
-   "fightS10": 27,
-   "afterAbility10": 57,
-   "fired10": 92,
+   "fightS10": 26.4,
+   "afterAbility10": 53,
+   "fired10": 94,
    "camp10": {
-    "bottom": 33,
+    "bottom": 1,
     "top": 0
    },
-   "wary": 30
+   "wary": 30,
+   "waryHold": 240
   }
  ]
 }

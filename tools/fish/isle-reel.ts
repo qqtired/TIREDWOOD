@@ -12,12 +12,12 @@ import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { resolve } from 'node:path';
-import { T_DIVINE, T_MYTH } from '../../shared/fishrules.ts';
+import { T_DIVINE, T_LEGEND, T_MYTH } from '../../shared/fishrules.ts';
 import type { AbilitySpec } from '../../shared/fishreel.ts';
 import { ISLE_ABILITY } from '../../shared/fishability.ts';
 import { EXPERT, TYPICAL } from '../../test/fishbot.ts';
 import { stats2 } from './abilitybot.ts';
-import { ISLE_PLACE, ISLE_TUNE, ISLE_WARY, isleGear, isleMods, isleStyle, loadIsleSpecies, type IsleOpts, type IsleSpecies } from './islestyle.ts';
+import { ISLE_PLACE, ISLE_TUNE, ISLE_WARY, ISLE_WARY_HOLD, isleGear, isleMods, isleStyle, loadIsleSpecies, type IsleOpts, type IsleSpecies } from './islestyle.ts';
 
 const root = resolve(import.meta.dirname, '../..');
 const section = process.argv[2] ?? 'all';
@@ -86,7 +86,8 @@ function oneSpecies(s: IsleSpecies, i: number): Record<string, unknown> {
     success: succ, ...(noAb ? { lvl10NoAbility: noAb } : {}),
     fightS10: fightS, ...(ability ? { afterAbility10: after, fired10: fired } : {}),
     camp10: { bottom: campBottom, top: campTop },
-    wary: big ? ISLE_TUNE[s.id]?.wary ?? ISLE_WARY : 0,
+    wary: s.tier >= T_LEGEND ? ISLE_TUNE[s.id]?.wary ?? ISLE_WARY : 0,
+    waryHold: s.tier >= T_LEGEND ? ISLE_WARY_HOLD : 0,
   };
 }
 
@@ -130,7 +131,7 @@ if (section === 'all') {
       place: { ...ISLE_PLACE, divine: 'место не трогает' },
       gear: Object.fromEntries(LV.map((l) => [`lvl${l}`, isleGear(l)])),
       targetsTypicalLvl10: { common: 98, rare: 90, epic: 80, legend: 70, mythWithAbility: 55, divineWithAbility: 50, note: 'мифик и божественная — сопротивление под цель со способностью; «без способности 62 %» одновременно не выходит (снятый «последний рывок» у хлыста и пелены сам стоит 5–26 п. п.), lvl10NoAbility — для сравнения' },
-      fillBig: 120, wary: `мифики и божественная: ${ISLE_WARY} тиков; ${Object.entries(ISLE_TUNE).filter(([, t]) => t.wary).map(([id, t]) => `${id} — ${t.wary}`).join(', ')}`,
+      fillBig: 120, wary: `легенды, мифики и божественная: зона у края без рыбы ${ISLE_WARY} тиков (${Object.entries(ISLE_TUNE).filter(([, t]) => t.wary).map(([id, t]) => `${id} — ${t.wary}`).join(', ')}) или ${ISLE_WARY_HOLD} тиков подряд с рыбой или без (waryHold) — рыба обходит зону`, campBottomMax: 'легенды и выше: кемпер у дна ≤ 5 % (опытный, ур. 10, N=200)',
       tune: ISLE_TUNE, bot: 'test/fishbot.ts TYPICAL/EXPERT + tools/fish/abilitybot.ts',
     },
     abilities,
