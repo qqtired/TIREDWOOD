@@ -21,7 +21,9 @@ test('levels and rods change real zone width without changing fish movement or d
     reelRun(reel, played.toggles, REEL_MAX_TICKS + 1);
     assert.equal(reel.done === 1, played.caught);
     assert.equal(reel.t, played.ticks);
-    for (const [key, n] of Object.entries(reel.c)) assert.ok(Number.isInteger(n), `${FISH[sp].id}: ${key} must be integer`);
+    // 10.10: в манере ещё способность (ab — объект; у reelStyleFor её нет), остальное — целые
+    assert.equal(reel.c.ab, null);
+    for (const [key, n] of Object.entries(reel.c)) if (key !== 'ab') assert.ok(Number.isInteger(n), `${FISH[sp].id}: ${key} must be integer`);
   }
 });
 

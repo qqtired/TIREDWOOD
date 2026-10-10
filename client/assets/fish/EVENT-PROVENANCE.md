@@ -4,7 +4,7 @@ Generated on 2026-10-03 for Roman's approved two extra event-only real marine fi
 
 Actual tool: `image_gen.imagegen` (callable `image_gen__imagegen`). The requested `codex_cli` image capability was absent from the active callable tool inventory; the root-authorized built-in fallback was used. No CLI/authentication/model changes were made. The generation API did not expose a model/service-tier argument, so none is claimed.
 
-Two independent new-image calls used `transparent_background: true`. No regeneration or image editing was performed. Existing `tuna.webp`, `whiteshark.webp` and `angler.webp` were inspected with `view_image` for the naturalistic illustrated lateral-profile style. Reference images were not passed as edit targets.
+Two independent new-image calls used `transparent_background: true`. No regeneration or image editing was performed. Existing `tuna.webp`, `whiteshark.webp` and `angler.webp` (note, 10.10.2026: `whiteshark.webp` and `hammerhead.webp` were later swapped by file name together with the in-game species, so the great white shark picture inspected here now lives in `hammerhead.webp`; see `FISHECO-PROVENANCE.md`) were inspected with `view_image` for the naturalistic illustrated lateral-profile style. Reference images were not passed as edit targets.
 
 | ID | Species | Game rarity | Final file | Dimensions | Bytes |
 | --- | --- | --- | --- | --- | --- |

@@ -34,7 +34,7 @@ var FishCalc = (function () {
   // отдают обычные (до пола COMMON_FLOOR), потом редкие…
   function odds(o) {
     var m = mods(o);
-    var base = D.BASE[o.zone === 'barkas' ? 'barkas' : 'pier'];
+    var base = D.BASE[o.zone] || D.BASE.pier;
     var w = o.weather;
     var out = [0, 0, 0, 0, 0, 0];
     var left = 1 - D.COMMON_FLOOR;
@@ -88,6 +88,7 @@ if (typeof document !== 'undefined') (function () {
   function render() {
     var o = read();
     if (o.zone === 'barkas' && o.level < 3) { lvl.value = '3'; o.level = 3; }
+    if (o.zone === 'isle' && o.level < D.ISLE_LEVEL) { lvl.value = String(D.ISLE_LEVEL); o.level = D.ISLE_LEVEL; }
     lvlOut.textContent = String(o.level);
     var r = FishCalc.odds(o);
     bar.innerHTML = '';
@@ -115,6 +116,7 @@ if (typeof document !== 'undefined') (function () {
     if (r.capped) notes.push('<b>Потолок.</b> Редкие и выше заняли всё, что можно, — ' + Math.round((1 - D.COMMON_FLOOR) * 100) + ' % рыбы: обычным остался пол, ' + Math.round(D.COMMON_FLOOR * 100) + ' % (так пикарель в дождь ловится у всех). Старшие категории взяли свою долю целиком, нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
     if (o.drink === 4) notes.push('<b>Водка:</b> эпик и выше (с божественной) ×2, но зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', а ты пьян (зона по инерции, икота, моргание) — вытащить труднее.');
     if (o.zone === 'barkas') notes.push('<b>Баркас</b> пускает с 3-го уровня. Рыба там своя и злее, зато платит и даёт опыта ×1,25.');
+    if (o.zone === 'isle') notes.push('<b>Остров «Последний свет»</b> — с ' + D.ISLE_LEVEL + '-го уровня, на своей лодке. Там всегда туман: «дождь» в калькуляторе — это «Туман наступает», сезон — сезон острова (нечётные часы по Москве). Рыба самая злая, зато самая дорогая, опыт ×2.');
     hint.innerHTML = notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');
   }
   form.addEventListener('input', render);

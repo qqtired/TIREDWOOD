@@ -35,7 +35,8 @@ function styled(base: ReelStyle, tier: number, s: number, drain: number): ReelSt
 function success(sp: number, st: ReelStyle, n = N, skill = TYPICAL): { p: number; s: number; perfect: number } {
   const sea = SEA ? { ...st, dartSpd: st.dartSpd * SEA_FIGHT, sharp: st.sharp * SEA_FIGHT, drain: st.drain * SEA_DRAIN } : st;
   const r = reelStats(sea, skill, n, 7 + sp * 104_729);
-  return { p: r.p, s: r.caughtTicks / 60, perfect: r.perfectP };
+  // «Идеально» — первая оценка REEL_GRADES (perfectP заменён на gradeP 04.10)
+  return { p: r.p, s: r.caughtTicks / 60, perfect: r.gradeP[0] ?? 0 };
 }
 
 const out: Record<string, [number, number, number, number, number]> = {};
@@ -45,6 +46,8 @@ for (const sp of COLLECTION) {
   const rule = RULE[sp]!;
   if (only.length && !only.includes(FISH[sp].id)) continue;
   const tier = rule.tier;
+  // у божественной своих целей здесь нет (кальмар подобран отдельно, см. CAL в shared/fishrules.ts); остров — tools/fish/isle-reel.ts
+  if (CAL_TARGET[tier] === undefined) { console.error(`${FISH[sp].id}: категория ${tier} — пропуск`); continue; }
   const target = SEA || CAL_TARGET[tier];
   const base = rule.style;
   const ok = (p: number) => (target >= 0.99 ? p >= 0.99 : p > target);

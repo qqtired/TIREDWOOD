@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
-import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
+import { FISHER_USE, FISH_SPOTS, FISH_SPOT_COUNT, spotZone } from '../shared/fishplaces.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
+import { FE_BITE, FISH, FP_BITE, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { reelGrade, reelRun, reelStart } from '../shared/fishreel.ts';
-import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, type Hooked } from '../shared/fishrules.ts';
 import { RAIN_DRUM_PRICE } from '../shared/fishshop.ts';
 import { earnedItems } from '../shared/fishstyle.ts';
 import { Hub, type Room } from '../server/hub.ts';
@@ -57,6 +58,8 @@ function sit(e: ReturnType<typeof setup>, what: Hooked) {
 }
 
 function bite(e: ReturnType<typeof setup>, hall: FishingHall2): void {
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   assert.equal(hall.phase(0), FP_BITE);
@@ -90,7 +93,7 @@ function hookWinning(e: ReturnType<typeof setup>, hall: FishingHall2, species: n
   bite(e, hall);
   advance(e, 2);
   const mods = hall.views()[0].mods!;
-  const style = reelStyleFor(species, mods);
+  const style = reelStyle2(species, mods);
   let seed = 0;
   let play: Play | undefined;
   for (let candidate = 1; candidate <= 100; candidate++) {
@@ -230,7 +233,7 @@ test('уровень/удочка/пиво фиксируются при заб�
   assert.ok(e.clock.now > p.fishing.beerUntil);
   assert.deepEqual(h.mods, mods);
   assert.deepEqual(rolled, mods);
-  const style = reelStyleFor(h.sp, h.mods);
+  const style = reelStyle2(h.sp, h.mods);
   const play = playReel(style, h.seed, EXPERT);
   assert.ok(play.caught);
   const replay = reelStart(style, h.seed);
@@ -267,7 +270,7 @@ test('дубли reel не начисляют повторно; сундук/х�
   for (const [fish, g, coins] of [[SP_CHEST, 5000, 180], [SP_BOOT, 800, 0]]) {
     hall.roll = () => ({ sp: fish, g, coins });
     const h = hook(e, hall);
-    const play = playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT);
+    const play = playReel(reelStyle2(h.sp, h.mods), h.seed, EXPERT);
     assert.ok(play.caught);
     playHonest(e, play);
     e.hub.onJson(e.a.c, { t: 'reel', i: 0, k: play.toggles, u: play.ticks, d: 1 });
@@ -305,7 +308,8 @@ test('все места (20 у пристани + 8 на баркасе): сер
   hall.roll = () => ({ sp: sp('scad'), g: 300, coins: 0 });
   const spots = e.hub.lobby.map.interact.filter((i) => i.kind === 'fish');
   assert.equal(spots.length, FISH_SPOTS.length);
-  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOTS.length);
+  // в welcome и у сервера ещё места с лодок на якоре (BOAT_FISH_SPOTS) — после мест на берегу
+  assert.equal(lastOf(e.a.s, 'lobby')!.fish.length, FISH_SPOT_COUNT);
   for (let i = 0; i < players.length; i++) {
     const it = spots.find((s) => s.arg === pierIdx[i])!;
     placeAt(e.hub, players[i].c, it.x, it.z);
@@ -313,7 +317,7 @@ test('все места (20 у пристани + 8 на баркасе): сер
     assert.equal(hall.occupant(pierIdx[i]), e.hub.lobby.playerOf(players[i].c)!.slot);
     e.hub.onJson(players[i].c, { t: 'fish', a: 'cast' });
   }
-  assert.equal(hall.views().length, FISH_SPOTS.length);
+  assert.equal(hall.views().length, FISH_SPOT_COUNT);
   assert.ok(pierIdx.every((i) => hall.views()[i].ph > FP_IDLE));
   for (const p of players) assert.equal(p.c.profile!.stats.fsCasts, 1);
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
@@ -324,7 +328,7 @@ test('все места (20 у пристани + 8 на баркасе): сер
   assert.equal(hall.phase(1), FP_IDLE, 'поддельный spot игнорируется: сервер потерял только свою рыбу нарушителя');
   assert.equal(hall.phase(0), FP_REEL, 'чужое вываживание осталось целым');
   const h = lastOf(e.a.s, 'fishReel')!;
-  const play = playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT);
+  const play = playReel(reelStyle2(h.sp, h.mods), h.seed, EXPERT);
   assert.ok(play.caught);
   let sent = 0;
   for (let u = 0; u < play.ticks;) {
@@ -378,7 +382,7 @@ test('семь рыб дают один готовый квест без пер�
   for (const g of [300, 450, 400, 450, 200, 100, 150]) {
     hall.roll = () => ({ sp: sp('scad'), g, coins: 0 });
     const h = hook(e, hall);
-    const play = playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT);
+    const play = playReel(reelStyle2(h.sp, h.mods), h.seed, EXPERT);
     assert.ok(play.caught);
     playHonest(e, play);
     e.clock.now += 1100;
@@ -433,7 +437,7 @@ test('событие и пиво применены к продаже один �
     hall.roll = () => ({ sp: fish, g, coins: 0 });
     const t0 = p.tokens;
     const h = hook(e, hall);
-    const play = playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT);
+    const play = playReel(reelStyle2(h.sp, h.mods), h.seed, EXPERT);
     assert.ok(play.caught);
     playHonest(e, play);
     const land = lastOf(e.a.s, 'fishLand')!;
@@ -507,7 +511,7 @@ test('ветеран: прежний рыбацкий комплект (за с�
   for (const id of oldSet) e.profiles.grant(p, id);
   const hall = sit(e, { sp: sp('scad'), g: 300, coins: 0 });
   const h = hook(e, hall);
-  playHonest(e, playReel(reelStyleFor(h.sp, h.mods), h.seed, EXPERT));
+  playHonest(e, playReel(reelStyle2(h.sp, h.mods), h.seed, EXPERT));
   const land = lastOf(e.a.s, 'fishLand')!;
   assert.equal(land.got, 30);
   assert.equal(land.full, false);

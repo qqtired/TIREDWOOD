@@ -18,6 +18,14 @@
 // Потолок — сверху вниз: старшие категории получают свою долю целиком, нехватку отдают обычные (до пола 5 % рыбы —
 // COMMON_FLOOR, чтобы пикарель ловилась у всех), потом редкие, потом эпические… Поэтому шанс «эта категория или выше» и
 // ожидаемые жетоны и опыт за поклёвку от любого бонуса только растут.
+//
+// 10.10, остров «Последний свет» (флаг сервера ISLE; docs/superpowers/plans/2026-10-10-fishing-island.md): место 'isle' — свой
+// пул из 20 видов (12 всегда и 8 только в туман), рыба злее (зона ×0,95, рывки ×1,3, сопротивление ×1,4), опыт ×2. Туман
+// («Туман наступает») для шансов — как дождь (×1,5 к редким и выше, туманные виды платят ×1,5), сезон острова — ещё ×2. Кальмар и
+// гренландская акула на острове не клюют. Виды острова — в своём счётчике (ISLE_COLLECTION, «Остров: N из 20»), коллекция 52
+// видов (COLLECTION) от них не растёт. Цена видов острова (val) — сразу жетоны. С флагом рыба пристани и баркаса дешевле:
+// ×0,4 вместо ×0,65 (setIsleEconomy). Шкала острова откалибрована по новым правилам (shared/fishability.ts reelStyle2) —
+// docs/superpowers/plans/2026-10-10-fishing-island-reel.json.
 import { FISH, fmtWeight } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import type { ReelStyle, ReelPattern } from './fishreel.ts';
@@ -26,20 +34,56 @@ import { LORD, LURE_MAX } from './fishshop.ts';
 
 // ------------------------------------------------------------ экономика
 
-/** Справочно: доход обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока). */
-export const FISH_TARGET_PER_MIN = 17.1;
+/**
+ * Справочно: доход от рыбы обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока;
+ * сундуки отдельно). Было 17,1; хотфикс 10.10 (FISH_PRICE_CUT = 0,65) — 11,7: мелкая рыба режется сильнее из-за округления.
+ */
+export const FISH_TARGET_PER_MIN = 11.7;
+/** То же с флагом острова (ISLE: рыба ×0,4 вместо ×0,65): 7,3 🪙/мин рыбой — плюс ~6,3 сундуками, вместе ~13,6 (ориентир 8–15) */
+export const FISH_TARGET_PER_MIN_ISLE = 7.3;
 /** Сколько очков ценности (поле val) в минуту набирает тот же игрок — меряет тест (04.10: мифик и божественная чаще — 13,7 → 14,2). */
 export const FISH_POINTS_PER_MIN = 14.2;
 /** Исходный курс выпуска 6: заморожен, чтобы +75 % считались от старой целой цены, а не от новой цели. */
 export const COIN_PER_POINT = 13.5 / 13.7;
 /** Калибровка только остальных рыб. Это не второй глобальный множитель для обычных. */
 export const FISH_OTHER_PRICE_SCALE = 1.076;
+/**
+ * Хотфикс 10.10 (владелец): стоимость продажи рыбы скупщикам на пристани и баркасе −35 %. Множитель один на всю рыбу
+ * коллекции (basePrice) — не на сундук, хлам, бонус за новый вид (NEW_BONUS2) и клад Посейдона. Опыт он не трогает: ни
+ * опыт рыбалки, ни общий (server/lobby/fishing2.ts считает его по цене без множителя). Рыба, уже лежащая в рюкзаках,
+ * сохраняет записанную цену (bag.p). Позже, с новым островом, цену доведут до −60 % — тогда здесь будет 0,4.
+ */
+export const FISH_PRICE_CUT = 0.65;
+/**
+ * С флагом острова (ISLE) рыба пристани и баркаса дешевле: −60 % к ценам до хотфикса (×0,40 вместо ×0,65). Виды острова
+ * этот множитель не трогает — их цена (val) задана сразу в жетонах.
+ */
+export const ISLE_PRICE_CUT = 0.4;
+let priceCut = FISH_PRICE_CUT;
+/** Флаг острова на этом сервере (server/main.ts) или у клиента (приветствие набережной): цена рыбы ×0,4 вместо ×0,65 */
+export function setIsleEconomy(on: boolean): void {
+  priceCut = on ? ISLE_PRICE_CUT : FISH_PRICE_CUT;
+}
+/** Множитель цены рыбы пристани и баркаса сейчас: ×0,65 или с островом ×0,4 */
+export function fishPriceCut(): number {
+  return priceCut;
+}
 /** Баркас: доход и опыт за каждую рыбу ×1,25 (база видов баркаса — как у пристани в минуту) */
 export const BARKAS_INCOME = 1.25;
 export const BARKAS_XP = 1.25;
 /** Море злее: рывки и резкость ×1,15, сопротивление ×1,2 — поверх манеры вида */
 export const SEA_FIGHT = 1.15;
 export const SEA_DRAIN = 1.2;
+/** Остров злее моря: рывки и резкость ×1,3, сопротивление ×1,4, зона ×0,95 — поверх манеры вида; божественную место не трогает */
+export const ISLE_FIGHT = 1.3;
+export const ISLE_DRAIN = 1.4;
+export const ISLE_ZONE = 0.95;
+/** Остров: опыт за рыбу ×2 (баркас ×1,25). Доход место не множит: цена видов острова уже в жетонах */
+export const ISLE_XP = 2;
+/** Легенды и выше острова «чуют ловушку»: зона 1 с у края без рыбы (лисья и плащеносная — 0,5 с) или 4 с у края даже с рыбой */
+export const ISLE_WARY = 60;
+export const ISLE_WARY_HOLD = 240;
+const ISLE_WARY_TUNE: Readonly<Record<string, number>> = { thresher: 30, frilledshark: 30 };
 /** Опыт за рыбу: прежняя формула ×0,4 (было ×0,3333 — +20 %) */
 export const XP_SCALE = 0.4;
 /** Сорвалась эпическая и выше после стольких тиков борьбы (3 с) — утешение: четверть опыта за поимку */
@@ -95,7 +139,7 @@ export const DIVINE_RATIO = 2.5;
 /** Мифическая: +0,4 п. п. ко всем поклёвкам новичка в ясную погоду сверх весов видов (у пристани 0,587 → 0,987 %, на баркасе 0,555 → 0,955 %) */
 export const MYTH_ADD = 0.004;
 /** Божественная — явно, доля всех поклёвок новичка в ясную погоду (было мифическая / 2,5: 0,23 и 0,22 % — стало +0,2 п. п.) */
-export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042 };
+export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042, isle: 0.0043 };
 /**
  * Пол обычных: не меньше этой доли поклёвок рыбы при любых бонусах и погоде — редкие и выше делят не больше 95 %. Иначе
  * у прокачанного рыбака в дождь обычных не остаётся и пикарель (обычная дождевая) не ловится — коллекцию не закрыть.
@@ -120,8 +164,9 @@ export function junkPer10k(level = 0): number {
   return Math.round(JUNK_PER_10K * (10 - l) / 10);
 }
 /**
- * Сколько в сундуке: полосы «от, до, вес» — крупное реже, 250 — джекпот. 04.10: все суммы ×1,25 к прежним (25–50, 51–100,
- * 101–150, 151–199 и 200), веса полос те же — средний сундук стал на 25 % богаче (было 57,4 🪙, стало 71,9 🪙).
+ * Сколько в сундуке: полосы «от, до, вес» — крупное реже; 250 — самый крупный обычный сундук, а не джекпот (джекпот в
+ * рыбалке один — «Сокровища Посейдона», POSEIDON_COINS). 04.10: все суммы ×1,25 к прежним (25–50, 51–100, 101–150, 151–199
+ * и 200), веса полос те же — средний сундук стал на 25 % богаче (было 57,4 🪙, стало 71,9 🪙).
  */
 export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
   [31, 63, 650],
@@ -132,8 +177,8 @@ export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 /** С этой суммы сундук объявляется в общем чате: верхние две полосы (3 % сундуков) — прежние 151 ×1,25 */
 export const CHEST_ANNOUNCE = 189;
-/** Джекпот обычного сундука — последняя полоса (прежние 200 ×1,25) */
-export const CHEST_JACKPOT = 250;
+/** Самый крупный обычный сундук — последняя полоса (прежние 200 ×1,25). Обычный, без джекпота: джекпот — только клад Посейдона. */
+export const CHEST_MAX = 250;
 /** «Сокровища Посейдона»: так много жетонов в кладе (вместо обычной суммы), ничем не множится */
 export const POSEIDON_COINS = 1500;
 /** Максимальная доля сундуков с кладом Посейдона, с 15-го уровня рыбалки */
@@ -143,7 +188,7 @@ export function poseidonShare(level = 0): number {
   const l = Number.isFinite(level) ? Math.min(15, Math.max(1, Math.floor(level))) : 1;
   return 0.01 + (POSEIDON_SHARE - 0.01) * (l - 1) / 14;
 }
-/** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_JACKPOT) */
+/** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_MAX) */
 export function isPoseidon(coins: number): boolean {
   return coins >= POSEIDON_COINS;
 }
@@ -176,13 +221,13 @@ export interface FishRule {
   sp: number;
   id: string;
   tier: number;
-  /** Где ловится: у пристани или на баркасе в открытом море (родное место: журнал, опыт) */
+  /** Где ловится: у пристани, на баркасе в открытом море или у острова (родное место: журнал, опыт) */
   zone: FishZone;
   /** Все места, где клюёт (гренландская акула и кальмар — и там, и там) */
   zones: readonly FishZone[];
   /** Как часто клюёт: вес внутри своей категории в пуле места (дождевые добавляются в дождь) */
   bite: number;
-  /** Только в дождь (и платит ×1,5) */
+  /** Только в дождь (и платит ×1,5); у видов острова — только в туман («Туман наступает») */
   rain: boolean;
   /** Ценность, очки: за самую лёгкую и за самую тяжёлую (жетоны — через COIN_PER_POINT) */
   val: readonly [number, number];
@@ -251,6 +296,9 @@ const RAW: Record<string, Raw> = {
   angler: { tier: T_LEGEND, bite: 8, rain: false, val: [32, 95], pat: ['Ambush', 'Nervous'], lo: 0, hi: 50, note: 'замирает надолго — и взрывной бросок' },
   bluemarlin: { tier: T_LEGEND, bite: 20, rain: true, val: [45, 125], pat: ['EdgeSnapback', 'Wave'], up: 70, note: 'длинные быстрые проходы и свечки' },
   // --- мифические: событие на весь пирс
+  // ВНИМАНИЕ: id 'whiteshark' показывает РЫБУ-МОЛОТ, а 'hammerhead' (легенда баркаса, только в дождь) — БОЛЬШУЮ БЕЛУЮ АКУЛУ.
+  // Обмен 10.10 (владелец): поменяли только лицо (имя, вес, цвета, картинку — shared/fishing.ts), а категория, место, шанс,
+  // цена, паттерны, CAL и опыт остались за id — ключи альбомов игроков не меняются, «кто уже ловил» зачтено.
   whiteshark: { tier: T_MYTH, bite: 6, rain: false, val: [200, 400], pat: ['FakeDash', 'Ambush'], note: 'всё сразу: скорость, рывки, сила' },
   greenlandshark: { tier: T_MYTH, also: 'barkas', bite: 3, rain: true, val: [220, 480], pat: ['SlowMigration', 'Sound'], lo: 0, hi: 70, up: 30, note: 'глубокие тяжёлые проводки, мощное сопротивление; в дождь — и у пристани, и с баркаса' },
 
@@ -277,6 +325,33 @@ const RAW: Record<string, Raw> = {
 
   // --- божественная: царь морей — у пристани и с баркаса, в любую погоду; цена и опыт ×2,5 к мифику (и шанс в 2,5 раза меньше)
   kalmar: { tier: T_DIVINE, also: 'barkas', bite: 1, rain: false, val: [500, 1000], xpBase: 98, pat: ['Jet', 'Sound'], up: 60, note: 'царь морей: реактивные рывки во всю шкалу, чернильный обман и уход в глубину' },
+
+  // --- остров «Последний свет» (флаг ISLE): свой пул; rain — только в туман («Туман наступает»), цена val — сразу жетоны.
+  // Обычные и редкие — мелкие северные рыбы, эпические и выше — глубоководные; мифики и божественная — со способностью
+  // (shared/fishability.ts ISLE_ABILITY). Цены — таблица плана острова ×1,1 (10.10, внедрение): после калибровки способностей
+  // (мифики 55 %, божественная 50 % вместо 66 и 70 %) доход «обычного» 10-го уровня на «Нортсильвере» упал к 6 000 🪙/ч — с ×1,1 он
+  // снова в середине коридора 6 000–7 000 (~6 550, tools/fish/isle-income.ts). Только в конец, ключи альбома не менять.
+  capelin: { tier: T_COMMON, zone: 'isle', bite: 180, rain: false, val: [7, 11], xpBase: 17.8, pat: ['Zigzag', 'Sawtooth'], lo: 40, note: 'стайка у поверхности: зигзаг и пила' },
+  smelt: { tier: T_COMMON, zone: 'isle', bite: 170, rain: false, val: [7, 14], xpBase: 17.8, pat: ['Nervous', 'Circle'], lo: 25, hi: 90, note: 'вертится кругами и пахнет свежим огурцом' },
+  navaga: { tier: T_COMMON, zone: 'isle', bite: 170, rain: false, val: [7, 15], xpBase: 17.8, pat: ['HoverDash', 'Zigzag'], lo: 0, hi: 50, up: 70, note: 'северная тресочка: у дна, подскоки зигзагом' },
+  lanternfish: { tier: T_COMMON, zone: 'isle', bite: 200, rain: true, val: [7, 12], xpBase: 17.8, pat: ['FakeDash', 'Zigzag'], lo: 50, note: 'мигает огоньками в тумане и обманывает бросками' },
+  lumpfish: { tier: T_RARE, zone: 'isle', bite: 140, rain: false, val: [15, 36], xpBase: 29.3, pat: ['Ambush', 'SlowMigration'], lo: 0, hi: 45, note: 'присосался к камню — и вдруг отрывается' },
+  saithe: { tier: T_RARE, zone: 'isle', bite: 140, rain: false, val: [15, 39], xpBase: 29.3, pat: ['DoubleDash', 'Wave'], note: 'ходит стаей: двойные броски волной' },
+  grenadier: { tier: T_RARE, zone: 'isle', bite: 150, rain: true, val: [15, 36], xpBase: 29.3, pat: ['Sound', 'Wave'], lo: 0, hi: 55, up: 35, note: 'длинный хвост: волной уходит в глубину' },
+  lamprey: { tier: T_RARE, zone: 'isle', bite: 150, rain: true, val: [15, 36], xpBase: 29.3, pat: ['EdgeSnapback', 'Nervous'], note: 'присасывается к краю и мечется назад' },
+  salmon: { tier: T_EPIC, zone: 'isle', bite: 65, rain: false, val: [31, 77], xpBase: 34.5, pat: ['Breach', 'Sawtooth'], up: 80, note: 'свечки над водой и упрямая пила' },
+  ling: { tier: T_EPIC, zone: 'isle', bite: 65, rain: false, val: [31, 77], xpBase: 34.5, pat: ['Sound', 'Sawtooth'], lo: 0, hi: 55, up: 30, note: 'длинная, как налим: тянет вниз ступеньками' },
+  chimaera: { tier: T_EPIC, zone: 'isle', bite: 110, rain: true, val: [31, 73], xpBase: 34.5, pat: ['Circle', 'Wave'], lo: 10, hi: 70, note: 'призрак глубин: плавные круги и волны' },
+  roughy: { tier: T_EPIC, zone: 'isle', bite: 110, rain: true, val: [31, 73], xpBase: 34.5, pat: ['HoverDash', 'Breach'], up: 70, note: 'долго висит в толще — и свечкой вверх' },
+  opah: { tier: T_LEGEND, zone: 'isle', bite: 28, rain: false, val: [77, 220], xpBase: 35.7, pat: ['Circle', 'Dash'], note: 'тёплая рыба-щит: широкие круги и броски' },
+  albacore: { tier: T_LEGEND, zone: 'isle', bite: 27, rain: false, val: [77, 210], xpBase: 35.7, pat: ['Zigzag', 'EdgeSnapback'], note: 'длинные плавники: зигзагом к краю и назад' },
+  coelacanth: { tier: T_LEGEND, zone: 'isle', bite: 25, rain: true, val: [77, 220], xpBase: 35.7, pat: ['Ambush', 'Wave'], lo: 0, hi: 60, note: 'живое ископаемое: замирает и плывёт волной' },
+  goblinshark: { tier: T_LEGEND, zone: 'isle', bite: 25, rain: true, val: [83, 230], xpBase: 35.7, pat: ['Ambush', 'Circle'], note: 'выстреливает челюстями из засады и кружит' },
+  beluga: { tier: T_MYTH, zone: 'isle', bite: 4, rain: false, val: [330, 660], xpBase: 39.5, pat: ['Sound', 'EdgeSnapback'], lo: 0, hi: 60, up: 35, note: 'древняя и могучая: уходит на дно и рвёт к краю; «Второе дыхание»' },
+  thresher: { tier: T_MYTH, zone: 'isle', bite: 4, rain: false, val: [330, 660], xpBase: 39.5, pat: ['FakeDash', 'Sawtooth'], note: 'хвост-хлыст: обманные броски пилой; «Хлыст»' },
+  baskingshark: { tier: T_MYTH, zone: 'isle', bite: 5, rain: true, val: [350, 700], xpBase: 39.5, pat: ['SlowMigration', 'Breach'], note: 'огромная и неспешная, выныривает из тумана; «Пелена»' },
+  // божественная острова: царь острова — без множителей места (как кальмар), цена ×2,5 к мифику
+  frilledshark: { tier: T_DIVINE, zone: 'isle', bite: 1, rain: false, val: [825, 1650], xpBase: 98, pat: ['Zigzag', 'Sound'], note: 'морской змей: извивается и уходит в глубину; «Острые зубы»' },
 
   // --- не рыбы: лежат мёртвым грузом
   boot: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
@@ -369,6 +444,29 @@ const CAL: Record<string, readonly [number, number, number, number, number]> = {
   // ур. 3 с удочкой — 22 / 28 %, ур. 5 — 45 / 44 %, ур. 10 с легендарной удочкой и платиновой блесной — 66 / 91 %
   // (мифики там же: 9–19 / 98 %, 35–47 / 77–100 %, 62–80 / 96–100 %, 77–100 / 100 %)
   kalmar: [31.6, 190, 64.7, 7.5, 135.6],
+  // остров (10.10, tools/fish/isle-reel.ts → 2026-10-10-fishing-island-reel.json): по новым правилам (reelStyle2), сопротивление — до
+  // места острова; мифики и божественная — под цель со способностью. «Обычный» 10-го уровня (удочка 4, платина): обычные 97–99,
+  // редкие 89–91, эпические 81–83, легенды 70–71, мифики 55–57, божественная 50 %. Гигантская — ход ×0,75 уже внутри
+  capelin: [9.1, 31.85, 19.58, 30.83, 218],
+  smelt: [7, 24.5, 16.32, 26.75, 238],
+  navaga: [14, 49, 27.2, 31.85, 170],
+  lanternfish: [12.95, 45.33, 25.57, 18.9, 180],
+  lumpfish: [11.7, 43.29, 25.7, 38.25, 192],
+  saithe: [14.4, 53.28, 29.99, 38.1, 174],
+  grenadier: [21, 77.7, 38.85, 25.59, 150],
+  lamprey: [11.7, 43.29, 25.7, 34.32, 192],
+  salmon: [11, 42.9, 26.52, 22.54, 189],
+  ling: [36, 140.4, 59.8, 36.5, 135],
+  chimaera: [36, 140.4, 59.8, 33.88, 135],
+  roughy: [20.35, 79.37, 41.55, 19.92, 143],
+  opah: [42, 176.4, 71.3, 26.32, 125],
+  albacore: [13, 54.6, 31.62, 24.72, 175],
+  coelacanth: [16.9, 70.98, 37.94, 28.21, 160],
+  goblinshark: [20.8, 87.36, 44.27, 23.55, 145],
+  beluga: [24, 105.6, 49.98, 27.19, 133],
+  thresher: [15, 66, 35.7, 14.97, 161],
+  baskingshark: [36, 158.4, 60.38, 7.26, 115],
+  frilledshark: [20.8, 124.8, 46.51, 15.26, 141],
 };
 
 /** Манера вида на шкале: паттерны и место вида, цифры из CAL, зона и резкость — по категории. */
@@ -396,6 +494,8 @@ function styleOf(id: string, r: Raw): ReelStyle {
     roam: 30,
     zone: b.zone * ZONE_BASE,
     drain,
+    // остров — новый контент: «АФК у дна» у легенд и выше закрыт сразу (рыба чует ловушку)
+    ...(r.zone === 'isle' && rank >= T_LEGEND ? { wary: ISLE_WARY_TUNE[id] ?? ISLE_WARY, waryHold: ISLE_WARY_HOLD } : {}),
   };
 }
 
@@ -417,12 +517,25 @@ function spOf(id: string): number {
 }
 
 const ORDER = Object.keys(RAW);
-/** Все виды коллекции — по порядку журнала: по категориям (божественная — последней), внутри — пристань, потом баркас, как в таблице */
-export const COLLECTION: readonly number[] = RULE.filter((r): r is FishRule => r !== null && isFishTier(r.tier))
-  .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
-  .map((r) => r.sp);
-/** Сколько видов в коллекции (52): число не зашито — растёт с таблицей */
+/** Рыбы по порядку журнала: по категориям (божественная — последней), внутри — как в таблице */
+function journal(pick: (r: FishRule) => boolean): number[] {
+  return RULE.filter((r): r is FishRule => r !== null && isFishTier(r.tier) && pick(r))
+    .sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
+    .map((r) => r.sp);
+}
+/**
+ * Все виды коллекции (пристань и баркас) — по порядку журнала: по категориям (божественная — последней), внутри — пристань,
+ * потом баркас, как в таблице. Виды острова сюда не входят: у них свой счётчик (ISLE_COLLECTION).
+ */
+export const COLLECTION: readonly number[] = journal((r) => r.zone !== 'isle');
+/** Сколько видов в коллекции (52): число не зашито — растёт с таблицей (без видов острова) */
 export const COLLECTION_SIZE = COLLECTION.length;
+/** Виды острова «Последний свет» по порядку журнала — свой счётчик «Остров: N из 20» (shared/islestyle.ts isleCaught, тот же список — ISLE_SPECIES) */
+export const ISLE_COLLECTION: readonly number[] = journal((r) => r.zone === 'isle');
+/** Сколько видов у острова (20) */
+export const ISLE_SIZE = ISLE_COLLECTION.length;
+/** Все рыбы, что где-то клюют: коллекция и виды острова */
+const ALL_FISH: readonly number[] = [...COLLECTION, ...ISLE_COLLECTION];
 /** Хлам и сундук */
 export const SP_BOOT = spOf('boot');
 export const SP_BOTTLE = spOf('bottle');
@@ -434,9 +547,9 @@ export function ruleOf(sp: number): FishRule | null {
   return RULE[sp] ?? null;
 }
 
-/** Виды коллекции места: пристань или баркас (гренландская акула и кальмар — в обоих) */
+/** Виды места: пристань, баркас (гренландская акула и кальмар — в обоих) или остров */
 export function zoneSpecies(zone: FishZone): number[] {
-  return COLLECTION.filter((sp) => RULE[sp]!.zones.includes(zone));
+  return ALL_FISH.filter((sp) => RULE[sp]!.zones.includes(zone));
 }
 
 function factor(value: number | undefined, max: number): number {
@@ -458,22 +571,24 @@ export function reelStyleFor(sp: number, mods?: Readonly<FishCastMods>): ReelSty
   const calm = mods?.calm !== undefined && Number.isFinite(mods.calm) ? Math.min(LURE_MAX.calm, Math.max(0, mods.calm)) : 0;
   // царь морей везде одинаково зол: море не злит его сильнее (иначе с баркаса его почти не вытащить)
   const wild = fish && r.tier !== T_DIVINE;
-  const sea = wild ? factor(mods?.sea, SEA_FIGHT) : 1;
-  const seaDrain = wild ? factor(mods?.seaDrain, SEA_DRAIN) : 1;
+  const isle = mods?.zone === 'isle';
+  const sea = wild ? factor(mods?.sea, isle ? ISLE_FIGHT : SEA_FIGHT) : 1;
+  const seaDrain = wild ? factor(mods?.seaDrain, isle ? ISLE_DRAIN : SEA_DRAIN) : 1;
+  const place = wild && isle ? ISLE_ZONE : 1;
   // Только у рыбы: водка уменьшает зону; прежние снимки модификаторов поддерживают ускорение рывков до ×1,2.
   const cut = fish && mods?.zoneMul !== undefined && Number.isFinite(mods.zoneMul) ? Math.min(1, Math.max(0.5, mods.zoneMul)) : 1;
   const fast = fish ? factor(mods?.jerkMul, 1.2) : 1;
   const jerk = (1 - calm) * sea;
   return {
     ...r.style,
-    zone: r.style.zone * factor(mods?.zoneScale, ZONE_SCALE_MAX) * cut,
+    zone: r.style.zone * factor(mods?.zoneScale, ZONE_SCALE_MAX) * cut * place,
     dartSpd: r.style.dartSpd * jerk * fast,
     sharp: r.style.sharp * jerk,
     drain: r.style.drain * seaDrain,
   };
 }
 
-/** Вид — из коллекции (одна из 52 рыб: обычные … мифические и божественная) */
+/** Рыба (не хлам и не сундук): одна из 52 видов коллекции или из 20 видов острова */
 export function isCollected(sp: number): boolean {
   const r = RULE[sp];
   return !!r && isFishTier(r.tier);
@@ -529,7 +644,7 @@ function makePool(zone: FishZone, rain: boolean): Pool {
   const rank: number[] = [];
   const w: number[] = [];
   const rankW = [0, 0, 0, 0, 0, 0];
-  for (const sp of COLLECTION) {
+  for (const sp of ALL_FISH) {
     const r = RULE[sp]!;
     if (!r.zones.includes(zone) || (r.rain && !rain)) continue;
     const k = tierRank(r.tier);
@@ -544,6 +659,8 @@ function makePool(zone: FishZone, rain: boolean): Pool {
 const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
   pier: [makePool('pier', false), makePool('pier', true)],
   barkas: [makePool('barkas', false), makePool('barkas', true)],
+  // остров: «дождь» — туман («Туман наступает») и сезон острова
+  isle: [makePool('isle', false), makePool('isle', true)],
 };
 
 /**
@@ -562,12 +679,12 @@ function makeBase(zone: FishZone): readonly number[] {
   return out;
 }
 
-const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas') };
+const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas'), isle: makeBase('isle') };
 /** База категорий места — для страницы /fishing (tools/fishing-guide): доли рыбы по рангам 0…5 в ясную погоду без бонусов */
 export const TIER_BASE: Readonly<Record<FishZone, readonly number[]>> = BASE;
 
 function placeOf(mods?: Readonly<FishCastMods>): FishZone {
-  return mods?.zone === 'barkas' ? 'barkas' : 'pier';
+  return mods?.zone === 'barkas' ? 'barkas' : mods?.zone === 'isle' ? 'isle' : 'pier';
 }
 
 function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {
@@ -700,33 +817,40 @@ export function tierOddsParts(rank: number, rain: boolean, mods?: Readonly<FishC
   return { base: fish * base, weather: weatherMul(rank, weather), bonus: bonusMul(rank, mods), now: fish * (rankShares(weather, mods)[rank] ?? 0) };
 }
 
-/** Цена без напитка и места: обычные — старая целая цена +75 %, остальные откалиброваны; дождевые ×1,5. */
-export function basePrice(sp: number, g: number): number {
+/**
+ * Цена без напитка и места: обычные — старая целая цена +75 %, остальные откалиброваны; дождевые ×1,5; потом рыба
+ * дешевеет на FISH_PRICE_CUT (с флагом острова — ISLE_PRICE_CUT; cut = 1 — цена без него: от неё считается общий опыт, он не
+ * режется). Виды острова — val сразу в жетонах (туманные ×1,5), без поправок и без множителя цены.
+ */
+export function basePrice(sp: number, g: number, cut = priceCut): number {
   const r = RULE[sp];
   if (!r || !isFishTier(r.tier)) return 0;
   const f = FISH[sp];
   const k = f.g[1] > f.g[0] ? Math.min(1, Math.max(0, (g - f.g[0]) / (f.g[1] - f.g[0]))) : 0;
-  const v = (r.val[0] + (r.val[1] - r.val[0]) * k) * COIN_PER_POINT;
   const event = r.rain ? RAIN_NUM / RAIN_DEN : 1;
-  return r.tier === T_COMMON
+  if (r.zone === 'isle') return Math.max(1, Math.round((r.val[0] + (r.val[1] - r.val[0]) * k) * event));
+  const v = (r.val[0] + (r.val[1] - r.val[0]) * k) * COIN_PER_POINT;
+  const full = r.tier === T_COMMON
     ? Math.round(Math.round(Math.max(1, Math.round(v)) * 1.75) * event)
     : Math.max(1, Math.round(v * FISH_OTHER_PRICE_SCALE * event));
+  return cut === 1 ? full : Math.max(1, Math.round(full * cut));
 }
 
 /** Цена улова (в рюкзак — фиксируется при поимке): база × напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво владыки) × баркас 1,25, одно округление. */
-export function fishPrice2(sp: number, g: number, coins = 0, mods?: Readonly<FishCastMods>): number {
+export function fishPrice2(sp: number, g: number, coins = 0, mods?: Readonly<FishCastMods>, cut = priceCut): number {
   const r = RULE[sp];
   if (!r) return 0;
   if (r.tier === T_CHEST) return coins;
   if (r.tier === T_JUNK) return 0;
   const place = mods?.zone === 'barkas' ? BARKAS_INCOME : 1;
-  return Math.round(basePrice(sp, g) * factor(mods?.incomeScale, LORD.income) * place);
+  return Math.round(basePrice(sp, g, cut) * factor(mods?.incomeScale, LORD.income) * place);
 }
 
 /** Цена вида: за самую лёгкую и самую тяжёлую (для журнала) — у видов баркаса сразу с ×1,25 */
 export function priceRange(sp: number): [number, number] {
   const f = FISH[sp];
-  const mods = RULE[sp]?.zone === 'barkas' ? ({ zone: 'barkas' } as FishCastMods) : undefined;
+  const zone = RULE[sp]?.zone;
+  const mods = zone === 'barkas' || zone === 'isle' ? ({ zone } as FishCastMods) : undefined;
   return [fishPrice2(sp, f.g[0], 0, mods), fishPrice2(sp, f.g[1], 0, mods)];
 }
 

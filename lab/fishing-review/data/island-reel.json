@@ -1,0 +1,1150 @@
+{
+ "doc": "docs/superpowers/plans/2026-10-10-fishing-abilities.md",
+ "source": "2026-10-10-fishing-island.json — species: паттерны, место на шкале, ход (calEstimate)",
+ "date": "2026-10-10",
+ "note": "Шкала видов острова по новым правилам 10.10 (зона +1,5 %/ур., бонусы уровня, мифик и божественная — 120 % времени в зоне и способность вместо «последнего рывка»). cal — как CAL в shared/fishrules.ts: скорость %/с, рывок %/с, размах %, сопротивление %/с ДО места, цикл (тики). success — «обычный»/«опытный», %, N=400, снаряжение острова. Подобрано tools/fish/isle-reel.ts.",
+ "rules": {
+  "place": {
+   "fight": 1.3,
+   "drain": 1.4,
+   "zone": 0.95,
+   "divine": "место не трогает"
+  },
+  "gear": {
+   "lvl6": {
+    "rod": 2,
+    "lure": 3
+   },
+   "lvl8": {
+    "rod": 3,
+    "lure": 4
+   },
+   "lvl10": {
+    "rod": 4,
+    "lure": 4
+   },
+   "lvl15": {
+    "rod": 4,
+    "lure": 4
+   }
+  },
+  "targetsTypicalLvl10": {
+   "common": 98,
+   "rare": 90,
+   "epic": 80,
+   "legend": 70,
+   "mythWithAbility": 55,
+   "divineWithAbility": 50,
+   "note": "мифик и божественная — сопротивление под цель со способностью; «без способности 62 %» одновременно не выходит (снятый «последний рывок» у хлыста и пелены сам стоит 5–26 п. п.), lvl10NoAbility — для сравнения"
+  },
+  "fillBig": 120,
+  "wary": "легенды, мифики и божественная: зона у края без рыбы 60 тиков (thresher — 30, frilledshark — 30) или 240 тиков подряд с рыбой или без (waryHold) — рыба обходит зону",
+  "campBottomMax": "легенды и выше: кемпер у дна ≤ 5 % (опытный, ур. 10, N=200)",
+  "tune": {
+   "baskingshark": {
+    "move": 0.75
+   },
+   "thresher": {
+    "wary": 30
+   },
+   "frilledshark": {
+    "wary": 30
+   }
+  },
+  "bot": "test/fishbot.ts TYPICAL/EXPERT + tools/fish/abilitybot.ts"
+ },
+ "abilities": {
+  "beluga": {
+   "id": "surge",
+   "at": [
+    60,
+    75
+   ],
+   "warn": 36,
+   "dur": 0,
+   "drop": 12,
+   "floor": 10,
+   "spdMul": 110,
+   "zoneMul": 95
+  },
+  "thresher": {
+   "id": "whip",
+   "at": [
+    60,
+    75
+   ],
+   "warn": 36,
+   "dur": 0,
+   "every": [
+    240,
+    360
+   ],
+   "swing": 36,
+   "kick": 15,
+   "down": 67
+  },
+  "baskingshark": {
+   "id": "fog",
+   "at": [
+    60,
+    75
+   ],
+   "warn": 60,
+   "dur": 0,
+   "band": 15,
+   "drift": [
+    6,
+    9
+   ],
+   "wall": 40,
+   "wallEvery": 480,
+   "wallDur": 90
+  },
+  "frilledshark": {
+   "id": "teeth",
+   "at": [
+    60,
+    75
+   ],
+   "warn": 48,
+   "dur": 0,
+   "count": 2,
+   "size": 5,
+   "cut": 50,
+   "cycle": [
+    210,
+    120,
+    48
+   ]
+  }
+ },
+ "species": [
+  {
+   "id": "capelin",
+   "name": "Мойва",
+   "tier": 0,
+   "when": "всегда",
+   "pat": [
+    "Zigzag",
+    "Sawtooth"
+   ],
+   "lo": 40,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 9.1,
+    "dartSpd": 31.85,
+    "amp": 19.58,
+    "drain": 30.83,
+    "per": 218
+   },
+   "calEstimateDrain": 44.11,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     93,
+     100
+    ],
+    "lvl8": [
+     96,
+     100
+    ],
+    "lvl10": [
+     99,
+     100
+    ],
+    "lvl15": [
+     100,
+     100
+    ]
+   },
+   "fightS10": 6.9,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "smelt",
+   "name": "Корюшка",
+   "tier": 0,
+   "when": "всегда",
+   "pat": [
+    "Nervous",
+    "Circle"
+   ],
+   "lo": 25,
+   "hi": 90,
+   "up": 50,
+   "cal": {
+    "spd": 7,
+    "dartSpd": 24.5,
+    "amp": 16.32,
+    "drain": 26.75,
+    "per": 238
+   },
+   "calEstimateDrain": 26.03,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     94,
+     100
+    ],
+    "lvl8": [
+     95,
+     100
+    ],
+    "lvl10": [
+     97,
+     100
+    ],
+    "lvl15": [
+     98,
+     100
+    ]
+   },
+   "fightS10": 7.8,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "navaga",
+   "name": "Навага",
+   "tier": 0,
+   "when": "всегда",
+   "pat": [
+    "HoverDash",
+    "Zigzag"
+   ],
+   "lo": 0,
+   "hi": 50,
+   "up": 70,
+   "cal": {
+    "spd": 14,
+    "dartSpd": 49,
+    "amp": 27.2,
+    "drain": 31.85,
+    "per": 170
+   },
+   "calEstimateDrain": 23.6,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     94,
+     100
+    ],
+    "lvl8": [
+     98,
+     100
+    ],
+    "lvl10": [
+     98,
+     100
+    ],
+    "lvl15": [
+     99,
+     100
+    ]
+   },
+   "fightS10": 6.7,
+   "camp10": {
+    "bottom": 35,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "lanternfish",
+   "name": "Светящийся анчоус",
+   "tier": 0,
+   "when": "туман",
+   "pat": [
+    "FakeDash",
+    "Zigzag"
+   ],
+   "lo": 50,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 12.95,
+    "dartSpd": 45.33,
+    "amp": 25.57,
+    "drain": 18.9,
+    "per": 180
+   },
+   "calEstimateDrain": 19.6,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     97,
+     100
+    ],
+    "lvl8": [
+     98,
+     100
+    ],
+    "lvl10": [
+     98,
+     100
+    ],
+    "lvl15": [
+     99,
+     100
+    ]
+   },
+   "fightS10": 15.6,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "lumpfish",
+   "name": "Пинагор",
+   "tier": 1,
+   "when": "всегда",
+   "pat": [
+    "Ambush",
+    "SlowMigration"
+   ],
+   "lo": 0,
+   "hi": 45,
+   "up": 50,
+   "cal": {
+    "spd": 11.7,
+    "dartSpd": 43.29,
+    "amp": 25.7,
+    "drain": 38.25,
+    "per": 192
+   },
+   "calEstimateDrain": 35.24,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     82,
+     100
+    ],
+    "lvl8": [
+     88,
+     100
+    ],
+    "lvl10": [
+     90,
+     100
+    ],
+    "lvl15": [
+     93,
+     100
+    ]
+   },
+   "fightS10": 8.9,
+   "camp10": {
+    "bottom": 47,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "saithe",
+   "name": "Сайда",
+   "tier": 1,
+   "when": "всегда",
+   "pat": [
+    "DoubleDash",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 14.4,
+    "dartSpd": 53.28,
+    "amp": 29.99,
+    "drain": 38.1,
+    "per": 174
+   },
+   "calEstimateDrain": 43.24,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     87,
+     100
+    ],
+    "lvl8": [
+     90,
+     100
+    ],
+    "lvl10": [
+     89,
+     100
+    ],
+    "lvl15": [
+     91,
+     100
+    ]
+   },
+   "fightS10": 8.5,
+   "camp10": {
+    "bottom": 53,
+    "top": 3
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "grenadier",
+   "name": "Макрурус",
+   "tier": 1,
+   "when": "туман",
+   "pat": [
+    "Sound",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 55,
+   "up": 35,
+   "cal": {
+    "spd": 21,
+    "dartSpd": 77.7,
+    "amp": 38.85,
+    "drain": 25.59,
+    "per": 150
+   },
+   "calEstimateDrain": 23.95,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     91,
+     100
+    ],
+    "lvl8": [
+     90,
+     100
+    ],
+    "lvl10": [
+     91,
+     100
+    ],
+    "lvl15": [
+     93,
+     100
+    ]
+   },
+   "fightS10": 18.4,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "lamprey",
+   "name": "Морская минога",
+   "tier": 1,
+   "when": "туман",
+   "pat": [
+    "EdgeSnapback",
+    "Nervous"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 11.7,
+    "dartSpd": 43.29,
+    "amp": 25.7,
+    "drain": 34.32,
+    "per": 192
+   },
+   "calEstimateDrain": 40.29,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     85,
+     100
+    ],
+    "lvl8": [
+     87,
+     100
+    ],
+    "lvl10": [
+     91,
+     100
+    ],
+    "lvl15": [
+     93,
+     100
+    ]
+   },
+   "fightS10": 9.6,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "salmon",
+   "name": "Сёмга",
+   "tier": 2,
+   "when": "всегда",
+   "pat": [
+    "Breach",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 80,
+   "cal": {
+    "spd": 11,
+    "dartSpd": 42.9,
+    "amp": 26.52,
+    "drain": 22.54,
+    "per": 189
+   },
+   "calEstimateDrain": 23.42,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     12,
+     5
+    ],
+    "lvl8": [
+     58,
+     87
+    ],
+    "lvl10": [
+     81,
+     99
+    ],
+    "lvl15": [
+     94,
+     100
+    ]
+   },
+   "fightS10": 13.3,
+   "camp10": {
+    "bottom": 6,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "ling",
+   "name": "Мольва",
+   "tier": 2,
+   "when": "всегда",
+   "pat": [
+    "Sound",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 55,
+   "up": 30,
+   "cal": {
+    "spd": 36,
+    "dartSpd": 140.4,
+    "amp": 59.8,
+    "drain": 36.5,
+    "per": 135
+   },
+   "calEstimateDrain": 36.46,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     72,
+     100
+    ],
+    "lvl8": [
+     82,
+     100
+    ],
+    "lvl10": [
+     81,
+     100
+    ],
+    "lvl15": [
+     76,
+     100
+    ]
+   },
+   "fightS10": 11,
+   "camp10": {
+    "bottom": 99,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "chimaera",
+   "name": "Химера",
+   "tier": 2,
+   "when": "туман",
+   "pat": [
+    "Circle",
+    "Wave"
+   ],
+   "lo": 10,
+   "hi": 70,
+   "up": 50,
+   "cal": {
+    "spd": 36,
+    "dartSpd": 140.4,
+    "amp": 59.8,
+    "drain": 33.88,
+    "per": 135
+   },
+   "calEstimateDrain": 34.03,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     57,
+     46
+    ],
+    "lvl8": [
+     79,
+     99
+    ],
+    "lvl10": [
+     83,
+     99
+    ],
+    "lvl15": [
+     86,
+     99
+    ]
+   },
+   "fightS10": 11.3,
+   "camp10": {
+    "bottom": 100,
+    "top": 0
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "roughy",
+   "name": "Большеголов",
+   "tier": 2,
+   "when": "туман",
+   "pat": [
+    "HoverDash",
+    "Breach"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 70,
+   "cal": {
+    "spd": 20.35,
+    "dartSpd": 79.37,
+    "amp": 41.55,
+    "drain": 19.92,
+    "per": 143
+   },
+   "calEstimateDrain": 24.12,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     39,
+     66
+    ],
+    "lvl8": [
+     59,
+     83
+    ],
+    "lvl10": [
+     81,
+     99
+    ],
+    "lvl15": [
+     93,
+     100
+    ]
+   },
+   "fightS10": 12.5,
+   "camp10": {
+    "bottom": 0,
+    "top": 26
+   },
+   "wary": 0,
+   "waryHold": 0
+  },
+  {
+   "id": "opah",
+   "name": "Опах",
+   "tier": 3,
+   "when": "всегда",
+   "pat": [
+    "Circle",
+    "Dash"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 42,
+    "dartSpd": 176.4,
+    "amp": 71.3,
+    "drain": 26.32,
+    "per": 125
+   },
+   "calEstimateDrain": 30.72,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     5,
+     10
+    ],
+    "lvl8": [
+     36,
+     73
+    ],
+    "lvl10": [
+     71,
+     96
+    ],
+    "lvl15": [
+     83,
+     97
+    ]
+   },
+   "fightS10": 13.2,
+   "camp10": {
+    "bottom": 1,
+    "top": 0
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "albacore",
+   "name": "Тунец-альбакор",
+   "tier": 3,
+   "when": "всегда",
+   "pat": [
+    "Zigzag",
+    "EdgeSnapback"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 13,
+    "dartSpd": 54.6,
+    "amp": 31.62,
+    "drain": 24.72,
+    "per": 175
+   },
+   "calEstimateDrain": 28.64,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     1,
+     15
+    ],
+    "lvl8": [
+     35,
+     87
+    ],
+    "lvl10": [
+     71,
+     97
+    ],
+    "lvl15": [
+     86,
+     99
+    ]
+   },
+   "fightS10": 18.6,
+   "camp10": {
+    "bottom": 3,
+    "top": 0
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "coelacanth",
+   "name": "Латимерия",
+   "tier": 3,
+   "when": "туман",
+   "pat": [
+    "Ambush",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 60,
+   "up": 50,
+   "cal": {
+    "spd": 16.9,
+    "dartSpd": 70.98,
+    "amp": 37.94,
+    "drain": 28.21,
+    "per": 160
+   },
+   "calEstimateDrain": 31.59,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     28,
+     74
+    ],
+    "lvl8": [
+     49,
+     86
+    ],
+    "lvl10": [
+     70,
+     97
+    ],
+    "lvl15": [
+     79,
+     100
+    ]
+   },
+   "fightS10": 16.7,
+   "camp10": {
+    "bottom": 1,
+    "top": 0
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "goblinshark",
+   "name": "Акула-домовой",
+   "tier": 3,
+   "when": "туман",
+   "pat": [
+    "Ambush",
+    "Circle"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 20.8,
+    "dartSpd": 87.36,
+    "amp": 44.27,
+    "drain": 23.55,
+    "per": 145
+   },
+   "calEstimateDrain": 29.33,
+   "move": 1,
+   "success": {
+    "lvl6": [
+     26,
+     82
+    ],
+    "lvl8": [
+     48,
+     97
+    ],
+    "lvl10": [
+     71,
+     99
+    ],
+    "lvl15": [
+     85,
+     100
+    ]
+   },
+   "fightS10": 19.1,
+   "camp10": {
+    "bottom": 1,
+    "top": 0
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "beluga",
+   "name": "Белуга",
+   "tier": 4,
+   "when": "всегда",
+   "pat": [
+    "Sound",
+    "EdgeSnapback"
+   ],
+   "lo": 0,
+   "hi": 60,
+   "up": 35,
+   "cal": {
+    "spd": 24,
+    "dartSpd": 105.6,
+    "amp": 49.98,
+    "drain": 27.19,
+    "per": 133
+   },
+   "calEstimateDrain": 28.64,
+   "move": 1,
+   "ability": {
+    "id": "surge",
+    "at": [
+     60,
+     75
+    ],
+    "warn": 36,
+    "dur": 0,
+    "drop": 12,
+    "floor": 10,
+    "spdMul": 110,
+    "zoneMul": 95
+   },
+   "success": {
+    "lvl6": [
+     23,
+     99
+    ],
+    "lvl8": [
+     43,
+     99
+    ],
+    "lvl10": [
+     55,
+     99
+    ],
+    "lvl15": [
+     55,
+     99
+    ]
+   },
+   "lvl10NoAbility": [
+    57,
+    84
+   ],
+   "fightS10": 24.8,
+   "afterAbility10": 66,
+   "fired10": 84,
+   "camp10": {
+    "bottom": 0,
+    "top": 0
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "thresher",
+   "name": "Лисья акула",
+   "tier": 4,
+   "when": "всегда",
+   "pat": [
+    "FakeDash",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 15,
+    "dartSpd": 66,
+    "amp": 35.7,
+    "drain": 14.97,
+    "per": 161
+   },
+   "calEstimateDrain": 24.81,
+   "move": 1,
+   "ability": {
+    "id": "whip",
+    "at": [
+     60,
+     75
+    ],
+    "warn": 36,
+    "dur": 0,
+    "every": [
+     240,
+     360
+    ],
+    "swing": 36,
+    "kick": 15,
+    "down": 67
+   },
+   "success": {
+    "lvl6": [
+     3,
+     54
+    ],
+    "lvl8": [
+     23,
+     88
+    ],
+    "lvl10": [
+     55,
+     97
+    ],
+    "lvl15": [
+     74,
+     98
+    ]
+   },
+   "lvl10NoAbility": [
+    69,
+    98
+   ],
+   "fightS10": 30.8,
+   "afterAbility10": 66,
+   "fired10": 83,
+   "camp10": {
+    "bottom": 0,
+    "top": 0
+   },
+   "wary": 30,
+   "waryHold": 240
+  },
+  {
+   "id": "baskingshark",
+   "name": "Гигантская акула",
+   "tier": 4,
+   "when": "туман",
+   "pat": [
+    "SlowMigration",
+    "Breach"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 36,
+    "dartSpd": 158.4,
+    "amp": 60.38,
+    "drain": 7.26,
+    "per": 115
+   },
+   "calEstimateDrain": 9.52,
+   "move": 0.75,
+   "ability": {
+    "id": "fog",
+    "at": [
+     60,
+     75
+    ],
+    "warn": 60,
+    "dur": 0,
+    "band": 15,
+    "drift": [
+     6,
+     9
+    ],
+    "wall": 40,
+    "wallEvery": 480,
+    "wallDur": 90
+   },
+   "success": {
+    "lvl6": [
+     32,
+     55
+    ],
+    "lvl8": [
+     29,
+     77
+    ],
+    "lvl10": [
+     57,
+     95
+    ],
+    "lvl15": [
+     89,
+     100
+    ]
+   },
+   "lvl10NoAbility": [
+    84,
+    100
+   ],
+   "fightS10": 34.6,
+   "afterAbility10": 64,
+   "fired10": 89,
+   "camp10": {
+    "bottom": 0,
+    "top": 2
+   },
+   "wary": 60,
+   "waryHold": 240
+  },
+  {
+   "id": "frilledshark",
+   "name": "Плащеносная акула",
+   "tier": 7,
+   "when": "всегда",
+   "pat": [
+    "Zigzag",
+    "Sound"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "cal": {
+    "spd": 20.8,
+    "dartSpd": 124.8,
+    "amp": 46.51,
+    "drain": 15.26,
+    "per": 141
+   },
+   "calEstimateDrain": 23.95,
+   "move": 1,
+   "ability": {
+    "id": "teeth",
+    "at": [
+     60,
+     75
+    ],
+    "warn": 48,
+    "dur": 0,
+    "count": 2,
+    "size": 5,
+    "cut": 50,
+    "cycle": [
+     210,
+     120,
+     48
+    ]
+   },
+   "success": {
+    "lvl6": [
+     1,
+     12
+    ],
+    "lvl8": [
+     29,
+     51
+    ],
+    "lvl10": [
+     50,
+     74
+    ],
+    "lvl15": [
+     61,
+     81
+    ]
+   },
+   "lvl10NoAbility": [
+    91,
+    99
+   ],
+   "fightS10": 26.4,
+   "afterAbility10": 53,
+   "fired10": 94,
+   "camp10": {
+    "bottom": 1,
+    "top": 0
+   },
+   "wary": 30,
+   "waryHold": 240
+  }
+ ]
+}

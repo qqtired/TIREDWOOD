@@ -7,9 +7,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FE_BITE, FP_REEL } from '../shared/fishing.ts';
+import { FE_BITE, FP_HOLD, FP_REEL } from '../shared/fishing.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
 import type { ReelStyle } from '../shared/fishreel.ts';
-import { reelStyleFor, type Hooked } from '../shared/fishrules.ts';
+import { type Hooked } from '../shared/fishrules.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
 import { Hub } from '../server/hub.ts';
 import type { FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -55,12 +56,14 @@ function bites(s: FakeSink): boolean {
 export function catchWith(e: ReturnType<typeof fisher>, pick: (style: ReelStyle, seed: number, drunk: boolean) => Play) {
   e.clock.now += 1000;
   e.a.s.msgs.length = 0;
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (e.hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && !bites(e.a.s); i++) e.advance(1);
   e.hub.onJson(e.a.c, { t: 'fish', a: 'hook', n: 2 });
   const m = lastOf(e.a.s, 'fishReel');
   assert.ok(m && e.hall.phase(0) === FP_REEL, 'шкала: сид от сервера');
-  const style = reelStyleFor(m.sp, m.mods);
+  const style = reelStyle2(m.sp, m.mods);
   const play = pick(style, m.seed, m.mods.drink === 4);
   let sent = 0;
   for (let u = 0; u < play.ticks;) {

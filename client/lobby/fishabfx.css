@@ -1,0 +1,179 @@
+/* Способности рыб на шкале вываживания (client/lobby/fishabfx.ts) и бонусы уровня на экране. Образец — страница
+   lab/fishing-abilities/ (там же звуки); цвета — те, что уже есть у шкалы (fish2.css, fishreel.css). */
+
+/* ---------------------------------------------------------------- слои шкалы */
+.fr-bar > .fr-zone { z-index: 3; }
+.fr-bar > .fr-fish { z-index: 4; }
+.fr-bar { transition: opacity 0.25s; }
+
+/* божественная — бирюзовая рамка (как подпись «Божественный улов!!!»), мифик — красная (fish2.css) */
+.fr.myth.divine .fr-bar { border-color: #138f83; }
+
+/* «Мастер» (ур. 15): золотая рамка вокруг шкалы */
+.fr.frx-master .fr-bar { outline: 3px solid #e8b931; outline-offset: 2px; box-shadow: 0 14px 34px rgba(10, 5, 8, 0.5), inset 0 0 0 2px #ffe08a, 0 0 18px rgba(255, 211, 90, 0.55); }
+
+/* пролом: колонка не двигается — шкала вылезает за прежний край, подпись или низ колонки отъезжают (fishabfx.ts grow) */
+.fr { transition: scale 0.35s ease-out; }
+.fr-label { transition: translate 0.25s ease-out; }
+.fr.frx-down > .fr-prog,
+.fr.frx-down > .fr-grade,
+.fr.frx-down > .fr-slot,
+.fr.frx-down > .fr-rain,
+.fr.frx-down > .fe-reelbonus,
+.fr.frx-down > .fr-quit { translate: 0 var(--frx-down, 0px); transition: translate 0.25s ease-out; }
+.fr.frx-down > .fr-prog { transition: translate 0.25s ease-out, opacity 0.09s ease-out, scale 0.09s ease-out; }
+
+/* новый кусок шкалы после пролома — со своей рамкой (внутренний кант, как у шкалы) и глубже (у верха — светлее) */
+.frx-deep { position: absolute; left: 0; right: 0; z-index: 1; display: none; pointer-events: none; border-radius: 9px;
+  background: linear-gradient(rgba(8, 26, 48, 0), rgba(8, 26, 48, 0.5)); box-shadow: inset 0 0 0 2px #a8754a, inset 0 0 14px rgba(0, 0, 0, 0.35); }
+.frx-deep.top { background: linear-gradient(rgba(190, 235, 255, 0.45), rgba(190, 235, 255, 0.05)); }
+.frx-deep.on { display: block; }
+.frx-seam { position: absolute; left: -2px; right: -2px; height: 10px; margin-bottom: -5px; z-index: 2; display: none; pointer-events: none; }
+.frx-seam.on { display: block; }
+.frx-seam svg { display: block; width: 100%; height: 100%; }
+.frx-cracks { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; z-index: 5; display: none; pointer-events: none; transform: scaleY(-1); }
+.frx-cracks.top { top: 0; bottom: auto; transform: none; }
+.frx-cracks.on { display: block; }
+.frx-cracks path { fill: none; stroke: #2a160c; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 80; stroke-dashoffset: 80; }
+.frx-cracks.on path { animation: frx-crack var(--frx-warn, 0.6s) linear forwards; }
+@keyframes frx-crack { to { stroke-dashoffset: 0; } }
+.fr .fr-bar.frx-quake { animation: frx-shake 0.07s linear infinite; }
+@keyframes frx-shake { 25% { transform: translateX(-2px) rotate(-1deg); } 75% { transform: translateX(2px) rotate(1deg); } }
+
+/* осколки и брызги: разлетаются вверх или вниз и падают (переменные — fishabfx.ts burst) */
+.frx-shards { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
+.frx-shard { position: absolute; border-radius: 1px; animation: frx-fly 1.1s ease-out forwards; }
+.frx-shard.frx-drop { border-radius: 50%; background: rgba(190, 235, 255, 0.9); }
+@keyframes frx-fly {
+  0% { translate: 0 0; rotate: 0deg; opacity: 1; }
+  35% { translate: calc(var(--dx) * 0.6) var(--dy1); animation-timing-function: ease-in; }
+  75% { opacity: 1; }
+  100% { translate: var(--dx) var(--dy2); rotate: var(--rot); opacity: 0; }
+}
+
+/* ---------------------------------------------------------------- чернила */
+.frx-ink { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 6; display: none; pointer-events: none; }
+.frx-ink.on { display: block; }
+.frx-ink-body { position: absolute; inset: 0; background: radial-gradient(130% 40% at 50% 0%, #2a1d33, #0d0a12 60%); }
+.frx-ink-edge { position: absolute; left: -2px; right: -2px; top: -9px; width: calc(100% + 4px); height: 12px; }
+.frx-ink-drips { position: absolute; left: 0; right: 0; bottom: 100%; height: 60px; }
+.frx-ink-drips i { position: absolute; bottom: -2px; width: 5px; border-radius: 3px 3px 0 0; background: linear-gradient(rgba(18, 13, 25, 0), #120d19 40%); transform-origin: bottom; animation: frx-drip 1.1s ease-in-out infinite alternate; }
+@keyframes frx-drip { to { transform: scaleY(0.55); } }
+.frx-ink.full .frx-ink-drips { display: none; }
+.fr-bar > .fr-zone.frx-inked { z-index: 7; background: rgba(150, 255, 150, 0.06); border-color: rgba(200, 255, 190, 0.6); border-style: dashed; box-shadow: none; }
+.fr-bar > .fr-zone.frx-inked::before { opacity: 0.12; }
+.fr.in .fr-bar > .fr-zone.frx-inked { border-color: rgba(220, 255, 210, 0.95); box-shadow: 0 0 10px rgba(150, 255, 140, 0.45); }
+.frx-splat { position: absolute; z-index: 7; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 50%; pointer-events: none; display: none;
+  background: radial-gradient(circle, #0d0a12 0 45%, rgba(13, 10, 18, 0.85) 55%, rgba(13, 10, 18, 0) 70%); }
+.frx-splat.on { display: block; animation: frx-splat 0.45s ease-out forwards; }
+@keyframes frx-splat { 0% { transform: scale(0.1); opacity: 1; } 55% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+.fr-fish.frx-puff svg { animation: frx-puff 0.25s ease-in-out infinite alternate; }
+@keyframes frx-puff { to { transform: scale(1.25); filter: brightness(0.6); } }
+
+/* ---------------------------------------------------------------- ветер и шторм */
+.frx-badge { position: absolute; z-index: 6; width: 58px; height: 58px; margin-top: -29px; border-radius: 50%; display: none; place-items: center; pointer-events: none;
+  background: var(--panel-strong); border: 2px solid rgba(220, 240, 255, 0.8); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.frx-badge.on { display: grid; }
+.frx-badge svg { width: 36px; height: 36px; color: #dff3ff; transition: transform 0.25s; }
+.frx-badge.down svg { transform: rotate(180deg); }
+.frx-badge.warn { opacity: 0.7; }
+.frx-badge.turn { animation: frx-turn 0.12s linear infinite; }
+@keyframes frx-turn { 50% { border-color: var(--gold); box-shadow: 0 0 16px var(--gold); } }
+.frx-badge b { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font: 800 12px Rubik, system-ui, sans-serif; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+.frx-streaks { position: absolute; inset: 0; border-radius: inherit; display: none; opacity: 0.7; pointer-events: none; }
+.fr-zone.frx-windy .frx-streaks { display: block; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0) 0 9px, rgba(255, 255, 255, 0.55) 9px 11px); background-size: 100% 22px; animation: frx-streak 0.35s linear infinite; }
+.fr-zone.frx-windy.frx-down .frx-streaks { animation-direction: reverse; }
+@keyframes frx-streak { from { background-position: 0 22px; } to { background-position: 0 0; } }
+/* косой резкий дождь на весь экран, пока дует (под шкалой; клики не ловит) */
+.frx-storm { position: absolute; inset: -20%; pointer-events: none; opacity: 0; transition: opacity 0.8s; rotate: 14deg;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 21px, rgba(225, 240, 255, 0.5) 21px 22px, transparent 22px 47px),
+    repeating-linear-gradient(90deg, transparent 0 33px, rgba(225, 240, 255, 0.35) 33px 34px, transparent 34px 61px);
+  -webkit-mask: repeating-linear-gradient(transparent 0 30px, #000 30px 52px, transparent 52px 96px);
+  mask: repeating-linear-gradient(transparent 0 30px, #000 30px 52px, transparent 52px 96px);
+  -webkit-mask-size: 100% 96px; mask-size: 100% 96px; animation: frx-rain 0.22s linear infinite; }
+.frx-storm.on { opacity: 1; }
+.frx-storm::after { content: ''; position: absolute; inset: 0; background: rgba(30, 40, 55, 0.18); }
+@keyframes frx-rain { from { -webkit-mask-position: 0 0; mask-position: 0 0; } to { -webkit-mask-position: 0 96px; mask-position: 0 96px; } }
+
+/* ---------------------------------------------------------------- селёдки */
+.frx-minis { position: absolute; z-index: 6; display: flex; gap: 8px; pointer-events: none; }
+.frx-mini { position: relative; width: 34px; height: 160px; border-radius: 10px; border: 4px solid #7a4e2c; background: #6b4426; overflow: hidden; display: none;
+  box-shadow: 0 8px 18px rgba(10, 5, 8, 0.45), inset 0 0 0 2px #a8754a; }
+.frx-mini.on, .frx-mini.done, .frx-mini.gone { display: block; }
+.frx-mini.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255, 211, 90, 0.4), 0 8px 18px rgba(10, 5, 8, 0.45); animation: frx-mini-in 0.25s ease-out; }
+@keyframes frx-mini-in { from { opacity: 0; transform: translateY(14px) scale(0.9); } }
+.frx-mini.gone { opacity: 0.3; filter: grayscale(1); }
+.frx-mini .fr-zone { left: 2px; right: 2px; border-radius: 6px; --fr-w: 4px; }
+.frx-mini .fr-zone.in { background: rgba(130, 240, 135, 0.6); box-shadow: 0 0 10px rgba(150, 255, 140, 0.6); }
+.frx-hf { position: absolute; left: 50%; width: 26px; height: 15px; z-index: 4; transform: translate(-50%, 50%); color: #dfe8ee; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+.frx-hf svg { display: block; width: 100%; height: 100%; }
+.frx-ok { position: absolute; inset: 0; z-index: 5; display: none; place-items: center; font: 900 20px Rubik, system-ui, sans-serif; color: var(--gold); text-shadow: 0 1px 3px #000; background: rgba(20, 60, 30, 0.35); }
+.frx-mini.done .frx-ok { display: grid; }
+.frx-hold { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; z-index: 6; background: rgba(0, 0, 0, 0.35); }
+.frx-hold i { display: block; height: 100%; width: 0; background: var(--gold); }
+.frx-wait { position: absolute; z-index: 6; display: none; padding: 3px 10px; border-radius: 999px; background: var(--panel-strong); color: var(--cream); font: 700 13px Rubik, system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+.frx-wait.on { display: block; }
+.fr-bar.frx-dim { opacity: 0.5; }
+
+/* ---------------------------------------------------------------- зубы */
+.frx-teeth { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.frx-tooth { position: absolute; left: 0; right: 0; }
+.frx-tooth svg { display: block; width: 100%; height: 100%; }
+.frx-tooth.grow { animation: frx-grow var(--frx-warn, 0.8s) ease-out both; }
+@keyframes frx-grow { from { transform: scaleX(0); } }
+.frx-tooth.dull { opacity: 0.45; filter: grayscale(0.8); }
+.frx-tooth.flick { animation: frx-flick 0.16s steps(2) infinite; }
+@keyframes frx-flick { 50% { opacity: 0.25; } }
+.frx-tooth.sharp svg rect { fill: rgba(220, 30, 40, 0.45); }
+.fr .fr-bar.frx-bite { animation: frx-bite 0.35s ease-out; }
+@keyframes frx-bite { 0% { box-shadow: 0 0 0 4px #ff3030, 0 0 30px #ff3030; } }
+
+/* ---------------------------------------------------------------- пелена */
+.frx-fog { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.frx-band { position: absolute; left: -2px; right: -2px; background: linear-gradient(rgba(225, 230, 236, 0), rgba(225, 230, 236, 0.92) 30%, rgba(225, 230, 236, 0.92) 70%, rgba(225, 230, 236, 0)); }
+.frx-band.frx-wall { background: linear-gradient(rgba(214, 220, 228, 0), rgba(214, 220, 228, 0.99) 14%, rgba(214, 220, 228, 0.99) 86%, rgba(214, 220, 228, 0)); animation: frx-fogin 0.35s ease-out; }
+@keyframes frx-fogin { from { opacity: 0; transform: scaleY(0.4); } }
+.fr-fish.frx-pale { opacity: 0.15; }
+.fr-fish.frx-hidden { opacity: 0; }
+.frx-haze { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.8s; background: rgba(210, 216, 224, 0.28); }
+.frx-haze.on { opacity: 1; }
+
+/* ---------------------------------------------------------------- хлыст и второе дыхание */
+.fr .fr-bar.frx-whip { animation: frx-whip 0.32s ease-out; }
+@keyframes frx-whip { 20% { transform: translateX(-7px) rotate(-2deg); } 45% { transform: translateX(5px) rotate(1.5deg); } 70% { transform: translateX(-2px); } }
+.fr-prog.frx-drop { animation: frx-dropk 0.6s ease-out 2; }
+@keyframes frx-dropk { 50% { box-shadow: 0 0 0 3px #ff6040, 0 0 18px #ff6040; } }
+
+/* ---------------------------------------------------------------- плашка фазы и строка-предупреждение */
+/* плашка фазы — слева от шкалы у её верха (рыбу и зону не закрывает), прижата к шкале правым краем */
+.frx-banner { position: absolute; z-index: 9; pointer-events: none; white-space: nowrap; opacity: 0; text-align: right; transform-origin: 100% 50%;
+  font: 900 26px Rubik, system-ui, sans-serif; color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 18px var(--tc), 0 0 3px rgba(0, 0, 0, 0.6); }
+.frx-banner.on { animation: frx-banner 1.6s ease-out forwards; }
+@keyframes frx-banner { 0% { opacity: 0; transform: scale(1.6); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-20px); } }
+.fe-stand.frx-warn { background: rgba(120, 32, 26, 0.94); color: #ffd1c4; }
+
+/* ---------------------------------------------------------------- бонусы уровня: чутьё и метка мифика */
+.fr-fish.frx-sense { animation: frx-sense 0.18s linear infinite; }
+@keyframes frx-sense { 50% { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 3px var(--gold)); } }
+.frx-arrow { position: absolute; left: 100%; top: 50%; transform: translate(4px, -50%); display: none; font: 900 16px Rubik, system-ui, sans-serif; color: var(--gold); text-shadow: 0 1px 2px #000; }
+.fr-fish.frx-sense .frx-arrow.on { display: block; }
+.fr-prog { position: relative; }
+.frx-mark { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px var(--tc); display: none; }
+.frx-mark.on { display: block; }
+.fr.won .frx-mark, .fr.lost .frx-mark { display: none; }
+
+.touch .frx-banner { font-size: 18px; }
+.touch .frx-badge { width: 44px; height: 44px; margin-top: -22px; }
+.touch .frx-badge svg { width: 26px; height: 26px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .frx-storm, .fr .fr-bar.frx-quake, .fr .fr-bar.frx-whip, .fr-fish.frx-sense, .frx-tooth.flick, .frx-badge.turn, .frx-ink-drips i { animation: none; }
+}
+
+/* ---------------------------------------------------------------- награда уровня у шкалы опыта (fishprogresshud.ts) */
+.fs-skill-perk { font-size: 11.5px; line-height: 1.3; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-skill-perk b { color: var(--gold); font-weight: 800; }
+.fs-skill-perk.new { animation: frx-perk 0.9s ease-out 3; }
+@keyframes frx-perk { 0% { text-shadow: 0 0 12px var(--gold); } 100% { text-shadow: none; } }
+.touch .f2-skill .fs-skill-perk { font-size: 10px; }

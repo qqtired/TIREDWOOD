@@ -6,33 +6,43 @@
 // сидом и засчитывает улов, только если его повтор дошёл до 100 %. Улов: рыба — в рюкзак по цене поимки (продаётся
 // Семёну или Сане, server/lobby/fishnpc.ts), сундук и бонус за новый вид — сразу жетонами; коллекция (альбом), опыт
 // рыбалки и общий опыт (по цене рыбы), счётчики доски рекордов, награды лестницы коллекции (server/fishstyle.ts).
-// Рыба в руках — выбор (shared/fishrelease.ts): «В рюкзак» (ЛКМ — и сразу заброс) или «Отпустить» (F) — из рюкзака
-// в воду, жетонов нет, опыт рыбалки за поимку ×1,5; не выбрал — остаётся в рюкзаке. Полный рюкзак — заброс не уходит
+// Рыба в руках — выбор (shared/fishrelease.ts): «В рюкзак» (keep, клавиша 1) или «Отпустить» (release, F) — из рюкзака
+// в воду, жетонов нет, опыт рыбалки за поимку ×1,5; не выбрал за CHOICE_TICKS — остаётся в рюкзаке. Пока выбор не сделан,
+// заброс (cast) не принимается: сервер не начинает его и не решает за игрока. Полный рюкзак — заброс не уходит
 // (подсказка: продать или отпустить из рюкзака). Эпическая и выше сорвалась после 3 с борьбы — утешительный опыт (fishLostXp).
+// «Прекратить» вываживание (X, кнопка на шкале) — сообщение reel с d = 1: рыба срывается тем же путём lose, что и при провале.
 // В дождь опыт рыбалки ×1,15 (и за поимку, и утешительный). Сезон рыбалки (server/lobby/fishseason.ts) — особый дождь:
 // клюют виды дождя, все от редких до божественного кальмара — ×2 к дождю (×3 к ясной); опыт — как в дождь.
 //
 // Подделать трудно: тики нажатий — целые, по возрастанию, не раньше уже подтверждённого; клиент не может досчитать
 // дальше, чем прошло настоящего времени с начала вываживания (+0,5 с), — ускорить бой нельзя; отстал больше чем на 4 с
 // (молчит) — рыба сорвалась; кривое сообщение — сорвалась.
+//
+// Остров «Последний свет» (флаг ISLE, shared/fishisle.ts): пул — по месту заброса (castZone: место в море в водах острова,
+// место на моле острова — пул острова), с 6-го уровня рыбалки; туман («Туман наступает») для шансов и опыта — как дождь,
+// сезон острова — как сезон (host.isleFog, host.isleSeason — их даёт остров). Лайвел своей лодки (shared/fishlivewell.ts):
+// рюкзак полон — рыба ложится в лайвел; лодки нет или и он полон — заброс не уходит, причина — тостом.
 import { TICK_RATE } from '../../shared/constants.ts';
 import {
   CAST_TICKS, FE_BITE, FE_CAST, FE_DONE, FE_EARLY, FE_HOOK, FE_LAND, FE_LOST, FE_MISS, FE_NIBBLE, FE_OFF, FISH, FP_BITE, FP_CAST, FP_HOLD, FP_IDLE,
   FP_REEL, FP_WAIT, albumNews, hookTicks, planBite,
 } from '../../shared/fishing.ts';
 import {
-  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp, questNeed, type FishCastMods,
+  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLevel, fishLostXp, questNeed, type FishCastMods,
 } from '../../shared/fishprogress.ts';
-import { spotZone } from '../../shared/fishplaces.ts';
+import { FISH_SPOT_COUNT, fishSpotAt, spotZone, type FishZone } from '../../shared/fishplaces.ts';
+import { ISLE, ISLE_LEVEL_HINT, ISLE_MIN_LEVEL, castZone } from '../../shared/fishisle.ts';
+import { catchFullHint, livewellCap } from '../../shared/fishlivewell.ts';
+import { isleCaught } from '../../shared/islestyle.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
 import {
-  ANNOUNCE_TIER, CHEST_ANNOUNCE, CHEST_JACKPOT, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
-  isCollected, isPoseidon, reelStyleFor, rollCatch2, type Hooked,
+  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
+  isCollected, isPoseidon, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
+import { gradeErrors, hookBonusMs, reelStyle2 } from '../../shared/fishability.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
-import { FISH_SPOTS } from '../../shared/maps/lobby.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Store } from '../store.ts';
 import type { FishingHost } from './fishing.ts';
@@ -76,6 +86,10 @@ export interface FishingHost2 extends FishingHost {
   shout?(text: string): void;
   /** Ввод рыбака сейчас не приходит (вкладка подвисла, связь замерла); нет метода — всегда приходит */
   stalled?(slot: number): boolean;
+  /** Остров (флаг ISLE): идёт ли «Туман наступает» — для рыбы острова как дождь; нет метода — обычный туман */
+  isleFog?(): boolean;
+  /** Остров: идёт ли сезон острова («Великий туман», нечётные часы по Москве); нет метода — сезона нет */
+  isleSeason?(): boolean;
 }
 
 interface Spot {
@@ -125,7 +139,8 @@ export class FishingHall2 {
   /** Шанс пива подводного владыки в сундуке (в тестах и в разработке подменяется) */
   lordChance = LORD_CHEST_CHANCE;
   readonly board: FishBoard;
-  private readonly spots: Spot[] = FISH_SPOTS.map(emptySpot);
+  /** Места на причалах и баркасе, за ними — в своих лодках на якоре (shared/fishplaces.ts) */
+  private readonly spots: Spot[] = Array.from({ length: FISH_SPOT_COUNT }, emptySpot);
   private readonly host: FishingHost2;
   private readonly profiles: Profiles;
   private readonly store: Store;
@@ -170,14 +185,20 @@ export class FishingHall2 {
   }
 
   /**
-   * Забросить (из «в руках» — рыба в рюкзак и сразу заброс), подсечь (n — последнее событие поплавка, которое рыбак
-   * видел); рыба в руках: keep — в рюкзак, release — отпустить в воду (shared/fishrelease.ts).
+   * Забросить (рыба в руках ждёт выбора — заброс не принимаем; хлам, сундук и отпущенная при полном рюкзаке не ждут — тогда
+   * «в руках» кончается и сразу заброс), подсечь (n — последнее событие поплавка, которое рыбак видел); рыба в руках:
+   * keep — в рюкзак, release — отпустить в воду (shared/fishrelease.ts).
    */
   act(spot: number, slot: number, a: unknown, n: unknown, tick: number): void {
     const s = this.spots[spot];
     if (!s || s.slot !== slot) return;
     if (a === 'cast') {
-      if (s.phase === FP_HOLD) this.done(s, spot);
+      if (s.phase === FP_HOLD) {
+        // рыба в руках ждёт выбора («В рюкзак» / «Отпустить»): заброс не принимаем и за игрока ничего не решаем — он выберет
+        // сам (keep / release) или кончится CHOICE_TICKS; хлам, сундук и рыба при полном рюкзаке выбора не требуют
+        if (this.choosing(s)) return;
+        this.done(s, spot);
+      }
       if (s.phase === FP_IDLE) this.cast(s, spot, tick);
     } else if (a === 'hook') {
       this.hook(s, spot, n);
@@ -188,7 +209,10 @@ export class FishingHall2 {
     }
   }
 
-  /** Нажатия на шкале: i — номер первого переключения в k, k — тики переключений, u — до какого тика досчитал клиент. */
+  /**
+   * Нажатия на шкале: i — номер первого переключения в k, k — тики переключений, u — до какого тика досчитал клиент.
+   * d = 1 — клиент закончил (или сдался кнопкой «Прекратить», X): если повтор сервера не дошёл до 100 % — рыба срывается.
+   */
   reel(spot: number, slot: number, i: unknown, k: unknown, u: unknown, d: unknown, tick: number): void {
     const s = this.spots[spot];
     if (!s || s.slot !== slot || s.phase !== FP_REEL || !s.reel) return;
@@ -262,6 +286,11 @@ export class FishingHall2 {
     }
   }
 
+  /** Рыба в руках ждёт выбора: она легла в рюкзак и ещё не отпущена (shared/fishrelease.ts) */
+  private choosing(s: Spot): boolean {
+    return s.phase === FP_HOLD && s.bagN >= 0 && !s.freed;
+  }
+
   /** Сменили ник — на доске новый. */
   renamed(): void {
     this.board.touch();
@@ -277,30 +306,52 @@ export class FishingHall2 {
     return this.host.rain() || this.season();
   }
 
+  /** Сезон для рыбы места: у острова — свой (нечётные часы), у пристани и баркаса — сезон рыбалки */
+  private seasonAt(zone: FishZone): boolean {
+    return zone === 'isle' ? this.host.isleSeason?.() ?? false : this.season();
+  }
+
+  /** «Дождь» для рыбы места: у острова — «Туман наступает» или сезон острова, у пристани и баркаса — дождь или сезон */
+  private wetAt(zone: FishZone): boolean {
+    return zone === 'isle' ? (this.host.isleFog?.() ?? false) || this.seasonAt(zone) : this.wet();
+  }
+
   private cast(s: Spot, spot: number, tick: number): void {
     const prof = this.host.who(s.slot)?.profile;
     if (!prof) return;
-    if (prof.fishing.bag.length >= bagSlots(prof.fishing)) {
-      this.host.toast(s.slot, BAG_FULL_TEXT);
+    // некуда положить рыбу: рюкзак полон, а лайвела своей лодки нет или он полон (без лодки — как раньше, BAG_FULL_TEXT)
+    const full = catchFullHint(prof.fishing, ISLE.on);
+    if (full) {
+      this.host.toast(s.slot, full);
       return;
     }
-    this.profiles.refreshFishing(prof);
-    s.mods = Object.freeze(fishCastMods(prof.fishing, this.now(), spotZone(spot)));
-    prof.stats.fsCasts++;
-    this.store.markDirty();
-    this.host.changed(s.slot);
-    const at = FISH_SPOTS[spot];
+    const at = fishSpotAt(spot)!;
     const fx = -Math.sin(at.yaw);
     const fz = -Math.cos(at.yaw);
     const d = 6.5 + this.rand() * 3;
     const side = (this.rand() - 0.5) * 2.4;
-    s.x = round2(at.x + fx * d - fz * side);
-    s.z = round2(at.z + fz * d + fx * side);
+    const x = round2(at.x + fx * d - fz * side);
+    const z = round2(at.z + fz * d + fx * side);
+    // пул — по месту заброса: в водах острова — остров (shared/fishisle.ts), рыба острова — с 6-го уровня рыбалки
+    const zone = castZone(spotZone(spot), x, z);
+    if (zone === 'isle' && fishLevel(prof.fishing.xp) < ISLE_MIN_LEVEL) {
+      this.host.toast(s.slot, ISLE_LEVEL_HINT);
+      return;
+    }
+    this.profiles.refreshFishing(prof);
+    s.mods = Object.freeze(fishCastMods(prof.fishing, this.now(), zone));
+    prof.stats.fsCasts++;
+    this.store.markDirty();
+    this.host.changed(s.slot);
+    s.x = x;
+    s.z = z;
     s.phase = FP_CAST;
     s.until = tick + CAST_TICKS;
     const plan = planBite(this.rand);
-    s.nibbles = plan.nibbles.map((t) => s.until + Math.max(1, Math.round(t / s.mods.biteSpeed)));
-    s.biteAt = s.until + Math.max(1, Math.round(plan.bite / s.mods.biteSpeed));
+    // эхолот своей лодки на якоре: ждать поклёвку короче
+    const speed = s.mods.biteSpeed / (1 - (at.sonar ?? 0));
+    s.nibbles = plan.nibbles.map((t) => s.until + Math.max(1, Math.round(t / speed)));
+    s.biteAt = s.until + Math.max(1, Math.round(plan.bite / speed));
     s.n = 0;
     s.nibbled = false;
     s.sp = -1;
@@ -311,8 +362,8 @@ export class FishingHall2 {
 
   /** Поклёвка: что клюнуло — решено сейчас, по погоде сейчас (и сезону); окно подсечки — по категории и пингу. */
   private bite(s: Spot, spot: number, tick: number): void {
-    const season = this.season();
-    const c = this.roll(this.host.rain() || season, this.rand, s.mods, season);
+    const season = this.seasonAt(s.mods.zone);
+    const c = this.roll(this.wetAt(s.mods.zone), this.rand, s.mods, season);
     const prof = this.host.who(s.slot)?.profile;
     if (prof) {
       prof.stats.fsBites++;
@@ -325,7 +376,8 @@ export class FishingHall2 {
     s.n++;
     s.phase = FP_BITE;
     s.grace = 0;
-    s.until = tick + hookTicks(RULE[c.sp]?.tier ?? 0, this.host.who(s.slot)?.ping ?? 0);
+    // награда уровня «Быстрая подсечка» (shared/fishability.ts): окно подсечки +0,1…0,3 с
+    s.until = tick + hookTicks(RULE[c.sp]?.tier ?? 0, this.host.who(s.slot)?.ping ?? 0) + Math.round(hookBonusMs(s.mods.level) * TICK_RATE / 1000);
     this.host.event(['fish', FE_BITE, spot, s.n, 0]);
   }
 
@@ -343,8 +395,9 @@ export class FishingHall2 {
     if (!rule) return;
     const seed = Math.floor(this.rand() * 0x1_0000_0000) | 0;
     s.phase = FP_REEL;
-    // с водкой рыбак на шкале пьян (задержка зоны и икота) — как у клиента
-    s.reel = reelStart(reelStyleFor(s.sp, s.mods), seed, s.mods.drink === 4);
+    // с водкой рыбак на шкале пьян (задержка зоны и икота) — как у клиента; манера — по правилам 10.10 (способности мификов,
+    // +20 % времени, бонусы уровня — shared/fishability.ts), клиент считает ту же reelStyle2 из того же sp и mods
+    s.reel = reelStart(reelStyle2(s.sp, s.mods), seed, s.mods.drink === 4);
     s.toggles = [];
     s.k = 0;
     s.ack = 0;
@@ -357,7 +410,7 @@ export class FishingHall2 {
   private lose(s: Spot, spot: number): void {
     this.countLost(s);
     // эпическая и выше сорвалась после 3 с борьбы — утешительный опыт рыбалки (вид не раскрываем, только категорию)
-    const xp = fishLostXp(s.sp, s.ack, s.mods, this.wet());
+    const xp = fishLostXp(s.sp, s.ack, s.mods, this.wetAt(s.mods.zone));
     const prof = xp > 0 ? this.host.who(s.slot)?.profile : undefined;
     if (prof) {
       prof.fishing.xp = Math.min(Number.MAX_SAFE_INTEGER, prof.fishing.xp + xp);
@@ -415,7 +468,8 @@ export class FishingHall2 {
   private land(s: Spot, spot: number, tick: number): void {
     // оценка вываживания: сколько раз рыба выходила из зоны (повтор сервера — та же модель, что у клиента)
     const errors = s.reel?.err ?? 0;
-    const grade = reelGrade(errors);
+    // «Спокойная рука» (ур. 9): первая ошибка не портит оценку
+    const grade = reelGrade(gradeErrors(errors, s.mods.level));
     s.phase = FP_HOLD;
     s.until = tick + HOLD2_TICKS;
     s.reel = null;
@@ -437,16 +491,20 @@ export class FishingHall2 {
     st.fsCaught++;
     let xp = 0;
     let bagFull = false;
+    let well = false;
     const m = (s.mods.zone === 'barkas' ? BAG_BARKAS : 0) | (rule.rain ? BAG_RAIN : 0) | (s.mods.drink === 1 ? BAG_BEER : 0) | (s.mods.drink === 2 ? BAG_ALE : 0)
       | (s.mods.drink === 3 ? BAG_LORD : 0);
     let lord = false;
     if (fish) {
       // рыба — в рюкзак по цене поимки; общий опыт — сейчас (по цене), жетоны — при продаже
+      // рюкзак полон — в лайвел своей лодки (profiles.bagPut); нет места нигде — рыба уходит в воду (bagFull)
       const put = this.profiles.bagPut(prof, { f: f.id, g: s.g, p: price, m });
       bagFull = !put;
-      if (put) this.profiles.modeXp(prof, price);
+      well = !!put?.well;
+      // общий опыт — по цене без FISH_PRICE_CUT (хотфикс 10.10 режет жетоны от продажи, а не опыт)
+      if (put) this.profiles.modeXp(prof, fishPrice2(s.sp, s.g, s.coins, s.mods, 1));
       st.fsMaxGrams = Math.max(st.fsMaxGrams, s.g);
-      xp = fishCatchXp(s.sp, grade, s.mods, this.wet());
+      xp = fishCatchXp(s.sp, grade, s.mods, this.wetAt(s.mods.zone));
       // отпустить (shared/fishrelease.ts) — F, пока в руках; не легла (рюкзак полон) — уже в воде, отпускать нечего
       s.bagN = put ? put.n : -1;
       s.xp = xp;
@@ -476,6 +534,8 @@ export class FishingHall2 {
     this.host.send(s.slot, {
       t: 'fishLand', sp: s.sp, g: s.g, price, coins: s.coins, bonus, fresh: news.fresh, record: news.record, best, got, full,
       ...(fish ? { base: basePrice(s.sp, s.g), m, xp, gr: grade, er: errors, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
+      ...(well ? { well: prof.fishing.livewell?.length ?? 0, wcap: livewellCap(prof.fishing) } : {}),
+      ...(rule.zone === 'isle' ? { isle: isleCaught(prof) } : {}),
       ...(ladder?.items.length ? { rw: ladder.items } : {}),
       ...(lord ? { lord: true } : {}),
     });
@@ -495,11 +555,18 @@ export class FishingHall2 {
         this.host.announce(`🔱 ${nick} нашёл Сокровища Посейдона! ${s.coins} 🪙${lord ? ' и пиво подводного владыки' : ''}`);
         this.host.shout?.(`🔱 ${nick} нашёл Сокровища Посейдона! ${s.coins} 🪙`);
       } else if (lord) this.host.announce(`🔱 ${nick} вылавливает сундук: ${s.coins} 🪙 и пиво подводного владыки!`);
-      else if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук${s.coins >= CHEST_JACKPOT ? ' с джекпотом' : ''}: ${s.coins} 🪙!`);
+      else if (s.coins >= CHEST_ANNOUNCE) this.host.announce(`💰 ${nick} вылавливает сундук: ${s.coins} 🪙!`);
       return;
     }
     if (tier === T_JUNK || tier < ANNOUNCE_TIER) return;
     const sea = s.mods.zone === 'barkas';
+    if (s.mods.zone === 'isle') {
+      // остров: туманные виды — 🌫, божественная — царь острова
+      const at = 'у острова «Последний свет»';
+      if (tier === T_DIVINE) this.host.announce(`🌊 ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)} ${at}! Божественный улов — царь острова!`);
+      else this.host.announce(`${tier === T_MYTH ? '🦈' : rain ? '🌫' : '🏝'} ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)} ${at}!${tier === T_MYTH ? ' Мифическая рыба!' : ''}`);
+      return;
+    }
     if (tier === T_DIVINE) {
       // божественная: отдельная строка на весь пирс — царь морей
       this.host.announce(`🦑 ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)}${sea ? ' в открытом море' : ''}! Божественный улов — сам царь морей!`);

@@ -9,7 +9,7 @@ const calc = vm.runInNewContext(fs.readFileSync(ROOT + 'public/fishing/app.js', 
 let n = 0, maxd = 0, exact = 0;
 // уровни — до последнего, на котором ещё растёт шанс (15); выше таблицы опыта — тот же снимок с этим уровнем
 const XP_TOP = fp.FISH_XP_LEVELS.length - 1;
-for (const zone of ['pier', 'barkas']) for (let weather = 0; weather <= 2; weather++) for (let level = 0; level <= fp.LEVEL_ODDS_MAX; level++)
+for (const zone of ['pier', 'barkas', 'isle']) for (let weather = 0; weather <= 2; weather++) for (let level = 0; level <= fp.LEVEL_ODDS_MAX; level++)
   for (let rod = 0; rod <= 4; rod++) for (let lure = 0; lure <= 4; lure++) for (let drink = 0; drink <= 4; drink++) {
     const now = 1_000_000;
     const p = { ...fp.emptyFishProgress(), xp: fp.FISH_XP_LEVELS[Math.min(level, XP_TOP)], questsDone: [0, 1, 5, 10, 15][rod], rod, lure };

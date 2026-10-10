@@ -23,9 +23,11 @@ test('rare probability compounds level and exactly one rod, withdrawing common r
 test('all 52 fish have distinct pattern pairs using all fifteen executable behaviors as main pattern (04.10: Jet — only the kalmar)',()=>{
  const styles=COLLECTION.map(sp=>RULE[sp]!.style as any);
  assert.equal(COLLECTION.length,52);
- assert.equal(new Set(styles.map(s=>s.mainPattern)).size,REEL_PATTERNS.length);
- assert.equal(REEL_PATTERNS.length,15);
+ // 10.10: JetHang — паттерн прототипа способностей (вариант «А» кальмара, tools/fish/abilities-sim.ts), видам не назначен
+ assert.equal(new Set(styles.map(s=>s.mainPattern)).size,REEL_PATTERNS.length-1);
+ assert.equal(REEL_PATTERNS.length,16);
  assert.equal(REEL_PATTERNS[14],'Jet','новый паттерн — в конец, номера прежних не сдвинуты');
+ assert.equal(REEL_PATTERNS[15],'JetHang');
  assert.deepEqual(COLLECTION.filter(sp=>(RULE[sp]!.style as any).mainPattern==='Jet').map(sp=>RULE[sp]!.id),['kalmar']);
  assert.equal(new Set(styles.map(s=>s.mainPattern+':'+s.secondaryPattern)).size,52);
  assert.ok(styles.every(s=>s.mainPattern!==s.secondaryPattern));
@@ -54,7 +56,7 @@ test('each named pattern executes its characteristic target trajectory', () => {
   }
   targets[pattern] = trace;
  }
- assert.equal(new Set(Object.values(targets).map(t => JSON.stringify(t))).size, 15);
+ assert.equal(new Set(Object.values(targets).map(t => JSON.stringify(t))).size, REEL_PATTERNS.length);
  assert.equal(targets.Dash[39], 50000); assert.equal(targets.Dash[40], 80000);
  assert.equal(targets.FakeDash[0], 65000); assert.equal(targets.FakeDash[70], 20000);
  assert.ok(targets.Sawtooth[65] > targets.Sawtooth[67]);

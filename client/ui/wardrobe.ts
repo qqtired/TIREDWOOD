@@ -7,10 +7,11 @@ import {
   type Item, type Outfit, type Slot,
 } from '../../shared/outfit.ts';
 import { collectionCount } from '../../shared/fishrules.ts';
-import { REWARD_INFO, needOf } from '../../shared/fishstyle.ts';
+import { ISLE_ITEMS, REWARD_INFO, isleNeedOf, needOf } from '../../shared/fishstyle.ts';
+import { ISLE_TOTAL, isleCaught } from '../../shared/islestyle.ts';
 import { FISH2 } from '../lobby/fish2.ts';
 import { FISH_ICONS } from './fishicons.ts';
-import { species } from './fishrewards.ts';
+import { isleSpecies, isleVisible, species } from './fishrewards.ts';
 import type { MeState } from '../scene.ts';
 import type { GiftResultCode } from '../../shared/gifts.ts';
 import { GiftCodePanel } from './gift-code.ts';
@@ -105,6 +106,8 @@ export class Wardrobe {
   private tokens = 0;
   /** Видов в журнале рыбака: трофеи открываются по ним */
   private got = 0;
+  /** Видов острова в альбоме (лестница острова, shared/fishstyle.ts ISLE_LADDER) */
+  private isleGot = 0;
   /** Что надето (только своё): ответ сервера плюс ещё не подтверждённые клики */
   private wearing: Outfit = { ...DEFAULT_OUTFIT };
   /** Что, по нашим сведениям, сейчас на сервере: последнее отправленное или принятое от него */
@@ -283,6 +286,7 @@ export class Wardrobe {
     this.owned = me.owned;
     this.tokens = me.tokens;
     this.got = collectionCount(me.album);
+    this.isleGot = isleCaught(me);
     this.wearing = { ...me.outfit };
     this.believed = { ...me.outfit };
     this.sentAt = -Infinity;
@@ -333,6 +337,7 @@ export class Wardrobe {
     this.owned = me.owned;
     this.tokens = me.tokens;
     this.got = collectionCount(me.album);
+    this.isleGot = isleCaught(me);
     // ответ на прошлый клик, а следом идёт новый — наряд не трогаем, иначе он мигнёт назад
     const stale = this.sendTimer !== 0 || (!sameOutfit(me.outfit, this.believed) && performance.now() - this.sentAt < STALE_MS);
     if (!stale) {
@@ -413,14 +418,18 @@ export class Wardrobe {
       this.bodyEl.innerHTML = `<div class="wd-label">Цвет желе</div>${swatches('c', d.c, true)}`;
     } else {
       // трофеи рыбалки 2.0 — только когда она включена (или вещь уже есть)
-      const available = ITEMS.filter((it) => it.slot === this.tab && isItemVisible(it, this.owned) && (it.tier !== 'trophy' || FISH2.on || isOwned(this.owned, it)));
+      const available = ITEMS.filter((it) => it.slot === this.tab && isItemVisible(it, this.owned) && (it.tier !== 'trophy' || FISH2.on || isOwned(this.owned, it))
+        && isleVisible(it.id, this.owned));
       const cards = available.filter(it => it.tier !== 'premium' && it.tier !== 'trophy').map(it => this.card(it, d)).join('');
       const premium = available.filter(it => it.tier === 'premium').map(it => this.card(it, d)).join('');
-      const trophy = available.filter(it => it.tier === 'trophy').map(it => this.card(it, d)).join('');
+      const trophy = available.filter(it => it.tier === 'trophy' && !ISLE_ITEMS.has(it.id)).map(it => this.card(it, d)).join('');
+      // трофеи острова «Последний свет» — своим блоком: за виды острова, свой счётчик
+      const isle = available.filter(it => ISLE_ITEMS.has(it.id)).map(it => this.card(it, d)).join('');
+      const isleBlock = isle ? `<div class="wd-label">Трофеи острова «Последний свет»</div><p class="wd-collection-note">За виды острова в журнале рыбака (J) · у тебя ${this.isleGot} из ${ISLE_TOTAL}. Можно примерить заранее.</p><div class="wd-grid">${isle}</div>` : '';
       const collection = premium ? `<div class="wd-label wd-premium-label">Премиальная коллекция</div><p class="wd-collection-note">За игровые жетоны · только внешний вид. Выбери вещь, чтобы примерить.</p><div class="wd-grid">${premium}</div>` : '';
       const trophies = trophy ? `<div class="wd-label">Трофеи рыбалки</div><p class="wd-collection-note">За виды рыб в журнале рыбака (J) · только внешний вид. Можно примерить заранее.</p><div class="wd-grid">${trophy}</div>` : '';
       const second = this.tab === 'p' ? `<div class="wd-label">Второй цвет узора</div>${swatches('c2', d.c2, false)}` : '';
-      this.bodyEl.innerHTML = `${cards ? `<div class="wd-grid">${cards}</div>` : ''}${trophies}${collection}${second}`;
+      this.bodyEl.innerHTML = `${cards ? `<div class="wd-grid">${cards}</div>` : ''}${trophies}${isleBlock}${collection}${second}`;
     }
     this.bodyEl.scrollTop = scroll;
     this.renderBuy(d);
@@ -431,10 +440,12 @@ export class Wardrobe {
     const owned = isOwned(this.owned, it);
     const price = itemPrice(it.tier);
     const need = it.tier === 'trophy' ? needOf(it.id) : null;
+    const isleNeed = isleNeedOf(it.id);
     let meta: string;
     if (it.tier === 'free') meta = 'бесплатно';
     else if (owned) meta = '✓ есть';
     else if (price !== null) meta = `${fmt.format(price)} ${COIN_HTML}`;
+    else if (isleNeed !== null) meta = `🔒 ${isleSpecies(isleNeed)}`;
     else if (need !== null) meta = `🔒 ${species(need)}`;
     else meta = `🔒 ${TIER_NAMES[it.tier]}`;
     const icon = it.slot === 'p'
@@ -458,9 +469,11 @@ export class Wardrobe {
     const btn = this.buyBtn;
     btn.classList.remove('busy');
     const need = it.tier === 'trophy' ? needOf(it.id) : null;
+    const isleNeed = isleNeedOf(it.id);
     if (price === null) {
       btn.disabled = true;
-      btn.textContent = it.tier === 'jackpot' ? 'Только с джекпота 🎰' : need !== null ? `🔒 ${species(need)} · у тебя ${this.got} 🎣` : 'Выдаёт игра';
+      btn.textContent = it.tier === 'jackpot' ? 'Только с джекпота 🎰' : isleNeed !== null ? `🔒 ${isleSpecies(isleNeed)} · у тебя ${this.isleGot} 🗼`
+        : need !== null ? `🔒 ${species(need)} · у тебя ${this.got} 🎣` : 'Выдаёт игра';
     } else if (performance.now() < this.buyingUntil) {
       btn.disabled = true;
       btn.classList.add('busy');

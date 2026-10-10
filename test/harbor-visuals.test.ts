@@ -34,7 +34,7 @@ test('podium has five separated steps, strict rank heights, larger same-kind wei
 });
 
 import { makeRoofShark } from '../client/lobby/fishboard.ts';
-import { FISH_BOARD, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS } from '../shared/fishplaces.ts';
+import { FISH_BOARD, FISH_ISLE_FIRST, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS } from '../shared/fishplaces.ts';
 import { buildLobby } from '../shared/maps/lobby.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
@@ -58,7 +58,8 @@ test('new podium does not occupy old objects or bench approaches; lighthouse act
   const clear=(x:number,z:number)=>assert.ok(!w.overlaps(x-PLAYER_HALF,.002,z-PLAYER_HALF,x+PLAYER_HALF,PLAYER_HEIGHT,z+PLAYER_HALF),`clear walking capsule ${x},${z}`);
   for(const [x,z] of [[-19,40.8],[-11,15.7],[-11,18.7],[-14.6,18],[-7.6,17.4]])clear(x,z);
   for(const bench of map.benches)for(const dx of [-.5,.5])clear(bench.x+dx,bench.z-1);
-  for(const s of FISH_SPOTS) {
+  // места на моле острова — на камне, их проверяет test/isle.test.ts
+  for(const s of FISH_SPOTS.slice(0,FISH_ISLE_FIRST)) {
     clear(s.x,s.z);
     assert.equal(w.groundBelow(s.x-Math.sin(s.yaw)*6,0,s.z-Math.cos(s.yaw)*6),-Infinity);
   }

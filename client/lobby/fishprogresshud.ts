@@ -1,11 +1,13 @@
 import { FISH_MAX_LEVEL, activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
 import { BEER, lureOf, type ShopDrink } from '../../shared/fishshop.ts';
-import { BARKAS_INCOME } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, ISLE_XP } from '../../shared/fishrules.ts';
+import { catchValue, livewellCap, livewellOf } from '../../shared/fishlivewell.ts';
 import type { FishZone } from '../../shared/fishplaces.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
-import { mul, num, pct } from './fishfmt.ts';
+import { levelZonePct, mul, num, pct } from './fishfmt.ts';
+import { LEVEL_PERKS } from '../../shared/fishability.ts';
 
 /** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки, водка */
 const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱', 4: '🥃' };
@@ -44,8 +46,8 @@ export function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Same compact skill scale in the journal, NPC dialog and profile. */
-export function fishSkillBlock(progress: FishProgress, compact = false): HTMLElement {
+/** Same compact skill scale in the journal, NPC dialog and profile. fresh — уровень только что вырос: строка награды вспыхивает */
+export function fishSkillBlock(progress: FishProgress, compact = false, fresh = false): HTMLElement {
   const view = fishLevelView(progress.xp);
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
   const head = block.appendChild(el('div', 'fs-skill-head'));
@@ -61,10 +63,18 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
   bar.value = view.next === null ? 1 : gained;
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
-    ? `Высший уровень · зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}% · опыт продолжает учитываться`
+    ? `Высший уровень · зелёная зона +${levelZonePct(view.level)}% · опыт продолжает учитываться`
     : view.level === 0
-      ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +2,5%`
-      : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}%`));
+      ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +${levelZonePct(1)}%`
+      : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${levelZonePct(view.level)}%`));
+  // награды уровней 1–15 (shared/fishability.ts): последняя полученная и следующая; в подсказке — все полученные
+  const have = LEVEL_PERKS.filter((p) => p.level <= view.level);
+  const last = have.at(-1);
+  const next = LEVEL_PERKS.find((p) => p.level === view.level + 1);
+  const perk = block.appendChild(el('span', `fs-skill-perk${fresh ? ' new' : ''}`));
+  if (last) perk.appendChild(el('b', '', `★ ${last.name}`));
+  if (next) perk.append(`${last ? ' · ' : ''}на ${next.level}-м: ${next.name}`);
+  perk.title = [...have.map((p) => `★ ${p.level}. ${p.name} — ${p.text}`), ...(next ? [`дальше, ${next.level}-й: ${next.name} — ${next.text}`] : [])].join('\n');
   return block;
 }
 
@@ -78,6 +88,8 @@ export class FishProgressHud {
   readonly skill: HTMLElement;
   private readonly quest: HTMLElement;
   private readonly bag: HTMLButtonElement;
+  /** Лайвел своей лодки (флаг ISLE): «🛶 12/50 · 640 🪙» рядом с рюкзаком; лодки нет и лайвел пуст — скрыт */
+  private readonly well: HTMLButtonElement;
   private readonly gear: HTMLElement;
   private readonly badge: HTMLElement;
   private readonly icon: HTMLElement;
@@ -87,6 +99,9 @@ export class FishProgressHud {
   private readonly clock = new FishClock();
   private progress: FishProgress | null = null;
   private zone: FishZone = 'pier';
+  /** Уровень, что уже показан (−1 — ещё ничего), и до какого времени строка награды горит как новая */
+  private shownLevel = -1;
+  private freshUntil = 0;
 
   constructor(parent: HTMLElement, overlay: HTMLElement) {
     this.skill = parent.appendChild(el('div', 'f2-skill'));
@@ -96,6 +111,11 @@ export class FishProgressHud {
     this.bag.type = 'button';
     this.bag.title = 'Рюкзак · I';
     this.bag.addEventListener('click', () => this.onBag());
+    this.well = row.appendChild(el('button', 'fe-chip fe-bagchip fe-wellchip'));
+    this.well.type = 'button';
+    this.well.title = 'Лайвел лодки · I';
+    this.well.hidden = true;
+    this.well.addEventListener('click', () => this.onBag());
     this.gear = parent.appendChild(el('div', 'fe-gear'));
     // напиток — плашка того же вида, что события; живёт в слое меню (видна и на паузе, и в других комнатах)
     const drink = fishPlate(overlay, 'fs-buff f2-plate-drink', '🍺');
@@ -116,8 +136,13 @@ export class FishProgressHud {
     this.progress = progress;
     // Full level/bonus explanation stays in the journal and NPC; the fishing HUD only needs status: у удочки — одна
     // строка «🎣 Ур. 5 · 450 / 1 150» и полоса, что даёт уровень — в подсказке (и в журнале, и у Семёна).
-    const skill = fishSkillBlock(progress, true);
-    this.skill.title = skill.querySelector('.fs-skill-sub')?.textContent ?? '';
+    // уровень вырос — строка награды уровня вспыхивает (8 с), как и тост «Уровень рыбалки N»
+    const level = fishLevelView(progress.xp).level;
+    if (this.shownLevel >= 0 && level > this.shownLevel) this.freshUntil = performance.now() + 8000;
+    this.shownLevel = level;
+    const skill = fishSkillBlock(progress, true, performance.now() < this.freshUntil);
+    const perks = skill.querySelector<HTMLElement>('.fs-skill-perk')?.title ?? '';
+    this.skill.title = [skill.querySelector('.fs-skill-sub')?.textContent ?? '', perks].filter(Boolean).join('\n');
     this.skill.replaceChildren(skill);
     const need = questNeed(progress.questsDone);
     const ready = progress.questCaught >= need;
@@ -128,7 +153,16 @@ export class FishProgressHud {
     setCoinText(this.bag, `🎒 ${n}/${slots} · ${num(bagValue(progress.bag))} 🪙`);
     this.bag.classList.toggle('warn', n === slots - 1);
     this.bag.classList.toggle('full', n >= slots);
-    this.bag.setAttribute('aria-label', `Рюкзак: ${n} из ${slots} рыб${n >= slots ? ', полон — продай улов Семёну или Сане' : ''}`);
+    const cap = livewellCap(progress);
+    const w = livewellOf(progress).length;
+    this.bag.setAttribute('aria-label', `Рюкзак: ${n} из ${slots} рыб${n >= slots ? (w < cap ? ', полон — рыба пойдёт в лайвел лодки' : ', полон — продай улов Семёну или Сане') : ''}`);
+    this.well.hidden = cap === 0 && w === 0;
+    if (!this.well.hidden) {
+      setCoinText(this.well, `🛶 ${w}/${cap} · ${num(catchValue(progress, 'well'))} 🪙`);
+      this.well.classList.toggle('warn', n >= slots && w === cap - 1);
+      this.well.classList.toggle('full', w >= cap);
+      this.well.setAttribute('aria-label', `Лайвел лодки: ${w} из ${cap} рыб${w >= cap ? ', полон — продай улов скупщику или из меню лодки' : ''}`);
+    }
     this.renderGear();
     this.tick();
   }
@@ -150,6 +184,7 @@ export class FishProgressHud {
     const parts: string[] = [];
     if (lure) parts.push(`🪝 ${lure.name.toLowerCase()} · рывки −${Math.round(lure.calm * 100)}%`);
     if (this.zone === 'barkas') parts.push(`⚓ баркас · цена и опыт ${mul(BARKAS_INCOME)}`);
+    if (this.zone === 'isle') parts.push(`🏝 опыт ${mul(ISLE_XP)}`);
     this.gear.textContent = parts.join('  ·  ');
     this.gear.hidden = parts.length === 0;
   }

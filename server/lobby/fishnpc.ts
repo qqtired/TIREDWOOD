@@ -7,6 +7,8 @@ import { BAGS, LURES, VODKA } from '../../shared/fishshop.ts';
 import { FISH_NPC_ACTIONS, type FishNpcAction, type ServerMsg } from '../../shared/messages.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Profile } from '../store.ts';
+import { livewellOf } from '../../shared/fishlivewell.ts';
+import { sellCatch } from './fishlivewell.ts';
 
 /** Кто говорит: куда ответить, профиль, где стоит, ключ для лимита частоты */
 export interface NpcWho {
@@ -42,7 +44,9 @@ export interface NpcCtx {
 export type NpcResult = string | { message?: string; open?: boolean } | void;
 export type NpcHandler = (ctx: NpcCtx) => NpcResult;
 
-const SAY: Record<FishNpcId, string> = { semyon: 'Подойди к Деду Семёну на пристани', sanya: 'Подойди к Сане на баркасе' };
+const SAY: Record<FishNpcId, string> = {
+  semyon: 'Подойди к Деду Семёну на пристани', sanya: 'Подойди к Сане на баркасе', ignat: 'Подойди к смотрителю Игнату на крыльце',
+};
 
 export class FishNpc {
   private readonly host: FishNpcHost;
@@ -97,6 +101,11 @@ export class FishNpc {
       this.host.changed(who);
       if (typeof r === 'string') this.reply(who, npc, r);
       else this.reply(who, npc, r?.message, r?.open ?? true);
+      return;
+    }
+    // у Игната на острове в лавке только напитки (и «На большую землю»): снасти и бубен дождя — у Семёна и Сани
+    if (npc === 'ignat' && (action === 'buy' || action === 'rain')) {
+      this.reply(who, npc, action === 'rain' ? 'Бубен дождя — у Семёна на пристани' : 'Снасти — у Семёна и Сани, у меня только напитки');
       return;
     }
     let message: string | undefined;
@@ -159,8 +168,16 @@ export class FishNpc {
       case 'sellAll': {
         if (action === 'sell' && !Number.isSafeInteger(msg.n)) { message = 'Выбери рыбу'; break; }
         sold = this.profiles.sellFish(prof, action === 'sell' ? msg.n as number : undefined);
-        message = sold.n === 0 ? (prof.fishing.bag.length ? 'Этой рыбы уже нет в рюкзаке' : 'Рюкзак пуст')
+        message = sold.n === 0 ? (prof.fishing.bag.length + livewellOf(prof.fishing).length ? 'Этой рыбы уже нет в рюкзаке' : 'Рюкзак пуст')
           : sold.n === 1 && action === 'sell' ? `Продано: +${sold.coins} 🪙` : `Продано рыб: ${sold.n}, +${sold.coins} 🪙`;
+        break;
+      }
+      // лайвел своей лодки (флаг ISLE, shared/fishlivewell.ts): продать весь лайвел или всё — рюкзак и лайвел
+      case 'sellWell':
+      case 'sellEvery': {
+        const r = sellCatch(this.profiles, prof, action === 'sellWell' ? 'well' : 'all');
+        sold = { n: r.n, coins: r.coins };
+        message = r.message;
         break;
       }
       default:

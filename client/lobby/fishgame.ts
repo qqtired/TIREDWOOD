@@ -8,11 +8,18 @@
 // «натяжение лески» (зона прижата к верху дольше 0,7 с) — надпись у шкалы и строка в чат. Водка — рыбак пьян: шкала
 // покачивается, рыба двоится, шкала моргает (пропадает на 0,2–0,3 с), «ик!» — это только на экране; задержка зоны
 // и икота — в общей модели (shared/fishreel.ts), их считает и сервер. Стили нового — fishreel.css.
+// 10.10 (хотфикс): пока идёт вываживание, персонаж не ходит (scene.ts), а сдаться можно кнопкой «Прекратить [X]» на шкале
+// или клавишей X — рыба срывается, как при провале (giveUp).
+// 10.10: манера — reelStyle2 (shared/fishability.ts), как у сервера: способности мификов и божественной (рисует и озвучивает
+// fishabfx.ts), +20 % времени в зоне, бонусы уровня — «Знаток повадок» (повадка рыбы под шкалой), «Спокойная рука» (первая
+// ошибка не в счёт), «Чутьё», «Метка мифика», «Мастер». Шкала после пролома рыбы-молота длиннее (lo/hi модели).
 import { TICK_MS } from '../../shared/constants.ts';
 import {
-  BOUNCE_FULL, REEL_BAR, REEL_P_MAX, reelGrade, reelPulling, reelRun, reelSlack, reelStart, reelTaut, reelView, type Reel,
+  BOUNCE_FULL, PATTERN_NAMES, REEL_P_MAX, reelBitten, reelGrade, reelPulling, reelRun, reelSlack, reelStart, reelTaut, reelView, type Reel,
 } from '../../shared/fishreel.ts';
-import { RULE, TIER_CSS, TIER_NAMES, T_DIVINE, T_JUNK, T_LEGEND, T_MYTH, isFishTier, reelStyleFor } from '../../shared/fishrules.ts';
+import { RULE, TIER_CSS, TIER_NAMES, T_DIVINE, T_JUNK, T_LEGEND, T_MYTH, isFishTier } from '../../shared/fishrules.ts';
+import { BIG_FILL, ZONE_PER_LEVEL, gradeErrors, levelBonus, reelStyle2 } from '../../shared/fishability.ts';
+import { ReelAbilityFx } from './fishabfx.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
@@ -68,6 +75,12 @@ export class ReelGame {
   onEnd: (caught: boolean) => void = () => {};
   /** Строка в чат только себе («Леска слишком натянута, возможен обрыв!») */
   onWarn: (text: string) => void = () => {};
+  /** Тост игроку (зубы плащеносной: «Леска держится на честном слове!», «Хрум! …») */
+  onToast: (text: string) => void = () => {};
+  /** Способности рыб на шкале и бонусы уровня на экране */
+  private readonly fx: ReelAbilityFx;
+  /** Уровень рыбалки в этом бою (снимок заброса): «Спокойная рука» — первая ошибка не в счёт */
+  private level = 0;
   private readonly sound: Sound;
   private readonly root: HTMLElement;
   private readonly bar: HTMLElement;
@@ -77,6 +90,8 @@ export class ReelGame {
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly rainEl: HTMLElement;
+  /** «Прекратить [X]»: сдаться — рыба срывается, управление возвращается (кнопка нажимается мышью и пальцем, клавиша X — scene.ts) */
+  private readonly quitBtn: HTMLButtonElement;
   /** fisheco: откуда зона и рывки («Зона 30% → 36% (ур. 4 +10%, удочка +10%)», «рывки −5% блесна») и «Последний рывок!» */
   private readonly bonus: HTMLElement;
   private readonly standEl: HTMLElement;
@@ -147,6 +162,12 @@ export class ReelGame {
     this.hint = slot.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
+    this.quitBtn = this.root.appendChild(el('button', 'fr-quit'));
+    this.quitBtn.type = 'button';
+    this.quitBtn.title = 'Бросить вываживание: рыба сорвётся, можно забрасывать снова';
+    this.quitBtn.append('Прекратить');
+    if (!TOUCH) this.quitBtn.append(' ', el('kbd', '', 'X'));
+    this.quitBtn.addEventListener('click', () => this.giveUp());
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
       // телефон: держать можно где угодно на экране (кроме верхних кнопок) — и кнопкой 🎣
@@ -165,6 +186,8 @@ export class ReelGame {
       parent.appendChild(h);
     }
     parent.appendChild(this.root);
+    this.fx = new ReelAbilityFx({ parent, root: this.root, bar: this.bar, zone: this.zone, fish: this.fish, label: this.label, prog, slot }, sound);
+    this.fx.onToast = (text) => this.onToast(text);
   }
 
   /** Шкала на экране (идёт или показывает итог) */
@@ -186,21 +209,30 @@ export class ReelGame {
   start(sp: number, seed: number, rain: boolean, mods: Readonly<FishCastMods>): void {
     const rule = RULE[sp];
     if (!rule) return;
-    const style = reelStyleFor(sp, mods);
+    // та же манера, что у сервера: способность вида и бонусы уровня — из sp и снимка заброса (shared/fishability.ts)
+    const style = reelStyle2(sp, mods);
+    const lb = levelBonus(mods.level);
+    this.level = mods.level;
     // водка — рыбак пьян на любой поклёвке (задержка зоны и икота — в модели, как у сервера)
     const drunk = mods.drink === 4;
     this.r = reelStart(style, seed, drunk);
     this.calm();
+    this.fx.start(this.r, lb);
     this.wasStand = 0;
     this.standEl.classList.remove('show');
     const base = rule.style.zone;
     // откуда зона шире или уже: только то, что есть (у новичка без удочки строки нет)
     const why: string[] = [];
-    if (mods.level) why.push(`ур. ${mods.level} +${(mods.level * 2.5).toLocaleString('ru-RU')}%`);
+    if (mods.level) why.push(`ур. ${mods.level} +${(Math.round(mods.level * ZONE_PER_LEVEL * 1000) / 10).toLocaleString('ru-RU')}%`);
     if (mods.rod) why.push(`удочка +${Math.round(rodBonus(mods.rod) * 100)}%`);
     if (drunk && isFishTier(rule.tier)) why.push(`водка −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}%`);
     const zoneLine = why.length ? [`Зона ${Math.round(base)}% → ${Math.round(style.zone)}% (${why.join(', ')})`] : [];
     const lines = isFishTier(rule.tier) ? [...zoneLine, ...dartParts(mods)] : [];
+    // мифик и божественная: держать дольше и способность; «Знаток повадок» (ур. 3) — как ходит рыба
+    if (style.fill === BIG_FILL) lines.push(`держать в зоне на ${BIG_FILL - 100}% дольше${style.ability ? ' · на 60–75% улова — способность' : ''}`);
+    if (lb.habits && isFishTier(rule.tier) && style.mainPattern && style.secondaryPattern) {
+      lines.push(`Повадка: ${PATTERN_NAMES[style.mainPattern]} · ${PATTERN_NAMES[style.secondaryPattern]}`);
+    }
     this.bonus.replaceChildren(...lines.map((s) => el('span', '', s)));
     this.toggles = [];
     this.k = 0;
@@ -270,6 +302,7 @@ export class ReelGame {
       this.k = reelRun(r, this.toggles, r.t + 1, this.k);
       this.feel(r);
       this.knock(r);
+      this.fx.tick(r, want);
     }
     if (r.done !== 0 || (this.toggles.length > this.sent && r.t - this.sentTick >= SEND_TOGGLES) || r.t - this.sentTick >= SEND_IDLE) this.send(r);
     if (r.done !== 0) this.finish(r.done === 1);
@@ -284,9 +317,24 @@ export class ReelGame {
       this.r.done = -1;
       this.endAt = performance.now();
       this.calm();
+      this.fx.end();
       this.root.classList.add('lost');
       this.result.textContent = text;
     }
+  }
+
+  /**
+   * «Прекратить» (клавиша X или кнопка на шкале): сдаться. Рыба срывается ровно как при провале: у себя бой кончен
+   * (done = −1), серверу уходит последнее сообщение с d = 1 — его повтор не дошёл до 100 %, значит lose(), FE_LOST.
+   * false — шкала не идёт, сдаваться нечем.
+   */
+  giveUp(): boolean {
+    const r = this.r;
+    if (!r || r.done !== 0) return false;
+    r.done = -1;
+    this.send(r);
+    this.finish(false, 'Сорвалась…');
+    return true;
   }
 
   /** Убрать сразу (вышли с набережной) */
@@ -315,16 +363,17 @@ export class ReelGame {
     this.onSend(msg);
   }
 
-  private finish(caught: boolean): void {
+  private finish(caught: boolean, text?: string): void {
     const r = this.r;
     this.endAt = performance.now();
     this.calm();
     this.root.classList.add(caught ? 'won' : 'lost');
     // вытащил рыбу — ниже оценка крупно её цветом («Идеально · ×2,5 опыта»; сервер считает так же — она же в карточке);
-    // сорвалась, пока леска была натянута, — оборвалась
-    this.result.textContent = caught ? 'Поймал! 🎣' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…';
+    // сорвалась, пока леска была натянута, — оборвалась; сдался сам (text) — просто сорвалась
+    this.fx.end();
+    this.result.textContent = caught ? 'Поймал! 🎣' : text ?? (r && reelBitten(r) ? 'Леска перекушена!' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…');
     if (caught && r && this.fishTier) {
-      const g = reelGrade(r.err);
+      const g = reelGrade(gradeErrors(r.err, this.level));
       this.result.appendChild(el('small', gradeClass(g), `${gradeName(g)} · ${gradeMul(g)} опыта`));
     }
     this.onEnd(caught);
@@ -333,6 +382,7 @@ export class ReelGame {
   private hide(): void {
     this.r = null;
     this.calm();
+    this.fx.clear();
     this.root.classList.remove('show');
     this.hold?.classList.remove('show');
     this.fingers.clear();
@@ -350,7 +400,8 @@ export class ReelGame {
     if (dart && !this.wasDart) this.sound.fishNibble(null);
     this.wasDart = dart;
     this.wasIn = pulling;
-    if (r.stand === 1 && this.wasStand !== 1) {
+    // у рыбы со способностью «последнего рывка» нет (рывок короля после селёдок — плашка способности, fishabfx.ts)
+    if (r.stand === 1 && this.wasStand !== 1 && !r.ab) {
       // легенды и мифик на 70 %: один цикл самого злого паттерна, рывки ×1,3
       this.standEl.classList.remove('show');
       void this.standEl.offsetWidth;
@@ -389,13 +440,16 @@ export class ReelGame {
     const r = this.r;
     if (!r) return;
     const v = reelView(r);
+    // доли шкалы сейчас: после пролома рыбы-молота шкала длиннее (lo < 0 или hi > 1) — считаем от её низа до верха
+    const span = v.hi - v.lo;
+    const at = (u: number): number => (u - v.lo) / span;
     // с 04.10 зона под шкалу не уходит (отскакивает от дна и ложится на него); видимую часть рисуем на всякий случай
-    const z0 = Math.max(0, v.z0), z1 = Math.max(0, v.z1);
+    const z0 = Math.max(0, at(v.z0)), z1 = Math.max(0, at(v.z1));
     this.zone.style.bottom = `${(z0 * 100).toFixed(2)}%`;
     this.zone.style.height = `${((z1 - z0) * 100).toFixed(2)}%`;
     this.zone.style.visibility = z1 > 0.004 ? '' : 'hidden';
     this.deform(r, dtMs);
-    this.fish.style.bottom = `${(v.fish * 100).toFixed(2)}%`;
+    this.fish.style.bottom = `${(at(v.fish) * 100).toFixed(2)}%`;
     const tilt = Math.max(-28, Math.min(28, -r.fv / 25));
     this.fish.style.transform = `translate(-50%, 50%) rotate(${tilt.toFixed(1)}deg)`;
     this.fill.style.width = `${(v.p * 100).toFixed(1)}%`;
@@ -407,14 +461,17 @@ export class ReelGame {
     this.root.classList.toggle('taut', r.done === 0 && reelTaut(r));
     if (r.err !== this.shownErr) this.showErrors(r.err);
     if (r.drunk) this.drunkFx(r, dtMs);
+    this.fx.render(r, this.lastNow);
   }
 
   /** Живой счёт: «2 ошибки · Сойдёт ×1,25»; новая ошибка — плашка вздрагивает красным */
   private showErrors(err: number): void {
-    const g = reelGrade(err);
+    // «Спокойная рука» (ур. 9): первая ошибка не портит оценку — так же считает сервер
+    const g = reelGrade(gradeErrors(err, this.level));
     const e = this.gradeEl;
     e.className = `fr-grade ${gradeClass(g)}`;
-    e.replaceChildren(el('span', '', errorsText(err)), el('b', '', `${gradeName(g)} ${gradeMul(g)}`));
+    const forgiven = err > 0 && gradeErrors(err, this.level) < err ? ' (1 не в счёт)' : '';
+    e.replaceChildren(el('span', '', errorsText(err) + forgiven), el('b', '', `${gradeName(g)} ${gradeMul(g)}`));
     if (this.shownErr >= 0 && err > this.shownErr) {
       void e.offsetWidth;
       e.classList.add('bump');
@@ -435,7 +492,7 @@ export class ReelGame {
     this.root.style.translate = sway ? `${(7 * Math.sin(s * 1.3 + 0.5)).toFixed(1)}px 0` : '';
     const dy = 4.5 * Math.sin(s * 1.7) + 1.5 * Math.sin(s * 4.3);
     const dx = 12 * Math.sin(s * 1.1 + 2);
-    this.ghost.style.bottom = `${Math.min(100, Math.max(0, (r.f / REEL_BAR) * 100 + dy)).toFixed(2)}%`;
+    this.ghost.style.bottom = `${Math.min(100, Math.max(0, ((r.f - r.lo) / (r.hi - r.lo)) * 100 + dy)).toFixed(2)}%`;
     this.ghost.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), 50%) rotate(${(-r.fv / 25 + 8 * Math.sin(s * 2.6)).toFixed(1)}deg)`;
     const now = this.lastNow;
     if (!run) this.blinkEnd = 0;
