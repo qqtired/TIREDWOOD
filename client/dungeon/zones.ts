@@ -1,6 +1,8 @@
 // «Подземелье»: понятные постройки. У каждой постройки с зоной — круг на полу (спокойный снаружи, светится и пульсирует,
 // когда герой внутри), заполнение во время активации (hero.useT0 → useT1, у фонаря-маяка — его заряд) и вспышка в конце;
-// подпись над постройкой в ~6 м: имя и что даёт одной строкой, ниже — состояние (остывает, вода, «здоровье полное»).
+// полная подпись (имя и что даёт) — раз за забег на каждый вид постройки, при первом подходе, ~6,5 с, потом тает;
+// дальше над постройкой только короткая строка, когда она недоступна («через 45 с», «откроется во время волны»).
+// У гриба-батута и пороховых бочек подписей нет вовсе.
 // Родник, пока лечит: пузыри, свечение и зелёные «+HP». Только декали пола, частицы и DOM-подписи — без настоящих ламп.
 import * as THREE from 'three';
 import { DG_DATA, type DgProp, type DgSim } from '../../shared/dungeon/sim.ts';
@@ -9,10 +11,18 @@ import { A_SOFT, A_STAR, D_RING, D_SOFT, D_TCIRCLE, type FloorDecals, type FxPoo
 const L = 240;
 const wrap = (d: number): number => d - L * Math.round(d / L);
 const HZ = 30;
-/** Подпись видна ближе, м */
+/** Полная подпись появляется при первом подходе ближе, м */
 const LABEL_NEAR = 6.5;
-/** одна подпись — ближайшей постройки: спокойно и без наложений */
-const LABEL_MAX = 1;
+/** и видна столько секунд времени забега (пауза и карточки не считаются), потом тает */
+const FULL_S = 6.5;
+const FADE_S = 1.2;
+/** короткие строки состояния: не больше стольких сразу, ближе, м */
+const NOTE_MAX = 3;
+const NOTE_NEAR = 9;
+/** без подписей вовсе */
+const NO_LABEL = new Set<DgProp['k']>(['tramp', 'keg']);
+/** проклятие: столько секунд на элиту (props.ts CURSE_TIME) */
+const CURSE_S = 45;
 
 const inter = (id: string): Record<string, unknown> => (DG_DATA.interactables.find((i) => i.id === id) ?? { id }) as Record<string, unknown>;
 const num = (id: string, key: string, def: number): number => {
@@ -35,15 +45,15 @@ interface Kind {
 }
 
 const KINDS: Record<DgProp['k'], Kind> = {
-  altar: { r: 2.5, c: [1, 0.78, 0.32], title: nameOf('altar', 'Алтарь света'), gives: `случайный дар на ${num('altar', 'duration', 30)} с: ярость, спешка, ветер или притяжение` },
-  spring: { r: 2.2, c: [0.35, 0.95, 0.85], title: nameOf('spring', 'Целебный родник'), gives: 'лечит, пока стоишь в воде' },
-  chest: { r: 2.5, c: [0.78, 0.45, 1], title: nameOf('cursedChest', 'Проклятый сундук'), gives: 'выпустит элиту — убей её за 45 с и забери награду' },
-  forge: { r: 2.5, c: [1, 0.55, 0.22], title: nameOf('forge', 'Забытая кузня'), gives: '+1 уровень своему оружию за опыт' },
-  lamp: { r: 2, c: [1, 0.72, 0.35], title: nameOf('lamppost', 'Фонарь-маяк'), gives: 'зажги — свет замедляет врагов и лечит тебя' },
-  cart: { r: 2.2, c: [0.85, 0.8, 0.7], title: nameOf('minecart', 'Вагонетка'), gives: 'пробеги сквозь — покатится и снесёт врагов; E — запрыгнуть' },
-  tramp: { r: 1.25, c: [0.95, 0.55, 0.9], title: nameOf('trampoline', 'Гриб-батут'), gives: `наступи — прыжок на ${num('trampoline', 'jump', 10)} м над врагами` },
-  keg: { r: 0, c: [1, 0.35, 0.2], title: 'Пороховая бочка', gives: 'попади — взорвётся и раскидает врагов' },
-  brazier: { r: 0, c: [1, 0.6, 0.25], title: nameOf('brazier', 'Жаровня'), gives: 'ударь — выпадет добыча' },
+  altar: { r: 2.5, c: [1, 0.78, 0.32], title: nameOf('altar', 'Алтарь света'), gives: `Постой в круге — случайный дар на ${num('altar', 'duration', 30)} с: ярость, спешка, ветер или притяжение` },
+  spring: { r: 2.2, c: [0.35, 0.95, 0.85], title: nameOf('spring', 'Целебный родник'), gives: 'Стой в воде — лечит, пока в чаше есть вода' },
+  chest: { r: 2.5, c: [0.78, 0.45, 1], title: nameOf('cursedChest', 'Проклятый сундук'), gives: `Встань рядом во время волны — придёт элита, убей её за ${CURSE_S} с и забери награду` },
+  forge: { r: 2.5, c: [1, 0.55, 0.22], title: nameOf('forge', 'Забытая кузня'), gives: 'Постой в круге — +1 уровень оружию, плата: опыт' },
+  lamp: { r: 2, c: [1, 0.72, 0.35], title: nameOf('lamppost', 'Фонарь-маяк'), gives: 'Постой рядом — зажжётся: свет замедляет врагов и лечит тебя' },
+  cart: { r: 2.2, c: [0.85, 0.8, 0.7], title: nameOf('minecart', 'Вагонетка'), gives: 'Пробеги сквозь — покатится и снесёт врагов; E — запрыгнуть' },
+  tramp: { r: 1.25, c: [0.95, 0.55, 0.9], title: nameOf('trampoline', 'Гриб-батут'), gives: '' },
+  keg: { r: 0, c: [1, 0.35, 0.2], title: 'Пороховая бочка', gives: '' },
+  brazier: { r: 0, c: [1, 0.6, 0.25], title: nameOf('brazier', 'Жаровня'), gives: 'Ударь — выпадет добыча' },
 };
 
 /** Постройка на месте и с ней можно что-то сделать (для цвета круга и подписи) */
@@ -52,18 +62,24 @@ function present(p: DgProp): boolean {
   return true;
 }
 
+/** Причина «не сработает» от симуляции (поле why, если оно есть): '' — сработает; undefined — симуляция его не даёт */
+function whyOf(p: DgProp): string | undefined {
+  const w = (p as { why?: unknown }).why;
+  return typeof w === 'string' ? w : undefined;
+}
+
 const CSS = `
 .dgz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
 .dgz-l { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); max-width: 340px; padding: 7px 12px 8px; border-radius: 12px;
   background: rgba(24, 17, 14, .82); border: 1px solid rgba(255, 220, 160, .22); box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
-  color: #f6ead6; font: 600 14px/1.3 Rubik, system-ui, sans-serif; text-align: center; white-space: normal; transition: opacity .2s; }
+  color: #f6ead6; font: 600 14px/1.3 Rubik, system-ui, sans-serif; text-align: center; white-space: normal; transition: opacity .25s; }
 .dgz-t { font-weight: 800; font-size: 15px; color: #ffe2a8; }
 .dgz-g { margin-top: 2px; }
 .dgz-s { margin-top: 4px; font-size: 13px; color: #c9b9a2; }
-.dgz-s.ok { color: #8ef0b0; }
-.dgz-s.warn { color: #ffb38a; }
-.dgz-bar { margin: 5px auto 0; width: 150px; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .12); overflow: hidden; }
-.dgz-bar > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #3ec9b4, #8af2e2); }
+.dgz-n { position: absolute; left: 0; top: 0; padding: 2px 9px 3px; border-radius: 99px; background: rgba(24, 17, 14, .7);
+  border: 1px solid rgba(255, 220, 160, .14); color: #e6d8c2; font: 600 12px/1.3 Rubik, system-ui, sans-serif; white-space: nowrap; transition: opacity .2s; }
+.dgz-s.ok, .dgz-n.ok { color: #8ef0b0; }
+.dgz-s.warn, .dgz-n.warn { color: #ffb38a; }
 `;
 
 interface Label {
@@ -71,17 +87,23 @@ interface Label {
   t: HTMLElement;
   g: HTMLElement;
   s: HTMLElement;
-  bar: HTMLElement;
-  fill: HTMLElement;
+  key: string;
+}
+
+interface Note {
+  el: HTMLElement;
   key: string;
 }
 
 export class BuildingZones {
   private readonly layer: HTMLElement;
-  private readonly labels: Label[] = [];
+  private full: Label | null = null;
+  private readonly notes: Note[] = [];
   private readonly lastSt = new Map<number, number>();
-  /** сколько герой стоит в круге без удержания (подсказка «нажми E») */
-  private inSince = new Map<number, number>();
+  /** полная подпись уже была в этом забеге: вид → постройка и шаг, когда показали */
+  private readonly seen = new Map<DgProp['k'], { id: number; t0: number }>();
+  private simRef: DgSim | null = null;
+  private lastT = -1;
   private healAcc = 0;
   private healT = 0;
   private healIdle = 9;
@@ -118,6 +140,12 @@ export class BuildingZones {
       return;
     }
     this.layer.style.display = '';
+    // новый забег (или время пошло назад) — полные подписи снова по разу
+    if (sim !== this.simRef || sim.t < this.lastT) {
+      this.seen.clear();
+      this.simRef = sim;
+    }
+    this.lastT = sim.t;
     const h = sim.hero;
     const t = sim.t;
     const w = window.innerWidth;
@@ -134,7 +162,7 @@ export class BuildingZones {
       this.lastSt.set(p.id, p.st);
       if (was === 0 && p.st !== 0 && (p.k === 'altar' || p.k === 'lamp' || p.k === 'chest' || p.k === 'forge')) this.flash(p, pool, k.c);
       if (d > 40) continue;
-      if (d < LABEL_NEAR + 1 && present(p)) near.push({ p, d });
+      if (d < NOTE_NEAR && present(p) && !NO_LABEL.has(p.k)) near.push({ p, d });
       if (k.r <= 0 || !present(p)) continue;
       const x = X(p.x);
       const z = Z(p.z);
@@ -144,10 +172,7 @@ export class BuildingZones {
       // круг зоны: снаружи — тихая кромка, внутри — светится и дышит
       const pulse = 0.5 + 0.5 * Math.sin(time * 5);
       decA.add(x, 0.05, z, k.r, k.r, 0, D_RING, 0.95, 0.04, r, g, b, inside ? 0.75 + 0.25 * pulse : ready ? 0.38 : 0.18);
-      if (inside) {
-        decA.add(x, 0.05, z, k.r * 1.15, k.r * 1.15, 0, D_SOFT, 1.6, 0, r, g, b, 0.3 + 0.15 * pulse);
-        if (!this.inSince.has(p.id)) this.inSince.set(p.id, time);
-      } else this.inSince.delete(p.id);
+      if (inside) decA.add(x, 0.05, z, k.r * 1.15, k.r * 1.15, 0, D_SOFT, 1.6, 0, r, g, b, 0.3 + 0.15 * pulse);
       // заполнение: удержание (алтарь, сундук, кузня) или заряд фонаря-маяка
       let prog = -1;
       if (h.useId === p.id && h.useT1 > h.useT0) prog = Math.min(1, Math.max(0, (t - h.useT0) / (h.useT1 - h.useT0)));
@@ -163,40 +188,83 @@ export class BuildingZones {
       if (p.k === 'spring' && p.v > 0.02) decA.add(x, 0.06, z, 1.1, 1.1, 0, D_SOFT, 1.4, 0, 0.3, 0.85, 0.9, 0.12 + 0.3 * p.v);
     }
     this.spring(sim, inSpring, X, Z, pool, decA, time, still, dt);
-    // подписи: ближайшие
     near.sort((a, b) => a.d - b.d);
+    // полная подпись: первый подход к виду постройки в этом забеге, если другая сейчас не показана
+    let cur: { p: DgProp; d: number; age: number } | null = null;
+    let busy = false;
+    for (const v of this.seen.values()) {
+      const age = (t - v.t0) / HZ;
+      if (age >= FULL_S + FADE_S) continue;
+      busy = true;
+      const it = near.find((o) => o.p.id === v.id);
+      if (it) cur = { p: it.p, d: it.d, age };
+    }
+    if (!busy) {
+      const first = near.find((o) => o.d < LABEL_NEAR && !this.seen.has(o.p.k));
+      if (first) {
+        this.seen.set(first.p.k, { id: first.p.id, t0: t });
+        cur = { p: first.p, d: first.d, age: 0 };
+      }
+    }
+    let fullId = -1;
+    if (cur) {
+      const { p, d, age } = cur;
+      const k = KINDS[p.k];
+      const at = this.screen(camera, X(p.x), Z(p.z), p.k === 'cart' ? 2.2 : 3.4, w, hh);
+      if (at) {
+        fullId = p.id;
+        const lb = this.fullLabel();
+        lb.el.style.transform = `translate(${at[0]}px, ${at[1]}px) translate(-50%, -100%)`;
+        // тает в конце и при отходе
+        const a = Math.min(1, age / 0.25, 1 - (age - FULL_S) / FADE_S, (NOTE_NEAR - d) / 2);
+        lb.el.style.opacity = String(Math.max(0, a).toFixed(2));
+        const st = this.state(sim, p, d < k.r + 0.3);
+        const key = `${p.id}|${st.text}|${st.cls}`;
+        if (key !== lb.key) {
+          lb.key = key;
+          lb.t.textContent = k.title;
+          lb.g.textContent = k.gives;
+          lb.s.textContent = st.text;
+          lb.s.className = `dgz-s${st.cls ? ` ${st.cls}` : ''}`;
+          lb.s.style.display = st.text ? '' : 'none';
+        }
+        lb.el.style.display = '';
+      }
+    }
+    if (fullId < 0 && this.full) this.full.el.style.display = 'none';
+    // короткие строки: недоступна — почему (маленькой строкой над постройкой)
     let n = 0;
     for (const { p, d } of near) {
-      if (n >= LABEL_MAX || d > LABEL_NEAR) break;
-      const k = KINDS[p.k];
-      const x = X(p.x);
-      const z = Z(p.z);
-      this.v3.set(x, p.k === 'cart' || p.k === 'keg' || p.k === 'tramp' ? 2.2 : 3.4, z).project(camera);
-      if (this.v3.z > 1 || Math.abs(this.v3.x) > 1.1 || Math.abs(this.v3.y) > 1.1) continue;
-      const lb = this.label(n++);
-      const sx = (this.v3.x * 0.5 + 0.5) * w;
-      // не выше полосы волны и не ниже кнопок рывка/удара
-      const sy = Math.max(205, Math.min(hh - 150, (-this.v3.y * 0.5 + 0.5) * hh));
-      lb.el.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px) translate(-50%, -100%)`;
-      lb.el.style.opacity = String(Math.min(1, (LABEL_NEAR - d) / 1.2 + 0.25));
-      const st = this.state(sim, p, d < k.r + 0.3, time);
-      const key = `${p.id}|${st.text}|${st.cls}|${st.bar < 0 ? -1 : Math.round(st.bar * 50)}`;
-      if (key !== lb.key) {
-        lb.key = key;
-        lb.t.textContent = k.title;
-        lb.g.textContent = k.gives;
-        lb.s.textContent = st.text;
-        lb.s.className = `dgz-s${st.cls ? ` ${st.cls}` : ''}`;
-        lb.s.style.display = st.text ? '' : 'none';
-        lb.bar.style.display = st.bar >= 0 ? '' : 'none';
-        if (st.bar >= 0) lb.fill.style.width = `${Math.round(st.bar * 100)}%`;
+      if (n >= NOTE_MAX) break;
+      if (p.id === fullId) continue;
+      const st = this.state(sim, p, d < KINDS[p.k].r + 0.3);
+      if (!st.text) continue;
+      const at = this.screen(camera, X(p.x), Z(p.z), p.k === 'cart' ? 2.2 : 3.4, w, hh);
+      if (!at) continue;
+      const nt = this.note(n++);
+      nt.el.style.transform = `translate(${at[0]}px, ${at[1]}px) translate(-50%, -100%)`;
+      nt.el.style.opacity = String(Math.min(1, (NOTE_NEAR - d) / 1.5).toFixed(2));
+      const key = `${st.text}|${st.cls}`;
+      if (key !== nt.key) {
+        nt.key = key;
+        nt.el.textContent = st.text;
+        nt.el.className = `dgz-n${st.cls ? ` ${st.cls}` : ''}`;
       }
-      lb.el.style.display = '';
+      nt.el.style.display = '';
     }
-    for (let i = n; i < this.labels.length; i++) this.labels[i].el.style.display = 'none';
+    for (let i = n; i < this.notes.length; i++) this.notes[i].el.style.display = 'none';
+  }
+
+  /** точка над постройкой на экране: не выше полосы волны и не ниже кнопок рывка/удара; null — за кадром */
+  private screen(camera: THREE.Camera, x: number, z: number, y: number, w: number, hh: number): [number, number] | null {
+    this.v3.set(x, y, z).project(camera);
+    if (this.v3.z > 1 || Math.abs(this.v3.x) > 1.05 || Math.abs(this.v3.y) > 1.05) return null;
+    return [Math.round((this.v3.x * 0.5 + 0.5) * w), Math.round(Math.max(205, Math.min(hh - 150, (-this.v3.y * 0.5 + 0.5) * hh)))];
   }
 
   private ready(sim: DgSim, p: DgProp): boolean {
+    const why = whyOf(p);
+    if (why !== undefined && (p.k === 'altar' || p.k === 'chest' || p.k === 'forge')) return why === '';
     switch (p.k) {
       case 'altar':
         return p.st === 0;
@@ -217,56 +285,46 @@ export class BuildingZones {
     }
   }
 
-  /** Строка состояния под подписью */
-  private state(sim: DgSim, p: DgProp, inside: boolean, time: number): { text: string; cls: string; bar: number } {
+  /**
+   * Короткая строка состояния — только когда постройка сейчас не сработает (и почему), плюс вода родника, пока стоишь
+   * в чаше. Пусто — постройка готова: хватает круга и кольца. Причину берём у симуляции (why), если она её даёт.
+   */
+  private state(sim: DgSim, p: DgProp, inside: boolean): { text: string; cls: string } {
     const t = sim.t;
     const h = sim.hero;
     const secs = (to: number): number => Math.max(1, Math.ceil((to - t) / HZ));
-    const using = h.useId === p.id;
-    const since = this.inSince.get(p.id);
-    // в круге, а удержание не началось — подсказать E
-    const askE = inside && !using && since !== undefined && time - since > 0.4;
+    const no = { text: '', cls: '' };
+    const warn = (text: string): { text: string; cls: string } => ({ text, cls: 'warn' });
+    let why = whyOf(p);
+    if (why === undefined) {
+      // симуляция без why — считаем сами
+      why = '';
+      if (p.k === 'altar' && p.st === 2) why = 'cool';
+      if (p.k === 'chest') why = p.st === 1 ? 'busy' : p.st === 2 ? 'cool' : sim.wave.stage !== 'wave' ? 'wave' : '';
+      if (p.k === 'forge') why = p.st === 3 ? 'out' : sim.weapons.length === 0 || h.xp < h.xpNext * num('forge', 'minXpShare', 0.5) ? 'xp' : '';
+    }
     switch (p.k) {
       case 'altar':
-        if (p.st === 2) return { text: `Остывает — снова через ${secs(p.t1)} с`, cls: 'warn', bar: -1 };
-        if (using) return { text: 'Стой в круге…', cls: 'ok', bar: -1 };
-        return { text: askE ? 'Нажми E' : 'Встань в круг', cls: askE ? 'ok' : '', bar: -1 };
+        return why === 'cool' ? warn(`снова через ${secs(p.t1)} с`) : why ? warn('сейчас не сработает') : no;
       case 'chest':
-        if (p.st === 1) return { text: `Проклятие! Убей элиту — ${secs(p.t1)} с`, cls: 'warn', bar: -1 };
-        if (sim.wave.stage !== 'wave') return { text: 'Открывается только во время волны', cls: 'warn', bar: -1 };
-        if (using) return { text: 'Стой в круге…', cls: 'ok', bar: -1 };
-        return { text: askE ? 'Нажми E' : 'Встань в круг', cls: askE ? 'ok' : '', bar: -1 };
-      case 'forge': {
-        if (p.st === 3) return { text: `Погасла — разгорится на ${p.v}-й волне`, cls: 'warn', bar: -1 };
-        if (sim.weapons.length === 0 || h.xp < h.xpNext * num('forge', 'minXpShare', 0.5)) return { text: 'Нужно хотя бы полполосы опыта', cls: 'warn', bar: -1 };
-        if (using) return { text: 'Куём… не отходи', cls: 'ok', bar: -1 };
-        return { text: askE ? 'Нажми E' : 'Встань в круг — плата: опыт уровня', cls: askE ? 'ok' : '', bar: -1 };
-      }
-      case 'spring': {
-        const pct = Math.round(p.v * 100);
-        if (p.v <= 0.02) return { text: 'Вода кончилась — наберётся за минуту', cls: 'warn', bar: p.v };
-        if (inside && h.hp >= h.hpMax) return { text: `Здоровье полное · вода ${pct} %`, cls: '', bar: p.v };
-        if (inside) return { text: `Лечит · вода ${pct} %`, cls: 'ok', bar: p.v };
-        return { text: `Вода ${pct} % — встань в чашу`, cls: '', bar: p.v };
-      }
-      case 'lamp':
-        if (p.st === 1) return { text: 'Горит до конца забега', cls: 'ok', bar: -1 };
-        return { text: p.vx > 0 ? 'Зажигается… стой рядом' : 'Постой рядом — зажжётся', cls: p.vx > 0 ? 'ok' : '', bar: -1 };
+        if (why === 'busy') return warn(`убей элиту — ${secs(p.t1)} с`);
+        if (why === 'wave') return warn('откроется во время волны');
+        if (why === 'boss') return warn('не на волне босса');
+        if (why === 'cool') return warn('пуст — новый появится в другом месте');
+        return why ? warn('сейчас не откроется') : no;
+      case 'forge':
+        if (why === 'out') return warn(`разгорится на ${p.v}-й волне`);
+        if (why === 'xp') return warn('нужно полполосы опыта');
+        return why ? warn('сейчас не сработает') : no;
+      case 'spring':
+        if (p.v <= 0.02) return warn('пусто — наберётся за минуту');
+        if (inside && h.hp >= h.hpMax) return { text: `здоровье полное · вода ${Math.round(p.v * 100)} %`, cls: '' };
+        if (inside) return { text: `вода ${Math.round(p.v * 100)} %`, cls: 'ok' };
+        return no;
       case 'cart':
-        if (p.st === 1) return { text: 'Едет!', cls: 'ok', bar: -1 };
-        if (t < p.t1) return { text: `Готова через ${secs(p.t1)} с`, cls: 'warn', bar: -1 };
-        return { text: '', cls: '', bar: -1 };
-      case 'tramp':
-        if (p.st === 2) return { text: `Сжат — ещё ${secs(p.t1)} с`, cls: 'warn', bar: -1 };
-        return { text: '', cls: '', bar: -1 };
-      case 'keg':
-        if (p.st === 1) return { text: 'Фитиль! Отойди', cls: 'warn', bar: -1 };
-        return { text: '', cls: '', bar: -1 };
-      case 'brazier':
-        if (p.st === 2) return { text: `Опрокинута — новая через ${secs(p.t1)} с`, cls: '', bar: -1 };
-        return { text: '', cls: '', bar: -1 };
+        return p.st === 0 && t < p.t1 ? warn(`через ${secs(p.t1)} с`) : no;
     }
-    return { text: '', cls: '', bar: -1 };
+    return no;
   }
 
   /** Родник лечит: пузыри, свечение, «+HP» зелёным */
@@ -308,9 +366,8 @@ export class BuildingZones {
     pool.burst(p.x, 1.2, p.z, 22, 5, A_STAR, c[0], c[1], c[2], 0.8, 0.35, true, 3, 3);
   }
 
-  private label(i: number): Label {
-    let lb = this.labels[i];
-    if (lb) return lb;
+  private fullLabel(): Label {
+    if (this.full) return this.full;
     const el = document.createElement('div');
     el.className = 'dgz-l';
     const t = document.createElement('div');
@@ -319,14 +376,20 @@ export class BuildingZones {
     g.className = 'dgz-g';
     const s = document.createElement('div');
     s.className = 'dgz-s';
-    const bar = document.createElement('div');
-    bar.className = 'dgz-bar';
-    const fill = document.createElement('i');
-    bar.appendChild(fill);
-    el.append(t, g, bar, s);
+    el.append(t, g, s);
     this.layer.appendChild(el);
-    lb = { el, t, g, s, bar, fill, key: '' };
-    this.labels[i] = lb;
-    return lb;
+    this.full = { el, t, g, s, key: '' };
+    return this.full;
+  }
+
+  private note(i: number): Note {
+    let nt = this.notes[i];
+    if (nt) return nt;
+    const el = document.createElement('div');
+    el.className = 'dgz-n';
+    this.layer.appendChild(el);
+    nt = { el, key: '' };
+    this.notes[i] = nt;
+    return nt;
   }
 }
