@@ -126,8 +126,10 @@ test('«жду у дна» больше не работает: мифики, к�
     const camp = stats2(reelStyle2(sp, mods(sp, 10, 3, 3)), EXPERT, 60, 11 + sp * 7919, { camp: 1 }).p;
     assert.ok(camp <= 0.05, `${id}: кемпер у дна ${camp}`);
   }
-  // осётр: «обычный» 10-го уровня — не хуже прежних ~59 % (сопротивление ниже под «чует ловушку»)
+  // осётр: «обычный» — не хуже прежнего (ур. 0 ~36 %, ур. 10 ~59 %; сопротивление ниже под «чует ловушку»)
   const st = spById('sturgeon');
+  const fair0 = stats2(reelStyle2(st, mods(st, 0)), TYPICAL, 200, 11 + st * 7919).p;
+  assert.ok(fair0 >= 0.36, `осётр, «обычный» ур. 0: ${fair0}`);
   const fair = stats2(reelStyle2(st, mods(st, 10, 3, 3)), TYPICAL, 150, 11 + st * 7919).p;
   assert.ok(fair >= 0.6, `осётр, «обычный» ур. 10: ${fair}`);
 });
