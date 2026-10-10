@@ -103,6 +103,7 @@
 | Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
 | «Подземелье» (соло, инстанс на игрока) | `dungeon/` (договор `api.ts`) | `dungeon/` (зал, комната, рекорды, `simport.ts`) | `dungeon/`, `lazyscene.ts`, `lobby/dgstatus.ts`, вход и доска рекордов на лужайке — `lobby/plaza/dungeon.ts` (модель `assets/dungeon/plaza/`, твёрдое — `shared/plaza2.ts`) | `DUNGEON` | `dungeon-flag.test.ts`, `dungeon-server-sim.test.ts`, `dungeon-plaza.test.ts` | [survivors/](survivors/), план `2026-10-10-dungeon` |
 | «Подземелье»: симуляция (30 Гц, детерминированная; клиент играет, сервер повторяет по журналу) | `dungeon/*` (`sim.ts` — витрина, таблицы `gen-design.ts`/`gen-level.ts`) | — | — | `DUNGEON` | `dungeon-sim.test.ts` | таблицы из `docs/survivors/*-data.json` — `node tools/survivors/gen-data.mjs`; бот — `node tools/survivors/bot.mjs` |
+| «Подземелье»: иконки интерфейса (63 шт., Codex image_gen) | — | — | `dungeon/icons.ts` (`dgIcon`), файлы `assets/dungeon/icons/<вид>-<id>.webp` | `DUNGEON` | — | [PROVENANCE](../client/assets/dungeon/icons/PROVENANCE.md), лист [icons-sheet.png](survivors/art/icons-sheet.png); генерация и нарезка — `tools/survivors/icons/` |
 
 ### 2.5 Страницы, подарки, загрузка, звук и прочее
 
