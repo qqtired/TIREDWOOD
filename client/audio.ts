@@ -12,6 +12,8 @@ type Wave = OscillatorType;
 type V3 = [number, number, number];
 export type SoundPos = V3 | null;
 export type LobbyEventSound = 'siren' | 'thunder' | 'wave' | 'success' | 'horn' | 'cannon' | 'splash' | 'victory' | 'loss' | 'mop';
+/** Звуки способностей рыб на шкале вываживания (Sound.fishAbility, client/lobby/fishabfx.ts) */
+export type FishAbSound = 'crack' | 'shatter' | 'inhale' | 'ink' | 'call' | 'herring' | 'gone' | 'bite' | 'snap' | 'clack' | 'gust' | 'whistle' | 'whip' | 'horn' | 'rush';
 /** Ползунки меню «Звук»: пример звука шины, когда ползунок отпустили */
 export type MixPreview = 'music' | 'amb' | 'sfx' | 'ui';
 
@@ -37,6 +39,9 @@ export class Sound {
   private musicOut!: GainNode;
   private musicIn!: GainNode;
   private jukeIn!: GainNode;
+  /** Радио на лодке (client/boat/radio.ts): свой вход в шину «Музыка»; автомат уступает ему (duckJuke) */
+  private radioIn!: GainNode;
+  private jukeDuck = 1;
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
@@ -114,7 +119,10 @@ export class Sound {
       this.musicIn.gain.value = this.duck;
       this.musicIn.connect(this.musicOut);
       this.jukeIn = ctx.createGain();
+      this.jukeIn.gain.value = this.jukeDuck;
       this.jukeIn.connect(this.musicOut);
+      this.radioIn = ctx.createGain();
+      this.radioIn.connect(this.musicOut);
       this.noiseBuf = this.makeNoise(false);
       this.brownBuf = this.makeNoise(true);
       const l = ctx.listener;
@@ -239,6 +247,19 @@ export class Sound {
   /** Для музыкального автомата (client/music): контекст и вход шины «Музыка» мимо приглушения; null — звук не разрешён */
   get jukeKit(): { ctx: AudioContext; out: GainNode } | null {
     return this.ok ? { ctx: this.ctx!, out: this.jukeIn } : null;
+  }
+
+  /** Для радио на лодке: контекст и его вход в шину «Музыка» (ползунок «Музыка»); null — звук не разрешён */
+  get radioKit(): { ctx: AudioContext; out: GainNode } | null {
+    return this.ok ? { ctx: this.ctx!, out: this.radioIn } : null;
+  }
+
+  /** Автомат уступает радио лодки, пока оно рядом: k — доля громкости автомата 0…1 (1 — как есть), плавно */
+  duckJuke(k: number): void {
+    const v = Math.min(1, Math.max(0, Number.isFinite(k) ? k : 1));
+    if (Math.abs(v - this.jukeDuck) < 0.01) return;
+    this.jukeDuck = v;
+    if (this.ctx) this.jukeIn.gain.setTargetAtTime(v, this.ctx.currentTime, 0.4);
   }
 
   /** Приглушить прочую музыку, пока играет автомат: k — доля громкости 0…1 (1 — как есть), плавно. */
@@ -971,6 +992,44 @@ export class Sound {
     }
   }
 
+  /**
+   * Ревун маяка острова «Последний свет» (client/lobby/isle): низкий двойной гудок 3 с. pos — уже поднесённая к слушателю
+   * точка в сторону маяка (направление слышно, громкость — gain от дальности считает остров); muffle — туман гуще (глуше).
+   */
+  foghorn(gain: number, pos: V3, muffle = 0): void {
+    if (!this.ok || gain <= 0.002 || !this.once('foghorn', 2)) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900 - 500 * muffle;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.5);
+    g.gain.setValueAtTime(gain, t + 2.2);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.4);
+    lp.connect(g).connect(this.out(pos, this.amb, muffle * 0.95, 25, 'foghorn'));
+    for (const [f, type] of [[73, 'sawtooth'], [110, 'sawtooth'], [146, 'triangle']] as const) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(f * 0.97, t);
+      o.frequency.linearRampToValueAtTime(f, t + 0.6);
+      o.detune.value = (Math.random() - 0.5) * 8;
+      o.connect(lp);
+      o.start(t);
+      o.stop(t + 3.5);
+    }
+  }
+
+  /** Колокольный буй у острова: глухой удар колокола по волне (тише и ниже колокола на террасе). */
+  buoyBell(pos: V3, muffle = 0): void {
+    if (!this.ok || !this.once('buoyBell', 2)) return;
+    const d = this.out(pos, this.amb, muffle, 12, 'buoyBell');
+    const k = 0.97 + Math.random() * 0.06;
+    for (const [f, g, len] of [[294, 0.13, 2.8], [588, 0.05, 1.7], [881, 0.03, 1.1], [370, 0.035, 2.2]] as const) this.tone(d, f * k, f * k * 0.993, len, 'sine', g, 0, 0.004);
+    this.noise(d, 0.05, 'bandpass', 2400, 1600, 2, 0.06);
+  }
+
   streak(n: number): void {
     if (!this.ok) return;
     const base = 440 * Math.pow(2, Math.min(n, 8) / 12);
@@ -1305,6 +1364,15 @@ export class Sound {
     this.noise(d, 0.2, 'lowpass', 1400, 300, 1, 0.15 * g, 0.02);
   }
 
+  /** «Колокольный буй» на поклёвке: маленький латунный колокольчик — «дзынь» с коротким отзвуком. */
+  floatBell(pos: V3 | null): void {
+    if (!this.ok || !this.once('floatBell', 0.4)) return;
+    const d = this.out(pos, this.sfx, 0, 4);
+    const g = pos ? 0.6 : 1;
+    for (const [f, k, len] of [[1568, 0.11, 0.9], [2350, 0.05, 0.55], [3136, 0.03, 0.35]] as const) this.tone(d, f, f * 0.997, len, 'sine', k * g, 0, 0.002);
+    this.tone(d, 1568, 1562, 0.6, 'sine', 0.05 * g, 0.18, 0.002);
+  }
+
   /** Вываживание: трещотка катушки dur секунд и всплески рыбы у поверхности. */
   fishReel(pos: V3 | null, dur: number): void {
     if (!this.ok) return;
@@ -1340,6 +1408,87 @@ export class Sound {
     if (!this.ok) return;
     this.noise(this.ui, 0.12, 'highpass', 2500, 5000, 0.7, 0.05);
     [784, 988, 1175, 1568].forEach((f, i) => this.tone(this.ui, f, f, 0.22, 'sine', 0.07, 0.08 + i * 0.07));
+  }
+
+  /**
+   * Способность рыбы на шкале (10.10, client/lobby/fishabfx.ts; дизайн — 2026-10-10-fishing-abilities.md, раздел 8): короткий
+   * синтез, только себе. Повторы не копятся: модель шлёт событие один раз на смену фазы, а ключ звука ещё и не даёт
+   * сыграть одно и то же больше KEY_MAX раз за KEY_WINDOW (VoicePool).
+   */
+  fishAbility(kind: FishAbSound): void {
+    if (!this.ok) return;
+    const d = this.out(null, this.sfx, 0, 3, `fab-${kind}`);
+    switch (kind) {
+      case 'crack': // край шкалы трещит: четыре сухих щелчка
+        for (let i = 0; i < 4; i++) this.noise(d, 0.05, 'bandpass', 900 + i * 300, 700 + i * 250, 4, 0.22, i * 0.12);
+        break;
+      case 'shatter': // пролом: удар, звон осколков
+        this.noise(d, 0.45, 'bandpass', 1800, 900, 0.7, 0.4);
+        this.tone(d, 110, 40, 0.35, 'sine', 0.42);
+        for (let i = 0; i < 6; i++) this.tone(d, 1400 + Math.random() * 1600, 900, 0.07, 'triangle', 0.05, 0.05 + i * 0.05);
+        break;
+      case 'inhale': // кальмар набирает чернила, белуга всплывает: низкий «вдох»
+        this.noise(d, 0.5, 'lowpass', 300, 700, 0.7, 0.14, 0, 0.25, true);
+        this.tone(d, 150, 95, 0.5, 'sine', 0.16, 0.12, 0.08);
+        break;
+      case 'ink': // «плюх» чернил
+        this.tone(d, 320, 60, 0.35, 'sine', 0.32);
+        this.noise(d, 0.3, 'lowpass', 900, 300, 1, 0.22);
+        break;
+      case 'call': // король зовёт селёдок: «дин-дон»
+        this.tone(d, 880, 880, 0.18, 'sine', 0.1);
+        this.tone(d, 1175, 1175, 0.24, 'sine', 0.1, 0.16);
+        break;
+      case 'herring': // селёдка поймана: «блик»
+        this.tone(d, 600, 1100, 0.12, 'sine', 0.16);
+        this.noise(d, 0.08, 'highpass', 2000, 3500, 1, 0.06);
+        break;
+      case 'gone': // селёдки уплыли
+        this.tone(d, 500, 250, 0.22, 'triangle', 0.09);
+        break;
+      case 'bite': // зуб задел леску
+        this.tone(d, 1300, 600, 0.06, 'square', 0.16);
+        this.noise(d, 0.09, 'bandpass', 2500, 1800, 2, 0.2);
+        break;
+      case 'snap': // леска перекушена
+        this.noise(d, 0.22, 'bandpass', 3000, 1200, 0.8, 0.36);
+        this.tone(d, 900, 120, 0.26, 'sawtooth', 0.12);
+        break;
+      case 'clack': // зубы щёлкают: «клац-клац»
+        this.tone(d, 900, 500, 0.04, 'square', 0.09);
+        this.tone(d, 900, 500, 0.04, 'square', 0.09, 0.12);
+        break;
+      case 'gust': // порыв ветра «ух»
+        this.noise(d, 0.65, 'bandpass', 500, 900, 0.8, 0.22, 0, 0.12);
+        break;
+      case 'whistle': // замах хвоста, ветер поднимается: свист вверх
+        this.tone(d, 500, 1500, 0.55, 'sine', 0.06, 0, 0.2);
+        break;
+      case 'whip': // удар хлыста
+        this.noise(d, 0.08, 'bandpass', 3500, 2500, 1.5, 0.36);
+        this.tone(d, 1800, 300, 0.09, 'square', 0.09);
+        break;
+      case 'horn': // туманный горн
+        this.tone(d, 110, 104, 1.2, 'sawtooth', 0.05, 0, 0.15);
+        this.tone(d, 55, 52, 1.2, 'sine', 0.14, 0, 0.15);
+        break;
+      case 'rush': // король рванул
+        this.tone(d, 180, 90, 0.1, 'triangle', 0.14);
+        this.noise(d, 0.2, 'lowpass', 1400, 400, 0.8, 0.12, 0.02);
+        break;
+    }
+  }
+
+  /**
+   * Шторм гренландской акулы (ветер на шкале): шум ветра и резкий косой дождь, только себе. Зовут раз в ~0,9 с, пока дует, —
+   * порывы по 2,4 с перекрываются в ровный шум, а перестали звать — сам стихает за 2 с (как planeWind). level 0…1.
+   */
+  fishStorm(level: number): void {
+    if (!this.ok || level <= 0.01) return;
+    const d = this.out(null, this.amb, 0, 3, 'fabStorm');
+    const f = 420 + Math.random() * 360;
+    this.noise(d, 2.4, 'bandpass', f, f * (0.7 + Math.random() * 0.6), 0.9, 0.16 * level, 0, 0.9, true);
+    this.noise(d, 2.4, 'highpass', 2600, 3200, 0.5, 0.05 * level, 0, 0.9);
   }
 
   // ------------------------------------------------------------ картинг

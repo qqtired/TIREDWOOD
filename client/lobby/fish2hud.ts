@@ -72,9 +72,9 @@ export class Fish2Hud {
   private readonly send: (msg: ClientMsg) => void;
   private top: FishBoardView | null = null;
   private rain = false;
-  /** Остров (флаг ISLE): туман и сезон острова — свои события, ставит пакет острова; «Шансы сейчас» у острова считают по ним */
-  isleFog = false;
-  isleSeason = false;
+  /** Остров (флаг ISLE): туман и сезон острова — свои события (isleWeather); «Шансы сейчас» у острова считают по ним */
+  private isleFog = false;
+  private isleSeason = false;
   private quiet = false;
   private eventUntil = 0;
   /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
@@ -86,6 +86,7 @@ export class Fish2Hud {
     this.reel = new ReelGame(parent, sound);
     this.reel.onSend = send;
     this.reel.onWarn = (text) => ui.chat.note(text);
+    this.reel.onToast = (text) => ui.toasts.show(text, 3500, 'fish-ability');
     this.card = new CatchCard2(parent, sound);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
     this.card.onKeep = () => this.choose(true);
@@ -189,6 +190,13 @@ export class Fish2Hud {
   /** Журналу — погода и сезон для «сейчас N% поклёвок» (как «Шансы сейчас») */
   private bookWeather(now = this.clock.now()): void {
     this.book.setWeather(this.rain || this.season, now, this.season, this.isleFog || this.isleSeason, this.isleSeason);
+  }
+
+  /** Погода острова (письмо isle): «Туман наступает» и сезон острова — для «Шансов сейчас» и журнала у видов острова */
+  isleWeather(fog: boolean, season: boolean): void {
+    this.isleFog = fog;
+    this.isleSeason = season;
+    this.bookWeather();
   }
 
   /** Идёт ли сезон рыбалки по часам сервера */

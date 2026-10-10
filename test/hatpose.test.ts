@@ -1,11 +1,17 @@
 // A headpiece must deform with the body itself, including impact wobble; parent transforms cover running/jump/KO.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { ITEMS } from '../shared/outfit.ts';
 import { BODY_H, bodyR } from '../client/render/outfit3d.ts';
 import { wearFor as wearOf } from '../client/render/outfitfish.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial, posedHatPoint } from '../client/render/hatpose.ts';
+import { primeIsle } from '../client/render/islegear.ts';
+
+// шапка смотрителя (остров) — из GLB, в игре грузится fetch-ем; здесь — с диска
+const keeperHat = readFileSync(new URL('../client/assets/islecos/keeper-hat.glb', import.meta.url));
+primeIsle('keeper-hat', keeperHat.buffer.slice(keeperHat.byteOffset, keeperHat.byteOffset + keeperHat.byteLength));
 
 function bodyAt(x: number, y: number, z: number, time: number, wobble: number, lean: THREE.Vector2): THREE.Vector3 {
   const h = Math.max(0, Math.min(1, y / BODY_H));

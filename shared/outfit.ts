@@ -132,6 +132,15 @@ const CATALOG: Array<[Slot, string, string, Tier]> = [
   ['b', 'goldfish', 'Золотая рыбка', 'trophy'],
   ['w', 'gold', 'Золото', 'trophy'],
   ['n', 'anchor', 'Золотой якорь', 'trophy'],
+
+  // Остров «Последний свет» (флаг ISLE): награды лестницы видов острова (ISLE_LADDER в shared/fishstyle.ts) — только в конец.
+  ['b', 'bellbuoy', 'Колокольный буй', 'trophy'],
+  ['r', 'lighthouse', 'Маячная', 'trophy'],
+  ['w', 'fog', 'Туман', 'trophy'],
+  ['s', 'puffin', 'Тупик', 'trophy'],
+  ['h', 'keeper', 'Шапка смотрителя', 'trophy'],
+  ['a', 'keeper', 'Свитер смотрителя', 'trophy'],
+  ['n', 'lighthouse', 'Маяк', 'trophy'],
 ];
 
 export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => ({ id: `${slot}:${key}`, slot, key, name, tier }));

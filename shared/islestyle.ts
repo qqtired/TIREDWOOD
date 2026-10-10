@@ -1,16 +1,14 @@
-// Счётчик видов острова «Последний свет» для лестницы косметики острова (ISLE_LADDER в shared/fishstyle.ts).
-// ЗАГЛУШКА пакета E: настоящие виды острова и их таблицы делает пакет D (shared/fishing.ts, FishZone 'isle').
-// Имена из контракта — isleCaught и ISLE_TOTAL; ведущий сведёт с реализацией D. Ключи альбома — id видов, поэтому
-// счётчик работает и до слияния: видов острова в альбоме нет — 0, ничего не выдаётся и не отнимается.
+// Счётчик видов острова «Последний свет» для лестницы косметики острова (ISLE_LADDER в shared/fishstyle.ts). Виды острова —
+// таблицы рыбалки (shared/fishing.ts в конце FISH, shared/fishrules.ts ISLE_COLLECTION, zone 'isle'): 12 всегда + 8 в туман.
+// Ключи альбома — id видов: счётчик — сколько видов острова в альбоме; коллекция 52 видов от них не растёт.
+import { FISH } from './fishing.ts';
+import { ISLE_COLLECTION, ISLE_SIZE } from './fishrules.ts';
 
 /** Видов на острове: 12 всегда + 8 только в туман (дизайн §5) */
-export const ISLE_TOTAL = 20;
+export const ISLE_TOTAL = ISLE_SIZE;
 
-/** id видов острова — ключи альбома, порядок как в дизайне (plans/2026-10-10-fishing-island.md §5) */
-export const ISLE_SPECIES: readonly string[] = [
-  'capelin', 'smelt', 'navaga', 'lanternfish', 'lumpfish', 'saithe', 'grenadier', 'lamprey', 'salmon', 'ling',
-  'chimaera', 'roughy', 'opah', 'albacore', 'coelacanth', 'goblinshark', 'beluga', 'thresher', 'baskingshark', 'frilledshark',
-];
+/** id видов острова — ключи альбома, по порядку журнала (категории, внутри — как в таблице) */
+export const ISLE_SPECIES: readonly string[] = ISLE_COLLECTION.map((sp) => FISH[sp].id);
 
 /** Сколько видов острова в альбоме (профиль сервера или свой профиль на клиенте) */
 export function isleCaught(p: { album: Readonly<Record<string, unknown>> }): number {

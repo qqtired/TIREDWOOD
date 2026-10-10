@@ -6,7 +6,8 @@ import type { FishZone } from '../../shared/fishplaces.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
-import { mul, num, pct } from './fishfmt.ts';
+import { levelZonePct, mul, num, pct } from './fishfmt.ts';
+import { LEVEL_PERKS } from '../../shared/fishability.ts';
 
 /** Значок напитка на бейдже по номеру из activeDrink(): пиво, эль, пиво подводного владыки, водка */
 const DRINK_ICONS: Readonly<Record<number, string>> = { 1: '🍺', 2: '🍻', 3: '🔱', 4: '🥃' };
@@ -45,8 +46,8 @@ export function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Same compact skill scale in the journal, NPC dialog and profile. */
-export function fishSkillBlock(progress: FishProgress, compact = false): HTMLElement {
+/** Same compact skill scale in the journal, NPC dialog and profile. fresh — уровень только что вырос: строка награды вспыхивает */
+export function fishSkillBlock(progress: FishProgress, compact = false, fresh = false): HTMLElement {
   const view = fishLevelView(progress.xp);
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
   const head = block.appendChild(el('div', 'fs-skill-head'));
@@ -62,10 +63,18 @@ export function fishSkillBlock(progress: FishProgress, compact = false): HTMLEle
   bar.value = view.next === null ? 1 : gained;
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
-    ? `Высший уровень · зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}% · опыт продолжает учитываться`
+    ? `Высший уровень · зелёная зона +${levelZonePct(view.level)}% · опыт продолжает учитываться`
     : view.level === 0
-      ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +2,5%`
-      : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${(view.level * 2.5).toLocaleString('ru-RU')}%`));
+      ? `До 1-го уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP — там зелёная зона +${levelZonePct(1)}%`
+      : `До следующего уровня ${Math.max(0, view.next - view.xp).toLocaleString('ru-RU')} XP · сейчас зелёная зона +${levelZonePct(view.level)}%`));
+  // награды уровней 1–15 (shared/fishability.ts): последняя полученная и следующая; в подсказке — все полученные
+  const have = LEVEL_PERKS.filter((p) => p.level <= view.level);
+  const last = have.at(-1);
+  const next = LEVEL_PERKS.find((p) => p.level === view.level + 1);
+  const perk = block.appendChild(el('span', `fs-skill-perk${fresh ? ' new' : ''}`));
+  if (last) perk.appendChild(el('b', '', `★ ${last.name}`));
+  if (next) perk.append(`${last ? ' · ' : ''}на ${next.level}-м: ${next.name}`);
+  perk.title = [...have.map((p) => `★ ${p.level}. ${p.name} — ${p.text}`), ...(next ? [`дальше, ${next.level}-й: ${next.name} — ${next.text}`] : [])].join('\n');
   return block;
 }
 
@@ -90,6 +99,9 @@ export class FishProgressHud {
   private readonly clock = new FishClock();
   private progress: FishProgress | null = null;
   private zone: FishZone = 'pier';
+  /** Уровень, что уже показан (−1 — ещё ничего), и до какого времени строка награды горит как новая */
+  private shownLevel = -1;
+  private freshUntil = 0;
 
   constructor(parent: HTMLElement, overlay: HTMLElement) {
     this.skill = parent.appendChild(el('div', 'f2-skill'));
@@ -124,8 +136,13 @@ export class FishProgressHud {
     this.progress = progress;
     // Full level/bonus explanation stays in the journal and NPC; the fishing HUD only needs status: у удочки — одна
     // строка «🎣 Ур. 5 · 450 / 1 150» и полоса, что даёт уровень — в подсказке (и в журнале, и у Семёна).
-    const skill = fishSkillBlock(progress, true);
-    this.skill.title = skill.querySelector('.fs-skill-sub')?.textContent ?? '';
+    // уровень вырос — строка награды уровня вспыхивает (8 с), как и тост «Уровень рыбалки N»
+    const level = fishLevelView(progress.xp).level;
+    if (this.shownLevel >= 0 && level > this.shownLevel) this.freshUntil = performance.now() + 8000;
+    this.shownLevel = level;
+    const skill = fishSkillBlock(progress, true, performance.now() < this.freshUntil);
+    const perks = skill.querySelector<HTMLElement>('.fs-skill-perk')?.title ?? '';
+    this.skill.title = [skill.querySelector('.fs-skill-sub')?.textContent ?? '', perks].filter(Boolean).join('\n');
     this.skill.replaceChildren(skill);
     const need = questNeed(progress.questsDone);
     const ready = progress.questCaught >= need;

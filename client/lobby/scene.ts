@@ -33,7 +33,8 @@ import {
   ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LEAVE_SLOT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, STATUE_SHOWN, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
-import { FISH_NPCS, FISH_SPOTS, ROULETTE_SPOT } from '../../shared/fishplaces.ts';
+import { FISH_ISLE_FIRST, FISH_NPCS, FISH_SPOTS, ROULETTE_SPOT } from '../../shared/fishplaces.ts';
+import { IsleClient } from './isle/index.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
 import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
@@ -112,6 +113,7 @@ import { RegattaClient } from './regatta.ts';
 import { PlaneClient } from './plane.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
+import { BoatRadio } from '../boat/radio.ts';
 import { JukeboxPanel } from '../ui/jukebox.ts';
 import { jukeModels } from './jukebox3d.ts';
 import { JUKE_PRICE } from '../../shared/jukebox.ts';
@@ -236,8 +238,12 @@ export class LobbyScene implements Scene {
   private readonly fishHud: FishHud;
   /** Рыбалка 2.0: шкала вываживания, карточка улова, журнал, доска рекордов (без флага сервера молчит) */
   private readonly fish2: Fish2Hud;
+  /** Остров «Последний свет» в море (флаг ISLE, client/lobby/isle): создаётся по первому письму isle */
+  private isle: IsleClient | null = null;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
+  /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
+  private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
   /** Сезон рыбалки: рыбы выпрыгивают у мест рыбалки (без сервера: ?fishseason или __opus.app.lobby.fishJumps.setDev(true)) */
   readonly fishJumps: FishJumps;
@@ -437,6 +443,13 @@ export class LobbyScene implements Scene {
     this.hud = new LobbyHud(d.hudRoot);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
+    // радио на лодке: лодки пакета B — boats: { where(id), aboard(id) }; пока их нет — тестовое /radio (у желейки хозяина)
+    this.radio = new BoatRadio({
+      sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
+      playerPos: (pid) => this.avatarOfPid(pid)?.root.position ?? null, mePos: () => (this.hasSelf ? this.pose : null), boats: null,
+      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), hudRoot: this.hud.root,
+    });
+    this.radio.reset(false);
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
@@ -605,7 +618,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -724,6 +737,7 @@ export class LobbyScene implements Scene {
     this.entered = true;
     this.resetAdditions();
     this.juke.reset(true);
+    this.radio.reset(true);
     this.myId = -1;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -787,6 +801,7 @@ export class LobbyScene implements Scene {
   exit(): void {
     this.resetAdditions();
     this.juke.reset(false);
+    this.radio.reset(false);
     this.entered = false;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -877,6 +892,8 @@ export class LobbyScene implements Scene {
         this.folk.setV2(this.fish2.on);
         this.rat3d.setOn(!!msg.ratrace);
         for (const index of this.world.map.ratBoxes) this.world.collision.setEnabled(index, !!msg.ratrace);
+        // остров — следом отдельным письмом isle; нет его — флаг ISLE выключен
+        for (const index of this.world.map.isleBoxes) this.world.collision.setEnabled(index, false);
         this.ratHud.setMe(this.d.ui.me().pid);
         this.rat3d.setMe(this.d.ui.me().pid);
         if (msg.ratrace) {
@@ -904,6 +921,10 @@ export class LobbyScene implements Scene {
       case 'jukeRes':
         this.juke.onMsg(msg);
         break;
+      case 'radio':
+      case 'radioRes':
+        this.radio.onMsg(msg);
+        break;
       case 'fortSt':
         this.onFort(msg);
         break;
@@ -918,6 +939,12 @@ export class LobbyScene implements Scene {
         break;
       case 'barkasHome':
         this.fish2.onBarkasHome(msg.ok, msg.message);
+        this.isle?.onHome();
+        break;
+      case 'isle':
+        (this.isle ??= this.makeIsle()).onMsg(msg);
+        // шансы рыб острова: туман — как дождь, сезон острова — как сезон (Fish2Hud → «Шансы сейчас» и журнал)
+        this.fish2.isleWeather(msg.fog, msg.season.on);
         break;
       case 'aquaTop':
         this.setAquaTop(msg.top);
@@ -1809,6 +1836,8 @@ export class LobbyScene implements Scene {
     }
     // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
     if (this.juke.onKey(code, e)) return true;
+    // радио на лодке: R — окно; в окне 0–3, −/+, Esc (шаг и руль не съедает)
+    if (!this.d.input.blocked && this.myAct !== ACT_DURAK && this.myAct !== ACT_BILLIARDS && this.radio.onKey(code, e)) return true;
     const act = this.myAct;
     if (act === ACT_WARDROBE && this.wardrobeOpen) {
       // В панели Tab переводит фокус по кнопкам, а не открывает список игроков.
@@ -2320,6 +2349,7 @@ export class LobbyScene implements Scene {
     this.rg.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position);
     this.plane.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position, act);
     this.updateCamera(dt);
+    this.isle?.update(dt, this.hasSelf ? this.pose : null);
     const camPos = this.world.camera.position;
     this.wirePartner(this.me);
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
@@ -2349,6 +2379,7 @@ export class LobbyScene implements Scene {
     this.rat3d.update(dt, this.time, camPos);
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
+    this.radio.update(dt, this.world.camera);
     this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);
@@ -2386,6 +2417,15 @@ export class LobbyScene implements Scene {
     this.photo.update(dt);
     this.runLater();
     this.world.render();
+  }
+
+  /** Остров «Последний свет» (флаг ISLE) — по первому письму isle */
+  private makeIsle(): IsleClient {
+    const d = this.d;
+    return new IsleClient({
+      world: this.world, renderer: d.renderer, sound: d.sound, overlay: d.overlay, npc: this.fish2.npc,
+      send: (m) => d.net.send(m), tokens: () => d.ui.me().tokens, toast: (text, ms) => d.ui.toasts.show(text, ms),
+    });
   }
 
   /** Оформление площади: зазывалы и бегущие лампочки. Статусы режимов — те же, что у табло и кругов сбора. */
@@ -2822,6 +2862,8 @@ export class LobbyScene implements Scene {
       // арка «Крепости» — только когда режим включён
       if (it.kind === 'fort' && !this.fortSt) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;
+      // Игнат и места на моле острова — только с островом (флаг ISLE)
+      if (!this.isle && ((it.kind === 'fisher' && it.arg === 2) || (it.kind === 'fish' && it.arg >= FISH_ISLE_FIRST))) continue;
       if (it.kind === 'roulette' && !this.roulette3d.group.visible) continue;
       if (it.kind === 'ratrace' && !this.rat3d.on) continue;
       if (it.kind === 'skill' && !this.skillStatus) continue;
@@ -2924,7 +2966,8 @@ export class LobbyScene implements Scene {
         this.hud.setHint(['E'], 'порыбачить');
         break;
       case 'fisher':
-        this.hud.setHint(['E'], it.arg === 1 ? 'поговорить с Саней · продать улов, снасти, домой к Семёну' : 'поговорить с Дедом Семёном · продать улов, снасти, задания');
+        this.hud.setHint(['E'], it.arg === 1 ? 'поговорить с Саней · продать улов, снасти, домой к Семёну'
+          : it.arg === 2 ? 'поговорить со смотрителем Игнатом · продать улов, напитки, на большую землю' : 'поговорить с Дедом Семёном · продать улов, снасти, задания');
         break;
       case 'ferry':
         this.hintFerry(it.arg);

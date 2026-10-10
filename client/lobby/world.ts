@@ -14,6 +14,7 @@ import { Trampolines, addBox, buildDeco, buildGeo, glowSprite, glowTexture, pain
 import { LOOK2 } from '../render/look.ts';
 import type { Renderer } from '../render/renderer.ts';
 import { EVENING, RAIN, blendFog, blendSky, fogColor, makeSea, makeSky, type SkyPalette } from '../render/sky.ts';
+import type { IsleSky } from './isle/sky.ts';
 import * as tex from '../render/textures.ts';
 import { Backdrop, skyHaze } from './backdrop.ts';
 import { GateScreen, HonorBoard, JackpotBoard, RecentBoard } from './boards.ts';
@@ -205,6 +206,9 @@ export class LobbyWorld {
   private lighthouseEnabled = true;
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
+  private readonly sea: THREE.Mesh;
+  /** Погода острова «Последний свет» поверх погоды набережной (client/lobby/isle/sky.ts, флаг ISLE); null — острова нет */
+  private isleSky: IsleSky | null = null;
   private readonly floaters: Floater[] = [];
   private readonly trampolines: Trampolines;
   /** Катер у причала и лодка, что иногда проходит по заливу */
@@ -307,6 +311,7 @@ export class LobbyWorld {
     scene.add(sky);
     const sea = makeSea(EVENING);
     this.seaMat = sea.material;
+    this.sea = sea;
     scene.add(sea);
 
     this.buildMapBoxes();
@@ -1354,8 +1359,15 @@ export class LobbyWorld {
     this.beam.visible = this.beamFlash.visible = on;
   }
 
-  /** Сила дождя сейчас (с учётом шторма): для звука и рыбаков */
-  get effectiveRain(): number { return this.weather.rain; }
+  /** Сила дождя сейчас (с учётом шторма): для звука и рыбаков; у острова — своя погода, дождь набережной стихает */
+  get effectiveRain(): number { return this.weather.rain * (1 - (this.isleSky?.rainMute ?? 0)); }
+
+  /** Остров «Последний свет»: туман и свет по дальности камеры поверх погоды набережной (ставит сцена по письму isle) */
+  setIsleSky(s: IsleSky): void {
+    this.isleSky = s;
+    s.attach(this.sea, this.skyMat, this.seaMat);
+    this.applyWeather();
+  }
 
   /** Дописать крыши в карту укрытий от дождя (навес бильярда появляется только с флагом сервера). */
   addCover(boxes: readonly MapBox[]): void {
@@ -1379,7 +1391,7 @@ export class LobbyWorld {
     this.sky.rainbow.target = w.rainbow(now);
     this.sky.update(dt, this.camera.position);
     if (changed || flashing || this.sky.flash > 0.002) this.applyWeather();
-    this.rainFx.update(dt, this.camera.position, w.rain, w.wet, w.wind);
+    this.rainFx.update(dt, this.camera.position, this.effectiveRain, w.wet, w.wind);
   }
 
   /** Небо, туман, свет, мокрота и дымка — по текущей погоде; сумрак грозы и вспышка молнии — поверх. */
@@ -1428,6 +1440,8 @@ export class LobbyWorld {
       (this.scene.background as THREE.Color).copy(fog.color);
       this.haze.uHazeColor.value.copy(fog.color).convertLinearToSRGB();
     }
+    // у острова — его туман и мягкий свет (в бухте — ничего)
+    if (this.isleSky) this.exposure = this.isleSky.apply(fog, this.scene.background as THREE.Color, this.sun, this.hemi, this.haze, this.exposure);
   }
 
   /** renderTick — часы отрисовки (тики сервера), по ним катер в поездке (в меню — 0: катер у причала). */
@@ -1435,6 +1449,7 @@ export class LobbyWorld {
     this.time += dt;
     const t = this.time;
     this.stepWeather(dt);
+    if (this.isleSky?.step(dt, this.camera.position)) this.applyWeather();
     this.skyMat.uniforms.uTime.value = t;
     this.seaMat.uniforms.uTime.value = t;
     this.wind.value = t;

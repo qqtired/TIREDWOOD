@@ -16,7 +16,8 @@ import {
 import { reelStyle2 } from '../shared/fishability.ts';
 import { BAG_FULL_HINT } from '../shared/fishrelease.ts';
 import { FISH_XP_LEVELS, LIVEWELL_MAX, bagSlots, emptyFishProgress, fishCastMods, normalizeFishProgress, type BagFish } from '../shared/fishprogress.ts';
-import { ISLE, ISLE_CENTER, ISLE_WATERS_R, castZone, fishZoneAtSea, isleEnabled, setIsle } from '../shared/fishisle.ts';
+import { ISLE, ISLE_CENTER, ISLE_WATERS_R, castZone, fishZoneAtSea, setIsle } from '../shared/fishisle.ts';
+import { isleEnabled } from '../shared/isle.ts';
 import { catchFullHint, catchRoom, catchValue, livewellCap } from '../shared/fishlivewell.ts';
 import { ISLE_SPECIES, ISLE_TOTAL, isleCaught } from '../shared/islestyle.ts';
 import { ISLE_LADDER, isleEarned, isleNextStep } from '../shared/fishstyle.ts';
@@ -327,7 +328,7 @@ function catchOne(e: Env, what: Hooked): void {
   advance(e, 2);
   assert.equal(e.hall.phase(0), FP_BITE, 'поклёвка');
   const n = allOf(e.a.s, 'lev').flatMap((m) => m.e).filter((x) => x[0] === 'fish').at(-1)![3] as number;
-  const style = reelStyleFor(what.sp, e.hall.views()[0].mods!);
+  const style = reelStyle2(what.sp, e.hall.views()[0].mods!);
   let play: Play | null = null;
   let seed = 0;
   for (let c = 1; c <= 400 && !play; c++) { const p = playReel(style, c, EXPERT); if (p.caught) { play = p; seed = c; } }
