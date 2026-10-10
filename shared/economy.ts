@@ -99,7 +99,8 @@ export interface Stats {
   ftWins: number;
   ftBest: number;
   ftKills: number;
-  /** «Fight Club»: боёв (дрался и дождался итогов), побед, нокаутов */
+  /** Бывший «Fight Club» (удалён 11.10.2026): боёв, побед, нокаутов. Поля остаются в профиле, чтобы старые сохранения грузились
+   * без потерь, и считаются в общий опыт (shared/levels.ts); новые бои не копятся, в интерфейсе их не показываем */
   fcFights: number;
   fcWins: number;
   fcKos: number;

@@ -2,7 +2,7 @@
 // Реплика в облачке — не длиннее BUBBLE_CHARS (60) знаков: больше обрежется.
 import type { Outfit } from '../../../shared/outfit.ts';
 
-export type ToutKey = 'paint' | 'fort' | 'sky' | 'kart' | 'hide' | 'regatta' | 'boat' | 'fight' | 'cafe' | 'aqua';
+export type ToutKey = 'paint' | 'fort' | 'sky' | 'kart' | 'hide' | 'regatta' | 'boat' | 'cafe' | 'aqua';
 
 export interface ToutInfo {
   id: number;
@@ -48,11 +48,6 @@ export const TOUT_INFO: Readonly<Record<ToutKey, ToutInfo>> = {
     id: 966, name: 'Капитан Сева', accent: '#ffd23f',
     outfit: { c: 15, c2: 9, p: 'stripes', e: 'happy', h: 'captain', a: 'tunic' },
     lines: ['Катер «Ласточка»! Минута по бухте', 'Первый платит десять, друзьям — бесплатно', 'Четыре места. Прыгай в катер, жми E'],
-  },
-  fight: {
-    id: 967, name: 'Вышибала Макс', accent: '#ff4d6d',
-    outfit: { c: 2, c2: 15, p: 'none', e: 'shades', h: 'none', a: 'chain' },
-    lines: ['Fight Club: подвал, кулаки, чай потом', 'Встань в круг мелом — и вниз', 'Строго по очереди. Я слежу'],
   },
   cafe: {
     id: 968, name: 'Бариста Тоня', accent: '#ffd23f',

@@ -18,7 +18,7 @@ test('real main returns400 for malformed percent/UTF-8 paths and remains healthy
   await new Promise<void>(resolve => reservation.close(() => resolve()));
   const child = spawn(process.execPath, ['server/main.ts'], { cwd: root, env: {
     ...process.env, HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dir,
-    VOICE: '0', FORTRESS: '0', FIGHT: '0', SKILL: '0', BOATRACE: '0', HIDE: '0', STORM: '0', PIRATES: '0', FISH2: '0',
+    VOICE: '0', FORTRESS: '0', SKILL: '0', BOATRACE: '0', HIDE: '0', STORM: '0', PIRATES: '0', FISH2: '0',
   }, stdio: ['ignore', 'pipe', 'pipe'] });
   let exited = false, exitCode: number | null = null, stderr = '';
   child.stdout.resume(); child.stderr.on('data', b => { stderr = (stderr + b).slice(-3000); });

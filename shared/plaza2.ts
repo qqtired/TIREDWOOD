@@ -4,7 +4,7 @@
 // на земле и за линией зданий: коллизии у него нет.
 
 /** Режим за флагом сервера, чьё оформление твёрдое: без флага режима его предметов нет — ни на экране, ни в карте */
-export type PlazaSolidMode = 'hide' | 'regatta' | 'fight' | 'dungeon';
+export type PlazaSolidMode = 'hide' | 'regatta' | 'dungeon';
 
 export interface PlazaSolid {
   /** Центр на земле */
@@ -74,12 +74,6 @@ export const REGATTA_MASTS: ReadonlyArray<{ x: number; z: number }> = [{ x: 12.9
 export const BOAT_GATE = { x0: 4.9, x1: 10.9, z: 21.3 } as const;
 
 /**
- * Fight Club (круг мелом у приямка в южной стене кафе): латунные столбики с красным канатом перед проёмом — «клуб
- * по записи». Вывеска-кронштейн и красный фонарь — над головой, коврик — на земле, без коллизии.
- */
-export const FIGHT_POSTS: readonly PlazaSolid[] = [solid(27.15, 4.42, 0.07, 0.07, 0.95), solid(29.05, 4.42, 0.07, 0.07, 0.95)];
-
-/**
  * «Подземелье» (режим за флагом DUNGEON, западная лужайка): скала с пещерой и доска рекордов (client/lobby/plaza/dungeon.ts).
  * Скала — овал 5,6 × 5,4 м с центром в (−18,4; 11,6), зев смотрит на точку появления (yaw модели = π + yaw из
  * docs/survivors/level.md §8, −1,275). Доска — на двух столбиках в 5 м к юго-востоку от зева, лицом на север, к тропе
@@ -110,7 +104,6 @@ export function plazaSolids(): PlazaSolid[] {
     ...forMode('hide', YARD_CRATES),
     ...forMode('regatta', REGATTA_MASTS.map((m) => solid(m.x, m.z, 0.17, 0.17, 3.2))),
     solid(BOAT_GATE.x0, BOAT_GATE.z, 0.13, 0.13, 3.6), solid(BOAT_GATE.x1, BOAT_GATE.z, 0.13, 0.13, 3.6),
-    ...forMode('fight', FIGHT_POSTS),
     solid(SIGNPOST.x, SIGNPOST.z, 0.12, 0.12, SIGNPOST.h),
     ...forMode('dungeon', DUNGEON_SOLIDS),
   ];

@@ -23,7 +23,7 @@ function bodyAt(x: number, y: number, z: number, time: number, wobble: number, l
   return new THREE.Vector3(x * (1 + w) + lean.x * h * h, y, z * (1 + w) + lean.y * h * h);
 }
 
-test('all hats stay at their body surface through idle, acceleration, jump stretch and Fight knockout', () => {
+test('all hats stay at their body surface through idle, acceleration, jump stretch and knockout', () => {
   const parents = [
     new THREE.Matrix4(),
     new THREE.Matrix4().compose(new THREE.Vector3(0, 0.1, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0.13)), new THREE.Vector3(0.93, 1.14, 1.1)),

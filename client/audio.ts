@@ -45,7 +45,7 @@ export class Sound {
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
-  /** Доли эффектов, окружения, интерфейса и музыки от общей громкости (меню → Звук) и «на улице ли» (в подвале прибоя не слышно) */
+  /** Доли эффектов, окружения, интерфейса и музыки от общей громкости (меню → Звук) и «на улице ли» (под землёй прибоя не слышно) */
   private sfxMix = 1;
   private ambMix = 1;
   private uiMix = 1;
@@ -307,14 +307,14 @@ export class Sound {
     if (this.ctx && this.surf) this.surf.gain.setTargetAtTime(Math.SQRT1_2 * k, this.ctx.currentTime, 0.8);
   }
 
-  /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
+  /** Под землёй прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
   setOutdoor(k: number): void {
     this.outdoor = k;
     if (this.ctx) this.amb.gain.setTargetAtTime(0.55 * k * this.ambMix, this.ctx.currentTime, 0.3);
   }
 
   /**
-   * Для своих звуков сцены (client/fight/sfx.ts): контекст, шины и шумы; null — звук ещё не разрешён.
+   * Для своих звуков сцены (например client/dungeon/sfx.ts): контекст, шины и шумы; null — звук ещё не разрешён.
    * sfx — эффекты, amb — окружение (ветер, море, толпа), ui — интерфейс, music — прочая музыка (её приглушает автомат).
    */
   get kit(): { ctx: AudioContext; sfx: GainNode; amb: GainNode; ui: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer } | null {

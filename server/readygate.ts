@@ -5,7 +5,6 @@
 // сдвигаем phaseEnd. Всем в комнате — кто заходит и грузится ({t:'load'}), а когда дождались — за 3 с до старта
 // {t:'go'} для крупного отсчёта. На набережной ждать нечего.
 import { TICK_RATE } from '../shared/constants.ts';
-import type { FcMode } from '../shared/fight.ts';
 import { GO_TICKS, LOAD_WAIT_TICKS, stillLoading, type LoadServerMsg, type LoadWho } from '../shared/loading.ts';
 import { DEFAULT_TRACK, isRaceTrackId } from '../shared/racecourse.ts';
 import type { Client, Hub, Room } from './hub.ts';
@@ -28,10 +27,8 @@ interface RoomWait {
 }
 
 /** Что ворота берут у хаба: часы, соединения, переходы (и для проверочной команды — комнаты). */
-type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'fight' | 'dungeon' | 'farm'
-  | 'move' | 'startRace' | 'startFight' | 'privateLine'>;
-
-const FC_MODES: readonly FcMode[] = ['duel', 'team', 'ffa'];
+type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'dungeon' | 'farm'
+  | 'move' | 'startRace' | 'privateLine'>;
 
 export class ReadyGate {
   /** Проверочная команда /go (сервер разработки или DEV_GO=1) */
@@ -113,7 +110,7 @@ export class ReadyGate {
   }
 
   /**
-   * Проверка переходов без прогулки по набережной: `/go fort`, `/go race foundry`, `/go fight duel`, `/go lobby`…
+   * Проверка переходов без прогулки по набережной: `/go fort`, `/go race foundry`, `/go lobby`…
    * Только на сервере разработки или с DEV_GO=1. true — команда съедена.
    */
   command(c: Client, text: string): boolean {
@@ -134,11 +131,6 @@ export class ReadyGate {
         if (!h.race.idle) say('Гонка уже идёт');
         else h.startRace([c], isRaceTrackId(arg) ? arg : DEFAULT_TRACK);
         break;
-      case 'fight':
-        if (!h.fight) say('Fight Club выключен');
-        else if (!h.fight.idle) say('Бой уже идёт');
-        else h.startFight([c], [], FC_MODES.includes(arg as FcMode) ? (arg as FcMode) : 'duel');
-        break;
       case 'boatrace':
         say('Регата теперь на набережной — встань в круг у пирса');
         break;
@@ -149,7 +141,7 @@ export class ReadyGate {
         break;
       }
       default:
-        say('/go lobby | paintball | fort | skill | hide | dungeon | farm | race [harbor|hills] | fight [duel|team|ffa]');
+        say('/go lobby | paintball | fort | skill | hide | dungeon | farm | race [harbor|hills]');
     }
     return true;
   }

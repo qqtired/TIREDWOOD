@@ -19,14 +19,13 @@ export interface LiveIn {
   hide: { phase: string; n: number; max: number; left?: number } | null;
   /** Регата: сбор у круга и идёт ли заезд в бухте */
   regatta: { q: { phase: string; n: number; left?: number } | null; running: boolean };
-  fight: { phase: string; left: number; n: number } | null;
   boat: { ph: number; n: number; left: number } | null;
   /** Лучший результат аквапарка (первая строка доски рекордов); null — рекордов ещё нет */
   aqua: { nick: string; ms: number } | null;
 }
 
 export function emptyLive(): LiveIn {
-  return { pbHumans: 0, fort: null, skill: null, kart: null, hide: null, regatta: { q: null, running: false }, fight: null, boat: null, aqua: null };
+  return { pbHumans: 0, fort: null, skill: null, kart: null, hide: null, regatta: { q: null, running: false }, boat: null, aqua: null };
 }
 
 /** «1 желейка, 2 желейки, 5 желеек» */
@@ -99,13 +98,6 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
       if (b.ph === BP_RIDE) return [cut(`Катер в поездке, вернётся через ${b.left} с`)];
       return [];
     }
-    case 'fight': {
-      const f = s.fight;
-      if (!f) return [];
-      if (f.phase === 'count') return [cut(`Спуск через ${f.left} с. В круге: ${f.n}`)];
-      if (f.phase === 'fight') return ['Внизу идёт бой! Подойди к двери — посмотришь'];
-      return [];
-    }
     case 'aqua': {
       // рекорд — первой репликой, дальше его обычные подсказки
       const a = s.aqua;
@@ -122,11 +114,11 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
   }
 }
 
-/** Порядок мест в афише и в речи бариста: как по улице — дома 2, 3, 4, дальше каланча, подвал кафе и вода */
-export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'fight', 'regatta', 'boat', 'aqua', 'hide'];
+/** Порядок мест в афише и в речи бариста: как по улице — дома 2, 3, 4, дальше каланча и вода */
+export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'regatta', 'boat', 'aqua', 'hide'];
 
 const AGENDA_NAME: Readonly<Record<string, string>> = {
-  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', fight: 'Fight Club', regatta: 'Регата', boat: 'Ласточка', aqua: 'Аквапарк', hide: 'Прятки',
+  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', regatta: 'Регата', boat: 'Ласточка', aqua: 'Аквапарк', hide: 'Прятки',
 };
 
 /** Строка афиши «Сегодня в городе»: место, что в нём сейчас (до 28 знаков) и «горит» ли (что-то идёт или можно присоединиться) */
@@ -179,14 +171,6 @@ export function agendaRows(s: LiveIn): AgendaRow[] {
         else if (k.phase === 'pre') row(key, `забег через ${k.left} с · ${k.n} из ${k.max}`, true);
         else if (k.phase === 'run') row(key, `забег идёт · ${k.n} из ${k.max}`, true);
         else row(key, k.n > 0 ? `на каланче ${k.n} из ${k.max}` : 'каланча свободна', k.n > 0);
-        break;
-      }
-      case 'fight': {
-        const f = s.fight;
-        if (!f) break;
-        if (f.phase === 'count') row(key, `спуск через ${f.left} с · в круге ${f.n}`, true);
-        else if (f.phase === 'fight') row(key, 'внизу идёт бой', true);
-        else row(key, f.n > 0 ? `в круге ${f.n} · ждут бой` : 'в подвале тихо', f.n > 0);
         break;
       }
       case 'regatta': {
@@ -250,7 +234,6 @@ export interface LiveRaw {
   hide: { phase: string; n: number; max: number; left?: number } | null;
   boatrace: { phase: string; n: number; left?: number } | null;
   regattaRunning: boolean;
-  fight: { phase: string; left: number; names: readonly string[] } | null;
   boat: { ph: number; at: number; n: number };
   aqua: { nick: string; ms: number } | null;
   /** Часы отрисовки, тики сервера */
@@ -287,12 +270,6 @@ export function fillLive(out: LiveIn, r: LiveRaw): LiveIn {
     q.n = r.boatrace.n;
     q.left = r.boatrace.left;
   } else out.regatta.q = null;
-  if (r.fight) {
-    const f = (out.fight ??= { phase: '', left: 0, n: 0 });
-    f.phase = r.fight.phase;
-    f.left = r.fight.left;
-    f.n = r.fight.names.length;
-  } else out.fight = null;
   const b = (out.boat ??= { ph: 0, n: 0, left: 0 });
   b.ph = r.boat.ph;
   b.n = r.boat.n;

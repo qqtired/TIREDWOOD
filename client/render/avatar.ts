@@ -914,7 +914,7 @@ export class Avatar {
     }
   }
 
-  /** Удар кулаком («Fight Club»): желе ходит ходуном, вспышка и прищур — без краски. k — сила, 0…1,5. */
+  /** Удар или толчок: желе ходит ходуном, вспышка и прищур — без краски. k — сила, 0…1,5. */
   jolt(k: number): void {
     this.u.uWobble.value = Math.min(1.8, this.u.uWobble.value + 0.5 + k * 0.7);
     this.u.uFlash.value = Math.min(0.7, 0.2 + k * 0.3);

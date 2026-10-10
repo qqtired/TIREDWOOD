@@ -43,16 +43,22 @@ test('набережная: предметы пронумерованы, 5 ав�
   assert.deepEqual(benches.map((s) => s.arg), [18, 19, 20, 21, 22, 23]);
   assert.equal(LOBBY_SEAT_COUNT, 24);
   assert.equal(lobby.machines.length, 5);
-  for (const k of ['pb_gate', 'garage', 'kiosk', 'honor', 'recent', 'boat', 'wheel', 'fort', 'fight'] as const) assert.equal(lobby.interact.filter((i) => i.kind === k).length, 1, k);
+  for (const k of ['pb_gate', 'garage', 'kiosk', 'honor', 'recent', 'boat', 'wheel', 'fort', 'retired'] as const) assert.equal(lobby.interact.filter((i) => i.kind === k).length, 1, k);
   // «Последние входы» — за доской почёта, лицом к ней (на юг)
   const hb = lobby.honorBoard;
   const back = lobby.interact.find((i) => i.kind === 'recent')!;
   assert.ok(back.z < hb.z0 && back.x > hb.x0 && back.x < hb.x1, 'за доской');
   assert.equal(back.yaw, Math.PI);
   // новые точки — только в конец (номера точек шлют клиенты): «Последние входы» (выпуск 4), за ней катер и колесо (выпуск 5),
-  // арка «Крепости» и круг у двери «Fight Club» (выпуск 6). После них добавлены новые рыболовные точки.
+  // арка «Крепости» и место 45 (выпуск 6; там был круг «Fight Club», удалён 11.10.2026 — осталась пустышка-заглушка, чтобы номера
+  // не сдвинулись). После них добавлены новые рыболовные точки.
   const kindOf = (k: string) => lobby.interact.find((i) => i.kind === k);
-  assert.deepEqual(lobby.interact.slice(41, 46), [back, kindOf('boat'), kindOf('wheel'), kindOf('fort'), kindOf('fight')]);
+  assert.deepEqual(lobby.interact.slice(41, 46), [back, kindOf('boat'), kindOf('wheel'), kindOf('fort'), kindOf('retired')]);
+  // заглушка не работает: радиус 0 и нет подписи
+  const stub = kindOf('retired')!;
+  assert.equal(stub.id, 45);
+  assert.equal(stub.r, 0);
+  assert.equal(stub.label, '');
 });
 
 test('набережная: точки появления и взаимодействия стоят на настиле и не в стене', () => {

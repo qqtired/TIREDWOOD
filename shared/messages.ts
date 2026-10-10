@@ -8,7 +8,6 @@ import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
 import type { IsleView } from './isle.ts';
 import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
-import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
@@ -36,7 +35,7 @@ import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 
-export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide' | 'dungeon' | 'farm';
+export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'skill' | 'hide' | 'dungeon' | 'farm';
 
 export interface RosterEntry {
   id: number;
@@ -500,8 +499,6 @@ export type ServerMsg =
     wx?: RainWire | null;
     /** «Крепость»: что в ней (для подсказки у арки) — только если режим включён флагом сервера */
     fort?: FortStatus;
-    /** «Fight Club»: круг у двери в подвал кафе — только если режим включён флагом сервера */
-    fc?: FcStatus;
     /** Рыбалка 2.0 (флаг сервера FISH2): 1 — шкала вываживания, полная коллекция, доска рекордов у мостков (ftop) */
     fish2?: number;
     ftop?: FishBoardView;
@@ -636,12 +633,3 @@ export type ServerMsg =
   // новая игра в крепости (после итогов): рекорды заново — как в приветствии
   | { t: 'frecNew'; rec: FortRecIntro }
   | ({ t: 'fortSt' } & FortStatus)
-  // --- Fight Club (shared/fight.ts): вход (id — свой номер в снимках, ring — радиус ринга), состав, события тика,
-  // смена фазы (win — кто взял раунд: команда или номер бойца, −1 — никто), итоги, жетоны; на набережную — круг у двери
-  | { t: 'fcInit'; id: number; mode: FcMode; ring: number; tick: number; phase: number; phaseEnd: number; round: number; wins: number[]; roster: FcRosterRow[] }
-  | { t: 'fcRoster'; roster: FcRosterRow[] }
-  | { t: 'fcEv'; k: number; e: FcEvent[] }
-  | { t: 'fcPhase'; phase: number; phaseEnd: number; round: number; wins: number[]; win: number }
-  | { t: 'fcEnd'; mode: FcMode; rows: FcResultRow[] }
-  | ({ t: 'fcReward' } & FcReward)
-  | ({ t: 'fcSt' } & FcStatus)

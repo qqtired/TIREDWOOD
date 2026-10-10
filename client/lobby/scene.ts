@@ -57,8 +57,6 @@ import { TOUCH, type TouchMode } from '../touch.ts';
 import { Wardrobe, WARDROBE_FOOTER_PX } from '../ui/wardrobe.ts';
 import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { noteFortStatus } from '../fort/record.ts';
-import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
-import { FC_HINT_R, FightDoor, fightDist, fightHint } from '../fight/door.ts';
 import { AquaPark } from './aquapark.ts';
 import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
@@ -337,10 +335,6 @@ export class LobbyScene implements Scene {
   /** «Крепость»: статус с сервера (null — режим выключен флагом: арки нет, точка молчит) и сама арка */
   private fortSt: FortStatus | null = null;
   private fortGate: FortGate | null = null;
-  /** «Fight Club»: статус круга мелом (null — режим выключен флагом: двери нет, круг молчит), дверь и писк отсчёта */
-  private fcSt: FcStatus | null = null;
-  private fcDoor: FightDoor | null = null;
-  private fcBeep = 0;
   /** Последняя секунда отсчёта, на которой пискнули (0 — не пищим) */
   private kartBeep = 0;
   /** Катер «Ласточка»: статус с сервера и где он на экране (по часам отрисовки — там же сидят его пассажиры) */
@@ -937,7 +931,6 @@ export class LobbyScene implements Scene {
         this.setAquaTop(msg.aqua ?? []);
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
-        this.onFightSt(msg.fc ?? null);
         this.farmGate.status(msg.farm ?? null);
         setDgStatus(msg.dg ?? null);
         break;
@@ -957,9 +950,6 @@ export class LobbyScene implements Scene {
         break;
       case 'farmSt':
         this.farmGate.status(msg);
-        break;
-      case 'fcSt':
-        this.onFightSt(msg);
         break;
       case 'boat':
         this.setBoat(msg);
@@ -1231,14 +1221,6 @@ export class LobbyScene implements Scene {
       this.d.renderer.refreshShadows();
     }
     this.fortGate?.setStatus(st);
-  }
-
-  /** Круг «Fight Club»: первый статус — ставим дверь в стене кафе, дальше — картон и мел. */
-  private onFightSt(st: FcStatus | null): void {
-    this.fcSt = st;
-    this.plazaMode('fight', !!st);
-    if (st && !this.fcDoor) this.fcDoor = new FightDoor(this.world.scene);
-    if (st) this.fcDoor?.setStatus(st);
   }
 
   private onPb(pb: PbStatus): void {
@@ -2446,7 +2428,6 @@ export class LobbyScene implements Scene {
     this.world.recentBoard.tick(performance.now());
     this.tg.update(this.time);
     this.fortGate?.update(this.time);
-    this.fcDoor?.update(this.time);
     this.updatePlaza(dt, camPos);
     tickAvatarShared(this.time);
     this.world.camera.getWorldDirection(_v);
@@ -2476,7 +2457,7 @@ export class LobbyScene implements Scene {
     const ks = this.world.kartStart;
     fillLive(this.plazaLive, {
       pbHumans: this.pbHumans, fort: this.fortSt, skill: this.skillStatus, kart: ks.status, kartLeft: ks.left, hide: this.hideStatus,
-      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', fight: this.fcSt, boat: this.boat, aqua: this.aquaTop[0] ?? null,
+      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
       tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
     plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);
@@ -2775,8 +2756,6 @@ export class LobbyScene implements Scene {
     hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
-    const fd = this.fcSt && this.hasSelf ? fightDist(this.pose.x, this.pose.y, this.pose.z) : Infinity;
-    this.fightBeeps(fd);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
     else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться · шаг — отойти`);
     else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
@@ -2799,7 +2778,6 @@ export class LobbyScene implements Scene {
     else if (this.pirates3d.hint) hud.setHint(this.pirates3d.hint.keys, this.pirates3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);
-    else if (fd <= FC_HINT_R) this.hintFight(fd);
     else if (this.aquaAt === 0 && onJetty(this.pose.x, this.pose.y, this.pose.z)) this.hintAqua();
     else this.hintNearest();
     this.aquaTimer();
@@ -2873,22 +2851,6 @@ export class LobbyScene implements Scene {
     this.kartBeep = n;
   }
 
-  /** У двери «Fight Club»: что в круге мелом; E — хозяину (сменить режим) и всем, пока внизу бой (посмотреть). */
-  private hintFight(d: number): void {
-    const h = fightHint(this.fcSt!, this.d.ui.me().nick, d);
-    if (!h) return this.hud.setHint(null);
-    if (h.keys.length) this.target = this.world.map.interact.find((it) => it.kind === 'fight') ?? null;
-    this.hud.setHint(h.keys, h.text);
-  }
-
-  /** Три последних секунды отсчёта у круга «Fight Club» — писк, только тем, кто в круге. */
-  private fightBeeps(d: number): void {
-    const st = this.fcSt;
-    const n = st && st.phase === 'count' && d <= FC_CIRCLE.r ? st.left : 0;
-    if (n > 0 && n <= 3 && n !== this.fcBeep) this.d.sound.countBeep(false);
-    this.fcBeep = n;
-  }
-
   /** Ближайший предмет в радиусе: впереди или совсем рядом. Свободные места и автоматы — в приоритете. */
   private hintNearest(): void {
     const p = this.pose;
@@ -2921,8 +2883,8 @@ export class LobbyScene implements Scene {
       if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS)) continue;
       if ((it.kind === 'plane' || it.kind === 'banner') && !this.plane.enabled) continue;
       if (it.kind === 'oboat' && !this.ob.enabled) continue;
-      // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
-      if (it.kind === 'fight') continue;
+      // место 45 — пустышка бывшего «Fight Club»: подсказки нет
+      if (it.kind === 'retired') continue;
       if (this.isBusy(it)) {
         if (dist < takenD) {
           taken = it;

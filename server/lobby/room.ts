@@ -12,7 +12,6 @@ import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, r
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
 import { RG_GATHER_TICKS, RG_MAX } from '../../shared/regatta.ts';
 import { COYOTE_TICKS, DROWN_Y, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
-import { FC_CHECK_EVERY, FC_SPAWN } from '../../shared/fight.ts';
 import {
   FE_AWAY, FE_BACK, FE_BOARD, FE_HOME, FE_OUT, FERRY_AWAY, FERRY_FLOOR_Y, FERRY_HOME, FERRY_HOME_LANDING, FERRY_HOME_SPOTS, FERRY_LEVEL,
   ferryEta, ferryPose, ferrySeat, inFerry, type FerryPose,
@@ -49,8 +48,6 @@ import { BIG_WIN_MULT, MACHINE_NAMES, SPIN_MS, SPIN_TICKS } from '../../shared/s
 import { WHEEL_EXIT, WHEEL_PERIOD, WHEEL_PRICE, CABIN_STEP, bottomCabin, seatAt as wheelSeatAt } from '../../shared/wheel.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { WARDROBE_OFFSETS, wardrobePlace } from '../../shared/wardrobe.ts';
-import { FC_CIRCLE, FC_FIGHTERS } from '../../shared/fight.ts';
-import { FightGather } from '../fight/gather.ts';
 import type { Client, Hub, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
 import { AquaRuns } from './aqua.ts';
@@ -212,8 +209,6 @@ export class LobbyRoom implements Room {
   private readonly now: () => number;
   /** Общие тики хаба для погоды: продолжаются даже при пустой набережной. */
   private weatherTick = 0;
-  /** Круг у двери «Fight Club» (server/fight/gather.ts) — только если режим включён флагом */
-  private readonly fc: FightGather<LobbyPlayer> | null;
   /** Включённая рыбалка — места, заброс и подсечка у обеих одинаковые */
   private readonly fish: FishingHall | FishingHall2;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
@@ -286,7 +281,6 @@ export class LobbyRoom implements Room {
     // твёрдое оформление площади у входов режимов за флагами (shared/plaza2.ts): без флага режима его предметов нет
     if (!hub.hide) for (const box of this.map.plazaModeBoxes.hide) this.world.setEnabled(box, false);
     if (!hub.boatrace) for (const box of this.map.plazaModeBoxes.regatta) this.world.setEnabled(box, false);
-    if (!hub.fight) for (const box of this.map.plazaModeBoxes.fight) this.world.setEnabled(box, false);
     // «Подземелье»: скала и доска на западной лужайке (shared/plaza2.ts)
     if (!hub.dungeon) for (const box of this.map.plazaModeBoxes.dungeon) this.world.setEnabled(box, false);
     this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
@@ -315,16 +309,6 @@ export class LobbyRoom implements Room {
       save: meta => { hub.store.state.lobbyEvents = meta; hub.store.markDirty(); hub.store.flush(); },
     });
     if (!hub.fish2) for (const box of this.map.fishPropsBoxes) this.world.setEnabled(box, false);
-    this.fc = hub.fight
-      ? new FightGather<LobbyPlayer>({
-        players: () => this.players.values(),
-        toast: (c, text) => hub.toast(c, text),
-        broadcast: (msg) => this.broadcast(msg),
-        fight: () => hub.fight?.status() ?? null,
-        start: (fighters, crowd, mode) => { this.circleChat.launched('fight', fighters.length + crowd.length); hub.startFight(fighters, crowd, mode); },
-        watch: (c) => hub.watchFight(c),
-      })
-      : null;
     this.aquaDyn = new AquaDyn(this.world, this.map.aquaMovers);
     this.slots = new SlotHall(hub.profiles, hub.store, roll, now);
     this.durak = new DurakHall({
@@ -665,14 +649,14 @@ export class LobbyRoom implements Room {
     const p = new LobbyPlayer(slot, c);
     this.players.set(slot, p);
     this.byClient.set(c, p);
-    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : from === 'dungeon' ? this.map.dungeonSpawn : from === 'farm' ? this.map.farmSpawn : this.map.spawn;
+    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'dungeon' ? this.map.dungeonSpawn : from === 'farm' ? this.map.farmSpawn : this.map.spawn;
     this.placeNear(p, spot.x, spot.z, spot.yaw);
     this.starts.set(p, { armed: this.startZoneAt(p) === null, zone: null, since: 0, shown: '' });
     c.sink.sendJson({
       t: 'lobby', id: slot, tick: this.tick, yaw: spot.yaw, players: this.infos(), pool: Math.floor(this.hub.store.state.jackpot),
       pb: this.hub.pbStatus(), honor: this.hub.honor(), tables: this.durak.views(), blackjack: this.blackjack.view(), ...(this.hub.skill ? { skill: this.hub.skill.status() } : {}), kart: this.kartStatus(), fish: this.fish.views(),
       rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
-      losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
+      losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.fishing2 && this.hub.isle ? { isle: 1 } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
@@ -726,7 +710,6 @@ export class LobbyRoom implements Room {
     this.hideQueue?.drop(p);
     this.starts.delete(p);
     if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
-    this.fc?.drop(p);
     if (c.profile) this.radios?.left(c.profile.id);
     this.byClient.delete(c);
     this.players.delete(p.slot);
@@ -1045,9 +1028,8 @@ export class LobbyRoom implements Room {
         // режим выключен флагом — точки как бы нет
         if (this.hub.farm) this.hub.enterFarm(c);
         return;
-      case 'fight':
-        // режим выключен флагом — точки как бы нет
-        this.fc?.use(p);
+      case 'retired':
+        // место 45 занимал Fight Club (удалён 11.10.2026): номер остаётся, точка не работает
         return;
       case 'fish': {
         // места на моле острова — только с островом (флаг ISLE)
@@ -1162,7 +1144,6 @@ export class LobbyRoom implements Room {
     chat.update('kart', RC_MAX_KARTS, this.whoStands(KART_START));
     if (this.boatQueue) chat.update('boatrace', RG_MAX, this.whoStands(BOAT_RACE_CIRCLE));
     if (this.hideQueue) chat.update('hide', HIDE_CAPACITY, this.whoStands(HIDE_CIRCLE));
-    if (this.fc) chat.update('fight', FC_FIGHTERS[this.fc.mode], this.whoStands(FC_CIRCLE));
   }
 
   /** Кто стоит в круге — на тех же условиях, что в кругах сбора (не проверочный вход, не сидит, не в меню). */
@@ -1749,7 +1730,6 @@ export class LobbyRoom implements Room {
       const v = this.hideStatus()!, key = JSON.stringify(v);
       if (key !== this.hideShown) { this.hideShown = key; this.broadcast({ t: 'hideSt', v }); }
     }
-    if (this.fc && this.tick % FC_CHECK_EVERY === 0) this.fc.step(this.tick);
     if (this.tick % KART_CHECK_EVERY === 0) this.circleChatStep();
     if (this.tick % LOBBY_SNAP_EVERY === 0) this.sendSnapshots();
     if (this.tick % TICK_RATE === 0) {

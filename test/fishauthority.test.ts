@@ -33,7 +33,7 @@ function setup(o: { fish2?: boolean; rain?: boolean; rooms?: boolean; weather?: 
   store.load();
   const profiles = new Profiles(store, { now: () => clock.now });
   const hub = new Hub({ store, profiles, now: () => clock.now, log: () => {}, build: 'test', smokeToken: SMOKE,
-    fish2: o.fish2 ?? true, weather: o.weather ?? (o.rain ? 'rain' : 'clear'), fort: o.rooms, fight: o.rooms });
+    fish2: o.fish2 ?? true, weather: o.weather ?? (o.rain ? 'rain' : 'clear'), fort: o.rooms });
   const a = login(hub, 'Рыболов');
   return { hub, store, profiles, clock, a };
 }
@@ -173,12 +173,11 @@ test('NPC сообщает о rate limit, чтобы клиент вышел и�
   assert.equal(e.a.c.profile!.tokens, 100);
 });
 
-test('рыболовное событие от бубна разослано игрокам всех5комнат; активное не продаётся; оно кончается при пустой набережной', () => {
+test('рыболовное событие от бубна разослано игрокам всех четырёх комнат; активное не продаётся; оно кончается при пустой набережной', () => {
   const e = setup({ rooms: true });
-  const players = [e.a, login(e.hub, 'Склад'), login(e.hub, 'Гонщик'), login(e.hub, 'Крепость'), login(e.hub, 'Боец')];
+  const players = [e.a, login(e.hub, 'Склад'), login(e.hub, 'Гонщик'), login(e.hub, 'Крепость')];
   e.hub.race.open();
-  e.hub.fight!.open('duel', [players[4].c.pid]);
-  const rooms: Room[] = [e.hub.lobby, e.hub.paintball, e.hub.race, e.hub.fort!, e.hub.fight!];
+  const rooms: Room[] = [e.hub.lobby, e.hub.paintball, e.hub.race, e.hub.fort!];
   for (let i = 1; i < players.length; i++) assert.equal(e.hub.move(players[i].c, rooms[i], true), true);
   npc(e);
   e.a.c.profile!.tokens = RAIN_DRUM_PRICE + 500;

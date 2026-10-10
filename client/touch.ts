@@ -17,7 +17,7 @@ function detectTouch(): boolean {
  * Раскладка кнопок: бег по набережной, с удочкой, у автомата, гонка, пейнтбол, поездка на катере (без кнопок —
  * весь экран, чтобы осмотреться); none — только верхние кнопки (за столом дурака и в примерочной на экране свои кнопки).
  */
-export type TouchMode = 'walk' | 'fish' | 'slot' | 'kart' | 'shoot' | 'ride' | 'fight' | 'none';
+export type TouchMode = 'walk' | 'fish' | 'slot' | 'kart' | 'shoot' | 'ride' | 'none';
 /** Что видно: ничего (меню, пауза, открыт чат), только верхние кнопки, всё */
 export type TouchShow = 'off' | 'bar' | 'all';
 
@@ -37,9 +37,9 @@ interface Pad {
 }
 
 const PADS: readonly Pad[] = [
-  { id: 'jump', codes: ['Space'], icon: '⤒', name: 'прыжок', modes: ['walk', 'shoot', 'fight'] },
+  { id: 'jump', codes: ['Space'], icon: '⤒', name: 'прыжок', modes: ['walk', 'shoot'] },
   { id: 'use', codes: ['KeyE'], icon: 'E', name: 'действие', modes: ['walk', 'fish'] },
-  { id: 'dash', codes: ['ShiftLeft'], icon: '»', name: 'рывок', modes: ['walk', 'shoot', 'fight'] },
+  { id: 'dash', codes: ['ShiftLeft'], icon: '»', name: 'рывок', modes: ['walk', 'shoot'] },
   { id: 'cast', codes: ['Space'], icon: '🎣', name: 'заброс', modes: ['fish'] },
   { id: 'spin', codes: ['Space'], icon: '🎰', name: 'крутить', modes: ['slot'] },
   { id: 'fire', codes: ['mouse0'], icon: '💥', name: 'огонь', modes: ['shoot'], look: true },
@@ -52,11 +52,6 @@ const PADS: readonly Pad[] = [
   { id: 'drift', codes: ['KeyW', 'Space'], icon: '⤴', name: 'занос', modes: ['kart'] },
   { id: 'brake', codes: ['KeyS'], icon: '▼', name: 'тормоз', modes: ['kart'] },
   { id: 'back', codes: ['KeyR'], icon: '↺', name: 'на трассу', modes: ['kart'] },
-  // «Fight Club»: удар — ведёшь пальцем, заодно поворачиваешь; блок держат (Q); захват и бросок — E
-  { id: 'punch', codes: ['mouse0'], icon: '👊', name: 'удар', modes: ['fight'], look: true },
-  { id: 'heavy', codes: ['mouse2'], icon: '💥', name: 'тяжёлый', modes: ['fight'] },
-  { id: 'block', codes: ['KeyQ'], icon: '🛡', name: 'блок', modes: ['fight'] },
-  { id: 'grab', codes: ['KeyE'], icon: '✊', name: 'захват', modes: ['fight'] },
 ];
 
 const EMOTES: ReadonlyArray<readonly [string, string]> = [

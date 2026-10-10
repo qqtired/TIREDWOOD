@@ -8,7 +8,6 @@ import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
-import { FC_CIRCLE } from '../fight.ts';
 import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
@@ -38,7 +37,7 @@ export const DUNGEON_RETURN = { x: -13.1, z: 10.0, yaw: -1.275 } as const;
  * dungeon — вход в пещеру «Подземелья» на западной лужайке (флаг DUNGEON, docs/survivors/level.md §8);
  * oboat — берт своей лодки (arg 0–9 — стоянка за домом Семёна, 10–15 — причал острова; флаг ISLE, shared/ownboat.ts);
  * farm — калитка фермы на восточном конце Улицы Аттракционов (флаг FARM, shared/farmlayout.ts plazaGate) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'retired' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm';
 
 export interface Interactable {
   id: number;
@@ -122,7 +121,7 @@ export interface LobbyMap extends GameMap {
   isleBoxes: number[];
   /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее, в самом конце списка боксов */
   plazaBoxes: number[];
-  /** Из них — предметы режимов за флагами (двор прятков, мачты регаты, столбики Fight Club): без флага их выключают, как на экране */
+  /** Из них — предметы режимов за флагами (двор прятков, мачты регаты): без флага их выключают, как на экране */
   plazaModeBoxes: Record<PlazaSolidMode, number[]>;
 }
 
@@ -392,9 +391,10 @@ export function buildLobby(): LobbyMap {
   add('wheel', WHEEL_GATE.x, WHEEL_GATE.z, -Math.PI / 2, 1.6, 0, 'колесо обозрения');
   // «Крепость» (выпуск 6): перед аркой — E, в крепость. Точка есть всегда, работает (и арку видно) только с флагом сервера
   add('fort', FORT_ARCH.x, FORT_ARCH.z + 0.9, 0, 1.6, 0, 'в крепость');
-  // «Fight Club» (выпуск 6): круг мелом у двери в подвал кафе — E, хозяин круга меняет режим (shared/fight.ts).
-  // Точка есть всегда, работает (и дверь видно) только с флагом сервера
-  add('fight', FC_CIRCLE.x, FC_CIRCLE.z, Math.PI, FC_CIRCLE.r, 0, 'Fight Club');
+  // Место 45 занимал круг «Fight Club» (выпуск 6). Режим удалён 11.10.2026 по слову владельца, а номера точек шлют клиенты
+  // и сдвигать их нельзя, поэтому точка осталась пустышкой: радиус 0, без подсказки, E ничего не делает (сервер и клиент
+  // её пропускают). Лежит там, где был круг, — на настиле, чтобы проверки карты её не считали «в стене».
+  add('retired', 28.1, 5.75, Math.PI, 0, 0, '');
 
   // Новые места и NPC — строго после всех прежних interactables: номера уже используются клиентами.
   FISH_SPOTS.slice(6, FISH_ISLAND_COUNT).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
@@ -542,7 +542,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
-  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [], dungeon: [] };
+  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], dungeon: [] };
   for (const p of plazaSolids()) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);

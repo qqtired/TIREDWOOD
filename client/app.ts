@@ -14,7 +14,6 @@ import { Chat } from './chat.ts';
 import { HideScene } from './hide/scene.ts';
 import { FarmScene } from './farm/scene.ts';
 import { errorReport } from './errors.ts';
-import { FightScene } from './fight/scene.ts';
 import { FortScene } from './fort/scene.ts';
 import { fortLoadingLine } from './fort/record.ts';
 import { deviceKey, forgetNick, oldName, resetDeviceKey, saveNick, savedNick } from './identity.ts';
@@ -122,8 +121,6 @@ export class App {
   /** «Подземелье»: код сцены грузится лениво (client/dungeon/scene.ts) — заранее, как только набережная скажет, что режим есть */
   private dungeon: LazyScene | null = null;
   private dungeonMod: Promise<typeof import('./dungeon/scene.ts')> | null = null;
-  /** Подвал «Fight Club» (режим за флагом сервера) — при первом спуске */
-  private fight: FightScene | null = null;
   private active: Scene | null = null;
   private me: MeState = { pid: 0, xp: 0, level: 1, nick: '', tokens: 0, owned: [], outfit: { ...DEFAULT_OUTFIT }, stats: emptyStats(), album: {}, fishing: emptyFishProgress() };
   private fishEventOn = false;
@@ -911,7 +908,7 @@ export class App {
       setVoicePresence([]);
       this.voice?.roomChanged();
     }
-    const next = kind === 'farm' ? (this.farm ??= this.makeFarm()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'dungeon' ? (this.dungeon ??= this.makeDungeon()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
+    const next = kind === 'farm' ? (this.farm ??= this.makeFarm()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'dungeon' ? (this.dungeon ??= this.makeDungeon()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
     // комната — для стилей (телефон стоя: в пейнтболе чат ниже полосы счёта)
@@ -983,13 +980,6 @@ export class App {
       const err = e as { message?: unknown; stack?: unknown } | null;
       errorReport.add(`сцена Подземелья не загрузилась: ${typeof err?.message === 'string' ? err.message : String(e)}`, '', typeof err?.stack === 'string' ? err.stack : '');
     });
-    s.setQuality(this.renderQuality());
-    s.resize(window.innerWidth, window.innerHeight);
-    return s;
-  }
-
-  private makeFight(): FightScene {
-    const s = new FightScene(this.deps);
     s.setQuality(this.renderQuality());
     s.resize(window.innerWidth, window.innerHeight);
     return s;
@@ -1161,7 +1151,6 @@ export class App {
     const kind = this.active?.kind ?? 'lobby';
     const sub: Record<RoomKind, string> = {
       lobby: 'Набережная подождёт', paintball: 'Бой на складе идёт дальше — не зевай', race: 'Гонка продолжается без тебя', fort: 'Зомби не ждут — крепость держится без тебя',
-      fight: 'В подвале дерутся дальше — о клубе никому',
       skill: 'Чекпоинт сохранён; время прохождения продолжается',
       hide: 'Поиск продолжается — укрытие и время остаются в игре',
       dungeon: 'Забег на паузе — выйдешь, и отбитые волны засчитаются',
@@ -1404,7 +1393,6 @@ export class App {
       this.farm?.setQuality(detail);
       this.paintball?.setQuality(detail);
       this.fort?.setQuality(detail);
-      this.fight?.setQuality(detail);
       this.dungeon?.setQuality(detail);
     }
     if (r !== this.pixelRatio) {
@@ -1424,7 +1412,6 @@ export class App {
     this.hide?.resize(w, hh);
     this.farm?.resize(w, hh);
     this.fort?.resize(w, hh);
-    this.fight?.resize(w, hh);
     this.dungeon?.resize(w, hh);
   }
 

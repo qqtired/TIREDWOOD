@@ -15,7 +15,7 @@ const OLD_SPOTS = [25, 28.5, 32].flatMap((z) => [
 const OLD_INTERACT = [
   ...Array.from({ length: 5 }, (_, i) => `slot:${i}`), 'pb_gate:0', 'garage:0', 'kiosk:0', 'honor:0',
   ...Array.from({ length: 18 }, (_, i) => `${i < 12 ? 'durak' : 'blackjack'}:${i}`), ...Array.from({ length: 6 }, (_, i) => `seat:${18 + i}`),
-  'kboard:0', 'photo:0', ...Array.from({ length: 6 }, (_, i) => `fish:${i}`), 'recent:0', 'boat:0', 'wheel:0', 'fort:0', 'fight:0',
+  'kboard:0', 'photo:0', ...Array.from({ length: 6 }, (_, i) => `fish:${i}`), 'recent:0', 'boat:0', 'wheel:0', 'fort:0', 'retired:0',
 ];
 const NEW_SPOTS = [
   { x: -20.45, z: 35.5, yaw: Math.PI / 2 }, { x: -17.55, z: 35.5, yaw: -Math.PI / 2 },

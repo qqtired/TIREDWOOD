@@ -94,8 +94,6 @@ export const MODE_STATS: readonly ModeStats[] = [
   { mode: '🌊 Аквапарк', rows: [['пройдено', (s) => s.aqRuns]] },
   { mode: '☁️ Выше облаков', rows: [['подъёмов', (s) => s.skRuns], ['медаль', (s) => medal(s.skMedal)], ['без падений', (s) => (s.skClean ? 'есть' : null)]] },
   { mode: '🏰 Крепость', rows: [['игр', (s) => s.ftGames], ['побед', (s) => s.ftWins], ['сбито зомби', (s) => s.ftKills]], played: (s) => s.ftGames > 0 },
-  // о клубе — никому: только тем, кто дрался
-  { mode: '🥊 Подвал', rows: [['боёв', (s) => s.fcFights], ['побед', (s) => s.fcWins], ['нокаутов', (s) => s.fcKos]], played: (s) => s.fcFights > 0 },
   { mode: '⛈️ Шторм', rows: [['штормов', (s) => s.stStorms], ['огней зажжено', (s) => s.stLights]], played: (s) => s.stStorms > 0 },
   { mode: '🏴‍☠️ Пираты', rows: [['налётов', (s) => s.prRaids], ['побед', (s) => s.prWins], ['сбито пиратов', (s) => s.prKos]], played: (s) => s.prRaids > 0 },
 ];
