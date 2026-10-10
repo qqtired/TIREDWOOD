@@ -85,6 +85,28 @@ export function botEvents(sim, mem) {
       az += (gz / d) * 0.6;
     }
   }
+  // сундуки карты: если рядом спокойно — к ближайшему в 30 м (островок бот не берёт: к нему только бродом)
+  if (close === 0 && near <= 3) {
+    let cx = 0;
+    let cz = 0;
+    let cd = 900;
+    for (const it of sim.items) {
+      if (it.k !== 'chest' || it.src === 'isle') continue;
+      const dx = wrapD(it.x - h.x);
+      const dz = wrapD(it.z - h.z);
+      const d2 = dx * dx + dz * dz;
+      if (d2 < cd) {
+        cd = d2;
+        cx = dx;
+        cz = dz;
+      }
+    }
+    if (cd < 900) {
+      const d = Math.sqrt(cd) || 1;
+      ax += (cx / d) * 0.8;
+      az += (cz / d) * 0.8;
+    }
+  }
   // кружение по большому кругу, чтобы не стоять на месте
   const a = t / 300;
   const cx = Math.cos(a) * 0.15;

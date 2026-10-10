@@ -141,16 +141,66 @@ export function stairsShapes(wx: number, wz: number): Shape[] {
   ];
 }
 
+/** Озеро с бродом (level-data lake): глубина считается отдельно, не кругом-провалом */
+const LK = LV.lake ?? null;
+function isLakePit(s: Shape): boolean {
+  return !!LK && s.kind === 'pit' && s.t === 'c' && Math.abs(wrapD(s.x - LK.x)) < 1 && Math.abs(wrapD(s.z - LK.z)) < 1;
+}
+/** Куда вытолкнуть из глубины (lakeX/lakeZ — сдвиг) */
+let lakeX = 0;
+let lakeZ = 0;
+/**
+ * Тело (x, z, r) задевает глубину озера? Свободно, если целиком за берегом, целиком на островке или целиком на броде.
+ * Если задевает — в lakeX/lakeZ кратчайший сдвиг: на берег, на островок или вбок на брод.
+ */
+function lakeHit(x: number, z: number, r: number): boolean {
+  if (!LK) return false;
+  const rx = wrapD(x - LK.x);
+  const rz = wrapD(z - LK.z);
+  const d2 = rx * rx + rz * rz;
+  const out = LK.deep + r;
+  if (d2 >= out * out) return false;
+  const d = Math.sqrt(d2);
+  const inn = LK.island - r;
+  if (inn > 0 && d <= inn) return false;
+  const fx = LK.ford.dx;
+  const fz = LK.ford.dz;
+  const perp = rx * fz - rz * fx; // со знаком: расстояние до оси брода
+  const side = LK.ford.half - r;
+  const ap = perp < 0 ? -perp : perp;
+  if (side > 0 && ap <= side) return false;
+  // глубина: дешевле всего — на берег, на островок или вбок на брод
+  let best = out - d;
+  let mode = 0;
+  if (inn > 0 && d - inn < best) {
+    best = d - inn;
+    mode = 1;
+  }
+  if (side > 0 && ap - side < best) mode = 2;
+  if (mode === 2) {
+    const shift = (perp < 0 ? -side : side) - perp;
+    lakeX = shift * fz;
+    lakeZ = -shift * fx;
+  } else {
+    const to = mode === 0 ? out : inn;
+    const k = d > 1e-6 ? to / d - 1 : 0;
+    lakeX = d > 1e-6 ? rx * k : to;
+    lakeZ = d > 1e-6 ? rz * k : 0;
+  }
+  return true;
+}
+
 function solids(): Packed {
   if (!SOLIDS) {
     const well = LV.landmarks?.find((l) => l.id === 'well') ?? LV.map.heroSpawn;
     const list = LV.obstacles.filter((s) => s.kind !== 'stairs').concat(stairsShapes(well.x, well.z));
+    if (LK && LK.druse > 0) list.push({ t: 'c', x: LK.x, z: LK.z, r: LK.druse, kind: 'druse' });
     SOLIDS = pack(list.map((s) => ({ s, kind: T_SOLID })));
   }
   return SOLIDS;
 }
 function hazards(): Packed {
-  if (!HAZ) HAZ = pack(LV.hazards.map((s) => ({ s, kind: kindOf(s, true) })).filter((e) => e.kind !== 0));
+  if (!HAZ) HAZ = pack(LV.hazards.filter((s) => !isLakePit(s)).map((s) => ({ s, kind: kindOf(s, true) })).filter((e) => e.kind !== 0));
   return HAZ;
 }
 
@@ -215,6 +265,11 @@ export function collide(x: number, z: number, r: number, mask: number): typeof h
         hit |= T_PIT;
       }
     }
+    if (lakeHit(x, z, r)) {
+      x += lakeX;
+      z += lakeZ;
+      hit |= T_PIT;
+    }
   }
   hitOut.x = x;
   hitOut.z = z;
@@ -230,6 +285,13 @@ export function terrainAt(x: number, z: number): number {
   for (let k = p.start[c], e = p.start[c + 1]; k < e; k++) {
     const i = p.items[k];
     if (axisDist(p, i, x, z) < p.r[i]) m |= p.kind[i];
+  }
+  if (LK) {
+    const rx = wrapD(x - LK.x);
+    const rz = wrapD(z - LK.z);
+    const d2 = rx * rx + rz * rz;
+    if (d2 < LK.island * LK.island) m &= ~T_WATER; // островок сухой
+    else if (lakeHit(x, z, 0)) m |= T_PIT;
   }
   return m;
 }
@@ -247,7 +309,7 @@ export function blocked(x: number, z: number, r: number): boolean {
     const i = h.items[k];
     if (h.kind[i] === T_PIT && axisDist(h, i, x, z) < h.r[i] + r) return true;
   }
-  return false;
+  return lakeHit(x, z, r);
 }
 
 /** Внутри провала (центр) */

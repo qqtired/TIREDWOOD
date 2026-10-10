@@ -98,9 +98,22 @@ export interface Circle { t: 'c'; x: number; z: number; r: number; kind: string 
 export interface Capsule { t: 's'; x0: number; z0: number; x1: number; z1: number; r: number; kind: string }
 export type Shape = Circle | Capsule;
 export interface Spot { id?: string; x: number; z: number; zone?: string; count?: number }
+/**
+ * Озеро грота с бродом и островком. Глубина (не пройти) — круг deep минус островок island минус полоса брода
+ * (прямая через центр по (dx, dz), полуширина half: два конца — два берега). Брод и всё до shallow — мелководье;
+ * островок сухой, в центре твёрдая друза druse. stones — камни брода для отрисовки (без столкновений).
+ */
+export interface LakeData {
+  x: number; z: number; deep: number; shallow: number; island: number; druse: number;
+  ford: { dx: number; dz: number; half: number };
+  chest: { x: number; z: number; respawn: number };
+  stones: { x: number; z: number; r: number }[];
+}
 export interface LevelData {
   map: { L: number; heroSpawn: { x: number; z: number } };
   landmarks?: { id: string; x: number; z: number }[];
+  lake?: LakeData;
+  avenues?: { id: string; width: number; line: number[][] }[];
   spawnRing: { inner: number; outer: number; aheadConeDeg: number; recycleDistance: number; retries: number };
   camera: { groundCornersFromHero: { topLeft: number[]; topRight: number[]; bottomLeft: number[]; bottomRight: number[] } };
   hazards: Shape[];

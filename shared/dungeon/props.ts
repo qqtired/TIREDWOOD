@@ -55,7 +55,7 @@ const USE_R: Record<string, number> = { altar: 2.5, chest: 2.5, forge: 2.5, cart
 const USE_T: Record<string, number> = { altar: 1, chest: 1.5, forge: 3, cart: 0 };
 
 function prop(sim: DgSim, k: DgProp['k'], x: number, z: number, st: number, v = 0): DgProp {
-  const p: DgProp = { id: newId(sim), k, x: wrapP(x), z: wrapP(z), st, t0: 0, t1: 0, v, vx: 0 };
+  const p: DgProp = { id: newId(sim), k, x: wrapP(x), z: wrapP(z), st, t0: 0, t1: 0, v, vx: 0, why: '' };
   sim.props.push(p);
   return p;
 }
@@ -318,6 +318,7 @@ export function stepProps(sim: DgSim): void {
     }
   }
   if (lampHeal && sim.t % 30 === 0) healHero(sim, LAMP_REGEN);
+  lockCheck(sim);
   // приземление с батута
   if (h.jumpT1 === sim.t && h.jumpT1 > 0) land(sim);
 }
@@ -328,19 +329,55 @@ function inRange(h: { x: number; z: number }, p: DgProp, r: number): boolean {
   return dx * dx + dz * dz < r * r;
 }
 
-function usable(sim: DgSim, p: DgProp): boolean {
+/** Почему алтарь, проклятый сундук или кузня сейчас не сработают ('' — сработают) */
+function whyOf(sim: DgSim, p: DgProp): DgProp['why'] {
   const st = sim.wave.stage;
   switch (p.k) {
     case 'altar':
-      return p.st === 0;
+      return p.st === 2 ? 'cool' : '';
     case 'chest':
-      return p.st === 0 && st === 'wave';
+      if (p.st === 1) return 'busy';
+      if (p.st === 2) return 'cool';
+      if (st === 'boss') return 'boss';
+      return st === 'wave' ? '' : 'wave';
     case 'forge':
-      return p.st === 0 && sim.hero.xp >= sim.hero.xpNext * FORGE_XP && sim.weapons.length > 0;
-    case 'cart':
-      return true;
+      if (p.st === 3) return 'out';
+      return sim.hero.xp >= sim.hero.xpNext * FORGE_XP && sim.weapons.length > 0 ? '' : 'xp';
   }
-  return false;
+  return '';
+}
+
+function usable(sim: DgSim, p: DgProp): boolean {
+  if (p.k === 'cart') return true;
+  if (p.k !== 'altar' && p.k !== 'chest' && p.k !== 'forge') return false;
+  return p.st === 0 && whyOf(sim, p) === '';
+}
+
+/**
+ * Причины для подписи (prop.why) и «встал в круг, а нельзя»: hero.lockId и fx prop 'locked' с why при входе в круг
+ * (например, проклятый сундук вне волны — «откроется во время волны»)
+ */
+function lockCheck(sim: DgSim): void {
+  const h = sim.hero;
+  let lock = -1;
+  let lockWhy: DgProp['why'] = '';
+  let bd = 1e9;
+  for (const p of sim.props) {
+    if (p.k !== 'altar' && p.k !== 'chest' && p.k !== 'forge') continue;
+    p.why = p.st === 3 && p.k !== 'forge' ? '' : whyOf(sim, p);
+    if (!p.why || h.dead || h.useId >= 0) continue;
+    const r = USE_R[p.k] ?? 2.5;
+    const dx = wrapD(p.x - h.x);
+    const dz = wrapD(p.z - h.z);
+    const d = dx * dx + dz * dz;
+    if (d < r * r && d < bd) {
+      bd = d;
+      lock = p.id;
+      lockWhy = p.why;
+    }
+  }
+  if (lock >= 0 && lock !== h.lockId) fx(sim, { k: 'prop', id: lock, what: 'locked', why: lockWhy });
+  h.lockId = lock;
 }
 
 function startUse(sim: DgSim, byE: boolean): void {
