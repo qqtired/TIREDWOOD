@@ -1,0 +1,72 @@
+diff --git a/client/farm/scene.ts b/client/farm/scene.ts
+index 11b28fe..d89ff6f 100644
+--- a/client/farm/scene.ts
++++ b/client/farm/scene.ts
+@@ -20,6 +20,7 @@ import { RemoteTrack, type RemoteSample } from '../remote.ts';
+ import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
+ import type { Scene, SceneDeps } from '../scene.ts';
+ import { FarmHud, fmtMin } from './hud.ts';
++import { effectiveVolume } from '../settings.ts';
+ import { FarmWell } from './well.ts';
+ import { FarmWorld } from './world.ts';
+ 
+@@ -103,7 +104,7 @@ export class FarmScene implements Scene {
+       sell: (item, n) => d.net.send({ t: 'farm', a: 'sell', item, n }),
+       closed: () => d.wantPointer(),
+     });
+-    this.well = new FarmWell(d.hudRoot);
++    this.well = new FarmWell(d.hudRoot, { closed: () => d.wantPointer(), volume: () => effectiveVolume(d.settings) * d.settings.sfxVolume });
+     window.addEventListener('wheel', (e) => {
+       if (this.active && d.input.locked && !d.input.blocked) this.cam.zoomBy(e.deltaY);
+     }, { passive: true });
+@@ -152,6 +153,7 @@ export class FarmScene implements Scene {
+     this.remotes.clear();
+     this.roster.clear();
+     this.hud.setVisible(false);
++    this.well.cancel();
+   }
+ 
+   // ------------------------------------------------------------ сеть
+@@ -226,10 +228,12 @@ export class FarmScene implements Scene {
+       case 'fill':
+         // мини-игра «Набери лейку» (B4, client/farm/well.ts): отсчёты уходят серверу, он и считает долю
+         this.d.input.releaseAll();
+-        this.well.start(e.seed, (s) => this.d.net.send({ t: 'farm', a: 'fillEnd', s }));
++        this.d.input.unlock();
++        this.well.start(e.seed, (s) => this.d.net.send({ t: 'farm', a: 'fillEnd', s }), { have: this.farm.water, max: canMax(this.farm) });
+         return;
+       case 'filled':
+-        toast(`Лейка: +${Math.round(e.add / 100)} 💧`, `Набрано ${Math.round(e.share * 100)} % · мини-игра скоро`);
++        // окно мини-игры само показывает итог «+N зарядов»; тост нужен, только если его уже закрыли (Esc, ×)
++        if (!this.well.result(e.share, e.add)) toast(`Лейка: +${Math.round(e.add / 100)} 💧`, `Набрано ${Math.round(e.share * 100)} %`);
+         return;
+       case 'upgrade':
+         toast(`Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}`);
+diff --git a/server/farm/room.ts b/server/farm/room.ts
+index 746b2c3..dd358bd 100644
+--- a/server/farm/room.ts
++++ b/server/farm/room.ts
+@@ -340,7 +340,7 @@ export class FarmRoom implements Room, FarmCtx {
+       case 'convert': return this.onConvert(p, f, m);
+       case 'upgrade': return this.onUpgrade(p, f, m, now);
+       case 'fillStart': return this.onFillStart(p, f, now);
+-      case 'fillEnd': return this.onFillEnd(p, f, m);
++      case 'fillEnd': return this.onFillEnd(p, f, m, now);
+       case 'pig': return this.onPig(p, f, now);
+       case 'tutorial': return this.onTutorial(p, f, m);
+       case 'look': return this.onLook(p, f, m);
+@@ -448,12 +448,12 @@ export class FarmRoom implements Room, FarmCtx {
+     this.done(p, false);
+   }
+ 
+-  private onFillEnd(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'fillEnd' }>): void {
++  private onFillEnd(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'fillEnd' }>, now: number): void {
+     const fill = p.fill;
+     if (!fill) return this.fail(p, 'fillEnd', 'well');
+     p.fill = null;
+     const s = Array.isArray(m.s) ? m.s.slice(0, WELL_MAX_SAMPLES).filter((v): v is number => typeof v === 'number' && Number.isFinite(v)) : [];
+-    const share = wellShare(fill.seed, s);
++    const share = wellShare(fill.seed, s, now - fill.at);
+     const add = wellFill(f, share);
+     this.ev(p, { k: 'filled', share, add });
+     this.tutorial(p, f, 'fill');
