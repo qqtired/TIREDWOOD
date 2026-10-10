@@ -232,13 +232,18 @@ html.touch .dg-ring kbd { display: none; }
 .dg-arrow.cat-loot { --c: var(--dg-cat-loot); }
 .dg-arrow.cat-heal { --c: var(--dg-cat-heal); }
 .dg-arrow.cat-power { --c: var(--dg-cat-power); }
-.dg-arrow-tip { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; }
-.dg-arrow-tip::after { content: ''; position: absolute; right: -3px; top: 50%; margin-top: -10px; border: 10px solid transparent; border-left: 14px solid var(--c); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
-.dg-arrow-disc { position: absolute; left: -29px; top: -29px; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: var(--dg-panel-strong); box-shadow: 0 0 0 3px var(--c), var(--dg-shadow); font-size: 30px; transform: scale(.6); transition: transform .3s cubic-bezier(.2, .9, .3, 1.3); }
-.dg-arrow.on .dg-arrow-disc { transform: scale(1); }
-.dg-arrow-lab { position: absolute; left: 0; top: 34px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.1; }
-.dg-arrow-name { max-height: 0; overflow: hidden; color: var(--c); font-size: 13px; font-weight: 900; animation: dg-arrow-name 3s ease-out both; }
-.dg-arrow-d { padding: 1px 7px; border-radius: 999px; background: var(--dg-panel-strong); font-size: 14px; font-weight: 900; }
+/* --dg-arrow — диаметр значка; «носик» — снаружи диска, на его краю со стороны цели (поворачивается вокруг) */
+.dg-arrow { --s: var(--dg-arrow-size, 68px); }
+.dg-arrow-in { position: absolute; left: 0; top: 0; transform: scale(.6); transition: transform .3s cubic-bezier(.2, .9, .3, 1.3); }
+.dg-arrow.on .dg-arrow-in { transform: scale(1); }
+.dg-arrow-tip { position: absolute; left: calc(var(--s) / -2 - 18px); top: calc(var(--s) / -2 - 18px); width: calc(var(--s) + 36px); height: calc(var(--s) + 36px); }
+.dg-arrow-tip::after { content: ''; position: absolute; right: 2px; top: 50%; margin-top: -9px; border: 9px solid transparent; border-right: 0; border-left: 13px solid var(--c); filter: drop-shadow(0 0 1px rgba(0, 0, 0, .9)) drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+/* значок — сам медальон: заполняет круг целиком, цвет категории — тонкое кольцо и свечение */
+.dg-arrow-disc { position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); width: var(--s); height: var(--s); display: grid; place-items: center; border-radius: 50%; box-shadow: 0 0 0 2px var(--c), 0 0 12px var(--c), var(--dg-shadow); font-size: calc(var(--s) * .55); }
+.dg-arrow-disc img.dg-ic { width: 100%; height: 100%; border-radius: 50%; filter: none; }
+.dg-arrow-disc.emo { background: var(--dg-panel-strong); }
+/* только расстояние — маленькой плашкой на нижнем краю значка */
+.dg-arrow-d { position: absolute; left: 0; top: calc(var(--s) / 2 - 9px); transform: translateX(-50%); padding: 0 6px; border-radius: 999px; background: rgba(18, 13, 11, .88); font-size: 13px; font-weight: 900; line-height: 17px; white-space: nowrap; }
 .dg-arrow[data-kind='boss'] .dg-arrow-disc, .dg-arrow[data-kind='elite'] .dg-arrow-disc { animation: dg-danger 1.1s ease-in-out infinite; }
 
 /* --- передышка: карточка следующей волны */
@@ -409,8 +414,7 @@ html.touch .dg-ring kbd { display: none; }
 @keyframes dg-reel { from { transform: translateY(0); } to { transform: translateY(calc(var(--end) * 72px)); } }
 @keyframes dg-evo { 0%, 100% { box-shadow: 0 0 10px rgba(255, 211, 90, .5); } 50% { box-shadow: 0 0 28px rgba(255, 211, 90, 1); } }
 @keyframes dg-rage { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 90, 70, 0); } 50% { box-shadow: 0 0 0 3px rgba(255, 90, 70, .6), 0 0 18px rgba(255, 60, 40, .6); } }
-@keyframes dg-danger { 0%, 100% { box-shadow: 0 0 0 3px var(--c), var(--dg-shadow); } 50% { box-shadow: 0 0 0 3px var(--c), 0 0 18px var(--c); } }
-@keyframes dg-arrow-name { 0% { max-height: 0; opacity: 0; } 8%, 80% { max-height: 18px; opacity: 1; } 100% { max-height: 0; opacity: 0; } }
+@keyframes dg-danger { 0%, 100% { box-shadow: 0 0 0 2px var(--c), 0 0 8px var(--c), var(--dg-shadow); } 50% { box-shadow: 0 0 0 3px var(--c), 0 0 22px var(--c), var(--dg-shadow); } }
 @keyframes dg-banner {
   0% { opacity: 0; transform: translate(-50%, -30%) scale(.4); }
   8% { opacity: 1; transform: translate(-50%, -50%) scale(1.14); }
@@ -458,9 +462,7 @@ html.touch .dg-ring kbd { display: none; }
   .dg-card-name { font-size: 18px; }
   .dg-layer { justify-content: flex-start; overflow: auto; }
   .dg-banner-title { white-space: normal; }
-  .dg-arrow-disc { left: -22px; top: -22px; width: 44px; height: 44px; font-size: 22px; }
-  .dg-arrow-tip { left: -28px; top: -28px; width: 56px; height: 56px; }
-  .dg-arrow-lab { top: 26px; }
+  .dg { --dg-arrow-size: 50px; }
 }
 /* телефон: джойстик слева, кнопки справа — здоровье сверху по центру, волна под ним; сборка и оружия прячем (видны в итогах) */
 html.touch .dg-vitals { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; width: min(320px, 46vw); flex-direction: column-reverse; }
@@ -471,10 +473,7 @@ html.touch .dg-tc { top: calc(64px + env(safe-area-inset-top, 0px)); }
 html.touch .dg-bl, html.touch .dg-weapons { display: none; }
 /* радар — под кнопками оболочки слева сверху (меню, чат), меньше */
 html.touch .dg { --dg-radar-size: 96px; }
-html.touch .dg-arrow-disc { left: -20px; top: -20px; width: 40px; height: 40px; font-size: 21px; }
-html.touch .dg-arrow-tip { left: -26px; top: -26px; width: 52px; height: 52px; }
-html.touch .dg-arrow-lab { top: 22px; }
-html.touch .dg-arrow-name { display: none; }
+html.touch .dg { --dg-arrow-size: 48px; }
 html.touch .dg-radar { top: calc(92px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -482,7 +481,6 @@ html.touch .dg-radar { top: calc(92px + env(safe-area-inset-top, 0px)); left: ca
   .dg-banner.show { opacity: 1; }
   .dg-reel-info { opacity: 1; }
   .dg-lvflash.show { display: none; }
-  .dg-arrow-name { display: none; }
 }
 
 /* кнопка голоса оболочки — над пассивками, не поверх слотов и оружий */

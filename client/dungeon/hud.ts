@@ -988,7 +988,7 @@ export class DungeonHud implements DungeonHudApi {
       const vit = this.vitals.getBoundingClientRect();
       this.edge.bottom = vit.height > 0 ? vit.top : H - 200;
       // где стрелкам нельзя стоять: радар, волна, здоровье, кольца, убито/пауза (+ кнопки оболочки на телефоне)
-      const m = touch ? 26 : 34;
+      const m = touch ? 34 : 50;
       const boxes: { l: number; t: number; r: number; b: number }[] = [];
       for (const n of [this.radarBox, this.hud.querySelector('.dg-tc'), this.hud.querySelector('.dg-tr'), touch ? this.vitals : null, touch ? this.hud.querySelector('.dg-bc') : null]) {
         const r = n?.getBoundingClientRect();
@@ -1002,10 +1002,11 @@ export class DungeonHud implements DungeonHudApi {
       this.edge.boxes = boxes;
     }
     // рамка: компьютер — выше здоровья и баффов (диск и подпись под ним); телефон — почти весь экран, HUD обходим
-    const T = touch ? 46 : 118;
-    const B = touch ? H - 40 : Math.min(H - 250, this.edge.bottom - 66);
-    const Lx = touch ? 46 : 48;
-    const R = W - (touch ? 46 : 48);
+    // от края экрана — радиус значка и «носик» (значок 68 px, на телефоне 48)
+    const T = touch ? 50 : 120;
+    const B = touch ? H - 50 : Math.min(H - 250, this.edge.bottom - 58);
+    const Lx = touch ? 50 : 62;
+    const R = W - (touch ? 50 : 62);
     const cx = W / 2;
     const cy = Math.max(T + 1, Math.min(B - 1, H / 2));
     const boxes = this.edge.boxes;
@@ -1068,7 +1069,7 @@ export class DungeonHud implements DungeonHudApi {
       placed.push(e);
     }
     // раздвинуть соседей (по 3 прохода), не выходя за рамку
-    const MIN = touch ? 66 : 76;
+    const MIN = touch ? 70 : 92;
     for (let it = 0; it < 3; it++) {
       for (let i = 0; i < placed.length; i++) {
         for (let j = i + 1; j < placed.length; j++) {
@@ -1116,19 +1117,24 @@ export class DungeonHud implements DungeonHudApi {
     const info = POI[kind];
     const root = el('div', `dg-arrow cat-${info.cat}`);
     root.dataset.kind = kind;
+    // значок-медальон во весь круг, «носик» к цели — снаружи, на краю; под значком — только расстояние
+    const inner = el('div', 'dg-arrow-in');
     const tip = el('div', 'dg-arrow-tip');
     const disc = el('div', 'dg-arrow-disc');
+    root.title = info.name;
     const url = poiIcon(kind);
     if (url) {
       const im = el('img', 'dg-ic');
       im.src = url;
-      im.alt = '';
+      im.alt = info.name;
       disc.append(im);
-    } else disc.append(el('span', 'dg-ic emo', info.emoji));
-    const lab = el('div', 'dg-arrow-lab');
+    } else {
+      disc.classList.add('emo');
+      disc.append(el('span', 'dg-ic emo', info.emoji));
+    }
     const dist = el('b', 'dg-arrow-d');
-    lab.append(el('span', 'dg-arrow-name', info.name), dist);
-    root.append(tip, disc, lab);
+    inner.append(tip, disc, dist);
+    root.append(inner);
     this.arrowLayer.append(root);
     // проявление со следующего кадра (переход opacity/scale)
     requestAnimationFrame(() => root.classList.add('on'));
