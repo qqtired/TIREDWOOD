@@ -107,7 +107,7 @@ export class DungeonGame {
   private seed = 0;
   private aspect = 16 / 9;
   private bossZoom = 0;
-  private wasCards = false;
+  private cardsKey = '';
   private wasChest = false;
   private lastDashReady = true;
   private lastQReady = true;
@@ -447,8 +447,11 @@ export class DungeonGame {
 
   private syncUi(v: DgView): void {
     const hud = this.d.hud;
-    if (!!v.cards !== this.wasCards || v.cards) hud.cards(v.cards);
-    this.wasCards = !!v.cards;
+    const ck = v.cards ? JSON.stringify(v.cards) : '';
+    if (ck !== this.cardsKey) {
+      this.cardsKey = ck;
+      hud.cards(v.cards);
+    }
     if (!!v.chest !== this.wasChest) {
       hud.chest(v.chest);
       if (v.chest) {
@@ -757,7 +760,11 @@ export class DungeonGame {
       if (h.qCharge >= 0) {
         const r = 2.5 + 2.5 * h.qCharge;
         const full = h.qCharge >= 1;
-        this.decN.add(hx, 0.045, hz, r, r, 0, D_TCIRCLE, Math.min(1, h.qCharge), 0, full ? 1 : 1, full ? 1 : 0.72, full ? 1 : 0.3, 0.75);
+        this.decA.add(hx, 0.05, hz, r, r, 0, D_RING, 0.93, 0.05, 1, full ? 0.95 : 0.65, full ? 0.85 : 0.25, full ? 0.9 + 0.1 * Math.sin(time * 30) : 0.7);
+        this.decA.add(hx, 0.05, hz, r, r, 0, D_SOFT, 2.5, 0, 1, 0.6, 0.2, 0.18 + 0.2 * h.qCharge);
+        // риски тапа и полного удара
+        this.decA.add(hx, 0.05, hz, 2.5, 2.5, 0, D_RING, 0.95, 0.03, 1, 0.75, 0.35, 0.35);
+        this.decA.add(hx, 0.05, hz, 5, 5, 0, D_RING, 0.97, 0.02, 1, 0.75, 0.35, 0.35);
         this.d.sfx.qCharge(true);
         if (full) this.d.sfx.qFull();
       } else this.d.sfx.qCharge(false);
@@ -995,7 +1002,7 @@ export class DungeonGame {
       const kx = (w / 2 - m) / Math.max(1e-3, Math.abs(c));
       const ky = (h / 2 - m) / Math.max(1e-3, Math.abs(s));
       const k = Math.min(kx, ky);
-      out.push({ x: w / 2 + c * k, y: h / 2 + s * k, angle: ang, kind, dist: Math.round(Math.hypot(dx, dz)) });
+      out.push({ x: Math.max(70, Math.min(w - 70, w / 2 + c * k)), y: Math.max(120, Math.min(h - 170, h / 2 + s * k)), angle: ang, kind, dist: Math.round(Math.hypot(dx, dz)) });
     };
     for (const e of v.enemies) if (e.elite && out.length < 4) add(e.x, e.z, 'elite');
     if (v.boss && v.boss.anim !== 'under') add(v.boss.x, v.boss.z, 'boss');

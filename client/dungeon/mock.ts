@@ -77,6 +77,7 @@ export class MockRun implements RunSource {
   private dmgBy: Record<string, number> = {};
   private ms = 0;
   private alarm = false;
+  private god = false;
 
   constructor(seed: number) {
     for (const a of level.buildings.altar.slice(0, 4)) this.buildings.push({ id: this.nextId++, kind: 'altar', x: a.x, z: a.z, yaw: 0, s: 1, use: -1, on: true });
@@ -231,7 +232,7 @@ export class MockRun implements RunSource {
 
   private spawn(): void {
     if (this.stage !== 'wave' && this.stage !== 'boss') return;
-    const want = this.stage === 'boss' ? 30 : Math.min(300, 60 + this.wave * 26);
+    const want = this.god ? 300 : this.stage === 'boss' ? 30 : Math.min(300, 60 + this.wave * 26);
     this.spawnAcc += DT * (this.stage === 'boss' ? 2 : 6 + this.wave * 1.6);
     while (this.spawnAcc >= 1 && this.enemies.length < want && this.squadLeft > 0) {
       this.spawnAcc -= 1;
@@ -329,7 +330,7 @@ export class MockRun implements RunSource {
 
   private hurt(n: number, by: string): void {
     const h = this.hero;
-    if (h.invT > 0 || h.dashT > 0 || h.dead) return;
+    if (h.invT > 0 || h.dashT > 0 || h.dead || this.god) return;
     h.hp -= n;
     h.invT = 0.25;
     this.fx.push({ k: 'hurt', dmg: n });
@@ -608,7 +609,7 @@ export class MockRun implements RunSource {
       if (d < 0.6) {
         this.pickups.splice(i, 1);
         this.fx.push({ k: 'pick', kind: p.kind, x: p.x, z: p.z });
-        this.xp += p.kind === 'gem25' ? 25 : p.kind === 'gem5' ? 5 : 1;
+        if (!this.god) this.xp += p.kind === 'gem25' ? 25 : p.kind === 'gem5' ? 5 : 1;
         while (this.xp >= this.need()) {
           this.xp -= this.need();
           this.lv++;
@@ -716,7 +717,19 @@ export class MockRun implements RunSource {
     else this.weapons.push({ id, lv, cd: 0.2 });
   }
 
+  /** Отладка стенда: толпа из n врагов вокруг героя, герой бессмертен и без опыта (замер) */
+  crowd(n: number): void {
+    this.god = true;
+    const kinds: MobKind[] = ['rat', 'rat', 'rat', 'slime', 'shroom', 'beetle', 'spitter', 'bat'];
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 3 + Math.sqrt(Math.random()) * 15;
+      this.addEnemy(kinds[i % kinds.length], mod(this.hero.x + Math.sin(a) * r), mod(this.hero.z + Math.cos(a) * r * 0.7), false);
+    }
+  }
+
   killHero(): void {
+    this.god = false;
     this.hurt(9999, 'Бочар');
   }
 

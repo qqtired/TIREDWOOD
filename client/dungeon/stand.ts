@@ -120,6 +120,7 @@ const mock = (): MockRun | null => (run instanceof MockRun ? run : null);
   level: (n = 1) => mock()?.levelUp(n),
   give: (id: string, lv: number) => mock()?.give(id, lv),
   kill: () => mock()?.killHero(),
+  crowd: (n = 300) => mock()?.crowd(n),
   pause: (on = true) => scene.game?.setPaused(on),
   /** держать клавишу (code) секунд */
   hold: (code: string, s: number) => {
