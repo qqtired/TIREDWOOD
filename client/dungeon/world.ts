@@ -2,6 +2,9 @@
 // (а) пол сеткой 1 м + все неподвижные пропы одной геометрией с цветами вершин и запечённым светом,
 // (б) свечение (огонь, кристаллы, варенье, Жила-компас), (в) вода и варенье одним шейдером с волнами.
 // Три материала на всю карту. Каждый кадр кусок ставится в ближайшую к камере копию по модулю 240.
+// Пол рисуется текстурами зон (client/assets/dungeon/floor/, по одной на зону): вес зоны — в вершине (aZone),
+// рисунок привязан к мировым x, z с периодом 10 м (делит 240, шва на стыке тора нет), второй слой повёрнут и с другим
+// периодом — против явного повтора. Тон зоны и запечённый свет остаются в цвете вершины.
 import * as THREE from 'three';
 import { CHUNK, FBuf, L, NCH, UBuf, clamp, faceDist, hash3, hashAt, makeTpl, mod, segDist, smooth, vnoise, wrap } from './worldgeo.ts';
 import type { Tpl } from './worldgeo.ts';
@@ -52,6 +55,22 @@ const FLOOR: Record<string, number> = {
   mine: 0x5f4f3c,
   jam: 0x4f3a52,
 };
+/** Средний цвет текстуры пола зоны (линейный; печатает tools/survivors/floor/make-tiles.mjs). Пол = цвет вершины ×
+ *  текстура / средний: текстура даёт рисунок, общий тон зоны остаётся прежним. */
+const FLOOR_MEAN: Record<string, [number, number, number]> = {
+  cellars: [0.1884, 0.095, 0.0519],
+  mushrooms: [0.1008, 0.0706, 0.0252],
+  crystals: [0.1385, 0.0863, 0.0722],
+  mine: [0.167, 0.0867, 0.0439],
+  jam: [0.1489, 0.0705, 0.048],
+};
+/** Текстур пола в шейдере (по порядку зон level-data.json) */
+const FLOOR_SLOTS = 5;
+/** Период рисунка пола, м (делит 240); второй слой — 240 / 22 м, повёрнут на 90° */
+const FLOOR_TILE = 10;
+const FLOOR_TILE2 = 240 / 22;
+/** Сила рисунка по зонам: 1 — как на картинке, меньше — спокойнее (мобы и эффекты читаются лучше) */
+const FLOOR_K: Record<string, number> = { cellars: 0.85, mushrooms: 0.6, crystals: 0.85, mine: 0.8, jam: 0.85 };
 const VOID = lin(0x120d0b);
 const MOSS = lin(0x46622a);
 const SLATE = lin(0x4f8088);
@@ -90,6 +109,56 @@ const DECOR: Record<string, readonly string[]> = {
   mine: ['floor_decal_kit_gravel', 'floor_decal_kit_gravel', 'floor_decal_kit_gravel', 'floor_decal_kit_sleeper', 'floor_decal_kit_sleeper', 'floor_decal_kit_chain', 'floor_decal_kit_pebbles', 'floor_decal_kit_pebbles', 'floor_decal_kit_crack', 'floor_decal_kit_shards'],
   jam: ['floor_decal_kit_jam_drops', 'floor_decal_kit_jam_drops', 'floor_decal_kit_jam_drops', 'floor_decal_kit_crack', 'floor_decal_kit_crack', 'floor_decal_kit_gravel', 'floor_decal_kit_pebbles', 'floor_decal_kit_bottle'],
 };
+
+// ---------- шейдер пола (вставка в MeshStandardMaterial пропов и пола) ----------
+
+const FLOOR_FRAG = `
+uniform sampler2D uFl0;
+uniform sampler2D uFl1;
+uniform sampler2D uFl2;
+uniform sampler2D uFl3;
+uniform sampler2D uFl4;
+uniform vec3 uFlMean[${FLOOR_SLOTS}];
+uniform float uFlK[${FLOOR_SLOTS}];
+varying vec4 vZone;
+varying vec2 vFlP;
+// два слоя одной текстуры; где маска переходит, светлое (камень) ложится поверх тёмного (шов), без двойного рисунка
+vec3 flTex(sampler2D t, vec2 a, vec2 ax, vec2 ay, vec2 b, vec2 bx, vec2 by, float m) {
+  vec3 ca = textureGrad(t, a, ax, ay).rgb;
+  vec3 cb = textureGrad(t, b, bx, by).rgb;
+  float ha = dot(ca, vec3(0.3, 0.59, 0.11)) + 1.0 - m;
+  float hb = dot(cb, vec3(0.3, 0.59, 0.11)) + m;
+  float top = max(ha, hb) - 0.04;
+  float wa = max(ha - top, 0.0);
+  float wb = max(hb - top, 0.0);
+  return (ca * wa + cb * wb) / (wa + wb);
+}
+`;
+
+const FLOOR_APPLY = `
+  {
+    vec2 flA = vFlP * ${(1 / FLOOR_TILE).toFixed(6)};
+    vec2 flB = vec2(vFlP.y, -vFlP.x) * ${(1 / FLOOR_TILE2).toFixed(6)} + vec2(0.37, 0.71);
+    vec2 flAx = dFdx(flA);
+    vec2 flAy = dFdy(flA);
+    vec2 flBx = dFdx(flB);
+    vec2 flBy = dFdy(flB);
+    float zs = vZone.x + vZone.y + vZone.z + vZone.w;
+    if (zs < 1.5) {
+      // маска слоёв: периодична на 240 (целые кратные), пятна 10–20 м
+      vec2 q = vFlP * ${((2 * Math.PI) / 240).toFixed(7)};
+      float m = clamp(0.5 + 0.3 * sin(q.x * 6.0 + 1.7 * sin(q.y * 4.0)) + 0.3 * sin(q.y * 5.0 + 1.3 * sin(q.x * 8.0 + 0.5)), 0.0, 1.0);
+      float w4 = max(1.0 - zs, 0.0);
+      vec3 fl = vec3(0.0);
+      float ws = 0.0;
+      if (vZone.x > 0.01) { fl += vZone.x * mix(vec3(1.0), flTex(uFl0, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[0], uFlK[0]); ws += vZone.x; }
+      if (vZone.y > 0.01) { fl += vZone.y * mix(vec3(1.0), flTex(uFl1, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[1], uFlK[1]); ws += vZone.y; }
+      if (vZone.z > 0.01) { fl += vZone.z * mix(vec3(1.0), flTex(uFl2, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[2], uFlK[2]); ws += vZone.z; }
+      if (vZone.w > 0.01) { fl += vZone.w * mix(vec3(1.0), flTex(uFl3, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[3], uFlK[3]); ws += vZone.w; }
+      if (w4 > 0.01) { fl += w4 * mix(vec3(1.0), flTex(uFl4, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[4], uFlK[4]); ws += w4; }
+      diffuseColor.rgb *= fl / max(ws, 0.001);
+    }
+  }`;
 
 // ---------- внутренние типы ----------
 
@@ -204,6 +273,8 @@ export class DungeonWorld {
   private readonly tpls = new Map<string, Tpl | null>();
   private readonly uTime = { value: 0 };
   private readonly uAmbient = { value: AMBIENT };
+  /** Текстуры пола по зонам (пусто — пол как раньше, одним цветом вершин) */
+  private readonly floorTex: (THREE.Texture | null)[] = [];
   private readonly matOpaque: THREE.MeshStandardMaterial;
   private readonly matGlow: THREE.MeshBasicMaterial;
   private readonly matLiquid: THREE.ShaderMaterial;
@@ -233,15 +304,13 @@ export class DungeonWorld {
   private buildMs = 0;
 
   /** kits — корневые узлы всех kit_*.glb по имени (позиция сброшена в 0); level — разобранный level-data.json.
-   *  opts.lazy — не строить в конструкторе: тогда зовите buildStep() на экране загрузки, пока не вернёт true. */
-  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean }) {
+   *  opts.lazy — не строить в конструкторе: тогда зовите buildStep() на экране загрузки, пока не вернёт true.
+   *  opts.floor — текстуры пола по id зоны (worldlink.ts); без них пол одним цветом вершин, как раньше. */
+  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean; floor?: ReadonlyMap<string, THREE.Texture> }) {
     const t0 = performance.now();
     this.kits = kits;
     this.root = new THREE.Group();
     this.root.name = 'dungeon-world';
-    this.matOpaque = this.makeOpaque();
-    this.matGlow = this.makeGlow();
-    this.matLiquid = this.makeLiquid();
 
     for (const z of level.zones) {
       this.zi[z.id] = this.zoneIds.length;
@@ -249,6 +318,13 @@ export class DungeonWorld {
       this.zoneSeeds.push({ x: z.seed.x, z: z.seed.z, w: z.weight });
       this.zoneCol.push(lin(FLOOR[z.id] ?? 0x5f4f3c));
     }
+    // текстуры пола: нужны все зоны (у каждой своя), иначе — прежний пол
+    if (opts?.floor && this.zoneIds.length <= FLOOR_SLOTS && this.zoneIds.every((id) => opts.floor?.has(id) && FLOOR_MEAN[id])) {
+      for (const id of this.zoneIds) this.floorTex.push(opts.floor.get(id) ?? null);
+    }
+    this.matOpaque = this.makeOpaque();
+    this.matGlow = this.makeGlow();
+    this.matLiquid = this.makeLiquid();
     this.zw = new Float64Array(this.zoneIds.length);
     this.camX = this.well.x;
     this.camZ = this.well.z;
@@ -309,6 +385,7 @@ export class DungeonWorld {
       ch.group = null;
     }
     this.matOpaque.dispose();
+    for (const t of this.floorTex) t?.dispose();
     this.matGlow.dispose();
     this.matLiquid.dispose();
   }
@@ -320,15 +397,40 @@ export class DungeonWorld {
     m.name = 'dungeon-opaque';
     // aLit.rgb — запечённые пятна света, aLit.a — доля общего света (у пола 1, у боков пропов меньше).
     // Светится как «излучение» поверх ламп сцены: пол читается и без фонаря героя.
+    // Пол: aZone — веса зон 0–3 (вес зоны 4 = 1 − сумма); у пропов все 1 → текстуры нет.
+    const tex = this.floorTex.length > 0;
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uAmbient = this.uAmbient;
-      sh.vertexShader = 'attribute vec4 aLit;\nvarying vec4 vLit;\n' + sh.vertexShader.replace('#include <color_vertex>', '#include <color_vertex>\n  vLit = aLit;');
-      sh.fragmentShader = 'uniform float uAmbient;\nvarying vec4 vLit;\n' + sh.fragmentShader.replace(
-        '#include <emissivemap_fragment>',
-        '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb);',
-      );
+      let vs = 'attribute vec4 aLit;\nvarying vec4 vLit;\n';
+      let vb = '#include <color_vertex>\n  vLit = aLit;';
+      let fs = 'uniform float uAmbient;\nvarying vec4 vLit;\n';
+      let fb = '#include <color_fragment>';
+      if (tex) {
+        const mean: THREE.Vector3[] = [];
+        const k: number[] = [];
+        for (let i = 0; i < FLOOR_SLOTS; i++) {
+          const id = this.zoneIds[i] ?? this.zoneIds[0];
+          sh.uniforms[`uFl${i}`] = { value: this.floorTex[i] ?? this.floorTex[0] };
+          const c = FLOOR_MEAN[id];
+          mean.push(new THREE.Vector3(c[0], c[1], c[2]));
+          k.push(FLOOR_K[id] ?? 0.85);
+        }
+        sh.uniforms.uFlMean = { value: mean };
+        sh.uniforms.uFlK = { value: k };
+        vs += 'attribute vec4 aZone;\nvarying vec4 vZone;\nvarying vec2 vFlP;\n';
+        vb += '\n  vZone = aZone;\n  vFlP = (modelMatrix * vec4(position, 1.0)).xz;';
+        fs += FLOOR_FRAG;
+        fb += FLOOR_APPLY;
+      }
+      sh.vertexShader = vs + sh.vertexShader.replace('#include <color_vertex>', vb);
+      sh.fragmentShader = fs + sh.fragmentShader
+        .replace('#include <color_fragment>', fb)
+        .replace(
+          '#include <emissivemap_fragment>',
+          '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb);',
+        );
     };
-    m.customProgramCacheKey = () => 'dungeon-opaque';
+    m.customProgramCacheKey = () => (tex ? 'dungeon-opaque-floor' : 'dungeon-opaque');
     return m;
   }
 
@@ -869,6 +971,9 @@ void main() {
     const iJ = this.zi.jam ?? -1;
     const W = this.zw;
     const wOf = (i: number): number => (i >= 0 ? W[i] : 0);
+    const tex = this.floorTex.length > 0;
+    // веса зон 0–3 у вершин пола (0–255); у пропов и декора — 255 (нет текстуры)
+    const zone = tex ? new Uint8Array(S * S * 4) : null;
     for (let j = 0; j < S; j++) {
       for (let i = 0; i < S; i++) {
         const wx = mod(ox + i, L);
@@ -889,8 +994,9 @@ void main() {
         const wJ = wOf(iJ);
         const jit = hash3(wx, wz, 4);
         let br = 0.8 + 0.4 * (0.55 * vnoise(wx, wz, 24, 1) + 0.45 * vnoise(wx, wz, 48, 2)) + 0.16 * (vnoise(wx, wz, 4, 3) - 0.5) + 0.1 * (jit - 0.5);
-        // погреба — плиты 3 × 3 м с тёмными швами
-        if (wC > 0) br *= wx % 3 === 0 || wz % 3 === 0 ? 1 - 0.16 * wC : 1 + 0.04 * wC;
+        // погреба — плиты 3 × 3 м с тёмными швами (с текстурой плиты рисует она)
+        if (wC > 0 && !tex) br *= wx % 3 === 0 || wz % 3 === 0 ? 1 - 0.16 * wC : 1 + 0.04 * wC;
+        if (zone) for (let k = 0; k < 4; k++) zone[ob.n * 4 + k] = k < W.length ? Math.round(W[k] * 255) : 0;
         // шахта — тёмные колеи
         if (wS > 0) br *= 1 - 0.22 * wS * smooth(0.55, 0.8, vnoise(wx, wz, 6, 10));
         // трещины везде
@@ -1036,6 +1142,11 @@ void main() {
       g.setAttribute('normal', new THREE.BufferAttribute(ob.nor.out(), 3));
       g.setAttribute('color', new THREE.BufferAttribute(ob.col.out(), 3));
       g.setAttribute('aLit', new THREE.BufferAttribute(ob.lit.out(), 4));
+      if (zone) {
+        const za = new Uint8Array(ob.n * 4).fill(255);
+        za.set(zone);
+        g.setAttribute('aZone', new THREE.BufferAttribute(za, 4, true));
+      }
       g.setIndex(new THREE.BufferAttribute(ob.idx.out(), 1));
       mk(g, this.matOpaque, 'opaque');
     }
