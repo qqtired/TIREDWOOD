@@ -64,6 +64,27 @@ export function botEvents(sim, mem) {
       az += (dz / d) * 2;
     }
   }
+  // осколки опыта: если рядом спокойно — к ближайшему
+  if (close === 0 && near <= 2) {
+    let gx = 0;
+    let gz = 0;
+    let gd = 144;
+    for (const g of sim.gems) {
+      const dx = wrapD(g.x - h.x);
+      const dz = wrapD(g.z - h.z);
+      const d2 = dx * dx + dz * dz;
+      if (d2 < gd) {
+        gd = d2;
+        gx = dx;
+        gz = dz;
+      }
+    }
+    if (gd < 144) {
+      const d = Math.sqrt(gd) || 1;
+      ax += (gx / d) * 0.6;
+      az += (gz / d) * 0.6;
+    }
+  }
   // кружение по большому кругу, чтобы не стоять на месте
   const a = t / 300;
   const cx = Math.cos(a) * 0.15;
