@@ -281,7 +281,7 @@ test('улица: фонарь не стоит на оси проулка кре
 
 test('твёрдое оформление режимов за флагами: без флага предметов нет (как и на экране), с флагом — есть; остальные всегда на месте', () => {
   const off = setupHub({ skill: false });
-  const on = setupHub({ hide: true, boatrace: true, fight: true });
+  const on = setupHub({ hide: true, boatrace: true, fight: true, dungeon: true });
   const solidAt = (hub: ReturnType<typeof setupHub>['hub'], index: number): boolean => {
     const b = lobby.boxes[index];
     const x = (b.min[0] + b.max[0]) / 2;
@@ -292,8 +292,7 @@ test('твёрдое оформление режимов за флагами: б
     assert.ok(lobby.plazaModeBoxes[mode].length > 0, `у режима ${mode} есть твёрдые предметы`);
     for (const i of lobby.plazaModeBoxes[mode]) {
       assert.equal(solidAt(off.hub, i), false, `${mode}: без флага бокс ${i} выключен`);
-      // флаг «Подземелья» и поле hub.dungeon добавляет серверная ветка режима — там же включить проверку «с флагом»
-      if (mode !== 'dungeon') assert.equal(solidAt(on.hub, i), true, `${mode}: с флагом бокс ${i} твёрдый`);
+      assert.equal(solidAt(on.hub, i), true, `${mode}: с флагом бокс ${i} твёрдый`);
     }
   }
   const gated = new Set(Object.values(lobby.plazaModeBoxes).flat());

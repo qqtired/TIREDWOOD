@@ -1,5 +1,6 @@
 // Вход в «Подземелье» на западной лужайке (docs/survivors/level.md §8, режим за флагом DUNGEON): скала с пещерой, вывеска
 // «ПОДЗЕМЕЛЬЕ» над зевом, пара моргающих глаз в глубине, два факела и доска рекордов («За всё время» / «За неделю», топ-5).
+// Таблицу рекордов берёт у client/lobby/dgstatus.ts (её кладёт туда сцена набережной, когда пришёл статус от сервера).
 // Модель — plaza_entrance.glb (docs/survivors/models/README-kits-b.md). Скачивается и строится при первом показе режима: пока
 // сервер не прислал статус (флага нет), набережная такая же, как была, и файл не грузится. Неподвижное склеено по материалам
 // (камень с вершинными цветами и свечение — по одному мешу), на холстах — вывеска и лицо доски. Всего 7 отрисовок: камень,
@@ -9,6 +10,7 @@ import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { DgRec, DgStatus } from '../../../shared/dungeon/api.ts';
 import { DUNGEON_BOARD, DUNGEON_ROCK } from '../../../shared/plaza2.ts';
 import { paint } from '../../render/kit.ts';
+import { dgStatus, onDgStatus } from '../dgstatus.ts';
 import { FONT, bigText, canvasTexture, fitFont, makeCanvas, roundRectPath, speckle } from './gfx.ts';
 import { Venue, type VenueCtx } from './venue.ts';
 
@@ -108,8 +110,8 @@ function drawColumn(ctx: CanvasRenderingContext2D, x: number, w: number, title: 
   ctx.font = `800 26px ${FONT}`;
   ctx.fillStyle = MUTED;
   ctx.textAlign = 'right';
-  ctx.fillText('ВОЛНЫ', x + 330, 252);
-  ctx.fillText('ВРЕМЯ', x + w - 6, 252);
+  ctx.fillText('ВОЛНЫ', x + 306, 252);
+  ctx.fillText('ВРЕМЯ', x + w - 4, 252);
   if (rows.length === 0) {
     ctx.textAlign = 'center';
     ctx.font = `800 54px ${FONT}`;
@@ -131,24 +133,25 @@ function drawColumn(ctx: CanvasRenderingContext2D, x: number, w: number, title: 
       ctx.fill();
     }
     ctx.beginPath();
-    ctx.arc(x + 27, cy, 25, 0, Math.PI * 2);
+    ctx.arc(x + 25, cy, 23, 0, Math.PI * 2);
     ctx.fillStyle = RANK_FILL[i] ?? MUTED;
     ctx.fill();
     ctx.textAlign = 'center';
-    ctx.font = `900 32px ${FONT}`;
+    ctx.font = `900 30px ${FONT}`;
     ctx.fillStyle = '#fffaf0';
-    ctx.fillText(String(r.rank), x + 27, cy + 2);
+    ctx.fillText(String(r.rank), x + 25, cy + 2);
     ctx.textAlign = 'left';
-    fitFont(ctx, r.nick, 54, 196, 800);
+    // длинный ник сначала уменьшается до 40 px, дальше сжимается по ширине: мелкие буквы с площади не прочесть
+    ctx.font = `800 ${Math.max(40, fitFont(ctx, r.nick, 54, 178, 800))}px ${FONT}`;
     ctx.fillStyle = r.mine ? '#6a3d00' : INK;
-    ctx.fillText(r.nick, x + 60, cy + 2);
+    ctx.fillText(r.nick, x + 56, cy + 2, 178);
     ctx.textAlign = 'right';
-    fitFont(ctx, r.waves, 62, 76, 900);
+    fitFont(ctx, r.waves, 62, 66, 900);
     ctx.fillStyle = r.mine ? '#6a3d00' : '#4d2a86';
-    ctx.fillText(r.waves, x + 330, cy + 2);
-    fitFont(ctx, r.time, 44, 120, 700);
+    ctx.fillText(r.waves, x + 306, cy + 2);
+    fitFont(ctx, r.time, 44, 126, 700);
     ctx.fillStyle = r.mine ? '#6a3d00' : INK;
-    ctx.fillText(r.time, x + w - 6, cy + 2);
+    ctx.fillText(r.time, x + w - 4, cy + 2);
   });
 }
 
@@ -188,8 +191,9 @@ type Phase = 'idle' | 'loading' | 'ready' | 'failed';
 /** Глаза в глубине зева моргают раз в 2–6 секунд (клип cave_eyes_blink из модели) */
 const BLINK_MIN_S = 2.2;
 const BLINK_SPAN_S = 3.6;
-/** Глаза в модели — две щёлки по 0,1 м: с набережной их не видно, поэтому увеличены */
-const EYES_SCALE = 3;
+/** Глаза в модели — две щёлки по 0,1 м у самого пола: с набережной их не видно, поэтому увеличены и подняты (в пустоте зева) */
+const EYES_SCALE = 3.5;
+const EYES_LIFT = 0.55;
 
 interface Painted {
   ctx: CanvasRenderingContext2D;
@@ -201,6 +205,7 @@ interface Painted {
 export class DungeonEntrance {
   readonly venue: Venue;
   private readonly refreshShadows: () => void;
+  private readonly myNick: () => string;
   private phase: Phase = 'idle';
   private status: DgStatus | null = null;
   private me = '';
@@ -211,17 +216,21 @@ export class DungeonEntrance {
   private blink: THREE.AnimationAction | null = null;
   private nextBlink = 0;
 
-  constructor(ctx: VenueCtx, refreshShadows: () => void) {
+  /** myNick — ник игрока: его строки на доске золотом */
+  constructor(ctx: VenueCtx, refreshShadows: () => void, myNick: () => string = () => '') {
     this.refreshShadows = refreshShadows;
+    this.myNick = myNick;
     this.venue = new Venue('dungeon', ctx, 71);
     this.venue.group.visible = false;
     ctx.scene.add(this.venue.group);
+    this.status = dgStatus();
+    onDgStatus((st) => this.setStatus(st));
   }
 
-  /** Таблица рекордов от сервера (null — режим выключен); me — ник игрока, его строки подсвечиваются золотом */
-  setStatus(st: DgStatus | null, me = ''): void {
+  /** Таблица рекордов от сервера (null — режим выключен флагом) */
+  setStatus(st: DgStatus | null): void {
     this.status = st;
-    this.me = me;
+    this.me = this.myNick();
     this.repaintBoard();
   }
 
@@ -229,6 +238,11 @@ export class DungeonEntrance {
   update(dt: number, time: number): void {
     if (!this.venue.group.visible) return;
     if (this.phase === 'idle') this.load();
+    const me = this.myNick();
+    if (me !== this.me) {
+      this.me = me;
+      this.repaintBoard();
+    }
     if (this.phase !== 'ready' || !this.mixer || !this.blink) return;
     if (time >= this.nextBlink) {
       this.blink.reset().play();
@@ -278,6 +292,7 @@ export class DungeonEntrance {
     boardLive.rotation.y = DUNGEON_BOARD.yaw;
     const eyesPivot = new THREE.Group();
     eyesPivot.position.copy(eyes.position);
+    eyesPivot.position.y += EYES_LIFT;
     eyesPivot.scale.setScalar(EYES_SCALE);
     eyes.position.set(0, 0, 0);
     eyesPivot.add(eyes);

@@ -101,7 +101,7 @@
 | Прятки «Рыбный двор» (образец) | `hide*.ts` | `hide/` | `hide/` | `HIDE` | `hide-rules.test.ts` | [hide-repair-20261003.md](hide-repair-20261003.md), план `hide` |
 | Крепость | `fort*.ts` | `fort/` | `fort/` | `FORTRESS` | `fort.test.ts`, `fort-run.test.ts` | design «Крепость», планы `fort-*` |
 | Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
-| «Подземелье» (соло, инстанс на игрока) | `dungeon/` (договор `api.ts`) | `dungeon/` (зал, комната, рекорды, `simport.ts`) | `dungeon/`, `lazyscene.ts`, `lobby/dgstatus.ts` | `DUNGEON` | `dungeon-flag.test.ts` | [survivors/](survivors/), план `2026-10-10-dungeon` |
+| «Подземелье» (соло, инстанс на игрока) | `dungeon/` (договор `api.ts`) | `dungeon/` (зал, комната, рекорды, `simport.ts`) | `dungeon/`, `lazyscene.ts`, `lobby/dgstatus.ts`, вход и доска рекордов на лужайке — `lobby/plaza/dungeon.ts` (модель `assets/dungeon/plaza/`, твёрдое — `shared/plaza2.ts`) | `DUNGEON` | `dungeon-flag.test.ts`, `dungeon-plaza.test.ts` | [survivors/](survivors/), план `2026-10-10-dungeon` |
 
 ### 2.5 Страницы, подарки, загрузка, звук и прочее
 

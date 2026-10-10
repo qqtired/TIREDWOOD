@@ -4,7 +4,6 @@
 // сервер прислал их статус: без флага набережная такая же, как была.
 import * as THREE from 'three';
 import type { GroundQuery } from '../../render/avatar.ts';
-import type { DgStatus } from '../../../shared/dungeon/api.ts';
 import { REGATTA_BOAT_SIZE } from '../../../shared/plaza2.ts';
 import { type AgendaBoard } from './agenda.ts';
 import { buildAqua, bobToys, type Toy } from './aqua.ts';
@@ -45,7 +44,7 @@ export class PlazaDress {
   private skyText = '';
   private readonly refreshShadows: () => void;
 
-  constructor(ctx: VenueCtx, ground: GroundQuery, refreshShadows: () => void) {
+  constructor(ctx: VenueCtx, ground: GroundQuery, refreshShadows: () => void, myNick: () => string = () => '') {
     this.refreshShadows = refreshShadows;
     this.north = buildNorth(ctx);
     const n = this.north;
@@ -68,7 +67,7 @@ export class PlazaDress {
     this.toys = aqua.toys;
     this.add(aqua.gate, null);
     this.add(aqua.far, null);
-    this.dungeon = new DungeonEntrance(ctx, refreshShadows);
+    this.dungeon = new DungeonEntrance(ctx, refreshShadows, myNick);
     this.add(this.dungeon.venue, 'dungeon');
     for (const venue of this.venues) {
       for (const def of venue.touts) this.touts.push({ tout: new Tout(ctx.scene, def, ground), venue });
@@ -104,11 +103,6 @@ export class PlazaDress {
       this.fortRecText = rec;
       this.north.fortRecPlate.set(rec);
     }
-  }
-
-  /** Таблица рекордов «Подземелья» от сервера (null — режима нет); me — ник игрока: его строки золотом. Показ режима — setMode('dungeon', …). */
-  setDungeonStatus(st: DgStatus | null, me = ''): void {
-    this.dungeon.setStatus(st, me);
   }
 
   /** Строка статуса каланчи на облаке-вывеске «Выше облаков» (табличка на арке при этом оформлении не строится) */
