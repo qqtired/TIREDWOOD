@@ -21,6 +21,7 @@ import { Predictor } from '../predict.ts';
 import { RemoteTrack, type RemoteSample } from '../remote.ts';
 import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
+import { FarmAudio } from './audio/farmaudio.ts';
 import { FarmHud, fmtMin } from './hud.ts';
 import { effectiveVolume } from '../settings.ts';
 import { FarmWell } from './well.ts';
@@ -63,6 +64,7 @@ export class FarmScene implements Scene {
   private readonly d: SceneDeps;
   private readonly hud: FarmHud;
   private readonly well: FarmWell;
+  private readonly audio = new FarmAudio();
   private readonly cam = new LobbyCamera();
   private predictor: Predictor;
   private clock = new ClockSync(LOBBY_MIN_DELAY);
@@ -157,6 +159,7 @@ export class FarmScene implements Scene {
     this.hud.setVisible(true);
     this.hud.setHint(null);
     this.d.ui.chat.setPlaceholder('Сообщение');
+    this.audio.enter();
   }
 
   exit(): void {
@@ -167,6 +170,7 @@ export class FarmScene implements Scene {
     this.roster.clear();
     this.hud.setVisible(false);
     this.well.cancel();
+    this.audio.exit();
   }
 
   // ------------------------------------------------------------ сеть
@@ -483,6 +487,7 @@ export class FarmScene implements Scene {
     tickAvatarShared(now / 1000, this.d.renderer.canvas.clientHeight || window.innerHeight);
     this.updateHint();
     this.world.update(dt, this.now());
+    this.audio.update(this.d.sound, this.world.camera);
     this.world.render();
   }
 

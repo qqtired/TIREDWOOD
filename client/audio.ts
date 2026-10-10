@@ -48,6 +48,7 @@ export class Sound {
   /** Прочая музыка, пока играет автомат: доля громкости (1 — как есть) */
   private duck = 1;
   private outdoor = 1;
+  private surf: GainNode | null = null;
   private nextGull = 8;
   private nextHorn = 50;
   /** Дождь: голос дождя (создаётся с первым дождём) и его сила 0…1 */
@@ -278,6 +279,11 @@ export class Sound {
       this.tone(d, 130.81, 130.81, 1.1, 'triangle', 0.2, 0, 0.01);
       this.tone(d, 174.61, 174.61, 0.8, 'triangle', 0.18, 0.72, 0.01);
     }
+  }
+
+  /** Прибой набережной: k — доля громкости 0…1, плавно (на ферме моря почти не слышно — client/farm/audio/) */
+  setSurf(k: number): void {
+    if (this.ctx && this.surf) this.surf.gain.setTargetAtTime(Math.SQRT1_2 * k, this.ctx.currentTime, 0.8);
   }
 
   /** Под землёй (подвал «Fight Club») прибоя и дождя не слышно: k — от 0 (внизу) до 1 (на улице). */
@@ -1758,7 +1764,7 @@ export class Sound {
     const ctx = this.ctx!;
     // прибой: коричневый шум через фильтр, громкость «дышит». Шум — две петли разной длины без стыка (ambience.ts): раньше
     // была одна петля в 2 с, и на слух ровно раз в две секунды возвращался один и тот же рокот
-    const surf = ctx.createGain();
+    const surf = (this.surf = ctx.createGain());
     surf.gain.value = Math.SQRT1_2;
     for (const sec of SURF_LOOPS) {
       const src = ctx.createBufferSource();

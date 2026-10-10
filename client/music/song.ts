@@ -128,8 +128,9 @@ function noteToken(tok: string, where: string): { head: string; beats: number; a
   return { head: m[1], beats, acc: m[3] === '!' ? 1.18 : m[3] === '?' ? 0.62 : 1 };
 }
 
-export function compileSong(def: SongDef): CompiledSong {
-  const meta = JUKE_SONGS.find((s) => s.id === def.id);
+/** own — описание песни не из каталога автомата (тема фермы: client/farm/audio/theme.ts) */
+export function compileSong(def: SongDef, own?: JukeSong): CompiledSong {
+  const meta = own ?? JUKE_SONGS.find((s) => s.id === def.id);
   if (!meta) throw new Error(`песни «${def.id}» нет в каталоге`);
   const beat = 60 / meta.bpm;
   const meter = meta.meter;
