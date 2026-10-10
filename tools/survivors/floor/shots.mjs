@@ -3,6 +3,10 @@
 // Нужен запущенный сервер разработки (npm run dev с PORT=3127). Свой Chrome: свой профиль, свой порт отладки;
 // закрывается Browser.close (или по своему PID), чужие браузеры не трогает.
 // Снимки: по одному на биом, одна граница биомов, угол склейки тора, толпа 300 вокруг героя (dgStand.crowd). Замер — в <метка>-info.json.
+// SET=crowds — толпа 300 в каждом биоме (замер FPS в погребах и грибах) и крупно рельеф под фонарём героя.
+// SET=water — подземное озеро с островом, лужа (герой идёт по ней) и замер у озера.
+// KEEP=1 — не закрывать Chrome в конце, REUSE=1 — подключиться к уже открытому (тот же порт отладки): один браузер
+// на несколько прогонов, когда машина загружена.
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -28,7 +32,9 @@ const SPOTS = [
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const prof = mkdtempSync(join(tmpdir(), 'dg-floor-chrome-'));
-const chrome = spawn(CHROME, [
+const REUSE = process.env.REUSE === '1';
+const KEEP = process.env.KEEP === '1';
+const chrome = REUSE ? null : spawn(CHROME, [
   '--headless=new',
   `--remote-debugging-port=${DBG}`,
   `--user-data-dir=${prof}`,
@@ -57,8 +63,8 @@ async function ev(expr) {
   if (r.exceptionDetails) throw new Error(`${expr}: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
   return r.result.value;
 }
-async function shot(name) {
-  const r = await send('Page.captureScreenshot', { format: 'jpeg', quality: 88 });
+async function shot(name, clip) {
+  const r = await send('Page.captureScreenshot', { format: 'jpeg', quality: 88, ...(clip ? { clip } : {}) });
   const f = join(OUT, `${TAG}-${name}.jpg`);
   writeFileSync(f, Buffer.from(r.data, 'base64'));
   console.log('снимок', f);
@@ -103,7 +109,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/tools/survivors/stand/?seed=777` });
   // ждём карту и забег
-  for (let i = 0; i < 240; i++) {
+  for (let i = 0; i < 600; i++) {
     await sleep(500);
     const ok = await ev(`!!(window.dgStand && dgStand.scene.game && dgStand.scene.game.run && dgStand.scene.game.run.sim)`).catch(() => false);
     if (ok) break;
@@ -114,6 +120,49 @@ try {
   await ev(`(() => { dgStand.level(0); const s = dgStand.scene.game.run.sim; s.hero.hp = s.hero.hpMax = 1e7; s.mobs.length = 0; return true; })()`);
   info.spawn = await measure(4000);
   console.log('у колодца', JSON.stringify(info.spawn));
+  const go = (x, z) => ev(`(() => { const s = dgStand.scene.game.run.sim; s.hero.x = ${x}; s.hero.z = ${z}; s.mobs.length = 0; return true; })()`);
+  if (process.env.SET === 'water') {
+    await go(176.3, 57.7); // на броде у островка: озеро целиком в кадре
+    await sleep(2500);
+    await ev(`(() => { dgStand.scene.game.run.sim.mobs.length = 0; return true; })()`);
+    await sleep(300);
+    await shot('lake');
+    info.lake = await measure(4000);
+    console.log('озеро', JSON.stringify(info.lake));
+    await shot('lake-close', { x: 360, y: 60, width: 720, height: 450, scale: 2 });
+    await go(146, 56.5);
+    await sleep(2500);
+    await ev(`(() => { dgStand.scene.game.run.sim.mobs.length = 0; return true; })()`);
+    await ev(`(dgStand.hold('KeyD', 1.5), true)`);
+    await sleep(900);
+    await shot('puddle');
+    await shot('puddle-close', { x: 480, y: 220, width: 480, height: 300, scale: 2 });
+    writeFileSync(join(OUT, `${TAG}-info.json`), JSON.stringify(info, null, 2));
+    if (!KEEP) await send('Browser.close').catch(() => {});
+    throw 0;
+  }
+  if (process.env.SET === 'crowds') {
+    for (const [name, x, z] of SPOTS.slice(0, 5)) {
+      await go(x, z);
+      await sleep(1800);
+      await ev(`(dgStand.crowd(300), true)`);
+      await sleep(2500);
+      await shot(`crowd-${name}`);
+      if (name === 'cellars' || name === 'mushrooms') {
+        info[`crowd-${name}`] = await measure(5000);
+        console.log('толпа 300,', name, JSON.stringify(info[`crowd-${name}`]));
+      }
+    }
+    // крупно: пол под фонарём героя (погреба, без мобов)
+    await go(132, 104);
+    await sleep(2000);
+    await ev(`(() => { dgStand.scene.game.run.sim.mobs.length = 0; return true; })()`);
+    await sleep(500);
+    await shot('lantern', { x: 480, y: 220, width: 480, height: 300, scale: 2 });
+    writeFileSync(join(OUT, `${TAG}-info.json`), JSON.stringify(info, null, 2));
+    await send('Browser.close').catch(() => {});
+    throw 0;
+  }
   for (const [name, x, z] of SPOTS) {
     await ev(`(() => { const s = dgStand.scene.game.run.sim; s.hero.x = ${x}; s.hero.z = ${z}; s.mobs.length = 0; return true; })()`);
     await sleep(1800);
@@ -134,8 +183,13 @@ try {
   console.log(JSON.stringify(info));
   await send('Browser.close').catch(() => {});
 } catch (e) {
-  console.error(e);
+  if (e !== 0) console.error(e);
 } finally {
   await sleep(500);
-  if (chrome.exitCode === null) chrome.kill();
+  if (chrome && !KEEP && chrome.exitCode === null) chrome.kill();
+  if (chrome && KEEP) {
+    chrome.unref();
+    console.log('Chrome оставлен открытым, PID', chrome.pid);
+  }
+  process.exit(0);
 }

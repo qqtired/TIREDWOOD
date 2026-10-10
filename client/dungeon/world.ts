@@ -38,6 +38,16 @@ export interface LevelData {
   readonly hazards: ReadonlyArray<LevelShape>;
   readonly obstacles: ReadonlyArray<LevelShape>;
   readonly buildings: { readonly brazier: ReadonlyArray<LevelPoint>; readonly cursedChest?: ReadonlyArray<LevelPoint> };
+  /** Озеро грота (DG_LEVEL.lake): глубина — круг deep минус островок island минус полоса брода half; до shallow — мелко */
+  readonly lake?: {
+    readonly x: number;
+    readonly z: number;
+    readonly deep: number;
+    readonly shallow: number;
+    readonly island: number;
+    readonly ford: { readonly dx: number; readonly dz: number; readonly half: number };
+    readonly stones?: ReadonlyArray<{ readonly x: number; readonly z: number; readonly r: number }>;
+  };
 }
 
 // ---------- палитра (level.md §6) ----------
@@ -70,7 +80,19 @@ const FLOOR_SLOTS = 5;
 const FLOOR_TILE = 10;
 const FLOOR_TILE2 = 240 / 22;
 /** Сила рисунка по зонам: 1 — как на картинке, меньше — спокойнее (мобы и эффекты читаются лучше) */
-const FLOOR_K: Record<string, number> = { cellars: 0.85, mushrooms: 0.6, crystals: 0.85, mine: 0.8, jam: 0.85 };
+const FLOOR_K: Record<string, number> = { cellars: 0.6, mushrooms: 0.42, crystals: 0.6, mine: 0.55, jam: 0.6 };
+/** Насыщенность рисунка (0 — только светлее/темнее, 1 — цвета картинки) */
+const FLOOR_SAT = 0.55;
+/** Цвет текстуры берём размытым (×2 к шагу мипа): средние детали тише, форму даёт рельеф */
+const FLOOR_BLUR = 2;
+/** Рельеф (карты <зона>_n.jpg): крутизна, затенение впадин, общая яркость пола с текстурой */
+const FLOOR_RELIEF = 0.7;
+const FLOOR_AO = 0.75;
+const FLOOR_DIM = 0.86;
+/** Направление условного света для общего и запечённого света (сверху-слева экрана): рельеф видно и вдали от фонаря */
+const FLOOR_SUN = new THREE.Vector3(-0.45, 0.8, -0.4).normalize();
+/** Сила этого условного света на рельефе */
+const FLOOR_SHADE = 0.8;
 const VOID = lin(0x120d0b);
 const MOSS = lin(0x46622a);
 const SLATE = lin(0x4f8088);
@@ -118,24 +140,40 @@ uniform sampler2D uFl1;
 uniform sampler2D uFl2;
 uniform sampler2D uFl3;
 uniform sampler2D uFl4;
+uniform sampler2D uFn0;
+uniform sampler2D uFn1;
+uniform sampler2D uFn2;
+uniform sampler2D uFn3;
+uniform sampler2D uFn4;
 uniform vec3 uFlMean[${FLOOR_SLOTS}];
 uniform float uFlK[${FLOOR_SLOTS}];
 varying vec4 vZone;
 varying vec2 vFlP;
-// два слоя одной текстуры; где маска переходит, светлое (камень) ложится поверх тёмного (шов), без двойного рисунка
-vec3 flTex(sampler2D t, vec2 a, vec2 ax, vec2 ay, vec2 b, vec2 bx, vec2 by, float m) {
-  vec3 ca = textureGrad(t, a, ax, ay).rgb;
-  vec3 cb = textureGrad(t, b, bx, by).rgb;
-  float ha = dot(ca, vec3(0.3, 0.59, 0.11)) + 1.0 - m;
-  float hb = dot(cb, vec3(0.3, 0.59, 0.11)) + m;
-  float top = max(ha, hb) - 0.04;
+// Два слоя одной текстуры; где маска переходит, светлое (камень) ложится поверх тёмного (шов), без двойного рисунка.
+// Цвет берём на мип грубее (спокойнее средние детали), рельеф — в полную силу. nrm.xz — наклон в мировых осях,
+// nrm.w — затенение впадин.
+void flSample(sampler2D t, sampler2D tn, vec2 a, vec2 ax, vec2 ay, vec2 b, vec2 bx, vec2 by, float m, out vec3 col, out vec4 nrm) {
+  vec3 ca = textureGrad(t, a, ax * ${FLOOR_BLUR.toFixed(2)}, ay * ${FLOOR_BLUR.toFixed(2)}).rgb;
+  vec3 cb = textureGrad(t, b, bx * ${FLOOR_BLUR.toFixed(2)}, by * ${FLOOR_BLUR.toFixed(2)}).rgb;
+  vec3 na = textureGrad(tn, a, ax, ay).rgb;
+  vec3 nb = textureGrad(tn, b, bx, by).rgb;
+  float ha = na.b + dot(ca, vec3(0.3, 0.59, 0.11)) + 1.0 - m;
+  float hb = nb.b + dot(cb, vec3(0.3, 0.59, 0.11)) + m;
+  float top = max(ha, hb) - 0.05;
   float wa = max(ha - top, 0.0);
   float wb = max(hb - top, 0.0);
-  return (ca * wa + cb * wb) / (wa + wb);
+  float s = 1.0 / (wa + wb);
+  col = (ca * wa + cb * wb) * s;
+  vec2 ta = na.rg * 2.0 - 1.0;
+  vec2 tb = nb.rg * 2.0 - 1.0;
+  // слой A: u → +x, v → +z; слой B повёрнут: u → +z, v → −x
+  nrm = vec4(ta.x * wa - tb.y * wb, 0.0, ta.y * wa + tb.x * wb, na.b * wa + nb.b * wb) * s;
 }
 `;
 
 const FLOOR_APPLY = `
+  vec3 flN = vec3(0.0, 1.0, 0.0);
+  float flOn = 0.0;
   {
     vec2 flA = vFlP * ${(1 / FLOOR_TILE).toFixed(6)};
     vec2 flB = vec2(vFlP.y, -vFlP.x) * ${(1 / FLOOR_TILE2).toFixed(6)} + vec2(0.37, 0.71);
@@ -150,13 +188,23 @@ const FLOOR_APPLY = `
       float m = clamp(0.5 + 0.3 * sin(q.x * 6.0 + 1.7 * sin(q.y * 4.0)) + 0.3 * sin(q.y * 5.0 + 1.3 * sin(q.x * 8.0 + 0.5)), 0.0, 1.0);
       float w4 = max(1.0 - zs, 0.0);
       vec3 fl = vec3(0.0);
+      vec4 fn = vec4(0.0);
       float ws = 0.0;
-      if (vZone.x > 0.01) { fl += vZone.x * mix(vec3(1.0), flTex(uFl0, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[0], uFlK[0]); ws += vZone.x; }
-      if (vZone.y > 0.01) { fl += vZone.y * mix(vec3(1.0), flTex(uFl1, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[1], uFlK[1]); ws += vZone.y; }
-      if (vZone.z > 0.01) { fl += vZone.z * mix(vec3(1.0), flTex(uFl2, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[2], uFlK[2]); ws += vZone.z; }
-      if (vZone.w > 0.01) { fl += vZone.w * mix(vec3(1.0), flTex(uFl3, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[3], uFlK[3]); ws += vZone.w; }
-      if (w4 > 0.01) { fl += w4 * mix(vec3(1.0), flTex(uFl4, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[4], uFlK[4]); ws += w4; }
-      diffuseColor.rgb *= fl / max(ws, 0.001);
+      vec3 c;
+      vec4 n;
+      #define FL_ADD(W, T, TN, I) if (W > 0.01) { flSample(T, TN, flA, flAx, flAy, flB, flBx, flBy, m, c, n); c /= uFlMean[I]; c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, ${FLOOR_SAT.toFixed(2)}); fl += W * mix(vec3(1.0), c, uFlK[I]); fn += W * n; ws += W; }
+      FL_ADD(vZone.x, uFl0, uFn0, 0)
+      FL_ADD(vZone.y, uFl1, uFn1, 1)
+      FL_ADD(vZone.z, uFl2, uFn2, 2)
+      FL_ADD(vZone.w, uFl3, uFn3, 3)
+      FL_ADD(w4, uFl4, uFn4, 4)
+      #undef FL_ADD
+      fn /= max(ws, 0.001);
+      vec2 g = fn.xz * ${FLOOR_RELIEF.toFixed(2)};
+      flN = normalize(vec3(g.x, sqrt(max(1.0 - dot(g, g), 0.05)), g.y));
+      flOn = 1.0;
+      // впадины темнее, общий пол чуть темнее мобов и героя
+      diffuseColor.rgb *= fl / max(ws, 0.001) * mix(1.0, fn.w, ${FLOOR_AO.toFixed(2)}) * ${FLOOR_DIM.toFixed(2)};
     }
   }`;
 
@@ -273,8 +321,12 @@ export class DungeonWorld {
   private readonly tpls = new Map<string, Tpl | null>();
   private readonly uTime = { value: 0 };
   private readonly uAmbient = { value: AMBIENT };
-  /** Текстуры пола по зонам (пусто — пол как раньше, одним цветом вершин) */
+  /** Герой для воды: x, z (несвёрнутые) и «идёт» 0…1 — круги на воде вокруг него */
+  private readonly uHero = { value: new THREE.Vector3(0, 0, 0) };
+  private lastT = 0;
+  /** Текстуры пола по зонам (пусто — пол как раньше, одним цветом вершин) и их карты рельефа */
   private readonly floorTex: (THREE.Texture | null)[] = [];
+  private readonly floorNrm: (THREE.Texture | null)[] = [];
   private readonly matOpaque: THREE.MeshStandardMaterial;
   private readonly matGlow: THREE.MeshBasicMaterial;
   private readonly matLiquid: THREE.ShaderMaterial;
@@ -289,6 +341,11 @@ export class DungeonWorld {
   private readonly pits: Shape[] = [];
   private readonly liquids: (Shape & { deep: number })[] = [];
   private readonly shafts: { x: number; z: number; half: number }[] = [];
+  /** Камни брода (рисуются над водой, без столкновений) */
+  private readonly stones: { x: number; z: number; r: number }[] = [];
+  /** Озеро для шейдера воды: x, z, радиус глубины, радиус острова; брод dx, dz, полуширина, радиус мелководья */
+  private readonly uLake = { value: new THREE.Vector4(0, 0, 0, 0) };
+  private readonly uFord = { value: new THREE.Vector4(1, 0, 0, 1) };
   private readonly lights: Light[] = [];
   private readonly placements: Placement[][] = [];
   private readonly chunks: Chunk[] = [];
@@ -305,8 +362,9 @@ export class DungeonWorld {
 
   /** kits — корневые узлы всех kit_*.glb по имени (позиция сброшена в 0); level — разобранный level-data.json.
    *  opts.lazy — не строить в конструкторе: тогда зовите buildStep() на экране загрузки, пока не вернёт true.
-   *  opts.floor — текстуры пола по id зоны (worldlink.ts); без них пол одним цветом вершин, как раньше. */
-  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean; floor?: ReadonlyMap<string, THREE.Texture> }) {
+   *  opts.floor — текстуры пола по id зоны, opts.floorN — их карты рельефа (worldlink.ts); без них пол одним цветом
+   *  вершин, как раньше. */
+  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean; floor?: ReadonlyMap<string, THREE.Texture>; floorN?: ReadonlyMap<string, THREE.Texture> }) {
     const t0 = performance.now();
     this.kits = kits;
     this.root = new THREE.Group();
@@ -319,8 +377,13 @@ export class DungeonWorld {
       this.zoneCol.push(lin(FLOOR[z.id] ?? 0x5f4f3c));
     }
     // текстуры пола: нужны все зоны (у каждой своя), иначе — прежний пол
-    if (opts?.floor && this.zoneIds.length <= FLOOR_SLOTS && this.zoneIds.every((id) => opts.floor?.has(id) && FLOOR_MEAN[id])) {
-      for (const id of this.zoneIds) this.floorTex.push(opts.floor.get(id) ?? null);
+    const fl = opts?.floor;
+    const fn = opts?.floorN;
+    if (fl && fn && this.zoneIds.length <= FLOOR_SLOTS && this.zoneIds.every((id) => fl.has(id) && fn.has(id) && FLOOR_MEAN[id])) {
+      for (const id of this.zoneIds) {
+        this.floorTex.push(fl.get(id) ?? null);
+        this.floorNrm.push(fn.get(id) ?? null);
+      }
     }
     this.matOpaque = this.makeOpaque();
     this.matGlow = this.makeGlow();
@@ -366,6 +429,16 @@ export class DungeonWorld {
 
   /** Камера в несвёрнутых координатах; time — секунды */
   update(camX: number, camZ: number, time: number): void {
+    const dt = time - this.lastT;
+    const h = this.uHero.value;
+    // скачок камеры на 240 (сдвиг копий) — не шаг героя
+    if (dt > 0 && dt < 0.5 && Math.abs(camX - h.x) + Math.abs(camZ - h.y) < 30) {
+      const v = Math.hypot(camX - h.x, camZ - h.y) / dt;
+      h.z += (clamp(v / 3, 0, 1) - h.z) * Math.min(1, dt * 4);
+    }
+    h.x = camX;
+    h.y = camZ;
+    this.lastT = time;
     this.uTime.value = time;
     this.camX = camX;
     this.camZ = camZ;
@@ -385,7 +458,7 @@ export class DungeonWorld {
       ch.group = null;
     }
     this.matOpaque.dispose();
-    for (const t of this.floorTex) t?.dispose();
+    for (const t of [...this.floorTex, ...this.floorNrm]) t?.dispose();
     this.matGlow.dispose();
     this.matLiquid.dispose();
   }
@@ -411,6 +484,7 @@ export class DungeonWorld {
         for (let i = 0; i < FLOOR_SLOTS; i++) {
           const id = this.zoneIds[i] ?? this.zoneIds[0];
           sh.uniforms[`uFl${i}`] = { value: this.floorTex[i] ?? this.floorTex[0] };
+          sh.uniforms[`uFn${i}`] = { value: this.floorNrm[i] ?? this.floorNrm[0] };
           const c = FLOOR_MEAN[id];
           mean.push(new THREE.Vector3(c[0], c[1], c[2]));
           k.push(FLOOR_K[id] ?? 0.85);
@@ -423,11 +497,15 @@ export class DungeonWorld {
         fb += FLOOR_APPLY;
       }
       sh.vertexShader = vs + sh.vertexShader.replace('#include <color_vertex>', vb);
+      // с рельефом: нормаль пола — для ламп сцены (фонарь, полусфера); общий и запечённый свет — под условным светом
+      const sun = `vec3(${FLOOR_SUN.x.toFixed(4)}, ${FLOOR_SUN.y.toFixed(4)}, ${FLOOR_SUN.z.toFixed(4)})`;
+      const shade = tex ? ` * (1.0 + flOn * ${FLOOR_SHADE.toFixed(2)} * (dot(flN, ${sun}) - ${FLOOR_SUN.y.toFixed(4)}))` : '';
       sh.fragmentShader = fs + sh.fragmentShader
         .replace('#include <color_fragment>', fb)
+        .replace('#include <normal_fragment_maps>', tex ? '#include <normal_fragment_maps>\n  if (flOn > 0.5) normal = normalize((viewMatrix * vec4(flN, 0.0)).xyz);' : '#include <normal_fragment_maps>')
         .replace(
           '#include <emissivemap_fragment>',
-          '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb);',
+          `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb)${shade};`,
         );
     };
     m.customProgramCacheKey = () => (tex ? 'dungeon-opaque-floor' : 'dungeon-opaque');
@@ -454,46 +532,109 @@ export class DungeonWorld {
     return m;
   }
 
+  /** Вода и варенье одним прозрачным шейдером (альфа заранее умножена: свет каустик и бликов — поверх).
+   *  aData: x — 0 лужа, 0,25 озеро (форму считает шейдер по uLake/uFord), 1 — варенье; y — близость к берегу (1 — кромка);
+   *  z — глубина (1 — омут). */
   private makeLiquid(): THREE.ShaderMaterial {
-    return new THREE.ShaderMaterial({
+    const m = new THREE.ShaderMaterial({
       name: 'dungeon-liquid',
-      uniforms: { uTime: this.uTime },
+      uniforms: { uTime: this.uTime, uHero: this.uHero, uLake: this.uLake, uFord: this.uFord },
+      transparent: true,
+      depthWrite: false,
+      premultipliedAlpha: true,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneMinusSrcAlphaFactor,
       vertexShader: `
 attribute vec3 aData;
 varying vec3 vData;
-varying vec2 vP;
+varying vec3 vW;
 void main() {
   vData = aData;
   vec4 wp = modelMatrix * vec4(position, 1.0);
-  vP = wp.xz;
+  vW = wp.xyz;
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`,
       fragmentShader: `
 uniform float uTime;
+uniform vec3 uHero;
+uniform vec4 uLake;
+uniform vec4 uFord;
 varying vec3 vData;
-varying vec2 vP;
+varying vec3 vW;
+// мелкая рябь (м) + круги от героя, когда он идёт по воде
+float wh(vec2 p, float t) {
+  float h = 0.5 * sin(dot(p, vec2(0.83, 0.55)) * 2.1 + t * 1.3)
+    + 0.35 * sin(dot(p, vec2(-0.47, 0.88)) * 2.9 - t * 1.7)
+    + 0.22 * sin(dot(p, vec2(0.21, -0.98)) * 5.3 + t * 2.3)
+    + 0.14 * sin(dot(p, vec2(-0.9, -0.3)) * 8.7 + t * 3.1);
+  float r = length(p - uHero.xy);
+  h += uHero.z * 1.6 * sin(r * 9.0 - t * 7.0) * exp(-r * 1.1) * (1.0 - smoothstep(1.6, 2.6, r));
+  return h * 0.035;
+}
+// каустики на дне: сетка светлых извилистых линий
+float caust(vec2 p, float t) {
+  vec2 w = p + 0.55 * vec2(sin(p.y * 1.3 + t * 0.7), sin(p.x * 1.5 - t * 0.6));
+  w += 0.3 * vec2(sin(w.y * 2.3 - t * 0.9), sin(w.x * 2.1 + t * 0.8));
+  float a = 1.0 - abs(sin(w.x * 2.2 + t * 0.35));
+  float b = 1.0 - abs(sin(w.y * 2.0 - t * 0.45 + w.x * 0.6));
+  float c = 1.0 - abs(sin((w.x - w.y) * 1.7 + t * 0.3));
+  return pow(a, 7.0) + pow(b, 7.0) + 0.7 * pow(c, 7.0);
+}
 void main() {
-  float edge = vData.y;
-  float deep = vData.z;
-  vec2 p = vP;
+  float e = vData.y;
+  float d = vData.z;
+  vec2 p = vW.xz;
   float t = uTime;
-  float w1 = sin(dot(p, vec2(0.83, 0.55)) * 2.1 + t * 1.3);
-  float w2 = sin(dot(p, vec2(-0.47, 0.88)) * 2.9 - t * 1.7);
-  float w3 = sin(dot(p, vec2(0.21, -0.98)) * 5.3 + t * 2.3);
-  float wave = (w1 + w2 + 0.5 * w3) / 2.5;
   vec3 col;
+  float alpha = 1.0;
   if (vData.x < 0.5) {
-    // вода: тёмная, бирюзовый блик бежит по ряби, светлая кромка у берега
-    col = mix(vec3(0.016, 0.05, 0.056), vec3(0.003, 0.009, 0.012), deep);
-    float glint = pow(clamp(wave * 0.5 + 0.5, 0.0, 1.0), 7.0);
-    col += vec3(0.11, 0.5, 0.44) * glint * mix(0.55, 0.22, deep);
-    col += vec3(0.06, 0.2, 0.19) * smoothstep(0.84, 1.0, edge) * (0.65 + 0.35 * w2);
+    float isl = 0.0;
+    // толщина воды: у кромки дно видно, к середине — тёмная бирюза
+    float th = max(d, 0.55 * (1.0 - smoothstep(0.3, 1.0, e)));
+    if (vData.x > 0.15) {
+      // озеро: глубина — круг uLake.z минус островок uLake.w минус полоса брода (как у симуляции), до uFord.w — мелко
+      vec2 rel = p - uLake.xy;
+      rel -= 240.0 * floor(rel / 240.0 + 0.5);
+      float r = length(rel);
+      float fd = abs(rel.x * uFord.y - rel.y * uFord.x);
+      d = smoothstep(uLake.w + 0.2, uLake.w + 1.6, r) * (1.0 - smoothstep(uLake.z - 1.0, uLake.z + 0.3, r)) * smoothstep(uFord.z - 0.15, uFord.z + 1.1, fd);
+      e = max(r / uFord.w, 1.0 - smoothstep(uLake.w - 0.3, uLake.w + 1.4, r));
+      isl = 1.0 - smoothstep(uLake.w, uLake.w + 5.0, r);
+      th = max(d, 0.22 * (1.0 - smoothstep(0.85, 1.0, e)));
+    }
+    // нормаль ряби — для бликов
+    float h0 = wh(p, t);
+    vec3 n = normalize(vec3(-(wh(p + vec2(0.06, 0.0), t) - h0) / 0.06, 1.0, -(wh(p + vec2(0.0, 0.06), t) - h0) / 0.06));
+    vec3 v = normalize(cameraPosition - vW);
+    vec3 tint = mix(vec3(0.016, 0.075, 0.075), vec3(0.002, 0.022, 0.028), smoothstep(0.0, 0.95, th));
+    alpha = mix(0.38, 0.95, smoothstep(0.05, 0.9, th)) * (0.35 + 0.65 * (1.0 - smoothstep(0.93, 1.0, e)));
+    col = tint * alpha;
+    // каустики по дну мелководья
+    float cs = caust(p * 2.2, t) * (1.0 - smoothstep(0.15, 0.7, th)) * (1.0 - smoothstep(0.92, 1.0, e));
+    col += vec3(0.2, 0.55, 0.48) * cs * 0.045;
+    // мягкая светлая кромка у берега и у острова
+    float rim = smoothstep(0.82, 0.94, e) * (1.0 - smoothstep(0.95, 1.0, e));
+    col += vec3(0.16, 0.46, 0.42) * rim * (0.1 + 0.04 * sin(t * 1.4 + p.x * 0.9 + p.y * 0.7));
+    // бирюзовый отсвет друзы на воде у острова
+    col += vec3(0.02, 0.1, 0.09) * isl * (0.6 + 0.4 * sin(t * 0.8 + length(p) * 0.3));
+    // блики: от фонаря героя (тёплые, рядом с ним) и от кристаллов (бирюзовые искры)
+    vec3 lp = vec3(uHero.x, 1.4, uHero.y) - vW;
+    float ld = length(lp);
+    vec3 hl = normalize(lp / ld + v);
+    col += vec3(1.0, 0.68, 0.32) * pow(max(dot(n, hl), 0.0), 120.0) * 0.7 * (1.0 - smoothstep(1.5, 6.0, ld));
+    vec3 hc = normalize(normalize(vec3(-0.35, 0.85, -0.4)) + v);
+    col += vec3(0.45, 1.0, 0.92) * pow(max(dot(n, hc), 0.0), 300.0) * smoothstep(0.6, 1.4, caust(p * 3.1 + 7.0, t * 1.3)) * 0.6 * (0.4 + 0.6 * th + isl);
   } else {
-    // варенье: густое сиреневое, глянцевые полосы, пузыри и свечение по краю
+    // варенье: густое сиреневое, глянцевые полосы, пузыри и свечение по краю (как было)
+    float w1 = sin(dot(p, vec2(0.83, 0.55)) * 2.1 + t * 1.3);
+    float w2 = sin(dot(p, vec2(-0.47, 0.88)) * 2.9 - t * 1.7);
+    float w3 = sin(dot(p, vec2(0.21, -0.98)) * 5.3 + t * 2.3);
+    float wave = (w1 + w2 + 0.5 * w3) / 2.5;
     col = mix(vec3(0.15, 0.022, 0.2), vec3(0.06, 0.008, 0.08), 0.5 + 0.25 * wave);
     float gl = pow(clamp(sin(dot(p, vec2(0.6, 0.8)) * 1.7 + t * 0.6 + w3 * 0.6) * 0.5 + 0.5, 0.0, 1.0), 14.0);
     col += vec3(0.85, 0.55, 1.0) * gl * 0.3;
-    col += vec3(0.45, 0.11, 0.67) * smoothstep(0.55, 1.0, edge) * (1.1 + 0.3 * sin(t * 2.0 + p.x * 0.7 + p.y * 0.5));
+    col += vec3(0.45, 0.11, 0.67) * smoothstep(0.55, 1.0, e) * (1.1 + 0.3 * sin(t * 2.0 + p.x * 0.7 + p.y * 0.5));
     vec2 c = floor(p * 1.3);
     vec2 f = fract(p * 1.3) - 0.5;
     float h = fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
@@ -501,11 +642,12 @@ void main() {
     float bub = (1.0 - smoothstep(0.1 * life, 0.16 * life + 0.001, length(f - (h - 0.5) * 0.4))) * step(0.62, h) * (1.0 - life);
     col += vec3(0.5, 0.2, 0.7) * bub * 0.7;
   }
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`,
     });
+    return m;
   }
 
   // ---------- зоны: силовая диаграмма на торе, граница — плавная полоса 12 м ----------
@@ -625,8 +767,15 @@ void main() {
     }
     if (lake) {
       const ring = level.hazards.find((o) => o.kind === 'water' && o.t === 'c' && Math.hypot(wrap((o.x ?? 0) - lake.cx), wrap((o.z ?? 0) - lake.cz)) < 1);
-      const R = ring ? ring.r : lake.r + 4;
-      this.liquids.push({ ...lake, kind: 'water', r: R, deep: lake.r });
+      const lk = level.lake;
+      const R = lk ? lk.shallow : ring ? ring.r : lake.r + 4;
+      const deep = lk ? lk.deep : lake.r;
+      // глубина, островок и брод считает шейдер воды по этим числам (точная форма, как у симуляции)
+      this.uLake.value.set(lk ? lk.x : lake.cx, lk ? lk.z : lake.cz, deep, lk ? lk.island : 3.6);
+      if (lk) this.uFord.value.set(lk.ford.dx, lk.ford.dz, lk.ford.half, R);
+      else this.uFord.value.set(1, 0, 0, R);
+      for (const st of lk?.stones ?? []) this.stones.push({ x: mod(st.x, L), z: mod(st.z, L), r: st.r });
+      this.liquids.push({ ...lake, kind: 'water', r: R, deep });
       this.light(lake.cx, lake.cz, 2, CRYSTAL, 0.2, 0, R);
       this.add('lake_island', lake.cx, lake.cz, hashAt(lake.cx, lake.cz, 5) * Math.PI * 2, 1, 1, 1, LIQUID_Y);
       this.light(lake.cx, lake.cz, 6.5, CRYSTAL, 0.8, 1, 1.5);
@@ -1107,6 +1256,12 @@ void main() {
       if (t) this.putProp(ob, gb, t, p.x - ox, p.z - oz, p.y, p.yaw, p.sx, p.sy, p.sz, p.tint, lights, ox, oz);
     }
 
+    // --- камни брода ---
+    for (const st of this.stones) {
+      if (Math.min(NCH - 1, Math.floor(st.x / CHUNK)) !== ch.cx || Math.min(NCH - 1, Math.floor(st.z / CHUNK)) !== ch.cz) continue;
+      this.stone(ob, st.x - ox, st.z - oz, st.r, hashAt(st.x, st.z, 61), lights, ox, oz);
+    }
+
     // --- мелкий декор ---
     this.decor(ch, ob, gb, obs, pits, wets, lights);
 
@@ -1120,7 +1275,7 @@ void main() {
       if (cx !== ch.cx || cz !== ch.cz) continue;
       const lx = s.cx - ox;
       const lz = s.cz - oz;
-      this.pool(lb, lx - s.hx, lz - s.hz, lx + s.hx, lz + s.hz, s.r, s.kind === 'jam' ? 1 : 0, s.deep, hashAt(s.cx, s.cz, 41));
+      this.pool(lb, lx - s.hx, lz - s.hz, lx + s.hx, lz + s.hz, s.r, s.kind === 'jam' ? 1 : 0, s.deep, hashAt(s.cx, s.cz, 41), s.deep > 0 ? this.uLake.value.w : 0);
     }
 
     // --- меши ---
@@ -1387,8 +1542,68 @@ void main() {
     }
   }
 
-  /** Лужа-капсула (или круг): кольца для свечения кромки; deep > 0 — радиус глубокой воды (озеро) */
-  private pool(lb: LiquidBuf, ax: number, az: number, bx: number, bz: number, r: number, kind: number, deep: number, seed: number): void {
+  /** Камень брода: приплюснутый купол (9 граней, 2 пояса), верх ~0,2 м над водой, низ мокрый и темнее */
+  private stone(ob: OpaqueBuf, lx: number, lz: number, r: number, seed: number, lights: LLight[], ox: number, oz: number): void {
+    const K = 9;
+    const top = 0.16 + 0.1 * seed;
+    const rings: [number, number][] = [[1.05, -0.04], [0.92, top * 0.55], [0.55, top * 0.95]];
+    const lit = [0, 0, 0];
+    const base = ob.n;
+    const nv = rings.length * K + 1;
+    ob.pos.grow(nv * 3);
+    ob.nor.grow(nv * 3);
+    ob.col.grow(nv * 3);
+    ob.lit.grow(nv * 4);
+    const put = (x: number, y: number, z: number, nx: number, ny: number, nz: number, k: number): void => {
+      const o3 = ob.n * 3;
+      ob.pos.a.set([x, y, z], o3);
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      ob.nor.a.set([nx / nl, ny / nl, nz / nl], o3);
+      // тёплый серый камень, у воды мокрый и темнее
+      const t = (0.85 + 0.3 * hash3(Math.round(x * 50), Math.round(z * 50), 62)) * k;
+      ob.col.a.set([0.12 * t, 0.1 * t, 0.085 * t], o3);
+      this.evalLights(lights, ox, oz, x, Math.max(y, 0.06), z, lit, 0.9);
+      ob.lit.a.set([lit[0], lit[1], lit[2], 0.55 + 0.45 * Math.max(ny / nl, 0)], ob.n * 4);
+      ob.n++;
+    };
+    const ph = seed * 6.283;
+    for (const [kr, y] of rings) {
+      for (let k = 0; k < K; k++) {
+        const a = (k / K) * Math.PI * 2 + ph;
+        const wob = 1 + 0.16 * Math.sin(2 * a + ph * 3) + 0.08 * Math.sin(3 * a);
+        const ca = Math.cos(a) * r * kr * wob;
+        const sa = Math.sin(a) * r * kr * wob * 0.85;
+        put(lx + ca, y, lz + sa, ca / r, 0.6 + y * 3, sa / r, y < 0.05 ? 0.55 : 1);
+      }
+    }
+    put(lx, top, lz, 0, 1, 0, 1.08);
+    ob.pos.n = ob.nor.n = ob.col.n = ob.n * 3;
+    ob.lit.n = ob.n * 4;
+    ob.idx.grow((rings.length - 1) * K * 6 + K * 3);
+    const ia = ob.idx.a;
+    for (let q = 0; q < rings.length - 1; q++) {
+      for (let k = 0; k < K; k++) {
+        const i0 = base + q * K + k;
+        const i1 = base + q * K + ((k + 1) % K);
+        ia[ob.idx.n++] = i0;
+        ia[ob.idx.n++] = i1 + K;
+        ia[ob.idx.n++] = i1;
+        ia[ob.idx.n++] = i0;
+        ia[ob.idx.n++] = i0 + K;
+        ia[ob.idx.n++] = i1 + K;
+      }
+    }
+    const c = base + rings.length * K;
+    for (let k = 0; k < K; k++) {
+      ia[ob.idx.n++] = base + (rings.length - 1) * K + k;
+      ia[ob.idx.n++] = c;
+      ia[ob.idx.n++] = base + (rings.length - 1) * K + ((k + 1) % K);
+    }
+  }
+
+  /** Лужа-капсула (или круг): кольца для свечения кромки; deep > 0 — радиус глубокой воды (озеро),
+   *  isl > 0 — радиус острова в середине: у него своя кромка, мелководье и бирюзовый отсвет друзы */
+  private pool(lb: LiquidBuf, ax: number, az: number, bx: number, bz: number, r: number, kind: number, deep: number, seed: number, isl = 0): void {
     const dx = bx - ax;
     const dz = bz - az;
     const len = Math.hypot(dx, dz);
@@ -1397,7 +1612,12 @@ void main() {
     const px = -uz;
     const pz = ux;
     const M = Math.round(clamp((2 * Math.PI * r + 2 * len) / 0.6, 24, 72));
-    const rings = deep > 0 ? [0, 0.35, 0.6, (deep - 0.6) / r, (deep + 0.6) / r, 0.88, 0.95, 1] : [0, 0.45, 0.72, 0.88, 1];
+    const rings =
+      isl > 0
+        ? [isl - 0.6, isl + 0.5, isl + 2, deep - 1.5, deep + 0.5, r * 0.88, r * 0.95, r].map((x) => x / r)
+        : deep > 0
+          ? [0, 0.35, 0.6, (deep - 0.6) / r, (deep + 0.6) / r, 0.88, 0.95, 1]
+          : [0, 0.45, 0.72, 0.88, 1];
     const ph1 = seed * 6.283;
     const ph2 = seed * 17.1;
     const base = lb.n;
@@ -1414,8 +1634,13 @@ void main() {
         const rr = f * r * wob;
         lb.pos.a.set([cx + (ux * ca + px * sa) * rr, LIQUID_Y, cz + (uz * ca + pz * sa) * rr], lb.pos.n);
         lb.pos.n += 3;
-        const dp = deep > 0 ? 1 - smooth(deep - 0.6, deep + 0.6, f * r) : 0;
-        lb.dat.a.set([kind, f, dp], lb.dat.n);
+        const rad = f * r;
+        let dp = deep > 0 ? 1 - smooth(deep - 0.6, deep + 0.6, rad) : 0;
+        let edge = f;
+        let kd = kind;
+        // озеро: x = 0,25 — глубину, брод и остров шейдер считает сам по uLake / uFord
+        if (isl > 0) kd = 0.25;
+        lb.dat.a.set([kd, edge, dp], lb.dat.n);
         lb.dat.n += 3;
         lb.n++;
       }
