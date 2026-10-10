@@ -14,6 +14,7 @@ export class Journal {
   /** с какого индекса ещё не отправляли */
   private sent = 0;
   private timer = 0;
+  private idle = 0;
   /** upto и h последнего отправленного куска: промежуточный кусок не должен уводить копию сервера дальше следующего события */
   private lastUpto = 0;
   private lastH = 0;
@@ -23,6 +24,7 @@ export class Journal {
     this.base = 0;
     this.sent = 0;
     this.timer = 0;
+    this.idle = 0;
     this.lastUpto = 0;
     this.lastH = 0;
   }
@@ -49,11 +51,15 @@ export class Journal {
    */
   poll(dt: number, upto: number, h: number, force = false): DgClientMsg[] {
     this.timer += dt;
+    this.idle += dt;
     if (!force && this.timer < LOG_EVERY) return [];
     this.timer = 0;
-    const out: DgClientMsg[] = [];
     const end = this.total;
     let from = Math.max(this.sent, this.base);
+    // нечего слать (мир стоит: чат, связь) — пустой кусок не чаще раза в секунду
+    if (!force && from >= end && upto === this.lastUpto && this.idle < 1) return [];
+    this.idle = 0;
+    const out: DgClientMsg[] = [];
     do {
       const n = Math.min(LOG_CHUNK, end - from);
       const ev = this.events.slice(from - this.base, from - this.base + n);
