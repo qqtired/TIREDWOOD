@@ -336,6 +336,9 @@ export class Hub {
         dirty: () => this.store.markDirty(),
         seats: () => this.store.state.farmPlots,
         saveSeats: (seats) => { this.store.state.farmPlots = seats; this.store.markDirty(); },
+        boss: () => this.store.state.farmBoss,
+        saveBoss: (b) => { this.store.state.farmBoss = b ?? undefined; this.store.markDirty(); },
+        announce: (text) => this.announce(text),
       })
       : null;
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);

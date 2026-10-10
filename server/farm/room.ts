@@ -31,6 +31,7 @@ import type { Profile } from '../store.ts';
 import { FarmPlots, type PlotSeat } from './plots.ts';
 import { grantLevel } from './rewards.ts';
 import { FarmSystems } from './systems.ts';
+import type { FarmBossState } from '../../shared/farmboss.ts';
 
 /** Снимок движения — раз в 2 тика (30 Гц), как на набережной */
 const SNAP_EVERY = 2;
@@ -56,6 +57,10 @@ export interface FarmHooks {
   saveSeats(seats: (PlotSeat | null)[]): void;
   /** Ферма заполнилась или освободилась — калитке на площади */
   status?(st: FarmStatus): void;
+  /** Древо разлома: State.farmBoss (переживает перезапуск) и строка в общий чат */
+  boss?(): unknown;
+  saveBoss?(s: FarmBossState | null): void;
+  announce?(text: string): void;
 }
 
 export interface FarmPlayer {
@@ -114,11 +119,12 @@ export class FarmRoom implements Room, FarmCtx {
   /** Спит ли участок — по прошлой проверке (рассылка, когда меняется) */
   private readonly slept: boolean[] = Array.from({ length: FARM_PLOTS }, () => false);
   /** Части B1: помощь, Фургон, заказы, Древо (server/farm/systems.ts) */
-  private readonly sys: FarmSystems = new FarmSystems(this);
+  private readonly sys: FarmSystems;
 
   constructor(hooks: FarmHooks) {
     this.hooks = hooks;
     this.plots = new FarmPlots(hooks.seats());
+    this.sys = new FarmSystems(this);
   }
 
   get humans(): number {
@@ -317,6 +323,19 @@ export class FarmRoom implements Room, FarmCtx {
     this.hooks.dirty();
   }
 
+  /** Для FarmSystems (boss.ts): хранение Древа и общий чат */
+  bossLoad(): unknown {
+    return this.hooks.boss?.();
+  }
+
+  bossSave(s: FarmBossState | null): void {
+    this.hooks.saveBoss?.(s);
+  }
+
+  announce(text: string): void {
+    this.hooks.announce?.(text);
+  }
+
   // ------------------------------------------------------------ сообщения
 
   onInputs(c: Client, inputs: Input[], count: number): void {
@@ -395,6 +414,7 @@ export class FarmRoom implements Room, FarmCtx {
     const r = water(f, m.beds, now);
     if (!r.ok) return this.failed(p, 'water', r);
     this.ev(null, { k: 'water', plot: p.plot, beds: r.beds, by: p.c.pid });
+    this.sys.on(p, { k: 'water', beds: r.beds });
     this.tutorial(p, f, 'water');
     this.done(p, true);
   }
@@ -407,6 +427,7 @@ export class FarmRoom implements Room, FarmCtx {
     this.ev(null, { k: 'harvest', plot: p.plot, items: h.items, xp: h.xp, gx: h.generalXp, bagFull: h.bagFull });
     if (h.generalXp > 0) this.hooks.generalXp(p.c, h.generalXp);
     this.xp(p, h.xp, 'урожай');
+    this.sys.on(p, { k: 'harvest', items: h.items, xp: h.xp });
     this.tutorial(p, f, 'harvest');
     this.done(p, true);
   }
@@ -419,6 +440,7 @@ export class FarmRoom implements Room, FarmCtx {
     if (m.item === TRUFFLE) f.counters.truffleSold = (f.counters.truffleSold ?? 0) + r.n;
     this.credit(p, r.coins);
     this.ev(p, { k: 'sold', item: m.item, n: r.n, coins: r.coins });
+    this.sys.on(p, { k: 'sold', item: m.item, n: r.n, coins: r.coins });
     this.tutorial(p, f, 'sell');
     this.done(p, false);
   }
@@ -428,6 +450,7 @@ export class FarmRoom implements Room, FarmCtx {
     const r = convert(f, m.res, m.n);
     if (!r.ok) return this.failed(p, 'convert', r);
     this.xp(p, r.xp, 'ресурсы');
+    this.sys.on(p, { k: 'convert' });
     this.done(p, false);
   }
 
@@ -435,6 +458,7 @@ export class FarmRoom implements Room, FarmCtx {
     const r = upgrade(f, m.id, now, (n) => this.spend(p, n));
     if (!r.ok) return this.failed(p, 'upgrade', r);
     this.ev(p, { k: 'upgrade', id: r.u.id });
+    this.sys.on(p, { k: 'upgrade', id: r.u.id });
     this.done(p, r.u.kind === 'bed' || r.u.kind === 'pig' || r.u.kind === 'bees' || r.u.kind === 'compost');
   }
 
@@ -471,6 +495,7 @@ export class FarmRoom implements Room, FarmCtx {
     pig.stored -= n;
     f.bag[TRUFFLE] = (f.bag[TRUFFLE] ?? 0) + n;
     f.counters.truffles = (f.counters.truffles ?? 0) + n;
+    this.sys.on(p, { k: 'pig' });
     this.done(p, false);
   }
 
