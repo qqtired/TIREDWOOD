@@ -113,6 +113,7 @@ import { RegattaClient } from './regatta.ts';
 import { PlaneClient } from './plane.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
+import { BoatRadio } from '../boat/radio.ts';
 import { JukeboxPanel } from '../ui/jukebox.ts';
 import { jukeModels } from './jukebox3d.ts';
 import { JUKE_PRICE } from '../../shared/jukebox.ts';
@@ -239,6 +240,8 @@ export class LobbyScene implements Scene {
   private readonly fish2: Fish2Hud;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
+  /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
+  private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
   /** Сезон рыбалки: рыбы выпрыгивают у мест рыбалки (без сервера: ?fishseason или __opus.app.lobby.fishJumps.setDev(true)) */
   readonly fishJumps: FishJumps;
@@ -438,6 +441,13 @@ export class LobbyScene implements Scene {
     this.hud = new LobbyHud(d.hudRoot);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
+    // радио на лодке: лодки пакета B — boats: { where(id), aboard(id) }; пока их нет — тестовое /radio (у желейки хозяина)
+    this.radio = new BoatRadio({
+      sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
+      playerPos: (pid) => this.avatarOfPid(pid)?.root.position ?? null, mePos: () => (this.hasSelf ? this.pose : null), boats: null,
+      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), hudRoot: this.hud.root,
+    });
+    this.radio.reset(false);
     this.critters = new LobbyCritters(this.world.scene, {
       onPurr: (x, y, z, hiss) => d.sound.purr([x, y, z], hiss),
       onGullCry: (x, y, z) => d.sound.gullCry([x, y, z]),
@@ -606,7 +616,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -725,6 +735,7 @@ export class LobbyScene implements Scene {
     this.entered = true;
     this.resetAdditions();
     this.juke.reset(true);
+    this.radio.reset(true);
     this.myId = -1;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -788,6 +799,7 @@ export class LobbyScene implements Scene {
   exit(): void {
     this.resetAdditions();
     this.juke.reset(false);
+    this.radio.reset(false);
     this.entered = false;
     this.hasSelf = false;
     this.action = ACT_NONE;
@@ -904,6 +916,10 @@ export class LobbyScene implements Scene {
       case 'juke':
       case 'jukeRes':
         this.juke.onMsg(msg);
+        break;
+      case 'radio':
+      case 'radioRes':
+        this.radio.onMsg(msg);
         break;
       case 'fortSt':
         this.onFort(msg);
@@ -1810,6 +1826,8 @@ export class LobbyScene implements Scene {
     }
     // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
     if (this.juke.onKey(code, e)) return true;
+    // радио на лодке: R — окно; в окне 0–3, −/+, Esc (шаг и руль не съедает)
+    if (!this.d.input.blocked && this.radio.onKey(code, e)) return true;
     const act = this.myAct;
     if (act === ACT_WARDROBE && this.wardrobeOpen) {
       // В панели Tab переводит фокус по кнопкам, а не открывает список игроков.
@@ -2350,6 +2368,7 @@ export class LobbyScene implements Scene {
     this.rat3d.update(dt, this.time, camPos);
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
+    this.radio.update(dt, this.world.camera);
     this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
     this.ball.update(dt, alpha, ps.x, ps.z, this.clock.ready && this.hasSelf ? this.clock.renderTick - this.tickLag : null);

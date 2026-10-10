@@ -9,14 +9,29 @@ import { Synth, V } from './synth.ts';
 /** Без реверберации: бас мутит «зал» */
 const BASSES: ReadonlySet<number> = new Set([V.bass, V.sub, V.tuba, V.boom]);
 /** Тянущиеся голоса: вошли посреди такой ноты — дотягиваем её остаток */
-const SUSTAIN: ReadonlySet<number> = new Set([V.pad, V.strings, V.accordion, V.whistle, V.lead, V.sub, V.bass, V.tuba, V.tri, V.square, V.pulse, V.boom]);
+const SUSTAIN: ReadonlySet<number> = new Set([V.pad, V.strings, V.accordion, V.whistle, V.lead, V.sub, V.bass, V.tuba, V.tri, V.square, V.pulse, V.boom, V.dist, V.saw]);
 /** Кому эхо, если песня не сказала */
 const ECHO_DEFAULT: readonly Inst[] = ['lead', 'whistle', 'bell', 'pulse'];
 
 const TICK_MS = 25;
 
+/**
+ * Бесконечный поток (радио на лодке, client/boat/radiostream.ts): отрезки одной длины по номеру, все — в одной «студии»
+ * (зал, эхо, микс). Номер отрезка — место в потоке, делённое на длину: кто угодно может войти в любое место.
+ */
+export interface MusicFeed {
+  /** Длина отрезка, с */
+  readonly length: number;
+  /** Образец для цепочки: def — зал, эхо, хорус, микс; voice — все голоса, какие могут прозвучать в потоке */
+  readonly studio: CompiledSong;
+  block(k: number): CompiledSong;
+}
+
 interface Run {
   song: CompiledSong;
+  /** Поток (радио): следующий отрезок — feed.block(k + 1); null — одна песня */
+  feed: MusicFeed | null;
+  k: number;
   /** Время контекста, соответствующее началу песни */
   t0: number;
   /** Следующая нота к постановке */
@@ -130,6 +145,35 @@ export class MusicPlayer {
     this.stop(0.25);
     const run = this.build(song, when - offset);
     this.run = run;
+    this.begin(run, song, offset, when);
+  }
+
+  /** Поток, что играет (null — песня или ничего) */
+  get feed(): MusicFeed | null {
+    return this.run?.feed ?? null;
+  }
+
+  /** Место в потоке, с; NaN — поток не играет */
+  get streamPos(): number {
+    const run = this.run;
+    return run?.feed ? run.k * run.feed.length + (this.ctx.currentTime - run.t0) : NaN;
+  }
+
+  /** Играть поток с места pos (с от начала потока) в момент when; прошлое гаснет */
+  startFeed(feed: MusicFeed, pos: number, when = this.ctx.currentTime + 0.05): void {
+    this.stop(0.25);
+    const k = Math.max(0, Math.floor(pos / feed.length));
+    const offset = pos - k * feed.length;
+    const song = feed.block(k);
+    const run = this.build(feed.studio, when - offset);
+    run.song = song;
+    run.feed = feed;
+    run.k = k;
+    this.run = run;
+    this.begin(run, song, offset, when);
+  }
+
+  private begin(run: Run, song: CompiledSong, offset: number, when: number): void {
     const from = Math.max(0, offset);
     run.idx = lowerBound(song.t, song.n, from);
     if (from > 0.3) {
@@ -137,7 +181,8 @@ export class MusicPlayer {
       for (let j = lowerBound(song.t, song.n, from - song.maxDur); j < run.idx; j++) {
         const v = song.voice[j];
         const left = song.t[j] + song.dur[j] - from;
-        if (left > 0.3 && SUSTAIN.has(v)) this.synth.play(run.dest[v]!, v, when, song.midi[j], left, song.vel[j] * 0.85);
+        const dest = run.dest[v];
+        if (dest && left > 0.3 && SUSTAIN.has(v)) this.synth.play(dest, v, when, song.midi[j], left, song.vel[j] * 0.85);
       }
     }
     const keep = new Set<number>();
@@ -172,18 +217,30 @@ export class MusicPlayer {
     const run = this.run;
     if (!run) return;
     const now = this.ctx.currentTime;
-    const song = run.song;
-    const horizon = now + this.lookahead - run.t0;
     const late = now - 0.025;
-    while (run.idx < song.n && song.t[run.idx] < horizon) {
-      const i = run.idx++;
-      const at = run.t0 + song.t[i];
-      // кадр завис дольше запаса — опоздавшие ноты пропускаем, а не играем пачкой
-      if (at < late) continue;
-      const v = song.voice[i];
-      this.synth.play(run.dest[v]!, v, at < now ? now : at, song.midi[i], song.dur[i], song.vel[i], song.from[i]);
+    for (;;) {
+      const song = run.song;
+      const horizon = now + this.lookahead - run.t0;
+      while (run.idx < song.n && song.t[run.idx] < horizon) {
+        const i = run.idx++;
+        const at = run.t0 + song.t[i];
+        // кадр завис дольше запаса — опоздавшие ноты пропускаем, а не играем пачкой
+        if (at < late) continue;
+        const v = song.voice[i];
+        const dest = run.dest[v];
+        if (dest) this.synth.play(dest, v, at < now ? now : at, song.midi[i], song.dur[i], song.vel[i], song.from[i]);
+      }
+      if (run.idx < song.n) return;
+      if (!run.feed) {
+        if (now - run.t0 > song.total + 0.3) this.stop(0.05);
+        return;
+      }
+      // поток: следующий отрезок, как только его начало попало в окно постановки
+      if (song.length >= horizon) return;
+      run.t0 += song.length;
+      run.song = run.feed.block(++run.k);
+      run.idx = 0;
     }
-    if (run.idx >= song.n && now - run.t0 > song.total + 0.3) this.stop(0.05);
   }
 
   /** «Расстояние»: громкость 0…1, панорама −1…1, срез высоких (Гц; далеко — глуше). Плавно, без лишних вызовов. */
@@ -330,6 +387,6 @@ export class MusicPlayer {
       if (chorusIn && chorusOn.has(inst)) ig.connect(chorusIn);
       dest[v] = ig;
     }
-    return { song, t0, idx: 0, dest, fade, nodes, lfos };
+    return { song, feed: null, k: 0, t0, idx: 0, dest, fade, nodes, lfos };
   }
 }

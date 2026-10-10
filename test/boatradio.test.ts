@@ -9,6 +9,10 @@ import {
   RADIO_DEV_ABOARD_R, RADIO_FAR, RADIO_NEAR, RADIO_STATIONS, radioApply, radioBlockSec, radioCanControl, radioDefault, radioGain, radioVolGain,
   type RadioCarrier,
 } from '../shared/boatradio.ts';
+import { stationFeed } from '../client/boat/radiostream.ts';
+import { STATION_DEFS } from '../client/boat/stations/index.ts';
+import { DRUM_BASE, INSTS } from '../client/music/song.ts';
+import { chordPcs, midiName } from '../client/music/theory.ts';
 import { Hub, type Client } from '../server/hub.ts';
 import { Profiles } from '../server/profiles.ts';
 import { Store } from '../server/store.ts';
@@ -63,6 +67,47 @@ test('станции и громкость: три станции, отрезк�
   for (let d = 0; d < 60; d++) assert.ok(radioGain(d + 1) <= radioGain(d));
   assert.equal(radioVolGain(10), 1);
   assert.ok(radioVolGain(1) > 0 && radioVolGain(5) < 0.5);
+});
+
+test('станции: любой отрезок собирается и у всех одинаковый; голоса — из «студии»; ноты в пределах; без полутоновых трений', () => {
+  for (const st of RADIO_STATIONS) {
+    const def = STATION_DEFS[st.id];
+    assert.ok(def, `нет нот станции ${st.id}`);
+    const a = stationFeed(def, st);
+    const b = stationFeed(def, st);
+    const studio = new Set(a.studio.voice);
+    const roles = new Set<string>();
+    // начало, весь круг с запасом и далёкие места эфира (в игре номер отрезка — миллионы)
+    const ks = [...Array.from({ length: def.form.length * 2 + 3 }, (_, i) => i), 2_087_123, 2_087_124];
+    for (const k of ks) {
+      const x = a.block(k);
+      const y = b.block(k);
+      roles.add(a.role(k).role);
+      assert.ok(Math.abs(x.length - radioBlockSec(st)) < 1e-9, `${st.id}: длина отрезка`);
+      assert.equal(x.n, y.n, `${st.id} #${k}: у двух слушателей разное`);
+      assert.deepEqual([...x.midi], [...y.midi]);
+      assert.ok(x.n > 40, `${st.id} #${k} (${a.role(k).role}): всего ${x.n} нот`);
+      for (let i = 0; i < x.n; i++) {
+        const v = x.voice[i];
+        assert.ok(studio.has(v), `${st.id} #${k}: голос ${v < DRUM_BASE ? INSTS[v] : v} не в студии`);
+        if (v < DRUM_BASE) assert.ok(x.midi[i] >= 28 && x.midi[i] <= 96, `${st.id} #${k}: ${INSTS[v]} ${midiName(x.midi[i])}`);
+        assert.ok(x.t[i] >= 0 && x.t[i] < x.length && x.dur[i] > 0 && x.dur[i] < 8 && x.vel[i] > 0 && x.vel[i] <= 1, `${st.id} #${k}: нота ${i}`);
+      }
+      // долгие ноты мелодии на долю — без полутона к звукам аккорда
+      for (const m of x.melody) {
+        // гитара dist — корни «пауэр-аккордов» (рифф), не мелодия
+        if (m.part === 'dist' || m.beats < 1 || Math.abs(m.beatInBar - Math.round(m.beatInBar)) > 1e-6) continue;
+        let ch = x.chords[0];
+        for (const c of x.chords) if (c.t <= m.t + 1e-6) ch = c;
+        const pcs = chordPcs(ch.chord);
+        // мелодия записана до сдвига тональности круга (сдвигаются и ноты, и аккорды) — сравниваем как написано
+        const pc = m.midi % 12;
+        if (pcs.includes(pc)) continue;
+        assert.ok(!pcs.some((p) => (pc - p + 12) % 12 === 1 || (p - pc + 12) % 12 === 1), `${st.id} #${k}: ${m.part} ${midiName(m.midi)} на ${ch.chord.name}`);
+      }
+    }
+    assert.deepEqual([...roles].sort(), [...new Set(def.form)].sort(), `${st.id}: прозвучали не все роли круга`);
+  }
 });
 
 // ------------------------------------------------------------ через хаб

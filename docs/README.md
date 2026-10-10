@@ -68,6 +68,7 @@
 | Журнал, награды, модели рыб | `fishstyle.ts`, `fishrules.ts` (`COLLECTION`) | `fishstyle.ts` | `ui/fishbook.ts`, `ui/fishrewards.ts`, `lobby/fishart.ts`, `lobby/fishgear.ts` | `FISH2` | `fishstyle.test.ts`, `fishstyle3d.test.ts` | план `fishstyle` |
 | Баркас «Альбатрос» (10 мест, матрос-рыбак Колян) и лодка Семёна «Удалая» (от хижины) | `barkas.ts`, `ferry.ts` | `lobby/ferry.ts` | `lobby/barkas/` (Колян — `barkas/angler.ts`) | `FISH2` | `barkas.test.ts` | план `barkas` |
 | Способности мификов и божественной (и острова), +20 % времени в зоне, бонусы уровней 1–15 (прототип 10.10, в игру не подключено) | `fishability.ts` (`SPECIES_ABILITY`, `LEVEL_PERKS`, `reelStyle2`), блоки способностей — `fishreel.ts` (`AbilitySpec`, `abilityView`) | — | — (страница-прототип `lab/fishing-abilities/`) | — | симуляции `tools/fish/abilities-sim.ts`; остров — `tools/fish/islestyle.ts`, `isle-reel.ts` (числа — `plans/2026-10-10-fishing-island-reel.json`) | план `fishing-abilities` |
+| Радио на своей лодке: 3 бесконечные станции без слов («Форсаж», «Тихая заводь», «Морской фанк»), управляет хозяин или «все на борту»; пока лодок нет — тестовое `/radio` в чате (dev, `DEV_GO=1`) | `boatradio.ts` | `lobby/boatradio.ts` | `boat/radio.ts`, `boat/radiopanel.ts`, `boat/radiostream.ts` (поток отрезков для `music/engine.ts` — `startFeed`), `boat/stations/`; стенд — `tools/radio-lab/` | `ISLE` (нужна `FISH2`) | `boatradio.test.ts` | план `fishing-implementation` |
 | Рулетка рыбака и табло последних 10 ставок | `roulette.ts` | `lobby/roulette.ts` | `lobby/roulette*.ts`, `lobby/rouletteboard.ts`, `lobby/roulettelog.css` | `ROULETTE` (нужна `FISH2`) | `roulette.test.ts` | план `fisheco` |
 
 ### 2.3 Набережная: столы, события, мелочи
@@ -193,6 +194,7 @@
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
 | `jukebox-lab/` | стенд песен музыкального автомата |
+| `radio-lab/` | стенд станций радио на лодке: послушать, офлайн-рендер (громкость, спектрограмма), WAV — `window.__radio.check` |
 | `jukebox-model/` | проверка 3D-модели автомата: свет, ракурсы |
 | `jukebox-panel/` | стенд окна автомата: состояния и жетоны |
 | `lab/` | `decisions.mjs` — сводка решений лаборатории; `link.mjs` — ссылка владельца для локального сервера |
