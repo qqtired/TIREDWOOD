@@ -167,6 +167,10 @@ export class ModelViewer {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 1.1;
+    // колесо листает страницу; зум колесом — только после клика по модели
+    this.controls.enableZoom = false;
+    this.renderer.domElement.addEventListener("pointerdown", () => { this.controls.enableZoom = true; });
+    this.renderer.domElement.addEventListener("pointerleave", () => { this.controls.enableZoom = false; });
     this.controls.addEventListener('start', () => this._setAuto(false));
     this.rig = new Rig(this.scene, this.renderer);
     // пол: мягкое сияние и поверхность для теней

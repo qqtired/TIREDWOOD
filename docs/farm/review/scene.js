@@ -47,6 +47,10 @@ export async function createFarmScene(host, { L, modelUrl, onProgress }) {
   controls.dampingFactor = 0.08;
   controls.maxPolarAngle = Math.PI * 0.485;
   controls.minDistance = 4;
+  // колесо листает страницу; зум колесом — только после клика по сцене
+  controls.enableZoom = false;
+  renderer.domElement.addEventListener("pointerdown", () => { controls.enableZoom = true; });
+  renderer.domElement.addEventListener("pointerleave", () => { controls.enableZoom = false; });
   controls.maxDistance = 150;
   const rig = new Rig(scene, renderer, { mapSize: 4096 });
   rig.fit(new THREE.Vector3(0, 0, 0), 46);
