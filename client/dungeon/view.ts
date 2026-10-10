@@ -188,7 +188,10 @@ export interface DgView {
   cards: HudCards | null;
   /** открыт сундук (мир стоит) */
   chest: HudChest | null;
-  breather: { left: number; next: number; mobs: { icon: string; name: string }[]; event: string } | null;
+  breather: { left: number; next: number; mobs: { id?: string; icon: string; name: string }[]; event: string } | null;
+  /** до готовности рывка и Q, с */
+  dashLeft: number;
+  qLeft: number;
   alarm: boolean;
   /** отбито волн (для «Выйти (засчитать N волн)») */
   wavesDone: number;

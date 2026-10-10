@@ -9,7 +9,10 @@
 //  - в плотной серии одного и того же звука громкость слегка падает (до 45 %);
 //  - интервалы и голоса считаются по настенным часам (performance.now), а не по ctx.currentTime: в фоновой вкладке
 //    currentTime может стоять — тогда звуки не копятся в очереди, а пропускаются.
+// Громкость: весь режим идёт через свои шины (MODE_VOL — тише общей громкости игры, владелец: «потише»); в паузе
+// режима звук можно выключить целиком и отдельно — «динь» опыта (prefs.ts, хранится в браузере).
 import type { Sound } from '../audio.ts';
+import { dgPrefs, onDgPrefs } from './prefs.ts';
 
 type Kit = NonNullable<Sound['kit']>;
 type Bus = 'sfx' | 'ui' | 'amb';
@@ -48,11 +51,16 @@ interface Bed {
 /** Не больше стольких разовых звуков одновременно (лишние не играют) и запас для важных */
 const MAX_VOICES = 24;
 const VIP_EXTRA = 8;
+/** Громкость режима по шинам относительно общей громкости игры */
+const MODE_VOL: Record<Bus, number> = { sfx: 0.55, ui: 0.75, amb: 0.65 };
 /** Пентатоника (полутонов от основного тона) — осколки «поют» по ступеням */
 const PENTA = [0, 2, 4, 7, 9];
-const GEM_MAX_STEP = 10;
+/** Серия осколков поднимается не выше стольких ступеней (дальше — по кругу верхних, без писка) */
+const GEM_MAX_STEP = 6;
 /** Без подборов столько секунд — серия осколков начинается заново */
 const GEM_SERIES_GAP = 0.6;
+/** Осколков подряд не чаще раза в столько секунд; в длинной серии (магнит) — ещё реже */
+const GEM_GAP = 0.085;
 /** Заряд Q: нарастание гула, с, и его громкость */
 const HUM_RISE = 1;
 const HUM_LEVEL = 0.2;
@@ -85,9 +93,38 @@ export class DungeonSfx {
   private tension = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private nextDrip = 0;
+  private buses: { ctx: AudioContext; sfx: GainNode; ui: GainNode; amb: GainNode } | null = null;
 
   constructor(sound: Sound) {
     this.sound = sound;
+    onDgPrefs((p) => this.applyMute(p.sound));
+  }
+
+  /** Шина режима (громкость режима и выключатель) поверх общей шины игры */
+  private bus(k: Kit, b: Bus): GainNode {
+    if (!this.buses || this.buses.ctx !== k.ctx) {
+      const on = dgPrefs().sound;
+      const mk = (name: Bus): GainNode => {
+        const g = k.ctx.createGain();
+        g.gain.value = on ? MODE_VOL[name] : 0;
+        g.connect(k[name]);
+        return g;
+      };
+      this.buses = { ctx: k.ctx, sfx: mk('sfx'), ui: mk('ui'), amb: mk('amb') };
+    }
+    return this.buses[b];
+  }
+
+  /** Выключить/включить весь звук режима — плавно, без щелчка */
+  private applyMute(on: boolean): void {
+    const b = this.buses;
+    if (!on) this.stopHum(0.06);
+    if (!b) return;
+    const t = b.ctx.currentTime;
+    for (const name of ['sfx', 'ui', 'amb'] as const) {
+      b[name].gain.cancelScheduledValues(t);
+      b[name].gain.setTargetAtTime(on ? MODE_VOL[name] : 0, t, 0.08);
+    }
   }
 
   // ------------------------------------------------------------ кирпичики
@@ -109,7 +146,7 @@ export class DungeonSfx {
    * null — не играть. vip — важный звук: бюджет для него шире. Всё считается по настенным часам.
    */
   private v(key: string, gap: number, dur: number, pan = 0, gain = 1, vip = false, bus: Bus = 'sfx'): V | null {
-    if (gain <= 0) return null;
+    if (gain <= 0 || !dgPrefs().sound) return null;
     const now = performance.now() / 1000;
     let g = this.gates.get(key);
     if (!g) this.gates.set(key, (g = { t: -1, dens: 0 }));
@@ -132,7 +169,7 @@ export class DungeonSfx {
   private out(k: Kit, pan: number, vol: number, bus: Bus): GainNode {
     const g = k.ctx.createGain();
     g.gain.value = vol;
-    const dest = k[bus];
+    const dest = this.bus(k, bus);
     if (Math.abs(pan) > 0.02 && typeof k.ctx.createStereoPanner === 'function') {
       const p = k.ctx.createStereoPanner();
       p.pan.value = Math.max(-1, Math.min(1, pan));
@@ -285,18 +322,21 @@ export class DungeonSfx {
    * подряд (сбрасывается через 0,6 с без подборов).
    */
   gem(step?: number, gain = 1): void {
+    if (!dgPrefs().xp) return;
     const now = performance.now() / 1000;
     if (now - this.gemAt > GEM_SERIES_GAP) this.gemRun = 0;
     this.gemAt = now;
-    const v = this.v('gem', 0.04, 0.45, 0, gain * 0.9);
+    // несколько осколков за кадр — один звук; длинная серия (магнит, конец волны) — реже и тише, без «пулемёта»
+    const run = this.gemRun;
+    const v = this.v('gem', GEM_GAP + Math.min(0.09, run * 0.006), 0.3, 0, gain * Math.max(0.45, 1 - run * 0.03));
     if (!v) return;
     const { k, d } = v;
-    const s = Math.min(GEM_MAX_STEP, step ?? this.gemRun++);
-    const f = semis(523.25, pent(s));
-    this.tone(k, d, f, f, 0.32, 'sine', 0.16, 0, 0.002);
-    this.tone(k, d, f * 1.003, f * 1.003, 0.4, 'sine', 0.06, 0, 0.002);
-    this.tone(k, d, f * 2, f * 2, 0.16, 'triangle', 0.05, 0, 0.002);
-    this.noise(k, d, 0.012, 'highpass', 5000, 5000, 0.7, 0.03, 0, 0.001);
+    this.gemRun++;
+    const s = Math.min(GEM_MAX_STEP, step ?? run);
+    const f = vary(semis(587.33, pent(s)), 0.015);
+    // мягкое стеклянное «пинь»: чистый тон с плавной атакой и тихая октава, без щелчка шума
+    this.tone(k, d, f, f * 0.995, 0.22, 'sine', 0.07, 0, 0.006);
+    this.tone(k, d, f * 2, f * 2, 0.09, 'sine', 0.015, 0, 0.006);
   }
 
   /** Новый уровень: тёплое мажорное арпеджио с колокольчиками. */
@@ -384,7 +424,7 @@ export class DungeonSfx {
       this.stopHum(0.06);
       return;
     }
-    if (this.hum) return;
+    if (this.hum || !dgPrefs().sound) return;
     const k = this.sound.kit;
     if (!k || !this.alive(k)) return;
     this.hum = this.makeHum(k);
@@ -396,7 +436,7 @@ export class DungeonSfx {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(HUM_LEVEL, t + HUM_RISE);
-    g.connect(k.sfx);
+    g.connect(this.bus(k, 'sfx'));
     const srcs: AudioScheduledSourceNode[] = [];
     const osc = (type: OscillatorType, f0: number, f1: number, level: number, lp = 0): void => {
       const o = ctx.createOscillator();
@@ -872,7 +912,7 @@ export class DungeonSfx {
     const out = ctx.createGain();
     out.gain.setValueAtTime(0.0001, t);
     out.gain.exponentialRampToValueAtTime(1, t + AMB_FADE_IN);
-    out.connect(k.amb);
+    out.connect(this.bus(k, 'amb'));
     const srcs: AudioScheduledSourceNode[] = [];
     const sines: OscillatorNode[] = [];
     // низкий гул: коричневый шум под фильтром и две низкие синусоиды (основной тон и квинта)

@@ -1,10 +1,74 @@
 /* «Подземелье»: HUD волны и экраны (карточки, сундук, пауза, итоги) — по образцу окон блэкджека.
-   Палитра: тёмный тёплый #120d0b/#1a130f, янтарь #ffb347/#ffd27a, бирюза #5fc4b8/#8ae6da, варенье #b25fd6/#d6a8ff, золото #ffd35a. */
-.dg { position: absolute; inset: 0; z-index: 30; pointer-events: none; color: var(--cream); font: 600 15px/1.3 Rubik, system-ui, sans-serif; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); font-variant-numeric: tabular-nums; }
+   Тема — переменные --dg-* ниже: цвета, рамки, скругления, тени и шрифт HUD. Другой вид HUD — другой набор переменных
+   (раскладка и логика от темы не зависят). Палитра по умолчанию: тёмный тёплый, янтарь, бирюза, варенье, золото. */
+.dg {
+  --dg-font: Rubik, system-ui, sans-serif;
+  --dg-text: var(--cream, #fff3de);
+  --dg-text-dim: var(--cream-dim, rgba(255, 243, 222, .62));
+  --dg-text-shadow: 0 2px 0 rgba(0, 0, 0, .35);
+  --dg-panel: var(--panel, rgba(34, 24, 29, .64));
+  --dg-panel-strong: var(--panel-strong, rgba(34, 24, 29, .88));
+  --dg-line: var(--line, rgba(255, 236, 205, .14));
+  --dg-line-strong: rgba(255, 236, 205, .32);
+  --dg-shadow: var(--shadow, 0 6px 18px rgba(12, 6, 10, .35));
+  --dg-r: 14px;
+  --dg-r-lg: 20px;
+  --dg-amber: #ffb347;
+  --dg-amber-2: #ffd27a;
+  --dg-gold: #ffd35a;
+  --dg-teal: #8ae6da;
+  --dg-jam: #d6a8ff;
+  --dg-red: #e0283a;
+  /* здоровье, опыт, уровень */
+  --dg-hp-fill: linear-gradient(180deg, #ff8a7a, #e0283a);
+  --dg-hp-ghost: rgba(255, 236, 205, .6);
+  --dg-hp-heal: #7bd88f;
+  --dg-bar-bg: rgba(18, 13, 11, .78);
+  --dg-xp-fill: linear-gradient(90deg, #5fc4b8, #8ae6da);
+  --dg-lv-bg: radial-gradient(circle at 50% 35%, #2f5b57, #13201f);
+  --dg-lv-ring: #8ae6da;
+  /* кольца перезарядки (рывок, Q, оружия) */
+  --dg-ring-track: rgba(18, 13, 11, .62);
+  --dg-ring-cool: rgba(255, 236, 205, .5);
+  --dg-ring-ready: #ffd27a;
+  --dg-ring-charge: #ffb347;
+  --dg-ring-full: #fff;
+  --dg-ring-always: #b7f06a;
+  --dg-ring-inner: rgba(34, 24, 29, .94);
+  --dg-ring-glow: 0 0 18px rgba(255, 179, 71, .55);
+  /* ячейки вещей и отметки уровня */
+  --dg-slot-bg: rgba(58, 40, 32, .9);
+  --dg-slot-empty: rgba(18, 13, 11, .5);
+  --dg-slot-line: rgba(255, 236, 205, .28);
+  --dg-pip: rgba(255, 236, 205, .22);
+  --dg-pip-on: #ffd27a;
+  --dg-evo: #ffd35a;
+  /* категории точек интереса: рамка стрелки и подпись */
+  --dg-cat-danger: #ff8fb0;
+  --dg-cat-boss: #d6a8ff;
+  --dg-cat-loot: #ffd35a;
+  --dg-cat-heal: #8ae6da;
+  --dg-cat-power: #ffb347;
+  --dg-cat-tool: #e9d6b4;
+  /* радар */
+  --dg-radar-size: 168px;
+  --dg-radar-bg: rgba(18, 13, 11, .8);
+  --dg-radar-grid: rgba(255, 236, 205, .12);
+  --dg-radar-view: rgba(255, 236, 205, .07);
+  --dg-radar-view-line: rgba(255, 236, 205, .24);
+  --dg-radar-mob: rgba(205, 130, 255, .85);
+  --dg-radar-elite: #ff8fb0;
+  --dg-radar-boss: #d6a8ff;
+  --dg-radar-hero: #ffd27a;
+  position: absolute; inset: 0; z-index: 30; pointer-events: none; color: var(--dg-text); font: 600 15px/1.3 var(--dg-font); text-shadow: var(--dg-text-shadow); font-variant-numeric: tabular-nums;
+}
 .dg.hidden, .dg .hidden { display: none !important; }
 .dg :where(button) { font: inherit; color: inherit; }
 .dg :where(button):focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-.dg kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; border: 1px solid rgba(255, 236, 205, .35); background: rgba(20, 12, 16, .72); color: var(--cream); font: 700 12px/1 Rubik, system-ui, sans-serif; text-shadow: none; }
+.dg kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--dg-line-strong); background: rgba(20, 12, 16, .78); color: var(--dg-text); font: 700 12px/1 var(--dg-font); text-shadow: none; }
+/* значок: картинка или эмодзи-заглушка */
+.dg-ic { display: block; width: 1em; height: 1em; object-fit: contain; line-height: 1; text-align: center; }
+img.dg-ic { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45)); }
 
 /* --- края экрана: постоянная виньетка, тревога, «при смерти» */
 .dg-vignette, .dg-alarm, .dg-low { position: absolute; inset: 0; pointer-events: none; }
@@ -18,102 +82,153 @@
 .dg-hud { position: absolute; inset: 0; transition: opacity .25s; }
 .dg.results-open .dg-hud { opacity: 0; }
 
-.dg-xp { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: rgba(18, 13, 11, .7); box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
-.dg-xp-fill { position: absolute; inset: 0; transform-origin: left; transform: scaleX(0); background: linear-gradient(90deg, #5fc4b8, #8ae6da); box-shadow: 0 0 10px rgba(138, 230, 218, .6); transition: transform .2s ease-out; }
-.dg-lv { position: absolute; top: 16px; left: 16px; padding: 4px 14px; border-radius: 999px; border: 1px solid rgba(138, 230, 218, .45); background: var(--panel-strong); box-shadow: var(--shadow); color: #8ae6da; font-size: 19px; font-weight: 900; }
-.dg-lv.bump { animation: dg-bump .5s cubic-bezier(.2, .9, .3, 1.4); }
+/* радар: слева сверху */
+.dg-radar { position: absolute; top: 14px; left: 14px; width: var(--dg-radar-size); height: var(--dg-radar-size); border-radius: 50%; border: 2px solid var(--dg-line-strong); box-shadow: var(--dg-shadow); }
+.dg-radar-cv { display: block; width: 100%; height: 100%; border-radius: 50%; }
 
-.dg-tl { position: absolute; top: 58px; left: 16px; display: flex; flex-direction: column; gap: 8px; }
-.dg-hp { position: relative; width: 280px; height: 22px; border-radius: 11px; overflow: hidden; border: 2px solid rgba(255, 236, 205, .3); background: rgba(18, 13, 11, .75); box-shadow: var(--shadow); }
-.dg-hp-fill, .dg-hp-trail { position: absolute; inset: 0; transform-origin: left; }
-.dg-hp-trail { background: rgba(255, 236, 205, .55); transition: transform .45s ease-in .2s; }
-.dg-hp-fill { background: linear-gradient(180deg, #ff8a7a, #e0283a); box-shadow: inset 0 2px 0 rgba(255, 220, 210, .4); transition: transform .12s; }
-.dg-hp-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; font-weight: 900; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .7); }
-.dg.low .dg-hp { animation: dg-hp-low .9s ease-in-out infinite; }
-
-.dg-buffs { display: flex; flex-wrap: wrap; gap: 6px; max-width: 280px; }
-.dg-buff { position: relative; display: flex; align-items: center; gap: 4px; padding: 4px 9px 7px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-strong); }
-.dg-buff-ic { font-size: 20px; line-height: 1; }
-.dg-buff-sec { min-width: 2ch; font-size: 15px; font-weight: 900; color: var(--gold); }
-.dg-buff-track { position: absolute; left: 6px; right: 6px; bottom: 3px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .15); overflow: hidden; }
-.dg-buff-track i { position: absolute; inset: 0; transform-origin: left; background: var(--gold); }
-
+/* волна или босс: сверху по центру */
 .dg-tc { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); text-align: center; }
 .dg-wave-title { font-size: 26px; font-weight: 900; line-height: 1.1; }
 .dg-wave-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 6px; }
-.dg-squad { position: relative; width: 220px; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(18, 13, 11, .7); border: 1px solid rgba(255, 236, 205, .25); }
-.dg-squad-fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, #ffb347, #ffd27a); transition: transform .2s; }
-.dg-timer { min-width: 3.4ch; font-size: 20px; font-weight: 900; color: #ffd27a; }
+.dg-squad { position: relative; width: 220px; height: 10px; border-radius: 5px; overflow: hidden; background: var(--dg-bar-bg); border: 1px solid var(--dg-line-strong); }
+.dg-squad-fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--dg-amber), var(--dg-amber-2)); transition: transform .2s; }
+.dg-timer { min-width: 3.4ch; font-size: 20px; font-weight: 900; color: var(--dg-amber-2); }
 .dg-timer:empty { display: none; }
+/* (задел) враги прошлых волн и озверение */
+.dg-leftover { display: none; margin-top: 6px; padding: 3px 12px; border-radius: 999px; background: var(--dg-panel-strong); border: 1px solid rgba(255, 120, 100, .45); color: #ffb0a0; font-size: 14px; font-weight: 800; }
+.dg-leftover.on { display: inline-block; }
 .dg-boss { display: none; }
 .dg.has-boss .dg-wave { display: none; }
 .dg.has-boss .dg-boss { display: block; }
 .dg.breathing .dg-tc { display: none; }
-.dg-boss-name { font-size: 24px; font-weight: 900; color: #d6a8ff; text-shadow: 0 3px 0 #4a1c66; }
-.dg-boss-bar { position: relative; width: min(460px, 60vw); height: 18px; margin-top: 6px; border-radius: 9px; overflow: hidden; border: 2px solid rgba(214, 168, 255, .5); background: rgba(18, 13, 11, .8); box-shadow: var(--shadow); }
+.dg-boss-name { font-size: 24px; font-weight: 900; color: var(--dg-jam); text-shadow: 0 3px 0 #4a1c66; }
+.dg-boss-bar { position: relative; width: min(460px, 60vw); height: 18px; margin-top: 6px; border-radius: 9px; overflow: hidden; border: 2px solid rgba(214, 168, 255, .5); background: var(--dg-bar-bg); box-shadow: var(--dg-shadow); }
 .dg-boss-fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(180deg, #d6a8ff, #b25fd6); transition: transform .15s; }
 .dg-boss-marks i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(255, 243, 222, .85); box-shadow: 0 0 3px rgba(0, 0, 0, .6); }
 
+/* убито и пауза: справа сверху, под жетонами игры */
 .dg-tr { position: absolute; top: 64px; right: 18px; display: flex; align-items: center; gap: 8px; }
-.dg-kills { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-strong); box-shadow: var(--shadow); font-size: 19px; font-weight: 900; }
-.dg-pause-btn { pointer-events: auto; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 10px 4px 12px; border: 1px solid rgba(255, 236, 205, .26); border-radius: 12px; background: var(--panel-strong); box-shadow: var(--shadow); font-size: 18px; cursor: pointer; transition: background .12s, transform .06s; }
+.dg-kills { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--dg-line); background: var(--dg-panel-strong); box-shadow: var(--dg-shadow); font-size: 19px; font-weight: 900; }
+.dg-pause-btn { pointer-events: auto; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 10px 4px 12px; border: 1px solid var(--dg-line-strong); border-radius: 12px; background: var(--dg-panel-strong); box-shadow: var(--dg-shadow); font-size: 18px; cursor: pointer; transition: background .12s, transform .06s; }
 .dg-pause-btn:hover { background: rgba(70, 50, 40, .95); }
 .dg-pause-btn:active { transform: translateY(2px); }
 
-/* сборка: 5 оружий и 5 пассивок (ниже чата игры: он на bottom 180px) */
-.dg-bl { position: absolute; left: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
-.dg-items { display: flex; gap: 6px; }
-.dg-item { position: relative; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 12px; border: 2px solid rgba(255, 236, 205, .3); background: rgba(58, 40, 32, .85); }
-.dg-item.empty { border: 2px solid rgba(255, 236, 205, .08); background: rgba(18, 13, 11, .6); }
-.dg-item.evo { border-color: #ffd35a; background: rgba(90, 64, 18, .9); box-shadow: 0 0 12px rgba(255, 211, 90, .55); }
-.dg-item-ic { font-size: 26px; line-height: 1; }
-.dg-item-lv { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; display: grid; place-items: center; background: #fff3de; color: var(--ink); font-size: 12px; font-weight: 900; line-height: 1; text-shadow: none; }
-.dg-item.max .dg-item-lv { background: #ffb347; }
-.dg-item.evo .dg-item-lv { background: #ffd35a; color: #3a2603; }
+/* здоровье, уровень и опыт: по центру над рывком и ударом; баффы — над ними */
+.dg-vitals { position: absolute; left: 50%; bottom: 140px; transform: translateX(-50%); width: 400px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.dg-vrow { display: flex; align-items: center; gap: 8px; width: 100%; }
+.dg-lv { position: relative; flex: none; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: var(--dg-lv-bg); box-shadow: 0 0 0 2px var(--dg-lv-ring), var(--dg-shadow); line-height: 1; text-align: center; }
+.dg-lv small { position: absolute; top: 7px; left: 0; right: 0; font-size: 10px; font-weight: 800; color: var(--dg-text-dim); }
+.dg-lv-n { margin-top: 8px; font-size: 21px; font-weight: 900; color: var(--dg-teal); }
+.dg-lv.bump { animation: dg-bump .5s cubic-bezier(.2, .9, .3, 1.4); }
+.dg-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dg-hp { position: relative; height: 26px; border-radius: 13px; overflow: hidden; border: 2px solid var(--dg-line-strong); background: var(--dg-bar-bg); box-shadow: var(--dg-shadow); }
+.dg-hp-fill, .dg-hp-trail { position: absolute; inset: 0; transform-origin: left; }
+/* урон: полоса сразу, «призрак» догоняет с задержкой; лечение: «призрак» сразу, полоса плавно растёт */
+.dg-hp-trail { background: var(--dg-hp-ghost); transition: transform .5s ease-in .25s; }
+.dg-hp-fill { background: var(--dg-hp-fill); box-shadow: inset 0 2px 0 rgba(255, 220, 210, .4); transition: transform .1s; }
+.dg-hp.heal .dg-hp-trail { transition: none; }
+.dg-hp.heal .dg-hp-fill { transition: transform .45s ease-out; }
+.dg-hp-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; font-weight: 900; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+.dg.low .dg-hp { animation: dg-hp-low .9s ease-in-out infinite; }
+.dg-xp { position: relative; height: 9px; border-radius: 5px; overflow: hidden; background: var(--dg-bar-bg); border: 1px solid var(--dg-line); }
+.dg-xp-fill { position: absolute; inset: 0; transform-origin: left; transform: scaleX(0); background: var(--dg-xp-fill); box-shadow: 0 0 10px rgba(138, 230, 218, .6); transition: transform .25s ease-out; }
 
-/* рывок и удар: кольцо заполнения */
-.dg-bc { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 22px; }
-.dg-ring { --p: 0; --c: rgba(255, 236, 205, .55); display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.dg-ring-disc { position: relative; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: conic-gradient(var(--c) calc(var(--p) * 1turn), rgba(18, 13, 11, .55) 0); box-shadow: var(--shadow); transition: filter .15s, transform .15s; }
-.dg-ring-disc::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: rgba(34, 24, 29, .92); }
-.dg-ring-ic { position: relative; font-size: 34px; line-height: 1; opacity: .45; filter: grayscale(.7); transition: opacity .15s, filter .15s; }
-.dg-ring-label { display: flex; align-items: center; gap: 2px; font-size: 15px; font-weight: 800; white-space: nowrap; }
-.dg-ring.ready { --c: #ffd27a; }
-.dg-ring.ready .dg-ring-disc { box-shadow: 0 0 0 2px rgba(255, 210, 122, .6), 0 0 22px rgba(255, 179, 71, .55), var(--shadow); }
-.dg-ring.ready .dg-ring-disc::before { background: radial-gradient(circle, rgba(110, 70, 30, .95), rgba(40, 26, 22, .95)); }
+.dg-buffs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.dg-buff { position: relative; display: flex; align-items: center; gap: 5px; padding: 4px 10px 7px 6px; border-radius: 10px; border: 1px solid var(--dg-line); background: var(--dg-panel-strong); animation: dg-pop .25s ease-out; }
+.dg-buff-ic { font-size: 20px; }
+.dg-buff-name { font-size: 13px; font-weight: 800; }
+.dg-buff-sec { min-width: 2ch; font-size: 15px; font-weight: 900; color: var(--dg-gold); }
+.dg-buff-track { position: absolute; left: 6px; right: 6px; bottom: 3px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .15); overflow: hidden; }
+.dg-buff-track i { position: absolute; inset: 0; transform-origin: left; background: var(--dg-gold); }
+
+/* отметки уровня (точки) */
+.dg-pips { display: flex; justify-content: center; gap: 2px; }
+.dg-pips i { width: 5px; height: 5px; border-radius: 50%; background: var(--dg-pip); box-shadow: 0 1px 1px rgba(0, 0, 0, .5); }
+.dg-pips i.on { background: var(--dg-pip-on); }
+
+/* пассивки: слева снизу (ниже чата игры: он на bottom 180px) */
+.dg-bl { position: absolute; left: 16px; bottom: 16px; padding: 8px 8px 12px; border-radius: var(--dg-r); border: 1px solid var(--dg-line); background: var(--dg-panel); box-shadow: var(--dg-shadow); }
+.dg-items { display: flex; gap: 5px; }
+.dg-item { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 11px; border: 2px solid var(--dg-slot-line); background: var(--dg-slot-bg); }
+.dg-item.empty { border-color: rgba(255, 236, 205, .08); background: var(--dg-slot-empty); }
+.dg-item.max { border-color: var(--dg-amber); }
+.dg-item.evo { border-color: var(--dg-evo); background: rgba(90, 64, 18, .9); box-shadow: 0 0 12px rgba(255, 211, 90, .55); }
+.dg-item-ic { font-size: 24px; }
+.dg-item .dg-pips { position: absolute; left: 0; right: 0; bottom: -8px; }
+.dg-item-star { position: absolute; right: -5px; bottom: -6px; color: var(--dg-evo); font-size: 15px; text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+
+/* оружия: левее рывка и удара; кольцо — перезарядка, выстрел — вспышка */
+.dg-weapons { position: absolute; bottom: 24px; right: calc(50% + 104px); display: flex; gap: 8px; }
+.dg-wslot { position: relative; width: 60px; height: 60px; }
+.dg-wslot-svg, .dg-ring-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.dg-wslot-svg circle, .dg-ring-svg circle { fill: none; stroke-width: 8; }
+.dg-wslot-svg .bg, .dg-ring-svg .bg { stroke: var(--dg-ring-track); }
+.dg-wslot-svg .fg { stroke: var(--dg-ring-ready); stroke-linecap: round; transition: stroke .15s; }
+.dg-wslot.cooling .dg-wslot-svg .fg { stroke: var(--dg-ring-cool); }
+.dg-wslot.always .dg-wslot-svg .fg { stroke: var(--dg-ring-always); }
+.dg-wslot.empty .dg-wslot-svg .fg { stroke: transparent; }
+.dg-wslot-body { position: absolute; inset: 6px; display: grid; place-items: center; border-radius: 50%; background: var(--dg-slot-bg); box-shadow: inset 0 0 0 1px var(--dg-slot-line); }
+.dg-wslot.empty .dg-wslot-body { background: var(--dg-slot-empty); box-shadow: none; }
+.dg-wslot-ic { font-size: 28px; transition: opacity .15s; }
+.dg-wslot.cooling .dg-wslot-ic { opacity: .6; }
+.dg-wslot .dg-pips { position: absolute; left: -6px; right: -6px; bottom: -14px; }
+.dg-wslot.evo .dg-wslot-body { background: rgba(90, 64, 18, .92); box-shadow: inset 0 0 0 2px var(--dg-evo), 0 0 12px rgba(255, 211, 90, .5); }
+.dg-wslot .dg-item-star { right: -4px; bottom: -6px; }
+.dg-wslot.evo-ready .dg-wslot-body { box-shadow: inset 0 0 0 2px var(--dg-evo); animation: dg-evo 1.2s ease-in-out infinite; }
+.dg-evo-mark, .dg-need { position: absolute; top: -7px; right: -7px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; line-height: 1; text-shadow: none; }
+.dg-evo-mark { background: var(--dg-evo); box-shadow: 0 0 10px rgba(255, 211, 90, .9); }
+.dg-need { background: var(--dg-panel-strong); border: 1px dashed var(--dg-line-strong); opacity: .85; }
+.dg-need .dg-ic { font-size: 13px; filter: grayscale(.6); }
+
+/* рывок и удар: кольцо заполнения, секунды до готовности, подпись — отдельной строкой под кольцом */
+.dg-bc { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 20px; }
+.dg-ring { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.dg-ring-disc { position: relative; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; transition: transform .15s; }
+.dg-ring-disc::before { content: ''; position: absolute; inset: 8px; border-radius: 50%; background: var(--dg-ring-inner); box-shadow: var(--dg-shadow); }
+.dg-ring-svg .fg { stroke: var(--dg-ring-cool); stroke-linecap: round; }
+.dg-ring-ic { position: relative; font-size: 34px; opacity: .45; filter: grayscale(.7); transition: opacity .15s, filter .15s; }
+.dg-ring-sec { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 900; color: var(--dg-text); text-shadow: 0 1px 3px rgba(0, 0, 0, .95); }
+.dg-ring-sec:empty { display: none; }
+.dg-ring-label { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 3px; border-radius: 999px; background: var(--dg-panel-strong); font-size: 14px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+.dg-ring.ready .dg-ring-svg .fg { stroke: var(--dg-ring-ready); }
+.dg-ring.ready .dg-ring-disc { filter: drop-shadow(0 0 10px rgba(255, 179, 71, .55)); }
 .dg-ring.ready .dg-ring-ic { opacity: 1; filter: none; }
-.dg-ring.charge { --c: #ffb347; }
+.dg-ring.charge .dg-ring-svg .fg { stroke: var(--dg-ring-charge); }
 .dg-ring.charge .dg-ring-ic { opacity: 1; filter: none; }
-.dg-ring.full { --c: #fff; }
-.dg-ring.full .dg-ring-disc { transform: scale(1.06); box-shadow: 0 0 0 3px #fff, 0 0 30px rgba(255, 255, 255, .8); }
+.dg-ring.full .dg-ring-svg .fg { stroke: var(--dg-ring-full); }
+.dg-ring.full .dg-ring-disc { transform: scale(1.06); filter: drop-shadow(0 0 14px rgba(255, 255, 255, .85)); }
 .dg-ring.full .dg-ring-ic { opacity: 1; filter: none; }
+.dg-ring.full .dg-ring-label { color: #fff; background: rgba(120, 70, 20, .95); }
 
 /* телефон: Q — кнопка у большого пальца (над «действием», левее «рывка» оболочки); держишь — заряд, отпустил — удар.
    Кольцо у центра остаётся только у рывка, подписи клавиш на телефоне не нужны */
 .dg-qpad { display: none; position: absolute; right: calc(104px + env(safe-area-inset-right, 0px)); bottom: calc(138px + env(safe-area-inset-bottom, 0px)); pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html.touch .dg-qpad { display: flex; }
 .dg-qpad .dg-ring-disc { width: 66px; height: 66px; }
-.dg-qpad .dg-ring-disc::before { inset: 5px; }
+.dg-qpad .dg-ring-disc::before { inset: 6px; }
 .dg-qpad .dg-ring-ic { font-size: 28px; }
-.dg-qpad .dg-ring-label { position: absolute; top: 100%; margin-top: 2px; font-size: 10px; font-weight: 700; color: var(--cream-2); }
+.dg-qpad .dg-ring-label { position: absolute; top: 100%; margin-top: 2px; padding: 0 6px; font-size: 10px; font-weight: 700; color: var(--cream-2); }
 .dg-qpad.down .dg-ring-disc { transform: scale(.93); }
 html.touch .dg-bc .dg-ring.strike { display: none; }
 html.touch .dg-ring-label kbd { display: none; }
 
-/* --- стрелки к целям за кадром */
+/* --- стрелки к целям за кадром: рамка по категории, «носик» к цели, подпись при появлении, плавное появление */
 .dg-arrows { position: absolute; inset: 0; }
-.dg-arrow { position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; display: grid; place-items: center; }
-.dg-arrow-ptr { position: absolute; inset: 0; }
-.dg-arrow-ptr::after { content: ''; position: absolute; right: -10px; top: 50%; margin-top: -9px; border: 9px solid transparent; border-left: 13px solid #ffd27a; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
-.dg-arrow::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--panel-strong); border: 2px solid rgba(255, 210, 122, .7); }
-.dg-arrow[data-kind='elite']::before { border-color: #ff8fb0; }
-.dg-arrow[data-kind='elite'] .dg-arrow-ptr::after { border-left-color: #ff8fb0; }
-.dg-arrow[data-kind='boss']::before { border-color: #d6a8ff; }
-.dg-arrow[data-kind='boss'] .dg-arrow-ptr::after { border-left-color: #d6a8ff; }
-.dg-arrow[data-kind='spring']::before { border-color: #8ae6da; }
-.dg-arrow[data-kind='spring'] .dg-arrow-ptr::after { border-left-color: #8ae6da; }
-.dg-arrow-ic { position: relative; font-size: 22px; line-height: 1; }
-.dg-arrow-d { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.dg-arrow { --c: var(--dg-cat-tool); position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; transition: opacity .3s; will-change: transform; }
+.dg-arrow.on { opacity: 1; }
+.dg-arrow.cat-danger { --c: var(--dg-cat-danger); }
+.dg-arrow[data-kind='boss'] { --c: var(--dg-cat-boss); }
+.dg-arrow.cat-loot { --c: var(--dg-cat-loot); }
+.dg-arrow.cat-heal { --c: var(--dg-cat-heal); }
+.dg-arrow.cat-power { --c: var(--dg-cat-power); }
+.dg-arrow-tip { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; }
+.dg-arrow-tip::after { content: ''; position: absolute; right: -3px; top: 50%; margin-top: -10px; border: 10px solid transparent; border-left: 14px solid var(--c); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+.dg-arrow-disc { position: absolute; left: -29px; top: -29px; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: var(--dg-panel-strong); box-shadow: 0 0 0 3px var(--c), var(--dg-shadow); font-size: 30px; transform: scale(.6); transition: transform .3s cubic-bezier(.2, .9, .3, 1.3); }
+.dg-arrow.on .dg-arrow-disc { transform: scale(1); }
+.dg-arrow-lab { position: absolute; left: 0; top: 34px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.1; }
+.dg-arrow-name { max-height: 0; overflow: hidden; color: var(--c); font-size: 13px; font-weight: 900; animation: dg-arrow-name 3s ease-out both; }
+.dg-arrow-d { padding: 1px 7px; border-radius: 999px; background: var(--dg-panel-strong); font-size: 14px; font-weight: 900; }
+.dg-arrow[data-kind='boss'] .dg-arrow-disc, .dg-arrow[data-kind='elite'] .dg-arrow-disc { animation: dg-danger 1.1s ease-in-out infinite; }
 
 /* --- передышка: карточка следующей волны */
 .dg-breather { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; gap: 10px; min-width: 340px; max-width: calc(100vw - 32px); padding: 18px 24px 20px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel-strong); box-shadow: var(--shadow); pointer-events: auto; }
@@ -228,8 +343,8 @@ html.touch .dg-ring-label kbd { display: none; }
 .dg-banner.level .dg-banner-title { color: #ffd35a; text-shadow: 0 5px 0 #a8620c, 0 0 38px rgba(255, 190, 60, .75); }
 .dg-banner.warn .dg-banner-title { color: #ff9a9a; text-shadow: 0 5px 0 #7d1b27, 0 0 30px rgba(255, 60, 60, .5); }
 
-/* --- звезда нового уровня летит к «Ур. N» */
-.dg-lvflash { position: absolute; left: 16px; top: 16px; z-index: 6; display: none; padding: 4px 14px; font-size: 22px; font-weight: 900; color: #ffd35a; white-space: nowrap; text-shadow: 0 3px 0 #a8620c, 0 0 24px rgba(255, 211, 90, .9); pointer-events: none; transform-origin: left top; }
+/* --- звезда нового уровня: над героем → в значок уровня */
+.dg-lvflash { position: absolute; left: 0; top: 0; z-index: 6; display: none; padding: 4px 14px; font-size: 22px; font-weight: 900; color: var(--dg-gold); white-space: nowrap; text-shadow: 0 3px 0 #a8620c, 0 0 24px rgba(255, 211, 90, .9); pointer-events: none; }
 .dg-lvflash.show { display: block; animation: dg-lvflash .9s cubic-bezier(.5, 0, .7, .4) both; }
 
 /* --- загрузка и телефон */
@@ -243,16 +358,38 @@ html.touch .dg-ring-label kbd { display: none; }
 .dg-phone-win { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .dg-phone-win p { margin: 0; font-size: 20px; font-weight: 800; }
 
+
+/* пауза: звук режима */
+.dg-sound { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--dg-line); }
+.dg-sound-title { font-size: 14px; font-weight: 800; color: var(--dg-text-dim); text-align: center; }
+.dg-toggle { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 14px; border: 1px solid var(--dg-line-strong); border-radius: var(--dg-r); background: rgba(255, 240, 220, .06); cursor: pointer; pointer-events: auto; text-align: left; transition: background .12s; }
+.dg-toggle:hover:not(:disabled) { background: rgba(255, 240, 220, .12); }
+.dg-toggle:disabled { opacity: .45; cursor: default; }
+.dg-toggle-ic { font-size: 20px; }
+.dg-toggle-label { flex: 1; font-size: 17px; font-weight: 800; }
+.dg-toggle-state { min-width: 4ch; font-size: 14px; font-weight: 800; color: var(--dg-text-dim); text-align: right; }
+.dg-switch { position: relative; flex: none; width: 46px; height: 26px; border-radius: 13px; background: rgba(18, 13, 11, .8); box-shadow: inset 0 0 0 1px var(--dg-line-strong); transition: background .15s; }
+.dg-switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #cbb8a0; transition: transform .15s, background .15s; }
+.dg-toggle[aria-pressed='true'] .dg-switch { background: #3c8a50; }
+.dg-toggle[aria-pressed='true'] .dg-switch::after { transform: translateX(20px); background: #fff; }
+.dg-toggle[aria-pressed='true'] .dg-toggle-state { color: #9cf0ae; }
+
+/* карточки: отметки уровня под «Ур. 3 → 4» */
+.dg-card-lv { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dg-card-lv .dg-pips i { width: 8px; height: 8px; }
+
 @keyframes dg-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 @keyframes dg-alarm { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
-@keyframes dg-hp-low { 0%, 100% { box-shadow: var(--shadow); } 50% { box-shadow: 0 0 0 3px rgba(255, 80, 80, .7), 0 0 20px rgba(255, 50, 50, .6); } }
-@keyframes dg-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: #ffd35a; } 100% { transform: scale(1); } }
+@keyframes dg-hp-low { 0%, 100% { box-shadow: var(--dg-shadow); } 50% { box-shadow: 0 0 0 3px rgba(255, 80, 80, .7), 0 0 20px rgba(255, 50, 50, .6); } }
+@keyframes dg-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
 @keyframes dg-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes dg-pop { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; } }
 @keyframes dg-pop-x { from { opacity: 0; transform: translate(-50%, 14px) scale(.94); } to { opacity: 1; transform: translateX(-50%); } }
 @keyframes dg-card-in { from { opacity: 0; transform: translateY(120px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes dg-reel { from { transform: translateY(0); } to { transform: translateY(calc(var(--end) * 72px)); } }
 @keyframes dg-evo { 0%, 100% { box-shadow: 0 0 10px rgba(255, 211, 90, .5); } 50% { box-shadow: 0 0 28px rgba(255, 211, 90, 1); } }
+@keyframes dg-danger { 0%, 100% { box-shadow: 0 0 0 3px var(--c), var(--dg-shadow); } 50% { box-shadow: 0 0 0 3px var(--c), 0 0 18px var(--c); } }
+@keyframes dg-arrow-name { 0% { max-height: 0; opacity: 0; } 8%, 80% { max-height: 18px; opacity: 1; } 100% { max-height: 0; opacity: 0; } }
 @keyframes dg-banner {
   0% { opacity: 0; transform: translate(-50%, -30%) scale(.4); }
   8% { opacity: 1; transform: translate(-50%, -50%) scale(1.14); }
@@ -260,41 +397,68 @@ html.touch .dg-ring-label kbd { display: none; }
   80% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -64%) scale(.96); }
 }
+/* звезда уровня: вспыхивает над героем (--dx, --dy от значка уровня) и слетает в значок */
 @keyframes dg-lvflash {
-  0% { opacity: 0; transform: translate(calc(50vw - 90px), 32vh) scale(.6); }
-  18% { opacity: 1; transform: translate(calc(50vw - 90px), 30vh) scale(2.6); }
-  40% { opacity: 1; transform: translate(calc(50vw - 90px), 30vh) scale(2.4); }
-  100% { opacity: .2; transform: translate(0, 0) scale(.9); }
+  0% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(.6); }
+  18% { opacity: 1; transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) - 20px)) scale(2.4); }
+  42% { opacity: 1; transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) - 20px)) scale(2.2); }
+  100% { opacity: .2; transform: translate(-50%, -50%) scale(.7); }
 }
 
+/* узкий экран компьютера: ячейки меньше; совсем узкий — пассивки выше, над оружиями */
+@media (max-width: 1380px) {
+  .dg-item { width: 38px; height: 38px; border-radius: 10px; }
+  .dg-item-ic { font-size: 21px; }
+  .dg-wslot { width: 54px; height: 54px; }
+  .dg-wslot-ic { font-size: 25px; }
+  .dg-weapons { gap: 6px; right: calc(50% + 100px); }
+}
+@media (max-width: 1180px) {
+  html:not(.touch) .dg-bl { bottom: 96px; }
+}
+
+/* телефон и узкое окно */
 @media (max-width: 780px) {
-  .dg-hp, .dg-buffs { width: 200px; max-width: 200px; }
+  .dg { --dg-radar-size: 104px; }
+  .dg-radar { top: 8px; left: 8px; }
   .dg-tc { top: 54px; }
   .dg-wave-title { font-size: 20px; }
   .dg-squad { width: 140px; }
   .dg-tr { top: 58px; }
-  .dg-tl { top: 50px; }
   .dg-item { width: 38px; height: 38px; }
   .dg-item-ic { font-size: 20px; }
   .dg-ring-disc { width: 64px; height: 64px; }
   .dg-ring-ic { font-size: 26px; }
   .dg-bc { left: auto; right: 12px; transform: none; gap: 12px; }
+  .dg-vitals { width: min(300px, 52vw); }
   .dg-cards { gap: 10px; }
   .dg-card { width: min(200px, 44vw); min-height: 240px; padding: 22px 10px 12px; }
   .dg-card-ic { font-size: 50px; }
   .dg-card-name { font-size: 18px; }
   .dg-layer { justify-content: flex-start; overflow: auto; }
   .dg-banner-title { white-space: normal; }
+  .dg-arrow-disc { left: -22px; top: -22px; width: 44px; height: 44px; font-size: 22px; }
+  .dg-arrow-tip { left: -28px; top: -28px; width: 56px; height: 56px; }
+  .dg-arrow-lab { top: 26px; }
 }
+/* телефон: джойстик слева, кнопки справа — здоровье сверху по центру, волна под ним; сборка и оружия прячем (видны в итогах) */
+html.touch .dg-vitals { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; width: min(320px, 46vw); flex-direction: column-reverse; }
+html.touch .dg-lv { width: 40px; height: 40px; }
+html.touch .dg-lv-n { font-size: 17px; }
+html.touch .dg-hp { height: 20px; }
+html.touch .dg-tc { top: calc(64px + env(safe-area-inset-top, 0px)); }
+html.touch .dg-bl, html.touch .dg-weapons { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .dg *, .dg *::before, .dg *::after { animation: none !important; transition: none !important; }
   .dg-banner.show { opacity: 1; }
   .dg-reel-info { opacity: 1; }
   .dg-lvflash.show { display: none; }
+  .dg-arrow-name { display: none; }
 }
 
-/* кнопка голоса оболочки — справа от сборки героя, не поверх слотов */
-html:not(.touch)[data-room='dungeon'] .voice-hud { left: 330px; bottom: 26px; }
-/* телефон: сборка героя легла бы на джойстик — прячем (видна в итогах) */
-html.touch .dg-bl { display: none; }
+/* кнопка голоса оболочки — над пассивками, не поверх слотов и оружий */
+html:not(.touch)[data-room='dungeon'] .voice-hud { left: 16px; bottom: 98px; }
+@media (max-width: 1180px) {
+  html:not(.touch)[data-room='dungeon'] .voice-hud { bottom: 176px; }
+}

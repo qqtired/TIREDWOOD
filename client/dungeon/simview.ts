@@ -7,6 +7,7 @@ import {
   applyEvent, beamDir, createRun, dgHash, dgResult, DG_DATA, orbCount, orbPos, step, wstats,
   type DgBoss, type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
 } from '../../shared/dungeon/sim.ts';
+import { evoOf } from '../../shared/dungeon/data.ts';
 import { BOSS_NAME, BUFFS, MISC, MOBS, PASSIVES, WEAPONS } from './data.ts';
 import type { HudBuff, HudCard, HudChest, HudItem } from './hudtypes.ts';
 import type { RunSource } from './source.ts';
@@ -46,17 +47,17 @@ function weaponItem(id: string, lv: number, evo: boolean): HudItem {
 function cardView(sim: DgSim, c: DgCard): HudCard {
   if (c.k === 'stew' || c.k === 'temper') {
     const m = MISC[c.k];
-    return { icon: m.icon, name: m.name, from: 0, to: 0, text: m.text, kind: 'misc' };
+    return { id: c.k, icon: m.icon, name: m.name, from: 0, to: 0, text: m.text, kind: 'misc' };
   }
   if (c.k === 'w') {
     const info = WEAPONS[c.id];
     const def = DG_DATA.weapons.find((w) => w.id === c.id);
     const up = c.lv > 1 ? def?.levels[c.lv - 1]?.up : undefined;
-    return { icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: up ?? info?.text ?? '', kind: 'weapon' };
+    return { id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: up ?? info?.text ?? '', kind: 'weapon' };
   }
   const info = PASSIVES[c.id];
   void sim;
-  return { icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: info?.text ?? '', kind: 'passive' };
+  return { id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: info?.text ?? '', kind: 'passive' };
 }
 
 function chestView(sim: DgSim): HudChest | null {
@@ -68,10 +69,10 @@ function chestView(sim: DgSim): HudChest | null {
     if (r.k === 'gold') fallback = '+50 опыта и +30 HP';
     else if (r.k === 'evo') {
       const info = WEAPONS[r.id];
-      items.push({ icon: info?.icon ?? '★', name: info?.name ?? r.id, from: 0, to: 0, evo: true });
+      items.push({ id: r.id, kind: 'evo', icon: info?.icon ?? '★', name: info?.name ?? r.id, from: 0, to: 0, evo: true });
     } else {
       const info = r.k === 'w' ? WEAPONS[r.id] : PASSIVES[r.id];
-      items.push({ icon: info?.icon ?? '•', name: info?.name ?? r.id, from: r.lv - 1, to: r.lv });
+      items.push({ id: r.id, kind: r.k === 'w' ? 'weapon' : 'passive', icon: info?.icon ?? '•', name: info?.name ?? r.id, from: r.lv - 1, to: r.lv });
     }
   }
   return { items, big: ch.kind === 'big', fallback: items.length ? undefined : fallback ?? '+50 опыта и +30 HP' };
@@ -131,6 +132,8 @@ export class SimRun implements RunSource {
   private readonly bossTrack = new Map<number, { st: string; anim: VBoss['anim']; at: number; scale: number }>();
   private bossSeen = false;
   private readonly buffTotal = new Map<string, number>();
+  /** перезарядка оружий для HUD: полная (шагов) — с последнего выстрела, выстрелов всего */
+  private readonly wcd = new Map<string, { max: number; prev: number; fires: number; idle: boolean }>();
 
   constructor(seed: number) {
     this.sim = createRun(seed);
@@ -155,6 +158,7 @@ export class SimRun implements RunSource {
     this.fx = [];
     for (const f of this.sim.fx) this.onFx(f);
     this.trackBoss();
+    this.trackWeapons();
     // новые снаряды — звук выстрела
     let ember = false;
     let pick = false;
@@ -170,6 +174,42 @@ export class SimRun implements RunSource {
 
   hash(): number {
     return dgHash(this.sim);
+  }
+
+  /**
+   * Перезарядка оружий: симуляция хранит только «шагов до выстрела» (cd). Выстрел — cd подскочил: это и есть полная
+   * перезарядка. Подскок до 10 шагов — «некого бить, проверю позже» (Маяк), это не выстрел: значок просто готов.
+   */
+  private trackWeapons(): void {
+    for (const w of this.sim.weapons) {
+      let r = this.wcd.get(w.id);
+      if (!r) this.wcd.set(w.id, (r = { max: 0, prev: w.cd, fires: 0, idle: false }));
+      if (w.cd > r.prev) {
+        if (w.cd > 10) {
+          r.max = w.cd;
+          r.fires++;
+          r.idle = false;
+        } else r.idle = true;
+      }
+      r.prev = w.cd;
+    }
+  }
+
+  private weaponHud(w: DgSim['weapons'][number]): HudItem {
+    const it = weaponItem(w.id, w.lv, w.evo === 1);
+    const r = this.wcd.get(w.id);
+    const always = w.id === 'fireflies' || (w.id === 'beam' && w.evo === 1);
+    it.cd01 = always ? -1 : !r || r.idle || r.max <= 0 || w.cd <= 0 ? 1 : Math.max(0, Math.min(1, 1 - w.cd / r.max));
+    it.fires = r?.fires ?? 0;
+    if (!w.evo && w.lv >= (WEAPONS[w.id]?.max ?? 7)) {
+      if (this.sim.evoReady.includes(w.id)) it.evoReady = true;
+      else {
+        const e = evoOf(w.id);
+        const p = e ? PASSIVES[e.with] : undefined;
+        if (e && p && !this.sim.passives.some((x) => x.id === e.with)) it.need = { id: e.with, icon: p.icon, name: p.name };
+      }
+    }
+    return it;
   }
 
   result(): DgResult {
@@ -505,10 +545,12 @@ export class SimRun implements RunSource {
       xp01: h.xpNext > 0 ? Math.min(1, h.xp / h.xpNext) : 0,
       kills: sim.stats.kills,
       buffs,
-      weapons: sim.weapons.map((x) => weaponItem(x.id, x.lv, x.evo === 1)),
+      weapons: sim.weapons.map((x) => this.weaponHud(x)),
       passives: sim.passives.map((x) => ({ id: x.id, icon: PASSIVES[x.id]?.icon ?? '•', name: PASSIVES[x.id]?.name ?? x.id, lv: x.lv, max: PASSIVES[x.id]?.max ?? 5 })),
       dash01: h.dashCdMax > 0 ? 1 - h.dashCd / h.dashCdMax : 1,
       q01: h.qCdMax > 0 ? 1 - h.qCd / h.qCdMax : 1,
+      dashLeft: Math.max(0, h.dashCd) * DT,
+      qLeft: Math.max(0, h.qCd) * DT,
       cards: ch ? { cards: ch.cards.map((c) => cardView(sim, c)), index: Math.max(1, ch.n), total: Math.max(1, ch.n + ch.left), rerolls: forge ? 0 : sim.rerolls, banishes: forge ? 0 : sim.banishes } : null,
       chest: chestView(sim),
       breather: pre ? breatherOf(w.n, w.t1 > 0 ? Math.max(0, (w.t1 - t) * DT) : 0, this.bossNameFor(w.n)) : null,
@@ -537,7 +579,7 @@ function breatherOf(n: number, left: number, bossName: string): NonNullable<DgVi
     for (const k of Object.keys(def.mobs)) kinds.add(k);
     for (const k of Object.keys(def.elites ?? {})) kinds.add(k);
   }
-  const mobs = [...kinds].filter((k) => k in MOBS).map((k) => MOBS[k as MobKind]);
+  const mobs = [...kinds].filter((k) => k in MOBS).map((k) => ({ id: k, ...MOBS[k as MobKind] }));
   const boss = n % 10 === 0;
   const ev = def?.events.filter((e) => e.type !== 'pack').map((e) => e.text) ?? [];
   return { left, next: n, mobs, event: boss ? `Босс — ${bossName}` : ev.slice(0, 2).join(' · ') };

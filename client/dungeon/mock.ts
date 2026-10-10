@@ -774,6 +774,8 @@ export class MockRun implements RunSource {
       passives: items(this.passives, PASSIVES),
       dash01: 1 - h.dashCd / 3,
       q01: 1 - h.qCd / 9,
+      dashLeft: Math.max(0, h.dashCd),
+      qLeft: Math.max(0, h.qCd),
       cards: this.cards ? { cards: this.cards.map((c) => this.cardView(c)), index: this.cardsTotal - this.pendingCards, total: this.cardsTotal, rerolls: this.rerolls, banishes: this.banishes } : null,
       chest: this.chest,
       breather: this.stage === 'breather' ? { left: this.stageT, next: this.wave, mobs: [...new Set(next)].map((k) => MOBS[k]), event: this.wave === 10 ? 'Босс — Старый Повидл' : this.wave === 4 ? 'Элита — Бочар' : 'Налёт мышей' } : null,
