@@ -530,7 +530,7 @@ function journal(pick: (r: FishRule) => boolean): number[] {
 export const COLLECTION: readonly number[] = journal((r) => r.zone !== 'isle');
 /** Сколько видов в коллекции (52): число не зашито — растёт с таблицей (без видов острова) */
 export const COLLECTION_SIZE = COLLECTION.length;
-/** Виды острова «Последний свет» по порядку журнала — свой счётчик «Остров: N из 20» (shared/islestyle.ts) */
+/** Виды острова «Последний свет» по порядку журнала — свой счётчик «Остров: N из 20» (shared/islestyle.ts isleCaught, тот же список — ISLE_SPECIES) */
 export const ISLE_COLLECTION: readonly number[] = journal((r) => r.zone === 'isle');
 /** Сколько видов у острова (20) */
 export const ISLE_SIZE = ISLE_COLLECTION.length;

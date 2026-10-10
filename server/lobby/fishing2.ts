@@ -33,7 +33,7 @@ import {
 import { spotZone, type FishZone } from '../../shared/fishplaces.ts';
 import { ISLE, ISLE_LEVEL_HINT, ISLE_MIN_LEVEL, castZone } from '../../shared/fishisle.ts';
 import { catchFullHint, livewellCap } from '../../shared/fishlivewell.ts';
-import { isleCount } from '../../shared/islestyle.ts';
+import { isleCaught } from '../../shared/islestyle.ts';
 import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
@@ -530,7 +530,7 @@ export class FishingHall2 {
       t: 'fishLand', sp: s.sp, g: s.g, price, coins: s.coins, bonus, fresh: news.fresh, record: news.record, best, got, full,
       ...(fish ? { base: basePrice(s.sp, s.g), m, xp, gr: grade, er: errors, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
       ...(well ? { well: prof.fishing.livewell?.length ?? 0, wcap: livewellCap(prof.fishing) } : {}),
-      ...(rule.zone === 'isle' ? { isle: isleCount(prof.album) } : {}),
+      ...(rule.zone === 'isle' ? { isle: isleCaught(prof) } : {}),
       ...(ladder?.items.length ? { rw: ladder.items } : {}),
       ...(lord ? { lord: true } : {}),
     });

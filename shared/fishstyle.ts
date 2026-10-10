@@ -1,7 +1,10 @@
 // Награды рыбалки (выпуск 7): лестница по числу видов в журнале рыбака — каждые 5 видов что-то новое, финал — за все
 // виды. Пороги фиксированные; порог выше числа видов в коде сливается с финалом. Выдаёт сервер (server/fishstyle.ts)
 // при входе и после каждого улова; выданное не отнимается — добавят виды, полученное останется.
+// Остров «Последний свет» (флаг ISLE) — своя лестница ISLE_LADDER по видам острова: награда каждые 4 вида, сет — за все 20;
+// лестница 52 видов пристани и баркаса её не считает.
 import { COLLECTION } from './fishrules.ts';
+import { ISLE_TOTAL } from './islestyle.ts';
 import { EXTRA_SLOTS, itemById, type Outfit, type Slot } from './outfit.ts';
 
 /** Порог «все виды» */
@@ -29,11 +32,26 @@ export const LADDER: readonly RewardStep[] = [
   { need: ALL, items: ['h:captain', 'a:tunic', 's:parrot', 'r:gold', 'b:goldfish', 'w:gold', 'n:anchor'], set: 'Хозяин глубин' },
 ];
 
+/**
+ * Лестница острова «Последний свет»: свой счётчик видов острова (isleCaught в shared/islestyle.ts), каждые 4 вида —
+ * награда, все 20 — сет «Смотритель маяка» (дизайн plans/2026-10-10-fishing-island.md §7).
+ */
+export const ISLE_LADDER: readonly RewardStep[] = [
+  { need: 4, items: ['b:bellbuoy'] },
+  { need: 8, items: ['r:lighthouse'] },
+  { need: 12, items: ['w:fog'] },
+  { need: 16, items: ['s:puffin'] },
+  { need: ISLE_TOTAL, items: ['h:keeper', 'a:keeper', 'n:lighthouse'], set: 'Смотритель маяка' },
+];
+
+/** Награды острова — по ним примерочная и журнал прячут вещи, пока остров выключен (ISLE) */
+export const ISLE_ITEMS: ReadonlySet<string> = new Set(ISLE_LADDER.flatMap((s) => s.items));
+
 /** Снасти и значок: надеваются сами при получении, меняются в журнале рыбака (J) где угодно на набережной */
 export const GEAR_SLOTS: readonly Slot[] = ['r', 'b', 'w', 'n'];
 
 /** Аксессуары рыбалки по телу и на поясе: в пейнтболе прячутся под командный жилет */
-export const SHELL_ACCS: ReadonlySet<string> = new Set(['angler', 'oilskin', 'tunic', 'kukan', 'net']);
+export const SHELL_ACCS: ReadonlySet<string> = new Set(['angler', 'oilskin', 'tunic', 'kukan', 'net', 'keeper']);
 
 /** Описание награды для журнала и примерочной: что это и как выглядит */
 export const REWARD_INFO: Readonly<Record<string, { kind: string; text: string }>> = {
@@ -59,6 +77,14 @@ export const REWARD_INFO: Readonly<Record<string, { kind: string; text: string }
   'b:goldfish': { kind: 'поплавок', text: 'Золотая рыбка торчком — искрит при падении' },
   'w:gold': { kind: 'окно вываживания', text: 'Золочёная рама и золотая зона' },
   'n:anchor': { kind: 'значок у ника', text: 'Золотой якорь у ника — видят все' },
+  // остров «Последний свет» (тексты — страница ревью, одобренная владельцем 10.10)
+  'b:bellbuoy': { kind: 'поплавок', text: 'Красно-белый буёк с огоньком наверху и колокольчиком: на поклёвке «дзынь»' },
+  'r:lighthouse': { kind: 'удочка', text: 'Бело-красная спираль, латунная катушка, огонёк на кончике вспыхивает раз в 6 с, как маяк' },
+  'w:fog': { kind: 'окно вываживания', text: 'Рама из выбеленного плавника с канатом, жемчужная вода, клочья тумана (рыбу не прячут), зона — тёплый луч маяка' },
+  's:puffin': { kind: 'питомец', text: 'Атлантический тупик на плече: моргает, вертит головой, на поимке держит в клюве мойву' },
+  'h:keeper': { kind: 'шапка', text: 'Вязаная шапка в бело-красную маячную полоску с помпоном' },
+  'a:keeper': { kind: 'аксессуар', text: 'Свитер-«норвежец» с узором-маяками и фонарь «летучая мышь» на поясе — светится' },
+  'n:lighthouse': { kind: 'значок у ника', text: 'Маленький маяк у ника мигает раз в 6 с — видят все' },
 };
 
 /** Видов в коллекции сейчас (вместе с видами баркаса); порог «все» — столько */
@@ -74,6 +100,22 @@ export function stepNeed(step: RewardStep, total = fishTotal()): number {
 /** Ступень, на которой выдают вещь; undefined — не награда коллекции */
 export function stepOf(itemId: string): RewardStep | undefined {
   return LADDER.find((s) => s.items.includes(itemId));
+}
+
+/** Награда острова за столько видов острова; null — не награда острова */
+export function isleNeedOf(itemId: string): number | null {
+  const s = ISLE_LADDER.find((st) => st.items.includes(itemId));
+  return s ? stepNeed(s, ISLE_TOTAL) : null;
+}
+
+/** Всё, что положено за got видов острова (по порядку лестницы острова) */
+export function isleEarned(got: number): string[] {
+  return ISLE_LADDER.filter((s) => got >= stepNeed(s, ISLE_TOTAL)).flatMap((s) => s.items);
+}
+
+/** Следующая ступень острова после got видов острова; null — всё собрано */
+export function isleNextStep(got: number): RewardStep | null {
+  return ISLE_LADDER.find((s) => got < stepNeed(s, ISLE_TOTAL)) ?? null;
 }
 
 /** Сколько видов нужно для вещи; null — не награда коллекции */

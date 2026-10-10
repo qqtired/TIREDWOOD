@@ -18,7 +18,8 @@ import { BAG_FULL_HINT } from '../shared/fishrelease.ts';
 import { FISH_XP_LEVELS, LIVEWELL_MAX, bagSlots, emptyFishProgress, fishCastMods, normalizeFishProgress, type BagFish } from '../shared/fishprogress.ts';
 import { ISLE, ISLE_CENTER, ISLE_WATERS_R, castZone, fishZoneAtSea, isleEnabled, setIsle } from '../shared/fishisle.ts';
 import { catchFullHint, catchRoom, catchValue, livewellCap } from '../shared/fishlivewell.ts';
-import { ISLE_LADDER, isleCount, isleEarned, isleNextStep } from '../shared/islestyle.ts';
+import { ISLE_SPECIES, ISLE_TOTAL, isleCaught } from '../shared/islestyle.ts';
+import { ISLE_LADDER, isleEarned, isleNextStep } from '../shared/fishstyle.ts';
 import { reelStart } from '../shared/fishreel.ts';
 import { Hub } from '../server/hub.ts';
 import { type FishingHall2 } from '../server/lobby/fishing2.ts';
@@ -65,8 +66,11 @@ test('пул острова: 20 видов (12 всегда + 8 только в 
   // счётчик: виды острова считаются только в своём счётчике
   const album = Object.fromEntries(ISLE_COLLECTION.map((s) => [FISH[s].id, [1000, 1] as const]));
   assert.equal(collectionCount(album), 0, 'коллекция 52 от видов острова не растёт');
-  assert.equal(isleCount(album), 20);
-  assert.equal(isleCount({ [FISH[sp('capelin')].id]: [20, 1], hamsa: [10, 1] }), 1);
+  assert.equal(isleCaught({ album }), 20);
+  assert.equal(isleCaught({ album: { [FISH[sp('capelin')].id]: [20, 1], hamsa: [10, 1] } }), 1);
+  // счётчик косметики острова (пакет E, shared/islestyle.ts) — те же 20 видов, что в таблицах
+  assert.equal(ISLE_TOTAL, ISLE_SIZE);
+  assert.deepEqual([...ISLE_SPECIES].sort(), ISLE_COLLECTION.map((s) => FISH[s].id).sort());
 });
 
 test('шансы острова: туман — как дождь (×1,5 редким и выше), сезон острова — ещё ×2; сундук и хлам — как везде; бросок даёт только виды острова', () => {

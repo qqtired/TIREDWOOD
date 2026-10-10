@@ -1,7 +1,7 @@
 // Журнал рыбака (рыбалка 2.0): все виды коллекции по категориям — картинка (ещё не пойманные — тёмный силуэт), имя,
 // категория подписью и цветом, сколько поймано и рекорд веса, цена; виды баркаса — с ⚓, виды дождя — с 🌧; фильтр
 // «Пристань / Баркас»; у вида — где и когда ловится и сколько поклёвок он даёт сейчас (с твоими бонусами). С флагом ISLE —
-// вкладка «🏝 Остров»: 20 видов острова со своим счётчиком «Остров: N из 20» и своей лестницей (shared/islestyle.ts).
+// вкладка «🏝 Остров»: 20 видов острова со своим счётчиком «Остров: N из 20» и своей лестницей (ISLE_LADDER в shared/fishstyle.ts, счёт — shared/islestyle.ts).
 // Ниже — находки (сапог, бутылка, сундуки) и старые находки прошлой рыбалки (золотая рыбка). Окно на набережной
 // (J или кнопка 📖) и сетка в профиле — одна и та же сетка.
 import { FISH, fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
@@ -9,7 +9,7 @@ import {
   COLLECTION, COLLECTION_SIZE, FISH_TIERS, ISLE_COLLECTION, ISLE_SIZE, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_DIVINE, biteShare,
   collectionCount, priceRange,
 } from '../../shared/fishrules.ts';
-import { nextStep, stepLabel, stepNeed } from '../../shared/fishstyle.ts';
+import { isleNextStep, nextStep, stepLabel, stepNeed } from '../../shared/fishstyle.ts';
 import { FishRewards, species } from './fishrewards.ts';
 import { el, fishPic } from '../lobby/fish2.ts';
 import { setCoinText } from './coin.ts';
@@ -18,7 +18,8 @@ import type { FishZone } from '../../shared/fishplaces.ts';
 import { BARKAS_LEVEL } from '../../shared/fishshop.ts';
 import { fishSkillBlock } from '../lobby/fishprogresshud.ts';
 import { ISLE, ISLE_MIN_LEVEL } from '../../shared/fishisle.ts';
-import { isleCount, isleNextStep, isleStepLabel } from '../../shared/islestyle.ts';
+import { isleCaught } from '../../shared/islestyle.ts';
+import { isleStepText } from '../lobby/fishfmt.ts';
 
 /** Фильтр журнала */
 export type BookZone = 'all' | FishZone;
@@ -243,12 +244,12 @@ export class FishBook {
     const isle = this.zone === 'isle' && this.tab === 'fish';
     if (isle) {
       // свой счётчик и своя лестница острова; коллекция 52 видов от них не растёт
-      const n = isleCount(album);
+      const n = isleCaught({ album });
       this.count.textContent = `Остров: ${n} из ${ISLE_SIZE}`;
       this.bar.style.width = `${Math.round((n / ISLE_SIZE) * 100)}%`;
       const next = isleNextStep(n);
       this.reward.textContent = next
-        ? `Следующая награда острова — ${isleStepLabel(next)}: ещё ${species(Math.min(next.need, ISLE_SIZE) - n)}`
+        ? `Следующая награда острова — ${isleStepText(next)}: ещё ${species(Math.min(next.need, ISLE_SIZE) - n)}`
         : '🎉 Все виды острова пойманы — сет «Смотритель маяка» твой';
       this.reward.classList.toggle('done', !next);
     } else {

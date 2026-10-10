@@ -6,7 +6,7 @@
 // или «Отпустить» (F, +50 % опыта, без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке. Первые 0,75 с
 // после вываживания кнопки притушены и не нажимаются (lockFor).
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
-import { isleNextStep, isleStepLabel } from '../../shared/islestyle.ts';
+import { isleNextStep } from '../../shared/fishstyle.ts';
 import { species } from '../ui/fishrewards.ts';
 import { BARKAS_INCOME, CHEST_ANNOUNCE, COLLECTION_SIZE, ISLE_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
@@ -19,7 +19,7 @@ import { TOUCH } from '../touch.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
-import { mul, pct } from './fishfmt.ts';
+import { isleStepText, mul, pct } from './fishfmt.ts';
 import { POSEIDON_TEXT, poseidonPic } from './fishtreasure.ts';
 import './fishrelease.css';
 import { errorsText, gradeClass, gradeMul, gradeName } from './fishgrade.ts';
@@ -128,12 +128,12 @@ export class CatchCard2 {
       if (!m.bagFull) this.choice(m);
     } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
     if (!junk && m.isle !== undefined) {
-      // вид острова: свой счётчик «Остров: N из 20» и своя лестница (shared/islestyle.ts); коллекция 52 видов не растёт
+      // вид острова: свой счётчик «Остров: N из 20» и своя лестница (ISLE_LADDER в shared/fishstyle.ts); коллекция 52 видов не растёт
       const col = card.appendChild(el('div', 'fc2-col'));
       col.appendChild(el('span', '', `🏝 Остров: ${m.isle} из ${ISLE_SIZE}`));
       col.appendChild(el('i', '')).appendChild(el('b', '')).style.width = `${Math.round((m.isle / ISLE_SIZE) * 100)}%`;
       const next = isleNextStep(m.isle);
-      const note = m.rw?.length ? catchRewardNote(m) : next ? el('div', 'frw-next', `До награды острова (${isleStepLabel(next)}) — ещё ${species(Math.min(next.need, ISLE_SIZE) - m.isle)}`) : null;
+      const note = m.rw?.length ? catchRewardNote(m) : next ? el('div', 'frw-next', `До награды острова (${isleStepText(next)}) — ещё ${species(Math.min(next.need, ISLE_SIZE) - m.isle)}`) : null;
       if (note) card.appendChild(note);
     } else if (!junk) {
       const col = card.appendChild(el('div', 'fc2-col'));
