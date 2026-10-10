@@ -11,8 +11,11 @@ export interface FishPlaceBox {
   z1: number;
 }
 
-/** Где место рыбалки: пристань (по умолчанию) или баркас в море — свой пул рыб, ×1,25 и злее рыба (shared/fishrules.ts). */
-export type FishZone = 'pier' | 'barkas';
+/**
+ * Где место рыбалки: пристань (по умолчанию), баркас в море — свой пул рыб, ×1,25 и злее рыба, или воды острова «Последний свет»
+ * (флаг ISLE, shared/fishisle.ts) — 20 своих видов, рыба ещё злее (shared/fishrules.ts).
+ */
+export type FishZone = 'pier' | 'barkas' | 'isle';
 
 export interface FishSpot {
   x: number;

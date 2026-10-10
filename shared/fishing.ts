@@ -113,6 +113,28 @@ export const FISH: readonly FishKind[] = [
   // 04.10: вес 700–3000 кг (был 500–2500): подиум дня — пять самых тяжёлых уловов по одной рыбе, и кальмар с 700 кг почти всегда в нём
   // (тяжелее 700 кг бывают лишь рыба-луна, гренландская акула, сельдяной король и большая белая — крупными и редко); цена — от доли веса
   { id: 'kalmar', name: 'Дальневосточный кальмар', acc: 'дальневосточного кальмара', rarity: R_LEGEND, g: [700_000, 3_000_000], price: [25, 60], w: 0, shape: 'squid', c: [0xb5523a, 0xf1d9c8] },
+  // Остров «Последний свет» (zone 'isle', shared/fishrules.ts; флаг сервера ISLE): 12 видов всегда и 8 только в туман. Свой счётчик
+  // «Остров: N из 20» (shared/islestyle.ts) — в коллекцию 52 видов не входят. Только в конец, ключи альбома не менять.
+  { id: 'capelin', name: 'Мойва', acc: 'мойву', rarity: R_COMMON, g: [15, 60], price: [1, 1], w: 0, shape: 'fish', c: [0x4f7f8f, 0xe8f0f2] },
+  { id: 'smelt', name: 'Корюшка', acc: 'корюшку', rarity: R_COMMON, g: [30, 250], price: [1, 1], w: 0, shape: 'fish', c: [0x6f8f86, 0xeef3ee] },
+  { id: 'navaga', name: 'Навага', acc: 'навагу', rarity: R_COMMON, g: [80, 700], price: [1, 1], w: 0, shape: 'fish', c: [0x7a7258, 0xe9e4d2] },
+  { id: 'lanternfish', name: 'Светящийся анчоус', acc: 'светящегося анчоуса', rarity: R_COMMON, g: [5, 25], price: [1, 1], w: 0, shape: 'fish', c: [0x2e3f5a, 0x9fe6ff] },
+  { id: 'lumpfish', name: 'Пинагор', acc: 'пинагора', rarity: R_RARE, g: [1000, 6000], price: [1, 1], w: 0, shape: 'fish', c: [0x6f7a3e, 0xe0b25a] },
+  { id: 'saithe', name: 'Сайда', acc: 'сайду', rarity: R_RARE, g: [800, 15_000], price: [1, 1], w: 0, shape: 'fish', c: [0x3d4f5c, 0xdfe5e8] },
+  { id: 'grenadier', name: 'Макрурус', acc: 'макруруса', rarity: R_RARE, g: [500, 4500], price: [1, 1], w: 0, shape: 'long', c: [0x7d7a72, 0xd8d4c8] },
+  { id: 'lamprey', name: 'Морская минога', acc: 'морскую миногу', rarity: R_RARE, g: [400, 2500], price: [1, 1], w: 0, shape: 'eel', c: [0x5e5a3e, 0xc9c3a0] },
+  { id: 'salmon', name: 'Сёмга', acc: 'сёмгу', rarity: R_EPIC, g: [2000, 30_000], price: [1, 1], w: 0, shape: 'fish', c: [0x4a6a7a, 0xf1ece4] },
+  { id: 'ling', name: 'Мольва', acc: 'мольву', rarity: R_EPIC, g: [3000, 35_000], price: [1, 1], w: 0, shape: 'eel', c: [0x6a6448, 0xd9d2b8] },
+  { id: 'chimaera', name: 'Химера', acc: 'химеру', rarity: R_EPIC, g: [500, 2500], price: [1, 1], w: 0, shape: 'long', c: [0x8a7f74, 0xd9dce0] },
+  { id: 'roughy', name: 'Большеголов', acc: 'большеголова', rarity: R_EPIC, g: [1000, 7000], price: [1, 1], w: 0, shape: 'fish', c: [0xd0603a, 0xf3c09a] },
+  { id: 'opah', name: 'Опах', acc: 'опаха', rarity: R_LEGEND, g: [20_000, 200_000], price: [1, 1], w: 0, shape: 'fish', c: [0x9a4a6a, 0xd9564a] },
+  { id: 'albacore', name: 'Тунец-альбакор', acc: 'тунца-альбакора', rarity: R_LEGEND, g: [8000, 60_000], price: [1, 1], w: 0, shape: 'fish', c: [0x22406a, 0xe4ebf0] },
+  { id: 'coelacanth', name: 'Латимерия', acc: 'латимерию', rarity: R_LEGEND, g: [30_000, 110_000], price: [1, 1], w: 0, shape: 'fish', c: [0x2f4a6a, 0x8fa8b8] },
+  { id: 'goblinshark', name: 'Акула-домовой', acc: 'акулу-домового', rarity: R_LEGEND, g: [40_000, 210_000], price: [1, 1], w: 0, shape: 'shark', c: [0xc99a96, 0xf0dcd8] },
+  { id: 'beluga', name: 'Белуга', acc: 'белугу', rarity: R_LEGEND, g: [300_000, 1_500_000], price: [1, 1], w: 0, shape: 'shark', c: [0x56606a, 0xdfe2e0] },
+  { id: 'thresher', name: 'Лисья акула', acc: 'лисью акулу', rarity: R_LEGEND, g: [100_000, 500_000], price: [1, 1], w: 0, shape: 'shark', c: [0x5a5f7a, 0xeeeef2] },
+  { id: 'baskingshark', name: 'Гигантская акула', acc: 'гигантскую акулу', rarity: R_LEGEND, g: [900_000, 3_800_000], price: [1, 1], w: 0, shape: 'shark', c: [0x5d5a55, 0xbdb6aa] },
+  { id: 'frilledshark', name: 'Плащеносная акула', acc: 'плащеносную акулу', rarity: R_LEGEND, g: [700_000, 2_800_000], price: [1, 1], w: 0, shape: 'eel', c: [0x6b5e52, 0xb9aa98] },
 ];
 
 /** Номер золотой рыбки: её не продают, а отпускают — за желание */

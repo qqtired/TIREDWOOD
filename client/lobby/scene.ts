@@ -88,7 +88,6 @@ import { FishingSpots } from './fishing.ts';
 import { fishMasterCheer } from './fishgear.ts';
 import { addFishPlaces3d } from './fishplaces3d.ts';
 import { fishSpotOnOff, fishSpotOnSnapshot } from './fishspot.ts';
-import { BAG_FULL_HINT } from '../../shared/fishrelease.ts';
 import { FishHouse3D } from './fishhouse.ts';
 import { FishDrink } from './fishdrink.ts';
 import { FishHolds } from './fishhold.ts';
@@ -872,7 +871,7 @@ export class LobbyScene implements Scene {
         this.onGather('hide', msg.hide ?? null);
         this.world.kartStart.update(msg.kart);
         // рыбалка 2.0 — до мест рыбалки: вываживание в 3D у неё своё
-        if (this.fish2.lobby(msg.fish2 === 1, msg.ftop ?? null, msg.rain === 1)) this.d.renderer.refreshShadows();
+        if (this.fish2.lobby(msg.fish2 === 1, msg.ftop ?? null, msg.rain === 1, msg.isle === 1)) this.d.renderer.refreshShadows();
         for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, this.fish2.on);
         this.fishing.v2 = this.fish2.on;
         this.folk.setV2(this.fish2.on);
@@ -2125,7 +2124,7 @@ export class LobbyScene implements Scene {
       if (this.fish2.on && (this.fish2.inputLocked || this.fish2.choosing)) return;
       // рюкзак полон — заброс не уйдёт (сервер решил бы так же): сразу подсказка — продать или отпустить из рюкзака
       if (this.fish2.on && this.fish2.bagFull) {
-        this.d.ui.toasts.show(TOUCH ? BAG_FULL_HINT.replace('(I)', '(🎒)') : BAG_FULL_HINT, 3600);
+        this.d.ui.toasts.show(TOUCH ? this.fish2.fullHint.replace('(I)', '(🎒)') : this.fish2.fullHint, 3600);
         this.fishSentAt = now;
         return;
       }
@@ -2745,7 +2744,7 @@ export class LobbyScene implements Scene {
     const ph = this.fishing.phaseOf(this.arg);
     const h = this.hud;
     const cast = TOUCH ? ['🎣'] : ['Пробел', '/', 'ЛКМ'];
-    if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(TOUCH ? [] : ['I'], 'Рюкзак полон — продай улов Семёну или Сане или отпусти рыбу из рюкзака');
+    if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(TOUCH ? [] : ['I'], this.fish2.fullHint.replace(' (I)', ''));
     else if (ph === FP_IDLE) h.setHint(cast, TOUCH ? 'Забросить' : `забросить · ${this.fish2.on ? 'J — журнал · I — рюкзак · ' : ''}E или шаг — уйти`);
     else if (ph === FP_CAST) h.setHint([], 'Заброс…');
     else if (ph === FP_WAIT) h.setHint([], TOUCH ? 'Ждём поклёвку' : 'Ждём поклёвку: поплавок уйдёт под воду — тогда жми Пробел');

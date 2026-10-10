@@ -565,6 +565,7 @@ export class LobbyRoom implements Room {
       rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
+      ...(this.fishing2 && this.hub.isle ? { isle: 1 } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.plane ? { plane: this.plane.view() } : {}),

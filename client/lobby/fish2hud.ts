@@ -4,7 +4,9 @@
 // приветствии всё молчит, и работает старая рыбалка.
 import type * as THREE from 'three';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
-import { bagSlots, fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
+import { fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
+import { catchFullHint, catchRoom } from '../../shared/fishlivewell.ts';
+import { ISLE, castZone, setIsle } from '../../shared/fishisle.ts';
 import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
@@ -30,7 +32,7 @@ import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
-import { CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
+import { BAG_FULL_HINT, CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -70,6 +72,9 @@ export class Fish2Hud {
   private readonly send: (msg: ClientMsg) => void;
   private top: FishBoardView | null = null;
   private rain = false;
+  /** Остров (флаг ISLE): туман и сезон острова — свои события, ставит пакет острова; «Шансы сейчас» у острова считают по ним */
+  isleFog = false;
+  isleSeason = false;
   private quiet = false;
   private eventUntil = 0;
   /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
@@ -133,16 +138,21 @@ export class Fish2Hud {
   get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
   get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
 
-  /** Рюкзак полон — заброс не уйдёт (сервер скажет то же самое) */
+  /** Рыбу некуда положить (рюкзак полон, а лайвела своей лодки нет или он полон) — заброс не уйдёт (сервер скажет то же самое) */
   get bagFull(): boolean {
-    const f = this.ui.me().fishing;
-    return f.bag.length >= bagSlots(f);
+    return catchRoom(this.ui.me().fishing) === null;
+  }
+
+  /** Почему заброс не уходит, когда bagFull: без лодки — как раньше, с лодкой — рюкзак и лайвел полны */
+  get fullHint(): string {
+    return catchFullHint(this.ui.me().fishing, ISLE.on) ?? BAG_FULL_HINT;
   }
 
   /** Приветствие набережной: включена ли, доска рекордов, дождь. true — доска только что появилась (пересчитать тени). */
-  lobby(on: boolean, top: FishBoardView | null, rain: boolean): boolean {
+  lobby(on: boolean, top: FishBoardView | null, rain: boolean, isle = false): boolean {
     const was = this.board.group.visible;
     FISH2.on = on;
+    setIsle(on && isle);
     this.board.group.visible = on;
     this.podium.group.visible = on;
     this.fisherman.group.visible = on;
@@ -178,7 +188,7 @@ export class Fish2Hud {
 
   /** Журналу — погода и сезон для «сейчас N% поклёвок» (как «Шансы сейчас») */
   private bookWeather(now = this.clock.now()): void {
-    this.book.setWeather(this.rain || this.season, now, this.season);
+    this.book.setWeather(this.rain || this.season, now, this.season, this.isleFog || this.isleSeason, this.isleSeason);
   }
 
   /** Идёт ли сезон рыбалки по часам сервера */
@@ -397,11 +407,13 @@ export class Fish2Hud {
     this.tools.classList.toggle('show', (fishing || near) && !this.modalOpen);
     // «Шансы сейчас» — пока сидишь с удочкой, не тянешь рыбу и не смотришь карточку улова (она встаёт на то же место
     // справа и перекрывала бы шансы); место (пристань/баркас) — по своему месту
-    const zone = fishing ? spotZone(spot) : 'pier';
+    // в море (баркас, лодка на якоре) пул — по точке: в водах острова клюёт остров (shared/fishisle.ts)
+    const zone = !fishing ? 'pier' : px !== null && pz !== null ? castZone(spotZone(spot), px, pz) : spotZone(spot);
     this.progress.setZone(zone);
     const odds = fishing && !this.reel.active && !this.card.shown;
     this.odds.root.hidden = !odds;
-    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), this.rain || this.season, this.season);
+    const isle = zone === 'isle';
+    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), isle ? this.isleFog || this.isleSeason : this.rain || this.season, isle ? this.isleSeason : this.season);
     this.plates();
   }
 

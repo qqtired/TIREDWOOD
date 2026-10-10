@@ -164,11 +164,12 @@ test('кальмар в подиуме дня: с 700 кг он тяжелее �
   const k = sp('kalmar');
   const SQUID_MIN = FISH[k].g[0];
   // кроме кальмара, выше 700 кг вырастают только эти виды
-  const giants = FISH.map((f, i) => ({ f, i })).filter(({ f, i }) => i !== k && f.g[1] > SQUID_MIN).map(({ f }) => f.id).sort();
+  // (10.10: виды острова «Последний свет» — свой подиум-гигант: белуга, гигантская и плащеносная акулы тяжелее; здесь — пристань и баркас)
+  const giants = COLLECTION.filter((i) => i !== k && FISH[i].g[1] > SQUID_MIN).map((i) => FISH[i].id).sort();
   // 'hammerhead' — большая белая акула (обмен 10.10), 'whiteshark' — теперь рыба-молот до 400 кг
   assert.deepEqual(giants, ['greenlandshark', 'hammerhead', 'oarfish', 'sunfish']);
   // и тяжелее кальмара любого веса — никто: самый крупный из них 1,5 т, а кальмар до 3 т
-  assert.ok(Math.max(...FISH.filter((_, i) => i !== k).map((f) => f.g[1])) < FISH[k].g[1]);
+  assert.ok(Math.max(...COLLECTION.filter((i) => i !== k).map((i) => FISH[i].g[1])) < FISH[k].g[1]);
   // шанс, что чужая поклёвка тяжелее самого лёгкого кальмара: меньше 1,5 % на любом месте и в любую погоду (до 10.10 было 1 %, см. ниже)
   // (04.10 мифики клюют чаще — у новичка на баркасе 0,67 %, в дождь 0,79 %)
   for (const zone of ['pier', 'barkas'] as const) for (const rain of [false, true]) {
