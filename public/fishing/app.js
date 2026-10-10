@@ -3,7 +3,7 @@
 // Цифры ниже выгружены из кода игры; проверка — сверка со всеми сочетаниями настроек.
 'use strict';
 var FishCalc = (function () {
-  var D = {"BASE":{"pier":[0.5677466037466037,0.2751322751322751,0.10582010582010581,0.03597883597883598,0.010673530673530673,0.004648648648648649],"barkas":[0.5681351351351351,0.275,0.106,0.036,0.010324324324324324,0.00454054054054054]},"LEVEL_ODDS":0.025,"LEVEL_MAX":15,"SEASON_MUL":2,"RAIN_MUL":1.5,"EPIC_MAX":1.15,"COMMON_FLOOR":0.05,"JUNK":450,"CHEST":300,"VODKA_ZONE":0.8,"lures":[null,{"epic":1.03},{"epic":1.05},{"epic":1.1},{"epic":1.15}],"drinks":[null,{"rare":1.2},{"rare":1.3},{"rare":1.4},{"rare":1,"top":2}]};
+  var D = {"BASE":{"pier":[0.5677466037466037,0.2751322751322751,0.10582010582010581,0.03597883597883598,0.010673530673530673,0.004648648648648649],"barkas":[0.5681351351351351,0.275,0.106,0.036,0.010324324324324324,0.00454054054054054],"isle":[0.5146926866443482,0.28197381671701915,0.1309164149043303,0.0553877139979859,0.012380719087667729,0.004648648648648649]},"LEVEL_ODDS":0.025,"LEVEL_MAX":15,"SEASON_MUL":2,"RAIN_MUL":1.5,"EPIC_MAX":1.15,"COMMON_FLOOR":0.05,"JUNK":450,"CHEST":300,"VODKA_ZONE":0.8,"ISLE_LEVEL":6,"lures":[null,{"epic":1.03},{"epic":1.05},{"epic":1.1},{"epic":1.15}],"drinks":[null,{"rare":1.2},{"rare":1.3},{"rare":1.4},{"rare":1,"top":2}]};
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
   // Снимок бонусов заброса: как fishCastMods (шанс растёт с уровнем до D.LEVEL_MAX)
   function mods(o) {
@@ -34,7 +34,7 @@ var FishCalc = (function () {
   // отдают обычные (до пола COMMON_FLOOR), потом редкие…
   function odds(o) {
     var m = mods(o);
-    var base = D.BASE[o.zone === 'barkas' ? 'barkas' : 'pier'];
+    var base = D.BASE[o.zone] || D.BASE.pier;
     var w = o.weather;
     var out = [0, 0, 0, 0, 0, 0];
     var left = 1 - D.COMMON_FLOOR;
@@ -88,6 +88,7 @@ if (typeof document !== 'undefined') (function () {
   function render() {
     var o = read();
     if (o.zone === 'barkas' && o.level < 3) { lvl.value = '3'; o.level = 3; }
+    if (o.zone === 'isle' && o.level < D.ISLE_LEVEL) { lvl.value = String(D.ISLE_LEVEL); o.level = D.ISLE_LEVEL; }
     lvlOut.textContent = String(o.level);
     var r = FishCalc.odds(o);
     bar.innerHTML = '';
@@ -115,6 +116,7 @@ if (typeof document !== 'undefined') (function () {
     if (r.capped) notes.push('<b>Потолок.</b> Редкие и выше заняли всё, что можно, — ' + Math.round((1 - D.COMMON_FLOOR) * 100) + ' % рыбы: обычным остался пол, ' + Math.round(D.COMMON_FLOOR * 100) + ' % (так пикарель в дождь ловится у всех). Старшие категории взяли свою долю целиком, нехватку отдали младшие — сначала обычные, потом редкие. Каждый бонус всё равно сдвигает улов к крупной рыбе.');
     if (o.drink === 4) notes.push('<b>Водка:</b> эпик и выше (с божественной) ×2, но зона на шкале ' + (D.VODKA_ZONE === 0.5 ? 'вдвое меньше' : 'на ' + Math.round((1 - D.VODKA_ZONE) * 100) + ' % меньше') + ', а ты пьян (зона по инерции, икота, моргание) — вытащить труднее.');
     if (o.zone === 'barkas') notes.push('<b>Баркас</b> пускает с 3-го уровня. Рыба там своя и злее, зато платит и даёт опыта ×1,25.');
+    if (o.zone === 'isle') notes.push('<b>Остров «Последний свет»</b> — с ' + D.ISLE_LEVEL + '-го уровня, на своей лодке. Там всегда туман: «дождь» в калькуляторе — это «Туман наступает», сезон — сезон острова (нечётные часы по Москве). Рыба самая злая, зато самая дорогая, опыт ×2.');
     hint.innerHTML = notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');
   }
   form.addEventListener('input', render);

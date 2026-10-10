@@ -13,6 +13,7 @@ import {
 } from '../../shared/fishprogress.ts';
 import { ALE, BAGS, BEER, LURES, VODKA, gearState, type GearState } from '../../shared/fishshop.ts';
 import { RAIN_MUL, fmtCatch } from '../../shared/fishrules.ts';
+import { catchValue, livewellCap, livewellOf } from '../../shared/fishlivewell.ts';
 import type { ClientMsg, FishNpcAction, ServerMsg } from '../../shared/messages.ts';
 import type { MeState } from '../scene.ts';
 import { setCoinText } from '../ui/coin.ts';
@@ -108,6 +109,12 @@ export class FishNpcDialog {
   private readonly sellHead: HTMLElement;
   private readonly sellList: HTMLElement;
   private readonly sellAll: HTMLButtonElement;
+  /** Лайвел своей лодки (флаг ISLE): своя строка с продажей лайвела и «всего» — рюкзак и лайвел разом */
+  private readonly wellBox: HTMLElement;
+  private readonly wellHead: HTMLElement;
+  private readonly wellAll: HTMLButtonElement;
+  private readonly everyAll: HTMLButtonElement;
+  private readonly wellList: HTMLElement;
   private readonly send: (msg: ClientMsg) => void;
   private readonly me: () => MeState;
   private readonly clock = new FishClock();
@@ -245,8 +252,20 @@ export class FishNpcDialog {
     this.sellAll = sh.appendChild(el('button', 'fn-action'));
     this.sellAll.type = 'button';
     this.sellAll.addEventListener('click', () => this.request('sellAll'));
-    sell.appendChild(el('p', 'fn-fine', 'Цена каждой рыбы зафиксирована при поимке: напиток, баркас и дождь уже внутри. Опыт ты получил сразу.'));
+    sell.appendChild(el('p', 'fn-fine', 'Цена каждой рыбы зафиксирована при поимке: напиток, баркас, дождь и туман уже внутри. Опыт ты получил сразу.'));
     this.sellList = sell.appendChild(el('div', 'fe-sell'));
+    // лайвел своей лодки: рюкзак полон — рыба там (shared/fishlivewell.ts); виден, если есть лодка или рыба в нём
+    this.wellBox = sell.appendChild(el('div', 'fe-wellbox'));
+    const wh = this.wellBox.appendChild(el('div', 'fn-section-head'));
+    this.wellHead = wh.appendChild(el('h3', ''));
+    const wb = wh.appendChild(el('div', 'fe-wellbtns'));
+    this.wellAll = wb.appendChild(el('button', 'fn-action'));
+    this.wellAll.type = 'button';
+    this.wellAll.addEventListener('click', () => this.request('sellWell'));
+    this.everyAll = wb.appendChild(el('button', 'fn-action'));
+    this.everyAll.type = 'button';
+    this.everyAll.addEventListener('click', () => this.request('sellEvery'));
+    this.wellList = this.wellBox.appendChild(el('div', 'fe-sell'));
 
     const footer = this.root.appendChild(el('footer', 'fn-footer'));
     const feedback = footer.appendChild(el('div', 'fn-feedback'));
@@ -333,7 +352,7 @@ export class FishNpcDialog {
     if (msg.open && !this.isOpen && this.allowOpen) {
       this.npc = msg.npc;
       this.status.textContent = '';
-      this.tab = this.wantTab ?? (msg.progress.bag.length > 0 ? 'sell' : 'quests');
+      this.tab = this.wantTab ?? (msg.progress.bag.length + livewellOf(msg.progress).length > 0 ? 'sell' : 'quests');
       this.wantTab = null;
       this.sellKey = '';
       this.render();
@@ -470,7 +489,9 @@ export class FishNpcDialog {
     }
     for (const [id, x] of this.extraTabs) if (id === this.tab) x.render(this.panels.get(id)!, p, busy);
     this.tabBtns.get('quests')!.classList.toggle('dot', ready);
-    this.tabBtns.get('sell')!.querySelector('.fe-tab-n')!.textContent = p.bag.length ? String(p.bag.length) : '';
+    const well = livewellOf(p);
+    const caught = p.bag.length + well.length;
+    this.tabBtns.get('sell')!.querySelector('.fe-tab-n')!.textContent = caught ? String(caught) : '';
 
     // --- квесты
     this.skill.replaceChildren(fishSkillBlock(p));
@@ -552,10 +573,24 @@ export class FishNpcDialog {
     this.sellHead.textContent = `Рюкзак · ${p.bag.length} из ${bagSlots(p)}`;
     setCoinText(this.sellAll, p.bag.length ? `Продать всё · ${num(total)} 🪙` : 'Продать всё');
     this.sellAll.disabled = busy || !p.bag.length;
-    const key = `${busy}|${p.bag.map((f) => f.n).join(',')}`;
+    const cap = livewellCap(p);
+    const showWell = cap > 0 || well.length > 0;
+    this.wellBox.hidden = !showWell;
+    if (showWell) {
+      setCoinText(this.wellHead, `🛶 Лайвел лодки · ${well.length} из ${cap}`);
+      setCoinText(this.wellAll, well.length ? `Продать лайвел · ${num(catchValue(p, 'well'))} 🪙` : 'Продать лайвел');
+      this.wellAll.disabled = busy || !well.length;
+      setCoinText(this.everyAll, caught ? `Продать всё · ${num(catchValue(p, 'all'))} 🪙` : 'Продать всё');
+      this.everyAll.disabled = busy || !caught;
+      // «Продать всё» рюкзака — тогда только рюкзак: рядом есть «всё» с лайвелом
+      setCoinText(this.sellAll, p.bag.length ? `Продать рюкзак · ${num(total)} 🪙` : 'Продать рюкзак');
+    }
+    const key = `${busy}|${p.bag.map((f) => f.n).join(',')}|${well.map((f) => f.n).join(',')}`;
     if (key !== this.sellKey) {
       this.sellKey = key;
       this.sellList.replaceChildren(...(p.bag.length ? p.bag.map((f) => this.sellRow(f.n, f.f, f.g, f.p, f.m, busy)) : [el('p', 'fe-empty', 'Рюкзак пуст. Пойманная рыба ложится сюда по цене поимки.')]));
+      if (showWell) this.wellList.replaceChildren(...(well.length ? well.map((f) => this.sellRow(f.n, f.f, f.g, f.p, f.m, busy))
+        : [el('p', 'fe-empty', 'Лайвел пуст. Рюкзак полон — рыба ложится сюда, по той же цене поимки.')]));
     }
   }
 
@@ -587,7 +622,7 @@ export class FishNpcDialog {
     const info = row.appendChild(el('div', 'fe-row-info'));
     info.appendChild(el('b', '', FISH[sp]?.name ?? id));
     info.appendChild(el('span', '', `${t.name} · ${fmtCatch(g)}`));
-    const marks = bagMarks(m);
+    const marks = bagMarks(m, id);
     if (marks.length) info.appendChild(el('span', 'fe-marks', marks.join(' · ')));
     setCoinText(row.appendChild(el('div', 'fe-row-price')), `${num(price)} 🪙`);
     const b = row.appendChild(el('button', 'fn-action', 'Продать'));

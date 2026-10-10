@@ -7,10 +7,14 @@
 import { FISH } from './fishing.ts';
 import type { FishZone } from './fishplaces.ts';
 import {
-  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, XP_SCALE, isCollected, ruleOf, tierRank,
+  BARKAS_XP, CONSOLATION_SHARE, CONSOLATION_TICKS, ISLE_DRAIN, ISLE_FIGHT, ISLE_XP, RAIN_XP, SEA_DRAIN, SEA_FIGHT, T_EPIC, T_LEGEND, XP_SCALE, isCollected,
+  ruleOf, tierRank,
 } from './fishrules.ts';
 import { ALE, BAGS, BAG_MAX, BEER, LORD, LURES, RAIN_DRUM_PRICE as DRUM_PRICE, VODKA, bagCapacity, lureOf, type ShopDrink } from './fishshop.ts';
 import { GRADE_PLAIN, gradeXp, type ReelGrade } from './fishreel.ts';
+
+/** Самый большой лайвел (у «Нортсильвера»): больше рыбы в лайвеле не хранится — shared/fishlivewell.ts */
+export const LIVEWELL_MAX = 75;
 
 /** Удочка за задания: 0 — обычная, 1 — продвинутая, 2 — профессиональная, 3 — мастерская, 4 — легендарная */
 export type FishRod = 0 | 1 | 2 | 3 | 4;
@@ -69,6 +73,11 @@ export interface FishProgress {
   lure: FishGear;
   bag: BagFish[];
   bagSeq: number;
+  /**
+   * Лайвел (садок) своей лодки (флаг ISLE, shared/fishlivewell.ts): рюкзак полон — рыба ложится сюда, по той же цене поимки;
+   * номера n — общие с рюкзаком (bagSeq). Мест — по лучшей купленной лодке (25/50/75). Нет — пуст (старые сохранения).
+   */
+  livewell?: BagFish[];
   /** Купленные лодки (id из shared/fishboat.ts, пакет лодок); нет — лодок нет */
   boats?: string[];
 }
@@ -82,7 +91,7 @@ export interface FishCastMods {
   rareMultiplier: number;
   /** Доход от рыбы: напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво подводного владыки) */
   incomeScale: number;
-  /** Где заброс: пристань или баркас (×1,25 к доходу и опыту, свой пул, злее рыба) */
+  /** Где заброс: пристань, баркас (×1,25 к доходу и опыту, свой пул, злее рыба) или остров (свой пул, опыт ×2, рыба ещё злее) */
   zone: FishZone;
   /** Напиток: 0 — нет, 1 — пиво, 2 — эль, 3 — пиво подводного владыки, 4 — водка рыбацкая */
   drink: FishDrink;
@@ -158,8 +167,14 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
     const f = bagFish(item);
     if (f && !seen.has(f.n) && bag.length < BAG_MAX) { seen.add(f.n); bag.push(f); }
   }
+  // лайвел: та же проверка рыбы, номера не повторяют рюкзак; рыбы сверх самого большого лайвела не бывает
+  const livewell: BagFish[] = [];
+  if (Array.isArray(r.livewell)) for (const item of r.livewell) {
+    const f = bagFish(item);
+    if (f && !seen.has(f.n) && livewell.length < LIVEWELL_MAX) { seen.add(f.n); livewell.push(f); }
+  }
   const boats = Array.isArray(r.boats) ? [...new Set(r.boats.filter((b): b is string => typeof b === 'string' && b.length > 0 && b.length <= 32))].slice(0, 8) : [];
-  const top = bag.reduce((m, f) => Math.max(m, f.n + 1), 0);
+  const top = [...bag, ...livewell].reduce((m, f) => Math.max(m, f.n + 1), 0);
   return {
     xp: count(r.xp), questsDone, questCaught: count(r.questCaught),
     rod: Math.min(selected, unlockedRod(questsDone)) as FishRod,
@@ -171,6 +186,7 @@ export function normalizeFishProgress(raw: unknown): FishProgress {
     lure: gear(r.lure, LURES.length),
     bag,
     bagSeq: Math.max(count(r.bagSeq), top),
+    ...(livewell.length ? { livewell } : {}),
     ...(boats.length ? { boats } : {}),
   };
 }
@@ -253,21 +269,21 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
   const drink = activeDrink(p, now);
   const d = drinkOf(drink);
   const lure = lureOf(p.lure);
-  // в море (баркас и воды острова) — тяжелее вываживать; остров до пакета D ловит пул баркаса (заглушка C)
-  const barkas = zone === 'barkas' || zone === 'isle';
+  const barkas = zone === 'barkas';
+  const isle = zone === 'isle';
   return {
     level, rod: p.rod,
     zoneScale: (1 + .025 * level) * (1 + bonus),
     biteSpeed: 1 + bonus,
     rareMultiplier: levelOdds(level) * rodOdds(p.rod) * (d?.rare ?? 1),
     incomeScale: d?.income ?? 1,
-    zone: barkas ? zone : 'pier',
+    zone: barkas ? 'barkas' : isle ? 'isle' : 'pier',
     drink,
     lure: p.lure,
     epicMultiplier: lure?.epic ?? 1,
     calm: lure?.calm ?? 0,
-    sea: barkas ? SEA_FIGHT : 1,
-    seaDrain: barkas ? SEA_DRAIN : 1,
+    sea: barkas ? SEA_FIGHT : isle ? ISLE_FIGHT : 1,
+    seaDrain: barkas ? SEA_DRAIN : isle ? ISLE_DRAIN : 1,
     ...(d?.top ? { topMultiplier: d.top } : {}),
     ...(d?.zone ? { zoneMul: d.zone } : {}),
     ...(d?.jerk ? { jerkMul: d.jerk } : {}),
@@ -287,7 +303,7 @@ export function fishCatchXp(sp: number, grade: ReelGrade = GRADE_PLAIN, mods?: R
   const difficulty = Math.min(110, Math.max(5, Math.round(30 + 100 * (1 - 300 / r.xpDifficulty))));
   let xp = r.xpBase ?? Math.trunc(3 + difficulty / 3);
   if (tierRank(r.tier) >= T_LEGEND) xp *= 5;
-  const place = mods?.zone === 'barkas' ? BARKAS_XP : 1;
+  const place = mods?.zone === 'barkas' ? BARKAS_XP : mods?.zone === 'isle' ? ISLE_XP : 1;
   const rank = tierRank(r.tier);
   const vodka = mods?.drink === 4 && rank >= T_EPIC ? VODKA.topXp ?? 1 : 1;
   return Math.max(1, Math.round(xp * XP_SCALE * place * (rain ? RAIN_XP : 1) * vodka * gradeXp(grade)));

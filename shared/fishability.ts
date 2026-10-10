@@ -8,7 +8,7 @@
 // как только их виды появятся в FISH/RULE (по id).
 import { FISH } from './fishing.ts';
 import { LURE_MAX } from './fishshop.ts';
-import { RULE, SEA_DRAIN, SEA_FIGHT, T_DIVINE, T_MYTH, isFishTier, ruleOf } from './fishrules.ts';
+import { ISLE_DRAIN, ISLE_FIGHT, ISLE_ZONE, RULE, SEA_DRAIN, SEA_FIGHT, T_DIVINE, T_MYTH, isFishTier, ruleOf } from './fishrules.ts';
 import type { FishCastMods } from './fishprogress.ts';
 import { SLACK_TICKS, type AbilitySpec, type ReelStyle } from './fishreel.ts';
 
@@ -241,8 +241,11 @@ export function reelStyle2(sp: number, mods?: Readonly<FishCastMods>, opts: Styl
   const lv = opts.noPerks ? levelBonus(0) : levelBonus(mods?.level ?? 0);
   const calm = mods?.calm !== undefined && Number.isFinite(mods.calm) ? Math.min(LURE_MAX.calm, Math.max(0, mods.calm)) : 0;
   const wild = fish && r.tier !== T_DIVINE;
-  const sea = wild ? factor(mods?.sea, Math.max(SEA_FIGHT, PLACE_FIGHT_MAX)) : 1;
-  const seaDrain = wild ? factor(mods?.seaDrain, Math.max(SEA_DRAIN, PLACE_DRAIN_MAX)) : 1;
+  // остров злее моря (рывки ×1,3, сопротивление ×1,4, зона ×0,95); божественную место не трогает
+  const isle = mods?.zone === 'isle';
+  const sea = wild ? factor(mods?.sea, isle ? ISLE_FIGHT : SEA_FIGHT) : 1;
+  const seaDrain = wild ? factor(mods?.seaDrain, isle ? ISLE_DRAIN : SEA_DRAIN) : 1;
+  const place = wild && isle ? ISLE_ZONE : 1;
   const cut = fish && mods?.zoneMul !== undefined && Number.isFinite(mods.zoneMul) ? Math.min(1, Math.max(0.5, mods.zoneMul)) : 1;
   const fast = fish ? factor(mods?.jerkMul, 1.2) : 1;
   const jerk = (1 - calm) * (fish ? 1 - lv.calm : 1) * sea;
@@ -253,7 +256,7 @@ export function reelStyle2(sp: number, mods?: Readonly<FishCastMods>, opts: Styl
   const base = { ...r.style, ...(BIG_MOVE[id] ?? {}) };
   const style: ReelStyle = {
     ...base,
-    zone: r.style.zone * zoneScale2(mods) * cut,
+    zone: r.style.zone * zoneScale2(mods) * cut * place,
     dartSpd: base.dartSpd * jerk * fast,
     sharp: base.sharp * jerk,
     drain: drain * seaDrain,

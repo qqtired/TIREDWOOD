@@ -417,6 +417,8 @@ export class LobbyRoom implements Room {
     this.fishing2 = hub.fish2
       ? new FishingHall2({
         ...fishHost, rain: () => this.weather.rain, season: () => this.fishSeason?.on ?? false, top: (top) => this.broadcast({ t: 'fishTop', top }),
+        // остров: «Туман наступает» — как дождь для шансов и цены, сезон острова — как сезон (shared/fishisle.ts, server/lobby/isle.ts)
+        isleFog: () => this.isle?.fogOn ?? false, isleSeason: () => this.isle?.seasonOn ?? false,
         shout: (text) => hub.toastAll(text, { ms: 9000, key: 'poseidon', big: true }),
         // ввод не приходит дольше 8 тиков (как «додумывание» в processPlayer) — окно подсечки подождёт (BITE_GRACE)
         stalled: (slot) => (this.players.get(slot)?.inq.starve ?? 0) > 8,
@@ -670,6 +672,7 @@ export class LobbyRoom implements Room {
       rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
       losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}), ...(this.fc ? { fc: this.fc.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
+      ...(this.fishing2 && this.hub.isle ? { isle: 1 } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.plane ? { plane: this.plane.view() } : {}),

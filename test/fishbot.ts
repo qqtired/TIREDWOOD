@@ -9,7 +9,8 @@ import { TICK_RATE } from '../shared/constants.ts';
 import { CAST_TICKS, FISH, WAIT_MAX, WAIT_MIN } from '../shared/fishing.ts';
 import { REEL_BAR, REEL_GRADES, SLACK_TICKS, TAUT_TICKS, reelGrade, reelStart, reelStep, type ReelGrade, type ReelStyle } from '../shared/fishreel.ts';
 import {
-  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, poseidonShare, reelStyleFor,
+  CHEST_BANDS, CHEST_PER_10K, COLLECTION, CONSOLATION_TICKS, ISLE_COLLECTION, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, biteShare, fishPrice2, junkPer10k, poseidonShare,
+  reelStyleFor,
 } from '../shared/fishrules.ts';
 import { fishCatchXp, fishLostXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { makeRng } from '../shared/math.ts';
@@ -186,8 +187,12 @@ export function meanChest(level = 0): number {
   return (1 - share) * meanBands() + share * POSEIDON_COINS;
 }
 
-/** Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид (хлам — по уровню, опыт в дождь ×1,15). */
-export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly<FishCastMods>): Income {
+/**
+ * Доход рыбака умения skill в ясную погоду или в дождь: n вываживаний на вид (хлам — по уровню, опыт в дождь ×1,15).
+ * style — манера на шкале (остров откалиброван по правилам 10.10 — reelStyle2 из shared/fishability.ts); season — сезон.
+ */
+export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly<FishCastMods>,
+  style: (sp: number, mods?: Readonly<FishCastMods>) => ReelStyle = reelStyleFor, season = false): Income {
   const junk = junkPer10k(mods?.level);
   const fishShare = 1 - (CHEST_PER_10K + junk) / 10_000;
   let fight = 0;
@@ -198,10 +203,10 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
   let hooked = 0;
   let xp = 0;
   const drunk = mods?.drink === 4;
-  for (const sp of COLLECTION) {
-    const share = biteShare(sp, rain, mods) * fishShare;
+  for (const sp of [...COLLECTION, ...ISLE_COLLECTION]) {
+    const share = biteShare(sp, rain || season, mods, season) * fishShare;
     if (share === 0) continue;
-    const s = reelStats(reelStyleFor(sp, mods), skill, n, 11 + sp * 7919, drunk);
+    const s = reelStats(style(sp, mods), skill, n, 11 + sp * 7919, drunk);
     const m = meanPrice(sp, mods);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
@@ -209,12 +214,12 @@ export function fishIncome(skill: Skill, rain: boolean, n = 300, mods?: Readonly
     coins += share * s.p * m.coins;
     fish += share * s.p;
     hooked += share;
-    const caught = s.gradeP.reduce((sum, p, g) => sum + p * fishCatchXp(sp, g as ReelGrade, mods, rain), 0);
-    xp += share * (caught + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods, rain));
+    const caught = s.gradeP.reduce((sum, p, g) => sum + p * fishCatchXp(sp, g as ReelGrade, mods, rain || season), 0);
+    xp += share * (caught + s.lostLongP * fishLostXp(sp, CONSOLATION_TICKS, mods, rain || season));
   }
   let chest = 0;
   for (const [sp, share] of [[SP_CHEST, CHEST_PER_10K / 10_000], [SP_BOOT, junk / 10_000]] as const) {
-    const s = reelStats(reelStyleFor(sp, mods), skill, Math.min(n, 100), 5, drunk);
+    const s = reelStats(style(sp, mods), skill, Math.min(n, 100), 5, drunk);
     fight += share * (s.ticks / TICK_RATE);
     after += share * (s.p * AFTER_CATCH_S + (1 - s.p) * AFTER_LOST_S);
     if (sp === SP_CHEST) chest = share * s.p * meanChest(mods?.level);

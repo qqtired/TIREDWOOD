@@ -198,6 +198,11 @@
 .fe-bag-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .fe-bag-top h2 { margin: 0; font-size: 20px; color: #ede4c9; }
 .fe-bag-note { margin-top: 12px; }
+/* лайвел своей лодки (флаг ISLE): в окне рюкзака и в «Продать» у скупщика */
+.fe-well-h { margin: 14px 0 6px; font-size: 16px; color: #ede4c9; }
+.fe-wellbox { margin-top: 16px; }
+.fe-sell[hidden], .fe-well-h[hidden], .fe-wellbox[hidden], .fe-wellchip[hidden] { display: none; }
+.fe-wellbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* ---------------------------------------------------------------- рядом с уровнем: задание, рюкзак, блесна */
 .fe-chips { display: flex; gap: 6px; width: min(310px, 80vw); }

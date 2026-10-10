@@ -7,6 +7,7 @@ import { rgLapMs, type RgRecordRow, type RgRow } from '../shared/regatta.ts';
 import type { HideResult } from '../shared/hide.ts';
 import { FOOL_MS, type PbReward, type RcReward } from '../shared/economy.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
+import { setIsle } from '../shared/fishisle.ts';
 import type { FcMode, FcResultRow, FcReward } from '../shared/fight.ts';
 import type { FortResultRow, FortStatus, FtReward } from '../shared/fort.ts';
 import { CLOSE_SILENCE, type ChatLine, type ClientMsg, type ErrorCode, type HonorInfo, type OnlineEntry, type PbStatus, type RaceResultRow, type RoomKind, type ServerMsg } from '../shared/messages.ts';
@@ -309,6 +310,8 @@ export class Hub {
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
     this.isle = this.fish2 && (o.isle ?? false);
+    // экономика острова (цена рыбы ×0,4) — общая настройка shared/fishrules.ts на весь сервер
+    setIsle(this.isle);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой

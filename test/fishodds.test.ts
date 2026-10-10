@@ -26,7 +26,7 @@ const near = (a: number, b: number, msg: string, eps = 1e-9) => assert.ok(Math.a
 /** Доля категории среди поклёвок рыбы (без хлама и сундука — их доля от уровня своя) */
 const fishOf = (odds: number[], t: number) => odds[t] / (1 - odds[5] - odds[6]);
 const TOP = [T_RARE, T_EPIC, T_LEGEND, T_MYTH, T_DIVINE] as const;
-const at = (zone: 'pier' | 'barkas', level = 0, extra: Partial<FishProgress> = {}): FishCastMods =>
+const at = (zone: 'pier' | 'barkas' | 'isle', level = 0, extra: Partial<FishProgress> = {}): FishCastMods =>
   fishCastMods({ ...emptyFishProgress(), xp: FISH_XP_LEVELS[level], ...extra }, 0, zone);
 
 test('дождь: все от редкой до божественной — ровно ×1,5 к ясной погоде у пристани и на баркасе (раньше божественной дождь не прибавлял, а легенды и мифик когда-то редели)', () => {
@@ -152,8 +152,9 @@ test('пиво подводного владыки работает: все от
 
 test('божественная: база задана явно — 0,43 % всех поклёвок новичка у пристани, 0,42 % на баркасе; удочка, блесна и пиво её поднимают; сумма шансов — 1 при любом наборе', () => {
   assert.equal(DIVINE_RATIO, 2.5, 'в 2,5 раза дороже мифических — цена и опыт');
-  assert.deepEqual(DIVINE_BASE, { pier: 0.0043, barkas: 0.0042 });
-  for (const zone of ['pier', 'barkas'] as const) {
+  // остров (10.10): плащеносная акула — так же явно, 0,43 %
+  assert.deepEqual(DIVINE_BASE, { pier: 0.0043, barkas: 0.0042, isle: 0.0043 });
+  for (const zone of ['pier', 'barkas', 'isle'] as const) {
     const odds = tierOdds(false, at(zone));
     near(odds[T_DIVINE], DIVINE_BASE[zone], `${zone}: база`, 1e-12);
     assert.ok(odds[T_DIVINE] < odds[T_MYTH] / 2, `${zone}: больше чем вдвое реже мифических`);

@@ -96,7 +96,7 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
-if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них включены');
+if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них, рыба острова и лайвел включены (рыба пристани и баркаса ×0,4)');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');

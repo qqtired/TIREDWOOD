@@ -6,7 +6,9 @@
 // или «Отпустить» (F, +50 % опыта, без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке. Первые 0,75 с
 // после вываживания кнопки притушены и не нажимаются (lockFor).
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
-import { BARKAS_INCOME, CHEST_ANNOUNCE, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
+import { isleNextStep } from '../../shared/fishstyle.ts';
+import { species } from '../ui/fishrewards.ts';
+import { BARKAS_INCOME, CHEST_ANNOUNCE, COLLECTION_SIZE, ISLE_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
 import { ALE, BEER, LORD } from '../../shared/fishshop.ts';
 import { CHOICE_TICKS, RELEASE_NOTE, releaseXp } from '../../shared/fishrelease.ts';
@@ -17,7 +19,7 @@ import { TOUCH } from '../touch.ts';
 import { COIN_HTML, setCoinText } from '../ui/coin.ts';
 import { catchRewardNote } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
-import { mul, pct } from './fishfmt.ts';
+import { isleStepText, mul, pct } from './fishfmt.ts';
 import { POSEIDON_TEXT, poseidonPic } from './fishtreasure.ts';
 import './fishrelease.css';
 import { errorsText, gradeClass, gradeMul, gradeName } from './fishgrade.ts';
@@ -73,6 +75,11 @@ export class CatchCard2 {
     return this.choosing !== null && this.shown;
   }
 
+  /** Рыба в руках легла в лайвел своей лодки (рюкзак был полон) */
+  get inWell(): boolean {
+    return this.choosing?.well !== undefined;
+  }
+
   show(m: Land): void {
     const r = RULE[m.sp];
     const f = FISH[m.sp];
@@ -91,7 +98,8 @@ export class CatchCard2 {
     card.style.setProperty('--tc', TIER_CSS[r.tier]);
     const head = card.appendChild(el('div', 'fc2-head'));
     head.appendChild(el('span', 'fc2-tier', junk ? 'находка' : TIER_NAMES[r.tier]));
-    if (r.rain) head.appendChild(el('span', 'fc2-badge rain', '🎣 Уникальная · ×1,5'));
+    const isle = r.zone === 'isle';
+    if (r.rain) head.appendChild(el('span', 'fc2-badge rain', isle ? '🌫 Туманная · ×1,5' : '🎣 Уникальная · ×1,5'));
     if (m.fresh && !junk) setCoinText(head.appendChild(el('span', 'fc2-badge new')), `★ Новый вид! +${m.bonus} 🪙`);
     else if (m.fresh) head.appendChild(el('span', 'fc2-badge new', '★ Новая находка'));
     else if (m.record) head.appendChild(el('span', 'fc2-badge rec', '🏆 Рекорд!'));
@@ -108,6 +116,7 @@ export class CatchCard2 {
     if (m.bag !== undefined) {
       // fisheco: рыба — в рюкзак по цене поимки; ниже — из чего цена и сколько опыта
       if (m.bagFull) card.appendChild(el('div', 'fc2-price fe-bagfull', 'Рюкзак полон — рыбу пришлось отпустить'));
+      else if (m.well !== undefined) setCoinText((this.priceEl = card.appendChild(el('div', 'fc2-price'))), `+${m.price} 🪙 в лайвел лодки (${m.well}/${m.wcap ?? m.well})`);
       else setCoinText((this.priceEl = card.appendChild(el('div', 'fc2-price'))), `+${m.price} 🪙 в рюкзак (${m.bag}/${m.cap})`);
       const why: string[] = [];
       const f = m.m ?? 0;
@@ -115,7 +124,7 @@ export class CatchCard2 {
       if (f & BAG_LORD) why.push(`пиво владыки ${pct(LORD.income)}`);
       else if (f & BAG_ALE) why.push(`эль ${pct(ALE.income)}`);
       else if (f & BAG_BEER) why.push(`пиво ${pct(BEER.income)}`);
-      if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (дождь ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
+      if (why.length && m.base !== undefined && !m.bagFull) card.appendChild(el('div', 'fe-why', `база ${m.base}${f & BAG_RAIN ? ` (${isle ? 'туман' : 'дождь'} ${mul(RAIN_NUM / RAIN_DEN)} внутри)` : ''} · ${why.join(' · ')}`));
       if (m.xp) {
         // оценка вываживания (сервер): «+45 XP · Идеально ×2,5», «+12 XP · Сойдёт ×1,25 · 3 ошибки»
         const xp = (this.xpEl = card.appendChild(el('div', 'fe-xp', `+${m.xp} XP`)));
@@ -123,7 +132,15 @@ export class CatchCard2 {
       }
       if (!m.bagFull) this.choice(m);
     } else if (m.price > 0) setCoinText(card.appendChild(el('div', 'fc2-price')), `+${m.price} 🪙`);
-    if (!junk) {
+    if (!junk && m.isle !== undefined) {
+      // вид острова: свой счётчик «Остров: N из 20» и своя лестница (ISLE_LADDER в shared/fishstyle.ts); коллекция 52 видов не растёт
+      const col = card.appendChild(el('div', 'fc2-col'));
+      col.appendChild(el('span', '', `🏝 Остров: ${m.isle} из ${ISLE_SIZE}`));
+      col.appendChild(el('i', '')).appendChild(el('b', '')).style.width = `${Math.round((m.isle / ISLE_SIZE) * 100)}%`;
+      const next = isleNextStep(m.isle);
+      const note = m.rw?.length ? catchRewardNote(m) : next ? el('div', 'frw-next', `До награды острова (${isleStepText(next)}) — ещё ${species(Math.min(next.need, ISLE_SIZE) - m.isle)}`) : null;
+      if (note) card.appendChild(note);
+    } else if (!junk) {
       const col = card.appendChild(el('div', 'fc2-col'));
       col.appendChild(el('span', '', `Коллекция: ${m.got} из ${COLLECTION_SIZE}`));
       const bar = col.appendChild(el('i', ''));
@@ -182,12 +199,13 @@ export class CatchCard2 {
     const card = this.card;
     card.classList.add('choose');
     const row = card.appendChild(el('div', 'fc2-choice'));
-    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : '1', '🎒 В рюкзак', 'жетоны — при продаже'));
+    const where = m.well !== undefined ? 'лайвеле' : 'рюкзаке';
+    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : '1', m.well !== undefined ? '🛶 В лайвел' : '🎒 В рюкзак', 'жетоны — при продаже'));
     const free = row.appendChild(choiceBtn('free', TOUCH ? '' : 'F', '🌊 Отпустить', RELEASE_NOTE));
     keep.addEventListener('click', () => this.onKeep());
     free.addEventListener('click', () => this.onRelease());
     card.appendChild(el('div', 'fc2-wait')).appendChild(el('i', '')).style.animationDuration = `${CHOICE_MS}ms`;
-    card.lastElementChild!.appendChild(el('span', '', 'Не выберешь — останется в рюкзаке'));
+    card.lastElementChild!.appendChild(el('span', '', `Не выберешь — останется в ${where}`));
   }
 
   private hideIn(ms: number): void {

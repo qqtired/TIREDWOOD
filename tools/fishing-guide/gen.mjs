@@ -1,4 +1,5 @@
 // Генератор страницы /fishing (public/fishing/): все цифры — из кода игры (shared/*.ts). Запуск: node tools/fishing-guide/gen.mjs
+// С островом «Последний свет» (флаг сервера ISLE): раздел острова, цены рыбы пристани и баркаса ×0,4. Без острова — ISLE=0 node …
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url)); // корень репозитория
@@ -12,6 +13,10 @@ const bk = await import(S + 'barkas.ts');
 const rl = await import(S + 'fishreel.ts');
 const rel = await import(S + 'fishrelease.ts');
 const cn = await import(S + 'constants.ts');
+const isl = await import(S + 'fishisle.ts');
+// страница выходит вместе с островом (флаг ISLE): цена рыбы пристани и баркаса ×0,4; ISLE=0 — прежняя страница без острова
+const ISLE_ON = process.env.ISLE !== '0';
+isl.setIsle(ISLE_ON);
 const fa = await import(S + 'fishability.ts');
 /** Сколько ошибок у оценки вываживания i: «0», «2–3», «10 и больше» */
 const gradeSpan = (i) => {
@@ -23,7 +28,7 @@ const { RULE, COLLECTION, tierRank, NEW_BONUS2, tierOdds, BAND, ZONE_BASE, CHEST
 
 // ---------- данные
 // база категорий (доли рыбы по рангам 0…5, ясно, без бонусов) — прямо из игры
-const BASE = { pier: [...fr.TIER_BASE.pier], barkas: [...fr.TIER_BASE.barkas] };
+const BASE = { pier: [...fr.TIER_BASE.pier], barkas: [...fr.TIER_BASE.barkas], ...(ISLE_ON ? { isle: [...fr.TIER_BASE.isle] } : {}) };
 // самый высокий уровень рыбалки, до которого растёт шанс (15), и последний уровень таблицы опыта
 const LMAX = fp.LEVEL_ODDS_MAX;
 const XP_TOP = fp.FISH_XP_LEVELS.length - 1;
@@ -63,16 +68,17 @@ function bar(p, label = true) {
 }
 const legend = (p) => `<ul class="legend">${ORDER.map((k) => `<li><i class="dot" style="--c:var(--t${k})"></i>${TN[k]} <b class="num">${pct(p[k])}</b></li>`).join('')}</ul>`;
 
-// виды места
+// виды места (виды острова — свой счётчик, но на странице — своим разделом)
+const ALL = [...COLLECTION, ...fr.ISLE_COLLECTION];
 function zoneList(zone) {
   const out = [];
   const share = (rain) => {
     const rankW = [0, 0, 0, 0, 0, 0];
-    for (const sp of COLLECTION) { const r = RULE[sp]; if (!r.zones.includes(zone) || (r.rain && !rain)) continue; rankW[tierRank(r.tier)] += r.bite; }
+    for (const sp of ALL) { const r = RULE[sp]; if (!r.zones.includes(zone) || (r.rain && !rain)) continue; rankW[tierRank(r.tier)] += r.bite; }
     return (sp) => { const r = RULE[sp]; if (!r.zones.includes(zone) || (r.rain && !rain)) return 0; return r.bite / rankW[tierRank(r.tier)]; };
   };
   const clear = share(false), rain = share(true);
-  for (const sp of COLLECTION) {
+  for (const sp of ALL) {
     const r = RULE[sp]; if (!r.zones.includes(zone)) continue;
     const f = FISH[sp];
     const m = { zone };
@@ -80,7 +86,7 @@ function zoneList(zone) {
   }
   return out;
 }
-const ZL = { pier: zoneList('pier'), barkas: zoneList('barkas') };
+const ZL = { pier: zoneList('pier'), barkas: zoneList('barkas'), isle: zoneList('isle') };
 
 // ---------- примеры
 const EX = [
@@ -179,11 +185,12 @@ function fishCard(s, zone) {
   const k = RANK_T[s.rank];
   const img = `/fishing/img/${s.id}.webp`;
   const tags = [];
-  if (s.rain) tags.push('<span class="tag rain">🌧 только в дождь</span>');
+  if (s.rain) tags.push(zone === 'isle' ? '<span class="tag fog">🌫 только в туман</span>' : '<span class="tag rain">🌧 только в дождь</span>');
   if (s.both) tags.push(`<span class="tag both">${zone === 'pier' ? 'и на баркасе' : 'и у пристани'}</span>`);
-  const inCat = s.rain ? `<dt>В категории</dt><dd class="num">в дождь ${pct(s.inRain)}</dd>`
+  const wet = zone === 'isle' ? 'в туман' : 'в дождь';
+  const inCat = s.rain ? `<dt>В категории</dt><dd class="num">${wet} ${pct(s.inRain)}</dd>`
     : s.inClear === 1 && s.inRain === 1 ? `<dt>В категории</dt><dd class="num">единственная</dd>`
-    : `<dt>В категории</dt><dd class="num">${pct(s.inClear)}${Math.abs(s.inRain - s.inClear) > 1e-9 ? ` · в дождь ${pct(s.inRain)}` : ''}</dd>`;
+    : `<dt>В категории</dt><dd class="num">${pct(s.inClear)}${Math.abs(s.inRain - s.inClear) > 1e-9 ? ` · ${wet} ${pct(s.inRain)}` : ''}</dd>`;
   return `<div class="f" style="--c:var(--t${k})"><div class="pic"><img src="${img}" alt="${esc(s.name)}" loading="lazy" decoding="async"></div><div class="nm">${esc(s.name)}</div><div class="tags">${tags.join('')}</div><p class="say">${esc(s.note)}</p><dl><dt>Вес</dt><dd class="num">${wrange(s.g)}</dd><dt>Цена</dt><dd class="num">${coins(s.price[0], s.price[1])}</dd>${inCat}</dl></div>`;
 }
 function fishZone(zone) {
@@ -201,7 +208,8 @@ function fishZone(zone) {
 const baseRows = ORDER.map((k) => {
   const pier = newbie[k];
   const bark = odds({ level: 0, rod: 0, lure: 0, drink: 0, zone: 'barkas', weather: 0 })[k];
-  return `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td><td class="num">${pct(pier)}</td><td class="num">${oneIn(pier)}</td><td class="num">${pct(bark)}</td></tr>`;
+  const isle = ISLE_ON ? `<td class="num">${pct(odds({ level: 0, rod: 0, lure: 0, drink: 0, zone: 'isle', weather: 0 })[k])}</td>` : '';
+  return `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td><td class="num">${pct(pier)}</td><td class="num">${oneIn(pier)}</td><td class="num">${pct(bark)}</td>${isle}</tr>`;
 }).join('');
 const exRows = ORDER.map((k) => `<tr><td><span class="tn"><i class="dot" style="--c:var(--t${k})"></i>${TN[k]}</span></td>${EX.map((e) => `<td class="num">${pct(e.p[k])}</td>`).join('')}</tr>`).join('');
 const chestTotal = CHEST_BANDS.reduce((s, b) => s + b[2], 0);
@@ -219,6 +227,12 @@ const rods = fp.RODS.slice(1).map((r) => `<li>${r.name} (${r.quests}-е зада
 const lures = sh.LURES.map((l) => `<li>${l.name.replace(' блесна', '')}: <b>${mul(l.epic)}</b> <span class="muted">· ${l.price} 🪙, с ${l.level} ур.</span></li>`).join('');
 const pierCount = ZL.pier.length, barkCount = ZL.barkas.length;
 const pierRain = ZL.pier.filter((s) => s.rain).length, barkRain = ZL.barkas.filter((s) => s.rain).length;
+const isleCount = ZL.isle.length, isleFog = ZL.isle.filter((s) => s.rain).length;
+const cutPct = Math.round((1 - fr.fishPriceCut()) * 100);
+const isleNews = ISLE_ON ? `
+    <li><span class="k">🏝</span><p><b>Остров «Последний свет».</b> 2,4 км на запад, в тумане. Свои ${vidov(isleCount)} — ${isleCount - isleFog} всегда и ${isleFog} только когда «Туман наступает» (шансы и цена — как в дождь, ×1,5). Рыба там злее (зона ×${num(fr.ISLE_ZONE, 2)}, рывки ×${num(fr.ISLE_FIGHT, 1)}, сопротивление ×${num(fr.ISLE_DRAIN, 1)}), опыт ×${fr.ISLE_XP}. С ${isl.ISLE_MIN_LEVEL}-го уровня, на своей лодке. Свой счётчик в журнале — «Остров: N из ${isleCount}».</p></li>
+    <li><span class="k">💸</span><p><b>Рыба пристани и баркаса — на ${cutPct} % дешевле</b> прежних цен. Сундуки, клад Посейдона и бонус за новый вид — как были. Самые дорогие рыбы теперь — у острова.</p></li>
+    <li><span class="k">🛶</span><p><b>Лайвел в своей лодке.</b> Рюкзак полон — рыба ложится в лайвел: 25 / 50 / 75 мест у «Волжанки» / «Альбакора» / «Нортсильвера». Продать — у любого скупщика или из меню лодки.</p></li>` : '';
 
 const html = `<!doctype html>
 <html lang="ru">
@@ -242,14 +256,14 @@ const html = `<!doctype html>
   </div>
 </header>
 <nav class="nav" aria-label="Разделы">
-  <a href="#new">Что нового</a><a href="#how">Как устроено</a><a href="#tiers">Категории</a><a href="#base">Шансы</a><a href="#factors">Что влияет</a><a href="#calc-s">Калькулятор</a><a href="#examples">Примеры</a><a href="#fish">Все рыбы</a><a href="#reel">Вываживание</a><a href="#chest">Сундуки и хлам</a>
+  <a href="#new">Что нового</a>${ISLE_ON ? '<a href="#isle">Остров</a>' : ''}<a href="#how">Как устроено</a><a href="#tiers">Категории</a><a href="#base">Шансы</a><a href="#factors">Что влияет</a><a href="#calc-s">Калькулятор</a><a href="#examples">Примеры</a><a href="#fish">Все рыбы</a><a href="#reel">Вываживание</a><a href="#chest">Сундуки и хлам</a>
 </nav>
 <main class="wrap">
 
 <section id="new">
   <h2>Что нового</h2>
   <p class="sub">Патч рыбалки 5 октября 2026: водка больше не ускоряет рывки, зона остаётся ${vodkaZone}. Клад Посейдона — ${posCoins} жетонов, его шанс в сундуке растёт с ${posMinPct} % на 1-м уровне рыбалки до ${posPct} % на 15-м.</p>
-  <div class="card"><ul class="keys news">
+  <div class="card"><ul class="keys news">${isleNews}
     <li><span class="k">🔨</span><p><b>Мифики и кальмар — со своими приёмами.</b> Рыба-молот проламывает шкалу, гренландская акула зовёт ветер, сельдяной король — трёх селёдок, кальмар пускает чернила. Один раз за бой, на 60–75 % улова; держать в зоне у них на 20 % дольше. <a href="#abilities">Подробнее</a></p></li>
     <li><span class="k">🏅</span><p><b>Награда за каждый уровень.</b> С 1-го по ${XP_TOP}-й — своя: быстрее подсечка, мягче рывки, «Чутьё», «Метка мифика», «Хватка»… Новая награда видна в плашке «Новый уровень» и в окне рыбака. <a href="#perks">Все награды</a></p></li>
     <li><span class="k">📈</span><p><b>Крупная рыба — чаще.</b> У новичка мифическая — ${pct(newbie[4])} поклёвок, кальмар — ${pct(newbie[7])}. Удочки, блёсны, напитки, уровень и события поднимают шансы и цену всех категорий — вместе с кальмаром.</p></li>
@@ -269,7 +283,7 @@ const html = `<!doctype html>
 
 <section id="how">
   <h2>Как это устроено</h2>
-  <p class="sub">Рыбачат у острова — с мостков, у маяка и у дома Деда Семёна (20 мест) — и с баркаса в открытом море (${bk.BARKAS_FISH_SPOTS.length} мест). Одна рыбалка — четыре шага.</p>
+  <p class="sub">Рыбачат у набережной — с мостков, у маяка и у дома Деда Семёна (20 мест) — и с баркаса в открытом море (${bk.BARKAS_FISH_SPOTS.length} мест). Одна рыбалка — четыре шага.</p>
   <div class="grid g4 steps">
     <div class="card step"><h3>Заброс</h3><p>Встаёшь на место и забрасываешь. В этот момент запоминаются твои бонусы: уровень, удочка, блесна и напиток.</p></div>
     <div class="card step"><h3>Поклёвка</h3><p>Через 6–18 секунд (с хорошей удочкой — быстрее) поплавок дёргается — это пробы, не подсекай. Ушёл под воду — подсекай, на это 0,6–1 секунды.</p></div>
@@ -301,7 +315,8 @@ const html = `<!doctype html>
     <h3>У пристани</h3>
     ${bar(newbie)}
     ${legend(newbie)}
-    <div class="scroll" style="margin-top:18px"><table class="tbl"><thead><tr><th>Категория</th><th>У пристани</th><th>Как часто</th><th>На баркасе</th></tr></thead><tbody>${baseRows}</tbody></table></div>
+    <div class="scroll" style="margin-top:18px"><table class="tbl"><thead><tr><th>Категория</th><th>У пристани</th><th>Как часто</th><th>На баркасе</th>${ISLE_ON ? '<th>У острова*</th>' : ''}</tr></thead><tbody>${baseRows}</tbody></table></div>
+    ${ISLE_ON ? `<p class="muted small" style="margin:10px 0 0">* У острова «Последний свет» — в обычном тумане без бонусов; рыбачить там можно только с ${isl.ISLE_MIN_LEVEL}-го уровня, так что новичку эти доли не достанутся.</p>` : ''}
   </div>
 </section>
 
@@ -316,7 +331,7 @@ const html = `<!doctype html>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-lure4.webp" alt=""></div><div><h3>Блесна — покупается навсегда</h3><p>Только <b>эпические и выше</b> (и кальмар) — блесна для крупной рыбы, на редких не действует. Ещё делает рывки рыбы мягче на ${sh.LURES.map((l) => Math.round(l.calm * 100)).join(' / ')} %.</p><ul class="mults">${lures}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-ale.webp" alt=""></div><div><h3>Напитки — на 10 минут</h3><p>Действует один — последний выпитый. Пиво, эль и пиво владыки поднимают все категории от редких до кальмара и цену улова.</p><ul class="mults">${drinkLi(sh.BEER, `, ${sh.BEER.price} 🪙`)}${drinkLi(sh.ALE, `, ${sh.ALE.price} 🪙`)}${drinkLi(sh.LORD, ` (в 1 из ${lordIn} сундуков)`)}</ul></div></div>
     <div class="card factor"><div class="ic"><img src="/fishing/img/shop-vodka.webp" alt=""></div><div><h3>Водка рыбацкая — на риск</h3><p>${sh.VODKA.price} 🪙, ${Math.round(sh.VODKA.ms / 60_000)} минут. Эпические и выше, вместе с кальмаром, — <b>${mul(sh.VODKA.top ?? 1)}</b>, опыт за них ${mul(sh.VODKA.topXp ?? 1)}. Но зона на шкале <b>${vodkaZone}</b>, и ты пьян: зона после отпускания ещё 0,1 с едет по инерции, икаешь, шкала моргает. На редких не действует, доход не меняет.</p></div></div>
-    <div class="card factor"><div class="ic">⚓</div><div><h3>Место: пристань или баркас</h3><p>Все 20 мест у острова одинаковые. Баркас (с 3-го уровня, туда везёт Семён): своя рыба — ${vidov(barkCount)}, доли категорий почти как у пристани. Доход и опыт <b>×1,25</b>, но рыба злее: рывки ×1,15, сопротивление ×1,2 (кальмара море не злит).</p></div></div>
+    <div class="card factor"><div class="ic">⚓</div><div><h3>Место: пристань или баркас</h3><p>Все 20 мест у набережной одинаковые. Баркас (с 3-го уровня, туда везёт Семён): своя рыба — ${vidov(barkCount)}, доли категорий почти как у пристани. Доход и опыт <b>×1,25</b>, но рыба злее: рывки ×1,15, сопротивление ×1,2 (кальмара море не злит).</p></div></div>
   </div>
   <div class="card" style="margin-top:16px">
     <h3>Как бонусы складываются</h3>
@@ -326,7 +341,7 @@ const html = `<!doctype html>
   </div>
   <h3 style="margin:28px 0 12px">Что на шансы НЕ влияет</h3>
   <div class="myths">
-    <div class="myth"><h4>Счастливое место на пирсе</h4><p>Нет: все 20 мест у острова одинаковые. Разница только между островом и баркасом.</p></div>
+    <div class="myth"><h4>Счастливое место на пирсе</h4><p>Нет: все 20 мест у набережной одинаковые. Разница только между пристанью, баркасом${ISLE_ON ? ' и островом' : ''}.</p></div>
     <div class="myth"><h4>Время суток</h4><p>Ночью и днём клюёт одинаково. По часам идёт только сезон рыбалки — в чётные часы по Москве.</p></div>
     <div class="myth"><h4>Долгое ожидание</h4><p>Сколько ждал поклёвку — неважно. Что клюнет, решает только жребий в момент поклёвки.</p></div>
     <div class="myth"><h4>Удочки из наград за журнал</h4><p>Только для красоты. На шансы влияет лишь удочка за задания Деда Семёна.</p></div>
@@ -340,7 +355,7 @@ const html = `<!doctype html>
   <p class="sub">Выбери снасти, погоду и место — увидишь шансы на каждую поклёвку. Считает по той же формуле, что и игра.</p>
   <div class="calc">
     <form class="card" id="calc" autocomplete="off">
-      <div class="fld"><span>Место</span><div class="seg"><label><input type="radio" name="zone" value="pier" checked><span>Пристань</span></label><label><input type="radio" name="zone" value="barkas"><span>Баркас</span></label></div></div>
+      <div class="fld"><span>Место</span><div class="seg"><label><input type="radio" name="zone" value="pier" checked><span>Пристань</span></label><label><input type="radio" name="zone" value="barkas"><span>Баркас</span></label>${ISLE_ON ? '<label><input type="radio" name="zone" value="isle"><span>Остров</span></label>' : ''}</div></div>
       <div class="fld"><span>Погода</span><div class="seg"><label><input type="radio" name="weather" value="0" checked><span>☀️ Ясно</span></label><label><input type="radio" name="weather" value="1"><span>🌧 Дождь</span></label><label><input type="radio" name="weather" value="2"><span>🎣 Сезон рыбалки</span></label></div></div>
       <div class="fld"><span>Уровень рыбалки: <b id="calc-level-v">0</b></span><input type="range" id="calc-level" name="level" min="0" max="${LMAX}" step="1" value="0"><div class="lvl">${[0, 5, 10, 15].filter((l) => l <= LMAX).map((l) => `<span>${l}</span>`).join('')}</div></div>
       <label class="fld"><span>Удочка</span><select name="rod">${fp.RODS.map((r) => `<option value="${r.rod}">${r.name}${r.rod ? ` — ${mul(fp.rodOdds(r.rod))}` : ''}</option>`).join('')}</select></label>
@@ -373,6 +388,8 @@ const html = `<!doctype html>
   ${fishZone('pier')}
   <div class="zone-h"><h3>На баркасе, в открытом море</h3><span class="muted">${vidov(barkCount)}, из них ${barkRain} — только в дождь · с 3-го уровня · цены ×1,25 уже учтены</span></div>
   ${fishZone('barkas')}
+  ${ISLE_ON ? `<div class="zone-h" id="isle"><h3>🏝 У острова «Последний свет»</h3><span class="muted">${vidov(isleCount)}, из них ${isleFog} — только в туман («Туман наступает», цена ×1,5) · с ${isl.ISLE_MIN_LEVEL}-го уровня · свой счётчик в журнале · кальмар и гренландская акула здесь не клюют</span></div>
+  ${fishZone('isle')}` : ''}
 </section>
 
 <section id="reel">
@@ -422,7 +439,7 @@ const html = `<!doctype html>
   <div class="card" id="perks" style="margin-top:16px"><h3>Награды уровней</h3><p class="muted small" style="margin:0 0 8px">По одной на каждый уровень — сверх зоны и шансов. Новая видна в плашке «Новый уровень», в окне рыбака и у Деда Семёна. Повтор имени — следующая ступень той же награды.</p><div class="scroll"><table class="tbl"><thead><tr><th>Ур.</th><th class="l">Награда</th><th class="l">Что даёт</th></tr></thead><tbody>${perkRows}</tbody></table></div></div>
 </section>
 </main>
-<footer><div class="wrap">Все цифры взяты из кода игры TIREDWOOD с учётом патчей рыбалки 5 и 10 октября 2026. Шансы категорий — доли всех поклёвок; шансы находок в сундуке — доли сундуков. Справочник обновляется вместе с игрой.</div></footer>
+<footer><div class="wrap">Все цифры взяты из кода игры TIREDWOOD с учётом патчей рыбалки 5 и 10 октября 2026${ISLE_ON ? ' и острова «Последний свет»' : ''}. Шансы категорий — доли всех поклёвок; шансы находок в сундуке — доли сундуков. Справочник обновляется вместе с игрой.</div></footer>
 </body>
 </html>
 `;
@@ -431,7 +448,7 @@ fs.writeFileSync(OUT + 'index.html', html);
 // ---------- app.js: данные калькулятора из кода
 const DATA = {
   BASE, LEVEL_ODDS: fp.LEVEL_ODDS, LEVEL_MAX: LMAX, SEASON_MUL: fr.SEASON_MUL, RAIN_MUL: fr.RAIN_MUL, EPIC_MAX: sh.LURE_MAX.epic, COMMON_FLOOR: fr.COMMON_FLOOR,
-  JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K, VODKA_ZONE: VZ,
+  JUNK: fr.JUNK_PER_10K, CHEST: fr.CHEST_PER_10K, VODKA_ZONE: VZ, ISLE_LEVEL: isl.ISLE_MIN_LEVEL,
   lures: [null, ...sh.LURES.map((l) => ({ epic: l.epic }))],
   drinks: [null, ...[sh.BEER, sh.ALE, sh.LORD, sh.VODKA].map((d) => ({ rare: d.rare, ...(d.top ? { top: d.top } : {}) }))],
 };

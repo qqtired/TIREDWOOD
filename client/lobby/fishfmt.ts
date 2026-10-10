@@ -1,10 +1,25 @@
 // fisheco: подписи бонусов одним языком везде (лавка, рюкзак, «Шансы сейчас», карточка улова, шкала) и картинки лавки.
+import { rewardLabel, stepLabel, type RewardStep } from '../../shared/fishstyle.ts';
+import { itemById } from '../../shared/outfit.ts';
 import {
   BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_MAX_LEVEL, FISH_XP_LEVELS, fishLevel, levelOdds, rodOdds, type FishCastMods, type FishProgress,
 } from '../../shared/fishprogress.ts';
 import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES, VODKA, lureOf } from '../../shared/fishshop.ts';
-import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_MUL, SEASON_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_MUL, RULE, SEASON_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
+import { FISH } from '../../shared/fishing.ts';
 import { LEVEL_PERKS, ZONE_PER_LEVEL } from '../../shared/fishability.ts';
+
+/** Ступень лестницы острова словами («поплавок «Колокольный буй»», последняя — «сет «Смотритель маяка»»); вещи острова — пакета E */
+export function isleStepText(step: RewardStep): string {
+  if (step.set) return stepLabel(step);
+  return step.items.map((id) => (itemById(id) ? rewardLabel(id) : 'вещь острова')).join(' и ');
+}
+
+/** Вид острова «Последний свет» (по ключу альбома) */
+export function isleFish(id: string): boolean {
+  const sp = FISH.findIndex((f) => f.id === id);
+  return sp >= 0 && RULE[sp]?.zone === 'isle';
+}
 
 const SHOP = import.meta.glob('../assets/fishshop/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
@@ -28,11 +43,11 @@ export function pct(x: number): string {
   return `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 }
 
-/** Множители рыбы в рюкзаке (биты BAG_*) значками */
-export function bagMarks(m: number): string[] {
+/** Множители рыбы в рюкзаке (биты BAG_*) значками; id — вид: у видов острова «только в дождь» — это туман 🌫 */
+export function bagMarks(m: number, id = ''): string[] {
   const out: string[] = [];
   if (m & BAG_BARKAS) out.push(`⚓ ${mul(BARKAS_INCOME)}`);
-  if (m & BAG_RAIN) out.push(`🌧 ${mul(RAIN_NUM / RAIN_DEN)}`);
+  if (m & BAG_RAIN) out.push(`${isleFish(id) ? '🌫' : '🌧'} ${mul(RAIN_NUM / RAIN_DEN)}`);
   if (m & BAG_LORD) out.push(`🔱 ${pct(LORD.income)}`);
   else if (m & BAG_ALE) out.push(`🍻 ${pct(ALE.income)}`);
   else if (m & BAG_BEER) out.push(`🍺 ${pct(BEER.income)}`);

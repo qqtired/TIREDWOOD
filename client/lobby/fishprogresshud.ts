@@ -1,6 +1,7 @@
 import { FISH_MAX_LEVEL, activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, questNeed, type FishProgress } from '../../shared/fishprogress.ts';
 import { BEER, lureOf, type ShopDrink } from '../../shared/fishshop.ts';
-import { BARKAS_INCOME } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, ISLE_XP } from '../../shared/fishrules.ts';
+import { catchValue, livewellCap, livewellOf } from '../../shared/fishlivewell.ts';
 import type { FishZone } from '../../shared/fishplaces.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { el } from './fish2.ts';
@@ -87,6 +88,8 @@ export class FishProgressHud {
   readonly skill: HTMLElement;
   private readonly quest: HTMLElement;
   private readonly bag: HTMLButtonElement;
+  /** Лайвел своей лодки (флаг ISLE): «🛶 12/50 · 640 🪙» рядом с рюкзаком; лодки нет и лайвел пуст — скрыт */
+  private readonly well: HTMLButtonElement;
   private readonly gear: HTMLElement;
   private readonly badge: HTMLElement;
   private readonly icon: HTMLElement;
@@ -108,6 +111,11 @@ export class FishProgressHud {
     this.bag.type = 'button';
     this.bag.title = 'Рюкзак · I';
     this.bag.addEventListener('click', () => this.onBag());
+    this.well = row.appendChild(el('button', 'fe-chip fe-bagchip fe-wellchip'));
+    this.well.type = 'button';
+    this.well.title = 'Лайвел лодки · I';
+    this.well.hidden = true;
+    this.well.addEventListener('click', () => this.onBag());
     this.gear = parent.appendChild(el('div', 'fe-gear'));
     // напиток — плашка того же вида, что события; живёт в слое меню (видна и на паузе, и в других комнатах)
     const drink = fishPlate(overlay, 'fs-buff f2-plate-drink', '🍺');
@@ -145,7 +153,16 @@ export class FishProgressHud {
     setCoinText(this.bag, `🎒 ${n}/${slots} · ${num(bagValue(progress.bag))} 🪙`);
     this.bag.classList.toggle('warn', n === slots - 1);
     this.bag.classList.toggle('full', n >= slots);
-    this.bag.setAttribute('aria-label', `Рюкзак: ${n} из ${slots} рыб${n >= slots ? ', полон — продай улов Семёну или Сане' : ''}`);
+    const cap = livewellCap(progress);
+    const w = livewellOf(progress).length;
+    this.bag.setAttribute('aria-label', `Рюкзак: ${n} из ${slots} рыб${n >= slots ? (w < cap ? ', полон — рыба пойдёт в лайвел лодки' : ', полон — продай улов Семёну или Сане') : ''}`);
+    this.well.hidden = cap === 0 && w === 0;
+    if (!this.well.hidden) {
+      setCoinText(this.well, `🛶 ${w}/${cap} · ${num(catchValue(progress, 'well'))} 🪙`);
+      this.well.classList.toggle('warn', n >= slots && w === cap - 1);
+      this.well.classList.toggle('full', w >= cap);
+      this.well.setAttribute('aria-label', `Лайвел лодки: ${w} из ${cap} рыб${w >= cap ? ', полон — продай улов скупщику или из меню лодки' : ''}`);
+    }
     this.renderGear();
     this.tick();
   }
@@ -167,6 +184,7 @@ export class FishProgressHud {
     const parts: string[] = [];
     if (lure) parts.push(`🪝 ${lure.name.toLowerCase()} · рывки −${Math.round(lure.calm * 100)}%`);
     if (this.zone === 'barkas') parts.push(`⚓ баркас · цена и опыт ${mul(BARKAS_INCOME)}`);
+    if (this.zone === 'isle') parts.push(`🏝 опыт ${mul(ISLE_XP)}`);
     this.gear.textContent = parts.join('  ·  ');
     this.gear.hidden = parts.length === 0;
   }

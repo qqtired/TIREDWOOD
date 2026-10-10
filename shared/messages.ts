@@ -134,9 +134,12 @@ export interface OnlineEntry {
  * Действия у Семёна и Сани. ferry — зарезервировано для баркаса (перевоз Сани), его обработчик подключает модуль баркаса
  * через FishNpc.register (server/lobby/fishnpc.ts).
  */
-export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka' | 'buyBoat';
-/** buyBoat — своя лодка у Семёна (флаг ISLE, обработчик подключает server/lobby/ownboats.ts через FishNpc.register) */
-export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka', 'buyBoat'];
+export type FishNpcAction = 'open' | 'beer' | 'ale' | 'rain' | 'claim' | 'rod' | 'buy' | 'sell' | 'sellAll' | 'ferry' | 'vodka' | 'buyBoat' | 'sellWell' | 'sellEvery';
+/**
+ * buyBoat — своя лодка у Семёна (флаг ISLE, обработчик подключает server/lobby/ownboats.ts через FishNpc.register);
+ * sellWell / sellEvery — лайвел своей лодки (флаг ISLE, shared/fishlivewell.ts): продать весь лайвел / рюкзак и лайвел вместе
+ */
+export const FISH_NPC_ACTIONS: readonly FishNpcAction[] = ['open', 'beer', 'ale', 'rain', 'claim', 'rod', 'buy', 'sell', 'sellAll', 'ferry', 'vodka', 'buyBoat', 'sellWell', 'sellEvery'];
 
 // --- Дурак за столиками кафе
 
@@ -492,6 +495,8 @@ export type ServerMsg =
     /** Рыбалка 2.0 (флаг сервера FISH2): 1 — шкала вываживания, полная коллекция, доска рекордов у мостков (ftop) */
     fish2?: number;
     ftop?: FishBoardView;
+    /** Остров «Последний свет» (флаг сервера ISLE, shared/fishisle.ts): 1 — виды острова, лайвел, цена рыбы ×0,4 */
+    isle?: number;
     /** Рулетка рыбака (флаг сервера ROULETTE) */
     roulette?: RouletteView;
     /** Крысиные бега на понтоне (флаг сервера RATRACE, shared/ratrace.ts) */
@@ -562,6 +567,10 @@ export type ServerMsg =
     gr?: number; er?: number;
     /** В сундуке было пиво подводного владыки — уже выпито (shared/fishshop.ts LORD) */
     lord?: boolean;
+    /** Рюкзак был полон — рыба легла в лайвел своей лодки (флаг ISLE): well — сколько в нём теперь, wcap — мест */
+    well?: number; wcap?: number;
+    /** Сколько видов острова в альбоме (shared/islestyle.ts) — у видов острова вместо got */
+    isle?: number;
   }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }
