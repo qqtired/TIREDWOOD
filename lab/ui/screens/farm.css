@@ -1,0 +1,224 @@
+/* Ферма — раскладка мокапов (префикс .farm-). Цвета и тени — только токены кита. */
+
+/* силуэт закрытой культуры: светлый на тёмных шкурках, тёмный на «Открытке» */
+:root { --farm-sil: brightness(0) invert(.94) opacity(.3); }
+[data-skin='postcard'] { --farm-sil: brightness(0) opacity(.32); }
+.farm-sil { filter: var(--farm-sil) !important; }
+.farm-pane[hidden], .k-win-foot[hidden] { display: none !important; }
+
+/* ------------------------------------------------ ВЛ: карточка фермы */
+.farm-card { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; width: 360px; padding: 12px 14px 12px 12px; }
+.farm-card > .k-ring { width: 64px; height: 64px; }
+.farm-card-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.farm-card-name { font: 900 var(--fs-22)/1.1 var(--font-text); }
+.farm-card-xp { color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.farm-card-xp b { color: var(--plate-text); font-weight: 800; }
+.farm-card-estate { align-self: start; }
+.farm-card-next { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.farm-card-next .k-ic { width: 28px; height: 28px; }
+.farm-card-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.farm-card-chips:empty { display: none; }
+
+/* шаг обучения — одна карточка-задание */
+.farm-quest { width: 360px; padding: 12px 16px 14px; }
+.farm-quest-t { margin: 6px 0 10px; font: 600 var(--fs-16)/1.35 var(--font-text); }
+.farm-quest-steps { display: flex; gap: 5px; }
+.farm-quest-steps i { flex: 1; height: 7px; border-radius: var(--r-pill); background: var(--track); }
+.farm-quest-steps i.is-done { background: var(--good); }
+.farm-quest-steps i.is-cur { background: var(--gold); }
+.farm-quest-prize { position: absolute; top: 10px; right: 12px; }
+
+/* ------------------------------------------------ ВП: вода (лейка + колодец), сумка, созрело, помощь */
+.farm-unit { color: var(--surf-dim); font-size: var(--fs-14); font-weight: 500; }
+.farm-water .farm-well { grid-column: 1 / -1; grid-row: 4; display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font: 600 var(--fs-14)/1 var(--font-text); }
+.farm-well-ic { width: 30px; height: 30px; object-fit: contain; }
+.farm-buckets { display: inline-flex; gap: 2px; }
+.farm-buckets img { width: 25px; height: 25px; object-fit: contain; }
+.farm-buckets img.is-off { filter: grayscale(1) opacity(.35); }
+.farm-well-txt { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-left: auto; text-align: right; white-space: nowrap; }
+.farm-well-txt b { font: 800 var(--fs-14)/1 var(--font-text); }
+.farm-well-txt span { color: var(--surf-dim); font: 500 var(--fs-13)/1 var(--font-text); }
+.farm-ripe-side .k-ic { width: 30px; height: 30px; }
+
+/* ------------------------------------------------ НЦ: пояс семян */
+.farm-bc { gap: 12px; }
+.farm-pick { display: grid; grid-template-columns: 60px minmax(0, 1fr); align-items: center; gap: 4px 14px; min-width: 440px; max-width: 560px; padding: 10px 18px 10px 10px; }
+.farm-pick-ic { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-pick-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 900 var(--fs-22)/1.15 var(--font-text); }
+.farm-pick-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; font: 500 var(--fs-16)/1.2 var(--font-text); }
+.farm-pick-stats .k-ic { width: 24px; height: 24px; margin-right: 4px; }
+.farm-pick-meter { margin-top: 8px; max-width: 300px; }
+.farm-belt { display: flex; gap: 8px; padding: 14px 12px 10px; border-radius: var(--r-lg); }
+.farm-slot.k-btn--icon { width: 56px; height: 56px; }
+.farm-slot.k-btn--icon .k-ic { width: 42px; height: 42px; }
+.farm-slot > .k-key--tl { top: -9px; left: -7px; }
+.farm-slot.is-on { transform: translateY(-5px); }
+.farm-slot.is-locked .k-ic { margin-top: -10px; }
+.farm-slot.is-on .farm-sil { filter: brightness(0) opacity(.35) !important; }
+.farm-price { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.farm-price > i { font-style: normal; opacity: .7; }
+.farm-slot-lv { position: absolute; bottom: 3px; left: 0; right: 0; font: 800 var(--fs-13)/1 var(--font-text); text-transform: none; letter-spacing: 0; }
+.farm-rake-note { position: absolute; left: 50%; bottom: 284px; z-index: 10; transform: translateX(-50%); }
+.farm-whose { align-self: center; }
+
+/* ------------------------------------------------ окна */
+.farm-win { max-height: 820px; }
+.farm-win .k-win-tools > .k-pill--lg { position: relative; }
+.farm-npc { margin: 2px 0 0; color: var(--surf-dim); font: italic 500 var(--fs-16)/1.3 var(--font-text); }
+.farm-lead { margin: 4px 0 12px; font-size: var(--fs-16); }
+.farm-why { display: flex; align-items: center; gap: 6px; font: 700 var(--fs-14)/1.3 var(--font-text); }
+.farm-why .k-ic { width: 22px; height: 22px; }
+
+/* Семечкин */
+.farm-crops { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.farm-crop { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 10px 12px; text-align: center; }
+.farm-crop-ic { width: 76px; height: 76px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-crop-name { min-height: 2.3em; display: grid; place-items: center; font: 800 var(--fs-16)/1.15 var(--font-text); }
+.farm-crop-row { display: flex; align-items: center; justify-content: center; gap: 8px; font: 500 var(--fs-14)/1.25 var(--font-text); white-space: nowrap; }
+.farm-crop-row .k-ic { width: 22px; height: 22px; }
+.farm-crop-gift { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); }
+.farm-crop.is-locked { justify-content: center; }
+.farm-next { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 22px; }
+.farm-next-t { margin: 4px 0 10px; font: 900 var(--fs-28)/1.1 var(--font-text); }
+.farm-unlocks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.farm-unlocks .k-stat-num { font-size: var(--fs-22); }
+.farm-steps { display: flex; flex-direction: column; gap: 8px; }
+.farm-step { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 14px; }
+.farm-step-t { font: 600 var(--fs-16)/1.3 var(--font-text); }
+
+/* Гриб и общие строки */
+.farm-cash-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: var(--fs-18); }
+.farm-cash-top > span { font-size: var(--fs-16); }
+.farm-cash-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.farm-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.farm-row { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 10px 14px 10px 10px; }
+.farm-row-ic { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.farm-row-t { font: 600 var(--fs-18)/1.2 var(--font-text); }
+.farm-row-t b { font-weight: 900; }
+.farm-row-s { margin-top: 2px; font-size: var(--fs-14); }
+.farm-row .k-btn { min-width: 128px; }
+.farm-stepper { display: inline-flex; align-items: center; gap: 10px; }
+.farm-stepper > b { min-width: 30px; text-align: center; font: 900 var(--fs-22)/1 var(--font-text); }
+.farm-row .farm-stepper .k-btn { min-width: 0; font-size: var(--fs-22); }
+.farm-foot-xp .k-note b { font-size: var(--fs-22); }
+.farm-conv-xp { min-width: 58px; justify-content: center; }
+
+/* Заказы */
+.farm-vanbar { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+.farm-vanbar-ic { width: 70px; height: 70px; object-fit: contain; }
+.farm-vanbar-t { margin-bottom: 3px; font: 800 var(--fs-22)/1.15 var(--font-text); }
+.farm-vanbar-timer { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: var(--fs-14); }
+.farm-vanbar-timer b { font: 900 var(--fs-36)/1 var(--font-text); }
+.farm-crates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.farm-crate { display: flex; flex-direction: column; gap: 9px; }
+.farm-crate-ic { align-self: center; width: 76px; height: 76px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-crate-t { text-align: center; font: 600 var(--fs-18)/1.2 var(--font-text); }
+.farm-crate-pay { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; font-size: var(--fs-16); }
+.farm-crate .k-btn { margin-top: auto; }
+.farm-crate.is-locked { align-items: center; justify-content: center; gap: 6px; padding: 12px; }
+.farm-crate.is-locked .farm-crate-ic { width: 44px; height: 44px; }
+.farm-orders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.farm-order { display: flex; flex-direction: column; gap: 9px; }
+.farm-order-kind { display: flex; align-items: center; gap: 6px; }
+.farm-order-kind .k-ic { width: 26px; height: 26px; }
+.farm-order-name { font: 900 var(--fs-22)/1.15 var(--font-text); }
+.farm-order-goal { min-height: 2.7em; font: 500 var(--fs-16)/1.35 var(--font-text); }
+.farm-order-pay { display: flex; gap: 14px; font-size: var(--fs-18); }
+.farm-order-btns { display: flex; align-items: flex-end; gap: 10px; margin-top: auto; padding-top: 4px; }
+.farm-crate.is-ready, .farm-order.is-ready, .farm-up.is-ready, .farm-ach.is-ready { box-shadow: inset 0 0 0 2px var(--good); }
+
+/* Хозяйство */
+.farm-h { margin: 2px 0 10px; }
+.farm-ups + .farm-h { margin-top: 20px; }
+.farm-ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.farm-up { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 10px 12px; }
+.farm-up-ic { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.farm-up-name { font: 800 var(--fs-18)/1.2 var(--font-text); }
+.farm-up-gives { margin-top: 2px; font: 500 var(--fs-14)/1.3 var(--font-text); }
+.farm-up-cost, .farm-up > .farm-why, .farm-up-btn { grid-column: 1 / -1; }
+.farm-up-cost { display: flex; flex-wrap: wrap; gap: 6px; }
+.farm-up-cost .k-ic { width: 20px; height: 20px; }
+.farm-up.is-compact { grid-template-columns: 48px minmax(0, 1fr); padding: 12px; }
+.farm-up.is-compact .farm-up-ic { width: 48px; height: 48px; }
+.farm-rep { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 16px; }
+.farm-rep-ic { width: 64px; height: 64px; object-fit: contain; }
+.farm-rep-main .k-meter { margin-top: 8px; }
+.farm-rep-next { margin-top: 8px; font-size: var(--fs-14); }
+.farm-res { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 6px; }
+.farm-res .k-stat { padding: 10px 14px; }
+.farm-res .k-stat-ic { width: 48px; height: 48px; }
+.farm-res .k-stat { grid-template-columns: 48px minmax(0, 1fr); }
+.farm-decor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.farm-dec { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.farm-dec-ic { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-dec.is-locked .farm-dec-ic { filter: grayscale(.8) opacity(.55); }
+.farm-dec-name { font: 800 var(--fs-18)/1.2 var(--font-text); }
+.farm-dec-on { position: absolute; top: 10px; right: 10px; }
+.farm-dec .farm-why { justify-content: center; text-align: left; }
+.farm-ach { display: grid; grid-template-columns: minmax(0, 1fr) 240px 110px; align-items: center; gap: 18px; }
+.farm-ach-name { margin: 3px 0 8px; font: 800 var(--fs-16)/1.25 var(--font-text); }
+.farm-ach-name span { font-weight: 500; }
+.farm-ach-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: var(--fs-14); text-align: right; }
+.farm-ach-side b { font-size: var(--fs-16); }
+.farm-ach > .k-pill, .farm-ach > .k-btn { justify-self: end; }
+
+/* Доска фермы */
+.farm-board { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 24px; }
+.farm-map { position: relative; width: 420px; height: 420px; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle, var(--mode-soft) 0 62%, transparent 62.5%), var(--surf-3); box-shadow: inset 0 0 0 2px var(--line); }
+.farm-plot { position: absolute; display: grid; place-items: center; width: 46px; height: 38px; transform: translate(-50%, -50%); border: 1.5px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surf-2); color: var(--surf-dim); font: 800 var(--fs-16)/1 var(--font-text); }
+.farm-plot img { position: absolute; top: -14px; right: -14px; width: 28px; height: 28px; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .4)); }
+.farm-plot.is-me, .farm-dot.is-me { border: 0; background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--gold-ink); box-shadow: 0 3px 0 var(--btn-drop-ink, var(--gold-lo)); }
+.farm-plot.is-here, .farm-dot.is-here { border: 2px solid var(--good); background: var(--good-soft); color: var(--surf-text); }
+.farm-plot.is-sleep, .farm-dot.is-sleep { border: 1.5px solid var(--line-strong); background: var(--surf-3); color: var(--surf-faint); }
+.farm-map-well { position: absolute; left: 50%; top: 50%; width: 96px; height: 96px; transform: translate(-50%, -50%); }
+.farm-map-tree { position: absolute; left: 118px; top: 248px; width: 58px; height: 58px; }
+.farm-map-van { position: absolute; left: 248px; top: 120px; width: 54px; height: 54px; }
+.farm-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin-top: 16px; font-size: var(--fs-14); }
+.farm-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.farm-dot { display: inline-block; width: 16px; height: 14px; border: 1.5px dashed var(--line-strong); border-radius: 4px; background: var(--surf-2); }
+.farm-board-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.farm-treebar { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 12px; font-size: var(--fs-16); }
+.farm-treebar img { width: 52px; height: 52px; object-fit: contain; }
+.farm-treebar .k-dim { font-size: var(--fs-14); }
+.farm-helpline { display: flex; align-items: center; gap: 12px; font-size: var(--fs-14); }
+.farm-helpline .k-ic { width: 34px; height: 34px; }
+
+/* Древо */
+.farm-tree.k-lamp { margin-bottom: 8px; }
+.farm-tree-bar { position: relative; grid-column: 1 / -1; margin-top: 10px; }
+.farm-tree-bar > i { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--surf-text); opacity: .55; }
+.farm-treeend .k-win-body { padding-top: 8px; }
+.farm-buff { justify-content: flex-start; text-align: left; }
+.farm-buff .k-ic { width: 56px; height: 56px; }
+.farm-buff b { font-size: var(--fs-28); }
+.farm-buff .k-dim { font-size: var(--fs-14); font-weight: 500; }
+.farm-treeend .k-table { margin-top: 10px; }
+.farm-treeend .k-table th:first-child, .farm-treeend .k-table td:first-child { width: 58px; }
+.farm-treeend-rep { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+
+/* Новый уровень */
+.farm-lvl { position: absolute; left: 50%; top: 410px; z-index: 15; width: 780px; transform: translateX(-50%); text-align: center; }
+.farm-lvl.is-wide { width: 1040px; top: 395px; }
+.farm-lvl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.farm-lvl-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 10px; }
+.farm-lvl-item img { width: 76px; height: 76px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-lvl.is-wide .farm-lvl-item img { width: 60px; height: 60px; }
+.farm-lvl-item b { font: 800 var(--fs-18)/1.2 var(--font-text); }
+.farm-lvl-item span { font-size: var(--fs-14); line-height: 1.3; }
+.farm-lvl-btns { display: flex; justify-content: center; gap: 16px; margin-top: 18px; }
+
+/* Набери лейку: окно кита вокруг поля игры */
+.farm-wellwin { width: 1000px; max-height: 820px; }
+.farm-field { position: relative; flex: none; margin: 18px 22px 0; aspect-ratio: 1246 / 804; border-radius: var(--r-md); background: url('../img/farm/well-field.jpg') center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line-strong); overflow: hidden; }
+.farm-tag { position: absolute; top: 8px; left: 50%; display: grid; grid-template-columns: auto auto; align-items: center; gap: 4px 14px; min-width: 260px; padding: 8px 18px 10px; transform: translateX(-50%); }
+.farm-tag-p { font: 900 var(--fs-36)/1 var(--font-text); }
+.farm-tag .k-meter { grid-column: 1 / -1; }
+.farm-tag-c { display: inline-flex; align-items: center; gap: 6px; font: 700 var(--fs-16)/1.2 var(--font-text); }
+.farm-tag-c .k-ic { width: 26px; height: 26px; }
+.farm-tag .k-meter { width: 100%; margin-top: 4px; }
+.farm-time { position: absolute; top: 18px; right: 18px; gap: 10px; }
+.farm-time-m { width: 120px; }
+.farm-field-hero { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.farm-well-foot { justify-content: flex-start; gap: 26px; }
+.farm-ctl { display: inline-flex; align-items: center; gap: 10px; font: 700 var(--fs-16)/1.2 var(--font-text); }
+.farm-well-foot > .k-note.farm-well-esc { margin-right: 0; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }

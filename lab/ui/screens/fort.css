@@ -1,0 +1,172 @@
+/* Крепость: раскладка поверх кита (префикс .ft-). Цвета и тени — только токены. Боевые компоненты — kit/combat.css. */
+
+/* заглушка-эмодзи, пока нет картинки (TODO icon) */
+.ft-emo { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; font-size: 22px; line-height: 1; vertical-align: middle; }
+.k-event-ic .ft-emo { font-size: 30px; }
+.k-toast-ic .ft-emo { font-size: 24px; }
+.k-edge-disc .ft-emo { font-size: 30px; }
+.k-pill .ft-emo { width: 26px; height: 26px; font-size: 18px; }
+.ft-foe .ft-emo { width: 44px; height: 44px; font-size: 30px; }
+
+/* золото крепости — горка самородков, не монета-жетон */
+.ft-nug { display: inline-block; flex: none; width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: -.3em; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .35)); }
+.k-pill .ft-nug { width: 24px; height: 24px; }
+.k-pill--lg .ft-nug { width: 28px; height: 28px; }
+.ft-gold .k-ctx-ic { width: 46px; height: 46px; }
+.ft-plus { margin-left: 8px; color: var(--good-text); font: 900 var(--fs-16)/1 var(--font-text); }
+.ft-sub { margin-left: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.ft-still { animation: none !important; opacity: 1; }
+
+/* ---------------------------------------------------------------- ВЛ: карта + ворота + кристалл + колокол */
+.ft-fort { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 14px; width: 360px; padding: 10px 14px 10px 10px; }
+.ft-map { width: 132px; height: 132px; overflow: hidden; border-radius: var(--r-md); box-shadow: inset 0 0 0 2px var(--line-strong); }
+.ft-map-svg { display: block; width: 100%; height: 100%; }
+.ft-hps { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ft-hp { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: 'ic name pct' 'ic bar bar'; align-items: center; gap: 2px 8px; margin: -3px -6px; padding: 3px 6px; border-radius: var(--r-sm); }
+.ft-hp-ic { grid-area: ic; width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.ft-hp-name { grid-area: name; color: var(--surf-dim); font: 700 var(--fs-14)/1.1 var(--font-text); }
+.ft-hp-pct { grid-area: pct; font: 900 var(--fs-22)/1 var(--font-text); }
+.ft-hp > .k-meter { grid-area: bar; }
+.ft-hp.is-low .ft-hp-pct { color: var(--bad-text); }
+.ft-hp.is-hit { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); animation: ft-hit .5s ease-in-out infinite alternate; }
+.ft-bell { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+.ft-bell > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ft-bell b { font: 800 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.ft-bell small { color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); white-space: nowrap; }
+.ft-bell img { flex: none; width: 24px; height: 24px; object-fit: contain; }
+@keyframes ft-hit { to { box-shadow: inset 0 0 0 2.5px var(--bad), 0 0 16px var(--bad-soft); } }
+
+/* ---------------------------------------------------------------- ВП: команда */
+.ft-team-card .k-ctx-val { white-space: normal; }
+.ft-team { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 800 var(--fs-14)/1.3 var(--font-text); }
+.ft-mate { display: inline-flex; align-items: center; gap: 5px; color: var(--surf-text); }
+.ft-mate::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--nick); box-shadow: 0 0 0 1.5px var(--line-strong); }
+.ft-mate.is-me { color: var(--gold-text); }
+.ft-mate.is-down { color: var(--bad-text); }
+.ft-mate.is-down::before { background: var(--bad); }
+.ft-mate.is-down small { font-size: var(--fs-13); font-weight: 700; }
+.ft-team-card:has(.is-ready) .ft-mate:not(.is-ready) { opacity: .55; }
+.ft-mate.is-ready::before { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+
+/* ---------------------------------------------------------------- ВЦ: плашка волны */
+.ft-wave { width: 560px; }
+.ft-of { color: var(--surf-dim); font-weight: 600; }
+.ft-left { display: flex; flex-direction: column; align-items: flex-end; line-height: .95; }
+.ft-left small { margin-top: 3px; color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.ft-foes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ft-chip { gap: 5px; padding-left: 5px; }
+.ft-chip .k-ic, .ft-chip .ft-emo { width: 28px; height: 28px; }
+.ft-new { margin-right: 2px; font-weight: 900; }
+/* передышка: видимая легенда врагов */
+.ft-legend { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.ft-foe { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 48px; padding: 4px 12px 4px 4px; border-radius: var(--r-sm); background: var(--surf-2); }
+.ft-foe-ic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.ft-foe-t { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.ft-foe-t b { font: 800 var(--fs-16)/1.15 var(--font-text); }
+.ft-foe-hint { flex-basis: 100%; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
+.ft-foe-n { font: 900 var(--fs-22)/1 var(--font-text); }
+.ft-foe.is-new { box-shadow: inset 0 0 0 2px var(--gold); background: var(--gold-soft); }
+.ft-foe.is-new, .ft-foe.is-boss { grid-column: 1 / -1; }
+.ft-foe.is-boss { box-shadow: inset 0 0 0 2px var(--bad); background: var(--bad-soft); }
+.ft-roads { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.ft-roads-h { margin-right: 4px; color: var(--surf-dim); font: 700 var(--fs-14)/1 var(--font-text); }
+.ft-road-off { opacity: .45; }
+.ft-roads .k-pill .k-ic { width: 22px; height: 22px; }
+.ft-evline { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 8px; font: 500 var(--fs-14)/1.25 var(--font-text); color: var(--surf-dim); }
+.ft-evline b { color: var(--surf-text); font-weight: 800; white-space: nowrap; }
+.ft-bellline { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 7px 12px 7px 8px; border-radius: var(--r-md); background: var(--gold-soft); font: 500 var(--fs-16)/1.25 var(--font-text); }
+.ft-bellline img { flex: none; width: 30px; height: 30px; object-fit: contain; }
+
+/* ---------------------------------------------------------------- босс в той же плашке */
+.ft-boss .k-meter--lg { margin-top: 10px; }
+.ft-window { grid-column: 1 / -1; margin-top: 6px; }
+.ft-parts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.ft-part { display: flex; flex-direction: column; gap: 4px; color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.ft-part.is-off { opacity: .5; }
+.ft-do { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 7px 12px 7px 8px; border-radius: var(--r-md); background: var(--surf-3); font: 500 var(--fs-16)/1.25 var(--font-text); }
+.ft-do img { flex: none; width: 32px; height: 32px; object-fit: contain; }
+.ft-do b { font-weight: 800; }
+.ft-do.is-danger { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.ft-do.is-go { background: var(--info-soft); box-shadow: inset 0 0 0 1.5px var(--info); }
+
+/* ---------------------------------------------------------------- прилавок (немодальный, справа) */
+.ft-stall-wrap { position: absolute; z-index: 12; top: 104px; right: var(--edge); bottom: var(--edge); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+.ft-stall { width: 100%; max-height: 100%; }
+.ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
+.ft-stall .k-win-portrait { width: 52px; height: 52px; }
+.ft-stall .k-win-title { font-size: calc(var(--fs-22) * var(--display-scale)); line-height: 1.1; white-space: normal; }
+.ft-stall-sub { margin: 0; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); }
+.ft-stall .k-win-body { padding: 14px 14px 12px; }
+.ft-stall .k-win-foot { justify-content: flex-start; padding: 10px 16px 12px; }
+.ft-stall .k-win-foot .k-note { margin: 0; }
+.ft-gold-pill { gap: 6px; }
+.ft-rows { display: flex; flex-direction: column; gap: 6px; }
+.ft-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 5px 10px 5px 14px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; transition: box-shadow .15s, transform .06s; }
+button.ft-row:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+button.ft-row:active { transform: translateY(1px); }
+.ft-row-icw { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ft-row-ic { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.ft-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ft-row-name { display: flex; align-items: center; gap: 8px; }
+.ft-row-name b { font: 800 var(--fs-16)/1.15 var(--font-text); white-space: nowrap; }
+.ft-row-det { color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
+.ft-row-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ft-why { color: var(--bad-text); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.ft-why--lock { display: inline-flex; align-items: center; gap: 4px; color: var(--surf-dim); font-size: var(--fs-14); }
+.ft-why--lock img, .ft-why--lock .ft-emo { width: 22px; height: 22px; font-size: 16px; }
+.ft-pips { display: flex; gap: 1px; width: 42px; }
+.ft-pips i { flex: 1; height: 5px; border-radius: 2px; background: var(--track); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.ft-pips i.on { background: var(--gold); box-shadow: none; }
+.ft-tier { color: var(--surf-faint); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.ft-row.is-locked { opacity: .62; cursor: default; }
+.ft-row.is-no { box-shadow: inset 0 0 0 2px var(--bad), 0 0 18px var(--bad-soft); animation: ft-no .32s ease-in-out 2; }
+.ft-row.is-ok { box-shadow: inset 0 0 0 2px var(--good), 0 0 18px var(--good-soft); }
+.ft-msg { font-weight: 700; }
+.ft-stall .k-win-foot .ft-msg.k-bad { color: var(--bad-text); }
+.ft-stall .k-win-foot .ft-msg.k-good { color: var(--good-text); }
+.ft-strength { margin-bottom: 12px; }
+.ft-tower-note { margin: 0 0 10px; color: var(--surf-dim); font-size: var(--fs-14); }
+@keyframes ft-no { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* ---------------------------------------------------------------- повалили */
+.ft-hush { opacity: .55; filter: saturate(.5); }
+.stage-scale:has(.ft-down) .stage-bg { filter: grayscale(.8) brightness(.72); }
+.k-slot--c.ft-down { top: 47%; gap: 18px; }
+.ft-respawn { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 340px; padding: 14px 20px 16px; font: 700 var(--fs-16)/1.2 var(--font-text); }
+.ft-respawn b { font: 900 var(--fs-36)/1 var(--font-text); }
+.ft-respawn .k-meter { width: 100%; margin-top: 4px; }
+.ft-respawn .ft-sub { margin: 2px 0 0; }
+
+/* ---------------------------------------------------------------- Tab и итоги */
+.ft-scrim-light { background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, .2), rgba(16, 10, 12, .45)); }
+.ft-tab { width: 760px; }
+.ft-tab .k-table td { padding-top: 6px; padding-bottom: 6px; }
+.ft-ping { color: var(--surf-dim); }
+.ft-tab-h { margin: 14px 0 8px; color: var(--surf-faint); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
+.ft-others { display: flex; flex-wrap: wrap; gap: 8px; }
+.ft-tab .k-win-foot { justify-content: flex-start; }
+.ft-tab .k-win-foot .k-note { margin: 0; }
+.ft-results { width: 820px; }
+.ft-results .k-win-body { padding-top: 12px; }
+.ft-results .k-results-title.ft-lose { color: var(--bad-text); }
+.ft-mvp { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; padding: 8px 14px 8px 8px; border-radius: var(--r-md); background: var(--surf-2); font: 500 var(--fs-16)/1.3 var(--font-text); }
+.ft-mvp > span:nth-child(2) { flex: 1; }
+.ft-results .k-table tr.ft-total td { background: var(--surf-3); font-weight: 800; }
+
+/* ---------------------------------------------------------------- новичку: карточка в стопке + подсветка того, о чём речь */
+.ft-coach { max-width: 540px; padding-bottom: 12px; box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--mode); }
+.ft-coach::after { background: var(--mode); }
+.ft-coach-n { display: block; margin-bottom: 3px; color: var(--mode); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
+.ft-coach .k-toast-sub { color: var(--surf-text); font-size: var(--fs-16); line-height: 1.4; }
+.ft-coach .k-key { vertical-align: 1px; }
+.ft-coach-time { grid-column: 2; margin-top: 8px; }
+.ft-spot { outline: 3px solid var(--gold); outline-offset: 5px; box-shadow: var(--plate-shadow), 0 0 32px var(--gold) !important; animation: ft-spot 1.2s ease-in-out infinite alternate; }
+.k-arm.ft-spot { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 3px var(--gold), 0 0 24px var(--gold) !important; }
+@keyframes ft-spot { to { outline-offset: 8px; } }
+
+/* кнопка «Прислать тревогу» над сценой боя */
+.ft-ping-btn { align-self: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-hp.is-hit, .ft-row.is-no, .ft-spot { animation: none !important; }
+}

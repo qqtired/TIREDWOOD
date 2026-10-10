@@ -1,0 +1,79 @@
+/* Набережная: только раскладка поверх кита (префикс .pz-). Цвета — токены. */
+
+/* круглая «марка» комнаты — кусок рисованной картинки экрана загрузки */
+.pz-room { display: inline-block; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #3a2b31 no-repeat; box-shadow: 0 0 0 2px var(--line-strong), 0 2px 3px rgba(0, 0, 0, .3); }
+.pz-room--lg { width: 48px; height: 48px; box-shadow: none; }
+.k-event-ic .pz-room--lg { width: 48px; height: 48px; }
+
+/* где ты (верх-лево) */
+.pz-where { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 8px; border-radius: var(--r-pill); }
+.pz-where .pz-room { width: 44px; height: 44px; }
+.pz-where-t { display: flex; flex-direction: column; gap: 2px; }
+.pz-where-t b { font: 800 var(--fs-16)/1.1 var(--font-text); }
+.pz-where-t span { color: var(--surf-dim); font-size: var(--fs-14); }
+.pz-where-on { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; padding-left: 12px; border-left: 1px solid var(--line-strong); color: var(--surf-dim); font: 700 var(--fs-14)/1 var(--font-text); }
+
+.pz-badge { margin-top: 0; }
+.pz-emotes { gap: 10px; min-height: 46px; padding: 6px 16px 6px 8px; }
+.pz-dash { color: var(--surf-dim); font-weight: 800; }
+
+/* чат */
+.pz-chat { width: 420px; }
+.pz-caret { margin-left: -6px; }
+.pz-chat-hint { margin-left: 64px; }
+
+/* «Кто где» */
+.pz-scrim-light { background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, .2), rgba(16, 10, 12, .45)); }
+.pz-online { width: 620px; }
+.pz-online .k-win-body { padding-top: 14px; padding-bottom: 14px; }
+.pz-online .k-online-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
+.pz-online .k-online-room .pz-room { width: 22px; height: 22px; box-shadow: 0 0 0 1.5px var(--line-strong); }
+.pz-vol { font-size: var(--fs-22); line-height: 1; }
+.pz-vol-val { min-width: 52px; font: 800 var(--fs-16)/1 var(--font-text); text-align: center; }
+.pz-online-foot { justify-content: flex-start; }
+.pz-online-foot .k-note { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+
+/* меню Esc → «Профиль» */
+.pz-menu { height: 812px; }
+.pz-menu .k-win-side { gap: 12px; }
+.pz-menu-head { padding: 0 6px 6px; }
+.pz-menu-head .k-win-title { font-size: calc(var(--fs-36) * var(--display-scale)); }
+.pz-menu-sub { margin: 4px 0 0; color: var(--surf-dim); font-size: var(--fs-14); }
+.pz-menu .k-nav { flex: 1; overflow: auto; }
+.pz-menu .k-nav-item { min-height: 40px; }
+.pz-menu .k-nav-h { margin: 8px 0 2px 12px; }
+.pz-nav-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--surf-2); box-shadow: inset 0 0 0 1.5px var(--line); }
+.pz-leave { margin-top: auto; }
+.pz-prof { display: flex; flex-direction: column; gap: 18px; }
+.pz-id { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 22px 24px; }
+.pz-id .k-ring--lg > small { bottom: -8px; }
+.pz-id-main { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.pz-plate { display: inline-block; padding: 7px 20px 8px; border-radius: 12px; background: linear-gradient(180deg, #3a2b31, #241a1f); color: #fff3de; font: 900 var(--fs-22)/1 var(--font-text); box-shadow: 0 0 0 3px var(--tc), 0 0 0 5px var(--tl), 0 0 0 6px rgba(0, 0, 0, .35), 0 4px 0 6px rgba(0, 0, 0, .2); }
+.pz-xp { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; }
+.pz-xp .k-meter { flex: 1; }
+.pz-xp .k-dim { white-space: nowrap; font-size: var(--fs-14); }
+.pz-id-side { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-left: 22px; border-left: 1px solid var(--line); }
+.pz-tok { display: inline-flex; align-items: center; gap: 8px; color: var(--gold-text); font: 900 var(--fs-28)/1 var(--font-text); }
+.pz-tok .k-coin { width: 30px; height: 30px; }
+.pz-id-side .k-btn { margin-top: 10px; }
+.pz-tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pz-tier { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 10px; padding: 10px 12px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); opacity: .7; }
+.pz-tier i { grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 10%, var(--tc) 45%, color-mix(in srgb, var(--tc) 60%, #000)); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+.pz-tier b { font: 800 var(--fs-16)/1.1 var(--font-text); }
+.pz-tier span { color: var(--surf-dim); font-size: var(--fs-13); }
+.pz-tier.is-got { opacity: 1; box-shadow: inset 0 0 0 2px var(--gold); background: var(--gold-soft); }
+.pz-tier-dot { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 10%, var(--tc) 45%, color-mix(in srgb, var(--tc) 60%, #000)); }
+.pz-h { margin: 4px 0 -4px; color: var(--surf-text); font: 800 var(--fs-18)/1.2 var(--font-text); }
+.pz-recs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pz-stat-art { display: grid; place-items: center; }
+.pz-stat-art .pz-room { width: 54px; height: 54px; }
+.pz-nav-svg { flex: none; width: 28px; height: 28px; padding: 3px; color: var(--surf-dim); }
+.k-nav-item:hover .pz-nav-svg { color: var(--surf-text); }
+.pz-device { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 16px; }
+.pz-device .k-ic { width: 40px; height: 40px; }
+.pz-device > span { display: flex; flex-direction: column; gap: 2px; }
+.pz-device .k-dim { font-size: var(--fs-14); }
+.pz-voice img { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.pz-emotes .k-ic { width: 30px; height: 30px; }
+.pz-leave .k-ic { width: 24px; height: 24px; }
+.pz-chat-hint { align-self: flex-start; }
