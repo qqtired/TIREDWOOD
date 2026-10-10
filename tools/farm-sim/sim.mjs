@@ -2,7 +2,8 @@
 // Симуляция экономики idle-фермы по docs/farm/design-v10.md (Монте-Карло, событийная модель с точностью до минуты).
 //
 // Запуск (из корня репозитория, Node 24):
-//   node tools/farm-sim/sim.mjs                      — пресеты base + tweaked по 500 прогонов на архетип + таблица K (~2 мин)
+//   node tools/farm-sim/sim.mjs                      — все пресеты (base, tweaked, v11a, v11b, v11) по 500 прогонов + таблица K (~4 мин)
+//   node tools/farm-sim/sim.mjs --preset v11 --no-k  — только итоговая экономика v11
 //   node tools/farm-sim/sim.mjs --runs 1000 --preset base --arch casual,active --no-k
 //   node tools/farm-sim/sim.mjs --set crops.wheat.lvl=1 --set 'goals.bed2.res={"fiber":5,"root":4}' --set K=0.2
 //   node tools/farm-sim/sim.mjs --inline --runs 1 --arch casual --set trace=2 --no-k   — журнал решений первых 2 суток
@@ -12,6 +13,8 @@
 // provisionalGates (гейты лейки 2/3, сумки 3, компоста сдвинуты на уровень появления ресурса), waterOncePerCycle,
 // wellFill. Монеты фермы = жетоны 🪙 игры; K — глобальный множитель всех монетных чисел документа (округление до целых).
 // Допущения, которых нет в документе, помечены «допущение» рядом с параметром.
+// v11: K = 0,1, правки tweaked, XP Фургона 15 %, (а) lateCurve — сжатие цен культур дольше 20 мин, (б) dailyCap — мягкий
+// дневной потолок выручки. «Финал» — доход за postDays суток после полного прохождения.
 
 import { writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -116,7 +119,7 @@ export const CONFIG = {
   van: true,
   vanPriceMin: 1.3,
   vanPriceMax: 1.5,
-  /** XP сделки Фургона в документе не задан: допущение — 25 % XP сбора за каждую сданную штуку */
+  /** XP сделки Фургона: в v10 не задан — допущение 25 % XP сбора за штуку; в v11 — 15 % (решение, см. пресеты v11*) */
   vanXpPerUnitFrac: 0.25,
   /** Сколько часов игрок держит урожай в сумке в ожидании Фургона, потом продаёт НПС */
   vanHoldHours: 4,
@@ -136,6 +139,18 @@ export const CONFIG = {
   pigEveryMin: 180,
   pigCap: 3,
   pigPrice: 300,
+
+  // --- рычаги поздней экономики (v11) ---
+  /**
+   * Вариант (а): сжатие цен культур, растущих дольше fromMin минут. Прибыль за сбор (в монетах документа, до K) =
+   * min(документ, anchorProfit · (мин / fromMin)^beta); семя и продажа умножаются на один коэффициент.
+   * beta < 1 ⇒ прибыль/ч убывает с временем роста. null — цены документа.
+   */
+  lateCurve: null,
+  /** Вариант (б): мягкий дневной потолок выручки НПС + Фургон за МСК-сутки: после N 🪙 (уже после K) цена × mult */
+  dailyCap: null,
+  /** «Финал»: сколько суток после полного прохождения (с бонусами) мерить установившийся доход */
+  postDays: 7,
 
   // --- политика игрока (жадная) ---
   policy: {
@@ -253,9 +268,26 @@ function tweaked(cfg) {
 /** Рекомендованный множитель цен (см. таблицу K в RESULTS.md) */
 const RECOMMENDED_K = 0.1;
 
+/** v11, вариант (а): сжатие цен культур дольше 20 мин — прибыль за сбор почти не растёт с временем роста */
+const LATE_CURVE_V11 = { fromMin: 20, anchorProfit: 130, beta: 0.1 };
+/** v11, вариант (б): мягкий дневной потолок выручки НПС + Фургон (🪙 после K). ×0,5 не дотягивает — см. RESULTS.md */
+const DAILY_CAP_V11 = { N: 700, mult: 0.25 };
+
+function v11common(cfg) {
+  tweaked(cfg);
+  cfg.vanXpPerUnitFrac = 0.15;
+  return cfg;
+}
+
 const PRESETS = {
   base: (cfg) => cfg,
   tweaked,
+  /** v11 (а): только сжатие цен поздних культур */
+  v11a: (cfg) => Object.assign(v11common(cfg), { lateCurve: LATE_CURVE_V11 }),
+  /** v11 (б): только дневной потолок */
+  v11b: (cfg) => Object.assign(v11common(cfg), { dailyCap: DAILY_CAP_V11 }),
+  /** v11 итог: (а) + (б) */
+  v11: (cfg) => Object.assign(v11common(cfg), { lateCurve: LATE_CURVE_V11, dailyCap: DAILY_CAP_V11 }),
 };
 
 /** Значения K для таблицы «K → 🪙/мин игры и 🪙/день» */
@@ -324,8 +356,17 @@ function prepare(cfgIn) {
     pig: scaleCoin(cfg.pigPrice, K, 'item'),
   };
   for (const c of cfg.crops) {
-    c.seedK = scaleCoin(c.seed, K, 'item');
-    c.sellK = scaleCoin(c.sell, K, 'item');
+    let seed = c.seed;
+    let sell = c.sell;
+    const lc = cfg.lateCurve;
+    if (lc && c.min > lc.fromMin) {
+      const docProfit = sell - seed;
+      const f = Math.min(docProfit, lc.anchorProfit * Math.pow(c.min / lc.fromMin, lc.beta)) / docProfit;
+      seed *= f;
+      sell *= f;
+    }
+    c.seedK = scaleCoin(seed, K, 'item');
+    c.sellK = scaleCoin(sell, K, 'item');
     c.group = groupOf(c);
     c.vanLimit = vanLimit(c);
   }
@@ -444,7 +485,7 @@ function simulate(cfg, arch, rng) {
     replLeft: 0,
     lastDay: -1,
     streak: 0,
-    daily: { water: 0, sales: 0 },
+    daily: { water: 0, sales: 0, gross: 0 },
     activeBefore: 0,
     sess: null,
   };
@@ -478,6 +519,9 @@ function simulate(cfg, arch, rng) {
     helpsGot: 0,
     bossBuffs: 0,
     maxGap: { h: 0, endedBy: '' },
+    capCut: 0,
+    post: null,
+    path: null,
     daily: [],
     activeMinTotal: 0,
     endT: 0,
@@ -487,6 +531,8 @@ function simulate(cfg, arch, rng) {
   let phaseStartA = 0;
   const trace = cfg.trace ? (...a) => S.t < cfg.trace * 1440 && console.log(`d${Math.floor(S.t / 1440)} ${String(Math.floor((S.t % 1440) / 60)).padStart(2, '0')}:${String(Math.floor(S.t % 60)).padStart(2, '0')} L${S.level} xp${Math.round(S.xp)} 🪙${Math.round(S.coins)}`, ...a) : () => {};
   let done = false;
+  let post = null;
+  const netNow = () => Object.values(rec.coin).reduce((a, b) => a + b, 0) - rec.seeds;
 
   const activeNow = () => S.activeBefore + (S.sess ? S.t - S.sess.start : 0);
   const xpMult = () => (S.t < S.buff.xp ? 1.1 : 1);
@@ -547,7 +593,10 @@ function simulate(cfg, arch, rng) {
     if (rec.completeT != null && rec.completePlusT == null && ['pig', 'bees', 'compost'].every((id) => S.owned.has(id))) {
       rec.completePlusT = S.t / 60;
       rec.completePlusA = activeNow() / 60;
-      done = true;
+      // дальше — «финал»: всё открыто, игрок фармит монеты ещё postDays суток
+      post = { t0: S.t, a0: activeNow(), net0: netNow(), cut0: rec.capCut, src0: { ...rec.coin, seeds: rec.seeds }, h0: { ...rec.harvests }, until: S.t + cfg.postDays * 1440 };
+      rec.path = { net: netNow(), h: S.t / 60, activeMin: activeNow() };
+      if (!(cfg.postDays > 0)) done = true;
     }
   }
 
@@ -583,9 +632,29 @@ function simulate(cfg, arch, rng) {
     return n;
   };
 
+  /** Мягкий дневной потолок: выручка сверх N за сутки платится × mult (необязательная вторая ступень N2 × mult2) */
+  function capped(v) {
+    const cap = cfg.dailyCap;
+    if (!cap) return v;
+    const steps = [[0, 1], [cap.N, cap.mult]];
+    if (cap.N2) steps.push([cap.N2, cap.mult2]);
+    const g0 = S.daily.gross;
+    const g1 = g0 + v;
+    let paid = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const lo = steps[i][0];
+      const hi = i + 1 < steps.length ? steps[i + 1][0] : Infinity;
+      const part = Math.max(0, Math.min(g1, hi) - Math.max(g0, lo));
+      paid += part * steps[i][1];
+    }
+    S.daily.gross = g1;
+    rec.capCut += v - paid;
+    return paid;
+  }
+
   function sellNpc(ci, n) {
     const e = S.bag.get(ci);
-    const v = n * crops[ci].sellK * sellMult();
+    const v = capped(n * crops[ci].sellK * sellMult());
     addCoins(v, 'npc');
     S.daily.sales += v;
     orderEvent('sale', v);
@@ -643,7 +712,7 @@ function simulate(cfg, arch, rng) {
       if (!e || e.n <= 0) continue;
       const d = Math.min(e.n, o.rem);
       const c = crops[o.ci];
-      const v = d * c.sellK * o.mult * sellMult();
+      const v = capped(d * c.sellK * o.mult * sellMult());
       addCoins(v, 'van');
       S.daily.sales += v;
       orderEvent('sale', v);
@@ -942,7 +1011,10 @@ function simulate(cfg, arch, rng) {
     const lam = (L >= cfg.maxLevel && !cb ? 1 : cb ? pol.lambdaHigh : pol.lambdaLow) / K;
     const gm = growMult();
     const xm = xpMult();
-    const sm = sellMult();
+    // игрок видит, что дневной потолок уже пройден: цена в оценке посадки — по текущей ступени
+    const cap = cfg.dailyCap;
+    const capNow = !cap ? 1 : cap.N2 && S.daily.gross >= cap.N2 ? cap.mult2 : S.daily.gross >= cap.N ? cap.mult : 1;
+    const sm = sellMult() * capNow;
     const dd = cfg.shovelDD[S.tool.shovel - 1];
     const vanOpenUntil = vanOn && S.t - Math.floor(S.t / 120) * 120 < 60 ? Math.floor(S.t / 120) * 120 + 60 : -1;
     const cand = [];
@@ -1013,7 +1085,7 @@ function simulate(cfg, arch, rng) {
 
   function dayStart(day) {
     S.lastDay = day;
-    S.daily = { water: 0, sales: 0 };
+    S.daily = { water: 0, sales: 0, gross: 0 };
     S.rep += 1;
     refreshOrders();
     orderEvent('login', 0);
@@ -1024,6 +1096,10 @@ function simulate(cfg, arch, rng) {
   for (let si = 0; si < nS && !done; si++) {
     const sess = sessions[si];
     if (sess.start >= horizon) break;
+    if (post && sess.start >= post.until) {
+      done = true;
+      break;
+    }
     while (snapDay * 1440 <= sess.start && snapDay <= cfg.horizonDays) {
       rec.daily.push({ day: snapDay, level: S.level, beds: S.beds.length, xp: Math.round(S.xp), net: Math.round(rec.phase.reduce((a, p) => a + p.net, 0)), activeMin: Math.round(S.activeBefore) });
       snapDay++;
@@ -1082,6 +1158,18 @@ function simulate(cfg, arch, rng) {
     S.activeBefore += dur;
     rec.activeByCan[S.tool.can - 1] += dur;
     S.sess = null;
+  }
+  if (post) {
+    const days = (S.t - post.t0) / 1440;
+    rec.post = days > 0.5
+      ? {
+          netPerDay: (netNow() - post.net0) / days,
+          perActiveMin: (netNow() - post.net0) / Math.max(1, S.activeBefore - post.a0),
+          cutPerDay: (rec.capCut - post.cut0) / days,
+          srcPerDay: Object.fromEntries(Object.entries({ ...rec.coin, seeds: rec.seeds }).map(([k, v]) => [k, (v - post.src0[k]) / days])),
+          harvestsPerDay: Object.fromEntries(Object.entries(rec.harvests).map(([k, v]) => [k, (v - post.h0[k]) / days])),
+        }
+      : null;
   }
   rec.phase[phaseOf(S.level)].realMin += S.t - phaseStartT;
   rec.phase[phaseOf(S.level)].activeMin += S.activeBefore - phaseStartA;
@@ -1155,12 +1243,28 @@ function aggregate(cfg, recs) {
   const mean = (f) => recs.reduce((a, r) => a + f(r), 0) / n;
   const p90 = (f) => pct(recs.map(f).sort((a, b) => a - b), 0.9);
   // доход: чистый = все поступления − семена (траты на инструменты не вычитаются)
-  const net = (r) => Object.values(r.coin).reduce((a, b) => a + b, 0) - r.seeds;
+  // «путь» — до полного прохождения с бонусами (или до горизонта); «финал» — postDays суток после него
+  const net = (r) => (r.path ? r.path.net : Object.values(r.coin).reduce((a, b) => a + b, 0) - r.seeds);
+  const pathH = (r) => (r.path ? r.path.h : r.endT);
+  const pathA = (r) => (r.path ? r.path.activeMin : r.activeMinTotal);
+  const withPost = recs.filter((r) => r.post);
+  const m2 = (arr, f) => (arr.length ? arr.reduce((a, r) => a + f(r), 0) / arr.length : null);
+  out.finale = withPost.length
+    ? {
+        source: 'post',
+        share: withPost.length / n,
+        netPerDay: m2(withPost, (r) => r.post.netPerDay),
+        perActiveMin: m2(withPost, (r) => r.post.perActiveMin),
+        capCutPerDay: m2(withPost, (r) => r.post.cutPerDay),
+        srcPerDay: Object.fromEntries(Object.keys(withPost[0].post.srcPerDay).map((k) => [k, m2(withPost, (r) => r.post.srcPerDay[k])])),
+        harvestsPerDay: Object.fromEntries(Object.keys(withPost[0].post.harvestsPerDay).map((k) => [k, m2(withPost, (r) => r.post.harvestsPerDay[k])]).filter(([, v]) => v > 0.05)),
+      }
+    : null;
   out.income = {
-    netPerActiveMin: mean((r) => net(r) / Math.max(1, r.activeMinTotal)),
-    netPerActiveMinP90: p90((r) => net(r) / Math.max(1, r.activeMinTotal)),
-    netPerRealHour: mean((r) => net(r) / Math.max(1, r.endT)),
-    netPerDay: mean((r) => (net(r) / Math.max(1, r.endT)) * 24),
+    netPerActiveMin: mean((r) => net(r) / Math.max(1, pathA(r))),
+    netPerActiveMinP90: p90((r) => net(r) / Math.max(1, pathA(r))),
+    netPerRealHour: mean((r) => net(r) / Math.max(1, pathH(r))),
+    netPerDay: mean((r) => (net(r) / Math.max(1, pathH(r))) * 24),
     activeMinPerDay: mean((r) => (r.activeMinTotal / Math.max(1, r.endT)) * 24),
     spentGoals: mean((r) => r.spentGoals),
     netTotal: mean(net),
@@ -1180,6 +1284,9 @@ function aggregate(cfg, recs) {
       };
     }),
   };
+  if (!out.finale && out.income.phases[3].netPerDay != null) {
+    out.finale = { source: 'level13', share: out.levels[13].real.reached, netPerDay: out.income.phases[3].netPerDay, perActiveMin: out.income.phases[3].netPerActiveMin, capCutPerDay: null };
+  }
   const xpTot = mean((r) => Object.values(r.xpSrc).reduce((a, b) => a + b, 0));
   out.xpSources = Object.fromEntries(Object.keys(recs[0].xpSrc).map((k) => [k, mean((r) => r.xpSrc[k]) / xpTot]));
   const hTot = mean((r) => Object.values(r.harvests).reduce((a, b) => a + b, 0));
@@ -1279,6 +1386,7 @@ function printArch(name, a) {
   L.push(`+ свин, пчёлы, компост: реальные ч ${cell(a.completePlus.real)}, активные ч ${cell(a.completePlus.active)}`);
   const inc = a.income;
   L.push(`\nДоход (чистый: продажи+Фургон+заказы+свин+помощь − семена): ${f1(inc.netPerActiveMin)} 🪙/мин активной игры (p90 ${f1(inc.netPerActiveMinP90)}), ${f1(inc.netPerRealHour)} 🪙/ч реального времени, ${f1(inc.netPerDay)} 🪙/день; всего ${f1(inc.netTotal)}, из них на улучшения ${f1(inc.spentGoals)}`);
+  if (a.finale) L.push(`**Финал** (${a.finale.source === 'post' ? 'после полного прохождения' : 'на ур. 13, прохождения нет'}): ${f1(a.finale.netPerDay)} 🪙/день, ${f1(a.finale.perActiveMin)} 🪙/мин игры${a.finale.capCutPerDay ? `, потолок срезал ${f1(a.finale.capCutPerDay)} 🪙/день` : ''}`);
   L.push('По фазам: ' + inc.phases.map((p) => `${p.label}: ${f1(p.netPerActiveMin)} 🪙/мин, ${f1(p.netPerDay)} 🪙/день, ${f1(p.xpPerActiveMin)} XP/мин`).join('; '));
   const src = Object.entries(inc.bySource).map(([k, v]) => `${k} ${f1(v)}`).join(', ');
   L.push(`Источники монет: ${src}; семена −${f1(inc.seeds)}`);
@@ -1291,6 +1399,27 @@ function printArch(name, a) {
   return L.join('\n');
 }
 
+
+/** Итоговые числа пресета в 🪙 (после K, сжатия и округления): культуры, улучшения, заказы, прочее */
+function finalNumbers(cfg) {
+  const crops = cfg.crops.map((c) => ({
+    id: c.id, name: c.name, lvl: c.lvl, min: c.min, xp: c.xp, sec: c.sec, chance: c.chance,
+    seed: c.seedK, sell: c.sellK, profit: c.sellK - c.seedK,
+    coinsH: +(((c.sellK - c.seedK) * 60) / c.min).toFixed(1), xpH: Math.round((c.xp * 60) / c.min), vanLimit: c.vanLimit,
+  }));
+  const goals = cfg.goals.map((g) => ({ id: g.id, kind: g.kind, lvl: g.effLvl, coins: g.coinsK, res: g.res }));
+  const orders = {
+    plant: Object.fromEntries(Object.entries(PLANT_ORDERS).map(([k, o]) => [k, { n: `${o.min}–${o.max}`, coins: cfg.orderCoin(o.coins), xp: o.xp }])),
+    help: HELP_ORDERS.map((o) => ({ need: o.need, coins: cfg.orderCoin(o.coins), xp: o.xp, rep: o.rep })),
+    misc: MISC_ORDERS.map((o) => ({ kind: o.kind, need: o.scaled ? Math.round(o.need * cfg.K) : o.need, coins: cfg.orderCoin(o.coins), xp: o.xp, rep: o.rep })),
+  };
+  const other = {
+    K: cfg.K, startCoins: cfg.coin.start, helpCoins: cfg.coin.help, truffle: cfg.coin.pig,
+    vanPrice: [cfg.vanPriceMin, cfg.vanPriceMax], vanXpPerUnitFrac: cfg.vanXpPerUnitFrac,
+    lateCurve: cfg.lateCurve, dailyCap: cfg.dailyCap,
+  };
+  return { crops, goals, orders, other };
+}
 
 // =====================================================================================================================
 // MAIN (прогоны раскладываются по worker_threads)
@@ -1408,11 +1537,32 @@ async function main() {
     const dom = ct.dominance.filter((d) => d.same).map((d) => `ур. ${d.level}: ${d.topCoins}${d.resourceUseful ? ' (ресурс востребован)' : ''}`);
     md.push(`\nЛидер сразу по 🪙/ч и XP/ч: ${dom.length ? dom.join('; ') : 'нет'}`);
     for (const name of args.arch) md.push(printArch(name, res[name]));
+    out.presets[p].numbers = finalNumbers(cfg);
+  }
+  // сводка «финал» по пресетам
+  md.push('\n## Финал (🪙/день после полного прохождения; у «быстрых» — на ур. 13) и ранняя игра (ур. 1–4, 🪙/день)');
+  md.push('\n| Пресет | ' + args.arch.map((n) => ARCHETYPES[n].label).join(' | ') + ' |');
+  md.push('|---|' + args.arch.map(() => '---').join('|') + '|');
+  for (const p of presets) {
+    const A = out.presets[p].archetypes;
+    md.push(`| ${p} | ` + args.arch.map((n) => `${f1(A[n].finale?.netPerDay)} · ранн. ${f1(A[n].income.phases[0].netPerDay)} · ур.13 ${f1(A[n].levels[13].real.mean / 24)} дн`).join(' | ') + ' |');
+  }
+  if (out.presets.v11) {
+    const N = out.presets.v11.numbers;
+    md.push('\n## Итоговые числа v11 (🪙)');
+    md.push('\n| Культура | ур. | мин | XP | ресурс | семя | продажа | прибыль | 🪙/ч | XP/ч | Фургон, шт |');
+    md.push('|---|---|---|---|---|---|---|---|---|---|---|');
+    for (const c of N.crops) md.push(`| ${c.name} | ${c.lvl} | ${c.min} | ${c.xp} | ${RES_RU[c.sec]} ${Math.round(c.chance * 100)}% | ${c.seed} | ${c.sell} | ${c.profit} | ${c.coinsH} | ${c.xpH} | ${c.vanLimit} |`);
+    md.push('\n| Улучшение | ур. | 🪙 | ресурсы |');
+    md.push('|---|---|---|---|');
+    for (const g of N.goals) md.push(`| ${g.id} | ${g.lvl} | ${g.coins} | ${Object.entries(g.res).map(([k, v]) => `${v} ${RES_RU[k]}`).join(', ')} |`);
+    md.push('\nЗаказы: ' + JSON.stringify(N.orders));
+    md.push('Прочее: ' + JSON.stringify(N.other));
   }
   if (args.kTable) {
     const archK = args.arch.filter((n) => n !== 'fastNoVan');
     md.push(`\n## Таблица K (пресет base, до ${args.kRuns} прогонов на точку; цены округлены до целых)`);
-    md.push('\nЯчейка: 🪙/мин игры · 🪙/день в среднем за путь до полного прохождения (или горизонта) | на ур. 13 | день ур. 13');
+    md.push('\nЯчейка: 🪙/мин игры · 🪙/день в среднем за путь до полного прохождения (или горизонта) | финал | день ур. 13');
     md.push('\n| K | ' + archK.map((n) => ARCHETYPES[n].label).join(' | ') + ' |');
     md.push('|---|' + archK.map(() => '---').join('|') + '|');
     out.kTable = [];
@@ -1421,7 +1571,7 @@ async function main() {
       const row = { K, arch: {} };
       const cells = archK.map((n) => {
         const a = res[n];
-        const end = a.income.phases[3];
+        const end = { netPerActiveMin: a.finale?.perActiveMin, netPerDay: a.finale?.netPerDay };
         const early = a.income.phases[0];
         row.arch[n] = {
           perActiveMin: a.income.netPerActiveMin,
