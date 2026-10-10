@@ -191,6 +191,14 @@ const uTime = { value: 0 };
  * Озверение (aRage: целая часть — уровень 0…3, дробная — вспышка в момент озверения, 0…0,9): глаза и светящиеся
  * части краснеют и горят ярче с каждым уровнем, тело слегка уходит в сливово-красный, на 3-м — пульс; вспышка — алая.
  */
+/**
+ * Читаемость на узорном полу: светлая кромка по силуэту (френель в видовых координатах — бока светятся, макушка нет).
+ */
+const RIM_FRAG = /* glsl */ `
+  float dgF = 1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0);
+  totalEmissiveRadiance += vec3(1.0, 0.86, 0.72) * pow(dgF, 2.6) * 0.55;
+`;
+
 const RAGE_FRAG = /* glsl */ `
   float dgLv = floor(vRage + 0.001);
   float dgRf = fract(vRage + 0.001) / 0.9;
@@ -217,7 +225,7 @@ function mobMaterial(tex: THREE.DataTexture): THREE.MeshStandardMaterial {
     sh.fragmentShader = 'uniform float uTime;\nvarying vec3 vEmi;\nvarying float vRough;\nvarying float vFlash;\nvarying float vRage;\n' + sh.fragmentShader
       .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.05, 0.14), 0.2 * floor(vRage + 0.001));\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.97, 0.92), vFlash);')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = vRough;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += vEmi + diffuseColor.rgb * 0.22 + vec3(0.9, 0.85, 0.8) * vFlash;\n' + RAGE_FRAG);
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += vEmi + diffuseColor.rgb * 0.22 + vec3(0.9, 0.85, 0.8) * vFlash;\n' + RIM_FRAG + RAGE_FRAG);
   };
   mat.customProgramCacheKey = () => 'dg-mob-vat';
   return mat;
