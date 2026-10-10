@@ -4,7 +4,7 @@
 // на земле и за линией зданий: коллизии у него нет.
 
 /** Режим за флагом сервера, чьё оформление твёрдое: без флага режима его предметов нет — ни на экране, ни в карте */
-export type PlazaSolidMode = 'hide' | 'regatta' | 'fight';
+export type PlazaSolidMode = 'hide' | 'regatta' | 'fight' | 'dungeon';
 
 export interface PlazaSolid {
   /** Центр на земле */
@@ -79,6 +79,27 @@ export const BOAT_GATE = { x0: 4.9, x1: 10.9, z: 21.3 } as const;
  */
 export const FIGHT_POSTS: readonly PlazaSolid[] = [solid(27.15, 4.42, 0.07, 0.07, 0.95), solid(29.05, 4.42, 0.07, 0.07, 0.95)];
 
+/**
+ * «Подземелье» (режим за флагом DUNGEON, западная лужайка): скала с пещерой и доска рекордов (client/lobby/plaza/dungeon.ts).
+ * Скала — овал 5,6 × 5,4 м с центром в (−18,4; 11,6), зев смотрит на точку появления (yaw модели = π + yaw из
+ * docs/survivors/level.md §8, −1,275). Доска — на двух столбиках в 5 м к юго-востоку от зева, лицом на север, к тропе
+ * «точка появления → аквапарк»: с тропы и от зева она читается под умеренным углом. Стоит вдоль оси x, чтобы коллизия была
+ * ровной, без «невидимых стен» по углам.
+ * Скала — три бокса без пересечений (основной до 3,8 м и два выступа до 3,0 м): рисунок скалы они покрывают с запасом
+ * до 0,5 м, ступени у порога и рельсы вне боксов — там можно стоять (точка «E» у зева). Доска — два столбика и плита.
+ */
+export const DUNGEON_ROCK = { x: -18.4, z: 11.6, yaw: Math.PI - 1.275 } as const;
+export const DUNGEON_BOARD = { x: -11, z: 14.3, yaw: Math.PI } as const;
+const DUNGEON_SOLIDS: readonly PlazaSolid[] = [
+  solid(-18.4, 11.4, 3.2, 2.4, 3.8),
+  solid(-18.0, 8.6, 1.8, 0.4, 3.0),
+  solid(-18.5, 14.2, 2.1, 0.4, 3.0),
+  // доска: два столбика (±1,21 м от центра вдоль x, основания 0,5 м) и плита между ними от 1 до 3 м — под ней голова (1,6 м) не пролезет
+  solid(DUNGEON_BOARD.x - 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
+  solid(DUNGEON_BOARD.x + 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
+  { ...solid(DUNGEON_BOARD.x, DUNGEON_BOARD.z + 0.06, 0.94, 0.3, 2.0), y: 1.0 },
+];
+
 /** Указатель «Куда идти» у звезды (центр (0; 3,6)): столб на основании, стрелки — над головой */
 export const SIGNPOST = { x: -3.8, z: 1.4, h: 3.4 } as const;
 
@@ -91,5 +112,6 @@ export function plazaSolids(): PlazaSolid[] {
     solid(BOAT_GATE.x0, BOAT_GATE.z, 0.13, 0.13, 3.6), solid(BOAT_GATE.x1, BOAT_GATE.z, 0.13, 0.13, 3.6),
     ...forMode('fight', FIGHT_POSTS),
     solid(SIGNPOST.x, SIGNPOST.z, 0.12, 0.12, SIGNPOST.h),
+    ...forMode('dungeon', DUNGEON_SOLIDS),
   ];
 }

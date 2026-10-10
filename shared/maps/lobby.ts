@@ -519,7 +519,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
-  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
+  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [], dungeon: [] };
   for (const p of plazaSolids()) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);

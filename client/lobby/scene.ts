@@ -120,7 +120,7 @@ import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
 import { FerrisWheel } from './wheel.ts';
 import { LobbyWorld, type LobbyQuality } from './world.ts';
-import { dgHint, dgStatus, setDgStatus } from './dgstatus.ts';
+import { dgHint, dgStatus, onDgStatus, setDgStatus } from './dgstatus.ts';
 
 /**
  * «Авто» подбирает разрешение само; если его уже пришлось снизить (slow), гасим и точечные лампы.
@@ -552,7 +552,9 @@ export class LobbyScene implements Scene {
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
-    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows()) : null;
+    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
+    onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);
     this.aqua = new AquaPark(this.world.scene, this.effects, PLAZA2);
     this.rg = new RegattaClient({

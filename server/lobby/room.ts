@@ -268,6 +268,8 @@ export class LobbyRoom implements Room {
     if (!hub.hide) for (const box of this.map.plazaModeBoxes.hide) this.world.setEnabled(box, false);
     if (!hub.boatrace) for (const box of this.map.plazaModeBoxes.regatta) this.world.setEnabled(box, false);
     if (!hub.fight) for (const box of this.map.plazaModeBoxes.fight) this.world.setEnabled(box, false);
+    // «Подземелье»: скала и доска на западной лужайке (shared/plaza2.ts)
+    if (!hub.dungeon) for (const box of this.map.plazaModeBoxes.dungeon) this.world.setEnabled(box, false);
     this.boatQueue = this.regatta ? new ModeQueue({ center: BOAT_RACE_CIRCLE, min: 1, max: RG_MAX, ticks: RG_GATHER_TICKS,
       players: () => this.players.values(), inside: p => !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen,
       nick: p => p.client.nick, position: p => p.state, idle: () => this.regatta!.phase === 'idle', start: players => { this.circleChat.launched('boatrace', players.length); this.regatta!.begin(players); },
