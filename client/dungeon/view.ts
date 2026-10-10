@@ -12,6 +12,8 @@ export const ACT_WALK = 0;
 export const ACT_ATTACK = 1;
 export const ACT_SPECIAL = 2;
 export const ACT_STUN = 3;
+/** особое циклом (таран Бочара) */
+export const ACT_LOOP = 4;
 
 export interface VEnemy {
   id: number;
@@ -30,6 +32,8 @@ export interface VEnemy {
 export interface VHero {
   x: number;
   z: number;
+  /** высота над полом (прыжок с гриба-батута) */
+  y: number;
   /** куда смотрит (рад) */
   yaw: number;
   /** скорость, м/с (для бега/покоя) */
@@ -142,6 +146,9 @@ export type VFx =
   | { k: 'boss'; what: 'spawn' | 'roar' | 'burrow' | 'emerge' | 'slam' | 'spit' | 'phase' | 'death'; x: number; z: number }
   | { k: 'spawnFx'; x: number; z: number }
   | { k: 'use'; kind: BuildingKind; x: number; z: number }
+  | { k: 'heal'; n: number }
+  | { k: 'qfull' }
+  | { k: 'atk'; what: string; x: number; z: number }
   | { k: 'death' };
 
 /** Всё, что видно на шаге */
@@ -160,6 +167,8 @@ export interface DgView {
   pickups: VPickup[];
   buildings: VBuilding[];
   boss: VBoss | null;
+  /** крутящиеся лучи Маяка: из героя, направление yaw */
+  rays: { yaw: number; len: number; w: number }[];
   fx: VFx[];
   level: number;
   xp01: number;

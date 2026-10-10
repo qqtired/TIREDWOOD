@@ -259,7 +259,7 @@ export class MockRun implements RunSource {
   }
 
   private spawnBoss(): void {
-    this.boss = { x: mod(this.hero.x), z: mod(this.hero.z - 9), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', t: 0, tx: 0, tz: 0 };
+    this.boss = { x: mod(this.hero.x + 2), z: mod(this.hero.z - 4), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', t: 0, tx: 0, tz: 0 };
     this.fx.push({ k: 'boss', what: 'spawn', x: this.boss.x, z: this.boss.z });
     this.fx.push({ k: 'boss', what: 'emerge', x: this.boss.x, z: this.boss.z });
   }
@@ -363,8 +363,9 @@ export class MockRun implements RunSource {
       if (w.cd > 0) continue;
       const t = this.nearest(w.id === 'lantern' ? 7 : 14);
       if (w.id === 'fireflies') {
-        w.cd = 0.25;
-        this.fireAngle += 0.25 * 3.2;
+        w.cd = 0;
+        this.fireAngle += DT * 3.2;
+        if (this.tick % 8) continue;
         const n = 2 + Math.floor(w.lv / 2);
         for (let i = 0; i < n; i++) {
           const a = this.fireAngle + (i / n) * Math.PI * 2;
@@ -755,14 +756,15 @@ export class MockRun implements RunSource {
       timeLeft: this.stage === 'boss' ? -1 : Math.max(0, this.stageT),
       squadLeft: this.squadLeft + this.enemies.length,
       squadTotal: this.squadTotal,
-      hero: { x: h.x, z: h.z, yaw: h.yaw, speed: Math.hypot(h.vx, h.vz), hp: h.hp, hpMax: h.hpMax, dashing: h.dashT > 0, invuln: h.invT > 0 && h.dashT <= 0, qCharge: h.q, dead: h.dead },
+      hero: { x: h.x, z: h.z, y: 0, yaw: h.yaw, speed: Math.hypot(h.vx, h.vz), hp: h.hp, hpMax: h.hpMax, dashing: h.dashT > 0, invuln: h.invT > 0 && h.dashT <= 0, qCharge: h.q, dead: h.dead },
       enemies: this.enemies,
-      projectiles: this.projs,
+      projectiles: this.withFireflies(),
       teles: this.teles,
       puddles: this.puddles,
       pickups: this.pickups,
       buildings: this.buildings,
       boss: this.boss,
+      rays: [],
       fx: this.fx,
       level: this.lv,
       xp01: this.xp / this.need(),
@@ -780,6 +782,21 @@ export class MockRun implements RunSource {
       killedBy: this.killedBy,
       chests: this.chests,
     };
+  }
+
+  private readonly ff: VProj[] = [];
+
+  /** светляки кружат вокруг героя (только картинка) */
+  private withFireflies(): VProj[] {
+    const w = this.weapons.find((x) => x.id === 'fireflies');
+    this.ff.length = 0;
+    if (!w) return this.projs;
+    const n = 2 + Math.floor(w.lv / 2);
+    for (let i = 0; i < n; i++) {
+      const a = this.fireAngle + (i / n) * Math.PI * 2;
+      this.ff.push({ id: 900000 + i, kind: 'firefly', x: mod(this.hero.x + Math.sin(a) * 2.6), z: mod(this.hero.z + Math.cos(a) * 2.6), y: 1.1, yaw: a });
+    }
+    return [...this.projs, ...this.ff];
   }
 
   hash(): number {
