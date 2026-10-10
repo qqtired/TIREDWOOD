@@ -20,7 +20,7 @@ print('FINAL seed_stall', tris(st))
 reset()
 k, sc, piv = build_grib_kiosk()
 attach(k, 'attach_scales', tuple(piv))
-attach(k, 'attach_npc', (0.0, 0.4, 0.0))
+attach(k, 'attach_npc', (0.0, -0.15, 0.0))  # inside, 0.15 m behind the centre
 objs = [k, sc]
 fit_all(objs, {'grib_kiosk': 4700})
 report(objs)
@@ -28,6 +28,11 @@ save_blend('grib_kiosk')
 to_origin(objs)
 export_glb(objs, f'{GLB_DIR}/grib_kiosk.glb')
 sc.location = piv
-preview(objs, f'{PNG_DIR}/grib_kiosk.png', yaw=180 - 30, pitch=16, margin=0.82)
+# preview only: a jelly-sized stand-in (1.05 x 1.58 m) where the NPC stands
+J = Builder(9)
+J.sphere((0, -0.15, 0.79), 1.0, scale=(0.525, 0.525, 0.79), segs=16, rings=10, col=0xb39ddb, mat='farm_gloss')
+jp = J.build('_jelly_preview', ground_ao=None)
+preview(objs + [jp], f'{PNG_DIR}/grib_kiosk.png', yaw=180 - 22, pitch=8, margin=0.82)
+bpy.data.objects.remove(jp, do_unlink=True)
 save_blend('grib_kiosk')
 print('FINAL grib_kiosk', {o.name: tris(o) for o in objs})

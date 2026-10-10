@@ -112,15 +112,45 @@ def build_grib_kiosk():
     with a counter, abacus, baskets. Returns (kiosk, scales) — scales: beam with two pans, origin on the pivot (rocks)."""
     rng = random.Random(4002)
     B = Builder(402)
-    SX, SY = 1.22, 0.74
+    SX, SY = 1.22, 0.86
     sc = Matrix.Diagonal((SX, SY, 1.0, 1.0))
+    wz0, wz1, ww = 1.0, 1.7, 1.1
     def stem_col(co, n):
         a = math.atan2(co.y, co.x)
         return mixc(0xecd2a4, 0xfbe6c0, 0.45 + noise.noise(Vector((a * 4, co.z * 2, 0))) * 0.35 + max(0, n.z) * 0.2)
-    m = B.mark()
+    def inner_col(co, n):
+        return mixc(0x8a5a36, 0xa8744a, 0.5 + noise.noise(co * 4) * 0.5) if co.z > 0.05 else 0x6a4428
+    # outer stem wall and an inner shell (floor, walls, ceiling, normals inward): the window is a real opening,
+    # so the NPC standing inside is visible
+    shell = B.bm.faces.layers.int.new('shell')
     B.lathe([(0.97, 0.0), (1.02, 0.35), (1.0, 1.2), (0.94, 2.05), (0.0, 2.05)], segs=20, c=(0, 0, 0), col=stem_col, mat='farm_soft',
             close_bot=False)
-    B.transform(B.since(m), sc)
+    for f_ in B.bm.faces:
+        f_[shell] = 1
+    m = B.mark()
+    B.lathe([(0.0, 0.02), (0.93, 0.02), (0.95, 0.4), (0.94, 1.2), (0.89, 1.98), (0.0, 1.98)], segs=20, c=(0, 0, 0), col=inner_col,
+            mat='farm_soft')
+    for f_ in B.since(m):
+        f_[shell] = 2
+        f_.normal_flip()
+    B.transform(list(B.bm.faces), sc)
+    for co_, no_ in (((ww / 2, 0, 0), (1, 0, 0)), ((-ww / 2, 0, 0), (1, 0, 0)), ((0, 0, wz0), (0, 0, 1)), ((0, 0, wz1), (0, 0, 1))):
+        bmesh.ops.bisect_plane(B.bm, geom=list(B.bm.verts) + list(B.bm.edges) + list(B.bm.faces), plane_co=co_, plane_no=no_)
+    kill = []
+    for f_ in B.bm.faces:
+        c_ = f_.calc_center_median()
+        if c_.y > 0.3 and abs(c_.x) < ww / 2 and wz0 < c_.z < wz1:
+            kill.append(f_)
+    bmesh.ops.delete(B.bm, geom=kill, context='FACES')
+    B.bm.normal_update()
+    B.paint([f_ for f_ in B.bm.faces if f_[shell] == 1], stem_col, 'farm_soft')
+    B.paint([f_ for f_ in B.bm.faces if f_[shell] == 2], inner_col, 'farm_soft')
+    B.protect(list(B.bm.faces))
+    B.bm.faces.layers.int.remove(shell)
+    # inside: a back shelf with jars, seen through the window
+    B.box((0, -SY * 0.8, 1.35), (0.9, 0.2, 0.03), col=0xc8945c, mat='farm_soft')
+    for k, c_ in enumerate((0xf2b33a, 0xe8564a, 0x9acb5a, 0xf28a26)):
+        B.lathe([(0.0, 0.0), (0.05, 0.0), (0.055, 0.11), (0.04, 0.13), (0.0, 0.13)], segs=6, c=(-0.3 + k * 0.2, -SY * 0.8, 1.365), col=c_, mat='farm_gloss')
     # cap: sponge underside + velvet dome
     m = B.mark()
     B.lathe([(0.8, 2.02), (1.2, 2.05), (1.3, 2.12)], segs=24, c=(0, 0, 0), col=lambda co, n: mixc(0xd9c470, 0xeadb94, 0.5 + noise.noise(co * 6) * 0.5),
@@ -128,17 +158,8 @@ def build_grib_kiosk():
     B.lathe([(1.3, 2.12), (1.27, 2.36), (1.06, 2.66), (0.66, 2.86), (0.0, 2.93)], segs=24, c=(0, 0, 0), mat='farm_soft',
             col=lambda co, n: mixc(0x7a4826, 0xb27646, smooth01(0.35 + noise.noise(co * 3) * 0.3 + max(0, 1 - co.z + 2.2) * 0.25)))
     B.transform(B.since(m), Matrix.Diagonal((SX * 1.08, SY * 1.18, 1.0, 1.0)))
-    # window (front, +Y): dark interior panel, frame, open shutters, counter
+    # window (front, +Y): frame, open shutters, counter
     yw = SY * 1.0 + 0.012
-    wz0, wz1, ww = 1.0, 1.7, 1.1
-    def win(u, v):
-        x = lerp(-ww / 2, ww / 2, u)
-        return Vector((x, SY * math.sqrt(max(0.0, 1 - (x / (SX * 1.0)) ** 2)) + 0.015, lerp(wz0, wz1, v)))
-    g = B.grid(win, 4, 1, mat='farm_soft', orient=None, colfn=lambda u, v: mixc(0x4a2c18, 0x6a4024, v))
-    for f in g:
-        if f.normal.y < 0:
-            f.normal_flip()
-        f.smooth = False
     for (cx, cz, sx, sz) in ((0, wz1 + 0.04, ww + 0.16, 0.08), (0, wz0 - 0.03, ww + 0.16, 0.06), (-ww / 2 - 0.05, (wz0 + wz1) / 2, 0.08, wz1 - wz0 + 0.1),
                              (ww / 2 + 0.05, (wz0 + wz1) / 2, 0.08, wz1 - wz0 + 0.1)):
         B.rbox((cx, yw - 0.02 + (0.0 if abs(cx) < 0.1 else -0.06), cz), (sx, 0.06, sz), r=0.012, rseg=1, nx=2, colfn=wood_fn(WOOD, seed=int(cx * 10) + 30), end_r=0.01)

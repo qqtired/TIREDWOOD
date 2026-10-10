@@ -9,7 +9,7 @@ attach(well, 'attach_crank', (0.82, 0, 1.55))
 attach(well, 'attach_rope', (0.0, -0.1, 1.55))
 attach(well, 'attach_vane', (0.0, 0.0, 2.64))
 objs = [well, crank, rope_o, bucket, vane, trough]
-fit_all(objs, {'well': 2900, 'trough': 400, 'well_bucket': 260})  # design-v11 §16.3: well + 4 troughs 4-5k
+fit_all(objs, {'well': 2900, 'trough': 375, 'well_bucket': 260})  # design-v11 §16.3: well + 4 troughs 4-5k
 report(objs)
 save_blend('well')
 to_origin(objs)
