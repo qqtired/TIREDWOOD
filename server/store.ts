@@ -2,6 +2,7 @@
 // Запись атомарная (временный файл → fsync → переименование), раз в день — копия, хранятся 7 последних.
 import { normalizeFarm, type FarmProgress } from '../shared/farm.ts';
 import { FARM_PLOTS } from '../shared/farmdata.ts';
+import { normalizeBoss, type FarmBossState } from '../shared/farmboss.ts';
 import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, unlinkSync, writeSync } from 'node:fs';
 import path from 'node:path';
 import { AQUA_COURSE, addRecord, type AquaRecord } from '../shared/aqua.ts';
@@ -89,6 +90,8 @@ export interface State {
   fortTop?: FortRunRec[];
   /** Ферма: кто держит какой из 20 участков и когда был там последний раз (спящие участки переживают перезапуск) */
   farmPlots?: Array<{ pid: number; seen: number } | null>;
+  /** Ферма: Древо разлома — текущее или прошлое событие (вклады, «Последняя капля», выданные баффы) */
+  farmBoss?: FarmBossState;
   profiles: Profile[];
 }
 
@@ -201,6 +204,7 @@ function parseState(text: string): State {
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
     ...(raw.fortTop !== undefined ? { fortTop: parseFortTop(raw.fortTop) } : {}),
     ...(raw.farmPlots !== undefined ? { farmPlots: parseFarmPlots(raw.farmPlots) } : {}),
+    ...(normalizeBoss(raw.farmBoss) ? { farmBoss: normalizeBoss(raw.farmBoss)! } : {}),
     profiles,
   };
 }
