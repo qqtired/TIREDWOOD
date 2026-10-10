@@ -759,7 +759,8 @@ export class DungeonGame {
         const fs = this.firstSeen.get(e.id) ?? 0;
         const born = Math.min(1, (wt - fs) / 0.3);
         const fl = this.flashAt.get(e.id);
-        const flash = fl !== undefined && wt - fl < 0.07 ? 1 : 0;
+        // вспышка попадания — не добела: под лучом и светляками враги иначе сплошь белые
+        const flash = fl !== undefined && wt - fl < 0.07 ? 0.6 : 0;
         const hit = this.hitAt.get(e.id);
         const hitT = hit !== undefined ? wt - hit : 9;
         let key: ClipKey = 'walk';

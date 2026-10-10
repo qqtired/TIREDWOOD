@@ -284,3 +284,5 @@
 
 /* кнопка голоса оболочки — справа от сборки героя, не поверх слотов */
 html:not(.touch)[data-room='dungeon'] .voice-hud { left: 330px; bottom: 26px; }
+/* телефон: сборка героя легла бы на джойстик — прячем (видна в итогах) */
+html.touch .dg-bl { display: none; }

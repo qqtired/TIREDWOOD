@@ -69,7 +69,8 @@ const srv = {
   },
   onLog(m: Extract<DgClientMsg, { t: 'dg_log' }>): void {
     const sim = this.sim;
-    if (!sim || this.ended) return;
+    // отладочные правки есть только у клиента — копия «сервера» разошлась бы: не шагаем
+    if (!sim || this.ended || this.debug) return;
     for (let i = this.events.length - m.from; i < m.ev.length; i++) if (i >= 0) this.events.push(m.ev[i]);
     let guard = 0;
     while (sim.t < m.upto && guard++ < 20000) {
@@ -176,7 +177,7 @@ function frame(): void {
   }
   touch?.sync(scene.touchMode, 'all', 'E');
   const st = scene.debugState()?.dungeon as { ended?: boolean } | undefined;
-  if (st?.ended && !endSent && run && useMock) {
+  if (st?.ended && !endSent && run && (useMock || srv.debug)) {
     endSent = true;
     const r = run.result();
     setTimeout(() => scene.onDg({ t: 'dg_end', result: { ...r, end: 'death' }, coins: Math.min(600, r.waves * 8 + 6), newBest: r.waves > 0, weekRank: 3 }), 600);
@@ -204,7 +205,10 @@ const real = (): DgSim | null => {
   level: (n = 1) => {
     mock()?.levelUp(n);
     const s = real();
-    for (let i = 0; s && i < n; i++) addXp(s, s.hero.xpNext - s.hero.xp + 0.01);
+    for (let i = 0; s && i < n; i++) {
+      s.hero.xp = s.hero.xpNext;
+      addXp(s, 0.01);
+    }
   },
   give: (id: string, lv: number, evo = 0) => {
     mock()?.give(id, lv);
@@ -222,6 +226,7 @@ const real = (): DgSim | null => {
     if (s) {
       s.hero.invT = 0;
       s.hero.dashT = 0;
+      s.hero.hp = Math.min(s.hero.hp, 1);
       hurtHero(s, 99999, 'barrel');
     }
   },
@@ -236,7 +241,8 @@ const real = (): DgSim | null => {
     for (let i = 0; i < n; i++) {
       const a = (i * 2.399) % (Math.PI * 2);
       const r = 4 + Math.sqrt((i * 0.618) % 1) * 15;
-      spawnMob(s, kinds[i % kinds.length], s.hero.x + Math.sin(a) * r, s.hero.z + Math.cos(a) * r * 0.7, 0);
+      const m = spawnMob(s, kinds[i % kinds.length], s.hero.x + Math.sin(a) * r, s.hero.z + Math.cos(a) * r * 0.7, 0);
+      m.hp = m.hpMax = m.hpMax * 40;
     }
   },
   pause: (on = true) => scene.game?.setPaused(on),
