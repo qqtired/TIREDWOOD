@@ -22,6 +22,7 @@ import { RemoteTrack, type RemoteSample } from '../remote.ts';
 import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import { FarmHud, fmtMin } from './hud.ts';
+import { effectiveVolume } from '../settings.ts';
 import { FarmWell } from './well.ts';
 import { FarmWorld } from './world.ts';
 
@@ -116,7 +117,7 @@ export class FarmScene implements Scene {
       },
       free: () => { d.input.releaseAll(); d.input.unlock(); },
     });
-    this.well = new FarmWell(d.hudRoot);
+    this.well = new FarmWell(d.hudRoot, { closed: () => d.wantPointer(), volume: () => effectiveVolume(d.settings) * d.settings.sfxVolume });
     window.addEventListener('wheel', (e) => {
       if (this.active && d.input.locked && !d.input.blocked) this.cam.zoomBy(e.deltaY);
     }, { passive: true });
@@ -165,6 +166,7 @@ export class FarmScene implements Scene {
     this.remotes.clear();
     this.roster.clear();
     this.hud.setVisible(false);
+    this.well.cancel();
   }
 
   // ------------------------------------------------------------ сеть
@@ -239,10 +241,12 @@ export class FarmScene implements Scene {
       case 'fill':
         // мини-игра «Набери лейку» (B4, client/farm/well.ts): отсчёты уходят серверу, он и считает долю
         this.d.input.releaseAll();
-        this.well.start(e.seed, (s) => this.d.net.send({ t: 'farm', a: 'fillEnd', s }));
+        this.d.input.unlock();
+        this.well.start(e.seed, (s) => this.d.net.send({ t: 'farm', a: 'fillEnd', s }), { have: this.farm.water, max: canMax(this.farm) });
         return;
       case 'filled':
-        toast(`Лейка: +${Math.round(e.add / 100)} 💧`, `Набрано ${Math.round(e.share * 100)} % · мини-игра скоро`);
+        // окно мини-игры само показывает итог «+N зарядов»; тост нужен, только если его уже закрыли (Esc, ×)
+        if (!this.well.result(e.share, e.add)) toast(`Лейка: +${Math.round(e.add / 100)} 💧`, `Набрано ${Math.round(e.share * 100)} %`);
         return;
       case 'upgrade':
         toast(`Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}`);

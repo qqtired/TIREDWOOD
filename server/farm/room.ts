@@ -11,7 +11,7 @@ import {
 } from '../../shared/farm.ts';
 import {
   ACTIONS_PER_SEC, BED_CLICK_RANGE, FARM_DECOR, FARM_PLOTS, PIG_STORE, PLOT_CLICK_RANGE, REP_FIRST_ENTRY, TRUFFLE,
-  WELL_TRY_MS,
+  WELL_SETS, WELL_TRY_MS,
 } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
 import { bedDist, buildFarmMap, nearTrough, nearUse, plotToWorld, type FarmObjectId } from '../../shared/farmmap.ts';
@@ -359,7 +359,7 @@ export class FarmRoom implements Room, FarmCtx {
       case 'convert': return this.onConvert(p, f, m);
       case 'upgrade': return this.onUpgrade(p, f, m, now);
       case 'fillStart': return this.onFillStart(p, f, now);
-      case 'fillEnd': return this.onFillEnd(p, f, m);
+      case 'fillEnd': return this.onFillEnd(p, f, m, now);
       case 'pig': return this.onPig(p, f, now);
       case 'tutorial': return this.onTutorial(p, f, m);
       case 'look': return this.onLook(p, f, m);
@@ -472,12 +472,18 @@ export class FarmRoom implements Room, FarmCtx {
     this.done(p, false);
   }
 
-  private onFillEnd(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'fillEnd' }>): void {
+  private onFillEnd(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'fillEnd' }>, now: number): void {
     const fill = p.fill;
     if (!fill) return this.fail(p, 'fillEnd', 'well');
     p.fill = null;
     const s = Array.isArray(m.s) ? m.s.slice(0, WELL_MAX_SAMPLES).filter((v): v is number => typeof v === 'number' && Number.isFinite(v)) : [];
-    const share = wellShare(fill.seed, s);
+    // закрыл окно, ни разу не наклонив ведро (отсчёты: [x, наклон, x, наклон…]) — набор колодца возвращается
+    if (!s.some((v, i) => i % 2 === 1 && v > 0)) {
+      f.well.sets = Math.min(WELL_SETS, f.well.sets + 1);
+      this.ev(p, { k: 'filled', share: 0, add: 0 });
+      return this.done(p, false);
+    }
+    const share = wellShare(fill.seed, s, now - fill.at);
     const add = wellFill(f, share);
     this.ev(p, { k: 'filled', share, add });
     this.tutorial(p, f, 'fill');
