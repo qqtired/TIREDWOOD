@@ -80,7 +80,7 @@ img.dg-ic { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45)); }
 
 /* --- HUD волны */
 .dg-hud { position: absolute; inset: 0; transition: opacity .25s; }
-.dg.results-open .dg-hud { opacity: 0; }
+.dg.results-open .dg-hud, .dg.results-open .dg-arrows { opacity: 0; }
 
 /* радар: слева сверху */
 .dg-radar { position: absolute; top: 14px; left: 14px; width: var(--dg-radar-size); height: var(--dg-radar-size); border-radius: 50%; border: 2px solid var(--dg-line-strong); box-shadow: var(--dg-shadow); }

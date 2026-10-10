@@ -265,6 +265,9 @@ export class DungeonHud implements DungeonHudApi {
   private readonly arrowLayer = el('div', 'dg-arrows');
   private readonly arrowEls = new Map<string, ArrowEl>();
   private arrowAt = 0;
+  /** рамка стрелок: края радара и верх нижнего HUD (перемеряются 2 раза в секунду, не каждый кадр) */
+  private edgeAt = 0;
+  private readonly edge = { rx: 0, ry: 0, bottom: 0 };
   private readonly loadLayer = el('div', 'dg-loading');
   private readonly loadFill = el('i', 'dg-load-fill');
   private readonly phoneLayer = el('div', 'dg-phone');
@@ -945,15 +948,22 @@ export class DungeonHud implements DungeonHudApi {
     const W = this.root.clientWidth || window.innerWidth;
     const H = this.root.clientHeight || window.innerHeight;
     const touch = document.documentElement.classList.contains('touch');
-    const T = touch ? 70 : 118;
-    const B = H - (touch ? 120 : 250);
+    if (now - this.edgeAt > 500 || now < this.edgeAt) {
+      this.edgeAt = now;
+      const rad = this.radarBox.getBoundingClientRect();
+      const vit = this.vitals.getBoundingClientRect();
+      this.edge.rx = rad.width > 0 ? rad.right + 34 : 0;
+      this.edge.ry = rad.height > 0 ? rad.bottom + 34 : 0;
+      this.edge.bottom = vit.height > 0 ? vit.top : H - 200;
+    }
+    const T = touch ? 120 : 118;
+    // снизу — выше здоровья и баффов (диск 29 px и подпись под ним)
+    const B = touch ? H - 120 : Math.min(H - 250, this.edge.bottom - 56);
     const Lx = touch ? 64 : 48;
     const R = W - (touch ? 150 : 48);
     const cx = W / 2;
     const cy = Math.max(T + 1, Math.min(B - 1, H / 2));
-    const rad = this.radarBox.getBoundingClientRect();
-    const rx = rad.width > 0 ? rad.right + 34 : 0;
-    const ry = rad.height > 0 ? rad.bottom + 34 : 0;
+    const { rx, ry } = this.edge;
     const live = new Set<string>();
     const placed: ArrowEl[] = [];
     for (const a of list) {
