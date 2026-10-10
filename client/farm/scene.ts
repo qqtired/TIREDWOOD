@@ -12,6 +12,8 @@ import { LOBBY_MIN_DELAY } from '../../shared/lobby.ts';
 import { clamp } from '../../shared/math.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import { E_ALIVE, E_GROUNDED, SNAP_HAS_SELF, SNAP_SELF_RESET, decodeSnapshot, encodeInputs, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
+import { itemById, withItem } from '../../shared/outfit.ts';
+import { sysFailText } from '../../shared/farmsys.ts';
 import { makeInput, makeState } from '../../shared/sim.ts';
 import { LobbyCamera } from '../lobby/camera.ts';
 import { ClockSync } from '../net.ts';
@@ -36,11 +38,11 @@ interface Remote {
 type Target = { k: 'bed'; i: number } | { k: 'use'; id: FarmObjectId } | null;
 
 const USE_TEXT: Partial<Record<FarmObjectId, string>> = {
-  semechkin: 'Семечкин — семена и обучение (окно скоро)',
-  orders: 'Доска заказов (скоро)',
-  farmBoard: 'Доска фермы (скоро)',
-  van: 'Фургон (скоро)',
-  boss: 'Древо разлома (скоро)',
+  semechkin: 'Семечкин: семена и обучение',
+  orders: 'Доска заказов',
+  farmBoard: 'Доска фермы',
+  van: 'Фургон: сдать ящик',
+  boss: 'Древо разлома: доска вклада',
 };
 
 function fmtLeft(ms: number): string {
@@ -102,6 +104,17 @@ export class FarmScene implements Scene {
       plant: (crop) => this.plant(crop),
       sell: (item, n) => d.net.send({ t: 'farm', a: 'sell', item, n }),
       closed: () => d.wantPointer(),
+      send: (m) => d.net.send(m),
+      tokens: () => d.ui.me().tokens,
+      plots: () => this.plots,
+      roster: () => [...this.roster.values()],
+      toast: (text, sub = '', key = 'farm') => d.ui.toasts.show(text, 4200, key, sub),
+      wear: (ids) => {
+        let o = d.ui.me().outfit;
+        for (const id of ids) { const it = itemById(id); if (it) o = withItem(o, it); }
+        d.net.send({ t: 'outfit', o });
+      },
+      free: () => { d.input.releaseAll(); d.input.unlock(); },
     });
     this.well = new FarmWell(d.hudRoot);
     window.addEventListener('wheel', (e) => {
@@ -218,7 +231,7 @@ export class FarmScene implements Scene {
         toast(`+${e.coins} 🪙`, `Продано: ${cropById(e.item)?.product ?? 'трюфель'} × ${e.n}`);
         return;
       case 'level':
-        this.d.ui.toasts.show(`Ферма: уровень ${e.level}!`, 5000, 'farm-level', e.items.length ? `Награда: ${e.items.join(', ')}${e.coins ? ` · +${e.coins} 🪙` : ''}` : '', true);
+        this.hud.onEvent(e);
         return;
       case 'tut':
         toast(`Шаг обучения ${e.step} пройден`, `+${e.xp} XP${e.coins ? ` · +${e.coins} 🪙` : ''}`);
@@ -235,7 +248,7 @@ export class FarmScene implements Scene {
         toast(`Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}`);
         return;
       case 'fail':
-        toast(failText(e.why));
+        toast((e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? failText(e.why));
         return;
       case 'note':
         toast(e.text);
@@ -301,7 +314,7 @@ export class FarmScene implements Scene {
     if (st === -1) {
       this.d.input.releaseAll();
       this.d.input.unlock();
-      this.hud.openPlant(this.farm, this.d.ui.me().tokens);
+      this.hud.openPlant(this.farm, this.d.ui.me().tokens, i);
     } else if (st === 3) net.send({ t: 'farm', a: 'harvest', beds: [i] });
     else if (!this.farm.beds[i].watered) net.send({ t: 'farm', a: 'water', beds: [i] });
   }
@@ -470,6 +483,10 @@ export class FarmScene implements Scene {
   }
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    if (down && !e.repeat && this.hasSelf && this.hud.hotkey(code)) {
+      e.preventDefault();
+      return true;
+    }
     if (this.hud.open && down && code === 'Escape') {
       e.preventDefault();
       this.hud.close();
