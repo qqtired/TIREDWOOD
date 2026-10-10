@@ -10,7 +10,7 @@ import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_LAND, FE_LOST, FISH, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import {
-  CHEST_ANNOUNCE, CHEST_JACKPOT, COLLECTION, COLLECTION_SIZE, NEW_BONUS2, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
+  CHEST_ANNOUNCE, CHEST_MAX, COLLECTION, COLLECTION_SIZE, NEW_BONUS2, POSEIDON_COINS, RULE, SP_BOOT, SP_CHEST, basePrice, fishPrice2, type Hooked,
 } from '../shared/fishrules.ts';
 import { earnedItems } from '../shared/fishstyle.ts';
 import { fishCatchXp } from '../shared/fishprogress.ts';
@@ -78,6 +78,8 @@ type Env = ReturnType<typeof fisher>;
 function hookOne(e: Env): { seed: number; sp: number } {
   e.clock.now += 1000;
   e.a.s.msgs.length = 0;
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (e.hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && !fishEvents(e.a.s).some((x) => x[0] === FE_BITE); i++) advance(e.hub, e.clock, 1);
   e.hub.onJson(e.a.c, { t: 'fish', a: 'hook', n: 2 });
@@ -159,8 +161,13 @@ test('честное вываживание: повтор сервера дош�
   assert.equal(l2.best, 300);
   assert.equal(l2.bonus, 0);
   assert.deepEqual(prof.album, { scad: [400, 2] });
+  // с рыбой в руках, пока она ждёт выбора, заброс не принимается (хотфикс 10.10): сперва «В рюкзак», потом заброс
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
-  assert.notEqual(e.hall.phase(0), FP_HOLD, 'заброс из «в руках» — сразу');
+  assert.equal(e.hall.phase(0), FP_HOLD, 'пока не выбрал — заброса нет');
+  e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
+  assert.equal(e.hall.phase(0), FP_IDLE);
+  e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
+  assert.notEqual(e.hall.phase(0), FP_IDLE, 'выбрал — заброс идёт');
 });
 
 test('подделка: досчитал быстрее настоящего времени — сорвалась, жетонов нет', () => {
@@ -392,8 +399,8 @@ test('«Сокровища Посейдона»: 1500 🪙 жетонами, с�
     assert.equal(toast.key, 'poseidon');
     assert.ok((toast.ms ?? 0) >= 8000, 'висит заметно дольше обычного');
   }
-  // обычный сундук с джекпотом (250): только строка в чат, без большого тоста; 188 — ни строки, ни тоста
-  for (const coins of [CHEST_JACKPOT, CHEST_ANNOUNCE - 1]) {
+  // самый крупный обычный сундук (250) — не джекпот: только строка в чат «вылавливает сундук», без «с джекпотом» и без большого тоста; 188 — ни строки, ни тоста
+  for (const coins of [CHEST_MAX, CHEST_ANNOUNCE - 1]) {
     advance(e.hub, e.clock, HOLD2_TICKS + 1);
     e.hall.roll = () => ({ sp: SP_CHEST, g: 5000, coins });
     b.s.msgs.length = 0;
@@ -402,7 +409,7 @@ test('«Сокровища Посейдона»: 1500 🪙 жетонами, с�
     advance(e.hub, e.clock, 2);
     assert.ok(!allOf(b.s, 'toast').some((m) => m.big), `${coins}: большого тоста нет`);
     const said = allOf(b.s, 'chat').filter((m) => m.sys && m.text.includes('вылавливает сундук'));
-    if (coins >= CHEST_ANNOUNCE) assert.equal(said[0]?.text, `💰 Рыбак вылавливает сундук с джекпотом: ${coins} 🪙!`);
+    if (coins >= CHEST_ANNOUNCE) assert.equal(said[0]?.text, `💰 Рыбак вылавливает сундук: ${coins} 🪙!`);
     else assert.equal(said.length, 0, `${coins} 🪙 — ниже порога чата`);
   }
 });

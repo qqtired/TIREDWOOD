@@ -78,7 +78,11 @@ export const FISH: readonly FishKind[] = [
   { id: 'tuna', name: 'Голубой тунец', acc: 'голубого тунца', rarity: R_LEGEND, g: [20000, 150000], price: [25, 60], w: 0, shape: 'fish', c: [0x1f3a68, 0xdfe6ec] },
   { id: 'swordfish', name: 'Меч-рыба', acc: 'меч-рыбу', rarity: R_LEGEND, g: [15000, 120000], price: [25, 60], w: 0, shape: 'sword', c: [0x4a3a5a, 0xd8d0c8] },
   { id: 'angler', name: 'Морской чёрт', acc: 'морского чёрта', rarity: R_LEGEND, g: [5000, 40000], price: [25, 60], w: 0, shape: 'angler', c: [0x6a5440, 0xd8c8b0] },
-  { id: 'whiteshark', name: 'Большая белая акула', acc: 'большую белую акулу', rarity: R_LEGEND, g: [300000, 900000], price: [25, 60], w: 0, shape: 'shark', c: [0x5d6a73, 0xf2f2ee] },
+  // 10.10 (владелец): большая белая акула и рыба-молот поменялись местами — только лицо (имя, вес, цвета, картинка). Ключи альбома
+  // не тронуты: id 'whiteshark' (мифик у пристани) теперь показывает РЫБУ-МОЛОТ, а id 'hammerhead' (легенда баркаса, только
+  // в дождь) — БОЛЬШУЮ БЕЛУЮ АКУЛУ. Категория, место, шанс, цена, паттерны и опыт остаются за местом (за id), старые рекорды
+  // и «пойманные» в альбомах целы. Поэтому id и имя здесь не совпадают — так и задумано.
+  { id: 'whiteshark', name: 'Рыба-молот', acc: 'рыбу-молот', rarity: R_LEGEND, g: [40_000, 400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x6f7166, 0xeeeeea] },
   { id: 'chest', name: 'Сундук', acc: 'сундук', rarity: R_JUNK, g: [3000, 9000], price: [0, 0], w: 0, shape: 'chest', c: [0x7a5230, 0x3a3a3a] },
   // Real marine event species; append only, preserving every existing species/album ID.
   { id: 'bluemarlin', name: 'Синий марлин', acc: 'синего марлина', rarity: R_LEGEND, g: [50_000, 650_000], price: [25, 60], w: 0, shape: 'sword', c: [0x174982, 0xe7eef5] },
@@ -103,7 +107,8 @@ export const FISH: readonly FishKind[] = [
   { id: 'hairtail', name: 'Рыба-сабля', acc: 'рыбу-саблю', rarity: R_RARE, g: [400, 4000], price: [3, 8], w: 0, shape: 'eel', c: [0xaab4bd, 0xe8edf1] },
   { id: 'wahoo', name: 'Ваху', acc: 'ваху', rarity: R_EPIC, g: [8000, 60_000], price: [8, 20], w: 0, shape: 'fish', c: [0x1f5f7a, 0xdfe7ec] },
   { id: 'blueshark', name: 'Голубая акула', acc: 'голубую акулу', rarity: R_EPIC, g: [30_000, 200_000], price: [8, 20], w: 0, shape: 'shark', c: [0x2d58a8, 0xf0f2f6] },
-  { id: 'hammerhead', name: 'Рыба-молот', acc: 'рыбу-молот', rarity: R_LEGEND, g: [40_000, 400_000], price: [25, 60], w: 0, shape: 'shark', c: [0x6f7166, 0xeeeeea] },
+  // id 'hammerhead' = БОЛЬШАЯ БЕЛАЯ АКУЛА (обмен 10.10, см. комментарий у 'whiteshark' выше)
+  { id: 'hammerhead', name: 'Большая белая акула', acc: 'большую белую акулу', rarity: R_LEGEND, g: [300000, 900000], price: [25, 60], w: 0, shape: 'shark', c: [0x5d6a73, 0xf2f2ee] },
   // Божественный тир (shared/fishrules.ts T_DIVINE): царь морей — у пристани и с баркаса, в любую погоду. Только в конец.
   // 04.10: вес 700–3000 кг (был 500–2500): подиум дня — пять самых тяжёлых уловов по одной рыбе, и кальмар с 700 кг почти всегда в нём
   // (тяжелее 700 кг бывают лишь рыба-луна, гренландская акула, сельдяной король и большая белая — крупными и редко); цена — от доли веса

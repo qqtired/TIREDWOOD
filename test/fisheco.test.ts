@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FE_BITE, FISH, FP_BITE, FP_IDLE } from '../shared/fishing.ts';
+import { FE_BITE, FISH, FP_BITE, FP_HOLD, FP_IDLE } from '../shared/fishing.ts';
 import { FISH_NPC_USE, FISH_SPOTS, ROULETTE_SPOT, spotZone } from '../shared/fishplaces.ts';
 import {
   BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, FISH_XP_LEVELS, activeDrink, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp,
@@ -72,6 +72,8 @@ function sit(e: Env, what: Hooked, spot = 0): FishingHall2 {
 /** Заброс, поклёвка, подсечка с выбранным сидом шкалы; что вытащит (или не вытащит) модель игрока — решает pick */
 function hookWith(e: Env, hall: FishingHall2, pick: (style: ReturnType<typeof reelStyleFor>, seed: number) => Play | null): { play: Play; spot: number } {
   e.clock.now += 1100;
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE && hall.views().every((v) => v.ph !== FP_BITE); i++) advance(e, 1);
   advance(e, 2);

@@ -30,7 +30,7 @@ import { FE_BITE, FE_DONE, FE_EARLY, FE_HOOK, FE_LOST, FE_MISS, FE_OFF, FP_BITE,
 import type { FortStatus } from '../../shared/fort.ts';
 import {
   ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT, ACT_TIRED,
-  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
+  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LEAVE_SLOT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_FRONT_Z, MACHINE_XS, PHOTO, SKILL_PORTAL, STATUE_SHOWN, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
 import { FISH_NPCS, FISH_SPOTS, ROULETTE_SPOT } from '../../shared/fishplaces.ts';
@@ -268,6 +268,11 @@ export class LobbyScene implements Scene {
   /** Своё место рыбалки (до «ушёл с места» от сервера), −1 — не рыбачим */
   private myFishSpot = -1;
   private fishSentAt = 0;
+  /**
+   * Шаги, заблокированные на время вываживания (рыбалка 2.0, хотфикс 10.10): шаг ушёл бы с места и сорвал бы рыбу. Клавиша, что
+   * была зажата в бою, остаётся заблокированной, пока её не отпустят: иначе она «нажалась бы заново» сразу после боя.
+   */
+  private walkLock = 0;
   /** Цена последнего улова: продал — звон монет */
   private catchPrice = 0;
   /** Меня зовут на жест вдвоём: кто, какой, до какого времени (performance.now) */
@@ -1839,7 +1844,7 @@ export class LobbyScene implements Scene {
       return true;
     }
     // рыба в руках после поимки: F — отпустить в воду (+50 % опыта, без жетонов; shared/fishrelease.ts)
-    if (code === 'KeyF' && act === ACT_FISH && this.fish2.release()) return true;
+    if (code === 'KeyF' && act === ACT_FISH && this.fish2.choose(false)) return true;
     if (code === 'KeyF' && this.photo.hasCard) {
       this.photo.save();
       return true;
@@ -1863,9 +1868,13 @@ export class LobbyScene implements Scene {
       return false;
     }
     if (act === ACT_FISH) {
-      // 1 / 2 — что делать с уловом; пробел — заброс и подсечка (в тике он снимается с прыжка)
+      // X — прекратить вываживание: рыба срывается, ходить и забрасывать можно снова (хотфикс 10.10; V — голос, Z — прятки)
+      if (code === 'KeyX' && this.fish2.on && this.fish2.giveUp()) return true;
+      // 1 / 2 — что делать с уловом (рыбалка 2.0: 1 — в рюкзак, 2 — отпустить, как F; старая: в коллекцию / продать);
+      // пробел — заброс и подсечка (в тике он снимается с прыжка)
       if (code === 'Digit1' || code === 'Digit2') {
         this.fishHud.choose(code === 'Digit1');
+        this.fish2.choose(code === 'Digit1');
         return true;
       }
       if (code === 'Space') this.fishPress();
@@ -2099,6 +2108,11 @@ export class LobbyScene implements Scene {
     this.localUntil = now + 600;
   }
 
+  /** Идёт вываживание на моём месте: шкала играет у меня или сервер ещё не подтвердил итог (фаза REEL) */
+  private get reeling(): boolean {
+    return this.fish2.on && (this.fish2.reelRunning || this.fishing.phaseOf(this.arg) === FP_REEL);
+  }
+
   /** Пробел / ЛКМ с удочкой: забросить или подсечь — с номером последнего события поплавка, которое мы видели. */
   private fishPress(): void {
     const now = performance.now();
@@ -2106,13 +2120,17 @@ export class LobbyScene implements Scene {
     const spot = this.arg;
     const ph = this.fishing.phaseOf(spot);
     if (ph === FP_IDLE || (ph === FP_HOLD && this.fish2.on)) {
+      // хотфикс 10.10: 0,75 с после вываживания нажатия не принимаются, а пока рыба в руках ждёт выбора («В рюкзак» /
+      // «Отпустить»), ЛКМ и пробел не забрасывают — сперва выбор (кнопки карточки, 1 / F), потом заброс
+      if (this.fish2.on && (this.fish2.inputLocked || this.fish2.choosing)) return;
       // рюкзак полон — заброс не уйдёт (сервер решил бы так же): сразу подсказка — продать или отпустить из рюкзака
       if (this.fish2.on && this.fish2.bagFull) {
         this.d.ui.toasts.show(TOUCH ? BAG_FULL_HINT.replace('(I)', '(🎒)') : BAG_FULL_HINT, 3600);
         this.fishSentAt = now;
         return;
       }
-      // рыбалка 2.0: с рыбой в руках — она в рюкзак и сразу новый заброс (замах начнётся по событию сервера)
+      // рыбалка 2.0: рыба в руках без выбора (хлам, сундук, рюкзак был полон) — «в руках» кончается и сразу заброс (замах
+      // начнётся по событию сервера)
       if (ph === FP_IDLE && !this.fishing.castLocal(spot)) return;
       this.d.net.send({ t: 'fish', a: 'cast' });
       this.fish2.cast();
@@ -2190,6 +2208,11 @@ export class LobbyScene implements Scene {
     let buttons = input.sample();
     if (this.fish2.modalOpen) buttons = 0;
     if (this.action === ACT_SLOT || this.action === ACT_FISH) buttons &= ~BTN_JUMP;
+    // вываживание (рыбалка 2.0): WASD и стрелки не двигают — шаг увёл бы от места и сорвал рыбу (сдаться — X или кнопка на шкале)
+    if (this.action === ACT_FISH) {
+      this.walkLock = this.reeling ? LEAVE_SLOT : this.walkLock & buttons;
+      buttons &= ~this.walkLock;
+    } else this.walkLock = 0;
     // идёт партия, у меня карты — шаг и прыжок не поднимают из-за стола
     if (this.action === ACT_DURAK && (this.blackjackSeated ? this.bjHud.locked : this.dkHud.locked)) buttons &= ~LEAVE_SEAT;
     // у бильярдного стола пробел — замах; в партии и шаг не уводит от стола (выйти — Esc)
@@ -2727,9 +2750,11 @@ export class LobbyScene implements Scene {
     else if (ph === FP_CAST) h.setHint([], 'Заброс…');
     else if (ph === FP_WAIT) h.setHint([], TOUCH ? 'Ждём поклёвку' : 'Ждём поклёвку: поплавок уйдёт под воду — тогда жми Пробел');
     else if (ph === FP_BITE) h.setHint(cast, 'ПОДСЕКАЙ!');
-    else if (ph === FP_REEL && this.fish2.on) h.setHint(TOUCH ? null : ['ЛКМ', '/', 'Пробел'], 'держи — зелёная зона вверх, отпусти — вниз · рыба в зоне — шкала растёт');
+    else if (ph === FP_REEL && this.fish2.on) h.setHint(TOUCH ? null : ['ЛКМ', '/', 'Пробел'], 'держи — зелёная зона вверх, отпусти — вниз · рыба в зоне — шкала растёт · X — прекратить');
     else if (ph === FP_REEL) h.setHint([], 'Тянем! 🎣');
-    else if (this.fish2.on) h.setHint(cast, `${this.fish2.choosing ? 'в рюкзак и забросить снова' : 'забросить снова'}${TOUCH ? '' : ' · J — журнал'}`);
+    // рыба в руках ждёт выбора: сперва «В рюкзак» или «Отпустить» (кнопки карточки), потом ЛКМ снова забрасывает
+    else if (this.fish2.on && this.fish2.choosing) h.setHint(TOUCH ? null : ['1', '/', 'F'], 'в рюкзак / отпустить рыбу · потом ЛКМ — забросить');
+    else if (this.fish2.on) h.setHint(cast, `забросить снова${TOUCH ? '' : ' · J — журнал'}`);
     // на телефоне всё видно на самой карточке улова
     else h.setHint(TOUCH ? null : ['1', '/', '2'], 'в коллекцию или продать');
   }

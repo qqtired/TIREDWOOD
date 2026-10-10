@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
-import { FE_BITE, FP_REEL } from '../shared/fishing.ts';
+import { FE_BITE, FP_HOLD, FP_REEL } from '../shared/fishing.ts';
 import type { ReelStyle } from '../shared/fishreel.ts';
 import { reelStyleFor, type Hooked } from '../shared/fishrules.ts';
 import type { LobbyEvent } from '../shared/messages.ts';
@@ -55,6 +55,8 @@ function bites(s: FakeSink): boolean {
 export function catchWith(e: ReturnType<typeof fisher>, pick: (style: ReelStyle, seed: number, drunk: boolean) => Play) {
   e.clock.now += 1000;
   e.a.s.msgs.length = 0;
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (e.hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && !bites(e.a.s); i++) e.advance(1);
   e.hub.onJson(e.a.c, { t: 'fish', a: 'hook', n: 2 });

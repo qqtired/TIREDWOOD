@@ -1,11 +1,12 @@
 // Карточка улова рыбалки 2.0: картинка, категория цветом, имя, вес, цена — «+37 🪙 в рюкзак (7/10)»
 // и из чего она (база · баркас · напиток), опыт и оценка вываживания («+45 XP · Идеально ×2,5»), «Новый вид!» с бонусом или «Рекорд!», уникальный
 // вид события ×1,5, сколько из всей коллекции в коллекции. Сорвалась крупная — «+N XP за борьбу». Сундук — своя карточка: трясётся,
-// крышка отскакивает, сыплются монеты, сумма набегает; 250 — джекпот, 1500 — «Сокровища Посейдона» (fishtreasure.ts).
-// Сама уходит через несколько секунд или при следующем забросе. Рыба — выбор (shared/fishrelease.ts): «В рюкзак» (ЛКМ)
-// или «Отпустить» (F, +50 % опыта, без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке.
+// крышка отскакивает, сыплются монеты, сумма набегает; джекпот один — 1500 «Сокровища Посейдона» (fishtreasure.ts), 250 — обычный сундук.
+// Сама уходит через несколько секунд или при следующем забросе. Рыба — выбор (shared/fishrelease.ts): «В рюкзак» (1)
+// или «Отпустить» (F, +50 % опыта, без жетонов) и полоска — сколько ждать; не выбрал — осталась в рюкзаке. Первые 0,75 с
+// после вываживания кнопки притушены и не нажимаются (lockFor).
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
-import { BARKAS_INCOME, CHEST_JACKPOT, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
+import { BARKAS_INCOME, CHEST_ANNOUNCE, COLLECTION_SIZE, RAIN_DEN, RAIN_NUM, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN } from '../../shared/fishprogress.ts';
 import { ALE, BEER, LORD } from '../../shared/fishshop.ts';
 import { CHOICE_TICKS, RELEASE_NOTE, releaseXp } from '../../shared/fishrelease.ts';
@@ -140,7 +141,14 @@ export class CatchCard2 {
   hide(): void {
     this.clear();
     this.choosing = null;
-    this.card.classList.remove('show');
+    this.card.classList.remove('show', 'locked');
+  }
+
+  /** Кнопки выбора притушены и не нажимаются ещё ms (пауза после вываживания, CHOICE_LOCK_MS); потом оживают сами */
+  lockFor(ms: number): void {
+    if (ms <= 0) return;
+    this.card.classList.add('locked');
+    this.later(ms, () => this.card.classList.remove('locked'));
   }
 
   /**
@@ -174,7 +182,7 @@ export class CatchCard2 {
     const card = this.card;
     card.classList.add('choose');
     const row = card.appendChild(el('div', 'fc2-choice'));
-    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : 'ЛКМ', '🎒 В рюкзак', 'жетоны — при продаже'));
+    const keep = row.appendChild(choiceBtn('keep', TOUCH ? '' : '1', '🎒 В рюкзак', 'жетоны — при продаже'));
     const free = row.appendChild(choiceBtn('free', TOUCH ? '' : 'F', '🌊 Отпустить', RELEASE_NOTE));
     keep.addEventListener('click', () => this.onKeep());
     free.addEventListener('click', () => this.onRelease());
@@ -207,27 +215,27 @@ export class CatchCard2 {
     const card = this.card;
     // «Сокровища Посейдона» (fishtreasure.ts) — тот же сундук, но своя картинка, лучи и дольше висит
     const poseidon = isPoseidon(m.coins);
-    const jackpot = poseidon || m.coins >= CHEST_JACKPOT;
+    // крупный обычный сундук (в том числе 250) — просто сундук побогаче: джекпот, свечение и фанфары — только у клада Посейдона
+    const big = !poseidon && m.coins >= CHEST_ANNOUNCE;
     card.classList.add('chest');
-    if (jackpot) card.classList.add('jackpot');
-    if (poseidon) card.classList.add('poseidon');
+    if (poseidon) card.classList.add('jackpot', 'poseidon');
     card.style.setProperty('--tc', TIER_CSS[T_CHEST]);
-    card.appendChild(el('div', 'fc2-head')).appendChild(el('span', 'fc2-tier', poseidon ? POSEIDON_TEXT.tier : jackpot ? 'сундук · джекпот!' : 'сундук'));
+    card.appendChild(el('div', 'fc2-head')).appendChild(el('span', 'fc2-tier', poseidon ? POSEIDON_TEXT.tier : big ? 'крупный сундук' : 'сундук'));
     const box = card.appendChild(el('div', 'fc2-box'));
     box.appendChild(poseidon ? poseidonPic('fc2-chest') : fishPic(m.sp, 'fc2-chest'));
     box.appendChild(el('div', 'fc2-lid'));
     const coins = box.appendChild(el('div', 'fc2-coins'));
-    for (let i = 0; i < (poseidon ? 40 : jackpot ? 22 : 12); i++) {
+    for (let i = 0; i < (poseidon ? 40 : big ? 16 : 12); i++) {
       const c = coins.appendChild(el('i', ''));
       c.innerHTML = COIN_HTML;
       c.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 220)}px`);
       c.style.setProperty('--dy', `${Math.round(-60 - Math.random() * 110)}px`);
       c.style.animationDelay = `${SHAKE_MS + Math.round(Math.random() * 260)}ms`;
     }
-    card.appendChild(el('div', 'fc2-title')).appendChild(el('b', '', poseidon ? POSEIDON_TEXT.title : jackpot ? 'Сундук с сокровищем!' : 'Сундук со дна!'));
+    card.appendChild(el('div', 'fc2-title')).appendChild(el('b', '', poseidon ? POSEIDON_TEXT.title : big ? 'Крупный сундук со дна!' : 'Сундук со дна!'));
     const sum = card.appendChild(el('div', 'fc2-price big'));
     setCoinText(sum, '+0 🪙');
-    card.appendChild(el('div', 'fc2-sub', poseidon ? POSEIDON_TEXT.sub : jackpot ? `${CHEST_JACKPOT} жетонов — такое бывает раз на тысячи поклёвок` : 'Сундук — сверх улова: 3 % поклёвок'));
+    card.appendChild(el('div', 'fc2-sub', poseidon ? POSEIDON_TEXT.sub : 'Сундук — сверх улова: 3 % поклёвок'));
     // в каждом пятом сундуке — пиво подводного владыки, уже выпито (сервер включил его сразу)
     if (m.lord) {
       const lord = card.appendChild(el('div', 'fe-lord'));
@@ -238,8 +246,8 @@ export class CatchCard2 {
     this.sound.fishNibble(null);
     this.later(SHAKE_MS, () => {
       card.classList.add('open');
-      this.sound.coins(null, jackpot ? 8 : Math.min(8, 3 + Math.round(m.coins / 40)));
-      if (jackpot) this.sound.slotWin(true);
+      this.sound.coins(null, Math.min(8, 3 + Math.round(m.coins / 40)));
+      if (poseidon) this.sound.slotWin(true);
       if (poseidon) this.later(700, () => this.sound.fanfare(null));
       const t0 = performance.now();
       const countMs = poseidon ? 2000 : COUNT_MS;

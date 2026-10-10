@@ -30,7 +30,7 @@ import { FishOdds } from './fishodds.ts';
 import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
-import { DONE_RELEASE } from '../../shared/fishrelease.ts';
+import { CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
@@ -83,8 +83,10 @@ export class Fish2Hud {
     this.reel.onWarn = (text) => ui.chat.note(text);
     this.card = new CatchCard2(parent, sound);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
-    this.card.onKeep = () => send({ t: 'fish', a: 'keep' });
-    this.card.onRelease = () => this.release();
+    this.card.onKeep = () => this.choose(true);
+    this.card.onRelease = () => this.choose(false);
+    // конец вываживания (поймал, сорвалась, сдался): 0,75 с никакие нажатия не принимаются, потом — выбор
+    this.reel.onEnd = () => this.lockInput();
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
@@ -304,11 +306,36 @@ export class Fish2Hud {
 
   onLand(msg: Extract<ServerMsg, { t: 'fishLand' }>): void {
     this.card.show(msg);
+    // кнопки выбора притушены, пока не кончилась пауза после вываживания (она идёт с конца шкалы, а карточка пришла от сервера позже)
+    this.card.lockFor(this.lockUntil - performance.now());
   }
 
   /** Сервер: рыба сорвалась (или кривое сообщение) — показать на шкале и убрать. */
   lost(): void {
     this.reel.stop();
+    this.lockInput();
+  }
+
+  /** До этого момента (performance.now) нажатия после вываживания игнорируются */
+  private lockUntil = 0;
+
+  private lockInput(): void {
+    this.lockUntil = Math.max(this.lockUntil, performance.now() + CHOICE_LOCK_MS);
+  }
+
+  /** Первые CHOICE_LOCK_MS после конца вываживания не принимаются ни ЛКМ с пробелом, ни кнопки и клавиши выбора (ложные срабатывания) */
+  get inputLocked(): boolean {
+    return performance.now() < this.lockUntil;
+  }
+
+  /** Идёт вываживание (шкала играет): персонаж стоит на месте, ходить нельзя */
+  get reelRunning(): boolean {
+    return this.reel.running;
+  }
+
+  /** X или кнопка «Прекратить»: сдаться — рыба срывается, управление возвращается. false — шкала не идёт. */
+  giveUp(): boolean {
+    return this.reel.giveUp();
   }
 
   /** Ушёл с места рыбалки: шкалу — сразу; карточка улова уйдёт сама. */
@@ -326,10 +353,13 @@ export class Fish2Hud {
     return this.card.canRelease;
   }
 
-  /** F или кнопка «Отпустить»: рыбу из рук — в воду (решает сервер). false — отпускать нечего. */
-  release(): boolean {
+  /**
+   * Выбор с рыбой в руках — кнопка карточки или клавиша (1 — «В рюкзак», F или 2 — «Отпустить»); решает сервер.
+   * true — выбор был открыт и нажатие съедено (пока идёт пауза после вываживания, оно ничего не делает); false — выбирать нечего.
+   */
+  choose(keep: boolean): boolean {
     if (!this.card.canRelease) return false;
-    this.send({ t: 'fish', a: 'release' });
+    if (!this.inputLocked) this.send({ t: 'fish', a: keep ? 'keep' : 'release' });
     return true;
   }
 

@@ -588,7 +588,8 @@
       "kind": "fish",
       "species": "smooth hammerhead shark",
       "latin": "Sphyrna zygaena",
-      "file": "client/assets/fish/hammerhead.webp",
+      "file": "client/assets/fish/whiteshark.webp",
+      "note": "С 10.10 (обмен акул по слову владельца) эта картинка лежит под именем whiteshark.webp: id альбома 'whiteshark' теперь показывает рыбу-молот. В hammerhead.webp — большая белая акула. id в этой записи — прежний.",
       "source": {
         "w": 1774,
         "h": 887,
