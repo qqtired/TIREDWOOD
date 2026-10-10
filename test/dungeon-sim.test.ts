@@ -70,7 +70,7 @@ test('один зерно и журнал → тот же забег; куска
   assert.deepEqual(dgResult(a.sim), dgResult(b.sim));
   assert.ok(a.sim.stats.kills > 0, 'кого-то убили');
   const whole = replay(42, a.log, [a.sim.t]);
-  const parts = replay(42, a.log, [7, 300, 1, 1000, 13, 99999]);
+  const parts = replay(42, a.log, [7, 300, 1, 1000, 13, a.sim.t - 1321]);
   assert.equal(dgHash(whole), dgHash(a.sim));
   assert.equal(dgHash(parts), dgHash(a.sim));
   // копия посреди забега (structuredClone) идёт так же, как оригинал
