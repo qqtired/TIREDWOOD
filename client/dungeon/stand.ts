@@ -10,7 +10,7 @@ import { DG_RUN_CAP, dgBossCoins, dgWaveCoins, type DgClientMsg, type DgEvent } 
 import { hurtHero } from '../../shared/dungeon/core.ts';
 import { startWave } from '../../shared/dungeon/director.ts';
 import { spawnMob } from '../../shared/dungeon/mobs.ts';
-import { addXp } from '../../shared/dungeon/progress.ts';
+import { addXp, openChest } from '../../shared/dungeon/progress.ts';
 import { applyEvent, createRun, dgHash, dgResult, step, type DgSim, type WeaponId } from '../../shared/dungeon/sim.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import { Sound } from '../audio.ts';
@@ -229,6 +229,11 @@ const real = (): DgSim | null => {
       s.hero.hp = Math.min(s.hero.hp, 1);
       hurtHero(s, 99999, 'barrel');
     }
+  },
+  /** сундук-барабан (big — как у босса) */
+  chest: (big = false) => {
+    const s = real();
+    if (s) openChest(s, big ? 'big' : 'small');
   },
   /** толпа из n врагов вокруг героя; герой не умирает и не растёт в уровне (замер) */
   crowd: (n = 300) => {

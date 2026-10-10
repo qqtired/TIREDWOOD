@@ -398,7 +398,7 @@ export class DungeonHud implements DungeonHudApi {
   private updateBreather(b: HudFrame['breather']): void {
     this.flag('br', this.root, 'breathing', !!b);
     if (!b) return;
-    this.text('brTitle', this.brTitle, `Волна ${b.next} через ${Math.max(0, Math.ceil(b.left))}`);
+    this.text('brTitle', this.brTitle, `Волна ${b.next} через ${Math.max(0, Math.ceil(b.left))} с`);
     const mobs = b.mobs.map((m) => `${m.icon}${m.name}`).join('|');
     if (this.diff('brMobs', mobs)) {
       this.brMobs.textContent = '';
