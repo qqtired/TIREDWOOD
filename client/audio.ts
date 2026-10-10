@@ -1307,6 +1307,15 @@ export class Sound {
     this.noise(d, 0.2, 'lowpass', 1400, 300, 1, 0.15 * g, 0.02);
   }
 
+  /** «Колокольный буй» на поклёвке: маленький латунный колокольчик — «дзынь» с коротким отзвуком. */
+  buoyBell(pos: V3 | null): void {
+    if (!this.ok || !this.once('buoyBell', 0.4)) return;
+    const d = this.out(pos, this.sfx, 0, 4);
+    const g = pos ? 0.6 : 1;
+    for (const [f, k, len] of [[1568, 0.11, 0.9], [2350, 0.05, 0.55], [3136, 0.03, 0.35]] as const) this.tone(d, f, f * 0.997, len, 'sine', k * g, 0, 0.002);
+    this.tone(d, 1568, 1562, 0.6, 'sine', 0.05 * g, 0.18, 0.002);
+  }
+
   /** Вываживание: трещотка катушки dur секунд и всплески рыбы у поверхности. */
   fishReel(pos: V3 | null, dur: number): void {
     if (!this.ok) return;
