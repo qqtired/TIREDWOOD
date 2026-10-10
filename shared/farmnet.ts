@@ -3,6 +3,7 @@
 // Все действия режима объявлены здесь заранее, чтобы параллельные части (Фургон, заказы, помощь, Древо, колодец)
 // не правили этот файл: сервер разбирает их в server/farm/room.ts и отдаёт обработчику своей части.
 import type { FarmFail, FarmProgress, HarvestItem } from './farm.ts';
+import type { FarmSysMsg } from './farmsys.ts';
 import type { Outfit } from './outfit.ts';
 
 export type FarmClientMsg =
@@ -99,7 +100,9 @@ export type FarmServerMsg =
   | { t: 'farmMe'; now: number; me: FarmProgress }
   | { t: 'farmPlot'; plot: FarmPlotView }
   | { t: 'farmRoster'; list: FarmRosterRow[] }
-  | { t: 'farmEv'; e: FarmEvent[] };
+  | { t: 'farmEv'; e: FarmEvent[] }
+  /** Сообщения частей B1 (Фургон, заказы, босс) — shared/farmsys.ts */
+  | FarmSysMsg;
 
 /** Для калитки на площади: сколько фермеров и мест */
 export interface FarmStatus {

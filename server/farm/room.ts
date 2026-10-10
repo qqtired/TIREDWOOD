@@ -2,7 +2,8 @@
 // что на набережной; всё остальное — JSON. Сервер решает всё: посадку, полив, сбор, продажу, покупки, колодец.
 // Клиент шлёт только намерения ({t:'farm', a:…}, shared/farmnet.ts); прогресс игрока — profile.farm (shared/farm.ts).
 // Части режима, которые достраиваются отдельно (помощь, Фургон, заказы, Древо, достижения), — в своих файлах рядом:
-// systems.ts и rewards.ts получают FarmCtx и не трогают этот файл.
+// systems.ts (FarmSystems: вход, выход, раз в секунду, свои сообщения) и rewards.ts получают FarmCtx и не трогают
+// этот файл.
 import { randomInt } from 'node:crypto';
 import {
   addFarmXp, bagCap, bagUsed, bedStage, convert, emptyFarm, enterDay, farmLevel, harvest, pigTick, plant, rollDay, sell, tutorialEvent,
@@ -29,7 +30,7 @@ import { InputQueue } from '../inputs.ts';
 import type { Profile } from '../store.ts';
 import { FarmPlots, type PlotSeat } from './plots.ts';
 import { grantLevel } from './rewards.ts';
-import { onCone, onHelp, onOrder, onVan } from './systems.ts';
+import { FarmSystems } from './systems.ts';
 
 /** Снимок движения — раз в 2 тика (30 Гц), как на набережной */
 const SNAP_EVERY = 2;
@@ -86,6 +87,8 @@ export interface FarmCtx {
   /** Прогресс любого фермера по pid (и спящего): чтобы полить его грядки */
   farmOfPid(pid: number): FarmProgress | undefined;
   sendMe(p: FarmPlayer): void;
+  /** Любое сообщение фермы одному игроку или всем на ферме (null) — для своих сообщений частей (shared/farmsys.ts) */
+  send(to: FarmPlayer | null, msg: FarmServerMsg): void;
   plotChanged(plot: number): void;
   ev(to: FarmPlayer | null, e: FarmEvent): void;
   fail(p: FarmPlayer, a: FarmAction, why: Extract<FarmEvent, { k: 'fail' }>['why']): void;
@@ -110,6 +113,8 @@ export class FarmRoom implements Room, FarmCtx {
   private rosterDirty = false;
   /** Спит ли участок — по прошлой проверке (рассылка, когда меняется) */
   private readonly slept: boolean[] = Array.from({ length: FARM_PLOTS }, () => false);
+  /** Части B1: помощь, Фургон, заказы, Древо (server/farm/systems.ts) */
+  private readonly sys: FarmSystems = new FarmSystems(this);
 
   constructor(hooks: FarmHooks) {
     this.hooks = hooks;
@@ -175,6 +180,7 @@ export class FarmRoom implements Room, FarmCtx {
     this.plotChanged(plot);
     this.rosterDirty = true;
     this.hooks.status?.(this.status());
+    this.sys.join(p);
     return true;
   }
 
@@ -182,6 +188,7 @@ export class FarmRoom implements Room, FarmCtx {
     const p = this.byClient.get(c);
     if (!p) return;
     this.byClient.delete(c);
+    this.sys.leave(p);
     this.plots.leave(c.pid, this.now());
     this.hooks.saveSeats(this.plots.save());
     this.plotChanged(p.plot);
@@ -246,6 +253,11 @@ export class FarmRoom implements Room, FarmCtx {
 
   private broadcast(msg: FarmServerMsg): void {
     for (const p of this.byClient.values()) p.c.sink.sendJson(msg);
+  }
+
+  send(to: FarmPlayer | null, msg: FarmServerMsg): void {
+    if (to) to.c.sink.sendJson(msg);
+    else this.broadcast(msg);
   }
 
   // ------------------------------------------------------------ FarmCtx
@@ -333,10 +345,10 @@ export class FarmRoom implements Room, FarmCtx {
       case 'tutorial': return this.onTutorial(p, f, m);
       case 'look': return this.onLook(p, f, m);
       case 'claimPlot': return this.onClaimPlot(p, m, now);
-      case 'help': return onHelp(this, p, m);
-      case 'van': return onVan(this, p, m);
-      case 'order': return onOrder(this, p, m);
-      case 'cone': return onCone(this, p, m);
+      case 'help': return this.sys.help(p, m);
+      case 'van': return this.sys.van(p, m);
+      case 'order': return this.sys.order(p, m);
+      case 'cone': return this.sys.cone(p, m);
     }
   }
 
@@ -516,6 +528,7 @@ export class FarmRoom implements Room, FarmCtx {
           this.plotChanged(i);
         }
       }
+      this.sys.second(now);
     }
   }
 
