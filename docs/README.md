@@ -101,7 +101,7 @@
 | Прятки «Рыбный двор» (образец) | `hide*.ts` | `hide/` | `hide/` | `HIDE` | `hide-rules.test.ts` | [hide-repair-20261003.md](hide-repair-20261003.md), план `hide` |
 | Крепость | `fort*.ts` | `fort/` | `fort/` | `FORTRESS` | `fort.test.ts`, `fort-run.test.ts` | design «Крепость», планы `fort-*` |
 | Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
-| Ферма (20 участков, вход — калитка на площади) | `farm*.ts` (числа — `farmdata.ts`, правила — `farm.ts`, сеть — `farmnet.ts`/`farmsys.ts`) | `farm/` | `farm/`, калитка — `farm/lobbygate.ts`, модели — `assets/farm/` | `FARM` | `farm.test.ts` | [farm/design-v11.md](farm/design-v11.md), план `farm` (владение файлами частей) |
+| Ферма (20 участков, вход — калитка на площади) | `farm*.ts` (числа — `farmdata.ts`, правила — `farm.ts`, сеть — `farmnet.ts`/`farmsys.ts`) | `farm/` | `farm/`, калитка — `farm/lobbygate.ts`, земля, трава и декор — `farm/decor/`, модели — `assets/farm/` | `FARM` | `farm.test.ts` | [farm/design-v11.md](farm/design-v11.md), план `farm` (владение файлами частей) |
 
 ### 2.5 Страницы, подарки, загрузка, звук и прочее
 
