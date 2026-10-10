@@ -1,5 +1,7 @@
 // Хранилище профилей и банка джекпота: один JSON-файл в DATA_DIR.
 // Запись атомарная (временный файл → fsync → переименование), раз в день — копия, хранятся 7 последних.
+import { normalizeFarm, type FarmProgress } from '../shared/farm.ts';
+import { FARM_PLOTS } from '../shared/farmdata.ts';
 import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, unlinkSync, writeSync } from 'node:fs';
 import path from 'node:path';
 import { AQUA_COURSE, addRecord, type AquaRecord } from '../shared/aqua.ts';
@@ -51,6 +53,8 @@ export interface Profile {
   album: FishAlbum;
   /** Отдельный навык, последовательный квест, одна удочка и срок рыбацкого пива. */
   fishing: FishProgress;
+  /** Ферма (shared/farm.ts): появляется при первом входе на ферму; хранится и без флага FARM */
+  farm?: FarmProgress;
 }
 
 export interface State {
@@ -83,6 +87,8 @@ export interface State {
    * крепости. Забег обновляется после каждой отбитой волны (id — номер игры). Старые сохранения — пусто
    */
   fortTop?: FortRunRec[];
+  /** Ферма: кто держит какой из 20 участков и когда был там последний раз (спящие участки переживают перезапуск) */
+  farmPlots?: Array<{ pid: number; seen: number } | null>;
   profiles: Profile[];
 }
 
@@ -162,6 +168,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
     epUntil: num(r.epUntil),
     album,
     fishing,
+    ...(r.farm !== undefined ? { farm: normalizeFarm(r.farm) } : {}),
   };
 }
 
@@ -193,6 +200,7 @@ function parseState(text: string): State {
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
     ...(raw.fortTop !== undefined ? { fortTop: parseFortTop(raw.fortTop) } : {}),
+    ...(raw.farmPlots !== undefined ? { farmPlots: parseFarmPlots(raw.farmPlots) } : {}),
     profiles,
   };
 }
@@ -223,6 +231,20 @@ export function addFortRun(top: readonly FortRunRec[], rec: FortRunRec): FortRun
 
 function sortFortTop(list: FortRunRec[]): FortRunRec[] {
   return list.sort((a, b) => b.wave - a.wave || a.at - b.at).slice(0, FORT_TOP);
+}
+
+/** Участки фермы: ровно FARM_PLOTS мест, у каждого — pid и время или пусто; один игрок — один участок */
+export function parseFarmPlots(raw: unknown): NonNullable<State['farmPlots']> {
+  const out: NonNullable<State['farmPlots']> = Array.from({ length: FARM_PLOTS }, () => null);
+  if (!Array.isArray(raw)) return out;
+  const seen = new Set<number>();
+  raw.slice(0, FARM_PLOTS).forEach((r, i) => {
+    const o = r && typeof r === 'object' ? r as Record<string, unknown> : null;
+    if (!o || !Number.isSafeInteger(o.pid) || (o.pid as number) <= 0 || seen.has(o.pid as number)) return;
+    seen.add(o.pid as number);
+    out[i] = { pid: o.pid as number, seen: Math.max(0, Math.min(8_640_000_000_000_000, num(o.seen))) };
+  });
+  return out;
 }
 
 function parseLobbyEvents(raw: unknown): NonNullable<State['lobbyEvents']> {

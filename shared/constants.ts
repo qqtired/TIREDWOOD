@@ -3,7 +3,8 @@
 
 // 14 — новая «Крепость»: другой снимок орды и хвост арсенала, карточки волн, рекорды (старые вкладки перезагрузятся)
 // 15 — вываживание: другая модель шкалы (рыба в 2–98 %, натяжение лески, водка), оценки улова вместо «идеально»
-export const PROTOCOL_VERSION = 15;
+// 16 — ферма: комната farm, сообщения farm/farmMe/farmPlot/farmRoster/farmEv/farmSt, калитка на площади
+export const PROTOCOL_VERSION = 16;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;

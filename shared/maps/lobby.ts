@@ -18,6 +18,7 @@ import {
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
+import { FARM_PLAZA_GATE } from '../farmmap.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
 import { Builder } from './builder.ts';
@@ -28,7 +29,7 @@ import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
 /** ratrace — крысиные бега на понтоне у набережной (флаг RATRACE); billiards — бильярдный стол (флаг BILLIARDS);
  * plane — гидроплан «Стриж» у западного края площади, banner — заказ баннера (флаг PLANE, shared/plane.ts) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'farm';
 
 export interface Interactable {
   id: number;
@@ -71,6 +72,8 @@ export interface LobbyMap extends GameMap {
   skillSpawn: Spot;
   boatraceSpawn: Spot;
   hideSpawn: Spot;
+  /** Возвращение с фермы: у калитки на восточном конце Улицы Аттракционов, лицом к площади */
+  farmSpawn: Spot;
   interact: Interactable[];
   /** Центры корпусов автоматов (передняя грань — z = MACHINE_FRONT_Z) */
   machines: Array<{ x: number; z: number }>;
@@ -504,6 +507,9 @@ export function buildLobby(): LobbyMap {
   add('banner', PLANE_SIGN.x + 1, PLANE_SIGN.z, Math.PI / 2, 1.8, 0, 'Баннер над набережной');
   // ещё два места рыбалки на удлинённом баркасе — точки в самый конец списка (номера прежних не меняются)
   BARKAS_FISH_SPOTS.slice(BARKAS_FISH_FIRST).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, barkasSpotIndex(BARKAS_FISH_FIRST + i), 'порыбачить'));
+  // --- Калитка фермы (флаг FARM, docs/farm/level/level.md §9) в парапете на восточном конце Улицы Аттракционов — в конец
+  // списка; без флага клиент её не рисует и не подсказывает, а сервер игнорирует
+  add('farm', FARM_PLAZA_GATE.use.x, FARM_PLAZA_GATE.use.z, FARM_PLAZA_GATE.use.yaw, FARM_PLAZA_GATE.use.r, 0, 'на ферму');
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 
@@ -532,6 +538,7 @@ export function buildLobby(): LobbyMap {
     skillSpawn: { x: SKILL_PORTAL.x, y: 0, z: -9.4, yaw: 0 },
     boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
     hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },
+    farmSpawn: { x: FARM_PLAZA_GATE.spawnBack.x, y: 0, z: FARM_PLAZA_GATE.spawnBack.z, yaw: FARM_PLAZA_GATE.spawnBack.yaw },
     interact,
     machines,
     tables,

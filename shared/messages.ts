@@ -18,6 +18,7 @@ import type { RaceTrackId } from './racecourse.ts';
 import type { SkillServerMsg, SkillStatus } from './skilltest.ts';
 import type { RegattaClientMsg, RegattaServerMsg, RgRecordRow, RgView } from './regatta.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
+import type { FarmClientMsg, FarmServerMsg, FarmStatus } from './farmnet.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
 import type { RainWire } from './weather.ts';
@@ -31,7 +32,7 @@ import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 
-export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide';
+export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'fight' | 'skill' | 'hide' | 'farm';
 
 export interface RosterEntry {
   id: number;
@@ -186,6 +187,7 @@ export type ClientMsg =
   | JukeClientMsg
   | VoiceClientMsg
   | HideClientMsg
+  | FarmClientMsg
   | RegattaClientMsg
   | PlaneClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
@@ -438,6 +440,9 @@ export type ServerMsg =
   | RegattaServerMsg
   | PlaneServerMsg
   | HideServerMsg
+  | FarmServerMsg
+  /** Ферма (флаг FARM): сколько фермеров — для калитки на площади */
+  | ({ t: 'farmSt' } & FarmStatus)
   | ({ t: 'skillSt' } & SkillStatus)
   | { t: 'hideSt'; v: GatherStatus | HideStatus }
   | { t: 'startZone'; kind: 'paintball' | 'fort' | null; left: number }
@@ -490,6 +495,8 @@ export type ServerMsg =
     ratrace?: RatRaceView;
     /** Гидроплан «Стриж» (флаг сервера PLANE, shared/plane.ts) */
     plane?: PlaneView;
+    /** Ферма (флаг сервера FARM, shared/farmnet.ts): калитка на Улице Аттракционов */
+    farm?: FarmStatus;
   }
   // катер «Ласточка» (shared/boat.ts): что с ним — при каждом изменении
   | ({ t: 'boat' } & BoatStatus)

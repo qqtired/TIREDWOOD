@@ -19,6 +19,7 @@ import { weatherMode } from './lobby/weather.ts';
 import { eventFlag } from './lobby/events.ts';
 import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
+import { farmEnabled } from '../shared/farmnet.ts';
 import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { planeEnabled } from '../shared/plane.ts';
 import { Profiles } from './profiles.ts';
@@ -60,6 +61,8 @@ const skill = process.env.SKILL === undefined ? DEV : process.env.SKILL === '1';
 const storm = eventFlag(process.env.STORM, DEV), pirates = eventFlag(process.env.PIRATES, DEV);
 const boatrace = regattaEnabled(process.env.BOATRACE, DEV);
 const hide = hideEnabled(process.env.HIDE, DEV);
+// «Ферма» до «да» владельца скрыта: FARM=1 — включить, FARM=0 — выключить, без переменной — только с --dev
+const farm = farmEnabled(process.env.FARM, DEV);
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
 const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
@@ -79,7 +82,7 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, farm, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -91,6 +94,7 @@ if (roll) console.log('DEV_RIG=777: автоматы подкручены на �
 if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на набережной не своя`);
 if (fort) console.log('FORTRESS: режим «Крепость» включён');
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
+if (farm) console.log('FARM: режим «Ферма» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');

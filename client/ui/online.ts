@@ -10,7 +10,7 @@ import { TOUCH } from '../touch.ts';
 import { onVoiceChange, peerVoices, setPeerVoice, voiceTalkers } from '../voice-prefs.ts';
 import './online.css';
 
-const ROOM: Record<RoomKind, string> = { lobby: '🏠 Набережная', paintball: '🎯 Склад', race: '🏁 Гонка', fort: '🏰 Крепость', fight: '🥊 Подвал', skill: '☁️ Выше облаков', hide: '🔎 Прятки' };
+const ROOM: Record<RoomKind, string> = { lobby: '🏠 Набережная', paintball: '🎯 Склад', race: '🏁 Гонка', fort: '🏰 Крепость', fight: '🥊 Подвал', skill: '☁️ Выше облаков', hide: '🔎 Прятки', farm: '🌱 Ферма' };
 /** Шаг кнопок −/+ */
 const STEP = 0.1;
 /** Динамик и динамик с крестиком — чётче эмодзи на тёмной кнопке */

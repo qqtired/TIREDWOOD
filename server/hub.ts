@@ -29,6 +29,7 @@ import type { SkillReward } from './skilltest/game.ts';
 import { applySkillFinish } from '../shared/skilltest.ts';
 import { mskDayNum } from '../shared/fishrules.ts';
 import { HideRoom } from './hide/room.ts';
+import { FarmRoom } from './farm/room.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
 import type { Prestart } from '../shared/loading.ts';
@@ -126,6 +127,8 @@ export interface HubOptions {
   skill?: boolean;
   boatrace?: boolean;
   hide?: boolean;
+  /** «Ферма» (флаг FARM): комната на 20 участков, калитка на Улице Аттракционов */
+  farm?: boolean;
   storm?: boolean;
   pirates?: boolean;
   voice?: boolean;
@@ -243,6 +246,8 @@ export class Hub {
   /** «Портовая регата» включена (флаг BOATRACE): гонка идёт в бухте набережной (server/lobby/regatta.ts) */
   readonly boatrace: boolean;
   readonly hide: HideRoom | null;
+  /** «Ферма»: null — режим выключен флагом (калитки на площади не видно, вход закрыт, profile.farm хранится как есть) */
+  readonly farm: FarmRoom | null;
   private readonly voice: VoiceRouter | null;
   private readonly gifts: GiftCodes;
   /** «Крепость»: null — режим выключен флагом (арки на набережной не видно, вход закрыт) */
@@ -276,6 +281,7 @@ export class Hub {
   private nextEphemeral = -1;
   private lastPb = '';
   private lastFort = '';
+  private lastFarm = '';
   /** Профили в колпаке дурака: раз в секунду проверяем, не пора ли снять */
   private readonly capped = new Set<number>();
 
@@ -318,6 +324,20 @@ export class Hub {
     this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
+    this.farm = o.farm
+      ? new FarmRoom({
+        now: () => this.now(),
+        outfitOf: (p) => this.outfitOf(p),
+        profileOf: (pid) => this.profiles.byId(pid),
+        credit: (c, n) => { if (c.profile) { this.profiles.credit(c.profile, n, 'other'); this.tokens(c, c.profile.tokens); } },
+        spend: (c, n) => { const ok = !!c.profile && this.profiles.spend(c.profile, n); if (ok) this.tokens(c, c.profile!.tokens); return ok; },
+        generalXp: (c, n) => { if (c.profile) this.profiles.modeXp(c.profile, n); },
+        grantItem: (c, id) => { const ok = !!c.profile && this.profiles.grant(c.profile, id); if (ok) this.sendMe(c); return ok; },
+        dirty: () => this.store.markDirty(),
+        seats: () => this.store.state.farmPlots,
+        saveSeats: (seats) => { this.store.state.farmPlots = seats; this.store.markDirty(); },
+      })
+      : null;
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);
     this.tg = o.tg ?? null;
     if (this.tg) this.tg.onSend = (msg) => this.lobby.broadcast(msg);
@@ -364,7 +384,7 @@ export class Hub {
 
   /** Есть ли игроки или незавершённые раунды (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) + (this.farm?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
@@ -473,7 +493,7 @@ export class Hub {
         c.sink.sendJson({ t: 'code', ...this.profiles.issueCode(c.profile) });
         return;
       case 'leave':
-        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
+        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight) || (this.farm !== null && c.room === this.farm)) this.move(c, this.lobby);
         return;
       default:
         c.room?.onMessage(c, msg);
@@ -680,6 +700,7 @@ export class Hub {
     this.lobby.onRename(c);
     this.skill?.onRename(c);
     this.hide?.onRename(c);
+    this.farm?.onRename(c);
     this.voice?.renamed(c);
     this.outfitChanged(c.pid);
     this.broadcastOnline();
@@ -783,6 +804,7 @@ export class Hub {
     else if (this.hide && c.room === this.hide) this.hide.outfitChanged(c);
     else if (this.fort !== null && c.room === this.fort) this.fort.outfitChanged(c);
     else if (this.fight !== null && c.room === this.fight) this.fight.outfitChanged(c);
+    else if (this.farm !== null && c.room === this.farm) this.farm.outfitChanged(c);
   }
 
   /** Итог партии в дурака: колпак дураку, жетоны и статистика сидевшим за столом, строка в общий чат. */
@@ -987,6 +1009,19 @@ export class Hub {
     this.store.markDirty();
   }
 
+  // ------------------------------------------------------------ ферма
+
+  /** E у калитки фермы на площади: на ферму (режим включён и есть участок). 21-й остаётся на площади. */
+  enterFarm(c: Client): void {
+    const f = this.farm;
+    if (!f || c.room !== this.lobby || c.ephemeral) return;
+    if (!f.hasSpace() || !f.canEnter(c.pid)) {
+      this.toast(c, 'Ферма полна: 20 из 20 — подожди, кто-нибудь уйдёт');
+      return;
+    }
+    this.move(c, f);
+  }
+
   // ------------------------------------------------------------ Fight Club
 
   /** Круг у двери в подвал досчитал: новый бой, бойцы и зрители — вниз, старт. */
@@ -1077,6 +1112,7 @@ export class Hub {
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
     if (this.fort && this.fort.humans > 0) this.fort.step();
     if (this.fight && this.fight.humans > 0) this.fight.step();
+    if (this.farm && this.farm.humans > 0) this.farm.step();
     if (this.tick % TICK_RATE === 0) {
       const st = this.pbStatus();
       const key = JSON.stringify(st);
@@ -1093,6 +1129,14 @@ export class Hub {
         this.lobby.broadcast({ t: 'fortSt', ...st });
       }
     }
+    if (this.farm && this.tick % TICK_RATE === 0) {
+      const st = this.farm.status();
+      const key = JSON.stringify(st);
+      if (key !== this.lastFarm) {
+        this.lastFarm = key;
+        this.lobby.broadcast({ t: 'farmSt', ...st });
+      }
+    }
     if (this.tick % TICK_RATE === 0) {
       this.sweepLost();
       if (this.skill) this.lobby.broadcast({ t: 'skillSt', ...this.skill.status() });
@@ -1103,14 +1147,15 @@ export class Hub {
   }
 
   /** Busy counts occupied game rooms and unsettled Blackjack hands; deploy must not interrupt either. */
-  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; fight: number; skill: number; boatrace: number; hide: number; busy: number } {
+  /** Ферма в busy не входит: её игра — неспешная, выкладка ничего не обрывает (прогресс в профиле). */
+  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; fight: number; skill: number; boatrace: number; hide: number; farm: number; busy: number } {
     const { lobby, paintball, race } = this;
     const fort = this.fort?.humans ?? 0;
     const fight = this.fight?.humans ?? 0;
     const skill = this.skill?.humans ?? 0;
     const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
-    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0) };
+    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, farm: this.farm?.humans ?? 0, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0) };
   }
 
   /** Перезапуск сервера: предупредить всех, сохранить, закрыть с кодом 1012 (клиенты переподключатся). */

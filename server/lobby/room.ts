@@ -556,7 +556,7 @@ export class LobbyRoom implements Room {
     const p = new LobbyPlayer(slot, c);
     this.players.set(slot, p);
     this.byClient.set(c, p);
-    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
+    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : from === 'farm' ? this.map.farmSpawn : this.map.spawn;
     this.placeNear(p, spot.x, spot.z, spot.yaw);
     this.starts.set(p, { armed: this.startZoneAt(p) === null, zone: null, since: 0, shown: '' });
     c.sink.sendJson({
@@ -570,6 +570,7 @@ export class LobbyRoom implements Room {
       ...(this.plane ? { plane: this.plane.view() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
+      ...(this.hub.farm ? { farm: this.hub.farm.status() } : {}),
     });
     // сезон — раньше рыболовного события: по нему клиент решает, чей тост показать (в сезон дождь — это сезон)
     if (this.fishSeason) c.sink.sendJson({ t: 'fishSeason', ...this.fishSeason.view() });
@@ -913,6 +914,10 @@ export class LobbyRoom implements Room {
       case 'fort':
         // режим выключен флагом — точки как бы нет
         if (this.hub.fort) this.hub.enterFort(c);
+        return;
+      case 'farm':
+        // режим выключен флагом — точки как бы нет
+        if (this.hub.farm) this.hub.enterFarm(c);
         return;
       case 'fight':
         // режим выключен флагом — точки как бы нет
