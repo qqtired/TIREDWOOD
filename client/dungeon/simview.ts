@@ -375,6 +375,12 @@ export class SimRun implements RunSource {
       case 'dead':
         out.push({ k: 'death' });
         break;
+      case 'sweep':
+        out.push({ k: 'sweep', wave: f.n, xp: f.xp });
+        break;
+      case 'rage':
+        out.push({ k: 'rage', n: f.n, level: f.level });
+        break;
     }
   }
 
@@ -399,6 +405,7 @@ export class SimRun implements RunSource {
         bosses.push({
           id: m.id, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: Math.max(0, m.hp), hpMax: m.hpMax,
           anim, animAt: s && s.anim === anim ? s.at : t, phase: this.bossOf(m.id)?.phase ?? 1, name: bossName, scale: s?.scale ?? 1,
+          rage: this.bossOf(m.id)?.rage === 1,
         });
         continue;
       }
@@ -555,6 +562,8 @@ export class SimRun implements RunSource {
       chest: chestView(sim),
       breather: pre ? breatherOf(w.n, w.t1 > 0 ? Math.max(0, (w.t1 - t) * DT) : 0, this.bossNameFor(w.n)) : null,
       alarm: w.horde === 1 && stage === 'wave',
+      old: w.old ?? 0,
+      swept: w.swept === 1,
       wavesDone: sim.stats.waves,
       killedBy: killerName(sim.stats.killedBy, bossName),
       chests: sim.stats.chests,

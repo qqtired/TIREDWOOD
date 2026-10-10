@@ -94,13 +94,23 @@ img.dg-ic { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45)); }
 .dg-squad-fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--dg-amber), var(--dg-amber-2)); transition: transform .2s; }
 .dg-timer { min-width: 3.4ch; font-size: 20px; font-weight: 900; color: var(--dg-amber-2); }
 .dg-timer:empty { display: none; }
-/* (задел) враги прошлых волн и озверение */
-.dg-leftover { display: none; margin-top: 6px; padding: 3px 12px; border-radius: 999px; background: var(--dg-panel-strong); border: 1px solid rgba(255, 120, 100, .45); color: #ffb0a0; font-size: 14px; font-weight: 800; }
+/* враги прошлых волн (озверевшие): «+N с прошлых волн» рядом с таймером */
+.dg-leftover { display: none; padding: 2px 10px; border-radius: 999px; background: var(--dg-panel-strong); border: 1px solid rgba(255, 120, 100, .5); color: #ffb0a0; font-size: 14px; font-weight: 800; white-space: nowrap; }
 .dg-leftover.on { display: inline-block; }
+/* плашки под волной: «Волна 4 выстояна · +9 🪙», «12 врагов озверели» */
+.dg-toasts { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
+.dg-toast { padding: 4px 14px; border-radius: 999px; background: var(--dg-panel-strong); border: 1px solid var(--dg-line-strong); font-size: 16px; font-weight: 800; white-space: nowrap; animation: dg-pop .25s ease-out; transition: opacity .3s; }
+.dg-toast.ok { color: #9cf0ae; border-color: rgba(120, 240, 150, .45); }
+.dg-toast.warn { color: #ffb0a0; border-color: rgba(255, 120, 100, .55); }
+.dg-toast.out { opacity: 0; }
+.dg.breathing .dg-tc { display: block; }
+.dg.breathing .dg-wave, .dg.breathing .dg-boss { display: none; }
+/* босс в ярости */
+.dg.boss-rage .dg-boss-bar { border-color: #ff6b5a; animation: dg-rage .8s ease-in-out infinite; }
+.dg.boss-rage .dg-boss-name::after { content: ' — ярость!'; color: #ff8a7a; }
 .dg-boss { display: none; }
 .dg.has-boss .dg-wave { display: none; }
 .dg.has-boss .dg-boss { display: block; }
-.dg.breathing .dg-tc { display: none; }
 .dg-boss-name { font-size: 24px; font-weight: 900; color: var(--dg-jam); text-shadow: 0 3px 0 #4a1c66; }
 .dg-boss-bar { position: relative; width: min(460px, 60vw); height: 18px; margin-top: 6px; border-radius: 9px; overflow: hidden; border: 2px solid rgba(214, 168, 255, .5); background: var(--dg-bar-bg); box-shadow: var(--dg-shadow); }
 .dg-boss-fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(180deg, #d6a8ff, #b25fd6); transition: transform .15s; }
@@ -235,6 +245,7 @@ html.touch .dg-ring kbd { display: none; }
 .dg-breather { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; gap: 10px; min-width: 340px; max-width: calc(100vw - 32px); padding: 18px 24px 20px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel-strong); box-shadow: var(--shadow); pointer-events: auto; }
 .dg.breathing .dg-breather { display: flex; animation: dg-pop-x .3s cubic-bezier(.2, .9, .3, 1.2) .9s backwards; }
 .dg-br-title { font-size: 28px; font-weight: 900; }
+.dg-br-next { margin-top: -6px; color: var(--dg-text-dim); font-size: 16px; font-weight: 800; }
 .dg-br-mobs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; }
 .dg-mob { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 6px; border-radius: 999px; background: rgba(255, 240, 220, .1); font-size: 15px; font-weight: 700; }
 .dg-mob-ic { font-size: 22px; line-height: 1; }
@@ -342,6 +353,7 @@ html.touch .dg-ring kbd { display: none; }
 .dg-banner.boss { top: 36%; }
 .dg-banner.boss .dg-banner-title { font-size: clamp(46px, 9vh, 88px); color: #d6a8ff; text-shadow: 0 6px 0 #4a1c66, 0 0 44px rgba(178, 95, 214, .7); }
 .dg-banner.level .dg-banner-title { color: #ffd35a; text-shadow: 0 5px 0 #a8620c, 0 0 38px rgba(255, 190, 60, .75); }
+.dg-banner.clear .dg-banner-title { color: #9cf0ae; text-shadow: 0 5px 0 #2f7d45, 0 0 36px rgba(120, 240, 150, .6); }
 .dg-banner.warn .dg-banner-title { color: #ff9a9a; text-shadow: 0 5px 0 #7d1b27, 0 0 30px rgba(255, 60, 60, .5); }
 
 /* --- звезда нового уровня: над героем → в значок уровня */
@@ -396,6 +408,7 @@ html.touch .dg-ring kbd { display: none; }
 @keyframes dg-card-in { from { opacity: 0; transform: translateY(120px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes dg-reel { from { transform: translateY(0); } to { transform: translateY(calc(var(--end) * 72px)); } }
 @keyframes dg-evo { 0%, 100% { box-shadow: 0 0 10px rgba(255, 211, 90, .5); } 50% { box-shadow: 0 0 28px rgba(255, 211, 90, 1); } }
+@keyframes dg-rage { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 90, 70, 0); } 50% { box-shadow: 0 0 0 3px rgba(255, 90, 70, .6), 0 0 18px rgba(255, 60, 40, .6); } }
 @keyframes dg-danger { 0%, 100% { box-shadow: 0 0 0 3px var(--c), var(--dg-shadow); } 50% { box-shadow: 0 0 0 3px var(--c), 0 0 18px var(--c); } }
 @keyframes dg-arrow-name { 0% { max-height: 0; opacity: 0; } 8%, 80% { max-height: 18px; opacity: 1; } 100% { max-height: 0; opacity: 0; } }
 @keyframes dg-banner {

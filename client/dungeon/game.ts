@@ -15,7 +15,7 @@ import { BOSS_NAME, WEAPONS, plural } from './data.ts';
 import { A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
 import { DungeonHud } from './hud.ts';
-import type { HudArrow, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
+import type { HudArrow, HudFrame, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
 import { Journal } from './journal.ts';
 import { MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { DungeonSfx } from './sfx.ts';
@@ -198,7 +198,7 @@ export class DungeonGame {
   }
 
   /** Полоса босса в HUD: одна на всех (у Близнецов — общая, сумма HP живых к сумме в начале боя) */
-  private bossHud(v: DgView): { name: string; hp01: number; marks: number[] } | null {
+  private bossHud(v: DgView): HudFrame['boss'] {
     const bs = v.bosses;
     if (bs.length === 0) {
       this.bossHpMax = 0;
@@ -214,7 +214,7 @@ export class DungeonGame {
     this.bossHpMax = Math.max(this.bossHpMax, max);
     this.bossCount = Math.max(this.bossCount, bs.length);
     // отметки фаз (66 % и 33 %) — только у одиночного босса
-    return { name: bs[0].name || BOSS_NAME, hp01: hp / this.bossHpMax, marks: this.bossCount > 1 ? [] : [0.66, 0.33] };
+    return { name: bs[0].name || BOSS_NAME, hp01: hp / this.bossHpMax, marks: this.bossCount > 1 ? [] : [0.66, 0.33], rage: bs.some((b) => b.rage) };
   }
 
   async warm(): Promise<void> {
@@ -320,7 +320,8 @@ export class DungeonGame {
       this.journal.ack(m.n, m.need);
       if (m.need !== undefined) this.flush();
     } else if (m.t === 'dg_wave') {
-      if (m.coins > 0) this.d.hud.banner(`Волна ${m.wave} отбита!`, `+${m.coins} 🪙`, 'win');
+      // волна засчитана (таймер или зачистка): маленькая плашка, жетоны дописываются в ту же
+      if (m.coins > 0) this.d.hud.toast(`w${m.wave}`, `Волна ${m.wave} выстояна · +${m.coins} 🪙`, 'ok');
     } else if (m.t === 'dg_end') {
       const r = this.results ?? this.buildResults();
       const coins: { label: string; n: number }[] = [];
@@ -725,8 +726,14 @@ export class DungeonGame {
         this.d.hud.banner(f.title, f.sub, f.sub === 'Босс' ? 'boss' : 'wave');
         break;
       case 'waveWin':
+        this.d.hud.toast(`w${f.wave}`, `Волна ${f.wave} выстояна`, 'ok');
+        break;
+      case 'sweep':
         sfx.waveWin();
-        this.d.hud.banner(`Волна ${f.wave} отбита!`, '', 'win');
+        this.d.hud.banner('Зачистка!', f.xp > 0 ? `+${f.xp} опыта · передышка` : 'Передышка', 'clear');
+        break;
+      case 'rage':
+        if (f.n > 0) this.d.hud.toast('rage', `${f.n} ${plural(f.n, 'враг озверел', 'врага озверели', 'врагов озверели')}`, 'warn');
         break;
       case 'event':
         this.d.hud.banner(f.title, '', 'warn');
@@ -1122,6 +1129,7 @@ export class DungeonGame {
       qLeft: v.qLeft,
       boss: this.bossHud(v),
       breather: v.breather,
+      old: v.old,
       alarm: v.alarm,
       lowHp: v.hero.hp < v.hero.hpMax * 0.25 && !v.hero.dead,
     }, now);

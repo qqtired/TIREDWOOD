@@ -217,7 +217,9 @@ export class DungeonHud implements DungeonHudApi {
   private readonly waveTitle = el('div', 'dg-wave-title');
   private readonly squadFill = el('i', 'dg-squad-fill');
   private readonly timer = el('span', 'dg-timer');
-  private readonly leftover = el('div', 'dg-leftover');
+  private readonly leftover = el('span', 'dg-leftover');
+  private readonly toasts = el('div', 'dg-toasts');
+  private readonly toastEls = new Map<string, { root: HTMLElement; timer: number }>();
   private readonly bossName = el('div', 'dg-boss-name');
   private readonly bossFill = el('i', 'dg-boss-fill');
   private readonly bossMarks = el('div', 'dg-boss-marks');
@@ -239,6 +241,7 @@ export class DungeonHud implements DungeonHudApi {
   // --- передышка
   private readonly breather = el('div', 'dg-breather');
   private readonly brTitle = el('div', 'dg-br-title');
+  private readonly brNext = el('div', 'dg-br-next');
   private readonly brMobs = el('div', 'dg-br-mobs');
   private readonly brEvent = el('div', 'dg-br-event');
 
@@ -289,14 +292,14 @@ export class DungeonHud implements DungeonHudApi {
     const squad = el('div', 'dg-squad');
     squad.append(this.squadFill);
     const waveRow = el('div', 'dg-wave-row');
-    waveRow.append(squad, this.timer);
+    waveRow.append(squad, this.timer, this.leftover);
     const wave = el('div', 'dg-wave');
-    wave.append(this.waveTitle, waveRow, this.leftover);
+    wave.append(this.waveTitle, waveRow);
     const bossBar = el('div', 'dg-boss-bar');
     bossBar.append(this.bossFill, this.bossMarks);
     const boss = el('div', 'dg-boss');
     boss.append(this.bossName, bossBar);
-    tc.append(wave, boss);
+    tc.append(wave, boss, this.toasts);
 
     // справа сверху (под жетонами игры): убито и пауза
     const tr = el('div', 'dg-tr');
@@ -342,7 +345,8 @@ export class DungeonHud implements DungeonHudApi {
 
     // передышка
     const go = button('green dg-go', 'В бой', 'Enter', () => this.act.go());
-    this.breather.append(this.brTitle, this.brMobs, this.brEvent, go);
+    (go.querySelector('.dg-btn-label') as HTMLElement).textContent = 'В бой';
+    this.breather.append(this.brTitle, this.brNext, this.brMobs, this.brEvent, go);
     r.append(this.breather);
 
     // баннер и звезда уровня
@@ -560,9 +564,10 @@ export class DungeonHud implements DungeonHudApi {
       this.bar('squad', this.squadFill, f.squadTotal > 0 ? f.squadLeft / f.squadTotal : 0);
       this.text('timer', this.timer, f.timeLeft < 0 ? '' : clock(Math.ceil(f.timeLeft)));
     }
-    const lo = f.leftover;
-    this.flag('lo', this.leftover, 'on', !!lo && lo.n > 0);
-    if (lo && lo.n > 0) this.text('loT', this.leftover, `Остались с прошлых волн: ${lo.n}${lo.rage > 0 ? ` · озверели ×${lo.rage}` : ''}`);
+    const old = f.old ?? 0;
+    this.flag('lo', this.leftover, 'on', old > 0);
+    if (old > 0) this.text('loT', this.leftover, `+${old} с прошлых волн`);
+    this.flag('bossRage', r, 'boss-rage', !!f.boss?.rage);
 
     this.text('kills', this.kills, String(f.kills));
     this.updateWeapons(f.weapons);
@@ -695,7 +700,8 @@ export class DungeonHud implements DungeonHudApi {
   private updateBreather(b: HudFrame['breather']): void {
     this.flag('br', this.root, 'breathing', !!b);
     if (!b) return;
-    this.text('brTitle', this.brTitle, `Волна ${b.next} через ${Math.max(0, Math.ceil(b.left))} с`);
+    this.text('brTitle', this.brTitle, `Передышка ${Math.max(0, Math.ceil(b.left))} с`);
+    this.text('brNext', this.brNext, `Дальше — волна ${b.next}`);
     const mobs = b.mobs.map((m) => `${m.icon}${m.name}`).join('|');
     if (this.diff('brMobs', mobs)) {
       this.brMobs.textContent = '';
@@ -914,6 +920,35 @@ export class DungeonHud implements DungeonHudApi {
     this.bannerTimer = window.setTimeout(() => b.classList.remove('show'), BANNER_MS);
   }
 
+  /** Маленькая плашка под волной на 2,5 с: «Волна 4 выстояна», «12 врагов озверели»; тот же key — та же плашка */
+  toast(key: string, text: string, style: 'ok' | 'warn' = 'ok'): void {
+    let t = this.toastEls.get(key);
+    if (!t) {
+      const root = el('div', `dg-toast ${style}`);
+      this.toasts.append(root);
+      t = { root, timer: 0 };
+      this.toastEls.set(key, t);
+      // больше трёх — самая старая уходит
+      if (this.toastEls.size > 3) {
+        const [k0, t0] = this.toastEls.entries().next().value as [string, { root: HTMLElement; timer: number }];
+        clearTimeout(t0.timer);
+        t0.root.remove();
+        this.toastEls.delete(k0);
+      }
+    }
+    t.root.textContent = text;
+    clearTimeout(t.timer);
+    const tt = t;
+    tt.timer = window.setTimeout(() => {
+      tt.root.classList.add('out');
+      tt.timer = window.setTimeout(() => {
+        tt.root.remove();
+        if (this.toastEls.get(key) === tt) this.toastEls.delete(key);
+      }, 300);
+    }, 2500);
+    tt.root.classList.remove('out');
+  }
+
   /** «★ Ур. N» вспыхивает над героем и слетает в значок уровня внизу */
   levelFlash(level: number): void {
     const f = this.flash;
@@ -958,7 +993,7 @@ export class DungeonHud implements DungeonHudApi {
     }
     const T = touch ? 120 : 118;
     // снизу — выше здоровья и баффов (диск 29 px и подпись под ним)
-    const B = touch ? H - 120 : Math.min(H - 250, this.edge.bottom - 56);
+    const B = touch ? H - 120 : Math.min(H - 250, this.edge.bottom - 66);
     const Lx = touch ? 64 : 48;
     const R = W - (touch ? 150 : 48);
     const cx = W / 2;

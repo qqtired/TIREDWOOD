@@ -259,7 +259,7 @@ export class MockRun implements RunSource {
   }
 
   private spawnBoss(): void {
-    this.boss = { x: mod(this.hero.x + 2), z: mod(this.hero.z - 4), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', id: 1, scale: 1, t: 0, tx: 0, tz: 0 };
+    this.boss = { x: mod(this.hero.x + 2), z: mod(this.hero.z - 4), yaw: 0, hp: 30000, hpMax: 30000, anim: 'emerge', animAt: this.tick, phase: 1, name: 'Старый Повидл', id: 1, scale: 1, rage: false, t: 0, tx: 0, tz: 0 };
     this.fx.push({ k: 'boss', what: 'spawn', x: this.boss.x, z: this.boss.z });
     this.fx.push({ k: 'boss', what: 'emerge', x: this.boss.x, z: this.boss.z });
   }
@@ -780,6 +780,8 @@ export class MockRun implements RunSource {
       chest: this.chest,
       breather: this.stage === 'breather' ? { left: this.stageT, next: this.wave, mobs: [...new Set(next)].map((k) => MOBS[k]), event: this.wave === 10 ? 'Босс — Старый Повидл' : this.wave === 4 ? 'Элита — Бочар' : 'Налёт мышей' } : null,
       alarm: this.alarm,
+      old: 0,
+      swept: this.stage === 'breather',
       wavesDone: this.wavesDone,
       killedBy: this.killedBy,
       chests: this.chests,

@@ -62,11 +62,11 @@ export interface HudFrame {
   dashLeft: number;
   qLeft: number;
   /** босс на экране: имя, HP 0…1 и риски фаз (доли HP) */
-  boss: { name: string; hp01: number; marks: number[] } | null;
+  boss: { name: string; hp01: number; marks: number[]; rage?: boolean } | null;
   /** передышка: карточка следующей волны (id врага — для картинки) */
   breather: { left: number; next: number; mobs: { id?: string; icon: string; name: string }[]; event: string } | null;
-  /** волна по таймеру (задел): сколько врагов прошлых волн ещё живы и ступень озверения — плашка под волной */
-  leftover?: { n: number; rage: number } | null;
+  /** живых врагов прошлых волн (озверевших) — «+N с прошлых волн» рядом с таймером */
+  old?: number;
   /** «Орда» и прочая тревога — красноватая рамка */
   alarm: boolean;
   /** герой при смерти (HP < 25 %) — пульс рамки */
@@ -197,6 +197,8 @@ export interface DungeonHudApi {
   pause(open: boolean, wavesDone: number): void;
   results(r: HudResults | null): void;
   banner(title: string, sub: string, style: HudBannerStyle): void;
+  /** маленькая плашка под волной (2,5 с); тот же key — обновить текст той же плашки */
+  toast(key: string, text: string, style?: 'ok' | 'warn'): void;
   /** звёздочка нового уровня прыгает в угол / вспышка */
   levelFlash(level: number): void;
   arrows(list: HudArrow[]): void;
