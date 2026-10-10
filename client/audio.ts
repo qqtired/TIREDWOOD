@@ -992,6 +992,44 @@ export class Sound {
     }
   }
 
+  /**
+   * Ревун маяка острова «Последний свет» (client/lobby/isle): низкий двойной гудок 3 с. pos — уже поднесённая к слушателю
+   * точка в сторону маяка (направление слышно, громкость — gain от дальности считает остров); muffle — туман гуще (глуше).
+   */
+  foghorn(gain: number, pos: V3, muffle = 0): void {
+    if (!this.ok || gain <= 0.002 || !this.once('foghorn', 2)) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900 - 500 * muffle;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.5);
+    g.gain.setValueAtTime(gain, t + 2.2);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.4);
+    lp.connect(g).connect(this.out(pos, this.amb, muffle * 0.95, 25, 'foghorn'));
+    for (const [f, type] of [[73, 'sawtooth'], [110, 'sawtooth'], [146, 'triangle']] as const) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(f * 0.97, t);
+      o.frequency.linearRampToValueAtTime(f, t + 0.6);
+      o.detune.value = (Math.random() - 0.5) * 8;
+      o.connect(lp);
+      o.start(t);
+      o.stop(t + 3.5);
+    }
+  }
+
+  /** Колокольный буй у острова: глухой удар колокола по волне (тише и ниже колокола на террасе). */
+  buoyBell(pos: V3, muffle = 0): void {
+    if (!this.ok || !this.once('buoyBell', 2)) return;
+    const d = this.out(pos, this.amb, muffle, 12, 'buoyBell');
+    const k = 0.97 + Math.random() * 0.06;
+    for (const [f, g, len] of [[294, 0.13, 2.8], [588, 0.05, 1.7], [881, 0.03, 1.1], [370, 0.035, 2.2]] as const) this.tone(d, f * k, f * k * 0.993, len, 'sine', g, 0, 0.004);
+    this.noise(d, 0.05, 'bandpass', 2400, 1600, 2, 0.06);
+  }
+
   streak(n: number): void {
     if (!this.ok) return;
     const base = 440 * Math.pow(2, Math.min(n, 8) / 12);
@@ -1327,8 +1365,8 @@ export class Sound {
   }
 
   /** «Колокольный буй» на поклёвке: маленький латунный колокольчик — «дзынь» с коротким отзвуком. */
-  buoyBell(pos: V3 | null): void {
-    if (!this.ok || !this.once('buoyBell', 0.4)) return;
+  floatBell(pos: V3 | null): void {
+    if (!this.ok || !this.once('floatBell', 0.4)) return;
     const d = this.out(pos, this.sfx, 0, 4);
     const g = pos ? 0.6 : 1;
     for (const [f, k, len] of [[1568, 0.11, 0.9], [2350, 0.05, 0.55], [3136, 0.03, 0.35]] as const) this.tone(d, f, f * 0.997, len, 'sine', k * g, 0, 0.002);

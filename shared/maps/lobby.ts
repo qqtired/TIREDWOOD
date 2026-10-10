@@ -13,8 +13,9 @@ import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUK
 import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
   FISH_FAR_FIRST, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
-  barkasSpotIndex,
+  FISH_ISLE_FIRST, barkasSpotIndex,
 } from '../fishplaces.ts';
+import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE, isleBoxes } from './isle.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
@@ -102,6 +103,8 @@ export interface LobbyMap extends GameMap {
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
   planeBoxes: number[];
+  /** Остров «Последний свет» в море: полы, стены, дома (флаг сервера ISLE, shared/maps/isle.ts): без флага коллизию выключают */
+  isleBoxes: number[];
   /** Твёрдые предметы оформления площади (shared/plaza2.ts): бочки, покрышки и прочее, в самом конце списка боксов */
   plazaBoxes: number[];
   /** Из них — предметы режимов за флагами (двор прятков, мачты регаты, столбики Fight Club): без флага их выключают, как на экране */
@@ -507,6 +510,14 @@ export function buildLobby(): LobbyMap {
   const planeBoxes = [b.boxes.length];
   b.box([PLANE_SIGN.x - 0.05, 0, PLANE_SIGN.z - 0.05], [PLANE_SIGN.x + 0.05, 1.9, PLANE_SIGN.z + 0.05], 'invisible', 0);
 
+  // --- Остров «Последний свет» в 2,4 км на запад-юго-запад (флаг ISLE, shared/maps/isle.ts; рисует client/lobby/isle): всё
+  // невидимое, без флага коллизию выключают. Боксы — до оформления площади (оно — последнее), точки — в самый конец
+  const isleBoxIds: number[] = [];
+  for (const k of isleBoxes()) {
+    isleBoxIds.push(b.boxes.length);
+    b.box(k.min, k.max, 'invisible', 0);
+  }
+
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
   const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
@@ -515,6 +526,13 @@ export function buildLobby(): LobbyMap {
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
     b.box([p.x - p.hx, p.y ?? 0, p.z - p.hz], [p.x + p.hx, (p.y ?? 0) + p.h, p.z + p.hz], 'invisible', 0);
   }
+
+  // точки острова (ниже его боксы) — в самый конец: 8 мест на моле (на своей высоте) и Игнат (fisher arg 2)
+  const addAt = (kind: InteractKind, at: { x: number; y: number; z: number; yaw: number }, r: number, arg: number, label: string): void => {
+    interact.push({ id: interact.length, kind, x: at.x, y: at.y, z: at.z, yaw: at.yaw, r, arg, label });
+  };
+  ISLE_FISH_SPOTS.forEach((s, i) => addAt('fish', s, 1.0, FISH_ISLE_FIRST + i, 'порыбачить'));
+  addAt('fisher', ISLE_IGNAT_USE, ISLE_IGNAT_USE.r, 2, 'поговорить с Игнатом');
 
   const spawn: Spot = { x: 0, y: 0, z: 6, yaw: 0 };
   return {
@@ -558,6 +576,7 @@ export function buildLobby(): LobbyMap {
     ratBoxes,
     billiardsBoxes,
     planeBoxes,
+    isleBoxes: isleBoxIds,
     plazaBoxes,
     plazaModeBoxes,
   };

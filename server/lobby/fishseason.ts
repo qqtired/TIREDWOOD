@@ -21,9 +21,9 @@ export interface FishSeasonView {
   nextAt: number;
 }
 
-/** Сезон по расписанию в момент ms (мс серверных часов) */
-export function seasonAt(ms: number): FishSeasonView {
-  const start = Math.floor((ms + SEASON_SHIFT_MS) / SEASON_EVERY_MS) * SEASON_EVERY_MS - SEASON_SHIFT_MS;
+/** Сезон по расписанию в момент ms (мс серверных часов); shift — сдвиг расписания (у острова — 4 ч, нечётные часы) */
+export function seasonAt(ms: number, shift = SEASON_SHIFT_MS): FishSeasonView {
+  const start = Math.floor((ms + shift) / SEASON_EVERY_MS) * SEASON_EVERY_MS - shift;
   const on = ms - start < SEASON_MS;
   const nextAt = start + SEASON_EVERY_MS;
   return { on, endsAt: on ? start + SEASON_MS : nextAt + SEASON_MS, nextAt };
@@ -41,15 +41,17 @@ export class FishSeason {
   private forcedAt = 0;
   /** Каким был сезон на прошлом шаге (null — шагов ещё не было) */
   private was: boolean | null = null;
+  private readonly shift: number;
 
-  constructor(now: () => number = Date.now) {
+  constructor(now: () => number = Date.now, shift = SEASON_SHIFT_MS) {
     this.now = now;
+    this.shift = shift;
   }
 
   /** Сезон сейчас: по расписанию или запущенный командой */
   view(): FishSeasonView {
     const now = this.now();
-    const s = seasonAt(now);
+    const s = seasonAt(now, this.shift);
     const end = this.forcedAt + SEASON_MS;
     if (this.forcedAt === 0 || now >= end) return s;
     // запущенный командой: идёт до своего конца (или до конца сезона по расписанию, если тот позже)

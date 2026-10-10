@@ -1,6 +1,7 @@
 // Общие координаты рыбацкого причала: серверная коллизия и клиентская сцена используют один настил.
 // X — восток, Z — юг; yaw=0 — север. Старые шесть мест идут первыми: их arg и interaction ID не меняются.
 import { BARKAS_DECK_Y, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, BARKAS_ROULETTE, SANYA_USE } from './barkas.ts';
+import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE } from './maps/isle.ts';
 
 export interface FishPlaceBox {
   x0: number;
@@ -11,8 +12,11 @@ export interface FishPlaceBox {
   z1: number;
 }
 
-/** Где место рыбалки: пристань (по умолчанию) или баркас в море — свой пул рыб, ×1,25 и злее рыба (shared/fishrules.ts). */
-export type FishZone = 'pier' | 'barkas';
+/**
+ * Где место рыбалки: пристань (по умолчанию) или баркас в море — свой пул рыб, ×1,25 и злее рыба (shared/fishrules.ts);
+ * остров «Последний свет» (флаг ISLE) — свои 20 видов (shared/fishisle.ts).
+ */
+export type FishZone = 'pier' | 'barkas' | 'isle';
 
 export interface FishSpot {
   x: number;
@@ -81,7 +85,11 @@ export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   ...FISH_FAR_SPOTS,
   // Ещё два места на удлинённом баркасе — опять в конец: номера всех прежних мест те же.
   ...BARKAS_FISH_SPOTS.slice(BARKAS_FISH_FIRST),
+  // Восемь мест на моле острова «Последний свет» (zone: 'isle', флаг ISLE; shared/maps/isle.ts) — в самый конец.
+  ...ISLE_FISH_SPOTS,
 ];
+/** Номер в FISH_SPOTS первого места на моле острова */
+export const FISH_ISLE_FIRST = FISH_SPOTS.length - ISLE_FISH_SPOTS.length;
 /** Номер в FISH_SPOTS первого места на дальних мостках */
 export const FISH_FAR_FIRST = FISH_ISLAND_COUNT + BARKAS_FISH_FIRST;
 /** Номер в FISH_SPOTS i-го места баркаса (BARKAS_FISH_SPOTS): первые восемь — подряд за островом, остальные — в конце */
@@ -102,9 +110,12 @@ export const FISHER_NPC = { x: -17.55, y: 0, z: 59.05, yaw: 0 };
 export const FISHER_USE = { x: -17.55, y: 0, z: 57.45, yaw: Math.PI, r: 1.7 };
 export const FISHER_BODY: FishPlaceBox = { x0: -17.97, y0: 0, z0: 58.66, x1: -17.13, y1: 1.75, z1: 59.5 };
 
-/** Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова. */
-export type FishNpcId = 'semyon' | 'sanya';
-export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya'];
+/**
+ * Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова; смотритель
+ * Игнат на острове «Последний свет» (флаг ISLE) — то же окно, в лавке только напитки и «На большую землю».
+ */
+export type FishNpcId = 'semyon' | 'sanya' | 'ignat';
+export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya', 'ignat'];
 /**
  * Где стоит покупатель перед торговцем (arg точки 'fisher' — номер в FISH_NPCS): Семён — на пристани, Саня — у своего
  * прилавка на палубе баркаса (SANYA_USE, shared/barkas.ts).
@@ -112,6 +123,7 @@ export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya'];
 export const FISH_NPC_USE: Readonly<Record<FishNpcId, { x: number; y: number; z: number; yaw: number; r: number } | null>> = {
   semyon: FISHER_USE,
   sanya: SANYA_USE,
+  ignat: ISLE_IGNAT_USE,
 };
 
 /**

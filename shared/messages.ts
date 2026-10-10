@@ -6,6 +6,7 @@ import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
 import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
+import type { IsleView } from './isle.ts';
 import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
@@ -521,6 +522,9 @@ export type ServerMsg =
   // входящему: on — идёт ли; endsAt — конец идущего сезона (нет сезона — конец ближайшего); nextAt — начало следующего
   // (идёт — того, что после него); мс серверных часов
   | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
+  // остров «Последний свет» (флаг ISLE, server/lobby/isle.ts): «Туман наступает» и сезон острова — всем на набережной
+  // при смене и входящему; now — часы сервера
+  | ({ t: 'isle'; now: number } & IsleView)
   | { t: 'fishProgress'; progress: FishProgress; now: number }
   /** Рыба в руках у игрока id (номер в снимках): n — номер в его рюкзаке, вид и граммы; n = −1 — руки пустые */
   | { t: 'fishHold'; id: number; n: number; sp: number; g: number }

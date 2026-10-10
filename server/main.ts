@@ -28,6 +28,7 @@ import { StorageFailure } from './storage-failure.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
+import { isleEnabled } from '../shared/isle.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -65,8 +66,8 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
-// Остров «Последний свет» (лодки, остров, косметика острова, радио на лодках): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
-const isle = fish2 && (process.env.ISLE === undefined ? DEV : process.env.ISLE === '1');
+// Остров «Последний свет» (остров, лодки, лайвел, радио, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = isleEnabled(process.env.ISLE, DEV, fish2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Крысиные бега на понтоне: RATRACE=1 — включить, RATRACE=0 — выключить, без переменной — только с --dev (FISH2 не нужна)

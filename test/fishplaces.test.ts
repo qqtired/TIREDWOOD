@@ -34,12 +34,14 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   const map = buildLobby();
   const pier = FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier');
   assert.equal(pier.length, 20);
-  assert.equal(FISH_SPOTS.length, 30);
+  // + 8 мест на моле острова «Последний свет» (zone isle, флаг ISLE) — в самом конце
+  assert.equal(FISH_SPOTS.length, 38);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
   assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
   assert.ok(FISH_SPOTS.slice(12, 20).every((s) => s.zone === 'barkas'), 'места баркаса — сразу после мест у маяка, номера прежние');
   assert.deepEqual(FISH_SPOTS.slice(20, 28), FISH_FAR_SPOTS, 'дальние мостки и дом — после баркаса');
-  assert.ok(FISH_SPOTS.slice(28).every((s) => s.zone === 'barkas'), 'ещё два места удлинённого баркаса — в самом конце');
+  assert.ok(FISH_SPOTS.slice(28, 30).every((s) => s.zone === 'barkas'), 'ещё два места удлинённого баркаса — после дальних мостков');
+  assert.ok(FISH_SPOTS.slice(30).every((s) => s.zone === 'isle'), 'восемь мест на моле острова — в самом конце');
   assert.ok(FISH_FAR_SPOTS.every((s) => (s.zone ?? 'pier') === 'pier'));
   assert.equal(pier.filter((s) => s.z < 38).length, 8);
   assert.equal(pier.filter((s) => s.z >= 38 && s.z < 46).length, 4);
@@ -55,7 +57,8 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса), места дальних мостков и площадки у дома рыбака, три бильярдных стола, гидроплан и заказ баннера (PLANE)
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
     ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
-      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29']);
+      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29',
+      ...Array.from({ length: 8 }, (_, i) => `fish:${i + 30}`), 'fisher:2']);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');

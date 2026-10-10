@@ -275,7 +275,7 @@ export class FishingSpots {
         this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 8, 2.4, 0, 1, 0, 0.04);
         this.sound.fishBite(at(s.x, WATER_Y, s.z));
         // «Колокольный буй» (остров): колокол качается — «дзынь»
-        if (ringFloat(s.float)) this.sound.buoyBell(at(s.x, WATER_Y, s.z));
+        if (ringFloat(s.float)) this.sound.floatBell(at(s.x, WATER_Y, s.z));
         break;
       case FE_HOOK:
         s.ph = FP_REEL;
