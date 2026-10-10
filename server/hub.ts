@@ -135,6 +135,8 @@ export interface HubOptions {
   devPirates?: boolean;
   /** Рыбалка 2.0: шкала вываживания, коллекция, доска у мостков — флаг сервера FISH2; нет — старая рыбалка */
   fish2?: boolean;
+  /** Остров «Последний свет» в море (туман, маяк, мол, Игнат) — флаг сервера ISLE, работает только с рыбалкой 2.0 */
+  isle?: boolean;
   /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
   roulette?: boolean;
   /** Крысиные бега на понтоне у набережной (ставка жетонами) — флаг сервера RATRACE, shared/ratrace.ts */
@@ -253,6 +255,8 @@ export class Hub {
   readonly tg: TgFeed | null;
   /** Рыбалка 2.0 включена (флаг FISH2) */
   readonly fish2: boolean;
+  /** Остров «Последний свет» включён (флаг ISLE вместе с FISH2) */
+  readonly isle: boolean;
   /** Рулетка рыбака включена (флаг ROULETTE вместе с FISH2) */
   readonly roulette: boolean;
   /** Крысиные бега включены (флаг RATRACE) */
@@ -304,6 +308,7 @@ export class Hub {
     this.log = o.log ?? ((s) => console.log(s));
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
+    this.isle = this.fish2 && (o.isle ?? false);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой

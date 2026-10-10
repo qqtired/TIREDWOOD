@@ -42,7 +42,9 @@ export interface NpcCtx {
 export type NpcResult = string | { message?: string; open?: boolean } | void;
 export type NpcHandler = (ctx: NpcCtx) => NpcResult;
 
-const SAY: Record<FishNpcId, string> = { semyon: 'Подойди к Деду Семёну на пристани', sanya: 'Подойди к Сане на баркасе' };
+const SAY: Record<FishNpcId, string> = {
+  semyon: 'Подойди к Деду Семёну на пристани', sanya: 'Подойди к Сане на баркасе', ignat: 'Подойди к смотрителю Игнату на крыльце',
+};
 
 export class FishNpc {
   private readonly host: FishNpcHost;
@@ -97,6 +99,11 @@ export class FishNpc {
       this.host.changed(who);
       if (typeof r === 'string') this.reply(who, npc, r);
       else this.reply(who, npc, r?.message, r?.open ?? true);
+      return;
+    }
+    // у Игната на острове в лавке только напитки (и «На большую землю»): снасти и бубен дождя — у Семёна и Сани
+    if (npc === 'ignat' && (action === 'buy' || action === 'rain')) {
+      this.reply(who, npc, action === 'rain' ? 'Бубен дождя — у Семёна на пристани' : 'Снасти — у Семёна и Сани, у меня только напитки');
       return;
     }
     let message: string | undefined;

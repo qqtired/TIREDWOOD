@@ -28,6 +28,7 @@ import { StorageFailure } from './storage-failure.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
+import { isleEnabled } from '../shared/isle.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -66,6 +67,8 @@ const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
+// Остров «Последний свет» (туман, маяк, мол, Игнат): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = isleEnabled(process.env.ISLE, DEV, fish2);
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Крысиные бега на понтоне: RATRACE=1 — включить, RATRACE=0 — выключить, без переменной — только с --dev (FISH2 не нужна)
 const ratrace = process.env.RATRACE === undefined ? DEV : process.env.RATRACE === '1';
@@ -79,7 +82,7 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -93,6 +96,7 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (hub.isle) console.log('ISLE: остров «Последний свет» включён');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');

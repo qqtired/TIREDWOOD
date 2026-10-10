@@ -33,6 +33,8 @@ export function addFishPlaces3d(parent: THREE.Object3D): void {
   // Every fishing station has the same flush timber inset and brass corner marks.
   // Identical local dimensions follow the cast direction; no rails/props interrupt seated exits.
   for (const s of FISH_SPOTS) {
+    // места на моле острова (zone isle) — на камне мола, в 2,4 км: своих накладок там нет
+    if (s.zone === 'isle') continue;
     const station: THREE.BufferGeometry[]=[];
     for (const side of [-1,1]) {
       station.push(place(paint(new THREE.BoxGeometry(1.64,.007,.032),0x9b8360),0,.006,side*.46));
