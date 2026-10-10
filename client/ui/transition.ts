@@ -28,6 +28,8 @@ const HOLD_MS = 650;
 const HOLD_LOBBY_MS = 250;
 /** Прогрев шейдеров и текстур дольше этого — дальше просто рисуем (досчитается на первых кадрах) */
 const WARM_MAX_MS = 6000;
+/** Сцена грузит модели (Scene.loading, ферма): ждём их не дольше, потом показываем как есть */
+const LOAD_MAX_MS = 15000;
 /** Текстуры: сколько миллисекунд кадра на заливку */
 const TEX_BUDGET_MS = 6;
 /** Настоящих кадров под экраном перед «готов» */
@@ -407,7 +409,10 @@ export class Transition {
     const scene = this.scene!;
     // логика сцены идёт (ввод, снимки, предсказание), рисования нет
     const list = this.capture(scene, now, dt);
-    if (this.compiled && this.passes < 2) this.pass(list);
+    // модели ещё грузятся: проходы прогрева — заново, когда появятся (новые сетки и шейдеры)
+    const loading = !!scene.loading && now - this.phaseAt < LOAD_MAX_MS;
+    if (loading) this.passes = 0;
+    else if (this.compiled && this.passes < 2) this.pass(list);
     const t0 = performance.now();
     const gl = this.h.renderer.gl;
     while (this.textures.length && performance.now() - t0 < TEX_BUDGET_MS) {
@@ -420,8 +425,8 @@ export class Transition {
     }
     const texDone = this.texTotal ? 1 - this.textures.length / this.texTotal : 1;
     this.progress(0.6 + 0.3 * ((this.compiled ? 0.6 : 0.2) + 0.4 * texDone), 0.25);
-    const ready = this.compiled && this.passes >= 2 && !this.textures.length;
-    if (ready || now - this.phaseAt > WARM_MAX_MS) {
+    const ready = !loading && this.compiled && this.passes >= 2 && !this.textures.length;
+    if (ready || (!scene.loading && now - this.phaseAt > WARM_MAX_MS) || now - this.phaseAt > LOAD_MAX_MS + WARM_MAX_MS) {
       this.phase = 'frames';
       this.rendered = 0;
       this.status('Почти готово…');

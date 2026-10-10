@@ -66,6 +66,7 @@ import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
+import { FarmGate } from '../farm/lobbygate.ts';
 import { DurakTables3D, TORSO_R } from './durak3d.ts';
 import { TOMATO_REACH_PX, TOMATO_REACH_TOUCH_PX, pickTomatoTarget, targetable, tomatoRadius, type PickPoint } from './tomatopick.ts';
 import { DurakDecor } from './durakdecor.ts';
@@ -210,6 +211,8 @@ export class LobbyScene implements Scene {
   /** Бильярд в пристройке казино (флаг BILLIARDS): столы, панель, прицел */
   private readonly billiards: BilliardsClient;
   private readonly skillPortal: SkillPortal;
+  /** Калитка фермы (флаг FARM): рисуется и подсказывает, только если в приветствии есть статус фермы */
+  private readonly farmGate: FarmGate;
   private readonly kraken: Kraken;
   private skillStatus: SkillStatus | null = null;
   private readonly critters: LobbyCritters;
@@ -513,6 +516,7 @@ export class LobbyScene implements Scene {
     });
     // при новом оформлении площади арка без таблички: заголовок и статус — на облаке-вывеске
     this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z, !PLAZA2);
+    this.farmGate = new FarmGate(this.world.scene, () => d.renderer.refreshShadows());
     this.skillPortal.setVisible(false);
     this.kraken = new Kraken(this.world.scene, { onScare: (p) => d.sound.krakenScare([p.x, p.y, p.z]) });
     this.photo = new PhotoBooth(this.hud.root, d.overlay);
@@ -895,6 +899,7 @@ export class LobbyScene implements Scene {
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
         this.onFightSt(msg.fc ?? null);
+        this.farmGate.status(msg.farm ?? null);
         break;
       case 'juke':
       case 'jukeRes':
@@ -902,6 +907,9 @@ export class LobbyScene implements Scene {
         break;
       case 'fortSt':
         this.onFort(msg);
+        break;
+      case 'farmSt':
+        this.farmGate.status(msg);
         break;
       case 'fcSt':
         this.onFightSt(msg);
@@ -2803,6 +2811,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'skill' && !this.skillStatus) continue;
       if (it.kind === 'boatrace' && !this.boatRaceStatus) continue;
       if (it.kind === 'hide' && !this.hideStatus) continue;
+      if (it.kind === 'farm' && !this.farmGate.on) continue;
       if (it.kind === 'juke' && !this.juke.enabled) continue;
       if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS)) continue;
       if ((it.kind === 'plane' || it.kind === 'banner') && !this.plane.enabled) continue;
@@ -2873,6 +2882,9 @@ export class LobbyScene implements Scene {
       }
       case 'kiosk':
         this.hud.setHint(['E'], 'примерочная');
+        break;
+      case 'farm':
+        this.hud.setHint(...this.farmGate.hint());
         break;
       case 'pb_gate':
         if (this.pbHumans >= MAX_HUMANS) this.hud.setHint([], 'Склад переполнен');

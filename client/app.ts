@@ -12,6 +12,7 @@ import { DEFAULT_TRACK, RACE_TRACKS, type RaceTrackId } from '../shared/racecour
 import { Sound } from './audio.ts';
 import { Chat } from './chat.ts';
 import { HideScene } from './hide/scene.ts';
+import { FarmScene } from './farm/scene.ts';
 import { errorReport } from './errors.ts';
 import { FightScene } from './fight/scene.ts';
 import { FortScene } from './fort/scene.ts';
@@ -106,6 +107,7 @@ export class App {
   private raceTrack: RaceTrackId = DEFAULT_TRACK;
   private skill: SkillScene | null = null;
   private hide: HideScene | null = null;
+  private farm: FarmScene | null = null;
   private voice: VoiceController | null = null;
   private voiceUi: VoiceUi | null = null;
   private voiceHudVisible = false;
@@ -897,7 +899,7 @@ export class App {
       setVoicePresence([]);
       this.voice?.roomChanged();
     }
-    const next = kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
+    const next = kind === 'farm' ? (this.farm ??= this.makeFarm()) : kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
     // комната — для стилей (телефон стоя: в пейнтболе чат ниже полосы счёта)
@@ -933,6 +935,13 @@ export class App {
   private makeHide(): HideScene {
     const scene = new HideScene(this.deps);
     scene.setQuality(this.renderQuality()); scene.resize(window.innerWidth, window.innerHeight);
+    return scene;
+  }
+
+  private makeFarm(): FarmScene {
+    const scene = new FarmScene(this.deps);
+    scene.setQuality(this.renderQuality());
+    scene.resize(window.innerWidth, window.innerHeight);
     return scene;
   }
 
@@ -1361,6 +1370,7 @@ export class App {
       for (const race of this.raceScenes.values()) race.setQuality(detail);
       this.skill?.setQuality(detail);
       this.hide?.setQuality(detail);
+      this.farm?.setQuality(detail);
       this.paintball?.setQuality(detail);
       this.fort?.setQuality(detail);
       this.fight?.setQuality(detail);
@@ -1380,6 +1390,7 @@ export class App {
     for (const race of this.raceScenes.values()) race.resize(w, hh);
     this.skill?.resize(w, hh);
     this.hide?.resize(w, hh);
+    this.farm?.resize(w, hh);
     this.fort?.resize(w, hh);
     this.fight?.resize(w, hh);
   }
