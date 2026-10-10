@@ -40,6 +40,10 @@ Environment=BILLIARDS=1
 Environment=PLANE=1
 # Голосование «выгнать игрока» в списке Tab (60 % от проголосовавших, бан 10 минут) — «да» владельца 2026-10-04
 Environment=VOTEKICK=1
+# Ферма, остров «Последний свет» со своими лодками (нужен FISH2) и «Подземелье» — «да» владельца 2026-10-10
+Environment=FARM=1
+Environment=ISLE=1
+Environment=DUNGEON=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
