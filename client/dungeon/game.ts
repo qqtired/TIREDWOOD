@@ -345,6 +345,12 @@ export class DungeonGame {
   /** Клавиши режима. true — съели */
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     if (!this.run) return false;
+    // Alt зажат — бонусы слева раскрыты списком; браузер Alt не получает (меню окна, фокус)
+    if (code === 'AltLeft' || code === 'AltRight') {
+      e.preventDefault();
+      this.d.hud.setAlt(down && !this.ended);
+      return true;
+    }
     // Esc в режиме «Убрать» — только отмена выбора, не пауза
     if (code === 'Escape' && this.view?.cards && this.d.hud.banMode && !this.paused && !this.ended) {
       if (down) {

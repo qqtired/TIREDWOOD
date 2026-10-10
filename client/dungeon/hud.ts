@@ -1,8 +1,9 @@
 // «Подземелье»: DOM-интерфейс поверх сцены — HUD волны, передышка, карточки уровня, сундук-барабан, пауза (со звуком),
 // итоги, баннеры, стрелки к целям, радар, загрузка и заглушка телефона.
-// Раскладка HUD: слева сверху — радар; сверху по центру — волна (или босс); справа сверху — убито и пауза; снизу по
-// центру — здоровье, уровень и опыт над кнопками рывка и Q; левее них — оружия с кольцом перезарядки; слева снизу —
-// пассивки. Цвета, рамки, скругления и тени — переменные `--dg-*` в dungeon.css (тему можно заменить целиком).
+// Раскладка HUD: по самому верху — тонкая полоска опыта; слева сверху — радар; сверху по центру — узкая строка волны
+// (или босса); справа сверху — убито и пауза; снизу по центру — баффы, уровень и здоровье над кольцами рывка и Q;
+// левее них — оружия с кольцом перезарядки; слева снизу — столбик бонусов (Alt — раскрыть с именами и числами).
+// Тема «Кованый фонарь»: цвета, рамки, заклёпки и шрифты — переменные `--dg-*` и классы в dungeon.css.
 // Ничего не решает сам: сцена каждый кадр отдаёт HudFrame, экраны открывает вызовами, клики уходят в HudActions.
 // Кадр не пересобирает DOM: элементы созданы один раз, текст и стили меняются, только когда меняется значение.
 import './dungeon.css';
@@ -213,8 +214,9 @@ export class DungeonHud implements DungeonHudApi {
   private readonly hpText = el('span', 'dg-hp-text');
   private hpLast = -1;
   private readonly buffs = el('div', 'dg-buffs');
-  private readonly buffEls = new Map<string, { root: HTMLElement; sec: HTMLElement; bar: HTMLElement }>();
-  private readonly waveTitle = el('div', 'dg-wave-title');
+  private readonly buffEls = new Map<string, { root: HTMLElement; sec: HTMLElement; fg: SVGCircleElement }>();
+  private readonly waveTitle = el('b', 'dg-wave-title');
+  private readonly waveLeft = el('span', 'dg-wave-left');
   private readonly squadFill = el('i', 'dg-squad-fill');
   private readonly timer = el('span', 'dg-timer');
   private readonly leftover = el('span', 'dg-leftover');
@@ -227,6 +229,7 @@ export class DungeonHud implements DungeonHudApi {
   private readonly weapRow = el('div', 'dg-weapons');
   private readonly wslots: WSlot[] = [];
   private readonly passiveRow = el('div', 'dg-items');
+  private readonly bl = el('div', 'dg-bl dg-pnl');
   private readonly dash: Ring;
   private readonly strike: Ring;
   /** Телефон: кнопка Q справа у большого пальца (на компьютере скрыта в CSS) */
@@ -239,7 +242,7 @@ export class DungeonHud implements DungeonHudApi {
   private readonly radarImg = new Map<HudPoiKind, HTMLImageElement | null>();
 
   // --- передышка
-  private readonly breather = el('div', 'dg-breather');
+  private readonly breather = el('div', 'dg-breather dg-pnl');
   private readonly brTitle = el('div', 'dg-br-title');
   private readonly brNext = el('div', 'dg-br-next');
   private readonly brMobs = el('div', 'dg-br-mobs');
@@ -270,7 +273,7 @@ export class DungeonHud implements DungeonHudApi {
   private arrowAt = 0;
   /** рамка стрелок: края радара и верх нижнего HUD (перемеряются 2 раза в секунду, не каждый кадр) */
   private edgeAt = 0;
-  private readonly edge = { bottom: 0, boxes: [] as { l: number; t: number; r: number; b: number }[] };
+  private readonly edge = { bottom: 0, top: 0, boxes: [] as { l: number; t: number; r: number; b: number }[] };
   private readonly loadLayer = el('div', 'dg-loading');
   private readonly loadFill = el('i', 'dg-load-fill');
   private readonly phoneLayer = el('div', 'dg-phone');
@@ -285,62 +288,69 @@ export class DungeonHud implements DungeonHudApi {
 
     // слева сверху: радар
     this.radarCtx = this.radarCv.getContext('2d');
-    this.radarBox.append(this.radarCv);
+    this.radarBox.append(this.radarCv, el("i", "dg-radar-sweep"));
 
     // по центру сверху: волна (или босс)
     const tc = el('div', 'dg-tc');
+    // «Волна 7 · 0:35 · осталось 64» и тонкая полоска отряда под ней
     const squad = el('div', 'dg-squad');
     squad.append(this.squadFill);
     const waveRow = el('div', 'dg-wave-row');
-    waveRow.append(squad, this.timer, this.leftover);
-    const wave = el('div', 'dg-wave');
-    wave.append(this.waveTitle, waveRow);
+    waveRow.append(this.waveTitle, el('i', 'dg-sep', '·'), this.timer, el('i', 'dg-sep', '·'), this.waveLeft);
+    const wave = el('div', 'dg-wave dg-pnl');
+    wave.append(waveRow, squad);
     const bossBar = el('div', 'dg-boss-bar');
     bossBar.append(this.bossFill, this.bossMarks);
-    const boss = el('div', 'dg-boss');
+    const boss = el('div', 'dg-boss dg-pnl');
     boss.append(this.bossName, bossBar);
-    tc.append(wave, boss, this.toasts);
+    tc.append(wave, boss, this.leftover, this.toasts);
 
     // справа сверху (под жетонами игры): убито и пауза
     const tr = el('div', 'dg-tr');
-    const killPill = el('div', 'dg-kills');
+    const killPill = el('div', 'dg-kills dg-pnl');
     killPill.title = 'Убито';
     killPill.append(ico('ui', 'kills', '💀', 'dg-kills-ic'), this.kills);
-    const pauseBtn = el('button', 'dg-pause-btn');
+    const pauseBtn = el('button', 'dg-pause-btn dg-pnl');
     pauseBtn.type = 'button';
     pauseBtn.title = 'Пауза и звук';
     pauseBtn.append(el('span', '', '⏸'), kbd('Esc'));
     pauseBtn.addEventListener('click', () => this.act.pause());
     tr.append(killPill, pauseBtn);
 
-    // снизу по центру: баффы, уровень, здоровье и опыт — над рывком и ударом
-    this.hp.append(this.hpTrail, this.hpFill, this.hpText);
-    const xp = el('div', 'dg-xp');
+    // по самому верху экрана: опыт тонкой полоской во всю ширину
+    const xp = el('div', 'dg-xptop');
     xp.append(this.xpFill);
+    // снизу по центру: баффы (значок с кольцом), уровень и здоровье — над рывком и ударом
+    this.hp.append(this.hpTrail, this.hpFill, this.hpText);
     const bars = el('div', 'dg-bars');
-    bars.append(this.hp, xp);
+    bars.append(this.hp);
     this.lv.title = 'Уровень';
     this.lv.append(el('small', '', 'ур.'), this.lvN);
-    const vrow = el('div', 'dg-vrow');
+    const vrow = el('div', 'dg-vrow dg-pnl');
     vrow.append(this.lv, bars);
     this.vitals.append(this.buffs, vrow);
 
     // левее кнопок: оружия с перезарядкой
     for (let i = 0; i < WEAPON_SLOTS; i++) this.weapRow.append(this.wslot().root);
 
-    // слева снизу: пассивки
-    const bl = el('div', 'dg-bl');
-    bl.append(this.passiveRow);
+    // слева снизу: бонусы — столбик значков; Alt — раскрыть с именами и числами
+    const blHead = el('div', 'dg-bl-h');
+    blHead.append(el('span', 'dg-bl-t', 'Бонусы'), kbd('Alt'));
+    this.bl.append(blHead, this.passiveRow);
+    this.bl.title = 'Зажми Alt — список бонусов с числами';
+    window.addEventListener('blur', this.onBlur);
 
     // снизу по центру: рывок и удар
     const bc = el('div', 'dg-bc');
-    this.dash = this.ring('dash', ['active', 'dash'], '💨', 'Пробел', 'Рывок');
-    this.strike = this.ring('strike', ['active', 'strike'], '🏮', 'Q', 'Удар');
+    this.dash = this.ring('dash', ['active', 'dash'], '💨', 'Пробел', '');
+    this.strike = this.ring('strike', ['active', 'strike'], '🏮', 'Q', '');
+    this.dash.root.title = 'Рывок — Пробел';
+    this.strike.root.title = 'Удар — Q (держи — заряд)';
     bc.append(this.dash.root, this.strike.root);
     this.qPad = this.ring('strike dg-qpad', ['active', 'strike'], '🏮', '', 'удар');
     this.bindQPad(this.qPad.root);
 
-    this.hud.append(this.radarBox, tc, tr, bl, this.weapRow, this.vitals, bc, this.qPad.root);
+    this.hud.append(xp, this.radarBox, tc, tr, this.bl, this.weapRow, this.vitals, bc, this.qPad.root);
     r.append(this.hud, this.arrowLayer);
 
     // передышка
@@ -363,7 +373,7 @@ export class DungeonHud implements DungeonHudApi {
     this.cardsLayer.append(this.cardsHead, this.cardsRow, cardsFoot);
 
     // пауза: продолжить, выйти, звук режима (сохраняется в этом браузере)
-    const pauseWin = el('div', 'dg-window dg-pause');
+    const pauseWin = el('div', 'dg-window dg-pnl dg-pause');
     const pauseActs = el('div', 'dg-actions');
     this.pauseQuit = button('red', 'Выйти', '', () => this.act.quit());
     pauseActs.append(button('green', 'Продолжить', 'Esc', () => this.act.resume()), this.pauseQuit);
@@ -380,7 +390,7 @@ export class DungeonHud implements DungeonHudApi {
     const loadBar = el('div', 'dg-load-bar');
     loadBar.append(this.loadFill);
     this.loadLayer.append(el('div', 'dg-load-title', 'Спускаемся в подземелье…'), loadBar);
-    const phoneWin = el('div', 'dg-window dg-phone-win');
+    const phoneWin = el('div', 'dg-window dg-pnl dg-phone-win');
     phoneWin.append(
       el('p', '', 'На телефоне Подземелье пока нельзя — зайди с компьютера'),
       button('cream', 'На набережную', '', () => this.act.toLobby()),
@@ -404,6 +414,14 @@ export class DungeonHud implements DungeonHudApi {
     for (const b of this.cardBtns) b.querySelector('.dg-card-ban')?.classList.toggle('hidden', !next);
   }
 
+  /** Alt: столбик бонусов раскрывается в список (имя и что даёт), отпустил — снова значки */
+  setAlt(on: boolean): void {
+    this.flag('alt', this.root, 'alt', on);
+  }
+
+  /** окно потеряло фокус (Alt+Tab) — отпускания Alt не будет, сворачиваем сами */
+  private readonly onBlur = (): void => this.setAlt(false);
+
   setVisible(on: boolean): void {
     this.root.classList.toggle('hidden', !on);
   }
@@ -412,6 +430,7 @@ export class DungeonHud implements DungeonHudApi {
     clearTimeout(this.bannerTimer);
     clearTimeout(this.flashTimer);
     this.offPrefs();
+    window.removeEventListener('blur', this.onBlur);
     this.root.remove();
   }
 
@@ -563,20 +582,22 @@ export class DungeonHud implements DungeonHudApi {
       this.text('wave', this.waveTitle, `Волна ${f.wave}`);
       this.bar('squad', this.squadFill, f.squadTotal > 0 ? f.squadLeft / f.squadTotal : 0);
       this.text('timer', this.timer, f.timeLeft < 0 ? '' : clock(Math.ceil(f.timeLeft)));
+      this.text('waveLeft', this.waveLeft, f.squadTotal > 0 ? `осталось ${f.squadLeft}` : '');
     }
     const old = f.old ?? 0;
     this.flag('lo', this.leftover, 'on', old > 0);
     if (old > 0) this.text('loT', this.leftover, `+${old} с прошлых волн`);
+    this.flag('blOn', this.bl, 'hidden', f.passives.length === 0);
     this.flag('bossRage', r, 'boss-rage', !!f.boss?.rage);
 
     this.text('kills', this.kills, String(f.kills));
     this.updateWeapons(f.weapons);
     this.updateItems('p', this.passiveRow, f.passives, f.passiveSlots);
 
-    this.setRing(this.dash, f.dash01, f.dash01 >= 1 ? 'ready' : '', f.dash01 >= 1 ? 0 : f.dashLeft, 'Рывок');
+    this.setRing(this.dash, f.dash01, f.dash01 >= 1 ? 'ready' : '', f.dash01 >= 1 ? 0 : f.dashLeft, '');
     for (const ring of [this.strike, this.qPad]) {
       const pad = ring === this.qPad;
-      if (f.qCharge >= 0) this.setRing(ring, f.qCharge, f.qCharge >= 1 ? 'full' : 'charge', 0, f.qCharge >= 1 ? (pad ? 'отпусти!' : 'Отпусти!') : pad ? 'заряд…' : 'Заряд…');
+      if (f.qCharge >= 0) this.setRing(ring, f.qCharge, f.qCharge >= 1 ? 'full' : 'charge', 0, pad ? (f.qCharge >= 1 ? 'отпусти!' : 'заряд…') : '');
       else this.setRing(ring, f.q01, f.q01 >= 1 ? 'ready' : '', f.q01 >= 1 ? 0 : f.qLeft, ring.base);
     }
 
@@ -607,16 +628,15 @@ export class DungeonHud implements DungeonHudApi {
         const root = el('div', 'dg-buff');
         root.title = b.name;
         const sec = el('span', 'dg-buff-sec');
-        const track = el('div', 'dg-buff-track');
-        const bar = el('i');
-        track.append(bar);
-        root.append(ico('ui', b.id, b.icon, 'dg-buff-ic'), el('span', 'dg-buff-name', b.name), sec, track);
+        const { svg, fg } = svgRing('dg-buff-svg');
+        root.append(svg, ico('ui', b.id, b.icon, 'dg-buff-ic'), sec);
         this.buffs.append(root);
-        e = { root, sec, bar };
+        e = { root, sec, fg };
         this.buffEls.set(b.id, e);
       }
       this.text(`bs:${b.id}`, e.sec, String(Math.max(0, Math.ceil(b.left))));
-      this.bar(`bb:${b.id}`, e.bar, b.total > 0 ? b.left / b.total : 0);
+      const q = Math.round(clamp01(b.total > 0 ? b.left / b.total : 0) * 100) / 100;
+      if (this.diff(`bb:${b.id}`, q)) e.fg.setAttribute('stroke-dashoffset', (RING_C * (1 - q)).toFixed(1));
     }
     for (const [id, e] of this.buffEls) {
       if (seen.has(id)) continue;
@@ -678,21 +698,31 @@ export class DungeonHud implements DungeonHudApi {
     }
   }
 
-  private updateItems(key: string, row: HTMLElement, items: HudItem[], slots: number): void {
-    const n = Math.max(slots, items.length);
+  private updateItems(key: string, row: HTMLElement, items: HudItem[], _slots: number): void {
+    // только взятые бонусы (свободные места видно на карточках уровня: «Бонусы 2 из 5»)
+    const n = items.length;
     if (this.diff(`${key}:n`, n)) {
-      row.textContent = '';
-      for (let i = 0; i < n; i++) row.append(el('div', 'dg-item empty'));
-      for (let i = 0; i < n; i++) this.last.delete(`${key}:${i}`);
+      while (row.children.length > n) row.lastElementChild?.remove();
+      while (row.children.length < n) {
+        const pr = el('div', 'dg-pr');
+        const t = el('div', 'dg-pr-t');
+        t.append(el('b', 'dg-pr-v'), el('span', 'dg-pr-n'));
+        pr.append(el('div', 'dg-item empty'), t);
+        row.append(pr);
+        this.last.delete(`${key}:${row.children.length - 1}`);
+      }
     }
     for (let i = 0; i < n; i++) {
       const it = items[i];
-      const sig = it ? `${it.id}|${it.icon}|${it.lv}|${it.max}|${it.evo ? 1 : 0}` : '';
+      const sig = `${it.id}|${it.icon}|${it.lv}|${it.max}|${it.evo ? 1 : 0}|${it.val ?? ''}`;
       const was = this.last.get(`${key}:${i}`) as string | undefined;
       if (this.diff(`${key}:${i}`, sig)) {
-        const cell = row.children[i] as HTMLElement;
+        const pr = row.children[i] as HTMLElement;
+        const cell = pr.firstElementChild as HTMLElement;
         fillItem(cell, it, 'passive');
-        if (it && was !== undefined) cell.animate([{ transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'cubic-bezier(.2,.9,.3,1.4)' });
+        (pr.querySelector('.dg-pr-v') as HTMLElement).textContent = it.val ?? `Ур. ${it.lv}`;
+        (pr.querySelector('.dg-pr-n') as HTMLElement).textContent = `${it.name} · ур. ${it.lv}`;
+        if (was !== undefined) cell.animate([{ transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'cubic-bezier(.2,.9,.3,1.4)' });
       }
     }
   }
@@ -744,7 +774,7 @@ export class DungeonHud implements DungeonHudApi {
 
     c.cards.forEach((card, i) => {
       const tone = card.cat?.tone ?? (card.kind === 'misc' ? 'gold' : card.kind);
-      const b = el('button', `dg-card ${card.kind} tone-${tone}`);
+      const b = el('button', `dg-card dg-pnl ${card.kind} tone-${tone}`);
       b.type = 'button';
       b.style.setProperty('--i', String(i));
       const kind: DgIconKind = card.kind === 'weapon' ? 'weapon' : card.kind === 'passive' ? 'passive' : card.id === 'stew' ? 'pickup' : 'ui';
@@ -791,7 +821,7 @@ export class DungeonHud implements DungeonHudApi {
     L.classList.toggle('open', !!c);
     L.textContent = '';
     if (!c) return;
-    const win = el('div', `dg-window dg-chest${c.big ? ' big' : ''}`);
+    const win = el('div', `dg-window dg-pnl dg-chest${c.big ? ' big' : ''}`);
     win.append(el('h2', 'dg-chest-title', c.title ?? (c.big ? 'Большой сундук!' : 'Сундук!')));
     // лента барабана: свои вещи и все оружия/пассивки
     const pool: [DgIconKind, string, string][] = [
@@ -848,7 +878,7 @@ export class DungeonHud implements DungeonHudApi {
     this.root.classList.toggle('results-open', !!r);
     L.textContent = '';
     if (!r) return;
-    const win = el('div', 'dg-window dg-results');
+    const win = el('div', 'dg-window dg-pnl dg-results');
     if (wasOpen) win.style.animation = 'none'; // второй вызов (пришли жетоны) — без повторного «влёта»
 
     const head = el('div', 'dg-res-head');
@@ -1012,7 +1042,7 @@ export class DungeonHud implements DungeonHudApi {
       // где стрелкам нельзя стоять: радар, волна, здоровье, кольца, убито/пауза (+ кнопки оболочки на телефоне)
       const m = touch ? 34 : 50;
       const boxes: { l: number; t: number; r: number; b: number }[] = [];
-      for (const n of [this.radarBox, this.hud.querySelector('.dg-tc'), this.hud.querySelector('.dg-tr'), touch ? this.vitals : null, touch ? this.hud.querySelector('.dg-bc') : null]) {
+      for (const n of [this.radarBox, this.hud.querySelector('.dg-tc'), this.hud.querySelector('.dg-tr'), touch ? this.vitals : null, touch ? this.buffs : null, touch ? this.hud.querySelector('.dg-bc') : null]) {
         const r = n?.getBoundingClientRect();
         if (r && r.width > 0) boxes.push({ l: r.left - m, t: r.top - m, r: r.right + m, b: r.bottom + m });
       }
@@ -1022,10 +1052,14 @@ export class DungeonHud implements DungeonHudApi {
         boxes.push({ l: W - 290, t: 160, r: W, b: H }); // удар, рывок, действие, прыжок
       }
       this.edge.boxes = boxes;
+      // телефон: верхняя полоса занята здоровьем, волной и счётчиками — стрелки ниже неё
+      let top = 0;
+      if (touch) for (const n of [this.vitals, this.hud.querySelector('.dg-tc'), this.hud.querySelector('.dg-tr')]) top = Math.max(top, n?.getBoundingClientRect().bottom ?? 0);
+      this.edge.top = top > 0 ? top + 40 : 0;
     }
     // рамка: компьютер — выше здоровья и баффов (диск и подпись под ним); телефон — почти весь экран, HUD обходим
     // от края экрана — радиус значка и «носик» (значок 68 px, на телефоне 48)
-    const T = touch ? 50 : 120;
+    const T = touch ? Math.min(H / 2 - 40, Math.max(50, this.edge.top)) : 120;
     const B = touch ? H - 50 : Math.min(H - 250, this.edge.bottom - 58);
     const Lx = touch ? 50 : 62;
     const R = W - (touch ? 50 : 62);

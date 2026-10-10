@@ -20,6 +20,8 @@ export interface HudItem {
   evoReady?: boolean;
   /** оружие на 7-м, но для эволюции не хватает пассивки — какой */
   need?: { id: string; icon: string; name: string };
+  /** пассивка: что даёт сейчас — «Урон +30 %» (видно в раскрытом по Alt списке) */
+  val?: string;
 }
 
 export interface HudBuff {
@@ -204,6 +206,8 @@ export interface DungeonHudApi {
   /** режим «Убрать»: клик по карточке убирает её */
   readonly banMode: boolean;
   setBanMode(on: boolean): void;
+  /** Alt зажат — список бонусов слева раскрыт (имена и числа), отпущен — снова только значки */
+  setAlt(on: boolean): void;
   chest(c: HudChest | null): void;
   /** пауза: wavesDone — «Выйти (засчитать N волн)» */
   pause(open: boolean, wavesDone: number): void;

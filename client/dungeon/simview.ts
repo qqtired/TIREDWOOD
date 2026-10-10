@@ -69,6 +69,15 @@ function num(v: number): string {
   return String(Math.round(v * 100) / 100).replace('.', ',');
 }
 
+/** Пассивка на уровне lv: «Урон +30 %», «Здоровье +40 HP» */
+function passiveVal(id: string, lv: number): string | undefined {
+  const def = DG_DATA.passives.find((p) => p.id === id);
+  if (!def) return undefined;
+  const [label, sign, unit] = P_STAT[id] ?? ['Бонус', '+', ''];
+  const pct = def.per < 1;
+  return `${label} ${sign}${pct ? num(def.per * lv * 100) : num(def.per * lv)}${pct ? ' %' : unit}`;
+}
+
 function cardView(sim: DgSim, c: DgCard): HudCard {
   if (c.k === 'stew') {
     const m = MISC.stew;
@@ -630,7 +639,7 @@ export class SimRun implements RunSource {
       kills: sim.stats.kills,
       buffs,
       weapons: sim.weapons.map((x) => this.weaponHud(x)),
-      passives: sim.passives.map((x) => ({ id: x.id, icon: PASSIVES[x.id]?.icon ?? '•', name: PASSIVES[x.id]?.name ?? x.id, lv: x.lv, max: PASSIVES[x.id]?.max ?? 5 })),
+      passives: sim.passives.map((x) => ({ id: x.id, icon: PASSIVES[x.id]?.icon ?? '•', name: PASSIVES[x.id]?.name ?? x.id, lv: x.lv, max: PASSIVES[x.id]?.max ?? 5, val: passiveVal(x.id, x.lv) })),
       dash01: h.dashCdMax > 0 ? 1 - h.dashCd / h.dashCdMax : 1,
       q01: h.qCdMax > 0 ? 1 - h.qCd / h.qCdMax : 1,
       dashLeft: Math.max(0, h.dashCd) * DT,

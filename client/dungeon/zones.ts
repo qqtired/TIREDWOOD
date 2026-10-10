@@ -65,19 +65,26 @@ function present(p: DgProp): boolean {
   return true;
 }
 
+/** Подписи в стиле HUD «Кованый фонарь»: железо, латунная рамка, заклёпки, заголовок — Alegreya SC (или запасной) */
+const RIVET = 'radial-gradient(circle at 50% 50%, #ffe7ad 0 1.2px, #a47a35 2px, #3d2b13 2.7px, transparent 3.2px)';
 const CSS = `
 .dgz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
-.dgz-l { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); max-width: 340px; padding: 7px 12px 8px; border-radius: 12px;
-  background: rgba(24, 17, 14, .82); border: 1px solid rgba(255, 220, 160, .22); box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
-  color: #f6ead6; font: 600 14px/1.3 Rubik, system-ui, sans-serif; text-align: center; white-space: normal; transition: opacity .25s; }
-.dgz-t { font-weight: 800; font-size: 15px; color: #ffe2a8; }
+.dgz-l { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); max-width: 340px; padding: 8px 14px 9px; border-radius: 7px;
+  background: linear-gradient(180deg, #2e2620, #17120f); border: 2px solid #8d6b36;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7), inset 0 2px 0 1px rgba(243, 211, 143, .12), 0 6px 16px rgba(0, 0, 0, .5);
+  color: #f7e8c9; font: 600 15px/1.3 'Alegreya Sans', Rubik, system-ui, sans-serif; text-align: center; white-space: normal; transition: opacity .25s; }
+.dgz-l::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 5px;
+  background: ${RIVET} left 1px top 1px / 8px 8px no-repeat, ${RIVET} right 1px top 1px / 8px 8px no-repeat,
+  ${RIVET} left 1px bottom 1px / 8px 8px no-repeat, ${RIVET} right 1px bottom 1px / 8px 8px no-repeat; }
+.dgz-t { font: 900 18px/1.15 'Alegreya SC', Georgia, 'Times New Roman', serif; color: #f3d38f; text-shadow: 0 2px 0 rgba(0, 0, 0, .6); }
 .dgz-g { margin-top: 2px; }
-.dgz-s { margin-top: 4px; font-size: 13px; color: #c9b9a2; }
-.dgz-n { position: absolute; left: 0; top: 0; padding: 2px 9px 3px; border-radius: 99px; background: rgba(24, 17, 14, .7);
-  border: 1px solid rgba(255, 220, 160, .14); color: #e6d8c2; font: 600 12px/1.3 Rubik, system-ui, sans-serif; white-space: nowrap; transition: opacity .2s; }
-.dgz-toast { position: absolute; left: 0; top: 0; padding: 4px 13px 5px; border-radius: 99px; background: rgba(38, 20, 14, .86);
-  border: 1px solid rgba(255, 170, 120, .35); color: #ffc9a0; font: 700 14px/1.3 Rubik, system-ui, sans-serif; white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
+.dgz-s { margin-top: 4px; font-size: 14px; color: #cfb488; }
+.dgz-n { position: absolute; left: 0; top: 0; padding: 2px 9px 3px; border-radius: 5px; background: linear-gradient(180deg, #2e2620, #17120f);
+  border: 1px solid rgba(201, 154, 75, .7); box-shadow: 0 3px 8px rgba(0, 0, 0, .45); color: #f3d38f;
+  font: 700 13px/1.3 'Alegreya Sans', Rubik, system-ui, sans-serif; white-space: nowrap; transition: opacity .2s; }
+.dgz-toast { position: absolute; left: 0; top: 0; padding: 4px 13px 5px; border-radius: 5px; background: linear-gradient(180deg, #3a2420, #1c1210);
+  border: 1px solid #b8584e; color: #ffd4c8; font: 800 15px/1.3 'Alegreya Sans', Rubik, system-ui, sans-serif; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .4); }
 .dgz-s.ok, .dgz-n.ok { color: #8ef0b0; }
 .dgz-s.warn, .dgz-n.warn { color: #ffb38a; }
 `;
