@@ -38,7 +38,7 @@ def build(q=1.0, name=FID):
             z = co.z if co.z > 0 else co.z * 0.3
             x = max(co.x, 0.0) if s > 0 else min(co.x, 0.0)
             return (x + 0.0025 * s, co.y, z)
-        m.sphere(0.112, loc=(0, -0.022, EZ), scale=(0.95, 1.0, 0.98), seg=20, ring=10, deform=ely,
+        m.sphere(0.112, loc=(0, -0.022, EZ), scale=(0.95, 1.0, 0.98), seg=20, ring=9, deform=ely,
                  color=shell_col, bone='ely.' + side)
         # заклёпки: два ряда по спинке
         for (dx, dy) in ((0.028, 0.03), (0.032, -0.022), (0.028, -0.072), (0.066, 0.008), (0.062, -0.048)):
@@ -194,7 +194,7 @@ def main():
     K.reset()
     arm = K.armature(FID + '_rig', BONES)
     ob = build(1.0).object(arm)
-    lod = build(0.6, FID + '_lod1').object(arm)
+    lod = build(0.52, FID + '_lod1').object(arm)
     acts = [K.bake(arm, n, fr, fn) for n, fr, fn in ANIMS]
     K.report(FID, [ob, lod], arm, acts)
     K.save_blend(FID)

@@ -10,7 +10,7 @@ BLEND_DIR = ROOT + '/art/farm/blend'
 GLB_DIR = ROOT + '/client/assets/farm/models'
 REN_DIR = ROOT + '/art/farm/renders'
 FPS = 30
-TMP = '/private/tmp/claude-501/-Users-tired-Desktop/81444081-32d2-4271-a743-359fa2861087/scratchpad/render'
+TMP = '/private/tmp/claude-501/-Users-tired-Desktop/81444081-32d2-4271-a743-359fa2861087/scratchpad/chars/render'
 os.makedirs(TMP, exist_ok=True)
 
 rad = math.radians
@@ -90,7 +90,7 @@ MATS = {
     'farm_metal': dict(rough=0.34, metal=0.75, coat_r=0.12),
     'farm_shell': dict(rough=0.22, metal=0.55, coat=0.6, coat_r=0.08),
     'farm_glass': dict(rough=0.05, coat=0.5, coat_r=0.05, alpha=0.2, vc=False, color='#eef9ff'),
-    'farm_glow': dict(rough=0.4, emit='#ff9a1c', emit_s=3.0, vc=False, color='#ffb84d'),
+    'farm_glow': dict(rough=0.4, emit='#ff9a1c', emit_s=1.8, vc=False, color='#ffb84d'),
 }
 
 

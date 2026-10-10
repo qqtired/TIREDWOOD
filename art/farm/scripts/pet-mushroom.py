@@ -56,7 +56,7 @@ def build(q=1.0, name=FID):
              (0.05, 0.205), (0.001, 0.208)], seg=22, color=lambda co: mix(STEM_D, STEM, sstep(0.02, 0.09, co.z)),
             bone='body')
     m.lathe([(0.001, 0.305), (0.05, 0.3), (0.095, 0.282), (0.125, 0.256), (0.142, 0.226), (0.146, 0.207),
-             (0.136, 0.193), (0.11, 0.19), (0.07, 0.196), (0.04, 0.2), (0.001, 0.202)], seg=28, color=cap_col,
+             (0.136, 0.193), (0.11, 0.19), (0.07, 0.196), (0.04, 0.2), (0.001, 0.202)], seg=24, color=cap_col,
             bone='cap')
     rnd = random.Random(7)
     for i in range(11 if q > 0.7 else 6):
@@ -176,7 +176,7 @@ def main():
     K.reset()
     arm = K.armature(FID + '_rig', BONES)
     ob = build(1.0).object(arm)
-    lod = build(0.6, FID + '_lod1').object(arm)
+    lod = build(0.52, FID + '_lod1').object(arm)
     acts = [K.bake(arm, n, fr, fn) for n, fr, fn in ANIMS]
     K.report(FID, [ob, lod], arm, acts)
     K.save_blend(FID)

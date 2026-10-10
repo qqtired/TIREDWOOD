@@ -36,8 +36,8 @@ def head_y(x, z):
 
 def build(q=1.0, name=FID):
     m = K.Mesh(name, ['farm_gloss'], q)
-    m.sphere(0.13, loc=BODY_C, scale=(0.95, 1.18, 0.86), seg=18, ring=12, color=body_col, bone='body')
-    m.sphere(HR, loc=HEAD_C, scale=(1.0, 0.92, 0.95), seg=18, ring=12,
+    m.sphere(0.13, loc=BODY_C, scale=(0.95, 1.18, 0.86), seg=16, ring=11, color=body_col, bone='body')
+    m.sphere(HR, loc=HEAD_C, scale=(1.0, 0.92, 0.95), seg=17, ring=11,
              color=lambda co: mix(PINK, PINK_L, (1 - sstep(0.12, 0.2, co.z)) * 0.4), bone='head')
     # пятачок
     sz = 0.168
@@ -45,7 +45,7 @@ def build(q=1.0, name=FID):
     m.lathe([(0.001, 0.0), (0.03, 0.0), (0.041, 0.006), (0.044, 0.02), (0.04, 0.031), (0.03, 0.035), (0.001, 0.036)],
             seg=16, loc=(0, sy, sz), rot=(-90, 0, 0), scale=(1.12, 0.92, 1), color=SNOUT, bone='head')
     for s in (-1, 1):
-        m.sphere(0.0085, loc=(0.015 * s, sy + 0.0355, sz + 0.001), scale=(0.75, 0.4, 1.25), seg=8, ring=6,
+        m.sphere(0.0085, loc=(0.015 * s, sy + 0.0355, sz + 0.001), scale=(0.75, 0.4, 1.25), seg=6, ring=4,
                  color=NOSTRIL, bone='head')
     # глаза, блики, румянец
     for s in (-1, 1):
@@ -72,7 +72,7 @@ def build(q=1.0, name=FID):
         for y, side in ((0.07, 'F'), (-0.13, 'B')):
             b = 'leg.' + side + ('L' if s < 0 else 'R')
             m.lathe([(0.001, 0.0), (0.024, 0.0), (0.029, 0.006), (0.03, 0.02), (0.031, 0.045), (0.026, 0.065), (0.001, 0.07)],
-                    seg=9, loc=(0.062 * s, y, 0.0), color=lambda co: HOOF if co.z < 0.017 else PINK, bone=b)
+                    seg=8, loc=(0.062 * s, y, 0.0), color=lambda co: HOOF if co.z < 0.017 else PINK, bone=b)
     # хвостик-пружинка
     pts = []
     for i in range(14):
@@ -80,7 +80,7 @@ def build(q=1.0, name=FID):
         pts.append((0.017 * math.cos(a), -0.175 - 0.035 * i / 13, 0.15 + 0.017 * math.sin(a) + 0.015 * i / 13))
     m.tube(pts, [0.0075 - 0.003 * i / 13 for i in range(14)], seg=6, color=PINK_D, bone='tail')
     # ленточка на шее с жёлудем
-    m.torus(0.094, 0.0115, loc=(0, 0.062, 0.16), rot=(-70, 0, 0), scale=(1.04, 1.0, 0.7), seg=20, rseg=6,
+    m.torus(0.094, 0.0115, loc=(0, 0.062, 0.16), rot=(-70, 0, 0), scale=(1.04, 1.0, 0.7), seg=18, rseg=6,
             color=RIBBON, bone='body')
     for s in (-1, 1):  # бантик
         m.sphere(0.022, loc=(0.021 * s, 0.098, 0.076), scale=(1.0, 0.45, 0.62), rot=(-20, 0, 18 * s), seg=10, ring=6,
@@ -202,7 +202,7 @@ def main():
     K.reset()
     arm = K.armature(FID + '_rig', BONES)
     ob = build(1.0).object(arm)
-    lod = build(0.6, FID + '_lod1').object(arm)
+    lod = build(0.52, FID + '_lod1').object(arm)
     acts = [K.bake(arm, n, fr, fn) for n, fr, fn in ANIMS]
     K.report(FID, [ob, lod], arm, acts)
     K.save_blend(FID)

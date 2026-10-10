@@ -224,7 +224,7 @@ def main():
     K.reset()
     arm = K.armature(FID + '_rig', BONES)
     ob = build(1.0).object(arm)
-    lod = build(0.6, FID + '_lod1').object(arm)
+    lod = build(0.52, FID + '_lod1').object(arm)
     acts = [K.bake(arm, n, fr, fn) for n, fr, fn in ANIMS]
     K.report(FID, [ob, lod], arm, acts)
     K.save_blend(FID)

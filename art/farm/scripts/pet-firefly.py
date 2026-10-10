@@ -23,12 +23,12 @@ def build(q=1.0, name=FID):
     m = K.Mesh(name, ['farm_soft', 'farm_glass', 'farm_glow'], q)
     # банка (одна стенка, прозрачная)
     m.lathe([(0.001, 0.002), (0.07, 0.0), (0.088, 0.008), (0.096, 0.03), (0.098, 0.12), (0.096, 0.188), (0.086, 0.22),
-             (0.067, 0.236), (0.06, 0.246), (0.066, 0.254), (0.068, 0.262), (0.062, 0.27)], seg=28, mat='farm_glass',
+             (0.067, 0.236), (0.06, 0.246), (0.066, 0.254), (0.068, 0.262), (0.062, 0.27)], seg=24, mat='farm_glass',
             bone='jar')
     # мох и травинки на дне
     m.sphere(0.074, loc=(0, 0, 0.01), scale=(1, 1, 0.3), seg=16, ring=6,
              color=lambda co: mix(MOSS_D, MOSS, sstep(0.01, 0.03, co.z)), bone='jar')
-    for i, (a, h) in enumerate(((0.4, 0.05), (2.4, 0.04), (4.2, 0.055))):
+    for i, (a, h) in enumerate(((0.9, 0.032), (2.6, 0.028), (4.4, 0.036))):
         x, y = 0.04 * math.cos(a), 0.04 * math.sin(a)
         m.tube([(x, y, 0.024), (x * 1.08, y * 1.08, 0.024 + h * 0.45), (x * 1.3 + 0.006, y * 1.3, 0.024 + h * 0.8), (x * 1.55 + 0.014, y * 1.5, 0.024 + h)],
                [0.0042, 0.0034, 0.0024, 0.001], seg=5, color=MOSS, bone='jar')
@@ -193,7 +193,7 @@ def main():
     K.reset()
     arm = K.armature(FID + '_rig', BONES)
     ob = build(1.0).object(arm)
-    lod = build(0.6, FID + '_lod1').object(arm)
+    lod = build(0.52, FID + '_lod1').object(arm)
     acts = [K.bake(arm, n, fr, fn) for n, fr, fn in ANIMS]
     K.report(FID, [ob, lod], arm, acts)
     K.save_blend(FID)
