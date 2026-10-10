@@ -345,6 +345,14 @@ export class DungeonGame {
   /** Клавиши режима. true — съели */
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     if (!this.run) return false;
+    // Esc в режиме «Убрать» — только отмена выбора, не пауза
+    if (code === 'Escape' && this.view?.cards && this.d.hud.banMode && !this.paused && !this.ended) {
+      if (down) {
+        this.d.hud.setBanMode(false);
+        this.d.sfx.uiClick();
+      }
+      return true;
+    }
     if (code === 'Escape') {
       if (!down) return true;
       if (this.ended) this.d.leave();
@@ -361,8 +369,14 @@ export class DungeonGame {
       if (down && !e.repeat) {
         const i = code === 'Digit1' || code === 'Numpad1' ? 0 : code === 'Digit2' || code === 'Numpad2' ? 1 : code === 'Digit3' || code === 'Numpad3' ? 2 : -1;
         if (i >= 0) this.cardAction(i);
+        // R — перебросить, F — режим «Убрать» (выбор карточки; F ещё раз или Esc — отмена)
+        if (code === 'KeyR') this.reroll();
+        if (code === 'KeyF' && v.cards.banishes > 0) {
+          this.d.hud.setBanMode(!this.d.hud.banMode);
+          this.d.sfx.uiClick();
+        }
       }
-      return code.startsWith('Digit') || code.startsWith('Numpad');
+      return code.startsWith('Digit') || code.startsWith('Numpad') || code === 'KeyR' || code === 'KeyF';
     }
     if (v?.chest) {
       if (down && !e.repeat && (code === 'Enter' || code === 'Space' || code === 'NumpadEnter')) this.chestDone();

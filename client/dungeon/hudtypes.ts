@@ -85,6 +85,12 @@ export interface HudCard {
   /** одна строка эффекта */
   text: string;
   kind: 'weapon' | 'passive' | 'misc';
+  /** категория вверху карточки: «Оружие», «Бонус», «Лечение», «Закалка» — и её цвет */
+  cat?: { label: string; tone: 'weapon' | 'passive' | 'heal' | 'gold' | 'evo' };
+  /** числа улучшения: «Урон 18 → 23», «Перезарядка 1,1 с» */
+  stats?: string[];
+  /** подсказка про эволюцию: «7-й ур. + Фитиль → Негасимый фонарь» */
+  hint?: string;
 }
 
 /** Экран карточек при новом уровне (мир на паузе) */
@@ -95,6 +101,10 @@ export interface HudCards {
   total: number;
   rerolls: number;
   banishes: number;
+  /** заголовок («Новый уровень!» или «Кузня») */
+  title?: string;
+  /** занято слотов: оружия и бонусы (пассивки) */
+  slots?: { w: number; wMax: number; p: number; pMax: number };
 }
 
 /** Сундук-барабан: что выпало (1–3 строки), эволюция — золотом */

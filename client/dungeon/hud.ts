@@ -354,8 +354,8 @@ export class DungeonHud implements DungeonHudApi {
     r.append(this.bannerEl, this.flash);
 
     // карточки
-    this.rerollBtn = button('cream', '', '', () => this.act.reroll());
-    this.banBtn = button('cream dg-ban-btn', '', '', () => this.setBanMode(!this._banMode));
+    this.rerollBtn = button('cream', '', 'R', () => this.act.reroll());
+    this.banBtn = button('cream dg-ban-btn', '', 'F', () => this.setBanMode(!this._banMode));
     this.rerollBtn.prepend(ico('ui', 'reroll', '🎲', 'dg-btn-ic'));
     this.banBtn.prepend(ico('ui', 'banish', '🚫', 'dg-btn-ic'));
     const cardsFoot = el('div', 'dg-cards-foot');
@@ -726,25 +726,47 @@ export class DungeonHud implements DungeonHudApi {
     if (!c) return;
 
     this.cardsHead.textContent = '';
-    this.cardsHead.append(el('h2', '', 'Новый уровень!'));
-    if (c.total > 1) this.cardsHead.append(el('div', 'dg-cards-count', `★ ${c.index} из ${c.total}`));
+    const title = el('div', 'dg-cards-title');
+    title.append(el('h2', '', c.title ?? 'Новый уровень!'));
+    if (c.total > 1) title.append(el('span', 'dg-cards-count', `★ ${c.index} из ${c.total}`));
+    this.cardsHead.append(title);
+    // сколько ещё можно взять: оружия и бонусы
+    if (c.slots) {
+      const sl = el('div', 'dg-cards-slots');
+      for (const [label, n, max, tone] of [['Оружие', c.slots.w, c.slots.wMax, 'weapon'], ['Бонусы', c.slots.p, c.slots.pMax, 'passive']] as const) {
+        const chip = el('span', `dg-slot-chip ${tone}${n >= max ? ' full' : ''}`);
+        chip.append(el('b', '', label), document.createTextNode(n >= max ? ` ${n} из ${max} — всё занято` : ` ${n} из ${max} · ещё ${max - n}`));
+        sl.append(chip);
+      }
+      this.cardsHead.append(sl);
+    }
+    this.cardsHead.append(el('div', 'dg-ban-hint', 'Какую убрать навсегда? Клик или 1 / 2 / 3 · F или Esc — отмена'));
 
     c.cards.forEach((card, i) => {
-      const b = el('button', `dg-card ${card.kind}`);
+      const tone = card.cat?.tone ?? (card.kind === 'misc' ? 'gold' : card.kind);
+      const b = el('button', `dg-card ${card.kind} tone-${tone}`);
       b.type = 'button';
       b.style.setProperty('--i', String(i));
       const kind: DgIconKind = card.kind === 'weapon' ? 'weapon' : card.kind === 'passive' ? 'passive' : card.id === 'stew' ? 'pickup' : 'ui';
       const icBox = el('div', 'dg-card-ic');
       icBox.append(ico(kind, card.id, card.icon));
-      b.append(kbd(String(i + 1)), icBox, el('div', 'dg-card-name', card.name));
-      if (card.kind === 'misc') b.append(el('div', 'dg-card-lv', ' '));
-      else if (card.from <= 0) b.append(el('div', 'dg-card-lv new', 'Новое'));
+      b.append(kbd(String(i + 1)), el('div', 'dg-card-cat', card.cat?.label ?? (card.kind === 'weapon' ? 'Оружие' : card.kind === 'passive' ? 'Бонус' : '')), icBox, el('div', 'dg-card-name', card.name));
+      if (card.kind === 'misc') {
+        // без уровня
+      } else if (card.from <= 0) b.append(el('div', 'dg-card-lv new', 'Новое'));
       else {
         const lv = el('div', 'dg-card-lv');
         lv.append(el('span', '', `Ур. ${card.from} → ${card.to}`), pips(card.kind === 'weapon' ? WEAPONS[card.id ?? '']?.max ?? 7 : PASSIVES[card.id ?? '']?.max ?? 5, card.to));
         b.append(lv);
       }
-      b.append(el('div', 'dg-card-text', card.text), el('div', 'dg-card-ban hidden', 'Убрать навсегда'));
+      b.append(el('div', 'dg-card-text', card.text));
+      if (card.stats?.length) {
+        const st = el('ul', 'dg-card-stats');
+        for (const line of card.stats) st.append(el('li', '', line));
+        b.append(st);
+      }
+      if (card.hint) b.append(el('div', 'dg-card-hint', card.hint));
+      b.append(el('div', 'dg-card-ban hidden', 'Убрать навсегда'));
       b.addEventListener('click', () => {
         if (this._banMode) {
           this.setBanMode(false);

@@ -279,25 +279,42 @@ html.touch .dg-ring kbd { display: none; }
 .dg-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 18px; }
 
 /* карточки уровня */
-.dg-cards-head { text-align: center; }
+.dg-cards-head { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.dg-cards-title { display: flex; align-items: baseline; gap: 14px; }
+.dg-cards-slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.dg-slot-chip { padding: 3px 12px; border-radius: 999px; background: var(--dg-panel-strong); border: 1px solid var(--dg-line-strong); font-size: 16px; font-weight: 700; }
+.dg-slot-chip b { font-weight: 900; }
+.dg-slot-chip.weapon b { color: var(--dg-amber-2); }
+.dg-slot-chip.passive b { color: var(--dg-teal); }
+.dg-slot-chip.full { opacity: .7; }
+.dg-ban-hint { display: none; padding: 4px 14px; border-radius: 999px; background: #e0283a; color: #fff; font-size: 16px; font-weight: 900; }
+.dg-cards-layer.ban .dg-ban-hint { display: block; }
+/* категория карточки — цветом сверху */
+.dg-card { --tone: var(--dg-amber-2); }
+.dg-card.tone-weapon { --tone: var(--dg-amber-2); --bar: linear-gradient(90deg, #ffb347, #ffd27a); }
+.dg-card.tone-passive { --tone: var(--dg-teal); --bar: linear-gradient(90deg, #5fc4b8, #8ae6da); }
+.dg-card.tone-heal { --tone: #9cf0ae; --bar: linear-gradient(90deg, #4fbf6c, #9cf0ae); }
+.dg-card.tone-gold { --tone: var(--dg-gold); --bar: linear-gradient(90deg, #e0a020, #ffd35a); }
+.dg-card.tone-evo { --tone: var(--dg-jam); --bar: linear-gradient(90deg, #b25fd6, #d6a8ff); }
+.dg-card-cat { padding: 2px 12px; border-radius: 999px; border: 1px solid var(--tone); color: var(--tone); font-size: 13px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.dg-card-stats { display: flex; flex-direction: column; gap: 3px; width: 100%; margin: 2px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(255, 240, 220, .06); list-style: none; font-size: 15px; font-weight: 700; text-align: left; }
+.dg-card-stats li::before { content: '• '; color: var(--tone); }
+.dg-card-hint { color: var(--dg-jam); font-size: 13px; font-weight: 700; line-height: 1.25; }
 .dg-cards-head h2 { margin: 0; font-size: clamp(30px, 5vh, 46px); font-weight: 900; color: #ffd35a; text-shadow: 0 4px 0 #a8620c, 0 0 30px rgba(255, 190, 60, .5); }
-.dg-cards-count { margin-top: 4px; font-size: 20px; font-weight: 900; color: var(--cream); }
+.dg-cards-count { font-size: 20px; font-weight: 900; color: var(--cream); }
 .dg-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; }
-.dg-card { --bar: #ffb347; position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 260px; min-height: 340px; padding: 28px 18px 18px; border: 2px solid rgba(255, 236, 205, .2); border-radius: 22px; background: linear-gradient(180deg, #3a2a24, #221811); box-shadow: 0 8px 0 rgba(0, 0, 0, .35), var(--shadow); cursor: pointer; overflow: hidden; text-align: center; animation: dg-card-in .38s cubic-bezier(.2, .9, .3, 1.15) calc(var(--i) * 60ms) backwards; transition: transform .1s, border-color .12s, box-shadow .12s; }
+.dg-card { --bar: #ffb347; position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; width: 270px; min-height: 340px; padding: 22px 16px 16px; border: 2px solid rgba(255, 236, 205, .2); border-radius: 22px; background: linear-gradient(180deg, #3a2a24, #221811); box-shadow: 0 8px 0 rgba(0, 0, 0, .35), var(--shadow); cursor: pointer; overflow: hidden; text-align: center; animation: dg-card-in .38s cubic-bezier(.2, .9, .3, 1.15) calc(var(--i) * 60ms) backwards; transition: transform .1s, border-color .12s, box-shadow .12s; }
 .dg-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--bar); }
-.dg-card.weapon { --bar: linear-gradient(90deg, #ffb347, #ffd27a); }
-.dg-card.passive { --bar: linear-gradient(90deg, #5fc4b8, #8ae6da); }
-.dg-card.misc { --bar: linear-gradient(90deg, #b25fd6, #d6a8ff); }
 .dg-card:hover { transform: translateY(-6px); border-color: #ffd27a; box-shadow: 0 12px 0 rgba(0, 0, 0, .3), 0 0 28px rgba(255, 179, 71, .35); }
 .dg-card:active { transform: translateY(1px); }
 .dg-card kbd { position: absolute; top: 16px; left: 14px; min-width: 28px; height: 28px; font-size: 15px; }
-.dg-card-ic { margin-top: 10px; font-size: 76px; line-height: 1.1; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .4)); }
+.dg-card-ic { margin-top: 2px; font-size: 72px; line-height: 1.1; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .4)); }
 .dg-card-name { font-size: 23px; font-weight: 900; line-height: 1.15; }
 .dg-card-lv { font-size: 17px; font-weight: 800; color: #ffd27a; }
 .dg-card-lv.new { padding: 2px 12px; border-radius: 999px; background: #7bd88f; color: #12361d; font-size: 15px; font-weight: 900; }
-.dg-card-text { margin-top: auto; color: var(--cream-2); font-size: 16px; font-weight: 600; line-height: 1.3; }
+.dg-card-text { color: var(--cream-2); font-size: 16px; font-weight: 700; line-height: 1.3; }
 .dg-card-ban { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px; background: #e0283a; color: #fff; font-size: 16px; font-weight: 900; }
-.dg-cards-layer.ban .dg-card { border-color: #ff6b6b; box-shadow: 0 8px 0 rgba(0, 0, 0, .35), 0 0 0 2px rgba(255, 107, 107, .5); }
+.dg-cards-layer.ban .dg-card { padding-bottom: 46px; border-color: #ff6b6b; box-shadow: 0 8px 0 rgba(0, 0, 0, .35), 0 0 0 2px rgba(255, 107, 107, .5); }
 .dg-cards-layer.ban .dg-card:hover { border-color: #ff8787; box-shadow: 0 12px 0 rgba(0, 0, 0, .3), 0 0 30px rgba(255, 80, 80, .5); }
 .dg-cards-foot { display: flex; gap: 16px; }
 

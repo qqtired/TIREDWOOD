@@ -44,20 +44,90 @@ function weaponItem(id: string, lv: number, evo: boolean): HudItem {
   return { id: key, icon: info?.icon ?? '•', name: info?.name ?? id, lv, max: WEAPONS[id]?.max ?? 7, evo };
 }
 
+/** Числа оружия на карточке: ключ уровня → подпись и формат */
+const W_STATS: [string, string, (v: number) => string][] = [
+  ['dmg', 'Урон', (v) => num(v)],
+  ['cd', 'Перезарядка', (v) => `${num(v)} с`],
+  ['n', 'Снарядов', (v) => num(v)],
+  ['jumps', 'Целей', (v) => num(v)],
+  ['chains', 'Цепей', (v) => num(v)],
+  ['pierce', 'Пробивает', (v) => num(v)],
+  ['angle', 'Конус', (v) => `${num(v)}°`],
+  ['range', 'Дальность', (v) => `${num(v)} м`],
+  ['radius', 'Радиус', (v) => `${num(v)} м`],
+  ['length', 'Длина луча', (v) => `${num(v)} м`],
+  ['width', 'Ширина', (v) => `${num(v)} м`],
+  ['maxOnFloor', 'На полу до', (v) => num(v)],
+];
+/** Пассивки на карточке: подпись, знак, единица (проценты — у кого per < 1) */
+const P_STAT: Record<string, [string, string, string]> = {
+  might: ['Урон', '+', ''], cooldown: ['Перезарядка', '−', ''], area: ['Область', '+', ''], amount: ['Снаряды', '+', ''],
+  maxhp: ['Здоровье', '+', ' HP'], armor: ['Удар по тебе', '−', ''], speed: ['Скорость', '+', ''], magnet: ['Подбор', '+', ''],
+};
+/** 1,1 — по-русски, без лишних нулей */
+function num(v: number): string {
+  return String(Math.round(v * 100) / 100).replace('.', ',');
+}
+
 function cardView(sim: DgSim, c: DgCard): HudCard {
-  if (c.k === 'stew' || c.k === 'temper') {
-    const m = MISC[c.k];
-    return { id: c.k, icon: m.icon, name: m.name, from: 0, to: 0, text: m.text, kind: 'misc' };
+  if (c.k === 'stew') {
+    const m = MISC.stew;
+    const h = sim.hero;
+    return { id: c.k, icon: m.icon, name: m.name, from: 0, to: 0, text: m.text, kind: 'misc', cat: { label: 'Лечение', tone: 'heal' }, stats: [`Сейчас ${Math.ceil(h.hp)} из ${Math.round(h.hpMax)} HP`] };
+  }
+  if (c.k === 'temper') {
+    const m = MISC.temper;
+    const t = DG_DATA.levelUp.temper;
+    return { id: c.k, icon: m.icon, name: m.name, from: 0, to: 0, text: m.text, kind: 'misc', cat: { label: 'Закалка', tone: 'gold' }, stats: [`Всем оружиям: +${num(sim.temper * t.dmg * 100)} % → +${num((sim.temper + 1) * t.dmg * 100)} %`, `Взято ${sim.temper} из ${t.max}`] };
   }
   if (c.k === 'w') {
     const info = WEAPONS[c.id];
     const def = DG_DATA.weapons.find((w) => w.id === c.id);
-    const up = c.lv > 1 ? def?.levels[c.lv - 1]?.up : undefined;
-    return { id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: up ?? info?.text ?? '', kind: 'weapon' };
+    const cur = (c.lv > 1 ? def?.levels[c.lv - 2] : undefined) as Record<string, unknown> | undefined;
+    const nxt = def?.levels[c.lv - 1] as Record<string, unknown> | undefined;
+    const stats: string[] = [];
+    for (const [k, label, f] of W_STATS) {
+      const b = nxt?.[k];
+      if (typeof b !== 'number') continue;
+      const a = cur?.[k];
+      if (typeof a === 'number' && a !== b) stats.push(`${label} ${f(a)} → ${f(b)}`);
+      else if (!cur && stats.length < 4) stats.push(`${label} ${f(b)}`);
+    }
+    // эволюция: на 7-м уровне вместе с нужной пассивкой
+    const e = evoOf(c.id);
+    let hint: string | undefined;
+    if (e) {
+      const has = sim.passives.some((p) => p.id === e.with);
+      hint = `Эволюция: 7-й ур. + «${PASSIVES[e.with]?.name ?? e.with}»${has ? ' ✓' : ''} → «${WEAPONS[e.id]?.name ?? e.name}»`;
+    }
+    const up = c.lv > 1 ? (nxt?.up as string | undefined) : undefined;
+    return {
+      id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: up ?? def?.desc ?? info?.text ?? '', kind: 'weapon',
+      cat: { label: 'Оружие', tone: 'weapon' }, stats, hint,
+    };
   }
   const info = PASSIVES[c.id];
-  void sim;
-  return { id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: info?.text ?? '', kind: 'passive' };
+  const def = DG_DATA.passives.find((p) => p.id === c.id);
+  const stats: string[] = [];
+  if (def) {
+    const [label, sign, unit] = P_STAT[c.id] ?? ['Бонус', '+', ''];
+    const pct = def.per < 1;
+    const f = (lv: number): string => `${sign}${pct ? num(def.per * lv * 100) : num(def.per * lv)}${pct ? ' %' : unit}`;
+    stats.push(c.lv > 1 ? `${label}: ${f(c.lv - 1)} → ${f(c.lv)}` : `${label}: ${f(1)}`);
+  }
+  // для эволюции какого своего оружия нужна
+  let hint: string | undefined;
+  for (const w of sim.weapons) {
+    const e = evoOf(w.id);
+    if (e && e.with === c.id && !w.evo) {
+      hint = `Нужна для эволюции: «${WEAPONS[w.id]?.name ?? w.id}» → «${WEAPONS[e.id]?.name ?? e.name}»`;
+      break;
+    }
+  }
+  return {
+    id: c.id, icon: info?.icon ?? '•', name: info?.name ?? c.id, from: c.lv - 1, to: c.lv, text: def?.text ?? info?.text ?? '', kind: 'passive',
+    cat: { label: 'Бонус', tone: 'passive' }, stats, hint,
+  };
 }
 
 function chestView(sim: DgSim): HudChest | null {
@@ -562,7 +632,11 @@ export class SimRun implements RunSource {
       q01: h.qCdMax > 0 ? 1 - h.qCd / h.qCdMax : 1,
       dashLeft: Math.max(0, h.dashCd) * DT,
       qLeft: Math.max(0, h.qCd) * DT,
-      cards: ch ? { cards: ch.cards.map((c) => cardView(sim, c)), index: Math.max(1, ch.n), total: Math.max(1, ch.n + ch.left), rerolls: forge ? 0 : sim.rerolls, banishes: forge ? 0 : sim.banishes } : null,
+      cards: ch ? {
+        cards: ch.cards.map((c) => cardView(sim, c)), index: Math.max(1, ch.n), total: Math.max(1, ch.n + ch.left), rerolls: forge ? 0 : sim.rerolls, banishes: forge ? 0 : sim.banishes,
+        title: forge ? 'Кузня: +1 уровень оружию' : undefined,
+        slots: { w: sim.weapons.length, wMax: DG_DATA.hero.slots.weapons, p: sim.passives.length, pMax: DG_DATA.hero.slots.passives },
+      } : null,
       chest: chestView(sim),
       breather: pre ? breatherOf(w.n, w.t1 > 0 ? Math.max(0, (w.t1 - t) * DT) : 0, this.bossNameFor(w.n)) : null,
       alarm: w.horde === 1 && stage === 'wave',
