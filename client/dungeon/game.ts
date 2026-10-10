@@ -10,6 +10,7 @@ import type { Renderer } from '../render/renderer.ts';
 import type { DungeonAssets } from './assets.ts';
 import { BossView } from './boss.ts';
 import { BuildingRenderer } from './buildings.ts';
+import { BuildingZones } from './zones.ts';
 import { BOSS_NAME, WEAPONS, plural } from './data.ts';
 import { A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
@@ -64,13 +65,20 @@ export class DungeonGame {
   private readonly world: WorldLike | null;
   private readonly mobs: MobRenderer;
   private readonly hero: HeroView;
-  private readonly boss: BossView;
+  /** Модели боссов: по id червя (у Близнецов на 30-й волне их два); свободные ждут в запасе */
+  private readonly bossViews = new Map<number, BossView>();
+  private readonly bossSpare: BossView[] = [];
+  private readonly bossGltf: DungeonAssets['boss'];
+  /** Общая полоса здоровья: наибольшая сумма HP и число боссов за бой (знаменатель не прыгает, когда один пал) */
+  private bossHpMax = 0;
+  private bossCount = 0;
   private readonly buildings: BuildingRenderer;
   private readonly decN = new FloorDecals(1600, false, 1);
   private readonly decA = new FloorDecals(500, true, 2);
   private readonly bbN = new Billboards(500, false, false, 6);
   private readonly bbA = new Billboards(1400, true, true, 5);
   private readonly pool = new FxPool();
+  private readonly zones = new BuildingZones();
   private readonly journal = new Journal();
   private readonly projMeshes = new Map<string, THREE.InstancedMesh>();
   private readonly gems: THREE.InstancedMesh;
@@ -78,7 +86,7 @@ export class DungeonGame {
   private view: DgView | null = null;
   private readonly prev = new Map<number, Pos>();
   private prevHero: Pos = { x: 0, z: 0, yaw: 0 };
-  private prevBoss: Pos = { x: 0, z: 0, yaw: 0 };
+  private readonly prevBosses = new Map<number, Pos>();
   private readonly firstSeen = new Map<number, number>();
   private readonly flashAt = new Map<number, number>();
   private readonly hitAt = new Map<number, number>();
@@ -135,8 +143,8 @@ export class DungeonGame {
     s.add(this.mobs.root);
     this.hero = new HeroView(assets.hero);
     s.add(this.hero.root);
-    this.boss = new BossView(assets.boss);
-    s.add(this.boss.root);
+    this.bossGltf = assets.boss;
+    this.bossSpare.push(this.makeBossView());
     this.buildings = new BuildingRenderer(assets.kits);
     s.add(this.buildings.root);
     s.add(this.decN.mesh, this.decA.mesh, this.bbN.mesh, this.bbA.mesh);
@@ -165,6 +173,32 @@ export class DungeonGame {
   }
 
   /** Прогрев шейдеров: всё видимое разом (на экране загрузки) */
+  private makeBossView(): BossView {
+    const bv = new BossView(this.bossGltf);
+    this.scene.add(bv.root);
+    return bv;
+  }
+
+  /** Полоса босса в HUD: одна на всех (у Близнецов — общая, сумма HP живых к сумме в начале боя) */
+  private bossHud(v: DgView): { name: string; hp01: number; marks: number[] } | null {
+    const bs = v.bosses;
+    if (bs.length === 0) {
+      this.bossHpMax = 0;
+      this.bossCount = 0;
+      return null;
+    }
+    let hp = 0;
+    let max = 0;
+    for (const b of bs) {
+      hp += Math.max(0, b.hp);
+      max += b.hpMax;
+    }
+    this.bossHpMax = Math.max(this.bossHpMax, max);
+    this.bossCount = Math.max(this.bossCount, bs.length);
+    // отметки фаз (66 % и 33 %) — только у одиночного босса
+    return { name: bs[0].name || BOSS_NAME, hp01: hp / this.bossHpMax, marks: this.bossCount > 1 ? [] : [0.66, 0.33] };
+  }
+
   async warm(): Promise<void> {
     this.mobs.warm(this.camX, this.camZ);
     this.layoutCamera();
@@ -204,6 +238,7 @@ export class DungeonGame {
     this.slowT = 0;
     this.hitStop = 0;
     this.prevRays = [];
+    this.prevBosses.clear();
     this.lastQFull = false;
     const h = this.view.hero;
     this.heroUX = h.x;
@@ -253,6 +288,7 @@ export class DungeonGame {
   }
 
   stop(): void {
+    this.zones.hide();
     this.run = null;
     this.view = null;
     this.d.sfx.stopAll();
@@ -312,15 +348,13 @@ export class DungeonGame {
       if (down && !e.repeat && (code === 'Enter' || code === 'Space' || code === 'NumpadEnter')) this.chestDone();
       return code === 'Enter' || code === 'Space';
     }
-    if (code === 'Space') {
+    // Пробел и Shift — рывок (Shift нажимает кнопка «рывок» из оболочки на телефоне)
+    if (code === 'Space' || code === 'ShiftLeft') {
       if (down && !e.repeat) this.push({ t: 0, k: 'dash' });
       return true;
     }
     if (code === 'KeyQ') {
-      if (!e.repeat && down !== this.qHeld) {
-        this.qHeld = down;
-        this.push({ t: 0, k: 'q', on: down ? 1 : 0 });
-      }
+      if (!e.repeat) this.setQ(down);
       return true;
     }
     if (code === 'KeyE') {
@@ -332,6 +366,20 @@ export class DungeonGame {
       return true;
     }
     return false;
+  }
+
+  /** Q: нажал — начал заряд, отпустил — удар */
+  private setQ(down: boolean): void {
+    if (down === this.qHeld) return;
+    this.qHeld = down;
+    this.push({ t: 0, k: 'q', on: down ? 1 : 0 });
+  }
+
+  /** Кнопка Q на экране телефона — то же, что клавиша; в окнах (пауза, карточки, сундук, итоги) не работает */
+  touchQ(down: boolean): void {
+    const v = this.view;
+    if (!this.run || this.ended || this.paused || v?.cards || v?.chest) return;
+    this.setQ(down);
   }
 
   private push(ev: DgEvent): void {
@@ -363,6 +411,11 @@ export class DungeonGame {
       this.d.hud.setBanMode(false);
       this.d.sfx.reroll();
     }
+  }
+
+  /** E с кнопки телефона */
+  use(): void {
+    if (this.run && !this.paused && !this.ended) this.push({ t: 0, k: 'use' });
   }
 
   go(): void {
@@ -448,7 +501,8 @@ export class DungeonGame {
     for (const p of v0.pickups) this.prev.set(-2000000 - p.id, { x: p.x, z: p.z, yaw: 0 });
     this.prevHero = { x: v0.hero.x, z: v0.hero.z, yaw: v0.hero.yaw };
     this.prevRays = v0.rays;
-    if (v0.boss) this.prevBoss = { x: v0.boss.x, z: v0.boss.z, yaw: v0.boss.yaw };
+    this.prevBosses.clear();
+    for (const b of v0.bosses) this.prevBosses.set(b.id, { x: b.x, z: b.z, yaw: b.yaw });
     run.step();
     this.stepHash = run.hash();
     this.steps++;
@@ -512,7 +566,12 @@ export class DungeonGame {
           sfx.shieldBlock(this.pan(f.x));
           P.burst(f.x, 0.6, f.z, 4, 3, A_SPARK, 1, 0.9, 0.6, 0.25, 0.25);
         } else sfx.hit(this.pan(f.x), f.big, 0.7);
-        if (f.id === -1) this.boss.hitFlash();
+        if (f.id === -1) {
+          // попали в босса: вспыхивает тот, в кого попали (нет id — все)
+          const one = f.boss === undefined ? undefined : this.bossViews.get(f.boss);
+          if (one) one.hitFlash();
+          else for (const bv of this.bossViews.values()) bv.hitFlash();
+        }
         break;
       }
       case 'kill': {
@@ -634,7 +693,7 @@ export class DungeonGame {
         this.d.hud.banner(f.title, '', 'warn');
         break;
       case 'boss':
-        if (f.what === 'spawn') this.d.hud.banner(v.boss?.name || BOSS_NAME, 'Босс', 'boss');
+        if (f.what === 'spawn') this.d.hud.banner(v.bosses[0]?.name || BOSS_NAME, 'Босс', 'boss');
         if (f.what === 'roar' || f.what === 'spawn' || f.what === 'phase') sfx.bossRoar();
         if (f.what === 'burrow') sfx.bossBurrow();
         if (f.what === 'emerge') { sfx.bossEmerge(); this.shake = Math.max(this.shake, 0.35); P.burst(f.x, 0.3, f.z, 30, 7, A_SOFT, 0.55, 0.45, 0.35, 0.8, 0.6, false, 8, 4); }
@@ -716,7 +775,7 @@ export class DungeonGame {
       }
     }
     this.shake = Math.max(0, this.shake - dt * 1.6);
-    this.bossZoom += ((v?.boss ? 1 : 0) - this.bossZoom) * Math.min(1, dt * 1.5);
+    this.bossZoom += ((v && v.bosses.length > 0 ? 1 : 0) - this.bossZoom) * Math.min(1, dt * 1.5);
     this.layoutCamera();
     this.world?.update(this.camX, this.camZ, time);
     const still = this.paused || this.d.input.blocked || !!this.run?.frozen;
@@ -829,25 +888,39 @@ export class DungeonGame {
       const qReady = v.q01 >= 1;
       if (qReady && !this.lastQReady) this.d.sfx.qReady();
       this.lastQReady = qReady;
-      // босс
-      const b = v.boss;
-      if (b) {
-        const pb = this.prevBoss;
+      // боссы (у Близнецов два): у каждого своя модель, интерполяция и нора
+      for (const b of v.bosses) {
+        let bv = this.bossViews.get(b.id);
+        if (!bv) {
+          bv = this.bossSpare.pop() ?? this.makeBossView();
+          this.bossViews.set(b.id, bv);
+        }
+        const pb = this.prevBosses.get(b.id) ?? b;
         const bx = X(pb.x + wrap(b.x - pb.x) * alpha);
         const bz = Z(pb.z + wrap(b.z - pb.z) * alpha);
-        this.boss.update(still ? 0 : dt, b, bx, bz, (tick - b.animAt + alpha) * DT);
+        bv.update(still ? 0 : dt, b, bx, bz, (tick - b.animAt + alpha) * DT);
+        const k = b.scale;
         if (b.anim === 'under') {
           // бугор по полу: тёмное пятно, трещины и пыль
-          this.decN.add(bx, 0.03, bz, 2.6, 2.6, time, D_SPLAT, 0, 0, 0.1, 0.07, 0.05, 0.7, 3.1);
+          this.decN.add(bx, 0.03, bz, 2.6 * k, 2.6 * k, time, D_SPLAT, 0, 0, 0.1, 0.07, 0.05, 0.7, 3.1);
           if (!still && this.pool.rnd() < 0.5) this.pool.burst(bx, 0.2, bz, 2, 2.5, A_SOFT, 0.45, 0.38, 0.3, 0.6, 0.5, false, 6, 1.8);
         } else {
           // нора: (0, 0, −4,6) модели
           const s = Math.sin(b.yaw);
           const c = Math.cos(b.yaw);
-          this.decN.add(bx - s * 4.6, 0.03, bz - c * 4.6, 3, 3.6, b.yaw, D_SPLAT, 0, 0, 0.05, 0.03, 0.03, 0.9, 7.7);
-          this.decA.add(bx, 0.06, bz, 7, 7, 0, D_SOFT, 1.8, 0, 0.5, 0.2, 0.75, 0.45);
+          this.decN.add(bx - s * 4.6 * k, 0.03, bz - c * 4.6 * k, 3 * k, 3.6 * k, b.yaw, D_SPLAT, 0, 0, 0.05, 0.03, 0.03, 0.9, 7.7);
+          this.decA.add(bx, 0.06, bz, 7 * k, 7 * k, 0, D_SOFT, 1.8, 0, 0.5, 0.2, 0.75, 0.45);
         }
-      } else this.boss.update(dt, null, 0, 0, 0);
+      }
+      // боссов, которых уже нет в забеге, — прячем, модель в запас
+      if (this.bossViews.size > v.bosses.length) {
+        for (const [id, bv] of this.bossViews) {
+          if (v.bosses.some((b) => b.id === id)) continue;
+          bv.update(dt, null, 0, 0, 0);
+          this.bossViews.delete(id);
+          this.bossSpare.push(bv);
+        }
+      }
       // постройки рядом
       for (const bd of v.buildings) {
         if (!near(bd.x, bd.z, 6)) continue;
@@ -862,8 +935,8 @@ export class DungeonGame {
         else if (bd.kind === 'chest' && bd.s > 0 && bd.on) this.decA.add(x, 0.05, z, 4, 4, 0, D_SOFT, 1.5, 0, 0.6, 0.25, 0.85, 0.5 * fl);
         else if (bd.kind === 'keg' && bd.on) this.decA.add(x, 0.05, z, 2, 2, 0, D_SOFT, 1.5, 0, 1, 0.3, 0.1, 0.6 * fl);
         else if (bd.kind === 'forge') this.decA.add(x, 0.05, z, 4, 4, 0, D_SOFT, 1.5, 0, 1, 0.45, 0.15, 0.5 * fl);
-        if (bd.use >= 0) this.decN.add(x, 0.045, z, 2, 2, 0, D_TCIRCLE, bd.use, 0, 1, 0.8, 0.35, 0.8);
       }
+      this.zones.draw(this.run, this.camera, X, Z, this.decN, this.decA, this.pool, time, still, dt);
       // метки, лужи
       for (const t of v.teles) {
         if (!near(t.x, t.z, 18)) continue;
@@ -1001,7 +1074,7 @@ export class DungeonGame {
       dash01: v.dash01,
       q01: v.q01,
       qCharge: v.hero.qCharge,
-      boss: v.boss ? { name: v.boss.name || BOSS_NAME, hp01: Math.max(0, v.boss.hp / v.boss.hpMax), marks: [0.66, 0.33] } : null,
+      boss: this.bossHud(v),
       breather: v.breather,
       alarm: v.alarm,
       lowHp: v.hero.hp < v.hero.hpMax * 0.25 && !v.hero.dead,
@@ -1059,7 +1132,7 @@ export class DungeonGame {
       out.push({ x: Math.max(70, Math.min(w - 70, w / 2 + c * k)), y: Math.max(120, Math.min(h - 170, h / 2 + s * k)), angle: ang, kind, dist: Math.round(Math.hypot(dx, dz)) });
     };
     for (const e of v.enemies) if (e.elite && out.length < 4) add(e.x, e.z, 'elite');
-    if (v.boss && v.boss.anim !== 'under') add(v.boss.x, v.boss.z, 'boss');
+    for (const b of v.bosses) if (b.anim !== 'under') add(b.x, b.z, 'boss');
     const nearestOf = (kind: string, ok: (b: DgView['buildings'][number]) => boolean, maxD: number): void => {
       let best: DgView['buildings'][number] | null = null;
       let bd = maxD;

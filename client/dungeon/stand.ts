@@ -230,6 +230,27 @@ const real = (): DgSim | null => {
       hurtHero(s, 99999, 'barrel');
     }
   },
+  /** герой к постройке (altar, spring, chest, forge, lamp, cart, tramp, keg, brazier): i-я по близости, (ox, oz) — сдвиг */
+  goto: (k: string, i = 0, ox = 0, oz = 3.5) => {
+    const s = real();
+    if (!s) return null;
+    const h = s.hero;
+    const ps = s.props.filter((p) => p.k === k && p.st !== 3).sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z));
+    const p = ps[Math.min(i, ps.length - 1)];
+    if (!p) return null;
+    h.x = (p.x + ox + 240) % 240;
+    h.z = (p.z + oz + 240) % 240;
+    return { id: p.id, x: p.x, z: p.z, st: p.st };
+  },
+  /** подбор рядом с героем: stew, magnet, keg, hourglass, chest, bigchest */
+  item: (k: string, dx = 2.5, dz = 0) => {
+    const s = real();
+    if (!s) return;
+    s.items.push({ id: s.nextId++, k: k as DgSim['items'][number]['k'], x: (s.hero.x + dx + 240) % 240, z: (s.hero.z + dz + 240) % 240, t0: s.t });
+  },
+  /** снимок постройки по id */
+  prop: (id: number) => (run instanceof SimRun ? run.sim.props.find((p) => p.id === id) ?? null : null),
+  hero: () => (run instanceof SimRun ? { x: run.sim.hero.x, z: run.sim.hero.z, hp: run.sim.hero.hp, hpMax: run.sim.hero.hpMax, useId: run.sim.hero.useId, buffs: run.sim.hero.buffs, ride: run.sim.hero.ride, jump: run.sim.hero.jumpT1 > run.sim.t, xp: run.sim.hero.xp, level: run.sim.hero.level, chest: !!run.sim.chest, freeze: run.sim.freezeT > run.sim.t, items: run.sim.items.length } : null),
   /** сундук-барабан (big — как у босса) */
   chest: (big = false) => {
     const s = real();

@@ -88,6 +88,18 @@
 .dg-ring.full .dg-ring-disc { transform: scale(1.06); box-shadow: 0 0 0 3px #fff, 0 0 30px rgba(255, 255, 255, .8); }
 .dg-ring.full .dg-ring-ic { opacity: 1; filter: none; }
 
+/* телефон: Q — кнопка у большого пальца (над «действием», левее «рывка» оболочки); держишь — заряд, отпустил — удар.
+   Кольцо у центра остаётся только у рывка, подписи клавиш на телефоне не нужны */
+.dg-qpad { display: none; position: absolute; right: calc(104px + env(safe-area-inset-right, 0px)); bottom: calc(138px + env(safe-area-inset-bottom, 0px)); pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.touch .dg-qpad { display: flex; }
+.dg-qpad .dg-ring-disc { width: 66px; height: 66px; }
+.dg-qpad .dg-ring-disc::before { inset: 5px; }
+.dg-qpad .dg-ring-ic { font-size: 28px; }
+.dg-qpad .dg-ring-label { position: absolute; top: 100%; margin-top: 2px; font-size: 10px; font-weight: 700; color: var(--cream-2); }
+.dg-qpad.down .dg-ring-disc { transform: scale(.93); }
+html.touch .dg-bc .dg-ring.strike { display: none; }
+html.touch .dg-ring-label kbd { display: none; }
+
 /* --- стрелки к целям за кадром */
 .dg-arrows { position: absolute; inset: 0; }
 .dg-arrow { position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; display: grid; place-items: center; }

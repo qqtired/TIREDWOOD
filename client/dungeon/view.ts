@@ -112,6 +112,8 @@ export interface VBuilding {
 }
 
 export interface VBoss {
+  /** id червя в симуляции (у Близнецов их два) */
+  id: number;
   x: number;
   z: number;
   yaw: number;
@@ -123,11 +125,14 @@ export interface VBoss {
   animAt: number;
   phase: number;
   name: string;
+  /** масштаб модели (Близнецы 0,75) */
+  scale: number;
 }
 
 /** События шага для эффектов и звука */
 export type VFx =
-  | { k: 'hit'; id: number; x: number; z: number; dmg: number; big: boolean; blocked?: boolean }
+  /** id = −1 — попали в босса, boss — какого именно (id червя) */
+  | { k: 'hit'; id: number; boss?: number; x: number; z: number; dmg: number; big: boolean; blocked?: boolean }
   | { k: 'kill'; id: number; kind: MobKind; x: number; z: number; elite: boolean }
   | { k: 'pick'; kind: PickupKind; x: number; z: number }
   | { k: 'level'; level: number }
@@ -166,7 +171,8 @@ export interface DgView {
   puddles: VPuddle[];
   pickups: VPickup[];
   buildings: VBuilding[];
-  boss: VBoss | null;
+  /** все живые боссы (у Близнецов на 30-й волне — два), пусто — босса нет */
+  bosses: VBoss[];
   /** крутящиеся лучи Маяка: из героя, направление yaw */
   rays: { yaw: number; len: number; w: number }[];
   fx: VFx[];
