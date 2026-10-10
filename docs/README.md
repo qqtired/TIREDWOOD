@@ -101,6 +101,7 @@
 | Прятки «Рыбный двор» (образец) | `hide*.ts` | `hide/` | `hide/` | `HIDE` | `hide-rules.test.ts` | [hide-repair-20261003.md](hide-repair-20261003.md), план `hide` |
 | Крепость | `fort*.ts` | `fort/` | `fort/` | `FORTRESS` | `fort.test.ts`, `fort-run.test.ts` | design «Крепость», планы `fort-*` |
 | Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
+| Ферма (20 участков, вход — калитка на площади) | `farm*.ts` (числа — `farmdata.ts`, правила — `farm.ts`, сеть — `farmnet.ts`/`farmsys.ts`) | `farm/` | `farm/`, калитка — `farm/lobbygate.ts`, модели — `assets/farm/` | `FARM` | `farm.test.ts` | [farm/design-v11.md](farm/design-v11.md), план `farm` (владение файлами частей) |
 
 ### 2.5 Страницы, подарки, загрузка, звук и прочее
 
@@ -140,6 +141,7 @@
 | [product.md](product.md) | как продумывать задачу, стиль игры, формат отчёта | актуально |
 | [design.md](design.md) | как всё устроено: сеть, режимы, отрисовка, выкладка, отладка | справочник с исторической базой 03.10 и поздними дополнениями; «Гонки на катерах» — старая бухта, «Крепость» — первая версия; проверять по коду |
 | [optimization.md](optimization.md) | план оптимизации: замеры, бюджет кадра, правила постройки площади, сеть | актуально; скрипта замера из этапа 1 (`tools/perf/plaza.mjs`) в `main` пока нет |
+| [farm/](farm/) | ферма: дизайн `design-v11.md` (v10 — история), решения владельца `decisions.md`, уровень `level/` (схема, `layout.json`), страница обзора `review/`, снимки `shots/` | актуально; числа в коде — `shared/farmdata.ts` |
 | [fitting-room.md](fitting-room.md) | отдельная лаборатория примерки, импорт/экспорт, GLB, границы переноса в игру | локальная реализация; выпуск и nginx — отдельно |
 | [lab-research-examples.md](lab-research-examples.md) | восемь исследовательских примеров, из них четыре интерактивных | локальные предложения; не решение «Берём» и не перенос механик в игру |
 | [plaza-redesign-2026-10-04.md](plaza-redesign-2026-10-04.md) | концепция новой площади: входы в режимы, афиша в кафе, Улица Аттракционов, аквапарк; откат `?plaza=1` | актуально |
@@ -191,6 +193,8 @@
 | `fort-mobs/` | стенд мобов крепости: любая модель с позами и хитбоксом |
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
+| `farm/` | `layout.mjs` — из `docs/farm/level/layout.json` собирает `shared/farmlayout.ts` |
+| `farm-sim/` | симуляция экономики фермы (`sim.mjs`, итоги — `RESULTS.md`) |
 | `jukebox-lab/` | стенд песен музыкального автомата |
 | `jukebox-model/` | проверка 3D-модели автомата: свет, ракурсы |
 | `jukebox-panel/` | стенд окна автомата: состояния и жетоны |
