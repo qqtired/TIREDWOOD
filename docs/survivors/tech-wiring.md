@@ -1,6 +1,70 @@
-# Как в игре подключаются режимы (разбор для «Подземелья», 10.10.2026)
+# Как «Подземелье» подключено к игре
 
-Номера строк — по состоянию `main` d05094b; перед правкой перепроверь grep-ом.
+**Статус: режим на сайте с 10.10.2026** (релиз `20261010-204608`, протокол 16, флаг `DUNGEON=1` в `deploy/game-opus.service`).
+Первая часть — что подключено и где (по состоянию `main` после релиза, 3f765e5). Вторая — разбор общих мест подключения,
+сделанный до кода: он остаётся рецептом для следующего режима, номера строк в нём устарели — перепроверяй grep-ом.
+
+## Что подключено
+
+**Устройство.** Одна детерминированная симуляция на 30 Гц в `shared/dungeon/` (волны, мобы, оружие, постройки, босс,
+прогресс; без `Math.random`/`sin`/`Date`, только `makeRng` и `sinCos`). Клиент играет её у себя (без задержки, с паузой) и шлёт
+серверу журнал ввода (`dg_log`: события с номером шага и сумма состояния `dgHash`). Сервер повторяет забег по журналу
+своей копией (`server/dungeon/room.ts`, `simport.ts`) и сам решает волны, жетоны и рекорды; расхождение копий пишется в
+журнал сервера. Договор — `shared/dungeon/api.ts` (`DgEvent`, `DgClientMsg`, `DgServerMsg`, `DgResult`). Числа — из
+`docs/survivors/design-data.json` и `level-data.json`: `tools/survivors/gen-data.mjs` пересобирает `shared/dungeon/gen-design.ts`
+и `gen-level.ts`; клиентская копия данных — `client/assets/dungeon/level-data.json`.
+
+**Сервер** (`server/dungeon/`):
+- `room.ts` — `DungeonRoom` (комната на одного игрока) и флаг `dungeonEnabled(env, dev)`: `1` — вкл, `0` — выкл, без переменной
+  только с `--dev`; догон симуляции до 4 шагов за тик хаба с запасом 3 с настенных часов;
+- `hall.ts` — `DungeonHall`: набор инстансов, жетоны (`dg_wave` за каждую отбитую волну, `dg_end` с итогом, потолок 600),
+  статистика профиля, табличка у входа;
+- `records.ts` — таблицы «за всё время» (`State.dgTop`) и «за неделю» (`State.dgWeek`, с понедельника 00:00 МСК, сбрасывается
+  сама), у профиля одна лучшая строка, смена ника переписывает строки;
+- в `server/hub.ts`: `hub.dungeon` (null при выключенном флаге), шаг, занятость (`health.dungeon`), справка по клавишам в чате,
+  смена ника, остановка; `server/main.ts`: чтение флага и опция в `new Hub({…})`.
+
+**Протокол.** `RoomKind` 'dungeon' (`shared/messages.ts`), статус `dgSt` и поле `dg` в приветствии набережной (таблица
+рекордов для доски; нет поля — режим выключен). `PROTOCOL_VERSION` поднят до 16 вместе с фермой и рыбалкой.
+Профиль: счётчики `dgRuns, dgBest, dgBestMs, dgKills, dgBosses, dgWeek, dgWeekBest, dgWeekBestMs` в `Stats`
+(`shared/economy.ts`), нули для старых сохранений.
+
+**Пауза и обрыв.** Esc и свёрнутая вкладка — `dg_pause` (сервер паузу занятостью не считает; 10 минут паузы или тишины —
+итог `timeout`). Обрыв связи: забег ждёт возврата `DG_LOST_MS` = 60 с (`server/hub.ts`, `client/app.ts` `limitMs`), потом засчитаны
+отбитые волны. Вышел сам — засчитаны отбитые, текущая не в счёт.
+
+**Вход.** `InteractKind` 'dungeon' в `shared/maps/lobby.ts` (`DUNGEON_USE`, `DUNGEON_RETURN`), твёрдая скала и доска в
+`shared/plaza2.ts`, декор — `client/lobby/plaza/dungeon.ts` (скала, вывеска, факелы, доска; модель `plaza_entrance.glb` грузится
+при первом показе, пока сервер не прислал статус — набережная как раньше), статус доски — `client/lobby/dgstatus.ts`, вход по E —
+`server/lobby/room.ts` → `hub`. Профиль и «Рекорды» — `client/ui/records.ts`.
+
+**Клиент** (`client/dungeon/`): модуль грузится лениво (`LazyScene` в `client/app.ts`), сцена — `scene.ts` (`DungeonScene`) и `game.ts`,
+вид симуляции — `simview.ts`, мир и пол — `world.ts`, `worldgeo.ts`, `worldlink.ts`, враги/босс/герой — `mobs.ts`, `boss.ts`, `hero.ts`,
+эффекты — `fx.ts`, постройки и зоны активации — `buildings.ts`, `zones.ts`, звук — `sfx.ts`, `prefs.ts` (переключатели звука, localStorage),
+интерфейс «Кованый фонарь» — `hud.ts`, `hudtypes.ts`, `dungeon.css`, значки — `icons.ts`. Шрифты Alegreya — `@fontsource/alegreya-sc` и
+`@fontsource/alegreya-sans` (devDependencies; в папке без них перед сборкой нужен `npm install`). Ввод через общий `Input`: WASD, Пробел,
+Q, E, R/F, Alt, 1/2/3, Esc; на телефоне — кнопки рывка и Q в самом HUD (`hud.ts`).
+
+**Ассеты** (`client/assets/dungeon/`): GLB героя, врагов, босса и наборов окружения (Blender), 63 значка webp (Codex image_gen,
+`icons/PROVENANCE.md`), пол по зонам — 5 текстур jpg и карты рельефа `*_n.jpg` (`tools/survivors/floor/make-normals.mjs`),
+вход на площади — `plaza/plaza_entrance.glb`. Только процедурная геометрия и GLB, CSP без blob: и внешних хостов.
+
+**Стенд и инструменты.** `/tools/survivors/stand/` на сервере разработки (`client/dungeon/stand.ts`, в сборку не входит): сцена режима
+без набережной, «сервер» в той же вкладке, `window.dgStand` для headless Chrome. `node tools/survivors/balance.mjs` — модель баланса,
+`bot.mjs` — бот-прогон, `page/sync.mjs` — копии данных и моделей для страницы дизайна.
+
+**Тесты:** `test/dungeon-sim.test.ts` (симуляция), `dungeon-server-sim.test.ts` (комната, журнал, рекорды), `dungeon-flag.test.ts`,
+`dungeon-plaza.test.ts`, `dungeon-twins-view.test.ts`.
+
+**Что не сделано в подключении:** телефон не проверялся; кооп и несколько героев в данных не заложены в игру; зазывала «Шахтёр
+Шура» и указатель на площади — нет.
+
+---
+
+# Разбор общих мест подключения (10.10.2026, до кода)
+
+Номера строк — по состоянию `main` d05094b; перед правкой перепроверь grep-ом. Раздел 5 («Соло-инстансы и пауза»)
+в `Подземелье` решён так: у каждого игрока своя `DungeonRoom` в `DungeonHall`, хаб проверяет зал через `hub.dungeon`.
 
 ## Подготовка
 - В worktree нет node_modules/dist/data: симлинк `node_modules` на `~/Desktop/tired.solutions/game-opus/node_modules`.

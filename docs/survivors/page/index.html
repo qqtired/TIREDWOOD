@@ -231,6 +231,11 @@ input[type=range]{accent-color:var(--amber);width:100%;min-height:32px}
 .ucard .lv{font:600 14px var(--f-mono);color:var(--turq-2)}
 .ucard p{margin:0;font-size:14.5px;color:var(--text-2)}
 .ucard .new{position:absolute;left:12px;top:12px}
+.ucard .cat{justify-self:start;font:600 11.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 9px;border-radius:7px;border:1px solid var(--amber);color:var(--amber-2);background:rgba(255,179,71,.08)}
+.ucard .cat.p{border-color:var(--turq);color:var(--turq-2);background:rgba(95,196,184,.08)}
+.ucard .cat.m{border-color:var(--ok);color:var(--ok);background:rgba(155,211,122,.08)}
+.pick .slots{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:-6px 0 14px}
+.pick .slots .chip b{color:var(--text);font-weight:600}
 .ucard.evo{border:2px solid var(--gold);background:linear-gradient(180deg,#3b2c12,#1f1709);box-shadow:0 0 0 1px rgba(255,211,90,.25),0 0 34px -6px rgba(255,211,90,.45)}
 .ucard.evo b{color:var(--gold)}
 .ucard.picked{border-color:var(--turq-2);box-shadow:0 0 0 2px var(--turq-2) inset;transform:none}
@@ -349,6 +354,14 @@ input[type=range]{accent-color:var(--amber);width:100%;min-height:32px}
 .bcell .nums{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .bcell .btn{margin-top:4px}
 .opt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.xcard{padding:14px 16px;border-radius:var(--r);border:1px solid rgba(95,196,184,.4);background:linear-gradient(160deg,rgba(95,196,184,.08),var(--panel) 60%);min-width:0}
+.xcard.no{border-color:var(--line);background:var(--panel);opacity:.62}
+.xcard b{font:400 21px/1.15 var(--f-display)}
+.xcard p{margin:5px 0 0;font-size:14px;color:var(--text-2);line-height:1.4}
+.xcard .m{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.how .card{font-size:14.5px;color:var(--text-2)}
+.how .card b{display:block;color:var(--text);font-weight:600;margin-bottom:4px}
 .optcard{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:14px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel);cursor:pointer;align-items:start}
 .optcard:hover{border-color:var(--line-2)}
 .optcard.chk{border-color:var(--turq);background:linear-gradient(160deg,rgba(95,196,184,.1),var(--panel) 60%)}
@@ -392,44 +405,10 @@ input[type=range]{accent-color:var(--amber);width:100%;min-height:32px}
 .res .btns{display:flex;justify-content:center;gap:10px;margin-top:16px;flex-wrap:wrap}
 
 /* ---------- 12. HUD ---------- */
-.hudwrap{position:relative}
-.hud{--u:min(1cqw,10px);container-type:inline-size;position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;border:1px solid var(--line-2);background:#0c0807 url(art/1-key-art.jpg) center/cover;min-width:640px;box-shadow:var(--shadow)}
-.hud::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 70% at 50% 50%,rgba(0,0,0,0),rgba(0,0,0,.55))}
-.hud>*{position:absolute}
-.hud .pin{position:absolute;z-index:3;display:grid;place-items:center;width:clamp(18px,2.1cqw,24px);height:clamp(18px,2.1cqw,24px);border-radius:50%;border:0;background:var(--turq);color:#06231f;font:700 clamp(10px,1.2cqw,13px) var(--f-mono);cursor:pointer;box-shadow:0 0 0 2px rgba(0,0,0,.55);padding:0}
-.hud .pin:hover,.hud .pin.on{background:var(--gold);transform:scale(1.2)}
-.hud .xp{left:0;right:0;top:0;height:1.6cqw;background:rgba(10,6,5,.85);border-bottom:1px solid #000}
-.hud .xp i{display:block;height:100%;width:62%;background:linear-gradient(90deg,var(--turq),var(--turq-2))}
-.hud .xp span{position:absolute;left:1cqw;top:0;font:600 1.1cqw/1.6cqw var(--f-mono);color:#fff}
-.hud .wave{left:50%;top:2.6cqw;transform:translateX(-50%);text-align:center;min-width:22cqw}
-.hud .wave b{display:block;font:400 3.2cqw/1 var(--f-display);color:var(--amber-2);text-shadow:0 2px 0 #000}
-.hud .wave .sq{height:.9cqw;margin:.7cqw 0;border-radius:99px;background:rgba(10,6,5,.8);border:1px solid #000;overflow:hidden}
-.hud .wave .sq i{display:block;height:100%;width:58%;background:linear-gradient(90deg,var(--jam),var(--jam-2))}
-.hud .wave span{font:600 1.7cqw var(--f-mono);color:#fff;text-shadow:0 1px 0 #000}
-.hud .hp{left:1.6cqw;top:3cqw;width:22cqw}
-.hud .hp .bar{height:2.3cqw;border-radius:99px;background:rgba(10,6,5,.85);border:1px solid #000;overflow:hidden;position:relative}
-.hud .hp .bar i{display:block;height:100%;width:76%;background:linear-gradient(90deg,#b8442b,#ee7f62)}
-.hud .hp .bar span{position:absolute;inset:0;display:grid;place-items:center;font:600 1.3cqw var(--f-mono);color:#fff}
-.hud .buffs{display:flex;gap:.6cqw;margin-top:.8cqw;align-items:center}
-.hud .buffs .bf{display:grid;place-items:center;width:3cqw;height:3cqw;border-radius:.8cqw;background:rgba(10,6,5,.85);border:1px solid var(--amber);font-size:1.6cqw;position:relative}
-.hud .buffs .bf i{position:absolute;bottom:-.4cqw;right:-.4cqw;font:700 .9cqw var(--f-mono);font-style:normal;background:var(--amber);color:#1a0f08;border-radius:.4cqw;padding:0 .3cqw}
-.hud .buffs .st{font:600 1.7cqw var(--f-mono);color:var(--gold);text-shadow:0 1px 0 #000}
-.hud .kills{right:1.6cqw;top:3cqw;text-align:right;display:flex;gap:1cqw;align-items:center}
-.hud .kills span{font:600 1.7cqw var(--f-mono);color:#fff;text-shadow:0 1px 0 #000}
-.hud .kills .pa{display:grid;place-items:center;width:3.2cqw;height:3.2cqw;border-radius:.8cqw;background:rgba(10,6,5,.85);border:1px solid var(--line-2);font-size:1.4cqw;color:var(--text-2)}
-.hud .slots{left:1.6cqw;bottom:1.6cqw;display:grid;gap:.6cqw}
-.hud .slots .line{display:flex;gap:.5cqw}
-.hud .slots .sl{position:relative;display:grid;place-items:center;width:3.4cqw;height:3.4cqw;border-radius:.8cqw;background:rgba(10,6,5,.85);border:1px solid var(--line-2);font-size:1.9cqw}
-.hud .slots .sl.p{border-color:var(--turq)}
-.hud .slots .sl i{position:absolute;right:-.3cqw;bottom:-.4cqw;font:700 .95cqw var(--f-mono);font-style:normal;background:var(--amber);color:#1a0f08;border-radius:.4cqw;padding:0 .3cqw}
-.hud .acts{left:50%;bottom:1.6cqw;transform:translateX(-50%);display:flex;gap:1.4cqw}
-.hud .acts .ab{position:relative;display:grid;place-items:center;width:8.6cqw;height:8.6cqw;border-radius:50%;background:radial-gradient(circle,#2c2019,#150f0c);border:2px solid var(--amber);text-align:center}
-.hud .acts .ab b{display:block;font:600 1.3cqw var(--f-mono);color:var(--amber-2)}
-.hud .acts .ab span{font:600 1.5cqw var(--f-display);color:#fff}
-.hud .acts .ab.q{--p:62%;border-color:var(--turq)}
-.hud .acts .ab::after{content:"";position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(rgba(10,6,5,.0) 0 var(--p,100%),rgba(10,6,5,.7) 0);-webkit-mask:radial-gradient(circle,transparent 62%,#000 63%);mask:radial-gradient(circle,transparent 62%,#000 63%)}
-.hud .arrow{right:3cqw;top:50%;font:700 1.5cqw var(--f-mono);color:#ffd2c4;background:rgba(77,31,18,.9);border:1px solid var(--danger);padding:.4cqw 1cqw;border-radius:99px}
-.hud .arrow.l{right:auto;left:3cqw;top:40%;color:var(--turq-2);background:rgba(8,40,36,.9);border-color:var(--turq)}
+.hudshot{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line-2);box-shadow:var(--shadow);background:#0c0807;aspect-ratio:16/10}
+.hudshot img{width:100%;height:100%;object-fit:cover}
+.hudshot .pin{position:absolute;z-index:3;display:grid;place-items:center;width:clamp(18px,2vw,26px);height:clamp(18px,2vw,26px);margin:calc(clamp(18px,2vw,26px) / -2) 0 0 calc(clamp(18px,2vw,26px) / -2);border-radius:50%;border:0;background:var(--turq);color:#06231f;font:700 clamp(10px,1.2vw,13px) var(--f-mono);cursor:pointer;box-shadow:0 0 0 2px rgba(0,0,0,.6);padding:0;transition:scale .12s}
+.hudshot .pin:hover,.hudshot .pin.on{background:var(--gold);scale:1.25}
 .hudlegend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;margin-top:14px;padding:0;list-style:none}
 .hudlegend li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:8px 10px;border-radius:10px;border:1px solid transparent;font-size:14.5px;color:var(--text-2)}
 .hudlegend li.on{border-color:var(--gold);background:rgba(255,211,90,.07)}
@@ -472,6 +451,15 @@ input[type=range]{accent-color:var(--amber);width:100%;min-height:32px}
 .gal:hover img{transform:scale(1.03)}
 .gal figcaption,.gal .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(0deg,rgba(10,6,5,.94),rgba(10,6,5,0));font-size:13.5px;line-height:1.3;color:var(--text)}
 .gal .cap b{display:block;font:400 17px var(--f-display);color:var(--amber-2)}
+.shotgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.shotgrid .gal img{aspect-ratio:16/10;object-fit:cover}
+.shotgrid .gal .cap{position:static;padding:10px 12px 12px;background:none}
+.shotgrid .gal:first-child{grid-column:auto;grid-row:auto}
+.shotgrid .gal:first-child img{aspect-ratio:16/10;min-height:0}
+.entry{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.entry .card{font-size:14.5px;color:var(--text-2)}
+.entry .card b{display:block;color:var(--text);font-weight:600;margin-bottom:4px}
+.entry .n{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:8px;border-radius:50%;background:var(--amber);color:#1a0f08;font:700 12px var(--f-mono)}
 .lightbox{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(8,5,4,.94);padding:20px var(--gutter)}
 .lightbox.open{display:flex}
 .lightbox img{max-width:100%;max-height:calc(100vh - 150px);border-radius:12px;box-shadow:0 30px 80px #000;border:1px solid var(--line-2);width:auto}
@@ -480,6 +468,13 @@ input[type=range]{accent-color:var(--amber);width:100%;min-height:32px}
 .lightbox .lb{display:flex;gap:8px}
 
 /* ---------- 15. решения ---------- */
+.dec{width:100%;border-collapse:collapse;font-size:14.5px}
+.dec th{font:600 11.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2)}
+.dec td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text-2)}
+.dec td:first-child{color:var(--text);font-weight:600;width:30%}
+.dec td b{color:var(--turq-2);font-weight:600}
+.dec tr:last-child td{border-bottom:0}
+@media (max-width:760px){.dec,.dec tbody,.dec tr,.dec td{display:block;width:auto!important}.dec thead{display:none}.dec tr{padding:10px 0;border-bottom:1px solid var(--line)}.dec td{border:0;padding:2px 0}}
 .q{padding:18px 20px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel);margin-bottom:12px}
 .q.set{border-color:rgba(95,196,184,.4)}
 .q h4{font:600 16px/1.35 var(--f-text);text-transform:none;letter-spacing:0;color:var(--text);margin:0 0 4px}
@@ -524,6 +519,7 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
   .mviewer>div:last-child{order:-1}
   .mlist details:not([open]) .items{display:none}
   .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .shotgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .gal:first-child{grid-column:span 2;grid-row:auto}
   .gal:first-child img{aspect-ratio:3/2;min-height:0}
 }
@@ -534,7 +530,7 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
   .cycle .step:first-child{border-top-width:1px;border-radius:var(--r) var(--r) 0 0}
   .cycle .step:last-child{border-radius:0 0 var(--r) var(--r)}
   .cycle .step::after{display:none}
-  .g3,.g4,.g2,.evo-grid,.opt,.bld,.own,.xs,.hudlegend{grid-template-columns:minmax(0,1fr)}
+  .g3,.g4,.g2,.evo-grid,.opt,.bld,.own,.xs,.hudlegend,.entry,.how{grid-template-columns:minmax(0,1fr)}
   .bgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bcard{grid-template-columns:1fr;text-align:center}
   .bcard .th{margin:0 auto}
@@ -546,7 +542,7 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 }
 @media (max-width:480px){
   .wgrid,.pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .gallery{grid-template-columns:minmax(0,1fr)}
+  .gallery,.shotgrid{grid-template-columns:minmax(0,1fr)}
   .gal:first-child{grid-column:auto}
   .banner{min-height:520px}
   .banner::before{background:linear-gradient(0deg,rgba(14,9,7,.96) 0%,rgba(14,9,7,.72) 50%,rgba(14,9,7,.25) 100%)}
@@ -566,11 +562,11 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 <section class="sec top" id="top" aria-labelledby="h-top" style="padding-top:28px">
   <div class="banner">
     <div class="inner">
-      <div class="kick">TIREDWOOD · новый соло-режим</div>
+      <div class="kick">TIREDWOOD · соло-режим · уже на сайте</div>
       <h1 id="h-top">Подземелье</h1>
       <p>Ты — Фонарщик в погребах под набережной. Оружие бьёт само, ты выбираешь, где стоять, когда рвануть и когда бахнуть зарядом. Отбил больше всех волн — попал на доску у входа.</p>
       <div class="row">
-        <a class="btn primary" href="#decide">К решениям</a>
+        <a class="btn primary" href="#shots">Как это выглядит</a>
         <a class="btn" href="#play">Как это играется</a>
       </div>
     </div>
@@ -582,21 +578,35 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
     <div class="stat"><b>240 × 240 м</b><span>карта без шва, края склеены</span></div>
   </div>
   <div class="status">
-    <span class="pill amber">Дизайн на одобрение</span>
-    <span class="note">Код игры пока не тронут. Внизу — 7 вопросов, ответы собираются одной строкой для чата.</span>
+    <span class="pill amber">На сайте с 10.10.2026</span>
+    <span class="note">Релиз <code>20261010-204608</code>, флаг <code>DUNGEON</code>. Страница описывает то, что вышло; исходное предложение и решения владельца — в разделе «Решения».</span>
+  </div>
+  <div class="entry" id="enter">
+    <div class="card"><b><span class="n">1</span>Найди пещеру</b>На набережной иди на западную лужайку, между точкой появления и аквапарком: скала с пещерой и вывеской «ПОДЗЕМЕЛЬЕ».</div>
+    <div class="card"><b><span class="n">2</span>Нажми E у зева</b>Спуск в одиночку: у каждого игрока свой забег, Esc — пауза и выход (отбитые волны засчитываются).</div>
+    <div class="card"><b><span class="n">3</span>Смотри на доску</b>Рядом каменная доска рекордов: топ-5 «за всё время» и «за неделю», кто отбил больше волн.</div>
   </div>
 </section>
 
-<!-- 2. КАК ИГРАЕТСЯ -->
+<!-- 2. КАК ВЫГЛЯДИТ -->
+<section class="sec" id="shots" aria-labelledby="h-shots">
+  <header><div class="eyebrow">02 · Как выглядит</div><h2 id="h-shots">Кадры из игры</h2>
+  <p class="lead">Снимки сцены режима, 1440 × 900. Сняты на стенде разработки: сцена и интерфейс настоящие, а состояние (уровень, число врагов, зачистка) выставлено вручную, поэтому цифры на разных кадрах не обязаны сходиться. Нажми — откроется крупно.</p></header>
+  <div class="shotgrid" id="shotgal"></div>
+</section>
+
+<!-- 3. КАК ИГРАЕТСЯ -->
 <section class="sec" id="play" aria-labelledby="h-play">
-  <header><div class="eyebrow">02 · Как играется</div><h2 id="h-play">Секунда, волна, передышка, забег</h2>
-  <p class="lead">Бой не рвётся паузами. Выбор улучшений ждёт передышки, а в бою ты бегаешь.</p></header>
+  <header><div class="eyebrow">03 · Как играется</div><h2 id="h-play">Секунда, волна, уровень, забег</h2>
+  <p class="lead">Волны идут одна за другой, как в Army of Ruin: не успел добить — враги остаются и звереют. А выбор улучшений приходит сразу при новом уровне, как в Vampire Survivors.</p></header>
   <div class="cycle">
     <div class="step"><div class="when">1 секунда</div><h3>Бег</h3><p>Ведёшь героя, обходишь толпу, собираешь бирюзовые осколки опыта, уходишь с сиреневых кругов плевков.</p></div>
-    <div class="step"><div class="when">45–65 секунд</div><h3>Волна</h3><p>Держишься до конца таймера или перебиваешь отряд раньше. Каждые 15–25 с что-то случается: стая, налёт, кольцо, элита.</p></div>
-    <div class="step"><div class="when">5 секунд</div><h3>Передышка</h3><p>«Волна отбита», осколки слетаются к тебе, на каждую ★ — выбор 1 из 3 карточек. Дальше 5 с до новой волны.</p></div>
+    <div class="step"><div class="when">45–65 секунд</div><h3>Волна</h3><p>Таймер кончился, герой жив — волна засчитана, следующая начинается сразу. Перебил всех живых раньше — «Зачистка!» и 5 секунд передышки.</p></div>
+    <div class="step"><div class="when">каждые 15–25 с</div><h3>Новый уровень</h3><p>Мир встаёт на паузу: 1 из 3 крупных карточек, «Перебросить» (R) и «Убрать» (F). Несколько уровней подряд — несколько выборов.</p></div>
     <div class="step"><div class="when">~12 минут</div><h3>Забег</h3><p>10 волн, босс Старый Повидл, потом бесконечно: босс каждые 10 волн. Смерть — конец забега. Рекорд — сколько волн отбил.</p></div>
   </div>
+  <h3>Как идут волны</h3>
+  <div class="how" id="waverules"></div>
   <h3>Управление</h3>
   <p class="note" style="margin-top:-4px">Нажми любую из этих клавиш — плашка загорится.</p>
   <div class="ctl" id="controls"></div>
@@ -604,13 +614,13 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
   <div class="grid g3">
     <div class="card"><b>Честные удары.</b> У каждого удара врага есть метка на полу до удара: круг, полоса, сектор. Смерть всегда видна заранее.</div>
     <div class="card"><b>Сила растёт заметно.</b> К 9-й волне урон героя в ~18 раз больше, чем на 1-й. Первая эволюция приходит прямо перед боссом.</div>
-    <div class="card"><b>Новый уровень — вспышка.</b> Фонарь отталкивает врагов на 3 м, лечит на 10 HP, в углу загорается ★. Игра не останавливается.</div>
+    <div class="card"><b>Новый уровень — вспышка и выбор.</b> Фонарь отталкивает врагов на 3,5 м и лечит на 10 HP, мир замирает на выбор карточки, после выбора — 0,5 с неуязвимости.</div>
   </div>
 </section>
 
 <!-- 3. ГЕРОЙ -->
 <section class="sec" id="hero" aria-labelledby="h-hero">
-  <header><div class="eyebrow">03 · Герой и активные действия</div><h2 id="h-hero">Фонарщик</h2>
+  <header><div class="eyebrow">04 · Герой и активные действия</div><h2 id="h-hero">Фонарщик</h2>
   <p class="lead">Смотритель старых погребов: каска с лампой, кожаный фартук, на цепи большой фонарь. Свет фонаря — главный образ и стартовое оружие.</p></header>
   <div class="hero-grid">
     <div><div class="viewer" id="v-hero"></div><div class="vtools" id="t-hero"></div></div>
@@ -632,12 +642,12 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 4. ОРУЖИЕ -->
 <section class="sec" id="weapons" aria-labelledby="h-weapons">
-  <header><div class="eyebrow">04 · Оружие</div><h2 id="h-weapons">Восемь оружий — восемь механик</h2>
+  <header><div class="eyebrow">05 · Оружие</div><h2 id="h-weapons">Восемь оружий — восемь механик</h2>
   <p class="lead">У каждого 7 уровней. Нажми карточку и двигай ползунок: числа берутся из данных, подсвечено то, что выросло.</p></header>
   <div class="wgrid" id="wgrid"></div>
   <div class="wdetail" id="wdetail" aria-live="polite"></div>
   <h3>Эволюции</h3>
-  <p class="note" style="margin-top:-4px">Оружие на 7-м уровне + нужная пассивка любого уровня — и в ближайшей передышке первой лежит золотая карточка. Пассивка остаётся. Остальным четырём оружиям эволюции придут следующим обновлением.</p>
+  <p class="note" style="margin-top:-4px">Оружие на 7-м уровне + нужная пассивка любого уровня — и ближайший сундук (элиты, проклятый, обычный, островка, босса) вместо улучшения выдаёт эволюцию: крышка открывается, золотой луч, оружие меняется на глазах. Готовых несколько — одну, ту, что раньше стала готовой. Пассивка остаётся. В карточках уровня эволюций нет. Остальным четырём оружиям эволюции — следующим обновлением.</p>
   <div class="evo-grid" id="evogrid"></div>
   <h3>Пассивки</h3>
   <div class="pgrid" id="pgrid"></div>
@@ -645,9 +655,10 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 5. ОПЫТ И КАРТОЧКИ -->
 <section class="sec" id="levelup" aria-labelledby="h-levelup">
-  <header><div class="eyebrow">05 · Опыт и карточки улучшений</div><h2 id="h-levelup">Опыт копится в волне, выбор — в передышке</h2>
-  <p class="lead">Новый уровень в бою — вспышка и звезда ★. Карточки открываются после волны, время стоит. Макет можно «понажимать».</p></header>
+  <header><div class="eyebrow">06 · Опыт и карточки уровня</div><h2 id="h-levelup">Новый уровень — мир замирает на выбор</h2>
+  <p class="lead">Набрал уровень — вспышка фонаря, пауза и три крупные карточки: категория, «Ур. 3 → 4», числа. Макет можно «понажимать»: клавиши 1/2/3, R — перебросить, F — убрать.</p></header>
   <div class="pick" id="pick"></div>
+  <p class="note" style="margin:8px 0 0">Макет с эмодзи вместо значков; настоящая карточка — на кадре «Новый уровень» в разделе «Как выглядит».</p>
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h4>Сколько опыта нужно</h4>
       <div class="xpcalc"><div><label for="xpL" class="note">Уровень героя</label><input type="range" id="xpL" min="1" max="50" value="1"></div><div id="xpres"></div></div>
@@ -659,16 +670,16 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 6. БЕСТИАРИЙ -->
 <section class="sec" id="bestiary" aria-labelledby="h-bestiary">
-  <header><div class="eyebrow">06 · Бестиарий</div><h2 id="h-bestiary">Армия Барона Варенья</h2>
-  <p class="lead">6 рядовых, 2 элиты и личинки босса. Общая примета: фиолетовые пятна варенья и светящиеся сиреневые глаза. Жук-щитоносец для краткости — «Щитожук».</p></header>
+  <header><div class="eyebrow">07 · Бестиарий</div><h2 id="h-bestiary">Армия Барона Варенья</h2>
+  <p class="lead">6 рядовых, 2 элиты и личинки босса. Общая примета: фиолетовые пятна варенья и светящиеся сиреневые глаза. Недобитые к концу волны звереют: краснеют, глаза горят ярче. Жук-щитоносец для краткости — «Щитожук».</p></header>
   <div class="bgrid" id="bgrid"></div>
   <div class="bdetail" id="bdetail" aria-live="polite"></div>
 </section>
 
 <!-- 7. ВОЛНЫ -->
 <section class="sec" id="waves" aria-labelledby="h-waves">
-  <header><div class="eyebrow">07 · Волны</div><h2 id="h-waves">Десять волн и бесконечность</h2>
-  <p class="lead">Столбцы — сколько здоровья надо снять за волну. Линия — «давление»: нужный урон в секунду, делённый на урон среднего игрока. Нажми волну.</p></header>
+  <header><div class="eyebrow">08 · Волны</div><h2 id="h-waves">Десять волн и бесконечность</h2>
+  <p class="lead">Столбцы — сколько здоровья надо снять за волну. Линия — «давление»: нужный урон в секунду, делённый на урон среднего игрока (без остатков прошлых волн: они копятся сверху). Нажми волну.</p></header>
   <div class="legend"><span><i style="background:#8a5a2f;border:1px solid #c98b45"></i>HP волны</span><span><i style="background:repeating-linear-gradient(45deg,#6e2a7f,#6e2a7f 3px,#3a1550 3px,#3a1550 6px)"></i>HP босса</span><span><i style="background:var(--turq-2);height:3px;vertical-align:3px"></i>давление</span><span class="note">до 0,8 — легко · 0,8–1,05 — напряжённо · больше 1,2 — толпа копится</span></div>
   <div class="chartbox scroll-x" id="chart1"></div>
   <div class="wdet card" id="wdet" aria-live="polite" style="margin-top:14px"></div>
@@ -681,7 +692,7 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 8. БОСС -->
 <section class="sec" id="boss" aria-labelledby="h-boss">
-  <header><div class="eyebrow">08 · Босс 10-й волны</div><h2 id="h-boss">Старый Повидл</h2>
+  <header><div class="eyebrow">09 · Босс 10-й волны</div><h2 id="h-boss">Старый Повидл</h2>
   <p class="lead">Огромный пещерный червь: бронированная голова, светящиеся сегменты варенья. Роет, выныривает с ударной волной, плюётся, зовёт личинок. Три фазы.</p></header>
   <div class="boss-grid">
     <div><div class="viewer" id="v-boss"></div><div class="vtools" id="t-boss"></div>
@@ -699,8 +710,8 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 9. КАРТА -->
 <section class="sec" id="map" aria-labelledby="h-map">
-  <header><div class="eyebrow">09 · Карта</div><h2 id="h-map">Тор 240 × 240 м</h2>
-  <p class="lead">Ушёл вправо — вышел слева, шва не видно. Пять зон, у каждой свой цвет света и свой ориентир. Схему можно приближать и двигать мышью.</p></header>
+  <header><div class="eyebrow">10 · Карта</div><h2 id="h-map">Тор 240 × 240 м</h2>
+  <p class="lead">Ушёл вправо — вышел слева, шва не видно. Пять зон, у каждой свой цвет света и свой ориентир; в Кристальном гроте — озеро с бродом и островком, на котором лежит сундук. Схему можно приближать и двигать мышью.</p></header>
   <div class="mapframe">
     <div class="maptools"><button class="btn small" id="mz-out" aria-label="Отдалить">−</button><button class="btn small" id="mz-in" aria-label="Приблизить">+</button><button class="btn small" id="mz-fit">Вся</button></div>
     <div class="mapscroll" id="mapscroll" tabindex="0" aria-label="Схема карты, можно прокручивать"><img id="mapimg" src="map.svg" alt="Схема карты «Подземелья»: пять зон, постройки, ориентиры" width="1720" height="1440"></div>
@@ -725,17 +736,21 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 10. ПОСТРОЙКИ -->
 <section class="sec" id="buildings" aria-labelledby="h-buildings">
-  <header><div class="eyebrow">10 · Постройки</div><h2 id="h-buildings">Четыре базовые и восемь на выбор</h2>
-  <p class="lead">Базовые — по решению владельца. Дополнительные придумали мы: отметь, какие хочешь. Выбор попадёт в итоговую строку внизу.</p></header>
+  <header><div class="eyebrow">11 · Постройки и сундуки</div><h2 id="h-buildings">Девять построек и пять видов сундуков</h2>
+  <p class="lead">Четыре базовые и пять выбранных владельцем. Кнопки нет: встань в круг на полу и постой — круг сожмётся, и постройка сработает.</p></header>
   <div class="bld" id="bld"></div>
-  <h3>Дополнительные: выбери</h3>
-  <p class="note" style="margin-top:-4px">Рекомендуем фонари-маяки, пороховые бочки, гриб-батут и вагонетку: они сильнее всего меняют движение по карте.</p>
+  <h3>Выбрал владелец: пять из восьми</h3>
+  <p class="note" style="margin-top:-4px">Колокол-магнит, капканы и шахтный лифт не взяли.</p>
   <div class="opt" id="opt"></div>
+  <h3>Как они срабатывают</h3>
+  <div class="how" id="howuse"></div>
+  <h3>Сундуки</h3>
+  <div class="scroll-x"><table class="tbl" id="chests"></table></div>
 </section>
 
 <!-- 11. НАГРАДЫ -->
 <section class="sec" id="rewards" aria-labelledby="h-rewards">
-  <header><div class="eyebrow">11 · Награды и рекорды</div><h2 id="h-rewards">Жетоны и доска у входа</h2>
+  <header><div class="eyebrow">12 · Награды и рекорды</div><h2 id="h-rewards">Жетоны и доска у входа</h2>
   <p class="lead">Жетоны считает сервер. Ориентир — 8–15 жетонов в минуту. Рекорд — число отбитых волн, при равенстве выше тот, кто быстрее.</p></header>
   <div class="formula" id="formula"></div>
   <div class="calc" style="margin-top:14px">
@@ -748,6 +763,7 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
     <div class="card scroll-x"><h4>Дошёл до — жетоны — в минуту</h4><table class="tbl" id="ctable"></table></div>
   </div>
   <h3>Макеты экранов</h3>
+  <p class="note" style="margin-top:-4px">Это макеты из проекта, а не снимки игры; ники и числа — примеры. Настоящие кадры — в разделах «Как выглядит» и «Интерфейс».</p>
   <div class="mocks">
     <div>
       <h4>Табличка у входа на площади</h4>
@@ -762,32 +778,29 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 12. HUD -->
 <section class="sec" id="hud" aria-labelledby="h-hud">
-  <header><div class="eyebrow">12 · HUD</div><h2 id="h-hud">Экран во время волны</h2>
-  <p class="lead">Только то, что нужно, и крупно. Нажимай на кружки — подпись подсветится.</p></header>
-  <div class="scroll-x"><div class="hudwrap"><div class="hud" id="hudmock">
-    <div class="xp"><i></i><span>Ур. 22</span></div>
-    <div class="wave"><b>Волна 4</b><div class="sq"><i></i></div><span>0:41</span></div>
-    <div class="hp"><div class="bar"><i></i><span>76 / 100</span></div><div class="buffs"><div class="bf">⚡<i>18</i></div><span class="st">★★</span></div></div>
-    <div class="kills"><span>Убито 312</span><div class="pa" title="Пауза">⏸ Esc</div></div>
-    <div class="slots"><div class="line"><div class="sl">🏮<i>5</i></div><div class="sl">🔥<i>3</i></div><div class="sl">🪨<i>4</i></div><div class="sl">✨<i>2</i></div></div><div class="line"><div class="sl p">🕯<i>2</i></div><div class="sl p">⛑<i>1</i></div><div class="sl p">🥾<i>3</i></div></div></div>
-    <div class="acts"><div class="ab" style="--p:100%"><div><b>[Пробел]</b><br><span>Рывок</span></div></div><div class="ab q" style="--p:62%"><div><b>[Q]</b><br><span>Удар</span></div></div></div>
-    <div class="arrow">Бочар ➜</div><div class="arrow l">◀ родник</div>
-    <button class="pin" data-pin="1" style="left:49%;top:0.5%">1</button>
-    <button class="pin" data-pin="2" style="left:57%;top:9%">2</button>
-    <button class="pin" data-pin="3" style="left:25%;top:7%">3</button>
-    <button class="pin" data-pin="4" style="left:17%;top:80%">4</button>
-    <button class="pin" data-pin="5" style="left:66%;top:84%">5</button>
-    <button class="pin" data-pin="6" style="left:90%;top:9%">6</button>
-    <button class="pin" data-pin="7" style="left:90%;top:44%">7</button>
-  </div></div></div>
+  <header><div class="eyebrow">13 · HUD</div><h2 id="h-hud">Интерфейс «Кованый фонарь»</h2>
+  <p class="lead">Тёмное железо и латунь с заклёпками, янтарные кольца, шрифты Alegreya SC и Alegreya Sans, 63 значка из картинок. Нажимай на метки на снимке: подпись подсветится.</p></header>
+  <div class="hudshot" id="hudshot">
+    <img src="art/game-wave.jpg" alt="Кадр игры на 4-й волне: радар слева сверху, строка волны по центру, здоровье и кольца рывка и Q внизу, оружия и бонусы" width="1440" height="900">
+    <button class="pin" data-pin="1" style="left:35%;top:3%">1</button>
+    <button class="pin" data-pin="2" style="left:61.8%;top:4%">2</button>
+    <button class="pin" data-pin="3" style="left:13.8%;top:22%">3</button>
+    <button class="pin" data-pin="4" style="left:87%;top:7.5%">4</button>
+    <button class="pin" data-pin="5" style="left:35.2%;top:82%">5</button>
+    <button class="pin" data-pin="6" style="left:53%;top:74%">6</button>
+    <button class="pin" data-pin="7" style="left:50%;top:87.5%">7</button>
+    <button class="pin" data-pin="8" style="left:20.5%;top:91.5%">8</button>
+    <button class="pin" data-pin="9" style="left:7%;top:64%">9</button>
+    <button class="pin" data-pin="10" style="left:35%;top:10.5%">10</button>
+  </div>
   <ol class="hudlegend" id="hudlegend"></ol>
-  <p class="note">Макет собран на HTML и картинке key-art, это не настоящий кадр игры. Передышка: баннер «Волна 4 отбита! +9 🪙», карточки, затем карточка следующей волны и «Через 5 с · Enter — в бой».</p>
+  <p class="note">Остальные экраны: выбор карточки, пауза, «Зачистка!» и босс — на кадрах выше; передышка (5 с после зачистки: карточка следующей волны и «В бой · Enter»), экран сундука и итоги — по описанию в <code>design.md</code> §14 и §16. На телефоне есть кнопки рывка и Q, режим на нём не проверялся.</p>
 </section>
 
 <!-- 13. МОДЕЛИ -->
 <section class="sec" id="models" aria-labelledby="h-models">
-  <header><div class="eyebrow">13 · Модели</div><h2 id="h-models">3D-просмотрщик</h2>
-  <p class="lead">Все модели из Blender. Что готово — крути мышью и включай анимации. Что в работе — показано превью. Список обновляется командой <code>node tools/survivors/page/sync.mjs</code>.</p></header>
+  <header><div class="eyebrow">14 · Модели</div><h2 id="h-models">3D-просмотрщик</h2>
+  <p class="lead">Все модели из Blender. Модели те же GLB, что и в игре: крути мышью и включай анимации. Если файла нет — показано превью. Список обновляется командой <code>node tools/survivors/page/sync.mjs</code>.</p></header>
   <div class="mviewer">
     <div class="mlist" id="mlist" role="group" aria-label="Список моделей"></div>
     <div>
@@ -801,26 +814,23 @@ code{font-family:var(--f-mono);font-size:.92em;color:var(--amber-2)}
 
 <!-- 14. АРТ -->
 <section class="sec" id="art" aria-labelledby="h-art">
-  <header><div class="eyebrow">14 · Концепт-арт</div><h2 id="h-art">Как это выглядит</h2>
-  <p class="lead">Семь картинок, нарисованных через Codex. Надписей на них нет. Нажми — откроется крупно.</p></header>
+  <header><div class="eyebrow">15 · Эскизы</div><h2 id="h-art">Концепт-арт</h2>
+  <p class="lead">Семь эскизов, нарисованных через Codex до модели и кода: так режим задумывался. Надписей на них нет. Как вышло на деле — в разделе «Как выглядит». Нажми — откроется крупно.</p></header>
   <div class="gallery" id="gallery"></div>
   <p class="note" style="margin-top:8px">Промпты и источники — в <code>docs/survivors/art/PROVENANCE.md</code>.</p>
 </section>
 
 <!-- 15. РЕШЕНИЯ -->
 <section class="sec" id="decide" aria-labelledby="h-decide">
-  <header><div class="eyebrow">15 · Решения владельца</div><h2 id="h-decide">Семь вопросов</h2>
-  <p class="lead">Рекомендованный вариант стоит первым и уже выбран. Поменяй, что не нравится, и нажми «Скопировать ответы».</p></header>
-  <div id="qs"></div>
-  <div class="copybox">
-    <h4>Ответы для чата</h4>
-    <code id="answer" aria-live="polite"></code>
-    <div class="row"><button class="btn primary" id="copy">Скопировать ответы</button><button class="btn small" id="reset">Сбросить на рекомендованные</button><span class="note" id="copied" role="status"></span></div>
-  </div>
-  <h3>Решил сам (ведущий)</h3>
-  <p class="note" style="margin-top:-4px">Эти вещи уже решены, чтобы не грузить тебя мелочами. Скажи, если что-то не так.</p>
+  <header><div class="eyebrow">16 · Решения</div><h2 id="h-decide">Что решил владелец</h2>
+  <p class="lead">Задание и ответы владельца за 10.10.2026 записаны в <code>brief.md</code> и <code>design.md</code>; здесь — коротко, что выбрано и как это в игре.</p></header>
+  <div class="scroll-x"><table class="dec" id="dectbl"></table></div>
+  <h3>Из задания (бриф)</h3>
   <div class="own" id="own"></div>
-  <footer class="foot">Источники: <code>docs/survivors/brief.md</code>, <code>design.md</code>, <code>level.md</code>, данные <code>design-data.json</code> и <code>level-data.json</code>, карта <code>map.svg</code>, арт и модели. Страница читает копии из <code>page/</code>.</footer>
+  <h3>Доработки после первой версии</h3>
+  <p class="note" style="margin-top:-4px">Что изменилось в игре по сравнению с исходным предложением на этой странице.</p>
+  <div class="own" id="changes"></div>
+  <footer class="foot">Источники: <code>docs/survivors/brief.md</code>, <code>design.md</code>, <code>level.md</code>, <code>tech-wiring.md</code>, данные <code>design-data.json</code> и <code>level-data.json</code>, карта <code>map.svg</code>, арт и модели. Страница читает копии из <code>page/</code>.</footer>
 </section>
 
 </div>
@@ -863,14 +873,14 @@ const MODELS = [
   { id: 'cursed_chest', alt: ['chest'], name: 'Проклятый сундук', group: 'building', sub: 'Базовые', budget: 2500, kit: 'kit_buildings', nodes: ['cursed_chest'], art: ['6-interactables', 0, .5, .5, .5] },
   { id: 'healing_spring', alt: ['spring'], name: 'Целебный родник', group: 'building', sub: 'Базовые', budget: 3000, kit: 'kit_buildings', nodes: ['healing_spring'], art: ['6-interactables', .5, .5, .5, .5] },
   { id: 'chest_column', name: 'Колонна колоннады', group: 'building', sub: 'Базовые', budget: 700, kit: 'kit_buildings', nodes: ['chest_column'] },
-  { id: 'lantern_post', name: 'Фонарь-маяк', group: 'building', sub: 'Дополнительные (на выбор)', budget: 600, kit: 'kit_extras', nodes: ['lantern_post'] },
-  { id: 'minecart', name: 'Вагонетка', group: 'building', sub: 'Дополнительные (на выбор)', budget: 1800, kit: 'kit_mine', nodes: ['minecart', 'minecart_broken'] },
-  { id: 'bell_frame', name: 'Колокол-магнит', group: 'building', sub: 'Дополнительные (на выбор)', budget: 2500, kit: 'kit_extras', nodes: ['bell_frame'] },
-  { id: 'powder_keg', name: 'Пороховая бочка', group: 'building', sub: 'Дополнительные (на выбор)', budget: 500, kit: 'kit_extras', nodes: ['powder_keg'] },
-  { id: 'mushroom_trampoline', name: 'Гриб-батут', group: 'building', sub: 'Дополнительные (на выбор)', budget: 1500, kit: 'kit_extras', nodes: ['mushroom_trampoline'] },
-  { id: 'bear_trap', name: 'Капкан', group: 'building', sub: 'Дополнительные (на выбор)', budget: 300, kit: 'kit_extras', nodes: ['bear_trap'] },
-  { id: 'mine_lift', name: 'Шахтный лифт', group: 'building', sub: 'Дополнительные (на выбор)', budget: 4000, kit: 'kit_extras', nodes: ['mine_lift'] },
-  { id: 'forgotten_forge', name: 'Забытая кузня', group: 'building', sub: 'Дополнительные (на выбор)', budget: 4000, kit: 'kit_extras', nodes: ['forgotten_forge'] },
+  { id: 'lantern_post', name: 'Фонарь-маяк', group: 'building', sub: 'Дополнительные', budget: 600, kit: 'kit_extras', nodes: ['lantern_post'] },
+  { id: 'minecart', name: 'Вагонетка', group: 'building', sub: 'Дополнительные', budget: 1800, kit: 'kit_mine', nodes: ['minecart', 'minecart_broken'] },
+  { id: 'bell_frame', name: 'Колокол-магнит', group: 'building', sub: 'Не вошли в игру', budget: 2500, kit: 'kit_extras', nodes: ['bell_frame'] },
+  { id: 'powder_keg', name: 'Пороховая бочка', group: 'building', sub: 'Дополнительные', budget: 500, kit: 'kit_extras', nodes: ['powder_keg'] },
+  { id: 'mushroom_trampoline', name: 'Гриб-батут', group: 'building', sub: 'Дополнительные', budget: 1500, kit: 'kit_extras', nodes: ['mushroom_trampoline'] },
+  { id: 'bear_trap', name: 'Капкан', group: 'building', sub: 'Не вошли в игру', budget: 300, kit: 'kit_extras', nodes: ['bear_trap'] },
+  { id: 'mine_lift', name: 'Шахтный лифт', group: 'building', sub: 'Не вошли в игру', budget: 4000, kit: 'kit_extras', nodes: ['mine_lift'] },
+  { id: 'forgotten_forge', name: 'Забытая кузня', group: 'building', sub: 'Дополнительные', budget: 4000, kit: 'kit_extras', nodes: ['forgotten_forge'] },
 
   // окружение: наборы kit_common, kit_cellars, kit_mushrooms, kit_grotto, kit_mine, kit_jam
   { id: 'rock_mass', name: 'Опорная скала', group: 'env', sub: 'Общее', budget: 4000, kit: 'kit_common', nodes: ['rock_mass_a', 'rock_mass_b', 'rock_mass_c'] },
@@ -933,7 +943,16 @@ const ART = [
   ['6-interactables', 'Постройки', 'Алтарь света, жаровня, проклятый сундук, целебный родник.'],
   ['7-entrance', 'Вход на площади', 'Светлая набережная и тёмная арка пещеры «Подземелье», рядом доска рекордов.'],
 ];
-const SECTIONS = [['top', 'О режиме'], ['play', 'Как играется'], ['hero', 'Герой'], ['weapons', 'Оружие'], ['levelup', 'Карточки'], ['bestiary', 'Бестиарий'], ['waves', 'Волны'], ['boss', 'Босс'], ['map', 'Карта'], ['buildings', 'Постройки'], ['rewards', 'Награды'], ['hud', 'HUD'], ['models', 'Модели'], ['art', 'Концепт-арт'], ['decide', 'Решения']];
+// настоящие снимки игры (docs/survivors/art/web/game-*.jpg, sync.mjs кладёт их в page/art/)
+const SHOTS = [
+  ['game-wave', 'Волна 4', 'Бой: радар слева сверху, строка волны по центру, указатели к целям, здоровье с уровнем и кольца рывка и Q, ряд оружий и столбик бонусов.'],
+  ['game-banner', '«Зачистка!»', 'Перебил всех живых раньше таймера: бонус опыта и 5 секунд передышки.'],
+  ['game-cards', 'Новый уровень', 'Мир замер: три крупные карточки, счётчики слотов, «Перебросить» (R) и «Убрать» (F).'],
+  ['game-alt', 'Alt — бонусы списком', 'Зажал Alt: столбик бонусов раскрылся с именами и числами.'],
+  ['game-boss', 'Старый Повидл', 'Босс-волна: вместо строки волны — полоса здоровья босса с рисками фаз.'],
+  ['game-pause', 'Пауза', 'Продолжить, выйти и два переключателя звука.'],
+];
+const SECTIONS = [['top', 'О режиме'], ['shots', 'Как выглядит'], ['play', 'Как играется'], ['hero', 'Герой'], ['weapons', 'Оружие'], ['levelup', 'Карточки'], ['bestiary', 'Бестиарий'], ['waves', 'Волны'], ['boss', 'Босс'], ['map', 'Карта'], ['buildings', 'Постройки'], ['rewards', 'Награды'], ['hud', 'HUD'], ['models', 'Модели'], ['art', 'Эскизы'], ['decide', 'Решения']];
 const THREE_URLS = [
   'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js',
@@ -1293,7 +1312,7 @@ function initNav() {
 
 function initHeader() {
   const D = S.D, r10 = S.B && S.B.find((r) => r.w === 10);
-  const mins = r10 ? Math.round(r10.minutes) : 12;
+  const mins = r10 ? Math.floor(r10.minutes) : 12;
   $('#stats').innerHTML = [
     [`${D.waves.length} волн`, `за ~${mins} минут, потом бесконечно`],
     [`Босс на ${D.boss.wave}-й`, `${D.boss.name}, 3 фазы`],
@@ -1304,17 +1323,30 @@ function initHeader() {
 
 const CONTROLS = [
   { keys: [['W', 'KeyW'], ['A', 'KeyA'], ['S', 'KeyS'], ['D', 'KeyD']], t: 'Бег', d: 'Куда ведёшь героя. Стрелки тоже работают.' },
-  { keys: [['Пробел', 'Space']], t: 'Рывок', d: '6 м за 0,2 с сквозь врагов, неуязвим 0,3 с.' },
+  { keys: [['Пробел', 'Space']], t: 'Рывок', d: '6 м за 0,2 с сквозь врагов, неуязвим 0,3 с, через провал до 5 м.' },
   { keys: [['Q', 'KeyQ']], t: 'Удар фонарём', d: 'Тап — малый удар, держи 1 с — полный.' },
-  { keys: [['E', 'KeyE']], t: 'Постройки', d: 'Встань в круг и держи E, пока не сработает.' },
-  { keys: [['Esc', 'Escape']], t: 'Пауза', d: 'Меню: «Продолжить» и «Выйти (засчитать N волн)».' },
+  { keys: [['E', 'KeyE']], t: 'Вагонетка', d: 'Запрыгнуть. Остальные постройки срабатывают, если постоять в круге.' },
   { keys: [['1', 'Digit1'], ['2', 'Digit2'], ['3', 'Digit3']], t: 'Карточки', d: 'Выбор из трёх — клавишей или мышью.' },
-  { keys: [['Enter', 'Enter']], t: 'В бой', d: 'Начать волну, не дожидаясь 5 секунд.' },
-  { keys: [['R', 'KeyR']], t: 'Ещё раз', d: 'На экране итогов. «На набережную» — Esc.' },
+  { keys: [['R', 'KeyR']], t: 'Перебросить', d: 'На карточках уровня. На экране итогов — «Ещё раз».' },
+  { keys: [['F', 'KeyF']], t: 'Убрать', d: 'Карточку насовсем: нажми F, потом на карточку.' },
+  { keys: [['Alt', 'AltLeft']], t: 'Бонусы списком', d: 'Пока зажат Alt — имена и числа бонусов слева снизу.' },
+  { keys: [['Enter', 'Enter']], t: 'В бой', d: 'В передышке после зачистки — не ждать 5 секунд.' },
+  { keys: [['Esc', 'Escape']], t: 'Пауза', d: 'Меню: «Продолжить», «Выйти (засчитать N волн)», звук.' },
 ];
+function initPlay() {
+  const D = S.D, W = D.waveRules, R = D.mobRules.rage, durs = D.waves.filter((w) => !w.boss).map((w) => w.dur);
+  $('#waverules').innerHTML = [
+    ['Таймер, и сразу следующая', `Волна идёт ${Math.min(...durs)}–${Math.max(...durs)} с. Таймер кончился, герой жив — волна засчитана, следующая начинается сразу, без передышки.`],
+    ['Недобитые звереют', `Каждый живой враг на конце таймера получает уровень озверения (до ${R.max}): +${Math.round(R.speed * 100)} % скорости и +${Math.round(R.dmg * 100)} % урона за уровень. Видно: краснеют, глаза горят ярче, плашка «N врагов озверели».`],
+    ['Не больше ' + D.mobRules.maxAlive + ' живых', 'Кто не успел выйти — не пропадает: его здоровье уходит в «долг», новые враги выходят крепче (до +100 %), а при пустой очереди идут «долговые» крысы (до +300 %).'],
+    ['Зачистка!', `Перебил всех живых раньше таймера: бонус опыта ${W.sweepXp} × номер волны, осколки слетаются к тебе и ${W.breather} с передышки с карточкой следующей волны (Enter — в бой раньше). Передышка бывает только после зачистки.`],
+    ['+' + W.timerHeal + ' HP за волну', `Выстоял волну до конца таймера — +${W.timerHeal} HP, и все осколки с пола слетаются к тебе.`],
+    ['Волна босса', `${W.bossDur} с. Босс жив, когда таймер кончился, — ярость (паузы вдвое короче), следующая волна идёт поверх боя. С 3:00 боя ярость в любом случае. Убил босса и всех живых — зачистка.`],
+  ].map(([t, d]) => `<div class="card"><b>${esc(t)}</b>${d}</div>`).join('');
+}
 function initControls() {
   $('#controls').innerHTML = CONTROLS.map((c) => `<div class="c"><div class="keys">${c.keys.map(([l, code]) => `<span class="key" data-code="${code}">${l}</span>`).join('')}</div><div class="t"><b>${c.t}</b>${c.d}</div></div>`).join('');
-  const ALT = { ArrowUp: 'KeyW', ArrowLeft: 'KeyA', ArrowDown: 'KeyS', ArrowRight: 'KeyD', NumpadEnter: 'Enter' };
+  const ALT = { AltRight: 'AltLeft', ArrowUp: 'KeyW', ArrowLeft: 'KeyA', ArrowDown: 'KeyS', ArrowRight: 'KeyD', NumpadEnter: 'Enter' };
   const set = (code, on) => { code = ALT[code] || code; $$(`.key[data-code="${code}"]`).forEach((k) => k.classList.toggle('on', on)); };
   addEventListener('keydown', (e) => set(e.code, true));
   addEventListener('keyup', (e) => set(e.code, false));
@@ -1329,7 +1361,7 @@ function initHero() {
     ['Скорость', nf(H.speed, 1) + ' м/с', 'Крыса 4,4 · мышь в рывке 8: от крыс уйдёшь, от мышей нет'],
     ['Радиус подбора', nf(H.pickupRadius, 1) + ' м', 'Подкова: +25 % за уровень'],
     ['Броня', nf(H.armor), 'Каска: −1 к каждому удару (до −5), меньше 1 урон не бывает'],
-    ['Регенерация', nf(H.regen), 'Лечат родник, похлёбка, новый уровень (+10) и Рой светляков'],
+    ['Регенерация', nf(H.regen), 'Лечат родник, похлёбка, новый уровень (+10), засчитанная волна (+20), свет фонаря-маяка (+1/с) и Рой светляков'],
     ['После удара', nf(H.hitInvuln, 2) + ' с', 'Неуязвим. И каждый враг бьёт не чаще раза в 1 с'],
     ['Слоты', `${H.slots.weapons} + ${H.slots.passives}`, 'Пять оружий и пять пассивок из 8 + 8'],
     ['Свет фонаря', nf(H.lightRadius) + ' м', 'Только картинка: тёплый круг вокруг героя'],
@@ -1339,7 +1371,7 @@ function initHero() {
   $('#actives').innerHTML = `
     <div class="card act"><div class="head"><span class="key">Пробел</span><h3>Рывок</h3></div>
       <div class="row"><span class="pill amber">${nf(dash.distance)} м за ${nf(dash.time, 1)} с</span><span class="pill">неуязвим ${nf(dash.invuln, 1)} с</span><span class="pill">перезарядка ${nf(dash.cooldown)} с</span></div>
-      <ul><li>Летит сквозь врагов, но не сквозь стены.</li><li>Сапоги: −0,25 с перезарядки за уровень (до 1,75 с).</li><li>Через провал до 5 м — вопрос 6 внизу страницы.</li><li>Видно: светлый шлейф, свист; значок Пробела внизу заполняется по кругу, готов — щелчок и блик.</li></ul></div>
+      <ul><li>Летит сквозь врагов, но не сквозь стены.</li><li>Сапоги: −0,25 с перезарядки за уровень (до 1,75 с).</li><li>Через провал до 5 м: герой уходит, орда идёт в обход.</li><li>Видно: светлый шлейф, свист; значок Пробела внизу заполняется по кругу, готов — щелчок и блик.</li></ul></div>
     <div class="card act"><div class="head"><span class="key">Q</span><h3>Удар фонарём</h3></div>
       <div class="row"><span class="pill">тап: ${st.tap.damage} урона · ${nf(st.tap.radius, 1)} м</span><span class="pill amber">полный: ${st.full.damage} урона · ${st.full.radius} м</span><span class="pill">перезарядка ${st.cooldown} с</span></div>
       <ul><li>Держи ${st.chargeTime} с: янтарное кольцо растёт, три риски — треть, две трети, полный заряд.</li><li>Полный: отброс ${st.full.knockback} м, оглушение ${nf(st.full.stun, 1)} с, гасит плевки, хит-стоп 50 мс.</li><li>Пока держишь — скорость ×${st.chargeMoveMul}.</li><li>Растёт: +6 % урона за уровень героя, плюс Фитиль и Линза.</li></ul></div>`;
@@ -1562,52 +1594,57 @@ function initWeapons() {
 function initPick() {
   const D = S.D, WP = wById(), PS = pById(), host = $('#pick'), U = D.levelUp;
   let st, banishMode = false, visible = false;
-  const fresh = () => ({ owned: { lantern: 3, embers: 2, might: 1 }, evo: false, evoDone: false, total: 3, i: 0, rerolls: U.rerolls, banish: U.banishes, banned: new Set(), level: 4, xp: 0.35, cards: [], done: false, picked: -1 });
+  const fresh = () => ({ owned: { lantern: 3, embers: 2, spark: 1, might: 1, speed: 1 }, total: 3, i: 0, rerolls: U.rerolls, banish: U.banishes, banned: new Set(), level: 12, xp: 0.35, cards: [], done: false, picked: -1 });
   const cnt = (type) => Object.keys(st.owned).filter((id) => (type === 'w' ? WP[id] : PS[id])).length;
   function gen() {
     const pool = [];
     for (const w of D.weapons) { if (st.banned.has(w.id)) continue; const lv = st.owned[w.id]; if (lv) { if (lv < 7) pool.push({ kind: 'w', id: w.id, from: lv, to: lv + 1, wt: 1 }); } else if (cnt('w') < D.hero.slots.weapons) pool.push({ kind: 'w', id: w.id, to: 1, isNew: true, wt: 0.8 }); }
     for (const p of D.passives) { if (st.banned.has(p.id)) continue; const lv = st.owned[p.id]; if (lv) { if (lv < p.max) pool.push({ kind: 'p', id: p.id, from: lv, to: lv + 1, wt: 1 }); } else if (cnt('p') < D.hero.slots.passives) pool.push({ kind: 'p', id: p.id, to: 1, isNew: true, wt: 0.8 }); }
     const out = [];
-    if (st.evo && !st.evoDone) out.push({ kind: 'evo', id: 'lantern_evo' });
     while (out.length < 3 && pool.length) { const tot = pool.reduce((a, c) => a + c.wt, 0); let r = Math.random() * tot, k = 0; while (k < pool.length - 1 && (r -= pool[k].wt) > 0) k++; out.push(pool.splice(k, 1)[0]); }
-    // первая передышка: минимум 2 новых оружия, если они есть
     st.cards = out;
   }
   function cardHtml(c, idx) {
-    let ico, name, lvl, txt, cls = 'ucard';
-    if (c.kind === 'evo') { const e = D.evolutions.find((x) => x.id === c.id); ico = e.icon; name = e.name; lvl = '<span class="pill gold">Эволюция</span>'; txt = e.desc; cls += ' evo'; }
-    else if (c.kind === 'w') { const w = WP[c.id]; ico = w.icon; name = w.name; lvl = c.isNew ? '<span class="lv">Ур. 1</span>' : `<span class="lv">Ур. ${c.from} → ${c.to}</span>`; txt = c.isNew ? w.desc : w.levels[c.to - 1].up + '.'; }
-    else { const p = PS[c.id]; ico = p.icon; name = p.name; lvl = c.isNew ? '<span class="lv">Ур. 1</span>' : `<span class="lv">Ур. ${c.from} → ${c.to}</span>`; txt = p.text; }
-    return `<button type="button" class="${cls}${st.picked === idx ? ' picked' : ''}" data-i="${idx}"><span class="k key">${idx + 1}</span>${c.isNew ? '<span class="new pill turq">Новое</span>' : ''}<span class="ico" aria-hidden="true">${ico}</span><b>${name}</b>${lvl}<p>${txt}</p></button>`;
+    let ico, name, lvl, txt, cat, cls = 'ucard';
+    if (c.kind === 'w') { const w = WP[c.id]; ico = w.icon; name = w.name; cat = '<span class="cat">Оружие</span>'; lvl = c.isNew ? '<span class="lv">Ур. 1</span>' : `<span class="lv">Ур. ${c.from} → ${c.to}</span>`; txt = c.isNew ? w.desc : w.levels[c.to - 1].up + '.'; }
+    else { const p = PS[c.id]; ico = p.icon; name = p.name; cat = '<span class="cat p">Бонус</span>'; lvl = c.isNew ? '<span class="lv">Ур. 1</span>' : `<span class="lv">Ур. ${c.from} → ${c.to}</span>`; txt = p.text; }
+    return `<button type="button" class="${cls}${st.picked === idx ? ' picked' : ''}" data-i="${idx}"><span class="k key">${idx + 1}</span>${c.isNew ? '<span class="new pill turq">Новое</span>' : ''}${cat}<span class="ico" aria-hidden="true">${ico}</span><b>${name}</b>${lvl}<p>${txt}</p></button>`;
   }
+  const slotChip = (label, n, max) => `<span class="chip"><b>${label}</b> ${n} из ${max} ${n >= max ? '— всё занято' : '· ещё ' + (max - n)}</span>`;
+  const rerollNow = () => { if (!st.rerolls || st.done) return; st.rerolls--; gen(); render(); };
+  const banToggle = () => { if (!st.banish || st.done) return; banishMode = !banishMode; render(); };
   function render() {
     const need = 10 * (st.level + 1);
     if (st.done) {
-      host.innerHTML = `<div class="done"><b>Карточки выбраны</b><p class="sub" style="margin:0 0 14px">Передышка · через 5 с — в бой · <span class="key" style="min-width:auto;height:auto;padding:1px 8px">Enter</span></p><div class="row" style="justify-content:center"><button class="btn primary" id="pk-again">Ещё раз</button></div></div>`;
-      $('#pk-again').addEventListener('click', () => { const keepEvo = st.evo; st = fresh(); st.evo = keepEvo; if (keepEvo) { st.owned.lantern = 7; st.owned.might = 1; } gen(); render(); });
+      host.innerHTML = `<div class="done"><b>Карточки выбраны</b><p class="sub" style="margin:0 0 14px">Мир снова идёт, 0,5 с неуязвимости.</p><div class="row" style="justify-content:center"><button class="btn primary" id="pk-again">Ещё раз</button></div></div>`;
+      $('#pk-again').addEventListener('click', () => { st = fresh(); banishMode = false; gen(); render(); });
       return;
     }
     host.innerHTML = `<div class="xpbar"><i style="width:${st.xp * 100}%"></i></div><div class="xprow"><span>Ур. ${st.level}</span><span>опыт ${nf(Math.round(st.xp * need))} / ${nf(need)}</span></div>
-      <h3>Выбери улучшение</h3><p class="sub">Звезда <b class="num" style="color:var(--gold)">★ ${st.i + 1} из ${st.total}</b>. Время стоит.</p>
+      <h3>Новый уровень!</h3><p class="sub">${st.total > 1 ? `<b class="num" style="color:var(--gold)">★ ${st.i + 1} из ${st.total}</b> · ` : ''}Мир стоит, пока не выберешь.</p>
+      <div class="slots">${slotChip('Оружие', cnt('w'), D.hero.slots.weapons)}${slotChip('Бонусы', cnt('p'), D.hero.slots.passives)}</div>
       <div class="ucards">${st.cards.map(cardHtml).join('') || '<p class="sub">Карточки кончились.</p>'}</div>
-      <div class="foot"><span class="stars" aria-label="Звёзд осталось ${st.total - st.i}">${'★'.repeat(st.total - st.i)}${'☆'.repeat(st.i)}</span>
-        <div class="row"><button class="btn small" id="pk-re" ${st.rerolls ? '' : 'disabled'}>Перебросить (${st.rerolls})</button><button class="btn small" id="pk-ban" aria-pressed="${banishMode}" ${st.banish ? '' : 'disabled'}>Убрать (${st.banish})</button></div></div>
-      <p class="note" style="margin:10px 0 0;min-height:1.5em">${banishMode ? 'Нажми на карточку, которую убрать насовсем.' : 'Клавиши 1, 2, 3 или мышь. «Убрать» выкидывает карточку из колоды до конца забега.'}</p>
-      <label class="chip" style="margin-top:6px;cursor:pointer"><input type="checkbox" id="pk-evo" ${st.evo ? 'checked' : ''} style="accent-color:var(--gold)"> Показать золотую эволюцию (Фонарь 7 + Фитиль)</label>`;
+      <div class="foot"><span class="stars" aria-label="Выборов осталось ${st.total - st.i}">${'★'.repeat(st.total - st.i)}${'☆'.repeat(st.i)}</span>
+        <div class="row"><button class="btn small" id="pk-re" ${st.rerolls ? '' : 'disabled'}>Перебросить (${st.rerolls}) <span class="key" style="min-width:auto;height:auto;padding:0 6px;font-size:11px">R</span></button><button class="btn small" id="pk-ban" aria-pressed="${banishMode}" ${st.banish ? '' : 'disabled'}>Убрать (${st.banish}) <span class="key" style="min-width:auto;height:auto;padding:0 6px;font-size:11px">F</span></button></div></div>
+      <p class="note" style="margin:10px 0 0;min-height:1.5em">${banishMode ? 'Какую убрать навсегда? Клик или 1 / 2 / 3 · F или Esc — отмена.' : 'Клавиши 1, 2, 3 или мышь. «Убрать» выкидывает карточку из колоды до конца забега.'}</p>`;
     $$('.ucard', host).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.i)));
-    $('#pk-re').addEventListener('click', () => { if (!st.rerolls) return; st.rerolls--; gen(); render(); });
-    $('#pk-ban').addEventListener('click', () => { banishMode = !banishMode; render(); });
-    $('#pk-evo').addEventListener('change', (e) => { st.evo = e.target.checked; if (st.evo) { st.owned.lantern = 7; st.owned.might = Math.max(1, st.owned.might || 0); } gen(); render(); });
+    $('#pk-re').addEventListener('click', rerollNow);
+    $('#pk-ban').addEventListener('click', banToggle);
   }
   function choose(i) {
     const c = st.cards[i]; if (!c) return;
-    if (banishMode) { if (!st.banish) return; st.banish--; banishMode = false; if (c.kind !== 'evo') st.banned.add(c.id); gen(); render(); return; }
-    st.picked = i; if (c.kind === 'evo') { st.evoDone = true; st.evo = false; } else st.owned[c.id] = c.to;
+    if (banishMode) { if (!st.banish) return; st.banish--; banishMode = false; st.banned.add(c.id); gen(); render(); return; }
+    st.picked = i; st.owned[c.id] = c.to;
     const nodes = $$('.ucard', host); nodes.forEach((n, k) => n.classList.toggle('picked', k === i));
     setTimeout(() => { st.i++; st.picked = -1; st.level++; st.xp = 0.1 + Math.random() * 0.6; if (st.i >= st.total) st.done = true; else gen(); render(); }, REDUCED ? 0 : 380);
   }
-  addEventListener('keydown', (e) => { if (!visible || isEditable(e.target) || st.done) return; if (['Digit1', 'Digit2', 'Digit3'].includes(e.code)) choose(+e.code.slice(-1) - 1); if (e.code === 'Enter' && e.target === document.body) { /* Enter в макете не нужен */ } });
+  addEventListener('keydown', (e) => {
+    if (!visible || isEditable(e.target) || st.done) return;
+    if (['Digit1', 'Digit2', 'Digit3'].includes(e.code)) choose(+e.code.slice(-1) - 1);
+    if (e.code === 'KeyR') rerollNow();
+    if (e.code === 'KeyF') banToggle();
+    if (e.code === 'Escape' && banishMode) { banishMode = false; render(); }
+  });
   st = fresh(); gen(); render();
   onVisible(host, (v) => { visible = v; }, '-20% 0px -20% 0px');
 
@@ -1711,7 +1748,7 @@ function initWaves() {
     const comp = Object.entries(W.mobs).map(([id, n]) => `<div class="r">${dot(id)}<span>${M[id].short}</span><span class="cnt">${nf(n)}</span></div>`).join('') + Object.entries(W.elites || {}).map(([id, n]) => `<div class="r">${dot(id)}<span>${M[id].name} <span class="pill jam">элита</span></span><span class="cnt">${n}</span></div>`).join('');
     const evs = W.events.filter((e) => e.type !== 'boss');
     const tl = W.dur ? `<div class="tline" aria-hidden="true">${evs.map((e, i) => `<span class="ev ${e.type}" style="left:${clamp(e.at / W.dur * 100, 4, 96)}%;top:${i % 2 ? 72 : 28}%">${EVT[e.type]}${e.n > 1 ? ' ' + e.n : ''}</span>`).join('')}${[0, 0.25, 0.5, 0.75, 1].map((q) => `<span class="tk" style="left:${q * 100}%">${mmss(q * W.dur)}</span>`).join('')}</div>` : '';
-    host.innerHTML = W.boss ? `<div><h3>Волна ${w} · ${D.boss.name}</h3><p>Таймера нет: пока жив босс. С 3:00 он в ярости. Фоном — ${W.mobs.rat} крыс и личинки из его свиты.</p><div class="tiles"><div class="tile"><span>HP босса</span><b>${nf(D.boss.hp)}</b></div><div class="tile"><span>Бой ≈</span><b>${nf(r.dur - 8)} с</b></div><div class="tile"><span>Урон героя/с по цели</span><b>${nf(r.bossDps)}</b></div><div class="tile"><span>Уровень героя</span><b>${r.level}</b></div></div><p style="margin-top:10px"><span class="press boss">${pl}</span> <a href="#boss">Подробно про босса</a></p></div><div><h4>Фоном</h4><div class="comp">${comp}</div></div>`
+    host.innerHTML = W.boss ? `<div><h3>Волна ${w} · ${D.boss.name}</h3><p>Волна босса идёт ${D.waveRules.bossDur} с. Босс жив к концу таймера — ярость, поверх идёт следующая волна; с 3:00 боя ярость в любом случае. Фоном — ${W.mobs.rat} крыс и личинки из его свиты.</p><div class="tiles"><div class="tile"><span>HP босса</span><b>${nf(D.boss.hp)}</b></div><div class="tile"><span>Бой ≈</span><b>${nf(r.dur - 8)} с</b></div><div class="tile"><span>Урон героя/с по цели</span><b>${nf(r.bossDps)}</b></div><div class="tile"><span>Уровень героя</span><b>${r.level}</b></div></div><p style="margin-top:10px"><span class="press boss">${pl}</span> <a href="#boss">Подробно про босса</a></p></div><div><h4>Фоном</h4><div class="comp">${comp}</div></div>`
       : `<div><h3>Волна ${w} · ${W.dur} с</h3><div class="comp">${comp}</div>
         <div class="tiles" style="margin-top:12px"><div class="tile"><span>Тел (без слизнят)</span><b>${nf(r.bodies)}</b></div><div class="tile"><span>HP волны</span><b>${nf(r.hp)}</b></div><div class="tile"><span>Мин. живых</span><b>${W.minAlive}</b></div><div class="tile"><span>Урон героя/с</span><b>${nf(r.heroDps)}</b></div><div class="tile"><span>Уровень героя</span><b>${r.level}</b></div><div class="tile"><span>Конец волны, мин</span><b>${nf(r.minutes, 1)}</b></div></div>
         <p style="margin:10px 0 0">Давление <b class="num">${nf(r.pressure, 2)}</b> <span class="press ${pc}">${pl}</span></p></div>
@@ -1750,7 +1787,7 @@ function initBoss() {
   const D = S.D, B = D.boss, rows = S.B || [], r = (w) => rows.find((x) => x.w === w);
   const v = createView($('#v-boss'), { art: ['4-elites-boss', .30, 0, .46, .69] }); viewTools(v, $('#t-boss'), false); v.set(modelById('povidl'));
   const fight = r(10) ? r(10).dur - 8 : 100;
-  $('#bossstats').innerHTML = [[nf(B.hp) + ' HP', 'здоровье, касание ' + B.contactDmg + ' урона'], ['~' + nf(B.targetFight[0]) + '–' + nf(B.targetFight[1]) + ' с', 'бой по модели, над землёй ~60 % времени'], ['с ' + mmss(B.enrageAt), 'ярость: паузы между атаками вдвое короче'], ['+25 🪙', 'и большой сундук (3 уровня), магнит, похлёбка, +' + B.xp + ' опыта']].map(([b, s]) => `<div class="stat"><b style="font-size:21px">${b}</b><span>${s}</span></div>`).join('');
+  $('#bossstats').innerHTML = [[nf(B.hp) + ' HP', 'здоровье, касание ' + B.contactDmg + ' урона'], ['~' + nf(B.targetFight[0]) + '–' + nf(B.targetFight[1]) + ' с', 'бой по модели, над землёй ~60 % времени'], ['с ' + mmss(B.enrageAt), 'ярость: паузы между атаками вдвое короче; волна босса — ' + D.waveRules.bossDur + ' с'], ['+25 🪙', 'и большой сундук (3 уровня), магнит, похлёбка, +' + B.xp + ' опыта']].map(([b, s]) => `<div class="stat"><b style="font-size:21px">${b}</b><span>${s}</span></div>`).join('');
   let cur = 0;
   const tabs = $('#phtabs'), body = $('#phbody'), band = $('#hpband');
   tabs.innerHTML = B.phases.map((p, i) => `<button role="tab" type="button" aria-selected="${i === 0}" data-i="${i}">Фаза ${p.n}</button>`).join('');
@@ -1866,17 +1903,17 @@ function initWrapDemo() {
 
 /* ---- 13. ПОСТРОЙКИ --------------------------------------------------- */
 const EXTRAS = [
-  { id: 'lantern', name: 'Фонари-маяки', short: 'фонари-маяки', rec: true, hard: 'низкая', does: '16 столбов решёткой 60 м. Постоял рядом 1,5 с — фонарь горит до конца забега. Враги в его свете на 20 % медленнее.', fun: 'Фирменное для Фонарщика. Карта «обживается», зажжённые фонари — хлебные крошки и безопасные островки.' },
-  { id: 'cart', name: 'Вагонетка на кольце', short: 'вагонетка', rec: true, hard: 'средняя', does: 'Пробежал сквозь стоящую вагонетку — она катится по кольцу рельсов 12 м/с, давит и отбрасывает врагов. Можно запрыгнуть (E) и проехать круг, Пробел — спрыгнуть.', fun: 'Рельсы на торе — бесконечное кольцо 240 м. Красивые «страйки» по толпе.' },
-  { id: 'bell', name: 'Колокол-магнит', short: 'колокол-магнит', rec: false, hard: 'низкая', does: 'Держи E 2 с: весь опыт в 60 м летит к герою, враги в 8 м оглушены на 1 с. Раз в 120 с, 3 колокола на карте.', fun: 'Чистый «выдох» посреди волны, звук на весь экран. Частично повторяет магнит из жаровен.' },
-  { id: 'kegs', name: 'Пороховые бочки', short: 'пороховые бочки', rec: true, hard: 'низкая', does: '12 пачек по 4. Любое попадание — фитиль 1,5 с — взрыв 5 м, цепная реакция по пачке. Герою −10 % HP, если рядом. Новые каждую волну.', fun: 'Заманить орду и подорвать. Дополняет бочонок из жаровни.' },
-  { id: 'trampoline', name: 'Гриб-батут', short: 'гриб-батут', rec: true, hard: 'средняя', does: '8 штук в Грибной пещере. Наступил — прыжок на 10 м по ходу бега, 0,8 с в воздухе без урона, приземление отбрасывает врагов на 3 м.', fun: 'Владелец любит батуты. Уйти из окружения — выбор места, а не кнопка.' },
-  { id: 'traps', name: 'Капканы', short: 'капканы', rec: false, hard: 'низкая', does: '10 групп по 3. Враг в капкане стоит 3 с и получает урон, герой — 0,6 с. Взводится заново через 20 с.', fun: 'Провести «паровоз» через капканы.' },
-  { id: 'lift', name: 'Шахтный лифт', short: 'шахтный лифт', rec: false, hard: 'средняя', does: '3 станции, не ближе 110 м друг от друга. Встал в клеть, E — 1,5 с спуска — выходишь у другого лифта. Раз в 60 с. Враги остаются.', fun: 'Спасение из окружения. Но ломает давление волн, лучше позже.' },
-  { id: 'forge', name: 'Забытая кузня', short: 'забытая кузня', rec: false, hard: 'низкая', does: '2 штуки. Держи E 3 с: одно оружие +1 уровень. Раз в 3 волны.', fun: 'Цель для вылазки посреди волны. Частично повторяет улучшения из сундуков.' },
+  { id: 'lamppost', name: 'Фонари-маяки' },
+  { id: 'minecart', name: 'Вагонетка на кольце' },
+  { id: 'powderKegs', name: 'Пороховые бочки' },
+  { id: 'trampoline', name: 'Гриб-батут' },
+  { id: 'forge', name: 'Забытая кузня' },
 ];
-const EXSTATE = { set: new Set(EXTRAS.filter((e) => e.rec).map((e) => e.id)), subs: [] };
-function setExtra(id, on) { if (on) EXSTATE.set.add(id); else EXSTATE.set.delete(id); EXSTATE.subs.forEach((f) => f()); }
+const NOT_TAKEN = [
+  ['Колокол-магнит', 'Держать E 2 с: весь опыт в 60 м летит к герою. Повторял магнит из жаровен.'],
+  ['Капканы', '10 групп по 3: враг в капкане стоит 3 с и получает урон.'],
+  ['Шахтный лифт', 'Переход между станциями. Ломал давление волн, отложили.'],
+];
 
 function initBuildings() {
   const D = S.D, L = S.L, I = Object.fromEntries(D.interactables.map((x) => [x.id, x]));
@@ -1884,16 +1921,35 @@ function initBuildings() {
   const cells = [
     { id: 'altar', mid: 'altar', name: 'Алтарь света', html: `<p>${I.altar.use}. Случайный бафф на ${I.altar.duration} с, не один и тот же дважды подряд.</p><div class="nums">${I.altar.buffs.map((b) => `<span class="pill soft" title="${esc(b.text)}">${b.name}: ${esc(b.text)}</span>`).join('')}</div><p class="note">Остывает ${I.altar.cooldown} с: руны гаснут и загораются по кругу, видно, сколько ждать. Мест ${cnt('altar')}, активны 4 по очереди.</p>` },
     { id: 'brazier', mid: 'brazier', name: 'Жаровня', html: `<p>Любое попадание опрокидывает её, из углей — добыча. Новая вырастает на месте через ${I.brazier.respawn} с.</p><div class="nums">${I.brazier.drops.map((d) => `<span class="pill ${d.id === 'nothing' ? 'dim' : 'soft'}">${Math.round(d.p * 100)} % · ${esc(d.text)}</span>`).join('')}</div><p class="note">Активных 30–40 из ${cnt('brazier')} мест. С врагов еда и бонусы не падают: поэтому жаровни есть смысл обходить.</p>` },
-    { id: 'cursedChest', mid: 'cursed_chest', name: 'Проклятый сундук', html: `<p>${I.cursedChest.use}. ${esc(I.cursedChest.curse)}.</p><div class="nums"><span class="pill turq">награда: 3 уровня, 50 опыта, +30 HP</span><span class="pill">таймер 45 с</span><span class="pill">2 из ${cnt('cursedChest')} мест одновременно</span></div><p class="note">${esc(I.cursedChest.fail)}. На волнах босса сундуков нет. Новый появляется через 120 с в другом месте.</p>` },
+    { id: 'cursedChest', mid: 'cursed_chest', name: 'Проклятый сундук', html: `<p>${I.cursedChest.use}. ${esc(I.cursedChest.curse)}.</p><div class="nums"><span class="pill turq">награда: эволюция или 3 уровня, 50 опыта, +30 HP</span><span class="pill">таймер 45 с</span><span class="pill">2 из ${cnt('cursedChest')} мест одновременно</span></div><p class="note">${esc(I.cursedChest.fail)}. На волнах босса сундуков нет. Новый появляется через 120 с в другом месте.</p>` },
     { id: 'spring', mid: 'healing_spring', name: 'Целебный родник', html: `<p>${I.spring.use}. Лечит ${I.spring.heal} HP/с, пока в чаше есть вода.</p><div class="nums"><span class="pill turq">${I.spring.pool} HP в чаше</span><span class="pill">полная за ${I.spring.refill} с</span><span class="pill">${cnt('spring')} родника на карте</span></div><p class="note">Не у старта: до воды надо дойти, это решение. Уровень воды виден сверху.</p>` },
   ];
   $('#bld').innerHTML = cells.map((c) => `<div class="bcell"><div class="viewer" id="vb-${c.id}"></div><div class="vtools" id="tb-${c.id}"></div><h3 style="margin-top:12px">${c.name}</h3>${c.html}</div>`).join('');
   cells.forEach((c) => { const v = createView($('#vb-' + c.id)); viewTools(v, $('#tb-' + c.id), false); v.set(modelById(c.mid)); });
-  const mk = (e, where) => `<label class="optcard${EXSTATE.set.has(e.id) ? ' chk' : ''}" data-ex="${e.id}"><input type="checkbox" data-ex="${e.id}" ${EXSTATE.set.has(e.id) ? 'checked' : ''}><span><b>${e.name}</b>${e.rec ? ' <span class="pill turq">рекомендуем</span>' : ''}<p>${e.does}</p><p style="color:var(--text-3)">Почему весело: ${e.fun}</p><span class="m"><span class="pill">сложность: ${e.hard}</span></span></span></label>`;
-  $('#opt').innerHTML = EXTRAS.map((e) => mk(e)).join('');
-  const sync = () => { $$('#opt .optcard').forEach((l) => { const on = EXSTATE.set.has(l.dataset.ex); l.classList.toggle('chk', on); $('input', l).checked = on; }); };
-  EXSTATE.subs.push(sync);
-  $('#opt').addEventListener('change', (e) => { if (e.target.dataset.ex) setExtra(e.target.dataset.ex, e.target.checked); });
+
+  // выбранные владельцем: текст из design-data (effect и read)
+  const ex = EXTRAS.map((e) => { const x = I[e.id] || {}; return `<div class="xcard"><b>${e.name}</b><p>${esc(x.effect || '')}</p><p style="color:var(--text-3)">${esc(x.read || '')}</p><div class="m"><span class="pill turq">выбрано</span>${x.count ? `<span class="pill">${esc(x.count)}</span>` : ''}</div></div>`; });
+  const no = NOT_TAKEN.map(([n, d]) => `<div class="xcard no"><b>${n}</b><p>${d}</p><div class="m"><span class="pill dim">не взяли</span></div></div>`);
+  $('#opt').innerHTML = ex.concat(no).join('');
+
+  // как срабатывают
+  $('#howuse').innerHTML = [
+    ['Постой в круге', 'Круг на полу сжимается к центру до срабатывания; вышел — отсчёт сначала. Алтарь — 1 с, проклятый сундук — 1,5 с, фонарь-маяк — 1,5 с, кузня — 3 с (нужно полполосы опыта, удар врага сбивает ковку).'],
+    ['E — только вагонетка', 'Запрыгнуть на стоящую вагонетку. Пробел — спрыгнуть рывком. Всё остальное E не трогает, подсказки «Нажми E» нет.'],
+    ['Не сейчас — игра скажет почему', 'Над героем плашка при входе в круг, над постройкой — короткая строка: «Откроется во время волны», «Не на волне босса», «Убей элиту — 30 с», «Остывает — снова через 45 с», «Нужно полполосы опыта», «Погасла — разгорится на N-й волне».'],
+    ['Подсказка один раз за забег', 'Полная подпись (имя и что даёт) — при первом подходе к каждому виду постройки, ~6,5 с, потом тает; остаётся круг и маленькая строка, когда нельзя. У гриба-батута и бочек подписей и указателей нет.'],
+    ['Указатели у края', 'Медальоны с картинкой цели: босс, элиты, ближайший сундук, проклятый сундук, готовый алтарь, кузня (когда хватает опыта), родник (когда ранен), вагонетка, фонарь. Жаровня — только когда мало HP.'],
+    ['Кузня — выбор, а не сила', 'Мир на паузе, карточки твоих оружий: выбранному +1 уровень. Плата — весь опыт текущего уровня (нужна половина полосы). Раз в 3 волны на весь забег: после ковки обе кузни гаснут.'],
+  ].map(([t, d]) => `<div class="card"><b>${esc(t)}</b>${esc(d)}</div>`).join('');
+
+  // сундуки
+  const M = I.mapChest, IS = I.isleChest;
+  $('#chests').innerHTML = `<thead><tr><th>Сундук</th><th>Где и как</th><th>Что даёт</th></tr></thead><tbody>
+    <tr><td><b>Обычный</b></td><td>Лежит на карте: ${M.start}–${M.startMax} на старте, +${M.perWave} за каждую засчитанную волну, не больше ${M.max}. Пройди по нему.</td><td>Одно улучшение из общего пула карточек; готова эволюция — она</td></tr>
+    <tr><td><b>Сундук островка</b></td><td>Остров на озере в Кристальном гроте, к нему брод 3 м по мелководью (−25 % скорости); новый через ${IS.respawn} с</td><td>Два улучшения (или эволюция)</td></tr>
+    <tr><td><b>Сундук элиты</b></td><td>Падает с каждой элиты (Бочар, Шаман)</td><td>Эволюция, если готова, иначе барабан: 1 уровень (60 %), 2 (30 %), 3 (10 %)</td></tr>
+    <tr><td><b>Проклятый</b></td><td>Постой 1,5 с во время обычной волны; убей элиту за 45 с</td><td>Эволюция или 3 уровня, +50 опыта, +30 HP</td></tr>
+    <tr><td><b>Большой с босса</b></td><td>Падает со Старого Повидла</td><td>Эволюция или 3 уровня, магнит, похлёбка</td></tr></tbody>`;
 }
 
 /* ---- 14. НАГРАДЫ ----------------------------------------------------- */
@@ -1927,17 +1983,20 @@ function initRewards() {
 /* ---- 15. HUD --------------------------------------------------------- */
 function initHud() {
   const items = [
-    ['Опыт и уровень', 'Тонкая полоса сверху во всю ширину и номер уровня.'],
-    ['Волна', 'Номер волны, полоса отряда и таймер. У босса вместо них — полоса HP с рисками фаз.'],
-    ['Здоровье, баффы, звёзды', 'Полоса здоровья с числом, под ней значки баффов алтаря с таймером и звёзды ★ — сколько карточек ждёт.'],
-    ['Оружие и пассивки', 'Слева снизу: 5 значков оружия и 5 пассивок с уровнями.'],
-    ['Рывок и удар', 'Две большие кнопки: [Пробел] и [Q]. Заполняются по кругу, готовность — щелчок и блик.'],
-    ['Счётчик и пауза', 'Справа сверху: сколько убито и кнопка паузы ⏸ (мышью, с подписью Esc).'],
-    ['Стрелки у края', 'К элите, сундуку и роднику, если они за кадром. На торе стрелка указывает кратчайший путь.'],
+    ['Опыт', 'Тонкая полоска по самому верху экрана во всю ширину.'],
+    ['Волна', 'Узкая строка «Волна 4 · 0:50 · осталось 147» с полоской отряда. У босса вместо неё — строка с его именем и здоровьем с рисками фаз.'],
+    ['Радар-компас', 'Слева сверху: враги точками, элиты и боссы, постройки и сундуки, рамка камеры.'],
+    ['Убито и пауза', 'Справа сверху: сколько убито и кнопка паузы ⏸ (мышью, с подписью Esc).'],
+    ['Здоровье и уровень', 'По центру внизу: полоса здоровья с числом и уровень героя («ур. 12»).'],
+    ['Бафф алтаря', 'Значок с кольцом-таймером над здоровьем, пока бафф действует.'],
+    ['Рывок и удар', 'Два кольца: «Пробел» и «Q», без лишних подписей. Заполняются по кругу, готов — щелчок и блик.'],
+    ['Оружия', 'Левее колец: до пяти оружий со значком, кольцом перезарядки и точками уровня.'],
+    ['Бонусы', 'Слева снизу: столбик значков с точками уровня. Зажми Alt — раскроется списком с именами и числами.'],
+    ['Указатели к целям', 'Медальоны с картинкой цели у края экрана, «нос» смотрит к цели, под значком только расстояние.'],
   ];
   const lg = $('#hudlegend');
   lg.innerHTML = items.map(([t, d], i) => `<li data-n="${i + 1}"><i>${i + 1}</i><span><b>${t}.</b> ${d}</span></li>`).join('');
-  const pins = $$('#hudmock .pin'), lis = $$('li', lg);
+  const pins = $$('#hudshot .pin'), lis = $$('li', lg);
   const on = (n) => { pins.forEach((p) => p.classList.toggle('on', p.dataset.pin == n)); lis.forEach((l) => l.classList.toggle('on', l.dataset.n == n)); };
   pins.forEach((p) => { ['mouseenter', 'focus', 'click'].forEach((ev) => p.addEventListener(ev, () => on(p.dataset.pin))); p.setAttribute('aria-label', 'Пояснение ' + p.dataset.pin + ': ' + items[p.dataset.pin - 1][0]); });
   lis.forEach((l) => { l.addEventListener('mouseenter', () => on(l.dataset.n)); l.addEventListener('click', () => on(l.dataset.n)); });
@@ -1982,64 +2041,56 @@ function initModels() {
 
 /* ---- 17. АРТ --------------------------------------------------------- */
 function initGallery() {
-  const g = $('#gallery'), lb = $('#lightbox'), img = $('#lbimg'), cap = $('#lbcap'); let idx = 0, opener = null;
-  g.innerHTML = ART.map(([f, t, d], i) => `<button type="button" class="gal" data-i="${i}" aria-label="Открыть крупно: ${esc(t)}"><img src="art/${f}.jpg" alt="${esc(t)}. ${esc(d)}" loading="lazy" decoding="async"><span class="cap"><b>${esc(t)}</b>${esc(d)}</span></button>`).join('');
-  const show = (i) => { idx = (i + ART.length) % ART.length; const [f, t, d] = ART[idx]; img.src = `art/${f}.jpg`; img.alt = t + '. ' + d; cap.innerHTML = `<b>${esc(t)}</b>${esc(d)} <span class="note">(${idx + 1} из ${ART.length})</span>`; };
+  const lb = $('#lightbox'), img = $('#lbimg'), cap = $('#lbcap'); let list = [], idx = 0, opener = null;
+  const show = (i) => { idx = (i + list.length) % list.length; const [src, t, d] = list[idx]; img.src = src; img.alt = t + '. ' + d; cap.innerHTML = `<b>${esc(t)}</b>${esc(d)} <span class="note">(${idx + 1} из ${list.length})</span>`; };
   const open = (i, from) => { opener = from; show(i); lb.classList.add('open'); document.body.style.overflow = 'hidden'; $('#lbclose').focus(); };
   const close = () => { lb.classList.remove('open'); document.body.style.overflow = ''; if (opener) opener.focus(); };
-  g.addEventListener('click', (e) => { const b = e.target.closest('.gal'); if (b) open(+b.dataset.i, b); });
+  const make = (host, items) => {
+    if (!host) return;
+    host.innerHTML = items.map(([src, t, d], i) => `<button type="button" class="gal" data-i="${i}" aria-label="Открыть крупно: ${esc(t)}"><img src="${src}" alt="${esc(t)}. ${esc(d)}" loading="lazy" decoding="async"><span class="cap"><b>${esc(t)}</b>${esc(d)}</span></button>`).join('');
+    host.addEventListener('click', (e) => { const b = e.target.closest('.gal'); if (b) { list = items; open(+b.dataset.i, b); } });
+  };
+  make($('#shotgal'), SHOTS.map(([f, t, d]) => [`art/${f}.jpg`, t, d]));
+  make($('#gallery'), ART.map(([f, t, d]) => [`art/${f}.jpg`, t, d]));
   $('#lbclose').addEventListener('click', close); $('#lbprev').addEventListener('click', () => show(idx - 1)); $('#lbnext').addEventListener('click', () => show(idx + 1));
   lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
   addEventListener('keydown', (e) => { if (!lb.classList.contains('open')) return; if (e.key === 'Escape') close(); if (e.key === 'ArrowLeft') show(idx - 1); if (e.key === 'ArrowRight') show(idx + 1); });
 }
 
 /* ---- 18. РЕШЕНИЯ ----------------------------------------------------- */
-const QS = [
-  { n: 1, q: 'Когда выбирать улучшения?', why: 'Влияет на ритм боя и на будущий кооператив.', opts: [['а', 'Карточки в передышке, а новый уровень в волне копится звездой ★', 'Рекомендуем. Бой не рвётся паузами, и схема уже готова к кооперативу.'], ['б', 'Сразу при новом уровне, с паузой, как в Vampire Survivors', 'Привычно, но пауза каждые 15–25 с и для кооператива не годится.']] },
-  { n: 2, q: 'Как приходит эволюция оружия?', why: 'Оружие 7-го уровня + нужная пассивка.', opts: [['а', 'Золотая карточка в ближайшей передышке', 'Рекомендуем. Игрок видит подсказку заранее и может готовиться.'], ['б', 'Выпадает из сундука', 'Случайнее и интереснее, но можно не дождаться.']] },
-  { n: 3, q: 'Что делать, если пропала связь?', why: 'Решение владельца из брифа.', opts: [['а', 'Сразу засчитать отбитые волны', 'Рекомендуем, так решил владелец. Текущая волна не в счёт.'], ['б', 'Держать забег на паузе 60 с, чтобы переподключиться', 'Добрее к игроку, но забег висит на сервере.']] },
-  { n: 4, q: 'Какие дополнительные постройки добавить?', why: 'Отметь любые. То же самое можно отметить в разделе 10.', ex: true },
-  { n: 5, q: 'Варенье на полу замедляет...', why: 'Лужи и реки в варенных жилах.', opts: [['а', 'Только героя', 'Рекомендуем. Жилы становятся опасными, а войска Барона там как дома.'], ['б', 'Всех', 'Проще объяснить, но жилы перестают быть опасными.']] },
-  { n: 6, q: 'Рывок перелетает провалы до 5 м?', why: 'Герой уходит через яму, орда идёт в обход.', opts: [['а', 'Да', 'Рекомендуем. Появляется ещё один способ выйти из окружения.'], ['б', 'Нет', 'Проще, провалы — настоящие стены.']] },
-  { n: 7, q: 'Где вход в Подземелье на главной площади?', why: 'Скала с пещерой и доска рекордов рядом.', opts: [['а', 'Западная лужайка', 'Рекомендуем. Зев смотрит на точку появления, пути к аквапарку и маяку свободны.'], ['б', 'Другое место', 'Скажи в чате, куда. Площадь скоро перестраивают, нужно пятно 7 × 7 м.']] },
+// ответы владельца 10.10.2026 на вопросы этой страницы (design.md, design-data.json → changes, extrasChosen) и что вышло
+const DECISIONS = [
+  ['Когда выбирать улучшения?', 'Сразу при новом уровне, с паузой мира, как в Vampire Survivors', 'Три крупные карточки, R — перебросить, F — убрать; после выбора 0,5 с неуязвимости. Передышки с карточками нет.'],
+  ['Как приходит эволюция оружия?', 'Из сундука', 'Оружие 7-го уровня + нужная пассивка → ближайший сундук вместо барабана выдаёт эволюцию. Золотых карточек нет.'],
+  ['Что делать, если пропала связь?', 'Забег на паузе до 60 с', 'Вернулся — продолжаешь с того же места; нет — засчитаны отбитые волны.'],
+  ['Какие дополнительные постройки?', 'Фонари-маяки, вагонетка, пороховые бочки, гриб-батут, забытая кузня', 'Колокол-магнит, капканы и шахтный лифт не взяли.'],
+  ['Варенье на полу замедляет…', 'Только героя (−35 %)', 'Войска Барона по нему ходят свободно, жилы опасны. Принято по предложению, записано в данных.'],
+  ['Рывок перелетает провалы до 5 м?', 'Да', 'Орда идёт в обход. Принято по предложению, записано в данных.'],
+  ['Где вход на главной площади?', 'Западная лужайка', 'Скала с пещерой, вывеска «ПОДЗЕМЕЛЬЕ» и доска рекордов; вход по E. Принято по предложению, построено.'],
 ];
-const OWN = [
-  ['Камера по левел-дизайну', 'В кадре ~36 × 23,5 м (с учётом наклона 62°). Враги рождаются в полосе 4–9 м за краем экрана, а не в круге.'],
-  ['Алтари', '5 мест на карте, активны 4 по очереди. Руны на пустом месте погашены.'],
-  ['Враги впереди', '40 % врагов рождается по ходу движения героя: бег по прямой не спасает. Среднее между 30 % в геймдизайне и 55 % в левел-дизайне.'],
-  ['Щитожук', 'Жук-щитоносец называется «Щитожук»: в «Крепости» уже есть «Щитоносец», чтобы не путать.'],
+const BRIEF = [
+  ['Название и стиль', '«Подземелье». Мрачнее остальной игры, только под землёй: факелы, жаровни, кристаллы, тёплый свет, без крови, черепов и хоррора.'],
+  ['Всё с нуля', 'Прошлая попытка («Прилив», Гоша, Кракен) забыта. Герой Фонарщик — отдельная модель, враги — подземные отряды Барона Варенья.'],
+  ['Волны и смерть', 'После 10-й игра идёт бесконечно, босс каждые 10 волн. Смерть завершает забег; рекорд — число отбитых волн.'],
+  ['Управление', 'Атаки автоматические; рывок на Пробел и заряжаемый удар на Q. Оружия разные: область, вокруг героя, по цели, цепь, конус, ловушки.'],
+  ['Карта', 'Бесшовная, края склеены; ориентир 200–260 м — сделали 240 × 240 м.'],
+  ['Награды и топ', 'Жетоны считает сервер, 8–15 в минуту и бонус за босса. Доска у входа: за всё время и за неделю, при равенстве выше тот, кто быстрее.'],
+  ['Пауза', 'Esc и свёрнутая вкладка ставят на паузу. Вышел или отвалился — засчитаны отбитые волны.'],
+  ['Дальше', 'Кооп и покупная прокачка — не сейчас, но дизайн им не мешает.'],
+];
+const CHANGES = [
+  ['Волны подряд, как в Army of Ruin', 'Таймер и сразу следующая волна; недобитые остаются и звереют; зачистка даёт опыт и передышку 5 с; +20 HP за засчитанную волну; волна босса — 120 с.'],
+  ['Стоянием, а не по E', 'Алтарь, проклятый сундук и кузня срабатывают, если постоять в круге; E — только вагонетке; причина отказа показывается строкой.'],
+  ['Обычные сундуки и озеро', 'Сундуки лежат на карте (4–5 на старте, +1 за волну, до 6); на озере брод по камням и островок со сундуком на два улучшения.'],
+  ['Пол и читаемость', 'Пол по зонам с рельефом, светлая кромка у врагов, озверевшие краснеют.'],
+  ['HUD «Кованый фонарь»', 'Полоска опыта наверху, радар-компас, строка волны, кольца рывка и Q, ряд оружий, столбик бонусов (Alt), указатели-медальоны, шрифты Alegreya, 63 значка.'],
+  ['Звук', 'В паузе два переключателя: «Звуки подземелья» и «Звук подбора опыта».'],
+  ['Решил ведущий', 'Камера по левел-дизайну (36 × 23,5 м, наклон 62°); алтарей 5 мест, активны 4 по очереди; 40 % врагов рождается по ходу бега; жук-щитоносец — «Щитожук», чтобы не путать с «Щитоносцем» крепости.'],
 ];
 function initDecide() {
-  const KEY = 'dg-answers-v1';
-  const st = { a: {}, ex: null };
-  QS.forEach((q) => { if (q.opts) st.a[q.n] = q.opts[0][0]; });
-  try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { Object.assign(st.a, saved.a || {}); if (Array.isArray(saved.ex)) { EXSTATE.set.clear(); saved.ex.forEach((id) => EXSTATE.set.add(id)); } } } catch (e) { /* без хранилища тоже работает */ }
-  const qs = $('#qs');
-  qs.innerHTML = QS.map((q) => `<div class="q" id="q${q.n}"><h4><i>${q.n}</i>${q.q}</h4><p class="why">${q.why}</p>` + (q.opts ? `<div class="opts" role="radiogroup" aria-label="${esc(q.q)}">${q.opts.map(([k, t, s], i) => `<label class="opt1"><input type="radio" name="q${q.n}" value="${k}" ${st.a[q.n] === k ? 'checked' : ''}><span class="tx"><b>${k})</b> ${t}${i === 0 ? ' <span class="pill turq rec">рекомендуем</span>' : ''}<small>${s}</small></span></label>`).join('')}</div>` : `<div class="xs">${EXTRAS.map((e) => `<label class="opt1"><input type="checkbox" data-ex="${e.id}"><span class="tx">${e.name}${e.rec ? ' <span class="pill turq rec">рекомендуем</span>' : ''}<small>${e.fun}</small></span></label>`).join('')}</div>`) + '</div>').join('');
-  const out = $('#answer');
-  const text = () => { const nums = QS.filter((q) => q.opts).map((q) => q.n + st.a[q.n]).join(' '); const ex = EXTRAS.filter((e) => EXSTATE.set.has(e.id)).map((e) => e.short); return `${nums}, постройки (4): ${ex.length ? ex.join(', ') : 'без дополнительных'}`; };
-  const syncEx = () => { $$('input[data-ex]', qs).forEach((i) => { i.checked = EXSTATE.set.has(i.dataset.ex); i.closest('.opt1').classList.toggle('chk', i.checked); }); upd(); };
-  function upd() {
-    $$('.opt1', qs).forEach((l) => { const i = $('input', l); l.classList.toggle('chk', i.checked); });
-    out.textContent = text();
-    try { localStorage.setItem(KEY, JSON.stringify({ a: st.a, ex: [...EXSTATE.set] })); } catch (e) { /* ок */ }
-  }
-  EXSTATE.subs.push(syncEx);
-  qs.addEventListener('change', (e) => { const t = e.target; if (t.type === 'radio') { st.a[+t.name.slice(1)] = t.value; upd(); } else if (t.dataset.ex) setExtra(t.dataset.ex, t.checked); });
-  EXSTATE.subs.forEach((f) => f());
-  const msg = $('#copied');
-  $('#copy').addEventListener('click', async () => {
-    const s = out.textContent;
-    try { await navigator.clipboard.writeText(s); msg.textContent = 'Скопировано. Вставь в чат.'; }
-    catch (e) {
-      const r = document.createRange(); r.selectNodeContents(out); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { /* нет */ }
-      msg.textContent = ok ? 'Скопировано. Вставь в чат.' : 'Текст выделен: нажми Ctrl+C (на Mac Cmd+C).';
-    }
-    setTimeout(() => { msg.textContent = ''; }, 5000);
-  });
-  $('#reset').addEventListener('click', () => { QS.forEach((q) => { if (q.opts) { st.a[q.n] = q.opts[0][0]; $$(`input[name="q${q.n}"]`, qs).forEach((i) => { i.checked = i.value === st.a[q.n]; }); } }); EXSTATE.set.clear(); EXTRAS.filter((e) => e.rec).forEach((e) => EXSTATE.set.add(e.id)); EXSTATE.subs.forEach((f) => f()); upd(); });
-  $('#own').innerHTML = OWN.map(([t, d]) => `<div class="card"><b>${t}</b>${d}</div>`).join('');
+  $('#dectbl').innerHTML = `<thead><tr><th>Вопрос</th><th>Решение</th><th>Как в игре</th></tr></thead><tbody>${DECISIONS.map(([q, a, h]) => `<tr><td>${esc(q)}</td><td><b>${esc(a)}</b></td><td>${esc(h)}</td></tr>`).join('')}</tbody>`;
+  $('#own').innerHTML = BRIEF.map(([t, d]) => `<div class="card"><b>${esc(t)}</b>${esc(d)}</div>`).join('');
+  $('#changes').innerHTML = CHANGES.map(([t, d]) => `<div class="card"><b>${esc(t)}</b>${esc(d)}</div>`).join('');
 }
 
 /* ---- ЗАПУСК ---------------------------------------------------------- */
@@ -2059,7 +2110,7 @@ async function main() {
   }
   if (!S.B) S.B = S.D.balanceSnapshot.rows;
   resolveModels();
-  [['nav', initNav], ['header', initHeader], ['controls', initControls], ['hero', initHero], ['heroView', initHeroBossViews], ['arena', initArena], ['weapons', initWeapons], ['pick', initPick], ['bestiary', initBestiary], ['waves', initWaves], ['boss', initBoss], ['map', initMap], ['wrapdemo', initWrapDemo], ['buildings', initBuildings], ['rewards', initRewards], ['hud', initHud], ['models', initModels], ['gallery', initGallery], ['decide', initDecide]]
+  [['nav', initNav], ['header', initHeader], ['play', initPlay], ['controls', initControls], ['hero', initHero], ['heroView', initHeroBossViews], ['arena', initArena], ['weapons', initWeapons], ['pick', initPick], ['bestiary', initBestiary], ['waves', initWaves], ['boss', initBoss], ['map', initMap], ['wrapdemo', initWrapDemo], ['buildings', initBuildings], ['rewards', initRewards], ['hud', initHud], ['models', initModels], ['gallery', initGallery], ['decide', initDecide]]
     .forEach(([n, f]) => safe(n, f));
   if (location.hash) { const el = document.getElementById(location.hash.slice(1)); if (el) setTimeout(() => el.scrollIntoView(), 50); }
 }
