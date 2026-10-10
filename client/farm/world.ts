@@ -5,7 +5,6 @@
 // ходячие питомцы (3d/pets.ts) и частицы (3d/fx.ts). Планировка — shared/farmlayout.ts (docs/farm/level/layout.json).
 // Посадка, полив, сбор и помощь видны по изменению участка (setPlot): «пуф» земли, брызги, искорка в Древо.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bedStage } from '../../shared/farm.ts';
 import { FARM_BEDS, FARM_PLOTS, cropById } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
@@ -28,6 +27,7 @@ import { FarmNpcs, type NpcId } from './3d/npcs.ts';
 import { WalkPets } from './3d/pets.ts';
 import { FarmVan } from './3d/van.ts';
 import { FarmYard } from './3d/yard.ts';
+import { FarmDecor } from './decor/decor.ts';
 import { PartInstances, StaticBatch, loadModel, type FarmModel, type Part } from './models.ts';
 
 const L = FARM_LAYOUT;
@@ -78,42 +78,6 @@ function plotPoint(plot: number, lx: number, lz: number): [number, number] {
   return [p.x + lx * c + lz * s, p.z - lx * s + lz * c];
 }
 
-/** Плоская полоса (дорожка) из точек ломаной */
-function strip(points: readonly (readonly [number, number])[], width: number, y: number, color: THREE.Color): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  for (let i = 0; i + 1 < points.length; i++) {
-    const [x0, z0] = points[i];
-    const [x1, z1] = points[i + 1];
-    const len = Math.hypot(x1 - x0, z1 - z0);
-    const g = flat(new THREE.PlaneGeometry(width, len + width * 0.5), color);
-    g.applyMatrix4(at((x0 + x1) / 2, y, (z0 + z1) / 2, Math.atan2(x1 - x0, z1 - z0)));
-    out.push(g);
-  }
-  return out;
-}
-
-/** Горизонтальная плоскость цвета color с лёгким шумом по вершинам */
-function flat(g: THREE.BufferGeometry, color: THREE.Color, noise = 0.05, seed = 1): THREE.BufferGeometry {
-  return colored(g.rotateX(-Math.PI / 2), color, noise, seed);
-}
-
-/** Цвет в вершины (без развёртки) с лёгким шумом */
-function colored(g: THREE.BufferGeometry, color: THREE.Color, noise = 0.05, seed = 1): THREE.BufferGeometry {
-  const src = g.index ? g.toNonIndexed() : g;
-  src.deleteAttribute('uv');
-  const n = src.getAttribute('position').count;
-  const c = new Float32Array(n * 3);
-  const rng = makeRng(seed);
-  for (let i = 0; i < n; i++) {
-    const k = 1 + (rng() - 0.5) * noise;
-    c[i * 3] = color.r * k;
-    c[i * 3 + 1] = color.g * k;
-    c[i * 3 + 2] = color.b * k;
-  }
-  src.setAttribute('color', new THREE.BufferAttribute(c, 3));
-  return src;
-}
-
 export class FarmWorld {
   readonly renderer: Renderer;
   readonly scene = new THREE.Scene();
@@ -126,6 +90,7 @@ export class FarmWorld {
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
   private readonly gulls: Gulls;
+  private readonly decor: FarmDecor;
   private painted = false;
   private time = 0;
   private models = new Map<string, FarmModel>();
@@ -195,7 +160,7 @@ export class FarmWorld {
     this.seaMat = sea.material;
     if (LOOK2) { lookSky(this.skyMat); lookSea(this.seaMat); }
     scene.add(sky, sea);
-    this.buildGround();
+    this.decor = new FarmDecor(scene, this.camera);
     scene.add(this.cropGroup);
     this.gulls = new Gulls(scene, 0, 60);
     this.fx = new FarmFx(scene);
@@ -221,92 +186,13 @@ export class FarmWorld {
     void this.load();
   }
 
-  // ------------------------------------------------------------ земля, дорожки, дальний фон
-
-  private buildGround(): void {
-    const grass = new THREE.Color(0x7fae4f);
-    const field = new THREE.Color(0x8fb35a);
-    const dirt = new THREE.Color(0xc9a77a);
-    const stone = new THREE.Color(0xbfb6a6);
-    const soil = new THREE.Color(0xa88a62);
-    // земля фермы и поля вокруг — до обрыва на юге
-    const parts: THREE.BufferGeometry[] = [];
-    parts.push(flat(new THREE.PlaneGeometry(80, 80, 20, 20), grass, 0.08, 3));
-    const far = flat(new THREE.PlaneGeometry(900, 460, 30, 15), field, 0.12, 4);
-    far.translate(0, -0.03, 38 - 230);
-    parts.push(far);
-    // обрыв к морю
-    const cliffColor = new THREE.Color(0xb59a76);
-    const cliff = new THREE.PlaneGeometry(900, SEA_DROP + 1, 30, 2);
-    cliff.translate(0, -(SEA_DROP + 1) / 2 - 0.03, 38);
-    parts.push(colored(cliff, cliffColor, 0.15, 5));
-    const ground = new THREE.Mesh(mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)))!, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
-    ground.receiveShadow = true;
-    ground.matrixAutoUpdate = false;
-    this.scene.add(ground);
-
-    // дорожки и дворы участков: лентой чуть выше земли (зазор и polygonOffset — без мерцания)
-    const ways: THREE.BufferGeometry[] = [];
-    const y = 0.015;
-    const apron = flat(new THREE.CircleGeometry(L.paths.apron.r, 40), stone, 0.06, 6);
-    apron.translate(L.paths.apron.x, y, L.paths.apron.z);
-    ways.push(apron);
-    const ring = flat(new THREE.RingGeometry(L.paths.ring.in, L.paths.ring.out, 96, 1), dirt, 0.08, 7);
-    ring.translate(0, y, 0);
-    ways.push(ring);
-    for (const r of L.paths.radial) ways.push(...strip([r.from as unknown as [number, number], r.to as unknown as [number, number]], r.width, y, dirt));
-    ways.push(...strip(L.paths.road.points as unknown as [number, number][], L.paths.road.width, y, dirt));
-    for (const f of L.paths.foot) if ('points' in f) ways.push(...strip(f.points as unknown as [number, number][], f.width, y, dirt));
-    for (let i = 0; i < L.plots.length; i++) {
-      const p = L.plots[i];
-      const yard = flat(new THREE.PlaneGeometry(L.plot.w - 0.3, L.plot.l - 0.3), soil, 0.06, 10 + i);
-      yard.applyMatrix4(at(p.x, y + 0.002, p.z, p.yaw));
-      ways.push(yard);
-      // дорожка от калитки участка к кольцу
-      const [gx, gz] = plotPoint(i, 0, L.plot.l / 2);
-      const [ox, oz] = plotPoint(i, 0, L.plot.l / 2 + 1.6);
-      ways.push(...strip([[gx, gz], [ox, oz]], 1.2, y + 0.001, dirt));
-    }
-    const path = new THREE.Mesh(mergeGeometries(ways.map((g) => (g.index ? g.toNonIndexed() : g)))!, new THREE.MeshStandardMaterial({
-      vertexColors: true, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
-    }));
-    path.receiveShadow = true;
-    path.matrixAutoUpdate = false;
-    this.scene.add(path);
-
-    // дальние холмы на севере, востоке и западе
-    const hills: THREE.BufferGeometry[] = [];
-    const rng = makeRng(42);
-    for (let i = 0; i < 26; i++) {
-      const a = -Math.PI * 0.95 + (i / 25) * Math.PI * 1.9 + (rng() - 0.5) * 0.1;
-      const d = 170 + rng() * 140;
-      const r = 50 + rng() * 60;
-      const g = new THREE.IcosahedronGeometry(1, 2);
-      g.scale(r, r * (0.25 + rng() * 0.2), r);
-      const x = Math.sin(a) * d;
-      const z = -Math.cos(a) * d;
-      if (z > 10) continue;
-      g.translate(x, -r * 0.08, z);
-      const c = new THREE.Color().setHSL(0.23 + rng() * 0.06, 0.38, 0.38 + rng() * 0.1);
-      const src = g.toNonIndexed();
-      const n = src.getAttribute('position').count;
-      const col = new Float32Array(n * 3);
-      for (let k = 0; k < n; k++) { col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b; }
-      src.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      src.deleteAttribute('uv');
-      hills.push(src);
-    }
-    const hillMesh = new THREE.Mesh(mergeGeometries(hills)!, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }));
-    hillMesh.matrixAutoUpdate = false;
-    this.scene.add(hillMesh);
-  }
-
   // ------------------------------------------------------------ модели
 
   private async load(): Promise<void> {
     const names = [...STATIC_MODELS, ...CROP_IDS.map((c) => `crop_${c}`)];
     const list = await Promise.all(names.map((n) => loadModel(n)));
     for (const m of list) this.models.set(m.name, m);
+    await this.decor.ready;
     this.buildStatic();
     this.buildBeds();
     this.npcs = new FarmNpcs(this.scene, this.models);
@@ -643,6 +529,7 @@ export class FarmWorld {
     this.skyMat.uniforms.uTime.value = t;
     this.seaMat.uniforms.uTime.value = t;
     this.gulls.update(t);
+    this.decor.update(t);
     if (this.bedsDirty || this.popping || t - this.stagesAt > 0.5) {
       this.stagesAt = t;
       this.updateBeds(now);
