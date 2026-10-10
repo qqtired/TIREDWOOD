@@ -1,13 +1,16 @@
 // Мир фермы: вечерняя палитра набережной (без скачка света при переходе), земля и дорожки, вся неподвижная постройка
-// из моделей Blender (склейка по материалу — несколько отрисовок), грядки 20 участков и растения — инстансами,
-// жители Семечкин и Дядюшка Гриб. Планировка — shared/farmlayout.ts (docs/farm/level/layout.json).
+// из моделей Blender (склейка по материалу — несколько отрисовок), грядки 20 участков и растения — инстансами
+// (стадии роста, «выпрыгивание» на смене стадии, мягкое свечение спелых яркостью материала, золотые искорки), жители
+// и Фургон с Тётей Зиной (3d/npcs.ts, 3d/van.ts), Древо разлома (3d/boss.ts), задний двор участков (3d/yard.ts),
+// ходячие питомцы (3d/pets.ts) и частицы (3d/fx.ts). Планировка — shared/farmlayout.ts (docs/farm/level/layout.json).
+// Посадка, полив, сбор и помощь видны по изменению участка (setPlot): «пуф» земли, брызги, искорка в Древо.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bedStage } from '../../shared/farm.ts';
-import { FARM_BEDS, FARM_PLOTS } from '../../shared/farmdata.ts';
+import { FARM_BEDS, FARM_PLOTS, cropById } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
-import { buildFarmMap } from '../../shared/farmmap.ts';
-import type { FarmPlotView } from '../../shared/farmnet.ts';
+import { bedWorld, buildFarmMap } from '../../shared/farmmap.ts';
+import type { FarmBedView, FarmEvent, FarmPlotView } from '../../shared/farmnet.ts';
 import type { FarmSysMsg } from '../../shared/farmsys.ts';
 import { makeRng } from '../../shared/math.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -15,10 +18,17 @@ import { Gulls, fitShadow } from '../render/kit.ts';
 import { LOOK2 } from '../render/look.ts';
 import { installLookTone, lookTone, paintMaterial, paintable, type PaintOptions } from '../render/lookpaint.ts';
 import { LOOK_EVENING, lookSea, lookSky } from '../render/looksky.ts';
+import { LOCAL_WALKER } from '../render/outfitfarm.ts';
 import type { Renderer } from '../render/renderer.ts';
 import { EVENING, fogColor, makeSea, makeSky, type SkyPalette } from '../render/sky.ts';
 import { TOUCH } from '../touch.ts';
-import { PartInstances, StaticBatch, loadModel, type FarmModel } from './models.ts';
+import { FarmBoss } from './3d/boss.ts';
+import { FarmFx } from './3d/fx.ts';
+import { FarmNpcs, type NpcId } from './3d/npcs.ts';
+import { WalkPets } from './3d/pets.ts';
+import { FarmVan } from './3d/van.ts';
+import { FarmYard } from './3d/yard.ts';
+import { PartInstances, StaticBatch, loadModel, type FarmModel, type Part } from './models.ts';
 
 const L = FARM_LAYOUT;
 const SKY: SkyPalette = LOOK2 ? LOOK_EVENING : EVENING;
@@ -33,9 +43,18 @@ const CROP_IDS = [
 ];
 const STATIC_MODELS = [
   'bed', 'plot', 'well', 'seed_stall', 'grib_kiosk', 'order_board', 'notice_board', 'cart_town', 'campfire', 'pedestal', 'van',
-  'decor', 'trees', 'hive', 'npc-grib', 'npc-semechkin',
+  'decor', 'trees', 'hive', 'npc-grib', 'npc-semechkin', 'npc-zina', 'boss-tree', 'boss-cone', 'truffle-pig', 'pig-pen', 'compost',
 ];
 const ALL_BEDS = FARM_PLOTS * FARM_BEDS;
+/** «Выпрыгивание» растения при посадке и смене стадии: 0 → 1,1 → 1 за 0,3 с */
+const POP_S = 0.3;
+function popScale(t: number): number {
+  if (t >= POP_S) return 1;
+  return t < 0.2 ? Math.max(0.01, (t / 0.2) * 1.1) : 1.1 - ((t - 0.2) / 0.1) * 0.1;
+}
+/** Мягкое свечение спелых: тёплый эмиссив материала, пульс яркостью */
+const RIPE_GLOW = new THREE.Color(0x6a4a14);
+const RIPE_SPARK_R = 30;
 
 type V3 = [number, number, number];
 const _m = new THREE.Matrix4();
@@ -107,7 +126,6 @@ export class FarmWorld {
   private readonly skyMat: THREE.ShaderMaterial;
   private readonly seaMat: THREE.ShaderMaterial;
   private readonly gulls: Gulls;
-  private readonly mixers: THREE.AnimationMixer[] = [];
   private painted = false;
   private time = 0;
   private models = new Map<string, FarmModel>();
@@ -120,6 +138,24 @@ export class FarmWorld {
   private bedsDirty = true;
   private stagesAt = 0;
   private readonly stageKey: number[] = [];
+  /** Когда грядка сменила стадию (для «выпрыгивания»), с */
+  private readonly popAt: number[] = [];
+  private popping = false;
+  /** Материалы спелых растений и ободка: пульсируют яркостью */
+  private readonly ripeMats = new Map<THREE.Material, THREE.Material>();
+  private rimMat: THREE.MeshBasicMaterial | null = null;
+  private readonly ripeSpots: { x: number; z: number }[] = [];
+  private ripeSparkT = 0;
+  /** Первое состояние Древа — без роликов */
+  private bossSeen = false;
+  readonly fx: FarmFx;
+  private npcs: FarmNpcs | null = null;
+  private van: FarmVan | null = null;
+  private boss: FarmBoss | null = null;
+  private yard: FarmYard | null = null;
+  readonly pets: WalkPets;
+  /** Сообщения, пришедшие до загрузки моделей */
+  private readonly early: FarmSysMsg[] = [];
 
   constructor(renderer: Renderer) {
     this.renderer = renderer;
@@ -159,6 +195,9 @@ export class FarmWorld {
     this.buildGround();
     scene.add(this.cropGroup);
     this.gulls = new Gulls(scene, 0, 60);
+    this.fx = new FarmFx(scene);
+    this.pets = new WalkPets(scene, this.fx);
+    if (typeof location !== 'undefined' && (import.meta.env?.DEV || location.search.includes('debug'))) (window as unknown as Record<string, unknown>).__farmWorld = this;
 
     if (LOOK2) {
       const paint: PaintOptions = { grain: !TOUCH, uniforms: { uLookShade: { value: new THREE.Color(0.92, 0.97, 1.18) }, uLookSunInv: { value: 1.6 / (this.sun.intensity * 0.95) } } };
@@ -267,7 +306,13 @@ export class FarmWorld {
     for (const m of list) this.models.set(m.name, m);
     this.buildStatic();
     this.buildBeds();
-    this.buildNpcs();
+    this.npcs = new FarmNpcs(this.scene, this.models);
+    const shadows = () => this.renderer.refreshShadows();
+    this.van = new FarmVan(this.scene, this.models, shadows);
+    this.boss = new FarmBoss(this.scene, this.models, this.fx, shadows);
+    this.yard = new FarmYard(this.scene, this.models, this.fx, shadows);
+    this.yard.setPlots(this.plots);
+    for (const m of this.early.splice(0)) this.onSys(m);
     this.loading = false;
     this.painted = false;
     this.bedsDirty = true;
@@ -305,9 +350,6 @@ export class FarmWorld {
     }
     const boss = obj('boss');
     put('pedestal', 'boss_plinth', boss.x, 0, boss.z, boss.yaw);
-    put('pedestal', 'boss_stump', boss.x, 0.3, boss.z, boss.yaw);
-    const van = obj('van') as (typeof L.objects)[number] & { awaySign: { x: number; z: number } };
-    put('van', 'van_away_sign', van.awaySign.x, 0, van.awaySign.z, Math.PI / 2);
     for (const id of ['lanternN', 'lanternE', 'lanternS', 'lanternW']) {
       const l = obj(id);
       put('decor', 'lantern_post', l.x, 0, l.z, Math.atan2(l.x, l.z));
@@ -361,39 +403,112 @@ export class FarmWorld {
     this.beds = { frame: mk('bed_frame'), turf: mk('bed_turf'), lock: mk('bed_lock'), empty: mk('bed_empty'), dug: mk('bed_dug'), wet: mk('bed_wet'), rim: mk('bed_ripe_rim') };
   }
 
-  /** Жители: модель со скелетом целиком (по одной), анимация «стоит» */
-  private buildNpcs(): void {
-    for (const [id, model] of [['semechkin', 'npc-semechkin'], ['grib', 'npc-grib']] as const) {
-      const m = this.models.get(model);
-      const o = L.objects.find((x) => x.id === id) as { npc?: { x: number; z: number; yaw: number } } | undefined;
-      if (!m || !o?.npc) continue;
-      const root = m.gltf.scene;
-      root.position.set(o.npc.x, 0, o.npc.z);
-      root.rotation.y = o.npc.yaw;
-      root.traverse((x) => { x.castShadow = (x as THREE.Mesh).isMesh; });
-      this.scene.add(root);
-      const idle = m.gltf.animations.find((a) => a.name === 'idle') ?? m.gltf.animations[0];
-      if (idle) {
-        const mixer = new THREE.AnimationMixer(root);
-        mixer.clipAction(idle).play();
-        this.mixers.push(mixer);
-      }
-    }
-  }
-
   // ------------------------------------------------------------ грядки и растения
 
   setPlots(list: readonly FarmPlotView[]): void {
-    this.plots = [...list];
+    this.plots = [];
+    for (const v of list) this.plots[v.i] = v;
     this.bedsDirty = true;
+    this.yard?.setPlots(this.plots);
   }
 
-  /** Сообщения частей B1 (shared/farmsys.ts): Фургон приехал, босс проснулся — 3D-часть B3 */
-  onSys(_m: FarmSysMsg): void {}
+  /**
+   * Сообщения части B1 (shared/farmsys.ts): Фургон открыт или уехал, Древо — состояние, шишки, чих, итог. Окна и тосты —
+   * у FarmHud.onSys; здесь только 3D.
+   */
+  onSys(m: FarmSysMsg): void {
+    if (this.loading) {
+      if (m.t === 'farmVan' || m.t === 'farmBoss' || m.t === 'farmBossEnd') this.early.push(m);
+      return;
+    }
+    switch (m.t) {
+      case 'farmVan':
+        this.van?.setServer(m.v.open, m.v.next);
+        return;
+      case 'farmBoss': {
+        const b = m.b;
+        const phase = b.st === 'awake' ? 'awake' : b.st === 'bloom' ? 'won' : b.st === 'gone' ? 'lost' : 'sleep';
+        const first = !this.bossSeen;
+        this.bossSeen = true;
+        this.boss?.setState(phase, b.hp > 0 ? b.bloom / b.hp : 0, b.phase, first);
+        if (phase === 'awake') this.boss?.setCones(b.cones);
+        return;
+      }
+      case 'farmBossEnd':
+        this.boss?.setState(m.r.bloom ? 'won' : 'lost');
+        return;
+      case 'farmBossFx':
+        if (m.k === 'sneeze') this.boss?.sneeze();
+        else if (m.id !== undefined) this.boss?.removeCone(m.id);
+        return;
+    }
+  }
+
+  /**
+   * События фермы (farmEv), которые не видны по участку: продажа — Гриб платит (у Фургона — Зина ставит галочку),
+   * новый уровень и сбор — радуется свой питомец. Подключение в scene.ts: `this.world.onEvent(e)` рядом с `this.onEvent(e)`.
+   */
+  onEvent(e: FarmEvent): void {
+    const me = LOCAL_WALKER.get(this.scene);
+    switch (e.k) {
+      case 'sold': {
+        // сделка Фургона приходит тем же 'sold': стоишь у Фургона — кивает Зина, иначе платит Гриб
+        const van = L.objects.find((o) => o.id === 'van')!;
+        if (me && this.van?.here && Math.hypot(me.x - van.x, me.z - van.z) < 6) this.van.accept();
+        else this.npcs?.cue('grib', e.coins >= 150 ? 'bigsale' : 'sold');
+        return;
+      }
+      case 'level':
+      case 'harvest':
+        if (me) this.pets.cheerNear(me.x, me.z, 1);
+        return;
+    }
+  }
+
+  /** Окно жителя открыто/закрыто (Гриб, Семечкин): пока открыто — разговаривает. Подключение — в scene.ts */
+  talk(id: string, on: boolean): void {
+    if (id === 'grib' || id === 'semechkin') this.npcs?.setTalking(id as NpcId, on);
+  }
+
+  /**
+   * Шишка-ворчунья под ногами (прошёл сквозь неё — подобрал): id для действия {a: 'cone', id} или null. Сцене —
+   * спрашивать каждый кадр и слать не чаще раза в 0,5 с
+   */
+  coneAt(x: number, z: number, r = 0.8): number | null {
+    return this.boss?.coneAt(x, z, r) ?? null;
+  }
 
   setPlot(v: FarmPlotView): void {
+    const old = this.plots[v.i];
     this.plots[v.i] = v;
     this.bedsDirty = true;
+    this.yard?.setPlots(this.plots);
+    if (old && old.pid === v.pid) this.diffPlot(old, v);
+  }
+
+  /** Что случилось на участке: посадка, полив, помощь, сбор — частицы, искорка в Древо, радость питомца и Семечкина */
+  private diffPlot(a: FarmPlotView, b: FarmPlotView): void {
+    const me = LOCAL_WALKER.get(this.scene);
+    for (let n = 0; n < b.beds.length; n++) {
+      const was: FarmBedView | undefined = a.beds[n];
+      const now = b.beds[n];
+      if (!was) continue;
+      const { x, z } = bedWorld(b.i, n);
+      if (was.c && !now.c) {
+        // сбор: «пуф» земли и листочки; во время Древа — искорка роста
+        this.fx.burst({ x, y: 0.2, z, n: 14, color: 0x8a6440, spread: 1, up: 1.6, life: 0.7, size: 0.16 });
+        this.fx.burst({ x, y: 0.5, z, n: 10, color: 0xffd36a, spread: 0.8, up: 1.8, life: 0.8, size: 0.12, glow: true, gravity: 1 });
+        this.boss?.spark(x, z, cropById(was.c)?.xp ?? 5);
+        this.pets.cheerNear(x, z, 5);
+      } else if (!was.c && now.c) {
+        this.fx.burst({ x, y: 0.2, z, n: 16, color: 0x8a6440, spread: 1.1, up: 1.4, life: 0.6, size: 0.18 });
+        this.popAt[b.i * FARM_BEDS + n] = this.time;
+        if (me && Math.hypot(me.x - x, me.z - z) < 6) this.npcs?.cue('semechkin', 'happy');
+      } else if (now.c && ((!was.w && now.w) || now.h > was.h)) {
+        // полив и помощь соседа: брызги
+        this.fx.burst({ x, y: 0.45, z, n: 22, color: 0x7cc4ff, spread: 0.9, up: 1.2, life: 0.55, size: 0.1, gravity: 4 });
+      }
+    }
   }
 
   private cropParts(crop: string, stage: number): PartInstances | null {
@@ -402,7 +517,10 @@ export class FarmWorld {
       const model = this.models.get(`crop_${crop}`);
       if (!model) return null;
       list = [0, 1, 2, 3].map((s) => {
-        const pi = new PartInstances(model.nodes.get(`stage${s}`), ALL_BEDS);
+        let parts: readonly Part[] | undefined = model.nodes.get(`stage${s}`);
+        // спелая стадия — свои материалы с тёплым свечением (та же программа шейдера, пульс — яркостью)
+        if (s === 3 && parts) parts = parts.map((p) => ({ ...p, mat: this.ripeMat(p.mat) }));
+        const pi = new PartInstances(parts, ALL_BEDS);
         pi.addTo(this.cropGroup);
         return pi;
       });
@@ -411,25 +529,48 @@ export class FarmWorld {
     return list[stage] ?? null;
   }
 
-  /** Перестроить грядки: при изменении участков и при смене стадии роста (раз в полсекунды) */
+  private ripeMat(src: THREE.Material): THREE.Material {
+    let m = this.ripeMats.get(src);
+    if (m) return m;
+    const s = src as THREE.MeshStandardMaterial;
+    if (!s.isMeshStandardMaterial) m = src;
+    else {
+      m = new THREE.MeshStandardMaterial({
+        vertexColors: true, roughness: s.roughness, metalness: s.metalness, side: s.side, emissive: RIPE_GLOW.clone(), emissiveIntensity: 0.6,
+      });
+      m.name = `${src.name}_ripe`;
+    }
+    this.ripeMats.set(src, m);
+    return m;
+  }
+
+  /** Перестроить грядки: при изменении участков, при смене стадии роста (раз в полсекунды) и пока растения «выпрыгивают» */
   private updateBeds(now: number): void {
     const beds = this.beds;
     if (!beds) return;
     // стадии меняются со временем: пересчёт, только если хоть одна поменялась
-    let changed = this.bedsDirty;
-    let k = 0;
-    for (const v of this.plots) {
-      if (!v) continue;
-      for (const b of v.beds) {
-        const st = b.c ? bedStage({ crop: b.c, plantedAt: b.p, ripeAt: b.r, watered: b.w, helpers: [] }, now) : -1;
-        if (this.stageKey[k] !== st) { this.stageKey[k] = st; changed = true; }
-        k++;
+    let changed = this.bedsDirty || this.popping;
+    for (let i = 0; i < L.plots.length; i++) {
+      const v = this.plots[i];
+      for (let n = 0; n < FARM_BEDS; n++) {
+        const k = i * FARM_BEDS + n;
+        const b = v?.pid ? v.beds[n] : undefined;
+        const st = b?.c ? bedStage({ crop: b.c, plantedAt: b.p, ripeAt: b.r, watered: b.w, helpers: [] }, now) : -1;
+        const was = this.stageKey[k];
+        if (was !== st) {
+          // новая стадия на глазах — растение «выпрыгивает» (при входе на ферму — нет)
+          if (was !== undefined && st >= 0 && was >= 0) this.popAt[k] = this.time;
+          this.stageKey[k] = st;
+          changed = true;
+        }
       }
     }
     if (!changed) return;
     this.bedsDirty = false;
+    this.popping = false;
     for (const pi of Object.values(beds)) pi.begin();
     for (const list of this.crops.values()) for (const pi of list) pi.begin();
+    this.ripeSpots.length = 0;
     const pl = L.plotLocal;
     for (let i = 0; i < L.plots.length; i++) {
       const v = this.plots[i];
@@ -448,13 +589,26 @@ export class FarmWorld {
         const b = v.beds[n];
         if (!b.c) { beds.empty.push(m); continue; }
         (b.w ? beds.wet : beds.dug).push(m);
-        const st = bedStage({ crop: b.c, plantedAt: b.p, ripeAt: b.r, watered: b.w, helpers: [] }, now);
-        this.cropParts(b.c, st)?.push(m);
-        if (st === 3) beds.rim.push(m);
+        const st = this.stageKey[i * FARM_BEDS + n];
+        if (st === 3) {
+          beds.rim.push(m);
+          this.ripeSpots.push({ x, z });
+        }
+        const age = this.time - (this.popAt[i * FARM_BEDS + n] ?? -9);
+        if (age < POP_S) this.popping = true;
+        this.cropParts(b.c, st)?.push(at(x, 0, z, plot.yaw, popScale(age)));
       }
     }
     for (const pi of Object.values(beds)) pi.end();
     for (const list of this.crops.values()) for (const pi of list) pi.end();
+    if (!this.rimMat) {
+      // ободок спелой грядки — свой материал: пульсирует яркостью
+      const rim = beds.rim.meshes[0]?.material as THREE.MeshBasicMaterial | undefined;
+      if (rim?.isMeshBasicMaterial) {
+        this.rimMat = rim.clone();
+        for (const mesh of beds.rim.meshes) mesh.material = this.rimMat;
+      }
+    }
     this.painted = false;
   }
 
@@ -482,11 +636,32 @@ export class FarmWorld {
     this.skyMat.uniforms.uTime.value = t;
     this.seaMat.uniforms.uTime.value = t;
     this.gulls.update(t);
-    for (const m of this.mixers) m.update(dt);
-    if (this.bedsDirty || t - this.stagesAt > 0.5) {
+    if (this.bedsDirty || this.popping || t - this.stagesAt > 0.5) {
       this.stagesAt = t;
       this.updateBeds(now);
     }
+    // спелое: мягкий пульс яркостью и редкие золотые искорки над ближними грядками
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
+    for (const m of this.ripeMats.values()) if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) (m as THREE.MeshStandardMaterial).emissiveIntensity = 0.35 + 0.5 * pulse;
+    this.rimMat?.color.setScalar(0.8 + 0.45 * pulse);
+    const cam = this.camera.position;
+    this.ripeSparkT -= dt;
+    if (this.ripeSparkT <= 0 && this.ripeSpots.length) {
+      this.ripeSparkT = 0.12;
+      const s = this.ripeSpots[Math.floor(Math.random() * this.ripeSpots.length)];
+      if (Math.hypot(s.x - cam.x, s.z - cam.z) < RIPE_SPARK_R) {
+        this.fx.one(s.x + (Math.random() - 0.5) * 1.3, 0.35 + Math.random() * 0.5, s.z + (Math.random() - 0.5) * 1.3, 0, 0.35, 0, 0xffd36a, 1.4, 0.09);
+      }
+    }
+    const me = LOCAL_WALKER.get(this.scene);
+    const meHere = me && performance.now() - me.at < 500 ? me : null;
+    this.npcs?.update(dt, meHere?.x ?? null, meHere?.z ?? null);
+    this.van?.update(dt, now, t);
+    this.boss?.update(dt);
+    this.yard?.update(dt, cam, meHere);
+    this.pets.update(dt, cam);
+    this.fx.setView(this.renderer.canvas.height || 720, this.camera.fov);
+    this.fx.update(dt);
   }
 
   render(): void {
