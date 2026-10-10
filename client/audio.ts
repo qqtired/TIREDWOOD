@@ -39,6 +39,9 @@ export class Sound {
   private musicOut!: GainNode;
   private musicIn!: GainNode;
   private jukeIn!: GainNode;
+  /** Радио на лодке (client/boat/radio.ts): свой вход в шину «Музыка»; автомат уступает ему (duckJuke) */
+  private radioIn!: GainNode;
+  private jukeDuck = 1;
   private noiseBuf!: AudioBuffer;
   private brownBuf!: AudioBuffer;
   private volume = 0.7;
@@ -116,7 +119,10 @@ export class Sound {
       this.musicIn.gain.value = this.duck;
       this.musicIn.connect(this.musicOut);
       this.jukeIn = ctx.createGain();
+      this.jukeIn.gain.value = this.jukeDuck;
       this.jukeIn.connect(this.musicOut);
+      this.radioIn = ctx.createGain();
+      this.radioIn.connect(this.musicOut);
       this.noiseBuf = this.makeNoise(false);
       this.brownBuf = this.makeNoise(true);
       const l = ctx.listener;
@@ -241,6 +247,19 @@ export class Sound {
   /** Для музыкального автомата (client/music): контекст и вход шины «Музыка» мимо приглушения; null — звук не разрешён */
   get jukeKit(): { ctx: AudioContext; out: GainNode } | null {
     return this.ok ? { ctx: this.ctx!, out: this.jukeIn } : null;
+  }
+
+  /** Для радио на лодке: контекст и его вход в шину «Музыка» (ползунок «Музыка»); null — звук не разрешён */
+  get radioKit(): { ctx: AudioContext; out: GainNode } | null {
+    return this.ok ? { ctx: this.ctx!, out: this.radioIn } : null;
+  }
+
+  /** Автомат уступает радио лодки, пока оно рядом: k — доля громкости автомата 0…1 (1 — как есть), плавно */
+  duckJuke(k: number): void {
+    const v = Math.min(1, Math.max(0, Number.isFinite(k) ? k : 1));
+    if (Math.abs(v - this.jukeDuck) < 0.01) return;
+    this.jukeDuck = v;
+    if (this.ctx) this.jukeIn.gain.setTargetAtTime(v, this.ctx.currentTime, 0.4);
   }
 
   /** Приглушить прочую музыку, пока играет автомат: k — доля громкости 0…1 (1 — как есть), плавно. */

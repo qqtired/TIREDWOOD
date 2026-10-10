@@ -69,6 +69,7 @@
 | Косметика острова «Последний свет»: лестница за виды острова (4 — «Колокольный буй», 8 — «Маячная», 12 — окно «Туман», 16 — тупик, 20 — сет «Смотритель маяка»), светящаяся «Золотая рыбка» | `fishstyle.ts` (`ISLE_LADDER`), `islestyle.ts` (счётчик видов острова, заглушка до пакета D), `outfit.ts` | `fishstyle.ts` (`grantLadder`, `/isle N` в чате при `DEV_GO=1`) | `render/islegear.ts` (GLB без загрузчика), `assets/islecos/` (модели и PROVENANCE), `lobby/fishgear.ts`, `render/outfitfish.ts`, `render/leveltag.ts`, `ui/fishstyle.css` (тема `fog`) | `ISLE` (нужна `FISH2`) | `islecos.test.ts` | план `fishing-island` §7 |
 | Баркас «Альбатрос» (10 мест, матрос-рыбак Колян) и лодка Семёна «Удалая» (от хижины) | `barkas.ts`, `ferry.ts` | `lobby/ferry.ts` | `lobby/barkas/` (Колян — `barkas/angler.ts`) | `FISH2` | `barkas.test.ts` | план `barkas` |
 | Способности мификов и божественной (и острова), +20 % времени в зоне, награды уровней 1–15, осётр «чует ловушку» (10.10, протокол 16) | `fishability.ts` (`SPECIES_ABILITY`, `ISLE_ABILITY`, `LEVEL_PERKS`, `reelStyle2`, `WARY_HOLD`, `DRAIN2`), блоки способностей — `fishreel.ts` (`AbilitySpec`, `abilityView`) | `lobby/fishing2.ts` (`reelStyle2`, `hookBonusMs`, `gradeErrors`) | `lobby/fishabfx.ts` + `fishabfx.css` (отрисовка по типу способности), `lobby/fishgame.ts`, звуки — `audio.ts` (`fishAbility`, `fishStorm`); награда уровня — `lobby/fishfmt.ts` (`levelPerkText`), `fishprogresshud.ts`, `fishnpcdialog.ts`; прототип — `lab/fishing-abilities/` | `FISH2` | `fishability.test.ts` (клиент = сервер бит в бит, кемпер, осётр, награды); симуляции `tools/fish/abilities-sim.ts`; остров — `tools/fish/islestyle.ts`, `isle-reel.ts` (числа — `plans/2026-10-10-fishing-island-reel.json`) | план `fishing-abilities` |
+| Радио на своей лодке: 3 бесконечные станции без слов («Форсаж», «Тихая заводь», «Морской фанк»), управляет хозяин или «все на борту»; пока лодок нет — тестовое `/radio` в чате (dev, `DEV_GO=1`) | `boatradio.ts` | `lobby/boatradio.ts` | `boat/radio.ts`, `boat/radiopanel.ts`, `boat/radiostream.ts` (поток отрезков для `music/engine.ts` — `startFeed`), `boat/stations/`; стенд — `tools/radio-lab/` | `ISLE` (нужна `FISH2`) | `boatradio.test.ts` | план `fishing-implementation` |
 | Рулетка рыбака и табло последних 10 ставок | `roulette.ts` | `lobby/roulette.ts` | `lobby/roulette*.ts`, `lobby/rouletteboard.ts`, `lobby/roulettelog.css` | `ROULETTE` (нужна `FISH2`) | `roulette.test.ts` | план `fisheco` |
 
 ### 2.3 Набережная: столы, события, мелочи
@@ -194,6 +195,7 @@
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
 | `jukebox-lab/` | стенд песен музыкального автомата |
+| `radio-lab/` | стенд станций радио на лодке: послушать, офлайн-рендер (громкость, спектрограмма), WAV — `window.__radio.check` |
 | `jukebox-model/` | проверка 3D-модели автомата: свет, ракурсы |
 | `jukebox-panel/` | стенд окна автомата: состояния и жетоны |
 | `lab/` | `decisions.mjs` — сводка решений лаборатории; `link.mjs` — ссылка владельца для локального сервера |

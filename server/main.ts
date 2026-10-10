@@ -65,7 +65,7 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
-// Остров «Последний свет» (лодки, остров, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+// Остров «Последний свет» (лодки, остров, косметика острова, радио на лодках): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const isle = fish2 && (process.env.ISLE === undefined ? DEV : process.env.ISLE === '1');
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
@@ -95,7 +95,7 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
-if (isle) console.log('ISLE: остров «Последний свет» включён');
+if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них включены');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');

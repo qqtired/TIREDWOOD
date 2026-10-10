@@ -27,6 +27,7 @@ import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
+import type { RadioClientMsg, RadioServerMsg } from './boatradio.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
@@ -184,6 +185,7 @@ export type ClientMsg =
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
+  | RadioClientMsg
   | VoiceClientMsg
   | HideClientMsg
   | RegattaClientMsg
@@ -433,6 +435,7 @@ export type ServerMsg =
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg
+  | RadioServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | RegattaServerMsg
