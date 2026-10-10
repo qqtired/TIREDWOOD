@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DgEvent } from '../shared/dungeon/api.ts';
 import { hurtMob } from '../shared/dungeon/core.ts';
-import { blocked } from '../shared/dungeon/map.ts';
-import { applyEvent, createRun, dgHash, dgResult, step, wrapD, wrapP, type DgSim } from '../shared/dungeon/sim.ts';
+import { blocked, terrainAt } from '../shared/dungeon/map.ts';
+import { applyEvent, createRun, DG_LEVEL, dgHash, dgResult, step, wrapD, wrapP, type DgSim } from '../shared/dungeon/sim.ts';
 
 /** Скриптовый игрок без Math.random: направление меняется по номеру шага, рывок и Q по расписанию, первая карточка */
 function scripted(sim: DgSim, mem: { d: number; q: number }): DgEvent[] {
@@ -221,4 +221,99 @@ test('зачистка до таймера: «Зачистка!», переды�
   step(sim);
   assert.equal(sim.wave.stage, 'wave');
   assert.equal(sim.wave.swept, 0);
+});
+
+test('обычные сундуки карты: 4–5 на старте вне стен и воды; подбор — одно улучшение; за волну +1', () => {
+  for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const s = createRun(seed);
+    const map = s.items.filter((i) => i.k === 'chest' && i.src === 'map');
+    assert.ok(map.length >= 4 && map.length <= 5, `сундуков ${map.length}`);
+    for (const c of map) {
+      assert.equal(blocked(c.x, c.z, 1.2), false, 'не в стене');
+      assert.equal(terrainAt(c.x, c.z), 0, 'не в воде и варенье');
+      assert.ok(Math.abs(wrapD(c.x - 120)) > 6, 'не на тракте x = 120');
+    }
+  }
+  const sim = createRun(1);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  const c = sim.items.find((i) => i.src === 'map')!;
+  sim.hero.x = c.x;
+  sim.hero.z = c.z;
+  for (let i = 0; i < 15 && !sim.chest; i++) step(sim);
+  assert.equal(sim.chest?.kind, 'plain');
+  assert.equal(sim.chest!.rows.length, 1);
+  applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+  const n0 = sim.items.filter((i) => i.src === 'map').length;
+  applyEvent(sim, { t: sim.t, k: 'go' });
+  for (let i = 0; i < 30 * 60 && sim.stats.waves < 1; i++) {
+    step(sim);
+    if (sim.choice || sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+  }
+  assert.equal(sim.items.filter((i) => i.src === 'map').length, Math.min(6, n0 + 1), 'волна засчитана — новый сундук');
+});
+
+test('озеро: брод к островку проходим, поперёк — глубина; на островке сундук на 2 улучшения, новый через 120 с', () => {
+  const lk = DG_LEVEL.lake!;
+  const dist = (s: DgSim): number => Math.hypot(wrapD(s.hero.x - lk.x), wrapD(s.hero.z - lk.z));
+  const sim = createRun(2);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  sim.hero.x = lk.x + lk.ford.dx * 17;
+  sim.hero.z = lk.z + lk.ford.dz * 17;
+  applyEvent(sim, { t: 0, k: 'mv', x: -lk.ford.dx * 100, y: -lk.ford.dz * 100 });
+  let kind = '';
+  let rows = 0;
+  for (let i = 0; i < 30 * 8; i++) {
+    step(sim);
+    if (sim.chest) {
+      kind = sim.chest.kind;
+      rows = sim.chest.rows.length;
+      applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+    }
+  }
+  assert.ok(dist(sim) < lk.island, `дошёл до островка: ${dist(sim).toFixed(2)}`);
+  assert.equal(kind, 'isle');
+  assert.equal(rows, 2);
+  assert.ok(sim.isleT > sim.t, 'новый сундук потом');
+  assert.equal(sim.items.some((i) => i.src === 'isle'), false);
+  const due = sim.isleT;
+  let back = -1;
+  for (let g = 0; g < 30 * 400 && back < 0; g++) {
+    step(sim);
+    if (sim.choice || sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+    if (sim.items.some((i) => i.src === 'isle')) back = sim.t;
+  }
+  assert.ok(back >= due && back <= due + 1, `вернулся через 120 с: ${back} / ${due}`);
+  // поперёк брода — глубина не пускает
+  const s2 = createRun(3);
+  const nx = lk.ford.dz;
+  const nz = -lk.ford.dx;
+  s2.hero.x = lk.x + nx * 17;
+  s2.hero.z = lk.z + nz * 17;
+  applyEvent(s2, { t: 0, k: 'mv', x: -nx * 100, y: -nz * 100 });
+  let min = 1e9;
+  for (let i = 0; i < 30 * 6; i++) {
+    step(s2);
+    min = Math.min(min, dist(s2));
+  }
+  assert.ok(min >= lk.deep, `глубина держит: ${min.toFixed(2)}`);
+});
+
+test('проклятый сундук вне волны: причина why и fx locked, в волне — проклятие', () => {
+  const sim = createRun(4);
+  const p = sim.props.find((q) => q.k === 'chest' && q.st === 0)!;
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  sim.hero.x = p.x;
+  sim.hero.z = p.z;
+  step(sim);
+  assert.equal(sim.wave.stage, 'intro');
+  assert.equal(p.why, 'wave');
+  assert.equal(sim.hero.lockId, p.id);
+  assert.ok(sim.fx.some((f) => f.k === 'prop' && f.what === 'locked' && f.why === 'wave'));
+  for (let i = 0; i < 30 * 6 && p.st === 0; i++) {
+    sim.hero.x = p.x;
+    sim.hero.z = p.z;
+    step(sim);
+  }
+  assert.equal(p.st, 1, 'в волне постоял — проклятие');
+  assert.equal(p.why, 'busy');
 });
