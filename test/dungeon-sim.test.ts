@@ -147,3 +147,23 @@ test('тор: координаты по модулю 240, разница — к�
   assert.ok(sim.hero.x >= 0 && sim.hero.x < 240);
   assert.ok(sim.hero.x > 2 && sim.hero.x < 6, `x = ${sim.hero.x}`);
 });
+
+test('постройки срабатывают, если постоять в круге (без E); лестница у старта твёрдая', () => {
+  const sim = createRun(3);
+  sim.hero.hpMax = sim.hero.hp = 1e6;
+  const altar = sim.props.find((p) => p.k === 'altar' && p.st === 0)!;
+  sim.hero.x = altar.x;
+  sim.hero.z = altar.z;
+  for (let i = 0; i < 5; i++) step(sim);
+  assert.equal(sim.hero.useId, altar.id, 'отсчёт пошёл');
+  for (let i = 0; i < 30; i++) step(sim);
+  assert.equal(altar.st, 2, 'алтарь сработал');
+  assert.equal(sim.hero.buffs.length, 1);
+  // лестница: старт свободен, сама лестница — нет; идти на запад от колодца — упрёшься
+  assert.equal(blocked(120, 120, 0.45), false);
+  assert.equal(blocked(112, 120, 0.45), true);
+  const s2 = createRun(4);
+  applyEvent(s2, { t: 0, k: 'mv', x: -100, y: 0 });
+  for (let i = 0; i < 60; i++) step(s2);
+  assert.ok(s2.hero.x > 114, `упёрся в лестницу: x = ${s2.hero.x}`);
+});

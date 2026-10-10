@@ -115,8 +115,38 @@ function pack(list: { s: Shape; kind: number }[]): Packed {
 let SOLIDS: Packed | null = null;
 let HAZ: Packed | null = null;
 
+/**
+ * Лестница наверх у Светового колодца: клиент рисует модель well_stairs в центре колодца (лестница уходит на запад,
+ * −X, от края мозаики Ø 10 м: 10 ступеней 5,5 м, площадка 2,6 м, парапеты ±2,1 м, тумбы с фонарями и скалы по бокам —
+ * tools/survivors/blender/kit_cellars.py). Капсула «stairs» из level-data стоит западнее модели — заменяем её следом модели.
+ */
+export function stairsShapes(wx: number, wz: number): Shape[] {
+  const c = (dx: number, dz: number, r: number): Shape => ({ t: 'c', x: wx + dx, z: wz + dz, r, kind: 'stairs' });
+  const s = (x0: number, z0: number, x1: number, z1: number, r: number): Shape =>
+    ({ t: 's', x0: wx + x0, z0: wz + z0, x1: wx + x1, z1: wz + z1, r, kind: 'stairs' });
+  return [
+    // марши с парапетами: три полосы по ширине 4,6 м, от −5,75 до −15,15 м
+    s(-6.6, -1.45, -14.3, -1.45, 0.85),
+    s(-6.6, 0, -14.3, 0, 0.85),
+    s(-6.6, 1.45, -14.3, 1.45, 0.85),
+    // тумбы с фонарями у подножия
+    c(-5.35, -2.1, 0.45),
+    c(-5.35, 2.1, 0.45),
+    // скалы, в которые уходит лестница
+    s(-14.3, -2.6, -14.3, 2.6, 1.3),
+    c(-12, -3.4, 1.5),
+    c(-12, 3.4, 1.5),
+    c(-9.1, -2.9, 1.1),
+    c(-9.1, 2.9, 1.1),
+  ];
+}
+
 function solids(): Packed {
-  if (!SOLIDS) SOLIDS = pack(LV.obstacles.map((s) => ({ s, kind: T_SOLID })));
+  if (!SOLIDS) {
+    const well = LV.landmarks?.find((l) => l.id === 'well') ?? LV.map.heroSpawn;
+    const list = LV.obstacles.filter((s) => s.kind !== 'stairs').concat(stairsShapes(well.x, well.z));
+    SOLIDS = pack(list.map((s) => ({ s, kind: T_SOLID })));
+  }
   return SOLIDS;
 }
 function hazards(): Packed {

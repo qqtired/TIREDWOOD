@@ -256,8 +256,8 @@ export function hurtHero(sim: DgSim, dmg: number, by: string): boolean {
   h.hurtT = sim.t;
   h.invT = sim.t + ticks(D.hero.hitInvuln);
   fx(sim, { k: 'hurt', n, by });
-  // удар сбивает ковку в кузне
-  if (h.useId >= 0) h.useId = -1;
+  // удар сбивает ковку в кузне (алтарь и сундук — нет)
+  if (h.useId >= 0) for (const p of sim.props) if (p.id === h.useId && p.k === 'forge') h.useId = -1;
   if (h.hp <= 0) {
     h.hp = 0;
     h.dead = sim.t;
