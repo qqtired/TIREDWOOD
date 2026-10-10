@@ -9,12 +9,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => JSON.parse(readFileSync(join(root, p), 'utf8'));
 
 // поля только для модели баланса и длинные пояснения — в игру не нужны
-const DROP = new Set(['model', 'balanceModel', 'balanceSnapshot', 'notes', 'about', 'stats', 'results', 'leaderboard', 'pause']);
-function strip(v) {
-  if (Array.isArray(v)) return v.map(strip);
+// верхний уровень: разделы для страницы и модели баланса; на любой глубине — только model
+const DROP_TOP = new Set(['balanceModel', 'balanceSnapshot', 'notes', 'about', 'stats', 'results', 'leaderboard', 'pause', 'changes']);
+function strip(v, top = false) {
+  if (Array.isArray(v)) return v.map((x) => strip(x));
   if (v && typeof v === 'object') {
     const o = {};
-    for (const [k, x] of Object.entries(v)) if (!DROP.has(k)) o[k] = strip(x);
+    for (const [k, x] of Object.entries(v)) if (k !== 'model' && !(top && DROP_TOP.has(k))) o[k] = strip(x);
     return o;
   }
   return v;
@@ -27,5 +28,5 @@ function emit(file, name, src, data) {
   console.log(file, body.length, 'байт');
 }
 
-emit('shared/dungeon/gen-design.ts', 'DESIGN_RAW', 'docs/survivors/design-data.json', strip(read('docs/survivors/design-data.json')));
-emit('shared/dungeon/gen-level.ts', 'LEVEL_RAW', 'docs/survivors/level-data.json', strip(read('docs/survivors/level-data.json')));
+emit('shared/dungeon/gen-design.ts', 'DESIGN_RAW', 'docs/survivors/design-data.json', strip(read('docs/survivors/design-data.json'), true));
+emit('shared/dungeon/gen-level.ts', 'LEVEL_RAW', 'docs/survivors/level-data.json', strip(read('docs/survivors/level-data.json'), true));

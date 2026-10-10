@@ -7,12 +7,32 @@ import { applyEvent, createRun, dgHash, dgResult, step, wrapD } from '../../shar
 const N = Number(process.argv[2] || 5);
 const MAX_MIN = Number(process.argv[3] || 20);
 
+const PREF = { lantern: 3, embers: 2, stalactites: 3, fireflies: 2, beam: 3, spark: 1, pickaxe: 1, charges: 0 };
+const PSC = { might: 7, area: 6, cooldown: 6, amount: 7, maxhp: 6, armor: 5, speed: 3, magnet: 3 };
+/** Карточка: качать своё оружие, новые — пока мало, полезные пассивки */
+function bestCard(sim) {
+  let best = 0;
+  let bs = -1;
+  sim.choice.cards.forEach((c, i) => {
+    let s = 0;
+    if (c.k === 'w') s = c.lv > 1 ? 10 + (PREF[c.id] ?? 0) : sim.weapons.length < 4 ? 8 + (PREF[c.id] ?? 0) : 2;
+    else if (c.k === 'p') s = PSC[c.id] ?? 3;
+    else if (c.k === 'stew') s = sim.hero.hp < sim.hero.hpMax * 0.5 ? 9 : 0;
+    else s = 1;
+    if (s > bs) {
+      bs = s;
+      best = i;
+    }
+  });
+  return best;
+}
+
 /** Решение бота на шаг: возвращает события (с t = sim.t) */
 export function botEvents(sim, mem) {
   const ev = [];
   const t = sim.t;
   if (sim.chest) return [{ t, k: 'pick', i: 0 }];
-  if (sim.choice) return [{ t, k: 'pick', i: 0 }];
+  if (sim.choice) return [{ t, k: 'pick', i: bestCard(sim) }];
   const h = sim.hero;
   if (sim.wave.stage === 'breather' && t - sim.wave.t0 > 30) ev.push({ t, k: 'go' });
   // от толпы: сумма отталкиваний от близких врагов + кружение
@@ -108,4 +128,52 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   rows.sort((a, b) => a - b);
   console.log('волны:', rows.join(' '), 'медиана', rows[Math.floor(rows.length / 2)]);
+}
+
+/** Нагрузка: 300 живых врагов вокруг героя с пятью оружиями 7-го уровня — время шага */
+export async function stress(steps = 900) {
+  const { startWave } = await import('../../shared/dungeon/director.ts');
+  const { spawnMob } = await import('../../shared/dungeon/mobs.ts');
+  const sim = createRun(99);
+  sim.noFx = true;
+  sim.weapons = ['lantern', 'embers', 'fireflies', 'stalactites', 'spark'].map((id) => ({ id, lv: 7, evo: 0, cd: 0, t2: 0 }));
+  sim.passives = [{ id: 'amount', lv: 2 }, { id: 'area', lv: 3 }];
+  sim.hero.hpMax = sim.hero.hp = 1e9;
+  startWave(sim, 9);
+  sim.wave.hpMul = 50; // чтобы толпа не таяла
+  const kinds = ['rat', 'slime', 'shroom', 'beetle', 'spitter', 'bat'];
+  let k = 0;
+  const fill = () => {
+    let alive = sim.mobs.filter((m) => !m.die).length;
+    while (alive < 300) {
+      const a = (k * 2.399) % (Math.PI * 2);
+      const r = 3 + ((k * 7) % 17);
+      spawnMob(sim, kinds[k % kinds.length], sim.hero.x + Math.cos(a) * r, sim.hero.z + Math.sin(a) * r, 0);
+      k++;
+      alive++;
+    }
+  };
+  let total = 0;
+  let worst = 0;
+  const all = [];
+  for (let i = 0; i < steps; i++) {
+    fill();
+    if (sim.choice || sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
+    if (i % 60 === 0) applyEvent(sim, { t: sim.t, k: 'mv', x: i % 120 ? 100 : -100, y: 0 });
+    const t0 = performance.now();
+    step(sim);
+    const dt = performance.now() - t0;
+    if (i > 60) {
+      total += dt;
+      all.push(dt);
+      if (dt > worst) worst = dt;
+    }
+  }
+  all.sort((a, b) => a - b);
+  return { avg: total / (steps - 61), worst, p99: all[Math.floor(all.length * 0.99)], alive: sim.mobs.filter((m) => !m.die).length };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const s = await stress();
+  console.log(`нагрузка: ${s.alive} живых, шаг ср. ${s.avg.toFixed(2)} мс, 99 % — до ${s.p99.toFixed(2)} мс, худший ${s.worst.toFixed(2)} мс`);
 }

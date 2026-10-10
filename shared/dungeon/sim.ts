@@ -11,7 +11,7 @@ import { stepHero } from './hero.ts';
 import { addPuddle, cleanupMobs, pushHero, stepMobs } from './mobs.ts';
 import { stepPickups } from './pickups.ts';
 import { ban, maybeOpenChoice, pick, reroll, xpNeed } from './progress.ts';
-import { initProps, stepProps } from './props.ts';
+import { enemyHitsKegs, initProps, scanProps, stepProps } from './props.ts';
 import type { DgMark, DgSim } from './types.ts';
 import { cosDeg, ticks, wrapD } from './util.ts';
 import { ownMarkHit, stepWeapons } from './weapons.ts';
@@ -134,6 +134,7 @@ export function step(sim: DgSim): void {
   if (sim.choice || sim.chest) return;
   sim.chN = 0;
   buildGrid(sim);
+  scanProps(sim);
   stepHero(sim);
   stepMobs(sim);
   buildGrid(sim);
@@ -219,6 +220,7 @@ function stepMarks(sim: DgSim): void {
             pushHero(sim, ox / d, oz / d, mk.kb);
           }
         }
+        if (mk.what === 'spit' || mk.what === 'bspit') enemyHitsKegs(sim, mk.x, mk.z, mk.r);
         if (mk.pud > 0) {
           const boss = mk.what === 'bspit';
           addPuddle(sim, boss ? 'boss' : 'spit', mk.x, mk.z, mk.r, ticks(mk.pud), 0.4, boss ? 5 : 0);

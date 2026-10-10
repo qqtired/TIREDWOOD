@@ -120,6 +120,11 @@ export const PASSIVE_IDS: PassiveId[] = D.passives.map((p) => p.id);
 const weaponById = new Map<string, WeaponDef>(D.weapons.map((w) => [w.id, w]));
 const passiveById = new Map<string, PassiveDef>(D.passives.map((p) => [p.id, p]));
 const mobById = new Map<string, MobDef>(D.mobs.map((m) => [m.id, m]));
+// босс — тоже враг в общем списке (касание, опыт, радиус)
+mobById.set('povidl', {
+  id: 'povidl', name: D.boss.name, short: 'Повидл', tier: 'boss', hp: D.boss.hp, speed: D.boss.speed, dmg: D.boss.contactDmg, xp: D.boss.xp,
+  radius: 1.8, knockbackResist: 1,
+});
 const evoById = new Map<string, EvoDef>(D.evolutions.map((e) => [e.id, e]));
 
 export function weaponDef(id: string): WeaponDef {

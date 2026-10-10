@@ -4,7 +4,7 @@ import {
   fx, hurtHero, hurtMob, KB_DECAY, KB_V, makeMob, neighbors, newId, Q, setKillHook,
 } from './core.ts';
 import { D, mobDef, type MobKind } from './data.ts';
-import { cursedKill } from './props.ts';
+import { cursedKill, enemyHitsKegs } from './props.ts';
 import { dropGem, dropItem } from './pickups.ts';
 import { spawnPoint } from './director.ts';
 import { HERO_R } from './hero.ts';
@@ -360,6 +360,7 @@ function barrelAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
       if (sim.t - m.stT >= ticks(ch.warn)) setSt(sim, m, 'dash');
       return;
     case 'dash':
+      enemyHitsKegs(sim, m.x, m.z, m.r);
       m.vx = m.ax * ch.speed;
       m.vz = m.az * ch.speed;
       m.dx = m.ax;
@@ -412,10 +413,11 @@ function shamanAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
     if (sim.t - m.stT >= ticks(heal.warn)) {
       const r2 = heal.radius * heal.radius;
       for (const o of sim.mobs) {
-        if (o === m || o.die || o.k === 'povidl') continue;
+        if (o === m || o.die) continue;
         const ex = wrapD(o.x - m.x);
         const ez = wrapD(o.z - m.z);
-        if (ex * ex + ez * ez < r2) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * heal.frac);
+        // босса (Повидл II) — на 3 %
+        if (ex * ex + ez * ez < r2) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * (o.k === 'povidl' ? 0.03 : heal.frac));
       }
       setSt(sim, m, 'walk');
       m.cd = ticks(heal.every);
