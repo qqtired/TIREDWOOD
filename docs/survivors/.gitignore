@@ -10,3 +10,6 @@ models/previews/*.png
 art/*.png
 art/alt/
 *.blend1
+# иконки: исходные листы Codex (тяжёлые PNG) — локально, в git лежат готовые webp и контактный лист
+art/icons-src/
+!art/icons-sheet.png
