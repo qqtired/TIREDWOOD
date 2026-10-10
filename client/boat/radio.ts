@@ -47,7 +47,7 @@ export interface RadioDeps {
 }
 
 /** Расхождение с эфиром, после которого начинаем заново с верного места, с */
-const RESYNC = 0.4;
+const RESYNC = 0.6;
 /** Другое радио громче на столько — переключаемся на него (иначе дрожало бы на границе) */
 const SWITCH = 1.3;
 /** Пока тянешь рыбу — радио тише */
@@ -73,7 +73,6 @@ export class BoatRadio {
   private mineId: number | null = null;
   private nextSync = 0;
   private nextPanel = 0;
-  private note: string | null = null;
   private hidden = typeof document !== 'undefined' && document.hidden;
 
   constructor(d: RadioDeps) {
@@ -103,7 +102,6 @@ export class BoatRadio {
     this.on = false;
     this.wires = [];
     this.mineId = null;
-    this.note = null;
     if (this.panel.isOpen) this.close();
     this.panel.setChip(null);
     this.silence(0.4);
@@ -111,9 +109,9 @@ export class BoatRadio {
 
   onMsg(msg: RadioServerMsg): void {
     if (msg.t === 'radioRes') {
-      this.note = msg.text;
-      this.nextPanel = 0;
+      // отказ сервера — тостом; в окне строка про хозяина и так видна — мигнём ей
       this.d.toast(msg.text);
+      if (this.panel.isOpen) this.panel.flashLock();
       return;
     }
     this.on = true;
@@ -137,11 +135,10 @@ export class BoatRadio {
     const w = this.mine();
     if (!w) return;
     if (!this.canControl(w) || (patch.all !== undefined && w.owner !== this.d.myPid())) {
-      this.note = `🔒 Радио включает хозяин лодки — ${w.nick}`;
-      this.nextPanel = 0;
+      // нельзя — строка «Радио включает хозяин лодки» в окне мигает (сервер всё равно бы отказал)
+      this.panel.flashLock();
       return;
     }
-    this.note = null;
     this.d.send({ t: 'radio', id: w.id, ...patch });
   }
 
@@ -159,7 +156,6 @@ export class BoatRadio {
 
   open(): void {
     if (!this.mine() || this.panel.isOpen) return;
-    this.note = null;
     this.panel.open();
     this.nextPanel = 0;
     this.d.onOpen();
@@ -231,7 +227,8 @@ export class BoatRadio {
 
   /** Погасить радио за fade секунд (проигрыватель остановится после затухания) */
   private silence(fade: number): void {
-    if (!this.playing && !this.player?.feed) return;
+    // уже гаснет (или молчит) — не продлеваем: проигрыватель остановится в stopAt
+    if (!this.playing) return;
     this.playing = null;
     const g = this.fade;
     if (g) {
@@ -369,7 +366,6 @@ export class BoatRadio {
       st: w.st,
       vol: w.vol,
       all: w.all === 1,
-      note: this.note,
     };
   }
 }

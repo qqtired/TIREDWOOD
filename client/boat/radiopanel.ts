@@ -16,8 +16,6 @@ export interface RadioPanelState {
   st: number;
   vol: number;
   all: boolean;
-  /** Последний отказ — строка внизу */
-  note: string | null;
 }
 
 export interface RadioPanelActions {
@@ -65,7 +63,6 @@ export class RadioPanel {
   private readonly allRow: HTMLElement;
   private readonly allBox: HTMLInputElement;
   private readonly lock: HTMLElement;
-  private readonly noteEl: HTMLElement;
   private readonly bands = new Float32Array(BANDS);
   private open_ = false;
   private last = '';
@@ -118,7 +115,6 @@ export class RadioPanel {
     el('span', '', this.allRow).textContent = 'Разрешить всем на борту';
 
     this.lock = el('div', 'br-lock', this.root);
-    this.noteEl = el('div', 'br-note', this.root);
     // клики по окну не уходят в игру (не захватывают мышь)
     for (const e of [this.root, this.chip]) e.addEventListener('mousedown', (ev) => ev.stopPropagation());
   }
@@ -168,7 +164,13 @@ export class RadioPanel {
     this.allBox.checked = s.all;
     setText(this.lock, s.owner ? (s.all ? 'Все на борту могут переключать станции' : 'Переключаешь только ты') : s.can ? '✅ Хозяин разрешил всем на борту' : `🔒 Радио включает хозяин лодки — ${s.ownerNick}`);
     this.lock.classList.toggle('locked', !s.can);
-    setText(this.noteEl, s.note ?? '');
+  }
+
+  /** Нельзя: строка про хозяина мигает */
+  flashLock(): void {
+    this.lock.classList.remove('flash');
+    void this.lock.offsetWidth;
+    this.lock.classList.add('flash');
   }
 
   /** Каждый кадр, пока окно открыто: эквалайзер у играющей станции */

@@ -1827,7 +1827,7 @@ export class LobbyScene implements Scene {
     // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
     if (this.juke.onKey(code, e)) return true;
     // радио на лодке: R — окно; в окне 0–3, −/+, Esc (шаг и руль не съедает)
-    if (!this.d.input.blocked && this.radio.onKey(code, e)) return true;
+    if (!this.d.input.blocked && this.myAct !== ACT_DURAK && this.myAct !== ACT_BILLIARDS && this.radio.onKey(code, e)) return true;
     const act = this.myAct;
     if (act === ACT_WARDROBE && this.wardrobeOpen) {
       // В панели Tab переводит фокус по кнопкам, а не открывает список игроков.

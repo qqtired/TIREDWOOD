@@ -341,11 +341,23 @@
   font-weight: 600;
 }
 
-.br-note {
-  font-size: 13px;
-  color: var(--orange-soft);
+.br-lock.flash {
+  animation: br-flash 0.5s ease-out;
 }
 
-.br-note:empty {
-  display: none;
+@keyframes br-flash {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-5px);
+    background: rgba(255, 138, 28, 0.38);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
 }
