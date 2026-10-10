@@ -79,7 +79,9 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
+// Остров «Последний свет», свои лодки, радио на лодках: ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = fish2 && (process.env.ISLE === undefined ? DEV : process.env.ISLE === '1');
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick, isle,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -115,6 +117,7 @@ if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
 if (plane) console.log('PLANE: гидроплан «Стриж» (полёт над городом) включён');
+if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них включены');
 if (votekick) console.log('VOTEKICK: голосование «выгнать игрока» (меню Tab) включено');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 

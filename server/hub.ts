@@ -147,6 +147,8 @@ export interface HubOptions {
   plane?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
+  /** Остров «Последний свет», свои лодки и их радио (флаг сервера ISLE, нужна FISH2) */
+  isle?: boolean;
   now?: () => number;
   log?: (s: string) => void;
 }

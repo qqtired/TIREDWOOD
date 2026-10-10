@@ -68,6 +68,7 @@ import { onBarkas } from '../../shared/roulette.ts';
 import { RouletteTable, atRoulette, type RouletteWho } from './roulette.ts';
 import { RatTrack } from './ratrace.ts';
 import { Jukebox } from './jukebox.ts';
+import { BoatRadios } from './boatradio.ts';
 import { PlaneHall } from './plane.ts';
 import { PLANE_EXIT } from '../../shared/plane.ts';
 import { Weather, type WeatherMode } from './weather.ts';
@@ -207,10 +208,12 @@ export class LobbyRoom implements Room {
   private readonly fish: FishingHall | FishingHall2;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX): null — его нет */
   readonly juke: Jukebox | null;
+  /** Радио на лодках (флаг ISLE вместе с FISH2, server/lobby/boatradio.ts): null — выключено */
+  readonly radios: BoatRadios | null;
   /** Гидроплан «Стриж» (флаг сервера PLANE): null — его нет */
   readonly plane: PlaneHall | null;
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean; isle?: boolean } = {}) {
     this.hub = hub;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
@@ -261,6 +264,8 @@ export class LobbyRoom implements Room {
       queue: (n) => this.boatQueue?.take(n) ?? [],
     }) : null;
     this.juke = eventOptions.jukebox ? new Jukebox() : null;
+    // радио на лодках: лодки пакета B подключаются через boat(id) (пока лодок нет — только тестовое /radio)
+    this.radios = eventOptions.isle && hub.fish2 ? new BoatRadios({ now: () => this.now(), players: () => this.players.values(), boat: () => null, broadcast: (m) => this.broadcast(m) }) : null;
     if (!this.juke) for (const box of this.map.jukeBoxes) this.world.setEnabled(box, false);
     // понтон крысиных бегов без флага — снова вода
     if (!hub.ratrace) for (const box of this.map.ratBoxes) this.world.setEnabled(box, false);
@@ -586,6 +591,7 @@ export class LobbyRoom implements Room {
       if (this.juke.step(this.now())) this.broadcastJuke();
       else c.sink.sendJson({ t: 'juke', v: this.juke.view(this.now()) });
     }
+    this.radios?.welcome((m) => c.sink.sendJson(m));
     const kpos = this.hub.race.positions();
     if (kpos) c.sink.sendJson({ t: 'kpos', p: kpos });
     // экран с чатом друзей из Telegram на крыше склада — всё, что на нём сейчас (дальше — только новое)
@@ -607,6 +613,7 @@ export class LobbyRoom implements Room {
     this.starts.delete(p);
     if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
     this.fc?.drop(p);
+    if (c.profile) this.radios?.left(c.profile.id);
     this.byClient.delete(c);
     this.players.delete(p.slot);
     // рыба из рук — у всех (номер может достаться другому)
@@ -712,6 +719,9 @@ export class LobbyRoom implements Room {
         return;
       case 'juke':
         this.onJuke(p, msg.song);
+        return;
+      case 'radio':
+        if (c.profile && !c.ephemeral && this.hub.limits.hit(`radio:${c.id}`, 6, 1000)) this.radios?.act(c.profile.id, msg, (m) => c.sink.sendJson(m));
         return;
       case 'fish':
         if (p.action === ACT_FISH && this.hub.limits.hit(`fish:${c.id}`, 6, 1000)) this.fish.act(p.arg, p.slot, msg.a, msg.n, this.tick);
@@ -1032,6 +1042,7 @@ export class LobbyRoom implements Room {
    */
   devCommand(c: Client, text: string): boolean {
     if (!this.hub.gate.devGo) return false;
+    if (c.profile && this.radios?.devCommand(c.profile.id, c.nick, text, (t) => this.hub.toast(c, t))) return true;
     if (/^\/season(\s|$)/.test(text)) {
       if (!this.fishSeason) this.hub.privateLine(c, 'Сезон рыбалки — только с рыбалкой 2.0 (FISH2=1)');
       else if (!this.fishSeason.force()) this.hub.privateLine(c, 'Сезон рыбалки уже идёт');
