@@ -30,8 +30,10 @@ export class BossView {
       if (m.isMesh) {
         m.frustumCulled = false;
         this.meshes.push(m);
-        const mat = m.material as THREE.MeshStandardMaterial;
-        if (mat && 'emissive' in mat) this.mats.push(mat);
+        // клон делит материалы с исходной моделью: у каждого босса свои, иначе вспышка попадания зажглась бы у обоих Близнецов
+        const own = (Array.isArray(m.material) ? m.material : [m.material]).map((x) => x.clone());
+        m.material = Array.isArray(m.material) ? own : own[0];
+        for (const mat of own) if ('emissive' in mat) this.mats.push(mat as THREE.MeshStandardMaterial);
       }
     });
     for (const mat of this.mats) mat.userData.baseEmissive = mat.emissive.clone();
@@ -65,6 +67,7 @@ export class BossView {
     const under = b.anim === 'under';
     this.root.visible = !under;
     this.root.position.set(x, 0, z);
+    this.root.scale.setScalar(b.scale);
     let d = b.yaw - this.root.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
     this.root.rotation.y += d * Math.min(1, dt * 4);

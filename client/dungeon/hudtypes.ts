@@ -136,6 +136,8 @@ export interface HudActions {
   ban(i: number): void;
   /** в бой раньше (передышка) */
   go(): void;
+  /** Q с экрана телефона: true — нажали (заряд), false — отпустили (удар) */
+  q(on: boolean): void;
   /** закрыть сундук и продолжить */
   chestDone(): void;
   pause(): void;
