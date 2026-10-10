@@ -70,7 +70,19 @@ const FLOOR_SLOTS = 5;
 const FLOOR_TILE = 10;
 const FLOOR_TILE2 = 240 / 22;
 /** Сила рисунка по зонам: 1 — как на картинке, меньше — спокойнее (мобы и эффекты читаются лучше) */
-const FLOOR_K: Record<string, number> = { cellars: 0.85, mushrooms: 0.6, crystals: 0.85, mine: 0.8, jam: 0.85 };
+const FLOOR_K: Record<string, number> = { cellars: 0.6, mushrooms: 0.42, crystals: 0.6, mine: 0.55, jam: 0.6 };
+/** Насыщенность рисунка (0 — только светлее/темнее, 1 — цвета картинки) */
+const FLOOR_SAT = 0.55;
+/** Цвет текстуры берём размытым (×2 к шагу мипа): средние детали тише, форму даёт рельеф */
+const FLOOR_BLUR = 2;
+/** Рельеф (карты <зона>_n.jpg): крутизна, затенение впадин, общая яркость пола с текстурой */
+const FLOOR_RELIEF = 0.7;
+const FLOOR_AO = 0.75;
+const FLOOR_DIM = 0.86;
+/** Направление условного света для общего и запечённого света (сверху-слева экрана): рельеф видно и вдали от фонаря */
+const FLOOR_SUN = new THREE.Vector3(-0.45, 0.8, -0.4).normalize();
+/** Сила этого условного света на рельефе */
+const FLOOR_SHADE = 0.8;
 const VOID = lin(0x120d0b);
 const MOSS = lin(0x46622a);
 const SLATE = lin(0x4f8088);
@@ -118,24 +130,40 @@ uniform sampler2D uFl1;
 uniform sampler2D uFl2;
 uniform sampler2D uFl3;
 uniform sampler2D uFl4;
+uniform sampler2D uFn0;
+uniform sampler2D uFn1;
+uniform sampler2D uFn2;
+uniform sampler2D uFn3;
+uniform sampler2D uFn4;
 uniform vec3 uFlMean[${FLOOR_SLOTS}];
 uniform float uFlK[${FLOOR_SLOTS}];
 varying vec4 vZone;
 varying vec2 vFlP;
-// два слоя одной текстуры; где маска переходит, светлое (камень) ложится поверх тёмного (шов), без двойного рисунка
-vec3 flTex(sampler2D t, vec2 a, vec2 ax, vec2 ay, vec2 b, vec2 bx, vec2 by, float m) {
-  vec3 ca = textureGrad(t, a, ax, ay).rgb;
-  vec3 cb = textureGrad(t, b, bx, by).rgb;
-  float ha = dot(ca, vec3(0.3, 0.59, 0.11)) + 1.0 - m;
-  float hb = dot(cb, vec3(0.3, 0.59, 0.11)) + m;
-  float top = max(ha, hb) - 0.04;
+// Два слоя одной текстуры; где маска переходит, светлое (камень) ложится поверх тёмного (шов), без двойного рисунка.
+// Цвет берём на мип грубее (спокойнее средние детали), рельеф — в полную силу. nrm.xz — наклон в мировых осях,
+// nrm.w — затенение впадин.
+void flSample(sampler2D t, sampler2D tn, vec2 a, vec2 ax, vec2 ay, vec2 b, vec2 bx, vec2 by, float m, out vec3 col, out vec4 nrm) {
+  vec3 ca = textureGrad(t, a, ax * ${FLOOR_BLUR.toFixed(2)}, ay * ${FLOOR_BLUR.toFixed(2)}).rgb;
+  vec3 cb = textureGrad(t, b, bx * ${FLOOR_BLUR.toFixed(2)}, by * ${FLOOR_BLUR.toFixed(2)}).rgb;
+  vec3 na = textureGrad(tn, a, ax, ay).rgb;
+  vec3 nb = textureGrad(tn, b, bx, by).rgb;
+  float ha = na.b + dot(ca, vec3(0.3, 0.59, 0.11)) + 1.0 - m;
+  float hb = nb.b + dot(cb, vec3(0.3, 0.59, 0.11)) + m;
+  float top = max(ha, hb) - 0.05;
   float wa = max(ha - top, 0.0);
   float wb = max(hb - top, 0.0);
-  return (ca * wa + cb * wb) / (wa + wb);
+  float s = 1.0 / (wa + wb);
+  col = (ca * wa + cb * wb) * s;
+  vec2 ta = na.rg * 2.0 - 1.0;
+  vec2 tb = nb.rg * 2.0 - 1.0;
+  // слой A: u → +x, v → +z; слой B повёрнут: u → +z, v → −x
+  nrm = vec4(ta.x * wa - tb.y * wb, 0.0, ta.y * wa + tb.x * wb, na.b * wa + nb.b * wb) * s;
 }
 `;
 
 const FLOOR_APPLY = `
+  vec3 flN = vec3(0.0, 1.0, 0.0);
+  float flOn = 0.0;
   {
     vec2 flA = vFlP * ${(1 / FLOOR_TILE).toFixed(6)};
     vec2 flB = vec2(vFlP.y, -vFlP.x) * ${(1 / FLOOR_TILE2).toFixed(6)} + vec2(0.37, 0.71);
@@ -150,13 +178,23 @@ const FLOOR_APPLY = `
       float m = clamp(0.5 + 0.3 * sin(q.x * 6.0 + 1.7 * sin(q.y * 4.0)) + 0.3 * sin(q.y * 5.0 + 1.3 * sin(q.x * 8.0 + 0.5)), 0.0, 1.0);
       float w4 = max(1.0 - zs, 0.0);
       vec3 fl = vec3(0.0);
+      vec4 fn = vec4(0.0);
       float ws = 0.0;
-      if (vZone.x > 0.01) { fl += vZone.x * mix(vec3(1.0), flTex(uFl0, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[0], uFlK[0]); ws += vZone.x; }
-      if (vZone.y > 0.01) { fl += vZone.y * mix(vec3(1.0), flTex(uFl1, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[1], uFlK[1]); ws += vZone.y; }
-      if (vZone.z > 0.01) { fl += vZone.z * mix(vec3(1.0), flTex(uFl2, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[2], uFlK[2]); ws += vZone.z; }
-      if (vZone.w > 0.01) { fl += vZone.w * mix(vec3(1.0), flTex(uFl3, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[3], uFlK[3]); ws += vZone.w; }
-      if (w4 > 0.01) { fl += w4 * mix(vec3(1.0), flTex(uFl4, flA, flAx, flAy, flB, flBx, flBy, m) / uFlMean[4], uFlK[4]); ws += w4; }
-      diffuseColor.rgb *= fl / max(ws, 0.001);
+      vec3 c;
+      vec4 n;
+      #define FL_ADD(W, T, TN, I) if (W > 0.01) { flSample(T, TN, flA, flAx, flAy, flB, flBx, flBy, m, c, n); c /= uFlMean[I]; c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, ${FLOOR_SAT.toFixed(2)}); fl += W * mix(vec3(1.0), c, uFlK[I]); fn += W * n; ws += W; }
+      FL_ADD(vZone.x, uFl0, uFn0, 0)
+      FL_ADD(vZone.y, uFl1, uFn1, 1)
+      FL_ADD(vZone.z, uFl2, uFn2, 2)
+      FL_ADD(vZone.w, uFl3, uFn3, 3)
+      FL_ADD(w4, uFl4, uFn4, 4)
+      #undef FL_ADD
+      fn /= max(ws, 0.001);
+      vec2 g = fn.xz * ${FLOOR_RELIEF.toFixed(2)};
+      flN = normalize(vec3(g.x, sqrt(max(1.0 - dot(g, g), 0.05)), g.y));
+      flOn = 1.0;
+      // впадины темнее, общий пол чуть темнее мобов и героя
+      diffuseColor.rgb *= fl / max(ws, 0.001) * mix(1.0, fn.w, ${FLOOR_AO.toFixed(2)}) * ${FLOOR_DIM.toFixed(2)};
     }
   }`;
 
@@ -273,8 +311,9 @@ export class DungeonWorld {
   private readonly tpls = new Map<string, Tpl | null>();
   private readonly uTime = { value: 0 };
   private readonly uAmbient = { value: AMBIENT };
-  /** Текстуры пола по зонам (пусто — пол как раньше, одним цветом вершин) */
+  /** Текстуры пола по зонам (пусто — пол как раньше, одним цветом вершин) и их карты рельефа */
   private readonly floorTex: (THREE.Texture | null)[] = [];
+  private readonly floorNrm: (THREE.Texture | null)[] = [];
   private readonly matOpaque: THREE.MeshStandardMaterial;
   private readonly matGlow: THREE.MeshBasicMaterial;
   private readonly matLiquid: THREE.ShaderMaterial;
@@ -305,8 +344,9 @@ export class DungeonWorld {
 
   /** kits — корневые узлы всех kit_*.glb по имени (позиция сброшена в 0); level — разобранный level-data.json.
    *  opts.lazy — не строить в конструкторе: тогда зовите buildStep() на экране загрузки, пока не вернёт true.
-   *  opts.floor — текстуры пола по id зоны (worldlink.ts); без них пол одним цветом вершин, как раньше. */
-  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean; floor?: ReadonlyMap<string, THREE.Texture> }) {
+   *  opts.floor — текстуры пола по id зоны, opts.floorN — их карты рельефа (worldlink.ts); без них пол одним цветом
+   *  вершин, как раньше. */
+  constructor(kits: Map<string, THREE.Object3D>, level: LevelData, opts?: { lazy?: boolean; floor?: ReadonlyMap<string, THREE.Texture>; floorN?: ReadonlyMap<string, THREE.Texture> }) {
     const t0 = performance.now();
     this.kits = kits;
     this.root = new THREE.Group();
@@ -319,8 +359,13 @@ export class DungeonWorld {
       this.zoneCol.push(lin(FLOOR[z.id] ?? 0x5f4f3c));
     }
     // текстуры пола: нужны все зоны (у каждой своя), иначе — прежний пол
-    if (opts?.floor && this.zoneIds.length <= FLOOR_SLOTS && this.zoneIds.every((id) => opts.floor?.has(id) && FLOOR_MEAN[id])) {
-      for (const id of this.zoneIds) this.floorTex.push(opts.floor.get(id) ?? null);
+    const fl = opts?.floor;
+    const fn = opts?.floorN;
+    if (fl && fn && this.zoneIds.length <= FLOOR_SLOTS && this.zoneIds.every((id) => fl.has(id) && fn.has(id) && FLOOR_MEAN[id])) {
+      for (const id of this.zoneIds) {
+        this.floorTex.push(fl.get(id) ?? null);
+        this.floorNrm.push(fn.get(id) ?? null);
+      }
     }
     this.matOpaque = this.makeOpaque();
     this.matGlow = this.makeGlow();
@@ -385,7 +430,7 @@ export class DungeonWorld {
       ch.group = null;
     }
     this.matOpaque.dispose();
-    for (const t of this.floorTex) t?.dispose();
+    for (const t of [...this.floorTex, ...this.floorNrm]) t?.dispose();
     this.matGlow.dispose();
     this.matLiquid.dispose();
   }
@@ -411,6 +456,7 @@ export class DungeonWorld {
         for (let i = 0; i < FLOOR_SLOTS; i++) {
           const id = this.zoneIds[i] ?? this.zoneIds[0];
           sh.uniforms[`uFl${i}`] = { value: this.floorTex[i] ?? this.floorTex[0] };
+          sh.uniforms[`uFn${i}`] = { value: this.floorNrm[i] ?? this.floorNrm[0] };
           const c = FLOOR_MEAN[id];
           mean.push(new THREE.Vector3(c[0], c[1], c[2]));
           k.push(FLOOR_K[id] ?? 0.85);
@@ -423,11 +469,15 @@ export class DungeonWorld {
         fb += FLOOR_APPLY;
       }
       sh.vertexShader = vs + sh.vertexShader.replace('#include <color_vertex>', vb);
+      // с рельефом: нормаль пола — для ламп сцены (фонарь, полусфера); общий и запечённый свет — под условным светом
+      const sun = `vec3(${FLOOR_SUN.x.toFixed(4)}, ${FLOOR_SUN.y.toFixed(4)}, ${FLOOR_SUN.z.toFixed(4)})`;
+      const shade = tex ? ` * (1.0 + flOn * ${FLOOR_SHADE.toFixed(2)} * (dot(flN, ${sun}) - ${FLOOR_SUN.y.toFixed(4)}))` : '';
       sh.fragmentShader = fs + sh.fragmentShader
         .replace('#include <color_fragment>', fb)
+        .replace('#include <normal_fragment_maps>', tex ? '#include <normal_fragment_maps>\n  if (flOn > 0.5) normal = normalize((viewMatrix * vec4(flN, 0.0)).xyz);' : '#include <normal_fragment_maps>')
         .replace(
           '#include <emissivemap_fragment>',
-          '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb);',
+          `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * (uAmbient * vLit.a + vLit.rgb)${shade};`,
         );
     };
     m.customProgramCacheKey = () => (tex ? 'dungeon-opaque-floor' : 'dungeon-opaque');
