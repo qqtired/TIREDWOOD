@@ -58,7 +58,7 @@ export class EstateWin extends FarmWin {
     switch (kind) {
       case 'bed': return `Открыто грядок: ${f.beds.length} из ${FARM_BEDS}`;
       case 'rake': return `Грабли ${t.rake}: до ${RAKE_BEDS[t.rake - 1]} гряд. за раз`;
-      case 'shovel': return `Лопатка ${t.shovel}: двойной урожай ${Math.round(SHOVEL_DOUBLE[t.shovel - 1] * 100)} %`;
+      case 'shovel': return SHOVEL_DOUBLE[t.shovel - 1] > 0 ? `Лопатка ${t.shovel}: двойной урожай ${Math.round(SHOVEL_DOUBLE[t.shovel - 1] * 100)} %` : `Лопатка ${t.shovel}: без двойного урожая`;
       case 'can': return `Лейка ${t.can}: ${CAN_CHARGES[t.can - 1]} зарядов`;
       case 'bag': return `Сумка ${t.bag}: ${BAG_PLACES[t.bag - 1]} мест`;
       case 'pig': return f.built.pig ? 'Свин живёт во дворе' : 'Ещё не построено';

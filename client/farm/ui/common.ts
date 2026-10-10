@@ -3,8 +3,9 @@
 // вкладки-«таблетки». Закрывается крестиком, Esc и кликом мимо. Окно не знает про сеть: всё идёт через FarmHost.
 import { mskDay } from '../../../shared/economy.ts';
 import { pigTick, wellNextAt, wellTick, type FarmProgress } from '../../../shared/farm.ts';
-import { DAILY_CAP, HELP_BASE, PIG_EVERY_MS, PIG_STORE, RESOURCES, resourceById } from '../../../shared/farmdata.ts';
+import { DAILY_CAP, PIG_EVERY_MS, PIG_STORE, RESOURCES, resourceById } from '../../../shared/farmdata.ts';
 import type { FarmClientMsg, FarmPlotView, FarmRosterRow } from '../../../shared/farmnet.ts';
+import type { FarmBossResult, FarmBossView, FarmVanView } from '../../../shared/farmsys.ts';
 import { setCoinText } from '../../ui/coin.ts';
 
 const ICONS = import.meta.glob('../../assets/farm/icons/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -138,13 +139,6 @@ export function pigView(f: FarmProgress, now: number): { stored: number; nextAt:
   return { stored: p.stored, nextAt: p.stored >= PIG_STORE ? 0 : p.since + PIG_EVERY_MS };
 }
 
-/** Очки помощи: сколько осталось и когда полный сброс (0 — очки полные). Считаем «points» потраченными */
-export function helpView(f: FarmProgress, level: number, now: number): { left: number; max: number; resetAt: number } {
-  const max = HELP_BASE + level - 1;
-  if (now >= f.help.resetAt || f.help.points <= 0) return { left: max, max, resetAt: 0 };
-  return { left: Math.max(0, max - f.help.points), max, resetAt: f.help.resetAt };
-}
-
 // ------------------------------------------------------------ связь окон с ведущим (FarmHud)
 
 export interface FarmHost {
@@ -165,36 +159,10 @@ export interface FarmHost {
   closed(win: FarmWin): void;
   /** Надеть вещи каталога («Надеть» на экране уровня) */
   wear(ids: string[]): void;
-  /** Предложения Фургона от B1 (пока нет — null) */
-  van(): VanState | null;
-  boss(): BossState | null;
-}
-
-/** Ящик Фургона: сколько, во что оценён. Формат ждём от B1 (shared/farmsys.ts), см. ui/sys.ts */
-export interface VanOffer {
-  slot: number;
-  crop: string;
-  n: number;
-  /** Множитель цены ×1,3–1,5 */
-  mult: number;
-  coins: number;
-  xp: number;
-  gourmet?: boolean;
-}
-export interface VanState {
-  cycle: number;
-  open: boolean;
-  until: number;
-  offers: VanOffer[];
-}
-export interface BossState {
-  /** 'sleep' — спит, 'awake' — идёт цветение, 'done' — отцвело */
-  phase: 'sleep' | 'awake' | 'done';
-  /** Цветение 0–1 и мой вклад 0–1 */
-  bloom: number;
-  share: number;
-  startsAt: number;
-  top: { nick: string; pct: number }[];
+  /** Фургон, Древо и итог прошлого цветения от B1 (farmVan, farmBoss, farmBossEnd); пока не пришли — null */
+  van(): FarmVanView | null;
+  boss(): FarmBossView | null;
+  bossLast(): FarmBossResult | null;
 }
 
 // ------------------------------------------------------------ основа окна
@@ -317,7 +285,7 @@ export abstract class FarmWin {
     setCoinText(this.balance, `${this.host.tokens} 🪙`);
     this.draw(this.body);
     this.body.scrollTop = keep;
-    this.tick();
+    for (const fn of this.liveFns) fn();
   }
 
   /** Раз в секунду: подписи со временем */

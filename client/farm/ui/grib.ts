@@ -3,6 +3,7 @@
 // степпером, итогом и отменой. Решает сервер: окно только просит ({t:'farm', a:'sell'|'convert'}).
 import { capPay, farmLevel, hasBuff, repBonus, saleUnit, upgradeStep } from '../../../shared/farm.ts';
 import { BUFFS, CROPS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
+import { vanTime } from '../../../shared/farmvan.ts';
 import { FarmWin, btn, capBar, dec, el, icon, resIcon, soldToday } from './common.ts';
 
 interface Line {
@@ -80,7 +81,7 @@ export class GribWin extends FarmWin {
       const name = row.appendChild(el('div', 'fm-row-main'));
       name.append(el('b', '', `${l.name} × ${l.n}`));
       const sub = name.appendChild(el('small', '', l.truffle ? `${l.unit} 🪙/шт · всегда полная цена` : `${dec(l.unit)} 🪙/шт`));
-      const offer = van?.open ? van.offers.find((o) => o.crop === l.item) : undefined;
+      const offer = van && vanTime(this.host.now).open ? van.slots.find((x) => x.offer?.item === l.item && !x.done)?.offer : undefined;
       if (offer) sub.append(el('span', 'fm-van-mark', `🚚 Фургон даст ×${dec(offer.mult)}`));
       row.append(btn('fm-btn', 'Продать 1', () => this.host.sell(l.item, 1)));
       row.append(btn('fm-go', `Продать ×${l.n} — ${Math.floor(l.all)} 🪙`, () => this.host.sell(l.item, l.n)));

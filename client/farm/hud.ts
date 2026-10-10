@@ -6,10 +6,11 @@
 import { emptyFarm, type FarmProgress } from '../../shared/farm.ts';
 import type { FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow } from '../../shared/farmnet.ts';
-import type { FarmSysMsg } from '../../shared/farmsys.ts';
+import type { FarmBossResult, FarmBossView, FarmSysMsg, FarmVanView } from '../../shared/farmsys.ts';
 import './farm.css';
 import { FarmBar } from './ui/bar.ts';
 import { BoardWin } from './ui/board.ts';
+import { BossEndWin } from './ui/bossend.ts';
 import { EstateWin } from './ui/estate.ts';
 import { FarmNotify } from './ui/notify.ts';
 import { GribWin } from './ui/grib.ts';
@@ -17,9 +18,9 @@ import { LevelWin } from './ui/levelup.ts';
 import { OrdersWin } from './ui/orders.ts';
 import { PlantWin } from './ui/plant.ts';
 import { SeedsWin } from './ui/seeds.ts';
-import { parseBoss, parseVan, sysToast } from './ui/sys.ts';
+import { gotToast } from './ui/sys.ts';
 import { VanWin } from './ui/van.ts';
-import { el, type BossState, type FarmHost, type FarmWin, type VanState } from './ui/common.ts';
+import { el, type FarmHost, type FarmWin } from './ui/common.ts';
 
 export { farmIcon, fmtMin } from './ui/common.ts';
 
@@ -54,9 +55,9 @@ export class FarmHud {
   private plot = -1;
   private offset = 0;
   private tokensSeen = 0;
-  private vanState: VanState | null = null;
-  private bossState: BossState | null = null;
-  private entered = false;
+  private vanView: FarmVanView | null = null;
+  private bossView: FarmBossView | null = null;
+  private bossLast: FarmBossResult | null = null;
   private timer = 0;
   private cur: FarmWin | null = null;
   private readonly seeds: SeedsWin;
@@ -67,6 +68,7 @@ export class FarmHud {
   private readonly board: BoardWin;
   private readonly plantWin: PlantWin;
   private readonly level: LevelWin;
+  private readonly bossEnd: BossEndWin;
 
   constructor(parent: HTMLElement, act: FarmHudActions) {
     this.act = act;
@@ -91,8 +93,9 @@ export class FarmHud {
       plant: (crop) => act.plant(crop),
       toast: (text, sub, key) => this.toast(text, sub, key),
       wear: (ids) => (act.wear ? act.wear(ids) : this.toast('Надень обновки в примерочной на площади')),
-      van: () => this.vanState,
-      boss: () => this.bossState,
+      van: () => this.vanView,
+      boss: () => this.bossView,
+      bossLast: () => this.bossLast,
       closed: (win) => { if (this.cur === win) this.cur = null; act.closed(); },
     };
     this.seeds = new SeedsWin(this.root, host, { id: 'seeds', eyebrow: 'ФЕРМА · СЕМЕНА', title: 'Семечкин', intro: 'Всё про культуры: что растёт, сколько стоит и что откроется дальше.', avatar: '🧑‍🌾', accent: '#7bd88f' });
@@ -102,6 +105,7 @@ export class FarmHud {
     this.estate = new EstateWin(this.root, host, { id: 'estate', eyebrow: 'ФЕРМА · ХОЗЯЙСТВО', title: 'Хозяйство', intro: 'Улучшай грядки, инструменты и постройки. Клавиша H — открыть отовсюду.', avatar: '🧺', accent: '#7bd88f' });
     this.board = new BoardWin(this.root, host, { id: 'board', eyebrow: 'ФЕРМА · ДОСКА', title: 'Доска фермы', intro: 'Кто где живёт, кто спит и кому можно помочь.', avatar: '🪧', accent: '#ffd35a' });
     this.plantWin = new PlantWin(this.root, host, { id: 'plant', eyebrow: 'ФЕРМА · ГРЯДКА', title: 'Что посадить?', intro: '', avatar: '🌱', accent: '#7bd88f' });
+    this.bossEnd = new BossEndWin(this.root, host, { id: 'bossend', eyebrow: 'ДРЕВО РАЗЛОМА · ИТОГ', title: 'Итог Древа', intro: '', avatar: '🌳', accent: '#7bd88f' });
     this.level = new LevelWin(this.root, host, { id: 'level', eyebrow: 'ФЕРМА · НОВЫЙ УРОВЕНЬ', title: 'Новый уровень', intro: '', avatar: '1', accent: '#ffd35a' });
   }
 
@@ -127,7 +131,6 @@ export class FarmHud {
     this.bar.setVisible(v);
     window.clearInterval(this.timer);
     if (v) {
-      this.entered = false;
       this.notify.reset();
       this.timer = window.setInterval(() => this.tick(), 1000);
     } else this.close(false);
@@ -155,10 +158,6 @@ export class FarmHud {
     this.bar.update(f, this.plot, now);
     this.notify.check(f, now);
     this.notify.checkCap(f, now);
-    if (!this.entered && this.plot >= 0) {
-      this.entered = true;
-      this.notify.entry(f, now);
-    }
     this.cur?.refresh();
   }
 
@@ -229,13 +228,23 @@ export class FarmHud {
     return true;
   }
 
-  /** Сообщения частей B1 (shared/farmsys.ts): Фургон, Древо, помощь, достижения. Пока сервер их не шлёт — заглушки (ui/sys.ts) */
+  /** Сообщения частей B1 (shared/farmsys.ts): Фургон, Древо, итог Древа, награды, сводка при входе. farmBossFx рисует 3D (B3) */
   onSys(m: FarmSysMsg): void {
-    const raw = m as unknown as Record<string, unknown>;
-    if (raw.t === 'farmVan') this.vanState = parseVan(raw);
-    else if (raw.t === 'farmBoss') this.bossState = parseBoss(raw);
-    const t = sysToast(raw);
-    if (t) this.toast(t[0], t[1], 'farm-sys');
+    switch (m.t) {
+      case 'farmVan': this.vanView = m.v; break;
+      case 'farmBoss': this.bossView = m.b; break;
+      case 'farmBossEnd':
+        this.bossLast = m.r;
+        this.show(this.bossEnd, () => this.bossEnd.push(m.r));
+        break;
+      case 'farmGot': {
+        const [title, sub] = gotToast(m.g);
+        this.toast(title, sub, 'farm-got');
+        break;
+      }
+      case 'farmAway': this.notify.away(m.a, this.f, this.now()); break;
+      case 'farmBossFx': break;
+    }
     this.cur?.refresh();
   }
 

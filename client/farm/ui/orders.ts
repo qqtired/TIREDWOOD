@@ -1,9 +1,9 @@
 // Доска заказов (design-v11 §10.3, §14.2): три личные карточки — цель, прогресс, награда, «Забрать», «Заменить (осталось 2)»,
 // внизу «Новые заказы через 5 ч 12 мин». Заказы лежат в профиле (FarmProgress.orders); выдаёт и проверяет их сервер (B1).
-// «Заменить»: rerolls считаем потраченными заменами за сутки (ORDER_REROLLS бесплатных) — уточнить у B1.
 import type { FarmOrder } from '../../../shared/farm.ts';
-import { ORDER_REROLLS, ORDER_TEMPLATES, cropById, type OrderKind } from '../../../shared/farmdata.ts';
-import { FarmWin, btn, el, fmtLeft, icon, msToMskMidnight } from './common.ts';
+import { ORDER_TEMPLATES, cropById, type OrderKind } from '../../../shared/farmdata.ts';
+import { orderReady, ordersResetAt } from '../../../shared/farmorders.ts';
+import { FarmWin, btn, el, fmtLeft, icon } from './common.ts';
 
 const KIND: Record<OrderKind, [label: string, emoji: string]> = {
   grow: ['Вырасти', '🌱'],
@@ -16,7 +16,8 @@ const KIND: Record<OrderKind, [label: string, emoji: string]> = {
 function goal(o: FarmOrder, goalText: string): string {
   const c = o.crop ? cropById(o.crop) : undefined;
   if (c) return `Собрать ${o.need} × ${c.product}`;
-  return goalText.replace(/\bN\b/g, String(o.need)).replace(/^./, (ch) => ch.toUpperCase());
+  const text = goalText.replace(/\bN\b/g, String(o.need));
+  return /^\d/.test(text) ? `Нужно: ${text}` : text.replace(/^./, (ch) => ch.toUpperCase());
 }
 
 export class OrdersWin extends FarmWin {
@@ -27,12 +28,12 @@ export class OrdersWin extends FarmWin {
       const empty = body.appendChild(el('div', 'fm-empty'));
       empty.append(el('div', 'fm-ico xl emo', '📋'), el('p', '', 'Сегодняшние заказы ещё не выданы. Загляни чуть позже.'));
     }
-    const left = Math.max(0, ORDER_REROLLS - f.orders.rerolls);
+    const left = Math.max(0, f.orders.rerolls);
     const grid = body.appendChild(el('div', 'fm-orders'));
     list.forEach((o, i) => {
       const t = ORDER_TEMPLATES.find((x) => x.id === o.t);
       if (!t) return;
-      const ready = !o.done && o.got >= o.need;
+      const ready = orderReady(f, o, this.host.now);
       const card = grid.appendChild(el('article', `fm-order${o.done ? ' done' : ''}${ready ? ' ready' : ''}`));
       const [label, emoji] = KIND[t.kind];
       const top = card.appendChild(el('div', 'fm-order-top'));
@@ -59,7 +60,7 @@ export class OrdersWin extends FarmWin {
       }
     });
     const foot = body.appendChild(el('p', 'fm-fine fm-center'));
-    this.live(foot, () => `Новые заказы через ${fmtLeft(msToMskMidnight(this.host.now))} · в 00:00 по Москве`);
+    this.live(foot, () => `Новые заказы через ${fmtLeft(ordersResetAt(this.host.now) - this.host.now)} · в 00:00 по Москве`);
     body.append(el('p', 'fm-fine fm-center', 'Засчитывается только то, что сделано после выдачи заказа.'));
   }
 }

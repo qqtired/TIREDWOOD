@@ -5,8 +5,10 @@
 import { mskDay } from '../../../shared/economy.ts';
 import type { FarmProgress } from '../../../shared/farm.ts';
 import { DAILY_CAP, RIPE_TOAST_MERGE_MS, VAN_SLOTS_BY_LEVEL, cropById } from '../../../shared/farmdata.ts';
+import type { FarmAway } from '../../../shared/farmsys.ts';
+import { vanTime } from '../../../shared/farmvan.ts';
 import { farmLevel } from '../../../shared/farm.ts';
-import { clockHour, mskHour, pigView } from './common.ts';
+import { clockHour, mskHour } from './common.ts';
 
 export type Toast = (text: string, sub?: string, key?: string) => void;
 
@@ -84,16 +86,13 @@ export class FarmNotify {
     this.toast('Касса Гриба на сегодня полна', 'Дальше ×0,25 до 00:00. Заказы платят полностью', 'farm-cap');
   }
 
-  /** Строка при входе: созрело, трюфели свина, помощь соседей, Фургон */
-  entry(f: FarmProgress, now: number): void {
+  /** Строка при входе (farmAway от сервера): созрело, трюфели свина, кто полил, Фургон */
+  away(a: FarmAway, f: FarmProgress, now: number): void {
     const parts: string[] = [];
-    const ripe = countRipe(f, now);
-    if (ripe > 0) parts.push(`созрело ${ripe}`);
-    const pig = pigView(f, now);
-    if (pig && pig.stored > 0) parts.push(`свин нашёл ${pig.stored} ${trufflePlural(pig.stored)}`);
-    const helped = f.beds.reduce((a, b) => a + (b.crop ? b.helpers.length : 0), 0);
-    if (helped > 0) parts.push(`соседи помогли ${helped} раз${helped % 10 >= 2 && helped % 10 <= 4 && (helped < 10 || helped > 20) ? 'а' : ''}`);
-    if (farmLevel(f.xp) >= VAN_SLOTS_BY_LEVEL[0].level && mskHour(now) % 2 === 0) parts.push(`Фургон открыт до ${clockHour(mskHour(now) + 1)}`);
+    if (a.ripe > 0) parts.push(`созрело ${a.ripe}`);
+    if (a.truffles > 0) parts.push(`свин нашёл ${a.truffles} ${trufflePlural(a.truffles)}`);
+    if (a.helped > 0) parts.push(a.by.length ? `${a.by.slice(0, 2).join(' и ')} полил${a.by.length > 1 ? 'и' : ''} грядки (${a.helped})` : `соседи полили грядки: ${a.helped}`);
+    if (farmLevel(f.xp) >= VAN_SLOTS_BY_LEVEL[0].level && vanTime(now).open) parts.push(`Фургон открыт до ${clockHour(mskHour(vanTime(now).next))}`);
     if (parts.length) this.toast('Пока тебя не было', parts.join(' · '), 'farm-entry');
   }
 }

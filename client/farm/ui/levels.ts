@@ -1,5 +1,7 @@
 // Что открывает уровень фермы: культуры, улучшения, слоты Фургона, вещи (design-v11 §3.2). Для Семечкина и экрана уровня.
-import { CROPS, FARM_LEVEL_REWARDS, UPGRADES, VAN_SLOTS_BY_LEVEL, type CropDef, type UpgradeDef } from '../../../shared/farmdata.ts';
+// Данные — levelUnlocks из shared/farmach.ts (B1), здесь только подпись про Фургон.
+import { levelUnlocks } from '../../../shared/farmach.ts';
+import type { CropDef, UpgradeDef } from '../../../shared/farmdata.ts';
 
 export interface LevelOpens {
   crops: CropDef[];
@@ -15,11 +17,11 @@ function slotWord(n: number): string {
 }
 
 export function levelOpens(level: number): LevelOpens {
-  const van = VAN_SLOTS_BY_LEVEL.find((v) => v.level === level);
+  const u = levelUnlocks(level);
   return {
-    crops: CROPS.filter((c) => c.level === level),
-    upgrades: UPGRADES.filter((u) => u.level === level),
-    van: van ? `Фургон: ${van.slots} ${slotWord(van.slots)}` : null,
-    rewards: FARM_LEVEL_REWARDS[level - 1] ?? [],
+    crops: u.crops,
+    upgrades: u.upgrades,
+    van: u.van[1] > u.van[0] ? `Фургон: ${u.van[1]} ${slotWord(u.van[1])}` : null,
+    rewards: u.items,
   };
 }

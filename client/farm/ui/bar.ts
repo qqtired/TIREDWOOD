@@ -3,8 +3,9 @@
 // обучения; справа — «Лейка», «Сумка», «Колодец» (жетоны рисует общий HUD игры, в комнате фермы он выровнен под них стилем).
 // У каждой карточки при наведении — подсказка, что это и как пополнить (data-tip). Время — от серверных часов.
 import { bagCap, bagUsed, canMax, farmLevel, farmLevelInfo, type FarmProgress } from '../../../shared/farm.ts';
-import { BUFFS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, TUTORIAL_STEPS, VAN_SLOTS_BY_LEVEL, WELL_SETS } from '../../../shared/farmdata.ts';
-import { TUTORIAL_TEXT, btn, big, clockHour, el, fmtLeft, helpView, icon, mskHour, msToNextHour, wellView } from './common.ts';
+import { helpView } from '../../../shared/farmhelp.ts';
+import { BUFFS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, HELP_MIN_LEVEL, TUTORIAL_STEPS, VAN_SLOTS_BY_LEVEL, WELL_SETS } from '../../../shared/farmdata.ts';
+import { TUTORIAL_TEXT, btn, big, clockHour, el, fmtLeft, icon, mskHour, msToNextHour, wellView } from './common.ts';
 
 /** Не лезем в DOM, если текст тот же */
 function put(node: HTMLElement, text: string): void {
@@ -108,32 +109,32 @@ export class FarmBar {
     this.lvFill.style.width = `${Math.round((info.into / info.need) * 100)}%`;
     put(this.lvXp, info.level >= FARM_MAX_LEVEL
       ? `${big(info.into)} / ${big(info.need)} опыта · ⭐ ${info.stars}`
-      : `${big(info.into)} / ${big(info.need)} опыта · до уровня ${info.level + 1} ещё ${big(info.need - info.into)}`);
+      : `${big(info.into)} / ${big(info.need)} опыта`);
 
     const max = canMax(f) / 100;
     const w = Math.floor(f.water / 100);
     put(this.can.value, `${w} из ${max}`);
-    put(this.can.sub, w <= 0 ? 'пусто — набери у колодца' : w >= max ? 'полная лейка' : 'зарядов воды');
+    put(this.can.sub, w <= 0 ? 'пусто — к колодцу' : w >= max ? 'полная лейка' : 'зарядов воды');
     this.can.fill.style.width = `${Math.min(100, (f.water / canMax(f)) * 100)}%`;
     this.can.root.classList.toggle('low', w <= 0);
 
     const used = bagUsed(f);
     const cap = bagCap(f);
     put(this.bag.value, `${used} из ${cap}`);
-    put(this.bag.sub, used >= cap ? 'полна — продай урожай' : 'мест занято');
+    put(this.bag.sub, used >= cap ? 'полна — продай' : 'мест занято');
     this.bag.fill.style.width = `${Math.min(100, (used / cap) * 100)}%`;
     this.bag.root.classList.toggle('low', used >= cap * 0.9);
 
     const wv = wellView(f, now);
     put(this.well.value, `${wv.sets} из ${WELL_SETS}`);
-    put(this.well.sub, wv.nextAt ? `набор через ${fmtLeft(wv.nextAt - now)}` : 'наборов воды · полный');
+    put(this.well.sub, wv.nextAt ? `набор через ${fmtLeft(wv.nextAt - now)}` : 'полный колодец');
     [...this.pips.children].forEach((p, i) => p.classList.toggle('off', i >= wv.sets));
     this.well.root.classList.toggle('low', wv.sets <= 0);
 
     const level = farmLevel(f.xp);
-    const hv = helpView(f, level, now);
-    this.help.hidden = level < 2;
-    put(this.helpText, `Помощь ${hv.left} из ${hv.max}${hv.resetAt ? ` · ${fmtLeft(hv.resetAt - now)}` : ''}`);
+    const hv = helpView(f, now);
+    this.help.hidden = level < HELP_MIN_LEVEL;
+    put(this.helpText, `Помощь ${hv.points} из ${hv.max}${hv.resetAt ? ` · ${fmtLeft(hv.resetAt - now)}` : ''}`);
     this.van.hidden = level < VAN_SLOTS_BY_LEVEL[0].level;
     const open = mskHour(now) % 2 === 0;
     put(this.vanText, open ? `Фургон до ${clockHour(mskHour(now) + 1)}` : `Фургон в ${clockHour(mskHour(now) + 1)} · ${fmtLeft(msToNextHour(now))}`);

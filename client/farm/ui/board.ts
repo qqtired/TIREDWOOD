@@ -2,7 +2,8 @@
 // «можно полить: N». Свой участок — золотом. Свободный участок можно занять (claimPlot). Блок Древа и Фургона сверху.
 // Древо — часть B1: пока их сообщения не пришли, показываем только время «проснётся в 19:00».
 import { repLevel } from '../../../shared/farm.ts';
-import { BOSS_END_HOUR, BOSS_START_HOUR, HELPS_PER_BED, HELP_MIN_LEFT_MS, REP_LEVELS } from '../../../shared/farmdata.ts';
+import { BOSS_START_HOUR, HELPS_PER_BED, HELP_MIN_LEFT_MS, REP_LEVELS } from '../../../shared/farmdata.ts';
+import { vanTime } from '../../../shared/farmvan.ts';
 import { FARM_PLOTS_GEO, farmUse } from '../../../shared/farmmap.ts';
 import type { FarmPlotView } from '../../../shared/farmnet.ts';
 import { FarmWin, btn, clockHour, el, fmtLeft, mskHour, msToNextHour } from './common.ts';
@@ -107,18 +108,22 @@ export class BoardWin extends FarmWin {
     const text = box.appendChild(el('div'));
     text.append(el('b', '', 'Древо разлома'));
     const sub = text.appendChild(el('small'));
-    const boss = this.host.boss();
     this.live(sub, () => {
+      const b = this.host.boss();
       const n = this.host.now;
-      if (boss?.phase === 'awake') return `Цветение ${Math.round(boss.bloom * 100)} % · твой вклад ${Math.round(boss.share * 100)} %`;
-      const h = mskHour(n);
-      if (h >= BOSS_START_HOUR || h < BOSS_END_HOUR) return 'Древо проснулось — загляни к пьедесталу!';
-      const wait = ((BOSS_START_HOUR - h - 1 + 24) % 24) * 3_600_000 + msToNextHour(n);
-      return `Проснётся в ${clockHour(BOSS_START_HOUR)} · через ${fmtLeft(wait)}`;
+      if (b?.st === 'awake') {
+        const share = b.bloom > 0 ? Math.round((b.mine / b.bloom) * 100) : 0;
+        return `Цветение ${Math.round((b.bloom / Math.max(1, b.hp)) * 100)} % · твой вклад ${share} %${b.place ? ` · место ${b.place}` : ''}`;
+      }
+      if (b?.st === 'soon') return 'Древо просыпается — скоро цветение!';
+      if (b?.st === 'bloom') return 'Древо расцвело — спасибо всем!';
+      const start = b && b.start > n ? b.start : n + (((BOSS_START_HOUR - mskHour(n) - 1 + 24) % 24) * 3_600_000 + msToNextHour(n));
+      return `Проснётся в ${clockHour(BOSS_START_HOUR)} · через ${fmtLeft(start - n)}`;
     });
-    if (boss?.top.length) {
-      const top = box.appendChild(el('small', 'fm-tbox-top', `Прошлый раз: ${boss.top.slice(0, 3).map((t) => `${t.nick} ${Math.round(t.pct * 100)} %`).join(' · ')}`));
-      top.title = 'Лучший вклад в прошлое событие';
+    const last = this.host.bossLast();
+    if (last?.top.length) {
+      const t = text.appendChild(el('small', 'fm-tbox-top', `Прошлый раз: ${last.top.slice(0, 3).map((r) => `${r.nick} ${Math.round(r.share * 100)} %`).join(' · ')}`));
+      t.title = 'Лучший вклад в прошлое событие';
     }
     return box;
   }
@@ -130,9 +135,9 @@ export class BoardWin extends FarmWin {
     text.append(el('b', '', 'Фургон'));
     const sub = text.appendChild(el('small'));
     this.live(sub, () => {
-      const n = this.host.now;
-      const open = mskHour(n) % 2 === 0;
-      return open ? `Открыт до ${clockHour(mskHour(n) + 1)}` : `Приедет в ${clockHour(mskHour(n) + 1)} · через ${fmtLeft(msToNextHour(n))}`;
+      const t = vanTime(this.host.now);
+      const h = clockHour(mskHour(t.next));
+      return t.open ? `Открыт до ${h}` : `Приедет в ${h} · через ${fmtLeft(t.next - this.host.now)}`;
     });
     return box;
   }
