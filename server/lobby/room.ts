@@ -558,7 +558,7 @@ export class LobbyRoom implements Room {
     const p = new LobbyPlayer(slot, c);
     this.players.set(slot, p);
     this.byClient.set(c, p);
-    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : this.map.spawn;
+    const spot = from === 'paintball' ? this.map.gateSpawn : from === 'race' ? this.map.garageSpawn : from === 'hide' ? this.map.hideSpawn : from === 'skill' ? this.map.skillSpawn : from === 'fort' ? this.map.fortSpawn : from === 'fight' ? FC_SPAWN : from === 'dungeon' ? this.map.dungeonSpawn : this.map.spawn;
     this.placeNear(p, spot.x, spot.z, spot.yaw);
     this.starts.set(p, { armed: this.startZoneAt(p) === null, zone: null, since: 0, shown: '' });
     c.sink.sendJson({
@@ -570,6 +570,7 @@ export class LobbyRoom implements Room {
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.plane ? { plane: this.plane.view() } : {}),
+      ...(this.hub.dungeon ? { dg: this.hub.dungeon.status() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
     });
@@ -966,6 +967,10 @@ export class LobbyRoom implements Room {
       case 'plane':
         // гидроплан выключен флагом — точки как бы нет
         this.plane?.use(p);
+        return;
+      case 'dungeon':
+        // «Подземелье» выключено флагом — точки как бы нет; включено — свой инстанс на игрока
+        if (!c.ephemeral) this.hub.dungeon?.enter(c);
         return;
     }
   }

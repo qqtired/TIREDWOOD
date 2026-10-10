@@ -5,7 +5,7 @@ import { fmtAquaTime } from '../../shared/aqua.ts';
 import type { Stats } from '../../shared/economy.ts';
 import { fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
 import type { FishProgress } from '../../shared/fishprogress.ts';
-import { namesLine, recWhen, type FortRecView } from '../../shared/fortrecord.ts';
+import { namesLine, recWhen, wavesText, type FortRecView } from '../../shared/fortrecord.ts';
 import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
 import { fmtRaceTime } from '../race/hud.ts';
 
@@ -56,6 +56,13 @@ function fortHolder(p: ProfileFacts): string {
   return `рекорд крепости${t.live ? ' — бьют прямо сейчас' : ''} · ${namesLine(t.names)}${when && !t.live ? ` · ${when}` : ''}`;
 }
 
+/** «Подземелье»: «14 волн · 18:32 · забегов 23 · боссов 2» (время — игровое до конца последней отбитой волны) */
+function dungeonLine(s: Stats): StatValue {
+  if (!(s.dgBest > 0)) return null;
+  const sec = Math.floor(s.dgBestMs / 1000);
+  return `${wavesText(s.dgBest)} · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} · забегов ${fmt.format(s.dgRuns)} · боссов ${fmt.format(s.dgBosses)}`;
+}
+
 /** «Рекорды по режимам»: лучший результат каждого режима, у трасс и курсов — по строке на каждую */
 export const RECORDS: readonly RecordLine[] = [
   { mode: '🏁 Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLapHarbor) },
@@ -73,6 +80,7 @@ export const RECORDS: readonly RecordLine[] = [
   // рекорд крепости — отбитые волны (последняя полностью отбитая): свой и всей крепости
   { mode: '🏰 Крепость', what: 'твой рекорд — отбито волн', value: (s) => best(s.ftBest), played: fortShown },
   { mode: '🏰 Крепость', what: 'рекорд крепости', whatOf: fortHolder, value: (_s, p) => p.fort?.top?.wave ?? null, played: fortShown },
+  { mode: '🕯️ Подземелье', what: 'рекорд', value: dungeonLine, played: (s) => s.dgRuns > 0 },
 ];
 
 /** Счёт по режимам: карточка на режим */

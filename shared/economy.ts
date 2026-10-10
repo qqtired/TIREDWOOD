@@ -131,6 +131,15 @@ export interface Stats {
   skMedal: number;
   skClean: number;
   skDay: number;
+  /**
+   * «Подземелье» (shared/dungeon/api.ts): забегов, рекорд — отбито волн и игровое время до конца последней из них (мс),
+   * сбито врагов и боссов за всё время
+   */
+  dgRuns: number;
+  dgBest: number;
+  dgBestMs: number;
+  dgKills: number;
+  dgBosses: number;
 }
 
 export function emptyStats(): Stats {
@@ -144,6 +153,7 @@ export function emptyStats(): Stats {
     stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, brBestLapHarbor: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
     rlSpins: 0, rlStaked: 0, rlWon: 0,
     skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
+    dgRuns: 0, dgBest: 0, dgBestMs: 0, dgKills: 0, dgBosses: 0,
   };
 }
 

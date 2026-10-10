@@ -120,6 +120,7 @@ import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
 import { FerrisWheel } from './wheel.ts';
 import { LobbyWorld, type LobbyQuality } from './world.ts';
+import { dgHint, dgStatus, setDgStatus } from './dgstatus.ts';
 
 /**
  * «Авто» подбирает разрешение само; если его уже пришлось снизить (slow), гасим и точечные лампы.
@@ -895,6 +896,10 @@ export class LobbyScene implements Scene {
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
         this.onFightSt(msg.fc ?? null);
+        setDgStatus(msg.dg ?? null);
+        break;
+      case 'dgSt':
+        setDgStatus(msg);
         break;
       case 'juke':
       case 'jukeRes':
@@ -2797,6 +2802,8 @@ export class LobbyScene implements Scene {
       if (it.kind !== 'kiosk' && dist > 1 && (dx * fx + dz * fz) / dist <= 0.2) continue;
       // арка «Крепости» — только когда режим включён
       if (it.kind === 'fort' && !this.fortSt) continue;
+      // пещера «Подземелья» — только когда режим включён
+      if (it.kind === 'dungeon' && !dgStatus()) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;
       if (it.kind === 'roulette' && !this.roulette3d.group.visible) continue;
       if (it.kind === 'ratrace' && !this.rat3d.on) continue;
@@ -2930,6 +2937,11 @@ export class LobbyScene implements Scene {
       case 'fort': {
         const h = this.fortSt ? fortHint(this.fortSt) : null;
         if (h) this.hud.setHint(h.keys, h.text);
+        break;
+      }
+      case 'dungeon': {
+        const st = dgStatus();
+        if (st) this.hud.setHint(['E'], dgHint(st));
         break;
       }
     }
