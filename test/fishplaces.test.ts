@@ -5,6 +5,7 @@ import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
 import { FISH_BOARD, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE, FISH_HOUSE_BOXES, FISHER_BODY, FISHER_NPC, FISHER_USE, FISH_PODIUM_STEP_BOXES, FISHER_CANOPY_BOXES } from '../shared/fishplaces.ts';
 import { FERRY_BACK_LEN, FERRY_OUT_LEN } from '../shared/ferry.ts';
 import { FISH_SPOTS, PHOTO, buildLobby } from '../shared/maps/lobby.ts';
+import { BERTHS } from '../shared/ownboat.ts';
 import { CollisionWorld } from '../shared/world.ts';
 import { FISH_APPROACH_ROUTES, FISH_FAR_ROUTES, FISHER_ROUTE } from './fishpaths.ts';
 
@@ -34,12 +35,14 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   const map = buildLobby();
   const pier = FISH_SPOTS.filter((s) => (s.zone ?? 'pier') === 'pier');
   assert.equal(pier.length, 20);
-  assert.equal(FISH_SPOTS.length, 30);
+  // + 8 мест на моле острова «Последний свет» (zone isle, флаг ISLE) — в самом конце
+  assert.equal(FISH_SPOTS.length, 38);
   assert.deepEqual(FISH_SPOTS.slice(0, 6), OLD_SPOTS);
   assert.deepEqual(FISH_SPOTS.slice(6, 12), NEW_SPOTS);
   assert.ok(FISH_SPOTS.slice(12, 20).every((s) => s.zone === 'barkas'), 'места баркаса — сразу после мест у маяка, номера прежние');
   assert.deepEqual(FISH_SPOTS.slice(20, 28), FISH_FAR_SPOTS, 'дальние мостки и дом — после баркаса');
-  assert.ok(FISH_SPOTS.slice(28).every((s) => s.zone === 'barkas'), 'ещё два места удлинённого баркаса — в самом конце');
+  assert.ok(FISH_SPOTS.slice(28, 30).every((s) => s.zone === 'barkas'), 'ещё два места удлинённого баркаса — после дальних мостков');
+  assert.ok(FISH_SPOTS.slice(30).every((s) => s.zone === 'isle'), 'восемь мест на моле острова — в самом конце');
   assert.ok(FISH_FAR_SPOTS.every((s) => (s.zone ?? 'pier') === 'pier'));
   assert.equal(pier.filter((s) => s.z < 38).length, 8);
   assert.equal(pier.filter((s) => s.z >= 38 && s.z < 46).length, 4);
@@ -52,11 +55,12 @@ test('у пристани 20 мест: 8 на мостках, 4 у маяка, (
   assert.deepEqual(map.interact.filter((i) => i.kind === 'fish').map((i) => i.id).slice(0, 12), [35, 36, 37, 38, 39, 40, 46, 47, 48, 49, 50, 51]);
   assert.equal(map.interact.find(i => i.kind === 'fisher')?.id, 52);
   // музыкальный автомат уже в main (id 56) — после него, в самом конце: места баркаса, лодка «Удалая», Саня, стол рулетки,
-  // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса), места дальних мостков и площадки у дома рыбака, три бильярдных стола, гидроплан и заказ баннера (PLANE),
-  // калитка фермы (FARM)
+  // крысиные бега (флаг RATRACE), второй автомат (на баке баркаса), места дальних мостков и площадки у дома рыбака, три бильярдных стола, гидроплан и заказ баннера (PLANE), ещё два места баркаса и вход в «Подземелье» (DUNGEON)
+  // калитка фермы (FARM) — последней
   assert.deepEqual(map.interact.slice(56).map((i) => `${i.kind}:${i.arg}`),
     ['juke:0', ...FISH_SPOTS.slice(12, 20).map((_, i) => `fish:${i + 12}`), 'ferry:0', 'ferry:1', 'fisher:1', 'roulette:0', 'ratrace:0', 'juke:1',
-      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29', 'farm:0']);
+      ...FISH_FAR_SPOTS.map((_, i) => `fish:${i + 20}`), 'billiards:0', 'billiards:1', 'billiards:2', 'plane:0', 'banner:0', 'fish:28', 'fish:29',
+      ...Array.from({ length: 8 }, (_, i) => `fish:${i + 30}`), 'fisher:2', ...BERTHS.map((_, i) => `oboat:${i}`), 'dungeon:0', 'farm:0']);
   assert.equal(map.fishPropsBoxes.length, 5 + FISH_PODIUM_STEP_BOXES.length + FISHER_CANOPY_BOXES.length, 'NPC, доска, основание/пять ступеней, опоры навеса и доски зависят от FISH2');
   assert.equal(new Set(map.fishPropsBoxes).size, map.fishPropsBoxes.length);
   assert.ok(map.fishPropsBoxes.every((i) => map.boxes[i].mat === 'invisible' && map.boxes[i].min[1] >= 0), 'полы/швартовные тумбы не отключаются с FISH2');

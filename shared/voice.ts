@@ -23,6 +23,7 @@ export const VOICE_ZONES: Record<RoomKind, 'world' | 'instance'> = {
   skill: 'instance',
   hide: 'instance',
   farm: 'instance',
+  dungeon: 'instance',
 };
 export const VOICE_WORLD = 'world';
 

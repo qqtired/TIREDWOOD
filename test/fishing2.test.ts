@@ -10,7 +10,7 @@ import {
   type Reel, type ReelStyle,
 } from '../shared/fishreel.ts';
 import {
-  BARKAS_INCOME, CHEST_BANDS, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_POINTS_PER_MIN, FISH_TARGET_PER_MIN,
+  BARKAS_INCOME, CHEST_BANDS, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_POINTS_PER_MIN, FISH_PRICE_CUT, FISH_TARGET_PER_MIN,
   JUNK_PER_10K, LEGACY_IDS, RAIN_DEN, RAIN_NUM, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, T_COMMON, T_DIVINE, T_EPIC, T_MYTH, T_RARE, biteShare,
   collectionCount, fishPrice2, fmtKg, isCollected, mskDayNum, priceRange, reelStyleFor, rollCatch2, rollChest, rollWeight, tierRank, zoneSpecies,
 } from '../shared/fishrules.ts';
@@ -239,15 +239,16 @@ test('трудность: ценнее — злее (успех падает, б
 
 test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (не больше −20 % к прежним 20,2); очки FISH_POINTS_PER_MIN ±3 %', (t) => {
   assert.equal(COIN_PER_POINT, 13.5 / 13.7, 'старый курс заморожен для +75 % обычным');
-  assert.equal(FISH_TARGET_PER_MIN, 17.1);
+  assert.equal(FISH_TARGET_PER_MIN, 11.7);
   const clear = fishIncome(TYPICAL, false);
   const rain = fishIncome(TYPICAL, true);
   const pro = fishIncome(EXPERT, false);
   t.diagnostic(`обычный: ${clear.coins.toFixed(2)} 🪙/мин (очков ${clear.points.toFixed(2)}), в дождь ${rain.coins.toFixed(2)}, опытный ${pro.coins.toFixed(2)}, сундуки +${clear.chest.toFixed(2)}`);
   assert.ok(Math.abs(clear.points / FISH_POINTS_PER_MIN - 1) < 0.03, `очков в минуту ${clear.points.toFixed(2)} — поправь FISH_POINTS_PER_MIN`);
   assert.ok(Math.abs(clear.coins / FISH_TARGET_PER_MIN - 1) < 0.05, `жетонов в минуту ${clear.coins.toFixed(2)}`);
-  // 03.10 зона −10 % (владелец: чуть сложнее) — новичок теряет ещё ~8 %: от выпуска 6 −15 %
-  assert.ok(clear.coins >= 20.2 * 0.8 && clear.coins <= 20.2, 'новичок платит за трудность не больше 20 % дохода выпуска 6');
+  // 03.10 зона −10 % (владелец: чуть сложнее) — новичок теряет ещё ~8 %: от выпуска 6 −15 %. 10.10 цена рыбы ещё ×FISH_PRICE_CUT (−35 %)
+  assert.equal(FISH_PRICE_CUT, 0.65, 'хотфикс 10.10: рыба у скупщиков −35 % (с новым островом будет −60 %, 0,4)');
+  assert.ok(clear.coins >= 20.2 * FISH_PRICE_CUT * 0.8 && clear.coins <= 20.2 * FISH_PRICE_CUT, 'новичок платит за трудность не больше 20 % дохода выпуска 6 (с поправкой на FISH_PRICE_CUT)');
   // в дождь заметно выгоднее, опытный зарабатывает больше, но не в разы. 04.10: мифик и кальмар клюют чаще (владелец) —
   // их почти всегда вытаскивает опытный, поэтому его отрыв вырос с ×1,56 до ×1,69 (было «до ×1,6»)
   assert.ok(rain.coins > clear.coins * 1.15 && rain.coins < clear.coins * 1.6, `дождь: ${rain.coins}`);
@@ -264,20 +265,23 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
 });
 
 test('цены: обычные от исходной целой цены +75 %, остальные откалиброваны; дождевые ×1,5, баркас ×1,25, хлам даром, сундук без множителей', () => {
-  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], [], []], barkas: [[], [], [], [], [], []] };
+  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], [], []], barkas: [[], [], [], [], [], []], isle: [[], [], [], [], [], []] };
   for (const s of COLLECTION) {
     const r = rule(s);
     const f = FISH[s];
     const k = r.rain ? RAIN_NUM / RAIN_DEN : 1;
     const [lo, hi] = priceRange(s);
-    const base = (v: number) => r.tier === T_COMMON
+    // до FISH_PRICE_CUT — прежняя цена, потом рыба дешевеет на 35 % (хотфикс 10.10), не меньше 1
+    const full = (v: number) => r.tier === T_COMMON
       ? Math.round(Math.round(Math.max(1, Math.round(v * COIN_PER_POINT)) * 1.75) * k)
       : Math.max(1, Math.round(v * COIN_PER_POINT * k * FISH_OTHER_PRICE_SCALE));
+    const base = (v: number) => Math.max(1, Math.round(full(v) * FISH_PRICE_CUT));
     // журнал показывает цену вида там, где он ловится: у баркаса — сразу с ×1,25 (одно округление)
     const want = (v: number) => (r.zone === 'barkas' ? Math.round(base(v) * BARKAS_INCOME) : base(v));
     assert.equal(lo, want(r.val[0]), f.id);
     assert.equal(hi, want(r.val[1]), f.id);
-    assert.ok(hi > lo);
+    // после урезания на 35 % у самой дешёвой мелочи (3–3 🪙) цена может не расти с весом; у остальных — растёт
+    assert.ok(r.tier === T_COMMON ? hi >= lo : hi > lo);
     const mid = Math.round((f.g[0] + f.g[1]) / 2);
     const mods = r.zone === 'barkas' ? castAt('barkas', BARKAS_LEVEL) : undefined;
     assert.ok(fishPrice2(s, mid, 0, mods) >= lo && fishPrice2(s, mid, 0, mods) <= hi, f.id);
@@ -294,7 +298,7 @@ test('цены: обычные от исходной целой цены +75 %, 
   assert.equal(fishPrice2(sp('goldfish'), 300), 0, 'золотая рыбка в рыбалке 2.0 не продаётся');
 });
 
-test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к прежним), крупное реже, 250 — джекпот, клад Посейдона — 1500; хлам 4,5 %', () => {
+test('сундук: 3 % поклёвок, 31–250 🪙 (полосы ×1,25 к прежним), крупное реже, 250 — обычный сундук, клад Посейдона — 1500 (единственный джекпот); хлам 4,5 %', () => {
   const rng = makeRng(11);
   const N = 400_000;
   let chests = 0;

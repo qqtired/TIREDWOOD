@@ -1,0 +1,15 @@
+# Тяжёлое и пересобираемое не храним в git:
+# копии для страницы — node tools/survivors/page/sync.mjs
+page/data/
+page/art/
+page/models/
+page/map.svg
+# превью-рендеры пересобираются скриптами tools/survivors/blender/*.py
+models/previews/*.png
+# оригиналы концептов (в git лежат web/*.jpg)
+art/*.png
+art/alt/
+*.blend1
+# иконки: исходные листы Codex (тяжёлые PNG) — локально, в git лежат готовые webp и контактный лист
+art/icons-src/
+!art/icons-sheet.png

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Радио на лодке — стенд станций</title>
+    <style>
+      html, body { margin: 0; background: #f6efe2; color: #3a2a1c; font: 15px/1.45 system-ui, sans-serif; }
+      main { max-width: 1440px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 20px; margin: 0 0 12px; }
+      .song { display: grid; grid-template-columns: 2.2em 1fr auto auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #fffaf0; margin-bottom: 6px; }
+      .song b { font-weight: 650; }
+      .song small { color: #8a6d52; }
+      button { font: inherit; padding: 5px 12px; border-radius: 8px; border: 1px solid #c9a77c; background: #ffe7b8; cursor: pointer; }
+      button:hover { background: #ffd98f; }
+      canvas { width: 100%; max-width: 1400px; display: block; margin-top: 10px; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>📻 Радио на лодке — станции</h1>
+      <div id="stations"></div>
+      <canvas id="spec" width="1400" height="360"></canvas>
+    </main>
+    <!-- Только для сервера разработки: в сборку не входит -->
+    <script type="module" src="/client/boat/radiolab.ts"></script>
+  </body>
+</html>

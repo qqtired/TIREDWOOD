@@ -5,10 +5,14 @@
 import { JUKE_SONGS, type JukeSong } from '../../shared/jukebox.ts';
 import { degree, noteMidi, parseChord, voicing, type Chord } from './theory.ts';
 
-/** boom — «808»: глубокий саб с глайдами (нота с «>» скользит из прошлой) */
-export const INSTS = ['epiano', 'bass', 'sub', 'tuba', 'nylon', 'guitar', 'mando', 'pad', 'strings', 'accordion', 'whistle', 'square', 'pulse', 'tri', 'bell', 'marimba', 'lead', 'boom'] as const;
+/**
+ * boom — «808»: глубокий саб с глайдами (нота с «>» скользит из прошлой); dist — перегруженная гитара (каждая нота —
+ * «пауэр-аккорд»: тон, квинта, октава), saw — «суперпила» (три расстроенные пилы, щипок фильтром) — для радио на лодке.
+ */
+export const INSTS = ['epiano', 'bass', 'sub', 'tuba', 'nylon', 'guitar', 'mando', 'pad', 'strings', 'accordion', 'whistle', 'square', 'pulse', 'tri', 'bell', 'marimba', 'lead', 'boom', 'dist', 'saw'] as const;
 export type Inst = typeof INSTS[number];
-export const KITS = ['pop', 'lofi', 'brush', 'chip', 'synth', 'surf', 'trap'] as const;
+/** break — плотный брейкбит (радио «Форсаж»): короткая упругая бочка, хлёсткий малый */
+export const KITS = ['pop', 'lofi', 'brush', 'chip', 'synth', 'surf', 'trap', 'break'] as const;
 export type Kit = typeof KITS[number];
 /** Ударные: бочка, малый, хлопок, закрытый и открытый хэт, шейкер, римшот, том низкий и средний, тарелка, щётка, треск пластинки */
 export const DRUMS = ['k', 's', 'c', 'h', 'o', 'p', 'r', 't', 'm', 'y', 'w', 'v'] as const;
@@ -128,9 +132,9 @@ function noteToken(tok: string, where: string): { head: string; beats: number; a
   return { head: m[1], beats, acc: m[3] === '!' ? 1.18 : m[3] === '?' ? 0.62 : 1 };
 }
 
-/** own — описание песни не из каталога автомата (тема фермы: client/farm/audio/theme.ts) */
-export function compileSong(def: SongDef, own?: JukeSong): CompiledSong {
-  const meta = own ?? JUKE_SONGS.find((s) => s.id === def.id);
+/** meta — темп, размер и число тактов, если песни нет в каталоге автомата (отрезки радио на лодке) */
+export function compileSong(def: SongDef, metaIn?: JukeSong): CompiledSong {
+  const meta = metaIn ?? JUKE_SONGS.find((s) => s.id === def.id);
   if (!meta) throw new Error(`песни «${def.id}» нет в каталоге`);
   const beat = 60 / meta.bpm;
   const meter = meta.meter;

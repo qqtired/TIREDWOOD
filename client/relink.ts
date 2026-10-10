@@ -27,6 +27,8 @@ export interface RelinkHost {
   now(): number;
   setTimer(fn: () => void, ms: number): number;
   clearTimer(id: number): void;
+  /** Сколько пытаться вернуться, мс (по умолчанию RELINK_MS; забег «Подземелья» сервер держит дольше) */
+  limitMs?(): number;
 }
 
 export class Relink {
@@ -47,6 +49,10 @@ export class Relink {
     return this.at > 0;
   }
 
+  private get limit(): number {
+    return this.host.limitMs?.() ?? RELINK_MS;
+  }
+
   /** Сокет закрылся посреди игры, или очередная попытка не удалась. */
   lost(): void {
     const now = this.host.now();
@@ -58,7 +64,7 @@ export class Relink {
     }
     this.host.banner(this.restarting ? 'Сервер перезапускается — подожди немного…' : 'Связь пропала — восстанавливаем…');
     this.attemptAt = 0;
-    if (now - this.at > RELINK_MS) {
+    if (now - this.at > this.limit) {
       this.fail();
       return;
     }
@@ -98,7 +104,7 @@ export class Relink {
 
   private attempt(): void {
     if (!this.at) return;
-    if (this.host.now() - this.at > RELINK_MS) {
+    if (this.host.now() - this.at > this.limit) {
       this.fail();
       return;
     }

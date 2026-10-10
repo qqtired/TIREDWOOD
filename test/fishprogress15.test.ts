@@ -7,7 +7,7 @@ import {
   FISH_MAX_LEVEL, FISH_XP_LEVELS, emptyFishProgress, fishCastMods, fishLevel, fishLevelView, normalizeFishProgress,
 } from '../shared/fishprogress.ts';
 import {
-  CHEST_ANNOUNCE, CHEST_BANDS, CHEST_JACKPOT, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_TOP_ROWS,
+  CHEST_ANNOUNCE, CHEST_BANDS, CHEST_MAX, CHEST_PER_10K, COIN_PER_POINT, COLLECTION, COLLECTION_SIZE, FISH_OTHER_PRICE_SCALE, FISH_PRICE_CUT, FISH_TOP_ROWS,
   POSEIDON_COINS, ZONE_SCALE_MAX, basePrice, biteShare, isPoseidon, priceRange, reelStyleFor, rollCatch2, rollWeight,
   SP_CHEST,
 } from '../shared/fishrules.ts';
@@ -63,7 +63,7 @@ test('старый профиль: опыт цел, у кого было бол�
 
 // ------------------------------------------------------------ сундук и «Сокровища Посейдона»
 
-test('сундук ×1,25: суммы полос — прежние ×1,25, веса те же; порог чата и джекпот пересчитаны', () => {
+test('сундук ×1,25: суммы полос — прежние ×1,25, веса те же; порог чата и самый крупный обычный сундук пересчитаны', () => {
   const OLD = [[25, 50, 650], [51, 100, 250], [101, 150, 70], [151, 199, 25], [200, 200, 5]];
   assert.deepEqual(CHEST_BANDS.map((b) => [...b]), OLD.map(([lo, hi, w]) => [Math.round(lo * 1.25), Math.round(hi * 1.25), w]));
   const mean = (bands: ReadonlyArray<readonly number[]>): number => {
@@ -71,10 +71,10 @@ test('сундук ×1,25: суммы полос — прежние ×1,25, ве
     return bands.reduce((s, [lo, hi, w]) => s + ((lo + hi) / 2) * (w / total), 0);
   };
   assert.ok(Math.abs(mean(CHEST_BANDS) / mean(OLD) - 1.25) < 0.003, `средний сундук ${mean(OLD).toFixed(2)} → ${mean(CHEST_BANDS).toFixed(2)}`);
-  // чат — с тех же 3 % сундуков, что и раньше (две верхние полосы); джекпот — последняя полоса
+  // чат — с тех же 3 % сундуков, что и раньше (две верхние полосы); самый крупный обычный сундук (не джекпот) — последняя полоса
   assert.equal(CHEST_ANNOUNCE, CHEST_BANDS[3][0]);
-  assert.equal(CHEST_JACKPOT, CHEST_BANDS[4][0]);
-  assert.equal(CHEST_JACKPOT, 250);
+  assert.equal(CHEST_MAX, CHEST_BANDS[4][0]);
+  assert.equal(CHEST_MAX, 250);
   assert.ok(CHEST_BANDS[4][0] < POSEIDON_COINS);
 });
 
@@ -92,12 +92,12 @@ test('«Сокровища Посейдона»: новичку 1500 🪙 в н�
   for (const r of [0.0003, 0.0009, 0.001, 0.01, chestRoll - 0.00001]) {
     const c = rollCatch2(false, seq(r, 0.5, 0.5, 0.5));
     assert.equal(c.sp, SP_CHEST);
-    assert.ok(c.coins >= CHEST_BANDS[0][0] && c.coins <= CHEST_JACKPOT, `r=${r}: ${c.coins}`);
+    assert.ok(c.coins >= CHEST_BANDS[0][0] && c.coins <= CHEST_MAX, `r=${r}: ${c.coins}`);
     assert.ok(!isPoseidon(c.coins));
   }
   // дальше сундука — рыба или хлам, не клад
   assert.notEqual(rollCatch2(false, seq(chestRoll + 0.001, 0.5, 0.5, 0.5)).sp, SP_CHEST);
-  assert.ok(!isPoseidon(CHEST_JACKPOT), 'самый крупный обычный сундук — не клад');
+  assert.ok(!isPoseidon(CHEST_MAX), 'самый крупный обычный сундук — не клад');
   // поток случайных чисел клад не сдвигает: те же вызовы rand у клада и у обычного сундука
   const count = (r: number): number => { let n = 0; rollCatch2(false, () => (n++ === 0 ? r : 0.5)); return n; };
   assert.equal(count(0.0001), count(0.01));
@@ -150,10 +150,11 @@ test('кальмар: 700–3000 кг; цена считается от доли
   assert.ok(Math.min(...w) >= lo && Math.max(...w) <= hi);
   assert.ok(Math.min(...w) < lo * 1.05 && Math.max(...w) > hi * 0.9, 'бывают и почти минимальный, и почти максимальный');
   // цена: от доли веса — на тех же долях та же цена, что считалась бы для любого диапазона, а границы — как раньше (500 и 1000 очков)
-  const price = (share: number): number => Math.max(1, Math.round((500 + 500 * share) * COIN_PER_POINT * FISH_OTHER_PRICE_SCALE));
+  // хотфикс 10.10: цена рыбы ещё ×FISH_PRICE_CUT (−35 %)
+  const price = (share: number): number => Math.max(1, Math.round(Math.max(1, Math.round((500 + 500 * share) * COIN_PER_POINT * FISH_OTHER_PRICE_SCALE)) * FISH_PRICE_CUT));
   for (const share of [0, 0.1, 0.25, 0.5, 0.75, 1]) assert.equal(basePrice(k, Math.round(lo + share * (hi - lo))), price(share), `доля ${share}`);
   assert.deepEqual(priceRange(k), [price(0), price(1)]);
-  assert.ok(price(0) >= 520 && price(1) <= 1070, 'в журнале и в рюкзаке цена кальмара — 530–1060 🪙, как и была');
+  assert.ok(price(0) >= 520 * FISH_PRICE_CUT && price(1) <= 1070 * FISH_PRICE_CUT, 'в журнале и в рюкзаке цена кальмара — 345–690 🪙 (было 530–1060, хотфикс 10.10 −35 %)');
   // вес ближе к лёгкому (u²): средняя цена — на трети диапазона, как и у остальных видов и как было при прежних 500–2500 кг
   const mean = w.reduce((s, g) => s + basePrice(k, g), 0) / w.length;
   assert.ok(Math.abs(mean - price(1 / 3)) < 6, `средняя цена кальмара ${mean.toFixed(1)} 🪙 (на трети диапазона ${price(1 / 3)})`);
@@ -163,11 +164,13 @@ test('кальмар в подиуме дня: с 700 кг он тяжелее �
   const k = sp('kalmar');
   const SQUID_MIN = FISH[k].g[0];
   // кроме кальмара, выше 700 кг вырастают только эти виды
-  const giants = FISH.map((f, i) => ({ f, i })).filter(({ f, i }) => i !== k && f.g[1] > SQUID_MIN).map(({ f }) => f.id).sort();
-  assert.deepEqual(giants, ['greenlandshark', 'oarfish', 'sunfish', 'whiteshark']);
+  // (10.10: виды острова «Последний свет» — свой подиум-гигант: белуга, гигантская и плащеносная акулы тяжелее; здесь — пристань и баркас)
+  const giants = COLLECTION.filter((i) => i !== k && FISH[i].g[1] > SQUID_MIN).map((i) => FISH[i].id).sort();
+  // 'hammerhead' — большая белая акула (обмен 10.10), 'whiteshark' — теперь рыба-молот до 400 кг
+  assert.deepEqual(giants, ['greenlandshark', 'hammerhead', 'oarfish', 'sunfish']);
   // и тяжелее кальмара любого веса — никто: самый крупный из них 1,5 т, а кальмар до 3 т
-  assert.ok(Math.max(...FISH.filter((_, i) => i !== k).map((f) => f.g[1])) < FISH[k].g[1]);
-  // шанс, что чужая поклёвка тяжелее самого лёгкого кальмара: меньше 1 % на любом месте и в любую погоду
+  assert.ok(Math.max(...COLLECTION.filter((i) => i !== k).map((i) => FISH[i].g[1])) < FISH[k].g[1]);
+  // шанс, что чужая поклёвка тяжелее самого лёгкого кальмара: меньше 1,5 % на любом месте и в любую погоду (до 10.10 было 1 %, см. ниже)
   // (04.10 мифики клюют чаще — у новичка на баркасе 0,67 %, в дождь 0,79 %)
   for (const zone of ['pier', 'barkas'] as const) for (const rain of [false, true]) {
     const mods = fishCastMods(emptyFishProgress(), 0, zone);
@@ -178,13 +181,14 @@ test('кальмар в подиуме дня: с 700 кг он тяжелее �
       if (b <= SQUID_MIN) continue;
       heavier += biteShare(s, rain, mods) * 0.95 * (a >= SQUID_MIN ? 1 : 1 - Math.sqrt((SQUID_MIN - a) / (b - a)));
     }
-    assert.ok(heavier < 0.01, `${zone}${rain ? ', дождь' : ''}: ${(heavier * 100).toFixed(2)} % поклёвок тяжелее 700 кг`);
+    // 10.10: после обмена акул большая белая (до 900 кг) — легенда баркаса в дождь: там 1,21 %, потолок 1,5 % (было 1 %)
+    assert.ok(heavier < 0.015, `${zone}${rain ? ', дождь' : ''}: ${(heavier * 100).toFixed(2)} % поклёвок тяжелее 700 кг`);
   }
   // подиум — пять самых тяжёлых отдельных уловов дня: кальмар в 700 кг входит, даже когда четыре гиганта дня — рекордные
   const store = { state: { fishPodium: { day: '', catches: [] as Array<{ pid: number; nick: string; sp: number; g: number; at: number }> }, profiles: [] as Profile[] }, markDirty() {} };
   const board = new FishBoard(store as unknown as Store, () => Date.UTC(2026, 9, 4, 12));
   const p = (id: number): Profile => normalizeProfile({ id, nick: `Ловец${id}`, album: {}, fishing: {} })!;
-  [['sunfish', 1], ['greenlandshark', 2], ['oarfish', 3], ['whiteshark', 4]].forEach(([id, pid]) => board.record(p(pid as number), sp(id as string), FISH[sp(id as string)].g[1]));
+  [['sunfish', 1], ['greenlandshark', 2], ['oarfish', 3], ['hammerhead', 4]].forEach(([id, pid]) => board.record(p(pid as number), sp(id as string), FISH[sp(id as string)].g[1]));
   for (let i = 5; i < 12; i++) board.record(p(i), sp('sturgeon'), 30_000);
   board.record(p(20), k, SQUID_MIN);
   const podium = store.state.fishPodium.catches;

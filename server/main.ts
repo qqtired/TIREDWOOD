@@ -10,6 +10,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { TICK_MS } from '../shared/constants.ts';
 import { fightEnabled } from './fight/room.ts';
 import { fortEnabled } from './fort/room.ts';
+import { dungeonEnabled } from './dungeon/room.ts';
 import { Hub, closeReason, type Sink } from './hub.ts';
 import { LabHttp, labEnabled } from './lab/http.ts';
 import { fish2Enabled } from './lobby/fishing2.ts';
@@ -29,6 +30,7 @@ import { StorageFailure } from './storage-failure.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
+import { isleEnabled } from '../shared/isle.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -57,6 +59,8 @@ const tg = new TgFeed({ dir: DATA_DIR });
 const fort = fortEnabled(process.env.FORTRESS, DEV);
 // «Fight Club» до «да» владельца тоже скрыт: FIGHT=1 — включить, FIGHT=0 — выключить, без переменной — только с --dev
 const fight = fightEnabled(process.env.FIGHT, DEV);
+// «Подземелье» (соло-забег, инстанс на игрока): DUNGEON=1 — включить, DUNGEON=0 — выключить, без переменной — только с --dev
+const dungeon = dungeonEnabled(process.env.DUNGEON, DEV);
 const skill = process.env.SKILL === undefined ? DEV : process.env.SKILL === '1';
 const storm = eventFlag(process.env.STORM, DEV), pirates = eventFlag(process.env.PIRATES, DEV);
 const boatrace = regattaEnabled(process.env.BOATRACE, DEV);
@@ -68,6 +72,8 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
+// Остров «Последний свет» (остров, лодки, лайвел, радио, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = isleEnabled(process.env.ISLE, DEV, fish2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Крысиные бега на понтоне: RATRACE=1 — включить, RATRACE=0 — выключить, без переменной — только с --dev (FISH2 не нужна)
@@ -82,7 +88,7 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, farm, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, farm, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick, dungeon,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -94,13 +100,16 @@ if (roll) console.log('DEV_RIG=777: автоматы подкручены на �
 if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на набережной не своя`);
 if (fort) console.log('FORTRESS: режим «Крепость» включён');
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
+if (dungeon) console.log('DUNGEON: режим «Подземелье» включён');
 if (farm) console.log('FARM: режим «Ферма» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них, рыба острова и лайвел включены (рыба пристани и баркаса ×0,4)');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 // DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание);
+// ключи — id альбома: после обмена 10.10 whiteshark = «Рыба-молот» (мифик), hammerhead = «Большая белая акула» (легенда баркаса);
 // DEV_POSEIDON=1 вместе с DEV_FISH=chest — каждый сундук оказывается «Сокровищами Посейдона»
 const devFish = DEV ? (process.env.DEV_FISH ?? '').split(',').map((id) => FISH.findIndex((f) => f.id === id.trim())).filter((sp) => sp >= 0) : [];
 if (devFish.length && hub.lobby.fishing2) {

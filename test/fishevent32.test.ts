@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, COIN_PER_POINT, FISH_OTHER_PRICE_SCALE, RULE, T_COMMON, T_DIVINE, T_LEGEND, T_MYTH,
+  COLLECTION, COLLECTION_SIZE, COIN_PER_POINT, FISH_OTHER_PRICE_SCALE, FISH_PRICE_CUT, RULE, T_COMMON, T_DIVINE, T_LEGEND, T_MYTH,
   biteShare, collectionCount, fishPrice2, isCollected, rollCatch2,
 } from '../shared/fishrules.ts';
 import { emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
@@ -83,17 +83,18 @@ test('new legendary/myth use the same1.5 event reward with appropriate base valu
   for (const s of [legend, myth]) {
     const r = RULE[s]!, f = FISH[s];
     for (const [g, value] of [[f.g[0], r.val[0]], [f.g[1], r.val[1]]] as const) {
-      assert.equal(fishPrice2(s, g), Math.round(value * COIN_PER_POINT * FISH_OTHER_PRICE_SCALE * 1.5));
+      // хотфикс 10.10: поверх прежней цены рыба дешевле на 35 % (FISH_PRICE_CUT)
+      assert.equal(fishPrice2(s, g), Math.max(1, Math.round(Math.round(value * COIN_PER_POINT * FISH_OTHER_PRICE_SCALE * 1.5) * FISH_PRICE_CUT)));
     }
   }
   const common = sp('picarel');
-  assert.equal(fishPrice2(common, FISH[common].g[0]), 6, 'old integer2 → common round(2*1.75)=4 → unique round(4*1.5)=6');
+  assert.equal(fishPrice2(common, FISH[common].g[0]), 4, 'old integer2 → common round(2*1.75)=4 → unique round(4*1.5)=6 → хотфикс 10.10 round(6*0.65)=4');
 });
 
 test('event is noticeably more profitable by its fish pool while novice clear stays at most 20% below the +50% target (fisheco: harder rare fish, 03.10 zone −10%)', t => {
   const clear = fishIncome(TYPICAL, false, 300), event = fishIncome(TYPICAL, true, 300);
   t.diagnostic(`clear ${clear.coins.toFixed(6)} event ${event.coins.toFixed(6)} event gain ${(100 * (event.coins / clear.coins - 1)).toFixed(2)}%`);
-  const ratio = clear.coins / (13.465547009661105 * 1.5);
+  const ratio = clear.coins / (13.465547009661105 * 1.5 * FISH_PRICE_CUT);
   assert.ok(ratio >= 0.8 && ratio <= 0.92, `novice clear ${ratio.toFixed(3)} of the +50% target`);
   assert.ok(event.coins > clear.coins * 1.3, 'event earns >30% extra fish sale via unique weights and rewards');
 });

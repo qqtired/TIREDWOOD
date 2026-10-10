@@ -16,6 +16,8 @@ import type { FishPodiumCatch } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, sanitizeOutfit, type Outfit } from '../shared/outfit.ts';
 import { FISHING_RESET_VERSION, LEVELS_VERSION, legacyXp, levelFromXp, safeXp } from '../shared/levels.ts';
 import { POOL_MIN } from '../shared/slots.ts';
+import type { DgRec } from '../shared/dungeon/api.ts';
+import { parseDgTop, parseDgWeek, type DgWeekTable } from './dungeon/records.ts';
 
 export { emptyStats };
 export type { Stats };
@@ -88,6 +90,12 @@ export interface State {
    * крепости. Забег обновляется после каждой отбитой волны (id — номер игры). Старые сохранения — пусто
    */
   fortTop?: FortRunRec[];
+  /**
+   * Рекорды «Подземелья» (server/dungeon/records.ts): за всё время и за неделю (с понедельника 00:00 МСК; неделя сменилась —
+   * таблица читается пустой). У профиля одна строка — лучшая. Старые сохранения — поля нет (появится с первым забегом)
+   */
+  dgTop?: DgRec[];
+  dgWeek?: DgWeekTable;
   /** Ферма: кто держит какой из 20 участков и когда был там последний раз (спящие участки переживают перезапуск) */
   farmPlots?: Array<{ pid: number; seen: number } | null>;
   /** Ферма: Древо разлома — текущее или прошлое событие (вклады, «Последняя капля», выданные баффы) */
@@ -203,6 +211,8 @@ function parseState(text: string): State {
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
     ...(raw.fortTop !== undefined ? { fortTop: parseFortTop(raw.fortTop) } : {}),
+    ...(raw.dgTop !== undefined ? { dgTop: parseDgTop(raw.dgTop) } : {}),
+    ...(raw.dgWeek !== undefined ? { dgWeek: parseDgWeek(raw.dgWeek) } : {}),
     ...(raw.farmPlots !== undefined ? { farmPlots: parseFarmPlots(raw.farmPlots) } : {}),
     ...(normalizeBoss(raw.farmBoss) ? { farmBoss: normalizeBoss(raw.farmBoss)! } : {}),
     profiles,

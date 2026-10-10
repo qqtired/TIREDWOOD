@@ -139,6 +139,14 @@ const CATALOG: Array<[Slot, string, string, Tier]> = [
   ['w', 'gold', 'Золото', 'trophy'],
   ['n', 'anchor', 'Золотой якорь', 'trophy'],
 
+  // Остров «Последний свет» (флаг ISLE): награды лестницы видов острова (ISLE_LADDER в shared/fishstyle.ts) — только в конец.
+  ['b', 'bellbuoy', 'Колокольный буй', 'trophy'],
+  ['r', 'lighthouse', 'Маячная', 'trophy'],
+  ['w', 'fog', 'Туман', 'trophy'],
+  ['s', 'puffin', 'Тупик', 'trophy'],
+  ['h', 'keeper', 'Шапка смотрителя', 'trophy'],
+  ['a', 'keeper', 'Свитер смотрителя', 'trophy'],
+  ['n', 'lighthouse', 'Маяк', 'trophy'],
   // Ферма: «пустые» вещи слотов u, l, f и награды фермы (shared/farmdata.ts, FARM_WEAR) — только в конец.
   ['u', 'none', 'Без верха', 'free'],
   ['l', 'none', 'Без низа', 'free'],

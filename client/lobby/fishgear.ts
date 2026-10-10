@@ -2,9 +2,12 @@
 // «Уточка», «Светлячок», «Золотая рыбка». Удочка — те же части, что у обычной (fishing.ts: у мешей имена blank, tip,
 // handle, reel, knob), другие материалы и пара деталей; поплавок — своя модель вместо красно-белого. Модели и материалы
 // общие на все места рыбалки, строятся при первом показе. Что держит рыбак — по его наряду (слоты r и b).
+// Остров «Последний свет»: удочка «Маячная» — здесь (огонёк на последнем колене), поплавки «Колокольный буй» и светящаяся
+// «Золотая рыбка» — из GLB (render/islegear.ts).
 import * as THREE from 'three';
 import type { Sound } from '../audio.ts';
 import type { Avatar } from '../render/avatar.ts';
+import { ISLE, animateIsleFloat, beamFlash, haloSprite, isleFloat } from '../render/islegear.ts';
 import { metalEnvTexture, softDot } from '../render/textures.ts';
 import type { LobbyFx } from './fx.ts';
 
@@ -80,6 +83,8 @@ interface RodLook {
   knob: () => THREE.Material;
   /** Детали поверх: в осях удочки (−Z — к кончику, катушка снизу) */
   extra?: () => THREE.Object3D;
+  /** Деталь на кончике: в осях последнего колена (гнётся вместе с ним) */
+  tipExtra?: () => THREE.Object3D;
 }
 
 const RODS: Record<string, RodLook> = {
@@ -113,7 +118,42 @@ const RODS: Record<string, RodLook> = {
       return ruby;
     },
   },
+  // «Маячная» (остров): бело-красная спираль, бутылочно-зелёная рукоять, латунная катушка, на кончике огонёк —
+  // вспыхивает раз в 6 с, как маяк (яркостью и ореолом, не visible)
+  lighthouse: {
+    blank: () => mat('r:lighthouse:blank', () => std(0xffffff, 0.4, 0, { map: pattern('spiral', '#f6f1e6', '#d23a2a') })),
+    tip: () => mat('r:lighthouse:tip', () => std(0xd23a2a, 0.45)),
+    handle: () => mat('r:lighthouse:handle', () => std(0x1f4a3a, 0.85)),
+    reel: () => mat('r:lighthouse:reel', () => gold(0xc9a24a)),
+    knob: () => mat('r:lighthouse:knob', () => std(0xf4efe6, 0.5)),
+    tipExtra: () => {
+      const g = new THREE.Group();
+      const light = mat('r:lighthouse:light', () => std(0xffe6a0, 0.4, 0, { emissive: 0xffb43a, emissiveIntensity: 1.6 })) as THREE.MeshStandardMaterial;
+      // латунная оправа фонарика и светящаяся бусина на конце кончика (кончик — до z = −0,3 у последнего колена)
+      const cap = new THREE.Mesh(lampCap(), mat('r:lighthouse:cap', () => gold(0xc9a24a)));
+      cap.position.z = -0.296;
+      const bead = new THREE.Mesh(sphere(), light);
+      bead.scale.setScalar(0.014);
+      bead.position.z = -0.31;
+      const halo = haloSprite(0.3, 'rod');
+      halo.position.z = -0.31;
+      bead.onBeforeRender = () => {
+        const f = beamFlash(performance.now());
+        light.emissiveIntensity = 0.6 + 2.6 * f;
+        halo.material.opacity = 0.3 + 0.7 * f;
+        halo.scale.setScalar(0.24 + 0.14 * f);
+      };
+      g.add(cap, bead, halo);
+      return g;
+    },
+  },
 };
+
+let capGeo: THREE.BufferGeometry | null = null;
+/** Оправа огонька «Маячной»: колечко вокруг бусины */
+function lampCap(): THREE.BufferGeometry {
+  return (capGeo ??= new THREE.TorusGeometry(0.012, 0.0035, 6, 12));
+}
 
 let gemGeo: THREE.BufferGeometry | null = null;
 function gem(): THREE.BufferGeometry {
@@ -130,15 +170,24 @@ export function dressRig(root: THREE.Object3D, key: string): void {
     const m = o as THREE.Mesh;
     if (!m.isMesh || !m.name) return;
     m.userData.base ??= m.material;
-    const part = m.name as keyof Omit<RodLook, 'extra'>;
+    const part = m.name as keyof Omit<RodLook, 'extra' | 'tipExtra'>;
     m.material = look && typeof look[part] === 'function' ? look[part]() : (m.userData.base as THREE.Material);
   });
-  const old = root.getObjectByName('gear-extra');
-  if (old) root.remove(old);
+  for (const name of ['gear-extra', 'gear-tip']) {
+    const old = root.getObjectByName(name);
+    old?.parent?.remove(old);
+  }
   if (look?.extra) {
     const x = look.extra();
     x.name = 'gear-extra';
     root.add(x);
+  }
+  // на кончике — в последнем колене (там меш tip): гнётся вместе с удилищем
+  const tip = look?.tipExtra ? root.getObjectByName('tip') : undefined;
+  if (look?.tipExtra && tip?.parent) {
+    const x = look.tipExtra();
+    x.name = 'gear-tip';
+    tip.parent.add(x);
   }
 }
 
@@ -246,6 +295,17 @@ function sphere(): THREE.BufferGeometry {
 export function dressFloat(group: THREE.Group, key: string): void {
   const classic = (group.userData.classic ??= [...group.children]) as THREE.Object3D[];
   group.clear();
+  group.userData.key = key;
+  // поплавки острова — из GLB: пока грузится — прежний вид, загрузился — переодеваем, если ключ тот же
+  const isle = isleFloat(key, () => {
+    if (group.userData.key === key) dressFloat(group, key);
+  });
+  if (isle) {
+    for (const o of isle) group.add(o.clone());
+    animateIsleFloat(group);
+    return;
+  }
+  if (isle === null && !(key === 'goldfish' && ISLE.on)) key = 'classic';
   if (!Object.hasOwn(FLOATS, key)) {
     for (const o of classic) group.add(o);
     return;

@@ -1,0 +1,985 @@
+{
+ "instances": [
+  {
+   "node": "sign_island_01",
+   "proto": "sign_island",
+   "u": 60.2,
+   "v": -11.4,
+   "h": 1.798,
+   "yaw": 1.9075,
+   "scale": 1.0,
+   "texts": [
+    "Остров «Последний свет»"
+   ]
+  },
+  {
+   "node": "lamp_post_01",
+   "proto": "lamp_post",
+   "u": 60.6,
+   "v": -6.1,
+   "h": 1.798,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_02",
+   "proto": "lamp_post",
+   "u": 54.9,
+   "v": -11.0,
+   "h": 1.798,
+   "yaw": -1.5708,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_03",
+   "proto": "lamp_post",
+   "u": 95.6,
+   "v": -9.2,
+   "h": 0.45,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "life_ring_post_01",
+   "proto": "life_ring_post",
+   "u": 55.1,
+   "v": -5.9,
+   "h": 1.798,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_01",
+   "proto": "barrel",
+   "u": 55.6,
+   "v": -10.5,
+   "h": 1.798,
+   "yaw": 0.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_02",
+   "proto": "barrel",
+   "u": 56.3,
+   "v": -10.6,
+   "h": 1.798,
+   "yaw": 1.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_03",
+   "proto": "barrel",
+   "u": 55.9,
+   "v": -9.8,
+   "h": 1.798,
+   "yaw": 2.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_01",
+   "proto": "crate",
+   "u": 59.4,
+   "v": -6.6,
+   "h": 1.798,
+   "yaw": 0.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_02",
+   "proto": "crate",
+   "u": 59.4,
+   "v": -6.6,
+   "h": 2.178,
+   "yaw": 0.5,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_03",
+   "proto": "crate",
+   "u": 58.6,
+   "v": -6.5,
+   "h": 1.798,
+   "yaw": 1.6,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_01",
+   "proto": "crab_trap",
+   "u": 56.0,
+   "v": -6.6,
+   "h": 1.798,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_02",
+   "proto": "crab_trap",
+   "u": 56.0,
+   "v": -6.6,
+   "h": 2.228,
+   "yaw": 0.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_03",
+   "proto": "crab_trap",
+   "u": 57.0,
+   "v": -6.6,
+   "h": 1.798,
+   "yaw": 1.57,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "rope_coil_01",
+   "proto": "rope_coil",
+   "u": 78.0,
+   "v": -8.6,
+   "h": 0.45,
+   "yaw": 3.7374,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "rope_coil_02",
+   "proto": "rope_coil",
+   "u": 86.6,
+   "v": -8.6,
+   "h": 0.45,
+   "yaw": 4.4507,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "rope_coil_03",
+   "proto": "rope_coil",
+   "u": 93.0,
+   "v": -8.6,
+   "h": 0.45,
+   "yaw": 4.7712,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "bench_01",
+   "proto": "bench",
+   "u": 47.0,
+   "v": -6.6,
+   "h": 1.327,
+   "yaw": 1.3734,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "anchor_rusty_01",
+   "proto": "anchor_rusty",
+   "u": 43.5,
+   "v": -4.5,
+   "h": 1.472,
+   "yaw": 0.7,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_04",
+   "proto": "barrel",
+   "u": 45.6,
+   "v": -20.4,
+   "h": 2.2,
+   "yaw": 0.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_05",
+   "proto": "barrel",
+   "u": 46.4,
+   "v": -20.8,
+   "h": 2.2,
+   "yaw": 0.9,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_04",
+   "proto": "crate",
+   "u": 54.0,
+   "v": -19.0,
+   "h": 2.085,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_05",
+   "proto": "crate",
+   "u": 54.0,
+   "v": -19.0,
+   "h": 2.465,
+   "yaw": 0.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_06",
+   "proto": "crate",
+   "u": 54.8,
+   "v": -19.3,
+   "h": 2.042,
+   "yaw": 1.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_04",
+   "proto": "lamp_post",
+   "u": 44.0,
+   "v": -12.4,
+   "h": 2.2,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_05",
+   "proto": "lamp_post",
+   "u": 30.0,
+   "v": -18.9,
+   "h": 3.043,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_06",
+   "proto": "lamp_post",
+   "u": 16.2,
+   "v": -21.0,
+   "h": 2.871,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_06",
+   "proto": "barrel",
+   "u": 27.5,
+   "v": -23.6,
+   "h": 3.337,
+   "yaw": 0.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_07",
+   "proto": "barrel",
+   "u": 20.4,
+   "v": -3.0,
+   "h": 2.57,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_08",
+   "proto": "barrel",
+   "u": 11.4,
+   "v": 7.4,
+   "h": 2.395,
+   "yaw": 1.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_09",
+   "proto": "barrel",
+   "u": 12.0,
+   "v": 8.1,
+   "h": 2.395,
+   "yaw": 2.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_07",
+   "proto": "crate",
+   "u": 20.6,
+   "v": -4.4,
+   "h": 2.572,
+   "yaw": 0.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_08",
+   "proto": "crate",
+   "u": 21.3,
+   "v": -4.0,
+   "h": 2.573,
+   "yaw": 1.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_09",
+   "proto": "crate",
+   "u": 20.9,
+   "v": -4.2,
+   "h": 2.953,
+   "yaw": 0.8,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_10",
+   "proto": "crate",
+   "u": 35.6,
+   "v": 14.0,
+   "h": 2.574,
+   "yaw": 0.5,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_04",
+   "proto": "crab_trap",
+   "u": 25.5,
+   "v": 17.2,
+   "h": 2.574,
+   "yaw": 0.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_05",
+   "proto": "crab_trap",
+   "u": 26.4,
+   "v": 17.0,
+   "h": 2.574,
+   "yaw": 1.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_06",
+   "proto": "crab_trap",
+   "u": 25.9,
+   "v": 17.1,
+   "h": 3.004,
+   "yaw": 0.6,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "dinghy_flipped_01",
+   "proto": "dinghy_flipped",
+   "u": 3.0,
+   "v": -7.5,
+   "h": 2.514,
+   "yaw": 0.9,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "net_rack_01",
+   "proto": "net_rack",
+   "u": 18.5,
+   "v": -26.5,
+   "h": 3.573,
+   "yaw": 0.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "bench_02",
+   "proto": "bench",
+   "u": 22.0,
+   "v": -21.0,
+   "h": 3.208,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "net_rack_02",
+   "proto": "net_rack",
+   "u": -31.0,
+   "v": 45.5,
+   "h": 2.454,
+   "yaw": 0.15,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "net_rack_03",
+   "proto": "net_rack",
+   "u": -23.5,
+   "v": 47.0,
+   "h": 2.468,
+   "yaw": 0.05,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "net_rack_04",
+   "proto": "net_rack",
+   "u": -16.0,
+   "v": 47.8,
+   "h": 2.425,
+   "yaw": -0.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_07",
+   "proto": "crab_trap",
+   "u": -9.0,
+   "v": 50.0,
+   "h": 2.164,
+   "yaw": 0.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_08",
+   "proto": "crab_trap",
+   "u": -8.2,
+   "v": 50.4,
+   "h": 2.067,
+   "yaw": 1.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_09",
+   "proto": "crab_trap",
+   "u": -35.0,
+   "v": 49.0,
+   "h": 1.636,
+   "yaw": 2.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "dinghy_flipped_02",
+   "proto": "dinghy_flipped",
+   "u": -4.0,
+   "v": 53.5,
+   "h": 1.346,
+   "yaw": -0.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "life_ring_post_02",
+   "proto": "life_ring_post",
+   "u": -20.0,
+   "v": 42.5,
+   "h": 2.686,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "sign_post_01",
+   "proto": "sign_post",
+   "u": -92.0,
+   "v": 42.0,
+   "h": -4.629,
+   "yaw": -1.0304,
+   "scale": 1.0,
+   "texts": [
+    "Не заплывать — течение!"
+   ]
+  },
+  {
+   "node": "drum_rusty_01",
+   "proto": "drum_rusty",
+   "u": -6.5,
+   "v": 17.5,
+   "h": 2.599,
+   "yaw": 0.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "drum_rusty_02",
+   "proto": "drum_rusty",
+   "u": -5.8,
+   "v": 18.3,
+   "h": 2.6,
+   "yaw": 0.8,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "drum_rusty_03",
+   "proto": "drum_rusty",
+   "u": -7.2,
+   "v": 18.6,
+   "h": 2.6,
+   "yaw": 2.1,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "drum_rusty_04",
+   "proto": "drum_rusty",
+   "u": -4.5,
+   "v": 21.0,
+   "h": 2.6,
+   "yaw": 0.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "drum_rusty_05",
+   "proto": "drum_rusty",
+   "u": -30.0,
+   "v": 17.0,
+   "h": 2.599,
+   "yaw": 0.5,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "drum_rusty_06",
+   "proto": "drum_rusty",
+   "u": -29.2,
+   "v": 17.4,
+   "h": 2.6,
+   "yaw": 1.5,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_11",
+   "proto": "crate",
+   "u": -2.5,
+   "v": 14.5,
+   "h": 2.616,
+   "yaw": 0.2,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_12",
+   "proto": "crate",
+   "u": -2.5,
+   "v": 14.5,
+   "h": 2.996,
+   "yaw": 0.5,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crate_13",
+   "proto": "crate",
+   "u": -1.6,
+   "v": 14.8,
+   "h": 2.602,
+   "yaw": 1.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "bench_03",
+   "proto": "bench",
+   "u": 81.5,
+   "v": -50.0,
+   "h": 16.0,
+   "yaw": 0.4636,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "barrel_10",
+   "proto": "barrel",
+   "u": 82.5,
+   "v": -58.0,
+   "h": 16.0,
+   "yaw": 0.3,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "life_ring_post_03",
+   "proto": "life_ring_post",
+   "u": 61.0,
+   "v": 30.6,
+   "h": 2.28,
+   "yaw": 3.1416,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "life_ring_post_04",
+   "proto": "life_ring_post",
+   "u": 108.5,
+   "v": 23.4,
+   "h": 2.28,
+   "yaw": -2.9442,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "sign_post_02",
+   "proto": "sign_post",
+   "u": 116.4,
+   "v": 11.8,
+   "h": 2.28,
+   "yaw": 1.3734,
+   "scale": 1.0,
+   "texts": [
+    "Опасное течение"
+   ]
+  },
+  {
+   "node": "crab_trap_10",
+   "proto": "crab_trap",
+   "u": 70.0,
+   "v": 31.6,
+   "h": 2.28,
+   "yaw": 0.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "crab_trap_11",
+   "proto": "crab_trap",
+   "u": 70.8,
+   "v": 31.3,
+   "h": 2.28,
+   "yaw": 1.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "lamp_post_07",
+   "proto": "lamp_post",
+   "u": 57.6,
+   "v": 31.0,
+   "h": 2.28,
+   "yaw": 3.1416,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_red_01",
+   "proto": "buoy_red",
+   "u": 247.9,
+   "v": -31.6,
+   "h": 0.0,
+   "yaw": 5.6547,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_green_01",
+   "proto": "buoy_green",
+   "u": 243.9,
+   "v": -55.6,
+   "h": 0.0,
+   "yaw": 4.4394,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_red_02",
+   "proto": "buoy_red",
+   "u": 188.9,
+   "v": -21.6,
+   "h": 0.0,
+   "yaw": 5.5339,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_green_02",
+   "proto": "buoy_green",
+   "u": 184.9,
+   "v": -44.6,
+   "h": 0.0,
+   "yaw": 0.174,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_red_03",
+   "proto": "buoy_red",
+   "u": 129.9,
+   "v": -10.6,
+   "h": 0.0,
+   "yaw": 2.7937,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_green_03",
+   "proto": "buoy_green",
+   "u": 125.9,
+   "v": -34.6,
+   "h": 0.0,
+   "yaw": 5.6601,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_bell_01",
+   "proto": "buoy_bell",
+   "u": 130.0,
+   "v": -20.0,
+   "h": 0.0,
+   "yaw": 0.4,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "buoy_route_01",
+   "proto": "buoy_route",
+   "u": 369.9,
+   "v": -65.6,
+   "h": 0.0,
+   "yaw": 1.3927,
+   "scale": 1.0,
+   "texts": [
+    "F6",
+    "F6"
+   ]
+  },
+  {
+   "node": "buoy_danger_01",
+   "proto": "buoy_danger",
+   "u": 105.0,
+   "v": -110.0,
+   "h": 0.0,
+   "yaw": 5.521,
+   "scale": 1.0,
+   "texts": [
+    "Опасное течение",
+    "Опасное течение"
+   ]
+  },
+  {
+   "node": "buoy_danger_02",
+   "proto": "buoy_danger",
+   "u": 140.0,
+   "v": -95.0,
+   "h": 0.0,
+   "yaw": 5.3086,
+   "scale": 1.0,
+   "texts": [
+    "Опасное течение",
+    "Опасное течение"
+   ]
+  },
+  {
+   "node": "buoy_danger_03",
+   "proto": "buoy_danger",
+   "u": 150.0,
+   "v": 55.0,
+   "h": 0.0,
+   "yaw": 4.3609,
+   "scale": 1.0,
+   "texts": [
+    "Опасное течение",
+    "Опасное течение"
+   ]
+  },
+  {
+   "node": "buoy_danger_04",
+   "proto": "buoy_danger",
+   "u": -160.0,
+   "v": 10.0,
+   "h": 0.0,
+   "yaw": 1.6332,
+   "scale": 1.0,
+   "texts": [
+    "Не заплывать — течение!",
+    "Не заплывать — течение!"
+   ]
+  },
+  {
+   "node": "puffin_01",
+   "proto": "puffin",
+   "u": 213.5,
+   "v": -86.5,
+   "h": 19.033,
+   "yaw": 4.0756,
+   "scale": 1.135,
+   "texts": null
+  },
+  {
+   "node": "puffin_02",
+   "proto": "puffin",
+   "u": 214.8,
+   "v": -85.2,
+   "h": 17.033,
+   "yaw": 0.7109,
+   "scale": 1.07,
+   "texts": null
+  },
+  {
+   "node": "puffin_03",
+   "proto": "puffin",
+   "u": 212.6,
+   "v": -85.0,
+   "h": 17.73,
+   "yaw": 1.5485,
+   "scale": 1.082,
+   "texts": null
+  },
+  {
+   "node": "puffin_04",
+   "proto": "puffin",
+   "u": 215.0,
+   "v": -87.4,
+   "h": 16.992,
+   "yaw": 3.6044,
+   "scale": 1.002,
+   "texts": null
+  },
+  {
+   "node": "puffin_05",
+   "proto": "puffin",
+   "u": 209.0,
+   "v": -2.4,
+   "h": 16.955,
+   "yaw": 1.3611,
+   "scale": 1.042,
+   "texts": null
+  },
+  {
+   "node": "puffin_06",
+   "proto": "puffin",
+   "u": 210.2,
+   "v": -1.5,
+   "h": 16.334,
+   "yaw": 5.7546,
+   "scale": 1.115,
+   "texts": null
+  },
+  {
+   "node": "puffin_07",
+   "proto": "puffin",
+   "u": 208.1,
+   "v": -1.0,
+   "h": 16.662,
+   "yaw": 1.0023,
+   "scale": 1.12,
+   "texts": null
+  },
+  {
+   "node": "puffin_08",
+   "proto": "puffin",
+   "u": -124.0,
+   "v": -62.5,
+   "h": 14.645,
+   "yaw": 0.8715,
+   "scale": 1.093,
+   "texts": null
+  },
+  {
+   "node": "puffin_09",
+   "proto": "puffin",
+   "u": -123.0,
+   "v": -61.4,
+   "h": 14.859,
+   "yaw": 0.7957,
+   "scale": 1.0,
+   "texts": null
+  },
+  {
+   "node": "puffin_10",
+   "proto": "puffin",
+   "u": 119.6,
+   "v": -100.2,
+   "h": 10.281,
+   "yaw": 5.4724,
+   "scale": 1.031,
+   "texts": null
+  },
+  {
+   "node": "puffin_11",
+   "proto": "puffin",
+   "u": 95.0,
+   "v": -76.0,
+   "h": 0.959,
+   "yaw": 1.3532,
+   "scale": 1.147,
+   "texts": null
+  },
+  {
+   "node": "puffin_12",
+   "proto": "puffin",
+   "u": 96.2,
+   "v": -75.2,
+   "h": 9.728,
+   "yaw": 5.4787,
+   "scale": 1.043,
+   "texts": null
+  }
+ ],
+ "route_buoys": [
+  {
+   "id": "F1",
+   "x": -25,
+   "z": 145,
+   "u": 2339.9,
+   "v": -412.6,
+   "proto": "buoy_route"
+  },
+  {
+   "id": "F2",
+   "x": -419,
+   "z": 214,
+   "u": 1945.9,
+   "v": -343.6,
+   "proto": "buoy_route"
+  },
+  {
+   "id": "F3",
+   "x": -813,
+   "z": 284,
+   "u": 1551.9,
+   "v": -273.6,
+   "proto": "buoy_route"
+  },
+  {
+   "id": "F4",
+   "x": -1207,
+   "z": 353,
+   "u": 1157.9,
+   "v": -204.6,
+   "proto": "buoy_route"
+  },
+  {
+   "id": "F5",
+   "x": -1601,
+   "z": 423,
+   "u": 763.9,
+   "v": -134.6,
+   "proto": "buoy_route"
+  },
+  {
+   "id": "F6",
+   "x": -1995,
+   "z": 492,
+   "u": 369.9,
+   "v": -65.6,
+   "proto": "buoy_route"
+  }
+ ]
+}

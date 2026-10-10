@@ -42,6 +42,16 @@
   filter: brightness(1.08);
 }
 
+/* первые 0,75 с после вываживания кнопки не нажимаются (CHOICE_LOCK_MS): выглядят притушенными — потом оживают */
+.fc2.locked .fc2-btn {
+  opacity: 0.45;
+  filter: saturate(0.5);
+  pointer-events: none;
+}
+.fc2-btn {
+  transition: opacity 0.18s, filter 0.18s;
+}
+
 .fc2-btn-top {
   display: flex;
   align-items: center;

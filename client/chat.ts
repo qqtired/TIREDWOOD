@@ -4,7 +4,7 @@ import { MAX_CHAT, TEAM_CSS } from '../shared/constants.ts';
 import type { ChatLine, RoomKind } from '../shared/messages.ts';
 import { appendCoinText } from './ui/coin.ts';
 
-const ROOM_ICON: Record<RoomKind, string> = { lobby: '🏠', paintball: '🎯', race: '🏁', fort: '🏰', fight: '🥊', skill: '☁️', hide: '🔎', farm: '🌱' };
+const ROOM_ICON: Record<RoomKind, string> = { lobby: '🏠', paintball: '🎯', race: '🏁', fort: '🏰', fight: '🥊', skill: '☁️', hide: '🔎', dungeon: '🕯️', farm: '🌱' };
 
 const KEEP = 40;
 const FADE_MS = 9000;

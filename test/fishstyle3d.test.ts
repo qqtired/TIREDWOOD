@@ -3,6 +3,7 @@ import { FARM_ITEM_IDS } from '../shared/farmdata.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type * as THREE from 'three';
+import { ISLE_ITEMS } from '../shared/fishstyle.ts';
 import { ITEMS } from '../shared/outfit.ts';
 import { wearOf } from '../client/render/outfit3d.ts';
 import { petGeometry, wearFor } from '../client/render/outfitfish.ts';
@@ -19,7 +20,8 @@ function triangles(geos: Array<THREE.BufferGeometry | null>, id: string): number
 }
 
 test('одежда-трофеи рыбалки: своя геометрия, кэш, конечные числа, не больше 5000 треугольников', () => {
-  const clothes = ITEMS.filter((it) => it.tier === 'trophy' && (it.slot === 'h' || it.slot === 'a') && !FARM_ITEM_IDS.has(it.id));
+  // вещи острова — из GLB (render/islegear.ts), их проверяет test/islecos.test.ts; вещи фермы — test/farm-3d.test.ts
+  const clothes = ITEMS.filter((it) => it.tier === 'trophy' && !ISLE_ITEMS.has(it.id) && !FARM_ITEM_IDS.has(it.id) && (it.slot === 'h' || it.slot === 'a'));
   assert.deepEqual(clothes.map((it) => it.id).sort(), ['a:angler', 'a:kukan', 'a:net', 'a:oilskin', 'a:tunic', 'h:angler', 'h:captain', 'h:sou']);
   for (const it of clothes) {
     const slot = it.slot as 'h' | 'a';

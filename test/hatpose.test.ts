@@ -1,5 +1,6 @@
 // A headpiece must deform with the body itself, including impact wobble; parent transforms cover running/jump/KO.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { ITEMS } from '../shared/outfit.ts';
@@ -8,6 +9,11 @@ import { BODY_H, bodyR } from '../client/render/outfit3d.ts';
 import { wearFor as wearOf } from '../client/render/outfitfish.ts';
 import { loadFarmWearSync } from '../client/render/farmwear.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial, posedHatPoint } from '../client/render/hatpose.ts';
+import { primeIsle } from '../client/render/islegear.ts';
+
+// шапка смотрителя (остров) — из GLB, в игре грузится fetch-ем; здесь — с диска
+const keeperHat = readFileSync(new URL('../client/assets/islecos/keeper-hat.glb', import.meta.url));
+primeIsle('keeper-hat', keeperHat.buffer.slice(keeperHat.byteOffset, keeperHat.byteOffset + keeperHat.byteLength));
 
 // шапки фермы — модели из Blender (client/render/farmwear.ts): в браузере грузятся при первом спросе, здесь — сразу
 loadFarmWearSync((url) => readFileSync(url));
