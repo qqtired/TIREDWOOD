@@ -398,6 +398,113 @@
   background: linear-gradient(90deg, #f5d36b, #e0a520, #fff1a8);
 }
 
+/* Туман (остров «Последний свет», 12 видов острова): рама из выбеленного плавника с канатом, жемчужная вода, вдали маяк —
+   огонь вспыхивает раз в 6 с; два слоя клочьев тумана (каждый ≤ 8 %, вместе ≤ 15 %) ползут под зоной и рыбой и рыбу не
+   прячут; зона — тёплый луч маяка; на поимке маячок в плашке мигает трижды. Без сине-жёлтого (AGENTS §7).
+   Перенесено как есть из макета lab/fishing-review/cosmetics/fog-window.html (блок «ТЕМА FOG»). */
+[data-fr-theme='fog'] .fr-bar {
+  border-color: transparent;
+  /* канат: витые светлые и песочные пряди */
+  background: repeating-linear-gradient(-55deg, #f2ecdf 0 2.5px, #cdbd9c 2.5px 4.5px, #e4d8c1 4.5px 6.5px) border-box;
+  box-shadow:
+    0 0 0 4px #ddd5c6,
+    0 0 0 5.5px #a99c84,
+    0 14px 34px rgba(40, 46, 52, 0.45);
+}
+[data-fr-theme='fog'] .fr-water {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 30'%3E%3Cpath d='M1 30q4-5 7-5t7 5z' fill='%238f958c'/%3E%3Cpath d='M5.2 25.5 6.2 9h3.6l1 16.5z' fill='%23b3b7ae'/%3E%3Cpath d='M5.6 19h4.8l.2 2.6H5.4zM5.95 13.4h4.1l.15 2.4h-4.4z' fill='%23c9a29a'/%3E%3Cpath d='M5.2 9h5.6v1.2H5.2z' fill='%238f958c'/%3E%3Crect x='6.3' y='5.4' width='3.4' height='3.6' fill='%23f6c992'/%3E%3Cpath d='M5.6 5.4 8 2.4l2.4 3z' fill='%238f958c'/%3E%3C/svg%3E") no-repeat 74% 5% / 13px 25px,
+    radial-gradient(ellipse 70% 22% at 74% 10%, rgba(255, 222, 186, 0.55), transparent 70%),
+    linear-gradient(#f1ede6, #dfe0d8 38%, #bec6b9 72%, #a4b1a2);
+}
+/* два слоя клочьев тумана: под зоной и рыбой, ползут медленно и в разные стороны */
+[data-fr-theme='fog'] .fr-water::before,
+[data-fr-theme='fog'] .fr-water::after {
+  content: '';
+  position: absolute;
+  inset: -40px -30px;
+  pointer-events: none;
+}
+[data-fr-theme='fog'] .fr-water::before {
+  background:
+    radial-gradient(ellipse 34px 11px at 30% 30%, rgba(255, 255, 255, 0.08), transparent 70%) 0 0 / 64px 96px,
+    radial-gradient(ellipse 26px 9px at 75% 72%, rgba(255, 255, 255, 0.07), transparent 70%) 0 0 / 64px 96px;
+  animation: fr-fog-a 26s linear infinite;
+}
+[data-fr-theme='fog'] .fr-water::after {
+  background:
+    radial-gradient(ellipse 40px 13px at 60% 40%, rgba(250, 246, 238, 0.08), transparent 70%) 0 0 / 80px 130px;
+  animation: fr-fog-b 41s linear infinite;
+}
+@keyframes fr-fog-a { to { background-position: 64px -96px, 64px -96px; } }
+@keyframes fr-fog-b { to { background-position: -80px -130px; } }
+/* огонь маяка вдали: вспышка раз в 6 с (как в игре: ореол маяка «Последний свет») */
+[data-fr-theme='fog'] .fr-bar::after {
+  content: '';
+  position: absolute;
+  left: calc(74% - 11px);
+  top: calc(5% - 3px);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, #fff7df 0 2px, rgba(255, 182, 96, 0.75) 3px, rgba(255, 160, 60, 0) 70%);
+  mix-blend-mode: screen;
+  opacity: 0.35;
+  animation: fr-fog-lamp 6s ease-out infinite;
+}
+@keyframes fr-fog-lamp {
+  0%, 12%, 100% { opacity: 0.35; transform: scale(1); }
+  4% { opacity: 1; transform: scale(1.7); }
+}
+.fr[data-fr-theme='fog'].won .fr-bar::after { animation: fr-fog-catch 1.4s ease-out; }
+@keyframes fr-fog-catch {
+  0% { opacity: 0.4; transform: scale(1); }
+  25% { opacity: 1; transform: scale(3.2); }
+  100% { opacity: 0.35; transform: scale(1); }
+}
+/* зона — тёплый луч маяка: светлее в середине, мягкое свечение; плетение поплавка потише */
+[data-fr-theme='fog'] .fr-zone {
+  background: linear-gradient(90deg, rgba(255, 176, 92, 0.22), rgba(255, 220, 168, 0.62) 44% 56%, rgba(255, 176, 92, 0.22));
+  border-color: rgba(255, 226, 190, 0.95);
+  box-shadow:
+    0 0 14px rgba(255, 168, 80, 0.5),
+    inset 0 0 10px rgba(255, 246, 214, 0.4);
+}
+[data-fr-theme='fog'] .fr-zone::before { opacity: 0.4; }
+.fr[data-fr-theme='fog'].in .fr-zone {
+  background: linear-gradient(90deg, rgba(255, 184, 100, 0.4), rgba(255, 230, 196, 0.85) 44% 56%, rgba(255, 184, 100, 0.4));
+  box-shadow:
+    0 0 24px rgba(255, 176, 88, 0.9),
+    inset 0 0 12px rgba(255, 250, 226, 0.55);
+}
+[data-fr-theme='fog'] .fr-prog i { background: linear-gradient(90deg, #f5b46c, #ffe0b6); }
+/* маячок в плашке над шкалой: всегда виден, мигает на поимке */
+[data-fr-theme='fog'] .fr-label::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 17px;
+  margin: -4px 7px -3px 0;
+  vertical-align: -1px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 17'%3E%3Cpath d='M2.4 16.5 3.3 6.8h3.4l.9 9.7z' fill='%23f4efe6'/%3E%3Cpath d='M2.85 11.6h4.3l.2 2.2H2.65zM3.1 8.6h3.8l.12 1.6H2.98z' fill='%23d23a2a'/%3E%3Crect x='3.4' y='3.6' width='3.2' height='3.2' fill='%23ffb45a'/%3E%3Cpath d='M2.6 3.7 5 .8l2.4 2.9z' fill='%23d23a2a'/%3E%3Cpath d='M1.8 6.6h6.4v.9H1.8z' fill='%23d23a2a'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+.fr[data-fr-theme='fog'].won .fr-label::before { animation: fr-fog-flash 0.5s ease-out 3; }
+@keyframes fr-fog-flash {
+  0% { filter: drop-shadow(0 0 0 rgba(255, 214, 110, 0)); }
+  35% { filter: drop-shadow(0 0 6px #ffb45a) drop-shadow(0 0 2px #fff6d6) brightness(1.5); }
+  100% { filter: drop-shadow(0 0 0 rgba(255, 214, 110, 0)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-fr-theme='fog'] .fr-water::before,
+  [data-fr-theme='fog'] .fr-water::after,
+  [data-fr-theme='fog'] .fr-bar::after,
+  .fr[data-fr-theme='fog'].won .fr-label::before { animation: none; }
+}
+/* миниатюра в «Наградах» (.frw-win), как у прочих тем */
+.frw-win[data-fr-theme='fog'] .fr-bar { box-shadow: 0 0 0 2px #ddd5c6, 0 2px 6px rgba(10, 5, 8, 0.4); }
+.frw-win[data-fr-theme='fog'] .fr-bar::after { width: 10px; height: 10px; left: calc(74% - 5px); top: 2%; }
+
 /* ---------------------------------------------------------------- карточка улова: награда или сколько до неё */
 
 .frw-catch {

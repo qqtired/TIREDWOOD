@@ -2,7 +2,7 @@
 // ob (состав и где стоят) и obPos (на ходу, плавно на 3 тика позже часов отрисовки), своя у штурмана — предсказанием
 // тем же шагом, что на сервере (сверка с obMe). Рисуются инстансами (client/boat/models.ts), пирс-стоянка за домом
 // Семёна — тоже здесь. Желейки в лодке сидят на своих местах по позе лодки на экране. Интерфейс лодки: скорость,
-// стрелки к острову (по бакенам F1–F6) и к стоянке, якорь Z, гудок — пробел, «Продать улов» (R) у причала, место под
+// стрелки к острову (по бакенам F1–F6) и к стоянке, якорь Z, гудок — пробел, «Продать улов» (G) у причала, место под
 // кнопку радио (пакет радио: radioSlot и onBoat). E у таблички места: своя лодка — за штурвал, чужая — пассажиром,
 // свободное место — окно вызова (client/boat/boatui.ts). Вкладка «⛵ Лодки» у Семёна — там же.
 // Сцена набережной (scene.ts) зовёт: welcome, onJson, tickInput, frameInput, frame, avatarPose, selfPose, onKey, onUse,
@@ -28,7 +28,7 @@ import type { Avatar, AvatarPose } from '../render/avatar.ts';
 import type { MeState } from '../scene.ts';
 import type { FishNpcDialog } from '../lobby/fishnpcdialog.ts';
 import { BoatHud, BoatShopTab, SummonDialog, km } from './boatui.ts';
-import { BoatFleet, PierModel, type FleetPose, type PlateInfo } from './models.ts';
+import { BoatFleet, PierModel, RouteBuoys, type FleetPose, type PlateInfo } from './models.ts';
 import './ownboats.css';
 
 /** Чужую лодку рисуем на столько тиков позже часов отрисовки (позиции приходят раз в 2 тика) */
@@ -42,6 +42,7 @@ const ENGINE_MINE = 9650;
 const ENGINE_HEAR = 150;
 /** Сидящая желейка: низ — на подушке сиденья */
 const SIT_DROP = 0.3;
+const _cam0 = new THREE.Vector3();
 
 export interface OwnBoatsDeps {
   scene: THREE.Scene;
@@ -186,6 +187,8 @@ export class OwnBoatsClient {
   private readonly boats = new Map<number, Boat>();
   private readonly fleet: BoatFleet;
   private readonly pier: PierModel;
+  /** Вехи F1–F5 на пути к острову (F6 — в модели острова) */
+  private readonly buoys: RouteBuoys;
   private readonly hud: BoatHud;
   private readonly summon: SummonDialog;
   /** Вкладка «⛵ Лодки» у Семёна */
@@ -204,6 +207,7 @@ export class OwnBoatsClient {
     this.d = d;
     this.fleet = new BoatFleet(d.scene);
     this.pier = new PierModel(d.scene);
+    this.buoys = new RouteBuoys(d.scene, ISLE_ROUTE_BUOYS.filter((b) => b.id !== 'F6'));
     this.hud = new BoatHud(d.hudRoot, {
       anchor: () => this.askAnchor(),
       sell: () => this.askSell(),
@@ -233,6 +237,16 @@ export class OwnBoatsClient {
     return -1;
   }
 
+  /** Радио на лодке (client/boat/radio.ts): где лодка i и на борту ли я */
+  radioWhere(i: number): { x: number; y: number; z: number } | null {
+    const p = this.boats.get(i)?.pose;
+    return p ? { x: p.x, y: p.y + 1, z: p.z } : null;
+  }
+
+  radioAboard(i: number): boolean {
+    return this.seatOf(this.act, this.arg)?.boat === i;
+  }
+
   /** Поза лодки i на экране (для звука радио и т. п.) */
   boatPose(i: number): Readonly<FleetPose> | null {
     return this.boats.get(i)?.pose ?? null;
@@ -244,6 +258,7 @@ export class OwnBoatsClient {
     for (const i of [...this.boats.keys()]) this.drop(i);
     this.enabled = false;
     this.pier.visible = false;
+    this.buoys.update(false, 0, _cam0, WATER_Y);
     this.d.setParkBoxes(false);
   }
 
@@ -409,12 +424,12 @@ export class OwnBoatsClient {
     this.summon.open(berth, info, this.owned());
   }
 
-  /** Клавиши в лодке: Z — якорь, пробел — гудок, R — продать улов. true — съели. */
+  /** Клавиши в лодке: Z — якорь, пробел — гудок, G — продать улов (R — радио). true — съели. */
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     // в лодке (на сиденье или с удочкой на якоре); пробел с удочкой — вываживание, гудок — только за штурвалом
     if (!this.enabled || !this.seatOf(this.act, this.arg)) return false;
     if (this.summon.isOpen) return false;
-    if (!down || e.repeat) return code === 'KeyZ' || (code === 'Space' && this.driving) || code === 'KeyR';
+    if (!down || e.repeat) return code === 'KeyZ' || (code === 'Space' && this.driving) || code === 'KeyG';
     if (code === 'KeyZ') {
       this.askAnchor();
       return true;
@@ -423,7 +438,7 @@ export class OwnBoatsClient {
       this.d.send({ t: 'ob', a: 'horn' });
       return true;
     }
-    if (code === 'KeyR') {
+    if (code === 'KeyG') {
       this.askSell();
       return true;
     }
@@ -481,6 +496,7 @@ export class OwnBoatsClient {
       list.push(b.pose);
     }
     this.fleet.draw(list, camPos);
+    this.buoys.update(true, this.time, camPos, WATER_Y);
     this.sounds(camPos);
     this.hudUpdate();
   }

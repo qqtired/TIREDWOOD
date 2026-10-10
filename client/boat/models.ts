@@ -411,3 +411,57 @@ function plateUv(g: THREE.BufferGeometry, i: number): THREE.BufferGeometry {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return g;
 }
+
+// ------------------------------------------------------------ вехи пути к острову
+
+/** Красно-белая веха: поплавок полосами, шест и шар (цвет в вершинах — общий материал лодок) */
+function buoyGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const paint = (g: THREE.BufferGeometry, hex: number): THREE.BufferGeometry => {
+    const c = new THREE.Color(hex);
+    const n = g.getAttribute('position').count;
+    const col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.deleteAttribute('uv');
+    return g.index ? g : g;
+  };
+  // поплавок: четыре пояса, красный и белый
+  for (let k = 0; k < 4; k++) parts.push(paint(new THREE.CylinderGeometry(0.62 - k * 0.04, 0.66 - k * 0.04, 0.4, 14).translate(0, -0.25 + k * 0.4, 0), k % 2 ? 0xf2efe8 : 0xd8382e));
+  parts.push(paint(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 6).translate(0, 2.4, 0), 0xf2efe8));
+  parts.push(paint(new THREE.SphereGeometry(0.28, 10, 8).translate(0, 3.6, 0), 0xd8382e));
+  return mergeGeometries(parts.map((g) => g.toNonIndexed()), false)!;
+}
+
+/** Вехи F1–F5 в открытом море (F6 — в модели острова): одна отрисовка на все, видны ближе 900 м, качаются на волне */
+export class RouteBuoys {
+  private readonly mesh: THREE.InstancedMesh;
+  private readonly at: ReadonlyArray<{ x: number; z: number }>;
+
+  constructor(scene: THREE.Scene, at: ReadonlyArray<{ x: number; z: number }>) {
+    this.at = at;
+    this.mesh = new THREE.InstancedMesh(buoyGeometry(), MATS[P_OPAQUE], Math.max(1, at.length));
+    this.mesh.name = 'route-buoys';
+    this.mesh.frustumCulled = false;
+    this.mesh.visible = false;
+    this.mesh.count = 0;
+    scene.add(this.mesh);
+  }
+
+  update(on: boolean, time: number, cam: THREE.Vector3, waterY: number): void {
+    const m = this.mesh;
+    m.count = 0;
+    if (on) {
+      this.at.forEach((b, i) => {
+        if (Math.hypot(b.x - cam.x, b.z - cam.z) > 900) return;
+        _e.set(Math.sin(time * 1.1 + i) * 0.06, i, Math.cos(time * 0.9 + i * 2) * 0.06);
+        _q.setFromEuler(_e);
+        _p.set(b.x, waterY + Math.sin(time * 1.3 + i) * 0.08, b.z);
+        _mb.compose(_p, _q, _s);
+        m.setMatrixAt(m.count++, _mb);
+      });
+    }
+    m.visible = m.count > 0;
+    if (m.count) m.instanceMatrix.needsUpdate = true;
+  }
+}

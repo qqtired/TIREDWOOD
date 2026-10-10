@@ -21,7 +21,6 @@ import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
 import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { planeEnabled } from '../shared/plane.ts';
-import { isleEnabled, setIsle } from '../shared/fishisle.ts';
 import { Profiles } from './profiles.ts';
 import { MsgBudget, PULSE_MS, Pulse } from './pulse.ts';
 import { Store } from './store.ts';
@@ -29,6 +28,7 @@ import { StorageFailure } from './storage-failure.ts';
 import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
+import { isleEnabled } from '../shared/isle.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -66,6 +66,8 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
+// Остров «Последний свет» (остров, лодки, лайвел, радио, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
+const isle = isleEnabled(process.env.ISLE, DEV, fish2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Крысиные бега на понтоне: RATRACE=1 — включить, RATRACE=0 — выключить, без переменной — только с --dev (FISH2 не нужна)
@@ -79,11 +81,8 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 // Гидроплан «Стриж» (полёт над городом за 100 🪙): PLANE=1 — включить, PLANE=0 — выключить, без переменной — только с --dev
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
-// Остров «Последний свет» и свои лодки рыбаков: ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
-const isle = isleEnabled(process.env.ISLE, DEV, fish2);
-setIsle(isle);
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, isle, votekick,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, fight, skill, boatrace, hide, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -97,6 +96,7 @@ if (fort) console.log('FORTRESS: режим «Крепость» включён'
 if (fight) console.log('FIGHT: режим «Fight Club» включён');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
+if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них включены');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
@@ -119,7 +119,6 @@ if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
 if (plane) console.log('PLANE: гидроплан «Стриж» (полёт над городом) включён');
-if (isle) console.log('ISLE: остров «Последний свет» и свои лодки рыбаков включены');
 if (votekick) console.log('VOTEKICK: голосование «выгнать игрока» (меню Tab) включено');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 

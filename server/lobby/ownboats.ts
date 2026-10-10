@@ -536,6 +536,15 @@ export class OwnBoats {
     }
   }
 
+  /** Носитель радио (server/lobby/boatradio.ts): лодка i — хозяин, ник, кто на борту (id профилей); нет лодки — null */
+  radioCarrier(i: number): { id: number; owner: number; nick: string; aboard: number[] } | null {
+    const b = Number.isInteger(i) && i >= 0 ? this.boats[i] : null;
+    if (!b) return null;
+    const aboard: number[] = [];
+    for (const p of b.seats) if (p?.client.profile) aboard.push(p.client.profile.id);
+    return { id: b.i, owner: b.pid, nick: b.nick, aboard };
+  }
+
   /** Отладка и тесты */
   debug(): Array<{ i: number; kind: string; nick: string; ph: number; x: number; z: number; b: number; seats: string[]; idle: number; gone: number }> {
     return this.boats.filter((b): b is Boat => !!b).map((b) => ({

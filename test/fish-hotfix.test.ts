@@ -9,8 +9,9 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FE_DONE, FE_LOST, FISH, FP_BITE, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
 import {
-  BARKAS_INCOME, CHEST_ANNOUNCE, CHEST_MAX, COLLECTION, FISH_PRICE_CUT, NEW_BONUS2, POSEIDON_COINS, SP_BOOT, SP_CHEST, basePrice, fishPrice2, isPoseidon, reelStyleFor, type Hooked,
+  BARKAS_INCOME, CHEST_ANNOUNCE, CHEST_MAX, COLLECTION, FISH_PRICE_CUT, NEW_BONUS2, POSEIDON_COINS, SP_BOOT, SP_CHEST, basePrice, fishPrice2, isPoseidon, type Hooked,
 } from '../shared/fishrules.ts';
 import type { FishCastMods } from '../shared/fishprogress.ts';
 import { REEL_MAX_TICKS } from '../shared/fishreel.ts';
@@ -69,7 +70,7 @@ function bite(e: Env, what: Hooked): number {
 /** Поймать what честно (опытный игрок, выигрышный сид шкалы) — рыба в руках */
 function catchOne(e: Env, what: Hooked): void {
   const n = bite(e, what);
-  const style = reelStyleFor(what.sp, e.hall.views()[0].mods!);
+  const style = reelStyle2(what.sp, e.hall.views()[0].mods!);
   let play: Play | null = null;
   let seed = 0;
   for (let c = 1; c <= 400 && !play; c++) { const p = playReel(style, c, EXPERT); if (p.caught) { play = p; seed = c; } }

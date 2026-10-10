@@ -78,7 +78,7 @@ export class BoatHud {
     this.anchorBtn = el('button', 'ob-btn', side);
     this.anchorBtn.type = 'button';
     this.anchorBtn.addEventListener('click', () => on.anchor());
-    this.sellBtn = el('button', 'ob-btn ob-sell', side, 'R — Продать улов');
+    this.sellBtn = el('button', 'ob-btn ob-sell', side, 'G — Продать улов');
     this.sellBtn.type = 'button';
     this.sellBtn.addEventListener('click', () => on.sell());
   }

@@ -6,6 +6,7 @@ import type { FishAlbum, FishSpotView } from './fishing.ts';
 import type { FishCastMods, FishProgress } from './fishprogress.ts';
 import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
+import type { IsleView } from './isle.ts';
 import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
 import type { FcEvent, FcMode, FcResultRow, FcReward, FcRosterRow, FcStatus } from './fight.ts';
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
@@ -27,6 +28,7 @@ import type { VoiceClientMsg, VoiceServerMsg } from './voice.ts';
 import type { GiftClientMsg, GiftServerMsg } from './gifts.ts';
 import type { LoadClientMsg, LoadServerMsg } from './loading.ts';
 import type { JukeClientMsg, JukeServerMsg } from './jukebox.ts';
+import type { RadioClientMsg, RadioServerMsg } from './boatradio.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
@@ -186,6 +188,7 @@ export type ClientMsg =
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
+  | RadioClientMsg
   | VoiceClientMsg
   | HideClientMsg
   | RegattaClientMsg
@@ -436,6 +439,7 @@ export type ServerMsg =
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg
+  | RadioServerMsg
   | VoiceServerMsg
   | SkillServerMsg
   | RegattaServerMsg
@@ -450,7 +454,7 @@ export type ServerMsg =
   | PirateSnapMsg
   | PirateFxMsg
   // --- вход и профиль
-  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; build: string }
+  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; isle?: boolean; build: string }
   | ({ t: 'levelUp'; pid: number } & LevelUp)
   | { t: 'tokens'; n: number; delay?: number }
   /** Тост; sub — вторая строка, ms — сколько висит, key — новый того же вида заменяет прежний, big — крупный золотой (клад Посейдона) */
@@ -522,6 +526,9 @@ export type ServerMsg =
   // входящему: on — идёт ли; endsAt — конец идущего сезона (нет сезона — конец ближайшего); nextAt — начало следующего
   // (идёт — того, что после него); мс серверных часов
   | { t: 'fishSeason'; on: boolean; endsAt: number; nextAt: number }
+  // остров «Последний свет» (флаг ISLE, server/lobby/isle.ts): «Туман наступает» и сезон острова — всем на набережной
+  // при смене и входящему; now — часы сервера
+  | ({ t: 'isle'; now: number } & IsleView)
   | { t: 'fishProgress'; progress: FishProgress; now: number }
   /** Рыба в руках у игрока id (номер в снимках): n — номер в его рюкзаке, вид и граммы; n = −1 — руки пустые */
   | { t: 'fishHold'; id: number; n: number; sp: number; g: number }

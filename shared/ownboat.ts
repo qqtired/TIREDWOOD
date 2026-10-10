@@ -9,7 +9,7 @@ import { BOATS, type BoatKind } from './fishboat.ts';
 import { ISLE_CENTER, fishZoneAtSea } from './fishisle.ts';
 import type { FishZone } from './fishplaces.ts';
 import { TIER_BASE } from './fishrules.ts';
-import { ISLE_BERTHS, ISLE_LANDING } from './maps/isle.ts';
+import { ISLE_BERTHS, ISLE_SPAWN as ISLE_LANDING } from './maps/isle.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT, type Input } from './sim.ts';
 
 const DT = 1 / TICK_RATE;
@@ -73,7 +73,7 @@ export const PARK_BERTHS: readonly Berth[] = [-1, 1].flatMap((side) => SLIP_Z.ma
   x: PARK.x + side * 1.3, z: PARK.z + z, yaw: (side * Math.PI) / 2, px: PARK.x + side * 0.84, pz: PARK.z + z, py: PARK_DECK_Y,
 })));
 /** Берты причала острова (пакет острова, shared/maps/isle.ts): корма у понтона, нос на юг; центр = точка + вперёд × L/2 */
-export const ISLE_DOCK: readonly Berth[] = ISLE_BERTHS.map((b) => ({ ...b, px: b.x, pz: b.z - 1, py: 0 }));
+export const ISLE_DOCK: readonly Berth[] = ISLE_BERTHS.map((b) => ({ ...b, px: b.x, pz: b.z - 1, py: b.y + 0.4 }));
 /** Все берты подряд: 0–9 — стоянка, 10–15 — остров */
 export const BERTHS: readonly Berth[] = [...PARK_BERTHS, ...ISLE_DOCK];
 export const PARK_COUNT = PARK_BERTHS.length;

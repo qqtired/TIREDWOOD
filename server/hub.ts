@@ -135,6 +135,8 @@ export interface HubOptions {
   devPirates?: boolean;
   /** Рыбалка 2.0: шкала вываживания, коллекция, доска у мостков — флаг сервера FISH2; нет — старая рыбалка */
   fish2?: boolean;
+  /** Остров «Последний свет» (лодки, остров, косметика острова, радио на лодках) — флаг сервера ISLE, работает только с рыбалкой 2.0 */
+  isle?: boolean;
   /** Рулетка рыбака (ставка уловом из рюкзака) — флаг сервера ROULETTE, работает только с рыбалкой 2.0 */
   roulette?: boolean;
   /** Крысиные бега на понтоне у набережной (ставка жетонами) — флаг сервера RATRACE, shared/ratrace.ts */
@@ -145,8 +147,6 @@ export interface HubOptions {
   billiards?: boolean;
   /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
   plane?: boolean;
-  /** Остров «Последний свет» и свои лодки рыбаков (флаг сервера ISLE, нужна FISH2; shared/fishisle.ts, server/lobby/ownboats.ts) */
-  isle?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
   now?: () => number;
@@ -255,6 +255,8 @@ export class Hub {
   readonly tg: TgFeed | null;
   /** Рыбалка 2.0 включена (флаг FISH2) */
   readonly fish2: boolean;
+  /** Остров «Последний свет» включён (флаг ISLE вместе с FISH2): клиенту — в me, чтобы показать вещи острова */
+  readonly isle: boolean;
   /** Рулетка рыбака включена (флаг ROULETTE вместе с FISH2) */
   readonly roulette: boolean;
   /** Крысиные бега включены (флаг RATRACE) */
@@ -306,6 +308,7 @@ export class Hub {
     this.log = o.log ?? ((s) => console.log(s));
     this.limits = new RateLimiter(this.now);
     this.fish2 = o.fish2 ?? false;
+    this.isle = this.fish2 && (o.isle ?? false);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
     // до набережной: круг у двери в подвал спрашивает у хаба, есть ли бой
@@ -732,7 +735,7 @@ export class Hub {
     const p = c.profile;
     if (!p) return;
     this.profiles.refreshFishing(p);
-    c.sink.sendJson({ t: 'me', pid: p.id, nick: p.nick, tokens: p.tokens, xp: p.xp, level: p.level, owned: p.owned, outfit: p.outfit, stats: p.stats, album: p.album, fishing: { ...p.fishing }, ...(this.gifts.enabled && !c.ephemeral ? { gifts: true } : {}), build: this.build });
+    c.sink.sendJson({ t: 'me', pid: p.id, nick: p.nick, tokens: p.tokens, xp: p.xp, level: p.level, owned: p.owned, outfit: p.outfit, stats: p.stats, album: p.album, fishing: { ...p.fishing }, ...(this.gifts.enabled && !c.ephemeral ? { gifts: true } : {}), ...(this.isle ? { isle: true } : {}), build: this.build });
     if (this.fish2) c.sink.sendJson({ t: 'fishProgress', progress: { ...p.fishing }, now: this.now() });
   }
 

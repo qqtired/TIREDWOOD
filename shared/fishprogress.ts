@@ -253,14 +253,15 @@ export function fishCastMods(progress: FishProgress, now: number, zone: FishZone
   const drink = activeDrink(p, now);
   const d = drinkOf(drink);
   const lure = lureOf(p.lure);
-  const barkas = zone === 'barkas';
+  // в море (баркас и воды острова) — тяжелее вываживать; остров до пакета D ловит пул баркаса (заглушка C)
+  const barkas = zone === 'barkas' || zone === 'isle';
   return {
     level, rod: p.rod,
     zoneScale: (1 + .025 * level) * (1 + bonus),
     biteSpeed: 1 + bonus,
     rareMultiplier: levelOdds(level) * rodOdds(p.rod) * (d?.rare ?? 1),
     incomeScale: d?.income ?? 1,
-    zone: barkas ? 'barkas' : 'pier',
+    zone: barkas ? zone : 'pier',
     drink,
     lure: p.lure,
     epicMultiplier: lure?.epic ?? 1,

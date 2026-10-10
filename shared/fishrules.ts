@@ -105,7 +105,7 @@ export const DIVINE_RATIO = 2.5;
 /** Мифическая: +0,4 п. п. ко всем поклёвкам новичка в ясную погоду сверх весов видов (у пристани 0,587 → 0,987 %, на баркасе 0,555 → 0,955 %) */
 export const MYTH_ADD = 0.004;
 /** Божественная — явно, доля всех поклёвок новичка в ясную погоду (было мифическая / 2,5: 0,23 и 0,22 % — стало +0,2 п. п.) */
-export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042 };
+export const DIVINE_BASE: Readonly<Record<PoolZone, number>> = { pier: 0.0043, barkas: 0.0042 };
 /**
  * Пол обычных: не меньше этой доли поклёвок рыбы при любых бонусах и погоде — редкие и выше делят не больше 95 %. Иначе
  * у прокачанного рыбака в дождь обычных не остаётся и пикарель (обычная дождевая) не ловится — коллекцию не закрыть.
@@ -555,7 +555,10 @@ function makePool(zone: FishZone, rain: boolean): Pool {
   return { sps, rank, w, rankW };
 }
 
-const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
+/** Места со своим пулом рыб. ЗАГЛУШКА пакета C до пакета D: у острова ('isle') пока пул баркаса — см. placeOf */
+type PoolZone = 'pier' | 'barkas';
+
+const POOLS: Record<PoolZone, readonly [Pool, Pool]> = {
   pier: [makePool('pier', false), makePool('pier', true)],
   barkas: [makePool('barkas', false), makePool('barkas', true)],
 };
@@ -565,7 +568,7 @@ const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
  * ясной погоды, мифическим ещё MYTH_ADD, божественная — DIVINE_BASE (обе прибавки — из обычных: им остаток).
  * MYTH_ADD и DIVINE_BASE — доли всех поклёвок новичка, а здесь доли рыбы: делим на долю рыбы у новичка (92,5 %).
  */
-function makeBase(zone: FishZone): readonly number[] {
+function makeBase(zone: PoolZone): readonly number[] {
   const p = POOLS[zone][0];
   const total = p.rankW.slice(0, 5).reduce((a, b) => a + b, 0);
   const out = p.rankW.map((w) => (total > 0 ? w / total : 0));
@@ -576,12 +579,13 @@ function makeBase(zone: FishZone): readonly number[] {
   return out;
 }
 
-const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas') };
+const BASE: Record<PoolZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas') };
 /** База категорий места — для страницы /fishing (tools/fishing-guide): доли рыбы по рангам 0…5 в ясную погоду без бонусов */
-export const TIER_BASE: Readonly<Record<FishZone, readonly number[]>> = BASE;
+export const TIER_BASE: Readonly<Record<PoolZone, readonly number[]>> = BASE;
 
-function placeOf(mods?: Readonly<FishCastMods>): FishZone {
-  return mods?.zone === 'barkas' ? 'barkas' : 'pier';
+function placeOf(mods?: Readonly<FishCastMods>): PoolZone {
+  // ЗАГЛУШКА пакета C до пакета D: мол острова ловит как баркас (пул острова — shared/fishisle.ts у D)
+  return mods?.zone === 'barkas' || mods?.zone === 'isle' ? 'barkas' : 'pier';
 }
 
 function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {

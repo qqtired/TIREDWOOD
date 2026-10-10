@@ -265,7 +265,7 @@ test('доход новичка у пристани: FISH_TARGET_PER_MIN ±5 % (
 });
 
 test('цены: обычные от исходной целой цены +75 %, остальные откалиброваны; дождевые ×1,5, баркас ×1,25, хлам даром, сундук без множителей', () => {
-  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], [], []], barkas: [[], [], [], [], [], []] };
+  const mean: Record<FishZone, number[][]> = { pier: [[], [], [], [], [], []], barkas: [[], [], [], [], [], []], isle: [[], [], [], [], [], []] };
   for (const s of COLLECTION) {
     const r = rule(s);
     const f = FISH[s];
