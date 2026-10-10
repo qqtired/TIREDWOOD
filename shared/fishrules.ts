@@ -26,14 +26,24 @@ import { LORD, LURE_MAX } from './fishshop.ts';
 
 // ------------------------------------------------------------ экономика
 
-/** Справочно: доход обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока). */
-export const FISH_TARGET_PER_MIN = 17.1;
+/**
+ * Справочно: доход от рыбы обычного игрока 0-го уровня у пристани в ясную погоду, жетонов/мин (меряет тест на модели игрока;
+ * сундуки отдельно). Было 17,1; хотфикс 10.10 (FISH_PRICE_CUT = 0,65) — 11,7: мелкая рыба режется сильнее из-за округления.
+ */
+export const FISH_TARGET_PER_MIN = 11.7;
 /** Сколько очков ценности (поле val) в минуту набирает тот же игрок — меряет тест (04.10: мифик и божественная чаще — 13,7 → 14,2). */
 export const FISH_POINTS_PER_MIN = 14.2;
 /** Исходный курс выпуска 6: заморожен, чтобы +75 % считались от старой целой цены, а не от новой цели. */
 export const COIN_PER_POINT = 13.5 / 13.7;
 /** Калибровка только остальных рыб. Это не второй глобальный множитель для обычных. */
 export const FISH_OTHER_PRICE_SCALE = 1.076;
+/**
+ * Хотфикс 10.10 (владелец): стоимость продажи рыбы скупщикам на пристани и баркасе −35 %. Множитель один на всю рыбу
+ * коллекции (basePrice) — не на сундук, хлам, бонус за новый вид (NEW_BONUS2) и клад Посейдона. Опыт он не трогает: ни
+ * опыт рыбалки, ни общий (server/lobby/fishing2.ts считает его по цене без множителя). Рыба, уже лежащая в рюкзаках,
+ * сохраняет записанную цену (bag.p). Позже, с новым островом, цену доведут до −60 % — тогда здесь будет 0,4.
+ */
+export const FISH_PRICE_CUT = 0.65;
 /** Баркас: доход и опыт за каждую рыбу ×1,25 (база видов баркаса — как у пристани в минуту) */
 export const BARKAS_INCOME = 1.25;
 export const BARKAS_XP = 1.25;
@@ -120,8 +130,9 @@ export function junkPer10k(level = 0): number {
   return Math.round(JUNK_PER_10K * (10 - l) / 10);
 }
 /**
- * Сколько в сундуке: полосы «от, до, вес» — крупное реже, 250 — джекпот. 04.10: все суммы ×1,25 к прежним (25–50, 51–100,
- * 101–150, 151–199 и 200), веса полос те же — средний сундук стал на 25 % богаче (было 57,4 🪙, стало 71,9 🪙).
+ * Сколько в сундуке: полосы «от, до, вес» — крупное реже; 250 — самый крупный обычный сундук, а не джекпот (джекпот в
+ * рыбалке один — «Сокровища Посейдона», POSEIDON_COINS). 04.10: все суммы ×1,25 к прежним (25–50, 51–100, 101–150, 151–199
+ * и 200), веса полос те же — средний сундук стал на 25 % богаче (было 57,4 🪙, стало 71,9 🪙).
  */
 export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
   [31, 63, 650],
@@ -132,8 +143,8 @@ export const CHEST_BANDS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 /** С этой суммы сундук объявляется в общем чате: верхние две полосы (3 % сундуков) — прежние 151 ×1,25 */
 export const CHEST_ANNOUNCE = 189;
-/** Джекпот обычного сундука — последняя полоса (прежние 200 ×1,25) */
-export const CHEST_JACKPOT = 250;
+/** Самый крупный обычный сундук — последняя полоса (прежние 200 ×1,25). Обычный, без джекпота: джекпот — только клад Посейдона. */
+export const CHEST_MAX = 250;
 /** «Сокровища Посейдона»: так много жетонов в кладе (вместо обычной суммы), ничем не множится */
 export const POSEIDON_COINS = 1500;
 /** Максимальная доля сундуков с кладом Посейдона, с 15-го уровня рыбалки */
@@ -143,7 +154,7 @@ export function poseidonShare(level = 0): number {
   const l = Number.isFinite(level) ? Math.min(15, Math.max(1, Math.floor(level))) : 1;
   return 0.01 + (POSEIDON_SHARE - 0.01) * (l - 1) / 14;
 }
-/** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_JACKPOT) */
+/** Клад Посейдона по сумме в сундуке: обычный сундук столько не вмещает (самый крупный — CHEST_MAX) */
 export function isPoseidon(coins: number): boolean {
   return coins >= POSEIDON_COINS;
 }
@@ -251,6 +262,9 @@ const RAW: Record<string, Raw> = {
   angler: { tier: T_LEGEND, bite: 8, rain: false, val: [32, 95], pat: ['Ambush', 'Nervous'], lo: 0, hi: 50, note: 'замирает надолго — и взрывной бросок' },
   bluemarlin: { tier: T_LEGEND, bite: 20, rain: true, val: [45, 125], pat: ['EdgeSnapback', 'Wave'], up: 70, note: 'длинные быстрые проходы и свечки' },
   // --- мифические: событие на весь пирс
+  // ВНИМАНИЕ: id 'whiteshark' показывает РЫБУ-МОЛОТ, а 'hammerhead' (легенда баркаса, только в дождь) — БОЛЬШУЮ БЕЛУЮ АКУЛУ.
+  // Обмен 10.10 (владелец): поменяли только лицо (имя, вес, цвета, картинку — shared/fishing.ts), а категория, место, шанс,
+  // цена, паттерны, CAL и опыт остались за id — ключи альбомов игроков не меняются, «кто уже ловил» зачтено.
   whiteshark: { tier: T_MYTH, bite: 6, rain: false, val: [200, 400], pat: ['FakeDash', 'Ambush'], note: 'всё сразу: скорость, рывки, сила' },
   greenlandshark: { tier: T_MYTH, also: 'barkas', bite: 3, rain: true, val: [220, 480], pat: ['SlowMigration', 'Sound'], lo: 0, hi: 70, up: 30, note: 'глубокие тяжёлые проводки, мощное сопротивление; в дождь — и у пристани, и с баркаса' },
 
@@ -700,27 +714,31 @@ export function tierOddsParts(rank: number, rain: boolean, mods?: Readonly<FishC
   return { base: fish * base, weather: weatherMul(rank, weather), bonus: bonusMul(rank, mods), now: fish * (rankShares(weather, mods)[rank] ?? 0) };
 }
 
-/** Цена без напитка и места: обычные — старая целая цена +75 %, остальные откалиброваны; дождевые ×1,5. */
-export function basePrice(sp: number, g: number): number {
+/**
+ * Цена без напитка и места: обычные — старая целая цена +75 %, остальные откалиброваны; дождевые ×1,5; потом рыба
+ * дешевеет на FISH_PRICE_CUT (cut = 1 — цена без него: от неё считается общий опыт, он не режется).
+ */
+export function basePrice(sp: number, g: number, cut = FISH_PRICE_CUT): number {
   const r = RULE[sp];
   if (!r || !isFishTier(r.tier)) return 0;
   const f = FISH[sp];
   const k = f.g[1] > f.g[0] ? Math.min(1, Math.max(0, (g - f.g[0]) / (f.g[1] - f.g[0]))) : 0;
   const v = (r.val[0] + (r.val[1] - r.val[0]) * k) * COIN_PER_POINT;
   const event = r.rain ? RAIN_NUM / RAIN_DEN : 1;
-  return r.tier === T_COMMON
+  const full = r.tier === T_COMMON
     ? Math.round(Math.round(Math.max(1, Math.round(v)) * 1.75) * event)
     : Math.max(1, Math.round(v * FISH_OTHER_PRICE_SCALE * event));
+  return cut === 1 ? full : Math.max(1, Math.round(full * cut));
 }
 
 /** Цена улова (в рюкзак — фиксируется при поимке): база × напиток (×1,1 пиво, ×1,15 эль, ×1,2 пиво владыки) × баркас 1,25, одно округление. */
-export function fishPrice2(sp: number, g: number, coins = 0, mods?: Readonly<FishCastMods>): number {
+export function fishPrice2(sp: number, g: number, coins = 0, mods?: Readonly<FishCastMods>, cut = FISH_PRICE_CUT): number {
   const r = RULE[sp];
   if (!r) return 0;
   if (r.tier === T_CHEST) return coins;
   if (r.tier === T_JUNK) return 0;
   const place = mods?.zone === 'barkas' ? BARKAS_INCOME : 1;
-  return Math.round(basePrice(sp, g) * factor(mods?.incomeScale, LORD.income) * place);
+  return Math.round(basePrice(sp, g, cut) * factor(mods?.incomeScale, LORD.income) * place);
 }
 
 /** Цена вида: за самую лёгкую и самую тяжёлую (для журнала) — у видов баркаса сразу с ×1,25 */

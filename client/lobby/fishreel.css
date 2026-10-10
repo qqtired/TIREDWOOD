@@ -121,6 +121,30 @@
   100% { transform: translateY(-14px); opacity: 0; }
 }
 
+/* «Прекратить [X]» (хотфикс 10.10): сдаться — рыба срывается, ходить снова можно. Шкала сама не ловит мышь (pointer-events: none),
+   кнопка — ловит: нажимается мышью (когда курсор свободен) и пальцем. Мелкая, чтобы не отвлекать от боя. */
+.fr-quit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--cream-dim);
+  font: 700 12px/1.2 Rubik, system-ui, sans-serif;
+  text-shadow: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.fr-quit kbd { min-width: 18px; height: 18px; padding: 0 4px; font-size: 10px; box-shadow: 0 2px 0 #b9a58a; }
+.fr-quit:hover,
+.fr-quit:focus-visible { color: var(--cream); border-color: rgba(255, 236, 205, 0.45); background: var(--panel-strong); }
+/* бой кончился (поймал, сорвалась, сдался) — кнопка не нужна */
+.fr.won .fr-quit,
+.fr.lost .fr-quit { display: none; }
+.touch .fr-quit { padding: 7px 16px; font-size: 14px; }
+
 @media (prefers-reduced-motion: reduce) {
   .fr-grade.bump,
   .fr.taut .fe-taut,

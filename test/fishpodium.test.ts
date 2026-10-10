@@ -25,8 +25,9 @@ test('same species grows visibly from 26 to 100 kg, beyond the hand-held cap',()
 
 test('25, 320 and 540 kg trophies read as different masses across the screenshot species',()=>{
   const small=podiumFishLength(species('sturgeon'),25_430);
-  const middle=podiumFishLength(species('whiteshark'),320_700);
-  const large=podiumFishLength(species('whiteshark'),540_180);
+  // большая белая акула — id 'hammerhead' (обмен 10.10: 'whiteshark' теперь рыба-молот)
+  const middle=podiumFishLength(species('hammerhead'),320_700);
+  const large=podiumFishLength(species('hammerhead'),540_180);
   assert.ok(middle>small*2.4);
   assert.ok(large>middle*1.2);
   assert.ok(large>2.3,'large catches are no longer capped at 87 cm');

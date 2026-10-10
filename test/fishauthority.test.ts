@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FISHER_USE, FISH_SPOTS, spotZone } from '../shared/fishplaces.ts';
-import { FE_BITE, FISH, FP_BITE, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
+import { FE_BITE, FISH, FP_BITE, FP_HOLD, FP_IDLE, FP_REEL } from '../shared/fishing.ts';
 import { BAG_BEER, BAG_RAIN, fishCatchXp, type FishCastMods } from '../shared/fishprogress.ts';
 import { reelGrade, reelRun, reelStart } from '../shared/fishreel.ts';
 import { COLLECTION, COLLECTION_SIZE, NEW_BONUS2, SP_BOOT, SP_CHEST, fishPrice2, reelStyleFor, type Hooked } from '../shared/fishrules.ts';
@@ -57,6 +57,8 @@ function sit(e: ReturnType<typeof setup>, what: Hooked) {
 }
 
 function bite(e: ReturnType<typeof setup>, hall: FishingHall2): void {
+  // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
+  if (hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
   e.hub.onJson(e.a.c, { t: 'fish', a: 'cast' });
   for (let i = 0; i < 30 * TICK_RATE && hall.phase(0) !== FP_BITE; i++) advance(e, 1);
   assert.equal(hall.phase(0), FP_BITE);

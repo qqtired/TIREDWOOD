@@ -94,6 +94,7 @@ if (hub.roulette) console.log('ROULETTE: рулетка рыбака включ�
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
 // DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание);
+// ключи — id альбома: после обмена 10.10 whiteshark = «Рыба-молот» (мифик), hammerhead = «Большая белая акула» (легенда баркаса);
 // DEV_POSEIDON=1 вместе с DEV_FISH=chest — каждый сундук оказывается «Сокровищами Посейдона»
 const devFish = DEV ? (process.env.DEV_FISH ?? '').split(',').map((id) => FISH.findIndex((f) => f.id === id.trim())).filter((sp) => sp >= 0) : [];
 if (devFish.length && hub.lobby.fishing2) {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FISH } from '../shared/fishing.ts';
 import { reelStart, reelRun, reelStep, REEL_MAX_TICKS } from '../shared/fishreel.ts';
-import { COLLECTION, RULE, fishPrice2, reelStyleFor, zoneSpecies } from '../shared/fishrules.ts';
+import { COLLECTION, FISH_PRICE_CUT, RULE, fishPrice2, reelStyleFor, zoneSpecies } from '../shared/fishrules.ts';
 import { FISH_XP_LEVELS, emptyFishProgress, fishCastMods } from '../shared/fishprogress.ts';
 import { BARKAS_LEVEL } from '../shared/fishshop.ts';
 import { TYPICAL, fishIncome, playReel, reelStats } from './fishbot.ts';
@@ -20,7 +20,8 @@ test('common base sale is old integer price plus75%, and event-only common separ
       const k = (g - f.g[0]) / (f.g[1] - f.g[0]);
       const oldCoins = Math.max(1, Math.round((lo + (hi - lo) * k) * (13.5 / 13.7)));
       const commonBase = Math.round(oldCoins * 1.75);
-      const expected = f.id === 'picarel' ? Math.round(commonBase * 1.5) : commonBase;
+      // хотфикс 10.10: рыба у скупщиков дешевле на 35 % (FISH_PRICE_CUT), не меньше 1
+      const expected = Math.max(1, Math.round((f.id === 'picarel' ? Math.round(commonBase * 1.5) : commonBase) * FISH_PRICE_CUT));
       assert.equal(fishPrice2(sp, g), expected, `${f.id}, ${g}g; old integer ${oldCoins}, common base ${commonBase}`);
     }
   }
@@ -32,7 +33,7 @@ test('fisheco: novice clear-weather pier earnings pay at most 20% for harder fis
   const released = measuredBefore * 1.5;
   const current = fishIncome(TYPICAL, false, 300);
   t.diagnostic(`clear ${current.coins.toFixed(6)}, chest ${current.chest.toFixed(6)}, vs released ${(100 * (current.coins / released - 1)).toFixed(3)}%`);
-  assert.ok(current.coins >= released * 0.8 && current.coins <= released * 0.92, `${current.coins} should be 8…20% below ${released.toFixed(4)} fish coins/min`);
+  assert.ok(current.coins >= released * FISH_PRICE_CUT * 0.8 && current.coins <= released * FISH_PRICE_CUT * 0.92, `${current.coins} should be 8…20% below ${(released * FISH_PRICE_CUT).toFixed(4)} fish coins/min (released +50% target × FISH_PRICE_CUT)`);
 });
 
 test('fisheco: no species is an outlier inside its rarity tier at the place entry (pier level 0, barkas level 3 with rod 1)', t => {

@@ -206,11 +206,12 @@ test('кальмар клюёт везде и в любую погоду, 700–
 
 test('сельдяной король в среднем на 10–25 % тяжелее большой белой акулы (вес как у броска: лёгкие чаще)', () => {
   const mean = (id: string) => { const f = FISH[sp(id)]; return f.g[0] + (f.g[1] - f.g[0]) / 3; };
-  const k = mean('oarfish') / mean('whiteshark');
+  // id 'hammerhead' — это БОЛЬШАЯ БЕЛАЯ АКУЛА (обмен 10.10): вес и имя идут вместе, ключ альбома прежний
+  const k = mean('oarfish') / mean('hammerhead');
   assert.ok(k >= 1.1 && k <= 1.25, `по формуле ×${k.toFixed(3)}`);
   const rng = makeRng(5);
   let a = 0, b = 0;
-  for (let i = 0; i < 40_000; i++) { a += rollWeight(sp('oarfish'), rng); b += rollWeight(sp('whiteshark'), rng); }
+  for (let i = 0; i < 40_000; i++) { a += rollWeight(sp('oarfish'), rng); b += rollWeight(sp('hammerhead'), rng); }
   assert.ok(a / b >= 1.1 && a / b <= 1.25, `броском ×${(a / b).toFixed(3)}`);
 });
 

@@ -8,6 +8,8 @@
 // «натяжение лески» (зона прижата к верху дольше 0,7 с) — надпись у шкалы и строка в чат. Водка — рыбак пьян: шкала
 // покачивается, рыба двоится, шкала моргает (пропадает на 0,2–0,3 с), «ик!» — это только на экране; задержка зоны
 // и икота — в общей модели (shared/fishreel.ts), их считает и сервер. Стили нового — fishreel.css.
+// 10.10 (хотфикс): пока идёт вываживание, персонаж не ходит (scene.ts), а сдаться можно кнопкой «Прекратить [X]» на шкале
+// или клавишей X — рыба срывается, как при провале (giveUp).
 import { TICK_MS } from '../../shared/constants.ts';
 import {
   BOUNCE_FULL, REEL_BAR, REEL_P_MAX, reelGrade, reelPulling, reelRun, reelSlack, reelStart, reelTaut, reelView, type Reel,
@@ -77,6 +79,8 @@ export class ReelGame {
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly rainEl: HTMLElement;
+  /** «Прекратить [X]»: сдаться — рыба срывается, управление возвращается (кнопка нажимается мышью и пальцем, клавиша X — scene.ts) */
+  private readonly quitBtn: HTMLButtonElement;
   /** fisheco: откуда зона и рывки («Зона 30% → 36% (ур. 4 +10%, удочка +10%)», «рывки −5% блесна») и «Последний рывок!» */
   private readonly bonus: HTMLElement;
   private readonly standEl: HTMLElement;
@@ -147,6 +151,12 @@ export class ReelGame {
     this.hint = slot.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
     this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
+    this.quitBtn = this.root.appendChild(el('button', 'fr-quit'));
+    this.quitBtn.type = 'button';
+    this.quitBtn.title = 'Бросить вываживание: рыба сорвётся, можно забрасывать снова';
+    this.quitBtn.append('Прекратить');
+    if (!TOUCH) this.quitBtn.append(' ', el('kbd', '', 'X'));
+    this.quitBtn.addEventListener('click', () => this.giveUp());
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
       // телефон: держать можно где угодно на экране (кроме верхних кнопок) — и кнопкой 🎣
@@ -289,6 +299,20 @@ export class ReelGame {
     }
   }
 
+  /**
+   * «Прекратить» (клавиша X или кнопка на шкале): сдаться. Рыба срывается ровно как при провале: у себя бой кончен
+   * (done = −1), серверу уходит последнее сообщение с d = 1 — его повтор не дошёл до 100 %, значит lose(), FE_LOST.
+   * false — шкала не идёт, сдаваться нечем.
+   */
+  giveUp(): boolean {
+    const r = this.r;
+    if (!r || r.done !== 0) return false;
+    r.done = -1;
+    this.send(r);
+    this.finish(false, 'Сорвалась…');
+    return true;
+  }
+
   /** Убрать сразу (вышли с набережной) */
   reset(): void {
     this.hide();
@@ -315,14 +339,14 @@ export class ReelGame {
     this.onSend(msg);
   }
 
-  private finish(caught: boolean): void {
+  private finish(caught: boolean, text?: string): void {
     const r = this.r;
     this.endAt = performance.now();
     this.calm();
     this.root.classList.add(caught ? 'won' : 'lost');
     // вытащил рыбу — ниже оценка крупно её цветом («Идеально · ×2,5 опыта»; сервер считает так же — она же в карточке);
-    // сорвалась, пока леска была натянута, — оборвалась
-    this.result.textContent = caught ? 'Поймал! 🎣' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…';
+    // сорвалась, пока леска была натянута, — оборвалась; сдался сам (text) — просто сорвалась
+    this.result.textContent = caught ? 'Поймал! 🎣' : text ?? (r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…');
     if (caught && r && this.fishTier) {
       const g = reelGrade(r.err);
       this.result.appendChild(el('small', gradeClass(g), `${gradeName(g)} · ${gradeMul(g)} опыта`));
