@@ -11,7 +11,7 @@
 4. Эта карта — где что лежит.
 5. [design.md](design.md) — как всё устроено, по системам (оглавление в начале). Как играть, команды и флаги — в [README.md](../README.md).
 
-Перед работой с площадью, графикой и сетью прочитай ещё [optimization.md](optimization.md). Лучшие образцы режима — Fight Club, прятки и картинг (в таблице помечены «образец»).
+Перед работой с площадью, графикой и сетью прочитай ещё [optimization.md](optimization.md). Лучшие образцы режима — прятки и картинг (в таблице помечены «образец»).
 
 Локальный исследовательский стенд сравнения WebGL/WebGPU — [`tools/render-bench/`](../tools/render-bench/README.md), команды `bench:check`, `bench:build`, `bench:preview`; тесты `test/render-bench-*.test.ts`. В игровую сборку не входит и не означает переход игры с `WebGLRenderer` на WebGPU. План эксперимента — [2026-10-06-render-benchmark.md](superpowers/plans/2026-10-06-render-benchmark.md).
 
@@ -107,7 +107,6 @@
 | «Выше облаков» | `skill*.ts` | `skilltest/` | `skilltest/` | `SKILL` | `skilltest.test.ts` | design «Полоса «Выше облаков»», план `skill` |
 | Прятки «Рыбный двор» (образец) | `hide*.ts` | `hide/` | `hide/` | `HIDE` | `hide-rules.test.ts` | [hide-repair-20261003.md](hide-repair-20261003.md), план `hide` |
 | Крепость | `fort*.ts` | `fort/` | `fort/` | `FORTRESS` | `fort.test.ts`, `fort-run.test.ts` | design «Крепость», планы `fort-*` |
-| Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
 | Ферма (20 участков, вход — калитка на площади) | `farm*.ts` (числа — `farmdata.ts`, правила — `farm.ts`, сеть — `farmnet.ts`/`farmsys.ts`) | `farm/` | `farm/`, жители, Фургон, Древо, двор и питомцы — `farm/3d/`, калитка — `farm/lobbygate.ts`, земля, трава и декор — `farm/decor/`, звук (тема и окружение) — `farm/audio/`, одежда фермы на желейке — `render/farmwear.ts`, `render/outfitfarm.ts`, модели — `assets/farm/` | `FARM` | `farm*.test.ts` | [farm/design-v11.md](farm/design-v11.md), план `farm` (владение файлами частей) |
 | «Подземелье» (соло, инстанс на игрока) | `dungeon/` (договор `api.ts`) | `dungeon/` (зал, комната, рекорды, `simport.ts`) | `dungeon/`, `lazyscene.ts`, `lobby/dgstatus.ts`, вход и доска рекордов на лужайке — `lobby/plaza/dungeon.ts` (модель `assets/dungeon/plaza/`, твёрдое — `shared/plaza2.ts`) | `DUNGEON` | `dungeon-flag.test.ts`, `dungeon-server-sim.test.ts`, `dungeon-plaza.test.ts` | [survivors/](survivors/), план `2026-10-10-dungeon`, страница [tech/tiredwood-podzemelye](https://tired.solutions/tech/tiredwood-podzemelye/) |
 | «Подземелье»: симуляция (30 Гц, детерминированная; клиент играет, сервер повторяет по журналу) | `dungeon/*` (`sim.ts` — витрина, таблицы `gen-design.ts`/`gen-level.ts`) | — | — | `DUNGEON` | `dungeon-sim.test.ts` | таблицы из `docs/survivors/*-data.json` — `node tools/survivors/gen-data.mjs`; бот — `node tools/survivors/bot.mjs` |
@@ -124,7 +123,7 @@
 | Страница `/fishing` | — | — | — (страница — `public/fishing/` в корне) | — | `tools/fishing-guide/verify.mjs`, `test/fishing-guide.test.ts` (подсказки калькулятора) | [STATUS.md](STATUS.md); пересборка — `node tools/fishing-guide/gen.mjs` |
 | Экраны загрузки | `loading.ts` | `readygate.ts` | `ui/transition.ts`, `ui/transition-art.ts`, `startup.ts`, `assets/loading/` | — | `loading.test.ts`, `startup.test.ts` | план `loading` |
 | Звук (sfx.ts лежит в папке каждого режима) | — | — | `audio.ts`, `ambience.ts`, `voices.ts`, `music/` | — | `ambience.test.ts`, `settings-mix.test.ts` | план `sound`, design «Звук» |
-| Боты (только соло) | `solobots.ts` | `paintball/bot.ts`, `race/bot.ts`, `fight/bots.ts`, `lobby/regattabot.ts` | — | — | `solobots.test.ts`, `bots.test.ts` | AGENTS §6 |
+| Боты (только соло) | `solobots.ts` | `paintball/bot.ts`, `race/bot.ts`, `lobby/regattabot.ts` | — | — | `solobots.test.ts`, `bots.test.ts` | AGENTS §6 |
 | Телефон | — | — | `touch.ts` | — | `touch.test.ts` | design «Телефоны» |
 | Картинки и модели | — | — | `assets/` (рыбы, лавка, удочки, бильярд, катер, крепость, загрузка) | — | — | PROVENANCE рядом с картинками (AGENTS §7) |
 
@@ -154,7 +153,7 @@
 | [optimization.md](optimization.md) | план оптимизации: замеры, бюджет кадра, правила постройки площади, сеть | актуально; скрипта замера из этапа 1 (`tools/perf/plaza.mjs`) в `main` пока нет |
 | [farm/](farm/) | ферма: дизайн `design-v11.md` (v10 — история), решения владельца `decisions.md`, уровень `level/` (схема, `layout.json`), страница обзора `review/` (выложена на tired.solutions/tech/tiredwood-farm/), снимки `shots/`, превью темы `audio/` | выпущено 10.10 (релиз `20261010-204608`); числа в коде — `shared/farmdata.ts` |
 | [fitting-room.md](fitting-room.md) | отдельная лаборатория примерки, импорт/экспорт, GLB, границы переноса в игру | локальная реализация; выпуск и nginx — отдельно |
-| [lab-research-examples.md](lab-research-examples.md) | восемь исследовательских примеров, из них четыре интерактивных | локальные предложения; не решение «Берём» и не перенос механик в игру |
+| [lab-research-examples.md](lab-research-examples.md) | семь исследовательских примеров, из них четыре интерактивных | локальные предложения; не решение «Берём» и не перенос механик в игру |
 | [plaza-redesign-2026-10-04.md](plaza-redesign-2026-10-04.md) | концепция новой площади: входы в режимы, афиша в кафе, Улица Аттракционов, аквапарк; откат `?plaza=1` | актуально |
 | [billiards-2026-10-04.md](billiards-2026-10-04.md) | бильярд: где стоит, правила «американки», ставка, соло, управление, интерфейс стола, физика | актуально |
 | [ratrace-2026-10-04.md](ratrace-2026-10-04.md) | крысиные бега: где, крысы, шансы и выплаты, табло и камера, итоги | актуально |
@@ -170,7 +169,7 @@
 | [expansion-2026-10-03/](expansion-2026-10-03/) | отчёты Codex по режимам и системам 2–3 октября; начни со `STATUS.md` внутри | история |
 | [release-prep/](release-prep/) | подготовка релизов 2–3 октября: чек-листы, контракты, миграция, баланс | история; про миграцию — `2026-10-02/REPORT-migration.md` |
 | [superpowers/plans/](superpowers/plans/) | планы по темам (дата в имени), итог и «как посмотреть» — в конце файла | история и «как делалось» |
-| [superpowers/specs/](superpowers/specs/) | четыре спецификации: набережная, памятник, Fight Club, крепость | история |
+| [superpowers/specs/](superpowers/specs/) | четыре спецификации: набережная, памятник, Fight Club (режим удалён 11.10.2026 по слову владельца), крепость | история |
 | [tasks/](tasks/) | исходные задания Codex: шторм, пираты, уровни, живность | сделано, история |
 | [visual-rebuild/](visual-rebuild/) | переделка катеров, верфи, высотной полосы и животных после оценки владельца | история |
 
