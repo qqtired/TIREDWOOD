@@ -6,7 +6,7 @@ import {
 import { BUILTIN_MODEL_SLOTS, BUILTIN_SETS, createCatalog } from './catalog.ts';
 
 const EMPTY: Record<Slot, string> = {
-  p: 'none', e: 'normal', h: 'none', a: 'none', s: 'none', r: 'basic', b: 'classic', w: 'wood', n: 'none',
+  p: 'none', e: 'normal', h: 'none', a: 'none', s: 'none', r: 'basic', b: 'classic', w: 'wood', n: 'none', u: 'none', l: 'none', f: 'none',
 };
 const CORE_SLOTS: readonly Slot[] = ['p', 'e', 'h', 'a'];
 

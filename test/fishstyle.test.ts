@@ -10,6 +10,7 @@ import { COLLECTION, COLLECTION_SIZE } from '../shared/fishrules.ts';
 import {
   ALL, GEAR_SLOTS, LADDER, REWARD_INFO, earnedItems, fishTotal, gearOnly, needOf, nextStep, stepNeed,
 } from '../shared/fishstyle.ts';
+import { FARM_ITEM_IDS } from '../shared/farmdata.ts';
 import { DEFAULT_OUTFIT, EXTRA_SLOTS, ITEMS, itemById, sameOutfit, sanitizeOutfit, slotKey, type Outfit } from '../shared/outfit.ts';
 import { grantLadder, ladderAnnounce, ladderToast } from '../server/fishstyle.ts';
 import { Hub } from '../server/hub.ts';
@@ -57,7 +58,7 @@ test('лестница: каждые 5 видов до 45, финал — все
   assert.equal(needOf('b:duck', 51), 15);
   assert.deepEqual(LADDER[3].items, ['h:angler', 'e:angler', 'a:angler']);
   // все трофеи рыбалки нового выпуска кто-то выдаёт
-  for (const it of ITEMS.filter((i) => i.tier === 'trophy')) assert.ok(ids.includes(it.id), `${it.id} на лестнице`);
+  for (const it of ITEMS.filter((i) => i.tier === 'trophy' && !FARM_ITEM_IDS.has(i.id))) assert.ok(ids.includes(it.id), `${it.id} на лестнице`);
 });
 
 test('пороги считаются от числа видов в коде: выше — сливаются с финалом; 51 вид — финал на 51', () => {

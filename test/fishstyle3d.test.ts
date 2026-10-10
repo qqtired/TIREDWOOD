@@ -1,4 +1,5 @@
 // Награды рыбалки в 3D: каждая вещь построена своим кодом, общая на всех, конечная и в бюджете треугольников.
+import { FARM_ITEM_IDS } from '../shared/farmdata.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type * as THREE from 'three';
@@ -18,7 +19,7 @@ function triangles(geos: Array<THREE.BufferGeometry | null>, id: string): number
 }
 
 test('одежда-трофеи рыбалки: своя геометрия, кэш, конечные числа, не больше 5000 треугольников', () => {
-  const clothes = ITEMS.filter((it) => it.tier === 'trophy' && (it.slot === 'h' || it.slot === 'a'));
+  const clothes = ITEMS.filter((it) => it.tier === 'trophy' && (it.slot === 'h' || it.slot === 'a') && !FARM_ITEM_IDS.has(it.id));
   assert.deepEqual(clothes.map((it) => it.id).sort(), ['a:angler', 'a:kukan', 'a:net', 'a:oilskin', 'a:tunic', 'h:angler', 'h:captain', 'h:sou']);
   for (const it of clothes) {
     const slot = it.slot as 'h' | 'a';

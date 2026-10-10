@@ -1,4 +1,5 @@
 // Наряды желеек: палитра, каталог вещей и проверка наряда. Общий код для сервера и клиента.
+import { FARM_WEAR } from './farmdata.ts';
 import { hash32 } from './math.ts';
 
 /** Цвета тела и второго цвета узора. Все бесплатные. */
@@ -15,10 +16,11 @@ export const PALETTE_NAMES: readonly string[] = [
 /**
  * p — узор, e — глаза, h — шапка, a — аксессуар, s — питомец на плече. Награды рыбалки (shared/fishstyle.ts), видны
  * на мостках: r — удочка, b — поплавок, w — окно вываживания (его видит только сам рыбак); n — значок у ника.
+ * Ферма (shared/farmdata.ts, FARM_WEAR): u — верх, l — низ, f — эффект.
  */
-export type Slot = 'p' | 'e' | 'h' | 'a' | 's' | 'r' | 'b' | 'w' | 'n';
+export type Slot = 'p' | 'e' | 'h' | 'a' | 's' | 'r' | 'b' | 'w' | 'n' | 'u' | 'l' | 'f';
 /** Слоты, которых нет в старых нарядах: в наряде только когда надето не «пустое» (старые наряды и боты — без них) */
-export const EXTRA_SLOTS = ['s', 'r', 'b', 'w', 'n'] as const;
+export const EXTRA_SLOTS = ['s', 'r', 'b', 'w', 'n', 'u', 'l', 'f'] as const;
 /**
  * jackpot — только с автомата; system — выдаёт игра (выпуск 2); trophy — награда за достижение, не продаётся
  * (рыбалка: лестница наград по видам в журнале, shared/fishstyle.ts); promo — скрытый подарок
@@ -46,10 +48,14 @@ export interface Outfit {
   b?: string;
   w?: string;
   n?: string;
+  u?: string;
+  l?: string;
+  f?: string;
 }
 
 export const SLOT_NAMES: Record<Slot, string> = {
   p: 'Узор', e: 'Глаза', h: 'Шапка', a: 'Аксессуар', s: 'Питомец', r: 'Удочка', b: 'Поплавок', w: 'Окно вываживания', n: 'Значок у ника',
+  u: 'Верх', l: 'Низ', f: 'Эффект',
 };
 
 export const TIER_NAMES: Record<Tier, string> = {
@@ -132,6 +138,12 @@ const CATALOG: Array<[Slot, string, string, Tier]> = [
   ['b', 'goldfish', 'Золотая рыбка', 'trophy'],
   ['w', 'gold', 'Золото', 'trophy'],
   ['n', 'anchor', 'Золотой якорь', 'trophy'],
+
+  // Ферма: «пустые» вещи слотов u, l, f и награды фермы (shared/farmdata.ts, FARM_WEAR) — только в конец.
+  ['u', 'none', 'Без верха', 'free'],
+  ['l', 'none', 'Без низа', 'free'],
+  ['f', 'none', 'Без эффекта', 'free'],
+  ...FARM_WEAR.map(([slot, key, name]): [Slot, string, string, Tier] => [slot, key, name, 'trophy']),
 ];
 
 export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => ({ id: `${slot}:${key}`, slot, key, name, tier }));
@@ -139,7 +151,7 @@ export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => (
 const BY_ID = new Map(ITEMS.map((it) => [it.id, it]));
 
 /** «Пустая» вещь слота — её надевают вместо недоступной. */
-const EMPTY: Record<Slot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none', s: 'none', r: 'basic', b: 'classic', w: 'wood', n: 'none' };
+const EMPTY: Record<Slot, string> = { p: 'none', e: 'normal', h: 'none', a: 'none', s: 'none', r: 'basic', b: 'classic', w: 'wood', n: 'none', u: 'none', l: 'none', f: 'none' };
 
 export const DEFAULT_OUTFIT: Outfit = { c: 9, c2: 15, p: 'none', e: 'normal', h: 'cap', a: 'none' };
 
@@ -204,7 +216,7 @@ export function sanitizeOutfit(raw: unknown, owned: readonly string[]): Outfit {
   return out;
 }
 
-const FREE: Record<Slot, string[]> = { p: [], e: [], h: [], a: [], s: [], r: [], b: [], w: [], n: [] };
+const FREE: Record<Slot, string[]> = { p: [], e: [], h: [], a: [], s: [], r: [], b: [], w: [], n: [], u: [], l: [], f: [] };
 for (const it of ITEMS) if (it.tier === 'free') FREE[it.slot].push(it.key);
 
 /** Случайный бесплатный наряд, зависящий только от зерна (боты). */
