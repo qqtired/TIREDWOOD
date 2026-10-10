@@ -101,6 +101,8 @@
 | Прятки «Рыбный двор» (образец) | `hide*.ts` | `hide/` | `hide/` | `HIDE` | `hide-rules.test.ts` | [hide-repair-20261003.md](hide-repair-20261003.md), план `hide` |
 | Крепость | `fort*.ts` | `fort/` | `fort/` | `FORTRESS` | `fort.test.ts`, `fort-run.test.ts` | design «Крепость», планы `fort-*` |
 | Fight Club (образец) | `fight*.ts` | `fight/` | `fight/` | `FIGHT` | `fight.test.ts`, `fight-game.test.ts` | design «Fight Club» |
+| «Подземелье» (соло, инстанс на игрока) | `dungeon/` (договор `api.ts`) | `dungeon/` (зал, комната, рекорды, `simport.ts`) | `dungeon/`, `lazyscene.ts`, `lobby/dgstatus.ts` | `DUNGEON` | `dungeon-flag.test.ts`, `dungeon-server-sim.test.ts` | [survivors/](survivors/), план `2026-10-10-dungeon` |
+| «Подземелье»: симуляция (30 Гц, детерминированная; клиент играет, сервер повторяет по журналу) | `dungeon/*` (`sim.ts` — витрина, таблицы `gen-design.ts`/`gen-level.ts`) | — | — | `DUNGEON` | `dungeon-sim.test.ts` | таблицы из `docs/survivors/*-data.json` — `node tools/survivors/gen-data.mjs`; бот — `node tools/survivors/bot.mjs` |
 
 ### 2.5 Страницы, подарки, загрузка, звук и прочее
 

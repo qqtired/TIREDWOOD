@@ -21,7 +21,9 @@ import { Input, isMuteKey } from './input.ts';
 import { LobbyScene } from './lobby/scene.ts';
 import { FISH_SEASON, SEASON_PERKS, isFishSeasonMsg, seasonWait, type FishSeasonMsg } from './lobby/fishseason.ts';
 import { Net } from './net.ts';
-import { Relink } from './relink.ts';
+import { RELINK_MS, Relink } from './relink.ts';
+import { LazyScene, type LazyInner } from './lazyscene.ts';
+import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { LinkBanner } from './ui/linkbanner.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
@@ -114,6 +116,9 @@ export class App {
   private celebratedLevel = 1;
   /** Крепость (режим за флагом сервера) — тоже при первом входе */
   private fort: FortScene | null = null;
+  /** «Подземелье»: код сцены грузится лениво (client/dungeon/scene.ts) — заранее, как только набережная скажет, что режим есть */
+  private dungeon: LazyScene | null = null;
+  private dungeonMod: Promise<typeof import('./dungeon/scene.ts')> | null = null;
   /** Подвал «Fight Club» (режим за флагом сервера) — при первом спуске */
   private fight: FightScene | null = null;
   private active: Scene | null = null;
@@ -245,6 +250,8 @@ export class App {
       now: () => performance.now(),
       setTimer: (fn, ms) => window.setTimeout(fn, ms),
       clearTimer: (id) => clearTimeout(id),
+      // забег «Подземелья» сервер держит на паузе дольше (DG_LOST_MS) — и мы пробуем вернуться дольше
+      limitMs: () => (this.active?.kind === 'dungeon' ? DG_LOST_MS - 5000 : RELINK_MS),
     });
     window.addEventListener('online', () => this.relink.online());
     // вкладку закрывают или обновляют — сервер отпустит сразу; заморозка в фоне (persisted) — подождёт возврата
@@ -691,6 +698,8 @@ export class App {
         return;
       case 'lobby':
         this.raceTrack = m.kart.track ?? DEFAULT_TRACK;
+        // «Подземелье» включено: код его сцены — в кэш заранее, к входу в пещеру он уже готов
+        if (m.dg) void this.loadDungeon().catch(() => {});
         // Приветствие набережной — через переход, как у остальных комнат: при возврате из режима сцена набережной
         // входит (enter) позже письма, и enter() стёр бы свой id — игрок оставался без желейки до перезагрузки.
         this.transition.toScene(m);
@@ -897,7 +906,7 @@ export class App {
       setVoicePresence([]);
       this.voice?.roomChanged();
     }
-    const next = kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
+    const next = kind === 'hide' ? (this.hide ??= this.makeHide()) : kind === 'skill' ? (this.skill ??= this.makeSkill()) : kind === 'fight' ? (this.fight ??= this.makeFight()) : kind === 'fort' ? (this.fort ??= this.makeFort()) : kind === 'dungeon' ? (this.dungeon ??= this.makeDungeon()) : kind === 'paintball' ? (this.paintball ??= this.makePaintball()) : kind === 'race' ? this.raceFor(this.raceTrack) : this.lobby;
     this.active?.exit();
     this.active = next;
     // комната — для стилей (телефон стоя: в пейнтболе чат ниже полосы счёта)
@@ -945,6 +954,23 @@ export class App {
 
   private makeFort(): FortScene {
     const s = new FortScene(this.deps);
+    s.setQuality(this.renderQuality());
+    s.resize(window.innerWidth, window.innerHeight);
+    return s;
+  }
+
+  private loadDungeon(): Promise<typeof import('./dungeon/scene.ts')> {
+    return (this.dungeonMod ??= import('./dungeon/scene.ts'));
+  }
+
+  private makeDungeon(): LazyScene {
+    const s = new LazyScene('dungeon', () => this.loadDungeon().then((m): LazyInner => new m.DungeonScene(this.deps)), (e) => {
+      // код сцены не пришёл (сеть): повторим при следующем входе; отсюда — Esc → «На набережную»
+      this.dungeonMod = null;
+      this.dungeon = null;
+      const err = e as { message?: unknown; stack?: unknown } | null;
+      errorReport.add(`сцена Подземелья не загрузилась: ${typeof err?.message === 'string' ? err.message : String(e)}`, '', typeof err?.stack === 'string' ? err.stack : '');
+    });
     s.setQuality(this.renderQuality());
     s.resize(window.innerWidth, window.innerHeight);
     return s;
@@ -1104,6 +1130,7 @@ export class App {
 
   private setPaused(p: boolean): void {
     this.paused = p;
+    this.active?.setPaused?.(p);
     this.lobby.setMenuOpen(this.active?.kind === 'lobby' && p);
     // меню открывается на том разделе, где остановились, с начала; игра за ним идёт дальше
     this.menu.setOpen(p);
@@ -1125,6 +1152,7 @@ export class App {
       fight: 'В подвале дерутся дальше — о клубе никому',
       skill: 'Чекпоинт сохранён; время прохождения продолжается',
       hide: 'Поиск продолжается — укрытие и время остаются в игре',
+      dungeon: 'Забег на паузе — выйдешь, и отбитые волны засчитаются',
     };
     // в катере регаты (она на набережной) — сойти на берег
     const racing = kind === 'lobby' && this.lobby.racing;
@@ -1363,6 +1391,7 @@ export class App {
       this.paintball?.setQuality(detail);
       this.fort?.setQuality(detail);
       this.fight?.setQuality(detail);
+      this.dungeon?.setQuality(detail);
     }
     if (r !== this.pixelRatio) {
       this.pixelRatio = r;
@@ -1381,6 +1410,7 @@ export class App {
     this.hide?.resize(w, hh);
     this.fort?.resize(w, hh);
     this.fight?.resize(w, hh);
+    this.dungeon?.resize(w, hh);
   }
 
   /** Статистика всех пресетов; «авто» реагирует и на устойчивые просадки p95, а не только средний FPS. */

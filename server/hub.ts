@@ -29,6 +29,9 @@ import type { SkillReward } from './skilltest/game.ts';
 import { applySkillFinish } from '../shared/skilltest.ts';
 import { mskDayNum } from '../shared/fishrules.ts';
 import { HideRoom } from './hide/room.ts';
+import { DungeonHall } from './dungeon/hall.ts';
+import type { DgSimApi } from './dungeon/simport.ts';
+import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
 import type { Prestart } from '../shared/loading.ts';
@@ -147,6 +150,11 @@ export interface HubOptions {
   plane?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
+  /** «Подземелье»: соло-забег, инстанс на игрока (флаг сервера DUNGEON, server/dungeon/) */
+  dungeon?: boolean;
+  /** Только тесты: подмена симуляции и зерна «Подземелья» */
+  dungeonSim?: DgSimApi;
+  dungeonSeed?: () => number;
   now?: () => number;
   log?: (s: string) => void;
 }
@@ -249,6 +257,8 @@ export class Hub {
   readonly fort: FortRoom | null;
   /** «Fight Club»: null — режим выключен флагом (двери в подвал на набережной не видно, вход закрыт) */
   readonly fight: FightRoom | null;
+  /** «Подземелье»: null — режим выключен флагом (пещеры на набережной нет, вход закрыт); комнаты — по одной на игрока */
+  readonly dungeon: DungeonHall | null;
   /** Экран с чатом друзей из Telegram: что на нём — входящему на набережную, новое — всем на набережной */
   readonly tg: TgFeed | null;
   /** Рыбалка 2.0 включена (флаг FISH2) */
@@ -276,6 +286,7 @@ export class Hub {
   private nextEphemeral = -1;
   private lastPb = '';
   private lastFort = '';
+  private lastDg = '';
   /** Профили в колпаке дурака: раз в секунду проверяем, не пора ли снять */
   private readonly capped = new Set<number>();
 
@@ -318,6 +329,18 @@ export class Hub {
     this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
+    // до набережной: её конструктор спрашивает у хаба, какие режимы включены (твёрдые предметы у входов)
+    this.dungeon = o.dungeon
+      ? new DungeonHall({
+        store: this.store, profiles: this.profiles, now: () => this.now(), log: (s) => this.log(s), sim: o.dungeonSim, seed: o.dungeonSeed,
+        move: (c, room, force) => this.move(c, room, force),
+        toLobby: (c) => { this.move(c, this.lobby, true); },
+        tokens: (c, n) => this.tokens(c, n),
+        settled: (c) => { this.sendMe(c); this.lobby.honorChanged(); },
+        announce: (text) => this.announce(text),
+        toast: (c, text) => this.toast(c, text),
+      })
+      : null;
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);
     this.tg = o.tg ?? null;
     if (this.tg) this.tg.onSend = (msg) => this.lobby.broadcast(msg);
@@ -364,7 +387,7 @@ export class Hub {
 
   /** Есть ли игроки или незавершённые раунды (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.fight?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || (this.dungeon?.rooms.size ?? 0) > 0 || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
@@ -398,7 +421,9 @@ export class Hub {
   private sweepLost(): void {
     const now = this.now();
     for (const c of this.clients) {
-      if (c.lostAt && now - c.lostAt >= RESUME_MS) this.disconnect(c, `${c.lostWhy}, не вернулся за ${RESUME_MS / 1000} с`);
+      // забег «Подземелья» ждёт дольше (решение владельца: пауза до 60 с), потом — итог по отбитым волнам
+      const wait = c.room?.kind === 'dungeon' ? DG_LOST_MS : RESUME_MS;
+      if (c.lostAt && now - c.lostAt >= wait) this.disconnect(c, `${c.lostWhy}, не вернулся за ${wait / 1000} с`);
     }
   }
 
@@ -473,7 +498,7 @@ export class Hub {
         c.sink.sendJson({ t: 'code', ...this.profiles.issueCode(c.profile) });
         return;
       case 'leave':
-        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight)) this.move(c, this.lobby);
+        if (c.room === this.paintball || c.room === this.race || (this.skill !== null && c.room === this.skill) || (this.hide !== null && c.room === this.hide) || (this.fort !== null && c.room === this.fort) || (this.fight !== null && c.room === this.fight) || c.room?.kind === 'dungeon') this.move(c, this.lobby);
         return;
       default:
         c.room?.onMessage(c, msg);
@@ -660,6 +685,7 @@ export class Hub {
       else if (this.skill && c.room === this.skill) this.skill.command(c, text);
       else if (this.fort !== null && c.room === this.fort) this.fort.command(c, text);
       else if (this.fight !== null && c.room === this.fight) this.privateLine(c, 'Fight Club: ЛКМ — джеб (три подряд — серия), ПКМ — тяжёлый, Q — блок, Shift — уклон, E — захват и бросок, Пробел — прыжок, 1–6 — эмоции в толпе, M — звук, Esc → «На набережную» — выйти. Первое правило ты знаешь.');
+      else if (c.room?.kind === 'dungeon') this.privateLine(c, 'Подземелье: WASD — идти, Пробел — рывок, Q — удар фонарём (держи — заряд), E — постройка рядом, Esc — пауза и выход: отбитые волны засчитаются.');
       else if (c.room === this.race) this.privateLine(c, 'Гонка: W/S — газ и тормоз, A/D — руль, Пробел с рулём — подскок и занос (отпусти — ускорение), E — бонус, R — на трассу, M — звук, Esc → «На набережную» — выйти. Команды /restart, /bots и другие работают на складе.');
       else this.privateLine(c, 'Набережная: E — действие, 1–4 — эмоции, колесо мыши — камера, Tab — кто где, M — звук. Команды /restart, /bots и другие работают на складе.');
       return;
@@ -680,6 +706,7 @@ export class Hub {
     this.lobby.onRename(c);
     this.skill?.onRename(c);
     this.hide?.onRename(c);
+    this.dungeon?.renamed(c);
     this.voice?.renamed(c);
     this.outfitChanged(c.pid);
     this.broadcastOnline();
@@ -1077,6 +1104,7 @@ export class Hub {
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
     if (this.fort && this.fort.humans > 0) this.fort.step();
     if (this.fight && this.fight.humans > 0) this.fight.step();
+    this.dungeon?.step();
     if (this.tick % TICK_RATE === 0) {
       const st = this.pbStatus();
       const key = JSON.stringify(st);
@@ -1093,6 +1121,15 @@ export class Hub {
         this.lobby.broadcast({ t: 'fortSt', ...st });
       }
     }
+    // табличка рекордов у пещеры: поменялась (забег, смена ника, новая неделя) — всем на набережной
+    if (this.dungeon && this.tick % TICK_RATE === 0) {
+      const st = this.dungeon.status();
+      const key = JSON.stringify(st);
+      if (key !== this.lastDg) {
+        this.lastDg = key;
+        this.lobby.broadcast({ t: 'dgSt', ...st });
+      }
+    }
     if (this.tick % TICK_RATE === 0) {
       this.sweepLost();
       if (this.skill) this.lobby.broadcast({ t: 'skillSt', ...this.skill.status() });
@@ -1103,14 +1140,16 @@ export class Hub {
   }
 
   /** Busy counts occupied game rooms and unsettled Blackjack hands; deploy must not interrupt either. */
-  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; fight: number; skill: number; boatrace: number; hide: number; busy: number } {
+  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; fight: number; skill: number; boatrace: number; hide: number; dungeon: number; busy: number } {
     const { lobby, paintball, race } = this;
     const fort = this.fort?.humans ?? 0;
     const fight = this.fight?.humans ?? 0;
     const skill = this.skill?.humans ?? 0;
     const boatrace = lobby.regatta?.humans ?? 0;
     const hide = this.hide?.humans ?? 0;
-    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0) };
+    // «Подземелье»: забег на паузе или без связи сервер не держит (при перезапуске он закроется с итогом по отбитым волнам)
+    const dungeon = this.dungeon?.humans ?? 0;
+    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, fight, skill, boatrace, hide, dungeon, busy: paintball.humans + race.humans + fort + fight + skill + boatrace + (this.hide?.busy ?? 0) + (this.dungeon?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0) };
   }
 
   /** Перезапуск сервера: предупредить всех, сохранить, закрыть с кодом 1012 (клиенты переподключатся). */
@@ -1121,6 +1160,7 @@ export class Hub {
     this.lobby.blackjack.shutdown();
     this.lobby.durak.shutdown();
     this.lobby.billiards?.shutdown();
+    this.dungeon?.shutdown();
     this.store.flush();
     for (const c of this.clients) c.sink.close(1012, 'restart');
   }
