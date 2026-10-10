@@ -2,7 +2,7 @@
    Тема — переменные --dg-* ниже: цвета, рамки, скругления, тени и шрифт HUD. Другой вид HUD — другой набор переменных
    (раскладка и логика от темы не зависят). Палитра по умолчанию: тёмный тёплый, янтарь, бирюза, варенье, золото. */
 .dg {
-  /* шрифты: Alegreya SC — заголовки, Alegreya Sans — числа и текст (пока файлов шрифтов в игре нет — запасные) */
+  /* шрифты: Alegreya SC 900 — заголовки, Alegreya Sans 700–900 — числа и текст (@fontsource, подключены в hud.ts) */
   --dg-font: 'Alegreya Sans', Rubik, system-ui, sans-serif;
   --dg-font-head: 'Alegreya SC', Georgia, 'Times New Roman', serif;
   --dg-text: #f7e8c9;
@@ -71,6 +71,9 @@
   --dg-radar-boss: #e3c1ff;
   --dg-radar-hero: #fff3cf;
   position: absolute; inset: 0; z-index: 30; pointer-events: none; color: var(--dg-text); font: 600 16px/1.3 var(--dg-font); text-shadow: var(--dg-text-shadow); font-variant-numeric: tabular-nums;
+  /* у Alegreya цифры по умолчанию «старого стиля» (прыгают по высоте) — ровные и одной ширины; font-feature-settings
+     наследуется и не сбрасывается шорткатом font у потомков */
+  font-feature-settings: "lnum" 1, "tnum" 1;
 }
 .dg.hidden, .dg .hidden { display: none !important; }
 .dg :where(button) { font: inherit; color: inherit; }

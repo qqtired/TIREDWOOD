@@ -65,10 +65,10 @@ function present(p: DgProp): boolean {
   return true;
 }
 
-/** Подписи в стиле HUD «Кованый фонарь»: железо, латунная рамка, заклёпки, заголовок — Alegreya SC (или запасной) */
+/** Подписи в стиле HUD «Кованый фонарь»: железо, латунная рамка, заклёпки, заголовок — Alegreya SC (шрифты подключены в hud.ts) */
 const RIVET = 'radial-gradient(circle at 50% 50%, #ffe7ad 0 1.2px, #a47a35 2px, #3d2b13 2.7px, transparent 3.2px)';
 const CSS = `
-.dgz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.dgz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; font-feature-settings: "lnum" 1, "tnum" 1; }
 .dgz-l { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); max-width: 340px; padding: 8px 14px 9px; border-radius: 7px;
   background: linear-gradient(180deg, #2e2620, #17120f); border: 2px solid #8d6b36;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7), inset 0 2px 0 1px rgba(243, 211, 143, .12), 0 6px 16px rgba(0, 0, 0, .5);

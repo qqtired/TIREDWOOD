@@ -6,6 +6,11 @@
 // Тема «Кованый фонарь»: цвета, рамки, заклёпки и шрифты — переменные `--dg-*` и классы в dungeon.css.
 // Ничего не решает сам: сцена каждый кадр отдаёт HudFrame, экраны открывает вызовами, клики уходят в HudActions.
 // Кадр не пересобирает DOM: элементы созданы один раз, текст и стили меняются, только когда меняется значение.
+// Шрифты темы (OFL): грузятся вместе с ленивым модулем подземелья, на набережную не влияют.
+import '@fontsource/alegreya-sc/900.css';
+import '@fontsource/alegreya-sans/700.css';
+import '@fontsource/alegreya-sans/800.css';
+import '@fontsource/alegreya-sans/900.css';
 import './dungeon.css';
 import { PASSIVES, WEAPONS } from './data.ts';
 import { dgIcon, type DgIconKind } from './icons.ts';
