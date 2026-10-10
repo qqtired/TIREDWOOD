@@ -21,6 +21,7 @@ import { LOOK2 } from './look.ts';
 import { JellyFace } from './lookface.ts';
 import { BODY_H, bodyProfile, bodyR, type Wear } from './outfit3d.ts';
 import { PetRider, wearFor } from './outfitfish.ts';
+import { beamFlash, whenIsleOutfit } from './islegear.ts';
 import { JELLY_RIM_GLSL, JELLY_SWAY_GLSL, makeGearMaterial, pinTexture, vestGeometry, vestRadius, vestTexture } from './teamgear.ts';
 import { emojiTexture, emoteTexture, metalEnvTexture, softDot, splatAtlas, tomatoSplatTexture } from './textures.ts';
 import { isVoiceSpeaking, makeVoiceIndicator } from './voice-presence.ts';
@@ -151,6 +152,11 @@ function makeShared() {
   const gunMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.35 });
   const outfitMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.04, side: THREE.DoubleSide });
   const metalMat = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 0.9, roughness: 0.3, envMap: metalEnvTexture(), envMapIntensity: 1.15, side: THREE.DoubleSide });
+  // светящееся у вещей (фонарь смотрителя): те же параметры, что у outfitMat, + emissive — программа шейдера та же
+  const glowMat = outfitMat.clone();
+  glowMat.emissive.set(0xffb43a);
+  glowMat.emissiveIntensity = 1.6;
+  const haloMat = new THREE.SpriteMaterial({ map: softDot('rgba(255,160,50,0.8)', 'rgba(255,140,40,0)'), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
   const shadowMat = new THREE.MeshBasicMaterial({ map: softDot('rgba(20,16,30,0.55)'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
   const bubbleMat = new THREE.ShaderMaterial({
     transparent: true,
@@ -191,7 +197,7 @@ function makeShared() {
 
   return {
     body, eyes, pupils, lid, gun, hopper, hands, mitten,
-    eyeMat, pupilMat, gunMat, outfitMat, metalMat, shadowMat, bubbleMat, paintGeos, paintMats,
+    eyeMat, pupilMat, gunMat, outfitMat, metalMat, glowMat, haloMat, shadowMat, bubbleMat, paintGeos, paintMats,
     shadowGeo: new THREE.PlaneGeometry(1.35, 1.35).rotateX(-Math.PI / 2),
     bubbleGeo: new THREE.SphereGeometry(1, 24, 16),
     zzz: emoteTexture('zzz', '#cfe0ff'),
@@ -388,6 +394,11 @@ interface Attach {
   k: number;
   /** наклон на единицу сдвига макушки */
   tilt: number;
+  /** Светящаяся часть вещи (фонарь смотрителя) и её ореол — создаются, когда впервые понадобятся */
+  glow: THREE.Mesh | null;
+  halo: THREE.Sprite | null;
+  /** Высота крепления для шейдера изгиба (шапка, аксессуар); у очков — нет */
+  anchor: THREE.IUniform<number> | null;
 }
 
 interface Gun {
@@ -437,8 +448,8 @@ export class Avatar {
   private readonly eyewear: Attach;
   /** Питомец на плече (награда рыбалки) */
   private readonly pet: PetRider;
-  /** Золотой якорь у ника: собрал все виды рыб */
-  private badge = false;
+  /** Значок у ника (слот n): '' — нет, anchor — золотой якорь, lighthouse — маяк острова (мигает раз в 6 с) */
+  private badge = '';
   private readonly gun: Gun | null;
   private readonly protBubble: THREE.Mesh;
   private readonly tag: THREE.Sprite;
@@ -578,7 +589,9 @@ export class Avatar {
     this.hat = this.makeAttach();
     this.hat.geo.material = makeHatMaterial(r.outfitMat, this.u, this.hatAnchor);
     this.hat.metal.material = makeHatMaterial(r.metalMat, this.u, this.hatAnchor);
+    this.hat.anchor = this.hatAnchor;
     this.acc = this.makeAttach();
+    this.acc.anchor = this.accAnchor;
     // аксессуары гнутся вместе с телом, как шапки: жилет и роба не тонут при ударе и не задираются на бегу
     this.acc.geo.material = makeHatMaterial(r.outfitMat, this.u, this.accAnchor);
     this.acc.metal.material = makeHatMaterial(r.metalMat, this.u, this.accAnchor);
@@ -653,7 +666,7 @@ export class Avatar {
     geo.visible = metal.visible = false;
     node.add(geo, metal);
     this.squashNode.add(node);
-    return { node, geo, metal, y: 0, z: 0, k: 0, tilt: 0 };
+    return { node, geo, metal, y: 0, z: 0, k: 0, tilt: 0, glow: null, halo: null, anchor: null };
   }
 
   private applyWear(a: Attach, w: Wear, z = 0): void {
@@ -661,6 +674,27 @@ export class Avatar {
     if (w.geo) a.geo.geometry = w.geo;
     a.metal.visible = w.metal !== null;
     if (w.metal) a.metal.geometry = w.metal;
+    // светящееся и ореол (islegear.ts): меш и спрайт заводятся при первой такой вещи, дальше только прячутся
+    const r = res();
+    if (w.glow && !a.glow) {
+      a.glow = new THREE.Mesh(w.glow, a.anchor ? makeHatMaterial(r.glowMat, this.u, a.anchor) : r.glowMat);
+      a.node.add(a.glow);
+    }
+    if (a.glow) {
+      a.glow.visible = !!w.glow;
+      if (w.glow) a.glow.geometry = w.glow;
+    }
+    if (w.halo && !a.halo) {
+      a.halo = new THREE.Sprite(r.haloMat);
+      a.node.add(a.halo);
+    }
+    if (a.halo) {
+      a.halo.visible = !!w.halo;
+      if (w.halo) {
+        a.halo.position.set(w.halo.x, w.halo.y, w.halo.z);
+        a.halo.scale.setScalar(w.halo.size);
+      }
+    }
     const hh = w.y / BODY_H;
     a.y = w.y;
     a.z = z;
@@ -681,6 +715,11 @@ export class Avatar {
       this.accAnchor.value = wear.y;
       this.acc.node.visible = true;
     }
+  }
+
+  /** Рыба в руках: питомец радуется (тупик два раза машет крыльями и держит в клюве мойву) */
+  petCatch(): void {
+    this.pet.cheer();
   }
 
   /** Наряд: цвет, узор, шапка, аксессуар, глаза. Тот же наряд второй раз не перестраивается. */
@@ -705,7 +744,14 @@ export class Avatar {
     this.accAnchor.value = this.acc.y;
     this.applyWear(this.eyewear, wearFor('e', o.e), EYES_Z);
     this.pet.set(slotKey(o, 's'), o.a);
-    const badge = slotKey(o, 'n') === 'anchor';
+    // вещи острова из GLB (islegear.ts) грузятся при первом показе: загрузились — переодеться в тот же наряд
+    whenIsleOutfit(o, () => {
+      if (!sameOutfit(o, this.outfit)) return;
+      this.outfitSet = false;
+      this.setOutfit(o);
+    });
+    const n = slotKey(o, 'n');
+    const badge = n === 'anchor' || n === 'lighthouse' ? n : '';
     if (badge !== this.badge) {
       this.badge = badge;
       this.tagKey = '';
@@ -960,6 +1006,8 @@ export class Avatar {
     (this.hat.metal.material as THREE.Material).dispose();
     (this.acc.geo.material as THREE.Material).dispose();
     (this.acc.metal.material as THREE.Material).dispose();
+    if (this.hat.glow) (this.hat.glow.material as THREE.Material).dispose();
+    if (this.acc.glow) (this.acc.glow.material as THREE.Material).dispose();
     this.skinMat.dispose();
     this.lidMat.dispose();
     this.gun?.hopperMat.dispose();
@@ -1574,12 +1622,14 @@ export class Avatar {
     const phase = (now + this.level * 271 + this.name.length * 93) % 8000;
     const reduced = LEVEL_REDUCED_MOTION?.matches ?? false;
     const shine = this.level >= 15 && this.team === null && !reduced && phase < 800 ? 1 + Math.floor(phase / 100) : 0;
-    const key = `${this.name}|${this.team}|${this.mate}|${hpBucket}|${this.level}|${shine}|${this.badge}`;
+    // маяк у ника вспыхивает раз в 6 с: перерисовка ступенями только во вспышке, как перелив рамки
+    const beam = this.badge !== 'lighthouse' ? -1 : reduced ? 3 : Math.round(beamFlash(now, 6, (this.name.length * 0.37) % 6) * 6);
+    const key = `${this.name}|${this.team}|${this.mate}|${hpBucket}|${this.level}|${shine}|${this.badge}|${beam}`;
     if (key === this.tagKey) return;
     this.tagKey = key;
     const cv = this.tagCanvas;
     const ctx = cv.getContext('2d')!;
-    drawLevelTag(ctx, cv.width, cv.height, { name: this.name, level: this.level, team: this.team, mate: this.mate, hpBucket, shine, anchor: this.badge });
+    drawLevelTag(ctx, cv.width, cv.height, { name: this.name, level: this.level, team: this.team, mate: this.mate, hpBucket, shine, anchor: this.badge === 'anchor', lighthouse: beam >= 0 ? beam / 6 : undefined });
     this.tagTex.needsUpdate = true;
   }
 }

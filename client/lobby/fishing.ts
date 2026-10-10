@@ -19,6 +19,7 @@ import type { Avatar } from '../render/avatar.ts';
 import type { Effects } from '../render/effects.ts';
 import { makeFish3D } from './fishart.ts';
 import { dressFloat, dressRig, floatSparkles } from './fishgear.ts';
+import { ringFloat } from '../render/islegear.ts';
 import type { LobbyFx } from './fx.ts';
 
 /** Удилище: три колена (от рукоятки к кончику), длина и толщина у начала и конца, м */
@@ -273,6 +274,8 @@ export class FishingSpots {
         this.effects.ripple(s.x, s.z, 1.6, 1.1);
         this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 8, 2.4, 0, 1, 0, 0.04);
         this.sound.fishBite(at(s.x, WATER_Y, s.z));
+        // «Колокольный буй» (остров): колокол качается — «дзынь»
+        if (ringFloat(s.float)) this.sound.buoyBell(at(s.x, WATER_Y, s.z));
         break;
       case FE_HOOK:
         s.ph = FP_REEL;
@@ -330,6 +333,8 @@ export class FishingSpots {
         const f = FISH[a];
         this.sound.fishCatch(at(s.from.x, WATER_Y, s.from.z), (f?.rarity ?? 0) >= R_RARE && f?.price[1] !== 0);
         if (s.av && !mine && f) s.av.say(`🎣 ${f.name} · ${fmtWeight(b)}`);
+        // питомец на плече радуется улову (тупик держит в клюве мойву)
+        s.av?.petCatch();
         break;
       }
       case FE_DONE: {

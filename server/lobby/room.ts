@@ -32,6 +32,7 @@ import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, LOBBY_SEAT_COUNT, buildLobby
 import type { AquaRow, ClientMsg, KartStatus, LobbyEvent, LobbyPlayerInfo, RoomKind, ServerMsg } from '../../shared/messages.ts';
 import { DEFAULT_OUTFIT, itemById, sameOutfit, withItem } from '../../shared/outfit.ts';
 import { gearOnly } from '../../shared/fishstyle.ts';
+import { devIsleCommand } from '../fishstyle.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
@@ -1038,6 +1039,9 @@ export class LobbyRoom implements Room {
       else this.stepFishSeason();
       return true;
     }
+    // /isle N — первые N видов острова в альбом, награды острова выдать и надеть (server/fishstyle.ts)
+    const isle = /^\/isle(?:\s+(\d+))?\s*$/i.exec(text);
+    if (isle) return devIsleCommand(this.hub, c, isle[1] === undefined ? 20 : Number(isle[1]), () => this.outfitChanged(c));
     const m = /^\/pirates(?:\s+(\w+))?\s*$/i.exec(text);
     if (!m) return false;
     if (!this.pirates) { this.hub.toast(c, 'Пираты выключены: нужен флаг PIRATES'); return true; }
