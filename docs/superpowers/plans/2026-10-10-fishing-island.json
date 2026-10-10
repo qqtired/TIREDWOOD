@@ -1,0 +1,2453 @@
+{
+ "doc": "docs/superpowers/plans/2026-10-10-fishing-island.md",
+ "date": "2026-10-10",
+ "note": "Числа для страницы ревью и внедрения. Модель — test/fishbot.ts («обычный» TYPICAL, «опытный» EXPERT); calEstimate — грубая калибровка в водах острова на 10-м уровне с легендарной удочкой и платиновой блесной, перед внедрением перекалибровать tools/fish/calibrate.ts. Сундук — по полосам на 10.10 (до хотфикса).",
+ "flag": "ISLE (сервер), по умолчанию выключен; требует FISH2",
+ "world": {
+  "axes": "X — восток, Z — юг; yaw 0 — север",
+  "island": {
+   "name": "Последний свет",
+   "center": {
+    "x": -2364.9,
+    "z": 557.6
+   },
+   "watersRadius": 300,
+   "landRadius": 110,
+   "fromPlazaM": 2427,
+   "bearingFromSouthDeg": -77,
+   "note": "в сторону заката (солнце −72°), дальше дальней плоскости камеры (1600 м) и за краем «веера» дальнего берега"
+  },
+  "parking": {
+   "name": "Лодочная стоянка «У Семёна»",
+   "behind": "за домом Семёна, вход по восточной стороне площадки (мимо ящиков)",
+   "gangway": {
+    "x0": -14.6,
+    "x1": -12.6,
+    "z0": 64,
+    "z1": 66,
+    "y": 0
+   },
+   "pontoon": {
+    "x0": -14.85,
+    "x1": -12.35,
+    "z0": 66,
+    "z1": 86,
+    "y": 0
+   },
+   "berths": 10,
+   "berthPitch": 3.7,
+   "berthZ": [
+    68.6,
+    72.3,
+    76,
+    79.7,
+    83.4
+   ],
+   "west": "берты 1–5: корма у x −15,1, нос на запад (до −22,1)",
+   "east": "берты 6–10: корма у x −12,1, нос на восток (до −5,1)",
+   "gate": {
+    "x": -13.6,
+    "z": 90
+   },
+   "mooring": "кормой к понтону (как в черноморских маринах)",
+   "keepFree": 2,
+   "maxParked": 8
+  },
+  "route": {
+   "gate": {
+    "x": -13.6,
+    "z": 90
+   },
+   "F1": {
+    "x": -25,
+    "z": 145
+   },
+   "buoys": [
+    {
+     "id": "F2",
+     "x": -419,
+     "z": 214
+    },
+    {
+     "id": "F3",
+     "x": -813,
+     "z": 284
+    },
+    {
+     "id": "F4",
+     "x": -1207,
+     "z": 353
+    },
+    {
+     "id": "F5",
+     "x": -1601,
+     "z": 423
+    },
+    {
+     "id": "F6",
+     "x": -1995,
+     "z": 492
+    }
+   ],
+   "courseFromF1Deg": -80,
+   "watersEdgeOnCourse": {
+    "x": -2069,
+    "z": 506
+   },
+   "lengthToWatersM": 2130,
+   "toDockFromEdgeM": 170,
+   "clearances": "курс F1→остров: у носа баркаса z 154 (в 33 м южнее корпуса), у сухогруза (x −640) z 253 (в 92 м южнее)"
+  },
+  "approachBuoys": [
+   {
+    "d": 250,
+    "red": {
+     "x": -2117,
+     "z": 526
+    },
+    "green": {
+     "x": -2121,
+     "z": 502
+    }
+   },
+   {
+    "d": 190,
+    "red": {
+     "x": -2176,
+     "z": 536
+    },
+    "green": {
+     "x": -2180,
+     "z": 513
+    }
+   },
+   {
+    "d": 130,
+    "red": {
+     "x": -2235,
+     "z": 547
+    },
+    "green": {
+     "x": -2239,
+     "z": 523
+    }
+   }
+  ],
+  "islandLayout": {
+   "lighthouse": {
+    "u": 75,
+    "v": -60,
+    "x": -2289.9,
+    "z": 497.6,
+    "ground": 16,
+    "tower": 24,
+    "lampY": 40
+   },
+   "cove": {
+    "u": 90,
+    "v": -10,
+    "x": -2274.9,
+    "z": 547.6
+   },
+   "dock": {
+    "from": {
+     "u": 60,
+     "v": -8,
+     "x": -2304.9,
+     "z": 549.6
+    },
+    "to": {
+     "u": 96,
+     "v": -8,
+     "x": -2268.9,
+     "z": 549.6
+    },
+    "width": 2.5,
+    "berths": 6,
+    "side": "юг, кормой к понтону"
+   },
+   "mole": {
+    "root": {
+     "u": 55,
+     "v": 35,
+     "x": -2309.9,
+     "z": 592.6
+    },
+    "bend": {
+     "u": 112,
+     "v": 25,
+     "x": -2252.9,
+     "z": 582.6
+    },
+    "tip": {
+     "u": 120,
+     "v": 12,
+     "x": -2244.9,
+     "z": 569.6
+    },
+    "fishSpots": 8
+   },
+   "keeperHouse": {
+    "u": 50,
+    "v": -16,
+    "x": -2314.9,
+    "z": 541.6
+   },
+   "keeperNpc": "Игнат, на крыльце",
+   "steps": {
+    "from": {
+     "u": 56,
+     "v": -22,
+     "x": -2308.9,
+     "z": 535.6
+    },
+    "to": {
+     "u": 68,
+     "v": -50,
+     "x": -2296.9,
+     "z": 507.6
+    },
+    "climb": 16
+   },
+   "houses": [
+    {
+     "u": 32,
+     "v": -28,
+     "x": -2332.9,
+     "z": 529.6
+    },
+    {
+     "u": 25,
+     "v": -8,
+     "x": -2339.9,
+     "z": 549.6
+    },
+    {
+     "u": 30,
+     "v": 12,
+     "x": -2334.9,
+     "z": 569.6
+    },
+    {
+     "u": 12,
+     "v": -36,
+     "x": -2352.9,
+     "z": 521.6
+    },
+    {
+     "u": 8,
+     "v": 2,
+     "x": -2356.9,
+     "z": 559.6
+    }
+   ],
+   "collapsedRoofs": 2,
+   "cannery": {
+    "u": -18,
+    "v": 28,
+    "x": -2382.9,
+    "z": 585.6
+   },
+   "noEntryFence": {
+    "u": 2,
+    "v": 18,
+    "x": -2362.9,
+    "z": 575.6
+   },
+   "wreck": {
+    "u": -95,
+    "v": -70,
+    "x": -2459.9,
+    "z": 487.6
+   },
+   "dangerBuoys": [
+    {
+     "u": 105,
+     "v": -110,
+     "x": -2259.9,
+     "z": 447.6
+    },
+    {
+     "u": 140,
+     "v": -95,
+     "x": -2224.9,
+     "z": 462.6
+    },
+    {
+     "u": 150,
+     "v": 55,
+     "x": -2214.9,
+     "z": 612.6
+    },
+    {
+     "u": -160,
+     "v": 10,
+     "x": -2524.9,
+     "z": 567.6
+    }
+   ],
+   "bellBuoys": [
+    {
+     "u": 130,
+     "v": -20,
+     "x": -2234.9,
+     "z": 537.6
+    },
+    {
+     "x": -1995,
+     "z": 492,
+     "note": "F6 на курсе"
+    }
+   ],
+   "landing": {
+    "u": 58,
+    "v": -10,
+    "x": -2306.9,
+    "z": 547.6
+   }
+  }
+ },
+ "boats": [
+  {
+   "id": "volzhanka",
+   "name": "Волжанка",
+   "prototype": "Волжанка 46 Fish",
+   "real": {
+    "length": 4.96,
+    "beam": 1.94,
+    "hull": "алюминий, порошковая краска",
+    "motor": "60–90 л. с."
+   },
+   "look": "открытая алюминиевая лодка с боковой консолью: клёпаные борта с рёбрами жёсткости, низкое ветровое стекло у консоли справа, кормовая банка на двоих, белый подвесной мотор 75 л. с.; корпус бордовый, борта сверху — серый алюминий",
+   "level": 6,
+   "price": 5000,
+   "length": 4.9,
+   "beam": 1.95,
+   "top": 12,
+   "topKmh": 43,
+   "topKn": 23,
+   "accel": 2.4,
+   "accelS": 5,
+   "reverse": 3,
+   "turn": 0.95,
+   "turnRadiusAtTop": 12.6,
+   "seats": 3,
+   "seatLocal": {
+    "helm": [
+     0.45,
+     0.4
+    ],
+    "aftLeft": [
+     -0.45,
+     1.5
+    ],
+    "aftRight": [
+     0.45,
+     1.5
+    ]
+   },
+   "equipment": [
+    "простой эхолот (экран у консоли)",
+    "ручной якорь — 2,5 с",
+    "ходовые огни",
+    "2 держателя удилищ"
+   ],
+   "bonus": {
+    "biteSpeedFromBoat": 0.05
+   },
+   "anchorS": 2.5,
+   "toIsleWaters": "3:00",
+   "toDockExtraS": 17,
+   "tris": {
+    "lod0": 6000,
+    "lod1": 800
+   }
+  },
+  {
+   "id": "albakor",
+   "name": "Альбакор",
+   "prototype": "Albakore 500 Fish",
+   "real": {
+    "length": 5.04,
+    "beam": 2.18,
+    "hull": "алюминий",
+    "motor": "100 л. с."
+   },
+   "look": "алюминиевая рыболовная лодка с центральной консолью: ветровое стекло и поручень, носовая площадка для заброса с сиденьем, 4 держателя удилищ на корме, серый мотор 100 л. с.; белый корпус с тёмно-зелёной полосой",
+   "level": 8,
+   "price": 10000,
+   "length": 5,
+   "beam": 2.2,
+   "top": 15.5,
+   "topKmh": 56,
+   "topKn": 30,
+   "accel": 3.1,
+   "accelS": 5,
+   "reverse": 3.5,
+   "turn": 0.85,
+   "turnRadiusAtTop": 18.2,
+   "seats": 3,
+   "seatLocal": {
+    "helm": [
+     0,
+     0.2
+    ],
+    "aftLeft": [
+     -0.5,
+     1.6
+    ],
+    "aftRight": [
+     0.5,
+     1.6
+    ]
+   },
+   "equipment": [
+    "эхолот с боковым обзором",
+    "электроякорь — 1 с",
+    "ходовые огни",
+    "носовая площадка для заброса",
+    "4 держателя удилищ"
+   ],
+   "bonus": {
+    "biteSpeedFromBoat": 0.1
+   },
+   "anchorS": 1,
+   "toIsleWaters": "2:20",
+   "toDockExtraS": 13,
+   "tris": {
+    "lod0": 8000,
+    "lod1": 1000
+   }
+  },
+  {
+   "id": "northsilver",
+   "name": "Нортсильвер",
+   "prototype": "NorthSilver 700 Fish Sport",
+   "real": {
+    "length": 7,
+    "beam": 2.36,
+    "hull": "алюминий",
+    "motor": "до 300 л. с."
+   },
+   "look": "большой алюминиевый катер 7 м: Т-образная крыша над штурвалом с антеннами и «батареей» на 6 удилищ, лобовое стекло, носовой рундук, живорыбный садок, прожектор на крыше, чёрный мотор 300 л. с.; графитовый корпус, серебристые борта, красная полоса по ватерлинии",
+   "level": 10,
+   "price": 15000,
+   "length": 7,
+   "beam": 2.36,
+   "top": 20.8,
+   "topKmh": 75,
+   "topKn": 40,
+   "accel": 3.8,
+   "accelS": 5.5,
+   "reverse": 4,
+   "turn": 0.75,
+   "turnRadiusAtTop": 27.7,
+   "seats": 3,
+   "seatLocal": {
+    "helm": [
+     0.3,
+     0.6
+    ],
+    "aftLeft": [
+     -0.55,
+     2.3
+    ],
+    "aftRight": [
+     0.55,
+     2.3
+    ]
+   },
+   "equipment": [
+    "3D-эхолот и картплоттер (остров на мини-карте)",
+    "электроякорь + «якорь-призрак» по GPS — 0,3 с",
+    "прожектор (виден в тумане, только красота)",
+    "ходовые огни",
+    "6 удилищ на крыше",
+    "садок"
+   ],
+   "bonus": {
+    "biteSpeedFromBoat": 0.15
+   },
+   "anchorS": 0.3,
+   "toIsleWaters": "1:45",
+   "toDockExtraS": 11,
+   "tris": {
+    "lod0": 10000,
+    "lod1": 1200
+   }
+  }
+ ],
+ "boatRules": {
+  "tripFormula": "t = L / v + v / (2a), L = 2130 м от ворот стоянки до вод острова",
+  "perPlayer": 1,
+  "worldMax": 16,
+  "parkingMaxParked": 8,
+  "islandDockBerths": 6,
+  "despawn": "нужен берт, а свободных меньше 2 — убрать лодку, которая дольше всех стоит без хозяина на борту; хозяин ушёл из игры — его лодка у причала исчезает через 30 мин, в море — через 10 с (пассажиров Гоша отвозит к ближайшему причалу)",
+  "exit": "выйти — только у стоянки или у причала острова (E — пришвартоваться в 25 м от причала, лодка сама заходит в свободный берт за 4–6 с)",
+  "anchor": "Z — бросить/поднять якорь; лодка гасит ход за 2 с; рыбачат все трое; вода острова (300 м) — пул острова, вся остальная — пул баркаса",
+  "noAnchor": "ближе 12 м к причалам и баркасу, на трассе регаты во время гонки — подсказка «Здесь фарватер — отойди подальше»",
+  "levels": {
+   "passenger": 3,
+   "isleFishing": 6
+  },
+  "drive": "W/S — газ/назад, A/D — руль, Пробел — гудок, Z — якорь, E — пришвартоваться/выйти, мышь — осмотреться"
+ },
+ "economy": {
+  "oldPriceScale": 0.4,
+  "oldPriceNote": "−60 % к ценам видов пристани и баркаса до хотфикса (хотфикс ставит ×0,65; остров — ×0,40). Сундуки не трогаем.",
+  "isleXp": 2,
+  "barkasXp": 1.25,
+  "islePlace": {
+   "fight": 1.3,
+   "drain": 1.4,
+   "zone": 0.95
+  },
+  "divineBase": 0.0043,
+  "mythAdd": 0.004,
+  "fogMul": 1.5,
+  "seasonMul": 2,
+  "fogPay": 1.5,
+  "fogXp": 1.15,
+  "targetPerHour": [
+   6000,
+   7000
+  ],
+  "targetCase": "10-й уровень, легендарная удочка, платиновая блесна, «Нортсильвер», «обычный» игрок, обычный туман, без напитков",
+  "pierBarkas": {
+   "unit": "жетонов в час: рыба сейчас → после −60 % (+ сундук)",
+   "rows": [
+    {
+     "case": "пристань, ур. 0, без снастей",
+     "now": 1050,
+     "cut": 438,
+     "chest": 378,
+     "xpMin": 33.3
+    },
+    {
+     "case": "пристань, ур. 3, удочка 1, бронза",
+     "now": 1620,
+     "cut": 666,
+     "chest": 432,
+     "xpMin": 44.8
+    },
+    {
+     "case": "баркас, ур. 3, удочка 1, бронза",
+     "now": 2016,
+     "cut": 840,
+     "chest": 420,
+     "xpMin": 55.2
+    },
+    {
+     "case": "баркас, ур. 6, удочка 2, серебро",
+     "now": 2886,
+     "cut": 1194,
+     "chest": 474,
+     "xpMin": 71.1
+    },
+    {
+     "case": "баркас, ур. 8, удочка 3, золото",
+     "now": 3612,
+     "cut": 1482,
+     "chest": 522,
+     "xpMin": 89.1
+    },
+    {
+     "case": "пристань, ур. 10, удочка 4, платина",
+     "now": 3618,
+     "cut": 1464,
+     "chest": 582,
+     "xpMin": 83.2
+    },
+    {
+     "case": "баркас, ур. 10, удочка 4, платина",
+     "now": 4386,
+     "cut": 1788,
+     "chest": 570,
+     "xpMin": 108.5
+    },
+    {
+     "case": "баркас, ур. 10, опытный",
+     "now": 5370,
+     "cut": 2184,
+     "chest": 642,
+     "xpMin": 145.3
+    }
+   ],
+   "rain": [
+    {
+     "case": "пристань, ур. 0",
+     "now": 1518,
+     "cut": 612,
+     "chest": 360
+    },
+    {
+     "case": "баркас, ур. 10, удочка 4, платина",
+     "now": 7284,
+     "cut": 2928,
+     "chest": 564
+    }
+   ]
+  },
+  "isle": {
+   "lvl6Volzhanka": {
+    "normal": {
+     "fishPerHour": 2793,
+     "chestPerHour": 479,
+     "totalPerHour": 3271,
+     "fishPerMin": 1.95,
+     "xpPerMin": 95.6,
+     "successByTier": {
+      "0": 92,
+      "1": 85,
+      "2": 45,
+      "3": 20,
+      "4": 46,
+      "7": 7
+     }
+    },
+    "fogEvent": {
+     "fishPerHour": 3633,
+     "chestPerHour": 447,
+     "totalPerHour": 4079,
+     "fishPerMin": 1.58,
+     "xpPerMin": 106.7,
+     "successByTier": {
+      "0": 94,
+      "1": 85,
+      "2": 45,
+      "3": 17,
+      "4": 29,
+      "7": 7
+     }
+    },
+    "season": {
+     "fishPerHour": 4086,
+     "chestPerHour": 442,
+     "totalPerHour": 4528,
+     "fishPerMin": 1.04,
+     "xpPerMin": 102.1,
+     "successByTier": {
+      "0": 94,
+      "1": 85,
+      "2": 45,
+      "3": 17,
+      "4": 29,
+      "7": 7
+     }
+    }
+   },
+   "lvl8Albakor": {
+    "normal": {
+     "fishPerHour": 4491,
+     "chestPerHour": 512,
+     "totalPerHour": 5002,
+     "fishPerMin": 2.21,
+     "xpPerMin": 119.4,
+     "successByTier": {
+      "0": 94,
+      "1": 89,
+      "2": 66,
+      "3": 46,
+      "4": 57,
+      "7": 46
+     }
+    },
+    "fogEvent": {
+     "fishPerHour": 5985,
+     "chestPerHour": 473,
+     "totalPerHour": 6457,
+     "fishPerMin": 1.85,
+     "xpPerMin": 132,
+     "successByTier": {
+      "0": 96,
+      "1": 89,
+      "2": 67,
+      "3": 39,
+      "4": 41,
+      "7": 46
+     }
+    },
+    "season": {
+     "fishPerHour": 8245,
+     "chestPerHour": 453,
+     "totalPerHour": 8698,
+     "fishPerMin": 1.42,
+     "xpPerMin": 136.3,
+     "successByTier": {
+      "0": 96,
+      "1": 0,
+      "2": 67,
+      "3": 39,
+      "4": 41,
+      "7": 46
+     }
+    }
+   },
+   "lvl10Northsilver": {
+    "normal": {
+     "fishPerHour": 6035,
+     "chestPerHour": 539,
+     "totalPerHour": 6573,
+     "fishPerMin": 2.4,
+     "xpPerMin": 140.7,
+     "successByTier": {
+      "0": 97,
+      "1": 90,
+      "2": 77,
+      "3": 75,
+      "4": 66,
+      "7": 70
+     }
+    },
+    "fogEvent": {
+     "fishPerHour": 8814,
+     "chestPerHour": 496,
+     "totalPerHour": 9310,
+     "fishPerMin": 2.12,
+     "xpPerMin": 166.1,
+     "successByTier": {
+      "0": 97,
+      "1": 90,
+      "2": 79,
+      "3": 71,
+      "4": 64,
+      "7": 70
+     }
+    },
+    "season": {
+     "fishPerHour": 13085,
+     "chestPerHour": 468,
+     "totalPerHour": 13553,
+     "fishPerMin": 1.85,
+     "xpPerMin": 191.6,
+     "successByTier": {
+      "0": 97,
+      "1": 0,
+      "2": 79,
+      "3": 71,
+      "4": 64,
+      "7": 70
+     }
+    }
+   },
+   "lvl10NorthsilverExpert": {
+    "normal": {
+     "fishPerHour": 9211,
+     "chestPerHour": 642,
+     "totalPerHour": 9854,
+     "fishPerMin": 3.29,
+     "xpPerMin": 214.9,
+     "successByTier": {
+      "0": 100,
+      "1": 100,
+      "2": 100,
+      "3": 94,
+      "4": 98,
+      "7": 99
+     }
+    },
+    "fogEvent": {
+     "fishPerHour": 14514,
+     "chestPerHour": 614,
+     "totalPerHour": 15129,
+     "fishPerMin": 3.14,
+     "xpPerMin": 273,
+     "successByTier": {
+      "0": 100,
+      "1": 100,
+      "2": 99,
+      "3": 95,
+      "4": 98,
+      "7": 99
+     }
+    },
+    "season": {
+     "fishPerHour": 21387,
+     "chestPerHour": 553,
+     "totalPerHour": 21940,
+     "fishPerMin": 2.8,
+     "xpPerMin": 311.8,
+     "successByTier": {
+      "0": 100,
+      "1": 0,
+      "2": 99,
+      "3": 95,
+      "4": 98,
+      "7": 99
+     }
+    }
+   },
+   "lvl10OnFoot": {
+    "normal": {
+     "fishPerHour": 5704,
+     "chestPerHour": 509,
+     "totalPerHour": 6213,
+     "fishPerMin": 2.27,
+     "xpPerMin": 133,
+     "successByTier": {
+      "0": 97,
+      "1": 90,
+      "2": 77,
+      "3": 75,
+      "4": 66,
+      "7": 70
+     }
+    }
+   }
+  },
+  "boatsHours": {
+   "volzhanka": {
+    "onBarkasLvl6": 3
+   },
+   "albakor": {
+    "onIsleVolzhankaLvl8": 2.2,
+    "onBarkasLvl8": 5
+   },
+   "northsilver": {
+    "onIsleAlbakorLvl10": 2.3,
+    "onBarkasLvl10": 6.4
+   },
+   "path": "ур. 6 — 1,0 ч; ур. 8 — 1,7 ч; «Волжанка» — 2,8 ч; ур. 10 — 3,0 ч; «Альбакор» — 4,5 ч; «Нортсильвер» — 6,8 ч; ур. 15 — 10,8 ч (только баркас: «Нортсильвер» — 13,1 ч)"
+  },
+  "difficulty": {
+   "multipliers": {
+    "pier": {
+     "zone": 1,
+     "jerk": 1,
+     "drain": 1
+    },
+    "barkas": {
+     "zone": 1,
+     "jerk": 1.15,
+     "drain": 1.2
+    },
+    "isle": {
+     "zone": 0.95,
+     "jerk": 1.3,
+     "drain": 1.4
+    },
+    "divine": "везде одинаково, без множителей места"
+   },
+   "avgByTier": {
+    "head": [
+     "зона %",
+     "скорость %/с",
+     "рывок %/с",
+     "резкость",
+     "сопротивление %/с"
+    ],
+    "pier": {
+     "common": [
+      33.3,
+      14.2,
+      50,
+      5,
+      21.4
+     ],
+     "rare": [
+      27.4,
+      16.9,
+      62,
+      6,
+      29.1
+     ],
+     "epic": [
+      24.8,
+      14.8,
+      58,
+      7,
+      30.3
+     ],
+     "legend": [
+      22.5,
+      18.5,
+      78,
+      8,
+      40.4
+     ],
+     "myth": [
+      20.3,
+      21.4,
+      94,
+      9,
+      32.1
+     ]
+    },
+    "barkas": {
+     "common": [
+      33.3,
+      12.7,
+      51,
+      5.8,
+      33.3
+     ],
+     "rare": [
+      27.4,
+      15.6,
+      67,
+      6.9,
+      28.9
+     ],
+     "epic": [
+      24.8,
+      14.7,
+      66,
+      8,
+      34.5
+     ],
+     "legend": [
+      22.5,
+      23.5,
+      114,
+      9.2,
+      36.8
+     ],
+     "myth": [
+      20.3,
+      27.8,
+      140,
+      10.3,
+      61.3
+     ]
+    },
+    "isle": {
+     "common": [
+      31.6,
+      10.8,
+      49,
+      6.5,
+      39.7
+     ],
+     "rare": [
+      26.1,
+      14.7,
+      71,
+      7.8,
+      50
+     ],
+     "epic": [
+      23.5,
+      25.8,
+      131,
+      9.1,
+      41.3
+     ],
+     "legend": [
+      21.4,
+      23.2,
+      127,
+      10.4,
+      42.1
+     ],
+     "myth": [
+      19.2,
+      29,
+      166,
+      11.7,
+      29.4
+     ]
+    }
+   },
+   "successLvl10Typical": {
+    "pier": [
+     100,
+     98,
+     97,
+     86,
+     99,
+     72
+    ],
+    "barkas": [
+     100,
+     98,
+     95,
+     96,
+     80,
+     72
+    ],
+    "isle": [
+     97,
+     90,
+     77,
+     75,
+     66,
+     70
+    ],
+    "order": "обычные, редкие, эпические, легендарные, мифические (без способностей), божественная (без зубов)"
+   },
+   "calTargetIsle": {
+    "at": "10-й уровень, легендарная удочка, платиновая блесна, «обычный», воды острова",
+    "success": [
+     0.98,
+     0.9,
+     0.8,
+     0.7,
+     0.62,
+     0.62
+    ],
+    "withAbility": {
+     "myth": 0.55,
+     "divine": 0.5
+    }
+   }
+  }
+ },
+ "weather": {
+  "normal": {
+   "fogNear": 18,
+   "fogFar": 160,
+   "color": "#d9d3c9",
+   "exposure": 0.95,
+   "sun": 0
+  },
+  "fogEvent": {
+   "name": "Туман наступает",
+   "fogNear": 8,
+   "fogFar": 85,
+   "color": "#d2d4d6",
+   "schedule": "как дождь: ясно 15–30 мин, туман 4 мин 48 с — 8 мин (свой таймер, не связан с дождём площади)",
+   "odds": "×1,5 к редким и выше, туманные виды клюют и платят ×1,5, опыт ×1,15"
+  },
+  "season": {
+   "name": "Сезон на острове («Великий туман»)",
+   "when": "нечётные часы по Москве (…, 17:00, 19:00, 21:00), 10 минут",
+   "odds": "×2 к туману (×3 к обычному)",
+   "shiftMs": 14400000,
+   "everyMs": 7200000
+  },
+  "transit": [
+   {
+    "from": "бухта (до 250 м от площади)",
+    "fogNear": 200,
+    "fogFar": 1400,
+    "haze": 0
+   },
+   {
+    "from": "300–900 м",
+    "fogNear": "200 → 60",
+    "fogFar": "1400 → 450",
+    "haze": "0 → 1 к 400 м"
+   },
+   {
+    "from": "1500 м → граница вод",
+    "fogNear": "60 → 30",
+    "fogFar": "450 → 220",
+    "haze": 1
+   },
+   {
+    "from": "воды острова",
+    "fogNear": 18,
+    "fogFar": 160,
+    "haze": 1
+   }
+  ],
+  "reveal": [
+   {
+    "distToCenter": 1000,
+    "what": "свет маяка: тёплая вспышка раз в 6 с и луч (спрайт без тумана)"
+   },
+   {
+    "distToCenter": 600,
+    "what": "ревун раз в 30 с, слышно направление; чайки смолкают"
+   },
+   {
+    "distToCenter": 300,
+    "what": "граница вод: плашка «Воды острова «Последний свет»», огоньки буёв подхода (видны с 250 м)"
+   },
+   {
+    "distToCenter": 250,
+    "what": "первые буи из тумана, колокол на буе, скалы-кекуры"
+   },
+   {
+    "distToCenter": 220,
+    "what": "силуэт мыса с башней маяка"
+   },
+   {
+    "distToCenter": 150,
+    "what": "причал, дома, окна смотрителя; таблички читаются с 40 м"
+   }
+  ]
+ },
+ "species": [
+  {
+   "id": "capelin",
+   "name": "Мойва",
+   "acc": "мойву",
+   "latin": "Mallotus villosus",
+   "tier": 0,
+   "tierName": "обычная",
+   "when": "всегда",
+   "g": [
+    15,
+    60
+   ],
+   "bite": 180,
+   "sharePct": {
+    "lvl6Clear": 12.47,
+    "lvl6Fog": 1.25,
+    "lvl10Clear": 7.83,
+    "lvl10Fog": 1.25
+   },
+   "pat": [
+    "Zigzag",
+    "Sawtooth"
+   ],
+   "lo": 40,
+   "hi": 100,
+   "up": 50,
+   "note": "стайка у поверхности: зигзаг и пила",
+   "shape": "fish",
+   "c": [
+    "#4f7f8f",
+    "#e8f0f2"
+   ],
+   "price": [
+    6,
+    10
+   ],
+   "priceFog": null,
+   "meanPrice": 7.3,
+   "xpBase": 17.8,
+   "calEstimate": {
+    "spd": 9.1,
+    "dartSpd": 31.85,
+    "amp": 19.58,
+    "drain": 44.11,
+    "per": 218
+   },
+   "successTypicalPct": {
+    "lvl6": 84,
+    "lvl8": 88,
+    "lvl10": 93,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "smelt",
+   "name": "Корюшка",
+   "acc": "корюшку",
+   "latin": "Osmerus eperlanus",
+   "tier": 0,
+   "tierName": "обычная",
+   "when": "всегда",
+   "g": [
+    30,
+    250
+   ],
+   "bite": 170,
+   "sharePct": {
+    "lvl6Clear": 11.78,
+    "lvl6Fog": 1.18,
+    "lvl10Clear": 7.4,
+    "lvl10Fog": 1.18
+   },
+   "pat": [
+    "Nervous",
+    "Circle"
+   ],
+   "lo": 25,
+   "hi": 90,
+   "up": 50,
+   "note": "вертится кругами и пахнет свежим огурцом",
+   "shape": "fish",
+   "c": [
+    "#6f8f86",
+    "#eef3ee"
+   ],
+   "price": [
+    6,
+    13
+   ],
+   "priceFog": null,
+   "meanPrice": 8.3,
+   "xpBase": 17.8,
+   "calEstimate": {
+    "spd": 7,
+    "dartSpd": 24.5,
+    "amp": 16.32,
+    "drain": 26.03,
+    "per": 238
+   },
+   "successTypicalPct": {
+    "lvl6": 97,
+    "lvl8": 98,
+    "lvl10": 99,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "navaga",
+   "name": "Навага",
+   "acc": "навагу",
+   "latin": "Eleginus nawaga",
+   "tier": 0,
+   "tierName": "обычная",
+   "when": "всегда",
+   "g": [
+    80,
+    700
+   ],
+   "bite": 170,
+   "sharePct": {
+    "lvl6Clear": 11.78,
+    "lvl6Fog": 1.18,
+    "lvl10Clear": 7.4,
+    "lvl10Fog": 1.18
+   },
+   "pat": [
+    "HoverDash",
+    "Zigzag"
+   ],
+   "lo": 0,
+   "hi": 50,
+   "up": 70,
+   "note": "северная тресочка: у дна, подскоки зигзагом",
+   "shape": "fish",
+   "c": [
+    "#7a7258",
+    "#e9e4d2"
+   ],
+   "price": [
+    6,
+    14
+   ],
+   "priceFog": null,
+   "meanPrice": 8.7,
+   "xpBase": 17.8,
+   "calEstimate": {
+    "spd": 14,
+    "dartSpd": 49,
+    "amp": 27.2,
+    "drain": 23.6,
+    "per": 170
+   },
+   "successTypicalPct": {
+    "lvl6": 98,
+    "lvl8": 98,
+    "lvl10": 99,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "lanternfish",
+   "name": "Светящийся анчоус",
+   "acc": "светящегося анчоуса",
+   "latin": "Myctophum punctatum",
+   "tier": 0,
+   "tierName": "обычная",
+   "when": "туман",
+   "g": [
+    5,
+    25
+   ],
+   "bite": 200,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 1.39,
+    "lvl10Clear": 0,
+    "lvl10Fog": 1.39
+   },
+   "pat": [
+    "FakeDash",
+    "Zigzag"
+   ],
+   "lo": 50,
+   "hi": 100,
+   "up": 50,
+   "note": "мигает огоньками в тумане и обманывает бросками",
+   "shape": "fish",
+   "c": [
+    "#2e3f5a",
+    "#9fe6ff"
+   ],
+   "price": [
+    6,
+    11
+   ],
+   "priceFog": [
+    9,
+    17
+   ],
+   "meanPrice": 11.5,
+   "xpBase": 17.8,
+   "calEstimate": {
+    "spd": 12.95,
+    "dartSpd": 45.33,
+    "amp": 25.57,
+    "drain": 19.6,
+    "per": 180
+   },
+   "successTypicalPct": {
+    "lvl6": 97,
+    "lvl8": 99,
+    "lvl10": 98,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "lumpfish",
+   "name": "Пинагор",
+   "acc": "пинагора",
+   "latin": "Cyclopterus lumpus",
+   "tier": 1,
+   "tierName": "редкая",
+   "when": "всегда",
+   "g": [
+    1000,
+    6000
+   ],
+   "bite": 140,
+   "sharePct": {
+    "lvl6Clear": 17.83,
+    "lvl6Fog": 12.69,
+    "lvl10Clear": 21.15,
+    "lvl10Fog": 10.23
+   },
+   "pat": [
+    "Ambush",
+    "SlowMigration"
+   ],
+   "lo": 0,
+   "hi": 45,
+   "up": 50,
+   "note": "присосался к камню — и вдруг отрывается",
+   "shape": "fish",
+   "c": [
+    "#6f7a3e",
+    "#e0b25a"
+   ],
+   "price": [
+    14,
+    33
+   ],
+   "priceFog": null,
+   "meanPrice": 20.3,
+   "xpBase": 29.3,
+   "calEstimate": {
+    "spd": 11.7,
+    "dartSpd": 43.29,
+    "amp": 25.7,
+    "drain": 35.24,
+    "per": 192
+   },
+   "successTypicalPct": {
+    "lvl6": 87,
+    "lvl8": 90,
+    "lvl10": 93,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "saithe",
+   "name": "Сайда",
+   "acc": "сайду",
+   "latin": "Pollachius virens",
+   "tier": 1,
+   "tierName": "редкая",
+   "when": "всегда",
+   "g": [
+    800,
+    15000
+   ],
+   "bite": 140,
+   "sharePct": {
+    "lvl6Clear": 17.83,
+    "lvl6Fog": 12.69,
+    "lvl10Clear": 21.15,
+    "lvl10Fog": 10.23
+   },
+   "pat": [
+    "DoubleDash",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "ходит стаей: двойные броски волной",
+   "shape": "fish",
+   "c": [
+    "#3d4f5c",
+    "#dfe5e8"
+   ],
+   "price": [
+    14,
+    35
+   ],
+   "priceFog": null,
+   "meanPrice": 21,
+   "xpBase": 29.3,
+   "calEstimate": {
+    "spd": 14.4,
+    "dartSpd": 53.28,
+    "amp": 29.99,
+    "drain": 43.24,
+    "per": 174
+   },
+   "successTypicalPct": {
+    "lvl6": 84,
+    "lvl8": 88,
+    "lvl10": 88,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "grenadier",
+   "name": "Макрурус",
+   "acc": "макруруса",
+   "latin": "Macrourus berglax",
+   "tier": 1,
+   "tierName": "редкая",
+   "when": "туман",
+   "g": [
+    500,
+    4500
+   ],
+   "bite": 150,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 13.59,
+    "lvl10Clear": 0,
+    "lvl10Fog": 10.96
+   },
+   "pat": [
+    "Sound",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 55,
+   "up": 35,
+   "note": "длинный хвост: волной уходит в глубину",
+   "shape": "long",
+   "c": [
+    "#7d7a72",
+    "#d8d4c8"
+   ],
+   "price": [
+    14,
+    33
+   ],
+   "priceFog": [
+    21,
+    50
+   ],
+   "meanPrice": 30.5,
+   "xpBase": 29.3,
+   "calEstimate": {
+    "spd": 21,
+    "dartSpd": 77.7,
+    "amp": 38.85,
+    "drain": 23.95,
+    "per": 150
+   },
+   "successTypicalPct": {
+    "lvl6": 92,
+    "lvl8": 92,
+    "lvl10": 93,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "lamprey",
+   "name": "Морская минога",
+   "acc": "морскую миногу",
+   "latin": "Petromyzon marinus",
+   "tier": 1,
+   "tierName": "редкая",
+   "when": "туман",
+   "g": [
+    400,
+    2500
+   ],
+   "bite": 150,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 13.59,
+    "lvl10Clear": 0,
+    "lvl10Fog": 10.96
+   },
+   "pat": [
+    "EdgeSnapback",
+    "Nervous"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "присасывается к краю и мечется назад",
+   "shape": "eel",
+   "c": [
+    "#5e5a3e",
+    "#c9c3a0"
+   ],
+   "price": [
+    14,
+    33
+   ],
+   "priceFog": [
+    21,
+    50
+   ],
+   "meanPrice": 30.5,
+   "xpBase": 29.3,
+   "calEstimate": {
+    "spd": 11.7,
+    "dartSpd": 43.29,
+    "amp": 25.7,
+    "drain": 40.29,
+    "per": 192
+   },
+   "successTypicalPct": {
+    "lvl6": 79,
+    "lvl8": 85,
+    "lvl10": 88,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "salmon",
+   "name": "Сёмга",
+   "acc": "сёмгу",
+   "latin": "Salmo salar",
+   "tier": 2,
+   "tierName": "эпическая",
+   "when": "всегда",
+   "g": [
+    2000,
+    30000
+   ],
+   "bite": 65,
+   "sharePct": {
+    "lvl6Clear": 9.11,
+    "lvl6Fog": 5.07,
+    "lvl10Clear": 11.29,
+    "lvl10Fog": 6.29
+   },
+   "pat": [
+    "Breach",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 80,
+   "note": "свечки над водой и упрямая пила",
+   "shape": "fish",
+   "c": [
+    "#4a6a7a",
+    "#f1ece4"
+   ],
+   "price": [
+    28,
+    70
+   ],
+   "priceFog": null,
+   "meanPrice": 42,
+   "xpBase": 34.5,
+   "calEstimate": {
+    "spd": 11,
+    "dartSpd": 42.9,
+    "amp": 26.52,
+    "drain": 23.42,
+    "per": 189
+   },
+   "successTypicalPct": {
+    "lvl6": 9,
+    "lvl8": 48,
+    "lvl10": 80,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "ling",
+   "name": "Мольва",
+   "acc": "мольву",
+   "latin": "Molva molva",
+   "tier": 2,
+   "tierName": "эпическая",
+   "when": "всегда",
+   "g": [
+    3000,
+    35000
+   ],
+   "bite": 65,
+   "sharePct": {
+    "lvl6Clear": 9.11,
+    "lvl6Fog": 5.07,
+    "lvl10Clear": 11.29,
+    "lvl10Fog": 6.29
+   },
+   "pat": [
+    "Sound",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 55,
+   "up": 30,
+   "note": "длинная, как налим: тянет вниз ступеньками",
+   "shape": "eel",
+   "c": [
+    "#6a6448",
+    "#d9d2b8"
+   ],
+   "price": [
+    28,
+    70
+   ],
+   "priceFog": null,
+   "meanPrice": 42,
+   "xpBase": 34.5,
+   "calEstimate": {
+    "spd": 36,
+    "dartSpd": 140.4,
+    "amp": 59.8,
+    "drain": 36.46,
+    "per": 135
+   },
+   "successTypicalPct": {
+    "lvl6": 80,
+    "lvl8": 85,
+    "lvl10": 73,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "chimaera",
+   "name": "Химера",
+   "acc": "химеру",
+   "latin": "Chimaera monstrosa",
+   "tier": 2,
+   "tierName": "эпическая",
+   "when": "туман",
+   "g": [
+    500,
+    2500
+   ],
+   "bite": 110,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 8.59,
+    "lvl10Clear": 0,
+    "lvl10Fog": 10.65
+   },
+   "pat": [
+    "Circle",
+    "Wave"
+   ],
+   "lo": 10,
+   "hi": 70,
+   "up": 50,
+   "note": "призрак глубин: плавные круги и волны",
+   "shape": "long",
+   "c": [
+    "#8a7f74",
+    "#d9dce0"
+   ],
+   "price": [
+    28,
+    66
+   ],
+   "priceFog": [
+    42,
+    99
+   ],
+   "meanPrice": 61,
+   "xpBase": 34.5,
+   "calEstimate": {
+    "spd": 36,
+    "dartSpd": 140.4,
+    "amp": 59.8,
+    "drain": 34.03,
+    "per": 135
+   },
+   "successTypicalPct": {
+    "lvl6": 67,
+    "lvl8": 83,
+    "lvl10": 84,
+    "lvl10Expert": 99
+   }
+  },
+  {
+   "id": "roughy",
+   "name": "Большеголов",
+   "acc": "большеголова",
+   "latin": "Hoplostethus atlanticus",
+   "tier": 2,
+   "tierName": "эпическая",
+   "when": "туман",
+   "g": [
+    1000,
+    7000
+   ],
+   "bite": 110,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 8.59,
+    "lvl10Clear": 0,
+    "lvl10Fog": 10.65
+   },
+   "pat": [
+    "HoverDash",
+    "Breach"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 70,
+   "note": "долго висит в толще — и свечкой вверх",
+   "shape": "fish",
+   "c": [
+    "#d0603a",
+    "#f3c09a"
+   ],
+   "price": [
+    28,
+    66
+   ],
+   "priceFog": [
+    42,
+    99
+   ],
+   "meanPrice": 61,
+   "xpBase": 34.5,
+   "calEstimate": {
+    "spd": 20.35,
+    "dartSpd": 79.37,
+    "amp": 41.55,
+    "drain": 24.12,
+    "per": 143
+   },
+   "successTypicalPct": {
+    "lvl6": 23,
+    "lvl8": 51,
+    "lvl10": 78,
+    "lvl10Expert": 100
+   }
+  },
+  {
+   "id": "opah",
+   "name": "Опах",
+   "acc": "опаха",
+   "latin": "Lampris guttatus",
+   "tier": 3,
+   "tierName": "легендарная",
+   "when": "всегда",
+   "g": [
+    20000,
+    200000
+   ],
+   "bite": 28,
+   "sharePct": {
+    "lvl6Clear": 3.92,
+    "lvl6Fog": 3.08,
+    "lvl10Clear": 4.86,
+    "lvl10Fog": 3.82
+   },
+   "pat": [
+    "Circle",
+    "Dash"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "тёплая рыба-щит: широкие круги и броски",
+   "shape": "fish",
+   "c": [
+    "#9a4a6a",
+    "#d9564a"
+   ],
+   "price": [
+    70,
+    200
+   ],
+   "priceFog": null,
+   "meanPrice": 113.3,
+   "xpBase": 35.7,
+   "calEstimate": {
+    "spd": 42,
+    "dartSpd": 176.4,
+    "amp": 71.3,
+    "drain": 30.72,
+    "per": 125
+   },
+   "successTypicalPct": {
+    "lvl6": 10,
+    "lvl8": 37,
+    "lvl10": 75,
+    "lvl10Expert": 91
+   }
+  },
+  {
+   "id": "albacore",
+   "name": "Тунец-альбакор",
+   "acc": "тунца-альбакора",
+   "latin": "Thunnus alalunga",
+   "tier": 3,
+   "tierName": "легендарная",
+   "when": "всегда",
+   "g": [
+    8000,
+    60000
+   ],
+   "bite": 27,
+   "sharePct": {
+    "lvl6Clear": 3.78,
+    "lvl6Fog": 2.97,
+    "lvl10Clear": 4.69,
+    "lvl10Fog": 3.69
+   },
+   "pat": [
+    "Zigzag",
+    "EdgeSnapback"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "длинные плавники: зигзагом к краю и назад",
+   "shape": "fish",
+   "c": [
+    "#22406a",
+    "#e4ebf0"
+   ],
+   "price": [
+    70,
+    190
+   ],
+   "priceFog": null,
+   "meanPrice": 110,
+   "xpBase": 35.7,
+   "calEstimate": {
+    "spd": 13,
+    "dartSpd": 54.6,
+    "amp": 31.62,
+    "drain": 28.64,
+    "per": 175
+   },
+   "successTypicalPct": {
+    "lvl6": 31,
+    "lvl8": 56,
+    "lvl10": 75,
+    "lvl10Expert": 97
+   }
+  },
+  {
+   "id": "coelacanth",
+   "name": "Латимерия",
+   "acc": "латимерию",
+   "latin": "Latimeria chalumnae",
+   "tier": 3,
+   "tierName": "легендарная",
+   "when": "туман",
+   "g": [
+    30000,
+    110000
+   ],
+   "bite": 25,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 2.75,
+    "lvl10Clear": 0,
+    "lvl10Fog": 3.41
+   },
+   "pat": [
+    "Ambush",
+    "Wave"
+   ],
+   "lo": 0,
+   "hi": 60,
+   "up": 50,
+   "note": "живое ископаемое: замирает и плывёт волной",
+   "shape": "fish",
+   "c": [
+    "#2f4a6a",
+    "#8fa8b8"
+   ],
+   "price": [
+    70,
+    200
+   ],
+   "priceFog": [
+    105,
+    300
+   ],
+   "meanPrice": 170,
+   "xpBase": 35.7,
+   "calEstimate": {
+    "spd": 16.9,
+    "dartSpd": 70.98,
+    "amp": 37.94,
+    "drain": 31.59,
+    "per": 160
+   },
+   "successTypicalPct": {
+    "lvl6": 19,
+    "lvl8": 40,
+    "lvl10": 66,
+    "lvl10Expert": 99
+   }
+  },
+  {
+   "id": "goblinshark",
+   "name": "Акула-домовой",
+   "acc": "акулу-домового",
+   "latin": "Mitsukurina owstoni",
+   "tier": 3,
+   "tierName": "легендарная",
+   "when": "туман",
+   "g": [
+    40000,
+    210000
+   ],
+   "bite": 25,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 2.75,
+    "lvl10Clear": 0,
+    "lvl10Fog": 3.41
+   },
+   "pat": [
+    "Ambush",
+    "Circle"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "выстреливает челюстями из засады и кружит",
+   "shape": "shark",
+   "c": [
+    "#c99a96",
+    "#f0dcd8"
+   ],
+   "price": [
+    75,
+    210
+   ],
+   "priceFog": [
+    113,
+    315
+   ],
+   "meanPrice": 180,
+   "xpBase": 35.7,
+   "calEstimate": {
+    "spd": 20.8,
+    "dartSpd": 87.36,
+    "amp": 44.27,
+    "drain": 29.33,
+    "per": 145
+   },
+   "successTypicalPct": {
+    "lvl6": 7,
+    "lvl8": 23,
+    "lvl10": 67,
+    "lvl10Expert": 94
+   }
+  },
+  {
+   "id": "beluga",
+   "name": "Белуга",
+   "acc": "белугу",
+   "latin": "Huso huso",
+   "tier": 4,
+   "tierName": "мифическая",
+   "when": "всегда",
+   "g": [
+    300000,
+    1500000
+   ],
+   "bite": 4,
+   "sharePct": {
+    "lvl6Clear": 0.86,
+    "lvl6Fog": 0.8,
+    "lvl10Clear": 1.07,
+    "lvl10Fog": 0.99
+   },
+   "pat": [
+    "Sound",
+    "EdgeSnapback"
+   ],
+   "lo": 0,
+   "hi": 60,
+   "up": 35,
+   "note": "древняя и могучая: уходит на дно и рвёт к краю; второе дыхание",
+   "shape": "shark",
+   "c": [
+    "#56606a",
+    "#dfe2e0"
+   ],
+   "price": [
+    300,
+    600
+   ],
+   "priceFog": null,
+   "meanPrice": 400,
+   "xpBase": 39.5,
+   "calEstimate": {
+    "spd": 24,
+    "dartSpd": 105.6,
+    "amp": 49.98,
+    "drain": 28.64,
+    "per": 133
+   },
+   "successTypicalPct": {
+    "lvl6": 86,
+    "lvl8": 88,
+    "lvl10": 71,
+    "lvl10Expert": 100
+   },
+   "ability": {
+    "id": "secondWind",
+    "name": "Второе дыхание",
+    "blocks": [
+     "последний рывок",
+     "молот (потеря прогресса)"
+    ],
+    "text": "Первый раз дошёл прогресс до 100 % — белуга не сдаётся: прогресс падает до 55 %, дальше она на 15 % быстрее, а зона на 10 % меньше. Один раз за вываживание.",
+    "params": {
+     "triggerP": 1,
+     "dropTo": 0.55,
+     "fishSpeedMul": 1.15,
+     "zoneMul": 0.9,
+     "times": 1
+    },
+    "toast": "Белуга не сдаётся — второе дыхание!"
+   }
+  },
+  {
+   "id": "thresher",
+   "name": "Лисья акула",
+   "acc": "лисью акулу",
+   "latin": "Alopias vulpinus",
+   "tier": 4,
+   "tierName": "мифическая",
+   "when": "всегда",
+   "g": [
+    100000,
+    500000
+   ],
+   "bite": 4,
+   "sharePct": {
+    "lvl6Clear": 0.86,
+    "lvl6Fog": 0.8,
+    "lvl10Clear": 1.07,
+    "lvl10Fog": 0.99
+   },
+   "pat": [
+    "FakeDash",
+    "Sawtooth"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "хвост-хлыст: обманные броски пилой",
+   "shape": "shark",
+   "c": [
+    "#5a5f7a",
+    "#eeeef2"
+   ],
+   "price": [
+    300,
+    600
+   ],
+   "priceFog": null,
+   "meanPrice": 400,
+   "xpBase": 39.5,
+   "calEstimate": {
+    "spd": 15,
+    "dartSpd": 66,
+    "amp": 35.7,
+    "drain": 24.81,
+    "per": 161
+   },
+   "successTypicalPct": {
+    "lvl6": 7,
+    "lvl8": 26,
+    "lvl10": 62,
+    "lvl10Expert": 96
+   },
+   "ability": {
+    "id": "whip",
+    "name": "Хлыст",
+    "blocks": [
+     "ветер (сила на зону) — короткий толчок вместо постоянного"
+    ],
+    "text": "Раз в 4–6 с (по сиду) хвост замахивается у края шкалы 0,6 с (свист), потом бьёт: зону отбрасывает на ~25 % высоты, в 2 из 3 случаев — вниз. Первый удар не раньше 3 с, во время «последнего рывка» не бьёт.",
+    "params": {
+     "periodS": [
+      4,
+      6
+     ],
+     "firstS": 3,
+     "telegraphS": 0.6,
+     "kickBar": 0.25,
+     "downShare": 0.67,
+     "kickUnitsPerTick": 1500,
+     "noneDuringLastStand": true
+    },
+    "toast": "Лисья акула хлестнула хвостом!"
+   }
+  },
+  {
+   "id": "baskingshark",
+   "name": "Гигантская акула",
+   "acc": "гигантскую акулу",
+   "latin": "Cetorhinus maximus",
+   "tier": 4,
+   "tierName": "мифическая",
+   "when": "туман",
+   "g": [
+    900000,
+    3800000
+   ],
+   "bite": 5,
+   "sharePct": {
+    "lvl6Clear": 0,
+    "lvl6Fog": 0.99,
+    "lvl10Clear": 0,
+    "lvl10Fog": 1.23
+   },
+   "pat": [
+    "SlowMigration",
+    "Breach"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "огромная и неспешная, выныривает из тумана; пелена",
+   "shape": "shark",
+   "c": [
+    "#5d5a55",
+    "#bdb6aa"
+   ],
+   "price": [
+    320,
+    640
+   ],
+   "priceFog": [
+    480,
+    960
+   ],
+   "meanPrice": 640,
+   "xpBase": 39.5,
+   "calEstimate": {
+    "spd": 48,
+    "dartSpd": 211.2,
+    "amp": 80.5,
+    "drain": 9.52,
+    "per": 115
+   },
+   "successTypicalPct": {
+    "lvl6": 1,
+    "lvl8": 17,
+    "lvl10": 60,
+    "lvl10Expert": 100
+   },
+   "ability": {
+    "id": "veil",
+    "name": "Пелена",
+    "blocks": [
+     "чернила (закрыть часть шкалы)"
+    ],
+    "text": "Две полосы тумана по 22 % высоты шкалы всё вываживание плывут вверх-вниз 6–9 %/с и отражаются от краёв; рыба внутри полосы видна лишь бледной тенью (15 %). Раз в 8 с полосы смыкаются в стену на 50 % шкалы на 1,5 с (как чернила кальмара). Прогресс считается как обычно.",
+    "params": {
+     "banks": 2,
+     "bankBar": 0.22,
+     "speedPctPerS": [
+      6,
+      9
+     ],
+     "shadowAlpha": 0.15,
+     "wallEveryS": 8,
+     "wallBar": 0.5,
+     "wallS": 1.5
+    },
+    "toast": "Гигантская акула ушла в туман — следи за тенью!"
+   }
+  },
+  {
+   "id": "frilledshark",
+   "name": "Плащеносная акула",
+   "acc": "плащеносную акулу",
+   "latin": "Chlamydoselachus anguineus",
+   "tier": 7,
+   "tierName": "божественная",
+   "when": "всегда",
+   "g": [
+    700000,
+    2800000
+   ],
+   "bite": "явно 0.43 % поклёвок новичка",
+   "sharePct": {
+    "lvl6Clear": 0.65,
+    "lvl6Fog": 0.97,
+    "lvl10Clear": 0.8,
+    "lvl10Fog": 1.2
+   },
+   "pat": [
+    "Zigzag",
+    "Sound"
+   ],
+   "lo": 0,
+   "hi": 100,
+   "up": 50,
+   "note": "морской змей: извивается и уходит в глубину; острые зубы",
+   "shape": "eel",
+   "c": [
+    "#6b5e52",
+    "#b9aa98"
+   ],
+   "price": [
+    750,
+    1500
+   ],
+   "priceFog": null,
+   "meanPrice": 1000,
+   "xpBase": 98,
+   "calEstimate": {
+    "spd": 20.8,
+    "dartSpd": 124.8,
+    "amp": 46.51,
+    "drain": 23.95,
+    "per": 141
+   },
+   "successTypicalPct": {
+    "lvl6": 7,
+    "lvl8": 46,
+    "lvl10": 70,
+    "lvl10Expert": 99
+   },
+   "ability": {
+    "id": "teeth",
+    "name": "Острые зубы",
+    "blocks": [
+     "новое: препятствие на шкале"
+    ],
+    "text": "Из края шкалы выдвигаются «зубы» — полосы по 5 % высоты: 0,8 с мерцают контуром («клац-клац»), потом 3,5 с острые и убираются. До 50 % прогресса — не больше одной полосы, дальше — до двух; появляются не ближе 15 % от зоны. Рыба проходит сквозь зубы свободно, зона — нет: задел острый зуб — текущий прогресс −50 % (не ниже 5 %), зуб пропадает, тряска шкалы и предупреждение; второй раз — леска перекушена, рыба ушла (утешительный опыт — как у сорвавшейся после 3 с).",
+    "params": {
+     "toothBar": 0.05,
+     "telegraphS": 0.8,
+     "activeS": 3.5,
+     "maxBefore50": 1,
+     "maxAfter50": 2,
+     "minGapFromZone": 0.15,
+     "progressMul": 0.5,
+     "progressFloor": 0.05,
+     "strikes": 2
+    },
+    "warn1": "Акула попробовала леску на зуб — держится на честном слове! Ещё раз — и перекусит.",
+    "warn2": "Хрум! Триста зубов против одной лески — плащеносная акула ушла."
+   }
+  }
+ ],
+ "cosmetics": {
+  "ladder": [
+   {
+    "need": 4,
+    "items": [
+     "b:bellbuoy"
+    ]
+   },
+   {
+    "need": 8,
+    "items": [
+     "r:lighthouse"
+    ]
+   },
+   {
+    "need": 12,
+    "items": [
+     "w:fog"
+    ]
+   },
+   {
+    "need": 16,
+    "items": [
+     "s:puffin"
+    ]
+   },
+   {
+    "need": 20,
+    "items": [
+     "h:keeper",
+     "a:keeper",
+     "n:lighthouse"
+    ],
+    "set": "Смотритель маяка"
+   }
+  ],
+  "items": {
+   "b:bellbuoy": {
+    "kind": "поплавок",
+    "name": "Колокольный буй",
+    "text": "Красно-белый буёк с огоньком наверху (мигает) и колокольчиком — звенит на поклёвке",
+    "glow": true
+   },
+   "r:lighthouse": {
+    "kind": "удочка",
+    "name": "Маячная",
+    "text": "Бело-красная спираль, латунная катушка, на кончике огонёк — вспыхивает раз в 6 с, как маяк",
+    "glow": true
+   },
+   "w:fog": {
+    "kind": "окно вываживания",
+    "name": "Туман",
+    "text": "Рама из выбеленного плавника с канатом, жемчужная вода, по шкале ползут клочья тумана (не гуще 15 %), зона — тёплый луч маяка, наверху маячок мигает на поимке"
+   },
+   "s:puffin": {
+    "kind": "питомец",
+    "name": "Тупик",
+    "text": "Атлантический тупик на плече: моргает, крутит головой, на поимке держит в клюве мойву"
+   },
+   "h:keeper": {
+    "kind": "шапка",
+    "name": "Шапка смотрителя",
+    "text": "Вязаная шапка в бело-красную маячную полоску с помпоном"
+   },
+   "a:keeper": {
+    "kind": "аксессуар",
+    "name": "Свитер смотрителя",
+    "text": "Толстый свитер-«норвежец» с узором-маяками и фонарь «летучая мышь» на поясе (светится)"
+   },
+   "n:lighthouse": {
+    "kind": "значок у ника",
+    "name": "Маяк",
+    "text": "Маленький маяк у ника — мигает раз в 6 с, видят все"
+   }
+  },
+  "goldfishRework": {
+   "item": "b:goldfish",
+   "text": "Тот же ключ — у кого есть, обновится сам: золото светится (emissive ×1,6), тёплый золотой ореол как у «Светлячка», мягкий круг света на воде, искры при падении — как были"
+  },
+  "storage": "отдельной записи в профиле нет: счётчик острова — число видов острова в альбоме (ключи альбома — id видов); лестница 52 видов считает только пристань и баркас; выданные вещи — в обычном гардеробе"
+ },
+ "assets": {
+  "blender": [
+   {
+    "id": "boat-volzhanka",
+    "what": "лодка «Волжанка»",
+    "tris": "6 000 + LOD 800",
+    "parts": "корпус, стекло, мотор (откидывается), огни, якорь, экран эхолота (канвас), 3 места (пустышки), табличка с ником (канвас)"
+   },
+   {
+    "id": "boat-albakor",
+    "what": "лодка «Альбакор»",
+    "tris": "8 000 + LOD 1 000",
+    "parts": "то же + носовая площадка, поручень"
+   },
+   {
+    "id": "boat-northsilver",
+    "what": "катер «Нортсильвер»",
+    "tris": "10 000 + LOD 1 200",
+    "parts": "то же + Т-крыша, антенны, удилища, прожектор"
+   },
+   {
+    "id": "parking",
+    "what": "стоянка: сходни, понтон 2,5 × 20 м, 8 «пальцев», 10 столбиков с номерами, утки, кранцы (инстансы), 4 фонаря",
+    "tris": "8 000"
+   },
+   {
+    "id": "isle-terrain",
+    "what": "рельеф острова 210 × 150 м: скалы, мыс, пляж, трава, кекуры",
+    "tris": "30 000 + силуэт 3 000"
+   },
+   {
+    "id": "isle-lighthouse",
+    "what": "маяк «Последний свет» 24 м: полосы, галерея, фонарная (стекло, линза, лампа), пристройка",
+    "tris": "6 000"
+   },
+   {
+    "id": "isle-dock",
+    "what": "причал-понтон на 6 лодок + старые деревянные мостки",
+    "tris": "4 000"
+   },
+   {
+    "id": "isle-mole",
+    "what": "каменный мол 70 м с 8 местами рыбалки, тумбы, огонь на конце",
+    "tris": "5 000"
+   },
+   {
+    "id": "isle-houses",
+    "what": "5 заброшенных домов: 2 варианта + 2 с провалившейся крышей; заколоченные окна, мох, сети, горшки с цветами",
+    "tris": "4 000 каждый, ~20 000"
+   },
+   {
+    "id": "isle-keeper",
+    "what": "дом смотрителя: тёплые окна, крыльцо, труба с дымком, радио, кот на перилах",
+    "tris": "6 000"
+   },
+   {
+    "id": "isle-cannery",
+    "what": "консервный завод «Маяк» (закрыт), забор и ворота",
+    "tris": "8 000"
+   },
+   {
+    "id": "isle-wreck",
+    "what": "остов шхуны на камнях",
+    "tris": "5 000"
+   },
+   {
+    "id": "isle-signs",
+    "what": "щиты: «Опасное течение» (на буе и на столбе), «Проход запрещён», «Не заплывать», «Остров «Последний свет»», доска сезона",
+    "tris": "300 каждый"
+   },
+   {
+    "id": "isle-buoys",
+    "what": "буи: фарватерные красный/зелёный с огнём, колокольный (колокол качается), «Опасное течение»",
+    "tris": "600 каждый, инстансы"
+   },
+   {
+    "id": "isle-props",
+    "what": "ящики, бочки, ловушки для крабов, сети на вешалах, ржавый якорь, спасательные круги, лодка-плоскодонка вверх дном, скамейка, тупики на скалах",
+    "tris": "~20 000 инстансами"
+   }
+  ],
+  "code": [
+   "Игнат (NPC) — кодом по образцу client/lobby/fisherman.ts",
+   "косметика (поплавок, удочка, питомец, шапка, свитер с фонарём) — кодом в fishgear.ts / outfitfish.ts, значки — SVG в client/ui/fishicons.ts",
+   "окно «Туман» — CSS/канвас в fishstyle.css",
+   "луч маяка и огни буёв — аддитивные спрайты и конусы, без настоящих ламп"
+  ],
+  "imagegen": [
+   {
+    "what": "20 рыб острова",
+    "where": "client/assets/fish/<id>.webp",
+    "how": "Codex CLI image_gen, промпт-шаблон из client/assets/fish/FISHECO-PROVENANCE.json (полевая живопись, строгий профиль головой влево, прозрачный фон, 320 px), провенанс — ISLE-PROVENANCE.json"
+   },
+   {
+    "what": "экран загрузки «Последний свет»: маяк в тумане, лодка с огнями, без надписей",
+    "where": "client/assets/loading/",
+    "how": "стиль-промпт из client/assets/loading/PROVENANCE.md"
+   },
+   {
+    "what": "фон доски сезона острова (без текста)",
+    "where": "client/assets/fishsign/isle-season-board.webp",
+    "how": "как season-board.webp"
+   }
+  ],
+  "renders": [
+   {
+    "what": "карточки лодок для лавки Семёна",
+    "how": "рендер GLB из Blender 512 px, прозрачный фон, 3/4 спереди → webp"
+   }
+  ],
+  "canvasTexts": [
+   "«Опасное течение»",
+   "«Проход запрещён»",
+   "«Не заплывать — течение!»",
+   "«Остров «Последний свет»»",
+   "«Консервный завод «Маяк»» (выцветшая)",
+   "«Смотритель. Скупка рыбы»",
+   "«Лодочная стоянка «У Семёна»»",
+   "номера бертов 1–10 и 1–6",
+   "буи F1–F6",
+   "табличка с ником на корме лодки",
+   "доска сезона острова",
+   "экран эхолота"
+  ]
+ },
+ "openQuestions": [
+  {
+   "q": "Остров даёт ~6 500 🪙/ч (~110 в минуту) — в 7–13 раз больше ориентира 8–15 🪙/мин других режимов; премиальная вещь гардероба (12 000) — за 2 ч. Оставляем?",
+   "options": [
+    "Да, как сказал: остров — вершина рыбалки, лодки и блёсны забирают 38 000",
+    "Компромисс: остров 3 000–3 500 🪙/ч (цены видов острова ×0,5)"
+   ]
+  }
+ ]
+}
