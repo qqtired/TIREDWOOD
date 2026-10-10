@@ -1133,7 +1133,7 @@ export class DungeonGame {
     const v = this.view!;
     const r = this.run!.result();
     const dmg = Object.entries(r.dmg)
-      .map(([id, n]) => ({ icon: WEAPONS[id]?.icon ?? (id === 'q' ? '💥' : '•'), name: WEAPONS[id]?.name ?? (id === 'q' ? 'Удар Q' : id), n: Math.round(n) }))
+      .map(([id, n]) => ({ id, icon: WEAPONS[id]?.icon ?? (id === 'q' ? '💥' : '•'), name: WEAPONS[id]?.name ?? (id === 'q' ? 'Удар Q' : id), n: Math.round(n) }))
       .sort((a, b) => b.n - a.n);
     return {
       waves: r.waves,

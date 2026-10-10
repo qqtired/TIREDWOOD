@@ -189,7 +189,8 @@ img.dg-ic { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45)); }
 .dg-ring-ic { position: relative; font-size: 34px; opacity: .45; filter: grayscale(.7); transition: opacity .15s, filter .15s; }
 .dg-ring-sec { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 900; color: var(--dg-text); text-shadow: 0 1px 3px rgba(0, 0, 0, .95); }
 .dg-ring-sec:empty { display: none; }
-.dg-ring-label { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 3px; border-radius: 999px; background: var(--dg-panel-strong); font-size: 14px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+.dg-ring-disc kbd { position: absolute; z-index: 1; top: -4px; left: -6px; box-shadow: 0 2px 4px rgba(0, 0, 0, .5); }
+.dg-ring-label { display: flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; background: var(--dg-panel-strong); font-size: 14px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
 .dg-ring.ready .dg-ring-svg .fg { stroke: var(--dg-ring-ready); }
 .dg-ring.ready .dg-ring-disc { filter: drop-shadow(0 0 10px rgba(255, 179, 71, .55)); }
 .dg-ring.ready .dg-ring-ic { opacity: 1; filter: none; }
@@ -210,7 +211,7 @@ html.touch .dg-qpad { display: flex; }
 .dg-qpad .dg-ring-label { position: absolute; top: 100%; margin-top: 2px; padding: 0 6px; font-size: 10px; font-weight: 700; color: var(--cream-2); }
 .dg-qpad.down .dg-ring-disc { transform: scale(.93); }
 html.touch .dg-bc .dg-ring.strike { display: none; }
-html.touch .dg-ring-label kbd { display: none; }
+html.touch .dg-ring kbd { display: none; }
 
 /* --- стрелки к целям за кадром: рамка по категории, «носик» к цели, подпись при появлении, плавное появление */
 .dg-arrows { position: absolute; inset: 0; }
@@ -373,6 +374,13 @@ html.touch .dg-ring-label kbd { display: none; }
 .dg-toggle[aria-pressed='true'] .dg-switch { background: #3c8a50; }
 .dg-toggle[aria-pressed='true'] .dg-switch::after { transform: translateX(20px); background: #fff; }
 .dg-toggle[aria-pressed='true'] .dg-toggle-state { color: #9cf0ae; }
+
+/* значки в кнопках и строках */
+.dg-btn-ic { font-size: 24px; }
+.dg-kills-ic { font-size: 22px; }
+.dg-coins { display: inline-flex; align-items: center; gap: 4px; }
+.dg-coin-ic { font-size: 18px; }
+.dg-dmg-ic { display: grid; place-items: center; }
 
 /* карточки: отметки уровня под «Ур. 3 → 4» */
 .dg-card-lv { display: flex; flex-direction: column; align-items: center; gap: 4px; }

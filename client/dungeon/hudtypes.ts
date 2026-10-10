@@ -122,7 +122,7 @@ export interface HudResults {
   weapons: HudItem[];
   passives: HudItem[];
   /** урон по оружиям: сильнейшее сверху */
-  dmg: { icon: string; name: string; n: number }[];
+  dmg: { id?: string; icon: string; name: string; n: number }[];
   kills: number;
   level: number;
   chests: number;

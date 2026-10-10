@@ -299,7 +299,7 @@ export class DungeonHud implements DungeonHudApi {
     const tr = el('div', 'dg-tr');
     const killPill = el('div', 'dg-kills');
     killPill.title = 'Убито';
-    killPill.append(el('span', '', '💀'), this.kills);
+    killPill.append(ico('ui', 'kills', '💀', 'dg-kills-ic'), this.kills);
     const pauseBtn = el('button', 'dg-pause-btn');
     pauseBtn.type = 'button';
     pauseBtn.title = 'Пауза и звук';
@@ -349,6 +349,8 @@ export class DungeonHud implements DungeonHudApi {
     // карточки
     this.rerollBtn = button('cream', '', '', () => this.act.reroll());
     this.banBtn = button('cream dg-ban-btn', '', '', () => this.setBanMode(!this._banMode));
+    this.rerollBtn.prepend(ico('ui', 'reroll', '🎲', 'dg-btn-ic'));
+    this.banBtn.prepend(ico('ui', 'banish', '🚫', 'dg-btn-ic'));
     const cardsFoot = el('div', 'dg-cards-foot');
     cardsFoot.append(this.rerollBtn, this.banBtn);
     this.cardsLayer.append(this.cardsHead, this.cardsRow, cardsFoot);
@@ -452,8 +454,9 @@ export class DungeonHud implements DungeonHudApi {
     const lab = el('div', 'dg-ring-label');
     root.append(disc, lab);
     const r: Ring = { root, fg, sec, lab, p: -1, cls: '', s: '', label: '', base: label };
-    if (key) lab.append(kbd(key), el('span', 'dg-ring-text', label));
-    else lab.append(el('span', 'dg-ring-text', label));
+    // клавиша — значком на углу кольца, под кольцом — только короткая подпись (не налезает на соседа)
+    if (key) disc.append(kbd(key));
+    lab.append(el('span', 'dg-ring-text', label));
     return r;
   }
 
@@ -599,7 +602,7 @@ export class DungeonHud implements DungeonHudApi {
         const track = el('div', 'dg-buff-track');
         const bar = el('i');
         track.append(bar);
-        root.append(ico('ui', `buff-${b.id}`, b.icon, 'dg-buff-ic'), el('span', 'dg-buff-name', b.name), sec, track);
+        root.append(ico('ui', b.id, b.icon, 'dg-buff-ic'), el('span', 'dg-buff-name', b.name), sec, track);
         this.buffs.append(root);
         e = { root, sec, bar };
         this.buffEls.set(b.id, e);
@@ -743,9 +746,9 @@ export class DungeonHud implements DungeonHudApi {
       this.cardsRow.append(b);
     });
 
-    (this.rerollBtn.firstElementChild as HTMLElement).textContent = `Перебросить (${c.rerolls})`;
+    (this.rerollBtn.querySelector('.dg-btn-label') as HTMLElement).textContent = `Перебросить (${c.rerolls})`;
     this.rerollBtn.disabled = c.rerolls <= 0;
-    (this.banBtn.firstElementChild as HTMLElement).textContent = `Убрать (${c.banishes})`;
+    (this.banBtn.querySelector('.dg-btn-label') as HTMLElement).textContent = `Убрать (${c.banishes})`;
     this.banBtn.disabled = c.banishes <= 0;
     this.banBtn.setAttribute('aria-pressed', 'false');
   }
@@ -831,11 +834,11 @@ export class DungeonHud implements DungeonHudApi {
     else {
       for (const c of r.coins) {
         const row = el('div', 'dg-coin-row');
-        row.append(el('span', '', c.label), el('b', '', `${c.n} 🪙`));
+        row.append(el('span', '', c.label), this.coinsEl(c.n));
         coins.append(row);
       }
       const total = el('div', 'dg-coin-row total');
-      total.append(el('span', '', 'Итого'), el('b', '', `${r.coinsTotal} 🪙`));
+      total.append(el('span', '', 'Итого'), this.coinsEl(r.coinsTotal));
       coins.append(total);
     }
     win.append(coins);
@@ -864,7 +867,9 @@ export class DungeonHud implements DungeonHudApi {
         const fill = el('i');
         fill.style.width = `${(d.n / top) * 100}%`;
         track.append(fill, el('span', 'dg-dmg-name', d.name));
-        row.append(el('span', 'dg-dmg-ic', d.icon), track, el('b', 'dg-dmg-pct', `${Math.round((d.n / sum) * 100)} %`));
+        const dic = el('span', 'dg-dmg-ic');
+        dic.append(d.id && d.id in WEAPONS ? ico('weapon', d.id, d.icon) : el('span', 'dg-ic emo', d.icon));
+        row.append(dic, track, el('b', 'dg-dmg-pct', `${Math.round((d.n / sum) * 100)} %`));
         list.append(row);
       }
       win.append(list);
@@ -883,6 +888,13 @@ export class DungeonHud implements DungeonHudApi {
     acts.append(button('green', 'Ещё раз', 'R', () => this.act.again()), button('cream', 'На набережную', 'Esc', () => this.act.toLobby()));
     win.append(acts);
     L.append(win);
+  }
+
+  /** «18 🪙» — число и монета (картинка ui-gold) */
+  private coinsEl(n: number): HTMLElement {
+    const b = el('b', 'dg-coins', `${n} `);
+    b.append(ico('ui', 'gold', '🪙', 'dg-coin-ic'));
+    return b;
   }
 
   // ------------------------------------------------------------------ баннер, уровень, стрелки, радар
@@ -933,7 +945,7 @@ export class DungeonHud implements DungeonHudApi {
     const W = this.root.clientWidth || window.innerWidth;
     const H = this.root.clientHeight || window.innerHeight;
     const touch = document.documentElement.classList.contains('touch');
-    const T = touch ? 70 : 104;
+    const T = touch ? 70 : 118;
     const B = H - (touch ? 120 : 250);
     const Lx = touch ? 64 : 48;
     const R = W - (touch ? 150 : 48);
