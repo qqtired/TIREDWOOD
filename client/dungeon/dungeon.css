@@ -281,3 +281,6 @@
   .dg-reel-info { opacity: 1; }
   .dg-lvflash.show { display: none; }
 }
+
+/* кнопка голоса оболочки — справа от сборки героя, не поверх слотов */
+html:not(.touch)[data-room='dungeon'] .voice-hud { left: 330px; bottom: 26px; }

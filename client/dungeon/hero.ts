@@ -143,8 +143,8 @@ export class HeroView {
   }
 
   /** speed — м/с; charging — держат Q; blink — неуязвимость (мигает) */
-  update(dt: number, x: number, z: number, yaw: number, speed: number, charging: boolean, blink: boolean, time: number, lanternK: number): void {
-    this.root.position.set(x, 0, z);
+  update(dt: number, x: number, z: number, yaw: number, speed: number, charging: boolean, blink: boolean, time: number, lanternK: number, y = 0): void {
+    this.root.position.set(x, y, z);
     // поворот — плавно, по кратчайшей дуге
     let d = yaw - this.root.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));

@@ -164,7 +164,7 @@ export class BuildingRenderer {
         this.put('trampoline', tmpM, 1);
         break;
       case 'forge':
-        this.put('forge', tmpM, flick);
+        this.put('forge', tmpM, b.s > 0 ? flick : 0.08);
         break;
       case 'minecart':
         this.put('minecart', tmpM, 1);

@@ -5,14 +5,15 @@
 // сообщения `dg_*` приходят в onJson (или напрямую в onDg).
 import * as THREE from 'three';
 import type { DgClientMsg, DgServerMsg } from '../../shared/dungeon/api.ts';
-import type { ClientMsg, RoomKind, ServerMsg } from '../../shared/messages.ts';
+import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
+import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
 import { loadDungeonAssets } from './assets.ts';
 import { DungeonGame, type WorldLike } from './game.ts';
 import { DungeonHud } from './hud.ts';
-import { MockRun } from './mock.ts';
 import { DungeonSfx } from './sfx.ts';
+import { SimRun } from './simview.ts';
 import type { RunSource } from './source.ts';
 import { makeWorld } from './worldlink.ts';
 
@@ -24,8 +25,7 @@ export interface DungeonSceneOptions {
 }
 
 export class DungeonScene implements Scene {
-  /** 'dungeon' — вид комнаты добавляет сервер-помощник в shared/messages.ts */
-  readonly kind = 'dungeon' as unknown as RoomKind;
+  readonly kind = 'dungeon' as const;
   readonly wantsPointer = false;
   private readonly d: SceneDeps;
   private readonly o: DungeonSceneOptions;
@@ -35,6 +35,8 @@ export class DungeonScene implements Scene {
   private loading: Promise<void> | null = null;
   private pendingSeed: number | null = null;
   private entered = false;
+  /** паузу поставила оболочка (её меню), а не Esc в забеге */
+  private shellPaused = false;
   private readonly blank = new THREE.Scene();
   private readonly blankCam = new THREE.PerspectiveCamera();
   private w = window.innerWidth;
@@ -77,6 +79,22 @@ export class DungeonScene implements Scene {
   }
 
   readonly touchUseIcon = 'E';
+
+  /** Качество графики оболочки: карта и враги и так в бюджете — пока ничего не меняем */
+  setQuality(_q: Exclude<Quality, 'auto'>): void {}
+
+  /** Оболочка открыла своё меню (настройки голоса, обрыв мыши) — забег на паузу без своего окна; закрыла — дальше */
+  setPaused(on: boolean): void {
+    const g = this.game;
+    if (!g) return;
+    if (on && !g.isPaused) {
+      this.shellPaused = true;
+      g.setPaused(true, false);
+    } else if (!on && this.shellPaused) {
+      this.shellPaused = false;
+      g.setPaused(false);
+    }
+  }
 
   enter(): void {
     this.entered = true;
@@ -161,6 +179,8 @@ export class DungeonScene implements Scene {
   onSnapshot(): void {}
 
   frame(now: number, dt: number): void {
+    // мышь в забеге свободна (карточки, окна): захват с набережной отпускаем (на телефоне «захват» — это пальцы, не трогаем)
+    if (!TOUCH && this.d.input.locked) this.d.input.unlock();
     if (this.game) {
       this.game.frame(now, dt);
       return;
@@ -186,9 +206,9 @@ export class DungeonScene implements Scene {
   }
 }
 
-/** Забег по умолчанию. До вехи М1 (shared/dungeon/sim.ts) — заглушка стенда */
+/** Забег по умолчанию — настоящая симуляция (та же, что у сервера) */
 function defaultRun(seed: number): RunSource {
-  return new MockRun(seed);
+  return new SimRun(seed);
 }
 
 export { TOUCH };

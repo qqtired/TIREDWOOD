@@ -19,7 +19,7 @@ import { Journal } from './journal.ts';
 import { MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { DungeonSfx } from './sfx.ts';
 import type { RunSource } from './source.ts';
-import { ACT_ATTACK, ACT_SPECIAL, ACT_STUN, type DgView, type MobKind, type VFx } from './view.ts';
+import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type DgView, type MobKind, type VFx } from './view.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT } from '../../shared/sim.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -85,6 +85,12 @@ export class DungeonGame {
   private corpses: Corpse[] = [];
   private acc = 0;
   private time = 0;
+  /** время мира: стоит на паузе, в карточках и в сундуке (анимации врагов, частицы) */
+  private wtime = 0;
+  private prevRays: DgView['rays'] = [];
+  private lastQFull = false;
+  /** dgHash сразу после последнего шага (до событий следующего) — его и ждёт сервер в dg_log.h */
+  private stepHash = 0;
   /** шагов симуляции за жизнь забега (для «шагов в секунду» в отладке) */
   private steps = 0;
   /** камера (несвёрнутые координаты) и герой в них же */
@@ -118,7 +124,7 @@ export class DungeonGame {
     this.world = world;
     const s = this.scene;
     s.background = new THREE.Color(0x120d0b);
-    s.add(new THREE.HemisphereLight(0x9a7c62, 0x2a1c14, 3.2));
+    s.add(new THREE.HemisphereLight(0x9a7c62, 0x2a1c14, 2.4));
     if (world) s.add(world.root);
     else {
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x6e5644, roughness: 0.95 }));
@@ -177,6 +183,7 @@ export class DungeonGame {
     this.seed = seed;
     this.run = this.d.makeRun(seed);
     this.view = this.run.view();
+    this.stepHash = this.run.hash();
     this.journal.reset();
     this.prev.clear();
     this.firstSeen.clear();
@@ -196,6 +203,8 @@ export class DungeonGame {
     this.slowK = 1;
     this.slowT = 0;
     this.hitStop = 0;
+    this.prevRays = [];
+    this.lastQFull = false;
     const h = this.view.hero;
     this.heroUX = h.x;
     this.heroUZ = h.z;
@@ -218,11 +227,12 @@ export class DungeonGame {
     return this.paused;
   }
 
-  setPaused(on: boolean): void {
+  /** ui — показать окно паузы (Esc, свёрнутая вкладка); пауза из меню оболочки — без него */
+  setPaused(on: boolean, ui = true): void {
     if (!this.run || this.ended || on === this.paused) return;
     this.paused = on;
     this.d.send({ t: 'dg_pause', on: on ? 1 : 0 });
-    this.d.hud.pause(on, this.view?.wavesDone ?? 0);
+    this.d.hud.pause(on && ui, this.view?.wavesDone ?? 0);
     if (on) {
       this.flush();
       this.d.sfx.qCharge(false);
@@ -254,10 +264,16 @@ export class DungeonGame {
     } else if (m.t === 'dg_ack') {
       this.journal.ack(m.n, m.need);
       if (m.need !== undefined) this.flush();
+    } else if (m.t === 'dg_wave') {
+      if (m.coins > 0) this.d.hud.banner(`Волна ${m.wave} отбита!`, `+${m.coins} 🪙`, 'win');
     } else if (m.t === 'dg_end') {
       const r = this.results ?? this.buildResults();
       const coins: { label: string; n: number }[] = [];
-      if (m.coins > 0) coins.push({ label: m.newBest ? 'Волны, боссы и рекорд' : 'Волны и боссы', n: m.coins });
+      if (m.pay) {
+        if (m.pay.waves > 0) coins.push({ label: 'Волны', n: m.pay.waves });
+        if (m.pay.bosses > 0) coins.push({ label: 'Боссы', n: m.pay.bosses });
+        if (m.pay.record > 0) coins.push({ label: 'Новый рекорд', n: m.pay.record });
+      } else if (m.coins > 0) coins.push({ label: m.newBest ? 'Волны, боссы и рекорд' : 'Волны и боссы', n: m.coins });
       this.results = { ...r, waves: m.result.waves, ms: m.result.ms, newBest: m.newBest, weekRank: m.weekRank, coins, coinsTotal: m.coins, pending: false };
       if (this.ended) this.d.hud.results(this.results);
     }
@@ -265,7 +281,7 @@ export class DungeonGame {
 
   private flush(): void {
     if (!this.run) return;
-    for (const m of this.journal.poll(0, this.run.tick, this.run.hash(), true)) this.d.send(m);
+    for (const m of this.journal.poll(0, this.run.tick, this.stepHash, true)) this.d.send(m);
   }
 
   // ---------------------------------------------------------------- ввод
@@ -355,8 +371,8 @@ export class DungeonGame {
   }
 
   chestDone(): void {
-    // сундук закрывает «go» (договор: событие выбора карточки сундуку не нужно)
-    this.push({ t: 0, k: 'go' });
+    // сундук закрывает pick (любой i)
+    this.push({ t: 0, k: 'pick', i: 0 });
     this.d.sfx.uiClick();
   }
 
@@ -393,7 +409,10 @@ export class DungeonGame {
         this.slowT -= dt;
         sdt = dt * this.slowK;
       }
-      if (!this.paused) {
+      // обрыв связи, чат, меню оболочки — мир стоит (как пауза, но без окна)
+      const halt = this.paused || this.d.input.blocked;
+      if (!halt && !run.frozen) this.wtime += sdt;
+      if (!halt) {
         this.acc += sdt;
         let n = 0;
         while (this.acc >= DT && n < 6) {
@@ -403,11 +422,7 @@ export class DungeonGame {
         }
         if (n === 6) this.acc = 0;
       }
-      const msgs = this.journal.poll(dt, run.tick, 0, false);
-      if (msgs.length) {
-        const h = run.hash();
-        for (const m of msgs) this.d.send({ ...m, h } as DgClientMsg);
-      }
+      if (!this.paused) for (const m of this.journal.poll(dt, run.tick, this.stepHash, false)) this.d.send(m);
     }
     this.draw(now, dt);
   }
@@ -432,15 +447,22 @@ export class DungeonGame {
     for (const p of v0.projectiles) this.prev.set(-1000000 - p.id, { x: p.x, z: p.z, yaw: p.yaw });
     for (const p of v0.pickups) this.prev.set(-2000000 - p.id, { x: p.x, z: p.z, yaw: 0 });
     this.prevHero = { x: v0.hero.x, z: v0.hero.z, yaw: v0.hero.yaw };
+    this.prevRays = v0.rays;
     if (v0.boss) this.prevBoss = { x: v0.boss.x, z: v0.boss.z, yaw: v0.boss.yaw };
     run.step();
+    this.stepHash = run.hash();
     this.steps++;
     const v = run.view();
     this.view = v;
     // герой в несвёрнутых координатах
     this.heroUX += wrap(v.hero.x - this.prevHero.x);
     this.heroUZ += wrap(v.hero.z - this.prevHero.z);
-    for (const e of v.enemies) if (!this.firstSeen.has(e.id)) this.firstSeen.set(e.id, this.time);
+    for (const e of v.enemies) if (!this.firstSeen.has(e.id)) this.firstSeen.set(e.id, this.wtime);
+    // забытые враги — из словарей (раз в 3 с)
+    if (this.steps % 90 === 0) {
+      const alive = new Set(v.enemies.map((e) => e.id));
+      for (const m of [this.firstSeen, this.flashAt, this.hitAt]) for (const id of m.keys()) if (!alive.has(id)) m.delete(id);
+    }
     for (const f of v.fx) this.onFx(f, v);
     this.syncUi(v);
   }
@@ -483,8 +505,8 @@ export class DungeonGame {
     const P = this.pool;
     switch (f.k) {
       case 'hit': {
-        this.flashAt.set(f.id, this.time);
-        this.hitAt.set(f.id, this.time);
+        this.flashAt.set(f.id, this.wtime);
+        this.hitAt.set(f.id, this.wtime);
         P.number(f.x, f.z, f.dmg, f.big, f.big ? 1 : f.blocked ? 0.7 : 1, f.big ? 0.84 : f.blocked ? 0.75 : 0.98, f.big ? 0.35 : f.blocked ? 0.8 : 0.92);
         if (f.blocked) {
           sfx.shieldBlock(this.pan(f.x));
@@ -496,7 +518,7 @@ export class DungeonGame {
       case 'kill': {
         const prev = this.prev.get(f.id);
         const dur = this.mobs.duration(f.kind, 'death');
-        this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.time, dur: Math.min(dur, 1.3), elite: f.elite });
+        this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.wtime, dur: Math.min(dur, 1.3), elite: f.elite });
         const big = f.elite ? 2.2 : f.kind === 'shroom' || f.kind === 'beetle' || f.kind === 'slime' ? 1.1 : 0.75;
         P.decal({ x: f.x, z: f.z, yaw: P.rnd() * 6, shape: D_SPLAT, r0: big * 0.5, r1: big, len: 0, p1: 0, p2: 0, r: 0.3, g: 0.08, b: 0.42, a: 0.85, max: 2.4, add: false });
         P.burst(f.x, 0.5, f.z, f.elite ? 18 : 6, 3.2, A_SOFT, 0.55, 0.2, 0.8, 0.55, 0.32, false, 9, 3);
@@ -602,7 +624,7 @@ export class DungeonGame {
         break;
       case 'wave':
         sfx.waveStart(f.wave);
-        this.d.hud.banner(f.title, f.sub, f.title === BOSS_NAME ? 'boss' : 'wave');
+        this.d.hud.banner(f.title, f.sub, f.sub === 'Босс' ? 'boss' : 'wave');
         break;
       case 'waveWin':
         sfx.waveWin();
@@ -612,7 +634,7 @@ export class DungeonGame {
         this.d.hud.banner(f.title, '', 'warn');
         break;
       case 'boss':
-        if (f.what === 'spawn') this.d.hud.banner(BOSS_NAME, 'Босс', 'boss');
+        if (f.what === 'spawn') this.d.hud.banner(v.boss?.name || BOSS_NAME, 'Босс', 'boss');
         if (f.what === 'roar' || f.what === 'spawn' || f.what === 'phase') sfx.bossRoar();
         if (f.what === 'burrow') sfx.bossBurrow();
         if (f.what === 'emerge') { sfx.bossEmerge(); this.shake = Math.max(this.shake, 0.35); P.burst(f.x, 0.3, f.z, 30, 7, A_SOFT, 0.55, 0.45, 0.35, 0.8, 0.6, false, 8, 4); }
@@ -632,6 +654,16 @@ export class DungeonGame {
       case 'death':
         sfx.death();
         this.hero.die();
+        break;
+      case 'heal':
+        P.number(v.hero.x, v.hero.z, f.n, false, 0.45, 1, 0.5);
+        P.burst(v.hero.x, 1, v.hero.z, 8, 2, A_STAR, 0.5, 1, 0.55, 0.5, 0.25);
+        break;
+      case 'qfull':
+        break;
+      case 'atk':
+        if (f.what === 'spit' || f.what === 'boss_spit' || f.what === 'boss_spit5') sfx.spit(this.pan(f.x));
+        else if (f.what === 'boss_summon') sfx.bossRoar();
         break;
     }
   }
@@ -658,7 +690,7 @@ export class DungeonGame {
   private draw(now: number, dt: number): void {
     const v = this.view;
     const time = this.time;
-    const alpha = this.paused ? 1 : Math.min(1, this.acc / DT);
+    const alpha = Math.min(1, this.acc / DT);
     // герой: интерполяция и камера
     let hx = this.camX;
     let hz = this.camZ;
@@ -687,7 +719,9 @@ export class DungeonGame {
     this.bossZoom += ((v?.boss ? 1 : 0) - this.bossZoom) * Math.min(1, dt * 1.5);
     this.layoutCamera();
     this.world?.update(this.camX, this.camZ, time);
-    this.pool.step(this.paused ? 0 : dt * (this.hitStop > 0 ? 0 : this.slowT > 0 ? this.slowK : 1));
+    const still = this.paused || this.d.input.blocked || !!this.run?.frozen;
+    this.pool.step(still ? 0 : dt * (this.hitStop > 0 ? 0 : this.slowT > 0 ? this.slowK : 1));
+    const wt = this.wtime;
 
     const cx = this.camX;
     const cz = this.camZ;
@@ -723,16 +757,20 @@ export class DungeonGame {
           spd = Math.hypot(dx, dz) * DG_HZ;
         }
         const fs = this.firstSeen.get(e.id) ?? 0;
-        const born = Math.min(1, (time - fs) / 0.3);
+        const born = Math.min(1, (wt - fs) / 0.3);
         const fl = this.flashAt.get(e.id);
-        const flash = fl !== undefined && time - fl < 0.07 ? 1 : 0;
+        const flash = fl !== undefined && wt - fl < 0.07 ? 1 : 0;
         const hit = this.hitAt.get(e.id);
-        const hitT = hit !== undefined ? time - hit : 9;
+        const hitT = hit !== undefined ? wt - hit : 9;
         let key: ClipKey = 'walk';
-        let t = time * Math.max(0.5, Math.min(2.2, spd / WALK_REF[e.kind])) + (e.id % 17) * 0.137;
-        if (e.act === ACT_ATTACK || e.act === ACT_SPECIAL) {
-          key = e.act === ACT_ATTACK ? 'attack' : 'special';
+        let t = wt * Math.max(0.5, Math.min(2.2, spd / WALK_REF[e.kind])) + (e.id % 17) * 0.137;
+        if (e.act === ACT_SPECIAL) {
+          key = 'special';
           t = (tick - e.actAt + alpha) * DT;
+        } else if (e.act === ACT_ATTACK || e.act === ACT_LOOP) {
+          // атака вплотную и таран — по кругу
+          key = e.act === ACT_ATTACK ? 'attack' : 'special';
+          t = ((tick - e.actAt + alpha) * DT) % Math.max(0.2, this.mobs.duration(e.kind, key));
         } else if (e.act === ACT_STUN) t = (e.id % 7) * 0.1;
         const over: ClipKey | null = hitT < 0.33 ? 'hit' : null;
         const s = (e.elite && e.kind !== 'barrel' && e.kind !== 'shaman' ? 1.35 : 1) * (0.2 + 0.8 * born);
@@ -743,10 +781,10 @@ export class DungeonGame {
         if (e.elite) this.decA.add(X(x), 0.05, Z(z), 2.4, 2.4, 0, D_SOFT, 1.6, 0, 0.55, 0.25, 0.8, 0.5);
       }
       // трупы: клип смерти, потом исчезают
-      this.corpses = this.corpses.filter((c) => time - c.t < c.dur);
+      this.corpses = this.corpses.filter((c) => wt - c.t < c.dur);
       for (const c of this.corpses) {
         if (!near(c.x, c.z, 2)) continue;
-        this.mobs.push(c.kind, X(c.x), 0, Z(c.z), c.yaw, 'death', time - c.t, 0, c.elite && c.kind !== 'barrel' && c.kind !== 'shaman' ? 1.35 : 1);
+        this.mobs.push(c.kind, X(c.x), 0, Z(c.z), c.yaw, 'death', wt - c.t, 0, c.elite && c.kind !== 'barrel' && c.kind !== 'shaman' ? 1.35 : 1);
       }
       // герой
       const h = v.hero;
@@ -754,8 +792,19 @@ export class DungeonGame {
       const hyaw = ph.yaw + Math.atan2(Math.sin(h.yaw - ph.yaw), Math.cos(h.yaw - ph.yaw)) * alpha;
       if (this.ended) this.lanternK = Math.max(0, this.lanternK - dt * 0.6);
       if (h.qCharge >= 0 && !this.hero.isCharging) this.hero.chargeStart();
-      this.hero.update(dt * (this.paused ? 0 : 1), hx, hz, hyaw, h.speed, h.qCharge >= 0, h.invuln, time, this.lanternK);
-      this.decN.add(hx, 0.02, hz, 0.55, 0.55, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.6);
+      this.hero.update(still ? 0 : dt, hx, hz, hyaw, still ? 0 : h.speed, h.qCharge >= 0, h.invuln, time, this.lanternK, h.y);
+      this.decN.add(hx, 0.02, hz, 0.55 / (1 + h.y * 0.3), 0.55 / (1 + h.y * 0.3), 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.6);
+      // Маяк: два крутящихся луча из героя
+      for (let i = 0; i < v.rays.length; i++) {
+        const r = v.rays[i];
+        const p = this.prevRays[i];
+        const yaw = p ? p.yaw + Math.atan2(Math.sin(r.yaw - p.yaw), Math.cos(r.yaw - p.yaw)) * alpha : r.yaw;
+        this.decA.add(hx, 0.06, hz, r.w * 0.6, r.len, yaw, D_BEAM, 0, 0, 1, 0.95, 0.7, 0.75);
+        if (!still && this.pool.rnd() < 0.4) {
+          const k = 2 + this.pool.rnd() * (r.len - 2);
+          this.pool.spark(hx + Math.sin(yaw) * k, 0.4, hz + Math.cos(yaw) * k, 0, 0.8, 0, 0.3, 0.4, A_SOFT, 1, 0.9, 0.6);
+        }
+      }
       // заряд Q: янтарное кольцо растёт до радиуса удара, полный — белое
       if (h.qCharge >= 0) {
         const r = 2.5 + 2.5 * h.qCharge;
@@ -766,8 +815,12 @@ export class DungeonGame {
         this.decA.add(hx, 0.05, hz, 2.5, 2.5, 0, D_RING, 0.95, 0.03, 1, 0.75, 0.35, 0.35);
         this.decA.add(hx, 0.05, hz, 5, 5, 0, D_RING, 0.97, 0.02, 1, 0.75, 0.35, 0.35);
         this.d.sfx.qCharge(true);
-        if (full) this.d.sfx.qFull();
-      } else this.d.sfx.qCharge(false);
+        if (full && !this.lastQFull) this.d.sfx.qFull();
+        this.lastQFull = full;
+      } else {
+        this.d.sfx.qCharge(false);
+        this.lastQFull = false;
+      }
       // готовность рывка и Q — щелчок
       const dashReady = v.dash01 >= 1;
       if (dashReady && !this.lastDashReady) this.d.sfx.dashReady();
@@ -781,11 +834,11 @@ export class DungeonGame {
         const pb = this.prevBoss;
         const bx = X(pb.x + wrap(b.x - pb.x) * alpha);
         const bz = Z(pb.z + wrap(b.z - pb.z) * alpha);
-        this.boss.update(dt * (this.paused ? 0 : 1), b, bx, bz, (tick - b.animAt) * DT);
+        this.boss.update(still ? 0 : dt, b, bx, bz, (tick - b.animAt + alpha) * DT);
         if (b.anim === 'under') {
           // бугор по полу: тёмное пятно, трещины и пыль
           this.decN.add(bx, 0.03, bz, 2.6, 2.6, time, D_SPLAT, 0, 0, 0.1, 0.07, 0.05, 0.7, 3.1);
-          if (!this.paused && this.pool.rnd() < 0.5) this.pool.burst(bx, 0.2, bz, 2, 2.5, A_SOFT, 0.45, 0.38, 0.3, 0.6, 0.5, false, 6, 1.8);
+          if (!still && this.pool.rnd() < 0.5) this.pool.burst(bx, 0.2, bz, 2, 2.5, A_SOFT, 0.45, 0.38, 0.3, 0.6, 0.5, false, 6, 1.8);
         } else {
           // нора: (0, 0, −4,6) модели
           const s = Math.sin(b.yaw);
@@ -823,7 +876,7 @@ export class DungeonGame {
         const spore = p.kind === 'spore';
         const a = Math.min(1, p.life * 3);
         this.decN.add(X(p.x), 0.03, Z(p.z), p.r, p.r, 0, D_PUDDLE, spore ? 0.2 : 1, 0, spore ? 0.55 : 0.32, spore ? 0.6 : 0.09, spore ? 0.35 : 0.45, (spore ? 0.45 : 0.85) * a, p.id * 1.37);
-        if (spore && !this.paused && this.pool.rnd() < 0.15) this.pool.spark(X(p.x) + (this.pool.rnd() - 0.5) * p.r * 1.5, 0.3, Z(p.z) + (this.pool.rnd() - 0.5) * p.r * 1.5, 0, 0.5, 0, 1.2, 0.35, A_SOFT, 0.6, 0.65, 0.35, false);
+        if (spore && !still && this.pool.rnd() < 0.15) this.pool.spark(X(p.x) + (this.pool.rnd() - 0.5) * p.r * 1.5, 0.3, Z(p.z) + (this.pool.rnd() - 0.5) * p.r * 1.5, 0, 0.5, 0, 1.2, 0.35, A_SOFT, 0.6, 0.65, 0.35, false);
       }
       // снаряды
       for (const im of this.projMeshes.values()) im.count = 0;
@@ -847,7 +900,7 @@ export class DungeonGame {
         else if (pr.kind === 'firefly') this.bbA.add(x, pr.y, z, 0.9, 0.9, 0, A_SOFT, 0.8, 1, 0.35, 0.9);
         else if (pr.kind === 'spit') this.bbA.add(x, pr.y, z, 1, 1, 0, A_SOFT, 0.6, 0.25, 0.9, 0.7);
         if (pr.kind === 'rock' || pr.kind === 'spit') this.decN.add(x, 0.025, z, 0.6, 0.6, 0, D_SHADOW, 0, 0, 0, 0, 0, 0.5);
-        if (pr.kind === 'ember' && !this.paused && this.pool.rnd() < 0.5) this.pool.spark(x, pr.y, z, 0, 0.2, 0, 0.25, 0.35, A_SOFT, 1, 0.5, 0.15);
+        if (pr.kind === 'ember' && !still && this.pool.rnd() < 0.5) this.pool.spark(x, pr.y, z, 0, 0.2, 0, 0.25, 0.35, A_SOFT, 1, 0.5, 0.15);
       }
       for (const im of this.projMeshes.values()) {
         im.visible = im.count > 0;
