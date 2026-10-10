@@ -17,6 +17,15 @@
 // Одинаково считают клиент (играет у себя, без задержки) и сервер (повторяет по нажатиям и решает, поймана ли):
 // только целые числа и свой генератор случайных (mulberry32 на Math.imul) — никаких Math.sin/exp/pow и Math.random,
 // поэтому Chrome, Safari и Node по одному сиду и одним нажатиям приходят бит в бит к одному итогу.
+//
+// 10.10, прототип (docs/superpowers/plans/2026-10-10-fishing-abilities.md, в игру не подключено): способности мификов и
+// божественной — один раз за бой, когда улов впервые дошёл до точки 60…75 % (по своему генератору сида): предупреждение,
+// действие, конец. Пять строительных блоков: разлом шкалы (breach — шкала растёт, рыба ныряет в пролом), чернила (ink —
+// только экран: модель та же, игрок не видит рыбу), ветер (wind — сила на зону, меняет сторону), мини-шкалы (herring —
+// главная шкала стоит, улов медленно откатывается, кнопка ведёт зону мини-шкалы), опасные зоны (teeth — наехал зоной —
+// половина улова, второй раз — обрыв). Ещё: fill — время в зоне до поимки, % (120 — на 20 % дольше), wary — рыба чует
+// ловушку (зона ждёт у края без рыбы — обходит её), JetHang — реактивный рывок с зависанием наверху. Без этих полей в
+// манере модель считает бит в бит как прежде (проверено отпечатком на всех видах).
 
 /** Высота шкалы, единиц (1 % = 1000) */
 export const REEL_BAR = 100_000;
@@ -94,6 +103,8 @@ export const REEL_PATTERNS = [
   'Breach', 'Sound', 'Circle', 'Zigzag',
   // 04.10: «Реактивный рывок» кальмара (божественная) — только в конец, номера прежних не меняются
   'Jet',
+  // 10.10, прототип: реактивный рывок с зависанием наверху (кальмар не дрейфует ко дну — ждать его внизу нельзя)
+  'JetHang',
 ] as const;
 export type ReelPattern = typeof REEL_PATTERNS[number];
 /** Названия паттернов для игрока (журнал, подсказки) */
@@ -101,6 +112,7 @@ export const PATTERN_NAMES: Readonly<Record<ReelPattern, string>> = {
   Dash: 'рывок', FakeDash: 'ложный рывок', Sawtooth: 'пила', HoverDash: 'зависание и рывок', SlowMigration: 'медленный уход',
   EdgeSnapback: 'к краю и назад', DoubleDash: 'двойной рывок', Wave: 'волна', Nervous: 'нервная', Ambush: 'засада',
   Breach: 'свечка', Sound: 'уход на глубину', Circle: 'круги', Zigzag: 'зигзаг', Jet: 'реактивный рывок',
+  JetHang: 'реактивный рывок с зависанием',
 };
 /** «Последний рывок» легенд и мификов начинается, когда прогресс дошёл до стольких единиц (70 %) */
 export const STAND_P = 28_000;
@@ -135,6 +147,64 @@ export interface ReelStyle {
   roam: number;
   zone: number;
   drain: number;
+  /** 10.10, прототип: время в зоне до поимки, % от обычного (120 — на 20 % дольше; нет — 100) */
+  fill?: number;
+  /** Способность (мифик, божественная): один раз за бой; нет — без неё */
+  ability?: AbilitySpec;
+  /** Стойкость рыбака к способностям, %: их действие на столько короче (уровень рыбалки) */
+  abilityResist?: number;
+  /** Чует ловушку: зона ждёт у края шкалы без рыбы дольше стольких тиков — рыба её обходит (0 — нет) */
+  wary?: number;
+  /** Леска провисла / натянута — через столько тиков (нет — SLACK_TICKS / TAUT_TICKS) */
+  slack?: number;
+  /** С какого улова начинается бой, % (нет — 25) */
+  pStart?: number;
+}
+
+/** Способности рыб: строительные блоки (см. шапку файла) */
+export const ABILITIES = ['breach', 'ink', 'wind', 'herring', 'teeth'] as const;
+export type AbilityId = typeof ABILITIES[number];
+
+/**
+ * Способность в понятных единицах: проценты шкалы и улова, тики. Общие поля — у всех; остальные — своего блока.
+ * Длительности (dur, full, need) режет стойкость рыбака (abilityResist).
+ */
+export interface AbilitySpec {
+  id: AbilityId;
+  /** Срабатывает, когда улов впервые дошёл до точки между at[0] и at[1] % (точка — по сиду боя) */
+  at: readonly [number, number];
+  /** Предупреждение, тики: рыба готовит удар (игра идёт как обычно, клиент показывает, что будет) */
+  warn: number;
+  /** Сколько действует, тики (breach: 0 — до конца боя) */
+  dur: number;
+  /** breach: шкала растёт на столько % (50); сторона — 1 верх, −1 низ (нет — по сиду); размах рыбы после, % (150) */
+  grow?: number;
+  side?: 1 | -1;
+  ampMul?: number;
+  /** breach: шкала срастается обратно за столько тиков (после dur) */
+  heal?: number;
+  /** ink: сколько тиков чернила закрывают всю шкалу (дальше до dur — стекают сверху вниз); jet — под чернилами выстрел */
+  full?: number;
+  jet?: boolean;
+  /** ink: пока чернила закрывают всю шкалу, катушка молчит — улов не растёт и в зоне (вне зоны тает, как всегда) */
+  stall?: boolean;
+  /** wind: сила, % от ускорения зоны (35); сколько раз меняет сторону — от turns[0] до turns[1] */
+  force?: number;
+  turns?: readonly [number, number];
+  /** herring, teeth: сколько мелких рыб / зубов */
+  count?: number;
+  /** herring: столько тиков мелкая рыба в зоне — поймана (30 = 0,5 с; копятся) */
+  need?: number;
+  /** herring: улов откатывается на столько десятых % в секунду (15 — 1,5 %/с), не ниже floor % */
+  rollback?: number;
+  floor?: number;
+  /** herring: после мелких рыб — один цикл главного паттерна со скоростью ×standAfter/100 (130 — как «последний рывок»; нет — без него) */
+  standAfter?: number;
+  /** herring: манера мелкой рыбы на мини-шкале (её zone — зона мини-шкалы) */
+  minion?: ReelStyle;
+  /** teeth: размер зуба, % шкалы; первый укус — минус cut % улова, второй — обрыв */
+  size?: number;
+  cut?: number;
 }
 
 /** Манера в единицах шкалы и тиках */
@@ -158,6 +228,13 @@ interface Cfg {
   roam: number;
   zone: number;
   drain: number;
+  /** Время в зоне до поимки, % (100 — как всегда) */
+  fill: number;
+  ab: AbilitySpec | null;
+  resist: number;
+  wary: number;
+  slack: number;
+  pStart: number;
 }
 
 const M_MOVE = 0;
@@ -206,6 +283,58 @@ export interface Reel {
   hic: number;
   hr: number;
   readonly c: Cfg;
+  /** Шкала сейчас: низ и верх, ед. (0 и REEL_BAR; разлом растягивает её в одну сторону) */
+  lo: number;
+  hi: number;
+  /** Где рыбе привычно сейчас и её размах, ед. (разлом расширяет до всей шкалы) */
+  hlo: number;
+  hhi: number;
+  amp: number;
+  /** Ветер: сила на зону сейчас, ед./тик² (+ — вверх, − — вниз; 0 — тихо) */
+  wind: number;
+  /** Прибавка улова при fill ≠ 100: остаток деления */
+  pacc: number;
+  /** Чует ловушку: у какого края ждёт зона (1 — низ, −1 — верх, 0 — нигде) и сколько тиков без рыбы */
+  campSide: number;
+  /** «Последний рывок»: множитель скорости, % (свой у рыбы; способность может назначить свой) */
+  standMul: number;
+  camp: number;
+  /** Способность: null — у рыбы её нет */
+  ab: AbilityState | null;
+}
+
+/** Состояние способности в бою (общее для блоков; лишние поля блоку не нужны) */
+export interface AbilityState {
+  readonly id: AbilityId;
+  readonly spec: AbilitySpec;
+  /** Порог улова, ед.: дошёл впервые — предупреждение */
+  readonly at: number;
+  /** 0 — ждёт, 1 — предупреждение, 2 — действует, 3 — позади */
+  phase: number;
+  /** Тиков в этой фазе */
+  t: number;
+  /** Сколько действует, тики (со стойкостью; у breach 0 — до конца боя) */
+  dur: number;
+  /** breach: сторона пролома (1 — верх, −1 — низ); wind: куда дует сейчас (1 — вверх, −1 — вниз) */
+  side: number;
+  /** wind: тики смены стороны от начала действия; teeth: зубы — пары [низ, верх] подряд, ед. */
+  marks: number[];
+  /** herring: какая мелкая рыба (0…count), сколько тиков она уже в зоне; teeth: сколько раз укусил */
+  n: number;
+  hold: number;
+  /** herring: мини-шкала мелкой рыбы (своя зона и рыба), null — нет */
+  sub: Reel | null;
+  /** breach/herring: рыбу ведёт способность — цель, скорость, сколько ещё тиков (0 — рыба сама) */
+  ft: number;
+  fs: number;
+  ftimer: number;
+  /** teeth: тик последнего укуса (−1 — не было); касался ли зуба на прошлом тике */
+  bit: number;
+  touch: boolean;
+  /** Свой генератор: способность не сдвигает генератор рыбы — до срабатывания бой идёт как без неё */
+  rng: number;
+  /** Стойкость рыбака, %: действие короче */
+  readonly resist: number;
 }
 
 function div(a: number, b: number): number {
@@ -242,6 +371,12 @@ function cfgOf(s: ReelStyle): Cfg {
     roam: Math.max(2 * pct, Math.round(s.roam * pct)),
     zone: Math.round(clampI(s.zone, 5, 90) * pct),
     drain: Math.max(1, div(s.drain * REEL_P_MAX, 6000)),
+    fill: Math.round(clampI(s.fill ?? 100, 50, 300)),
+    ab: s.ability ?? null,
+    resist: Math.round(clampI(s.abilityResist ?? 0, 0, 90)),
+    wary: Math.round(clampI(s.wary ?? 0, 0, 100_000)),
+    slack: Math.round(clampI(s.slack ?? SLACK_TICKS, 1, 600)),
+    pStart: Math.round(clampI(s.pStart ?? 25, 1, 99) * (REEL_P_MAX / 100)),
   };
 }
 
@@ -273,9 +408,11 @@ function rnd(r: Reel, n: number): number {
 export function reelStart(style: ReelStyle, seed: number, drunk = false): Reel {
   const c = cfgOf(style);
   const r: Reel = {
-    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: REEL_P_START, done: 0, inZone: true, err: 0, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0,
+    t: 0, f: 0, fv: 0, ft: 0, mode: M_HOVER, timer: 0, z: 0, zv: 0, zone: c.zone, p: c.pStart, done: 0, inZone: true, err: 0, rng: seed | 0, patternTick: -1, patternCycle: 0, patternLength: 0, patternAnchor: 0, patternDir: 1, patternTarget: 0, stand: 0, rest: 0, hit: 0,
     taut: 0, drunk, lag: 0, hic: 0, hr: (seed ^ 0x2545f491) | 0, c,
+    lo: 0, hi: REEL_BAR, hlo: c.lo, hhi: c.hi, amp: c.patternAmplitude, wind: 0, pacc: 0, campSide: 0, camp: 0, standMul: c.stand, ab: null,
   };
+  if (c.ab) r.ab = abilityNew(c.ab, c.resist, seed);
   // рыба сначала стоит посреди зоны (зона — внизу шкалы)
   r.f = clampI(div(c.zone, 2), FISH_LO, FISH_HI);
   r.ft = r.f;
@@ -368,7 +505,8 @@ function patternedFishStep(r: Reel): void {
   const c = r.c;
   if (r.patternTick < 0 && r.timer > 0) { r.timer--; return; }
   // «Последний рывок»: прогресс дошёл до 70 % — сразу новый цикл главного паттерна, быстрее обычного
-  const stand = c.stand > 0 && r.stand === 0 && r.patternTick >= 0 && r.p >= STAND_P;
+  // 3 — рывок назначила способность (король дождался селёдок — и рванул)
+  const stand = (c.stand > 0 && r.stand === 0 && r.patternTick >= 0 && r.p >= STAND_P) || r.stand === 3;
   if (stand) {
     r.stand = 1;
     r.patternTick = r.patternLength;
@@ -379,14 +517,15 @@ function patternedFishStep(r: Reel): void {
     r.patternLength = div(c.patternPeriod * (80 + rnd(r, 41)), 100);
     r.patternAnchor = r.f;
     r.patternDir = rnd(r, 100) < c.dartUp ? 1 : -1;
-    if (r.f < c.lo + div(c.patternAmplitude, 2)) r.patternDir = 1;
-    if (r.f > c.hi - div(c.patternAmplitude, 2)) r.patternDir = -1;
+    if (r.f < r.hlo + div(r.amp, 2)) r.patternDir = 1;
+    if (r.f > r.hhi - div(r.amp, 2)) r.patternDir = -1;
     r.patternTarget = r.f;
     r.patternCycle++;
   }
   const q = div(r.patternTick * 1000, r.patternLength);
   const kind = r.stand === 1 ? c.mainPattern : r.patternCycle % 3 === 0 ? c.secondaryPattern : c.mainPattern;
-  const a = c.patternAmplitude * r.patternDir;
+  const amp = r.amp;
+  const a = amp * r.patternDir;
   const origin = r.patternAnchor;
   let target = origin;
   let speed = c.spd;
@@ -415,7 +554,7 @@ function patternedFishStep(r: Reel): void {
       target = origin + div(a * q, 1000);
       break;
     case 5: // EdgeSnapback: approaches an extreme then snaps back to its starting depth.
-      target = q < 600 ? (r.patternDir > 0 ? REEL_BAR : 0) : origin;
+      target = q < 600 ? (r.patternDir > 0 ? r.hi : r.lo) : origin;
       if (q >= 600) { speed = c.dartSpd; acceleration *= 3; }
       break;
     case 6: // DoubleDash: two separate pulses with a braking interval.
@@ -436,16 +575,16 @@ function patternedFishStep(r: Reel): void {
       if (q >= 720) { speed = div(c.dartSpd * 6, 5); acceleration *= 4; }
       break;
     case 10: { // Breach «Свечка»: стремительно вверх выше привычного, миг на высоте, падение ниже исходной глубины.
-      const peak = origin + c.patternAmplitude + div(c.patternAmplitude, 2);
+      const peak = origin + amp + div(amp, 2);
       if (q < 220) { target = peak; speed = c.dartSpd; acceleration *= 3; }
       else if (q < 380) { target = peak; speed = div(c.spd, 3); }
-      else if (q < 620) { target = origin - div(c.patternAmplitude, 3); speed = div(c.dartSpd * 4, 5); acceleration *= 2; }
+      else if (q < 620) { target = origin - div(amp, 3); speed = div(c.dartSpd * 4, 5); acceleration *= 2; }
       break;
     }
     case 11: { // Sound «Уход на глубину»: бросок ко дну, упрямое покачивание у самого дна, медленный подъём.
-      const floor = div(REEL_BAR, 25);
+      const floor = r.lo + div(r.hi - r.lo, 25);
       if (q < 260) { target = floor; speed = c.dartSpd; acceleration *= 2; }
-      else if (q < 760) target = floor + div(c.patternAmplitude * (wave((q * 3) % 1000) + 1000), 8000);
+      else if (q < 760) target = floor + div(amp * (wave((q * 3) % 1000) + 1000), 8000);
       else speed = div(c.spd, 2);
       break;
     }
@@ -466,19 +605,49 @@ function patternedFishStep(r: Reel): void {
       else target = origin - div(a, 2) + div(a * wave((q * 4) % 1000), 6000);
       break;
     }
+    case 15: { // JetHang (10.10, прототип): тот же выстрел через всю шкалу, но наверху кальмар замирает и чуть качается,
+      // обманный бросок — лишь на четверть назад, дрожит выше исходной глубины: сам ко дну не дрейфует.
+      const far = a + div(a, 4);
+      if (q < 140) { target = origin - div(a, 5); speed = div(c.spd, 2); }
+      else if (q < 280) { target = origin + far; speed = div(c.dartSpd * 3, 2); acceleration *= 4; }
+      else if (q < 560) { target = origin + far + div(a * wave((q * 5) % 1000), 12_000); speed = div(c.spd, 3); }
+      else if (q < 680) { target = origin + div(a, 4); speed = c.dartSpd; acceleration *= 4; }
+      else target = origin + div(a, 4) + div(a * wave((q * 4) % 1000), 6000);
+      break;
+    }
   }
-  if (r.stand === 1) speed = div(speed * c.stand, 100);
-  r.ft = clampI(target, FISH_LO, FISH_HI);
-  // Existing HUD reads mode 2 for burst feedback. Pattern identity lives in config/cycle;
-  // keep the public move/hover/dart contract, including a calm arrival at the target.
-  r.mode = Math.abs(r.ft - r.f) <= ARRIVE ? M_HOVER : speed > c.spd ? M_DART : M_MOVE;
-  r.fv = toward(r.fv, clampI(div(r.ft - r.f, 6), -speed, speed), acceleration);
-  r.f = clampI(r.f + r.fv, FISH_LO, FISH_HI);
-  if (r.f === FISH_LO || r.f === FISH_HI) r.fv = 0;
+  // чует ловушку: зона давно ждёт у края без рыбы — рыба держится по ту сторону её края (дразнит, но не заходит)
+  if (c.wary > 0 && r.camp >= c.wary) {
+    const gap = div(r.hi - r.lo, 16);
+    if (r.campSide > 0 && target < r.z + r.zone + gap) target = r.z + r.zone + gap;
+    else if (r.campSide < 0 && target > r.z - gap) target = r.z - gap;
+  }
+  if (r.stand === 1) speed = div(speed * r.standMul, 100);
+  moveFish(r, target, speed, acceleration);
   r.patternTick++;
 }
 
+/** Рыба плывёт к цели (не за край шкалы): скорость не больше speed, разгон acceleration */
+function moveFish(r: Reel, target: number, speed: number, acceleration: number): void {
+  const flo = r.lo + FISH_EDGE;
+  const fhi = r.hi - FISH_EDGE;
+  r.ft = clampI(target, flo, fhi);
+  // Existing HUD reads mode 2 for burst feedback. Pattern identity lives in config/cycle;
+  // keep the public move/hover/dart contract, including a calm arrival at the target.
+  r.mode = Math.abs(r.ft - r.f) <= ARRIVE ? M_HOVER : speed > r.c.spd ? M_DART : M_MOVE;
+  r.fv = toward(r.fv, clampI(div(r.ft - r.f, 6), -speed, speed), acceleration);
+  r.f = clampI(r.f + r.fv, flo, fhi);
+  if (r.f === flo || r.f === fhi) r.fv = 0;
+}
+
 function fishStep(r: Reel): void {
+  const ab = r.ab;
+  // способность ведёт рыбу (разлом: к краю и в пролом; селёдки: король ждёт) — потом паттерн с нового цикла
+  if (ab && ab.ftimer > 0) {
+    moveFish(r, ab.ft, ab.fs, r.c.acc * 3);
+    if (--ab.ftimer === 0) r.patternTick = r.patternLength;
+    return;
+  }
   if (r.c.mainPattern >= 0 && r.c.secondaryPattern >= 0) patternedFishStep(r);
   else legacyFishStep(r);
 }
@@ -498,18 +667,19 @@ export const ZONE_EDGE = 1_000;
 
 /** Рыба в зоне; у края шкалы зона накрывает и край (ZONE_EDGE) */
 export function zoneCovers(r: Reel): boolean {
-  const lo = r.z <= ZONE_EDGE ? 0 : r.z;
-  const hi = r.z + r.zone >= REEL_BAR - ZONE_EDGE ? REEL_BAR : r.z + r.zone;
+  const lo = r.z <= r.lo + ZONE_EDGE ? r.lo : r.z;
+  const hi = r.z + r.zone >= r.hi - ZONE_EDGE ? r.hi : r.z + r.zone;
   return r.f >= lo && r.f <= hi;
 }
 
 function zoneStep(r: Reel, held: boolean, coast: boolean): void {
-  const top = REEL_BAR - r.zone;
+  const top = r.hi - r.zone;
   const inZone = zoneCovers(r);
   // водка: только что отпустил — зона по инерции едет с той же скоростью (не тянет вверх и не падает)
   let a = coast ? 0 : held ? ZONE_UP : -ZONE_DOWN;
   if (inZone) a = div(a * ZONE_ASSIST, 10);
-  r.zv += a;
+  // ветер (способность): сила на зону — в одну сторону разгоняет, в другую тормозит; рыба в зоне его не гасит
+  r.zv += a + r.wind;
   // водка: икота — зону подбрасывает вверх (следующая — через 4…8 с)
   if (r.drunk && r.t === r.hic) {
     r.zv += HIC_KICK;
@@ -517,11 +687,11 @@ function zoneStep(r: Reel, held: boolean, coast: boolean): void {
   }
   r.z += r.zv;
   r.hit = 0;
-  if (r.z < 0) {
+  if (r.z < r.lo) {
     // дно шкалы — как верх: быстро — отскок по инерции (тем сильнее, чем быстрее), медленно — легла на дно; под шкалу не уходит
     const v = bounceSpeed(-r.zv);
     if (v > 0) r.hit = -r.zv;
-    r.z = 0;
+    r.z = r.lo;
     r.zv = v;
   } else if (r.z > top) {
     // удар — только с разгона (прижатая к верху зона каждый тик чуть «давит» в него — это не удар)
@@ -532,19 +702,19 @@ function zoneStep(r: Reel, held: boolean, coast: boolean): void {
   }
 }
 
-/** Леска провисла: зона пролежала на дне дольше SLACK_TICKS — улов не подтягивается и тает */
+/** Леска провисла: зона пролежала на дне дольше SLACK_TICKS (уровень рыбалки — дольше) — улов не подтягивается и тает */
 export function reelSlack(r: Reel): boolean {
-  return r.rest > SLACK_TICKS;
+  return r.rest > r.c.slack;
 }
 
-/** Леска натянута: зону держали прижатой к верху дольше TAUT_TICKS — улов не подтягивается и тает */
+/** Леска натянута: зону держали прижатой к верху дольше TAUT_TICKS (уровень — дольше) — улов не подтягивается и тает */
 export function reelTaut(r: Reel): boolean {
-  return r.taut > TAUT_TICKS;
+  return r.taut > r.c.slack;
 }
 
 /** Тянет ли сейчас: рыба в зоне, леска не провисла и не перетянута (иначе прогресс тает) */
 export function reelPulling(r: Reel): boolean {
-  return r.inZone && r.rest <= SLACK_TICKS && r.taut <= TAUT_TICKS;
+  return r.inZone && r.rest <= r.c.slack && r.taut <= r.c.slack;
 }
 
 /** Один тик: рыба, зона (held — держит ли игрок), прогресс. После итога — ничего не меняет. */
@@ -559,17 +729,45 @@ export function reelStep(r: Reel, held: boolean): void {
       coast = true;
     }
   }
+  const ab = r.ab;
+  if (ab && ab.phase > 0 && ab.phase < 3) {
+    // мини-шкалы: главная стоит (король ждёт), кнопка ведёт зону мелкой рыбы, улов медленно откатывается
+    if (abilityTick(r, held, coast)) {
+      endTick(r);
+      return;
+    }
+  }
   fishStep(r);
   zoneStep(r, held, coast);
   // легла на дно шкалы — счёт идёт, пока зону не подмотают (вверх от PUMP; касание вслепую — нет); пока скачет — не идёт
-  r.rest = r.zv >= PUMP ? 0 : r.rest > 0 || (r.z === 0 && r.zv === 0) ? r.rest + 1 : 0;
+  r.rest = r.zv >= PUMP ? 0 : r.rest > 0 || (r.z === r.lo && r.zv === 0) ? r.rest + 1 : 0;
   // прижата к верху (держат кнопку) — зеркально: счёт идёт, пока зону не отпустят вниз быстрее PUMP
-  r.taut = r.zv <= -PUMP ? 0 : r.taut > 0 || (r.z === REEL_BAR - r.zone && r.zv === 0) ? r.taut + 1 : 0;
+  r.taut = r.zv <= -PUMP ? 0 : r.taut > 0 || (r.z === r.hi - r.zone && r.zv === 0) ? r.taut + 1 : 0;
   const was = r.inZone;
   r.inZone = zoneCovers(r);
   if (was && !r.inZone) r.err++;
+  if (r.c.wary > 0) campStep(r);
   const pulling = reelPulling(r);
-  r.p += pulling ? REEL_GAIN : -r.c.drain;
+  if (ab && ab.phase === 2 && ab.spec.stall && ab.t <= shorten(ab.spec.full ?? 90, ab.resist)) {
+    // чернила: катушка молчит — в зоне улов стоит, вне зоны тает
+    if (!pulling) r.p -= r.c.drain;
+  } else if (!pulling) r.p -= r.c.drain;
+  else if (r.c.fill === 100) r.p += REEL_GAIN;
+  else {
+    // время в зоне до поимки ×fill/100: прибавка за тик REEL_GAIN·100/fill — целыми, остаток копится
+    r.pacc += REEL_GAIN * 100;
+    const g = div(r.pacc, r.c.fill);
+    r.pacc -= g * r.c.fill;
+    r.p += g;
+  }
+  if (ab && ab.phase === 2 && ab.id === 'teeth') teethBite(r, ab);
+  // способность: улов впервые дошёл до своей точки — предупреждение (действие — с его концом)
+  if (ab && ab.phase === 0 && r.p >= ab.at && r.p < REEL_P_MAX) abilityPhase(r, ab, 1);
+  endTick(r);
+}
+
+/** Конец тика: время, поймана, сорвалась, леска устала */
+function endTick(r: Reel): void {
   r.t++;
   if (r.p >= REEL_P_MAX) {
     r.p = REEL_P_MAX;
@@ -605,6 +803,307 @@ export function reelRun(r: Reel, toggles: readonly number[], upTo: number, from 
   return k;
 }
 
+// ------------------------------------------------------------ способности (10.10, прототип)
+
+/** Мелкая рыба мини-шкалы по умолчанию (селёдка): юркая, зона мини-шкалы — 30 % */
+export const MINION_DEFAULT: ReelStyle = {
+  mainPattern: 'Zigzag', secondaryPattern: 'Nervous', patternPeriod: 120, patternAmplitude: 40, spd: 26, sharp: 8, turn: 10, dart: 8,
+  dartSpd: 100, dartUp: 50, hover: 300, hoverP: 30, lo: 10, hi: 90, roam: 30, zone: 30, drain: 1,
+};
+
+/** Свой генератор способности: 0…n−1 */
+function abRnd(ab: AbilityState, n: number): number {
+  ab.rng = (ab.rng + 0x6d2b79f5) | 0;
+  return n > 0 ? m32(ab.rng) % n : 0;
+}
+
+/** Тики со стойкостью рыбака: короче на resist % (не меньше 1) */
+function shorten(ticks: number, resist: number): number {
+  return Math.max(1, div(ticks * (100 - resist), 100));
+}
+
+function abilityNew(spec: AbilitySpec, resist: number, seed: number): AbilityState {
+  const pct = div(REEL_P_MAX, 100);
+  const a0 = clampI(Math.round(spec.at[0]), 1, 99);
+  const a1 = clampI(Math.round(spec.at[1]), a0, 99);
+  const ab: AbilityState = {
+    id: spec.id, spec, at: 0, phase: 0, t: 0, dur: spec.dur > 0 ? shorten(spec.dur, resist) : 0, side: 1, marks: [], n: 0, hold: 0, sub: null,
+    ft: 0, fs: 0, ftimer: 0, bit: -1, touch: false, rng: (seed ^ 0x51ed270b) | 0, resist,
+  };
+  (ab as { at: number }).at = a0 * pct + abRnd(ab, (a1 - a0) * pct + 1);
+  return ab;
+}
+
+/** Рыба и зона — внутри шкалы (шкала срастается после разлома) */
+function keepInside(r: Reel): void {
+  const flo = r.lo + FISH_EDGE;
+  const fhi = r.hi - FISH_EDGE;
+  if (r.f < flo) { r.f = flo; r.fv = 0; }
+  else if (r.f > fhi) { r.f = fhi; r.fv = 0; }
+  r.ft = clampI(r.ft, flo, fhi);
+  if (r.z < r.lo) { r.z = r.lo; if (r.zv < 0) r.zv = 0; }
+  else if (r.z > r.hi - r.zone) { r.z = r.hi - r.zone; if (r.zv > 0) r.zv = 0; }
+}
+
+/** Сила ветра, ед./тик²: force % от среднего ускорения зоны (35 % — 12) */
+export function windForce(force: number): number {
+  return div((ZONE_UP + ZONE_DOWN) * clampI(Math.round(force), 0, 100), 200);
+}
+
+/** Новая мелкая рыба мини-шкалы: в случайном месте выше зоны (зона мини-шкалы — внизу), без стоянки в зоне */
+function minionNew(ab: AbilityState): Reel {
+  const sub = reelStart(ab.spec.minion ?? MINION_DEFAULT, abRnd(ab, 0x7fff_ffff) ^ Math.imul(ab.n + 1, 0x9e3779b1));
+  sub.f = div(REEL_BAR * (45 + abRnd(ab, 41)), 100);
+  sub.ft = sub.f;
+  sub.timer = 0;
+  return sub;
+}
+
+/** Способность входит в фазу: 1 — предупреждение, 2 — действие, 3 — позади */
+function abilityPhase(r: Reel, ab: AbilityState, phase: number): void {
+  const s = ab.spec;
+  const c = r.c;
+  ab.phase = phase;
+  ab.t = 0;
+  if (phase === 1) {
+    switch (ab.id) {
+      case 'breach':
+        // акула разгоняется к краю, который пробьёт
+        ab.side = s.side ?? (abRnd(ab, 2) === 0 ? 1 : -1);
+        ab.ft = ab.side > 0 ? r.hi - FISH_EDGE : r.lo + FISH_EDGE;
+        ab.fs = c.dartSpd;
+        ab.ftimer = Math.max(1, s.warn);
+        break;
+      case 'wind':
+        ab.side = abRnd(ab, 2) === 0 ? 1 : -1;
+        break;
+      case 'herring':
+        // король замирает и зовёт селёдок
+        ab.ft = r.f;
+        ab.fs = div(c.spd, 4);
+        ab.ftimer = Math.max(1, s.warn);
+        break;
+      case 'teeth': {
+        // зубы — сразу на своих местах (растут во время предупреждения): не на зоне и не друг на друге
+        const span = r.hi - r.lo;
+        const size = div(span * clampI(s.size ?? 8, 2, 30), 100);
+        const room = span - 2 * div(span, 16) - size;
+        for (let i = 0; i < (s.count ?? 2); i++) {
+          for (let k = 0; k < 12; k++) {
+            const y = r.lo + div(span, 16) + abRnd(ab, Math.max(1, room));
+            const near = y < r.z + r.zone + div(span, 20) && y + size > r.z - div(span, 20);
+            let hitOther = false;
+            for (let j = 0; j < ab.marks.length; j += 2) if (y < ab.marks[j + 1] + div(span, 25) && y + size > ab.marks[j] - div(span, 25)) hitOther = true;
+            if (!near && !hitOther) { ab.marks.push(y, y + size); break; }
+          }
+        }
+        break;
+      }
+    }
+  } else if (phase === 2) {
+    switch (ab.id) {
+      case 'breach': {
+        // пролом: шкала длиннее на grow % в свою сторону, рыба привыкает ко всей шкале и ныряет в пролом
+        const g = div((r.hi - r.lo) * clampI(s.grow ?? 50, 0, 200), 100);
+        ab.n = g;
+        if (ab.side > 0) r.hi += g; else r.lo -= g;
+        r.hlo = r.lo;
+        r.hhi = r.hi;
+        r.amp = div(r.amp * clampI(s.ampMul ?? 150, 50, 300), 100);
+        ab.ft = ab.side > 0 ? r.hi - FISH_EDGE - div(g, 8) : r.lo + FISH_EDGE + div(g, 8);
+        ab.fs = div(c.dartSpd * 6, 5);
+        ab.ftimer = 60;
+        break;
+      }
+      case 'ink':
+        // чернила и под ними — выстрел (новый цикл паттерна с того места, где кальмар сейчас)
+        if (s.jet) r.patternTick = r.patternLength;
+        break;
+      case 'wind': {
+        const n = (s.turns?.[0] ?? 1) + abRnd(ab, (s.turns?.[1] ?? 2) - (s.turns?.[0] ?? 1) + 1);
+        const step = div(ab.dur, n + 1);
+        const jitter = div(step, 4);
+        for (let i = 1; i <= n; i++) ab.marks.push(step * i - jitter + abRnd(ab, 2 * jitter + 1));
+        r.wind = ab.side * windForce(s.force ?? 35);
+        break;
+      }
+      case 'herring':
+        ab.n = 0;
+        ab.hold = 0;
+        ab.sub = minionNew(ab);
+        r.zv = 0;
+        break;
+    }
+  } else if (phase === 3) {
+    ab.ftimer = 0;
+    switch (ab.id) {
+      case 'breach':
+        r.lo = 0;
+        r.hi = REEL_BAR;
+        r.hlo = c.lo;
+        r.hhi = c.hi;
+        r.amp = c.patternAmplitude;
+        keepInside(r);
+        break;
+      case 'wind':
+        r.wind = 0;
+        break;
+      case 'herring':
+        // селёдки кончились — король снова тянет; леска — с чистого листа
+        ab.sub = null;
+        r.rest = 0;
+        r.taut = 0;
+        r.patternTick = r.patternLength;
+        if (s.standAfter) {
+          r.stand = 3;
+          r.standMul = clampI(Math.round(s.standAfter), 100, 200);
+        }
+        break;
+      case 'teeth':
+        ab.marks = [];
+        break;
+    }
+  }
+}
+
+/** Тик способности (в начале тика): true — главная шкала на этом тике стоит (мини-шкала) */
+function abilityTick(r: Reel, held: boolean, coast: boolean): boolean {
+  const ab = r.ab!;
+  const s = ab.spec;
+  if (ab.phase === 1 && ab.t >= s.warn) abilityPhase(r, ab, 2);
+  let skip = false;
+  if (ab.phase === 2) {
+    switch (ab.id) {
+      case 'breach': {
+        if (ab.dur === 0 || ab.t < ab.dur) break;
+        // шкала срастается: пролом закрывается за heal тиков, рыба и зона — внутрь
+        const heal = Math.max(1, s.heal ?? 60);
+        const k = ab.t - ab.dur + 1;
+        if (k >= heal) abilityPhase(r, ab, 3);
+        else {
+          if (ab.side > 0) r.hi = REEL_BAR + div(ab.n * (heal - k), heal);
+          else r.lo = -div(ab.n * (heal - k), heal);
+          r.hlo = r.lo;
+          r.hhi = r.hi;
+          keepInside(r);
+        }
+        break;
+      }
+      case 'ink':
+      case 'teeth':
+        if (ab.t >= ab.dur) abilityPhase(r, ab, 3);
+        break;
+      case 'wind':
+        if (ab.t >= ab.dur) abilityPhase(r, ab, 3);
+        else {
+          for (const m of ab.marks) if (m === ab.t) ab.side = -ab.side;
+          r.wind = ab.side * windForce(s.force ?? 35);
+        }
+        break;
+      case 'herring': {
+        skip = true;
+        // король ждёт, улов медленно откатывается (не ниже пола — не сбегает)
+        const floor = div(REEL_P_MAX * clampI(s.floor ?? 10, 0, 90), 100);
+        const back = div(REEL_P_MAX * clampI(s.rollback ?? 15, 0, 1000) * (100 - ab.resist), 6_000_000);
+        if (r.p > floor) r.p = Math.max(floor, r.p - back);
+        if (ab.t >= ab.dur) {
+          abilityPhase(r, ab, 3);
+          break;
+        }
+        const sub = ab.sub!;
+        fishStep(sub);
+        zoneStep(sub, held, coast);
+        sub.t++;
+        if (zoneCovers(sub) && ++ab.hold >= shorten(s.need ?? 30, ab.resist)) {
+          ab.n++;
+          ab.hold = 0;
+          if (ab.n >= (s.count ?? 3)) abilityPhase(r, ab, 3);
+          else ab.sub = minionNew(ab);
+        }
+        break;
+      }
+    }
+  }
+  if (ab.phase === 1 || ab.phase === 2) ab.t++;
+  return skip;
+}
+
+/** Зубы: зона наехала на зуб (с этого тика) — первый раз минус cut % улова, второй — леска перекушена */
+function teethBite(r: Reel, ab: AbilityState): void {
+  let touch = false;
+  for (let i = 0; i < ab.marks.length; i += 2) if (r.z < ab.marks[i + 1] && r.z + r.zone > ab.marks[i]) touch = true;
+  if (touch && !ab.touch) {
+    ab.n++;
+    ab.bit = r.t;
+    if (ab.n === 1) r.p -= div(r.p * clampI(ab.spec.cut ?? 50, 0, 100), 100);
+    else r.done = -1;
+  }
+  ab.touch = touch;
+}
+
+/** Чует ловушку: у какого края ждёт зона (её середина — в четверти шкалы у края) и сколько тиков там без рыбы */
+function campStep(r: Reel): void {
+  const mid = r.z + div(r.zone, 2);
+  const band = div(r.hi - r.lo, 4);
+  const side = mid <= r.lo + band ? 1 : mid >= r.hi - band ? -1 : 0;
+  if (side !== r.campSide) {
+    r.campSide = side;
+    r.camp = 0;
+  }
+  if (side !== 0 && !r.inZone) r.camp++;
+}
+
+/** Леска перекушена (зубы, второй укус) — для надписи итога */
+export function reelBitten(r: Reel): boolean {
+  return r.ab !== null && r.ab.id === 'teeth' && r.ab.n >= 2;
+}
+
+/** Способность для рисования (клиент, модель игрока): доли шкалы — от её низа до верха сейчас */
+export interface AbilityView {
+  id: AbilityId;
+  /** 0 — ждёт, 1 — предупреждение, 2 — действует, 3 — позади */
+  phase: number;
+  /** Доля фазы 0…1 (у действия до конца боя — 0) */
+  k: number;
+  /** ink: верх чернил, доля шкалы (1 — закрыта вся, 0 — чисто) */
+  ink: number;
+  /** wind: куда дует (1 — вверх, −1 — вниз), через сколько тиков сменит сторону (−1 — больше не сменит) */
+  wind: number;
+  windNext: number;
+  /** breach: сторона пролома */
+  side: number;
+  /** herring: какая мелкая рыба, сколько всего, сколько она уже в зоне из нужного, где она и зона мини-шкалы (0…1) */
+  minion: { n: number; count: number; hold: number; need: number; fish: number; z0: number; z1: number } | null;
+  /** teeth: зубы [низ, верх] долями шкалы; сколько раз укусил */
+  teeth: number[];
+  bites: number;
+}
+
+export function abilityView(r: Reel): AbilityView | null {
+  const ab = r.ab;
+  if (!ab) return null;
+  const s = ab.spec;
+  const span = r.hi - r.lo;
+  const k = ab.phase === 1 ? ab.t / Math.max(1, s.warn) : ab.phase === 2 && ab.dur > 0 ? Math.min(1, ab.t / ab.dur) : 0;
+  let ink = 0;
+  if (ab.id === 'ink' && ab.phase === 2) {
+    const full = shorten(s.full ?? 90, ab.resist);
+    ink = ab.t < full ? 1 : Math.max(0, 1 - (ab.t - full) / Math.max(1, ab.dur - full));
+  }
+  let windNext = -1;
+  if (ab.id === 'wind' && ab.phase === 2) for (const m of ab.marks) if (m > ab.t) { windNext = m - ab.t; break; }
+  const sub = ab.sub;
+  return {
+    id: ab.id, phase: ab.phase, k, ink, wind: ab.id === 'wind' && ab.phase > 0 && ab.phase < 3 ? ab.side : 0, windNext, side: ab.side,
+    minion: sub ? {
+      n: ab.n, count: s.count ?? 3, hold: ab.hold, need: shorten(s.need ?? 30, ab.resist),
+      fish: sub.f / REEL_BAR, z0: sub.z / REEL_BAR, z1: (sub.z + sub.zone) / REEL_BAR,
+    } : null,
+    teeth: ab.marks.length && ab.id === 'teeth' ? ab.marks.map((y) => (y - r.lo) / span) : [],
+    bites: ab.id === 'teeth' ? ab.n : 0,
+  };
+}
+
 /**
  * Оценка вываживания по ошибкам (выходам рыбы из зоны), 04.10, владелец: название и множитель опыта за улов; upTo —
  * до скольких ошибок включительно. 8–9 ошибок — тоже «Обычное вываживание» (владелец подтвердил).
@@ -637,7 +1136,10 @@ export function gradeXp(grade: number): number {
   return REEL_GRADES[grade]?.xp ?? 1;
 }
 
-/** Доли для рисования: где рыба и зона (0…1 снизу), прогресс 0…1. */
-export function reelView(r: Reel): { fish: number; z0: number; z1: number; p: number } {
-  return { fish: r.f / REEL_BAR, z0: r.z / REEL_BAR, z1: (r.z + r.zone) / REEL_BAR, p: r.p / REEL_P_MAX };
+/**
+ * Доли для рисования: где рыба и зона (0…1 снизу), прогресс 0…1. lo, hi — шкала сейчас в долях обычной (0 и 1; после
+ * разлома, например, −0,5 и 1): клиент растягивает шкалу на (hi − lo) от обычной, зона в пикселях та же.
+ */
+export function reelView(r: Reel): { fish: number; z0: number; z1: number; p: number; lo: number; hi: number } {
+  return { fish: r.f / REEL_BAR, z0: r.z / REEL_BAR, z1: (r.z + r.zone) / REEL_BAR, p: r.p / REEL_P_MAX, lo: r.lo / REEL_BAR, hi: r.hi / REEL_BAR };
 }

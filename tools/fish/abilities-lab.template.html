@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Способности мификов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Прототип шкалы вываживания со способностями мификов (10.10). Собрано tools/fish/build-abilities-lab.ts: модель — та же,
+   что в игре (shared/fishreel.ts), манеры рыб — shared/fishability.ts. Стиль — как у шкалы игры (fish2.css, fishreel.css). */
+:root {
+  --cream: #fff3de;
+  --cream-dim: rgba(255, 243, 222, 0.62);
+  --panel: rgba(34, 24, 29, 0.64);
+  --panel-strong: rgba(34, 24, 29, 0.88);
+  --line: rgba(255, 236, 205, 0.14);
+  --gold: #ffd35a;
+  --jam-soft: #ff6b6b;
+  --myth: #e8364f;
+  --divine: #18b7a6;
+  --wood: #7a4e2c;
+  --wood-dark: #6b4426;
+  --wood-light: #a8754a;
+  --page: #f3e7cf;
+  --ink: #2b2026;
+  --tc: var(--myth);
+  --H: 300px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font: 400 15px/1.45 Rubik, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 22px 16px 40px; }
+header.top h1 { margin: 0 0 4px; font-size: 30px; font-weight: 900; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: #6d5a4b; max-width: 760px; }
+header.top kbd {
+  display: inline-block; padding: 0 6px; border-radius: 5px; border: 1px solid #c9b294; border-bottom-width: 2px;
+  background: #fffaf0; font: 700 12px/18px Rubik, sans-serif; color: #4a3a2e;
+}
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 14px; }
+.tab {
+  border: 2px solid transparent; border-radius: 999px; padding: 8px 15px; cursor: pointer;
+  background: #fffaf0; color: #4a3a2e; font: 700 14px Rubik, sans-serif; box-shadow: 0 2px 0 #d9c4a2;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.tab i { width: 10px; height: 10px; border-radius: 50%; background: var(--myth); display: inline-block; }
+.tab[data-tier='divine'] i { background: var(--divine); }
+.tab small { font-weight: 500; color: #8a7462; }
+.tab:hover { background: #fff; }
+.tab.on { border-color: #4a3a2e; background: #fff; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { header.top h1 { font-size: 23px; } }
+
+/* ---------------------------------------------------------------- сцена */
+.stage {
+  position: relative; overflow: hidden; border-radius: 18px; user-select: none; -webkit-user-select: none; touch-action: none;
+  height: 700px; cursor: pointer;
+  background:
+    radial-gradient(120% 60% at 70% 0%, rgba(255, 244, 214, 0.55), rgba(255, 244, 214, 0) 60%),
+    linear-gradient(#8fd0ee 0%, #5fb3da 34%, #2f7fab 70%, #1d5a82 100%);
+  box-shadow: 0 10px 30px rgba(60, 40, 20, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.stage::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.35;
+  background: repeating-linear-gradient(170deg, rgba(255, 255, 255, 0) 0 38px, rgba(255, 255, 255, 0.18) 38px 40px);
+}
+.stage.storm { filter: saturate(0.75) brightness(0.86); transition: filter 0.6s; }
+.stage canvas.fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+
+.pill {
+  position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  padding: 4px 12px; border-radius: 999px; background: var(--panel-strong); color: var(--cream);
+  font-weight: 700; font-size: 13px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.label {
+  border: 2px solid var(--tc); color: var(--tc); font-size: 14px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase;
+  animation: blink 0.6s ease-in-out infinite alternate;
+}
+@keyframes blink { to { box-shadow: 0 0 18px var(--tc); } }
+.habits { font-size: 12px; font-weight: 600; background: var(--panel); color: #e6dcb9; }
+
+/* шкала */
+.bar {
+  position: absolute; left: 50%; width: 58px; margin-left: -29px; border-radius: 14px; border: 5px solid #b8323f;
+  background: var(--wood-dark); overflow: hidden; z-index: 3;
+  box-shadow: 0 14px 34px rgba(10, 5, 8, 0.5), inset 0 0 0 2px var(--wood-light);
+}
+.stage[data-tier='divine'] .bar { border-color: #138f83; }
+.bar.master { border-color: #d9a521; box-shadow: 0 14px 34px rgba(10, 5, 8, 0.5), inset 0 0 0 2px #ffe08a, 0 0 16px rgba(255, 211, 90, 0.55); }
+.bar.dart { animation: shake 0.12s linear infinite; }
+.bar.quake { animation: shake 0.07s linear infinite; }
+@keyframes shake { 25% { transform: translateX(-2px) rotate(-1deg); } 75% { transform: translateX(2px) rotate(1deg); } }
+.water { position: absolute; inset: 0; background: linear-gradient(#5fb7d8, #2a6f9a 55%, #18405e); }
+.water::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(transparent 0 22px, rgba(255, 255, 255, 0.07) 22px 24px); }
+.deep { position: absolute; left: 0; right: 0; background: linear-gradient(rgba(8, 26, 48, 0.0), rgba(8, 26, 48, 0.45)); display: none; }
+.deep.top { background: linear-gradient(rgba(190, 235, 255, 0.35), rgba(190, 235, 255, 0)); }
+.seam { position: absolute; left: -2px; right: -2px; height: 10px; margin-bottom: -5px; display: none; z-index: 2; }
+.seam svg { display: block; width: 100%; height: 100%; }
+.cracks { position: absolute; left: 0; right: 0; height: 40%; display: none; z-index: 5; pointer-events: none; }
+.cracks path { fill: none; stroke: #2a160c; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 80; stroke-dashoffset: 80; }
+.cracks.on { display: block; }
+.cracks.on path { animation: crack var(--warn, 0.6s) linear forwards; }
+@keyframes crack { to { stroke-dashoffset: 0; } }
+
+.zone {
+  position: absolute; left: 3px; right: 3px; border-radius: 8px; z-index: 3;
+  background: rgba(110, 220, 120, 0.42); border: 2px solid rgba(190, 255, 170, 0.85); box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.25);
+  --fr-w: 6px;
+}
+.zone::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 14px),
+    linear-gradient(to top, rgba(0, 28, 14, 0.4), rgba(0, 28, 14, 0) 16px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 35%, rgba(0, 28, 14, 0) 60%, rgba(0, 28, 14, 0.26)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.4) calc(var(--fr-w) * 0.25), rgba(255, 255, 255, 0) calc(var(--fr-w) * 0.5), rgba(255, 255, 255, 0) var(--fr-w)),
+    repeating-linear-gradient(-45deg, rgba(0, 28, 14, 0) 0, rgba(0, 28, 14, 0.34) calc(var(--fr-w) * 0.25), rgba(0, 28, 14, 0) calc(var(--fr-w) * 0.5), rgba(0, 28, 14, 0) var(--fr-w));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 3px rgba(0, 28, 14, 0.35);
+}
+.zone.in { background: rgba(130, 240, 135, 0.6); box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.4), 0 0 14px rgba(150, 255, 140, 0.7); }
+.zone.slack { opacity: 0.45; }
+.zone.taut { background: rgba(222, 62, 44, 0.85); border-color: rgba(255, 178, 160, 1); }
+.zone.inked { z-index: 7; background: rgba(150, 255, 150, 0.06); border-color: rgba(200, 255, 190, 0.55); border-style: dashed; box-shadow: none; }
+.zone.inked::before { opacity: 0.12; }
+.zone.inked.in { border-color: rgba(220, 255, 210, 0.95); box-shadow: 0 0 10px rgba(150, 255, 140, 0.45); }
+.zone .wind-streaks { position: absolute; inset: 0; border-radius: inherit; display: none; opacity: 0.7; }
+.zone.windy .wind-streaks { display: block; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0) 0 9px, rgba(255, 255, 255, 0.55) 9px 11px); background-size: 100% 22px; animation: streak 0.35s linear infinite; }
+.zone.windy.down .wind-streaks { animation-direction: reverse; }
+@keyframes streak { from { background-position: 0 22px; } to { background-position: 0 0; } }
+
+.fish {
+  position: absolute; left: 50%; width: 40px; height: 24px; color: var(--tc); z-index: 4;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45)); transform: translate(-50%, 50%);
+}
+.fish svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fish.sense { animation: sense 0.18s linear infinite; }
+@keyframes sense { 50% { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 3px var(--gold)); } }
+.fish .arrow { position: absolute; left: 100%; top: 50%; transform: translate(4px, -50%); font: 900 16px Rubik; color: var(--gold); display: none; text-shadow: 0 1px 2px #000; }
+.fish.sense .arrow.on { display: block; }
+.fish.puff svg { animation: puff 0.25s ease-in-out infinite alternate; }
+@keyframes puff { to { transform: scale(1.25); filter: brightness(0.6); } }
+
+/* чернила */
+.ink { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 6; pointer-events: none; display: none; }
+.ink .body { position: absolute; inset: 0; background: radial-gradient(130% 40% at 50% 0%, #2a1d33, #0d0a12 60%); }
+.ink .edge { position: absolute; left: -2px; right: -2px; top: -9px; height: 12px; }
+.ink .drips { position: absolute; left: 0; right: 0; bottom: 100%; height: 60px; }
+.ink .drips i { position: absolute; bottom: -2px; width: 5px; border-radius: 3px 3px 0 0; background: linear-gradient(rgba(18, 13, 25, 0), #120d19 40%); animation: drip 1.1s ease-in-out infinite alternate; transform-origin: bottom; }
+@keyframes drip { from { transform: scaleY(1); } to { transform: scaleY(0.55); } }
+.ink.full .drips { display: none; }
+.ink.on { display: block; }
+.splat { position: absolute; z-index: 5; width: 160px; height: 160px; margin: -80px 0 0 -80px; border-radius: 50%; pointer-events: none; display: none;
+  background: radial-gradient(circle, #0d0a12 0 45%, rgba(13, 10, 18, 0.85) 55%, rgba(13, 10, 18, 0) 70%); }
+.splat.on { display: block; animation: splat 0.45s ease-out forwards; }
+@keyframes splat { 0% { transform: scale(0.1); opacity: 1; } 55% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+
+/* зубы */
+.tooth { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; }
+.tooth svg { display: block; width: 100%; height: 100%; }
+.tooth.grow { animation: grow var(--warn, 0.75s) ease-out both; }
+@keyframes grow { from { transform: scaleX(0); } }
+.bar.bite { animation: bite 0.35s ease-out; }
+@keyframes bite { 0% { box-shadow: 0 0 0 4px #ff3030, 0 0 30px #ff3030; } }
+
+/* мини-шкалы селёдок */
+.minis { position: absolute; z-index: 4; display: flex; gap: 10px; pointer-events: none; }
+.mini { position: relative; width: 36px; border-radius: 10px; border: 4px solid var(--wood); background: var(--wood-dark); overflow: hidden;
+  box-shadow: 0 8px 18px rgba(10, 5, 8, 0.45), inset 0 0 0 2px var(--wood-light); opacity: 0.35; transform: translateY(14px) scale(0.9); transition: opacity 0.25s, transform 0.25s; }
+.mini.on { opacity: 1; transform: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255, 211, 90, 0.4), 0 8px 18px rgba(10, 5, 8, 0.45); }
+.mini.done { opacity: 0.9; transform: none; }
+.mini.gone { opacity: 0.3; transform: none; filter: grayscale(1); }
+.mini .zone { left: 2px; right: 2px; border-radius: 6px; --fr-w: 4px; }
+.mini .hf { position: absolute; left: 50%; width: 26px; height: 15px; z-index: 4; transform: translate(-50%, 50%); color: #dfe8ee; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+.mini .ok { position: absolute; inset: 0; display: none; place-items: center; font: 900 20px Rubik; color: var(--gold); z-index: 5; text-shadow: 0 1px 3px #000; background: rgba(20, 60, 30, 0.35); }
+.mini.done .ok { display: grid; }
+.mini .hold { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(0, 0, 0, 0.35); z-index: 6; }
+.mini .hold i { display: block; height: 100%; width: 0; background: var(--gold); }
+.wait { position: absolute; z-index: 5; pointer-events: none; display: none; }
+.wait.on { display: block; }
+
+/* ветер */
+.windb { position: absolute; z-index: 5; width: 64px; height: 64px; margin-top: -32px; border-radius: 50%; display: none; pointer-events: none;
+  background: var(--panel-strong); border: 2px solid rgba(220, 240, 255, 0.8); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.windb.on { display: grid; place-items: center; }
+.windb svg { width: 40px; height: 40px; transition: transform 0.25s; color: #dff3ff; }
+.windb.down svg { transform: rotate(180deg); }
+.windb.turn { animation: turn 0.12s linear infinite; }
+@keyframes turn { 50% { border-color: var(--gold); box-shadow: 0 0 16px var(--gold); } }
+.windb.warn { opacity: 0.7; }
+.windb b { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font: 800 12px Rubik; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+
+/* полоса улова */
+.prog { width: 190px; height: 16px; padding: 3px; border: 1px solid var(--line); }
+.prog i { display: block; height: 100%; width: 25%; border-radius: 999px; background: #e0b030; }
+.prog .mark { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: #fff; border-radius: 2px; box-shadow: 0 0 6px var(--tc); display: none; }
+.prog .mark.on { display: block; }
+.prog.low { animation: low 0.4s ease-in-out infinite alternate; }
+@keyframes low { to { border-color: var(--jam-soft); box-shadow: 0 0 14px rgba(255, 80, 80, 0.6); } }
+.grade b { color: var(--gold); margin-left: 4px; }
+.warnline { background: rgba(120, 32, 26, 0.92); color: #ffd1c4; font-weight: 800; display: none; }
+.warnline.on { display: block; animation: pop 0.45s ease-out 2; }
+.hint { background: var(--panel); }
+.banner {
+  position: absolute; left: 50%; z-index: 7; transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap; opacity: 0;
+  font: 900 28px Rubik; color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 18px var(--tc);
+}
+.banner.on { animation: banner 1.6s ease-out forwards; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -80%); } }
+@keyframes pop { from { transform: translateX(-50%) scale(1.2); } }
+.result { position: absolute; left: 50%; z-index: 8; transform: translate(-50%, -50%); font: 900 32px Rubik; text-align: center; pointer-events: none; display: none; text-shadow: 0 2px 4px rgba(10, 5, 8, 0.85); }
+.result.won { display: block; color: var(--gold); }
+.result.lost { display: block; color: #ffb0a0; }
+.result small { display: block; font-size: 18px; }
+.startcard {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9; text-align: center; color: var(--cream);
+  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.startcard h2 { margin: 0 0 4px; font-size: 22px; color: var(--tc); }
+.startcard p { margin: 0 0 12px; color: var(--cream-dim); font-size: 13px; max-width: 280px; }
+.startcard button { font: 800 16px Rubik; padding: 10px 20px; border-radius: 12px; border: 0; cursor: pointer; background: var(--gold); color: #3b2a1e; box-shadow: 0 3px 0 #b8902a; }
+.startcard button:hover { filter: brightness(1.05); }
+.startcard.hide { display: none; }
+.sound { position: absolute; right: 12px; top: 12px; z-index: 9; }
+.sound button { font: 700 13px Rubik; border: 0; border-radius: 999px; padding: 6px 12px; background: var(--panel); color: var(--cream); cursor: pointer; }
+.seed { position: absolute; left: 12px; bottom: 10px; z-index: 9; font-size: 11px; color: rgba(255, 255, 255, 0.6); }
+
+/* ---------------------------------------------------------------- боковая колонка */
+.card { background: #fffaf0; border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 0 #e2cfae, 0 6px 18px rgba(80, 50, 20, 0.08); margin-bottom: 14px; }
+.card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
+.card p, .card li { font-size: 13.5px; }
+.card ul { margin: 0; padding-left: 18px; }
+.card li { margin: 3px 0; }
+.lvl { display: flex; align-items: center; gap: 10px; }
+.lvl input { flex: 1; accent-color: #4a3a2e; }
+.lvl output { font: 900 22px Rubik; min-width: 54px; text-align: right; }
+.gear { font-size: 12.5px; color: #6d5a4b; margin: 4px 0 8px; }
+.perks { list-style: none; padding: 0 !important; columns: 1; }
+.perks li { display: flex; gap: 8px; padding: 3px 6px; border-radius: 8px; color: #a8957f; }
+.perks li b { min-width: 22px; color: inherit; }
+.perks li.have { color: #3b2a1e; }
+.perks li.now { background: #ffeeb8; }
+.perks li span em { font-style: normal; color: #8a7462; }
+table.st { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.st th, table.st td { padding: 4px 4px; text-align: right; border-bottom: 1px solid #eadcc3; }
+table.st th:first-child, table.st td:first-child { text-align: left; }
+table.st td b { color: #3b2a1e; }
+table.st td s { color: #a8957f; text-decoration: none; }
+.note { font-size: 12px; color: #8a7462; margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .bar.dart, .bar.quake, .label, .fish.sense { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Способности мификов — прототип шкалы</h1>
+    <p>Выбери рыбу и уровень, нажми «Подсечь». Держи <kbd>ЛКМ</kbd> или <kbd>Пробел</kbd> — зона вверх, отпусти — вниз. Способность срабатывает один раз за бой, когда улов дошёл до 60–75 %. Модель и цифры — те же, что пойдут в игру.</p>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="layout">
+    <section class="stage" id="stage" aria-label="Шкала вываживания">
+      <canvas class="fx" id="fx"></canvas>
+      <div class="pill label" id="label">Мифическая рыба!!</div>
+      <div class="pill habits" id="habits"></div>
+      <div class="bar" id="bar">
+        <div class="water"></div>
+        <div class="deep" id="deep"></div>
+        <div class="seam" id="seam"><svg viewBox="0 0 48 10" preserveAspectRatio="none"><path d="M0 5 L4 1 L8 8 L12 2 L16 7 L20 1 L24 9 L28 3 L32 8 L36 1 L40 7 L44 2 L48 6" fill="none" stroke="#3a2210" stroke-width="2.4"/><path d="M0 5 L4 1 L8 8 L12 2 L16 7 L20 1 L24 9 L28 3 L32 8 L36 1 L40 7 L44 2 L48 6" fill="none" stroke="#d9a76f" stroke-width="0.9" transform="translate(0 -1)"/></svg></div>
+        <div class="cracks" id="cracks"><svg viewBox="0 0 48 100" preserveAspectRatio="none" width="100%" height="100%"><path d="M24 0 L20 18 L27 30 L22 52 L26 70"/><path d="M20 18 L8 28 L4 44"/><path d="M27 30 L40 38 L44 58"/><path d="M22 52 L12 62"/></svg></div>
+        <div id="teeth"></div>
+        <div class="zone" id="zone"><div class="wind-streaks"></div></div>
+        <div class="ink" id="ink"><div class="drips" id="drips"></div><svg class="edge" viewBox="0 0 48 12" preserveAspectRatio="none"><path d="M0 12 L0 6 Q4 0 8 6 T16 6 T24 5 T32 7 T40 5 T48 6 L48 12 Z" fill="#2a1d33"/></svg><div class="body"></div></div>
+        <div class="fish" id="fish"><span class="arrow" id="arrow">↑</span></div>
+      </div>
+      <div class="splat" id="splat"></div>
+      <div class="minis" id="minis"></div>
+      <div class="pill wait" id="wait">Король ждёт…</div>
+      <div class="windb" id="windb"><svg viewBox="0 0 40 40"><path d="M20 34 V8 M10 17 L20 6 L30 17" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 26 h6 M28 30 h7 M30 22 h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/></svg><b id="windt">ветер</b></div>
+      <div class="pill prog" id="prog"><i id="fill"></i><span class="mark" id="mark"></span></div>
+      <div class="pill grade" id="grade">0 ошибок<b>Идеально ×2,5</b></div>
+      <div class="pill warnline" id="warnline">Леска провисла — приподними зону!</div>
+      <div class="pill hint" id="hint">Держи ЛКМ или Пробел — зона вверх</div>
+      <div class="banner" id="banner"></div>
+      <div class="result" id="result"></div>
+      <div class="startcard" id="startcard"><h2 id="sc-title">Акула-молот</h2><p id="sc-text">Мифик пристани.</p><button id="go" type="button">🎣 Подсечь</button></div>
+      <div class="sound"><button id="snd" type="button">🔊 Звук</button></div>
+      <div class="seed" id="seed"></div>
+    </section>
+    <aside>
+      <div class="card">
+        <h3>Уровень рыбака</h3>
+        <div class="lvl"><input id="lv" type="range" min="0" max="15" step="1" value="5" aria-label="Уровень рыбалки"><output id="lvo">5</output></div>
+        <div class="gear" id="gear"></div>
+        <ul class="perks" id="perks"></ul>
+      </div>
+      <div class="card"><h3 id="rules-t">Как работает</h3><ul id="rules"></ul></div>
+      <div class="card"><h3>Модель игроков: успех, %</h3><table class="st" id="stats"></table><div class="note" id="stats-n"></div></div>
+    </aside>
+  </div>
+</div>
+<script>
+'use strict';
+/*__ENGINE__*/
+/*__DATA__*/
+
+// ---------------------------------------------------------------- тексты и замеры (tools/fish/abilities-sim.ts, N=400 на точку)
+const RULES = {
+  whiteshark: [
+    'Срабатывает: улов впервые дошёл до точки 60–75 % (по сиду боя), один раз за бой.',
+    '0,6 с — акула разгоняется к краю шкалы (верх или низ 50/50), край трескается.',
+    'Пролом: шкала +50 % в ту сторону, зона того же размера в пикселях — ловить труднее. Акула ныряет в пролом (1 с, рывок ×1,2), размах её ходов ×1,25.',
+    'Держится 12 с (стойкость уровня — короче), потом шкала срастается за 1 с. У «опытного» 6–7 боёв из 10 кончаются раньше.',
+    'Характер: быстрые короткие броски (скорость ×1,05, размах ×0,6), сопротивление 24,4 %/с. Время в зоне — 120 %.',
+  ],
+  greenlandshark: [
+    'Срабатывает на 60–75 % улова, один раз за бой. 0,6 с — свист ветра, значок показывает, куда подует.',
+    '5 с ветра силой 35 % от разгона зоны: по ветру зона разгоняется ×1,35, против — ×0,65.',
+    'Меняет сторону 1–2 раза; за 0,4 с до смены значок мигает. Резкий дождь и шум ветра — всё время.',
+    'Сопротивление 34,5 %/с (было 46,2), время в зоне — 120 %.',
+  ],
+  oarfish: [
+    'Срабатывает на 60–75 % улова. 0,6 с — король замирает и зовёт селёдок.',
+    '3 мини-шкалы по очереди: кнопка ведёт зону мини-шкалы (32 %), селёдку надо подержать в зоне 0,5 с (копится).',
+    'Король ждёт: главная шкала стоит, улов откатывается на 1,5 %/с — не ниже 10 %, не сорвётся. За 12 с не успел — остальные уплывают.',
+    'После селёдок король рвёт: один цикл главного хода ×1,3.',
+    'Ход: круги раз в 8 с (было 2 с — он дрожал у дна, и его ловили, держа зону внизу). Сопротивление 31,3 %/с.',
+  ],
+  kalmar: [
+    'Срабатывает на 60–75 % улова. 0,5 с — кальмар набирает чернила.',
+    'Чернила 1,5 с закрывают всю шкалу: рыбы не видно, зона — контуром, катушку слышно. Ещё 1,5 с чернила стекают сверху вниз.',
+    'Под чернилами — реактивный выстрел.',
+    'Чует ловушку: зона ждёт у дна или верха 1 с без него — он держится за её краем. Ждать внизу больше нельзя (было 100 %, стало 0 %).',
+    'Сопротивление 6,2 %/с (было 7,5), время в зоне — 120 %. Характер боя тот же.',
+  ],
+  teeth: [
+    'Пример каркаса для нового острова (здесь — на ходу акулы-молота). Цифры — заготовка соседнему дизайнеру.',
+    '0,75 с — из стенок шкалы вырастают 2 зуба по 9 % (не на зоне и не друг на друге).',
+    '6 с: наехал зоной на зуб — минус 50 % улова и «Леска еле держится!». Второй раз — «Леска перекушена!», рыба ушла.',
+    'Стойкость уровня укорачивает время зубов.',
+  ],
+};
+const STATS = {
+  whiteshark: [[0, '20/98', '3/57'], [3, '48/99', '22/63'], [5, '78/100', '48/74'], [10, '98/100', '70/89'], [15, '100/100', '88/94']],
+  greenlandshark: [[0, '9/99', '5/77'], [3, '59/100', '21/88'], [5, '78/100', '45/98'], [10, '88/100', '70/99'], [15, '96/100', '79/100']],
+  oarfish: [[0, '12/2', '3/100'], [3, '49/76', '26/100'], [5, '67/96', '49/100'], [10, '77/100', '70/100'], [15, '81/100', '75/100']],
+  kalmar: [[0, '3/11', '0/3'], [3, '21/30', '4/10'], [5, '51/47', '23/36'], [10, '66/67', '49/65'], [15, '72/88', '71/95']],
+  teeth: null,
+};
+const SUBTITLE = {
+  whiteshark: 'Мифик пристани (место «большой белой»). Пробивает край шкалы.',
+  greenlandshark: 'Мифик ненастья. Ветер сдувает зону.',
+  oarfish: 'Мифик баркаса. Зовёт трёх селёдок.',
+  kalmar: 'Божественный улов. Чернила на шкалу.',
+  teeth: 'Каркас для нового острова: опасные зоны.',
+};
+const BANNERS = {
+  breach: ['Акула идёт на таран!', 'Пролом! Шкала +50 %', 'Шкала срослась'],
+  ink: ['Кальмар набирает чернила…', 'Чернила!', 'Чернила стекли'],
+  wind: ['Поднимается ветер…', 'Ветер!', 'Ветер стих'],
+  herring: ['Король зовёт селёдок!', 'Поймай 3 селёдки!', 'Король рванул!'],
+  teeth: ['Рыба скалит зубы!', 'Не задень зубы!', 'Зубы спрятала'],
+};
+
+const SVG = {
+  fish: '<svg viewBox="0 0 40 24"><path d="M3 12c5-7 14-9 22-6l7-5-1 8 1 7-7-5c-8 3-17 1-22-6z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="9" cy="10.5" r="1.7" fill="#1b1216"/></svg>',
+  hammer: '<svg viewBox="0 0 40 24"><path d="M7 12c5-6 14-8 21-5l7-5-1 8 1 7-7-5c-7 3-16 2-21-0z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6" stroke-linejoin="round"/><path d="M17 8l4-6 3 6z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.4" stroke-linejoin="round"/><rect x="2" y="3.5" width="6" height="17" rx="3" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6"/><circle cx="5" cy="6" r="1.4" fill="#1b1216"/><circle cx="5" cy="18" r="1.4" fill="#1b1216"/></svg>',
+  squid: '<svg viewBox="0 0 40 24"><path d="M14 12c-5-2-8-1-12-4M14 12c-5 0-8 1-12 0M14 12c-5 2-8 3-12 4" fill="none" stroke="rgba(20,12,16,.75)" stroke-width="3.6" stroke-linecap="round"/><path d="M14 12c-5-2-8-1-12-4M14 12c-5 0-8 1-12 0M14 12c-5 2-8 3-12 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 8c8-4 17-4 24 4-7 8-16 8-24 4z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6" stroke-linejoin="round"/><path d="M33 6l6 6-6 6z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.4" stroke-linejoin="round"/><circle cx="15" cy="11" r="1.8" fill="#1b1216"/></svg>',
+  ribbon: '<svg viewBox="0 0 40 24"><path d="M3 13c5-5 9 4 15 0s9-4 14 0 5 1 6 0" fill="none" stroke="rgba(20,12,16,.75)" stroke-width="6" stroke-linecap="round"/><path d="M3 13c5-5 9 4 15 0s9-4 14 0 5 1 6 0" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M4 9l-1-6M7 9l1-6M10 10l2-5M16 11l1-5M22 10l2-5M28 11l1-5" stroke="#e8364f" stroke-width="1.8" stroke-linecap="round"/><circle cx="5" cy="12.5" r="1.3" fill="#1b1216"/></svg>',
+  herring: '<svg viewBox="0 0 40 24"><path d="M3 12c5-6 14-8 22-5l7-5-1 8 1 7-7-5c-8 3-17 1-22-5z" fill="currentColor" stroke="rgba(20,30,40,.8)" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 13h16" stroke="#8fb0c4" stroke-width="1.4"/><circle cx="8" cy="10.5" r="1.8" fill="#1b1216"/></svg>',
+};
+const FISH_SVG = { whiteshark: SVG.hammer, greenlandshark: SVG.fish, oarfish: SVG.ribbon, kalmar: SVG.squid, teeth: SVG.hammer };
+
+// ---------------------------------------------------------------- состояние
+const $ = (id) => document.getElementById(id);
+const stage = $('stage'), barEl = $('bar'), zoneEl = $('zone'), fishEl = $('fish'), inkEl = $('ink'), fx = $('fx');
+const ctx = fx.getContext('2d');
+let cur = 'whiteshark';
+let level = 5;
+let r = null;
+let keyHeld = false, mouseHeld = false;
+let acc = 0, lastNow = performance.now();
+let seed = 1;
+let endAt = 0;
+let H = 300;
+let baseY = 0;
+let prev = { phase: 0, side: 0, n: 0, bites: 0, err: 0, stand: 0, mode: 0 };
+let clickT = 0;
+let senseUntil = 0, senseDir = 1;
+let shards = [];
+let rainAmt = 0, rainDrops = [];
+let soundOn = true;
+let wasStorm = false;
+
+// ---------------------------------------------------------------- звук (синтез WebAudio, без файлов)
+let ac = null, master = null, windNode = null, rainNode = null;
+function audio() {
+  if (!soundOn) return null;
+  if (!ac) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ac = new AC();
+    master = ac.createGain();
+    master.gain.value = 0.5;
+    master.connect(ac.destination);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function noiseBuf(sec) {
+  const b = ac.createBuffer(1, Math.floor(ac.sampleRate * sec), ac.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+function tone(f0, f1, dur, type = 'sine', vol = 0.2, delay = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(dur, freq, q, vol, type = 'bandpass', delay = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const s = a.createBufferSource(); s.buffer = noiseBuf(dur + 0.05);
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = a.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + 0.05);
+}
+const SFX = {
+  tick: () => noise(0.03, 3200, 2, 0.08, 'highpass'),
+  dart: () => tone(180, 90, 0.08, 'triangle', 0.12),
+  crack: () => { for (let i = 0; i < 4; i++) noise(0.04, 900 + i * 300, 4, 0.25, 'bandpass', i * 0.12); },
+  shatter: () => { noise(0.45, 1800, 0.7, 0.55); tone(110, 40, 0.35, 'sine', 0.5); for (let i = 0; i < 6; i++) tone(1400 + Math.random() * 1600, 900, 0.06, 'triangle', 0.06, 0.05 + i * 0.05); },
+  heal: () => { tone(330, 330, 0.08, 'square', 0.05); tone(440, 440, 0.08, 'square', 0.05, 0.12); tone(550, 550, 0.12, 'square', 0.05, 0.24); },
+  inkWarn: () => tone(240, 120, 0.3, 'sine', 0.15),
+  ink: () => { tone(320, 60, 0.35, 'sine', 0.4); noise(0.3, 500, 1, 0.3, 'lowpass'); },
+  call: () => { tone(880, 880, 0.15, 'sine', 0.12); tone(1175, 1175, 0.2, 'sine', 0.12, 0.15); },
+  herring: () => { tone(600, 1100, 0.12, 'sine', 0.2); noise(0.08, 2000, 1, 0.1); },
+  gone: () => tone(500, 250, 0.2, 'triangle', 0.1),
+  bite: () => { tone(1300, 600, 0.05, 'square', 0.25); noise(0.08, 2500, 2, 0.25); },
+  snap: () => { noise(0.2, 3000, 0.8, 0.5); tone(900, 120, 0.25, 'sawtooth', 0.2); },
+  gust: () => noise(0.6, 700, 0.8, 0.25),
+  win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.18, 'triangle', 0.18, i * 0.09)); },
+  lose: () => { tone(392, 196, 0.5, 'triangle', 0.18); },
+};
+function windSound(on, gust) {
+  const a = audio();
+  if (!a) return;
+  if (on && !windNode) {
+    const s = a.createBufferSource(); s.buffer = noiseBuf(2); s.loop = true;
+    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 0.9;
+    const g = a.createGain(); g.gain.value = 0.0001;
+    const lfo = a.createOscillator(); lfo.frequency.value = 0.35; const lg = a.createGain(); lg.gain.value = 260; lfo.connect(lg).connect(f.frequency);
+    s.connect(f).connect(g).connect(master); s.start(); lfo.start();
+    g.gain.exponentialRampToValueAtTime(0.32, a.currentTime + 0.6);
+    const rs = a.createBufferSource(); rs.buffer = noiseBuf(2); rs.loop = true;
+    const rf = a.createBiquadFilter(); rf.type = 'highpass'; rf.frequency.value = 2500;
+    const rg = a.createGain(); rg.gain.value = 0.0001; rg.gain.exponentialRampToValueAtTime(0.12, a.currentTime + 0.8);
+    rs.connect(rf).connect(rg).connect(master); rs.start();
+    windNode = { s, g, lfo, f }; rainNode = { s: rs, g: rg };
+  } else if (!on && windNode) {
+    const t = a.currentTime;
+    windNode.g.gain.cancelScheduledValues(t); windNode.g.gain.setValueAtTime(windNode.g.gain.value, t); windNode.g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    rainNode.g.gain.cancelScheduledValues(t); rainNode.g.gain.setValueAtTime(rainNode.g.gain.value, t); rainNode.g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    const w = windNode, rn = rainNode; setTimeout(() => { try { w.s.stop(); w.lfo.stop(); rn.s.stop(); } catch (e) { /* уже */ } }, 1700);
+    windNode = null; rainNode = null;
+  }
+  if (on && windNode && gust) windNode.f.frequency.setTargetAtTime(gust > 0 ? 900 : 450, a.currentTime, 0.2);
+}
+
+// ---------------------------------------------------------------- интерфейс: вкладки, уровень
+const FISH_KEYS = ['whiteshark', 'greenlandshark', 'oarfish', 'kalmar', 'teeth'];
+const TAB_NOTE = { whiteshark: 'пролом', greenlandshark: 'ветер', oarfish: 'селёдки', kalmar: 'чернила', teeth: 'каркас' };
+function buildTabs() {
+  const tabs = $('tabs');
+  for (const k of FISH_KEYS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tab'; b.dataset.k = k; b.dataset.tier = DATA.fish[k].tier;
+    b.innerHTML = `<i></i>${DATA.fish[k].name} <small>${TAB_NOTE[k]}</small>`;
+    b.addEventListener('click', () => { select(k); b.blur(); });
+    tabs.appendChild(b);
+  }
+}
+function select(k) {
+  cur = k;
+  for (const b of document.querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.k === k);
+  const f = DATA.fish[k];
+  stage.dataset.tier = f.tier;
+  stage.style.setProperty('--tc', f.tier === 'divine' ? 'var(--divine)' : 'var(--myth)');
+  $('label').textContent = f.tier === 'divine' ? 'Божественный улов!!!' : 'Мифическая рыба!!';
+  fishEl.innerHTML = FISH_SVG[k] + '<span class="arrow" id="arrow">↑</span>';
+  $('sc-title').textContent = f.name;
+  $('sc-text').textContent = SUBTITLE[k];
+  $('rules-t').textContent = `${f.name}: как работает`;
+  $('rules').innerHTML = RULES[k].map((s) => `<li>${s}</li>`).join('');
+  const st = STATS[k];
+  $('stats').innerHTML = st
+    ? '<tr><th>Уровень</th><th>было</th><th>стало</th></tr>' + st.map(([l, a, b]) => `<tr><td>ур. ${l}</td><td><s>${a}</s></td><td><b>${b}</b></td></tr>`).join('')
+    : '<tr><td>Пример каркаса — не откалиброван. На долгом бою кальмара модель вытаскивает 2–9 % (ур. 10–15): зубы — рыбе с коротким боем.</td></tr>';
+  setLevel(level);
+  $('stats-n').textContent = st ? '«обычный» / «опытный» игрок модели (реакция ~230 и ~150 мс); снаряжение типичное: ур. 3 — удочка 1 + бронза, 5 — 2 + серебро, 10 — 3 + золото, 15 — легендарная + платина.' : '';
+  reset();
+}
+function setLevel(l) {
+  level = l;
+  $('lvo').textContent = l;
+  const L = DATA.levels[l];
+  const st = DATA.fish[cur].styles[l];
+  $('gear').innerHTML = `Удочка: ${L.rod} · блесна: ${L.lure}<br>Зона ${Math.round(st.zoneBase)} % → <b>${Math.round(st.zone)} %</b> (×${st.zoneMul.toFixed(2).replace('.', ',')}: +1,5 % за уровень × удочка)`;
+  $('perks').innerHTML = DATA.perks.map((p) => `<li class="${p.level <= l ? 'have' : ''} ${p.level === l ? 'now' : ''}"><b>${p.level}</b><span>${p.name} <em>— ${p.text}</em></span></li>`).join('');
+  if (!r || r.done !== 0) reset();
+}
+
+// ---------------------------------------------------------------- бой
+function reset() {
+  r = null;
+  $('startcard').classList.remove('hide');
+  $('startcard').style.top = ''; $('startcard').style.transform = '';
+  $('result').className = 'result';
+  clearFx();
+  layout();
+  renderIdle();
+}
+function start() {
+  audio();
+  seed = (Math.random() * 0x7fffffff) | 0;
+  const st = DATA.fish[cur].styles[level];
+  r = reelStart(st, seed, false);
+  prev = { phase: 0, side: 0, n: 0, bites: 0, err: 0, stand: 0, mode: 0 };
+  $('startcard').classList.add('hide');
+  $('result').className = 'result';
+  $('seed').textContent = `сид ${seed} · повтор боя — тот же итог на сервере`;
+  $('hint').style.opacity = '1';
+  clearFx();
+  acc = 0; lastNow = performance.now();
+  layout();
+  buildMinis();
+  $('mark').classList.toggle('on', DATA.levels[level].bonus.abilityMark && !!r.ab);
+  if (r.ab) $('mark').style.left = `${(r.ab.at / REEL_P_MAX) * 100}%`;
+  const hab = DATA.levels[level].bonus.habits;
+  $('habits').style.display = hab ? '' : 'none';
+  if (hab) $('habits').textContent = `Повадка: ${PATTERN_NAMES[st.mainPattern]} · ${PATTERN_NAMES[st.secondaryPattern]}`;
+  barEl.classList.toggle('master', DATA.levels[level].bonus.master);
+}
+function clearFx() {
+  shards = []; rainAmt = 0;
+  inkEl.className = 'ink'; $('splat').className = 'splat';
+  $('teeth').innerHTML = ''; $('cracks').className = 'cracks';
+  $('windb').className = 'windb'; $('wait').className = 'pill wait';
+  $('minis').innerHTML = ''; stage.classList.remove('storm');
+  windSound(false);
+  barEl.style.opacity = '';
+}
+
+function held() { return keyHeld || mouseHeld; }
+
+function step() {
+  const ab = r.ab;
+  reelStep(r, held());
+  // звук катушки и рывки — как в игре
+  if (reelPulling(r) && ++clickT >= 5) { clickT = 0; SFX.tick(); }
+  if (r.mode === 2 && prev.mode !== 2) SFX.dart();
+  prev.mode = r.mode;
+  if (!ab) return;
+  const v = abilityView(r);
+  if (v.phase !== prev.phase) onPhase(v, prev.phase);
+  if (ab.id === 'wind' && v.phase === 2 && v.wind !== prev.side && prev.side !== 0) { banner('Ветер сменился!', 0.85); SFX.gust(); windSound(true, v.wind); }
+  if (ab.id === 'herring' && v.phase === 2 && ab.n !== prev.n) { SFX.herring(); markMini(prev.n, 'done'); }
+  if (ab.id === 'teeth' && v.bites !== prev.bites) {
+    barEl.classList.remove('bite'); void barEl.offsetWidth; barEl.classList.add('bite');
+    if (v.bites === 1) { SFX.bite(); warn('Леска еле держится!'); } else SFX.snap();
+  }
+  prev.phase = v.phase; prev.side = v.wind; prev.n = ab.n; prev.bites = v.bites;
+}
+
+function onPhase(v, was) {
+  const ab = r.ab, B = BANNERS[ab.id];
+  document.documentElement.style.setProperty('--warn', `${ab.spec.warn / 60}s`);
+  if (v.phase === 1) {
+    banner(B[0], 1);
+    if (ab.id === 'breach') { const c = $('cracks'); c.className = 'cracks on'; c.style.top = ab.side > 0 ? '0' : ''; c.style.bottom = ab.side > 0 ? '' : '0'; c.style.transform = ab.side > 0 ? '' : 'scaleY(-1)'; SFX.crack(); }
+    if (ab.id === 'ink') { fishEl.classList.add('puff'); SFX.inkWarn(); }
+    if (ab.id === 'wind') { $('windb').className = `windb on warn ${v.wind < 0 ? 'down' : ''}`; stage.classList.add('storm'); windSound(true, v.wind); }
+    if (ab.id === 'herring') { SFX.call(); }
+    if (ab.id === 'teeth') { drawTeeth(true); SFX.bite(); }
+  } else if (v.phase === 2) {
+    banner(B[1], 1.2);
+    if (ab.id === 'breach') { $('cracks').className = 'cracks'; SFX.shatter(); burst(ab.side); }
+    if (ab.id === 'ink') { fishEl.classList.remove('puff'); SFX.ink(); splat(); }
+    if (ab.id === 'wind') { $('windb').classList.remove('warn'); SFX.gust(); }
+    if (ab.id === 'herring') { markMini(0, 'on'); $('wait').className = 'pill wait on'; barEl.style.opacity = '0.55'; }
+  } else if (v.phase === 3) {
+    banner(B[2], 0.9);
+    if (ab.id === 'breach') SFX.heal();
+    if (ab.id === 'ink') inkEl.className = 'ink';
+    if (ab.id === 'wind') { $('windb').className = 'windb'; stage.classList.remove('storm'); windSound(false); }
+    if (ab.id === 'herring') { for (let i = 0; i < 3; i++) if (!$('mini' + i).classList.contains('done')) markMini(i, 'gone'); $('wait').className = 'pill wait'; barEl.style.opacity = ''; SFX.dart(); }
+    if (ab.id === 'teeth') $('teeth').innerHTML = '';
+  }
+}
+
+function finish() {
+  const res = $('result');
+  const won = r.done === 1;
+  res.className = `result ${won ? 'won' : 'lost'}`;
+  const forgive = DATA.levels[level].bonus.forgive;
+  const g = reelGrade(Math.max(0, r.err - forgive));
+  res.innerHTML = won ? `Поймал! 🎣<small>${REEL_GRADES[g].name} · ×${String(REEL_GRADES[g].xp).replace('.', ',')} опыта</small>`
+    : reelBitten(r) ? 'Леска перекушена!' : reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…';
+  won ? SFX.win() : SFX.lose();
+  windSound(false);
+  endAt = performance.now();
+  setTimeout(() => {
+    if (!r || r.done === 0 || performance.now() - endAt < 1400) return;
+    const sc = $('startcard');
+    sc.style.top = `${parseFloat(res.style.top) + 70}px`; sc.style.transform = 'translate(-50%, 0)';
+    $('go').textContent = '🎣 Ещё раз';
+    sc.classList.remove('hide');
+  }, 1500);
+}
+
+// ---------------------------------------------------------------- рисование
+function layout() {
+  // шкала — как в игре (до 300 px), а сцена — с запасом по 0,5 шкалы сверху и снизу под пролом акулы-молота
+  H = Math.round(Math.min(300, Math.max(170, (innerHeight - 380) / 2)));
+  stage.style.height = `${2 * H + 170}px`;
+  const sh = stage.clientHeight;
+  baseY = Math.round(sh / 2 + H / 2);
+  const w = stage.clientWidth;
+  fx.width = w * devicePixelRatio; fx.height = sh * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+const yOf = (u) => baseY - (u / REEL_BAR) * H;
+
+function renderIdle() {
+  const lo = 0, hi = REEL_BAR;
+  placeColumn(lo, hi);
+  const st = DATA.fish[cur].styles[level];
+  zoneEl.style.bottom = '0%'; zoneEl.style.height = `${st.zone}%`; zoneEl.className = 'zone';
+  fishEl.style.bottom = `${st.zone / 2}%`; fishEl.style.transform = 'translate(-50%, 50%)';
+  $('fill').style.width = `${st.pStart ?? 25}%`; $('fill').style.background = `hsl(${Math.round(0.25 * 120)} 72% 48%)`;
+  $('grade').innerHTML = '0 ошибок<b>Идеально ×2,5</b>';
+  $('warnline').className = 'pill warnline';
+  $('mark').classList.remove('on');
+  $('habits').style.display = 'none';
+  barEl.className = 'bar';
+  barEl.classList.toggle('master', DATA.levels[level].bonus.master);
+  $('deep').style.display = 'none'; $('seam').style.display = 'none';
+  $('seed').textContent = '';
+  $('go').textContent = '🎣 Подсечь';
+  setLevelText();
+}
+function setLevelText() { /* место под будущие подписи */ }
+
+function placeColumn(lo, hi) {
+  const top = yOf(hi), bottom = yOf(lo);
+  barEl.style.top = `${top}px`; barEl.style.height = `${bottom - top}px`;
+  $('label').style.top = `${top - 44}px`;
+  $('habits').style.top = `${top - 74}px`;
+  $('prog').style.top = `${bottom + 12}px`;
+  $('grade').style.top = `${bottom + 38}px`;
+  $('warnline').style.top = `${bottom + 66}px`;
+  $('hint').style.top = `${bottom + 66}px`;
+  $('banner').style.top = `${top - 100 >= 26 ? top - 100 : bottom + 118}px`;
+  $('result').style.top = `${(top + bottom) / 2}px`;
+  const cx = stage.clientWidth / 2;
+  $('windb').style.left = `${cx + 52}px`; $('windb').style.top = `${(top + bottom) / 2}px`;
+  $('minis').style.right = `${stage.clientWidth - cx + 50}px`; $('minis').style.top = `${(top + bottom) / 2 - H * 0.3}px`;
+  $('wait').style.top = `${(top + bottom) / 2 - H * 0.3 - 34}px`;
+  $('wait').style.left = `${cx - 50 - 70}px`;
+}
+
+function pct(u, lo, hi) { return ((u - lo) / (hi - lo)) * 100; }
+
+function render(now) {
+  if (!r) return;
+  const lo = r.lo, hi = r.hi;
+  placeColumn(lo, hi);
+  // пролом: старый край — шов, новая часть — глубже/светлее
+  const ext = lo < 0 || hi > REEL_BAR;
+  $('deep').style.display = ext ? 'block' : 'none';
+  $('seam').style.display = ext ? 'block' : 'none';
+  if (ext) {
+    const edge = lo < 0 ? 0 : REEL_BAR;
+    $('seam').style.bottom = `${pct(edge, lo, hi)}%`;
+    const d = $('deep');
+    d.className = `deep ${hi > REEL_BAR ? 'top' : ''}`;
+    if (lo < 0) { d.style.bottom = '0'; d.style.top = ''; d.style.height = `${pct(0, lo, hi)}%`; }
+    else { d.style.top = '0'; d.style.bottom = ''; d.style.height = `${100 - pct(REEL_BAR, lo, hi)}%`; }
+  }
+  const v = abilityView(r);
+  const inkTop = v && v.id === 'ink' ? v.ink : 0;
+  // зона
+  zoneEl.style.bottom = `${pct(r.z, lo, hi)}%`;
+  zoneEl.style.height = `${(r.zone / (hi - lo)) * 100}%`;
+  const pulling = reelPulling(r);
+  zoneEl.className = `zone ${pulling ? 'in' : ''} ${reelSlack(r) ? 'slack' : ''} ${reelTaut(r) ? 'taut' : ''} ${inkTop >= 0.999 || (inkTop > 0 && r.z < lo + inkTop * (hi - lo)) ? 'inked' : ''} ${r.wind ? 'windy' : ''} ${r.wind < 0 ? 'down' : ''}`;
+  // рыба
+  fishEl.style.bottom = `${pct(r.f, lo, hi)}%`;
+  const tilt = Math.max(-28, Math.min(28, -r.fv / 25));
+  fishEl.style.transform = `translate(-50%, 50%) rotate(${tilt.toFixed(1)}deg)`;
+  // чутьё (ур. 4+): рыба вздрагивает перед рывком; острое (12+) — стрелка
+  const b = DATA.levels[level].bonus;
+  fishEl.classList.toggle('sense', now < senseUntil && r.done === 0 && inkTop < 0.999);
+  const ar = fishEl.querySelector('.arrow');
+  if (ar) { ar.classList.toggle('on', b.senseArrow); ar.textContent = senseDir > 0 ? '↑' : '↓'; }
+  barEl.classList.toggle('dart', r.mode === 2 && r.done === 0);
+  barEl.classList.toggle('quake', !!v && v.id === 'breach' && v.phase === 1);
+  // чернила
+  if (v && v.id === 'ink' && v.phase === 2) {
+    inkEl.className = `ink on ${v.ink >= 0.999 ? 'full' : ''}`;
+    inkEl.style.height = `${v.ink * 100}%`;
+    if (!$('drips').childElementCount) $('drips').innerHTML = [6, 14, 22, 31, 40].map((x, i) => `<i style="left:${x}px;height:${18 + (i * 13) % 34}px;animation-delay:${i * 0.17}s"></i>`).join('');
+  }
+  // ветер
+  if (v && v.id === 'wind' && (v.phase === 1 || v.phase === 2)) {
+    const wb = $('windb');
+    wb.classList.toggle('down', v.wind < 0);
+    wb.classList.toggle('turn', v.phase === 2 && v.windNext >= 0 && v.windNext <= 24);
+    $('windt').textContent = v.phase === 1 ? 'ветер…' : v.wind > 0 ? 'дует вверх' : 'дует вниз';
+    rainAmt = Math.min(1, rainAmt + 0.04);
+  } else rainAmt = Math.max(0, rainAmt - 0.015);
+  // селёдки
+  if (v && v.minion) renderMini(v.minion);
+  // зубы
+  if (v && v.id === 'teeth' && v.phase === 2 && !$('teeth').childElementCount) drawTeeth(false);
+  // улов
+  const p = r.p / REEL_P_MAX;
+  $('fill').style.width = `${(p * 100).toFixed(1)}%`;
+  $('fill').style.background = `hsl(${Math.round(p * 120)} 72% 48%)`;
+  $('prog').classList.toggle('low', p < 0.15 && r.done === 0);
+  if (r.err !== prev.err) {
+    prev.err = r.err;
+    const e = Math.max(0, r.err - b.forgive);
+    const g = reelGrade(e);
+    $('grade').innerHTML = `${r.err} ${plural(r.err, 'ошибка', 'ошибки', 'ошибок')}${b.forgive && r.err ? ' (1 не в счёт)' : ''}<b>${REEL_GRADES[g].name} ×${String(REEL_GRADES[g].xp).replace('.', ',')}</b>`;
+  }
+  const wl = $('warnline');
+  if (r.done === 0 && reelSlack(r)) setWarn('Леска провисла — приподними зону!');
+  else if (r.done === 0 && reelTaut(r)) setWarn('Леска натянута — отпусти!');
+  else if (wl.dataset.kind === 'line') { wl.className = 'pill warnline'; wl.dataset.kind = ''; }
+  if (r.t > 150 && held()) $('hint').style.opacity = '0';
+}
+function setWarn(t) {
+  const wl = $('warnline');
+  if (wl.dataset.kind !== 'line' || wl.textContent !== t) { wl.textContent = t; wl.className = 'pill warnline on'; wl.dataset.kind = 'line'; }
+}
+function warn(t) {
+  const wl = $('warnline');
+  wl.textContent = t; wl.dataset.kind = 'ab';
+  wl.className = 'pill warnline'; void wl.offsetWidth; wl.className = 'pill warnline on';
+  setTimeout(() => { if (wl.dataset.kind === 'ab') { wl.className = 'pill warnline'; wl.dataset.kind = ''; } }, 2200);
+}
+function plural(n, a, b, c) { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; }
+function banner(text, dur) {
+  const el = $('banner');
+  el.textContent = text; el.className = 'banner'; void el.offsetWidth; el.className = 'banner on';
+  el.style.animationDuration = `${1.6 * dur}s`;
+}
+
+// мини-шкалы
+function buildMinis() {
+  const m = $('minis'); m.innerHTML = '';
+  if (!r.ab || r.ab.id !== 'herring') return;
+  for (let i = 0; i < (r.ab.spec.count ?? 3); i++) {
+    const d = document.createElement('div');
+    d.className = 'mini'; d.id = 'mini' + i; d.style.height = `${Math.round(H * 0.6)}px`;
+    d.innerHTML = `<div class="water"></div><div class="zone"></div><div class="hf">${SVG.herring}</div><div class="ok">✓</div><div class="hold"><i></i></div>`;
+    d.style.display = 'none';
+    m.appendChild(d);
+  }
+}
+function markMini(i, cls) {
+  const d = $('mini' + i); if (!d) return;
+  d.style.display = '';
+  if (cls === 'done') { d.className = 'mini done'; const n = $('mini' + (i + 1)); if (n && r.ab && r.ab.phase === 2) { n.style.display = ''; n.className = 'mini on'; } }
+  else d.className = `mini ${cls}`;
+}
+function renderMini(m) {
+  const d = $('mini' + m.n); if (!d) return;
+  if (!d.classList.contains('on')) markMini(m.n, 'on');
+  const z = d.querySelector('.zone');
+  z.style.bottom = `${m.z0 * 100}%`; z.style.height = `${(m.z1 - m.z0) * 100}%`;
+  const inz = m.fish >= m.z0 - 0.01 && m.fish <= m.z1 + 0.01;
+  z.classList.toggle('in', inz);
+  const f = d.querySelector('.hf');
+  f.style.bottom = `${m.fish * 100}%`;
+  d.querySelector('.hold i').style.width = `${(m.hold / m.need) * 100}%`;
+  const left = Math.max(0, r.ab.dur - r.ab.t) / 60;
+  $('wait').textContent = `Король ждёт · ${left.toFixed(0)} с`;
+}
+
+// зубы
+function drawTeeth(grow) {
+  const v = abilityView(r);
+  const box = $('teeth'); box.innerHTML = '';
+  for (let i = 0; i < v.teeth.length; i += 2) {
+    const a = v.teeth[i], b = v.teeth[i + 1];
+    const t = document.createElement('div');
+    t.className = `tooth ${grow ? 'grow' : ''}`;
+    t.style.bottom = `${a * 100}%`; t.style.height = `${(b - a) * 100}%`;
+    t.innerHTML = '<svg viewBox="0 0 48 20" preserveAspectRatio="none"><rect x="0" y="0" width="48" height="20" fill="rgba(160,20,30,.35)"/><path d="M0 0 L10 10 L0 20 Z M48 0 L38 10 L48 20 Z M12 0 L18 8 L24 0 Z M24 20 L30 12 L36 20 Z" fill="#fff8ec" stroke="#5a1a1a" stroke-width="1.2"/></svg>';
+    box.appendChild(t);
+  }
+}
+
+// эффекты: осколки, брызги, дождь
+function burst(side) {
+  const cx = stage.clientWidth / 2;
+  const y = side > 0 ? yOf(REEL_BAR) : yOf(0);
+  const cols = ['#7a4e2c', '#a8754a', '#5a3a1f', '#b8323f', '#d9a76f'];
+  for (let i = 0; i < 26; i++) {
+    const a = (Math.random() - 0.5) * Math.PI * 0.9 + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+    const sp = 180 + Math.random() * 320;
+    shards.push({ x: cx + (Math.random() - 0.5) * 50, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 18,
+      w: 4 + Math.random() * 9, h: 2 + Math.random() * 4, c: cols[i % cols.length], life: 1.1 + Math.random() * 0.5, water: false });
+  }
+  for (let i = 0; i < 22; i++) {
+    const a = (Math.random() - 0.5) * Math.PI * 1.2 + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+    const sp = 120 + Math.random() * 260;
+    shards.push({ x: cx + (Math.random() - 0.5) * 40, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: 0, vr: 0, w: 3 + Math.random() * 3, h: 3, c: 'rgba(190,235,255,.9)', life: 0.8 + Math.random() * 0.4, water: true });
+  }
+}
+function splat() {
+  const sp = $('splat');
+  const top = yOf(r.hi), bottom = yOf(r.lo);
+  sp.style.left = `${stage.clientWidth / 2}px`;
+  sp.style.top = `${bottom - (r.f - r.lo) / (r.hi - r.lo) * (bottom - top)}px`;
+  sp.className = 'splat'; void sp.offsetWidth; sp.className = 'splat on';
+  setTimeout(() => { sp.className = 'splat'; }, 500);
+}
+function drawFx(dt) {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  // дождь
+  if (rainAmt > 0.01) {
+    const want = Math.round(160 * rainAmt);
+    while (rainDrops.length < want) rainDrops.push({ x: Math.random() * (w + 200) - 100, y: Math.random() * h, s: 700 + Math.random() * 500, l: 12 + Math.random() * 14 });
+    rainDrops.length = Math.min(rainDrops.length, want);
+    const wind = r && r.wind ? Math.sign(r.wind) : 0;
+    ctx.strokeStyle = `rgba(225, 240, 255, ${0.55 * rainAmt})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (const d of rainDrops) {
+      d.y += d.s * dt; d.x += -0.25 * d.s * dt;
+      if (d.y > h) { d.y = -20; d.x = Math.random() * (w + 200) - 100; }
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + d.l * 0.25, d.y - d.l * (1 + 0.2 * wind));
+    }
+    ctx.stroke();
+  } else rainDrops.length = 0;
+  // осколки и брызги
+  shards = shards.filter((s) => (s.life -= dt) > 0);
+  for (const s of shards) {
+    s.vy += 900 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.rot += s.vr * dt;
+    ctx.save(); ctx.globalAlpha = Math.min(1, s.life * 1.6); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.fillStyle = s.c;
+    if (s.water) { ctx.beginPath(); ctx.arc(0, 0, s.w / 2, 0, Math.PI * 2); ctx.fill(); } else ctx.fillRect(-s.w / 2, -s.h / 2, s.w, s.h);
+    ctx.restore();
+  }
+}
+
+// чутьё: заглянуть вперёд по той же модели (рыба не зависит от зоны, кроме «чует ловушку»)
+function lookAhead(now) {
+  const b = DATA.levels[level].bonus;
+  if (!b.senseMs || !r || r.done !== 0 || r.mode === 2 || r.t % 3) return;
+  const q = structuredClone(r);
+  const n = Math.round(b.senseMs / (1000 / 60));
+  for (let i = 0; i < n && q.done === 0; i++) {
+    reelStep(q, held());
+    if (q.mode === 2) { senseUntil = now + b.senseMs; senseDir = q.fv >= 0 ? 1 : -1; return; }
+  }
+}
+
+// ---------------------------------------------------------------- цикл
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastNow) / 1000);
+  // window.__pause — стоп-кадр для снимков (модель шагают руками)
+  if (r && r.done === 0 && !window.__pause) {
+    acc += Math.min(250, now - lastNow);
+    while (acc >= 1000 / 60 && r.done === 0) {
+      acc -= 1000 / 60;
+      step();
+      lookAhead(now);
+    }
+    if (r.done !== 0) finish();
+  }
+  lastNow = now;
+  render(now);
+  drawFx(dt);
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- управление: мышь, пробел, палец
+stage.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button')) return;
+  e.preventDefault();
+  if (!r || r.done !== 0) { if (!r) start(); else if (performance.now() - endAt > 500) start(); return; }
+  mouseHeld = true;
+});
+addEventListener('pointerup', () => { mouseHeld = false; });
+addEventListener('pointercancel', () => { mouseHeld = false; });
+addEventListener('blur', () => { mouseHeld = false; keyHeld = false; });
+addEventListener('keydown', (e) => {
+  if (e.code !== 'Space') return;
+  e.preventDefault();
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  if (e.repeat) return;
+  if (!r || (r.done !== 0 && performance.now() - endAt > 500)) { start(); return; }
+  keyHeld = true;
+});
+addEventListener('keyup', (e) => { if (e.code === 'Space') keyHeld = false; });
+$('go').addEventListener('click', (e) => { start(); e.currentTarget.blur(); });
+$('lv').addEventListener('input', (e) => setLevel(Number(e.target.value)));
+$('snd').addEventListener('click', (e) => { e.currentTarget.blur(); soundOn = !soundOn; $('snd').textContent = soundOn ? '🔊 Звук' : '🔇 Без звука'; if (!soundOn) windSound(false); });
+addEventListener('resize', () => { layout(); if (!r) renderIdle(); });
+
+buildTabs();
+select('whiteshark');
+setLevel(5);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
