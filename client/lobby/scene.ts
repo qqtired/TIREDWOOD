@@ -2821,7 +2821,7 @@ export class LobbyScene implements Scene {
     else if (ph === FP_REEL && this.fish2.on) h.setHint(TOUCH ? null : ['ЛКМ', '/', 'Пробел'], 'держи — зелёная зона вверх, отпусти — вниз · рыба в зоне — шкала растёт · X — прекратить');
     else if (ph === FP_REEL) h.setHint([], 'Тянем! 🎣');
     // рыба в руках ждёт выбора: сперва «В рюкзак» или «Отпустить» (кнопки карточки), потом ЛКМ снова забрасывает
-    else if (this.fish2.on && this.fish2.choosing) h.setHint(TOUCH ? null : ['1', '/', 'F'], 'в рюкзак / отпустить рыбу · потом ЛКМ — забросить');
+    else if (this.fish2.on && this.fish2.choosing) h.setHint(TOUCH ? null : ['1', '/', 'F'], `${this.fish2.keepWhere} / отпустить рыбу · потом ЛКМ — забросить`);
     else if (this.fish2.on) h.setHint(cast, `забросить снова${TOUCH ? '' : ' · J — журнал'}`);
     // на телефоне всё видно на самой карточке улова
     else h.setHint(TOUCH ? null : ['1', '/', '2'], 'в коллекцию или продать');

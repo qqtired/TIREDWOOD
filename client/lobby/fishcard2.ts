@@ -75,6 +75,11 @@ export class CatchCard2 {
     return this.choosing !== null && this.shown;
   }
 
+  /** Рыба в руках легла в лайвел своей лодки (рюкзак был полон) */
+  get inWell(): boolean {
+    return this.choosing?.well !== undefined;
+  }
+
   show(m: Land): void {
     const r = RULE[m.sp];
     const f = FISH[m.sp];

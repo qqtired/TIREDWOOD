@@ -184,7 +184,7 @@ export class FishProgressHud {
     const parts: string[] = [];
     if (lure) parts.push(`🪝 ${lure.name.toLowerCase()} · рывки −${Math.round(lure.calm * 100)}%`);
     if (this.zone === 'barkas') parts.push(`⚓ баркас · цена и опыт ${mul(BARKAS_INCOME)}`);
-    if (this.zone === 'isle') parts.push(`🏝 остров · опыт ${mul(ISLE_XP)}`);
+    if (this.zone === 'isle') parts.push(`🏝 опыт ${mul(ISLE_XP)}`);
     this.gear.textContent = parts.join('  ·  ');
     this.gear.hidden = parts.length === 0;
   }
