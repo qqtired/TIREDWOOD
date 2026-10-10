@@ -218,6 +218,8 @@ export class FarmBoss {
     const actor = new Actor(this.coneModel);
     actor.root.position.set(x, 0, z);
     actor.root.rotation.y = Math.random() * Math.PI * 2;
+    // крупнее модели: в траве с 6–8 м шишку должно быть видно
+    actor.root.scale.setScalar(1.5);
     actor.loop('idle');
     actor.play('land');
     this.stump.parent?.add(actor.root);
