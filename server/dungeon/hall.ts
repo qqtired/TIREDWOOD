@@ -145,7 +145,7 @@ export class DungeonHall implements DgRoomHost {
     this.h.store.markDirty();
     this.h.settled(c);
     const notes = [run.mismatches ? `расхождений с клиентом: ${run.mismatches}` : '', run.bad ? `битых событий: ${run.bad}` : ''].filter(Boolean).join(', ');
-    this.h.log(`[подземелье] ${p.nick} (#${p.id}): ${r.waves} волн за ${dgClock(r.ms)}, ${r.end}, +${run.coins} 🪙${notes ? `; ${notes}` : ''}`);
+    this.h.log(`[подземелье] ${p.nick} (#${p.id}): отбито волн — ${r.waves} за ${dgClock(r.ms)}, ${r.end}, +${run.coins} 🪙${notes ? `; ${notes}` : ''}`);
     // вышел посреди забега — итог тостом (экран итогов он уже не увидит)
     if (r.end !== 'death' && run.coins > 0) this.h.toast(c, `🕯️ Подземелье: отбито волн — ${r.waves}, +${run.coins} 🪙 за забег`);
     // в общий чат: личный рекорд с 10-й волны или место в тройке недели (design.md §13)

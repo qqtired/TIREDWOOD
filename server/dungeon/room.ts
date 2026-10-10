@@ -28,6 +28,8 @@ const SLACK_TICKS = 3 * DG_HZ;
 const FINAL_STEPS = 60 * DG_HZ;
 /** Сколько последних сумм состояния клиента держим для сверки */
 const CHECKS_KEEP = 16;
+/** Не больше стольких принятых, но ещё не применённых событий (сервер отстаёт от клиента на секунды — обычно их десятки) */
+const PENDING_MAX = 3000;
 /** Забег засчитывается в «забегов», если отбита волна, герой погиб или игра шла хотя бы столько шагов */
 export const RUN_MIN_TICKS = 30 * DG_HZ;
 
@@ -176,8 +178,8 @@ export class DungeonRoom implements Room {
       c.sink.sendJson({ t: 'dg_ack', n: this.received });
       return;
     }
-    // пропуск в журнале — прислать заново с того, что есть
-    if ((from as number) > this.received) {
+    // пропуск в журнале — прислать заново с того, что есть; копия слишком отстала — тоже позже
+    if ((from as number) > this.received || this.events.length - this.head + ev.length > PENDING_MAX) {
       c.sink.sendJson({ t: 'dg_ack', n: this.received, need: this.received });
       return;
     }
@@ -298,8 +300,8 @@ export class DungeonRoom implements Room {
     this.over = true;
     this.lastHeard = this.host.now();
     this.settleWaves();
-    const r = this.host.api.dgResult(this.sim);
-    r.end = end;
+    // копия итога: чем кончился — решает сервер (смерть по копии, выход, тайм-аут)
+    const r: DgResult = { ...this.host.api.dgResult(this.sim), end };
     const prevBest = c.profile?.stats.dgBest ?? 0;
     if (r.waves > prevBest) this.pay.record = this.credit(DG_RECORD_COINS);
     const { newBest, weekRank } = this.host.settle(c, r, { coins: this.coins, ticks: this.sim.tick, mismatches: this.mismatches, bad: this.bad });
