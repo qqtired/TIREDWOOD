@@ -95,6 +95,8 @@ export interface VPickup {
   kind: PickupKind;
   x: number;
   z: number;
+  /** сундук: нет — выпал из элиты (значок), 'map' — обычный сундук карты, 'isle' — сундук островка (модели) */
+  src?: 'map' | 'isle';
 }
 
 export type BuildingKind = 'altar' | 'brazier' | 'chest' | 'spring' | 'lamppost' | 'minecart' | 'keg' | 'trampoline' | 'forge';

@@ -9,7 +9,7 @@ import { D, LV } from './data.ts';
 import { emptyWave, goNow, stepDirector } from './director.ts';
 import { stepHero } from './hero.ts';
 import { addPuddle, cleanupMobs, pushHero, stepMobs } from './mobs.ts';
-import { stepPickups } from './pickups.ts';
+import { initChests, stepPickups } from './pickups.ts';
 import { ban, maybeOpenChoice, pick, reroll, xpNeed } from './progress.ts';
 import { enemyHitsKegs, initProps, scanProps, stepProps } from './props.ts';
 import type { DgMark, DgSim } from './types.ts';
@@ -39,7 +39,7 @@ export function createRun(seed: number): DgSim {
       x: sp.x, z: sp.z, dx: 0, dz: 1, vx: 0, vz: 0, kx: 0, kz: 0, hp: D.hero.hp, hpMax: D.hero.hp, level: 1, xp: 0, xpNext: xpNeed(1),
       dashCd: 0, dashCdMax: ticks(D.actives.dash.cooldown), dashT: 0, ddx: 0, ddz: 0, invT: 0,
       qCd: 0, qCdMax: ticks(D.actives.strike.cooldown), qHold: 0, qFull: ticks(D.actives.strike.chargeTime) + 1,
-      hurtT: -100, jumpT0: 0, jumpT1: 0, jx0: 0, jz0: 0, jx1: 0, jz1: 0, ride: -1, useId: -1, useT0: 0, useT1: 0, buffs: [], slow: 1, dead: 0,
+      hurtT: -100, jumpT0: 0, jumpT1: 0, jx0: 0, jz0: 0, jx1: 0, jz1: 0, ride: -1, useId: -1, useT0: 0, useT1: 0, lockId: -1, buffs: [], slow: 1, dead: 0,
     },
     weapons: [{ id: D.hero.startWeapon, lv: 1, evo: 0, cd: 0, t2: 0 }],
     passives: [],
@@ -66,6 +66,7 @@ export function createRun(seed: number): DgSim {
     evoReady: [],
     freezeT: 0,
     bossT0: 0,
+    isleT: 0,
     in: { mx: 0, mz: 0, q: 0, qPress: 0, dash: 0, use: 0 },
     stats: { kills: 0, bosses: 0, dmg: {}, killedBy: '', waves: 0, ms: 0, chests: 0, lamps: 0 },
     fx: [],
@@ -74,6 +75,7 @@ export function createRun(seed: number): DgSim {
   };
   sim.wave.t1 = ticks(INTRO);
   initProps(sim);
+  initChests(sim);
   return sim;
 }
 

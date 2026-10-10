@@ -112,6 +112,8 @@ export interface HudChest {
   items: { id?: string; kind?: 'weapon' | 'passive' | 'evo'; icon: string; name: string; from: number; to: number; evo?: boolean }[];
   /** большой (босса) */
   big: boolean;
+  /** свой заголовок (сундук карты — «Сундук», островка — «Сундук островка») */
+  title?: string;
   /** всё собрано: вместо вещей — «+50 опыта и +30 HP» */
   fallback?: string;
 }

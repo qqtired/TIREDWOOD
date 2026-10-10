@@ -1,6 +1,6 @@
 // «Подземелье»: опыт, уровни, карточки (сразу при уровне, мир стоит), перебросы, изгнания, сундуки, эволюции.
 import { fx, healHero, KB_V, passiveLv } from './core.ts';
-import { D, evoOf, passiveDef, PASSIVE_IDS, WEAPON_IDS, weaponDef } from './data.ts';
+import { D, evoOf, interNum, passiveDef, PASSIVE_IDS, WEAPON_IDS, weaponDef } from './data.ts';
 import type { DgCard, DgChestRow, DgSim } from './types.ts';
 import { rnd, ticks, wrapD } from './util.ts';
 
@@ -231,7 +231,15 @@ function upgradable(sim: DgSim): { k: 'w' | 'p'; id: string }[] {
 }
 
 /** Сундук: эволюция (если готова, одна), иначе барабан 1/2/3 уровня; всё собрано — 50 опыта и +30 HP */
-export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse'): void {
+/** Сундук островка: сколько улучшений */
+const ISLE_ROWS = interNum('isleChest', 'rows', 2);
+
+/**
+ * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 улучшение из общего пула карточек
+ * (новое оружие, пассивка или уровень своей вещи, как при новом уровне), isle — 2 таких; small (элита) — барабан
+ * 1/2/3 уровня своим вещам; big/curse — 3. Нечего давать — 50 опыта и +30 HP.
+ */
+export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' | 'isle'): void {
   const rows: DgChestRow[] = [];
   sim.stats.chests++;
   if (sim.evoReady.length > 0) {
@@ -242,6 +250,17 @@ export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse'): void {
       w.evo = 1;
       w.cd = 0;
       rows.push({ k: 'evo', id: e.id, lv: w.lv });
+    }
+  } else if (kind === 'plain' || kind === 'isle') {
+    const n = kind === 'isle' ? ISLE_ROWS : 1;
+    for (let i = 0; i < n; i++) {
+      const c = takeWeighted(sim, candidates(sim));
+      if (!c || (c.c.k !== 'w' && c.c.k !== 'p')) {
+        rows.push({ k: 'gold', id: '', lv: 0 });
+        break;
+      }
+      applyCard(sim, c.c);
+      rows.push({ k: c.c.k, id: c.c.id, lv: c.c.lv });
     }
   } else {
     let n = 3;

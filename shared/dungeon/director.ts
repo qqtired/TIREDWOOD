@@ -5,7 +5,7 @@ import { fx, healHero, newId } from './core.ts';
 import { D, LV, MOB_KINDS, mobDef, type MobKind, type WaveDef } from './data.ts';
 import { blocked } from './map.ts';
 import { aliveCount, enrage, spawnMob } from './mobs.ts';
-import { dropGem, vacuum } from './pickups.ts';
+import { dropGem, vacuum, waveChest } from './pickups.ts';
 import { wavePropsReset } from './props.ts';
 import type { DgAlert, DgSim, DgWave } from './types.ts';
 import { dirOf, powi, rnd, rndRange, ticks, wrapD, wrapP } from './util.ts';
@@ -465,6 +465,7 @@ function countWave(sim: DgSim): void {
   sim.stats.waves = sim.wave.n;
   sim.stats.ms = Math.round((sim.t * 1000) / 30);
   fx(sim, { k: 'wave', n: sim.wave.n, what: 'clear' });
+  waveChest(sim);
 }
 
 /**
