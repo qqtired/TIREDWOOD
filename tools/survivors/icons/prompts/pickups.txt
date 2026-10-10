@@ -1,0 +1,16 @@
+Use your built-in image generation tool (image_gen) to generate exactly ONE image from the brief below. Do not draw it with code, scripts or SVG, do not edit other files. After generating, tell me the exact file path of the generated image. Brief:
+
+Game UI icon sheet, landscape 3:2 (1536x1024), on a perfectly flat, uniform, pure white background filling the whole canvas edge to edge (no texture, no gradient, no shadows on the background, no vignette, nothing else on the background). Exactly 6 round icon medallions arranged in a strict grid of 3 columns and 2 rows, evenly spaced, all medallions exactly the same size (each about 80% of its grid cell), each centered in its cell, with clear white gaps between them; nothing touches the canvas edge or another medallion.
+
+Every medallion has the same construction: a perfect flat-on circle (not tilted, no drop shadow); a rim about 6% of the diameter; an inner disc with a soft radial gradient, lighter in the center behind the object; ONE single bold object in the center, large (about 70% of the inner disc), drawn in a 3/4 view with a consistent dark warm-brown outline, simple chunky shapes and few small details so it stays readable at 48 pixels; strong light-dark contrast between the object and the disc. The lighting is the same on every medallion: warm key light from the upper left, soft shade on the lower right, a small specular highlight. Nothing sticks out beyond the rim.
+
+Every medallion on this sheet has a deep mossy olive-green inner disc (#26341C at the edge to #5E7A3A in the center) with a dark walnut-wood rim.
+
+Contents of the medallions:
+First row, left to right: 1) a cluster of three glowing turquoise experience crystals (faceted gem shards); 2) a steaming round clay bowl of hearty stew with chunks of vegetables and a wooden spoon; 3) a classic U-shaped magnet, crimson-red body with silver tips, small curved pull lines between the tips.
+Second row, left to right: 4) a small round wooden powder keg with iron hoops and a lit sparking fuse on top; 5) a brass-framed hourglass with glowing turquoise sand trickling down; 6) a small wooden treasure chest with brass corners, the lid slightly open, warm golden light spilling out.
+
+Style: polished hand-painted game item icons in the same look as warm storybook cartoon concept art for a browser top-down action game set in underground cellars and an old mine under a cozy seaside town: clean readable shapes, soft rounded forms, gentle painterly texture, moderately saturated warm colors (not neon, not oversaturated). World palette: dark warm stone, brass and old wood, warm amber lantern light, cool turquoise crystals as an accent, glossy violet blackcurrant jam of the Jam Baron's army. Light dark fantasy without excess: no blood, no gore, no skulls, no horror, not childish, not sci-fi, no neon.
+
+Strictly: no text, no letters, no numbers, no runes that look like letters, no logos, no labels or captions under the icons, no frame around the sheet, no watermark, no signature.
+no text, no letters, no logos.

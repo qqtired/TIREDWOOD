@@ -26,12 +26,17 @@ import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 
+/** «Подземелье»: точка E у зева пещеры и где встаёт вернувшийся (docs/survivors/level-data.json, plaza.cave) */
+export const DUNGEON_USE = { x: -14.6, z: 10.5, r: 1.8, yaw: 1.9 } as const;
+export const DUNGEON_RETURN = { x: -13.1, z: 10.0, yaw: -1.275 } as const;
+
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
 /** ratrace — крысиные бега на понтоне у набережной (флаг RATRACE); billiards — бильярдный стол (флаг BILLIARDS);
  * plane — гидроплан «Стриж» у западного края площади, banner — заказ баннера (флаг PLANE, shared/plane.ts);
+ * dungeon — вход в пещеру «Подземелья» на западной лужайке (флаг DUNGEON, docs/survivors/level.md §8);
  * oboat — берт своей лодки (arg 0–9 — стоянка за домом Семёна, 10–15 — причал острова; флаг ISLE, shared/ownboat.ts) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'fight' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon';
 
 export interface Interactable {
   id: number;
@@ -74,6 +79,8 @@ export interface LobbyMap extends GameMap {
   skillSpawn: Spot;
   boatraceSpawn: Spot;
   hideSpawn: Spot;
+  /** Вернувшийся из «Подземелья» — у зева пещеры, лицом к площади */
+  dungeonSpawn: Spot;
   interact: Interactable[];
   /** Центры корпусов автоматов (передняя грань — z = MACHINE_FRONT_Z) */
   machines: Array<{ x: number; z: number }>;
@@ -531,7 +538,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
-  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [] };
+  const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], fight: [], dungeon: [] };
   for (const p of plazaSolids()) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
@@ -546,6 +553,9 @@ export function buildLobby(): LobbyMap {
   addAt('fisher', ISLE_IGNAT_USE, ISLE_IGNAT_USE.r, 2, 'поговорить с Игнатом');
   // берты своих лодок (флаг ISLE): 0–9 — стоянка за домом Семёна, 10–15 — причал острова
   BERTHS.forEach((t, i) => addAt('oboat', { x: t.px, y: t.py, z: t.pz, yaw: t.yaw }, 1.5, i, 'своя лодка'));
+  // «Подземелье» (флаг DUNGEON): E у зева пещеры на западной лужайке — точка в самый конец списка. Скалу, табличку
+  // рекордов и их твёрдость рисует площадь (client/lobby/plaza/dungeon.ts, shared/plaza2.ts)
+  add('dungeon', DUNGEON_USE.x, DUNGEON_USE.z, DUNGEON_USE.yaw, DUNGEON_USE.r, 0, 'Подземелье');
 
   const spawn: Spot = { x: 0, y: 0, z: 6, yaw: 0 };
   return {
@@ -563,6 +573,7 @@ export function buildLobby(): LobbyMap {
     skillSpawn: { x: SKILL_PORTAL.x, y: 0, z: -9.4, yaw: 0 },
     boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
     hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },
+    dungeonSpawn: { x: DUNGEON_RETURN.x, y: 0, z: DUNGEON_RETURN.z, yaw: DUNGEON_RETURN.yaw },
     interact,
     machines,
     tables,

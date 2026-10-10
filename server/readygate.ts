@@ -28,7 +28,7 @@ interface RoomWait {
 }
 
 /** Что ворота берут у хаба: часы, соединения, переходы (и для проверочной команды — комнаты). */
-type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'fight'
+type GateHub = Pick<Hub, 'tick' | 'clients' | 'lobby' | 'paintball' | 'race' | 'skill' | 'hide' | 'fort' | 'fight' | 'dungeon'
   | 'move' | 'startRace' | 'startFight' | 'privateLine'>;
 
 const FC_MODES: readonly FcMode[] = ['duel', 'team', 'ffa'];
@@ -127,6 +127,7 @@ export class ReadyGate {
       case 'fort': if (h.fort) h.move(c, h.fort, true); else say('Крепость выключена'); break;
       case 'skill': if (h.skill) h.move(c, h.skill, true); else say('Полоса выключена'); break;
       case 'hide': if (h.hide) h.move(c, h.hide, true); else say('Прятки выключены'); break;
+      case 'dungeon': if (h.dungeon) h.dungeon.enter(c, true); else say('Подземелье выключено'); break;
       case 'race':
       case 'kart':
         if (!h.race.idle) say('Гонка уже идёт');
@@ -147,7 +148,7 @@ export class ReadyGate {
         break;
       }
       default:
-        say('/go lobby | paintball | fort | skill | hide | race [harbor|hills] | fight [duel|team|ffa]');
+        say('/go lobby | paintball | fort | skill | hide | dungeon | race [harbor|hills] | fight [duel|team|ffa]');
     }
     return true;
   }

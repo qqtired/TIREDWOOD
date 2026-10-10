@@ -122,6 +122,7 @@ import { TgScreen } from './tgscreen.ts';
 import { WHEEL_VIEW } from './tiredwood.ts';
 import { FerrisWheel } from './wheel.ts';
 import { LobbyWorld, type LobbyQuality } from './world.ts';
+import { dgHint, dgStatus, onDgStatus, setDgStatus } from './dgstatus.ts';
 
 /**
  * «Авто» подбирает разрешение само; если его уже пришлось снизить (slow), гасим и точечные лампы.
@@ -573,7 +574,9 @@ export class LobbyScene implements Scene {
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
-    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows()) : null;
+    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
+    onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);
     this.aqua = new AquaPark(this.world.scene, this.effects, PLAZA2);
     this.rg = new RegattaClient({
@@ -931,6 +934,10 @@ export class LobbyScene implements Scene {
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
         this.onFightSt(msg.fc ?? null);
+        setDgStatus(msg.dg ?? null);
+        break;
+      case 'dgSt':
+        setDgStatus(msg);
         break;
       case 'juke':
       case 'jukeRes':
@@ -2890,6 +2897,8 @@ export class LobbyScene implements Scene {
       if (it.kind !== 'kiosk' && dist > 1 && (dx * fx + dz * fz) / dist <= 0.2) continue;
       // арка «Крепости» — только когда режим включён
       if (it.kind === 'fort' && !this.fortSt) continue;
+      // пещера «Подземелья» — только когда режим включён
+      if (it.kind === 'dungeon' && !dgStatus()) continue;
       if (it.kind === 'fisher' && !this.fish2.on) continue;
       // Игнат и места на моле острова — только с островом (флаг ISLE)
       if (!this.isle && ((it.kind === 'fisher' && it.arg === 2) || (it.kind === 'fish' && it.arg >= FISH_ISLE_FIRST))) continue;
@@ -3030,6 +3039,11 @@ export class LobbyScene implements Scene {
       case 'fort': {
         const h = this.fortSt ? fortHint(this.fortSt) : null;
         if (h) this.hud.setHint(h.keys, h.text);
+        break;
+      }
+      case 'dungeon': {
+        const st = dgStatus();
+        if (st) this.hud.setHint(['E'], dgHint(st));
         break;
       }
     }
