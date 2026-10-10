@@ -1,10 +1,11 @@
-// Рыбалка 2.0: способности мификов и божественной, +20 % времени в зоне и награды уровней 1–15 (10.10, ПРОТОТИП — в игру не
-// подключено; дизайн-документ docs/superpowers/plans/2026-10-10-fishing-abilities.md, цифры — tools/fish/abilities-sim.ts).
+// Рыбалка 2.0: способности мификов и божественной, +20 % времени в зоне и награды уровней 1–15 (10.10; дизайн —
+// docs/superpowers/plans/2026-10-10-fishing-abilities.md, цифры — tools/fish/abilities-sim.ts). В игре с 10.10 (флаг FISH2).
 //
-// Как подключать: сервер и клиент вместо reelStyleFor(sp, mods) берут reelStyle2(sp, mods) — способность вида и бонусы
-// уровня считаются из того же sp и mods.level, что уже есть в снимке заброса: новых полей в сообщениях нет. Модель
-// поменялась — PROTOCOL_VERSION +1 (старый клиент повторял бы бой иначе). Окно подсечки — hookBonusMs(level) в hookTicks,
-// «первая ошибка не в счёт» — gradeErrors(err, level) перед reelGrade.
+// Сервер (server/lobby/fishing2.ts) и клиент (client/lobby/fishgame.ts) берут reelStyle2(sp, mods) вместо reelStyleFor —
+// способность вида и бонусы уровня считаются из того же sp и mods.level, что уже есть в снимке заброса: новых полей в
+// сообщениях нет, модель поменялась — PROTOCOL_VERSION 16. Окно подсечки — hookBonusMs(level) к hookTicks, «первая ошибка
+// не в счёт» — gradeErrors(err, level) перед reelGrade. Рыбы острова (ISLE_ABILITY, WARY/WARY_HOLD острова) включаются сами,
+// как только их виды появятся в FISH/RULE (по id).
 import { FISH } from './fishing.ts';
 import { LURE_MAX } from './fishshop.ts';
 import { RULE, SEA_DRAIN, SEA_FIGHT, T_DIVINE, T_MYTH, isFishTier, ruleOf } from './fishrules.ts';
@@ -180,8 +181,38 @@ export const BIG_MOVE: Readonly<Record<string, Partial<Pick<ReelStyle, 'spd' | '
   oarfish: { patternPeriod: 480 },
 };
 
-/** Чуют ловушку (тики ожидания зоны у края без рыбы): кальмар — вариант «Б», мифики — так же (tools/fish/abilities-sim.ts camp) */
-export const WARY: Readonly<Record<string, number>> = { kalmar: KALMAR_WARY, whiteshark: 60, greenlandshark: 60, oarfish: 60 };
+/**
+ * Чуют ловушку (тики ожидания зоны у края без рыбы): кальмар — вариант «Б», мифики — так же (tools/fish/abilities-sim.ts camp).
+ * Остров (раздел 12.4 дизайна): легенды, мифики и божественная — 1 с, лисья и плащеносная — 0,5 с.
+ */
+export const WARY: Readonly<Record<string, number>> = {
+  kalmar: KALMAR_WARY, whiteshark: 60, greenlandshark: 60, oarfish: 60,
+  opah: 60, albacore: 60, coelacanth: 60, goblinshark: 60, beluga: 60, thresher: 30, baskingshark: 60, frilledshark: 30,
+};
+
+/**
+ * Чуют ловушку и с рыбой в зоне: зона столько тиков подряд у края — рыба уходит из неё. Остров — легенды и выше (4 с).
+ * Осётр (легенда пристани, донный): у дна его ловили «без игры» в 100 % боёв (раздел 7 дизайна) — 4 с, как на острове; кемпер
+ * у дна 100 → 1–2 %. Честная игра у донного осетра от этого тоже труднее — сопротивление ниже (DRAIN2), см. ниже.
+ */
+export const WARY_HOLD: Readonly<Record<string, number>> = {
+  sturgeon: 240,
+  opah: 240, albacore: 240, coelacanth: 240, goblinshark: 240, beluga: 240, thresher: 240, baskingshark: 240, frilledshark: 240,
+};
+
+/**
+ * Сопротивление по новым правилам, %/с до моря (вместо 4-й цифры CAL): мифики и божественная — BIG_DRAIN; осётр — 52,95 → 34
+ * под «чует ловушку» (WARY_HOLD): «обычный» 38/44/50/59/59 → 5/22/53/74/85 % на ур. 0/3/5/10/15 (в среднем столько же),
+ * «опытный» 77/95/99/100/100 → 38/92/96/100/100, кемпер у дна 100 → 0–2 % (N = 600, бот tools/fish/abilitybot.ts).
+ */
+export const DRAIN2: Readonly<Record<string, number>> = { ...BIG_DRAIN, sturgeon: 34 };
+
+/**
+ * Потолок «злости места» в манере: море баркаса — рывки ×1,15, сопротивление ×1,2 (SEA_FIGHT/SEA_DRAIN); остров «Последний
+ * свет» — ×1,3 и ×1,4 (дизайн, 12.1). Снимок заброса больше не даст — значит, и подделанный не даст.
+ */
+export const PLACE_FIGHT_MAX = 1.3;
+export const PLACE_DRAIN_MAX = 1.4;
 
 export interface Style2Opts {
   /** Своё сопротивление вместо BIG_DRAIN (подбор), %/с до моря */
@@ -209,15 +240,16 @@ export function reelStyle2(sp: number, mods?: Readonly<FishCastMods>, opts: Styl
   const lv = opts.noPerks ? levelBonus(0) : levelBonus(mods?.level ?? 0);
   const calm = mods?.calm !== undefined && Number.isFinite(mods.calm) ? Math.min(LURE_MAX.calm, Math.max(0, mods.calm)) : 0;
   const wild = fish && r.tier !== T_DIVINE;
-  const sea = wild ? factor(mods?.sea, SEA_FIGHT) : 1;
-  const seaDrain = wild ? factor(mods?.seaDrain, SEA_DRAIN) : 1;
+  const sea = wild ? factor(mods?.sea, Math.max(SEA_FIGHT, PLACE_FIGHT_MAX)) : 1;
+  const seaDrain = wild ? factor(mods?.seaDrain, Math.max(SEA_DRAIN, PLACE_DRAIN_MAX)) : 1;
   const cut = fish && mods?.zoneMul !== undefined && Number.isFinite(mods.zoneMul) ? Math.min(1, Math.max(0.5, mods.zoneMul)) : 1;
   const fast = fish ? factor(mods?.jerkMul, 1.2) : 1;
   const jerk = (1 - calm) * (fish ? 1 - lv.calm : 1) * sea;
   const big = r.tier === T_MYTH || r.tier === T_DIVINE;
-  const ability = opts.noAbility ? undefined : opts.ability ?? SPECIES_ABILITY[FISH[sp].id];
-  const drain = opts.drain ?? (big ? BIG_DRAIN[FISH[sp].id] : undefined) ?? r.style.drain;
-  const base = { ...r.style, ...(BIG_MOVE[FISH[sp].id] ?? {}) };
+  const id = FISH[sp].id;
+  const ability = opts.noAbility ? undefined : opts.ability ?? abilityOf(id);
+  const drain = opts.drain ?? DRAIN2[id] ?? r.style.drain;
+  const base = { ...r.style, ...(BIG_MOVE[id] ?? {}) };
   const style: ReelStyle = {
     ...base,
     zone: r.style.zone * zoneScale2(mods) * cut,
@@ -233,10 +265,17 @@ export function reelStyle2(sp: number, mods?: Readonly<FishCastMods>, opts: Styl
     style.ability = ability;
     style.abilityResist = lv.resist;
   }
-  if (FISH[sp].id === 'kalmar' && opts.kalmarPattern) style.mainPattern = opts.kalmarPattern;
-  const wary = opts.wary ?? WARY[FISH[sp].id];
+  if (id === 'kalmar' && opts.kalmarPattern) style.mainPattern = opts.kalmarPattern;
+  const wary = opts.wary ?? WARY[id];
   if (wary) style.wary = wary;
+  const hold = WARY_HOLD[id];
+  if (hold) style.waryHold = hold;
   return style;
+}
+
+/** Способность вида по id (пристань и баркас, остров); нет — null */
+export function abilityOf(id: string): AbilitySpec | undefined {
+  return SPECIES_ABILITY[id] ?? ISLE_ABILITY[id];
 }
 
 /** Вид по id (для симуляций) */

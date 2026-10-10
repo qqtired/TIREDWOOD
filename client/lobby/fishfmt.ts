@@ -4,6 +4,7 @@ import {
 } from '../../shared/fishprogress.ts';
 import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES, VODKA, lureOf } from '../../shared/fishshop.ts';
 import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_MUL, SEASON_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
+import { LEVEL_PERKS, ZONE_PER_LEVEL } from '../../shared/fishability.ts';
 
 const SHOP = import.meta.glob('../assets/fishshop/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
@@ -38,9 +39,20 @@ export function bagMarks(m: number): string[] {
   return out;
 }
 
-/** Что даёт уровень рыбалки: зона и шанс редких и выше (+2,5 % за уровень от базы) */
+/** Зона от уровня, % («7,5»): +1,5 % за уровень (shared/fishability.ts ZONE_PER_LEVEL) */
+export function levelZonePct(level: number): string {
+  return (Math.round(level * ZONE_PER_LEVEL * 1000) / 10).toLocaleString('ru-RU');
+}
+
+/** Что даёт уровень рыбалки: зона (+1,5 % за уровень) и шанс редких и выше (+2,5 % за уровень от базы) */
 export function levelPerks(level: number): string {
-  return `зона +${(level * 2.5).toLocaleString('ru-RU')}% · редкие, эпик, лег., миф. и бож. ${mul(levelOdds(level))}`;
+  return `зона +${levelZonePct(level)}% · редкие, эпик, лег., миф. и бож. ${mul(levelOdds(level))}`;
+}
+
+/** Награда уровня 1–15 (shared/fishability.ts LEVEL_PERKS): «Стойкость I — способности мификов короче на 10 %»; нет — '' */
+export function levelPerkText(level: number): string {
+  const p = LEVEL_PERKS.find((x) => x.level === level);
+  return p ? `${p.name} — ${p.text}` : '';
 }
 
 /** «1 рыба», «3 рыбы», «12 рыб» */
@@ -59,7 +71,8 @@ export function levelOpens(level: number): string[] {
 /** Плашка нового уровня рыбалки: что дал уровень и что открылось (не путать с уровнем персонажа) */
 export function fishLevelUpText(level: number): string {
   const opens = levelOpens(level);
-  return `🎣 Уровень рыбалки ${level}: ${levelPerks(level)}${opens.length ? ` · открылось: ${opens.join(', ')}` : ''}`;
+  const perk = levelPerkText(level);
+  return `🎣 Уровень рыбалки ${level}: ${perk ? `★ ${perk} · ` : ''}${levelPerks(level)}${opens.length ? ` · открылось: ${opens.join(', ')}` : ''}`;
 }
 
 /** Сколько опыта ещё до уровня level (0 — уже есть) */

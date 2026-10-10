@@ -8,6 +8,7 @@ import path from 'node:path';
 import { after, test } from 'node:test';
 import { TICK_RATE } from '../shared/constants.ts';
 import { FE_BITE, FISH, FP_BITE, FP_HOLD, FP_IDLE } from '../shared/fishing.ts';
+import { reelStyle2 } from '../shared/fishability.ts';
 import { FISH_NPC_USE, FISH_SPOTS, ROULETTE_SPOT, spotZone } from '../shared/fishplaces.ts';
 import {
   BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, FISH_XP_LEVELS, activeDrink, emptyFishProgress, fishCastMods, fishCatchXp, fishLostXp,
@@ -15,7 +16,7 @@ import {
 } from '../shared/fishprogress.ts';
 import {
   BARKAS_INCOME, BARKAS_XP, CHEST_PER_10K, COMMON_FLOOR, CONSOLATION_SHARE, CONSOLATION_TICKS, COLLECTION, JUNK_PER_10K, RAIN_XP, RULE, SP_BOOT, SP_BOTTLE,
-  T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice, fishPrice2, junkPer10k, reelStyleFor, rollCatch2, tierOdds, type Hooked,
+  T_COMMON, T_EPIC, T_MYTH, T_RARE, XP_SCALE, basePrice, fishPrice2, junkPer10k, rollCatch2, tierOdds, type Hooked,
 } from '../shared/fishrules.ts';
 import { ALE, BAGS, BAG_BASE, BAG_MAX, BEER, LORD, LORD_CHEST_CHANCE, LURES } from '../shared/fishshop.ts';
 import { GRADE_PLAIN, reelGrade } from '../shared/fishreel.ts';
@@ -70,7 +71,7 @@ function sit(e: Env, what: Hooked, spot = 0): FishingHall2 {
 }
 
 /** Заброс, поклёвка, подсечка с выбранным сидом шкалы; что вытащит (или не вытащит) модель игрока — решает pick */
-function hookWith(e: Env, hall: FishingHall2, pick: (style: ReturnType<typeof reelStyleFor>, seed: number) => Play | null): { play: Play; spot: number } {
+function hookWith(e: Env, hall: FishingHall2, pick: (style: ReturnType<typeof reelStyle2>, seed: number) => Play | null): { play: Play; spot: number } {
   e.clock.now += 1100;
   // рыба в руках ждёт выбора, заброс с ней не принимается (хотфикс 10.10): сперва «В рюкзак»
   if (hall.phase(0) === FP_HOLD) e.hub.onJson(e.a.c, { t: 'fish', a: 'keep' });
@@ -82,7 +83,7 @@ function hookWith(e: Env, hall: FishingHall2, pick: (style: ReturnType<typeof re
   const view = hall.views()[spot];
   const mods = view.mods!;
   const what = hall.roll(false, () => .5, mods);
-  const style = reelStyleFor(what.sp, mods);
+  const style = reelStyle2(what.sp, mods);
   let play: Play | null = null;
   let seed = 0;
   for (let candidate = 1; candidate <= 400 && !play; candidate++) { play = pick(style, candidate); seed = candidate; }

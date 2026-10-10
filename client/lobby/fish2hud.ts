@@ -81,6 +81,7 @@ export class Fish2Hud {
     this.reel = new ReelGame(parent, sound);
     this.reel.onSend = send;
     this.reel.onWarn = (text) => ui.chat.note(text);
+    this.reel.onToast = (text) => ui.toasts.show(text, 3500, 'fish-ability');
     this.card = new CatchCard2(parent, sound);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
     this.card.onKeep = () => this.choose(true);

@@ -31,8 +31,9 @@ import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../
 import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
 import {
   ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
-  isCollected, isPoseidon, reelStyleFor, rollCatch2, type Hooked,
+  isCollected, isPoseidon, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
+import { gradeErrors, hookBonusMs, reelStyle2 } from '../../shared/fishability.ts';
 import type { FishBoardView, FishSpotSnapshot } from '../../shared/messages.ts';
 import { FISH_SPOTS } from '../../shared/maps/lobby.ts';
 import type { Profiles } from '../profiles.ts';
@@ -341,7 +342,8 @@ export class FishingHall2 {
     s.n++;
     s.phase = FP_BITE;
     s.grace = 0;
-    s.until = tick + hookTicks(RULE[c.sp]?.tier ?? 0, this.host.who(s.slot)?.ping ?? 0);
+    // награда уровня «Быстрая подсечка» (shared/fishability.ts): окно подсечки +0,1…0,3 с
+    s.until = tick + hookTicks(RULE[c.sp]?.tier ?? 0, this.host.who(s.slot)?.ping ?? 0) + Math.round(hookBonusMs(s.mods.level) * TICK_RATE / 1000);
     this.host.event(['fish', FE_BITE, spot, s.n, 0]);
   }
 
@@ -359,8 +361,9 @@ export class FishingHall2 {
     if (!rule) return;
     const seed = Math.floor(this.rand() * 0x1_0000_0000) | 0;
     s.phase = FP_REEL;
-    // с водкой рыбак на шкале пьян (задержка зоны и икота) — как у клиента
-    s.reel = reelStart(reelStyleFor(s.sp, s.mods), seed, s.mods.drink === 4);
+    // с водкой рыбак на шкале пьян (задержка зоны и икота) — как у клиента; манера — по правилам 10.10 (способности мификов,
+    // +20 % времени, бонусы уровня — shared/fishability.ts), клиент считает ту же reelStyle2 из того же sp и mods
+    s.reel = reelStart(reelStyle2(s.sp, s.mods), seed, s.mods.drink === 4);
     s.toggles = [];
     s.k = 0;
     s.ack = 0;
@@ -431,7 +434,8 @@ export class FishingHall2 {
   private land(s: Spot, spot: number, tick: number): void {
     // оценка вываживания: сколько раз рыба выходила из зоны (повтор сервера — та же модель, что у клиента)
     const errors = s.reel?.err ?? 0;
-    const grade = reelGrade(errors);
+    // «Спокойная рука» (ур. 9): первая ошибка не портит оценку
+    const grade = reelGrade(gradeErrors(errors, s.mods.level));
     s.phase = FP_HOLD;
     s.until = tick + HOLD2_TICKS;
     s.reel = null;
