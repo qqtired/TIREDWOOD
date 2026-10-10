@@ -1,93 +1,165 @@
-// Интерфейс фермы (минимальный, фундамент): уровень фермы с полосой опыта, вода/сумка/колодец, шаг обучения Семечкина,
-// подсказка у цели, окно посадки на грядке и окно Дядюшки Гриба. Полные окна (Семечкин, Фургон, заказы, «Хозяйство»,
-// экран уровня, уведомления) — часть B2: client/farm/ui/. Всё мышью, Esc и × закрывают окна.
-import { bagCap, bagUsed, canMax, capPay, cropOpen, farmLevel, farmLevelInfo, saleUnit, seedPrice, type FarmProgress } from '../../shared/farm.ts';
-import { mskDay } from '../../shared/economy.ts';
-import { CROPS, DAILY_CAP, FARM_LEVEL_NAMES, TRUFFLE, TRUFFLE_PRICE, WELL_SETS, cropById } from '../../shared/farmdata.ts';
+// Интерфейс фермы (часть B2): HUD с крупными карточками (client/farm/ui/bar.ts), окна Семечкина, Гриба, Фургона, доски
+// заказов, «Хозяйства», доски фермы, меню посадки и экран нового уровня (client/farm/ui/*.ts), уведомления «У тебя созрело N».
+// Всё мышью, Esc и × закрывают окна, клик мимо — тоже. Решает сервер: окно только просит ({t:'farm', a:…}) через FarmHudActions.
+// Сцена (scene.ts) зовёт: setMe/refresh на каждый прогресс, object(E у предмета), openPlant(E у пустой грядки), onEvent(farmEv),
+// onSys(сообщения B1), hotkey(клавиши, H — «Хозяйство»), setHint, close.
+import { emptyFarm, type FarmProgress } from '../../shared/farm.ts';
 import type { FarmObjectId } from '../../shared/farmmap.ts';
+import type { FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow } from '../../shared/farmnet.ts';
 import type { FarmSysMsg } from '../../shared/farmsys.ts';
-import { setCoinText } from '../ui/coin.ts';
 import './farm.css';
+import { FarmBar } from './ui/bar.ts';
+import { BoardWin } from './ui/board.ts';
+import { EstateWin } from './ui/estate.ts';
+import { FarmNotify } from './ui/notify.ts';
+import { GribWin } from './ui/grib.ts';
+import { LevelWin } from './ui/levelup.ts';
+import { OrdersWin } from './ui/orders.ts';
+import { PlantWin } from './ui/plant.ts';
+import { SeedsWin } from './ui/seeds.ts';
+import { parseBoss, parseVan, sysToast } from './ui/sys.ts';
+import { VanWin } from './ui/van.ts';
+import { el, type BossState, type FarmHost, type FarmWin, type VanState } from './ui/common.ts';
 
-const ICONS = import.meta.glob('../assets/farm/icons/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-export const farmIcon = (name: string): string => ICONS[`../assets/farm/icons/${name}.png`] ?? '';
-
-/** Шаги обучения (design-v11 §1.4): одна фраза Семечкина на шаг */
-const TUTORIAL = [
-  'Семечкин: «Посади редис — первый пакетик дарю». Подойди к своей грядке и нажми E',
-  'Семечкин: «Набери лейку у колодца» — встань у корыта и нажми E',
-  'Семечкин: «Полей грядку» — E у растущей грядки',
-  'Семечкин: «Созрело! Собери» — E у светящейся грядки',
-  'Семечкин: «Отнеси Дядюшке Грибу» — он у лавки с весами',
-  'Семечкин: «Посади ещё и загляни на доску заказов»',
-];
-
-/** Элемент с текстом; 🪙 рисуется значком жетона, как во всей игре */
-const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] => {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) setCoinText(e, text);
-  return e;
-};
-
-export function fmtMin(min: number): string {
-  if (min < 60) return `${min} мин`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m ? `${h} ч ${m} мин` : `${h} ч`;
-}
+export { farmIcon, fmtMin } from './ui/common.ts';
 
 export interface FarmHudActions {
   plant(crop: string): void;
   sell(item: string, n: number): void;
   /** Окно закрылось (мышь — обратно игре) */
   closed(): void;
+  /** B2 (новое): любое намерение фермы — convert, upgrade, van, order, look, tutorial, claimPlot, pig, plant на несколько грядок */
+  send?(m: FarmClientMsg): void;
+  /** B2: живой баланс жетонов (иначе берём из последнего refresh) */
+  tokens?(): number;
+  /** B2: участки и состав фермы — для доски фермы */
+  plots?(): readonly FarmPlotView[];
+  roster?(): readonly FarmRosterRow[];
+  /** B2: общий тост игры (Toasts.show) для «созрело N», достижений, помощи */
+  toast?(text: string, sub?: string, key?: string): void;
+  /** B2: надеть вещи каталога («Надеть» на экране уровня): {t:'outfit'} с вещами, что уже куплены */
+  wear?(ids: string[]): void;
+  /** B2: отпустить мышь и клавиши перед окном (releaseAll + unlock) */
+  free?(): void;
 }
 
 export class FarmHud {
   readonly root = el('div', 'hud fm hidden');
-  private readonly levelBox = el('div', 'fm-level');
-  private readonly levelName = el('b');
-  private readonly levelSub = el('small');
-  private readonly bar = el('i');
-  private readonly stock = el('div', 'fm-stock');
-  private readonly water = el('span');
-  private readonly bag = el('span');
-  private readonly well = el('span');
-  private readonly tut = el('div', 'fm-tut');
+  private readonly bar: FarmBar;
   private readonly hint = el('div', 'fm-hint');
-  private readonly win = el('div', 'fm-win');
   private hintKey = '';
   private readonly act: FarmHudActions;
-  /** Какое окно открыто: '' — никакое */
-  open: '' | 'plant' | 'grib' = '';
+  private readonly notify: FarmNotify;
+  private f: FarmProgress = emptyFarm(0);
+  private plot = -1;
+  private offset = 0;
+  private tokensSeen = 0;
+  private vanState: VanState | null = null;
+  private bossState: BossState | null = null;
+  private entered = false;
+  private timer = 0;
+  private cur: FarmWin | null = null;
+  private readonly seeds: SeedsWin;
+  private readonly grib: GribWin;
+  private readonly van: VanWin;
+  private readonly orders: OrdersWin;
+  private readonly estate: EstateWin;
+  private readonly board: BoardWin;
+  private readonly plantWin: PlantWin;
+  private readonly level: LevelWin;
 
   constructor(parent: HTMLElement, act: FarmHudActions) {
     this.act = act;
-    const barBox = el('div', 'fm-bar');
-    barBox.append(this.bar);
-    this.levelBox.append(this.levelName, barBox, this.levelSub);
-    this.stock.append(this.water, this.bag, this.well);
-    this.win.hidden = true;
-    this.root.append(this.levelBox, this.stock, this.tut, el('div', 'fm-cross'), this.hint, this.win);
+    this.notify = new FarmNotify((text, sub, key) => this.toast(text, sub, key));
+    this.bar = new FarmBar({
+      openEstate: () => this.openEstate(),
+      closeTutorial: () => act.send?.({ t: 'farm', a: 'tutorial', k: 'close' }),
+    });
+    this.root.append(this.bar.left, this.bar.right, el('div', 'fm-cross'), this.hint);
     parent.appendChild(this.root);
+
+    const hud = this;
+    const host: FarmHost = {
+      get f() { return hud.f; },
+      get now() { return hud.now(); },
+      get tokens() { return hud.tokens(); },
+      get plot() { return hud.plot; },
+      send: (m) => act.send?.(m),
+      plots: () => act.plots?.() ?? [],
+      roster: () => act.roster?.() ?? [],
+      sell: (item, n) => act.sell(item, n),
+      plant: (crop) => act.plant(crop),
+      toast: (text, sub, key) => this.toast(text, sub, key),
+      wear: (ids) => (act.wear ? act.wear(ids) : this.toast('Надень обновки в примерочной на площади')),
+      van: () => this.vanState,
+      boss: () => this.bossState,
+      closed: (win) => { if (this.cur === win) this.cur = null; act.closed(); },
+    };
+    this.seeds = new SeedsWin(this.root, host, { id: 'seeds', eyebrow: 'ФЕРМА · СЕМЕНА', title: 'Семечкин', intro: 'Всё про культуры: что растёт, сколько стоит и что откроется дальше.', avatar: '🧑‍🌾', accent: '#7bd88f' });
+    this.grib = new GribWin(this.root, host, { id: 'grib', eyebrow: 'ФЕРМА · СКУПКА', title: 'Дядюшка Гриб', intro: 'Свежий урожай — по чести. Ненужное из кладовой — в опыт.', avatar: '🍄', accent: '#ffb36b' });
+    this.van = new VanWin(this.root, host, { id: 'van', eyebrow: 'ФЕРМА · ФУРГОН', title: 'Фургон', intro: 'Целый ящик из сумки — и платят в полтора раза больше.', avatar: '🚚', accent: '#67d6c7' });
+    this.orders = new OrdersWin(this.root, host, { id: 'orders', eyebrow: 'ФЕРМА · ЗАКАЗЫ', title: 'Доска заказов', intro: 'Три заказа на сегодня. Выполнил — забирай награду.', avatar: '📋', accent: '#ffd35a' });
+    this.estate = new EstateWin(this.root, host, { id: 'estate', eyebrow: 'ФЕРМА · ХОЗЯЙСТВО', title: 'Хозяйство', intro: 'Улучшай грядки, инструменты и постройки. Клавиша H — открыть отовсюду.', avatar: '🧺', accent: '#7bd88f' });
+    this.board = new BoardWin(this.root, host, { id: 'board', eyebrow: 'ФЕРМА · ДОСКА', title: 'Доска фермы', intro: 'Кто где живёт, кто спит и кому можно помочь.', avatar: '🪧', accent: '#ffd35a' });
+    this.plantWin = new PlantWin(this.root, host, { id: 'plant', eyebrow: 'ФЕРМА · ГРЯДКА', title: 'Что посадить?', intro: '', avatar: '🌱', accent: '#7bd88f' });
+    this.level = new LevelWin(this.root, host, { id: 'level', eyebrow: 'ФЕРМА · НОВЫЙ УРОВЕНЬ', title: 'Новый уровень', intro: '', avatar: '1', accent: '#ffd35a' });
+  }
+
+  /** Какое окно открыто: '' — никакое (сцена по этому отпускает мышь и не берёт ввод) */
+  get open(): string {
+    return this.cur?.isOpen ? this.cur.id : '';
+  }
+
+  private now(): number {
+    return Date.now() + this.offset;
+  }
+
+  private tokens(): number {
+    return this.act.tokens ? this.act.tokens() : this.tokensSeen;
+  }
+
+  private toast(text: string, sub = '', key = ''): void {
+    this.act.toast?.(text, sub, key);
   }
 
   setVisible(v: boolean): void {
     this.root.classList.toggle('hidden', !v);
-    if (!v) this.close(false);
+    this.bar.setVisible(v);
+    window.clearInterval(this.timer);
+    if (v) {
+      this.entered = false;
+      this.notify.reset();
+      this.timer = window.setInterval(() => this.tick(), 1000);
+    } else this.close(false);
+  }
+
+  private tick(): void {
+    const now = this.now();
+    this.bar.update(this.f, this.plot, now);
+    this.notify.check(this.f, now);
+    this.cur?.tick();
   }
 
   /** Свой прогресс: уровень, опыт, запасы, шаг обучения */
   setMe(f: FarmProgress, plot: number): void {
-    const info = farmLevelInfo(f.xp);
-    this.levelName.textContent = `Ферма · ур. ${info.level} · ${FARM_LEVEL_NAMES[info.level - 1]}`;
-    this.bar.style.width = `${Math.round((info.into / info.need) * 100)}%`;
-    this.levelSub.textContent = `${info.into} / ${info.need} XP${info.stars ? ` · ⭐ ${info.stars}` : ''} · участок №${plot + 1}`;
-    this.water.textContent = `💧 ${Math.floor(f.water / 100)}/${canMax(f) / 100}`;
-    this.bag.textContent = `👜 ${bagUsed(f)}/${bagCap(f)}`;
-    this.well.textContent = `🪣 ${f.well.sets}/${WELL_SETS}`;
-    this.tut.textContent = f.tutorial >= 0 && f.tutorial < TUTORIAL.length ? TUTORIAL[f.tutorial] : '';
+    this.f = f;
+    this.plot = plot;
+    this.bar.update(f, plot, this.now());
+  }
+
+  /** Серверное время и жетоны пришли: поправить часы, перерисовать открытое окно, объявить созревшее и итог дня */
+  refresh(f: FarmProgress, now: number, tokens: number): void {
+    this.f = f;
+    this.offset = now - Date.now();
+    this.tokensSeen = tokens;
+    this.bar.update(f, this.plot, now);
+    this.notify.check(f, now);
+    this.notify.checkCap(f, now);
+    if (!this.entered && this.plot >= 0) {
+      this.entered = true;
+      this.notify.entry(f, now);
+    }
+    this.cur?.refresh();
   }
 
   setHint(keys: readonly string[] | null, text = ''): void {
@@ -104,89 +176,70 @@ export class FarmHud {
 
   // ------------------------------------------------------------ окна
 
-  /** E у общего предмета: открыть его окно. false — окна нет (сцена покажет «скоро»). Новые окна B2 — здесь */
-  object(id: FarmObjectId, f: FarmProgress, now: number): boolean {
-    if (id === 'grib') { this.openGrib(f, now); return true; }
-    return false;
-  }
-
-  /** Сообщения частей B1 (shared/farmsys.ts): Фургон, заказы, босс */
-  onSys(_m: FarmSysMsg): void {}
-
-  private frame(title: string, sub: string): HTMLElement {
-    this.win.textContent = '';
-    const x = el('button', 'fm-x', '×');
-    x.type = 'button';
-    x.title = 'Закрыть (Esc)';
-    x.addEventListener('click', () => this.close());
-    this.win.append(x, el('h3', '', title), el('p', 'fm-sub', sub));
-    this.win.hidden = false;
+  /** Открыть окно: прежнее закрывается тихо, мышь отпускается */
+  private show(win: FarmWin, run: () => void): void {
+    if (this.cur && this.cur !== win) this.cur.close(true);
+    this.cur = win;
     this.setHint(null);
-    return this.win;
+    run();
+    this.act.free?.();
   }
 
-  /** Посадка на пустую грядку: открытые культуры с ценой и временем; закрытые — с уровнем */
-  openPlant(f: FarmProgress, tokens: number): void {
-    this.open = 'plant';
-    const level = farmLevel(f.xp);
-    const w = this.frame('Что посадить?', 'Первая посадка каждой новой культуры — бесплатно');
-    for (const c of CROPS) {
-      const ok = cropOpen(c, level);
-      if (!ok && c.level > level + 1) continue;
-      const price = seedPrice(f, c);
-      const row = el('button', 'fm-row');
-      row.type = 'button';
-      const icon = farmIcon(c.icon);
-      if (icon) { const img = el('img', 'fm-ico'); img.src = icon; img.alt = ''; row.append(img); }
-      row.append(el('b', '', c.name), el('em', '', ok ? `${fmtMin(c.min)} · ${price ? `${price} 🪙` : 'бесплатно'} · +${c.xp} XP` : `ур. ${c.level}`));
-      row.disabled = !ok || price > tokens;
-      if (ok && price > tokens) row.title = 'Не хватает жетонов';
-      row.addEventListener('click', () => { this.act.plant(c.id); this.close(); });
-      w.append(row);
+  /** E у общего предмета: открыть его окно. false — окна нет (сцена покажет «скоро») */
+  object(id: FarmObjectId, f: FarmProgress, now: number): boolean {
+    this.f = f;
+    this.offset = now - Date.now();
+    switch (id) {
+      case 'semechkin': this.show(this.seeds, () => this.seeds.open()); return true;
+      case 'grib': this.show(this.grib, () => this.grib.open()); return true;
+      case 'orders': this.show(this.orders, () => this.orders.open()); return true;
+      case 'van': this.show(this.van, () => this.van.open()); return true;
+      case 'farmBoard': case 'boss': this.show(this.board, () => this.board.open()); return true;
+      default: return false;
     }
   }
 
-  /** Дядюшка Гриб: урожай из сумки — по штуке или всё; потолок дня виден заранее */
+  /** Посадка на пустую грядку bed (E): сетка культур. Без номера грядки — как раньше, сажаем туда, куда целится сцена */
+  openPlant(f: FarmProgress, tokens: number, bed = -1): void {
+    this.f = f;
+    this.tokensSeen = tokens;
+    this.show(this.plantWin, () => this.plantWin.openAt(bed));
+  }
+
+  /** Окно Гриба (прежний вход) */
   openGrib(f: FarmProgress, now: number): void {
-    this.open = 'grib';
-    this.renderGrib(f, now);
+    this.object('grib', f, now);
   }
 
-  /** Обновить открытое окно Гриба после продажи */
-  refresh(f: FarmProgress, now: number, tokens: number): void {
-    if (this.open === 'grib') this.renderGrib(f, now);
-    else if (this.open === 'plant') this.openPlant(f, tokens);
+  openEstate(): void {
+    this.show(this.estate, () => this.estate.open());
   }
 
-  private renderGrib(f: FarmProgress, now: number): void {
-    const sold = f.sold.day === mskDay(now) ? Math.floor(f.sold.coins) : 0;
-    const w = this.frame('Дядюшка Гриб — скупка', `Сегодня продано на ${sold} / ${DAILY_CAP} 🪙 · после — ×0,25, но не дешевле посадки`);
-    const items = Object.entries(f.bag).filter(([, n]) => n > 0);
-    if (!items.length) w.append(el('p', 'fm-sub', 'Сумка пуста — собери урожай и приходи.'));
-    for (const [id, n] of items) {
-      const c = cropById(id);
-      const unit = id === TRUFFLE ? TRUFFLE_PRICE : c ? saleUnit(f, c, now) : 0;
-      const all = id === TRUFFLE ? n * TRUFFLE_PRICE : c ? Math.floor(capPay(sold, unit * n, c.seed / unit)) : 0;
-      const row = el('div', 'fm-row');
-      const icon = farmIcon(c?.icon ?? 'truffle');
-      if (icon) { const img = el('img', 'fm-ico'); img.src = icon; img.alt = ''; row.append(img); }
-      row.append(el('b', '', `${c?.product ?? 'Трюфель'} × ${n}`), el('em', '', `${Math.round(unit * 10) / 10} 🪙/шт`));
-      const one = el('button', 'fm-btn', 'Продать 1');
-      one.type = 'button';
-      one.addEventListener('click', () => this.act.sell(id, 1));
-      const every = el('button', 'fm-btn', `Всё · ${all} 🪙`);
-      every.type = 'button';
-      every.addEventListener('click', () => this.act.sell(id, n));
-      row.append(one, every);
-      w.append(row);
-    }
+  /** Клавиши фермы сверх движения: H — «Хозяйство». true — съела */
+  hotkey(code: string): boolean {
+    if (this.open || code !== 'KeyH') return false;
+    this.openEstate();
+    return true;
+  }
+
+  /** События сервера, которые рисует HUD. true — событие съедено (сцена не показывает свой тост) */
+  onEvent(e: FarmEvent): boolean {
+    if (e.k !== 'level') return false;
+    this.show(this.level, () => this.level.push({ level: e.level, items: e.items, coins: e.coins }));
+    return true;
+  }
+
+  /** Сообщения частей B1 (shared/farmsys.ts): Фургон, Древо, помощь, достижения. Пока сервер их не шлёт — заглушки (ui/sys.ts) */
+  onSys(m: FarmSysMsg): void {
+    const raw = m as unknown as Record<string, unknown>;
+    if (raw.t === 'farmVan') this.vanState = parseVan(raw);
+    else if (raw.t === 'farmBoss') this.bossState = parseBoss(raw);
+    const t = sysToast(raw);
+    if (t) this.toast(t[0], t[1], 'farm-sys');
+    this.cur?.refresh();
   }
 
   close(notify = true): void {
-    if (!this.open) return;
-    this.open = '';
-    this.win.hidden = true;
-    this.win.textContent = '';
-    if (notify) this.act.closed();
+    this.cur?.close(!notify);
   }
 }
