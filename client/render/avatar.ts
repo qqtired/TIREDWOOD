@@ -20,6 +20,7 @@ import { drawLevelTag } from './leveltag.ts';
 import { LOOK2 } from './look.ts';
 import { JellyFace } from './lookface.ts';
 import { BODY_H, bodyProfile, bodyR, type Wear } from './outfit3d.ts';
+import { AvatarCloth } from './outfitfarm.ts';
 import { PetRider, wearFor } from './outfitfish.ts';
 import { JELLY_RIM_GLSL, JELLY_SWAY_GLSL, makeGearMaterial, pinTexture, vestGeometry, vestRadius, vestTexture } from './teamgear.ts';
 import { emojiTexture, emoteTexture, metalEnvTexture, softDot, splatAtlas, tomatoSplatTexture } from './textures.ts';
@@ -437,6 +438,8 @@ export class Avatar {
   private readonly eyewear: Attach;
   /** Питомец на плече (награда рыбалки) */
   private readonly pet: PetRider;
+  /** Одежда фермы: верх, низ, эффект, ходячий питомец (outfitfarm.ts) */
+  private readonly cloth: AvatarCloth;
   /** Золотой якорь у ника: собрал все виды рыб */
   private badge = false;
   private readonly gun: Gun | null;
@@ -596,6 +599,7 @@ export class Avatar {
     mitL.visible = mitR.visible = false;
     this.mittens = [mitL, mitR];
     this.squashNode.add(mitL, mitR, this.held);
+    this.cloth = new AvatarCloth(this.squashNode, this.bodyMat, this.u, this.mittens);
 
     if (opts.gun) {
       // маркер и «ручки»
@@ -717,6 +721,7 @@ export class Avatar {
   /** Жилет, роба и китель — оболочки по телу: в пейнтболе под командным жилетом их не видно (иначе пересекутся). */
   private refreshShell(): void {
     this.acc.node.visible = !(this.team !== null && SHELL_ACCS.has(this.outfit.a));
+    this.cloth.set(this.outfit, this.team !== null);
   }
 
   /** Команда в пейнтболе (жилет, подсветка контура, баллон, табличка); null — набережная и другие режимы, как были. */
@@ -1257,6 +1262,7 @@ export class Avatar {
     this.tag.position.y = headwearLabelHeight(this.hatBounds, this.squashNode.scale, sway, this.squashNode.position.y, lx2, this.u.uWobble.value);
     if (this.mark) this.mark.position.y = this.tag.position.y;
     this.updateMittens(time, dt, lx2, lz2);
+    if (this.cloth.update(dt, this, local)) { this.outfitSet = false; this.setOutfit(this.outfit); }
     this.updateLids();
     this.face?.update(time, lx2, lz2, this.action, this.lidKey, this.hurtT > 0, this.speechUntil > performance.now());
     this.updateEmote(time);

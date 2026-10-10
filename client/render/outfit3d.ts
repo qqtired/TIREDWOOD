@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { devilHeadParts, devilTailParts } from './devil3d.ts';
+import { farmWearOf } from './farmwear.ts';
 
 export const BODY_H = 1.58;
 
@@ -478,7 +479,7 @@ export function wearOf(slot: 'h' | 'a' | 'e', key: string): Wear {
   let w = cache.get(id);
   if (!w) {
     const table = slot === 'h' ? HATS : slot === 'a' ? ACCS : EYEWEAR;
-    w = Object.hasOwn(table, key) ? table[key]() : NONE;
+    w = Object.hasOwn(table, key) ? table[key]() : farmWearOf(slot, key) ?? NONE;
     cache.set(id, w);
   }
   return w;
