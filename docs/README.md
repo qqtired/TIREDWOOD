@@ -191,6 +191,7 @@
 |---|---|
 | `blackjack-bots/` | боты блэкджека по WebSocket: проверка чужих ставок и ходов |
 | `boat-assets/` | подготовка моделей катеров (GLB набора Kenney) |
+| `codex/` | `run.sh` — запуск Codex (`gpt-6-astra`, усилие `max`) исполнителем бэкенда в своём worktree, `preamble.md` — его постоянные правила (AGENTS §4) |
 | `critters/` | стенд поз животных набережной |
 | `fish/` | калибровка манеры рыб (`calibrate.ts`), стенд кальмара; способности мификов — симуляции (`abilities-sim.ts`, бот `abilitybot.ts`) и сборка страницы-прототипа (`build-abilities-lab.ts`) |
 | `fishing-guide/` | генератор страницы `/fishing` (`gen.mjs`, в т. ч. приёмы мификов и награды уровней) и сверка калькулятора с кодом (`verify.mjs`) |
