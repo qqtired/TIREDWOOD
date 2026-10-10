@@ -193,7 +193,10 @@ export class DungeonScene implements Scene {
     return this.game?.onKey(code, down, e) ?? false;
   }
 
-  onUse(): void {}
+  /** Кнопка E на телефоне (на компьютере E ловит onKey) */
+  onUse(mouse: boolean): void {
+    if (TOUCH && !mouse) this.game?.use();
+  }
 
   resize(w: number, h: number): void {
     this.w = w;
