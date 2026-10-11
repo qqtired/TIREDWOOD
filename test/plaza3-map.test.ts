@@ -1,7 +1,8 @@
 // Новая набережная (флаг PLAZA3, docs/plaza3/tech-foundation.md §1.5, §1.9): данные layout.json проходят проверку и
 // свежо перенесены в код; номера и смысл точек 0–112 те же, что у старой площади (новые — только №113+ «arcade»);
 // точки стоят на опоре и не в стене; новое твёрдое ни с чем не пересекается и не залезает в круги сбора; от центра
-// до входов ≤ 50 м. Пока раскладка — скелет WP0, plaza3 побитно совпадает со старой площадью.
+// до входов ≤ 50 м (игровой квартал и ферма — ≤ 57 м, maxFromCenter). Пока раскладка была скелетом WP0, plaza3 побитно
+// совпадала со старой площадью; с блокаутом WP2 (skeleton: false) — своя суша, павильоны-коробки и новые места входов.
 // Раскладка выбирается при импорте (shared/layout.ts): сначала PLAZA3=1, потом — только динамический import().
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -53,7 +54,24 @@ test('plaza3: точки и места появления на опоре и н�
   assert.deepEqual(spotProblems(map, world, { bakY: BARKAS_BAK_Y, parkDeckY: PARK_DECK_Y, inIsle: inIsleWaters }), []);
 });
 
-test('plaza3: новое твёрдое не пересекается и не залезает в круги сбора, входы ≤ 50 м от центра', () => {
+/** Предел «от центра до входа» для точки: квартал-исключение из maxFromCenter (games, farm) или default */
+function limitAt(x: number, z: number): number {
+  const lim = P3.maxFromCenter as unknown as Record<string, number>;
+  for (const q of P3.quarters) if (q.poly && lim[q.id] && inPoly(x, z, q.poly)) return lim[q.id];
+  return lim.default;
+}
+
+function inPoly(x: number, z: number, poly: ReadonlyArray<readonly [number, number]>): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i];
+    const [xj, zj] = poly[j];
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+test('plaza3: новое твёрдое не пересекается и не залезает в круги сбора, входы ≤ 50 м от центра (57 — игры и ферма)', () => {
   assert.deepEqual(overlapProblems(map, solid), []);
   const circles = map.interact.filter((it) => ['pb_gate', 'garage', 'skill', 'boatrace', 'hide'].includes(it.kind)).map((it) => ({ x: it.x, z: it.z, r: it.r, name: it.kind }));
   assert.equal(circles.length, 5);
@@ -63,7 +81,8 @@ test('plaza3: новое твёрдое не пересекается и не з
   for (const it of map.interact) {
     if (!ENTRY.has(it.kind) && !(it.kind === 'juke' && it.arg === 0)) continue;
     const d = Math.hypot(it.x - P3.center.x, it.z - P3.center.z);
-    assert.ok(d <= 50, `вход ${it.kind} (${it.x}; ${it.z}) — ${d.toFixed(1)} м от центра`);
+    const lim = limitAt(it.x, it.z);
+    assert.ok(d <= lim, `вход ${it.kind} (${it.x}; ${it.z}) — ${d.toFixed(1)} м от центра, предел ${lim}`);
   }
 });
 

@@ -18,21 +18,24 @@ import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE, isleBoxes } from './isle.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { BERTHS, parkDeckBoxes } from '../ownboat.ts';
-import { plazaSolids, type PlazaSolidMode } from '../plaza2.ts';
+import { KART_TIRES, PB_BARRELS, SIGNPOST, plazaSolids, type PlazaSolid, type PlazaSolidMode } from '../plaza2.ts';
 import { FARM_PLAZA_GATE } from '../farmmap.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
-import { PLAZA3 } from '../layout.ts';
+import { PLAZA3, pick } from '../layout.ts';
 import { P3 } from '../plaza3/layout.ts';
+import { A, xfP } from '../plaza3/xf.ts';
 import { plaza3Interacts, plaza3Static } from '../plaza3/map.ts';
 import type { P3Rect, Plaza3Lobby } from '../plaza3/types.ts';
 
+// Позиционные константы площади: без флага — прежние литералы, с PLAZA3 — из docs/plaza3/level/layout.json (modes —
+// абсолютные точки, anchors — перенос группы через xf). Подключение — pick()/xf() прямо у константы (tech-foundation §1.5).
 /** «Подземелье»: точка E у зева пещеры и где встаёт вернувшийся (docs/survivors/level-data.json, plaza.cave) */
-export const DUNGEON_USE = { x: -14.6, z: 10.5, r: 1.8, yaw: 1.9 } as const;
-export const DUNGEON_RETURN = { x: -13.1, z: 10.0, yaw: -1.275 } as const;
+export const DUNGEON_USE: { readonly x: number; readonly z: number; readonly r: number; readonly yaw: number } = pick({ x: -14.6, z: 10.5, r: 1.8, yaw: 1.9 } as const, () => P3.modes.dungeonUse);
+export const DUNGEON_RETURN: { readonly x: number; readonly z: number; readonly yaw: number } = pick({ x: -13.1, z: 10.0, yaw: -1.275 } as const, () => P3.modes.dungeonReturn);
 
 /** durak — стул за столиком кафе (стол дурака), seat — место на скамейке */
 /** ferry — лодка Семёна «Удалая» (arg 0 — у мостков, 1 — у калитки баркаса); fisher arg 1 — Саня на баркасе; roulette — стол на баркасе */
@@ -132,26 +135,34 @@ export interface LobbyMap extends GameMap {
   plaza3Boxes?: number[];
 }
 
-export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
-export const MACHINE_FRONT_Z = -23.7;
+/** Ряд автоматов (группа slots): x корпусов, лицевая и задняя грани */
+const SLOT_XS2 = [-25, -22.5, -20, -17.5, -15];
+export const MACHINE_XS = pick(SLOT_XS2, () => SLOT_XS2.map((x) => xfP(A.slots, { x, z: 0 }).x));
+export const MACHINE_FRONT_Z = pick(-23.7, () => xfP(A.slots, { x: 0, z: -23.7 }).z);
+export const MACHINE_BACK_Z = pick(-25.4, () => xfP(A.slots, { x: 0, z: -25.4 }).z);
+/** Столы кафе в старой раскладке (сервер берёт только их число — TABLE_ZS.length); сами столы — TABLES */
 export const TABLE_ZS = [-5, 3, 11];
 export const TABLE_X = 18;
-export const SKILL_PORTAL = { x: -10, z: -12.8, r: 2.1 } as const;
+/** Столы дурака и блэкджека: старые — столбиком у террасы, в plaza3 — рядом под перголой веранды */
+export const TABLES: ReadonlyArray<{ readonly x: number; readonly z: number }> = pick(TABLE_ZS.map((z) => ({ x: TABLE_X, z })), () => P3.modes.tables);
+const SKILL_PORTAL2 = { x: -10, z: -12.8, r: 2.1 } as const;
+export const SKILL_PORTAL: { readonly x: number; readonly z: number; readonly r: number } = pick(SKILL_PORTAL2, () => P3.modes.skillPortal);
 /** Фонарь у проулка крепости: стоял на оси арки (11; −11) и закрывал её с площади, теперь — правее, у картинга */
-export const LAMP_FORT = { x: 14.9, z: -11 } as const;
-export const BOAT_RACE_CIRCLE = { x: 16, z: 18, r: 2.25 } as const;
-export const HIDE_CIRCLE = { x: -4, z: 12.5, r: 2.1 } as const;
+const LAMP_FORT2 = { x: 14.9, z: -11 } as const;
+export const LAMP_FORT: { readonly x: number; readonly z: number } = pick(LAMP_FORT2, () => P3.modes.lampFort);
+export const BOAT_RACE_CIRCLE: { readonly x: number; readonly z: number; readonly r: number } = xfP(A.regatta, { x: 16, z: 18, r: 2.25 });
+export const HIDE_CIRCLE: { readonly x: number; readonly z: number; readonly r: number } = xfP(A.hide, { x: -4, z: 12.5, r: 2.1 });
 /**
  * Три батута треугольником вокруг розы ветров (0; 3,6): сторона 14,5 м — как было между двумя прежними батутами;
  * треугольник повёрнут на 16°: угол не упирается в арку «Рыбного двора», а мяч из центра катится на запад свободно.
  */
-export const PLAZA_TRAMPOLINES: ReadonlyArray<readonly [number, number]> = [[2.32, -4.47], [5.84, 9.64], [-8.15, 5.63]];
+export const PLAZA_TRAMPOLINES: ReadonlyArray<readonly [number, number]> = pick([[2.32, -4.47], [5.84, 9.64], [-8.15, 5.63]], () => P3.modes.trampolines);
 export const CHAIR_R = 1.35;
-export const BENCH_XS = [-8, 0, 8];
-export const BENCH_Z = 19.5;
-/** Столбы навеса из гирлянд над террасой (x, z), высота CANOPY_POLE_H */
-export const CANOPY_POLES: ReadonlyArray<readonly [number, number]> = [[14.2, -9], [14.2, 1], [14.2, 11], [24, 11]];
-export const CANOPY_POLE_H = 3.6;
+export const BENCH_XS = pick([-8, 0, 8], () => P3.modes.benches.xs);
+export const BENCH_Z = pick(19.5, () => P3.modes.benches.z);
+/** Столбы навеса из гирлянд над террасой (x, z), высота CANOPY_POLE_H; в plaza3 — стойки перголы веранды */
+export const CANOPY_POLES: ReadonlyArray<readonly [number, number]> = pick([[14.2, -9], [14.2, 1], [14.2, 11], [24, 11]], () => P3.modes.pergola.posts);
+export const CANOPY_POLE_H = pick(3.6, () => P3.modes.pergola.h);
 /** Стульев у стола дурака. Места 0…17 — стулья (стол × 6), 18…23 — скамейки. */
 export const TABLE_SEATS = 6;
 export const LOBBY_SEAT_COUNT = TABLE_ZS.length * TABLE_SEATS + BENCH_XS.length * 2;
@@ -168,7 +179,7 @@ export function tableSeat(table: number, chair: number): number {
   return table * TABLE_SEATS + chair;
 }
 /** Деревья в кадках на площади (x, z): у моря на западе (на востоке у парапета — колесо обозрения). Кадка — по колено, на неё можно запрыгнуть */
-export const PLANTERS: ReadonlyArray<readonly [number, number]> = [[-24, 7], [-24, 15]];
+export const PLANTERS: ReadonlyArray<readonly [number, number]> = pick([[-24, 7], [-24, 15]], () => P3.modes.planters);
 export const PLANTER_R = 0.62;
 export const PLANTER_H = 0.55;
 /**
@@ -182,14 +193,15 @@ export const STATUE = { x: -23.6, z: 19.2, yaw: yawTo(-23.6, 19.2, -6, 8), half:
  */
 export const STATUE_SHOWN = false;
 /** Табличка у катера на причале (столбик с доской, лицом к площади): «Отплытие через N с» */
-export const BOAT_SIGN = { x: 10.2, z: 21.3 };
+export const BOAT_SIGN = xfP(A.boat, { x: 10.2, z: 21.3 });
 /** Круг «Старт» перед гаражом: кто в нём стоит, тот через 15 с отсчёта едет в гонку */
-export const KART_START = { x: 20.5, z: -12.6, r: 2.2 };
+export const KART_START = pick({ x: 20.5, z: -12.6, r: 2.2 }, () => ({ ...P3.modes.kartStart }));
 /**
  * Арка «Крепость» (выпуск 6) в проулке между складом и гаражом: середина, ширина проёма. Арку рисует клиент и только
  * с флагом сервера FORTRESS; твёрдого у неё нет — без флага на набережной ничего не меняется.
  */
-export const FORT_ARCH = { x: 11, z: -16.2, w: 3.4 };
+const FORT_ARCH2 = { x: 11, z: -16.2, w: 3.4 };
+export const FORT_ARCH = pick(FORT_ARCH2, () => ({ ...P3.modes.fortArch }));
 /**
  * Фото у маяка: штатив с фотоаппаратом в конце мостков смотрит на юг, на площадку перед маяком (spot — где встают
  * в кадр). E — у штатива, с северной стороны, как у фотографа.
@@ -210,13 +222,16 @@ const L2: Plaza3Lobby = {
   mirror: { x: -25.4, z: -1.4, yaw: -Math.PI / 2 },
   honorBoard: { x0: 6, z0: -2, x1: 10, z1: -1.6 },
   honor: { x: 8, z: -0.3, yaw: 0, r: 1.8 },
+  // обратная сторона доски почёта: honorBoard.z0 − 1,3
+  recent: { x: 8, z: -2 - 1.3, yaw: Math.PI, r: 1.8 },
   kboard: { x: 26.05, z: -14.3, yaw: Math.PI, r: 1.6 },
-  lamps: [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]],
+  lamps: [[-14, -2], [-4.5, -11], [LAMP_FORT2.x, LAMP_FORT2.z], [-14, 16], [2, 16], [14, 16]],
   bollardsWest: { x: -29.2, zs: [-12, 6, 12, 18] },
   bollardsSouth: { z: 21.2, xs: [-26, -12, -4, 4, 12, 20, 26] },
   gateSpawn: { x: 0, z: -12.5, yaw: Math.PI },
   garageSpawn: { x: 15.2, z: -12.4, yaw: Math.PI },
-  skillSpawn: { x: SKILL_PORTAL.x, z: -9.4, yaw: 0 },
+  skillSpawn: { x: SKILL_PORTAL2.x, z: -9.4, yaw: 0 },
+  fortSpawn: { x: FORT_ARCH2.x, z: FORT_ARCH2.z + 2.4, yaw: Math.PI },
   lighthouse: { x: -19, z: 43 },
   zones: {
     arcade: { x0: -28, z0: -26, x1: -12, z1: -16 },
@@ -282,8 +297,8 @@ export function buildLobby(): LobbyMap {
   const plaza3Boxes = PLAZA3 ? plaza3Static(b) : [];
   const machines: Array<{ x: number; z: number }> = [];
   MACHINE_XS.forEach((x, m) => {
-    b.box([x - 0.55, 0, -25.4], [x + 0.55, 2.1, MACHINE_FRONT_Z], 'metal', METAL);
-    machines.push({ x, z: (-25.4 + MACHINE_FRONT_Z) / 2 });
+    b.box([x - 0.55, 0, MACHINE_BACK_Z], [x + 0.55, 2.1, MACHINE_FRONT_Z], 'metal', METAL);
+    machines.push({ x, z: (MACHINE_BACK_Z + MACHINE_FRONT_Z) / 2 });
     add('slot', x, MACHINE_FRONT_Z + 1, 0, 1.0, m, 'сыграть');
   });
 
@@ -325,7 +340,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Кафе «Чайка»: домик у восточного края, терраса со столиками
   if (OLD_STATIC) b.box([24, 0, -10], [30, 4, 4], 'wood', 0xe8dcc4);
-  const tables = TABLE_ZS.map((z) => ({ x: TABLE_X, z }));
+  const tables = TABLES.map((t) => ({ x: t.x, z: t.z }));
   for (const t of tables) b.box([t.x - 0.55, 0, t.z - 0.55], [t.x + 0.55, 0.75, t.z + 0.55], 'wood', WOOD);
   // невидимые колпаки над столиками: на стол не запрыгнуть и не встать (shared/tableguard.ts)
   for (const g of cafeTableGuards(tables)) b.box(g.min, g.max, 'invisible', 0);
@@ -372,7 +387,7 @@ export function buildLobby(): LobbyMap {
   add('photo', PHOTO.x, PHOTO.z - 0.9, Math.PI, 1.4, 0, 'фото у маяка');
   FISH_SPOTS.slice(0, 6).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i, 'порыбачить'));
   // обратная сторона доски почёта — «Последние входы». Новые точки — только в конец: их номера шлют клиенты
-  add('recent', L.honor.x, honorBoard.z0 - 1.3, Math.PI, 1.8, 0, 'Последние входы');
+  add('recent', L.recent.x, L.recent.z, L.recent.yaw, L.recent.r, 0, 'Последние входы');
   // катер у причала: E — покататься (первый платит). Точка — у середины катера: достать и с причала, и из катера
   add('boat', LAUNCH.x, LAUNCH.z - 0.4, Math.PI, 3.5, 0, 'катер');
 
@@ -527,10 +542,13 @@ export function buildLobby(): LobbyMap {
 
   // --- Пирс дальше в море (shared/fishplaces.ts): дальние мостки и площадка с домом рыбака — настилы уже в FISH_DECKS.
   // Вода вокруг — своя «бухта» в стенах: к баркасу (его вода — shared/barkas.ts) не доплыть и не долететь рывком.
+  // В plaza3 бухта шире (порт B: стоянка и Маячный мол) — её стены в docs/plaza3/level/layout.json (colliders)
   b.box([-5, -6, 48], [31.5, 30, 49], 'invisible', 0);
-  b.box([-31, -6, 48], [-30, 30, 72], 'invisible', 0);
-  b.box([-5, -6, 48], [-4, 30, 72], 'invisible', 0);
-  b.box([-31, -6, 71], [-4, 30, 72], 'invisible', 0);
+  if (OLD_STATIC) {
+    b.box([-31, -6, 48], [-30, 30, 72], 'invisible', 0);
+    b.box([-5, -6, 48], [-4, 30, 72], 'invisible', 0);
+    b.box([-31, -6, 71], [-4, 30, 72], 'invisible', 0);
+  }
   // дом рыбака: сруб, стойки крыльца, бочки и ящики (рисует client/lobby/fishhouse.ts)
   for (const h of FISH_HOUSE_BOXES) b.box([h.x0, h.y0, h.z0], [h.x1, h.y1, h.z1], 'invisible', 0);
   // сваи под дальними мостками и площадкой (как у мостков к маяку)
@@ -592,7 +610,10 @@ export function buildLobby(): LobbyMap {
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
   const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], dungeon: [] };
-  for (const p of plazaSolids()) {
+  // В plaza3 без блокаута старой площади: бочки у склада, покрышки у гаража, столб-указатель и скала «Подземелья» стоят
+  // у старых входов — их нет (скала переезжает к скалам, WP6); остальное переезжает своими группами (WP3–WP8)
+  const solids = OLD_STATIC ? plazaSolids() : plazaSolids().filter((p) => !(PB_BARRELS as readonly PlazaSolid[]).includes(p) && !KART_TIRES.includes(p) && !(p.x === SIGNPOST.x && p.z === SIGNPOST.z) && p.mode !== 'dungeon');
+  for (const p of solids) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
     b.box([p.x - p.hx, p.y ?? 0, p.z - p.hz], [p.x + p.hx, (p.y ?? 0) + p.h, p.z + p.hz], 'invisible', 0);
@@ -627,7 +648,7 @@ export function buildLobby(): LobbyMap {
     spawn,
     gateSpawn: { x: L.gateSpawn.x, y: 0, z: L.gateSpawn.z, yaw: L.gateSpawn.yaw },
     garageSpawn: { x: L.garageSpawn.x, y: 0, z: L.garageSpawn.z, yaw: L.garageSpawn.yaw },
-    fortSpawn: { x: FORT_ARCH.x, y: 0, z: FORT_ARCH.z + 2.4, yaw: Math.PI },
+    fortSpawn: { x: L.fortSpawn.x, y: 0, z: L.fortSpawn.z, yaw: L.fortSpawn.yaw },
     skillSpawn: { x: L.skillSpawn.x, y: 0, z: L.skillSpawn.z, yaw: L.skillSpawn.yaw },
     boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
     hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },

@@ -1,7 +1,9 @@
 // Круг «Старт» у гаража картинга: шахматное кольцо и надпись на настиле, большое число отсчёта над кругом,
 // табло на стене гаража. Всё — по статусу kart от сервера; секунды между сообщениями тикают сами.
 import * as THREE from 'three';
+import { pick } from '../../shared/layout.ts';
 import { KART_START } from '../../shared/maps/lobby.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import type { KartStatus } from '../../shared/messages.ts';
 import { botsWord } from '../../shared/solobots.ts';
 import { KartBoard } from './boards.ts';
@@ -16,7 +18,8 @@ const NUM_SIZE = 1.9;
 /** Табло на стене гаража справа от ворот (ширина, высота, центр) */
 const BOARD_W = 3.3;
 const BOARD_H = 1.85;
-export const BOARD_POS = { x: 26.05, y: 2.75, z: -15.9 };
+/** В plaza3 — на фасаде картинга (z −29) над точкой «Табло гонки» (lobby.kboard) */
+export const BOARD_POS = pick({ x: 26.05, y: 2.75, z: -15.9 }, () => ({ x: P3.lobby.kboard.x, y: 2.75, z: P3.lobby.kboard.z - 1.3 }));
 
 export class KartStart {
   readonly group = new THREE.Group();

@@ -8,10 +8,12 @@
 // Сервер шагает самолёт по входам пилота (stepPlane), клиент пилота предсказывает тем же шагом, остальные видят
 // самолёт по сообщениям planePos с плавностью.
 import { TICK_RATE, WATER_Y } from './constants.ts';
+import { pick } from './layout.ts';
 import type { Outfit } from './outfit.ts';
 import { BTN_BACK, BTN_DASH, BTN_FORWARD, type Input } from './sim.ts';
 import { sanitizeChat } from './text.ts';
 import { WHEEL } from './wheel.ts';
+import { P3 } from './plaza3/layout.ts';
 
 /** Цена полёта, жетонов */
 export const PLANE_PRICE = 100;
@@ -129,14 +131,16 @@ export function wrapAngle(a: number): number {
 
 // ------------------------------------------------------------ рельеф города (копия landY из client/lobby/world.ts)
 
-const PLAZA_E = 30;
-const PLAZA_N = -26;
+const PLAZA_E = pick(30, () => P3.land.town.e);
+const PLAZA_N = pick(-26, () => P3.land.town.n);
 const QUAY_Z = 22;
 const QUAY_X = -30;
 const STREET_Y = -0.6;
 /** Подъём за надписью TIREDWOOD (client/lobby/tiredwood.ts: signHill) */
-const HILL_UP = 90;
-const HILL_BEARING = (62 * Math.PI) / 180;
+const HILL_UP = pick(90, () => P3.sign.hillUp);
+const HILL_BEARING = (pick(62, () => P3.sign.hillBearingDeg) * Math.PI) / 180;
+/** Площадь и пирс к маяку (x0…x1, z0…z1): над ними пол как над сушей; в plaza3 — по рамке новой суши */
+const FLOOR_LAND = pick({ x0: -30, x1: 30, z0: -26, z1: 46 }, () => ({ x0: P3.lobby.bounds.minX, x1: P3.land.town.e, z0: P3.land.town.n, z1: 46 }));
 const HILL_FROM = 400;
 const HILL_TO = 800;
 const HILL_SIDE = 750;
@@ -169,8 +173,8 @@ function groundY(x: number, z: number, d: number): number {
  */
 export function planeFloor(x: number, z: number): number {
   const d = landDepth(x, z);
-  const px = Math.max(-30 - x, 0, x - 30);
-  const pz = Math.max(-26 - z, 0, z - 46);
+  const px = Math.max(FLOOR_LAND.x0 - x, 0, x - FLOOR_LAND.x1);
+  const pz = Math.max(FLOOR_LAND.z0 - z, 0, z - FLOOR_LAND.z1);
   const k = Math.max(smooth((d + 25) / 50), 1 - smooth(Math.hypot(px, pz) / 30));
   if (k <= 0) return WATER_FLOOR;
   return WATER_FLOOR + (Math.max(WATER_FLOOR, groundY(x, z, d) + ROOF_CLEAR) - WATER_FLOOR) * k;

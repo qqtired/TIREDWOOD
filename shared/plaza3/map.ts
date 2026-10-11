@@ -1,7 +1,7 @@
 // Новая набережная в общей карте (buildLobby(), shared/maps/lobby.ts) — только при флаге PLAZA3.
 // plaza3Static — твёрдое новой площади из docs/plaza3/level/layout.json (colliders): настил, парапеты, стены, павильоны.
 // plaza3Interacts — новые точки E (аркада и т. п.) строго после точки №112 (farm): номера 0–112 одинаковы в обеих раскладках.
-// Пока раскладка — скелет WP0, оба списка пусты: с PLAZA3=1 карта та же, что без флага.
+// С блокаутом WP2 colliders — настил суши, невидимые стены (кромка, бухта порта B), балюстрада и коробки павильонов.
 import type { Builder } from '../maps/builder.ts';
 import type { InteractKind } from '../maps/lobby.ts';
 import { P3 } from './layout.ts';
