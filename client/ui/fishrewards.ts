@@ -8,7 +8,7 @@
 import './fishstyle.css';
 import '../lobby/fishwin.css';
 import type { FishAlbum } from '../../shared/fishing.ts';
-import { TIER_CSS, collectionCount } from '../../shared/fishrules.ts';
+import { collectionCount } from '../../shared/fishrules.ts';
 import {
   ALL, GEAR_SLOTS, ISLE_ITEMS, ISLE_LADDER, LADDER, REWARD_INFO, fishTotal, isleNeedOf, needOf, nextStep, stepNeed,
   isleNextStep, type RewardStep,
@@ -27,9 +27,6 @@ const SLOT_TITLE: Partial<Record<Slot, string>> = { r: 'Удочка', b: 'По�
 const FREE_TEXT: Partial<Record<Slot, string>> = {
   r: 'Простая удочка — есть у всех', b: 'Простой поплавок — есть у всех', w: 'Деревянная рама и синяя вода — есть у всех', n: 'Над ником ничего нет',
 };
-/** Рыбка на миниатюре шкалы — та же, что на настоящей (client/lobby/fishgame.ts) */
-const FISH_SVG = '<svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true"><path d="M3 12c5-7 14-9 22-6l7-5-1 8 1 7-7-5c-8 3-17 1-22-6z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="9" cy="10.5" r="1.7" fill="#1b1216"/></svg>';
-
 /** Вид награды коротко: «окно» вместо «окно вываживания»; одежде и аксессуарам вид не нужен */
 function kindShort(id: string): string {
   const k = REWARD_INFO[id]?.kind ?? '';
@@ -72,9 +69,6 @@ export function isleSpecies(n: number): string {
 export function isleVisible(id: string, owned: readonly string[]): boolean {
   return !ISLE_ITEMS.has(id) || ISLE.on || owned.includes(id);
 }
-
-/** Миниатюра окна шкалы: те же классы, что у настоящей шкалы (тема — data-fr-theme, client/ui/fishstyle.css) */
-const winBar = `<span class="fr-bar"><span class="fr-water"></span><span class="fr-zone"></span><span class="fr-fish">${FISH_SVG}</span></span>`;
 
 export class FishRewards {
   /** Выбрал снасть (Fish2Hud шлёт наряд серверу) */
@@ -146,9 +140,7 @@ export class FishRewards {
     const list = this.list(slot, owned, total);
     const cur = this.current(slot, list);
     const have = list.filter((i) => isOwned(owned, i)).length;
-    const art = slot === 'w'
-      ? `<span class="fi-winmini fi-winmini--big"${cur ? ` data-fr-theme="${esc(cur.key)}"` : ''} style="--tc:${TIER_CSS[1]}">${winBar}</span>`
-      : (cur && FISH_ICONS[cur.id]) || (cur?.tier === 'free' ? '<span class="fi-gear-none"></span>' : iconImg('medal-gold', ''));
+    const art = (cur && FISH_ICONS[cur.id]) || (cur?.tier === 'free' ? '<span class="fi-gear-none"></span>' : iconImg('medal-gold', ''));
     const desc = cur ? REWARD_INFO[cur.id]?.text ?? FREE_TEXT[slot] ?? '' : '';
     const isOpen = this.open === slot;
     return `<button type="button" class="k-cell fi-gear-cell${isOpen ? ' is-open' : ''}" data-pick="${slot}" aria-expanded="${isOpen}">`
@@ -160,17 +152,15 @@ export class FishRewards {
   private picker(slot: Slot, owned: readonly string[], total: number): string {
     const list = this.list(slot, owned, total);
     const cur = this.current(slot, list);
-    const win = slot === 'w';
     const opts = list.map((it) => {
       const have = isOwned(owned, it);
       const isOn = it === cur;
       const isleNeed = isleNeedOf(it.id);
       const need = needOf(it.id, total);
       const lock = have ? '' : isleNeed !== null ? isleSpecies(isleNeed) : need !== null ? species(need) : '';
-      const pic = win ? winBar : `<span class="fi-gopt-ic">${FISH_ICONS[it.id] ?? (it.tier === 'free' ? '' : iconImg('medal-gold', ''))}</span>`;
-      const theme = win ? ` data-fr-theme="${esc(it.key)}" style="--tc:${TIER_CSS[1]}"` : '';
-      return `<button type="button" class="${win ? 'fi-winmini' : 'fi-gopt'}${isOn ? ' is-on' : ''}${have ? '' : ' is-lock'}" data-slot="${slot}" data-key="${esc(it.key)}"`
-        + `${theme} aria-pressed="${isOn}"${have ? '' : ' disabled'}>${pic}<span>${esc(it.name)}${lock ? `<small>${lock}</small>` : ''}</span></button>`;
+      const pic = `<span class="fi-gopt-ic">${FISH_ICONS[it.id] ?? (it.tier === 'free' ? '' : iconImg('medal-gold', ''))}</span>`;
+      return `<button type="button" class="fi-gopt${isOn ? ' is-on' : ''}${have ? '' : ' is-lock'}" data-slot="${slot}" data-key="${esc(it.key)}"`
+        + ` aria-pressed="${isOn}"${have ? '' : ' disabled'}>${pic}<span>${esc(it.name)}${lock ? `<small>${lock}</small>` : ''}</span></button>`;
     }).join('');
     return `<div class="k-cell fi-gear-pick" role="group" aria-label="${SLOT_TITLE[slot] ?? ''}: выбор"><div class="fi-gear-wins">${opts}</div>`
       + `<p>${SLOT_TITLE[slot] ?? ''} — нажми, чтобы надеть. Серые — дальше по журналу.</p></div>`;
