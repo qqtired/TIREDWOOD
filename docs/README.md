@@ -42,6 +42,7 @@
 | Чат | `text.ts`, `messages.ts` | `hub.ts`, `lobby/circlechat.ts` | `chat.ts` | — | `circlechat.test.ts`, `hub.test.ts` | план `circle-chat` |
 | Экономика и жетоны | `economy.ts` | `profiles.ts` | `ui/tokens.ts`, `ui/coin.ts` | — | `economy.test.ts`, `tokens-reconnect.test.ts` | план `progression-economy`; AGENTS §8 (8–15 жетонов в минуту) |
 | Уровни игрока | `levels.ts` | `profiles.ts` | `render/leveltag.ts`, `ui/levelprogress.ts` | — | `levels.test.ts`, `mode-levels.test.ts` | план `mode-levels`, [tasks/levels.md](tasks/levels.md) |
+| Интерфейс 2.0: кит, слоты HUD, верх-центр, бейдж, иконки; эталон вида — страница `lab/ui/` | — | — | `ui/kit/`, `assets/ui/icons/` | — | `ui-kit.test.ts` | [ui-redesign/README.md](ui-redesign/README.md) — история редизайна, решения владельца, где что лежит |
 | Меню Esc, список Tab | — | — | `ui/menu/`, `ui/online.ts`, `settings.ts` | — | `menu-settings.test.ts`, `tabmenu.test.ts` | планы `menu`, `tabmenu` |
 
 Лаборатория примерки — `client/fitting-room/`, контракт `shared/fitting-room.ts`,
