@@ -32,7 +32,8 @@ import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import { Plaza3Pavilions } from './plaza3/pavilions.ts';
 import { Plaza3Perf } from './plaza3/perf.ts';
-import { TOWN_LIMIT, townHeight, townLotBase } from './plaza3/landscape.ts';
+import { TOWN_LIMIT, townCoastZ, townHeight, townLotBase } from './plaza3/landscape.ts';
+import { bindGroundTexture, TEX } from './plaza3/ground.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -142,7 +143,7 @@ const CURB = 0xcfc7b6;
 
 /** Сколько метров от края города (от воды или от площади) вглубь; на площади и в море — меньше нуля. */
 function landDepth(x: number, z: number): number {
-  return Math.max(Math.min(x - PLAZA_E, QUAY_Z - z), Math.min(PLAZA_N - z, x - QUAY_X));
+  return Math.max(Math.min(x - PLAZA_E, (PLAZA3 ? townCoastZ(x) : QUAY_Z) - z), Math.min(PLAZA_N - z, x - QUAY_X));
 }
 
 /** Высота земли города: у края — ровная улица, вглубь — холмы. Вне суши — ниже воды. */
@@ -1159,9 +1160,12 @@ export class LobbyWorld {
     }
     for (let z = PLAZA_N + 8; z < QUAY_Z - QUAY_T; z += 10) zs.push(z);
     zs.push(QUAY_Z - QUAY_T);
+    if (PLAZA3) for (let z = QUAY_Z; z <= TOWN_LIMIT.z1; z += 10) zs.push(z);
     const pos: number[] = [];
     const col: number[] = [];
     const idx: number[] = [];
+    const hillIdx: number[] = [];
+    const uv: number[] = [];
     const c = new THREE.Color();
     // набережная у воды и улица вдоль площади — светлая плитка, как у площади, дальше — серая мостовая
     const promenade = new THREE.Color(0xcfc6b0);
@@ -1172,6 +1176,7 @@ export class LobbyWorld {
       for (const x of xs) {
         const y = landY(x, z);
         pos.push(x, y, z);
+        if (PLAZA3) uv.push(x / TEX.lawn.tile, -z / TEX.lawn.tile);
         const d = landDepth(x, z);
         if (d < 12) c.copy(promenade);
         else if (d < 70) c.copy(street);
@@ -1188,15 +1193,31 @@ export class LobbyWorld {
         const b = a + 1;
         const d = a + nx;
         const e = d + 1;
-        idx.push(a, d, b, b, d, e);
+        const hill = PLAZA3 && landDepth((xs[i] + xs[i + 1]) / 2, (zs[j] + zs[j + 1]) / 2) >= 70;
+        (hill ? hillIdx : idx).push(a, d, b, b, d, e);
       }
     }
     const ground = new THREE.BufferGeometry();
     ground.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     ground.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    ground.setIndex(idx);
+    ground.setIndex([...idx, ...hillIdx]);
     ground.computeVertexNormals();
-    this.scene.add(staticMesh(ground, this.far(new THREE.MeshLambertMaterial({ vertexColors: true, fog: false })), false));
+    const plainMat = this.far(new THREE.MeshLambertMaterial({ vertexColors: true, fog: false }));
+    if (PLAZA3) {
+      ground.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      ground.addGroup(0, idx.length, 0);
+      ground.addGroup(idx.length, hillIdx.length, 1);
+      // Та же lawn.jpg, что у огородов, с общей загрузкой. Деление на средний цвет сохраняет оттенки и дымку склонов.
+      const average = new THREE.Color(TEX.lawn.avg);
+      const grassMat = this.far(new THREE.MeshLambertMaterial({
+        vertexColors: true, fog: false, color: new THREE.Color(1 / average.r, 1 / average.g, 1 / average.b),
+      }));
+      bindGroundTexture('lawn', grassMat);
+      const terrain = new THREE.Mesh(ground, [plainMat, grassMat]);
+      terrain.name = 'plaza3-town-terrain';
+      terrain.matrixAutoUpdate = false;
+      this.scene.add(terrain);
+    } else this.scene.add(staticMesh(ground, plainMat, false));
 
     // --- дома: по одному на клетку 18 м; у воды пониже и под двускатными крышами, на холмах повыше и реже
     const rng = makeRng(404);

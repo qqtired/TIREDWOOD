@@ -91,13 +91,13 @@ const url = (file: string): string => new URL(`../../assets/plaza3/ground/${file
 interface Loaded {
   /** null — ещё грузится: у материалов заглушка среднего цвета */
   tex: THREE.Texture | null;
-  mats: THREE.MeshStandardMaterial[];
+  mats: Array<THREE.MeshStandardMaterial | THREE.MeshLambertMaterial>;
   stub: THREE.DataTexture;
 }
 const loaded = new Map<TexId, Loaded>();
 
 /** Карта материалу: сразу заглушка 1×1 среднего цвета (не чёрная земля до загрузки), по загрузке — картинка */
-function bind(id: TexId, m: THREE.MeshStandardMaterial): void {
+export function bindGroundTexture(id: TexId, m: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial): void {
   let l = loaded.get(id);
   if (!l) {
     const t: GroundTex = TEX[id];
@@ -213,7 +213,7 @@ function dressMesh(mesh: THREE.Mesh, wet: Wet): THREE.Mesh[] {
       }),
     );
     m.name = `p3_ground_${b.id}`;
-    bind(b.id, m);
+    bindGroundTexture(b.id, m);
     const out = new THREE.Mesh(g, m);
     out.name = `plaza3-ground-${b.id}`;
     out.castShadow = mesh.castShadow;

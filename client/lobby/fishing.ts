@@ -745,6 +745,9 @@ export class FishingSpots {
     lineMat ??= new THREE.LineBasicMaterial({ color: 0xf4f2ec, transparent: true, opacity: 0.8 });
     const line = new THREE.Line(lg, lineMat);
     line.frustumCulled = false;
+    // Леска обновляется в мировых координатах. Plaza3Perf кеширует сферу пустой геометрии у (0,0,0)
+    // и отсекает её по слоям даже при frustumCulled=false; игровую леску прячет только состояние места.
+    line.userData.p3keep = true;
     line.visible = false;
     this.scene.add(line);
     const float = makeFloat();

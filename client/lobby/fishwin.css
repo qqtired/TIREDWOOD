@@ -59,7 +59,7 @@
 .fi-gopt-ic > svg, .fi-gopt-ic > img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(10, 5, 8, .3)); }
 .fi-gopt.is-on .fi-gopt-ic { box-shadow: 0 0 0 3px var(--gold), 0 0 14px var(--gold-soft); }
 .fi-gopt.is-on, .fi-winmini.is-on { color: var(--gold-text); }
-.fi-gopt.is-lock .fi-gopt-ic > svg { filter: grayscale(.85) brightness(.75); opacity: .7; }
+.fi-gopt.is-lock .fi-gopt-ic > svg, .fi-gopt.is-lock .fi-gopt-ic > img { filter: grayscale(.85) brightness(.75); opacity: .7; }
 .fi-gopt.is-lock, .fi-winmini.is-lock { color: var(--surf-faint); }
 /* миниатюра окна шкалы: те же классы, что у настоящей шкалы (.fr-bar .fr-water .fr-zone, тема — data-fr-theme из
    client/ui/fishstyle.css), размер — как .fi-winmini в lab/ui/screens/fishing.css: полоса 30×96, золото — надето, серое — закрыто */

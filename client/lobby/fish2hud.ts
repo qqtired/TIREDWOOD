@@ -180,8 +180,15 @@ export class Fish2Hud {
     this.book.onClose = () => {
       if (!this.quiet) this.onBookClose();
     };
-    // снасти из журнала: сервер меняет их где угодно на набережной
+    // Один компонент наград в журнале и у Семёна: профиль и запрос смены снасти общие.
     this.book.rewards.onEquip = (slot, key) => send({ t: 'outfit', o: { ...this.ui.me().outfit, [slot]: key } as Outfit });
+    this.npc.addTab('rewards', 'season', 'Награды', ['semyon'], (panel, progress) => {
+      const me = this.ui.me();
+      this.book.rewards.outfit = me.outfit;
+      const view = this.book.rewards.view(me.album, me.owned, fishLevel(progress.xp));
+      // Не менять узлы без изменения содержимого: выбор и прокрутка остаются на месте.
+      if (panel.firstElementChild?.innerHTML !== view.innerHTML) panel.replaceChildren(view);
+    });
   }
 
   /** Рыбалка 2.0 включена на сервере */
