@@ -1,27 +1,22 @@
-// Доска фермы (design-v11 §14.2): карта 20 участков с номерами и список — кто здесь / спит, ник, уровень, репутация (своя),
-// «можно полить: N». Свой участок — золотом. Свободный участок можно занять (claimPlot). Блок Древа и Фургона сверху.
-// Древо — часть B1: пока их сообщения не пришли, показываем только время «проснётся в 19:00».
-import { repLevel } from '../../../shared/farm.ts';
-import { BOSS_START_HOUR, HELPS_PER_BED, HELP_MIN_LEFT_MS, REP_LEVELS } from '../../../shared/farmdata.ts';
-import { vanTime } from '../../../shared/farmvan.ts';
-import { FARM_PLOTS_GEO, farmUse } from '../../../shared/farmmap.ts';
+// Доска фермы (lab/ui/screens/farm.js «Доска фермы: соседи и „Помочь“»): карта 20 участков по настоящим местам (свой — золотом,
+// здесь — зелёная рамка, спит — серый, свободный — пунктир) и список соседей. У тех, кому можно полить, — «Помочь»: окно
+// закрывается и подсказывает дорогу к участку, а у грядки соседа подсказка E сама предлагает полить (сцена). Сверху — Древо
+// разлома: когда проснётся, а пока цветёт — прогресс и твой вклад. Фургон отсюда убран: он в карточке фермы и в «Заказах».
+// Свободный участок можно занять (claimPlot) — выбери его на карте.
+import { farmLevel, repLevel } from '../../../shared/farm.ts';
+import { helpView } from '../../../shared/farmhelp.ts';
+import { BOSS_START_HOUR, HELPS_PER_BED, HELP_MIN_LEFT_MS, HELP_MIN_LEVEL, REP_LEVELS } from '../../../shared/farmdata.ts';
+import { FARM_PLOTS_GEO } from '../../../shared/farmmap.ts';
 import type { FarmPlotView } from '../../../shared/farmnet.ts';
-import { FarmWin, btn, clockHour, el, fmtLeft, mskHour, msToNextHour } from './common.ts';
+import { treeLine } from './tree-model.ts';
+import { FarmWin, clockHour, esc, fi, mskHour, msToNextHour, ui } from './common.ts';
 
-const NS = 'http://www.w3.org/2000/svg';
-const svg = (tag: string, attrs: Record<string, string | number> = {}): SVGElement => {
-  const e = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
-  return e;
-};
-
-/** Метки общих мест на карте */
-const MARKS: readonly [id: Parameters<typeof farmUse>[0], emoji: string][] = [
-  ['semechkin', '🌱'], ['grib', '🍄'], ['orders', '📋'], ['van', '🚚'], ['boss', '🌳'], ['cart', '🛒'], ['farmBoard', '🪧'], ['troughN', '💧'],
-];
+/** Масштаб карты: 6 px на метр, центр — колодец (карта 420×420) */
+const K = 6;
+const MID = 210;
 
 /** Сколько грядок на участке можно полить соседу: растёт, до созревания > 20 с, помощей меньше трёх */
-function helpable(p: FarmPlotView, now: number): number {
+export function helpable(p: FarmPlotView, now: number): number {
   return p.beds.filter((b) => b.c && b.r - now > HELP_MIN_LEFT_MS && b.h < HELPS_PER_BED).length;
 }
 
@@ -38,107 +33,71 @@ export class BoardWin extends FarmWin {
     const plots = this.host.plots();
     const now = this.host.now;
     const f = this.host.f;
+    const level = farmLevel(f.xp);
     const roster = this.host.roster();
     const rows = plots.map((p) => ({ p, online: p.pid > 0 && !p.sleeping, lvl: roster.find((r) => r.plot === p.i)?.level ?? p.level }));
 
-    // верхняя полоска: Древо и Фургон
-    const top = body.appendChild(el('div', 'fm-board-top'));
-    top.append(this.treeBlock(), this.vanBlock());
-
-    const cols = body.appendChild(el('div', 'fm-board'));
     // --- карта
-    const left = cols.appendChild(el('div', 'fm-board-map'));
-    const map = svg('svg', { viewBox: '-38 -38 76 76', class: 'fm-map', role: 'img', 'aria-label': 'Карта участков' });
-    map.append(svg('rect', { x: -36, y: -36, width: 72, height: 72, rx: 4, class: 'fm-map-ground' }));
-    map.append(svg('circle', { cx: 0, cy: 0, r: 4.5, class: 'fm-map-well' }));
-    for (const [id, emoji] of MARKS) {
-      const u = farmUse(id);
-      if (!u) continue;
-      const t = svg('text', { x: id === 'troughN' ? 0 : u.x, y: id === 'troughN' ? 0.6 : u.z + 1.1, class: 'fm-map-mark', 'text-anchor': 'middle' });
-      t.textContent = emoji;
-      map.append(t);
-    }
-    for (const { p, online } of rows) {
+    const cells = rows.map(({ p, online }) => {
       const g = FARM_PLOTS_GEO[p.i];
       const mine = p.i === this.host.plot;
-      const cls = `fm-plot ${mine ? 'mine' : p.pid === 0 ? 'free' : online ? 'on' : 'sleep'}${this.picked === p.i ? ' pick' : ''}`;
-      const grp = svg('g', { class: cls, transform: `translate(${g.x} ${g.z}) rotate(${(-g.yaw * 180) / Math.PI})` });
-      grp.append(svg('rect', { x: -3, y: -5, width: 6, height: 10, rx: 0.8 }));
-      const t = svg('text', { x: 0, y: 1.6, 'text-anchor': 'middle', class: 'fm-plot-n', transform: `rotate(${(g.yaw * 180) / Math.PI})` });
-      t.textContent = String(p.i + 1);
-      grp.append(t);
-      grp.addEventListener('click', () => { this.picked = p.i; this.refresh(); });
-      map.append(grp);
-    }
-    left.append(map);
+      const cls = mine ? 'is-me' : p.pid === 0 ? 'is-free' : online ? 'is-here' : 'is-sleep';
+      const can = !mine && p.pid !== 0 && helpable(p, now) > 0 && level >= HELP_MIN_LEVEL;
+      return `<button class="farm-plot ${cls}${this.picked === p.i ? ' is-pick' : ''}" type="button" data-plot="${p.i}" style="left:${(MID + g.x * K).toFixed(0)}px;top:${(MID + g.z * K).toFixed(0)}px" aria-label="Участок ${p.i + 1}">${p.i + 1}${can ? fi('watering-can', '') : ''}</button>`;
+    }).join('');
+    const map = `<div class="farm-map">${cells}${fi('well', 'farm-map-well')}${fi('ui:rift-tree', 'farm-map-tree')}${fi('van', 'farm-map-van')}</div>`;
     const sel = this.picked >= 0 ? plots[this.picked] : undefined;
-    const info = left.appendChild(el('div', 'fm-board-info'));
-    if (sel) {
-      info.append(el('b', '', `Участок ${sel.i + 1}${sel.i === this.host.plot ? ' · твой' : ''}`));
-      info.append(el('small', '', sel.pid === 0 ? 'Свободен' : `${sel.nick} · ур. ${sel.level}${sel.sleeping ? ' · спит' : ''}`));
-      if (sel.pid !== 0 && sel.i !== this.host.plot) info.append(el('small', '', `Можно полить грядок: ${helpable(sel, now)}`));
-      if (sel.pid === 0) {
-        info.append(el('small', 'fm-fine', 'Подойди к участку (до 12 м) и займи его.'));
-        info.append(btn('fm-go', 'Занять участок', () => this.host.send({ t: 'farm', a: 'claimPlot', plot: sel.i })));
-      }
-    } else info.append(el('small', 'fm-fine', 'Нажми на участок на карте, чтобы увидеть, кто там живёт.'));
-    info.append(el('small', 'fm-legend', '🟢 здесь · 💤 спит · пунктир — свободен · золото — твой'));
+    const info = sel && sel.pid === 0
+      ? `<div class="k-cell farm-claim"><div><b>Участок ${sel.i + 1} свободен</b><div class="k-dim">Подойди к нему (до 12 м) — и занимай.</div></div><button class="k-btn k-btn--go k-btn--sm" type="button" data-claim="${sel.i}">Занять участок</button></div>`
+      : '';
 
     // --- список
-    const list = cols.appendChild(el('div', 'fm-board-list'));
-    const free = rows.filter((r) => r.p.pid === 0).length;
     const taken = rows.filter((r) => r.p.pid !== 0);
     taken.sort((a, b) => Number(b.p.i === this.host.plot) - Number(a.p.i === this.host.plot) || Number(b.online) - Number(a.online) || b.lvl - a.lvl || a.p.i - b.p.i);
-    for (const { p, online, lvl } of taken) {
+    const free = rows.length - taken.length;
+    const hv = helpView(f, now);
+    const list = taken.map(({ p, online, lvl }) => {
       const mine = p.i === this.host.plot;
-      const row = list.appendChild(el('button', `fm-prow${mine ? ' mine' : ''}${this.picked === p.i ? ' pick' : ''}`));
-      row.type = 'button';
-      row.append(el('span', 'fm-state', online ? '🟢' : '💤'), el('span', 'fm-prow-n', `№ ${p.i + 1}`));
-      row.append(el('b', 'fm-prow-nick', p.nick || '—'), el('span', 'fm-prow-lv', `ур. ${lvl}`));
-      row.append(el('small', 'fm-prow-x', mine ? `реп.: ${REP_LEVELS[repLevel(f.rep) - 1].name}` : `полить: ${helpable(p, now)}`));
-      row.addEventListener('click', () => { this.picked = p.i; this.refresh(); });
-    }
-    if (!taken.length) list.append(el('p', 'fm-fine', 'Пока на ферме никого нет.'));
-    list.append(el('small', 'fm-fine', `Свободных участков: ${free}`));
+      const can = mine || level < HELP_MIN_LEVEL ? 0 : helpable(p, now);
+      return `
+        <div class="k-online-row${mine ? ' is-me' : ''}">
+          <span class="k-ring k-ring--sm k-ring--mode" style="--p:1"><b>${lvl}</b></span>
+          <span class="k-online-nick">${esc(p.nick || '—')}${mine ? ' <span class="k-dim">— ты</span>' : ''}</span>
+          <span class="k-online-room">Участок ${p.i + 1} · ${online ? 'здесь' : 'спит'}${can ? ` · <b class="k-good">можно полить ${can}</b>` : mine ? ` · ${REP_LEVELS[repLevel(f.rep) - 1].name}` : ' · всё полито'}</span>
+          <span class="k-online-act">${can ? `<button class="k-btn k-btn--go k-btn--sm farm-help-btn" type="button" data-help="${p.i}"><span class="k-row-line">${fi('watering-can')}Помочь</span></button>` : ''}</span>
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="farm-board">
+        <div class="farm-board-map">
+          ${map}
+          <div class="farm-legend k-dim"><span><i class="farm-dot is-me"></i>твой</span><span><i class="farm-dot is-here"></i>фермер здесь</span><span><i class="farm-dot is-sleep"></i>спит</span><span><i class="farm-dot is-free"></i>свободно</span></div>
+          ${info}
+        </div>
+        <div class="farm-board-side">
+          <div class="k-cell farm-treebar">${ui('rift-tree', '')}<div><b data-live="treeT"></b><div class="k-dim" data-live="treeS"></div></div></div>
+          <div class="farm-neigh">${list || '<p class="farm-lead k-dim">Пока на ферме никого нет.</p>'}</div>
+          <div class="k-cell farm-helpline">${fi('help-hands')}<span>${level >= HELP_MIN_LEVEL ? `Твоя помощь: <b>${hv.points} из ${hv.max}</b> · каждая — 1 заряд лейки, соседу −20 % времени, тебе +1 репутация` : `Помогать соседям можно с ур. ${HELP_MIN_LEVEL} фермы.`}</span></div>
+          <p class="k-faint">Свободных участков: ${free}</p>
+        </div>
+      </div>`;
+    this.live('[data-live=treeT]', () => this.tree().title);
+    this.live('[data-live=treeS]', () => this.tree().sub);
+    this.onClick('[data-plot]', (b) => { this.picked = Number(b.dataset.plot); this.refresh(); });
+    this.onClick('[data-claim]', (b) => this.host.send({ t: 'farm', a: 'claimPlot', plot: Number(b.dataset.claim) }));
+    this.onClick('[data-help]', (b) => { const plot = Number(b.dataset.help); this.close(true); this.host.goPlot(plot); });
   }
 
-  private treeBlock(): HTMLElement {
-    const box = el('div', 'fm-tbox');
-    box.append(el('span', 'fm-tico', '🌳'));
-    const text = box.appendChild(el('div'));
-    text.append(el('b', '', 'Древо разлома'));
-    const sub = text.appendChild(el('small'));
-    this.live(sub, () => {
-      const b = this.host.boss();
-      const n = this.host.now;
-      if (b?.st === 'awake') {
-        const share = b.bloom > 0 ? Math.round((b.mine / b.bloom) * 100) : 0;
-        return `Цветение ${Math.round((b.bloom / Math.max(1, b.hp)) * 100)} % · твой вклад ${share} %${b.place ? ` · место ${b.place}` : ''}`;
-      }
-      if (b?.st === 'soon') return 'Древо просыпается — скоро цветение!';
-      if (b?.st === 'bloom') return 'Древо расцвело — спасибо всем!';
-      const start = b && b.start > n ? b.start : n + (((BOSS_START_HOUR - mskHour(n) - 1 + 24) % 24) * 3_600_000 + msToNextHour(n));
-      return `Проснётся в ${clockHour(BOSS_START_HOUR)} · через ${fmtLeft(start - n)}`;
-    });
+  private tree(): { title: string; sub: string } {
+    const n = this.host.now;
     const last = this.host.bossLast();
-    if (last?.top.length) {
-      const t = text.appendChild(el('small', 'fm-tbox-top', `Прошлый раз: ${last.top.slice(0, 3).map((r) => `${r.nick} ${Math.round(r.share * 100)} %`).join(' · ')}`));
-      t.title = 'Лучший вклад в прошлое событие';
-    }
-    return box;
-  }
-
-  private vanBlock(): HTMLElement {
-    const box = el('div', 'fm-tbox');
-    box.append(el('span', 'fm-tico', '🚚'));
-    const text = box.appendChild(el('div'));
-    text.append(el('b', '', 'Фургон'));
-    const sub = text.appendChild(el('small'));
-    this.live(sub, () => {
-      const t = vanTime(this.host.now);
-      const h = clockHour(mskHour(t.next));
-      return t.open ? `Открыт до ${h}` : `Приедет в ${h} · через ${fmtLeft(t.next - this.host.now)}`;
-    });
-    return box;
+    const wake = (): number => {
+      const b = this.host.boss();
+      return b && b.start > n ? b.start : n + (((BOSS_START_HOUR - mskHour(n) - 1 + 24) % 24) * 3_600_000 + msToNextHour(n));
+    };
+    const t = treeLine(this.host.boss(), n, wake(), clockHour(BOSS_START_HOUR));
+    if (t.sleeping && last?.top.length) return { title: t.title, sub: `${t.sub} · прошлый раз: ${last.top.slice(0, 3).map((r) => `${esc(r.nick)} ${Math.round(r.share * 100)} %`).join(', ')}` };
+    return t;
   }
 }

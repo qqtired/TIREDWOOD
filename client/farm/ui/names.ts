@@ -1,17 +1,22 @@
 // Названия наград фермы по id: вещи каталога одежды ('h:farmcap'), убранство ('ti:legend') и откуда они берутся.
 import { ACHIEVEMENTS, FARM_DECOR, FARM_LEVEL_REWARDS, REP_LEVELS } from '../../../shared/farmdata.ts';
 import { itemById } from '../../../shared/outfit.ts';
-import { SLOT_EMOJI } from './common.ts';
 
 /** Название награды: вещь одежды или убранство */
 export function rewardName(id: string): string {
   return itemById(id)?.name ?? FARM_DECOR.find((d) => d.id === id)?.name ?? id;
 }
 
-/** Эмодзи-значок награды по слоту (картинок вещей у нас нет — модель вращается только в игре) */
-export function rewardEmoji(id: string): string {
-  return SLOT_EMOJI[id.split(':')[0]] ?? '🎁';
+/** Картинка награды по виду вещи (иконки кита; своих картинок у вещей нет — модель вращается только в игре) */
+const SLOT_ICON: Readonly<Record<string, string>> = { h: 'ui:straw-hat', fr: 'ui:card-frame', tl: 'watering-can', pl: 'ui:garden-bed', em: 'ui:emote', ti: 'star' };
+export function rewardIcon(id: string): string {
+  return SLOT_ICON[id.split(':')[0]] ?? 'ui:wardrobe';
 }
+
+/** Картинка улучшения по виду: грядка — иконка кита, остальное — иконки фермы */
+export const UPGRADE_ICON: Readonly<Record<string, string>> = {
+  bed: 'ui:garden-bed', rake: 'rake', shovel: 'trowel', can: 'watering-can', bag: 'bag', pig: 'truffle-pig', bees: 'beehive', compost: 'compost',
+};
 
 /** Вещь надевается в примерочной (одежда, питомцы, значки), а не из «Убранства» */
 export function isWearable(id: string): boolean {

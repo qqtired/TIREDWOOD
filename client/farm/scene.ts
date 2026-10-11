@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { quantTick } from '../../shared/aquadyn.ts';
 import { TICK_MS, TICK_RATE } from '../../shared/constants.ts';
 import { bedStage, canMax, emptyFarm, farmLevel, type FarmProgress } from '../../shared/farm.ts';
-import { BED_CLICK_RANGE, BED_USE_RANGE, FARM_BEDS, UPGRADES, WELL_SETS, cropById } from '../../shared/farmdata.ts';
+import { BED_CLICK_RANGE, BED_USE_RANGE, FARM_BEDS, HELP_MIN_LEVEL, UPGRADES, cropById } from '../../shared/farmdata.ts';
 import { FARM_BED_LOCAL, FARM_USES, bedWorld, type FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmEvent, FarmPlotView, FarmRosterRow, FarmServerMsg } from '../../shared/farmnet.ts';
 import { LOBBY_MIN_DELAY } from '../../shared/lobby.ts';
@@ -22,7 +22,10 @@ import { RemoteTrack, type RemoteSample } from '../remote.ts';
 import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import { FarmAudio } from './audio/farmaudio.ts';
-import { FarmHud, fmtMin } from './hud.ts';
+import { FarmHud, fmtMin, type FarmToast } from './hud.ts';
+import { resName } from './ui/common.ts';
+import { wellView } from './ui/fmt.ts';
+import { canHelpBed, bedPrompt, helpPrompt, troughPrompt, usePrompt } from './ui/prompt-model.ts';
 import { effectiveVolume } from '../settings.ts';
 import { FarmWell } from './well.ts';
 import { FarmWorld } from './world.ts';
@@ -37,7 +40,7 @@ interface Remote {
 }
 
 /** Что сейчас под E: своя грядка или место у общего предмета */
-type Target = { k: 'bed'; i: number } | { k: 'use'; id: FarmObjectId } | null;
+type Target = { k: 'bed'; i: number } | { k: 'use'; id: FarmObjectId } | { k: 'help'; plot: number; bed: number } | null;
 
 const USE_TEXT: Partial<Record<FarmObjectId, string>> = {
   semechkin: 'Семечкин: семена и обучение',
@@ -46,11 +49,6 @@ const USE_TEXT: Partial<Record<FarmObjectId, string>> = {
   van: 'Фургон: сдать ящик',
   boss: 'Древо разлома: доска вклада',
 };
-
-function fmtLeft(ms: number): string {
-  const s = Math.max(0, Math.ceil(ms / 1000));
-  return s >= 3600 ? `${Math.floor(s / 3600)} ч ${Math.floor((s % 3600) / 60)} мин` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 /** Обзор из настроек — по горизонтали для 16:9; камере нужен вертикальный (как на набережной) */
 function vfov(h: number): number {
@@ -105,15 +103,13 @@ export class FarmScene implements Scene {
     this.world = new FarmWorld(d.renderer);
     this.predictor = new Predictor(this.world.collision);
     this.me.addTo(this.world.scene);
-    this.hud = new FarmHud(d.hudRoot, {
-      plant: (crop) => this.plant(crop),
+    this.hud = new FarmHud(d.ui.slots, d.ui.top, {
       sell: (item, n) => d.net.send({ t: 'farm', a: 'sell', item, n }),
       closed: () => { this.world.talk('grib', false); this.world.talk('semechkin', false); d.wantPointer(); },
       send: (m) => d.net.send(m),
       tokens: () => d.ui.me().tokens,
       plots: () => this.plots,
       roster: () => [...this.roster.values()],
-      toast: (text, sub = '', key = 'farm') => d.ui.toasts.show(text, 4200, key, sub),
       wear: (ids) => {
         let o = d.ui.me().outfit;
         for (const id of ids) { const it = itemById(id); if (it) o = withItem(o, it); }
@@ -121,9 +117,16 @@ export class FarmScene implements Scene {
       },
       free: () => { d.input.releaseAll(); d.input.unlock(); },
     });
-    this.well = new FarmWell(d.hudRoot, { closed: () => d.wantPointer(), volume: () => effectiveVolume(d.settings) * d.settings.sfxVolume });
+    this.well = new FarmWell(d.hudRoot, {
+      closed: () => d.wantPointer(),
+      volume: () => effectiveVolume(d.settings) * d.settings.sfxVolume,
+      wellInfo: () => { const now = this.now(); const w = wellView(this.farm, now); return { sets: w.sets, nextAt: w.nextAt, now }; },
+    });
+    // колесо: у пустой грядки листает пояс семян, иначе — приближает камеру
     window.addEventListener('wheel', (e) => {
-      if (this.active && d.input.locked && !d.input.blocked) this.cam.zoomBy(e.deltaY);
+      if (!this.active || !d.input.locked || d.input.blocked) return;
+      if (this.hud.beltOn) this.hud.beltWheel(e.deltaY);
+      else this.cam.zoomBy(e.deltaY);
     }, { passive: true });
   }
 
@@ -159,7 +162,7 @@ export class FarmScene implements Scene {
     this.me.setInfo(me.nick, null, false, me.level);
     this.cam.reset();
     this.hud.setVisible(true);
-    this.hud.setHint(null);
+    this.hud.setPrompt(null);
     this.d.ui.chat.setPlaceholder('Сообщение');
     this.audio.enter();
   }
@@ -228,21 +231,30 @@ export class FarmScene implements Scene {
     if (mine) { this.me.setOutfit(mine.o); this.me.setLevel(mine.level); }
   }
 
+  /** Тост верх-центра с иконкой (имя файла фермы или «ui:id») */
+  private toast(t: Omit<FarmToast, 'tone'> & { tone?: FarmToast['tone'] }): void {
+    this.hud.toast({ key: 'farm', tone: 'info', ...t });
+  }
+
   private onEvent(e: FarmEvent): void {
-    const toast = (text: string, sub = ''): void => this.d.ui.toasts.show(text, 2600, 'farm', sub);
     switch (e.k) {
       case 'harvest':
         if (e.plot !== this.plot) return;
-        toast(`+${e.xp} XP фермы`, e.items.map((it) => `${cropById(it.crop)?.product ?? it.crop}${it.n > 1 ? ' ×2' : ''}${it.res ? ' · +1 ресурс' : ''}`).join(', ') + (e.bagFull ? ' · сумка полна!' : ''));
+        this.hud.popXp(e.xp);
+        this.toast({
+          tone: 'reward', icon: cropById(e.items[0]?.crop ?? '')?.icon ?? 'basket',
+          title: `${e.items.map((it) => `${cropById(it.crop)?.product ?? it.crop}${it.n > 1 ? ' ×2' : ''}`).join(', ')} в сумке · +${e.xp} опыта`,
+          sub: [...e.items.filter((it) => it.res).map((it) => `+1 ${resName(it.res ?? '')}`), ...(e.bagFull ? ['сумка полна!'] : [])].join(' · ') || undefined,
+        });
         return;
       case 'sold':
-        toast(`+${e.coins} 🪙`, `Продано: ${cropById(e.item)?.product ?? 'трюфель'} × ${e.n}`);
+        this.toast({ tone: 'reward', icon: e.item === 'truffle' ? 'truffle' : (cropById(e.item)?.icon ?? 'basket'), title: `+${e.coins} 🪙`, sub: `Продано: ${cropById(e.item)?.product ?? 'трюфель'} × ${e.n}` });
         return;
       case 'level':
         this.hud.onEvent(e);
         return;
       case 'tut':
-        toast(`Шаг обучения ${e.step} пройден`, `+${e.xp} XP${e.coins ? ` · +${e.coins} 🪙` : ''}`);
+        this.toast({ tone: 'reward', icon: 'ui:scroll', title: `Шаг обучения ${e.step} пройден`, sub: `+${e.xp} опыта${e.coins ? ` · +${e.coins} 🪙` : ''}` });
         return;
       case 'fill':
         // мини-игра «Набери лейку» (B4, client/farm/well.ts): отсчёты уходят серверу, он и считает долю
@@ -252,16 +264,16 @@ export class FarmScene implements Scene {
         return;
       case 'filled':
         // окно мини-игры само показывает итог «+N зарядов»; тост нужен, только если его уже закрыли (Esc, ×)
-        if (!this.well.result(e.share, e.add)) toast(`Лейка: +${Math.round(e.add / 100)} 💧`, `Набрано ${Math.round(e.share * 100)} %`);
+        if (!this.well.result(e.share, e.add)) this.toast({ tone: 'good', icon: 'watering-can', title: `Лейка: +${Math.round(e.add / 100)} зарядов`, sub: `Набрано ${Math.round(e.share * 100)} %` });
         return;
       case 'upgrade':
-        toast(`Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}`);
+        this.toast({ tone: 'reward', icon: 'ui:hammer', title: `Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}` });
         return;
       case 'fail':
-        toast((e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? failText(e.why));
+        this.toast({ tone: 'warn', icon: 'ui:warn', title: (e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? failText(e.why) });
         return;
       case 'note':
-        toast(e.text);
+        this.toast({ icon: 'ui:bell', title: e.text });
         return;
     }
   }
@@ -306,11 +318,6 @@ export class FarmScene implements Scene {
 
   // ------------------------------------------------------------ действия
 
-  private plant(crop: string): void {
-    const t = this.target;
-    if (t?.k === 'bed') this.d.net.send({ t: 'farm', a: 'plant', beds: [t.i], crop });
-  }
-
   /** Своя грядка: −1 пусто, 0–2 растёт, 3 спелая; null — закрыта */
   private bedState(i: number): number | null {
     const b = this.farm.beds[i];
@@ -322,9 +329,9 @@ export class FarmScene implements Scene {
     const net = this.d.net;
     if (st === null) return;
     if (st === -1) {
-      this.d.input.releaseAll();
-      this.d.input.unlock();
-      this.hud.openPlant(this.farm, this.d.ui.me().tokens, i);
+      // пояс семян: тот же выбор, что у E — посадить выбранное (правила и цену решает сервер)
+      this.hud.showBelt(i);
+      this.hud.beltPlant();
     } else if (st === 3) net.send({ t: 'farm', a: 'harvest', beds: [i] });
     else if (!this.farm.beds[i].watered) net.send({ t: 'farm', a: 'water', beds: [i] });
   }
@@ -337,7 +344,7 @@ export class FarmScene implements Scene {
       this.world.talk(id, true);
       this.d.input.releaseAll();
       this.d.input.unlock();
-    } else this.d.ui.toasts.show(USE_TEXT[id] ?? 'Скоро', 2200, 'farm');
+    } else this.toast({ icon: 'ui:bell', title: USE_TEXT[id] ?? 'Скоро' });
   }
 
   onUse(mouse: boolean): void {
@@ -349,6 +356,7 @@ export class FarmScene implements Scene {
     const t = this.target;
     if (t?.k === 'bed') this.useBed(t.i);
     else if (t?.k === 'use') this.useObject(t.id);
+    else if (t?.k === 'help') this.d.net.send({ t: 'farm', a: 'help', plot: t.plot, beds: [t.bed] });
   }
 
   /** ЛКМ: своя грядка в центре экрана, не дальше 6 м */
@@ -390,42 +398,60 @@ export class FarmScene implements Scene {
       const d = Math.hypot(u.x - p.x, u.z - p.z);
       if (d <= u.r && d < bestD) { best = { k: 'use', id: u.id }; bestD = d; }
     }
+    return best ?? this.findHelp(p.x, p.z, fx, fz);
+  }
+
+  /** Растущая грядка соседа рядом и перед собой: ей можно помочь (полить) — сервер проверит лимиты и расстояние */
+  private findHelp(px: number, pz: number, fx: number, fz: number): Target {
+    if (farmLevel(this.farm.xp) < HELP_MIN_LEVEL) return null;
+    const now = this.now();
+    let best: Target = null;
+    let bestD = Infinity;
+    for (const pl of this.plots) {
+      if (!pl || pl.pid === 0 || pl.i === this.plot) continue;
+      for (let bi = 0; bi < pl.beds.length; bi++) {
+        if (!canHelpBed(pl.beds[bi], now)) continue;
+        const c = bedWorld(pl.i, bi);
+        const dx = c.x - px;
+        const dz = c.z - pz;
+        const d = Math.hypot(dx, dz);
+        if (d > BED_USE_RANGE + 0.6 || (d > 0.9 && (dx * fx + dz * fz) / d < 0.2)) continue;
+        if (d < bestD) { best = { k: 'help', plot: pl.i, bed: bi }; bestD = d; }
+      }
+    }
     return best;
   }
 
+  /** Пояс семян сейчас показан у этой грядки (чтобы не перерисовывать его каждый кадр) */
+  private beltBed = -1;
+
+  /** Подсказка E (ui/prompt-model.ts) или пояс семян у пустой грядки */
   private updateHint(): void {
-    if (this.hud.open) return;
-    const t = (this.target = this.findTarget());
     const hud = this.hud;
-    if (!t) { hud.setHint(null); return; }
-    if (t.k === 'bed') {
-      const st = this.bedState(t.i);
-      if (st === null) {
-        hud.setHint([], `Грядка ${t.i + 1} — откроется на ур. ${FARM_BED_LOCAL[t.i].level} фермы (сейчас ${farmLevel(this.farm.xp)})`);
+    if (hud.open) return;
+    const t = (this.target = this.findTarget());
+    const now = this.now();
+    hud.setHelpNear(t?.k === 'help');
+    if (t?.k === 'bed') {
+      const p = bedPrompt(this.farm, t.i, now, FARM_BED_LOCAL[t.i].level);
+      if (p === 'belt') {
+        if (!hud.beltOn || this.beltBed !== t.i) { hud.showBelt(t.i); this.beltBed = t.i; }
         return;
       }
-      const b = this.farm.beds[t.i];
-      if (st === -1) hud.setHint(['E'], 'посадить');
-      else if (st === 3) hud.setHint(['E'], `собрать: ${cropById(b.crop)?.product ?? ''}`);
-      else {
-        const left = fmtLeft(b.ripeAt - this.now());
-        const crop = cropById(b.crop)?.name ?? '';
-        if (b.watered) hud.setHint([], `${crop}: созреет через ${left} · полито`);
-        else if (this.farm.water >= 100) hud.setHint(['E'], `полить (−20 %) · ${crop} созреет через ${left}`);
-        else hud.setHint([], `${crop}: созреет через ${left} · лейка пуста — набери у колодца`);
-      }
+      hud.hideBelt();
+      this.beltBed = -1;
+      hud.setPrompt(p);
       return;
     }
-    switch (t.id) {
-      case 'grib': hud.setHint(['E'], 'Дядюшка Гриб: продать урожай'); break;
-      case 'cart': hud.setHint(['E'], 'в город — на набережную'); break;
-      case 'troughN': case 'troughE': case 'troughS': case 'troughW': {
-        const full = this.farm.water >= canMax(this.farm);
-        hud.setHint(full ? [] : ['E'], full ? 'Лейка полная' : `набрать лейку · наборов ${this.farm.well.sets}/${WELL_SETS}`);
-        break;
-      }
-      default: hud.setHint(['E'], USE_TEXT[t.id] ?? '');
+    hud.hideBelt();
+    this.beltBed = -1;
+    if (!t) { hud.setPrompt(null); return; }
+    if (t.k === 'help') {
+      const pl = this.plots[t.plot];
+      hud.setPrompt(helpPrompt(this.farm, pl?.nick || 'сосед', t.plot, pl.beds[t.bed], now));
+      return;
     }
+    hud.setPrompt(t.id.startsWith('trough') ? troughPrompt(this.farm, canMax(this.farm), now) : usePrompt(t.id, this.farm, now) ?? { keys: ['E'], text: USE_TEXT[t.id] ?? '' });
   }
 
   // ------------------------------------------------------------ тик и кадр
@@ -506,6 +532,11 @@ export class FarmScene implements Scene {
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     if (down && !e.repeat && this.hasSelf && this.hud.hotkey(code)) {
+      e.preventDefault();
+      return true;
+    }
+    // 1–9 и Q — пояс семян у пустой грядки
+    if (down && !e.repeat && this.hasSelf && !this.d.input.blocked && !this.hud.open && this.hud.beltKey(code)) {
       e.preventDefault();
       return true;
     }

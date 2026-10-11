@@ -1,54 +1,60 @@
-// Интерфейс фермы (часть B2): HUD с крупными карточками (client/farm/ui/bar.ts), окна Семечкина, Гриба, Фургона, доски
-// заказов, «Хозяйства», доски фермы, меню посадки и экран нового уровня (client/farm/ui/*.ts), уведомления «У тебя созрело N».
-// Всё мышью, Esc и × закрывают окна, клик мимо — тоже. Решает сервер: окно только просит ({t:'farm', a:…}) через FarmHudActions.
-// Сцена (scene.ts) зовёт: setMe/refresh на каждый прогресс, object(E у предмета), openPlant(E у пустой грядки), onEvent(farmEv),
-// onSys(сообщения B1), hotkey(клавиши, H — «Хозяйство»), setHint, close.
+// Интерфейс фермы на ките 2.0 (lab/ui/screens/farm.js): HUD лежит в слотах кита — карточка фермы и обучение слева-сверху,
+// плитки справа-сверху (ui/bar.ts), пояс семян и подсказка E внизу по центру (ui/belt.ts, ui/prompt.ts); плашка Древа,
+// тосты и баннер уровня идут через верх-центр кита (ui.top) — своей разметки наверху нет. Окна — нативные <dialog> с
+// китовым .k-scrim (Семечкин, Гриб, «Заказы» с вкладками Фургон/доска, Хозяйство, доска фермы, новый уровень, итог Древа);
+// Esc, × и клик мимо закрывают. Решает сервер: окно только просит ({t:'farm', a:…}) через FarmHudActions.
+// Сцена (scene.ts) зовёт: setMe/refresh на каждый прогресс, object (E у предмета), showBelt/hideBelt и beltKey/beltWheel/beltPlant
+// (пояс семян вместо окна «Что посадить?»), setPrompt (подсказка E), onEvent(farmEv), onSys(сообщения B1), hotkey (H), close.
 import { emptyFarm, type FarmProgress } from '../../shared/farm.ts';
 import type { FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow } from '../../shared/farmnet.ts';
 import type { FarmBossResult, FarmBossView, FarmSysMsg, FarmVanView } from '../../shared/farmsys.ts';
+import { PRIO, type TopCenter } from '../ui/kit/topcenter.ts';
+import type { HudSlots } from '../ui/kit/slots.ts';
 import './farm.css';
 import { FarmBar } from './ui/bar.ts';
 import { BoardWin } from './ui/board.ts';
 import { BossEndWin } from './ui/bossend.ts';
+import { SeedBelt } from './ui/belt.ts';
 import { EstateWin } from './ui/estate.ts';
 import { FarmNotify } from './ui/notify.ts';
 import { GribWin } from './ui/grib.ts';
 import { LevelWin } from './ui/levelup.ts';
 import { OrdersWin } from './ui/orders.ts';
-import { PlantWin } from './ui/plant.ts';
+import { FarmPrompt } from './ui/prompt.ts';
+import type { Prompt } from './ui/prompt-model.ts';
 import { SeedsWin } from './ui/seeds.ts';
 import { gotToast } from './ui/sys.ts';
-import { VanWin } from './ui/van.ts';
-import { el, type FarmHost, type FarmWin } from './ui/common.ts';
+import { FarmTree } from './ui/tree.ts';
+import { iconUrl, type FarmHost, type FarmToast, type FarmWin } from './ui/common.ts';
 
-export { farmIcon, fmtMin } from './ui/common.ts';
+export { farmIcon, fmtMin, iconUrl } from './ui/common.ts';
+export type { FarmToast } from './ui/common.ts';
 
 export interface FarmHudActions {
-  plant(crop: string): void;
   sell(item: string, n: number): void;
   /** Окно закрылось (мышь — обратно игре) */
   closed(): void;
-  /** B2 (новое): любое намерение фермы — convert, upgrade, van, order, look, tutorial, claimPlot, pig, plant на несколько грядок */
+  /** Любое намерение фермы — convert, upgrade, van, order, look, tutorial, claimPlot, pig, plant на несколько грядок, help */
   send?(m: FarmClientMsg): void;
-  /** B2: живой баланс жетонов (иначе берём из последнего refresh) */
+  /** Живой баланс жетонов (иначе берём из последнего refresh) */
   tokens?(): number;
-  /** B2: участки и состав фермы — для доски фермы */
+  /** Участки и состав фермы — для доски фермы */
   plots?(): readonly FarmPlotView[];
   roster?(): readonly FarmRosterRow[];
-  /** B2: общий тост игры (Toasts.show) для «созрело N», достижений, помощи */
-  toast?(text: string, sub?: string, key?: string): void;
-  /** B2: надеть вещи каталога («Надеть» на экране уровня): {t:'outfit'} с вещами, что уже куплены */
+  /** Надеть вещи каталога («Надеть» на экране уровня): {t:'outfit'} с вещами, что уже куплены */
   wear?(ids: string[]): void;
-  /** B2: отпустить мышь и клавиши перед окном (releaseAll + unlock) */
+  /** Отпустить мышь и клавиши перед окном (releaseAll + unlock) */
   free?(): void;
 }
 
 export class FarmHud {
-  readonly root = el('div', 'hud fm hidden');
+  private readonly top: TopCenter;
+  private readonly cross = document.createElement('div');
   private readonly bar: FarmBar;
-  private readonly hint = el('div', 'fm-hint');
-  private hintKey = '';
+  private readonly prompt: FarmPrompt;
+  private readonly belt: SeedBelt;
+  private readonly tree: FarmTree;
   private readonly act: FarmHudActions;
   private readonly notify: FarmNotify;
   private f: FarmProgress = emptyFarm(0);
@@ -62,23 +68,31 @@ export class FarmHud {
   private cur: FarmWin | null = null;
   private readonly seeds: SeedsWin;
   private readonly grib: GribWin;
-  private readonly van: VanWin;
   private readonly orders: OrdersWin;
   private readonly estate: EstateWin;
   private readonly board: BoardWin;
-  private readonly plantWin: PlantWin;
   private readonly level: LevelWin;
   private readonly bossEnd: BossEndWin;
 
-  constructor(parent: HTMLElement, act: FarmHudActions) {
+  constructor(slots: HudSlots, top: TopCenter, act: FarmHudActions) {
     this.act = act;
-    this.notify = new FarmNotify((text, sub, key) => this.toast(text, sub, key));
-    this.bar = new FarmBar({
-      openEstate: () => this.openEstate(),
-      closeTutorial: () => act.send?.({ t: 'farm', a: 'tutorial', k: 'close' }),
+    this.top = top;
+    this.cross.className = 'farm-cross';
+    this.cross.hidden = true;
+    slots.root.append(this.cross);
+    this.notify = new FarmNotify((t) => this.toast(t));
+    this.bar = new FarmBar(slots, { openEstate: () => this.openEstate() });
+    this.prompt = new FarmPrompt(slots);
+    this.belt = new SeedBelt(slots, {
+      send: (m) => act.send?.(m),
+      poor: () => this.toast({ key: 'farm-poor', tone: 'warn', icon: 'ui:token', title: 'Не хватает жетонов', sub: 'Выбери подешевле или продай урожай Грибу' }),
     });
-    this.root.append(this.bar.left, this.bar.right, el('div', 'fm-cross'), this.hint);
-    parent.appendChild(this.root);
+    this.tree = new FarmTree(top, {
+      boss: () => this.bossView,
+      now: () => this.now(),
+      mePid: () => act.plots?.()[this.plot]?.pid ?? -1,
+      toast: (t) => this.toast(t),
+    });
 
     const hud = this;
     const host: FarmHost = {
@@ -90,23 +104,26 @@ export class FarmHud {
       plots: () => act.plots?.() ?? [],
       roster: () => act.roster?.() ?? [],
       sell: (item, n) => act.sell(item, n),
-      plant: (crop) => act.plant(crop),
-      toast: (text, sub, key) => this.toast(text, sub, key),
-      wear: (ids) => (act.wear ? act.wear(ids) : this.toast('Надень обновки в примерочной на площади')),
+      toast: (t) => this.toast(t),
+      wear: (ids) => (act.wear ? act.wear(ids) : this.toast({ tone: 'info', icon: 'ui:wardrobe', title: 'Надень обновки в примерочной на площади' })),
       van: () => this.vanView,
       boss: () => this.bossView,
       bossLast: () => this.bossLast,
       closed: (win) => { if (this.cur === win) this.cur = null; act.closed(); },
+      goPlot: (plot) => this.goPlot(plot),
     };
-    this.seeds = new SeedsWin(this.root, host, { id: 'seeds', eyebrow: 'ФЕРМА · СЕМЕНА', title: 'Семечкин', intro: 'Всё про культуры: что растёт, сколько стоит и что откроется дальше.', avatar: '🧑‍🌾', accent: '#7bd88f' });
-    this.grib = new GribWin(this.root, host, { id: 'grib', eyebrow: 'ФЕРМА · СКУПКА', title: 'Дядюшка Гриб', intro: 'Свежий урожай — по чести. Ненужное из кладовой — в опыт.', avatar: '🍄', accent: '#ffb36b' });
-    this.van = new VanWin(this.root, host, { id: 'van', eyebrow: 'ФЕРМА · ФУРГОН', title: 'Фургон', intro: 'Целый ящик из сумки — и платят в полтора раза больше.', avatar: '🚚', accent: '#67d6c7' });
-    this.orders = new OrdersWin(this.root, host, { id: 'orders', eyebrow: 'ФЕРМА · ЗАКАЗЫ', title: 'Доска заказов', intro: 'Три заказа на сегодня. Выполнил — забирай награду.', avatar: '📋', accent: '#ffd35a' });
-    this.estate = new EstateWin(this.root, host, { id: 'estate', eyebrow: 'ФЕРМА · ХОЗЯЙСТВО', title: 'Хозяйство', intro: 'Улучшай грядки, инструменты и постройки. Клавиша H — открыть отовсюду.', avatar: '🧺', accent: '#7bd88f' });
-    this.board = new BoardWin(this.root, host, { id: 'board', eyebrow: 'ФЕРМА · ДОСКА', title: 'Доска фермы', intro: 'Кто где живёт, кто спит и кому можно помочь.', avatar: '🪧', accent: '#ffd35a' });
-    this.plantWin = new PlantWin(this.root, host, { id: 'plant', eyebrow: 'ФЕРМА · ГРЯДКА', title: 'Что посадить?', intro: '', avatar: '🌱', accent: '#7bd88f' });
-    this.bossEnd = new BossEndWin(this.root, host, { id: 'bossend', eyebrow: 'ДРЕВО РАЗЛОМА · ИТОГ', title: 'Итог Древа', intro: '', avatar: '🌳', accent: '#7bd88f' });
-    this.level = new LevelWin(this.root, host, { id: 'level', eyebrow: 'ФЕРМА · НОВЫЙ УРОВЕНЬ', title: 'Новый уровень', intro: '', avatar: '1', accent: '#ffd35a' });
+    // окна — <dialog> в верхнем слое: родитель любой, кладём в body
+    const body = document.body;
+    this.seeds = new SeedsWin(body, host, { id: 'seeds', eyebrow: 'Ферма · семена', title: 'Семечкин', line: '«Первая посадка новой культуры — от меня в подарок!»', portrait: 'seeds', size: 'lg' });
+    this.grib = new GribWin(body, host, { id: 'grib', eyebrow: 'Ферма · скупка', title: 'Дядюшка Гриб', line: '«Всё возьму! Но что ждёт Фургон — неси ему, он щедрее»', portrait: 'giant-mushroom' });
+    this.orders = new OrdersWin(body, host, { id: 'orders', eyebrow: 'Ферма · заказы', title: 'Заказы', portrait: 'van', size: 'lg' });
+    this.estate = new EstateWin(body, host, { id: 'estate', eyebrow: 'Ферма · участок', title: 'Хозяйство', portrait: 'basket', size: 'lg' });
+    this.board = new BoardWin(body, host, { id: 'board', eyebrow: 'Ферма · доска', title: 'Доска фермы', line: 'Кто где живёт, кто спит и кому можно помочь', portrait: 'help-hands', size: 'lg', coins: false });
+    this.bossEnd = new BossEndWin(body, host, { id: 'bossend', eyebrow: 'Древо разлома', title: 'Итог Древа', portrait: 'ui:rift-tree', size: 'sm', bare: 'k-window k-window--sm farm-treeend' });
+    this.level = new LevelWin(body, host, { id: 'level', eyebrow: 'Ферма · новый уровень', title: 'Новый уровень', portrait: 'xp-star', bare: 'k-panel k-lamp farm-lvl +clear' });
+    this.level.onShow = (level, name) => {
+      top.hero({ key: 'farm-level', prio: PRIO.mode, tone: 'gold', title: `Уровень фермы ${level}!`, sub: name });
+    };
   }
 
   /** Какое окно открыто: '' — никакое (сцена по этому отпускает мышь и не берёт ввод) */
@@ -122,24 +139,33 @@ export class FarmHud {
     return this.act.tokens ? this.act.tokens() : this.tokensSeen;
   }
 
-  private toast(text: string, sub = '', key = ''): void {
-    this.act.toast?.(text, sub, key);
+  /** Тост в верх-центр кита: иконка — имя файла фермы или «ui:id» */
+  toast(t: FarmToast): void {
+    this.top.toast({ key: t.key, tone: t.tone, icon: iconUrl(t.icon), title: t.title, sub: t.sub });
   }
 
   setVisible(v: boolean): void {
-    this.root.classList.toggle('hidden', !v);
     this.bar.setVisible(v);
+    this.cross.hidden = !v;
+    this.prompt.setVisible(v);
+    this.tree.setVisible(v);
     window.clearInterval(this.timer);
     if (v) {
       this.notify.reset();
       this.timer = window.setInterval(() => this.tick(), 1000);
-    } else this.close(false);
+    } else {
+      this.close(false);
+      this.belt.hide();
+      this.top.clearHero('farm-level');
+    }
   }
 
   private tick(): void {
     const now = this.now();
     this.bar.update(this.f, this.plot, now);
     this.notify.check(this.f, now);
+    this.tree.update();
+    this.belt.update(this.f, this.tokens(), now);
     this.cur?.tick();
   }
 
@@ -158,19 +184,58 @@ export class FarmHud {
     this.bar.update(f, this.plot, now);
     this.notify.check(f, now);
     this.notify.checkCap(f, now);
+    this.belt.update(f, this.tokens(), now);
     this.cur?.refresh();
   }
 
-  setHint(keys: readonly string[] | null, text = ''): void {
-    const key = keys ? `${keys.join('|')}#${text}` : '';
-    if (key === this.hintKey) return;
-    this.hintKey = key;
-    this.hint.classList.toggle('show', keys !== null);
-    if (!keys) return;
-    this.hint.classList.toggle('info', keys.length === 0);
-    this.hint.textContent = '';
-    for (const k of keys) this.hint.appendChild(el('kbd', '', k));
-    this.hint.appendChild(el('span', '', text));
+  /** Подсказка действия (E) внизу по центру; null — спрятать */
+  setPrompt(p: Prompt | null): void {
+    this.prompt.set(p);
+  }
+
+  /** «+35» у карточки фермы за сбор */
+  popXp(n: number): void {
+    this.bar.popXp(n);
+  }
+
+  /** Сосед рядом (его грядка под прицелом): плитка «помощь» видна всегда */
+  setHelpNear(v: boolean): void {
+    this.bar.setHelpNear(v);
+  }
+
+  // ------------------------------------------------------------ пояс семян
+
+  /** Пустая грядка bed под прицелом: показать пояс, подсказку E убрать */
+  showBelt(bed: number): void {
+    this.prompt.set(null);
+    this.belt.show(this.f, bed, this.tokens(), this.now());
+  }
+
+  hideBelt(): void {
+    this.belt.hide();
+  }
+
+  /** Пояс на экране: колесо мыши ему, а не камере */
+  get beltOn(): boolean {
+    return this.belt.active;
+  }
+
+  /** Клавиши пояса: 1–9 — ячейка, Q — грабли/по одной. true — съела */
+  beltKey(code: string): boolean {
+    if (!this.belt.active) return false;
+    const m = /^(?:Digit|Numpad)([1-9])$/.exec(code);
+    if (m) { this.belt.pick(Number(m[1]) - 1); return true; }
+    if (code === 'KeyQ') { this.belt.toggleRake(); return true; }
+    return false;
+  }
+
+  beltWheel(dy: number): void {
+    this.belt.step(dy);
+  }
+
+  /** E / ЛКМ у пустой грядки: посадить выбранное. false — нечего сажать */
+  beltPlant(): boolean {
+    return this.belt.plant();
   }
 
   // ------------------------------------------------------------ окна
@@ -179,7 +244,8 @@ export class FarmHud {
   private show(win: FarmWin, run: () => void): void {
     if (this.cur && this.cur !== win) this.cur.close(true);
     this.cur = win;
-    this.setHint(null);
+    this.prompt.set(null);
+    this.belt.hide();
     run();
     this.act.free?.();
   }
@@ -191,18 +257,11 @@ export class FarmHud {
     switch (id) {
       case 'semechkin': this.show(this.seeds, () => this.seeds.open()); return true;
       case 'grib': this.show(this.grib, () => this.grib.open()); return true;
-      case 'orders': this.show(this.orders, () => this.orders.open()); return true;
-      case 'van': this.show(this.van, () => this.van.open()); return true;
+      case 'orders': this.show(this.orders, () => this.orders.open('board')); return true;
+      case 'van': this.show(this.orders, () => this.orders.open('van')); return true;
       case 'farmBoard': case 'boss': this.show(this.board, () => this.board.open()); return true;
       default: return false;
     }
-  }
-
-  /** Посадка на пустую грядку bed (E): сетка культур. Без номера грядки — как раньше, сажаем туда, куда целится сцена */
-  openPlant(f: FarmProgress, tokens: number, bed = -1): void {
-    this.f = f;
-    this.tokensSeen = tokens;
-    this.show(this.plantWin, () => this.plantWin.openAt(bed));
   }
 
   /** Окно Гриба (прежний вход) */
@@ -212,6 +271,12 @@ export class FarmHud {
 
   openEstate(): void {
     this.show(this.estate, () => this.estate.open());
+  }
+
+  /** «Помочь» на доске фермы: окно закрыто, подскажи дорогу — у грядки соседа подсказка E сама предложит полить */
+  private goPlot(plot: number): void {
+    const p = this.act.plots?.()[plot];
+    this.toast({ key: 'farm-go', tone: 'info', icon: 'help-hands', title: `Иди на участок ${plot + 1}${p?.nick ? ` — к ${p.nick}` : ''}`, sub: 'Встань у растущей грядки и нажми E — полить соседу' });
   }
 
   /** Клавиши фермы сверх движения: H — «Хозяйство». true — съела */
@@ -232,18 +297,17 @@ export class FarmHud {
   onSys(m: FarmSysMsg): void {
     switch (m.t) {
       case 'farmVan': this.vanView = m.v; break;
-      case 'farmBoss': this.bossView = m.b; break;
+      case 'farmBoss':
+        this.bossView = m.b;
+        this.tree.onBoss(m.b);
+        break;
       case 'farmBossEnd':
         this.bossLast = m.r;
         this.show(this.bossEnd, () => this.bossEnd.push(m.r));
         break;
-      case 'farmGot': {
-        const [title, sub] = gotToast(m.g);
-        this.toast(title, sub, 'farm-got');
-        break;
-      }
+      case 'farmGot': this.toast(gotToast(m.g)); break;
       case 'farmAway': this.notify.away(m.a, this.f, this.now()); break;
-      case 'farmBossFx': break;
+      case 'farmBossFx': this.tree.onFx(m); break;
     }
     this.cur?.refresh();
   }

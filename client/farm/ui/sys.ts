@@ -3,6 +3,7 @@
 import { ACHIEVEMENTS, BUFFS, REP_LEVELS, type FarmBuffKind } from '../../../shared/farmdata.ts';
 import { orderTemplate } from '../../../shared/farmorders.ts';
 import type { FarmGot } from '../../../shared/farmsys.ts';
+import type { FarmToast } from './common.ts';
 import { rewardName } from './names.ts';
 
 /** «+25 🪙 · +120 XP · +2 репутации · Значок «Росток»» */
@@ -15,14 +16,14 @@ function gotLine(g: FarmGot): string {
   return parts.join(' · ');
 }
 
-/** Тост по награде: [заголовок, подпись] */
-export function gotToast(g: FarmGot): [string, string] {
+/** Тост по награде */
+export function gotToast(g: FarmGot): FarmToast {
   const line = gotLine(g);
   switch (g.src) {
-    case 'order': return [`Заказ выполнен: «${orderTemplate(g.id)?.name ?? 'заказ'}»`, line];
-    case 'ach': return [`Достижение: «${ACHIEVEMENTS.find((a) => a.id === g.id)?.name ?? g.id}»`, line];
-    case 'rep': return [`Репутация: «${REP_LEVELS.find((r) => String(r.level) === g.id)?.name ?? g.id}»`, line];
-    case 'help': return ['Спасибо, что помог соседу', line];
-    case 'boss': return ['Древо расцвело — твоя награда', line];
+    case 'order': return { key: 'farm-got', tone: 'reward', icon: 'ui:scroll', title: `Заказ выполнен: «${orderTemplate(g.id)?.name ?? 'заказ'}»`, sub: line };
+    case 'ach': return { key: 'farm-got', tone: 'reward', icon: 'star', title: `Достижение: «${ACHIEVEMENTS.find((a) => a.id === g.id)?.name ?? g.id}»`, sub: line };
+    case 'rep': return { key: 'farm-got', tone: 'reward', icon: 'help-hands', title: `Репутация: «${REP_LEVELS.find((r) => String(r.level) === g.id)?.name ?? g.id}»`, sub: line };
+    case 'help': return { key: 'farm-got', tone: 'good', icon: 'help-hands', title: 'Спасибо, что помог соседу', sub: line };
+    case 'boss': return { key: 'farm-got', tone: 'reward', icon: 'life-fruit', title: 'Древо расцвело — твоя награда', sub: line };
   }
 }

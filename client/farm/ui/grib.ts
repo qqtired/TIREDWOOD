@@ -1,10 +1,12 @@
-// Окно Дядюшки Гриба (design-v11 §14.2): «Продать» — строки сумки с ценой за штуку (репутация и бафф уже внутри, потолок
-// дня учтён), «Продать всё», полоска «Сегодня продано на 540 / 700 🪙»; «Опыт за ресурсы» — кладовая в опыт фермы со
-// степпером, итогом и отменой. Решает сервер: окно только просит ({t:'farm', a:'sell'|'convert'}).
-import { capPay, farmLevel, hasBuff, repBonus, saleUnit, upgradeStep } from '../../../shared/farm.ts';
-import { BUFFS, CROPS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
+// Окно Дядюшки Гриба (lab/ui/screens/farm.js «Дядюшка Гриб: продать урожай»): «Продать» — одна полоса «касса на сегодня»
+// с понятной фразой, строки сумки с ценой (репутация и бафф внутри, потолок дня учтён) и одной кнопкой «Продать»; то, что
+// сейчас ждёт Фургон, помечено — не продашь по ошибке дёшево; внизу «Продать всё» одной суммой. «Опыт за ресурсы» — кладовая
+// в опыт фермы: степпер на строку (по умолчанию — свободное, что не нужно на улучшения), итог и «Превратить».
+// Решает сервер: окно только просит ({t:'farm', a:'sell'|'convert'}).
+import { capPay, farmLevel, hasBuff, repBonus, repLevel, saleUnit, upgradeStep } from '../../../shared/farm.ts';
+import { BUFFS, CROPS, DAILY_CAP, REP_LEVELS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
 import { vanTime } from '../../../shared/farmvan.ts';
-import { FarmWin, btn, capBar, dec, el, icon, resIcon, soldToday } from './common.ts';
+import { C, FarmWin, dec, fi, fmtLeft, meter, msToMskMidnight, resIconName, soldToday } from './common.ts';
 
 interface Line {
   item: string;
@@ -24,13 +26,19 @@ export class GribWin extends FarmWin {
   private sel: Record<string, number> = {};
 
   protected firstTab(): string {
+    this.sel = {};
     return 'sell';
   }
 
   protected draw(body: HTMLElement): void {
-    this.setTabs([['sell', '💰', 'Продать'], ['xp', '✨', 'Опыт за ресурсы']]);
+    const lines = this.lines();
+    const n = lines.reduce((a, l) => a + l.n, 0);
+    this.setTabs([
+      { id: 'sell', icon: fi('basket'), label: 'Продать', count: lines.length ? String(lines.length) : undefined },
+      { id: 'xp', icon: fi('xp-star'), label: 'Опыт за ресурсы' },
+    ]);
     if (this.tab === 'xp') this.drawXp(body);
-    else this.drawSell(body);
+    else this.drawSell(body, lines, n);
   }
 
   /** Строки сумки с ценой: потолок дня копится сверху вниз, как их проведёт сервер */
@@ -57,40 +65,50 @@ export class GribWin extends FarmWin {
     return out;
   }
 
-  private drawSell(body: HTMLElement): void {
+  private drawSell(body: HTMLElement, lines: Line[], pieces: number): void {
     const f = this.host.f;
     const now = this.host.now;
-    body.append(capBar(f, now));
-    const bonus: string[] = [];
-    if (repBonus(f.rep) > 0) bonus.push(`Репутация +${Math.round(repBonus(f.rep) * 100)} %`);
-    if (hasBuff(f, 'price', now)) bonus.push(`Бафф Древа +${Math.round((BUFFS.price.mult - 1) * 100)} %`);
-    if (bonus.length) body.append(el('p', 'fm-bonus', bonus.join(' · ')));
-    const lines = this.lines();
+    const sold = Math.floor(soldToday(f, now));
+    const full = sold >= DAILY_CAP;
+    const pills: string[] = [];
+    if (repBonus(f.rep) > 0) pills.push(`<span class="k-pill k-pill--good k-pill--sm">Репутация «${REP_LEVELS[repLevel(f.rep) - 1].name}» +${Math.round(repBonus(f.rep) * 100)} %</span>`);
+    if (hasBuff(f, 'price', now)) pills.push(`<span class="k-pill k-pill--gold k-pill--sm">Бафф Древа +${Math.round((BUFFS.price.mult - 1) * 100)} %</span>`);
+    if (full) pills.push('<span class="k-pill k-pill--sm">Заказы и трюфели — по полной цене</span>');
+    const cash = `
+      <div class="k-cell farm-cash">
+        <div class="farm-cash-top"><b>Касса на сегодня</b><span class="${full ? 'k-bad' : 'k-dim'}" data-live="cap">${this.capText(sold)}</span></div>
+        ${meter(Math.min(1, sold / DAILY_CAP), full ? 'k-meter--bad k-meter--lg' : 'k-meter--lg', `${sold} из ${DAILY_CAP}`)}
+        ${pills.length ? `<div class="farm-cash-pills">${pills.join('')}</div>` : ''}
+      </div>`;
     if (!lines.length) {
-      const empty = body.appendChild(el('div', 'fm-empty'));
-      empty.append(icon('bag', '🎒', 'fm-ico xl'), el('p', '', 'Сумка пуста — собери урожай и приходи.'));
+      body.innerHTML = `<div class="farm-pane">${cash}<div class="farm-empty">${fi('bag', 'farm-empty-ic')}<p class="farm-lead k-dim">Сумка пуста — собери урожай и приходи.</p></div></div>`;
+      this.setFoot('');
       return;
     }
-    const total = Math.floor(lines.reduce((a, l) => a + l.all, 0));
-    const head = body.appendChild(el('div', 'fm-rowhead'));
-    head.append(el('h3', '', 'Что в сумке'), btn('fm-go', `Продать всё — ${total} 🪙`, () => this.sellAll(lines)));
     const van = this.host.van();
-    for (const l of lines) {
-      const row = body.appendChild(el('div', 'fm-row'));
-      row.append(icon(l.iconName, '🌱', 'fm-ico lg'));
-      const name = row.appendChild(el('div', 'fm-row-main'));
-      name.append(el('b', '', `${l.name} × ${l.n}`));
-      const sub = name.appendChild(el('small', '', l.truffle ? `${l.unit} 🪙/шт · всегда полная цена` : `${dec(l.unit)} 🪙/шт`));
-      const offer = van && vanTime(this.host.now).open ? van.slots.find((x) => x.offer?.item === l.item && !x.done)?.offer : undefined;
-      if (offer) sub.append(el('span', 'fm-van-mark', `🚚 Фургон даст ×${dec(offer.mult)}`));
-      row.append(btn('fm-btn', 'Продать 1', () => this.host.sell(l.item, 1)));
-      row.append(btn('fm-go', `Продать ×${l.n} — ${Math.floor(l.all)} 🪙`, () => this.host.sell(l.item, l.n)));
-    }
-    body.append(el('p', 'fm-fine', 'Трюфели и заказы потолок не режет. Фургон платит ×1,3–1,5 за целый ящик — загляни к нему до продажи.'));
+    const vanOpen = !!van && vanTime(now).open;
+    const rows = lines.map((l) => {
+      const offer = vanOpen ? van!.slots.find((x) => x.offer?.item === l.item && !x.done)?.offer : undefined;
+      return `
+        <div class="k-cell farm-row">
+          ${fi(l.iconName, 'farm-row-ic')}
+          <div class="farm-row-main"><div class="farm-row-t">${l.name} <b>× ${l.n}</b></div><div class="farm-row-s k-dim">${dec(l.unit)} ${C()} за штуку${l.truffle ? ' · всегда полная цена' : full ? ' · сейчас ×0,25' : ''}</div></div>
+          ${offer ? `<span class="k-pill k-pill--info k-pill--sm farm-row-van">${fi('van')}Фургон даст ×${dec(offer.mult)}</span>` : '<span></span>'}
+          <button class="k-btn k-btn--sm${offer ? ' k-btn--ghost' : ''}" type="button" data-sell="${l.item}" data-n="${l.n}" data-sfx="reward">Продать<small>${C()}${Math.floor(l.all)}</small></button>
+        </div>`;
+    }).join('');
+    body.innerHTML = `<div class="farm-pane">${cash}<div class="farm-rows">${rows}</div></div>`;
+    const total = Math.floor(lines.reduce((a, l) => a + l.all, 0));
+    this.setFoot(`<span class="k-note">${lines.length} ${lines.length === 1 ? 'вид' : lines.length < 5 ? 'вида' : 'видов'} · ${pieces} шт. в сумке</span><button class="k-btn k-btn--lg" type="button" data-all data-sfx="reward">Продать всё<small>${C()}${total}</small></button>`);
+    this.live('[data-live=cap]', () => this.capText(Math.floor(soldToday(this.host.f, this.host.now))));
+    this.onClick('[data-sell]', (b) => this.host.sell(b.dataset.sell!, Number(b.dataset.n)));
+    this.onClick('[data-all]', () => lines.forEach((l, i) => window.setTimeout(() => this.host.sell(l.item, l.n), i * GAP_MS)));
   }
 
-  private sellAll(lines: Line[]): void {
-    lines.forEach((l, i) => window.setTimeout(() => this.host.sell(l.item, l.n), i * GAP_MS));
+  private capText(sold: number): string {
+    return sold >= DAILY_CAP
+      ? `полна — дальше ×0,25 до 00:00 (${fmtLeft(msToMskMidnight(this.host.now))})`
+      : `ещё <b class="k-gold">${DAILY_CAP - sold}</b> ${C()} по полной цене`;
   }
 
   // ------------------------------------------------------------ опыт за ресурсы
@@ -118,48 +136,51 @@ export class GribWin extends FarmWin {
     const f = this.host.f;
     const { need, why } = this.reserved();
     const have = RESOURCES.filter((r) => (f.cellar[r.id] ?? 0) > 0);
-    body.append(el('p', 'fm-fine', 'Лишние ресурсы можно превратить в опыт фермы. Те, что нужны для улучшений, лучше оставить.'));
     if (!have.length) {
-      const empty = body.appendChild(el('div', 'fm-empty'));
-      empty.append(resIcon('root', 'fm-ico xl'), el('p', '', 'Кладовая пуста. Ресурсы падают при сборе урожая.'));
+      body.innerHTML = `<div class="farm-pane"><div class="farm-empty">${fi('rootlet', 'farm-empty-ic')}<p class="farm-lead k-dim">Кладовая пуста. Ресурсы падают при сборе урожая.</p></div></div>`;
+      this.setFoot('');
       return;
     }
-    let xp = 0;
-    const totalEl = el('b', 'fm-xp-total');
-    const goBtn = btn('fm-go', 'Превратить в опыт');
-    const refreshTotal = (): void => {
-      xp = RESOURCES.reduce((a, r) => a + (this.sel[r.id] ?? 0) * r.xp, 0);
-      totalEl.textContent = `+${xp} XP`;
-      goBtn.disabled = xp <= 0;
-    };
+    // первый раз по умолчанию — свободное: то, что не нужно на ближайшие улучшения
     for (const r of have) {
       const n = f.cellar[r.id] ?? 0;
-      this.sel[r.id] = Math.min(this.sel[r.id] ?? 0, n);
-      const free = Math.max(0, n - (need[r.id] ?? 0));
-      const row = body.appendChild(el('div', 'fm-row'));
-      row.append(resIcon(r.id, 'fm-ico lg'));
-      const main = row.appendChild(el('div', 'fm-row-main'));
-      main.append(el('b', '', `${r.name} × ${n}`));
-      main.append(el('small', '', `${r.xp} XP за штуку${need[r.id] ? ` · нужно на ${why[r.id]}: ${need[r.id]}` : ''}`));
-      const step = row.appendChild(el('div', 'fm-step'));
-      const val = el('b', 'fm-step-n', String(this.sel[r.id]));
-      const set = (v: number): void => {
-        this.sel[r.id] = Math.max(0, Math.min(n, v));
-        val.textContent = String(this.sel[r.id]);
-        refreshTotal();
-      };
-      step.append(btn('fm-sq', '−', () => set((this.sel[r.id] ?? 0) - 1)), val, btn('fm-sq', '+', () => set((this.sel[r.id] ?? 0) + 1)));
-      const freeBtn = btn('fm-btn', `Свободное · ${free}`, () => set(free));
-      freeBtn.disabled = free <= 0;
-      freeBtn.title = 'Всё, что не нужно на ближайшие улучшения';
-      row.append(freeBtn);
+      this.sel[r.id] = Math.min(n, this.sel[r.id] ?? Math.max(0, n - (need[r.id] ?? 0)));
     }
-    const foot = body.appendChild(el('div', 'fm-foot'));
-    foot.append(el('span', 'fm-foot-l', 'Итог:'), totalEl);
-    foot.append(btn('fm-btn', 'Отменить', () => { this.sel = {}; this.refresh(); }));
-    goBtn.addEventListener('click', () => this.convertAll());
-    foot.append(goBtn);
-    refreshTotal();
+    const rows = have.map((r) => {
+      const n = f.cellar[r.id] ?? 0;
+      return `
+        <div class="k-cell farm-row farm-conv" data-res="${r.id}" data-xp="${r.xp}" data-max="${n}">
+          ${fi(resIconName(r.id), 'farm-row-ic')}
+          <div class="farm-row-main"><div class="farm-row-t">${r.name} <b>× ${n}</b></div><div class="farm-row-s k-dim">${need[r.id] ? `${need[r.id]} нужно на «${why[r.id]}» · ` : ''}${r.xp} опыта за штуку</div></div>
+          <span class="farm-stepper"><button class="k-btn k-btn--icon k-btn--sm k-btn--ghost" type="button" data-d="-1" aria-label="Меньше">−</button><b class="farm-n">${this.sel[r.id]}</b><button class="k-btn k-btn--icon k-btn--sm k-btn--ghost" type="button" data-d="1" aria-label="Больше">+</button></span>
+          <span class="k-pill k-pill--sm k-pill--gold farm-conv-xp">+${this.sel[r.id] * r.xp}</span>
+        </div>`;
+    }).join('');
+    body.innerHTML = `<div class="farm-pane"><p class="farm-lead k-dim">Лишние ресурсы — в опыт фермы. «Свободно» — то, что не нужно на ближайшее улучшение.</p><div class="farm-rows">${rows}</div></div>`;
+    this.setFoot('<span class="k-note">Итог: <b class="k-gold farm-conv-total"></b></span><button class="k-btn k-btn--ghost" type="button" data-reset>Отменить</button><button class="k-btn" type="button" data-conv data-sfx="reward">Превратить в опыт</button>');
+    const total = this.foot.querySelector<HTMLElement>('.farm-conv-total')!;
+    const go = this.foot.querySelector<HTMLButtonElement>('[data-conv]')!;
+    const recount = (): void => {
+      let xp = 0;
+      body.querySelectorAll<HTMLElement>('.farm-conv').forEach((row) => {
+        const id = row.dataset.res!;
+        const x = (this.sel[id] ?? 0) * Number(row.dataset.xp);
+        row.querySelector('.farm-n')!.textContent = String(this.sel[id] ?? 0);
+        row.querySelector('.farm-conv-xp')!.textContent = `+${x}`;
+        xp += x;
+      });
+      total.textContent = `+${xp} опыта`;
+      go.disabled = xp <= 0;
+    };
+    body.querySelectorAll<HTMLElement>('.farm-stepper button').forEach((b) => b.addEventListener('click', () => {
+      const row = b.closest<HTMLElement>('.farm-conv')!;
+      const id = row.dataset.res!;
+      this.sel[id] = Math.max(0, Math.min(Number(row.dataset.max), (this.sel[id] ?? 0) + Number(b.dataset.d)));
+      recount();
+    }));
+    this.onClick('[data-reset]', () => { for (const id of Object.keys(this.sel)) this.sel[id] = 0; recount(); });
+    this.onClick('[data-conv]', () => this.convertAll());
+    recount();
   }
 
   private convertAll(): void {

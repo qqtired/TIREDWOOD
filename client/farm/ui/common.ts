@@ -1,115 +1,61 @@
-// Общее для окон фермы (часть B2): значки, форматы, помощники DOM, полоска «продано за сутки» и основа окна — нативный
-// <dialog> по образцу client/lobby/fishnpcdialog.ts: тёплая тёмная карточка, лицо слева, баланс 🪙 справа, × · Esc,
-// вкладки-«таблетки». Закрывается крестиком, Esc и кликом мимо. Окно не знает про сеть: всё идёт через FarmHost.
-import { mskDay } from '../../../shared/economy.ts';
-import { pigTick, wellNextAt, wellTick, type FarmProgress } from '../../../shared/farm.ts';
-import { DAILY_CAP, PIG_EVERY_MS, PIG_STORE, RESOURCES, resourceById } from '../../../shared/farmdata.ts';
+// Общее для окон фермы на ките (client/ui/kit): значки, помощники разметки и основа окна — нативный <dialog>
+// (верхний слой: фон не нажимается, клавиши игре не уходят, Esc закрывает), внутри — кит-окно .k-scrim > .k-window
+// (шапка с портретом, вкладки .k-tabs, тело, подвал). Закрывается ×, Esc и кликом мимо; мышь освобождает сцена (host.free).
+// Окно не знает про сеть: всё идёт через FarmHost. Разметку окна собирают наследники строкой, как на странице lab/ui
+// (lab/ui/screens/farm.js); чужой текст (ники) — только через esc().
+import type { FarmProgress } from '../../../shared/farm.ts';
+import { resourceById } from '../../../shared/farmdata.ts';
 import type { FarmClientMsg, FarmPlotView, FarmRosterRow } from '../../../shared/farmnet.ts';
 import type { FarmBossResult, FarmBossView, FarmVanView } from '../../../shared/farmsys.ts';
-import { setCoinText } from '../../ui/coin.ts';
+import { coinHtml, iconImg } from '../../ui/kit/dom.ts';
+import { sfx, bindClickSounds } from '../../ui/kit/sfx.ts';
+import { uiIcon } from '../../ui/kit/icons.ts';
+import { big } from './fmt.ts';
+
+export { big, clockHour, dec, fmtLeft, fmtMin, mskHour, msToMskMidnight, msToNextHour, pigView, plural, soldToday, wellView } from './fmt.ts';
+export { escHtml as esc } from '../../ui/kit/topcenter.ts';
 
 const ICONS = import.meta.glob('../../assets/farm/icons/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 /** Иконка фермы по имени файла из client/assets/farm/icons (нет файла — пустая строка) */
 export const farmIcon = (name: string): string => ICONS[`../../assets/farm/icons/${name}.png`] ?? '';
 
-/** Элемент с текстом; 🪙 рисуется значком жетона, как во всей игре */
-export const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] => {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) setCoinText(e, text);
-  return e;
-};
-
-export function btn(cls: string, text: string, onClick?: () => void): HTMLButtonElement {
-  const b = el('button', cls, text);
-  b.type = 'button';
-  if (onClick) b.addEventListener('click', onClick);
-  return b;
+/** Адрес картинки: «ui:rift-tree» — иконка кита (client/assets/ui/icons), иначе — иконка фермы */
+export function iconUrl(name: string): string {
+  return name.startsWith('ui:') ? uiIcon(name.slice(3)) : farmIcon(name);
 }
 
-export function fmtMin(min: number): string {
-  if (min < 60) return `${min} мин`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m ? `${h} ч ${m} мин` : `${h} ч`;
+/** Картинка-иконка в строку текста (.k-ic) или своего класса; нет файла — пусто */
+export function fi(name: string, cls = 'k-ic'): string {
+  const src = iconUrl(name);
+  return src ? `<img${cls ? ` class="${cls}"` : ''} src="${src}" alt="" draggable="false">` : '';
 }
 
-/** Остаток времени: до часа — «6:40», дальше — «5 ч 12 мин» */
-export function fmtLeft(ms: number): string {
-  const s = Math.max(0, Math.ceil(ms / 1000));
-  if (s >= 3600) return `${Math.floor(s / 3600)} ч ${Math.floor((s % 3600) / 60)} мин`;
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
+/** Иконка кита по id */
+export const ui = (id: string, cls = 'k-ic'): string => iconImg(id, cls);
 
-/** Число с запятой и одним знаком: 2,2 */
-export function dec(n: number): string {
-  return String(Math.round(n * 10) / 10).replace('.', ',');
-}
+export const C = (): string => coinHtml();
 
-export function big(n: number): string {
-  return Math.round(n).toLocaleString('ru-RU');
-}
-
-/** Значок культуры, ресурса или вещи: картинка, а если файла нет — эмодзи-замена */
-export function icon(name: string, fallback = '🌱', cls = 'fm-ico'): HTMLElement {
-  const src = farmIcon(name);
-  if (src) {
-    const img = el('img', cls);
-    img.src = src;
-    img.alt = '';
-    img.draggable = false;
-    return img;
-  }
-  return el('span', `${cls} emo`, fallback);
-}
-
-/** Закрытая культура — тёмный силуэт того же значка */
-export function silhouette(name: string): HTMLElement {
-  const i = icon(name, '❔', 'fm-ico lock');
-  return i;
-}
-
-export function resIcon(id: string, cls = 'fm-ico'): HTMLElement {
-  return icon(resourceById(id)?.icon ?? '', '🌾', cls);
-}
-
+export const resIconName = (id: string): string => resourceById(id)?.icon ?? '';
 export const resName = (id: string): string => resourceById(id)?.name ?? id;
 
-export const RES_ORDER: readonly string[] = RESOURCES.map((r) => r.id);
-
-// ------------------------------------------------------------ время по Москве (UTC+3, без летнего)
-
-const MSK = 3 * 3600_000;
-export const mskHour = (now: number): number => new Date(now + MSK).getUTCHours();
-/** Сколько мс до 00:00 МСК: обновление заказов, сброс потолка продаж */
-export function msToMskMidnight(now: number): number {
-  return 86_400_000 - ((now + MSK) % 86_400_000);
-}
-export const msToNextHour = (now: number): number => 3_600_000 - (now % 3_600_000);
-export const clockHour = (h: number): string => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
-
-/** Сколько жетонов выплачено Грибом и Фургоном за сегодняшние МСК-сутки */
-export function soldToday(f: FarmProgress, now: number): number {
-  return f.sold.day === mskDay(now) ? f.sold.coins : 0;
+/** Полоса кита: значение 0…1, класс, подпись внутри; g — «след» */
+export function meter(v: number, cls = '', label = '', g?: number): string {
+  const k = Math.round(Math.min(1, Math.max(0, v || 0)) * 1000) / 1000;
+  return `<div class="k-meter ${cls}"${cls.includes('k-meter--mode') ? ' data-mode="farm"' : ''} style="--v:${k}${g != null ? `;--g:${g}` : ''}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i>${label ? `<span class="k-meter-label">${label}</span>` : ''}</div>`;
 }
 
-/** Полоска «Сегодня продано на 540 / 700 🪙», после потолка — «Ставка ×0,25 до 00:00» (Гриб и Фургон) */
-export function capBar(f: FarmProgress, now: number): HTMLElement {
-  const sold = Math.floor(soldToday(f, now));
-  const box = el('div', 'fm-cap');
-  const full = sold >= DAILY_CAP;
-  box.classList.toggle('full', full);
-  box.append(el('span', 'fm-cap-line', `Сегодня продано на ${sold} / ${DAILY_CAP} 🪙`));
-  const bar = el('div', 'fm-cap-bar');
-  const fill = el('i');
-  fill.style.width = `${Math.min(100, (sold / DAILY_CAP) * 100)}%`;
-  bar.append(fill);
-  box.append(bar);
-  if (full) box.append(el('span', 'fm-cap-note', `Ставка ×0,25 до 00:00 (${fmtLeft(msToMskMidnight(now))}) · заказы и трюфели — полностью`));
-  return box;
+/** Всплывающее число у элемента (.k-pop живёт 1,6 с) */
+export function popAt(host: HTMLElement | null, text: string, cls = ''): void {
+  if (!host) return;
+  host.querySelector(':scope > .k-pop')?.remove();
+  const p = document.createElement('span');
+  p.className = `k-pop ${cls}`.trim();
+  p.textContent = text;
+  host.append(p);
+  window.setTimeout(() => p.remove(), 1700);
 }
 
-/** Шаги обучения Семечкина (design-v11 §1.4): одна фраза на шаг */
+/** Шаги обучения Семечкина: одна фраза на шаг */
 export const TUTORIAL_TEXT: readonly string[] = [
   'Посади редис — первый пакетик дарю. Подойди к своей грядке и нажми E',
   'Набери лейку у колодца — встань у корыта и нажми E',
@@ -119,27 +65,16 @@ export const TUTORIAL_TEXT: readonly string[] = [
   'Посади ещё и загляни на доску заказов',
 ];
 
-export const SLOT_EMOJI: Readonly<Record<string, string>> = { h: '🧢', u: '👕', l: '👖', a: '🧤', s: '🐣', f: '✨', n: '🏅', ti: '🎖', fr: '🖼', tl: '🔧', pl: '🏡', em: '🙌' };
-
-// ------------------------------------------------------------ колодец, свин, помощь: ленивые значения на сейчас
-
-/** Наборы воды и когда будет следующий (0 — колодец полон); сам профиль не трогаем */
-export function wellView(f: FarmProgress, now: number): { sets: number; nextAt: number } {
-  const c = { well: { ...f.well } } as FarmProgress;
-  wellTick(c, now);
-  return { sets: c.well.sets, nextAt: wellNextAt(c) };
-}
-
-/** Свин: сколько трюфелей в загоне сейчас и когда будет следующий (0 — загон полон) */
-export function pigView(f: FarmProgress, now: number): { stored: number; nextAt: number } | null {
-  if (!f.built.pig) return null;
-  const c = { built: { ...f.built, pig: { ...f.built.pig } } } as FarmProgress;
-  pigTick(c, now);
-  const p = c.built.pig!;
-  return { stored: p.stored, nextAt: p.stored >= PIG_STORE ? 0 : p.since + PIG_EVERY_MS };
-}
-
 // ------------------------------------------------------------ связь окон с ведущим (FarmHud)
+
+export interface FarmToast {
+  key?: string;
+  tone?: 'info' | 'reward' | 'warn' | 'good';
+  /** Иконка: имя файла фермы или «ui:id» */
+  icon: string;
+  title: string;
+  sub?: string;
+}
 
 export interface FarmHost {
   readonly f: FarmProgress;
@@ -152,9 +87,8 @@ export interface FarmHost {
   plots(): readonly FarmPlotView[];
   roster(): readonly FarmRosterRow[];
   sell(item: string, n: number): void;
-  plant(crop: string): void;
-  /** Тост в игре (общий Toasts игры) */
-  toast(text: string, sub?: string, key?: string): void;
+  /** Тост в верх-центр HUD (ui.top) */
+  toast(t: FarmToast): void;
   /** Окно закрылось (мышь — обратно игре) */
   closed(win: FarmWin): void;
   /** Надеть вещи каталога («Надеть» на экране уровня) */
@@ -163,6 +97,8 @@ export interface FarmHost {
   van(): FarmVanView | null;
   boss(): FarmBossView | null;
   bossLast(): FarmBossResult | null;
+  /** Доска фермы → «Помочь»: окно закрыто, подскажи дорогу к участку */
+  goPlot(plot: number): void;
 }
 
 // ------------------------------------------------------------ основа окна
@@ -171,70 +107,85 @@ export interface WinSpec {
   id: string;
   eyebrow: string;
   title: string;
-  intro: string;
-  avatar: string;
-  /** Цвет бровки и рамки аватара */
-  accent: string;
+  /** Реплика NPC под заголовком (курсив) */
+  line?: string;
+  /** Портрет: имя иконки фермы или «ui:id» */
+  portrait: string;
+  size?: 'sm' | 'lg';
+  /** Баланс жетонов в шапке (по умолчанию — да) */
+  coins?: boolean;
+  /** Без шапки и вкладок: классы корня, содержимое рисует наследник целиком (draw получает корень). '+clear' — без затемнения */
+  bare?: string;
 }
 
-type TabDef = readonly [id: string, icon: string, label: string];
+export interface TabDef {
+  id: string;
+  /** Разметка иконки (fi(...) / ui(...)) */
+  icon?: string;
+  label: string;
+  /** «7 из 19», «1 готов» */
+  count?: string;
+  /** Разметка после подписи (пилюля «здесь до 15:00») */
+  after?: string;
+}
 
-/** Нативный <dialog>: фокус внутри, фон не нажимается, клавиши игре не уходят. Наследник рисует тело в draw(). */
+/** Нативный <dialog> с кит-окном. Наследник рисует тело в draw(). */
 export abstract class FarmWin {
   readonly id: string;
   protected readonly host: FarmHost;
   protected readonly dlg: HTMLDialogElement;
+  protected readonly win: HTMLElement;
+  protected readonly head: HTMLElement;
   protected readonly body: HTMLElement;
   protected readonly tabbar: HTMLElement;
-  protected readonly intro: HTMLElement;
-  private readonly balance: HTMLElement;
-  private readonly eyebrowEl: HTMLElement;
-  private readonly titleEl: HTMLElement;
-  private readonly faceEl: HTMLElement;
+  protected readonly foot: HTMLElement;
+  private readonly bal: HTMLElement | null;
   private liveFns: Array<() => void> = [];
+  private tokensShown = -1;
   protected tab = '';
 
   constructor(parent: HTMLElement, host: FarmHost, spec: WinSpec) {
     this.id = spec.id;
     this.host = host;
-    const d = el('dialog', `fm-dlg fm-dlg-${spec.id}`);
-    this.dlg = d;
-    d.style.setProperty('--fm-accent', spec.accent);
+    const d = document.createElement('dialog');
+    d.className = `k-scrim farm-scrim${spec.bare?.includes('+clear') ? ' farm-scrim--clear' : ''}`;
+    d.dataset.mode = 'farm';
     d.setAttribute('aria-label', spec.title);
-    const head = d.appendChild(el('header', 'fm-head'));
-    const face = head.appendChild(el('div', 'fm-face', spec.avatar));
-    face.setAttribute('aria-hidden', 'true');
-    this.faceEl = face;
-    const who = head.appendChild(el('div', 'fm-who'));
-    this.eyebrowEl = el('span', 'fm-eyebrow', spec.eyebrow);
-    this.titleEl = el('h2', '', spec.title);
-    who.append(this.eyebrowEl, this.titleEl);
-    this.intro = who.appendChild(el('p', 'fm-intro', spec.intro));
-    this.balance = head.appendChild(el('div', 'fm-balance'));
-    this.balance.title = 'Твои жетоны';
-    const close = head.appendChild(el('button', 'fm-close'));
-    close.type = 'button';
-    close.autofocus = true;
-    close.title = 'Закрыть · Esc';
-    close.setAttribute('aria-label', 'Закрыть');
-    close.append(el('span', '', '×'), el('small', '', 'Esc'));
-    close.addEventListener('click', () => this.close());
-    this.tabbar = d.appendChild(el('nav', 'fm-tabs'));
-    this.tabbar.setAttribute('role', 'tablist');
-    this.body = d.appendChild(el('div', 'fm-body'));
-    // клавиши — не игре; Esc закрывает
+    this.dlg = d;
+    const size = spec.size ? ` k-window--${spec.size}` : '';
+    d.innerHTML = spec.bare
+      ? `<section class="${spec.bare.replace('+clear', '').trim()} farm-win farm-win--${spec.id}"></section>`
+      : `<section class="k-window${size} farm-win farm-win--${spec.id}">
+          <header class="k-win-head">
+            <span class="k-win-portrait"><img alt="" draggable="false"></span>
+            <div class="k-win-titles"><p class="k-eyebrow"></p><h2 class="k-win-title"></h2><p class="farm-npc"></p></div>
+            <div class="k-win-tools">${spec.coins === false ? '' : '<span class="k-pill k-pill--gold k-pill--lg farm-bal"></span>'}<button class="k-close" type="button" aria-label="Закрыть"><kbd class="k-key k-key--sm">Esc</kbd></button></div>
+          </header>
+          <nav class="k-tabs" hidden></nav>
+          <div class="k-win-body"></div>
+          <footer class="k-win-foot" hidden></footer>
+        </section>`;
+    this.win = d.querySelector('section')!;
+    this.head = d.querySelector('.k-win-head') ?? this.win;
+    this.body = d.querySelector('.k-win-body') ?? this.win;
+    this.tabbar = d.querySelector('.k-tabs') ?? document.createElement('nav');
+    this.foot = d.querySelector('.k-win-foot') ?? document.createElement('footer');
+    this.bal = d.querySelector('.farm-bal');
+    if (!spec.bare) this.setHead({ eyebrow: spec.eyebrow, title: spec.title, line: spec.line ?? '', portrait: spec.portrait });
+    d.querySelector('.k-close')?.addEventListener('click', () => this.close());
+    // фокус — на само окно, а не на ×: клавиши (E, Esc) идут окну, а кольцо фокуса не светится, пока не нажали Tab
+    d.tabIndex = -1;
+    // клавиши — не игре; Esc закрывает; наследник может взять свои (E в «Ура!»)
     d.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.code === 'Escape') { e.preventDefault(); this.close(); }
+      if (e.code === 'Escape') { e.preventDefault(); this.close(); return; }
+      if (!e.repeat && this.onKey(e.code)) e.preventDefault();
     });
     d.addEventListener('keyup', (e) => e.stopPropagation());
     d.addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
-    // клик мимо карточки (по затемнению) закрывает
-    d.addEventListener('click', (e) => {
-      if (e.target !== d) return;
-      const r = d.getBoundingClientRect();
-      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) this.close();
-    });
+    // клик мимо окна (по затемнению) закрывает
+    d.addEventListener('click', (e) => { if (e.target === d) this.close(); });
+    bindClickSounds(d);
     parent.appendChild(d);
   }
 
@@ -242,16 +193,26 @@ export abstract class FarmWin {
     return this.dlg.open;
   }
 
-  /** Сменить шапку (номер грядки, уровень и т. п.) */
-  protected setHead(o: { eyebrow?: string; title?: string; intro?: string; avatar?: string }): void {
-    if (o.eyebrow !== undefined) this.eyebrowEl.textContent = o.eyebrow;
-    if (o.title !== undefined) setCoinText(this.titleEl, o.title);
-    if (o.intro !== undefined) setCoinText(this.intro, o.intro);
-    if (o.avatar !== undefined) this.faceEl.textContent = o.avatar;
+  /** Сменить шапку (номер грядки, имя и т. п.); портрет — имя иконки фермы или «ui:id» */
+  protected setHead(o: { eyebrow?: string; title?: string; line?: string; portrait?: string }): void {
+    const q = <T extends Element>(s: string): T | null => this.head.querySelector<T>(s);
+    if (o.eyebrow !== undefined) q('.k-eyebrow')!.textContent = o.eyebrow;
+    if (o.title !== undefined) q('.k-win-title')!.textContent = o.title;
+    if (o.line !== undefined) {
+      const l = q<HTMLElement>('.farm-npc')!;
+      l.textContent = o.line;
+      l.hidden = o.line === '';
+    }
+    if (o.portrait !== undefined) q<HTMLImageElement>('.k-win-portrait img')!.src = iconUrl(o.portrait);
   }
 
-  /** Нарисовать тело окна (вкладки — через setTabs, секундные подписи — через live) */
+  /** Нарисовать тело окна (вкладки — через setTabs, подвал — через setFoot, секундные подписи — через live) */
   protected abstract draw(body: HTMLElement): void;
+
+  /** Своя клавиша окна (кроме Esc): true — съела */
+  protected onKey(_code: string): boolean {
+    return false;
+  }
 
   /** Окно открывается на первой вкладке, если не сказано иное */
   protected firstTab(): string {
@@ -261,14 +222,24 @@ export abstract class FarmWin {
   open(tab?: string): void {
     this.tab = tab ?? this.firstTab();
     this.render();
-    if (!this.dlg.open) this.dlg.showModal();
+    if (!this.dlg.open) {
+      this.dlg.showModal();
+      this.dlg.focus({ preventScroll: true });
+      sfx.play('open');
+    }
+    this.win.classList.remove('is-in');
+    void this.win.offsetWidth;
+    this.win.classList.add('is-in');
     this.body.scrollTop = 0;
   }
 
   close(silent = false): void {
     if (!this.dlg.open) return;
     this.dlg.close();
-    if (!silent) this.host.closed(this);
+    if (!silent) {
+      sfx.play('close');
+      this.host.closed(this);
+    }
   }
 
   /** Сервер прислал новое состояние: перерисовать, не сбивая прокрутку */
@@ -279,51 +250,70 @@ export abstract class FarmWin {
   private render(): void {
     const keep = this.body.scrollTop;
     this.liveFns = [];
-    this.tabbar.textContent = '';
     this.tabbar.hidden = true;
+    this.tabbar.textContent = '';
+    this.foot.hidden = true;
+    this.foot.textContent = '';
     this.body.textContent = '';
-    setCoinText(this.balance, `${this.host.tokens} 🪙`);
+    this.balance(false);
     this.draw(this.body);
     this.body.scrollTop = keep;
     for (const fn of this.liveFns) fn();
   }
 
-  /** Раз в секунду: подписи со временем */
+  /** Баланс в шапке; если поменялся — «+N / −N» над ним (жетоны приходят отдельным сообщением) */
+  private balance(pop: boolean): void {
+    if (!this.bal) return;
+    const t = this.host.tokens;
+    if (t === this.tokensShown) return;
+    if (pop && this.tokensShown >= 0) popAt(this.bal, `${t > this.tokensShown ? '+' : '−'}${big(Math.abs(t - this.tokensShown))}`, t < this.tokensShown ? 'k-pop--bad' : '');
+    this.tokensShown = t;
+    this.bal.innerHTML = `${C()}${big(t)}`;
+  }
+
+  /** Раз в секунду: подписи со временем и баланс */
   tick(): void {
     if (!this.dlg.open) return;
     for (const fn of this.liveFns) fn();
-    setCoinText(this.balance, `${this.host.tokens} 🪙`);
+    this.balance(true);
   }
 
-  /** Подпись, зависящая от времени: пересчитывается раз в секунду без перерисовки окна */
-  protected live(node: HTMLElement, text: () => string): void {
+  /** Подпись, зависящая от времени: пересчитывается раз в секунду без перерисовки окна. sel — внутри окна */
+  protected live(sel: string, text: () => string): void {
     let last = '';
     const fn = (): void => {
+      const node = this.win.querySelector(sel);
+      if (!node) return;
       const t = text();
-      if (t === last) return;
+      if (t === last && node.innerHTML !== '') return;
       last = t;
-      setCoinText(node, t);
+      node.innerHTML = t;
     };
     this.liveFns.push(fn);
   }
 
+  /** Вкладки; нажатие — перерисовать окно на этой вкладке */
   protected setTabs(defs: readonly TabDef[]): void {
     this.tabbar.hidden = false;
-    for (const [id, ic, label] of defs) {
-      const b = this.tabbar.appendChild(el('button', 'fm-tab'));
-      b.type = 'button';
-      b.setAttribute('role', 'tab');
-      b.setAttribute('aria-selected', String(id === this.tab));
-      b.classList.toggle('on', id === this.tab);
-      b.append(el('span', 'fm-tab-ico', ic), el('span', '', label));
-      b.addEventListener('click', () => { this.tab = id; this.render(); this.body.scrollTop = 0; });
-    }
+    this.tabbar.innerHTML = defs
+      .map((d) => `<button class="k-tab${d.id === this.tab ? ' is-on' : ''}" type="button" role="tab" aria-selected="${d.id === this.tab}" data-tab="${d.id}">${d.icon ?? ''}${d.label}${d.count ? ` <span class="k-tab-count">${d.count}</span>` : ''}${d.after ?? ''}</button>`)
+      .join('');
+    this.tabbar.querySelectorAll<HTMLElement>('.k-tab').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.tab === this.tab) return;
+      this.tab = b.dataset.tab!;
+      this.render();
+      this.body.scrollTop = 0;
+    }));
   }
-}
 
-/** Строка «ресурс: есть / нужно» с цветом: хватает или нет */
-export function needChip(resId: string, have: number, need: number): HTMLElement {
-  const c = el('span', `fm-need${have >= need ? ' ok' : ' low'}`);
-  c.append(resIcon(resId, 'fm-ico sm'), el('b', '', `${have}/${need}`), el('small', '', resName(resId)));
-  return c;
+  /** Подвал окна: готовая разметка (.k-note слева, кнопки справа) */
+  protected setFoot(html: string): void {
+    this.foot.hidden = html === '';
+    this.foot.innerHTML = html;
+  }
+
+  /** Нажатия по элементам внутри окна (тело, подвал, шапка) */
+  protected onClick(sel: string, fn: (el: HTMLElement) => void): void {
+    this.win.querySelectorAll<HTMLElement>(sel).forEach((e) => e.addEventListener('click', () => fn(e)));
+  }
 }
