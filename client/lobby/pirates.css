@@ -13,7 +13,7 @@
 /* панель набега: корабль, добыча, волна — плашка кита (.k-plate) в слоте под стопкой верх-центра (.k-slot--tc-under):
    плашка волны и тосты сверху её не закрывают, она съезжает ниже. Цвета — токены кита. */
 .pr-panel {
-  width: 430px;
+  width: 440px;
   padding: 8px 14px 10px;
   font: 500 var(--fs-14)/1.25 var(--font-text);
   animation: k-toast-in 0.25s var(--ease-out) both;
@@ -23,20 +23,20 @@
 .pr-title-ic { width: 22px; height: 22px; object-fit: contain; }
 .pr-wave { font: 700 var(--fs-14)/1.2 var(--font-text); color: var(--gold-text); }
 .pr-time { min-width: 38px; text-align: right; font: 800 var(--fs-15)/1.2 var(--font-text); color: var(--gold-text); }
-.pr-row { display: flex; align-items: center; gap: 9px; min-height: 22px; }
+.pr-row { display: flex; align-items: center; gap: 8px; min-height: 22px; }
 .pr-row + .pr-row { margin-top: 5px; }
-.pr-lab { width: 62px; font-size: var(--fs-13); font-weight: 700; color: var(--surf-dim); }
+.pr-lab { flex: none; width: 64px; font-size: var(--fs-14); font-weight: 700; }
 .pr-bar { position: relative; flex: 1; height: 12px; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); overflow: hidden; }
 .pr-fill { --c: var(--gold); position: absolute; inset: 0 auto 0 0; width: 100%; border-radius: inherit; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 74%, #fff), var(--c) 60%); transition: width 0.35s ease; }
 .pr-fill.low { --c: var(--bad); }
 .pr-val { min-width: 46px; text-align: right; font-size: var(--fs-15); font-weight: 800; }
 .pr-have { min-width: 20px; font-size: var(--fs-16); font-weight: 900; color: var(--gold-text); text-align: center; }
-.pr-sub { font-size: var(--fs-13); font-weight: 600; color: var(--surf-dim); }
-.pr-slots { display: flex; gap: 4px; margin-left: auto; }
+.pr-sub { font-size: var(--fs-13); font-weight: 600; color: var(--surf-dim); white-space: nowrap; }
+.pr-slots { display: flex; flex: none; gap: 3px; margin-left: auto; }
 .pr-slots i {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: var(--r-xs);
   background: var(--track);
   border: 2px solid var(--bad-soft);
@@ -176,9 +176,6 @@
 .pr-result-me { margin-top: 8px; font-size: 20px; font-weight: 900; color: var(--gold); }
 
 @media (max-width: 640px), (pointer: coarse) {
-  .pr-panel { width: min(430px, calc(100vw - 24px)); padding: 7px 10px 9px; }
-  .pr-title { font-size: 13px; }
-  .pr-lab { width: 54px; font-size: 12px; }
-  .pr-slots i { width: 14px; height: 14px; }
+  .pr-panel { width: min(440px, calc(100vw - 24px)); padding: 7px 10px 9px; }
   .pr-result { top: 16%; }
 }

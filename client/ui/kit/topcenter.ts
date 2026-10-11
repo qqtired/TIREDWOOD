@@ -2,7 +2,9 @@
 // до трёх тостов. Голосование, связь, шторм, пираты, секундомер — плашки; уведомления — тосты (ui/toasts.ts).
 // Крупный баннер по центру (.k-hero: «Уровень N!», «Маяк горит!», «Джекпот!») — тоже здесь: один, по приоритету.
 // Слот верх-центра — в своём слое над меню (kit/slots.ts): голосование, связь и тосты видны и на паузе. Высоту стопки
-// пишем в --tc-stack (px сцены) и data-tc на <html>: панели режимов (пираты) встают под неё, меню Esc — ниже неё.
+// пишем в --tc-stack (px сцены) на <html>: панели режимов (пираты) встают под неё. Плашку важного события (голосование,
+// связь — приоритет от PRIO.link) — ещё и в --tc-event + data-tc-event: меню Esc опускается под неё; тосты и баннеры меню
+// не двигают (тост может ненадолго лечь на его верх).
 // TopCenterModel — без DOM (тесты: test/ui-kit.test.ts), TopCenter — разметка .k-slot--tc > .k-event + .k-toasts.
 // Здесь нельзя подключать kit/icons.ts и kit/dom.ts (import.meta.glob Vite): модель грузят тесты в Node.
 import { setCoinText } from '../coin.ts';
@@ -139,8 +141,8 @@ export class TopCenter {
     this.stack = el('div', 'k-toasts');
     this.stack.setAttribute('aria-live', 'polite');
     slot.append(this.stack);
-    // высота стопки — в px сцены (ResizeObserver меряет без zoom слоя)
-    if (typeof ResizeObserver === 'function') new ResizeObserver((es) => publish(es[0].contentRect.height)).observe(slot);
+    // высота стопки — в px сцены (offsetHeight — без zoom слоя); меняется — пересчитать
+    if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.publish()).observe(slot);
   }
 
   /** Показать или обновить плашку; можно звать каждый кадр — DOM меняется, только когда поменялась разметка */
@@ -167,9 +169,9 @@ export class TopCenter {
     this.renderToasts();
   }
 
-  /** Крупный баннер по центру на ~3 с; менее важный, пока висит более важный, не показывается */
-  hero(h: TcHero): void {
-    if (!this.centre || !this.model.hero(h)) return;
+  /** Крупный баннер по центру на ~3 с; менее важный, пока висит более важный, не показывается — false (можно позже ещё раз) */
+  hero(h: TcHero): boolean {
+    if (!this.centre || !this.model.hero(h)) return false;
     this.heroEl?.remove();
     const box = el('div', `k-hero k-hero--${h.tone} is-play`);
     box.appendChild(el('p', 'k-hero-title')).textContent = h.title;
@@ -184,6 +186,7 @@ export class TopCenter {
     this.heroTimer = window.setTimeout(() => {
       if (this.heroEl === box) this.clearHero(h.key);
     }, h.life ?? HERO_LIFE);
+    return true;
   }
 
   /** Убрать баннер этого вида (ушли с набережной) */
@@ -199,6 +202,7 @@ export class TopCenter {
       if (this.ev) this.leave(this.ev);
       this.ev = null;
       this.evKey = this.evCls = this.evHtml = '';
+      this.publish();
       return;
     }
     const cls = `k-event${e.tone ? ` k-event--${e.tone}` : ''}${e.lamp ? ' k-lamp' : ''}`;
@@ -213,6 +217,7 @@ export class TopCenter {
       this.evKey = e.key;
       this.evCls = cls;
       this.evHtml = e.html;
+      this.publish();
       return;
     }
     if (cls !== this.evCls) this.ev.className = this.evCls = cls;
@@ -226,6 +231,23 @@ export class TopCenter {
   private leave(box: HTMLElement): void {
     if (still()) { box.remove(); return; }
     box.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(-8px)' }], { duration: 220, easing: 'ease-in' }).finished.then(() => box.remove(), () => box.remove());
+  }
+
+  /** Высоты на <html>: --tc-stack — вся стопка (панели под ней), --tc-event + data-tc-event — важная плашка (меню под ней) */
+  private publish(): void {
+    const root = document.documentElement;
+    const stack = this.root.offsetHeight;
+    if (stack < 1) root.style.removeProperty('--tc-stack');
+    else root.style.setProperty('--tc-stack', `${stack + GAP}px`);
+    const e = this.model.current();
+    const ev = this.ev && e && e.prio >= PRIO.link ? this.ev.offsetHeight : 0;
+    if (ev < 1) {
+      delete root.dataset.tcEvent;
+      root.style.removeProperty('--tc-event');
+    } else {
+      root.dataset.tcEvent = '';
+      root.style.setProperty('--tc-event', `${ev + GAP}px`);
+    }
   }
 
   private renderToasts(): void {
@@ -264,18 +286,6 @@ export class TopCenter {
       this.schedule();
     }, Math.max(0, next - performance.now()) + 20);
   }
-}
-
-/** Высота стопки верх-центра (px сцены) — в --tc-stack и data-tc на <html>: пусто — ни того ни другого */
-function publish(h: number): void {
-  const root = document.documentElement;
-  if (h < 1) {
-    delete root.dataset.tc;
-    root.style.removeProperty('--tc-stack');
-    return;
-  }
-  root.dataset.tc = '';
-  root.style.setProperty('--tc-stack', `${Math.ceil(h) + GAP}px`);
 }
 
 /** Обновить плашку на месте: меняются только верхние узлы, что изменились, — кнопки голосования живут между тиками таймера */

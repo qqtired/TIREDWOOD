@@ -31,7 +31,10 @@
 .k-mode-text { color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); }
 
 /* ============================================================ сцена HUD и слоты (сцена 1440×900, поля --edge 16)
-   z: сцена 0 · слоты 10 · центр (баннер, прицел) 15 · тосты 20 · окно + затемнение 30 · меню Esc 40 · загрузка 50 */
+   z внутри слоя .k-hud: слоты 10 · центр (баннер, прицел) 15 · верх-центр 20; окно + затемнение (.k-scrim) — 30 в своём слое.
+   Слои страницы (client/styles.css): #hud — HUD кита, z 10 · #menus — меню Esc, экраны входа и загрузки, z 20 ·
+   .k-hud--top — верх-центр (голосование, связь, тосты), z 25: над меню. Меню Esc опускается под плашку важного события
+   (голосование, связь — html[data-tc-event], client/ui/kit/topcenter.ts); тосты могут ненадолго лечь на его верх. */
 .k-hud { position: absolute; inset: 0; pointer-events: none; color: var(--plate-text); font-size: var(--fs-16); line-height: var(--lh); text-shadow: none; }
 .k-hud :where(button, input, label, .k-chat, .k-window) { pointer-events: auto; }
 .k-slot { position: absolute; z-index: 10; display: flex; flex-direction: column; gap: var(--slot-gap); }

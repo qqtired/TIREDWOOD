@@ -223,6 +223,8 @@ export class Pirates3D {
   reset(): void {
     this.view = P.emptyPirates();
     this.clearAll();
+    // ушли с набережной посреди набега: панель живёт в общем слоте HUD — убрать и её
+    this.hud.hideAll();
   }
 
   private clearAll(): void {

@@ -22,12 +22,13 @@ test('storm = weather at full force: scheduled strikes, lighthouse door wait/lig
  fx.dispose();assert.equal(scene.children.length,0);assert.equal(force,0);
 });
 
-test('маяк зажёг я первым — «Маяк горит!» по центру, один раз за шторм; второму — нет',t=>{
- const root=dom(t),heroes:{title:string;sub?:string}[]=[];
- const top={event(){},clear(){},hero:(h:{title:string;sub?:string})=>{heroes.push(h);}};
+test('маяк зажёг я первым — «Маяк горит!» по центру, один раз за шторм (занят баннером важнее — позже); второму — нет',t=>{
+ const root=dom(t),heroes:{title:string;sub?:string}[]=[];let busy=1;
+ const top={event(){},clear(){},hero:(h:{title:string;sub?:string})=>{if(busy-->0)return false;heroes.push(h);return true;}};
  const mk=(self:number)=>new Storm3D(new THREE.Scene(),root,{climate(){},strike(){},rainbow(){},lamp(){},sound(){},light(){},self:()=>self,top});
  const calm={...emptyStorm(),id:'z',phase:'calm' as const,start:500,end:1220,rankEnd:1100,rainbowEnd:2300,waveStart:100,winners:[{pid:2,nick:'Я',place:1,tokens:30},{pid:3,nick:'Бочка',place:2,tokens:20}]};
- const me=mk(2);me.set(calm);me.update(510,.016,{x:0,y:0,z:0},true);me.update(520,.016,{x:0,y:0,z:0},true);
+ const me=mk(2);me.set(calm);me.update(510,.016,{x:0,y:0,z:0},true);assert.equal(heroes.length,0,'висит «Уровень N!» — не сейчас');
+ me.update(515,.016,{x:0,y:0,z:0},true);me.update(520,.016,{x:0,y:0,z:0},true);
  assert.equal(heroes.length,1);assert.equal(heroes[0].title,'Маяк горит!');assert.match(heroes[0].sub!,/Ты первый · \+30/);
  const second=mk(3);second.set(calm);second.update(510,.016,{x:0,y:0,z:0},true);assert.equal(heroes.length,1);
  me.dispose();second.dispose();
@@ -123,4 +124,21 @@ test('пираты на экране: корабль, шлюпки, толпа, 
   assert.equal(fx.debug().pirates, 0);
   fx.dispose();
   assert.equal(scene.children.length, 0, 'после выхода на сцене ничего не осталось');
+});
+
+test('пираты: ушёл с набережной посреди набега — панель набега (она в общем слоте HUD) прячется', async t => {
+  const hook = registerHooks({ load(url, ctx, next) { if (/\.(webp|png|jpg|glb|bin|css)$/.test(new URL(url).pathname)) return { format: 'module', source: `export default ${JSON.stringify(url)}`, shortCircuit: true }; return next(url, ctx); } });
+  let Pirates3D: any;
+  try { Pirates3D = (await import('../client/lobby/pirates.ts')).Pirates3D; } finally { hook.deregister(); }
+  fakePage(t);
+  const sound = new Proxy({}, { get: () => () => {} });
+  const fx = new Pirates3D(new THREE.Scene(), fakeEl(), { sound, lobbyFx: () => null, fire() {}, quality: () => 'high', under: fakeEl() });
+  const panel = fx.hud.panel;
+  const me = { x: 6, y: 0, z: 15, yaw: Math.PI, pitch: -0.1, slot: 1, pid: 1 };
+  fx.set({ ...P.emptyPirates(), id: 'r2', phase: 'raid', t0: 0, start: 100, end: 100 + P.PIRATE_LIMIT, wave: 1, waves: 4, hp: 11, hpMax: 11, left: 12, total: 12, stolen: 0, limit: 6 });
+  fx.update(120, 0.016, new THREE.PerspectiveCamera(), me, true, false);
+  assert.equal(panel.hidden, false, 'набег — панель видна');
+  fx.reset();
+  assert.equal(panel.hidden, true, 'ушли с набережной — панели нет');
+  fx.dispose();
 });

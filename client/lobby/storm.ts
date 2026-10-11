@@ -20,7 +20,7 @@ export interface StormVisualHooks {
   /** The integrated World already has a lighthouse beam; avoid drawing a second cone. */
   existingBeacon?: boolean;
   /** Плашка шторма — в верх-центре HUD (client/ui/kit/topcenter.ts), «Маяк горит!» — баннером; без него (тесты) — без них */
-  top?: { event(e: TcEvent): void; clear(key: string): void; hero?(h: TcHero): void };
+  top?: { event(e: TcEvent): void; clear(key: string): void; hero?(h: TcHero): boolean };
   /** Картинка иконки кита по id (client/ui/kit/icons.ts) */
   icon?(id: string): string;
 }
@@ -148,12 +148,10 @@ export class Storm3D {
     // награда: в шторм — до 30 (первому), после — за своё место среди отметившихся
     this.hint = this.door === 'wait' ? { keys: [], text: `Маяк ещё горит · свет погаснет через ${Math.max(1, Math.ceil((v.end - tick) / TICK_RATE))} с — тогда ${TOUCH ? 'жми кнопку' : 'жми E или кликни'}` }
       : this.door === 'light' ? { keys, text: v.phase === 'storm' ? 'Зажечь маяк' : 'Отметиться у маяка', urgent: true, pill: v.phase === 'storm' ? `🪙до ${stormReward(1)}` : `🪙+${stormReward(v.winners.length + 1)}` } : null;
-    // зажёг первым — «Маяк горит!» по центру (один раз за шторм; остальным — тост сервера и плашка «Шторм стих»)
+    // зажёг первым — «Маяк горит!» по центру (один раз за шторм; остальным — тост сервера и плашка «Шторм стих»);
+    // висит баннер важнее («Уровень N!») — пробуем в следующих кадрах, пока идёт отсчёт отметившихся
     const first = v.phase === 'calm' && tick < v.rankEnd ? v.winners.find(w => w.place === 1 && w.pid === self) : undefined;
-    if (first && this.heroFor !== v.id) {
-      this.heroFor = v.id;
-      this.hooks.top?.hero?.({ key: 'storm', prio: PRIO.storm, tone: 'win', title: 'Маяк горит!', sub: `Ты первый · +${first.tokens} 🪙` });
-    }
+    if (first && this.heroFor !== v.id && this.hooks.top?.hero?.({ key: 'storm', prio: PRIO.storm, tone: 'win', title: 'Маяк горит!', sub: `Ты первый · +${first.tokens} 🪙` }) !== false) this.heroFor = v.id;
     // подсветка двери: видна с мостков, пока есть что делать; ярче, когда стоишь у двери
     const goal = v.phase === 'warn' || v.phase === 'storm' || ranking;
     const pulse = .5 + .5 * Math.sin(this.time * (v.phase === 'storm' ? 5 : 2.6));

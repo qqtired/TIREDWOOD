@@ -166,7 +166,8 @@ export class PirateHud {
     });
   }
 
-  private hideAll(): void {
+  /** Всё спрятать: плашку, панель набега (она в общем слоте верх-центра, не в root), прицел, стрелки, итоги */
+  hideAll(): void {
     this.tc.top?.clear(KEY);
     this.panel.hidden = true;
     for (const e of [this.ret, this.fire, this.result]) e.classList.remove('show');

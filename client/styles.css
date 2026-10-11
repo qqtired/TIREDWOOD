@@ -2008,13 +2008,14 @@ input[type='checkbox'] {
   transition: top 0.2s var(--ease-out);
 }
 
-/* меню Esc — ниже стопки верх-центра: голосование и тосты не закрывают его шапку и разделы */
+/* меню Esc — ниже плашки важного события (голосование, связь): она не закрывает его шапку и разделы.
+   Тосты и баннеры меню не двигают — тост может ненадолго лечь на его верх (data-tc-event — client/ui/kit/topcenter.ts) */
 .screen.pause {
   transition: padding-top 0.2s ease-out;
 }
 
-html[data-tc] .screen.pause {
-  padding-top: calc((var(--edge) + var(--tc-stack, 0px)) * var(--hud-k, 1) + 6px);
+html[data-tc-event] .screen.pause {
+  padding-top: calc((var(--edge) + var(--tc-event, 0px)) * var(--hud-k, 1) + 6px);
 }
 
 /* под бейджем (верх-право: поле 16 + высота 44 + зазор 6, × масштаб HUD): панели набережной начинаются не выше */
@@ -2202,7 +2203,7 @@ html[data-room='dungeon'] .k-slot--bl {
 }
 
 /* телефон: слоты не заходят под вырез и скруглённые углы экрана */
-.touch :is(.k-slot--tl, .k-slot--tc, .k-slot--tr) {
+.touch :is(.k-slot--tl, .k-slot--tc, .k-slot--tr, .k-slot--tc-under) {
   margin-top: calc(env(safe-area-inset-top, 0px) / var(--hud-k, 1));
 }
 

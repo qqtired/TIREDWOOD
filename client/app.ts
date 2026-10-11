@@ -227,6 +227,7 @@ export class App {
     // верх-центр (голосование, связь, тосты) — слоем над меню; крупный баннер — по центру HUD
     this.slots = new HudSlots(shell, document.body);
     this.top = new TopCenter(this.slots.tc, this.slots.c);
+    bindClickSounds(this.slots.top);
     this.badge = new Badge(this.slots.tr);
     this.chat = new Chat(this.slots.bl);
     this.tokens = new TokensHud(this.badge);
@@ -820,12 +821,13 @@ export class App {
     this.profile.update(this.me);
     const tier = frameForLevel(m.level);
     const unlocked = m.milestones.length > 0;
-    this.toasts.show(`Уровень ${m.level}${unlocked ? ` · рамка ${tier.name}` : ''}`, 4200, 'level-up', unlocked ? 'Её видят все над твоей желейкой' : '');
+    // новая рамка — ещё и тост с ней (как на странице lab/ui); без рамки хватит баннера: те же слова дважды не пишем
+    if (unlocked) this.toasts.show(`Уровень ${m.level} · рамка ${tier.name}`, 4200, 'level-up', 'Её видят все над твоей желейкой');
     this.sound.coin(null);
     const me: Extract<ServerMsg, { t: 'me' }> = { t: 'me', ...this.me, build: this.build };
     this.lobby.onJson(me);
     if (this.active && this.active !== this.lobby) this.active.onJson(me);
-    // по центру — «Уровень N!» (новая рамка — кружком её цвета), бейдж: новое число в кольце, «+N опыта» (тост — выше)
+    // по центру — «Уровень N!» (новая рамка — кружком её цвета), бейдж: новое число в кольце, «+N опыта»
     this.top.hero({ key: 'level', prio: PRIO.mode, tone: 'gold', title: `Уровень ${m.level}!`, ...(unlocked ? { sub: `Новая рамка ника — ${tier.name}`, dot: tier.color } : {}) });
     this.paintBadge();
     this.badge.levelUp(this.me.level, this.xpGain);
