@@ -295,10 +295,12 @@ export class JoinScreen {
     // последний знак ника и «!» — неразрывно: длинный ник не оставляет «!» одну на строке
     const nick = [...saved];
     const hello = `${escHtml(nick.slice(0, -1).join(''))}<span class="en-nobr">${escHtml(nick.slice(-1).join(''))}<i class="en-bang">!</i></span>`;
+    // длинный ник — заголовок мельче, а не перенос посреди ника
+    const helloCls = nick.length > 13 ? ' en-h--xs' : nick.length > 9 ? ' en-h--sm' : '';
     if (mode === 'saved') {
       this.card.innerHTML = `${gear}
         <p class="k-eyebrow">С возвращением</p>
-        <h2 class="en-h">Привет, <b>${hello}</b></h2>
+        <h2 class="en-h${helloCls}">Привет, <b>${hello}</b></h2>
         <p class="en-lead">Набережная уже ждёт — заходи.</p>
         ${this.err ? `<div class="en-msg is-bad" role="alert"><i class="en-tick">!</i><span>${escHtml(this.err)}</span></div>` : ''}
         ${play('Играть')}

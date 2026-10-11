@@ -110,6 +110,9 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   testBox.append(el('h3', 'mn-h', 'Проверка микрофона'));
   const meterRow = kRow(testBox, 'Уровень', 'Скажи что-нибудь: полоска должна прыгать. В игру проверка не передаётся.');
   const meter = meterRow.ctl.appendChild(el('div', 'k-meter vp-meter'));
+  // до проверки полоса пустая (у .k-meter по умолчанию --v: .5)
+  meter.style.setProperty('--v', '0');
+  meter.style.setProperty('--g', '0');
   meter.append(el('i', 'k-meter-ghost'));
   meter.append(el('i', 'k-meter-fill'));
   meter.setAttribute('role', 'meter'); meter.setAttribute('aria-label', 'Уровень микрофона'); meter.setAttribute('aria-valuemin', '0'); meter.setAttribute('aria-valuemax', '100');

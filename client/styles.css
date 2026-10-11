@@ -888,6 +888,11 @@ html[data-room]:not([data-room='lobby']) .k-tile.fi-drink {
   display: none;
 }
 
+/* открыта примерочная (окно справа под бейджем): плитка напитка легла бы на её ✕ */
+html:has(.wd-scrim:not([hidden])) .k-tile.fi-drink {
+  display: none;
+}
+
 /* «Подземелье»: правее столбика бонусов; на компьютере — в углу, открытый чат — выше оружий */
 html[data-room='dungeon'] .k-slot--bl {
   left: 96px;

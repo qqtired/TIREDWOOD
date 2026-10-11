@@ -259,6 +259,9 @@
   top: 50%;
   translate: -50% -50%;
   width: max-content;
+  /* не шире рамки шкалы: длинное предупреждение переносится, а не вылезает за неё */
+  max-width: calc(100% - 8px);
+  white-space: normal;
   min-height: 32px;
   font-size: var(--fs-16, 16px);
   font-weight: 900;

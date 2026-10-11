@@ -27,6 +27,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = '
 function text(e: HTMLElement, value: string): void { if (e.textContent !== value) e.textContent = value; }
 function isModal(d: HTMLDialogElement): boolean { try { return d.matches(':modal'); } catch { return true; } }
 export const MIC_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/></svg>';
+/** Сколько мс видна строка ошибки микрофона у кнопки голоса */
+const ERROR_TIP_MS = 8000;
 const SPEAKER_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 4 6M21 9l-4 6"/></svg>';
 export type VoiceHudState = 'hidden' | 'off' | 'listen' | 'requesting' | 'connecting' | 'ready' | 'talking' | 'error' | 'blocked';
 
@@ -74,6 +76,9 @@ export class VoiceUi {
   private readonly home: HTMLElement;
   private watch: MutationObserver | null = null;
   private view: VoiceView | null = null;
+  /** Ошибка микрофона видна строкой рядом с кнопкой 8 с, потом остаётся только перечёркнутая кнопка (иначе плашка висит над окнами) */
+  private errTip = '';
+  private errUntil = 0;
   private state: VoiceHudState = 'hidden';
   private visible = false;
   private disposed = false;
@@ -160,7 +165,13 @@ export class VoiceUi {
     this.hold.setAttribute('aria-pressed', String(view.transmitting));
     this.hold.disabled = this.state === 'requesting';
     // подсказка рядом: короткое уведомление, иначе — что сейчас важно
-    const tip = view.notice || (this.state === 'blocked' ? 'Кликни, чтобы слышать голос' : this.state === 'error' ? view.error : '');
+    const err = this.state === 'error' ? view.error : '';
+    if (err !== this.errTip) {
+      this.errTip = err;
+      this.errUntil = err ? Date.now() + ERROR_TIP_MS : 0;
+      if (err) setTimeout(() => { if (this.view) this.render(this.view); }, ERROR_TIP_MS + 50);
+    }
+    const tip = view.notice || (this.state === 'blocked' ? 'Кликни, чтобы слышать голос' : err && Date.now() < this.errUntil ? err : '');
     const tipChanged = this.tip.hidden !== !tip;
     text(this.tip, tip); this.tip.hidden = !tip;
     if (tipChanged) this.limitSpeakers();

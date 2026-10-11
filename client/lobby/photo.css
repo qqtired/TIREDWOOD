@@ -32,3 +32,8 @@
 @media (max-width: 560px) {
   .ph-card { top: 44%; width: calc(100% - 2 * var(--edge)); }
 }
+
+/* открыто меню Esc (не вуаль): снимок не лежит на окне меню; на вуали (Esc ещё раз) — виден, сохранить можно и на паузе */
+html:has(.screen.pause.show:not(.veil)) .ph-card {
+  visibility: hidden;
+}
