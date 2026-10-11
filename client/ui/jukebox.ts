@@ -1,9 +1,13 @@
-// Окно музыкального автомата: список песен, «Поставить · 10 🪙», что играет сейчас и очередь.
+// Окно музыкального автомата на ките 2.0: что играет сейчас (полоса), список песен с кнопкой «Поставить · 10 🪙» и очередь.
 // Сервер решает всё сам (цена, очередь, расстояние) — окно только показывает состояние и просит заказ.
-// Связку (открыть у автомата, мышь, тосты, звук) делает client/lobby/scene.ts; здесь — только разметка и клавиши.
+// Окно — нативный <dialog class="k-scrim"> с .k-window (как окна рыбалки и фермы): затемнение, фон инертен, игрок не ходит.
+// Закрыть — ✕, Esc, E, клик мимо окна; отошёл от автомата — закрывает связка (client/lobby/jukebox.ts). Клавиши окна:
+// 1–9 и ↑/↓ — выбрать, Enter — поставить. Связку (открыть у автомата, мышь, тосты, звук) делает client/lobby/scene.ts.
 // update() зовут ~4 раза в секунду: список собран один раз, дальше меняются тексты и классы (и только если изменились).
-import { COIN_HTML } from './coin.ts';
 import { JUKE_GAP_MS, JUKE_QUEUE_MAX, JUKE_SONGS, fmtSongTime, songMs, songPrice, songSpecial, type JukeView } from '../../shared/jukebox.ts';
+import { coinHtml, h, iconImg, keyHtml, meterHtml } from './kit/dom.ts';
+import { setMeter } from './kit/modes.ts';
+import { sfx } from './kit/sfx.ts';
 import './jukebox.css';
 
 export interface JukeboxPanelState {
@@ -24,34 +28,29 @@ export interface JukeboxPanelState {
 export interface JukeboxPanelActions {
   /** Заказ: клик по кнопке или Enter на выбранной */
   play(song: number): void;
-  /** ✕ или Esc — закрывает связка (вернёт мышь), панель только просит */
+  /** ✕, Esc, E или клик мимо — закрывает связка (вернёт мышь), панель только просит */
   close(): void;
 }
+
+type SongState = 'play' | 'playing' | 'queued' | 'wait' | 'blocked' | 'poor';
 
 interface SongRow {
   li: HTMLElement;
   btn: HTMLButtonElement;
-  label: string;
+  pill: HTMLElement;
+  st: SongState | '';
 }
 
 interface QueueRow {
   li: HTMLElement;
-  emoji: HTMLElement;
   title: HTMLElement;
   who: HTMLElement;
   when: HTMLElement;
 }
 
 /** Цена у каждой песни своя (особая — дороже) */
-const playHtml = (price: number): string => `Поставить · ${price} ${COIN_HTML}`;
-const poorHtml = (price: number): string => `Нужно ${price} ${COIN_HTML}`;
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.className = cls;
-  parent?.appendChild(e);
-  return e;
-}
+const playHtml = (price: number): string => `Поставить · ${price} ${coinHtml()}`;
+const poorHtml = (price: number): string => `Нужно ${price} ${coinHtml()}`;
 
 /** Текст меняем, только если он другой: окно обновляется часто, а лишние записи в DOM дёргают раскладку */
 function setText(e: HTMLElement, text: string): void {
@@ -59,155 +58,174 @@ function setText(e: HTMLElement, text: string): void {
 }
 
 export class JukeboxPanel {
-  private readonly root: HTMLElement;
+  private readonly dlg: HTMLDialogElement;
+  private readonly win: HTMLElement;
   private readonly rows: SongRow[] = [];
   private readonly queueRows: QueueRow[] = [];
   private readonly nowBox: HTMLElement;
-  private readonly nowEmoji: HTMLElement;
   private readonly nowTitle: HTMLElement;
   private readonly nowWho: HTMLElement;
   private readonly nowTime: HTMLElement;
-  private readonly nowFill: HTMLElement;
+  private readonly nowMeter: HTMLElement;
   private readonly banner: HTMLElement;
   private readonly queueBox: HTMLElement;
   private readonly noteEl: HTMLElement;
-  private open_ = false;
   private sel = 0;
   private last: JukeboxPanelState | null = null;
   private readonly actions: JukeboxPanelActions;
 
   constructor(host: HTMLElement, actions: JukeboxPanelActions) {
     this.actions = actions;
-    this.root = el('div', 'jb', host);
-    this.root.hidden = true;
-    this.root.setAttribute('role', 'dialog');
-    this.root.setAttribute('aria-label', 'Музыкальный автомат');
-
-    const head = el('div', 'jb-head', this.root);
-    el('div', 'jb-title', head).textContent = '🎵 Музыкальный автомат';
-    const x = el('button', 'jb-x', head);
-    x.type = 'button';
-    x.textContent = '✕';
-    x.title = 'Закрыть (Esc)';
-    x.setAttribute('aria-label', 'Закрыть');
-    x.addEventListener('click', () => this.actions.close());
-
-    // сейчас играет
-    this.nowBox = el('div', 'jb-now', this.root);
-    el('div', 'jb-cap', this.nowBox).textContent = 'Сейчас играет';
-    const nowLine = el('div', 'jb-now-line', this.nowBox);
-    this.nowEmoji = el('span', 'jb-now-emoji', nowLine);
-    const nowText = el('div', 'jb-now-text', nowLine);
-    this.nowTitle = el('b', 'jb-now-title', nowText);
-    this.nowWho = el('span', 'jb-now-who', nowText);
-    const bar = el('div', 'jb-bar', this.nowBox);
-    this.nowFill = el('i', '', bar);
-    this.nowTime = el('div', 'jb-now-time', this.nowBox);
-
+    const dlg = this.dlg = document.createElement('dialog');
+    dlg.className = 'k-scrim jb-dlg';
+    dlg.setAttribute('aria-label', 'Музыкальный автомат');
+    const win = this.win = dlg.appendChild(h('section', 'k-window jb-win'));
+    win.innerHTML = `
+      <header class="k-win-head">
+        <span class="k-win-portrait">${iconImg('music', '')}</span>
+        <div class="k-win-titles"><p class="k-eyebrow">Набережная · общая музыка</p><h2 class="k-win-title">Музыкальный автомат</h2></div>
+        <div class="k-win-tools"><button type="button" class="k-close" aria-label="Закрыть">${keyHtml('Esc', undefined, 'sm')}</button></div>
+      </header>
+      <div class="k-win-body jb-body">
+        <div class="k-cell jb-now">
+          ${iconImg('music', 'jb-now-ic')}
+          <div class="jb-now-text"><p class="k-eyebrow">Сейчас играет</p><b class="jb-now-title"></b><span class="jb-now-who"></span></div>
+          <span class="jb-now-time k-num"></span>
+          ${meterHtml(0, 'good', 'k-meter--thin jb-now-bar')}
+        </div>
+        <div class="jb-queue">
+          <p class="k-eyebrow jb-h">Дальше · очередь до ${JUKE_QUEUE_MAX} песен</p>
+          <ol class="jb-qlist"></ol>
+        </div>
+        <p class="jb-banner" hidden></p>
+        <ol class="jb-list"></ol>
+      </div>
+      <footer class="k-win-foot">
+        <span class="k-note jb-note" role="status"></span>
+        <span class="jb-keys key-hint">${keyHtml('1')}–${keyHtml(String(JUKE_SONGS.length))}<em>выбрать</em>${keyHtml('Enter')}<em>поставить</em></span>
+      </footer>`;
+    const q = <T extends HTMLElement>(s: string): T => win.querySelector<T>(s)!;
+    this.nowBox = q('.jb-now');
+    this.nowTitle = q('.jb-now-title');
+    this.nowWho = q('.jb-now-who');
+    this.nowTime = q('.jb-now-time');
+    this.nowMeter = q('.jb-now-bar');
     // общая строка над списком: «Твоя песня уже в очереди» / «Очередь полная»
-    this.banner = el('div', 'jb-banner', this.root);
-    this.banner.hidden = true;
+    this.banner = q('.jb-banner');
+    this.queueBox = q('.jb-queue');
+    this.noteEl = q('.jb-note');
+    q('.k-close').addEventListener('click', () => this.actions.close());
 
     // список песен — один раз
-    const list = el('ol', 'jb-list', this.root);
+    const list = q('.jb-list');
     JUKE_SONGS.forEach((s, i) => {
       const special = songSpecial(i);
-      const li = el('li', special ? 'jb-song special' : 'jb-song', list);
-      el('kbd', 'jb-key', li).textContent = String(i + 1);
-      el('span', 'jb-emoji', li).textContent = s.emoji;
-      const meta = el('span', 'jb-meta', li);
-      const name = el('b', 'jb-name', meta);
+      const li = list.appendChild(h('li', `jb-song${special ? ' is-special' : ''}`));
+      li.innerHTML = `${keyHtml(String(i + 1))}<span class="jb-meta"><b class="jb-name"></b><small class="jb-mood"></small></span>`
+        + '<span class="k-pill k-pill--sm jb-pill" hidden></span><button type="button" class="k-btn k-btn--sm jb-play"><span class="k-row-line"></span></button>';
+      const name = li.querySelector<HTMLElement>('.jb-name')!;
       name.textContent = s.title;
-      // особая (дороже обычных): золотая звёздочка у названия, подсказка — при наведении
-      if (special) {
-        el('span', 'jb-star', name).textContent = ' ★';
-        li.title = `Особая песня — ${songPrice(i)} 🪙`;
-      }
-      el('small', special ? 'jb-mood special' : 'jb-mood', meta).textContent = `${s.mood} · ${fmtSongTime(songMs(i) / 1000)}`;
-      const btn = el('button', 'jb-play', li);
-      btn.type = 'button';
-      btn.innerHTML = playHtml(songPrice(i));
+      // особая (дороже обычных): золотая пилюля у названия — видно сразу, без подсказки при наведении
+      if (special) name.insertAdjacentHTML('beforeend', ' <span class="k-pill k-pill--gold k-pill--sm">особая</span>');
+      li.querySelector<HTMLElement>('.jb-mood')!.textContent = `${s.mood} · ${fmtSongTime(songMs(i) / 1000)}`;
+      const btn = li.querySelector<HTMLButtonElement>('.jb-play')!;
+      btn.querySelector('.k-row-line')!.innerHTML = playHtml(songPrice(i));
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.select(i);
         if (!btn.disabled) this.actions.play(i);
       });
       li.addEventListener('click', () => this.select(i));
-      this.rows.push({ li, btn, label: 'play' });
+      this.rows.push({ li, btn, pill: li.querySelector<HTMLElement>('.jb-pill')!, st: '' });
     });
 
     // очередь — строки заранее, дальше только прячем и подписываем
-    this.queueBox = el('div', 'jb-queue', this.root);
-    el('div', 'jb-cap', this.queueBox).textContent = `Очередь (до ${JUKE_QUEUE_MAX})`;
-    const q = el('ol', 'jb-qlist', this.queueBox);
+    const qlist = q('.jb-qlist');
     for (let i = 0; i < JUKE_QUEUE_MAX; i++) {
-      const li = el('li', 'jb-q', q);
-      const emoji = el('span', 'jb-q-emoji', li);
-      const title = el('span', 'jb-q-title', li);
-      const who = el('span', 'jb-q-who', li);
-      const when = el('span', 'jb-q-when', li);
+      const li = qlist.appendChild(h('li', 'jb-q', '<span class="jb-q-title"></span><span class="jb-q-who"></span><span class="jb-q-when k-num"></span>'));
       li.hidden = true;
-      this.queueRows.push({ li, emoji, title, who, when });
+      this.queueRows.push({ li, title: li.querySelector('.jb-q-title')!, who: li.querySelector('.jb-q-who')!, when: li.querySelector('.jb-q-when')! });
     }
 
-    this.noteEl = el('div', 'jb-note', this.root);
-    this.noteEl.hidden = true;
-    el('div', 'jb-keys', this.root).textContent = `1–${JUKE_SONGS.length} или ↑↓ — выбрать · Enter — поставить · Esc — закрыть`;
-
-    // клики внутри окна не должны уходить в игру (захват мыши, выстрелы, шаги)
-    for (const type of ['mousedown', 'pointerdown', 'touchstart', 'wheel'] as const) {
-      this.root.addEventListener(type, (e) => e.stopPropagation(), { passive: true });
-    }
+    // кнопки не забирают фокус (Enter — заказ выбранной, а не «нажатие» последней кнопки)
+    win.addEventListener('mousedown', (e) => {
+      if ((e.target as HTMLElement).closest('button')) e.preventDefault();
+    });
+    // клавиши — окну, не игре (игрок не ходит); V (голос) ловится раньше, на захвате
+    dlg.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.repeat && e.code !== 'ArrowUp' && e.code !== 'ArrowDown') return;
+      if (e.code === 'KeyE') {
+        e.preventDefault();
+        this.actions.close();
+        return;
+      }
+      this.onKey(e.code, e);
+    });
+    dlg.addEventListener('keyup', (e) => e.stopPropagation());
+    // Esc браузера и клик по затемнению мимо окна
+    dlg.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      this.actions.close();
+    });
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) this.actions.close();
+    });
+    for (const type of ['pointerdown', 'wheel'] as const) dlg.addEventListener(type, (e) => e.stopPropagation(), { passive: true });
+    host.appendChild(dlg);
     this.select(0);
   }
 
   open(): void {
-    if (this.open_) return;
-    this.open_ = true;
-    this.root.hidden = false;
+    if (this.dlg.open) return;
+    this.dlg.showModal();
+    this.dlg.focus({ preventScroll: true });
+    this.win.classList.remove('is-in');
+    void this.win.offsetWidth;
+    this.win.classList.add('is-in');
+    sfx.play('open');
     if (this.last) this.update(this.last);
+    this.select(this.sel);
   }
 
   close(): void {
-    if (!this.open_) return;
-    this.open_ = false;
-    this.root.hidden = true;
+    if (!this.dlg.open) return;
+    this.dlg.close();
+    sfx.play('close');
   }
 
   get isOpen(): boolean {
-    return this.open_;
+    return this.dlg.open;
   }
 
   update(s: JukeboxPanelState): void {
     this.last = s;
-    if (!this.open_) return;
+    if (!this.dlg.open) return;
     const view = s.view;
     const cur = view?.cur ?? null;
     const queue = view?.queue ?? [];
 
     // сейчас играет
+    this.nowBox.classList.toggle('is-idle', !cur);
     if (!cur) {
-      this.nowBox.classList.add('idle');
-      setText(this.nowEmoji, '🎶');
       setText(this.nowTitle, 'Тишина — поставь первую песню');
       setText(this.nowWho, '');
       setText(this.nowTime, '');
-      this.nowFill.style.width = '0%';
+      setMeter(this.nowMeter, 0);
     } else {
-      this.nowBox.classList.remove('idle');
       const song = JUKE_SONGS[cur.song];
       const total = songMs(cur.song);
-      setText(this.nowEmoji, song?.emoji ?? '🎵');
       setText(this.nowTitle, song?.title ?? '…');
-      setText(this.nowWho, `заказ: ${cur.pid === s.myPid ? 'ты' : cur.nick}`);
+      const mine = cur.pid === s.myPid;
+      setText(this.nowWho, `заказ: ${mine ? 'ты' : cur.nick}`);
+      this.nowWho.classList.toggle('k-gold', mine);
       const t = s.serverNow - cur.start;
       if (t < 0) {
-        setText(this.nowTime, `начнётся через ${Math.ceil(-t / 1000)} с`);
-        this.nowFill.style.width = '0%';
+        setText(this.nowTime, `через ${Math.ceil(-t / 1000)} с`);
+        setMeter(this.nowMeter, 0);
       } else {
-        const k = total > 0 ? Math.min(1, t / total) : 0;
         setText(this.nowTime, `${fmtSongTime(Math.min(t, total) / 1000)} / ${fmtSongTime(total / 1000)}`);
-        this.nowFill.style.width = `${(k * 100).toFixed(1)}%`;
+        setMeter(this.nowMeter, total > 0 ? Math.min(1, t / total) : 0);
       }
     }
 
@@ -222,51 +240,51 @@ export class JukeboxPanel {
     setText(this.banner, bannerText);
 
     this.rows.forEach((row, i) => {
-      let label: string;
-      if (cur?.song === i) label = 'playing';
-      else if (queue.some((e) => e.song === i)) label = 'queued';
-      else if (busy && s.pending === i) label = 'wait';
-      else if (mineQueued || full) label = 'blocked';
-      else if (s.tokens < songPrice(i)) label = 'poor';
-      else label = 'play';
-      const disabled = label !== 'play' || busy;
+      let st: SongState;
+      if (cur?.song === i) st = 'playing';
+      else if (queue.some((e) => e.song === i)) st = 'queued';
+      else if (busy && s.pending === i) st = 'wait';
+      else if (mineQueued || full) st = 'blocked';
+      else if (s.tokens < songPrice(i)) st = 'poor';
+      else st = 'play';
+      const disabled = st !== 'play' || busy;
       if (row.btn.disabled !== disabled) row.btn.disabled = disabled;
-      if (row.label !== label) {
-        row.label = label;
-        row.li.dataset.st = label;
-        row.btn.innerHTML =
-          label === 'playing' ? '♪ Играет'
-          : label === 'queued' ? 'В очереди'
-          : label === 'wait' ? 'Ставим…'
-          : label === 'poor' ? poorHtml(songPrice(i))
-          : playHtml(songPrice(i));
+      if (row.st === st) return;
+      row.st = st;
+      row.li.dataset.st = st;
+      // играет и в очереди — пилюлей вместо кнопки
+      const pill = st === 'playing' || st === 'queued';
+      row.pill.hidden = !pill;
+      row.btn.hidden = pill;
+      if (pill) {
+        row.pill.className = `k-pill k-pill--sm jb-pill${st === 'playing' ? ' k-pill--good' : ''}`;
+        row.pill.textContent = st === 'playing' ? 'Играет' : 'В очереди';
+      } else {
+        row.btn.querySelector('.k-row-line')!.innerHTML = st === 'wait' ? 'Ставим…' : st === 'poor' ? poorHtml(songPrice(i)) : playHtml(songPrice(i));
       }
     });
 
     // очередь со временем старта: следующая — после текущей и паузы, дальше по порядку
     let at = cur ? Math.max(cur.start, s.serverNow) + Math.max(0, songMs(cur.song) - Math.max(0, s.serverNow - cur.start)) + JUKE_GAP_MS : NaN;
-    this.queueBox.classList.toggle('empty', queue.length === 0);
+    this.queueBox.hidden = queue.length === 0;
     this.queueRows.forEach((row, i) => {
       const e = queue[i];
       row.li.hidden = !e;
       if (!e) return;
-      const song = JUKE_SONGS[e.song];
-      setText(row.emoji, song?.emoji ?? '🎵');
-      setText(row.title, song?.title ?? '…');
+      setText(row.title, JUKE_SONGS[e.song]?.title ?? '…');
       const mine = e.pid === s.myPid;
-      row.li.classList.toggle('mine', mine);
+      row.li.classList.toggle('is-own', mine);
       setText(row.who, mine ? 'ты' : e.nick);
       setText(row.when, Number.isFinite(at) ? `через ${fmtSongTime((at - s.serverNow) / 1000)}` : '');
       at += songMs(e.song) + JUKE_GAP_MS;
     });
 
-    this.noteEl.hidden = !s.note;
     setText(this.noteEl, s.note ?? '');
   }
 
   /** Пока открыто: 1–9 и ↑/↓ — выбрать, Enter — поставить выбранную, Esc — закрыть. true — клавиша съедена. */
   onKey(code: string, e: KeyboardEvent): boolean {
-    if (!this.open_) return false;
+    if (!this.dlg.open) return false;
     const n = JUKE_SONGS.length;
     const digit = /^(?:Digit|Numpad)([1-9])$/.exec(code);
     if (digit) {
@@ -283,7 +301,7 @@ export class JukeboxPanel {
     }
     if (code === 'Enter' || code === 'NumpadEnter') {
       const row = this.rows[this.sel];
-      if (row && !row.btn.disabled) this.actions.play(this.sel);
+      if (row && !row.btn.disabled && !row.btn.hidden) this.actions.play(this.sel);
       e.preventDefault();
       return true;
     }
@@ -296,11 +314,11 @@ export class JukeboxPanel {
   }
 
   private select(i: number): void {
-    this.rows[this.sel]?.li.classList.remove('sel');
+    this.rows[this.sel]?.li.classList.remove('is-sel');
     this.sel = i;
     const li = this.rows[i]?.li;
     if (!li) return;
-    li.classList.add('sel');
-    if (this.open_) li.scrollIntoView({ block: 'nearest' });
+    li.classList.add('is-sel');
+    if (this.dlg.open) li.scrollIntoView({ block: 'nearest' });
   }
 }

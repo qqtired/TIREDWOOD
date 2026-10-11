@@ -588,12 +588,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- гардероб: трофеи рыбалки */
-
-.wd-item.tier-trophy .wd-meta i {
-  background: #3fc1a5;
-}
-
 /* Уровень рыбалки в профиле (меню Esc → «Коллекция», fishprogresshud.ts fishSkillBlock): кит — значок, полоса .k-meter цвета
    режима, токены кита; цифры опыта не двигают текст рядом */
 .fs-skill { display: flex; flex-direction: column; gap: 6px; }

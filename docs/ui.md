@@ -4,8 +4,8 @@
 в [product.md](product.md) §6, правила — в [AGENTS.md](../AGENTS.md). Если расходится, прав `AGENTS.md`.
 
 > **UI 2.0 влит.** Единый стиль — окна «Ретро-парк 2.0», HUD «Светлый» — живёт в наборе `client/ui/kit/` и стоит на экранах
-> игры, кроме любимых (дурак, блэкджек, бильярд, «Подземелье»: у них только общий верх) и трёх старых (автомат, примерочная,
-> подарочный код — последняя строка таблицы §1). Этот файл — справочник по набору и источник правды. История, ответы владельца и «что улучшить дальше» — [ui-redesign/README.md](ui-redesign/README.md).
+> игры, кроме любимых (дурак, блэкджек, бильярд, «Подземелье»: у них только общий верх — последняя строка таблицы §1).
+> Этот файл — справочник по набору и источник правды. История, ответы владельца и «что улучшить дальше» — [ui-redesign/README.md](ui-redesign/README.md).
 > Эталон вида — страница `lab/ui/` (запуск: `node docs/ui-redesign/tools/serve.mjs "$PWD/lab/ui" 9500`; опубликована:
 > https://tired.solutions/tech/tiredwood-ui-v2/). Полная разметка компонентов — `lab/ui/kit/KIT.md` и `KIT-combat.md`
 > (там три шкурки и выбор шрифта; в игру подключены только «Ретро-парк 2.0» и HUD «Светлый»).
@@ -25,7 +25,7 @@
 | Плитки под бейджем (рюкзак, напиток, команда) | `.k-tiles` > `.k-tile` > `.k-tile-face` (иконка, клавиша `k-key--sm k-key--tr`, `.k-meter`) + `.k-tile-cap`; тона `--own --warn --off` | `lobby/fishprogresshud.ts`, `fort/ui/tiles.ts` |
 | Бейдж: уровень, жетоны, «+N / −N» | `Badge` (`badge.ts`): `set(nick, level, xpShare, tokens)`, `setTokens`, `pop(text, 'bad'\|'xp')`, `levelUp`; баланс — `TokensHud` (`ui/tokens.ts`). Только он показывает уровень и жетоны | создаётся один раз в `app.ts` |
 | Верх-центр: событие, тост, баннер | `TopCenter` (`topcenter.ts`): `event({key, prio: PRIO.x, html, tone?, lamp?})` + `clear(key)`; `toast({key?, tone?, icon, title, sub?, life?})` + `clearToasts(prefix?)`; `hero({key, prio, tone, title, sub?, small?})` + `clearHero(key)`. Старый `ui.toasts.show(text, ms, key, sub, big)` (`ui/toasts.ts`) идёт туда же | `hide/hud.ts` (`hd-round`, `hd-note`, `hd-role`), `race/hud.ts`; голосование — `ui/kickvote.ts`, связь — `ui/linkbanner.ts`, шторм — `lobby/storm.ts` |
-| Окно: NPC, магазин, журнал, хозяйство | нативный `<dialog class="k-scrim">` > `section.k-window` (820, `--sm` 460, `--lg` 1100) с `.k-win-head`, `.k-tabs`, `.k-win-body`, `.k-win-foot`. Рыбалка: `fishDialog`, `winHeadHtml`, `tabsHtml`, `winIn` (`lobby/fishkit.ts`); ферма: `FarmWin` (`farm/ui/common.ts`) | журнал рыбака `ui/fishbook.ts`, Дед Семён `lobby/fishnpcdialog.ts`; «Хозяйство» `farm/ui/estate.ts` |
+| Окно: NPC, магазин, журнал, хозяйство | нативный `<dialog class="k-scrim">` > `section.k-window` (820, `--sm` 460, `--lg` 1100) с `.k-win-head`, `.k-tabs`, `.k-win-body`, `.k-win-foot`. Рыбалка: `fishDialog`, `winHeadHtml`, `tabsHtml`, `winIn` (`lobby/fishkit.ts`); ферма: `FarmWin` (`farm/ui/common.ts`) | журнал рыбака `ui/fishbook.ts`, Дед Семён `lobby/fishnpcdialog.ts`; «Хозяйство» `farm/ui/estate.ts`; автомат `ui/jukebox.ts`; окно у сцены без затемнения (примерка видна) — примерочная `ui/wardrobe.ts` |
 | Вкладки, окно с боковым меню | `.k-tabs` > `button.k-tab.is-on` (`tabsHtml(list, on)`); `.k-window--split` > `.k-win-side` + `.k-win-main`, `.k-nav` | журнал и «Хозяйство»; меню Esc — `ui/menu/menu.ts`; Tab — `ui/online.ts` |
 | Итоги режима | `ModeResults` (`modes.ts`): `show(spec)`, `reward(text)`, `note(text, frac)`, `small(id, text)`, `action(id, on)`, `hide()`, `onAction`. Одно окно на все режимы, кладётся в оболочку рядом с `.k-hud` | `race/hud.ts`; две команды — `paintball/ui.ts` (`wide`); `hide/hud.ts`, `skilltest/hud.ts`, `lobby/regattahud.ts`, `lobby/piratehud.ts` |
 | Карточка режима, список, отсчёт, лента, ряд клавиш | `ModeStand` (место, круг, время), `ModeList`, `ModeSpeed`, `ModeCount`, `ModeFeed`, `keysRow([[клавиша, подпись]])`, `placeHtml(n)`, `put`, `setMeter` (`modes.ts`, вид `.mo-*` в `modes.css`) | `race/hud.ts`, `lobby/regattahud.ts`, `lobby/ratracehud.ts`, `lobby/plane.ts` |
@@ -41,7 +41,7 @@
 | Вход, загрузка, связь | `ui/entry.ts` + `entry.css`, переход между комнатами `ui/transition.ts` + `transition.css` | сцены lab «Вход и загрузка» |
 | Звук интерфейса | `sfx.play('click'\|'open'\|'close'\|'reward'\|'error'\|'toast'\|'tick'\|'pop'\|'level')` (`sfx.ts`); клики по `.k-btn .k-tab .k-close .k-seg>button` звучат после `bindClickSounds(root)`; свой звук — `data-sfx="reward"`; выключатель «Звуки интерфейса» | `farm/ui/common.ts` (вешает на свой `<dialog>`) |
 | Цвета редкости, кнопки на телефоне | `--tier-*` (`tokens.css`, как `TIER_CSS` в `shared/fishrules.ts`), `ui/fishstyle.css`; `touch.ts` (`TouchMode`) | новые цвета редкости не придумывай |
-| **Не на ките — образцом не брать** | дурак, блэкджек, бильярд, «Подземелье» (своя тема `--dg-*`) — любимые, у них трогают только общий верх; автомат `ui/jukebox.ts`, примерочная `ui/wardrobe.ts`, подарочный код `ui/gift-code.ts` пока в старом стиле (`--cream`, `--panel`, `.btn`) | в новом коде этих переменных нет |
+| **Не на ките — образцом не брать** | дурак, блэкджек, бильярд, «Подземелье» (своя тема `--dg-*`) — любимые, у них трогают только общий верх | старых `--cream`, `--panel`, `.btn` в новом коде нет |
 
 Открой образец в игре, сделай снимок и держи его рядом: новое окно должно выглядеть как его родственник.
 
