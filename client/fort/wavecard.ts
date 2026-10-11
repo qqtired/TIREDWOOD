@@ -23,7 +23,7 @@ export function cardChips(card: FortWaveCard): CardChip[] {
     const k = ZK[kind];
     if (k) out.push({ kind, icon: foeIcon(kind), n: card.chips[i + 1], name: k.name, cls: card.fresh.includes(kind) ? 'fresh' : '' });
   }
-  if (card.elite > 0) out.push({ kind: -1, icon: 'level', n: card.elite, name: 'элита: толще и злее, награда ×2', cls: 'elite' });
+  if (card.elite > 0) out.push({ kind: -1, icon: 'elite', n: card.elite, name: 'элита: толще и злее, награда ×2', cls: 'elite' });
   if (card.champ > 0) out.push({ kind: -2, icon: 'champion', n: card.champ, name: 'чемпионы: ×6 HP, награда ×5', cls: 'champ' });
   return out;
 }

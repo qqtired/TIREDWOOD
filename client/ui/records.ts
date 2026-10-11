@@ -101,7 +101,7 @@ export const MODE_STATS: readonly ModeStats[] = [
   { icon: 'bell-cloud', mode: 'Выше облаков', rows: [['подъёмов', (s) => s.skRuns], ['медаль', (s) => medal(s.skMedal)], ['без падений', (s) => (s.skClean ? 'есть' : null)]] },
   { icon: 'shield', mode: 'Крепость', rows: [['игр', (s) => s.ftGames], ['побед', (s) => s.ftWins], ['сбито зомби', (s) => s.ftKills]], played: (s) => s.ftGames > 0 },
   // о клубе — никому: только тем, кто дрался
-  { icon: 'lock', mode: 'Подвал', rows: [['боёв', (s) => s.fcFights], ['побед', (s) => s.fcWins], ['нокаутов', (s) => s.fcKos]], played: (s) => s.fcFights > 0 },
+  { icon: 'cellar', mode: 'Подвал', rows: [['боёв', (s) => s.fcFights], ['побед', (s) => s.fcWins], ['нокаутов', (s) => s.fcKos]], played: (s) => s.fcFights > 0 },
   { icon: 'storm', mode: 'Шторм', rows: [['штормов', (s) => s.stStorms], ['огней зажжено', (s) => s.stLights]], played: (s) => s.stStorms > 0 },
   { icon: 'pirate-flag', mode: 'Пираты', rows: [['налётов', (s) => s.prRaids], ['побед', (s) => s.prWins], ['сбито пиратов', (s) => s.prKos]], played: (s) => s.prRaids > 0 },
 ];

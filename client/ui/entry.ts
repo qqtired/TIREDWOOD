@@ -433,7 +433,7 @@ const LINK: Record<LinkKind, LinkText> = {
   lost: { icon: 'warn', eyebrow: 'Связь', title: 'Связь потеряна', text: 'Сервер не отвечает.', main: 'Переподключиться' },
   reconnect: { icon: 'lighthouse', eyebrow: 'Связь', title: 'Связь пропала', text: 'Переподключаемся…', wait: true },
   restart: { icon: 'settings', eyebrow: 'Сервер', title: 'Сервер обновляется', text: 'Переподключаемся…', wait: true, note: 'Прогресс сохранён.' },
-  kicked: { icon: 'exit', eyebrow: 'Голосование', title: 'Тебя выгнали', text: 'Так решили игроки голосованием.', main: 'Войти снова' },
+  kicked: { icon: 'kick', eyebrow: 'Голосование', title: 'Тебя выгнали', text: 'Так решили игроки голосованием.', main: 'Войти снова' },
   replaced: { icon: 'lock', eyebrow: 'Другое окно', title: 'Ты зашёл в другом окне', text: 'Играть можно в одном окне за раз — здесь игра остановлена.', main: 'Вернуться сюда' },
 };
 

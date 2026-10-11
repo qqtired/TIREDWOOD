@@ -7,12 +7,12 @@ import {
 } from '../../../shared/fortkinds.ts';
 import { EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY } from '../../../shared/fortwaves.ts';
 
-/** Враг → картинка. Своих картинок нет у части врагов — ближайшая похожая (список — в отчёте задачи 7, «Missing icons») */
+/** Враг → картинка (свои значки есть у всех обычных врагов и боссов; Барон — 'boss', Кракен и щупальце — 'kraken') */
 const FOE: Record<number, string> = {
-  [Z_WALKER]: 'zombie', [Z_RUNNER]: 'runner', [Z_BRUTE]: 'brute', [Z_CLIMBER]: 'climber', [Z_BLOATER]: 'bomb', [Z_FLYER]: 'bat',
-  [Z_BOSS]: 'boss', [Z_SHIELD]: 'shield', [Z_SPITTER]: 'paint', [Z_SAPPER]: 'bomb', [Z_MEDIC]: 'medic', [Z_ARMORED]: 'zombie',
-  [Z_RAM]: 'boss', [Z_GOLEM]: 'boss', [Z_BOAT]: 'landing', [Z_TENTACLE]: 'kraken', [Z_KRAKEN]: 'kraken', [Z_PUMPKIN]: 'boss',
-  [Z_WEAVER]: 'boss', [Z_LESHY]: 'rift-tree',
+  [Z_WALKER]: 'zombie', [Z_RUNNER]: 'runner', [Z_BRUTE]: 'brute', [Z_CLIMBER]: 'climber', [Z_BLOATER]: 'bloater', [Z_FLYER]: 'bat',
+  [Z_BOSS]: 'boss', [Z_SHIELD]: 'shield', [Z_SPITTER]: 'spitter', [Z_SAPPER]: 'bomb', [Z_MEDIC]: 'medic', [Z_ARMORED]: 'armored',
+  [Z_RAM]: 'ram', [Z_GOLEM]: 'golem', [Z_BOAT]: 'landing', [Z_TENTACLE]: 'kraken', [Z_KRAKEN]: 'kraken', [Z_PUMPKIN]: 'pumpkin-boss',
+  [Z_WEAVER]: 'weaver', [Z_LESHY]: 'leshy',
 };
 
 export function foeIcon(kind: number): string {
@@ -29,9 +29,9 @@ export const EVENT_TEXT: Readonly<Record<number, { icon: string; name: string; h
 
 /** Эмодзи в начале строки тревоги (match.ts, krakenfx.ts, bosses-f.ts) → картинка тоста */
 const LEAD: Record<string, string> = {
-  '🚪': 'gate', '💎': 'crystal', '🧗': 'climber', '☄': 'meteor', '💦': 'paint', '💣': 'bomb', '🐗': 'boss', '🛡': 'shield',
-  '🍳': 'shield', '⚓': 'landing', '⛵': 'landing', '👑': 'boss', '🌟': 'gold', '🌫': 'fog', '📦': 'supply', '🔔': 'bell',
-  '🐙': 'kraken', '🪨': 'boss', '🎃': 'boss', '🕷': 'boss', '🕸': 'boss', '🌳': 'rift-tree', '💪': 'brute', '✪': 'champion',
+  '🚪': 'gate', '💎': 'crystal', '🧗': 'climber', '☄': 'meteor', '💦': 'spitter', '💣': 'bomb', '🐗': 'ram', '🛡': 'shield',
+  '🍳': 'armored', '⚓': 'landing', '⛵': 'landing', '👑': 'boss', '🌟': 'gold', '🌫': 'fog', '📦': 'supply', '🔔': 'bell',
+  '🐙': 'kraken', '🪨': 'golem', '🎃': 'pumpkin-boss', '🕷': 'weaver', '🕸': 'weaver', '🌳': 'leshy', '💪': 'brute', '✪': 'champion',
   '🔨': 'hammer', '🏰': 'ballista', '🔫': 'shotgun', '🏆': 'records', '⭐': 'level', '⚔': 'records', '🏳': 'white-flag',
 };
 /** Спокойные тревоги (колокол, припасы, щит) — сведения, не опасность */

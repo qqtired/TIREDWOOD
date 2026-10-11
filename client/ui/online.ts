@@ -19,7 +19,7 @@ const ROOM: Record<RoomKind, readonly [name: string, icon: string, pos: string]>
   paintball: ['Склад', 'paint', '50% 55%'],
   race: ['Гонка', 'kart', '50% 55%'],
   fort: ['Крепость', 'shield', '50% 45%'],
-  fight: ['Подвал', 'lock', '50% 55%'],
+  fight: ['Подвал', 'cellar', '50% 55%'],
   skill: ['Выше облаков', 'bell-cloud', '50% 40%'],
   hide: ['Прятки', 'hide-box', '50% 55%'],
   farm: ['Ферма', 'farm-gate', '50% 50%'],
@@ -246,7 +246,7 @@ export class OnlineList {
         let kick: HTMLButtonElement | null = null;
         if (this.kickOn) {
           kick = act.appendChild(button('k-btn k-btn--ghost k-btn--sm ol-kick', ''));
-          kick.innerHTML = `<span class="k-row-line">${iconImg('exit', 'k-ic')}выгнать</span>`;
+          kick.innerHTML = `<span class="k-row-line">${iconImg('kick', 'k-ic')}выгнать</span>`;
           kick.dataset.pid = String(pid);
           kick.dataset.act = 'kick';
           kick.disabled = this.voting;
