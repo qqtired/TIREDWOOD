@@ -43,7 +43,8 @@ headless Chrome через CDP.
    **Не** зумить `#hud`/`#menus` целиком: всё, что ставится в экранных пикселях (цифры урона, стрелки угроз, подписи над
    миром, окна по `getBoundingClientRect`), при zoom≠1 уезжает (проверено в Task 1). Такие детали кита живут в
    незумленном слое `.k-world`: внешний элемент ставится в точку, внутренняя обёртка `.k-world-in` увеличивается `scale: var(--hud-k)`. Старый UI до переноса
-   остаётся без zoom. Старые `zoom: var(--ui-scale)` на отдельных селекторах убираются.
+   остаётся без `--hud-k`; его прежние `zoom: var(--ui-scale)` на отдельных селекторах остаются, пока экран не переедет на кит
+   (убираются в задаче своей группы), чтобы настройка «Размер интерфейса» не переставала работать посреди ветки.
 3. **Верх-центр — один менеджер.** Сейчас там толкаются 8 систем (голосование, шторм, пираты, таймер аквапарка, джекпот,
    связь, тосты, ожидание). Будет одна плашка события (по приоритету) и до 3 тостов под ней.
 4. **Звуки интерфейса** — синтез из `lab/ui/kit/sfx.js` через шину `sound.kit.ui` (уважает общую громкость и «Интерфейс»),
@@ -204,8 +205,8 @@ export function uiIcon(id: string): string { return BY_ID.get(id) ?? ''; }
   озвучивает один делегированный обработчик на `#menus` и `#hud` (как `lab/ui/page/page.js`).
 - [ ] **Step 9: Подключить** — `index.html`: `<html lang="ru" data-skin="retro2">`; `startup-game.ts`: импорты
   `./ui/kit/tokens.css`, `./ui/kit/kit.css`, `./ui/kit/combat.css` **до** `./styles.css`; `app.ts`: `bindHudScale(document.documentElement, () => this.settings.uiScale)`
-  в конструкторе и `sfx.attach(this.sound.kit)` после первого жеста. В `client/ui/menu/settings-panel.ts:238` убрать
-  `--ui-scale` (теперь `--hud-k`), в `client/ui/menu/menu.css:14,867,902-909` убрать `zoom: var(--ui-scale)`.
+  в конструкторе и `sfx.attach(this.sound.kit)` после первого жеста. `--ui-scale` в `client/ui/menu/settings-panel.ts:238` и `zoom: var(--ui-scale)` в `client/ui/menu/menu.css:14,867,902-909`
+  оставить для старых экранов; `--hud-k` пишет только `scale.ts` (одна функция для `bindHudScale` и `applyInterface`).
 - [ ] **Step 10: Проверка** — `npm run check && npm test && npm run build`; запустить
   `PORT=3106 DATA_DIR=$(mktemp -d) FISH2=1 ISLE=1 node server/main.ts --dev`, headless-снимок площади 1440×900 и 2560×1440:
   старый интерфейс прежний (zoom его не касается), пример окна кита в `.k-scrim` на 2K в 1,6 раза крупнее; ошибок в консоли нет.
