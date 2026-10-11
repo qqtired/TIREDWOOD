@@ -24,16 +24,16 @@ const fmt = (n) => n.toLocaleString('ru-RU');
 
 /** Враги (shared/fortkinds.ts ZK): имя, картинка, заглушка, подсказка — на «ты» */
 const FOE = {
-  walker: { name: 'Шаркун', file: 'zombie.webp', emo: '🧟', hint: 'идёт к воротам · в голову — вдвое больнее' },
-  runner: { name: 'Шустрик', file: 'runner.webp', emo: '🏃', hint: 'быстрый и хлипкий · встречай на подходе' },
-  brute: { name: 'Бугай', file: 'brute.webp', emo: '💪', hint: 'ломает ворота за троих · бей издалека' },
+  walker: { name: 'Шаркун', file: 'zombie.webp', emo: '🧟', hint: 'в голову — вдвое больнее' },
+  runner: { name: 'Шустрик', file: 'runner.webp', emo: '🏃', hint: 'быстрый — встречай на подходе' },
+  brute: { name: 'Бугай', file: 'brute.webp', emo: '💪', hint: 'ломает ворота — бей издалека' },
   climber: { name: 'Липучка', file: 'climber.webp', emo: '🧗', hint: 'лезет по стене в обход ворот' },
-  flyer: { name: 'Крылатка', file: 'bat.webp', emo: '🦇', hint: 'замирает перед пикированием · сбей или уйди с метки' },
-  shield: { name: 'Щитоносец', file: 'shield.webp', emo: '🛡', hint: 'щит держит удары спереди · бей в голову сверху' },
-  medic: { name: 'Лекарь', file: 'medic.webp', emo: '⛑', hint: 'лечит соседей зелёной волной · убирай первым' },
-  baron: { name: 'Барон Варенья', file: 'boss.webp', emo: '👑', hint: 'бьёт по воротам и меткам · после удара ядро открыто' },
-  kraken: { name: 'Кракен', file: 'kraken.webp', emo: '🐙', hint: 'руби щупальца, пока лежат после удара · без них голова открыта' },
-  boat: { name: 'Десант', file: 'landing.webp', emo: '⛵', hint: 'лодка с моря · потопи до берега' },
+  flyer: { name: 'Крылатка', file: 'bat.webp', emo: '🦇', hint: 'замирает и пикирует — сбей или уйди' },
+  shield: { name: 'Щитоносец', file: 'shield.webp', emo: '🛡', hint: 'щит спереди — бей в голову сверху' },
+  medic: { name: 'Лекарь', file: 'medic.webp', emo: '⛑', hint: 'лечит соседей — убирай первым' },
+  baron: { name: 'Барон Варенья', file: 'boss.webp', emo: '👑', hint: 'после удара ядро открыто — бей в него' },
+  kraken: { name: 'Кракен', file: 'kraken.webp', emo: '🐙', hint: 'руби щупальца — голова откроется' },
+  boat: { name: 'Десант', file: 'landing.webp', emo: '⛵', hint: 'лодка с моря — потопи до берега' },
   champ: { name: 'Чемпион', file: 'champion.webp', emo: '✪', hint: '×6 здоровья, награда ×5' },
 };
 const foeIc = (k, cls = '') => img(FOE[k].file, FOE[k].emo, cls);
@@ -64,55 +64,51 @@ function miniMap({ gate = 'ok', boss = false, sea = false } = {}) {
   </svg>`;
 }
 
-/** ВЛ «Режим»: мини-карта + прочность ворот и кристалла + щит колокола */
+/** ВЛ «Режим» (v2: 240×108): мини-карта 96 + две тонкие полосы «ворота · кристалл» + строка колокола */
 function fortCard({ gate = 0.86, gateG = gate, crystal = 1, crystalG = crystal, gateState = 'ok', bell = 'ready', boss = false, sea = false, spot = false } = {}) {
   const hp = (key, name, file, v, g, state) => {
     const pct = Math.round(v * 100);
     const low = state === 'down' || v < 0.35;
     return `<div class="ft-hp${low ? ' is-low' : ''}${state === 'hit' ? ' is-hit' : ''}">
-      <img class="ft-hp-ic" src="${F(file)}" alt="">
-      <span class="ft-hp-name">${name}</span>
-      <b class="ft-hp-pct">${state === 'down' ? 'пали' : `${pct}%`}</b>
-      ${meter(v, `k-meter--thin ${low ? 'k-meter--bad' : key === 'gate' ? 'k-meter--mode' : 'k-meter--info'}`, g)}
+      <span class="ft-hp-name">${name}</span><b class="ft-hp-pct">${state === 'down' ? 'пали' : `${pct}%`}</b>
+      ${meter(v, low ? 'k-meter--bad' : key === 'gate' ? 'k-meter--mode' : 'k-meter--info', g)}
     </div>`;
   };
-  const bellTxt = bell === 'ready' ? '<b class="k-good">Щит строений готов</b><small>E у колокола на террасе</small>' : '<b class="k-gold">Щит держит · 6 с</b><small>ворота и кристалл −50 % урона</small>';
+  const bellTxt = bell === 'ready' ? '<b class="k-good">щит готов</b>' : '<b class="k-gold">щит · 6 с</b>';
   return `<div class="k-plate ft-fort${spot ? ' ft-spot' : ''}">
     <div class="ft-map">${miniMap({ gate: gateState, boss, sea })}</div>
     <div class="ft-hps">
       ${hp('gate', 'Ворота', 'gate.webp', gate, gateG, gateState)}
       ${hp('crys', 'Кристалл', 'crystal.webp', crystal, crystalG, 'ok')}
-      <div class="ft-bell"><img src="${F('bell.webp')}" alt=""><span>${bellTxt}</span></div>
+      <div class="ft-bell"><img src="${F('bell.webp')}" alt="">${bellTxt}</div>
     </div>
   </div>`;
 }
 
-/** ВП «Игрок»: бейдж (уровень+жетоны) и под ним золото крепости, рекорд, команда */
+/** ВП «Игрок»: бейдж (уровень+жетоны) и под ним плитки: золото крепости, рекорд, команда (kit .k-tiles) */
 const badge = ({ tokens = '1 250', pop = '' } = {}) => `
   <div class="k-badge"><span class="k-ring" style="--p:.64"><b>12</b></span>
     <span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens">${C}${tokens}</span></span>
     ${pop ? `<span class="k-pop ft-still">${pop}</span>` : ''}</div>`;
 
-const goldCard = (gold, { pop = '', spot = false } = {}) => `
-  <div class="k-ctx ft-gold${spot ? ' ft-spot' : ''}">${NUG('k-ctx-ic')}
-    <span class="k-ctx-title">Золото крепости</span>
-    <span class="k-ctx-val">${fmt(gold)}${pop ? `<span class="ft-plus">${pop}</span>` : ''}</span></div>`;
-
-const recordCard = ({ rec = 12, mine = 9, hot = false } = {}) => `
-  <div class="k-ctx${hot ? ' k-ctx--own' : ''}"><img class="k-ctx-ic" src="${F('records.webp')}" alt="">
-    <span class="k-ctx-title">Рекорд крепости</span>
-    <span class="k-ctx-val">${hot ? 'Бьём рекорд!' : `${rec} волн`} <span class="ft-sub">${hot ? 'ещё 1 волна' : `твой ${mine}`}</span></span></div>`;
-
+const tile = (face, cap, small = '', { cls = '', pop = '', spot = false } = {}) => `
+  <div class="k-tile ${cls}"><span class="k-tile-face${spot ? ' ft-spot' : ''}">${face}</span>
+    <span class="k-tile-cap">${cap}${small ? `<small>${small}</small>` : ''}</span>${pop ? `<span class="k-pop is-still">${pop}</span>` : ''}</div>`;
+const goldTile = (gold, { pop = '', spot = false } = {}) => tile(`<img src="${F('gold.webp')}" alt="">`, `<span>${fmt(gold)}${pop ? ` <b class="ft-plus">${pop}</b>` : ''}</span>`, 'золото', { spot });
+const recordTile = ({ rec = 12, mine = 9, hot = false } = {}) => tile(`<img src="${F('records.webp')}" alt="">`,
+  hot ? 'бьём рекорд' : rec ? `рекорд ${rec}` : 'рекорда нет', hot ? 'ещё 1 волна' : rec ? `твой ${mine}` : 'будет ваш', { cls: hot ? 'k-tile--own' : '' });
 const TEAM = [
   { n: 'Ты', c: 'k-nick-6', me: true },
   { n: 'Паша', c: 'k-nick-1' },
   { n: 'Лиса', c: 'k-nick-4' },
   { n: 'Бочка', c: 'k-nick-2' },
 ];
-const teamCard = ({ down = -1, ready = -1 } = {}) => `
-  <div class="k-ctx ft-team-card"><img class="k-ctx-ic" src="${F('team.webp')}" alt="">
-    <span class="k-ctx-title">${ready >= 0 ? `Готовы у колокола: ${ready} из 4` : `Команда · в бою ${down >= 0 ? 3 : 4} из 4`}</span>
-    <span class="k-ctx-val ft-team">${TEAM.map((t, i) => `<span class="ft-mate ${t.c}${i === down ? ' is-down' : ''}${ready >= 0 && i < ready ? ' is-ready' : ''}${t.me ? ' is-me' : ''}">${t.n}${i === down ? ' <small>3 с</small>' : ''}</span>`).join('')}</span></div>`;
+/** Команда: число и точки цветов ников (повален — красная, готов у колокола — зелёная) */
+const teamTile = ({ down = -1, ready = -1 } = {}) => tile(
+  `<img src="${F('team.webp')}" alt=""><span class="ft-dots">${TEAM.map((t, i) => `<i class="${t.c}${i === down ? ' is-down' : ''}${ready >= 0 && i < ready ? ' is-ready' : ''}"></i>`).join('')}</span>`,
+  ready >= 0 ? `${ready} из 4` : `${down >= 0 ? 3 : 4} из 4`, ready >= 0 ? 'у колокола' : down >= 0 ? 'ты встаёшь' : 'в бою',
+  { cls: down >= 0 ? 'k-tile--warn' : '' });
+const tiles = (...t) => `<div class="k-tiles">${t.join('')}</div>`;
 
 /** НЛ «Связь»: чат и голос одним доком */
 const chat = (lines) => `
@@ -133,13 +129,13 @@ function vitals({ hp = 100, ammo = 24, mag = 30, gun = 0, gren = 2, low = false,
     <div class="k-vitals-arms">
       ${arm(0, 'marker.webp', 'Маркер', '1')}
       ${arm(1, 'shotgun.webp', 'Дробовик', '2')}
-      ${arm(9, 'gren.webp', `${gren} / 3`, 'G', gren ? '' : ' is-empty')}
+      ${arm(9, 'gren.webp', String(gren), 'G', ` k-arm--count${gren ? '' : ' is-empty'}`)}
     </div>
     <div class="k-vitals-ammo${ammo === 0 ? ' is-empty' : ''}">
       <div class="k-vitals-row"><kbd class="k-key k-key--sm">R</kbd><b class="k-vitals-num">${ammo}<small>/ ${mag}</small></b></div>
       ${meter(ammo / mag, 'k-meter--thin')}
-      <div class="k-vitals-dash"><span class="k-vitals-cap">Рывок</span><kbd class="k-key k-key--sm">Shift</kbd>${meter(1, 'k-meter--thin k-meter--info')}</div>
     </div>
+    <div class="k-vitals-dash"><kbd class="k-key k-key--sm">Shift</kbd><span class="k-vitals-cap">рывок</span>${meter(1, 'k-meter--info')}</div>
   </div>`;
 }
 
@@ -152,18 +148,18 @@ const edge = ({ x, y, a, foe, file, emo, label, tone = 'bad', side = '', hot = f
     <span class="k-edge-disc">${pic.replace('ft-emo', 'k-edge-emoji ft-emo')}</span><span class="k-edge-label">${label}</span></div>`;
 };
 
-/** Фишка врага в бою: картинка + ×N; новый враг — с именем */
-const chip = (k, n, fresh = false) => pill(`${foeIc(k, 'k-ic')}${fresh ? `<b class="ft-new">${FOE[k].name}</b>` : ''}×${n}`, `ft-chip${fresh ? ' k-pill--gold' : ''}`);
+/** Фишка врага в строке под заголовком: картинка 20 + ×N; новый — золотом, босс — красным кольцом */
+const chip = (k, n, { fresh = false, boss = false } = {}) => `<span class="ft-chip${fresh ? ' is-new' : ''}${boss ? ' is-boss' : ''}">${foeIc(k, 'ft-chip-ic')}${boss ? 'босс' : `×${n}`}</span>`;
+const chips = (list, extra = '') => `<div class="k-event-sub ft-foes">${list.map(([k, n, f]) => chip(k, n, { fresh: !!f })).join('')}${extra}</div>`;
 
-/** ВЦ: плашка волны в бою */
-function wavePlate({ w = 5, title = 'Крылатки', left = 23, total = 41, roads = 'с востока и севера', foes = [], boss = null }) {
-  return `<div class="k-event k-lamp ft-wave" data-mode="fort">
+/** ВЦ: плашка волны в бою — одна строка «Волна 5 из 100 · Крылатки», справа «ещё 23», ниже маленький ряд врагов, полоса 4 */
+function wavePlate({ w = 5, title = 'Крылатки', left = 23, total = 41, foes = [] }) {
+  return `<div class="k-event ft-wave" data-mode="fort">
     <span class="k-event-ic">${img('horn.webp', '📯')}</span>
     <div class="k-event-title">Волна ${w} <span class="ft-of">из 100</span> · ${title}</div>
-    <div class="k-event-sub">Идут ${roads}</div>
-    <div class="k-event-timer ft-left">${left}<small>осталось</small></div>
+    ${foes.length ? chips(foes) : ''}
+    <div class="k-event-timer ft-left"><small>ещё</small>${left}</div>
     ${meter(left / total, 'k-meter--thin k-meter--mode')}
-    <div class="ft-foes">${foes.map(([k, n, f]) => chip(k, n, f)).join('')}${boss ?? ''}</div>
   </div>`;
 }
 
@@ -175,7 +171,7 @@ if (host) {
   stage(host, {
     id: 'fort-fight',
     title: 'Бой: волна идёт',
-    note: 'За секунду видно всё: какая волна и сколько осталось, целы ли ворота и кристалл, откуда лезут, твоё здоровье, патроны и золото. Тревоги и новости — одной стопкой под волной, а не в шести местах.',
+    note: 'Всё поверх боя — маленькими блоками: волна одной строкой с рядом врагов, карта с воротами и кристаллом 240×108, золото, рекорд и команда — плитками под бейджем, панель бойца — отдельными ячейками. Тревоги и новости — одной стопкой под волной.',
     bg: F('bg-battle.jpg'),
     before: F('was-battle-courtyard.jpg'),
     mode: 'fort',
@@ -183,103 +179,90 @@ if (host) {
     render(scene, s) {
       const alarm = s === 'alarm';
       const vote = s === 'vote';
+      // голосование: одна строка — вопрос, счёт голосов и две маленькие кнопки справа
       const event = vote ? `
-        <div class="k-event k-lamp k-event--special ft-wave" data-mode="fort">
+        <div class="k-event k-lamp k-event--special ft-vote" data-mode="fort">
           <span class="k-event-ic"><img src="${F('white-flag.webp')}" alt=""></span>
-          <div class="k-event-title">Паша предлагает сдаться</div>
-          <div class="k-event-sub">За 2 из 4 · нужно 3 · волна 5, осталось 23</div>
-          <div class="k-event-timer">0:14</div>
-          ${meter(0.7, 'k-meter--thin k-meter--special')}
+          <div class="k-event-title">Паша: сдаёмся?</div>
+          <div class="k-event-sub">за 2 из 4, нужно 3 · <b>0:14</b></div>
           <div class="k-event-actions">
             <button class="k-btn k-btn--go k-btn--sm">За<kbd class="k-key k-key--sm k-key--tr">Y</kbd></button>
             <button class="k-btn k-btn--stop k-btn--sm">Против<kbd class="k-key k-key--sm k-key--tr">N</kbd></button>
           </div>
+          ${meter(0.7, 'k-meter--thin k-meter--special')}
         </div>`
         : wavePlate({ foes: FIGHT_FOES });
       const toasts = vote ? '' : alarm
-        ? toast('warn', `<img src="${F('warn.webp')}" alt="">`, 'Ворота вот-вот падут!', `Шаркуны у ворот · колокол даст щит на 8 с — <b>E у колокола</b>`, 'is-new')
+        ? toast('warn', `<img src="${F('warn.webp')}" alt="">`, 'Ворота вот-вот падут!', 'Колокол — щит на 8 с: <b>E у колокола</b>', 'is-new')
           + toast('', foeIc('flyer'), 'Новый враг: Крылатка', FOE.flyer.hint)
         : toast('', foeIc('flyer'), 'Новый враг: Крылатка', FOE.flyer.hint)
-          + toast('reward', NUG(), '+14 золота · Паша сбил крылатку', 'Часть награды — в общак, делим в конце волны');
+          + toast('reward', NUG(), '+14 · Паша сбил крылатку', 'часть — в общак волны');
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${fortCard(alarm ? { gate: 0.31, gateG: 0.44, gateState: 'hit' } : {})}</div>
         <div class="k-slot k-slot--tc">${event}<div class="k-toasts">${toasts}</div></div>
-        <div class="k-slot k-slot--tr">${badge()}${goldCard(420, { pop: alarm ? '' : '+14' })}${recordCard()}${teamCard()}</div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(goldTile(420, { pop: alarm ? '' : '+14' }), recordTile(), teamTile())}</div>
         <div class="k-slot k-slot--bl">${chat(CHAT_FIGHT)}</div>
         <div class="k-slot k-slot--bc">${vitals({ hp: alarm ? 38 : 100, low: alarm, ammo: alarm ? 7 : 24 })}</div>
         ${cross(alarm ? '' : 'is-head')}
         ${alarm ? '' : float(760, 392, '34', 'k-float--head') + float(500, 400, '20') + float(1040, 262, `${NUG()}+14`, 'k-float--gold')}
-        ${edge({ x: 58, y: alarm ? 420 : 470, a: 180, foe: 'climber', label: 'Липучка на стене ×2 · <b>23 м</b>', tone: alarm ? 'mode' : 'bad', side: 'left' })}
-        ${edge({ x: 1382, y: 470, a: 330, foe: 'flyer', label: 'Крылатка пикирует · <b>15 м</b>', tone: 'bad', side: 'right', hot: !vote })}
-        ${s === 'wave' ? edge({ x: 1380, y: 640, a: 45, file: 'supply.webp', emo: '📦', label: 'Припасы · <b>31 м</b>', tone: 'gold', side: 'right' }) : ''}
-        ${alarm ? edge({ x: 58, y: 590, a: 225, file: 'gate.webp', emo: '🚪', label: 'Ворота · <b>24 м</b>', tone: 'bad', side: 'left', hot: true }) : ''}`;
+        ${edge({ x: 40, y: alarm ? 420 : 470, a: 180, foe: 'climber', label: 'на стене ×2 · <b>23 м</b>', tone: alarm ? 'mode' : 'bad', side: 'left' })}
+        ${edge({ x: 1400, y: 470, a: 330, foe: 'flyer', label: 'пикирует · <b>15 м</b>', tone: 'bad', side: 'right', hot: !vote })}
+        ${s === 'wave' ? edge({ x: 1400, y: 640, a: 45, file: 'supply.webp', emo: '📦', label: 'припасы · <b>31 м</b>', tone: 'gold', side: 'right' }) : ''}
+        ${alarm ? edge({ x: 40, y: 590, a: 225, file: 'gate.webp', emo: '🚪', label: 'ворота · <b>24 м</b>', tone: 'bad', side: 'left', hot: true }) : ''}`;
     },
   });
 
   /* ================================================================== 2. сбор и передышка */
-  const legendRow = (k, n, { fresh = false, boss = false } = {}) => `
-    <div class="ft-foe${fresh ? ' is-new' : ''}${boss ? ' is-boss' : ''}">
-      ${foeIc(k, 'ft-foe-ic')}
-      <div class="ft-foe-t"><b>${FOE[k].name}</b>${fresh ? '<span class="k-pill k-pill--gold k-pill--sm">новый</span>' : ''}${boss ? '<span class="k-pill k-pill--bad k-pill--sm">босс</span>' : ''}
-        ${fresh || boss ? `<span class="ft-foe-hint">${FOE[k].hint}</span>` : ''}</div>
-      <span class="ft-foe-n">${boss ? '' : `×${n}`}</span>
-    </div>`;
-  const ROADS = { w: '↖ запад', n: '↑ север', e: '↗ восток' };
-  const roads = (on, extra = '') => `<div class="ft-roads"><span class="ft-roads-h">Откуда</span>${Object.entries(ROADS).map(([k, t]) => pill(t, `k-pill--sm ${on.includes(k) ? 'k-pill--bad' : 'ft-road-off'}`)).join('')}${extra}</div>`;
-
+  // v2: вместо большой легенды — та же плашка в одну строку + ряд врагов картинками; босс, новичок, событие и колокол — тостами
+  const bellToast = (sub) => toast('', `<img src="${F('bell.webp')}" alt="">`, 'Все готовы? <b>E у колокола</b>', sub);
   const BREAKS = {
     gather: {
       w: 1, title: 'Первые гости', t: '0:20', v: 0.67, gold: 150,
-      list: [['walker', 22]], roads: ['n'],
-      bell: 'Все готовы — <b>E у колокола</b> на террасе: волна сразу',
-      toasts: toast('reward', `<img src="${F('records.webp')}" alt="">`, 'Рекордов крепости ещё нет', 'Отбей первую волну — и рекорд ваш'),
+      list: [['walker', 22]], sub: 'Сбор · идут с севера',
+      toasts: toast('reward', `<img src="${F('records.webp')}" alt="">`, 'Рекордов ещё нет', 'отбей первую волну — рекорд ваш') + bellToast('волна начнётся сразу'),
       ready: 1,
     },
     break: {
       w: 7, title: 'Барон Варенья', t: '0:15', v: 0.8, gold: 340, boss: true,
-      list: [['walker', 18], ['runner', 9], ['climber', 7], ['flyer', 7], ['shield', 4]], roads: ['w', 'e'],
-      bell: 'Все готовы — <b>E у колокола</b>: волна через 3 с и <b class="k-gold">+10 % золота</b>',
-      toasts: toast('reward', NUG(), 'Волна 6 отбита! +50 золота', 'Чистая волна — общак ×1,5'),
+      list: [['walker', 18], ['runner', 9], ['climber', 7], ['flyer', 7], ['shield', 4]], sub: 'Передышка · идут с запада и востока',
+      toasts: toast('reward', NUG(), 'Волна 6 отбита! +50', 'чистая волна — общак ×1,5')
+        + toast('warn', foeIc('baron'), 'Босс: Барон Варенья', FOE.baron.hint)
+        + bellToast('волна через 3 с · <b class="k-gold">+10 % золота</b>'),
       ready: 2,
     },
     event: {
       w: 13, title: 'Лекари', t: '0:15', v: 0.4, gold: 1180,
-      list: [['medic', 4, true], ['walker', 21], ['runner', 6], ['brute', 5], ['shield', 5], ['boat', 1]], roads: ['n', 'w'],
-      extra: pill(`${foeIc('boat', 'k-ic')}море · 1 лодка`, 'k-pill--sm k-pill--bad') ,
-      ev: { emo: '☄', file: 'meteor.webp', name: 'Метеоры', hint: 'красные круги бьют всех — не стой на месте' },
-      bell: 'Все готовы — <b>E у колокола</b>: волна через 3 с и <b class="k-gold">+10 % золота</b>',
-      toasts: toast('reward', NUG(), 'Волна 12 отбита! +80 золота', ''),
+      list: [['medic', 4, true], ['walker', 21], ['runner', 6], ['brute', 5], ['shield', 5], ['boat', 1]], sub: 'Передышка · с севера, запада и моря',
+      toasts: toast('', foeIc('medic'), 'Новый враг: Лекарь', FOE.medic.hint)
+        + toast('warn', img('meteor.webp', '☄'), 'Событие: Метеоры', 'красные круги бьют всех — двигайся')
+        + bellToast('волна через 3 с · <b class="k-gold">+10 % золота</b>'),
       ready: 3,
     },
   };
   stage(host, {
     id: 'fort-break',
     title: 'Сбор и передышка: кто идёт дальше',
-    note: 'Новое: под карточкой «Дальше» — видимая легенда врагов картинками с названиями и числом, без подсказок под мышкой. Новичок и босс — с одной строкой «что делать». Откуда идут — словами.',
+    note: 'Плашка «Дальше» — одна строка и ряд врагов картинками с числом (новый — золотом, босс — красным). Что делать с боссом или новичком, событие волны и колокол — короткими тостами под ней. Откуда идут — одной строкой.',
     bg: F('bg-battle.jpg'),
     before: F('was-hud.jpg'),
     mode: 'fort',
     states: [{ id: 'gather', label: 'сбор перед 1-й' }, { id: 'break', label: 'передышка, дальше босс' }, { id: 'event', label: 'с событием и десантом' }],
     render(scene, s) {
       const b = BREAKS[s];
-      const bossRow = b.boss ? legendRow('baron', 1, { boss: true }) : '';
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${fortCard({ gate: s === 'gather' ? 1 : 0.62, crystal: s === 'event' ? 0.84 : 1, sea: s === 'event' })}</div>
         <div class="k-slot k-slot--tc">
-          <div class="k-event k-lamp ft-wave ft-next${b.boss ? ' k-event--danger' : ''}" data-mode="fort">
+          <div class="k-event ft-wave ft-next${b.boss ? ' k-event--danger' : ''}" data-mode="fort">
             <span class="k-event-ic">${b.boss ? foeIc('baron') : foeIc('walker')}</span>
             <div class="k-event-title">Дальше: волна ${b.w} · ${b.title}</div>
-            <div class="k-event-sub">${s === 'gather' ? 'Сбор — закупись у лавки и займи стену' : 'Передышка — почини ворота, закупись'}</div>
+            <div class="k-event-sub">${b.sub}</div>
             <div class="k-event-timer">${b.t}</div>
+            <div class="k-event-sub ft-foes ft-foes--row">${b.boss ? chip('baron', 1, { boss: true }) : ''}${b.list.map(([k, n, f]) => chip(k, n, { fresh: !!f })).join('')}</div>
             ${meter(b.v, `k-meter--thin ${b.boss ? 'k-meter--bad' : 'k-meter--mode'}`)}
-            <div class="ft-legend">${bossRow}${b.list.map(([k, n, f]) => legendRow(k, n, { fresh: !!f })).join('')}</div>
-            ${roads(b.roads, b.extra ?? '')}
-            ${b.ev ? `<div class="ft-evline">${img(b.ev.file, b.ev.emo, 'k-ic')}<b>${b.ev.name}</b><span>${b.ev.hint}</span></div>` : ''}
-            <div class="ft-bellline"><img src="${F('bell.webp')}" alt=""><span>${b.bell}</span></div>
           </div>
           <div class="k-toasts">${b.toasts}</div>
         </div>
-        <div class="k-slot k-slot--tr">${badge()}${goldCard(b.gold)}${recordCard(s === 'gather' ? { rec: 0 } : {}).replace('0 волн', 'пока нет')}${teamCard({ ready: b.ready })}</div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(goldTile(b.gold), recordTile(s === 'gather' ? { rec: 0 } : {}), teamTile({ ready: b.ready }))}</div>
         <div class="k-slot k-slot--bl">${chat(CHAT_CALM)}</div>
         <div class="k-slot k-slot--bc">
           <div class="k-prompt">${K.key('E')}Лавка оружейника<span class="k-prompt-sep"></span><span class="k-prompt-note">прокачка, стволы, гранаты</span></div>
@@ -357,7 +340,7 @@ if (host) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${fortCard({ gate: 0.62 })}</div>
         <div class="k-slot k-slot--tc">
-          <div class="k-event k-lamp ft-wave" data-mode="fort"><span class="k-event-ic">${foeIc('baron')}</span>
+          <div class="k-event ft-wave k-event--danger" data-mode="fort"><span class="k-event-ic">${foeIc('baron')}</span>
             <div class="k-event-title">Дальше: волна 7 · Барон Варенья</div><div class="k-event-sub">Передышка — почини ворота, закупись</div>
             <div class="k-event-timer">0:11</div>${meter(0.6, 'k-meter--thin k-meter--bad')}</div>
           <div class="k-toasts">${s === 'bought' ? toast('good', `<img src="${F('rate.webp')}" alt="">`, 'Темп: ступень 2', 'Стреляешь и перезаряжаешься быстрее') : ''}</div>
@@ -436,7 +419,7 @@ if (host) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${fortCard({ gate: 0.62, crystal: 0.84 })}</div>
         <div class="k-slot k-slot--tc">
-          <div class="k-event k-lamp ft-wave" data-mode="fort"><span class="k-event-ic">${foeIc('baron')}</span>
+          <div class="k-event ft-wave k-event--danger" data-mode="fort"><span class="k-event-ic">${foeIc('baron')}</span>
             <div class="k-event-title">Дальше: волна 7 · Барон Варенья</div><div class="k-event-sub">Передышка — почини ворота, закупись</div>
             <div class="k-event-timer">0:09</div>${meter(0.5, 'k-meter--thin k-meter--bad')}</div>
         </div>
@@ -455,32 +438,32 @@ if (host) {
   };
   const bossPlate = (s) => {
     if (s === 'kraken') {
-      const parts = [['Щупальце', 0], ['Щупальце', 0.35], ['Щупальце', 0.8], ['Щупальце', 1], ['Голова', 0.62]];
-      return `<div class="k-event k-lamp k-event--special ft-wave ft-boss" data-mode="fort">
+      const parts = [['щупальце', 0], ['щупальце', 0.35], ['щупальце', 0.8], ['щупальце', 1], ['голова', 0.62]];
+      return `<div class="k-event k-lamp k-event--special ft-boss" data-mode="fort">
         <span class="k-event-ic">${foeIc('kraken')}</span>
         <div class="k-event-title">Кракен <span class="k-pill k-pill--special k-pill--sm">супер-босс</span></div>
-        <div class="k-event-sub">Волна 25 из 100 · ещё 31 зомби на стенах</div>
-        <div class="k-event-timer ft-left">62%<small>здоровья</small></div>
-        ${meter(0.62, 'k-meter--lg k-meter--special', 0.7, '1 860 / 3 000')}
-        <div class="ft-parts">${parts.map(([n, v]) => `<div class="ft-part${v === 0 ? ' is-off' : ''}"><span>${n}</span>${meter(v, `k-meter--thin ${n === 'Голова' ? 'k-meter--special' : 'k-meter--bad'}`)}</div>`).join('')}</div>
-        <div class="ft-do"><img src="${F('warn.webp')}" alt=""><span><b>Руби щупальца, пока лежат после удара</b> — без них голова открыта</span></div>
+        <div class="k-event-sub">волна 25 · ещё 31 зомби на стенах</div>
+        <div class="k-event-timer">62%</div>
+        ${meter(0.62, 'k-meter--special ft-bar', 0.7, '1 860 / 3 000')}
+        <div class="ft-parts">${parts.map(([n, v]) => `<div class="ft-part${v === 0 ? ' is-off' : ''}"><span>${n}</span>${meter(v, n === 'голова' ? 'k-meter--special' : 'k-meter--bad')}</div>`).join('')}</div>
+        <div class="ft-do"><img src="${F('warn.webp')}" alt=""><span><b>Руби щупальца, пока лежат</b> — голова откроется</span></div>
       </div>`;
     }
     const b = BOSS[s];
-    return `<div class="k-event k-lamp k-event--danger ft-wave ft-boss" data-mode="fort">
+    return `<div class="k-event k-lamp k-event--danger ft-boss" data-mode="fort">
       <span class="k-event-ic">${foeIc('baron')}</span>
       <div class="k-event-title">Барон Варенья ${b.rage ? '<span class="k-pill k-pill--bad k-pill--sm">Ярость</span>' : ''}</div>
-      <div class="k-event-sub">Волна 7 из 100 · ещё 12 зомби</div>
-      <div class="k-event-timer ft-left">${Math.round(b.hp * 100)}%<small>здоровья</small></div>
-      ${meter(b.hp, 'k-meter--lg k-meter--bad', b.g, b.num)}
-      ${b.open ? `<div class="ft-window">${meter(b.open, 'k-meter--info k-meter--lg', b.open, 'Ядро открыто — огонь! 2,4 с')}</div>` : ''}
-      <div class="ft-do${b.danger ? ' is-danger' : ' is-go'}"><img src="${F(b.danger ? 'warn.webp' : 'crossbow.webp')}" alt=""><span><b>${b.act}</b>${b.danger ? ' · после удара ядро откроется' : ' — арбалет и выстрел в голову больнее всего'}</span></div>
+      <div class="k-event-sub">волна 7 · ещё 12 зомби</div>
+      <div class="k-event-timer">${Math.round(b.hp * 100)}%</div>
+      ${meter(b.hp, 'k-meter--bad ft-bar', b.g, b.num)}
+      ${b.open ? meter(b.open, 'k-meter--info ft-bar', b.open, 'Ядро открыто — огонь! 2,4 с') : ''}
+      <div class="ft-do${b.danger ? ' is-danger' : ' is-go'}"><img src="${F(b.danger ? 'warn.webp' : 'crossbow.webp')}" alt=""><span><b>${b.act}</b>${b.danger ? '' : ' — арбалет больнее всего'}</span></div>
     </div>`;
   };
   stage(host, {
     id: 'fort-boss',
     title: 'Босс: полоса, окно уязвимости и что делать',
-    note: 'Полоса босса — часть той же плашки сверху. Под ней одна строка: что он делает и что делать тебе. Когда ядро открыто, появляется бирюзовая полоса окна с секундами. У Кракена — щупальца отдельными полосками.',
+    note: 'Полоса босса — внутри той же компактной плашки сверху, под ней одна строка «что делать». Ядро открыто — вторая, бирюзовая полоса с секундами. У Кракена — щупальца маленькими полосками.',
     bg: F('bg-battle.jpg'),
     before: F('was-battle-spiders.jpg'),
     mode: 'fort',
@@ -489,15 +472,15 @@ if (host) {
       const kraken = s === 'kraken';
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${fortCard({ gate: kraken ? 0.7 : 0.48, gateG: kraken ? 0.7 : 0.6, gateState: s === 'armor' ? 'hit' : 'ok', boss: !kraken, sea: kraken })}</div>
-        <div class="k-slot k-slot--tc">${bossPlate(s)}<div class="k-toasts">${s === 'open' ? toast('warn', foeIc('flyer'), 'Барон в ярости — зовёт крылаток', 'Сбей их, пока не спикировали') : ''}</div></div>
-        <div class="k-slot k-slot--tr">${badge()}${goldCard(kraken ? 4210 : 620)}${recordCard(kraken ? { rec: 24, hot: true } : {})}${teamCard()}</div>
+        <div class="k-slot k-slot--tc">${bossPlate(s)}<div class="k-toasts">${s === 'open' ? toast('warn', foeIc('flyer'), 'Барон зовёт крылаток', 'сбей, пока не спикировали') : ''}</div></div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(goldTile(kraken ? 4210 : 620), recordTile(kraken ? { rec: 24, hot: true } : {}), teamTile())}</div>
         <div class="k-slot k-slot--bl">${chat(CHAT_FIGHT)}</div>
         <div class="k-slot k-slot--bc">${vitals({ gun: s === 'open' ? 1 : 0, ammo: s === 'open' ? 5 : 22, mag: s === 'open' ? 8 : 30, hp: 72 })}</div>
         ${cross(s === 'open' ? 'is-head' : '')}
         ${s === 'open' ? float(790, 392, '85<small>×2,5</small>', 'k-float--crit') + float(660, 372, '120', 'k-float--head') : ''}
         ${kraken
-          ? edge({ x: 1372, y: 640, a: 60, foe: 'kraken', label: 'Кракен в бухте · <b>40 м</b>', tone: 'special', lg: true, side: 'right' })
-          : edge({ x: 1370, y: 520, a: 0, foe: 'baron', label: 'Барон · <b>31 м</b>', tone: 'bad', side: 'right', lg: true, hot: s === 'armor' })}`;
+          ? edge({ x: 1400, y: 640, a: 60, foe: 'kraken', label: 'Кракен в бухте · <b>40 м</b>', tone: 'special', lg: true, side: 'right' })
+          : edge({ x: 1400, y: 520, a: 0, foe: 'baron', label: 'Барон · <b>31 м</b>', tone: 'bad', side: 'right', lg: true, hot: s === 'armor' })}`;
     },
   });
 
@@ -513,7 +496,7 @@ if (host) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tl ft-hush">${fortCard({ gate: 0.55 })}</div>
         <div class="k-slot k-slot--tc">${wavePlate({ foes: [['walker', 9], ['flyer', 6], ['climber', 4], ['runner', 4]] })}</div>
-        <div class="k-slot k-slot--tr ft-hush">${badge()}${goldCard(420)}${recordCard()}${teamCard({ down: 0 })}</div>
+        <div class="k-slot k-slot--tr ft-hush">${badge()}${tiles(goldTile(420), recordTile(), teamTile({ down: 0 }))}</div>
         <div class="k-slot k-slot--bl">${chat([...CHAT_FIGHT.slice(1), ['k-nick-4', 'Лиса', 'держись, прикрою']])}</div>
         <div class="k-slot k-slot--c ft-down">
           <div class="k-hero k-hero--lose is-pop"><p class="k-hero-title is-sm">Тебя повалили!</p>
@@ -583,14 +566,14 @@ if (host) {
 
   /* ================================================================== 8. новичку */
   const COACH = [
-    { t: 'Защити кристалл', s: `Зомби ломают ворота и идут к кристаллу во дворе. Разбили кристалл — игра окончена. Стреляй со стены: к лестнице во дворе — ${K.key('W', 'k-key--sm')} лицом к ней.`, spot: 'fort', prompt: `${K.key('W')}<img class="k-ic" src="${F('ladder.webp')}" alt="">Лицом к лестнице — наверх, на стену` },
-    { t: 'Целься в голову', s: `В голову — больше урона. За каждого сбитого — золото, часть идёт в общак. ${K.key('G', 'k-key--sm')} — граната в толпу у ворот.`, spot: 'G', prompt: '' },
-    { t: 'Трать золото', s: `${K.key('E', 'k-key--sm')} у прилавка на террасе — урон, темп, второй ствол. На стене у флажков — места для башен. Ворота и кристалл чинят у них самих.`, spot: 'gold', prompt: `${K.key('E')}Лавка оружейника<span class="k-prompt-sep"></span><span class="k-prompt-note">прокачка, стволы, гранаты</span>` },
+    { t: 'Защити кристалл', s: `Разбили кристалл во дворе — игра окончена. Стреляй со стены: ${K.key('W', 'k-key--sm')} лицом к лестнице.`, spot: 'fort', prompt: `${K.key('W')}<img class="k-ic" src="${F('ladder.webp')}" alt="">Наверх, на стену` },
+    { t: 'Целься в голову', s: `В голову — больнее. За сбитых — золото. ${K.key('G', 'k-key--sm')} — граната в толпу у ворот.`, spot: 'G', prompt: '' },
+    { t: 'Трать золото', s: `${K.key('E', 'k-key--sm')} у прилавка на террасе — урон, темп, стволы. Башни — у флажков на стене.`, spot: 'gold', prompt: `${K.key('E')}Лавка оружейника<span class="k-prompt-sep"></span><span class="k-prompt-note">прокачка, стволы, гранаты</span>` },
   ];
   stage(host, {
     id: 'fort-coach',
     title: 'Первая игра: три подсказки новичку',
-    note: 'Подсказка новичку — та же карточка в той же стопке под волной, а не отдельная панель слева. Новое: то, о чём она говорит, подсвечено на экране золотой рамкой.',
+    note: 'Подсказка новичку — тот же тост в стопке под волной (не шире 360), две короткие фразы. То, о чём она говорит, подсвечено на экране золотой рамкой.',
     bg: F('bg-battle.jpg'),
     before: F('was-hud.jpg'),
     mode: 'fort',
@@ -602,9 +585,9 @@ if (host) {
         <div class="k-slot k-slot--tl">${fortCard({ spot: c.spot === 'fort' })}</div>
         <div class="k-slot k-slot--tc">
           ${i === 0
-            ? `<div class="k-event k-lamp ft-wave" data-mode="fort"><span class="k-event-ic">${foeIc('walker')}</span><div class="k-event-title">Дальше: волна 1 · Первые гости</div>
-                <div class="k-event-sub">Сбор — закупись у лавки и займи стену</div><div class="k-event-timer">0:20</div>${meter(0.67, 'k-meter--thin k-meter--mode')}</div>`
-            : wavePlate({ w: 1, title: 'Первые гости', left: 15, total: 22, roads: 'с севера', foes: [['walker', 15]] })}
+            ? `<div class="k-event ft-wave" data-mode="fort"><span class="k-event-ic">${foeIc('walker')}</span><div class="k-event-title">Дальше: волна 1 · Первые гости</div>
+                <div class="k-event-sub">Сбор — закупись и займи стену</div><div class="k-event-timer">0:20</div>${meter(0.67, 'k-meter--thin k-meter--mode')}</div>`
+            : wavePlate({ w: 1, title: 'Первые гости', left: 15, total: 22, foes: [['walker', 15]] })}
           <div class="k-toasts">
             <div class="k-toast ft-coach is-new"><span class="k-toast-ic"><img src="${F('scroll.webp')}" alt=""></span>
               <div class="k-toast-title"><span class="ft-coach-n">Новичку · ${i + 1} из 3</span>${c.t}</div>
@@ -612,7 +595,7 @@ if (host) {
               ${meter(0.7 - i * 0.15, 'k-meter--thin k-meter--mode ft-coach-time')}</div>
           </div>
         </div>
-        <div class="k-slot k-slot--tr">${badge()}${goldCard(i === 2 ? 190 : 150, { spot: c.spot === 'gold', pop: i === 2 ? '+12' : '' })}${recordCard({ rec: 0 }).replace('0 волн', 'пока нет')}${teamCard()}</div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(goldTile(i === 2 ? 190 : 150, { spot: c.spot === 'gold', pop: i === 2 ? '+12' : '' }), recordTile({ rec: 0 }), teamTile())}</div>
         <div class="k-slot k-slot--bl">${chat(CHAT_CALM)}</div>
         <div class="k-slot k-slot--bc">${c.prompt ? `<div class="k-prompt">${c.prompt}</div>` : ''}${vitals({ ammo: i === 1 ? 26 : 30, spot: c.spot === 'G' ? 'G' : '' })}</div>
         ${cross(i === 1 ? 'is-head' : '')}

@@ -1,8 +1,15 @@
-/* TIREDWOOD UI — токены трёх шкурок. Шкурка = атрибут data-skin на <html> (veranda · postcard · retro).
+/* TIREDWOOD UI 2.0 — токены трёх шкурок. Шкурка = атрибут data-skin на <html> (retro2 · beach · dusk).
    Компоненты (kit.css) берут ТОЛЬКО эти переменные, поэтому смена шкурки меняет весь вид сразу.
    Режимный акцент — data-mode на любом контейнере (fishing · farm · fort · race · dungeon · paintball · hide · skill · pirates · regatta).
-   Шрифты: Rubik (локально, lab/ui/fonts) — весь текст. Заголовки: veranda — Rubik 900; postcard — Lobster;
-   retro — Rubik Mono One (оба — Google Fonts, подключены в index.html; для игры их надо положить локально). */
+
+   ДВА КОНТЕКСТА. У каждой шкурки есть «окно» (окна, панели, страница) и «HUD» (плашки поверх игры). В «Закате» они разные:
+   HUD — тёмное дымчатое стекло со светлым текстом, окна — светлые кремовые с тёмным текстом. Поэтому часть токенов
+   (текст, поверхности, цветной текст, кнопка-призрак, полосы) задаётся парой --w-… (окно) и --h-… (HUD), а обычные имена
+   (--surf-text, --gold-text, --track …) раздаются ниже по месту: внутри .k-hud и плашек — HUD-значения, внутри .k-scrim/.k-window — оконные.
+   Экраны пользуются только обычными именами — как в версии 1.
+
+   Шрифты: Rubik (локально, lab/ui/fonts; 600 и 800 — из Google Fonts) — весь текст. Заголовки: retro2 — Rubik Mono One,
+   beach — Unbounded, dusk — Dela Gothic One (Google Fonts, подключены в index.html; для игры их надо положить локально). */
 
 @font-face { font-family: Rubik; font-style: normal; font-weight: 400; font-display: swap; src: url(../fonts/rubik-cyrillic-400-normal.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
 @font-face { font-family: Rubik; font-style: normal; font-weight: 400; font-display: swap; src: url(../fonts/rubik-latin-400-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
@@ -12,24 +19,19 @@
 @font-face { font-family: Rubik; font-style: normal; font-weight: 700; font-display: swap; src: url(../fonts/rubik-latin-700-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: Rubik; font-style: normal; font-weight: 900; font-display: swap; src: url(../fonts/rubik-cyrillic-900-normal.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
 @font-face { font-family: Rubik; font-style: normal; font-weight: 900; font-display: swap; src: url(../fonts/rubik-latin-900-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: 'Alegreya SC'; font-style: normal; font-weight: 800; font-display: swap; src: url(../fonts/alegreya-sc-cyrillic-800-normal.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: 'Alegreya SC'; font-style: normal; font-weight: 800; font-display: swap; src: url(../fonts/alegreya-sc-latin-800-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
-@font-face { font-family: 'Alegreya SC'; font-style: normal; font-weight: 900; font-display: swap; src: url(../fonts/alegreya-sc-cyrillic-900-normal.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: 'Alegreya SC'; font-style: normal; font-weight: 900; font-display: swap; src: url(../fonts/alegreya-sc-latin-900-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
 
 /* ---------------------------------------------------------------- общее для всех шкурок */
 :root {
-  /* шрифты */
   --font-text: Rubik, system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* шкала: 13 — только третичные подписи; меньше 13 нельзя */
-  --fs-13: 13px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-22: 22px;
+  --fs-13: 13px; --fs-14: 14px; --fs-15: 15px; --fs-16: 16px; --fs-18: 18px; --fs-22: 22px;
   --fs-28: 28px; --fs-36: 36px; --fs-48: 48px; --fs-72: 72px;
   --lh-tight: 1.08; --lh: 1.35;
   /* отступы (шаг 4) */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
-  /* поля экрана и слоты (сцена 1440×900) */
-  --edge: 20px;
-  --slot-gap: 12px;
+  /* поля экрана и слоты (сцена 1440×900). v2: поля 16, компактный HUD */
+  --edge: 16px;
+  --slot-gap: 10px;
   /* движение */
   --ease-spring: cubic-bezier(.2, .9, .3, 1.15);
   --ease-pop: cubic-bezier(.2, 1.6, .4, 1);
@@ -40,297 +42,321 @@
   --tier-junk: #8a7766; --tier-chest: #d9a521; --tier-divine: #18b7a6;
 }
 
-/* ---------------------------------------------------------------- A · «Вечерняя веранда» (по умолчанию)
-   Тёплое тёмное стекло, кремовый текст, одно золото, кнопки-«конфеты». Продолжение блэкджека и дурака. */
-:root, [data-skin='veranda'] {
-  --font-display: Rubik, system-ui, sans-serif;
-  --display-weight: 900; --display-case: none; --display-track: -.01em; --display-scale: 1; --display-word: normal;
-  --title-color: #fff3de;
-  --title-shadow: 0 3px 0 rgba(12, 6, 10, .45);
+/* HUD по умолчанию = окно (своё у HUD задаёт только «Закат»). Стоит ДО шкурок: шкурка может переопределить --h-… */
+:root, [data-skin] {
+  --h-surf-solid: var(--w-surf-solid); --h-surf-text: var(--w-surf-text); --h-surf-dim: var(--w-surf-dim); --h-surf-faint: var(--w-surf-faint);
+  --h-surf-2: var(--w-surf-2); --h-surf-2-border: var(--w-surf-2-border); --h-surf-3: var(--w-surf-3);
+  --h-line: var(--w-line); --h-line-strong: var(--w-line-strong);
+  --h-panel-bg: var(--w-panel-bg); --h-panel-border: var(--w-panel-border); --h-panel-shadow: var(--w-panel-shadow);
+  --h-gold-text: var(--w-gold-text); --h-good-text: var(--w-good-text); --h-bad-text: var(--w-bad-text); --h-info-text: var(--w-info-text); --h-special-text: var(--w-special-text);
+  --h-ghost-bg: var(--w-ghost-bg); --h-ghost-text: var(--w-ghost-text); --h-ghost-border: var(--w-ghost-border); --h-ghost-bg-hover: var(--w-ghost-bg-hover); --h-ghost-drop: var(--w-ghost-drop);
+  --h-track: var(--w-track); --h-track-border: var(--w-track-border); --h-trail: var(--w-trail); --h-ring-face: var(--w-ring-face);
+  --h-accent-k: var(--w-accent-k); --h-accent-to: var(--w-accent-to); --h-sil: var(--w-sil);
+}
 
-  /* радиусы */
-  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px; --r-pill: 999px;
+/* ================================================================ Г · «Ретро-парк 2.0» (по умолчанию)
+   Бирюзовая эмаль, крем, коралл. Как «Ретро-парк» из версии 1, но тоньше: рамки 1,5–2 px, мягкие тени, без болтов;
+   маркиза — только узкая полоса в шапке окна, лампочки — только у .k-lamp. Кнопки — эмаль с тонким нижним кантом. */
+:root, [data-skin='retro2'] {
+  --font-display: 'Rubik Mono One', Rubik, system-ui, sans-serif;
+  --display-weight: 400; --display-case: uppercase; --display-track: .01em; --display-scale: .8; --display-word: -.3em;
+  --title-color: #fff4dc;
+  --title-shadow: 0 2px 0 #0a3b37;
+  --head-title: initial; --head-title-shadow: initial;
 
-  /* поверхность окон и панелей */
-  --surf-solid: #2a1f24;
-  --panel-bg: linear-gradient(180deg, rgba(48, 34, 40, .94), rgba(32, 22, 27, .94));
-  --panel-border: 1px solid rgba(255, 236, 205, .16);
-  --panel-shadow: 0 24px 60px rgba(10, 5, 8, .5), 0 2px 0 rgba(255, 236, 205, .06) inset;
+  --r-xs: 5px; --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px; --r-pill: 999px;
+
+  /* окно */
+  --w-surf-solid: #0e5550;
+  --w-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 32%), linear-gradient(180deg, #13675f, #0d524d);
+  --w-panel-border: 2px solid #f3e6c9;
+  --w-panel-shadow: 0 0 0 1px #0a3b37, 0 16px 36px rgba(3, 25, 23, .36);
   --panel-outline: none; --panel-outline-offset: 0;
-  --surf-2: rgba(255, 240, 220, .07);
-  --surf-2-border: 1px solid rgba(255, 236, 205, .1);
-  --surf-3: rgba(12, 7, 10, .45);
-  --surf-text: #fff3de;
-  --surf-dim: rgba(255, 243, 222, .72);
-  --surf-faint: rgba(255, 243, 222, .55);
-  --line: rgba(255, 236, 205, .14);
-  --line-strong: rgba(255, 236, 205, .3);
-  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(16, 10, 12, .45), rgba(16, 10, 12, .78));
+  --w-surf-text: #fff4dc;
+  --w-surf-dim: rgba(255, 244, 220, .76);
+  --w-surf-faint: rgba(255, 244, 220, .6);
+  --w-surf-2: rgba(255, 244, 220, .07);
+  --w-surf-2-border: 1px solid rgba(255, 244, 220, .14);
+  --w-surf-3: rgba(3, 32, 30, .38);
+  --w-line: rgba(255, 244, 220, .13);
+  --w-line-strong: rgba(255, 244, 220, .32);
+  --w-gold-text: #ffd665; --w-good-text: #9eecb6; --w-bad-text: #ffa0a3; --w-info-text: #b4efe7; --w-special-text: #c8cfff;
+  --w-ghost-bg: rgba(255, 244, 220, .08); --w-ghost-text: #fff4dc; --w-ghost-border: 1.5px solid rgba(255, 244, 220, .42); --w-ghost-bg-hover: rgba(255, 244, 220, .16); --w-ghost-drop: none;
+  --w-track: rgba(3, 32, 30, .5); --w-track-border: 1px solid rgba(255, 244, 220, .18); --w-trail: rgba(255, 244, 220, .5);
+  --w-ring-face: radial-gradient(circle at 40% 35%, #187a72, #0b4a46 75%);
+  --w-accent-k: 100%; --w-accent-to: #000000; --w-sil: brightness(0) invert(.94) opacity(.3);
+  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(4, 26, 24, .3), rgba(4, 26, 24, .66));
 
-  /* шапка окна */
-  --head-bg: transparent;
-  --head-text: #fff3de;
-  --head-rule: 1px solid rgba(255, 236, 205, .12);
-  --awning-h: 0px;
-  --mode: #ffb36b; --mode-soft: rgba(255, 179, 107, .16); --mode-ink: #3a1d08;
-  --portrait-bg: radial-gradient(circle at 35% 30%, #5a3f48, #2a1d22 70%);
-  --portrait-ring: 0 0 0 2px #ffd35a, 0 0 0 5px rgba(255, 211, 90, .18), 0 4px 0 rgba(0, 0, 0, .35);
+  /* шапка окна: узкая маркиза крем/коралл, без фестонов */
+  --head-bg: none; --head-mode-k: 0%; --head-eyebrow: initial;
+  --head-text: #fff4dc;
+  --head-rule: 1px solid rgba(255, 244, 220, .14);
+  --awning-h: 10px; --awning-w: 22px; --awning-fest: 0;
+  --awning-a: #ff7a5c; --awning-b: #f3e6c9;
+  --mode: #ffcd4a; --mode-soft: rgba(255, 205, 74, .16); --mode-ink: #3a2603;
+  --portrait-bg: radial-gradient(circle at 35% 30%, #fff8e6, #f1dcb0 70%);
+  --portrait-ring: 0 0 0 2px #ff7a5c, 0 0 0 4px #f3e6c9;
   --portrait-radius: 50%; --portrait-rotate: 0deg;
 
-  /* плашки HUD поверх сцены (подсказка, тост, событие, бейдж) */
-  --plate-bg: rgba(34, 24, 29, .9);
-  --plate-text: #fff3de;
-  --plate-border: 1px solid rgba(255, 236, 205, .18);
-  --plate-shadow: 0 8px 22px rgba(12, 6, 10, .38);
-  --hud-text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  /* плашки HUD: та же эмаль, тонкий кремовый кант */
+  --plate-bg: rgba(13, 82, 77, .92);
+  --plate-text: #fff4dc;
+  --plate-border: 1.5px solid rgba(243, 230, 201, .72);
+  --plate-shadow: 0 0 0 1px rgba(6, 40, 37, .45), 0 4px 12px rgba(3, 25, 23, .24);
+  --plate-blur: none;
+  --hud-text-shadow: 0 1px 0 rgba(4, 30, 28, .5);
 
-  /* смысловые цвета: основной, светлый верх градиента, тёмная «подошва», текст на нём, мягкая подложка, цвет как текст на панели */
-  --gold: #ffd35a; --gold-hi: #ffe08a; --gold-lo: #a87612; --gold-ink: #3a2603; --gold-soft: rgba(255, 211, 90, .15); --gold-text: #ffd35a;
-  --good: #6fcf84; --good-hi: #a6efb4; --good-lo: #3c8a50; --good-ink: #12361d; --good-soft: rgba(111, 207, 132, .16); --good-text: #8fe0a2;
-  --bad: #e0283a; --bad-hi: #ff8787; --bad-lo: #8f1424; --bad-ink: #ffffff; --bad-soft: rgba(255, 107, 107, .16); --bad-text: #ff8a8a;
-  --info: #9ec0e6; --info-hi: #d4e6f7; --info-lo: #3e5c78; --info-ink: #0f2236; --info-soft: rgba(158, 192, 230, .16); --info-text: #b9d4f1;
-  --special: #7b8cff; --special-hi: #b5c1ff; --special-lo: #3946b0; --special-ink: #101a5c; --special-soft: rgba(147, 162, 255, .18); --special-text: #b5c1ff;
+  /* смысл: основной, светлый верх, тёмная подошва, текст на нём, мягкая подложка */
+  --gold: #ffcd4a; --gold-hi: #ffdd7a; --gold-lo: #a8760a; --gold-ink: #3a2603; --gold-soft: rgba(255, 205, 74, .16);
+  --good: #56c07d; --good-hi: #84dba0; --good-lo: #2a7a4a; --good-ink: #0c2e19; --good-soft: rgba(132, 219, 160, .16);
+  --bad: #e5484d; --bad-hi: #f47a7e; --bad-lo: #8e1f27; --bad-ink: #ffffff; --bad-soft: rgba(244, 122, 126, .18);
+  --info: #8fd9cf; --info-hi: #b9ece5; --info-lo: #2d7c74; --info-ink: #08302c; --info-soft: rgba(143, 217, 207, .16);
+  --special: #a9b4ff; --special-hi: #c9d0ff; --special-lo: #4a55c0; --special-ink: #141c63; --special-soft: rgba(169, 180, 255, .18);
 
-  /* кнопки-«конфеты» */
-  --btn-radius: 16px;
-  --btn-border: 0 solid transparent;
-  --btn-drop: 5px;
-  --btn-hl: inset 0 2px 0 rgba(255, 255, 255, .45);
-  --btn-weight: 900; --btn-case: none; --btn-track: 0;
-  --ghost-bg: rgba(255, 240, 220, .1); --ghost-text: #fff3de; --ghost-border: 1px solid rgba(255, 236, 205, .26); --ghost-bg-hover: rgba(255, 240, 220, .2);
+  /* кнопки: эмаль, тонкий нижний кант */
+  --btn-radius: 10px; --btn-border: 0 solid transparent; --btn-drop: 3px; --btn-sheen: 40%;
+  --btn-hl: inset 0 1px 0 rgba(255, 255, 255, .4);
+  --btn-weight: 800; --btn-case: uppercase; --btn-track: .03em;
 
-  /* клавиша-колпачок */
-  --key-bg: rgba(20, 12, 16, .86);
-  --key-text: #fff3de;
-  --key-border: 1px solid rgba(255, 236, 205, .42);
-  --key-shadow: 0 2px 0 rgba(0, 0, 0, .45);
-  --key-radius: 7px;
-  --key-weight: 800;
+  --key-bg: #fff6e2; --key-text: #0d524d; --key-border: 1px solid #0a3b37; --key-shadow: 0 1.5px 0 #0a3b37; --key-radius: 6px; --key-weight: 800;
 
-  /* полосы */
-  --track: rgba(10, 6, 8, .55);
-  --track-border: 1px solid rgba(255, 236, 205, .12);
-  --trail: rgba(255, 243, 222, .55);
+  /* важная плашка: тёмная кайма + редкие лампочки */
+  --lamp-band: 0 0 0 7px #0a3b37;
+  --lamp-ring: 0 0 0 8.5px rgba(243, 230, 201, .7), 0 0 22px rgba(255, 205, 74, .28);
+  --lamp-dot: #fff0bf; --lamp-dot-size: 3px; --lamp-inset: -5.5px;
+  --lamp-dot-glow: drop-shadow(0 0 2px rgba(255, 210, 90, .95)) drop-shadow(0 0 5px rgba(255, 190, 60, .5));
 
-  /* важная плашка (событие, баннер, рекорд) */
-  --lamp-ring: 0 0 0 1.5px #ffd35a, 0 0 0 5px rgba(255, 211, 90, .16), 0 0 34px rgba(255, 211, 90, .28);
-  --lamp-dots: none;
+  --focus: 0 0 0 2px #0a3b37, 0 0 0 4.5px #ffcd4a;
 
-  /* фокус */
-  --focus: 0 0 0 3px #fff3de, 0 0 0 6px rgba(255, 211, 90, .55);
+  --hero-font: var(--font-display); --hero-weight: var(--display-weight); --hero-text: #fff4dc;
+  --hero-outline: 2px 0 0 #0a3b37, -2px 0 0 #0a3b37, 0 2px 0 #0a3b37, 0 -2px 0 #0a3b37, 1.5px 1.5px 0 #0a3b37, -1.5px 1.5px 0 #0a3b37, 1.5px -1.5px 0 #0a3b37, -1.5px -1.5px 0 #0a3b37;
+  --hero-step: 4px; --hero-step-ink: #0a3b37;
 
-  /* герой-текст по центру */
-  --hero-font: var(--font-display);
-  --hero-weight: 900;
-  --hero-outline: 2px 0 0 rgba(42, 20, 12, .8), -2px 0 0 rgba(42, 20, 12, .8), 0 2px 0 rgba(42, 20, 12, .8), 0 -2px 0 rgba(42, 20, 12, .8), 1.5px 1.5px 0 rgba(42, 20, 12, .8), -1.5px 1.5px 0 rgba(42, 20, 12, .8), 1.5px -1.5px 0 rgba(42, 20, 12, .8), -1.5px -1.5px 0 rgba(42, 20, 12, .8);
-  --hero-step: 6px;
+  --nick-1: #ffb36b; --nick-2: #a2f0b8; --nick-3: #c4ccff; --nick-4: #ffa3b4; --nick-5: #ffe58c; --nick-6: #9fe3da;
+  --chat-bg: rgba(13, 82, 77, .84); --chat-border: 0 solid transparent; --chat-shadow: 0 0 0 1px rgba(243, 230, 201, .3);
+
+  /* акценты режимов: светлые — читаются на бирюзе */
+  --m-fishing: #7fe3d4; --m-farm: #8fd46e; --m-fort: #ff9a52; --m-race: #ff6b5b; --m-dungeon: #e0b45c;
+  --m-paintball: #ff8a1c; --m-hide: #c99cff; --m-skill: #8fc2ff; --m-pirates: #ff6a5a; --m-regatta: #6cc8f0; --m-ink: #072b28;
 
   color-scheme: dark;
 }
 
-/* ---------------------------------------------------------------- B · «Курортная открытка»
-   Светлая бумага-штукатурка, чернильный текст, терракота и зелень ставен, бирюза для инфо.
-   Чёткая тёмная кромка + мягкая тень — читается поверх неба. Перфорация «марки» у окон, кнопки-наклейки. */
-[data-skin='postcard'] {
-  --font-display: Lobster, 'Alegreya SC', Georgia, serif;
-  --display-weight: 400; --display-case: none; --display-track: 0; --display-scale: 1.12; --display-word: normal;
-  --title-color: #c4512d;
-  --title-shadow: 0 2px 0 rgba(255, 255, 255, .9);
+/* ================================================================ Д · «Пляжный день»
+   Светлый. Окна — тёплый белый, тонкая линия, мягкая тень. HUD поверх игры — белое матовое стекло (blur)
+   с тёмным текстом и чуть сильнее тень, чтобы читалось на небе. Морская бирюза, коралл, солнечное золото. */
+[data-skin='beach'] {
+  --font-display: Unbounded, Rubik, system-ui, sans-serif;
+  --display-weight: 700; --display-case: none; --display-track: -.015em; --display-scale: .86; --display-word: normal;
+  --title-color: #0e4f57;
+  --title-shadow: none;
+  --head-title: initial; --head-title-shadow: initial;
 
-  --r-xs: 5px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-pill: 999px;
+  --r-xs: 6px; --r-sm: 9px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-pill: 999px;
 
-  --surf-solid: #fff6e6;
-  --panel-bg: radial-gradient(130% 90% at 0% 0%, #fffcf3 0%, rgba(255, 252, 243, 0) 55%), linear-gradient(180deg, #fff7e9, #fbecd3);
-  --panel-border: 2px solid #3a2b31;
-  --panel-shadow: 0 18px 40px rgba(58, 36, 30, .32), 0 3px 0 rgba(58, 43, 49, .9);
-  --panel-outline: 2px dashed rgba(196, 81, 45, .3); --panel-outline-offset: -9px;
-  --surf-2: #fdeed6;
-  --surf-2-border: 1.5px solid rgba(58, 43, 49, .18);
-  --surf-3: #f1dcbb;
-  --surf-text: #2a1f24;
-  --surf-dim: #5e4a52;
-  --surf-faint: #7a656d;
-  --line: rgba(58, 43, 49, .16);
-  --line-strong: rgba(58, 43, 49, .45);
-  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(42, 31, 36, .28), rgba(42, 31, 36, .6));
+  --w-surf-solid: #ffffff;
+  --w-panel-bg: linear-gradient(180deg, #ffffff, #fffaf2);
+  --w-panel-border: 1px solid rgba(23, 50, 58, .12);
+  --w-panel-shadow: 0 22px 54px rgba(14, 50, 64, .22), 0 2px 6px rgba(14, 50, 64, .08);
+  --panel-outline: none; --panel-outline-offset: 0;
+  --w-surf-text: #16313a;
+  --w-surf-dim: #4b6670;
+  --w-surf-faint: #66808a;
+  --w-surf-2: #f6f1e7;
+  --w-surf-2-border: 1px solid rgba(23, 50, 58, .08);
+  --w-surf-3: #ecf3f2;
+  --w-line: rgba(23, 50, 58, .1);
+  --w-line-strong: rgba(23, 50, 58, .26);
+  --w-gold-text: #955a00; --w-good-text: #1b7a48; --w-bad-text: #c02f3b; --w-info-text: #0b7471; --w-special-text: #c2441f;
+  --w-ghost-bg: #ffffff; --w-ghost-text: #16313a; --w-ghost-border: 1px solid rgba(23, 50, 58, .2); --w-ghost-bg-hover: #f1f7f6; --w-ghost-drop: 0 1px 2px rgba(14, 50, 64, .1);
+  --w-track: #e4eded; --w-track-border: 1px solid rgba(23, 50, 58, .08); --w-trail: rgba(23, 50, 58, .16);
+  --w-ring-face: radial-gradient(circle at 40% 35%, #ffffff, #edf3f2 75%);
+  --w-accent-k: 64%; --w-accent-to: #0b1a1f; --w-sil: brightness(0) opacity(.26);
+  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(10, 36, 46, .16), rgba(10, 36, 46, .46));
 
-  --head-bg: transparent;
-  --head-text: #2a1f24;
-  --head-rule: 3px double rgba(58, 43, 49, .3);
-  --awning-h: 0px;
-  --mode: #1f8f88; --mode-soft: rgba(31, 143, 136, .14); --mode-ink: #ffffff;
-  --portrait-bg: #fff3dc;
-  --portrait-ring: 0 0 0 3px #fffaf0, 0 0 0 5px #c4512d, 0 3px 0 5px rgba(58, 43, 49, .55);
-  --portrait-radius: 6px; --portrait-rotate: -4deg;
+  --head-bg: none; --head-mode-k: 0%; --head-eyebrow: initial;
+  --head-text: #16313a;
+  --head-rule: 1px solid rgba(23, 50, 58, .08);
+  --awning-h: 0px; --awning-w: 22px; --awning-fest: 0;
+  --mode: #12a09d; --mode-soft: rgba(18, 160, 157, .14); --mode-ink: #ffffff;
+  --portrait-bg: linear-gradient(180deg, #eaf8f6, #d6eeeb);
+  --portrait-ring: 0 0 0 2px #ffffff, 0 0 0 3.5px rgba(18, 160, 157, .5), 0 4px 10px rgba(14, 50, 64, .14);
+  --portrait-radius: 16px; --portrait-rotate: 0deg;
 
-  --plate-bg: #fff6e6;
-  --plate-text: #2a1f24;
-  --plate-border: 2px solid #3a2b31;
-  --plate-shadow: 0 3px 0 #3a2b31, 0 10px 24px rgba(58, 36, 30, .28);
+  /* HUD: белое матовое стекло */
+  --plate-bg: rgba(255, 255, 255, .78);
+  --plate-text: #16313a;
+  --plate-border: 1px solid rgba(255, 255, 255, .9);
+  --plate-shadow: 0 6px 20px rgba(10, 40, 56, .2), 0 1px 3px rgba(10, 40, 56, .14);
+  --plate-blur: blur(14px) saturate(1.5);
   --hud-text-shadow: none;
 
-  --gold: #f5b62e; --gold-hi: #ffd86b; --gold-lo: #a8740c; --gold-ink: #3a2603; --gold-soft: rgba(245, 182, 46, .22); --gold-text: #a35f00;
-  --good: #3f9a63; --good-hi: #79cf98; --good-lo: #1d5a3a; --good-ink: #ffffff; --good-soft: rgba(63, 154, 99, .16); --good-text: #2a7a4b;
-  --bad: #d63a3f; --bad-hi: #f2777a; --bad-lo: #8f1424; --bad-ink: #ffffff; --bad-soft: rgba(214, 58, 63, .14); --bad-text: #b82a30;
-  --info: #1f9a92; --info-hi: #5cc8bf; --info-lo: #0e5a55; --info-ink: #ffffff; --info-soft: rgba(31, 154, 146, .15); --info-text: #13756f;
-  --special: #7b8cff; --special-hi: #aab6ff; --special-lo: #3946b0; --special-ink: #101a5c; --special-soft: rgba(123, 140, 255, .16); --special-text: #4b5ad6;
+  --gold: #f5b100; --gold-hi: #ffd24a; --gold-lo: #b07800; --gold-ink: #3a2600; --gold-soft: rgba(245, 177, 0, .18);
+  --good: #26a463; --good-hi: #5ccf8e; --good-lo: #187845; --good-ink: #ffffff; --good-soft: rgba(38, 164, 99, .13);
+  --bad: #dc3545; --bad-hi: #f76d78; --bad-lo: #9c1f2b; --bad-ink: #ffffff; --bad-soft: rgba(220, 53, 69, .12);
+  --info: #12a09d; --info-hi: #4ccac5; --info-lo: #0a6e6b; --info-ink: #ffffff; --info-soft: rgba(18, 160, 157, .12);
+  --special: #ff7a4d; --special-hi: #ffa07e; --special-lo: #c4471f; --special-ink: #ffffff; --special-soft: rgba(255, 122, 77, .14);
 
-  --btn-radius: 12px;
-  --btn-border: 2px solid #3a2b31;
-  --btn-drop: 4px;
-  --btn-hl: inset 0 2px 0 rgba(255, 255, 255, .5);
+  --btn-radius: 12px; --btn-border: 0 solid transparent; --btn-drop: 2px; --btn-sheen: 45%;
+  --btn-hl: inset 0 1px 0 rgba(255, 255, 255, .45);
   --btn-weight: 700; --btn-case: none; --btn-track: 0;
-  --btn-drop-ink: #3a2b31;
-  --ghost-drop: 0 3px 0 #3a2b31;
-  --hero-step-ink: #2a1f24;
-  --ghost-bg: #fffaf0; --ghost-text: #2a1f24; --ghost-border: 2px solid #3a2b31; --ghost-bg-hover: #fff1d8;
 
-  --key-bg: #fffaf0;
-  --key-text: #2a1f24;
-  --key-border: 1.5px solid #3a2b31;
-  --key-shadow: 0 2px 0 #3a2b31;
-  --key-radius: 6px;
-  --key-weight: 800;
+  --key-bg: #ffffff; --key-text: #16313a; --key-border: 1px solid rgba(22, 49, 58, .3); --key-shadow: 0 1.5px 0 rgba(22, 49, 58, .3); --key-radius: 6px; --key-weight: 700;
 
-  --track: #ecd5b1;
-  --track-border: 1.5px solid #3a2b31;
-  --trail: rgba(255, 255, 255, .85);
+  --lamp-band: 0 0 0 0 transparent;
+  --lamp-ring: 0 0 0 2px #f5b100, 0 8px 22px rgba(10, 40, 56, .22), 0 0 22px rgba(245, 177, 0, .32);
+  --lamp-dot: transparent; --lamp-dot-size: 0px; --lamp-inset: 0px; --lamp-dot-glow: none;
 
-  --lamp-ring: 0 0 0 4px #fff6e6, 0 0 0 6px #c4512d, 0 3px 0 6px #3a2b31, 0 14px 30px rgba(58, 36, 30, .3);
-  --lamp-dots: none;
+  --focus: 0 0 0 2px #ffffff, 0 0 0 4.5px #12a09d;
 
-  --focus: 0 0 0 3px #fffaf0, 0 0 0 6px #1f9a92;
+  --hero-font: var(--font-display); --hero-weight: var(--display-weight); --hero-text: #ffffff;
+  --hero-outline: 2px 0 0 #16313a, -2px 0 0 #16313a, 0 2px 0 #16313a, 0 -2px 0 #16313a, 1.5px 1.5px 0 #16313a, -1.5px 1.5px 0 #16313a, 1.5px -1.5px 0 #16313a, -1.5px -1.5px 0 #16313a;
+  --hero-step: 3px; --hero-step-ink: #0e2d35;
 
-  --hero-font: var(--font-display);
-  --hero-weight: 400;
-  --hero-outline: 3px 0 0 #2a1f24, -3px 0 0 #2a1f24, 0 3px 0 #2a1f24, 0 -3px 0 #2a1f24, 2px 2px 0 #2a1f24, -2px 2px 0 #2a1f24, 2px -2px 0 #2a1f24, -2px -2px 0 #2a1f24;
-  --hero-step: 7px;
+  --nick-1: #d0562d; --nick-2: #1b7a48; --nick-3: #4b48c9; --nick-4: #b8336a; --nick-5: #0b7774; --nick-6: #955a00;
+  --chat-bg: rgba(255, 255, 255, .76); --chat-border: 0 solid transparent; --chat-shadow: 0 3px 10px rgba(10, 40, 56, .14);
+
+  /* акценты режимов: средние тона — читаются на белом */
+  --m-fishing: #0f9a96; --m-farm: #3c9a4c; --m-fort: #c8692a; --m-race: #e0453a; --m-dungeon: #a0742a;
+  --m-paintball: #e0700f; --m-hide: #8c55d6; --m-skill: #3c7fd6; --m-pirates: #c2382e; --m-regatta: #1d86b8; --m-ink: #ffffff;
 
   color-scheme: light;
 }
 
-/* ---------------------------------------------------------------- C · «Ретро-парк»
-   Эмалевая вывеска: глубокая бирюза + сливочный обод + вишня. Шапка окна — полосатая маркиза с фестонами,
-   болты по углам, у важных плашек — рамка из лампочек. Заголовки — вывесочные заглавные. */
-[data-skin='retro'] {
-  --font-display: 'Rubik Mono One', Rubik, system-ui, sans-serif;
-  --display-weight: 400; --display-case: uppercase; --display-track: .01em; --display-scale: .8; --display-word: -.3em;
-  --title-color: #fff1d6;
-  --title-shadow: 0 3px 0 #7e1622, 0 0 18px rgba(255, 207, 77, .25);
+/* ================================================================ Е · «Закат»
+   Смесь: поверх игры — тёмное дымчатое стекло (как веранда — лучше всего читается на яркой сцене), компактное и тонкое;
+   окна — светлые кремовые, с цветной эмалевой полосой-шапкой цвета режима (бирюза по умолчанию, терракота в крепости). */
+[data-skin='dusk'] {
+  --font-display: 'Dela Gothic One', Rubik, system-ui, sans-serif;
+  --display-weight: 400; --display-case: none; --display-track: .005em; --display-scale: .92; --display-word: normal;
+  --title-color: #3a2220;
+  --title-shadow: none;
+  /* заголовок в цветной полосе-шапке окна */
+  --head-title: #fff4e2; --head-title-shadow: 0 2px 0 rgba(8, 40, 38, .4);
 
-  --r-xs: 5px; --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-pill: 999px;
+  --r-xs: 5px; --r-sm: 8px; --r-md: 11px; --r-lg: 14px; --r-xl: 18px; --r-pill: 999px;
 
-  --rivet: radial-gradient(circle, #fffbe9 0 1.2px, #d9c38f 1.8px, #6b5426 3.2px, rgba(0, 0, 0, .35) 3.9px, transparent 4.4px);
-  --surf-solid: #0f5550;
-  --panel-bg: var(--rivet) left 7px top 7px / 11px 11px no-repeat, var(--rivet) right 7px top 7px / 11px 11px no-repeat,
-    var(--rivet) left 7px bottom 7px / 11px 11px no-repeat, var(--rivet) right 7px bottom 7px / 11px 11px no-repeat,
-    linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, 0) 38%), linear-gradient(180deg, #146a63, #0c4b47);
-  --panel-border: 3px solid #fff1d6;
-  --panel-shadow: 0 0 0 3px #082f2c, 0 18px 40px rgba(4, 22, 20, .5), inset 0 0 0 1px rgba(8, 47, 44, .6);
+  /* окно: крем */
+  --w-surf-solid: #fbf2e2;
+  --w-panel-bg: linear-gradient(180deg, #fffaf1, #f9eedb);
+  --w-panel-border: 1px solid rgba(64, 38, 30, .16);
+  --w-panel-shadow: inset 0 5px 0 #1f8f88, 0 24px 56px rgba(26, 12, 22, .4), 0 2px 6px rgba(26, 12, 22, .12);
   --panel-outline: none; --panel-outline-offset: 0;
-  --surf-2: rgba(255, 241, 214, .09);
-  --surf-2-border: 1.5px solid rgba(255, 241, 214, .2);
-  --surf-3: rgba(4, 30, 28, .55);
-  --surf-text: #fff1d6;
-  --surf-dim: rgba(255, 241, 214, .78);
-  --surf-faint: rgba(255, 241, 214, .6);
-  --line: rgba(255, 241, 214, .16);
-  --line-strong: rgba(255, 241, 214, .4);
-  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(4, 26, 24, .4), rgba(4, 26, 24, .76));
+  --w-surf-text: #2a1c19;
+  --w-surf-dim: #65524b;
+  --w-surf-faint: #806b64;
+  --w-surf-2: #f5e8d3;
+  --w-surf-2-border: 1px solid rgba(64, 38, 30, .1);
+  --w-surf-3: #eedfc6;
+  --w-line: rgba(64, 38, 30, .12);
+  --w-line-strong: rgba(64, 38, 30, .3);
+  --w-gold-text: #93580a; --w-good-text: #2a7a4b; --w-bad-text: #b52f2e; --w-info-text: #12675f; --w-special-text: #4b4fc0;
+  --w-ghost-bg: #fffaf1; --w-ghost-text: #2a1c19; --w-ghost-border: 1px solid rgba(64, 38, 30, .28); --w-ghost-bg-hover: #f4e7d1; --w-ghost-drop: none;
+  --w-track: #e8d9bf; --w-track-border: 1px solid rgba(64, 38, 30, .1); --w-trail: rgba(64, 38, 30, .2);
+  --w-ring-face: radial-gradient(circle at 40% 35%, #fffdf7, #f1e3cb 75%);
+  --w-accent-k: 62%; --w-accent-to: #1c110e; --w-sil: brightness(0) opacity(.28);
+  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(24, 12, 20, .28), rgba(24, 12, 20, .64));
 
-  --head-bg: transparent;
-  --head-text: #fff1d6;
-  --head-rule: 2px solid rgba(255, 241, 214, .18);
-  --awning-h: 26px;
-  --awning-a: #d4343f; --awning-b: #fff1d6;
-  --mode: #ffcf4d; --mode-soft: rgba(255, 207, 77, .16); --mode-ink: #3a2603;
-  --hero-step-ink: #082f2c;
-  --portrait-bg: radial-gradient(circle at 35% 30%, #fff8e6, #f4dcae 70%);
-  --portrait-ring: 0 0 0 3px #d4343f, 0 0 0 6px #fff1d6, 0 0 0 8px #082f2c, 0 4px 0 8px rgba(0, 0, 0, .3);
+  /* HUD: тёмное дымчатое стекло */
+  --h-surf-solid: #2a1f2a;
+  --h-panel-bg: linear-gradient(180deg, rgba(42, 31, 44, .9), rgba(28, 21, 30, .9));
+  --h-panel-border: 1px solid rgba(255, 240, 225, .16);
+  --h-panel-shadow: 0 10px 28px rgba(10, 5, 12, .32);
+  --h-surf-text: #fff5e8;
+  --h-surf-dim: rgba(255, 245, 232, .76);
+  --h-surf-faint: rgba(255, 245, 232, .58);
+  --h-surf-2: rgba(255, 245, 232, .08);
+  --h-surf-2-border: 1px solid rgba(255, 245, 232, .12);
+  --h-surf-3: rgba(0, 0, 0, .26);
+  --h-line: rgba(255, 245, 232, .13);
+  --h-line-strong: rgba(255, 245, 232, .3);
+  --h-gold-text: #ffd060; --h-good-text: #8fe3a8; --h-bad-text: #ff9a96; --h-info-text: #8fdcd4; --h-special-text: #c0c6ff;
+  --h-ghost-bg: rgba(255, 245, 232, .1); --h-ghost-text: #fff5e8; --h-ghost-border: 1px solid rgba(255, 245, 232, .32); --h-ghost-bg-hover: rgba(255, 245, 232, .18); --h-ghost-drop: none;
+  --h-track: rgba(0, 0, 0, .34); --h-track-border: 1px solid rgba(255, 245, 232, .1); --h-trail: rgba(255, 245, 232, .45);
+  --h-ring-face: radial-gradient(circle at 40% 35%, #4a3646, #251a25 75%);
+  --h-accent-k: 58%; --h-accent-to: #ffffff; --h-sil: brightness(0) invert(.94) opacity(.3);
+
+  /* шапка окна — цветная эмалевая полоса цвета режима */
+  --head-bg: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 70%); --head-mode-k: 100%;
+  --head-text: #fff6e6; --head-eyebrow: rgba(255, 246, 230, .84);
+  --head-rule: 0 solid transparent;
+  --awning-h: 0px; --awning-w: 22px; --awning-fest: 0;
+  --mode: #1f8f88; --mode-soft: rgba(31, 143, 136, .18); --mode-ink: #ffffff;
+  --portrait-bg: radial-gradient(circle at 35% 30%, #fffaf0, #f3e2c6 70%);
+  --portrait-ring: 0 0 0 2px #fff6e6, 0 3px 8px rgba(8, 40, 38, .35);
   --portrait-radius: 50%; --portrait-rotate: 0deg;
 
-  --plate-bg: linear-gradient(180deg, #156c65, #0d4d49);
-  --plate-text: #fff1d6;
-  --plate-border: 3px solid #fff1d6;
-  --plate-shadow: 0 0 0 2.5px #082f2c, 0 10px 22px rgba(4, 22, 20, .45);
-  --hud-text-shadow: 0 2px 0 rgba(4, 30, 28, .55);
+  --plate-bg: rgba(38, 24, 32, .68);
+  --plate-text: #fff5e8;
+  --plate-border: 1px solid rgba(255, 240, 225, .16);
+  --plate-shadow: 0 6px 18px rgba(12, 6, 14, .3);
+  --plate-blur: blur(10px) saturate(1.25);
+  --hud-text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 
-  --gold: #ffcf4d; --gold-hi: #ffe58c; --gold-lo: #9c6a06; --gold-ink: #3a2603; --gold-soft: rgba(255, 207, 77, .18); --gold-text: #ffd866;
-  --good: #59c27c; --good-hi: #93e6aa; --good-lo: #23673d; --good-ink: #0d2f1a; --good-soft: rgba(147, 230, 170, .16); --good-text: #a2f0b8;
-  --bad: #d4343f; --bad-hi: #f2717a; --bad-lo: #7e1622; --bad-ink: #ffffff; --bad-soft: rgba(242, 113, 122, .2); --bad-text: #ff9aa1;
-  --info: #9fe3da; --info-hi: #d9fbf6; --info-lo: #2d7c74; --info-ink: #08302c; --info-soft: rgba(159, 227, 218, .16); --info-text: #b7f0e8;
-  --special: #a9b4ff; --special-hi: #d6dbff; --special-lo: #4a55c0; --special-ink: #141c63; --special-soft: rgba(169, 180, 255, .2); --special-text: #c4ccff;
+  --gold: #f4b938; --gold-hi: #ffd36e; --gold-lo: #a8740c; --gold-ink: #3a2603; --gold-soft: rgba(244, 185, 56, .2);
+  --good: #3e9c62; --good-hi: #6cc58b; --good-lo: #23673d; --good-ink: #ffffff; --good-soft: rgba(62, 156, 98, .16);
+  --bad: #d9423f; --bad-hi: #f07572; --bad-lo: #8f1f24; --bad-ink: #ffffff; --bad-soft: rgba(217, 66, 63, .15);
+  --info: #1f8f88; --info-hi: #4cb8b0; --info-lo: #0f5a55; --info-ink: #ffffff; --info-soft: rgba(31, 143, 136, .15);
+  --special: #7c84f0; --special-hi: #a6acff; --special-lo: #4148b8; --special-ink: #ffffff; --special-soft: rgba(124, 132, 240, .16);
 
-  --btn-radius: 12px;
-  --btn-border: 2px solid #fff1d6;
-  --btn-drop: 5px;
-  --btn-hl: inset 0 2px 0 rgba(255, 255, 255, .55), inset 0 0 0 2px rgba(8, 47, 44, .22);
-  --btn-weight: 900; --btn-case: uppercase; --btn-track: .04em;
-  --ghost-bg: rgba(255, 241, 214, .1); --ghost-text: #fff1d6; --ghost-border: 2px solid rgba(255, 241, 214, .55); --ghost-bg-hover: rgba(255, 241, 214, .2);
+  --btn-radius: 10px; --btn-border: 0 solid transparent; --btn-drop: 3px; --btn-sheen: 45%;
+  --btn-hl: inset 0 1px 0 rgba(255, 255, 255, .4);
+  --btn-weight: 800; --btn-case: none; --btn-track: 0;
 
-  --key-bg: linear-gradient(180deg, #fff8e8, #f0dcb4);
-  --key-text: #0c4b47;
-  --key-border: 1.5px solid #082f2c;
-  --key-shadow: 0 2px 0 #082f2c;
-  --key-radius: 6px;
-  --key-weight: 900;
+  --key-bg: #fff8ec; --key-text: #2a1c19; --key-border: 1px solid rgba(42, 28, 25, .45); --key-shadow: 0 1.5px 0 rgba(42, 28, 25, .45); --key-radius: 6px; --key-weight: 800;
 
-  --track: rgba(4, 30, 28, .6);
-  --track-border: 1.5px solid rgba(255, 241, 214, .35);
-  --trail: rgba(255, 241, 214, .6);
+  --lamp-band: 0 0 0 0 transparent;
+  --lamp-ring: 0 0 0 1.5px #ffd060, 0 6px 18px rgba(12, 6, 14, .3), 0 0 26px rgba(255, 180, 70, .35);
+  --lamp-dot: transparent; --lamp-dot-size: 0px; --lamp-inset: 0px; --lamp-dot-glow: none;
 
-  --lamp-ring: 0 0 0 2.5px #082f2c, 0 0 26px rgba(255, 207, 77, .3);
-  --lamp-dots: 1;
+  --focus: 0 0 0 2px #fff6e6, 0 0 0 4.5px #1f8f88;
 
-  --focus: 0 0 0 3px #082f2c, 0 0 0 6px #ffcf4d;
+  --hero-font: var(--font-display); --hero-weight: var(--display-weight); --hero-text: #fff5e8;
+  --hero-outline: 2px 0 0 #2a1824, -2px 0 0 #2a1824, 0 2px 0 #2a1824, 0 -2px 0 #2a1824, 1.5px 1.5px 0 #2a1824, -1.5px 1.5px 0 #2a1824, 1.5px -1.5px 0 #2a1824, -1.5px -1.5px 0 #2a1824;
+  --hero-step: 4px; --hero-step-ink: #2a1824;
 
-  --hero-font: var(--font-display);
-  --hero-weight: 400;
-  --hero-outline: 3px 0 0 #082f2c, -3px 0 0 #082f2c, 0 3px 0 #082f2c, 0 -3px 0 #082f2c, 2px 2px 0 #082f2c, -2px 2px 0 #082f2c, 2px -2px 0 #082f2c, -2px -2px 0 #082f2c;
-  --hero-step: 7px;
-
-  color-scheme: dark;
-}
-
-/* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки) */
-[data-mode='fishing'] { --mode: #3fb6a8; --mode-soft: rgba(63, 182, 168, .18); --mode-ink: #06302c; }
-[data-mode='farm'] { --mode: #7bc96a; --mode-soft: rgba(123, 201, 106, .18); --mode-ink: #173a12; }
-[data-mode='fort'] { --mode: #d98a4a; --mode-soft: rgba(217, 138, 74, .18); --mode-ink: #3a1d08; }
-[data-mode='race'] { --mode: #ff6b5b; --mode-soft: rgba(255, 107, 91, .18); --mode-ink: #3a0d08; }
-[data-mode='dungeon'] { --mode: #c99a4b; --mode-soft: rgba(201, 154, 75, .2); --mode-ink: #2a1c08; }
-[data-mode='paintball'] { --mode: #ff8a1c; --mode-soft: rgba(255, 138, 28, .18); --mode-ink: #3a1a03; }
-[data-mode='hide'] { --mode: #c08cff; --mode-soft: rgba(192, 140, 255, .18); --mode-ink: #2a0f45; }
-[data-mode='skill'] { --mode: #8fc2ff; --mode-soft: rgba(143, 194, 255, .18); --mode-ink: #0f2a4a; }
-[data-mode='pirates'] { --mode: #e0574a; --mode-soft: rgba(224, 87, 74, .18); --mode-ink: #3a0c08; }
-[data-mode='regatta'] { --mode: #4fb6e0; --mode-soft: rgba(79, 182, 224, .18); --mode-ink: #062a3a; }
-[data-skin='postcard'] [data-mode='fishing'] { --mode: #1f9a92; }
-[data-skin='postcard'] [data-mode='farm'] { --mode: #3f9a63; }
-[data-skin='postcard'] [data-mode='fort'] { --mode: #b5652c; }
-[data-skin='postcard'] [data-mode='race'] { --mode: #d8402f; }
-[data-skin='postcard'] [data-mode='dungeon'] { --mode: #9a6d22; }
-[data-skin='postcard'] [data-mode='paintball'] { --mode: #d0620c; }
-[data-skin='postcard'] [data-mode='hide'] { --mode: #8a4fd0; }
-[data-skin='postcard'] [data-mode='skill'] { --mode: #3f7fd0; }
-[data-skin='postcard'] [data-mode='pirates'] { --mode: #b8332b; }
-[data-skin='postcard'] [data-mode='regatta'] { --mode: #1f86b0; }
-
-/* ---------------------------------------------------------------- дополнительные токены: ники в чате, строки чата, лампочки */
-:root, [data-skin='veranda'] {
   --nick-1: #ffb36b; --nick-2: #9cf0ae; --nick-3: #b5c1ff; --nick-4: #ff9ab0; --nick-5: #8fe3f0; --nick-6: #ffe08a;
-  --chat-bg: rgba(34, 24, 29, .74); --chat-border: 0 solid transparent; --chat-shadow: 0 4px 12px rgba(12, 6, 10, .22);
-  --lamp-dot: transparent; --lamp-dot-glow: none; --lamp-band: 0 0 0 0 transparent;
-  --ring-face: radial-gradient(circle at 40% 35%, #4a343d, #241a1f 75%);
+  --chat-bg: rgba(30, 22, 32, .6); --chat-border: 0 solid transparent; --chat-shadow: 0 3px 10px rgba(12, 6, 14, .2);
+
+  /* акценты режимов: средние тона — читаются и на тёмном стекле, и полосой-шапкой под светлым заголовком */
+  --m-fishing: #1f9a92; --m-farm: #4f9f45; --m-fort: #cc6a33; --m-race: #dc4f3c; --m-dungeon: #ad7f2c;
+  --m-paintball: #e0700f; --m-hide: #9a62dc; --m-skill: #4686da; --m-pirates: #c8432f; --m-regatta: #2690c2; --m-ink: #ffffff;
+
+  color-scheme: light;
 }
-[data-skin='postcard'] {
-  --nick-1: #c4512d; --nick-2: #2a7a4b; --nick-3: #4b5ad6; --nick-4: #b8336a; --nick-5: #13756f; --nick-6: #9a6400;
-  --chat-bg: rgba(255, 248, 235, .94); --chat-border: 1.5px solid rgba(58, 43, 49, .55); --chat-shadow: 0 2px 0 rgba(58, 43, 49, .55);
-  --lamp-dot: transparent; --lamp-dot-glow: none; --lamp-band: 0 0 0 0 transparent;
-  --ring-face: radial-gradient(circle at 40% 35%, #fffdf6, #f6e3c3 75%);
+
+/* ---------------------------------------------------------------- раздача двух контекстов по месту
+   окно/страница: всё внутри шкурки, .k-scrim, .k-window; HUD: .k-hud и все плашки поверх игры (+ шапка окна — в «Закате» она цветная) */
+:root, [data-skin], .k-scrim, .k-window {
+  --surf-solid: var(--w-surf-solid); --surf-text: var(--w-surf-text); --surf-dim: var(--w-surf-dim); --surf-faint: var(--w-surf-faint);
+  --surf-2: var(--w-surf-2); --surf-2-border: var(--w-surf-2-border); --surf-3: var(--w-surf-3);
+  --line: var(--w-line); --line-strong: var(--w-line-strong);
+  --panel-bg: var(--w-panel-bg); --panel-border: var(--w-panel-border); --panel-shadow: var(--w-panel-shadow);
+  --gold-text: var(--w-gold-text); --good-text: var(--w-good-text); --bad-text: var(--w-bad-text); --info-text: var(--w-info-text); --special-text: var(--w-special-text);
+  --ghost-bg: var(--w-ghost-bg); --ghost-text: var(--w-ghost-text); --ghost-border: var(--w-ghost-border); --ghost-bg-hover: var(--w-ghost-bg-hover); --ghost-drop: var(--w-ghost-drop);
+  --track: var(--w-track); --track-border: var(--w-track-border); --trail: var(--w-trail); --ring-face: var(--w-ring-face);
+  --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil);
 }
-[data-skin='retro'] {
-  --nick-1: #ffb36b; --nick-2: #a2f0b8; --nick-3: #c4ccff; --nick-4: #ffa3b4; --nick-5: #ffe58c; --nick-6: #ffd2a1;
-  --chat-bg: rgba(12, 75, 71, .9); --chat-border: 2px solid rgba(255, 241, 214, .55); --chat-shadow: 0 0 0 2px rgba(8, 47, 44, .7);
-  --lamp-dot: #fff0bf; --lamp-dot-glow: drop-shadow(0 0 3px rgba(255, 210, 90, .95)) drop-shadow(0 0 8px rgba(255, 190, 60, .55));
-  --lamp-band: 0 0 0 16px #0a3a36;
-  --ring-face: radial-gradient(circle at 40% 35%, #1c7d75, #0b4744 75%);
+.k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
+.k-voice, .k-vitals, .k-edge, .k-hero, .k-pop, .k-pill--plate, .k-win-head {
+  --surf-solid: var(--h-surf-solid); --surf-text: var(--h-surf-text); --surf-dim: var(--h-surf-dim); --surf-faint: var(--h-surf-faint);
+  --surf-2: var(--h-surf-2); --surf-2-border: var(--h-surf-2-border); --surf-3: var(--h-surf-3);
+  --line: var(--h-line); --line-strong: var(--h-line-strong);
+  --panel-bg: var(--h-panel-bg); --panel-border: var(--h-panel-border); --panel-shadow: var(--h-panel-shadow);
+  --gold-text: var(--h-gold-text); --good-text: var(--h-good-text); --bad-text: var(--h-bad-text); --info-text: var(--h-info-text); --special-text: var(--h-special-text);
+  --ghost-bg: var(--h-ghost-bg); --ghost-text: var(--h-ghost-text); --ghost-border: var(--h-ghost-border); --ghost-bg-hover: var(--h-ghost-bg-hover); --ghost-drop: var(--h-ghost-drop);
+  --track: var(--h-track); --track-border: var(--h-track-border); --trail: var(--h-trail); --ring-face: var(--h-ring-face);
+  --accent-k: var(--h-accent-k); --accent-to: var(--h-accent-to); --sil: var(--h-sil);
 }
+
+/* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки; цвет берётся из ближайшей шкурки) */
+[data-mode='fishing'] { --mode: var(--m-fishing); --mode-soft: color-mix(in srgb, var(--m-fishing) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='farm'] { --mode: var(--m-farm); --mode-soft: color-mix(in srgb, var(--m-farm) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='fort'] { --mode: var(--m-fort); --mode-soft: color-mix(in srgb, var(--m-fort) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='race'] { --mode: var(--m-race); --mode-soft: color-mix(in srgb, var(--m-race) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='dungeon'] { --mode: var(--m-dungeon); --mode-soft: color-mix(in srgb, var(--m-dungeon) 20%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='paintball'] { --mode: var(--m-paintball); --mode-soft: color-mix(in srgb, var(--m-paintball) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='hide'] { --mode: var(--m-hide); --mode-soft: color-mix(in srgb, var(--m-hide) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='skill'] { --mode: var(--m-skill); --mode-soft: color-mix(in srgb, var(--m-skill) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='pirates'] { --mode: var(--m-pirates); --mode-soft: color-mix(in srgb, var(--m-pirates) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='regatta'] { --mode: var(--m-regatta); --mode-soft: color-mix(in srgb, var(--m-regatta) 18%, transparent); --mode-ink: var(--m-ink); }

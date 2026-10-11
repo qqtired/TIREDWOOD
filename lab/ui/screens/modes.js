@@ -59,17 +59,18 @@ function setWas(api, src) {
 /* ------------------------------------------------------------------ общие детали режимов (mo-*) */
 /** Карточка места (ВЛ): место, круг, время — картинг и регата рисуют её одним и тем же кодом. */
 function stand({ title, place: pl, total, lap, laps, time, best, own = true }) {
-  return `<div class="k-plate mo-stand${own ? ' is-own' : ''}">
-    <p class="k-eyebrow">${title}</p>
+  return `<div class="k-plate mo-stand${own ? ' is-own' : ''}" title="${title}">
     <div class="mo-stand-main"><span class="mo-place">${pl}<small>/${total}</small></span>
       <div class="mo-stand-side"><span class="mo-lap">Круг <b>${lap}</b>/${laps}</span><span class="mo-time">${time}</span></div></div>
-    ${best ? `<div class="mo-stand-foot">${img(IC.flag)}лучший круг <b>${best}</b></div>` : ''}</div>`;
+    ${best ? `<div class="mo-stand-foot">${img(IC.flag)}лучший <b>${best}</b></div>` : ''}</div>`;
 }
 /** Список гонщиков (под бейджем). rows: [место, ник, подпись, свой?, бот?] */
 function racers(rows, head = '') {
   return `<div class="k-plate mo-list">${head ? `<p class="k-eyebrow">${head}</p>` : ''}${rows.map(([n, nick, side, own, isBot]) => `
     <div class="mo-row${own ? ' is-own' : ''}">${place(n)}<b>${nick}${isBot ? ` ${bot}` : ''}</b><span class="mo-row-side">${side}</span></div>`).join('')}</div>`;
 }
+/** Плитка под бейджем (kit .k-tile): картинка на подложке + подпись под ней. */
+const tile = (icon, cap, small = '', cls = '') => `<div class="k-tiles"><div class="k-tile ${cls}"><span class="k-tile-face"><img src="${icon}" alt=""></span><span class="k-tile-cap">${cap}${small ? `<small>${small}</small>` : ''}</span></div></div>`;
 /** Скорость (НП): крупное число. */
 const speed = (n) => `<div class="k-plate mo-speed"><b>${n}</b><span>км/ч</span></div>`;
 /** Подсказка клавиш одним рядом колпачков (показывается перед стартом, потом исчезает). */
@@ -144,9 +145,9 @@ function intro(h) {
 const KART_ITEMS = [
   { id: 'paint', ic: IC.paint, name: 'Краска', hint: 'клякса тому, кто впереди' },
   { id: 'turbo', ic: IC.turbo, name: 'Турбо', hint: 'рывок на 1,5 с' },
-  { id: 'jam', ic: IC.jam, name: 'Варенье', hint: 'банка позади: кто наедет — закрутится' },
-  { id: 'bubble', ic: IC.bubble, name: 'Пузырь', hint: '8 с защиты от бонусов, снимает краску' },
-  { id: 'clap', ic: IC.clap, name: 'Хлопок', hint: 'волна на 8 м вокруг: всех закрутит' },
+  { id: 'jam', ic: IC.jam, name: 'Варенье', hint: 'банка позади: наехал — закрутило' },
+  { id: 'bubble', ic: IC.bubble, name: 'Пузырь', hint: '8 с защиты, смывает краску' },
+  { id: 'clap', ic: IC.clap, name: 'Хлопок', hint: 'волна 8 м — всех вокруг закрутит' },
 ];
 const TRACK_MAP = `<svg class="mo-map-svg" viewBox="0 0 260 150" aria-hidden="true">
   <path class="mo-road-edge" d="M30 28H196Q226 28 226 56V70Q226 98 196 98H150V62H112V112Q112 128 96 128H46Q30 128 30 112V98H78V70H30Z"/>
@@ -189,7 +190,7 @@ function kart(h) {
       html += slot('br', speed(count ? 0 : 79));
       if (count) {
         html += `<div class="k-slot k-slot--c"><div class="k-count is-tick">3</div></div>`;
-        html += slot('bc', keyRow([[kk('W'), 'газ'], [kk('S'), 'тормоз'], [`${kk('A')}${kk('D')}`, 'руль'], [kk('Space'), 'занос'], [kk('R'), 'на трассу']]) + `<button class="k-plate mo-item is-empty" type="button"><span class="mo-item-ic">${img(IC.kart, 'mo-ghost')}</span><span class="mo-item-txt"><b>Пока пусто</b><small>Проедь через ящик — выпадет бонус</small></span></button>`);
+        html += slot('bc', keyRow([[kk('W'), 'газ'], [kk('S'), 'тормоз'], [`${kk('A')}${kk('D')}`, 'руль'], [kk('Space'), 'занос'], [kk('R'), 'на трассу']]) + `<button class="k-plate mo-item is-empty" type="button"><span class="mo-item-ic">${img(IC.kart, 'mo-ghost')}</span><span class="mo-item-txt"><b>Пока пусто</b><small>проедь через ящик — бонус</small></span></button>`);
       } else {
         if (lastLap) html += `<div class="k-slot k-slot--c"><div class="k-hero k-hero--gold is-pop"><p class="k-hero-title is-sm">Последний круг!</p></div></div>`;
         const charge = st === 'drift' ? `<div class="mo-charge">${meter(0.5, 'k-meter--info k-meter--lg', 'Синее — можно отпускать')}<i class="mo-tick" style="left:33%"></i><i class="mo-tick" style="left:66%"></i></div>` : '';
@@ -280,7 +281,7 @@ function paintball(h) {
   stage(h, {
     id: 'pb', mode: 'paintball', bg: IMG('paintball.jpg'),
     title: 'Пейнтбол: бой',
-    note: 'Счёт обеих команд и время — одной плашкой сверху по центру. Здоровье, броня, патроны и рывок — одна панель бойца внизу (та же, что в крепости). Лента убийств переехала влево, бонус автомата — карточкой под бейджем.',
+    note: 'Счёт обеих команд и время — маленькой плашкой сверху (≈260 px вместо 520). Здоровье со щитом, оружие, патроны и рывок — отдельными блоками внизу, как в крепости. Лента убийств — мелкими строками слева, бонус автомата — плиткой под бейджем.',
     before: IMG('was-30-paintball-battle.jpg'),
     states: [{ id: 'fight', label: 'Бой' }, { id: 'hit', label: 'Тебя залили' }, { id: 'board', label: 'Таблица (Tab)' }, { id: 'end', label: 'Итоги' }],
     render(scene, st, api) {
@@ -289,17 +290,17 @@ function paintball(h) {
       html += slot('tc', scorePlate(st === 'end' ? 50 : 5, st === 'end' ? 43 : 6, st === 'end' ? 'Конец' : 'Бой', st === 'end' ? '0:00' : '4:42') +
         (st === 'fight' ? `<div class="k-toasts"><div class="k-toast"><span class="k-toast-ic">${img(IC.paint, '')}</span><div class="k-toast-title">Мармелад разошёлся</div><div class="k-toast-sub">3 подряд — выбей его</div></div></div>` : ''));
       html += slot('tl', `<div class="mo-feed">${feedLine('Пудинг', 0, 'Холодец', 1, IC.paint)}${feedLine(NICK, 0, 'Зефир', 1, IC.paint, true)}${feedLine('Суфле', 1, 'Мармелад', 0, IC.paint)}</div>`);
-      html += slot('tr', badge({ pop: st === 'fight' ? '' : '' }) + `<div class="k-ctx"><img class="k-ctx-ic" src="${IC.star}" alt=""><span class="k-ctx-title">Бонус автомата</span><span class="k-ctx-val">+5 HP · +25 щит · +9%</span></div>`);
+      html += slot('tr', badge() + tile(IC.star, '+5 HP', '+25 щит · +9 %'));
       html += chatDock();
       html += slot('bc', `<div class="k-vitals${down ? ' is-down' : ''}">
         <div class="k-vitals-hp"><div class="k-vitals-row"><img class="k-vitals-ic" src="${IC.heart}" alt=""><b class="k-vitals-num">${down ? 0 : 105}</b></div>
           ${bars(down ? 0 : 1, 'k-meter--bad')}
           <div class="k-vitals-row mo-armor"><img class="k-vitals-ic" src="${IC.shield}" alt=""><span class="k-vitals-cap">щит ${down ? 0 : 25}</span>${bars(down ? 0 : 0.25, 'k-meter--thin k-meter--info')}</div></div>
-        <div class="k-vitals-arms"><div class="k-arm is-on"><img src="${IC.balls}" alt=""><span>Маркер</span></div><div class="k-arm is-off"><img src="${IC.cannon}" alt=""><span>AWP</span></div></div>
-        <div class="k-vitals-ammo"><div class="k-vitals-row"><kbd class="k-key k-key--sm">R</kbd><b class="k-vitals-num">30<small>/ 30</small></b></div>${bars(1, 'k-meter--thin')}
-          <div class="k-vitals-dash"><span class="k-vitals-cap">Рывок</span><kbd class="k-key k-key--sm">Shift</kbd>${bars(1, 'k-meter--thin k-meter--info')}</div></div></div>`);
+        <div class="k-vitals-arms"><div class="k-arm is-on"><img src="${IC.balls}" alt=""><span>Маркер</span><kbd class="k-key k-key--sm k-key--tr">1</kbd></div><div class="k-arm is-off"><img src="${IC.cannon}" alt=""><span>AWP</span><kbd class="k-key k-key--sm k-key--tr">2</kbd></div></div>
+        <div class="k-vitals-ammo"><div class="k-vitals-row"><kbd class="k-key k-key--sm">R</kbd><b class="k-vitals-num">30<small>/ 30</small></b></div>${bars(1, 'k-meter--thin')}</div>
+        <div class="k-vitals-dash"><kbd class="k-key k-key--sm">Shift</kbd><span class="k-vitals-cap">рывок</span>${bars(1, 'k-meter--info')}</div></div>`);
       if (st === 'fight') html += `<div class="k-cross"><i></i><i></i><i></i><i></i></div>`;
-      if (down) html += `<div class="k-slot k-slot--c"><div class="k-hero k-hero--lose is-pop"><p class="k-hero-title is-sm">Тебя залили краской!</p><span class="k-hero-sub">Попал: <b class="mo-name t1">Холодец</b> · снова в бой через 2,4 с</span></div></div>`;
+      if (down) html += `<div class="k-slot k-slot--c"><div class="k-hero k-hero--lose is-pop"><p class="k-hero-title is-sm">Тебя залили краской!</p><span class="k-hero-sub">Попал <b class="mo-name t1">Холодец</b> · в бой через 2,4 с</span></div></div>`;
       if (st === 'board') {
         html += `<div class="k-scrim"><section class="k-window k-window--lg mo-board is-in">
           <header class="k-win-head"><span class="k-win-portrait">${img(IC.balls, '')}</span><div class="k-win-titles"><p class="k-eyebrow">Пейнтбол · Склад</p><h2 class="k-win-title">Таблица боя</h2></div>
@@ -328,7 +329,7 @@ function hide(h) {
   stage(h, {
     id: 'hide', mode: 'hide', bg: IMG('hide.jpg'),
     title: 'Прятки: «Рыбный двор»',
-    note: 'Роль слева сверху, раунд и таймер одной плашкой по центру. Внизу — та же панель бойца, что в пейнтболе: у предмета в ней клякс до поимки и три умения с клавишами на углах, у ловца — бак краски. Подсказка «ЛКМ — стать» встала над панелью.',
+    note: 'Роль — маленькой плашкой слева сверху, раунд и таймер — одной строкой по центру. Внизу — те же отдельные блоки, что в пейнтболе: у предмета клякс до поимки и три умения с подписями и клавишами, у ловца — бак краски. Подсказка «ЛКМ — стать» — над ними.',
     before: IMG('was-36-hide-hud.jpg'),
     states: [{ id: 'prop', label: 'Ты — предмет' }, { id: 'hunter', label: 'Ты — ловец' }, { id: 'final', label: 'Итоги матча' }],
     render(scene, st, api) {
@@ -339,8 +340,8 @@ function hide(h) {
         <span class="k-event-ic">${img(IC.box, '')}</span><div class="k-event-title">${st === 'final' ? 'Матч окончен' : 'Раунд 2 из 3'}</div>
         <div class="k-event-sub">${st === 'final' ? 'Новый матч через 10 с' : prop ? 'Ловцы ищут: прячутся 4 из 5' : 'Прячутся: 4 из 5'}</div>
         ${st === 'final' ? '' : `<div class="k-event-timer">1:12</div>${meter(0.72, 'k-meter--thin k-meter--mode')}`}</div>`);
-      html += slot('tl', `<div class="k-plate mo-role"><span class="mo-role-ic">${img(IC.box, '')}</span><div><p class="k-eyebrow">Твоя роль</p><b>${prop ? 'Ты — бочка' : 'Ты — ловец'}</b>
-        <small>${prop ? '2 кляксы — и ты пойман' : 'Стреляй краской в подозрительное'}</small></div></div>
+      html += slot('tl', `<div class="k-plate mo-role"><span class="mo-role-ic">${img(prop ? IC.box : IC.balls, '')}</span><div><b>${prop ? 'Ты — бочка' : 'Ты — ловец'}</b>
+        <small>${prop ? '2 кляксы — и ты пойман' : 'крась подозрительное'}</small></div></div>
         <div class="mo-feed"><div class="k-plate mo-feed-line">Паша стал горшком с цветком</div><div class="k-plate mo-feed-line is-big">Ловец нашёл ведро</div></div>`);
       html += slot('tr', badge());
       html += chatDock();
@@ -350,11 +351,11 @@ function hide(h) {
           <div class="k-vitals-hp">${prop
             ? `<div class="k-vitals-row"><img class="k-vitals-ic" src="${IC.paint}" alt=""><b class="k-vitals-num">2<small>клякс</small></b></div>${bars(1, 'k-meter--bad')}<span class="k-vitals-cap">до поимки</span>`
             : `<div class="k-vitals-row"><img class="k-vitals-ic" src="${IC.paint}" alt=""><b class="k-vitals-num">74<small>/ 100</small></b></div>${bars(0.74, 'k-meter--mode')}`}</div>
-          <div class="k-vitals-arms">${prop
-            ? `<div class="k-arm"><img src="${IC.lock}" alt=""><span>Замереть</span><kbd class="k-key k-key--sm k-key--tr">F</kbd></div><div class="k-arm"><img src="${IC.compass}" alt=""><span>Повернуть</span><kbd class="k-key k-key--sm k-key--tr">R</kbd></div><div class="k-arm"><img src="${IC.emote}" alt=""><span>Дразнить</span><kbd class="k-key k-key--sm k-key--tr">Z</kbd></div>`
+          <div class="k-vitals-arms${prop ? ' mo-acts3' : ''}">${prop
+            ? `<div class="k-arm k-arm--label"><img src="${IC.lock}" alt=""><span>Замри</span><kbd class="k-key k-key--sm k-key--tr">F</kbd></div><div class="k-arm k-arm--label"><img src="${IC.compass}" alt=""><span>Поверни</span><kbd class="k-key k-key--sm k-key--tr">R</kbd></div><div class="k-arm k-arm--label"><img src="${IC.emote}" alt=""><span>Дразни</span><kbd class="k-key k-key--sm k-key--tr">Z</kbd></div>`
             : `<div class="k-arm is-on"><img src="${IC.balls}" alt=""><span>Краска</span>${kkm('l').replace('class="k-key"', 'class="k-key k-key--sm k-key--tr"')}</div>`}</div>
           <div class="k-vitals-ammo">${prop
-            ? `<span class="k-vitals-cap">Вздрогнешь через</span><div class="k-vitals-row"><b class="k-vitals-num">12<small>с</small></b></div>${bars(0.4, 'k-meter--thin')}`
+            ? `<span class="k-vitals-cap">вздрогнешь через</span><div class="k-vitals-row"><b class="k-vitals-num">12<small>с</small></b></div>${bars(0.4, 'k-meter--thin')}`
             : `<span class="k-vitals-cap">мимо −20 · попал +30</span><div class="k-vitals-row"><b class="k-vitals-num">100<small>%</small></b></div>${bars(1, 'k-meter--thin')}`}</div></div>`);
         html += `<div class="k-cross"><i></i><i></i><i></i><i></i></div>`;
       } else {
@@ -390,7 +391,7 @@ function sky(h) {
       const run = st === 'run';
       let html = '';
       html += slot('tl', `<div class="k-plate mo-sec"><p class="k-eyebrow">Участок ${run ? 4 : 1} из 10</p><b class="mo-sec-name">${run ? 'Поршни' : 'Крыша'}</b>
-        <p class="mo-sec-rule">${run ? 'Таран отъехал назад — сейчас ударит' : 'Разбег и прыжок. Жёлтый гриб подбрасывает'}</p></div>`);
+        <p class="mo-sec-rule">${run ? 'таран отъехал — сейчас ударит' : 'разбег и прыжок · гриб подбросит'}</p></div>`);
       html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.gold, '')}</span><div class="k-event-title">Золото — до 2:00</div>
         <div class="k-event-sub">${run ? 'Рекорд 2:31 · падений 1' : 'Рекорд 2:31'}</div><div class="k-event-timer">${run ? '1:12.40' : '0:00.00'}</div>${meter(run ? 0.6 : 0, 'k-meter--thin k-meter--mode')}</div>`);
       html += slot('tr', badge());
@@ -429,26 +430,26 @@ function pirates(h) {
   stage(h, {
     id: 'pirates', mode: 'pirates', bg: IMG('pier-sun.jpg'),
     title: 'Пираты: набег',
-    note: 'Пираты, шторм и аквапарк теперь делят одну плашку события сверху по центру — раньше три их плашки лезли друг на друга. Стрелки к угрозам у края — те же, что в крепости, с иконкой и метрами. Ящики — карточкой под бейджем.',
+    note: 'Пираты, шторм и аквапарк теперь делят одну плашку события сверху по центру — раньше три их плашки лезли друг на друга. Стрелки к угрозам у края — те же, что в крепости, с иконкой и метрами. Украденные ящики — плиткой под бейджем.',
     states: [{ id: 'warn', label: 'Пираты на горизонте' }, { id: 'raid', label: 'Набег' }, { id: 'result', label: 'Итоги' }],
     render(scene, st, api) {
       let html = '';
       if (st === 'warn') {
-        html += slot('tc', `<div class="k-event k-event--danger k-lamp"><span class="k-event-ic">${img(IC.pirate, '')}</span><div class="k-event-title">Пираты на горизонте!</div><div class="k-event-sub">Высадка через 24 с — занимай место у причала</div><div class="k-event-timer is-hurry">0:24</div>${meter(0.8, 'k-meter--thin k-meter--bad')}</div>`);
+        html += slot('tc', `<div class="k-event k-event--danger k-lamp"><span class="k-event-ic">${img(IC.pirate, '')}</span><div class="k-event-title">Пираты на горизонте!</div><div class="k-event-sub">высадка через 24 с — к причалу</div><div class="k-event-timer is-hurry">0:24</div>${meter(0.8, 'k-meter--thin k-meter--bad')}</div>`);
         html += slot('tr', badge());
         html += slot('bc', `<div class="k-plate mo-tasks">
-          <div class="mo-task"><span class="k-key">${K.mouse('l')}</span><span><b>Красить воров</b> — краска по тем, кто тащит ящик</span></div>
-          <div class="mo-task"><span class="k-key k-key--wide">У пушки ${K.mouse('l')}</span><span><b>Ядром по шлюпкам</b></span></div>
-          <div class="mo-task"><span class="k-key">${img(IC.loot, 'mo-task-ic')}</span><span><b>Коснись брошенного ящика</b> — спасёшь</span></div></div>`);
+          <div class="mo-task"><span class="k-key">${K.mouse('l')}</span><span><b>Крась воров</b> с ящиками</span></div>
+          <div class="mo-task"><span class="k-key k-key--wide">пушка ${K.mouse('l')}</span><span><b>Ядром</b> по шлюпкам</span></div>
+          <div class="mo-task"><span class="k-key">${img(IC.loot, 'mo-task-ic')}</span><span><b>Коснись ящика</b> — спасёшь</span></div></div>`);
       } else if (st === 'raid') {
-        html += slot('tc', `<div class="k-event k-event--danger"><span class="k-event-ic">${img(IC.pirate, '')}</span><div class="k-event-title">Волна 2 из 4</div><div class="k-event-sub">Шлюпки идут к причалам — смотри на кольца</div><div class="k-event-timer">2:41</div>${meter(0.6, 'k-meter--bad', 'Корабль пиратов')}</div>`);
-        html += slot('tr', badge() + `<div class="k-ctx"><img class="k-ctx-ic" src="${IC.loot}" alt=""><span class="k-ctx-title">Украдено 3 из 6</span><span class="k-ctx-val">на причале 9 ящиков</span>${meter(0.5, 'k-meter--thin k-meter--bad')}</div>`);
-        html += slot('bc', `<div class="k-prompt mo-noshrink">${kkm('l')}Красить воров<span class="k-prompt-sep"></span><span class="k-prompt-note">у пушки — ядром по шлюпкам</span></div>`);
+        html += slot('tc', `<div class="k-event k-event--danger"><span class="k-event-ic">${img(IC.pirate, '')}</span><div class="k-event-title">Волна 2 из 4</div><div class="k-event-sub">шлюпки к причалам · корабль <b>60 %</b></div><div class="k-event-timer">2:41</div>${meter(0.6, 'k-meter--thin k-meter--bad')}</div>`);
+        html += slot('tr', badge() + tile(IC.loot, 'украли 3/6', '9 на причале', 'k-tile--warn'));
+        html += slot('bc', `<div class="k-prompt mo-noshrink">${kkm('l')}Крась воров<span class="k-prompt-sep"></span><span class="k-prompt-note">у пушки — ядром</span></div>`);
         html += `<div class="k-cross"><i></i><i></i><i></i><i></i></div>`;
-        html += edge('bad', 58, 410, 180, 'left', IC.pirate, 'вор с ящиком · <b>14 м</b>', ' is-hot');
-        html += edge('info', 1382, 330, 0, 'right', IC.dinghy, 'шлюпка · <b>31 м</b>');
-        html += edge('bad', 1382, 560, 0, 'right', IC.pirate, 'капитан · <b>22 м</b>', ' k-edge--lg');
-        html += edge('gold', 58, 640, 180, 'left', IC.loot, 'брошенный ящик · <b>9 м</b>');
+        html += edge('bad', 40, 410, 180, 'left', IC.pirate, 'вор с ящиком · <b>14 м</b>', ' is-hot');
+        html += edge('info', 1400, 330, 0, 'right', IC.dinghy, 'шлюпка · <b>31 м</b>');
+        html += edge('bad', 1400, 560, 0, 'right', IC.pirate, 'капитан · <b>22 м</b>', ' k-edge--lg');
+        html += edge('gold', 40, 640, 180, 'left', IC.loot, 'ящик · <b>9 м</b>');
       }
       html += chatDock();
       if (st === 'result') {
@@ -480,11 +481,11 @@ function storm(h) {
     render(scene, st, api) {
       let html = '';
       if (st === 'warn') {
-        html += slot('tc', `<div class="k-event k-lamp"><span class="k-event-ic">${img(IC.storm, '')}</span><div class="k-event-title">Шторм на подходе</div><div class="k-event-sub">Иди к двери маяка по мосткам: когда погаснет свет — E или клик у двери</div><div class="k-event-timer">0:45</div>${meter(0.25, 'k-meter--thin k-meter--mode')}</div>`);
-        html += slot('bc', `<div class="k-prompt k-prompt--off mo-noshrink">${kk('E')}Зажечь маяк<span class="k-prompt-sep"></span><span class="k-prompt-note">Маяк ещё горит · свет погаснет через 12 с</span></div>`);
+        html += slot('tc', `<div class="k-event k-lamp"><span class="k-event-ic">${img(IC.storm, '')}</span><div class="k-event-title">Шторм на подходе</div><div class="k-event-sub">иди к маяку: погаснет свет — E у двери</div><div class="k-event-timer">0:45</div>${meter(0.25, 'k-meter--thin k-meter--mode')}</div>`);
+        html += slot('bc', `<div class="k-prompt k-prompt--off mo-noshrink">${kk('E')}Зажечь маяк<span class="k-prompt-sep"></span><span class="k-prompt-note">погаснет через 12 с</span></div>`);
       } else if (st === 'storm') {
-        html += slot('tc', `<div class="k-event k-event--danger"><span class="k-event-ic">${img(IC.storm, '')}</span><div class="k-event-title">Зажги маяк</div><div class="k-event-sub">Волна каждые 6 с · на площади безопасно</div><div class="k-event-timer">1:12</div>${meter(0.4, 'k-meter--thin k-meter--bad')}
-          </div><div class="k-toasts"><div class="k-toast k-toast--warn"><span class="k-toast-ic">${img(IC.warn, '')}</span><div class="k-toast-title">Пена!</div><div class="k-toast-sub">Через 3 с волна — прыгай или уйди с мостков</div></div></div>`);
+        html += slot('tc', `<div class="k-event k-event--danger"><span class="k-event-ic">${img(IC.storm, '')}</span><div class="k-event-title">Зажги маяк</div><div class="k-event-sub">волна каждые 6 с · на площади безопасно</div><div class="k-event-timer">1:12</div>${meter(0.4, 'k-meter--thin k-meter--bad')}
+          </div><div class="k-toasts"><div class="k-toast k-toast--warn"><span class="k-toast-ic">${img(IC.warn, '')}</span><div class="k-toast-title">Пена!</div><div class="k-toast-sub">через 3 с волна — прыгай или уйди</div></div></div>`);
         html += slot('bc', `<div class="k-prompt mo-noshrink">${kk('E')}Зажечь маяк<span class="k-prompt-sep"></span><span class="k-pill k-pill--gold k-pill--sm">${coin}30 первому</span></div>`);
       } else {
         html += slot('tc', `<div class="k-event k-event--good"><span class="k-event-ic">${img(IC.lighthouse, '')}</span><div class="k-event-title">Шторм стих</div><div class="k-event-sub">Первый: Паша · ещё 8 с на финиш</div></div>
@@ -506,10 +507,10 @@ function aqua(h) {
     states: [{ id: 'hint', label: 'На мостике' }, { id: 'run', label: 'Заплыв' }, { id: 'done', label: 'Финиш' }],
     render(scene, st, api) {
       let html = '';
-      if (st === 'run') html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.slide, '')}</span><div class="k-event-title">Аквапарк «Волна»</div><div class="k-event-sub">Рекорд полосы 0:48,2 · упал — снова на мостик</div><div class="k-event-timer">0:23,4</div></div>`);
-      if (st === 'done') html += slot('tc', `<div class="k-event k-event--good k-lamp"><span class="k-event-ic">${img(IC.flag, '')}</span><div class="k-event-title">Финиш!</div><div class="k-event-sub">Новый рекорд полосы — на 1,3 с быстрее прошлого</div><div class="k-event-timer">0:46,9</div></div>
-        <div class="k-toasts"><div class="k-toast k-toast--reward"><span class="k-toast-ic">${img(IC.watch, '')}</span><div class="k-toast-title">Твой рекорд: 0:46,9</div><div class="k-toast-sub">Доска рекордов у мостика обновилась</div></div></div>`);
-      if (st === 'hint') html += slot('bc', `<div class="k-prompt mo-noshrink">${img(IC.slide)}Сойди с мостика на запад — пойдёт время<span class="k-prompt-sep"></span><span class="k-pill k-pill--gold k-pill--sm">${img(IC.watch)}рекорд 0:48,2</span></div>`);
+      if (st === 'run') html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.slide, '')}</span><div class="k-event-title">Аквапарк «Волна»</div><div class="k-event-sub">рекорд 0:48,2 · упал — снова на мостик</div><div class="k-event-timer">0:23,4</div></div>`);
+      if (st === 'done') html += slot('tc', `<div class="k-event k-event--good k-lamp"><span class="k-event-ic">${img(IC.flag, '')}</span><div class="k-event-title">Финиш!</div><div class="k-event-sub">рекорд полосы — на 1,3 с быстрее</div><div class="k-event-timer">0:46,9</div></div>
+        <div class="k-toasts"><div class="k-toast k-toast--reward"><span class="k-toast-ic">${img(IC.watch, '')}</span><div class="k-toast-title">Твой рекорд: 0:46,9</div><div class="k-toast-sub">доска рекордов у мостика обновилась</div></div></div>`);
+      if (st === 'hint') html += slot('bc', `<div class="k-prompt mo-noshrink">${img(IC.slide)}С мостика на запад — пойдёт время<span class="k-prompt-sep"></span><span class="k-pill k-pill--gold k-pill--sm">${img(IC.watch)}рекорд 0:48,2</span></div>`);
       html += slot('tr', badge({ pop: st === 'done' ? '+10' : '' }));
       html += chatDock();
       scene.innerHTML = html;
@@ -575,9 +576,9 @@ function rats(h) {
         return;
       }
       html += chatDock();
-      html += slot('tr', badge({ pop: st === 'win' ? '+500' : '' }) + `<div class="k-ctx k-ctx--own"><img class="k-ctx-ic" src="${IC.rat}" alt=""><span class="k-ctx-title">${st === 'win' ? 'Твоя ставка сыграла' : 'Твоя ставка · Пуля ×5'}</span><span class="k-ctx-val">${st === 'win' ? `${coin}+500` : `100 → ${coin}500`}</span></div>`
+      html += slot('tr', badge({ pop: st === 'win' ? '+500' : '' }) + tile(IC.rat, st === 'win' ? 'сыграла!' : 'Пуля ×5', st === 'win' ? `${coin}+500` : `100 → ${coin}500`, 'k-tile--own')
         + ratList(st === 'open' ? [0, 1, 2, 3, 4, 5] : st === 'run' ? [1, 2, 0, 5, 3, 4] : [0, 2, 1, 5, 3, 4], { places: st !== 'open' }));
-      if (st === 'open') html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.rat, '')}</span><div class="k-event-title">Приём ставок</div><div class="k-event-sub">Ты поставил на Пулю · банк 340 · 4 ставки</div><div class="k-event-timer is-hurry">0:05</div>${meter(0.3, 'k-meter--thin k-meter--mode')}</div>`);
+      if (st === 'open') html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.rat, '')}</span><div class="k-event-title">Приём ставок</div><div class="k-event-sub">твоя — Пуля · банк 340 · 4 ставки</div><div class="k-event-timer is-hurry">0:05</div>${meter(0.3, 'k-meter--thin k-meter--mode')}</div>`);
       if (st === 'run') html += slot('tc', `<div class="k-event"><span class="k-event-ic">${img(IC.rat, '')}</span><div class="k-event-title">Забег! Впереди Соня</div><div class="k-event-sub">Твоя Пуля — 3-я · ставка 100</div></div>`);
       if (st === 'win') {
         html += slot('tc', `<div class="k-event k-event--good k-lamp"><span class="k-event-ic">${img(IC.rat, '')}</span><div class="k-event-title">Победила Пуля ×5!</div><div class="k-event-sub">Выплачено 640 · ставок было 4</div></div>`);
@@ -633,11 +634,11 @@ function roulette(h) {
         return;
       }
       html += chatDock();
-      const bet = `<div class="k-ctx k-ctx--own"><img class="k-ctx-ic" src="${IC.roulette}" alt=""><span class="k-ctx-title">Твоя ставка · красное</span><span class="k-ctx-val">весь улов ${coin}412</span></div>`;
+      const bet = tile(IC.roulette, 'красное', `улов ${coin}412`, 'k-tile--own');
       html += slot('tr', badge({ pop: st === 'win' ? '+824' : '' }) + (st === 'win' || st === 'lose' ? '' : bet));
       const ev = {
-        open: ['icon', 'Приём ставок', 'Твоя ставка: красное · 412 · ставок за столом: 2', '<div class="k-event-timer">0:08</div>' + meter(0.8, 'k-meter--thin k-meter--mode')],
-        spin: ['icon', 'Колесо крутится…', 'Твоя ставка: красное · 412', ''],
+        open: ['icon', 'Приём ставок', 'твоя — красное, 412 · ставок 2', '<div class="k-event-timer">0:08</div>' + meter(0.8, 'k-meter--thin k-meter--mode')],
+        spin: ['icon', 'Колесо крутится…', 'твоя — красное, 412', ''],
         win: ['ball12', 'Выпало 12 — красное', 'Колесо остановилось', ''],
         lose: ['ball17', 'Выпало 17 — чёрное', 'Колесо остановилось', ''],
       }[st];
@@ -645,7 +646,7 @@ function roulette(h) {
       html += slot('tc', `<div class="k-event${st === 'win' ? ' k-event--good k-lamp' : ''}"><span class="k-event-ic">${icon}</span><div class="k-event-title">${ev[1]}</div><div class="k-event-sub">${ev[2]}</div>${ev[3]}</div>`);
       if (st === 'win') html += `<div class="k-slot k-slot--c"><div class="k-hero k-hero--gold is-pop"><p class="k-hero-title">Выигрыш!</p><span class="k-hero-sub">${coin}+824 жетона за улов</span></div></div>`;
       if (st === 'lose') html += `<div class="k-slot k-slot--c"><div class="k-hero k-hero--lose is-pop"><p class="k-hero-title is-sm">Улов ушёл в море…</p><span class="k-hero-sub">${coin}412 — в следующий раз повезёт</span></div></div>`;
-      html += slot('bc', st === 'open' ? `<div class="k-prompt mo-noshrink">${kk('E')}Поменять ставку<span class="k-prompt-sep"></span><span class="k-prompt-note">приём ставок ещё 8 с</span></div>` : st === 'spin' ? `<div class="k-prompt k-prompt--off mo-noshrink">${kk('E')}Поставить<span class="k-prompt-note">Колесо крутится — ставь в следующем раунде</span></div>` : `<div class="k-prompt mo-noshrink">${kk('E')}Играть ещё</div>`);
+      html += slot('bc', st === 'open' ? `<div class="k-prompt mo-noshrink">${kk('E')}Поменять ставку<span class="k-prompt-sep"></span><span class="k-prompt-note">приём ставок ещё 8 с</span></div>` : st === 'spin' ? `<div class="k-prompt k-prompt--off mo-noshrink">${kk('E')}Поставить<span class="k-prompt-note">ставь в следующем раунде</span></div>` : `<div class="k-prompt mo-noshrink">${kk('E')}Играть ещё</div>`);
       scene.innerHTML = html;
     },
   });
@@ -674,7 +675,8 @@ function keep(h) {
       let html = '';
       if (st === 'dg') {
         // две кнопки Подземелья (счётчик и пауза) встают под бейдж, а их старое место и старая кнопка голоса закрыты куском того же пола
-        html += patch(1262, 56, 166, 56, 1262, 130, file) + patch(1262, 100, 166, 54, 1262, 56, file) + patch(1300, 6, 128, 16, 1300, 190, file);
+        // v2: бейдж ниже не 96, а 60 — кнопки встают сразу под ним (y 70)
+        html += patch(1262, 56, 166, 16, 1262, 160, file) + patch(1262, 70, 166, 54, 1262, 56, file) + patch(1300, 6, 128, 16, 1300, 190, file);
       }
       html += slot('tr', badge());
       html += st === 'dg' ? `<div class="k-slot k-slot--bl" style="left:96px">${voice}</div>` : slot('bl', voice);

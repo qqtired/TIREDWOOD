@@ -1,96 +1,78 @@
-/* Крепость: раскладка поверх кита (префикс .ft-). Цвета и тени — только токены. Боевые компоненты — kit/combat.css. */
+/* Крепость: раскладка поверх кита (префикс .ft-). Цвета и тени — только токены. Боевые компоненты — kit/combat.css.
+   v2: всё, что висит над боем, — компактно: карта 240×108, волна в одну строку + ряд врагов, плитки под бейджем. */
 
 /* заглушка-эмодзи, пока нет картинки (TODO icon) */
-.ft-emo { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; font-size: 22px; line-height: 1; vertical-align: middle; }
-.k-event-ic .ft-emo { font-size: 30px; }
-.k-toast-ic .ft-emo { font-size: 24px; }
-.k-edge-disc .ft-emo { font-size: 30px; }
-.k-pill .ft-emo { width: 26px; height: 26px; font-size: 18px; }
-.ft-foe .ft-emo { width: 44px; height: 44px; font-size: 30px; }
+.ft-emo { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; font-size: 20px; line-height: 1; vertical-align: middle; }
+.k-event-ic .ft-emo { font-size: 22px; }
+.k-toast-ic .ft-emo { font-size: 20px; }
+.k-edge-disc .ft-emo { font-size: 22px; }
+.k-pill .ft-emo { width: 22px; height: 22px; font-size: 16px; }
 
 /* золото крепости — горка самородков, не монета-жетон */
 .ft-nug { display: inline-block; flex: none; width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: -.3em; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .35)); }
-.k-pill .ft-nug { width: 24px; height: 24px; }
-.k-pill--lg .ft-nug { width: 28px; height: 28px; }
-.ft-gold .k-ctx-ic { width: 46px; height: 46px; }
-.ft-plus { margin-left: 8px; color: var(--good-text); font: 900 var(--fs-16)/1 var(--font-text); }
+.k-pill .ft-nug { width: 22px; height: 22px; }
+.k-pill--lg .ft-nug { width: 26px; height: 26px; }
 .ft-sub { margin-left: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
 .ft-still { animation: none !important; opacity: 1; }
+.ft-plus { color: var(--good-text); font-weight: 800; }
 
-/* ---------------------------------------------------------------- ВЛ: карта + ворота + кристалл + колокол */
-.ft-fort { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 14px; width: 360px; padding: 10px 14px 10px 10px; }
-.ft-map { width: 132px; height: 132px; overflow: hidden; border-radius: var(--r-md); box-shadow: inset 0 0 0 2px var(--line-strong); }
+/* ---------------------------------------------------------------- ВЛ: карта 96 + ворота/кристалл двумя тонкими полосами + колокол (240×108) */
+.ft-fort { display: grid; grid-template-columns: 96px 127px; align-items: center; gap: 7px; width: 240px; padding: 6px 5px; }
+.ft-map { width: 96px; height: 96px; overflow: hidden; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
 .ft-map-svg { display: block; width: 100%; height: 100%; }
-.ft-hps { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.ft-hp { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: 'ic name pct' 'ic bar bar'; align-items: center; gap: 2px 8px; margin: -3px -6px; padding: 3px 6px; border-radius: var(--r-sm); }
-.ft-hp-ic { grid-area: ic; width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
-.ft-hp-name { grid-area: name; color: var(--surf-dim); font: 700 var(--fs-14)/1.1 var(--font-text); }
-.ft-hp-pct { grid-area: pct; font: 900 var(--fs-22)/1 var(--font-text); }
-.ft-hp > .k-meter { grid-area: bar; }
+.ft-hps { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.ft-hp { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'name pct' 'bar bar'; align-items: center; gap: 3px 4px; margin: -2px -3px; padding: 2px 3px; border-radius: var(--r-sm); }
+.ft-hp-name { grid-area: name; overflow: hidden; color: var(--surf-dim); font: 600 var(--fs-14)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.ft-hp-pct { grid-area: pct; font: 800 var(--fs-14)/1 var(--font-text); }
+.ft-hp > .k-meter { grid-area: bar; height: 4px; border: 0; }
 .ft-hp.is-low .ft-hp-pct { color: var(--bad-text); }
 .ft-hp.is-hit { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); animation: ft-hit .5s ease-in-out infinite alternate; }
-.ft-bell { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
-.ft-bell > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.ft-bell b { font: 800 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
-.ft-bell small { color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); white-space: nowrap; }
-.ft-bell img { flex: none; width: 24px; height: 24px; object-fit: contain; }
-@keyframes ft-hit { to { box-shadow: inset 0 0 0 2.5px var(--bad), 0 0 16px var(--bad-soft); } }
+.ft-bell { display: flex; align-items: center; gap: 5px; font: 700 var(--fs-13)/1.1 var(--font-text); white-space: nowrap; }
+.ft-bell img { flex: none; width: 18px; height: 18px; object-fit: contain; }
+.ft-bell b { font-weight: 700; }
+@keyframes ft-hit { to { box-shadow: inset 0 0 0 2px var(--bad), 0 0 10px var(--bad-soft); } }
 
-/* ---------------------------------------------------------------- ВП: команда */
-.ft-team-card .k-ctx-val { white-space: normal; }
-.ft-team { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 800 var(--fs-14)/1.3 var(--font-text); }
-.ft-mate { display: inline-flex; align-items: center; gap: 5px; color: var(--surf-text); }
-.ft-mate::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--nick); box-shadow: 0 0 0 1.5px var(--line-strong); }
-.ft-mate.is-me { color: var(--gold-text); }
-.ft-mate.is-down { color: var(--bad-text); }
-.ft-mate.is-down::before { background: var(--bad); }
-.ft-mate.is-down small { font-size: var(--fs-13); font-weight: 700; }
-.ft-team-card:has(.is-ready) .ft-mate:not(.is-ready) { opacity: .55; }
-.ft-mate.is-ready::before { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+/* ---------------------------------------------------------------- ВП: плитка «команда» — точки цветов ников внизу подложки */
+.k-tile-face:has(> .ft-dots) > img { width: 34px; height: 34px; margin-top: -8px; }
+.ft-dots { position: absolute; left: 0; right: 0; bottom: 5px; display: flex; justify-content: center; gap: 3px; }
+.ft-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--nick); box-shadow: 0 0 0 1px var(--line-strong); }
+.ft-dots i.is-down { background: var(--bad); box-shadow: 0 0 0 1.5px var(--bad-text); }
+.ft-dots i.is-ready { box-shadow: 0 0 0 2px var(--good); }
 
-/* ---------------------------------------------------------------- ВЦ: плашка волны */
-.ft-wave { width: 560px; }
+/* ---------------------------------------------------------------- ВЦ: плашка волны (kit .k-event) + маленький ряд врагов */
 .ft-of { color: var(--surf-dim); font-weight: 600; }
-.ft-left { display: flex; flex-direction: column; align-items: flex-end; line-height: .95; }
-.ft-left small { margin-top: 3px; color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
-.ft-foes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.ft-chip { gap: 5px; padding-left: 5px; }
-.ft-chip .k-ic, .ft-chip .ft-emo { width: 28px; height: 28px; }
-.ft-new { margin-right: 2px; font-weight: 900; }
-/* передышка: видимая легенда врагов */
-.ft-legend { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
-.ft-foe { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 48px; padding: 4px 12px 4px 4px; border-radius: var(--r-sm); background: var(--surf-2); }
-.ft-foe-ic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
-.ft-foe-t { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
-.ft-foe-t b { font: 800 var(--fs-16)/1.15 var(--font-text); }
-.ft-foe-hint { flex-basis: 100%; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
-.ft-foe-n { font: 900 var(--fs-22)/1 var(--font-text); }
-.ft-foe.is-new { box-shadow: inset 0 0 0 2px var(--gold); background: var(--gold-soft); }
-.ft-foe.is-new, .ft-foe.is-boss { grid-column: 1 / -1; }
-.ft-foe.is-boss { box-shadow: inset 0 0 0 2px var(--bad); background: var(--bad-soft); }
-.ft-roads { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
-.ft-roads-h { margin-right: 4px; color: var(--surf-dim); font: 700 var(--fs-14)/1 var(--font-text); }
-.ft-road-off { opacity: .45; }
-.ft-roads .k-pill .k-ic { width: 22px; height: 22px; }
-.ft-evline { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 8px; font: 500 var(--fs-14)/1.25 var(--font-text); color: var(--surf-dim); }
-.ft-evline b { color: var(--surf-text); font-weight: 800; white-space: nowrap; }
-.ft-bellline { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 7px 12px 7px 8px; border-radius: var(--r-md); background: var(--gold-soft); font: 500 var(--fs-16)/1.25 var(--font-text); }
-.ft-bellline img { flex: none; width: 30px; height: 30px; object-fit: contain; }
+.ft-left small { margin-right: 4px; color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.k-event-sub.ft-foes { display: flex; align-items: center; gap: 9px; margin-top: 2px; color: var(--plate-text); font: 800 var(--fs-13)/1 var(--font-text); }
+.k-event-sub.ft-foes--row { grid-column: 1 / -1; grid-row: 3; margin-top: 6px; padding-left: 2px; }
+.ft-chip { display: inline-flex; flex: none; align-items: center; gap: 2px; }
+.ft-chip-ic { width: 20px; height: 20px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .3)); }
+.ft-chip .ft-emo { width: 20px; height: 20px; font-size: 15px; }
+.ft-chip.is-new { padding: 1px 6px 1px 2px; border-radius: var(--r-pill); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); color: var(--gold-text); }
+.ft-chip.is-boss { padding: 1px 6px 1px 2px; border-radius: var(--r-pill); background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); color: var(--bad-text); }
+/* голосование «сдаться»: вопрос и две маленькие кнопки в одну строку */
+.ft-vote .k-event-sub b { color: var(--plate-text); font-weight: 800; }
+.ft-vote > .k-event-actions { grid-column: 3; grid-row: 1 / span 2; gap: 14px; margin: 0 4px 0 8px; }
+.ft-vote .k-btn--sm { min-height: 32px; padding: 3px 12px 4px; font-size: var(--fs-14); }
 
-/* ---------------------------------------------------------------- босс в той же плашке */
-.ft-boss .k-meter--lg { margin-top: 10px; }
-.ft-window { grid-column: 1 / -1; margin-top: 6px; }
-.ft-parts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
-.ft-part { display: flex; flex-direction: column; gap: 4px; color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+/* ---------------------------------------------------------------- босс: та же плашка, полоса 16 с числом, строка «что делать» */
+.ft-boss { width: 420px; }
+.ft-boss .k-event-timer { color: var(--plate-text); }
+.ft-boss > .k-meter.ft-bar { height: 16px; margin-top: 7px; border: var(--track-border); }
+.ft-boss > .k-meter.ft-bar + .k-meter.ft-bar { margin-top: 4px; }
+.ft-bar .k-meter-label { font-size: var(--fs-13); }
+.ft-parts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.ft-part { display: flex; flex-direction: column; gap: 3px; color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.ft-part > .k-meter { height: 4px; border: 0; }
 .ft-part.is-off { opacity: .5; }
-.ft-do { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 7px 12px 7px 8px; border-radius: var(--r-md); background: var(--surf-3); font: 500 var(--fs-16)/1.25 var(--font-text); }
-.ft-do img { flex: none; width: 32px; height: 32px; object-fit: contain; }
+.ft-do { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; margin-top: 7px; padding: 4px 10px 4px 5px; overflow: hidden; border-radius: var(--r-sm); background: var(--surf-3); font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.ft-do > span { overflow: hidden; text-overflow: ellipsis; }
+.ft-do img { flex: none; width: 20px; height: 20px; object-fit: contain; }
 .ft-do b { font-weight: 800; }
-.ft-do.is-danger { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); }
-.ft-do.is-go { background: var(--info-soft); box-shadow: inset 0 0 0 1.5px var(--info); }
+.ft-do.is-danger { background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); }
+.ft-do.is-go { background: var(--info-soft); box-shadow: inset 0 0 0 1px var(--info); }
 
 /* ---------------------------------------------------------------- прилавок (немодальный, справа) */
-.ft-stall-wrap { position: absolute; z-index: 12; top: 104px; right: var(--edge); bottom: var(--edge); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: var(--edge); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
 .ft-stall { width: 100%; max-height: 100%; }
 .ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
 .ft-stall .k-win-portrait { width: 52px; height: 52px; }
@@ -131,11 +113,11 @@ button.ft-row:active { transform: translateY(1px); }
 /* ---------------------------------------------------------------- повалили */
 .ft-hush { opacity: .55; filter: saturate(.5); }
 .stage-scale:has(.ft-down) .stage-bg { filter: grayscale(.8) brightness(.72); }
-.k-slot--c.ft-down { top: 47%; gap: 18px; }
-.ft-respawn { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 340px; padding: 14px 20px 16px; font: 700 var(--fs-16)/1.2 var(--font-text); }
-.ft-respawn b { font: 900 var(--fs-36)/1 var(--font-text); }
-.ft-respawn .k-meter { width: 100%; margin-top: 4px; }
-.ft-respawn .ft-sub { margin: 2px 0 0; }
+.k-slot--c.ft-down { top: 44%; gap: 14px; }
+.ft-respawn { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 10px; width: 240px; padding: 8px 14px 9px; font: 600 var(--fs-14)/1.2 var(--font-text); }
+.ft-respawn b { color: var(--good-text); font: 800 var(--fs-22)/1 var(--font-text); }
+.ft-respawn .k-meter { grid-column: 1 / -1; width: 100%; height: 4px; border: 0; }
+.ft-respawn .ft-sub { grid-column: 1 / -1; margin: 0; font-size: var(--fs-13); }
 
 /* ---------------------------------------------------------------- Tab и итоги */
 .ft-scrim-light { background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, .2), rgba(16, 10, 12, .45)); }
@@ -154,12 +136,12 @@ button.ft-row:active { transform: translateY(1px); }
 .ft-results .k-table tr.ft-total td { background: var(--surf-3); font-weight: 800; }
 
 /* ---------------------------------------------------------------- новичку: карточка в стопке + подсветка того, о чём речь */
-.ft-coach { max-width: 540px; padding-bottom: 12px; box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--mode); }
+.ft-coach { max-width: 360px; align-items: start; padding-top: 8px; padding-bottom: 9px; box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--mode); }
 .ft-coach::after { background: var(--mode); }
-.ft-coach-n { display: block; margin-bottom: 3px; color: var(--mode); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
-.ft-coach .k-toast-sub { color: var(--surf-text); font-size: var(--fs-16); line-height: 1.4; }
+.ft-coach-n { display: block; margin-bottom: 3px; color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .06em; text-transform: uppercase; }
+.ft-coach .k-toast-sub { color: var(--surf-text); font-size: var(--fs-14); line-height: 1.4; white-space: normal; }
 .ft-coach .k-key { vertical-align: 1px; }
-.ft-coach-time { grid-column: 2; margin-top: 8px; }
+.ft-coach-time { grid-column: 2; height: 4px; margin-top: 7px; border: 0; }
 .ft-spot { outline: 3px solid var(--gold); outline-offset: 5px; box-shadow: var(--plate-shadow), 0 0 32px var(--gold) !important; animation: ft-spot 1.2s ease-in-out infinite alternate; }
 .k-arm.ft-spot { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 3px var(--gold), 0 0 24px var(--gold) !important; }
 @keyframes ft-spot { to { outline-offset: 8px; } }

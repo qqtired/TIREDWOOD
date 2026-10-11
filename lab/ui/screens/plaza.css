@@ -2,23 +2,23 @@
 
 /* круглая «марка» комнаты — кусок рисованной картинки экрана загрузки */
 .pz-room { display: inline-block; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #3a2b31 no-repeat; box-shadow: 0 0 0 2px var(--line-strong), 0 2px 3px rgba(0, 0, 0, .3); }
-.pz-room--lg { width: 48px; height: 48px; box-shadow: none; }
-.k-event-ic .pz-room--lg { width: 48px; height: 48px; }
+.pz-room--lg { width: 32px; height: 32px; box-shadow: none; }
+.k-event-ic .pz-room--lg { width: 32px; height: 32px; }
 
 /* где ты (верх-лево) */
-.pz-where { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 8px; border-radius: var(--r-pill); }
-.pz-where .pz-room { width: 44px; height: 44px; }
+.pz-where { display: flex; align-items: center; gap: 9px; height: 44px; padding: 3px 12px 3px 4px; border-radius: var(--r-pill); }
+.pz-where .pz-room { width: 36px; height: 36px; }
 .pz-where-t { display: flex; flex-direction: column; gap: 2px; }
-.pz-where-t b { font: 800 var(--fs-16)/1.1 var(--font-text); }
-.pz-where-t span { color: var(--surf-dim); font-size: var(--fs-14); }
-.pz-where-on { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; padding-left: 12px; border-left: 1px solid var(--line-strong); color: var(--surf-dim); font: 700 var(--fs-14)/1 var(--font-text); }
+.pz-where-t b { font: 800 var(--fs-14)/1.1 var(--font-text); }
+.pz-where-t span { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.pz-where-on { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding-left: 10px; border-left: 1px solid var(--line-strong); color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.pz-where-on .k-key { min-width: 22px; height: 22px; padding: 0 5px; font-size: var(--fs-13); }
 
 .pz-badge { margin-top: 0; }
-.pz-emotes { gap: 10px; min-height: 46px; padding: 6px 16px 6px 8px; }
+.pz-emotes { gap: 8px; min-height: 40px; padding: 4px 14px 4px 6px; font-size: var(--fs-15); }
 .pz-dash { color: var(--surf-dim); font-weight: 800; }
 
-/* чат */
-.pz-chat { width: 420px; }
+/* чат: ширина кита (360) */
 .pz-caret { margin-left: -6px; }
 .pz-chat-hint { margin-left: 64px; }
 
@@ -73,7 +73,7 @@
 .pz-device .k-ic { width: 40px; height: 40px; }
 .pz-device > span { display: flex; flex-direction: column; gap: 2px; }
 .pz-device .k-dim { font-size: var(--fs-14); }
-.pz-voice img { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
-.pz-emotes .k-ic { width: 30px; height: 30px; }
+.pz-voice img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.pz-emotes .k-ic { width: 24px; height: 24px; }
 .pz-leave .k-ic { width: 24px; height: 24px; }
 .pz-chat-hint { align-self: flex-start; }

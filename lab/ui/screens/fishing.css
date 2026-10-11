@@ -10,51 +10,53 @@
 .fi-tier { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 11px; border-radius: var(--r-pill); background: var(--tc); color: #fff; font: 900 var(--fs-14)/1 var(--font-text); letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(0, 0, 0, .3); white-space: nowrap; }
 .fi-tier--lg { min-height: 32px; padding: 5px 14px; font-size: var(--fs-16); }
 
-/* ------------------------------------------------------------------ ВЛ: карточка рыбалки */
-.fi-mode { display: flex; flex-direction: column; gap: 12px; width: 360px; padding: 12px 16px 16px 12px; border-radius: var(--r-lg); }
-.fi-mode-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 12px; }
+/* ------------------------------------------------------------------ ВЛ: карточка рыбалки (v2: ~80 % от v1 — 292 вместо 360, кольцо 40, легенда 13) */
+.fi-mode { display: flex; flex-direction: column; gap: 8px; width: 292px; padding: 9px 12px 11px 9px; border-radius: var(--r-md); }
+.fi-mode-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 10px; }
 .fi-mode-head > .k-ring { grid-row: span 2; }
-.fi-mode-t { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.fi-mode-t b { font: 800 var(--fs-18)/1.15 var(--font-text); white-space: nowrap; }
-.fi-mode-t span { color: var(--surf-dim); font: 600 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
-.fi-perk { display: flex; align-items: center; gap: 8px; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); white-space: nowrap; }
+.fi-mode-t { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fi-mode-t b { font: 800 var(--fs-16)/1.15 var(--font-text); white-space: nowrap; }
+.fi-mode-t span { color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.fi-perk { display: flex; align-items: center; gap: 6px; overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); white-space: nowrap; }
 .fi-perk b { color: var(--plate-text); font-weight: 800; }
-.fi-perk .fi-ic { width: 22px; height: 22px; }
-.fi-odds { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
-.fi-odds-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.fi-odds-t { display: inline-flex; align-items: center; gap: 8px; }
-.fi-odds-t img { width: 28px; height: 28px; margin: -6px 0; object-fit: contain; }
-.fi-odds-bar { display: flex; gap: 2px; height: 16px; overflow: hidden; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); }
-.fi-odds-bar > i { flex: var(--w) 1 0; min-width: 7px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 65%); }
-.fi-odds-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 14px; }
-.fi-odds-legend > span { display: flex; align-items: center; gap: 8px; font: 500 var(--fs-14)/1.2 var(--font-text); }
+.fi-perk .fi-ic { width: 18px; height: 18px; }
+.fi-odds { display: flex; flex-direction: column; gap: 6px; padding-top: 7px; border-top: 1px solid var(--line); }
+.fi-odds-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fi-odds-t { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-13); letter-spacing: .06em; white-space: nowrap; }
+.fi-odds-t img { width: 22px; height: 22px; margin: -4px 0; object-fit: contain; }
+.fi-odds-h .k-pill--sm { min-height: 24px; padding: 2px 9px 2px 6px; gap: 5px; font-size: var(--fs-13); }
+.fi-odds-h .k-pill--sm .k-ic { width: 18px; height: 18px; }
+.fi-odds-bar { display: flex; gap: 2px; height: 12px; overflow: hidden; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); }
+.fi-odds-bar > i { flex: var(--w) 1 0; min-width: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 65%); }
+.fi-odds-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 14px; }
+.fi-odds-legend > span { display: flex; align-items: center; gap: 6px; min-width: 0; font: 500 var(--fs-13)/1.2 var(--font-text); white-space: nowrap; }
 .fi-odds-legend > span b { margin-left: auto; font-weight: 800; }
+.fi-odds-legend .fi-dot { width: 10px; height: 10px; }
 .fi-odds-legend > span.is-zero { opacity: .5; }
-.fi-isle-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding-top: 10px; border-top: 1px solid var(--line); font: 700 var(--fs-16)/1.2 var(--font-text); }
-.fi-isle-row img { grid-row: span 2; width: 34px; height: 34px; object-fit: contain; }
+.fi-isle-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 3px 8px; padding-top: 7px; border-top: 1px solid var(--line); font: 700 var(--fs-14)/1.2 var(--font-text); }
+.fi-isle-row img { grid-row: span 2; width: 26px; height: 26px; object-fit: contain; }
 .fi-isle-row .k-meter { grid-column: 2 / -1; }
-.fi-mode .k-pop { right: auto; left: 18px; top: calc(100% + 8px); }
+.fi-mode .k-pop { right: auto; left: 14px; top: calc(100% + 6px); }
 
 /* ------------------------------------------------------------------ подсказка внизу: несколько клавиш в одной строке */
 .fi-prompt { gap: 10px; }
 .fi-prompt > .k-key + span, .fi-prompt > span + .k-prompt-sep { margin-left: -2px; }
-.fi-prompt .fi-k { display: inline-flex; align-items: center; gap: 9px; }
-.fi-prompt .fi-k > .k-key { min-width: 34px; height: 34px; font-size: var(--fs-16); }
-.fi-wait { display: inline-flex; align-items: center; gap: 10px; padding-left: 10px; }
-.fi-wait img { width: 34px; height: 34px; object-fit: contain; animation: fi-bob 2.4s ease-in-out infinite; }
+.fi-prompt .fi-k { display: inline-flex; align-items: center; gap: 8px; }
+.fi-wait { display: inline-flex; align-items: center; gap: 8px; padding-left: 6px; }
+.fi-wait img { width: 26px; height: 26px; object-fit: contain; animation: fi-bob 2.4s ease-in-out infinite; }
 @keyframes fi-bob { 50% { transform: translateY(3px) rotate(-4deg); } }
 
 /* ------------------------------------------------------------------ поклёвка: герой с клавишей */
 .fi-bite .k-hero-sub { gap: 12px; padding: 8px 20px 8px 10px; }
 
 /* ------------------------------------------------------------------ шкала вываживания: рамка кита вокруг игрового поля */
-.fi-reel { position: absolute; left: 858px; top: 160px; z-index: 15; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px; padding: 16px 18px 34px; border-radius: var(--r-lg); }
+.fi-reel { position: absolute; left: 868px; top: 170px; z-index: 15; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 236px; padding: 12px 14px 30px; border-radius: var(--r-md); }
 .fi-reel.is-blink .fi-reel-label .fi-tier { animation: fi-blink .6s ease-in-out infinite alternate; }
 @keyframes fi-blink { to { box-shadow: 0 0 18px var(--tc); } }
 .fi-reel-grade { display: flex; align-items: center; gap: 8px; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
 .fi-reel-grade b { font: 900 var(--fs-16)/1 var(--font-text); }
 .fi-g0 { color: var(--gold-text); } .fi-g1 { color: var(--good-text); } .fi-g2 { color: var(--info-text); } .fi-g3 { color: var(--plate-text); } .fi-g4 { color: var(--bad-text); }
-.fi-reel-hint { display: flex; align-items: center; gap: 8px; min-height: 32px; font: 700 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; }
+.fi-reel-hint { display: flex; align-items: center; gap: 8px; min-height: 30px; font: 700 var(--fs-15)/1.2 var(--font-text); white-space: nowrap; }
 .fi-reel-hint .k-key .k-mouse { font-size: 18px; }
 .fi-reel-urgent { min-height: 32px; font-size: var(--fs-16); font-weight: 900; }
 .fi-reel-res { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 32px; text-align: center; }
@@ -169,8 +171,7 @@
 .fi-fcard-art { display: grid; place-items: center; width: 100%; height: 62px; margin-bottom: 2px; border-radius: var(--r-sm); background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent); }
 .fi-fcard-art img { max-width: 92%; max-height: 56px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(10, 5, 8, .35)); }
 .fi-fcard:not(.is-got) .fi-fcard-art { background: none; }
-.fi-fcard:not(.is-got) .fi-fcard-art img { filter: brightness(0) opacity(.28); }
-[data-skin='postcard'] .fi-fcard:not(.is-got) .fi-fcard-art img { filter: brightness(0) opacity(.2); }
+.fi-fcard:not(.is-got) .fi-fcard-art img { filter: var(--sil); }
 .fi-fcard-name { max-width: 100%; font: 800 var(--fs-16)/1.15 var(--font-text); text-wrap: balance; }
 .fi-fcard:not(.is-got) .fi-fcard-name { color: var(--surf-dim); }
 .fi-fcard-line { color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
@@ -254,26 +255,29 @@
 .fi-boat .k-btn { margin-top: auto; }
 
 /* ------------------------------------------------------------------ своя лодка */
-.fi-boat-ic { display: block; width: 44px; height: 44px; border-radius: 50%; background: center / cover no-repeat; }
-.fi-speed { display: flex; align-items: baseline; gap: 6px; }
-.fi-speed small { color: var(--surf-dim); font: 700 var(--fs-16)/1 var(--font-text); }
-.fi-speed img { width: 40px; height: 40px; object-fit: contain; }
-.fi-nav-ic { display: grid; place-items: center; border-radius: 50%; background: var(--surf-3); box-shadow: inset 0 0 0 2px var(--mode); }
-.fi-nav-ic svg { width: 28px; height: 28px; color: var(--mode); transform: rotate(var(--a, 0deg)); }
-.fi-boatbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 320px; }
-.fi-boatbar .k-btn { min-width: 0; padding-left: 8px; padding-right: 8px; justify-content: flex-start; }
-.fi-boatbar .k-btn .k-ic { width: 30px; height: 30px; }
-.fi-radio { display: flex; flex-direction: column; gap: 12px; width: 320px; padding: 14px 16px 16px; }
-.fi-radio-h { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
-.fi-radio-h img { width: 40px; height: 40px; object-fit: contain; }
-.fi-radio-h b { font: 800 var(--fs-18)/1.15 var(--font-text); }
-.fi-station { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; width: 100%; padding: 9px 12px 9px 16px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; }
-.fi-station b { font: 800 var(--fs-16)/1.15 var(--font-text); }
-.fi-station span { grid-column: 1; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.fi-boat-ic { display: block; width: 32px; height: 32px; border-radius: 50%; background: center / cover no-repeat; }
+.fi-speed { display: flex; align-items: baseline; gap: 4px; }
+.fi-speed small { color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.fi-speed img { width: 26px; height: 26px; object-fit: contain; }
+/* стрелка «куда плыть» в плитке: цвет режима как текст (на светлом стекле темнеет, на тёмном светлеет) */
+.fi-nav { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--mode-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); }
+.fi-nav svg { width: 24px; height: 24px; color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); transform: rotate(var(--a, 0deg)); }
+.fi-boatbar { display: flex; justify-content: flex-end; gap: 10px; }
+.fi-boatbar .k-btn { min-width: 0; padding-left: 10px; padding-right: 12px; flex-direction: row; gap: 6px; }
+.fi-boatbar .k-btn small { margin-left: 2px; }
+.fi-boatbar .k-btn .k-ic { width: 22px; height: 22px; }
+.fi-radio { display: flex; flex-direction: column; gap: 8px; width: 290px; padding: 10px 12px 12px; border-radius: var(--r-md); }
+.fi-radio-h { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.fi-radio-h img { width: 28px; height: 28px; object-fit: contain; }
+.fi-radio-h b { font: 800 var(--fs-16)/1.15 var(--font-text); }
+.fi-station { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1px 10px; width: 100%; padding: 6px 10px 6px 14px; border: var(--surf-2-border); border-radius: var(--r-sm); background: var(--surf-2); color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; }
+.fi-station b { font: 800 var(--fs-15)/1.15 var(--font-text); }
+.fi-station span { grid-column: 1; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); }
 .fi-station .k-eq { grid-column: 2; grid-row: 1 / span 2; }
 .fi-station.is-on { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
-.fi-radio-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 700 var(--fs-16)/1.2 var(--font-text); }
-.fi-radio .k-slider { width: 170px; }
+.fi-radio-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 700 var(--fs-14)/1.2 var(--font-text); }
+.fi-radio .k-slider { width: 160px; }
+.fi-radio > .k-switch { font-size: var(--fs-14); }
 
 /* ------------------------------------------------------------------ телефон: страница не ломается (сцена масштабируется сама) */
 @media (prefers-reduced-motion: reduce) {
@@ -282,4 +286,5 @@
 .fi-item.is-rod { display: flex; flex-direction: column; gap: 6px; }
 .fi-item.is-rod > .k-btn, .fi-item.is-rod > .k-pill { margin-top: auto; }
 .fi-item.is-rod > b { align-self: flex-start; }
-.k-badge > .fi-pop { top: 50%; right: calc(100% + 10px); transform: translateY(-50%); }
+/* рыба в рюкзаке: +1 у плитки рюкзака. Слева от неё стоят другие плитки — поэтому +1 выходит вниз, под подпись, а не влево (как в ките) */
+.fi-bag > .k-pop { top: calc(100% + 4px); right: 50%; margin-right: -19px; }

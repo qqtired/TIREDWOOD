@@ -48,15 +48,16 @@ const badge = ({ tokens = '1 250', pop = '' } = {}) => `
     <span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens${pop ? ' is-bump' : ''}">${C}${tokens}</span></span>
     ${pop ? `<span class="k-pop is-still fi-pop">${pop}</span>` : ''}</div>`;
 
-const ctx = ({ img, title, val, side = '', v = null, own = false, cls = '' }) => `
-  <div class="k-ctx${own ? ' k-ctx--own' : ''} ${cls}">${img.startsWith('<') ? img : `<img class="k-ctx-ic" src="${img}" alt="">`}
-    <span class="k-ctx-title">${title}</span><span class="k-ctx-val">${val}</span>
-    ${side ? `<span class="k-ctx-side">${side}</span>` : ''}
-    ${v !== null ? `<div class="k-meter k-meter--thin${v < 0.2 ? ' is-hurry' : ''}" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>` : ''}</div>`;
+/** v2: плитка под бейджем — иконка на подложке, клавиша в углу, подпись под ней (вместо широкой .k-ctx) */
+const tile = ({ img, cap = '', sub = '', key = '', v = null, tone = '', cls = '', label = '' }) => `
+  <div class="k-tile${cls ? ` ${cls}` : ''}"${label ? ` title="${label}"` : ''}><span class="k-tile-face">${img.startsWith('<') ? img : `<img src="${img}" alt="${label}">`}${key ? `<kbd class="k-key k-key--sm k-key--tr">${key}</kbd>` : ''}
+    ${v !== null ? `<span class="k-meter${tone ? ` ${tone}` : ''}${v < 0.2 && !tone ? ' is-hurry' : ''}" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>` : ''}</span>
+    ${cap ? `<span class="k-tile-cap">${cap}${sub ? `<small>${sub}</small>` : ''}</span>` : ''}</div>`;
+const tiles = (...list) => `<div class="k-tiles">${list.join('')}</div>`;
 
-const BAG = (n = 6, sum = 22) => ctx({ img: gear('bag1.webp'), title: 'Рюкзак', val: `${n} / 10 · ${sum} ${C}`, side: K.key('I'), v: n / 10 });
-const BEER = ctx({ img: gear('beer.webp'), title: 'Рыбацкое пиво', val: 'цена +10 % · 7:40', v: 0.77 });
-const QUEST = ctx({ img: ic('quest-fish'), title: 'Задание 3 · Дед Семён', val: `7 из 15 рыб · +75 ${C}`, v: 7 / 15 });
+const BAG = (n = 6, sum = 22) => tile({ img: gear('bag1.webp'), label: 'Рюкзак', cls: 'fi-bag', cap: `${n} / 10`, sub: `${sum} ${C}`, key: 'I', v: n / 10, tone: 'k-meter--good' });
+const BEER = tile({ img: gear('beer.webp'), label: 'Рыбацкое пиво', cap: '7:40', sub: 'цена +10 %', v: 0.77 });
+const QUEST = tile({ img: ic('quest-fish'), label: 'Задание Деда Семёна', cap: '7 / 15', sub: `+75 ${C}`, v: 7 / 15, tone: 'k-meter--mode' });
 
 const chat = () => `
   <div class="k-chat">
@@ -74,18 +75,18 @@ const meter = (v, cls = '', label = '') => `<div class="k-meter ${cls}" style="-
 /* --- плашки события (верх-центр, одна за раз) */
 const EV = {
   soon: `<div class="k-event"><span class="k-event-ic"><img src="${ic('season')}" alt=""></span>
-    <div class="k-event-title">Сезон рыбалки скоро</div><div class="k-event-sub">10 минут все шансы ×2 и клюют виды дождя</div><div class="k-event-timer">12:40</div></div>`,
+    <div class="k-event-title">Сезон рыбалки скоро</div><div class="k-event-sub">10 минут: шансы ×2, клюют виды дождя</div><div class="k-event-timer">12:40</div></div>`,
   season: `<div class="k-event k-lamp"><span class="k-event-ic"><img src="${ic('season')}" alt=""></span>
     <div class="k-event-title">Сезон рыбалки!</div><div class="k-event-sub">Все шансы ×2 · клюют виды дождя</div><div class="k-event-timer">6:40</div>
     ${meter(0.67, 'k-meter--thin k-meter--mode')}</div>`,
   rain: `<div class="k-event"><span class="k-event-ic"><img src="${ic('rain')}" alt=""></span>
-    <div class="k-event-title">Дождь — рыболовное событие</div><div class="k-event-sub">Клюют виды дождя · редкие и выше ×1,5</div><div class="k-event-timer">3:12</div>
+    <div class="k-event-title">Дождь — клёв лучше</div><div class="k-event-sub">Клюют виды дождя · редкие и выше ×1,5</div><div class="k-event-timer">3:12</div>
     ${meter(0.4, 'k-meter--thin k-meter--mode')}</div>`,
   fog: `<div class="k-event"><span class="k-event-ic"><img src="${ic('fog')}" alt=""></span>
-    <div class="k-event-title">Туман наступает</div><div class="k-event-sub">Клюют туманные виды · редкие и выше ×1,5</div><div class="k-event-timer">5:12</div>
+    <div class="k-event-title">Туман наступает</div><div class="k-event-sub">Туманные виды · редкие и выше ×1,5</div><div class="k-event-timer">5:12</div>
     ${meter(0.65, 'k-meter--thin k-meter--mode')}</div>`,
   greatFog: `<div class="k-event k-event--special k-lamp"><span class="k-event-ic"><img src="${ic('fog')}" alt=""></span>
-    <div class="k-event-title">Великий туман!</div><div class="k-event-sub">Сезон острова: шансы ещё ×2 · туманные виды клюют</div><div class="k-event-timer">6:40</div>
+    <div class="k-event-title">Великий туман!</div><div class="k-event-sub">Сезон острова: шансы ещё ×2</div><div class="k-event-timer">6:40</div>
     ${meter(0.67, 'k-meter--thin k-meter--special')}</div>`,
 };
 
@@ -120,9 +121,9 @@ const modeCard = ({ lv = 4, p = 0.28, xp = '240 / 850', next = 'На 5-м — <b
 const key = (k, text) => `<span class="fi-k">${k}${text}</span>`;
 const mouseKey = (b = 'l') => `<span class="k-key">${K.mouse(b)}</span>`;
 const PROMPT = {
-  approach: `<div class="k-prompt">${K.key('E')}Порыбачить<span class="k-prompt-sep"></span><span class="k-prompt-note">Пристань · свободное место</span></div>`,
-  idle: `<div class="k-prompt fi-prompt">${key(mouseKey('l'), 'Забросить')}<span class="k-prompt-sep"></span>${key(K.key('J'), 'Журнал')}<span class="k-prompt-sep"></span>${key(K.key('I'), 'Рюкзак')}<span class="k-prompt-sep"></span>${key(K.key('E'), 'Встать')}</div>`,
-  wait: `<div class="k-prompt fi-prompt"><span class="fi-wait"><img src="${ic('float')}" alt="">Ждём поклёвку…</span><span class="k-prompt-sep"></span>${key(K.key('J'), 'Журнал')}<span class="k-prompt-sep"></span>${key(K.key('I'), 'Рюкзак')}</div>`,
+  approach: `<div class="k-prompt">${K.key('E')}Порыбачить<span class="k-prompt-sep"></span><span class="k-prompt-note">свободное место</span></div>`,
+  idle: `<div class="k-prompt fi-prompt">${key(mouseKey('l'), 'Забросить')}<span class="k-prompt-sep"></span>${key(K.key('J'), 'Журнал')}<span class="k-prompt-sep"></span>${key(K.key('E'), 'Встать')}</div>`,
+  wait: `<div class="k-prompt fi-prompt"><span class="fi-wait"><img src="${ic('float')}" alt="">Ждём поклёвку…</span><span class="k-prompt-sep"></span>${key(K.key('J'), 'Журнал')}</div>`,
 };
 
 /* --- шкала вываживания: игровое поле как в игре + рамка кита вокруг */
@@ -190,7 +191,7 @@ if (host) {
   stage(host, {
     id: 'fish-wait',
     title: 'С удочкой: ждёшь поклёвку',
-    note: 'Слева — всё про рыбалку в одной карточке: уровень кольцом, следующий бонус, «Шансы сейчас» полосой с крупными подписями. Справа под тобой — рюкзак, пиво с таймером и задание Семёна. Поклёвка — крупное «Подсекай!» с кнопкой мыши.',
+    note: 'Слева — всё про рыбалку в одной карточке: уровень кольцом, следующий бонус, «Шансы сейчас» полосой. v2: карточка на пятую часть меньше, а рюкзак, пиво и задание Семёна — три плитки под бейджем: иконка и коротко под ней «6 / 10 · 22». Поклёвка — крупное «Подсекай!» с кнопкой мыши.',
     bg: `${D}bg-pier-fishing.jpg`,
     before: `${D}was-11-fish-cast.jpg`,
     mode: 'fishing',
@@ -204,7 +205,7 @@ if (host) {
       scene.innerHTML = `
         ${rain ? `<div class="k-slot k-slot--tc">${EV.rain}</div>` : ''}
         <div class="k-slot k-slot--tl${bite ? ' fi-dim' : ''}">${modeCard({ odds: rain ? ODDS.rain : ODDS.clear, why })}</div>
-        <div class="k-slot k-slot--tr${bite ? ' fi-dim' : ''}">${badge()}${BAG()}${BEER}${QUEST}</div>
+        <div class="k-slot k-slot--tr${bite ? ' fi-dim' : ''}">${badge()}${tiles(BAG(), BEER, QUEST)}</div>
         <div class="k-slot k-slot--bl${bite ? ' fi-dim' : ''}">${chat()}</div>
         ${bite
           ? `<div class="k-slot k-slot--c"><div class="k-hero k-hero--gold is-pop fi-bite"><p class="k-hero-title">Подсекай!</p><span class="k-hero-sub"><span class="k-key k-key--lg">${K.mouse('l')}</span>жми сейчас</span></div></div>`
@@ -229,7 +230,7 @@ if (host) {
       else r = reel({ tier: 2, label: 'Эпическая рыба!', zone: [0, 28], fish: 88, prog: 0.03, inZone: false, low: true, res: '<div class="fi-reel-res"><b class="k-bad">Сорвалась…</b><span>+8 опыта за борьбу</span></div>' });
       scene.innerHTML = `
         <div class="k-slot k-slot--tl fi-dim">${modeCard({ why: `<span class="k-pill k-pill--gold k-pill--sm"><img class="k-ic" src="${gear('beer.webp')}" alt="">пиво ×1,2</span>` })}</div>
-        <div class="k-slot k-slot--tr fi-dim">${badge()}${BAG()}${BEER}</div>
+        <div class="k-slot k-slot--tr fi-dim">${badge()}${tiles(BAG(), BEER)}</div>
         <div class="k-slot k-slot--bl fi-dim">${chat()}</div>
         ${r}`;
       scene.querySelector('[data-quit]')?.addEventListener('click', () => api.setState('lost'));
@@ -279,12 +280,24 @@ if (host) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${tl}</div>
         <div class="k-slot k-slot--tc"><div class="k-toasts" data-toasts></div></div>
-        <div class="k-slot k-slot--tr">${tr}${bag}${BEER}</div>
+        <div class="k-slot k-slot--tr">${tr}${tiles(bag, BEER)}</div>
         <div class="k-slot k-slot--bl">${chat()}</div>
         ${center ? `<div class="k-slot k-slot--c">${center}</div>` : ''}
         <div class="k-slot k-slot--br">${card}</div>`;
       const toasts = scene.querySelector('[data-toasts]');
-      scene.querySelector('[data-keep]')?.addEventListener('click', () => pushToast(toasts, { tone: 'good', icon: gear('bag1.webp'), title: state === 'record' ? 'Осётр в рюкзаке' : 'Морской петух в рюкзаке', sub: 'Рюкзак 7 / 10 · продать — у Деда Семёна' }));
+      scene.querySelector('[data-keep]')?.addEventListener('click', () => {
+        // рыба в рюкзаке: плитка рюкзака сама показывает 7 / 10 и новую сумму, сбоку всплывает +1
+        const b = scene.querySelector('.fi-bag');
+        if (b && !b.dataset.kept) {
+          const t = document.createElement('div');
+          t.innerHTML = BAG(7, 22 + (state === 'record' ? 26 : 3));
+          const nb = t.firstElementChild;
+          nb.dataset.kept = '1';
+          nb.insertAdjacentHTML('beforeend', '<span class="k-pop">+1</span>');
+          b.replaceWith(nb);
+        }
+        pushToast(toasts, { tone: 'good', icon: gear('bag1.webp'), title: state === 'record' ? 'Осётр в рюкзаке' : 'Морской петух в рюкзаке', sub: 'Продать — у Деда Семёна' });
+      });
       scene.querySelector('[data-release]')?.addEventListener('click', () => pushToast(toasts, { tone: 'info', icon: ic('release'), title: 'Отпустил — опыт ×1,5', sub: 'Рыба ушла в море, жетонов за неё нет' }));
     },
   });
@@ -484,12 +497,13 @@ if (host) {
 
   /* ================================================================== 8. своя лодка */
   const ARROW = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5 19.5 20 12 15.6 4.5 20z"/></svg>';
-  const navCtx = (title, val, a) => ctx({ img: `<span class="k-ctx-ic fi-nav-ic" style="--a:${a}deg">${ARROW}</span>`, title, val });
+  /** куда плыть — плитка со стрелкой: расстояние и короткое имя места под ней */
+  const navTile = (title, val, a) => tile({ img: `<span class="fi-nav" style="--a:${a}deg">${ARROW}</span>`, label: title, cap: val, sub: title.split(' ')[0] });
   const STATIONS = [['Форсаж', 'драйв для гонки по волнам'], ['Тихая заводь', 'спокойно — для ловли с якоря'], ['Морской фанк', 'прогулка с друзьями на борту']];
   stage(host, {
     id: 'fish-boat',
     title: 'Своя лодка',
-    note: 'Скорость и якорь — одной плашкой сверху. Куда плыть — карточками под бейджем: стрелка и метры. Справа внизу — три кнопки с клавишами Z, G, R; радио открывается над ними в том же стиле.',
+    note: 'Скорость и якорь — одной плашкой сверху. Лайвел и куда плыть — плитками под бейджем: стрелка и метры. Справа внизу — три кнопки с клавишами Z, G, R; радио открывается над ними в том же стиле.',
     bg: `${D}bg-isle-dock.jpg`, // TODO: кадра из своей лодки нет — фон воды у острова
     before: `${D}was-18b-radio-panel-on.jpg`,
     mode: 'fishing',
@@ -498,7 +512,7 @@ if (host) {
       const anchor = state === 'anchor';
       const plate = `<div class="k-event"><span class="k-event-ic"><span class="fi-boat-ic" style="background-image:url('${gear('volzhanka.jpg')}')"></span></span>
         <div class="k-event-title">«Волжанка»${anchor ? ' на якоре' : ''}</div>
-        <div class="k-event-sub">${anchor ? 'Рыбачьте втроём · клёв с якоря быстрее на 5 %' : 'Якорь поднят · эхолот: клёв с якоря +5 %'}</div>
+        <div class="k-event-sub">${anchor ? 'Рыбачьте втроём · клёв +5 %' : 'Эхолот: с якоря клёв +5 %'}</div>
         <div class="k-event-timer fi-speed">${anchor ? `<img src="${ic('anchor')}" alt="">` : '43<small>км/ч</small>'}</div></div>`;
       const radio = anchor ? `<div class="k-panel fi-radio">
           <div class="fi-radio-h"><img src="${ic('radio')}" alt=""><b>Радио лодки</b><label class="k-switch"><input type="checkbox" checked><span class="k-switch-track"></span></label></div>
@@ -508,8 +522,9 @@ if (host) {
         </div>` : '';
       scene.innerHTML = `
         <div class="k-slot k-slot--tc">${plate}</div>
-        <div class="k-slot k-slot--tr">${badge()}${navCtx('Остров «Последний свет»', '2,1 км', -28)}${navCtx('Стоянка у Семёна', '640 м', 152)}
-          ${ctx({ img: ic('livewell'), title: 'Лайвел', val: `12 / 25 · 96 ${C}`, v: 12 / 25 })}</div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(
+          tile({ img: ic('livewell'), label: 'Лайвел лодки', cap: '12 / 25', sub: `96 ${C}`, v: 12 / 25, tone: 'k-meter--good' }),
+          navTile('Остров «Последний свет»', '2,1 км', -28), navTile('Стоянка у Семёна', '640 м', 152))}</div>
         <div class="k-slot k-slot--bl">${chat()}</div>
         <div class="k-slot k-slot--br">${radio}
           <div class="fi-boatbar">
@@ -550,7 +565,9 @@ if (host) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tc${dimmed}">${state === 'season' ? EV.greatFog : EV.fog}</div>
         <div class="k-slot k-slot--tl${dimmed}">${tl}</div>
-        <div class="k-slot k-slot--tr${dimmed}">${badge({ tokens: '4 820', pop: state === 'catch' ? '+20' : '' })}${ctx({ img: gear('bag3.webp'), title: 'Рюкзак', val: `9 / 20 · 412 ${C}`, side: K.key('I'), v: 0.45 })}${ctx({ img: ic('livewell'), title: 'Лайвел «Альбакора»', val: `31 / 50`, v: 31 / 50 })}</div>
+        <div class="k-slot k-slot--tr${dimmed}">${badge({ tokens: '4 820', pop: state === 'catch' ? '+20' : '' })}${tiles(
+          tile({ img: gear('bag3.webp'), label: 'Рюкзак профессионала', cap: '9 / 20', sub: `412 ${C}`, key: 'I', v: 0.45, tone: 'k-meter--good' }),
+          tile({ img: ic('livewell'), label: 'Лайвел «Альбакора»', cap: '31 / 50', sub: 'лайвел', v: 31 / 50, tone: 'k-meter--good' }))}</div>
         <div class="k-slot k-slot--bl${dimmed}">${chat()}</div>
         ${state === 'fog' || state === 'season' ? `<div class="k-slot k-slot--bc">${PROMPT.wait}</div>` : ''}
         ${main}`;

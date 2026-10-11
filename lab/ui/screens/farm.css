@@ -1,64 +1,56 @@
 /* Ферма — раскладка мокапов (префикс .farm-). Цвета и тени — только токены кита. */
 
-/* силуэт закрытой культуры: светлый на тёмных шкурках, тёмный на «Открытке» */
-:root { --farm-sil: brightness(0) invert(.94) opacity(.3); }
-[data-skin='postcard'] { --farm-sil: brightness(0) opacity(.32); }
-.farm-sil { filter: var(--farm-sil) !important; }
+/* силуэт закрытой культуры: токен кита --sil (светлый на тёмном стекле/окне, тёмный на светлом) */
+.farm-sil { filter: var(--sil) !important; }
 .farm-pane[hidden], .k-win-foot[hidden] { display: none !important; }
 
-/* ------------------------------------------------ ВЛ: карточка фермы */
-.farm-card { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; width: 360px; padding: 12px 14px 12px 12px; }
-.farm-card > .k-ring { width: 64px; height: 64px; }
-.farm-card-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.farm-card-name { font: 900 var(--fs-22)/1.1 var(--font-text); }
-.farm-card-xp { color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+/* ------------------------------------------------ ВЛ: карточка фермы (v2: 292 вместо 360, кольцо 40, текст 13–16) */
+.farm-card { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; width: 292px; padding: 9px 12px 10px 9px; border-radius: var(--r-md); }
+.farm-card-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.farm-card-name { overflow: hidden; font: 800 var(--fs-16)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.farm-card-xp { overflow: hidden; color: var(--surf-dim); font: 600 var(--fs-13)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
 .farm-card-xp b { color: var(--plate-text); font-weight: 800; }
-.farm-card-estate { align-self: start; }
-.farm-card-next { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font: 500 var(--fs-14)/1.2 var(--font-text); }
-.farm-card-next .k-ic { width: 28px; height: 28px; }
-.farm-card-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.farm-card-estate.k-btn--icon.k-btn--sm { width: 38px; height: 38px; }
+.farm-card-estate .k-ic { width: 26px; height: 26px; }
+.farm-card-estate > .k-key--br { right: -8px; bottom: -9px; }
+.farm-card-next { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; margin-top: 5px; padding-top: 6px; border-top: 1px solid var(--line); font: 500 var(--fs-13)/1.2 var(--font-text); white-space: nowrap; }
+.farm-card-next .k-ic { width: 22px; height: 22px; }
+.farm-card-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+.farm-card-chips .k-pill--sm { min-height: 24px; padding: 2px 9px; gap: 5px; font-size: var(--fs-13); }
+.farm-card-chips .k-pill--sm .k-ic { width: 20px; height: 20px; }
 .farm-card-chips:empty { display: none; }
 
 /* шаг обучения — одна карточка-задание */
-.farm-quest { width: 360px; padding: 12px 16px 14px; }
-.farm-quest-t { margin: 6px 0 10px; font: 600 var(--fs-16)/1.35 var(--font-text); }
-.farm-quest-steps { display: flex; gap: 5px; }
-.farm-quest-steps i { flex: 1; height: 7px; border-radius: var(--r-pill); background: var(--track); }
+.farm-quest { width: 292px; padding: 9px 12px 11px; border-radius: var(--r-md); }
+.farm-quest .k-eyebrow { font-size: var(--fs-13); }
+.farm-quest-t { margin: 5px 0 8px; font: 600 var(--fs-14)/1.35 var(--font-text); }
+.farm-quest-steps { display: flex; gap: 4px; }
+.farm-quest-steps i { flex: 1; height: 5px; border-radius: var(--r-pill); background: var(--track); }
 .farm-quest-steps i.is-done { background: var(--good); }
 .farm-quest-steps i.is-cur { background: var(--gold); }
-.farm-quest-prize { position: absolute; top: 10px; right: 12px; }
+.farm-quest-prize.k-pill--sm { position: absolute; top: 7px; right: 9px; min-height: 22px; padding: 2px 8px; font-size: var(--fs-13); }
 
-/* ------------------------------------------------ ВП: вода (лейка + колодец), сумка, созрело, помощь */
-.farm-unit { color: var(--surf-dim); font-size: var(--fs-14); font-weight: 500; }
-.farm-water .farm-well { grid-column: 1 / -1; grid-row: 4; display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font: 600 var(--fs-14)/1 var(--font-text); }
-.farm-well-ic { width: 30px; height: 30px; object-fit: contain; }
-.farm-buckets { display: inline-flex; gap: 2px; }
-.farm-buckets img { width: 25px; height: 25px; object-fit: contain; }
-.farm-buckets img.is-off { filter: grayscale(1) opacity(.35); }
-.farm-well-txt { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-left: auto; text-align: right; white-space: nowrap; }
-.farm-well-txt b { font: 800 var(--fs-14)/1 var(--font-text); }
-.farm-well-txt span { color: var(--surf-dim); font: 500 var(--fs-13)/1 var(--font-text); }
-.farm-ripe-side .k-ic { width: 30px; height: 30px; }
+/* ------------------------------------------------ ВП: плитки кита — лейка, колодец, сумка, созрело, помощь (своего CSS не нужно) */
 
-/* ------------------------------------------------ НЦ: пояс семян */
-.farm-bc { gap: 12px; }
-.farm-pick { display: grid; grid-template-columns: 60px minmax(0, 1fr); align-items: center; gap: 4px 14px; min-width: 440px; max-width: 560px; padding: 10px 18px 10px 10px; }
-.farm-pick-ic { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
-.farm-pick-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 900 var(--fs-22)/1.15 var(--font-text); }
-.farm-pick-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; font: 500 var(--fs-16)/1.2 var(--font-text); }
-.farm-pick-stats .k-ic { width: 24px; height: 24px; margin-right: 4px; }
-.farm-pick-meter { margin-top: 8px; max-width: 300px; }
-.farm-belt { display: flex; gap: 8px; padding: 14px 12px 10px; border-radius: var(--r-lg); }
-.farm-slot.k-btn--icon { width: 56px; height: 56px; }
-.farm-slot.k-btn--icon .k-ic { width: 42px; height: 42px; }
+/* ------------------------------------------------ НЦ: пояс семян (v2: чуть меньше — ячейка 50, карточка выбранного 44 + 18/14) */
+.farm-bc { gap: 10px; }
+.farm-pick { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 2px 12px; min-width: 360px; max-width: 520px; padding: 7px 14px 7px 8px; border-radius: var(--r-md); }
+.farm-pick-ic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.farm-pick-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 800 var(--fs-18)/1.15 var(--font-text); }
+.farm-pick-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin-top: 3px; font: 500 var(--fs-14)/1.2 var(--font-text); }
+.farm-pick-stats .k-ic { width: 20px; height: 20px; margin-right: 3px; }
+.farm-pick-meter { margin-top: 6px; max-width: 280px; }
+.farm-belt { display: flex; gap: 6px; padding: 12px 10px 8px; border-radius: var(--r-md); }
+.farm-slot.k-btn--icon { width: 50px; height: 50px; }
+.farm-slot.k-btn--icon .k-ic { width: 36px; height: 36px; }
 .farm-slot > .k-key--tl { top: -9px; left: -7px; }
-.farm-slot.is-on { transform: translateY(-5px); }
+.farm-slot.is-on { transform: translateY(-4px); }
 .farm-slot.is-locked .k-ic { margin-top: -10px; }
 .farm-slot.is-on .farm-sil { filter: brightness(0) opacity(.35) !important; }
 .farm-price { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .farm-price > i { font-style: normal; opacity: .7; }
 .farm-slot-lv { position: absolute; bottom: 3px; left: 0; right: 0; font: 800 var(--fs-13)/1 var(--font-text); text-transform: none; letter-spacing: 0; }
-.farm-rake-note { position: absolute; left: 50%; bottom: 284px; z-index: 10; transform: translateX(-50%); }
+.farm-rake-note { position: absolute; left: 50%; bottom: 236px; z-index: 10; transform: translateX(-50%); }
 .farm-whose { align-self: center; }
 
 /* ------------------------------------------------ окна */
@@ -183,9 +175,10 @@
 .farm-helpline { display: flex; align-items: center; gap: 12px; font-size: var(--fs-14); }
 .farm-helpline .k-ic { width: 34px; height: 34px; }
 
-/* Древо */
+/* Древо: полоса цветения с отметками фаз — тонкая, как у плашки события v2 */
 .farm-tree.k-lamp { margin-bottom: 8px; }
-.farm-tree-bar { position: relative; grid-column: 1 / -1; margin-top: 10px; }
+.farm-tree-bar { position: relative; grid-column: 1 / -1; margin-top: 6px; }
+.farm-tree-bar > .k-meter { height: 6px; }
 .farm-tree-bar > i { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--surf-text); opacity: .55; }
 .farm-treeend .k-win-body { padding-top: 8px; }
 .farm-buff { justify-content: flex-start; text-align: left; }
@@ -197,24 +190,25 @@
 .farm-treeend-rep { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
 
 /* Новый уровень */
-.farm-lvl { position: absolute; left: 50%; top: 410px; z-index: 15; width: 780px; transform: translateX(-50%); text-align: center; }
-.farm-lvl.is-wide { width: 1040px; top: 395px; }
-.farm-lvl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-.farm-lvl-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 10px; }
-.farm-lvl-item img { width: 76px; height: 76px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
-.farm-lvl.is-wide .farm-lvl-item img { width: 60px; height: 60px; }
-.farm-lvl-item b { font: 800 var(--fs-18)/1.2 var(--font-text); }
-.farm-lvl-item span { font-size: var(--fs-14); line-height: 1.3; }
-.farm-lvl-btns { display: flex; justify-content: center; gap: 16px; margin-top: 18px; }
+/* v2: праздник компактнее — 640 / 860 вместо 780 / 1040, картинки 60 / 44 */
+.farm-lvl { position: absolute; left: 50%; top: 400px; z-index: 15; width: 640px; padding: 14px 16px 16px; transform: translateX(-50%); text-align: center; }
+.farm-lvl.is-wide { width: 860px; top: 390px; }
+.farm-lvl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.farm-lvl-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 10px; }
+.farm-lvl-item img { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(20, 10, 12, .3)); }
+.farm-lvl.is-wide .farm-lvl-item img { width: 44px; height: 44px; }
+.farm-lvl-item b { font: 800 var(--fs-16)/1.2 var(--font-text); }
+.farm-lvl-item span { font-size: var(--fs-13); line-height: 1.3; }
+.farm-lvl-btns { display: flex; justify-content: center; gap: 16px; margin-top: 14px; }
 
 /* Набери лейку: окно кита вокруг поля игры */
 .farm-wellwin { width: 1000px; max-height: 820px; }
 .farm-field { position: relative; flex: none; margin: 18px 22px 0; aspect-ratio: 1246 / 804; border-radius: var(--r-md); background: url('../img/farm/well-field.jpg') center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line-strong); overflow: hidden; }
-.farm-tag { position: absolute; top: 8px; left: 50%; display: grid; grid-template-columns: auto auto; align-items: center; gap: 4px 14px; min-width: 260px; padding: 8px 18px 10px; transform: translateX(-50%); }
-.farm-tag-p { font: 900 var(--fs-36)/1 var(--font-text); }
+.farm-tag { position: absolute; top: 8px; left: 50%; display: grid; grid-template-columns: auto auto; align-items: center; gap: 4px 12px; min-width: 220px; padding: 6px 14px 8px; transform: translateX(-50%); }
+.farm-tag-p { font: 900 var(--fs-28)/1 var(--font-text); }
 .farm-tag .k-meter { grid-column: 1 / -1; }
-.farm-tag-c { display: inline-flex; align-items: center; gap: 6px; font: 700 var(--fs-16)/1.2 var(--font-text); }
-.farm-tag-c .k-ic { width: 26px; height: 26px; }
+.farm-tag-c { display: inline-flex; align-items: center; gap: 6px; font: 700 var(--fs-15)/1.2 var(--font-text); }
+.farm-tag-c .k-ic { width: 22px; height: 22px; }
 .farm-tag .k-meter { width: 100%; margin-top: 4px; }
 .farm-time { position: absolute; top: 18px; right: 18px; gap: 10px; }
 .farm-time-m { width: 120px; }

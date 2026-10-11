@@ -56,49 +56,39 @@ const badge = ({ tokens = '1 250', pop = '' } = {}) => `
   <div class="k-badge"><span class="k-ring" style="--p:.64"><b>12</b></span>
     <span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens">${C}<span class="farm-tok">${tokens}</span></span></span>${pop}</div>`;
 
-/** Карточка режима (ВЛ): уровень фермы кольцом опыта, следующая цель, Фургон, баффы Древа, кнопка «Хозяйство» (H) */
+/** Карточка режима (ВЛ, v2 — 292 вместо 360, кольцо 40): уровень фермы кольцом опыта, что откроет следующий, Фургон, баффы Древа, «Хозяйство» (H) */
 const farmCard = ({ lvl = FARM.lvl, name = FARM.name, xp = FARM.xp, need = FARM.need, next = true, van = 'open', buffs = [] } = {}) => `
   <div class="k-plate farm-card">
-    <span class="k-ring k-ring--mode" style="--p:${(xp / need).toFixed(3)}"><b>${lvl}</b><small>ур.</small></span>
+    <span class="k-ring k-ring--sm k-ring--mode" style="--p:${(xp / need).toFixed(3)}"><b>${lvl}</b></span>
     <div class="farm-card-main">
-      <p class="k-eyebrow">Ферма · участок ${FARM.plot}</p>
-      <div class="farm-card-name">${name}</div>
-      <div class="farm-card-xp"><b class="farm-xp">${nf(xp)}</b> / ${nf(need)} опыта</div>
+      <b class="farm-card-name">${name} · ур. ${lvl}</b>
+      <span class="farm-card-xp"><b class="farm-xp">${nf(xp)}</b> / ${nf(need)} · участок ${FARM.plot}</span>
     </div>
-    <button class="k-btn k-btn--icon k-btn--ghost farm-card-estate" aria-label="Хозяйство">${im('basket')}<kbd class="k-key k-key--sm k-key--br">H</kbd></button>
+    <button class="k-btn k-btn--icon k-btn--sm k-btn--ghost farm-card-estate" aria-label="Хозяйство" title="Хозяйство">${im('basket')}<kbd class="k-key k-key--sm k-key--br">H</kbd></button>
     ${next ? `<div class="farm-card-next"><span class="k-dim">Ур. ${lvl + 1} откроет</span>${im('strawberry')}${im('giant-mushroom')}<span class="k-dim">и 4-ю грядку</span></div>` : ''}
     <div class="farm-card-chips">
-      ${van === 'open' ? `<span class="k-pill k-pill--good k-pill--sm">${im('van')}Фургон здесь · до 15:00</span>` : `<span class="k-pill k-pill--sm">${im('van')}Фургон в 16:00 · 42:10</span>`}
+      ${van === 'open' ? `<span class="k-pill k-pill--good k-pill--sm">${im('van')}Фургон здесь · до 15:00</span>` : `<span class="k-pill k-pill--sm">${im('van')}Фургон в 16:00</span>`}
       ${buffs.map((b) => `<span class="k-pill k-pill--gold k-pill--sm">${im('life-fruit')}${b}</span>`).join('')}
     </div>
   </div>`;
 
-/** Вода: лейка и колодец — одна карточка (сверху то, чем поливаешь, снизу — откуда берётся вода) */
-const waterCard = ({ w = 7, max = 10, sets = 3, next = '6:40', low = false, hot = false } = {}) => (low && (w = 0), `
-  <div class="k-ctx farm-water${hot ? ' k-ctx--own' : ''}">
-    <img class="k-ctx-ic" src="${ic('watering-can')}" alt="">
-    <span class="k-ctx-title">Лейка</span>
-    <span class="k-ctx-val">${low ? '<span class="k-bad">Пусто</span>' : `<span class="farm-w">${w}</span> из ${max}`} <span class="farm-unit">зарядов</span></span>
-    ${meter(w / max, 'k-meter--thin k-meter--info farm-wmeter')}
-    <div class="farm-well">
-      <img class="farm-well-ic" src="${ic('well')}" alt="">
-      <span class="farm-buckets">${[0, 1, 2, 3].map((i) => `<img class="${i < sets ? '' : 'is-off'}" src="${ic('bucket')}" alt="">`).join('')}</span>
-      <span class="farm-well-txt"><b>Колодец ${sets} из 4</b><span>${sets < 4 ? `+1 ведро через ${next}` : 'ведро = полная лейка'}</span></span>
-    </div>
-  </div>`);
+/** v2: плитка под бейджем — иконка на подложке, клавиша в углу, подпись под ней (вместо широкой .k-ctx) */
+const tile = ({ img, cap = '', sub = '', key = '', v = null, tone = '', cls = '', label = '' }) => `
+  <div class="k-tile${cls ? ` ${cls}` : ''}" title="${label}"><span class="k-tile-face"><img src="${img}" alt="${label}">${key ? `<kbd class="k-key k-key--sm k-key--tr">${key}</kbd>` : ''}
+    ${v !== null ? `<span class="k-meter${tone ? ` ${tone}` : ''}" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>` : ''}</span>
+    ${cap ? `<span class="k-tile-cap"><span>${cap}</span>${sub ? `<small>${sub}</small>` : ''}</span>` : ''}</div>`;
+const tiles = (...list) => `<div class="k-tiles">${list.join('')}</div>`;
 
-const bagCard = (n = 34, cap = 50) => `
-  <div class="k-ctx farm-bag"><img class="k-ctx-ic" src="${ic('bag')}" alt=""><span class="k-ctx-title">Сумка</span>
-    <span class="k-ctx-val"><span class="farm-b">${n}</span> из ${cap}</span>${meter(n / cap, 'k-meter--thin k-meter--good farm-bmeter')}</div>`;
+/** Вода — две плитки рядом: лейка (чем поливаешь) и колодец (откуда вода: вёдра и когда следующее) */
+const waterCard = ({ w = 7, max = 10, sets = 3, next = '6:40', low = false, hot = false } = {}) => (low && (w = 0),
+  tile({ img: ic('watering-can'), label: 'Лейка', cls: `farm-water${low ? ' k-tile--warn' : ''}`, cap: low ? 'Пусто' : `<span class="farm-w">${w}</span> / ${max}`, sub: low ? 'лейка' : 'зарядов', v: w / max, tone: 'k-meter--info farm-wmeter' })
+  + tile({ img: ic('well'), label: 'Колодец', cls: `farm-well${hot ? ' k-tile--own' : ''}`, cap: `${sets} / 4`, sub: sets < 4 ? `+1 через ${next}` : 'вёдра полны', v: sets / 4, tone: 'k-meter--info' }));
 
-const ripeCard = (n = 3) => `
-  <div class="k-ctx k-ctx--own farm-ripe"><img class="k-ctx-ic" src="${ic('pumpkin')}" alt=""><span class="k-ctx-title">Созрело — собирай</span>
-    <span class="k-ctx-val"><span class="farm-r">${n}</span> ${n === 1 ? 'грядка' : 'грядки'}</span>
-    <span class="k-ctx-side farm-ripe-side">${im('pumpkin')}${im('radish')}</span></div>`;
+const bagCard = (n = 34, cap = 50) => tile({ img: ic('bag'), label: 'Сумка', cls: 'farm-bag', cap: `<span class="farm-b">${n}</span> / ${cap}`, sub: 'сумка', v: n / cap, tone: 'k-meter--good farm-bmeter' });
 
-const helpCard = (n = 9, max = 9) => `
-  <div class="k-ctx farm-help"><img class="k-ctx-ic" src="${ic('help-hands')}" alt=""><span class="k-ctx-title">Помощь соседям</span>
-    <span class="k-ctx-val"><span class="farm-h">${n}</span> из ${max}</span>${meter(n / max, 'k-meter--thin farm-hmeter')}</div>`;
+const ripeCard = (n = 3) => tile({ img: ic('pumpkin'), label: 'Созрело — собирай', cls: 'k-tile--own farm-ripe', cap: `<span class="farm-r">${n}</span> ${n === 1 ? 'грядка' : 'грядки'}`, sub: 'созрело' });
+
+const helpCard = (n = 9, max = 9) => tile({ img: ic('help-hands'), label: 'Помощь соседям', cls: 'farm-help', cap: `<span class="farm-h">${n}</span> / ${max}`, sub: 'помощь', v: n / max, tone: 'farm-hmeter' });
 
 const chat = () => `
   <div class="k-chat">
@@ -154,7 +144,7 @@ function hudScreen(h) {
   stage(h, {
     id: 'farm-hud',
     title: 'Ферма: обычный экран',
-    note: 'Слева одна карточка фермы: уровень кольцом, что откроется дальше и Фургон. Справа под твоим бейджем — вода одной карточкой (лейка и колодец, который её наполняет), сумка и «созрело». Новое: строка «что откроет следующий уровень».',
+    note: 'Слева одна карточка фермы: уровень кольцом, что откроется дальше и Фургон. Справа под бейджем — плитки: лейка и колодец рядом, сумка и «созрело»; цифры коротко под иконкой. Новое: строка «что откроет следующий уровень». v2: всё поверх игры меньше — карточка 292 вместо 360.',
     bg: BG, before: WAS('40-farm-hud'), mode: 'farm',
     states: [{ id: 'grow', label: 'у растущей грядки' }, { id: 'ripe', label: 'созрело' }, { id: 'tut', label: 'новичок, шаг 2' }],
     render(scene, st, api) {
@@ -175,9 +165,7 @@ function hudScreen(h) {
         <div class="k-slot k-slot--tc"><div class="k-toasts farm-toasts">${ripe ? toastHtml({ tone: 'reward', icon: ic('pumpkin'), title: 'Созрело: Тыква ×2, Редис ×1', sub: 'Участок 7 — подходи и собирай' }) : ''}</div></div>
         <div class="k-slot k-slot--tr">
           ${badge()}
-          ${tut ? waterCard({ low: true, sets: 4, hot: true }) : waterCard()}
-          ${bagCard(tut ? 0 : 34, tut ? 20 : 50)}
-          ${ripe ? ripeCard(3) : ''}
+          ${tiles(tut ? waterCard({ low: true, sets: 4, hot: true }) : waterCard(), bagCard(tut ? 0 : 34, tut ? 20 : 50), ripe ? ripeCard(3) : '')}
         </div>
         <div class="k-slot k-slot--bl">${chat()}</div>
         <div class="k-slot k-slot--bc">
@@ -185,7 +173,7 @@ function hudScreen(h) {
             ? `<button class="k-prompt farm-act">${K.key('E')}Собрать тыкву<span class="k-prompt-sep"></span><span class="k-pill k-pill--gold k-pill--sm">+35 опыта</span><span class="k-pill k-pill--sm">${im('bag')}+1</span></button>`
             : tut
               ? `<button class="k-prompt farm-act">${K.key('E')}Набрать лейку<span class="k-prompt-sep"></span><span class="k-pill k-pill--info k-pill--sm">${im('bucket')}ведро 1 из 4</span></button>`
-              : `<button class="k-prompt farm-act">${K.key('E')}Полить тыкву<span class="k-prompt-sep"></span><span class="k-prompt-note">созреет через <b>12:40 → 10:08</b></span><span class="k-pill k-pill--info k-pill--sm">${im('watering-can')}−1</span></button>`}
+              : `<button class="k-prompt farm-act">${K.key('E')}Полить тыкву<span class="k-prompt-sep"></span><span class="k-prompt-note">созреет <b>12:40 → 10:08</b></span><span class="k-pill k-pill--info k-pill--sm">${im('watering-can')}−1</span></button>`}
         </div>`;
       wireHudActs(scene, st);
     },
@@ -218,13 +206,14 @@ function wireHudActs(scene, st) {
       pushToast(toasts, res
         ? { tone: 'reward', icon: ic('seeds'), title: 'Тыква в сумке · +35 опыта', sub: 'И ещё Зёрна ×1 — шанс 35 %' }
         : { tone: 'reward', icon: ic('pumpkin'), title: 'Тыква в сумке · +35 опыта' });
-      if (!left) { act.classList.add('k-prompt--off'); act.innerHTML = 'Всё собрано<span class="k-prompt-sep"></span><span class="k-prompt-note">посади снова — 1–9 и E</span>'; }
+      if (!left) { scene.querySelector('.farm-ripe')?.classList.add('k-tile--off'); act.classList.add('k-prompt--off'); act.innerHTML = 'Всё собрано<span class="k-prompt-sep"></span><span class="k-prompt-note">посади снова — 1–9 и E</span>'; }
     } else if (st === 'tut') {
       if (done++) return;
       act.classList.add('k-prompt--off');
       act.innerHTML = 'Наливаешь…';
       setTimeout(() => {
         const card = scene.querySelector('.farm-water');
+        scene.querySelector('.farm-well')?.remove();
         card.outerHTML = waterCard({ w: 9, max: 10, sets: 3, next: '14:58' });
         const q = scene.querySelector('.farm-quest');
         q.querySelector('.k-eyebrow').textContent = 'Семечкин · шаг 3 из 6';
@@ -265,7 +254,7 @@ function beltScreen(h) {
     scene.innerHTML = `
       <div class="k-slot k-slot--tl">${farmCard()}</div>
       <div class="k-slot k-slot--tc"><div class="k-toasts farm-toasts"></div></div>
-      <div class="k-slot k-slot--tr">${badge()}${waterCard()}${bagCard()}</div>
+      <div class="k-slot k-slot--tr">${badge()}${tiles(waterCard(), bagCard())}</div>
       <div class="k-slot k-slot--bl">${chat()}</div>
       <div class="k-slot k-slot--bc farm-bc">
         <div class="k-plate farm-pick${locked ? ' is-locked' : ''}">
@@ -708,7 +697,7 @@ function boardScreen(h) {
         scene.innerHTML = `
           <div class="k-slot k-slot--tl">${farmCard()}</div>
           <div class="k-slot k-slot--tc"><div class="k-toasts farm-toasts"></div></div>
-          <div class="k-slot k-slot--tr">${badge()}${waterCard()}${helpCard(9, 9)}</div>
+          <div class="k-slot k-slot--tr">${badge()}${tiles(waterCard(), helpCard(9, 9))}</div>
           <div class="k-slot k-slot--bl">${chat()}</div>
           <div class="k-slot k-slot--bc">
             <div class="k-pill k-pill--plate farm-whose">${im('pumpkin')}Тыква Паши · участок 3 · созреет через 14:20</div>
@@ -723,7 +712,7 @@ function boardScreen(h) {
           const w = scene.querySelector('.farm-w');
           w.textContent = String(Number(w.textContent) - 1);
           scene.querySelector('.farm-wmeter').style.setProperty('--v', String(Number(w.textContent) / 10));
-          pushToast(scene.querySelector('.farm-toasts'), { tone: 'reward', icon: ic('help-hands'), title: 'Ты полил тыкву Паши', sub: '+1 репутация · +1 жетон · Паша увидит, кто помог' });
+          pushToast(scene.querySelector('.farm-toasts'), { tone: 'reward', icon: ic('help-hands'), title: 'Ты полил тыкву Паши', sub: '+1 репутация · +1 жетон · Паша увидит' });
           pop(scene.querySelector('.k-badge'), '+1');
         });
         return;
@@ -760,7 +749,7 @@ function treeScreen(h) {
       const ev = st === 'soon'
         ? `<div class="k-event"><span class="k-event-ic"><img src="${ui('ui/rift-tree.webp')}" alt=""></span>
              <div class="k-event-title">Древо разлома просыпается</div>
-             <div class="k-event-sub">Собирай урожай — каждая искорка растит Древо. Вклад от 1 % — подарок на сутки</div>
+             <div class="k-event-sub">Собирай урожай — растишь Древо</div>
              <div class="k-event-timer">4:59</div>${meter(0.98, 'k-meter--thin k-meter--mode')}</div>`
         : `<div class="k-event k-lamp farm-tree"><span class="k-event-ic"><img src="${ui('ui/rift-tree.webp')}" alt=""></span>
              <div class="k-event-title">Цветение <span class="farm-bloom">62</span> %</div>
@@ -770,7 +759,7 @@ function treeScreen(h) {
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${farmCard(st === 'done' ? { buffs: ['+10 % к цене · 24 ч'] } : {})}</div>
         <div class="k-slot k-slot--tc">${st === 'done' ? '' : ev}<div class="k-toasts farm-toasts">${st === 'bloom' ? toastHtml({ tone: 'good', icon: ui('ui/grumpy-cone.webp'), title: 'Шишка-ворчунья — у костра', sub: 'Подбери: +10 к вкладу · ещё 22 из 30' }) : ''}</div></div>
-        <div class="k-slot k-slot--tr">${badge()}${waterCard()}${bagCard()}</div>
+        <div class="k-slot k-slot--tr">${badge()}${tiles(waterCard(), bagCard())}</div>
         <div class="k-slot k-slot--bl">${chat()}</div>
         <div class="k-slot k-slot--bc">${st === 'bloom'
           ? `<button class="k-prompt farm-act">${K.key('E')}Подобрать шишку<span class="k-prompt-sep"></span><span class="k-pill k-pill--gold k-pill--sm">+10 к вкладу</span></button>`

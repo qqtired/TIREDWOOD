@@ -19,13 +19,14 @@ const where = (place = 'Кафе «Чайка»') => `
   <div class="k-plate pz-where">${room('lobby', '50% 60%', 230)}<span class="pz-where-t"><b>Набережная</b><span>${place}</span></span>
     <span class="pz-where-on">${K.key('Tab')}<span>в игре 7</span></span></div>`;
 
-const STORM = `
+/** шторм: заголовок и подстрока — каждая в одну строку (v2), таймер справа */
+const stormEv = ({ title = 'Шторм скоро', sub = 'Беги к маяку — первому жетоны', timer = '1:20', v = 0.55 } = {}) => `
   <div class="k-event k-lamp" data-mode="fishing">
     <span class="k-event-ic"><img src="${icon('ui/rain.webp')}" alt=""></span>
-    <div class="k-event-title">Шторм через 1:20</div>
-    <div class="k-event-sub">Беги к маяку по мосткам — кто зажжёт свет первым, получит жетоны</div>
-    <div class="k-event-timer">1:20</div>
-    <div class="k-meter k-meter--thin k-meter--mode" style="--v:.55"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>
+    <div class="k-event-title">${title}</div>
+    <div class="k-event-sub">${sub}</div>
+    <div class="k-event-timer">${timer}</div>
+    <div class="k-meter k-meter--thin k-meter--mode" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>
   </div>`;
 
 const CHAT_LINES = [
@@ -61,7 +62,7 @@ if (host) {
   stage(host, {
     id: 'plaza-hud',
     title: 'Обычный экран на набережной',
-    note: 'Справа сверху — ты: уровень с опытом и жетоны. Сверху по центру — одно событие. Снизу — одна подсказка, слева — чат с голосом.',
+    note: 'Справа сверху — ты: уровень с опытом и жетоны. Сверху по центру — одно событие в одну строку. Снизу — одна подсказка, слева — чат с голосом. v2: всё поверх игры меньше — бейдж 44, где ты 44, чат 360.',
     bg: 'img/bg-plaza-cards.jpg',
     before: 'img/03-plaza-default.jpg',
     states: [{ id: 'table', label: 'у стола' }, { id: 'storm', label: 'шторм у маяка' }],
@@ -69,7 +70,7 @@ if (host) {
       const storm = state === 'storm';
       scene.innerHTML = `
         <div class="k-slot k-slot--tl">${where(storm ? 'Мостки у маяка' : 'Кафе «Чайка»')}</div>
-        <div class="k-slot k-slot--tc">${storm ? STORM.replace('Шторм через 1:20', 'Зажги маяк!').replace('>1:20<', '>0:42<').replace('--v:.55', '--v:.3').replace('Беги к маяку по мосткам — кто зажжёт свет первым, получит жетоны', 'Волна каждые 6 с — на площади безопасно') : STORM}</div>
+        <div class="k-slot k-slot--tc">${storm ? stormEv({ title: 'Зажги маяк!', sub: 'Волна каждые 6 с · площадь безопасна', timer: '0:42', v: 0.3 }) : stormEv()}</div>
         <div class="k-slot k-slot--tr">${badge()}</div>
         <div class="k-slot k-slot--bl">${chatDock()}</div>
         <div class="k-slot k-slot--bc">${storm
@@ -221,11 +222,11 @@ if (host) {
       let tr = badge();
       if (state === 'level') {
         center = `<div class="k-hero k-hero--gold is-pop"><p class="k-hero-title">Уровень 15!</p><span class="k-hero-sub"><span class="pz-tier-dot" style="--tc:#aebecf"></span>Новая рамка ника — Серебро</span></div>`;
-        tc = `<div class="k-toasts"><div class="k-toast k-toast--reward is-new"><span class="k-toast-ic"><img src="${icon('ui/level.webp')}" alt=""></span><div class="k-toast-title">Уровень 15 · новая рамка: Серебро</div><div class="k-toast-sub">Её видят все над твоей желейкой</div></div></div>`;
+        tc = `<div class="k-toasts"><div class="k-toast k-toast--reward is-new"><span class="k-toast-ic"><img src="${icon('ui/level.webp')}" alt=""></span><div class="k-toast-title">Уровень 15 · рамка Серебро</div><div class="k-toast-sub">Её видят все над твоей желейкой</div></div></div>`;
         tr = badge({ lv: 15, p: 0.06, xp: '+120 опыта' });
       } else if (state === 'storm') {
         center = `<div class="k-hero k-hero--win is-pop"><p class="k-hero-title">Маяк горит!</p><span class="k-hero-sub">Ты первый · +30 ${C}</span></div>`;
-        tc = `<div class="k-event k-event--good k-lamp" data-mode="fishing"><span class="k-event-ic">${LIGHTHOUSE}</span><div class="k-event-title">Шторм стих</div><div class="k-event-sub">1. Кракозябра +30 · 2. Бочка +20 · 3. Паша +15</div><div class="k-event-timer">0:08</div></div>
+        tc = `<div class="k-event k-event--good k-lamp" data-mode="fishing"><span class="k-event-ic">${LIGHTHOUSE}</span><div class="k-event-title">Шторм стих</div><div class="k-event-sub">Кракозябра +30 · Бочка +20 · Паша +15</div><div class="k-event-timer">0:08</div></div>
           <div class="k-toasts"><div class="k-toast k-toast--reward is-new"><span class="k-toast-ic"><img src="${icon('ui/token.webp')}" alt=""></span><div class="k-toast-title">+30 жетонов</div><div class="k-toast-sub">Ты зажёг маяк первым</div></div>
           <div class="k-toast"><span class="k-toast-ic"><img src="${icon('jelly.webp')}" alt=""></span><div class="k-toast-title">Бочка зажгла маяк второй</div></div></div>`;
         tr = badge({ tokens: '1 280', pop: '+30' });

@@ -1,73 +1,89 @@
-/* TIREDWOOD UI kit — боевые компоненты (крепость, пейнтбол, пираты). Только токены из tokens.css, работает во всех
+/* TIREDWOOD UI kit 2.0 — боевые компоненты (крепость, пейнтбол, пираты). Только токены из tokens.css, работает во всех
    трёх шкурках. Справочник разметки — kit/KIT-combat.md.
-   .k-vitals — панель бойца (здоровье · оружие 1/2/G · патроны · рывок), низ-центр, по образцу «Подземелья»;
-   .k-edge   — стрелка угрозы у края экрана (диск-иконка + нос по направлению + «23 м»);
+   .k-vitals — панель бойца v2: ОТДЕЛЬНЫЕ блоки на своих подложках (здоровье · каждая ячейка оружия · граната · патроны · рывок), низ-центр;
+   .k-edge   — стрелка угрозы у края экрана v2: круг 42 + маленькая пилюля «23 м»;
    .k-cross  — прицел и отметка попадания; .k-float — всплывающие цифры урона и золота над целью. */
 
-/* ============================================================ панель бойца */
+/* ============================================================ панель бойца v2: отдельные блоки, gap 8
+   Сам .k-vitals — прозрачный ряд. Подложка у каждого блока своя: .k-vitals-hp, каждая .k-arm, .k-vitals-ammo, .k-vitals-dash.
+   Старая разметка v1 (рывок внутри .k-vitals-ammo) тоже работает — рывок тогда тонкой строкой в блоке патронов. */
 .k-vitals {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px;
-  width: 560px; min-height: 96px; padding: 12px 18px 12px 16px;
-  border: var(--plate-border); border-radius: var(--r-lg); background: var(--plate-bg); box-shadow: var(--plate-shadow);
+  position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 8px; width: max-content; max-width: 760px;
   color: var(--plate-text); font-family: var(--font-text); font-variant-numeric: tabular-nums; box-sizing: border-box;
 }
 .k-vitals * { box-sizing: border-box; }
-.k-vitals-hp, .k-vitals-ammo { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.k-vitals-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.k-vitals-ic { flex: none; width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .35)); }
-.k-vitals-num { font: 900 var(--fs-36)/1 var(--font-text); letter-spacing: -.01em; white-space: nowrap; }
-.k-vitals-num small { margin-left: 4px; color: var(--surf-dim); font-size: var(--fs-18); font-weight: 700; letter-spacing: 0; }
-.k-vitals-cap { color: var(--surf-dim); font: 700 var(--fs-14)/1.1 var(--font-text); white-space: nowrap; }
-.k-vitals-ammo { align-items: stretch; text-align: right; }
-.k-vitals-ammo > .k-vitals-row { justify-content: flex-end; }
-.k-vitals-ammo .k-meter, .k-vitals-hp .k-meter { width: 100%; }
-/* мало здоровья — число и полоса красные, лёгкий пульс; перезарядка — полоса инфо с подписью */
+.k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm {
+  border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow);
+  -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur);
+}
+/* здоровье: сердце 22 + число 22 + полоса 4 (~150×48) */
+.k-vitals-hp { display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 150px; min-height: 48px; padding: 6px 12px 7px 9px; }
+.k-vitals-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.k-vitals-ic { flex: none; width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .3)); }
+.k-vitals-num { font: 800 var(--fs-22)/1 var(--font-text); letter-spacing: -.01em; white-space: nowrap; }
+.k-vitals-num small { margin-left: 3px; color: var(--surf-dim); font-size: var(--fs-14); font-weight: 600; letter-spacing: 0; }
+.k-vitals-cap { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); white-space: nowrap; }
+.k-vitals-hp .k-meter, .k-vitals-ammo .k-meter { width: 100%; height: 4px; border: 0; }
 .k-vitals-hp.is-low .k-vitals-num { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+/* патроны: «24 / 30» + клавиша R, тонкая полоса */
+.k-vitals-ammo { display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 104px; min-height: 48px; padding: 6px 12px 7px 8px; }
+.k-vitals-ammo > .k-vitals-row { justify-content: flex-start; }
 .k-vitals-ammo.is-empty .k-vitals-num { color: var(--bad-text); }
-/* рывок: подпись + клавиша + тонкая полоса */
-.k-vitals-dash { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; }
-.k-vitals-dash .k-meter { min-width: 30px; }
-/* слоты оружия: картинка + имя/число + клавиша колпачком на углу */
+/* рывок: маленькая пилюля (v2 — отдельный блок, прямой ребёнок .k-vitals) */
+.k-vitals-dash { display: flex; align-items: center; gap: 6px; }
+.k-vitals-dash .k-meter { flex: none; width: 34px; height: 4px; border: 0; }
+.k-vitals > .k-vitals-dash { min-height: 32px; padding: 4px 10px 4px 5px; border-radius: var(--r-pill); }
+.k-vitals-ammo > .k-vitals-dash { margin-top: 1px; }
+.k-vitals-ammo > .k-vitals-dash .k-key { min-width: 20px; height: 20px; font-size: var(--fs-13); }
+/* ячейки оружия: каждая — своя подложка 52×52, клавиша в углу, подпись 13 ПОД ячейкой только у выбранной */
 .k-vitals-arms { display: flex; align-items: flex-end; gap: 8px; }
 .k-arm {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
-  width: 74px; height: 74px; padding: 4px 3px 6px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-3);
-  color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; transition: transform .12s var(--ease-out);
+  position: relative; display: grid; place-items: center; flex: none; width: 52px; height: 52px; padding: 0;
+  color: var(--plate-text); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; transition: transform .12s var(--ease-out);
 }
-.k-arm > img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .35)); }
-.k-arm.is-on { transform: translateY(-6px); border-color: transparent; background: var(--gold-soft); color: var(--surf-text); box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+.k-arm > img { width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .3)); }
+.k-arm > .k-key--tr { top: -8px; right: -8px; }
+.k-arm > span { position: absolute; top: calc(100% + 4px); left: 50%; display: none; padding: 2px 7px 3px; border-radius: var(--r-pill); background: var(--plate-bg); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); transform: translateX(-50%); }
+.k-arm.is-on { transform: translateY(-4px); box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--gold); }
+.k-arm.is-on > span, .k-arm--label > span { display: block; }
+/* .k-arm--label — подпись под ячейкой всегда (действия без оружия: «Замереть», «Дразнить»); в таком ряду шаг шире, чтобы подписи не налезали */
+.k-vitals-arms:has(> .k-arm--label) { gap: 22px; }
+/* граната и всё со счётчиком: число всегда видно — пузырёк в нижнем углу */
+.k-arm--count > span { display: block; top: auto; bottom: -7px; left: auto; right: -7px; min-width: 20px; padding: 2px 5px; border: var(--plate-border); background: var(--plate-bg); font-weight: 800; text-align: center; transform: none; }
 .k-arm.is-off { opacity: .5; }
 .k-arm.is-off > img { filter: grayscale(1) opacity(.6); }
-.k-arm.is-empty { color: var(--bad-text); }
+.k-arm.is-empty > img { filter: grayscale(.8) opacity(.6); }
+.k-arm.is-empty > span { color: var(--bad-text); }
 .k-vitals.is-down { filter: grayscale(.8); opacity: .55; }
 
-/* ============================================================ стрелка угрозы у края экрана
-   style="left:46px; top:470px; --a:180deg" — центр диска и направление на цель (0° → вправо, 90° → вниз, 180° → влево, 270° → вверх) */
+/* ============================================================ стрелка угрозы у края экрана (v2: круг 42, подпись — пилюля 13)
+   style="left:40px; top:470px; --a:180deg" — центр диска и направление на цель (0° → вправо, 90° → вниз, 180° → влево, 270° → вверх) */
 .k-edge {
-  --a: 0deg; --s: 64px; --tone: var(--mode); --tone-soft: var(--mode-soft);
-  position: absolute; z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  --a: 0deg; --s: 42px; --tone: var(--mode); --tone-soft: var(--mode-soft);
+  position: absolute; z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 6px;
   width: 0; height: 0; pointer-events: none; font-family: var(--font-text);
 }
 .k-edge-disc {
   position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); display: grid; place-items: center; width: var(--s); height: var(--s);
-  border: var(--plate-border); border-radius: 50%; background: var(--plate-bg);
-  box-shadow: 0 0 0 3px var(--tone), 0 0 18px var(--tone-soft), var(--plate-shadow);
+  border-radius: 50%; background: var(--plate-bg); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur);
+  box-shadow: 0 0 0 2px var(--tone), var(--plate-shadow);
 }
-.k-edge-disc > img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .35)); }
+.k-edge-disc > img { width: 76%; height: 76%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .3)); }
 .k-edge-disc > .k-edge-emoji { font-size: calc(var(--s) * .5); line-height: 1; }
 /* нос: треугольник снаружи диска по направлению --a */
 .k-edge::before {
-  content: ''; position: absolute; left: 0; top: 0; width: 0; height: 0; border: 11px solid transparent; border-right: 0; border-left: 16px solid var(--tone);
-  transform: rotate(var(--a)) translate(calc(var(--s) / 2 + 6px), -11px); transform-origin: 0 0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45));
+  content: ; position: absolute; left: 0; top: 0; width: 0; height: 0; border: 7px solid transparent; border-right: 0; border-left: 10px solid var(--tone);
+  transform: rotate(var(--a)) translate(calc(var(--s) / 2 + 4px), -7px); transform-origin: 0 0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .35));
 }
 .k-edge-label {
-  position: absolute; left: 0; top: calc(var(--s) / 2 + 10px); transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px 6px;
+  position: absolute; left: 0; top: calc(var(--s) / 2 + 6px); transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 4px;
   border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow);
-  color: var(--plate-text); font: 700 var(--fs-14)/1 var(--font-text); white-space: nowrap;
+  -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur);
+  color: var(--plate-text); font: 600 var(--fs-13)/1.1 var(--font-text); white-space: nowrap;
 }
-.k-edge-label b { color: var(--tone-text, var(--plate-text)); font-weight: 900; }
-.k-edge--up .k-edge-label { top: auto; bottom: calc(var(--s) / 2 + 10px); }
+.k-edge-label b { color: var(--tone-text, var(--plate-text)); font-weight: 800; }
+.k-edge--up .k-edge-label { top: auto; bottom: calc(var(--s) / 2 + 6px); }
 /* у правого/левого края подпись прижимается внутрь экрана */
 .k-edge--left .k-edge-label { left: calc(var(--s) / -2); transform: none; }
 .k-edge--right .k-edge-label { left: auto; right: calc(var(--s) / -2); transform: none; }
@@ -75,9 +91,9 @@
 .k-edge--gold { --tone: var(--gold); --tone-soft: var(--gold-soft); --tone-text: var(--gold-text); }
 .k-edge--info { --tone: var(--info); --tone-soft: var(--info-soft); --tone-text: var(--info-text); }
 .k-edge--special { --tone: var(--special); --tone-soft: var(--special-soft); --tone-text: var(--special-text); }
-.k-edge--lg { --s: 84px; }
+.k-edge--lg { --s: 56px; }
 .k-edge.is-hot .k-edge-disc { animation: k-edge-hot .8s ease-in-out infinite; }
-@keyframes k-edge-hot { 50% { box-shadow: 0 0 0 6px var(--tone), 0 0 30px var(--tone), var(--plate-shadow); } }
+@keyframes k-edge-hot { 50% { box-shadow: 0 0 0 4px var(--tone), 0 0 18px var(--tone), var(--plate-shadow); } }
 
 /* ============================================================ прицел и отметка попадания */
 .k-cross { position: absolute; left: 50%; top: 50%; z-index: 15; width: 40px; height: 40px; margin: -20px 0 0 -20px; pointer-events: none; }
