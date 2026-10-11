@@ -182,8 +182,12 @@ export interface Plaza3Layout {
   colliders: P3Collider[];
   decor: P3Decor[];
   pavilions: P3Pavilion[];
-  /** Вывески (WP10), столбы-указатели, жители (WP11) — места из раскладки */
-  signs: Array<{ id: string; text: string; x: number; y: number; z: number }>;
+  /**
+   * Вывески (WP10), столбы-указатели, жители (WP11) — места из раскладки. Вывеска: центр поля (x, y, z), куда оно смотрит
+   * (yaw: 0 — на −Z), размер w × h, м; back — центр поля на обратной стороне (вывеска висит двусторонняя).
+   * Данные берутся из якорей anchor_sign_* моделей: node tools/plaza3/signs.mjs
+   */
+  signs: Array<{ id: string; text: string; x: number; y: number; z: number; yaw: number; w: number; h: number; back?: Vec3 }>;
   posts: Array<{ id: string; x: number; z: number; name: string; arrows: string[] }>;
   npcs: Array<{ id: string; name: string; x: number; z: number }>;
   /** Надпись TIREDWOOD: азимут с колеса, ось и высота холма, изолиния букв; коридор вида (дома ≤ 2 этажей, без рощ) */
