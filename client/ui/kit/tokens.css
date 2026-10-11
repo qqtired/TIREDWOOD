@@ -1,13 +1,15 @@
 /* TIREDWOOD UI 2.0 — токены кита в игре. Перенесено из lab/ui/kit/tokens.css (обзор: lab/ui/, справочник: lab/ui/kit/KIT.md):
-   общие токены, пары --w-…/--h-… (окно / HUD), шкурка «Ретро-парк 2.0», раздача контекстов по месту и акценты режимов.
-   Шкурка = атрибут data-skin на <html> (index.html: retro2). Другая шкурка или вариант HUD ложится сюда отдельным блоком
-   ([data-skin='…'] / [data-hud='…']), переопределяя --w-…/--h-…/--plate-…; компоненты (kit.css) берут ТОЛЬКО эти переменные.
-   Режимный акцент — data-mode на любом контейнере (fishing · farm · fort · race · dungeon · paintball · hide · skill · pirates · regatta).
+   общие токены, пары --w-…/--h-…/--hd-… (окно / HUD / шапка окна), шкурка «Ретро-парк 2.0» + вариант HUD «Светлый»,
+   раздача контекстов по месту и акценты режимов.
+   Шкурка = атрибут data-skin на <html>, вариант HUD = data-hud (index.html: retro2 + light). Другая шкурка или вариант HUD
+   ложится сюда отдельным блоком ([data-skin='…'] / [data-hud='…']), переопределяя --w-…/--h-…/--plate-…; компоненты (kit.css)
+   берут ТОЛЬКО эти переменные. Режимный акцент — data-mode на любом контейнере
+   (fishing · farm · fort · race · dungeon · paintball · hide · skill · pirates · regatta).
 
-   ДВА КОНТЕКСТА. «Окно» (окна, панели) и «HUD» (плашки поверх игры): часть токенов (текст, поверхности, цветной текст,
-   кнопка-призрак, полосы) задаётся парой --w-… (окно) и --h-… (HUD), а обычные имена (--surf-text, --gold-text, --track …)
-   раздаются ниже по месту: внутри .k-hud и плашек — HUD-значения, внутри .k-scrim/.k-window — оконные.
-   Экраны пользуются только обычными именами.
+   ТРИ КОНТЕКСТА. «Окно» (окна, панели, затемнение — --w-…), «HUD» (плашки поверх игры — --h-…) и «шапка окна» (--hd-…, в
+   «Ретро-парке 2.0» = окно): часть токенов (текст, поверхности, цветной текст, кнопка-призрак, полосы, лампочки) задаётся
+   тройкой, а обычные имена (--surf-text, --gold-text, --track …) раздаются ниже по месту: внутри .k-hud и плашек — HUD-значения,
+   внутри .k-scrim/.k-window — оконные. Экраны пользуются только обычными именами.
 
    Шрифты подключены в client/startup-game.ts: Rubik (@fontsource/rubik 400–900) — весь текст, заголовки retro2 —
    Rubik Mono One (@fontsource/rubik-mono-one). Одноимённые переменные игры на :root (--gold, --line в styles.css)
@@ -35,16 +37,32 @@
   --tier-junk: #8a7766; --tier-chest: #d9a521; --tier-divine: #18b7a6;
 }
 
-/* HUD по умолчанию = окно (своё у HUD задаёт только «Закат»). Стоит ДО шкурок: шкурка может переопределить --h-… */
+/* HUD и шапка окна по умолчанию = окно. Стоит ДО шкурок: шкурка (или вариант HUD) может переопределить --h-… / --hd-…
+   --mh-<режим> — цвет режима в HUD (по умолчанию тот же, что в окне); --h-disp-* — шрифт «вывесочных» надписей в HUD (initial = как заголовки) */
 :root, [data-skin] {
   --h-surf-solid: var(--w-surf-solid); --h-surf-text: var(--w-surf-text); --h-surf-dim: var(--w-surf-dim); --h-surf-faint: var(--w-surf-faint);
-  --h-surf-2: var(--w-surf-2); --h-surf-2-border: var(--w-surf-2-border); --h-surf-3: var(--w-surf-3);
-  --h-line: var(--w-line); --h-line-strong: var(--w-line-strong);
-  --h-panel-bg: var(--w-panel-bg); --h-panel-border: var(--w-panel-border); --h-panel-shadow: var(--w-panel-shadow);
-  --h-gold-text: var(--w-gold-text); --h-good-text: var(--w-good-text); --h-bad-text: var(--w-bad-text); --h-info-text: var(--w-info-text); --h-special-text: var(--w-special-text);
-  --h-ghost-bg: var(--w-ghost-bg); --h-ghost-text: var(--w-ghost-text); --h-ghost-border: var(--w-ghost-border); --h-ghost-bg-hover: var(--w-ghost-bg-hover); --h-ghost-drop: var(--w-ghost-drop);
-  --h-track: var(--w-track); --h-track-border: var(--w-track-border); --h-trail: var(--w-trail); --h-ring-face: var(--w-ring-face);
-  --h-accent-k: var(--w-accent-k); --h-accent-to: var(--w-accent-to); --h-sil: var(--w-sil);
+  --h-surf-2: var(--w-surf-2); --h-surf-2-border: var(--w-surf-2-border); --h-surf-3: var(--w-surf-3); --h-line: var(--w-line);
+  --h-line-strong: var(--w-line-strong); --h-panel-bg: var(--w-panel-bg); --h-panel-border: var(--w-panel-border); --h-panel-shadow: var(--w-panel-shadow);
+  --h-gold-text: var(--w-gold-text); --h-good-text: var(--w-good-text); --h-bad-text: var(--w-bad-text); --h-info-text: var(--w-info-text);
+  --h-special-text: var(--w-special-text); --h-ghost-bg: var(--w-ghost-bg); --h-ghost-text: var(--w-ghost-text); --h-ghost-border: var(--w-ghost-border);
+  --h-ghost-bg-hover: var(--w-ghost-bg-hover); --h-ghost-drop: var(--w-ghost-drop); --h-track: var(--w-track); --h-track-border: var(--w-track-border);
+  --h-trail: var(--w-trail); --h-ring-face: var(--w-ring-face); --h-accent-k: var(--w-accent-k); --h-accent-to: var(--w-accent-to);
+  --h-sil: var(--w-sil); --h-lamp-band: var(--w-lamp-band); --h-lamp-ring: var(--w-lamp-ring); --h-lamp-dot: var(--w-lamp-dot);
+  --h-lamp-dot-size: var(--w-lamp-dot-size); --h-lamp-inset: var(--w-lamp-inset); --h-lamp-dot-glow: var(--w-lamp-dot-glow); --h-info: var(--w-info);
+  --h-info-soft: var(--w-info-soft);
+  --hd-surf-solid: var(--w-surf-solid); --hd-surf-text: var(--w-surf-text); --hd-surf-dim: var(--w-surf-dim); --hd-surf-faint: var(--w-surf-faint);
+  --hd-surf-2: var(--w-surf-2); --hd-surf-2-border: var(--w-surf-2-border); --hd-surf-3: var(--w-surf-3); --hd-line: var(--w-line);
+  --hd-line-strong: var(--w-line-strong); --hd-panel-bg: var(--w-panel-bg); --hd-panel-border: var(--w-panel-border); --hd-panel-shadow: var(--w-panel-shadow);
+  --hd-gold-text: var(--w-gold-text); --hd-good-text: var(--w-good-text); --hd-bad-text: var(--w-bad-text); --hd-info-text: var(--w-info-text);
+  --hd-special-text: var(--w-special-text); --hd-ghost-bg: var(--w-ghost-bg); --hd-ghost-text: var(--w-ghost-text); --hd-ghost-border: var(--w-ghost-border);
+  --hd-ghost-bg-hover: var(--w-ghost-bg-hover); --hd-ghost-drop: var(--w-ghost-drop); --hd-track: var(--w-track); --hd-track-border: var(--w-track-border);
+  --hd-trail: var(--w-trail); --hd-ring-face: var(--w-ring-face); --hd-accent-k: var(--w-accent-k); --hd-accent-to: var(--w-accent-to);
+  --hd-sil: var(--w-sil); --hd-lamp-band: var(--w-lamp-band); --hd-lamp-ring: var(--w-lamp-ring); --hd-lamp-dot: var(--w-lamp-dot);
+  --hd-lamp-dot-size: var(--w-lamp-dot-size); --hd-lamp-inset: var(--w-lamp-inset); --hd-lamp-dot-glow: var(--w-lamp-dot-glow); --hd-info: var(--w-info);
+  --hd-info-soft: var(--w-info-soft);
+  --mh-fishing: var(--m-fishing); --mh-farm: var(--m-farm); --mh-fort: var(--m-fort); --mh-race: var(--m-race); --mh-dungeon: var(--m-dungeon); --mh-paintball: var(--m-paintball); --mh-hide: var(--m-hide); --mh-skill: var(--m-skill); --mh-pirates: var(--m-pirates); --mh-regatta: var(--m-regatta);
+  --mh-def: var(--m-def); --m-ink-h: var(--m-ink); --mode-w: var(--m-def); --mode-h: var(--mh-def);
+  --h-disp-font: initial; --h-disp-weight: initial; --h-disp-case: initial; --h-disp-word: initial; --h-disp-track: initial;
 }
 
 /* ================================================================ Г · «Ретро-парк 2.0» (по умолчанию)
@@ -86,7 +104,7 @@
   --head-rule: 1px solid rgba(255, 244, 220, .14);
   --awning-h: 10px; --awning-w: 22px; --awning-fest: 0;
   --awning-a: #ff7a5c; --awning-b: #f3e6c9;
-  --mode: #ffcd4a; --mode-soft: rgba(255, 205, 74, .16); --mode-ink: #3a2603;
+  --m-def: #ffcd4a; --mode-soft-k: 16%;
   --portrait-bg: radial-gradient(circle at 35% 30%, #fff8e6, #f1dcb0 70%);
   --portrait-ring: 0 0 0 2px #ff7a5c, 0 0 0 4px #f3e6c9;
   --portrait-radius: 50%; --portrait-rotate: 0deg;
@@ -103,7 +121,7 @@
   --gold: #ffcd4a; --gold-hi: #ffdd7a; --gold-lo: #a8760a; --gold-ink: #3a2603; --gold-soft: rgba(255, 205, 74, .16);
   --good: #56c07d; --good-hi: #84dba0; --good-lo: #2a7a4a; --good-ink: #0c2e19; --good-soft: rgba(132, 219, 160, .16);
   --bad: #e5484d; --bad-hi: #f47a7e; --bad-lo: #8e1f27; --bad-ink: #ffffff; --bad-soft: rgba(244, 122, 126, .18);
-  --info: #8fd9cf; --info-hi: #b9ece5; --info-lo: #2d7c74; --info-ink: #08302c; --info-soft: rgba(143, 217, 207, .16);
+  --w-info: #8fd9cf; --info-hi: #b9ece5; --info-lo: #2d7c74; --info-ink: #08302c; --w-info-soft: rgba(143, 217, 207, .16);
   --special: #a9b4ff; --special-hi: #c9d0ff; --special-lo: #4a55c0; --special-ink: #141c63; --special-soft: rgba(169, 180, 255, .18);
 
   /* кнопки: эмаль, тонкий нижний кант */
@@ -114,10 +132,10 @@
   --key-bg: #fff6e2; --key-text: #0d524d; --key-border: 1px solid #0a3b37; --key-shadow: 0 1.5px 0 #0a3b37; --key-radius: 6px; --key-weight: 800;
 
   /* важная плашка: тёмная кайма + редкие лампочки */
-  --lamp-band: 0 0 0 7px #0a3b37;
-  --lamp-ring: 0 0 0 8.5px rgba(243, 230, 201, .7), 0 0 22px rgba(255, 205, 74, .28);
-  --lamp-dot: #fff0bf; --lamp-dot-size: 3px; --lamp-inset: -5.5px;
-  --lamp-dot-glow: drop-shadow(0 0 2px rgba(255, 210, 90, .95)) drop-shadow(0 0 5px rgba(255, 190, 60, .5));
+  --w-lamp-band: 0 0 0 7px #0a3b37;
+  --w-lamp-ring: 0 0 0 8.5px rgba(243, 230, 201, .7), 0 0 22px rgba(255, 205, 74, .28);
+  --w-lamp-dot: #fff0bf; --w-lamp-dot-size: 3px; --w-lamp-inset: -5.5px;
+  --w-lamp-dot-glow: drop-shadow(0 0 2px rgba(255, 210, 90, .95)) drop-shadow(0 0 5px rgba(255, 190, 60, .5));
 
   --focus: 0 0 0 2px #0a3b37, 0 0 0 4.5px #ffcd4a;
 
@@ -135,38 +153,93 @@
   color-scheme: dark;
 }
 
-/* ---------------------------------------------------------------- раздача двух контекстов по месту
-   окно/страница: всё внутри шкурки, .k-scrim, .k-window; HUD: .k-hud и все плашки поверх игры (+ шапка окна — в «Закате» она цветная) */
-:root, [data-skin], .k-scrim, .k-window {
-  --surf-solid: var(--w-surf-solid); --surf-text: var(--w-surf-text); --surf-dim: var(--w-surf-dim); --surf-faint: var(--w-surf-faint);
-  --surf-2: var(--w-surf-2); --surf-2-border: var(--w-surf-2-border); --surf-3: var(--w-surf-3);
-  --line: var(--w-line); --line-strong: var(--w-line-strong);
-  --panel-bg: var(--w-panel-bg); --panel-border: var(--w-panel-border); --panel-shadow: var(--w-panel-shadow);
-  --gold-text: var(--w-gold-text); --good-text: var(--w-good-text); --bad-text: var(--w-bad-text); --info-text: var(--w-info-text); --special-text: var(--w-special-text);
-  --ghost-bg: var(--w-ghost-bg); --ghost-text: var(--w-ghost-text); --ghost-border: var(--w-ghost-border); --ghost-bg-hover: var(--w-ghost-bg-hover); --ghost-drop: var(--w-ghost-drop);
-  --track: var(--w-track); --track-border: var(--w-track-border); --trail: var(--w-trail); --ring-face: var(--w-ring-face);
-  --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil);
-}
-.k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
-.k-voice, .k-vitals, .k-edge, .k-hero, .k-pop, .k-pill--plate, .k-win-head {
-  --surf-solid: var(--h-surf-solid); --surf-text: var(--h-surf-text); --surf-dim: var(--h-surf-dim); --surf-faint: var(--h-surf-faint);
-  --surf-2: var(--h-surf-2); --surf-2-border: var(--h-surf-2-border); --surf-3: var(--h-surf-3);
-  --line: var(--h-line); --line-strong: var(--h-line-strong);
-  --panel-bg: var(--h-panel-bg); --panel-border: var(--h-panel-border); --panel-shadow: var(--h-panel-shadow);
-  --gold-text: var(--h-gold-text); --good-text: var(--h-good-text); --bad-text: var(--h-bad-text); --info-text: var(--h-info-text); --special-text: var(--h-special-text);
-  --ghost-bg: var(--h-ghost-bg); --ghost-text: var(--h-ghost-text); --ghost-border: var(--h-ghost-border); --ghost-bg-hover: var(--h-ghost-bg-hover); --ghost-drop: var(--h-ghost-drop);
-  --track: var(--h-track); --track-border: var(--h-track-border); --trail: var(--h-trail); --ring-face: var(--h-ring-face);
-  --accent-k: var(--h-accent-k); --accent-to: var(--h-accent-to); --sil: var(--h-sil);
+/* ================================================================ вариант HUD «Светлый» поверх «Ретро-парка 2.0»: <html data-skin="retro2" data-hud="light">
+   Окна, меню, затемнение — ровно retro2. Всё поверх игры — светлые тёплые плашки с тёмным текстом (как «Пляжный день»),
+   БЕЗ backdrop-filter (бюджет кадра): плашка плотнее (.92) и тень чуть сильнее. Цвета режимов — тёмные средние тона,
+   надписи «вывесочным» шрифтом в HUD (.k-display) — Rubik 800. */
+[data-hud='light'][data-skin='retro2'], [data-hud='light'] [data-skin='retro2'] {
+  --h-surf-solid: #fffcf6; --h-surf-text: #16313a; --h-surf-dim: #4b6670; --h-surf-faint: #66808a;
+  --h-surf-2: rgba(22, 49, 58, .05); --h-surf-2-border: 1px solid rgba(23, 50, 58, .09); --h-surf-3: #edf3f1;
+  --h-line: rgba(23, 50, 58, .1); --h-line-strong: rgba(23, 50, 58, .26);
+  --h-panel-bg: rgba(255, 252, 246, .94); --h-panel-border: 1px solid rgba(255, 255, 255, .95);
+  --h-panel-shadow: 0 0 0 1px rgba(16, 48, 60, .1), 0 10px 26px rgba(10, 40, 56, .24);
+  --h-gold-text: #955a00; --h-good-text: #1b7a48; --h-bad-text: #c02f3b; --h-info-text: #0b7471; --h-special-text: #4b48c9;
+  --h-ghost-bg: #ffffff; --h-ghost-text: #16313a; --h-ghost-border: 1px solid rgba(23, 50, 58, .22); --h-ghost-bg-hover: #f1f7f6; --h-ghost-drop: 0 1px 2px rgba(14, 50, 64, .1);
+  --h-track: #e2ebea; --h-track-border: 1px solid rgba(23, 50, 58, .08); --h-trail: rgba(23, 50, 58, .16);
+  --h-ring-face: radial-gradient(circle at 40% 35%, #ffffff, #edf3f1 75%);
+  --h-accent-k: 64%; --h-accent-to: #0b1a1f; --h-sil: brightness(0) opacity(.26);
+  --h-info: #12958f; --h-info-soft: rgba(18, 149, 143, .13);
+  /* важная плашка в HUD: золотая обводка, без лампочек */
+  --h-lamp-band: 0 0 0 0 transparent; --h-lamp-ring: 0 0 0 2px #f2b52c, 0 8px 22px rgba(10, 40, 56, .24), 0 0 20px rgba(245, 177, 0, .3);
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  /* плашки HUD: тёплый белый, плотный, без размытия */
+  --plate-bg: rgba(255, 252, 246, .92);
+  --plate-text: #16313a;
+  --plate-border: 1px solid rgba(255, 255, 255, .95);
+  --plate-shadow: 0 0 0 1px rgba(16, 48, 60, .1), 0 5px 16px rgba(10, 40, 56, .24), 0 1px 2px rgba(10, 40, 56, .16);
+  --plate-blur: none; --hud-text-shadow: none;
+  --chat-bg: rgba(255, 252, 246, .88); --chat-old: .72; --chat-border: 0 solid transparent; --chat-shadow: 0 0 0 1px rgba(16, 48, 60, .08), 0 2px 8px rgba(10, 40, 56, .16);
+  --nick-1: #d0562d; --nick-2: #1b7a48; --nick-3: #4b48c9; --nick-4: #b8336a; --nick-5: #0b7774; --nick-6: #955a00;
+  /* режимы в HUD — тёмные средние тона, читаются на белом; по умолчанию — бирюза ретро */
+  --mh-def: #13827b; --mh-fishing: #0f9a96; --mh-farm: #3c9a4c; --mh-fort: #c8692a; --mh-race: #e0453a; --mh-dungeon: #a0742a;
+  --mh-paintball: #e0700f; --mh-hide: #8c55d6; --mh-skill: #3c7fd6; --mh-pirates: #c2382e; --mh-regatta: #1d86b8; --m-ink-h: #ffffff;
+  /* «вывесочные» надписи в HUD — текстовым шрифтом */
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
 }
 
-/* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки; цвет берётся из ближайшей шкурки) */
-[data-mode='fishing'] { --mode: var(--m-fishing); --mode-soft: color-mix(in srgb, var(--m-fishing) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='farm'] { --mode: var(--m-farm); --mode-soft: color-mix(in srgb, var(--m-farm) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='fort'] { --mode: var(--m-fort); --mode-soft: color-mix(in srgb, var(--m-fort) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='race'] { --mode: var(--m-race); --mode-soft: color-mix(in srgb, var(--m-race) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='dungeon'] { --mode: var(--m-dungeon); --mode-soft: color-mix(in srgb, var(--m-dungeon) 20%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='paintball'] { --mode: var(--m-paintball); --mode-soft: color-mix(in srgb, var(--m-paintball) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='hide'] { --mode: var(--m-hide); --mode-soft: color-mix(in srgb, var(--m-hide) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='skill'] { --mode: var(--m-skill); --mode-soft: color-mix(in srgb, var(--m-skill) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='pirates'] { --mode: var(--m-pirates); --mode-soft: color-mix(in srgb, var(--m-pirates) 18%, transparent); --mode-ink: var(--m-ink); }
-[data-mode='regatta'] { --mode: var(--m-regatta); --mode-soft: color-mix(in srgb, var(--m-regatta) 18%, transparent); --mode-ink: var(--m-ink); }
+/* ---------------------------------------------------------------- раздача трёх контекстов по месту
+   окно/страница: всё внутри шкурки, .k-scrim, .k-window — --w-…; HUD: .k-hud и все плашки поверх игры — --h-…; шапка окна — --hd-…
+   (в «Закате» шапка — цветная полоса с HUD-значениями, у остальных = окно). --hk: 0 % в окне, 100 % в HUD — по нему цвет режима
+   выбирается между оконным (--mode-w) и HUD-ным (--mode-h). */
+:root, [data-skin], .k-scrim, .k-window {
+  --surf-solid: var(--w-surf-solid); --surf-text: var(--w-surf-text); --surf-dim: var(--w-surf-dim); --surf-faint: var(--w-surf-faint); --surf-2: var(--w-surf-2);
+  --surf-2-border: var(--w-surf-2-border); --surf-3: var(--w-surf-3); --line: var(--w-line); --line-strong: var(--w-line-strong); --panel-bg: var(--w-panel-bg);
+  --panel-border: var(--w-panel-border); --panel-shadow: var(--w-panel-shadow); --gold-text: var(--w-gold-text); --good-text: var(--w-good-text); --bad-text: var(--w-bad-text);
+  --info-text: var(--w-info-text); --special-text: var(--w-special-text); --ghost-bg: var(--w-ghost-bg); --ghost-text: var(--w-ghost-text); --ghost-border: var(--w-ghost-border);
+  --ghost-bg-hover: var(--w-ghost-bg-hover); --ghost-drop: var(--w-ghost-drop); --track: var(--w-track); --track-border: var(--w-track-border); --trail: var(--w-trail);
+  --ring-face: var(--w-ring-face); --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil); --lamp-band: var(--w-lamp-band);
+  --lamp-ring: var(--w-lamp-ring); --lamp-dot: var(--w-lamp-dot); --lamp-dot-size: var(--w-lamp-dot-size); --lamp-inset: var(--w-lamp-inset); --lamp-dot-glow: var(--w-lamp-dot-glow);
+  --info: var(--w-info); --info-soft: var(--w-info-soft);
+  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --disp-font: var(--font-display); --disp-weight: var(--display-weight); --disp-case: var(--display-case); --disp-word: var(--display-word); --disp-track: var(--display-track);
+}
+.k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
+.k-voice, .k-vitals, .k-edge, .k-hero, .k-pop, .k-pill--plate,
+.voice-hud /* игра: кнопка голоса уезжает в <dialog> — там это всё ещё HUD */ {
+  --surf-solid: var(--h-surf-solid); --surf-text: var(--h-surf-text); --surf-dim: var(--h-surf-dim); --surf-faint: var(--h-surf-faint); --surf-2: var(--h-surf-2);
+  --surf-2-border: var(--h-surf-2-border); --surf-3: var(--h-surf-3); --line: var(--h-line); --line-strong: var(--h-line-strong); --panel-bg: var(--h-panel-bg);
+  --panel-border: var(--h-panel-border); --panel-shadow: var(--h-panel-shadow); --gold-text: var(--h-gold-text); --good-text: var(--h-good-text); --bad-text: var(--h-bad-text);
+  --info-text: var(--h-info-text); --special-text: var(--h-special-text); --ghost-bg: var(--h-ghost-bg); --ghost-text: var(--h-ghost-text); --ghost-border: var(--h-ghost-border);
+  --ghost-bg-hover: var(--h-ghost-bg-hover); --ghost-drop: var(--h-ghost-drop); --track: var(--h-track); --track-border: var(--h-track-border); --trail: var(--h-trail);
+  --ring-face: var(--h-ring-face); --accent-k: var(--h-accent-k); --accent-to: var(--h-accent-to); --sil: var(--h-sil); --lamp-band: var(--h-lamp-band);
+  --lamp-ring: var(--h-lamp-ring); --lamp-dot: var(--h-lamp-dot); --lamp-dot-size: var(--h-lamp-dot-size); --lamp-inset: var(--h-lamp-inset); --lamp-dot-glow: var(--h-lamp-dot-glow);
+  --info: var(--h-info); --info-soft: var(--h-info-soft);
+  --hk: 100%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --disp-font: var(--h-disp-font, var(--font-display)); --disp-weight: var(--h-disp-weight, var(--display-weight)); --disp-case: var(--h-disp-case, var(--display-case));
+  --disp-word: var(--h-disp-word, var(--display-word)); --disp-track: var(--h-disp-track, var(--display-track));
+}
+.k-win-head {
+  --surf-solid: var(--hd-surf-solid); --surf-text: var(--hd-surf-text); --surf-dim: var(--hd-surf-dim); --surf-faint: var(--hd-surf-faint); --surf-2: var(--hd-surf-2);
+  --surf-2-border: var(--hd-surf-2-border); --surf-3: var(--hd-surf-3); --line: var(--hd-line); --line-strong: var(--hd-line-strong); --panel-bg: var(--hd-panel-bg);
+  --panel-border: var(--hd-panel-border); --panel-shadow: var(--hd-panel-shadow); --gold-text: var(--hd-gold-text); --good-text: var(--hd-good-text); --bad-text: var(--hd-bad-text);
+  --info-text: var(--hd-info-text); --special-text: var(--hd-special-text); --ghost-bg: var(--hd-ghost-bg); --ghost-text: var(--hd-ghost-text); --ghost-border: var(--hd-ghost-border);
+  --ghost-bg-hover: var(--hd-ghost-bg-hover); --ghost-drop: var(--hd-ghost-drop); --track: var(--hd-track); --track-border: var(--hd-track-border); --trail: var(--hd-trail);
+  --ring-face: var(--hd-ring-face); --accent-k: var(--hd-accent-k); --accent-to: var(--hd-accent-to); --sil: var(--hd-sil); --lamp-band: var(--hd-lamp-band);
+  --lamp-ring: var(--hd-lamp-ring); --lamp-dot: var(--hd-lamp-dot); --lamp-dot-size: var(--hd-lamp-dot-size); --lamp-inset: var(--hd-lamp-inset); --lamp-dot-glow: var(--hd-lamp-dot-glow);
+  --info: var(--hd-info); --info-soft: var(--hd-info-soft);
+  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --disp-font: var(--font-display); --disp-weight: var(--display-weight); --disp-case: var(--display-case); --disp-word: var(--display-word); --disp-track: var(--display-track);
+}
+
+/* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки; цвет берётся из ближайшей шкурки)
+   --m-<режим> — в окне, --mh-<режим> — в HUD */
+[data-mode='fishing'] { --mode-soft-k: 18%; --mode-w: var(--m-fishing); --mode-h: var(--mh-fishing); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='farm'] { --mode-soft-k: 18%; --mode-w: var(--m-farm); --mode-h: var(--mh-farm); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='fort'] { --mode-soft-k: 18%; --mode-w: var(--m-fort); --mode-h: var(--mh-fort); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='race'] { --mode-soft-k: 18%; --mode-w: var(--m-race); --mode-h: var(--mh-race); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='dungeon'] { --mode-soft-k: 20%; --mode-w: var(--m-dungeon); --mode-h: var(--mh-dungeon); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='paintball'] { --mode-soft-k: 18%; --mode-w: var(--m-paintball); --mode-h: var(--mh-paintball); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='hide'] { --mode-soft-k: 18%; --mode-w: var(--m-hide); --mode-h: var(--mh-hide); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='skill'] { --mode-soft-k: 18%; --mode-w: var(--m-skill); --mode-h: var(--mh-skill); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='pirates'] { --mode-soft-k: 18%; --mode-w: var(--m-pirates); --mode-h: var(--mh-pirates); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='regatta'] { --mode-soft-k: 18%; --mode-w: var(--m-regatta); --mode-h: var(--mh-regatta); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }

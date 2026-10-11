@@ -39,7 +39,7 @@
   height: 14px;
   border-radius: var(--r-xs);
   background: var(--track);
-  border: 2px solid var(--bad-soft);
+  border: 2px solid var(--line-strong);
   transition: background 0.25s ease, transform 0.25s ease;
 }
 .pr-slots i.on { background: var(--bad); border-color: var(--bad-hi); transform: scale(1.08); }
