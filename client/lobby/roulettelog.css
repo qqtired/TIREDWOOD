@@ -1,18 +1,87 @@
-/* Последние ставки рулетки в окне ставки (то же, что на табло на баркасе, коротко): строка — кружок выпавшего числа,
-   ник, на что и сколько поставил, итог «+N 🪙» зелёным или «−N» красным; своя строка — золотом. */
-.fe-rl-recent { margin-top: 8px; padding: 6px 10px; border-radius: 11px; background: rgba(236,229,204,.06); }
-.fe-rl-recent[hidden] { display: none; }
-.fe-rl-rhead { margin: 0 0 3px; font: 800 12px/1.3 Rubik, system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #bfc7ad; }
-.fe-rl-rrow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 8px; padding: 1px 4px; border-radius: 7px; font: 600 13px/1.15 Rubik, system-ui, sans-serif; color: #f6ecd0; }
-.fe-rl-rrow.mine { background: rgba(255,212,92,.16); }
-.fe-rl-rrow.mine .fe-rl-rnick { color: #ffd45c; }
-.fe-rl-rdot { display: grid; place-items: center; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #f2e6c4; color: #fff; font: 800 11px/1 Rubik, system-ui, sans-serif; background: #1e7a3d; }
-.fe-rl-rdot.red, .fe-rl-rbet.red { background: #b3262b; }
-.fe-rl-rdot.black, .fe-rl-rbet.black { background: #2a2a31; }
-.fe-rl-rdot.green, .fe-rl-rbet.green { background: #1e7a3d; }
-.fe-rl-rnick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
-.fe-rl-rbet { padding: 1px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fe-rl-rres { min-width: 64px; text-align: right; font: 800 14px/1.3 Rubik, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fe-rl-rres.win { color: #7ee59b; }
-.fe-rl-rres.loss { color: #ff8577; }
-.fe-rl-rres .coin { width: 14px; height: 14px; vertical-align: -2px; margin-left: 2px; }
+/* Рулетка рыбака на ките UI 2.0 (client/lobby/roulettehud.ts; эталон — lab/ui «Режимы» → «Рулетка рыбака на баркасе»,
+   там те же правила под префиксом mo-). Окно — fishDialog (fishkit.ts); здесь только раскладка и цвета колеса.
+   Красное / чёрное / зеро — содержимое игры (европейская рулетка), поэтому цвета лунок заданы переменными ниже и не зависят
+   от шкурки; всё остальное — токены кита. */
+
+:root {
+  --rl-red: #c4263f; --rl-red-hi: #e5475c; --rl-red-lo: #7d1424;
+  --rl-black: #2a2a31; --rl-black-hi: #484852; --rl-black-lo: #101014;
+  --rl-green: #1e7a3d; --rl-green-hi: #33a85a; --rl-green-lo: #0d4a22;
+  /* шарик с номером: чуть темнее поля, как лунка колеса */
+  --rl-ball-red: #b3262b; --rl-ball-black: #2a2a31; --rl-ball-green: #1e7a3d;
+}
+
+/* ------------------------------------------------------------------ окно ставки */
+.rl-win { width: min(860px, 100%); }
+/* окно ниже экрана — не вылезает, а прокручивается внутри (дорожка сетки не растёт за содержимым) */
+dialog.fi-dlg:has(> .rl-win) { grid-template-rows: minmax(0, 1fr); }
+.rl-win .k-win-body { gap: 14px; padding: 16px 22px 12px; }
+.rl-sec { display: flex; flex-direction: column; gap: 10px; }
+.rl-step { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--surf-text); font: 800 var(--fs-18)/1.2 var(--font-text); }
+.rl-step b { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: var(--fs-16); }
+
+/* шаг 1: улов — рыбы с ценой и сумма */
+.rl-stake { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rl-fish { --tc: var(--tier-common); display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); box-shadow: inset 4px 0 0 var(--tc); font: 600 var(--fs-14)/1.1 var(--font-text); }
+.rl-fish > img, .rl-fish > .rl-fpic { flex: none; width: 40px; height: 40px; margin-left: 2px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.rl-fish b { max-width: 150px; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.rl-fish > span { display: inline-flex; align-items: center; gap: 4px; color: var(--gold-text); font-weight: 800; }
+.rl-fish.is-more { padding-left: 12px; box-shadow: none; }
+.rl-fish .k-coin, .rl-stake-sum .k-coin, .rl-last .k-coin, .rl-state .k-coin, .rl-others .k-coin, .rl-field-win .k-coin, .rl-tile .k-coin { width: 16px; height: 16px; }
+.rl-stake-sum { margin-left: auto; color: var(--surf-dim); font: 600 var(--fs-16)/1 var(--font-text); }
+.rl-stake-sum b { display: inline-flex; align-items: center; gap: 5px; color: var(--gold-text); font-size: var(--fs-22); font-weight: 900; vertical-align: middle; }
+.rl-stake-sum b .k-coin { width: 22px; height: 22px; }
+.rl-none { color: var(--surf-dim); font: 600 var(--fs-16)/1.3 var(--font-text); }
+
+/* шаг 2: три больших поля */
+.rl-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 6px; }
+.rl-field { --f: var(--rl-red); --f-hi: var(--rl-red-hi); --f-lo: var(--rl-red-lo); position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 5px; padding: 12px 8px; border: 0; border-radius: var(--r-lg); background: linear-gradient(180deg, var(--f-hi), var(--f)); box-shadow: 0 5px 0 var(--f-lo), inset 0 2px 0 rgba(255, 255, 255, .35); color: #fff; font: inherit; text-shadow: 0 1px 2px rgba(0, 0, 0, .45); cursor: pointer; transition: transform .08s, filter .12s; }
+.rl-field.is-black { --f: var(--rl-black); --f-hi: var(--rl-black-hi); --f-lo: var(--rl-black-lo); }
+.rl-field.is-green { --f: var(--rl-green); --f-hi: var(--rl-green-hi); --f-lo: var(--rl-green-lo); }
+.rl-field:hover:not(:disabled) { transform: translateY(-2px); }
+.rl-field.is-on { transform: translateY(-3px); box-shadow: 0 5px 0 var(--f-lo), 0 0 0 4px var(--gold), 0 0 22px var(--gold-soft); }
+.rl-field:disabled { filter: grayscale(.7) brightness(.8); cursor: default; }
+.rl-field:focus-visible { outline: none; box-shadow: 0 5px 0 var(--f-lo), 0 0 0 4px var(--gold); }
+.rl-field-name { font: 900 var(--fs-22)/1.1 var(--font-text); }
+.rl-field-x { font: 900 var(--fs-36)/1 var(--font-text); }
+.rl-field-ch { font: 600 var(--fs-14)/1.2 var(--font-text); opacity: .9; }
+.rl-field-win { display: inline-flex; align-items: center; gap: 4px; min-height: 1.2em; font: 800 var(--fs-16)/1.2 var(--font-text); }
+.rl-field .k-key { top: 8px; right: 8px; }
+
+/* золотая «Поставить» и строки состояния */
+.rl-go { margin-top: 6px; }
+.rl-state { margin: 0; color: var(--surf-dim); font: 600 var(--fs-16)/1.3 var(--font-text); text-align: center; }
+.rl-state.is-own { color: var(--gold-text); font-weight: 800; }
+.rl-others { margin: -6px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); text-align: center; }
+.rl-others[hidden], .rl-last[hidden] { display: none; }
+.rl-others .k-coin { vertical-align: -3px; }
+
+/* последние ставки */
+.rl-last { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; }
+.rl-last .k-eyebrow { margin: 0 0 2px; color: var(--surf-faint); }
+.rl-last-row { display: grid; grid-template-columns: 34px 120px 1fr auto; align-items: center; gap: 12px; padding: 2px 6px; border-radius: var(--r-sm); font: 600 var(--fs-16)/1.1 var(--font-text); }
+.rl-last-row b { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.rl-last-row > span:nth-child(3) { display: inline-flex; align-items: center; gap: 4px; color: var(--surf-dim); }
+.rl-last-row > span:last-child { font-weight: 900; }
+.rl-last-row.is-own { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.rl-last-row.is-own b { color: var(--gold-text); }
+
+/* шарик с номером выпавшей лунки: в списке и в плашке раунда */
+.rl-ball { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; color: #fff; font: 900 var(--fs-16)/1 var(--font-text); text-shadow: none; box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px rgba(255, 255, 255, .6); }
+.rl-ball.is-red { background: var(--rl-ball-red); }
+.rl-ball.is-black { background: var(--rl-ball-black); }
+.rl-ball.is-green { background: var(--rl-ball-green); }
+.k-event-ic .rl-ball { width: 30px; height: 30px; font-size: var(--fs-14); }
+
+/* твоя ставка в ряду плиток под бейджем */
+.rl-tile[hidden] { display: none; }
+.rl-tiles:not(:has(> :not([hidden]))) { display: none; }
+.rl-tile .k-tile-face > img { width: 40px; height: 40px; }
+
+@media (max-width: 760px) {
+  .rl-fields { gap: 8px; }
+  .rl-field-x { font-size: var(--fs-28); }
+  .rl-last-row { grid-template-columns: 34px minmax(0, 1fr) auto; }
+  .rl-last-row > span:nth-child(3) { display: none; }
+}
+.rl-go:disabled > .k-key { display: none; }

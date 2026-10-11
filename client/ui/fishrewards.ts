@@ -1,20 +1,59 @@
-// Журнал рыбака, вкладка «Награды»: лестница наград коллекции (shared/fishstyle.ts) как сезонный пропуск — пороги, вещи,
-// что уже есть и сколько видов до следующей. Сверху — снасти: удочка, поплавок, окно вываживания, значок у ника.
+// Журнал рыбака, вкладка «Награды» — на ките UI 2.0 (эталон: lab/ui/screens/fishing.js, сцена «5. журнал рыбака» →
+// «награды»). Сверху «Твои снасти»: удочка, поплавок, окно шкалы, значок у ника — ячейки .k-cell, в каждой выбор картинкой
+// с именем (закрытые серые, под ними — сколько видов нужно). Ниже «Награды журнала» — лестница .fi-steps (есть / следующая
+// с золотой рамкой / закрыта, финал — «Все N видов»), ещё ниже — лестница острова «Последний свет» (флаг ISLE).
 // Полученная снасть надевается сама; любую полученную раньше выбирают тут одним кликом — сервер меняет снасти где
-// угодно на набережной. Одежда и питомцы — в примерочной.
-// Остров «Последний свет» (флаг ISLE): ниже — своя лестница по видам острова (ISLE_LADDER), её вещи помечены «видов острова».
+// угодно на набережной. Одежда и питомцы — в примерочной. Стили — client/lobby/fishkit.css + fishwin.css.
 import './fishstyle.css';
+import '../lobby/fishwin.css';
 import type { FishAlbum } from '../../shared/fishing.ts';
-import { collectionCount } from '../../shared/fishrules.ts';
+import { TIER_CSS, collectionCount } from '../../shared/fishrules.ts';
 import {
-  ALL, GEAR_SLOTS, ISLE_ITEMS, ISLE_LADDER, LADDER, REWARD_INFO, fishTotal, isleNeedOf, isleNextStep, needOf, nextStep, rewardLabel, stepLabel, stepNeed,
-  type RewardStep,
+  ALL, GEAR_SLOTS, ISLE_ITEMS, ISLE_LADDER, LADDER, REWARD_INFO, fishTotal, isleNeedOf, needOf, nextStep, stepNeed,
+  isleNextStep, type RewardStep,
 } from '../../shared/fishstyle.ts';
 import { ISLE_TOTAL, isleCaught } from '../../shared/islestyle.ts';
-import { ITEMS, SLOT_NAMES, isOwned, itemById, slotKey, type Outfit, type Slot } from '../../shared/outfit.ts';
+import { ISLE_MIN_LEVEL } from '../../shared/fishisle.ts';
+import { ITEMS, isOwned, itemById, slotKey, type Item, type Outfit, type Slot } from '../../shared/outfit.ts';
 import { el } from '../lobby/fish2.ts';
 import { ISLE } from '../render/islegear.ts';
 import { FISH_ICONS } from './fishicons.ts';
+import { h, iconImg } from './kit/dom.ts';
+
+const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+/** Заголовки ячеек снастей (эталон: «Окно шкалы») */
+const SLOT_TITLE: Partial<Record<Slot, string>> = { r: 'Удочка', b: 'Поплавок', w: 'Окно шкалы', n: 'Значок у ника' };
+/** Описание бесплатной снасти (у наград — REWARD_INFO) */
+const FREE_TEXT: Partial<Record<Slot, string>> = {
+  r: 'Простая удочка — есть у всех', b: 'Простой поплавок — есть у всех', w: 'Деревянная рама и синяя вода — есть у всех', n: 'Над ником ничего нет',
+};
+/** Рыбка на миниатюре шкалы — та же, что на настоящей (client/lobby/fishgame.ts) */
+const FISH_SVG = '<svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true"><path d="M3 12c5-7 14-9 22-6l7-5-1 8 1 7-7-5c-8 3-17 1-22-6z" fill="currentColor" stroke="rgba(20,12,16,.75)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="9" cy="10.5" r="1.7" fill="#1b1216"/></svg>';
+
+/** Вид награды коротко: «окно» вместо «окно вываживания»; одежде и аксессуарам вид не нужен */
+function kindShort(id: string): string {
+  const k = REWARD_INFO[id]?.kind ?? '';
+  if (k === 'окно вываживания') return 'окно';
+  if (k === 'аксессуар' || k === 'шапка' || k === 'очки') return '';
+  return k;
+}
+
+/** Вещь ступени: «удочка «Орешник»», значок — «Золотой якорь» у ника; имя — жирным */
+function itemText(id: string): string {
+  const it = itemById(id);
+  if (!it) return 'вещь острова';
+  const k = kindShort(id);
+  if (k === 'значок у ника') return `<b>«${esc(it.name)}»</b> у ника`;
+  return `${k ? `${k} ` : ''}<b>«${esc(it.name)}»</b>`;
+}
+
+/** Что даёт ступень: вещи через «·»; сет — «сет «…»» и снасти из него */
+function stepText(step: RewardStep): string {
+  if (!step.set) return step.items.map(itemText).join(' · ');
+  const gear = step.items.filter((id) => GEAR_SLOTS.includes(id[0] as Slot));
+  return [`сет <b>«${esc(step.set)}»</b>`, ...gear.map(itemText)].join(', ');
+}
 
 /** «вид», «вида», «видов» */
 export function species(n: number): string {
@@ -45,138 +84,77 @@ export function miniWindow(key: string): HTMLElement {
   return w;
 }
 
-/**
- * Строка карточки улова (fishcard2.ts): что выдали за этот улов (rw) — снасти уже в руках, одежда в примерочной, —
- * или сколько видов до следующей награды; null — показывать нечего.
- */
-export function catchRewardNote(m: { got: number; full: boolean; rw?: readonly string[] }): HTMLElement | null {
-  const rw = m.rw ?? [];
-  if (rw.length > 0) {
-    const gear = rw.filter((id) => GEAR_SLOTS.includes(id[0] as Slot));
-    const wear = rw.filter((id) => !GEAR_SLOTS.includes(id[0] as Slot));
-    const set = [...LADDER, ...ISLE_LADDER].find((s) => s.set && s.items.every((id) => rw.includes(id)))?.set;
-    const parts = [
-      set ? `сет «${set}» — в примерочной` : wear.length ? `${wear.map(rewardLabel).join(', ')} — в примерочной` : '',
-      gear.map(rewardLabel).join(', '),
-    ].filter(Boolean);
-    const box = el('div', m.full ? 'frw-catch full' : 'frw-catch', `${m.full ? '🏆 Вся коллекция!' : '🎁 Награда:'} ${parts.join('; ')}`);
-    box.appendChild(el('small', '', gear.length ? 'Новая снасть уже у тебя · сменить — журнал (J), «Награды»' : 'Журнал (J) → «Награды»'));
-    return box;
-  }
-  const next = nextStep(m.got);
-  if (!next) return null;
-  return el('div', 'frw-next', `До награды (${stepLabel(next)}) — ещё ${species(stepNeed(next) - m.got)}`);
-}
-
-/** Где искать вещь: снасти — тут, одежда и питомцы — в примерочной */
-function where(id: string): string {
-  return GEAR_SLOTS.includes(id[0] as Slot) ? 'снасти — выше' : 'в примерочной';
-}
-
 export class FishRewards {
   /** Выбрал снасть (Fish2Hud шлёт наряд серверу) */
   onEquip: (slot: Slot, key: string) => void = () => {};
   /** Что надето — из профиля (Fish2Hud.onMe) */
   outfit: Outfit | null = null;
 
-  view(album: FishAlbum, owned: readonly string[]): HTMLElement {
+  /**
+   * Содержимое вкладки «Награды» (обёртка .fi-rw — display: contents, её дети встают в колонку .k-win-body).
+   * level — уровень рыбалки: остров — с ISLE_MIN_LEVEL-го.
+   */
+  view(album: FishAlbum, owned: readonly string[], level?: number): HTMLElement {
     const got = collectionCount(album);
     const total = fishTotal();
-    const root = el('div', 'frw');
-    root.appendChild(this.gear(owned, total));
-    root.appendChild(el('div', 'frw-h', `Награды коллекции · ${got} из ${total}`));
     const next = nextStep(got, total);
-    const ladder = root.appendChild(el('div', 'frw-ladder'));
-    for (const step of LADDER) {
-      const need = stepNeed(step, total);
-      const done = got >= need;
-      const card = ladder.appendChild(el('div', 'frw-step'));
-      card.classList.toggle('got', done);
-      card.classList.toggle('next', step === next);
-      card.classList.toggle('set', step.set !== undefined);
-      card.classList.toggle('final', step.need === ALL);
-      const head = card.appendChild(el('div', 'frw-need'));
-      head.appendChild(el('b', '', step.need === ALL ? `Все ${need}` : String(need)));
-      head.appendChild(el('span', '', species(need).replace(/^\d+ /, '')));
-      if (step.set) card.appendChild(el('div', 'frw-set', `Сет «${step.set}»`));
-      const items = card.appendChild(el('div', 'frw-items'));
-      for (const id of step.items) {
-        const it = itemById(id);
-        if (!it) continue;
-        const tag = items.appendChild(el('span', 'frw-item'));
-        tag.innerHTML = FISH_ICONS[id] ?? '';
-        tag.appendChild(el('span', '', it.name));
-        tag.title = `${it.name} — ${REWARD_INFO[id]?.text ?? ''} (${where(id)})`;
-      }
-      card.appendChild(el('div', 'frw-state', done ? '✓ есть' : step === next ? `ещё ${species(need - got)}` : `🔒 ещё ${species(need - got)}`));
-    }
+    let html = `<h3 class="fi-h">Твои снасти <small>надеваются сами, сменить — нажми на картинку</small></h3>`
+      + `<div class="fi-gear fi-gear--rows">${GEAR_SLOTS.map((slot) => this.slotCell(slot, owned, total)).join('')}</div>`
+      + `<h3 class="fi-h">Награды журнала <small>${got} из ${total} видов</small></h3>`
+      + `<div class="fi-steps">${LADDER.map((s) => stepHtml(s, stepNeed(s, total), got, next, s.need === ALL)).join('')}</div>`;
     // остров «Последний свет»: свой счётчик видов острова, награда каждые 4 вида, сет — за все 20
     if (ISLE.on || owned.some((id) => ISLE_ITEMS.has(id))) {
       const isle = isleCaught({ album });
-      root.appendChild(el('div', 'frw-h', `🗼 Остров «Последний свет» · ${isle} из ${ISLE_TOTAL}`));
-      const steps = root.appendChild(el('div', 'frw-ladder'));
       const nextIsle = isleNextStep(isle);
-      for (const step of ISLE_LADDER) steps.appendChild(this.card(step, stepNeed(step, ISLE_TOTAL), isle, nextIsle, true));
+      const early = level !== undefined && level < ISLE_MIN_LEVEL ? ` · с ${ISLE_MIN_LEVEL}-го уровня` : '';
+      html += `<h3 class="fi-h">${iconImg('lighthouse', 'fi-ic')}Остров «Последний свет» <small>${isle} из ${ISLE_TOTAL}${early}</small></h3>`
+        + `<div class="fi-steps">${ISLE_LADDER.map((s) => stepHtml(s, stepNeed(s, ISLE_TOTAL), isle, nextIsle, s.set !== undefined)).join('')}</div>`;
     }
-    root.appendChild(el('div', 'frw-note', 'Полученное остаётся навсегда. Одежда и питомцы — в примерочной, снасти — здесь.'));
+    const root = h('div', 'fi-rw', html);
+    root.addEventListener('click', (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>('button[data-slot]');
+      if (!b || b.disabled) return;
+      const slot = b.dataset.slot as Slot;
+      const key = b.dataset.key ?? '';
+      if (key !== (this.outfit ? slotKey(this.outfit, slot) : null)) this.onEquip(slot, key);
+    });
     return root;
   }
 
-  /** Карточка ступени лестницы острова (как у коллекции; виды — «видов острова») */
-  private card(step: RewardStep, need: number, got: number, next: RewardStep | null, isle: boolean): HTMLElement {
-    const done = got >= need;
-    const card = el('div', 'frw-step');
-    card.classList.toggle('got', done);
-    card.classList.toggle('next', step === next);
-    card.classList.toggle('set', step.set !== undefined);
-    card.classList.toggle('final', isle && step.set !== undefined);
-    const head = card.appendChild(el('div', 'frw-need'));
-    head.appendChild(el('b', '', String(need)));
-    head.appendChild(el('span', '', isleSpecies(need).replace(/^\d+ /, '')));
-    if (step.set) card.appendChild(el('div', 'frw-set', `Сет «${step.set}»`));
-    const items = card.appendChild(el('div', 'frw-items'));
-    for (const id of step.items) {
-      const it = itemById(id);
-      if (!it) continue;
-      const tag = items.appendChild(el('span', 'frw-item'));
-      tag.innerHTML = FISH_ICONS[id] ?? '';
-      tag.appendChild(el('span', '', it.name));
-      tag.title = `${it.name} — ${REWARD_INFO[id]?.text ?? ''} (${where(id)})`;
-    }
-    card.appendChild(el('div', 'frw-state', done ? '✓ есть' : step === next ? `ещё ${isleSpecies(need - got)}` : `🔒 ещё ${isleSpecies(need - got)}`));
-    return card;
+  /**
+   * Строка снасти: слева — что надето и что это, справа — выбор (картинка + имя; закрытые — серые, под именем — сколько
+   * видов). Чужие награды слота (значки фермы у ника) — только полученные: требований рыбалки у них нет.
+   */
+  private slotCell(slot: Slot, owned: readonly string[], total: number): string {
+    const list = ITEMS.filter((i) => i.slot === slot && isleVisible(i.id, owned)
+      && (i.tier === 'free' || isOwned(owned, i) || needOf(i.id, total) !== null || isleNeedOf(i.id) !== null));
+    const on = this.outfit ? slotKey(this.outfit, slot) : null;
+    const cur: Item | undefined = list.find((i) => i.key === on) ?? list.find((i) => i.tier === 'free') ?? list[0];
+    const win = slot === 'w';
+    const opts = list.map((it) => {
+      const have = isOwned(owned, it);
+      const isOn = it === cur;
+      const isleNeed = isleNeedOf(it.id);
+      const need = needOf(it.id, total);
+      const lock = have ? '' : isleNeed !== null ? isleSpecies(isleNeed) : need !== null ? species(need) : '';
+      const pic = win
+        ? `<span class="fr-bar"><span class="fr-water"></span><span class="fr-zone"></span><span class="fr-fish">${FISH_SVG}</span></span>`
+        : `<span class="fi-gopt-ic">${FISH_ICONS[it.id] ?? (it.tier === 'free' ? '' : iconImg('medal-gold', ''))}</span>`;
+      const theme = win ? ` data-fr-theme="${esc(it.key)}" style="--tc:${TIER_CSS[1]}"` : '';
+      return `<button type="button" class="${win ? 'fi-winmini' : 'fi-gopt'}${isOn ? ' is-on' : ''}${have ? '' : ' is-lock'}" data-slot="${slot}" data-key="${esc(it.key)}"`
+        + `${theme} aria-pressed="${isOn}"${have ? '' : ' disabled'}>${pic}<span>${esc(it.name)}${lock ? `<small>${lock}</small>` : ''}</span></button>`;
+    }).join('');
+    const desc = cur ? REWARD_INFO[cur.id]?.text ?? FREE_TEXT[slot] ?? '' : '';
+    return `<div class="k-cell"><div class="fi-gear-t"><b>${SLOT_TITLE[slot] ?? ''}${cur ? ` — «${esc(cur.name)}»` : ''}</b><p>${esc(desc)}</p></div><div class="fi-gopts">${opts}</div></div>`;
   }
+}
 
-  /** Снасти: по строке на слот — всё, что бывает, полученное можно взять */
-  private gear(owned: readonly string[], total: number): HTMLElement {
-    const box = el('div', 'frw-gear');
-    for (const slot of GEAR_SLOTS) {
-      const row = box.appendChild(el('div', 'frw-row'));
-      row.appendChild(el('div', 'frw-row-h', SLOT_NAMES[slot]));
-      const chips = row.appendChild(el('div', 'frw-chips'));
-      const on = this.outfit ? slotKey(this.outfit, slot) : null;
-      for (const it of ITEMS.filter((i) => i.slot === slot && isleVisible(i.id, owned))) {
-        const have = isOwned(owned, it);
-        const chip = chips.appendChild(el('button', 'frw-chip'));
-        chip.type = 'button';
-        chip.dataset.id = it.id;
-        chip.classList.toggle('on', it.key === on);
-        chip.classList.toggle('locked', !have);
-        chip.disabled = !have;
-        if (slot === 'w') chip.appendChild(miniWindow(it.key));
-        else if (it.key === 'none') chip.appendChild(el('span', 'frw-ic empty', '∅'));
-        else chip.appendChild(el('span', 'frw-ic')).innerHTML = FISH_ICONS[it.id] ?? '';
-        chip.appendChild(el('span', 'frw-chip-name', it.name));
-        const need = needOf(it.id, total);
-        const isleNeed = isleNeedOf(it.id);
-        const lock = isleNeed !== null ? isleSpecies(isleNeed) : need === null ? '' : species(need);
-        chip.appendChild(el('small', '', it.key === on ? '✓ взято' : have ? 'взять' : `🔒 ${lock}`));
-        chip.title = REWARD_INFO[it.id]?.text ?? it.name;
-        if (have) chip.addEventListener('click', () => {
-          if (it.key !== (this.outfit ? slotKey(this.outfit, slot) : null)) this.onEquip(slot, it.key);
-        });
-      }
-    }
-    return box;
-  }
+/** Ступень лестницы: порог, что даёт, «есть» / «ещё N» (следующая — золотом); final — последняя (сет) */
+function stepHtml(step: RewardStep, need: number, got: number, next: RewardStep | null, final: boolean): string {
+  const done = got >= need;
+  const isNext = step === next;
+  const cls = `fi-step ${done ? 'is-got' : isNext ? 'is-next' : 'is-lock'}${final ? ' is-final' : ''}`;
+  const n = step.need === ALL ? `Все ${need}` : String(need);
+  const pill = done ? '<span class="k-pill k-pill--good k-pill--sm">есть</span>' : `<span class="k-pill k-pill--sm${isNext ? ' k-pill--gold' : ''}">ещё ${need - got}</span>`;
+  return `<div class="${cls}"><span class="fi-step-n">${n}<small>${species(need).replace(/^\d+ /, '')}</small></span><span class="fi-step-i">${stepText(step)}</span>${pill}</div>`;
 }

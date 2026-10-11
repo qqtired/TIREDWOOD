@@ -1,13 +1,16 @@
-// Рыбалка 2.0 на набережной — всё, что видит рыбак, кроме удочки в 3D (fishing.ts): шкала вываживания, карточка улова
-// и сундук, журнал рыбака, плашки событий (сезон рыбалки, рыболовное событие — дождь) и кнопка журнала у удочки, доска
-// рекордов на сваях у маяка. Сцена набережной (scene.ts) передаёт сюда сообщения сервера и кадр; без поля fish2 в
-// приветствии всё молчит, и работает старая рыбалка.
+// Рыбалка 2.0 на набережной — всё, что видит рыбак, кроме удочки в 3D (fishing.ts), на ките UI 2.0 (lab/ui «Рыбалка»):
+// карточка рыбалки в верх-лево (уровень, следующий бонус, «Шансы сейчас» — fishmode.ts), плитки рюкзака, напитка и задания
+// под бейджем (fishprogresshud.ts), одна подсказка внизу (J — журнал), «Подсекай!» по центру, рамка вокруг шкалы
+// вываживания (fishgame.ts), карточка улова внизу справа (fishcard2.ts), плашка события сверху (сезон, дождь, туман острова),
+// журнал рыбака и доска рекордов на сваях у маяка. Сцена набережной (scene.ts) передаёт сюда сообщения сервера и кадр; без
+// поля fish2 в приветствии всё молчит, и работает старая рыбалка.
 import type * as THREE from 'three';
-import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
+import { RAIN_MUL, SEASON_MUL } from '../../shared/fishrules.ts';
 import { fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
 import { catchFullHint, catchRoom } from '../../shared/fishlivewell.ts';
-import { ISLE, castZone, setIsle } from '../../shared/fishisle.ts';
-import { FISH_NPCS, FISH_NPC_USE, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
+import { ISLE, castZone, inIsleWaters, setIsle } from '../../shared/fishisle.ts';
+import { FISH_NPCS, FISH_NPC_USE, FISH_SPOTS, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
+import { isleCaught } from '../../shared/islestyle.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
 import { slotKey, type Outfit } from '../../shared/outfit.ts';
@@ -15,6 +18,8 @@ import type { Sound } from '../audio.ts';
 import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
 import { FishBook } from '../ui/fishbook.ts';
+import { iconImg, keyHtml, meterHtml } from '../ui/kit/dom.ts';
+import { escHtml } from '../ui/kit/topcenter.ts';
 import { FISH2, el } from './fish2.ts';
 import { FISH_BOARD_AT, FishBoard3D } from './fishboard.ts';
 import { CatchCard2 } from './fishcard2.ts';
@@ -22,22 +27,53 @@ import { ReelGame } from './fishgame.ts';
 import type { FishingSpots } from './fishing.ts';
 import { FishNpcDialog } from './fishnpcdialog.ts';
 import { SanyaHome } from './barkas/sanyahome.ts';
-import { FishProgressHud, fishPlate, setText, type FishPlate } from './fishprogresshud.ts';
-import { FISH_SEASON, SEASON_PERKS, SEASON_PERKS_LONG } from './fishseason.ts';
+import { FishProgressHud } from './fishprogresshud.ts';
+import { FISH_SEASON, seasonLeft } from './fishseason.ts';
 import { Fisherman3D } from './fisherman.ts';
 import { FishPodium3D } from './fishpodium.ts';
-import { FishClock, fishTimeLeft } from './fishclock.ts';
+import { FishClock } from './fishclock.ts';
 import { FishBag } from './fishbag.ts';
-import { FishOdds } from './fishodds.ts';
+import { FishModeCard } from './fishmode.ts';
 import { RouletteHud } from './roulettehud.ts';
-import { fishLevelUpText } from './fishfmt.ts';
+import { fishLevelUpText, mul } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
 import { BAG_FULL_HINT, CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
+import './fishkit.css';
 
 /** Подсказка у доски рекордов — ближе этого, м */
 const BOARD_HINT_M = 4.5;
-/** Рыболовное событие (дождь): уникальные виды — только в дождь (их цена ×1,5, RAIN_NUM / RAIN_DEN), редкие и выше ×1,5 (RAIN_MUL) */
-const RAIN_PERKS = 'уникальные виды · редкие и выше ×1,5';
+/** Плашка события сверху видна и у места рыбалки — ближе этого, м */
+const SPOT_NEAR_M = 4;
+/** «Сезон рыбалки скоро» — за столько до начала, мс */
+const SOON_MS = 30 * 60_000;
+/** Сезон рыбалки и сезон острова идут по 10 минут (server/lobby/fishseason.ts SEASON_MS, shared/isle.ts) — для полосы плашки */
+const SEASON_SPAN_MS = 10 * 60_000;
+/** «Подсекай!» по центру, мс */
+const BITE_MS = 1600;
+/** Плашка события рыбалки сверху: ниже лодки (35), рулетки (36) и таймеров режимов (40) */
+const EV_KEY = 'fish-ev';
+const EV_PRIO = 30;
+
+/** Что подсказать внизу с удочкой (scene.ts hintFish): перед забросом, заброс, ждём поклёвку, рыбу некуда класть */
+export type FishPrompt = 'idle' | 'cast' | 'wait' | 'full';
+
+const MOUSE_L = '<span class="k-key"><i class="k-mouse k-mouse--l" aria-label="ЛКМ"></i></span>';
+/** «клавиша + что будет»; с data-k — нажимается мышью (журнал, рюкзак) */
+const promptKey = (cap: string, text: string, k = ''): string =>
+  k ? `<button type="button" class="fi-k" data-k="${k}">${cap}${text}</button>` : `<span class="fi-k">${cap}${text}</span>`;
+const SEP = '<span class="k-prompt-sep"></span>';
+
+/** «7:40» — минуты без ведущего нуля */
+function clockText(ms: number): string {
+  return seasonLeft(Math.max(0, ms));
+}
+
+/** Плашка события сверху (lab/ui «Рыбалка» EV): картинка, крупно — что, мелко — что даёт, таймер и полоса */
+function eventHtml(icon: string, title: string, sub: string, left: number, span: number, tone = 'mode'): string {
+  const timer = left > 0 ? `<div class="k-event-timer">${clockText(left)}</div>` : '';
+  const bar = left > 0 && span > 0 ? meterHtml(left / span, tone, 'k-meter--thin') : '';
+  return `<span class="k-event-ic">${iconImg(icon, '')}</span><div class="k-event-title">${escHtml(title)}</div><div class="k-event-sub">${escHtml(sub)}</div>${timer}${bar}`;
+}
 
 export class Fish2Hud {
   /** Открыли журнал — отпустить мышь; закрыли — снова захватить */
@@ -50,18 +86,22 @@ export class Fish2Hud {
   private readonly card: CatchCard2;
   private readonly book: FishBook;
   private readonly board: FishBoard3D;
-  private readonly tools: HTMLElement;
-  /** Плашки событий над кнопкой журнала: сезон рыбалки (он же особый дождь) и рыболовное событие (дождь) */
-  private readonly seasonPlate: FishPlate;
-  private readonly rainPlate: FishPlate;
-  private readonly bookBtn: HTMLElement;
+  /** Верх-лево: уровень рыбалки, следующий бонус, «Шансы сейчас», виды острова */
+  private readonly mode: FishModeCard;
+  /** Под бейджем: рюкзак, лайвел, напиток, задание Семёна */
   private readonly progress: FishProgressHud;
+  /** Подсказка внизу с удочкой и «Подсекай!» по центру */
+  private readonly promptEl: HTMLElement;
+  private readonly biteEl: HTMLElement;
+  private promptKey = '';
+  private biteTimer = 0;
+  private biting = false;
+  private focus = false;
   /** Разговор с Семёном и Саней; npc.extra — шапка для чужих кнопок (перевоз Сани) */
   readonly npc: FishNpcDialog;
   /** Баркас: «Домой, к Семёну» у Сани — кнопка в npc.extra */
   private readonly sanyaHome: SanyaHome;
   private readonly bag: FishBag;
-  private readonly odds: FishOdds;
   readonly roulette: RouletteHud;
   private readonly fisherman: Fisherman3D;
   /** Вывески «Сезон рыбалки»: на доме Семёна и на рубке баркаса */
@@ -75,39 +115,53 @@ export class Fish2Hud {
   /** Остров (флаг ISLE): туман и сезон острова — свои события (isleWeather); «Шансы сейчас» у острова считают по ним */
   private isleFog = false;
   private isleSeason = false;
+  /** Конец тумана и сезона острова, мс серверных часов (0 — без конца или не идёт) */
+  private isleFogUntil = 0;
+  private isleSeasonEnds = 0;
+  /** Длина идущего дождя и тумана для полосы плашки: сколько оставалось, когда узнали о нём */
+  private rainSpan = 0;
+  private fogSpan = 0;
   private quiet = false;
   private eventUntil = 0;
   /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
   private seasonEnds = 0;
 
-  constructor(parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement) {
+  constructor(_parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement) {
     this.ui = ui;
     this.send = send;
-    this.reel = new ReelGame(parent, sound);
+    // шкала — в слое HUD рядом с персонажем (рамка кита, fishkit.css .fi-reel)
+    this.reel = new ReelGame(ui.slots.root, sound);
     this.reel.onSend = send;
     this.reel.onWarn = (text) => ui.chat.note(text);
     this.reel.onToast = (text) => ui.toasts.show(text, 3500, 'fish-ability');
-    this.card = new CatchCard2(parent, sound);
+    this.mode = new FishModeCard(ui.slots.tl);
+    this.progress = new FishProgressHud(ui.slots.tr);
+    this.card = new CatchCard2(ui.slots.br, sound, ui.slots.c);
+    // опыт за улов всплывает у кольца уровня рыбалки, жетоны — у бейджа (сам)
+    this.card.onXp = (xp) => this.mode.popXp(xp);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
     this.card.onKeep = () => this.choose(true);
     this.card.onRelease = () => this.choose(false);
     // конец вываживания (поймал, сорвалась, сдался): 0,75 с никакие нажатия не принимаются, потом — выбор
     this.reel.onEnd = () => this.lockInput();
+    this.promptEl = ui.slots.bc.appendChild(el('div', 'k-prompt fi-prompt'));
+    this.promptEl.dataset.mode = 'fishing';
+    this.promptEl.hidden = true;
+    this.promptEl.addEventListener('click', (e) => {
+      const k = (e.target as Element).closest<HTMLElement>('[data-k]')?.dataset.k;
+      if (k === 'J') this.toggleBook();
+      else if (k === 'I') this.toggleBag();
+    });
+    this.biteEl = ui.slots.c.appendChild(el('div', 'k-hero k-hero--gold fi-bite'));
+    this.biteEl.dataset.mode = 'fishing';
+    this.biteEl.hidden = true;
+    this.biteEl.innerHTML = `<p class="k-hero-title">Подсекай!</p><span class="k-hero-sub">${TOUCH ? '' : MOUSE_L.replace('k-key"', 'k-key k-key--lg"')}жми сейчас</span>`;
     this.board = new FishBoard3D(scene);
     this.podium = new FishPodium3D(scene);
     this.fisherman = new Fisherman3D(scene);
     this.seasonSigns = new SeasonSigns(scene);
-    this.tools = parent.appendChild(el('div', 'f2-tools'));
-    this.seasonPlate = fishPlate(this.tools, 'f2-season', '🎉');
-    this.seasonPlate.root.title = `Сезон рыбалки: ${SEASON_PERKS_LONG}.`;
-    this.rainPlate = fishPlate(this.tools, 'f2-rainbadge', '🌧');
-    this.rainPlate.root.title = 'Рыболовное событие — дождь: уникальные виды рыб ловятся только сейчас, их цена ×1,5; все от редких до царя морей клюют в 1,5 раза чаще';
-    this.bookBtn = this.tools.appendChild(el('button', 'f2-bookbtn'));
-    this.bookBtn.addEventListener('click', () => this.toggleBook());
-    // журнал — поверх всего на набережной (кнопки и шкала под ним)
-    this.book = new FishBook(parent);
-    this.progress = new FishProgressHud(this.tools, overlay);
-    this.odds = new FishOdds(this.tools);
+    // журнал — окно кита (native dialog поверх всего)
+    this.book = new FishBook(overlay);
     this.npc = new FishNpcDialog(overlay, ui.me, send);
     this.npc.onOpen = () => this.onNpcOpen();
     this.npc.onClose = () => { if (!this.quiet) this.onNpcClose(); };
@@ -116,7 +170,7 @@ export class Fish2Hud {
     this.bag = new FishBag(overlay, send);
     this.bag.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.progress.onBag = () => this.toggleBag();
-    this.roulette = new RouletteHud(overlay, send);
+    this.roulette = new RouletteHud(overlay, send, { slots: ui.slots, top: ui.top });
     this.roulette.onOpen = () => this.onNpcOpen();
     this.roulette.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.book.onClose = () => {
@@ -124,7 +178,6 @@ export class Fish2Hud {
     };
     // снасти из журнала: сервер меняет их где угодно на набережной
     this.book.rewards.onEquip = (slot, key) => send({ t: 'outfit', o: { ...this.ui.me().outfit, [slot]: key } as Outfit });
-    this.setBookBtn();
   }
 
   /** Рыбалка 2.0 включена на сервере */
@@ -163,7 +216,6 @@ export class Fish2Hud {
     this.npc.setEvent(rain, this.eventUntil);
     this.onMe();
     this.setTop(top);
-    this.setBookBtn();
     return on && !was;
   }
 
@@ -193,9 +245,12 @@ export class Fish2Hud {
   }
 
   /** Погода острова (письмо isle): «Туман наступает» и сезон острова — для «Шансов сейчас» и журнала у видов острова */
-  isleWeather(fog: boolean, season: boolean): void {
+  isleWeather(fog: boolean, season: boolean, fogUntil = 0, seasonEnds = 0): void {
+    if (fog && fogUntil !== this.isleFogUntil) this.fogSpan = Math.max(0, fogUntil - this.clock.now());
     this.isleFog = fog;
     this.isleSeason = season;
+    this.isleFogUntil = fog ? fogUntil : 0;
+    this.isleSeasonEnds = season ? seasonEnds : 0;
     this.bookWeather();
   }
 
@@ -206,6 +261,7 @@ export class Fish2Hud {
 
   /** Global notice belongs to app.ts. Here only the local badge and shop state change. */
   onEvent(on: boolean, until: number): void {
+    if (on && until !== this.eventUntil) this.rainSpan = Math.max(0, until - this.clock.now());
     this.rain = on;
     this.eventUntil = until;
     this.reel.setRain(on);
@@ -227,7 +283,10 @@ export class Fish2Hud {
       this.seenLevel = -1;
     }
     const level = fishLevel(progress.xp);
-    if (this.seenLevel >= 0 && level > this.seenLevel) this.ui.toasts.show(fishLevelUpText(level), 7000, 'fish-level');
+    if (this.seenLevel >= 0 && level > this.seenLevel) {
+      const t = fishLevelUpText(level);
+      this.ui.toasts.show(`Уровень рыбалки ${level}`, 7000, 'fish-level', t.slice(t.indexOf(': ') + 2).replace('★ ', ''));
+    }
     this.seenLevel = Math.max(this.seenLevel, level);
   }
 
@@ -236,6 +295,7 @@ export class Fish2Hud {
     this.clock.sync(now);
     FISH_SEASON.sync(now);
     this.progress.set(progress, now);
+    this.mode.setProgress(progress);
     this.npc.setProgress(progress, now);
     this.bag.set(progress);
     this.roulette.setProgress(progress);
@@ -266,7 +326,7 @@ export class Fish2Hud {
     this.bag.setHeld(n);
   }
 
-  /** I или значок 🎒: окно рюкзака */
+  /** I или плитка рюкзака под бейджем: окно рюкзака */
   toggleBag(): void {
     if (this.npc.isOpen || this.book.isOpen || this.roulette.isOpen) return;
     if (this.bag.isOpen) {
@@ -288,6 +348,7 @@ export class Fish2Hud {
     this.clock.sync(msg.now);
     FISH_SEASON.sync(msg.now);
     this.progress.set(msg.progress, msg.now);
+    this.mode.setProgress(msg.progress);
     this.npc.onState(msg);
     this.sanyaHome.refresh();
   }
@@ -318,6 +379,7 @@ export class Fish2Hud {
   onReel(msg: Extract<ServerMsg, { t: 'fishReel' }>, mySpot: number): void {
     if (msg.spot !== mySpot) return;
     this.card.hide();
+    this.bite(false);
     this.reel.theme(slotKey(this.ui.me().outfit, 'w'));
     this.reel.start(msg.sp, msg.seed, this.rain, msg.mods);
   }
@@ -359,6 +421,7 @@ export class Fish2Hud {
   /** Ушёл с места рыбалки: шкалу — сразу; карточка улова уйдёт сама. */
   off(): void {
     this.reel.reset();
+    this.bite(false);
   }
 
   /** Снова забросил — карточка прошлого улова уходит */
@@ -398,11 +461,11 @@ export class Fish2Hud {
     this.book.rewards.outfit = me.outfit;
     this.book.update(me.album, me.owned, me.fishing);
     this.progress.set(me.fishing);
+    this.mode.setProgress(me.fishing);
     this.npc.setProgress(me.fishing);
     this.bag.set(me.fishing);
     this.roulette.setProgress(me.fishing);
     this.board.set(this.top, me.pid);
-    this.setBookBtn();
   }
 
   /**
@@ -415,44 +478,100 @@ export class Fish2Hud {
       this.reel.update(held);
       if (fishing) spots.setProgress(spot, this.reel.progress);
     }
-    // уровень, задание и рюкзак видны с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить)
-    const near = px !== null && pz !== null && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
-    this.tools.classList.toggle('show', (fishing || near) && !this.modalOpen);
-    // «Шансы сейчас» — пока сидишь с удочкой, не тянешь рыбу и не смотришь карточку улова (она встаёт на то же место
-    // справа и перекрывала бы шансы); место (пристань/баркас) — по своему месту
+    const has = px !== null && pz !== null;
+    // рюкзак, задание — с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить); напиток — всегда
+    const near = has && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
+    this.progress.setShown(true, fishing || near);
     // в море (баркас, лодка на якоре) пул — по точке: в водах острова клюёт остров (shared/fishisle.ts)
-    const zone = !fishing ? 'pier' : px !== null && pz !== null ? castZone(spotZone(spot), px, pz) : spotZone(spot);
-    this.progress.setZone(zone);
-    const odds = fishing && !this.reel.active && !this.card.shown;
-    this.odds.root.hidden = !odds;
+    const zone = !fishing ? 'pier' : has ? castZone(spotZone(spot), px, pz) : spotZone(spot);
     const isle = zone === 'isle';
-    if (odds) this.odds.set(fishCastMods(this.ui.me().fishing, this.clock.now(), zone), isle ? this.isleFog || this.isleSeason : this.rain || this.season, isle ? this.isleSeason : this.season);
-    this.plates();
+    this.mode.shown = fishing;
+    if (fishing) {
+      const me = this.ui.me();
+      this.mode.setOdds(fishCastMods(me.fishing, this.clock.now(), zone), isle ? this.isleFog || this.isleSeason : this.rain || this.season, isle ? this.isleSeason : this.season, isle);
+      this.mode.setIsle(isle ? isleCaught(me) : null);
+    } else {
+      this.prompt(null);
+    }
+    const atIsle = isle || (has && ISLE.on && inIsleWaters(px, pz));
+    this.events(fishing || near || atIsle || (has && this.nearSpot(px, pz)), atIsle);
+    // поклёвка и вываживание: остальной HUD притихает
+    const focus = fishing && (this.biting || this.reel.active);
+    if (focus !== this.focus) {
+      this.focus = focus;
+      document.documentElement.toggleAttribute('data-fish-focus', focus);
+    }
+  }
+
+  /** Подсказка внизу с удочкой (только десктоп; на телефоне — подсказка набережной с кнопкой 🎣). null — спрятать */
+  prompt(kind: FishPrompt | null): void {
+    const full = kind === 'full' ? this.fullHint.replace(/\s*\(I\)/, '') : '';
+    const key = kind ? `${kind}|${full}` : '';
+    if (key === this.promptKey) return;
+    this.promptKey = key;
+    this.promptEl.hidden = !kind;
+    if (!kind) return;
+    const journal = promptKey(keyHtml('J'), 'Журнал', 'J');
+    const stand = promptKey(keyHtml('E'), 'Встать');
+    this.promptEl.classList.toggle('k-prompt--off', kind === 'cast');
+    if (kind === 'idle') this.promptEl.innerHTML = promptKey(MOUSE_L, 'Забросить') + SEP + journal + SEP + stand;
+    else if (kind === 'cast') this.promptEl.innerHTML = '<span>Заброс…</span>';
+    else if (kind === 'wait') this.promptEl.innerHTML = `<span class="fi-wait">${iconImg('float', '')}Ждём поклёвку…</span>` + SEP + journal;
+    else this.promptEl.innerHTML = promptKey(keyHtml('I'), escHtml(full), 'I') + SEP + stand;
+  }
+
+  /** Поклёвка (FE_BITE): крупное «Подсекай!» по центру на 1,6 с; false — убрать (подсёк, рано, не успел) */
+  bite(on: boolean): void {
+    clearTimeout(this.biteTimer);
+    this.biting = on;
+    const e = this.biteEl;
+    e.classList.remove('is-pop');
+    e.hidden = !on;
+    if (!on) return;
+    void e.offsetWidth;
+    e.classList.add('is-pop');
+    this.biteTimer = window.setTimeout(() => this.bite(false), BITE_MS);
   }
 
   /**
-   * Плашки событий (видны вместе с колонкой: с удочкой, у доски и у Семёна; пока тянешь рыбу — убраны): крупно — что
-   * за событие и сколько осталось, мелко — что даёт. Сезон рыбалки сам по себе дождь — тогда одна его плашка.
+   * Плашка события сверху (кит: одна на экран, важнее — лодка, рулетка, шторм): у острова — «Туман наступает» или
+   * «Великий туман», у пристани — сезон рыбалки, дождь или «сезон скоро». Видна с удочкой, у мест рыбалки, доски и
+   * торговцев; пока тянешь рыбу — убрана.
    */
-  private plates(): void {
+  private events(show: boolean, atIsle: boolean): void {
     const now = this.clock.now();
-    const st = FISH_SEASON.state();
-    const season = !!st?.on && !this.reel.active;
-    const s = this.seasonPlate;
-    s.root.classList.toggle('show', season);
-    if (season && st) {
-      setText(s.title, 'Сезон рыбалки');
-      setText(s.sub, SEASON_PERKS);
-      setText(s.time, fishTimeLeft(st.left, 0));
+    let html = '';
+    let tone: 'special' | undefined;
+    let lamp = false;
+    if (show && !this.reel.active) {
+      if (atIsle) {
+        if (this.isleSeason) {
+          html = eventHtml('fog', 'Великий туман!', `Сезон острова: шансы ещё ${mul(SEASON_MUL)}`, this.isleSeasonEnds - now, SEASON_SPAN_MS, 'special');
+          tone = 'special';
+          lamp = true;
+        } else if (this.isleFog) {
+          html = eventHtml('fog', 'Туман наступает', `Туманные виды · редкие и выше ${mul(RAIN_MUL)}`, this.isleFogUntil ? this.isleFogUntil - now : 0, this.fogSpan);
+        }
+      } else {
+        const st = FISH_SEASON.state(now);
+        if (st?.on) {
+          html = eventHtml('season', 'Сезон рыбалки!', `Все шансы ${mul(SEASON_MUL)} · клюют виды дождя`, st.left, SEASON_SPAN_MS);
+          lamp = true;
+        } else if (this.rain) {
+          html = eventHtml('rain', 'Дождь — клёв лучше', `Клюют виды дождя · редкие и выше ${mul(RAIN_MUL)}`, this.eventUntil ? this.eventUntil - now : 0, this.rainSpan);
+        } else if (st && st.left <= SOON_MS) {
+          html = eventHtml('season', 'Сезон рыбалки скоро', `10 минут: шансы ${mul(SEASON_MUL)}, клюют виды дождя`, st.left, 0);
+        }
+      }
     }
-    const r = this.rainPlate;
-    const rain = this.rain && !st?.on && !this.reel.active;
-    r.root.classList.toggle('show', rain);
-    if (rain) {
-      setText(r.title, TOUCH ? 'Событие ×1,5' : 'Рыболовное событие');
-      setText(r.sub, RAIN_PERKS);
-      setText(r.time, this.eventUntil ? fishTimeLeft(this.eventUntil, now) : '');
-    }
+    if (html) this.ui.top.event({ key: EV_KEY, prio: EV_PRIO, html, tone, lamp });
+    else this.ui.top.clear(EV_KEY);
+  }
+
+  /** У места рыбалки на пристани, у маяка или на баркасе */
+  private nearSpot(x: number, z: number): boolean {
+    for (const s of FISH_SPOTS) if (Math.hypot(x - s.x, z - s.z) < SPOT_NEAR_M) return true;
+    return false;
   }
 
   /** Рядом с Семёном или Саней */
@@ -468,7 +587,7 @@ export class Fish2Hud {
     return FISH2.on && Math.hypot(x - FISH_BOARD_AT.x, z - FISH_BOARD_AT.z) < BOARD_HINT_M;
   }
 
-  /** J или кнопка 📖: открыть журнал (мышь отпускается) или закрыть. */
+  /** J или «Журнал» в подсказке: открыть журнал (мышь отпускается) или закрыть. */
   toggleBook(): void {
     if (this.npc.isOpen) return;
     if (this.book.isOpen) {
@@ -496,17 +615,16 @@ export class Fish2Hud {
     this.bag.close();
     this.roulette.close();
     this.quiet = false;
-    this.tools.classList.remove('show');
+    this.bite(false);
+    this.prompt(null);
+    this.mode.shown = false;
+    this.progress.setShown(false, false);
+    this.ui.top.clear(EV_KEY);
+    this.focus = false;
+    document.documentElement.removeAttribute('data-fish-focus');
   }
 
   debug(): Record<string, unknown> {
     return { on: FISH2.on, reel: this.reel.active, running: this.reel.running, p: this.reel.progress, card: this.card.shown, book: this.book.isOpen, npc: this.npc.isOpen, rain: this.rain, season: this.season, seasonEnds: this.seasonEnds, eventUntil: this.eventUntil, board: FISH_BOARD_AT, podium: this.top?.podium ?? [], progress: this.ui.me().fishing };
-  }
-
-  private setBookBtn(): void {
-    const n = collectionCount(this.ui.me().album);
-    this.bookBtn.innerHTML = '';
-    if (!TOUCH) this.bookBtn.appendChild(el('kbd', '', 'J'));
-    this.bookBtn.appendChild(document.createTextNode(TOUCH ? `📖 Журнал · ${n}/${COLLECTION_SIZE}` : `📖 Журнал · ${n} из ${COLLECTION_SIZE}`));
   }
 }

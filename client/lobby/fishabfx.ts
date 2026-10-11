@@ -132,7 +132,7 @@ export class ReelAbilityFx {
     this.whipb.innerHTML = SVG_WHIP;
     this.whipt = this.whipb.appendChild(el('b', '', 'хлыст'));
     this.mark = this.prog.appendChild(el('span', 'frx-mark'));
-    this.warnEl = parts.slot.insertBefore(el('div', 'fe-stand frx-warn'), parts.slot.firstChild);
+    this.warnEl = parts.slot.insertBefore(el('div', 'fe-stand frx-warn k-pill k-pill--bad'), parts.slot.firstChild);
     // поверх экрана, но под шкалой (root уже в parent)
     this.storm = parent.insertBefore(el('div', 'frx-storm'), root);
     this.haze = parent.insertBefore(el('div', 'frx-haze'), root);

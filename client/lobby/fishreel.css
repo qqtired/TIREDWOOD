@@ -2,71 +2,34 @@
    Шкала и её подписи — fish2.css и fisheco.css; здесь только новое. Цвета — те, что уже есть у рыбалки. */
 
 /* ---------------------------------------------------------------- оценка: цвет */
-.frg0 { --grc: var(--gold); }
-.frg1 { --grc: #a9d6a0; }
-.frg2 { --grc: #bfe6ff; }
-.frg3 { --grc: var(--cream); }
-.frg4 { --grc: #ffb0a0; }
+.frg0 { --grc: var(--gold-text); }
+.frg1 { --grc: var(--good-text); }
+.frg2 { --grc: var(--info-text); }
+.frg3 { --grc: var(--plate-text); }
+.frg4 { --grc: var(--bad-text); }
 
 /* живой счёт под полосой улова: «2 ошибки · Сойдёт ×1,25»; ошибка — плашка вздрагивает красным */
 .fr-grade {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 11px;
-  border-radius: 999px;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  color: #e6dcb9;
-  font-size: 14px;
-  font-weight: 700;
+  align-items: center;
+  gap: 8px;
+  color: var(--surf-dim);
+  font: 600 var(--fs-14)/1.2 var(--font-text);
   white-space: nowrap;
-  text-shadow: none;
 }
 .fr-grade[hidden] { display: none; }
-.fr-grade b { color: var(--grc); font-size: 15px; font-weight: 900; }
+.fr-grade b { color: var(--grc); font: 900 var(--fs-16)/1 var(--font-text); }
 .fr-grade.bump { animation: fr-grade-bump 0.45s ease-out; }
 @keyframes fr-grade-bump {
   from {
     transform: scale(1.22);
-    border-color: var(--jam-soft);
-    box-shadow: 0 0 14px rgba(255, 80, 80, 0.6);
+    color: var(--bad-text);
   }
 }
 
-/* итог на шкале: «Поймал! 🎣» и ниже оценка крупно её цветом — «Идеально · ×2,5 опыта» */
-.fr-res { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.fr-res small {
-  color: var(--grc);
-  font-size: 20px;
-  font-weight: 900;
-  text-shadow: 0 2px 4px rgba(10, 5, 8, 0.85), 0 0 3px rgba(10, 5, 8, 0.9);
-}
-.touch .fr-res small { font-size: 14px; }
-
-/* карточка улова: «+45 XP · Идеально ×2,5 · …» — оценка её цветом */
-.fe-xp .fe-grade { color: var(--grc); font-weight: 900; }
-
 /* ---------------------------------------------------------------- натяжение лески: зеркало «леска провисла» */
-.fe-taut {
-  display: none;
-  padding: 4px 10px;
-  border-radius: 9px;
-  background: rgba(120, 32, 26, 0.92);
-  color: #ffd1c4;
-  font: 800 14px/1.2 Rubik, system-ui, sans-serif;
-  letter-spacing: 0.02em;
-  text-shadow: none;
-}
-.fr-slot > .fe-taut {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: max-content;
-  text-align: center;
-}
-.fr.taut .fe-taut { display: block; animation: fe-stand 0.45s ease-out 2; }
+.fe-taut { display: none; }
+.fr.taut .fe-taut { display: inline-flex; animation: fe-stand 0.45s ease-out 2; }
 .fr.taut .fr-slot > .fr-hint { opacity: 0; transition: none; }
 .fr.taut .fr-slot > .fe-stand { display: none; }
 /* зона прижата к верху и звенит: краснеет и мелко дрожит (дрожь — translate: transform зоны ставит fishgame.ts) */
@@ -77,7 +40,6 @@
   animation: fr-taut 0.1s linear infinite;
 }
 @keyframes fr-taut { 50% { translate: 0 1.5px; } }
-.touch .fr-slot > .fe-taut { position: static; translate: none; width: auto; max-width: 100%; }
 
 /* ---------------------------------------------------------------- водка: пьяный рыбак */
 /* в глазах двоится: бледный двойник рыбы чуть в стороне */
@@ -121,33 +83,26 @@
   100% { transform: translateY(-14px); opacity: 0; }
 }
 
-/* «Прекратить [X]» (хотфикс 10.10): сдаться — рыба срывается, ходить снова можно. Шкала сама не ловит мышь (pointer-events: none),
-   кнопка — ловит: нажимается мышью (когда курсор свободен) и пальцем. Мелкая, чтобы не отвлекать от боя. */
-.fr-quit {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--cream-dim);
-  font: 700 12px/1.2 Rubik, system-ui, sans-serif;
-  text-shadow: none;
-  cursor: pointer;
-  pointer-events: auto;
-}
-.fr-quit kbd { min-width: 18px; height: 18px; padding: 0 4px; font-size: 10px; box-shadow: 0 2px 0 #b9a58a; }
-.fr-quit:hover,
-.fr-quit:focus-visible { color: var(--cream); border-color: rgba(255, 236, 205, 0.45); background: var(--panel-strong); }
-/* бой кончился (поймал, сорвалась, сдался) — кнопка не нужна */
-.fr.won .fr-quit,
-.fr.lost .fr-quit { display: none; }
-.touch .fr-quit { padding: 7px 16px; font-size: 14px; }
+/* «Прекратить» (хотфикс 10.10) — кнопка кита с клавишей X на нижнем краю рамки (fishkit.css .fi-reel-quit); шкала сама
+   мышь не ловит, кнопка — ловит (мышью, когда курсор свободен, и пальцем). Бой кончился — кнопки нет. */
+.fr.won .fi-reel-quit,
+.fr.lost .fi-reel-quit { display: none; }
+
+/* срочные надписи (кит k-pill--bad): видны, только когда нужно */
+.fe-stand, .fe-slack { display: none; }
+.fe-stand.show { display: inline-flex; animation: fe-stand .45s ease-out 3; }
+.fr.slack .fe-slack { display: inline-flex; animation: fe-stand .45s ease-out 2; }
+@keyframes fe-stand { from { transform: scale(1.25); } to { transform: scale(1); } }
+
+/* под шкалой — что меняет бой сейчас: держать мифика дольше, повадка рыбы (бонус 3-го уровня) */
+.fe-reelbonus { display: flex; flex-direction: column; gap: 2px; max-width: 220px; color: var(--surf-dim); font: 600 var(--fs-13)/1.3 var(--font-text); text-align: center; }
+.fe-reelbonus:empty { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .fr-grade.bump,
   .fr.taut .fe-taut,
   .fr.taut .fr-zone,
-  .fr-hic.show { animation: none; }
+  .fr-hic.show,
+  .fe-stand.show,
+  .fr.slack .fe-slack { animation: none; }
 }
