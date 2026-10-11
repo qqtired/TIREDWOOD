@@ -7,7 +7,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BOATS, type BoatId } from '../../shared/fishboat.ts';
-import { OB_WORLD_MAX, PARK, PARK_COUNT } from '../../shared/ownboat.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { OB_WORLD_MAX, PARK, PARK_COUNT, PARK_RAMP } from '../../shared/ownboat.ts';
 
 const url = (f: string): string => new URL(`../assets/ownboats/${f}`, import.meta.url).href;
 const BOAT_URLS: Record<BoatId, [string, string]> = {
@@ -288,6 +289,23 @@ const ROWS = 2;
 const CW = 300;
 const CH = 210;
 
+/**
+ * plaza3: сходни стоянки начинаются на y −0,5 (сходни порта; в твёрдом — одна ступень, shared/ownboat.ts parkDeckBoxes), а в модели они
+ * наклонные от 0 до настила (−0,62) на PARK_RAMP метрах. Опускаем вершины сходен: у начала на 0,5 м, к концу — на 0, так что
+ * видимый склон остаётся 0,12 м, а твёрдое отличается от него не больше этого.
+ */
+function flatRamp(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  if (!PLAZA3) return g;
+  const pos = g.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const z = pos.getZ(i);
+    const t = Math.min(1, Math.max(0, z / PARK_RAMP));
+    pos.setY(i, pos.getY(i) - 0.5 * (1 - t));
+  }
+  pos.needsUpdate = true;
+  return g;
+}
+
 /** Пирс за домом Семёна: настил, фонари, таблички мест (канвас) */
 export class PierModel {
   readonly group = new THREE.Group();
@@ -339,7 +357,7 @@ export class PierModel {
         plates.push(plateUv(g, i));
         return;
       }
-      list.push([partOf(mat), bake(m, m.matrixWorld)]);
+      list.push([partOf(mat), flatRamp(bake(m, m.matrixWorld))]);
     });
     mergeParts(list).forEach((g, p) => {
       if (!g) return;

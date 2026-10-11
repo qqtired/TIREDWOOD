@@ -16,6 +16,7 @@ const { CollisionWorld } = await import('../shared/world.ts');
 const F = await import('../shared/fishplaces.ts');
 const FE = await import('../shared/ferry.ts');
 const OB = await import('../shared/ownboat.ts');
+const FB = await import('../shared/fishboat.ts');
 const PI = await import('../shared/pirates.ts');
 const { PirateNav } = await import('../server/lobby/piratenav.ts');
 const { BARKAS_BAK_Y } = await import('../shared/barkas.ts');
@@ -137,7 +138,7 @@ test('стоянка своих лодок: PARK (−54; 58,5), мол/голо�
   assert.equal(OB.canAnchorAt(-54, 52), false, 'на сходнях — нельзя');
   assert.equal(OB.canAnchorAt(-19, 30), false, 'у мостков маяка — нельзя (строки 1–2 не тронуты)');
   for (let b = 0; b < OB.PARK_COUNT; b++) {
-    const pose = OB.berthPose(b, 'skiff');
+    const pose = OB.berthPose(b, FB.BOATS[0]);
     assert.ok(Math.abs(pose.x - OB.PARK.x) < 5 && pose.z >= OB.PARK.z, `берт ${b} к югу от сходней`);
     assert.ok(!PORT.decks.some((d) => pose.x > d.box[0] && pose.x < d.box[2] && pose.z > d.box[1] && pose.z < d.box[3]), `берт ${b} не на настиле порта`);
     const land = OB.berthLanding(b);
@@ -208,7 +209,8 @@ test('русалка: раскладка на новых местах строи
 test('рыбаки-желейки: оба на твёрдом настиле площадки маяка, лицом к воде, ведро рядом', () => {
   assert.equal(FISHERS.length, 2);
   for (const f of FISHERS) {
-    const { x, z, yaw, bucket } = f.place;
+    const { x, z, yaw } = f.place;
+    const bucket = f.place.bucket!;
     assert.ok(near(world.groundBelow(x, 0.5, z), 0), `рыбак (${x}; ${z}) на настиле`);
     assert.ok(!world.overlaps(x - 0.3, 0.02, z - 0.3, x + 0.3, 1.7, z + 0.3), 'не в стене');
     assert.ok(Math.hypot(bucket[0] - x, bucket[2] - z) < 1.2 && near(world.groundBelow(bucket[0], 0.5, bucket[2]), 0), 'ведро на настиле');
@@ -246,8 +248,10 @@ test('ферма: зона «прошёл — на ферму» сразу за 
   assert.equal(FM.inFarmRoadZone(FM.FARM_PLAZA_GATE.use.x, 0, FM.FARM_PLAZA_GATE.use.z), false, 'место E — вне зоны');
   assert.equal(FM.inFarmRoadZone((z.x0 + z.x1) / 2, 0, (z.z0 + z.z1) / 2), true);
   assert.equal(FM.inFarmRoadZone((z.x0 + z.x1) / 2, -4, (z.z0 + z.z1) / 2), false, 'упал в воду под зоной — не считается');
+  // боковые столбики калитки (x 61,15…61,45, z до −24,05 и от −22,55) задевают углы зоны шириной 2 м: проход между ними — 1,5 м
   for (let x = z.x0; x <= z.x1; x += 0.2) for (let zz = z.z0; zz <= z.z1; zz += 0.2) {
     assert.ok(near(world.groundBelow(x, 0.5, zz), 0), `земля в зоне (${x.toFixed(1)}; ${zz.toFixed(1)})`);
+    if (Math.abs(zz + 23.3) > 0.3) continue; // середина прохода: между столбиками 1,5 м, тело игрока 0,84 м (PLAYER_HALF 0,42)
     assert.ok(!world.overlaps(x - PLAYER_HALF, 0.01, zz - PLAYER_HALF, x + PLAYER_HALF, 1.8, zz + PLAYER_HALF), `зона свободна (${x.toFixed(1)}; ${zz.toFixed(1)})`);
   }
   // пешком от места возврата на восток через калитку — в зону за секунду-две
