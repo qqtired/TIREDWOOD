@@ -1,29 +1,52 @@
-// «Кто где» (Tab): ники, уровни и комнаты всех, кто в игре. У каждого другого — громкость его голоса: −/+ и «заглушить»
-// (те же настройки, что во вкладке меню «Голос», client/voice-prefs.ts; запоминаются и для тех, кого сейчас нет в голосе),
-// и 👢 — голосование «выгнать» (флаг сервера VOTEKICK, shared/votekick.ts; итог решает сервер).
-// Tab держишь — список; ПКМ, пока держишь, — мышь свободна и список остаётся. Закрыть — Tab, Esc или клик мимо списка.
+// «Кто где» (Tab): окно кита (.k-window в .k-scrim, строки .k-online-row — как на странице lab/ui «Кто где»): ники, уровни
+// и комнаты всех, кто в игре. У каждого другого — громкость его голоса: −/+ и «заглушить» (те же настройки, что в меню
+// «Голос», client/voice-prefs.ts; запоминаются и для тех, кого сейчас нет в голосе) и «выгнать» — голосование (флаг
+// сервера VOTEKICK, shared/votekick.ts; итог решает сервер).
+// Tab держишь — список; ПКМ, пока держишь, — мышь свободна и список остаётся. Закрыть — Tab, Esc или клик мимо окна.
 // На телефоне (👥) список сразу с кнопками.
 import { frameForLevel } from '../../shared/levels.ts';
 import type { OnlineEntry, RoomKind } from '../../shared/messages.ts';
 import { KICK_PERCENT, KICK_VOTE_MS } from '../../shared/votekick.ts';
 import { TOUCH } from '../touch.ts';
 import { onVoiceChange, peerVoices, setPeerVoice, voiceTalkers } from '../voice-prefs.ts';
+import { iconImg } from './kit/dom.ts';
+import { MODE_CARDS } from './transition-art.ts';
 import './online.css';
 
-const ROOM: Record<RoomKind, string> = { lobby: '🏠 Набережная', paintball: '🎯 Склад', race: '🏁 Гонка', fort: '🏰 Крепость', fight: '🥊 Подвал', skill: '☁️ Выше облаков', hide: '🔎 Прятки', farm: '🌱 Ферма', dungeon: '🕯️ Подземелье' };
+/** Комната: название, значок (если у комнаты нет картины экрана загрузки) и где в картине её «марка» (кружок) */
+const ROOM: Record<RoomKind, readonly [name: string, icon: string, pos: string]> = {
+  lobby: ['Набережная', 'pin', '50% 60%'],
+  paintball: ['Склад', 'paint', '50% 55%'],
+  race: ['Гонка', 'kart', '50% 55%'],
+  fort: ['Крепость', 'shield', '50% 45%'],
+  fight: ['Подвал', 'lock', '50% 55%'],
+  skill: ['Выше облаков', 'bell-cloud', '50% 40%'],
+  hide: ['Прятки', 'hide-box', '50% 55%'],
+  farm: ['Ферма', 'farm-gate', '50% 50%'],
+  dungeon: ['Подземелье', 'dungeon', '50% 50%'],
+};
+
+/** «Марка» комнаты — кружок с куском рисованной картины экрана загрузки (нет картины — значок комнаты) */
+function roomMark(kind: RoomKind): string {
+  const [, icon, pos] = ROOM[kind] ?? ['', 'pin', '50% 50%'];
+  const art = MODE_CARDS[kind]?.art;
+  if (art) return `<span class="ol-mark" style="background-image:url('${art}');background-position:${pos}"></span>`;
+  return `<span class="ol-mark ol-mark--ic">${iconImg(icon, '')}</span>`;
+}
+
 /** Шаг кнопок −/+ */
 const STEP = 0.1;
-/** Динамик и динамик с крестиком — чётче эмодзи на тёмной кнопке */
+/** Динамик и динамик с крестиком (рисуются цветом текста кнопки) */
 const SPEAKER = '<path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/>';
 const ICON_ON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SPEAKER}<path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`;
 const ICON_OFF = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SPEAKER}<path d="m16 9 6 6"/><path d="m22 9-6 6"/></svg>`;
 
 export interface OnlineHost {
-  /** 👢 подтверждён: начать голосование «выгнать» */
+  /** «Выгнать» подтверждено: начать голосование */
   kick(pid: number): void;
   /** Список стал (или перестал быть) с мышью: игре — отпустить мышь и не ходить */
   pinned(on: boolean): void;
-  /** Закрыли кликом мимо списка: мышь — обратно игре */
+  /** Закрыли кликом мимо окна: мышь — обратно игре */
   restorePointer(): void;
 }
 
@@ -39,8 +62,13 @@ interface Row {
 }
 
 export class OnlineList {
+  /** Слой кита (.k-scrim): масштаб --hud-k, лёгкое затемнение; сам мышь не ловит — только окно */
   private readonly root: HTMLElement;
+  private readonly win: HTMLElement;
   private readonly title: HTMLElement;
+  private readonly eyebrow: HTMLElement;
+  private readonly voiceN: HTMLElement;
+  private readonly voiceCount: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly rows: HTMLElement;
   private readonly ask: HTMLElement;
@@ -54,23 +82,40 @@ export class OnlineList {
   /** Голосование «выгнать» включено на сервере; идёт ли сейчас */
   private kickOn = false;
   private voting = false;
-  /** 👢 нажат — ждём «Да» (номер профиля) */
+  /** «Выгнать» нажат — ждём «Да» (номер профиля) */
   private asking = 0;
   private readonly byPid = new Map<number, Row>();
   private offVoice: (() => void) | null = null;
 
   constructor(parent: HTMLElement, host: OnlineHost | null = null) {
     this.host = host;
-    this.root = el('div', 'online-list ol');
-    const head = this.root.appendChild(el('div', 'ol-head'));
-    this.title = head.appendChild(el('div', 'ol-title'));
-    this.hint = head.appendChild(el('div', 'ol-hint'));
-    this.rows = this.root.appendChild(el('div', 'ol-rows'));
-    this.ask = this.root.appendChild(el('div', 'ol-ask'));
-    this.ask.hidden = true;
-    this.askText = this.ask.appendChild(el('span', 'ol-ask-text'));
-    const yes = this.ask.appendChild(button('ol-ask-yes', 'Да, голосовать'));
-    const no = this.ask.appendChild(button('ol-ask-no', 'Отмена'));
+    this.root = el('div', 'k-scrim ol-scrim');
+    this.root.innerHTML = `
+      <section class="k-window k-window--sm ol-window" role="dialog" aria-label="Кто где">
+        <header class="k-win-head">
+          <span class="k-win-portrait">${iconImg('online', '')}</span>
+          <div class="k-win-titles"><p class="k-eyebrow ol-eyebrow"></p><h2 class="k-win-title ol-title"></h2></div>
+          <div class="k-win-tools"><span class="k-pill k-pill--good k-pill--sm ol-voice-count" hidden><span class="k-eq"><i></i><i></i><i></i></span><span class="ol-voice-n"></span></span></div>
+        </header>
+        <div class="k-win-body ol-rows"></div>
+        <div class="ol-ask" hidden>
+          <span class="ol-ask-text"></span>
+          <span class="ol-ask-btns"></span>
+        </div>
+        <footer class="k-win-foot ol-foot"><span class="k-note ol-hint"></span></footer>
+      </section>`;
+    const q = <T extends HTMLElement>(sel: string): T => this.root.querySelector<T>(sel)!;
+    this.win = q('.ol-window');
+    this.title = q('.ol-title');
+    this.eyebrow = q('.ol-eyebrow');
+    this.voiceCount = q('.ol-voice-count');
+    this.voiceN = q('.ol-voice-n');
+    this.hint = q('.ol-hint');
+    this.rows = q('.ol-rows');
+    this.ask = q('.ol-ask');
+    this.askText = q('.ol-ask-text');
+    const yes = q('.ol-ask-btns').appendChild(button('k-btn k-btn--stop k-btn--sm ol-ask-yes', 'Да, голосовать'));
+    const no = q('.ol-ask-btns').appendChild(button('k-btn k-btn--ghost k-btn--sm ol-ask-no', 'Отмена'));
     yes.addEventListener('click', () => this.confirmKick());
     no.addEventListener('click', () => this.askKick(0));
     this.rows.addEventListener('click', (e) => this.onClick(e));
@@ -109,7 +154,7 @@ export class OnlineList {
     if (this.open) this.render();
   }
 
-  /** Сервер: голосование включено (on) и идёт ли сейчас — 👢 гаснет, пока идёт */
+  /** Сервер: голосование включено (on) и идёт ли сейчас — «выгнать» гаснет, пока идёт */
   setKick(on: boolean, voting: boolean): void {
     if (on === this.kickOn && voting === this.voting) return;
     this.kickOn = on;
@@ -153,7 +198,7 @@ export class OnlineList {
       return;
     }
     const target = e.target instanceof Element ? e.target : null;
-    if (target && (this.root.contains(target) || target.closest('button, input, select, label, a'))) return;
+    if (target && (this.win.contains(target) || target.closest('button, input, select, label, a'))) return;
     e.preventDefault();
     e.stopPropagation();
     this.show(false);
@@ -169,40 +214,43 @@ export class OnlineList {
     const prefs = peerVoices();
     for (const e of this.list) {
       const mine = e.pid ? e.pid === this.mePid : e.nick === this.me;
-      const row = el('div', `ol-row${mine ? ' me' : ''}`);
-      const who = row.appendChild(el('b', 'ol-who'));
+      const row = el('div', `k-online-row${mine ? ' is-me' : ''}`);
       const level = Number.isFinite(e.level) ? Math.max(1, Math.floor(e.level!)) : 1;
       const tier = frameForLevel(level);
-      const badge = who.appendChild(el('span', 'ol-lvl', String(level)));
-      badge.title = `Уровень ${level} · ${tier.name}`;
-      badge.setAttribute('aria-label', badge.title);
-      Object.assign(badge.style, { borderColor: tier.color, color: tier.light });
-      const nick = who.appendChild(el('span', 'ol-nick', e.nick));
-      nick.title = e.nick;
-      const mic = who.appendChild(el('i', 'ol-mic', '🎙'));
+      // кольцо уровня — цветом рамки ника (опыт других сервер не присылает)
+      const ring = row.appendChild(el('span', 'k-ring k-ring--sm ol-ring', ''));
+      ring.style.setProperty('--tc', tier.color);
+      ring.setAttribute('aria-label', `Уровень ${level}${tier.id === 'none' ? '' : ` · ${tier.name}`}`);
+      ring.appendChild(el('b', '', String(level)));
+      const who = row.appendChild(el('span', 'k-online-nick'));
+      who.appendChild(el('span', 'ol-nick', e.nick));
+      if (mine) who.appendChild(el('span', 'k-pill k-pill--gold k-pill--sm', 'это ты'));
+      const mic = who.appendChild(el('span', 'ol-mic'));
+      mic.innerHTML = iconImg('voice', 'k-ic');
+      mic.setAttribute('aria-label', 'в голосе с микрофоном');
       mic.hidden = true;
-      row.appendChild(el('span', 'ol-room', ROOM[e.room] ?? e.room));
+      const room = row.appendChild(el('span', 'k-online-room'));
+      room.innerHTML = roomMark(e.room);
+      room.append(ROOM[e.room]?.[0] ?? e.room);
+      const act = row.appendChild(el('span', 'k-online-act'));
       const pid = e.pid ?? 0;
-      if (mine || pid <= 0) {
-        row.appendChild(el('span', 'ol-self', mine ? 'это ты' : ''));
-      } else {
-        const voice = row.appendChild(el('span', 'ol-voice'));
-        const mute = voice.appendChild(button('ol-mute', ''));
-        const minus = voice.appendChild(button('ol-minus', '−'));
-        const vol = voice.appendChild(el('span', 'ol-vol'));
-        const plus = voice.appendChild(button('ol-plus', '+'));
+      if (!mine && pid > 0) {
+        const mute = act.appendChild(button('k-btn k-btn--ghost k-btn--icon k-btn--sm ol-mute', ''));
+        const minus = act.appendChild(button('k-btn k-btn--ghost k-btn--icon k-btn--sm ol-step', '−'));
+        const vol = act.appendChild(el('span', 'ol-val'));
+        const plus = act.appendChild(button('k-btn k-btn--ghost k-btn--icon k-btn--sm ol-step', '+'));
         for (const b of [mute, minus, plus]) b.dataset.pid = String(pid);
         mute.dataset.act = 'mute';
         minus.dataset.act = 'minus';
         plus.dataset.act = 'plus';
         let kick: HTMLButtonElement | null = null;
         if (this.kickOn) {
-          kick = row.appendChild(button('ol-kick', '👢'));
+          kick = act.appendChild(button('k-btn k-btn--ghost k-btn--sm ol-kick', ''));
+          kick.innerHTML = `<span class="k-row-line">${iconImg('exit', 'k-ic')}выгнать</span>`;
           kick.dataset.pid = String(pid);
           kick.dataset.act = 'kick';
           kick.disabled = this.voting;
-          kick.title = this.voting ? 'Уже идёт голосование' : `Выгнать ${e.nick}: голосование`;
-          kick.setAttribute('aria-label', kick.title);
+          kick.setAttribute('aria-label', this.voting ? 'Уже идёт голосование' : `Выгнать ${e.nick}: голосование`);
         }
         const r: Row = { root: row, mic, mute, minus, plus, vol, kick, nick: e.nick };
         this.byPid.set(pid, r);
@@ -215,8 +263,14 @@ export class OnlineList {
     if (this.asking) this.askKick(this.byPid.has(this.asking) ? this.asking : 0);
   }
 
+  /** Подсказка про мышь — видимой строкой: сверху «как закрыть», снизу «как взять мышь» */
   private paintHint(): void {
-    this.hint.textContent = TOUCH ? '' : this.pin ? 'Tab, Esc или клик мимо — закрыть' : this.kickOn ? 'ПКМ — мышь: громкость и 👢' : 'ПКМ — мышь: громкость голосов';
+    this.eyebrow.textContent = TOUCH ? '' : this.pin ? 'Tab, Esc или клик мимо — закрыть' : 'Отпусти Tab — закроется';
+    const what = this.kickOn ? 'громкость и «выгнать»' : 'громкость голосов';
+    if (TOUCH) this.hint.textContent = '';
+    else if (this.pin) this.hint.textContent = `Мышь у тебя: ${what} — кнопками в строке`;
+    else this.hint.innerHTML = `<span class="k-key k-key--sm"><i class="k-mouse k-mouse--r"></i></span> — взять мышь: ${what}`;
+    this.hint.parentElement!.hidden = TOUCH;
   }
 
   /** Громкость и «заглушить» одной строки */
@@ -224,15 +278,14 @@ export class OnlineList {
     const pct = Math.round(p.volume * 100);
     r.root.classList.toggle('muted', p.muted);
     r.mute.innerHTML = p.muted ? ICON_OFF : ICON_ON;
-    r.mute.title = `${p.muted ? 'Включить голос' : 'Заглушить'}: ${r.nick}`;
-    r.mute.setAttribute('aria-label', r.mute.title);
+    r.mute.setAttribute('aria-label', `${p.muted ? 'Включить голос' : 'Заглушить'}: ${r.nick}`);
     r.mute.setAttribute('aria-pressed', String(p.muted));
     r.vol.textContent = p.muted ? 'выкл' : `${pct}%`;
-    r.vol.title = `Громкость голоса: ${r.nick}`;
+    r.vol.classList.toggle('k-bad', p.muted);
     r.minus.disabled = p.muted || pct <= 0;
     r.plus.disabled = p.muted || pct >= 100;
-    r.minus.title = `Тише: ${r.nick}`;
-    r.plus.title = `Громче: ${r.nick}`;
+    r.minus.setAttribute('aria-label', `Тише: ${r.nick}`);
+    r.plus.setAttribute('aria-label', `Громче: ${r.nick}`);
   }
 
   /** Кто в голосе и кто сейчас говорит */
@@ -242,9 +295,12 @@ export class OnlineList {
     for (const [pid, r] of this.byPid) {
       const t = on.get(pid);
       r.mic.hidden = !t?.mic;
-      r.root.classList.toggle('talking', !!t?.talking);
+      r.root.classList.toggle('is-talk', !!t?.talking);
       r.root.classList.toggle('in-voice', !!t);
     }
+    const n = [...this.byPid.keys()].filter((pid) => on.has(pid)).length;
+    this.voiceCount.hidden = n === 0;
+    this.voiceN.textContent = `в голосе ${n}`;
   }
 
   private onClick(e: MouseEvent): void {
@@ -263,7 +319,7 @@ export class OnlineList {
     this.paintPeer(r, peerVoices()(pid));
   }
 
-  /** 👢: спросить «Выгнать <ник>?» (0 — убрать вопрос) */
+  /** «Выгнать»: спросить «Выгнать <ник>?» (0 — убрать вопрос) */
   private askKick(pid: number): void {
     this.asking = pid;
     const r = pid ? this.byPid.get(pid) : undefined;
@@ -284,7 +340,7 @@ export class OnlineList {
   }
 }
 
-function el(tag: string, cls: string, text = ''): HTMLElement {
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   e.className = cls;
   if (text) e.textContent = text;
@@ -292,7 +348,7 @@ function el(tag: string, cls: string, text = ''): HTMLElement {
 }
 
 function button(cls: string, text: string): HTMLButtonElement {
-  const b = el('button', cls, text) as HTMLButtonElement;
+  const b = el('button', cls, text);
   b.type = 'button';
   // фокус на кнопке не держим: Пробел и Enter остаются игре
   b.addEventListener('mousedown', (e) => e.preventDefault());

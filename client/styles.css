@@ -1649,49 +1649,6 @@ kbd.wide {
   gap: 10px;
 }
 
-/* строки настроек по категориям — client/ui/menu/menu.css */
-
-/* :where — нулевая специфичность: ползунки кита (.k-slider) перекрывают старую отделку без !important */
-:where(input[type='range']) {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 22px;
-  background: transparent;
-  cursor: pointer;
-}
-
-:where(input[type='range'])::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 240, 220, 0.18);
-}
-
-:where(input[type='range'])::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  margin-top: -6px;
-  border-radius: 50%;
-  background: var(--orange);
-  border: 2px solid var(--cream);
-  box-shadow: 0 2px 0 #b4520c;
-}
-
-:where(input[type='range'])::-moz-range-track {
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 240, 220, 0.18);
-}
-
-:where(input[type='range'])::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--orange);
-  border: 2px solid var(--cream);
-}
-
 input[type='checkbox'] {
   width: 18px;
   height: 18px;
@@ -1769,8 +1726,7 @@ input[type='checkbox'] {
   z-index: 0;
 }
 
-.shell > .k-hud,
-.shell > .online-list {
+.shell > .k-hud {
   z-index: 1;
 }
 
@@ -1805,13 +1761,14 @@ input[type='checkbox'] {
 }
 
 /* меню Esc — ниже плашки важного события (голосование, связь): она не закрывает его шапку и разделы.
+   Окно меню лежит в слое кита .k-scrim (zoom --hud-k), поэтому отступ — в единицах сцены, как --tc-event.
    Тосты и баннеры меню не двигают — тост может ненадолго лечь на его верх (data-tc-event — client/ui/kit/topcenter.ts) */
-.screen.pause {
+.screen.pause > .k-scrim {
   transition: padding-top 0.2s ease-out;
 }
 
-html[data-tc-event] .screen.pause {
-  padding-top: calc((var(--edge) + var(--tc-event, 0px)) * var(--hud-k, 1) + 6px);
+html[data-tc-event] .screen.pause > .k-scrim {
+  padding-top: calc(var(--edge) + var(--tc-event, 0px) + 6px);
 }
 
 /* под бейджем (верх-право: поле 16 + высота 44 + зазор 6, × масштаб HUD): панели набережной начинаются не выше */
@@ -2047,178 +2004,6 @@ html[data-room='dungeon'] .k-slot--bl {
   bottom: 170px;
   translate: -50% 0;
   pointer-events: auto;
-}
-
-/* --- «кто где» (Tab на набережной) */
-
-.online-list {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(380px, 90vw);
-  max-height: 70vh;
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  box-shadow: 0 24px 60px rgba(10, 5, 8, 0.55);
-  display: none;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.online-list.show {
-  display: flex;
-}
-
-.ol-title {
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.ol-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow: hidden;
-  font-size: 15px;
-  color: var(--cream-dim);
-}
-
-.ol-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(255, 240, 220, 0.06);
-  color: var(--cream);
-}
-
-.ol-row span {
-  color: var(--cream-dim);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.ol-row.me {
-  background: rgba(255, 138, 28, 0.2);
-}
-
-/* --- профиль (разделы меню — client/ui/menu/menu.css) */
-
-.prof-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.prof-tokens {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--gold);
-  white-space: nowrap;
-}
-
-.prof-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.prof-block {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 240, 220, 0.06);
-  border: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.prof-block b {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
-
-/* нечётный последний блок — на всю ширину, без пустой клетки рядом */
-.prof-block:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
-}
-
-.prof-block div {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--cream-2);
-}
-
-.prof-block i {
-  font-style: normal;
-  font-weight: 700;
-  color: var(--cream);
-  font-variant-numeric: tabular-nums;
-}
-
-.field.small {
-  margin-bottom: 0;
-}
-
-.field.small span {
-  font-size: 13px;
-}
-
-.prof-row {
-  display: flex;
-  gap: 8px;
-}
-
-.prof-row input {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 12px;
-  font-size: 16px;
-}
-
-.prof-row .btn {
-  width: auto;
-}
-
-.prof-note {
-  font-size: 13px;
-  color: var(--orange-soft);
-}
-
-.prof-note:empty,
-.prof-codebox:empty {
-  display: none;
-}
-
-.prof-codebox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(255, 211, 90, 0.1);
-  border: 1px dashed rgba(255, 211, 90, 0.45);
-  text-align: center;
-  font-size: 13px;
-  color: var(--cream-2);
-}
-
-.prof-code-val {
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--gold);
-  user-select: text;
-}
-
-.prof-code-old {
-  color: var(--cream-dim);
 }
 
 /* --- переподключение и затемнение между сценами */
@@ -4578,7 +4363,7 @@ html[data-room='dungeon'] .k-slot--bl {
 .prof-block.prof-album .alb-sub {
   display: block;
   margin: -2px 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--cream-dim);
 }
 
@@ -4606,7 +4391,7 @@ html[data-room='dungeon'] .k-slot--bl {
 }
 
 .alb-name {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.15;
   color: var(--cream);
@@ -4617,7 +4402,7 @@ html[data-room='dungeon'] .k-slot--bl {
 }
 
 .alb-rec {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
 }

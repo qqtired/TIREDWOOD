@@ -22,10 +22,10 @@ export class GiftForm {
     this.root.className = 'mn-gift';
     this.root.innerHTML = `
       <div class="mn-gift-row">
-        <input type="text" maxlength="${GIFT_CODE_MAX_LENGTH}" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="Введи код" aria-label="Подарочный код" />
-        <button class="btn ghost" type="submit">Получить</button>
+        <input class="k-input" type="text" maxlength="${GIFT_CODE_MAX_LENGTH}" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="Введи код" aria-label="Подарочный код" />
+        <button class="k-btn k-btn--sm" type="submit">Получить</button>
       </div>
-      <p class="mn-gift-status" role="status" aria-live="polite"></p>`;
+      <p class="mn-note mn-gift-status" role="status" aria-live="polite"></p>`;
     this.input = this.root.querySelector('input')!;
     this.button = this.root.querySelector('button')!;
     this.status = this.root.querySelector('.mn-gift-status')!;

@@ -1,12 +1,13 @@
-// Настройки по категориям: Графика, Звук, Управление, Интерфейс. Один экземпляр на всё время: в меню видна одна
-// категория (её выбирают слева), на экране входа (⚙ Настройки) — все подряд с заголовками. Значения живут в Settings
+// Настройки по категориям: Графика, Звук, Управление, Интерфейс — строками кита (.k-row, .k-slider, .k-switch, .k-seg,
+// menu/controls.ts). Один экземпляр на всё время: в меню видна одна категория (её выбирают слева), на экране входа
+// (⚙ Настройки) — все подряд с заголовками. Значения живут в Settings
 // (client/settings.ts, localStorage); применяет их App.applySettings — через onChange.
 import type { MixPreview } from '../../audio.ts';
 import { editGfx, minScale, pickCustom, pickPreset, type DistanceLevel, type EffectsLevel, type FpsCap, type GfxItems, type GfxState, type ShadowLevel } from '../../render/gfx.ts';
 import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, type Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
-import { setVoiceVolume, voiceVolume } from '../../voice-prefs.ts';
 import { applyHudScale } from '../kit/scale.ts';
+import { el, kButton, kRow, kSeg, kSlider, kSwitch, ownKeys, setSlider } from './controls.ts';
 
 export type SettingsCategory = 'graphics' | 'sound' | 'controls' | 'interface';
 
@@ -52,7 +53,7 @@ export class SettingsPanel {
   /** Показать одну категорию (в меню); на экране входа CSS показывает все */
   show(cat: SettingsCategory): void {
     for (const [id, sec] of this.cats) sec.hidden = id !== cat;
-    // громкость голосов меняют и во вкладке «Голос» — показываем свежую
+    // настройки меняют и вне меню (клавиша M, быстрые настройки) — показываем свежие
     this.sync();
   }
 
@@ -72,9 +73,7 @@ export class SettingsPanel {
     const now = (): GfxState => this.hooks.gfx();
     const edit = (patch: Partial<GfxItems>): void => editGfx(s, now(), patch);
     let c = this.item('graphics', 'Качество картинки', '');
-    // пять кнопок пресетов — в один ряд: им нужна своя ширина, а не общая колонка управления
-    c.classList.add('set-ctl-wide');
-    const hint = c.parentElement!.querySelector('small') ?? c.parentElement!.firstElementChild!.appendChild(el('small', ''));
+    const hint = c.parentElement!.querySelector('.k-row-hint')!;
     this.choice<Quality | 'custom'>(
       c,
       'Качество картинки',
@@ -110,7 +109,7 @@ export class SettingsPanel {
     const s = this.s;
     // отпустили ползунок — пример его звука: музыка — фраза, окружение — волна, эффекты — щелчок, интерфейс — «дзынь»
     const hear = (k: MixPreview) => () => this.hooks.preview?.(k);
-    let c = this.item('sound', 'Общая громкость', 'Музыка, окружение, эффекты и интерфейс. Голоса — своим ползунком ниже');
+    let c = this.item('sound', 'Общая громкость', 'Музыка, окружение, эффекты и интерфейс. Голоса игроков — в разделе «Голос»');
     // без звука ползунок стоит на нуле и подписан «выкл» (сама громкость цела); двигают его — значит, хотят слышать
     this.slider(c, 'Общая громкость', 0, 1, 0.05, () => effectiveVolume(s), (v) => {
       s.volume = v;
@@ -130,9 +129,8 @@ export class SettingsPanel {
     this.slider(c, 'Интерфейс', 0, 1, 0.05, () => s.uiVolume, (v) => { s.uiVolume = v; }, () => pct(s.uiVolume), hear('ui'));
     c = this.item('sound', 'Звуки интерфейса', 'Тихие щелчки кнопок, вкладок и наград', true);
     this.toggle(c, () => s.uiSounds, (v) => { s.uiSounds = v; });
-    c = this.item('sound', 'Голоса игроков', 'Голосовой чат, всех сразу — та же громкость, что во вкладке «Голос»');
-    this.slider(c, 'Голоса игроков', 0, 1, 0.01, () => voiceVolume(), (v) => setVoiceVolume(v), () => pct(voiceVolume()));
-    c = this.item('sound', 'Голосовой чат', 'Громкость каждого, микрофон и его проверка');
+    // громкость голосов — в одном месте: «Голос» → «Кто в голосе» (общая и каждого игрока)
+    c = this.item('sound', 'Голоса игроков', 'Громкость всех и каждого, микрофон и его проверка — в разделе «Голос»');
     this.link(c, 'Открыть «Голос»', () => this.hooks.go('voice'));
   }
 
@@ -152,9 +150,9 @@ export class SettingsPanel {
 
   private interface(): void {
     const s = this.s;
-    let c = this.item('interface', 'Размер интерфейса', 'Меню, чат, жетоны, «кто где» и уведомления');
+    let c = this.item('interface', 'Размер интерфейса', 'Размер меню, плашек и подсказок поверх игры');
     this.choice<number>(c, 'Размер интерфейса', UI_SCALES.map((k) => [k, `${Math.round(k * 100)}%`] as const), () => s.uiScale, (v) => { s.uiScale = v; });
-    c = this.item('interface', 'Сообщения чата', TOUCH ? 'Скрытые видно, пока чат открыт (💬)' : 'Скрытые видно, пока чат открыт (Enter)');
+    c = this.item('interface', 'Сообщения чата', TOUCH ? 'Скрытые видно, пока чат открыт (кнопка чата)' : 'Скрытые видно, пока чат открыт (Enter)');
     this.choice<ChatFeed>(c, 'Сообщения чата', [['fade', 'Гаснут'], ['keep', 'Видны всегда'], ['hide', 'Скрыты']], () => s.chatFeed, (v) => { s.chatFeed = v; });
   }
 
@@ -162,22 +160,13 @@ export class SettingsPanel {
 
   /** Строка: название и пояснение слева, управление справа (возвращает место для него). whole — вся строка нажимается */
   private item(cat: SettingsCategory, title: string, hint: string, whole = false): HTMLElement {
-    const row = this.cats.get(cat)!.appendChild(el(whole ? 'label' : 'div', 'set-item'));
-    const text = row.appendChild(el('div', 'set-text'));
-    text.appendChild(el('b', '', title));
-    if (hint) text.appendChild(el('small', '', hint));
-    return row.appendChild(el('div', 'set-ctl'));
+    return kRow(this.cats.get(cat)!, title, hint, whole, 'set-item').ctl;
   }
 
   /** release — ползунок отпустили (мышь, палец, стрелки): например, пример звука */
   private slider(ctl: HTMLElement, name: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, text: () => string, release?: () => void): void {
-    const input = el('input', '') as HTMLInputElement;
-    input.type = 'range';
-    input.min = String(min);
-    input.max = String(max);
-    input.step = String(step);
-    input.setAttribute('aria-label', name);
-    const val = el('b', 'set-num');
+    const input = kSlider(name, min, max, step);
+    const val = el('b', 'k-row-val');
     input.addEventListener('input', () => {
       set(Number(input.value));
       val.textContent = text();
@@ -187,17 +176,14 @@ export class SettingsPanel {
     input.addEventListener('keydown', ownKeys);
     ctl.append(input, val);
     this.syncs.push(() => {
-      const v = String(get());
-      if (input.value !== v) input.value = v;
+      setSlider(input, String(get()));
       val.textContent = text();
     });
   }
 
   private toggle(ctl: HTMLElement, get: () => boolean, set: (v: boolean) => void): void {
-    const sw = ctl.appendChild(el('span', 'sw'));
-    const input = sw.appendChild(el('input', '')) as HTMLInputElement;
-    input.type = 'checkbox';
-    sw.appendChild(el('i', ''));
+    const { root, input } = kSwitch(ctl.parentElement?.querySelector('.k-row-title')?.textContent ?? '');
+    ctl.appendChild(root);
     input.addEventListener('change', () => {
       set(input.checked);
       this.hooks.onChange();
@@ -208,14 +194,11 @@ export class SettingsPanel {
     });
   }
 
-  /** Выбор из нескольких: ряд кнопок, нажатая — светлая */
+  /** Выбор из нескольких: ряд кнопок, нажатая — золотая */
   private choice<T>(ctl: HTMLElement, name: string, options: ReadonlyArray<readonly [T, string]>, get: () => T, set: (v: T) => void): void {
-    const group = ctl.appendChild(el('div', 'seg'));
-    group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', name);
+    const group = ctl.appendChild(kSeg(name));
     const buttons = options.map(([value, label]) => {
-      const b = group.appendChild(el('button', '', label)) as HTMLButtonElement;
-      b.type = 'button';
+      const b = group.appendChild(kButton('', label));
       b.addEventListener('click', () => {
         set(value);
         draw();
@@ -231,8 +214,7 @@ export class SettingsPanel {
   }
 
   private link(ctl: HTMLElement, label: string, go: () => void): void {
-    const b = ctl.appendChild(el('button', 'btn ghost set-link', label)) as HTMLButtonElement;
-    b.type = 'button';
+    const b = ctl.appendChild(kButton('k-btn k-btn--ghost k-btn--sm set-link', label));
     b.addEventListener('click', go);
   }
 }
@@ -247,16 +229,4 @@ export function applyInterface(s: Pick<Settings, 'uiScale' | 'chatFeed' | 'keyHi
   root.dataset.hints = s.keyHints ? 'on' : 'off';
 }
 
-/** Стрелки двигают ползунок — игре не отдаём. M (звук) и Esc (меню) пропускаем: фокус после клика остаётся тут */
-function ownKeys(e: KeyboardEvent): void {
-  if (e.code !== 'KeyM' && e.code !== 'Escape') e.stopPropagation();
-}
-
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
-
-function el(tag: string, cls: string, text = ''): HTMLElement {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) e.textContent = text;
-  return e;
-}

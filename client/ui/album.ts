@@ -7,15 +7,16 @@ import { COLLECTION_SIZE, collectionCount } from '../../shared/fishrules.ts';
 import { drawFishIcon, fishCanvas } from '../lobby/fishart.ts';
 import { FISH2 } from '../lobby/fish2.ts';
 import { collectionGrid } from './fishbook.ts';
+import { iconImg } from './kit/dom.ts';
 
 /** Виды старой рыбалки (у рыбалки 2.0 — своя коллекция, w = 0) */
 const OLD = FISH.filter((f) => f.w > 0);
 
 export function albumBlock(album: FishAlbum, stats: Stats): HTMLElement {
   if (FISH2.on) return collectionBlock(album, stats);
-  const b = el('div', 'prof-block prof-album');
+  const b = el('div', 'k-cell prof-block prof-album');
   const caught = OLD.filter((f) => album[f.id]).length;
-  b.appendChild(el('b', '')).textContent = `🎣 Альбом рыбака · ${caught} из ${OLD.length}`;
+  head(b, `Альбом рыбака · ${caught} из ${OLD.length}`);
   b.appendChild(el('div', 'alb-sub')).textContent =
     stats.fsCaught > 0 ? `поймано ${stats.fsCaught} · продано ${stats.fsSold}` : 'Удочки — на мостках к маяку: подойди к краю и нажми E';
   const grid = b.appendChild(el('div', 'alb-grid'));
@@ -35,13 +36,20 @@ export function albumBlock(album: FishAlbum, stats: Stats): HTMLElement {
 
 /** Рыбалка 2.0: коллекция из 30 видов */
 function collectionBlock(album: FishAlbum, stats: Stats): HTMLElement {
-  const b = el('div', 'prof-block prof-album');
-  b.appendChild(el('b', '')).textContent = `🎣 Коллекция рыбака · ${collectionCount(album)} из ${COLLECTION_SIZE}`;
+  const b = el('div', 'k-cell prof-block prof-album');
+  head(b, `Коллекция рыбака · ${collectionCount(album)} из ${COLLECTION_SIZE}`);
   b.appendChild(el('div', 'alb-sub')).textContent = stats.fsFish > 0 || stats.fsCaught > 0
     ? `поймано рыб ${stats.fsFish} · сундуков ${stats.fsChests} · журнал на набережной — клавиша J`
     : 'Удочки — на мостках к маяку: подойди к краю и нажми E';
   b.appendChild(collectionGrid(album, true));
   return b;
+}
+
+/** Заголовок карточки: значок и название */
+function head(b: HTMLElement, title: string): void {
+  const h = b.appendChild(el('div', 'mn-block-head'));
+  h.insertAdjacentHTML('beforeend', iconImg('collection'));
+  h.appendChild(el('b', '')).textContent = title;
 }
 
 function el(tag: string, cls: string): HTMLElement {
