@@ -6,7 +6,7 @@
 import type { VoiceMode, VoicePerson, VoiceView } from '../../shared/voice.ts';
 import { MicTest } from '../voice-mictest.ts';
 import { setVoiceVolumeOwner } from '../voice-prefs.ts';
-import { el, kButton, kRow, kSeg, kSlider, kSwitch, setSlider } from './menu/controls.ts';
+import { el, kButton, kRow, kSeg, kSlider, kSwitch, ownKeys, setSlider } from './menu/controls.ts';
 import './voicepanel.css';
 
 /** Что панели нужно от голоса (client/voice.ts → VoiceController) */
@@ -32,7 +32,7 @@ const waiting = new Set<() => void>();
 /** Игра регистрирует голос, когда сервер его включил (и null, если выключил совсем). */
 export function setVoiceSource(next: VoicePanelSource | null): void {
   source = next;
-  // громкость голосов в меню «Звук» — та же, что здесь (client/voice-prefs.ts)
+  // громкость голосов и настройки людей в меню Tab — те же, что здесь (client/voice-prefs.ts)
   setVoiceVolumeOwner(next);
   for (const fn of [...waiting]) fn();
 }
@@ -60,10 +60,12 @@ function range(ctl: HTMLElement, label: string): { input: HTMLInputElement; valu
   const input = ctl.appendChild(kSlider(label, 0, 100, 1));
   return { input, value: ctl.appendChild(el('b', 'k-row-val')) };
 }
-function toggle(row: { ctl: HTMLElement }, label: string): HTMLInputElement {
-  const sw = kSwitch(label, 'label');
+/** Строка с переключателем: нажимается вся строка (label), как в «Звуке» и «Графике» */
+function toggle(parent: HTMLElement, title: string, hint: string): { row: ReturnType<typeof kRow>; input: HTMLInputElement } {
+  const row = kRow(parent, title, hint, true);
+  const sw = kSwitch(title);
   row.ctl.appendChild(sw.root);
-  return sw.input;
+  return { row, input: sw.input };
 }
 const button = kButton;
 
@@ -74,7 +76,6 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   const body = wrap.appendChild(el('div', 'vp-body'));
   body.hidden = true;
   // клавиши в полях панели не уходят в игру (как в остальном меню); Esc и M — работают
-  const ownKeys = (e: KeyboardEvent): void => { if (e.code !== 'Escape' && e.code !== 'KeyM') e.stopPropagation(); };
   wrap.addEventListener('keydown', ownKeys);
   wrap.addEventListener('keyup', ownKeys);
 
@@ -91,7 +92,7 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   // --- голос
   const main = body.appendChild(el('section', 'k-cell vp-group'));
   main.append(el('h3', 'mn-h', 'Голос'));
-  const listen = toggle(kRow(main, 'Слышать голос', 'После входа ты сразу слышишь всех рядом — без микрофона и без вопросов браузера.'), 'Слышать голос');
+  const listen = toggle(main, 'Слышать голос', 'После входа ты сразу слышишь всех рядом — без микрофона и без вопросов браузера.').input;
   const vol = range(kRow(main, 'Громкость голоса', 'Всех сразу. Свою громкость каждому — ниже, в списке «Кто в голосе».').ctl, 'Громкость голоса');
   const micRow = kRow(main, 'Микрофон', '');
   const micBtn = micRow.ctl.appendChild(button('k-btn k-btn--ghost k-btn--sm', 'Включить'));
@@ -102,7 +103,7 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   const devRow = kRow(main, 'Устройство', '');
   const device = devRow.ctl.appendChild(el('select', 'k-input vp-select'));
   device.setAttribute('aria-label', 'Микрофон');
-  const noise = toggle(kRow(main, 'Шумоподавление', 'Браузер приглушает вентилятор, клавиатуру и улицу. Выключи, если голос звучит «из бочки».'), 'Шумоподавление');
+  const noise = toggle(main, 'Шумоподавление', 'Браузер приглушает вентилятор, клавиатуру и улицу. Выключи, если голос звучит «из бочки».').input;
 
   // --- проверка микрофона
   const testBox = body.appendChild(el('section', 'k-cell vp-group'));
@@ -113,8 +114,7 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   meter.append(el('i', 'k-meter-fill'));
   meter.setAttribute('role', 'meter'); meter.setAttribute('aria-label', 'Уровень микрофона'); meter.setAttribute('aria-valuemin', '0'); meter.setAttribute('aria-valuemax', '100');
   const testBtn = meterRow.ctl.appendChild(button('k-btn k-btn--ghost k-btn--sm', 'Проверить'));
-  const echoRow = kRow(testBox, 'Послушать себя', 'Твой голос вернётся через 0,6 секунды. Лучше в наушниках — иначе колонки дадут эхо.');
-  const echo = toggle(echoRow, 'Послушать себя');
+  const echo = toggle(testBox, 'Послушать себя', 'Твой голос вернётся через 0,6 секунды. Лучше в наушниках — иначе колонки дадут эхо.').input;
   const testMsg = testBox.appendChild(el('p', 'k-faint vp-msg'));
   testMsg.hidden = true;
 

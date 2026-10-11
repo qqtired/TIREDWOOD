@@ -53,7 +53,7 @@ export class SettingsPanel {
   /** Показать одну категорию (в меню); на экране входа CSS показывает все */
   show(cat: SettingsCategory): void {
     for (const [id, sec] of this.cats) sec.hidden = id !== cat;
-    // громкость голосов меняют и во вкладке «Голос» — показываем свежую
+    // настройки меняют и вне меню (клавиша M, быстрые настройки) — показываем свежие
     this.sync();
   }
 
@@ -152,7 +152,7 @@ export class SettingsPanel {
     const s = this.s;
     let c = this.item('interface', 'Размер интерфейса', 'Размер меню, плашек и подсказок поверх игры');
     this.choice<number>(c, 'Размер интерфейса', UI_SCALES.map((k) => [k, `${Math.round(k * 100)}%`] as const), () => s.uiScale, (v) => { s.uiScale = v; });
-    c = this.item('interface', 'Сообщения чата', TOUCH ? 'Скрытые видно, пока чат открыт (💬)' : 'Скрытые видно, пока чат открыт (Enter)');
+    c = this.item('interface', 'Сообщения чата', TOUCH ? 'Скрытые видно, пока чат открыт (кнопка чата)' : 'Скрытые видно, пока чат открыт (Enter)');
     this.choice<ChatFeed>(c, 'Сообщения чата', [['fade', 'Гаснут'], ['keep', 'Видны всегда'], ['hide', 'Скрыты']], () => s.chatFeed, (v) => { s.chatFeed = v; });
   }
 

@@ -240,8 +240,8 @@ export class OnlineList {
         plus.dataset.act = 'plus';
         let kick: HTMLButtonElement | null = null;
         if (this.kickOn) {
-          kick = act.appendChild(button('k-btn k-btn--ghost k-btn--icon k-btn--sm ol-kick', ''));
-          kick.innerHTML = iconImg('exit', 'k-ic');
+          kick = act.appendChild(button('k-btn k-btn--ghost k-btn--sm ol-kick', ''));
+          kick.innerHTML = `<span class="k-row-line">${iconImg('exit', 'k-ic')}выгнать</span>`;
           kick.dataset.pid = String(pid);
           kick.dataset.act = 'kick';
           kick.disabled = this.voting;

@@ -112,9 +112,17 @@
   height: 20px;
 }
 
+/* «выгнать»: значок и короткая подпись, высота как у соседних кнопок строки */
+.ol-kick {
+  min-height: 42px;
+  padding-inline: 10px 12px;
+  font-size: var(--fs-14);
+  white-space: nowrap;
+}
+
 .ol-kick .k-ic {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
 .ol-kick:hover:not(:disabled) {
@@ -178,5 +186,22 @@
 
   .ol-window .k-online-room {
     font-size: 0;
+  }
+
+  /* заголовок на узком экране: «в голосе N» уходит (у каждого в строке свой значок микрофона), название не режется */
+  .ol-window .k-win-tools {
+    display: none;
+  }
+
+  /* кнопки строки не влезают рядом с ником: уходят на вторую строку, справа */
+  .ol-window .k-online-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .ol-window .k-online-row > .k-online-act {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-end;
+    padding-top: 6px;
   }
 }
