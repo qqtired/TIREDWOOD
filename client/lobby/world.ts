@@ -361,6 +361,8 @@ export class LobbyWorld {
       // основание его площадки, берег города, якоря автоматов и доски (почёта, «Кто на набережной», джекпот, экран ворот)
       this.plaza3 = buildPlaza3World(this.plazaCtx, this.map);
       this.buildPlaza3Kept();
+      // столы и стулья карточной веранды (настил модели — 5 см)
+      this.buildTables(0.05);
       this.buildLighthouse();
       this.buildPhotoSpot();
       this.buildTownQuay();
@@ -855,19 +857,28 @@ export class LobbyWorld {
   private buildTerrace(): void {
     const t = this.map.zones.terrace;
     this.overlay(tex.plankTexture(), 0xa0704a, t.x0, t.z0, t.x1, t.z1, 2);
-    for (const tb of this.map.tables) {
-      this.cyl(0.66, 0.66, 0.05, tb.x, 0.75, tb.z, 0x8a5a36, 28);
-      this.cyl(0.05, 0.05, 0.72, tb.x, 0.37, tb.z, 0x2e2e30, 8);
-      this.cyl(0.3, 0.32, 0.03, tb.x, 0.015, tb.z, 0x2e2e30, 18);
-      // свеча в баночке — у самого края, между двумя стульями: середина стола для карт
-      this.bulb(0.05, tb.x, 0.82, tb.z + CANDLE_R, 0xffb060);
-      this.addGlow(0xffa040, 0.6, tb.x, 0.86, tb.z + CANDLE_R, 0.55);
-    }
-    for (const it of this.map.interact) if (it.kind === 'durak') this.chair(it.x, it.z, it.yaw);
+    this.buildTables(0);
     for (const [x, z] of CANOPY_POLES) {
       this.cyl(0.07, 0.08, CANOPY_POLE_H, x, CANOPY_POLE_H / 2, z, 0x3a2a20, 8);
       this.cyl(0.1, 0.1, 0.08, x, CANOPY_POLE_H + 0.04, z, 0x2a2a2a, 8);
     }
+  }
+
+  /**
+   * Столики (столешница, ножка, опора, свеча) и стулья у мест дурака — на старой террасе и на веранде plaza3
+   * (у модели pav_cardveranda только настил и пергола). deck — высота настила под опорой.
+   */
+  private buildTables(deck: number): void {
+    for (const tb of this.map.tables) {
+      this.cyl(0.66, 0.66, 0.05, tb.x, 0.75, tb.z, 0x8a5a36, 28);
+      this.cyl(0.05, 0.05, 0.72, tb.x, 0.37, tb.z, 0x2e2e30, 8);
+      this.cyl(0.3, 0.32, 0.03, tb.x, deck + 0.015, tb.z, 0x2e2e30, 18);
+      // свеча в баночке — у самого края, между двумя стульями: середина стола для карт
+      this.bulb(0.05, tb.x, 0.82, tb.z + CANDLE_R, 0xffb060);
+      // ореол свечи — только на старой террасе (в plaza3 каждый спрайт — лишняя отрисовка)
+      if (!NEW_PLAZA) this.addGlow(0xffa040, 0.6, tb.x, 0.86, tb.z + CANDLE_R, 0.55);
+    }
+    for (const it of this.map.interact) if (it.kind === 'durak') this.chair(it.x, it.z, it.yaw);
   }
 
   /**
