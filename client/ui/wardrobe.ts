@@ -1,6 +1,9 @@
-// Примерочная: панель справа (желейка в зеркале — левее). Вкладки: цвет, узор, глаза, шапка, аксессуар.
+// Примерочная: окно кита справа (желейка в зеркале — левее). Вкладки: цвет, узор, глаза, шапка, аксессуар, питомец.
 // Своё (бесплатное и купленное) надевается сразу: сервер сохраняет и показывает всем. Чужое — только примерка
 // на своей желейке и кнопка «Купить». Закрыли — примерка снимается, остаётся надетое.
+// Окно — .k-scrim > .k-window (как «Хозяйство» и окна рыбалки), но без затемнения и не модальное: сцена слева — это
+// и есть примерка (мышью по ней крутят желейку). Закрыть — ✕, «Готово», Esc, E; шаг игрока не выбрасывает (сцена глушит).
+// Подарочный код — та же форма, что в меню (Профиль → Подарки и коды, client/ui/menu/gift.ts).
 import { itemPrice } from '../../shared/economy.ts';
 import {
   DEFAULT_OUTFIT, ITEMS, PALETTE, PALETTE_NAMES, TIER_NAMES, isOwned, isItemVisible, itemOf, sameOutfit, slotKey, withItem,
@@ -14,17 +17,19 @@ import { FISH_ICONS } from './fishicons.ts';
 import { isleSpecies, isleVisible, species } from './fishrewards.ts';
 import type { MeState } from '../scene.ts';
 import type { GiftResultCode } from '../../shared/gifts.ts';
-import { GiftCodePanel } from './gift-code.ts';
-import { COIN_HTML, setCoinText } from './coin.ts';
+import { GiftForm } from './menu/gift.ts';
+import { coinHtml, iconImg, keyHtml } from './kit/dom.ts';
+import { uiIcon } from './kit/icons.ts';
+import { sfx } from './kit/sfx.ts';
 import rotateOrbitUrl from '../assets/wardrobe/rotate-orbit.png';
-import './wardrobe-inspect.css';
+import './wardrobe.css';
 
 type Tab = 'c' | Slot;
 
 const TABS: ReadonlyArray<readonly [Tab, string]> = [['c', 'Цвет'], ['p', 'Узор'], ['e', 'Глаза'], ['h', 'Шапка'], ['a', 'Аксессуар'], ['s', 'Питомец']];
 const SLOTS: readonly Slot[] = ['p', 'e', 'h', 'a', 's'];
-/** 68px стрелки + 32px кнопка + 12px низ + 12px зазор до тела. */
-export const WARDROBE_FOOTER_PX = 124;
+/** Под желейкой в пикселях сцены 1440×900 (× --hud-k): 68 стрелки + 43 кнопка «Спереди» + 6 зазор + 12 низ + 3 до тела. */
+export const WARDROBE_FOOTER_PX = 132;
 
 /** Усы и спасательный круг — свои SVG: эмодзи 🥸 и 🛟 появились только в Unicode 13–14, в старых шрифтах их нет */
 const MUSTACHE_SVG =
@@ -73,6 +78,15 @@ const ICONS: Record<string, string> = {
   ...FISH_ICONS,
 };
 
+/**
+ * Картинка вещи: иконка imagegen client/assets/ui/icons/wd-<слот>-<ключ>.webp, если уже есть, иначе — рисунок вещи
+ * из ICONS (SVG или эмодзи: своих картинок у вещей пока нет — список в отчёте задачи 10 редизайна UI).
+ */
+function itemArt(id: string): string {
+  const src = uiIcon(`wd-${id.replace(':', '-')}`);
+  return src ? `<img src="${src}" alt="" draggable="false">` : ICONS[id] ?? '·';
+}
+
 /** Наряд шлём не чаще (сервер принимает 5 в секунду); последний клик всё равно уйдёт */
 const SEND_GAP_MS = 300;
 /** Ответ, не совпавший с отправленным, столько времени считаем ответом на прошлый клик */
@@ -97,9 +111,21 @@ export class Wardrobe {
   private readonly tabsEl: HTMLElement;
   private readonly bodyEl: HTMLElement;
   private readonly buyEl: HTMLElement;
+  private readonly buyArt: HTMLElement;
   private readonly buyName: HTMLElement;
+  private readonly buyNote: HTMLElement;
+  private readonly buyWhy: HTMLElement;
   private readonly buyBtn: HTMLButtonElement;
-  private readonly gift: GiftCodePanel;
+  private readonly buyLine: HTMLElement;
+  private readonly gift: GiftForm;
+  private readonly giftBox: HTMLElement;
+  private readonly giftBtn: HTMLButtonElement;
+  /** Подарочные коды включены на сервере */
+  private giftsOn = false;
+  /** Пиксели сцены → экран (--hud-k): под желейкой место для стрелок и «Спереди» */
+  private hudK = 1;
+  /** Размер окна, для которого прочитан hudK: перечитываем при смене размера, а не каждый кадр */
+  private hudKAt = '';
   private tab: Tab = 'c';
   private shown = false;
   private owned: readonly string[] = [];
@@ -125,43 +151,70 @@ export class Wardrobe {
   private skipInspectClick = false;
 
   constructor(parent: HTMLElement) {
+    // слой окна кита (.k-scrim, zoom --hud-k) без затемнения: окно справа, сцена слева — примерка
     this.root = document.createElement('div');
-    this.root.className = 'wardrobe';
+    this.root.className = 'k-scrim wd-scrim';
+    this.root.hidden = true;
     this.root.innerHTML = `
-      <div class="wd-head">
-        <div class="wd-title">Примерочная</div>
-        <button class="wd-close" title="Закрыть (Esc)">✕</button>
-      </div>
-      <div class="wd-tabs">${TABS.map(([k, name]) => `<button data-tab="${k}">${name}</button>`).join('')}</div>
-      <div class="wd-body"></div>
-      <div class="wd-buy">
-        <div class="wd-buy-name"></div>
-        <div class="wd-buy-note"></div>
-        <button class="btn primary wd-buy-btn"></button>
-      </div>
-      <button class="btn ghost wd-done">Готово</button>`;
-    this.tabsEl = this.root.querySelector('.wd-tabs')!;
-    this.bodyEl = this.root.querySelector('.wd-body')!;
-    this.buyEl = this.root.querySelector('.wd-buy')!;
-    this.buyName = this.root.querySelector('.wd-buy-name')!;
-    this.buyBtn = this.root.querySelector('.wd-buy-btn')!;
-    this.gift = new GiftCodePanel(this.root, code => this.onRedeem(code));
-    this.root.querySelector('.wd-done')!.before(this.gift.root);
+      <section class="k-window wd-win" role="dialog" aria-label="Примерочная">
+        <header class="k-win-head">
+          <span class="k-win-portrait">${iconImg('wardrobe', '')}</span>
+          <div class="k-win-titles"><p class="k-eyebrow">Набережная · ларёк у воды</p><h2 class="k-win-title">Примерочная</h2></div>
+          <div class="k-win-tools"><button type="button" class="k-close wd-close" aria-label="Закрыть">${keyHtml('Esc', undefined, 'sm')}</button></div>
+        </header>
+        <nav class="k-tabs wd-tabs" role="tablist">${TABS.map(([k, name]) => `<button type="button" role="tab" class="k-tab" data-tab="${k}">${name}</button>`).join('')}</nav>
+        <div class="k-win-body wd-body"></div>
+        <div class="k-cell wd-buy" hidden>
+          <span class="wd-buy-art"></span>
+          <div class="wd-buy-text"><b class="wd-buy-name"></b><p class="wd-buy-note"></p><p class="wd-why" hidden></p></div>
+          <button type="button" class="k-btn k-btn--sm wd-buy-btn" data-sfx="reward"><span class="k-row-line"></span></button>
+        </div>
+        <div class="k-cell mn-box wd-gift" hidden>
+          <div class="mn-box-head">${iconImg('gift', '')}<div class="mn-box-text"><div class="k-row-title">Подарочный код</div>`
+      + `<div class="k-row-hint">Есть код от друзей или с события? Введи его — подарок сразу появится в примерочной.</div></div></div>
+        </div>
+        <footer class="k-win-foot">
+          <button type="button" class="k-btn k-btn--ghost k-btn--sm wd-gift-btn" aria-expanded="false" hidden><span class="k-row-line">${iconImg('gift')}Подарочный код</span></button>
+          <button type="button" class="k-btn k-btn--go k-btn--sm wd-done">Готово</button>
+        </footer>
+      </section>`;
+    const q = <T extends HTMLElement>(s: string): T => this.root.querySelector<T>(s)!;
+    this.tabsEl = q('.wd-tabs');
+    this.bodyEl = q('.wd-body');
+    this.buyEl = q('.wd-buy');
+    this.buyArt = q('.wd-buy-art');
+    this.buyName = q('.wd-buy-name');
+    this.buyNote = q('.wd-buy-note');
+    this.buyWhy = q('.wd-why');
+    this.buyBtn = q<HTMLButtonElement>('.wd-buy-btn');
+    this.buyLine = this.buyBtn.querySelector<HTMLElement>('.k-row-line')!;
+    this.giftBox = q('.wd-gift');
+    this.giftBtn = q<HTMLButtonElement>('.wd-gift-btn');
+    // та же форма, что в меню (Профиль → Подарки и коды): примерочная — всегда на набережной
+    this.gift = new GiftForm(code => this.onRedeem(code), () => [this.giftsOn, true]);
+    this.giftBox.append(this.gift.root);
+    this.giftBtn.addEventListener('click', () => this.showGift(this.giftBox.hidden !== false));
     // кнопки не забирают фокус: иначе пробел и Enter «нажмут» последнюю, а не уйдут игре и чату
     this.root.addEventListener('mousedown', (e) => {
       if ((e.target as HTMLElement).closest('button')) e.preventDefault();
     });
-    this.root.querySelector('.wd-close')!.addEventListener('click', () => this.onClose());
-    this.root.querySelector('.wd-done')!.addEventListener('click', () => this.onClose());
+    // колесо и клики по окну — не игре (камера, захват мыши)
+    for (const type of ['pointerdown', 'wheel'] as const) {
+      q('.wd-win').addEventListener(type, (e) => e.stopPropagation(), { passive: true });
+    }
+    q('.wd-close').addEventListener('click', () => this.onClose());
+    q('.wd-done').addEventListener('click', () => this.onClose());
+    // под желейкой: стрелки поворота и «Спереди» — светлый HUD, размер сцены (× --hud-k)
     const inspect = this.inspect = document.createElement('div');
     inspect.className = 'wd-inspect';
+    inspect.hidden = true;
     inspect.setAttribute('role', 'group');
     inspect.setAttribute('aria-label', 'Осмотр персонажа');
-    inspect.innerHTML = `<div class="wd-orbit" title="Потяни персонажа или стрелки, чтобы повернуть">
+    inspect.innerHTML = `<div class="wd-inspect-in k-hudctx"><div class="wd-orbit">
       <img src="${rotateOrbitUrl}" alt="" aria-hidden="true" draggable="false">
-      <button type="button" data-turn="-1" aria-label="Повернуть персонажа влево" title="Повернуть влево"></button>
-      <button type="button" data-turn="1" aria-label="Повернуть персонажа вправо" title="Повернуть вправо"></button>
-      </div><button type="button" data-turn="0" class="wd-inspect-reset">Спереди</button>`;
+      <button type="button" data-turn="-1" aria-label="Повернуть персонажа влево"></button>
+      <button type="button" data-turn="1" aria-label="Повернуть персонажа вправо"></button>
+      </div><button type="button" data-turn="0" class="k-btn k-btn--ghost k-btn--sm wd-inspect-reset">Спереди</button></div>`;
     inspect.addEventListener('click', e => {
       if (this.skipInspectClick && (e as MouseEvent).detail > 0) {
         this.skipInspectClick = false;
@@ -211,6 +264,24 @@ export class Wardrobe {
     parent.append(this.inspect, this.root);
   }
 
+  /** Подарочный код: ячейка над подвалом окна — открыть или убрать */
+  private showGift(on: boolean): void {
+    this.giftBox.hidden = !on;
+    this.giftBtn.setAttribute('aria-expanded', String(on));
+    this.giftBtn.classList.toggle('is-pressed', on);
+    if (on) {
+      this.gift.configure(this.giftsOn, true);
+      this.giftBox.querySelector('input')?.focus({ preventScroll: true });
+    } else this.gift.reset();
+  }
+
+  /** Коды включены на сервере — кнопка «Подарочный код» видна */
+  private setGifts(on: boolean): void {
+    this.giftsOn = on;
+    this.giftBtn.hidden = !on;
+    if (!on && !this.giftBox.hidden) this.showGift(false);
+  }
+
   get isOpen(): boolean {
     return this.shown;
   }
@@ -232,7 +303,22 @@ export class Wardrobe {
 
   /** Под ногами желейки, независимо от ширины правой панели и высоты шляпы. */
   placeInspect(x: number): void {
-    this.inspect.style.left = `clamp(136px, ${Math.round(x)}px, calc(100% - 136px))`;
+    const half = Math.round(136 * this.scale());
+    this.inspect.style.left = `clamp(${half}px, ${Math.round(x)}px, calc(100% - ${half}px))`;
+  }
+
+  /** Место под желейкой на экране, px: камера зеркала оставляет его под стрелки и «Спереди» */
+  get footerPx(): number {
+    return WARDROBE_FOOTER_PX * this.scale();
+  }
+
+  private scale(): number {
+    const at = `${innerWidth}x${innerHeight}`;
+    if (at !== this.hudKAt) {
+      this.hudKAt = at;
+      this.hudK = Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-k')) || 1;
+    }
+    return this.hudK;
   }
 
   /** Свободная мышь/палец над сценой вращают желейку, панель вещей остаётся доступной. */
@@ -281,7 +367,8 @@ export class Wardrobe {
 
   open(me: MeState): void {
     this.resetInspect();
-    this.gift.configure(me.gifts === true);
+    this.setGifts(me.gifts === true);
+    this.hudKAt = '';
     this.shown = true;
     this.owned = me.owned;
     this.tokens = me.tokens;
@@ -293,10 +380,14 @@ export class Wardrobe {
     this.tryOn = {};
     this.picked = null;
     this.buyingUntil = 0;
-    this.root.classList.add('show');
-    this.inspect.classList.add('show');
+    this.root.hidden = false;
+    this.inspect.hidden = false;
+    const win = this.root.querySelector<HTMLElement>('.wd-win')!;
+    win.classList.remove('is-in');
+    void win.offsetWidth;
+    win.classList.add('is-in');
+    sfx.play('open');
     this.render();
-    this.inspect.querySelector<HTMLButtonElement>('[data-turn="0"]')!.focus({ preventScroll: true });
   }
 
   /**
@@ -305,15 +396,16 @@ export class Wardrobe {
    */
   close(): Outfit {
     this.resetInspect();
-    this.gift.close();
+    this.showGift(false);
     clearTimeout(this.sendTimer);
     this.sendTimer = 0;
     this.shown = false;
     this.tryOn = {};
     this.picked = null;
     clearTimeout(this.buyTimer);
-    this.root.classList.remove('show');
-    this.inspect.classList.remove('show');
+    if (!this.root.hidden) sfx.play('close');
+    this.root.hidden = true;
+    this.inspect.hidden = true;
     return { ...this.believed };
   }
 
@@ -331,7 +423,7 @@ export class Wardrobe {
 
   /** Ответ сервера (me): купленное, жетоны, наряд. Примерка того, что ещё не куплено, остаётся. */
   update(me: MeState): void {
-    this.gift.configure(me.gifts === true);
+    this.setGifts(me.gifts === true);
     if (!this.shown) return;
     const bought = this.picked && isOwned(me.owned, this.picked) ? this.picked : null;
     this.owned = me.owned;
@@ -410,31 +502,36 @@ export class Wardrobe {
     const pets = FISH2.on || this.owned.some((id) => id.startsWith('s:'));
     if (this.tab === 's' && !pets) this.tab = 'c';
     for (const b of this.tabsEl.querySelectorAll<HTMLElement>('[data-tab]')) {
-      b.classList.toggle('on', b.dataset.tab === this.tab);
+      const on = b.dataset.tab === this.tab;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', String(on));
       if (b.dataset.tab === 's') b.hidden = !pets;
     }
     const scroll = this.bodyEl.scrollTop;
+    const head = (title: string, lead = ''): string => `<p class="k-eyebrow wd-h">${title}</p>${lead ? `<p class="wd-lead">${lead}</p>` : ''}`;
     if (this.tab === 'c') {
-      this.bodyEl.innerHTML = `<div class="wd-label">Цвет желе</div>${swatches('c', d.c, true)}`;
+      this.bodyEl.innerHTML = `${head('Цвет желе', 'Все цвета бесплатные — надеваются сразу.')}${swatches('c', d.c, true)}`;
     } else {
       // трофеи рыбалки 2.0 — только когда она включена (или вещь уже есть)
       const available = ITEMS.filter((it) => it.slot === this.tab && isItemVisible(it, this.owned) && (it.tier !== 'trophy' || FISH2.on || isOwned(this.owned, it))
         && isleVisible(it.id, this.owned));
-      const cards = available.filter(it => it.tier !== 'premium' && it.tier !== 'trophy').map(it => this.card(it, d)).join('');
-      const premium = available.filter(it => it.tier === 'premium').map(it => this.card(it, d)).join('');
-      const trophy = available.filter(it => it.tier === 'trophy' && !ISLE_ITEMS.has(it.id)).map(it => this.card(it, d)).join('');
+      const grid = (list: Item[]): string => `<div class="wd-grid">${list.map(it => this.card(it, d)).join('')}</div>`;
+      const cards = available.filter(it => it.tier !== 'premium' && it.tier !== 'trophy');
+      const premium = available.filter(it => it.tier === 'premium');
+      const trophy = available.filter(it => it.tier === 'trophy' && !ISLE_ITEMS.has(it.id));
       // трофеи острова «Последний свет» — своим блоком: за виды острова, свой счётчик
-      const isle = available.filter(it => ISLE_ITEMS.has(it.id)).map(it => this.card(it, d)).join('');
-      const isleBlock = isle ? `<div class="wd-label">Трофеи острова «Последний свет»</div><p class="wd-collection-note">За виды острова в журнале рыбака (J) · у тебя ${this.isleGot} из ${ISLE_TOTAL}. Можно примерить заранее.</p><div class="wd-grid">${isle}</div>` : '';
-      const collection = premium ? `<div class="wd-label wd-premium-label">Премиальная коллекция</div><p class="wd-collection-note">За игровые жетоны · только внешний вид. Выбери вещь, чтобы примерить.</p><div class="wd-grid">${premium}</div>` : '';
-      const trophies = trophy ? `<div class="wd-label">Трофеи рыбалки</div><p class="wd-collection-note">За виды рыб в журнале рыбака (J) · только внешний вид. Можно примерить заранее.</p><div class="wd-grid">${trophy}</div>` : '';
-      const second = this.tab === 'p' ? `<div class="wd-label">Второй цвет узора</div>${swatches('c2', d.c2, false)}` : '';
-      this.bodyEl.innerHTML = `${cards ? `<div class="wd-grid">${cards}</div>` : ''}${trophies}${isleBlock}${collection}${second}`;
+      const isle = available.filter(it => ISLE_ITEMS.has(it.id));
+      const isleBlock = isle.length ? head('Трофеи острова «Последний свет»', `За виды острова в журнале рыбака (J) · у тебя <b class="k-num">${this.isleGot} из ${ISLE_TOTAL}</b>. Можно примерить заранее.`) + grid(isle) : '';
+      const collection = premium.length ? head('Премиальная коллекция', 'За жетоны · только внешний вид. Выбери вещь, чтобы примерить.') + grid(premium) : '';
+      const trophies = trophy.length ? head('Трофеи рыбалки', `За виды рыб в журнале рыбака (J) · у тебя <b class="k-num">${this.got}</b>. Можно примерить заранее.`) + grid(trophy) : '';
+      const second = this.tab === 'p' ? head('Второй цвет узора') + swatches('c2', d.c2, false) : '';
+      this.bodyEl.innerHTML = `${cards.length ? grid(cards) : ''}${trophies}${isleBlock}${collection}${second}`;
     }
     this.bodyEl.scrollTop = scroll;
     this.renderBuy(d);
   }
 
+  /** Ячейка вещи: картинка, имя, цена 🪙 / «своё» золотом / замок с причиной; надетое — золотая рамка, примерка — пунктир */
   private card(it: Item, d: Outfit): string {
     const on = slotKey(d, it.slot) === it.key;
     const owned = isOwned(this.owned, it);
@@ -442,49 +539,50 @@ export class Wardrobe {
     const need = it.tier === 'trophy' ? needOf(it.id) : null;
     const isleNeed = isleNeedOf(it.id);
     let meta: string;
-    if (it.tier === 'free') meta = 'бесплатно';
-    else if (owned) meta = '✓ есть';
-    else if (price !== null) meta = `${fmt.format(price)} ${COIN_HTML}`;
-    else if (isleNeed !== null) meta = `🔒 ${isleSpecies(isleNeed)}`;
-    else if (need !== null) meta = `🔒 ${species(need)}`;
-    else meta = `🔒 ${TIER_NAMES[it.tier]}`;
-    const icon = it.slot === 'p'
+    if (it.tier === 'free') meta = '<span class="k-dim">бесплатно</span>';
+    else if (owned) meta = '<span class="k-gold">своё</span>';
+    else if (price !== null) meta = `${coinHtml()}<span class="k-num">${fmt.format(price)}</span>`;
+    else meta = `${iconImg('lock')}<span class="k-dim">${isleNeed !== null ? isleSpecies(isleNeed) : need !== null ? species(need) : TIER_NAMES[it.tier]}</span>`;
+    const art = it.slot === 'p'
       ? `<span class="wd-cloth" style="background:${patternCss(it.key, d.c, d.c2)}"></span>`
-      : `<span class="wd-icon${it.key === 'none' ? ' empty' : ''}">${ICONS[it.id] ?? '·'}</span>`;
-    const cls = ['wd-item', `tier-${it.tier}`, owned ? 'owned' : 'locked', on ? 'on' : '', on && !owned ? 'trial' : ''];
-    const tip = it.tier === 'free' ? it.name : `${it.name} — ${TIER_NAMES[it.tier]}`;
-    return `<button class="${cls.filter(Boolean).join(' ')}" data-id="${it.id}" title="${tip}">${icon}`
-      + `<span class="wd-name">${it.name}</span><span class="wd-meta"><i></i>${meta}</span></button>`;
+      : `<span class="wd-art${it.key === 'none' ? ' is-none' : ''}">${itemArt(it.id)}</span>`;
+    const cls = ['k-cell', 'wd-item', `tier-${it.tier}`, on ? 'is-on' : '', on && !owned ? 'is-trial' : ''];
+    return `<button type="button" class="${cls.filter(Boolean).join(' ')}" data-id="${it.id}" aria-pressed="${on}"><i class="wd-tier"></i>${art}`
+      + `<span class="wd-name">${it.name}</span><span class="wd-meta">${meta}</span></button>`;
   }
 
-  /** Кнопка покупки — для примеренной чужой вещи, пока она на желейке. */
+  /** Строка покупки — для примеренной чужой вещи, пока она на желейке. Причина «нельзя» — красной строкой, не в кнопке. */
   private renderBuy(d: Outfit): void {
     const it = this.picked;
     const show = it !== null && d[it.slot] === it.key && !isOwned(this.owned, it);
-    this.buyEl.classList.toggle('show', show);
+    this.buyEl.hidden = !show;
     if (!show || !it) return;
-    this.buyName.textContent = `${it.name} · ${TIER_NAMES[it.tier]}`;
-    this.buyEl.querySelector<HTMLElement>('.wd-buy-note')!.textContent = PREMIUM_DETAILS[it.id] ?? REWARD_INFO[it.id]?.text ?? '';
+    this.buyArt.innerHTML = it.slot === 'p'
+      ? `<span class="wd-cloth" style="background:${patternCss(it.key, d.c, d.c2)}"></span>`
+      : `<span class="wd-art">${itemArt(it.id)}</span>`;
+    this.buyName.innerHTML = `${it.name} <span class="k-dim">· ${TIER_NAMES[it.tier]}</span>`;
+    this.buyNote.textContent = PREMIUM_DETAILS[it.id] ?? REWARD_INFO[it.id]?.text ?? '';
     const price = itemPrice(it.tier);
     const btn = this.buyBtn;
-    btn.classList.remove('busy');
     const need = it.tier === 'trophy' ? needOf(it.id) : null;
     const isleNeed = isleNeedOf(it.id);
+    let why = '';
+    btn.hidden = price === null;
     if (price === null) {
-      btn.disabled = true;
-      btn.textContent = it.tier === 'jackpot' ? 'Только с джекпота 🎰' : isleNeed !== null ? `🔒 ${isleSpecies(isleNeed)} · у тебя ${this.isleGot} 🗼`
-        : need !== null ? `🔒 ${species(need)} · у тебя ${this.got} 🎣` : 'Выдаёт игра';
+      why = it.tier === 'jackpot' ? `${iconImg('slots')}Только с джекпота автоматов`
+        : isleNeed !== null ? `${iconImg('lock')}Нужно ${isleSpecies(isleNeed)} · у тебя ${this.isleGot}`
+          : need !== null ? `${iconImg('lock')}Нужно ${species(need)} в журнале · у тебя ${this.got}` : `${iconImg('lock')}Выдаёт игра`;
     } else if (performance.now() < this.buyingUntil) {
       btn.disabled = true;
-      btn.classList.add('busy');
-      btn.textContent = 'Покупаем…';
-    } else if (this.tokens < price) {
-      btn.disabled = true;
-      setCoinText(btn, `Не хватает ${fmt.format(price - this.tokens)} 🪙`);
+      this.buyLine.textContent = 'Покупаем…';
     } else {
-      btn.disabled = false;
-      setCoinText(btn, `Купить за ${fmt.format(price)} 🪙`);
+      btn.disabled = this.tokens < price;
+      this.buyLine.innerHTML = `Купить · ${fmt.format(price)} ${coinHtml()}`;
+      if (this.tokens < price) why = `Не хватает ${fmt.format(price - this.tokens)} ${coinHtml()}`;
     }
+    this.buyWhy.hidden = !why;
+    this.buyWhy.innerHTML = why;
+    this.buyWhy.classList.toggle('is-bad', price !== null);
   }
 
   giftResult(result: GiftResultCode): void { this.gift.result(result); }
@@ -494,10 +592,10 @@ export class Wardrobe {
 function swatches(which: 'c' | 'c2', selected: number, named: boolean): string {
   const list = PALETTE.map((hex, i) => {
     const label = named ? `<span>${PALETTE_NAMES[i]}</span>` : '';
-    return `<button class="wd-sw${i === selected ? ' on' : ''}" data-which="${which}" data-color="${i}" title="${PALETTE_NAMES[i]}">`
+    return `<button type="button" class="wd-sw${i === selected ? ' is-on' : ''}" data-which="${which}" data-color="${i}" aria-label="${PALETTE_NAMES[i]}" aria-pressed="${i === selected}">`
       + `<span class="wd-dot" style="background:${css(hex)}"></span>${label}</button>`;
   });
-  return `<div class="wd-swatches${named ? ' named' : ''}">${list.join('')}</div>`;
+  return `<div class="wd-swatches${named ? ' is-named' : ''}">${list.join('')}</div>`;
 }
 
 function css(hex: number): string {

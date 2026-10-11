@@ -1,0 +1,34 @@
+/* Фото у маяка (client/lobby/photo.ts) на ките 2.0: отсчёт — .k-count с подписью .k-hero-sub в слоте «центр» HUD;
+   вспышка — белая на весь экран; карточка — .k-panel светлого HUD справа в слое верх-центра (над меню, видна на паузе).
+   Белая рамка, подпись и дата — часть самого снимка (холст в photo.ts). */
+
+.ph-count[hidden], .ph-card[hidden] { display: none !important; }
+.ph-digits { display: grid; place-items: center; min-height: calc(120px * var(--display-scale)); }
+.ph-count .k-hero-sub .k-ic { width: 26px; height: 26px; }
+
+/* вспышка фотоаппарата: эффект, а не интерфейс */
+.ph-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.ph-flash.on { animation: ph-flash .8s ease-out; }
+@keyframes ph-flash { 0% { opacity: .96; } 100% { opacity: 0; } }
+
+/* карточка со снимком: справа посередине, снимок чуть наклонён — как отпечаток */
+.ph-card { position: absolute; top: 50%; right: var(--edge); display: flex; flex-direction: column; gap: 14px; width: 320px; padding: 14px 14px 16px; transform: translateY(-50%); pointer-events: auto; animation: ph-card-in .45s var(--ease-pop); }
+@keyframes ph-card-in { from { opacity: 0; transform: translate(40px, -50%) rotate(6deg); } }
+.ph-card img { display: block; width: 100%; border-radius: 3px; transform: rotate(-1.5deg); box-shadow: 0 8px 22px rgba(10, 40, 56, .32); }
+.ph-row { display: flex; align-items: center; gap: 10px; }
+.ph-save { flex: 1; }
+.ph-save .k-ic { width: 24px; height: 24px; }
+.ph-close { flex: none; }
+
+/* телефон лёжа: в высоту места мало — сверху по центру, снимок слева, кнопки справа */
+@media (max-height: 480px) {
+  .ph-card { top: 8px; right: auto; left: 50%; flex-direction: row; width: auto; transform: translateX(-50%); animation-name: ph-card-drop; }
+  .ph-card img { width: 220px; }
+  .ph-row { flex-direction: column; align-items: stretch; justify-content: flex-end; width: 132px; }
+  .ph-close { align-self: center; }
+}
+@keyframes ph-card-drop { from { opacity: 0; transform: translate(-50%, -30px) rotate(-4deg); } }
+/* телефон стоя: карточка во всю ширину */
+@media (max-width: 560px) {
+  .ph-card { top: 44%; width: calc(100% - 2 * var(--edge)); }
+}

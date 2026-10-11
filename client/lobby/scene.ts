@@ -54,7 +54,7 @@ import { Effects } from '../render/effects.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
-import { Wardrobe, WARDROBE_FOOTER_PX } from '../ui/wardrobe.ts';
+import { Wardrobe } from '../ui/wardrobe.ts';
 import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { noteFortStatus } from '../fort/record.ts';
 import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
@@ -551,7 +551,7 @@ export class LobbyScene implements Scene {
     this.farmGate = new FarmGate(this.world.scene, () => d.renderer.refreshShadows());
     this.skillPortal.setVisible(false);
     this.kraken = new Kraken(this.world.scene, { onScare: (p) => d.sound.krakenScare([p.x, p.y, p.z]) });
-    this.photo = new PhotoBooth(this.hud.root, d.overlay);
+    this.photo = new PhotoBooth(this.hud.root, d.ui.slots.c, d.ui.slots.top);
     this.photo.onBeep = () => d.sound.countBeep(false);
     // места рыбалки: на причалах и баркасе, за ними — в своих лодках на якоре (client/boat/ownboats.ts двигает их)
     this.fishing = new FishingSpots(this.world.scene, this.effects, this.fx, d.sound, this.me, [...FISH_SPOTS, ...BOAT_FISH_SPOTS]);
@@ -1883,7 +1883,7 @@ export class LobbyScene implements Scene {
       if (MOVE_KEYS.has(code) || code === 'KeyE') e.preventDefault();
       return true;
     }
-    // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
+    // окно музыкального автомата (модальный диалог кита): цифры, стрелки, Enter, Esc
     if (this.juke.onKey(code, e)) return true;
     // радио на лодке: R — окно; в окне 0–3, −/+, Esc (шаг и руль не съедает)
     if (!this.d.input.blocked && this.myAct !== ACT_DURAK && this.myAct !== ACT_BILLIARDS && this.radio.onKey(code, e)) return true;
@@ -1895,8 +1895,12 @@ export class LobbyScene implements Scene {
         this.leaveWardrobe(true);
         return true;
       }
-      // шаг поднимет и так (сервер считает так же) — а мышь забираем сейчас, пока идёт жест
-      if (MOVE_KEYS.has(code)) this.leaveWardrobe(false);
+      // окно открыто — игрок не ходит (выход: ✕, «Готово», Esc, E); стрелки ←/→ крутят желейку
+      if (MOVE_KEYS.has(code)) {
+        if (code === 'ArrowLeft' || code === 'ArrowRight') this.wardrobe.rotatePreview((code === 'ArrowLeft' ? -1 : 1) * Math.PI / 4);
+        e.preventDefault();
+        return true;
+      }
       return false;
     }
     if (this.d.input.blocked) return false;
@@ -2272,7 +2276,7 @@ export class LobbyScene implements Scene {
     this.d.net.send({ t: 'spin' });
   }
 
-  /** Выйти из примерочной: по «Готово» и Esc просим сервер, шагом встанем сами. Мышь — сразу, пока идёт жест. */
+  /** Выйти из примерочной: по «Готово», ✕, Esc и E просим сервер (шагом из неё не выйти). Мышь — сразу, пока идёт жест. */
   private leaveWardrobe(send: boolean): void {
     // недосланный наряд — раньше, чем встанем: стоя сервер его не примет
     this.wardrobe.flush();
@@ -2667,7 +2671,7 @@ export class LobbyScene implements Scene {
       const c = this.billiards.cameraPose()!;
       this.cam.fixed(cam, dt, c.px, c.py, c.pz, c.lx, c.ly, c.lz, c.fov, 'table');
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
-      this.cam.mirror(cam, dt, p.x, p.y, p.z, this.spotOf(act, this.arg)?.yaw ?? p.yaw, MIRROR_FOV, this.me.outfitHeight, WARDROBE_FOOTER_PX / Math.max(1, this.d.renderer.canvas.clientHeight));
+      this.cam.mirror(cam, dt, p.x, p.y, p.z, this.spotOf(act, this.arg)?.yaw ?? p.yaw, MIRROR_FOV, this.me.outfitHeight, this.wardrobe.footerPx / Math.max(1, this.d.renderer.canvas.clientHeight));
     } else if (this.ratCam.active) {
       // крысиные бега: сверху на трассу, над головами
       const c = this.ratCam.pose(cam.aspect);

@@ -1,4 +1,4 @@
-// Подарочный код в меню (Профиль → Подарки и коды). Тот же обмен, что в примерочной (client/ui/gift-code.ts): код
+// Подарочный код в меню (Профиль → Подарки и коды). Та же форма и в примерочной (client/ui/wardrobe.ts; тексты ответов — client/ui/gift-code.ts): код
 // уходит серверу, ответ приходит redeemResult. Сервер принимает коды только на набережной. Код никуда не сохраняем.
 import { GIFT_CODE_MAX_LENGTH, type GiftResultCode } from '../../../shared/gifts.ts';
 import { GIFT_RESULT_TEXT } from '../gift-code.ts';

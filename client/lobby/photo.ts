@@ -2,10 +2,15 @@
 // штативе (кадр рисует тот же рендер с неподвижной камеры прямо перед обычным кадром — на экране его не видно)
 // в белой рамке с подписью «кто на фото» и кнопкой «Сохранить» (F). Карточка — над меню: сохранить можно и на паузе.
 // На телефоне «Сохранить» открывает «Поделиться» — там есть «Сохранить фото» (файлом телефон скачивает неудобно).
+// Вид — кит 2.0: отсчёт — .k-count (как в режимах, ModeCount) с подписью .k-hero-sub в слоте «центр»; карточка — .k-panel
+// светлого HUD в слое верх-центра (.k-hud--top, над меню), кнопки .k-btn, клавиша — колпачком. Белая рамка — сам снимок.
 import * as THREE from 'three';
 import { PHOTO } from '../../shared/maps/lobby.ts';
 import { TOUCH } from '../touch.ts';
+import { h, iconImg, keyHtml } from '../ui/kit/dom.ts';
+import { ModeCount } from '../ui/kit/modes.ts';
 import { PHOTO_LENS_Y, type LobbyWorld } from './world.ts';
+import './photo.css';
 
 /** Отсчёт виден и слышен ближе стольких метров от площадки перед маяком; снимок достаётся тем, кто ближе PHOTO_KEEP */
 export const PHOTO_HEAR = 30;
@@ -40,11 +45,12 @@ export class PhotoBooth {
   /** Каждая секунда отсчёта (для писка) */
   onBeep: () => void = () => {};
   private readonly count: HTMLElement;
-  private readonly digitEl: HTMLElement;
+  private readonly digits: ModeCount;
   private readonly flashEl: HTMLElement;
   private readonly card: HTMLElement;
   private readonly img: HTMLImageElement;
   private readonly saveBtn: HTMLButtonElement;
+  private readonly saveLine: HTMLElement;
   private readonly cam = new THREE.PerspectiveCamera(FOV_V, ASPECT, 0.15, 600);
   private readonly v = new THREE.Vector3();
   /** До вспышки, с (0 — отсчёта нет) */
@@ -55,32 +61,41 @@ export class PhotoBooth {
   private fileName = '';
   private hideTimer = 0;
 
-  /** hud — слой набережной (отсчёт и вспышка), overlay — слой над меню (карточка со снимком) */
-  constructor(hud: HTMLElement, overlay: HTMLElement) {
-    this.count = el('div', 'ph-count');
-    this.digitEl = this.count.appendChild(el('b', ''));
-    this.count.appendChild(el('span', '')).textContent = '📸 Фото у маяка — все в кадр!';
+  /**
+   * hud — слой набережной (вспышка на весь экран), center — слот «центр» HUD кита (отсчёт), top — слой верх-центра кита
+   * над меню (карточка со снимком: видна и на паузе)
+   */
+  constructor(hud: HTMLElement, center: HTMLElement, top: HTMLElement) {
+    this.count = h('div', 'k-hero ph-count');
+    this.count.hidden = true;
+    this.digits = new ModeCount(this.count.appendChild(h('div', 'ph-digits')));
+    this.count.appendChild(h('div', 'k-hero-sub', `${iconImg('camera')}Фото у маяка — все в кадр!`));
     this.flashEl = el('div', 'ph-flash');
-    hud.append(this.flashEl, this.count);
+    hud.append(this.flashEl);
+    center.append(this.count);
 
-    this.card = el('div', 'ph-card');
+    this.card = h('article', 'k-panel ph-card');
+    this.card.hidden = true;
+    this.card.setAttribute('aria-label', 'Фото у маяка');
     this.img = this.card.appendChild(document.createElement('img'));
     this.img.alt = 'Фото у маяка';
-    const row = this.card.appendChild(el('div', 'ph-row'));
-    this.saveBtn = row.appendChild(document.createElement('button'));
-    this.saveBtn.className = 'ph-save';
-    const close = row.appendChild(document.createElement('button'));
-    close.className = 'ph-close';
-    close.title = 'Закрыть';
-    close.textContent = '✕';
+    const row = this.card.appendChild(h('div', 'ph-row'));
+    this.saveBtn = row.appendChild(h('button', 'k-btn k-btn--sm ph-save', '<span class="k-row-line"></span>'));
+    this.saveBtn.type = 'button';
+    this.saveLine = this.saveBtn.querySelector<HTMLElement>('.k-row-line')!;
+    // на телефоне клавиши нет — колпачок «F» только на компьютере
+    if (!TOUCH) this.saveBtn.insertAdjacentHTML('beforeend', keyHtml('F', 'tr', 'sm'));
+    const close = row.appendChild(h('button', 'k-close ph-close'));
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Закрыть');
     this.saveBtn.addEventListener('click', () => this.save());
     close.addEventListener('click', () => this.hide());
-    overlay.appendChild(this.card);
+    top.appendChild(this.card);
   }
 
   /** Есть снимок, который можно сохранить */
   get hasCard(): boolean {
-    return this.card.classList.contains('show');
+    return !this.card.hidden;
   }
 
   /** Нажали у штатива: «3, 2, 1» по центру экрана. */
@@ -95,23 +110,21 @@ export class PhotoBooth {
     const d = Math.ceil(this.left);
     if (this.left <= 0) {
       this.left = 0;
-      this.count.classList.remove('show');
+      this.stopCount();
       return;
     }
     if (d === this.digit) return;
     this.digit = d;
-    this.digitEl.textContent = String(d);
-    // каждая цифра — заново с анимацией
-    this.count.classList.remove('show');
-    void this.count.offsetWidth;
-    this.count.classList.add('show');
+    // каждая цифра — новый .k-count с анимацией (ModeCount)
+    this.count.hidden = false;
+    this.digits.set(d);
     this.onBeep();
   }
 
   /** Белая вспышка на весь экран. */
   flash(): void {
     this.left = 0;
-    this.count.classList.remove('show');
+    this.stopCount();
     this.flashEl.classList.remove('on');
     void this.flashEl.offsetWidth;
     this.flashEl.classList.add('on');
@@ -211,29 +224,35 @@ export class PhotoBooth {
   }
 
   private saved(): void {
-    this.saveBtn.innerHTML = 'Сохранено ✓';
-    this.saveBtn.classList.add('done');
+    this.saveLine.textContent = 'Сохранено';
+    this.saveBtn.classList.add('k-btn--go');
   }
 
   hide(): void {
     clearTimeout(this.hideTimer);
-    this.card.classList.remove('show');
+    this.card.hidden = true;
   }
 
   /** Ушли с набережной: без отсчёта и карточки. */
   reset(): void {
     this.left = 0;
-    this.count.classList.remove('show');
+    this.stopCount();
     this.flashEl.classList.remove('on');
     this.hide();
   }
 
+  private stopCount(): void {
+    this.digit = 0;
+    this.digits.set(null);
+    this.count.hidden = true;
+  }
+
   private showCard(): void {
-    this.saveBtn.innerHTML = TOUCH ? 'Сохранить' : '<kbd>F</kbd> Сохранить';
-    this.saveBtn.classList.remove('done');
-    this.card.classList.remove('show');
+    this.saveLine.innerHTML = `${iconImg('camera')}Сохранить`;
+    this.saveBtn.classList.remove('k-btn--go');
+    this.card.hidden = true;
     void this.card.offsetWidth;
-    this.card.classList.add('show');
+    this.card.hidden = false;
     clearTimeout(this.hideTimer);
     this.hideTimer = window.setTimeout(() => this.hide(), CARD_MS);
   }
