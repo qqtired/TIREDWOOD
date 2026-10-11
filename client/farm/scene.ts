@@ -125,7 +125,7 @@ export class FarmScene implements Scene {
     // колесо: у пустой грядки листает пояс семян, иначе — приближает камеру
     window.addEventListener('wheel', (e) => {
       if (!this.active || !d.input.locked || d.input.blocked) return;
-      if (this.hud.beltOn) this.hud.beltWheel(e.deltaY);
+      if (this.hud.beltOn) this.hud.beltWheel(e);
       else this.cam.zoomBy(e.deltaY);
     }, { passive: true });
   }
@@ -324,14 +324,16 @@ export class FarmScene implements Scene {
     return b ? bedStage(b, this.now()) : null;
   }
 
-  private useBed(i: number): void {
+  private useBed(i: number, mouse = false): void {
     const st = this.bedState(i);
     const net = this.d.net;
     if (st === null) return;
     if (st === -1) {
-      // пояс семян: тот же выбор, что у E — посадить выбранное (правила и цену решает сервер)
-      this.hud.showBelt(i);
-      this.hud.beltPlant();
+      // пояс семян: сажаем, только если он уже на экране у этой грядки (случайный клик жетоны не тратит);
+      // первое E показывает пояс, дальнюю грядку по ЛКМ — только подсказка, пояс там не появится
+      if (this.hud.beltAt(i)) this.hud.beltPlant();
+      else if (!mouse) { this.hud.showBelt(i); this.beltBed = i; }
+      else this.toast({ key: 'farm-near', icon: 'seeds', title: 'Подойди к грядке ближе', sub: 'Пояс семян появится внизу — выбери культуру и посади' });
     } else if (st === 3) net.send({ t: 'farm', a: 'harvest', beds: [i] });
     else if (!this.farm.beds[i].watered) net.send({ t: 'farm', a: 'water', beds: [i] });
   }
@@ -351,7 +353,7 @@ export class FarmScene implements Scene {
     if (!this.hasSelf || this.hud.open || this.well.open) return;
     if (mouse) {
       const bed = this.aimBed();
-      if (bed >= 0) { this.target = { k: 'bed', i: bed }; this.useBed(bed); return; }
+      if (bed >= 0) { this.target = { k: 'bed', i: bed }; this.useBed(bed, true); return; }
     }
     const t = this.target;
     if (t?.k === 'bed') this.useBed(t.i);

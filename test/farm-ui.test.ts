@@ -2,11 +2,11 @@
 // Разметка и окна проверяются снимками (docs: отчёт задачи 6); здесь — то, что решает, что именно показать.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { emptyFarm, type FarmProgress } from '../shared/farm.ts';
-import { CROPS, RAKE_BEDS, WELL_SETS } from '../shared/farmdata.ts';
+import { emptyFarm, farmLevel, type FarmProgress } from '../shared/farm.ts';
+import { CROPS, FARM_XP_TOTAL, RAKE_BEDS, WELL_SETS } from '../shared/farmdata.ts';
 import type { FarmBedView } from '../shared/farmnet.ts';
 import type { FarmBossView } from '../shared/farmsys.ts';
-import { BELT_SLOTS, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets } from '../client/farm/ui/belt-model.ts';
+import { BELT_SLOTS, WHEEL_GAP_MS, WHEEL_STEP, WheelAcc, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets, wheelPixels } from '../client/farm/ui/belt-model.ts';
 import { clockHour, fmtLeft, fmtMin, mskHour, plural } from '../client/farm/ui/fmt.ts';
 import { bedPrompt, canHelpBed, helpPrompt, troughPrompt, usePrompt } from '../client/farm/ui/prompt-model.ts';
 import { PHASE_NAMES, bloomShare, contribLine, treeEvent, treeLine } from '../client/farm/ui/tree-model.ts';
@@ -16,11 +16,15 @@ const NOW = Date.UTC(2026, 9, 11, 9, 0, 0);
 function farmAt(level: number): FarmProgress {
   const f = emptyFarm(NOW);
   // опыт, с которого начинается уровень level (shared/farm.ts farmLevel)
-  f.xp = level > 1 ? [0, 0, 200, 500, 900, 1500, 2300, 3300, 4500, 6000, 8000, 10500, 13500][level] ?? 0 : 0;
+  f.xp = FARM_XP_TOTAL[level - 1] ?? 0;
   return f;
 }
 
 // ------------------------------------------------------------ пояс семян
+
+test('farmAt: опыт ровно с начала уровня', () => {
+  for (const l of [1, 2, 3, 6, 10]) assert.equal(farmLevel(farmAt(l).xp), l);
+});
 
 test('пояс: открытые культуры и ближайшие закрытые, не больше девяти ячеек в окне', () => {
   const list = beltCrops(1);
@@ -45,6 +49,28 @@ test('пояс: колесо идёт по кругу', () => {
   assert.equal(beltStep(4, 1, 5), 0);
   assert.equal(beltStep(0, -1, 5), 4);
   assert.equal(beltStep(0, 1, 0), 0);
+});
+
+test('пояс: колесо копит прокрутку — трекпад не крутит пояс, обычное колесо даёт шаг на щелчок', () => {
+  const w = new WheelAcc();
+  // обычная мышь: один щелчок ≈ 100 px — один шаг
+  assert.equal(w.push(100, 0), 1);
+  // трекпад: десятки мелких событий — шаг лишь когда накопилось WHEEL_STEP и прошла пауза WHEEL_GAP_MS
+  let steps = 0;
+  for (let t = 1000; t < 1000 + 16 * 60; t += 16) steps += Math.abs(w.push(12, t));
+  assert.ok(steps >= 1 && steps <= Math.ceil((16 * 60) / WHEEL_GAP_MS), 'за секунду инерции — единицы шагов, не десятки');
+  // смена направления сбрасывает накопленное
+  const v = new WheelAcc();
+  assert.equal(v.push(WHEEL_STEP - 10, 0), 0);
+  assert.equal(v.push(-30, 20), 0);
+  assert.equal(v.push(-40, 40), 0, 'копится заново в другую сторону: −30 −40 = −70');
+  assert.equal(v.push(-20, 60), -1);
+  // пауза забывает накопленное; строки Firefox считаются в пиксели
+  const u = new WheelAcc();
+  assert.equal(u.push(60, 0), 0);
+  assert.equal(u.push(60, 1000), 0, 'долгая пауза — копим заново');
+  assert.equal(wheelPixels(3, 1), 120);
+  assert.equal(wheelPixels(100), 100);
 });
 
 test('пояс: «Посадить тыкву», «Собрать шляпку гриба» — винительный падеж', () => {

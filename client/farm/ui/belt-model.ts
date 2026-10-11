@@ -23,6 +23,46 @@ export function beltStep(sel: number, dir: number, total: number): number {
   return total <= 0 ? 0 : (sel + (dir > 0 ? 1 : -1) + total) % total;
 }
 
+/** Колесо: сколько «пикселей» прокрутки на один шаг и как часто можно шагать (трекпад и Magic Mouse шлют десятки событий) */
+export const WHEEL_STEP = 80;
+export const WHEEL_GAP_MS = 100;
+/** Пауза без колеса дольше этого — накопленное забывается */
+const WHEEL_IDLE_MS = 250;
+
+/** deltaY события колеса в «пиксели»: строки (Firefox) и страницы тоже считаются */
+export function wheelPixels(dy: number, mode = 0): number {
+  return mode === 1 ? dy * 40 : mode === 2 ? dy * 400 : dy;
+}
+
+/**
+ * Накопитель колеса: событие за событием копит |deltaY|, шаг — раз в WHEEL_STEP и не чаще, чем раз в WHEEL_GAP_MS;
+ * смена направления и пауза сбрасывают накопленное. Остаток после шага не переносится — инерция трекпада не крутит пояс.
+ */
+export class WheelAcc {
+  private acc = 0;
+  private at = -Infinity;
+  private last = -Infinity;
+
+  /** dy — deltaY в пикселях, t — время в мс. Возвращает −1, 0 или +1 */
+  push(dy: number, t: number): -1 | 0 | 1 {
+    if (dy === 0) return 0;
+    if (t - this.last < WHEEL_GAP_MS) { this.at = t; return 0; }
+    if (t - this.at > WHEEL_IDLE_MS || Math.sign(dy) !== Math.sign(this.acc)) this.acc = 0;
+    this.at = t;
+    this.acc += dy;
+    if (Math.abs(this.acc) < WHEEL_STEP) return 0;
+    const dir = this.acc > 0 ? 1 : -1;
+    this.acc = 0;
+    this.last = t;
+    return dir;
+  }
+
+  reset(): void {
+    this.acc = 0;
+    this.at = this.last = -Infinity;
+  }
+}
+
 /**
  * «Тыква» → «тыкву», «Редис» → «редис», «Шляпка гриба» → «шляпку гриба»: винительный падеж для «Посадить …» / «Собрать …».
  * Прилагательные женского рода («Мифическая») склоняем, первое существительное — тоже, дальше идёт родительный («гриба») — не трогаем.

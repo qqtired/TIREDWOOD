@@ -10,7 +10,7 @@ import type { FarmProgress } from '../../../shared/farm.ts';
 import { keyHtml } from '../../ui/kit/dom.ts';
 import { sfx } from '../../ui/kit/sfx.ts';
 import type { HudSlots } from '../../ui/kit/slots.ts';
-import { BELT_SLOTS, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets } from './belt-model.ts';
+import { BELT_SLOTS, WheelAcc, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets, wheelPixels } from './belt-model.ts';
 import { C, big, fi, fmtMin, meter, resIconName, resName, ui } from './common.ts';
 
 export interface BeltActions {
@@ -33,6 +33,7 @@ export class SeedBelt {
   private tokens = 0;
   private now = 0;
   private key = '';
+  private readonly wheelAcc = new WheelAcc();
 
   constructor(slots: HudSlots, act: BeltActions) {
     this.act = act;
@@ -42,9 +43,14 @@ export class SeedBelt {
     slots.bc.append(this.root);
   }
 
-  /** Пояс на экране — колесо и цифры достаются ему, а не камере */
+  /** Пояс на экране — колесо и цифры достаются ему, а не камере. Нет пояса — колесо приближает камеру */
   get active(): boolean {
-    return this.on;
+    return this.on && !this.root.hidden;
+  }
+
+  /** Пояс показан именно у этой грядки */
+  isAt(bed: number): boolean {
+    return this.active && this.bed === bed;
   }
 
   /** Показать у грядки bed; прогресс, жетоны и серверное время — для подписей */
@@ -67,6 +73,7 @@ export class SeedBelt {
     this.on = false;
     this.root.hidden = true;
     this.key = '';
+    this.wheelAcc.reset();
   }
 
   private defaultCrop(f: FarmProgress, list: CropDef[]): string {
@@ -87,7 +94,14 @@ export class SeedBelt {
     this.render();
   }
 
-  /** Колесо: следующая или прежняя культура по кругу */
+  /** Событие колеса (и от сцены, и от самого пояса): копим прокрутку, шаг — раз в ~80 px и не чаще раза в 100 мс */
+  wheel(e: { deltaY: number; deltaMode?: number }): void {
+    if (!this.on) return;
+    const dir = this.wheelAcc.push(wheelPixels(e.deltaY, e.deltaMode), performance.now());
+    if (dir) this.step(dir);
+  }
+
+  /** Шаг ±1 по кругу: следующая или прежняя культура */
   step(dir: number): void {
     if (!this.on || !this.f) return;
     const list = beltCrops(farmLevel(this.f.xp));
@@ -163,7 +177,7 @@ export class SeedBelt {
     this.root.hidden = false;
     this.root.innerHTML = html;
     this.root.querySelectorAll<HTMLElement>('.farm-slot').forEach((b) => b.addEventListener('click', () => this.pick(Number(b.dataset.i))));
-    this.root.querySelector('.farm-belt')?.addEventListener('wheel', (e) => { e.preventDefault(); this.step((e as WheelEvent).deltaY); }, { passive: false });
+    this.root.querySelector('.farm-belt')?.addEventListener('wheel', (e) => { e.preventDefault(); this.wheel(e as WheelEvent); }, { passive: false });
     this.root.querySelector('button.farm-act')?.addEventListener('click', () => this.plant());
   }
 

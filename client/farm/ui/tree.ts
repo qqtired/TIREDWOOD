@@ -1,11 +1,12 @@
 // Древо разлома в HUD (lab/ui/screens/farm.js «Древо разлома: плашка события»): наверху по центру ОДНА плашка — «просыпается»
-// (за 5 минут, с таймером) и «Цветение 62 %» (фаза, твой вклад, отметки фаз на полосе, «до 01:00»). Плашка живёт в верх-центре
+// (за 5 минут, с таймером) и «Цветение 62 %» (фаза, твой вклад, отметки фаз на полосе, «до 01:00» — час конца из b.end). Плашка живёт в верх-центре
 // кита (ui.top.event, PRIO.boss) — отдельной разметки наверху нет. Тосты: проснулось, новая фаза, шишка-ворчунья на земле,
 // шишку подобрал сам. Итог цветения — окно (bossend.ts). Модель — tree-model.ts (без DOM), 3D — client/farm/3d/boss.ts.
 import { BOSS_CONE_POINTS } from '../../../shared/farmdata.ts';
 import type { FarmBossView, FarmSysMsg } from '../../../shared/farmsys.ts';
 import { PRIO, type TopCenter } from '../../ui/kit/topcenter.ts';
 import { esc, meter, ui, type FarmToast } from './common.ts';
+import { clockHour, mskHour } from './fmt.ts';
 import { PHASE_NAMES, treeEvent } from './tree-model.ts';
 
 const KEY = 'farm-tree';
@@ -66,7 +67,7 @@ export class FarmTree {
     this.cones = b.cones.length;
     // при входе в комнату состояние приходит уже готовым — не объявляем то, что идёт давно
     if (this.on && was !== '') {
-      if (b.st === 'awake' && was !== 'awake') this.host.toast({ key: 'farm-tree', tone: 'good', icon: 'ui:rift-tree', title: 'Древо проснулось', sub: 'Собирай урожай — цветение идёт до 01:00' });
+      if (b.st === 'awake' && was !== 'awake') this.host.toast({ key: 'farm-tree', tone: 'good', icon: 'ui:rift-tree', title: 'Древо проснулось', sub: `Собирай урожай — цветение идёт до ${clockHour(mskHour(b.end))}` });
       else if (b.st === 'awake' && b.phase !== phase && phase > 0) this.host.toast({ key: 'farm-tree', tone: 'info', icon: 'ui:rift-tree', title: `Новая фаза: «${PHASE_NAMES[Math.min(3, Math.max(0, b.phase - 1))]}»` });
       if (b.st === 'awake' && this.cones > cones && this.host.now() > this.coneAt) {
         this.coneAt = this.host.now() + CONE_HINT_MS;

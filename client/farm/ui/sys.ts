@@ -6,11 +6,11 @@ import type { FarmGot } from '../../../shared/farmsys.ts';
 import type { FarmToast } from './common.ts';
 import { rewardName } from './names.ts';
 
-/** «+25 🪙 · +120 XP · +2 репутации · Значок «Росток»» */
+/** «+25 🪙 · +120 опыта · +2 репутации · Значок «Росток»» */
 function gotLine(g: FarmGot): string {
   const parts: string[] = [];
   if (g.coins > 0) parts.push(`+${g.coins} 🪙`);
-  if (g.xp > 0) parts.push(`+${g.xp} XP`);
+  if (g.xp > 0) parts.push(`+${g.xp} опыта`);
   if (g.rep > 0) parts.push(`+${g.rep} репутации`);
   for (const id of g.items) parts.push(id.startsWith('buff:') ? `бафф на сутки: ${BUFFS[id.slice(5) as FarmBuffKind]?.name ?? id}` : rewardName(id));
   return parts.join(' · ');

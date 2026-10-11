@@ -86,7 +86,7 @@ export class BoardWin extends FarmWin {
     this.live('[data-live=treeS]', () => this.tree().sub);
     this.onClick('[data-plot]', (b) => { this.picked = Number(b.dataset.plot); this.refresh(); });
     this.onClick('[data-claim]', (b) => this.host.send({ t: 'farm', a: 'claimPlot', plot: Number(b.dataset.claim) }));
-    this.onClick('[data-help]', (b) => { const plot = Number(b.dataset.help); this.close(true); this.host.goPlot(plot); });
+    this.onClick('[data-help]', (b) => { const plot = Number(b.dataset.help); this.close(); this.host.goPlot(plot); });
   }
 
   private tree(): { title: string; sub: string } {

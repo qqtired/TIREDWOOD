@@ -141,7 +141,8 @@ export class FarmHud {
 
   /** Тост в верх-центр кита: иконка — имя файла фермы или «ui:id» */
   toast(t: FarmToast): void {
-    this.top.toast({ key: t.key, tone: t.tone, icon: iconUrl(t.icon), title: t.title, sub: t.sub });
+    // ключ всегда «farm…»: при выходе с фермы тосты с таким началом убираются (setVisible)
+    this.top.toast({ key: t.key ?? 'farm', tone: t.tone, icon: iconUrl(t.icon), title: t.title, sub: t.sub });
   }
 
   setVisible(v: boolean): void {
@@ -156,6 +157,8 @@ export class FarmHud {
     } else {
       this.close(false);
       this.belt.hide();
+      // свои тосты и герои фермы не должны висеть над площадью (только с префиксом — чужие остаются)
+      this.top.clearToasts('farm');
       this.top.clearHero('farm-level');
     }
   }
@@ -220,6 +223,11 @@ export class FarmHud {
     return this.belt.active;
   }
 
+  /** Пояс показан у грядки bed — посадка по E/ЛКМ разрешена только тогда */
+  beltAt(bed: number): boolean {
+    return this.belt.isAt(bed);
+  }
+
   /** Клавиши пояса: 1–9 — ячейка, Q — грабли/по одной. true — съела */
   beltKey(code: string): boolean {
     if (!this.belt.active) return false;
@@ -229,8 +237,8 @@ export class FarmHud {
     return false;
   }
 
-  beltWheel(dy: number): void {
-    this.belt.step(dy);
+  beltWheel(e: { deltaY: number; deltaMode?: number }): void {
+    this.belt.wheel(e);
   }
 
   /** E / ЛКМ у пустой грядки: посадить выбранное. false — нечего сажать */
