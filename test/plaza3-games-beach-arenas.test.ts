@@ -107,7 +107,8 @@ test('музыкальный автомат: в ротонде (15; 10,2), ли�
   // точка «juke» на карте — на месте заказа; корпус твёрдый, рядом с колоннами ротонды не пересекается, место заказа свободно
   const it = map.interact.find((i) => i.kind === 'juke' && i.arg === 0)!;
   assert.deepEqual([it.x, it.z], [use.x, use.z]);
-  assert.ok(standFree(use.x, use.z), 'у автомата можно стоять');
+  // пол ротонды — подиум 0,36 (боксы pav.rotunda.floor_* по модели, WP9)
+  assert.ok(standFree(use.x, use.z, jb.JUKEBOX_Y), 'у автомата можно стоять');
   const body = map.boxes[map.jukeBoxes[0]];
   assert.deepEqual([body.min[0], body.max[0], body.min[2], body.max[2]], [15 - jb.JUKE_W / 2, 15 + jb.JUKE_W / 2, 10.2 - jb.JUKE_D / 2, 10.2 + jb.JUKE_D / 2]);
   assert.deepEqual(overlapProblems(map, map.jukeBoxes), []);

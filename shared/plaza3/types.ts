@@ -114,6 +114,8 @@ export interface P3Collider {
   max: Vec3;
   mat?: Material;
   color?: number;
+  /** Павильон-модель (client/lobby/plaza3/pavdata.ts): коробку блокаута прячут, когда его GLB встал; твёрдое остаётся */
+  pav?: string;
 }
 
 /** Только вид, без твёрдого: коробка (центр c, размер s, поворот yaw) или цилиндр/конус (низ c, радиус r, высота h) */
@@ -126,6 +128,8 @@ export interface P3Decor {
   h?: number;
   yaw?: number;
   color: number;
+  /** Павильон-модель: фигура блокаута прячется, когда его GLB встал */
+  pav?: string;
 }
 
 /** Пятно на земле: площадь, роза, песок, газон, гравий, грунтовка */

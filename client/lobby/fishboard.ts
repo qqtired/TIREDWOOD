@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
 import { FISH_BOARD } from '../../shared/fishplaces.ts';
 import { COLLECTION_SIZE, fmtKg, type FishTop, type FishTopRow } from '../../shared/fishrules.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { onShowcase } from './plaza3/mounts.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 
 /** Единые координаты с серверной коллизией. */
@@ -77,6 +79,17 @@ export class FishBoard3D {
     this.group.visible = false;
     scene.add(this.group);
     this.draw(null, 0);
+    // plaza3: встала «Рыбная витрина» (WP9) — рама у неё своя, щит уже на поле live_board_records (FISH_BOARD), акула — на
+    // гребень вывески (anchor_records_roof): низ её подставок (−0,65 от центра) — на гребне
+    if (PLAZA3) {
+      onShowcase((m) => {
+        frame.visible = false;
+        this.group.updateMatrixWorld(true);
+        const at = new THREE.Vector3().setFromMatrixPosition(m.roof);
+        at.y += 0.66;
+        shark.position.copy(this.group.worldToLocal(at));
+      });
+    }
   }
 
   /** Доска с сервера (null — ещё нет); myPid — свой профиль. */

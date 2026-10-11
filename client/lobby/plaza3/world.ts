@@ -15,6 +15,8 @@ export interface Plaza3World {
   readonly group: THREE.Group;
   /** Сколько мешей и треугольников — для замера (__opus.info) */
   debug(): Record<string, unknown>;
+  /** Модель павильона встала (client/lobby/plaza3/pavilions.ts) — его коробки блокаута не рисовать; твёрдое остаётся */
+  hidePavilion(id: string): void;
 }
 
 /** Низ стенки набережной (как у старой: до воды и ниже) */
@@ -137,14 +139,14 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
     const c = P3.colliders[i - (map.plaza3Boxes?.[0] ?? 0)];
     const [x0, y0, z0] = b.min;
     const [x1, y1, z1] = b.max;
-    put(c?.q ?? 'misc', place(paint(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), b.color), (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
+    put(c?.pav ?? c?.q ?? 'misc', place(paint(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), b.color), (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
   }
   for (const d of P3.decor) {
     const [x, y, z] = d.c;
-    if (d.t === 'box' && d.s) put(d.q, place(paint(new THREE.BoxGeometry(d.s[0], d.s[1], d.s[2]), d.color), x, y, z, d.yaw ?? 0));
+    if (d.t === 'box' && d.s) put(d.pav ?? d.q, place(paint(new THREE.BoxGeometry(d.s[0], d.s[1], d.s[2]), d.color), x, y, z, d.yaw ?? 0));
     else if (d.r && d.h) {
       const g = d.t === 'cone' ? new THREE.ConeGeometry(d.r, d.h, 14) : new THREE.CylinderGeometry(d.r, d.r, d.h, 14);
-      put(d.q, place(paint(g, d.color), x, y + d.h / 2, z));
+      put(d.pav ?? d.q, place(paint(g, d.color), x, y + d.h / 2, z));
     }
   }
   const boxMat = ctx.wet(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 }));
@@ -160,5 +162,9 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   return {
     group,
     debug: () => ({ meshes, tris: Math.round(tris), quarters: [...byQ.keys()] }),
+    hidePavilion: (id) => {
+      const m = group.getObjectByName(`plaza3-${id}`);
+      if (m) m.visible = false;
+    },
   };
 }

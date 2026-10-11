@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { TG_KEEP, type TgLine } from '../../shared/messages.ts';
+import { onRoofScreen } from './plaza3/mounts.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { TOUCH } from '../touch.ts';
 
@@ -136,6 +137,21 @@ export class TgScreen {
     face.matrixAutoUpdate = false;
     face.updateMatrix();
     scene.add(frame, face);
+    // plaza3: встала модель Склада №3 (WP9) — холст на её экране на крыше (live_screen, 8,4×3,7), свой короб прячется.
+    // Холст 16:9 — во всю высоту поля, по бокам — крайние столбцы холста (фон), без растяжения текста
+    if (PLAZA3) {
+      onRoofScreen((m) => {
+        frame.visible = false;
+        const s = new THREE.Vector3();
+        m.decompose(face.position, face.quaternion, s);
+        face.translateZ(0.01);
+        face.scale.set((2 * s.x) / SCREEN_W, (2 * s.y) / SCREEN_H, 1);
+        face.updateMatrix();
+        const k = s.x / s.y / (SCREEN_W / SCREEN_H);
+        this.tex.repeat.x = k;
+        this.tex.offset.x = (1 - k) / 2;
+      });
+    }
     this.draw();
     // main.ts ждёт только жирные начертания Rubik; обычное (500) догрузится — разметим строки заново и перерисуем
     document.fonts?.load(TEXT_FONT, 'Аб7').then(() => {

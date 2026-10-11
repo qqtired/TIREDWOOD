@@ -30,6 +30,7 @@ import { P3 } from '../../shared/plaza3/layout.ts';
 import { A, xfP } from '../../shared/plaza3/xf.ts';
 import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
+import { Plaza3Pavilions } from './plaza3/pavilions.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -221,9 +222,10 @@ export class LobbyWorld {
   readonly gateScreen = new GateScreen(6, 2.2);
   /** Круг «Старт» перед гаражом, число отсчёта и табло картинга */
   readonly kartStart = new KartStart();
-  readonly honorBoard = new HonorBoard(3.7, 2.4);
+  /** В plaza3 — по полям киосков (pav_honor 4,2×2,8, pav_online 3×2) */
+  readonly honorBoard = NEW_PLAZA ? new HonorBoard(4.2, 2.8) : new HonorBoard(3.7, 2.4);
   /** Обратная сторона доски почёта */
-  readonly recentBoard = new RecentBoard(3.7, 2.4);
+  readonly recentBoard = NEW_PLAZA ? new RecentBoard(3, 2) : new RecentBoard(3.7, 2.4);
   readonly jackpotBoard = new JackpotBoard(6.4, 1.3);
   private readonly sun = new THREE.DirectionalLight(0xffc48a, SUN_CLEAR);
   private readonly hemi = new THREE.HemisphereLight(HEMI_CLEAR[1], HEMI_CLEAR[2], HEMI_CLEAR[0]);
@@ -232,6 +234,11 @@ export class LobbyWorld {
   private readonly poweredSigns = new Map<THREE.MeshStandardMaterial, number>();
   /** Статика новой набережной (флаг PLAZA3, client/lobby/plaza3); null — строится старая */
   readonly plaza3: Plaza3World | null = null;
+  /** Модели павильонов набережной (WP9, client/lobby/plaza3/pavilions.ts) — встают поверх блокаута по мере загрузки */
+  readonly pavilions: Plaza3Pavilions | null = null;
+  /** Рамки джекпота и экрана ворот блокаута: прячутся, когда холсты встали на поля моделей */
+  private jackpotFrame: THREE.Object3D | null = null;
+  private gateFrame: THREE.Object3D | null = null;
   private readonly windowGlow: THREE.BufferGeometry[] = [];
   private lampQuality: LobbyQuality = 'high';
   private lighthouseEnabled = true;
@@ -355,6 +362,20 @@ export class LobbyWorld {
       this.buildPhotoSpot();
       this.buildTownQuay();
       buildPlaza3Lights(this.plazaCtx, this.map);
+      this.pavilions = new Plaza3Pavilions(this.plazaCtx, this.plaza3, {
+        gl: renderer.gl,
+        camera: this.camera,
+        refreshShadows: () => renderer.refreshShadows(),
+        boards: {
+          honor: { mesh: this.honorBoard.mesh },
+          online: { mesh: this.recentBoard.mesh },
+          jackpot: { mesh: this.jackpotBoard.mesh, frame: this.jackpotFrame ?? undefined },
+        },
+        // экран над воротами блокаута: у модели склада там вывеска (WP10), крыша — у экрана Telegram
+        hide: { paintball: [this.gateScreen.mesh, ...(this.gateFrame ? [this.gateFrame] : [])] },
+        lighthouse: { model: this.lighthouse, beam: [this.beam, this.beamFlash] },
+        kartPhase: () => this.kartStart.status.phase,
+      });
     } else {
       this.buildQuay();
       this.buildArcade();
@@ -608,7 +629,14 @@ export class LobbyWorld {
       this.machineAnchors.push(a);
     }
     const jp = xfP(A.slots, { x: -20, z: -25.31 });
-    this.solidBox(6.7, 1.6, 0.08, jp.x, 3.5, jp.z - 0.05, 0x3a2418);
+    // рамки — свои сетки (материал как у склейки solid — та же программа): прячутся, когда встанет модель павильона
+    const frameMat = this.wettable(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.1 }));
+    const frame = (w: number, h: number, d: number, x: number, y: number, z: number, color: number): THREE.Mesh => {
+      const m = staticMesh(place(paint(new THREE.BoxGeometry(w, h, d), color), x, y, z), frameMat, true);
+      this.scene.add(m);
+      return m;
+    };
+    this.jackpotFrame = frame(6.7, 1.6, 0.08, jp.x, 3.5, jp.z - 0.05, 0x3a2418);
     this.jackpotBoard.mesh.position.set(jp.x, 3.5, jp.z);
     // доски смотрят на юг (+Z), к площади: почёт — на фасаде pav_honor, «Кто на набережной» — на фасаде pav_online
     const hb = this.map.honorBoard;
@@ -617,7 +645,7 @@ export class LobbyWorld {
     if (on) this.recentBoard.mesh.position.set((on.x0 + on.x1) / 2, 2.2, on.z1 + 0.02);
     // экран над воротами Склада №3: перемычка проёма (x 5…11, y 4,5…9,6) на z −29
     this.gateScreen.mesh.position.set(8, 6.6, -28.93);
-    this.solidBox(6.3, 2.5, 0.12, 8, 6.6, -28.98, 0x161616);
+    this.gateFrame = frame(6.3, 2.5, 0.12, 8, 6.6, -28.98, 0x161616);
     this.scene.add(this.jackpotBoard.mesh, this.honorBoard.mesh, this.recentBoard.mesh, this.gateScreen.mesh, this.kartStart.group);
     this.box('concrete', [-24, -3.2, 38], [-14, -0.6, 46], 0x7d776e, -10);
   }
@@ -1549,6 +1577,7 @@ export class LobbyWorld {
     if (this.signGlow) this.signGlow.material.opacity = BULB_SIGN_GLOW[phase];
     this.gateScreen.tick(t);
     this.kartStart.tick(t);
+    this.pavilions?.update(dt, t, this.weather.lampsOn);
     // луч маяка и вспышка, когда он смотрит на камеру
     const a = t * 0.55;
     this.beam.rotation.y = a;

@@ -8,7 +8,7 @@ import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_DECK_Y, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_POST_H, BL_POST_HALF, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
-import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
+import { JUKEBOX, JUKEBOX_BARKAS, JUKEBOX_Y, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
   FISH_FAR_FIRST, FISH_PODIUM_BODY, FISH_PODIUM_STEP_BOXES, FISH_SPOTS, FISHER_BODY, FISHER_CANOPY_BOXES, FISHER_USE, ROULETTE_SPOT,
@@ -467,7 +467,8 @@ export function buildLobby(): LobbyMap {
   add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Портовая регата');
   add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
   // Музыкальный автомат (shared/jukebox.ts): E перед лицевой стороной — выбрать песню
-  add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат');
+  // в plaza3 место заказа — на подиуме ротонды (пол 0,36 — боксы pav.rotunda.floor_* в layout.json)
+  add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат', JUKEBOX_Y);
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], f.mat ?? 'wood', f.color ?? 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);

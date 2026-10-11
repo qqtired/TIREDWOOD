@@ -1984,6 +1984,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.westCorner",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -30,
         0,
@@ -2000,6 +2001,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner0",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -29.9,
         0,
@@ -2016,6 +2018,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner1",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -29.8,
         0,
@@ -2032,6 +2035,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner2",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -29.49,
         0,
@@ -2048,6 +2052,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner3",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -29,
         0,
@@ -2064,6 +2069,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner4",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -28.32,
         0,
@@ -2080,6 +2086,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner5",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -27.49,
         0,
@@ -2096,6 +2103,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner6",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -26.52,
         0,
@@ -2112,6 +2120,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner7",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -25.46,
         0,
@@ -2128,6 +2137,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.corner8",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -24.32,
         0,
@@ -2144,6 +2154,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "rail.cornerToArch",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -22.85,
         0,
@@ -2224,6 +2235,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.honor",
       "q": "hub",
+      "pav": "honor",
       "min": [
         10.68,
         0,
@@ -2240,6 +2252,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.online",
       "q": "hub",
+      "pav": "online",
       "min": [
         18.76,
         0,
@@ -2254,129 +2267,307 @@ export const P3: Plaza3Layout = {
       "color": 7311226
     },
     {
-      "id": "pav.rotunda0",
+      "id": "pav.rotunda.crown",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        16.051,
-        0,
-        5.109
+        11.7,
+        3.96,
+        5.2
       ],
       "max": [
-        16.551,
-        4.6,
-        5.609
+        18.3,
+        9,
+        11.8
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda1",
+      "id": "pav.rotunda.floor_mid",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        17.891,
+        12.09,
         0,
-        6.949
+        7.29
       ],
       "max": [
-        18.391,
-        4.6,
-        7.449
+        17.91,
+        0.36,
+        9.71
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda2",
+      "id": "pav.rotunda.floor_n",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        17.891,
+        13.79,
         0,
-        9.551
+        5.59
       ],
       "max": [
-        18.391,
-        4.6,
-        10.051
+        16.21,
+        0.36,
+        7.29
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda3",
+      "id": "pav.rotunda.floor_s",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        16.051,
+        13.79,
         0,
-        11.391
+        10.59
       ],
       "max": [
-        16.551,
-        4.6,
-        11.891
+        16.21,
+        0.36,
+        11.41
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda4",
+      "id": "pav.rotunda.column_0",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        13.449,
-        0,
-        11.391
+        12.07,
+        0.36,
+        9.29
       ],
       "max": [
-        13.949,
-        4.6,
-        11.891
+        12.67,
+        3.96,
+        9.89
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda5",
+      "id": "pav.rotunda.column_1",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        11.609,
-        0,
-        9.551
+        13.61,
+        0.36,
+        10.83
       ],
       "max": [
-        12.109,
-        4.6,
-        10.051
+        14.21,
+        3.96,
+        11.43
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda6",
+      "id": "pav.rotunda.column_2",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        11.609,
-        0,
-        6.949
+        15.79,
+        0.36,
+        10.83
       ],
       "max": [
-        12.109,
-        4.6,
-        7.449
+        16.39,
+        3.96,
+        11.43
       ],
       "mat": "concrete",
       "color": 15921128
     },
     {
-      "id": "pav.rotunda7",
+      "id": "pav.rotunda.column_3",
       "q": "hub",
+      "pav": "rotunda",
       "min": [
-        13.449,
-        0,
-        5.109
+        17.33,
+        0.36,
+        9.29
       ],
       "max": [
-        13.949,
-        4.6,
-        5.609
+        17.93,
+        3.96,
+        9.89
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.column_4",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        17.33,
+        0.36,
+        7.11
+      ],
+      "max": [
+        17.93,
+        3.96,
+        7.71
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.column_5",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        15.79,
+        0.36,
+        5.57
+      ],
+      "max": [
+        16.39,
+        3.96,
+        6.17
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.column_6",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        13.61,
+        0.36,
+        5.57
+      ],
+      "max": [
+        14.21,
+        3.96,
+        6.17
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.column_7",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        12.07,
+        0.36,
+        7.11
+      ],
+      "max": [
+        12.67,
+        3.96,
+        7.71
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_nw",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        12.82,
+        0,
+        6.32
+      ],
+      "max": [
+        13.79,
+        0.36,
+        7.29
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_ne",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        16.21,
+        0,
+        6.32
+      ],
+      "max": [
+        17.18,
+        0.36,
+        7.29
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_sw",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        12.82,
+        0,
+        9.71
+      ],
+      "max": [
+        13.79,
+        0.36,
+        10.68
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_se",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        16.21,
+        0,
+        9.71
+      ],
+      "max": [
+        17.18,
+        0.36,
+        10.68
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_s_w",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        13.79,
+        0,
+        9.71
+      ],
+      "max": [
+        14.32,
+        0.36,
+        10.59
+      ],
+      "mat": "concrete",
+      "color": 15921128
+    },
+    {
+      "id": "pav.rotunda.floor_s_e",
+      "q": "hub",
+      "pav": "rotunda",
+      "min": [
+        15.68,
+        0,
+        9.71
+      ],
+      "max": [
+        16.21,
+        0.36,
+        10.59
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2384,6 +2575,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.cafe",
       "q": "games",
+      "pav": "cafe",
       "min": [
         35,
         0,
@@ -2398,72 +2590,128 @@ export const P3: Plaza3Layout = {
       "color": 15721158
     },
     {
-      "id": "pav.kurzal.turret",
+      "id": "pav.kurzal.roof",
       "q": "games",
+      "pav": "kursaal",
       "min": [
         47,
-        0,
-        -1.5
+        5.4,
+        0.8
       ],
       "max": [
-        51,
-        12,
-        2.5
+        66,
+        6.8,
+        8.8
       ],
       "mat": "concrete",
       "color": 15321508
     },
     {
-      "id": "pav.kurzal.n1",
+      "id": "pav.kurzal.turret_top",
       "q": "games",
+      "pav": "kursaal",
       "min": [
+        47,
+        3.2,
+        -1.5
+      ],
+      "max": [
         51,
+        11.2,
+        0.8
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.wall_s_e",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47,
+        0,
+        8.4
+      ],
+      "max": [
+        60,
+        5.4,
+        8.8
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.wall_g_w",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        50.88,
         0,
         0.8
       ],
       "max": [
         63,
-        8.5,
+        5.4,
         1.2
       ],
       "mat": "concrete",
-      "color": 15853263
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.n2",
+      "id": "pav.kurzal.facade_top",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        65,
+        51,
+        2.9,
+        -1
+      ],
+      "max": [
+        66,
+        5.85,
+        -0.5
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.e",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        65.6,
         0,
         0.8
       ],
       "max": [
         66,
-        8.5,
-        1.2
+        5.4,
+        8.8
       ],
       "mat": "concrete",
-      "color": 15853263
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.w1",
+      "id": "pav.kurzal.wall_s_w",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        47,
+        62,
         0,
-        2.5
+        8.4
       ],
       "max": [
-        47.4,
-        8.5,
-        4
+        65.6,
+        5.4,
+        8.8
       ],
       "mat": "concrete",
-      "color": 15853263
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.w2",
+      "id": "pav.kurzal.wall_w_n",
       "q": "games",
+      "pav": "kursaal",
       "min": [
         47,
         0,
@@ -2471,187 +2719,351 @@ export const P3: Plaza3Layout = {
       ],
       "max": [
         47.4,
-        8.5,
-        8.8
-      ],
-      "mat": "concrete",
-      "color": 15853263
-    },
-    {
-      "id": "pav.kurzal.s1",
-      "q": "games",
-      "min": [
-        47.4,
-        0,
-        8.4
-      ],
-      "max": [
-        60,
-        8.5,
-        8.8
-      ],
-      "mat": "concrete",
-      "color": 15853263
-    },
-    {
-      "id": "pav.kurzal.s2",
-      "q": "games",
-      "min": [
-        62,
-        0,
-        8.4
-      ],
-      "max": [
-        66,
-        8.5,
-        8.8
-      ],
-      "mat": "concrete",
-      "color": 15853263
-    },
-    {
-      "id": "pav.kurzal.e",
-      "q": "games",
-      "min": [
-        65.6,
-        0,
-        1.2
-      ],
-      "max": [
-        66,
-        8.5,
+        5.4,
         8.4
       ],
       "mat": "concrete",
-      "color": 15853263
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.roofW",
+      "id": "pav.kurzal.wall_w_s",
       "q": "games",
+      "pav": "kursaal",
       "min": [
         47,
-        8.5,
-        2.5
+        0,
+        1.4
       ],
       "max": [
-        51,
-        9,
-        8.8
-      ],
-      "mat": "concrete",
-      "color": 13203534
-    },
-    {
-      "id": "pav.kurzal.roof",
-      "q": "games",
-      "min": [
-        51,
-        8.5,
-        0.8
-      ],
-      "max": [
-        66,
-        9,
-        8.8
-      ],
-      "mat": "concrete",
-      "color": 13203534
-    },
-    {
-      "id": "pav.kurzal.gallery",
-      "q": "games",
-      "min": [
-        51,
-        5,
-        -1
-      ],
-      "max": [
-        66,
+        47.4,
         5.4,
+        4
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.wall_s_arch",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        60,
+        2.3,
+        8.4
+      ],
+      "max": [
+        62,
+        5.4,
+        8.8
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.wall_g_arch",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        63,
+        2.3,
         0.8
       ],
+      "max": [
+        65,
+        5.4,
+        1.2
+      ],
       "mat": "concrete",
-      "color": 15853263
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.arch54",
+      "id": "pav.kurzal.wall_w_arch",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        53.8,
-        0,
-        -1
+        47,
+        2.3,
+        4
       ],
       "max": [
-        54.2,
-        5,
+        47.4,
+        5.4,
+        6
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_ne_1",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        49.92,
+        0,
+        -1.16
+      ],
+      "max": [
+        50.49,
+        3.2,
         -0.6
       ],
       "mat": "concrete",
-      "color": 16183264
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.arch57",
+      "id": "pav.kurzal.turret_ne_2",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        56.8,
+        50.23,
         0,
-        -1
+        -0.6
       ],
       "max": [
-        57.2,
-        5,
+        50.77,
+        3.2,
+        -0.27
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.pier_0",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        50.5,
+        0,
+        -1.1
+      ],
+      "max": [
+        51.3,
+        2.9,
         -0.6
       ],
       "mat": "concrete",
-      "color": 16183264
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.arch60",
+      "id": "pav.kurzal.pier_5",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        59.8,
+        65.3,
         0,
-        -1
+        -1.1
       ],
       "max": [
-        60.2,
-        5,
-        -0.6
+        66.1,
+        2.9,
+        -0.4
       ],
       "mat": "concrete",
-      "color": 16183264
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.arch63",
+      "id": "pav.kurzal.pier_2",
       "q": "games",
+      "pav": "kursaal",
       "min": [
-        62.8,
+        56.42,
         0,
-        -1
+        -1.1
       ],
       "max": [
-        63.2,
-        5,
-        -0.6
+        57.22,
+        2.9,
+        -0.4
       ],
       "mat": "concrete",
-      "color": 16183264
+      "color": 15321508
     },
     {
-      "id": "pav.kurzal.arch66",
+      "id": "pav.kurzal.pier_1",
       "q": "games",
+      "pav": "kursaal",
       "min": [
+        53.46,
+        0,
+        -1.1
+      ],
+      "max": [
+        54.26,
+        2.9,
+        -0.4
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.pier_3",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        59.38,
+        0,
+        -1.1
+      ],
+      "max": [
+        60.18,
+        2.9,
+        -0.4
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.pier_4",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        62.34,
+        0,
+        -1.1
+      ],
+      "max": [
+        63.14,
+        2.9,
+        -0.4
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_ne_0",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        49.56,
+        0,
+        -1.38
+      ],
+      "max": [
+        49.92,
+        3.2,
+        -0.87
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_3",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47.34,
+        0,
+        -0.94
+      ],
+      "max": [
+        47.85,
+        3.2,
+        -0.42
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_4",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47.85,
+        0,
+        -1.2
+      ],
+      "max": [
+        48.13,
+        3.2,
+        -0.69
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_2",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47.15,
+        0,
+        -0.42
+      ],
+      "max": [
+        47.63,
+        3.2,
+        -0.12
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.wall_g_e",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        65,
+        0,
+        0.8
+      ],
+      "max": [
         65.6,
-        0,
-        -1
-      ],
-      "max": [
-        66,
-        5,
-        -0.6
+        5.4,
+        1.2
       ],
       "mat": "concrete",
-      "color": 16183264
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_5",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        48.13,
+        0,
+        -1.38
+      ],
+      "max": [
+        48.44,
+        3.2,
+        -0.9
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_1",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47.03,
+        0,
+        -0.12
+      ],
+      "max": [
+        47.47,
+        3.2,
+        0.21
+      ],
+      "mat": "concrete",
+      "color": 15321508
+    },
+    {
+      "id": "pav.kurzal.turret_w_0",
+      "q": "games",
+      "pav": "kursaal",
+      "min": [
+        47,
+        0,
+        0.21
+      ],
+      "max": [
+        47.38,
+        3.2,
+        0.57
+      ],
+      "mat": "concrete",
+      "color": 15321508
     },
     {
       "id": "pav.kurzal.arcade",
@@ -2672,6 +3084,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.tribune1",
       "q": "games",
+      "pav": "regatta_lookout",
       "min": [
         52,
         0,
@@ -2688,6 +3101,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.tribune2",
       "q": "games",
+      "pav": "regatta_lookout",
       "min": [
         52,
         0,
@@ -2704,6 +3118,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.tribune3",
       "q": "games",
+      "pav": "regatta_lookout",
       "min": [
         52,
         0,
@@ -2736,6 +3151,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.kalancha",
       "q": "arenas",
+      "pav": "skytower",
       "min": [
         -10,
         0,
@@ -2800,6 +3216,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.paintball",
       "q": "arenas",
+      "pav": "paintball",
       "min": [
         -2,
         0,
@@ -2816,6 +3233,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.paintball.l",
       "q": "arenas",
+      "pav": "paintball",
       "min": [
         -2,
         0,
@@ -2832,6 +3250,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.paintball.r",
       "q": "arenas",
+      "pav": "paintball",
       "min": [
         11,
         0,
@@ -2848,6 +3267,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.paintball.lintel",
       "q": "arenas",
+      "pav": "paintball",
       "min": [
         5,
         4.5,
@@ -2894,88 +3314,9 @@ export const P3: Plaza3Layout = {
       "color": 12169376
     },
     {
-      "id": "pav.fort.l",
+      "id": "pav.fort.keep",
       "q": "arenas",
-      "min": [
-        21,
-        0,
-        -35
-      ],
-      "max": [
-        24.3,
-        10,
-        -29
-      ],
-      "mat": "concrete",
-      "color": 14202218
-    },
-    {
-      "id": "pav.fort.r",
-      "q": "arenas",
-      "min": [
-        27.7,
-        0,
-        -35
-      ],
-      "max": [
-        31,
-        10,
-        -29
-      ],
-      "mat": "concrete",
-      "color": 14202218
-    },
-    {
-      "id": "pav.fort.gate",
-      "q": "arenas",
-      "min": [
-        24.3,
-        0,
-        -35
-      ],
-      "max": [
-        27.7,
-        10,
-        -30
-      ],
-      "mat": "concrete",
-      "color": 14202218
-    },
-    {
-      "id": "pav.fort.lintel",
-      "q": "arenas",
-      "min": [
-        24.3,
-        4,
-        -30
-      ],
-      "max": [
-        27.7,
-        10,
-        -29
-      ],
-      "mat": "concrete",
-      "color": 14202218
-    },
-    {
-      "id": "pav.fort.hall",
-      "q": "arenas",
-      "min": [
-        21,
-        0,
-        -38
-      ],
-      "max": [
-        31,
-        8,
-        -35
-      ],
-      "mat": "concrete",
-      "color": 13215326
-    },
-    {
-      "id": "pav.fort.donjon",
-      "q": "arenas",
+      "pav": "fort",
       "min": [
         22,
         0,
@@ -2984,7 +3325,92 @@ export const P3: Plaza3Layout = {
       "max": [
         30,
         18,
-        -38
+        -37.6
+      ],
+      "mat": "concrete",
+      "color": 14202218
+    },
+    {
+      "id": "pav.fort.neck",
+      "q": "arenas",
+      "pav": "fort",
+      "min": [
+        22,
+        0,
+        -37.6
+      ],
+      "max": [
+        30,
+        7.5,
+        -35
+      ],
+      "mat": "concrete",
+      "color": 14202218
+    },
+    {
+      "id": "pav.fort.wall_l",
+      "q": "arenas",
+      "pav": "fort",
+      "min": [
+        21,
+        0,
+        -35
+      ],
+      "max": [
+        24.3,
+        9,
+        -29.05
+      ],
+      "mat": "concrete",
+      "color": 14202218
+    },
+    {
+      "id": "pav.fort.wall_r",
+      "q": "arenas",
+      "pav": "fort",
+      "min": [
+        27.7,
+        0,
+        -35
+      ],
+      "max": [
+        31,
+        9,
+        -29.05
+      ],
+      "mat": "concrete",
+      "color": 14202218
+    },
+    {
+      "id": "pav.fort.gate_back",
+      "q": "arenas",
+      "pav": "fort",
+      "min": [
+        24.3,
+        0,
+        -35
+      ],
+      "max": [
+        27.7,
+        7.4,
+        -32.6
+      ],
+      "mat": "concrete",
+      "color": 14202218
+    },
+    {
+      "id": "pav.fort.barrels",
+      "q": "arenas",
+      "pav": "fort",
+      "min": [
+        20,
+        0,
+        -31
+      ],
+      "max": [
+        20.8,
+        0.8,
+        -29.5
       ],
       "mat": "concrete",
       "color": 14202218
@@ -3056,6 +3482,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.karting",
       "q": "arenas",
+      "pav": "karting",
       "min": [
         34,
         0,
@@ -3088,6 +3515,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.0",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3104,6 +3532,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.1",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3120,6 +3549,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.2",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3136,6 +3566,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.3",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3152,6 +3583,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.4",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3168,6 +3600,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.5",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3184,6 +3617,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.6",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3200,6 +3634,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.7",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3216,6 +3651,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.8",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3232,6 +3668,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.9",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3248,6 +3685,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.10",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3264,6 +3702,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.11",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3280,6 +3719,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.12",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3296,6 +3736,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.13",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3312,6 +3753,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.14",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3328,6 +3770,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.15",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3344,6 +3787,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.16",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3360,6 +3804,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.17",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3376,6 +3821,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.18",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3392,6 +3838,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.19",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3408,6 +3855,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.20",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3424,6 +3872,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.21",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3440,6 +3889,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.22",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3456,6 +3906,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.23",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3472,6 +3923,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.24",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3488,6 +3940,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.25",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3504,6 +3957,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.26",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3520,6 +3974,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.27",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3536,6 +3991,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "cliff.28",
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "min": [
         -30,
         0,
@@ -3552,6 +4008,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.wardrobe",
       "q": "beach",
+      "pav": "cabins",
       "min": [
         -29.5,
         0,
@@ -3568,6 +4025,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.plane",
       "q": "beach",
+      "pav": "aeroclub",
       "min": [
         -29.6,
         0,
@@ -3582,88 +4040,162 @@ export const P3: Plaza3Layout = {
       "color": 15194032
     },
     {
-      "id": "pav.tower-28.52.5",
+      "id": "pav.lifeguard.deck",
       "q": "beach",
+      "pav": "lifeguard",
       "min": [
-        -28.5,
-        0,
-        2.5
+        -28.3,
+        3.04,
+        2.75
       ],
       "max": [
-        -28.25,
-        3,
+        -25.7,
+        6.4,
+        5.75
+      ],
+      "mat": "wood",
+      "color": 15328474
+    },
+    {
+      "id": "pav.lifeguard.ladder",
+      "q": "beach",
+      "pav": "lifeguard",
+      "min": [
+        -25.7,
+        0,
+        2.95
+      ],
+      "max": [
+        -24.75,
+        4.2,
+        3.6
+      ],
+      "mat": "wood",
+      "color": 15328474
+    },
+    {
+      "id": "pav.lifeguard.brace_w",
+      "q": "beach",
+      "pav": "lifeguard",
+      "min": [
+        -28.42,
+        0.35,
+        2.62
+      ],
+      "max": [
+        -28.28,
+        3.04,
+        5.88
+      ],
+      "mat": "wood",
+      "color": 15328474
+    },
+    {
+      "id": "pav.lifeguard.brace_n",
+      "q": "beach",
+      "pav": "lifeguard",
+      "min": [
+        -28.28,
+        0.35,
+        2.62
+      ],
+      "max": [
+        -25.6,
+        3.2,
         2.75
       ],
       "mat": "wood",
       "color": 15328474
     },
     {
-      "id": "pav.tower-25.752.5",
+      "id": "pav.lifeguard.brace_s",
       "q": "beach",
+      "pav": "lifeguard",
       "min": [
-        -25.75,
-        0,
-        2.5
-      ],
-      "max": [
-        -25.5,
-        3,
-        2.75
-      ],
-      "mat": "wood",
-      "color": 15328474
-    },
-    {
-      "id": "pav.tower-28.55.75",
-      "q": "beach",
-      "min": [
-        -28.5,
-        0,
+        -28.28,
+        0.35,
         5.75
       ],
       "max": [
-        -28.25,
-        3,
-        6
+        -25.6,
+        3.2,
+        5.88
       ],
       "mat": "wood",
       "color": 15328474
     },
     {
-      "id": "pav.tower-25.755.75",
+      "id": "pav.lifeguard.leg_-25.6_2.6",
       "q": "beach",
+      "pav": "lifeguard",
       "min": [
-        -25.75,
+        -25.85,
         0,
-        5.75
+        2.45
       ],
       "max": [
-        -25.5,
-        3,
-        6
+        -25.45,
+        3.04,
+        2.62
       ],
       "mat": "wood",
       "color": 15328474
     },
     {
-      "id": "pav.tower.deck",
+      "id": "pav.lifeguard.leg_-25.6_5.8",
       "q": "beach",
+      "pav": "lifeguard",
       "min": [
-        -28.5,
-        3,
-        2.5
+        -25.85,
+        0,
+        5.88
       ],
       "max": [
-        -25.5,
-        3.25,
-        6
+        -25.45,
+        3.04,
+        6.05
       ],
       "mat": "wood",
-      "color": 13780538
+      "color": 15328474
+    },
+    {
+      "id": "pav.lifeguard.leg_-28.4_2.6",
+      "q": "beach",
+      "pav": "lifeguard",
+      "min": [
+        -28.55,
+        0,
+        2.45
+      ],
+      "max": [
+        -28.15,
+        3.04,
+        2.62
+      ],
+      "mat": "wood",
+      "color": 15328474
+    },
+    {
+      "id": "pav.lifeguard.leg_-28.4_5.8",
+      "q": "beach",
+      "pav": "lifeguard",
+      "min": [
+        -28.55,
+        0,
+        5.88
+      ],
+      "max": [
+        -28.15,
+        3.04,
+        6.05
+      ],
+      "mat": "wood",
+      "color": 15328474
     },
     {
       "id": "pav.jettyarch.w",
       "q": "port",
+      "pav": "lighthouse_arch",
       "min": [
         -21.6,
         0,
@@ -3680,6 +4212,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.jettyarch.e",
       "q": "port",
+      "pav": "lighthouse_arch",
       "min": [
         -17,
         0,
@@ -3696,6 +4229,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.jettyarch.top",
       "q": "port",
+      "pav": "lighthouse_arch",
       "min": [
         -21,
         3.8,
@@ -3712,6 +4246,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere0",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -23.98,
         0,
@@ -3728,6 +4263,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere1",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -25.39,
         0,
@@ -3744,6 +4280,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere2",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -27.32,
         0,
@@ -3760,6 +4297,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere3",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -27.84,
         0,
@@ -3776,6 +4314,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere4",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -26.43,
         0,
@@ -3792,6 +4331,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "pav.belvedere5",
       "q": "port",
+      "pav": "sunset",
       "min": [
         -24.5,
         0,
@@ -3806,33 +4346,239 @@ export const P3: Plaza3Layout = {
       "color": 15921128
     },
     {
-      "id": "pav.farmarch0",
+      "id": "pav.farm_arch.post_n",
       "q": "farm",
+      "pav": "farm_arch",
       "min": [
-        55.68,
+        53.82,
         0,
-        -18.73
+        -24.98
       ],
       "max": [
-        56.28,
-        5.5,
-        -18.13
+        54.62,
+        5,
+        -24.18
       ],
       "mat": "wood",
       "color": 9071174
     },
     {
-      "id": "pav.farmarch1",
+      "id": "pav.farm_arch.post_s",
       "q": "farm",
+      "pav": "farm_arch",
       "min": [
-        53.92,
+        55.58,
         0,
-        -24.88
+        -18.82
       ],
       "max": [
-        54.52,
-        5.5,
-        -24.28
+        56.38,
+        5,
+        -18.02
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_3",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        61.81,
+        0,
+        -21.39
+      ],
+      "max": [
+        64.09,
+        1.2,
+        -20.48
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_0",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        54.62,
+        0,
+        -24.93
+      ],
+      "max": [
+        56.83,
+        1.2,
+        -24.02
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_1",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        56.83,
+        0,
+        -25.48
+      ],
+      "max": [
+        58.75,
+        1.2,
+        -24.57
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_2",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        58.75,
+        0,
+        -26.03
+      ],
+      "max": [
+        60.68,
+        1.2,
+        -25.12
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_3",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        60.68,
+        0,
+        -26.58
+      ],
+      "max": [
+        62.61,
+        1.2,
+        -25.67
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_4",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        62.61,
+        0,
+        -27.14
+      ],
+      "max": [
+        64.53,
+        1.2,
+        -26.22
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_n_5",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        64.53,
+        0,
+        -27.69
+      ],
+      "max": [
+        66.46,
+        1.2,
+        -26.78
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_0",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        56.03,
+        0,
+        -19.74
+      ],
+      "max": [
+        58.31,
+        1.2,
+        -18.83
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_1",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        58.31,
+        0,
+        -20.29
+      ],
+      "max": [
+        60.24,
+        1.2,
+        -19.38
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_2",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        60.24,
+        0,
+        -20.84
+      ],
+      "max": [
+        61.81,
+        1.2,
+        -19.93
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_4",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        64.09,
+        0,
+        -21.94
+      ],
+      "max": [
+        66.02,
+        1.2,
+        -21.03
+      ],
+      "mat": "wood",
+      "color": 9071174
+    },
+    {
+      "id": "pav.farm_arch.fence_s_5",
+      "q": "farm",
+      "pav": "farm_arch",
+      "min": [
+        66.02,
+        0,
+        -22.5
+      ],
+      "max": [
+        67.5,
+        1.2,
+        -21.58
       ],
       "mat": "wood",
       "color": 9071174
@@ -3841,6 +4587,7 @@ export const P3: Plaza3Layout = {
   "decor": [
     {
       "q": "hub",
+      "pav": "rotunda",
       "t": "cyl",
       "c": [
         15,
@@ -3853,6 +4600,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "hub",
+      "pav": "rotunda",
       "t": "cone",
       "c": [
         15,
@@ -3865,6 +4613,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "hub",
+      "pav": "rotunda",
       "t": "cyl",
       "c": [
         15,
@@ -3877,6 +4626,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3892,6 +4642,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3907,6 +4658,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3922,6 +4674,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3937,6 +4690,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3952,6 +4706,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3967,6 +4722,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3982,6 +4738,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -3997,6 +4754,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cardveranda",
       "t": "box",
       "c": [
         28.25,
@@ -4012,6 +4770,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cafe",
       "t": "box",
       "c": [
         39,
@@ -4027,6 +4786,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "cafe",
       "t": "box",
       "c": [
         34.6,
@@ -4042,6 +4802,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "kursaal",
       "t": "cone",
       "c": [
         49,
@@ -4066,6 +4827,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "port",
+      "pav": "sunset",
       "t": "cyl",
       "c": [
         -25.76,
@@ -4078,6 +4840,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "port",
+      "pav": "sunset",
       "t": "cone",
       "c": [
         -25.76,
@@ -4090,6 +4853,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "farm",
+      "pav": "farm_arch",
       "t": "box",
       "c": [
         55.1,
@@ -4106,6 +4870,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "t": "box",
       "c": [
         -18.01,
@@ -4122,6 +4887,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "t": "box",
       "c": [
         -19.191,
@@ -4138,6 +4904,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "t": "box",
       "c": [
         -16.829,
@@ -4154,6 +4921,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "cliffs",
+      "pav": "dungeon_cliff",
       "t": "box",
       "c": [
         -18.01,
@@ -4197,6 +4965,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "farm",
+      "pav": "windmill",
       "t": "cyl",
       "c": [
         84,
@@ -4209,6 +4978,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "farm",
+      "pav": "windmill",
       "t": "cone",
       "c": [
         84,
@@ -4221,6 +4991,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "farm",
+      "pav": "windmill",
       "t": "box",
       "c": [
         84,
@@ -4236,6 +5007,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "farm",
+      "pav": "windmill",
       "t": "box",
       "c": [
         84,
