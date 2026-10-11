@@ -107,6 +107,7 @@ import { LobbyFolk } from './folk.ts';
 import { Respects } from './respect.ts';
 import { LobbyFx } from './fx.ts';
 import { LobbyHud } from './hud.ts';
+import { uiIcon } from '../ui/kit/icons.ts';
 import { BOARD_POS } from './kartstart.ts';
 import { LosersScreen } from './losers.ts';
 import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type PhotoPerson } from './photo.ts';
@@ -447,7 +448,7 @@ export class LobbyScene implements Scene {
     this.predictor = new Predictor(col, this.aquaHook);
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
-    this.hud = new LobbyHud(d.hudRoot);
+    this.hud = new LobbyHud(d.hudRoot, d.ui.slots, d.ui.top);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
     // радио на лодке: свои лодки (client/boat/ownboats.ts) — где лодка и на борту ли я; тестовое /radio — у желейки хозяина
@@ -477,6 +478,8 @@ export class LobbyScene implements Scene {
       light: () => d.net.send({ t: 'stormLight' }),
       self: () => d.ui.me().pid,
       lampPosition: this.world.lighthouse.lampAnchor.getWorldPosition(new THREE.Vector3()),
+      top: d.ui.top,
+      icon: uiIcon,
     });
     // молния ударила — гром: с задержкой по расстоянию, громкость по расстоянию, сбоку — где ударило
     this.world.onStrike((e) => d.sound.thunder(e.dist, e.pan, e.power, e.far));
@@ -485,6 +488,8 @@ export class LobbyScene implements Scene {
       lobbyFx: () => this.fx,
       fire: (down) => d.input.touchButton(0, down),
       quality: () => lobbyQuality(d.settings.quality),
+      top: d.ui.top,
+      icon: uiIcon,
     });
     for (const z of START_ZONES) {
       const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });
@@ -864,6 +869,9 @@ export class LobbyScene implements Scene {
     this.ob.reset();
     this.hud.setTimer(null);
     this.hud.setVisible(false);
+    // плашки шторма и пиратов — в общем верх-центре HUD: с набережной уходят вместе с ней
+    this.d.ui.top.clear('storm');
+    this.d.ui.top.clear('pirates');
     this.d.sound.setRain(0);
     this.d.sound.engineStop(BOAT_ENGINE);
     this.d.sound.engineStop(LAUNCH_ENGINE);

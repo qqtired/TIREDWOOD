@@ -8,38 +8,7 @@
 }
 .pr-hud[hidden] { display: none; }
 
-/* большая плашка: «Пираты на горизонте!» и «Набег!» */
-.pr-banner {
-  position: absolute;
-  top: 74px;
-  left: 50%;
-  transform: translate(-50%, -10px) scale(0.96);
-  min-width: 300px;
-  max-width: min(640px, calc(100vw - 24px));
-  padding: 12px 26px 13px;
-  border-radius: 22px;
-  text-align: center;
-  color: var(--cream);
-  background: linear-gradient(180deg, rgba(122, 36, 30, 0.94), rgba(70, 22, 24, 0.94));
-  border: 2px solid rgba(255, 211, 90, 0.75);
-  box-shadow: 0 10px 28px rgba(12, 6, 10, 0.5);
-  opacity: 0;
-  transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.pr-banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
-.pr-hud.raid .pr-banner { top: 190px; }
-.pr-banner-t {
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--gold);
-  -webkit-text-stroke: 3px rgba(34, 12, 12, 0.55);
-  paint-order: stroke fill;
-}
-.pr-banner-s { margin-top: 3px; font-size: 18px; font-weight: 700; }
-.pr-banner-h { margin-top: 6px; font-size: 14px; font-weight: 500; color: var(--cream-2); line-height: 1.35; }
-.pr-banner-h b { color: var(--gold); font-weight: 700; }
+/* плашка «Пираты на горизонте!» и «Волна N» — событие в верх-центре HUD (client/ui/kit/topcenter.ts) */
 
 /* панель набега: корабль, добыча, волна */
 .pr-panel {
@@ -217,12 +186,7 @@
 .pr-result-me { margin-top: 8px; font-size: 20px; font-weight: 900; color: var(--gold); }
 
 @media (max-width: 640px), (pointer: coarse) {
-  .pr-banner { top: 56px; padding: 9px 16px 10px; min-width: 0; }
-  .pr-banner-t { font-size: 20px; }
-  .pr-banner-s { font-size: 15px; }
-  .pr-banner-h { font-size: 12px; }
   .pr-panel { top: 52px; padding: 7px 10px 9px; }
-  .pr-hud.raid .pr-banner { top: 150px; }
   .pr-title { font-size: 13px; }
   .pr-lab { width: 54px; font-size: 12px; }
   .pr-slots i { width: 14px; height: 14px; }

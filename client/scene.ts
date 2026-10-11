@@ -11,6 +11,8 @@ import type { Net } from './net.ts';
 import type { Renderer } from './render/renderer.ts';
 import type { Settings } from './settings.ts';
 import type { TouchMode } from './touch.ts';
+import type { HudSlots } from './ui/kit/slots.ts';
+import type { TopCenter } from './ui/kit/topcenter.ts';
 import type { OnlineList } from './ui/online.ts';
 import type { Toasts } from './ui/toasts.ts';
 import type { TokensHud } from './ui/tokens.ts';
@@ -37,6 +39,10 @@ export interface Ui {
   toasts: Toasts;
   online: OnlineList;
   me: () => MeState;
+  /** Слоты HUD кита (верх-лево … центр) — части сцен кладутся сюда */
+  slots: HudSlots;
+  /** Верх-центр: одна плашка события и тосты */
+  top: TopCenter;
 }
 
 export interface SceneDeps {

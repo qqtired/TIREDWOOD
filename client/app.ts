@@ -4,7 +4,7 @@
 // На телефоне — ещё кнопки на экране (touch.ts): пауза там по кнопке ☰ и когда свернули браузер.
 import { MAX_NAME, PROTOCOL_VERSION } from '../shared/constants.ts';
 import { emptyStats } from '../shared/economy.ts';
-import { frameForLevel, safeXp } from '../shared/levels.ts';
+import { frameForLevel, levelProgress, safeXp } from '../shared/levels.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
 import { CLOSE_SILENCE, type ClientMsg, type ErrorCode, type RoomKind, type ServerMsg } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
@@ -41,7 +41,11 @@ import { OnlineList } from './ui/online.ts';
 import { KickVoteUi } from './ui/kickvote.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
+import { Badge } from './ui/kit/badge.ts';
 import { bindHudScale } from './ui/kit/scale.ts';
+import { uiIcon } from './ui/kit/icons.ts';
+import { HudSlots } from './ui/kit/slots.ts';
+import { TopCenter } from './ui/kit/topcenter.ts';
 import { bindClickSounds, sfx } from './ui/kit/sfx.ts';
 import { TokensHud } from './ui/tokens.ts';
 import { Transition } from './ui/transition.ts';
@@ -92,6 +96,10 @@ export class App {
   private readonly relink: Relink;
   private readonly linkBanner: LinkBanner;
   private readonly shell: HTMLElement;
+  /** HUD кита: слоты по краям, верх-центр (события и тосты), бейдж игрока */
+  private readonly slots: HudSlots;
+  private readonly top: TopCenter;
+  private readonly badge: Badge;
   private readonly chat: Chat;
   private readonly tokens: TokensHud;
   private readonly toasts: Toasts;
@@ -119,6 +127,8 @@ export class App {
   private voiceTransmitting = false;
   private fishingUi = false;
   private celebratedLevel = 1;
+  /** Опыт, пришедший последним обновлением профиля (для «+N опыта» у бейджа на новом уровне) */
+  private xpGain = 0;
   /** Крепость (режим за флагом сервера) — тоже при первом входе */
   private fort: FortScene | null = null;
   /** «Подземелье»: код сцены грузится лениво (client/dungeon/scene.ts) — заранее, как только набережная скажет, что режим есть */
@@ -214,8 +224,11 @@ export class App {
     bindClickSounds(menus);
     // кнопки на экране — под интерфейсом сцен (их подсказки и панели нажимаются пальцем) и под чатом
     this.touch = TOUCH ? new TouchControls(shell, this.input) : null;
-    this.chat = new Chat(shell);
-    this.tokens = new TokensHud(shell);
+    this.slots = new HudSlots(shell);
+    this.top = new TopCenter(this.slots.tc);
+    this.badge = new Badge(this.slots.tr);
+    this.chat = new Chat(this.slots.bl);
+    this.tokens = new TokensHud(this.badge);
     // «кто где» (Tab): громкость голоса каждого и 👢; ПКМ, пока держишь Tab, — мышь в список, игра ждёт
     this.online = new OnlineList(shell, {
       kick: (pid) => this.net.send({ t: 'kick', a: 'start', pid }),
@@ -225,10 +238,10 @@ export class App {
       },
       restorePointer: () => { if (this.active?.wantsPointer !== false) this.wantPointer(); },
     });
-    this.kickVote = new KickVoteUi(document.body, { myPid: () => this.me.pid, send: (m) => this.net.send(m), opened: () => this.sound.pairAsk() });
-    // уведомления — над меню: ошибка смены ника видна и в профиле
-    this.toasts = new Toasts(menus);
-    this.linkBanner = new LinkBanner(menus);
+    this.kickVote = new KickVoteUi(this.top, { myPid: () => this.me.pid, send: (m) => this.net.send(m), opened: () => this.sound.pairAsk() });
+    // уведомления и плашка связи — в верх-центре HUD (ошибка смены ника видна и в профиле — profile.setNote)
+    this.toasts = new Toasts(this.top);
+    this.linkBanner = new LinkBanner(this.top);
     this.relink = new Relink({
       connect: (rs) => {
         this.hello = { t: 'hello', v: PROTOCOL_VERSION, key: deviceKey(), re: this.lastClose, rs };
@@ -273,7 +286,7 @@ export class App {
       sound: this.sound,
       settings: this.settings,
       net: this.net,
-      ui: { chat: this.chat, tokens: this.tokens, toasts: this.toasts, online: this.online, me: () => this.me },
+      ui: { chat: this.chat, tokens: this.tokens, toasts: this.toasts, online: this.online, me: () => this.me, slots: this.slots, top: this.top },
       hudRoot: shell,
       overlay: menus,
       wantPointer: () => this.wantPointer(),
@@ -781,8 +794,11 @@ export class App {
     ISLE.on = m.isle === true;
     const renamed = this.renamePending && m.nick !== this.me.nick;
     if (this.me.pid !== m.pid) this.celebratedLevel = Math.max(1, m.level ?? 1);
+    // сколько опыта пришло этим обновлением: сервер шлёт me прямо перед levelUp — бейдж покажет «+N опыта»
+    this.xpGain = this.me.pid === m.pid ? Math.max(0, safeXp(m.xp ?? 0) - this.me.xp) : 0;
     this.me = { pid: m.pid, xp: safeXp(m.xp ?? 0), level: Math.max(1, Math.floor(m.level ?? 1)), nick: m.nick, tokens: m.tokens, owned: m.owned, outfit: m.outfit, stats: m.stats, album: m.album ?? {}, fishing: m.fishing ?? emptyFishProgress(), gifts: m.gifts === true };
     saveNick(m.nick);
+    this.paintBadge();
     this.tokens.sync(m.tokens);
     this.profile.update(this.me);
     if (renamed) {
@@ -802,18 +818,21 @@ export class App {
     this.me.level = Math.max(this.me.level, Math.floor(m.level));
     this.profile.update(this.me);
     const tier = frameForLevel(m.level);
-    const unlocked = m.milestones.length ? ` · новая рамка: ${tier.name}` : '';
-    this.toasts.show(`Уровень ${m.level}${unlocked}`, 4200, 'level-up');
+    const unlocked = m.milestones.length > 0;
+    this.toasts.show(`Уровень ${m.level}${unlocked ? ` · рамка ${tier.name}` : ''}`, 4200, 'level-up', unlocked ? 'Её видят все над твоей желейкой' : '');
     this.sound.coin(null);
     const me: Extract<ServerMsg, { t: 'me' }> = { t: 'me', ...this.me, build: this.build };
     this.lobby.onJson(me);
     if (this.active && this.active !== this.lobby) this.active.onJson(me);
-    // Small, non-interactive sparkle near the HUD; reduced-motion keeps it still.
-    const spark = document.createElement('span'); spark.textContent = '✦'; spark.setAttribute('aria-hidden', 'true'); spark.dataset.levelSpark = '1';
-    Object.assign(spark.style, { position: 'absolute', top: '58px', right: '32px', color: tier.light, fontSize: '32px', textShadow: `0 0 12px ${tier.color}`, pointerEvents: 'none' });
-    this.deps.overlay.querySelectorAll('[data-level-spark]').forEach(e => e.remove()); this.deps.overlay.appendChild(spark);
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) spark.animate([{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'scale(1.1)', offset: 0.15 }, { opacity: 0, transform: 'scale(1)' }], { duration: 2300, easing: 'ease-out' });
-    setTimeout(() => spark.remove(), 2400);
+    // бейдж: новое число в кольце, кольцо подпрыгивает, «Уровень N» золотом (тост — выше)
+    this.paintBadge();
+    this.badge.levelUp(this.me.level, this.xpGain);
+  }
+
+  /** Бейдж игрока (верх-право): ник, уровень, доля опыта до следующего; жетоны рисует TokensHud */
+  private paintBadge(): void {
+    const p = levelProgress(this.me.xp);
+    this.badge.set(this.me.nick, this.me.level, p.needed > 0 ? p.current / p.needed : 0, Math.max(0, this.tokens.shown));
   }
 
   private onError(code: ErrorCode | undefined, text: string): void {
@@ -1208,15 +1227,15 @@ export class App {
   private ensureVoice(): void {
     if (this.voice) return;
     // панель «Голос» монтирует само меню (вкладка «Голос», client/ui/voicepanel.ts).
-    // Кнопка микрофона — в body, над меню и окнами: на телефоне ею говорят и там.
-    this.voiceUi = new VoiceUi(document.body, {
+    // Кнопка микрофона — в доке чата (слева внизу); пока открыто модальное окно — в нём.
+    this.voiceUi = new VoiceUi(this.chat.bar, {
       connectMic: () => { void this.voice?.connectMic(); },
       push: on => this.voice?.push(on),
       unblock: () => { void this.voice?.unblock(); },
       openSettings: () => { this.input.unlock(); this.setPaused(true); this.menu.show('voice'); },
       level: id => this.voice?.speakingLevel(id) ?? null,
       selfNick: () => this.me.nick,
-    });
+    }, uiIcon('voice'));
     this.voice = new VoiceController({
       send: message => this.net.send(message),
       canTalk: () => this.canTalk(),

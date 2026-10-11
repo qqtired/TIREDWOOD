@@ -1,27 +1,33 @@
-// Плашка о связи поверх игры: «связь нестабильна» (сервер молчит несколько секунд) и «связь пропала —
-// восстанавливаем» (сцена остаётся, ждём возврата в ту же сессию). Игру не закрывает и клики не перехватывает.
-import './linkbanner.css';
+// Плашка о связи сверху по центру (верх-центр кита, client/ui/kit/topcenter.ts — красная .k-event): «связь
+// нестабильна» (сервер молчит несколько секунд) и «связь пропала — восстанавливаем» (сцена остаётся, ждём возврата
+// в ту же сессию). Игру не закрывает и клики не перехватывает.
+import { uiIcon } from './kit/icons.ts';
+import { PRIO, escHtml, type TopCenter } from './kit/topcenter.ts';
 
 export class LinkBanner {
-  readonly el: HTMLDivElement;
+  private readonly top: TopCenter;
   private text = '';
+  private tone = '';
 
-  constructor(root: HTMLElement) {
-    this.el = document.createElement('div');
-    this.el.className = 'link-banner';
-    this.el.setAttribute('role', 'status');
-    this.el.setAttribute('aria-live', 'polite');
-    this.el.hidden = true;
-    root.appendChild(this.el);
+  constructor(top: TopCenter) {
+    this.top = top;
   }
 
   /** null — спрятать */
   show(text: string | null, tone: 'warn' | 'down' = 'warn'): void {
     const next = text ?? '';
-    if (next === this.text && this.el.dataset.tone === tone) return;
+    if (next === this.text && tone === this.tone) return;
     this.text = next;
-    this.el.textContent = next;
-    this.el.dataset.tone = tone;
-    this.el.hidden = !next;
+    this.tone = tone;
+    if (!next) {
+      this.top.clear('link');
+      return;
+    }
+    this.top.event({
+      key: 'link',
+      prio: PRIO.link,
+      tone: 'danger',
+      html: `<span class="k-event-ic"><img src="${uiIcon('warn')}" alt=""></span><div class="k-event-title">${escHtml(next)}</div>`,
+    });
   }
 }

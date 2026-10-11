@@ -10,7 +10,7 @@ function setup(t:TestContext) {
   Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>new El()}});
   t.mock.timers.enable({apis:['setTimeout']});
   t.after(()=>{for(const [key,desc] of [['window',originalWindow],['document',originalDoc]] as const){if(desc)Object.defineProperty(globalThis,key,desc);else Reflect.deleteProperty(globalThis,key);}});
-  return{hud:new TokensHud(new El() as unknown as HTMLElement),callbacks};
+  return{hud:new TokensHud({setTokens(){},pop(){}}),callbacks};
 }
 test('new connection reset invalidates even an already queued old balance callback',t=>{
   const{hud,callbacks}=setup(t);hud.sync(100);hud.set(150,1500);hud.reset();hud.sync(175);callbacks[0]();assert.equal(hud.shown,175);

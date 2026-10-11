@@ -16,9 +16,9 @@ import {
   type CannonModel, type DinghyModel, type LootKit, type PirateQuality, type ShipModel,
 } from './piratemodels.ts';
 import { PirateFx } from './piratefx.ts';
-import { PirateHud, type ArrowSpec, type ReticleSpec } from './piratehud.ts';
+import { PirateHud, type ArrowSpec, type PirateTop, type ReticleSpec } from './piratehud.ts';
 
-export interface PirateHooks {
+export interface PirateHooks extends PirateTop {
   sound: Sound;
   lobbyFx(): LobbyFx | null;
   /** Огонь (ЛКМ) нажат/отпущен кнопкой на экране телефона */
@@ -188,7 +188,7 @@ export class Pirates3D {
       this.group.add(s);
       this.marks.push({ sprite: s, kind: 0 });
     }
-    this.hud = new PirateHud(root, { fire: hooks.fire });
+    this.hud = new PirateHud(root, { fire: hooks.fire, top: hooks.top, icon: hooks.icon });
   }
 
   // ------------------------------------------------------------ входящие данные

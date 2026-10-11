@@ -1,11 +1,13 @@
-// Плашка голосования «выгнать игрока» (votekick, shared/votekick.ts): сверху по центру, поверх игры и меню.
-// «Выгнать <ник>?», кто предложил, счёт, таймер с полоской; кнопки «За [Y]» / «Против [N]» (и F1 / F2): мышь свободна —
-// кликом, мышь в игре — клавишами, на телефоне — касанием. Проголосовал — «Ты: за». Того, кого выгоняют, и вошедших
-// после начала — без кнопок. Итог — на несколько секунд. Клиент ничего не решает: всё приходит от сервера ({t:'kickVote'}).
+// Голосование «выгнать игрока» (votekick, shared/votekick.ts) — плашка события в верх-центре кита (самая важная,
+// client/ui/kit/topcenter.ts): «Выгнать <ник>?», кто предложил, счёт, таймер с полоской; кнопки «За [Y]» / «Против [N]»
+// (и F1 / F2) внутри плашки: мышь свободна — кликом, мышь в игре — клавишами, на телефоне — касанием. Проголосовал —
+// «Ты: за». Того, кого выгоняют, и вошедших после начала — без кнопок. Итог — на несколько секунд. Клиент ничего не
+// решает: всё приходит от сервера ({t:'kickVote'}).
 import { KICK_BAN_MS, KICK_PERCENT, kickWait, type KickClientMsg, type KickResult, type KickServerMsg, type KickVoteView } from '../../shared/votekick.ts';
 import { isTyping } from '../input.ts';
 import { TOUCH } from '../touch.ts';
-import './kickvote.css';
+import { uiIcon } from './kit/icons.ts';
+import { PRIO, escHtml, type TopCenter } from './kit/topcenter.ts';
 
 export interface KickVoteHost {
   myPid(): number;
@@ -18,18 +20,13 @@ export interface KickVoteHost {
 const RESULT_MS = 4500;
 /** Меньше стольких секунд — таймер мигает */
 const URGENT_S = 10;
+const KEY = 'vote';
 
 export class KickVoteUi {
-  readonly root: HTMLElement;
   /** Голосование включено на сервере (пришло при входе) */
   enabled = false;
   private readonly host: KickVoteHost;
-  private readonly title: HTMLElement;
-  private readonly sub: HTMLElement;
-  private readonly timeEl: HTMLElement;
-  private readonly bar: HTMLElement;
-  private readonly btns: HTMLElement;
-  private readonly meEl: HTMLElement;
+  private readonly top: TopCenter;
   private v: KickVoteView | null = null;
   /** Когда кончится (performance.now) */
   private endAt = 0;
@@ -40,36 +37,18 @@ export class KickVoteUi {
   private sent = false;
   private timer = 0;
 
-  constructor(parent: HTMLElement, host: KickVoteHost) {
+  constructor(top: TopCenter, host: KickVoteHost) {
     this.host = host;
-    this.root = el('div', 'kick-vote');
-    this.root.setAttribute('role', 'group');
-    this.root.setAttribute('aria-label', 'Голосование: выгнать игрока');
-    const head = this.root.appendChild(el('div', 'kv-head'));
-    head.appendChild(el('span', 'kv-icon', '👢'));
-    const text = head.appendChild(el('div', 'kv-text'));
-    this.title = text.appendChild(el('b', 'kv-title'));
-    this.sub = text.appendChild(el('span', 'kv-sub'));
-    this.timeEl = head.appendChild(el('span', 'kv-time'));
-    const row = this.root.appendChild(el('div', 'kv-row'));
-    row.appendChild(el('span', 'kv-rule', `кик — если «за» больше ${KICK_PERCENT} % голосов`));
-    this.btns = row.appendChild(el('div', 'kv-btns'));
-    this.button('За', 'Y', 'yes', true);
-    this.button('Против', 'N', 'no', false);
-    this.meEl = row.appendChild(el('span', 'kv-me'));
-    this.bar = this.root.appendChild(el('i', 'kv-bar'));
-    parent.appendChild(this.root);
-  }
-
-  private button(label: string, key: string, cls: string, yes: boolean): void {
-    const b = this.btns.appendChild(el('button', `kv-btn ${cls}`)) as HTMLButtonElement;
-    b.type = 'button';
-    b.appendChild(el('span', '', label));
-    if (!TOUCH) b.appendChild(el('kbd', '', key));
-    b.addEventListener('mousedown', (e) => e.preventDefault());
-    b.addEventListener('click', (e) => {
+    this.top = top;
+    // кнопки живут в плашке: плашка обновляется на месте, клик ловим на слоте
+    top.root.addEventListener('mousedown', (e) => {
+      if ((e.target as Element).closest?.('[data-kv]')) e.preventDefault();
+    });
+    top.root.addEventListener('click', (e) => {
+      const b = (e.target as Element).closest?.<HTMLElement>('[data-kv]');
+      if (!b) return;
       e.preventDefault();
-      this.cast(yes);
+      this.cast(b.dataset.kv === 'yes');
     });
   }
 
@@ -133,47 +112,44 @@ export class KickVoteUi {
     const now = performance.now();
     const res = !v && this.result && now < this.resultUntil ? this.result : null;
     const show = !!v || !!res;
-    this.root.classList.toggle('show', show);
-    this.root.classList.toggle('done', !!res);
-    this.root.classList.toggle('kicked', !!res?.kicked);
     if (show && !this.timer) this.timer = window.setInterval(() => this.render(), 250);
     if (!show) {
       if (this.timer) window.clearInterval(this.timer);
       this.timer = 0;
+      this.top.clear(KEY);
       return;
     }
+    const icon = `<span class="k-event-ic"><img src="${uiIcon('warn')}" alt=""></span>`;
     if (res) {
-      setText(this.title, res.kicked ? `${res.nick} выгнан` : `${res.nick} остаётся`);
-      setText(this.sub, `за ${res.yes} · против ${res.no}${res.kicked ? ` · вернуться сможет через ${kickWait(KICK_BAN_MS)}` : ''}`);
-      setText(this.timeEl, '');
-      this.btns.hidden = true;
-      this.meEl.hidden = true;
+      const sub = `за ${res.yes} · против ${res.no}${res.kicked ? ` · вернуться сможет через ${kickWait(KICK_BAN_MS)}` : ''}`;
+      this.top.event({
+        key: KEY, prio: PRIO.vote, tone: res.kicked ? 'danger' : 'good', lamp: true,
+        html: `${icon}<div class="k-event-title">${escHtml(res.kicked ? `${res.nick} выгнан` : `${res.nick} остаётся`)}</div><div class="k-event-sub">${sub}</div>`,
+      });
       return;
     }
     const mine = v!.pid === this.host.myPid();
     const left = Math.max(0, this.endAt - now);
     const s = Math.ceil(left / 1000);
-    setText(this.title, mine ? 'Голосуют, выгнать ли тебя' : `Выгнать ${v!.nick}?`);
     const wait = Math.max(0, v!.voters - v!.yes - v!.no);
-    setText(this.sub, `предложил ${v!.by} · за ${v!.yes} · против ${v!.no}${wait ? ` · ещё ${wait}` : ''}`);
-    setText(this.timeEl, `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
-    this.root.classList.toggle('urgent', s <= URGENT_S);
-    this.bar.style.transform = `scaleX(${Math.min(1, left / this.total).toFixed(3)})`;
-    const can = this.canVote;
-    this.btns.hidden = !can;
-    this.meEl.hidden = can;
-    this.meEl.className = `kv-me${v!.me === 'yes' ? ' yes' : v!.me === 'no' ? ' no' : ''}`;
-    setText(this.meEl, v!.me === 'yes' ? 'Ты: за' : v!.me === 'no' ? 'Ты: против' : this.sent ? 'Голос отправлен…' : mine ? 'Ты не голосуешь' : 'Голосуют те, кто был в игре на начало');
+    const title = mine ? 'Голосуют, выгнать ли тебя' : `Выгнать ${v!.nick}?`;
+    const sub = `предложил ${v!.by} · за ${v!.yes} · против ${v!.no}${wait ? ` · ещё ${wait}` : ''}`;
+    const rule = `кик — если «за» больше ${KICK_PERCENT} % голосов`;
+    const share = Math.min(1, left / this.total).toFixed(2);
+    let actions: string;
+    if (this.canVote) {
+      const key = (k: string): string => (TOUCH ? '' : `<kbd class="k-key k-key--sm k-key--tr">${k}</kbd>`);
+      actions = `<button class="k-btn k-btn--go k-btn--sm" type="button" data-kv="yes">За${key('Y')}</button><button class="k-btn k-btn--stop k-btn--sm" type="button" data-kv="no">Против${key('N')}</button>`;
+    } else {
+      const me = v!.me === 'yes' ? ['good', 'Ты: за'] : v!.me === 'no' ? ['bad', 'Ты: против'] : ['plate', this.sent ? 'Голос отправлен…' : mine ? 'Ты не голосуешь' : 'Голосуют те, кто был в игре на начало'];
+      actions = `<span class="k-pill k-pill--sm k-pill--${me[0]}">${me[1]}</span>`;
+    }
+    this.top.event({
+      key: KEY, prio: PRIO.vote, tone: 'danger', lamp: true,
+      html: `${icon}<div class="k-event-title" title="${rule}">${escHtml(title)}</div><div class="k-event-sub">${escHtml(sub)}</div>`
+        + `<div class="k-event-timer${s <= URGENT_S ? ' is-hurry' : ''}">${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</div>`
+        + `<div class="k-meter k-meter--thin k-meter--bad" style="--v:${share}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>`
+        + `<div class="k-event-actions" role="group" aria-label="Голосование: выгнать игрока">${actions}</div>`,
+    });
   }
-}
-
-function el(tag: string, cls: string, text = ''): HTMLElement {
-  const e = document.createElement(tag);
-  e.className = cls;
-  if (text) e.textContent = text;
-  return e;
-}
-
-function setText(e: HTMLElement, value: string): void {
-  if (e.textContent !== value) e.textContent = value;
 }

@@ -807,7 +807,6 @@ b {
 }
 
 .kf-name,
-.chat .msg b,
 .death-by b,
 .mvp b,
 .banner b[style],
@@ -1221,7 +1220,7 @@ b {
   }
 }
 
-/* --- служебное */
+/* --- служебное: FPS/пинг пейнтбола и гонки (их HUD ещё не в слотах кита; набережная — .pz-stats) */
 
 .stats {
   position: absolute;
@@ -1231,91 +1230,6 @@ b {
   font-weight: 500;
   color: var(--cream-dim);
   font-variant-numeric: tabular-nums;
-}
-
-/* ================================================================ чат */
-
-/* на 10 % крупнее (владелец, 2026-10-04): было 440 px, 220 px, текст 14 px; на телефоне — свои размеры ниже */
-.chat {
-  position: absolute;
-  left: 20px;
-  bottom: 180px;
-  width: min(484px, 44vw);
-}
-
-.chat-list {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  max-height: 242px;
-  overflow: hidden;
-}
-
-.chat .msg {
-  max-width: 100%;
-  padding: 3px 11px;
-  border-radius: 10px;
-  background: var(--panel);
-  font-size: 15.4px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  user-select: text;
-  transition: opacity 1.2s;
-}
-
-.chat .msg.sys {
-  color: var(--cream-2);
-  font-style: italic;
-  background: rgba(34, 24, 29, 0.5);
-}
-
-.chat .msg.mine {
-  border-left: 3px solid rgba(255, 236, 205, 0.6);
-}
-
-.chat .msg.old {
-  opacity: 0;
-}
-
-.chat.open .msg.old {
-  opacity: 0.85;
-}
-
-.chat-form {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  padding: 6px 10px;
-  border-radius: 12px;
-  background: var(--panel-strong);
-  border: 1px solid rgba(255, 236, 205, 0.35);
-}
-
-.chat.open .chat-form {
-  display: flex;
-  pointer-events: auto;
-}
-
-.chat-label {
-  font-size: 14.3px;
-  font-weight: 700;
-  color: var(--orange-soft);
-}
-
-.chat-form input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  font-size: 16.5px;
-  user-select: text;
-}
-
-.chat-form input::placeholder {
-  color: rgba(255, 243, 222, 0.4);
 }
 
 /* ================================================================ однорукий бандит */
@@ -2059,8 +1973,7 @@ input[type='checkbox'] {
   z-index: 0;
 }
 
-.shell > .chat,
-.shell > .tokens,
+.shell > .k-hud,
 .shell > .online-list {
   z-index: 1;
 }
@@ -2070,133 +1983,197 @@ input[type='checkbox'] {
   top: 64px;
 }
 
-.chat .room {
-  font-size: 13.2px;
+/* --- HUD кита в оболочке (client/ui/kit/slots.ts): слой .k-hud в #hud над сценами — слоты по краям, верх-центр, бейдж.
+   Вид — только классы кита (.k-*), здесь — раскладка частей оболочки и набережной (.pz-, как на странице lab/ui «Площадь») */
+
+/* у деталей кита свой display — атрибут hidden должен прятать */
+.k-hud [hidden] {
+  display: none !important;
 }
 
-/* --- жетоны */
-
-.tokens {
-  position: absolute;
-  top: 14px;
-  right: 18px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 16px 7px 11px;
-  border-radius: 999px;
-  background: var(--panel-strong);
-  border: 1px solid rgba(255, 211, 90, 0.35);
-  box-shadow: var(--shadow);
-  font-size: 19px;
-  font-weight: 900;
-  color: var(--gold);
-  font-variant-numeric: tabular-nums;
+/* бейдж: на новом уровне кольцо подпрыгивает, «Уровень N» — под бейджем, «+N» — слева */
+.pz-badge > .k-ring.is-bump {
+  animation: k-bump 0.35s var(--ease-pop);
 }
 
-.tokens .coin {
-  width: 1.15em;
-  height: 1.15em;
-  margin: 0;
+.pz-badge > .k-pop--xp {
+  top: calc(100% + 6px);
+  right: 0;
+  left: auto;
 }
 
-.tokens.bump .n {
-  display: inline-block;
-  animation: pop 0.35s ease-out;
-}
-
-.tok-pop {
-  position: absolute;
-  right: 14px;
-  top: 100%;
-  margin-top: 4px;
-  font-size: 17px;
-  font-weight: 900;
-  white-space: nowrap;
-  animation: tok-rise 1.6s ease-out forwards;
-}
-
-.tok-pop.up {
-  color: var(--mint);
-}
-
-.tok-pop.down {
-  color: var(--jam-soft);
-}
-
-@keyframes tok-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  15% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
-/* --- уведомления (живут в #menus — видны и поверх паузы) */
-
-.toasts {
-  position: absolute;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+/* док чата: строки мышь не ловят (под ними игра), кнопка голоса, «Написать в чат» и поле — ловят */
+.pz-dock {
   pointer-events: none;
 }
 
-/* шторм: плашка с таймером сверху по центру (76…≈142 px) — тосты под ней, иначе «Плюх!» от волны закрывает «Зажги маяк · N с» */
-html:not(.touch)[data-room='lobby']:has(.lobby-storm-status:not([hidden])) .toasts {
-  top: 152px;
+.pz-dock :is(.k-chat-closed, .k-chat-input, .k-voice) {
+  pointer-events: auto;
 }
 
-/* пиратский набег: сверху панель набега (70…≈178 px), под ней баннер волны (190…≈280 px) — тосты ниже обоих */
-html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
-  top: 292px;
+.pz-dock .k-chat-closed {
+  cursor: pointer;
 }
 
-.toast {
-  max-width: min(520px, 90vw);
-  padding: 10px 18px;
-  border-radius: 14px;
-  background: var(--cream);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
-  text-align: center;
-  box-shadow: var(--shadow), inset 0 -3px 0 rgba(0, 0, 0, 0.12);
-  animation: toast-in 0.25s ease-out;
-  transition:
-    opacity 0.45s,
-    transform 0.45s;
+.pz-dock .k-chat-list {
+  max-height: 242px;
+  overflow: hidden;
 }
 
-.toast.out {
+/* меню → Интерфейс: сообщения тают (по умолчанию), остаются или спрятаны, пока чат закрыт */
+.pz-dock .k-chat-line {
+  transition: opacity 1.2s;
+}
+
+.pz-dock:not(.is-open) .k-chat-line.is-old {
   opacity: 0;
-  transform: translateY(-8px);
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+html[data-chat='keep'] .pz-dock .k-chat-line.is-old {
+  opacity: 0.55;
+}
+
+html[data-chat='hide'] .pz-dock:not(.is-open) .k-chat-list {
+  visibility: hidden;
+}
+
+/* строка дока: сверху «кто говорит» (ui/voice.ts), ниже кнопка голоса и поле */
+.pz-dock .k-chat-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'side side' 'voice input';
+  gap: 6px 8px;
+}
+
+.pz-dock .voice-side {
+  grid-area: side;
+}
+
+.pz-dock .k-voice {
+  grid-area: voice;
+}
+
+.pz-dock :is(.k-chat-closed, .k-chat-input) {
+  grid-area: input;
+}
+
+.pz-dock .k-chat-closed {
+  justify-self: start;
+}
+
+.pz-chat-hint {
+  align-self: flex-start;
+  margin-left: 46px;
+}
+
+/* пока HUD режимов не в слотах: низ-лево у них занят (здоровье, памятки) — док чата там, где был чат */
+html[data-room]:not([data-room='lobby']) .k-slot--bl {
+  bottom: 164px;
+}
+
+/* «Подземелье»: правее столбика бонусов и выше оружий */
+html[data-room='dungeon'] .k-slot--bl {
+  left: 96px;
+  bottom: 124px;
+}
+
+/* подсказка внизу («E — сесть»), приглашение «дай пять» с полосой времени, эмоции, FPS */
+.pz-hint:not([hidden]),
+.pz-ask:not([hidden]) {
+  animation: k-toast-in 0.2s var(--ease-out) both;
+}
+
+/* без клавиши слева — обычный отступ */
+.pz-hint.k-prompt--off {
+  padding-left: 16px;
+}
+
+.pz-or {
+  color: var(--surf-dim);
+  font-weight: 800;
+}
+
+.pz-ask {
+  overflow: hidden;
+}
+
+.pz-ask .k-ic {
+  width: 26px;
+  height: 26px;
+}
+
+.pz-ask-bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 3px;
+  height: 3px;
+  border: 0;
+}
+
+.pz-ask-bar .k-meter-ghost {
+  display: none;
+}
+
+.pz-ask-bar .k-meter-fill {
+  transition: width var(--ask-ms, 5s) linear;
+}
+
+.pz-emotes {
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 14px 4px 6px;
+  font-size: var(--fs-15);
+}
+
+.pz-emotes .k-ic {
+  width: 24px;
+  height: 24px;
+}
+
+.pz-dash {
+  color: var(--surf-dim);
+  font-weight: 800;
+}
+
+.pz-stats {
+  text-shadow: var(--hud-text-shadow);
+}
+
+/* телефон: чат — сверху под кнопками (снизу его закроет клавиатура, слева внизу — джойстик); клавиш нет */
+.touch .k-slot--bl {
+  top: calc(62px / var(--hud-k, 1));
+  bottom: auto;
+  justify-content: flex-start;
+}
+
+.touch .pz-dock .k-chat-list {
+  max-height: 130px;
+}
+
+.touch .pz-dock :is(.k-chat-closed, .pz-chat-hint),
+.touch .pz-emotes,
+.touch .pz-stats {
+  display: none !important;
+}
+
+/* подсказку «E — сесть» и приглашение «дай пять» можно нажать */
+.touch .pz-hint.is-tap,
+.touch .pz-ask {
+  pointer-events: auto;
+}
+
+/* телефон: кнопка «Зажечь маяк» у двери маяка (lobby/storm.ts) — над подсказкой */
+.pz-storm-btn[hidden] {
+  display: none;
+}
+
+.pz-storm-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 170px;
+  translate: -50% 0;
+  pointer-events: auto;
 }
 
 /* --- «кто где» (Tab на набережной) */
@@ -2483,74 +2460,6 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
 }
 
 /* ================================================================ набережная */
-
-/* подсказка внизу: «E сесть», «ЛКМ / Пробел крутить» */
-.lobby-hud .lh-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 92px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px 8px 10px;
-  border-radius: 999px;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  font-size: 16px;
-  font-weight: 500;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, 6px);
-  transition: opacity 0.15s, transform 0.15s;
-}
-
-.lobby-hud .lh-hint.show {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.lobby-hud .lh-hint span {
-  margin-left: 4px;
-}
-
-.lobby-hud .lh-hint i {
-  font-style: normal;
-  color: var(--cream-dim);
-}
-
-.lobby-hud .lh-hint.info {
-  padding: 8px 18px;
-  color: var(--cream-2);
-}
-
-.lobby-hud .lh-hint.info span {
-  margin-left: 0;
-}
-
-/* эмоции 1–4 — в углу */
-.lobby-hud .lh-emotes {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  display: none;
-  gap: 12px;
-  padding: 7px 12px;
-  border-radius: 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  font-size: 17px;
-}
-
-.lobby-hud .lh-emotes.show {
-  display: flex;
-}
-
-.lobby-hud .lh-emotes span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
 
 /* примерочная: панель справа, желейка в зеркале — левее */
 .lobby-hud .wardrobe {
@@ -2907,72 +2816,6 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
 .wardrobe .wd-buy-btn.busy:disabled {
   cursor: progress;
   filter: grayscale(0.3) brightness(0.9);
-}
-
-/* джекпот: крупно сверху, пока гремит салют */
-.lobby-hud .lh-jackpot {
-  position: absolute;
-  left: 50%;
-  top: 14%;
-  max-width: calc(100vw - 32px);
-  transform: translateX(-50%);
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.6s;
-}
-
-.lobby-hud .lh-jackpot.show {
-  opacity: 1;
-  transition: none;
-  animation: jackpot-in 0.6s cubic-bezier(0.2, 1.6, 0.4, 1);
-}
-
-.lj-title {
-  font-size: clamp(52px, 9vw, 110px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  color: var(--gold);
-  background: linear-gradient(#fff6c8, #ffd35a 45%, #ff8a1c);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 5px 0 #6a2a04) drop-shadow(0 0 26px rgba(255, 190, 60, 0.75));
-}
-
-.lobby-hud .lh-jackpot.show .lj-title {
-  animation: jackpot-throb 0.42s ease-in-out 0.6s infinite alternate;
-}
-
-.lj-sub {
-  display: inline-block;
-  max-width: 100%;
-  margin-top: 12px;
-  padding: 8px 20px;
-  border-radius: 999px;
-  background: var(--panel-strong);
-  border: 1px solid rgba(255, 211, 90, 0.45);
-  box-shadow: var(--shadow);
-  font-size: 20px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@keyframes jackpot-in {
-  0% {
-    transform: translateX(-50%) scale(0.3);
-  }
-  100% {
-    transform: translateX(-50%) scale(1);
-  }
-}
-
-@keyframes jackpot-throb {
-  to {
-    transform: scale(1.06);
-  }
 }
 
 /* ================================================================ дурак за столиком */
@@ -4509,81 +4352,6 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
   }
 }
 
-/* приглашение на жест вдвоём («Ник предлагает дать пять — жми 5»): над подсказкой, полоска тает за 5 с */
-.lobby-hud .lh-ask {
-  position: absolute;
-  left: 50%;
-  bottom: 150px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px 13px 14px;
-  border-radius: 16px;
-  background: var(--cream);
-  color: var(--ink);
-  font-size: 17px;
-  font-weight: 500;
-  white-space: nowrap;
-  text-shadow: none;
-  box-shadow: var(--shadow), inset 0 -3px 0 rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  opacity: 0;
-  transform: translate(-50%, 8px) scale(0.96);
-  transition:
-    opacity 0.18s,
-    transform 0.18s;
-}
-
-.lobby-hud .lh-ask.show {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  animation: la-nudge 0.5s ease-out;
-}
-
-@keyframes la-nudge {
-  0% {
-    transform: translate(-50%, 8px) scale(0.92);
-  }
-  60% {
-    transform: translate(-50%, -3px) scale(1.04);
-  }
-  100% {
-    transform: translate(-50%, 0);
-  }
-}
-
-.lobby-hud .lh-ask .la-icon {
-  font-size: 26px;
-  line-height: 1;
-}
-
-.lobby-hud .lh-ask b {
-  font-weight: 900;
-}
-
-.lobby-hud .lh-ask kbd {
-  min-width: 28px;
-  height: 28px;
-  background: var(--ink);
-  color: var(--cream);
-  font-size: 14px;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
-}
-
-.lobby-hud .lh-ask .la-bar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 4px;
-  background: var(--orange);
-  transform-origin: left;
-}
-
-.lobby-hud .lh-ask.show .la-bar {
-  animation: la-bar linear forwards;
-}
-
 @keyframes la-bar {
   from {
     transform: scaleX(1);
@@ -5679,8 +5447,7 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
     top: calc(62px + env(safe-area-inset-top, 0px));
     transform: translateX(-50%) scale(0.78);
   }
-  .touch .shell .killfeed,
-  .touch[data-room='paintball'] .chat {
+  .touch .shell .killfeed {
     top: calc(112px + env(safe-area-inset-top, 0px));
   }
   /* автомат разминки (≈ 240 px с рычагом после scale 0.62) — посередине, между чатом и патронами */
@@ -5839,16 +5606,9 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
 }
 
 /* клавиши в подсказках и на кнопках — на телефоне не к чему */
-.touch .lobby-hud .lh-emotes,
 .touch .fs-btn kbd,
 .touch .dk kbd {
   display: none !important;
-}
-
-/* подсказку «E — сесть» и приглашение «дай пять» можно нажать */
-.touch .lobby-hud .lh-hint.show.tap,
-.touch .lobby-hud .lh-ask.show {
-  pointer-events: auto;
 }
 
 .touch .stats {
@@ -5860,42 +5620,10 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
   white-space: nowrap;
 }
 
-/* чат — сверху под кнопками: снизу его закроет клавиатура телефона */
-.touch .chat {
-  left: calc(10px + env(safe-area-inset-left, 0px));
-  top: calc(62px + env(safe-area-inset-top, 0px));
-  bottom: auto;
-  width: min(420px, calc(100vw - 150px));
-}
-
-/* сверху строчки чата ложились бы на автомат, итоги и стол — закрытый чат уходит под слой сцены
-   (строчки видно и в открытом чате); открытый — поверх всего */
-.touch .shell > .chat:not(.open) {
-  z-index: 0;
-}
-
-.touch .chat-list {
-  max-height: 130px;
-}
-
-.touch .chat .msg {
-  font-size: 13px;
-}
-
-.touch .chat.open {
-  width: min(520px, calc(100vw - 20px));
-}
-
-.touch .chat.open .chat-list {
-  max-height: 34vh;
-}
-
+/* стоя: подсказка и приглашение — выше кнопок справа */
 @media (orientation: portrait) {
-  .touch .lobby-hud .lh-hint {
-    bottom: 216px;
-  }
-  .touch .lobby-hud .lh-ask {
-    bottom: 276px;
+  .touch .k-slot--bc {
+    bottom: calc(216px / var(--hud-k, 1));
   }
 }
 
@@ -5919,12 +5647,8 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
   }
 }
 
-/* подсказка на телефоне — в две строки, если не влезает; стоя — выше кнопок справа */
-.touch .lobby-hud .lh-hint {
-  /* left: 50% оставляет полэкрана — без max-content подсказка сжимается в столбик */
-  width: max-content;
-  max-width: calc(100vw - 24px);
-  border-radius: 22px;
+/* подсказка на телефоне — в две строки, если не влезает */
+.touch .pz-hint {
   white-space: normal;
   text-align: center;
 }
@@ -6011,61 +5735,6 @@ html:not(.touch)[data-room='lobby']:has(.pr-hud:not([hidden])) .toasts {
     text-align: center;
     font-size: 13px;
   }
-}
-
-/* секундомер аквапарка: сверху посередине, цифры не прыгают; финиш — золотом и крупнее */
-.lobby-hud .lh-timer {
-  position: absolute;
-  left: 50%;
-  top: 72px;
-  transform: translateX(-50%);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 20px 9px;
-  border-radius: 18px;
-  background: rgba(14, 38, 66, 0.72);
-  color: #fff;
-  pointer-events: none;
-  text-align: center;
-}
-
-.lobby-hud .lh-timer.show {
-  display: flex;
-}
-
-.lobby-hud .lh-timer b {
-  font-size: 34px;
-  font-weight: 900;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-}
-
-.lobby-hud .lh-timer span {
-  font-size: 15px;
-  font-weight: 700;
-  color: #bfe3ff;
-}
-
-.lobby-hud .lh-timer.done {
-  background: rgba(70, 44, 6, 0.78);
-  animation: jackpot-in 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
-}
-
-.lobby-hud .lh-timer.done b {
-  color: var(--gold);
-  font-size: 42px;
-}
-
-.touch .lobby-hud .lh-timer {
-  top: 56px;
-  padding: 6px 14px 7px;
-}
-
-.touch .lobby-hud .lh-timer b {
-  font-size: 26px;
 }
 
 /* --- монетка-жетон (ui/coin.ts): своя картинка вместо эмодзи 🪙 — его нет в старых шрифтах (Windows 10 и т. п.).

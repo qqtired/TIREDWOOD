@@ -901,25 +901,15 @@ label.set-item .set-ctl {
 
 /* --- интерфейс: размер и сообщения чата (меню → Интерфейс; html[data-chat], --ui-scale — applyInterface) */
 
-.chat,
-.tokens,
-.toasts,
+/* чат, жетоны и уведомления — в слоях кита (.k-hud): их масштаб — --hud-k (client/ui/kit/scale.ts), в нём и «Размер интерфейса» */
 .online-list {
   zoom: var(--ui-scale, 1);
 }
 
-html[data-chat='keep'] .chat .msg.old {
-  opacity: 0.85;
-}
-
-html[data-chat='hide'] .chat:not(.open) .chat-list {
-  visibility: hidden;
-}
-
 /* меню → Управление → «Подсказки клавиш на экране»: выключено — прячем строки-шпаргалки режимов и полоску эмоций.
-   Подсказки «E — …» у предметов (.lh-hint) остаются: без них непонятно, что можно сделать.
+   Подсказки «E — …» у предметов (.pz-hint) остаются: без них непонятно, что можно сделать.
    Новой строке-шпаргалке в режиме достаточно класса key-hint */
-html[data-hints='off'] :is(.key-hint, .lh-emotes, .ammo-hint, .rc-help, .br-help, .skill-help, .ft-help, .voice-key) {
+html[data-hints='off'] :is(.key-hint, .pz-emotes, .ammo-hint, .rc-help, .br-help, .skill-help, .ft-help, .voice-key) {
   display: none !important;
 }
 

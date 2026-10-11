@@ -10,3 +10,23 @@ test('масштаб HUD: 1440×900 — 1, 2K — 1,6, маленький экр
   assert.equal(hudScale(1920, 1080, 1.15), 1.38);
   assert.equal(hudScale(844, 390, 1, true), 0.6);
 });
+import { TopCenterModel, PRIO } from '../client/ui/kit/topcenter.ts';
+
+test('верх-центр: одна плашка — с самым высоким приоритетом', () => {
+  const m = new TopCenterModel();
+  m.show({ key: 'storm', prio: PRIO.storm, html: 'Шторм' });
+  m.show({ key: 'vote', prio: PRIO.vote, html: 'Выгнать?' });
+  assert.equal(m.current()?.key, 'vote');
+  m.hide('vote');
+  assert.equal(m.current()?.key, 'storm');
+});
+
+test('верх-центр: тостов не больше трёх, тот же ключ заменяет', () => {
+  const m = new TopCenterModel();
+  for (const t of ['a', 'b', 'c', 'd']) m.toast({ title: t, icon: '' });
+  assert.deepEqual(m.toasts().map((t) => t.title), ['b', 'c', 'd']);
+  m.toast({ key: 'tok', title: '+5', icon: '' });
+  m.toast({ key: 'tok', title: '+12', icon: '' });
+  assert.equal(m.toasts().filter((t) => t.key === 'tok').length, 1);
+  assert.equal(m.toasts().at(-1)?.title, '+12');
+});

@@ -3,6 +3,7 @@ import { STORM_DOOR, STORM_GOAL, STORM_MAX, STORM_PERIOD, STORM_WARN, emptyStorm
 import { WATER_Y, TICK_RATE } from '../../shared/constants.ts';
 import { seedOf, stormRumbles, stormStrikes, type Strike } from '../../shared/weather.ts';
 import { TOUCH } from '../touch.ts';
+import { PRIO, escHtml, type TcEvent } from '../ui/kit/topcenter.ts';
 export interface StormVisualHooks {
   /** Шторм — это погода на максимуме: force — сила (0…1), lampsOn — свет в городе (в шторм гаснет). */
   climate(force: number, lampsOn: boolean): void;
@@ -18,6 +19,10 @@ export interface StormVisualHooks {
   lampPosition?: { x: number; y: number; z: number };
   /** The integrated World already has a lighthouse beam; avoid drawing a second cone. */
   existingBeacon?: boolean;
+  /** Плашка шторма — в верх-центре HUD (client/ui/kit/topcenter.ts); без него (тесты) — без плашки */
+  top?: { event(e: TcEvent): void; clear(key: string): void };
+  /** Картинка иконки кита по id (client/ui/kit/icons.ts) */
+  icon?(id: string): string;
 }
 /** Что можно у двери маяка: подождать (свет ещё не погас) или зажечь */
 export type StormDoor = 'wait' | 'light' | null;
@@ -61,9 +66,6 @@ export class Storm3D {
   /** Подсветка двери маяка и круг у неё — где зажигать */
   private readonly doorGlow: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private readonly doorRing: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
-  private readonly panel: HTMLDivElement;
-  private readonly title: HTMLDivElement;
-  private readonly detail: HTMLDivElement;
   private readonly action: HTMLButtonElement;
   private state = emptyStorm();
   private lastPhase = 'idle';
@@ -96,16 +98,9 @@ export class Storm3D {
       new THREE.MeshBasicMaterial({ color: 0xffc46a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     this.doorRing.position.set(STORM_GOAL.x, .03, STORM_GOAL.z); this.doorRing.renderOrder = 4;
     this.group.add(this.doorGlow, this.doorRing);
-    this.panel = document.createElement('div'); this.panel.className = 'lobby-storm-status';
-    Object.assign(this.panel.style, { position: 'absolute', top: '76px', left: '50%', transform: 'translateX(-50%)', maxWidth: 'min(620px,calc(100vw - 32px))',
-      padding: '12px 18px', borderRadius: '12px', background: 'rgba(13,28,44,.92)', color: '#eff8ff', textAlign: 'center', pointerEvents: 'none', fontSize: '14px', lineHeight: '1.5' });
-    this.panel.setAttribute('role', 'status'); this.title = document.createElement('div'); this.title.style.fontWeight = '900';
-    this.detail = document.createElement('div'); this.panel.append(this.title, this.detail); root.append(this.panel);
-    // кнопка — для телефона (на компьютере мышь захвачена: там E или клик, подсказка внизу)
-    this.action = document.createElement('button'); this.action.type = 'button'; this.action.textContent = 'E · Зажечь маяк';
-    Object.assign(this.action.style, { position: 'absolute', left: '50%', bottom: '170px', transform: 'translateX(-50%)', padding: '14px 22px', minHeight: '48px',
-      borderRadius: '12px', border: '2px solid #bfeeff', background: '#123e56', color: '#fff8d7', font: '700 16px Rubik, sans-serif', pointerEvents: 'auto' });
-    this.action.addEventListener('click', () => this.hooks.light()); root.append(this.action); this.panel.hidden = this.action.hidden = true;
+    // кнопка — для телефона (на компьютере мышь захвачена: там E или клик, подсказка внизу); вид — кнопка кита
+    this.action = document.createElement('button'); this.action.type = 'button'; this.action.className = 'k-btn k-btn--gold pz-storm-btn'; this.action.textContent = 'Зажечь маяк';
+    this.action.addEventListener('click', () => this.hooks.light()); root.append(this.action); this.action.hidden = true;
   }
   set(view: StormView): void { this.state = view; }
   /** Можно зажечь прямо сейчас (E, клик, кнопка) */
@@ -157,17 +152,31 @@ export class Storm3D {
     this.doorGlow.visible = this.doorRing.visible = k > 0;
     this.doorGlow.material.uniforms.uK.value = k;
     this.doorRing.material.opacity = k * .5;
-    this.panel.hidden = !active || !eligible;
-    if (active) {
-      const seconds = Math.max(0, Math.ceil((v.end - tick) / 60));
-      this.title.textContent = v.phase === 'warn' ? `⛈ Шторм через ${seconds} с` : v.phase === 'storm' ? `⛈ Зажги маяк · ${seconds} с` : '🌈 Шторм стих';
-      this.detail.textContent = v.phase === 'warn' ? 'Иди к двери маяка по мосткам: когда погаснет свет — E или клик у двери' : v.phase === 'storm'
-        ? wave.foam ? `Пена! Через ${Math.max(1, Math.ceil((STORM_PERIOD - offset) / 60))} с волна — прыгай или уйди с мостков` : 'Волна каждые 6 с · на площади безопасно'
-        : v.rankEnd > tick ? `Первый: ${v.winners[0]?.nick ?? '—'} · ещё ${Math.ceil((v.rankEnd - tick) / 60)} с на финиш`
-        : v.winners.length ? v.winners.map(w => `${w.place}. ${w.nick} +${w.tokens}`).join(' · ') : 'Никто не зажёг маяк — без наград';
-    }
+    if (active && eligible) this.panel(v, tick, wave.foam, offset);
+    else this.hooks.top?.clear('storm');
     this.action.hidden = !TOUCH || this.door !== 'light';
-    if (!this.action.hidden) this.action.textContent = v.phase === 'storm' ? '🔦 Зажечь маяк' : '⚓ Отметиться у маяка';
+    if (!this.action.hidden) this.action.textContent = v.phase === 'storm' ? 'Зажечь маяк' : 'Отметиться у маяка';
+  }
+  /** Плашка шторма в верх-центре: заголовок и подстрока — по одной строке, таймер справа, полоса — сколько осталось фазы */
+  private panel(v: StormView, tick: number, foam: boolean, offset: number): void {
+    const top = this.hooks.top;
+    if (!top) return;
+    const left = Math.max(0, Math.ceil((v.end - tick) / TICK_RATE));
+    const calm = v.phase === 'calm', ranking = calm && v.rankEnd > tick;
+    const title = v.phase === 'warn' ? 'Шторм скоро' : v.phase === 'storm' ? 'Зажги маяк!' : 'Шторм стих';
+    const sub = v.phase === 'warn' ? 'Иди к двери маяка по мосткам'
+      : v.phase === 'storm' ? foam ? `Пена! Волна через ${Math.max(1, Math.ceil((STORM_PERIOD - offset) / TICK_RATE))} с — прыгай` : 'Волна каждые 6 с · площадь безопасна'
+      : ranking ? `Первый: ${v.winners[0]?.nick ?? '—'} · ещё ${Math.ceil((v.rankEnd - tick) / TICK_RATE)} с на финиш`
+      : v.winners.length ? v.winners.map(w => `${w.nick} +${w.tokens}`).join(' · ') : 'Никто не зажёг маяк — без наград';
+    const secs = calm ? (ranking ? Math.ceil((v.rankEnd - tick) / TICK_RATE) : -1) : left;
+    const timer = secs < 0 ? '' : `<div class="k-event-timer${!calm && secs <= 10 ? ' is-hurry' : ''}">${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</div>`;
+    const share = calm ? 0 : Math.min(1, Math.max(0, (v.end - tick) / Math.max(1, v.end - v.start)));
+    const meter = calm ? '' : `<div class="k-meter k-meter--thin k-meter--mode" style="--v:${share.toFixed(2)}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>`;
+    const src = this.hooks.icon?.(calm ? 'lighthouse' : 'storm') ?? '';
+    top.event({
+      key: 'storm', prio: PRIO.storm, lamp: true, tone: calm ? 'good' : undefined,
+      html: `<span class="k-event-ic"><img src="${src}" alt=""></span><div class="k-event-title">${title}</div><div class="k-event-sub">${escHtml(sub)}</div>${timer}${meter}`,
+    });
   }
   /** Молнии из расписания, чьё время пришло (t — секунды от начала фазы); проспанные не догоняем. */
   private fire(list: Strike[], next: number, t: number): number {
@@ -177,5 +186,5 @@ export class Storm3D {
     }
     return next;
   }
-  dispose(): void { this.panel.remove(); this.action.remove(); this.group.removeFromParent(); this.group.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); const m = Array.isArray(o.material) ? o.material : [o.material]; m.forEach(x => x.dispose()); } }); this.hooks.climate(0, true); this.hooks.rainbow(false); this.hooks.lamp(true); }
+  dispose(): void { this.hooks.top?.clear('storm'); this.action.remove(); this.group.removeFromParent(); this.group.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); const m = Array.isArray(o.material) ? o.material : [o.material]; m.forEach(x => x.dispose()); } }); this.hooks.climate(0, true); this.hooks.rainbow(false); this.hooks.lamp(true); }
 }

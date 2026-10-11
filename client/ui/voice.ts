@@ -1,4 +1,5 @@
-// Голос в игре: кнопка микрофона в углу и «Сейчас говорят». Настройки и проверка микрофона — в панели
+// Голос в игре: кнопка микрофона в доке чата (кит: .k-voice в .k-chat-bar, client/chat.ts) и «Сейчас говорят»
+// (.k-speaking над строкой чата). Пока открыто модальное окно — кнопка в нём. Настройки и проверка микрофона — в панели
 // (client/ui/voicepanel.ts, меню → «Голос»). Права на микрофон, звук и клавиша V — у контроллера (client/voice.ts).
 import { voiceCanTransmit, type VoiceView } from '../../shared/voice.ts';
 
@@ -55,12 +56,12 @@ const LABEL: Record<VoiceHudState, string> = {
 export class VoiceUi {
   private readonly actions: VoiceUiActions;
   private readonly hud = el('div', 'voice-hud');
-  private readonly hold = el('button', 'voice-hold');
-  private readonly tip = el('p', 'voice-tip');
+  private readonly hold = el('button', 'voice-hold k-voice');
+  private readonly tip = el('p', 'voice-tip k-plate');
   /** Справа от кнопки: столбик «кто говорит» растёт вверх, под ним — подсказка */
   private readonly side = el('div', 'voice-side');
-  private readonly speakers = el('ul', 'voice-speakers');
-  private readonly more = el('li', 'voice-speaker voice-more');
+  private readonly speakers = el('ul', 'voice-speakers k-speaking');
+  private readonly more = el('li', 'voice-speaker voice-more k-pill k-pill--sm');
   private readonly speakerRows = new Map<number | 'self', SpeakerRow>();
   /** Другие говорящие в порядке, как начали: первые остаются на виду, поздние уходят в «+N» */
   private order: number[] = [];
@@ -79,13 +80,14 @@ export class VoiceUi {
   private held = false;
   private pointer: number | null = null;
 
-  constructor(hudRoot: HTMLElement, actions: VoiceUiActions) {
+  /** micIcon — картинка микрофона кита (client/ui/kit/icons.ts, voice); без неё — контурный значок */
+  constructor(hudRoot: HTMLElement, actions: VoiceUiActions, micIcon = '') {
     this.actions = actions;
     this.hold.type = 'button';
     this.hold.setAttribute('aria-pressed', 'false');
     this.hold.setAttribute('aria-keyshortcuts', 'V Space Enter');
-    this.hold.innerHTML = MIC_SVG.replace('</svg>', '<path class="voice-slash" d="m4 4 16 16"/></svg>') + SPEAKER_SVG.replace('<svg', '<svg class="voice-speaker-off"');
-    const shortcut = el('span', 'voice-key', 'V'); shortcut.setAttribute('aria-hidden', 'true'); this.hold.append(shortcut);
+    this.hold.innerHTML = (micIcon ? `<img src="${micIcon}" alt="" draggable="false">` : MIC_SVG) + SPEAKER_SVG.replace('<svg', '<svg class="voice-speaker-off"');
+    const shortcut = el('kbd', 'k-key k-key--sm voice-key', 'V'); shortcut.setAttribute('aria-hidden', 'true'); this.hold.append(shortcut);
     this.tip.setAttribute('role', 'status'); this.tip.hidden = true;
     this.speakers.setAttribute('aria-label', 'Сейчас говорят'); this.speakers.hidden = true;
     this.more.hidden = true; this.speakers.append(this.more);
@@ -153,6 +155,8 @@ export class VoiceUi {
     const label = this.state === 'error' && view.error ? view.error : LABEL[this.state];
     this.hold.setAttribute('aria-label', label); this.hold.title = label;
     this.hold.dataset.state = this.state;
+    // кит: говоришь — зелёная, выключено или ошибка — перечёркнута
+    this.hold.className = `voice-hold k-voice${this.state === 'talking' ? ' is-live' : this.state === 'off' || this.state === 'error' ? ' is-muted' : ''}`;
     this.hold.setAttribute('aria-pressed', String(view.transmitting));
     this.hold.disabled = this.state === 'requesting';
     // подсказка рядом: короткое уведомление, иначе — что сейчас важно
@@ -185,7 +189,7 @@ export class VoiceUi {
     for (const [id, nick] of current) {
       let row = this.speakerRows.get(id);
       if (!row) {
-        const root = el('li', 'voice-speaker'), name = el('span', 'voice-speaker-name');
+        const root = el('li', 'voice-speaker k-pill k-pill--sm'), name = el('span', 'voice-speaker-name');
         const icon = el('span', 'voice-speaker-icon'); icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = SPEAKER_WAVES_SVG;
         root.append(icon, name); root.dataset.lvl = 'calm';
         row = { root, name, vis: 0 }; this.speakerRows.set(id, row); changed = true;
