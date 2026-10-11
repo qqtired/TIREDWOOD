@@ -6,7 +6,7 @@ import { editGfx, minScale, pickCustom, pickPreset, type DistanceLevel, type Eff
 import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, type Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
 import { setVoiceVolume, voiceVolume } from '../../voice-prefs.ts';
-import { hudScale } from '../kit/scale.ts';
+import { applyHudScale } from '../kit/scale.ts';
 
 export type SettingsCategory = 'graphics' | 'sound' | 'controls' | 'interface';
 
@@ -237,10 +237,12 @@ export class SettingsPanel {
   }
 }
 
-/** Размер интерфейса (--hud-k: экран × выбор игрока, client/ui/kit/scale.ts), сообщения чата и подсказки клавиш — на <html> (стили — kit.css, menu.css) */
+/** Размер интерфейса, сообщения чата и подсказки клавиш — переменной CSS и атрибутами на <html> (стили — menu.css).
+ *  --ui-scale — старые экраны (до переезда на кит), --hud-k — слои кита (пишет client/ui/kit/scale.ts) */
 export function applyInterface(s: Pick<Settings, 'uiScale' | 'chatFeed' | 'keyHints'>): void {
   const root = document.documentElement;
-  root.style.setProperty('--hud-k', String(hudScale(innerWidth, innerHeight, s.uiScale)));
+  root.style.setProperty('--ui-scale', String(s.uiScale));
+  applyHudScale(root, s.uiScale);
   root.dataset.chat = s.chatFeed;
   root.dataset.hints = s.keyHints ? 'on' : 'off';
 }

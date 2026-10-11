@@ -206,8 +206,10 @@ export class App {
     this.input.blocked = true;
     this.shell = shell;
     document.documentElement.classList.toggle('touch', TOUCH);
-    // кит 2.0: весь интерфейс (#hud, #menus) — одним масштабом от экрана и «Размера интерфейса»; клики кнопок кита звучат
+    // кит 2.0: слои кита — одним масштабом от экрана и «Размера интерфейса»; клики кнопок кита звучат через звук игры
+    // (sound.kit появляется после первого жеста, когда контекст уже running — sfx спрашивает его сам при каждом звуке)
     bindHudScale(document.documentElement, () => this.settings.uiScale);
+    sfx.source(() => this.sound.kit);
     bindClickSounds(shell);
     bindClickSounds(menus);
     // кнопки на экране — под интерфейсом сцен (их подсказки и панели нажимаются пальцем) и под чатом
@@ -558,7 +560,6 @@ export class App {
     this.stopRetry();
     // звук и захват мыши — строго внутри клика пользователя
     this.sound.unlock();
-    sfx.attach(this.sound.kit);
     this.sound.setVolume(effectiveVolume(this.settings));
     void this.input.lock();
     // телефон: на весь экран, без строки адреса (iPhone так не умеет — тогда просто как есть)
@@ -1103,7 +1104,6 @@ export class App {
 
   private resume(): void {
     this.sound.unlock();
-    sfx.attach(this.sound.kit);
     // телефон за столом дурака или в примерочной: управление пальцами там не нужно — просто убрать паузу
     if (TOUCH && this.active?.wantsPointer === false) {
       this.setPaused(false);

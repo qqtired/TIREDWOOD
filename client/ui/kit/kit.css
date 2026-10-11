@@ -3,8 +3,13 @@
    v2: HUD поверх игры компактный (бейдж 44, плитки .k-tile, событие в одну строку, тост 360, подсказка 42, чат 360),
    окна, меню, Tab, итоги и ставка — той же раскладки и размера, что в версии 1. */
 
-/* масштаб всего интерфейса (client/ui/kit/scale.ts) */
-#hud, #menus { zoom: var(--hud-k, 1); }
+/* масштаб слоёв кита (client/ui/kit/scale.ts). #hud/#menus целиком НЕ зумить — уезжают детали в экранных пикселях */
+.k-hud, .k-scrim { zoom: var(--hud-k, 1); }
+/* детали, привязанные к точке на экране (урон, стрелки угроз, подписи над миром): без zoom, увеличиваются transform */
+.k-world { position: absolute; inset: 0; pointer-events: none; }
+/* позиционируется внешний элемент (left/top или transform: translate), а увеличивается только внутренняя обёртка —
+   иначе scale растянет и сам сдвиг */
+.k-world .k-world-in { transform-origin: center; scale: var(--hud-k, 1); }
 
 /* ============================================================ основа */
 .k-hud, .k-panel, .k-window, .k-plate, .k-badge, .k-toast, .k-event, .k-prompt, .k-chat, .k-btn, .k-pill, .k-key,

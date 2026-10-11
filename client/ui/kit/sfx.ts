@@ -1,6 +1,7 @@
 // Тихие звуки интерфейса кита на WebAudio — без файлов, всё синтезируется (lab/ui/kit/sfx.js).
-// Свой AudioContext не заводим: attach(sound.kit) даёт контекст игры и шину «Интерфейс» (client/audio.ts),
-// поэтому звук идёт после первого жеста и слушается общей громкости, «без звука» и ползунка «Интерфейс».
+// Свой AudioContext не заводим: контекст игры и шину «Интерфейс» даёт sound.kit (client/audio.ts) — он есть, только когда
+// контекст уже running (resume() асинхронный), поэтому sfx.source(() => sound.kit) спрашивает его лениво, при каждом звуке.
+// Звук идёт после первого жеста и слушается общей громкости, «без звука» и ползунка «Интерфейс».
 // sfx.enabled — настройка «Звуки интерфейса» (settings.uiSounds, ставит App.applySettings).
 // Повторы одного звука чаще 40 мс глушатся — нет «пулемёта».
 
@@ -8,6 +9,9 @@ export type SfxName = 'click' | 'open' | 'close' | 'reward' | 'error' | 'toast' 
 
 const MASTER = 0.16;
 
+type Kit = { ctx: AudioContext; ui: GainNode };
+
+let source: (() => Kit | null) | null = null;
 let ctx: AudioContext | null = null;
 let bus: GainNode | null = null;
 let out: GainNode | null = null;
@@ -74,8 +78,13 @@ export const sfx = {
   /** «Звуки интерфейса» в настройках (settings.uiSounds) */
   enabled: true,
 
-  /** Подключить к звуку игры (sound.kit после первого жеста); null — звук ещё не разрешён, ждём следующего раза */
-  attach(kit: { ctx: AudioContext; ui: GainNode } | null): void {
+  /** Откуда брать звук игры: () => sound.kit. Спрашивается при каждом звуке, пока null — молчим */
+  source(get: () => Kit | null): void {
+    source = get;
+  },
+
+  /** Подключить к звуку игры (sound.kit); null — звук ещё не разрешён, ждём следующего раза */
+  attach(kit: Kit | null): void {
     if (!kit || (kit.ctx === ctx && kit.ui === bus)) return;
     out?.disconnect();
     ctx = kit.ctx;
@@ -86,7 +95,9 @@ export const sfx = {
   },
 
   play(name: SfxName): void {
-    if (!sfx.enabled || !ctx || !out) return;
+    if (!sfx.enabled) return;
+    if (source) sfx.attach(source());
+    if (!ctx || !out) return;
     const now = performance.now();
     if (now - (last.get(name) ?? -Infinity) < 40) return;
     last.set(name, now);
@@ -104,6 +115,6 @@ export function bindClickSounds(root: HTMLElement): void {
     const el = (e.target as Element | null)?.closest?.<HTMLElement>(CLICKABLE);
     if (!el || !root.contains(el)) return;
     const own = el.dataset.sfx as SfxName | undefined;
-    sfx.play(own && own in SOUNDS ? own : el.classList.contains('k-close') ? 'close' : el.classList.contains('k-tab') ? 'tick' : 'click');
+    sfx.play(own && Object.hasOwn(SOUNDS, own) ? own : el.classList.contains('k-close') ? 'close' : el.classList.contains('k-tab') ? 'tick' : 'click');
   });
 }
