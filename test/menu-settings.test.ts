@@ -32,6 +32,7 @@ test('сохранение до нового меню: прежние значе
     ambVolume: 1,
     musicVolume: 0.5,
     uiVolume: 1,
+    uiSounds: true,
     invertY: false,
     keyHints: true,
     uiScale: 1,

@@ -39,6 +39,8 @@ export interface Settings {
   musicVolume: number;
   /** Интерфейс (кнопки, уведомления, монетки) — доля от общей громкости */
   uiVolume: number;
+  /** Звуки интерфейса: тихие щелчки кнопок, вкладок и наград (client/ui/kit/sfx.ts) */
+  uiSounds: boolean;
   /** Мышь (палец) вверх — взгляд вниз */
   invertY: boolean;
   /** Подсказки клавиш на экране: полоска эмоций, строки «W — газ …» в режимах */
@@ -84,6 +86,7 @@ export const DEFAULTS: Settings = {
   ambVolume: 1,
   musicVolume: 0.5,
   uiVolume: 1,
+  uiSounds: true,
   invertY: false,
   keyHints: true,
   uiScale: 1,
@@ -118,6 +121,7 @@ export function loadSettings(): Settings {
     if (from < 2 && Math.abs(s.musicVolume - OLD_MUSIC_DEFAULT) < 1e-9) s.musicVolume = DEFAULTS.musicVolume;
     // интерфейс раньше звучал вместе с эффектами: в старом сохранении его доля — та же, что у эффектов
     s.uiVolume = clampNum(parsed.uiVolume, 0, 1, s.sfxVolume);
+    s.uiSounds = s.uiSounds !== false;
     s.invertY = s.invertY === true;
     s.keyHints = s.keyHints !== false;
     s.uiScale = nearestScale(clampNum(s.uiScale, UI_SCALES[0], UI_SCALES[UI_SCALES.length - 1], DEFAULTS.uiScale));

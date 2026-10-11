@@ -11,7 +11,6 @@
 }
 
 .mn-card {
-  zoom: var(--ui-scale, 1);
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
   width: min(1100px, 100%);
@@ -864,7 +863,6 @@ label.set-item .set-ctl {
   left: 50%;
   top: 16%;
   transform: translateX(-50%);
-  zoom: var(--ui-scale, 1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -899,14 +897,7 @@ label.set-item .set-ctl {
   display: none;
 }
 
-/* --- интерфейс: размер и сообщения чата (меню → Интерфейс; html[data-chat], --ui-scale — applyInterface) */
-
-.chat,
-.tokens,
-.toasts,
-.online-list {
-  zoom: var(--ui-scale, 1);
-}
+/* --- интерфейс: сообщения чата (меню → Интерфейс; html[data-chat] — applyInterface). Размер — --hud-k на #hud и #menus (client/ui/kit/kit.css) */
 
 html[data-chat='keep'] .chat .msg.old {
   opacity: 0.85;

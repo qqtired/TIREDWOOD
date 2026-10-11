@@ -6,6 +6,7 @@ import { editGfx, minScale, pickCustom, pickPreset, type DistanceLevel, type Eff
 import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, type Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
 import { setVoiceVolume, voiceVolume } from '../../voice-prefs.ts';
+import { hudScale } from '../kit/scale.ts';
 
 export type SettingsCategory = 'graphics' | 'sound' | 'controls' | 'interface';
 
@@ -127,6 +128,8 @@ export class SettingsPanel {
     this.slider(c, 'Эффекты', 0, 1, 0.05, () => s.sfxVolume, (v) => { s.sfxVolume = v; }, () => pct(s.sfxVolume), hear('sfx'));
     c = this.item('sound', 'Интерфейс', 'Кнопки, уведомления, монетки');
     this.slider(c, 'Интерфейс', 0, 1, 0.05, () => s.uiVolume, (v) => { s.uiVolume = v; }, () => pct(s.uiVolume), hear('ui'));
+    c = this.item('sound', 'Звуки интерфейса', 'Тихие щелчки кнопок, вкладок и наград', true);
+    this.toggle(c, () => s.uiSounds, (v) => { s.uiSounds = v; });
     c = this.item('sound', 'Голоса игроков', 'Голосовой чат, всех сразу — та же громкость, что во вкладке «Голос»');
     this.slider(c, 'Голоса игроков', 0, 1, 0.01, () => voiceVolume(), (v) => setVoiceVolume(v), () => pct(voiceVolume()));
     c = this.item('sound', 'Голосовой чат', 'Громкость каждого, микрофон и его проверка');
@@ -234,10 +237,10 @@ export class SettingsPanel {
   }
 }
 
-/** Размер интерфейса, сообщения чата и подсказки клавиш — переменной CSS и атрибутами на <html> (стили — menu.css) */
+/** Размер интерфейса (--hud-k: экран × выбор игрока, client/ui/kit/scale.ts), сообщения чата и подсказки клавиш — на <html> (стили — kit.css, menu.css) */
 export function applyInterface(s: Pick<Settings, 'uiScale' | 'chatFeed' | 'keyHints'>): void {
   const root = document.documentElement;
-  root.style.setProperty('--ui-scale', String(s.uiScale));
+  root.style.setProperty('--hud-k', String(hudScale(innerWidth, innerHeight, s.uiScale)));
   root.dataset.chat = s.chatFeed;
   root.dataset.hints = s.keyHints ? 'on' : 'off';
 }

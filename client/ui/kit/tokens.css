@@ -1,0 +1,172 @@
+/* TIREDWOOD UI 2.0 — токены кита в игре. Перенесено из lab/ui/kit/tokens.css (обзор: lab/ui/, справочник: lab/ui/kit/KIT.md):
+   общие токены, пары --w-…/--h-… (окно / HUD), шкурка «Ретро-парк 2.0», раздача контекстов по месту и акценты режимов.
+   Шкурка = атрибут data-skin на <html> (index.html: retro2). Другая шкурка или вариант HUD ложится сюда отдельным блоком
+   ([data-skin='…'] / [data-hud='…']), переопределяя --w-…/--h-…/--plate-…; компоненты (kit.css) берут ТОЛЬКО эти переменные.
+   Режимный акцент — data-mode на любом контейнере (fishing · farm · fort · race · dungeon · paintball · hide · skill · pirates · regatta).
+
+   ДВА КОНТЕКСТА. «Окно» (окна, панели) и «HUD» (плашки поверх игры): часть токенов (текст, поверхности, цветной текст,
+   кнопка-призрак, полосы) задаётся парой --w-… (окно) и --h-… (HUD), а обычные имена (--surf-text, --gold-text, --track …)
+   раздаются ниже по месту: внутри .k-hud и плашек — HUD-значения, внутри .k-scrim/.k-window — оконные.
+   Экраны пользуются только обычными именами.
+
+   Шрифты подключены в client/startup-game.ts: Rubik (@fontsource/rubik 400–900) — весь текст, заголовки retro2 —
+   Rubik Mono One (@fontsource/rubik-mono-one). Одноимённые переменные игры на :root (--gold, --line в styles.css)
+   перекрывают токены кита: styles.css подключён после кита. */
+
+/* ---------------------------------------------------------------- общее для всех шкурок */
+:root {
+  --font-text: Rubik, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* шкала: 13 — только третичные подписи; меньше 13 нельзя */
+  --fs-13: 13px; --fs-14: 14px; --fs-15: 15px; --fs-16: 16px; --fs-18: 18px; --fs-22: 22px;
+  --fs-28: 28px; --fs-36: 36px; --fs-48: 48px; --fs-72: 72px;
+  --lh-tight: 1.08; --lh: 1.35;
+  /* отступы (шаг 4) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  /* поля экрана и слоты (сцена 1440×900). v2: поля 16, компактный HUD */
+  --edge: 16px;
+  --slot-gap: 10px;
+  /* движение */
+  --ease-spring: cubic-bezier(.2, .9, .3, 1.15);
+  --ease-pop: cubic-bezier(.2, 1.6, .4, 1);
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --dur-1: .12s; --dur-2: .22s; --dur-3: .45s;
+  /* цвета категорий рыбы — как в игре (shared/fishrules.ts TIER_CSS), не менять */
+  --tier-common: #8f9aa3; --tier-rare: #2f86d8; --tier-epic: #9a4ee0; --tier-legend: #eb9a12; --tier-myth: #e8364f;
+  --tier-junk: #8a7766; --tier-chest: #d9a521; --tier-divine: #18b7a6;
+}
+
+/* HUD по умолчанию = окно (своё у HUD задаёт только «Закат»). Стоит ДО шкурок: шкурка может переопределить --h-… */
+:root, [data-skin] {
+  --h-surf-solid: var(--w-surf-solid); --h-surf-text: var(--w-surf-text); --h-surf-dim: var(--w-surf-dim); --h-surf-faint: var(--w-surf-faint);
+  --h-surf-2: var(--w-surf-2); --h-surf-2-border: var(--w-surf-2-border); --h-surf-3: var(--w-surf-3);
+  --h-line: var(--w-line); --h-line-strong: var(--w-line-strong);
+  --h-panel-bg: var(--w-panel-bg); --h-panel-border: var(--w-panel-border); --h-panel-shadow: var(--w-panel-shadow);
+  --h-gold-text: var(--w-gold-text); --h-good-text: var(--w-good-text); --h-bad-text: var(--w-bad-text); --h-info-text: var(--w-info-text); --h-special-text: var(--w-special-text);
+  --h-ghost-bg: var(--w-ghost-bg); --h-ghost-text: var(--w-ghost-text); --h-ghost-border: var(--w-ghost-border); --h-ghost-bg-hover: var(--w-ghost-bg-hover); --h-ghost-drop: var(--w-ghost-drop);
+  --h-track: var(--w-track); --h-track-border: var(--w-track-border); --h-trail: var(--w-trail); --h-ring-face: var(--w-ring-face);
+  --h-accent-k: var(--w-accent-k); --h-accent-to: var(--w-accent-to); --h-sil: var(--w-sil);
+}
+
+/* ================================================================ Г · «Ретро-парк 2.0» (по умолчанию)
+   Бирюзовая эмаль, крем, коралл. Как «Ретро-парк» из версии 1, но тоньше: рамки 1,5–2 px, мягкие тени, без болтов;
+   маркиза — только узкая полоса в шапке окна, лампочки — только у .k-lamp. Кнопки — эмаль с тонким нижним кантом. */
+:root, [data-skin='retro2'] {
+  --font-display: 'Rubik Mono One', Rubik, system-ui, sans-serif;
+  --display-weight: 400; --display-case: uppercase; --display-track: .01em; --display-scale: .8; --display-word: -.3em;
+  --title-color: #fff4dc;
+  --title-shadow: 0 2px 0 #0a3b37;
+  --head-title: initial; --head-title-shadow: initial;
+
+  --r-xs: 5px; --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px; --r-pill: 999px;
+
+  /* окно */
+  --w-surf-solid: #0e5550;
+  --w-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 32%), linear-gradient(180deg, #13675f, #0d524d);
+  --w-panel-border: 2px solid #f3e6c9;
+  --w-panel-shadow: 0 0 0 1px #0a3b37, 0 16px 36px rgba(3, 25, 23, .36);
+  --panel-outline: none; --panel-outline-offset: 0;
+  --w-surf-text: #fff4dc;
+  --w-surf-dim: rgba(255, 244, 220, .76);
+  --w-surf-faint: rgba(255, 244, 220, .6);
+  --w-surf-2: rgba(255, 244, 220, .07);
+  --w-surf-2-border: 1px solid rgba(255, 244, 220, .14);
+  --w-surf-3: rgba(3, 32, 30, .38);
+  --w-line: rgba(255, 244, 220, .13);
+  --w-line-strong: rgba(255, 244, 220, .32);
+  --w-gold-text: #ffd665; --w-good-text: #9eecb6; --w-bad-text: #ffa0a3; --w-info-text: #b4efe7; --w-special-text: #c8cfff;
+  --w-ghost-bg: rgba(255, 244, 220, .08); --w-ghost-text: #fff4dc; --w-ghost-border: 1.5px solid rgba(255, 244, 220, .42); --w-ghost-bg-hover: rgba(255, 244, 220, .16); --w-ghost-drop: none;
+  --w-track: rgba(3, 32, 30, .5); --w-track-border: 1px solid rgba(255, 244, 220, .18); --w-trail: rgba(255, 244, 220, .5);
+  --w-ring-face: radial-gradient(circle at 40% 35%, #187a72, #0b4a46 75%);
+  --w-accent-k: 100%; --w-accent-to: #000000; --w-sil: brightness(0) invert(.94) opacity(.3);
+  --scrim: radial-gradient(120% 90% at 50% 40%, rgba(4, 26, 24, .3), rgba(4, 26, 24, .66));
+
+  /* шапка окна: узкая маркиза крем/коралл, без фестонов */
+  --head-bg: none; --head-mode-k: 0%; --head-eyebrow: initial;
+  --head-text: #fff4dc;
+  --head-rule: 1px solid rgba(255, 244, 220, .14);
+  --awning-h: 10px; --awning-w: 22px; --awning-fest: 0;
+  --awning-a: #ff7a5c; --awning-b: #f3e6c9;
+  --mode: #ffcd4a; --mode-soft: rgba(255, 205, 74, .16); --mode-ink: #3a2603;
+  --portrait-bg: radial-gradient(circle at 35% 30%, #fff8e6, #f1dcb0 70%);
+  --portrait-ring: 0 0 0 2px #ff7a5c, 0 0 0 4px #f3e6c9;
+  --portrait-radius: 50%; --portrait-rotate: 0deg;
+
+  /* плашки HUD: та же эмаль, тонкий кремовый кант */
+  --plate-bg: rgba(13, 82, 77, .92);
+  --plate-text: #fff4dc;
+  --plate-border: 1.5px solid rgba(243, 230, 201, .72);
+  --plate-shadow: 0 0 0 1px rgba(6, 40, 37, .45), 0 4px 12px rgba(3, 25, 23, .24);
+  --plate-blur: none;
+  --hud-text-shadow: 0 1px 0 rgba(4, 30, 28, .5);
+
+  /* смысл: основной, светлый верх, тёмная подошва, текст на нём, мягкая подложка */
+  --gold: #ffcd4a; --gold-hi: #ffdd7a; --gold-lo: #a8760a; --gold-ink: #3a2603; --gold-soft: rgba(255, 205, 74, .16);
+  --good: #56c07d; --good-hi: #84dba0; --good-lo: #2a7a4a; --good-ink: #0c2e19; --good-soft: rgba(132, 219, 160, .16);
+  --bad: #e5484d; --bad-hi: #f47a7e; --bad-lo: #8e1f27; --bad-ink: #ffffff; --bad-soft: rgba(244, 122, 126, .18);
+  --info: #8fd9cf; --info-hi: #b9ece5; --info-lo: #2d7c74; --info-ink: #08302c; --info-soft: rgba(143, 217, 207, .16);
+  --special: #a9b4ff; --special-hi: #c9d0ff; --special-lo: #4a55c0; --special-ink: #141c63; --special-soft: rgba(169, 180, 255, .18);
+
+  /* кнопки: эмаль, тонкий нижний кант */
+  --btn-radius: 10px; --btn-border: 0 solid transparent; --btn-drop: 3px; --btn-sheen: 40%;
+  --btn-hl: inset 0 1px 0 rgba(255, 255, 255, .4);
+  --btn-weight: 800; --btn-case: uppercase; --btn-track: .03em;
+
+  --key-bg: #fff6e2; --key-text: #0d524d; --key-border: 1px solid #0a3b37; --key-shadow: 0 1.5px 0 #0a3b37; --key-radius: 6px; --key-weight: 800;
+
+  /* важная плашка: тёмная кайма + редкие лампочки */
+  --lamp-band: 0 0 0 7px #0a3b37;
+  --lamp-ring: 0 0 0 8.5px rgba(243, 230, 201, .7), 0 0 22px rgba(255, 205, 74, .28);
+  --lamp-dot: #fff0bf; --lamp-dot-size: 3px; --lamp-inset: -5.5px;
+  --lamp-dot-glow: drop-shadow(0 0 2px rgba(255, 210, 90, .95)) drop-shadow(0 0 5px rgba(255, 190, 60, .5));
+
+  --focus: 0 0 0 2px #0a3b37, 0 0 0 4.5px #ffcd4a;
+
+  --hero-font: var(--font-display); --hero-weight: var(--display-weight); --hero-text: #fff4dc;
+  --hero-outline: 2px 0 0 #0a3b37, -2px 0 0 #0a3b37, 0 2px 0 #0a3b37, 0 -2px 0 #0a3b37, 1.5px 1.5px 0 #0a3b37, -1.5px 1.5px 0 #0a3b37, 1.5px -1.5px 0 #0a3b37, -1.5px -1.5px 0 #0a3b37;
+  --hero-step: 4px; --hero-step-ink: #0a3b37;
+
+  --nick-1: #ffb36b; --nick-2: #a2f0b8; --nick-3: #c4ccff; --nick-4: #ffa3b4; --nick-5: #ffe58c; --nick-6: #9fe3da;
+  --chat-bg: rgba(13, 82, 77, .84); --chat-border: 0 solid transparent; --chat-shadow: 0 0 0 1px rgba(243, 230, 201, .3);
+
+  /* акценты режимов: светлые — читаются на бирюзе */
+  --m-fishing: #7fe3d4; --m-farm: #8fd46e; --m-fort: #ff9a52; --m-race: #ff6b5b; --m-dungeon: #e0b45c;
+  --m-paintball: #ff8a1c; --m-hide: #c99cff; --m-skill: #8fc2ff; --m-pirates: #ff6a5a; --m-regatta: #6cc8f0; --m-ink: #072b28;
+
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------- раздача двух контекстов по месту
+   окно/страница: всё внутри шкурки, .k-scrim, .k-window; HUD: .k-hud и все плашки поверх игры (+ шапка окна — в «Закате» она цветная) */
+:root, [data-skin], .k-scrim, .k-window {
+  --surf-solid: var(--w-surf-solid); --surf-text: var(--w-surf-text); --surf-dim: var(--w-surf-dim); --surf-faint: var(--w-surf-faint);
+  --surf-2: var(--w-surf-2); --surf-2-border: var(--w-surf-2-border); --surf-3: var(--w-surf-3);
+  --line: var(--w-line); --line-strong: var(--w-line-strong);
+  --panel-bg: var(--w-panel-bg); --panel-border: var(--w-panel-border); --panel-shadow: var(--w-panel-shadow);
+  --gold-text: var(--w-gold-text); --good-text: var(--w-good-text); --bad-text: var(--w-bad-text); --info-text: var(--w-info-text); --special-text: var(--w-special-text);
+  --ghost-bg: var(--w-ghost-bg); --ghost-text: var(--w-ghost-text); --ghost-border: var(--w-ghost-border); --ghost-bg-hover: var(--w-ghost-bg-hover); --ghost-drop: var(--w-ghost-drop);
+  --track: var(--w-track); --track-border: var(--w-track-border); --trail: var(--w-trail); --ring-face: var(--w-ring-face);
+  --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil);
+}
+.k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
+.k-voice, .k-vitals, .k-edge, .k-hero, .k-pop, .k-pill--plate, .k-win-head {
+  --surf-solid: var(--h-surf-solid); --surf-text: var(--h-surf-text); --surf-dim: var(--h-surf-dim); --surf-faint: var(--h-surf-faint);
+  --surf-2: var(--h-surf-2); --surf-2-border: var(--h-surf-2-border); --surf-3: var(--h-surf-3);
+  --line: var(--h-line); --line-strong: var(--h-line-strong);
+  --panel-bg: var(--h-panel-bg); --panel-border: var(--h-panel-border); --panel-shadow: var(--h-panel-shadow);
+  --gold-text: var(--h-gold-text); --good-text: var(--h-good-text); --bad-text: var(--h-bad-text); --info-text: var(--h-info-text); --special-text: var(--h-special-text);
+  --ghost-bg: var(--h-ghost-bg); --ghost-text: var(--h-ghost-text); --ghost-border: var(--h-ghost-border); --ghost-bg-hover: var(--h-ghost-bg-hover); --ghost-drop: var(--h-ghost-drop);
+  --track: var(--h-track); --track-border: var(--h-track-border); --trail: var(--h-trail); --ring-face: var(--h-ring-face);
+  --accent-k: var(--h-accent-k); --accent-to: var(--h-accent-to); --sil: var(--h-sil);
+}
+
+/* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки; цвет берётся из ближайшей шкурки) */
+[data-mode='fishing'] { --mode: var(--m-fishing); --mode-soft: color-mix(in srgb, var(--m-fishing) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='farm'] { --mode: var(--m-farm); --mode-soft: color-mix(in srgb, var(--m-farm) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='fort'] { --mode: var(--m-fort); --mode-soft: color-mix(in srgb, var(--m-fort) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='race'] { --mode: var(--m-race); --mode-soft: color-mix(in srgb, var(--m-race) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='dungeon'] { --mode: var(--m-dungeon); --mode-soft: color-mix(in srgb, var(--m-dungeon) 20%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='paintball'] { --mode: var(--m-paintball); --mode-soft: color-mix(in srgb, var(--m-paintball) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='hide'] { --mode: var(--m-hide); --mode-soft: color-mix(in srgb, var(--m-hide) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='skill'] { --mode: var(--m-skill); --mode-soft: color-mix(in srgb, var(--m-skill) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='pirates'] { --mode: var(--m-pirates); --mode-soft: color-mix(in srgb, var(--m-pirates) 18%, transparent); --mode-ink: var(--m-ink); }
+[data-mode='regatta'] { --mode: var(--m-regatta); --mode-soft: color-mix(in srgb, var(--m-regatta) 18%, transparent); --mode-ink: var(--m-ink); }

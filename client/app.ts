@@ -41,6 +41,8 @@ import { OnlineList } from './ui/online.ts';
 import { KickVoteUi } from './ui/kickvote.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
+import { bindHudScale } from './ui/kit/scale.ts';
+import { bindClickSounds, sfx } from './ui/kit/sfx.ts';
 import { TokensHud } from './ui/tokens.ts';
 import { Transition } from './ui/transition.ts';
 import { VoiceController, voiceInputAllowed } from './voice.ts';
@@ -204,6 +206,10 @@ export class App {
     this.input.blocked = true;
     this.shell = shell;
     document.documentElement.classList.toggle('touch', TOUCH);
+    // кит 2.0: весь интерфейс (#hud, #menus) — одним масштабом от экрана и «Размера интерфейса»; клики кнопок кита звучат
+    bindHudScale(document.documentElement, () => this.settings.uiScale);
+    bindClickSounds(shell);
+    bindClickSounds(menus);
     // кнопки на экране — под интерфейсом сцен (их подсказки и панели нажимаются пальцем) и под чатом
     this.touch = TOUCH ? new TouchControls(shell, this.input) : null;
     this.chat = new Chat(shell);
@@ -552,6 +558,7 @@ export class App {
     this.stopRetry();
     // звук и захват мыши — строго внутри клика пользователя
     this.sound.unlock();
+    sfx.attach(this.sound.kit);
     this.sound.setVolume(effectiveVolume(this.settings));
     void this.input.lock();
     // телефон: на весь экран, без строки адреса (iPhone так не умеет — тогда просто как есть)
@@ -1096,6 +1103,7 @@ export class App {
 
   private resume(): void {
     this.sound.unlock();
+    sfx.attach(this.sound.kit);
     // телефон за столом дурака или в примерочной: управление пальцами там не нужно — просто убрать паузу
     if (TOUCH && this.active?.wantsPointer === false) {
       this.setPaused(false);
@@ -1357,6 +1365,7 @@ export class App {
     this.input.invertY = s.invertY;
     this.sound.setVolume(effectiveVolume(s));
     this.sound.setMix(s.sfxVolume, s.ambVolume, s.uiVolume, s.musicVolume);
+    sfx.enabled = s.uiSounds;
     this.voice?.setGameMuted(s.muted);
     this.syncSound();
     applyInterface(s);
