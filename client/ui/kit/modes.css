@@ -192,3 +192,7 @@
   .mo-clock b.is-hurry { animation: none !important; }
   .mo-feed-line { transition: none; }
 }
+
+/* окно итогов обновляется на месте (ModeResults.show): обёртка таблицы не меняет раскладку */
+.mo-res-main { display: contents; }
+.mo-results .k-results-sub[hidden] { display: none; }

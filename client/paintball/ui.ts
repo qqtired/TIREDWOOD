@@ -12,7 +12,7 @@ import cannonUrl from '../assets/fort/cannon.webp';
 import { TOUCH } from '../touch.ts';
 import { h, iconImg, meterHtml } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
-import { ModeFeed, ModeResults, capHtml, esc } from '../ui/kit/modes.ts';
+import { ModeFeed, ModeResults, capHtml, esc, put, setMeter } from '../ui/kit/modes.ts';
 import type { HudSlots } from '../ui/kit/slots.ts';
 import { PRIO, type TopCenter } from '../ui/kit/topcenter.ts';
 import type { Hud } from './hud.ts';
@@ -38,19 +38,6 @@ export interface PbKit {
   freeMouse: () => void;
   /** Итоги закрылись (новый раунд): мышь снова в игру */
   wantMouse: () => void;
-}
-
-/** Текст элемента — только если поменялся */
-function put(e: HTMLElement, text: string): void {
-  if (e.textContent !== text) e.textContent = text;
-}
-
-/** Полоса кита: доля и след (след догоняет сам — переход в kit.css) */
-function setMeter(m: HTMLElement, v: number): void {
-  const k = Math.max(0, Math.min(1, v)).toFixed(3);
-  if (m.style.getPropertyValue('--v') === k) return;
-  m.style.setProperty('--v', k);
-  m.style.setProperty('--g', k);
 }
 
 const meterIn = '<i class="k-meter-ghost"></i><i class="k-meter-fill"></i>';

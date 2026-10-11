@@ -47,7 +47,8 @@ export class PaintballScene implements Scene {
       // клик — жест игрока: мышь сразу в игру, на набережной не встанет меню
       leave: () => { void d.input.lock(); d.net.send({ t: 'leave' }); },
       freeMouse: () => d.input.unlock(),
-      wantMouse: () => d.wantPointer(),
+      // итоги закрылись (новый раунд): захват вне жеста не удастся — тогда вуаль «Кликни, чтобы играть», а не меню
+      wantMouse: () => { d.quietPause?.(); d.wantPointer(); },
     });
     this.slot = new SlotMachine(root, d.sound);
   }

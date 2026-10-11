@@ -493,7 +493,8 @@ export class LobbyScene implements Scene {
       under: d.ui.slots.tcUnder,
       bottom: d.ui.slots.bc,
       shell: d.hudRoot,
-      closed: () => d.wantPointer(),
+      // итоги набега закрыли (кнопкой, Esc) или они закрылись сами: мышь — обратно; без жеста — вуаль, а не меню
+      closed: () => { if (!this.wantsPointer) return; d.quietPause?.(); d.wantPointer(); },
     });
     for (const z of START_ZONES) {
       const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });

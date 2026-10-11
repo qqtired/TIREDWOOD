@@ -132,7 +132,7 @@ export class RatRaceHud {
     this.kit = kit;
     // ---- окно ставки
     this.scrim = h('div', 'k-scrim rr-scrim');
-    this.scrim.dataset.mode = 'farm';
+    this.scrim.dataset.mode = 'rats';
     this.scrim.hidden = true;
     this.win = this.scrim.appendChild(h('section', 'k-window mo-bet-win'));
     this.win.tabIndex = -1;

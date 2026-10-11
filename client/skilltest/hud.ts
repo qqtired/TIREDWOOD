@@ -8,7 +8,7 @@ import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
 import { h, iconImg } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
-import { capHtml, esc, keysRow, ModeCount, ModeResults, placeHtml, type ResultsRow, type ResultsSpec } from '../ui/kit/modes.ts';
+import { capHtml, esc, keysRow, ModeCount, ModeResults, placeHtml, put, type ResultsRow, type ResultsSpec } from '../ui/kit/modes.ts';
 import { PRIO } from '../ui/kit/topcenter.ts';
 import './skilltest.css';
 
@@ -44,9 +44,6 @@ const CARD_MS = 9000;
 const RESULTS_SEC = SKILL_RESULTS_TICKS / 60;
 const MODE = 'Выше облаков · Небесная каланча';
 
-function put(e: HTMLElement, text: string): void {
-  if (e.textContent !== text) e.textContent = text;
-}
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const medalCell = (m: number) => (m > 0 ? `${iconImg(MEDAL_ICON[m], 'mo-med')}${SKILL_MEDALS[m]}` : '—');
 

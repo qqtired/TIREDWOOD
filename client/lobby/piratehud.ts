@@ -43,8 +43,33 @@ const ARROW_TONE: Record<ArrowKind, string> = { thief: 'bad', pirate: 'bad', boa
 const ARROW_ICON: Record<ArrowKind, string> = { thief: 'pirate-flag', pirate: 'pirate-flag', boat: 'boat', loot: 'loot' };
 /** Отступ стрелок от края экрана, px (× масштаб HUD) */
 const EDGE = 56;
-/** Угрозы в одной стороне (шаг угла) — одной стрелкой */
+/** Угрозы одного вида в одной стороне (шаг угла) — одной стрелкой */
 const ARROW_BIN = Math.PI / 9;
+/** Разные виды в одной стороне — рядом, со сдвигом по эллипсу на столько радиан */
+const ARROW_FAN = 0.2;
+
+/** Стрелка к угрозам: первая угроза группы (по важности), сколько их, сектор и номер стрелки в этом секторе */
+export interface ArrowGroup { s: ArrowSpec; n: number; bin: number; nth: number }
+
+/**
+ * Угрозы → стрелки: одного вида в одном секторе (шаг step) — одна стрелка «ящик ×3», у каждого вида своя. Сектор берётся
+ * по кругу (±π — один сектор). Порядок — как в списке (он уже по важности); nth — какая по счёту стрелка в этом секторе.
+ */
+export function binArrows(list: readonly ArrowSpec[], step = ARROW_BIN): ArrowGroup[] {
+  const count = Math.max(1, Math.round((2 * Math.PI) / step));
+  const groups = new Map<string, ArrowGroup>();
+  const inBin = new Map<number, number>();
+  for (const s of list) {
+    const bin = ((Math.round(s.angle / step) % count) + count) % count;
+    const key = `${s.kind}|${bin}`;
+    const g = groups.get(key);
+    if (g) { g.n++; continue; }
+    const nth = inBin.get(bin) ?? 0;
+    inBin.set(bin, nth + 1);
+    groups.set(key, { s, n: 1, bin, nth });
+  }
+  return [...groups.values()];
+}
 
 /** Куда класть плашку: верх-центр HUD и картинки кита (без них — тесты — плашки нет); under — слот панели набега */
 export interface PirateTop {
@@ -80,7 +105,6 @@ export class PirateHud {
   private readonly ret: HTMLElement;
   private readonly retTxt: HTMLElement;
   private readonly arrows: Arrow[] = [];
-  private readonly bins = new Map<number, { s: ArrowSpec; n: number }>();
   private readonly fire: HTMLButtonElement;
   private result: ModeResults | null = null;
   private readonly cache = new Map<HTMLElement, string>();
@@ -92,6 +116,9 @@ export class PirateHud {
   private resultFor = '';
   /** Итоги этого набега закрыли сами — больше не показывать */
   private closedFor = '';
+  /** Esc закрывает итоги (слушатель окна — снимается в dispose) */
+  private onKey: ((e: KeyboardEvent) => void) | null = null;
+  private disposed = false;
 
   constructor(parent: HTMLElement, hooks: { fire(down: boolean): void } & PirateTop) {
     this.tc = hooks;
@@ -143,17 +170,19 @@ export class PirateHud {
     // итоги — окно кита; без оболочки (тесты) — без окна
     const shell = hooks.shell;
     if (shell) void import('../ui/kit/modes.ts').then((m) => {
+      if (this.disposed) return; // модуль догрузился, когда набег уже убрали — окна не нужно
       const res = new m.ModeResults(shell);
       this.result = res;
       res.scrim.classList.add('pr-scrim');
       res.onAction = () => this.closeResults();
       // Esc при свободной мыши (захват браузер снимает сам — тогда клавиша до страницы не доходит)
-      window.addEventListener('keydown', (e) => {
+      this.onKey = (e) => {
         if (e.code !== 'Escape' || !this.resultsOpen || document.pointerLockElement) return;
         e.preventDefault();
         e.stopImmediatePropagation();
         this.closeResults();
-      }, true);
+      };
+      window.addEventListener('keydown', this.onKey, true);
     });
   }
 
@@ -253,12 +282,14 @@ export class PirateHud {
     if (!this.resultsOpen) return;
     this.closedFor = this.resultFor;
     this.hideResult();
-    this.tc.closed?.();
   }
 
+  /** Спрятать итоги; были открыты — сцене снова нужна мышь (как после «Закрыть»: итоги закрылись сами по концу набега) */
   private hideResult(): void {
+    const was = this.resultsOpen;
     this.resultFor = '';
     this.result?.hide();
+    if (was) this.tc.closed?.();
   }
 
   private showResult(v: PirateView): void {
@@ -324,20 +355,15 @@ export class PirateHud {
   setArrows(list: readonly ArrowSpec[]): void {
     const w = this.width, h = this.height;
     const k = list.length ? Number(document.documentElement?.style.getPropertyValue('--hud-k')) || 1 : 1;
-    this.bins.clear();
-    for (const s of list) {
-      const bin = Math.round(s.angle / ARROW_BIN);
-      const b = this.bins.get(bin);
-      if (!b) this.bins.set(bin, { s, n: 1 });
-      else if (b.s.kind === s.kind) b.n++;
-    }
     let i = 0;
-    for (const { s, n } of this.bins.values()) {
+    for (const { s, n, nth } of binArrows(list)) {
       if (i >= this.arrows.length) break;
       const a = this.arrows[i++];
-      // по эллипсу внутри экрана: углы (бейдж, чат, эмоции) и верх с плашкой события свободны
-      const x = w / 2 + Math.cos(s.angle) * (w / 2 - EDGE * k);
-      const y = h / 2 + Math.sin(s.angle) * (h / 2) * 0.62;
+      // по эллипсу внутри экрана: углы (бейдж, чат, эмоции) и верх с плашкой события свободны; второй вид в той же
+      // стороне — чуть дальше по эллипсу (по очереди в обе стороны), чтобы стрелки не легли одна на другую
+      const at = s.angle + (nth ? (nth % 2 ? 1 : -1) * Math.ceil(nth / 2) * ARROW_FAN : 0);
+      const x = w / 2 + Math.cos(at) * (w / 2 - EDGE * k);
+      const y = h / 2 + Math.sin(at) * (h / 2) * 0.62;
       const icon = this.tc.icon?.(ARROW_ICON[s.kind]) ?? '';
       if (icon !== a.icon) {
         a.icon = icon;
@@ -362,5 +388,14 @@ export class PirateHud {
   get width(): number { return this.root.clientWidth || window.innerWidth; }
   get height(): number { return this.root.clientHeight || window.innerHeight; }
 
-  dispose(): void { this.tc.top?.clear(KEY); this.panel.remove(); this.tasks.remove(); this.result?.scrim.remove(); this.root.remove(); }
+  dispose(): void {
+    this.disposed = true;
+    if (this.onKey) window.removeEventListener('keydown', this.onKey, true);
+    this.onKey = null;
+    this.tc.top?.clear(KEY);
+    this.panel.remove();
+    this.tasks.remove();
+    this.result?.scrim.remove();
+    this.root.remove();
+  }
 }

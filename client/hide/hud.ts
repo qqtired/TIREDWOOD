@@ -9,7 +9,7 @@ import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
 import { coinHtml, h, iconImg } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
-import { capHtml, esc, ModeCount, ModeFeed, ModeResults, placeHtml, type ResultsRow } from '../ui/kit/modes.ts';
+import { capHtml, esc, ModeCount, ModeFeed, ModeResults, placeHtml, put, setMeter, type ResultsRow } from '../ui/kit/modes.ts';
 import { PRIO } from '../ui/kit/topcenter.ts';
 import './hide.css';
 
@@ -21,16 +21,6 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const meter = (v: number, cls: string) => `<span class="k-meter ${cls}" style="--v:${clamp01(v).toFixed(3)};--g:${clamp01(v).toFixed(3)}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
 const pts = (n: number) => `${n} ${plural(n, 'очко', 'очка', 'очков')}`;
 const MODE = 'Прятки · Рыбный двор';
-
-function setMeter(m: HTMLElement, v: number): void {
-  const k = clamp01(v).toFixed(3);
-  if (m.style.getPropertyValue('--v') === k) return;
-  m.style.setProperty('--v', k);
-  m.style.setProperty('--g', k);
-}
-function put(e: HTMLElement, text: string): void {
-  if (e.textContent !== text) e.textContent = text;
-}
 
 /** Ячейка умения: картинка, подпись под ней, клавиша в углу */
 interface Act { root: HTMLElement; cap: HTMLElement }

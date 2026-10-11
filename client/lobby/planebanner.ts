@@ -192,7 +192,7 @@ export class BannerPanel {
       return e;
     };
     this.el = el('div', 'k-scrim pl-ban-scrim', d.root) as HTMLDivElement;
-    this.el.dataset.mode = 'regatta';
+    this.el.dataset.mode = 'plane';
     this.el.hidden = true;
     const win = el('section', 'k-window k-window--sm pl-ban-win', this.el);
     win.setAttribute('role', 'dialog');

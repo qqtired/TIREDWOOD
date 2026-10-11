@@ -33,8 +33,16 @@ export function coinText(e: HTMLElement, text: string): void {
 }
 
 /** Текст элемента — только если поменялся */
-function put(e: HTMLElement, text: string): void {
+export function put(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
+}
+
+/** Полоса кита (.k-meter): доля 0…1 и след (след догоняет сам — переход в kit.css); стиль — только если поменялась */
+export function setMeter(m: HTMLElement, v: number): void {
+  const k = Math.max(0, Math.min(1, v)).toFixed(3);
+  if (m.style.getPropertyValue('--v') === k) return;
+  m.style.setProperty('--v', k);
+  m.style.setProperty('--g', k);
 }
 
 /**
@@ -254,6 +262,16 @@ export class ModeResults {
   private noteEl: HTMLElement | null = null;
   private noteText: HTMLElement | null = null;
   private noteBar: HTMLElement | null = null;
+  /** Открытое окно: части, которые show() обновляет на месте (без новой анимации входа и без замены кнопок) */
+  private win: HTMLElement | null = null;
+  private eyebrowEl: HTMLElement | null = null;
+  private titleEl: HTMLElement | null = null;
+  private subEl: HTMLElement | null = null;
+  private mainEl: HTMLElement | null = null;
+  private actsEl: HTMLElement | null = null;
+  private mainHtml = '';
+  private subHtml = '';
+  private actsKey = '';
 
   /** parent — оболочка (#hud), рядом со слоем кита, не внутри него */
   constructor(parent: HTMLElement) {
@@ -268,26 +286,72 @@ export class ModeResults {
     parent.append(this.scrim);
   }
 
+  /**
+   * Показать итоги. Окно уже открыто — обновить на месте: заголовки, таблицу, кнопки (те же кнопки — те же узлы, меняются
+   * только подписи: голос «ещё!» между нажатием и отпусканием мыши не съест клик), без повторной анимации входа.
+   * reward / note не заданы — остаются прежними (на новом окне — спрятаны).
+   */
   show(s: ResultsSpec): void {
     const r = s.rightFrom ?? 99;
     const head = s.head?.length ? `<thead><tr>${s.head.map((x, i) => `<th${i >= r ? ' class="k-r"' : ''}>${x}</th>`).join('')}</tr></thead>` : '';
     const rows = (s.rows ?? []).map((row) => `<tr class="${[row.own ? 'is-own' : '', row.dim ? 'is-dnf' : ''].filter(Boolean).join(' ')}">${row.cells.map((c, i) => `<td${i >= r ? ' class="k-r"' : ''}>${c}</td>`).join('')}</tr>`).join('');
     const table = s.body ?? (rows ? `<table class="k-table">${head}<tbody>${rows}</tbody></table>` : '');
-    const btn = (a: ResultsAction): string => `<button class="k-btn${a.tone && a.tone !== 'gold' ? ` k-btn--${a.tone}` : ''}" type="button" data-mo-act="${esc(a.id)}">${esc(a.label)}${a.small !== undefined ? `<small data-mo-small="${esc(a.id)}">${esc(a.small)}</small>` : ''}${a.key ? capHtml(a.key, 'k-key--tr') : ''}</button>`;
     if (s.mode) this.scrim.dataset.mode = s.mode;
     else delete this.scrim.dataset.mode;
-    this.scrim.innerHTML = `<section class="k-window mo-results${s.wide ? ' k-window--lg' : ''} is-in" role="dialog" aria-label="${esc(s.title)}">
-      <div class="k-results-head"><p class="k-eyebrow">${esc(s.eyebrow)}</p><h2 class="k-results-title${s.lose ? ' is-lose' : ''}">${esc(s.title)}</h2>${s.sub ? `<p class="k-results-sub">${s.sub}</p>` : ''}</div>
-      <div class="k-win-body">${s.extra ?? ''}${table}<div class="k-reward" hidden></div>
-        <div class="mo-note" hidden><span class="k-meter k-meter--thin k-meter--mode" style="--v:0"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span><span></span></div></div>
-      <div class="k-results-actions">${s.actions.map(btn).join('')}</div></section>`;
-    this.rewardEl = this.scrim.querySelector('.k-reward');
-    this.noteEl = this.scrim.querySelector('.mo-note');
-    this.noteBar = this.noteEl!.querySelector('.k-meter');
-    this.noteText = this.noteEl!.querySelector('span:last-child');
-    if (s.reward) this.reward(s.reward);
-    if (s.note) this.note(s.note, s.noteFrac ?? null);
+    if (this.scrim.hidden || !this.win) this.build();
+    const win = this.win!;
+    win.classList.toggle('k-window--lg', !!s.wide);
+    win.setAttribute('aria-label', s.title);
+    put(this.eyebrowEl!, s.eyebrow);
+    put(this.titleEl!, s.title);
+    this.titleEl!.classList.toggle('is-lose', !!s.lose);
+    const sub = s.sub ?? '';
+    if (sub !== this.subHtml) { this.subHtml = sub; this.subEl!.innerHTML = sub; }
+    this.subEl!.hidden = !sub;
+    const main = (s.extra ?? '') + table;
+    if (main !== this.mainHtml) { this.mainHtml = main; this.mainEl!.innerHTML = main; }
+    this.setActions(s.actions);
+    if (s.reward !== undefined) this.reward(s.reward);
+    if (s.note !== undefined) this.note(s.note, s.noteFrac ?? null);
     this.scrim.hidden = false;
+  }
+
+  /** Новое окно (было закрыто): каркас с анимацией входа (is-in), награда и строка «через N с» спрятаны */
+  private build(): void {
+    this.scrim.innerHTML = `<section class="k-window mo-results is-in" role="dialog">
+      <div class="k-results-head"><p class="k-eyebrow"></p><h2 class="k-results-title"></h2><p class="k-results-sub" hidden></p></div>
+      <div class="k-win-body"><div class="mo-res-main"></div><div class="k-reward" hidden></div>
+        <div class="mo-note" hidden><span class="k-meter k-meter--thin k-meter--mode" style="--v:0"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span><span></span></div></div>
+      <div class="k-results-actions"></div></section>`;
+    const q = <T extends HTMLElement>(sel: string): T => this.scrim.querySelector<T>(sel)!;
+    this.win = q('.k-window');
+    this.eyebrowEl = q('.k-eyebrow');
+    this.titleEl = q('.k-results-title');
+    this.subEl = q('.k-results-sub');
+    this.mainEl = q('.mo-res-main');
+    this.actsEl = q('.k-results-actions');
+    this.rewardEl = q('.k-reward');
+    this.noteEl = q('.mo-note');
+    this.noteBar = this.noteEl.querySelector('.k-meter');
+    this.noteText = this.noteEl.querySelector('span:last-child');
+    this.mainHtml = this.subHtml = this.actsKey = '';
+  }
+
+  /** Кнопки: тот же набор (id, тон, клавиша) — прежние узлы, меняются подписи; другой набор — новые кнопки */
+  private setActions(list: readonly ResultsAction[]): void {
+    const box = this.actsEl!;
+    const key = JSON.stringify(list.map((a) => [a.id, a.tone ?? '', a.key ?? '', a.small !== undefined]));
+    if (key !== this.actsKey) {
+      this.actsKey = key;
+      box.innerHTML = list.map((a) => `<button class="k-btn${a.tone && a.tone !== 'gold' ? ` k-btn--${a.tone}` : ''}" type="button" data-mo-act="${esc(a.id)}">${esc(a.label)}${a.small !== undefined ? `<small data-mo-small="${esc(a.id)}">${esc(a.small)}</small>` : ''}${a.key ? capHtml(a.key, 'k-key--tr') : ''}</button>`).join('');
+      return;
+    }
+    list.forEach((a, i) => {
+      const b = box.children[i] as HTMLElement | undefined;
+      const t = b?.firstChild;
+      if (t && t.nodeType === Node.TEXT_NODE && t.nodeValue !== a.label) t.nodeValue = a.label;
+      if (a.small !== undefined) this.small(a.id, a.small);
+    });
   }
 
   /** Награда: «+40 жетонов за второе место» — число после «+» крупно золотом, 🪙 — монеткой; '' — спрятать */
@@ -338,6 +402,7 @@ export class ModeResults {
     this.scrim.hidden = true;
     this.scrim.replaceChildren();
     this.rewardEl = this.noteEl = this.noteText = this.noteBar = null;
+    this.win = this.eyebrowEl = this.titleEl = this.subEl = this.mainEl = this.actsEl = null;
   }
 
   get shown(): boolean {

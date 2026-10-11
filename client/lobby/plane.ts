@@ -297,6 +297,8 @@ export class PlaneClient {
   private readonly hudBanner: HTMLButtonElement;
   private readonly aim: HTMLElement;
   private hudKey = '';
+  /** Ряд клавиш и кнопка «Сесть» перестраиваются только при смене фазы или вопроса «Точно сесть?» */
+  private rowKey = '';
   private readonly panel: BannerPanel;
 
   constructor(d: PlaneDeps) {
@@ -538,7 +540,7 @@ export class PlaneClient {
     this.hud.hidden = true;
     this.keys.hidden = this.ask.hidden = this.hudLand.hidden = this.hudBanner.hidden = true;
     this.d.ui?.top.clear(EVENT);
-    this.hudKey = '';
+    this.hudKey = this.rowKey = '';
   }
 
   private hudUpdate(): void {
@@ -567,22 +569,27 @@ export class PlaneClient {
       keys = [['Мышь', 'осмотреться'], ['Колесо', 'камера']];
     }
     const sub = `${note ? `${note} · ` : ''}высота ${Math.max(0, Math.round(p.y - PLANE_FLOAT_Y))} м · ${Math.round(p.v * 3.6)} км/ч`;
-    const key = `${title}|${sub}|${timer}|${asking}|${s.ph}|${this.view.b}`;
-    if (key === this.hudKey) return;
-    this.hudKey = key;
-    this.d.ui?.top.event({
-      key: EVENT, prio: PRIO.mode,
-      html: `<span class="k-event-ic">${iconImg('landing', '')}</span><div class="k-event-title">«Стриж» · ${title}</div><div class="k-event-sub">${sub}</div>${timer ? `<div class="k-event-timer">${timer}</div>` : ''}`,
-    });
-    // клавиши строкой (на телефоне — свои кнопки); «Точно сесть?» — вместо них, золотой подсказкой
+    const key = `${title}|${sub}|${timer}`;
+    if (key !== this.hudKey) {
+      this.hudKey = key;
+      this.d.ui?.top.event({
+        key: EVENT, prio: PRIO.mode,
+        html: `<span class="k-event-ic">${iconImg('landing', '')}</span><div class="k-event-title">«Стриж» · ${title}</div><div class="k-event-sub">${sub}</div>${timer ? `<div class="k-event-timer">${timer}</div>` : ''}`,
+      });
+    }
+    this.hudBanner.hidden = (s.ph !== PL_START && s.ph !== PL_FLY) || !!this.view.b;
+    // клавиши строкой (на телефоне — свои кнопки); «Точно сесть?» — вместо них, золотой подсказкой. Высота и скорость
+    // меняются каждый кадр — ряд и кнопку «Сесть» строим заново только при смене фазы или вопроса
+    const rowKey = `${s.ph}|${asking}`;
+    if (rowKey === this.rowKey) return;
+    this.rowKey = rowKey;
     const row = TOUCH || asking || !keys.length ? '' : keysRow(keys).innerHTML.replace(/<kbd class="k-key">Мышь<\/kbd>/g, MOUSE_CAP);
-    if (this.keys.innerHTML !== row) this.keys.innerHTML = row;
+    this.keys.innerHTML = row;
     this.keys.hidden = !row;
     this.ask.hidden = !asking;
     if (asking) this.ask.innerHTML = `${TOUCH ? '' : capHtml('E')}<span>Точно сесть?</span><span class="k-prompt-sep"></span><span class="k-prompt-note">${TOUCH ? 'нажми кнопку ещё раз' : 'нажми E ещё раз'} — летим домой</span>`;
     this.hudLand.hidden = s.ph !== PL_FLY;
     this.hudLand.innerHTML = `<span>${asking ? 'Точно сесть?' : 'Сесть сейчас'}</span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">E</kbd>'}`;
-    this.hudBanner.hidden = (s.ph !== PL_START && s.ph !== PL_FLY) || !!this.view.b;
   }
 
   /** E в полёте: первый раз — спросить, второй (в течение 3 с) — домой. */
