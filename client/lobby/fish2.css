@@ -479,7 +479,7 @@
 }
 
 .fb-sec-h span {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--cream-dim);
 }
 
@@ -518,10 +518,17 @@
   object-fit: contain;
 }
 
+/* имя — 14 px, не мельче: длинное переносится по слогам, больше двух строк — многоточие */
 .fb-name {
-  font-size: 12.5px;
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.15;
+  hyphens: auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .fb-cell.unknown .fb-name {
@@ -529,7 +536,11 @@
 }
 
 .fb-rec {
-  font-size: 11px;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
@@ -539,7 +550,7 @@
 }
 
 .fb-price {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--cream-dim);
 }
 
@@ -564,13 +575,6 @@
   height: 34px;
 }
 
-.fb-grid.compact .fb-name {
-  font-size: 10.5px;
-}
-
-.fb-grid.compact .fb-rec {
-  font-size: 10px;
-}
 
 /* узкий экран: журнал — на весь экран, клетки помельче */
 @media (max-width: 640px), (max-height: 480px) {
@@ -604,14 +608,12 @@
 .fb-cell { min-width: 0; color: var(--cream); font-family: inherit; cursor: default; }
 button.fb-cell { cursor: pointer; }
 .fb-name { overflow-wrap: anywhere; line-height: 1.3; }
-.fb-tier { color: var(--tc); font-size: 11px; line-height: 1.4; }
+.fb-tier { max-width: 100%; overflow: hidden; color: var(--tc); font-size: 13px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
 .fb-cell.unknown .fb-tier { color: var(--cream-dim); }
 .fb-rain { top: 3px; right: 4px; }
 .fb-cells { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); align-items: stretch; }
 .fb-grid.compact .fb-cells { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
-.fb-grid.compact .fb-name { font-size: 12px; }
 .fb-grid.compact .fb-pic { height: 43px; }
-.fb-grid.compact .fb-rec { font-size: 11px; }
 .fb-cell:focus-visible{ outline: 2px solid #ffe09c; outline-offset: 3px; }
 /* The common profile selector used to turn every nested album div into a row. */
 .prof-block.prof-album .fb-grid { display: flex; flex-direction: column; gap: 12px; }
