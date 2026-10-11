@@ -46,7 +46,7 @@
 |---|---|
 | Страница-обзор (эталон вида; «сцена на странице = экран в игре») | `lab/ui/` — `index.html`, `screens/*.js|css`, `kit/` (`tokens.css`, `kit.css`, `combat.css`, `KIT.md`, `KIT-combat.md`) |
 | Кит в игре | `client/ui/kit/` (токены, компоненты, `HudSlots`, `TopCenter`, `Badge`, `uiIcon`, масштаб `--hud-k`, звуки) |
-| Иконки (88) и их происхождение | `client/assets/ui/icons/*.webp`, `PROVENANCE.md` |
+| Иконки (104) и их происхождение | `client/assets/ui/icons/*.webp`, `PROVENANCE.md` |
 | Как делались иконки | [icons-pipeline/](icons-pipeline/) — `gen.mjs` (Codex imagegen), `post.mjs`/`procdone.sh` (обрезка, WebP), `mkprov.mjs`; список и сюжеты — [briefs/icons-list.md](briefs/icons-list.md), `subjects-override.json` |
 | Задания для страницы и экранов | [briefs/](briefs/) — `BRIEF-page.md`, `BRIEF-screens.md`, `BRIEF-v2.md` (отзыв + таблица размеров компактного HUD), `design-direction.md`, `groups.md` |
 | Опись старого UI игры (что было, где в коде) | [inventory/](inventory/) — оболочка, рыбалка, ферма и крепость, режимы |

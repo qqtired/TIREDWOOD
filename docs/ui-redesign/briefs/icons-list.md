@@ -97,3 +97,21 @@
 - white-flag — сдаться — a plain white cloth surrender flag on a short wooden stick, waving gently, with soft folds
 - meteor — метеоры — a round fiery cartoon rock falling diagonally from the upper right, glowing warm orange and red cracks, a short soft trail of orange flame and smoke behind it
 - marker — маркер — a chunky cartoon paintball marker gun with a red body, a round clear hopper on top filled with colorful paintballs, seen from the side in three-quarter view
+
+## Дополнение 2: крепость, меню, другие режимы
+- bloater — пузырь — a swollen round coral-orange zombie jelly-bean character puffed up like a tight balloon, cheeks and belly stretched taut with little stitched seams, tiny steam puffs and a few red jam droplets spraying out, wide startled eyes, about to pop, goofy not scary
+- spitter — плевальщик — a green zombie jelly-bean character leaning back with its mouth wide open, spitting a big glossy blob of red cherry jam in an arc with a trail of drips, goofy not scary
+- armored — чугунок — a heavy grey-green zombie jelly-bean wearing a stack of round cast-iron pots as chest armour and an upturned iron cooking pot as a helmet with a red feather, goofy not scary
+- ram — таран (босс) — a huge brown bull charging forward with its head lowered, a thick wooden log with iron bands strapped across its forehead, big curved ivory horns, a golden nose ring, puffs of steam from its nostrils and a red-and-cream striped saddle blanket
+- golem — валун (босс) — a hunched stone golem built from round grey boulders with very long arms and big boulder fists, green moss on its head and shoulders, hoisting a huge rock above its head ready to throw it, a grumpy face
+- pumpkin-boss — король-тыква (босс) — a huge grumpy orange pumpkin monster with a ribbed round body, a carved grinning face glowing warmly from inside, a lid-like cap with a curly stem and green leaves wearing a small crooked golden crown, two curly green vine arms with leaves and tendrils, a few splats of red jam
+- weaver — ткачиха (босс) — a plump purple grandmother spider with a round abdomen spotted with red jam, a red polka-dot headscarf, small round glasses, tiny fangs, eight legs in striped stockings and slippers, a spool of thread on her back
+- leshy — леший (босс) — a walking old forest-spirit tree: a stocky bark-covered trunk body with twisting grooves, hollow knothole eyes glowing soft purple, a knobby twig nose, a mossy beard and bushy moss brows, branching antler-like horns with leaves and red jam berries on top, two branch arms with twig fingers, a skirt of roots, a small red toadstool on one shoulder
+- elite — элита — a wide golden champion belt with a big ornate round gold buckle set with a red gemstone on a dark brown leather strap, shown as a gentle arch
+- kick — выгнать — a big brown leather boot caught mid-kick with small orange impact lines and a few puffs of dust
+- cellar — подвал (Fight Club) — a single big shiny red leather boxing glove with a white cuff and white laces, raised ready to punch
+- awp — AWP — a long cartoon paintball sniper marker: slim long steel barrel, chunky wooden stock, a round scope on top with a green-tinted lens glint, a small round hopper full of raspberry-red paintballs, three-quarter view lying diagonally
+- headshot — в голову — a round red-and-cream bullseye target with concentric rings and a bold orange paint splat hitting dead center with a few droplets
+- slots — игровой автомат — a chunky cartoon slot machine cabinet in raspberry red with golden trim, three round reel windows each showing a red cherry, a side lever with a red ball knob and golden coins spilling out of the tray
+- seaplane — гидроплан — a small cheerful cartoon seaplane in red and cream floating on two pontoon floats with a round propeller on its nose and a little splash of sea foam under the floats
+- thief — вор — a jelly-bean character wearing a black eye mask and a red-and-cream striped knitted beanie, sneaking along while carrying a wooden crate on its shoulder with a gold coin peeking out, goofy

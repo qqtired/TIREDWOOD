@@ -17,7 +17,7 @@ for (const line of readFileSync(LIST, 'utf8').split('\n')) {
 const overridePath = join(HERE, 'subjects-override.json');
 const override = existsSync(overridePath) ? JSON.parse(readFileSync(overridePath, 'utf8')) : {};
 
-const CHARS = new Set(['token', 'online', 'zombie', 'climber', 'brute', 'champion', 'boss', 'landing']);
+const CHARS = new Set(['token', 'online', 'zombie', 'climber', 'brute', 'champion', 'boss', 'landing', 'bloater', 'spitter', 'armored', 'thief']);
 const JELLY = ' Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes, mitten hands, no legs, no nose.';
 const STYLE = 'Style: a single bold game interface icon for a cozy seaside resort party game (a sunny Black Sea town with jelly-bean characters), polished hand-painted cartoon look in the same family as other chunky game item icons: clean readable shapes, soft painterly cel shading, a thin dark-brown outline, a gentle bright highlight, rich natural saturated colors, warm midday summer sunlight from the upper left with soft warm shadows. The object is shown large and centered in a pleasant three-quarter view, filling about 80 percent of the square 1024x1024 canvas with small even margins. Genuinely transparent background (real alpha channel): no ground, no cast shadow, no scenery, no checkerboard, no white box, no frame, no border. Cozy and grounded storybook mood: not sci-fi, no neon, no electric glow, no darkness. Strictly: no text, no letters, no numbers, no symbols, no logos, no watermark. Avoid any blue-and-yellow color combination.';
 

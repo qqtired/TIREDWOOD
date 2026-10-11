@@ -1,13 +1,13 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
-Нарисованы 11 октября 2026 через Codex CLI v0.153.4 (`codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
-Всего 88 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
+Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2» — v0.162.1; `codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
+Всего 104 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15, Дополнение 2: крепость, меню, другие режимы — 16. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
 
 Тот же способ, что у иконок фермы (`client/assets/farm/icons/PROVENANCE.md`). Стиль сверен с иконками фермы, крепости и лавки рыбака: рисованная «сказочная» манера, тёплое солнце слева сверху, тонкий тёмно-коричневый контур. Без надписей и цифр, без сине-жёлтого, без sci-fi и неона. Список взят из задания «UI icons» (id — смысл — Subject); в задании было «~70», в списке 73 id — нарисованы все.
 
 ## Формат
 
-- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1058 КБ (по 6–20 КБ на иконку).
+- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1283 КБ (по 6–20 КБ на иконку).
 - Предмет обрезан по содержимому (альфа > 24) и вписан в 240×240 по центру (поле 8 px), поэтому мелкие и крупные предметы занимают рамку одинаково.
 - Оригиналы 1254×1254 в репозиторий не кладём; они лежат в библиотеке Codex (`~/.codex/generated_images/<папка Codex>/<файл>.png`, имена — в таблице ниже).
 
@@ -37,7 +37,7 @@ Then copy the generated image file, completely unchanged (do not resize, convert
 Style: a single bold game interface icon for a cozy seaside resort party game (a sunny Black Sea town with jelly-bean characters), polished hand-painted cartoon look in the same family as other chunky game item icons: clean readable shapes, soft painterly cel shading, a thin dark-brown outline, a gentle bright highlight, rich natural saturated colors, warm midday summer sunlight from the upper left with soft warm shadows. The object is shown large and centered in a pleasant three-quarter view, filling about 80 percent of the square 1024x1024 canvas with small even margins. Genuinely transparent background (real alpha channel): no ground, no cast shadow, no scenery, no checkerboard, no white box, no frame, no border. Cozy and grounded storybook mood: not sci-fi, no neon, no electric glow, no darkness. Strictly: no text, no letters, no numbers, no symbols, no logos, no watermark. Avoid any blue-and-yellow color combination.
 ```
 
-Для иконок с желейными персонажами (`token`, `online`, `zombie`, `climber`, `brute`, `champion`, `boss`, `landing`) в конец общего стиля добавлялась строка:
+Для иконок с желейными персонажами (`token`, `online`, `zombie`, `climber`, `brute`, `champion`, `boss`, `landing`, `bloater`, `spitter`, `armored`, `thief`) в конец общего стиля добавлялась строка:
 
 ```
 Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes, mitten hands, no legs, no nose.
@@ -251,18 +251,63 @@ Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes
 - **`marker.webp`** — маркер. Subject: a chunky cartoon paintball marker gun with a red body, a round clear hopper on top filled with colorful paintballs, seen from the side in three-quarter view.
   - исходник `exec-19fb3387-8374-493a-9931-8112f7b9e1b2.png` (папка Codex `01a1282b-2724-7670-884f-5a6f90559f05`, 1254x1254, sha256 c5db25520dad…), в игре 13 КБ
 
+### Дополнение 2: крепость, меню, другие режимы
+
+- **`bloater.webp`** — пузырь. Subject: a swollen round coral-orange zombie jelly-bean character puffed up like a tight balloon, cheeks and belly stretched taut with little stitched seams, tiny steam puffs and a few red jam droplets spraying out, wide startled eyes, about to pop, goofy not scary.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-78cfbf1a-6882-47ef-9c74-eda041665df9.png` (папка Codex `01a12afd-b6bd-7d82-b8f1-9622a1a1743f`, 1254x1254, sha256 cb0b68f4f5c6…), в игре 14 КБ
+- **`spitter.webp`** — плевальщик. Subject: a green zombie jelly-bean character leaning back with its mouth wide open, spitting a big glossy blob of red cherry jam in an arc with a trail of drips, goofy not scary.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-8fb7dff7-1c3c-4545-af2d-8e9f65846da1.png` (папка Codex `01a12afd-b6be-7632-a7b7-0df3e459e61d`, 1254x1254, sha256 f96ceea6415c…), в игре 13 КБ
+- **`armored.webp`** — чугунок. Subject: a heavy grey-green zombie jelly-bean wearing a stack of round cast-iron pots as chest armour and an upturned iron cooking pot as a helmet with a red feather, goofy not scary.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-5cb0b8b7-54c4-4bff-8669-a100b2ae5214.png` (папка Codex `01a12afd-b6bd-77c0-bad7-8629bc5e30da`, 1254x1254, sha256 578593c9ec96…), в игре 14 КБ
+- **`ram.webp`** — таран (босс). Subject: a huge brown bull charging forward with its head lowered, a thick wooden log with iron bands strapped across its forehead, big curved ivory horns, a golden nose ring, puffs of steam from its nostrils and a red-and-cream striped saddle blanket.
+  - исходник `exec-fa6803ae-3ef6-4eab-a505-795dfee5dead.png` (папка Codex `01a12aff-6443-77b3-b0e3-755a439cc1f2`, 1254x1254, sha256 6e504ff53e92…), в игре 16 КБ
+- **`golem.webp`** — валун (босс). Subject: a hunched stone golem built from round grey boulders with very long arms and big boulder fists, green moss on its head and shoulders, hoisting a huge rock above its head ready to throw it, a grumpy face.
+  - исходник `exec-d14dd330-b901-4bdc-ba4d-7311501c09c4.png` (папка Codex `01a12aff-8fdf-7310-85ed-6b0811efc866`, 1254x1254, sha256 a984c7edcb4e…), в игре 14 КБ
+- **`pumpkin-boss.webp`** — король-тыква (босс). Subject: a huge plump orange pumpkin king character with a ribbed round body and a big goofy grumpy-but-friendly face: round warm glowing eyes, bushy brows and a wide gap-toothed grin, a lid-like cap with a curly stem and green leaves wearing a small crooked golden crown, two curly green vine arms with leaves and tendrils, cozy storybook cartoon, not scary, no splatters.
+  - v1 (рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками, как у модели) вышла слишком мрачной для нашего стиля — перерисован добрый ворчун-король с ножками и лозами-руками (v2), он в игре. Описание v1: a huge grumpy orange pumpkin monster with a ribbed round body, a carved grinning face glowing warmly from inside, a lid-like cap with a curly stem and green leaves wearing a small crooked golden crown, two curly green vine arms with leaves and tendrils, a few splats of red jam.
+  - исходник `exec-a52df958-3be5-4b8d-89cb-a2c87cc54282.png` (папка Codex `01a12b04-18a6-7c83-8299-1bd21fbe9ee5`, 1254x1254, sha256 1f5bab161068…), в игре 15 КБ
+- **`weaver.webp`** — ткачиха (босс). Subject: a plump purple grandmother spider with a round abdomen spotted with red jam, a red polka-dot headscarf, small round glasses, tiny fangs, eight legs in striped stockings and slippers, a spool of thread on her back.
+  - исходник `exec-dd8780a2-4414-457c-9724-a463391bea76.png` (папка Codex `01a12b01-237c-72c1-a219-83ba9e2ac71d`, 1254x1254, sha256 172a348b6964…), в игре 17 КБ
+- **`leshy.webp`** — леший (босс). Subject: a walking old forest-spirit tree: a stocky bark-covered trunk body with twisting grooves, hollow knothole eyes glowing soft purple, a knobby twig nose, a mossy beard and bushy moss brows, branching antler-like horns with leaves and red jam berries on top, two branch arms with twig fingers, a skirt of roots, a small red toadstool on one shoulder.
+  - исходник `exec-548a848e-e9f9-4da9-af5c-f27d75a49c14.png` (папка Codex `01a12b01-4fbd-7570-a007-e1711c48fd3b`, 1254x1254, sha256 e6902cc1978a…), в игре 21 КБ
+- **`elite.webp`** — элита. Subject: a wide golden champion belt with a big ornate round gold buckle set with a red gemstone on a dark brown leather strap, shown as a gentle arch.
+  - исходник `exec-5a5ba142-e997-48c3-aec2-0f1e8bd5646a.png` (папка Codex `01a12b01-d7e2-7df0-ba99-c038cb1f3986`, 1254x1254, sha256 f2d1a186d7ed…), в игре 13 КБ
+- **`kick.webp`** — выгнать. Subject: a big brown leather boot caught mid-kick with small orange impact lines and a few puffs of dust.
+  - исходник `exec-97913c11-8e57-4232-9e9b-64d3c7a16132.png` (папка Codex `01a12b02-c2db-7831-9140-31a3f49ebc6f`, 1254x1254, sha256 1f12c50dd726…), в игре 13 КБ
+- **`cellar.webp`** — подвал (Fight Club). Subject: a single big shiny red leather boxing glove with a white cuff and white laces, raised ready to punch.
+  - исходник `exec-ca13a59b-8b1a-49c1-9fa8-8cff41531d49.png` (папка Codex `01a12b03-77dd-7c21-a6df-d236d8701cdf`, 1254x1254, sha256 cc6f5a5c0429…), в игре 10 КБ
+- **`awp.webp`** — AWP. Subject: a long cartoon paintball sniper marker: slim long steel barrel, chunky wooden stock, a round scope on top with a green-tinted lens glint, a small round hopper full of raspberry-red paintballs, three-quarter view lying diagonally.
+  - исходник `exec-ae26c044-4e97-4215-8207-ec5b273d2de5.png` (папка Codex `01a12b03-9deb-7862-b4d5-bf98f788672e`, 1254x1254, sha256 7e38c3a943f0…), в игре 10 КБ
+- **`headshot.webp`** — в голову. Subject: a round red-and-cream bullseye target with concentric rings and a bold orange paint splat hitting dead center with a few droplets.
+  - исходник `exec-076118c9-7af6-417c-aefb-3320ae64a9be.png` (папка Codex `01a12b04-72a3-7a71-948c-b569d1ecf593`, 1254x1254, sha256 2552e70e0139…), в игре 11 КБ
+- **`slots.webp`** — игровой автомат. Subject: a chunky cartoon slot machine cabinet in raspberry red with golden trim, three round reel windows each showing a red cherry, a side lever with a red ball knob and golden coins spilling out of the tray.
+  - исходник `exec-50aae4e0-2244-4df1-83ad-221a5f66a308.png` (папка Codex `01a12b05-18d5-7d50-93ea-397acc10bae9`, 1254x1254, sha256 42086c8ad0c3…), в игре 17 КБ
+- **`seaplane.webp`** — гидроплан. Subject: a small cheerful cartoon seaplane in red and cream floating on two pontoon floats with a round propeller on its nose and a little splash of sea foam under the floats.
+  - исходник `exec-b7968fd7-82d5-4f4d-a50f-2a0a77dbeea8.png` (папка Codex `01a12b05-7fd8-7132-b487-3e69aa30b21e`, 1254x1254, sha256 a980ef623c66…), в игре 15 КБ
+- **`thief.webp`** — вор. Subject: a jelly-bean character wearing a black eye mask and a red-and-cream striped knitted beanie, sneaking along while carrying a wooden crate on its shoulder with a gold coin peeking out, goofy.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-3ccac97b-370e-454c-9918-d7ade753df93.png` (папка Codex `01a12b06-56c9-75e2-b6a6-f1d491693e00`, 1254x1254, sha256 5145bba15648…), в игре 12 КБ
+
 ## Перегенерации
 
 - `keys`: v1 — просто кремовый скруглённый кубик, на 48 px не читался как клавиша → v2 с тёмной ножкой и квадратной пластиной под колпачком (он в игре).
-- Остальные 87 — с первого раза, без правок.
+- `pumpkin-boss`: v1 — рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками (выглядит мрачно, потёки как кровь) → v2 добрый ворчун-король с ножками, короной и лозами-руками (он в игре).
+- Остальные 102 — с первого раза, без правок.
 
 ## Слабые места (оставлены как есть)
 
 - `pin` — нарисована кнопка-кнопка (канцелярская булавка с красной шляпкой), а не картографическая метка; на 48 px читается как «точка/место», для «где ты» подходит.
 - `fog` — лампа в клубах тумана; на 48 px туман сливается с лампой, но силуэт «лампа в дымке» узнаётся.
 - `landing` — лодка с пятью зомби-желейками; на 48 px зомби мелкие, читается как «лодка с зелёными».
+- `bloater` — раздутый шар со швами и брызгами варенья: на 48 px читается как красно-оранжевый воздушный шар-зомби; швы и брызги слегка «кровавые», но мультяшные.
+- `armored` — «чугунок»: кроме кастрюли-шлема и колец-лат в руках деревянная ложка и крышка-щит (лишнее, не мешает).
+- `leshy` — мелкая детальная коряга с рогами и ягодами; на 48 px — «ходячее дерево», от `rift-tree` отличается рогами и руками.
+- `elite` — золотой пояс чемпиона (как пояс элиты на модели зомби), без лица: на 48 px читается как «золотая награда».
 - `chat` — пустой кремовый пузырь без контрастной заливки: на светлом фоне интерфейса сливается, на тёмной плашке виден хорошо.
 
 ## Сводка
 
-`_sheet.png` — все 88 иконок сеткой 8 × 10: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
+`_sheet.png` — все 104 иконок сеткой 8 × 13: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.

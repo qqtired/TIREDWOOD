@@ -6,31 +6,32 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = '/Users/tired/Desktop/game-opus-ui/client/assets/ui/icons';
 const lines = readFileSync(join(HERE, '..', 'icons-list.md'), 'utf8').split('\n');
 const override = JSON.parse(readFileSync(join(HERE, 'subjects-override.json'), 'utf8'));
-const CHARS = new Set(['token', 'online', 'zombie', 'climber', 'brute', 'champion', 'boss', 'landing']);
+const CHARS = new Set(['token', 'online', 'zombie', 'climber', 'brute', 'champion', 'boss', 'landing', 'bloater', 'spitter', 'armored', 'thief']);
 const WEAK = {}; // filled below
 const sections = []; let cur = null; let total = 0; let count = 0;
 for (const l of lines) {
   const h = l.match(/^## (.+)/); if (h) { cur = { title: h[1], items: [] }; sections.push(cur); continue; }
   const m = l.match(/^- ([a-z0-9-]+) — (.*?) — (.+)$/); if (!m) continue;
   const [, id, ru, subj] = m;
-  const regen = id === 'keys';
-  const dir = regen ? 'keys-v2' : id;
+  const regen = id === 'keys' || id === 'pumpkin-boss';
+  const dir = regen ? id + '-v2' : id;
   const src = readFileSync(join(HERE, dir, 'orig-source.txt'), 'utf8').trim();
   const [thread, file] = src.split('/');
   const sha = createHash('sha256').update(readFileSync(join(HERE, dir, 'orig.png'))).digest('hex').slice(0, 12);
   const kb = Math.round(statSync(join(OUT, id + '.webp')).size / 1024);
   total += statSync(join(OUT, id + '.webp')).size; count++;
-  const subject = regen ? override['keys:v2'] : subj;
+  const subject = regen ? override[id + ':v2'] : subj;
   let body = `- **\`${id}.webp\`** — ${ru}. Subject: ${subject}.\n`;
   if (CHARS.has(id)) body += `  - к общему стилю добавлена строка про желейных персонажей (см. выше)\n`;
-  if (regen) body += `  - v1 (колпачок без основания) читался как кремовый кубик/зефирина — перерисован с видимой ножкой и пластиной (v2), он в игре. Описание v1: ${subj}.\n`;
+  if (id === 'pumpkin-boss') body += `  - v1 (рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками, как у модели) вышла слишком мрачной для нашего стиля — перерисован добрый ворчун-король с ножками и лозами-руками (v2), он в игре. Описание v1: ${subj}.\n`;
+  if (id === 'keys') body += `  - v1 (колпачок без основания) читался как кремовый кубик/зефирина — перерисован с видимой ножкой и пластиной (v2), он в игре. Описание v1: ${subj}.\n`;
   body += `  - исходник \`${file}\` (папка Codex \`${thread}\`, 1254x1254, sha256 ${sha}…), в игре ${kb} КБ\n`;
   cur.items.push(body);
 }
 const secNames = { 'Shell': 'Оболочка (интерфейс, меню, HUD)', 'Fishing': 'Рыбалка', 'Fort': 'Крепость', 'Other modes and events': 'Другие режимы и события' };
 let md = `# Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
-Нарисованы 11 октября 2026 через Codex CLI v0.153.4 (\`codex exec\`, встроенный \`image_gen\`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
+Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2» — v0.162.1; \`codex exec\`, встроенный \`image_gen\`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
 Всего ${count} иконок: ${sections.map((s) => `${secNames[s.title] ?? s.title} — ${s.items.length}`).join(', ')}. Сводка — \`_sheet.png\` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
 
 Тот же способ, что у иконок фермы (\`client/assets/farm/icons/PROVENANCE.md\`). Стиль сверен с иконками фермы, крепости и лавки рыбака: рисованная «сказочная» манера, тёплое солнце слева сверху, тонкий тёмно-коричневый контур. Без надписей и цифр, без сине-жёлтого, без sci-fi и неона. Список взят из задания «UI icons» (id — смысл — Subject); в задании было «~70», в списке 73 id — нарисованы все.
@@ -86,18 +87,23 @@ for (const s of sections) md += `### ${secNames[s.title] ?? s.title}\n\n${s.item
 md += `## Перегенерации
 
 - \`keys\`: v1 — просто кремовый скруглённый кубик, на 48 px не читался как клавиша → v2 с тёмной ножкой и квадратной пластиной под колпачком (он в игре).
-- Остальные ${count - 1} — с первого раза, без правок.
+- \`pumpkin-boss\`: v1 — рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками (выглядит мрачно, потёки как кровь) → v2 добрый ворчун-король с ножками, короной и лозами-руками (он в игре).
+- Остальные ${count - 2} — с первого раза, без правок.
 
 ## Слабые места (оставлены как есть)
 
 - \`pin\` — нарисована кнопка-кнопка (канцелярская булавка с красной шляпкой), а не картографическая метка; на 48 px читается как «точка/место», для «где ты» подходит.
 - \`fog\` — лампа в клубах тумана; на 48 px туман сливается с лампой, но силуэт «лампа в дымке» узнаётся.
 - \`landing\` — лодка с пятью зомби-желейками; на 48 px зомби мелкие, читается как «лодка с зелёными».
+- \`bloater\` — раздутый шар со швами и брызгами варенья: на 48 px читается как красно-оранжевый воздушный шар-зомби; швы и брызги слегка «кровавые», но мультяшные.
+- \`armored\` — «чугунок»: кроме кастрюли-шлема и колец-лат в руках деревянная ложка и крышка-щит (лишнее, не мешает).
+- \`leshy\` — мелкая детальная коряга с рогами и ягодами; на 48 px — «ходячее дерево», от \`rift-tree\` отличается рогами и руками.
+- \`elite\` — золотой пояс чемпиона (как пояс элиты на модели зомби), без лица: на 48 px читается как «золотая награда».
 - \`chat\` — пустой кремовый пузырь без контрастной заливки: на светлом фоне интерфейса сливается, на тёмной плашке виден хорошо.
 
 ## Сводка
 
-\`_sheet.png\` — все ${count} иконок сеткой 8 × 10: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
+\`_sheet.png\` — все ${count} иконок сеткой 8 × ${Math.ceil(count / 8)}: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
 `;
 writeFileSync(join(OUT, 'PROVENANCE.md'), md);
 console.log('written', md.length, 'chars,', count, 'icons,', (total/1024).toFixed(0), 'KB');

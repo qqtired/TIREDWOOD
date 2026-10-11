@@ -158,9 +158,13 @@ try {
         x.fillStyle = '#8a7650'; x.font = '11px monospace'; x.fillText((i + 1) + '', cx + 170, cy + 80);
         x.textAlign = 'left';
       }
-      return c.toDataURL('image/png');
+      window.__sheet = c.toDataURL('image/png').split(',')[1];
+      return window.__sheet.length;
     })()`);
-    writeFileSync(sheetPath, Buffer.from(data.split(',')[1], 'base64'));
+    // big sheets (100+ icons) do not fit one CDP reply: read the base64 in 1 MB slices
+    let b64 = '';
+    for (let o = 0; o < data; o += 1 << 20) b64 += await ev(`window.__sheet.slice(${o}, ${o + (1 << 20)})`);
+    writeFileSync(sheetPath, Buffer.from(b64, 'base64'));
   }
 } finally {
   try { ws?.close(); } catch {}
