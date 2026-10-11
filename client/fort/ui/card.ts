@@ -19,11 +19,13 @@ class HpRow {
   private last = '';
   private hitTimer = 0;
   private readonly tone: string;
+  private readonly maxTier: number;
   /** Подпись при нуле: «Ворота пали», «Кристалл пал» */
   private readonly downWord: string;
 
-  constructor(parent: HTMLElement, name: string, icon: string, tone: string, downWord: string, private readonly maxTier: number) {
+  constructor(parent: HTMLElement, name: string, icon: string, tone: string, downWord: string, maxTier: number) {
     this.tone = tone;
+    this.maxTier = maxTier;
     this.downWord = downWord;
     this.root = el('div', 'ft-hp', parent);
     this.root.setAttribute('aria-label', name);
