@@ -7,66 +7,78 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>TIREDWOOD</title>
     <meta name="description" content="мини игры, фарм сабжей, казино и safeplace" />
-    <meta name="theme-color" content="#2a1f2e" />
-    <!-- Critical startup UI must paint without the game bundle, font files or external CSS. -->
+    <meta name="theme-color" content="#0e5550" />
+    <!-- Первая загрузка рисуется без пакета игры, файлов шрифтов и внешнего CSS: цвета, радиусы и раскладка — копия значений
+         шкурки «Ретро-парк 2.0» (client/ui/kit/tokens.css, сцена «Первая загрузка» страницы lab/ui), шрифт — системный,
+         пока не подгрузится Rubik (после загрузки игры те же слова сами переключатся на него и на Rubik Mono One).
+         Картина — client/assets/loading/hd/cover.webp поверх крошечной заглушки (cover-lqip.txt): проявляется сразу. -->
     <style>
-      html, body { margin: 0; min-height: 100%; background: #211a25; }
-      #startup { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; box-sizing: border-box; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 50% 40%, #44303b 0%, #211a25 70%); color: #fff3de; font: 400 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: center; }
+      html, body { margin: 0; min-height: 100%; background: #0e5550; }
+      #startup { --night: 24, 14, 20; --cream: #fff4dc; --gold: #ffcd4a; --good: #56c07d; --ink: #0a3b37; position: fixed; inset: 0; z-index: 10000; overflow: hidden; background: #0e5550 url("data:image/webp;base64,UklGRhAEAABXRUJQVlA4WAoAAAAgAAAALwAAGgAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZWUDggIgIAANAKAJ0BKjAAGwA+tUieSycjoqGwFVqo4BaJbACdMoSCv3E5AGa24HPgWUNPmWKaCe2mvbPRV/VUoDxs1JP+ZMrdhaA3T1ygMwOYfKIPSNx660boKugoP6pmbSRv3e4AAP7gBug2F8nFXn7isEA7JMU+qbQDPHMvtkWBROz13yxo8noSDjnTc0ZwYNqHWJQFvO0qnSm1XN0BVO4zWPR9+YCnfHPnQ8DgcbUk4gZsIuA7NWaQwAnsXxfkoAuVrqb55kTq98ZgxX3Rs1qIPvvISuGENGcv+FM+//He2JwFp1bvufsJ3jkfZ2Pl+oMTdE0uBPiH5sH8VncTVqCFx5gFvZaNs4wdTyj6BOgqYW3/JdzmPVHTSJWTcY0Mshu+vspOn3wiGbzgkglPQR+H/52QtfNIdU380mDcMrJBW0ez1oc74T/G10CsXWu/k5pl6df05b+QEZOPQy/JqdGr+HUD0gVAyTE1yIjijB6T9fzhTPSBjBhOC2EQZJeouL4h+9KkgqRjwJDOBRRSqQt/a/SQYUr0pz2JQOYS8oL/EXIINH9j3CSPtgV32PgKogjjbvqZRsJC4am03gY+/aimHlaLVHkDr6jMGFSF/TEXYyhqc63XCy9QFDgGHCFwRzVv1flPZwKnwGkS7TnOdXW8rOC6H+i9ws9E7S0h6i27KjlSe5Rp56cn2BVUshJ08W4xbbfms4elkaRABTb1gZQJgpNI72AAAA==") center / cover no-repeat; color: var(--cream); font: 400 16px/1.35 Rubik, system-ui, -apple-system, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
       #startup *, #startup *::before, #startup *::after { box-sizing: border-box; }
-      #startup .startup-content { width: min(100%, 400px); padding: 16px 0; }
-      #startup .startup-brand { margin: 0 0 30px; font-size: 13px; font-weight: 750; letter-spacing: .19em; }
-      #startup .startup-brand b { color: #ffb36b; }
-      #startup .startup-scene { position: relative; width: 180px; height: 142px; margin: 0 auto 28px; }
-      #startup .startup-jelly { position: absolute; left: 42px; top: 5px; width: 96px; height: 104px; border-radius: 48% 48% 41% 41% / 57% 57% 37% 37%; background: #ff9a36; box-shadow: inset -9px -10px 0 #e87523, inset 5px 4px 0 #ffb65d; transform-origin: center bottom; }
-      #startup .startup-jelly::before { content: ''; position: absolute; left: 19px; top: 16px; width: 24px; height: 12px; border-radius: 50%; background: #ffe2b7; transform: rotate(-24deg); }
-      #startup .startup-eye { position: absolute; top: 44px; width: 23px; height: 26px; border-radius: 50%; background: #fff8e8; }
-      #startup .startup-eye:first-child { left: 24px; }
-      #startup .startup-eye:last-child { right: 16px; }
-      #startup .startup-eye::after { content: ''; position: absolute; width: 9px; height: 11px; left: 9px; top: 10px; border-radius: 50%; background: #30242d; }
-      #startup .startup-wave { position: absolute; left: 12px; bottom: 5px; width: 156px; height: 24px; border: 2px solid #83b6b4; border-radius: 50%; opacity: .55; }
-      #startup .startup-wave::after { content: ''; position: absolute; inset: 5px 25px; border: 1px solid #83b6b4; border-radius: 50%; }
-      #startup h1 { margin: 0; font-size: clamp(25px, 5vw, 31px); line-height: 1.2; font-weight: 750; letter-spacing: -.035em; text-wrap: balance; }
-      #startup .startup-sub { margin: 13px 0 30px; color: #d9c3c9; font-size: 15px; }
-      #startup-progress { display: flex; gap: 7px; height: 5px; margin: 0 12px 17px; }
-      #startup-progress span { flex: 1; overflow: hidden; border-radius: 3px; background: #67515c; position: relative; }
-      #startup-progress span::after { content: ''; position: absolute; inset: 0; background: #ffb36b; transform: scaleX(0); transform-origin: left; }
-      #startup[data-stage="modules"] #startup-progress span:nth-child(1)::after,
-      #startup[data-stage="fonts"] #startup-progress span:nth-child(2)::after,
-      #startup[data-stage="world"] #startup-progress span:nth-child(3)::after,
-      #startup[data-stage="frame"] #startup-progress span:nth-child(4)::after { transform: scaleX(1); opacity: .6; }
-      #startup[data-stage="fonts"] #startup-progress span:nth-child(1)::after,
-      #startup[data-stage="world"] #startup-progress span:nth-child(-n+2)::after,
-      #startup[data-stage="frame"] #startup-progress span:nth-child(-n+3)::after { transform: scaleX(1); }
-      #startup-status { min-height: 24px; margin: 0; color: #fff3de; font-size: 14px; }
-      #startup .startup-note { margin: 12px 0 0; color: #cfb8c1; font-size: 12px; }
-      #startup-retry { margin-top: 24px; padding: 12px 23px; min-height: 46px; border: 0; border-radius: 12px; background: #ffb36b; color: #2a1f24; font: 700 15px/1.5 system-ui, sans-serif; cursor: pointer; }
-      #startup-retry:hover { background: #ffc38c; }
-      #startup-retry:focus-visible { outline: 3px solid #fff3de; outline-offset: 5px; }
-      #startup-retry:disabled { cursor: wait; opacity: .65; }
       #startup [hidden] { display: none; }
-      #startup[data-failed] .startup-sub, #startup[data-failed] .startup-note { display: none; }
-      #startup[data-failed] #startup-status { margin-top: 20px; }
-      #startup noscript p { margin: 20px 0 0; color: #ffd4ac; }
-      #startup .startup-reload { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: #e7b88c; font-size: 13px; text-underline-offset: 3px; }
-      #startup[data-failed] .startup-reload { display: none; }
+      #startup .startup-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease-out; user-select: none; -webkit-user-drag: none; }
+      #startup[data-art] .startup-art { opacity: 1; }
+      #startup .startup-shade { position: absolute; inset: 0; background: radial-gradient(70% 40% at 50% 22%, rgba(var(--night), .22), rgba(var(--night), 0) 70%), linear-gradient(0deg, rgba(var(--night), .55) 0%, rgba(var(--night), 0) 36%); }
+      /* сцена 1440×900, масштаб как у слоёв кита: --hud-k ставит client/main.ts (его нет — 1) */
+      #startup .startup-ui { position: absolute; inset: 0; zoom: var(--hud-k, 1); }
+      #startup .startup-logo { position: absolute; left: 0; right: 0; top: 108px; margin: 0; color: var(--cream); font: 900 67.2px/1 'Rubik Mono One', system-ui, -apple-system, 'Segoe UI', sans-serif; font-synthesis: none; letter-spacing: .01em; text-align: center; white-space: nowrap; -webkit-text-stroke: .15em var(--ink); paint-order: stroke fill; text-shadow: 0 .1em 0 var(--ink); transform: rotate(-2.5deg); }
+      #startup .startup-logo b { color: var(--gold); font-weight: inherit; }
+      #startup .startup-card { position: absolute; left: 0; right: 0; bottom: 52px; width: 680px; max-width: calc(100% - 32px); margin: 0 auto; padding: 24px 28px 20px; border: 2px solid #f3e6c9; border-radius: 12px; background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 32%), linear-gradient(180deg, #13675f, #0d524d); box-shadow: 0 0 0 1px var(--ink), 0 16px 36px rgba(3, 25, 23, .36); }
+      #startup .startup-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+      #startup-title { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.2; }
+      #startup .startup-pill { display: inline-flex; align-items: center; flex: none; min-height: 26px; padding: 3px 10px; border: 1px solid rgba(255, 244, 220, .14); border-radius: 999px; background: rgba(255, 244, 220, .07); font-size: 14px; font-weight: 700; line-height: 1; white-space: nowrap; }
+      #startup .startup-pill.is-gold { border-color: transparent; background: rgba(255, 205, 74, .16); color: #ffd665; }
+      #startup .startup-step::after { content: 'Шаг 1 из 4'; }
+      #startup[data-stage="fonts"] .startup-step::after { content: 'Шаг 2 из 4'; }
+      #startup[data-stage="world"] .startup-step::after { content: 'Шаг 3 из 4'; }
+      #startup[data-stage="frame"] .startup-step::after { content: 'Шаг 4 из 4'; }
+      #startup-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+      #startup .startup-st { display: flex; flex-direction: column; gap: 10px; --c: var(--gold); }
+      #startup .startup-st i { position: relative; display: block; height: 6px; overflow: hidden; border: 1px solid rgba(255, 244, 220, .18); border-radius: 999px; background: rgba(3, 32, 30, .5); }
+      #startup .startup-st i::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 74%, #fff), var(--c) 60%); transform: scaleX(0); transform-origin: left; transition: transform .35s ease-out; }
+      #startup .startup-st span { display: flex; align-items: center; gap: 8px; color: rgba(255, 244, 220, .76); font-size: 14px; font-weight: 700; line-height: 1.2; }
+      #startup .startup-st b { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: rgba(3, 32, 30, .38); color: rgba(255, 244, 220, .6); font-size: 13px; font-weight: 900; line-height: 1; }
+      #startup .startup-st b::before { content: attr(data-n); }
+      /* шаг, что идёт сейчас (золото, дышит), и пройденные (зелёные, галочка) */
+      #startup[data-stage="modules"] .startup-st:nth-child(1), #startup[data-stage="fonts"] .startup-st:nth-child(2), #startup[data-stage="world"] .startup-st:nth-child(3), #startup[data-stage="frame"] .startup-st:nth-child(4) { --c: var(--gold); }
+      #startup[data-stage="modules"] .startup-st:nth-child(1) i::after, #startup[data-stage="fonts"] .startup-st:nth-child(2) i::after, #startup[data-stage="world"] .startup-st:nth-child(3) i::after, #startup[data-stage="frame"] .startup-st:nth-child(4) i::after { transform: scaleX(.55); }
+      #startup[data-stage="modules"] .startup-st:nth-child(1) span, #startup[data-stage="fonts"] .startup-st:nth-child(2) span, #startup[data-stage="world"] .startup-st:nth-child(3) span, #startup[data-stage="frame"] .startup-st:nth-child(4) span { color: var(--cream); }
+      #startup[data-stage="modules"] .startup-st:nth-child(1) b, #startup[data-stage="fonts"] .startup-st:nth-child(2) b, #startup[data-stage="world"] .startup-st:nth-child(3) b, #startup[data-stage="frame"] .startup-st:nth-child(4) b { background: var(--gold); color: #3a2603; }
+      #startup[data-stage="fonts"] .startup-st:nth-child(-n+1), #startup[data-stage="world"] .startup-st:nth-child(-n+2), #startup[data-stage="frame"] .startup-st:nth-child(-n+3) { --c: var(--good); }
+      #startup[data-stage="fonts"] .startup-st:nth-child(-n+1) i::after, #startup[data-stage="world"] .startup-st:nth-child(-n+2) i::after, #startup[data-stage="frame"] .startup-st:nth-child(-n+3) i::after { transform: scaleX(1); }
+      #startup[data-stage="fonts"] .startup-st:nth-child(-n+1) span, #startup[data-stage="world"] .startup-st:nth-child(-n+2) span, #startup[data-stage="frame"] .startup-st:nth-child(-n+3) span { color: var(--cream); }
+      #startup[data-stage="fonts"] .startup-st:nth-child(-n+1) b, #startup[data-stage="world"] .startup-st:nth-child(-n+2) b, #startup[data-stage="frame"] .startup-st:nth-child(-n+3) b { background: var(--good); color: #0c2e19; }
+      #startup[data-stage="fonts"] .startup-st:nth-child(-n+1) b::before, #startup[data-stage="world"] .startup-st:nth-child(-n+2) b::before, #startup[data-stage="frame"] .startup-st:nth-child(-n+3) b::before { content: '\2713'; }
+      #startup .startup-tip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 244, 220, .13); color: rgba(255, 244, 220, .76); font-size: 16px; font-weight: 500; line-height: 1.35; }
+      #startup .startup-tip b { color: var(--cream); font-weight: 700; }
+      #startup .startup-tip > span:not(.startup-pill) { display: none; }
+      #startup[data-tip="0"] .startup-tip > span:nth-child(2), #startup[data-tip="1"] .startup-tip > span:nth-child(3), #startup[data-tip="2"] .startup-tip > span:nth-child(4) { display: inline; }
+      #startup .startup-reload { margin-left: auto; color: rgba(255, 244, 220, .76); font-size: 14px; font-weight: 600; text-underline-offset: 3px; }
+      #startup .startup-reload:hover { color: var(--cream); }
+      #startup .startup-msg { margin: 0 0 18px; color: rgba(255, 244, 220, .76); font-size: 18px; line-height: 1.4; }
+      #startup .startup-actions { display: none; flex-wrap: wrap; align-items: center; gap: 14px; }
+      #startup-retry { position: relative; min-height: 52px; margin: 0 0 3px; padding: 8px 22px 9px; border: 0; border-radius: 10px; background: linear-gradient(180deg, color-mix(in srgb, #ffdd7a 40%, var(--gold)), var(--gold)); box-shadow: 0 3px 0 #a8760a, inset 0 1px 0 rgba(255, 255, 255, .4); color: #3a2603; font-family: inherit; font-size: 18px; font-weight: 800; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; cursor: pointer; }
+      #startup-retry:hover { filter: brightness(1.06) saturate(1.04); }
+      #startup-retry:focus-visible, #startup .startup-ghost:focus-visible, #startup .startup-reload:focus-visible { outline: none; box-shadow: 0 3px 0 #a8760a, inset 0 1px 0 rgba(255, 255, 255, .4), 0 0 0 2px var(--ink), 0 0 0 4.5px var(--gold); }
+      #startup-retry:disabled { opacity: .45; filter: saturate(.5); cursor: wait; }
+      #startup-retry kbd { position: absolute; top: -12px; right: -10px; min-width: 26px; height: 26px; padding: 0 7px; border: 1px solid var(--ink); border-radius: 6px; background: #fff6e2; box-shadow: 0 1.5px 0 var(--ink); color: #0d524d; font-family: inherit; font-size: 14px; font-weight: 800; line-height: 24px; letter-spacing: 0; text-align: center; text-transform: none; }
+      #startup .startup-ghost { display: none; align-items: center; min-height: 40px; padding: 6px 14px 7px; border: 1.5px solid rgba(255, 244, 220, .42); border-radius: 10px; background: rgba(255, 244, 220, .08); color: var(--cream); font-size: 16px; font-weight: 700; text-decoration: none; }
+      #startup .startup-ghost:hover { background: rgba(255, 244, 220, .16); }
+      #startup noscript p { margin: 16px 0 0; color: #ffa0a3; font-size: 16px; }
+      #startup[data-failed] #startup-title { color: #ffa0a3; font-size: 28px; }
+      #startup[data-failed] .startup-head { margin-bottom: 8px; }
+      #startup[data-failed] .startup-step, #startup[data-failed] .startup-tip { display: none; }
+      #startup[data-failed] .startup-actions { display: flex; }
+      #startup[data-failed] .startup-ghost { display: inline-flex; }
       @media (prefers-reduced-motion: no-preference) {
-        #startup:not([data-failed]) .startup-jelly { animation: startup-bob 2.4s ease-in-out infinite; }
-        #startup:not([data-failed]) .startup-wave { animation: startup-wave 2.4s ease-in-out infinite; }
-        #startup[data-stage="modules"] #startup-progress span:nth-child(1)::after,
-        #startup[data-stage="fonts"] #startup-progress span:nth-child(2)::after,
-        #startup[data-stage="world"] #startup-progress span:nth-child(3)::after,
-        #startup[data-stage="frame"] #startup-progress span:nth-child(4)::after { animation: startup-pending 1.6s ease-in-out infinite; }
-        @keyframes startup-bob { 50% { transform: translateY(-9px) rotate(3deg); } }
-        @keyframes startup-wave { 50% { transform: scaleX(.85); opacity: .3; } }
-        @keyframes startup-pending { 50% { opacity: 1; } }
+        #startup[data-stage="modules"] .startup-st:nth-child(1) i::after, #startup[data-stage="fonts"] .startup-st:nth-child(2) i::after, #startup[data-stage="world"] .startup-st:nth-child(3) i::after, #startup[data-stage="frame"] .startup-st:nth-child(4) i::after { animation: startup-breathe 1.6s ease-in-out infinite; }
+        @keyframes startup-breathe { 50% { opacity: .55; } }
       }
-      @media (max-height: 520px) and (min-width: 600px) {
-        #startup .startup-content { padding: 0; }
-        #startup .startup-brand { margin-bottom: 10px; }
-        #startup .startup-scene { height: 120px; margin-bottom: 12px; }
-        #startup .startup-sub { margin: 10px 0 20px; }
-      }
+      @media (prefers-reduced-motion: reduce) { #startup .startup-art { transition: none; } }
+      @media (pointer: coarse) { #startup-retry kbd { display: none; } }
     </style>
+    <noscript><style>#startup .startup-art { opacity: 1; }</style></noscript>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%23ff8a1c'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3Cellipse cx='24' cy='16' rx='6' ry='3.5' fill='%23fff' opacity='.45'/%3E%3C/svg%3E"
@@ -76,23 +88,36 @@
     <canvas id="game"></canvas>
     <div id="hud" class="shell hidden" inert></div>
     <div id="menus" inert></div>
-    <div id="startup" data-stage="modules" aria-labelledby="startup-title">
-      <div class="startup-content">
-        <p class="startup-brand">TIRED<b>WOOD</b></p>
-        <div class="startup-scene" aria-hidden="true">
-          <div class="startup-wave"></div>
-          <div class="startup-jelly"><span class="startup-eye"></span><span class="startup-eye"></span></div>
+    <div id="startup" data-stage="modules" data-tip="0" aria-labelledby="startup-title">
+      <img id="startup-art" class="startup-art" src="/client/assets/loading/hd/cover.webp" alt="" width="1536" height="864" decoding="async" fetchpriority="high" draggable="false" />
+      <div class="startup-shade"></div>
+      <div class="startup-ui">
+        <p class="startup-logo" aria-hidden="true">TIRED<b>WOOD</b></p>
+        <div class="startup-card">
+          <div class="startup-head">
+            <h1 id="startup-title" aria-live="polite">Загружаем игру…</h1>
+            <span class="startup-pill startup-step" aria-hidden="true"></span>
+          </div>
+          <div id="startup-progress" role="progressbar" aria-label="Загрузка игры" aria-valuetext="Загружаем игру…">
+            <div class="startup-st"><i></i><span><b data-n="1"></b>Игра</span></div>
+            <div class="startup-st"><i></i><span><b data-n="2"></b>Надписи</span></div>
+            <div class="startup-st"><i></i><span><b data-n="3"></b>Набережная</span></div>
+            <div class="startup-st"><i></i><span><b data-n="4"></b>Первый кадр</span></div>
+          </div>
+          <p id="startup-status" class="startup-msg" role="status" hidden></p>
+          <div class="startup-tip">
+            <span class="startup-pill is-gold">Совет</span>
+            <span><b>Tab</b> — кто где и кто во что играет</span>
+            <span><b>Enter</b> — чат, <b>V</b> — голос</span>
+            <span>Жетоны тратятся на автоматы и наряды в примерочной</span>
+            <a class="startup-reload" href="">Не грузится? Обновить страницу</a>
+          </div>
+          <div class="startup-actions">
+            <button id="startup-retry" type="button" hidden>Попробовать ещё раз<kbd>Enter</kbd></button>
+            <a class="startup-ghost" href="">Обновить страницу</a>
+          </div>
+          <noscript><p>Для игры нужен JavaScript. Включите его в настройках браузера и обновите страницу.</p></noscript>
         </div>
-        <h1 id="startup-title">Скоро на набережной</h1>
-        <p class="startup-sub">Тёплый вечер и немного желейного хаоса.</p>
-        <div id="startup-progress" role="progressbar" aria-label="Загрузка игры" aria-valuetext="Загружаем игру…">
-          <span></span><span></span><span></span><span></span>
-        </div>
-        <p id="startup-status" role="status">Загружаем игру…</p>
-        <p class="startup-note">Первый запуск может занять чуть больше времени.</p>
-        <a class="startup-reload" href="">Обновить страницу, если загрузка остановилась</a>
-        <button id="startup-retry" type="button" hidden>Попробовать ещё раз</button>
-        <noscript><p>Для игры нужен JavaScript. Включите его в настройках браузера и обновите страницу.</p></noscript>
       </div>
     </div>
     <script type="module" src="/client/main.ts"></script>

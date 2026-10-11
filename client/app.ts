@@ -2,7 +2,7 @@
 // меню на Esc (профиль, настройки по категориям — client/ui/menu/), переподключение после обрыва и общий цикл кадров.
 // Сцены и общий интерфейс (чат, жетоны, уведомления, «кто где») создаются один раз.
 // На телефоне — ещё кнопки на экране (touch.ts): пауза там по кнопке ☰ и когда свернули браузер.
-import { MAX_NAME, PROTOCOL_VERSION } from '../shared/constants.ts';
+import { PROTOCOL_VERSION } from '../shared/constants.ts';
 import { emptyStats } from '../shared/economy.ts';
 import { frameForLevel, levelProgress, safeXp } from '../shared/levels.ts';
 import { emptyFishProgress } from '../shared/fishprogress.ts';
@@ -26,6 +26,7 @@ import { RELINK_MS, Relink } from './relink.ts';
 import { LazyScene, type LazyInner } from './lazyscene.ts';
 import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { LinkBanner } from './ui/linkbanner.ts';
+import { JoinScreen, LinkScreen, type JoinMode } from './ui/entry.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
@@ -35,7 +36,6 @@ import { assessFrames, nextAutoQuality } from './render/quality.ts';
 import type { MeState, Scene, SceneDeps } from './scene.ts';
 import { effectiveVolume, loadSettings, saveSettings, toggleMute, type Quality, type Settings } from './settings.ts';
 import { TOUCH, TouchControls } from './touch.ts';
-import { COIN_HTML } from './ui/coin.ts';
 import { GameMenu, applyInterface } from './ui/menu/menu.ts';
 import { OnlineList } from './ui/online.ts';
 import { KickVoteUi } from './ui/kickvote.ts';
@@ -59,10 +59,7 @@ import { setVoicePresence } from './render/voice-presence.ts';
 import { ISLE } from './render/islegear.ts';
 
 type Screen = 'join' | 'connecting' | 'game' | 'reconnecting' | 'lost' | 'replaced';
-/** Экран входа: «Привет, ник!», поле ника или поле кода с другого устройства */
-type JoinMode = 'saved' | 'nick' | 'code';
 
-const NICKS = ['Кругляш', 'Мармеладка', 'Боцман', 'Юнга', 'Шкипер', 'Клякса', 'Пончик', 'Бублик', 'Карамелька', 'Лоцман', 'Тюлька', 'Кок'];
 const CONNECT_TIMEOUT_MS = 9000;
 /**
  * В игре сервер шлёт снимки 30 раз в секунду: 20 с тишины — связь умерла, возвращаемся в сессию заново (relink.ts).
@@ -148,7 +145,6 @@ export class App {
   private build = '';
 
   private screen: Screen = 'join';
-  private joinMode: JoinMode = 'nick';
   private paused = false;
   private hello: ClientMsg | null = null;
   /** Текст последней ошибки сервера — покажем, если следом закроется соединение */
@@ -160,29 +156,19 @@ export class App {
   private attemptAt = 0;
   private retryN = 0;
   private retryAt = 0;
+  /** Сколько длится нынешняя пауза до новой попытки, мс (для полосы в окне связи) */
+  private retryMs = 1000;
   private retryTimer = 0;
   /** С каким кодом закрылось соединение перед переподключением — сервер запишет причину */
   private lastClose = 0;
 
-  // экраны
-  private readonly joinEl: HTMLElement;
+  // экраны: вход и окно связи (ui/entry.ts), меню Esc (ui/menu), затемнение между сценами
+  private readonly join: JoinScreen;
+  private readonly link: LinkScreen;
   private readonly pauseEl: HTMLElement;
-  private readonly lostEl: HTMLElement;
-  private readonly reconnectEl: HTMLElement;
-  private readonly replacedEl: HTMLElement;
   private readonly fadeEl: HTMLElement;
   /** Плавный переход между комнатами: экран загрузки, прогрев, «готов» серверу (ui/transition.ts) */
   private readonly transition: Transition;
-  private readonly helloNick: HTMLElement;
-  private readonly nameInput: HTMLInputElement;
-  private readonly codeInput: HTMLInputElement;
-  private readonly joinError: HTMLElement;
-  private readonly playBtn: HTMLButtonElement;
-  private readonly onlineEl: HTMLElement;
-  private readonly settingsEl: HTMLElement;
-  private readonly lostReason: HTMLElement;
-  private readonly rcTitle: HTMLElement;
-  private readonly rcSub: HTMLElement;
   private readonly pauseSub: HTMLElement;
   private readonly toLobbyBtn: HTMLElement;
   /** Ползунок громкости и флажок «Без звука» — под текущие настройки (M жмут и в игре) */
@@ -272,7 +258,7 @@ export class App {
         this.voice?.disconnected(true);
         this.startReconnect();
       },
-      banner: (text) => this.linkBanner.show(text, 'down'),
+      banner: (text) => this.linkBanner.show(text),
       now: () => performance.now(),
       setTimer: (fn, ms) => window.setTimeout(fn, ms),
       clearTimer: (id) => clearTimeout(id),
@@ -300,56 +286,14 @@ export class App {
     this.autoRatio = this.autoStart = TOUCH ? Math.min(dpr, 1.25) : dpr >= 2 ? 1.5 : Math.min(dpr, 1.25);
 
     // --- экраны
-    this.joinEl = h('div', 'screen join show');
-    this.joinEl.innerHTML = `
-      <div class="join-card">
-        <div class="logo">
-          <div class="logo-top">TIRED<b>WOOD</b></div>
-          <div class="logo-sub">мини игры, фарм сабжей, казино и safeplace</div>
-        </div>
-        <div class="join-hello">Привет, <b class="hello-nick"></b>!</div>
-        <label class="field join-nick">
-          <span>Как тебя звать?</span>
-          <input class="name" type="text" maxlength="${MAX_NAME}" autocomplete="off" spellcheck="false" />
-        </label>
-        <label class="field join-code">
-          <span>Код с другого устройства (там: меню, Esc или ☰ → «Подарки и коды»)</span>
-          <input class="code" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="ABCD-2345" />
-        </label>
-        <div class="join-error"></div>
-        <button class="btn primary play">Играть</button>
-        <div class="join-links">
-          <button class="link other">Другой профиль</button>
-          <button class="link have-code">У меня есть код</button>
-          <button class="link back">Назад</button>
-        </div>
-        <div class="online"></div>
-        <div class="keys touch-keys">
-          <div><b>🕹</b><span>слева пальцем — бег</span></div>
-          <div><b>👆</b><span>справа пальцем — осмотреться</span></div>
-          <div><b>⤒</b><span>прыжок</span></div>
-          <div><b>E</b><span>действие: сесть, сыграть, войти</span></div>
-          <div><b>😊</b><span>эмоции</span></div>
-          <div><b>💬</b><span>чат</span></div>
-          <div><b>👥</b><span>кто где · счёт</span></div>
-          <div><b>☰</b><span>меню: профиль, настройки</span></div>
-        </div>
-        <div class="keys desk-keys">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>бег</span></div>
-          <div><kbd class="wide">Пробел</kbd><span>прыжок</span></div>
-          <div><kbd class="wide">Shift</kbd><span>рывок</span></div>
-          <div><kbd>E</kbd><span>действие</span></div>
-          <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>эмоции</span></div>
-          <div><kbd>ЛКМ</kbd><kbd>ПКМ</kbd><span>огонь, прицел</span></div>
-          <div><kbd>R</kbd><span>перезарядка</span></div>
-          <div><kbd class="wide">Enter</kbd><span>чат</span></div>
-          <div><kbd>Tab</kbd><span>кто где · счёт</span></div>
-          <div><kbd>M</kbd><span>звук вкл / выкл</span></div>
-          <div><kbd>Esc</kbd><span>меню: профиль, настройки</span></div>
-        </div>
-        <details class="join-settings"><summary>Настройки</summary></details>
-        <div class="tips">Жетоны ${COIN_HTML} — за бои на складе, партии в дурака, гонки и ежедневный бонус · тратятся на автоматы и наряды · в воду не падай 🌊</div>
-      </div>`;
+    this.join = new JoinScreen(this.settings, {
+      play: () => this.play(),
+      other: () => this.otherProfile(),
+      changed: () => this.applySettings(),
+      saved: () => savedNick(),
+    });
+    this.join.setNick(oldName());
+    this.link = new LinkScreen({ main: () => this.play(), menu: () => this.toMenu() });
     this.menu = new GameMenu(this.profile, this.settings, {
       resume: () => this.resume(),
       toLobby: () => {
@@ -371,70 +315,18 @@ export class App {
       gifts: () => this.me.gifts === true,
     });
     this.pauseEl = this.menu.root;
-    this.lostEl = h('div', 'screen lost');
-    this.lostEl.innerHTML = `
-      <div class="pause-card">
-        <div class="pause-title">Связь потеряна</div>
-        <div class="pause-sub lost-reason"></div>
-        <button class="btn primary retry">Переподключиться</button>
-        <button class="btn ghost menu">В меню</button>
-      </div>`;
-    this.reconnectEl = h('div', 'screen reconnect');
-    this.reconnectEl.innerHTML = `
-      <div class="pause-card">
-        <div class="pause-title rc-title"></div>
-        <div class="pause-sub rc-sub"></div>
-        <button class="btn ghost menu">В меню</button>
-      </div>`;
-    this.replacedEl = h('div', 'screen lost replaced');
-    this.replacedEl.innerHTML = `
-      <div class="pause-card">
-        <div class="pause-title">Ты зашёл в другом окне</div>
-        <div class="pause-sub">Играть можно в одном окне за раз — здесь игра остановлена.</div>
-        <button class="btn primary back-here">Вернуться сюда</button>
-        <button class="btn ghost menu">В меню</button>
-      </div>`;
     this.fadeEl = h('div', 'fade');
-    menus.append(this.fadeEl, this.joinEl, this.pauseEl, this.lostEl, this.reconnectEl, this.replacedEl);
+    menus.append(this.fadeEl, this.join.root, this.pauseEl, this.link.root);
     this.transition = new Transition({
       renderer: this.renderer, active: () => this.active, send: (m) => this.net.send(m), nick: () => this.me.nick, sound: this.sound,
       build: (kind, epoch) => { this.net.epoch = epoch; this.switchScene(kind, true); return this.active!; },
       detail: (kind) => (kind === 'race' ? RACE_TRACKS.find((t) => t.id === this.raceTrack)?.name ?? null : kind === 'fort' ? fortLoadingLine(this.me.stats?.ftBest ?? 0) : null),
       blockedChanged: () => this.updateBlocked(), freePointer: () => this.input.unlock(),
-    }, this.fadeEl);
+    }, this.fadeEl, this.top, this.slots.c);
 
-    this.helloNick = this.joinEl.querySelector('.hello-nick')!;
-    this.nameInput = this.joinEl.querySelector('.name')!;
-    this.codeInput = this.joinEl.querySelector('.code')!;
-    this.joinError = this.joinEl.querySelector('.join-error')!;
-    this.playBtn = this.joinEl.querySelector('.play')!;
-    this.onlineEl = this.joinEl.querySelector('.online')!;
-    this.lostReason = this.lostEl.querySelector('.lost-reason')!;
-    this.rcTitle = this.reconnectEl.querySelector('.rc-title')!;
-    this.rcSub = this.reconnectEl.querySelector('.rc-sub')!;
     this.pauseSub = this.menu.sub;
     this.toLobbyBtn = this.menu.toLobbyBtn;
-    this.settingsEl = this.menu.settings.root;
-    this.syncSound = () => this.menu.settings.sync();
-    this.joinEl.querySelector('.join-settings')!.appendChild(this.settingsEl);
-
-    this.nameInput.value = oldName();
-    this.nameInput.placeholder = NICKS[Math.floor(Math.random() * NICKS.length)];
-    const enterPlays = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        this.play();
-      }
-    };
-    this.nameInput.addEventListener('keydown', enterPlays);
-    this.codeInput.addEventListener('keydown', enterPlays);
-    this.playBtn.addEventListener('click', () => this.play());
-    this.joinEl.querySelector('.other')!.addEventListener('click', () => this.otherProfile());
-    this.joinEl.querySelector('.have-code')!.addEventListener('click', () => this.setJoinMode('code'));
-    this.joinEl.querySelector('.back')!.addEventListener('click', () => this.setJoinMode(savedNick() ? 'saved' : 'nick'));
-    this.lostEl.querySelector('.retry')!.addEventListener('click', () => this.play());
-    this.replacedEl.querySelector('.back-here')!.addEventListener('click', () => this.play());
-    for (const el of [this.lostEl, this.reconnectEl, this.replacedEl]) el.querySelector('.menu')!.addEventListener('click', () => this.toMenu());
+    this.syncSound = () => { this.menu.settings.sync(); this.join.syncSettings(); };
     this.profile.onRename = (nick) => {
       this.renamePending = true;
       this.net.send({ t: 'rename', nick });
@@ -532,34 +424,23 @@ export class App {
   // ------------------------------------------------------------ вход
 
   private setJoinMode(mode: JoinMode): void {
-    this.joinMode = mode;
-    this.joinEl.classList.remove('mode-saved', 'mode-nick', 'mode-code');
-    this.joinEl.classList.add(`mode-${mode}`);
-    this.helloNick.textContent = savedNick();
-    this.joinError.textContent = '';
-    if (mode === 'code') {
-      this.codeInput.value = '';
-      this.codeInput.focus();
-    } else if (mode === 'nick' && !this.nameInput.value) {
-      this.nameInput.focus();
-    }
+    this.join.setMode(mode);
   }
 
   private makeHello(): ClientMsg | null {
     const base = { t: 'hello' as const, v: PROTOCOL_VERSION, key: deviceKey() };
-    if (this.joinMode === 'code') {
-      const code = this.codeInput.value.replace(/[\s-]/g, '').toUpperCase();
+    if (this.join.mode === 'code') {
+      const code = this.join.code();
       if (!code) {
-        this.joinError.textContent = 'Введи код с другого устройства';
-        this.codeInput.focus();
+        this.join.setError('Введи код с другого устройства');
+        this.join.focusCode();
         return null;
       }
       return { ...base, code };
     }
-    if (this.joinMode === 'nick') {
-      let nick = this.nameInput.value.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME);
-      if (!nick) nick = this.nameInput.placeholder;
-      this.nameInput.value = nick;
+    if (this.join.mode === 'nick') {
+      const nick = this.join.nick() || this.join.placeholder;
+      this.join.setNick(nick);
       return { ...base, nick };
     }
     return base;
@@ -581,10 +462,8 @@ export class App {
     if (TOUCH && !document.fullscreenElement) document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {});
     this.screen = 'connecting';
     this.connectAt = performance.now();
-    this.showScreen(this.joinEl);
-    this.joinError.textContent = '';
-    this.playBtn.disabled = true;
-    this.playBtn.textContent = 'Подключаемся…';
+    this.showScreen(this.join.root);
+    this.join.setBusy(true);
     // после ошибки ника соединение остаётся открытым — просто пробуем ещё раз
     if (this.net.isOpen) this.net.send(hello);
     else this.net.connect();
@@ -599,7 +478,7 @@ export class App {
     resetDeviceKey();
     forgetNick();
     this.net.close();
-    this.nameInput.value = '';
+    this.join.setNick('');
     this.setJoinMode('nick');
   }
 
@@ -610,19 +489,16 @@ export class App {
     this.leaveGame();
     this.input.unlock();
     this.resetPlayButton();
-    this.showScreen(this.joinEl);
-    if (mode === 'nick' && !this.nameInput.value) this.nameInput.value = savedNick() || oldName();
+    this.showScreen(this.join.root);
+    if (mode === 'nick' && !this.join.nick()) this.join.setNick(savedNick() || oldName());
     this.setJoinMode(mode);
-    this.joinError.textContent = text;
-    if (mode === 'nick') {
-      this.nameInput.focus();
-      this.nameInput.select();
-    }
+    this.join.setError(text);
+    if (mode === 'nick') this.join.focusNick(true);
+    else if (mode === 'code') this.join.focusCode();
   }
 
   private resetPlayButton(): void {
-    this.playBtn.disabled = false;
-    this.playBtn.textContent = 'Играть';
+    this.join.setBusy(false);
   }
 
   // ------------------------------------------------------------ сообщения сервера
@@ -867,7 +743,7 @@ export class App {
         this.backToJoin('nick', text);
         return;
       case 'rate':
-        this.backToJoin(this.joinMode, text);
+        this.backToJoin(this.join.mode, text);
         return;
       default:
         this.lastError = text;
@@ -1078,8 +954,10 @@ export class App {
   // ------------------------------------------------------------ экраны
 
   private showScreen(el: HTMLElement | null): void {
-    for (const s of [this.joinEl, this.lostEl, this.reconnectEl, this.replacedEl]) s.classList.toggle('show', s === el);
-    if (el === this.joinEl) this.joinEl.querySelector('.join-settings')!.appendChild(this.settingsEl);
+    for (const s of [this.join.root, this.link.root]) s.classList.toggle('show', s === el);
+    // окно связи: Enter жмёт его главную кнопку (колпачок на ней), закрытые настройки входа не мешают
+    if (el === this.link.root) this.link.focusMain();
+    if (el !== this.join.root) this.join.closeSettings();
   }
 
   private onKey(code: string, down: boolean, e: KeyboardEvent): void {
@@ -1292,7 +1170,7 @@ export class App {
     this.tokens.reset();
     this.chat.clear();
     this.resetPlayButton();
-    this.showScreen(this.joinEl);
+    this.showScreen(this.join.root);
     this.setJoinMode(savedNick() ? 'saved' : 'nick');
     this.pollHealth();
   }
@@ -1305,10 +1183,8 @@ export class App {
     this.leaveGame();
     this.input.unlock();
     this.resetPlayButton();
-    this.lostReason.textContent = text;
-    this.lostEl.querySelector('.pause-title')!.textContent = kicked ? 'Тебя выгнали' : 'Связь потеряна';
-    this.lostEl.querySelector('.retry')!.textContent = kicked ? 'Войти снова' : 'Переподключиться';
-    this.showScreen(this.lostEl);
+    this.link.show(kicked ? 'kicked' : 'lost', text);
+    this.showScreen(this.link.root);
   }
 
   private showReplaced(): void {
@@ -1317,7 +1193,8 @@ export class App {
     this.leaveGame();
     this.input.unlock();
     this.resetPlayButton();
-    this.showScreen(this.replacedEl);
+    this.link.show('replaced');
+    this.showScreen(this.link.root);
   }
 
   // ------------------------------------------------------------ переподключение
@@ -1326,8 +1203,8 @@ export class App {
     this.screen = 'reconnecting';
     this.leaveGame();
     this.retryN = 0;
-    this.rcTitle.textContent = this.restarting ? 'Сервер обновляется' : 'Связь пропала';
-    this.showScreen(this.reconnectEl);
+    this.link.show(this.restarting ? 'restart' : 'reconnect');
+    this.showScreen(this.link.root);
     this.scheduleRetry();
   }
 
@@ -1335,7 +1212,8 @@ export class App {
     clearTimeout(this.retryTimer);
     const s = RETRY_S[Math.min(this.retryN, RETRY_S.length - 1)];
     this.retryN++;
-    this.retryAt = performance.now() + s * 1000;
+    this.retryMs = s * 1000;
+    this.retryAt = performance.now() + this.retryMs;
     this.retryTimer = window.setTimeout(() => this.retryNow(), s * 1000);
   }
 
@@ -1364,7 +1242,7 @@ export class App {
         this.scheduleRetry();
       }
     }
-    if (this.rcSub.textContent !== text) this.rcSub.textContent = text;
+    this.link.setWait(text, this.retryAt > 0 ? 1 - (this.retryAt - now) / this.retryMs : null);
   }
 
   private pollHealth(): void {
@@ -1372,10 +1250,10 @@ export class App {
       .then((r) => r.json() as Promise<{ online: number }>)
       .then((j) => {
         const n = j.online;
-        this.onlineEl.textContent = n > 0 ? `Сейчас в игре: ${n} ${plural(n, 'человек', 'человека', 'человек')}` : 'Пока никого — будь первым 🌙';
+        this.join.setOnline(n);
       })
       .catch(() => {
-        this.onlineEl.textContent = 'Сервер молчит — запущен ли он?';
+        this.join.setOnline(null);
       });
   }
 
@@ -1501,7 +1379,7 @@ export class App {
     if (this.screen === 'game' && this.net.isOpen && !this.relink.active) {
       const quiet = now - this.net.lastRx;
       if (quiet > SILENCE_MS) this.net.drop(CLOSE_SILENCE, 'silence');
-      else this.linkBanner.show(quiet > SHAKY_MS ? 'Связь нестабильна — ждём сервер…' : null);
+      else this.linkBanner.show(quiet > SHAKY_MS ? 'Связь нестабильна — ждём сервер… Играть можно дальше' : null);
     } else if (!this.relink.active) this.linkBanner.show(null);
     this.relink.frame();
 
@@ -1539,12 +1417,4 @@ function closeText(code: number, reason: string): string {
   if (code === 1012) return 'сервер перезапускается — попробуй через минуту';
   if (code === 1013) return 'сейчас мест нет, попробуй чуть позже';
   return reason ? `причина: ${reason}` : `код ${code}`;
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
 }

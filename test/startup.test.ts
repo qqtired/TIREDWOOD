@@ -60,7 +60,7 @@ test('font wait preserves canvas Cyrillic/Latin loads and clears its deadline on
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const calls: string[] = [];
   await waitForFonts({ load: async (font: string, text: string) => { calls.push(`${font}:${text}`); return []; } });
-  assert.deepEqual(calls, ['700 30px Rubik:Аб7', '900 40px Rubik:Аб7']);
+  assert.deepEqual(calls, ['700 30px Rubik:Аб7', '900 40px Rubik:Аб7', '400 40px "Rubik Mono One":TIREDWOOD']);
 });
 
 test('font failure or timeout still permits the existing fallback font startup', async t => {

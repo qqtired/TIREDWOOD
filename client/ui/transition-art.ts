@@ -1,11 +1,14 @@
-// Экран загрузки режима: картина на весь экран, желейка-ведущая с подсказками в облачке, название, подпись,
-// «что строим» и слово старта. Картины и желейки нарисованы Codex (client/assets/loading/, промпты — PROVENANCE.md).
+// Экран загрузки режима: картина на весь экран, желейка-ведущая с подсказкой в облачке, название, подпись,
+// «что строим» и слово старта. Картины и желейки нарисованы Codex; на экране — HD-версии из client/assets/loading/hd/
+// (1536×864, качество 82 % — на мониторе 2560×1440 без «мыла»; происхождение — PROVENANCE-hd.md). Старые файлы
+// client/assets/loading/*.webp остаются для отката и в сборку не попадают.
 // Подсказки — короткие и общие: режимы переделываются, точные клавиши живут в их собственном интерфейсе.
 import type { RoomKind } from '../../shared/messages.ts';
 
-/** Картинки экрана загрузки — свои файлы сборки: CSP пускает картинки только со своего адреса и data: */
-const FILES = import.meta.glob('../assets/loading/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const file = (name: string): string => FILES[`../assets/loading/${name}.webp`] ?? '';
+/** Картинки экрана загрузки и входа — свои файлы сборки: CSP пускает картинки только со своего адреса и data: */
+const FILES = import.meta.glob('../assets/loading/hd/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+/** Адрес HD-картины по имени файла без расширения (hero-left, cover, farm, farm-jelly, farm-sm…); нет файла — '' */
+export const artUrl = (name: string): string => FILES[`../assets/loading/hd/${name}.webp`] ?? '';
 
 export interface ModeCard {
   title: string;
@@ -21,11 +24,11 @@ export interface ModeCard {
   focus: string;
   /** Желейка-ведущая, прозрачный фон */
   jelly: string;
-  /** Цвет режима: небо, пока картина не пришла, и кружок отсчёта */
-  tint: string;
+  /** Иконка строки под подписью (рекорд, трасса): client/assets/ui/icons/<id>.webp */
+  lineIcon: string;
 }
 
-const card = (kind: RoomKind, c: Omit<ModeCard, 'art' | 'jelly'>): ModeCard => ({ ...c, art: file(kind), jelly: file(`${kind}-jelly`) });
+const card = (kind: RoomKind, c: Omit<ModeCard, 'art' | 'jelly' | 'lineIcon'> & { lineIcon?: string }): ModeCard => ({ lineIcon: 'records', ...c, art: artUrl(kind), jelly: artUrl(`${kind}-jelly`) });
 
 export const MODE_CARDS: Record<RoomKind, ModeCard> = {
   lobby: card('lobby', {
@@ -33,13 +36,12 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Возвращаемся в город',
     build: 'Открываем набережную…',
     go: 'Привет!',
-    tint: '#ffd35a',
     focus: '38% 50%',
     tips: [
       'Tab — кто где и кто во что играет',
       'Жетоны тратятся на автоматы и наряды в примерочной',
-      'Enter — чат, 1–4 — эмоции',
-      'В воду не падай 🌊',
+      'Enter — чат, 1–6 — эмоции',
+      'В воду не падай',
     ],
   }),
   paintball: card('paintball', {
@@ -47,7 +49,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Бой на складе: Черника против Мандарина',
     build: 'Расставляем ящики на складе…',
     go: 'В бой!',
-    tint: '#93a2ff',
     focus: '48% 50%',
     tips: [
       'В разминку дёргай рычаг автомата — бонусы на весь раунд',
@@ -61,7 +62,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Гонка на картах',
     build: 'Размечаем трассу…',
     go: 'Вперёд!',
-    tint: '#ffb36b',
     focus: '50% 50%',
     tips: [
       'Пробел с рулём — занос, отпусти — ускорение',
@@ -74,7 +74,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Держим ворота и кристалл вместе',
     build: 'Поднимаем стены…',
     go: 'Волна!',
-    tint: '#7bd88f',
     focus: '50% 40%',
     tips: [
       'Между волнами на террасе открыта лавка',
@@ -87,7 +86,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Подвал. Правила ты знаешь',
     build: 'Включаем лампы в подвале…',
     go: 'Бой!',
-    tint: '#ff6b6b',
     focus: '50% 50%',
     tips: [
       'ЛКМ — джеб, три подряд — серия; ПКМ — тяжёлый',
@@ -101,7 +99,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Полоса препятствий над облаками',
     build: 'Развешиваем острова над облаками…',
     go: 'Старт!',
-    tint: '#9ec0e6',
     focus: '50% 50%',
     tips: [
       'Падение возвращает на последнюю контрольную точку',
@@ -114,7 +111,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Предметы против искателя',
     build: 'Расставляем бочки и скамейки…',
     go: 'Прячьтесь!',
-    tint: '#ffd35a',
     focus: '50% 50%',
     tips: [
       'Предмет: прячься среди похожих и не шевелись',
@@ -127,7 +123,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Грядки за городом, у моря',
     build: 'Вскапываем грядки…',
     go: 'Привет, сосед!',
-    tint: '#9bd13b',
     focus: '50% 50%',
     tips: [
       'Грядки растут, даже когда тебя нет',
@@ -142,7 +137,6 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Один фонарь против армии Барона',
     build: 'Зажигаем факелы в пещере…',
     go: 'Волна!',
-    tint: '#b48cff',
     focus: '50% 50%',
     tips: [
       'Оружие бьёт само — твоё дело ходить и уворачиваться',
@@ -163,20 +157,23 @@ export function nextTips(kind: RoomKind): string[] {
 
 /**
  * Картины всех режимов — заранее в кэш браузера (тихо, после входа в игру): на экране загрузки они готовы сразу,
- * а не догружаются, пока главный поток строит мир. Ссылки держим, чтобы браузер их не выбросил.
+ * а не догружаются, пока главный поток строит мир. HD-картины по 200–300 КБ — грузим по одной, с паузой, низким
+ * приоритетом: не толкаемся с самой игрой. Ссылки держим, чтобы браузер их не выбросил.
  */
 let preloaded: HTMLImageElement[] | null = null;
 export function preloadArt(): void {
   if (preloaded) return;
   preloaded = [];
-  for (const c of Object.values(MODE_CARDS)) {
-    for (const url of [c.art, c.jelly]) {
-      if (!url) continue;
-      const img = new Image();
-      img.decoding = 'async';
-      img.fetchPriority = 'low';
-      img.src = url;
-      preloaded.push(img);
-    }
-  }
+  const queue = Object.values(MODE_CARDS).flatMap((c) => [c.art, c.jelly]).filter(Boolean);
+  const next = (): void => {
+    const url = queue.shift();
+    if (!url) return;
+    const img = new Image();
+    img.decoding = 'async';
+    img.fetchPriority = 'low';
+    img.onload = img.onerror = () => { setTimeout(next, 250); };
+    img.src = url;
+    preloaded!.push(img);
+  };
+  next();
 }
