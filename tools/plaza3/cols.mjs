@@ -33,6 +33,8 @@ const SYNC = [
   { pav: 'semyon', match: /^col_(porch_post_[ns]|porch_rail_n|porch_table|barrels_sw|bench_s|woodpile_e)$/, q: 'port', clipBy: { col_porch_rail_n: { x0: -16.17 } } },
   // col_sign_udalaya (1,14 м в ширину, на всю высоту) не берём: у таблички катера уже стоит столбик режима (BOAT/PORT.sign, 0,1 м)
   { pav: 'mole', match: /^col_red_light$/, q: 'port' },
+  // крысиные бега v2 (11.10): уголок букмекера и две трибунки на понтоне; понтон, загон и столбы табло — твёрдое режима
+  { pav: 'rats', match: /^col_(counter|easel|umbrella_pole|stand_[we]_(1|2|back|post_[ns]))$/, q: 'port' },
 ];
 
 const r3 = (v) => Math.round(v * 1000) / 1000;

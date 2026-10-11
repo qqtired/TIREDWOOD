@@ -4854,6 +4854,227 @@ export const P3: Plaza3Layout = {
       ],
       "mat": "invisible",
       "color": 0
+    },
+    {
+      "id": "pav.rats.counter",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -6.75,
+        0,
+        22.05
+      ],
+      "max": [
+        -6.15,
+        1.05,
+        23.05
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.easel",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -5.46,
+        0,
+        22.15
+      ],
+      "max": [
+        -4.74,
+        1.4,
+        22.6
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_e_1",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -4.485,
+        0,
+        23.43
+      ],
+      "max": [
+        -4.285,
+        0.28,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_e_2",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -4.285,
+        0,
+        23.43
+      ],
+      "max": [
+        -4,
+        0.58,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_e_back",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -4.08,
+        0.58,
+        23.43
+      ],
+      "max": [
+        -4,
+        1.04,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_e_post_n",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -4.405,
+        0,
+        23.33
+      ],
+      "max": [
+        -4.305,
+        2.33,
+        23.43
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_e_post_s",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -4.405,
+        0,
+        26.27
+      ],
+      "max": [
+        -4.305,
+        2.33,
+        26.37
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_w_1",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -10.515,
+        0,
+        23.43
+      ],
+      "max": [
+        -10.315,
+        0.28,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_w_2",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -10.8,
+        0,
+        23.43
+      ],
+      "max": [
+        -10.515,
+        0.58,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_w_back",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -10.8,
+        0.58,
+        23.43
+      ],
+      "max": [
+        -10.72,
+        1.04,
+        26.27
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_w_post_n",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -10.495,
+        0,
+        23.33
+      ],
+      "max": [
+        -10.395,
+        2.33,
+        23.43
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.stand_w_post_s",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -10.495,
+        0,
+        26.27
+      ],
+      "max": [
+        -10.395,
+        2.33,
+        26.37
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.rats.umbrella_pole",
+      "q": "port",
+      "pav": "rats",
+      "min": [
+        -5.6,
+        0,
+        22.85
+      ],
+      "max": [
+        -5.5,
+        2.3,
+        22.95
+      ],
+      "mat": "invisible",
+      "color": 0
     }
   ],
   "decor": [
