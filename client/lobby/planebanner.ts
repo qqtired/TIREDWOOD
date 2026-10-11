@@ -199,7 +199,7 @@ export class BannerPanel {
     // клик по пустому месту окна оставляет фокус в окне — клавиши не уходят в игру
     win.tabIndex = -1;
     const head = el('header', 'k-win-head', win);
-    el('span', 'k-win-portrait', head).innerHTML = iconImg('landing', '');
+    el('span', 'k-win-portrait', head).innerHTML = iconImg('seaplane', '');
     const titles = el('div', 'k-win-titles', head);
     this.eyebrow = el('p', 'k-eyebrow', titles);
     el('h2', 'k-win-title', titles, 'Баннер');

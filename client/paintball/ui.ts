@@ -8,7 +8,6 @@
 // крестик «стена мешает» и автомат разминки (slot.ts).
 import { END_TICKS, TEAM_NAMES, TICK_RATE } from '../../shared/constants.ts';
 import type { RosterEntry, SlotBonus } from '../../shared/messages.ts';
-import cannonUrl from '../assets/fort/cannon.webp';
 import { TOUCH } from '../touch.ts';
 import { h, iconImg, meterHtml } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
@@ -90,7 +89,7 @@ class PbVitals {
     // в пейнтболе оружие не переключают клавишами: AWP берут на складе, пустая — снова маркер (клавиш на ячейках нет)
     const arms = this.root.appendChild(h('div', 'k-vitals-arms'));
     this.marker = arms.appendChild(h('div', 'k-arm is-on', `${iconImg('marker', '')}<span>Маркер</span>`));
-    this.awp = arms.appendChild(h('div', 'k-arm is-off', `<img src="${cannonUrl}" alt="" draggable="false"><span>AWP</span>`));
+    this.awp = arms.appendChild(h('div', 'k-arm is-off', `${iconImg('awp', '')}<span>AWP</span>`));
     this.ammoBox = this.root.appendChild(h('div', 'k-vitals-ammo'));
     const ammoRow = this.ammoBox.appendChild(h('div', 'k-vitals-row'));
     this.ammoKey = TOUCH ? null : ammoRow.appendChild(h('kbd', 'k-key k-key--sm', 'R'));
@@ -335,7 +334,7 @@ export class PaintballUi {
     this.tiles = slots.tr.appendChild(h('div', 'k-tiles pb-tiles pb-only'));
     this.tiles.hidden = true;
     const tile = this.tiles.appendChild(h('div', 'k-tile'));
-    this.tileFace = tile.appendChild(h('span', 'k-tile-face', iconImg('level', '')));
+    this.tileFace = tile.appendChild(h('span', 'k-tile-face', iconImg('slots', '')));
     this.tileCap = tile.appendChild(h('span', 'k-tile-cap'));
     // низ-центр: защита после появления — подсказкой над панелью бойца, пока действует
     this.shieldNote = slots.bc.appendChild(h('div', 'k-prompt pb-shield pb-only',
@@ -465,7 +464,7 @@ export class PaintballUi {
     let tone: 'info' | 'reward' | 'good' = 'good';
     if (text.startsWith('AWP!')) {
       key = 'awp';
-      icon = cannonUrl;
+      icon = uiIcon('awp');
       tone = 'reward';
     } else if (text.startsWith('AWP пуста')) {
       key = 'awp';
@@ -479,7 +478,7 @@ export class PaintballUi {
       tone = 'reward';
     } else if (text.startsWith('Сбит') || text.startsWith('Снят')) {
       key = 'kill';
-      if (head && !text.startsWith('Снят')) sub = 'в голову';
+      if (head && !text.startsWith('Снят')) { sub = 'в голову'; icon = uiIcon('headshot'); }
     } else {
       title = text;
       sub = '';
@@ -493,7 +492,7 @@ export class PaintballUi {
     // снят из AWP — золотой ярлык; в голову — картинка в золотом кольце; утонул — круг; сам — белый флаг
     const mid = how === 'awp'
       ? `<span class="k-pill k-pill--gold k-pill--xs pb-awp${head ? ' pb-head' : ''}">AWP</span>`
-      : iconImg(how === 'drown' ? 'buoy' : how === 'self' ? 'white-flag' : 'paint', head ? 'k-ic pb-head' : 'k-ic');
+      : iconImg(how === 'drown' ? 'buoy' : how === 'self' ? 'white-flag' : head ? 'headshot' : 'paint', head ? 'k-ic pb-head' : 'k-ic');
     this.feed.push(`${killer ? nameHtml(killer, kTeam) : ''}${mid}${nameHtml(victim, vTeam)}`, { own: mine });
   }
 

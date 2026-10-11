@@ -574,7 +574,7 @@ export class PlaneClient {
       this.hudKey = key;
       this.d.ui?.top.event({
         key: EVENT, prio: PRIO.mode,
-        html: `<span class="k-event-ic">${iconImg('landing', '')}</span><div class="k-event-title">«Стриж» · ${title}</div><div class="k-event-sub">${sub}</div>${timer ? `<div class="k-event-timer">${timer}</div>` : ''}`,
+        html: `<span class="k-event-ic">${iconImg('seaplane', '')}</span><div class="k-event-title">«Стриж» · ${title}</div><div class="k-event-sub">${sub}</div>${timer ? `<div class="k-event-timer">${timer}</div>` : ''}`,
       });
     }
     this.hudBanner.hidden = (s.ph !== PL_START && s.ph !== PL_FLY) || !!this.view.b;

@@ -40,7 +40,7 @@ const KEY = 'pirates';
 /** Стрелки: что это (подпись), тон кита, иконка */
 const ARROW_TEXT: Record<ArrowKind, string> = { thief: 'вор с ящиком', pirate: 'пират', boat: 'шлюпка', loot: 'ящик' };
 const ARROW_TONE: Record<ArrowKind, string> = { thief: 'bad', pirate: 'bad', boat: 'info', loot: 'gold' };
-const ARROW_ICON: Record<ArrowKind, string> = { thief: 'pirate-flag', pirate: 'pirate-flag', boat: 'boat', loot: 'loot' };
+const ARROW_ICON: Record<ArrowKind, string> = { thief: 'thief', pirate: 'pirate-flag', boat: 'boat', loot: 'loot' };
 /** Отступ стрелок от края экрана, px (× масштаб HUD) */
 const EDGE = 56;
 /** Угрозы одного вида в одной стороне (шаг угла) — одной стрелкой */
