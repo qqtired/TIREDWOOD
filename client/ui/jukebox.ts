@@ -78,6 +78,8 @@ export class JukeboxPanel {
     this.actions = actions;
     const dlg = this.dlg = document.createElement('dialog');
     dlg.className = 'k-scrim jb-dlg';
+    // фокус держит сам диалог (как FarmWin): иначе после клика по строке клавиши уходят в игру и желейка идёт
+    dlg.tabIndex = -1;
     dlg.setAttribute('aria-label', 'Музыкальный автомат');
     const win = this.win = dlg.appendChild(h('section', 'k-window jb-win'));
     win.innerHTML = `

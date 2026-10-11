@@ -1883,7 +1883,7 @@ export class LobbyScene implements Scene {
       if (MOVE_KEYS.has(code) || code === 'KeyE') e.preventDefault();
       return true;
     }
-    // окно музыкального автомата: цифры, стрелки, Enter, Esc; шаг — не съедает (отошёл — окно закроется)
+    // окно музыкального автомата (модальный диалог кита): цифры, стрелки, Enter, Esc
     if (this.juke.onKey(code, e)) return true;
     // радио на лодке: R — окно; в окне 0–3, −/+, Esc (шаг и руль не съедает)
     if (!this.d.input.blocked && this.myAct !== ACT_DURAK && this.myAct !== ACT_BILLIARDS && this.radio.onKey(code, e)) return true;
@@ -2276,7 +2276,7 @@ export class LobbyScene implements Scene {
     this.d.net.send({ t: 'spin' });
   }
 
-  /** Выйти из примерочной: по «Готово» и Esc просим сервер, шагом встанем сами. Мышь — сразу, пока идёт жест. */
+  /** Выйти из примерочной: по «Готово», ✕, Esc и E просим сервер (шагом из неё не выйти). Мышь — сразу, пока идёт жест. */
   private leaveWardrobe(send: boolean): void {
     // недосланный наряд — раньше, чем встанем: стоя сервер его не примет
     this.wardrobe.flush();

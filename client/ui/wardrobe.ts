@@ -124,6 +124,8 @@ export class Wardrobe {
   private giftsOn = false;
   /** Пиксели сцены → экран (--hud-k): под желейкой место для стрелок и «Спереди» */
   private hudK = 1;
+  /** Размер окна, для которого прочитан hudK: перечитываем при смене размера, а не каждый кадр */
+  private hudKAt = '';
   private tab: Tab = 'c';
   private shown = false;
   private owned: readonly string[] = [];
@@ -301,13 +303,22 @@ export class Wardrobe {
 
   /** Под ногами желейки, независимо от ширины правой панели и высоты шляпы. */
   placeInspect(x: number): void {
-    const half = Math.round(136 * this.hudK);
+    const half = Math.round(136 * this.scale());
     this.inspect.style.left = `clamp(${half}px, ${Math.round(x)}px, calc(100% - ${half}px))`;
   }
 
   /** Место под желейкой на экране, px: камера зеркала оставляет его под стрелки и «Спереди» */
   get footerPx(): number {
-    return WARDROBE_FOOTER_PX * this.hudK;
+    return WARDROBE_FOOTER_PX * this.scale();
+  }
+
+  private scale(): number {
+    const at = `${innerWidth}x${innerHeight}`;
+    if (at !== this.hudKAt) {
+      this.hudKAt = at;
+      this.hudK = Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-k')) || 1;
+    }
+    return this.hudK;
   }
 
   /** Свободная мышь/палец над сценой вращают желейку, панель вещей остаётся доступной. */
@@ -357,7 +368,7 @@ export class Wardrobe {
   open(me: MeState): void {
     this.resetInspect();
     this.setGifts(me.gifts === true);
-    this.hudK = Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-k')) || 1;
+    this.hudKAt = '';
     this.shown = true;
     this.owned = me.owned;
     this.tokens = me.tokens;
