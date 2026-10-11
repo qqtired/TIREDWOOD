@@ -1,26 +1,18 @@
-// Окно «Хозяйство» (design-v11 §6, §12, §13, §14.2): «Улучшения» — карточки грядок, инструментов и построек (что даёт, ур., 🪙,
-// ресурсы «есть/нужно», причина запрета прямо на кнопке), «Кладовая» — ресурсы, сумка, репутация, «Убранство» — титул, рамка,
-// скины инструментов, вещи участка, эмоции; «Достижения» — прогресс по счётчикам. Покупает и надевает сервер.
-import { farmLevel, repLevel, upgradeBlock, upgradeStep, bagCap, bagUsed } from '../../../shared/farm.ts';
+// Окно «Хозяйство» (lab/ui/screens/farm.js «Хозяйство: улучшения, кладовая, убранство, достижения»; владелец: «очень неплохо»).
+// Каждая карточка улучшения отвечает на три вопроса: что даёт («было → станет»), что нужно (есть/нужно зелёным и красным)
+// и почему пока нельзя — отдельной строкой, а не текстом внутри кнопки; готовое — зелёной кнопкой. «Кладовая» — репутация и
+// ресурсы, «Убранство» — титулы, рамки, скины и вещи участка (с картинками и «откуда взять»), «Достижения» — прогресс.
+// Покупает и надевает сервер.
+import { farmLevel, repLevel, upgradeBlock, upgradeStep } from '../../../shared/farm.ts';
+import { achProgress } from '../../../shared/farmach.ts';
 import {
-  ACHIEVEMENTS, BAG_PLACES, CAN_CHARGES, FARM_BEDS, FARM_DECOR, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, TRUFFLE, UPGRADES,
-  cropById, resourceById, type FarmDecorKind, type UpgradeDef, type UpgradeKind,
+  ACHIEVEMENTS, BAG_PLACES, CAN_CHARGES, FARM_DECOR, PIG_STORE, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, UPGRADES,
+  type FarmDecorKind, type UpgradeDef, type UpgradeKind,
 } from '../../../shared/farmdata.ts';
-import { FarmWin, btn, big, el, fmtLeft, icon, needChip, pigView, resIcon } from './common.ts';
-import { rewardName, rewardSource } from './names.ts';
+import { C, FarmWin, big, fi, fmtLeft, meter, pigView, plural, resIconName, resName, ui } from './common.ts';
+import { UPGRADE_ICON, rewardName, rewardSource } from './names.ts';
 
 type Tab = 'up' | 'store' | 'look' | 'ach';
-
-const GROUPS: readonly { title: string; kinds: readonly UpgradeKind[] }[] = [
-  { title: 'Грядки', kinds: ['bed'] },
-  { title: 'Инструменты', kinds: ['rake', 'shovel', 'can', 'bag'] },
-  { title: 'Постройки на заднем дворе', kinds: ['pig', 'bees', 'compost'] },
-];
-
-const KIND_ICON: Record<UpgradeKind, [name: string, fallback: string]> = {
-  bed: ['', '🌱'], rake: ['rake', '🧹'], shovel: ['trowel', '⛏'], can: ['watering-can', '💧'], bag: ['bag', '🎒'],
-  pig: ['truffle-pig', '🐖'], bees: ['beehive', '🐝'], compost: ['compost', '♻️'],
-};
 
 /** Слот убранства для вещи: серверная карта look (title/frame/can/shovel/fence/decor) */
 function lookSlot(id: string): 'title' | 'frame' | 'can' | 'shovel' | 'fence' | 'decor' | null {
@@ -33,9 +25,10 @@ function lookSlot(id: string): 'title' | 'frame' | 'can' | 'shovel' | 'fence' | 
   }
 }
 
-const DECOR_TITLE: Record<FarmDecorKind, string> = {
-  ti: 'Титулы', fr: 'Рамки карточки', tl: 'Скины инструментов', pl: 'Участок', em: 'Эмоции',
-};
+const DECOR_ICON: Record<FarmDecorKind, string> = { ti: 'star', fr: 'ui:card-frame', tl: 'watering-can', pl: 'ui:garden-bed', em: 'ui:emote' };
+const DECOR_KIND: Record<FarmDecorKind, string> = { ti: 'Титул', fr: 'Рамка карточки', tl: 'Скин инструмента', pl: 'Участок', em: 'Эмоция' };
+
+const lowerFirst = (s: string): string => s.charAt(0).toLowerCase() + s.slice(1);
 
 export class EstateWin extends FarmWin {
   protected firstTab(): string {
@@ -43,155 +36,187 @@ export class EstateWin extends FarmWin {
   }
 
   protected draw(body: HTMLElement): void {
-    this.setTabs([['up', '🔧', 'Улучшения'], ['store', '📦', 'Кладовая'], ['look', '🎨', 'Убранство'], ['ach', '🏆', 'Достижения']] as [Tab, string, string][]);
-    if (this.tab === 'store') this.drawStore(body);
-    else if (this.tab === 'look') this.drawLook(body);
-    else if (this.tab === 'ach') this.drawAch(body);
+    const f = this.host.f;
+    this.setHead({ eyebrow: `Ферма · участок ${this.host.plot + 1}` });
+    if (!['up', 'store', 'look', 'ach'].includes(this.tab)) this.tab = 'up';
+    const can = UPGRADES.filter((u) => this.isNext(u) && this.status(u).ready).length;
+    const got = f.achievements.length;
+    this.setTabs([
+      { id: 'up', icon: fi('rake'), label: 'Улучшения', count: can ? `${can} можно` : undefined },
+      { id: 'store', icon: fi('rootlet'), label: 'Кладовая' },
+      { id: 'look', icon: ui('wardrobe'), label: 'Убранство' },
+      { id: 'ach', icon: fi('star'), label: 'Достижения', count: `${got} из ${ACHIEVEMENTS.length}` },
+    ]);
+    const tab = this.tab as Tab;
+    if (tab === 'store') this.drawStore(body);
+    else if (tab === 'look') this.drawLook(body);
+    else if (tab === 'ach') this.drawAch(body);
     else this.drawUp(body);
   }
 
   // ------------------------------------------------------------ улучшения
 
-  private current(kind: UpgradeKind): string {
+  /** Следующая ступень своего вида — единственная, которую можно купить сейчас */
+  private isNext(u: UpgradeDef): boolean {
+    const step = upgradeStep(this.host.f, u);
+    return step < u.step && step === u.step - 1;
+  }
+
+  /** «было → станет» для карточки */
+  private nowGives(u: UpgradeDef): { now: string; gives: string } {
     const f = this.host.f;
     const t = f.tools;
-    switch (kind) {
-      case 'bed': return `Открыто грядок: ${f.beds.length} из ${FARM_BEDS}`;
-      case 'rake': return `Грабли ${t.rake}: до ${RAKE_BEDS[t.rake - 1]} гряд. за раз`;
-      case 'shovel': return SHOVEL_DOUBLE[t.shovel - 1] > 0 ? `Лопатка ${t.shovel}: двойной урожай ${Math.round(SHOVEL_DOUBLE[t.shovel - 1] * 100)} %` : `Лопатка ${t.shovel}: без двойного урожая`;
-      case 'can': return `Лейка ${t.can}: ${CAN_CHARGES[t.can - 1]} зарядов`;
-      case 'bag': return `Сумка ${t.bag}: ${BAG_PLACES[t.bag - 1]} мест`;
-      case 'pig': return f.built.pig ? 'Свин живёт во дворе' : 'Ещё не построено';
-      case 'bees': return f.built.bees ? 'Пчёлы работают' : 'Ещё не построено';
-      case 'compost': return f.built.compost ? 'Компост работает' : 'Ещё не построено';
+    const pct = (a: number): string => `двойной урожай ${Math.round(a * 100)} %`;
+    switch (u.kind) {
+      case 'bed': return { now: `${f.beds.length} ${plural(f.beds.length, 'грядка', 'грядки', 'грядок')}`, gives: `${u.step} ${plural(u.step, 'грядка', 'грядки', 'грядок')}` };
+      case 'rake': return { now: `${RAKE_BEDS[t.rake - 1]} ${plural(RAKE_BEDS[t.rake - 1], 'грядка', 'грядки', 'грядок')} разом`, gives: u.step >= 3 ? 'всё поле — 9' : `${RAKE_BEDS[u.step - 1]} ${plural(RAKE_BEDS[u.step - 1], 'грядка', 'грядки', 'грядок')} разом` };
+      case 'shovel': return { now: SHOVEL_DOUBLE[t.shovel - 1] > 0 ? pct(SHOVEL_DOUBLE[t.shovel - 1]) : 'без двойного урожая', gives: pct(SHOVEL_DOUBLE[u.step - 1]) };
+      case 'can': return { now: `${CAN_CHARGES[t.can - 1]} зарядов`, gives: `${CAN_CHARGES[u.step - 1]} зарядов` };
+      case 'bag': return { now: `${BAG_PLACES[t.bag - 1]} мест`, gives: `${BAG_PLACES[u.step - 1]} мест` };
+      default: return { now: '', gives: u.gives };
     }
+  }
+
+  /** Готово ли, чего не хватает: уровень, ресурсы, жетоны */
+  private status(u: UpgradeDef): { ready: boolean; lvOk: boolean; why: string } {
+    const f = this.host.f;
+    const lvOk = farmLevel(f.xp) >= u.level;
+    const lack: string[] = [];
+    for (const [res, n] of Object.entries(u.res)) {
+      const have = f.cellar[res] ?? 0;
+      if (have < (n ?? 0)) lack.push(`${lowerFirst(resName(res))} ×${(n ?? 0) - have}`);
+    }
+    if (u.coins > this.host.tokens) lack.push(`${u.coins - this.host.tokens} жетонов`);
+    const block = upgradeBlock(f, u);
+    if (!lvOk || block === 'level') return { ready: false, lvOk: false, why: `Откроется на ур. ${u.level}${lack.length === 1 ? ` · ещё ${lack[0]}` : ''}` };
+    if (lack.length) return { ready: false, lvOk: true, why: `Не хватает: ${lack.join(', ')}` };
+    return { ready: !block, lvOk: true, why: '' };
+  }
+
+  private cost(u: UpgradeDef): string {
+    const f = this.host.f;
+    const pills: string[] = [];
+    if (u.coins > 0) pills.push(`<span class="k-pill k-pill--sm ${this.host.tokens >= u.coins ? 'k-pill--good' : 'k-pill--bad'}">${C()}${big(u.coins)}</span>`);
+    for (const [res, n] of Object.entries(u.res)) {
+      const have = f.cellar[res] ?? 0;
+      pills.push(`<span class="k-pill k-pill--sm ${have >= (n ?? 0) ? 'k-pill--good' : 'k-pill--bad'}">${fi(resIconName(res))}${have}/${n}</span>`);
+    }
+    return pills.join('');
+  }
+
+  private upCard(u: UpgradeDef): string {
+    const st = this.status(u);
+    const { now, gives } = this.nowGives(u);
+    const compact = !st.lvOk && (u.kind === 'pig' || u.kind === 'bees' || u.kind === 'compost');
+    const verb = u.kind === 'bed' ? 'Открыть грядку' : u.kind === 'pig' || u.kind === 'bees' || u.kind === 'compost' ? 'Построить' : 'Улучшить';
+    return `
+      <div class="k-cell farm-up${st.ready ? ' is-ready' : ''}${compact ? ' is-compact' : ''}">
+        ${fi(UPGRADE_ICON[u.kind], 'farm-up-ic')}
+        <div class="farm-up-head"><div class="farm-up-name">${u.name}</div><div class="farm-up-gives">${now ? `<span class="k-dim">${now} →</span> ` : ''}<b>${gives}</b></div></div>
+        ${compact ? '' : `<div class="farm-up-cost">${this.cost(u)}</div>`}
+        ${st.ready ? '' : `<div class="farm-why ${st.lvOk ? 'k-bad' : 'k-dim'}">${ui('lock')}${st.why}</div>`}
+        ${compact ? '' : `<button class="k-btn ${st.ready ? 'k-btn--go' : 'k-btn--ghost'} k-btn--sm k-btn--wide farm-up-btn" type="button"${st.ready ? ` data-up="${u.id}" data-sfx="reward"` : ' disabled'}>${verb}</button>`}
+      </div>`;
+  }
+
+  private maxedCard(kind: UpgradeKind, text: string): string {
+    return `<div class="k-cell farm-up is-compact">${fi(UPGRADE_ICON[kind], 'farm-up-ic')}<div class="farm-up-head"><div class="farm-up-name">${text}</div><div class="farm-up-gives"><b class="k-good">Всё куплено ✓</b></div></div></div>`;
   }
 
   private drawUp(body: HTMLElement): void {
     const f = this.host.f;
-    for (const g of GROUPS) {
-      const sec = body.appendChild(el('section', 'fm-sec'));
-      sec.append(el('h3', '', g.title));
-      const grid = sec.appendChild(el('div', 'fm-ups'));
-      for (const kind of g.kinds) {
-        const all = UPGRADES.filter((u) => u.kind === kind);
-        const next = all.find((u) => upgradeStep(f, u) < u.step && upgradeStep(f, u) === u.step - 1);
-        grid.append(this.upCard(kind, next));
-      }
-    }
+    const kinds: readonly UpgradeKind[] = ['rake', 'bed', 'shovel', 'can', 'bag'];
+    const cards = (list: readonly UpgradeKind[]): string => list.map((kind) => {
+      const next = UPGRADES.find((u) => u.kind === kind && this.isNext(u));
+      return next ? this.upCard(next) : this.maxedCard(kind, kind === 'bed' ? 'Грядки' : UPGRADES.filter((u) => u.kind === kind).at(-1)?.name ?? '');
+    }).join('');
+    const built = (['pig', 'bees', 'compost'] as const).map((kind) => {
+      const u = UPGRADES.find((x) => x.kind === kind)!;
+      const have = kind === 'pig' ? !!f.built.pig : f.built[kind];
+      return have ? this.maxedCard(kind, u.name) : this.upCard(u);
+    }).join('');
     const pig = pigView(f, this.host.now);
-    if (pig) {
-      const sec = body.appendChild(el('section', 'fm-sec'));
-      sec.append(el('h3', '', 'Трюфельный свин'));
-      const row = sec.appendChild(el('div', 'fm-row'));
-      row.append(icon('truffle', '🍄', 'fm-ico lg'));
-      const main = row.appendChild(el('div', 'fm-row-main'));
-      main.append(el('b', '', `В загоне: ${pig.stored} из 3`));
-      const sub = main.appendChild(el('small'));
-      this.live(sub, () => {
-        const p = pigView(this.host.f, this.host.now);
-        return !p || !p.nextAt ? 'Загон полон — свин спит, забери трюфели' : `Следующий трюфель через ${fmtLeft(p.nextAt - this.host.now)}`;
-      });
-      const take = btn('fm-go', 'Забрать в сумку', () => this.host.send({ t: 'farm', a: 'pig' }));
-      take.disabled = pig.stored <= 0;
-      row.append(take);
-    }
-  }
-
-  private upCard(kind: UpgradeKind, u: UpgradeDef | undefined): HTMLElement {
-    const f = this.host.f;
-    const card = el('article', `fm-up${u ? '' : ' maxed'}`);
-    const [ic, fb] = KIND_ICON[kind];
-    const top = card.appendChild(el('div', 'fm-card-top'));
-    top.append(icon(ic, fb, 'fm-ico lg'));
-    const name = top.appendChild(el('div', 'fm-card-name'));
-    name.append(el('b', '', u ? u.name : 'Максимум'), el('small', '', this.current(kind)));
-    if (!u) {
-      card.append(el('div', 'fm-done', 'Всё куплено ✓'));
-      return card;
-    }
-    card.append(el('p', 'fm-up-gives', `Даёт: ${u.gives}`));
-    const chips = card.appendChild(el('div', 'fm-needs'));
-    if (u.coins > 0) chips.append(el('span', `fm-need ${this.host.tokens >= u.coins ? 'ok' : 'low'}`, `${big(u.coins)} 🪙`));
-    for (const [res, n] of Object.entries(u.res)) chips.append(needChip(res, f.cellar[res] ?? 0, n ?? 0));
-    const block = upgradeBlock(f, u);
-    let why = '';
-    if (block === 'level') why = `ур. ${u.level}`;
-    else if (block === 'res') {
-      const lack = Object.entries(u.res).find(([res, n]) => (f.cellar[res] ?? 0) < (n ?? 0));
-      if (lack) why = `нужно ${lack[1]} ${resourceById(lack[0])?.name.toLowerCase()} (есть ${f.cellar[lack[0]] ?? 0})`;
-    } else if (!block && u.coins > this.host.tokens) why = `не хватает ${u.coins - this.host.tokens} 🪙`;
-    const verb = u.kind === 'bed' ? 'Открыть грядку' : u.kind === 'pig' || u.kind === 'bees' || u.kind === 'compost' ? 'Построить' : 'Улучшить';
-    const go = btn('fm-go', why ? `${verb} · ${why}` : verb, () => this.host.send({ t: 'farm', a: 'upgrade', id: u.id }));
-    go.disabled = !!why;
-    card.append(go);
-    return card;
+    const pigRow = pig ? `
+      <div class="k-cell farm-pig">
+        ${fi('truffle', 'farm-up-ic')}
+        <div class="farm-up-head"><div class="farm-up-name">Трюфельный свин</div><div class="farm-up-gives">В загоне: <b>${pig.stored} из ${PIG_STORE}</b> · <span class="k-dim" data-live="pig"></span></div></div>
+        <button class="k-btn k-btn--go k-btn--sm" type="button" data-pig data-sfx="reward"${pig.stored <= 0 ? ' disabled' : ''}>Забрать в сумку</button>
+      </div>` : '';
+    body.innerHTML = `
+      <div class="farm-pane">
+        <p class="k-eyebrow farm-h">Инструменты и грядки</p>
+        <div class="farm-ups">${cards(kinds)}</div>
+        <p class="k-eyebrow farm-h">Постройки</p>
+        <div class="farm-ups farm-ups--sm">${built}</div>
+        ${pigRow}
+      </div>`;
+    this.live('[data-live=pig]', () => {
+      const p = pigView(this.host.f, this.host.now);
+      return !p || !p.nextAt ? 'загон полон — свин спит' : `следующий через ${fmtLeft(p.nextAt - this.host.now)}`;
+    });
+    this.onClick('[data-up]', (b) => this.host.send({ t: 'farm', a: 'upgrade', id: b.dataset.up! }));
+    this.onClick('[data-pig]', () => this.host.send({ t: 'farm', a: 'pig' }));
   }
 
   // ------------------------------------------------------------ кладовая
 
   private drawStore(body: HTMLElement): void {
     const f = this.host.f;
-    const rep = body.appendChild(el('section', 'fm-sec'));
     const lv = repLevel(f.rep);
     const cur = REP_LEVELS[lv - 1];
     const nxt = REP_LEVELS[lv];
-    rep.append(el('h3', '', `Репутация: ${cur.name}`));
-    const bar = rep.appendChild(el('div', 'fm-bar big'));
-    const fill = el('i');
-    fill.style.width = nxt ? `${Math.min(100, ((f.rep - cur.need) / (nxt.need - cur.need)) * 100)}%` : '100%';
-    bar.append(fill);
-    rep.append(el('small', 'fm-fine', nxt ? `${f.rep} из ${nxt.need} до «${nxt.name}» · сейчас +${Math.round(cur.bonus * 100)} % к продаже` : `Высшая ступень · +${Math.round(cur.bonus * 100)} % к продаже`));
-
-    const res = body.appendChild(el('section', 'fm-sec'));
-    res.append(el('h3', '', 'Ресурсы'));
-    const grid = res.appendChild(el('div', 'fm-store'));
-    for (const r of RESOURCES) {
+    const extra = nxt
+      ? `Дальше «${nxt.name}»: ${nxt.vanSlot ? '<b>+1 ящик Фургона</b> и ' : ''}<b>+${Math.round(nxt.bonus * 100)} %</b> к цене. Репутация — за помощь соседям и вклад в Древо.`
+      : `Высшая ступень · +${Math.round(cur.bonus * 100)} % к продаже.`;
+    const res = RESOURCES.map((r) => {
       const n = f.cellar[r.id] ?? 0;
-      const cell = grid.appendChild(el('div', `fm-cell${n ? '' : ' zero'}`));
-      cell.append(resIcon(r.id, 'fm-ico lg'), el('b', '', String(n)), el('small', '', r.name));
-    }
-
-    const bag = body.appendChild(el('section', 'fm-sec'));
-    bag.append(el('h3', '', `Сумка: ${bagUsed(f)} из ${bagCap(f)}`));
-    const items = Object.entries(f.bag).filter(([, n]) => n > 0);
-    if (!items.length) bag.append(el('p', 'fm-fine', 'Пусто. Урожай и трюфели лежат здесь, пока не продашь их Грибу или не сдашь Фургону.'));
-    const bg = bag.appendChild(el('div', 'fm-store'));
-    for (const [id, n] of items) {
-      const c = cropById(id);
-      const cell = bg.appendChild(el('div', 'fm-cell'));
-      cell.append(icon(id === TRUFFLE ? 'truffle' : (c?.icon ?? ''), '🌱', 'fm-ico lg'), el('b', '', String(n)), el('small', '', id === TRUFFLE ? 'Трюфель' : (c?.product ?? id)));
-    }
+      return `<div class="k-stat${n ? '' : ' k-stat--empty'}">${fi(r.icon, 'k-stat-ic')}<div class="k-stat-num">${n}</div><div class="k-stat-cap">${r.name}</div></div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="farm-pane">
+        <div class="k-cell farm-rep">
+          ${fi('help-hands', 'farm-rep-ic')}
+          <div class="farm-rep-main"><p class="k-eyebrow">Репутация ${lv} · «${cur.name}»</p>
+            ${meter(nxt ? f.rep / nxt.need : 1, 'k-meter--lg', nxt ? `${f.rep} из ${nxt.need}` : `${f.rep}`)}
+            <div class="k-dim farm-rep-next">${extra}</div></div>
+        </div>
+        <div class="farm-res">${res}</div>
+        <p class="farm-lead k-dim">Ресурсы падают при сборе. Лишние можно превратить в опыт у Дядюшки Гриба.</p>
+      </div>`;
   }
 
   // ------------------------------------------------------------ убранство
 
+  private decorWhy(id: string): string {
+    const a = ACHIEVEMENTS.find((x) => x.items.includes(id));
+    if (a) {
+      const p = achProgress(this.host.f, a);
+      return `«${a.hidden ? '???' : a.name}»: ${p.have} из ${p.need}`;
+    }
+    return lowerFirst(rewardSource(id));
+  }
+
   private drawLook(body: HTMLElement): void {
     const f = this.host.f;
-    body.append(el('p', 'fm-fine', 'Одежду, питомцев и значки фермы надевай в примерочной на площади. Здесь — то, что видно на карточке и участке.'));
-    const kinds: FarmDecorKind[] = ['ti', 'fr', 'tl', 'pl', 'em'];
-    for (const kind of kinds) {
-      const list = FARM_DECOR.filter((d) => d.kind === kind);
-      const sec = body.appendChild(el('section', 'fm-sec'));
-      sec.append(el('h3', '', DECOR_TITLE[kind]));
-      const grid = sec.appendChild(el('div', 'fm-ups'));
-      for (const d of list) {
-        const own = f.decor.includes(d.id);
-        const slot = lookSlot(d.id);
-        const on = slot !== null && f.look[slot] === d.id;
-        const card = grid.appendChild(el('article', `fm-up fm-decor${own ? '' : ' closed'}${on ? ' on' : ''}`));
-        const top = card.appendChild(el('div', 'fm-card-top'));
-        top.append(el('span', 'fm-ico lg emo', own ? '🎁' : '🔒'));
-        const name = top.appendChild(el('div', 'fm-card-name'));
-        name.append(el('b', '', d.name), el('small', '', own ? (on ? 'Надето' : 'Есть') : `Откуда: ${rewardSource(d.id)}`));
-        if (kind === 'em') {
-          card.append(el('p', 'fm-fine', own ? 'Эмоция появилась в колесе: клавиши 7–9.' : 'Откроется наградой.'));
-          continue;
-        }
-        if (!own || !slot) continue;
-        card.append(btn(on ? 'fm-btn' : 'fm-go', on ? 'Снять' : 'Надеть', () => this.host.send({ t: 'farm', a: 'look', slot, id: on ? '' : d.id })));
-      }
-    }
+    const cards = FARM_DECOR.map((d) => {
+      const own = f.decor.includes(d.id);
+      const slot = lookSlot(d.id);
+      const on = slot !== null && f.look[slot] === d.id;
+      let act = '';
+      if (!own) act = `<div class="farm-why k-dim">${ui('lock')}${this.decorWhy(d.id)}</div>`;
+      else if (d.kind === 'em') act = `<span class="k-pill k-pill--sm">в колесе: клавиши 7–9</span>`;
+      else if (slot) act = on ? `<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-look="${slot}" data-id="">Снять</button>` : `<button class="k-btn k-btn--sm" type="button" data-look="${slot}" data-id="${d.id}">Надеть</button>`;
+      return `
+        <div class="k-cell farm-dec${own ? '' : ' is-locked'}">
+          ${fi(DECOR_ICON[d.kind], 'farm-dec-ic')}
+          <p class="k-eyebrow">${DECOR_KIND[d.kind]}</p>
+          <div class="farm-dec-name">${d.name}</div>
+          ${act}
+          ${on ? '<span class="k-pill k-pill--gold k-pill--sm farm-dec-on">надето</span>' : ''}
+        </div>`;
+    }).join('');
+    body.innerHTML = `<div class="farm-pane"><p class="farm-lead k-dim">Одежду, питомцев и значки фермы надевай в примерочной на площади. Здесь — то, что видно на карточке и участке.</p><div class="farm-decor">${cards}</div></div>`;
+    this.onClick('[data-look]', (b) => this.host.send({ t: 'farm', a: 'look', slot: b.dataset.look as 'title', id: b.dataset.id ?? '' }));
   }
 
   // ------------------------------------------------------------ достижения
@@ -199,30 +224,18 @@ export class EstateWin extends FarmWin {
   private drawAch(body: HTMLElement): void {
     const f = this.host.f;
     const level = farmLevel(f.xp);
-    const done = ACHIEVEMENTS.filter((a) => f.achievements.includes(a.id)).length;
-    body.append(el('p', 'fm-fine', `Получено ${done} из ${ACHIEVEMENTS.length}. Прогресс копится сразу, награда приходит на нужном уровне фермы.`));
-    const cats = [...new Set(ACHIEVEMENTS.map((a) => a.category))];
-    for (const cat of cats) {
-      const sec = body.appendChild(el('section', 'fm-sec'));
-      sec.append(el('h3', '', cat));
-      for (const a of ACHIEVEMENTS.filter((x) => x.category === cat)) {
-        const got = f.achievements.includes(a.id);
-        const hide = a.hidden && !got;
-        const n = Math.min(a.need, f.counters[a.counter] ?? 0);
-        const row = sec.appendChild(el('div', `fm-row fm-ach${got ? ' got' : ''}`));
-        row.append(el('span', 'fm-check', got ? '✓' : '·'));
-        const main = row.appendChild(el('div', 'fm-row-main'));
-        main.append(el('b', '', hide ? '???' : a.name));
-        main.append(el('small', '', hide ? 'Скрытое достижение' : `${a.goal}${a.level > level ? ` · с ур. ${a.level}` : ''}`));
-        if (!hide && !got) {
-          const bar = main.appendChild(el('div', 'fm-bar'));
-          const fill = el('i');
-          fill.style.width = `${(n / a.need) * 100}%`;
-          bar.append(fill);
-        }
-        const reward = [...a.items.map(rewardName), ...(a.coins ? [`${a.coins} 🪙`] : [])].join(' · ');
-        row.append(el('em', '', got ? 'получено' : hide ? '' : `${n} / ${a.need}${reward ? ` · ${reward}` : ''}`));
-      }
-    }
+    const rows = ACHIEVEMENTS.map((a) => {
+      const got = f.achievements.includes(a.id);
+      const hide = a.hidden && !got;
+      const p = achProgress(f, a);
+      const reward = [...a.items.map(rewardName), ...(a.coins ? [`${a.coins} жетонов`] : [])].join(' · ');
+      return `
+        <div class="k-cell farm-ach${got ? ' is-done' : ''}">
+          <div class="farm-ach-main"><p class="k-eyebrow">${a.category}</p><div class="farm-ach-name">${hide ? '???' : a.name} <span class="k-dim">· ${hide ? 'скрытое достижение' : `${a.goal}${a.level > level ? ` · с ур. ${a.level}` : ''}`}</span></div>${hide ? '' : meter(got ? 1 : p.have / p.need, got ? 'k-meter--good k-meter--thin' : 'k-meter--thin')}</div>
+          <div class="farm-ach-side">${hide ? '' : `<b>${got ? p.need : p.have} из ${p.need}</b><span class="k-dim">${reward}</span>`}</div>
+          ${got ? '<span class="k-pill k-pill--good k-pill--sm">получено</span>' : '<span></span>'}
+        </div>`;
+    }).join('');
+    body.innerHTML = `<div class="farm-pane"><div class="farm-rows">${rows}</div></div>`;
   }
 }

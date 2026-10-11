@@ -1,14 +1,14 @@
-// Окно Семечкина (design-v11 §14.2): «Культуры» — сетка карточек (закрытые — силуэтом с уровнем), «Новое» — что даст
-// следующий уровень и где первая посадка в подарок, «Обучение» — шесть шагов галочками, пока не пройдено.
-import { cropOpen, farmLevel, growMs, seedPrice } from '../../../shared/farm.ts';
+// Окно Семечкина (lab/ui/screens/farm.js «Семечкин: каталог семян»): «Культуры» — крупные карточки (картинка, рост и опыт,
+// «семя → продажа», ресурс; закрытые — силуэтом с уровнем, ближайшая названа), «Скоро» — что откроет следующий уровень,
+// «Обучение» — шесть шагов, пока не пройдено. Сажают теперь у грядки поясом семян (ui/belt.ts), окно — для знакомства.
+import { cropOpen, farmLevel, farmLevelInfo, growMs, seedPrice } from '../../../shared/farm.ts';
 import {
-  BEES_BONUS, CROPS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, FARM_XP_TOTAL, TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, resourceById, type CropDef,
+  CROPS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, FARM_XP_TOTAL, TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, BEES_BONUS, type CropDef,
 } from '../../../shared/farmdata.ts';
-import { FarmWin, TUTORIAL_TEXT, btn, dec, el, fmtMin, icon, resIcon, silhouette } from './common.ts';
+import { keyHtml } from '../../ui/kit/dom.ts';
+import { C, FarmWin, TUTORIAL_TEXT, big, fi, fmtMin, meter, resIconName, resName, ui } from './common.ts';
 import { levelOpens } from './levels.ts';
-import { rewardEmoji, rewardName } from './names.ts';
-
-type Tab = 'crops' | 'next' | 'tut';
+import { UPGRADE_ICON, rewardIcon, rewardName } from './names.ts';
 
 export class SeedsWin extends FarmWin {
   protected firstTab(): string {
@@ -17,96 +17,108 @@ export class SeedsWin extends FarmWin {
 
   protected draw(body: HTMLElement): void {
     const f = this.host.f;
-    const tabs: [Tab, string, string][] = [['crops', '🌱', 'Культуры'], ['next', '⭐', 'Новое']];
-    if (f.tutorial < TUTORIAL_STEPS) tabs.push(['tut', '📋', 'Обучение']);
-    if (!tabs.some(([id]) => id === this.tab)) this.tab = 'crops';
-    this.setTabs(tabs);
-    if (this.tab === 'crops') this.drawCrops(body);
-    else if (this.tab === 'next') this.drawNext(body);
-    else this.drawTutorial(body);
+    const level = farmLevel(f.xp);
+    const showTut = f.tutorial < TUTORIAL_STEPS;
+    if (this.tab === 'tut' && !showTut) this.tab = 'crops';
+    if (!['crops', 'next', 'tut'].includes(this.tab)) this.tab = 'crops';
+    const open = CROPS.filter((c) => cropOpen(c, level)).length;
+    const done = f.tutorial < 0 ? 0 : Math.min(TUTORIAL_STEPS, f.tutorial);
+    this.setTabs([
+      { id: 'crops', icon: fi('radish'), label: 'Культуры', count: `${open} из ${CROPS.length}` },
+      { id: 'next', icon: fi('strawberry'), label: 'Скоро' },
+      ...(showTut ? [{ id: 'tut', icon: ui('scroll'), label: 'Обучение', count: `${done} из ${TUTORIAL_STEPS}` }] : []),
+    ]);
+    if (this.tab === 'next') this.drawNext(body);
+    else if (this.tab === 'tut') this.drawTutorial(body);
+    else this.drawCrops(body);
+    this.setFoot(`<span class="k-note">Сажать — прямо у грядки: ${keyHtml('1', undefined, 'sm')}–${keyHtml('9', undefined, 'sm')} выбрать, ${keyHtml('E', undefined, 'sm')} посадить</span><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-close>Закрыть</button>`);
+    this.onClick('[data-close]', () => this.close());
+  }
+
+  private cropCard(c: CropDef): string {
+    const f = this.host.f;
+    const level = farmLevel(f.xp);
+    if (!cropOpen(c, level)) {
+      const soon = c.level === level + 1;
+      return `
+        <div class="k-cell farm-crop is-locked">
+          ${fi(c.icon, 'farm-crop-ic farm-sil')}
+          <div class="farm-crop-name">${soon ? c.name : '???'}</div>
+          <span class="k-pill k-pill--sm${soon ? ' k-pill--mode' : ''}">${soon ? `с ур. ${c.level} — скоро` : `ур. ${c.level}`}</span>
+        </div>`;
+    }
+    const gift = !f.firstPlanted.includes(c.id);
+    const chance = Math.round((c.chance + (f.built.bees ? BEES_BONUS : 0)) * 100);
+    const got = f.counters[`h:${c.id}`] ?? 0;
+    return `
+      <div class="k-cell farm-crop">
+        ${gift ? `<span class="k-pill k-pill--gold k-pill--sm farm-crop-gift">${ui('gift')}даром</span>` : ''}
+        ${fi(c.icon, 'farm-crop-ic')}
+        <div class="farm-crop-name">${c.name}</div>
+        <div class="farm-crop-row"><b>${fmtMin(Math.max(1, Math.round(growMs(f, c, this.host.now) / 60_000)))}</b><span class="k-gold">+${c.xp} опыта</span></div>
+        <div class="farm-crop-row"><span class="farm-price">${C()}${gift ? 0 : seedPrice(f, c)} <i>→</i> ${C()}${c.sale}</span></div>
+        <div class="farm-crop-row k-dim">${fi(resIconName(c.res))}${resName(c.res)} ${chance} %</div>
+        ${got ? `<div class="farm-crop-own k-faint">собрано: ${got}</div>` : ''}
+      </div>`;
   }
 
   private drawCrops(body: HTMLElement): void {
-    const f = this.host.f;
-    const level = farmLevel(f.xp);
-    const grid = body.appendChild(el('div', 'fm-grid'));
-    for (const c of CROPS) {
-      const open = cropOpen(c, level);
-      const card = grid.appendChild(el('article', `fm-card${open ? '' : ' closed'}`));
-      const top = card.appendChild(el('div', 'fm-card-top'));
-      top.append(open ? icon(c.icon, '🌱', 'fm-ico lg') : silhouette(c.icon));
-      const name = top.appendChild(el('div', 'fm-card-name'));
-      name.append(el('b', '', open ? c.name : '???'), el('small', '', open ? `ур. ${c.level}` : `откроется на ур. ${c.level}`));
-      if (!open) continue;
-      const free = !f.firstPlanted.includes(c.id);
-      if (free) card.append(el('div', 'fm-gift', '🎁 первая посадка — в подарок'));
-      const rows = card.appendChild(el('dl', 'fm-facts'));
-      const fact = (k: string, v: string): void => { rows.append(el('dt', '', k), el('dd', '', v)); };
-      fact('Растёт', fmtMin(Math.round(growMs(f, c, this.host.now) / 60_000)));
-      fact('Опыт за сбор', `+${c.xp} XP`);
-      fact('Посадка → продажа', `${free ? 'бесплатно' : `${seedPrice(f, c)} 🪙`} → ${c.sale} 🪙`);
-      fact('В час', `≈ ${dec((c.sale * 60) / c.min)} 🪙`);
-      const chance = Math.round((c.chance + (f.built.bees ? BEES_BONUS : 0)) * 100);
-      const rd = el('dd', 'fm-res');
-      rd.append(resIcon(c.res, 'fm-ico sm'), el('span', '', `${resourceById(c.res)?.name ?? ''} · ${chance} %`));
-      rows.append(el('dt', '', 'Ресурс'), rd);
-      const got = f.counters[`h:${c.id}`] ?? 0;
-      if (got) card.append(el('small', 'fm-own', `собрано: ${got}`));
-    }
+    body.innerHTML = `<div class="farm-pane farm-crops">${CROPS.map((c) => this.cropCard(c)).join('')}</div>`;
   }
 
   private drawNext(body: HTMLElement): void {
     const f = this.host.f;
-    const level = farmLevel(f.xp);
-    // подарки: открытые культуры, которые ещё не сажал
-    const gifts = CROPS.filter((c) => cropOpen(c, level) && !f.firstPlanted.includes(c.id));
-    const sec = body.appendChild(el('section', 'fm-sec'));
-    sec.append(el('h3', '', '🎁 Первая посадка — в подарок'));
-    if (gifts.length) {
-      const row = sec.appendChild(el('div', 'fm-chips'));
-      for (const c of gifts) row.append(cropChip(c));
-      sec.append(el('p', 'fm-fine', 'Посади такую культуру в первый раз — жетоны за семена не потратятся.'));
-    } else sec.append(el('p', 'fm-fine', 'Все открытые культуры уже пробовал. Новые подарки — на новых уровнях.'));
-
-    if (level >= FARM_MAX_LEVEL) {
-      body.append(el('p', 'fm-fine', 'Ты на вершине: «Легенда фермы». Дальше опыт копится в звёздах — каждые 20 000 XP.'));
+    const info = farmLevelInfo(f.xp);
+    if (info.level >= FARM_MAX_LEVEL) {
+      body.innerHTML = '<div class="farm-pane"><p class="farm-lead k-dim">Ты на вершине: «Легенда фермы». Дальше опыт копится в звёздах — каждые 20 000 опыта.</p></div>';
       return;
     }
-    const next = level + 1;
+    const next = info.level + 1;
     const o = levelOpens(next);
-    const nx = body.appendChild(el('section', 'fm-sec'));
-    nx.append(el('h3', '', `⭐ Уровень ${next} — «${FARM_LEVEL_NAMES[next - 1]}»`));
-    nx.append(el('p', 'fm-fine', `Нужно ещё ${Math.max(0, FARM_XP_TOTAL[next - 1] - f.xp)} XP фермы`));
-    const chips = nx.appendChild(el('div', 'fm-chips'));
-    for (const c of o.crops) chips.append(cropChip(c));
-    for (const u of o.upgrades) chips.append(el('span', 'fm-chip', `🧺 ${u.name}`));
-    if (o.van) chips.append(el('span', 'fm-chip', `🚚 ${o.van}`));
-    for (const id of o.rewards) chips.append(el('span', 'fm-chip gold', `${rewardEmoji(id)} ${rewardName(id)}`));
-    if (!chips.childElementCount) chips.append(el('span', 'fm-chip', 'Новых открытий нет — только опыт'));
+    const need = Math.max(0, FARM_XP_TOTAL[next - 1] - f.xp);
+    const stats: string[] = [];
+    for (const c of o.crops) {
+      const free = !f.firstPlanted.includes(c.id);
+      stats.push(`<div class="k-stat">${fi(c.icon, 'k-stat-ic')}<div class="k-stat-num">${c.name}</div><div class="k-stat-cap">${fmtMin(c.min)} · +${c.xp} опыта${free ? ' · первая даром' : ''}</div></div>`);
+    }
+    for (const u of o.upgrades) {
+      const res = Object.entries(u.res).map(([id, n]) => `${n} ${resName(id).toLowerCase()}`).join(', ');
+      stats.push(`<div class="k-stat">${fi(UPGRADE_ICON[u.kind], 'k-stat-ic')}<div class="k-stat-num">${u.name}</div><div class="k-stat-cap">строится в Хозяйстве: ${res}</div></div>`);
+    }
+    if (o.van) stats.push(`<div class="k-stat">${fi('van', 'k-stat-ic')}<div class="k-stat-num">Фургон</div><div class="k-stat-cap">${o.van.replace(/^Фургон: /, '')}</div></div>`);
+    for (const id of o.rewards) {
+      stats.push(`<div class="k-stat">${fi(rewardIcon(id), 'k-stat-ic')}<div class="k-stat-num">${rewardName(id)}</div><div class="k-stat-cap">награда за уровень — надеть сразу</div></div>`);
+    }
+    body.innerHTML = `
+      <div class="farm-pane">
+        <div class="k-cell farm-next">
+          <span class="k-ring k-ring--lg k-ring--mode" style="--p:${(info.into / info.need).toFixed(3)}"><b>${next}</b></span>
+          <div class="farm-next-body">
+            <p class="k-eyebrow">Уровень ${next} · «${FARM_LEVEL_NAMES[next - 1]}»</p>
+            <div class="farm-next-t">Ещё ${big(need)} опыта</div>
+            ${meter(info.into / info.need, 'k-meter--mode', `${big(info.into)} / ${big(info.need)}`)}
+          </div>
+        </div>
+        ${stats.length ? `<div class="farm-unlocks">${stats.join('')}</div>` : '<p class="farm-lead k-dim">Новых культур и улучшений нет — зато опыт идёт дальше.</p>'}
+      </div>`;
   }
 
   private drawTutorial(body: HTMLElement): void {
     const f = this.host.f;
-    const sec = body.appendChild(el('section', 'fm-sec'));
-    if (f.tutorial < 0) {
-      sec.append(el('p', 'fm-fine', `Подсказки закрыты. Хочешь — вернём: ${TUTORIAL_STEPS} шагов и награда в конце.`));
-      sec.append(btn('fm-go', 'Начать обучение заново', () => this.host.send({ t: 'farm', a: 'tutorial', k: 'open' })));
-    }
-    const list = sec.appendChild(el('ol', 'fm-steps'));
-    TUTORIAL_TEXT.forEach((text, i) => {
+    const rows = TUTORIAL_TEXT.map((text, i) => {
       const done = f.tutorial >= 0 && i < f.tutorial;
-      const li = list.appendChild(el('li', `${done ? 'done' : ''}${f.tutorial === i ? ' cur' : ''}`));
-      li.append(el('span', 'fm-check', done ? '✓' : String(i + 1)), el('span', 'fm-step-text', text));
-      li.append(el('em', '', i === TUTORIAL_STEPS - 1 ? `+${TUTORIAL_XP[i]} XP · +${TUTORIAL_COINS} 🪙` : `+${TUTORIAL_XP[i]} XP`));
-    });
-    if (f.tutorial >= 0 && f.tutorial < TUTORIAL_STEPS) {
-      sec.append(btn('fm-btn', 'Закрыть подсказки', () => this.host.send({ t: 'farm', a: 'tutorial', k: 'close' })));
-    }
+      const cur = f.tutorial === i;
+      const prize = i === TUTORIAL_STEPS - 1 ? `+${TUTORIAL_XP[i]} опыта и ${TUTORIAL_COINS} ${C()}` : `+${TUTORIAL_XP[i]} опыта`;
+      return `<div class="k-cell farm-step${done ? ' is-done' : ''}${cur ? ' is-cur' : ''}"><span class="k-place">${i + 1}</span><span class="farm-step-t">${text.replace(/\bE\b/g, keyHtml('E', undefined, 'sm'))}</span><span class="k-pill k-pill--sm ${done ? 'k-pill--good' : cur ? 'k-pill--gold' : ''}">${done ? 'готово · ' : ''}${prize}</span></div>`;
+    }).join('');
+    const closed = f.tutorial < 0;
+    body.innerHTML = `
+      <div class="farm-pane farm-steps">
+        ${closed ? `<p class="farm-lead k-dim">Подсказки закрыты. Хочешь — вернём: ${TUTORIAL_STEPS} шагов и награда в конце.</p><button class="k-btn k-btn--go farm-tut-btn" type="button" data-tut="open">Начать обучение заново</button>` : ''}
+        ${rows}
+        ${!closed && f.tutorial < TUTORIAL_STEPS ? '<button class="k-btn k-btn--ghost k-btn--sm farm-tut-btn" type="button" data-tut="close">Закрыть подсказки</button>' : ''}
+      </div>`;
+    this.onClick('[data-tut]', (b) => this.host.send({ t: 'farm', a: 'tutorial', k: b.dataset.tut as 'open' | 'close' }));
   }
 }
 
-function cropChip(c: CropDef): HTMLElement {
-  const chip = el('span', 'fm-chip');
-  chip.append(icon(c.icon, '🌱', 'fm-ico sm'), el('span', '', c.name));
-  return chip;
-}

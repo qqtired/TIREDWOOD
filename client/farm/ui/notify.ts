@@ -1,5 +1,5 @@
-// Уведомления фермы (design-v11 §14.4, решение 18: только в игре, без push). На ферме: грядка созрела → тост «У тебя созрело N»
-// (склеивается за 3 с, внутри — что именно). При входе: одна строка «Пока тебя не было: созрело 8 · свин нашёл 2 трюфеля · …».
+// Уведомления фермы (design-v11 §14.4, решение 18: только в игре, без push) — тосты верх-центра HUD (ui.top). На ферме: грядка
+// созрела → «Созрело: Тыква ×2, Редис ×1» (склеивается за 3 с). При входе: одна строка «Пока тебя не было: созрело 8 · свин нашёл 2 трюфеля · …».
 // Один тост за сутки при переходе дневного потолка продаж 700 🪙. Вне фермы тосты и росток над калиткой на площади — забота
 // сцены площади: для неё здесь countRipe и awayText (на площади профиль фермы приходит от сервера, см. отчёт B2).
 import { mskDay } from '../../../shared/economy.ts';
@@ -8,19 +8,15 @@ import { DAILY_CAP, RIPE_TOAST_MERGE_MS, VAN_SLOTS_BY_LEVEL, cropById } from '..
 import type { FarmAway } from '../../../shared/farmsys.ts';
 import { vanTime } from '../../../shared/farmvan.ts';
 import { farmLevel } from '../../../shared/farm.ts';
-import { clockHour, mskHour } from './common.ts';
+import { clockHour, mskHour, type FarmToast } from './common.ts';
 
-export type Toast = (text: string, sub?: string, key?: string) => void;
+export type Toast = (t: FarmToast) => void;
 
 /** Сколько грядок спелых прямо сейчас */
 export function countRipe(f: FarmProgress, now: number): number {
   return f.beds.filter((b) => b.crop && now >= b.ripeAt).length;
 }
 
-/** «🌱 На ферме созрело 6 — загляни» (вне фермы, не чаще раза в AWAY_TOAST_MS) */
-export function awayText(n: number): string {
-  return `🌱 На ферме созрело ${n} — загляни`;
-}
 
 function trufflePlural(n: number): string {
   const m10 = n % 10;
@@ -33,6 +29,7 @@ export class FarmNotify {
   /** Спелые грядки, о которых уже знаем: «номер:созревание:культура» */
   private known: Set<string> | null = null;
   private pending = new Map<string, number>();
+  private pendingIcon = '';
   private pendingSince = 0;
   private lastSold = -1;
   private capDay = '';
@@ -61,7 +58,7 @@ export class FarmNotify {
     this.known = cur;
     for (const id of fresh) {
       const name = cropById(id)?.product ?? id;
-      if (this.pending.size === 0) this.pendingSince = Date.now();
+      if (this.pending.size === 0) { this.pendingSince = Date.now(); this.pendingIcon = cropById(id)?.icon ?? 'basket'; }
       this.pending.set(name, (this.pending.get(name) ?? 0) + 1);
     }
     if (this.pending.size && Date.now() - this.pendingSince >= RIPE_TOAST_MERGE_MS) this.flush();
@@ -72,7 +69,7 @@ export class FarmNotify {
     const parts: string[] = [];
     for (const [name, k] of this.pending) { n += k; parts.push(k > 1 ? `${name} ×${k}` : name); }
     this.pending.clear();
-    this.toast(`У тебя созрело ${n}`, parts.join(', '), 'farm-ripe');
+    this.toast({ key: 'farm-ripe', tone: 'reward', icon: this.pendingIcon, title: `Созрело: ${parts.join(', ')}`, sub: n > 1 ? `${n} грядок — подходи и собирай` : 'Подходи и собирай' });
   }
 
   /** Касса Гриба на сегодня полна: один тост за сутки при переходе через потолок */
@@ -83,7 +80,7 @@ export class FarmNotify {
     this.lastSold = sold;
     if (was < 0 || was >= DAILY_CAP || sold < DAILY_CAP || this.capDay === day) return;
     this.capDay = day;
-    this.toast('Касса Гриба на сегодня полна', 'Дальше ×0,25 до 00:00. Заказы платят полностью', 'farm-cap');
+    this.toast({ key: 'farm-cap', tone: 'warn', icon: 'giant-mushroom', title: 'Касса Гриба на сегодня полна', sub: 'Дальше ×0,25 до 00:00 · заказы — полностью' });
   }
 
   /** Строка при входе (farmAway от сервера): созрело, трюфели свина, кто полил, Фургон */
@@ -93,6 +90,6 @@ export class FarmNotify {
     if (a.truffles > 0) parts.push(`свин нашёл ${a.truffles} ${trufflePlural(a.truffles)}`);
     if (a.helped > 0) parts.push(a.by.length ? `${a.by.slice(0, 2).join(' и ')} полил${a.by.length > 1 ? 'и' : ''} грядки (${a.helped})` : `соседи полили грядки: ${a.helped}`);
     if (farmLevel(f.xp) >= VAN_SLOTS_BY_LEVEL[0].level && vanTime(now).open) parts.push(`Фургон открыт до ${clockHour(mskHour(vanTime(now).next))}`);
-    if (parts.length) this.toast('Пока тебя не было', parts.join(' · '), 'farm-entry');
+    if (parts.length) this.toast({ key: 'farm-entry', tone: 'info', icon: 'basket', title: 'Пока тебя не было', sub: parts.join(' · ') });
   }
 }
