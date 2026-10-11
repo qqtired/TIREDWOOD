@@ -1,6 +1,11 @@
 // Огородный декор от арки до мельницы: постоянная раскладка, без коллизий и без новых взаимодействий.
 import { makeRng } from '../../../shared/math.ts';
 import { P3 } from '../../../shared/plaza3/layout.ts';
+import { FLOOR_Y } from './floor.ts';
+
+/** Поле и соседний газон — одна плоскость; посадки оставляют прежний зазор 1,5 см. */
+export const FIELD_Y = P3.land.deckY + FLOOR_Y.patch;
+export const GARDEN_Y = FIELD_Y + 0.015;
 
 export interface GardenPlace { x: number; z: number; yaw: number; scale: number; stretch?: number; y?: number }
 export const GARDEN_ROUTE = [[60.6, -23.2], [78, -57], [84, -62]] as const;
@@ -12,16 +17,6 @@ export function inGardenField(x: number, z: number, margin = 0): boolean {
   if (x < 49 + margin || x > 91 - margin || z < -69 + margin || z > -13.5 - margin) return false;
   const left = z < -29 ? 49 : z < -27.5 ? 51 : z < -18 ? 68 : 71;
   return x >= left + margin;
-}
-
-function fenceY(x: number, z: number): number {
-  const poly = P3.land.polygon;
-  let onDeck = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [ax, az] = poly[i], [bx, bz] = poly[j];
-    if ((az > z) !== (bz > z) && x < (bx - ax) * (z - az) / (bz - az) + ax) onDeck = !onDeck;
-  }
-  return (onDeck ? P3.land.deckY : P3.land.streetY) + 0.035;
 }
 
 export function routeDistance(x: number, z: number, route: ReadonlyArray<readonly [number, number]>): number {
@@ -65,7 +60,7 @@ export function gardenPlan(): { beds: GardenPlace[]; sunflowers: GardenPlace[]; 
     for (let k = 0; k < count; k++) {
       const t = (k + 0.5) / count;
       const x = ax + dx * t, z = az + dz * t;
-      fences.push({ x, z, y: fenceY(x, z), yaw: Math.atan2(-dz, dx), scale: 1, stretch: length / count / 2 });
+      fences.push({ x, z, y: GARDEN_Y, yaw: Math.atan2(-dz, dx), scale: 1, stretch: length / count / 2 });
     }
   }
   return { beds, sunflowers, fences };

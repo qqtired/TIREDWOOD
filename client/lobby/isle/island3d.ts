@@ -1,5 +1,5 @@
 // Остров «Последний свет» в 3D (флаг ISLE): 8 GLB острова (client/assets/isle/, PROVENANCE.md) и смотритель Игнат.
-// Грузится, только когда камера ближе 2 км (с площади острова нет вовсе). Всё неподвижное склеено по материалу
+// Грузится, когда камера ближе 2 км; с площади виден готовый лёгкий силуэт с маяком. Всё неподвижное склеено по материалу
 // (8 отрисовок), таблички — один атлас-канвас (1), доска сезона — свой канвас с фоном (1). Отдельно — то, что движется:
 // линза маяка (вращается), лампа (яркостью, не visible), колокол буя (качается).
 // По дальности до центра: ближе 520 м — весь остров, до 1 300 м — силуэт (узел hidden_with_full_island), до 1 500 м —
@@ -10,6 +10,8 @@ import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ISLE_CENTER, ISLE_IGNAT, ISLE_Y, isleDist } from '../../../shared/maps/isle.ts';
 import { glowSprite, glowTexture } from '../../render/kit.ts';
+import { fadingMaterial, type FadingMaterial } from '../plaza3/visibility.ts';
+import { dressIsleSurfaces } from './surfaces.ts';
 
 const URLS = [
   new URL('../../assets/isle/island-terrain.glb', import.meta.url).href,
@@ -113,6 +115,7 @@ function prepared(src: THREE.BufferGeometry, m: THREE.Matrix4, keep: readonly st
     const a = src.getAttribute(k);
     if (a) g.setAttribute(k, (a as THREE.BufferAttribute).clone());
     else if (k === 'color') g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(src.getAttribute('position').count * 3).fill(1), 3));
+    else if (k === 'uv') g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(src.getAttribute('position').count * 2), 2));
   }
   if (src.index) g.setIndex(src.index.clone());
   else g.setIndex([...Array(src.getAttribute('position').count).keys()]);
@@ -225,6 +228,7 @@ export class Island3D {
   private ignat: Ignat3D | null = null;
   private readonly ignatAt = new THREE.Vector3();
   private fullOn = false;
+  private silhouetteFade: FadingMaterial | null = null;
 
   constructor(scene: THREE.Scene) {
     this.root.name = 'isle';
@@ -283,6 +287,8 @@ export class Island3D {
     for (const g of gltfs) {
       const sc = g.scene;
       sc.updateMatrixWorld(true);
+      dressIsleSurfaces(sc);
+      sc.updateMatrixWorld(true);
       // подвижное и особое — отдельно (в мировой позе), остальное — в склейку
       sc.traverse((o) => {
         if (o.userData?.hidden_with_full_island) this.silhouette = o;
@@ -319,7 +325,7 @@ export class Island3D {
         const mat = m.material as THREE.Material;
         const key = mat.name || mat.uuid;
         const b = buckets.get(key) ?? buckets.set(key, { mat, geos: [] }).get(key)!;
-        b.geos.push(prepared(m.geometry, m.matrixWorld, ['position', 'normal', 'color']));
+        b.geos.push(prepared(m.geometry, m.matrixWorld, ['position', 'normal', 'color', 'uv']));
       });
     }
     // склеенное неподвижное: по отрисовке на материал
@@ -339,6 +345,15 @@ export class Island3D {
     if (this.bell) this.bellBase.copy(this.bell.quaternion);
     if (this.silhouette) {
       this.root.attach(this.silhouette);
+      this.silhouette.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || Array.isArray(m.material)) return;
+        const faded = fadingMaterial(m.material);
+        (faded.material as THREE.MeshStandardMaterial).fog = false;
+        m.material = faded.material;
+        this.silhouetteFade = faded;
+        m.castShadow = m.receiveShadow = false;
+      });
       this.silhouette.visible = false;
     }
     this.buildLabels(labels);
@@ -496,7 +511,14 @@ export class Island3D {
     if (!this.root.visible) return;
     if (this.fullOn ? d > FULL_OUT : d < FULL_IN) this.fullOn = !this.fullOn;
     this.full.visible = this.fullOn;
-    if (this.silhouette) this.silhouette.visible = !this.fullOn && d < SILHOUETTE_FAR;
+    if (this.silhouette) {
+      // Full загружен, но до него может ещё не доходить туман: силуэт остаётся подложкой без провала LOD.
+      const near = Math.min(280, Math.max(150, fogFar + 110 - 40));
+      const blend = this.fullOn ? clamp01((d - near) / 60) : 1;
+      const far = clamp01((SILHOUETTE_FAR - d) / 60);
+      if (this.silhouetteFade) this.silhouetteFade.fade.value = blend * far;
+      this.silhouette.visible = blend * far > 0;
+    }
     if (this.labels) this.labels.visible = this.fullOn && d < LABEL_NEAR;
     const rx = this.root.position.x, ry = this.root.position.y, rz = this.root.position.z;
     // маяк: два луча, оборот 12 с; вспышка — когда луч смотрит на камеру
@@ -507,10 +529,11 @@ export class Island3D {
     const along = Math.abs(Math.cos(th) * _v.x - Math.sin(th) * _v.z);
     const flash = Math.pow(along, 40);
     const dense = clamp01(1 - (fogFar - 85) / (160 - 85) * 0.4);
-    this.beamMat.uniforms.uI.value = (0.26 + 0.16 * dense) * (0.85 + 0.35 * flash);
+    const farLight = clamp01((LIGHT_FAR - d) / 60);
+    this.beamMat.uniforms.uI.value = (0.26 + 0.16 * dense) * (0.85 + 0.35 * flash) * farLight;
     (this.beamMat.uniforms.uColor.value as THREE.Color).set(season ? 0xffb43a : 0xffc56a);
     const dl = Math.hypot(cam.x - lx, cam.y - ly, cam.z - lz);
-    this.halo.material.opacity = 0.6 + 0.4 * flash;
+    this.halo.material.opacity = (0.6 + 0.4 * flash) * farLight;
     this.halo.scale.setScalar(Math.max(9, dl * 0.07) * (1 + 1.4 * flash));
     if (this.lampMat) this.lampMat.color.copy(this.lampBase).multiplyScalar(1.3 + 2.5 * flash);
     // огни буёв: мигают, гаснут дальше тумана, издалека — одного размера на экране

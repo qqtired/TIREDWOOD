@@ -13,6 +13,7 @@ import { ISLE_BERTHS, ISLE_SPAWN as ISLE_LANDING } from './maps/isle.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT, type Input } from './sim.ts';
 import { pick } from './layout.ts';
 import { PORT } from './plaza3/port.ts';
+import { RAT_DECK } from './ratrace.ts';
 import { A, xfP } from './plaza3/xf.ts';
 
 const DT = 1 / TICK_RATE;
@@ -399,10 +400,10 @@ const BOXES: ReadonlyArray<readonly [number, number, number, number]> = [
   [-42, -15, -34, -7],
   // мостки к маяку, площадка маяка, дальние мостки, площадка дома Семёна (в plaza3 вместо двух последних — Маячный мол,
   // голова мола и сходни к стоянке: порт B)
-  [-21, 21.8, -17, 37], [-24.5, 37, -13.5, 46.5],
-  ...pick<ReadonlyArray<readonly [number, number, number, number]>>([[-20.5, 46.5, -17.5, 54], [-25.5, 54, -12.5, 64]], () => PORT.decks.map((d) => d.box)),
+  [-21, 21.8, -17, 37], pick<readonly [number, number, number, number]>([-24.5, 37, -13.5, 46.5], () => [-26.5, 37, -13.5, 47]),
+  ...pick<ReadonlyArray<readonly [number, number, number, number]>>([[-20.5, 46.5, -17.5, 54], [-25.5, 54, -12.5, 64]], () => [...PORT.decks.map((d) => d.box), PORT.ramp.box, PORT.stair.box]),
   // причал «Ласточки» и понтон крысиных бегов
-  [3, 21.8, 13, 25], [-10.8, 21.8, -4, 26.8],
+  [3, 21.8, 13, 25], pick<readonly [number, number, number, number]>([-10.8, 21.8, -4, 26.8], () => [RAT_DECK.x0, RAT_DECK.z0, RAT_DECK.x1, RAT_DECK.z1]),
   // стоянка: мостик и пальцы между бертами (у каждого борта — 6 пальцев по 0,6 м)
   [PARK.x - PARK_HALF, PARK.z, PARK.x + PARK_HALF, PARK.z + PARK_END],
   ...[-1, 1].flatMap((side) => [3.9, 7.5, 11.1, 14.7, 18.3, 21.9].map((z) => {

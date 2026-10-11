@@ -69,13 +69,16 @@ export function pergolaGarlands(poles: ReadonlyArray<readonly [number, number]>,
   if (zs.length !== 2) return [];
   const row = (z: number) => poles.filter((p) => p[1] === z).map((p) => p[0]).sort((a, b) => a - b);
   const [n, s] = [row(zs[0]), row(zs[1])];
-  if (n.length !== s.length || n.length < 2) return [];
+  if (n.length < 2 || s.length < 2) return [];
   const y = poleH - 0.08;
   const at = (x: number, z: number): V3 => [x, y, z];
   const out: Garland[] = [];
-  for (let i = 0; i + 1 < n.length; i++) {
-    out.push({ a: at(n[i], zs[0]), b: at(n[i + 1], zs[0]), sag: 0.3, colored: true });
-    out.push({ a: at(s[i], zs[1]), b: at(s[i + 1], zs[1]), sag: 0.3, colored: true });
+  // У новой модели крайняя южная стойка снята. Продольные нити каждого ряда и торцы по реальным
+  // опорам сохраняют целую сеть без выдуманной шестой стойки и исчезновения всей гирлянды.
+  for (const [r, z] of [[n, zs[0]], [s, zs[1]]] as const) for (let i = 0; i + 1 < r.length; i++) {
+    out.push({ a: at(r[i], z), b: at(r[i + 1], z), sag: 0.3, colored: true });
+  }
+  for (let i = 0; i + 1 < Math.min(n.length, s.length); i++) {
     out.push({ a: at(n[i], zs[0]), b: at(s[i + 1], zs[1]), sag: 0.35, colored: true });
     out.push({ a: at(s[i], zs[1]), b: at(n[i + 1], zs[0]), sag: 0.35, colored: true });
   }

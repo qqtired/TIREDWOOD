@@ -6,12 +6,16 @@
 // бегают и гоняются друг за другом; перед стартом выстраиваются у воротец. Всё — простые меши, дёшево.
 import * as THREE from 'three';
 import { WATER_Y } from '../../shared/constants.ts';
+import { A, xfP } from '../../shared/plaza3/xf.ts';
 import {
   RAT_COUNT, RAT_DECK, RAT_GATE_MS, RAT_LAP, RAT_PEN, RAT_RUN_MS, RAT_TRACK, RATS, ratAt, ratPlan, ratStandings, ratTrackPoint,
   type RatBetView, type RatPlan, type RatRaceView,
 } from '../../shared/ratrace.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { RatBoard, type BoardState } from './ratraceboard.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { onRatArena } from './plaza3/mounts.ts';
+import { mountRatArena } from './plaza3/ratmount.ts';
 
 type Mode = 'sleep' | 'groom' | 'sit' | 'wander' | 'chase' | 'flee' | 'eat' | 'line' | 'race' | 'win';
 
@@ -61,7 +65,7 @@ const CHEESE = { x: RAT_TRACK.x + 0.55, z: RAT_TRACK.z + 0.12 };
 const BOWL = { x: RAT_TRACK.x + 0.15, z: RAT_TRACK.z - 0.2 };
 /** Где сидит кот-зритель: на северо-восточном угловом столбике бортика, и откуда он туда запрыгивает (с понтона) */
 export const RAT_CAT_SEAT = { x: RAT_PEN.x1 + RAT_PEN.t / 2, y: RAT_PEN.h + 0.09, z: RAT_PEN.z0 - RAT_PEN.t / 2 };
-export const RAT_CAT_APPROACH = [{ x: -4.85, z: 20.75 }, { x: -4.85, z: 22.35 }, { x: -4.3, z: 22.62 }] as const;
+export const RAT_CAT_APPROACH = [{ x: -4.85, z: 20.75 }, { x: -4.85, z: 22.35 }, { x: -4.3, z: 22.62 }].map((p) => xfP(A.rat, p));
 /** Сколько после конца забега висит итог на табло, мс */
 export const RAT_RESULT_MS = 12_000;
 
@@ -206,6 +210,7 @@ export class RatRace3D {
     parts.push(place(paint(new THREE.CylinderGeometry(0.09, 0.07, 0.05, 14), 0x6a8fb0), BOWL.x, 0.04, BOWL.z));
     parts.push(place(paint(new THREE.CylinderGeometry(0.1, 0.1, 0.08, 3).rotateY(0.4), 0xf2c94c), CHEESE.x, 0.055, CHEESE.z));
     const body = new THREE.Mesh(mergeColored(parts), wood);
+    body.name = 'rat-race-legacy-statics';
     body.castShadow = true;
     body.receiveShadow = true;
     g.add(body);
@@ -237,6 +242,7 @@ export class RatRace3D {
     RATS.forEach((def, i) => this.rats.push(this.makeRat(i, def.coat, def.belly, def.saddle, def.style === 'lazy' ? 1.22 : 1)));
     this.drawSign(performance.now());
     scene.add(g);
+    if (PLAZA3) onRatArena((m) => mountRatArena(body, this.board.group, finish, finishBack, m));
   }
 
   /** Включены ли бега (флаг сервера); приветствие набережной — начало с чистого листа */

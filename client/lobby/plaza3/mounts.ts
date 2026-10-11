@@ -11,8 +11,8 @@ export interface ShowcaseMount {
   board: THREE.Matrix4;
   /** Верх гребня вывески — место резной акулы */
   roof: THREE.Matrix4;
-  /** Места рыб 1–3: X — вдоль места, Y — нормаль льда, −Z — к зрителю; len — длина места, maxH — высота над ним, head — ±1 по X */
-  fish: Array<{ matrix: THREE.Matrix4; len: number; maxH: number; head: number }>;
+  /** Места рыб 1–3: Y вверх, −Z к зрителю. Upright: хвост на якоре, единые maxH/maxW для всех мест. */
+  fish: Array<{ matrix: THREE.Matrix4; len: number; maxH: number; maxW?: number; pose?: 'upright' | 'horizontal'; head: number }>;
   /** Таблички под местами: центр, масштаб — половины ширины и высоты, +Z — наружу */
   tags: THREE.Matrix4[];
 }
@@ -43,6 +43,18 @@ export function onRoofScreen(fn: (m: THREE.Matrix4) => void): void {
 export function setRoofScreen(m: THREE.Matrix4): void {
   roofScreen = m;
   for (const fn of roofWaiting.splice(0)) fn(m);
+}
+
+/** Готовая модель крысиных бегов заменяет только прежнее неподвижное оформление. */
+export interface RatArenaMount { board: THREE.Matrix4; finish: THREE.Matrix4 }
+let ratArena: RatArenaMount | null = null;
+const ratWaiting: Array<(m: RatArenaMount) => void> = [];
+export function onRatArena(fn: (m: RatArenaMount) => void): void {
+  if (ratArena) fn(ratArena); else ratWaiting.push(fn);
+}
+export function setRatArena(m: RatArenaMount): void {
+  ratArena = m;
+  for (const fn of ratWaiting.splice(0)) fn(m);
 }
 
 /** Пересчитать тени статики (ставит мир набережной; до того — ничего) */

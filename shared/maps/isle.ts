@@ -8,8 +8,8 @@ import { WATER_Y } from '../constants.ts';
 import type { FishSpot } from '../fishplaces.ts';
 import { ISLE_FLOORS, ISLE_SOLIDS, ISLE_WALLS } from './isleboxes.ts';
 
-/** Центр острова в мире: 2,4 км на запад-юго-запад от площади, в сторону заката */
-export const ISLE_CENTER = { x: -2364.9, z: 557.6 } as const;
+/** Остров виден из бухты: 967 м на запад; его воды R300 не пересекают бухту или веер дальнего берега. */
+export const ISLE_CENTER = { x: -950, z: 180 } as const;
 /** Вода острова в GLB — на высоте 0; в мире море на WATER_Y — остров стоит на нём */
 export const ISLE_Y = WATER_Y;
 /** Воды острова: свой пул рыб, туман 160 м, упал в воду — выныриваешь на причале */
@@ -83,13 +83,14 @@ export const ISLE_BUOYS: ReadonlyArray<{ id: string; kind: 'red' | 'green' | 'be
 ].map(([id, kind, u, v]) => ({ id: id as string, kind: kind as 'red' | 'green' | 'bell' | 'danger' | 'route', x: ISLE_CENTER.x + (u as number), z: ISLE_CENTER.z + (v as number) }));
 
 /**
- * Вехи пути от стоянки к острову (props-layout.json route_buoys): красно-белые буи через 400 м, курс от F1 — ЗЮЗ.
+ * Вехи пути от стоянки к острову: красно-белые буи через 111 м; F6 совпадает с местным buoy_route_01.
  * F6 — в GLB острова (props.glb, `buoy_route_01`), F1–F5 стоят в открытом море — их ставит игра по прототипу `buoy_route`.
  */
-export const ISLE_ROUTE_BUOYS: ReadonlyArray<{ id: string; x: number; z: number }> = [
-  { id: 'F1', x: -25, z: 145 }, { id: 'F2', x: -419, z: 214 }, { id: 'F3', x: -813, z: 284 },
-  { id: 'F4', x: -1207, z: 353 }, { id: 'F5', x: -1601, z: 423 }, { id: 'F6', x: -1995, z: 492 },
-];
+const routeEnd = ISLE_BUOYS.find((b) => b.id === 'F6')!;
+export const ISLE_ROUTE_BUOYS: ReadonlyArray<{ id: string; x: number; z: number }> = Array.from({ length: 6 }, (_, i) => ({
+  id: `F${i + 1}`, x: i === 5 ? routeEnd.x : -25 + (routeEnd.x + 25) * i / 5,
+  z: i === 5 ? routeEnd.z : 145 + (routeEnd.z - 145) * i / 5,
+}));
 
 /** Колокольный буй у входа в бухту (`buoy_bell_01`): звонит по волне */
 export const ISLE_BELL = ISLE_BUOYS.find((b) => b.kind === 'bell')!;

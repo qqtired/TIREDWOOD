@@ -2,29 +2,17 @@
 //   node tools/plaza3/signs.mjs           — показать, чем раздел signs в layout.json отличается от моделей
 //   node tools/plaza3/signs.mjs --write   — переписать раздел signs в docs/plaza3/level/layout.json (потом
 //                                           node docs/plaza3/level/check.mjs && node tools/plaza3/layout.mjs)
-// Модели берёт из concepts_blender/plaza3/pavilions/models (или PLAZA3_SRC). Для каждого якоря: мир = корень павильона
-// (world_origin и yaw из manifest*.json) × узел пустышки в GLB. Размеры поля — масштаб пустышки (половины ширины и высоты),
-// «наружу» — её локальная +Z. Если модель расходится с раскладкой — права модель (бриф plaza3); исключения — павильоны,
-// чьё место в манифесте временное или устарело (PLACE ниже): их корень берётся из раскладки v5.1.
+// Берёт именно игровые GLB из client/assets/plaza3 (или PLAZA3_ASSETS) и игровые корни PAVILIONS. Поэтому v2 и
+// перенесённый павильон не возвращаются к устаревшим координатам исходного манифеста при следующей генерации.
+// Размеры поля — масштаб пустышки (половины ширины и высоты), «наружу» — её локальная +Z.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LAYOUT = path.join(root, 'docs/plaza3/level/layout.json');
-const SRC = process.env.PLAZA3_SRC || path.join(homedir(), 'Desktop/tired.solutions/concepts_blender/plaza3');
-const MODELS = path.join(SRC, 'pavilions/models');
-
-/** Корень павильона в мире, если манифест модели его не знает или он устарел (v5.1: LEAD-NOTES, layout.md) */
-const PLACE = {
-  honor: { x: 13.7, z: -22.4, yaw: Math.PI },
-  online: { x: 21.3, z: -22.16, yaw: Math.PI },
-  fishshowcase: { x: -12, z: 20.15, yaw: 0 },
-  // 11.10: Лавка — на помосте у сходней Маячного мола, крыльцо на север (client/lobby/plaza3/pavdata.ts, port.semyon.root), основание
-  // на настиле y −0,5; модель собрана под v4 ((−13; 13,1), лицом на запад)
-  semyon: { x: -58.6, z: 50.8, yaw: 0, y: -0.5 },
-};
+const MODELS = process.env.PLAZA3_ASSETS || path.join(root, 'client/assets/plaza3');
+const { PAVILIONS } = await import(path.join(root, 'client/lobby/plaza3/pavdata.ts'));
 
 /**
  * Сдвиг вывески от стены «наружу» (в сторону, куда она смотрит), м: у модели в этом месте карниз выступает дальше плоскости
@@ -35,11 +23,6 @@ const NUDGE = { paintball: 0.12 };
 
 /** Вывеска → (файл, якорь [, якорь обратной стороны]), текст на вывеске, порядок — как в layout.json */
 const SIGNS = [
-  ['honor', 'ДОСКА ПОЧЁТА', 'pav_honor', 'anchor_sign_face'],
-  ['online', 'КТО НА НАБЕРЕЖНОЙ', 'pav_online', 'anchor_sign_face'],
-  ['rotunda', 'РОТОНДА · МУЗЫКА', 'pav_rotunda', 'anchor_sign_face'],
-  ['cafe', 'КАФЕ «ЧАЙКА»', 'pav_cafe', 'anchor_sign_face'],
-  ['cards', 'КАРТЫ · ДУРАК · БЛЭКДЖЕК', 'pav_cardveranda', 'anchor_sign_face'],
   ['kurzal', 'АВТОМАТЫ · АРКАДА', 'pav_kursaal', 'anchor_sign_face'],
   ['billiards', 'БИЛЬЯРД', 'pav_billiards', 'anchor_sign_face'],
   ['wheel', 'КОЛЕСО ОБОЗРЕНИЯ', null, { x: 24.2, y: 3.4, z: 13, yaw: Math.PI / 2, w: 2, h: 0.55, note: 'нет модели: портал из двух стоек у кассы колеса (WHEEL_GATE 24,4; 13), лицом на запад' }],
@@ -51,17 +34,13 @@ const SIGNS = [
   ['aquapark', 'АКВАПАРК «ВОЛНА»', 'pav_lifeguard', 'anchor_sign_aqua', 'anchor_sign_aqua_back'],
   ['wardrobe', 'ПРИМЕРОЧНАЯ', 'pav_cabins', 'anchor_sign_wardrobe'],
   ['plane', 'ГИДРОПЛАН «СТРИЖ»', 'pav_aeroclub', 'anchor_sign_aeroclub', 'anchor_sign_aeroclub_back'],
-  ['jettyarch', 'МАЯК · РЫБАЛКА', 'pav_lighthouse_arch', 'anchor_sign_lighthouse', 'anchor_sign_lighthouse_back'],
   ['semyon', 'ЛАВКА СЕМЁНА', 'pav_semyon', 'anchor_sign_semyon'],
-  ['sunset', 'БЕЛЬВЕДЕР «ЗАКАТ»', 'pav_sunset', 'anchor_sign_sunset'],
   ['udalaya', '«УДАЛАЯ» · К БАРКАСУ', 'pav_mole', 'anchor_sign_udalaya'],
   ['showcase', 'КРУПНЕЙШИЕ РЫБЫ СЕГОДНЯ', 'pav_fishshowcase', 'anchor_sign_biggest'],
   ['hide', 'РЫБНЫЙ ДВОР', 'pav_fishyard', 'anchor_sign_fishyard', 'anchor_sign_fishyard_back'],
-  ['ratrace', 'КРЫСИНЫЕ БЕГА', null, { x: -7.4, y: 2.1, z: 26.5, yaw: 0, w: 2.6, h: 0.6, note: 'в модели нет вывески: табличка под табло board_rats (низ y 2,4), между его стойками, лицом на север' }],
+  ['ratrace', 'КРЫСИНЫЕ БЕГА', null, { x: -0.4, y: 2.1, z: 26.5, yaw: 0, w: 2.6, h: 0.6, note: 'в модели нет вывески: табличка под табло board_rats (низ y 2,4), между его стойками, лицом на север' }],
   ['lastochka', '«ЛАСТОЧКА»', 'pav_swallow_gate', 'anchor_sign_lastochka', 'anchor_sign_lastochka_back'],
   ['regatta', 'ПОРТОВАЯ РЕГАТА', 'pav_swallow_gate', 'anchor_sign_regatta', 'anchor_sign_regatta_back'],
-  ['farmarch', 'ОГОРОДЫ', 'pav_farm_arch', 'anchor_sign_face'],
-  ['farmgate', 'ФЕРМА', null, { x: 60.4, y: 2.6, z: -24.9, yaw: Math.PI / 2, w: 1.3, h: 0.4, note: 'нет модели (калитка — старый plaza_gate.glb): табличка на одной стойке у калитки, лицом на запад' }],
 ];
 
 // ---------------------------------------------------------------- GLB: узлы с мировыми матрицами внутри файла
@@ -98,16 +77,6 @@ function anchors(file) {
   return out;
 }
 
-// ---------------------------------------------------------------- корни павильонов из манифестов
-const roots = {};
-for (const f of ['manifest.json', 'manifest-gq.json', 'manifest-pb.json']) {
-  const m = JSON.parse(readFileSync(path.join(MODELS, f), 'utf8'));
-  for (const p of Object.values(m.pavilions)) {
-    const o = p.world_origin ?? (p.center_world ? [p.center_world[0], 0, p.center_world[1]] : null);
-    if (o) roots[p.file.replace(/\.glb$/, '')] = { x: o[0], z: o[2], yaw: p.yaw ?? 0 };
-  }
-}
-
 const r3 = (v) => Math.round(v * 1000) / 1000;
 /** Якорь модели → мир: центр поля и куда оно смотрит (yaw: 0 — на −Z, как у остальных точек раскладки) */
 function toWorld(rootPose, a) {
@@ -125,9 +94,9 @@ for (const [id, text, file, a, aBack] of SIGNS) {
     rows.push({ id, text, x: pos.x, y: pos.y, z: pos.z, yaw: r3(pos.yaw), w: pos.w, h: pos.h, note });
     continue;
   }
-  const pose = PLACE[file.replace(/^pav_/, '')] ?? roots[file];
+  const pose = PAVILIONS.find((p) => p.id === file.replace(/^pav_/, ''));
   if (!pose) throw new Error(`нет корня павильона ${file}`);
-  const an = anchors(path.join(MODELS, `${file}.glb`));
+  const an = anchors(path.join(MODELS, pose.file));
   if (!an[a]) throw new Error(`${file}: нет якоря ${a}`);
   const w = toWorld(pose, an[a]);
   const out = NUDGE[id] ?? 0;

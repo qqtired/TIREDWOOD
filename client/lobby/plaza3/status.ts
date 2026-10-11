@@ -8,6 +8,9 @@ import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../
 import { wavesText } from '../../../shared/fortrecord.ts';
 import { RG_MAX } from '../../../shared/regatta.ts';
 import { WHEEL_PRICE } from '../../../shared/wheel.ts';
+import { FE_HOME, FE_BOARD, FE_OUT, FE_AWAY, FERRY_SEATS, ferryEta } from '../../../shared/ferry.ts';
+import { TICK_RATE } from '../../../shared/constants.ts';
+import type { FerryStatus } from '../../../shared/messages.ts';
 import { agendaRows, plural, type LiveIn } from '../plaza/live.ts';
 
 /** Чей статус показывает вывеска (SIGN_META в signstyle.ts) */
@@ -28,6 +31,7 @@ export interface SignStatus {
 export interface SignExtras {
   slots: { busy: number; total: number } | null;
   dungeon: { nick: string; waves: number } | null;
+  ferry?: { status: FerryStatus; tick: number } | null;
 }
 
 export function emptyExtras(): SignExtras {
@@ -68,6 +72,18 @@ const FIXED: Readonly<Partial<Record<StatusMode, string>>> = {
 /** Статус вывески режима mode по живым данным; пустой текст — вывеска без строки статуса или режим выключен */
 export function signStatus(mode: StatusMode, s: LiveIn, x: SignExtras): SignStatus {
   switch (mode) {
+    case 'ferry': {
+      if (!x.ferry) return { text: FIXED.ferry, tone: 'open' };
+      const { status: f, tick } = x.ferry;
+      const seconds = (at: number): number => Math.max(0, Math.ceil((at - tick) / TICK_RATE));
+      if (f.ph === FE_HOME) return { text: 'у причала · подойди и жми E', tone: 'open' };
+      if (f.ph === FE_BOARD) {
+        const free = Math.max(0, FERRY_SEATS - f.n);
+        return { text: free ? `отход ${clock(seconds(f.at))} · мест: ${free}` : `мест нет · отход ${clock(seconds(f.at))}`, tone: free ? 'go' : 'bad' };
+      }
+      const eta = clock(Math.max(0, Math.ceil(ferryEta(f.ph, f.at, tick, false) / TICK_RATE)));
+      return { text: f.ph === FE_OUT ? `к баркасу · обратно ${eta}` : f.ph === FE_AWAY ? `у баркаса · прибудет ${eta}` : `возвращается · прибудет ${eta}`, tone: 'go' };
+    }
     case 'paint':
       return s.pbHumans > 0 ? { text: `идёт бой · ${players(s.pbHumans)}`, tone: 'go' } : { text: 'пусто — заходи первым', tone: 'open' };
     case 'fort': {

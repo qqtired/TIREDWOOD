@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { BARKAS, BARKAS_BELL, BARKAS_RYNDA } from '../../../shared/barkas.ts';
 import { FE_AWAY, FE_BACK, FE_OUT } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
+import { PLAZA3 } from '../../../shared/layout.ts';
 import { BarkasAudio, type Kit } from './ambient.ts';
 import { Angler } from './angler.ts';
 import { Crew } from './crew.ts';
@@ -29,7 +30,7 @@ export class Barkas {
   private readonly smoke: Smoke;
   private readonly gulls: BarkasGulls;
   private readonly audio: BarkasAudio;
-  private readonly sign: FerrySign;
+  private readonly sign: FerrySign | null;
   private kit: Kit | null = null;
   private me: THREE.Vector3 | null = null;
   private readonly meAt = new THREE.Vector3();
@@ -44,7 +45,7 @@ export class Barkas {
     this.ferry = new Ferry3D(scene, wet);
     this.smoke = new Smoke(scene);
     this.gulls = new BarkasGulls(scene);
-    this.sign = new FerrySign(scene);
+    this.sign = PLAZA3 ? null : new FerrySign(scene);
     this.audio = new BarkasAudio();
     this.crew = new Crew(scene, () => {
       this.ship.ringRynda();
@@ -84,7 +85,7 @@ export class Barkas {
     const d = Math.hypot(cam.x - BARKAS.x, cam.z - BARKAS.z);
     this.ship.update(dt, t, rain);
     this.ferry.update(dt, t, renderTick, cam, this.smoke, rain);
-    this.sign.update(this.ferry.status, renderTick);
+    this.sign?.update(this.ferry.status, renderTick);
     this.audio.update(dt, this.kit, cam, rain, this.ferry.motor());
     this.crew.update(dt, t, cam, this.me, this.smoke, rain);
     this.angler.update(dt, cam, this.smoke);

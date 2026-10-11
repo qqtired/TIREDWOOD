@@ -21,8 +21,10 @@ export interface PortData {
    * client/lobby/fishplaces3d.ts); верх y −0,5. В карте все они невидимые: видимый настил один — модель или помост.
    */
   decks: readonly PortDeck[];
-  /** Ступень площадка маяка → мол (на 0,25 выше мола) */
+  /** Плоское сопряжение с площадкой маяка на y 0. */
   stair: { box: PortBox4; y: number };
+  /** Пологий переход к нижнему молу; физика аппроксимирует его невидимыми ступенями ≤ 0,1 м. */
+  ramp: { box: PortBox4; y0: number; y1: number; steps: number };
   /** Красный огонь на голове мола */
   light: { x: number; z: number; h: number };
   /** Места 20–27: 0–1 на голове мола, 2–7 на южной кромке мола (номера и порядок как были) */
@@ -62,3 +64,12 @@ export const PORT = P3.port as unknown as PortData;
 
 /** Верх мола и головы мола (места ловли на моле стоят на этой высоте) */
 export const MOLE_DECK_Y = -0.5;
+
+/** Опоры рампы идут от мола к площадке, без перекрытий; видимая поверхность одна — модель. */
+export function moleRampSteps(): ReadonlyArray<{ min: [number, number, number]; max: [number, number, number] }> {
+  const { box: [x0, z0, x1, z1], y0, y1, steps } = PORT.ramp;
+  return Array.from({ length: steps }, (_, k) => ({
+    min: [x0 + (x1 - x0) * k / steps, y0 - 0.6, z0],
+    max: [x0 + (x1 - x0) * (k + 1) / steps, y0 + (y1 - y0) * (k + 1) / steps, z1],
+  }));
+}

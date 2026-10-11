@@ -7,6 +7,7 @@ import { buildRaceCourse, DEFAULT_TRACK, raceTrackName, type RaceTrackId } from 
 import { KPOS_STRIDE, RECENT_ROWS, type HonorInfo, type HonorRow, type KartStatus, type PbStatus, type RecentRow } from '../../shared/messages.ts';
 import { BOTS_RULE, botsAllowed, botsWord } from '../../shared/solobots.ts';
 import { KART_COLORS } from '../race/kart3d.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
 const BLUE = '#7088ff';
@@ -651,6 +652,8 @@ export class RecentBoard {
   private drawn: string | null = null;
 
   constructor(width: number, height: number) {
+    // The taller field replaces the former title frieze; keep text proportions at its actual mount aspect.
+    if (PLAZA3) { width = 3; height = 2.42; }
     this.s = surface(768, Math.round((768 * height) / width));
     this.mesh = sheetMesh(this.s, width, height);
     this.tick(0);

@@ -41,11 +41,11 @@ test('plaza3: layout.json проходит check.mjs, shared/plaza3/layout.ts с
   }
 });
 
-test('plaza3: точки 0–112 те же по смыслу (kind, arg), новые — только аркада с №113', () => {
+test('plaza3: точки 0–112 и аркады с №113 сохраняются, два места бельведера добавлены только в конец', () => {
   const want = JSON.parse(readFileSync(new URL('./fixtures/lobby-interact-kinds.json', import.meta.url), 'utf8')) as Array<[string, number]>;
   const got = interactKinds(map);
   assert.deepEqual(got.slice(0, want.length), want);
-  assert.deepEqual(got.slice(want.length), P3.arcade.map((_a, i) => ['arcade', i]));
+  assert.deepEqual(got.slice(want.length), [...P3.arcade.map((_a, i) => ['arcade', i]), ['seat', 24], ['seat', 25]]);
   map.interact.forEach((it, i) => assert.equal(it.id, i));
 });
 

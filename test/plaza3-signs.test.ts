@@ -3,12 +3,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BOAT_SEATS, BP_BOARD, BP_RIDE } from '../shared/boat.ts';
+import { FE_HOME, FE_BOARD, FE_OUT, FE_AWAY, FE_BACK, FERRY_SEATS } from '../shared/ferry.ts';
+import { TICK_RATE } from '../shared/constants.ts';
 import { FORT_MAX_HUMANS, FT_BREAK, FT_GATHER, FT_WAVE } from '../shared/fort.ts';
 import { P3 } from '../shared/plaza3/layout.ts';
 import { emptyLive, type LiveIn } from '../client/lobby/plaza/live.ts';
 import {
   ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_STATUS_H, PLANK, SIGN_META, STATUS_SIZE, contentOf, fitStatus, fitTitle, frameOf, headItems, monoRun,
-  packAtlas, parseArrow, planPost, spreadOrder,
+  packAtlas, parseArrow, planPost, spreadOrder, ferryContent,
 } from '../client/lobby/plaza3/signstyle.ts';
 import { STATUS_MAX, clock, emptyExtras, signStatus, statusKey, type SignExtras, type StatusMode } from '../client/lobby/plaza3/status.ts';
 
@@ -106,14 +108,16 @@ test('plaza3-signs: любая строка — без эмодзи и не дл
 });
 
 // ------------------------------------------------------------------------------------------------ данные раскладки
-test('plaza3-signs: каждая вывеска из layout.json описана в SIGN_META (и наоборот), размеры и повороты заданы', () => {
+test('plaza3-signs: активные вывески описаны в SIGN_META, удалённые подписи не возвращаются, размеры и повороты заданы', () => {
   const ids = new Set(P3.signs.map((s) => s.id));
   assert.equal(ids.size, P3.signs.length, 'id вывесок не повторяются');
   for (const id of ids) assert.ok(SIGN_META[id], `нет SIGN_META для вывески ${id}`);
-  for (const id of Object.keys(SIGN_META)) assert.ok(ids.has(id), `SIGN_META.${id} без вывески в layout.json`);
+  const removed = new Set(['cafe', 'cards', 'rotunda', 'honor', 'online', 'jettyarch', 'sunset', 'farmarch', 'farmgate']);
+  for (const id of removed) assert.ok(!ids.has(id), `удалённая подпись ${id} вернулась`);
+  for (const id of Object.keys(SIGN_META)) if (!removed.has(id)) assert.ok(ids.has(id), `SIGN_META.${id} без вывески в layout.json`);
   for (const s of P3.signs) {
     assert.ok(s.w > 0.5 && s.h > 0.15 && s.w < 8 && s.h < 2, `${s.id}: размер ${s.w}×${s.h}`);
-    assert.ok(Number.isFinite(s.yaw) && s.y > 1 && s.y < 8, `${s.id}: поворот или высота`);
+    assert.ok(Number.isFinite(s.yaw) && s.y > 1 && s.y < 12, `${s.id}: поворот или высота`);
     if (s.back) assert.ok(Math.hypot(s.back[0] - s.x, s.back[2] - s.z) < 0.5, `${s.id}: обратная сторона далеко от лицевой`);
   }
   // режимы за флагом — те пять, что умеет Plaza3Dress.setMode
@@ -207,14 +211,28 @@ test('plaza3-signs: вывески и доски столбов помещают
   for (const s of P3.signs) {
     const r = rect.get(s.id)!;
     const m = SIGN_META[s.id];
-    const c = contentOf(r.w, r.h, m.icon !== null && s.h >= 0.34, m.mode !== 'none' && s.h >= MIN_STATUS_H);
+    const c = m.mode === 'ferry' ? ferryContent(r.w, r.h) : contentOf(r.w, r.h, m.icon !== null && s.h >= 0.34, m.mode !== 'none' && s.h >= MIN_STATUS_H);
     if (c.status) zones.push({ id: s.id, w: c.status.zone.w / (r.w / s.w), h: c.status.zone.h / (r.w / s.w) });
   }
-  assert.ok(zones.length >= 20);
+  assert.deepEqual(zones.map((z) => z.id), P3.signs.filter((s) => SIGN_META[s.id].mode !== 'none' && s.h >= MIN_STATUS_H).map((s) => s.id), 'все оставшиеся после удаления вывесок активные статусы получили поле');
   const st = packAtlas(zones, STATUS_SIZE, ATLAS_PAD, DENSITY_MAX);
   assert.ok(st.density >= 240, `плашки статусов слишком грубые: ${st.density.toFixed(0)} px/м`);
   // самая мелкая плашка (текст) — не меньше 24 px высотой: читаемо вблизи
   for (const r of st.rects) assert.ok(r.h >= 18, `плашка ${r.id}: ${r.w}×${r.h}`);
+});
+
+test('единственная вывеска Удалой: место, посадка/полнота, оба направления и ожидание у баркаса', () => {
+  const content = ferryContent(512, 292);
+  assert.ok(content.status!.zone.y > 292 * (.64 + .095 / 2), 'плашка живого статуса не накрывает последнюю строку правил');
+  const status = (ph: number, n = 0) => ({ ph, at: 20 * TICK_RATE, n, c: 0 as const });
+  const show = (ph: number, n = 0) => signStatus('ferry', L(), { ...X(), ferry: { status: status(ph, n), tick: 5 * TICK_RATE } });
+  assert.match(show(FE_HOME).text, /жми E/);
+  assert.equal(show(FE_BOARD, 2).text, `отход 0:15 · мест: ${FERRY_SEATS - 2}`);
+  assert.equal(show(FE_BOARD, FERRY_SEATS).tone, 'bad');
+  assert.match(show(FE_OUT).text, /к баркасу · обратно/);
+  assert.match(show(FE_AWAY).text, /у баркаса · прибудет/);
+  assert.match(show(FE_BACK).text, /возвращается · прибудет/);
+  for (const ph of [FE_HOME, FE_BOARD, FE_OUT, FE_AWAY, FE_BACK]) assert.ok(show(ph).text.length <= STATUS_MAX);
 });
 
 // ------------------------------------------------------------------------------------------------ столбы-указатели

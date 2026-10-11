@@ -11,7 +11,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { TokarevLighthouse } from '../tokarev-lighthouse.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
 import { loadPav, worldGeometry, type Family, type Part, type PavModel } from './models.ts';
-import { plaza3Shadows, setRoofScreen, setShowcase } from './mounts.ts';
+import { plaza3Shadows, setRoofScreen, setShowcase, setRatArena } from './mounts.ts';
 import { BOARD_FIELDS, PAVILIONS, PROP_FILES, SKIP_LIVE, type PavGroup, type PavPlace } from './pavdata.ts';
 import type { Plaza3World } from './world.ts';
 import type { CirclePosition } from '../../../shared/startzones.ts';
@@ -238,6 +238,7 @@ export class Plaza3Pavilions {
     if (name === 'live_lamp' && this.hooks.lighthouse) return;
     const pivot = new THREE.Group();
     pivot.name = `plaza3-${p.id}-${name}`;
+    if (name === 'live_water') pivot.userData.p3visibility = 110;
     _m.multiplyMatrices(root, node.matrixWorld).decompose(pivot.position, pivot.quaternion, pivot.scale);
     const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
     const red = name === 'live_mole_red_light' ? new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }) : null;
@@ -259,6 +260,10 @@ export class Plaza3Pavilions {
       const a = model.anchors.get(anchor);
       return a ? new THREE.Matrix4().multiplyMatrices(root, a.matrix) : null;
     };
+    if (p.id === 'rats') {
+      const board = field('anchor_board_rats'), finish = field('anchor_sign_finish');
+      if (board && finish) setRatArena({ board, finish });
+    }
     for (const [key, f] of Object.entries(BOARD_FIELDS) as Array<[string, (typeof BOARD_FIELDS)[keyof typeof BOARD_FIELDS]]>) {
       if (f.pav !== p.id) continue;
       const board = this.hooks.boards[key as BoardKey];
@@ -275,7 +280,7 @@ export class Plaza3Pavilions {
         const fish = [1, 2, 3].map((i) => {
           const a = model.anchors.get(`anchor_fish_${i}`);
           const head = Array.isArray(a?.data.head) ? Number((a.data.head as number[])[0]) : 1;
-          return { matrix: field(`anchor_fish_${i}`) ?? new THREE.Matrix4(), len: Number(a?.data.len ?? 1.3), maxH: Number(a?.data.max_h ?? 0.7), head };
+          return { matrix: field(`anchor_fish_${i}`) ?? new THREE.Matrix4(), len: Number(a?.data.len ?? 1.3), maxH: Number(a?.data.max_h ?? 0.7), maxW: Number(a?.data.max_w ?? 1.55), pose: a?.data.pose === 'upright' ? 'upright' as const : 'horizontal' as const, head };
         });
         const tags = [1, 2, 3].map((i) => field(`anchor_tag_${i}`)).filter((m): m is THREE.Matrix4 => !!m);
         setShowcase({ board, roof, fish, tags });

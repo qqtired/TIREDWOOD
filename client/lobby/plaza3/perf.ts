@@ -19,6 +19,8 @@
 //    пересчёта теней отсечение снимается: тени статики — с полной сценой.
 import * as THREE from 'three';
 import type { LobbyLook } from '../look.ts';
+import { P3 } from '../../../shared/plaza3/layout.ts';
+import { buildOccluders, openSight, semanticDistance, makeFade, decideFade, stepFade, fadingMaterial, prepareFadeMaterial, type FadeState, type FadingMaterial } from './visibility.ts';
 
 /** Слой «далеко — не рисовать»: камера набережной его не видит */
 const FAR_LAYER = 7;
@@ -35,8 +37,6 @@ const AREA = { x0: -75, x1: 100, z0: -72, z1: 65 };
 /** Пересобрать узлы и их сферы (с), проверить расстояния (с) */
 const SCAN_S = 1;
 const CULL_S = 0.2;
-/** Вернуть узел, когда он ближе порога на столько, м — без мигания на границе */
-const HYST = 4;
 
 /**
  * Дальность из меню «Графика → Дальность видимости» (Renderer.viewK: «Далеко» 1, «Средне» 0,6, «Близко» 0,3). Её ставит
@@ -81,7 +81,7 @@ export interface Canon {
 /** Решение по материалу (чистая логика — test/plaza3-perf.test.ts); null — не трогаем */
 export function canonOf(m: THREE.Material, avatar: boolean): Canon | null {
   if (avatar || m.userData.p3keep || m.name.startsWith('farm_')) return null;
-  const key = m.customProgramCacheKey();
+  const key = m.customProgramCacheKey().replace(/\|p3fade1/g, '');
   if (m.type === 'MeshStandardMaterial') {
     if (!PLAIN_STD.test(key)) return null;
     const defines = Object.keys((m as THREE.MeshStandardMaterial).defines ?? {}).filter((k) => k !== 'STANDARD');
@@ -95,7 +95,7 @@ export function canonOf(m: THREE.Material, avatar: boolean): Canon | null {
 /** Не трогает ли «рисованный» вид модели, которая встала после первого кадра (как paintAll в client/lobby/look.ts) */
 export function paintsLate(m: THREE.Material, avatar: boolean): boolean {
   if (avatar || m.name.startsWith('farm_')) return false;
-  const key = m.customProgramCacheKey();
+  const key = m.customProgramCacheKey().replace(/\|p3fade1/g, '');
   return PLAIN_STD.test(key) && !key.includes('|look2');
 }
 
@@ -143,6 +143,8 @@ interface Unit {
   /** своя дальность (вещь в руке), иначе cullDistance(r) */
   lim?: number;
   drawables: Drawable[];
+  fade: FadeState;
+  semantic: number;
 }
 
 const _c = new THREE.Vector3();
@@ -187,6 +189,12 @@ export class Plaza3Perf {
   private warmed = false;
   private rendering = false;
   private shadowOpen = false;
+  private frameAt = -1;
+  private readonly occluders = buildOccluders(P3.colliders);
+  private readonly fadeMaterials = new Map<Drawable, Array<FadingMaterial & { source: THREE.Material }>>();
+  private readonly frustum = new THREE.Frustum();
+  private readonly viewMatrix = new THREE.Matrix4();
+  private readonly cullSphere = new THREE.Sphere();
   private readonly stats = { canon: 0, single: 0, normals: 0, colors: 0, maps: 0, cubes: 0, flat: 0, instColor: 0, copies: 0, late: 0, missed: 0, empty: 0, warmMs: -1, warmPrograms: 0 };
 
   constructor(h: PerfHooks) {
@@ -213,6 +221,8 @@ export class Plaza3Perf {
     const { gl, camera } = this.h;
     if (!this.warmed) this.warm();
     const now = performance.now() / 1000;
+    const dt = this.frameAt < 0 ? 0 : Math.min(.1, now - this.frameAt);
+    this.frameAt = now;
     if (now >= this.scanAt) {
       this.scanAt = now + SCAN_S;
       this.scan();
@@ -221,8 +231,9 @@ export class Plaza3Perf {
     if (now >= this.cullAt) {
       this.cullAt = now + CULL_S;
       p3View.k = this.h.viewK?.() ?? 1;
-      this.cull(camera.position, decorScale(p3View.k));
+      this.cull(camera.position, decorScale(p3View.k), now);
     }
+    this.fadeFrame(dt);
     if (gl.shadowMap.enabled && gl.shadowMap.needsUpdate && this.culled.size) {
       this.shadowOpen = true;
       for (const u of this.culled.values()) this.show(u);
@@ -235,11 +246,12 @@ export class Plaza3Perf {
     if (!this.shadowOpen) return;
     this.shadowOpen = false;
     for (const u of this.culled.values()) this.hide(u);
+    this.fadeFrame(0);
   }
 
   /** Сколько чего сделано — для замера: __opus.app.lobby.world.perf.debug() */
   debug(): Record<string, unknown> {
-    return { ...this.stats, units: this.units.length, culled: this.culled.size, programs: this.h.gl.info.programs?.length ?? 0 };
+    return { ...this.stats, units: this.units.length, culled: this.culled.size, fading: this.units.filter((u) => u.fade.value > 0 && u.fade.value < 1).length, occluders: this.occluders.length, programs: this.h.gl.info.programs?.length ?? 0 };
   }
 
   /** Программы шейдеров (тип, имя, сколько материалов): __opus.app.lobby.world.perf.programs() */
@@ -263,6 +275,9 @@ export class Plaza3Perf {
     this.adopt(scene);
     this.h.look?.paintNow();
     this.warmed = true;
+    this.prepareFadeSources(scene);
+    scene.updateMatrixWorld(true);
+    this.scan();
     const t0 = performance.now();
     const tone = gl.toneMapping;
     gl.toneMapping = (scene.userData.toneMapping as THREE.ToneMapping | undefined) ?? THREE.ACESFilmicToneMapping;
@@ -329,6 +344,33 @@ export class Plaza3Perf {
       this.decide(m, meshes.map((d) => d.geometry), avatar);
       for (const d of meshes) this.mesh(m, d);
     }
+    if (this.warmed) this.prepareFadeSources(root);
+  }
+
+  private prepareFadeSources(root: THREE.Object3D): void {
+    root.traverse((o) => {
+      const d = o as Drawable;
+      if (!d.material || this.fadeMaterials.has(d)) return;
+      for (let n: THREE.Object3D | null = o; n; n = n.parent) if (n.name === 'isle') return;
+      for (const m of Array.isArray(d.material) ? d.material : [d.material]) {
+        if (m.customProgramCacheKey().startsWith('jelly') || m.name.startsWith('farm_') || m.userData.p3keep || m.type === 'RawShaderMaterial') continue;
+        prepareFadeMaterial(m);
+      }
+    });
+  }
+
+  private bindFade(d: Drawable): void {
+    const previous = this.fadeMaterials.get(d);
+    const current = Array.isArray(d.material) ? d.material : [d.material];
+    if (previous && current.every((m, i) => m === previous[i]?.material)) return;
+    if (previous) for (const m of previous) m.material.dispose();
+    const list = (Array.isArray(d.material) ? d.material : [d.material]).map((source) => {
+      const f = fadingMaterial(source);
+      this.seen.set(f.material, this.seen.get(source) ?? null);
+      return { ...f, source };
+    });
+    this.fadeMaterials.set(d, list);
+    d.material = Array.isArray(d.material) ? list.map((m) => m.material) : list[0].material;
   }
 
   /** Сетка под решение по материалу: плоские грани — своими нормалями, инстансам — белый цвет, геометрии — цвета и нормали */
@@ -530,11 +572,31 @@ export class Plaza3Perf {
     const { scene } = this.h;
     for (const c of scene.children) this.sphere(c);
     const units: Unit[] = [];
+    const previous = new Map(this.units.map((u) => [u.o, u.fade]));
+    const makeUnit = (o: THREE.Object3D, ds: Drawable[], s: THREE.Sphere, semantic: number, lim?: number): Unit => {
+      for (const d of ds) this.bindFade(d);
+      const far = Math.max(semantic, s.radius < .25 ? 60 : 90, lim ?? 0, cullDistance(s.radius));
+      const initial = Math.max(0, s.center.distanceTo(this.h.camera.position) - s.radius) > far ? 0 : 1;
+      return { o, local: s.center.clone().applyMatrix4(_inv.copy(o.matrixWorld).invert()), r: s.radius, lim, semantic, fade: previous.get(o) ?? makeFade(initial), drawables: ds };
+    };
     // в желейке (игрок, житель с удочкой) узел — только длинная вещь без желе (удочка целиком); лицо, глаза, шапка — нет
     const visit = (o: THREE.Object3D, avatar: boolean, out: Unit[]): { ds: Drawable[]; jelly: boolean } => {
       const ds: Drawable[] = [];
       if (o.userData.p3keep) return { ds, jelly: false };
       if (o.parent === scene && Plaza3Perf.jellyNear(o)) avatar = true;
+      const semantic = semanticDistance(o);
+      if (semantic && !avatar) {
+        const collect = (n: THREE.Object3D): void => {
+          if (n.userData.p3keep) return;
+          if ((n as Drawable).material) ds.push(n as Drawable);
+          for (const c of n.children) collect(c);
+        };
+        collect(o);
+        const s = this.spheres.get(o);
+        if (ds.length && s && !s.isEmpty() && s.radius < 1e5) out.push(makeUnit(o, ds, s, semantic));
+        // Потомки целого не становятся мелкими единицами; внешняя группа также не прячет их.
+        return { ds: [], jelly: false };
+      }
       const m = (o as Drawable).material;
       let jelly = !!m && !Array.isArray(m) && m.customProgramCacheKey().startsWith('jelly');
       if (m) ds.push(o as Drawable);
@@ -546,7 +608,7 @@ export class Plaza3Perf {
       }
       const s = this.spheres.get(o);
       const ok = ds.length > 0 && !!s && !s.isEmpty() && s.radius <= UNIT_MAX_R && inArea(s.center.x, s.center.z);
-      const unit = (lim?: number): Unit => ({ o, local: s!.center.clone().applyMatrix4(_inv.copy(o.matrixWorld).invert()), r: s!.radius, lim, drawables: ds });
+      const unit = (lim?: number): Unit => makeUnit(o, ds, s!, 0, lim);
       if (!avatar) {
         if (ok) out.push(unit());
       } else if (ok && !jelly && s!.radius >= HELD_MIN_R) out.push(unit(HELD_CULL));
@@ -565,6 +627,10 @@ export class Plaza3Perf {
       } else this.culled.delete(o);
     }
     this.units = units;
+    for (const [d, list] of this.fadeMaterials) if (!this.inScene(d)) {
+      for (const m of list) m.material.dispose();
+      this.fadeMaterials.delete(d);
+    }
   }
 
   /** Сфера подграфа в мировых координатах (пустая — рисовать нечего); скелетная сетка — «бесконечная» (не узел) */
@@ -606,7 +672,9 @@ export class Plaza3Perf {
     return out;
   }
 
-  private cull(cam: THREE.Vector3, scale: number): void {
+  private cull(cam: THREE.Vector3, scale: number, now: number): void {
+    this.h.camera.updateMatrixWorld();
+    this.frustum.setFromProjectionMatrix(this.viewMatrix.multiplyMatrices(this.h.camera.projectionMatrix, this.h.camera.matrixWorldInverse));
     for (const u of this.units) {
       const was = this.culled.has(u.o);
       // спрятанный модулем (круг на воде из запаса) — отпускаем: появится сразу, а далеко — погаснет на следующей проверке
@@ -615,17 +683,41 @@ export class Plaza3Perf {
           this.culled.delete(u.o);
           this.show(u);
         }
+        u.fade = makeFade();
         continue;
       }
       const d = Math.max(0, _c.copy(u.local).applyMatrix4(u.o.matrixWorld).distanceTo(cam) - u.r);
-      const lim = (u.lim ?? cullDistance(u.r)) * scale;
-      if (!was && d > lim) {
-        this.culled.set(u.o, u);
-        this.hide(u);
-      } else if (was && d < lim - HYST) {
-        this.culled.delete(u.o);
-        this.show(u);
-      }
+      const normal = (u.lim ?? cullDistance(u.r)) * scale;
+      const open = u.lim ? normal : Math.max(normal, u.semantic, u.r < .25 ? 60 : 90);
+      // Разворот камеры не сбрасывает проявление предметов за спиной.
+      if (!this.frustum.intersectsSphere(this.cullSphere.set(_c, u.r))) continue;
+      const lim = d <= normal || d > open ? normal : openSight(cam, _c, u.r, this.occluders) ? open : normal;
+      decideFade(u.fade, d, lim, now);
+    }
+  }
+
+  /** Только uniform; геометрия, коллизии и настройки прозрачности никогда не меняются. */
+  private fadeFrame(dt: number): void {
+    for (const list of this.fadeMaterials.values()) for (const b of list) {
+      b.fade.value = 1;
+      const src = b.source as THREE.MeshStandardMaterial, dst = b.material as THREE.MeshStandardMaterial;
+      if (src.color && dst.color) dst.color.copy(src.color);
+      if (src.emissive && dst.emissive) dst.emissive.copy(src.emissive);
+      dst.opacity = src.opacity;
+      if ('emissiveIntensity' in src) dst.emissiveIntensity = src.emissiveIntensity;
+      if ('roughness' in src) dst.roughness = src.roughness;
+      if ('metalness' in src) dst.metalness = src.metalness;
+      if ('envMap' in src) dst.envMap = src.envMap;
+      if ('map' in src) dst.map = src.map;
+      const s = b.source as THREE.ShaderMaterial, m = b.material as THREE.ShaderMaterial;
+      if (s.uniforms && m.uniforms) for (const [key, v] of Object.entries(s.uniforms)) if (key !== 'p3Fade' && m.uniforms[key]) m.uniforms[key].value = v.value;
+    }
+    for (const u of this.units) {
+      const value = stepFade(u.fade, dt);
+      const was = this.culled.has(u.o);
+      if (!was && value === 0) { this.culled.set(u.o, u); this.hide(u); }
+      else if (was && value > 0) { this.culled.delete(u.o); this.show(u); }
+      for (const d of u.drawables) for (const m of this.fadeMaterials.get(d) ?? []) m.fade.value = Math.min(m.fade.value, value);
     }
   }
 

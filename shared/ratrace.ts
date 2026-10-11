@@ -6,6 +6,7 @@
 // Здесь: крысы, шансы, лимиты, таймер, раскладка понтона и трассы, план забега (без three.js — проверяется тестами).
 import { makeRng } from './math.ts';
 import { ROULETTE_MAX_PAYOUT } from './roulette.ts';
+import { A, xfBox2, xfP } from './plaza3/xf.ts';
 
 /** Как бежит крыса: характер виден в забеге (кто рвёт со старта, кто финиширует), на шансы не влияет */
 export type RatStyle = 'bolt' | 'closer' | 'steady' | 'erratic' | 'lazy' | 'burst';
@@ -189,18 +190,18 @@ export type RatServerMsg =
 // ------------------------------------------------------------ понтон и трасса (X — восток, Z — юг, yaw 0 — на −Z)
 
 /** Понтон у набережной между скамейкой и мостками к маяку: верх настила — y 0, вровень с набережной */
-export const RAT_DECK = { x0: -10.8, x1: -4.0, z0: 22, z1: 26.8 } as const;
+export const RAT_DECK = xfBox2(A.rat, { x0: -10.8, x1: -4.0, z0: 22, z1: 26.8 } as const);
 /** Бортик арены (внешний контур) и его высота: выше шага (0,52 м), не перешагнуть — только перепрыгнуть */
-export const RAT_PEN = { x0: -10.2, x1: -4.6, z0: 23.2, z1: 26.2, h: 0.6, t: 0.08 } as const;
+export const RAT_PEN = xfBox2(A.rat, { x0: -10.2, x1: -4.6, z0: 23.2, z1: 26.2, h: 0.6, t: 0.08 } as const);
 /** Трасса — стадион: центр, половина прямой, радиус осевой на поворотах, ширина дорожки */
-export const RAT_TRACK = { x: -7.4, z: 24.7, half: 1.3, r: 0.95, w: 0.9 } as const;
+export const RAT_TRACK = xfP(A.rat, { x: -7.4, z: 24.7, half: 1.3, r: 0.95, w: 0.9 } as const);
 /**
  * Табло на двух столбах у южного края понтона, лицом к площади: большое и выше голов (низ щита — 2,4 м, над никами
  * желеек у арены), чтобы читалось с площадки и издалека. x — середина щита, z — линия столбов, w × h — щит, y — его низ.
  */
-export const RAT_BOARD = { x: -7.4, z: 26.55, w: 6.2, h: 3.3, y: 2.4 } as const;
+export const RAT_BOARD = xfP(A.rat, { x: -7.4, z: 26.55, w: 6.2, h: 3.3, y: 2.4 } as const);
 /** Где встать, чтобы сделать ставку (E): перед ареной с набережной и с понтона */
-export const RAT_USE = { x: -7.4, z: 22.5, r: 3.3 } as const;
+export const RAT_USE = xfP(A.rat, { x: -7.4, z: 22.5, r: 3.3 } as const);
 /** Центр арены — для «рядом ли игрок» */
 export const RAT_CENTER = { x: RAT_TRACK.x, z: RAT_TRACK.z } as const;
 

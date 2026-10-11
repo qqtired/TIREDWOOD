@@ -46,7 +46,7 @@ export const FISHERS: ReadonlyArray<{ place: FishPlace; outfit: Outfit; extra: '
     extra: 'thermos',
   },
   {
-    place: { x: -22, z: 39.4, yaw: Math.PI / 2, bucket: [-21.85, 0, 40.35] },
+    place: { x: -24, z: 39.4, yaw: Math.PI / 2, bucket: [-23.85, 0, 40.35] },
     outfit: { c: 8, c2: 15, p: 'none', e: 'happy', h: 'panama', a: 'scarf' },
     extra: 'tackle',
   },

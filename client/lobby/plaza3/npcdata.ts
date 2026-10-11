@@ -105,7 +105,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'zhetonych', name: 'Жетоныч', accent: '#9b1b30', talk: 'slots', mode: null, layout: 'kurzal',
     // Кафейный проулок у западной двери курзала, лицом вдоль проулка к скверу
-    x: 45.2, z: 4.6, y: 0, yaw: 0.45, greet: true, wave: L,
+    x: 54.2, z: 2, y: 0, yaw: HALF_PI, greet: true, wave: L,
     lines: [
       'Заходи, тут всё звенит и мигает!',
       'Автоматы налево, аркада направо — выбирай',
@@ -148,7 +148,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'tonya', ...tout('cafe'), mode: null, layout: 'cafe',
     // в нише окна-прилавка кафе (anchor_barista), лицом к веранде с картами
-    x: 35.6, z: 2, y: 0, yaw: HALF_PI, wave: R, inside: 'ниша окна кафе «Чайка» (за прилавком)',
+    x: 45.6, z: -1, y: 0, yaw: HALF_PI, wave: R, inside: 'ниша окна кафе «Чайка» (за прилавком)',
     idle: {
       len: 4, moves: [
         { p: 'hand.R', t: 0.2, d: 2, e: 'hold', pos: [-0.08, 0.1, -0.1] },
@@ -212,7 +212,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'bochka', ...tout('hide'), mode: 'hide', layout: 'hide',
     // в бочке «Рыбного двора» (YARD_BARREL — твёрдая, бочка жителя рисуется вместо неё), лицом к воротам двора
-    x: -4, z: 16.7, y: 0, yaw: 0, wave: { hand: 'hand.R', lift: [0, 0.22, 0] }, inside: 'бочка «Рыбного двора» (YARD_BARREL)',
+    x: -4, z: 10.1, y: 0, yaw: Math.PI, wave: { hand: 'hand.R', lift: [0, 0.22, 0] }, inside: 'бочка «Рыбного двора» (YARD_BARREL)',
     idle: {
       len: 6, moves: [
         { p: 'body', t: 0.3, d: 2.6, e: 'hold', pos: [0, -0.25, 0] },
@@ -223,8 +223,8 @@ export const NPCS: readonly NpcDef[] = [
   },
   {
     id: 'tolik', name: 'Букмекер Толик', accent: '#7a3f9e', talk: 'ratrace', mode: null, layout: 'ratrace',
-    // за тумбой букмекера на понтоне бегов (anchor_resident pav_rats v2), лицом к месту ставок (−7,4; 22,5) и проходу с набережной
-    x: -5.85, z: 22.5, y: 0, yaw: 1.326, inside: 'за тумбой букмекера: тумба, мольберт и зонт ближе 0,45 м', greet: true, wave: L,
+    // за тумбой букмекера на понтоне бегов (anchor_resident pav_rats v2), к месту ставок и проходу с набережной
+    x: 1.15, z: 22.5, y: 0, yaw: 1.326, inside: 'за тумбой букмекера: тумба, мольберт и зонт ближе 0,45 м', greet: true, wave: L,
     lines: [
       'Крысиные бега! Ставки — у табло',
       'Пуля рвёт со старта, Соня берёт на финише',

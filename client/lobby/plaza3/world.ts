@@ -11,9 +11,10 @@ import type { P3Pt } from '../../../shared/plaza3/types.ts';
 import { mergeColored, paint, place, staticMesh } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
 import { FLOOR_Y } from './floor.ts';
-import { dressPlaza3Ground } from './ground.ts';
+import { dressPlaza3Ground, outsideGardenField } from './ground.ts';
 import { moleFloorGeometry, removeMoleSlabs } from './molefloor.ts';
 import { buildPlaza3Garden } from './garden.ts';
+import { FIELD_Y } from './garden-data.ts';
 
 export interface Plaza3World {
   readonly group: THREE.Group;
@@ -119,14 +120,14 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   // --- земля: задник до города (улица и поле), настил суши со стенкой до воды, пятна, дорожки — один меш без теней от себя
   const ground: THREE.BufferGeometry[] = [
     flat(land.backlot, land.streetY, STREET),
-    flat(land.field, land.streetY + 0.02, FIELD),
+    flat(land.field, FIELD_Y, FIELD),
     flat(land.polygon, land.deckY, DECK),
     walls(land.polygon, QUAY_BOTTOM, land.deckY, STONE),
   ];
   for (const g of P3.ground) {
     const [y, color] = PATCH[g.kind] ?? [FLOOR_Y.patch, DECK];
     if (g.circle) ground.push(disc(g.circle.x, g.circle.z, g.circle.r, y, color));
-    else if (g.poly) ground.push(flat(g.poly, y, color));
+    else if (g.poly) ground.push(...outsideGardenField(g.poly).map((poly) => flat(poly, y, color)));
   }
   for (const p of P3.paths) {
     const [y, color] = PATH[p.kind] ?? PATH.secondary;

@@ -4,6 +4,7 @@
 // на земле и за линией зданий: коллизии у него нет.
 import { pick } from './layout.ts';
 import { P3 } from './plaza3/layout.ts';
+import { A, xfP } from './plaza3/xf.ts';
 
 /** Режим за флагом сервера, чьё оформление твёрдое: без флага режима его предметов нет — ни на экране, ни в карте */
 export type PlazaSolidMode = 'hide' | 'regatta' | 'dungeon';
@@ -38,13 +39,13 @@ export const KART_TIRES: readonly PlazaSolid[] = [solid(15.7, -15.1, 0.46, 0.46,
  * «Рыбный двор» (прятки, круг (−4; 12,5)): арка-ворота с севера, сушилки с рыбой и бочка с жителем с юга, перевёрнутая
  * лодка слева и ящики справа от круга. Батуты — треугольником вокруг розы ветров, в стороне от арки (shared/maps/lobby.ts).
  */
-export const YARD_GATE = { x: -4, z: 9.6, half: 2.6 } as const;
-export const YARD_RACKS: ReadonlyArray<{ x: number; z: number }> = [{ x: -6.2, z: 14.75 }, { x: -1.8, z: 14.75 }];
-export const YARD_BARREL = { x: -4, z: 16.7, r: 0.62, h: 1.0 } as const;
-export const YARD_BOAT = { x: -8.1, z: 12.6, hx: 0.6, hz: 1.35, h: 0.6 } as const;
+export const YARD_GATE = xfP(A.hide, { x: -4, z: 9.6, half: 2.6 } as const);
+export const YARD_RACKS: ReadonlyArray<{ x: number; z: number }> = [{ x: -6.2, z: 14.75 }, { x: -1.8, z: 14.75 }].map((p) => xfP(A.hide, p));
+export const YARD_BARREL = xfP(A.hide, { x: -4, z: 16.7, r: 0.62, h: 1.0 } as const);
+export const YARD_BOAT = xfP(A.hide, { x: -8.1, z: 12.6, hx: 0.6, hz: 1.35, h: 0.6 } as const);
 export const YARD_CRATES: ReadonlyArray<PlazaSolid & { y: number }> = [
   { ...solid(-0.55, 12.3, 0.45, 0.45, 0.9), y: 0 }, { ...solid(0.4, 12.3, 0.45, 0.45, 0.9), y: 0 }, { ...solid(-0.1, 12.3, 0.4, 0.4, 0.8), y: 0.9 },
-];
+].map((p) => xfP(A.hide, p));
 
 /** Две стойки арки «Рыбный двор» и ножки сушилок */
 const YARD_SOLIDS: PlazaSolid[] = [

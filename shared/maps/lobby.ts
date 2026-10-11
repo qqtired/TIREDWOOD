@@ -18,6 +18,8 @@ import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE, isleBoxes } from './isle.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { BERTHS, parkDeckBoxes } from '../ownboat.ts';
+import { SLOT_POSES } from '../slots.ts';
+import { moleRampSteps } from '../plaza3/port.ts';
 import { KART_TIRES, PB_BARRELS, SIGNPOST, plazaSolids, type PlazaSolid, type PlazaSolidMode } from '../plaza2.ts';
 import { FARM_PLAZA_GATE } from '../farmmap.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
@@ -27,7 +29,7 @@ import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
 import { PLAZA3, pick } from '../layout.ts';
 import { P3 } from '../plaza3/layout.ts';
-import { A, xfP } from '../plaza3/xf.ts';
+import { A, xfP, xfSpot } from '../plaza3/xf.ts';
 import { plaza3Interacts, plaza3Static } from '../plaza3/map.ts';
 import type { P3Rect, Plaza3Lobby } from '../plaza3/types.ts';
 
@@ -165,7 +167,7 @@ export const CANOPY_POLES: ReadonlyArray<readonly [number, number]> = pick([[14.
 export const CANOPY_POLE_H = pick(3.6, () => P3.modes.pergola.h);
 /** Стульев у стола дурака. Места 0…17 — стулья (стол × 6), 18…23 — скамейки. */
 export const TABLE_SEATS = 6;
-export const LOBBY_SEAT_COUNT = TABLE_ZS.length * TABLE_SEATS + BENCH_XS.length * 2;
+export const LOBBY_SEAT_COUNT = TABLE_ZS.length * TABLE_SEATS + BENCH_XS.length * 2 + (PLAZA3 ? 2 : 0);
 
 export function seatTable(seat: number): number {
   return Math.floor(seat / TABLE_SEATS);
@@ -296,7 +298,14 @@ export function buildLobby(): LobbyMap {
   }
   const plaza3Boxes = PLAZA3 ? plaza3Static(b) : [];
   const machines: Array<{ x: number; z: number }> = [];
-  MACHINE_XS.forEach((x, m) => {
+  if (PLAZA3) SLOT_POSES.forEach((p, m) => {
+    const sx = Math.abs(Math.cos(p.body.yaw)) * .55 + Math.abs(Math.sin(p.body.yaw)) * .85;
+    const sz = Math.abs(Math.sin(p.body.yaw)) * .55 + Math.abs(Math.cos(p.body.yaw)) * .85;
+    b.box([p.body.x - sx, 0, p.body.z - sz], [p.body.x + sx, 2.1, p.body.z + sz], 'metal', METAL);
+    machines.push({ x: p.body.x, z: p.body.z });
+    add('slot', p.use.x, p.use.z, p.use.yaw, 1.0, m, 'сыграть');
+  });
+  else MACHINE_XS.forEach((x, m) => {
     b.box([x - 0.55, 0, MACHINE_BACK_Z], [x + 0.55, 2.1, MACHINE_FRONT_Z], 'metal', METAL);
     machines.push({ x, z: (MACHINE_BACK_Z + MACHINE_FRONT_Z) / 2 });
     add('slot', x, MACHINE_FRONT_Z + 1, 0, 1.0, m, 'сыграть');
@@ -378,7 +387,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Мостки и маяк на юго-западе
   b.box([-21, -0.6, 22], [-17, 0, 38], 'wood', 0x8a6a4a);
-  b.box([-24, -0.6, 38], [-14, 0, 46], 'concrete', 0xb9b3a6);
+  b.box([PLAZA3 ? -26 : -24, -0.6, 38], [-14, 0, PLAZA3 ? 46.5 : 46], 'concrete', 0xb9b3a6);
   b.box([-20.6, 0, 41.4], [-17.4, 12, 44.6], 'concrete', 0xf0ece4);
   b.bollard(-23.3, 38.7);
   b.bollard(-14.7, 45.3);
@@ -471,6 +480,7 @@ export function buildLobby(): LobbyMap {
   add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат', JUKEBOX_Y);
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], f.mat ?? 'wood', f.color ?? 0x8a6a4a);
+  if (PLAZA3) for (const step of moleRampSteps()) b.box(step.min, step.max, 'invisible', 0);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
   const fishPropsBoxes: number[] = [];
   // plaza3: основание и ступени витрины, доска и её столбы — внутри прилавка и стенки модели pav_fishshowcase; их твёрдое —
@@ -645,6 +655,10 @@ export function buildLobby(): LobbyMap {
   add('farm', FARM_PLAZA_GATE.use.x, FARM_PLAZA_GATE.use.z, FARM_PLAZA_GATE.use.yaw, FARM_PLAZA_GATE.use.r, 0, 'на ферму');
   // --- Новая набережная (флаг PLAZA3): её новые точки (аркада и т. п.) — только после №112, номера прежних не меняются
   if (PLAZA3) plaza3Interacts(add);
+  if (PLAZA3) {
+    const bn = P3.modes.sunsetBench;
+    for (const [i, side] of [-1, 1].entries()) add('seat', bn.x + side * bn.offset * Math.cos(bn.yaw), bn.z - side * bn.offset * Math.sin(bn.yaw), bn.yaw, .7, 24 + i, 'сесть', bn.y);
+  }
 
   const spawn: Spot = { x: L.spawn.x, y: 0, z: L.spawn.z, yaw: L.spawn.yaw };
   return {
@@ -661,7 +675,7 @@ export function buildLobby(): LobbyMap {
     fortSpawn: { x: L.fortSpawn.x, y: 0, z: L.fortSpawn.z, yaw: L.fortSpawn.yaw },
     skillSpawn: { x: L.skillSpawn.x, y: 0, z: L.skillSpawn.z, yaw: L.skillSpawn.yaw },
     boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
-    hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },
+    hideSpawn: xfSpot(A.hide, { x: -4, y: 0, z: 9.4, yaw: Math.PI }),
     dungeonSpawn: { x: DUNGEON_RETURN.x, y: 0, z: DUNGEON_RETURN.z, yaw: DUNGEON_RETURN.yaw },
     farmSpawn: { x: FARM_PLAZA_GATE.spawnBack.x, y: 0, z: FARM_PLAZA_GATE.spawnBack.z, yaw: FARM_PLAZA_GATE.spawnBack.yaw },
     interact,

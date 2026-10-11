@@ -6,7 +6,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WATER_Y } from '../../shared/constants.ts';
-import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, MACHINE_FRONT_Z, PHOTO, STATUE_SHOWN, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { CANOPY_POLES, CANOPY_POLE_H, LAMP_FORT, PHOTO, STATUE_SHOWN, buildLobby, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { SLOT_POSES } from '../../shared/slots.ts';
+import { hillPlantPlan } from './plaza3/hillplants.ts';
 import type { Deco, MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
 import { CollisionWorld } from '../../shared/world.ts';
@@ -27,7 +29,6 @@ import { LobbyLook } from './look.ts';
 import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA3, pick } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
-import { A, xfP } from '../../shared/plaza3/xf.ts';
 import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import { Plaza3Pavilions } from './plaza3/pavilions.ts';
@@ -633,13 +634,14 @@ export class LobbyWorld {
    * круг «Старт» картинга, основание площадки маяка. Блокаут: без вывесок и ламп — их добавят WP9–WP10.
    */
   private buildPlaza3Kept(): void {
-    for (const m of this.map.machines) {
+    for (const p of SLOT_POSES) {
       const a = new THREE.Object3D();
-      a.position.set(m.x, 0, MACHINE_FRONT_Z);
+      a.position.set(p.front.x, 0, p.front.z);
+      a.rotation.y = p.modelYaw;
       this.scene.add(a);
       this.machineAnchors.push(a);
     }
-    const jp = xfP(A.slots, { x: -20, z: -25.31 });
+    const jp = { x: 62, z: -3.2 };
     // рамки — свои сетки (материал как у склейки solid — та же программа): прячутся, когда встанет модель павильона
     const frameMat = this.wettable(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.1 }));
     const frame = (w: number, h: number, d: number, x: number, y: number, z: number, color: number): THREE.Mesh => {
@@ -647,8 +649,9 @@ export class LobbyWorld {
       this.scene.add(m);
       return m;
     };
-    this.jackpotFrame = frame(6.7, 1.6, 0.08, jp.x, 3.5, jp.z - 0.05, 0x3a2418);
+    this.jackpotFrame = frame(0.08, 1.6, 6.7, jp.x + 0.05, 3.5, jp.z, 0x3a2418);
     this.jackpotBoard.mesh.position.set(jp.x, 3.5, jp.z);
+    this.jackpotBoard.mesh.rotation.y = -Math.PI / 2;
     // доски смотрят на юг (+Z), к площади: почёт — на фасаде pav_honor, «Кто на набережной» — на фасаде pav_online
     const hb = this.map.honorBoard;
     this.honorBoard.mesh.position.set((hb.x0 + hb.x1) / 2, 2.3, hb.z1 + 0.02);
@@ -660,7 +663,7 @@ export class LobbyWorld {
     this.scene.add(this.jackpotBoard.mesh, this.honorBoard.mesh, this.recentBoard.mesh, this.gateScreen.mesh, this.kartStart.group);
     // доски у площади видны издалека — дальность набережной их не прячет (plaza3/perf.ts)
     this.honorBoard.mesh.userData.p3keep = this.recentBoard.mesh.userData.p3keep = true;
-    this.box('concrete', [-24, -3.2, 38], [-14, -0.6, 46], 0x7d776e, -10);
+    this.box('concrete', [-26, -3.2, 38], [-14, -0.6, 46.5], 0x7d776e, -10);
   }
 
   /** Каменная стенка под краем набережной и основание площадки маяка — до воды и ниже. */
@@ -706,9 +709,10 @@ export class LobbyWorld {
       this.addGlow(0xffc27a, 1.5, x, 3.7, -21.4, 0.55);
     }
     // якоря автоматов: сами модели строит slots3d
-    for (const m of this.map.machines) {
+    for (const p of SLOT_POSES) {
       const a = new THREE.Object3D();
-      a.position.set(m.x, 0, MACHINE_FRONT_Z);
+      a.position.set(p.front.x, 0, p.front.z);
+      a.rotation.y = p.modelYaw;
       this.scene.add(a);
       this.machineAnchors.push(a);
     }
@@ -1324,6 +1328,8 @@ export class LobbyWorld {
       const tz = QUAY_Z - 5 + (rng() - 0.5);
       trees.push([tx, landY(tx, tz), tz, 2.2 + rng() * 0.8, new THREE.Color(greens[Math.floor(rng() * greens.length)]).lerp(haze, hazeAt(tx, tz))]);
     }
+    const hillPlants = PLAZA3 ? hillPlantPlan(landY, sign) : { trees: [], bushes: [] };
+    for (const p of hillPlants.trees) trees.push([p.x, p.y, p.z, p.r, new THREE.Color(p.color).lerp(haze, hazeAt(p.x, p.z))]);
     // Кроны — многогранники с нормалями шара (свет ложится мягко). Ближние к площади — из 80 граней, круглые;
     // дальние — из 20: там их не разглядеть, а деревьев тысячи
     const fine = new THREE.IcosahedronGeometry(1, 1);
@@ -1353,6 +1359,16 @@ export class LobbyWorld {
         trunks.setColorAt(ti++, bark.setHex(0x4a3a2c).lerp(haze, hazeAt(x, z)));
       });
       meshes.push(crowns);
+    }
+    if (hillPlants.bushes.length) {
+      const bushes = new THREE.InstancedMesh(coarse, crownMat, hillPlants.bushes.length);
+      bushes.name = 'plaza3-hill-bushes';
+      hillPlants.bushes.forEach((p, i) => {
+        tq.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, rng() * Math.PI * 2);
+        bushes.setMatrixAt(i, tm.compose(tp.set(p.x, p.y + p.r * .5, p.z), tq, ts.set(p.r, p.r * .55, p.r * .85)));
+        bushes.setColorAt(i, new THREE.Color(p.color).lerp(haze, hazeAt(p.x, p.z)));
+      });
+      meshes.push(bushes);
     }
     for (const m of meshes) {
       m.matrixAutoUpdate = false;
