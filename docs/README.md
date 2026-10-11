@@ -42,7 +42,8 @@
 | Чат | `text.ts`, `messages.ts` | `hub.ts`, `lobby/circlechat.ts` | `chat.ts` | — | `circlechat.test.ts`, `hub.test.ts` | план `circle-chat` |
 | Экономика и жетоны | `economy.ts` | `profiles.ts` | `ui/tokens.ts`, `ui/coin.ts` | — | `economy.test.ts`, `tokens-reconnect.test.ts` | план `progression-economy`; AGENTS §8 (8–15 жетонов в минуту) |
 | Уровни игрока | `levels.ts` | `profiles.ts` | `render/leveltag.ts`, `ui/levelprogress.ts` | — | `levels.test.ts`, `mode-levels.test.ts` | план `mode-levels`, [tasks/levels.md](tasks/levels.md) |
-| Интерфейс 2.0: кит, слоты HUD, верх-центр, бейдж, иконки; эталон вида — страница `lab/ui/` | — | — | `ui/kit/`, `assets/ui/icons/` | — | `ui-kit.test.ts` | [ui-redesign/README.md](ui-redesign/README.md) — история редизайна, решения владельца, где что лежит |
+| Интерфейс 2.0: кит (токены, компоненты `.k-*`, слоты HUD, верх-центр, бейдж, звуки, масштаб `--hud-k`), иконки; эталон вида — страница `lab/ui/` | — | — | `ui/kit/` (`tokens.css`, `kit.css`, `combat.css`, `slots.ts`, `topcenter.ts`, `badge.ts`, `dom.ts`, `icons.ts`, `scale.ts`, `sfx.ts`), `assets/ui/icons/` | — | `ui-kit.test.ts` | [ui.md](ui.md) — справочник набора и образцы, [ui-redesign/README.md](ui-redesign/README.md) — история редизайна, решения владельца, где что лежит |
+| Общие детали режимов на ките: карточка места, список, скорость, отсчёт, лента, ряд клавиш, окно итогов `ModeResults` | — | — | `ui/kit/modes.ts`, `ui/kit/modes.css`, `ui/kit/modetext.ts` | — | `ui-modes.test.ts` | [ui.md](ui.md) §1, [ui-redesign/README.md](ui-redesign/README.md) |
 | Меню Esc, список Tab | — | — | `ui/menu/`, `ui/online.ts`, `settings.ts` | — | `menu-settings.test.ts`, `tabmenu.test.ts` | планы `menu`, `tabmenu` |
 
 Лаборатория примерки — `client/fitting-room/`, контракт `shared/fitting-room.ts`,
@@ -124,7 +125,7 @@
 | Голосование «выгнать» | `votekick.ts` | `votekick.ts` | `ui/kickvote.ts`, `ui/online.ts` | `VOTEKICK` | `votekick.test.ts` | план `tabmenu` |
 | Лаборатория идей `/lab` | `lab.ts`, `lab-*.ts` (правила локальных примеров) | `lab/http.ts`, `lab/store.ts` | `lab/` (страница — `lab/index.html` в корне репозитория) | `LAB` | `lab.test.ts`, `lab-registry.test.ts`, `lab-*.test.ts` | план `lab`, [примеры ревью](lab-research-examples.md) |
 | Страница `/fishing` | — | — | — (страница — `public/fishing/` в корне) | — | `tools/fishing-guide/verify.mjs`, `test/fishing-guide.test.ts` (подсказки калькулятора) | [STATUS.md](STATUS.md); пересборка — `node tools/fishing-guide/gen.mjs` |
-| Экраны загрузки, вход и связь (карточка входа, окно «Связь потеряна…») | `loading.ts` | `readygate.ts` | `ui/entry.ts`, `ui/entry.css`, `ui/transition.ts`, `ui/transition-art.ts`, `startup.ts`, `index.html` (первая загрузка), `assets/loading/hd/` | — | `loading.test.ts`, `startup.test.ts` | план `loading` |
+| Экраны загрузки, вход и связь (карточка входа, окно «Связь потеряна…») | `loading.ts` | `readygate.ts` | `ui/entry.ts`, `ui/entry.css`, `ui/transition.ts`, `ui/transition.css`, `ui/transition-art.ts`, `startup.ts`, `index.html` (первая загрузка), `assets/loading/hd/` | — | `loading.test.ts`, `startup.test.ts` | план `loading`, [ui.md](ui.md) §1, [ui-redesign/README.md](ui-redesign/README.md) |
 | Звук (sfx.ts лежит в папке каждого режима) | — | — | `audio.ts`, `ambience.ts`, `voices.ts`, `music/` | — | `ambience.test.ts`, `settings-mix.test.ts` | план `sound`, design «Звук» |
 | Боты (только соло) | `solobots.ts` | `paintball/bot.ts`, `race/bot.ts`, `fight/bots.ts`, `lobby/regattabot.ts` | — | — | `solobots.test.ts`, `bots.test.ts` | AGENTS §6 |
 | Телефон | — | — | `touch.ts` | — | `touch.test.ts` | design «Телефоны» |
@@ -152,7 +153,8 @@
 | [README.md](README.md) | эта карта | актуально |
 | [STATUS.md](STATUS.md) | последняя записанная выкладка, локальный пакет, текущая подготовка, отложенное и история | сводка на 10.10; история релизов не заменяет проверку production |
 | [product.md](product.md) | как продумывать задачу, стиль игры, формат отчёта | актуально |
-| [ui.md](ui.md) | окна, HUD и тексты: образцы, переменные стиля, поведение окна, чек-лист перед сдачей | актуально до слияния UI 2.0 |
+| [ui.md](ui.md) | интерфейс на наборе UI 2.0: образцы (кит и готовые экраны), токены и шрифты, размеры и масштаб, поведение окна, тексты, чек-лист перед сдачей | актуально; источник правды по интерфейсу |
+| [ui-redesign/](ui-redesign/README.md) | редизайн интерфейса (UI 2.0): хронология, решения владельца, где что лежит, как продолжить; опись старого UI `inventory/`, задания и отчёты `sdd/`, конвейер иконок `icons-pipeline/`; снимки — в локальном архиве вне git; эталон вида — `lab/ui/` | актуально; вход для того, кто продолжит улучшать |
 | [models.md](models.md) | 3D-модели: эталоны крепости и Подземелья, порядок работы, обязательные анимации, вкус, чек-лист | актуально |
 | [design.md](design.md) | как всё устроено: сеть, режимы, отрисовка, выкладка, отладка | справочник с исторической базой 03.10 и поздними дополнениями; «Гонки на катерах» — старая бухта, «Крепость» — первая версия; проверять по коду |
 | [optimization.md](optimization.md) | план оптимизации: замеры, бюджет кадра, правила постройки площади, сеть | актуально; скрипта замера из этапа 1 (`tools/perf/plaza.mjs`) в `main` пока нет |
