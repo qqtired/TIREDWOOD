@@ -221,7 +221,7 @@ export function monoRun(text: string, em: number): { xs: number[]; width: number
  * Подбор кегля названия под ширину: не меньше minFrac от базового, иначе обрезка с «…» (длинное сокращаем, а не мельчим).
  * Возвращает кегль и текст.
  */
-export function fitTitle(text: string, em: number, maxW: number, minFrac = 0.72): { em: number; text: string } {
+export function fitTitle(text: string, em: number, maxW: number, minFrac = 0.62): { em: number; text: string } {
   let t = text;
   let e = em;
   const w = (s: string, k: number): number => monoRun(s, k).width;
