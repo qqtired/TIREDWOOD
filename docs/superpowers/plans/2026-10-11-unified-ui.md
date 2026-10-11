@@ -37,9 +37,13 @@ headless Chrome через CDP.
 
 1. **Без флага.** Редизайн уже показан владельцу «рендером» (страница-обзор), он только про вид, данные и протокол не меняются;
    откат = прошлый релиз (`deploy.sh` хранит его). Держать два UI за флагом — двойная работа на каждом экране.
-2. **Масштаб одним `zoom`.** Кит нарисован в пикселях сцены 1440×900. В игре `#hud` и `#menus` получают
-   `zoom: var(--hud-k)`, где `--hud-k = clamp(0.8, min(vw/1440, vh/900), 1.6) × настройка «Размер интерфейса»`.
-   На 2K (2560×1440) это 1,6 — владелец играет на 2K. Старые `zoom: var(--ui-scale)` на отдельных селекторах убираются.
+2. **Масштаб одним `zoom` — только у слоёв кита.** Кит нарисован в пикселях сцены 1440×900. `zoom: var(--hud-k)` получают
+   только контейнеры кита: слой слотов `.k-hud` и слой окон `.k-scrim`, где `--hud-k = clamp(MIN, min(vw/1440, vh/900), 1.6) ×
+   «Размер интерфейса»`, MIN = 0,8 (мышь) / 0,6 (палец). На 2K (2560×1440) это 1,6 — владелец играет на 2K.
+   **Не** зумить `#hud`/`#menus` целиком: всё, что ставится в экранных пикселях (цифры урона, стрелки угроз, подписи над
+   миром, окна по `getBoundingClientRect`), при zoom≠1 уезжает (проверено в Task 1). Такие детали кита живут в
+   незумленном слое `.k-world`: внешний элемент ставится в точку, внутренняя обёртка `.k-world-in` увеличивается `scale: var(--hud-k)`. Старый UI до переноса
+   остаётся без zoom. Старые `zoom: var(--ui-scale)` на отдельных селекторах убираются.
 3. **Верх-центр — один менеджер.** Сейчас там толкаются 8 систем (голосование, шторм, пираты, таймер аквапарка, джекпот,
    связь, тосты, ожидание). Будет одна плашка события (по приоритету) и до 3 тостов под ней.
 4. **Звуки интерфейса** — синтез из `lab/ui/kit/sfx.js` через шину `sound.kit.ui` (уважает общую громкость и «Интерфейс»),
@@ -115,7 +119,7 @@ import '@fontsource/rubik-mono-one/latin-400.css';    // только при «�
 
 **Interfaces:**
 - Produces:
-  - `hudScale(vw: number, vh: number, uiScale: number): number`
+  - `hudScale(vw: number, vh: number, uiScale: number, coarse?: boolean): number` (coarse — палец: MIN 0,6)
   - `bindHudScale(root: HTMLElement, getUiScale: () => number): () => void` — ставит `--hud-k` на `root`, возвращает отписку
   - `uiIcon(id: string): string` — URL картинки или `''`
   - `h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string): HTMLElementTagNameMap[K]`
@@ -138,6 +142,7 @@ test('масштаб HUD: 1440×900 — 1, 2K — 1,6, маленький экр
   assert.equal(hudScale(1280, 720, 1), 0.8);
   assert.equal(hudScale(1920, 1080, 1), 1.2);
   assert.equal(hudScale(1920, 1080, 1.15), 1.38);
+  assert.equal(hudScale(844, 390, 1, true), 0.6);
 });
 ```
 - [ ] **Step 2: Запустить — падает** (`node --test test/ui-kit.test.ts` → «Cannot find module …/scale.ts»).
@@ -149,15 +154,17 @@ test('масштаб HUD: 1440×900 — 1, 2K — 1,6, маленький экр
 const W = 1440;
 const H = 900;
 const MIN = 0.8;
+const MIN_TOUCH = 0.6;
 const MAX = 1.6;
 
-export function hudScale(vw: number, vh: number, uiScale: number): number {
-  const k = Math.min(MAX, Math.max(MIN, Math.min(vw / W, vh / H)));
+export function hudScale(vw: number, vh: number, uiScale: number, coarse = false): number {
+  const k = Math.min(MAX, Math.max(coarse ? MIN_TOUCH : MIN, Math.min(vw / W, vh / H)));
   return Math.round(k * uiScale * 100) / 100;
 }
 
 export function bindHudScale(root: HTMLElement, getUiScale: () => number): () => void {
-  const apply = (): void => { root.style.setProperty('--hud-k', String(hudScale(innerWidth, innerHeight, getUiScale()))); };
+  const coarse = matchMedia('(pointer: coarse)');
+  const apply = (): void => { root.style.setProperty('--hud-k', String(hudScale(innerWidth, innerHeight, getUiScale(), coarse.matches))); };
   apply();
   addEventListener('resize', apply);
   return () => removeEventListener('resize', apply);
@@ -169,8 +176,13 @@ export function bindHudScale(root: HTMLElement, getUiScale: () => number): () =>
   `@font-face` не переносить. `kit.css` и `combat.css` — дословно; в начале `kit.css` добавить:
 
 ```css
-/* масштаб всего интерфейса (client/ui/kit/scale.ts) */
-#hud, #menus { zoom: var(--hud-k, 1); }
+/* масштаб слоёв кита (client/ui/kit/scale.ts). #hud/#menus целиком НЕ зумить — уезжают детали в экранных пикселях */
+.k-hud, .k-scrim { zoom: var(--hud-k, 1); }
+/* детали, привязанные к точке на экране (урон, стрелки угроз, подписи над миром): без zoom, увеличиваются transform */
+.k-world { position: absolute; inset: 0; pointer-events: none; }
+/* позиционируется внешний элемент (left/top или transform: translate), а увеличивается только внутренняя обёртка —
+   иначе scale растянет и сам сдвиг */
+.k-world .k-world-in { transform-origin: center; scale: var(--hud-k, 1); }
 ```
   Картинки в CSS кита (если есть `url(../img/...)`) заменить на переменные, которые задаёт `dom.ts` (`--k-coin-url` и т. п.).
 - [ ] **Step 6: Иконки**
@@ -196,7 +208,7 @@ export function uiIcon(id: string): string { return BY_ID.get(id) ?? ''; }
   `--ui-scale` (теперь `--hud-k`), в `client/ui/menu/menu.css:14,867,902-909` убрать `zoom: var(--ui-scale)`.
 - [ ] **Step 10: Проверка** — `npm run check && npm test && npm run build`; запустить
   `PORT=3106 DATA_DIR=$(mktemp -d) FISH2=1 ISLE=1 node server/main.ts --dev`, headless-снимок площади 1440×900 и 2560×1440:
-  интерфейс прежний, но крупнее на 2K; ошибок в консоли нет.
+  старый интерфейс прежний (zoom его не касается), пример окна кита в `.k-scrim` на 2K в 1,6 раза крупнее; ошибок в консоли нет.
 - [ ] **Step 11: Commit** — `git commit -m "ui: кит 2.0 в клиенте — токены, компоненты, иконки, масштаб, звуки"`
 
 ---
