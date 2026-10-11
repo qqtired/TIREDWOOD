@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-11T08:10:42.895Z",
+ "generatedAt": "2026-10-11T09:18:53.836Z",
  "source": "concepts_blender/plaza3",
  "layout": {
   "plan": {
@@ -268,19 +268,19 @@
   {
    "key": "billiards",
    "file": "assets/models/pav/pav_billiards.glb",
-   "bytes": 413280,
+   "bytes": 554652,
    "role": null,
    "layoutId": "billiards",
    "origin": [
-    42.7,
-    4.3
+    40.7,
+    17.7
    ],
-   "yaw": 3.14159,
-   "name": "Бильярдная лоджия",
-   "tris": 6433,
+   "yaw": 0,
+   "name": "Бильярдная лоджия у моря",
+   "tris": 8505,
    "bulbs": 0,
-   "props": 9,
-   "nodes": 34,
+   "props": 25,
+   "nodes": 51,
    "poster": "assets/pavilions/renders/billiards-34-s.jpg"
   },
   {
@@ -304,43 +304,43 @@
   {
    "key": "cafe",
    "file": "assets/models/pav/pav_cafe.glb",
-   "bytes": 498828,
+   "bytes": 467120,
    "role": null,
    "layoutId": "cafe",
    "origin": [
-    27,
-    -9
+    39,
+    3
    ],
    "yaw": 1.5708,
    "name": "Кафе «Чайка»",
-   "tris": 7608,
+   "tris": 7028,
    "bulbs": 0,
-   "props": 13,
-   "nodes": 24,
+   "props": 15,
+   "nodes": 26,
    "poster": "assets/pavilions/renders/cafe-34-s.jpg"
   },
   {
    "key": "cardveranda",
    "file": "assets/models/pav/pav_cardveranda.glb",
-   "bytes": 339844,
+   "bytes": 396248,
    "role": null,
    "layoutId": "cards",
    "origin": [
-    19.5,
-    -9.5
+    28.25,
+    0.8
    ],
-   "yaw": 1.5708,
-   "name": "Веранда кафе (пергола): дурак ×2, блэкджек",
-   "tris": 4902,
-   "bulbs": 62,
-   "props": 4,
-   "nodes": 83,
+   "yaw": 0,
+   "name": "Веранда кафе (низкая пергола): дурак ×2, блэкджек",
+   "tris": 5788,
+   "bulbs": 72,
+   "props": 2,
+   "nodes": 89,
    "poster": "assets/pavilions/renders/cardveranda-34-s.jpg"
   },
   {
    "key": "dungeon_cliff",
    "file": "assets/models/pav/pav_dungeon_cliff.glb",
-   "bytes": 859776,
+   "bytes": 704132,
    "role": null,
    "layoutId": "dungeon",
    "origin": [
@@ -349,28 +349,28 @@
    ],
    "yaw": 3.141592653589793,
    "name": "Подземелье — скальный массив",
-   "tris": 11808,
+   "tris": 9811,
    "bulbs": 0,
-   "props": 166,
-   "nodes": 207,
+   "props": 180,
+   "nodes": 238,
    "poster": "assets/pavilions/renders/dungeon_cliff-34-s.jpg"
   },
   {
    "key": "farm_arch",
    "file": "assets/models/pav/pav_farm_arch.glb",
-   "bytes": 364516,
+   "bytes": 277020,
    "role": null,
    "layoutId": "farmarch",
    "origin": [
-    50,
-    -20
+    55.1,
+    -21.5
    ],
-   "yaw": 1.5707963267948966,
-   "name": "Арка «Огороды» + мельница",
-   "tris": 5524,
+   "yaw": 1.8495,
+   "name": "Арка «Огороды»",
+   "tris": 4106,
    "bulbs": 0,
    "props": 71,
-   "nodes": 89,
+   "nodes": 94,
    "poster": "assets/pavilions/renders/farm_arch-34-s.jpg"
   },
   {
@@ -448,7 +448,7 @@
   {
    "key": "karting",
    "file": "assets/models/pav/pav_karting.glb",
-   "bytes": 453516,
+   "bytes": 429304,
    "role": null,
    "layoutId": "karting",
    "origin": [
@@ -457,28 +457,28 @@
    ],
    "yaw": 3.141592653589793,
    "name": "Картинг — гараж",
-   "tris": 7342,
-   "bulbs": 44,
+   "tris": 6778,
+   "bulbs": 42,
    "props": 22,
-   "nodes": 84,
+   "nodes": 82,
    "poster": "assets/pavilions/renders/karting-34-s.jpg"
   },
   {
    "key": "kursaal",
    "file": "assets/models/pav/pav_kursaal.glb",
-   "bytes": 825708,
+   "bytes": 761404,
    "role": null,
    "layoutId": "kurzal",
    "origin": [
-    45,
-    -10.5
+    56.5,
+    3.9
    ],
-   "yaw": 3.14159,
+   "yaw": 0,
    "name": "Курзал «Автоматы · Аркада»",
-   "tris": 12577,
-   "bulbs": 367,
-   "props": 33,
-   "nodes": 447,
+   "tris": 11482,
+   "bulbs": 317,
+   "props": 26,
+   "nodes": 393,
    "poster": "assets/pavilions/renders/kursaal-34-s.jpg"
   },
   {
@@ -558,7 +558,7 @@
    "file": "assets/models/pav/pav_online.glb",
    "bytes": 177696,
    "role": null,
-   "layoutId": "honor",
+   "layoutId": "online",
    "origin": [
     13.5,
     -1.8
@@ -610,19 +610,19 @@
   {
    "key": "regatta_lookout",
    "file": "assets/models/pav/pav_regatta_lookout.glb",
-   "bytes": 79288,
+   "bytes": 77536,
    "role": null,
    "layoutId": "viewdeck",
    "origin": [
-    47,
-    15.5
+    56.5,
+    17.6
    ],
    "yaw": 3.14159,
-   "name": "Смотровая на регату + лестница к морю",
-   "tris": 914,
+   "name": "Трибуна регаты и лестница к морю",
+   "tris": 1026,
    "bulbs": 0,
-   "props": 82,
-   "nodes": 117,
+   "props": 25,
+   "nodes": 51,
    "poster": "assets/pavilions/renders/regatta_lookout-34-s.jpg"
   },
   {
@@ -714,6 +714,24 @@
    "props": 9,
    "nodes": 29,
    "poster": "assets/pavilions/renders/swallow_gate-34-s.jpg"
+  },
+  {
+   "key": "windmill",
+   "file": "assets/models/pav/pav_windmill.glb",
+   "bytes": 91136,
+   "role": "windmill",
+   "layoutId": null,
+   "origin": [
+    84,
+    -62
+   ],
+   "yaw": 2.2092,
+   "name": "Мельница поля «Огороды»",
+   "tris": 1414,
+   "bulbs": 0,
+   "props": 0,
+   "nodes": 4,
+   "poster": "assets/pavilions/renders/windmill-34-s.jpg"
   }
  ],
  "gameModels": [
@@ -724,11 +742,11 @@
    "node": "plaza_cave_entrance",
    "bytes": 384992,
    "world": [
-    -19.6,
-    -34.2
+    -20.25,
+    -34.8
    ],
    "y": 0,
-   "yaw": 0.7854,
+   "yaw": 0.803,
    "name": "Вход в пещеру — как в игре",
    "layoutId": "dungeon",
    "source": "client/assets/dungeon/plaza/plaza_entrance.glb"
@@ -740,11 +758,11 @@
    "node": "plaza_records_board",
    "bytes": 384992,
    "world": [
-    -16.14,
-    -25.79
+    -16.64,
+    -26.45
    ],
    "y": 0,
-   "yaw": 0.7854,
+   "yaw": 0.803,
    "name": "Доска рекордов «Подземелья»",
    "layoutId": null,
    "source": "client/assets/dungeon/plaza/plaza_entrance.glb"
@@ -756,8 +774,8 @@
    "node": null,
    "bytes": 90604,
    "world": [
-    56.4,
-    -20
+    61.3,
+    -23.3
    ],
    "y": 0,
    "yaw": -1.5707963267948966,

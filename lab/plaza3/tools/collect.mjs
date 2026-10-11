@@ -136,7 +136,7 @@ for (const base of pcNames) {
 // роли моделей, которых нет среди павильонов раскладки: они встают по своим координатам и заменяют заглушку сцены
 const ROLES = [[/^lighthouse$|^tokarev/, 'lighthouse'], [/windmill|melnic/, 'windmill']];
 const HINTS = [
-  [/^lighthouse$|^tokarev/, null], [/online|who_?is/, 'honor'], [/fish_?show|showcase|vitrin/, 'showcase'],
+  [/^lighthouse$|^tokarev/, null], [/online|who_?is/, 'online'], [/fish_?show|showcase|vitrin/, 'showcase'],
   [/paint|sklad/, 'paintball'], [/fort|krep/, 'fortress'], [/sky|kalan|climb/, 'kalancha'], [/kart|garage/, 'karting'],
   [/dungeon|cave|podzem|cliff/, 'dungeon'], [/farm.?gate|kalitk/, 'farmgate'], [/farm|ogorod/, 'farmarch'],
   [/kurs|kurz|arcade|slots/, 'kurzal'], [/card|veranda|pergol/, 'cards'], [/cafe|chaika/, 'cafe'], [/billiard/, 'billiards'],
