@@ -3,12 +3,21 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import '@fontsource/rubik/400.css';
 import '@fontsource/rubik/700.css';
 import '@fontsource/rubik/900.css';
+import '@fontsource/rubik/500.css';
+import '@fontsource/rubik/600.css';
+import '@fontsource/rubik/800.css';
+import '@fontsource/rubik-mono-one/cyrillic-400.css';
+import '@fontsource/rubik-mono-one/latin-400.css';
+// кит интерфейса 2.0 — как в игре (startup-game.ts): до styles.css
+import '../ui/kit/tokens.css';
+import '../ui/kit/kit.css';
+import '../ui/kit/combat.css';
 import '../styles.css';
 import { BOSS_OPEN_TICKS, BOSS_WARN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_WALKER,
   ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_FLY_WARN, ZS_SPIT, ZS_WALK, Z_GOLEM, Z_RAM, ZS_CHARGE_WARN, ZS_QUAKE,
-  ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_BOAT, ZS_BOAT_LAND, ZS_HOP, ZS_CLIMB, type FortResultRow } from '../../shared/fort.ts';
+  ZS_STOMP, ZS_THROW, isBossKind, Z_BOAT, ZS_BOAT, ZS_BOAT_LAND, ZS_HOP, ZS_CLIMB, type FortResultRow, type FortWaveCard } from '../../shared/fort.ts';
 import { WATER_Y } from '../../shared/constants.ts';
-import { crystalMax, gateMax, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
+import { crystalMax, gateMax, gateRows, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { BOSS_CYCLE, GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK } from '../../shared/fortkinds.ts';
@@ -16,6 +25,10 @@ import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH } from '../touch.ts';
+import { Badge } from '../ui/kit/badge.ts';
+import { bindHudScale } from '../ui/kit/scale.ts';
+import { HudSlots } from '../ui/kit/slots.ts';
+import { TopCenter } from '../ui/kit/topcenter.ts';
 import { FortHud } from './hud.ts';
 import { FortWorld } from './world.ts';
 import { ALL_MOBS } from './mobs/index.ts';
@@ -23,6 +36,17 @@ import { Zombies3D } from './zombies3d.ts';
 
 // как в игре (app.ts): на сенсорном экране — раскладка для телефона
 document.documentElement.classList.toggle('touch', TOUCH);
+// кит: как в игре — оболочка #hud со слоем слотов, верх-центр над ней, масштаб от окна, комната «крепость»
+document.documentElement.dataset.room = 'fort';
+bindHudScale(document.documentElement, () => 1);
+const shell = document.createElement('div');
+shell.className = 'shell';
+document.body.insertBefore(shell, document.getElementById('qa'));
+const hudRoot = document.getElementById('hud')!;
+shell.append(hudRoot);
+const slots = new HudSlots(shell, document.body);
+const top = new TopCenter(slots.tc, slots.c);
+new Badge(slots.tr).set('Tester7', 12, 0.4, 1840);
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas);
 const map = buildFort();
@@ -32,7 +56,7 @@ const world = new FortWorld(renderer, map);
 const params = new URLSearchParams(location.search);
 const zombies = new Zombies3D(world.scene, new CollisionWorld(map), params.get('mobs') === '0' ? [] : ALL_MOBS);
 const march = params.get('march') === '1';
-const hud = new FortHud(document.getElementById('hud')!);
+const hud = new FortHud(hudRoot, { slots, top });
 const orbit = new OrbitControls(world.camera, canvas);
 orbit.enableDamping = true;
 orbit.minDistance = 5;
@@ -165,10 +189,13 @@ function makeSnapshots(): ZombieSnap[] {
 
 hud.setVisible(true);
 hud.pb.setCrosshair(0, false, false);
-hud.pb.setAliveUi(false);
+hud.pb.setAliveUi(true);
+hud.pb.setVitals(72, 100, 0, 0, false);
+hud.pb.setAmmo(24, 38, null);
+hud.pb.setDash(1);
+hud.arms.set(0, 1, 'Дробовик', 'shotgun', 8, 2, 3);
 hud.setGate(1000, 1600);
 hud.setCrystal(2300, 2500);
-hud.setPoints(1000);
 hud.stall.onClose = () => hud.stall.close();
 hud.stall.onBuy = () => hud.stall.message('В этом превью нет сервера: покупку проверяют в полной игре.', true);
 document.getElementById('shop')!.addEventListener('click', () => {
@@ -178,6 +205,11 @@ document.getElementById('shop')!.addEventListener('click', () => {
   hud.stall.render(shopRows({ wave: 7, calm: true, row }), row.g, null);
 });
 document.getElementById('reset')!.addEventListener('click', resetCamera);
+// сцены интерфейса, которых нет в разметке стенда: лавка и ремонт ворот
+uiMode.add(new Option('Лавка: открыта', 'shop'));
+uiMode.add(new Option('Ворота: ремонт', 'repair'));
+uiMode.add(new Option('Голосование: сдаться', 'vote'));
+if (params.has('ui')) uiMode.value = params.get('ui')!;
 
 // ------------------------------------------------------------ новый интерфейс (client/fort/ui): заданные сцены
 const team = [
@@ -193,6 +225,12 @@ const results: FortResultRow[] = [
   { id: 3, name: 'Лиса', k: 188, d: 9, pts: 4400, waves: 6, tokens: 31 },
 ];
 let uiAt = 0;
+/** Карточка волны стенда: в бою — идущая, в паузе — следующая (в передышке и бою с боссом — Барон) */
+function previewCard(phase: number, wave: number, m: string): FortWaveCard {
+  const boss = m !== 'fight' && m !== 'gate' && m !== 'coach';
+  return { w: phase === FT_WAVE ? wave : wave + 1, title: boss ? ZK[Z_BOSS].name : 'Крылатки', chips: [Z_WALKER, 24, Z_CLIMBER, 6, Z_FLYER, 8, Z_BRUTE, 2],
+    boats: 0, crew: 0, boss: boss ? Z_BOSS : -1, tier: 0, event: 0, roads: [0, 1, 2], fresh: [Z_FLYER], elite: 3, champ: 0 };
+}
 let gold = 1240;
 function startUi(): void {
   uiAt = elapsed;
@@ -200,18 +238,33 @@ function startUi(): void {
   hud.hideEnd();
   const m = uiMode.value;
   if (m !== 'coach') hud.ui.coach.skip();
+  hud.stall.close();
+  hud.ui.top.clear('fort-surr');
+  hud.pb.setCrosshair(14, m !== 'win' && m !== 'lose', false);
   if (m === 'down') hud.showDeath('Плевок попал — уходи с красной метки');
   else hud.pb.hideDeath();
   if (m === 'fight') {
-    hud.ui.waveStart(6);
+    hud.ui.onPhase(FT_WAVE, 6, previewCard(FT_WAVE, 6, m));
     hud.alert('🚪 Ворота трещат!', 60000, { target: 'gate' });
   } else if (m === 'break') {
-    hud.ui.cleared(6, 168, 50, true);
+    hud.ui.onPhase(FT_BREAK, 6, previewCard(FT_BREAK, 6, m));
   } else if (m === 'boss' || m === 'down') {
     hud.ui.waveStart(8);
     hud.alert('Залп Барона · уйди с красной метки', 60000, { timed: true });
   } else if (m === 'kraken') {
-    hud.ui.push({ key: 'kraken', badge: '🐙', tone: 'super', prio: 1, ms: 60000, title: 'Кракен поднимается из моря!', sub: 'Сначала щупальца — потом голова · не стойте у воды' });
+    hud.alert('🐙 Кракен поднимается из моря! · сначала щупальца — потом голова', 60000);
+  } else if (m === 'shop') {
+    const row = { ...makeArsenalRow(), g: 340, gr: 1 };
+    row.lv = [2, 1, 0, 0, 0];
+    hud.ui.cleared(6, 168, 50, false);
+    hud.stall.open('shop', 'Лавка оружейника', '');
+    hud.stall.render(shopRows({ wave: 7, calm: true, row }), row.g, null);
+  } else if (m === 'repair') {
+    hud.stall.open('gate', 'Ворота', 'Чинят и укрепляют здесь');
+    hud.stall.setStrength(1240, gateMax(1));
+    hud.stall.render(gateRows({ wave: 7, calm: true, gold: 340, gate: 1240, gateTier: 1, crystal: 2300, crystalTier: 1 }), 340, null);
+  } else if (m === 'vote') {
+    hud.ui.top.event({ key: 'fort-surr', prio: 90, tone: 'special', lamp: true, html: `<span class="k-event-ic"><img src="${hud.ui.flagIcon}" alt=""></span><div class="k-event-title">Роман: сдаёмся?</div><div class="k-event-sub">за 2 из 4, нужно 3 · <b>0:14</b></div><div class="k-event-actions ft-vote-actions"><button class="k-btn k-btn--go k-btn--sm" type="button">За<kbd class="k-key k-key--sm k-key--tr">Y</kbd></button><button class="k-btn k-btn--stop k-btn--sm" type="button">Против<kbd class="k-key k-key--sm k-key--tr">N</kbd></button></div><span class="k-meter k-meter--thin k-meter--special" style="--v:0.6"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>` });
   } else if (m === 'gate') {
     hud.pb.centerMessage('Ворота пали!', 'Зомби во дворе — защищайте кристалл', '#ff8a6a', 60000);
     hud.alert('🚪 Ворота пали — все к кристаллу!', 60000, { target: 'crystal' });
@@ -228,8 +281,8 @@ uiMode.addEventListener('change', startUi);
 function uiFrame(): void {
   const m = uiMode.value;
   const t = elapsed - uiAt;
-  const phase = m === 'break' ? FT_BREAK : m === 'coach' ? FT_GATHER : m === 'win' || m === 'lose' ? FT_END : FT_WAVE;
-  const wave = m === 'break' ? 7 : m === 'boss' || m === 'down' || m === 'kraken' ? 8 : 6;
+  const phase = m === 'break' || m === 'shop' || m === 'repair' ? FT_BREAK : m === 'coach' ? FT_GATHER : m === 'win' || m === 'lose' ? FT_END : FT_WAVE;
+  const wave = m === 'break' || m === 'shop' || m === 'repair' ? 6 : m === 'boss' || m === 'down' || m === 'kraken' ? 8 : 6;
   if (m === 'down') hud.pb.setRespawn(5 - (t % 5));
   if (m === 'fight' && Math.floor(t * 2) % 3 === 0) gold += 3;
   const threats: ZombieSnap[] = m === 'fight' || m === 'gate' ? [
@@ -237,6 +290,7 @@ function uiFrame(): void {
     { id: 31, kind: Z_CLIMBER, state: ZS_CLIMB, hp: 1, x: 19, y: 1.5, z: -4, yaw: 0, atk: 0 },
     { id: 32, kind: Z_FLYER, state: ZS_FLY_WARN, hp: 1, x: 0, y: 8, z: 8, yaw: 0, atk: 0 },
   ] : [];
+  hud.setCard(previewCard(phase, wave, m), phase);
   hud.ui.frame({
     phase, wave, leftS: phase === FT_WAVE ? 0 : Math.max(0, 20 - t), enemies: phase === FT_WAVE ? Math.max(4, 57 - Math.floor(t * 1.5)) : 0,
     gold, gate: m === 'gate' ? 0 : m === 'fight' ? 520 * 1.5 : 1000, gateMax: gateMax(2), gateTier: 2,
@@ -247,8 +301,6 @@ function uiFrame(): void {
   if (m === 'kraken') {
     hud.ui.boss.set({ frac: 0.62, stage: 2, state: Math.floor(t / 3) % 2 ? ZS_BOSS_OPEN : 0, wind: 150 - ((t * 60) % 180), kind: Z_BOSS, tier: 1, rage: false,
       name: 'Кракен', super: true, parts: [{ label: 'Щупальце', frac: 0 }, { label: 'Щупальце', frac: 0.35 }, { label: 'Щупальце', frac: 0.8 }, { label: 'Щупальце', frac: 1 }, { label: 'Голова', frac: 0.62 }] });
-  } else if (m !== 'boss' && m !== 'down') {
-    hud.setBoss(0, 0, 0, 0);
   }
 }
 quality.addEventListener('change', setQuality);
@@ -279,10 +331,11 @@ function frame(now: number) {
   zombies.push(++tick, snapshots, snapshots.length);
   zombies.update(tick, dt, now / 1000, world.camera);
   const boss = snapshots.find((z) => isBossKind(z.kind));
-  hud.setWave(FT_WAVE, 8, `${snapshots.length} заданных врагов`, false);
   hud.setDefense(FT_WAVE, 6, shield ? 480 : 0, shield ? 1800 : 0);
   world.props.setRally(shield);
-  hud.setBoss(boss?.hp ?? 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
+  // полоса босса — только в сценах боя с боссом (иначе плашка волны и босса менялись бы каждый кадр)
+  const fightBoss = uiMode.value === 'boss' || uiMode.value === 'down';
+  if (uiMode.value !== 'kraken') hud.setBoss(fightBoss ? boss?.hp ?? 0 : 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
   uiFrame();
   world.update(dt, world.camera.position);
   world.arsenal.update(dt, world.camera.position, () => false);

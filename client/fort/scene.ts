@@ -19,9 +19,10 @@ export class FortScene implements Scene {
   readonly kind = 'fort' as const;
   /**
    * Мышь нужна всегда, кроме открытой панели арсенала (лавка, ворота, кристалл, башня) и «свободного курсора» после Esc
-   * у неё: Esc закрывает только панель, меню игры не встаёт; клик или любая клавиша возвращают мышь в игру.
+   * у неё: Esc закрывает только панель, меню игры не встаёт; клик или любая клавиша возвращают мышь в игру. Окно итогов —
+   * тоже без мыши в игре: его кнопки нажимаются мышью.
    */
-  get wantsPointer(): boolean { return !(this.hud.shopShown || this.match?.cursorFree); }
+  get wantsPointer(): boolean { return !(this.hud.shopShown || this.hud.endShown || this.match?.cursorFree); }
   private readonly d: SceneDeps;
   readonly map = buildFort();
   readonly collision: CollisionWorld;
@@ -49,7 +50,7 @@ export class FortScene implements Scene {
     const root = document.createElement('div');
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
-    this.hud = new FortHud(root);
+    this.hud = new FortHud(root, { slots: d.ui.slots, top: d.ui.top, online: d.ui.online });
   }
 
   /** Телефон: под итогами и у открытой панели (она снизу, на месте кнопок) стрелять незачем — только верхние кнопки */

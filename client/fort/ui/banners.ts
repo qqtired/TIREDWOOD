@@ -1,158 +1,77 @@
-// Баннеры «Крепости» в одном стиле и по очереди: старт волны, волна отбита и чистая волна, ворота пали, десант,
-// боссы. Крупный — по одному (важный встаёт вперёд, текущий неважный укорачивает), мелкие подтверждения
-// («башня строится», «гранаты: 3») — своей строкой внизу, тоже по одному. Сообщения пейнтбольного интерфейса
-// (centerMessage, bannerMessage) в крепости приходят сюда же — ничего не наслаивается.
+// Сообщения «Крепости» — через верх-центр кита (client/ui/kit/topcenter.ts), без своего места на экране: важное
+// (старт волны, босс повержен, ворота пали, новый рекорд) — крупным баннером по центру (hero), остальное — тостом
+// под плашкой волны (не больше трёх). Сообщения пейнтбольного интерфейса (centerMessage, bannerMessage) в крепости
+// приходят сюда же; ленты сбитых в крепости нет — сбитых видно по тостам и точкам команды.
 import type { Hud } from '../../paintball/hud.ts';
-import { el } from './dom.ts';
+import { PRIO, type TcHero, type TopCenter } from '../../ui/kit/topcenter.ts';
+import { fortIcon } from './icons.ts';
+import { alarmText, type ToastTone } from './text.ts';
 
-export type Tone = 'neutral' | 'wave' | 'gold' | 'danger' | 'sea' | 'boss' | 'super' | 'record';
+/** Баннер по центру живёт не дольше своей анимации (kit.css .k-hero.is-play — 3,2 с) */
+const HERO_MS = 3300;
 
 export interface BannerSpec {
+  /** Тот же ключ — заменить прежний */
+  key?: string;
   title: string;
   sub?: string;
-  /** Медаль слева: номер волны или значок */
-  badge?: string;
-  tone?: Tone;
+  /** Сколько висит, мс */
   ms?: number;
-  /** 0 — обычный, 1 — важный (встаёт вперёд), 2 — срочный (укорачивает текущий) */
+  /** Крупно по центру (иначе — тост) */
+  hero?: boolean;
+  /** Тон: у баннера — gold | win | lose | info, у тоста — info | reward | warn | good */
+  tone?: string;
+  /** Картинка тоста (id иконки) */
+  icon?: string;
+  /** Важность баннера (PRIO): менее важный не перебивает более важный */
   prio?: number;
-  /** Тот же ключ — обновить показанный или ждущий, а не добавить второй */
-  key?: string;
 }
 
-interface Entry extends Required<Omit<BannerSpec, 'key' | 'sub' | 'badge'>> {
-  key: string;
-  sub: string;
-  badge: string;
-}
+export class FortBanners {
+  private readonly top: TopCenter;
+  /** Повален: мелкие подтверждения молчат (на экране «Тебя повалили!») */
+  quiet = false;
+  /** Ключ последнего крупного баннера (убрать при уходе) */
+  private heroKey = '';
 
-const GAP_MS = 140;
-const MIN_SHOW_MS = 900;
-
-export class Banners {
-  private readonly big: HTMLElement;
-  private readonly badge: HTMLElement;
-  private readonly title: HTMLElement;
-  private readonly sub: HTMLElement;
-  private readonly small: HTMLElement;
-  private queue: Entry[] = [];
-  private cur: Entry | null = null;
-  private curAt = 0;
-  private curEnd = 0;
-  private freeAt = 0;
-  private toasts: { html: string; ms: number }[] = [];
-  private toastEnd = 0;
-  private toastHtml = '';
-
-  constructor(parent: HTMLElement) {
-    this.big = el('div', 'fu-banner', parent);
-    this.big.setAttribute('role', 'status');
-    this.badge = el('div', 'fu-bbadge', this.big);
-    const text = el('div', 'fu-btext', this.big);
-    this.title = el('b', 'fu-btitle', text);
-    this.sub = el('span', 'fu-bsub', text);
-    this.small = el('div', 'fu-toast', parent);
+  constructor(top: TopCenter) {
+    this.top = top;
   }
 
-  /** Перехватить сообщения пейнтбольного интерфейса этого экрана */
+  /** Перехватить сообщения пейнтбольного интерфейса (центр и мелкие плашки) */
   adopt(pb: Hud): void {
     pb.centerMessage = (text: string, sub = '', color = '', ms = 1800) => {
-      const tone: Tone = color === '#ffd35a' ? 'gold' : color && color !== '' ? 'danger' : 'neutral';
-      this.push({ title: text, sub, tone, badge: tone === 'danger' ? '!' : tone === 'gold' ? '★' : '', ms: Math.max(1600, ms), prio: tone === 'danger' ? 2 : 0 });
+      // красный центр (ворота пали) — крупно; остальное (название режима) — тостом
+      if (color) this.push({ key: `c-${text}`, hero: true, tone: 'lose', prio: PRIO.boss, title: text, sub, ms: Math.max(2600, ms) });
+      else this.push({ key: `c-${text}`, icon: 'bell', tone: 'info', title: text, sub, ms: Math.max(3000, ms) });
     };
-    pb.bannerMessage = (html: string, ms = 1600) => this.toast(html, ms);
+    pb.bannerMessage = (html: string, ms = 1600) => {
+      if (this.quiet) return;
+      const a = alarmText(html, 'level');
+      const tone: ToastTone = a.icon === 'brute' || a.icon === 'champion' || a.icon === 'kraken' ? 'reward' : a.icon === 'hammer' || a.icon === 'gate' ? 'good' : 'info';
+      this.push({ key: `b-${a.title}`, icon: a.icon, tone, title: a.title, sub: a.sub, ms: Math.max(2400, ms) });
+    };
+    pb.killfeed = () => {};
   }
 
-  push(spec: BannerSpec): void {
-    const e: Entry = {
-      title: spec.title, sub: spec.sub ?? '', badge: spec.badge ?? '', tone: spec.tone ?? 'neutral',
-      ms: spec.ms ?? 2600, prio: spec.prio ?? 0, key: spec.key ?? `${spec.tone ?? ''}|${spec.title}`,
-    };
-    const now = performance.now();
-    if (this.cur && this.cur.key === e.key) {
-      // тот же баннер — обновить на месте и продлить
-      this.cur = e;
-      this.render(e);
-      this.curEnd = Math.max(this.curEnd, now + Math.min(e.ms, 2600));
+  push(s: BannerSpec): void {
+    if (s.hero) {
+      this.heroKey = s.key ?? s.title;
+      this.top.hero({ key: s.key ?? s.title, prio: s.prio ?? PRIO.info, tone: (s.tone ?? 'gold') as TcHero['tone'], title: s.title, sub: s.sub, life: Math.min(s.ms ?? HERO_MS, HERO_MS) });
       return;
     }
-    const i = this.queue.findIndex((q) => q.key === e.key);
-    if (i >= 0) this.queue.splice(i, 1);
-    let at = this.queue.findIndex((q) => q.prio < e.prio);
-    if (at < 0) at = this.queue.length;
-    this.queue.splice(at, 0, e);
-    if (this.queue.length > 4) this.queue.length = 4;
-    // срочный не ждёт неважный: тот уходит через мгновение
-    if (this.cur && e.prio >= 2 && this.cur.prio < e.prio) this.curEnd = Math.min(this.curEnd, Math.max(now + 160, this.curAt + 500));
-    else if (this.cur && e.prio > this.cur.prio) this.curEnd = Math.min(this.curEnd, Math.max(now + 300, this.curAt + MIN_SHOW_MS));
+    this.top.toast({ key: s.key, tone: (s.tone ?? 'info') as ToastTone, icon: fortIcon(s.icon ?? 'warn'), title: s.title, sub: s.sub || undefined, life: s.ms });
   }
 
-  /** Убрать баннер: ждущий — из очереди, показанный — уходит сейчас (устарел: «рекордная волна» после побитого рекорда) */
+  /** Убрать баннер этого вида (устарел: «рекордная волна» после побитого рекорда) */
   drop(key: string): void {
-    this.queue = this.queue.filter((q) => q.key !== key);
-    if (this.cur?.key === key) this.curEnd = Math.min(this.curEnd, performance.now());
+    this.top.clearHero(key);
   }
 
-  /** Мелкое подтверждение строкой внизу (HTML из своих строк) */
-  toast(html: string, ms = 1600): void {
-    if (html === this.toastHtml && performance.now() < this.toastEnd) {
-      this.toastEnd = performance.now() + ms;
-      return;
-    }
-    if (this.toasts.some((t) => t.html === html)) return;
-    this.toasts.push({ html, ms });
-    if (this.toasts.length > 3) this.toasts.shift();
-  }
-
-  private render(e: Entry): void {
-    this.big.className = `fu-banner tone-${e.tone}${e.badge ? ' has-badge' : ''}${this.big.classList.contains('show') ? ' show' : ''}`;
-    this.badge.textContent = e.badge;
-    this.title.textContent = e.title;
-    this.sub.textContent = e.sub;
-    this.sub.hidden = !e.sub;
-  }
-
-  tick(): void {
-    const now = performance.now();
-    if (this.cur && now >= this.curEnd) {
-      this.cur = null;
-      this.big.classList.remove('show');
-      this.freeAt = now + GAP_MS + 200;
-    }
-    if (!this.cur && this.queue.length && now >= this.freeAt) {
-      const e = this.queue.shift()!;
-      this.cur = e;
-      this.curAt = now;
-      this.curEnd = now + e.ms;
-      this.render(e);
-      void this.big.offsetWidth;
-      this.big.classList.add('show');
-    }
-    if (this.toastHtml && now >= this.toastEnd) {
-      this.toastHtml = '';
-      this.small.classList.remove('show');
-      this.toastEnd = now + 160;
-    }
-    if (!this.toastHtml && this.toasts.length && now >= this.toastEnd) {
-      const t = this.toasts.shift()!;
-      this.toastHtml = t.html;
-      this.toastEnd = now + t.ms;
-      this.small.innerHTML = t.html;
-      void this.small.offsetWidth;
-      this.small.classList.add('show');
-    }
-  }
-
-  clear(): void {
-    this.queue = [];
-    this.toasts = [];
-    this.cur = null;
-    this.toastHtml = '';
-    this.big.classList.remove('show');
-    this.small.classList.remove('show');
-  }
-
-  get showing(): string | null {
-    return this.cur?.title ?? null;
+  /** Ушли из крепости: баннер и тосты — прочь */
+  dropAll(): void {
+    if (this.heroKey) this.top.clearHero(this.heroKey);
+    this.heroKey = '';
+    this.top.clearToasts();
   }
 }

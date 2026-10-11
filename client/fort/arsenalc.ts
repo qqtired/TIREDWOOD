@@ -339,13 +339,13 @@ export class ArsenalClient {
     return true;
   }
 
+  /** Строка под заголовком панели (прочность ворот и кристалла — крупно в самой панели, setStrength) */
   private panelSub(st: FortStation): string {
-    const calm = this.calm;
-    if (st.kind === 'shop') return calm ? 'Покупки — до конца этой игры' : 'Работает и в бою — не стой на месте';
-    if (st.kind === 'gate') return `Прочность ${Math.round(this.host.gate())} из ${this.gateMax}`;
-    if (st.kind === 'crystal') return `Прочность ${Math.round(this.host.crystal())} из ${this.crystalMax}`;
+    if (st.kind === 'shop') return this.calm ? '' : 'Работает и в бою — не стой на месте';
+    if (st.kind === 'gate') return this.host.gate() > 0 ? 'Чинят и укрепляют здесь' : 'Ворота разбиты';
+    if (st.kind === 'crystal') return 'Разбили кристалл — игра окончена';
     const type = this.tail.type[st.arg] ?? -1;
-    return type < 0 ? 'Пусто · башня общая: награда — тем, кто вложился' : `${TOWERS[type].name} · уровень ${this.tail.level[st.arg]}`;
+    return type < 0 ? 'Место для башни · пусто' : `${TOWERS[type].name} · уровень ${this.tail.level[st.arg]}`;
   }
 
   closePanel(): void {
@@ -380,7 +380,10 @@ export class ArsenalClient {
       this.pending = null;
       this.d.hud.stall.message('Ответ задерживается — попробуй ещё раз', true);
     }
-    this.d.hud.stall.setSub(this.panelSub(this.station));
+    const st = this.station;
+    this.d.hud.stall.setSub(this.panelSub(st));
+    if (st.kind === 'gate') this.d.hud.stall.setStrength(this.host.gate(), this.gateMax);
+    else if (st.kind === 'crystal') this.d.hud.stall.setStrength(this.host.crystal(), this.crystalMax);
     this.d.hud.stall.render(this.rows, this.row.g, this.pending);
   }
 
@@ -397,7 +400,7 @@ export class ArsenalClient {
     }
     if (r.price > this.row.g) {
       stall.flash(id, false);
-      stall.message(`Не хватает ${r.price - this.row.g} 💰`, true);
+      stall.message(`Не хватает ${r.price - this.row.g} — «${r.name}» стоит ${r.price}, у тебя ${this.row.g}`, true);
       this.sfx.deny();
       return;
     }
@@ -414,7 +417,7 @@ export class ArsenalClient {
     if (!stall.shown) return;
     const r = this.rows.find((x) => x.id === id);
     stall.flash(id, false);
-    stall.message(why === NOPE_FAR ? 'Подойди ближе к стойке' : why === NOPE_GOLD ? 'Не хватает 💰' : r?.reason || 'Сейчас нельзя', true);
+    stall.message(why === NOPE_FAR ? 'Подойди ближе к стойке' : why === NOPE_GOLD ? 'Не хватает золота' : r?.reason || 'Сейчас нельзя', true);
     this.sfx.deny();
     this.rowsAt = -1;
   }
@@ -425,7 +428,7 @@ export class ArsenalClient {
   hint(st: FortStation): [string, number, boolean] | null {
     switch (st.kind) {
       case 'shop':
-        return [TOUCH ? 'лавка оружейника: прокачка, стволы, гранаты' : 'лавка оружейника · прокачка, стволы, гранаты · 1–9 — купить', 0, true];
+        return ['лавка оружейника · прокачка, стволы, гранаты', 0, true];
       case 'gate': {
         const max = this.gateMax;
         const g = this.host.gate();

@@ -1,12 +1,17 @@
-// Полоса босса «Крепости» сверху: имя (и круг: II, III …), фаза и ярость, большая полоса здоровья со «следом»
-// урона, что он делает сейчас; окно уязвимости — отдельной бирюзовой полосой с отсчётом «огонь!». У супер-босса
-// (Кракен) — морской вид и полоски частей (голова, щупальца). Тексты атак — по состояниям из снимка.
+// Полоса босса «Крепости» — плашкой события верх-центра (кит: .k-event, приоритет босса — выше плашки волны):
+// имя (и круг: II, III …) и «Ярость», «волна 7 · ещё 12 зомби», процент, полоса 16 со «следом» урона; окно уязвимости —
+// второй, бирюзовой полосой «Ядро открыто — огонь! 2,4 с»; ниже — одна строка «что делать» (красная — уйди с метки,
+// бирюзовая — бей). У Кракена — щупальца и голова маленькими полосками. Тексты атак — по состояниям из снимка.
 import {
   BOSS_OPEN_TICKS, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE, ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE,
   ZS_STOMP, ZS_THROW,
 } from '../../../shared/fort.ts';
-import { el, roman, setText } from './dom.ts';
+import { TICK_RATE } from '../../../shared/constants.ts';
+import { PRIO, escHtml, type TopCenter } from '../../ui/kit/topcenter.ts';
+import { num, roman } from './dom.ts';
+import { fortImg } from './icons.ts';
 import { bossInfo } from './schedule.ts';
+import { foeIcon, sec1 } from './text.ts';
 
 export interface BossPart {
   label: string;
@@ -32,7 +37,7 @@ export interface BossView {
   status?: string;
   /** Полное окно уязвимости, тиков (у Кракена оглушение дольше); по умолчанию — BOSS_OPEN_TICKS */
   openTicks?: number;
-  /** Полоса краснеет (опасная атака); по умолчанию — по состоянию (DANGER). Новые боссы — client/fort/bosses-f.ts */
+  /** Опасная атака (строка «что делать» красная); по умолчанию — по состоянию (DANGER). Новые боссы — client/fort/bosses-f.ts */
   danger?: boolean;
 }
 
@@ -53,110 +58,85 @@ export function bossAttackText(state: number): string {
   }
 }
 
-/** Опасные состояния: полоса краснеет */
+/** Опасные состояния: строка «что делать» краснеет */
 const DANGER = new Set([ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_CHARGE_WARN, ZS_CHARGE, ZS_STOMP, ZS_THROW, ZS_QUAKE]);
+const KEY = 'fort-boss';
+/** «След» урона стоит столько, потом догоняет полосу (доля в секунду) */
+const TRAIL_WAIT = 0.4;
+const TRAIL_SPEED = 0.6;
 
-/** Ширина без перехода (лечение, новый босс) */
-export function snapWidth(e: HTMLElement, pct: number): void {
-  e.classList.add('snap');
-  e.style.width = `${pct}%`;
-  void e.offsetWidth;
-  e.classList.remove('snap');
-}
+const meter = (v: number, cls: string, g = v, label = ''): string =>
+  `<span class="k-meter ${cls}" style="--v:${v.toFixed(3)};--g:${g.toFixed(3)}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i>${label ? `<span class="k-meter-label">${label}</span>` : ''}</span>`;
 
 export class BossBar {
-  readonly root: HTMLElement;
-  private readonly ico: HTMLElement;
-  private readonly name: HTMLElement;
-  private readonly phase: HTMLElement;
-  private readonly pct: HTMLElement;
-  private readonly fill: HTMLElement;
-  private readonly ghost: HTMLElement;
-  private readonly parts: HTMLElement;
-  private readonly status: HTMLElement;
-  private readonly window: HTMLElement;
-  private readonly windowFill: HTMLElement;
-  private lastFrac = 1;
-  private shownKind = -1;
+  private readonly top: TopCenter;
+  private shown = false;
+  private look = -1;
+  private trail = 1;
+  private trailAt = 0;
+  private lastAt = 0;
+  private wave = 0;
+  private left = 0;
 
-  constructor(parent: HTMLElement) {
-    this.root = el('div', 'fu-boss', parent);
-    const head = el('div', 'fu-boss-head', this.root);
-    this.ico = el('span', 'fu-boss-ico', head);
-    this.name = el('b', 'fu-boss-name', head);
-    this.phase = el('span', 'fu-boss-phase', head);
-    this.pct = el('b', 'fu-boss-pct', head);
-    const bar = el('div', 'fu-boss-bar', this.root);
-    bar.setAttribute('role', 'progressbar');
-    bar.setAttribute('aria-valuemin', '0');
-    bar.setAttribute('aria-valuemax', '100');
-    this.ghost = el('i', 'ghost', bar);
-    this.fill = el('i', 'fill', bar);
-    this.parts = el('div', 'fu-boss-parts', this.root);
-    this.status = el('div', 'fu-boss-status', this.root);
-    this.window = el('div', 'fu-boss-window', this.root);
-    this.windowFill = el('i', '', this.window);
+  constructor(top: TopCenter) {
+    this.top = top;
+  }
+
+  /** Волна и сколько врагов осталось — подстрокой плашки */
+  setWave(wave: number, left: number): void {
+    this.wave = wave;
+    this.left = left;
+  }
+
+  get active(): boolean {
+    return this.shown;
   }
 
   set(v: BossView | null): void {
-    const show = !!v && v.frac > 0;
-    this.root.classList.toggle('show', show);
-    if (!v || !show) {
-      this.shownKind = -1;
-      this.lastFrac = 1;
+    if (!v || !(v.frac > 0)) {
+      if (this.shown) this.top.clear(KEY);
+      this.shown = false;
+      this.look = -1;
       return;
     }
     const base = bossInfo(v.kind);
-    const info = { ...base, name: v.name ?? base.name, super: v.super ?? base.super, icon: v.super && !base.super ? '🐙' : base.icon };
-    const look = v.kind * 2 + (info.super ? 1 : 0);
-    if (this.shownKind !== look) {
-      this.shownKind = look;
-      this.root.classList.toggle('super', info.super);
-      snapWidth(this.ghost, Math.ceil(v.frac * 100));
-      this.lastFrac = v.frac;
-    }
-    setText(this.ico, info.icon);
-    setText(this.name, `${info.name}${v.tier ? ` ${roman(v.tier + 1)}` : ''}`);
-    // фаза боссов fort: 1 — обычный, 2 — ярость (≤ 50 % HP)
+    const sup = v.super ?? base.super;
+    const name = v.name ?? base.name;
+    const look = v.kind * 2 + (sup ? 1 : 0);
+    const now = performance.now() / 1000;
+    const dt = Math.min(0.1, Math.max(0, now - this.lastAt));
+    this.lastAt = now;
+    const frac = Math.max(0, Math.min(1, v.frac));
+    // «след»: новый босс или лечение — сразу; урон — постоит и догонит
+    if (look !== this.look || frac > this.trail) {
+      this.trail = frac;
+      this.trailAt = now;
+    } else if (frac < this.trail && now - this.trailAt > TRAIL_WAIT) {
+      this.trail = Math.max(frac, this.trail - TRAIL_SPEED * dt);
+    } else if (frac >= this.trail) this.trailAt = now;
+    this.look = look;
+    const pct = Math.max(0, Math.min(100, Math.ceil(frac * 100)));
     const rage = v.rage ?? v.stage >= 2;
-    this.root.classList.toggle('rage', rage);
-    setText(this.phase, rage ? 'Ярость' : '');
-    this.phase.hidden = !this.phase.textContent;
-    const pct = Math.max(0, Math.min(100, Math.ceil(v.frac * 100)));
-    setText(this.pct, `${pct}%`);
-    this.fill.style.width = `${pct}%`;
-    this.fill.parentElement!.setAttribute('aria-valuenow', String(pct));
-    this.fill.parentElement!.setAttribute('aria-label', `Здоровье: ${info.name}`);
-    // «след» урона догоняет полосу с задержкой (переход в CSS); лечение — сразу
-    if (v.frac > this.lastFrac + 0.001) snapWidth(this.ghost, pct);
-    else if (v.frac < this.lastFrac - 0.001) this.ghost.style.width = `${pct}%`;
-    this.lastFrac = v.frac;
-
     const open = v.state === ZS_BOSS_OPEN;
-    this.root.classList.toggle('open', open);
-    if (open) {
-      setText(this.status, v.status ?? `Ядро открыто — огонь! ${(Math.max(0, v.wind) / 60).toFixed(1).replace('.', ',')} с`);
-      this.windowFill.style.transform = `scaleX(${v.wind > 0 ? Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS))) : 1})`;
-    } else {
-      setText(this.status, v.status ?? bossAttackText(v.state));
+    const danger = v.danger ?? DANGER.has(v.state);
+    const icon = `<span class="k-event-ic">${fortImg(sup ? 'kraken' : foeIcon(v.kind))}</span>`;
+    const pill = sup ? '<span class="k-pill k-pill--special k-pill--sm">супер-босс</span>' : rage ? '<span class="k-pill k-pill--bad k-pill--sm">Ярость</span>' : '';
+    const title = `<div class="k-event-title">${escHtml(name)}${v.tier ? ` ${roman(v.tier + 1)}` : ''} ${pill}</div>`;
+    const sub = `<div class="k-event-sub">волна ${num(this.wave)} · ещё ${num(this.left)} ${sup ? 'врагов' : 'зомби'}</div>`;
+    const timer = `<div class="k-event-timer">${pct}%</div>`;
+    let html = icon + title + sub + timer + meter(frac, `${sup ? 'k-meter--special' : 'k-meter--bad'} ft-bar`, this.trail);
+    if (open && !v.status) {
+      const w = v.wind > 0 ? Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS))) : 1;
+      html += meter(w, 'k-meter--info ft-bar', w, `Ядро открыто — огонь! ${sec1(v.wind / TICK_RATE)} с`);
     }
-    this.root.classList.toggle('danger', v.danger ?? DANGER.has(v.state));
-
     const parts = v.parts ?? [];
-    this.parts.hidden = parts.length === 0;
-    while (this.parts.childElementCount < parts.length) {
-      const p = el('span', 'fu-part', this.parts);
-      el('small', '', p);
-      el('i', '', el('span', 'fu-part-bar', p));
+    if (parts.length) {
+      html += `<div class="ft-parts">${parts.map((p) => `<div class="ft-part${p.frac <= 0 ? ' is-off' : ''}"><span>${escHtml(p.label.toLowerCase())}</span>${meter(Math.max(0, Math.min(1, p.frac)), /голов/i.test(p.label) ? 'k-meter--special' : 'k-meter--bad')}</div>`).join('')}</div>`;
     }
-    for (let i = 0; i < this.parts.childElementCount; i++) {
-      const node = this.parts.children[i] as HTMLElement;
-      const part = parts[i];
-      node.hidden = !part;
-      if (!part) continue;
-      setText(node.firstElementChild as HTMLElement, part.label);
-      (node.querySelector('.fu-part-bar i') as HTMLElement).style.width = `${Math.round(Math.max(0, Math.min(1, part.frac)) * 100)}%`;
-      node.classList.toggle('gone', part.frac <= 0);
-    }
+    const doText = open && !v.status ? '<b>Бей в ядро</b> — арбалет больнее всего' : `<b>${escHtml(v.status ?? bossAttackText(v.state))}</b>`;
+    const doCls = open ? ' is-go' : danger ? ' is-danger' : '';
+    html += `<div class="ft-do${doCls}">${fortImg(open ? 'crossbow' : 'warn')}<span>${doText}</span></div>`;
+    this.top.event({ key: KEY, prio: PRIO.boss, tone: sup ? 'special' : 'danger', lamp: true, html });
+    this.shown = true;
   }
 }

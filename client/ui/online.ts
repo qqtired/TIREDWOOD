@@ -87,6 +87,11 @@ export class OnlineList {
     return this.list.length;
   }
 
+  /** Кто где (Tab крепости: «остальные — не в крепости») */
+  get entries(): readonly OnlineEntry[] {
+    return this.list;
+  }
+
   /** Список открыт с мышью (ПКМ): клавиши — не игре, мышь не захвачена */
   get pinned(): boolean {
     return this.pin;
