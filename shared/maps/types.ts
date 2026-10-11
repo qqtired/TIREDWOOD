@@ -47,6 +47,17 @@ export type Deco =
   | { kind: 'buoy'; x: number; z: number; color: number }
   | { kind: 'boat'; x: number; z: number; yaw: number; color: number };
 
+/** Optional exact sloped support. Box-only maps keep their existing collision path. */
+export interface MapTerrain {
+  height(x: number, z: number, ceiling?: number): number;
+  /** Raised decks can leave a real cavity beneath them; terrain itself is solid below its surface. */
+  blocks?(x: number, y: number, z: number, height: number): boolean;
+  ceiling?(x: number, z: number, head: number): number;
+  walkable?(x: number, z: number): boolean;
+  /** An existing collision box controls the same feature flag as the surface. */
+  enabledBy?: number;
+}
+
 export interface GameMap {
   name: string;
   boxes: MapBox[];
@@ -58,4 +69,5 @@ export interface GameMap {
   deco: Deco[];
   /** Граница пирса по X/Z (для навигации и камеры) */
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+  terrain?: MapTerrain;
 }

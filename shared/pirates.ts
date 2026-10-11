@@ -7,6 +7,7 @@
 import { TICK_RATE, WATER_Y } from './constants.ts';
 import { PIVOT_Y } from './aim.ts';
 import { viewDir } from './math.ts';
+import { PLAZA3 } from './layout.ts';
 
 // ------------------------------------------------------------ время и числа
 
@@ -75,7 +76,8 @@ export const PIRATE_SHIP = { x: 8, z: 50, yaw: Math.PI / 2, ax: 9.5, az: 3.4 } a
 export const PIRATE_PILES: ReadonlyArray<{ x: number; z: number }> = [{ x: -1.0, z: 16.0 }, { x: 12.0, z: 16.0 }, { x: 20.0, z: 16.0 }];
 const PILE_AT: ReadonlyArray<readonly [number, number]> = [[-0.65, -0.35], [0.55, -0.55], [-0.45, 0.6], [0.65, 0.5]];
 export interface LootHome { x: number; z: number; pile: number }
-export const PIRATE_LOOT_HOME: readonly LootHome[] = PIRATE_PILES.flatMap((p, pile) => PILE_AT.map(([dx, dz]) => ({ x: p.x + dx, z: p.z + dz, pile })));
+// После разворота Рыбного двора вещи1/2 попадали в лодку/стойку ворот; сами кучи и номера прежние.
+export const PIRATE_LOOT_HOME: readonly LootHome[] = PIRATE_PILES.flatMap((p, pile) => PILE_AT.map(([dx, dz], i) => ({ x: p.x + dx, z: p.z + (PLAZA3 && pile === 0 ? i === 1 ? .3 : i === 2 ? .4 : dz : dz), pile })));
 /** Вещь с этим номером — бочка (иначе ящик с рыбой) */
 export const lootIsBarrel = (id: number): boolean => id % 2 === 1;
 /** Причалы шлюпок у кромки: шлюпка носом к причалу (нос на север), ступают на причал в точке выхода */

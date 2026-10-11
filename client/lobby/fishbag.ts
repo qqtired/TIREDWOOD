@@ -56,6 +56,7 @@ export function emptyHtml(img: string, title: string, text: string): string {
 type BagTab = 'bag' | 'well';
 
 export class FishBag {
+  allowHold = true;
   onClose: () => void = () => {};
   private readonly root: HTMLDialogElement;
   private readonly win: HTMLElement;
@@ -75,7 +76,7 @@ export class FishBag {
   private bodyKey = '';
   private tabsKey = '';
 
-  constructor(parent: HTMLElement, send: (msg: ClientMsg) => void) {
+  constructor(parent: HTMLElement, send: (msg: ClientMsg) => void, sellerNote = 'Продать улов — у Деда Семёна или Сани на баркасе') {
     this.send = send;
     const { dlg, win } = fishDialog(parent, 'fi-win--auto fi-bagwin');
     this.root = dlg;
@@ -83,7 +84,7 @@ export class FishBag {
     dlg.setAttribute('aria-labelledby', 'fish-bag-title');
     win.innerHTML = winHeadHtml({ portrait: '<img alt="">', eyebrow: 'Рюкзак', title: 'Рюкзак' })
       + '<div class="fi-tabwrap"></div><div class="k-win-body"></div>'
-      + '<footer class="k-win-foot"><span class="k-note">Продать улов — у Деда Семёна или Сани на баркасе</span><span class="fi-sum"></span></footer>';
+      + `<footer class="k-win-foot"><span class="k-note">${esc(sellerNote)}</span><span class="fi-sum"></span></footer>`;
     this.portrait = win.querySelector<HTMLImageElement>('.k-win-portrait > img')!;
     this.eyebrow = win.querySelector<HTMLElement>('.k-eyebrow')!;
     win.querySelector('.k-win-title')!.id = 'fish-bag-title';
@@ -193,7 +194,7 @@ export class FishBag {
       html = p.bag.length
         ? `<div class="fi-rows">${p.bag.map((f) => {
           const inHands = this.held === f.n;
-          const hold = `<button type="button" class="k-btn k-btn--ghost k-btn--sm" data-act="hold" data-n="${f.n}">${inHands ? 'Убрать' : 'В руки'}</button>`;
+          const hold = !this.allowHold ? '' : `<button type="button" class="k-btn k-btn--ghost k-btn--sm" data-act="hold" data-n="${f.n}">${inHands ? 'Убрать' : 'В руки'}</button>`;
           return catchRowHtml(f, hold + this.releaseBtn(f.n), inHands);
         }).join('')}</div>`
         : emptyHtml(pic, 'Рюкзак пуст', 'Пойманная рыба ложится сюда по цене поимки. Рюкзак побольше — в лавке у Деда Семёна.');

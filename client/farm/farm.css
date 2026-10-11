@@ -12,9 +12,6 @@ dialog.k-scrim.farm-scrim:focus, dialog.k-scrim.farm-scrim :focus:not(:focus-vis
 /* без затемнения (новый уровень): игра и баннер видны сквозь окно */
 dialog.k-scrim.farm-scrim--clear { background: transparent; }
 
-/* прицел: точка в центре экрана (ЛКМ по своей грядке в 6 м) */
-.farm-cross { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--hero-text); box-shadow: 0 0 0 2px rgba(20, 10, 12, .4); pointer-events: none; }
-.farm-cross[hidden] { display: none; }
 .farm-done { justify-content: center; width: 100%; }
 
 /* ------------------------------------------------ ВЛ: карточка фермы (v2: 292 вместо 360, кольцо 40, текст 13–16) */
@@ -64,7 +61,7 @@ dialog.k-scrim.farm-scrim--clear { background: transparent; }
 .farm-price > i { font-style: normal; opacity: .7; }
 .farm-slot-lv { position: absolute; bottom: 3px; left: 0; right: 0; font: 800 var(--fs-13)/1 var(--font-text); text-transform: none; letter-spacing: 0; }
 .farm-rake-note { align-self: center; }
-.farm-whose { align-self: center; }
+.farm-whose { align-self: center; max-width: 520px; white-space: normal; text-align: center; line-height: 1.25; }
 
 /* ------------------------------------------------ окна */
 .farm-win { max-height: 820px; }
@@ -233,3 +230,21 @@ dialog.k-scrim.farm-scrim--clear { background: transparent; }
 .farm-well-foot.is-result { justify-content: space-between; }
 .farm-ctl { display: inline-flex; align-items: center; gap: 10px; font: 700 var(--fs-16)/1.2 var(--font-text); }
 .farm-well-foot > .k-note.farm-well-esc { margin-right: 0; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+
+/* Пакет фермы: компактное имя, подтверждённый сбор и Древо рядом. */
+.farm-identity { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.farm-identity label { display: flex; align-items: center; gap: var(--sp-3); }
+.farm-identity .k-input { flex: 1; min-width: 0; }
+.farm-identity-icons { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.farm-identity-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.farm-loot { width: 290px; padding: var(--sp-3); pointer-events: none; font-size: var(--fs-14); }
+.farm-loot[hidden], .farm-tree-near[hidden] { display: none !important; }
+.farm-loot p { margin: 0; }
+.farm-loot-items { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); margin: var(--sp-2) 0; }
+.farm-loot-items > div { display: flex; gap: var(--sp-1); align-items: center; min-width: 0; }
+.farm-loot-items > div span { flex: 1; white-space: normal; line-height: 1.2; }
+.farm-loot .k-ic { width: 24px; height: 24px; flex: none; }
+.farm-tree-near { width: 290px; padding: var(--sp-3); font-size: var(--fs-14); pointer-events: none; }
+.farm-tree-near p { margin: var(--sp-1) 0; }
+.farm-tree-top { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; }
+.farm-tree-top > div { display: flex; justify-content: space-between; gap: var(--sp-2); }

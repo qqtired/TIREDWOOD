@@ -182,6 +182,8 @@ export abstract class FarmWin {
       if (!e.repeat && this.onKey(e.code)) e.preventDefault();
     });
     d.addEventListener('keyup', (e) => e.stopPropagation());
+    d.addEventListener('mousedown', (e) => { e.stopPropagation(); if ((e.target as Element).closest('button')) e.preventDefault(); });
+    for (const type of ['pointerdown', 'wheel'] as const) d.addEventListener(type, (e) => e.stopPropagation(), { passive: true });
     d.addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
     // клик мимо окна (по затемнению) закрывает
     d.addEventListener('click', (e) => { if (e.target === d) this.close(); });

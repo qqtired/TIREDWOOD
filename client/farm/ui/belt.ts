@@ -191,7 +191,6 @@ export class SeedBelt {
       : `<div class="farm-pick-stats"><span><b>${grow}</b></span><span class="k-gold"><b>+${c.xp}</b> опыта</span>${price}<span>${fi(resIconName(c.res))}${resName(c.res)} ${s.chance} %</span></div>`;
     const tags = [
       s.free && !s.locked ? `<span class="k-pill k-pill--gold k-pill--sm">${ui('gift')}первая — даром</span>` : '',
-      !s.locked && c.id === this.lastCrop ? '<span class="k-pill k-pill--sm">как в прошлый раз</span>' : '',
       list.length > BELT_SLOTS ? `<span class="k-pill k-pill--xs">${list.findIndex((x) => x.id === c.id) + 1} из ${list.length}</span>` : '',
     ].join('');
     const cells = list.slice(this.start, this.start + BELT_SLOTS).map((b, k) => {

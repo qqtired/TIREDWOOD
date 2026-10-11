@@ -8,7 +8,9 @@ import type { Interactable, LobbyMap, Spot } from '../shared/maps/lobby.ts';
 import type { MapBox } from '../shared/maps/types.ts';
 
 /** Отпечаток старой карты набережной — sha(buildLobby()) без флага, снят 11.10.2026 после удаления Fight Club */
-export const LEGACY_LOBBY_SHA = '7e1978a3b3c7306cfd2146c6e3e50ed0ca32cbc502da47a112e2b4b578e1041a';
+// PACK1: общий ISLE перемещён на(-950,180), опора заменена точными треугольниками и 272 настоящими боксами.
+// Сверено с WF-пакетом: вне isleBoxes/terrain карта побайтно та же после нормализации индексов последующих боксов.
+export const LEGACY_LOBBY_SHA = 'd8c0ac1f6b731e481f3df011a6b8d39605dd8041eb47a6f962725e1c6706ddc0';
 
 /** sha256 от JSON — отпечаток данных (как у «Причала» в test/maps.test.ts) */
 export function sha(v: unknown): string {
@@ -38,7 +40,8 @@ export function spotProblems(map: LobbyMap, world: CollisionWorld, rules: SpotRu
     const it = 'kind' in s ? s : null;
     if (it && (it.kind === 'boat' || (it.kind === 'ferry' && it.arg === 0))) continue;
     if (rules.inIsle(s.x, s.z)) continue;
-    const floor = it?.kind === 'wheel' ? 0.15 : it?.kind === 'juke' && it.arg === 1 ? rules.bakY : it?.kind === 'oboat' ? rules.parkDeckY : it?.y ?? 0;
+    // Высота позы сидящего якоря выше земли; физическую опору проверяем отдельно, не подменяем ею anchorY.
+    const floor = it?.kind === 'seat' && it.arg >= 24 ? 0 : it?.kind === 'wheel' ? 0.15 : it?.kind === 'juke' && it.arg === 1 ? rules.bakY : it?.kind === 'oboat' ? rules.parkDeckY : it?.y ?? 0;
     const name = it ? `точка ${it.id} ${it.kind}` : 'место появления';
     if (Math.abs(world.groundBelow(s.x, 0.5, s.z) - floor) > 1e-9) out.push(`${name}: нет опоры в (${s.x}; ${s.z})`);
     if (it && (it.kind === 'seat' || it.kind === 'durak' || it.kind === 'blackjack' || it.kind === 'billiards')) continue;

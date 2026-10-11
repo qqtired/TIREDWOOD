@@ -17,9 +17,9 @@ export function mount(root, { go, data }) {
   );
   const hero = h('div.hero',
     h('div',
-      h('div.eyebrow', 'В игре с 10.10.2026 · релиз 20261010-204608'),
+      h('div.eyebrow', 'История v11 · выпуск 10.10.2026'),
       h('h1', 'Ферма', h('em', '.')),
-      h('p.sub', 'Уютный участок на холме у моря: посадил, ушёл, вернулся — урожай ждёт. Здесь можно оценить геймдизайн, баланс, локацию и модели до того, как режим пойдёт в игру.'),
+      h('p.sub', 'Уютный участок на холме у моря: посадил, ушёл, вернулся — урожай ждёт. Ниже сохранён прежний обзор v11. Следующий пакет с новым балансом и прудом вынесен в отдельную вкладку.'),
       h('div.row',
         h('button.btn.primary', { type: 'button', onclick: () => go('path') }, 'Путь игрока →'),
         h('button.btn', { type: 'button', onclick: () => go('questions') }, 'Решения владельца'),
@@ -35,10 +35,10 @@ export function mount(root, { go, data }) {
   // ───── выпуск ─────
   const shots = [['release-farm.png', 'Ферма в боевой сборке: HUD, свой участок, грядки соседей'], ['release-three.png', 'Трое на ферме: свои участки, видят друг друга и посадки'], ['release-land.png', 'Земля до и после: трава, цветы, кусты, поля до горизонта']];
   const release = h('div.block',
-    h('h3', 'Выпущено'),
-    h('p.lead', 'Ферма на сайте с 10 октября 2026 (релиз 20261010-204608, флаг FARM) вместе с рыбалкой 10.10 и «Подземельем». В игре всё, что описано на этой странице, плюс новая земля с травой и декором. Числа ниже — те, что в игре.'),
+    h('h3', 'История выпуска v11'),
+    h('p.lead', 'Снимки выпуска фермы 10 октября 2026 (релиз 20261010-204608). Прежние вкладки сохраняют решения и расчёты v11 как историю. Новые задачи и числа пакета 1 ещё не внедрены в игру.'),
     h('div.grid.g-auto-lg', shots.map(([file, cap]) => h('figure.card', { style: 'margin:0' }, h('img', { src: 'shots/' + file, alt: cap, style: 'width:100%;border-radius:10px;display:block' }), h('figcaption.small', { style: 'margin-top:8px' }, cap)))),
-    h('div.card', { style: 'margin-top:12px' }, h('h4', 'Пока не сделано'), h('p.small', { style: 'margin:0' }, 'Вымпелы в цветах хозяина, значок 💤 над спящим участком, время приезда на вывеске Фургона, трюфели на земле у свина, скрип калитки; пчела и будильник в руках пока неподвижны.')),
+    h('div.card', { style: 'margin-top:12px' }, h('h4', 'Оставалось в обзоре v11'), h('p.small', { style: 'margin:0' }, 'Вымпелы в цветах хозяина, значок 💤 над спящим участком, время приезда на вывеске Фургона, трюфели на земле у свина, скрип калитки; пчела и будильник в руках были неподвижны. Это исторический список, не свежая проверка игры.')),
   );
 
   // ───── цифры ─────
@@ -100,8 +100,8 @@ export function mount(root, { go, data }) {
 
   // ───── готовность моделей ─────
   const readyBlock = h('div.block',
-    h('h3', 'Готовность 3D'),
-    h('p.lead', 'Художники сейчас добавляют модели в client/assets/farm/models. Пересоберите data.json — и они появятся на странице.'),
+    h('h3', '3D в обзоре v11'),
+    h('p.lead', 'Прежние модели и их просмотр сохранены. Числа относятся к снимку данных v11, а не к готовности следующего пакета.'),
     h('div.ready-grid', ready.map((r) => {
       const pct = r.expected ? Math.min(100, Math.round((r.found / r.expected) * 100)) : 0;
       return h('button.ready-cell', { type: 'button', style: 'text-align:left;cursor:pointer', onclick: () => go('models') },
@@ -115,6 +115,10 @@ export function mount(root, { go, data }) {
   // ───── что смотреть ─────
   const look = h('div.block', h('h3', 'Что здесь можно потрогать'), h('div.grid.g-3', (ed.cover?.lookAt || []).map((l) => h('button.card', { type: 'button', onclick: () => go(l.tab) }, h('div', { style: 'font-size:2rem;line-height:1' }, l.icon), h('h4', { style: 'margin:.4rem 0 .2rem' }, l.title), h('p.small.muted', { style: 'margin:0' }, l.text)))));
 
-  root.append(hero, release, stats, aboutBlock, decisionBlock, diffBlock, readyBlock, look);
+  const packEntry = h('aside.pack1-entry',
+    h('div', h('span.chip.gold', 'Проект следующего пакета, ещё не в игре'), h('h2', 'Пакет 1: ферма, пруд и набережная'), h('p', 'Три стартовые грядки, новый баланс, понятный босс и полный список просьб владельца.')),
+    h('a.btn.primary', { href: '#pack1' }, 'Открыть проект →'),
+  );
+  root.append(packEntry, hero, release, stats, aboutBlock, decisionBlock, diffBlock, readyBlock, look);
   return {};
 }

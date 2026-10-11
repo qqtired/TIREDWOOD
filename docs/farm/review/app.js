@@ -3,6 +3,7 @@ import { $, h, state, store, nf, startCoinDecorator } from './lib.js';
 
 const TABS = [
   { id: 'cover', label: 'Обложка', em: '🌾', mod: './sections/cover.js' },
+  { id: 'pack1', label: 'Пакет 1', em: '', mod: './sections/pack1.js' },
   { id: 'path', label: 'Путь игрока', em: '🧭', mod: './sections/path.js' },
   { id: 'crops', label: 'Культуры', em: '🥕', mod: './sections/crops.js' },
   { id: 'economy', label: 'Экономика', em: '📈', mod: './sections/economy.js' },
@@ -40,6 +41,7 @@ async function show(tab, sub) {
       const mod = await import(def.mod);
       panel.innerHTML = '';
       m.api = (await mod.mount(panel, { go, data: state.data })) || {};
+      if (def.id !== 'pack1' && def.id !== 'cover') panel.prepend(h('aside.pack1-history', 'История v11 · Этот раздел сохраняет прежний обзор. Проект следующих изменений — ', h('a', { href: '#pack1' }, 'во вкладке «Пакет 1»'), '.'));
     } catch (e) {
       console.error('Раздел ' + def.id, e);
       panel.innerHTML = '';
@@ -95,7 +97,7 @@ function renderFooter(d) {
   const when = (iso) => (iso ? new Date(iso).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '—');
   const m = d.meta;
   f.append(
-    h('p', 'Страница собрана автоматически из документов проекта: ', h('code', 'node docs/farm/review/build.mjs'), ' перечитывает ', h('code', 'design-v11.md'), ', ', h('code', 'results.json'), ', ', h('code', 'RESULTS.md'), ', раскладку локации и папки с моделями. Числа в HTML не вписаны.'),
+    h('p', 'Историческая часть v11 собрана из документов проекта: ', h('code', 'node docs/farm/review/build.mjs'), ' перечитывает ', h('code', 'design-v11.md'), ', ', h('code', 'results.json'), ', ', h('code', 'RESULTS.md'), ', раскладку локации и папки с моделями. Вкладка «Пакет 1» отдельно читается из брифа и модели баланса через ', h('code', 'node docs/farm/review/pack1-build.mjs'), '. Проект не означает выпуск изменений в игру.'),
     h('div.src',
       h('span', 'data.json: ', when(m.builtAt)),
       h('span', 'design-v11.md: ', when(m.sources.design.mtime)),

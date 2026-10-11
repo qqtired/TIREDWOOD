@@ -69,6 +69,12 @@ const mix = (a: number, b: number, k: number): number => a + (b - a) * k;
  * слабеет; от 1 500 м до границы вод — 60→30 / 450→220, солнца нет; в водах — 18/160 (в событие — 8/85). Переходы плавные.
  */
 export function isleClimate(dBay: number, dIsle: number, ev: number, out: IsleClimate = { near: Infinity, far: Infinity, tint: 0, haze: 0, sun: 1, isle: 0, rainMute: 0 }): IsleClimate {
+  // Приближённый остров не меняет погоду бухты. До своих вод (край около667м) влияние нарастает плавно.
+  if (dBay <= 300) {
+    Object.assign(out, { near: Infinity, far: Infinity, tint: 0, haze: 0, sun: 1, isle: 0, rainMute: 0 });
+    return out;
+  }
+  const approach = ss(300, 650, dBay);
   const kBay = ss(300, 900, dBay);
   const kOpen = ss(1500, 300, dIsle);
   // в водах: от границы (300 м) до 260 м — сгущается до тумана острова
@@ -80,20 +86,22 @@ export function isleClimate(dBay: number, dIsle: number, ev: number, out: IsleCl
   const inFar = mix(ISLE_FOG.far, ISLE_FOG_EVENT.far, e);
   const bayNear = dBay < 300 ? Infinity : mix(200, 60, kBay);
   const bayFar = dBay < 300 ? Infinity : mix(1400, 450, kBay);
-  const openNear = dIsle > 1500 ? Infinity : mix(60, 30, kOpen) * mix(1, ISLE_FOG_EVENT.near / ISLE_FOG.near, eNear * 0.5);
-  const openFar = dIsle > 1500 ? Infinity : mix(450, 220, kOpen) * mix(1, ISLE_FOG_EVENT.far / ISLE_FOG.far, eNear * 0.6);
+  // Старый жёсткий вход на1500м был незаметен при удалённом острове; после переноса он давал скачок450м.
+  const openApproach = ss(1700, 1500, dIsle);
+  const openNear = mix(bayNear, mix(60, 30, kOpen) * mix(1, ISLE_FOG_EVENT.near / ISLE_FOG.near, eNear * 0.5), openApproach);
+  const openFar = mix(bayFar, mix(450, 220, kOpen) * mix(1, ISLE_FOG_EVENT.far / ISLE_FOG.far, eNear * 0.6), openApproach);
   let near = Math.min(bayNear, openNear);
   let far = Math.min(bayFar, openFar);
   if (kIn > 0) {
     near = mix(Number.isFinite(near) ? near : 30, inNear, kIn);
     far = mix(Number.isFinite(far) ? far : 220, inFar, kIn);
   }
-  out.near = near;
-  out.far = far;
-  out.isle = Math.max(kOpen, kIn);
-  out.tint = Math.max(0.7 * kBay, out.isle);
-  out.haze = ss(250, 400, dBay);
-  out.sun = (1 - 0.5 * kBay) * (1 - kOpen);
-  out.rainMute = ss(250, 600, dBay);
+  out.near = Number.isFinite(near) ? mix(200, near, approach) : Infinity;
+  out.far = Number.isFinite(far) ? mix(1400, far, approach) : Infinity;
+  out.isle = Math.max(kOpen, kIn) * approach;
+  out.tint = Math.max(0.7 * kBay, Math.max(kOpen, kIn)) * approach;
+  out.haze = ss(250, 400, dBay) * approach;
+  out.sun = mix(1, (1 - 0.5 * kBay) * (1 - kOpen), approach);
+  out.rainMute = ss(250, 600, dBay) * approach;
   return out;
 }

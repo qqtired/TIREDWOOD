@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { emptyFarm, type FarmProgress } from '../shared/farm.ts';
-import { bossHp, bossPhase, bossWindow, normalizeBoss } from '../shared/farmboss.ts';
+import { bossHp, bossPhase, bossWindow, newBoss, normalizeBoss } from '../shared/farmboss.ts';
 import type { FarmServerMsg } from '../shared/farmnet.ts';
 import { makeRng } from '../shared/math.ts';
 import { FarmPlots } from '../server/farm/plots.ts';
@@ -13,12 +13,12 @@ import { FarmSystems } from '../server/farm/systems.ts';
 /** 10.10.2026 19:00 МСК */
 const START = Date.UTC(2026, 9, 10, 16);
 
-function kit() {
+function kit(legacy = false) {
   const clock = { now: START - 3600_000 };
   const farms = new Map<number, FarmProgress>();
   const players = new Map<number, FarmPlayer>();
   const sent: { to: number; m: FarmServerMsg }[] = [];
-  let saved: unknown = null;
+  let saved: unknown = legacy ? { ...newBoss(bossWindow(START)), v: 1, hp: 6000, n: 3 } : null;
   const ctx = {
     now: () => clock.now, rng: makeRng(9), plots: new FarmPlots(undefined),
     farm: (p: FarmPlayer) => farms.get(p.c.pid)!, players: () => players.values(), byPid: (pid: number) => players.get(pid),
@@ -47,8 +47,8 @@ test('Древо: окно по Москве, здоровье от N (3–20), 
   assert.equal(normalizeBoss({ day: 'x' }), null);
 });
 
-test('Древо: очки — XP сбора и шишки, расцвело — баффы, репутация, «Последняя капля»; к 01:00 — без наград', () => {
-  const k = kit();
+test('Древо: начатый старый бой сохраняет HP и награды; следующее событие без вклада уходит без наград', () => {
+  const k = kit(true);
   const sys = new FarmSystems(k.ctx);
   const a = k.add(1);
   const b = k.add(2);
@@ -57,7 +57,7 @@ test('Древо: очки — XP сбора и шишки, расцвело —
   assert.equal(sys.boss.total(), 0, 'до 19:00 очков нет');
   k.clock.now = START;
   sys.second(k.clock.now);
-  assert.equal(sys.boss.st?.hp, 6000, 'двое активных → минимум N = 3');
+  assert.equal(sys.boss.st?.hp, 6000, 'сохранённая старая шкала доигрывается');
   sys.on(a, { k: 'harvest', xp: 4000, items: [] });
   k.clock.now += 1000;
   sys.second(k.clock.now);

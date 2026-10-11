@@ -1,3 +1,4 @@
+import type { HudSlots } from '../../ui/kit/slots.ts';
 // Древо разлома в HUD (lab/ui/screens/farm.js «Древо разлома: плашка события»): наверху по центру ОДНА плашка — «просыпается»
 // (за 5 минут, с таймером) и «Цветение 62 %» (фаза, твой вклад, отметки фаз на полосе, «до 01:00» — час конца из b.end). Плашка живёт в верх-центре
 // кита (ui.top.event, PRIO.boss) — отдельной разметки наверху нет. Тосты: проснулось, новая фаза, шишка-ворчунья на земле,
@@ -30,16 +31,29 @@ export class FarmTree {
   private cones = 0;
   private coneAt = 0;
   private on = false;
+  private near = false;
+  private readonly detail = document.createElement('div');
+  private detailKey = '';
 
-  constructor(top: TopCenter, host: TreeHost) {
+  constructor(top: TopCenter, host: TreeHost, slots: HudSlots) {
     this.top = top;
     this.host = host;
+    this.detail.className = 'k-plate farm-tree-near'; this.detail.dataset.mode = 'farm'; this.detail.hidden = true; slots.tl.append(this.detail);
   }
+
+  setNear(near: boolean): void { if (this.near === near) return; this.near = near; this.update(); }
 
   /** Раз в секунду и при каждом farmBoss: перерисовать плашку (DOM меняется, только если поменялась разметка) */
   update(): void {
     if (!this.on) return;
     const b = this.host.boss();
+    this.detail.hidden = !(this.near && b);
+    if (this.near && b) {
+      const hp = Math.max(0, b.remaining ?? b.hp - b.bloom);
+      const html = `<p class="k-eyebrow">Древо разлома</p>${b.st === 'awake' ? `<p><b>${b.hp > 0 ? `Здоровье: ${hp} из ${b.hp}` : 'Ждёт первого вклада'}</b></p>${meter(hp / Math.max(1, b.hp), 'k-meter--mode k-meter--thin')}<p class="k-gold">Твой вклад: ${b.mine} · цель ${b.quota}</p><div class="farm-tree-top">${b.top.map(r => `<div><span>${esc(r.nick)}</span><b>${r.pts}</b></div>`).join('')}</div><p>Собирай урожай и подбирай шишки</p><p class="k-dim">${b.rules === 'legacy' ? 'Этот заход сохраняет прежнюю цель' : 'Цель растёт только с участниками'}</p>` : b.st === 'bloom' ? '<p>Древо расцвело · спасибо за помощь!</p>' : '<p>Урожай помогает Древу, когда оно проснётся</p>'}`;
+      if (html !== this.detailKey) { this.detailKey = html; this.detail.innerHTML = html; }
+    }
+    if (this.near && b?.st === 'awake') { this.top.clear(KEY); return; }
     const e = treeEvent(b, this.host.now());
     if (!e) { this.top.clear(KEY); return; }
     const icon = `<span class="k-event-ic">${ui('rift-tree', '')}</span>`;
@@ -88,7 +102,7 @@ export class FarmTree {
   setVisible(v: boolean): void {
     this.on = v;
     if (v) { this.st = ''; this.phase = 0; this.cones = 0; this.update(); }
-    else this.top.clear(KEY);
+    else { this.top.clear(KEY); this.detail.hidden = true; this.near = false; }
   }
 
 }

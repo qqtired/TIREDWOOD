@@ -25,7 +25,7 @@ export interface FishPlaceBox {
  * Где место рыбалки: пристань (по умолчанию), баркас в море — свой пул рыб, ×1,25 и злее рыба, или воды острова «Последний свет»
  * (флаг ISLE, shared/fishisle.ts) — 20 своих видов, рыба ещё злее (shared/fishrules.ts).
  */
-export type FishZone = 'pier' | 'barkas' | 'isle';
+export type FishZone = 'pier' | 'barkas' | 'isle' | 'pond';
 
 export interface FishSpot {
   x: number;
@@ -196,8 +196,8 @@ export const FISHER_BODY: FishPlaceBox = pick({ x0: -17.97, y0: 0, z0: 58.66, x1
  * Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова; смотритель
  * Игнат на острове «Последний свет» (флаг ISLE) — то же окно, в лавке только напитки и «На большую землю».
  */
-export type FishNpcId = 'semyon' | 'sanya' | 'ignat';
-export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya', 'ignat'];
+export type FishNpcId = 'semyon' | 'sanya' | 'ignat' | 'pond';
+export const FISH_NPCS: readonly FishNpcId[] = ['semyon', 'sanya', 'ignat', 'pond'];
 /**
  * Где стоит покупатель перед торговцем (arg точки 'fisher' — номер в FISH_NPCS): Семён — на пристани, Саня — у своего
  * прилавка на палубе баркаса (SANYA_USE, shared/barkas.ts).
@@ -206,6 +206,8 @@ export const FISH_NPC_USE: Readonly<Record<FishNpcId, { x: number; y: number; z:
   semyon: FISHER_USE,
   sanya: SANYA_USE,
   ignat: ISLE_IGNAT_USE,
+  // Привязку Фомы даёт только текущая FarmRoom, на набережной он недоступен.
+  pond: null,
 };
 
 /**

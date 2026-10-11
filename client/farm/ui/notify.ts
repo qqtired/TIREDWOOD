@@ -1,10 +1,9 @@
 // Уведомления фермы (design-v11 §14.4, решение 18: только в игре, без push) — тосты верх-центра HUD (ui.top). На ферме: грядка
 // созрела → «Созрело: Тыква ×2, Редис ×1» (склеивается за 3 с). При входе: одна строка «Пока тебя не было: созрело 8 · свин нашёл 2 трюфеля · …».
-// Один тост за сутки при переходе дневного потолка продаж 700 🪙. Вне фермы тосты и росток над калиткой на площади — забота
+// Вне фермы тосты и росток над калиткой на площади — забота
 // сцены площади: для неё здесь countRipe и awayText (на площади профиль фермы приходит от сервера, см. отчёт B2).
-import { mskDay } from '../../../shared/economy.ts';
 import type { FarmProgress } from '../../../shared/farm.ts';
-import { DAILY_CAP, RIPE_TOAST_MERGE_MS, VAN_SLOTS_BY_LEVEL, cropById } from '../../../shared/farmdata.ts';
+import { RIPE_TOAST_MERGE_MS, VAN_SLOTS_BY_LEVEL, cropById } from '../../../shared/farmdata.ts';
 import type { FarmAway } from '../../../shared/farmsys.ts';
 import { vanTime } from '../../../shared/farmvan.ts';
 import { farmLevel } from '../../../shared/farm.ts';
@@ -31,8 +30,6 @@ export class FarmNotify {
   private pending = new Map<string, number>();
   private pendingIcon = '';
   private pendingSince = 0;
-  private lastSold = -1;
-  private capDay = '';
 
   constructor(toast: Toast) {
     this.toast = toast;
@@ -42,7 +39,6 @@ export class FarmNotify {
   reset(): void {
     this.known = null;
     this.pending.clear();
-    this.lastSold = -1;
   }
 
   /** Раз в секунду и при каждом новом прогрессе: что стало спелым, не пора ли тост */
@@ -70,17 +66,6 @@ export class FarmNotify {
     for (const [name, k] of this.pending) { n += k; parts.push(k > 1 ? `${name} ×${k}` : name); }
     this.pending.clear();
     this.toast({ key: 'farm-ripe', tone: 'reward', icon: this.pendingIcon, title: `Созрело: ${parts.join(', ')}`, sub: n > 1 ? `${n} грядок — подходи и собирай` : 'Подходи и собирай' });
-  }
-
-  /** Касса Гриба на сегодня полна: один тост за сутки при переходе через потолок */
-  checkCap(f: FarmProgress, now: number): void {
-    const day = mskDay(now);
-    const sold = f.sold.day === day ? f.sold.coins : 0;
-    const was = this.lastSold;
-    this.lastSold = sold;
-    if (was < 0 || was >= DAILY_CAP || sold < DAILY_CAP || this.capDay === day) return;
-    this.capDay = day;
-    this.toast({ key: 'farm-cap', tone: 'warn', icon: 'giant-mushroom', title: 'Касса Гриба на сегодня полна', sub: 'Дальше ×0,25 до 00:00 · заказы — полностью' });
   }
 
   /** Строка при входе (farmAway от сервера): созрело, трюфели свина, кто полил, Фургон */

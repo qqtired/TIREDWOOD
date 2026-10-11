@@ -97,8 +97,16 @@ html[data-fish-focus] .k-hud > .k-slot--tl, html[data-fish-focus] .k-hud > .k-sl
 /* ------------------------------------------------------------------ шкала вываживания: рамка кита вокруг прежнего игрового поля
    (fishgame.ts: .fr.k-plate.fi-reel в слое .k-hud). Вид шкалы, зоны, рыбы и полосы — fish2.css / fishstyle.css, не трогаем. */
 .fr.fi-reel { position: absolute; left: calc(50% + 148px); top: 47%; z-index: 15; width: 236px; padding: 12px 14px 30px; border-radius: var(--r-md); transform: translateY(-50%); }
-/* решение владельца 11.10: подложка шкалы — ненавязчивая, полупрозрачная и размытая (единственный элемент HUD с blur) */
-.fr.fi-reel.k-plate { background: color-mix(in srgb, var(--plate-bg) 42%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); }
+/* Один мягкий слой под шкалой и текстом: края размытия растворяются, игровое поле остаётся чётким. */
+.fr.fi-reel.k-plate { isolation: isolate; overflow: visible; border: 0; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.fr.fi-reel.k-plate::before {
+  content: ''; position: absolute; inset: -36px -44px -48px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--plate-bg) 68%, transparent) 0%, color-mix(in srgb, var(--plate-bg) 46%, transparent) 48%, transparent 85%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12); backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-mask-image: radial-gradient(ellipse, #000 0%, #000 38%, transparent 80%); mask-image: radial-gradient(ellipse, #000 0%, #000 38%, transparent 80%);
+}
+.fr.fi-reel :is(.fr-hint, .fr-grade, .fe-reelbonus, .fr-res) { text-shadow: 0 1px 5px color-mix(in srgb, var(--plate-bg) 90%, transparent); }
+.fr.fi-reel :is(.fr-grade, .fe-reelbonus) { color: var(--plate-text); }
 .fi-reel-quit { position: absolute; left: 0; right: 0; bottom: -26px; display: flex; justify-content: center; }
 .fi-reel-quit .k-btn { background: var(--plate-bg); }
 /* телефон: держать — где угодно на экране; шкала — узкой колонкой справа, поплавок и вода видны (в альбомной — левее кнопок) */
@@ -124,6 +132,8 @@ html[data-fish-focus] .k-hud > .k-slot--tl, html[data-fish-focus] .k-hud > .k-sl
 .fi-catch-btns .k-btn small { white-space: nowrap; }
 .fi-catch-btns .k-btn small .k-coin { width: 14px; height: 14px; }
 .fi-catch-timer { grid-column: 1 / -1; margin-top: -2px; }
+.fi-catch-next { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: var(--surf-text); font: 600 var(--fs-13)/1.3 var(--font-text); }
+.fi-catch.is-locked .fi-catch-next { opacity: .45; }
 .fi-catch.is-locked .fi-catch-btns .k-btn { opacity: .45; filter: saturate(.5); pointer-events: none; }
 .fi-catch-foot { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
 .fi-catch-foot:empty { display: none; }

@@ -97,12 +97,12 @@ const LOSE_DIM_MS = 600;
 const JACKPOT_MS = 4000;
 const JACKPOT_COINS = 90;
 // plaza3: над бульваром перед фасадом курзала (он смотрит на север, шапка вывески — x 58,3)
-const FIREWORKS_AT = PLAZA3 ? new THREE.Vector3(58.3, 13, -7) : new THREE.Vector3(-20, 12, -10);
+const FIREWORKS_AT = PLAZA3 ? new THREE.Vector3(50.1, 13, -.8) : new THREE.Vector3(-20, 12, -10);
 /** Фонтаны искр: по бокам автомата (за рычагом), сколько секунд у крупного выигрыша */
 const FOUNTAIN_DX = [-0.78, 0.78];
 /** Конфетти-пушки на углах крыши павильона: при джекпоте стреляют над площадью */
 // plaza3: на кровле курзала по краям фасада (кровля у фасада — y 6,0)
-const CANNONS: ReadonlyArray<readonly [number, number, number]> = PLAZA3 ? [[52.2, 6.3, 1.3], [65.2, 6.3, 1.3]] : [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
+const CANNONS: ReadonlyArray<readonly [number, number, number]> = PLAZA3 ? [[58.4, 6.3, 5.3], [58.4, 6.3, -7.7]] : [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
 const BIG_FOUNTAIN_S = 1.6;
 
 const _v = new THREE.Vector3();
@@ -151,6 +151,7 @@ type Mode = 'idle' | 'spin' | 'win' | 'lose';
 interface Machine {
   x: number;
   z: number;
+  matrix: THREE.Matrix4;
   /** Откуда звучит: середина передней панели */
   pos: [number, number, number];
   reels: Reel[];
@@ -166,6 +167,9 @@ interface Machine {
   occupied: boolean;
   tickAcc: number;
   table: Table;
+}
+function machinePoint(mc: Machine, x: number, y: number, z: number): THREE.Vector3 {
+  return _v.set(x, y, z).applyMatrix4(mc.matrix);
 }
 
 export class SlotMachines3D {
@@ -216,9 +220,10 @@ export class SlotMachines3D {
     const glasses: THREE.BufferGeometry[] = [];
 
     world.machineAnchors.forEach((anchor, i) => {
+      anchor.updateMatrixWorld(true);
       const ax = anchor.position.x;
       const az = anchor.position.z;
-      const at = (g: THREE.BufferGeometry) => g.translate(ax, 0, az);
+      const at = (g: THREE.BufferGeometry) => g.applyMatrix4(anchor.matrixWorld);
 
       const color = COLORS[i % COLORS.length];
       cabinets.push(at(paint(cab.clone(), color)));
@@ -271,7 +276,7 @@ export class SlotMachines3D {
       anchor.add(lever);
 
       this.machines.push({
-        x: ax, z: az, pos: [ax, WIN_Y, az + 0.1], reels, lever, leverT: -1, spinning: false, spinStart: 0, mine: false,
+        x: ax, z: az, matrix: anchor.matrixWorld.clone(), pos: anchor.localToWorld(new THREE.Vector3(0, WIN_Y, .1)).toArray() as [number, number, number], reels, lever, leverT: -1, spinning: false, spinStart: 0, mine: false,
         reveal: null, mode: 'idle', modeUntil: 0, occupied: false, tickAcc: 0, table,
       });
     });
@@ -302,12 +307,10 @@ export class SlotMachines3D {
     for (const mc of this.machines) {
       for (let j = 0; j < BULBS; j++, k++) {
         const [lx, ly] = bulbLocal(j);
-        _m.makeTranslation(mc.x + lx, ly, mc.z + 0.016);
+        _m.makeTranslation(...machinePoint(mc, lx, ly, .016).toArray() as [number, number, number]);
         this.bulbs.setMatrixAt(k, _m);
         this.bulbs.setColorAt(k, BULB_ON);
-        haloPos[k * 3] = mc.x + lx;
-        haloPos[k * 3 + 1] = ly;
-        haloPos[k * 3 + 2] = mc.z + 0.03;
+        machinePoint(mc, lx, ly, .03).toArray(haloPos, k * 3);
       }
     }
     scene.add(this.bulbs);
@@ -325,7 +328,7 @@ export class SlotMachines3D {
     // ореол на стене за корпусом: середину закрывает автомат, по краям видно свечение; цвет — в updateBulbs
     const cabH = BODY_H + ARCH_R;
     const backGeo = merge(this.machines.map((mc) =>
-      new THREE.PlaneGeometry(W + BACK_GLOW_M * 2, cabH + BACK_GLOW_M * 2).translate(mc.x, cabH / 2, mc.z + BACK_GLOW_Z)));
+      new THREE.PlaneGeometry(W + BACK_GLOW_M * 2, cabH + BACK_GLOW_M * 2).translate(0, cabH / 2, BACK_GLOW_Z).applyMatrix4(mc.matrix)));
     this.backCol = new Float32Array(backGeo.getAttribute('position').count * 3);
     this.backAttr = new THREE.BufferAttribute(this.backCol, 3).setUsage(THREE.DynamicDrawUsage);
     backGeo.setAttribute('color', this.backAttr);
@@ -337,7 +340,7 @@ export class SlotMachines3D {
     scene.add(back);
     // отсвет на ковре: ярче всего у цоколя, под самим корпусом не виден
     const pools = this.machines.map((mc, i) => paint(
-      new THREE.PlaneGeometry(POOL_W, POOL_D).rotateX(-Math.PI / 2).translate(mc.x, 0.013, mc.z + POOL_D / 2 - 0.2),
+      new THREE.PlaneGeometry(POOL_W, POOL_D).rotateX(-Math.PI / 2).translate(0, 0.013, POOL_D / 2 - .2).applyMatrix4(mc.matrix),
       new THREE.Color(COLORS[i % COLORS.length]).multiplyScalar(POOL_K),
     ));
     const pool = new THREE.Mesh(merge(pools), new THREE.MeshBasicMaterial({
@@ -485,18 +488,19 @@ export class SlotMachines3D {
     if (rv.win > 0) {
       // мелочь (меньше ставки) — пара монет; дальше — больше, чем крупнее выигрыш
       const n = rv.jackpot ? JACKPOT_COINS : rv.mult < 1 ? 3 : Math.min(40, Math.round(6 + rv.mult * 2));
-      this.fx.coins(mc.x, 0.4, mc.z + 0.07, n);
+      const coin = machinePoint(mc, 0, .4, .07); this.fx.coins(coin.x, coin.y, coin.z, n);
       // у джекпота сумма — на крупной надписи поверх экрана
-      if (!rv.jackpot) this.fx.floatText(mc.x, 2.08, mc.z + 0.15, `+${rv.win}`, rv.mult < 1 ? '#f3e2bf' : '#ffd34d');
+      if (!rv.jackpot) { const text = machinePoint(mc, 0, 2.08, .15); this.fx.floatText(text.x, text.y, text.z, `+${rv.win}`, rv.mult < 1 ? '#f3e2bf' : '#ffd34d'); }
       this.sound.coins(where, n);
       this.sound.slotWinAt(where, rv.mult >= BIG_WIN_MULT ? 2 : rv.mult < 1 ? 0 : 1);
       if (rv.line >= 0) this.highlight(mc, rv.line, now + WIN_LIGHTS_MS + 1500);
       // крупный выигрыш — фонтаны искр по бокам автомата (у джекпота — пока гремит салют)
       if (rv.mult >= BIG_WIN_MULT) {
         const sec = rv.jackpot ? JACKPOT_MS / 1000 : BIG_FOUNTAIN_S;
-        for (const dx of FOUNTAIN_DX) this.fx.fountain(mc.x + dx, 0.05, mc.z + 0.2, sec);
+        for (const dx of FOUNTAIN_DX) { const p = machinePoint(mc, dx, .05, .2); this.fx.fountain(p.x, p.y, p.z, sec); }
         // конфетти из макушки автомата — вверх и к игроку (под крышей павильона)
-        this.fx.confetti(mc.x, 2.0, mc.z - 0.25, rv.jackpot ? 160 : 90, 0, 1, 0.45, 0.4, 6.5);
+        const p = machinePoint(mc, 0, 2, -.25), outward = new THREE.Vector3(0, 0, .45).transformDirection(mc.matrix).multiplyScalar(.45);
+        this.fx.confetti(p.x, p.y, p.z, rv.jackpot ? 160 : 90, outward.x, 1, outward.z, .4, 6.5);
       }
       mc.mode = 'win';
       mc.modeUntil = now + (rv.mult < 1 ? WIN_LIGHTS_MS / 2 : WIN_LIGHTS_MS);
@@ -508,7 +512,7 @@ export class SlotMachines3D {
       this.jackpotUntil = now + JACKPOT_MS;
       this.sound.siren();
       this.fx.fireworks(FIREWORKS_AT, 8);
-      for (const [x, y, z] of CANNONS) this.fx.confetti(x, y, z, 260, 0, 0.75, 0.66, 0.35, 14);
+      for (const [x, y, z] of CANNONS) this.fx.confetti(x, y, z, 260, PLAZA3 ? -.66 : 0, .75, PLAZA3 ? 0 : .66, .35, 14);
       this.world.jackpotBoard.flash(JACKPOT_MS / 1000);
       this.onJackpot(rv.nick, rv.win);
     }

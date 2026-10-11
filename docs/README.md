@@ -258,3 +258,11 @@
 - Переименовал или удалил файл — найди его здесь: `grep -n 'имя' docs/README.md`.
 - Пиши только «где лежит» и «про что». Номер релиза и что включено на сайте — только в [STATUS.md](STATUS.md): здесь они устареют.
 - Перед коммитом проверь `ls`: в таблицах должны стоять только существующие пути.
+
+### Пакет фермы и набережной, октябрь 2026
+
+- [farm/pack1-2026-10-11.md](farm/pack1-2026-10-11.md) — согласованный состав и приёмка; [farm/pack1-balance.json](farm/pack1-balance.json) — расчёт экономики и XP; вкладка «Пакет 1» в `farm/review/`, генератор `pack1-build.mjs`.
+- Пруд фермы: `shared/farmpond.ts`, `shared/farmpondnet.ts`, `server/farm/pond.ts`, `client/farm/pond.ts` и `client/farm/3d/pond.ts`; флаг `FARM_POND=1` вместе с `FARM=1` и `FISH2=1`, шесть мест и четыре отдельных вида. Проверки — `farm-pond.test.ts`.
+- Пробел после улова: `client/lobby/fishnextcast.ts`, общий `fish2hud.ts`, проверка `fish-nextcast.test.ts`; справочник `public/fishing/` собирается из `tools/fishing-guide/`.
+- Точная опора острова: `shared/maps/isleterrain.ts`, `isleterrain-data.ts`, необязательный `GameMap.terrain`; сборка геометрии/коллизий — `tools/isle-rework/`, проверки — `island-rework.test.ts`.
+- Открытые линии видимости и плавное появление: `client/lobby/plaza3/visibility.ts`, `perf.ts`; повторяемые модельные исправления — `tools/plaza3/pack1/` и `tools/plaza3/v2/paint-cloud.mjs`. Приёмка общего переноса — `plaza3-waterfront-pack1.test.ts`, `plaza3-pack1-runtime.test.ts`.

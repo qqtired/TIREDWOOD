@@ -379,12 +379,12 @@ export class Effects {
   }
 
   /** Плюх в воду: брызги и расходящиеся круги. */
-  waterSplash(x: number, z: number, big = true): void {
-    this.burst(x, WATER_Y + 0.1, z, 0xdff4ff, big ? 30 : 10, big ? 7 : 4, 0, 1.2, 0, big ? 0.06 : 0.04);
+  waterSplash(x: number, z: number, big = true, waterY = WATER_Y): void {
+    this.burst(x, waterY + 0.1, z, 0xdff4ff, big ? 30 : 10, big ? 7 : 4, 0, 1.2, 0, big ? 0.06 : 0.04);
     for (let k = 0; k < (big ? 2 : 1); k++) {
       const r = this.rings[this.ringNext];
       this.ringNext = (this.ringNext + 1) % this.rings.length;
-      r.mesh.position.set(x, WATER_Y + 0.03 + k * 0.005, z);
+      r.mesh.position.set(x, waterY + 0.03 + k * 0.005, z);
       r.mesh.visible = true;
       r.life = 1.4 + k * 0.5;
       r.max = r.life;
@@ -393,10 +393,10 @@ export class Effects {
   }
 
   /** Круг на воде (поплавок, проба, рыба у поверхности): расходится до size метров за life секунд. */
-  ripple(x: number, z: number, size = 1.2, life = 1): void {
+  ripple(x: number, z: number, size = 1.2, life = 1, waterY = WATER_Y): void {
     const r = this.rings[this.ringNext];
     this.ringNext = (this.ringNext + 1) % this.rings.length;
-    r.mesh.position.set(x, WATER_Y + 0.03, z);
+    r.mesh.position.set(x, waterY + 0.03, z);
     r.mesh.visible = true;
     r.life = life;
     r.max = life;

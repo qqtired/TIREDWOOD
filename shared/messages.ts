@@ -19,6 +19,7 @@ import type { SkillServerMsg, SkillStatus } from './skilltest.ts';
 import type { RegattaClientMsg, RegattaServerMsg, RgRecordRow, RgView } from './regatta.ts';
 import type { HideClientMsg, HideServerMsg, HideStatus } from './hide.ts';
 import type { FarmClientMsg, FarmServerMsg, FarmStatus } from './farmnet.ts';
+import type { FarmPondClientMsg, FarmPondServerMsg } from './farmpondnet.ts';
 import type { LevelUp } from './levels.ts';
 import type { StormView } from './storm.ts';
 import type { RainWire } from './weather.ts';
@@ -200,6 +201,7 @@ export type ClientMsg =
   | VoiceClientMsg
   | HideClientMsg
   | FarmClientMsg
+  | FarmPondClientMsg
   | RegattaClientMsg
   | PlaneClientMsg
   | ObClientMsg
@@ -461,6 +463,7 @@ export type ServerMsg =
   | ObServerMsg
   | HideServerMsg
   | FarmServerMsg
+  | FarmPondServerMsg
   /** Ферма (флаг FARM): сколько фермеров — для калитки на площади */
   | ({ t: 'farmSt' } & FarmStatus)
   | ({ t: 'skillSt' } & SkillStatus)
@@ -587,6 +590,8 @@ export type ServerMsg =
     well?: number; wcap?: number;
     /** Сколько видов острова в альбоме (shared/islestyle.ts) — у видов острова вместо got */
     isle?: number;
+    /** Сколько прудовых видов открыто (0…4); отдельная коллекция у Фомы. */
+    pond?: number;
   }
   // рыбалка 2.0: доска рекордов у мостков — при изменении
   | { t: 'fishTop'; top: FishBoardView }

@@ -44,11 +44,15 @@ export interface FarmBossView {
   st: 'sleep' | 'soon' | 'awake' | 'bloom' | 'gone';
   start: number;
   end: number;
-  /** «Цветение»: сколько нужно (2 000 × N) и сколько набрано; фаза 1–4 */
+  /** Полное HP зарегистрированных участников (либо сохранённого старого боя) и нанесённый урон; фаза 1–4. */
   hp: number;
   bloom: number;
   phase: number;
   n: number;
+  /** Оставшееся HP и зарегистрированная (либо примерная до первого вклада) личная квота. */
+  remaining: number;
+  quota: number;
+  rules: 'participants' | 'legacy';
   /** Топ-5 вклада, свои очки и место (0 — ещё без вклада) */
   top: FarmBossRow[];
   mine: number;
@@ -126,6 +130,7 @@ export function sysFailText(a: 'help' | 'van' | 'order' | 'cone', why: string): 
     order: {
       order: 'Заказ ещё не выполнен',
       max: 'Замен на сегодня не осталось',
+      noAlternative: 'Другой доступной цели пока нет — замена сохранена',
       item: 'Награда уже забрана',
       far: 'Подойди к доске заказов',
     },

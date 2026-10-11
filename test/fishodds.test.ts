@@ -153,7 +153,7 @@ test('пиво подводного владыки работает: все от
 test('божественная: база задана явно — 0,43 % всех поклёвок новичка у пристани, 0,42 % на баркасе; удочка, блесна и пиво её поднимают; сумма шансов — 1 при любом наборе', () => {
   assert.equal(DIVINE_RATIO, 2.5, 'в 2,5 раза дороже мифических — цена и опыт');
   // остров (10.10): плащеносная акула — так же явно, 0,43 %
-  assert.deepEqual(DIVINE_BASE, { pier: 0.0043, barkas: 0.0042, isle: 0.0043 });
+  assert.deepEqual(DIVINE_BASE, { pier: 0.0043, barkas: 0.0042, isle: 0.0043, pond: 0 });
   for (const zone of ['pier', 'barkas', 'isle'] as const) {
     const odds = tierOdds(false, at(zone));
     near(odds[T_DIVINE], DIVINE_BASE[zone], `${zone}: база`, 1e-12);

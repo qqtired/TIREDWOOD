@@ -2,6 +2,7 @@
 // статусом, жители, видимость режимов за флагами. Заменяет PlazaDress (client/lobby/plaza) с тем же внешним видом для
 // сцены, когда в docs/plaza3/level/layout.json legacyStatic: false. Сейчас: вывески и указатели (WP10); павильоны, жители — другие пакеты.
 import type * as THREE from 'three';
+import type { FerryStatus } from '../../../shared/messages.ts';
 import { dgStatus } from '../dgstatus.ts';
 import { DungeonEntrance } from '../plaza/dungeon.ts';
 import type { PlazaMode } from '../plaza/index.ts';
@@ -58,6 +59,10 @@ export class Plaza3Dress {
     let busy = 0;
     for (let m = 0; m < total; m++) if (((mask >> m) & 1) === 1) busy++;
     this.signs.setExtras({ slots: { busy, total } });
+  }
+  /** Единственная вывеска «Удалой»: тот же статус рейса и те же часы, что у лодки. */
+  setFerry(status: FerryStatus, tick: number): void {
+    this.signs.setExtras({ ferry: { status, tick } });
   }
 
   /** Где сейчас чужие желейки (список обновляет сцена; хранится ссылка, копировать не нужно) */

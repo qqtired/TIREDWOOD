@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { addFarmXp, emptyFarm, type FarmProgress } from '../shared/farm.ts';
-import { ORDER_TEMPLATES, cropById } from '../shared/farmdata.ts';
+import { FARM_XP_TOTAL, ORDER_TEMPLATES, cropById } from '../shared/farmdata.ts';
 import { farmUse } from '../shared/farmmap.ts';
 import type { FarmEvent } from '../shared/farmnet.ts';
 import { makeOrders, orderEnv, orderProgress, ordersResetAt } from '../shared/farmorders.ts';
@@ -29,7 +29,7 @@ test('заказы: 3 слота по правилам уровня, детер�
   // ур. 10, соседи есть: слот B — помощь или Фургон средней/сложной трудности
   for (let s = 1; s < 30; s++) {
     const g = emptyFarm(T0);
-    g.xp = 48_500;
+    g.xp = FARM_XP_TOTAL[9];
     const b = makeOrders(orderEnv(g, true, false), makeRng(s))[1];
     assert.match(b.t, /^(help|van)-(mid|hard)$/);
   }

@@ -1,11 +1,14 @@
-// Бейдж игрока в верх-право (кит: .k-badge): кольцо уровня (--p — доля опыта до следующего уровня), ник, жетоны.
+// Бейдж игрока в верх-право (кит: .k-badge): свой портрет, кольцо уровня (--p — доля опыта), жетоны.
 // Уровень и жетоны в HUD — только здесь. «+N / −N» — .k-pop у бейджа (вместо прежнего .tok-pop), новый уровень —
 // кольцо подпрыгивает и золотое «Уровень N» (.k-pop--xp) вместо искры ✦; тост «Уровень N» показывает app.ts.
 import { coinHtml } from './dom.ts';
+import { DEFAULT_OUTFIT, type Outfit } from '../../../shared/outfit.ts';
+import { jellyPortrait, portraitModel } from './avatar.ts';
 
 const fmt = new Intl.NumberFormat('ru-RU');
 /** Сколько живёт .k-pop (анимация k-pop в kit.css) */
 const POP_MS = 1600;
+let portraitId = 0;
 
 export class Badge {
   readonly root: HTMLElement;
@@ -16,7 +19,9 @@ export class Badge {
   tokens = -1;
   private readonly ring: HTMLElement;
   private readonly levelEl: HTMLElement;
-  private readonly nickEl: HTMLElement;
+  private readonly avatarEl: HTMLElement;
+  private readonly avatarId = `k-avatar-${++portraitId}`;
+  private portraitKey = '';
   private readonly tokensEl: HTMLElement;
   private readonly numEl: HTMLElement;
   private readonly pops = new Map<string, HTMLElement>();
@@ -24,20 +29,23 @@ export class Badge {
   constructor(slot: HTMLElement) {
     this.root = document.createElement('div');
     this.root.className = 'k-badge pz-badge';
-    this.root.innerHTML = `<span class="k-ring" style="--p:0"><b>1</b></span><span class="k-badge-body"><span class="k-badge-nick"></span><span class="k-badge-tokens">${coinHtml()}<span>0</span></span></span>`;
+    this.root.setAttribute('role', 'group');
+    this.root.setAttribute('aria-label', 'Твой игрок');
+    this.root.innerHTML = `<span class="k-badge-avatar" role="img" aria-label="Твой образ"></span><span class="k-ring" style="--p:0" role="meter" aria-label="Опыт до следующего уровня" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><b aria-hidden="true">1</b></span><span class="k-badge-tokens">${coinHtml()}<span>0</span></span>`;
     this.ring = this.root.querySelector('.k-ring')!;
     this.levelEl = this.ring.querySelector('b')!;
-    this.nickEl = this.root.querySelector('.k-badge-nick')!;
+    this.avatarEl = this.root.querySelector('.k-badge-avatar')!;
     this.tokensEl = this.root.querySelector('.k-badge-tokens')!;
     this.numEl = this.tokensEl.querySelector('span')!;
+    this.setOutfit(DEFAULT_OUTFIT);
     slot.append(this.root);
   }
 
-  /** Ник, уровень, доля опыта до следующего (0…1) и жетоны — меняется только то, что поменялось */
-  set(nick: string, level: number, xpShare: number, tokens: number): void {
+  /** Старый API сохранён; ник хранится для совместимости, на экране — только свой образ, уровень и баланс. */
+  set(nick: string, level: number, xpShare: number, tokens: number, outfit?: Outfit): void {
     if (nick !== this.nick) {
       this.nick = nick;
-      this.nickEl.textContent = nick;
+      this.root.setAttribute('aria-label', nick ? `Игрок ${nick}` : 'Твой игрок');
     }
     const share = Math.round(Math.min(1, Math.max(0, xpShare || 0)) * 1000) / 1000;
     if (level !== this.level || share !== this.share) {
@@ -45,14 +53,26 @@ export class Badge {
       this.share = share;
       this.levelEl.textContent = String(level);
       this.ring.style.setProperty('--p', String(share));
+      this.ring.setAttribute('aria-valuenow', String(Math.round(share * 100)));
+      this.ring.setAttribute('aria-valuetext', `Уровень ${level}, ${Math.round(share * 100)}% до следующего`);
     }
     this.setTokens(tokens);
+    if (outfit) this.setOutfit(outfit);
+  }
+
+  /** Портрет меняется лишь вместе с видимыми деталями своего подтверждённого наряда. */
+  setOutfit(outfit: Outfit): void {
+    const key = JSON.stringify(portraitModel(outfit));
+    if (key === this.portraitKey) return;
+    this.portraitKey = key;
+    this.avatarEl.innerHTML = jellyPortrait(outfit, this.avatarId);
   }
 
   setTokens(n: number): void {
     if (n === this.tokens) return;
     this.tokens = n;
     this.numEl.textContent = fmt.format(n);
+    this.tokensEl.setAttribute('aria-label', `${fmt.format(n)} жетонов`);
   }
 
   /** Всплывающее у бейджа: «+25» (жетоны — подпрыгивают), «−10» — 'bad', опыт — 'xp' (золотом, под бейджем) */

@@ -51,15 +51,16 @@ export function bedPrompt(f: FarmProgress, i: number, now: number, unlockLevel: 
 }
 
 /** Можно ли помочь этой грядке соседа (клиентская проверка для подсказки; последнее слово за сервером) */
-export function canHelpBed(b: FarmBedView, now: number): boolean {
-  return !!b.c && b.r - now > HELP_MIN_LEFT_MS && b.h < HELPS_PER_BED;
+export function canHelpBed(b: FarmBedView | undefined, now: number): boolean {
+  return !!b?.c && (b.r <= now || b.r - now > HELP_MIN_LEFT_MS) && b.h < HELPS_PER_BED;
 }
 
 /** Грядка соседа под прицелом: «Полить соседу» с ценой в зарядах и очках помощи */
 export function helpPrompt(f: FarmProgress, owner: string, plot: number, b: FarmBedView, now: number): Prompt {
   const c = cropById(b.c ?? '');
-  const whose = { icon: c?.icon ?? 'help-hands', text: `${c?.name ?? 'Грядка'} · ${owner} · участок ${plot + 1}${b.r > now ? ` · созреет через ${fmtLeft(b.r - now)}` : ''}` };
+  const whose = { icon: c?.icon ?? 'help-hands', text: `${c?.name ?? 'Грядка'} · ${owner} · участок ${plot + 1}${b.r > now ? ` · через ${fmtLeft(b.r - now)}` : ' · Созрело'}` };
   const hv = helpView(f, now);
+  if (!canHelpBed(b, now)) return { keys: [], text: c?.name ?? 'Посадка', note: b.r <= now ? 'Созрело · помощь уже получена' : `растёт · осталось ${fmtLeft(b.r - now)}`, whose };
   if (farmLevel(f.xp) < HELP_MIN_LEVEL) return { keys: [], text: 'Помогать соседям', note: `можно с ур. ${HELP_MIN_LEVEL} фермы`, whose };
   if (f.water < 100) return { keys: [], text: 'Полить соседу', note: 'лейка пуста — набери у колодца', whose };
   if (hv.points < 1) return { keys: [], text: 'Полить соседу', note: 'очки помощи кончились — скоро сброс', whose };

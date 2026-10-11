@@ -297,6 +297,7 @@ export class DungeonEntrance {
     rockLive.position.set(DUNGEON_ROCK.x, 0, DUNGEON_ROCK.z);
     rockLive.rotation.y = DUNGEON_ROCK.yaw;
     const boardLive = new THREE.Group();
+    boardLive.userData.p3visibility = 110;
     boardLive.position.set(DUNGEON_BOARD.x, 0, DUNGEON_BOARD.z);
     boardLive.rotation.y = DUNGEON_BOARD.yaw;
     const eyesPivot = new THREE.Group();

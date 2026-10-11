@@ -161,11 +161,13 @@ export class FishingSpots {
   private readonly places: readonly FishPlace[];
   private readonly spots: Spot[];
   private time = 0;
+  private readonly waterY: number;
   /** Рыбалка 2.0: вываживание — до улова или срыва, не по весу */
   v2 = false;
 
   /** places — места рыбалки: на мостках (по умолчанию) или у рыбаков-соседей */
-  constructor(scene: THREE.Scene, effects: Effects, fx: LobbyFx, sound: Sound, me: Avatar | null, places: readonly FishPlace[] = FISH_SPOTS) {
+  constructor(scene: THREE.Scene, effects: Effects, fx: LobbyFx, sound: Sound, me: Avatar | null, places: readonly FishPlace[] = FISH_SPOTS, waterY = WATER_Y) {
+    this.waterY = waterY;
     this.scene = scene;
     this.effects = effects;
     this.fx = fx;
@@ -211,8 +213,9 @@ export class FishingSpots {
   }
 
   /** Всё заново: вид мест из приветствия (null — пусто, ушли с набережной). */
-  reset(views: readonly FishSpotView[] | null): void {
+  reset(views: readonly FishSpotView[] | null, changed?: readonly number[]): void {
     this.spots.forEach((s, i) => {
+      if (changed && !changed.includes(i)) return;
       this.clearSpot(s);
       this.seat(s, null);
       const v = views?.[i];
@@ -261,9 +264,9 @@ export class FishingSpots {
         s.ph = FP_WAIT;
         s.n = a;
         s.nibT = 0;
-        this.effects.ripple(s.x, s.z, 0.9, 0.9);
-        this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 3, 1.4, 0, 1, 0, 0.03);
-        this.sound.fishNibble(at(s.x, WATER_Y, s.z));
+        this.effects.ripple(s.x, s.z, 0.9, 0.9, this.waterY);
+        this.effects.burst(s.x, this.waterY + 0.05, s.z, 0xdff4ff, 3, 1.4, 0, 1, 0, 0.03);
+        this.sound.fishNibble(at(s.x, this.waterY, s.z));
         break;
       case FE_BITE:
         if (s.ph === FP_CAST) this.landFloat(s, mine);
@@ -271,11 +274,11 @@ export class FishingSpots {
         s.n = a;
         s.t = 0;
         s.fxT = 0.25;
-        this.effects.ripple(s.x, s.z, 1.6, 1.1);
-        this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 8, 2.4, 0, 1, 0, 0.04);
-        this.sound.fishBite(at(s.x, WATER_Y, s.z));
+        this.effects.ripple(s.x, s.z, 1.6, 1.1, this.waterY);
+        this.effects.burst(s.x, this.waterY + 0.05, s.z, 0xdff4ff, 8, 2.4, 0, 1, 0, 0.04);
+        this.sound.fishBite(at(s.x, this.waterY, s.z));
         // «Колокольный буй» (остров): колокол качается — «дзынь»
-        if (ringFloat(s.float)) this.sound.floatBell(at(s.x, WATER_Y, s.z));
+        if (ringFloat(s.float)) this.sound.floatBell(at(s.x, this.waterY, s.z));
         break;
       case FE_HOOK:
         s.ph = FP_REEL;
@@ -285,7 +288,7 @@ export class FishingSpots {
         s.fxT = 0;
         s.reelDur = this.v2 ? REEL2_S : reelTicks(b) / TICK_RATE;
         s.prog = -1;
-        this.sound.fishReel(at(s.x, WATER_Y, s.z), this.v2 ? REEL2_SOUND_S : s.reelDur);
+        this.sound.fishReel(at(s.x, this.waterY, s.z), this.v2 ? REEL2_SOUND_S : s.reelDur);
         break;
       case FE_LOST:
         // рыба сорвалась со шкалы: леска ослабла, поплавок летит к удочке от того места, где она билась
@@ -294,25 +297,25 @@ export class FishingSpots {
           this.finishAnim(s);
           s.anim = A_REELIN;
           s.animT = 0;
-          this.effects.ripple(s.from.x, s.from.z, 1.3, 0.9);
+          this.effects.ripple(s.from.x, s.from.z, 1.3, 0.9, this.waterY);
         }
         s.ph = FP_IDLE;
         s.sp = -1;
-        this.sound.fishEscape(at(s.x, WATER_Y, s.z));
+        this.sound.fishEscape(at(s.x, this.waterY, s.z));
         break;
       case FE_EARLY:
       case FE_MISS:
         // смотал: поплавок (ушёл под воду — сперва всплыл) летит обратно к удочке
         if (s.ph === FP_BITE || s.ph === FP_WAIT || s.ph === FP_CAST) {
-          s.from.set(s.x, WATER_Y, s.z);
+          s.from.set(s.x, this.waterY, s.z);
           this.finishAnim(s);
           s.anim = A_REELIN;
           s.animT = 0;
-          this.effects.ripple(s.x, s.z, 1.1, 0.8);
+          this.effects.ripple(s.x, s.z, 1.1, 0.8, this.waterY);
         }
         s.ph = FP_IDLE;
         s.sp = -1;
-        if (kind === FE_MISS || a === 1) this.sound.fishEscape(at(s.x, WATER_Y, s.z));
+        if (kind === FE_MISS || a === 1) this.sound.fishEscape(at(s.x, this.waterY, s.z));
         break;
       case FE_LAND: {
         s.ph = FP_HOLD;
@@ -329,9 +332,9 @@ export class FishingSpots {
           this.scene.attach(s.fish);
           s.fish.position.copy(s.from);
         }
-        this.effects.waterSplash(s.from.x, s.from.z, false);
+        this.effects.waterSplash(s.from.x, s.from.z, false, this.waterY);
         const f = FISH[a];
-        this.sound.fishCatch(at(s.from.x, WATER_Y, s.from.z), (f?.rarity ?? 0) >= R_RARE && f?.price[1] !== 0);
+        this.sound.fishCatch(at(s.from.x, this.waterY, s.from.z), (f?.rarity ?? 0) >= R_RARE && f?.price[1] !== 0);
         if (s.av && !mine && f) s.av.say(`🎣 ${f.name} · ${fmtWeight(b)}`);
         // питомец на плече радуется улову (тупик держит в клюве мойву)
         s.av?.petCatch();
@@ -510,9 +513,9 @@ export class FishingSpots {
     } else if (s.anim === A_CAST && !s.pending && s.animT >= RELEASE_S) {
       // полёт: дуга от кончика (где отпустил) к месту падения
       const k = Math.min(1, (s.animT - RELEASE_S) / (CAST_S - RELEASE_S));
-      const top = Math.max(s.fp.y, WATER_Y) + 2.2;
+      const top = Math.max(s.fp.y, this.waterY) + 2.2;
       fp.set(lerp(s.fp.x, s.x, k), 0, lerp(s.fp.z, s.z, k));
-      fp.y = lerp(s.fp.y, WATER_Y, k) + 4 * (top - Math.max(s.fp.y, WATER_Y)) * k * (1 - k);
+      fp.y = lerp(s.fp.y, this.waterY, k) + 4 * (top - Math.max(s.fp.y, this.waterY)) * k * (1 - k);
     } else if (s.anim === A_CAST) {
       // замах: поплавок висит и качается (s.fp — откуда он полетит)
       this.swingFloat(s, tip, dt);
@@ -527,23 +530,23 @@ export class FishingSpots {
       s.fpFree = true;
     } else if (s.ph === FP_WAIT || s.ph === FP_CAST) {
       const dip = s.nibT < 0.5 ? -0.08 * Math.sin(Math.PI * Math.min(1, s.nibT / 0.18)) * Math.exp(-s.nibT * 4) : 0;
-      fp.set(s.x, WATER_Y + Math.sin(this.time * 2.2 + spot) * 0.012 + dip, s.z);
+      fp.set(s.x, this.waterY + Math.sin(this.time * 2.2 + spot) * 0.012 + dip, s.z);
       sag = 0.06;
       s.fxT -= dt;
       if (s.fxT <= 0) {
         s.fxT = 2.5 + Math.random() * 2;
-        this.effects.ripple(s.x, s.z, 0.6, 1.2);
+        this.effects.ripple(s.x, s.z, 0.6, 1.2, this.waterY);
       }
     } else if (s.ph === FP_BITE) {
       // под водой и тянет вбок
       const fx = -Math.sin(at.yaw);
       const fz = -Math.cos(at.yaw);
       const side = Math.sin(s.t * 4) * 0.25;
-      fp.set(s.x - fz * side, WATER_Y - 0.3, s.z + fx * side);
+      fp.set(s.x - fz * side, this.waterY - 0.3, s.z + fx * side);
       s.fxT -= dt;
       if (s.fxT <= 0) {
         s.fxT = 0.3;
-        this.effects.ripple(fp.x, fp.z, 1.3, 0.9);
+        this.effects.ripple(fp.x, fp.z, 1.3, 0.9, this.waterY);
       }
     } else if (s.ph === FP_REEL) {
       // рыба бьётся у поверхности и приближается к мосткам
@@ -551,8 +554,8 @@ export class FishingSpots {
       s.fxT -= dt;
       if (s.fxT <= 0) {
         s.fxT = 0.16 + Math.random() * 0.16;
-        this.effects.burst(fp.x, WATER_Y + 0.05, fp.z, 0xdff4ff, 5 + Math.round(heavy * 6), 2.2 + heavy * 1.5, 0, 1, 0, 0.035 + heavy * 0.02);
-        this.effects.ripple(fp.x, fp.z, 0.9 + heavy * 0.8, 0.8);
+        this.effects.burst(fp.x, this.waterY + 0.05, fp.z, 0xdff4ff, 5 + Math.round(heavy * 6), 2.2 + heavy * 1.5, 0, 1, 0, 0.035 + heavy * 0.02);
+        this.effects.ripple(fp.x, fp.z, 0.9 + heavy * 0.8, 0.8, this.waterY);
       }
     } else {
       // висит на леске у кончика, качается
@@ -607,22 +610,22 @@ export class FishingSpots {
     const dz = _v.z - s.z;
     const l = Math.hypot(dx, dz) || 1;
     const side = Math.sin(s.t * 3.1) * 0.9 * (1 - u);
-    return out.set(lerp(s.x, _v.x, u) - (dz / l) * side, WATER_Y + 0.02, lerp(s.z, _v.z, u) + (dx / l) * side);
+    return out.set(lerp(s.x, _v.x, u) - (dz / l) * side, this.waterY + 0.02, lerp(s.z, _v.z, u) + (dx / l) * side);
   }
 
   /** Вода у края мостков перед местом: отсюда рыба вылетает в руки. */
   private nearWater(spot: number, out: THREE.Vector3): THREE.Vector3 {
     const at = this.places[spot];
-    return out.set(at.x - Math.sin(at.yaw) * 1.0, WATER_Y, at.z - Math.cos(at.yaw) * 1.0);
+    return out.set(at.x - Math.sin(at.yaw) * 1.0, this.waterY, at.z - Math.cos(at.yaw) * 1.0);
   }
 
   /** Поплавок долетел: «плюп» и круги; золотая рыбка искрит. */
   private landFloat(s: Spot, mine: boolean): void {
     s.ph = FP_WAIT;
-    this.effects.ripple(s.x, s.z, 1.2, 1.1);
-    this.effects.burst(s.x, WATER_Y + 0.05, s.z, 0xdff4ff, 5, 1.8, 0, 1, 0, 0.03);
-    if (floatSparkles(s.bob)) this.fx.sparkle(s.x, WATER_Y + 0.25, s.z, 18);
-    this.sound.fishPlop(mine ? null : [s.x, WATER_Y, s.z]);
+    this.effects.ripple(s.x, s.z, 1.2, 1.1, this.waterY);
+    this.effects.burst(s.x, this.waterY + 0.05, s.z, 0xdff4ff, 5, 1.8, 0, 1, 0, 0.03);
+    if (floatSparkles(s.bob)) this.fx.sparkle(s.x, this.waterY + 0.25, s.z, 18);
+    this.sound.fishPlop(mine ? null : [s.x, this.waterY, s.z]);
   }
 
   /** Удочка и поплавок — по наряду рыбака: сменил в журнале — меняются сразу */
@@ -751,6 +754,7 @@ export class FishingSpots {
     line.visible = false;
     this.scene.add(line);
     const float = makeFloat();
+    float.userData.p3keep = true;
     float.visible = false;
     this.scene.add(float);
     return {
@@ -786,13 +790,13 @@ export class FishingSpots {
         const at = this.places[i];
         const tx = at.x - Math.sin(at.yaw) * 3;
         const tz = at.z - Math.cos(at.yaw) * 3;
-        f.position.set(lerp(s.from.x, tx, k), lerp(s.from.y, WATER_Y, k) + Math.sin(Math.PI * k) * 1.4, lerp(s.from.z, tz, k));
+        f.position.set(lerp(s.from.x, tx, k), lerp(s.from.y, this.waterY, k) + Math.sin(Math.PI * k) * 1.4, lerp(s.from.z, tz, k));
         f.rotation.z = -k * 2.2;
         if (k >= 1) {
-          this.effects.waterSplash(tx, tz, false);
-          if (s.freed) this.effects.ripple(tx, tz, 1.4, 1);
-          if (s.sp === GOLDFISH) this.fx.sparkle(tx, WATER_Y + 0.3, tz, 26);
-          if (s.freed) this.sound.fishPlop(s.av === this.me ? null : [tx, WATER_Y, tz]);
+          this.effects.waterSplash(tx, tz, false, this.waterY);
+          if (s.freed) this.effects.ripple(tx, tz, 1.4, 1, this.waterY);
+          if (s.sp === GOLDFISH) this.fx.sparkle(tx, this.waterY + 0.3, tz, 26);
+          if (s.freed) this.sound.fishPlop(s.av === this.me ? null : [tx, this.waterY, tz]);
           this.finishAnim(s);
         }
       } else {

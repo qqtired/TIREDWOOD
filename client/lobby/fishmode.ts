@@ -111,13 +111,15 @@ export class FishModeCard {
 
   /** Надбавка места: баркас — цена и опыт, остров — опыт (числа — shared/fishrules.ts); пристань — строки нет */
   setZone(zone: FishZone | null): void {
-    const k = zone === 'barkas' || zone === 'isle' ? zone : '';
+    const k = zone === 'barkas' || zone === 'isle' || zone === 'pond' ? zone : '';
     if (k === this.zoneKey) return;
     this.zoneKey = k;
     this.zone.hidden = !k;
     if (k === 'barkas') {
       const both = BARKAS_INCOME === BARKAS_XP;
       this.zone.innerHTML = `${iconImg('anchor', 'fi-ic')}<span>баркас · ${both ? `цена и опыт <b>${mul(BARKAS_XP)}</b>` : `цена <b>${mul(BARKAS_INCOME)}</b>, опыт <b>${mul(BARKAS_XP)}</b>`}</span>`;
+    } else if (k === 'pond') {
+      this.zone.innerHTML = `${iconImg('float', 'fi-ic')}<span>пруд · 4 вида · без дневного лимита</span>`;
     } else if (k === 'isle') {
       this.zone.innerHTML = `${iconImg('lighthouse', 'fi-ic')}<span>остров · опыт <b>${mul(ISLE_XP)}</b></span>`;
     }

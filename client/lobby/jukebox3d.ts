@@ -927,6 +927,7 @@ export class Jukebox3D {
     this.group.position.set(at.x, at.y ?? 0, at.z);
     // yaw: 0 — лицом на −Z; модель построена лицом на +Z
     this.group.rotation.y = at.yaw + Math.PI;
+    this.group.userData.p3visibility = 110;
     this.group.updateMatrixWorld(true);
     scene.add(this.group);
     this.update(0, false, new Float32Array(EQ_N), 0);

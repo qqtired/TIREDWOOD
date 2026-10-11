@@ -37,6 +37,7 @@ export class FishBoard3D {
   private key = '';
 
   constructor(scene: THREE.Scene) {
+    this.group.name = 'fish-records-board';
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
@@ -226,6 +227,7 @@ function fit(c: CanvasRenderingContext2D, text: string, weight: number, size: nu
 /** Solid carved shark silhouette, muted mythic bronze/sea-green patina; no image texture. */
 export function makeRoofShark(): THREE.Group {
   const group=new THREE.Group(); group.name='mythic-greenland-shark';
+  group.userData.p3keep=true;
   const parts: THREE.BufferGeometry[]=[];
   const profile: [number,number][]=[[.012,-1.15],[.06,-.98],[.16,-.69],[.26,-.25],[.29,.12],[.25,.58],[.17,.92],[.07,1.15],[.015,1.2]];
   const body=paint(new THREE.LatheGeometry(profile.map(([r,x])=>new THREE.Vector2(r,x)),24).rotateZ(-Math.PI/2).scale(1,.88,1),0x64736a);

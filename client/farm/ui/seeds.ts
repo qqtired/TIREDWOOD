@@ -63,7 +63,7 @@ export class SeedsWin extends FarmWin {
   }
 
   private drawCrops(body: HTMLElement): void {
-    body.innerHTML = `<div class="farm-pane farm-crops">${CROPS.map((c) => this.cropCard(c)).join('')}</div>`;
+    body.innerHTML = `<div class="farm-pane farm-crops">${CROPS.filter(c => cropOpen(c, farmLevel(this.host.f.xp))).map((c) => this.cropCard(c)).join('')}</div>`;
   }
 
   private drawNext(body: HTMLElement): void {

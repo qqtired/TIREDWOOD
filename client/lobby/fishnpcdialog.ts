@@ -40,20 +40,21 @@ function fishN(n: number): string {
 }
 
 const ROD_PICS = ['', 'advanced', 'professional', 'master', 'legendary'];
-const NPC_TITLE: Record<FishNpcId, string> = { semyon: 'Дед Семён', sanya: 'Саня', ignat: 'Смотритель Игнат' };
+const NPC_TITLE: Record<FishNpcId, string> = { semyon: 'Дед Семён', sanya: 'Саня', ignat: 'Смотритель Игнат', pond: 'Рыбак Фома' };
 const NPC_EYEBROW: Record<FishNpcId, string> = {
-  semyon: 'Пристань · лавка и задания', sanya: 'Баркас · лавка и задания', ignat: 'Остров «Последний свет» · скупка и напитки',
+  semyon: 'Пристань · лавка и задания', sanya: 'Баркас · лавка и задания', ignat: 'Остров «Последний свет» · скупка и напитки', pond: 'Пруд · снасти и улов',
 };
 const NPC_INTRO: Record<FishNpcId, string> = {
   semyon: 'Заходи, рыбак. Сдашь улов, возьмёшь снасти — и снова к воде.',
   sanya: 'В море рыба крупнее и злее. Улов возьму, снасти продам.',
   ignat: 'Туман сегодня густой. Улов возьму, налью согреться — а маяк посветит.',
+  pond: 'Улов возьму, снасти подберём — на мостках всем хватит места.',
 };
 /** Портрет в шапке: Семён — кадр из игры, Саня и Игнат — значки места (портретов пока нет) */
 const npcPortrait = (npc: FishNpcId): string => (npc === 'semyon'
   ? `<img class="fi-port" src="${portraitUrl('semyon')}" alt="">`
-  : iconImg(npc === 'sanya' ? 'anchor' : 'lighthouse', ''));
-const NPC_BUSY: Record<FishNpcId, string> = { semyon: 'Семён считает…', sanya: 'Саня считает…', ignat: 'Игнат считает…' };
+  : iconImg(npc === 'sanya' ? 'anchor' : npc === 'pond' ? 'float' : 'lighthouse', ''));
+const NPC_BUSY: Record<FishNpcId, string> = { semyon: 'Семён считает…', sanya: 'Саня считает…', ignat: 'Игнат считает…', pond: 'Фома считает…' };
 /** Свои вкладки — «Задания», «Лавка», «Продать»; чужие (addTab, например «Лодки» у Семёна) — по своему id */
 type Tab = 'quests' | 'shop' | 'sell' | (string & {});
 
@@ -536,8 +537,8 @@ export class FishNpcDialog {
     // --- лавка (у Игната — только напитки)
     const isle = this.npc === 'ignat';
     this.gear.hidden = isle;
-    this.drum.root.hidden = isle;
-    setHtml(this.drinkHead, isle ? 'Напитки <small>действует один напиток, 10 минут</small>' : 'Напитки и бубен <small>действует один напиток, 10 минут</small>');
+    this.drum.root.hidden = isle || this.npc === 'pond';
+    setHtml(this.drinkHead, isle || this.npc === 'pond' ? 'Напитки <small>действует один напиток, 10 минут</small>' : 'Напитки и бубен <small>действует один напиток, 10 минут</small>');
     BAGS.forEach((b, i) => {
       const st = gearState('bag', b.tier, p.bagTier, level, tokens);
       this.setOffer(this.bags[i], this.gearView(st, b.level, b.price, tokens, 'Есть', busy));

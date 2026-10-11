@@ -1,6 +1,6 @@
 // Ферма: помощь соседям (design-v11 §8.1, §18.5). Очки помощи — 5 + (ур. − 1), полный сброс через 10 мин после
 // первой траты; помощь — заряд лейки + очко, −20 % оставшегося времени чужой грядки. Лимиты: не себе, ур. ≥ 2,
-// каждый сосед — раз на грядку за цикл, не больше 3 помощей на грядку, до созревания ≥ 20 с. Награда помощнику:
+// каждый сосед — раз на грядку за цикл, не больше 3 помощей на грядку, растущей до созревания ≥ 20 с, спелой можно. Награда помощнику:
 // +1 репутации (≤ 30 в сутки) и 1 🪙 (с одного соседа — не больше 5 раз в час). Сервер — server/farm/help.ts.
 import { mskDay } from './economy.ts';
 import { farmLevel, rollDay, type FarmBed, type FarmFail, type FarmProgress } from './farm.ts';
@@ -33,7 +33,7 @@ export function helpTick(f: FarmProgress, now: number): void {
 /** Можно ли помочь этой грядке (pid — помощник); null — можно */
 export function helpBlock(b: FarmBed, pid: number, now: number): FarmFail | null {
   if (!b.crop) return 'empty';
-  if (b.ripeAt - now < HELP_MIN_LEFT_MS) return 'unripe';
+  if (b.ripeAt > now && b.ripeAt - now < HELP_MIN_LEFT_MS) return 'unripe';
   if (b.helpers.includes(pid)) return 'watered';
   if (b.helpers.length >= HELPS_PER_BED) return 'max';
   return null;

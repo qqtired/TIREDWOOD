@@ -130,6 +130,8 @@ export interface HubOptions {
   hide?: boolean;
   /** «Ферма» (флаг FARM): комната на 20 участков, калитка на Улице Аттракционов */
   farm?: boolean;
+  /** Пруд фермы: явный FARM_POND=1 вместе с FARM и FISH2. */
+  farmPond?: boolean;
   storm?: boolean;
   pirates?: boolean;
   voice?: boolean;
@@ -331,6 +333,17 @@ export class Hub {
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
     this.farm = o.farm
       ? new FarmRoom({
+        jukebox: !!o.jukebox,
+        pond: o.farmPond && this.fish2 ? { profiles: this.profiles, store: this.store } : undefined,
+        changed: (c) => {
+          if (c.profile) this.tokens(c, c.profile.tokens);
+          this.sendMe(c);
+          this.lobby.honorChanged();
+        },
+        outfitChanged: (c) => this.outfitChanged(c.pid),
+        fishTopChanged: () => this.lobby.fishing2?.board.touch(),
+        limit: (key, n, ms) => this.limits.hit(key, n, ms),
+        toast: (c, text) => this.toast(c, text),
         now: () => this.now(),
         outfitOf: (p) => this.outfitOf(p),
         profileOf: (pid) => this.profiles.byId(pid),

@@ -9,9 +9,47 @@
 // картинку; мол — ещё один меш). Мип-уровни и анизотропия — вдали рисунок не рябит.
 import * as THREE from 'three';
 import { P3 } from '../../../shared/plaza3/layout.ts';
+import type { P3Pt } from '../../../shared/plaza3/types.ts';
 import { legacyGroundTexture, type LegacyGround } from './legacyground.ts';
 
 type Wet = (m: THREE.MeshStandardMaterial) => THREE.MeshStandardMaterial;
+
+/** Пятна возле поднятого поля заканчиваются ровно на его контуре: на общей высоте нет двойных треугольников. */
+export function outsideGardenField(poly: readonly P3Pt[]): P3Pt[][] {
+  const triangles = (p: readonly P3Pt[]): P3Pt[][] => THREE.ShapeUtils.triangulateShape(p.map(([x, z]) => new THREE.Vector2(x, z)), []).map((t) => t.map((k) => [...p[k]]));
+  let pieces = triangles(poly);
+  const cross = (a: P3Pt, b: P3Pt, p: P3Pt): number => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+  const area = (p: P3Pt[]): number => p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]; return s + a[0] * b[1] - b[0] * a[1]; }, 0);
+  const clip = (p: P3Pt[], a: P3Pt, b: P3Pt, direction: number): P3Pt[] => {
+    const out: P3Pt[] = [];
+    for (let i = 0; i < p.length; i++) {
+      const u = p[i], v = p[(i + 1) % p.length];
+      const du = cross(a, b, u) * direction, dv = cross(a, b, v) * direction;
+      const insideU = du >= -1e-9, insideV = dv >= -1e-9;
+      if (insideU) out.push(u);
+      if (insideU !== insideV) {
+        const t = du / (du - dv);
+        out.push([u[0] + (v[0] - u[0]) * t, u[1] + (v[1] - u[1]) * t]);
+      }
+    }
+    return out;
+  };
+  for (const field of triangles(P3.land.field)) {
+    const direction = Math.sign(area(field));
+    pieces = pieces.flatMap((p) => {
+      let inside = p;
+      const outside: P3Pt[][] = [];
+      for (let i = 0; i < field.length && inside.length >= 3; i++) {
+        const a = field[i], b = field[(i + 1) % field.length];
+        const part = clip(inside, a, b, -direction);
+        if (part.length >= 3 && Math.abs(area(part)) > 1e-8) outside.push(part);
+        inside = clip(inside, a, b, direction);
+      }
+      return outside;
+    });
+  }
+  return pieces;
+}
 
 /** Картинка: файл (.jpg), метров на один повтор (0 — одна картинка на круг), средний цвет картинки (sRGB) */
 interface GroundTex {

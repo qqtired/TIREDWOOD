@@ -10,6 +10,7 @@ import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
 import { FARM_PLAZA_GATE, FARM_PLAZA_GATE_ANCHOR } from '../../shared/farmmap.ts';
 import type { FarmStatus } from '../../shared/farmnet.ts';
 import { ACT_NONE, ACT_WAVE } from '../../shared/lobby.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { DEFAULT_OUTFIT } from '../../shared/outfit.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
@@ -121,7 +122,7 @@ export class FarmGate {
     const b = new StaticBatch();
     const node = (n: string) => m.nodes.get(n);
     b.add(node('plaza_gate'), at(a.x, 0, a.z, a.yaw));
-    b.add(node('signpost'), at(c.signpost.x, 0, c.signpost.z, a.yaw));
+    if (!PLAZA3) b.add(node('signpost'), at(c.signpost.x, 0, c.signpost.z, a.yaw));
     b.add(node('plaza_cart'), at(c.cart.x, c.cart.y, c.cart.z, a.yaw));
     for (const mesh of b.build()) this.group.add(mesh);
     // створки на петлях ±0,7: отдельные узлы, поворачиваются

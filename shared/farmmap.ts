@@ -2,6 +2,7 @@
 // участков: где грядки в мире, места E у NPC, порядок выдачи участков. Общая для сервера (проверка расстояний) и
 // клиента (рисование, подсказки). Оси как на площади: x — восток, z — юг.
 import { FARM_LAYOUT } from './farmlayout.ts';
+import { FARM_JUKE_SPOT } from './farmseats.ts';
 import { pick } from './layout.ts';
 import { A, xfP, xfSpot } from './plaza3/xf.ts';
 import { P3 } from './plaza3/layout.ts';
@@ -24,6 +25,7 @@ export function buildFarmMap(on: readonly FarmToggle[] = []): GameMap {
     const wall = box.id.startsWith('wall');
     boxes.push({ min: [...box.min] as [number, number, number], max: [...box.max] as [number, number, number], mat: wall ? 'invisible' : 'wood', color: 0x8a6a48 });
   }
+  boxes.push({ min: [FARM_JUKE_SPOT.x - 0.39, 0, FARM_JUKE_SPOT.z - 0.68], max: [FARM_JUKE_SPOT.x + 0.39, 2.05, FARM_JUKE_SPOT.z + 0.68], mat: 'wood', color: 0x8a6a48 });
   return {
     name: 'Ферма', boxes, trampolines: [], pickups: [], deco: [], bounds: { ...b },
     spawns: FARM_LAYOUT.spawns.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, team: 0 as const })),
@@ -43,6 +45,11 @@ FARM_LAYOUT.boxes.forEach((box, i) => {
  */
 export function setFarmToggle(world: { setEnabled(i: number, on: boolean): void }, toggle: FarmToggle, on: boolean): void {
   for (const i of TOGGLE_BOXES[toggle]) world.setEnabled(i, on);
+}
+
+/** Мир с полным набором van/boss: автомат — последний бокс, включается тем же флагом JUKEBOX. */
+export function setFarmJukebox(world: { setEnabled(i: number, on: boolean): void }, on: boolean): void {
+  world.setEnabled(FARM_LAYOUT.boxes.length + 1, on);
 }
 
 export interface FarmPlotGeo {
@@ -81,7 +88,7 @@ export function worldToPlot(plot: number, x: number, z: number): { lx: number; l
 export const FARM_BED_LOCAL = FARM_LAYOUT.plotLocal.beds;
 export const FARM_BED_SIZE = FARM_LAYOUT.plotLocal.bedSize;
 
-/** Центр грядки bed (0–7) участка plot в мире */
+/** Центр грядки bed (0–9) участка plot в мире */
 export function bedWorld(plot: number, bed: number): { x: number; z: number } {
   const b = FARM_BED_LOCAL[bed];
   return plotToWorld(plot, b.x, b.z);

@@ -1,12 +1,12 @@
-// Окно Дядюшки Гриба (lab/ui/screens/farm.js «Дядюшка Гриб: продать урожай»): «Продать» — одна полоса «касса на сегодня»
-// с понятной фразой, строки сумки с ценой (репутация и бафф внутри, потолок дня учтён) и одной кнопкой «Продать»; то, что
+// Окно Дядюшки Гриба (lab/ui/screens/farm.js «Дядюшка Гриб: продать урожай»): «Продать» — счётчик продаж за сегодня
+// с понятной фразой, строки сумки с ценой (репутация и бафф внутри, без дневного снижения) и одной кнопкой «Продать»; то, что
 // сейчас ждёт Фургон, помечено — не продашь по ошибке дёшево; внизу «Продать всё» одной суммой. «Опыт за ресурсы» — кладовая
 // в опыт фермы: степпер на строку (по умолчанию — свободное, что не нужно на улучшения), итог и «Превратить».
 // Решает сервер: окно только просит ({t:'farm', a:'sell'|'convert'}).
-import { capPay, farmLevel, hasBuff, repBonus, repLevel, saleUnit, upgradeStep } from '../../../shared/farm.ts';
-import { BUFFS, CROPS, DAILY_CAP, REP_LEVELS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
+import { farmLevel, hasBuff, repBonus, repLevel, saleUnit, upgradeStep } from '../../../shared/farm.ts';
+import { BUFFS, CROPS, REP_LEVELS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
 import { vanTime } from '../../../shared/farmvan.ts';
-import { C, FarmWin, dec, fi, fmtLeft, meter, msToMskMidnight, resIconName, soldToday } from './common.ts';
+import { C, FarmWin, dec, fi, resIconName, soldToday } from './common.ts';
 
 interface Line {
   item: string;
@@ -41,11 +41,10 @@ export class GribWin extends FarmWin {
     else this.drawSell(body, lines, n);
   }
 
-  /** Строки сумки с ценой: потолок дня копится сверху вниз, как их проведёт сервер */
+  /** Строки сумки с текущей серверной ценой, включая бонусы и предел цены продукта */
   private lines(): Line[] {
     const f = this.host.f;
     const now = this.host.now;
-    let sold = soldToday(f, now);
     const out: Line[] = [];
     const ids = [...CROPS.map((c) => c.id), TRUFFLE];
     for (const item of ids) {
@@ -57,10 +56,8 @@ export class GribWin extends FarmWin {
       }
       const c = cropById(item) as CropDef;
       const raw = saleUnit(f, c, now);
-      const floor = c.seed / raw;
-      const all = capPay(sold, raw * n, floor);
-      out.push({ item, n, name: c.product, iconName: c.icon, unit: capPay(sold, raw, floor), all, truffle: false });
-      sold += all;
+      const all = raw * n;
+      out.push({ item, n, name: c.product, iconName: c.icon, unit: raw, all, truffle: false });
     }
     return out;
   }
@@ -69,15 +66,13 @@ export class GribWin extends FarmWin {
     const f = this.host.f;
     const now = this.host.now;
     const sold = Math.floor(soldToday(f, now));
-    const full = sold >= DAILY_CAP;
     const pills: string[] = [];
     if (repBonus(f.rep) > 0) pills.push(`<span class="k-pill k-pill--good k-pill--sm">Репутация «${REP_LEVELS[repLevel(f.rep) - 1].name}» +${Math.round(repBonus(f.rep) * 100)} %</span>`);
     if (hasBuff(f, 'price', now)) pills.push(`<span class="k-pill k-pill--gold k-pill--sm">Бафф Древа +${Math.round((BUFFS.price.mult - 1) * 100)} %</span>`);
-    if (full) pills.push('<span class="k-pill k-pill--sm">Заказы и трюфели — по полной цене</span>');
     const cash = `
       <div class="k-cell farm-cash">
-        <div class="farm-cash-top"><b>Касса на сегодня</b><span class="${full ? 'k-bad' : 'k-dim'}" data-live="cap">${this.capText(sold)}</span></div>
-        ${meter(Math.min(1, sold / DAILY_CAP), full ? 'k-meter--bad k-meter--lg' : 'k-meter--lg', `${sold} из ${DAILY_CAP}`)}
+        <div class="farm-cash-top"><b>Продано сегодня</b><span class="k-gold" data-live="sold">${this.salesText(sold)}</span></div>
+        <p class="k-dim">Цена сохраняется при любых продажах</p>
         ${pills.length ? `<div class="farm-cash-pills">${pills.join('')}</div>` : ''}
       </div>`;
     if (!lines.length) {
@@ -92,7 +87,7 @@ export class GribWin extends FarmWin {
       return `
         <div class="k-cell farm-row">
           ${fi(l.iconName, 'farm-row-ic')}
-          <div class="farm-row-main"><div class="farm-row-t">${l.name} <b>× ${l.n}</b></div><div class="farm-row-s k-dim">${dec(l.unit)} ${C()} за штуку${l.truffle ? ' · всегда полная цена' : full ? ' · сейчас ×0,25' : ''}</div></div>
+          <div class="farm-row-main"><div class="farm-row-t">${l.name} <b>× ${l.n}</b></div><div class="farm-row-s k-dim">${dec(l.unit)} ${C()} за штуку</div></div>
           ${offer ? `<span class="k-pill k-pill--info k-pill--sm farm-row-van">${fi('van')}Фургон даст ×${dec(offer.mult)}</span>` : '<span></span>'}
           <button class="k-btn k-btn--sm${offer ? ' k-btn--ghost' : ''}" type="button" data-sell="${l.item}" data-n="${l.n}" data-sfx="reward">Продать<small>${C()}${Math.floor(l.all)}</small></button>
         </div>`;
@@ -100,16 +95,12 @@ export class GribWin extends FarmWin {
     body.innerHTML = `<div class="farm-pane">${cash}<div class="farm-rows">${rows}</div></div>`;
     const total = Math.floor(lines.reduce((a, l) => a + l.all, 0));
     this.setFoot(`<span class="k-note">${lines.length} ${lines.length === 1 ? 'вид' : lines.length < 5 ? 'вида' : 'видов'} · ${pieces} шт. в сумке</span><button class="k-btn k-btn--lg" type="button" data-all data-sfx="reward">Продать всё<small>${C()}${total}</small></button>`);
-    this.live('[data-live=cap]', () => this.capText(Math.floor(soldToday(this.host.f, this.host.now))));
+    this.live('[data-live=sold]', () => this.salesText(Math.floor(soldToday(this.host.f, this.host.now))));
     this.onClick('[data-sell]', (b) => this.host.sell(b.dataset.sell!, Number(b.dataset.n)));
     this.onClick('[data-all]', () => lines.forEach((l, i) => window.setTimeout(() => this.host.sell(l.item, l.n), i * GAP_MS)));
   }
 
-  private capText(sold: number): string {
-    return sold >= DAILY_CAP
-      ? `полна — дальше ×0,25 до 00:00 (${fmtLeft(msToMskMidnight(this.host.now))})`
-      : `ещё <b class="k-gold">${DAILY_CAP - sold}</b> ${C()} по полной цене`;
-  }
+  private salesText(sold: number): string { return `${sold} ${C()}`; }
 
   // ------------------------------------------------------------ опыт за ресурсы
 

@@ -7,6 +7,8 @@ import type { FarmSysMsg } from './farmsys.ts';
 import type { Outfit } from './outfit.ts';
 
 export type FarmClientMsg =
+  | { t: 'farm'; a: 'identity'; name: string; icon: string }
+  | { t: 'farm'; a: 'sit'; seat: number }
   /** Посадить культуру на грядки своего участка (Грабли — несколько сразу) */
   | { t: 'farm'; a: 'plant'; beds: number[]; crop: string }
   /** Полить свои грядки (заряд за каждую) */
@@ -55,6 +57,8 @@ export interface FarmPlotView {
   i: number;
   pid: number;
   nick: string;
+  name: string;
+  icon: string;
   level: number;
   sleeping: boolean;
   beds: FarmBedView[];

@@ -3,13 +3,13 @@
 // и почему пока нельзя — отдельной строкой, а не текстом внутри кнопки; готовое — зелёной кнопкой. «Кладовая» — репутация и
 // ресурсы, «Убранство» — титулы, рамки, скины и вещи участка (с картинками и «откуда взять»), «Достижения» — прогресс.
 // Покупает и надевает сервер.
-import { farmLevel, repLevel, upgradeBlock, upgradeStep } from '../../../shared/farm.ts';
+import { FARM_IDENTITY_ICONS, farmLevel, repLevel, upgradeBlock, upgradeStep } from '../../../shared/farm.ts';
 import { achProgress } from '../../../shared/farmach.ts';
 import {
   ACHIEVEMENTS, BAG_PLACES, CAN_CHARGES, FARM_DECOR, PIG_STORE, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, UPGRADES,
   type FarmDecorKind, type UpgradeDef, type UpgradeKind,
 } from '../../../shared/farmdata.ts';
-import { C, FarmWin, big, fi, fmtLeft, meter, pigView, plural, resIconName, resName, ui } from './common.ts';
+import { C, FarmWin, big, esc, fi, fmtLeft, meter, pigView, plural, resIconName, resName, ui } from './common.ts';
 import { UPGRADE_ICON, rewardName, rewardSource } from './names.ts';
 
 type Tab = 'up' | 'store' | 'look' | 'ach';
@@ -28,9 +28,20 @@ function lookSlot(id: string): 'title' | 'frame' | 'can' | 'shovel' | 'fence' | 
 const DECOR_ICON: Record<FarmDecorKind, string> = { ti: 'star', fr: 'ui:card-frame', tl: 'watering-can', pl: 'ui:garden-bed', em: 'ui:emote' };
 const DECOR_KIND: Record<FarmDecorKind, string> = { ti: 'Титул', fr: 'Рамка карточки', tl: 'Скин инструмента', pl: 'Участок', em: 'Эмоция' };
 
+const IDENTITY_LABELS: Record<string, string> = { radish: 'Редис', pumpkin: 'Тыква', strawberry: 'Клубника', 'sunflower-seeds': 'Подсолнух', beehive: 'Улей', 'watering-can': 'Лейка', 'giant-mushroom': 'Гриб', basket: 'Корзина' };
 const lowerFirst = (s: string): string => s.charAt(0).toLowerCase() + s.slice(1);
 
 export class EstateWin extends FarmWin {
+  private identityName: string | null = null;
+  private identityIcon = '';
+  private identityWaiting = false;
+  private identityTimer = 0;
+  open(tab?: string): void {
+    this.identityName = null; this.identityIcon = ''; this.identityWaiting = false;
+    clearTimeout(this.identityTimer); super.open(tab);
+  }
+  identityFailed(): void { this.identityWaiting = false; clearTimeout(this.identityTimer); if (this.isOpen) this.refresh(); }
+
   protected firstTab(): string {
     return 'up';
   }
@@ -69,7 +80,7 @@ export class EstateWin extends FarmWin {
     const pct = (a: number): string => `двойной урожай ${Math.round(a * 100)} %`;
     switch (u.kind) {
       case 'bed': return { now: `${f.beds.length} ${plural(f.beds.length, 'грядка', 'грядки', 'грядок')}`, gives: `${u.step} ${plural(u.step, 'грядка', 'грядки', 'грядок')}` };
-      case 'rake': return { now: `${RAKE_BEDS[t.rake - 1]} ${plural(RAKE_BEDS[t.rake - 1], 'грядка', 'грядки', 'грядок')} разом`, gives: u.step >= 3 ? 'всё поле — 9' : `${RAKE_BEDS[u.step - 1]} ${plural(RAKE_BEDS[u.step - 1], 'грядка', 'грядки', 'грядок')} разом` };
+      case 'rake': return { now: `${RAKE_BEDS[t.rake - 1]} ${plural(RAKE_BEDS[t.rake - 1], 'грядка', 'грядки', 'грядок')} разом`, gives: u.step >= 3 ? `всё поле — ${RAKE_BEDS[u.step - 1]}` : `${RAKE_BEDS[u.step - 1]} ${plural(RAKE_BEDS[u.step - 1], 'грядка', 'грядки', 'грядок')} разом` };
       case 'shovel': return { now: SHOVEL_DOUBLE[t.shovel - 1] > 0 ? pct(SHOVEL_DOUBLE[t.shovel - 1]) : 'без двойного урожая', gives: pct(SHOVEL_DOUBLE[u.step - 1]) };
       case 'can': return { now: `${CAN_CHARGES[t.can - 1]} зарядов`, gives: `${CAN_CHARGES[u.step - 1]} зарядов` };
       case 'bag': return { now: `${BAG_PLACES[t.bag - 1]} мест`, gives: `${BAG_PLACES[u.step - 1]} мест` };
@@ -198,6 +209,11 @@ export class EstateWin extends FarmWin {
 
   private drawLook(body: HTMLElement): void {
     const f = this.host.f;
+    const identity = f.identity;
+    if (this.identityWaiting && identity.name === this.identityName && identity.icon === this.identityIcon) { this.identityWaiting = false; clearTimeout(this.identityTimer); }
+    this.identityName ??= identity.name;
+    if (!this.identityIcon) this.identityIcon = identity.icon;
+    const identityHtml = `<section class="k-cell farm-identity"><p class="k-eyebrow">Название твоей фермы</p><label>Название<input class="k-input" data-farm-name maxlength="56" value="${esc(this.identityName)}" placeholder="Ферма ${esc(this.host.plots()[this.host.plot]?.nick ?? '')}" aria-label="Название фермы"></label><div class="farm-identity-icons" role="group" aria-label="Значок фермы">${FARM_IDENTITY_ICONS.map(id => `<button class="k-btn k-btn--icon k-btn--sm ${id === this.identityIcon ? 'k-btn--gold' : 'k-btn--ghost'}" type="button" data-farm-icon="${id}" aria-pressed="${id === this.identityIcon}" aria-label="${IDENTITY_LABELS[id]}">${fi(id)}</button>`).join('')}</div><div class="farm-identity-foot"><span class="k-dim" data-identity-note>До 28 знаков · пустое поле — имя по умолчанию</span><button class="k-btn k-btn--go k-btn--sm" type="button" data-identity-save ${this.identityWaiting ? 'disabled' : ''}>${this.identityWaiting ? 'Сохраняем…' : 'Сохранить'}</button></div></section>`;
     const cards = FARM_DECOR.map((d) => {
       const own = f.decor.includes(d.id);
       const slot = lookSlot(d.id);
@@ -215,7 +231,24 @@ export class EstateWin extends FarmWin {
           ${on ? '<span class="k-pill k-pill--gold k-pill--sm farm-dec-on">надето</span>' : ''}
         </div>`;
     }).join('');
-    body.innerHTML = `<div class="farm-pane"><p class="farm-lead k-dim">Одежду, питомцев и значки фермы надевай в примерочной на площади. Здесь — то, что видно на карточке и участке.</p><div class="farm-decor">${cards}</div></div>`;
+    body.innerHTML = `<div class="farm-pane">${identityHtml}<p class="farm-lead k-dim">Одежду и питомцев надевай в примерочной на площади. Здесь — то, что видно на карточке и участке.</p><div class="farm-decor">${cards}</div></div>`;
+    const nameInput = body.querySelector<HTMLInputElement>('[data-farm-name]')!;
+    nameInput.addEventListener('input', () => { this.identityName = [...nameInput.value].slice(0, 28).join(''); nameInput.value = this.identityName; });
+    this.onClick('[data-farm-icon]', b => { this.identityIcon = b.dataset.farmIcon ?? 'radish'; this.refresh(); });
+    this.onClick('[data-identity-save]', () => {
+      if (this.identityWaiting) return;
+      this.identityWaiting = true;
+      this.identityName = nameInput.value.trim();
+      this.host.send({ t: 'farm', a: 'identity', name: this.identityName, icon: this.identityIcon });
+      this.refresh();
+      this.identityTimer = window.setTimeout(() => {
+        this.identityWaiting = false;
+        if (!this.isOpen) return;
+        const note = this.body.querySelector('[data-identity-note]');
+        if (note) note.textContent = 'Ждём подтверждение сервера…';
+        const button = this.body.querySelector<HTMLButtonElement>('[data-identity-save]'); if (button) { button.disabled = false; button.textContent = 'Сохранить'; }
+      }, 5000);
+    });
     this.onClick('[data-look]', (b) => this.host.send({ t: 'farm', a: 'look', slot: b.dataset.look as 'title', id: b.dataset.id ?? '' }));
   }
 

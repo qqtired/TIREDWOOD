@@ -11,10 +11,12 @@ import '@fontsource/rubik-mono-one/cyrillic-400.css';
 import '@fontsource/rubik-mono-one/latin-400.css';
 import '@fontsource/rubik/800.css';
 import { P3 } from '../../../shared/plaza3/layout.ts';
+import { FERRY_LEVEL, FERRY_SEATS } from '../../../shared/ferry.ts';
+import { BARKAS_FISH_SPOTS } from '../../../shared/barkas.ts';
 import type { LiveIn } from '../plaza/live.ts';
 import {
   ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_ICON_H, MIN_STATUS_H, PLANK, SIGN_COLOR, SIGN_FONT, SIGN_META, STATUS_SIZE, TONE_COLOR,
-  contentOf, enamelAt, fitStatus, fitTitle, headItems, monoRun, packAtlas,
+  contentOf, ferryContent, enamelAt, fitStatus, fitTitle, headItems, monoRun, packAtlas,
   type Atlas, type AtlasItem, type AtlasRect, type Content, type FlagMode, type IconId, type PostPlan, type SignMeta,
 } from './signstyle.ts';
 import { emptyExtras, signStatus, statusKey, type SignExtras, type SignStatus } from './status.ts';
@@ -285,6 +287,16 @@ function drawSignHead(ctx: Ctx, s: Sign, icons: ReadonlyMap<string, HTMLImageEle
     }
   }
   // название
+  if (s.meta.mode === 'ferry') {
+    const fit = fitTitle(s.title, c.titleEm * .7, c.textW);
+    const tw = titleWidth(ctx, fit.text, fit.em, mono);
+    drawTitle(ctx, fit.text, (w - tw) / 2, h * .27, fit.em, SIGN_COLOR.text, SIGN_COLOR.outline, Math.max(1, fit.em * .07), mono);
+    ctx.fillStyle = SIGN_COLOR.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.round(h * .095)}px ${SIGN_FONT.status}`;
+    const rows = ['к «Альбатросу» и обратно', `с ${FERRY_LEVEL}-го уровня · бесплатно`, `${FERRY_SEATS} мест · ${BARKAS_FISH_SPOTS.length} мест ловли · E`];
+    rows.forEach((line, i) => ctx.fillText(line, w / 2, h * (.4 + i * .12), w - 2 * f.rim - 8));
+    ctx.restore(); return;
+  }
   const fit = fitTitle(s.title, c.titleEm, c.textW);
   const tw = titleWidth(ctx, fit.text, fit.em, mono);
   const tx = ic ? c.textX : Math.round(c.textX + (c.textW - tw) / 2);
@@ -445,7 +457,7 @@ export class Plaza3Signs {
     for (const s of this.signs) {
       s.head = rectOf.get(s.id)!;
       s.sh = s.head.w / s.w;
-      s.content = contentOf(s.head.w, s.head.h, s.hasIcon, s.hasStatus);
+      s.content = s.meta.mode === 'ferry' ? ferryContent(s.head.w, s.head.h) : contentOf(s.head.w, s.head.h, s.hasIcon, s.hasStatus);
     }
     for (const p of this.posts) {
       p.plan.planks.forEach((pk, i) => {
@@ -697,6 +709,7 @@ export class Plaza3Signs {
 
   /** То, чего нет в LiveIn: занятые автоматы и рекорд «Подземелья» */
   setExtras(x: Partial<SignExtras>): void {
+    if (x.ferry !== undefined) this.extras.ferry = x.ferry;
     if (x.slots !== undefined) this.extras.slots = x.slots;
     if (x.dungeon !== undefined) this.extras.dungeon = x.dungeon;
   }

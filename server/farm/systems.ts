@@ -21,7 +21,7 @@ type Msg<A extends FarmClientMsg['a']> = Extract<FarmClientMsg, { a: A }>;
 
 /** Что сделал игрок в фундаменте (room.ts зовёт FarmSystems.on после успешного действия, до sendMe) */
 export type FarmHook =
-  | { k: 'harvest'; items: readonly HarvestItem[]; xp: number }
+  | { k: 'harvest'; items: readonly HarvestItem[]; xp: number; level?: number }
   | { k: 'water'; beds: readonly number[] }
   | { k: 'sold'; item: string; n: number; coins: number }
   | { k: 'upgrade'; id: string }
@@ -108,7 +108,7 @@ export class FarmSystems {
     switch (e.k) {
       case 'harvest':
         orderEvent(ctx, p, { k: 'harvest', items: e.items }, now);
-        this.boss.harvest(p, e.xp, now);
+        this.boss.harvest(p, e.xp, now, e.level);
         break;
       case 'water':
         orderEvent(ctx, p, { k: 'water', n: e.beds.length }, now);

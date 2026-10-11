@@ -1,3 +1,4 @@
+import { FarmSigns } from './3d/signs.ts';
 // Мир фермы: вечерняя палитра набережной (без скачка света при переходе), земля и дорожки, вся неподвижная постройка
 // из моделей Blender (склейка по материалу — несколько отрисовок), грядки 20 участков и растения — инстансами
 // (стадии роста, «выпрыгивание» на смене стадии, мягкое свечение спелых яркостью материала, золотые искорки), жители
@@ -8,7 +9,7 @@ import * as THREE from 'three';
 import { bedStage } from '../../shared/farm.ts';
 import { FARM_BEDS, FARM_PLOTS, cropById } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
-import { bedWorld, buildFarmMap, setFarmToggle } from '../../shared/farmmap.ts';
+import { bedWorld, buildFarmMap, setFarmToggle, setFarmJukebox } from '../../shared/farmmap.ts';
 import type { FarmBedView, FarmEvent, FarmPlotView } from '../../shared/farmnet.ts';
 import type { FarmSysMsg } from '../../shared/farmsys.ts';
 import { makeRng } from '../../shared/math.ts';
@@ -119,11 +120,15 @@ export class FarmWorld {
   private boss: FarmBoss | null = null;
   private yard: FarmYard | null = null;
   readonly pets: WalkPets;
+  private readonly signs: FarmSigns;
+  private readonly focus = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.68, .14, -.68), new THREE.Vector3(.68, .14, -.68), new THREE.Vector3(.68, .14, .68), new THREE.Vector3(-.68, .14, .68)]), new THREE.LineBasicMaterial({ color: 0xffe3a3 }));
   /** Сообщения, пришедшие до загрузки моделей */
   private readonly early: FarmSysMsg[] = [];
 
   constructor(renderer: Renderer) {
     this.renderer = renderer;
+    this.signs = new FarmSigns(this.scene); this.focus.visible = false; this.scene.add(this.focus);
+    setFarmJukebox(this.collision, false);
     // Фургон и ствол Древа твёрдые только по сообщению сервера (onSys)
     setFarmToggle(this.collision, 'van', false);
     setFarmToggle(this.collision, 'boss', false);
@@ -292,11 +297,18 @@ export class FarmWorld {
     this.beds = { frame: mk('bed_frame'), turf: mk('bed_turf'), lock: mk('bed_lock'), empty: mk('bed_empty'), dug: mk('bed_dug'), wet: mk('bed_wet'), rim: mk('bed_ripe_rim') };
   }
 
+  setJukeboxSolid(on: boolean): void { setFarmJukebox(this.collision, on); }
+  focusBed(plot: number, bed: number): void {
+    this.focus.visible = plot >= 0 && bed >= 0;
+    if (!this.focus.visible) return;
+    const c = bedWorld(plot, bed); this.focus.position.set(c.x, 0, c.z); this.focus.rotation.y = L.plots[plot].yaw;
+  }
+
   // ------------------------------------------------------------ грядки и растения
 
   setPlots(list: readonly FarmPlotView[]): void {
     this.plots = [];
-    for (const v of list) this.plots[v.i] = v;
+    for (const v of list) { this.plots[v.i] = v; this.signs.set(v); }
     this.bedsDirty = true;
     this.yard?.setPlots(this.plots);
   }
@@ -372,6 +384,7 @@ export class FarmWorld {
   }
 
   setPlot(v: FarmPlotView): void {
+    this.signs.set(v);
     const old = this.plots[v.i];
     this.plots[v.i] = v;
     this.bedsDirty = true;
@@ -472,7 +485,7 @@ export class FarmWorld {
       for (let n = 0; n < FARM_BEDS; n++) {
         const local = pl.beds[n];
         const [x, z] = plotPoint(i, local.x, local.z);
-        const m = at(x, 0, z, plot.yaw);
+        const m = at(x, 0, z, plot.yaw, pl.bedSize / 1.6);
         beds.frame.push(m);
         if (n >= open) {
           beds.turf.push(m);
@@ -489,7 +502,7 @@ export class FarmWorld {
         }
         const age = this.time - (this.popAt[i * FARM_BEDS + n] ?? -9);
         if (age < POP_S) this.popping = true;
-        this.cropParts(b.c, st)?.push(at(x, 0, z, plot.yaw, popScale(age)));
+        this.cropParts(b.c, st)?.push(at(x, 0, z, plot.yaw, (pl.bedSize / 1.6) * popScale(age)));
       }
     }
     for (const pi of Object.values(beds)) pi.end();

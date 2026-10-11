@@ -1,3 +1,4 @@
+import { FarmLoot } from './ui/loot.ts';
 // Интерфейс фермы на ките 2.0 (lab/ui/screens/farm.js): HUD лежит в слотах кита — карточка фермы и обучение слева-сверху,
 // плитки справа-сверху (ui/bar.ts), пояс семян и подсказка E внизу по центру (ui/belt.ts, ui/prompt.ts); плашка Древа,
 // тосты и баннер уровня идут через верх-центр кита (ui.top) — своей разметки наверху нет. Окна — нативные <dialog> с
@@ -50,7 +51,7 @@ export interface FarmHudActions {
 
 export class FarmHud {
   private readonly top: TopCenter;
-  private readonly cross = document.createElement('div');
+  private readonly loot: FarmLoot;
   private readonly bar: FarmBar;
   private readonly prompt: FarmPrompt;
   private readonly belt: SeedBelt;
@@ -77,9 +78,7 @@ export class FarmHud {
   constructor(slots: HudSlots, top: TopCenter, act: FarmHudActions) {
     this.act = act;
     this.top = top;
-    this.cross.className = 'farm-cross';
-    this.cross.hidden = true;
-    slots.root.append(this.cross);
+    this.loot = new FarmLoot(slots);
     this.notify = new FarmNotify((t) => this.toast(t));
     this.bar = new FarmBar(slots, { openEstate: () => this.openEstate() });
     this.prompt = new FarmPrompt(slots);
@@ -92,7 +91,7 @@ export class FarmHud {
       now: () => this.now(),
       mePid: () => act.plots?.()[this.plot]?.pid ?? -1,
       toast: (t) => this.toast(t),
-    });
+    }, slots);
 
     const hud = this;
     const host: FarmHost = {
@@ -131,6 +130,9 @@ export class FarmHud {
     return this.cur?.isOpen ? this.cur.id : '';
   }
 
+  harvest(e: Extract<FarmEvent, { k: 'harvest' }>): void { this.loot.show(e); }
+  identityFailed(): void { this.estate.identityFailed(); }
+  setTreeNear(near: boolean): void { this.tree.setNear(near); }
   private now(): number {
     return Date.now() + this.offset;
   }
@@ -147,7 +149,7 @@ export class FarmHud {
 
   setVisible(v: boolean): void {
     this.bar.setVisible(v);
-    this.cross.hidden = !v;
+    if (!v) this.loot.clear();
     this.prompt.setVisible(v);
     this.tree.setVisible(v);
     window.clearInterval(this.timer);
@@ -187,7 +189,6 @@ export class FarmHud {
     this.tokensSeen = tokens;
     this.bar.update(f, this.plot, now);
     this.notify.check(f, now);
-    this.notify.checkCap(f, now);
     this.belt.update(f, this.tokens(), now);
     this.cur?.refresh();
   }

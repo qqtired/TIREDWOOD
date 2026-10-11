@@ -9,7 +9,7 @@ import { RAIN_MUL, SEASON_MUL } from '../../shared/fishrules.ts';
 import { fishCastMods, fishLevel, type FishProgress } from '../../shared/fishprogress.ts';
 import { catchFullHint, catchRoom } from '../../shared/fishlivewell.ts';
 import { ISLE, castZone, inIsleWaters, setIsle } from '../../shared/fishisle.ts';
-import { FISH_NPCS, FISH_NPC_USE, FISH_SPOTS, spotZone, type FishNpcId } from '../../shared/fishplaces.ts';
+import { FISH_NPCS, FISH_NPC_USE, FISH_SPOTS, spotZone, type FishNpcId, type FishZone } from '../../shared/fishplaces.ts';
 import { isleCaught } from '../../shared/islestyle.ts';
 import type { ClientMsg, FishBoardView, ServerMsg } from '../../shared/messages.ts';
 import type { RouletteView } from '../../shared/roulette.ts';
@@ -38,6 +38,8 @@ import { RouletteHud } from './roulettehud.ts';
 import { fishLevelUpText, mul } from './fishfmt.ts';
 import { SeasonSigns } from './seasonsign.ts';
 import { BAG_FULL_HINT, CHOICE_LOCK_MS, DONE_RELEASE } from '../../shared/fishrelease.ts';
+import { isTyping } from '../input.ts';
+import { FishNextCast, type QuickKeepContext } from './fishnextcast.ts';
 import './fishkit.css';
 
 /** Подсказка у доски рекордов — ближе этого, м */
@@ -75,7 +77,19 @@ function eventHtml(icon: string, title: string, sub: string, left: number, span:
   return `<span class="k-event-ic">${iconImg(icon, '')}</span><div class="k-event-title">${escHtml(title)}</div><div class="k-event-sub">${escHtml(sub)}</div>${timer}${bar}`;
 }
 
+export interface FishHudPlace {
+  zone?: FishZone;
+  enabled?: () => boolean;
+  places?: readonly { x: number; z: number }[];
+  npcUse?: { x: number; z: number; r: number };
+}
+
 export class Fish2Hud {
+  /** Сцена проверяет свой action/room/input и выполняет штатный fishPress после подтверждения keep. */
+  onAutoCast: () => void = () => {};
+  private readonly nextCast = new FishNextCast();
+  private currentSeat = -1;
+  private currentFishing = false;
   /** Открыли журнал — отпустить мышь; закрыли — снова захватить */
   onBookOpen: () => void = () => {};
   onBookClose: () => void = () => {};
@@ -89,7 +103,7 @@ export class Fish2Hud {
   private readonly reel: ReelGame;
   private readonly card: CatchCard2;
   private readonly book: FishBook;
-  private readonly board: FishBoard3D;
+  private readonly board: FishBoard3D | null;
   /** Верх-лево: уровень рыбалки, следующий бонус, «Шансы сейчас», виды острова */
   private readonly mode: FishModeCard;
   /** Под бейджем: рюкзак, лайвел, напиток, задание Семёна */
@@ -104,13 +118,14 @@ export class Fish2Hud {
   /** Разговор с Семёном и Саней; npc.extra — шапка для чужих кнопок (перевоз Сани) */
   readonly npc: FishNpcDialog;
   /** Баркас: «Домой, к Семёну» у Сани — кнопка в npc.extra */
-  private readonly sanyaHome: SanyaHome;
+  private readonly sanyaHome: SanyaHome | null;
   private readonly bag: FishBag;
-  readonly roulette: RouletteHud;
-  private readonly fisherman: Fisherman3D;
+  private readonly rouletteHud: RouletteHud | null;
+  private readonly fisherman: Fisherman3D | null;
   /** Вывески «Сезон рыбалки»: на доме Семёна и на рубке баркаса */
-  private readonly seasonSigns: SeasonSigns;
-  private readonly podium: FishPodium3D;
+  private readonly seasonSigns: SeasonSigns | null;
+  private readonly podium: FishPodium3D | null;
+  private readonly place: FishHudPlace;
   private readonly clock = new FishClock();
   private readonly ui: Ui;
   private readonly send: (msg: ClientMsg) => void;
@@ -130,7 +145,8 @@ export class Fish2Hud {
   /** Сезон рыбалки (сообщение fishSeason): конец идущего, мс серверных часов; 0 — не идёт */
   private seasonEnds = 0;
 
-  constructor(_parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement) {
+  constructor(_parent: HTMLElement, scene: THREE.Scene, sound: Sound, ui: Ui, send: (msg: ClientMsg) => void, overlay: HTMLElement, place: FishHudPlace = {}) {
+    this.place = place;
     this.ui = ui;
     this.send = send;
     // шкала — в слое HUD рядом с персонажем (рамка кита, fishkit.css .fi-reel)
@@ -160,48 +176,62 @@ export class Fish2Hud {
     this.biteEl.dataset.mode = 'fishing';
     this.biteEl.hidden = true;
     this.biteEl.innerHTML = `<p class="k-hero-title">Подсекай!</p><span class="k-hero-sub">${TOUCH ? '' : MOUSE_L.replace('k-key"', 'k-key k-key--lg"')}жми сейчас</span>`;
-    this.board = new FishBoard3D(scene);
-    this.podium = new FishPodium3D(scene);
-    this.fisherman = new Fisherman3D(scene);
-    this.seasonSigns = new SeasonSigns(scene);
+    this.board = place.zone === 'pond' ? null : new FishBoard3D(scene);
+    this.podium = place.zone === 'pond' ? null : new FishPodium3D(scene);
+    this.fisherman = place.zone === 'pond' ? null : new Fisherman3D(scene);
+    this.seasonSigns = place.zone === 'pond' ? null : new SeasonSigns(scene);
     // журнал — окно кита (native dialog поверх всего)
     this.book = new FishBook(overlay);
+    this.book.pondEnabled = place.zone === 'pond';
     this.npc = new FishNpcDialog(overlay, ui.me, send);
     this.npc.onOpen = () => this.onNpcOpen();
     this.npc.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.npc.onBeer = () => this.onBeer();
-    this.sanyaHome = new SanyaHome(this.npc, () => ui.me().tokens, send, (text) => ui.toasts.show(text));
-    this.bag = new FishBag(overlay, send);
+    this.sanyaHome = place.zone === 'pond' ? null : new SanyaHome(this.npc, () => ui.me().tokens, send, (text) => ui.toasts.show(text));
+    this.bag = new FishBag(overlay, send, place.zone === 'pond' ? 'Продать улов — у Рыбака Фомы' : undefined);
+    this.bag.allowHold = place.zone !== 'pond';
     this.bag.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.progress.onBag = () => this.toggleBag();
-    this.roulette = new RouletteHud(overlay, send, { slots: ui.slots, top: ui.top });
-    this.roulette.onOpen = () => this.onNpcOpen();
-    this.roulette.onClose = () => { if (!this.quiet) this.onNpcClose(); };
+    this.rouletteHud = place.zone === 'pond' ? null : new RouletteHud(overlay, send, { slots: ui.slots, top: ui.top });
+    if (this.rouletteHud) this.rouletteHud.onOpen = () => this.onNpcOpen();
+    if (this.rouletteHud) this.rouletteHud.onClose = () => { if (!this.quiet) this.onNpcClose(); };
     this.book.onClose = () => {
       if (!this.quiet) this.onBookClose();
     };
     // Один компонент наград в журнале и у Семёна: профиль и запрос смены снасти общие.
     this.book.rewards.onEquip = (slot, key) => send({ t: 'outfit', o: { ...this.ui.me().outfit, [slot]: key } as Outfit });
-    this.npc.addTab('rewards', 'season', 'Награды', ['semyon'], (panel, progress) => {
+    this.npc.addTab('rewards', 'season', 'Награды', ['semyon', 'pond'], (panel, progress) => {
       const me = this.ui.me();
       this.book.rewards.outfit = me.outfit;
       const view = this.book.rewards.view(me.album, me.owned, fishLevel(progress.xp));
       // Не менять узлы без изменения содержимого: выбор и прокрутка остаются на месте.
       if (panel.firstElementChild?.innerHTML !== view.innerHTML) panel.replaceChildren(view);
     });
+    if (place.zone === 'pond') {
+      const journal = this.npc.extra.appendChild(document.createElement('button'));
+      journal.type = 'button'; journal.className = 'k-btn k-btn--ghost k-btn--sm';
+      journal.innerHTML = `${iconImg('journal', '')}Журнал пруда`;
+      journal.addEventListener('click', () => { this.npc.close(); this.toggleBook(); });
+    }
+  }
+
+  /** Прежний API набережной; пруд не создаёт и не использует рулетку. */
+  get roulette(): RouletteHud {
+    if (!this.rouletteHud) throw new Error('roulette is unavailable at the pond');
+    return this.rouletteHud;
   }
 
   /** Рыбалка 2.0 включена на сервере */
   get on(): boolean {
-    return FISH2.on;
+    return this.place.enabled?.() ?? FISH2.on;
   }
 
   get bookOpen(): boolean {
     return this.book.isOpen;
   }
 
-  get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
-  get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || this.roulette.isOpen; }
+  get npcOpen(): boolean { return this.npc.isOpen || this.bag.isOpen || !!this.rouletteHud?.isOpen; }
+  get modalOpen(): boolean { return this.book.isOpen || this.npc.isOpen || this.bag.isOpen || !!this.rouletteHud?.isOpen; }
 
   /** Рыбу некуда положить (рюкзак полон, а лайвела своей лодки нет или он полон) — заброс не уйдёт (сервер скажет то же самое) */
   get bagFull(): boolean {
@@ -215,13 +245,13 @@ export class Fish2Hud {
 
   /** Приветствие набережной: включена ли, доска рекордов, дождь. true — доска только что появилась (пересчитать тени). */
   lobby(on: boolean, top: FishBoardView | null, rain: boolean, isle = false): boolean {
-    const was = this.board.group.visible;
+    const was = this.board?.group.visible ?? false;
     FISH2.on = on;
     setIsle(on && isle);
-    this.board.group.visible = on;
-    this.podium.group.visible = on;
-    this.fisherman.group.visible = on;
-    this.seasonSigns.group.visible = on;
+    if (this.board) this.board.group.visible = on;
+    if (this.podium) this.podium.group.visible = on;
+    if (this.fisherman) this.fisherman.group.visible = on;
+    if (this.seasonSigns) this.seasonSigns.group.visible = on;
     this.rain = rain;
     this.npc.setEvent(rain, this.eventUntil);
     this.onMe();
@@ -231,8 +261,8 @@ export class Fish2Hud {
 
   setTop(top: FishBoardView | null): void {
     this.top = top;
-    this.board.set(top, this.ui.me().pid);
-    this.podium.set(top?.podium ?? []);
+    this.board?.set(top, this.ui.me().pid);
+    this.podium?.set(top?.podium ?? []);
   }
 
   /** Погода сменилась: пошёл дождь — уведомление всем на набережной, кончился — тем, кто с удочкой. */
@@ -299,7 +329,7 @@ export class Fish2Hud {
     this.mode.setProgress(progress);
     this.npc.setProgress(progress, now);
     this.bag.set(progress);
-    this.roulette.setProgress(progress);
+    this.rouletteHud?.setProgress(progress);
     const me = this.ui.me();
     this.book.update(me.album, me.owned, progress);
   }
@@ -311,14 +341,14 @@ export class Fish2Hud {
 
   /** Стол рулетки поменялся */
   onRoulette(v: RouletteView): void {
-    this.roulette.setView(v);
+    this.rouletteHud?.setView(v);
   }
 
   /** E у стола рулетки */
   openRoulette(): void {
     if (this.modalOpen) return;
     const me = this.ui.me();
-    this.roulette.open(me.fishing, me.pid);
+    this.rouletteHud?.open(me.fishing, me.pid);
   }
 
   /** Рыба в руках (сервер, fishhold.ts): в рюкзаке у неё «Убрать» вместо «Взять в руки» */
@@ -328,7 +358,7 @@ export class Fish2Hud {
 
   /** I или плитка рюкзака под бейджем: окно рюкзака */
   toggleBag(): void {
-    if (this.npc.isOpen || this.book.isOpen || this.roulette.isOpen) return;
+    if (this.npc.isOpen || this.book.isOpen || !!this.rouletteHud?.isOpen) return;
     if (this.bag.isOpen) {
       this.bag.close();
       return;
@@ -350,34 +380,35 @@ export class Fish2Hud {
     this.progress.set(msg.progress, msg.now);
     this.mode.setProgress(msg.progress);
     this.npc.onState(msg);
-    this.sanyaHome.refresh();
+    this.sanyaHome?.refresh();
   }
 
   closeNpc(): void {
     this.npc.close();
     this.bag.close();
-    this.roulette.close();
+    this.rouletteHud?.close();
   }
 
   /** Саня ответил на «Домой, к Семёну» (кнопка модуля баркаса в шапке разговора — client/lobby/barkas/sanyahome.ts) */
-  onBarkasHome(ok: boolean, message: string): void { this.sanyaHome.onResult(ok, message); }
+  onBarkasHome(ok: boolean, message: string): void { this.sanyaHome?.onResult(ok, message); }
 
   requestNpcOpen(npc: FishNpcId = 'semyon'): void { this.npc.requestOpen(npc); }
 
   refreshBalance(): void {
     this.npc.refresh();
-    this.sanyaHome.refresh();
+    this.sanyaHome?.refresh();
   }
 
   /** Кадр 3D рыбалки: Семён смотрит на своего игрока (me) и оборачивается к нему, пока открыт разговор с ним */
   updateVisuals(dt: number, time: number, camera: THREE.Vector3, me: { x: number; y: number; z: number } | null = null): void {
-    this.fisherman.update(dt, time, camera, me, this.npc.isOpen && this.npc.who === 'semyon');
-    this.seasonSigns.update(dt, camera);
+    this.fisherman?.update(dt, time, camera, me, this.npc.isOpen && this.npc.who === 'semyon');
+    this.seasonSigns?.update(dt, camera);
   }
 
   /** Подсёк — шкала вываживания (сид и вид прислал сервер); mySpot — своё место рыбалки. */
   onReel(msg: Extract<ServerMsg, { t: 'fishReel' }>, mySpot: number): void {
     if (msg.spot !== mySpot) return;
+    this.nextCast.cancel();
     this.card.hide();
     this.bite(false);
     this.reel.theme(slotKey(this.ui.me().outfit, 'w'));
@@ -385,6 +416,7 @@ export class Fish2Hud {
   }
 
   onLand(msg: Extract<ServerMsg, { t: 'fishLand' }>): void {
+    this.nextCast.cancel();
     this.card.show(msg);
     // кнопки выбора притушены, пока не кончилась пауза после вываживания (она идёт с конца шкалы, а карточка пришла от сервера позже)
     this.card.lockFor(this.lockUntil - performance.now());
@@ -420,12 +452,14 @@ export class Fish2Hud {
 
   /** Ушёл с места рыбалки: шкалу — сразу; карточка улова уйдёт сама. */
   off(): void {
+    this.nextCast.cancel(); this.currentFishing = false; this.currentSeat = -1;
     this.reel.reset();
     this.bite(false);
   }
 
   /** Снова забросил — карточка прошлого улова уходит */
   cast(): void {
+    this.nextCast.cancel();
     this.card.hide();
   }
 
@@ -445,13 +479,33 @@ export class Fish2Hud {
    */
   choose(keep: boolean): boolean {
     if (!this.card.canRelease) return false;
+    this.nextCast.cancel();
     if (!this.inputLocked) this.send({ t: 'fish', a: keep ? 'keep' : 'release' });
     return true;
   }
 
   /** Сервер убрал рыбу из рук (FE_DONE на своём месте): a — DONE_RELEASE, если отпустили */
   done(a: number): void {
+    const pending = this.nextCast.pending;
+    const cast = this.nextCast.confirm(a, this.quickContext());
     this.card.done(a === DONE_RELEASE);
+    if (cast) this.onAutoCast();
+    else if (pending && a === 1 && this.bagFull) this.ui.toasts.show(this.fullHint, 3600);
+  }
+
+  /** Только свежий Space на карточке: keep сейчас, обычный cast — после успешного серверного FE_DONE. */
+  quickKeepSpace(e: KeyboardEvent): boolean {
+    const decision = this.nextCast.request(this.quickContext(!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey, isTyping(e.target as HTMLElement | null)));
+    if (decision === 'pass') return false;
+    e.preventDefault();
+    if (decision === 'keep') this.send({ t: 'fish', a: 'keep' });
+    return true;
+  }
+
+  private quickContext(fresh = false, typing = false): QuickKeepContext {
+    return { seat: this.currentSeat, fishing: this.currentFishing, canKeep: this.card.canRelease, fresh,
+      typing: typing || isTyping(document.activeElement as HTMLElement | null),
+      blocked: !this.on || this.modalOpen || this.ui.chat.isOpen, locked: this.inputLocked, full: this.bagFull, now: performance.now() };
   }
 
   /** Профиль с сервера (новый улов, комплект) — журнал и счёт на кнопке. */
@@ -464,8 +518,8 @@ export class Fish2Hud {
     this.mode.setProgress(me.fishing);
     this.npc.setProgress(me.fishing);
     this.bag.set(me.fishing);
-    this.roulette.setProgress(me.fishing);
-    this.board.set(this.top, me.pid);
+    this.rouletteHud?.setProgress(me.fishing);
+    this.board?.set(this.top, me.pid);
   }
 
   /**
@@ -473,7 +527,8 @@ export class Fish2Hud {
    * желейки). Шкала идёт по своим часам; её прогресс подводит рыбу к мосткам в 3D.
    */
   frame(fishing: boolean, held: boolean, spots: FishingSpots, spot: number, px: number | null, pz: number | null): void {
-    if (!FISH2.on) return;
+    this.currentFishing = fishing; this.currentSeat = fishing ? spot : -1;
+    if (!this.on) return;
     if (this.reel.active) {
       this.reel.update(held);
       if (fishing) spots.setProgress(spot, this.reel.progress);
@@ -481,9 +536,9 @@ export class Fish2Hud {
     const has = px !== null && pz !== null;
     // рюкзак, задание — с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить); напиток — всегда
     const near = has && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
-    this.progress.setShown(true, fishing || near, this.helm());
+    this.progress.setShown(this.place.zone === 'pond' ? fishing || near : true, fishing || near, this.helm());
     // в море (баркас, лодка на якоре) пул — по точке: в водах острова клюёт остров (shared/fishisle.ts)
-    const zone = !fishing ? 'pier' : has ? castZone(spotZone(spot), px, pz) : spotZone(spot);
+    const zone = this.place.zone ?? (!fishing ? 'pier' : has ? castZone(spotZone(spot), px, pz) : spotZone(spot));
     const isle = zone === 'isle';
     this.mode.shown = fishing;
     if (fishing) {
@@ -545,7 +600,7 @@ export class Fish2Hud {
     let html = '';
     let tone: 'special' | undefined;
     let lamp = false;
-    if (show && !this.reel.active) {
+    if (show && !this.reel.active && this.place.zone !== 'pond') {
       if (atIsle) {
         if (this.isleSeason) {
           html = eventHtml('fog', 'Великий туман!', `Сезон острова: шансы ещё ${mul(SEASON_MUL)}`, this.isleSeasonEnds - now, SEASON_SPAN_MS, 'special');
@@ -572,13 +627,14 @@ export class Fish2Hud {
 
   /** У места рыбалки на пристани, у маяка или на баркасе */
   private nearSpot(x: number, z: number): boolean {
-    for (const s of FISH_SPOTS) if (Math.hypot(x - s.x, z - s.z) < SPOT_NEAR_M) return true;
+    for (const s of this.place.places ?? FISH_SPOTS) if (Math.hypot(x - s.x, z - s.z) < SPOT_NEAR_M) return true;
     return false;
   }
 
   /** Рядом с Семёном или Саней */
   nearNpc(x: number, z: number): boolean {
-    return FISH2.on && FISH_NPCS.some((id) => {
+    if (this.place.npcUse) return this.on && Math.hypot(x - this.place.npcUse.x, z - this.place.npcUse.z) < this.place.npcUse.r + 1.5;
+    return this.on && FISH_NPCS.some((id) => {
       const u = FISH_NPC_USE[id];
       return !!u && Math.hypot(x - u.x, z - u.z) < u.r + 1.5;
     });
@@ -586,7 +642,7 @@ export class Fish2Hud {
 
   /** У доски рекордов (подсказка: что на ней и как открыть журнал) */
   nearBoard(x: number, z: number): boolean {
-    return FISH2.on && Math.hypot(x - FISH_BOARD_AT.x, z - FISH_BOARD_AT.z) < BOARD_HINT_M;
+    return this.place.zone !== 'pond' && this.on && Math.hypot(x - FISH_BOARD_AT.x, z - FISH_BOARD_AT.z) < BOARD_HINT_M;
   }
 
   /** J или «Журнал» в подсказке: открыть журнал (мышь отпускается) или закрыть. */
@@ -598,7 +654,7 @@ export class Fish2Hud {
     }
     const me = this.ui.me();
     this.book.rewards.outfit = me.outfit;
-    this.book.open(me.album, me.owned, me.fishing);
+    this.book.open(me.album, me.owned, me.fishing, this.place.zone === 'pond' ? 'pond' : undefined);
     this.onBookOpen();
   }
 
@@ -608,13 +664,14 @@ export class Fish2Hud {
 
   /** Вошли на набережную или ушли с неё: всё убрать (мышь не трогаем — этим занимается оболочка). */
   reset(): void {
+    this.nextCast.cancel(); this.currentFishing = false; this.currentSeat = -1;
     this.reel.reset();
     this.card.hide();
     this.quiet = true;
     this.book.close();
     this.npc.close(true);
     this.bag.close();
-    this.roulette.reset();
+    this.rouletteHud?.reset();
     this.quiet = false;
     this.bite(false);
     this.prompt(null);

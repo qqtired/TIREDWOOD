@@ -21,6 +21,9 @@ const { PAVILIONS, glbJson, pavColliders } = await import(path.join(root, 'clien
  * бокс модели (там, где в игре рядом стоит ещё один твёрдый бокс режима и они пересеклись бы).
  */
 const SYNC = [
+  // Доски у spawn сохраняют один цельный бокс здания, но высота/опоры следуют актуальной модели после снятия вывесок.
+  { pav: 'honor', match: /^col_/, name: () => 'pav.honor', old: /^pav\.honor(\..*)?$/, q: 'hub', mat: 'concrete', union: true },
+  { pav: 'online', match: /^col_/, name: () => 'pav.online', old: /^pav\.online(\..*)?$/, q: 'hub', mat: 'concrete', union: true },
   // скала: ряды растра 0,75 м; заполнители блокаута арен (pav.back.*) и стенка кармана (wall.pocket) стоят вплотную к рядам и
   // перекрылись бы с ними — ряд обходит их (avoid), а не наоборот
   { pav: 'dungeon_cliff', match: /^col_rock_/, name: (i) => `cliff.${i}`, old: /^cliff\.\d+$/, q: 'cliffs', mat: 'concrete', height: 'old', avoid: true,
@@ -62,7 +65,9 @@ function fromModel(s) {
   const p = PAVILIONS.find((x) => x.id === s.pav);
   if (!p) throw new Error(`нет павильона ${s.pav}`);
   const j = glbJson(new Uint8Array(readFileSync(path.join(ASSETS, p.file))));
-  return pavColliders(j, p).filter((c) => s.match.test(c.name)).sort((a, b) => (a.name < b.name ? -1 : 1));
+  const cols = pavColliders(j, p).filter((c) => s.match.test(c.name)).sort((a, b) => (a.name < b.name ? -1 : 1));
+  if (!s.union || !cols.length) return cols;
+  return [{ name: 'col_body', min: [0, 1, 2].map((k) => Math.min(...cols.map((c) => c.min[k]))), max: [0, 1, 2].map((k) => Math.max(...cols.map((c) => c.max[k]))) }];
 }
 
 let list = old.slice();

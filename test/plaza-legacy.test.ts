@@ -78,7 +78,8 @@ test('старая набережная: тест идёт без PLAZA3 (рас
 test('старая набережная: отпечатки карты, оформления и позиционных констант не изменились', () => {
   assert.equal(sha(buildLobby()), LEGACY_LOBBY_SHA, 'buildLobby()');
   assert.equal(sha(plazaSolids()), '78d95ca66c371789d925a0b3eb3de5950fb1860a86edf82f1654a766147f51a5', 'plazaSolids()');
-  assert.equal(sha(PACK), '8f35e78a4e31001b2c9170981eaa055c987573494eec042ca602b993bd221295', 'позиционные константы режимов');
+  // Сверено с main: только8мест ISLE в FISH_SPOTS и6его BERTHS (40чисел); остальные константы идентичны.
+  assert.equal(sha(PACK), 'a5e1a1a6274acd304e363bda41948118804e275f9ee9acbdc47050f540c87bc7', 'позиционные константы режимов');
 });
 
 test('старая набережная: номера точек 0–112 и их смысл — как в фикстуре', () => {

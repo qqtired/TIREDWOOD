@@ -14,7 +14,7 @@ const r2 = (v) => Math.round(v * 100) / 100;
 const r4 = (v) => Math.round(v * 10000) / 10000;
 
 // ------------------------------------------------------------------ параметры (меняешь — запускай с --write)
-const CELL = 2; // 1 клетка = грядка 1,6 м + межа 0,4 м ≈ две желейки в ширину
+const CELL = 2; // План площади сохраняется; внутри участка пять рядов компактных грядок.
 const JELLY = { height: 1.58, radius: 0.525, half: 0.42 }; // client/render/outfit3d.ts (BODY_H, профиль), shared/constants.ts
 const HALF = 36; // ферма — квадрат ±36 м
 const WELL = { half: 1.15, h: 2.9, r: 1.1 };
@@ -24,6 +24,7 @@ const BETA = 19; // шаг участков по дуге вокруг свое�
 const PLOT = { w: 6, l: 10 };
 const RING = { in: D - 2.2, out: D - 0.2 }; // дорожка-кольцо перед калитками: расстояние от места у своего корыта
 const APRON_R = 4.5;
+const POND = {"center":{"x":28.7,"z":-28.7},"radius":{"x":5.2,"z":3.3},"waterY":0.04,"deck":{"x0":23.7,"x1":33.7,"z0":-25.4,"z1":-23.4,"y":0.1},"npc":{"x":22.4,"z":-23.3,"y":0,"yaw":-0.7853981633974483},"use":{"x":24,"z":-24,"y":0.1,"yaw":2.356194490192345,"r":1.6},"spots":[{"x":24.7,"z":-24.9,"y":0.1,"yaw":0},{"x":26.3,"z":-24.9,"y":0.1,"yaw":0},{"x":27.9,"z":-24.9,"y":0.1,"yaw":0},{"x":29.5,"z":-24.9,"y":0.1,"yaw":0},{"x":31.1,"z":-24.9,"y":0.1,"yaw":0},{"x":32.7,"z":-24.9,"y":0.1,"yaw":0}]};
 const SIDES = [['N', 0], ['E', 90], ['S', 180], ['W', 270]];
 
 // участок изнутри: начало — центр участка; −Z — от калитки вглубь, +Z — к калитке (к корыту); +X — правая рука входящего
@@ -33,14 +34,15 @@ const LOCAL = {
   gatePosts: [[-0.65, 5], [0.65, 5]],
   path: { x0: -0.6, x1: 0.6, z0: -3.6, z1: 5 },
   beds: [
-    { n: 1, x: 2, z: 4, level: 1 }, { n: 2, x: -2, z: 4, level: 2 },
-    { n: 3, x: 2, z: 2, level: 4 }, { n: 4, x: -2, z: 2, level: 6 },
-    { n: 5, x: 2, z: 0, level: 8 }, { n: 6, x: -2, z: 0, level: 10 },
-    { n: 7, x: 2, z: -2, level: 11 }, { n: 8, x: -2, z: -2, level: 12 },
+    { n: 1, x: 2, z: 4, level: 1 }, { n: 2, x: -2, z: 4, level: 1 },
+    { n: 3, x: 2, z: 2.4, level: 1 }, { n: 4, x: -2, z: 2.4, level: 2 },
+    { n: 5, x: 2, z: 0.8, level: 4 }, { n: 6, x: -2, z: 0.8, level: 6 },
+    { n: 7, x: 2, z: -0.8, level: 8 }, { n: 8, x: -2, z: -0.8, level: 10 },
+    { n: 9, x: 2, z: -2.4, level: 11 }, { n: 10, x: -2, z: -2.4, level: 12 },
   ],
-  bedSize: 1.6,
+  bedSize: 1.28,
   pen: { x: -2, z: -4.05, w: 1.8, d: 1.5, level: 10, what: 'загон трюфельного свина' },
-  compost: { x: 0, z: -4.2, w: 1.2, d: 1.0, level: 11, what: 'компостная куча (v10 — ур. 11, decisions — предварительно 12)' },
+  compost: { x: 0, z: -4.2, w: 1.2, d: 1.0, level: 12, what: 'компостная куча' },
   hive: { x: 2, z: -4.2, w: 0.7, d: 0.7, level: 10, what: 'улей пчёл-опылителей' },
   sign: { x: -1.3, z: 5.4, w: 1.1, h: 0.55, y: 1.0, faces: '+Z (к колодцу)' },
   pennant: { x: 0.7, z: 5.0, y: 2.0 },
@@ -293,12 +295,12 @@ function build() {
   }
   for (const [x, z] of [[25.5, 30.5], [29.5, 33], [32.5, 29.5], [30.5, 22.5], [34, 22.5], [27, 34]]) trees.push({ kind: 'apple', x, z, zone: 'сад (ЮВ)' });
   for (const [x, z] of [[-33, 23.5], [-23, 33]]) trees.push({ kind: 'cypress', x, z, zone: 'смотровая (ЮЗ)' });
-  for (const [x, z] of [[24.5, -33.5], [33.5, -24.5]]) trees.push({ kind: 'linden', x, z, zone: 'пасека (СВ)' });
+  for (const [x, z] of [[24.5, -33.5], [34, -22.8]]) trees.push({ kind: 'linden', x, z, zone: 'пасека (СВ)' });
   for (const [x, z] of [[-31, -33.5], [-33.5, -20]]) trees.push({ kind: 'linden', x, z, zone: 'у дороги (СЗ)' });
   const treeBoxes = trees.map((t, i) => box(`tree${i}`, t.x - 0.2, t.z - 0.2, t.x + 0.2, t.z + 0.2, 3));
 
   const nooks = [
-    { id: 'apiary', name: 'Пасека', x: 28.5, z: -28.5, items: [{ kind: 'hiveDecor', x: 27.5, z: -30.2 }, { kind: 'hiveDecor', x: 29.1, z: -29.0 }, { kind: 'hiveDecor', x: 30.5, z: -27.5 }, { kind: 'bench', x: 26.6, z: -26.6, yaw: r4(yawTo(26.6, -26.6, 0, 0) + Math.PI) }], note: 'декоративные ульи и лавочка; за забором — поле подсолнухов до холмов' },
+    { id: 'apiary', name: 'Пасека', x: 28.5, z: -28.5, items: [{ kind: 'hiveDecor', x: 26, z: -33.5 }, { kind: 'hiveDecor', x: 28, z: -33.5 }, { kind: 'hiveDecor', x: 30, z: -33.5 }, { kind: 'bench', x: 22.6, z: -28, yaw: -Math.PI / 2 }], note: 'декоративные ульи и лавочка; за забором — поле подсолнухов до холмов' },
     { id: 'orchard', name: 'Сад', x: 28.5, z: 28.5, items: [{ kind: 'vanGate', x: 36, z: 27 }], note: 'яблони, по саду — колея Фургона к воротам в восточном заборе' },
     { id: 'viewpoint', name: 'Смотровая', x: -28.5, z: 28.5, items: [{ kind: 'bench', x: -30.5, z: 30.5, yaw: r4(yawTo(-30.5, 30.5, -60, 60)) }, { kind: 'telescope', x: -32.6, z: 32.6 }], note: 'скамейка лицом к морю и городу с маяком; перила обрыва вместо забора' },
     { id: 'road', name: 'Дорога в город', x: -28.5, z: -28.5, items: [{ kind: 'farmGate', x: -36, z: -27 }, { kind: 'haystack', x: -27.5, z: -32.5 }, { kind: 'haystack', x: -32.5, z: -31.5 }], note: 'дорога уходит через ворота в западном заборе к городу; стога сена' },
@@ -318,7 +320,7 @@ function build() {
     return { id, width: 2, from: [r2(d[0] * (APRON_R - 0.2)), r2(d[1] * (APRON_R - 0.2))], to: [r2(d[0] * s1), r2(d[1] * s1)] };
   });
   const foot = [
-    { id: 'NE', width: 1.5, points: [[17.2, -17.2], [26, -26]] },
+    { id: 'NE', width: 1.5, points: [[17.2, -17.2], [24, -24]] },
     { id: 'SE', width: 2.4, points: [[17.2, 17.2], [24, 24], [36, 27]], what: 'колея Фургона' },
     { id: 'SW', width: 1.5, points: [[-17.2, 17.2], [-29.5, 29.5]] },
     { id: 'back', width: 1.6, what: 'задняя тропка вдоль забора — проходит за участками' },
@@ -336,6 +338,8 @@ function build() {
     ...objects.flatMap((o) => o.solid ?? []),
     ...treeBoxes.map((b) => ({ ...b, what: 'ствол' })),
     ...nookBoxes,
+    ...[{"id":"pond-water","min":[23.5,0,-32],"max":[33.9,8,-25.4],"what":"непроходимая вода пруда"},{"id":"pond-deck","min":[23.7,-0.2,-25.4],"max":[33.7,0.1,-23.4],"what":"настил"}],
+    ...[{"id":"pond-counter","min":[22.175,0,-23.975],"max":[23.325,0.89,-23.325],"what":"невидимая коллизия прилавка Фомы"},{"id":"pond-npc","min":[21.98,0,-23.72],"max":[22.9,1.75,-22.88],"what":"невидимая коллизия рыбака Фомы"}],
     // декор земли (client/farm/decor/decor.ts): стог тюков у дороги, поленница у костра, бочки у колодца
     box('decor-bales', -12.8, -16.12, -11.75, -15.08, 0.84, { what: 'стог тюков' }),
     box('decor-woodpile', -10.5, 3.59, -9.4, 4.92, 0.66, { what: 'поленница' }),
@@ -395,6 +399,7 @@ function build() {
     troughs,
     plot: { w: PLOT.w, l: PLOT.l },
     plotLocal: LOCAL,
+    pond: POND,
     plots,
     objects,
     spawns,
@@ -485,9 +490,9 @@ function check(L) {
   const bs = lp.bedSize / 2;
   const bedRects = lp.beds.map((b) => boxPoly(b.x - bs, b.z - bs, b.x + bs, b.z + bs));
   const inside = (r, m) => r.every(([x, z]) => Math.abs(x) <= hw - m && Math.abs(z) <= hl - m);
-  ok('8 грядок 1,6×1,6 м внутри участка (от забора ≥ 0,15 м)', bedRects.every((r) => inside(r, 0.15)));
+  ok('10 грядок 1,28×1,28 м внутри участка (от забора ≥ 0,15 м)', bedRects.every((r) => inside(r, 0.15)));
   let bedGap = Infinity;
-  for (let i = 0; i < 8; i++) for (let j = i + 1; j < 8; j++) bedGap = Math.min(bedGap, polyGap(bedRects[i], bedRects[j]));
+  for (let i = 0; i < lp.beds.length; i++) for (let j = i + 1; j < lp.beds.length; j++) bedGap = Math.min(bedGap, polyGap(bedRects[i], bedRects[j]));
   ok('грядки не касаются друг друга (межа ≥ 0,3 м)', bedGap >= 0.3, `межа ${bedGap.toFixed(2)} м`);
   const pathR = boxPoly(lp.path.x0, lp.path.z0, lp.path.x1, lp.path.z1);
   const pathGap = Math.min(...bedRects.map((r) => polyGap(r, pathR)));
@@ -497,7 +502,7 @@ function check(L) {
   for (const y of yard) for (const r of bedRects) yardGap = Math.min(yardGap, polyGap(y, r));
   for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) yardGap = Math.min(yardGap, polyGap(yard[i], yard[j]));
   ok('загон, компост и улей — на заднем дворе, без наложений', yard.every((r) => inside(r, 0.1)) && yardGap >= 0.2, `зазор ${yardGap.toFixed(2)} м`);
-  ok('грядки открываются по уровням по порядку', lp.beds.every((b, i) => i === 0 || b.level > lp.beds[i - 1].level), lp.beds.map((b) => `${b.n}:ур.${b.level}`).join(' '));
+  ok('грядки открываются по уровням по порядку', lp.beds.every((b, i) => i < 3 ? b.level === 1 : b.level > lp.beds[i - 1].level), lp.beds.map((b) => `${b.n}:ур.${b.level}`).join(' '));
 
   // 5. Общие предметы: не на участках, не на дорожках, не друг на друге, внутри забора
   const ringRho = (p) => {

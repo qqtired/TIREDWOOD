@@ -30,6 +30,9 @@ export interface FishNpcHost {
   /** Бубен дождя: 'busy' — идёт большое событие, 'on' — дождь уже идёт, 'off' — можно звать */
   rainState(): 'busy' | 'on' | 'off';
   startRain(): void;
+  /** Привязки только текущей комнаты; без метода — набережная. */
+  use?(npc: FishNpcId): (typeof FISH_NPC_USE)[FishNpcId];
+  allowed?(npc: FishNpcId, action: FishNpcAction): boolean;
 }
 
 export interface NpcCtx {
@@ -46,6 +49,7 @@ export type NpcHandler = (ctx: NpcCtx) => NpcResult;
 
 const SAY: Record<FishNpcId, string> = {
   semyon: 'Подойди к Деду Семёну на пристани', sanya: 'Подойди к Сане на баркасе', ignat: 'Подойди к смотрителю Игнату на крыльце',
+  pond: 'Подойди к Рыбаку Фоме у пруда',
 };
 
 export class FishNpc {
@@ -65,7 +69,7 @@ export class FishNpc {
 
   /** Стоит ли игрок у этого рыбака (у Сани — только если баркас есть на карте) */
   near(npc: FishNpcId, x: number, y: number, z: number): boolean {
-    const u = FISH_NPC_USE[npc];
+    const u = this.host.use ? this.host.use(npc) : FISH_NPC_USE[npc];
     return !!u && Math.hypot(x - u.x, z - u.z) <= u.r + .5 && Math.abs(y - u.y) < 2;
   }
 
@@ -93,6 +97,10 @@ export class FishNpc {
     }
     if (!action) {
       this.reply(who, npc, 'Выбери задание, товар или рыбу');
+      return;
+    }
+    if (this.host.allowed && !this.host.allowed(npc, action)) {
+      this.reply(who, npc, 'У пруда нет лодок и рейсов. Снасти и улов — пожалуйста.');
       return;
     }
     const custom = this.extra.get(action);
@@ -129,7 +137,7 @@ export class FishNpc {
       }
       case 'vodka': {
         const r = this.profiles.buyFishVodka(prof);
-        message = r === 'ok' ? `Водка рыбацкая действует 10 минут: зона на ${Math.round((1 - (VODKA.zone ?? 1)) * 100)} % меньше, рыба дёргает быстрее — зато эпик, легенды, мифик и царь морей клюют вдвое чаще`
+        message = r === 'ok' ? `Водка рыбацкая действует 10 минут: зона на ${Math.round((1 - (VODKA.zone ?? 1)) * 100)} % меньше, рыба дёргает быстрее — зато ${npc === 'pond' ? 'карп клюёт' : 'эпик, легенды, мифик и царь морей клюют'} вдвое чаще`
           : r === 'active' ? 'Водка уже действует — дождись окончания' : `Водка стоит ${VODKA_PRICE} жетонов`;
         break;
       }

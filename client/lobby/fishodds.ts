@@ -53,14 +53,16 @@ export class FishOdds {
 
   /** rain — дождь у пристани или туман у острова; season — сезон рыбалки или острова; isle — пул острова */
   set(mods: Readonly<FishCastMods>, rain: boolean, season = false, isle = false): void {
+    if (mods.zone === 'pond') { rain = false; season = false; }
     const odds = tierOdds(rain, mods, season);
-    const key = `${odds.map((x) => x.toFixed(6)).join()}|${rain}|${season}|${isle}|${mods.drink}`;
+    const key = `${odds.map((x) => x.toFixed(6)).join()}|${rain}|${season}|${isle}|${mods.drink}|${mods.zone}`;
     if (key === this.key) return;
     this.key = key;
     this.why.innerHTML = whyPill(mods, rain, season, isle);
     this.bar.textContent = '';
     this.legend.textContent = '';
     for (const [t, name] of ROWS) {
+      if (mods.zone === 'pond' && t > T_EPIC) continue;
       const x = odds[t] ?? 0;
       if (x > 0) {
         const seg = this.bar.appendChild(el('i', ''));

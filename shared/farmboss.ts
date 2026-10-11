@@ -1,5 +1,5 @@
 // Ферма: мировой босс «Древо разлома» (design-v11 §11). Просыпается в 19:00 МСК и живёт до 01:00. «Цветение» =
-// 2 000 × N, N — фермеры с действием за 72 ч до 19:00 (3–20), фиксируется на старте. Очки — XP со сбора на ферме во
+// сумма квот 300 + 150 × (уровень − 1) действительных участников. Старый сохранённый бой доигрывает свою шкалу. Очки — XP со сбора на ферме во
 // время события и шишки-ворчуньи (+10, ≤ 30 на игрока). Вклад ≥ 1 % → бафф на 24 ч и +2 репутации за каждый полный 1 %,
 // «Последняя капля» — +5. Чистые правила и состояние; таймеры и рассылку ведёт server/farm/boss.ts.
 import { mskDay } from './economy.ts';
@@ -45,6 +45,9 @@ export function bossPhase(bloom: number, hp: number): number {
 }
 
 export interface FarmBossState {
+  /** v1 доигрывает сохранённую шкалу; v2 — квоты действительных участников. */
+  v: 1 | 2;
+  quotas: Record<string, number>;
   day: string;
   start: number;
   end: number;
@@ -63,9 +66,22 @@ export interface FarmBossState {
   got: Record<string, { buff: FarmBuffKind | null; rep: number }>;
 }
 
-export function newBoss(w: BossWindow, active: number): FarmBossState {
-  const { n, hp } = bossHp(active);
-  return { day: w.day, start: w.start, end: w.end, hp, n, bloom: 0, st: 'awake', pts: {}, cones: {}, nicks: {}, last: 0, got: {} };
+export function newBoss(w: BossWindow, _active?: number): FarmBossState {
+  return { v: 2, quotas: {}, day: w.day, start: w.start, end: w.end, hp: 0, n: 0, bloom: 0, st: 'awake', pts: {}, cones: {}, nicks: {}, last: 0, got: {} };
+}
+
+export function bossQuota(level: number): number {
+  return 300 + 150 * (Math.min(13, Math.max(1, Math.floor(level))) - 1);
+}
+
+/** Квота фиксируется до урона. Уход и повторный вход её не отменяют. */
+export function registerBossParticipant(s: FarmBossState, pid: number, level: number): boolean {
+  const key = String(pid);
+  if (s.v !== 2 || s.quotas[key]) return false;
+  s.quotas[key] = bossQuota(level);
+  s.n = Object.keys(s.quotas).length;
+  s.hp = Object.values(s.quotas).reduce((sum, q) => sum + q, 0);
+  return true;
 }
 
 /** Строки вклада по убыванию */
@@ -131,9 +147,16 @@ export function normalizeBoss(raw: unknown): FarmBossState | null {
       got[k] = { buff: BUFF_KINDS.includes(g.buff as FarmBuffKind) ? (g.buff as FarmBuffKind) : null, rep: Math.floor(num(g.rep)) };
     }
   }
-  const { n, hp } = bossHp(num(r.n));
+  const v = r.v === 2 ? 2 : 1;
+  const quotas: Record<string, number> = {};
+  if (v === 2) for (const [pid, q] of Object.entries(numMap(r.quotas))) {
+    if (Number(pid) > 0 && q >= 300 && q <= 2100 && (q - 300) % 150 === 0) quotas[pid] = q;
+  }
+  const old = bossHp(num(r.n));
+  const n = v === 2 ? Object.keys(quotas).length : old.n;
+  const hp = v === 2 ? Object.values(quotas).reduce((sum, q) => sum + q, 0) : num(r.hp) || old.hp;
   return {
-    day: r.day, start: num(r.start), end: num(r.end), hp, n, bloom: Math.floor(num(r.bloom)), st,
+    v, quotas, day: r.day, start: num(r.start), end: num(r.end), hp, n, bloom: Math.floor(num(r.bloom)), st,
     pts: numMap(r.pts), cones: numMap(r.cones), nicks, last: Math.floor(num(r.last)), got,
   };
 }

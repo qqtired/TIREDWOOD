@@ -70,6 +70,7 @@ const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
 // Рыбалка 2.0 (шкала вываживания, 32 вида, доска у мостков): FISH2=1 — включить, без переменной — старая рыбалка
 const fish2 = fish2Enabled(process.env.FISH2);
+const farmPond = farm && fish2 && process.env.FARM_POND === '1';
 // Остров «Последний свет» (остров, лодки, лайвел, радио, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const isle = isleEnabled(process.env.ISLE, DEV, fish2);
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
@@ -86,7 +87,7 @@ const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIA
 const plane = planeEnabled(process.env.PLANE, DEV);
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick, dungeon,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick, dungeon,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)

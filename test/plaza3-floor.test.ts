@@ -1,7 +1,7 @@
 // Пол и дальность новой набережной (флаг PLAZA3; client/lobby/plaza3/floor.ts, perf.ts, npc.ts): слои земли блокаута
 // не лежат вплотную и все ниже плитки моделей; наклейки (круги режимов, старт картинга, пятна света, тени-пятна, лужи)
-// — выше земли и плитки; игровое (userData.p3keep) отсечение дальности не прячет никогда, мелочь — по меню «Дальность
-// видимости»; жители на «Далеко» видны через всю набережную. На старой площади подъём наклеек — 0.
+// — выше земли и плитки; игровое (userData.p3keep) отсечение дальности не прячет никогда. Открытые предметы видны дальше
+// обычного порога меню и мягко гаснут с гистерезисом; жители на «Далеко» — через всю набережную. На старой площади подъём наклеек — 0.
 // Раскладка выбирается при импорте (shared/layout.ts): сначала PLAZA3=1, потом — только динамический import().
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -59,14 +59,18 @@ test('дальность по меню: «Далеко» — как замере
   assert.ok(npcFar(1) >= Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)), `npcFar(1) = ${npcFar(1)}`);
 });
 
-test('отсечение: игровое (p3keep) не прячется никогда, мелочь — дальше cullDistance × дальность меню', () => {
+test('отсечение: p3keep сохраняется, открытый ящик виден на Близко; дальний порог, fade и гистерезис работают в настоящих кадрах', (t) => {
   // WebGL не нужен: отсечение смотрит только на сцену, слои и камеру
+  let nowMs = 0;
+  t.mock.method(performance, 'now', () => nowMs);
+  const add = THREE.Object3D.prototype.add, attach = THREE.Object3D.prototype.attach, before = THREE.Material.prototype.onBeforeRender;
+  try {
   const gl = {
     properties: { get: () => ({}) }, info: { programs: [] }, shadowMap: { enabled: false, needsUpdate: false },
     toneMapping: THREE.NoToneMapping, compileAsync: () => Promise.resolve(),
   } as unknown as THREE.WebGLRenderer;
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera();
+  const camera = new THREE.PerspectiveCamera(60, 1.6, .1, 1000);
   let k = 1;
   const perf = new Plaza3Perf({ gl, scene, camera, look: null, viewK: () => k });
   const box = (): THREE.Mesh => new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshLambertMaterial());
@@ -76,27 +80,60 @@ test('отсечение: игровое (p3keep) не прячется нико
   ball.position.set(8, 0, -8);
   const crate = box();
   crate.position.set(8, 0, -9);
-  const far = box();
-  far.position.set(8, 0, -50);
+  const far = new THREE.Mesh(new THREE.BoxGeometry(.2, .2, .2), new THREE.MeshLambertMaterial());
+  far.position.set(8, 0, -70);
   scene.add(ball, crate, far);
   scene.updateMatrixWorld(true);
   const drawn = (o: THREE.Object3D): boolean => o.layers.test(camera.layers);
-  const at = (z: number): void => {
-    camera.position.set(8, 1.7, z);
-    (perf as unknown as { scanAt: number; cullAt: number }).scanAt = 0;
-    (perf as unknown as { cullAt: number }).cullAt = 0;
+  const frame = (): void => {
     perf.beforeRender();
     perf.afterRender();
   };
+  const advance = (ms: number): void => {
+    for (let elapsed = 0; elapsed < ms; elapsed += 20) {
+      nowMs += Math.min(20, ms - elapsed);
+      frame();
+      assert.ok(drawn(ball.children[0]), 'игровой мяч сохраняет свой слой во всех кадрах');
+    }
+  };
+  const at = (z: number): void => {
+    camera.position.set(8, .2, z);
+    camera.lookAt(8, .2, z - 1);
+    camera.updateMatrixWorld();
+    frame();
+  };
+  const crateFade = (): number => (perf as unknown as { units: Array<{ o: THREE.Object3D; fade: { value: number } }> })
+    .units.find((u) => u.o === crate)!.fade.value;
   const lim = cullDistance(Math.hypot(0.3, 0.3, 0.3));
   at(-9 + lim + 10);
-  assert.ok(drawn(ball.children[0]), 'мяч виден издалека');
-  assert.ok(!drawn(crate), 'ящик дальше своей дальности не рисуется');
-  at(-9 + lim - 6);
-  assert.ok(drawn(crate), 'ближе — снова виден');
+  advance(1000);
+  assert.ok(drawn(crate), 'открытый ящик на40м сохраняется за обычным порогом меню');
   k = 0.3;
-  at(-9 + lim - 6);
-  assert.ok(!drawn(crate) && drawn(ball.children[0]), '«Близко»: ящик прячется раньше, мяч — нет');
-  at(-9);
-  assert.ok(drawn(crate) && drawn(far) === false, 'рядом ящик виден; дальний — нет');
+  advance(1000);
+  assert.ok(drawn(crate), '«Близко» сохраняет90м для открытого предмета');
+
+  // Отсчитываем реальное время кадров: sweep .2с, подтверждение .2с, исчезновение .22с.
+  at(-9 + 90 + 10);
+  advance(220);
+  assert.equal(crateFade(), 1, 'первый дальний sweep ещё не выключает предмет');
+  advance(260);
+  assert.ok(crateFade() > 0 && crateFade() < 1 && drawn(crate), 'fade проходит через промежуточную яркость до снятия слоя');
+  advance(500);
+  assert.ok(!drawn(crate), 'ящик за открытым90м порогом действительно не рисуется');
+  at(-9 + 90 - 3);
+  advance(500);
+  assert.ok(!drawn(crate), 'возврат на3м не преодолевает6м гистерезис');
+  at(-9 + 90 - 8);
+  advance(500);
+  assert.ok(drawn(crate) && crateFade() === 1, 'возврат за гистерезис полностью проявляет предмет');
+  at(-7);
+  advance(1000);
+  const frustum = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  assert.ok(frustum.intersectsObject(crate) && frustum.intersectsObject(far), 'оба предмета в кадре, проверяем дальность, а не поворот камеры');
+  assert.ok(drawn(crate) && !drawn(far), 'рядом ящик виден; мелочь с радиусом<.25 за60м не рисуется');
+  } finally {
+    THREE.Object3D.prototype.add = add;
+    THREE.Object3D.prototype.attach = attach;
+    THREE.Material.prototype.onBeforeRender = before;
+  }
 });

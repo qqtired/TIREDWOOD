@@ -231,6 +231,27 @@ function sweep(w: CollisionWorld, x: number, y: number, z: number, axis: number,
       }
     }
   }
+  // Optional triangular support uses the same step-up and downhill snap as box floors.
+  // It is a solid surface below the real mesh; horizontal motion cannot enter a higher slope.
+  if (axis === 1 && d < 0) {
+    const h = w.terrainHeight(x, z, y + EPS);
+    if (h <= y + EPS && h > y + allowed) { allowed = Math.min(0, h - y); w.lastHit = -2; }
+  } else if (axis === 1 && d > 0) {
+    const h = w.terrainCeiling(x, z, y + PLAYER_HEIGHT);
+    if (h < y + PLAYER_HEIGHT + allowed) { allowed = Math.max(0, h - y - PLAYER_HEIGHT); w.lastHit = -2; }
+  } else if (axis !== 1) {
+    const tx = axis === 0 ? x + allowed : x, tz = axis === 2 ? z + allowed : z;
+    if (w.terrainBlocks(tx, y, tz, PLAYER_HEIGHT)) {
+      // Find the last clear part of the displacement, including dashes near a cliff edge.
+      let lo = 0, hi = 1;
+      for (let i = 0; i < 12; i++) {
+        const mid = (lo + hi) / 2;
+        const blocked = w.terrainBlocks(axis === 0 ? x + allowed * mid : x, y, axis === 2 ? z + allowed * mid : z, PLAYER_HEIGHT);
+        if (blocked) hi = mid; else lo = mid;
+      }
+      allowed *= lo; w.lastHit = -2;
+    }
+  }
   return allowed;
 }
 
@@ -242,7 +263,7 @@ function moveHorizontal(s: PlayerState, w: CollisionWorld, axis: 0 | 2, d: numbe
     if (axis === 0) s.x += d; else s.z += d;
     return;
   }
-  if (canStep) {
+  if (canStep && w.terrainWalkable(axis === 0 ? s.x + d : s.x, axis === 2 ? s.z + d : s.z)) {
     const up = sweep(w, s.x, s.y, s.z, 1, STEP_HEIGHT);
     if (up > 0.01) {
       const ry = s.y + up;

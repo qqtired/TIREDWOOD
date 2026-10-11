@@ -4,7 +4,7 @@
 import { mskDay } from './economy.ts';
 import { farmLevel, upgradeStep, type FarmOrder, type FarmProgress } from './farm.ts';
 import {
-  CROPS, ORDER_EXACT_CROP, ORDER_GROW_WEIGHTS, ORDER_TEMPLATES, UPGRADES, cropById, type CropDef, type OrderTemplate,
+  CROPS, NIGHT_HARVEST_MIN, ORDER_EXACT_CROP, ORDER_GROW_WEIGHTS, ORDER_TEMPLATES, UPGRADES, cropById, type CropDef, type OrderTemplate,
   type UpgradeKind,
 } from './farmdata.ts';
 import { helpTargetsToday } from './farmhelp.ts';
@@ -21,10 +21,11 @@ export function orderTemplate(id: string): OrderTemplate | undefined {
 }
 
 function growGroup(c: CropDef): number {
+  if (c.min >= NIGHT_HARVEST_MIN) return 3;
   if (c.min <= 5) return 0;
   if (c.min <= 30) return 1;
   if (c.min <= 120) return 2;
-  return c.min >= 360 ? 3 : -1;
+  return -1;
 }
 
 /** Что известно генератору об игроке */
@@ -65,7 +66,7 @@ export function growOrder(env: OrderEnv, rng: () => number): FarmOrder {
   const byGroup = [0, 1, 2, 3].map((g) => open.filter((c) => growGroup(c) === g));
   const g = weighted(w.map((x, i) => (byGroup[i].length ? x : 0)), rng());
   const tpl = orderTemplate(GROW_TPL[g])!;
-  const t = (Math.max(1, env.beds) - 1) / 7;
+  const t = Math.min(1, Math.max(0, (env.beds - 3) / 7));
   const order: FarmOrder = { t: tpl.id, need: Math.round(tpl.need[0] + (tpl.need[1] - tpl.need[0]) * t), got: 0, done: false };
   const exact = rng() < ORDER_EXACT_CROP;
   const pickN = rng();
@@ -89,11 +90,11 @@ export function socialOrder(env: OrderEnv, rng: () => number): FarmOrder | null 
 }
 
 /** Слот C: случайный особый из подходящих, не повторяет цель A и B */
-export function specialOrder(env: OrderEnv, rng: () => number, a: FarmOrder | null, b: FarmOrder | null, not?: string): FarmOrder | null {
+function specialPool(env: OrderEnv, a: FarmOrder | null, b: FarmOrder | null, not?: string): OrderTemplate[] {
   const ok = (id: string): boolean => {
     switch (id) {
       case 'crystal-garden': return env.level >= (cropById('crystal')?.level ?? 99) && a?.crop !== 'crystal';
-      case 'night-gardener': return CROPS.some((c) => c.min >= 360 && c.level <= env.level) && a?.t !== 'grow-night';
+      case 'night-gardener': return CROPS.some((c) => c.min >= NIGHT_HARVEST_MIN && c.level <= env.level) && a?.t !== 'grow-night';
       case 'patient': return CROPS.some((c) => c.min >= 45 && c.level <= env.level) && a?.t !== 'grow-long' && a?.t !== 'grow-night';
       case 'tool-master': return env.toolUp;
       case 'host': return env.bedUp;
@@ -102,7 +103,11 @@ export function specialOrder(env: OrderEnv, rng: () => number, a: FarmOrder | nu
       default: return true;
     }
   };
-  const list = ORDER_TEMPLATES.filter((t) => t.kind === 'special' && t.id !== not && ok(t.id));
+  return ORDER_TEMPLATES.filter((t) => t.kind === 'special' && t.id !== not && ok(t.id));
+}
+
+export function specialOrder(env: OrderEnv, rng: () => number, a: FarmOrder | null, b: FarmOrder | null, not?: string): FarmOrder | null {
+  const list = specialPool(env, a, b, not);
   const r = rng();
   return list.length ? fixed(list[Math.floor(r * list.length)].id) : null;
 }
@@ -119,6 +124,42 @@ export function makeOrders(env: OrderEnv, rng: () => number): FarmOrder[] {
   const list: FarmOrder[] = [];
   for (let i = 0; i < 3; i++) list.push(slotOrder(i, env, rng, list));
   return list;
+}
+
+/** Полный конечный набор допустимых целей исключает «замену» той же цели при любом ГСЧ. */
+export function rerollOrder(i: number, env: OrderEnv, rng: () => number, list: readonly FarmOrder[]): FarmOrder | null {
+  const old = list[i];
+  if (!old) return null;
+  let pool: FarmOrder[] = [];
+  if (i === 1) {
+    const diffs = env.level < 4 ? ['easy'] : env.level < 8 ? ['easy', 'mid'] : ['mid', 'hard'];
+    for (const kind of [env.social ? 'help' : '', env.level >= 3 ? 'van' : ''].filter(Boolean)) {
+      for (const diff of diffs) pool.push(fixed(`${kind}-${diff}`));
+    }
+  } else if (i === 2) pool = specialPool(env, list[0] ?? null, list[1] ?? null).map((t) => fixed(t.id));
+  if (!pool.length) {
+    let weights = ORDER_GROW_WEIGHTS[0].w;
+    for (const row of ORDER_GROW_WEIGHTS) if (env.level >= row.level) weights = row.w;
+    const t = Math.min(1, Math.max(0, (env.beds - 3) / 7));
+    for (let group = 0; group < GROW_TPL.length; group++) {
+      if (weights[group] <= 0) continue;
+      const crops = CROPS.filter((c) => c.level <= env.level && growGroup(c) === group);
+      if (!crops.length) continue;
+      const tpl = orderTemplate(GROW_TPL[group])!;
+      const base: FarmOrder = { t: tpl.id, need: Math.round(tpl.need[0] + (tpl.need[1] - tpl.need[0]) * t), got: 0, done: false };
+      pool.push(base, ...crops.map((c) => ({ ...base, crop: c.id })));
+    }
+  }
+  const key = (o: FarmOrder): string => {
+    if (o.t in GROUP_OF) {
+      const crops = CROPS.filter((c) => c.level <= env.level && (o.crop ? o.crop === c.id : growGroup(c) === GROUP_OF[o.t])).map((c) => c.id);
+      return `grow:${crops.join(',')}:${o.need}`;
+    }
+    return o.t;
+  };
+  const seen = new Set<string>([key(old)]);
+  const choices = pool.filter((o) => { const k = key(o); if (seen.has(k)) return false; seen.add(k); return true; });
+  return choices.length ? choices[Math.min(choices.length - 1, Math.max(0, Math.floor(rng() * choices.length)))] : null;
 }
 
 /** Когда доска обновится: ближайшая полночь по Москве */
@@ -167,7 +208,7 @@ function gain(o: FarmOrder, e: OrderEvent): number {
         if (!c) continue;
         if (o.t in GROUP_OF) { if (o.crop ? o.crop === c.id : growGroup(c) === GROUP_OF[o.t]) n++; }
         else if (o.t === 'crystal-garden') { if (c.id === 'crystal') n++; }
-        else if (o.t === 'night-gardener') { if (c.min >= 360) n++; }
+        else if (o.t === 'night-gardener') { if (c.min >= NIGHT_HARVEST_MIN) n++; }
         else if (o.t === 'patient') { if (c.min >= 45) n++; }
         else if (o.t === 'collector') { if (it.res) n++; }
       }

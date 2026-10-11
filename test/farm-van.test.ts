@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { addFarmXp, emptyFarm, type FarmProgress } from '../shared/farm.ts';
-import { cropById, vanQ } from '../shared/farmdata.ts';
+import { FARM_XP_TOTAL, cropById, vanQ } from '../shared/farmdata.ts';
 import { farmUse } from '../shared/farmmap.ts';
 import type { FarmEvent } from '../shared/farmnet.ts';
 import { vanOffers, vanSlotCount, vanTime } from '../shared/farmvan.ts';
@@ -24,7 +24,7 @@ test('Фургон: открыт в чётные часы МСК, слоты п�
   assert.equal(vanSlotCount(5, 50), 3);
   assert.equal(vanSlotCount(13, 3000), 6);
   const f = emptyFarm(T0);
-  f.xp = 700; // ур. 3
+  f.xp = FARM_XP_TOTAL[2]; // ур. 3
   const { cycle } = vanTime(T0);
   const a = vanOffers(f, 7, cycle, T0);
   assert.deepEqual(a, vanOffers(f, 7, cycle, T0), 'одно зерно — одни предложения');
@@ -34,7 +34,7 @@ test('Фургон: открыт в чётные часы МСК, слоты п�
   assert.ok(a[0].n >= 1 && a[0].n <= 16 && a[0].n <= vanQ(c), 'ящик ≤ 80 % сумки');
   assert.equal(a[0].coins, Math.round(a[0].n * c.sale * a[0].mult));
   assert.ok([1.3, 1.4, 1.5].includes(a[0].mult));
-  f.xp = 48_500; // ур. 10
+  f.xp = FARM_XP_TOTAL[9]; // ур. 10
   f.rep = 1200; // репутация 6: +3 слота
   f.tools.bag = 4;
   f.beds = Array.from({ length: 6 }, () => ({ crop: null, plantedAt: 0, ripeAt: 0, watered: false, helpers: [] }));
@@ -57,7 +57,7 @@ test('Фургон: сдать ящик целиком из сумки — же�
     credit: (p, n) => { coins.set(p.c.pid, (coins.get(p.c.pid) ?? 0) + n); }, spend: () => true, grantItem: () => true, dirty: () => {},
   };
   const f = emptyFarm(T0);
-  f.xp = 700;
+  f.xp = FARM_XP_TOTAL[2];
   farms.set(5, f);
   const p = { c: { pid: 5, profile: { id: 5, nick: 'Tester5' } }, state: { ...farmUse('van')! }, plot: 0 } as unknown as FarmPlayer;
   const sys = new FarmSystems(ctx);
@@ -72,7 +72,7 @@ test('Фургон: сдать ящик целиком из сумки — же�
   assert.equal(f.bag[o.item], 2);
   assert.equal(f.xp - xp0, o.xp);
   assert.equal(f.counters.vanDeals, 1);
-  assert.equal(f.sold.coins, o.coins, 'сделка идёт в дневной потолок');
+  assert.equal(f.sold.coins, o.coins, 'сделка идёт в дневную статистику');
   sys.van(p, { t: 'farm', a: 'van', slot: 0 });
   assert.deepEqual(evs.at(-1), { k: 'fail', a: 'van', why: 'max' });
   clock.now = T0 + 40 * 60_000;

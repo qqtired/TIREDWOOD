@@ -69,7 +69,7 @@ test('порт B: места 20–27 — на Маячном моле (две н
   for (const s of F.FISH_FAR_SPOTS) assert.ok(world.groundBelow(s.x, 0.2, s.z + 1.6) < WATER_Y + 0.4 || !(world.groundBelow(s.x, 0.2, s.z + 1.6) > MOLE_DECK_Y - 0.01), 'впереди кромка');
 });
 
-test('порт B: мол, голова, сходни и помост Лавки — настилы y −0,5, невидимые (рисует модель), не пересекаются; старые дальние мостки, голова пирса и дом на ней не строятся', () => {
+test('порт B: нижние настилы y −0,5 и верхнее сопряжение y0 невидимые; старые дальние мостки и дом не строятся', () => {
   const decks = map.boxes.filter((b) => PORT.decks.some((d) => near(b.min[0], d.box[0]) && near(b.min[2], d.box[1]) && near(b.max[0], d.box[2]) && near(b.max[2], d.box[3]) && near(b.max[1], d.y)));
   assert.equal(decks.length, PORT.decks.length, 'все настилы порта есть в карте');
   // видимый настил один: мол, голову, сходни и ступень рисует pav_mole.glb, помост — доски fishplaces3d.ts; второй слой мерцал
@@ -87,8 +87,9 @@ test('порт B: мол, голова, сходни и помост Лавки 
   const lavka = PORT.decks.find((d) => d.id === 'lavka')!.box;
   assert.ok(F.FISH_HOUSE_BOXES.every((b) => b.x0 >= lavka[0] && b.x1 <= lavka[2] && b.z0 >= lavka[1] && b.z1 <= lavka[3]), 'сруб и стойка снастей — на помосте Лавки');
   assert.ok(!(world.groundBelow(-19, 0.5, 50) > WATER_Y), 'вода там, где были дальние мостки');
-  // ступень с площадки маяка на мол: выше мола на 0,25 — не больше шага
+  // площадка расширена до края мола; landing вровень с её верхом, далее идёт рампа
   assert.ok(near(world.groundBelow(PORT.stair.box[0] + 0.3, 0.2, 45), PORT.stair.y));
+  assert.equal(PORT.stair.y, 0);
 });
 
 test('порт B: Лавка Семёна — на помосте у сходней мола: дом, житель, стойка снастей и место разговора из layout.json, всё на настиле, рядом с рыбаками', () => {
@@ -124,7 +125,10 @@ test('порт B: Лавка Семёна — на помосте у сходн�
   // рыбаки рядом: до мест на моле — не дальше 15 м
   assert.ok(Math.min(...F.FISH_FAR_SPOTS.map((s) => Math.hypot(s.x - it.x, s.z - it.z))) < 15, 'места ловли рядом');
   // проходы: вдоль мола (к голове и «Удалой») и по сходням к стоянке — свободны
-  assert.ok(!world.overlaps(-61.5, -0.45, 43.9, -24.7, 1.2, 46.2), 'вдоль мола свободно');
+  for (let x = -61.5; x < -24.7; x += .2) {
+    const floor = Math.max(world.groundBelow(x - .1, .5, 45), world.groundBelow(x + .1, .5, 45));
+    assert.ok(Number.isFinite(floor) && !world.overlaps(x - .1, floor + .02, 43.9, x + .1, floor + 1.6, 46.2), 'вдоль мола и пологого перехода свободно');
+  }
   assert.ok(!world.overlaps(-54.4, -0.45, 46, -53.6, 1.2, 58.4), 'по сходням к стоянке свободно');
   // место на берегу (−13; 10,5), где стояла Лавка, — свободный проход к витрине
   assert.ok(!world.overlaps(-16.5, 0.05, 7.5, -10.3, 1.6, 13.7), 'на берегу на месте Лавки пусто');
@@ -193,9 +197,9 @@ test('порт B через хаб: на месте мола садятся и �
   assert.equal(hub.lobby.ferry.phase, FE.FE_AWAY, 'дошла');
 });
 
-test('порт B: Рыбная витрина — доска и прилавок на местах v5.1', () => {
+test('порт B: открытая Рыбная витрина — более крупный экран над поднятым навесом, прежнее место прилавка', () => {
   const b = F.FISH_BOARD;
-  assert.ok(near(b.x, -12) && near(b.z, 21.365) && near(b.w, 3.6) && near(b.h, 4.14) && near(b.panelY, 2.49), 'доска');
+  assert.ok(near(b.x, -12) && near(b.z, 21.365) && near(b.w, 6) && near(b.h, 7.65) && near(b.panelY, 4.9), 'экран над тканью, с исходным aspect');
   assert.ok(near(F.FISH_PODIUM.x, -12) && near(F.FISH_PODIUM.z, 19.3), 'прилавок');
   assert.equal(F.FISH_BOARD.yaw, 0);
 });
@@ -455,6 +459,21 @@ test('гирлянды plaza3: нити висят на фонарях и сто
   const strings = LI.plaza3Garlands(map);
   assert.ok(strings.length >= 10);
   const known = new Set([...lamps.map((l) => [l.x, l.z]), ...CANOPY_POLES].map(([x, z]) => `${x.toFixed(2)},${z.toFixed(2)}`));
+  // Актуальная веранда имеет пять настоящих стоек (3+2), а не прежний прямоугольник 3+3.
+  const pav = PD.PAVILIONS.find((p) => p.id === 'cardveranda')!;
+  const cols = PD.pavColliders(PD.glbJson(new Uint8Array(readFileSync(new URL(`../client/assets/plaza3/${pav.file}`, import.meta.url)))), pav)
+    .filter((c) => c.name.startsWith('col_post'));
+  assert.equal(cols.length, CANOPY_POLES.length);
+  for (const [x, z] of CANOPY_POLES) assert.ok(cols.some((c) => near((c.min[0] + c.max[0]) / 2, x, .001) && near((c.min[2] + c.max[2]) / 2, z, .001)), 'опора нити совпадает с реальной стойкой GLB');
+  const veranda = strings.filter((g) => g.colored);
+  assert.equal(veranda.length, 7, 'три продольные нити, две диагонали, два торца неполной перголы');
+  const key = (p: readonly number[]) => `${p[0].toFixed(2)},${p[p.length - 1].toFixed(2)}`;
+  const reached = new Set([key(CANOPY_POLES[0])]);
+  for (let i = 0; i < CANOPY_POLES.length; i++) for (const g of veranda) {
+    if (reached.has(key(g.a))) reached.add(key(g.b));
+    if (reached.has(key(g.b))) reached.add(key(g.a));
+  }
+  assert.deepEqual([...reached].sort(), CANOPY_POLES.map(key).sort(), 'все пять стоек связаны одной сетью');
   for (const g of strings) {
     for (const end of [g.a, g.b]) assert.ok(end[1] > 2.3 && end[1] < 5, `нить на высоте ${end[1]}`);
     for (let t = 0; t <= 1; t += 0.05) assert.ok(LI.garlandAt(g, t)[1] - 0.06 > 2.25, 'лампочка выше головы');

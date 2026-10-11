@@ -109,7 +109,7 @@ export class IsleClient {
       });
     }
     // у острова, а он ещё грузится — экран загрузки
-    if (atIsle && !this.island.ready) this.cover.show(this.island.progress);
+    if (atIsle && (!this.island.ready || !this.island.detailReady)) this.cover.show(this.island.progress);
     else if (this.cover.on && this.island.ready) {
       this.cover.show(1);
       this.cover.hide();

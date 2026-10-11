@@ -6,19 +6,21 @@
 // этот файл.
 import { randomInt } from 'node:crypto';
 import {
-  addFarmXp, bagCap, bagUsed, bedStage, convert, emptyFarm, enterDay, farmLevel, harvest, pigTick, plant, rollDay, sell, tutorialEvent,
+  addFarmXp, bagCap, bagUsed, bedStage, convert, emptyFarm, enterDay, farmLevel, harvest, normalizeFarmIdentity, FARM_IDENTITY_ICONS, pigTick, plant, rollDay, sell, tutorialEvent,
   upgrade, water, wellFill, wellTake, wellTick, type FarmFail, type FarmProgress, type TutorialEvent,
 } from '../../shared/farm.ts';
 import {
-  ACTIONS_PER_SEC, BED_CLICK_RANGE, FARM_DECOR, FARM_PLOTS, PIG_STORE, PLOT_CLICK_RANGE, REP_FIRST_ENTRY, TRUFFLE,
+  ACTIONS_PER_SEC, BED_CLICK_RANGE, FARM_BEDS, FARM_DECOR, FARM_PLOTS, PIG_STORE, PLOT_CLICK_RANGE, REP_FIRST_ENTRY, TRUFFLE,
   WELL_SETS, WELL_TRY_MS,
 } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
-import { bedDist, buildFarmMap, nearTrough, nearUse, plotToWorld, setFarmToggle, type FarmObjectId } from '../../shared/farmmap.ts';
+import { bedDist, buildFarmMap, nearTrough, nearUse, plotToWorld, setFarmJukebox, setFarmToggle, type FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmAction, FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow, FarmServerMsg, FarmStatus } from '../../shared/farmnet.ts';
 import { vanTime } from '../../shared/farmvan.ts';
+import { FARM_JUKE_SPOT, FARM_SEATS16 } from '../../shared/farmseats.ts';
 import { WELL_MAX_SAMPLES, wellShare } from '../../shared/farmwell.ts';
-import { stepHeld } from '../../shared/lobby.ts';
+import { ACT_FISH, ACT_SIT, LEAVE_SEAT, holdMask, stepHeld } from '../../shared/lobby.ts';
+import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, songPrice } from '../../shared/jukebox.ts';
 import type { ClientMsg, RoomKind } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
@@ -29,9 +31,13 @@ import { CollisionWorld } from '../../shared/world.ts';
 import type { Client, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
 import type { Profile } from '../store.ts';
+import type { Store } from '../store.ts';
+import type { Profiles } from '../profiles.ts';
+import { FarmPond } from './pond.ts';
 import { FarmPlots, type PlotSeat } from './plots.ts';
 import { grantLevel } from './rewards.ts';
 import { FarmSystems } from './systems.ts';
+import { Jukebox } from '../lobby/jukebox.ts';
 import type { FarmBossState } from '../../shared/farmboss.ts';
 
 /** Снимок движения — раз в 2 тика (30 Гц), как на набережной */
@@ -42,6 +48,14 @@ const ONE_SHOT = BTN_FIRE | BTN_JUMP | BTN_DASH | BTN_RELOAD | BTN_USE;
 const FALL_Y = -5;
 
 export interface FarmHooks {
+  jukebox?: boolean;
+  pond?: { profiles: Profiles; store: Store };
+  /** Обновление общего профиля и экипировки после рыбалки. */
+  changed?(c: Client): void;
+  outfitChanged?(c: Client): void;
+  fishTopChanged?(): void;
+  limit?(key: string, n: number, ms: number): boolean;
+  toast?(c: Client, text: string): void;
   now(): number;
   outfitOf(p: Profile): Outfit;
   profileOf(pid: number): Profile | undefined;
@@ -80,6 +94,9 @@ export interface FarmPlayer {
   /** Колодец: зерно идущей попытки и когда началась прошлая */
   fill: { seed: number; at: number } | null;
   lastFill: number;
+  seat: number;
+  lastJuke: number;
+  pondSeat: number | null;
 }
 
 /** Всё, что нужно частям режима (systems.ts, rewards.ts): прогресс, отправка, жетоны, опыт */
@@ -123,11 +140,27 @@ export class FarmRoom implements Room, FarmCtx {
   private readonly slept: boolean[] = Array.from({ length: FARM_PLOTS }, () => false);
   /** Части B1: помощь, Фургон, заказы, Древо (server/farm/systems.ts) */
   private readonly sys: FarmSystems;
+  private readonly sitSeats = Array.from({ length: FARM_SEATS16.length }, () => 0);
+  readonly juke: Jukebox | null;
+  readonly pond: FarmPond | null;
 
   constructor(hooks: FarmHooks) {
     this.hooks = hooks;
+    this.juke = hooks.jukebox === false ? null : new Jukebox();
+    if (!this.juke) setFarmJukebox(this.world, false);
     this.plots = new FarmPlots(hooks.seats());
     this.sys = new FarmSystems(this);
+    this.pond = hooks.pond ? new FarmPond({
+      now: () => this.now(), players: () => this.players(),
+      send: (p, msg) => p.c.sink.sendJson(msg),
+      broadcast: (msg) => { for (const p of this.players()) p.c.sink.sendJson(msg); },
+      changed: (p) => { this.dirty(); hooks.changed?.(p.c); },
+      outfitChanged: (p) => { this.rosterDirty = true; hooks.outfitChanged?.(p.c); },
+      limit: (key, n, ms) => hooks.limit?.(key, n, ms) ?? hooks.pond!.profiles.limits.hit(key, n, ms),
+      announce: (text) => this.announce(text),
+      toast: (p, text) => hooks.toast ? hooks.toast(p.c, text) : p.c.sink.sendJson({ t: 'toast', text }),
+      topChanged: () => hooks.fishTopChanged?.(),
+    }, hooks.pond.profiles, hooks.pond.store) : null;
     this.toggles(this.now());
   }
 
@@ -181,7 +214,7 @@ export class FarmRoom implements Room, FarmCtx {
     state.grounded = 1;
     const p: FarmPlayer = {
       c, id: this.freeId(), state, inq: new InputQueue(), last: makeInput(), ev: makeEvents(), plot, selfReset: true,
-      actTick: 0, acts: 0, fill: null, lastFill: -Infinity,
+      actTick: 0, acts: 0, fill: null, lastFill: -Infinity, seat: -1, lastJuke: -Infinity, pondSeat: null,
     };
     p.last.yaw = sp.yaw;
     this.byClient.set(c, p);
@@ -191,12 +224,19 @@ export class FarmRoom implements Room, FarmCtx {
     this.rosterDirty = true;
     this.hooks.status?.(this.status());
     this.sys.join(p);
+    this.pond?.join(p);
+    if (this.juke) {
+      if (this.juke.step(now)) this.broadcastJuke();
+      else c.sink.sendJson({ t: 'juke', v: this.juke.view(now) });
+    }
     return true;
   }
 
   leave(c: Client): void {
     const p = this.byClient.get(c);
     if (!p) return;
+    this.pond?.leave(p);
+    this.releaseSeat(p);
     this.byClient.delete(c);
     this.sys.leave(p);
     this.plots.leave(c.pid, this.now());
@@ -211,10 +251,12 @@ export class FarmRoom implements Room, FarmCtx {
     if (!p) return;
     this.rosterDirty = true;
     this.plotChanged(p.plot);
+    this.pond?.renamed();
   }
 
   outfitChanged(c: Client): void {
-    if (this.byClient.has(c)) this.rosterDirty = true;
+    const p = this.byClient.get(c);
+    if (p) { this.rosterDirty = true; this.pond?.outfitChanged(p); }
   }
 
   private freeId(): number {
@@ -240,9 +282,10 @@ export class FarmRoom implements Room, FarmCtx {
     const seat = this.plots.seats[i];
     const prof = seat ? this.hooks.profileOf(seat.pid) : undefined;
     const f = prof?.farm;
-    if (!seat || !prof || !f) return { i, pid: 0, nick: '', level: 0, sleeping: false, beds: [], pig: false, bees: false, compost: false };
+    if (!seat || !prof || !f) return { i, pid: 0, nick: '', name: `Свободный участок ${i + 1}`, icon: 'radish', level: 0, sleeping: false, beds: [], pig: false, bees: false, compost: false };
     return {
       i, pid: seat.pid, nick: prof.nick, level: farmLevel(f.xp), sleeping: this.plots.sleeping(i, this.now()),
+      name: f.identity.name || `Ферма ${prof.nick}`, icon: f.identity.icon,
       beds: f.beds.map((b) => ({ c: b.crop, p: b.plantedAt, r: b.ripeAt, w: b.watered, h: b.helpers.length })),
       pig: !!f.built.pig, bees: f.built.bees, compost: f.built.compost,
     };
@@ -348,14 +391,20 @@ export class FarmRoom implements Room, FarmCtx {
 
   onMessage(c: Client, msg: ClientMsg): void {
     const p = this.byClient.get(c);
-    if (!p || msg.t !== 'farm' || typeof (msg as { a?: unknown }).a !== 'string') return;
+    if (!p) return;
+    if (this.pond?.handle(p, msg)) return;
+    if (msg.t === 'juke') { this.onJuke(p, msg.song); return; }
+    if (msg.t !== 'farm' || typeof (msg as { a?: unknown }).a !== 'string') return;
     const m = msg as FarmClientMsg;
+    if (p.pondSeat !== null) { this.fail(p, m.a, 'busy'); return; }
     if (this.tick - p.actTick >= 60) { p.actTick = this.tick; p.acts = 0; }
     if (++p.acts > ACTIONS_PER_SEC) { this.fail(p, m.a, 'rate'); return; }
     const now = this.now();
     const f = this.farm(p);
     this.lazy(f, now);
     switch (m.a) {
+      case 'identity': return this.onIdentity(p, f, m);
+      case 'sit': return this.onSit(p, m.seat);
       case 'plant': return this.onPlant(p, f, m, now);
       case 'water': return this.onWater(p, f, m, now);
       case 'harvest': return this.onHarvest(p, f, m, now);
@@ -377,9 +426,9 @@ export class FarmRoom implements Room, FarmCtx {
 
   /** Все грядки из списка — у себя на участке и в пределах клика (с запасом на задержку сети) */
   private reach(p: FarmPlayer, beds: unknown): beds is number[] {
-    if (!Array.isArray(beds) || beds.length === 0 || beds.length > 9) return false;
+    if (!Array.isArray(beds) || beds.length === 0 || beds.length > FARM_BEDS) return false;
     const s = p.state;
-    return beds.every((b) => Number.isInteger(b) && b >= 0 && b < 8 && bedDist(p.plot, b, s.x, s.z) <= BED_CLICK_RANGE + 1.5);
+    return beds.every((b) => Number.isInteger(b) && b >= 0 && b < this.farm(p).beds.length && bedDist(p.plot, b, s.x, s.z) <= BED_CLICK_RANGE + 1.5);
   }
 
   private near(p: FarmPlayer, id: FarmObjectId): boolean {
@@ -430,8 +479,9 @@ export class FarmRoom implements Room, FarmCtx {
     const h = r.r;
     this.ev(null, { k: 'harvest', plot: p.plot, items: h.items, xp: h.xp, gx: h.generalXp, bagFull: h.bagFull });
     if (h.generalXp > 0) this.hooks.generalXp(p.c, h.generalXp);
+    const level = farmLevel(f.xp);
     this.xp(p, h.xp, 'урожай');
-    this.sys.on(p, { k: 'harvest', items: h.items, xp: h.xp });
+    this.sys.on(p, { k: 'harvest', items: h.items, xp: h.xp, level });
     this.tutorial(p, f, 'harvest');
     this.done(p, true);
   }
@@ -546,10 +596,73 @@ export class FarmRoom implements Room, FarmCtx {
 
   // ------------------------------------------------------------ тик
 
+  private onIdentity(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'identity' }>): void {
+    if (typeof m.name !== 'string' || typeof m.icon !== 'string' || !FARM_IDENTITY_ICONS.includes(m.icon as typeof FARM_IDENTITY_ICONS[number])) {
+      this.fail(p, 'identity', 'item'); return;
+    }
+    f.identity = normalizeFarmIdentity(m);
+    this.done(p, true);
+  }
+
+  private releaseSeat(p: FarmPlayer): void {
+    if (p.seat < 0) return;
+    if (this.sitSeats[p.seat] === p.id) this.sitSeats[p.seat] = 0;
+    p.seat = -1;
+  }
+
+  private onSit(p: FarmPlayer, id: number): void {
+    if (id === -1 || id === p.seat) { this.releaseSeat(p); return; }
+    const s = Number.isInteger(id) ? FARM_SEATS16[id] : undefined;
+    if (!s) { this.fail(p, 'sit', 'item'); return; }
+    if (this.sitSeats[id]) { this.fail(p, 'sit', 'busy'); return; }
+    if (Math.abs(s.y - p.state.y) > 2 || Math.hypot(s.x - p.state.x, s.z - p.state.z) > s.r + 1.5) { this.fail(p, 'sit', 'far'); return; }
+    this.releaseSeat(p);
+    this.sitSeats[id] = p.id;
+    p.seat = id;
+    const prevButtons = p.state.prevButtons;
+    Object.assign(p.state, makeState(), { x: s.x, y: s.y, z: s.z, grounded: 1, prevButtons });
+    p.last.yaw = s.yaw;
+    p.selfReset = true;
+  }
+
+  private broadcastJuke(): void {
+    if (!this.juke) return;
+    const msg = { t: 'juke', v: this.juke.view(this.now()) } as const;
+    for (const p of this.byClient.values()) p.c.sink.sendJson(msg);
+  }
+
+  private onJuke(p: FarmPlayer, song: unknown): void {
+    if (!this.juke) return;
+    const now = this.now();
+    const no = (text: string): void => p.c.sink.sendJson({ t: 'jukeRes', ok: false, text });
+    if (now - p.lastJuke < JUKE_RATE_MS) return no('Не так быстро');
+    p.lastJuke = now;
+    const s = p.state;
+    if (p.seat >= 0 || p.pondSeat !== null || Math.abs(s.y) > 2 || Math.hypot(s.x - FARM_JUKE_SPOT.use.x, s.z - FARM_JUKE_SPOT.use.z) > JUKE_SERVER_R) return no('Подойди к музыкальному автомату');
+    if (this.juke.step(now)) this.broadcastJuke();
+    const why = this.juke.check(p.c.pid, song, now);
+    if (why === 'song') return no('Такой песни в автомате нет');
+    if (why === 'mine') return no('Твоя песня уже в очереди — дождись её');
+    if (why === 'full') return no('Очередь полная — подожди');
+    const n = song as number;
+    const title = JUKE_SONGS[n].title;
+    if (why === 'same') return no(`«${title}» уже ${this.juke.cur?.song === n ? 'играет' : 'в очереди'} — выбери другую`);
+    const price = songPrice(n);
+    if (!this.spend(p, price)) return no(`Песня стоит ${price} 🪙`);
+    this.juke.add(p.c.pid, p.c.profile!.nick, n, now);
+    this.dirty();
+    this.broadcastJuke();
+    const place = this.juke.queue.length;
+    p.c.sink.sendJson({ t: 'jukeRes', ok: true, text: place === 0 ? `«${title}» — сейчас заиграет` : `«${title}» в очереди: ${place}-я, через ${fmtSongTime(this.juke.etaMs(place - 1, now) / 1000)}` });
+    this.announce(`🎵 ${p.c.profile!.nick} ставит «${title}»`);
+  }
+
   step(): void {
     this.tick++;
     for (const p of this.byClient.values()) this.stepPlayer(p);
+    this.pond?.step(this.tick);
     if (this.tick % SNAP_EVERY === 0) this.sendSnapshots();
+    if (this.tick % 10 === 0 && this.juke?.step(this.now())) this.broadcastJuke();
     if (this.rosterDirty) {
       this.rosterDirty = false;
       this.broadcast({ t: 'farmRoster', list: this.roster() });
@@ -581,7 +694,10 @@ export class FarmRoom implements Room, FarmCtx {
     const n = q.due();
     for (let i = 0; i < n; i++) {
       const inp = q.shift();
-      stepHeld(p.state, 0, inp, this.world, false, 0, p.ev);
+      if (p.seat >= 0 && (inp.buttons & ~p.state.prevButtons & BTN_USE)) this.releaseSeat(p);
+      if (!stepHeld(p.state, p.pondSeat !== null ? holdMask(ACT_FISH) : p.seat >= 0 ? LEAVE_SEAT : 0, inp, this.world, false, 0, p.ev)) {
+        this.releaseSeat(p); this.pond?.stand(p);
+      }
       const last = p.last;
       last.seq = inp.seq;
       last.buttons = inp.buttons;
@@ -594,7 +710,9 @@ export class FarmRoom implements Room, FarmCtx {
       const idle = p.last;
       const saved = idle.buttons;
       idle.buttons = q.starve > 90 ? 0 : saved & ~ONE_SHOT;
-      stepHeld(p.state, 0, idle, this.world, false, 0, p.ev);
+      if (!stepHeld(p.state, p.pondSeat !== null ? holdMask(ACT_FISH) : p.seat >= 0 ? LEAVE_SEAT : 0, idle, this.world, false, 0, p.ev)) {
+        this.releaseSeat(p); this.pond?.stand(p);
+      }
       idle.buttons = saved;
     }
     if (p.state.y < FALL_Y) {
@@ -612,7 +730,8 @@ export class FarmRoom implements Room, FarmCtx {
       let flags = E_ALIVE;
       if (s.grounded) flags |= E_GROUNDED;
       if (s.dashT > 0) flags |= E_DASH;
-      list.push({ id: p.id, flags, x: s.x, y: s.y, z: s.z, yaw: p.last.yaw, pitch: p.last.pitch, hp: 0, armor: 0 });
+      list.push({ id: p.id, flags, x: s.x, y: s.y, z: s.z, yaw: p.last.yaw, pitch: p.last.pitch,
+        hp: p.pondSeat !== null ? ACT_FISH : p.seat >= 0 ? ACT_SIT : 0, armor: p.pondSeat ?? Math.max(0, p.seat) });
     }
     const entities = encodeEntities(list);
     const h = this.header;

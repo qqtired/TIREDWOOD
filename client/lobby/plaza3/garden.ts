@@ -1,10 +1,9 @@
 // Огородный закуток plaza3. Три отрисовки: грядки, существующие sunflower_clump и wattle_2m из библиотеки павильонов.
 // Строится при входе вместе с площадью, без зависимой от расстояния загрузки и без новых коллизий/точек E.
 import * as THREE from 'three';
-import { P3 } from '../../../shared/plaza3/layout.ts';
 import { mergeColored, paint, place } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
-import { gardenPlan, type GardenPlace } from './garden-data.ts';
+import { GARDEN_Y, gardenPlan, type GardenPlace } from './garden-data.ts';
 import { loadPav, worldGeometry } from './models.ts';
 
 /** Простой земляной короб с досками, бороздами и невысокими овощами — общая геометрия всех грядок. */
@@ -37,7 +36,7 @@ function instances(geo: THREE.BufferGeometry, mat: THREE.Material, list: GardenP
   for (let i = 0; i < list.length; i++) {
     const p = list[i];
     rotation.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, p.yaw);
-    mesh.setMatrixAt(i, matrix.compose(position.set(p.x, p.y ?? P3.land.streetY + 0.035, p.z), rotation, scale.set(p.scale * (p.stretch ?? 1), p.scale, p.scale)));
+    mesh.setMatrixAt(i, matrix.compose(position.set(p.x, p.y ?? GARDEN_Y, p.z), rotation, scale.set(p.scale * (p.stretch ?? 1), p.scale, p.scale)));
   }
   mesh.instanceMatrix.needsUpdate = true;
   mesh.matrixAutoUpdate = false;

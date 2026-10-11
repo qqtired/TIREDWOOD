@@ -47,22 +47,22 @@ export const PAVILIONS: readonly PavPlace[] = [
   { id: 'farm_arch', file: 'pav_farm_arch.glb', x: 55.1, z: -21.5, yaw: 1.8495, group: 'farm', solid: 'layout' },
   { id: 'windmill', file: 'pav_windmill.glb', x: 84, z: -62, yaw: 2.2092, group: 'farm', solid: 'mode', live: ['live_sails'] },
   // Игровой квартал (README-gq.md)
-  { id: 'kursaal', file: 'pav_kursaal.glb', x: 56.5, z: 3.9, yaw: 0, group: 'games', solid: 'layout' },
-  { id: 'cafe', file: 'pav_cafe.glb', x: 39, z: 3, yaw: PI / 2, group: 'games', solid: 'layout', live: ['live_vane'] },
-  { id: 'cardveranda', file: 'pav_cardveranda.glb', x: 28.25, z: 0.8, yaw: 0, group: 'games', solid: 'layout' },
+  { id: 'kursaal', file: 'pav_kursaal.glb', x: 61, z: 1, yaw: PI / 2, group: 'games', solid: 'layout' },
+  { id: 'cafe', file: 'pav_cafe.glb', x: 49, z: 0, yaw: PI / 2, group: 'games', solid: 'layout', live: ['live_vane'] },
+  { id: 'cardveranda', file: 'pav_cardveranda.glb', x: 38.25, z: -2.2, yaw: 0, group: 'games', solid: 'layout' },
   { id: 'billiards', file: 'pav_billiards.glb', x: 40.7, z: 17.7, yaw: 0, group: 'games', solid: 'mode' },
   { id: 'regatta_lookout', file: 'pav_regatta_lookout.glb', x: 56.5, z: 17.6, yaw: PI, group: 'games', solid: 'layout' },
   // фонтан Бульварного сквера (≤ 2,4 м — в коридоре вида на TIREDWOOD), вода пульсирует
-  { id: 'fountain', file: 'pav_fountain.glb', x: 50, z: -11, yaw: 0, group: 'games', solid: 'layout', live: ['live_water'] },
+  { id: 'fountain', file: 'pav_fountain.glb', x: 38, z: 7.3, yaw: 0, group: 'games', solid: 'layout', live: ['live_water'] },
   // Центр: ротонда и доски у площади (лицом на юг, к точке появления)
   { id: 'rotunda', file: 'pav_rotunda.glb', x: 15, z: 8.5, yaw: 0, group: 'hub', solid: 'layout' },
-  { id: 'honor', file: 'pav_honor.glb', x: 13.7, z: -22.4, yaw: PI, group: 'hub', solid: 'layout' },
-  { id: 'online', file: 'pav_online.glb', x: 21.3, z: -22.16, yaw: PI, group: 'hub', solid: 'layout', live: ['live_clock_hour', 'live_clock_minute'] },
+  { id: 'honor', file: 'pav_honor.glb', x: 4, z: -16.8, yaw: PI, group: 'hub', solid: 'layout' },
+  { id: 'online', file: 'pav_online.glb', x: 17, z: -16.8, yaw: PI, group: 'hub', solid: 'layout', live: ['live_clock_hour', 'live_clock_minute'] },
   // Порт B «Маячный мол» (README-pb.md)
   { id: 'lighthouse_arch', file: 'pav_lighthouse_arch.glb', x: -19, z: 21.3, yaw: 0, group: 'port', solid: 'layout' },
   { id: 'sunset', file: 'pav_sunset.glb', x: -23, z: 15, yaw: PI / 2, group: 'port', solid: 'layout' },
-  { id: 'fishyard', file: 'pav_fishyard.glb', x: -4, z: 13.4, yaw: 0, group: 'port', solid: 'mode' },
-  { id: 'rats', file: 'pav_rats.glb', x: -7.4, z: 24.4, yaw: 0, group: 'port', solid: 'mode' },
+  { id: 'fishyard', file: 'pav_fishyard.glb', x: -4, z: 13.4, yaw: PI, group: 'port', solid: 'mode' },
+  { id: 'rats', file: 'pav_rats.glb', x: -0.4, z: 24.4, yaw: 0, group: 'port', solid: 'mode' },
   { id: 'swallow_gate', file: 'pav_swallow_gate.glb', x: 7.9, z: 21.3, yaw: 0, group: 'port', solid: 'mode' },
   { id: 'fishshowcase', file: 'pav_fishshowcase.glb', x: -12, z: 20.15, yaw: 0, group: 'port', solid: 'mode' },
   // Пляж

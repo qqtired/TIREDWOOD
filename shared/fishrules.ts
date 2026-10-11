@@ -139,7 +139,7 @@ export const DIVINE_RATIO = 2.5;
 /** Мифическая: +0,4 п. п. ко всем поклёвкам новичка в ясную погоду сверх весов видов (у пристани 0,587 → 0,987 %, на баркасе 0,555 → 0,955 %) */
 export const MYTH_ADD = 0.004;
 /** Божественная — явно, доля всех поклёвок новичка в ясную погоду (было мифическая / 2,5: 0,23 и 0,22 % — стало +0,2 п. п.) */
-export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042, isle: 0.0043 };
+export const DIVINE_BASE: Readonly<Record<FishZone, number>> = { pier: 0.0043, barkas: 0.0042, isle: 0.0043, pond: 0 };
 /**
  * Пол обычных: не меньше этой доли поклёвок рыбы при любых бонусах и погоде — редкие и выше делят не больше 95 %. Иначе
  * у прокачанного рыбака в дождь обычных не остаётся и пикарель (обычная дождевая) не ловится — коллекцию не закрыть.
@@ -353,6 +353,11 @@ const RAW: Record<string, Raw> = {
   // божественная острова: царь острова — без множителей места (как кальмар), цена ×2,5 к мифику
   frilledshark: { tier: T_DIVINE, zone: 'isle', bite: 1, rain: false, val: [825, 1650], xpBase: 98, pat: ['Zigzag', 'Sound'], note: 'морской змей: извивается и уходит в глубину; «Острые зубы»' },
 
+  // --- пресный пруд: общие снасти/цены/паттерны, без сундуков и морских категорий.
+  'pond-crucian': { tier: T_COMMON, zone: 'pond', bite: 46, rain: false, val: [4, 8], pat: ['Wave', 'SlowMigration'], note: 'неспешные широкие ходы у дна' },
+  'pond-roach': { tier: T_COMMON, zone: 'pond', bite: 34, rain: false, val: [3, 7], pat: ['HoverDash', 'SlowMigration'], lo: 20, hi: 80, note: 'маленькие подскоки в толще воды' },
+  'pond-perch': { tier: T_RARE, zone: 'pond', bite: 16, rain: false, val: [8, 18], pat: ['Dash', 'FakeDash'], note: 'короткие броски и внезапный разворот' },
+  'pond-carp': { tier: T_EPIC, zone: 'pond', bite: 4, rain: false, val: [14, 32], pat: ['Sound', 'Wave'], lo: 0, hi: 70, note: 'тянет ко дну и упрямо разворачивается' },
   // --- не рыбы: лежат мёртвым грузом
   boot: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
   bottle: { tier: T_JUNK, bite: 0, rain: false, val: [0, 0], pat: ['SlowMigration', 'SlowMigration'], note: 'не сопротивляется' },
@@ -369,6 +374,7 @@ const DEAD: Record<string, ReelStyle> = {
 // Frozen released cost-to-success of release 6: XP base of pier species (see fishCatchXp).
 const XP_DIFFICULTY: Record<string, number> = {
   hamsa: 348.6, goby: 326.5, scad: 343.7, redmullet: 330.3, wrasse: 335.7, karas: 329.6, blenny: 329.1, sardine: 350.6, whiting: 328.9, picarel: 349.5,
+  'pond-crucian': 329.6, 'pond-roach': 326.5, 'pond-perch': 476.2, 'pond-carp': 580,
   mullet: 476.2, mackerel: 472.4, garfish: 535.4, scorpion: 493.9, flounder: 441.8, gurnard: 484.4, eel: 505, meagre: 461.7, shad: 539.5,
   bluefish: 623.8, dogfish: 661.7, ray: 618.6, turbot: 677.8, seabass: 664.8, leerfish: 644.2,
   sturgeon: 902.5, tuna: 835.4, swordfish: 895.1, angler: 961, whiteshark: 1393.5,
@@ -389,6 +395,10 @@ const XP_DIFFICULTY: Record<string, number> = {
  * барабульке, губану и треске — мягче: успех тот же (~100 %), а бой не вдвое длиннее прежнего (6–7 с).
  */
 const CAL: Record<string, readonly [number, number, number, number, number]> = {
+  'pond-crucian': [12.95, 45.33, 25.57, 19.08, 180],
+  'pond-roach': [9.1, 31.85, 19.58, 23.08, 218],
+  'pond-perch': [14.4, 53.28, 29.99, 26.4, 174],
+  'pond-carp': [14.3, 55.77, 31.82, 23.25, 173],
   hamsa: [14, 49, 27.2, 14.73, 170],
   goby: [9.1, 31.85, 19.58, 23.08, 218],
   scad: [11.2, 39.2, 22.85, 29.7, 197],
@@ -527,15 +537,18 @@ function journal(pick: (r: FishRule) => boolean): number[] {
  * Все виды коллекции (пристань и баркас) — по порядку журнала: по категориям (божественная — последней), внутри — пристань,
  * потом баркас, как в таблице. Виды острова сюда не входят: у них свой счётчик (ISLE_COLLECTION).
  */
-export const COLLECTION: readonly number[] = journal((r) => r.zone !== 'isle');
+export const COLLECTION: readonly number[] = journal((r) => r.zone !== 'isle' && r.zone !== 'pond');
 /** Сколько видов в коллекции (52): число не зашито — растёт с таблицей (без видов острова) */
 export const COLLECTION_SIZE = COLLECTION.length;
 /** Виды острова «Последний свет» по порядку журнала — свой счётчик «Остров: N из 20» (shared/islestyle.ts isleCaught, тот же список — ISLE_SPECIES) */
 export const ISLE_COLLECTION: readonly number[] = journal((r) => r.zone === 'isle');
 /** Сколько видов у острова (20) */
 export const ISLE_SIZE = ISLE_COLLECTION.length;
+/** Пресные виды записываются в тот же альбом, но не меняют прежние награды 52/20. */
+export const POND_COLLECTION: readonly number[] = journal((r) => r.zone === 'pond');
+export const POND_SIZE = POND_COLLECTION.length;
 /** Все рыбы, что где-то клюют: коллекция и виды острова */
-const ALL_FISH: readonly number[] = [...COLLECTION, ...ISLE_COLLECTION];
+const ALL_FISH: readonly number[] = [...COLLECTION, ...ISLE_COLLECTION, ...POND_COLLECTION];
 /** Хлам и сундук */
 export const SP_BOOT = spOf('boot');
 export const SP_BOTTLE = spOf('bottle');
@@ -661,6 +674,7 @@ const POOLS: Record<FishZone, readonly [Pool, Pool]> = {
   barkas: [makePool('barkas', false), makePool('barkas', true)],
   // остров: «дождь» — туман («Туман наступает») и сезон острова
   isle: [makePool('isle', false), makePool('isle', true)],
+  pond: [makePool('pond', false), makePool('pond', true)],
 };
 
 /**
@@ -672,19 +686,19 @@ function makeBase(zone: FishZone): readonly number[] {
   const p = POOLS[zone][0];
   const total = p.rankW.slice(0, 5).reduce((a, b) => a + b, 0);
   const out = p.rankW.map((w) => (total > 0 ? w / total : 0));
-  const novice = 1 - (CHEST_PER_10K + junkPer10k(0)) / 10_000;
-  out[4] += MYTH_ADD / novice;
+  const novice = zone === 'pond' ? 1 : 1 - (CHEST_PER_10K + junkPer10k(0)) / 10_000;
+  if (zone !== 'pond') out[4] += MYTH_ADD / novice;
   out[5] = DIVINE_BASE[zone] / novice;
   out[0] = 1 - out.slice(1).reduce((a, b) => a + b, 0);
   return out;
 }
 
-const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas'), isle: makeBase('isle') };
+const BASE: Record<FishZone, readonly number[]> = { pier: makeBase('pier'), barkas: makeBase('barkas'), isle: makeBase('isle'), pond: makeBase('pond') };
 /** База категорий места — для страницы /fishing (tools/fishing-guide): доли рыбы по рангам 0…5 в ясную погоду без бонусов */
 export const TIER_BASE: Readonly<Record<FishZone, readonly number[]>> = BASE;
 
 function placeOf(mods?: Readonly<FishCastMods>): FishZone {
-  return mods?.zone === 'barkas' ? 'barkas' : mods?.zone === 'isle' ? 'isle' : 'pier';
+  return mods?.zone === 'pond' ? 'pond' : mods?.zone === 'barkas' ? 'barkas' : mods?.zone === 'isle' ? 'isle' : 'pier';
 }
 
 function poolOf(rain: boolean, mods?: Readonly<FishCastMods>): Pool {
@@ -731,6 +745,7 @@ export function bonusMul(rank: number, mods?: Readonly<FishCastMods>): number {
  * ровно база × погода × бонусы.
  */
 function rankShares(weather: FishWeather, mods?: Readonly<FishCastMods>): number[] {
+  if (placeOf(mods) === 'pond') weather = 0;
   const base = BASE[placeOf(mods)];
   const out = [0, 0, 0, 0, 0, 0];
   let left = 1 - COMMON_FLOOR;
@@ -752,13 +767,13 @@ function speciesShares(p: Pool, weather: FishWeather, mods?: Readonly<FishCastMo
 export function rollCatch2(rain: boolean, rand: () => number, mods?: Readonly<FishCastMods>, season = false): Hooked {
   const roll = rand();
   const r = roll * 10_000;
-  if (r < CHEST_PER_10K) {
+  if (mods?.zone !== 'pond' && r < CHEST_PER_10K) {
     const g = rollWeight(SP_CHEST, rand);
     const coins = rollChest(rand);
     // Клад — нижние 1…3 % полосы сундука по уровню заброса. Поток случайных чисел тот же, что у обычного сундука.
     return { sp: SP_CHEST, g, coins: roll < (CHEST_PER_10K / 10_000) * poseidonShare(mods?.level) ? POSEIDON_COINS : coins };
   }
-  if (r < CHEST_PER_10K + junkPer10k(mods?.level)) {
+  if (mods?.zone !== 'pond' && r < CHEST_PER_10K + junkPer10k(mods?.level)) {
     const sp = rand() < 0.7 ? SP_BOOT : SP_BOTTLE;
     return { sp, g: rollWeight(sp, rand), coins: 0 };
   }
@@ -800,9 +815,10 @@ export function biteShare(sp: number, rain: boolean, mods?: Readonly<FishCastMod
  */
 export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>, season = false): number[] {
   const shares = rankShares(fishWeather(rain, season), mods);
-  const junk = junkPer10k(mods?.level);
-  const fish = 1 - (CHEST_PER_10K + junk) / 10_000;
-  return [...shares.slice(0, 5).map((x) => fish * x), junk / 10_000, CHEST_PER_10K / 10_000, fish * shares[5]];
+  const junk = mods?.zone === 'pond' ? 0 : junkPer10k(mods?.level);
+  const chest = mods?.zone === 'pond' ? 0 : CHEST_PER_10K;
+  const fish = 1 - (chest + junk) / 10_000;
+  return [...shares.slice(0, 5).map((x) => fish * x), junk / 10_000, chest / 10_000, fish * shares[5]];
 }
 
 /**
@@ -810,9 +826,9 @@ export function tierOdds(rain: boolean, mods?: Readonly<FishCastMods>, season = 
  * меньше base × weather × bonus только у нижней категории под потолком: старшие забрали своё, ей — остаток.
  */
 export function tierOddsParts(rank: number, rain: boolean, mods?: Readonly<FishCastMods>, season = false): { base: number; weather: number; bonus: number; now: number } {
-  const weather = fishWeather(rain, season);
-  const junk = junkPer10k(mods?.level);
-  const fish = 1 - (CHEST_PER_10K + junk) / 10_000;
+  const weather = mods?.zone === 'pond' ? 0 : fishWeather(rain, season);
+  const junk = mods?.zone === 'pond' ? 0 : junkPer10k(mods?.level);
+  const fish = mods?.zone === 'pond' ? 1 : 1 - (CHEST_PER_10K + junk) / 10_000;
   const base = BASE[placeOf(mods)][rank] ?? 0;
   return { base: fish * base, weather: weatherMul(rank, weather), bonus: bonusMul(rank, mods), now: fish * (rankShares(weather, mods)[rank] ?? 0) };
 }

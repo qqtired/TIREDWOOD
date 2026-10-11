@@ -8,7 +8,7 @@
 // рюкзаке. Первые 0,75 с после вываживания кнопки притушены и не нажимаются (lockFor).
 import { FISH, fmtWeight } from '../../shared/fishing.ts';
 import { ISLE_LADDER, LADDER, GEAR_SLOTS, isleNextStep, nextStep, rewardLabel, stepLabel, stepNeed } from '../../shared/fishstyle.ts';
-import { CHEST_ANNOUNCE, COLLECTION_SIZE, ISLE_SIZE, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
+import { CHEST_ANNOUNCE, COLLECTION_SIZE, ISLE_SIZE, POND_SIZE, RULE, T_CHEST, T_JUNK, TIER_CSS, TIER_NAMES, fmtCatch, isPoseidon } from '../../shared/fishrules.ts';
 import { LORD } from '../../shared/fishshop.ts';
 import { CHOICE_TICKS, releaseXp } from '../../shared/fishrelease.ts';
 import { TICK_RATE } from '../../shared/constants.ts';
@@ -135,6 +135,7 @@ export class CatchCard2 {
     else if (junk) line(iconImg('release', ''), m.price > 0 ? `Находка — в рюкзак: <b>+${m.price}</b> ${coinHtml()}` : 'Хлам — в урну');
     else if (m.rw?.length) line(iconImg('gift', ''), rewardHtml(m.rw, m.full));
     else if (m.record && !m.fresh) line(iconImg('records', ''), `Прошлый рекорд — <b>${esc(fmtWeight(m.best))}</b>`);
+    else if (m.pond !== undefined) line(iconImg('float', ''), `Пруд <b>${m.pond} из ${POND_SIZE}</b> · общие снасти и опыт рыбалки`);
     else if (m.isle !== undefined) {
       const next = isleNextStep(m.isle);
       line(iconImg('lighthouse', ''), `Остров <b>${m.isle} из ${ISLE_SIZE}</b>${next ? ` · до ${esc(isleStepText(next))} ещё ${species(Math.min(next.need, ISLE_SIZE) - m.isle)}` : ''}`);
@@ -183,8 +184,9 @@ export class CatchCard2 {
     this.choosing = m;
     const well = m.well !== undefined;
     const row = this.card.appendChild(el('div', 'fi-catch-btns'));
-    row.innerHTML = `<button type="button" class="k-btn k-btn--go k-btn--sm" data-keep>${well ? 'В лайвел' : 'В рюкзак'}<small>+${num(m.price)} ${coinHtml()} ${isle ? 'у Игната' : 'у Семёна'}</small>${TOUCH ? '' : keyHtml('1', 'tr')}</button>`
+    row.innerHTML = `<button type="button" class="k-btn k-btn--go k-btn--sm" data-keep>${well ? 'В лайвел' : 'В рюкзак'}<small>+${num(m.price)} ${coinHtml()} ${RULE[m.sp]?.zone === 'pond' ? 'у Фомы' : isle ? 'у Игната' : 'у Семёна'}</small>${TOUCH ? '' : keyHtml('1', 'tr')}</button>`
       + `<button type="button" class="k-btn k-btn--info k-btn--sm" data-release>Отпустить<small>опыт ×1,5</small>${TOUCH ? '' : keyHtml('F', 'tr')}</button>`
+      + (TOUCH ? '' : `<p class="fi-catch-next">${keyHtml('Пробел')}<span>В рюкзак и следующий заброс</span></p>`)
       + meterHtml(1, 'good', 'k-meter--thin fi-catch-timer');
     row.querySelector('[data-keep]')!.addEventListener('click', () => this.onKeep());
     row.querySelector('[data-release]')!.addEventListener('click', () => this.onRelease());

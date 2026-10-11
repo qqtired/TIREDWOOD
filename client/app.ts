@@ -557,12 +557,13 @@ export class App {
         this.me.tokens = m.n;
         this.tokens.set(m.n, m.delay ?? 0);
         this.lobby.onJson(m);
+        if (this.active !== this.lobby) this.active?.onJson(m);
         if (this.pauseEl.classList.contains('profile-open')) this.profile.update(this.me);
         return;
       case 'fishProgress':
       case 'fishNpc':
         this.me.fishing = m.progress;
-        this.lobby.onJson(m);
+        this.transition.toScene(m);
         if (this.pauseEl.classList.contains('profile-open')) this.profile.update(this.me);
         return;
       case 'fishEvent': {
@@ -725,7 +726,7 @@ export class App {
   /** Бейдж игрока (верх-право): ник, уровень, доля опыта до следующего; жетоны рисует TokensHud */
   private paintBadge(): void {
     const p = levelProgress(this.me.xp);
-    this.badge.set(this.me.nick, this.me.level, p.needed > 0 ? p.current / p.needed : 0, Math.max(0, this.tokens.shown));
+    this.badge.set(this.me.nick, this.me.level, p.needed > 0 ? p.current / p.needed : 0, Math.max(0, this.tokens.shown), this.me.outfit);
   }
 
   private onError(code: ErrorCode | undefined, text: string): void {

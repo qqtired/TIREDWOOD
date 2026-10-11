@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-11",
+  "tool": "Built-in image_gen.imagegen",
+  "transparentBackground": true,
+  "calls": "One distinct generation per freshwater species, same existing icon passed as STYLE ONLY reference; no fish substitutions.",
+  "styleReference": "client/assets/fish/karas.webp",
+  "promptSummary": "Exactly one anatomically recognizable freshwater specimen per species; naturalistic painted field-guide illustration, full lateral profile facing left, detailed natural fins and scales, understated shading. Same existing fish-icon style; transparent background, complete animal, 12 percent padding, no text, labels, badges, hooks, line, props or water. The species and anatomy were requested independently for crucian carp, roach, European perch and common carp.",
+  "processing": "macOS sips -Z 512: proportional raster downscale, preserving alpha. Deployment encoding: Pillow 11.3/libwebp, quality 88, method 6, exact transparent pixels; PNG to WebP format conversion only. No drawing, species edit or recolouring. Source PNGs remain in the generated image library.",
+  "verification": "Each generated original was visually inspected before use. Final PNG size/color type and SHA-256 recorded below. In-game rendering has not been verified by this worker.",
+  "items": [
+    {
+      "id": "pond-crucian",
+      "nameRu": "Карась",
+      "species": "Carassius carassius",
+      "file": "client/assets/fish/pond-crucian.webp",
+      "originalFile": "exec-8fc505a6-72ec-43da-b4ef-0c5ea1410a6a.png",
+      "original": {
+        "width": 1544,
+        "height": 1018,
+        "pngColorType": 6,
+        "alphaChannel": true,
+        "bytes": 2096826,
+        "sha256": "e92b04ee796b684845e06c0f31630b4254df4c0ad48d20c29e380534f267449d"
+      },
+      "final": {
+        "width": 512,
+        "height": 337,
+        "mode": "RGBA",
+        "alphaChannel": true,
+        "bytes": 46416,
+        "sha256": "af5f456208ebd24b0dbc1f400879e7f51bf6ec1e6794850f3d5e21dc61095726",
+        "transparentCorners": true
+      }
+    },
+    {
+      "id": "pond-roach",
+      "nameRu": "Плотва",
+      "species": "Rutilus rutilus",
+      "file": "client/assets/fish/pond-roach.webp",
+      "originalFile": "exec-87281193-d500-43b3-9019-1b625cc402c1.png",
+      "original": {
+        "width": 1544,
+        "height": 1018,
+        "pngColorType": 6,
+        "alphaChannel": true,
+        "bytes": 1509520,
+        "sha256": "ae8e84a4255a077510e4922e422787f0d5e98cc9d0670fc95d7c3c8c0bf5e570"
+      },
+      "final": {
+        "width": 512,
+        "height": 337,
+        "mode": "RGBA",
+        "alphaChannel": true,
+        "bytes": 36532,
+        "sha256": "8185c12c563aa838ee5f7fe21d51f3cbdefb4dd1ece09da056cada9910477f69",
+        "transparentCorners": true
+      }
+    },
+    {
+      "id": "pond-perch",
+      "nameRu": "Окунь",
+      "species": "Perca fluviatilis",
+      "file": "client/assets/fish/pond-perch.webp",
+      "originalFile": "exec-e3f9e310-47d1-4ac8-9053-b34be61ca886.png",
+      "original": {
+        "width": 1544,
+        "height": 1018,
+        "pngColorType": 6,
+        "alphaChannel": true,
+        "bytes": 1841339,
+        "sha256": "d60034e6e441a9a1095e101aa98927e0e5214fd2707e220c7ccf96fdd4cafe9f"
+      },
+      "final": {
+        "width": 512,
+        "height": 337,
+        "mode": "RGBA",
+        "alphaChannel": true,
+        "bytes": 44928,
+        "sha256": "77ed83e2a93137ef2709e042459a39798a06a70aaf2da8ea7458f9eea7cd4419",
+        "transparentCorners": true
+      }
+    },
+    {
+      "id": "pond-carp",
+      "nameRu": "Карп",
+      "species": "Cyprinus carpio",
+      "file": "client/assets/fish/pond-carp.webp",
+      "originalFile": "exec-8aa03d33-f7aa-46de-be81-603fa6b2bd94.png",
+      "original": {
+        "width": 1544,
+        "height": 1018,
+        "pngColorType": 6,
+        "alphaChannel": true,
+        "bytes": 1954083,
+        "sha256": "64d8f01638bb526c78ee472aee5d07447ae04c48d32b79e8b64c9a67b56254b5"
+      },
+      "final": {
+        "width": 512,
+        "height": 337,
+        "mode": "RGBA",
+        "alphaChannel": true,
+        "bytes": 45192,
+        "sha256": "484011c1a7110b2e7f410b613014ea96f7bb3fedd9fee6f439ac3d6956323416",
+        "transparentCorners": true
+      }
+    }
+  ]
+}

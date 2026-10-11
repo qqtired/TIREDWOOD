@@ -135,6 +135,11 @@ export const FISH: readonly FishKind[] = [
   { id: 'thresher', name: 'Лисья акула', acc: 'лисью акулу', rarity: R_LEGEND, g: [100_000, 500_000], price: [1, 1], w: 0, shape: 'shark', c: [0x5a5f7a, 0xeeeef2] },
   { id: 'baskingshark', name: 'Гигантская акула', acc: 'гигантскую акулу', rarity: R_LEGEND, g: [900_000, 3_800_000], price: [1, 1], w: 0, shape: 'shark', c: [0x5d5a55, 0xbdb6aa] },
   { id: 'frilledshark', name: 'Плащеносная акула', acc: 'плащеносную акулу', rarity: R_LEGEND, g: [700_000, 2_800_000], price: [1, 1], w: 0, shape: 'eel', c: [0x6b5e52, 0xb9aa98] },
+  // Пресный пруд фермы: append-only, прежние номера видов и награды моря/острова неизменны.
+  { id: 'pond-crucian', name: 'Карась', acc: 'карася', rarity: R_COMMON, g: [80, 1600], price: [1, 1], w: 0, shape: 'fish', c: [0x8f845c, 0xe8d7a4] },
+  { id: 'pond-roach', name: 'Плотва', acc: 'плотву', rarity: R_COMMON, g: [40, 700], price: [1, 1], w: 0, shape: 'fish', c: [0x72877d, 0xe9eee5] },
+  { id: 'pond-perch', name: 'Окунь', acc: 'окуня', rarity: R_RARE, g: [100, 1800], price: [1, 1], w: 0, shape: 'fish', c: [0x668249, 0xe4cf91] },
+  { id: 'pond-carp', name: 'Карп', acc: 'карпа', rarity: R_EPIC, g: [700, 8000], price: [1, 1], w: 0, shape: 'fish', c: [0x786b40, 0xdcc39a] },
 ];
 
 /** Номер золотой рыбки: её не продают, а отпускают — за желание */

@@ -7,7 +7,7 @@ import { ORDER_REROLLS } from '../../shared/farmdata.ts';
 import { nearUse } from '../../shared/farmmap.ts';
 import type { FarmClientMsg } from '../../shared/farmnet.ts';
 import {
-  makeOrders, orderEnv, orderProgress, orderReady, orderStreak, orderTemplate, slotOrder, type OrderEvent,
+  makeOrders, orderEnv, orderProgress, orderReady, orderStreak, orderTemplate, rerollOrder, type OrderEvent,
 } from '../../shared/farmorders.ts';
 import { sendGot } from './rewards.ts';
 import type { FarmCtx, FarmPlayer } from './room.ts';
@@ -60,9 +60,8 @@ export function orderAction(ctx: FarmCtx, p: FarmPlayer, m: Extract<FarmClientMs
   } else if (m.k === 'reroll') {
     if (f.orders.rerolls <= 0) { ctx.fail(p, 'order', 'max'); return false; }
     const env = orderEnv(f, socialActive(ctx, p.c.pid, now), boss);
-    let next = slotOrder(m.i, env, () => ctx.rng(), f.orders.list, o.t);
-    // та же цель ещё раз — не замена: пробуем ещё пару раз
-    for (let k = 0; k < 4 && next.t === o.t && next.crop === o.crop; k++) next = slotOrder(m.i, env, () => ctx.rng(), f.orders.list, o.t);
+    const next = rerollOrder(m.i, env, () => ctx.rng(), f.orders.list);
+    if (!next) { ctx.fail(p, 'order', 'noAlternative'); return false; }
     f.orders.list[m.i] = next;
     f.orders.rerolls--;
     orderStreak(f);

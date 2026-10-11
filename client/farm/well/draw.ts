@@ -62,12 +62,15 @@ export class WellPainter {
   resize(): void {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(320, Math.round(this.canvas.getBoundingClientRect().width * dpr));
-    if (this.canvas.width === w) return;
-    this.canvas.width = w;
-    this.canvas.height = Math.round((w * FIELD_H) / FIELD_W);
+    const h = Math.round((w * FIELD_H) / FIELD_W);
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
     this.scale = w / FIELD_W;
-    this.bg.width = this.canvas.width;
-    this.bg.height = this.canvas.height;
+    if (this.bg.width === w && this.bg.height === h) return;
+    this.bg.width = w;
+    this.bg.height = h;
     this.paintBackground();
   }
 

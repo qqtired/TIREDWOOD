@@ -91,7 +91,8 @@ test('«Туман наступает»: ясно 15–30 мин, туман 4:4
 });
 
 test('точки острова: в его водах; берты у понтона на воде; места мола — на камне, впереди вода; высадка и Игнат — на настиле', () => {
-  assert.ok(isleDist(ISLE_CENTER.x, ISLE_CENTER.z) === 0 && isleDist(0, 0) > 2300, 'остров в 2,4 км от площади');
+  assert.deepEqual(ISLE_CENTER, { x: -950, z: 180 });
+  assert.ok(isleDist(0, 0) > 600 && isleDist(0, 0) < 1100, 'силуэт виден, воды не входят в бухту');
   assert.ok(!inIsleWaters(0, 0));
   for (const p of [ISLE_SPAWN, ...ISLE_LANDING_SPOTS, ...ISLE_BERTHS, ...ISLE_FISH_SPOTS, ISLE_IGNAT_USE]) assert.ok(inIsleWaters(p.x, p.z));
   assert.equal(ISLE_BERTHS.length, 6);
@@ -124,12 +125,12 @@ test('точки острова: в его водах; берты у понто�
   assert.ok(ig && ig.y === ISLE_IGNAT_USE.y && FISH_NPC_USE.ignat === ISLE_IGNAT_USE);
   standsOn(ISLE_IGNAT_USE.x, ISLE_IGNAT_USE.y, ISLE_IGNAT_USE.z, 'у Игната');
   assert.ok(nearIgnat(ISLE_IGNAT_USE) && !nearIgnat(ISLE_SPAWN));
-  // буи и вехи: F6 — у острова, F1 — у стоянки, через ~400 м
+  // буи и вехи: F6 — у острова, F1 — у стоянки, через ~111 м
   assert.equal(ISLE_BUOYS.length, 12);
   assert.equal(ISLE_ROUTE_BUOYS.length, 6);
   for (let i = 1; i < 6; i++) {
     const a = ISLE_ROUTE_BUOYS[i - 1], b = ISLE_ROUTE_BUOYS[i];
-    assert.ok(Math.abs(Math.hypot(b.x - a.x, b.z - a.z) - 400) < 2);
+    assert.ok(Math.abs(Math.hypot(b.x - a.x, b.z - a.z) - 111.19) < 1);
   }
   // в водах острова — выныриваешь на причале; вне — нет
   assert.deepEqual(isleLanding(ISLE_CENTER.x + 200, ISLE_CENTER.z, 7), ISLE_LANDING_SPOTS[1]);
@@ -168,7 +169,7 @@ test('по острову ходят: от причала к Игнату, на 
   assert.ok(Math.abs(mole.y - (ISLE_Y + 2.28)) < 0.01, 'на камне мола');
   const top = walk(ISLE_SPAWN, [
     [57, -12], [56.5, -20], [56.5, -22.5], [57.5, -25.5], [58.5, -27.5], [59.5, -29.5], [60.5, -32], [61.5, -34.5], [62.5, -36.5], [63.5, -39], [64.5, -41.5],
-    [65.5, -43.5], [66.5, -46], [67.5, -48.5], [68.5, -50.5], [70, -54],
+    [65.5, -43.5], [66.5, -46], [67.5, -48.5], [68.5, -50.5], [70, -56], [70, -58],
   ]);
   assert.ok(Math.abs(top.y - (ISLE_Y + ISLE_LIGHTHOUSE_GROUND)) < 0.01, `у маяка на ${top.y - ISLE_Y}`);
   const pontoon = walk(ISLE_SPAWN, [[62, -8], [70, -8], [80, -8.2], [93, -8.2]]);
@@ -226,4 +227,21 @@ test('отладка: /isle fog — туман сразу (view.fog), /isle seas
   assert.equal(r.changed, true);
   assert.equal(s.view().fog, true);
   now += 1;
+});
+
+test('приближённый остров: бухта сохраняет свет и туман, весь круг вод вне далёкого берега', () => {
+  for (const dBay of [0, 43, 250]) for (const ev of [0, 1]) {
+    const c = isleClimate(dBay, isleDist(0, 0) - dBay, ev);
+    assert.equal(c.far, Infinity);
+    assert.equal(c.tint, 0);
+    assert.equal(c.sun, 1);
+  }
+  const bearing = Math.atan2(ISLE_CENTER.x, ISLE_CENTER.z);
+  assert.ok(bearing + Math.asin(300 / isleDist(0, 0)) < -57 * Math.PI / 180, 'круг вод не заходит в береговой веер');
+  const localF6 = ISLE_BUOYS.find((b) => b.id === 'F6')!;
+  assert.deepEqual(ISLE_ROUTE_BUOYS.at(-1), { id: 'F6', x: localF6.x, z: localF6.z });
+  for (let i = 1; i < ISLE_ROUTE_BUOYS.length; i++) {
+    const a = ISLE_ROUTE_BUOYS[i - 1], b = ISLE_ROUTE_BUOYS[i];
+    assert.ok(Math.hypot(b.x - a.x, b.z - a.z) < 150, 'нет оставленных вех старого двухкилометрового маршрута');
+  }
 });

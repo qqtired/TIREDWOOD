@@ -26,11 +26,10 @@ test('farmAt: опыт ровно с начала уровня', () => {
   for (const l of [1, 2, 3, 6, 10]) assert.equal(farmLevel(farmAt(l).xp), l);
 });
 
-test('пояс: открытые культуры и ближайшие закрытые, не больше девяти ячеек в окне', () => {
+test('пояс: только открытые культуры, не больше девяти ячеек в окне', () => {
   const list = beltCrops(1);
-  assert.ok(list.length >= 2);
-  assert.ok(list.every((c) => c.level <= 2), 'видно только следующий уровень');
-  assert.ok(list.some((c) => c.level === 2), 'следующая культура — силуэтом с «ур. N»');
+  assert.ok(list.length >= 1);
+  assert.ok(list.every((c) => c.level <= 1), 'закрытые культуры не попадают в пояс');
   const all = beltCrops(99);
   assert.equal(all.length, CROPS.length);
   assert.ok(all.length > BELT_SLOTS, 'культур больше девяти — окно едет');
@@ -175,7 +174,7 @@ test('подсказка: корыто, соседская грядка, общ�
 // ------------------------------------------------------------ Древо
 
 function boss(over: Partial<FarmBossView>): FarmBossView {
-  return { st: 'awake', start: NOW - 1000, end: NOW + 3_600_000, hp: 10_000, bloom: 6_200, phase: 3, n: 5, top: [], mine: 800, place: 3, cones: [], ...over };
+  return { st: 'awake', start: NOW - 1000, end: NOW + 3_600_000, hp: 10_000, bloom: 6_200, phase: 3, n: 5, remaining: 3800, quota: 300, rules: 'legacy', top: [], mine: 800, place: 3, cones: [], ...over };
 }
 
 test('Древо: плашка «просыпается» с полосой до начала и «цветёт» с фазой и вкладом', () => {

@@ -74,7 +74,11 @@ export interface Plaza3Lobby {
 /** Константы уровня модуля shared/maps/lobby.ts, которые в plaza3 ставятся заново (абсолютные точки) */
 export interface Plaza3Modes {
   /** Столы дурака и блэкджека (BJ_TABLE — номер в этом списке); сервер берёт только их число */
-  tables: Array<{ x: number; z: number }>;
+  tables: Array<{ x: number; z: number; yaw?: number }>;
+  /** Корпуса автоматов и места игры; ids — прежний порядок 0…4. */
+  slotPoses: Array<{ body: P3Spot; use: P3Spot }>;
+  /** Дополнительная скамья бельведера: существующие места 18–23 не перенумеровываются. */
+  sunsetBench: P3Spot & { y: number; offset: number };
   /** Стойки перголы над столами (CANOPY_POLES) и их высота */
   pergola: { posts: P3Pt[]; h: number };
   trampolines: P3Pt[];

@@ -9,6 +9,17 @@
 //   Полтинник  выигрыш 53,1 %, джекпот 1 из  669, возврат 88,6 % (с банком 96,6 %)
 // «С банком» — если играть только на этом автомате: 5 % ставок копятся в банке и возвращаются джекпотом,
 // на Полтиннике ещё и затравка банка до 1000 после каждого джекпота.
+import { PLAZA3 } from './layout.ts';
+import { P3 } from './plaza3/layout.ts';
+
+/** Один pose для корпуса, взаимодействия, камеры и рисунка. Геометрия автомата смотрит на локальный+Z. */
+export const SLOT_POSES = PLAZA3 ? P3.modes.slotPoses.map(({ body, use }) => ({
+  body, use, front: { x: body.x - Math.sin(body.yaw) * .85, z: body.z - Math.cos(body.yaw) * .85 },
+  modelYaw: body.yaw + Math.PI,
+})) : [-25, -22.5, -20, -17.5, -15].map((x) => ({
+  body: { x, z: (-25.4 - 23.7) / 2, yaw: Math.PI }, use: { x, z: -22.7, yaw: 0 },
+  front: { x, z: -23.7 }, modelYaw: 0,
+}));
 
 export const SYMBOLS = ['cherry', 'lemon', 'bell', 'anchor', 'star', 'seven'] as const;
 export const SYMBOL_EMOJI = ['🍒', '🍋', '🔔', '⚓', '⭐', '7️⃣'] as const;

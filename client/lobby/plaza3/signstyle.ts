@@ -194,6 +194,18 @@ export function contentOf(w: number, h: number, withIcon: boolean, withStatus: b
   return { frame: f, icon, textX, textW, titleEm, titleBase, status: { em, base, zone, dot: { cx: zone.x + zone.w - r, cy: base - asc / 2, r } } };
 }
 
+/** Более высокое поле «Удалой» вмещает три строки правил; живой статус — отдельной полосой ниже них. */
+export function ferryContent(w: number, h: number): Content {
+  const c = contentOf(w, h, false, true), em = h * .085;
+  c.titleEm = h * .2; c.titleBase = Math.round(h * .27);
+  c.status = {
+    em, base: Math.round(h * .82),
+    zone: { x: c.textX, y: h * .73, w: c.textW, h: h * .15 },
+    dot: { cx: c.textX + c.textW - em * .36, cy: h * .82 - em * .37, r: em * .36 },
+  };
+  return c;
+}
+
 /** Цвет эмали на высоте y (0…h): вертикальный градиент верх → низ щита */
 export function enamelAt(y: number, h: number): string {
   const t = h > 0 ? Math.min(1, Math.max(0, y / h)) : 0;

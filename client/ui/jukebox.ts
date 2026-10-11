@@ -74,7 +74,7 @@ export class JukeboxPanel {
   private last: JukeboxPanelState | null = null;
   private readonly actions: JukeboxPanelActions;
 
-  constructor(host: HTMLElement, actions: JukeboxPanelActions) {
+  constructor(host: HTMLElement, actions: JukeboxPanelActions, opts: { eyebrow?: string } = {}) {
     this.actions = actions;
     const dlg = this.dlg = document.createElement('dialog');
     dlg.className = 'k-scrim jb-dlg';
@@ -106,6 +106,7 @@ export class JukeboxPanel {
         <span class="k-note jb-note" role="status"></span>
         <span class="jb-keys key-hint">${keyHtml('1')}–${keyHtml(String(JUKE_SONGS.length))}<em>выбрать</em>${keyHtml('Enter')}<em>поставить</em></span>
       </footer>`;
+    if (opts.eyebrow) win.querySelector('.k-win-titles .k-eyebrow')!.textContent = opts.eyebrow;
     const q = <T extends HTMLElement>(s: string): T => win.querySelector<T>(s)!;
     this.nowBox = q('.jb-now');
     this.nowTitle = q('.jb-now-title');

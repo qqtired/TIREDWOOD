@@ -20,6 +20,8 @@ import { liveLines, type LiveIn } from '../plaza/live.ts';
 import { TOUT_INFO, type ToutKey } from '../plaza/data.ts';
 import { DECAL_LIFT } from './floor.ts';
 import { p3View } from './perf.ts';
+import { P3 } from '../../../shared/plaza3/layout.ts';
+import { buildOccluders, openSight, makeFade, decideFade, stepFade, DITHER_FUNCTION, type FadeState } from './visibility.ts';
 import { NPC_REQUIRED, NPCS, fashionOfDay, npcHandle, npcStatusLines, toward, type IdleMove, type NpcDef, type NpcHandle, type NpcStatusIn } from './npcdata.ts';
 
 /** Дальше этого расстояния до камеры житель не рисуется на «Близко» (как зазывалы plaza2) */
@@ -243,13 +245,15 @@ export function npcUrl(id: string): string {
  * Один материал на всех жителей: лак, как у желе игрока (окружение — только в лаке), ткань матовая, светящееся
  * (блики глаз, лампа Шуры) — по цвету вершины. Атрибут surf: шероховатость, доля лака, свечение.
  */
-function npcMaterial(): THREE.MeshPhysicalMaterial {
+function npcMaterial(fades: Float32Array): THREE.MeshPhysicalMaterial {
   const m = new THREE.MeshPhysicalMaterial({
     vertexColors: true, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08, envMap: metalEnvTexture(), side: THREE.DoubleSide,
   });
   m.onBeforeCompile = (sh) => {
-    sh.vertexShader = 'attribute vec3 surf;\nvarying vec3 vSurf;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vSurf = surf;');
-    sh.fragmentShader = 'varying vec3 vSurf;\n' + sh.fragmentShader
+    sh.uniforms.uNpcFade = { value: fades };
+    sh.vertexShader = `attribute float npcId;\nuniform float uNpcFade[${fades.length}];\nvarying float vNpcFade;\nattribute vec3 surf;\nvarying vec3 vSurf;\n` + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vNpcFade = uNpcFade[int(npcId)];\n vSurf = surf;');
+    sh.fragmentShader = 'varying float vNpcFade;\nvarying vec3 vSurf;\n' + DITHER_FUNCTION.replace(/p3Dither/g, 'npcDither') + '\n' + sh.fragmentShader
+      .replace('void main() {', 'void main() {\n if (vNpcFade < npcDither(gl_FragCoord.xy)) discard;')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = vSurf.x;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * vSurf.z;')
       .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n  material.clearcoat *= vSurf.y;')
@@ -261,7 +265,7 @@ function npcMaterial(): THREE.MeshPhysicalMaterial {
   #include <opaque_fragment>`,
       );
   };
-  m.customProgramCacheKey = () => 'npc3-v1';
+  m.customProgramCacheKey = () => 'npc3-v2-fade';
   return m;
 }
 
@@ -404,6 +408,7 @@ interface Npc {
   dist: number;
   distMe: number;
   hidden: boolean;
+  fade: FadeState;
   phase: number;
   blinkIn: number;
   blinkT: number;
@@ -443,6 +448,10 @@ export class NpcCrowd {
   private failed: string[] = [];
   /** Смещения частей за кадр: на кость — pos(3), rot(3), scl(3) */
   private off = new Float32Array(0);
+  private fades = new Float32Array(0);
+  private visibilityAt = -1;
+  private readonly occluders = buildOccluders(P3.colliders);
+  private readonly visibilityPoint = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -472,7 +481,12 @@ export class NpcCrowd {
     this.triangles = crowd.triangles;
     this.boneCount = crowd.bones.length;
     this.off = new Float32Array(crowd.bones.length * OFF);
-    const mesh = new THREE.SkinnedMesh(crowd.geometry, npcMaterial());
+    // Одинаковый размер uniforms даже если один GLB не загрузился: shader key остаётся стабильным.
+    this.fades = new Float32Array(NPCS.length);
+    const ids = new Float32Array(crowd.geometry.getAttribute('position').count);
+    crowd.rigs.forEach((r, i) => ids.fill(i, r.first, r.first + r.count));
+    crowd.geometry.setAttribute('npcId', new THREE.BufferAttribute(ids, 1));
+    const mesh = new THREE.SkinnedMesh(crowd.geometry, npcMaterial(this.fades));
     mesh.name = 'plaza3-npcs';
     mesh.frustumCulled = false;
     mesh.castShadow = false;
@@ -484,7 +498,7 @@ export class NpcCrowd {
     const rnd = (): number => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     this.npcs = crowd.rigs.map((rig) => ({
       rig, def: rig.def, ext: rig.def.ext ? npcHandle(rig.def.id) : null,
-      x: rig.def.x, y: rig.def.y, z: rig.def.z, yaw: rig.def.yaw, dist: Infinity, distMe: Infinity, hidden: false,
+      x: rig.def.x, y: rig.def.y, z: rig.def.z, yaw: rig.def.yaw, dist: Infinity, distMe: Infinity, hidden: false, fade: makeFade(0),
       phase: rnd() * 10, blinkIn: 1 + rnd() * 4, blinkT: 0, waveT: 0, waveCool: 0, sayT: 2 + rnd() * 4, line: 0, posedAt: -1,
       extWaves: 0, extLines: 0, tag: new THREE.Vector3(),
     }));
@@ -559,10 +573,20 @@ export class NpcCrowd {
     this.shadowPos = new THREE.BufferAttribute(new Float32Array(n * 12), 3).setUsage(THREE.DynamicDrawUsage);
     g.setAttribute('position', this.shadowPos);
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    const ids = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) ids.fill(i, i * 4, i * 4 + 4);
+    g.setAttribute('npcId', new THREE.BufferAttribute(ids, 1));
     g.setIndex(index);
     const mat = new THREE.MeshBasicMaterial({ map: softDot('rgba(20,16,30,0.55)'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uNpcFade = { value: this.fades };
+      sh.vertexShader = `attribute float npcId;\nuniform float uNpcFade[${this.fades.length}];\nvarying float vNpcFade;\n` + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vNpcFade = uNpcFade[int(npcId)];');
+      sh.fragmentShader = 'varying float vNpcFade;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.a *= vNpcFade;');
+    };
+    mat.customProgramCacheKey = () => 'npc3-shadow-fade';
     const m = new THREE.Mesh(g, mat);
     m.name = 'plaza3-npc-shadows';
+    m.userData.p3keep = true;
     m.frustumCulled = false;
     m.renderOrder = 1;
     m.raycast = () => {};
@@ -583,7 +607,6 @@ export class NpcCrowd {
   private setHidden(n: Npc, h: boolean): void {
     if (n.hidden === h) return;
     n.hidden = h;
-    n.rig.root.scale.setScalar(h ? 0 : 1);
     this.shadowAt(this.npcs.indexOf(n), n, !h);
     if (h) for (const b of this.bubbles) if (b.owner === n) b.until = 0;
   }
@@ -661,6 +684,8 @@ export class NpcCrowd {
     const tagPos = this.tagPos!.array as Float32Array;
     const tagA = this.tagAlpha!.array as Float32Array;
     const far = npcFar(p3View.k);
+    const checkSight = time >= this.visibilityAt;
+    if (checkSight) this.visibilityAt = time + .2;
     for (let i = 0; i < this.npcs.length; i++) {
       const n = this.npcs[i];
       const def = n.def;
@@ -674,7 +699,14 @@ export class NpcCrowd {
       const on = (def.mode ? this.modes.get(def.mode) === true : true) && (!ext || ext.on);
       const d = Math.hypot(cam.x - n.x, cam.z - n.z);
       n.dist = d;
-      this.setHidden(n, !on || d > far);
+      if (!on) n.fade = makeFade(0);
+      else if (checkSight) {
+        this.visibilityPoint.set(n.x, n.y + 1, n.z);
+        const limit = d <= far || d > 110 ? far : openSight(cam, this.visibilityPoint, 1, this.occluders) ? Math.max(far, 110) : far;
+        decideFade(n.fade, d, limit, time);
+      }
+      this.fades[i] = stepFade(n.fade, dt);
+      this.setHidden(n, !on || n.fade.value === 0 && n.fade.target === 0);
       if (n.hidden) {
         tagA.fill(0, i * 4, i * 4 + 4);
         continue;
@@ -755,7 +787,7 @@ export class NpcCrowd {
       const tg = n.rig.tag;
       n.tag.set(n.x + tg.x * c + tg.z * s, n.y + tg.y, n.z - tg.x * s + tg.z * c);
       for (let k = 0; k < 4; k++) tagPos.set([n.tag.x, n.tag.y, n.tag.z], (i * 4 + k) * 3);
-      tagA.fill(d < TAG_FAR ? Math.min(1, (TAG_FAR - d) / 6) : 0, i * 4, i * 4 + 4);
+      tagA.fill(d < TAG_FAR ? Math.min(1, (TAG_FAR - d) / 6) * n.fade.value : 0, i * 4, i * 4 + 4);
     }
     this.tagPos!.needsUpdate = true;
     this.tagAlpha!.needsUpdate = true;

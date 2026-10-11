@@ -17,7 +17,7 @@ const MID = 210;
 
 /** Сколько грядок на участке можно полить соседу: растёт, до созревания > 20 с, помощей меньше трёх */
 export function helpable(p: FarmPlotView, now: number): number {
-  return p.beds.filter((b) => b.c && b.r - now > HELP_MIN_LEFT_MS && b.h < HELPS_PER_BED).length;
+  return p.beds.filter((b) => b.c && (b.r <= now || b.r - now > HELP_MIN_LEFT_MS) && b.h < HELPS_PER_BED).length;
 }
 
 export class BoardWin extends FarmWin {
@@ -62,8 +62,8 @@ export class BoardWin extends FarmWin {
       return `
         <div class="k-online-row${mine ? ' is-me' : ''}">
           <span class="k-ring k-ring--sm k-ring--mode" style="--p:1"><b>${lvl}</b></span>
-          <span class="k-online-nick">${esc(p.nick || '—')}${mine ? ' <span class="k-dim">— ты</span>' : ''}</span>
-          <span class="k-online-room">Участок ${p.i + 1} · ${online ? 'здесь' : 'спит'}${can ? ` · <b class="k-good">можно полить ${can}</b>` : mine ? ` · ${REP_LEVELS[repLevel(f.rep) - 1].name}` : ' · всё полито'}</span>
+          <span class="k-online-nick">${fi(p.icon || 'radish')}${esc(p.name || `Ферма ${p.nick}`)}${mine ? ' <span class="k-dim">— ты</span>' : ''}</span>
+          <span class="k-online-room">${esc(p.nick)} · участок ${p.i + 1} · ${online ? 'здесь' : 'спит'}${can ? ` · <b class="k-good">можно полить ${can}</b>` : mine ? ` · ${REP_LEVELS[repLevel(f.rep) - 1].name}` : ' · всё полито'}</span>
           <span class="k-online-act">${can ? `<button class="k-btn k-btn--go k-btn--sm farm-help-btn" type="button" data-help="${p.i}"><span class="k-row-line">${fi('watering-can')}Помочь</span></button>` : ''}</span>
         </div>`;
     }).join('');
@@ -78,7 +78,7 @@ export class BoardWin extends FarmWin {
         <div class="farm-board-side">
           <div class="k-cell farm-treebar">${ui('rift-tree', '')}<div><b data-live="treeT"></b><div class="k-dim" data-live="treeS"></div></div></div>
           <div class="farm-neigh">${list || '<p class="farm-lead k-dim">Пока на ферме никого нет.</p>'}</div>
-          <div class="k-cell farm-helpline">${fi('help-hands')}<span>${level >= HELP_MIN_LEVEL ? `Твоя помощь: <b>${hv.points} из ${hv.max}</b> · каждая — 1 заряд лейки, соседу −20 % времени, тебе +1 репутация` : `Помогать соседям можно с ур. ${HELP_MIN_LEVEL} фермы.`}</span></div>
+          <div class="k-cell farm-helpline">${fi('help-hands')}<span>${level >= HELP_MIN_LEVEL ? `Твоя помощь: <b>${hv.points} из ${hv.max}</b> · каждая — 1 заряд лейки, растущему −20 % времени, тебе +1 репутация` : `Помогать соседям можно с ур. ${HELP_MIN_LEVEL} фермы.`}</span></div>
           <p class="k-faint">Свободных участков: ${free}</p>
         </div>
       </div>`;

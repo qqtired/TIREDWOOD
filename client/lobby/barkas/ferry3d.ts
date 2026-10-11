@@ -244,6 +244,7 @@ export class Ferry3D {
     const b = buildBoat(wet);
     this.group = b.group;
     this.group.name = 'ferry-udalaya';
+    this.group.userData.p3visibility = 110;
     this.group.rotation.order = 'YXZ';
     this.tiller = b.tiller;
     this.flag = this.group.getObjectByName('flag')!;
@@ -253,7 +254,8 @@ export class Ferry3D {
     this.gosha.group.position.set(FERRY_GOSHA[0], FLOOR, FERRY_GOSHA[1] + 0.12);
     this.group.add(this.gosha.group);
     this.lampGlow = glowSprite(0xffc27a, 1.5, 0.5);
-    scene.add(this.lampGlow);
+    this.lampGlow.position.copy(this.lampLocal);
+    this.group.add(this.lampGlow);
     scene.add(this.group);
     this.wake = new Wake(scene, 2.5, 2.5, 3.6);
     this.banner = new FerryBanner(scene);
@@ -301,7 +303,7 @@ export class Ferry3D {
     this.tiller.rotation.y = THREE.MathUtils.clamp(-this.turn * 6, -0.5, 0.5);
     this.flag.rotation.y = -Math.PI / 2 + Math.sin(t * (5 + v * 6)) * (0.18 + 0.2 * v);
     // фонарь на шесте
-    this.lampGlow.position.copy(this.lampLocal).applyMatrix4(g.matrixWorld);
+    this.lampGlow.position.copy(this.lampLocal);
     this.lampGlow.material.opacity = (0.42 + 0.2 * rain) * (0.93 + 0.07 * Math.sin(t * 6.1));
     // мотор: дымок «тук-тук» — на ходу чаще и гуще, у стоянки с пассажирами — на холостых
     this.motorPos.copy(this.exhaustLocal).applyMatrix4(g.matrixWorld);

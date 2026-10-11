@@ -5,7 +5,7 @@
 import type * as THREE from 'three';
 import type { Sound } from '../audio.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
-import { JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_SONGS, JUKE_SPOTS, jukeGain, jukeNearest, songPrice, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
+import { JUKE_FAR, JUKE_H, JUKE_NEAR, JUKE_SONGS, JUKE_SPOTS, jukeGain, songPrice, type JukeServerMsg, type JukeView } from '../../shared/jukebox.ts';
 import { MusicPlayer } from '../music/engine.ts';
 import { songByIndex } from '../music/songs.ts';
 
@@ -35,7 +35,10 @@ export interface JukeModelLike {
   update(dt: number, playing: boolean, bands: Float32Array, beat: number): void;
 }
 
+export interface JukeSpot { x: number; y: number; z: number; yaw: number; use: { x: number; z: number; r: number } }
 export interface JukeDeps {
+  /** Другая комната может использовать тот же автомат на своих координатах. */
+  spots?: readonly JukeSpot[];
   sound: Sound;
   send: (msg: ClientMsg) => void;
   toast: (text: string) => void;
@@ -64,6 +67,7 @@ const LP_FAR = 3200;
 
 export class LobbyJukebox {
   private readonly d: JukeDeps;
+  private readonly spots: readonly JukeSpot[];
   private view: JukeView | null = null;
   /** Серверное время минус performance.now() (по последнему сообщению) */
   private offset = 0;
@@ -84,11 +88,13 @@ export class LobbyJukebox {
   private nextSync = 0;
   private readonly bands = new Float32Array(7);
   /** Расстояния от камеры до автоматов (кадр) */
-  private readonly dist = JUKE_SPOTS.map(() => Infinity);
+  private readonly dist: number[];
   private hidden = typeof document !== 'undefined' && document.hidden;
 
   constructor(d: JukeDeps) {
     this.d = d;
+    this.spots = d.spots ?? JUKE_SPOTS;
+    this.dist = this.spots.map(() => Infinity);
     document.addEventListener('visibilitychange', () => {
       this.hidden = document.hidden;
       // скрытая вкладка: таймеры редки — песню гасим сразу, вернулись — синхронизация на ближайшем кадре
@@ -173,7 +179,7 @@ export class LobbyJukebox {
   /** Открыть окно у ближнего к игроку автомата: от него и считаем «отошёл — закрыть» */
   open(): void {
     if (!this.on || !this.panel || this.panel.isOpen) return;
-    this.openAt = this.lastMe.ok ? jukeNearest(this.lastMe.x, this.lastMe.z) : 0;
+    this.openAt = this.lastMe.ok ? this.nearest(this.lastMe.x, this.lastMe.z) : 0;
     this.note = null;
     this.panel.open();
     this.nextPanel = 0;
@@ -215,6 +221,12 @@ export class LobbyJukebox {
     this.d.send({ t: 'juke', song });
   }
 
+  private nearest(x: number, z: number): number {
+    let best = 0, dist = Infinity;
+    for (let i = 0; i < this.spots.length; i++) { const u = this.spots[i].use; const d = Math.hypot(x - u.x, z - u.z); if (d < dist) { dist = d; best = i; } }
+    return best;
+  }
+
   private serverNow(): number {
     return performance.now() + this.offset;
   }
@@ -247,13 +259,13 @@ export class LobbyJukebox {
     // громкость, панорама и «глуше вдали»: от камеры до ближнего автомата (играет одна песня — звучит из ближнего)
     const cp = cam.position;
     let near = 0;
-    for (let i = 0; i < JUKE_SPOTS.length; i++) {
-      const s = JUKE_SPOTS[i];
+    for (let i = 0; i < this.spots.length; i++) {
+      const s = this.spots[i];
       this.dist[i] = Math.hypot(s.x - cp.x, s.y + JUKE_H * 0.6 - cp.y, s.z - cp.z);
       if (this.dist[i] < this.dist[near]) near = i;
     }
-    const dx = JUKE_SPOTS[near].x - cp.x;
-    const dz = JUKE_SPOTS[near].z - cp.z;
+    const dx = this.spots[near].x - cp.x;
+    const dz = this.spots[near].z - cp.z;
     const dist = this.dist[near];
     const g = jukeGain(dist);
     this.showModels();
@@ -274,7 +286,7 @@ export class LobbyJukebox {
       this.lastMe.z = me.z;
     }
     if (this.panel?.isOpen) {
-      const at = JUKE_SPOTS[this.openAt];
+      const at = this.spots[this.openAt];
       if (!me || Math.hypot(me.x - at.use.x, me.z - at.use.z) > at.use.r + CLOSE_PAD || Math.abs(me.y - at.y) > 2.5) this.close();
       else if (now >= this.nextPanel) {
         this.nextPanel = now + 250;

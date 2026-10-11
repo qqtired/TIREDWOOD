@@ -1,3 +1,9 @@
+import { POND_SPOTS } from '../../shared/farmpond.ts';
+import { FarmPond } from './pond.ts';
+import { FARM_JUKE_SPOT, FARM_SEATS16 } from '../../shared/farmseats.ts';
+import { ACT_NONE, ACT_SIT, ACT_FISH, holdMask } from '../../shared/lobby.ts';
+import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
+import { FarmJukebox } from './jukebox.ts';
 // Ферма на клиенте: ходьба как на набережной (та же физика и предсказание, двоичные снимки), свой участок, грядки
 // растут по серверному времени, E/ЛКМ — посадить, полить, собрать, Дядюшка Гриб — продать, корыто — набрать лейку,
 // телега «В город» — обратно на площадь. Решает сервер (server/farm/room.ts): клиент шлёт только намерения.
@@ -23,15 +29,12 @@ import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import { FarmAudio } from './audio/farmaudio.ts';
 import { FarmHud, fmtMin, type FarmToast } from './hud.ts';
-import { resName } from './ui/common.ts';
 import { wellView } from './ui/fmt.ts';
 import { canHelpBed, bedPrompt, helpPrompt, troughPrompt, usePrompt } from './ui/prompt-model.ts';
 import { effectiveVolume } from '../settings.ts';
 import { FarmWell } from './well.ts';
 import { FarmWorld } from './world.ts';
 
-const PITCH_MIN = -0.6;
-const PITCH_MAX = 0.85;
 
 interface Remote {
   track: RemoteTrack;
@@ -40,7 +43,7 @@ interface Remote {
 }
 
 /** Что сейчас под E: своя грядка или место у общего предмета */
-type Target = { k: 'bed'; i: number } | { k: 'use'; id: FarmObjectId } | { k: 'help'; plot: number; bed: number } | null;
+type Target = { k: 'bed'; i: number } | { k: 'use'; id: FarmObjectId } | { k: 'help'; plot: number; bed: number } | { k: 'seat'; id: number } | { k: 'jukebox' } | null;
 
 const USE_TEXT: Partial<Record<FarmObjectId, string>> = {
   semechkin: 'Семечкин: семена и обучение',
@@ -57,11 +60,16 @@ function vfov(h: number): number {
 
 export class FarmScene implements Scene {
   readonly kind = 'farm' as const;
-  readonly touchMode = 'walk' as const;
+  get touchMode(): 'walk' | 'fish' | 'none' { return this.modalOpen ? 'none' : this.pond.activeSeat !== null ? 'fish' : 'walk'; }
   readonly world: FarmWorld;
   private readonly d: SceneDeps;
   private readonly hud: FarmHud;
   private readonly well: FarmWell;
+  private readonly juke: FarmJukebox;
+  private readonly pond: FarmPond;
+  private action = ACT_NONE;
+  private seat = -1;
+  private readonly busySeats = new Set<number>();
   private readonly audio = new FarmAudio();
   private readonly cam = new LobbyCamera();
   private predictor: Predictor;
@@ -102,6 +110,7 @@ export class FarmScene implements Scene {
     this.d = d;
     this.world = new FarmWorld(d.renderer);
     this.predictor = new Predictor(this.world.collision);
+    this.juke = new FarmJukebox(d, this.world.scene, on => this.world.setJukeboxSolid(on));
     this.me.addTo(this.world.scene);
     this.hud = new FarmHud(d.ui.slots, d.ui.top, {
       sell: (item, n) => d.net.send({ t: 'farm', a: 'sell', item, n }),
@@ -122,6 +131,7 @@ export class FarmScene implements Scene {
       volume: () => effectiveVolume(d.settings) * d.settings.sfxVolume,
       wellInfo: () => { const now = this.now(); const w = wellView(this.farm, now); return { sets: w.sets, nextAt: w.nextAt, now }; },
     });
+    this.pond = new FarmPond(d, this.world.scene, this.world.collision, this.me);
     // колесо: у пустой грядки листает пояс семян, иначе — приближает камеру
     window.addEventListener('wheel', (e) => {
       if (!this.active || !d.input.locked || d.input.blocked) return;
@@ -132,8 +142,10 @@ export class FarmScene implements Scene {
 
   /** Окно открыто — мышь отпущена (без паузы) */
   get wantsPointer(): boolean {
-    return !this.hud.open && !this.well.open;
+    return !this.modalOpen;
   }
+
+  private get modalOpen(): boolean { return !!this.hud.open || this.well.open || this.juke.open || !this.pond.wantsPointer; }
 
   /** Модели ещё грузятся: экран загрузки ждёт (client/ui/transition.ts) */
   get modelsLoading(): boolean {
@@ -160,6 +172,9 @@ export class FarmScene implements Scene {
     const me = this.d.ui.me();
     this.me.setOutfit(me.outfit);
     this.me.setInfo(me.nick, null, false, me.level);
+    this.action = ACT_NONE; this.seat = -1; this.busySeats.clear(); this.me.setAction(ACT_NONE, 0);
+    this.pond.enter();
+    this.juke.enter();
     this.cam.reset();
     this.hud.setVisible(true);
     this.hud.setPrompt(null);
@@ -175,12 +190,16 @@ export class FarmScene implements Scene {
     this.roster.clear();
     this.hud.setVisible(false);
     this.well.cancel();
+    this.pond.exit();
+    this.juke.exit(); this.world.focusBed(-1, -1);
     this.audio.exit();
   }
 
   // ------------------------------------------------------------ сеть
 
   onJson(msg: ServerMsg): void {
+    if (this.pond.onJson(msg)) return;
+    if (msg.t === 'juke' || msg.t === 'jukeRes') { this.juke.onJson(msg); return; }
     const m = msg as FarmServerMsg;
     switch (m.t) {
       case 'farm':
@@ -241,11 +260,7 @@ export class FarmScene implements Scene {
       case 'harvest':
         if (e.plot !== this.plot) return;
         this.hud.popXp(e.xp);
-        this.toast({
-          tone: 'reward', icon: cropById(e.items[0]?.crop ?? '')?.icon ?? 'basket',
-          title: `${e.items.map((it) => `${cropById(it.crop)?.product ?? it.crop}${it.n > 1 ? ' ×2' : ''}`).join(', ')} в сумке · +${e.xp} опыта`,
-          sub: [...e.items.filter((it) => it.res).map((it) => `+1 ${resName(it.res ?? '')}`), ...(e.bagFull ? ['сумка полна!'] : [])].join(' · ') || undefined,
-        });
+        this.hud.harvest(e);
         return;
       case 'sold':
         this.toast({ tone: 'reward', icon: e.item === 'truffle' ? 'truffle' : (cropById(e.item)?.icon ?? 'basket'), title: `+${e.coins} 🪙`, sub: `Продано: ${cropById(e.item)?.product ?? 'трюфель'} × ${e.n}` });
@@ -270,7 +285,8 @@ export class FarmScene implements Scene {
         this.toast({ tone: 'reward', icon: 'ui:hammer', title: `Готово: ${UPGRADES.find((u) => u.id === e.id)?.name ?? e.id}` });
         return;
       case 'fail':
-        this.toast({ tone: 'warn', icon: 'ui:warn', title: (e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? failText(e.why) });
+        if (e.a === 'identity') this.hud.identityFailed();
+        this.toast({ tone: 'warn', icon: 'ui:warn', title: (e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? (e.a === 'sit' && e.why === 'busy' ? 'Место занято' : failText(e.why)) });
         return;
       case 'note':
         this.toast({ icon: 'ui:bell', title: e.text });
@@ -286,9 +302,11 @@ export class FarmScene implements Scene {
     this.clock.addSample(h.tick, at);
     this.queueAvg += (h.queue - this.queueAvg) * 0.05;
     this.seen.clear();
+    this.busySeats.clear();
     for (let i = 0; i < n; i++) {
       const e = this.ents[i];
-      if (e.id === this.myId) continue;
+      if (e.hp === ACT_SIT) this.busySeats.add(e.armor);
+      if (e.id === this.myId) { this.action = e.hp; this.seat = e.hp === ACT_SIT ? e.armor : -1; this.me.setAction(this.action, Math.max(0, this.seat)); continue; }
       const r = this.remotes.get(e.id) ?? this.addRemote(e.id);
       if (r.track.lastTick > 0 && Math.hypot(e.x - r.track.lastX, e.z - r.track.lastZ) > 4) r.track.clear();
       r.track.push(h.tick, e);
@@ -300,8 +318,8 @@ export class FarmScene implements Scene {
       this.remotes.delete(id);
     }
     if (h.flags & SNAP_HAS_SELF) {
-      if (h.flags & SNAP_SELF_RESET || !this.hasSelf) this.predictor.reset(this.selfSnap, h.ack, 0);
-      else this.predictor.reconcile(h.ack, this.selfSnap, 0);
+      if (h.flags & SNAP_SELF_RESET || !this.hasSelf) this.predictor.reset(this.selfSnap, h.ack, holdMask(this.action));
+      else this.predictor.reconcile(h.ack, this.selfSnap, holdMask(this.action));
       this.hasSelf = true;
     }
   }
@@ -350,7 +368,10 @@ export class FarmScene implements Scene {
   }
 
   onUse(mouse: boolean): void {
-    if (!this.hasSelf || this.hud.open || this.well.open) return;
+    if (!this.hasSelf) return;
+    if (this.pond.onUse(mouse)) return;
+    if (this.modalOpen || this.pond.blockActions) return;
+    if (this.seat >= 0) { this.d.net.send({ t: 'farm', a: 'sit', seat: -1 }); return; }
     if (mouse) {
       const bed = this.aimBed();
       if (bed >= 0) { this.target = { k: 'bed', i: bed }; this.useBed(bed, true); return; }
@@ -358,7 +379,9 @@ export class FarmScene implements Scene {
     const t = this.target;
     if (t?.k === 'bed') this.useBed(t.i);
     else if (t?.k === 'use') this.useObject(t.id);
-    else if (t?.k === 'help') this.d.net.send({ t: 'farm', a: 'help', plot: t.plot, beds: [t.bed] });
+    else if (t?.k === 'help' && canHelpBed(this.plots[t.plot]?.beds[t.bed], this.now()) && farmLevel(this.farm.xp) >= HELP_MIN_LEVEL) this.d.net.send({ t: 'farm', a: 'help', plot: t.plot, beds: [t.bed] });
+    else if (t?.k === 'seat' && !this.busySeats.has(t.id)) this.d.net.send({ t: 'farm', a: 'sit', seat: t.id });
+    else if (t?.k === 'jukebox') this.juke.use();
   }
 
   /** ЛКМ: своя грядка в центре экрана, не дальше 6 м */
@@ -368,7 +391,7 @@ export class FarmScene implements Scene {
     if (!this.ray.ray.intersectPlane(this.groundPlane, this.hit)) return -1;
     const p = this.pose;
     let best = -1;
-    let bestD = 0.95;
+    let bestD = FARM_LAYOUT.plotLocal.bedSize / 2 + .08;
     for (let i = 0; i < this.farm.beds.length; i++) {
       const c = bedWorld(this.plot, i);
       const d = Math.hypot(c.x - this.hit.x, c.z - this.hit.z);
@@ -400,19 +423,24 @@ export class FarmScene implements Scene {
       const d = Math.hypot(u.x - p.x, u.z - p.z);
       if (d <= u.r && d < bestD) { best = { k: 'use', id: u.id }; bestD = d; }
     }
+    for (const seat of FARM_SEATS16) {
+      const d = Math.hypot(seat.x - p.x, seat.z - p.z);
+      if (d <= seat.r + .6 && d < bestD) { best = { k: 'seat', id: seat.id }; bestD = d; }
+    }
+    const u = FARM_JUKE_SPOT.use;
+    const jd = Math.hypot(u.x - p.x, u.z - p.z);
+    if (this.juke.enabled && jd <= u.r && jd < bestD) { best = { k: 'jukebox' }; bestD = jd; }
     return best ?? this.findHelp(p.x, p.z, fx, fz);
   }
 
   /** Растущая грядка соседа рядом и перед собой: ей можно помочь (полить) — сервер проверит лимиты и расстояние */
   private findHelp(px: number, pz: number, fx: number, fz: number): Target {
-    if (farmLevel(this.farm.xp) < HELP_MIN_LEVEL) return null;
-    const now = this.now();
     let best: Target = null;
     let bestD = Infinity;
     for (const pl of this.plots) {
       if (!pl || pl.pid === 0 || pl.i === this.plot) continue;
       for (let bi = 0; bi < pl.beds.length; bi++) {
-        if (!canHelpBed(pl.beds[bi], now)) continue;
+        if (!pl.beds[bi].c) continue;
         const c = bedWorld(pl.i, bi);
         const dx = c.x - px;
         const dz = c.z - pz;
@@ -430,9 +458,15 @@ export class FarmScene implements Scene {
   /** Подсказка E (ui/prompt-model.ts) или пояс семян у пустой грядки */
   private updateHint(): void {
     const hud = this.hud;
-    if (hud.open) return;
+    const boss = FARM_LAYOUT.objects.find(o => o.id === 'boss')!;
+    hud.setTreeNear(!this.modalOpen && Math.hypot(this.pose.x - boss.x, this.pose.z - boss.z) <= 7);
+    if (this.modalOpen) { hud.setPrompt(null); hud.hideBelt(); this.world.focusBed(-1, -1); return; }
+    if (this.seat >= 0) { hud.hideBelt(); hud.setPrompt({ keys: ['E'], text: 'Встать', note: 'или сделай шаг' }); this.world.focusBed(-1, -1); return; }
+    if (this.pond.blockActions) { hud.setPrompt(null); hud.hideBelt(); hud.setHelpNear(false); this.world.focusBed(-1, -1); return; }
+    if (this.pond.nearHint) { hud.hideBelt(); hud.setHelpNear(false); hud.setPrompt({ keys: ['E'], text: this.pond.nearHint }); this.world.focusBed(-1, -1); return; }
     const t = (this.target = this.findTarget());
     const now = this.now();
+    this.world.focusBed(t?.k === 'bed' ? this.plot : t?.k === 'help' ? t.plot : -1, t?.k === 'bed' ? t.i : t?.k === 'help' ? t.bed : -1);
     hud.setHelpNear(t?.k === 'help');
     if (t?.k === 'bed') {
       const p = bedPrompt(this.farm, t.i, now, FARM_BED_LOCAL[t.i].level);
@@ -448,9 +482,11 @@ export class FarmScene implements Scene {
     hud.hideBelt();
     this.beltBed = -1;
     if (!t) { hud.setPrompt(null); return; }
+    if (t.k === 'seat') { hud.setPrompt(this.busySeats.has(t.id) ? { keys: [], text: 'Место занято' } : { keys: ['E'], text: 'Сесть' }); return; }
+    if (t.k === 'jukebox') { hud.setPrompt({ keys: ['E'], text: 'Музыкальный автомат', note: 'поставить песню' }); return; }
     if (t.k === 'help') {
       const pl = this.plots[t.plot];
-      hud.setPrompt(helpPrompt(this.farm, pl?.nick || 'сосед', t.plot, pl.beds[t.bed], now));
+      hud.setPrompt(helpPrompt(this.farm, pl?.name || pl?.nick || 'сосед', t.plot, pl.beds[t.bed], now));
       return;
     }
     hud.setPrompt(t.id.startsWith('trough') ? troughPrompt(this.farm, canMax(this.farm), now) : usePrompt(t.id, this.farm, now) ?? { keys: ['E'], text: USE_TEXT[t.id] ?? '' });
@@ -462,7 +498,7 @@ export class FarmScene implements Scene {
     const { input, net } = this.d;
     const inp = this.inputs[0];
     inp.seq = ++this.seq;
-    inp.buttons = this.hud.open || this.well.open ? 0 : input.sample();
+    inp.buttons = this.modalOpen ? 0 : input.sample();
     inp.yaw = Math.fround(input.yaw);
     inp.pitch = Math.fround(input.pitch);
     const vt = quantTick(this.clock.renderTick);
@@ -476,7 +512,6 @@ export class FarmScene implements Scene {
     const { input, settings } = this.d;
     const dt = Math.min(0.1, dtRaw);
     this.time += dt;
-    input.pitch = clamp(input.pitch, PITCH_MIN, PITCH_MAX);
     this.clock.update(now, dt * 1000);
     if (this.hasSelf && this.clock.ready) {
       const rate = clamp(1 - (this.queueAvg - 1.2) * 0.02, 0.97, 1.03);
@@ -498,11 +533,11 @@ export class FarmScene implements Scene {
     pose.x = p.x + (s.x - p.x) * alpha + o.x;
     pose.y = p.y + (s.y - p.y) * alpha + o.y;
     pose.z = p.z + (s.z - p.z) * alpha + o.z;
-    pose.yaw = input.yaw;
+    pose.yaw = this.seat >= 0 ? FARM_SEATS16[this.seat].yaw : this.action === ACT_FISH && this.pond.activeSeat !== null ? POND_SPOTS[this.pond.activeSeat].yaw : input.yaw;
     pose.pitch = input.pitch;
     pose.flags = E_ALIVE | (s.grounded ? E_GROUNDED : 0);
     const cam = this.world.camera;
-    if (this.hasSelf) this.cam.follow(cam, dt, 'walk', pose.x, pose.y, pose.z, input.yaw, input.pitch, this.world.collision, vfov(settings.fov));
+    if (this.hasSelf) this.cam.follow(cam, dt, this.seat >= 0 ? 'sit' : 'walk', pose.x, pose.y, pose.z, input.yaw, input.pitch, this.world.collision, vfov(settings.fov));
     else {
       cam.position.set(-16, 9, -16);
       cam.lookAt(0, 0, 0);
@@ -513,13 +548,18 @@ export class FarmScene implements Scene {
     for (const r of this.remotes.values()) {
       const ok = r.track.sample(t, this.sample);
       if (ok) Object.assign(r.pose, { x: this.sample.x, y: this.sample.y, z: this.sample.z, yaw: this.sample.yaw, pitch: this.sample.pitch, flags: this.sample.flags });
+      r.avatar.setAction(r.track.hp, r.track.armor);
+      if (r.track.hp === ACT_SIT && FARM_SEATS16[r.track.armor]) r.pose.yaw = FARM_SEATS16[r.track.armor].yaw;
+      else if (r.track.hp === ACT_FISH && POND_SPOTS[r.track.armor]) r.pose.yaw = POND_SPOTS[r.track.armor].yaw;
       r.avatar.update(ok ? r.pose : null, dt, this.time, this.ground, camPos, false);
     }
     tickAvatarShared(now / 1000, this.d.renderer.canvas.clientHeight || window.innerHeight);
+    this.pond.frame(dt, this.time, this.world.camera.position, this.hasSelf ? { id: this.myId, x: pose.x, y: pose.y, z: pose.z } : null, id => id === this.myId ? this.me : this.remotes.get(id)?.avatar ?? null);
     this.updateHint();
     this.pickCone(now);
     this.world.update(dt, this.now());
     this.audio.update(this.d.sound, this.world.camera);
+    this.juke.frame(dt, this.hasSelf ? this.pose : null, this.world.camera);
     this.world.render();
   }
 
@@ -533,6 +573,9 @@ export class FarmScene implements Scene {
   }
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    if (this.pond.onKey(code, down, e)) { if (code !== 'Space') e.preventDefault(); return true; }
+    if (this.pond.blockActions) return false;
+    if (down && this.juke.onKey(code, e)) return true;
     if (down && !e.repeat && this.hasSelf && this.hud.hotkey(code)) {
       e.preventDefault();
       return true;
@@ -564,7 +607,7 @@ export class FarmScene implements Scene {
       mode: 'farm', id: this.myId, plot: this.plot, loading: this.world.loading, player: { x: s.x, y: s.y, z: s.z },
       target: this.target, level: farmLevel(this.farm.xp), xp: this.farm.xp, water: this.farm.water, bag: { ...this.farm.bag },
       beds: this.farm.beds.map((b) => ({ crop: b.crop, stage: bedStage(b, this.now()), left: Math.max(0, b.ripeAt - this.now()) })),
-      tutorial: this.farm.tutorial, remotes: this.remotes.size, renderTick: this.clock.renderTick, tickRate: TICK_RATE, window: this.hud.open,
+      seat: this.seat, pond: { seat: this.pond.activeSeat, pointer: this.pond.wantsPointer }, jukebox: { enabled: this.juke.enabled, open: this.juke.open }, identity: this.farm.identity, tutorial: this.farm.tutorial, remotes: this.remotes.size, renderTick: this.clock.renderTick, tickRate: TICK_RATE, window: this.hud.open,
       ripeIn: this.farm.beds.map((b) => (b.crop ? fmtMin(Math.ceil(Math.max(0, b.ripeAt - this.now()) / 60_000)) : '')),
     };
   }

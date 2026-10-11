@@ -4,7 +4,7 @@
 // выдаёт сервер (server/farm/). Случайность — только через переданный rng (сервер даёт свой ГСЧ, тесты — свой).
 import { mskDay } from './economy.ts';
 import {
-  AFTER_CAP, BAG_PLACES, BEES_BONUS, BUFFS, CAN_CHARGES, COMPOST_GROW, CROPS, DAILY_CAP, FARM_BEDS, FARM_COUNTERS,
+  BAG_PLACES, BEES_BONUS, BUFFS, CAN_CHARGES, COMPOST_GROW, CROPS, FARM_BEDS, FARM_COUNTERS,
   FARM_MAX_LEVEL, FARM_STAR_XP, FARM_XP_TOTAL, GENERAL_XP, GENERAL_XP_DAY_CAP, LONG_HARVEST_MIN, MORNING_HOURS,
   NIGHT_HARVEST_MIN, PIG_EVERY_MS, PIG_STORE, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, TRUFFLE, TRUFFLE_PRICE,
   TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, WATER_CUT, WELL_REFILL_MS, WELL_SETS, cropById, cropGroup, resourceById,
@@ -44,9 +44,9 @@ export interface FarmLook {
 }
 
 export interface FarmProgress {
-  v: 1;
+  v: 2;
   xp: number;
-  /** Открытые грядки по порядку (1–8): длина массива = сколько открыто */
+  /** Открытые грядки по порядку (3–10): длина массива = сколько открыто */
   beds: FarmBed[];
   tools: { rake: number; can: number; shovel: number; bag: number };
   /** Заряды лейки ×100: дробная часть от мини-игры копится */
@@ -74,6 +74,7 @@ export interface FarmProgress {
   /** Шаг обучения Семечкина: 0–5 — текущий, 6 — пройдено, −1 — закрыто крестиком */
   tutorial: number;
   look: FarmLook;
+  identity: { name: string; icon: string };
   /** Убранство (эмоции, титулы, рамки, скины инструментов, вещи участка): id из FARM_DECOR */
   decor: string[];
   generalXpDay: string;
@@ -81,7 +82,7 @@ export interface FarmProgress {
   /** МСК-день последнего входа и сколько дней подряд */
   lastDay: string;
   streak: number;
-  /** Дневной потолок: выплачено Грибом и Фургоном за МСК-сутки и дробный остаток жетонов */
+  /** Выручка Гриба и Фургона за МСК-сутки и дробный остаток жетонов; дневного снижения цены нет. */
   sold: { day: string; coins: number; frac: number };
 }
 
@@ -89,14 +90,14 @@ export function emptyBed(): FarmBed {
   return { crop: null, plantedAt: 0, ripeAt: 0, watered: false, helpers: [] };
 }
 
-/** Новый фермер: 1 грядка, инструменты 1, лейка пустая (шаг 2 обучения — колодец), 4 набора воды */
+/** Новый фермер: 3 грядки, инструменты 1, лейка пустая (шаг 2 обучения — колодец), 4 набора воды */
 export function emptyFarm(now: number): FarmProgress {
   return {
-    v: 1, xp: 0, beds: [emptyBed()], tools: { rake: 1, can: 1, shovel: 1, bag: 1 }, water: 0, bag: {}, cellar: {},
+    v: 2, xp: 0, beds: Array.from({ length: 3 }, emptyBed), tools: { rake: 1, can: 1, shovel: 1, bag: 1 }, water: 0, bag: {}, cellar: {},
     built: { compost: false, bees: false, pig: null }, rep: 0, repHelpDay: '', repHelpToday: 0,
     help: { points: 0, resetAt: 0, coinsBy: {} }, orders: { day: '', list: [], rerolls: 0 }, van: { cycle: -1, done: [] },
     well: { sets: WELL_SETS, since: now }, buffs: [], counters: {}, achievements: [], firstPlanted: [], tutorial: 0,
-    look: {}, decor: [], generalXpDay: '', generalXpToday: 0, lastDay: '', streak: 0, sold: { day: '', coins: 0, frac: 0 },
+    look: {}, identity: { name: '', icon: 'radish' }, decor: [], generalXpDay: '', generalXpToday: 0, lastDay: '', streak: 0, sold: { day: '', coins: 0, frac: 0 },
   };
 }
 
@@ -128,13 +129,35 @@ function counts(v: unknown, allowed: (k: string) => boolean): Record<string, num
 }
 
 const BIG = 1e15;
+/** Старые сроки остаются допустимыми и после сохранения мигрированной фермы v2. */
+const LEGACY_GROW_MIN: Readonly<Record<string, number>> = {
+  crystal: 60, lotus: 90, 'life-tree': 120, 'golden-apple': 360, 'dragon-fruit': 480, 'star-flower': 600, 'mythic-mushroom': 540,
+};
+const LEGACY_XP_TOTAL = [0, 200, 700, 1700, 3500, 6500, 11500, 19500, 31500, 48500, 71500, 101500, 141500];
+
+function migrateXp(xp: number): number {
+  let level = 1;
+  while (level < FARM_MAX_LEVEL && xp >= LEGACY_XP_TOTAL[level]) level++;
+  if (level === FARM_MAX_LEVEL) return FARM_XP_TOTAL[level - 1] + xp - LEGACY_XP_TOTAL[level - 1];
+  const oldNeed = LEGACY_XP_TOTAL[level] - LEGACY_XP_TOTAL[level - 1];
+  const newNeed = FARM_XP_TOTAL[level] - FARM_XP_TOTAL[level - 1];
+  return FARM_XP_TOTAL[level - 1] + Math.floor((xp - LEGACY_XP_TOTAL[level - 1]) * newNeed / oldNeed);
+}
+
+export const FARM_IDENTITY_ICONS = ['radish', 'pumpkin', 'strawberry', 'sunflower-seeds', 'beehive', 'watering-can', 'giant-mushroom', 'basket'] as const;
+export function normalizeFarmIdentity(raw: unknown): FarmProgress['identity'] {
+  const r = obj(raw);
+  const name = typeof r.name === 'string' ? [...r.name.replace(/[\u0000-\u001f\u007f]/g, '').trim()].slice(0, 28).join('') : '';
+  const icon = typeof r.icon === 'string' && FARM_IDENTITY_ICONS.includes(r.icon as typeof FARM_IDENTITY_ICONS[number]) ? r.icon : 'radish';
+  return { name, icon };
+}
 
 function normalizeBed(raw: unknown): FarmBed {
   const r = obj(raw);
   const crop = cropById(r.crop);
   if (!crop) return emptyBed();
   const plantedAt = num(r.plantedAt, 0, BIG, 0);
-  const grow = crop.min * 60_000;
+  const grow = Math.max(crop.min, LEGACY_GROW_MIN[crop.id] ?? crop.min) * 60_000;
   // Время роста не может стать больше исходного: ripeAt в [plantedAt, plantedAt + рост]
   const ripeAt = num(r.ripeAt, plantedAt, plantedAt + grow, plantedAt + grow);
   const helpers = Array.isArray(r.helpers)
@@ -147,9 +170,12 @@ function normalizeBed(raw: unknown): FarmBed {
 export function normalizeFarm(raw: unknown, now = Date.now()): FarmProgress {
   const r = obj(raw);
   const f = emptyFarm(now);
-  f.xp = int(r.xp, 0, 1e12, 0);
-  const beds = Array.isArray(r.beds) ? r.beds.slice(0, FARM_BEDS).map(normalizeBed) : [];
+  const legacy = r.v !== 2;
+  f.xp = legacy ? migrateXp(int(r.xp, 0, 1e12, 0)) : int(r.xp, 0, 1e12, 0);
+  const beds = Array.isArray(r.beds) ? r.beds.slice(0, legacy ? FARM_BEDS - 2 : FARM_BEDS).map(normalizeBed) : [];
   f.beds = beds.length > 0 ? beds : [emptyBed()];
+  if (legacy) f.beds.push(emptyBed(), emptyBed());
+  else while (f.beds.length < 3) f.beds.push(emptyBed());
   const t = obj(r.tools);
   f.tools = {
     rake: int(t.rake, 1, RAKE_BEDS.length, 1), can: int(t.can, 1, CAN_CHARGES.length, 1),
@@ -203,6 +229,7 @@ export function normalizeFarm(raw: unknown, now = Date.now()): FarmProgress {
   f.look = {};
   for (const k of ['title', 'frame', 'can', 'shovel', 'fence', 'decor'] as const) if (typeof l[k] === 'string') f.look[k] = str(l[k]);
   f.decor = strList(r.decor, 100);
+  f.identity = normalizeFarmIdentity(r.identity);
   f.generalXpDay = str(r.generalXpDay, 10);
   f.generalXpToday = int(r.generalXpToday, 0, GENERAL_XP_DAY_CAP, 0);
   f.lastDay = str(r.lastDay, 10);
@@ -261,7 +288,7 @@ export function repBonus(rep: number): number {
 
 // ------------------------------------------------------------ сутки по Москве
 
-/** Новый МСК-день: обнуляет дневные счётчики (потолок продаж, общий XP, репутацию за помощь). Зовётся при любом действии. */
+/** Новый МСК-день: обнуляет дневные счётчики (выручка, общий XP, репутация за помощь). Зовётся при любом действии. */
 export function rollDay(f: FarmProgress, now: number): void {
   const day = mskDay(now);
   if (f.sold.day !== day) f.sold = { day, coins: 0, frac: f.sold.frac };
@@ -357,7 +384,7 @@ export function bedStage(b: FarmBed, now: number): number {
 
 export type FarmFail =
   | 'bed' | 'busy' | 'empty' | 'unripe' | 'level' | 'crop' | 'coins' | 'res' | 'water' | 'watered' | 'bag' | 'item'
-  | 'count' | 'max' | 'order' | 'well';
+  | 'count' | 'max' | 'order' | 'well' | 'noAlternative';
 
 /** Культура открыта на этом уровне фермы */
 export function cropOpen(c: CropDef, level: number): boolean {
@@ -411,7 +438,7 @@ export function pickBeds(f: FarmProgress, beds: readonly unknown[]): number[] | 
 
 /** Полив: −20 % оставшегося времени (§2, решение 11) */
 export function cutRemaining(b: FarmBed, now: number): void {
-  b.ripeAt = now + (b.ripeAt - now) * (1 - WATER_CUT);
+  if (b.ripeAt > now) b.ripeAt = now + (b.ripeAt - now) * (1 - WATER_CUT);
 }
 
 /** Хозяин поливает свои грядки: 1 раз за цикл, заряд за каждую; вернёт политые */
@@ -510,24 +537,19 @@ function dayNum(day: string): number {
   return Math.floor(Date.parse(day + 'T00:00:00Z') / 86_400_000);
 }
 
-// ------------------------------------------------------------ продажа и дневной потолок (§9.3, §10.1)
+// ------------------------------------------------------------ продажа и статистика выручки
 
-/** Цена 1 шт. у Гриба до потолка: продажа × (1 + репутация) × (1,1 при баффе «цена») */
-export function saleUnit(f: FarmProgress, c: CropDef, now: number): number {
-  return c.sale * (1 + repBonus(f.rep)) * (hasBuff(f, 'price', now) ? BUFFS.price.mult : 1);
+/** Цена 1 шт.: все бонусы и множитель покупателя, затем общий предел 150. */
+export function saleUnit(f: FarmProgress, c: CropDef, now: number, buyerMultiplier = 1): number {
+  return Math.min(150, c.sale * (1 + repBonus(f.rep)) * (hasBuff(f, 'price', now) ? BUFFS.price.mult : 1) * buyerMultiplier);
 }
 
-/**
- * Сколько заплатить за выручку raw с учётом дневного потолка: до 700 — полностью, остаток ×0,25, но за штуку не
- * дешевле посадки (floorShare = посадка / цена штуки). Ничего не меняет — для подсказок в окнах.
- */
-export function capPay(soldToday: number, raw: number, floorShare: number): number {
-  const room = Math.max(0, DAILY_CAP - soldToday);
-  if (raw <= room) return raw;
-  return room + (raw - room) * Math.min(1, Math.max(AFTER_CAP, floorShare));
+/** Совместимый вызов подсказок: выручка больше не уменьшается после дневного порога. */
+export function capPay(_soldToday: number, raw: number, _floorShare: number): number {
+  return raw;
 }
 
-/** Провести выплату через потолок: копит дробную часть, вернёт целые жетоны к начислению */
+/** Записать выручку, накопить дробную часть и вернуть целые жетоны к начислению. */
 export function payCapped(f: FarmProgress, raw: number, floorShare: number, now: number): number {
   rollDay(f, now);
   const pay = capPay(f.sold.coins, raw, floorShare);

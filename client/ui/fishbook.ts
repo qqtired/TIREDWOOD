@@ -7,7 +7,7 @@
 // collectionGrid — компактная сетка для профиля (меню Esc → «Коллекция»): старый вид, классы .fb-* (fish2.css).
 import { FISH, fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
 import {
-  COLLECTION, COLLECTION_SIZE, FISH_TIERS, ISLE_COLLECTION, ISLE_SIZE, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_DIVINE, biteShare,
+  COLLECTION, COLLECTION_SIZE, FISH_TIERS, ISLE_COLLECTION, ISLE_SIZE, POND_COLLECTION, POND_SIZE, LEGACY_IDS, RULE, SP_BOOT, SP_BOTTLE, SP_CHEST, TIER_CSS, TIER_NAMES, TIER_TITLES, T_DIVINE, biteShare,
   collectionCount, priceRange,
 } from '../../shared/fishrules.ts';
 import { isleNextStep, nextStep, stepLabel, stepNeed, type RewardStep } from '../../shared/fishstyle.ts';
@@ -47,7 +47,7 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
   // остров: его «дождь» — туман, сезон — свой (rain и season здесь — туман и сезон острова, их передаёт журнал)
   const isle = r.zone === 'isle';
   const wet = isle ? 'туман' : 'дождь';
-  const where = isle ? `воды острова «Последний свет» (с ${ISLE_MIN_LEVEL}-го уровня рыбалки)` : r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? sea : 'пристань';
+  const where = r.zone === 'pond' ? 'деревенский пруд' : isle ? `воды острова «Последний свет» (с ${ISLE_MIN_LEVEL}-го уровня рыбалки)` : r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? sea : 'пристань';
   const when = r.rain ? `только в ${wet}, цена ×1,5` : r.tier === T_DIVINE ? `в любую погоду; в ${wet} — в 1,5 раза чаще, в сезон ${isle ? 'острова' : 'рыбалки'} — ещё вдвое` : 'в любую погоду';
   const now2 = r.rain && !rain ? `в ${wet} — ${fmt(biteShare(sp, true, mods) * 100)}% поклёвок` : `сейчас — ${fmt(share)}% поклёвок`;
   return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when}${odds ? ` · ${now2}` : ''} · ${lo}–${hi} 🪙 · ${r.note}`;
@@ -57,7 +57,7 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
 export function collectionGrid(album: FishAlbum, compact: boolean, onPick?: (sp: number) => void, zone: BookZone = 'all'): HTMLElement {
   const root = el('div', compact ? 'fb-grid compact' : 'fb-grid');
   for (const tier of FISH_TIERS) {
-    const list = (zone === 'isle' ? ISLE_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
+    const list = (zone === 'pond' ? POND_COLLECTION : zone === 'isle' ? ISLE_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
     if (!list.length) continue;
     const got = list.filter((sp) => album[FISH[sp].id]).length;
     const sec = root.appendChild(el('div', 'fb-sec'));
@@ -69,7 +69,7 @@ export function collectionGrid(album: FishAlbum, compact: boolean, onPick?: (sp:
     for (const sp of list) cells.appendChild(cell(sp, album, compact, onPick));
   }
   // находки и старые находки (во вкладке острова — только его виды)
-  if (zone === 'isle') return root;
+  if (zone === 'isle' || zone === 'pond') return root;
   const finds = [SP_BOOT, SP_BOTTLE, SP_CHEST].filter((sp) => album[FISH[sp].id]);
   const legacy = LEGACY_IDS.map((id) => FISH.findIndex((f) => f.id === id)).filter((sp) => sp >= 0 && album[FISH[sp].id]);
   if (finds.length + legacy.length > 0) {
@@ -148,6 +148,7 @@ function stepPic(step: RewardStep): string {
 
 /** Окно журнала на набережной: открывается по J или кнопке журнала, закрывается крестиком, кликом мимо окна, Esc или J. */
 export class FishBook {
+  pondEnabled = false;
   onClose: () => void = () => {};
   /** Вкладка «Награды» (fishrewards.ts): снасти и лестница наград */
   readonly rewards = new FishRewards();
@@ -196,7 +197,8 @@ export class FishBook {
     return this.shown;
   }
 
-  open(album: FishAlbum, owned: readonly string[], progress: FishProgress): void {
+  open(album: FishAlbum, owned: readonly string[], progress: FishProgress, zone?: BookZone): void {
+    if (zone) this.tab = zone;
     this.shown = true;
     this.tabsKey = '';
     this.bodyKey = '';
@@ -224,7 +226,7 @@ export class FishBook {
     const level = fishLevel(progress.xp);
     this.eyebrow.textContent = `Рыбалка · ур. ${level}`;
     const zoneCount = (z: FishZone): string => {
-      const list = COLLECTION.filter((sp) => RULE[sp]!.zones.includes(z));
+      const list = (z === 'pond' ? POND_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.zones.includes(z));
       return `${list.filter((sp) => album[FISH[sp].id]).length}/${list.length}`;
     };
     const tabs = tabsHtml([
@@ -232,6 +234,7 @@ export class FishBook {
       ['pier', uiIcon('float'), 'Пристань', zoneCount('pier')],
       ['barkas', uiIcon('anchor'), 'Баркас', zoneCount('barkas')],
       ...(ISLE.on ? [['isle', uiIcon('lighthouse'), 'Остров', `${isleCaught({ album })}/${ISLE_SIZE}`] as const] : []),
+      ...((this.pondEnabled || POND_COLLECTION.some((sp) => album[FISH[sp].id])) ? [['pond', uiIcon('float'), 'Пруд', zoneCount('pond')]] as const : []),
       ['rewards', uiIcon('season'), 'Награды', null],
     ], this.tab);
     if (tabs !== this.tabsKey) {
@@ -260,7 +263,11 @@ export class FishBook {
     const isle = zone === 'isle';
     let next: string;
     let meter: string;
-    if (isle) {
+    if (zone === 'pond') {
+      const n = POND_COLLECTION.filter((sp) => album[FISH[sp].id]).length;
+      meter = labelMeter(n / POND_SIZE, `${n} из ${POND_SIZE} видов пруда`);
+      next = `${iconImg('float', '')}<span>Общие снасти, задания и опыт рыбалки · без дневного лимита</span>`;
+    } else if (isle) {
       // свой счётчик и своя лестница острова; коллекция 52 видов от них не растёт
       const n = isleCaught({ album });
       meter = labelMeter(n / ISLE_SIZE, `${n} из ${ISLE_SIZE} видов острова`);
@@ -279,20 +286,20 @@ export class FishBook {
         ? `${stepPic(step)}<span>Следующая награда — ${quoted(stepLabel(step))}: ещё ${species(stepNeed(step) - n)}</span>`
         : `${iconImg('medal-gold', '')}<span><b>Коллекция собрана</b> — все награды твои: сет «Хозяин глубин», золотые снасти и якорь у ника</span>`;
     }
-    const legend = (isle
+    const legend = (zone === 'pond' ? '' : isle
       ? `<span>${iconImg('fog', '')}только в туман, цена ×1,5</span>`
       : `<span>${iconImg('rain', '')}только в дождь, цена ×1,5</span><span>${iconImg('anchor', '')}с баркаса</span>`)
       + `<span>${coinHtml()} цена при продаже</span>`;
     let html = `<div class="k-cell fi-next">${meter}<div class="fi-next-r">${next}</div></div><div class="fi-legend">${legend}</div>`;
     for (const tier of FISH_TIERS) {
-      const list = (isle ? ISLE_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
+      const list = (zone === 'pond' ? POND_COLLECTION : isle ? ISLE_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
       if (!list.length) continue;
       const got = list.filter((sp) => album[FISH[sp].id]).length;
       html += `<h3 class="fi-h"><i class="fi-dot" style="--c:${TIER_CSS[tier]}"></i>${TIER_TITLES[tier]} <small>${got} из ${list.length}</small></h3>`
         + `<div class="fi-grid">${list.map((sp) => this.cardHtml(sp, album)).join('')}</div>`;
     }
     // находки и старые находки (во вкладке острова — только его виды)
-    if (!isle) {
+    if (!isle && zone !== 'pond') {
       const finds = [SP_BOOT, SP_BOTTLE, SP_CHEST].filter((sp) => album[FISH[sp].id]);
       const legacy = LEGACY_IDS.map((id) => FISH.findIndex((f) => f.id === id)).filter((sp) => sp >= 0 && album[FISH[sp].id]);
       if (finds.length + legacy.length > 0) {

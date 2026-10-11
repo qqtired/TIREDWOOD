@@ -5,9 +5,9 @@ import { CROPS, type CropDef } from '../../../shared/farmdata.ts';
 /** Ячеек на поясе одновременно: клавиши 1–9 */
 export const BELT_SLOTS = 9;
 
-/** Пояс: все открытые культуры и «следующие» — те, что откроются на ближайшем уровне (силуэт с «ур. N») */
+/** Пояс: только открытые культуры; каталог Семечкина показывает будущие открытия. */
 export function beltCrops(level: number): CropDef[] {
-  return CROPS.filter((c) => c.level <= level + 1);
+  return CROPS.filter((c) => c.level <= level);
 }
 
 /** С какой культуры показывать окно из BELT_SLOTS: выбранная всегда в окне, окно не прыгает без нужды */

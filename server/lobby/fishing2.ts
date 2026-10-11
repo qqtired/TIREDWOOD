@@ -30,7 +30,7 @@ import {
 import {
   BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, bagSlots, emptyFishProgress, fishCastMods, fishCatchXp, fishLevel, fishLostXp, questNeed, type FishCastMods,
 } from '../../shared/fishprogress.ts';
-import { FISH_SPOT_COUNT, fishSpotAt, spotZone, type FishZone } from '../../shared/fishplaces.ts';
+import { FISH_SPOT_COUNT, fishSpotAt, spotZone, type FishSpot, type FishZone } from '../../shared/fishplaces.ts';
 import { ISLE, ISLE_LEVEL_HINT, ISLE_MIN_LEVEL, castZone } from '../../shared/fishisle.ts';
 import { catchFullHint, livewellCap } from '../../shared/fishlivewell.ts';
 import { isleCaught } from '../../shared/islestyle.ts';
@@ -38,7 +38,7 @@ import { LORD_CHEST_CHANCE } from '../../shared/fishshop.ts';
 import { REEL_MAX_TICKS, reelGrade, reelRun, reelStart, type Reel } from '../../shared/fishreel.ts';
 import { BAG_FULL_HINT, CHOICE_TICKS, DONE_RELEASE, releaseXp } from '../../shared/fishrelease.ts';
 import {
-  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
+  ANNOUNCE_TIER, CHEST_ANNOUNCE, NEW_BONUS2, POND_COLLECTION, RULE, T_CHEST, T_DIVINE, T_JUNK, T_MYTH, basePrice, collectionCount, fishPrice2, fmtCatch,
   isCollected, isPoseidon, rollCatch2, type Hooked,
 } from '../../shared/fishrules.ts';
 import { gradeErrors, hookBonusMs, reelStyle2 } from '../../shared/fishability.ts';
@@ -92,6 +92,14 @@ export interface FishingHost2 extends FishingHost {
   isleSeason?(): boolean;
 }
 
+/** Другая комната использует тот же replay и профиль с собственными местами. */
+export interface FishingPlaces2 {
+  count: number;
+  spotAt(spot: number): FishSpot | undefined;
+  castAt?(spot: number, rand: () => number): { x: number; z: number };
+  zoneAt?(spot: number, x: number, z: number): FishZone;
+}
+
 interface Spot {
   slot: number;
   phase: number;
@@ -140,18 +148,22 @@ export class FishingHall2 {
   lordChance = LORD_CHEST_CHANCE;
   readonly board: FishBoard;
   /** Места на причалах и баркасе, за ними — в своих лодках на якоре (shared/fishplaces.ts) */
-  private readonly spots: Spot[] = Array.from({ length: FISH_SPOT_COUNT }, emptySpot);
+  private readonly spots: Spot[];
+  private readonly places: FishingPlaces2;
   private readonly host: FishingHost2;
   private readonly profiles: Profiles;
   private readonly store: Store;
   private readonly now: () => number;
 
-  constructor(host: FishingHost2, profiles: Profiles, store: Store, now: () => number = Date.now, rand: () => number = Math.random) {
+  constructor(host: FishingHost2, profiles: Profiles, store: Store, now: () => number = Date.now, rand: () => number = Math.random,
+    places: FishingPlaces2 = { count: FISH_SPOT_COUNT, spotAt: fishSpotAt }) {
     this.host = host;
     this.profiles = profiles;
     this.store = store;
     this.now = now;
     this.rand = rand;
+    this.places = places;
+    this.spots = Array.from({ length: places.count }, emptySpot);
     this.board = new FishBoard(store, now);
   }
 
@@ -325,15 +337,17 @@ export class FishingHall2 {
       this.host.toast(s.slot, full);
       return;
     }
-    const at = fishSpotAt(spot)!;
+    const at = this.places.spotAt(spot);
+    if (!at) return;
     const fx = -Math.sin(at.yaw);
     const fz = -Math.cos(at.yaw);
     const d = 6.5 + this.rand() * 3;
     const side = (this.rand() - 0.5) * 2.4;
-    const x = round2(at.x + fx * d - fz * side);
-    const z = round2(at.z + fz * d + fx * side);
+    const target = this.places.castAt?.(spot, this.rand);
+    const x = target?.x ?? round2(at.x + fx * d - fz * side);
+    const z = target?.z ?? round2(at.z + fz * d + fx * side);
     // пул — по месту заброса: в водах острова — остров (shared/fishisle.ts), рыба острова — с 6-го уровня рыбалки
-    const zone = castZone(spotZone(spot), x, z);
+    const zone = this.places.zoneAt?.(spot, x, z) ?? castZone(spotZone(spot), x, z);
     if (zone === 'isle' && fishLevel(prof.fishing.xp) < ISLE_MIN_LEVEL) {
       this.host.toast(s.slot, ISLE_LEVEL_HINT);
       return;
@@ -536,6 +550,7 @@ export class FishingHall2 {
       ...(fish ? { base: basePrice(s.sp, s.g), m, xp, gr: grade, er: errors, bag: prof.fishing.bag.length, cap: bagSlots(prof.fishing), ...(bagFull ? { bagFull } : {}) } : {}),
       ...(well ? { well: prof.fishing.livewell?.length ?? 0, wcap: livewellCap(prof.fishing) } : {}),
       ...(rule.zone === 'isle' ? { isle: isleCaught(prof) } : {}),
+      ...(rule.zone === 'pond' ? { pond: POND_COLLECTION.filter((sp) => prof.album[FISH[sp].id]).length } : {}),
       ...(ladder?.items.length ? { rw: ladder.items } : {}),
       ...(lord ? { lord: true } : {}),
     });
@@ -559,6 +574,10 @@ export class FishingHall2 {
       return;
     }
     if (tier === T_JUNK || tier < ANNOUNCE_TIER) return;
+    if (s.mods.zone === 'pond') {
+      this.host.announce(`🎣 ${nick} вытаскивает ${f.acc} на ${fmtCatch(s.g)} у деревенского пруда!`);
+      return;
+    }
     const sea = s.mods.zone === 'barkas';
     if (s.mods.zone === 'isle') {
       // остров: туманные виды — 🌫, божественная — царь острова

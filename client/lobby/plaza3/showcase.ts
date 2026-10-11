@@ -1,5 +1,5 @@
-// «Рыбная витрина» (pav_fishshowcase.glb, флаг PLAZA3): три крупнейшие рыбы дня лежат на своих местах витрины —
-// первая на пьедестале, вторая и третья на льду, — длиной не больше места (userData.len модели); под каждой — эмалевая
+// «Рыбная витрина» (pav_fishshowcase.glb, флаг PLAZA3): три крупнейшие рыбы дня стоят головой вверх в едином масштабе
+// абсолютного веса на стойках внутри прежнего прилавка; под каждой — крупная эмалевая
 // табличка «вес · рыбак». Строит FishPodium3D (client/lobby/fishpodium.ts), когда модель витрины встала: тогда старый
 // пьедестал на пять мест не показывается, 4–5-е места остаются только в данных.
 import * as THREE from 'three';
@@ -7,10 +7,11 @@ import { FISH, fmtWeight } from '../../../shared/fishing.ts';
 import type { FishPodiumCatch } from '../../../shared/messages.ts';
 import { makeFish3D } from '../fishart.ts';
 import type { ShowcaseMount } from './mounts.ts';
+import { makeShowcaseTrophy, disposeShowcaseTrophy } from './showcase-trophy.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
-const TAG_W = 512;
-const TAG_H = 192;
+const TAG_W = 768;
+const TAG_H = 284;
 
 interface Tag {
   mesh: THREE.Mesh;
@@ -35,7 +36,8 @@ export class ShowcaseFish {
     this.m = m;
     this.lengthOf = lengthOf;
     this.root.name = 'showcase-fish';
-    for (const t of m.tags) {
+    this.root.userData.p3keep = true;
+    for (const [rank, t] of m.tags.entries()) {
       t.decompose(_p, _q, _s);
       const c = document.createElement('canvas');
       c.width = TAG_W;
@@ -48,6 +50,7 @@ export class ShowcaseFish {
         new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
       );
       mesh.position.copy(_p);
+      mesh.name = `showcase-tag-${rank + 1}`;
       mesh.quaternion.copy(_q);
       mesh.scale.set(_s.x, _s.y, 1);
       this.root.add(mesh);
@@ -66,17 +69,26 @@ export class ShowcaseFish {
     this.key = key;
     for (let i = 0; i < 3; i++) {
       const old = this.fish[i];
-      if (old) this.root.remove(old);
+      if (old) { this.root.remove(old); disposeShowcaseTrophy(old); }
       this.fish[i] = null;
       const row = rows[i];
       const spot = this.m.fish[i];
-      if (row && FISH[row.sp] && spot) this.fish[i] = this.place(row, spot);
+      if (row && FISH[row.sp] && spot) {
+        const trophy = this.place(row, spot);
+        trophy.name = `showcase-trophy-${i + 1}`;
+        this.fish[i] = trophy;
+      }
       if (this.tags[i]) this.drawTag(this.tags[i], row && FISH[row.sp] ? row : null, i);
     }
   }
 
-  /** Рыба на месте: длина вдоль X места не больше len (и трофейной длины), высота — не выше maxH, низ — на месте */
+  /** V2: голова вверх, хвост на опоре. Старые GLB сохраняют прежнюю горизонтальную постановку. */
   private place(row: FishPodiumCatch, spot: ShowcaseMount['fish'][number]): THREE.Object3D {
+    if (spot.pose === 'upright') {
+      const holder = makeShowcaseTrophy(row, spot, this.lengthOf);
+      this.root.add(holder);
+      return holder;
+    }
     const model = makeFish3D(row.sp, row.g);
     const half = model.userData.half as THREE.Vector3;
     const want = Math.min(this.lengthOf(row.sp, row.g), spot.len * 0.96);
@@ -104,14 +116,14 @@ export class ShowcaseFish {
     c.textBaseline = 'middle';
     c.fillStyle = '#ffcd4a';
     if (!row) {
-      fit(c, `${rank + 1} место · ждёт улова`, 52, 900);
+      fit(c, `${rank + 1} место · ждёт улова`, 66, 900);
       c.fillText(`${rank + 1} место · ждёт улова`, TAG_W / 2, TAG_H / 2);
     } else {
-      const w = fmtWeight(row.g);
-      fit(c, w, 70, 900);
+      const w = `${rank + 1} · ${fmtWeight(row.g)}`;
+      fit(c, w, 110, 900);
       c.fillText(w, TAG_W / 2, TAG_H * 0.36);
       c.fillStyle = '#fff6e6';
-      fit(c, row.nick, 48, 700);
+      fit(c, row.nick, 70, 700);
       c.fillText(row.nick, TAG_W / 2, TAG_H * 0.74);
     }
     t.tex.needsUpdate = true;

@@ -1,15 +1,16 @@
 // Ферма: Древо разлома на сервере (design-v11 §11, §18.5). Одно на ферму: просыпается в 19:00 МСК, N фермеров
-// фиксируется на старте, очки — XP со сбора во время события и шишки-ворчуньи (фазы 2–3, 2 в минуту, ≤ 30 на игрока).
+// фиксируется при первом вкладе каждого участника, очки — XP со сбора и шишки-ворчуньи (фазы 2–3, 2 в минуту, ≤ 30 на игрока).
 // Расцвело — баффы, репутация, «Последняя капля»; к 01:00 не успели — уходит спать без наград. Время — по серверным
 // часам, тикает раз в секунду, пока на ферме кто-то есть (просрочку догоняет в первую же секунду).
 import {
-  applyBuff, bossPhase, bossRank, bossRewards, bossShare, bossTotal, bossWindow, newBoss, normalizeBoss, type FarmBossState,
+  applyBuff, bossPhase, bossQuota, bossRank, bossRewards, bossShare, bossTotal, bossWindow, newBoss, normalizeBoss, registerBossParticipant, type FarmBossState,
 } from '../../shared/farmboss.ts';
 import {
-  BOSS_ACTIVE_WINDOW_MS, BOSS_CONE_POINTS, BOSS_CONES_PER_MIN, BOSS_CONES_PER_PLAYER, BOSS_MIN_SHARE, BOSS_SNEEZE_MS, BUFFS,
+  BOSS_CONE_POINTS, BOSS_CONES_PER_MIN, BOSS_CONES_PER_PLAYER, BOSS_MIN_SHARE, BOSS_SNEEZE_MS, BUFFS,
   FARM_COUNTERS,
 } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
+import { farmLevel } from '../../shared/farm.ts';
 import type { FarmClientMsg } from '../../shared/farmnet.ts';
 import type { FarmBossResult, FarmBossView } from '../../shared/farmsys.ts';
 import { checkFarm } from './achievements.ts';
@@ -66,12 +67,6 @@ export class FarmBoss {
     this.ctx.dirty();
   }
 
-  /** Активные фермеры для N: хозяева участков, которые были на ферме за 72 ч до старта, и те, кто здесь сейчас */
-  private active(start: number): number {
-    const plots = this.ctx.plots;
-    return plots.seats.filter((s) => !!s && (plots.isPresent(s.pid) || s.seen >= start - BOSS_ACTIVE_WINDOW_MS)).length;
-  }
-
   tick(now: number): void {
     const w = bossWindow(now);
     if (now >= w.announce && now < w.start && this.announced !== w.day) {
@@ -81,12 +76,12 @@ export class FarmBoss {
       this.dirtyView = true;
     }
     if (now >= w.start && now < w.end && (!this.st || this.st.day !== w.day)) {
-      this.st = newBoss(w, this.active(w.start));
+      this.st = newBoss(w);
       this.cones = [];
       this.nextCone = now;
       this.nextSneeze = now + BOSS_SNEEZE_MS;
       this.ctx.ev(null, { k: 'note', text: '🌳 Древо разлома проснулось! Собирай урожай — каждый XP растит Древо' });
-      this.ctx.announce?.(`🌳 На ферме проснулось Древо разлома: нужно ${this.st.hp} цветения`);
+      this.ctx.announce?.('🌳 На ферме проснулось Древо разлома: сложность растёт с участниками');
       this.save();
       this.dirtyView = true;
     }
@@ -126,9 +121,9 @@ export class FarmBoss {
   }
 
   /** Очки за сбор во время события: 1 XP сбора = 1 очко */
-  harvest(p: FarmPlayer, xp: number, now: number): void {
+  harvest(p: FarmPlayer, xp: number, now: number, level = farmLevel(this.ctx.farm(p).xp)): void {
     if (!this.awake(now) || !(xp > 0)) return;
-    this.add(p, Math.round(xp), now);
+    this.add(p, Math.round(xp), now, level);
   }
 
   cone(p: FarmPlayer, m: Extract<FarmClientMsg, { a: 'cone' }>, now: number): void {
@@ -142,12 +137,15 @@ export class FarmBoss {
     this.cones = this.cones.filter((x) => x !== c);
     s.cones[key] = (s.cones[key] ?? 0) + 1;
     this.ctx.send(null, { t: 'farmBossFx', k: 'cone', id: c.id, by: p.c.pid });
-    this.add(p, BOSS_CONE_POINTS, now);
+    this.add(p, BOSS_CONE_POINTS, now, farmLevel(this.ctx.farm(p).xp));
   }
 
-  private add(p: FarmPlayer, pts: number, now: number): void {
+  private add(p: FarmPlayer, pts: number, now: number, level: number): void {
     const s = this.st!;
     const key = String(p.c.pid);
+    if (registerBossParticipant(s, p.c.pid, level)) {
+      this.ctx.ev(null, { k: 'note', text: `${p.c.profile?.nick ?? 'Фермер'} помогает Древу: +${s.quotas[key]} HP` });
+    }
     const had = bossShare(s, p.c.pid) >= BOSS_MIN_SHARE;
     s.pts[key] = (s.pts[key] ?? 0) + pts;
     s.nicks[key] = p.c.profile?.nick ?? s.nicks[key] ?? '';
@@ -155,7 +153,7 @@ export class FarmBoss {
     // «Росток для Древа»: вклад ≥ 1 %, пока Древо не спит
     if (!had && bossShare(s, p.c.pid) >= BOSS_MIN_SHARE) orderEvent(this.ctx, p, { k: 'boss' }, now);
     this.dirtyView = true;
-    if (s.bloom >= s.hp) {
+    if (s.hp > 0 && s.bloom >= s.hp) {
       s.last = p.c.pid;
       this.finish(now, true);
     } else {
@@ -217,6 +215,8 @@ export class FarmBoss {
       st: s ? s.st : now >= w.announce ? 'soon' : 'sleep',
       start: s?.start ?? w.start, end: s?.end ?? w.end, hp: s?.hp ?? 0, bloom: s?.bloom ?? 0, phase: s ? bossPhase(s.bloom, s.hp) : 1,
       n: s?.n ?? 0, top: rank.slice(0, 5).map((r) => ({ pid: r.pid, nick: s!.nicks[r.pid] ?? '', pts: r.pts })),
+      remaining: Math.max(0, (s?.hp ?? 0) - (s?.bloom ?? 0)),
+      quota: s?.quotas[p.c.pid] ?? bossQuota(farmLevel(this.ctx.farm(p).xp)), rules: s?.v === 1 ? 'legacy' : 'participants',
       mine: s?.pts[p.c.pid] ?? 0, place, cones: s && s.st === 'awake' ? this.cones.map(({ id, x, z }) => ({ id, x, z })) : [],
     };
   }

@@ -2,22 +2,26 @@
 // Убираем только эти грани и заменяем цельным настилом с метрической текстурой.
 // Покрывной камень по кромке, стенки, ступень, дерево сходней и мост к маяку сохраняются.
 import * as THREE from 'three';
-import { mergeColored, paint, place } from '../../render/kit.ts';
+import { mergeColored, paint } from '../../render/kit.ts';
 
-/** Внутренние поля v1 pav_mole.glb; вокруг — настоящий покрывной камень со свесом. */
+/** Внутренние поля pav_mole.glb; верх landing даёт расширенная площадка маяка. */
 export const MOLE_FLOOR = [
-  [-62, 43.88, -24.6, 46.12],
+  [-62, 43.88, -28, 46.12],
+  [-28, 43.88, -26, 46.12],
   [-67.62, 42.88, -62.38, 48.12],
   [-62.38, 43.38, -62, 46.62],
-  [-24.6, 46, -24.38, 46.12],
 ] as const;
+const LANDING_SLAB = [-26, 43.88, -24.38, 46.12] as const;
 export const MOLE_TOP = -0.5;
 export const MOLE_FLOOR_COLOR = 0xe0c49a;
 
-/** Треугольники исходных плит: горизонтальные, на высоте настила, целиком в одном из полей. */
+/** Двухметровая рампа от нижнего мола к расширенной площадке маяка. */
+export function moleJointY(x: number): number { return MOLE_TOP + Math.max(0, Math.min(0.5, (x + 28) * 0.25)); }
+
+/** Треугольники исходных плит: на поверхности настила/рампы, целиком в одном из полей. */
 export function isMoleSlab(points: readonly (readonly [number, number, number])[]): boolean {
-  return points.length === 3 && points.every(([, y]) => Math.abs(y - MOLE_TOP) < 1e-4) &&
-    MOLE_FLOOR.some(([x0, z0, x1, z1]) => points.every(([x, , z]) => x >= x0 - 1e-4 && x <= x1 + 1e-4 && z >= z0 - 1e-4 && z <= z1 + 1e-4));
+  return points.length === 3 && points.every(([x, y]) => Math.abs(y - moleJointY(x)) < 1e-4) &&
+    [...MOLE_FLOOR, LANDING_SLAB].some(([x0, z0, x1, z1]) => points.every(([x, , z]) => x >= x0 - 1e-4 && x <= x1 + 1e-4 && z >= z0 - 1e-4 && z <= z1 + 1e-4));
 }
 
 /** Только static_mole; вход — уже в мировых осях, как прочие части перед склейкой павильонов. */
@@ -38,8 +42,14 @@ export function removeMoleSlabs(geo: THREE.BufferGeometry): { kept: THREE.Buffer
 }
 
 export function moleFloorGeometry(): THREE.BufferGeometry {
-  return mergeColored(MOLE_FLOOR.map(([x0, z0, x1, z1]) => place(
-    paint(new THREE.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), MOLE_FLOOR_COLOR),
-    (x0 + x1) / 2, MOLE_TOP, (z0 + z1) / 2,
-  )));
+  return mergeColored(MOLE_FLOOR.map(([x0, z0, x1, z1]) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([
+      x0, moleJointY(x0), z0, x0, moleJointY(x0), z1,
+      x1, moleJointY(x1), z1, x1, moleJointY(x1), z0,
+    ], 3));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    geo.computeVertexNormals();
+    return paint(geo, MOLE_FLOOR_COLOR);
+  }));
 }

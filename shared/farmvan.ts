@@ -1,9 +1,9 @@
 // Ферма: Фургон (design-v11 §10.2). Открыт в чётные часы по Москве, закрыт в нечётные. Предложения не хранятся:
 // зерно = хэш(игрок, номер цикла), их можно пересчитать на сервере и на клиенте. Ящик сдаётся целиком из сумки.
 // Числа — shared/farmdata.ts. Сдачу ящика проводит сервер (server/farm/van.ts).
-import { bagCap, farmLevel, hasBuff, repBonus, repLevel, type FarmProgress } from './farm.ts';
+import { bagCap, farmLevel, repLevel, saleUnit, type FarmProgress } from './farm.ts';
 import {
-  BUFFS, CROPS, REP_LEVELS, TRUFFLE, TRUFFLE_PRICE, VAN_ASSORTMENT, VAN_BAG_SHARE, VAN_CYCLE_MS, VAN_EXPENSIVE_LEVEL,
+  CROPS, REP_LEVELS, TRUFFLE, TRUFFLE_PRICE, VAN_ASSORTMENT, VAN_BAG_SHARE, VAN_CYCLE_MS, VAN_EXPENSIVE_LEVEL,
   VAN_FAST_MAX_MIN, VAN_GOURMET_CHANCE, VAN_GOURMET_LEVEL, VAN_GOURMET_MULT, VAN_GOURMET_N, VAN_GROW_WINDOW_MIN,
   VAN_MAX_SLOTS, VAN_MULTS, VAN_RECENT, VAN_SLOTS_BY_LEVEL, VAN_U, VAN_XP_MIN, VAN_XP_SHARE, cropById, cropGroup, vanQ,
   type CropDef,
@@ -55,7 +55,7 @@ export function vanCrops(level: number): CropDef[] {
 
 export type VanKind = 'fast' | 'season' | 'expensive' | 'any' | 'gourmet';
 
-/** Ящик: сдать n × item (id культуры или 'truffle') → coins 🪙 (до дневного потолка) + xp */
+/** Ящик: сдать n × item → coins (цена единицы ограничена 150 после бонусов) + xp. */
 export interface VanOffer {
   slot: number;
   kind: VanKind;
@@ -89,7 +89,6 @@ export function vanOffers(f: FarmProgress, pid: number, cycle: number, now: numb
   const rng = makeRng(hash32(pid, cycle));
   const crops = vanCrops(level);
   const recent = new Set([...crops].sort((a, b) => a.level - b.level || CROPS.indexOf(a) - CROPS.indexOf(b)).slice(-VAN_RECENT).map((c) => c.id));
-  const price = (1 + repBonus(f.rep)) * (hasBuff(f, 'price', now) ? BUFFS.price.mult : 1);
   const bagMax = Math.max(1, Math.floor(bagCap(f) * VAN_BAG_SHARE));
   const used = new Set<string>();
   const out: VanOffer[] = [];
@@ -115,7 +114,7 @@ export function vanOffers(f: FarmProgress, pid: number, cycle: number, now: numb
     if (c.min <= 60) n = Math.min(n, f.beds.length * Math.floor(VAN_GROW_WINDOW_MIN / c.min));
     n = Math.max(1, Math.min(n, bagMax));
     out.push({
-      slot: i, kind, item: c.id, n, mult, coins: Math.round(n * c.sale * mult * price),
+      slot: i, kind, item: c.id, n, mult, coins: Math.round(n * saleUnit(f, c, now, mult)),
       xp: Math.max(VAN_XP_MIN, Math.round(VAN_XP_SHARE * c.xp * n)),
     });
   }
