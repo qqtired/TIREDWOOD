@@ -1,14 +1,15 @@
-// Белый флаг на клиенте: голосование «сдаться». Панель сверху по центру — в столбце FortUi сразу под полосой (волна,
-// ворота, кристалл), поэтому карточку волны, босса и тревоги не перекрывает, а они встают ниже; кнопки «За [Y]» и
-// «Против [N]» (клавиши — при захваченной мыши, кнопки — когда мышь свободна, на телефоне — касанием); после голоса —
-// «Вы: за» или «Вы: против». Подсказка у флага: «сдаться», «Сдаться? Нажми E ещё раз» (3 с), «Сдаться можно через N с».
-// Клиент ничего не решает: состояние приходит от сервера ({t:'fsurr'}, shared/fortsurrender.ts), голос уходит
-// {t:'fortVote'}, свой голос на экране — только после ответа сервера.
+// Белый флаг на клиенте: голосование «сдаться» — плашкой события верх-центра кита (приоритет голосования: выше волны
+// и босса; как на странице lab/ui «Крепость»): «Паша: сдаёмся?», «за 2 из 4, нужно 3 · 0:14», справа кнопки «За [Y]» и
+// «Против [N]» (мышь свободна — кликом, мышь в игре — клавишами, на телефоне — касанием), полоса времени. После голоса —
+// «ты: за». Не прошло — «Не прошло — держимся дальше» на несколько секунд. Подсказка у флага: «сдаться», «Сдаться? Нажми
+// E ещё раз» (3 с), «Сдаться можно через N с». Клиент ничего не решает: состояние приходит от сервера ({t:'fsurr'},
+// shared/fortsurrender.ts), голос уходит {t:'fortVote'}, свой голос на экране — только после ответа сервера.
+// Без DOM-картинок кита (kit/icons.ts): модуль грузят тесты через match.ts — картинку флага даёт хозяин.
 import { TICK_RATE } from '../../../shared/constants.ts';
 import { FT_BREAK, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
 import { SURR_VOTE_TICKS, type FortSurrender } from '../../../shared/fortsurrender.ts';
 import { TOUCH } from '../../touch.ts';
-import { el, setText } from './dom.ts';
+import { PRIO, escHtml, type TopCenter } from '../../ui/kit/topcenter.ts';
 
 export interface SurrenderHost {
   /** Свой номер защитника */
@@ -21,28 +22,18 @@ export interface SurrenderHost {
   send(yes: boolean): void;
   /** Началось голосование (mine — его предложил сам игрок): короткий звук */
   opened?(mine: boolean): void;
+  /** Картинка белого флага (адрес) */
+  flag?: string;
 }
 
 /** Сколько висит итог неудачного голосования, мс */
 const RESULT_MS = 3200;
 const VOTE_SECONDS = SURR_VOTE_TICKS / TICK_RATE;
-
-function shortName(name: string): string {
-  return name.length > 12 ? `${name.slice(0, 11)}…` : name;
-}
+const KEY = 'fort-surr';
 
 export class SurrenderUi {
-  readonly root: HTMLElement;
   private readonly host: SurrenderHost;
-  private readonly title: HTMLElement;
-  private readonly sub: HTMLElement;
-  private readonly timeEl: HTMLElement;
-  private readonly bar: HTMLElement;
-  private readonly who: HTMLElement;
-  private readonly buttons: HTMLElement;
-  private readonly yesBtn: HTMLButtonElement;
-  private readonly noBtn: HTMLButtonElement;
-  private readonly meEl: HTMLElement;
+  private readonly top: TopCenter;
   /** Идущее голосование; итог неудачи — на RESULT_MS */
   private st: FortSurrender | null = null;
   private result: FortSurrender | null = null;
@@ -52,49 +43,29 @@ export class SurrenderUi {
   private askUntil = 0;
   /** Голос ушёл, ответа сервера ещё нет */
   private sent = false;
-  private whoKey = '';
+  private shown = false;
+  private readonly onClick = (e: MouseEvent): void => {
+    const b = (e.target as Element).closest?.<HTMLElement>('[data-fsurr]');
+    if (!b) return;
+    e.preventDefault();
+    this.cast(b.dataset.fsurr === 'yes');
+  };
+  private readonly onDown = (e: MouseEvent): void => {
+    if ((e.target as Element).closest?.('[data-fsurr]')) e.preventDefault();
+  };
 
-  constructor(layer: HTMLElement, host: SurrenderHost) {
+  constructor(top: TopCenter, host: SurrenderHost) {
     this.host = host;
-    this.root = el('div', 'fu-surr');
-    this.root.setAttribute('role', 'group');
-    this.root.setAttribute('aria-label', 'Голосование: сдаться');
-    const head = el('div', 'fu-surr-head', this.root);
-    el('span', 'fu-surr-flag', head, '🏳️');
-    const text = el('div', 'fu-surr-text', head);
-    this.title = el('b', 'fu-surr-title', text);
-    this.sub = el('span', 'fu-surr-sub', text);
-    this.timeEl = el('span', 'fu-surr-time', head);
-    // вторая строка: кто как проголосовал и — справа — кнопки или «Вы: за»
-    const row = el('div', 'fu-surr-row', this.root);
-    this.who = el('div', 'fu-surr-who', row);
-    const act = el('div', 'fu-surr-act', row);
-    this.buttons = el('div', 'fu-surr-btns', act);
-    this.yesBtn = this.button('За', 'Y', 'yes', true);
-    this.noBtn = this.button('Против', 'N', 'no', false);
-    this.meEl = el('span', 'fu-surr-me', act);
-    this.bar = el('i', 'fu-surr-time-bar', this.root);
-    // столбец сверху: сразу под полосой — ничего не перекрывает, всё остальное встаёт ниже
-    const stack = layer.querySelector<HTMLElement>('.fu-stack') ?? layer;
-    const top = stack.querySelector('.fu-top');
-    stack.insertBefore(this.root, top ? top.nextSibling : stack.firstChild);
-  }
-
-  private button(label: string, key: string, cls: string, yes: boolean): HTMLButtonElement {
-    const b = el('button', `fu-surr-btn ${cls}`, this.buttons);
-    b.type = 'button';
-    el('span', '', b, label);
-    if (!TOUCH) el('kbd', '', b, key);
-    // курсор свободен — кликом; мышь захвачена — клавиши (onKey)
-    b.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.cast(yes);
-    });
-    return b;
+    this.top = top;
+    // кнопки живут в плашке: плашка обновляется на месте, клик ловим на слоте
+    top.root.addEventListener('click', this.onClick);
+    top.root.addEventListener('mousedown', this.onDown);
   }
 
   dispose(): void {
-    this.root.remove();
+    this.top.root.removeEventListener('click', this.onClick);
+    this.top.root.removeEventListener('mousedown', this.onDown);
+    this.hide();
   }
 
   /** Новая игра или итоги: всё сбросить */
@@ -163,57 +134,58 @@ export class SurrenderUi {
     if (this.st) return [this.canVote && !TOUCH ? 'идёт голосование · Y — за, N — против' : 'идёт голосование', 0, false];
     if (this.cd > t) return [`Сдаться можно через ${Math.ceil((this.cd - t) / TICK_RATE)} с`, 0, false];
     if (this.askUntil >= t) return ['Сдаться? Нажми E ещё раз', 0, true];
-    return ['сдаться', 0, true];
+    return ['сдаться · белый флаг: голосуют все', 0, true];
   }
 
-  /** Раз в кадр: отсчёт, полоска времени, итог неудачи уходит сам */
+  /** Раз в кадр: отсчёт, полоса времени, итог неудачи уходит сам */
   frame(): void {
     if (this.result && performance.now() > this.resultUntil) {
       this.result = null;
       this.render();
       return;
     }
-    const s = this.st;
-    if (!s) return;
-    const left = Math.max(0, (s.end - this.host.tick()) / TICK_RATE);
-    setText(this.timeEl, `${Math.ceil(left)} с`);
-    this.bar.style.transform = `scaleX(${Math.max(0, Math.min(1, left / VOTE_SECONDS))})`;
-    this.root.classList.toggle('urgent', left <= 5);
+    if (this.st) this.render();
+  }
+
+  private hide(): void {
+    if (this.shown) this.top.clear(KEY);
+    this.shown = false;
   }
 
   private render(): void {
     const s = this.st ?? this.result;
-    this.root.classList.toggle('show', s !== null);
-    if (!s) return;
+    if (!s) {
+      this.hide();
+      return;
+    }
     const open = this.st !== null;
     const me = this.host.myId();
     const voter = s.voters.includes(me);
     const mine = s.yes.includes(me) ? 'yes' : s.no.includes(me) ? 'no' : '';
-    this.root.classList.toggle('done', !open);
-    setText(this.title, open ? `${s.name} предлагает сдаться` : 'Не прошло — держимся дальше');
-    setText(this.sub, `за ${s.yes.length} из ${s.voters.length} (нужно ${s.need})`);
-    this.timeEl.hidden = !open;
-    this.buttons.hidden = !(open && voter && !mine);
-    this.yesBtn.disabled = this.sent;
-    this.noBtn.disabled = this.sent;
-    setText(this.meEl, !open ? '' : mine === 'yes' ? 'Вы: за' : mine === 'no' ? 'Вы: против' : voter ? '' : 'Вы зашли позже — голосуют те, кто был в начале');
-    this.meEl.hidden = this.meEl.textContent === '';
-    this.meEl.className = `fu-surr-me${mine ? ` ${mine}` : ''}`;
-    this.renderWho(s, me);
-    if (open) this.frame();
-  }
-
-  /** Кто как проголосовал: ✓ за, ✗ против, … ещё думает */
-  private renderWho(s: FortSurrender, me: number): void {
-    const key = s.voters.map((id) => `${id}${this.host.nameOf(id)}${s.yes.includes(id) ? 'y' : s.no.includes(id) ? 'n' : 'w'}`).join('|');
-    if (key === this.whoKey) return;
-    this.whoKey = key;
-    this.who.replaceChildren(...s.voters.map((id) => {
-      const v = s.yes.includes(id) ? 'yes' : s.no.includes(id) ? 'no' : 'wait';
-      const chip = el('span', `fu-surr-chip ${v}${id === me ? ' me' : ''}`);
-      el('i', '', chip, v === 'yes' ? '✓' : v === 'no' ? '✗' : '…');
-      el('span', '', chip, shortName(this.host.nameOf(id)));
-      return chip;
-    }));
+    const flag = this.host.flag ? `<span class="k-event-ic"><img src="${this.host.flag}" alt=""></span>` : '<span class="k-event-ic"></span>';
+    const count = `за ${s.yes.length} из ${s.voters.length}, нужно ${s.need}`;
+    if (!open) {
+      this.top.event({ key: KEY, prio: PRIO.vote, tone: 'good', html: `${flag}<div class="k-event-title">Не прошло — держимся дальше</div><div class="k-event-sub">${count}</div>` });
+      this.shown = true;
+      return;
+    }
+    const left = Math.max(0, (s.end - this.host.tick()) / TICK_RATE);
+    const sec = Math.ceil(left);
+    const time = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    const v = Math.round(Math.max(0, Math.min(1, left / VOTE_SECONDS)) * 100) / 100;
+    let actions = '';
+    if (this.canVote) {
+      const key = (k: string): string => (TOUCH ? '' : `<kbd class="k-key k-key--sm k-key--tr">${k}</kbd>`);
+      actions = `<div class="k-event-actions ft-vote-actions" role="group" aria-label="Голосование: сдаться"><button class="k-btn k-btn--go k-btn--sm" type="button" data-fsurr="yes">За${key('Y')}</button><button class="k-btn k-btn--stop k-btn--sm" type="button" data-fsurr="no">Против${key('N')}</button></div>`;
+    }
+    const you = !voter ? ' · ты зашёл позже — не голосуешь' : mine === 'yes' ? ' · ты: за' : mine === 'no' ? ' · ты: против' : this.sent ? ' · голос отправлен' : '';
+    this.top.event({
+      key: KEY, prio: PRIO.vote, tone: 'special', lamp: true,
+      html: `${flag}<div class="k-event-title">${escHtml(s.name)}: сдаёмся?</div>`
+        + `<div class="k-event-sub">${count} · <b class="${sec <= 5 ? 'k-bad' : ''}">${time}</b>${you}</div>`
+        + actions
+        + `<span class="k-meter k-meter--thin k-meter--special" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`,
+    });
+    this.shown = true;
   }
 }

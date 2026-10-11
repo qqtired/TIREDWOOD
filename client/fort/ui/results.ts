@@ -1,10 +1,14 @@
-// Итоги игры «Крепости»: устояла или пала, на какой волне, рекорд крепости (новый — золотой лентой) и свой рекорд,
-// лучший защитник, таблица (сбил, повален, золото, волн, жетоны) со строкой «вся команда», лучшие забеги крепости
-// (этот — подсвечен), жетоны тебе — когда придут, отсчёт до новой игры.
+// Итоги игры «Крепости» — окно кита (.k-scrim > .k-window, как на странице lab/ui «Крепость»): устояла или пала, на
+// какой волне, рекорд крепости (новый — праздником с лампочками) и свой, лучший защитник, таблица (сбил, повален,
+// золото, волн, жетоны) со строкой «вся команда», твоя строка — золотом, жетоны тебе — крупно (приходят чуть позже),
+// лучшие забеги крепости одной строкой. Кнопки «Ещё раз» (E — закрыть итоги, новая игра начнётся сама) и
+// «На набережную» (Esc). Мышью — кликом, без мыши — клавишами.
 import type { FortResultRow, FortRunRec } from '../../../shared/fort.ts';
-import { namesLine, recWhen, wavesText } from '../../../shared/fortrecord.ts';
+import { recWhen, wavesText } from '../../../shared/fortrecord.ts';
 import { setCoinText } from '../../ui/coin.ts';
+import { coinHtml } from '../../ui/kit/dom.ts';
 import { el, escapeHtml, num, setText } from './dom.ts';
+import { fortImg } from './icons.ts';
 
 export interface ResultsData {
   win: boolean;
@@ -23,86 +27,122 @@ export interface ResultsData {
   surr?: boolean;
 }
 
+export interface ResultsHost {
+  /** «Ещё раз»: закрыть итоги и остаться (новая игра начнётся сама) */
+  again(): void;
+  /** «На набережную» */
+  leave(): void;
+}
+
 export class Results {
-  readonly root: HTMLElement;
+  readonly scrim: HTMLElement;
+  host: ResultsHost = { again: () => {}, leave: () => {} };
   private timerEl: HTMLElement | null = null;
   private rewardEl: HTMLElement | null = null;
+  private open = false;
+  private closed = false;
 
   constructor(parent: HTMLElement) {
-    this.root = el('div', 'fu-results', parent);
-    this.root.setAttribute('role', 'dialog');
-    this.root.setAttribute('aria-label', 'Итоги игры');
+    this.scrim = el('div', 'k-scrim ft-scrim', parent);
+    this.scrim.dataset.mode = 'fort';
+    this.scrim.hidden = true;
+    this.scrim.addEventListener('click', (e) => {
+      const b = (e.target as Element).closest<HTMLElement>('[data-fres]');
+      if (b) {
+        e.preventDefault();
+        if (b.dataset.fres === 'leave') this.host.leave();
+        else this.host.again();
+      }
+    });
   }
 
   show(d: ResultsData): void {
     const rows = [...d.rows].sort((a, b) => b.k - a.k || b.pts - a.pts || a.d - b.d);
     const kills = rows.reduce((n, r) => n + r.k, 0);
+    const deaths = rows.reduce((n, r) => n + r.d, 0);
     const gold = rows.reduce((n, r) => n + r.pts, 0);
-    const title = d.win ? 'Крепость выстояла!' : d.surr ? `🏳️ Сдались на волне ${d.wave + 1}` : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
-    const sub = d.win
-      ? `Отбиты все ${d.lastWave} волн`
-      : d.wave > 0 ? `${d.surr ? 'Решили сдаться голосованием · ' : ''}Отбито волн: ${d.wave}` : d.surr ? 'Решили сдаться голосованием — до первой отбитой волны' : 'Ни одной волны не отбили — в следующий раз получится';
     const r = d.record;
     const isNew = !!r?.isNew && d.wave > 0;
+    const lose = !d.win;
+    const title = isNew ? 'Новый рекорд крепости!' : d.win ? 'Крепость выстояла!'
+      : d.surr ? `Сдались на волне ${d.wave + 1}` : d.wave > 0 ? `Крепость пала на волне ${d.wave + 1}` : 'Крепость пала';
     const holder = d.top?.[0];
-    // рекорд крепости: новый — золотой лентой с прежним; не побит — каким он стоит и чей
-    const recText = isNew ? '' : r && r.best > 0
-      ? `Рекорд крепости — ${wavesText(r.best)}${holder && holder.wave === r.best ? ` · ${namesLine(holder.names)}` : ''}` : '';
-    // свой рекорд (волны, отбитые командой к последней волне, засчитанной тебе): до этой игры — best, в ней — my
+    const recText = isNew ? (r && r.best > 0 ? `прежний рекорд ${r.best}` : 'первый рекорд крепости')
+      : r && r.best > 0 ? `рекорд крепости — ${r.best}${holder && holder.wave === r.best ? ` (${holder.names.slice(0, 3).join(', ')})` : ''}` : '';
+    const how = d.win ? `Отбиты все ${d.lastWave} волн` : d.wave > 0 ? `Отбито волн: ${d.wave}` : 'Ни одной волны не отбили';
+    const lost = isNew && lose ? `${d.surr ? 'Сдались' : 'Кристалл разбит'} на ${d.wave + 1}-й` : d.surr && !isNew ? 'решили голосованием' : '';
+    // свой рекорд: до этой игры — best, в ней — my
     const me = d.rows.find((x) => x.id === d.myId);
     const best = me?.best ?? 0;
     const my = me?.my ?? 0;
-    const mine = !me || (best <= 0 && my <= 0) ? ''
-      : my > best ? `⭐ Твой рекорд — ${wavesText(my)}, новый!${best > 0 ? ` (был ${best})` : ''}` : `Твой рекорд — ${wavesText(Math.max(best, my))}`;
-    const ribbon = isNew
-      ? `<div class="fu-res-newrec"><span class="fu-res-cup">🏆</span><div><b>Новый рекорд крепости!</b><span>${wavesText(d.wave)}${r && r.best > 0 ? ` — прежний ${r.best}` : ''}</span></div></div>`
-      : '';
-    const rec = recText || mine
-      ? `<div class="fu-res-record${my > best && best > 0 ? ' mine' : ''}">${[recText, mine].filter(Boolean).join(' · ')}</div>`
-      : '';
-    const now = Date.now();
-    const top = d.top?.length
-      ? `<div class="fu-res-top"><b>Рекорды крепости</b><ol>${d.top.map((t) => `<li${d.run && t.id === d.run ? ' class="this"' : ''}><b>${num(t.wave)}</b> <span>${escapeHtml(t.names.join(', '))}</span>${t.at ? ` <small>${recWhen(t.at, now)}</small>` : ''}</li>`).join('')}</ol></div>`
-      : '';
+    const mine = my > best && my > 0 ? `твой рекорд — ${my}, новый!` : '';
+    const sub = [how, recText, lost, mine].filter(Boolean).join(' · ');
     const mvp = d.mvp
-      ? `<div class="fu-res-mvp"><span class="fu-res-crown">👑</span><div><b>${escapeHtml(d.mvp.name)}</b><span>лучший защитник · сбил ${num(d.mvp.k)} · добыл ${num(d.mvp.pts)} 💰</span></div></div>`
+      ? `<div class="ft-mvp">${fortImg('medal-gold', 'ft-mvp-ic')}<span><b>${escapeHtml(d.mvp.name)}</b> — лучший защитник · сбил ${num(d.mvp.k)} · добыл ${num(d.mvp.pts)} ${fortImg('gold', 'ft-nug')}</span></div>`
       : '';
-    const body = rows
-      .map((r) => `<tr class="${r.id === d.myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}</td><td>${num(r.k)}</td><td>${num(r.d)}</td><td>${num(r.pts)}</td><td>${num(r.waves)}</td><td class="tok">${r.tokens > 0 ? `+${num(r.tokens)}` : '—'}</td></tr>`)
-      .join('');
-    this.root.innerHTML = `<div class="fu-res-card ${d.win ? 'win' : 'lose'}${d.surr ? ' surr' : ''}${isNew ? ' record' : ''}">
-      ${ribbon}
-      <div class="fu-res-head"><b class="fu-res-title">${title}</b><span class="fu-res-sub">${sub}</span>${rec}</div>
-      ${mvp}
-      <div class="fu-res-reward" hidden></div>
-      <table class="fu-res-table"><thead><tr><th class="n">Защитник</th><th>Сбил</th><th>Повален</th><th>💰 золото</th><th>Волн</th><th>🪙 жетоны</th></tr></thead>
-      <tbody>${body}</tbody>
-      <tfoot><tr><td class="n">Вся команда</td><td>${num(kills)}</td><td></td><td>${num(gold)}</td><td></td><td></td></tr></tfoot></table>
-      ${top}
-      <div class="fu-res-timer">Новая игра начнётся сама</div>
-    </div>`;
-    this.timerEl = this.root.querySelector('.fu-res-timer');
-    this.rewardEl = this.root.querySelector('.fu-res-reward');
-    this.root.classList.add('show');
+    const body = rows.map((x) => `<tr${x.id === d.myId ? ' class="is-own"' : ''}><td><span class="k-who">${escapeHtml(x.name)}${x.id === d.myId ? ' <span class="k-pill k-pill--gold k-pill--sm">ты</span>' : ''}</span></td>`
+      + `<td class="k-r">${num(x.k)}</td><td class="k-r">${num(x.d)}</td><td class="k-r">${num(x.pts)}</td><td class="k-r">${num(x.waves)}</td><td class="k-r">${x.tokens > 0 ? `+${num(x.tokens)}` : '—'}</td></tr>`).join('');
+    const total = rows.length > 1 ? `<tr class="ft-total"><td>Вся команда</td><td class="k-r">${num(kills)}</td><td class="k-r">${num(deaths)}</td><td class="k-r">${num(gold)}</td><td class="k-r"></td><td class="k-r"></td></tr>` : '';
+    const now = Date.now();
+    const runs = d.top?.length
+      ? `<p class="ft-runs"><b>Лучшие забеги:</b> ${d.top.slice(0, 3).map((t) => `<span${d.run && t.id === d.run ? ' class="is-this"' : ''}>${wavesText(t.wave)} — ${escapeHtml(t.names.slice(0, 3).join(', '))}${t.at ? `, ${recWhen(t.at, now)}` : ''}</span>`).join(' · ')}</p>`
+      : '';
+    this.scrim.innerHTML = `<section class="k-window ft-results is-in${isNew ? ' k-lamp' : ''}" role="dialog" aria-label="Итоги игры">
+      <div class="k-results-head">
+        <p class="k-eyebrow">Крепость · ${isNew ? 'новый рекорд!' : d.win ? 'победа!' : 'игра окончена'}</p>
+        <h2 class="k-results-title${lose && !isNew ? ' ft-lose' : ''}">${title}</h2>
+        <p class="k-results-sub">${escapeHtml(sub)}</p>
+      </div>
+      <div class="k-win-body">
+        ${mvp}
+        <table class="k-table"><thead><tr><th>Защитник</th><th class="k-r">Сбил</th><th class="k-r">Повален</th><th class="k-r">Золото</th><th class="k-r">Волн</th><th class="k-r">Жетоны</th></tr></thead>
+        <tbody>${body}${total}</tbody></table>
+        <div class="k-reward ft-reward" hidden></div>
+        ${runs}
+      </div>
+      <div class="k-results-actions">
+        <button class="k-btn k-btn--go" type="button" data-fres="again">Ещё раз<small class="ft-res-timer">новая игра начнётся сама</small><kbd class="k-key k-key--tr">E</kbd></button>
+        <button class="k-btn k-btn--ghost" type="button" data-fres="leave">На набережную<kbd class="k-key k-key--tr">Esc</kbd></button>
+      </div>
+    </section>`;
+    this.timerEl = this.scrim.querySelector('.ft-res-timer');
+    this.rewardEl = this.scrim.querySelector('.ft-reward');
+    this.open = true;
+    this.closed = false;
+    this.scrim.hidden = false;
   }
 
-  /** Жетоны за игру — приходят сразу после итогов */
+  /** Жетоны за игру — приходят сразу после итогов: «+58 жетонов: волны 8 · +40 · …» */
   reward(text: string): void {
     if (!this.rewardEl) return;
     this.rewardEl.hidden = false;
-    setCoinText(this.rewardEl, `🪙 Тебе ${text}`);
+    const m = /^\+(\d+)\s+([^:]+):?\s*(.*)$/.exec(text);
+    if (!m) {
+      setCoinText(this.rewardEl, `🪙 ${text}`);
+      return;
+    }
+    this.rewardEl.innerHTML = `${coinHtml()}<b>+${num(Number(m[1]))}</b><span></span>`;
+    setText(this.rewardEl.querySelector('span')!, `${m[2]} тебе${m[3] ? ` · ${m[3]}` : ''}`);
   }
 
   timer(sec: number): void {
-    if (this.timerEl) setText(this.timerEl, `Новая игра — через ${Math.max(0, Math.ceil(sec))} с · сбор у колокола`);
+    if (this.timerEl) setText(this.timerEl, `новая игра через ${Math.max(0, Math.ceil(sec))} с`);
+  }
+
+  /** «Ещё раз»: окно закрыть, игра остаётся в итогах до новой */
+  dismiss(): void {
+    this.closed = true;
+    this.scrim.hidden = true;
   }
 
   hide(): void {
-    this.root.classList.remove('show');
+    this.open = false;
+    this.closed = false;
+    this.scrim.hidden = true;
   }
 
+  /** Окно на экране */
   get shown(): boolean {
-    return this.root.classList.contains('show');
+    return this.open && !this.closed;
   }
 }
-

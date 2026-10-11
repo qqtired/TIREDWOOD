@@ -204,6 +204,8 @@ export class App {
   private frameStats = { median: 0, p95: 0, slow: false };
   /** С какого кадра мышь не захвачена, хотя сцене нужна (0 — всё в порядке) */
   private unlockedAt = 0;
+  /** До какого времени пауза из-за отпущенной мыши — вуалью «Кликни, чтобы играть», а не меню (deps.quietPause) */
+  private quietPauseUntil = 0;
   /** Мышь забрало окошко браузера «разрешить микрофон» (первый V) — на паузе вуаль, ответ вернёт мышь (micAnswered) */
   private micAsk = false;
   private slowWindows = 0;
@@ -292,6 +294,7 @@ export class App {
       hudRoot: shell,
       overlay: menus,
       wantPointer: () => this.wantPointer(),
+      quietPause: () => { this.quietPauseUntil = performance.now() + 10000; },
     };
     this.lobby = new LobbyScene(this.deps);
 
@@ -1168,6 +1171,8 @@ export class App {
       this.unlockedAt = 0;
       if (TOUCH) void this.input.lock();
       else this.setPaused(true);
+      if (!TOUCH && performance.now() < this.quietPauseUntil) this.menu.setVeil(true);
+      this.quietPauseUntil = 0;
     }
   }
 

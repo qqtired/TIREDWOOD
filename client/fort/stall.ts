@@ -1,73 +1,89 @@
-// Прилавок «Крепости»: немодальная панель справа (лавка оружейника, ворота, кристалл, место башни). Бегать и стрелять
-// можно, пока она открыта; покупка — клавиши 1–9 (на телефоне — касание строки), закрыть — E, Esc или отойти на 4 м.
-// Строки (что, почём, почему нельзя) считает shared/fortarsenal.ts — те же, что проверяет сервер. DOM строк
-// создаётся один раз и меняется, только когда изменился текст.
+// Прилавок «Крепости» — окно кита справа (.k-window, как на странице lab/ui «Крепость»): лавка оружейника, ворота,
+// кристалл, место башни. Немодальный: бегать и стрелять можно, пока он открыт; покупка — 1–9 (номер на углу строки),
+// мышью — кликом по строке, на телефоне — касанием; закрыть — E, Esc, крестик или отойти на 4 м. Строки (что, почём,
+// почему нельзя) считает shared/fortarsenal.ts — те же, что проверяет сервер. У ворот и кристалла сверху — прочность.
+// DOM строк создаётся один раз и меняется, только когда изменился текст.
 import type { PanelRow } from '../../shared/fortarsenal.ts';
 import { TOUCH } from '../touch.ts';
-import './arsenal.css';
+import { el, num, setText } from './ui/dom.ts';
+import { fortImg } from './ui/icons.ts';
 
-/** Картинки товаров (нарисованы Codex, client/assets/fort/<имя>.webp) */
-const ICONS = import.meta.glob('../assets/fort/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-
-export function iconUrl(name: string): string | null {
-  return ICONS[`../assets/fort/${name}.webp`] ?? null;
-}
+export { iconUrl } from './ui/icons.ts';
 
 export type StallKind = 'shop' | 'gate' | 'crystal' | 'tower';
 
 interface RowEl {
   root: HTMLButtonElement;
-  key: HTMLElement;
-  img: HTMLImageElement;
+  icw: HTMLElement;
   name: HTMLElement;
   detail: HTMLElement;
-  pips: HTMLElement;
-  price: HTMLElement;
+  buy: HTMLElement;
   sig: string;
   id: number;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  if (parent) parent.appendChild(e);
-  return e;
-}
+/** Картинка строки: ремонт ворот — молоток (у строки из shared — ворота) */
+const ROW_ICON: Readonly<Record<string, string>> = { repair: 'hammer' };
 
-const fmt = (n: number): string => Math.floor(n).toLocaleString('ru-RU');
+/** Строка подвала по умолчанию */
+const FOOT: Record<StallKind, string> = {
+  shop: TOUCH ? 'Покупки — до конца игры · коснись строки — купить' : 'Покупки — до конца игры · 1–9 — купить',
+  gate: 'Ворота сломали — новые ставят в передышку',
+  crystal: 'Лечить можно и в бою — не стой на месте',
+  tower: 'Потом здесь же — улучшение до 10-го уровня',
+};
+
+const nug = (): string => fortImg('gold', 'ft-nug');
 
 export class StallPanel {
   onBuy: (id: number) => void = () => {};
   onClose: () => void = () => {};
+  /** Обёртка справа (слой HUD кита) */
+  readonly wrap: HTMLElement;
   private readonly root: HTMLElement;
   private readonly titleEl: HTMLElement;
   private readonly subEl: HTMLElement;
   private readonly goldEl: HTMLElement;
+  private readonly strength: HTMLElement;
+  private readonly note: HTMLElement;
   private readonly list: HTMLElement;
   private readonly msgEl: HTMLElement;
   private readonly rows: RowEl[] = [];
   private shownKind: StallKind | null = null;
   private goldShown = -1;
+  private gold = 0;
+  private strengthKey = '';
   private msgTimer = 0;
 
+  /** parent — слой HUD кита (.k-hud): окно встаёт справа под бейджем */
   constructor(parent: HTMLElement) {
-    this.root = el('aside', 'ars-stall', parent);
+    this.wrap = el('div', 'ft-stall-wrap', parent);
+    this.wrap.dataset.mode = 'fort';
+    this.wrap.hidden = true;
+    this.root = el('section', 'k-window ft-stall', this.wrap);
     this.root.setAttribute('aria-live', 'polite');
-    this.root.setAttribute('aria-label', 'Лавка');
-    el('div', 'ars-awning', this.root);
-    const head = el('div', 'ars-head', this.root);
-    const titles = el('div', 'ars-titles', head);
-    this.titleEl = el('h2', 'ars-title', titles, 'Лавка оружейника');
-    this.subEl = el('div', 'ars-sub', titles, '');
-    this.goldEl = el('div', 'ars-gold', head, '💰 0');
-    const close = el('button', 'ars-close', head, '✕');
+    const head = el('header', 'k-win-head', this.root);
+    const titles = el('div', 'k-win-titles', head);
+    this.titleEl = el('h2', 'k-win-title', titles, 'Лавка оружейника');
+    this.subEl = el('p', 'ft-stall-sub', titles);
+    const tools = el('div', 'k-win-tools', head);
+    this.goldEl = el('span', 'k-pill k-pill--gold ft-gold-pill', tools);
+    const close = el('button', 'k-close', tools);
     close.type = 'button';
-    close.title = 'Закрыть (E или Esc)';
-    close.addEventListener('click', () => this.onClose());
-    this.list = el('div', 'ars-rows', this.root);
-    this.msgEl = el('div', 'ars-msg', this.root, '');
-    el('div', 'ars-foot', this.root, TOUCH ? 'Коснись строки — купить · отойди — закроется' : '1–9 — купить · E или Esc — закрыть · отойди — закроется');
+    close.setAttribute('aria-label', 'Закрыть');
+    close.innerHTML = TOUCH ? '' : '<kbd class="k-key k-key--sm">E</kbd>';
+    close.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.onClose();
+    });
+    const body = el('div', 'k-win-body', this.root);
+    this.strength = el('div', 'k-stat ft-strength', body);
+    this.strength.hidden = true;
+    this.note = el('p', 'ft-tower-note', body, 'Башня общая: награда за сбитых — тем, кто вложился.');
+    this.note.hidden = true;
+    this.list = el('div', 'ft-rows', body);
+    const foot = el('footer', 'k-win-foot', this.root);
+    this.msgEl = el('span', 'k-note ft-msg', foot);
   }
 
   get shown(): boolean {
@@ -80,31 +96,52 @@ export class StallPanel {
 
   open(kind: StallKind, title: string, sub: string): void {
     this.shownKind = kind;
-    this.titleEl.textContent = title;
-    this.subEl.textContent = sub;
+    setText(this.titleEl, title);
+    this.setSub(sub);
     this.root.dataset.kind = kind;
-    this.msgEl.textContent = '';
-    this.root.classList.add('show');
+    this.root.setAttribute('aria-label', title);
+    this.note.hidden = kind !== 'tower';
+    if (kind !== 'gate' && kind !== 'crystal') this.setStrength(0, 0);
+    this.foot();
+    this.wrap.hidden = false;
+    this.root.classList.remove('is-in');
+    void this.root.offsetWidth;
+    this.root.classList.add('is-in');
   }
 
   setSub(sub: string): void {
-    if (this.subEl.textContent !== sub) this.subEl.textContent = sub;
+    setText(this.subEl, sub);
+    this.subEl.hidden = !sub;
+  }
+
+  /** Прочность ворот или кристалла сверху окна; max 0 — спрятать */
+  setStrength(hp: number, max: number): void {
+    const kind = this.shownKind;
+    const key = max > 0 ? `${kind}|${Math.round(hp)}|${max}` : '';
+    if (key === this.strengthKey) return;
+    this.strengthKey = key;
+    this.strength.hidden = !key;
+    if (!key) return;
+    const v = Math.max(0, Math.min(1, hp / max));
+    const crystal = kind === 'crystal';
+    const tone = v < 0.35 ? 'k-meter--bad' : crystal ? 'k-meter--info' : 'k-meter--mode';
+    this.strength.innerHTML = `${fortImg(crystal ? 'crystal' : 'gate', 'k-stat-ic')}<div class="k-stat-num">${hp > 0 ? `${Math.round(v * 100)}%` : 'пали'}</div>`
+      + `<div class="k-stat-cap">Прочность ${num(Math.max(0, hp))} из ${num(max)}</div>`
+      + `<span class="k-meter ${tone}" style="--v:${v.toFixed(3)}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
   }
 
   close(): void {
     if (!this.shownKind) return;
     this.shownKind = null;
-    this.root.classList.remove('show');
+    this.wrap.hidden = true;
   }
 
   /** Строки панели: до 9; pending — id покупки, ждущей ответа сервера */
   render(rows: readonly PanelRow[], gold: number, pending: number | null): void {
+    this.gold = gold;
     if (gold !== this.goldShown) {
       this.goldShown = gold;
-      this.goldEl.textContent = `💰 ${fmt(gold)}`;
-      this.goldEl.classList.remove('bump');
-      void this.goldEl.offsetWidth;
-      this.goldEl.classList.add('bump');
+      this.goldEl.innerHTML = `${nug()}${num(gold)}`;
     }
     for (let i = 0; i < Math.max(rows.length, this.rows.length); i++) {
       const r = rows[i];
@@ -116,42 +153,46 @@ export class StallPanel {
       if (!e) e = this.makeRow(i);
       e.root.hidden = false;
       e.id = r.id;
-      const state = pending === r.id ? 'wait' : r.locked ? 'locked' : r.reason ? 'poor' : 'can';
-      const pips = r.tier >= 0 && r.max > 0 && r.max <= 12 ? '●'.repeat(Math.min(r.tier, r.max)) + '○'.repeat(Math.max(0, r.max - r.tier)) : r.tier > 0 ? `ур. ${r.tier}` : '';
-      const price = r.tag ?? (r.locked ? r.reason : `${fmt(r.price)} 💰`);
-      const sig = `${r.icon}|${r.name}|${r.detail}|${pips}|${price}|${state}|${r.reason}`;
+      const wait = pending === r.id;
+      const poor = !r.locked && !r.tag && r.price > gold;
+      const sig = `${r.icon}|${r.name}|${r.detail}|${r.tier}|${r.max}|${r.price}|${r.locked}|${r.reason}|${r.tag ?? ''}|${wait}|${poor ? gold : -1}`;
       if (sig === e.sig) continue;
       e.sig = sig;
-      const url = iconUrl(r.icon);
-      if (url && e.img.getAttribute('src') !== url) e.img.src = url;
-      e.img.hidden = !url;
-      e.name.textContent = r.name;
-      e.detail.textContent = r.reason && !r.locked ? `${r.detail} · ${r.reason} 💰` : r.detail;
-      e.pips.textContent = pips;
-      e.price.textContent = pending === r.id ? '…' : price;
-      e.root.className = `ars-row ${state}`;
-      e.root.setAttribute('aria-label', `${i + 1}: ${r.name}, ${r.locked ? r.reason : `${r.price} золота`}`);
+      const pips = r.tier >= 0 && r.max > 0 && r.max <= 10
+        ? `<span class="ft-pips" aria-hidden="true">${Array.from({ length: r.max }, (_, k) => `<i${k < r.tier ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
+      e.icw.innerHTML = `${fortImg(ROW_ICON[r.key] ?? r.icon, 'ft-row-ic')}${pips}`;
+      const tier = r.tier >= 0 && r.max > 0 ? `<span class="ft-tier">${r.max > 10 ? `ступень ${r.tier}` : `${r.tier} из ${r.max}`}</span>` : '';
+      e.name.innerHTML = `<b>${r.name}</b>${tier}`;
+      setText(e.detail, r.detail);
+      let buy: string;
+      if (wait) buy = '<span class="k-pill k-pill--gold">…</span>';
+      else if (r.tag) buy = `<span class="k-pill${r.locked ? '' : ' k-pill--good'}">${r.tag}</span>`;
+      else if (r.locked) buy = `<span class="ft-why ft-why--lock">${fortImg('lock')}${r.reason}</span>`;
+      else if (poor) buy = `<span class="k-pill k-pill--bad">${nug()}${num(r.price)}</span><span class="ft-why">не хватает ${num(r.price - gold)}</span>`;
+      else buy = `<span class="k-pill k-pill--gold">${nug()}${num(r.price)}</span>`;
+      e.buy.innerHTML = buy;
+      e.root.classList.toggle('is-poor', poor);
+      e.root.classList.toggle('is-locked', r.locked && !r.tag);
+      e.root.setAttribute('aria-label', `${i + 1}: ${r.name}, ${r.locked ? r.reason : r.tag ?? `${r.price} золота`}`);
     }
   }
 
   private makeRow(i: number): RowEl {
-    const root = el('button', 'ars-row', this.list);
+    const root = el('button', 'k-cell ft-row', this.list);
     root.type = 'button';
-    const key = el('b', 'ars-key', root, String(i + 1));
-    const img = el('img', 'ars-ico', root);
-    img.alt = '';
-    img.draggable = false;
-    const text = el('span', 'ars-text', root);
-    const top = el('span', 'ars-line', text);
-    const name = el('span', 'ars-name', top);
-    const pips = el('span', 'ars-pips', top);
-    const detail = el('span', 'ars-detail', text);
-    const price = el('span', 'ars-price', root);
-    const row: RowEl = { root, key, img, name, detail, pips, price, sig: '', id: 0 };
+    if (!TOUCH) el('kbd', 'k-key k-key--tl', root, String(i + 1));
+    const icw = el('span', 'ft-row-icw', root);
+    const main = el('span', 'ft-row-main', root);
+    const name = el('span', 'ft-row-name', main);
+    const detail = el('span', 'ft-row-det', main);
+    const buy = el('span', 'ft-row-buy', root);
+    const row: RowEl = { root, icw, name, detail, buy, sig: '', id: 0 };
     root.addEventListener('click', (e) => {
       e.preventDefault();
       this.onBuy(row.id);
     });
+    // мышь в игре не отпускаем: кнопка не забирает фокус
+    root.addEventListener('mousedown', (e) => e.preventDefault());
     this.rows[i] = row;
     return row;
   }
@@ -160,72 +201,34 @@ export class StallPanel {
   flash(id: number, ok: boolean): void {
     const r = this.rows.find((x) => x.id === id && !x.root.hidden);
     if (!r) return;
-    r.root.classList.remove('flash-ok', 'flash-no');
+    r.root.classList.remove('is-ok', 'is-no');
     void r.root.offsetWidth;
-    r.root.classList.add(ok ? 'flash-ok' : 'flash-no');
+    r.root.classList.add(ok ? 'is-ok' : 'is-no');
+    window.setTimeout(() => r.root.classList.remove('is-ok', 'is-no'), 900);
   }
 
+  /** Сообщение в подвале (куплено / почему нельзя) на 2,6 с, потом — строка по умолчанию */
   message(text: string, warn = false): void {
-    this.msgEl.textContent = text;
-    this.msgEl.classList.toggle('warn', warn);
+    setText(this.msgEl, text);
+    this.msgEl.className = `k-note ft-msg ${warn ? 'k-bad' : 'k-good'}`;
     clearTimeout(this.msgTimer);
-    this.msgTimer = window.setTimeout(() => (this.msgEl.textContent = ''), 2600);
+    this.msgTimer = window.setTimeout(() => this.foot(), 2600);
+  }
+
+  private foot(): void {
+    clearTimeout(this.msgTimer);
+    this.msgEl.className = 'k-note ft-msg';
+    setText(this.msgEl, this.shownKind ? FOOT[this.shownKind] : '');
+  }
+
+  /** Золото, которое видит панель (для текста «не хватает») */
+  get goldNow(): number {
+    return this.gold;
   }
 
   /** id строки под номером (1–9) или −1 */
   idAt(n: number): number {
     const r = this.rows[n - 1];
     return r && !r.root.hidden ? r.id : -1;
-  }
-}
-
-/** Полоска над патронами: «1» маркер, «2» тяжёлый ствол (если куплен), гранаты; в руках — подсвечено */
-export class ArmsStrip {
-  private readonly root: HTMLElement;
-  private readonly marker: HTMLElement;
-  private readonly heavy: HTMLElement;
-  private readonly heavyImg: HTMLImageElement;
-  private readonly heavyN: HTMLElement;
-  private readonly gren: HTMLElement;
-  private readonly grenN: HTMLElement;
-  private sig = '';
-
-  constructor(parent: HTMLElement) {
-    this.root = el('div', 'ars-arms', parent);
-    const slot = (cls: string, key: string, icon: string): [HTMLElement, HTMLImageElement, HTMLElement] => {
-      const s = el('div', `ars-slot ${cls}`, this.root);
-      el('b', '', s, key);
-      const img = el('img', '', s);
-      img.alt = '';
-      const url = iconUrl(icon);
-      if (url) img.src = url;
-      const n = el('span', 'n', s, '');
-      return [s, img, n];
-    };
-    [this.marker] = slot('marker', '1', 'mag');
-    this.marker.querySelector('span')!.textContent = 'маркер';
-    [this.heavy, this.heavyImg, this.heavyN] = slot('heavy none', '2', 'shotgun');
-    [this.gren, , this.grenN] = slot('gren', 'G', 'gren');
-  }
-
-  /** gun — в руках (0 — маркер), heavy — второй ствол (0 — нет), other — патронов в убранном, gr / grMax — гранаты */
-  set(gun: number, heavy: number, heavyName: string, heavyIcon: string, other: number, gr: number, grMax: number): void {
-    const sig = `${gun}|${heavy}|${other}|${gr}|${grMax}`;
-    if (sig === this.sig) return;
-    this.sig = sig;
-    this.marker.classList.toggle('on', gun === 0);
-    this.heavy.classList.toggle('none', heavy <= 0);
-    this.heavy.classList.toggle('on', gun !== 0);
-    if (heavy > 0) {
-      const url = iconUrl(heavyIcon);
-      if (url && this.heavyImg.getAttribute('src') !== url) this.heavyImg.src = url;
-      this.heavyN.textContent = gun === 0 ? `${heavyName} · ${other}` : heavyName;
-    }
-    this.grenN.textContent = `${gr}/${grMax}`;
-    this.gren.classList.toggle('empty', gr <= 0);
-  }
-
-  setVisible(v: boolean): void {
-    this.root.style.display = v ? '' : 'none';
   }
 }

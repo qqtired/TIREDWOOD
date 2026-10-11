@@ -21,15 +21,10 @@ export function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Перезапустить CSS-анимацию класса */
-export function replay(e: HTMLElement, cls: string): void {
-  e.classList.remove(cls);
-  void e.offsetWidth;
-  e.classList.add(cls);
+/** Масштаб HUD кита (client/ui/kit/scale.ts пишет его на <html>): стрелки и цифры урона в слое без zoom */
+export function hudK(): number {
+  return Number(document.documentElement.style.getPropertyValue('--hud-k')) || 1;
 }
-
-/** Стрелка-шеврон (SVG): смотрит вверх, крутится через transform */
-export const ARROW_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 L20 15 L14.5 13.2 L14.5 21 L9.5 21 L9.5 13.2 L4 15 Z"/></svg>';
 
 /** Римские цифры для кругов боссов: II, III … */
 export function roman(n: number): string {

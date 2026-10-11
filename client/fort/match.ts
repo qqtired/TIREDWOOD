@@ -11,7 +11,7 @@ import {
   CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
-  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, KF_SUPER, Z_KRAKEN, Z_TENTACLE, Z_WEAVER,
+  ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, Z_KRAKEN, Z_TENTACLE, Z_WEAVER,
   type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import {
@@ -47,6 +47,8 @@ import { ArsenalClient, TOWER_BY } from './arsenalc.ts';
 import type { FortHud, MapDot } from './hud.ts';
 import type { TeamRow } from './ui/index.ts';
 import { SurrenderUi } from './ui/surrender.ts';
+import { PRIO } from '../ui/kit/topcenter.ts';
+import { bossMaxHp } from './ui/schedule.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
@@ -77,6 +79,8 @@ export interface FortMatchDeps {
   settings: Settings;
   net: Net;
   me: () => MeState;
+  /** Ушли из итогов по Esc (не жест — мышь не захватить): на набережной вуаль «Кликни, чтобы играть», а не меню */
+  quietPause?: () => void;
 }
 
 interface Pose extends AvatarPose {
@@ -232,8 +236,15 @@ export class FortMatch {
   constructor(deps: FortMatchDeps) {
     this.d = deps;
     this.webs = new Webs3D(deps.world.scene);
-    this.surr = new SurrenderUi(deps.hud.ui.layer, { myId: () => this.myId, tick: () => this.clock.estimate(performance.now()),
-      nameOf: (id) => this.nameOf(id), send: (yes) => deps.net.send({ t: 'fortVote', yes }), opened: () => deps.sound.pairAsk() });
+    this.surr = new SurrenderUi(deps.hud.ui.top, { myId: () => this.myId, tick: () => this.clock.estimate(performance.now()),
+      nameOf: (id) => this.nameOf(id), send: (yes) => deps.net.send({ t: 'fortVote', yes }), opened: () => deps.sound.pairAsk(),
+      flag: deps.hud.ui.flagIcon });
+    // итоги: «Ещё раз» — закрыть окно и снова в бой (новая игра начнётся сама), «На набережную» — уйти
+    deps.hud.ui.results.host = {
+      again: () => this.closeResults(),
+      // клик — жест игрока: мышь сразу в игру, на набережной не встанет меню
+      leave: () => { void deps.input.lock(); deps.net.send({ t: 'leave' }); },
+    };
     this.krakenFx = new KrakenFx({ hud: deps.hud, effects: deps.effects, sound: deps.sound, zombies: deps.zombies, collision: deps.collision,
       camPos: this.camPos, me: () => this.predictor.state, myId: () => this.myId, shake: (v) => { this.shake = Math.max(this.shake, v); },
       tick: () => this.clock.estimate(performance.now()) });
@@ -321,6 +332,13 @@ export class FortMatch {
     return this.ars.cursorFree;
   }
 
+  /** «Ещё раз» в итогах: окно прочь, мышь — снова в игру (новая игра начнётся сама) */
+  private closeResults(): void {
+    this.d.hud.ui.results.dismiss();
+    // браузер не дал мышь — не меню, а «кликни — обратно в бой»
+    void this.d.input.lock().then(() => { if (!this.d.input.locked) this.ars.releaseCursor(); });
+  }
+
   /** Открыта панель стойки (лавка, ворота, кристалл, башня) */
   get panelShown(): boolean {
     return this.d.hud.stall.shown;
@@ -330,6 +348,19 @@ export class FortMatch {
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     const { chat, input } = this.d;
+    // окно итогов: E — «Ещё раз», Esc — «На набережную» (мышью — кнопки окна)
+    if (this.d.hud.endShown && !chat.isOpen) {
+      if (code !== 'KeyE' && code !== 'Escape') return code === 'Tab';
+      e.preventDefault();
+      if (down && !e.repeat) {
+        if (code === 'KeyE') this.closeResults();
+        else {
+          this.d.quietPause?.();
+          this.d.net.send({ t: 'leave' });
+        }
+      }
+      return true;
+    }
     // арсенал первым: 1/2 — руки, G — граната, у открытой панели 1–9 — купить, Esc — закрыть только её
     if (!chat.isOpen && this.ars.onKey(code, down, e)) return true;
     if (code === 'Tab') {
@@ -376,7 +407,8 @@ export class FortMatch {
         this.card = m.card ?? null;
         this.ready = true;
         this.setRoster(m.players);
-        if (m.phase === FT_GATHER) this.d.hud.pb.centerMessage('Крепость', this.gatherSub(), '', 3200);
+        // вошёл: что идёт и что дальше — плашкой волны и тостами (без «волна отбита» и крупного баннера)
+        this.d.hud.ui.onPhase(m.phase, m.wave, this.card, true);
         if (m.rec) this.onRecIntro(m.rec);
         break;
       case 'frecNew':
@@ -407,10 +439,6 @@ export class FortMatch {
     }
   }
 
-  private gatherSub(): string {
-    return TOUCH ? 'Волна скоро · колокол на террасе — «готов»' : 'Волна скоро · E у колокола на террасе — «готов»';
-  }
-
   private setRoster(list: FortPlayerRow[]): void {
     this.rosterList = list;
     this.roster.clear();
@@ -426,7 +454,6 @@ export class FortMatch {
     if (me) {
       this.localAvatar.setInfo(me.name, null, true, me.level ?? 1);
       this.localAvatar.setOutfit(me.o);
-      this.d.hud.setPoints(me.pts);
     }
     this.ars.setRoster();
   }
@@ -459,20 +486,19 @@ export class FortMatch {
       }
       return;
     }
-    // баннеры старта волны и «волна отбита» — FortUi (одна очередь, один стиль); название волны — из карточки
+    // старт волны, «волна отбита», новые враги и колокол — FortUi (плашка волны и тосты); название волны — из карточки
+    // итоги ушли сами (новая игра без «Ещё раз»): мышь не захватить без жеста — «кликни — обратно в бой», не меню
+    const wasEnd = hud.endShown;
     hud.ui.onPhase(phase, wave, this.card);
     if (phase === FT_GATHER) {
       hud.hideEnd();
+      if (wasEnd && !this.d.input.locked) this.ars.releaseCursor();
       this.surr.reset();
-      hud.card.reset();
       effects.clearSplats();
-      hud.pb.centerMessage('Новая игра', this.gatherSub(), '', 2800);
     } else if (phase === FT_WAVE) {
       const boss = this.card && this.card.boss >= 0;
       sound.horn(boss ? 0.5 : 0.32);
       sound.zombieGroan(null, boss ? 1.2 : 0.8);
-      // крупный номер волны — баннер FortUi; карточка — только знакомство с новыми врагами и событием
-      if (this.card) hud.card.announce(this.card, false);
       if (boss) this.shake = Math.max(this.shake, 0.55);
     } else if (phase === FT_BREAK) {
       sound.fanfare(null);
@@ -486,6 +512,9 @@ export class FortMatch {
     this.surr.reset();
     const mvpRow = rows.find((r) => r.id === mvp) ?? null;
     hud.showEnd(win, wave, mvpRow, rows, this.myId, top, record, prev, surr, run);
+    // кнопки итогов нажимаются мышью: мышь отпускаем (сцене она сейчас не нужна — wantsPointer)
+    this.boardHeld = false;
+    this.d.input.unlock();
     // игра кончилась: рекорд крепости — первая строка таблицы, его уже не «бьют прямо сейчас» (профиль, загрузка)
     if (top[0]) noteFortRecord({ wave: top[0].wave, names: [...top[0].names], at: top[0].at });
     if (win || (record && wave > 0)) {
@@ -544,7 +573,8 @@ export class FortMatch {
     const { hud, input, effects, world } = this.d;
     if (this.recIntroPending && this.rec && !input.blocked) {
       this.recIntroPending = false;
-      hud.ui.push(introBanner(this.rec, Date.now()));
+      // рекорда ещё нет — это и так видно на плитке рекорда; тост — только с рекордом (кто и когда)
+      if (this.rec.top) hud.ui.push(introBanner(this.rec, Date.now()));
     }
     if (this.salute > 0 && this.time >= this.saluteAt) {
       // залп в небе перед камерой: золото, красный, белый, бирюза
@@ -712,7 +742,6 @@ export class FortMatch {
   private onEvents(list: FortEvent[]): void {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
-      hud.ui.onEvent(e);
       if (this.krakenFx.onEvent(e)) continue;
       switch (e[0]) {
         case 'shot': {
@@ -814,12 +843,11 @@ export class FortMatch {
             else if ((tier ?? 0) >= 2) hud.pb.bannerMessage(`✪ Чемпион сбит: ${k.name}!`, 1800);
           }
           if (this.goldOn && kind !== Z_BOAT) this.d.eventFx?.coins(x, y + 1, z, boss || (tier ?? 0) > 0);
-          const by = killer >= TOWER_BY ? '🏰 Башня' : this.nameOf(killer);
           if (boss) {
-            hud.ui.push({ key: `boss-down-${zid}`, badge: k.icon, tone: (k.flags & KF_SUPER) !== 0 ? 'super' : 'boss', prio: 1, ms: 3200,
-              title: `${k.name} повержен!`, sub: killer ? `Добил: ${by} · добейте оставшуюся орду` : 'Добейте оставшуюся орду' });
+            const by = killer >= TOWER_BY ? 'Башня' : this.nameOf(killer);
+            hud.ui.push({ key: 'boss-down', hero: true, tone: 'gold', prio: PRIO.boss, ms: 3300,
+              title: `${k.name} повержен!`, sub: killer ? `Добил: ${by} · добейте орду` : 'Добейте оставшуюся орду' });
           }
-          if ((kind === Z_BRUTE || (tier ?? 0) >= 2 || boss) && killer) hud.pb.killfeed(by, -1, k.name, -1, false, 'fort', killer === this.myId);
           break;
         }
         case 'pop': {
@@ -853,7 +881,8 @@ export class FortMatch {
             const s = this.predictor.state;
             this.downBy = zid;
             this.respawnAt = this.clock.estimate(performance.now()) + FORT_RESPAWN_TICKS;
-            hud.showDeath(zid ? downText(this.d.zombies.kindOf(zid)) : 'Снова на террасу');
+            const by = zid ? this.d.zombies.kindOf(zid) : -1;
+            hud.showDeath(zid ? downText(by) : 'Передохни — команда держит стену', by);
             sound.death();
             effects.deathSplat(s.x, s.y, s.z, this.colorOf(pid));
             this.deathX = s.x;
@@ -866,7 +895,6 @@ export class FortMatch {
               sound.popAt([p.x, p.y + 0.8, p.z], this.camPos.distanceTo(_v.set(p.x, p.y, p.z)));
             }
             this.avatars.get(pid)?.pop();
-            hud.pb.killfeed('🧟', -1, this.nameOf(pid), -1, false, 'fort', false);
           }
           break;
         }
@@ -1579,15 +1607,6 @@ export class FortMatch {
     const pb = hud.pb;
     const est = this.clock.estimate(performance.now());
     const leftS = (this.phaseEnd - est) / TICK_RATE;
-    let info = '';
-    let urgent = false;
-    if (this.phase === FT_WAVE) info = `🧟 ${this.left}`;
-    else if (this.phase === FT_END) info = '';
-    else {
-      info = `⏱ ${Math.max(0, Math.ceil(leftS))} с`;
-      urgent = leftS < 5.5;
-    }
-    hud.setWave(this.phase, this.wave, info, urgent);
     hud.setDefense(this.phase, this.tail.defenders ?? this.rosterList.length, this.tail.rally ?? 0, this.tail.rallyCd ?? 0);
     hud.setGate(this.gate, this.ars.gateMax);
     hud.setCrystal(this.crystal, this.ars.crystalMax);
@@ -1621,8 +1640,10 @@ export class FortMatch {
       kp[TENT_COUNT].frac = boss.hp;
       parts = kp;
     }
+    // полное HP — по формуле сервера: волна и под сколько защитников усилена орда (в бою снимок шлёт horde.defenders)
+    const bossMax = boss && this.phase === FT_WAVE ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0) : 0;
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
-      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts);
+      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts, bossMax);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);
     // новый интерфейс: полоса, команда, тревоги со стрелкой, стрелки на угрозы, новичку — раз в кадр
     const me = this.predictor.state;
@@ -1754,7 +1775,8 @@ function downText(kind: number): string {
   if (kind === Z_BLOATER) return 'Пузырь лопнул рядом — бей его издалека';
   if (kind === Z_FLYER) return 'Крылатка спикировала — поглядывай в небо';
   if (isBossKind(kind)) return 'Босс достал — уходи с красных меток';
-  return 'Зомби добрались до тебя — встанешь на террасе';
+  // «встанешь на террасе» — строкой ниже, у отсчёта (ui/down.ts)
+  return 'Зомби добрались до тебя — держи дистанцию';
 }
 
 function plural(n: number, one: string, few: string, many: string): string {
