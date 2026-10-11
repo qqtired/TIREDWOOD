@@ -1,14 +1,15 @@
 // Земля новой набережной (флаг PLAZA3): вместо ровной заливки блокаута — спокойные текстуры. Картинки нарисованы Codex
 // image_gen (client/assets/plaza3/ground, промпты и обработка — PROVENANCE.md там же): светлые плиты площади и
-// променадов, песчаник настила и стенки, гравий бульвара и аллей, газон, песок пляжа, роза ветров в центре площади.
+// променадов и аллей, песчаник стенки и мола после маяка, гравий у скал и огородов, газон, песок пляжа, роза ветров.
 // Сетку земли строит plaza3/world.ts (один меш, цвет в вершинах); здесь её треугольники раскладываются по поверхностям
 // (по цвету блокаута) на меши по картинке. Развёртка — в мировых метрах (повтор TEX.tile м: рисунок не растягивается на
 // больших многоугольниках; стенка — вдоль края и по высоте), цвет вершин — оттенок к карте (одна картинка на несколько
 // поверхностей, среднее сведено к цвету поверхности). Материал — тот же мокнущий MeshStandard с цветом вершин и картой,
 // что у всей статики (plaza3/perf.ts даёт ей белую карту 1×1), — программа общая, новых нет; отрисовок +5 (меш на
-// картинку). Мип-уровни и анизотропия — вдали рисунок не рябит.
+// картинку; мол — ещё один меш). Мип-уровни и анизотропия — вдали рисунок не рябит.
 import * as THREE from 'three';
 import { P3 } from '../../../shared/plaza3/layout.ts';
+import { legacyGroundTexture, type LegacyGround } from './legacyground.ts';
 
 type Wet = (m: THREE.MeshStandardMaterial) => THREE.MeshStandardMaterial;
 
@@ -17,18 +18,22 @@ interface GroundTex {
   file: string;
   tile: number;
   avg: number;
+  /** Принятые старые покрытия: используем существующие генераторы вместо v1-картинки. */
+  legacy?: LegacyGround;
 }
 
 export const TEX = {
-  /** 4×4 светлых плиты по 0,9 м */
-  plaza: { file: 'plaza-slabs', tile: 3.6, avg: 0xeeddc4 },
+  /** Прежняя брусчатка: 8×16 камней по ~0,5×0,25 м; сохранённый генератор. */
+  plaza: { file: 'plaza-slabs', tile: 4, avg: 0xded6ca, legacy: 'pavers' },
   /** 3×6 плит песчаника 1,1×0,55 м */
   deck: { file: 'deck-slabs', tile: 3.3, avg: 0xeacba4 },
+  /** спокойная кладка мола после маяка, плиты около 1,2×0,6 м */
+  quay: { file: 'quay-ashlar-v2', tile: 2.4, avg: 0xeed5ad },
   gravel: { file: 'gravel', tile: 2.4, avg: 0xe7bd85 },
   lawn: { file: 'lawn', tile: 4, avg: 0x73a43e },
   sand: { file: 'sand', tile: 6, avg: 0xf5ce8e },
   /** роза ветров — одна картинка на круг rose из layout.json */
-  rose: { file: 'rose', tile: 0, avg: 0xd1af8e },
+  rose: { file: 'rose', tile: 0, avg: 0xd1af8e, legacy: 'mosaic' },
 } as const satisfies Record<string, GroundTex>;
 export type TexId = keyof typeof TEX;
 
@@ -37,19 +42,20 @@ export type TexId = keyof typeof TEX;
  * к которому сводится её среднее (близко к прежней заливке, чуть теплее). Неизвестный цвет остаётся как был.
  */
 export const SURFACES: ReadonlyArray<{ what: string; key: number; tex: TexId; color: number }> = [
-  { what: 'настил суши', key: 0xd2c3aa, tex: 'deck', color: 0xd9c4a3 },
+  { what: 'настил суши', key: 0xd2c3aa, tex: 'plaza', color: 0xe3d5bb },
   { what: 'стенка набережной', key: 0x7d776e, tex: 'deck', color: 0x8f8372 },
-  { what: 'улица к городу', key: 0xa6a8a0, tex: 'deck', color: 0xaca697 },
+  { what: 'улица к городу', key: 0xa6a8a0, tex: 'plaza', color: 0xd4cbb9 },
   { what: 'поле фермы', key: 0x8c9a4e, tex: 'lawn', color: 0x93a052 },
-  { what: 'площадь', key: 0xe9e0cc, tex: 'plaza', color: 0xebdec6 },
+  { what: 'площадь', key: 0xe9e0cc, tex: 'plaza', color: 0xe3d5bb },
   { what: 'роза ветров', key: 0xc9784e, tex: 'rose', color: 0xd1af8e },
   { what: 'песок пляжа', key: 0xe6d29a, tex: 'sand', color: 0xe9d39e },
   { what: 'газон', key: 0x76a046, tex: 'lawn', color: 0x78a346 },
   { what: 'гравий у скал', key: 0xb9ad98, tex: 'gravel', color: 0xbcae95 },
   { what: 'грунтовка к ферме', key: 0x9a7a52, tex: 'gravel', color: 0xa07e55 },
   { what: 'променад', key: 0xe4d9c2, tex: 'plaza', color: 0xe3d5bb },
-  { what: 'аллея', key: 0xdacdb2, tex: 'gravel', color: 0xdbc8a5 },
-  { what: 'бульвар', key: 0xc4ad84, tex: 'gravel', color: 0xcdb085 },
+  { what: 'аллея', key: 0xdacdb2, tex: 'plaza', color: 0xe3d5bb },
+  { what: 'бульвар', key: 0xc4ad84, tex: 'plaza', color: 0xe3d5bb },
+  { what: 'настил мола', key: 0xe0c49a, tex: 'quay', color: 0xe1cfb3 },
 ];
 
 /** Развёртка точки (м) на поверхности с нормалью n: пол — по x и z, стенка — вдоль края и по высоте; tile в метрах */
@@ -94,7 +100,7 @@ const loaded = new Map<TexId, Loaded>();
 function bind(id: TexId, m: THREE.MeshStandardMaterial): void {
   let l = loaded.get(id);
   if (!l) {
-    const t = TEX[id];
+    const t: GroundTex = TEX[id];
     const stub = new THREE.DataTexture(new Uint8Array([(t.avg >> 16) & 255, (t.avg >> 8) & 255, t.avg & 255, 255]), 1, 1);
     stub.colorSpace = THREE.SRGBColorSpace;
     stub.name = `p3-ground-${id}-stub`;
@@ -102,7 +108,10 @@ function bind(id: TexId, m: THREE.MeshStandardMaterial): void {
     const entry: Loaded = { tex: null, mats: [], stub };
     l = entry;
     loaded.set(id, entry);
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && t.legacy) {
+      entry.tex = legacyGroundTexture(t.legacy);
+      entry.tex.name = `p3-ground-${id}-legacy`;
+    } else if (typeof document !== 'undefined') {
       new THREE.TextureLoader().load(url(t.file), (tex) => {
         tex.name = `p3-ground-${id}`;
         tex.colorSpace = THREE.SRGBColorSpace;

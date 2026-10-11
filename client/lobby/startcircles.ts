@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DECAL_LIFT } from './plaza3/floor.ts';
 
-export interface StartCircleOptions { x:number;z:number;r:number;color:number;label:string;subtitle?:string; }
+export interface StartCircleOptions { x:number;z:number;r:number;color:number;label:string;subtitle?:string;placard?:boolean; }
 export interface StartCircleStatus { left?:number;n?:number;max?:number;phase?:string;hint?:string; }
 
 /** Shared visual only. Authority/countdown comes from the caller's server state. */
@@ -36,21 +36,25 @@ export class StartCircle {
     // кольцо и круг — выше её земли и плитки моделей (plaza3/floor.ts)
     ring.userData.p3keep=disc.userData.p3keep=true;
     // A small tilted placard is kept at the side of the circle. Its slim support fixes it to the floor.
-    const sx=options.r+.22,sz=.05;
-    const poleGeo=new THREE.CylinderGeometry(.019,.024,.67,6);
-    const poleMat=new THREE.MeshStandardMaterial({color:0x506260,roughness:.88});
-    const pole=new THREE.Mesh(poleGeo,poleMat);pole.position.set(sx,.335,sz);pole.castShadow=true;
-    const signGeo=new THREE.PlaneGeometry(.98,.245);
-    const signMat=new THREE.MeshBasicMaterial({map:this.signTexture,transparent:true,side:THREE.FrontSide,depthWrite:false});
-    // Each side reads its own front-facing UVs; DoubleSide would mirror the text from behind.
-    const placard=new THREE.Group();placard.position.set(sx,.71,sz);placard.rotation.set(-.18,Math.PI,0);
-    for(const side of [-1,1]) {
-      const face=new THREE.Mesh(signGeo,signMat);face.position.z=side*.003;
-      if(side<0)face.rotation.y=Math.PI;
-      placard.add(face);
+    if(options.placard!==false) {
+      const sx=options.r+.22,sz=.05;
+      const poleGeo=new THREE.CylinderGeometry(.019,.024,.67,6);
+      const poleMat=new THREE.MeshStandardMaterial({color:0x506260,roughness:.88});
+      const pole=new THREE.Mesh(poleGeo,poleMat);pole.position.set(sx,.335,sz);pole.castShadow=true;
+      const signGeo=new THREE.PlaneGeometry(.98,.245);
+      const signMat=new THREE.MeshBasicMaterial({map:this.signTexture,transparent:true,side:THREE.FrontSide,depthWrite:false});
+      // Each side reads its own front-facing UVs; DoubleSide would mirror the text from behind.
+      const placard=new THREE.Group();placard.position.set(sx,.71,sz);placard.rotation.set(-.18,Math.PI,0);
+      for(const side of [-1,1]) {
+        const face=new THREE.Mesh(signGeo,signMat);face.position.z=side*.003;
+        if(side<0)face.rotation.y=Math.PI;
+        placard.add(face);
+      }
+      this.resources.push(poleGeo,poleMat,signGeo,signMat);
+      this.group.add(pole,placard);
     }
-    this.resources.push(ringGeo,ringMat,discGeo,discMat,poleGeo,poleMat,signGeo,signMat);
-    this.group.add(ring,disc,pole,placard);scene.add(this.group);this.status({});
+    this.resources.push(ringGeo,ringMat,discGeo,discMat);
+    this.group.add(ring,disc);scene.add(this.group);this.status({});
   }
 
   setVisible(on:boolean):void {if(!this.disposed)this.group.visible=on;}

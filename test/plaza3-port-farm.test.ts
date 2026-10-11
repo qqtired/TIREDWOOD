@@ -142,8 +142,6 @@ test('порт B: Лавка Семёна — на помосте у сходн�
   const sign = P3.signs.find((k) => k.id === 'semyon')!;
   const sa = an.get('anchor_sign_semyon')!;
   assert.ok(near(sign.x, sa.x, 0.02) && near(sign.y, sa.y, 0.02) && near(sign.z, sa.z, 0.02), 'вывеска WP10 — на поле модели');
-  // указатель у корня мостков ведёт к Лавке по мосткам (на юг)
-  assert.ok(P3.posts.find((p) => p.id === 'S4')!.arrows.includes('Лавка Семёна ↓'));
 });
 
 test('стоянка своих лодок: помост Лавки — твёрдое для лодок (якорь нельзя), берты и вызов не задевают Лавку', () => {

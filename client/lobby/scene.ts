@@ -504,7 +504,7 @@ export class LobbyScene implements Scene {
       closed: () => { if (!this.wantsPointer) return; d.quietPause?.(); d.wantPointer(); },
     });
     for (const z of START_ZONES) {
-      const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });
+      const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу', placard: !(PLAZA3 && !P3.legacyStatic) });
       circle.setVisible(false); this.entryCircles.set(z.kind, circle);
     }
     for (const [kind, zone, label, color] of [['boatrace', BOAT_RACE_CIRCLE, 'ПОРТОВАЯ РЕГАТА', 0x57ccdb], ['hide', HIDE_CIRCLE, 'ПРЯТКИ: РЫБНЫЙ ДВОР', 0xd9b77b]] as const) {
@@ -740,6 +740,7 @@ export class LobbyScene implements Scene {
 
   private resetAdditions(): void {
     this.sentMenu = null;
+    this.world.pavilions?.setFortEntryPlayers(null, [], false);
     this.skillStatus = this.boatRaceStatus = this.hideStatus = null;
     this.skillPortal.setVisible(false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
@@ -2428,6 +2429,7 @@ export class LobbyScene implements Scene {
     for (let i = 0; i < FISH_SPOTS.length; i++) if (this.fishOcc[i] && this.fishing.phaseOf(i) === FP_HOLD) this.fishForCritters.push(FISH_SPOTS[i]);
     this.critterOthers.length = 0;
     for (const [id, r] of this.remotes) if (r.pose.valid) this.critterOthers.push({ id, x: r.pose.x, y: r.pose.y, z: r.pose.z });
+    this.world.pavilions?.setFortEntryPlayers(this.hasSelf ? this.pose : null, this.critterOthers, !!this.fortSt);
     this.critters.update(this.clock.renderTick, this.time, camPos, { ...this.pose, speed: Math.hypot(this.predictor.state.vx, this.predictor.state.vz) }, this.fishForCritters, this.critterOthers);
     this.mermaid.update(this.clock.ready ? this.clock.renderTick : -1, dt, this.time, this.world.camera);
     this.storm3d.update(this.clock.renderTick, dt, this.pose, this.eventEligible, lobbyQuality(this.d.settings.quality) === 'low');

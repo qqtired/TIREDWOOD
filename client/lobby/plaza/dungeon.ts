@@ -8,13 +8,17 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { DgRec, DgStatus } from '../../../shared/dungeon/api.ts';
+import { PLAZA3 } from '../../../shared/layout.ts';
 import { DUNGEON_BOARD, DUNGEON_ROCK } from '../../../shared/plaza2.ts';
 import { paint } from '../../render/kit.ts';
 import { dgStatus, onDgStatus } from '../dgstatus.ts';
 import { FONT, bigText, canvasTexture, fitFont, makeCanvas, roundRectPath, speckle } from './gfx.ts';
 import { Venue, type VenueCtx } from './venue.ts';
 
-const MODEL_URL = new URL('../../assets/dungeon/plaza/plaza_entrance.glb', import.meta.url).href;
+// v2 убирает пересечения светлых глыб с полостью тоннеля. Старую площадь оставляем с исходной моделью.
+const MODEL_URL = PLAZA3
+  ? new URL('../../assets/plaza3/plaza_entrance_v2.glb', import.meta.url).href
+  : new URL('../../assets/dungeon/plaza/plaza_entrance.glb', import.meta.url).href;
 
 // ------------------------------------------------------------ данные доски (чистые функции, их проверяют тесты)
 

@@ -14,6 +14,8 @@ import { loadPav, worldGeometry, type Family, type Part, type PavModel } from '.
 import { plaza3Shadows, setRoofScreen, setShowcase } from './mounts.ts';
 import { BOARD_FIELDS, PAVILIONS, PROP_FILES, SKIP_LIVE, type PavGroup, type PavPlace } from './pavdata.ts';
 import type { Plaza3World } from './world.ts';
+import type { CirclePosition } from '../../../shared/startzones.ts';
+import { fortEntryOccupied, stepFortEntryDoor } from './fortentry.ts';
 
 /** Порядок сборки групп: сначала то, что видно с точки появления */
 const ORDER: readonly PavGroup[] = ['hub', 'games', 'arenas', 'port', 'beach', 'cliffs', 'farm', 'pier'];
@@ -99,6 +101,7 @@ export class Plaza3Pavilions {
   private readonly lives: Live[] = [];
   private readonly redLights: THREE.MeshBasicMaterial[] = [];
   private lampsOn = true;
+  private fortOpen = false;
   /** Сколько и чего собрано: группы, упавшие файлы — для замера (__opus) */
   readonly stats = { groups: {} as Record<string, GroupStat>, failed: [] as string[], loaded: [] as string[], ready: false };
 
@@ -174,7 +177,7 @@ export class Plaza3Pavilions {
       placeMatrix(p, root);
       for (const [name, parts] of model.nodes) {
         if (!(name.startsWith('static_') || name.startsWith('live_')) || skip.has(name) || p.live?.includes(name)) continue;
-        for (const part of parts) buckets[part.family].push(worldGeometry(part.geo, _m.multiplyMatrices(root, part.matrix)));
+        for (const part of parts) buckets[part.family].push(this.world.dressPavilionGround(p.id, name, worldGeometry(part.geo, _m.multiplyMatrices(root, part.matrix))));
       }
       for (const prop of model.props) {
         const parts = lib.get(prop.name);
@@ -246,7 +249,7 @@ export class Plaza3Pavilions {
       pivot.add(mesh);
     }
     this.group.add(pivot);
-    this.lives.push({ pivot, base: pivot.quaternion.clone(), tick: liveTick(name, this.hooks), value: pivot.scale.y });
+    this.lives.push({ pivot, base: pivot.quaternion.clone(), tick: liveTick(name, this.hooks, () => this.fortOpen), value: name.startsWith('live_fort_door_') ? 0 : pivot.scale.y });
   }
 
   /** Холсты и маяк — на поля модели, когда она встала */
@@ -307,6 +310,11 @@ export class Plaza3Pavilions {
     for (const b of lh.beam) b.position.y = at.y;
   }
 
+  /** Круг крепости: открываем по желейкам, не по расстоянию камеры. */
+  setFortEntryPlayers(me: CirclePosition | null, others: Iterable<CirclePosition>, enabled: boolean): void {
+    this.fortOpen = fortEntryOccupied(me, others, enabled);
+  }
+
   /** Кадр: живые узлы; свет в сети погас — свечение и лампочки тускнеют (яркостью, без смены шейдеров) */
   update(dt: number, t: number, lampsOn: boolean): void {
     for (const l of this.lives) l.tick(l, dt, t);
@@ -324,7 +332,7 @@ export class Plaza3Pavilions {
 }
 
 /** Как двигается живой узел (по README моделей) */
-function liveTick(name: string, hooks: PavHooks): Live['tick'] {
+function liveTick(name: string, hooks: PavHooks, fortOpen: () => boolean): Live['tick'] {
   const turn = (l: Live, axis: THREE.Vector3, a: number): void => {
     l.pivot.quaternion.copy(l.base).multiply(_q.setFromAxisAngle(axis, a));
   };
@@ -364,6 +372,12 @@ function liveTick(name: string, hooks: PavHooks): Live['tick'] {
         const want = ph === 'count' ? 0.08 : ph === 'race' ? 1 : 0.5;
         l.value += (want - l.value) * (1 - Math.exp(-dt * 2.5));
         l.pivot.scale.y = l.value;
+      };
+    case 'live_fort_door_l':
+    case 'live_fort_door_r':
+      return (l, dt) => {
+        l.value = stepFortEntryDoor(l.value, fortOpen(), dt);
+        turn(l, _axisY, (name === 'live_fort_door_l' ? 1 : -1) * 1.3962634 * l.value);
       };
     default:
       return () => {};

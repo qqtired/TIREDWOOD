@@ -32,6 +32,7 @@ import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import { Plaza3Pavilions } from './plaza3/pavilions.ts';
 import { Plaza3Perf } from './plaza3/perf.ts';
+import { TOWN_LIMIT, townHeight, townLotBase } from './plaza3/landscape.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -134,8 +135,8 @@ const QUAY_X = -30;
 const QUAY_T = 0.6;
 const STREET_Y = -0.6;
 /** Дальние края земли города (дальше — туман) */
-const TOWN_X1 = 1100;
-const TOWN_Z0 = -1006;
+const TOWN_X1 = pick(1100, () => TOWN_LIMIT.x1);
+const TOWN_Z0 = pick(-1006, () => TOWN_LIMIT.z0);
 /** Бордюр — как у площади */
 const CURB = 0xcfc7b6;
 
@@ -148,6 +149,7 @@ function landDepth(x: number, z: number): number {
 function landY(x: number, z: number): number {
   const d = landDepth(x, z);
   if (d < 0) return -3.2;
+  if (PLAZA3) return townHeight(x, z, d, signHill(x, z));
   const ramp = Math.min(1, Math.max(0, (d - 150) / 350));
   // signHill — широкий подъём за надписью TIREDWOOD (tiredwood.ts): за буквами зелёная гора, а не небо
   const hill = Math.max(0, d - 70) * 0.1 + 34 * Math.sin(x * 0.006 + 0.4) * Math.cos(z * 0.0045 - 0.3) * ramp + signHill(x, z);
@@ -1219,7 +1221,10 @@ export class LobbyWorld {
         lots.set(cell(cx, cz), [x0 - 2, z0 - 2, x1 + 2, z1 + 2]);
         const floors0 = dmin < 50 ? 2 + Math.floor(rng() * 3) : 3 + Math.floor(rng() * 4);
         const floors = CORRIDOR && inCorridor((x0 + x1) / 2, (z0 + z1) / 2) ? Math.min(floors0, CORRIDOR.floorsMax) : floors0;
-        const y0 = Math.min(landY(x0, z0), landY(x1, z0), landY(x0, z1), landY(x1, z1)) - 0.4;
+        // В plaza3 гора под буквами — открытый склон. Дома на крутых участках пересекались с землёй.
+        if (PLAZA3 && signHillK((x0 + x1) / 2, (z0 + z1) / 2) > 0.04) continue;
+        const y0 = PLAZA3 ? townLotBase(landY, x0, z0, x1, z1) : Math.min(landY(x0, z0), landY(x1, z0), landY(x0, z1), landY(x1, z1)) - 0.4;
+        if (y0 === null) continue;
         const y1 = y0 + 0.4 + floors * 3;
         const k = hazeAt((x0 + x1) / 2, (z0 + z1) / 2);
         const wc = new THREE.Color(walls[Math.floor(rng() * walls.length)]).multiplyScalar(0.9).lerp(haze, k);

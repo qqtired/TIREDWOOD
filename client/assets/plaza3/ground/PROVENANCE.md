@@ -87,3 +87,36 @@ Subject: fine warm golden-cream beach sand, smooth and calm, with very gentle so
 ```
 Subject: a compass rose (wind rose) mosaic inlaid in a stone pavement, seen straight from above, centered and filling the whole square image: a large round medallion whose outer ring touches the four edges of the image. Inside: an elegant eight-pointed star of long slender points (four long main points toward the image edges and four shorter diagonal points), each point split lengthwise into a lighter and a darker half, made of smooth polished stone in terracotta red, warm ochre and soft bottle green, on a background of light cream limestone; one or two thin concentric rings of terracotta and cream stone around the star, and a small round stone at the center. The four corners of the image outside the circle are plain light cream limestone. Flat, symmetrical, minimal and elegant, like an inlay in the square of a seaside resort. This image is a single medallion, not a repeating pattern.
 ```
+
+## Мол после маяка — v2 (11.10.2026)
+
+`quay-ashlar-v2.jpg` — новый отдельный рисунок кладки мола, встроенный `image_gen`, 11.10.2026.
+Исходник: `quay-ashlar-v2-source.png` (1254×1254), сохранён рядом без изменений. Выход генератора:
+`~/.codex/generated_images/01a12b8e-626c-7350-be51-4a15b7ce5467/exec-4431dbfd-7364-49d4-a11f-3e8b13c9c99e.png`.
+Для игры только размер 1024×1024 и JPEG качества 86 (`sips`); изображение кодом не рисовалось и не ретушировалось.
+Оригинальные шесть текстур v1 сохранены. Повтор 2,4 м: четыре ряда по 0,6 м, две плиты по ~1,2 м.
+Без надписей — проверено глазами. Используется только на Маячном молу после маяка; мост к маяку не изменён.
+
+Промпт:
+
+```
+Use case: stylized-concept. Asset type: seamless albedo texture for the flat walkable stone deck of a seaside pier in TIREDWOOD, a cozy sunny southern resort browser game with cream plaster, terracotta roofs and bottle green shutters. Generate ONE square texture viewed straight down orthographically, no perspective. A carefully laid running-bond ashlar pavement: exactly four rows of long rectangular warm limestone paving stones, two full stones across each row, odd rows staggered by one half of a stone. The grout lines are thin, restrained, warm greige, never dark black; stones are pale ivory sandstone and light honey, with a few subdued warm peach blocks. Smooth hand-painted stylized matte stone, gentle quiet mottling and extremely subtle pores, avoid noisy photorealism. Beautiful calm resort promenade pavement that reads clearly at a game camera. Flat uniform neutral lighting, absolutely no cast shadows, highlights, ambient occlusion, vignette or gradients. Edges must tile seamlessly on left/right and top/bottom: half stones on staggered rows continue naturally into the adjacent repeated tile, outer image boundaries coincide with the middle of narrow grout lines. No outer frame or decorative border. No text, letters, numbers, icons, symbols, objects, plants, cracks, moss, dirt, water, people, logo, signature or watermark. Preserve a coherent regular four-row masonry grid.
+```
+
+Состыковка общественных покрытий: площадь, основной настил, аллеи и бульвар используют прежнюю `plaza-slabs.jpg`
+с одним мировым UV и оттенком; поэтому через их границы продолжаются одинаковые швы. Гравий оставлен у скал и на
+грунтовке к огородам. Стенка набережной сохраняет `deck-slabs.jpg`; дерево веранд и лавки остаётся прежним.
+
+## Прямое уточнение владельца: прежняя звезда и плитка — 11.10.2026
+
+Владелец: «смотри как у нас отлично раньше пол выглядел на площади, нужно перенести эту звезду обязательно и плитку. сделай».
+
+Теперь общественные покрытия используют **точную прежнюю брусчатку** `paverTexture()` из `client/render/textures.ts`:
+8×16 камней за повтор 4 м, размер около 0,5×0,25 м; код рисунка не менялся. `plaza-slabs.jpg` сохранена как v1,
+но больше не используется для общественных проходов.
+
+Мозаика в центре новой площади (8; −8), радиус 4,5 м: точные старые `compassRoseTexture()` из
+`client/render/textures.ts` и `lookRingTexture(3, 4.5)` из `client/lobby/looktex.ts`. Обе прежние части собраны в одну
+карту `legacyground.ts` с теми же радиусами и пропорциями — центральная звезда радиусом 3 м, кайма до 4,5 м.
+Исходные генераторы не переписаны; прежние указатели и наполнение не подключаются. `rose.jpg` сохранена как v1.
+Новый ImageGen не применялся: это перенос принятых владельцем существующих покрытий. Кладка мола v2 остаётся.

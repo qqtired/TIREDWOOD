@@ -27,7 +27,7 @@ export const START_ZONES: readonly { kind: StartZoneKind; x: number; y: number; 
     { kind: 'fort', x: 11, y: 0, z: -15.3, r: 1.2 },
   ],
   () => [
-    { kind: 'paintball', x: P3.lobby.pbGate.x, y: 0, z: P3.lobby.pbGate.z, r: 1.35 },
-    { kind: 'fort', x: P3.modes.fortArch.x, y: 0, z: P3.modes.fortArch.z + 0.9, r: 1.2 },
+    { kind: 'paintball', x: P3.lobby.pbGate.x, y: 0, z: P3.lobby.pbGate.z, r: 1.8 },
+    { kind: 'fort', x: P3.modes.fortArch.x, y: 0, z: P3.modes.fortArch.z + 0.9, r: 1.65 },
   ],
 );

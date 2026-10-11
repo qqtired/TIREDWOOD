@@ -12,6 +12,8 @@ import { mergeColored, paint, place, staticMesh } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
 import { FLOOR_Y } from './floor.ts';
 import { dressPlaza3Ground } from './ground.ts';
+import { moleFloorGeometry, removeMoleSlabs } from './molefloor.ts';
+import { buildPlaza3Garden } from './garden.ts';
 
 export interface Plaza3World {
   readonly group: THREE.Group;
@@ -19,6 +21,8 @@ export interface Plaza3World {
   debug(): Record<string, unknown>;
   /** Модель павильона встала (client/lobby/plaza3/pavilions.ts) — его коробки блокаута не рисовать; твёрдое остаётся */
   hidePavilion(id: string): void;
+  /** Снимает исходные плиты мола и добавляет их цельную замену; прочую геометрию сохраняет. */
+  dressPavilionGround(id: string, node: string, geometry: THREE.BufferGeometry): THREE.BufferGeometry;
 }
 
 /** Низ стенки набережной (как у старой: до воды и ниже) */
@@ -135,6 +139,7 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   group.add(groundMesh);
   // земля в текстурах (plaza3/ground.ts): меш на картинку, развёртка в метрах, программа та же
   dressPlaza3Ground(group, ctx.wet);
+  buildPlaza3Garden(ctx);
 
   // --- коробки блокаута: видимое твёрдое (павильоны, балюстрада, скалы) и декор без твёрдого — по мешу на квартал
   const byQ = new Map<string, THREE.BufferGeometry[]>();
@@ -169,13 +174,29 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
     group.add(m);
   }
   tris += groundMesh.geometry.getAttribute('position').count / 3;
-  const meshes = group.children.length;
+  let meshes = group.children.length;
+  let moleFloorReady = false;
   return {
     group,
     debug: () => ({ meshes, tris: Math.round(tris), quarters: [...byQ.keys()] }),
     hidePavilion: (id) => {
       const m = group.getObjectByName(`plaza3-${id}`);
       if (m) m.visible = false;
+    },
+    dressPavilionGround: (id, node, geometry) => {
+      if (id !== 'mole' || node !== 'static_mole') return geometry;
+      const { kept, removed } = removeMoleSlabs(geometry);
+      if (removed && !moleFloorReady) {
+        const floor = staticMesh(moleFloorGeometry(), mat, true);
+        floor.name = 'plaza3-groundMole';
+        floor.castShadow = false;
+        group.add(floor);
+        dressPlaza3Ground(group, ctx.wet);
+        moleFloorReady = true;
+        meshes++;
+        tris += 8;
+      }
+      return kept;
     },
   };
 }

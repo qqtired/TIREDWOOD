@@ -222,9 +222,9 @@ test('plaza3-signs: стрелки — восемь направлений на 
   }
 });
 
-test('plaza3-signs: столб — доски через PLANK.pitch сверху вниз, длина по названию, не длиннее предела', () => {
-  assert.equal(P3.posts.length, 7);
-  for (const p of P3.posts) {
+test('plaza3-signs: указатели убраны из площади; план досок остаётся пригоден для архивных раскладок', () => {
+  assert.deepEqual(P3.posts, []);
+  for (const p of [{ id: 'fixture', arrows: ['Маяк ↑', 'Площадь →', 'Пляж ↓', 'Огороды ←'] }]) {
     const plan = planPost(p.arrows);
     assert.equal(plan.planks.length, p.arrows.length);
     plan.planks.forEach((pk, i) => {

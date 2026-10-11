@@ -53,9 +53,9 @@ test('меш земли делится по картинкам, неизвест
   mesh.name = 'plaza3-ground';
   group.add(mesh);
   const made = dressPlaza3Ground(group, (m) => m);
-  assert.deepEqual(made.map((m) => m.name).sort(), ['plaza3-ground-deck', 'plaza3-ground-plaza']);
+  assert.deepEqual(made.map((m) => m.name).sort(), ['plaza3-ground-plaza']);
   for (const m of made) {
-    assert.equal(m.geometry.getAttribute('uv').count, 6);
+    assert.equal(m.geometry.getAttribute('uv').count, 12);
     const mat = m.material as THREE.MeshStandardMaterial;
     assert.ok(mat.map && mat.vertexColors, 'карта (пока заглушка) и цвет вершин — как у остальной статики');
   }

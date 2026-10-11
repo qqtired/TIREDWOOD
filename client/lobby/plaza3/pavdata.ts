@@ -39,10 +39,10 @@ export const PAVILIONS: readonly PavPlace[] = [
   // Арены: улица z −29…−23 (README.md)
   { id: 'skytower', file: 'pav_skytower.glb', x: -7, z: -39, yaw: PI, group: 'arenas', solid: 'layout' },
   { id: 'paintball', file: 'pav_paintball.glb', x: 8, z: -37, yaw: PI, group: 'arenas', solid: 'layout' },
-  { id: 'fort', file: 'pav_fort.glb', x: 26, z: -32, yaw: PI, group: 'arenas', solid: 'layout' },
+  { id: 'fort', file: 'pav_fort.glb', x: 26, z: -32, yaw: PI, group: 'arenas', solid: 'layout', live: ['live_fort_door_l', 'live_fort_door_r'] },
   { id: 'karting', file: 'pav_karting.glb', x: 40.5, z: -37, yaw: PI, group: 'arenas', solid: 'layout', live: ['live_door'] },
   // Скалы: скала с пещерой, вход игры plaza_entrance.glb — по anchor_entrance (строит DungeonEntrance)
-  { id: 'dungeon_cliff', file: 'pav_dungeon_cliff.glb', x: -18, z: -41, yaw: PI, group: 'cliffs', solid: 'layout' },
+  { id: 'dungeon_cliff', file: 'pav_dungeon_cliff_v2.glb', x: -18, z: -41, yaw: PI, group: 'cliffs', solid: 'layout' },
   // Огороды: арка (yaw не кратен 90°: col_* внутри узла повёрнуты на −yaw — в мире они по осям) и мельница поля
   { id: 'farm_arch', file: 'pav_farm_arch.glb', x: 55.1, z: -21.5, yaw: 1.8495, group: 'farm', solid: 'layout' },
   { id: 'windmill', file: 'pav_windmill.glb', x: 84, z: -62, yaw: 2.2092, group: 'farm', solid: 'mode', live: ['live_sails'] },
