@@ -1,10 +1,12 @@
 // Панель «Голос» для меню: слышать ли голос, громкость, как говорить, устройство и шумоподавление, проверка
-// микрофона (уровень и «послушать себя»), кто в голосе — у каждого своя громкость и «заглушить».
+// микрофона (уровень и «послушать себя»), кто в голосе — у каждого своя громкость и «заглушить». Строки, ползунки,
+// переключатели и кнопки — тот же набор кита, что в остальных настройках (client/ui/menu/controls.ts).
 // Меню вызывает mountVoicePanel(корень вкладки), когда вкладку открыли, и возвращённую функцию — когда ушли.
 // Голос (контроллер) появляется после ответа сервера: если вкладку открыли раньше — панель дождётся его сама.
 import type { VoiceMode, VoicePerson, VoiceView } from '../../shared/voice.ts';
 import { MicTest } from '../voice-mictest.ts';
 import { setVoiceVolumeOwner } from '../voice-prefs.ts';
+import { el, kButton, kRow, kSeg, kSlider, kSwitch, setSlider } from './menu/controls.ts';
 import './voicepanel.css';
 
 /** Что панели нужно от голоса (client/voice.ts → VoiceController) */
@@ -37,7 +39,7 @@ export function setVoiceSource(next: VoicePanelSource | null): void {
 
 /** Зоны голоса по-человечески: «world» — весь внешний мир, остальное — отдельная игра */
 const ZONE: Record<string, string> = {
-  world: 'Внешний мир', paintball: 'Склад (пейнтбол)', race: 'Картинг', fort: 'Крепость', fight: 'Подвал', skill: 'Выше облаков', hide: 'Прятки',
+  world: 'Внешний мир', paintball: 'Склад (пейнтбол)', race: 'Картинг', fort: 'Крепость', fight: 'Подвал', skill: 'Выше облаков', hide: 'Прятки', farm: 'Ферма', dungeon: 'Подземелье',
 };
 export function zoneLabel(zone: string): string { return ZONE[zone] ?? (zone ? 'Своя игра' : '—'); }
 const ZONE_HINT = 'Во внешнем мире — набережная, море с катерами, баркас — слышно всех. В режимах (крепость, картинг, прятки…) — только тех, кто в той же игре.';
@@ -50,43 +52,25 @@ const MIC: Record<VoiceView['mic'], string> = {
   unavailable: 'Не найден или занят другой программой. Подключи микрофон и нажми «Включить».',
 };
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) e.textContent = text;
-  return e;
-}
 function setText(e: HTMLElement, value: string): void { if (e.textContent !== value) e.textContent = value; }
-function button(cls: string, text: string): HTMLButtonElement { const b = el('button', cls, text); b.type = 'button'; return b; }
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
 
-/** Строка: название с пояснением слева, управление справа */
-function row(parent: HTMLElement, title: string, hint: string): { ctl: HTMLElement; hint: HTMLElement } {
-  const r = parent.appendChild(el('div', 'vp-row'));
-  const t = r.appendChild(el('div', 'vp-text'));
-  t.append(el('b', '', title));
-  const h = t.appendChild(el('small', '', hint));
-  return { ctl: r.appendChild(el('div', 'vp-ctl')), hint: h };
-}
-function toggle(ctl: HTMLElement, label: string): HTMLInputElement {
-  const sw = ctl.appendChild(el('label', 'vp-sw'));
-  const input = sw.appendChild(el('input'));
-  input.type = 'checkbox';
-  input.setAttribute('aria-label', label);
-  sw.append(el('i'));
-  return input;
-}
+/** Ползунок 0…100 со значением справа */
 function range(ctl: HTMLElement, label: string): { input: HTMLInputElement; value: HTMLElement } {
-  const input = ctl.appendChild(el('input'));
-  input.type = 'range'; input.min = '0'; input.max = '100'; input.step = '1';
-  input.setAttribute('aria-label', label);
-  return { input, value: ctl.appendChild(el('b', 'vp-num')) };
+  const input = ctl.appendChild(kSlider(label, 0, 100, 1));
+  return { input, value: ctl.appendChild(el('b', 'k-row-val')) };
 }
+function toggle(row: { ctl: HTMLElement }, label: string): HTMLInputElement {
+  const sw = kSwitch(label, 'label');
+  row.ctl.appendChild(sw.root);
+  return sw.input;
+}
+const button = kButton;
 
 /** Панель в корень вкладки. Возвращает «убрать»: панель, подписки и проверка микрофона закрываются. */
 export function mountVoicePanel(root: HTMLElement): () => void {
   const wrap = root.appendChild(el('div', 'vp'));
-  const empty = wrap.appendChild(el('p', 'vp-empty', 'Голосовой чат сейчас недоступен: его включает сервер, настройки появятся здесь после подключения.'));
+  const empty = wrap.appendChild(el('p', 'k-cell vp-empty', 'Голосовой чат сейчас недоступен: его включает сервер, настройки появятся здесь после подключения.'));
   const body = wrap.appendChild(el('div', 'vp-body'));
   body.hidden = true;
   // клавиши в полях панели не уходят в игру (как в остальном меню); Esc и M — работают
@@ -95,54 +79,55 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   wrap.addEventListener('keyup', ownKeys);
 
   // --- состояние
-  const status = body.appendChild(el('div', 'vp-status'));
+  const statusBox = body.appendChild(el('div', 'k-cell vp-status'));
+  const status = statusBox.appendChild(el('div', 'vp-status-line'));
   status.setAttribute('role', 'status');
   const zoneName = status.appendChild(el('b'));
-  const zoneInfo = status.appendChild(el('span'));
-  const alert = body.appendChild(button('vp-alert', ''));
+  const zoneInfo = status.appendChild(el('span', 'k-dim'));
+  statusBox.appendChild(el('p', 'k-faint vp-hint', ZONE_HINT));
+  const alert = body.appendChild(button('k-btn k-btn--sm vp-alert', ''));
   alert.hidden = true;
-  body.appendChild(el('p', 'vp-hint', ZONE_HINT));
 
   // --- голос
-  const main = body.appendChild(el('section', 'vp-group'));
-  main.append(el('h3', '', 'Голос'));
-  const listen = toggle(row(main, 'Слышать голос', 'После входа ты сразу слышишь всех рядом — без микрофона и без вопросов браузера.').ctl, 'Слышать голос');
-  const vol = range(row(main, 'Громкость голоса', 'Всех сразу. Свою громкость каждому — ниже, в списке.').ctl, 'Громкость голоса');
-  const micRow = row(main, 'Микрофон', '');
-  const micBtn = micRow.ctl.appendChild(button('btn ghost vp-btn', 'Включить'));
-  const modeRow = row(main, 'Как говорить', 'V — клавиша голоса. На телефоне — кнопка с микрофоном.');
-  const seg = modeRow.ctl.appendChild(el('div', 'vp-seg'));
-  seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Как говорить');
+  const main = body.appendChild(el('section', 'k-cell vp-group'));
+  main.append(el('h3', 'mn-h', 'Голос'));
+  const listen = toggle(kRow(main, 'Слышать голос', 'После входа ты сразу слышишь всех рядом — без микрофона и без вопросов браузера.'), 'Слышать голос');
+  const vol = range(kRow(main, 'Громкость голоса', 'Всех сразу. Свою громкость каждому — ниже, в списке «Кто в голосе».').ctl, 'Громкость голоса');
+  const micRow = kRow(main, 'Микрофон', '');
+  const micBtn = micRow.ctl.appendChild(button('k-btn k-btn--ghost k-btn--sm', 'Включить'));
+  const modeRow = kRow(main, 'Как говорить', 'V — клавиша голоса. На телефоне — кнопка с микрофоном.');
+  const seg = modeRow.ctl.appendChild(kSeg('Как говорить'));
   const modes: Array<[VoiceMode, HTMLButtonElement]> = [['hold', button('', 'Пока держу V')], ['toggle', button('', 'V — вкл/выкл')]];
   for (const [, b] of modes) seg.append(b);
-  const devRow = row(main, 'Устройство', '');
-  const device = devRow.ctl.appendChild(el('select', 'vp-select'));
+  const devRow = kRow(main, 'Устройство', '');
+  const device = devRow.ctl.appendChild(el('select', 'k-input vp-select'));
   device.setAttribute('aria-label', 'Микрофон');
-  const noise = toggle(row(main, 'Шумоподавление', 'Браузер приглушает вентилятор, клавиатуру и улицу. Выключи, если голос звучит «из бочки».').ctl, 'Шумоподавление');
+  const noise = toggle(kRow(main, 'Шумоподавление', 'Браузер приглушает вентилятор, клавиатуру и улицу. Выключи, если голос звучит «из бочки».'), 'Шумоподавление');
 
   // --- проверка микрофона
-  const testBox = body.appendChild(el('section', 'vp-group'));
-  testBox.append(el('h3', '', 'Проверка микрофона'));
-  const meterRow = row(testBox, 'Уровень', 'Скажи что-нибудь: полоска должна прыгать. В игру проверка не передаётся.');
-  const meter = meterRow.ctl.appendChild(el('div', 'vp-meter'));
-  const bar = meter.appendChild(el('i'));
+  const testBox = body.appendChild(el('section', 'k-cell vp-group'));
+  testBox.append(el('h3', 'mn-h', 'Проверка микрофона'));
+  const meterRow = kRow(testBox, 'Уровень', 'Скажи что-нибудь: полоска должна прыгать. В игру проверка не передаётся.');
+  const meter = meterRow.ctl.appendChild(el('div', 'k-meter vp-meter'));
+  meter.append(el('i', 'k-meter-ghost'));
+  meter.append(el('i', 'k-meter-fill'));
   meter.setAttribute('role', 'meter'); meter.setAttribute('aria-label', 'Уровень микрофона'); meter.setAttribute('aria-valuemin', '0'); meter.setAttribute('aria-valuemax', '100');
-  const testBtn = meterRow.ctl.appendChild(button('btn ghost vp-btn', 'Проверить'));
-  const echoRow = row(testBox, 'Послушать себя', 'Твой голос вернётся через 0,6 секунды. Лучше в наушниках — иначе колонки дадут эхо.');
-  const echo = toggle(echoRow.ctl, 'Послушать себя');
-  const testMsg = testBox.appendChild(el('p', 'vp-msg'));
+  const testBtn = meterRow.ctl.appendChild(button('k-btn k-btn--ghost k-btn--sm', 'Проверить'));
+  const echoRow = kRow(testBox, 'Послушать себя', 'Твой голос вернётся через 0,6 секунды. Лучше в наушниках — иначе колонки дадут эхо.');
+  const echo = toggle(echoRow, 'Послушать себя');
+  const testMsg = testBox.appendChild(el('p', 'k-faint vp-msg'));
   testMsg.hidden = true;
 
-  // --- люди
-  const peopleBox = body.appendChild(el('section', 'vp-group'));
-  const peopleHead = peopleBox.appendChild(el('h3', '', 'Кто в голосе'));
-  const list = peopleBox.appendChild(el('ul', 'vp-people'));
-  const nobody = peopleBox.appendChild(el('p', 'vp-msg', 'Пока рядом никого нет.'));
+  // --- люди: у каждого своя громкость и «заглушить» (то же, что в списке «Кто где», Tab)
+  const peopleBox = body.appendChild(el('section', 'k-cell vp-group'));
+  const peopleHead = peopleBox.appendChild(el('h3', 'mn-h', 'Кто в голосе'));
+  const list = peopleBox.appendChild(el('div', 'vp-people'));
+  const nobody = peopleBox.appendChild(el('p', 'k-faint vp-msg', 'Пока рядом никого нет.'));
   const rows = new Map<number, { root: HTMLElement; name: HTMLElement; state: HTMLElement; vol: HTMLInputElement; val: HTMLElement; mute: HTMLButtonElement; pid: number }>();
 
   const foot = body.appendChild(el('div', 'vp-foot'));
-  foot.append(el('p', 'vp-note', 'Голос идёт напрямую между игроками: собеседники могут узнать твой IP-адрес. Игра разговоры не записывает.'));
-  const rejoin = foot.appendChild(button('btn ghost vp-btn', 'Переподключить голос'));
+  foot.append(el('p', 'k-faint vp-note', 'Голос идёт напрямую между игроками: собеседники могут узнать твой IP-адрес. Игра разговоры не записывает.'));
+  const rejoin = foot.appendChild(button('k-btn k-btn--ghost k-btn--sm', 'Переподключить голос'));
 
   let src: VoicePanelSource | null = null;
   let off: (() => void) | null = null;
@@ -182,7 +167,7 @@ export function mountVoicePanel(root: HTMLElement): () => void {
   function stopTest(): void {
     test.stop();
     setText(testBtn, 'Проверить');
-    bar.style.width = '0%'; meter.setAttribute('aria-valuenow', '0');
+    meter.style.setProperty('--v', '0'); meter.classList.remove('is-hurry'); meter.setAttribute('aria-valuenow', '0');
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
   }
@@ -191,8 +176,8 @@ export function mountVoicePanel(root: HTMLElement): () => void {
     // панель спрятали (закрыли меню) — микрофон проверки отпускаем сразу
     if (!test.running || !wrap.isConnected || wrap.offsetParent === null) { stopTest(); return; }
     const level = test.level();
-    bar.style.width = `${Math.round(level * 100)}%`;
-    meter.classList.toggle('loud', level > 0.85);
+    meter.style.setProperty('--v', String(Math.round(level * 100) / 100));
+    meter.classList.toggle('is-hurry', level > 0.85);
     meter.setAttribute('aria-valuenow', String(Math.round(level * 100)));
     raf = requestAnimationFrame(tick);
   }
@@ -232,26 +217,24 @@ export function mountVoicePanel(root: HTMLElement): () => void {
       seen.add(p.id);
       let r = rows.get(p.id);
       if (!r) {
-        const li = el('li', 'vp-person');
-        const who = li.appendChild(el('div', 'vp-who'));
-        const name = who.appendChild(el('b'));
-        const state = who.appendChild(el('small'));
-        const ctl = li.appendChild(el('div', 'vp-ctl'));
-        const rg = range(ctl, '');
-        const mute = ctl.appendChild(button('btn ghost vp-btn vp-mute', ''));
+        const line = kRow(list, '', '', false, 'vp-person');
+        const li = line.root;
+        const name = line.title;
+        const state = line.hint;
+        const rg = range(line.ctl, '');
+        const mute = line.ctl.appendChild(button('k-btn k-btn--ghost k-btn--sm vp-mute', ''));
         const pid = p.pid;
         rg.input.addEventListener('input', () => { src?.setPeerVolume(pid, Number(rg.input.value) / 100); setText(rg.value, `${rg.input.value}%`); });
         mute.addEventListener('click', () => { const cur = view?.people.find(q => q.pid === pid); if (cur) src?.setPeerMuted(pid, !cur.muted); });
         r = { root: li, name, state, vol: rg.input, val: rg.value, mute, pid };
         rows.set(p.id, r);
-        list.append(li);
       }
-      setText(r.name, p.nick); r.name.title = p.nick;
+      setText(r.name, p.nick);
       setText(r.state, personState(p));
       r.root.classList.toggle('talking', p.talking && !p.muted);
       r.root.classList.toggle('muted', p.muted);
       r.vol.setAttribute('aria-label', `Громкость: ${p.nick}`);
-      if (document.activeElement !== r.vol) r.vol.value = String(Math.round(p.volume * 100));
+      if (document.activeElement !== r.vol) setSlider(r.vol, String(Math.round(p.volume * 100)));
       setText(r.val, pct(p.volume));
       r.vol.disabled = p.muted;
       setText(r.mute, p.muted ? 'Слушать' : 'Заглушить');
@@ -279,7 +262,7 @@ export function mountVoicePanel(root: HTMLElement): () => void {
     const alertText = v.playbackBlocked ? 'Браузер не включил звук голоса — нажми сюда, чтобы слышать' : v.notice;
     setText(alert, alertText); alert.hidden = !alertText; alert.disabled = !v.playbackBlocked;
     listen.checked = v.enabled;
-    if (document.activeElement !== vol.input) vol.input.value = String(Math.round(v.volume * 100));
+    if (document.activeElement !== vol.input) setSlider(vol.input, String(Math.round(v.volume * 100)));
     setText(vol.value, pct(v.volume));
     vol.input.disabled = !v.enabled;
     const micText = v.mic === 'ready' ? (v.transmitting ? 'Тебя слышат.' : v.mode === 'hold' ? 'Включён: говори, удерживая V.' : 'Включён: V включает и выключает передачу.')

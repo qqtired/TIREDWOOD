@@ -1,17 +1,21 @@
-// Меню игры (Esc, на телефоне ☰): слева «Продолжить», «На набережную» (в режимах) и разделы — профиль, настройки по
-// категориям, справка «Клавиши»; справа — выбранный раздел. «Продолжить» и «На набережную» закреплены вверху, «Выйти из
-// игры» — внизу: прокручивается только список разделов. Игра за меню идёт дальше: это онлайн, пауз нет. Захват мыши, сеть и сцены —
-// у App (client/app.ts); здесь вид, разделы и вуаль «Кликни, чтобы играть»: Esc прячет меню сразу, а мышь браузер
-// отдаёт только по клику (Esc — не жест пользователя).
+// Меню игры (Esc, на телефоне ☰): окно кита (.k-window--split в .k-scrim, как на странице lab/ui «Меню Esc»). Слева —
+// «Продолжить», «На набережную» (в режимах) и разделы: профиль, настройки по категориям, справка «Клавиши»; справа —
+// выбранный раздел. «Продолжить» и «На набережную» закреплены вверху, «Выйти из игры» — внизу: прокручивается только
+// список разделов. Игра за меню идёт дальше: это онлайн, пауз нет. Захват мыши, сеть и сцены — у App (client/app.ts);
+// здесь вид, разделы и вуаль «Кликни, чтобы играть»: Esc прячет меню сразу, а мышь браузер отдаёт только по клику
+// (Esc — не жест пользователя).
 import type { GiftResultCode } from '../../../shared/gifts.ts';
 import type { RoomKind } from '../../../shared/messages.ts';
 import type { MixPreview } from '../../audio.ts';
 import type { GfxState } from '../../render/gfx.ts';
 import type { Settings } from '../../settings.ts';
 import { TOUCH } from '../../touch.ts';
+import { iconImg, keyHtml } from '../kit/dom.ts';
+import { sfx } from '../kit/sfx.ts';
 import type { ProfilePanel } from '../profile.ts';
 import { mountVoicePanel } from '../voicepanel.ts';
 import { GiftForm } from './gift.ts';
+import { el } from './controls.ts';
 import { keysHelp } from './keys.ts';
 import { SettingsPanel, type SettingsCategory } from './settings-panel.ts';
 import './menu.css';
@@ -20,23 +24,25 @@ export { applyInterface } from './settings-panel.ts';
 
 export type MenuSection = 'overview' | 'records' | 'collection' | 'codes' | SettingsCategory | 'voice' | 'keys';
 
-const NAV: ReadonlyArray<readonly [group: string, items: ReadonlyArray<readonly [MenuSection, string]>]> = [
-  ['Профиль', [['overview', 'Обзор'], ['records', 'Рекорды'], ['collection', 'Коллекция'], ['codes', 'Подарки и коды']]],
-  ['Настройки', [['graphics', 'Графика'], ['sound', 'Звук'], ['voice', 'Голос'], ['controls', 'Управление'], ['interface', 'Интерфейс']]],
-  ['Справка', [['keys', 'Клавиши']]],
+/** Разделы слева: значок (client/assets/ui/icons), название */
+const NAV: ReadonlyArray<readonly [group: string, items: ReadonlyArray<readonly [MenuSection, icon: string, name: string]>]> = [
+  ['Профиль', [['overview', 'level', 'Обзор'], ['records', 'records', 'Рекорды'], ['collection', 'collection', 'Коллекция'], ['codes', 'gift', 'Подарки и коды']]],
+  ['Настройки', [['graphics', 'camera', 'Графика'], ['sound', 'sound', 'Звук'], ['voice', 'voice', 'Голос'], ['controls', 'settings', 'Управление'], ['interface', 'chat', 'Интерфейс']]],
+  ['Справка', [['keys', 'keys', 'Клавиши']]],
 ];
 
-const HEAD: Record<MenuSection, readonly [title: string, lead: string]> = {
-  overview: ['Профиль', 'Ник, жетоны и уровень. С уровнем растёт рамка ника'],
-  records: ['Рекорды', 'Лучшие результаты и счёт по режимам — считает сервер'],
-  collection: ['Коллекция', TOUCH ? 'Рыбы и находки. На набережной журнал рыбака — кнопка 📖' : 'Рыбы и находки. На набережной журнал рыбака — клавиша J'],
-  codes: ['Подарки и коды', 'Подарочный код, вход с другого устройства, примерочная'],
-  graphics: ['Графика', 'Качество, разрешение, тени, эффекты, дальность, ограничение кадров'],
-  sound: ['Звук', 'Общая громкость, музыка, окружение, эффекты, интерфейс и голоса'],
-  voice: ['Голос', 'Голосовой чат: включить, проверить микрофон, кого слышно'],
-  controls: ['Управление', TOUCH ? 'Обзор пальцем, прицел, инверсия' : 'Мышь, прицел, инверсия'],
-  interface: ['Интерфейс', 'Размер меню и чата, сообщения чата'],
-  keys: ['Клавиши', TOUCH ? 'Кнопки на экране' : 'Коротко: что на какой клавише'],
+/** Шапка раздела: группа над названием (как в lab/ui) */
+const HEAD: Record<MenuSection, readonly [group: string, title: string]> = {
+  overview: ['Профиль', 'Обзор'],
+  records: ['Профиль', 'Рекорды'],
+  collection: ['Профиль', 'Коллекция'],
+  codes: ['Профиль', 'Подарки и коды'],
+  graphics: ['Настройки', 'Графика'],
+  sound: ['Настройки', 'Звук'],
+  voice: ['Настройки', 'Голос'],
+  controls: ['Настройки', 'Управление'],
+  interface: ['Настройки', 'Интерфейс'],
+  keys: ['Справка', 'Клавиши'],
 };
 
 const PROFILE: ReadonlySet<MenuSection> = new Set<MenuSection>(['overview', 'records', 'collection', 'codes']);
@@ -76,8 +82,8 @@ export class GameMenu {
   private readonly actions: MenuActions;
   private readonly hint: HTMLElement;
   private readonly veilHint: HTMLElement;
+  private readonly eyebrow: HTMLElement;
   private readonly title: HTMLElement;
-  private readonly lead: HTMLElement;
   private readonly body: HTMLElement;
   private readonly tabs = new Map<MenuSection, HTMLButtonElement>();
   private readonly panes = new Map<string, HTMLElement>();
@@ -91,56 +97,56 @@ export class GameMenu {
   constructor(profile: ProfilePanel, settings: Settings, actions: MenuActions) {
     this.actions = actions;
     this.root = el('div', 'screen pause');
+    // корень остаётся «экраном» #menus, само окно — в слое кита .k-scrim (масштаб --hud-k, затемнение)
     this.root.innerHTML = `
-      <div class="mn-card" role="dialog" aria-modal="true" aria-labelledby="mn-title">
-        <aside class="mn-side">
-          <div class="mn-head">
-            <div class="mn-name">Меню</div>
-            <div class="mn-sub"></div>
-          </div>
-          <div class="mn-go">
-            <button class="btn primary mn-resume" type="button">Продолжить</button>
-            <button class="btn mn-lobby" type="button">На набережную</button>
-          </div>
-          <div class="mn-hint" role="status"></div>
-          <nav class="mn-nav" aria-label="Разделы меню"></nav>
-          <div class="mn-exit">
-            <button class="btn ghost mn-leave" type="button">Выйти из игры</button>
-          </div>
-        </aside>
-        <section class="mn-main">
-          <header class="mn-top">
-            <div class="mn-top-text">
-              <h2 class="mn-title" id="mn-title"></h2>
-              <p class="mn-lead"></p>
+      <div class="k-scrim mn-scrim">
+        <div class="k-window k-window--lg k-window--split mn-window" role="dialog" aria-modal="true" aria-labelledby="mn-title">
+          <aside class="k-win-side">
+            <div class="mn-head">
+              <h2 class="k-win-title">Меню</h2>
+              <p class="mn-sub"></p>
             </div>
-            <button class="mn-x" type="button" aria-label="Закрыть меню" title="${TOUCH ? 'Закрыть' : 'Закрыть (Esc)'}">✕</button>
-          </header>
-          <div class="mn-body"></div>
-        </section>
-      </div>
-      <div class="mn-veil">
-        <b>Кликни, чтобы играть</b>
-        <span>Esc — меню</span>
-        <i class="mn-veil-hint"></i>
+            <button class="k-btn k-btn--go k-btn--wide mn-resume" type="button">Продолжить${TOUCH ? '' : keyHtml('Esc', 'tr')}</button>
+            <button class="k-btn k-btn--info k-btn--sm k-btn--wide mn-lobby" type="button">На набережную</button>
+            <div class="mn-hint" role="status"></div>
+            <nav class="k-nav mn-nav" aria-label="Разделы меню"></nav>
+            <button class="k-btn k-btn--ghost k-btn--sm k-btn--wide mn-leave" type="button"><span class="k-row-line">${iconImg('exit')}Выйти из игры</span></button>
+          </aside>
+          <section class="k-win-main">
+            <header class="k-win-head">
+              <div class="k-win-titles">
+                <p class="k-eyebrow mn-eyebrow"></p>
+                <h2 class="k-win-title" id="mn-title"></h2>
+              </div>
+              <div class="k-win-tools"><button class="k-close mn-x" type="button" aria-label="Закрыть меню">${TOUCH ? '' : keyHtml('Esc', undefined, 'sm')}</button></div>
+            </header>
+            <div class="k-win-body mn-body"></div>
+          </section>
+        </div>
+        <div class="k-panel mn-veil">
+          <b>Кликни, чтобы играть</b>
+          <span>${TOUCH ? 'Меню — ☰' : `${keyHtml('Esc', undefined, 'sm')} — меню`}</span>
+          <i class="mn-veil-hint"></i>
+        </div>
       </div>`;
     const q = <T extends HTMLElement>(sel: string): T => this.root.querySelector<T>(sel)!;
     this.sub = q('.mn-sub');
     this.hint = q('.mn-hint');
     this.veilHint = q('.mn-veil-hint');
-    this.title = q('.mn-title');
-    this.lead = q('.mn-lead');
+    this.eyebrow = q('.mn-eyebrow');
+    this.title = q('#mn-title');
     this.body = q('.mn-body');
     this.toLobbyBtn = q<HTMLButtonElement>('.mn-lobby');
 
-
     const nav = q('.mn-nav');
     for (const [group, items] of NAV) {
-      const g = nav.appendChild(el('div', 'mn-group'));
-      g.appendChild(el('div', 'mn-group-h', group));
-      for (const [id, name] of items) {
-        const b = g.appendChild(el('button', 'mn-tab', name)) as HTMLButtonElement;
+      nav.appendChild(el('p', 'k-nav-h', group));
+      for (const [id, icon, name] of items) {
+        const b = nav.appendChild(el('button', 'k-nav-item')) as HTMLButtonElement;
         b.type = 'button';
+        b.dataset.sfx = 'tick';
+        b.insertAdjacentHTML('beforeend', iconImg(icon));
+        b.append(name);
         b.addEventListener('click', () => this.show(id));
         this.tabs.set(id, b);
       }
@@ -152,7 +158,7 @@ export class GameMenu {
     this.pane('overview', profile.overview);
     this.pane('records', profile.records);
     this.pane('collection', profile.collection);
-    this.pane('codes', codes(this.gift.root, profile.device));
+    this.pane('codes', codes(this.gift.root));
     this.pane('settings', this.settings.root);
     this.pane('voice', this.voiceRoot);
     this.pane('keys', keysHelp());
@@ -161,9 +167,9 @@ export class GameMenu {
     q('.mn-x').addEventListener('click', () => actions.resume());
     this.toLobbyBtn.addEventListener('click', () => actions.toLobby());
     q('.mn-leave').addEventListener('click', () => actions.leave());
-    // клик мимо карточки и по вуали — тоже «Продолжить»
+    // клик мимо окна и по вуали — тоже «Продолжить»
     this.root.addEventListener('mousedown', (e) => {
-      if (e.button === 0 && (e.target === this.root || this.veil)) actions.resume();
+      if (e.button === 0 && (e.target === this.root || (e.target as Element).classList.contains('k-scrim') || this.veil)) actions.resume();
     });
     this.show(this.section);
   }
@@ -182,6 +188,7 @@ export class GameMenu {
     if (open === this.shown) return;
     this.shown = open;
     this.root.classList.toggle('show', open);
+    sfx.play(open ? 'open' : 'close');
     this.setVeil(false);
     if (open) {
       this.body.scrollTop = 0;
@@ -200,12 +207,13 @@ export class GameMenu {
     const was = this.section;
     this.section = section;
     for (const [id, b] of this.tabs) {
+      b.classList.toggle('is-on', id === section);
       if (id === section) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
     }
-    const [title, lead] = HEAD[section];
+    const [group, title] = HEAD[section];
+    this.eyebrow.textContent = group;
     this.title.textContent = title;
-    this.lead.textContent = lead;
     const key = SETTINGS.has(section) ? 'settings' : section;
     for (const [k, p] of this.panes) p.hidden = k !== key;
     if (SETTINGS.has(section)) this.settings.show(section as SettingsCategory);
@@ -278,24 +286,19 @@ export class GameMenu {
   }
 }
 
-/** «Подарки и коды»: подарочный код, вход с другого устройства, где примерочная */
-function codes(gift: HTMLElement, device: HTMLElement): HTMLElement {
+/** «Подарки и коды»: подарочный код и где примерочная (код для входа с другого устройства — в «Обзоре», как на странице lab/ui) */
+function codes(gift: HTMLElement): HTMLElement {
   const wrap = el('div', 'mn-codes');
-  const box = (title: string, text: string, ...content: Node[]) => {
-    const b = wrap.appendChild(el('div', 'mn-box'));
-    b.appendChild(el('h3', '', title));
-    b.appendChild(el('p', '', text));
+  const box = (icon: string, title: string, text: string, ...content: Node[]) => {
+    const b = wrap.appendChild(el('div', 'k-cell mn-box'));
+    const head = b.appendChild(el('div', 'mn-box-head'));
+    head.insertAdjacentHTML('beforeend', iconImg(icon));
+    const t = head.appendChild(el('div', 'mn-box-text'));
+    t.appendChild(el('div', 'k-row-title', title));
+    t.appendChild(el('div', 'k-row-hint', text));
     b.append(...content);
   };
-  box('Подарочный код', 'Есть код от друзей или с события? Введи его — подарок сразу появится в гардеробе.', gift);
-  box('Вход с другого устройства', 'Играешь и с компьютера, и с телефона? Возьми код здесь и введи его на другом устройстве: «У меня есть код». Код одноразовый и действует несколько минут.', device);
-  box('Примерочная', 'Купленные и подаренные вещи надеваются в ларьке «Примерочная» у воды на набережной: подойди к зеркалу и нажми E.');
+  box('gift', 'Подарочный код', 'Есть код от друзей или с события? Введи его — подарок сразу появится в гардеробе.', gift);
+  box('wardrobe', 'Примерочная', 'Купленные и подаренные вещи надеваются в ларьке «Примерочная» у воды на набережной: подойди к зеркалу и нажми E.');
   return wrap;
-}
-
-function el(tag: string, cls: string, text = ''): HTMLElement {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text) e.textContent = text;
-  return e;
 }
