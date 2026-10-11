@@ -8,6 +8,21 @@
 :root { --en-night: 24, 14, 20; }
 .en-scr, .en-scr *, .en-scr *::before, .en-scr *::after { box-sizing: border-box; }
 .en-scr { --en-ink: var(--hero-step-ink, var(--surf-solid)); position: absolute; inset: 0; overflow: hidden; zoom: var(--hud-k, 1); color: var(--surf-text); font-family: var(--font-text); font-size: var(--fs-16); line-height: var(--lh); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+/* Вход и загрузка — полноэкранные страницы, а не HUD: остаются «Ретро-парком 2.0» и при <html data-hud="light">.
+   Плашки (.k-plate, .k-pill--plate) кит всегда считает HUD-ными и на светлом HUD делает белыми — здесь им возвращаем оконные
+   значения. Пять цветов плашки (--plate-*) светлый блок tokens.css перекрывает, а оконной пары у них нет, поэтому значения
+   ретро-парка повторены отсюда: client/ui/kit/tokens.css, блок «Ретро-парк 2.0» (--plate-bg … --plate-shadow). */
+.en-scr :is(.k-plate, .k-pill--plate) {
+  --surf-solid: var(--w-surf-solid); --surf-text: var(--w-surf-text); --surf-dim: var(--w-surf-dim); --surf-faint: var(--w-surf-faint); --surf-2: var(--w-surf-2);
+  --surf-2-border: var(--w-surf-2-border); --surf-3: var(--w-surf-3); --line: var(--w-line); --line-strong: var(--w-line-strong); --panel-bg: var(--w-panel-bg);
+  --panel-border: var(--w-panel-border); --panel-shadow: var(--w-panel-shadow); --gold-text: var(--w-gold-text); --good-text: var(--w-good-text); --bad-text: var(--w-bad-text);
+  --info-text: var(--w-info-text); --special-text: var(--w-special-text); --ghost-bg: var(--w-ghost-bg); --ghost-text: var(--w-ghost-text); --ghost-border: var(--w-ghost-border);
+  --ghost-bg-hover: var(--w-ghost-bg-hover); --ghost-drop: var(--w-ghost-drop); --track: var(--w-track); --track-border: var(--w-track-border); --trail: var(--w-trail);
+  --ring-face: var(--w-ring-face); --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil);
+  --info: var(--w-info); --info-soft: var(--w-info-soft); --hk: 0%;
+  --plate-bg: rgba(13, 82, 77, .92); --plate-text: #fff4dc; --plate-border: 1.5px solid rgba(243, 230, 201, .72);
+  --plate-shadow: 0 0 0 1px rgba(6, 40, 37, .45), 0 4px 12px rgba(3, 25, 23, .24); --plate-blur: none;
+}
 .en-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 .en-shade { position: absolute; inset: 0; pointer-events: none; }
 .en-shade--left { background: linear-gradient(90deg, rgba(var(--en-night), .5) 0%, rgba(var(--en-night), .22) 30%, rgba(var(--en-night), 0) 50%), linear-gradient(0deg, rgba(var(--en-night), .45) 0%, rgba(var(--en-night), 0) 22%); }
@@ -107,7 +122,7 @@
 @media (prefers-reduced-motion: reduce) { .en-spin, .en-live-dot::after, .en-conn .k-meter.is-wait .k-meter-fill { animation: none; } }
 
 /* телефон: у кнопок клавиш нет; колонка и окно связи — по ширине экрана */
-.touch .en-scr .k-key--tr { display: none; }
+.touch .en-scr .k-key--tr, .touch .en-conn .k-key--tr { display: none; }
 @media (max-width: 720px) {
   .en-col { left: 0; padding-left: 16px; padding-right: 16px; }
   .en-card { width: 100%; margin-top: 28px; }

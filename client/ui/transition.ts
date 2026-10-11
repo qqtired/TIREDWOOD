@@ -610,7 +610,7 @@ export class Transition {
     let tone: 'danger' | undefined;
     if (!this.busy && this.waiting > 0 && late.length) {
       key = `wait|${names(late)}|${this.waiting}`;
-      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Ждём: ${escHtml(names(late))}</div><div class="k-event-sub">${late.length > 1 ? 'Начнём, как только загрузятся' : 'Остальные уже на месте — начнём, как только загрузится'}</div><div class="k-event-timer">до ${this.waiting} с</div>${meterHtml(this.waiting / WAIT_S, 'mode', 'k-meter--thin')}`;
+      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Ждём: ${escHtml(names(late))}</div><div class="k-event-sub">${late.length > 1 ? 'Начнём, как только загрузятся' : 'Остальные уже на месте — начнём, как только загрузится'}</div><div class="k-event-timer">до ${this.waiting} с</div><div style="display:contents" data-mode="${this.kind}">${meterHtml(this.waiting / WAIT_S, 'mode', 'k-meter--thin')}</div>`;
     } else if (!this.busy && this.missedUntil && late.length) {
       key = `missed|${names(late)}`;
       tone = 'danger';

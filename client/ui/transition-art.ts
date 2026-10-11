@@ -62,6 +62,7 @@ export const MODE_CARDS: Record<RoomKind, ModeCard> = {
     sub: 'Гонка на картах',
     build: 'Размечаем трассу…',
     go: 'Вперёд!',
+    lineIcon: 'flag-finish',
     focus: '50% 50%',
     tips: [
       'Пробел с рулём — занос, отпусти — ускорение',
