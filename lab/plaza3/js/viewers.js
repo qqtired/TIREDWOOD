@@ -195,26 +195,57 @@ function drawBall(g, cx, cy, r) {
   g.fillStyle = '#2a1f24'; g.font = `900 ${Math.round(r * 0.62)}px Rubik, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText('8', cx - r * 0.12, cy - r * 0.08); g.textAlign = 'left';
 }
+// вывеска на модели — скин «Ретро-парк 2.0» (game-opus-ui/docs/sign-tokens-retropark2.md): эмалевый щит, кант крем + тёмная обводка,
+// узкая маркиза коралл/крем, иконка в круге, название Rubik Mono One, строка статуса Rubik 700 и точка состояния справа.
+// Размеры — от «обычной вывески» 1024×352 (CSS-пиксели ×4), по высоте щита.
+const RP2 = { top: '#13675f', bottom: '#0d524d', cream: '#f3e6c9', outline: '#0a3b37', text: '#fff4dc', dim: 'rgba(255,244,220,.76)', coral: '#ff7a5c', go: '#ffcd4a', open: '#56c07d', bad: '#e5484d' };
+function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
+function statusState(t) { return /закрыт|нет мест/i.test(t) ? 'bad' : /идёт|играет|бегут|прячутся|внизу|в бухте/i.test(t) ? 'go' : 'open'; }
 function signTexture(cfg, w, h, icon) {
-  const W = 1024, H = Math.max(96, Math.min(1024, Math.round(W * h / Math.max(0.01, w))));
+  const W = 1024, H = Math.max(160, Math.min(1024, Math.round(W * h / Math.max(0.01, w))));
+  const k = Math.min(H / 352, W / 1024 * 1.6);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#fff3de'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = '#ffd35a'; g.lineWidth = Math.max(6, H * 0.05); g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, W - g.lineWidth, H - g.lineWidth);
-  const r = H * 0.36;
-  if (icon) g.drawImage(icon, H * 0.5 - r, H * 0.5 - r, r * 2, r * 2);
-  else if (cfg.icon === 'ball') drawBall(g, H * 0.5, H * 0.5, r * 0.8);
-  else { g.fillStyle = '#d9643a'; g.beginPath(); g.arc(H * 0.5, H * 0.5, r * 0.8, 0, 7); g.fill(); }
-  const title = cfg.text || '';
-  g.fillStyle = '#2a1f24';
-  let fs = Math.round(H * 0.4);
-  g.font = `900 ${fs}px Rubik, sans-serif`;
-  while (g.measureText(title).width > W - H * 1.15 && fs > 10) { fs -= 2; g.font = `900 ${fs}px Rubik, sans-serif`; }
+  const R = 48 * k, o = 4 * k, cr = 8 * k, ins = o + cr;
+  rr(g, 0, 0, W, H, R); g.fillStyle = RP2.outline; g.fill();
+  rr(g, o, o, W - 2 * o, H - 2 * o, R - o); g.fillStyle = RP2.cream; g.fill();
+  rr(g, ins, ins, W - 2 * ins, H - 2 * ins, R - ins);
+  const en = g.createLinearGradient(0, ins, 0, H - ins); en.addColorStop(0, RP2.top); en.addColorStop(1, RP2.bottom);
+  g.fillStyle = en; g.fill();
+  g.save(); g.clip();
+  const sh = g.createLinearGradient(0, ins, 0, ins + (H - 2 * ins) * 0.32); sh.addColorStop(0, 'rgba(255,255,255,.055)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = sh; g.fillRect(0, 0, W, H);
+  // маркиза по верхнему краю: полосы 88, высота 40, прямой низ
+  const aw = 40 * k;
+  for (let x = ins, i = 0; x < W; x += 88 * k, i++) { g.fillStyle = i % 2 ? RP2.cream : RP2.coral; g.fillRect(x, ins, 88 * k, aw); }
+  g.restore();
+  const top = ins + aw, mid = (top + H - ins) / 2, pad = 64 * k;
+  const ir = Math.min(120 * k, (H - ins - top) / 2 - 18 * k);
+  const icx = ins + pad * 0.6 + ir + 16 * k;
+  g.fillStyle = RP2.cream; g.beginPath(); g.arc(icx, mid, ir + 16 * k, 0, 7); g.fill();
+  g.fillStyle = RP2.coral; g.beginPath(); g.arc(icx, mid, ir + 8 * k, 0, 7); g.fill();
+  const ig = g.createRadialGradient(icx - ir * 0.3, mid - ir * 0.4, 0, icx, mid, ir); ig.addColorStop(0, '#fff8e6'); ig.addColorStop(0.7, '#f1dcb0'); ig.addColorStop(1, '#f1dcb0');
+  g.fillStyle = ig; g.beginPath(); g.arc(icx, mid, ir, 0, 7); g.fill();
+  if (icon) g.drawImage(icon, icx - ir * 0.8, mid - ir * 0.8, ir * 1.6, ir * 1.6);
+  else if (cfg.icon === 'ball') drawBall(g, icx, mid, ir * 0.7);
+  const tx = icx + ir + 16 * k + 48 * k, maxW = W - ins - pad * 0.6 - tx;
+  const title = String(cfg.text || '').toUpperCase();
+  let fs = Math.round(80 * k);
+  const font = (s) => `400 ${s}px "Rubik Mono One", Rubik, sans-serif`;
+  g.font = font(fs);
+  while (g.measureText(title).width > maxW && fs > 12) { fs -= 2; g.font = font(fs); }
+  const st = cfg.status ? Math.round(40 * k) : 0;
+  const base = cfg.status ? mid - 4 * k : mid + fs * 0.36;
   g.textBaseline = 'alphabetic';
-  g.fillText(title, H * 1.02, H * (cfg.status ? 0.55 : 0.64));
+  g.fillStyle = RP2.outline; g.fillText(title, tx, base + 8 * k);
+  g.fillStyle = RP2.text; g.fillText(title, tx, base);
   if (cfg.status) {
-    g.fillStyle = '#c4512d'; g.font = `700 ${Math.round(Math.min(fs * 0.52, H * 0.2))}px Rubik, sans-serif`;
-    g.fillText(cfg.status, H * 1.04, H * 0.84);
+    const dot = 40 * k, sy = base + 16 * k + st;
+    g.font = `700 ${st}px Rubik, sans-serif`;
+    let s = cfg.status;
+    while (g.measureText(s).width > maxW - dot * 1.6 && s.length > 4) s = s.slice(0, -2).trimEnd() + '…';
+    g.fillStyle = RP2.dim; g.fillText(s, tx, sy);
+    g.fillStyle = RP2[statusState(cfg.status)]; g.beginPath(); g.arc(W - ins - pad * 0.6 - dot / 2, sy - st * 0.36, dot / 2, 0, 7); g.fill();
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
@@ -319,13 +350,13 @@ export async function buildPavilion(url, { assets, signs = [], onProg } = {}) {
   // вывески
   const faces = mats(/^anchor_sign_face/);
   if (faces.length && signs.length) {
-    await document.fonts?.load('900 64px Rubik').catch(() => {});
+    await Promise.all(['400 80px "Rubik Mono One"', '700 40px Rubik'].map((f) => document.fonts?.load(f))).catch(() => {});
     for (let i = 0; i < faces.length; i++) {
       const cfg = signs[Math.min(i, signs.length - 1)];
       const icon = await loadImg(assets?.ui?.icons?.[cfg.icon]);
       const s = new THREE.Vector3();
       faces[i].matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), s);
-      const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: signTexture(cfg, Math.abs(s.x), Math.abs(s.y), icon), toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+      const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: signTexture(cfg, Math.abs(s.x), Math.abs(s.y), icon), toneMapped: false, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
       quad.matrixAutoUpdate = false;
       quad.matrix.copy(faces[i].matrixWorld);
       out.add(quad);
@@ -755,7 +786,95 @@ function roseTexture() {
   return t;
 }
 
-export async function plazaViewer(host, { assets, layout, models, npcs, signFor, labelFor, quarterOf, onPick, onReady, progress }) {
+// ------------------------------------------------------------------------------------------------ надпись TIREDWOOD на холме
+// Упрощённая копия client/lobby/tiredwood.ts: те же буквы-плиты (рубленый шрифт блоками), высота 45 м, белые без света и
+// тумана, тёмные стойки. Стоят по дуге на расстоянии d от колеса, середина слова — на азимуте bearing (от севера к востоку).
+const TW = { S: 0.21, GAP: 0.17, DEPTH: 0.07 };
+function twRect(x0, y0, x1, y1) { return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
+function twRounded(x0, y0, x1, y1, r, seg = 6) {
+  const out = [];
+  const arc = (cx, cy, rad, a0) => {
+    if (rad <= 0) { out.push([cx, cy]); return; }
+    for (let i = 0; i <= seg; i++) { const a = a0 + (i / seg) * (Math.PI / 2); out.push([cx + Math.cos(a) * rad, cy + Math.sin(a) * rad]); }
+  };
+  arc(x0 + r[0], y0 + r[0], r[0], Math.PI); arc(x1 - r[1], y0 + r[1], r[1], Math.PI * 1.5);
+  arc(x1 - r[2], y1 - r[2], r[2], 0); arc(x0 + r[3], y1 - r[3], r[3], Math.PI / 2);
+  return out;
+}
+function twSlant(xb, xt, t) { return [[xb - t / 2, 0], [xb + t / 2, 0], [xt + t / 2, 1], [xt - t / 2, 1]]; }
+function twGlyph(ch) {
+  const S = TW.S;
+  switch (ch) {
+    case 'T': { const w = 0.66, c = w / 2; return { w, parts: [{ outer: [[c - S / 2, 0], [c + S / 2, 0], [c + S / 2, 1 - S], [w, 1 - S], [w, 1], [0, 1], [0, 1 - S], [c - S / 2, 1 - S]] }], feet: [c - 0.05, c + 0.05] }; }
+    case 'I': return { w: S + 0.01, parts: [{ outer: twRect(0, 0, S + 0.01, 1) }], feet: [(S + 0.01) / 2] };
+    case 'R': { const w = 0.64; return { w, parts: [{ outer: twRect(0, 0, S, 1) }, { outer: twRounded(0, 0.4, w, 1, [0, 0.2, 0.24, 0]), holes: [twRounded(S, 0.57, w - S, 1 - S, [0, 0.07, 0.07, 0])] }, { outer: [[0.18, 0.44], [0.42, 0.44], [w, 0], [w - 0.25, 0]] }], feet: [S / 2, w - 0.12] }; }
+    case 'E': { const w = 0.56, m = 0.5; return { w, parts: [{ outer: [[0, 0], [w, 0], [w, S], [S, S], [S, m - S / 2], [w * 0.9, m - S / 2], [w * 0.9, m + S / 2], [S, m + S / 2], [S, 1 - S], [w, 1 - S], [w, 1], [0, 1]] }], feet: [0.12, w - 0.13] }; }
+    case 'D': { const w = 0.66; return { w, parts: [{ outer: twRounded(0, 0, w, 1, [0, 0.32, 0.32, 0]), holes: [twRounded(S, S, w - S, 1 - S, [0, 0.13, 0.13, 0])] }], feet: [0.12, 0.38] }; }
+    case 'W': { const w = 1, t = S * 1.12; return { w, parts: [{ outer: twSlant(0.27, t / 2, t) }, { outer: twSlant(0.27, 0.5, t) }, { outer: twSlant(0.73, 0.5, t) }, { outer: twSlant(0.73, w - t / 2, t) }], feet: [0.27, 0.73] }; }
+    case 'O': { const w = 0.74; return { w, parts: [{ outer: twRounded(0, 0, w, 1, [0.3, 0.3, 0.3, 0.3]), holes: [twRounded(S, S, w - S, 1 - S, [0.12, 0.12, 0.12, 0.12])] }], feet: [0.26, 0.48] }; }
+    default: return null;
+  }
+}
+function twOrient(pts, ccw) {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length]; a += x0 * y1 - x1 * y0; }
+  return a > 0 === ccw ? pts : [...pts].reverse();
+}
+/** Надпись: { group, center (середина слова), top (верх букв), d } */
+function buildTiredwood({ wheel, bearing, d = 530, h = 45, lineY = 37, word = 'TIREDWOOD' }) {
+  const glyphs = [...word].map(twGlyph).filter(Boolean);
+  const ang = (w) => 2 * Math.atan2((w * h) / 2, d);
+  let total = glyphs.reduce((a, g) => a + ang(g.w), 0) + (glyphs.length - 1) * (TW.GAP * h) / d;
+  let beta = bearing - total / 2;
+  let seed = 61;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const faces = [], posts = [];
+  for (const g of glyphs) {
+    const bc = beta + ang(g.w) / 2;
+    beta += ang(g.w) + (TW.GAP * h) / d;
+    const x = wheel.x + Math.sin(bc) * d, z = wheel.z - Math.cos(bc) * d;
+    const yaw = Math.atan2(wheel.x - x, wheel.z - z) + (rnd() - 0.5) * 0.05;
+    const lift = h * (0.05 + 0.07 * rnd()), lean = 0.01 + rnd() * 0.03, y = lineY + lift;
+    for (const p of g.parts) {
+      const v = (q) => new THREE.Vector2(q[0] * h, q[1] * h);
+      const shape = new THREE.Shape(twOrient(p.outer, true).map(v));
+      for (const hole of p.holes || []) shape.holes.push(new THREE.Path(twOrient(hole, false).map(v)));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: TW.DEPTH * h, bevelEnabled: false, steps: 1 });
+      geo.translate(-(g.w * h) / 2, 0, -TW.DEPTH * h);
+      // объём — цветом граней: лицо белое, торцы светло-серые (сверху светлее), спина серее
+      const n = geo.getAttribute('normal'), col = new Float32Array(n.count * 3);
+      for (let i = 0; i < n.count; i++) { const nz = n.getZ(i); const t = nz > 0.5 ? 1 : nz < -0.5 ? 0.55 : 0.68 + 0.18 * n.getY(i); col.set([t, t, t], i * 3); }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.deleteAttribute('normal'); geo.deleteAttribute('uv');
+      geo.rotateX(-lean); geo.rotateY(yaw); geo.translate(x, y, z);
+      faces.push(geo);
+    }
+    for (const f of g.feet) {
+      const lx = (f - g.w / 2) * h, top = 0.22 * h, low = -lift - 4;
+      const post = new THREE.BoxGeometry(0.034 * h, top - low, 0.034 * h).translate(lx, (top + low) / 2, -TW.DEPTH * h * 0.5);
+      post.deleteAttribute('uv');
+      post.rotateY(yaw); post.translate(x, y, z);
+      posts.push(post);
+    }
+  }
+  const group = new THREE.Group();
+  const white = new THREE.Mesh(mergeGeometries(faces), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }));
+  const dark = new THREE.Mesh(mergeGeometries(posts), new THREE.MeshBasicMaterial({ color: 0x33373b, fog: false }));
+  white.frustumCulled = false; dark.frustumCulled = false;
+  group.add(dark, white);
+  // холм под надписью: пологий горб за буквами, склон у букв — на высоте lineY. Цвет — зелень в дымке (туман его съел бы)
+  const R = 300, H = 72, back = R * Math.sqrt(1 - (lineY / H) ** 2);
+  const cx = wheel.x + Math.sin(bearing) * (d + back), cz = wheel.z - Math.cos(bearing) * (d + back);
+  const hillMat = new THREE.MeshLambertMaterial({ color: 0x9db08a, fog: false });
+  const hill = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 14, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.6, H / R, 1), hillMat);
+  hill.rotation.y = -bearing; // длинная ось горба — поперёк луча с колеса
+  hill.position.set(cx, -2, cz);
+  group.add(hill);
+  const center = V3(wheel.x + Math.sin(bearing) * d, lineY + h * 0.6, wheel.z - Math.cos(bearing) * d);
+  return { group, center, hillMat, d, top: lineY + h * 1.12 };
+}
+
+export async function plazaViewer(host, { assets, layout, models, extras = [], gameModels = [], tiredwood = null, npcs, signFor, labelFor, quarterOf, onPick, onReady, progress }) {
   const st = new Stage(host, { fov: 45, near: 0.5, far: 1800, fps: 30 });
   const { scene, camera, controls } = st;
   const r = st.renderer;
@@ -898,6 +1017,7 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
   st.label('Точка появления', arrow, { off: 1.2, maxDist: 70, cls: 'npc' });
 
   // ---------------------------------------------------------------- маяк и мостки (стоят на месте), молы выбранного варианта
+  let lighthouseObj = null, lighthouseLbl = null;
   const portV = L.port ? Object.values(L.port).find((v) => v?.lighthouseKept) : null;
   const lk = portV?.lighthouseKept || { decks: [[-21, 22, -17, 38], [-24, 38, -14, 46], [-17, 36, -14, 38]], lighthouse: { x: -19, z: 43, r: 2.4 } };
   const deckParts = [];
@@ -914,7 +1034,8 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
     tower.add(t1, t2, lamp, cap);
     tower.position.set(x, 0, z);
     scene.add(tower);
-    st.label('Маяк', tower, { off: 19, maxDist: 160 });
+    lighthouseObj = tower;
+    lighthouseLbl = st.label('Маяк', tower, { off: 19, maxDist: 160 });
   }
   const chosenDecks = [];
   if (L.port) {
@@ -1049,18 +1170,32 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
   }
 
   // ---------------------------------------------------------------- камера и виды
+  // ---------------------------------------------------------------- надпись TIREDWOOD на холме (как в игре — азимут от колеса)
+  const wheelP = pavById.get('wheel');
+  const wheelAt = wheelP?.center ? { x: wheelP.center.x, z: wheelP.center.z } : { x: 27, z: 13 };
+  let tw = null;
+  if (tiredwood && typeof tiredwood.bearingDeg === 'number') {
+    tw = buildTiredwood({ wheel: wheelAt, bearing: THREE.MathUtils.degToRad(tiredwood.bearingDeg), d: tiredwood.distanceM || 530, h: tiredwood.letterH || 45, lineY: tiredwood.lineY ?? 37 });
+    scene.add(tw.group);
+    st.label(`TIREDWOOD — на холме за городом, ~${Math.round(tw.d / 10) * 10} м`, tw.center.clone().setY(tw.top + 6), { maxDist: Infinity, cls: 'qlbl tw' });
+  }
   const VIEWS = {
     overview: [V3(46, 68, 62), V3(14, 0, -14)],
     spawn: [V3(spawn.x, 2.1, spawn.z + 2.2), V3(spawn.x, 6, spawn.z - 40)],
     top: [V3(17, 190, 4), V3(17, 0, -8)],
   };
+  if (tw) {
+    // с колеса (высота ~18 м) на надпись: цель — в 40 м по лучу, чуть выше глаз
+    const dir = tw.center.clone().setY(0).sub(V3(wheelAt.x, 0, wheelAt.z)).normalize();
+    VIEWS.tiredwood = [V3(wheelAt.x - dir.x * 14, 22, wheelAt.z - dir.z * 14), V3(wheelAt.x + dir.x * 40, 20, wheelAt.z + dir.z * 40)];
+  }
   for (const [id, c] of Object.entries(quarterCenters)) {
     const span = id === 'hub' ? 26 : id === 'port' ? 44 : 36;
     VIEWS[id] = [V3(c.x + span * 0.35, span * 0.95, c.z + span * 1.05), V3(c.x, 2, c.z)];
   }
   // узкое окно (телефон) — отодвигаем камеру, чтобы в кадр влезло то же, что на десктопе
   const asp = (host.clientWidth || 1) / (host.clientHeight || 1);
-  if (asp < 1.4) for (const [id, [p, t]] of Object.entries(VIEWS)) if (id !== 'spawn') p.sub(t).multiplyScalar(Math.min(1.9, Math.pow(1.6 / asp, 0.75))).add(t);
+  if (asp < 1.4) for (const [id, [p, t]] of Object.entries(VIEWS)) if (id !== 'spawn' && id !== 'tiredwood') p.sub(t).multiplyScalar(Math.min(1.9, Math.pow(1.6 / asp, 0.75))).add(t);
   camera.position.copy(VIEWS.overview[0]);
   controls.target.copy(VIEWS.overview[1]);
   controls.maxPolarAngle = Math.PI * 0.48;
@@ -1135,7 +1270,62 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
   // ---------------------------------------------------------------- готовые павильоны и жители
   const placed = new Map(); // layoutId -> Group
   const residents = new Map(); // layoutId -> Vector3 (мир)
-  const total = { pav: models.size, done: 0 };
+  const total = { pav: models.size + extras.length, done: 0 };
+  // модели без своего павильона в раскладке (маяк, вторая доска у почёта и т. п.) — по координатам из манифеста
+  async function placeExtra(m) {
+    if (!m.origin) return;
+    const id = m.layoutId || null;
+    const pav = await buildPavilion(m.file, { assets, signs: id ? signFor(id) : [] });
+    const wrap = new THREE.Group();
+    wrap.add(pav);
+    wrap.position.set(m.origin[0], 0, m.origin[1]);
+    wrap.rotation.y = typeof m.yaw === 'number' ? m.yaw : 0;
+    if (id) wrap.userData.pick = id;
+    scene.add(wrap);
+    wrap.updateMatrixWorld(true);
+    const top0 = new THREE.Box3().setFromObject(wrap).max.y, top = m.role === 'lighthouse' ? top0 : Math.min(top0, 10);
+    if (m.role === 'lighthouse' && lighthouseObj) {
+      lighthouseObj.visible = false;
+      if (lighthouseLbl) { lighthouseLbl.obj = V3(m.origin[0], top + 1, m.origin[1]); lighthouseLbl.off = 0; }
+    } else {
+      if (id) { const s = stubs.get(id); if (s) { s.visible = false; const k = pickables.indexOf(s); if (k >= 0) pickables.splice(k, 1); } const Lb = labelsById.get(id); if (Lb) Lb.el.classList.remove('stub'); }
+      st.label(m.name || m.key, V3(m.origin[0], top + 0.8, m.origin[1]), { maxDist: 70 });
+    }
+    if (id) pickables.push(wrap);
+    total.done++;
+    r.shadowMap.needsUpdate = true;
+    st.dirty = true;
+  }
+  // то, что уже стоит в игре: вход в пещеру, калитка фермы — их GLB из client/assets как есть
+  async function placeGame(g) {
+    const gl = await load(g.file);
+    // узел (вход, доска рекордов) ставим своим началом в точку якоря; без узла — весь файл
+    const src = g.node ? gl.scene.getObjectByName(g.node) : gl.scene;
+    if (!src) return;
+    const part = src.clone(true);
+    part.position.set(0, 0, 0); part.rotation.set(0, 0, 0);
+    const root = new THREE.Group();
+    root.add(part);
+    root.position.set(g.world[0], g.y || 0, g.world[1]);
+    root.rotation.y = g.yaw || 0;
+    root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const pid = g.layoutId || g.pick;
+    if (pid) root.userData.pick = pid;
+    scene.add(root);
+    root.updateMatrixWorld(true);
+    if (pid) pickables.push(root);
+    // заменяет заглушку раскладки (калитка фермы) — коробку и её подпись «заглушка» убираем
+    if (g.layoutId) {
+      const s = stubs.get(g.layoutId);
+      if (s) { s.visible = false; const k = pickables.indexOf(s); if (k >= 0) pickables.splice(k, 1); }
+      const Lb = labelsById.get(g.layoutId);
+      if (Lb) Lb.show = false; // подпись даёт сама модель из игры
+    }
+    const top = Math.min(new THREE.Box3().setFromObject(root).max.y, 9);
+    st.label(g.name, V3(g.world[0], top + 0.8, g.world[1]), { maxDist: 60, cls: 'game' });
+    r.shadowMap.needsUpdate = true;
+    st.dirty = true;
+  }
   async function placePavilion(id, m) {
     const p = pavById.get(id);
     const pav = await buildPavilion(m.file, { assets, signs: signFor(id) });
@@ -1156,7 +1346,7 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
     if (s) { s.visible = false; const i = pickables.indexOf(s); if (i >= 0) pickables.splice(i, 1); }
     // для курзала-заглушки башенка и галерея — та же коробка; убираем и её подпись «заглушка»
     const Lb = labelsById.get(id);
-    if (Lb) { Lb.el.classList.remove('stub'); Lb.obj = V3(ox, new THREE.Box3().setFromObject(wrap).max.y + 0.8, oz); }
+    if (Lb) { Lb.el.classList.remove('stub'); Lb.obj = p?.sign && typeof p.sign.x === 'number' ? V3(p.sign.x, (p.sign.y || 3) + 1.8, p.sign.z) : V3(ox, Math.min(new THREE.Box3().setFromObject(wrap).max.y, 10) + 0.8, oz); }
     if (pav.userData.resident) residents.set(id, pav.userData.resident.clone().applyMatrix4(wrap.matrixWorld));
     total.done++;
     r.shadowMap.needsUpdate = true;
@@ -1200,6 +1390,12 @@ export async function plazaViewer(host, { assets, layout, models, npcs, signFor,
     for (const [id, m] of list) {
       try { await placePavilion(id, m); } catch (e) { console.warn('павильон', id, e); }
       progress?.(++i / (list.length + npcs.length));
+    }
+    for (const m of extras) {
+      try { await placeExtra(m); } catch (e) { console.warn('модель', m.key, e); }
+    }
+    for (const g of gameModels) {
+      try { await placeGame(g); } catch (e) { console.warn('модель из игры', g.id, e); }
     }
     for (const n of npcs) {
       try { await placeNpc(n); } catch (e) { console.warn('житель', n.id, e); }

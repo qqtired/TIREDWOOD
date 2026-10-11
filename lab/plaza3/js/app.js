@@ -51,11 +51,11 @@ const D = {};
 const S = { viewers: new Map(), V: null };
 
 async function main() {
-  const [assets, layout, pav, npcs, port, page] = await Promise.all([
+  const [assets, layout, pav, npcs, port, page, sceneCfg] = await Promise.all([
     getJSON('data/assets.json'), getJSON('data/layout.json'), getJSON('data/pavilions.json'), getJSON('data/npcs.json'),
-    getJSON('data/port.json', { chosen: null }), getJSON('data/page.json'),
+    getJSON('data/port.json', { chosen: null }), getJSON('data/page.json'), getJSON('data/scene.json', {}),
   ]);
-  Object.assign(D, { assets, layout, pav, npcs, port, page });
+  Object.assign(D, { assets, layout, pav, npcs, port, page, sceneCfg });
   D.qColor = Object.fromEntries((layout.quarters || []).map((q) => [q.id, q.color]));
   D.pavById = new Map((layout.pavilions || []).map((p) => [p.id, p]));
   D.cardByLayout = new Map();
@@ -63,7 +63,11 @@ async function main() {
   D.npcById = new Map(npcs.list.map((n) => [n.id, n]));
   D.npcByPav = new Map(npcs.list.map((n) => [n.pav, n]));
   D.models = new Map();
-  for (const m of assets.pavilionModels || []) if (m.layoutId && !D.models.has(m.layoutId)) D.models.set(m.layoutId, m);
+  D.extras = []; // без своего павильона в раскладке (маяк) или вторая модель того же места (доска «онлайн» у почёта)
+  for (const m of assets.pavilionModels || []) {
+    if (m.layoutId && !m.role && !D.models.has(m.layoutId)) D.models.set(m.layoutId, m);
+    else D.extras.push(m);
+  }
   D.spawn = layout.spawn || { x: 8, z: -5.6 };
   const steps = [hero, concept, plan, plaza, portSec, pavilions, residents, signs, arcade, questions, release, footer];
   for (const f of steps) { try { f(); } catch (e) { console.error(f.name, e); } }
@@ -284,7 +288,7 @@ function plan() {
 
 // ------------------------------------------------------------------------------------------------ площадь в 3D
 function plaza() {
-  const views = [['overview', 'Обзор'], ['spawn', 'Со спавна'], ['top', 'Сверху'], ...(D.layout.quarters || []).map((q) => [q.id, quarterShort(q.id)])];
+  const views = [['overview', 'Обзор'], ['spawn', 'Со спавна'], ['top', 'Сверху'], ...(D.layout.quarters || []).map((q) => [q.id, quarterShort(q.id)]), ...(D.sceneCfg?.tiredwood ? [['tiredwood', 'Надпись TIREDWOOD']] : [])];
   $('#pz-views').innerHTML = views.map(([id, t]) => `<button type="button" data-view="${esc(id)}">${esc(t)}</button>`).join('');
   $('#pz-views').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-view]'); if (!b) return;
@@ -421,42 +425,53 @@ function residents() {
     'Бочку и Капитана Севу узнаваемо улучшили, Зуко стал настоящим зомби-желейкой: швы, заплатки, сонный глаз, один зуб.';
 }
 
-// ------------------------------------------------------------------------------------------------ таблички
+// ------------------------------------------------------------------------------------------------ таблички (скин «Ретро-парк 2.0»)
+// Токены — game-opus-ui/docs/sign-tokens-retropark2.md: эмаль, кант, маркиза, иконка в круге, Rubik Mono One, точка статуса.
+// main — главный вход в режим: у него лампочки (в игре — свечение, не лампы). st: go — идёт сейчас, open — свободно, bad — закрыто.
 const SIGN_DEMO = [
-  { t: 'КАРТИНГ', icon: 'kart', s: [['live', 'идёт заезд · 3 игрока'], ['wait', 'старт через 0:12 · в круге 2'], ['idle', 'финиш · результаты на табло']] },
-  { t: 'ПЕЙНТБОЛ', icon: 'paint', s: [['live', 'идёт бой · 6 игроков'], ['idle', 'пусто — заходи первым']] },
-  { t: '«ЛАСТОЧКА»', icon: 'boat', s: [['wait', 'отплытие через 0:25 · 2 места'], ['live', 'катер в бухте · вернётся через 0:40']] },
-  { t: 'КРЫСИНЫЕ БЕГА', icon: 'rat', s: [['wait', 'приём ставок · старт через 0:40'], ['live', 'бегут! болей за свою']] },
-  { t: 'ПОДЗЕМЕЛЬЕ', icon: 'dungeon', s: [['idle', 'рекорд 12 волн · Саня'], ['live', 'внизу двое · волна 7']] },
-  { t: 'АВТОМАТЫ · АРКАДА', icon: 'token', s: [['idle', 'свободно 4 автомата'], ['live', 'играет Саня · 880 очков']] },
-  { t: 'РЫБНЫЙ ДВОР', icon: 'hide-box', s: [['wait', 'сбор 1 из 6 · нужно двое'], ['live', 'прячутся · дождись раунда']] },
-  { t: 'ОГОРОДЫ', icon: 'farm-gate', s: [['idle', 'на ферме 3 из 8 · место есть']] },
+  { t: 'КАРТИНГ', icon: 'kart', main: true, s: [['go', 'идёт заезд · 3 игрока'], ['open', 'старт через 0:12 · в круге 2'], ['open', 'свободно · заходи']] },
+  { t: 'ПЕЙНТБОЛ', icon: 'paint', main: true, s: [['go', 'идёт бой · 6 игроков'], ['open', 'пусто — заходи первым']] },
+  { t: 'ПОДЗЕМЕЛЬЕ', icon: 'dungeon', main: true, s: [['open', 'рекорд 12 волн · Саня'], ['go', 'внизу двое · волна 7']] },
+  { t: 'РЫБНЫЙ ДВОР', icon: 'hide-box', main: true, s: [['open', 'сбор 1 из 6 · нужно двое'], ['go', 'прячутся · дождись раунда']] },
+  { t: '«ЛАСТОЧКА»', icon: 'boat', s: [['open', 'отплытие через 0:25 · 2 места'], ['bad', 'катер в бухте · нет мест']] },
+  { t: 'КРЫСИНЫЕ БЕГА', icon: 'rat', s: [['open', 'приём ставок · старт через 0:40'], ['go', 'бегут! болей за свою']] },
+  { t: 'АРКАДА', icon: 'token', s: [['open', 'свободно 4 автомата'], ['go', 'играет Саня · 880 очков']] },
+  { t: 'ОГОРОДЫ', icon: 'farm-gate', s: [['open', 'на ферме 3 из 8 · место есть'], ['go', 'сбор урожая · 2 игрока']] },
+];
+const NICK = ['#ffb36b', '#a2f0b8', '#c4ccff', '#ffa3b4', '#ffe58c', '#9fe3da'];
+const BOARDS = [
+  { t: 'ТОП НЕДЕЛИ', icon: 'records', sub: 'жетоны за неделю', rows: [['Саня', '12 480'], ['Кракозябра', '11 020'], ['Мармелад', '9 870'], ['Tester7', '8 400'], ['Желейка', '7 950', true]] },
+  { t: 'КТО ОНЛАЙН', icon: 'online', sub: 'сейчас на набережной · 6', rows: [['Саня', 'картинг'], ['Кракозябра', 'рыбалка'], ['Мармелад', 'кафе'], ['Tester7', 'аркада'], ['Желейка', 'площадь', true]] },
 ];
 const ARROW = { '↑': 0, '↗': 45, '→': 90, '↘': 135, '↓': 180, '↙': 225, '←': 270, '↖': 315 };
+// числа в статусе — Rubik 800
+const nums = (t) => esc(t).replace(/(\d+(?:[:\s]\d+)*)/g, '<b>$1</b>');
+const lampsSvg = '<svg class="lamps" aria-hidden="true"><rect/></svg>';
+function signHtml(g, i) {
+  const [st, txt] = g.s[0];
+  return `<div class="sg${g.main ? ' main' : ''}" data-i="${i}">${g.main ? lampsSvg : ''}<span class="sg-ic">${iconHtml(g.icon)}</span>
+    <span class="sg-t">${esc(g.t)}</span><span class="sg-s"><span class="sg-x">${nums(txt)}</span><i class="${st}"></i></span></div>`;
+}
 function signs() {
   const demo = $('#signs-demo');
   const v1 = D.assets.concepts?.v1;
   if (v1) demo.style.setProperty('--bgimg', `url("${new URL(v1.full, location.href).href}")`); // полный адрес: относительный в CSS-переменной браузеры считают по-разному
-  $('#signs-grid').innerHTML = SIGN_DEMO.map((g, i) => `<div class="sg" data-i="${i}"><span class="sg-ic">${iconHtml(g.icon)}</span>
-    <span class="sg-t">${esc(g.t)}</span><span class="sg-s"><i class="${g.s[0][0]}"></i><span>${esc(g.s[0][1])}</span></span></div>`).join('');
-  $('#skin-seg').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-skin]'); if (!b) return;
-    $$('#skin-seg button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
-    demo.dataset.skin = b.dataset.skin;
-  });
+  $('#signs-grid').innerHTML = SIGN_DEMO.map(signHtml).join('');
+  $('#boards').innerHTML = BOARDS.map((b) => `<div class="board-big"><div class="sg bb-head"><span class="sg-ic">${iconHtml(b.icon)}</span><span class="sg-t">${esc(b.t)}</span><span class="sg-s"><span class="sg-x">${nums(b.sub)}</span></span></div>
+    <ol>${b.rows.map(([n, v, me], k) => `<li class="${me ? 'me' : ''}"><span class="pl">${k + 1}</span><span class="nk" style="color:${me ? '#ffcd4a' : NICK[k % NICK.length]}">${esc(n)}${me ? ' · ты' : ''}</span><span class="vl">${nums(v)}</span></li>`).join('')}</ol></div>`).join('');
   // живой статус меняется сам, пока раздел на экране
   let tick = 0, vis = false;
   new IntersectionObserver(([e]) => { vis = e.isIntersecting; }).observe(demo);
   if (!REDUCED) setInterval(() => {
     if (!vis || document.hidden) return;
     tick++;
-    $$('.sg', demo).forEach((el) => {
+    $$('.sg[data-i]', demo).forEach((el) => {
       const g = SIGN_DEMO[+el.dataset.i];
       if (g.s.length < 2) return;
       const [st, txt] = g.s[(tick + +el.dataset.i) % g.s.length];
       const s = $('.sg-s', el);
       s.classList.add('fade');
-      setTimeout(() => { $('i', s).className = st; $('span', s).textContent = txt; s.classList.remove('fade'); }, 260);
+      setTimeout(() => { $('i', s).className = st; $('.sg-x', s).innerHTML = nums(txt); s.classList.remove('fade'); }, 260);
     });
   }, 3400);
   // столбы-указатели
@@ -519,7 +534,14 @@ function questions() {
   const portOpen = !(D.port?.chosen && D.page.port[D.port.chosen]);
   const qs = D.page.questions.filter((q) => !q.onlyIfPortOpen || portOpen);
   const L = ['а', 'б', 'в', 'г'];
-  $('#qs').innerHTML = qs.map((q) => `<li class="q"><h3>${esc(q.title)}</h3><ol>${q.options.map((o, i) => `<li class="${o.rec ? 'rec' : ''}"><b>${L[i]})</b><span>${esc(o.t)}</span>${o.rec ? '<span class="badge rec">рекомендую</span>' : ''}</li>`).join('')}</ol></li>`).join('');
+  const dec = D.page.decided;
+  if (dec) {
+    // владелец не ответил — берём рекомендованные; показываем как решение, без призыва отвечать
+    $('#questions h2').textContent = dec.title;
+    $('#questions .sec-head .lead').textContent = dec.lead;
+    $('#qs').classList.add('decided');
+  }
+  $('#qs').innerHTML = qs.map((q) => `<li class="q"><h3>${esc(q.title)}</h3><ol>${q.options.map((o, i) => `<li class="${o.rec ? 'rec' : ''}"><b>${L[i]})</b><span>${esc(o.t)}</span>${o.rec ? (dec ? `<span class="badge ok">решено · ${esc(dec.date)}</span>` : '<span class="badge rec">рекомендую</span>') : ''}</li>`).join('')}</ol></li>`).join('');
 }
 function release() {
   const b = D.layout.budget;
@@ -619,6 +641,8 @@ function startViewer(host) {
         const npcs = D.npcs.list.filter((n) => D.assets.npcModels?.[n.id]).map((n) => ({ ...n, file: D.assets.npcModels[n.id].file }));
         v = await V.plazaViewer(host, {
           assets: D.assets, layout: D.layout, models: D.models, npcs, signFor: signsFor, labelFor, quarterOf: quarterShort,
+          extras: D.extras, tiredwood: D.sceneCfg?.tiredwood || null,
+          gameModels: (D.assets.gameModels || []).map((g) => ({ ...g, pick: (D.assets.pavilionModels || []).find((m) => m.key === g.of)?.layoutId || null })),
           onPick: pzInfo, progress,
           onReady: (x) => { ready = x; if (v) say(); },
         });

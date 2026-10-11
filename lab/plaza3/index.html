@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M6 26 32 8l26 18z' fill='%23c9643b'/%3E%3Crect x='12' y='26' width='40' height='30' rx='2' fill='%23fff3de'/%3E%3Cpath d='M12 30h40v7H12z' fill='%23cf4a3d'/%3E%3Cpath d='M17 30h5v7h-5zm10 0h5v7h-5zm10 0h5v7h-5zm10 0h5v7h-5z' fill='%23fff3de'/%3E%3Crect x='27' y='42' width='10' height='14' rx='5' fill='%233f7c5b'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Rubik+Mono+One&family=Unbounded:wght@700&family=Rubik:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@800&display=swap">
 <link rel="stylesheet" href="assets/ui/kit/tokens.css">
 <link rel="stylesheet" href="css/page.css">
 <script>
@@ -35,7 +35,7 @@
         У&nbsp;каждого режима — свой павильон: штукатурка, черепица, зелёные ставни, маркизы и&nbsp;лампочки, но&nbsp;силуэты разные,
         чтобы сразу было видно, что где. Вывески одной системы с&nbsp;живым статусом, у&nbsp;каждого входа свой житель,
         на&nbsp;ферму ведёт дорога через арку «Огороды». Fight Club уходит совсем.</p>
-      <p class="ask">Посмотри и&nbsp;скажи «да» — тогда собираем площадь в&nbsp;игре. Вопросы, которые остались, — <a href="#questions">в&nbsp;конце страницы</a>.</p>
+      <p class="ask">Посмотри и&nbsp;скажи «да» — тогда собираем площадь в&nbsp;игре. Что решено по аркаде — <a href="#questions">в&nbsp;конце страницы</a>.</p>
     </div>
     <figure class="postcard">
       <button type="button" class="shot" id="hero-shot" aria-label="Открыть концепт крупно"><img id="hero-img" alt="Концепт новой набережной" width="1600" height="1067"></button>
@@ -59,7 +59,7 @@
       <li><a href="#npcs">Жители</a></li>
       <li><a href="#signs">Таблички</a></li>
       <li><a href="#arcade">Аркада</a></li>
-      <li><a href="#questions">Вопросы</a></li>
+      <li><a href="#questions">Решения</a></li>
       <li><a href="#release">Выпуск</a></li>
     </ol>
     <button type="button" class="theme-btn" id="theme-btn" aria-label="Сменить тему"><span class="ico" aria-hidden="true"></span><span class="lbl">Авто</span></button>
@@ -195,23 +195,21 @@
       <header class="sec-head">
         <p class="eyebrow"><span class="num">07</span> Таблички</p>
         <h2>Одна система вывесок</h2>
-        <p class="lead">Иконка слева, название, под ним живой статус. На развилках — столбы-указатели. Шрифт и рамки — как в новом интерфейсе игры.</p>
+        <p class="lead">Эмалевый щит с узкой маркизой: иконка в круге, название и живой статус с точкой — зелёная «свободно», золотая «идёт сейчас»,
+          красная «закрыто». Лампочки — только у главных входов в режимы. На развилках — столбы-указатели, у площади — доски «Топ игроков» и «Кто онлайн».</p>
       </header>
       <div class="sign-bar">
-        <div class="seg" role="group" aria-label="Скин интерфейса" id="skin-seg">
-          <button type="button" class="on" data-skin="retro2" aria-pressed="true">Г · Ретро-парк 2.0</button>
-          <button type="button" data-skin="beach" aria-pressed="false">Д · Пляжный день</button>
-          <button type="button" data-skin="dusk" aria-pressed="false">Е · Закат</button>
-        </div>
-        <p class="note">Скин выбирает тред «Единый UI игры» — здесь все три, чтобы сравнить на площади.</p>
+        <span class="badge ok skin-pick">Г · Ретро-парк 2.0 — выбран 11.10</span>
+        <p class="note">Цвета, шрифты и размеры — по токенам UI-треда для вывесок. В игре лампочки — свечение, не настоящие лампы.</p>
       </div>
-      <div class="signs" id="signs-demo" data-skin="retro2">
+      <div class="signs rp2" id="signs-demo">
         <div class="signs-grid" id="signs-grid"></div>
         <div class="post-wrap">
           <div class="post" id="post"></div>
           <ul class="post-pick" id="post-pick" aria-label="Какой указатель"></ul>
         </div>
       </div>
+      <div class="boards rp2" id="boards"></div>
     </div>
   </section>
 
@@ -235,9 +233,9 @@
   <section class="sec" id="questions">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">09</span> Вопросы</p>
-        <h2>Что осталось решить</h2>
-        <p class="lead">Рекомендую первый вариант в каждом вопросе. Ответь в чате, например: «1а, 2а, 3а».</p>
+        <p class="eyebrow"><span class="num">09</span> Решения</p>
+        <h2>Аркада: решено по умолчанию</h2>
+        <p class="lead">Ты не ответил — берём рекомендованные варианты: 1а, 2а, 3а. Это решение по умолчанию, его можно поменять в любой момент.</p>
       </header>
       <ol class="qs" id="qs"></ol>
     </div>

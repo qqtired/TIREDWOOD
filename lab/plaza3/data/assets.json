@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-11T01:07:18.563Z",
+ "generatedAt": "2026-10-11T07:00:30.115Z",
  "source": "concepts_blender/plaza3",
  "layout": {
   "plan": {
@@ -241,7 +241,8 @@
   {
    "key": "aeroclub",
    "file": "assets/models/pav/pav_aeroclub.glb",
-   "bytes": 312260,
+   "bytes": 312092,
+   "role": null,
    "layoutId": "plane",
    "origin": [
     -28.1,
@@ -259,6 +260,7 @@
    "key": "billiards",
    "file": "assets/models/pav/pav_billiards.glb",
    "bytes": 413280,
+   "role": null,
    "layoutId": "billiards",
    "origin": [
     42.7,
@@ -276,6 +278,7 @@
    "key": "cabins",
    "file": "assets/models/pav/pav_cabins.glb",
    "bytes": 233956,
+   "role": null,
    "layoutId": "wardrobe",
    "origin": [
     -27.5,
@@ -293,6 +296,7 @@
    "key": "cafe",
    "file": "assets/models/pav/pav_cafe.glb",
    "bytes": 498828,
+   "role": null,
    "layoutId": "cafe",
    "origin": [
     27,
@@ -310,6 +314,7 @@
    "key": "cardveranda",
    "file": "assets/models/pav/pav_cardveranda.glb",
    "bytes": 339844,
+   "role": null,
    "layoutId": "cards",
    "origin": [
     19.5,
@@ -326,7 +331,8 @@
   {
    "key": "dungeon_cliff",
    "file": "assets/models/pav/pav_dungeon_cliff.glb",
-   "bytes": 390248,
+   "bytes": 769388,
+   "role": null,
    "layoutId": "dungeon",
    "origin": [
     -18,
@@ -334,16 +340,17 @@
    ],
    "yaw": 3.141592653589793,
    "name": "Подземелье — скальный массив",
-   "tris": 5172,
+   "tris": 9730,
    "bulbs": 0,
-   "props": 172,
-   "nodes": 222,
+   "props": 162,
+   "nodes": 206,
    "poster": "assets/pavilions/renders/dungeon_cliff-34-s.jpg"
   },
   {
    "key": "farm_arch",
    "file": "assets/models/pav/pav_farm_arch.glb",
    "bytes": 364516,
+   "role": null,
    "layoutId": "farmarch",
    "origin": [
     50,
@@ -361,6 +368,7 @@
    "key": "fishyard",
    "file": "assets/models/pav/pav_fishyard.glb",
    "bytes": 265900,
+   "role": null,
    "layoutId": "hide",
    "origin": [
     -4,
@@ -378,6 +386,7 @@
    "key": "fort",
    "file": "assets/models/pav/pav_fort.glb",
    "bytes": 640832,
+   "role": null,
    "layoutId": "fortress",
    "origin": [
     26,
@@ -392,9 +401,28 @@
    "poster": "assets/pavilions/renders/fort-34-s.jpg"
   },
   {
+   "key": "honor",
+   "file": "assets/models/pav/pav_honor.glb",
+   "bytes": 229500,
+   "role": null,
+   "layoutId": "honor",
+   "origin": [
+    8,
+    -1.8
+   ],
+   "yaw": 3.14159,
+   "name": "Доска почёта",
+   "tris": 3390,
+   "bulbs": 43,
+   "props": 0,
+   "nodes": 61,
+   "poster": "assets/pavilions/renders/honor-34-s.jpg"
+  },
+  {
    "key": "karting",
    "file": "assets/models/pav/pav_karting.glb",
    "bytes": 453516,
+   "role": null,
    "layoutId": "karting",
    "origin": [
     40.5,
@@ -412,6 +440,7 @@
    "key": "kursaal",
    "file": "assets/models/pav/pav_kursaal.glb",
    "bytes": 825708,
+   "role": null,
    "layoutId": "kurzal",
    "origin": [
     45,
@@ -429,6 +458,7 @@
    "key": "lifeguard",
    "file": "assets/models/pav/pav_lifeguard.glb",
    "bytes": 241652,
+   "role": null,
    "layoutId": "aquapark",
    "origin": [
     -27,
@@ -443,9 +473,28 @@
    "poster": "assets/pavilions/renders/lifeguard-34-s.jpg"
   },
   {
+   "key": "lighthouse",
+   "file": "assets/models/pav/pav_lighthouse.glb",
+   "bytes": 449584,
+   "role": "lighthouse",
+   "layoutId": null,
+   "origin": [
+    -19,
+    43
+   ],
+   "yaw": 0,
+   "name": "Токаревский маяк («Токаревская кошка»)",
+   "tris": 8324,
+   "bulbs": 0,
+   "props": 1,
+   "nodes": 7,
+   "poster": "assets/pavilions/renders/lighthouse-34-s.jpg"
+  },
+  {
    "key": "lighthouse_arch",
    "file": "assets/models/pav/pav_lighthouse_arch.glb",
    "bytes": 337600,
+   "role": null,
    "layoutId": "jettyarch",
    "origin": [
     -19,
@@ -463,6 +512,7 @@
    "key": "mole",
    "file": "assets/models/pav/pav_mole.glb",
    "bytes": 266024,
+   "role": null,
    "layoutId": "westmole",
    "origin": [
     -43,
@@ -480,6 +530,7 @@
    "key": "paintball",
    "file": "assets/models/pav/pav_paintball.glb",
    "bytes": 723092,
+   "role": null,
    "layoutId": "paintball",
    "origin": [
     8,
@@ -497,6 +548,7 @@
    "key": "rats",
    "file": "assets/models/pav/pav_rats.glb",
    "bytes": 263080,
+   "role": null,
    "layoutId": "ratrace",
    "origin": [
     -7.4,
@@ -514,6 +566,7 @@
    "key": "regatta_lookout",
    "file": "assets/models/pav/pav_regatta_lookout.glb",
    "bytes": 79288,
+   "role": null,
    "layoutId": "viewdeck",
    "origin": [
     47,
@@ -531,6 +584,7 @@
    "key": "rotunda",
    "file": "assets/models/pav/pav_rotunda.glb",
    "bytes": 457592,
+   "role": null,
    "layoutId": "rotunda",
    "origin": [
     15,
@@ -548,6 +602,7 @@
    "key": "semyon",
    "file": "assets/models/pav/pav_semyon.glb",
    "bytes": 480120,
+   "role": null,
    "layoutId": "semyon",
    "origin": [
     -13,
@@ -565,6 +620,7 @@
    "key": "skytower",
    "file": "assets/models/pav/pav_skytower.glb",
    "bytes": 584448,
+   "role": null,
    "layoutId": "kalancha",
    "origin": [
     -7,
@@ -582,6 +638,7 @@
    "key": "sunset",
    "file": "assets/models/pav/pav_sunset.glb",
    "bytes": 101652,
+   "role": null,
    "layoutId": "belvedere",
    "origin": [
     -23,
@@ -599,6 +656,7 @@
    "key": "swallow_gate",
    "file": "assets/models/pav/pav_swallow_gate.glb",
    "bytes": 295356,
+   "role": null,
    "layoutId": "lastochka",
    "origin": [
     7.9,
@@ -611,6 +669,56 @@
    "props": 9,
    "nodes": 29,
    "poster": "assets/pavilions/renders/swallow_gate-34-s.jpg"
+  }
+ ],
+ "gameModels": [
+  {
+   "id": "dungeon_cliff.entrance",
+   "of": "dungeon_cliff",
+   "file": "assets/models/game/plaza_entrance.glb",
+   "node": "plaza_cave_entrance",
+   "bytes": 384992,
+   "world": [
+    -19.6,
+    -34.2
+   ],
+   "y": 0,
+   "yaw": 0.7854,
+   "name": "Вход в пещеру — как в игре",
+   "layoutId": "dungeon",
+   "source": "client/assets/dungeon/plaza/plaza_entrance.glb"
+  },
+  {
+   "id": "dungeon_cliff.records_board",
+   "of": "dungeon_cliff",
+   "file": "assets/models/game/plaza_entrance.glb",
+   "node": "plaza_records_board",
+   "bytes": 384992,
+   "world": [
+    -16.14,
+    -25.79
+   ],
+   "y": 0,
+   "yaw": 0.7854,
+   "name": "Доска рекордов «Подземелья»",
+   "layoutId": null,
+   "source": "client/assets/dungeon/plaza/plaza_entrance.glb"
+  },
+  {
+   "id": "farm_arch.farm_gate",
+   "of": "farm_arch",
+   "file": "assets/models/game/plaza_gate.glb",
+   "node": null,
+   "bytes": 90604,
+   "world": [
+    56.4,
+    -20
+   ],
+   "y": 0,
+   "yaw": -1.5707963267948966,
+   "name": "Калитка фермы — как в игре",
+   "layoutId": "farmgate",
+   "source": "client/assets/farm/models/plaza_gate.glb"
   }
  ],
  "kit": {
@@ -1003,6 +1111,13 @@
  },
  "ui": {
   "icons": {
+   "online": "assets/ui/icons/online.webp",
+   "bell-cloud": "assets/ui/icons/bell-cloud.webp",
+   "float": "assets/ui/icons/float.webp",
+   "horn": "assets/ui/icons/horn.webp",
+   "gold": "assets/ui/icons/gold.webp",
+   "medal-silver": "assets/ui/icons/medal-silver.webp",
+   "medal-bronze": "assets/ui/icons/medal-bronze.webp",
    "kart": "assets/ui/icons/kart.webp",
    "regatta": "assets/ui/icons/regatta.webp",
    "dungeon": "assets/ui/icons/dungeon.webp",

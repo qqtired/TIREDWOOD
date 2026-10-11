@@ -133,7 +133,10 @@ for (const base of pcNames) {
 
 // ------------------------------------------------------------------ павильоны: модели
 // Какой павильон раскладки — по точке world_origin из manifest (ближайший центр), иначе по имени файла
+// роли моделей, которых нет среди павильонов раскладки: они встают по своим координатам и заменяют заглушку сцены
+const ROLES = [[/^lighthouse$|^tokarev/, 'lighthouse']];
 const HINTS = [
+  [/^lighthouse$|^tokarev/, null], [/online|who_?is/, 'honor'], [/fish_?show|showcase|vitrin/, 'podium'],
   [/paint|sklad/, 'paintball'], [/fort|krep/, 'fortress'], [/sky|kalan|climb/, 'kalancha'], [/kart|garage/, 'karting'],
   [/dungeon|cave|podzem|cliff/, 'dungeon'], [/farm.?gate|kalitk/, 'farmgate'], [/farm|ogorod/, 'farmarch'],
   [/kurs|kurz|arcade|slots/, 'kurzal'], [/card|veranda|pergol/, 'cards'], [/cafe|chaika/, 'cafe'], [/billiard/, 'billiards'],
@@ -151,6 +154,10 @@ function layoutIdFor(key, origin) {
     if (best) return best;
   }
   for (const [re, id] of HINTS) if (re.test(key)) return id;
+  return null;
+}
+function roleFor(key) {
+  for (const [re, role] of ROLES) if (re.test(key)) return role;
   return null;
 }
 const pmDir = path.join(SRC, 'pavilions/models');
@@ -187,7 +194,8 @@ for (const f of list(pmDir, /^pav_.+\.glb$/)) {
   const rend = pickSrc(path.join(pmDir, 'renders'), `pav_${key}-34`) || list(path.join(pmDir, 'renders'), new RegExp(`^[a-z]+_${key}(-34)?\\.(png|jpe?g|webp)$`)).map((x) => path.join(pmDir, 'renders', x))[0] || null;
   A.pavilionModels.push({
     key, file: rel(dst), bytes: fs.statSync(src).size,
-    layoutId: man?.layout_id || layoutIdFor(key, origin),
+    role: roleFor(key),
+    layoutId: roleFor(key) ? null : man?.layout_id || layoutIdFor(key, origin),
     origin: origin ? [origin[0], origin.length > 2 ? origin[2] : origin[1]] : null,
     yaw: typeof man?.yaw === 'number' ? man.yaw : null,
     name: man?.name || null,
@@ -197,6 +205,33 @@ for (const f of list(pmDir, /^pav_.+\.glb$/)) {
     nodes: glb ? glb.nodes?.length : null,
     poster: rend ? img(rend, path.join(OUT, 'assets/pavilions/renders', key + '-34'), { thumbOnly: true }).thumb : null,
   });
+}
+
+// ------------------------------------------------------------------ модели, которые уже есть в игре (вход в пещеру, калитка фермы)
+// В манифесте павильона: { "model": "client/assets/…glb", "node": "…", "world": [x, y, z], "yaw_world": … }. Если GLB павильона уже
+// содержит этот узел (вход встроен в скалу), отдельную модель не ставим.
+const GAME = process.env.PLAZA3_GAME || path.resolve(OUT, '../..');
+const GAME_NAMES = { entrance: 'Вход в пещеру — как в игре', records_board: 'Доска рекордов «Подземелья»', farm_gate: 'Калитка фермы — как в игре' };
+const GAME_LAYOUT = { entrance: 'dungeon', farm_gate: 'farmgate' }; // какую заглушку раскладки заменяет
+A.gameModels = [];
+for (const [pk, p] of Object.entries(manifests)) {
+  const own = p.file && exists(path.join(pmDir, p.file)) ? readGlbJson(path.join(pmDir, p.file)) : null;
+  const ownNodes = new Set((own?.nodes || []).map((n) => n.name));
+  const entries = Object.entries(p).filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v) && Array.isArray(v.world));
+  const base = entries.find(([, v]) => typeof v.model === 'string' && /^client\/assets\/.+\.glb$/.test(v.model))?.[1]?.model;
+  if (!base) continue;
+  const src = path.join(GAME, base);
+  if (!exists(src)) { note(`! нет ${base} в игре`); continue; }
+  const gj = readGlbJson(src);
+  const gameNodes = new Set((gj?.nodes || []).map((n) => n.name));
+  for (const [k, v] of entries) {
+    const model = v.model || base;
+    if (model !== base) continue;
+    if (!v.model && !(v.node && gameNodes.has(v.node))) continue; // узел своей модели павильона (донжон, мельница) — не из игры
+    if (v.node && ownNodes.has(v.node)) { note(`  ${p.file}: ${v.node} уже внутри модели — отдельно не ставлю`); continue; }
+    const dst = copy(src, path.join(OUT, 'assets/models/game', path.basename(model)));
+    A.gameModels.push({ id: `${pk}.${k}`, of: pk, file: rel(dst), node: v.node || null, bytes: fs.statSync(src).size, world: [v.world[0], v.world.length > 2 ? v.world[2] : v.world[1]], y: v.world.length > 2 ? v.world[1] : 0, yaw: v.yaw_world ?? 0, name: GAME_NAMES[k] || k, layoutId: GAME_LAYOUT[k] || null, source: model });
+  }
 }
 
 // ------------------------------------------------------------------ набор kit (демо + детали для предметов павильонов)
@@ -237,7 +272,7 @@ for (const f of list(nmDir, /\.glb$/)) {
 }
 
 // ------------------------------------------------------------------ UI-тред: токены, шрифты, иконки (только чтение)
-const ICONS = ['kart', 'regatta', 'dungeon', 'farm-gate', 'lighthouse', 'rat', 'cards', 'paint', 'climber', 'hide-box', 'slide', 'music',
+const ICONS = ['online', 'bell-cloud', 'float', 'horn', 'gold', 'medal-silver', 'medal-bronze', 'kart', 'regatta', 'dungeon', 'farm-gate', 'lighthouse', 'rat', 'cards', 'paint', 'climber', 'hide-box', 'slide', 'music',
   'wardrobe', 'roulette', 'boat', 'token', 'shield', 'zombie', 'records', 'season', 'quest-fish', 'ticket', 'compass', 'scroll',
   'medal-gold', 'runner', 'anchor', 'bell', 'stopwatch', 'sound'];
 A.ui = { icons: {} };
@@ -257,7 +292,8 @@ fs.writeFileSync(path.join(OUT, 'data/assets.json'), JSON.stringify(A, null, 1))
 const pc = Object.keys(A.pavilionConcepts).length, nc = Object.keys(A.npcConcepts).length;
 console.log(`\nГотово: скопировано ${copied}, пережато ${converted}.`);
 console.log(`Концепты павильонов: ${pc}; модели павильонов: ${A.pavilionModels.length} (${A.pavilionModels.map((m) => `${m.key}→${m.layoutId || '?'}`).join(', ') || 'нет'})`);
+console.log(`Модели из игры: ${A.gameModels.map((g) => g.id).join(', ') || 'нет'}`);
 console.log(`Жители: концептов ${nc}, моделей ${Object.keys(A.npcModels).length} (${Object.keys(A.npcModels).join(', ') || 'нет'})`);
-const unmatched = A.pavilionModels.filter((m) => !m.layoutId);
+const unmatched = A.pavilionModels.filter((m) => !m.layoutId && !m.role);
 if (unmatched.length) console.log('! Не понял, к какому павильону раскладки относится: ' + unmatched.map((m) => m.file).join(', ') + ' — допиши layout_id в manifest или подсказку в HINTS');
 console.log('data/assets.json записан.');
