@@ -51,6 +51,9 @@
 
 /* ------------------------------------------------------------------ шкала вываживания: рамка кита вокруг игрового поля */
 .fi-reel { position: absolute; left: 868px; top: 170px; z-index: 15; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 236px; padding: 12px 14px 30px; border-radius: var(--r-md); }
+/* подложка шкалы — полупрозрачная и размытая, ненавязчивая (владелец 11.10: «более прозрачной… размытие… просто подложечка»).
+   Не бой: одно окно на время вываживания, размытие допустимо (в HUD боя — нет). */
+.fi-reel.k-plate { background: color-mix(in srgb, var(--plate-bg) 42%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); }
 .fi-reel.is-blink .fi-reel-label .fi-tier { animation: fi-blink .6s ease-in-out infinite alternate; }
 @keyframes fi-blink { to { box-shadow: 0 0 18px var(--tc); } }
 .fi-reel-grade { display: flex; align-items: center; gap: 8px; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }

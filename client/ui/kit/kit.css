@@ -17,7 +17,8 @@
   box-sizing: border-box; font-family: var(--font-text); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
 }
 .k-hud *, .k-window *, .k-panel *, .k-tile * { box-sizing: border-box; }
-.k-display { font-family: var(--font-display); font-weight: var(--display-weight); text-transform: var(--display-case); word-spacing: var(--display-word, normal); letter-spacing: var(--display-track); }
+/* «вывесочная» надпись: шрифт заголовков; в HUD варианта «Светлый» — Rubik 800 (токены --disp-* раздаются по контексту) */
+.k-display { font-family: var(--disp-font, var(--font-display)); font-weight: var(--disp-weight, var(--display-weight)); text-transform: var(--disp-case, var(--display-case)); word-spacing: var(--disp-word, normal); letter-spacing: var(--disp-track, var(--display-track)); }
 .k-ic { display: inline-block; width: 1.5em; height: 1.5em; object-fit: contain; vertical-align: middle; filter: drop-shadow(0 1px 1.5px rgba(20, 10, 12, .24)); }
 .k-coin { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -.16em; flex: none; }
 .k-dim { color: var(--surf-dim); }
@@ -82,7 +83,7 @@
 .k-btn--go { --tone: var(--good); --tone-hi: var(--good-hi); --tone-lo: var(--good-lo); --tone-ink: var(--good-ink); }
 .k-btn--stop { --tone: var(--bad); --tone-hi: var(--bad-hi); --tone-lo: var(--bad-lo); --tone-ink: var(--bad-ink); }
 .k-btn--special { --tone: var(--special); --tone-hi: var(--special-hi); --tone-lo: var(--special-lo); --tone-ink: var(--special-ink); }
-.k-btn--info { --tone: var(--info); --tone-hi: var(--info-hi); --tone-lo: var(--info-lo); --tone-ink: var(--info-ink); }
+.k-btn--info { --tone: var(--w-info, var(--info)); --tone-hi: var(--info-hi); --tone-lo: var(--info-lo); --tone-ink: var(--info-ink); }
 .k-btn--ghost { background: var(--ghost-bg); border: var(--ghost-border); color: var(--ghost-text); box-shadow: var(--ghost-drop, none); font-weight: 700; text-transform: none; letter-spacing: 0; }
 .k-btn--ghost:hover:not(:disabled) { background: var(--ghost-bg-hover); filter: none; }
 .k-btn--ghost:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
@@ -203,7 +204,8 @@
 .k-pop.is-still { animation: none; }
 .k-pop--xp { right: auto; left: 0; color: var(--gold-text); }
 /* под бейджем стоят плитки — всплывающее у бейджа выходит слева, а не вниз */
-.k-badge > .k-pop { top: calc(50% - 12px); right: calc(100% + 8px); white-space: nowrap; }
+.k-badge > .k-pop { top: calc(50% - 12px); right: calc(100% + 8px); left: auto; white-space: nowrap; }
+.k-badge > .k-pop + .k-pop { top: calc(50% + 16px); }
 /* кайма лампочек «Ретро-парка» выступает на 7 px — плашке события в верхнем слоте нужен отступ до тостов */
 .k-slot--tc > .k-lamp { margin-bottom: 8px; }
 
@@ -412,7 +414,7 @@
 .k-chat-line .k-ic { width: 18px; height: 18px; margin-right: 4px; vertical-align: -4px; }
 .k-chat-line.is-sys { color: var(--surf-dim); font-style: italic; }
 .k-chat-line.is-own { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--gold); padding-left: 12px; }
-.k-chat-line.is-old { opacity: .55; }
+.k-chat-line.is-old { opacity: var(--chat-old, .55); }
 .k-nick-1 { --nick: var(--nick-1); } .k-nick-2 { --nick: var(--nick-2); } .k-nick-3 { --nick: var(--nick-3); }
 .k-nick-4 { --nick: var(--nick-4); } .k-nick-5 { --nick: var(--nick-5); } .k-nick-6 { --nick: var(--nick-6); }
 .k-chat-bar { display: flex; align-items: center; gap: 8px; }
