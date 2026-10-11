@@ -26,8 +26,9 @@ const LIFE = 4200;
 /** Уход тоста (.is-out в kit.css — 0,3 с) */
 const OUT_MS = 320;
 
-/** Крупный баннер по центру: title — крупно, sub — плашкой под ним (🪙 — монеткой), dot — цвет кружка рамки ника перед sub */
-export type TcHero = { key: string; prio: number; tone: 'gold' | 'win' | 'lose' | 'info'; title: string; sub?: string; dot?: string; life?: number };
+/** Крупный баннер по центру: title — крупно, sub — плашкой под ним (🪙 — монеткой), dot — цвет кружка рамки ника перед sub;
+ *  small — заголовок поменьше (.k-hero-title.is-sm: длинная фраза, «Улов ушёл в море…») */
+export type TcHero = { key: string; prio: number; tone: 'gold' | 'win' | 'lose' | 'info'; title: string; sub?: string; dot?: string; life?: number; small?: boolean };
 /** Сколько висит баннер (.k-hero.is-play в kit.css — появиться и растаять за 3,2 с) */
 const HERO_LIFE = 3300;
 /** Зазор под стопкой верх-центра до того, что под ней (--slot-gap) */
@@ -174,7 +175,7 @@ export class TopCenter {
     if (!this.centre || !this.model.hero(h)) return false;
     this.heroEl?.remove();
     const box = el('div', `k-hero k-hero--${h.tone} is-play`);
-    box.appendChild(el('p', 'k-hero-title')).textContent = h.title;
+    box.appendChild(el('p', h.small ? 'k-hero-title is-sm' : 'k-hero-title')).textContent = h.title;
     if (h.sub) {
       const sub = box.appendChild(el('span', 'k-hero-sub'));
       if (h.dot) sub.appendChild(el('span', 'pz-tier-dot')).style.setProperty('--tc', h.dot);

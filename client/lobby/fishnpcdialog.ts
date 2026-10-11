@@ -24,10 +24,10 @@ import { FishClock, fishTimeLeft } from './fishclock.ts';
 import { mul, num, pct, xpTo } from './fishfmt.ts';
 import { fishDialog, gearUrl, portraitUrl, tabsHtml, winHeadHtml, winIn } from './fishkit.ts';
 // старые стили окна (fe-*, fn-*) — до уборки ведущим
+import { escHtml as esc } from '../ui/kit/topcenter.ts';
 import './fisheco.css';
 import './fishwin.css';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 /** «+10 %» (fishfmt.pct пишет «+10%») */
 const pctSp = (x: number): string => pct(x).replace('%', ' %');
 /** «1 рыба», «3 рыбы», «8 рыб» */

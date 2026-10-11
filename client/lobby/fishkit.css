@@ -43,6 +43,11 @@ dialog.fi-dlg::backdrop { background: transparent; }
 .fi-perk b { color: var(--plate-text); font-weight: 800; }
 .fi-perk .fi-ic { width: 18px; height: 18px; }
 .fi-perk.is-new b { color: var(--gold-text); }
+/* надбавка места: баркас / остров (fishmode.ts setZone) */
+.fi-zone { display: flex; align-items: center; gap: 6px; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }
+.fi-zone[hidden] { display: none; }
+.fi-zone b { color: var(--plate-text); font-weight: 800; }
+.fi-zone .fi-ic { width: 18px; height: 18px; }
 .fi-odds { display: flex; flex-direction: column; gap: 6px; padding-top: 7px; border-top: 1px solid var(--line); }
 .fi-odds[hidden] { display: none; }
 .fi-odds-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -66,6 +71,8 @@ dialog.fi-dlg::backdrop { background: transparent; }
 
 /* ------------------------------------------------------------------ плитки под бейджем: рюкзак, пиво, задание, лайвел */
 .fi-tiles[hidden], .fi-tiles > .k-tile[hidden] { display: none; }
+/* все плитки спрятаны — ряда нет (иначе пустой ряд в общем слоте tr даёт лишний зазор под бейджем во всех комнатах) */
+.fi-tiles:not(:has(> :not([hidden]))) { display: none; }
 /* плитку рюкзака и лайвела можно нажать мышью (когда она свободна) и пальцем — откроется рюкзак */
 .fi-tile-btn { margin: 0; padding: 0; border: 0; background: none; font: inherit; pointer-events: auto; cursor: pointer; }
 .fi-tile-btn:hover .k-tile-face { filter: brightness(1.08); }

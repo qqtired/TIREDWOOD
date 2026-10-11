@@ -98,7 +98,7 @@ function paint(t: Tile, cap: string, subHtml: string, v: number, tone: string): 
  * Плитки под бейджем (кит UI 2.0, lab/ui «Рыбалка», v2): рюкзак «6 / 10 · 22 🪙» (I, нажать — окно рюкзака; полон — красная
  * рамка; новая рыба — «+1»), лайвел своей лодки «12 / 25», напиток «7:40 · цена +10 %» (тает полоса) и задание Деда Семёна
  * «7 / 15 · +75 🪙» (готово — золотом). Рюкзак, лайвел и задание — с удочкой, у доски рекордов и у торговцев (context);
- * напиток — всё время, пока действует, на набережной. Ряд — .k-tiles: первая плитка у края экрана; лодка и рулетка ставят
+ * лайвел — ещё и за штурвалом; напиток — всё время, пока действует, в любой комнате. Ряд — .k-tiles: первая плитка у края экрана; лодка и рулетка ставят
  * свои плитки в этот же ряд (.fi-tiles).
  */
 export class FishProgressHud {
@@ -113,6 +113,8 @@ export class FishProgressHud {
   /** На набережной (Fish2Hud.frame) и с удочкой / у доски / у торговца */
   private live = false;
   private context = false;
+  /** За штурвалом своей лодки: лайвел виден и без удочки (как в эталоне «за штурвалом») */
+  private helm = false;
   private bagN = -1;
   private bagPop: HTMLElement | null = null;
 
@@ -129,11 +131,12 @@ export class FishProgressHud {
     window.setInterval(() => this.tick(), 250);
   }
 
-  /** На набережной (live) и есть ли повод показать рюкзак и задание (context) */
-  setShown(live: boolean, context: boolean): void {
-    if (live === this.live && context === this.context) return;
+  /** На набережной (live), есть ли повод показать рюкзак и задание (context), за штурвалом ли (helm — лайвел лодки) */
+  setShown(live: boolean, context: boolean, helm = false): void {
+    if (live === this.live && context === this.context && helm === this.helm) return;
     this.live = live;
     this.context = context;
+    this.helm = helm;
     this.paintAll();
   }
 
@@ -176,7 +179,7 @@ export class FishProgressHud {
       // лайвел своей лодки (флаг ISLE): лодки нет и пуст — плитки нет
       const cap = livewellCap(p);
       const w = livewellOf(p).length;
-      this.well.root.hidden = !ctx || (cap === 0 && w === 0);
+      this.well.root.hidden = !(ctx || (this.live && this.helm)) || (cap === 0 && w === 0);
       paint(this.well, `${w} / ${cap}`, `${num(catchValue(p, 'well'))} ${coinHtml()}`, cap ? w / cap : 0, w >= cap ? 'bad' : 'good');
       this.well.root.classList.toggle('k-tile--warn', cap > 0 && w >= cap);
       // задание Семёна: готово — золотом «сдай Семёну»
@@ -196,7 +199,8 @@ export class FishProgressHud {
     const p = this.progress;
     const drink = p ? activeDrink(p, now) : 0;
     const d = drinkOf(drink);
-    const on = this.live && drink !== 0 && d !== null;
+    // напиток — в любой комнате и на паузе, пока действует (слоты HUD общие для всех комнат)
+    const on = drink !== 0 && d !== null;
     this.drink.root.hidden = !on;
     if (on && p && d) {
       const until = drinkUntil(p, drink);

@@ -1,11 +1,14 @@
 // Карточка рыбалки в верх-лево (кит UI 2.0, lab/ui «Рыбалка» → «С удочкой: ждёшь поклёвку», v2 — 292 px): уровень рыбалки
 // кольцом цвета режима, опыт до следующего, следующий бонус уровня одной строкой, «Шансы сейчас» (fishodds.ts) и на острове —
-// сколько видов острова поймано. Опыт за улов всплывает у кольца («+16 опыта»). Уровень игрока и жетоны — только в бейдже.
+// сколько видов острова поймано; на баркасе и острове — строка надбавки места («баркас · цена и опыт ×1,25», «остров · опыт ×2»). Опыт за улов всплывает у кольца («+16 опыта»). Уровень игрока и жетоны — только в бейдже.
 import { LEVEL_PERKS } from '../../shared/fishability.ts';
+import { BARKAS_INCOME, BARKAS_XP, ISLE_XP } from '../../shared/fishrules.ts';
+import type { FishZone } from '../../shared/fishplaces.ts';
 import { FISH_MAX_LEVEL, fishLevelView, type FishCastMods, type FishProgress } from '../../shared/fishprogress.ts';
 import { ISLE_TOTAL } from '../../shared/islestyle.ts';
 import { iconImg, meterHtml } from '../ui/kit/dom.ts';
 import { el } from './fish2.ts';
+import { mul } from './fishfmt.ts';
 import { FishOdds } from './fishodds.ts';
 import './fishkit.css';
 
@@ -21,6 +24,8 @@ export class FishModeCard {
   private readonly title: HTMLElement;
   private readonly xp: HTMLElement;
   private readonly perk: HTMLElement;
+  private readonly zone: HTMLElement;
+  private zoneKey = '';
   private readonly odds: FishOdds;
   private readonly isle: HTMLElement;
   private readonly isleN: HTMLElement;
@@ -42,6 +47,8 @@ export class FishModeCard {
     this.title = t.appendChild(el('b', ''));
     this.xp = t.appendChild(el('span', ''));
     this.perk = head.appendChild(el('div', 'fi-perk'));
+    this.zone = this.root.appendChild(el('div', 'fi-zone'));
+    this.zone.hidden = true;
     this.odds = new FishOdds(this.root);
     this.isle = this.root.appendChild(el('div', 'fi-isle-row'));
     this.isle.innerHTML = `${iconImg('lighthouse', '')}<span>Виды острова</span><span></span>${meterHtml(0, 'special', 'k-meter--thin')}`;
@@ -100,6 +107,20 @@ export class FishModeCard {
   setOdds(mods: Readonly<FishCastMods> | null, rain = false, season = false, isle = false): void {
     this.odds.root.hidden = mods === null;
     if (mods) this.odds.set(mods, rain, season, isle);
+  }
+
+  /** Надбавка места: баркас — цена и опыт, остров — опыт (числа — shared/fishrules.ts); пристань — строки нет */
+  setZone(zone: FishZone | null): void {
+    const k = zone === 'barkas' || zone === 'isle' ? zone : '';
+    if (k === this.zoneKey) return;
+    this.zoneKey = k;
+    this.zone.hidden = !k;
+    if (k === 'barkas') {
+      const both = BARKAS_INCOME === BARKAS_XP;
+      this.zone.innerHTML = `${iconImg('anchor', 'fi-ic')}<span>баркас · ${both ? `цена и опыт <b>${mul(BARKAS_XP)}</b>` : `цена <b>${mul(BARKAS_INCOME)}</b>, опыт <b>${mul(BARKAS_XP)}</b>`}</span>`;
+    } else if (k === 'isle') {
+      this.zone.innerHTML = `${iconImg('lighthouse', 'fi-ic')}<span>остров · опыт <b>${mul(ISLE_XP)}</b></span>`;
+    }
   }
 
   /** Виды острова: null — не на острове */

@@ -86,7 +86,6 @@ export class ReelGame {
   private readonly fill: HTMLElement;
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
-  private readonly rainEl: HTMLElement;
   /** «Прекратить [X]»: сдаться — рыба срывается, управление возвращается (кнопка нажимается мышью и пальцем, клавиша X — scene.ts) */
   private readonly quitBtn: HTMLButtonElement;
   /** fisheco: откуда зона и рывки («Зона 30% → 36% (ур. 4 +10%, удочка +10%)», «рывки −5% блесна») и «Последний рывок!» */
@@ -162,8 +161,6 @@ export class ReelGame {
     this.hint = slot.appendChild(el('div', 'fr-hint'));
     if (TOUCH) this.hint.textContent = 'Держи палец — зона вверх';
     else this.hint.innerHTML = 'Держи <span class="k-key"><i class="k-mouse k-mouse--l"></i></span> — зона вверх';
-    // дождь (рыболовное событие) — плашкой сверху экрана, на шкале больше не повторяется
-    this.rainEl = el('div', 'fr-rain');
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
     const quit = this.root.appendChild(el('div', 'fi-reel-quit'));
     this.quitBtn = quit.appendChild(el('button', 'fr-quit k-btn k-btn--ghost k-btn--sm'));
@@ -208,8 +205,8 @@ export class ReelGame {
     return this.r ? this.r.p / REEL_P_MAX : 0;
   }
 
-  /** Подсёк: вид и сид от сервера; rain — идёт ли дождь (значок у шкалы). */
-  start(sp: number, seed: number, rain: boolean, mods: Readonly<FishCastMods>): void {
+  /** Подсёк: вид и сид от сервера (дождь — плашкой сверху экрана, на шкале не повторяется). */
+  start(sp: number, seed: number, mods: Readonly<FishCastMods>): void {
     const rule = RULE[sp];
     if (!rule) return;
     // та же манера, что у сервера: способность вида и бонусы уровня — из sp и снимка заброса (shared/fishability.ts)
@@ -265,7 +262,6 @@ export class ReelGame {
     this.hicEl.classList.remove('show');
     this.drunkMs = 0;
     this.blinkAt = this.lastNow + between(BLINK_GAP_MS);
-    this.setRain(rain);
     this.root.classList.add('show');
     this.hold?.classList.add('show');
     this.render();
@@ -275,10 +271,6 @@ export class ReelGame {
   theme(key: string): void {
     if (key === 'wood') delete this.root.dataset.frTheme;
     else this.root.dataset.frTheme = key;
-  }
-
-  setRain(rain: boolean): void {
-    this.rainEl.classList.toggle('show', rain);
   }
 
   /** Кадр: held — держит ли игрок кнопку (мышь, пробел, кнопка 🎣); палец на экране — сам. */

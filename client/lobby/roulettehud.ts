@@ -80,6 +80,8 @@ export class RouletteHud {
   private heroKey = '';
   private lastGo = '';
   private lastStatus = '';
+  /** Таймер четверти секунды: идёт, пока есть что показывать (у стола или своя ставка в раунде) */
+  private timer = 0;
 
   constructor(parent: HTMLElement, send: (msg: ClientMsg) => void, kit: FishKitUi) {
     this.send = send;
@@ -137,7 +139,6 @@ export class RouletteHud {
     this.tile.innerHTML = `<span class="k-tile-face">${iconImg('roulette', '')}</span><span class="k-tile-cap"><span></span><small></small></span>`;
     this.tileCap = this.tile.querySelector<HTMLElement>('.k-tile-cap > span')!;
     this.tileSub = this.tile.querySelector<HTMLElement>('.k-tile-cap > small')!;
-    window.setInterval(() => this.tick(), 250);
   }
 
   get isOpen(): boolean { return this.dlg.open; }
@@ -157,6 +158,7 @@ export class RouletteHud {
       this.onOpen();
       this.picks.get('red')?.btn.focus({ preventScroll: true });
     }
+    this.wake();
   }
 
   setProgress(progress: FishProgress): void {
@@ -169,6 +171,7 @@ export class RouletteHud {
     this.viewAt = performance.now();
     if (this.isOpen) this.render();
     this.renderRound();
+    this.wake();
   }
 
   /** Последние ставки с табло на баркасе (свежие сверху): короткий список в окне — как сыграли другие и ты сам */
@@ -182,6 +185,30 @@ export class RouletteHud {
     if (this.near === near) return;
     this.near = near;
     this.renderRound();
+    this.wake();
+  }
+
+  /** Ушли с набережной: окно закрыть, плашку раунда, баннер и плитку убрать, таймер остановить — в других комнатах ничего от стола */
+  reset(): void {
+    this.close();
+    this.near = false;
+    this.view = null;
+    this.outcome = null;
+    this.outcomeRound = 0;
+    this.resultKey = '';
+    this.heroKey = '';
+    this.roundKey = '';
+    this.tileKey = '';
+    this.kit.top.clear(KEY);
+    this.kit.top.clearHero(KEY);
+    this.tile.hidden = true;
+    this.tile.remove();
+    if (this.timer) { window.clearInterval(this.timer); this.timer = 0; }
+  }
+
+  /** Таймер нужен, пока игрок у стола, открыто окно или своя ставка в раунде (останавливается в tick, когда показывать нечего) */
+  private wake(): void {
+    if (!this.timer && (this.near || this.isOpen || !!this.mine())) this.timer = window.setInterval(() => this.tick(), 250);
   }
 
   /** Твой итог: выигрыш или проигрыш — баннер покажет его после остановки шарика */
@@ -244,6 +271,11 @@ export class RouletteHud {
   private tick(): void {
     if (this.isOpen) this.render();
     this.renderRound();
+    // не у стола, окно закрыто, плашки и плитки нет — таймер не нужен до следующего setNear / setView / open
+    if (!this.near && !this.isOpen && this.tile.hidden && !this.roundKey.split('|')[0]) {
+      window.clearInterval(this.timer);
+      this.timer = 0;
+    }
   }
 
   private renderRecent(): void {
@@ -330,7 +362,7 @@ export class RouletteHud {
     const spinning = this.isSpinning();
     let html = '';
     let good = false;
-    let hero: { tone: 'gold' | 'lose'; title: string; sub: string } | null = null;
+    let hero: { tone: 'gold' | 'lose'; title: string; sub: string; small?: boolean } | null = null;
     if (this.near && v) {
       const bet = mine ? `твоя — ${ROULETTE_COLOR_NAMES[mine.c]}, ${num(mine.stake)}` : '';
       const icon = `<span class="k-event-ic">${iconImg('roulette', '')}</span>`;
@@ -353,7 +385,7 @@ export class RouletteHud {
             this.heroKey = rk;
             hero = mineOut.payout > 0
               ? { tone: 'gold', title: 'Выигрыш!', sub: `+${num(mineOut.payout)} 🪙 за улов` }
-              : { tone: 'lose', title: 'Улов ушёл в море…', sub: `${num(mineOut.stake)} 🪙 — в следующий раз повезёт` };
+              : { tone: 'lose', small: true, title: 'Улов ушёл в море…', sub: `${num(mineOut.stake)} 🪙 — в следующий раз повезёт` };
           }
         }
       }
@@ -365,7 +397,7 @@ export class RouletteHud {
       if (html) this.kit.top.event({ key: KEY, prio: ROUND_PRIO, html, tone: good ? 'good' : undefined, lamp: good });
       else this.kit.top.clear(KEY);
     }
-    if (hero) this.kit.top.hero({ key: KEY, prio: PRIO.info + 5, tone: hero.tone, title: hero.title, sub: hero.sub });
+    if (hero) this.kit.top.hero({ key: KEY, prio: PRIO.info + 5, tone: hero.tone, title: hero.title, sub: hero.sub, small: hero.small });
     // твоя ставка в ряду плиток: пока идёт раунд (приём ставок и колесо)
     const betOn = !!mine && !!v && (v.phase === 'open' || v.phase === 'spin' || spinning);
     const tk = `${betOn}|${mine?.c}|${mine?.stake}`;

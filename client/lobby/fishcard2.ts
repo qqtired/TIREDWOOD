@@ -22,8 +22,8 @@ import { species } from '../ui/fishrewards.ts';
 import { el, fishPic } from './fish2.ts';
 import { isleStepText, num, pct } from './fishfmt.ts';
 import { poseidonPic } from './fishtreasure.ts';
+import { PRIO, escHtml as esc, type TopCenter } from '../ui/kit/topcenter.ts';
 import './fishkit.css';
-import './fishrelease.css';
 
 type Land = Extract<ServerMsg, { t: 'fishLand' }>;
 
@@ -37,8 +37,6 @@ const COUNT_MS = 1100;
 const CHOICE_MS = (CHOICE_TICKS / TICK_RATE) * 1000;
 const KEPT_MS = 900;
 const FREED_MS = 2600;
-/** Баннер «Сокровища Посейдона!» по центру, мс */
-const HERO_MS = 3300;
 
 /** Что пишут в бутылке (по весу) */
 const NOTES = [
@@ -50,7 +48,6 @@ const NOTES = [
   'Клюёт лучше всего в дождь!',
 ];
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export class CatchCard2 {
   /** Кнопки выбора мышью (пока мышь свободна) или пальцем: в рюкзак, отпустить */
@@ -59,18 +56,17 @@ export class CatchCard2 {
   /** Опыт за улов — всплывает у кольца уровня рыбалки (карточка его не пишет) */
   onXp: (xp: number) => void = () => {};
   private readonly card: HTMLElement;
-  /** Слот --c: баннер клада Посейдона */
-  private readonly centre: HTMLElement | null;
+  /** Верх-центр кита: баннер клада Посейдона — через его очередь баннеров (один на экране, по приоритету) */
+  private readonly top: TopCenter | null;
   private readonly sound: Sound;
   private hideTimer = 0;
   private timers: number[] = [];
   /** Улов, который ждёт выбора (null — выбирать нечего) */
   private choosing: Land | null = null;
-  private hero: HTMLElement | null = null;
 
-  constructor(slot: HTMLElement, sound: Sound, centre: HTMLElement | null = null) {
+  constructor(slot: HTMLElement, sound: Sound, top: TopCenter | null = null) {
     this.sound = sound;
-    this.centre = centre;
+    this.top = top;
     this.card = el('article', 'k-panel fi-catch');
     this.card.dataset.mode = 'fishing';
     this.card.hidden = true;
@@ -271,14 +267,9 @@ export class CatchCard2 {
     });
   }
 
-  /** «Сокровища Посейдона!» — крупный золотой баннер по центру (как на странице lab/ui), сам тает */
+  /** «Сокровища Посейдона!» — крупный золотой баннер по центру (как на странице lab/ui), сам тает; «Уровень N!» важнее */
   private poseidonHero(): void {
-    if (!this.centre) return;
-    this.hero?.remove();
-    const h = this.centre.appendChild(el('div', 'k-hero k-hero--gold is-play'));
-    h.appendChild(el('p', 'k-hero-title is-sm', 'Сокровища Посейдона!'));
-    this.hero = h;
-    setTimeout(() => { if (this.hero === h) this.hero = null; h.remove(); }, HERO_MS);
+    this.top?.hero({ key: 'fish-poseidon', prio: PRIO.info + 10, tone: 'gold', small: true, title: 'Сокровища Посейдона!' });
   }
 
   private open(ms: number): void {

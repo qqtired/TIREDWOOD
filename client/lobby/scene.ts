@@ -456,7 +456,7 @@ export class LobbyScene implements Scene {
       sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
       playerPos: (pid) => this.avatarOfPid(pid)?.root.position ?? null, mePos: () => (this.hasSelf ? this.pose : null),
       boats: { where: (id) => this.ob?.radioWhere(id) ?? null, aboard: (id) => this.ob?.radioAboard(id) ?? false },
-      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), hudRoot: this.hud.root, kit: { slots: d.ui.slots, top: d.ui.top },
+      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), kit: { slots: d.ui.slots, top: d.ui.top },
     });
     this.radio.reset(false);
     this.critters = new LobbyCritters(this.world.scene, {
@@ -612,6 +612,7 @@ export class LobbyScene implements Scene {
     this.fish2.onNpcOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.fish2.onNpcClose = () => d.wantPointer();
     this.fish2.roulette.isSpinning = () => this.roulette3d.spinning;
+    this.fish2.helm = () => this.ob.driving;
     // табло рулетки на баркасе обновилось (шарик лёг в лунку): список в окне ставки и один тост о розыгрыше
     this.roulette3d.onLogShown = (rows, fresh) => {
       this.fish2.roulette.setLog(rows);
@@ -620,7 +621,7 @@ export class LobbyScene implements Scene {
     };
     this.fish2.onBeer = () => this.fishDrink.start();
     this.ob = new OwnBoatsClient({
-      scene: this.world.scene, sound: d.sound, hudRoot: this.hud.root, kit: { slots: d.ui.slots, top: d.ui.top }, overlay: d.overlay, input: d.input, npc: this.fish2.npc,
+      scene: this.world.scene, sound: d.sound, kit: { slots: d.ui.slots, top: d.ui.top }, overlay: d.overlay, input: d.input, npc: this.fish2.npc,
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg), me: () => d.ui.me(), myId: () => this.myId,
       modal: (open) => { if (open) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
       setParkBoxes: (on) => { for (const i of this.world.map.parkBoxes) this.world.collision.setEnabled(i, on); },
@@ -2753,6 +2754,11 @@ export class LobbyScene implements Scene {
     const fishing = this.hasSelf && this.myAct === ACT_FISH;
     const p = this.hasSelf ? this.pose : null;
     this.fish2.frame(fishing, this.d.input.isHeld(BTN_FIRE | BTN_JUMP), this.fishing, this.arg, p?.x ?? null, p?.z ?? null);
+  }
+
+  /** Рыбалка 2.0: о дожде скажет плашка события у воды — при входе (появится сама) и пока игрок у воды тост не нужен */
+  fishEventPlate(first: boolean): boolean {
+    return this.fish2.on && (first || this.fish2.plateNear);
   }
 
   private trampolineAt(x: number, y: number, z: number): { x: number; z: number } | null {

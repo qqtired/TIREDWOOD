@@ -81,6 +81,10 @@ export class Fish2Hud {
   onBookClose: () => void = () => {};
   onNpcOpen: () => void = () => {};
   onNpcClose: () => void = () => {};
+  /** За штурвалом своей лодки (OwnBoatsClient.driving): плитка лайвела видна и без удочки */
+  helm: () => boolean = () => false;
+  /** Игрок у воды (с удочкой, у мест рыбалки, доски, торговцев, у острова): плашка события сверху видна — тост о дожде не нужен */
+  plateNear = false;
   onBeer: () => void = () => {};
   private readonly reel: ReelGame;
   private readonly card: CatchCard2;
@@ -136,7 +140,7 @@ export class Fish2Hud {
     this.reel.onToast = (text) => ui.toasts.show(text, 3500, 'fish-ability');
     this.mode = new FishModeCard(ui.slots.tl);
     this.progress = new FishProgressHud(ui.slots.tr);
-    this.card = new CatchCard2(ui.slots.br, sound, ui.slots.c);
+    this.card = new CatchCard2(ui.slots.br, sound, ui.top);
     // опыт за улов всплывает у кольца уровня рыбалки, жетоны — у бейджа (сам)
     this.card.onXp = (xp) => this.mode.popXp(xp);
     // рыба в руках (shared/fishrelease.ts): кнопки карточки — мышью (пока она свободна) или пальцем
@@ -212,7 +216,6 @@ export class Fish2Hud {
     this.fisherman.group.visible = on;
     this.seasonSigns.group.visible = on;
     this.rain = rain;
-    this.reel.setRain(rain);
     this.npc.setEvent(rain, this.eventUntil);
     this.onMe();
     this.setTop(top);
@@ -229,19 +232,12 @@ export class Fish2Hud {
   weather(rain: boolean): void {
     if (rain === this.rain) return;
     this.rain = rain;
-    this.reel.setRain(rain);
     this.npc.setEvent(rain, this.eventUntil);
   }
 
   /** Сезон рыбалки (server/lobby/fishseason.ts): «Шансы сейчас» считают его сами — редкие и выше ×2 к дождю (×3 к ясной) */
   onSeason(on: boolean, endsAt: number): void {
     this.seasonEnds = on ? endsAt : 0;
-    this.bookWeather();
-  }
-
-  /** Журналу — погода и сезон для «сейчас N% поклёвок» (как «Шансы сейчас») */
-  private bookWeather(now = this.clock.now()): void {
-    this.book.setWeather(this.rain || this.season, now, this.season, this.isleFog || this.isleSeason, this.isleSeason);
   }
 
   /** Погода острова (письмо isle): «Туман наступает» и сезон острова — для «Шансов сейчас» и журнала у видов острова */
@@ -251,7 +247,6 @@ export class Fish2Hud {
     this.isleSeason = season;
     this.isleFogUntil = fog ? fogUntil : 0;
     this.isleSeasonEnds = season ? seasonEnds : 0;
-    this.bookWeather();
   }
 
   /** Идёт ли сезон рыбалки по часам сервера */
@@ -264,7 +259,6 @@ export class Fish2Hud {
     if (on && until !== this.eventUntil) this.rainSpan = Math.max(0, until - this.clock.now());
     this.rain = on;
     this.eventUntil = until;
-    this.reel.setRain(on);
     this.npc.setEvent(on, until);
   }
 
@@ -300,7 +294,6 @@ export class Fish2Hud {
     this.bag.set(progress);
     this.roulette.setProgress(progress);
     const me = this.ui.me();
-    this.bookWeather(now);
     this.book.update(me.album, me.owned, progress);
   }
 
@@ -381,7 +374,7 @@ export class Fish2Hud {
     this.card.hide();
     this.bite(false);
     this.reel.theme(slotKey(this.ui.me().outfit, 'w'));
-    this.reel.start(msg.sp, msg.seed, this.rain, msg.mods);
+    this.reel.start(msg.sp, msg.seed, msg.mods);
   }
 
   onLand(msg: Extract<ServerMsg, { t: 'fishLand' }>): void {
@@ -481,7 +474,7 @@ export class Fish2Hud {
     const has = px !== null && pz !== null;
     // рюкзак, задание — с удочкой, у доски рекордов и у Семёна или Сани (там решают, что продать и купить); напиток — всегда
     const near = has && (this.nearBoard(px, pz) || this.nearNpc(px, pz));
-    this.progress.setShown(true, fishing || near);
+    this.progress.setShown(true, fishing || near, this.helm());
     // в море (баркас, лодка на якоре) пул — по точке: в водах острова клюёт остров (shared/fishisle.ts)
     const zone = !fishing ? 'pier' : has ? castZone(spotZone(spot), px, pz) : spotZone(spot);
     const isle = zone === 'isle';
@@ -490,6 +483,7 @@ export class Fish2Hud {
       const me = this.ui.me();
       this.mode.setOdds(fishCastMods(me.fishing, this.clock.now(), zone), isle ? this.isleFog || this.isleSeason : this.rain || this.season, isle ? this.isleSeason : this.season, isle);
       this.mode.setIsle(isle ? isleCaught(me) : null);
+      this.mode.setZone(zone);
     } else {
       this.prompt(null);
     }
@@ -539,6 +533,7 @@ export class Fish2Hud {
    * торговцев; пока тянешь рыбу — убрана.
    */
   private events(show: boolean, atIsle: boolean): void {
+    this.plateNear = show;
     const now = this.clock.now();
     let html = '';
     let tone: 'special' | undefined;
@@ -596,7 +591,6 @@ export class Fish2Hud {
     }
     const me = this.ui.me();
     this.book.rewards.outfit = me.outfit;
-    this.bookWeather();
     this.book.open(me.album, me.owned, me.fishing);
     this.onBookOpen();
   }
@@ -613,13 +607,15 @@ export class Fish2Hud {
     this.book.close();
     this.npc.close(true);
     this.bag.close();
-    this.roulette.close();
+    this.roulette.reset();
     this.quiet = false;
     this.bite(false);
     this.prompt(null);
     this.mode.shown = false;
     this.progress.setShown(false, false);
     this.ui.top.clear(EV_KEY);
+    this.ui.top.clearHero('fish-poseidon');
+    this.plateNear = false;
     this.focus = false;
     document.documentElement.removeAttribute('data-fish-focus');
   }

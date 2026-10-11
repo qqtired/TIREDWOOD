@@ -48,7 +48,6 @@ const _cam0 = new THREE.Vector3();
 export interface OwnBoatsDeps {
   scene: THREE.Scene;
   sound: Sound;
-  hudRoot: HTMLElement;
   /** Слоты HUD кита и верх-центр (плашка лодки, плитки под бейджем, кнопки Z G R) */
   kit: FishKitUi;
   overlay: HTMLElement;

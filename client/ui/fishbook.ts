@@ -1,8 +1,8 @@
 // Журнал рыбака (рыбалка 2.0) — окно кита UI 2.0 (эталон: lab/ui/screens/fishing.js, сцена «5. журнал рыбака»):
 // шапка (значок журнала, «Рыбалка · ур. N», «Журнал рыбака»), вкладки «Все / Пристань / Баркас / Остров (флаг ISLE) /
 // Награды». Сверху один раз — сколько видов поймано полосой и следующая награда, ниже легенда значков и карточки видов
-// по категориям: картинка (ещё не пойманные — силуэт), имя, рекорд веса, цена при продаже и как часто клюёт сейчас
-// (с твоими бонусами, погодой и сезоном); значок в углу — только с баркаса / только в дождь / только в туман. Ниже —
+// по категориям: картинка (ещё не пойманные — силуэт), имя, рекорд веса и цена при продаже — как карточка лаборатории;
+// значок в углу — только с баркаса / только в дождь / только в туман. Ниже —
 // находки (сапог, бутылка, сундук) и старые находки прошлой рыбалки. «Награды» — fishrewards.ts.
 // collectionGrid — компактная сетка для профиля (меню Esc → «Коллекция»): старый вид, классы .fb-* (fish2.css).
 import { FISH, fmtWeight, type FishAlbum } from '../../shared/fishing.ts';
@@ -25,6 +25,7 @@ import '../lobby/fishwin.css';
 import { FISH_ICONS } from './fishicons.ts';
 import { coinHtml, iconImg } from './kit/dom.ts';
 import { uiIcon } from './kit/icons.ts';
+import { escHtml as esc } from './kit/topcenter.ts';
 /** Фильтр журнала */
 export type BookZone = 'all' | FishZone;
 
@@ -133,13 +134,10 @@ function findCell(sp: number, album: FishAlbum, note: string): HTMLElement {
 /** Вкладка журнала: место (фильтр видов) или «Награды» */
 type BookTab = BookZone | 'rewards';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 /** Названия в кавычках — жирным (золотом в .fi-next-r b): «удочка <b>«Резная»</b>» */
 const quoted = (s: string): string => esc(s).replace(/«[^»]*»/g, (m) => `<b>${m}</b>`);
-/** Доля поклёвок: «4,2 %», меньше процента — «0,35 %» */
-const fmtPct = (v: number): string => `${(v >= 1 ? v.toFixed(1) : v.toFixed(2)).replace('.', ',')} %`;
-/** Полоса кита с подписью внутри (как meter() в lab/ui/screens/fishing.js) */
-const meterHtml = (v: number, label: string): string => `<div class="k-meter k-meter--lg k-meter--good" style="--v:${Math.min(1, Math.max(0, v)).toFixed(3)}">`
+/** Полоса кита с подписью внутри (как meter() в lab/ui/screens/fishing.js; у kit/dom.ts meterHtml подписи нет) */
+const labelMeter = (v: number, label: string): string => `<div class="k-meter k-meter--lg k-meter--good" style="--v:${Math.min(1, Math.max(0, v)).toFixed(3)}">`
   + `<i class="k-meter-ghost"></i><i class="k-meter-fill"></i><span class="k-meter-label">${label}</span></div>`;
 /** Картинка награды ступени (рисунок снасти или вещи из fishicons.ts): сначала снасть, потом остальное */
 function stepPic(step: RewardStep): string {
@@ -158,12 +156,6 @@ export class FishBook {
   private readonly tabs: HTMLElement;
   private readonly body: HTMLElement;
   private tab: BookTab = 'all';
-  private rain = false;
-  private season = false;
-  /** Туман и сезон острова — для видов острова */
-  private isleFog = false;
-  private isleSeason = false;
-  private now = 0;
   private last: { album: FishAlbum; owned: readonly string[]; progress: FishProgress } | null = null;
   private shown = false;
   /** Что сейчас нарисовано (вкладки и тело) — не перерисовывать то же самое: клик не теряется, прокрутка на месте */
@@ -201,15 +193,6 @@ export class FishBook {
 
   get isOpen(): boolean {
     return this.shown;
-  }
-
-  /** Погода, сезон рыбалки и часы сервера — для «сейчас N %» */
-  setWeather(rain: boolean, now: number, season = false, isleFog = false, isleSeason = false): void {
-    this.rain = rain;
-    this.now = now;
-    this.season = season;
-    this.isleFog = isleFog;
-    this.isleSeason = isleSeason;
   }
 
   open(album: FishAlbum, owned: readonly string[], progress: FishProgress): void {
@@ -263,7 +246,7 @@ export class FishBook {
       this.bodyKey = view.innerHTML;
       this.body.replaceChildren(view);
     } else {
-      const html = this.fishHtml(album, progress, this.tab, level);
+      const html = this.fishHtml(album, this.tab, level);
       if (html === this.bodyKey) return;
       this.bodyKey = html;
       this.body.innerHTML = html;
@@ -272,14 +255,14 @@ export class FishBook {
   }
 
   /** Вкладка видов: полоса и следующая награда, легенда, карточки по категориям, находки */
-  private fishHtml(album: FishAlbum, progress: FishProgress, zone: BookZone, level: number): string {
+  private fishHtml(album: FishAlbum, zone: BookZone, level: number): string {
     const isle = zone === 'isle';
     let next: string;
     let meter: string;
     if (isle) {
       // свой счётчик и своя лестница острова; коллекция 52 видов от них не растёт
       const n = isleCaught({ album });
-      meter = meterHtml(n / ISLE_SIZE, `${n} из ${ISLE_SIZE} видов острова`);
+      meter = labelMeter(n / ISLE_SIZE, `${n} из ${ISLE_SIZE} видов острова`);
       const step = isleNextStep(n);
       next = level < ISLE_MIN_LEVEL
         ? `${iconImg('lock', '')}<span>Рыба острова — <b>с ${ISLE_MIN_LEVEL}-го уровня</b>. Доплыть — на своей лодке или пассажиром</span>`
@@ -288,7 +271,7 @@ export class FishBook {
           : `${iconImg('medal-gold', '')}<span><b>Все виды острова пойманы</b> — сет «Смотритель маяка» твой</span>`;
     } else {
       const n = collectionCount(album);
-      meter = meterHtml(n / COLLECTION_SIZE, `${n} из ${COLLECTION_SIZE} видов`);
+      meter = labelMeter(n / COLLECTION_SIZE, `${n} из ${COLLECTION_SIZE} видов`);
       // награды коллекции — лестница по видам (вкладка «Награды»)
       const step = nextStep(n);
       next = step
@@ -298,14 +281,14 @@ export class FishBook {
     const legend = (isle
       ? `<span>${iconImg('fog', '')}только в туман, цена ×1,5</span>`
       : `<span>${iconImg('rain', '')}только в дождь, цена ×1,5</span><span>${iconImg('anchor', '')}с баркаса</span>`)
-      + `<span>${coinHtml()} цена при продаже</span><span><b>сейчас N %</b> — доля поклёвок с твоими бонусами</span>`;
+      + `<span>${coinHtml()} цена при продаже</span>`;
     let html = `<div class="k-cell fi-next">${meter}<div class="fi-next-r">${next}</div></div><div class="fi-legend">${legend}</div>`;
     for (const tier of FISH_TIERS) {
       const list = (isle ? ISLE_COLLECTION : COLLECTION).filter((sp) => RULE[sp]!.tier === tier && (zone === 'all' || RULE[sp]!.zones.includes(zone)));
       if (!list.length) continue;
       const got = list.filter((sp) => album[FISH[sp].id]).length;
       html += `<h3 class="fi-h"><i class="fi-dot" style="--c:${TIER_CSS[tier]}"></i>${TIER_TITLES[tier]} <small>${got} из ${list.length}</small></h3>`
-        + `<div class="fi-grid">${list.map((sp) => this.cardHtml(sp, album, progress)).join('')}</div>`;
+        + `<div class="fi-grid">${list.map((sp) => this.cardHtml(sp, album)).join('')}</div>`;
     }
     // находки и старые находки (во вкладке острова — только его виды)
     if (!isle) {
@@ -322,27 +305,20 @@ export class FishBook {
     return html;
   }
 
-  /** Карточка вида: значки места и погоды в углу, картинка (силуэт — ещё не поймана), имя, рекорд, цена, клёв сейчас */
-  private cardHtml(sp: number, album: FishAlbum, progress: FishProgress): string {
+  /** Карточка вида (как в лаборатории): значки места и погоды в углу, картинка (силуэт — ещё не поймана), имя, рекорд, цена */
+  private cardHtml(sp: number, album: FishAlbum): string {
     const f = FISH[sp];
     const r = RULE[sp]!;
     const e = album[f.id];
     const isle = r.zone === 'isle';
-    // остров: его «дождь» — туман, сезон — свой
-    const rain = isle ? this.isleFog : this.rain;
-    const season = isle ? this.isleSeason : this.season;
     const tag = (icon: string, what: string): string => `<span class="fi-fcard-tag" role="img" aria-label="${what}">${iconImg(icon, '')}</span>`;
     const tags = (r.rain ? tag(isle ? 'fog' : 'rain', isle ? 'только в туман' : 'только в дождь') : '')
       + (r.zone === 'barkas' && r.zones.length === 1 ? tag('anchor', 'только с баркаса') : '');
-    const mods = fishCastMods(progress, this.now, r.zone);
-    const wet = isle ? 'туман' : 'дождь';
-    const odds = r.rain && !rain ? `в ${wet} <b>${fmtPct(biteShare(sp, true, mods) * 100)}</b>` : `сейчас <b>${fmtPct(biteShare(sp, rain, mods, season) * 100)}</b>`;
     const [lo, hi] = priceRange(sp);
     return `<div class="fi-fcard${e ? ' is-got' : ''}" style="--tc:${TIER_CSS[r.tier]}" data-species="${f.id}">${tags}`
       + `<div class="fi-fcard-art">${fishPic(sp, '', !!e).outerHTML}</div>`
       + `<b class="fi-fcard-name">${esc(f.name)}</b>`
       + `<span class="fi-fcard-line">${e ? `рекорд <b>${fmtWeight(e[0])}</b>` : 'ещё не поймана'}</span>`
-      + `<span class="fi-fcard-line">${coinHtml()} ${lo}–${hi}</span>`
-      + `<span class="fi-fcard-line">${odds}</span></div>`;
+      + `<span class="fi-fcard-line">${coinHtml()} ${lo}–${hi}</span></div>`;
   }
 }

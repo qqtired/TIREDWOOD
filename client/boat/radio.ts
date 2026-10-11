@@ -44,7 +44,6 @@ export interface RadioDeps {
   /** Окно открылось / закрылось: отпустить мышь / забрать обратно */
   onOpen(): void;
   onClose(): void;
-  hudRoot: HTMLElement;
   /** Слоты HUD кита (панель радио — над кнопками лодки в низ-право) */
   kit: FishKitUi;
 }

@@ -1,8 +1,9 @@
 // Журнал рыбака, вкладка «Награды» — на ките UI 2.0 (эталон: lab/ui/screens/fishing.js, сцена «5. журнал рыбака» →
-// «награды»). Сверху «Твои снасти»: удочка, поплавок, окно шкалы, значок у ника — ячейки .k-cell, в каждой выбор картинкой
-// с именем (закрытые серые, под ними — сколько видов нужно). Ниже «Награды журнала» — лестница .fi-steps (есть / следующая
+// «награды»). Сверху «Твои снасти»: удочка, поплавок, окно шкалы, значок у ника — крупные ячейки .k-cell с картинкой надетого,
+// как в эталоне; нажал на ячейку — под ними строка выбора картинками с именами (как окна шкалы в эталоне: закрытые серые, под
+// ними — сколько видов нужно). Ниже «Награды журнала» — лестница .fi-steps (есть / следующая
 // с золотой рамкой / закрыта, финал — «Все N видов»), ещё ниже — лестница острова «Последний свет» (флаг ISLE).
-// Полученная снасть надевается сама; любую полученную раньше выбирают тут одним кликом — сервер меняет снасти где
+// Полученная снасть надевается сама; любую полученную раньше выбирают тут — сервер меняет снасти где
 // угодно на набережной. Одежда и питомцы — в примерочной. Стили — client/lobby/fishkit.css + fishwin.css.
 import './fishstyle.css';
 import '../lobby/fishwin.css';
@@ -15,12 +16,10 @@ import {
 import { ISLE_TOTAL, isleCaught } from '../../shared/islestyle.ts';
 import { ISLE_MIN_LEVEL } from '../../shared/fishisle.ts';
 import { ITEMS, isOwned, itemById, slotKey, type Item, type Outfit, type Slot } from '../../shared/outfit.ts';
-import { el } from '../lobby/fish2.ts';
 import { ISLE } from '../render/islegear.ts';
 import { FISH_ICONS } from './fishicons.ts';
 import { h, iconImg } from './kit/dom.ts';
-
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+import { escHtml as esc } from './kit/topcenter.ts';
 
 /** Заголовки ячеек снастей (эталон: «Окно шкалы») */
 const SLOT_TITLE: Partial<Record<Slot, string>> = { r: 'Удочка', b: 'Поплавок', w: 'Окно шкалы', n: 'Значок у ника' };
@@ -74,32 +73,50 @@ export function isleVisible(id: string, owned: readonly string[]): boolean {
   return !ISLE_ITEMS.has(id) || ISLE.on || owned.includes(id);
 }
 
-/** Окно вываживания в миниатюре — та же рамка и вода, что у настоящего (fish2.css + тема из fishstyle.css) */
-export function miniWindow(key: string): HTMLElement {
-  const w = el('span', 'frw-win');
-  w.dataset.frTheme = key;
-  const bar = w.appendChild(el('span', 'fr-bar'));
-  bar.appendChild(el('span', 'fr-water'));
-  bar.appendChild(el('span', 'fr-zone'));
-  return w;
-}
+/** Миниатюра окна шкалы: те же классы, что у настоящей шкалы (тема — data-fr-theme, client/ui/fishstyle.css) */
+const winBar = `<span class="fr-bar"><span class="fr-water"></span><span class="fr-zone"></span><span class="fr-fish">${FISH_SVG}</span></span>`;
 
 export class FishRewards {
   /** Выбрал снасть (Fish2Hud шлёт наряд серверу) */
   onEquip: (slot: Slot, key: string) => void = () => {};
   /** Что надето — из профиля (Fish2Hud.onMe) */
   outfit: Outfit | null = null;
+  /** Какая ячейка снастей раскрыта (выбор — строкой под ячейками); null — ни одна */
+  private open: Slot | null = null;
 
   /**
    * Содержимое вкладки «Награды» (обёртка .fi-rw — display: contents, её дети встают в колонку .k-win-body).
    * level — уровень рыбалки: остров — с ISLE_MIN_LEVEL-го.
    */
   view(album: FishAlbum, owned: readonly string[], level?: number): HTMLElement {
+    const root = h('div', 'fi-rw', this.html(album, owned, level));
+    root.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      // ячейка снасти: раскрыть выбор под рядом (ещё раз — свернуть)
+      const cell = t.closest<HTMLElement>('[data-pick]');
+      if (cell) {
+        const slot = cell.dataset.pick as Slot;
+        this.open = this.open === slot ? null : slot;
+        root.innerHTML = this.html(album, owned, level);
+        root.querySelector<HTMLElement>(`[data-pick="${slot}"]`)?.focus({ preventScroll: true });
+        return;
+      }
+      const b = t.closest<HTMLButtonElement>('button[data-slot]');
+      if (!b || b.disabled) return;
+      const slot = b.dataset.slot as Slot;
+      const key = b.dataset.key ?? '';
+      if (key !== (this.outfit ? slotKey(this.outfit, slot) : null)) this.onEquip(slot, key);
+    });
+    return root;
+  }
+
+  private html(album: FishAlbum, owned: readonly string[], level?: number): string {
     const got = collectionCount(album);
     const total = fishTotal();
     const next = nextStep(got, total);
-    let html = `<h3 class="fi-h">Твои снасти <small>надеваются сами, сменить — нажми на картинку</small></h3>`
-      + `<div class="fi-gear fi-gear--rows">${GEAR_SLOTS.map((slot) => this.slotCell(slot, owned, total)).join('')}</div>`
+    const pick = this.open ? this.picker(this.open, owned, total) : '';
+    let html = `<h3 class="fi-h">Твои снасти <small>надеваются сами, поменять — здесь</small></h3>`
+      + `<div class="fi-gear">${GEAR_SLOTS.map((slot) => this.cell(slot, owned, total)).join('')}${pick}</div>`
       + `<h3 class="fi-h">Награды журнала <small>${got} из ${total} видов</small></h3>`
       + `<div class="fi-steps">${LADDER.map((s) => stepHtml(s, stepNeed(s, total), got, next, s.need === ALL)).join('')}</div>`;
     // остров «Последний свет»: свой счётчик видов острова, награда каждые 4 вида, сет — за все 20
@@ -110,26 +127,39 @@ export class FishRewards {
       html += `<h3 class="fi-h">${iconImg('lighthouse', 'fi-ic')}Остров «Последний свет» <small>${isle} из ${ISLE_TOTAL}${early}</small></h3>`
         + `<div class="fi-steps">${ISLE_LADDER.map((s) => stepHtml(s, stepNeed(s, ISLE_TOTAL), isle, nextIsle, s.set !== undefined)).join('')}</div>`;
     }
-    const root = h('div', 'fi-rw', html);
-    root.addEventListener('click', (e) => {
-      const b = (e.target as Element).closest<HTMLButtonElement>('button[data-slot]');
-      if (!b || b.disabled) return;
-      const slot = b.dataset.slot as Slot;
-      const key = b.dataset.key ?? '';
-      if (key !== (this.outfit ? slotKey(this.outfit, slot) : null)) this.onEquip(slot, key);
-    });
-    return root;
+    return html;
   }
 
-  /**
-   * Строка снасти: слева — что надето и что это, справа — выбор (картинка + имя; закрытые — серые, под именем — сколько
-   * видов). Чужие награды слота (значки фермы у ника) — только полученные: требований рыбалки у них нет.
-   */
-  private slotCell(slot: Slot, owned: readonly string[], total: number): string {
-    const list = ITEMS.filter((i) => i.slot === slot && isleVisible(i.id, owned)
+  /** Вещи слота в выборе: бесплатная, полученные и награды рыбалки (чужие награды слота — значки фермы — только полученные) */
+  private list(slot: Slot, owned: readonly string[], total: number): Item[] {
+    return ITEMS.filter((i) => i.slot === slot && isleVisible(i.id, owned)
       && (i.tier === 'free' || isOwned(owned, i) || needOf(i.id, total) !== null || isleNeedOf(i.id) !== null));
+  }
+
+  private current(slot: Slot, list: readonly Item[]): Item | undefined {
     const on = this.outfit ? slotKey(this.outfit, slot) : null;
-    const cur: Item | undefined = list.find((i) => i.key === on) ?? list.find((i) => i.tier === 'free') ?? list[0];
+    return list.find((i) => i.key === on) ?? list.find((i) => i.tier === 'free') ?? list[0];
+  }
+
+  /** Крупная ячейка, как в эталоне: картинка надетого, имя, что это; нажать — выбор под рядом ячеек */
+  private cell(slot: Slot, owned: readonly string[], total: number): string {
+    const list = this.list(slot, owned, total);
+    const cur = this.current(slot, list);
+    const have = list.filter((i) => isOwned(owned, i)).length;
+    const art = slot === 'w'
+      ? `<span class="fi-winmini fi-winmini--big"${cur ? ` data-fr-theme="${esc(cur.key)}"` : ''} style="--tc:${TIER_CSS[1]}">${winBar}</span>`
+      : (cur && FISH_ICONS[cur.id]) || (cur?.tier === 'free' ? '<span class="fi-gear-none"></span>' : iconImg('medal-gold', ''));
+    const desc = cur ? REWARD_INFO[cur.id]?.text ?? FREE_TEXT[slot] ?? '' : '';
+    const isOpen = this.open === slot;
+    return `<button type="button" class="k-cell fi-gear-cell${isOpen ? ' is-open' : ''}" data-pick="${slot}" aria-expanded="${isOpen}">`
+      + `<span class="fi-gear-art">${art}</span><b>${esc(cur?.name ?? '')}</b><p>${SLOT_TITLE[slot] ?? ''} · ${esc(desc)}</p>`
+      + `<span class="k-pill k-pill--sm${isOpen ? ' k-pill--gold' : ''}">${isOpen ? 'выбор открыт' : `есть ${have} из ${list.length} · выбрать`}</span></button>`;
+  }
+
+  /** Выбор снасти — строка картинок с именами, как окна шкалы в эталоне: золото — надето, серые — закрыты (под именем — сколько видов) */
+  private picker(slot: Slot, owned: readonly string[], total: number): string {
+    const list = this.list(slot, owned, total);
+    const cur = this.current(slot, list);
     const win = slot === 'w';
     const opts = list.map((it) => {
       const have = isOwned(owned, it);
@@ -137,15 +167,13 @@ export class FishRewards {
       const isleNeed = isleNeedOf(it.id);
       const need = needOf(it.id, total);
       const lock = have ? '' : isleNeed !== null ? isleSpecies(isleNeed) : need !== null ? species(need) : '';
-      const pic = win
-        ? `<span class="fr-bar"><span class="fr-water"></span><span class="fr-zone"></span><span class="fr-fish">${FISH_SVG}</span></span>`
-        : `<span class="fi-gopt-ic">${FISH_ICONS[it.id] ?? (it.tier === 'free' ? '' : iconImg('medal-gold', ''))}</span>`;
+      const pic = win ? winBar : `<span class="fi-gopt-ic">${FISH_ICONS[it.id] ?? (it.tier === 'free' ? '' : iconImg('medal-gold', ''))}</span>`;
       const theme = win ? ` data-fr-theme="${esc(it.key)}" style="--tc:${TIER_CSS[1]}"` : '';
       return `<button type="button" class="${win ? 'fi-winmini' : 'fi-gopt'}${isOn ? ' is-on' : ''}${have ? '' : ' is-lock'}" data-slot="${slot}" data-key="${esc(it.key)}"`
         + `${theme} aria-pressed="${isOn}"${have ? '' : ' disabled'}>${pic}<span>${esc(it.name)}${lock ? `<small>${lock}</small>` : ''}</span></button>`;
     }).join('');
-    const desc = cur ? REWARD_INFO[cur.id]?.text ?? FREE_TEXT[slot] ?? '' : '';
-    return `<div class="k-cell"><div class="fi-gear-t"><b>${SLOT_TITLE[slot] ?? ''}${cur ? ` — «${esc(cur.name)}»` : ''}</b><p>${esc(desc)}</p></div><div class="fi-gopts">${opts}</div></div>`;
+    return `<div class="k-cell fi-gear-pick" role="group" aria-label="${SLOT_TITLE[slot] ?? ''}: выбор"><div class="fi-gear-wins">${opts}</div>`
+      + `<p>${SLOT_TITLE[slot] ?? ''} — нажми, чтобы надеть. Серые — дальше по журналу.</p></div>`;
   }
 }
 

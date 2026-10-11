@@ -151,7 +151,8 @@ export class BoatHud {
       for (const [i, n] of [v.isle, v.park].entries()) {
         const t = this.tiles[i];
         t.root.hidden = !v.nav;
-        t.root.title = n.label;
+        // без всплывающей подсказки: видно куда (n.short) и сколько; полное имя — для экранного диктора
+        t.root.setAttribute('aria-label', `${n.label}: ${n.dist}`);
         t.cap.textContent = n.dist;
         t.small.textContent = n.short;
       }

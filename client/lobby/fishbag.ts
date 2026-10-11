@@ -17,11 +17,11 @@ import { fishPic, tierOf } from './fish2.ts';
 import { isleFish, mul, num, pct } from './fishfmt.ts';
 import { fishDialog, gearUrl, tabsHtml, tierHtml, winHeadHtml, winIn } from './fishkit.ts';
 // старые стили окна (fe-*) — до уборки ведущим; плашка «рыба в руках» (client/lobby/fishhold.ts) — fishhold.css
+import { escHtml as esc } from '../ui/kit/topcenter.ts';
 import './fisheco.css';
 import './fishhold.css';
 import './fishwin.css';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 /** «+10 %» (fishfmt.pct пишет «+10%») */
 const pctSp = (x: number): string => pct(x).replace('%', ' %');
 

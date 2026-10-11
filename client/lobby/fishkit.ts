@@ -5,7 +5,7 @@
 import { TIER_CSS, TIER_NAMES } from '../../shared/fishrules.ts';
 import { keyHtml } from '../ui/kit/dom.ts';
 import type { HudSlots } from '../ui/kit/slots.ts';
-import type { TopCenter } from '../ui/kit/topcenter.ts';
+import { escHtml as esc, type TopCenter } from '../ui/kit/topcenter.ts';
 import './fishkit.css';
 
 /** Слоты HUD кита и верх-центр — для частей рыбалки, лодки, радио и рулетки */
@@ -14,7 +14,6 @@ export interface FishKitUi {
   top: TopCenter;
 }
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** Картинки снастей и лодок: client/assets/{fishshop,rods,ownboats,poseidon}/ — по имени файла без расширения */
 const GEAR = import.meta.glob('../assets/{fishshop,rods,ownboats,poseidon}/*.{webp,png,jpg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;

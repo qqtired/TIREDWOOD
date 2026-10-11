@@ -68,7 +68,7 @@ export class RadioPanel {
     // кнопка «Радио» в ряду Z G R (видна, пока ты на борту)
     this.chip = el('button', 'k-btn k-btn--sm k-btn--special br-chip', bar, `${iconImg('radio')}Радио${EQ}${keyHtml('R', 'tr')}`);
     this.chip.type = 'button';
-    this.chip.title = 'Радио лодки (R)';
+    this.chip.setAttribute('aria-label', 'Радио лодки');
     this.chip.hidden = true;
     this.chipEq = this.chip.querySelector<HTMLElement>('.k-eq')!;
     this.chipEq.hidden = true;
@@ -143,7 +143,8 @@ export class RadioPanel {
     this.chip.hidden = !c;
     if (!c) return;
     this.chipEq.hidden = !c.on;
-    this.chip.title = c.on ? `Радио лодки: ${c.title} (R)` : 'Радио лодки (R)';
+    // без всплывающей подсказки (UI 2.0: что важно — видно сразу): станция — в открытой панели, играет — эквалайзер на кнопке
+    this.chip.setAttribute('aria-label', c.on ? `Радио лодки: ${c.title}` : 'Радио лодки');
     this.chip.classList.toggle('is-pressed', this.open_);
   }
 

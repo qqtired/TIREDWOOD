@@ -1,37 +1,5 @@
-/* Награды рыбалки: вкладка «Награды» журнала рыбака (fishrewards.ts) и темы окна вываживания — data-fr-theme на окне
-   шкалы (fishgame.ts) или на миниатюре в журнале. Без темы окно деревянное (fish2.css). */
-
-/* ---------------------------------------------------------------- вкладка «Награды» */
-
-/* миниатюра окна вываживания: та же рамка и вода, только маленькая */
-.frw-win {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 46px;
-}
-
-.frw-win .fr-bar {
-  display: block;
-  width: 26px;
-  height: 44px;
-  border-width: 3px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(10, 5, 8, 0.4), inset 0 0 0 1px #a8754a;
-}
-
-.frw-win .fr-zone {
-  left: 2px;
-  right: 2px;
-  bottom: 30%;
-  height: 32%;
-  border-width: 1px;
-  border-radius: 4px;
-}
-
-.frw-win .fr-water::after {
-  background-size: 100% 8px;
-}
+/* Темы окна вываживания — data-fr-theme на окне шкалы (fishgame.ts) или на миниатюре в «Наградах» журнала (.fi-winmini,
+   fishrewards.ts). Без темы окно деревянное (fish2.css). */
 
 /* ---------------------------------------------------------------- темы окна вываживания */
 
@@ -254,7 +222,7 @@
   [data-fr-theme='fog'] .fr-bar::after,
   .fr[data-fr-theme='fog'].won .fr-label::before { animation: none; }
 }
-/* миниатюра в «Наградах» (.frw-win), как у прочих тем */
-.frw-win[data-fr-theme='fog'] .fr-bar { box-shadow: 0 0 0 2px #ddd5c6, 0 2px 6px rgba(10, 5, 8, 0.4); }
-.frw-win[data-fr-theme='fog'] .fr-bar::after { width: 10px; height: 10px; left: calc(74% - 5px); top: 2%; }
+/* миниатюра в «Наградах» (.fi-winmini, fishwin.css), как у прочих тем */
+.fi-winmini[data-fr-theme='fog'] .fr-bar { box-shadow: 0 0 0 2px #ddd5c6, 0 2px 6px rgba(10, 5, 8, 0.4); }
+.fi-winmini[data-fr-theme='fog'] .fr-bar::after { width: 10px; height: 10px; left: calc(74% - 5px); top: 2%; }
 
