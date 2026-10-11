@@ -4,6 +4,8 @@
 // Колесо и кабинки ставятся каждый кадр по часам отрисовки — тем же, по которым сервер везёт пассажиров.
 import * as THREE from 'three';
 import { CABIN_DROP, WHEEL, WHEEL_CABINS, WHEEL_GATE, WHEEL_HUB_Y, WHEEL_PRICE, WHEEL_R, cabinAt, wheelTurn } from '../../shared/wheel.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 
 const WHITE = 0xf3f1ea;
@@ -24,6 +26,8 @@ const BULBS_SPOKE = 5;
 const LEG_X = 2.35;
 const LEG_Z = 4.6;
 const PLATFORM_Y = 0.15;
+/** Новая набережная со своими вывесками (WP10) */
+const NEW_PLAZA = PLAZA3 && !P3.legacyStatic;
 const CABIN_COLORS = [0xe8402e, 0xff8a1c, 0xffc61a, 0x37b956, 0x1fb5a8, 0x1f7ae0, 0x8a4fd8, 0xff5c9e];
 
 export class FerrisWheel {
@@ -61,7 +65,8 @@ export class FerrisWheel {
     fixedMesh.castShadow = true;
     fixedMesh.matrixAutoUpdate = false;
     scene.add(fixedMesh);
-    scene.add(sign(WHEEL_GATE.x + 1.2, WHEEL_GATE.z));
+    // на новой набережной у кассы своя вывеска с живым статусом (plaza3/signs.ts, вывеска wheel на портале) — арку не ставим
+    if (!NEW_PLAZA) scene.add(sign(WHEEL_GATE.x + 1.2, WHEEL_GATE.z));
 
     // --- колесо: ободья-фермы, спицы, ступицы, оси кабинок; вертится вокруг оси x
     const spin: THREE.BufferGeometry[] = [];
@@ -124,6 +129,8 @@ export class FerrisWheel {
     for (let c = 0; c < WHEEL_CABINS; c++) {
       const mesh = new THREE.Mesh(cabin(CABIN_COLORS[c]), mat);
       this.cabins.push(mesh);
+      // кабинки — часть аттракциона: набережная plaza3 не прячет их вдали (plaza3/perf.ts)
+      mesh.userData.p3keep = true;
       scene.add(mesh);
     }
   }

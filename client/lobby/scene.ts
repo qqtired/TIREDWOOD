@@ -49,7 +49,7 @@ import { WHEEL_PERIOD, WHEEL_PRICE, WHEEL_SEATS, seatAt as wheelSeatAt, wheelArr
 import { ClockSync } from '../net.ts';
 import { Predictor, type StepHook } from '../predict.ts';
 import { RemoteTrack, type RemoteSample } from '../remote.ts';
-import { Avatar, FIVE_HIT, HUG_HOLD, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
+import { Avatar, FIVE_HIT, HUG_HOLD, tickAvatarShared, type AvatarPose, type GroundQuery } from '../render/avatar.ts';
 import { Effects } from '../render/effects.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
@@ -66,6 +66,7 @@ import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
 import { Plaza3Dress } from './plaza3/dress.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 import type { NpcStatusIn } from './plaza3/npcdata.ts';
 import { PL_DOCK } from '../../shared/plane.ts';
 import { ArcadeClient } from './plaza3/arcade/index.ts';
@@ -386,7 +387,7 @@ export class LobbyScene implements Scene {
   private aquaT0 = 0;
   private aquaT1 = 0;
   /** Опора под желейками для теней: настил и неподвижное — из мира, паромы и лифт — как на экране */
-  private readonly ground: { groundBelow(x: number, y: number, z: number): number };
+  private readonly ground: GroundQuery;
   /** «Топ проигравших» на стене павильона автоматов (отладка: __opus.app.lobby.losers.set(строки, свой pid)) */
   readonly losers: LosersScreen;
   /** Экран с чатом друзей из Telegram на крыше склада (отладка: __opus.app.active.tg.demo()) */
@@ -446,7 +447,7 @@ export class LobbyScene implements Scene {
         stormPush(s, col, inp.viewTick, this.stormState, this.eventEligible);
       },
     };
-    this.ground = { groundBelow: (x, y, z) => Math.max(col.groundBelow(x, y, z), this.aqua.groundBelow(x, y, z)) };
+    this.ground = { groundBelow: (x, y, z) => Math.max(col.groundBelow(x, y, z), this.aqua.groundBelow(x, y, z)), shadowLift: 0.015 + DECAL_LIFT };
     this.predictor = new Predictor(col, this.aquaHook);
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);

@@ -366,7 +366,8 @@ export class LobbyWorld {
       this.buildLighthouse();
       this.buildPhotoSpot();
       this.buildTownQuay();
-      buildPlaza3Lights(this.plazaCtx, this.map);
+      // ореолы гирлянд — программой огней города (дымка glow), без своей (бюджет 80)
+      buildPlaza3Lights(this.plazaCtx, this.map, (m) => this.far(m, true));
       this.pavilions = new Plaza3Pavilions(this.plazaCtx, this.plaza3, {
         gl: renderer.gl,
         camera: this.camera,
@@ -425,7 +426,7 @@ export class LobbyWorld {
       ? new LobbyLook({ scene, renderer, sun: this.sun, hemi: this.hemi, sky: this.skyMat, sea: this.seaMat, haze: this.haze, wind: this.wind, wet: (m) => this.wettable(m), map: this.map }, quality)
       : null;
     this.setQuality(quality);
-    if (NEW_PLAZA) this.perf = new Plaza3Perf({ gl: renderer.gl, scene, camera: this.camera, look: this.look });
+    if (NEW_PLAZA) this.perf = new Plaza3Perf({ gl: renderer.gl, scene, camera: this.camera, look: this.look, viewK: () => renderer.gfxState().viewK });
   }
 
   /** Что мир даёт оформлению площади (client/lobby/plaza): ветер, мокрота в дождь, огни, которые гаснут вместе со светом. */
@@ -654,6 +655,8 @@ export class LobbyWorld {
     this.gateScreen.mesh.position.set(8, 6.6, -28.93);
     this.gateFrame = frame(6.3, 2.5, 0.12, 8, 6.6, -28.98, 0x161616);
     this.scene.add(this.jackpotBoard.mesh, this.honorBoard.mesh, this.recentBoard.mesh, this.gateScreen.mesh, this.kartStart.group);
+    // доски у площади видны издалека — дальность набережной их не прячет (plaza3/perf.ts)
+    this.honorBoard.mesh.userData.p3keep = this.recentBoard.mesh.userData.p3keep = true;
     this.box('concrete', [-24, -3.2, 38], [-14, -0.6, 46], 0x7d776e, -10);
   }
 

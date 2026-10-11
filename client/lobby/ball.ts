@@ -10,6 +10,7 @@ import type { Sound } from '../audio.ts';
 import type { Effects } from '../render/effects.ts';
 import { beachBallTexture, softDot } from '../render/textures.ts';
 import { BallPredictor, EV_APPEAR, EV_BOUNCE, EV_KICK, EV_SPLASH, EV_TRAMP, type BallEvent, type InputHistory } from './ballsim.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 import type { LobbyWorld } from './world.ts';
 
 /** Тень видна, пока мяч не выше стольких метров над опорой */
@@ -58,6 +59,8 @@ export class LobbyBall {
     });
     this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(BALL_R * 2.6, BALL_R * 2.6).rotateX(-Math.PI / 2), this.shadowMat);
     world.scene.add(this.root, this.shadow);
+    // мяч — игровой объект: набережная plaza3 не прячет его вдали (plaza3/perf.ts)
+    this.root.userData.p3keep = this.shadow.userData.p3keep = true;
     this.reset();
   }
 
@@ -161,7 +164,7 @@ export class LobbyBall {
     if (ground > -100 && h < SHADOW_H) {
       const f = 1 - Math.max(0, h) / SHADOW_H;
       this.shadow.visible = true;
-      this.shadow.position.set(sh.x, ground + 0.02, sh.z);
+      this.shadow.position.set(sh.x, ground + 0.02 + DECAL_LIFT, sh.z);
       this.shadow.scale.setScalar((0.55 + 0.45 * f) * k);
       this.shadowMat.opacity = 0.25 + 0.75 * f;
     } else {

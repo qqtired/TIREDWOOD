@@ -89,6 +89,8 @@ export const DRIVE_TURN = 0.9;
 /** Где под желейкой опора (для тени) */
 export interface GroundQuery {
   groundBelow(x: number, y: number, z: number): number;
+  /** Пятно тени над опорой, м (по умолчанию 0,015; на новой набережной выше — над её плиткой, plaza3/floor.ts) */
+  readonly shadowLift?: number;
 }
 
 /**
@@ -655,6 +657,8 @@ export class Avatar {
 
     this.shadow = new THREE.Mesh(r.shadowGeo, r.shadowMat);
     this.shadow.renderOrder = 1;
+    // тень — часть игрока: набережная plaza3 не прячет её вдали отдельно от желейки (client/lobby/plaza3/perf.ts)
+    this.shadow.userData.p3keep = true;
 
     this.setOutfit(DEFAULT_OUTFIT);
     this.setTeam(null);
@@ -1349,7 +1353,7 @@ export class Avatar {
     if (ground > -100) {
       const h = pose.y - ground;
       const k = Math.max(0, 1 - h / 7);
-      this.shadow.position.set(pose.x, ground + 0.015, pose.z);
+      this.shadow.position.set(pose.x, ground + (world.shadowLift ?? 0.015), pose.z);
       this.shadow.scale.setScalar(0.55 + k * 0.45);
       this.shadow.visible = k > 0.02;
     } else {

@@ -216,6 +216,8 @@ export function buildDeco(scene: THREE.Scene, deco: Deco[], floaters: Floater[])
         bulbs.push(place(paint(new THREE.SphereGeometry(0.13, 12, 8), 0xffe2a8), hx, 4.88, hz));
         const glow = glowSprite(0xffc27a, 1.6);
         glow.position.set(hx, 4.85, hz);
+        // свет фонаря: набережная plaza3 не гасит его вдали, пока сам фонарь виден (client/lobby/plaza3/perf.ts)
+        glow.userData.p3keep = true;
         scene.add(glow);
         break;
       }
@@ -353,6 +355,8 @@ export class Trampolines {
     for (const [i, t] of trampolines.entries()) {
       const g = new THREE.Group();
       g.position.set(t.x, 0, t.z);
+      // батут — игровой объект: набережная plaza3 не прячет его вдали (client/lobby/plaza3/perf.ts)
+      g.userData.p3keep = true;
       if (edgeMat) {
         // резиновая подложка, как на детской площадке, с кремовой каймой — батут виден издалека
         const pad = new THREE.Mesh(new THREE.CircleGeometry(t.r + 0.62, 48).rotateX(-Math.PI / 2), padMats[i % padMats.length]);

@@ -10,6 +10,7 @@ import { P3 } from '../../../shared/plaza3/layout.ts';
 import type { P3Pt } from '../../../shared/plaza3/types.ts';
 import { mergeColored, paint, place, staticMesh } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
+import { FLOOR_Y } from './floor.ts';
 import { dressPlaza3Ground } from './ground.ts';
 
 export interface Plaza3World {
@@ -26,17 +27,21 @@ const STONE = 0x7d776e;
 const DECK = 0xd2c3aa;
 const STREET = 0xa6a8a0;
 const FIELD = 0x8c9a4e;
-/** Пятна и дорожки: высота над настилом (зазор ≥ 1,5 см — без мерцания) и цвет */
+/** Пятна и дорожки: высота над настилом и цвет. Высоты — plaza3/floor.ts: вся стопка ниже плитки моделей и наклеек */
 const PATCH: Record<string, [number, number]> = {
-  sand: [0.012, 0xe6d29a],
-  lawn: [0.012, 0x76a046],
-  gravel: [0.012, 0xb9ad98],
-  dirt: [0.012, 0x9a7a52],
-  plaza: [0.048, 0xe9e0cc],
-  rose: [0.066, 0xc9784e],
+  sand: [FLOOR_Y.patch, 0xe6d29a],
+  lawn: [FLOOR_Y.patch, 0x76a046],
+  gravel: [FLOOR_Y.patch, 0xb9ad98],
+  dirt: [FLOOR_Y.patch, 0x9a7a52],
+  plaza: [FLOOR_Y.plaza, 0xe9e0cc],
+  rose: [FLOOR_Y.rose, 0xc9784e],
 };
-const PATH: Record<string, number> = { main: 0xe4d9c2, secondary: 0xdacdb2, boulevard: 0xc4ad84 };
-const PATH_Y = 0.03;
+/** Дорожки: цвет и высота по виду — разные виды пересекаются (перекрёстки), на одной высоте они бы мерцали */
+const PATH: Record<string, [number, number]> = {
+  main: [FLOOR_Y.main, 0xe4d9c2],
+  secondary: [FLOOR_Y.secondary, 0xdacdb2],
+  boulevard: [FLOOR_Y.boulevard, 0xc4ad84],
+};
 
 /** Плоский многоугольник [[x, z], …] на высоте y (ShapeGeometry в XY → поворот на пол) */
 function flat(poly: readonly P3Pt[], y: number, color: number): THREE.BufferGeometry {
@@ -115,11 +120,14 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
     walls(land.polygon, QUAY_BOTTOM, land.deckY, STONE),
   ];
   for (const g of P3.ground) {
-    const [y, color] = PATCH[g.kind] ?? [0.012, DECK];
+    const [y, color] = PATCH[g.kind] ?? [FLOOR_Y.patch, DECK];
     if (g.circle) ground.push(disc(g.circle.x, g.circle.z, g.circle.r, y, color));
     else if (g.poly) ground.push(flat(g.poly, y, color));
   }
-  for (const p of P3.paths) ground.push(...path(p.pts, p.w, PATH_Y, PATH[p.kind] ?? PATH.secondary));
+  for (const p of P3.paths) {
+    const [y, color] = PATH[p.kind] ?? PATH.secondary;
+    ground.push(...path(p.pts, p.w, y, color));
+  }
   const mat = ctx.wet(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 }));
   const groundMesh = staticMesh(mergeColored(ground), mat, true);
   groundMesh.castShadow = false;

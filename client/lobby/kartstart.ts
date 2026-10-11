@@ -7,6 +7,7 @@ import { P3 } from '../../shared/plaza3/layout.ts';
 import type { KartStatus } from '../../shared/messages.ts';
 import { botsWord } from '../../shared/solobots.ts';
 import { KartBoard } from './boards.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
 /** Кольцо: два ряда клеток по краю круга */
@@ -43,28 +44,28 @@ export class KartStart {
     const ring = new THREE.Mesh(checkerRing(r - 2 * BAND, r, CELLS), new THREE.MeshStandardMaterial({
       vertexColors: true, roughness: 0.82, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     }));
-    ring.position.set(x, 0.012, z);
+    ring.position.set(x, 0.012 + DECAL_LIFT, z);
     ring.receiveShadow = true;
     // тёмная краска внутри кольца — на светлой плитке надпись иначе не читается
     const pad = new THREE.Mesh(new THREE.CircleGeometry(r - 2 * BAND + 0.01, 64), new THREE.MeshStandardMaterial({
       color: 0x34312e, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
     }));
     pad.rotation.x = -Math.PI / 2;
-    pad.position.set(x, 0.01, z);
+    pad.position.set(x, 0.01 + DECAL_LIFT, z);
     pad.receiveShadow = true;
 
     const label = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.25), new THREE.MeshStandardMaterial({
       map: labelTexture(), transparent: true, roughness: 0.9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
     }));
     label.rotation.x = -Math.PI / 2;
-    label.position.set(x, 0.014, z);
+    label.position.set(x, 0.014 + DECAL_LIFT, z);
     label.receiveShadow = true;
 
     this.glow = new THREE.Mesh(new THREE.RingGeometry(r - 0.06, r + 0.32, 72), new THREE.MeshBasicMaterial({
       color: 0xffd27a, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
     }));
     this.glow.rotation.x = -Math.PI / 2;
-    this.glow.position.set(x, 0.02, z);
+    this.glow.position.set(x, 0.02 + DECAL_LIFT, z);
 
     const c = document.createElement('canvas');
     c.width = 384;
@@ -80,6 +81,8 @@ export class KartStart {
     frame.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z - 0.07);
     this.board.mesh.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z);
     this.group.add(pad, ring, label, this.glow, this.num, frame, this.board.mesh);
+    // круг старта на земле — место режима: набережная plaza3 не прячет его вдали (plaza3/perf.ts); число и табло — по размеру
+    for (const m of [pad, ring, label, this.glow]) m.userData.p3keep = true;
   }
 
   update(st: KartStatus): void {

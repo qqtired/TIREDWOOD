@@ -10,6 +10,7 @@ import { CANOPY_POLES, CANOPY_POLE_H, type LobbyMap } from '../../../shared/maps
 import { P3 } from '../../../shared/plaza3/layout.ts';
 import { glowTexture } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
+import { DECAL_LIFT } from './floor.ts';
 
 type V3 = readonly [number, number, number];
 
@@ -31,6 +32,11 @@ export interface Pool {
   opacity: number;
 }
 
+/**
+ * Высота пятен света: как на старой площади (1,2 см) плюс подъём наклеек plaza3 — выше площади, розы, дорожек и плитки
+ * моделей (plaza3/floor.ts). Раньше пятна лежали под площадью и дорожками и то пропадали, то проступали по мере подхода.
+ */
+const POOL_Y = 0.012 + DECAL_LIFT;
 /** Тёплый свет ламп накаливания (как LAMP в world.ts) */
 const LAMP = 0xffb46a;
 /** Высота головки фонаря и крепления нити у верха столба; лампочка висит чуть ниже провода */
@@ -129,8 +135,12 @@ export interface Plaza3Lights {
   debug(): Record<string, unknown>;
 }
 
-/** Строит огни и кладёт их в ctx.powered (гаснут вместе с городом). Четыре отрисовки: провод, лампочки, ореолы, пятна. */
-export function buildPlaza3Lights(ctx: VenueCtx, map: Pick<LobbyMap, 'deco' | 'zones'>): Plaza3Lights {
+/**
+ * Строит огни и кладёт их в ctx.powered (гаснут вместе с городом). Четыре отрисовки: провод, лампочки, ореолы, пятна.
+ * glow — материалу ореолов дымку огней города (world.ts far(m, true)): та же программа, что у огней задника (бюджет 80,
+ * perf.ts); ближе 40 м и в ясную погоду ореолы не меняются, дальше в дождь чуть тускнеют, как огни города.
+ */
+export function buildPlaza3Lights(ctx: VenueCtx, map: Pick<LobbyMap, 'deco' | 'zones'>, glow?: (m: THREE.Material) => void): Plaza3Lights {
   const group = new THREE.Group();
   group.name = 'plaza3-lights';
   const strings = plaza3Garlands(map);
@@ -164,11 +174,12 @@ export function buildPlaza3Lights(ctx: VenueCtx, map: Pick<LobbyMap, 'deco' | 'z
   const halos = new THREE.Points(halo, new THREE.PointsMaterial({
     size: 0.55, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
   }));
+  glow?.(halos.material);
 
   // пятна света — один меш: цвет и сила запечены в цвет вершин (аддитивно это то же, что opacity у отдельных наклеек)
   const pools = lightPools(map);
   const quads = pools.map((p) => {
-    const g = new THREE.PlaneGeometry(p.w, p.d).rotateX(-Math.PI / 2).translate(p.x, 0.012, p.z);
+    const g = new THREE.PlaneGeometry(p.w, p.d).rotateX(-Math.PI / 2).translate(p.x, POOL_Y, p.z);
     const k = new THREE.Color(p.color).multiplyScalar(p.opacity);
     const n = g.getAttribute('position').count;
     const a = new Float32Array(n * 3);

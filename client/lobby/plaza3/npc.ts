@@ -5,7 +5,8 @@
 // лак и свечение — в атрибуте вершины. Таблички имён — один меш на всех (атлас), тени — один меш пятен, облачка — пул из 3.
 // Итого 3 отрисовки + облачка, 2 новые программы (сетка жителей, таблички). Ожидание считается в JS: дыхание и
 // покачивание, моргание, ходы цикла (npcdata.ts), взмах рукой подошедшему, поворот к нему, трепет шарфа (часть live).
-// Дальше 46 м житель прячется (масштаб кости корня → 0), дальше 30 м поза считается 8 раз в секунду.
+// Дальше npcFar(дальность из меню) житель прячется (масштаб кости корня → 0): на «Далеко» — вся набережная, на «Близко» —
+// 46 м, как зазывалы; дальше 30 м поза считается 8 раз в секунду. Отрисовка одна при любом числе видимых.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BUBBLE_CHARS, BUBBLE_MS } from '../../../shared/lobby.ts';
@@ -17,10 +18,19 @@ import { FISH_SEASON } from '../fishseason.ts';
 import type { PlazaMode } from '../plaza/index.ts';
 import { liveLines, type LiveIn } from '../plaza/live.ts';
 import { TOUT_INFO, type ToutKey } from '../plaza/data.ts';
+import { DECAL_LIFT } from './floor.ts';
+import { p3View } from './perf.ts';
 import { NPC_REQUIRED, NPCS, fashionOfDay, npcHandle, npcStatusLines, toward, type IdleMove, type NpcDef, type NpcHandle, type NpcStatusIn } from './npcdata.ts';
 
-/** Дальше этого расстояния до камеры житель не рисуется (как зазывалы plaza2) */
+/** Дальше этого расстояния до камеры житель не рисуется на «Близко» (как зазывалы plaza2) */
 export const NPC_FAR = 46;
+/** …и на «Далеко»: вся набережная (сетка жителей — одна отрисовка, дальние стоят только вершинами) */
+const NPC_FAR_MAX = 160;
+
+/** Дальность жителей по меню (k — Renderer.viewK: «Далеко» 1, «Средне» 0,6, «Близко» 0,3) */
+export function npcFar(k: number): number {
+  return Math.max(NPC_FAR, NPC_FAR_MAX * Math.min(1, Number.isFinite(k) ? k : 1));
+}
 /** Ближе — говорит раз в 9–13 с */
 const TALK = 15;
 /** Ближе своей желейки — поворачивается к ней */
@@ -564,7 +574,7 @@ export class NpcCrowd {
     const a = this.shadowPos;
     if (!a) return;
     const r = on ? (n.def.id === 'bochka' ? 0.8 : 0.675) : 0;
-    const y = n.y + 0.02;
+    const y = n.y + 0.02 + DECAL_LIFT;
     const arr = a.array as Float32Array;
     arr.set([n.x - r, y, n.z - r, n.x + r, y, n.z - r, n.x + r, y, n.z + r, n.x - r, y, n.z + r], i * 12);
     a.needsUpdate = true;
@@ -650,6 +660,7 @@ export class NpcCrowd {
     const now = performance.now();
     const tagPos = this.tagPos!.array as Float32Array;
     const tagA = this.tagAlpha!.array as Float32Array;
+    const far = npcFar(p3View.k);
     for (let i = 0; i < this.npcs.length; i++) {
       const n = this.npcs[i];
       const def = n.def;
@@ -663,7 +674,7 @@ export class NpcCrowd {
       const on = (def.mode ? this.modes.get(def.mode) === true : true) && (!ext || ext.on);
       const d = Math.hypot(cam.x - n.x, cam.z - n.z);
       n.dist = d;
-      this.setHidden(n, !on || d > NPC_FAR);
+      this.setHidden(n, !on || d > far);
       if (n.hidden) {
         tagA.fill(0, i * 4, i * 4 + 4);
         continue;

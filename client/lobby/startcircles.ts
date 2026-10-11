@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 
 export interface StartCircleOptions { x:number;z:number;r:number;color:number;label:string;subtitle?:string; }
 export interface StartCircleStatus { left?:number;n?:number;max?:number;phase?:string;hint?:string; }
@@ -27,10 +28,13 @@ export class StartCircle {
     for(const t of [this.groundTexture,this.signTexture]){t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;this.resources.push(t);}
     const ringGeo=new THREE.RingGeometry(options.r-.055,options.r,64).rotateX(-Math.PI/2);
     const ringMat=new THREE.MeshBasicMaterial({color:options.color,transparent:true,opacity:.62,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-    const ring=new THREE.Mesh(ringGeo,ringMat);ring.position.y=.016;ring.renderOrder=2;
+    const ring=new THREE.Mesh(ringGeo,ringMat);ring.position.y=.016+DECAL_LIFT;ring.renderOrder=2;
     const discGeo=new THREE.CircleGeometry(options.r-.07,64).rotateX(-Math.PI/2);
     const discMat=new THREE.MeshBasicMaterial({map:this.groundTexture,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-    const disc=new THREE.Mesh(discGeo,discMat);disc.position.y=.019;disc.renderOrder=3;
+    const disc=new THREE.Mesh(discGeo,discMat);disc.position.y=.019+DECAL_LIFT;disc.renderOrder=3;
+    // круг на земле — место режима: набережная plaza3 не прячет его вдали (plaza3/perf.ts; табличка сбоку — мелочь, прячется);
+    // кольцо и круг — выше её земли и плитки моделей (plaza3/floor.ts)
+    ring.userData.p3keep=disc.userData.p3keep=true;
     // A small tilted placard is kept at the side of the circle. Its slim support fixes it to the floor.
     const sx=options.r+.22,sz=.05;
     const poleGeo=new THREE.CylinderGeometry(.019,.024,.67,6);

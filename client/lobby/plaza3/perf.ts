@@ -11,9 +11,12 @@
 //    (Object3D.add), — до первой отрисовки.
 // 2. Прогрев. Перед первым кадром набережной — весь «рисованный» вид и compileAsync по видимому плюс погода и след лодки
 //    (warmHidden): программы собираются параллельно под экраном загрузки, а не рывком посреди прогулки.
-// 3. Дальность. Узел сцены (стол, крыса, лодка, вывеска) не больше UNIT_MAX_R м не рисуется дальше cullDistance(радиус) —
-//    через слой камеры, а не visible (visible — у логики модулей). Узлы вложены: крыса гаснет раньше всей дорожки.
-//    Задник (город, дальний берег) не трогаем. В кадр пересчёта теней отсечение снимается: тени статики — с полной сценой.
+// 3. Дальность. Узел сцены (стол, крыса, лодка, ящик) не больше UNIT_MAX_R м не рисуется дальше cullDistance(радиус),
+//    умноженного на дальность из меню (decorScale: «Далеко» — как есть, «Средне» — ×0,76, «Близко» — ×0,58), — через слой
+//    камеры, а не visible (visible — у логики модулей). Узлы вложены: крыса гаснет раньше всей дорожки. Игровое не прячем
+//    никогда (userData.p3keep у узла: мяч, тени игроков, батуты, круги режимов, старт картинга, кабинки колеса, свет
+//    фонарей, доски у площади; жители — своей дальностью, plaza3/npc.ts). Задник (город, дальний берег) не трогаем. В кадр
+//    пересчёта теней отсечение снимается: тени статики — с полной сценой.
 import * as THREE from 'three';
 import type { LobbyLook } from '../look.ts';
 
@@ -34,6 +37,18 @@ const SCAN_S = 1;
 const CULL_S = 0.2;
 /** Вернуть узел, когда он ближе порога на столько, м — без мигания на границе */
 const HYST = 4;
+
+/**
+ * Дальность из меню «Графика → Дальность видимости» (Renderer.viewK: «Далеко» 1, «Средне» 0,6, «Близко» 0,3). Её ставит
+ * отсечение перед кадром, читают и жители (plaza3/npc.ts: дальше какой дальности житель не рисуется).
+ */
+export const p3View = { k: 1 };
+
+/** Множитель дальности мелочи по меню: «Далеко» — 1 (бюджет 300 отрисовок держится на нём), «Средне» — 0,76, «Близко» — 0,58 */
+export function decorScale(k: number): number {
+  const v = Math.min(1, Math.max(0.1, Number.isFinite(k) ? k : 1));
+  return 0.4 + 0.6 * v;
+}
 
 /**
  * С какого расстояния (м, от камеры до сферы узла) не рисуем узел радиуса r. Мелочь (крыса, фишки, кружка) — с 20 м,
@@ -143,6 +158,8 @@ export interface PerfHooks {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   look: LobbyLook | null;
+  /** Дальность из меню (Renderer.gfxState().viewK); нет — «Далеко» */
+  viewK?: () => number;
 }
 
 export class Plaza3Perf {
@@ -203,7 +220,8 @@ export class Plaza3Perf {
     }
     if (now >= this.cullAt) {
       this.cullAt = now + CULL_S;
-      this.cull(camera.position);
+      p3View.k = this.h.viewK?.() ?? 1;
+      this.cull(camera.position, decorScale(p3View.k));
     }
     if (gl.shadowMap.enabled && gl.shadowMap.needsUpdate && this.culled.size) {
       this.shadowOpen = true;
@@ -588,7 +606,7 @@ export class Plaza3Perf {
     return out;
   }
 
-  private cull(cam: THREE.Vector3): void {
+  private cull(cam: THREE.Vector3, scale: number): void {
     for (const u of this.units) {
       const was = this.culled.has(u.o);
       // спрятанный модулем (круг на воде из запаса) — отпускаем: появится сразу, а далеко — погаснет на следующей проверке
@@ -600,7 +618,7 @@ export class Plaza3Perf {
         continue;
       }
       const d = Math.max(0, _c.copy(u.local).applyMatrix4(u.o.matrixWorld).distanceTo(cam) - u.r);
-      const lim = u.lim ?? cullDistance(u.r);
+      const lim = (u.lim ?? cullDistance(u.r)) * scale;
       if (!was && d > lim) {
         this.culled.set(u.o, u);
         this.hide(u);
