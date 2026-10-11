@@ -16,8 +16,9 @@
 .bj-pill.bad { color: var(--jam-soft); }
 .bj-pill.away { opacity: .55; }
 
-/* --- итог: большая плашка над сукном, потом тает (на сукне остаются подписи рук) */
-.bj-banner { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0; }
+/* --- итог: большая плашка над сукном, потом тает (на сукне остаются подписи рук). Выше стола, над дилером:
+   на 34 % она ложилась на счёт и карты дилера (подпись над рукой дилера) — владелец 11.10: «поправь» */
+.bj-banner { position: absolute; left: 50%; top: 19%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0; }
 .bj-banner.show { animation: bj-banner 3.2s ease-out forwards; }
 .bj-banner-title { font-size: clamp(36px, 6.6vh, 68px); font-weight: 900; line-height: 1; white-space: nowrap; color: #fff3de; text-shadow: 0 5px 0 rgba(30, 10, 10, .45), 0 0 30px rgba(0, 0, 0, .35); }
 .bj-banner-sub { margin-top: 8px; font-size: clamp(24px, 4.4vh, 40px); font-weight: 900; color: #fff3de; text-shadow: 0 3px 0 rgba(0, 0, 0, .45); }
