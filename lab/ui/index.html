@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-skin="retro2">
+<html lang="ru" data-skin="retro2" data-hud="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -15,6 +15,8 @@
         if (s === 'retro2' || s === 'beach' || s === 'dusk') document.documentElement.dataset.skin = s;
         var f = localStorage.getItem('tw-ui2-font');
         if (f === 'rubik' || f === 'unbounded' || f === 'dela' || f === 'mono' || f === 'russo') document.documentElement.dataset.font = f;
+        // HUD поверх игры у «Ретро-парка 2.0»: light (по умолчанию) или enamel
+        if (localStorage.getItem('tw-ui2-hud') === 'enamel') document.documentElement.dataset.hud = 'enamel';
       } catch (e) {}
     </script>
     <!-- заголовочные шрифты (все с кириллицей) + Rubik 600/800 (400/500/700/900 — локально). Для игры их надо положить локально. -->
@@ -86,6 +88,15 @@
             <span class="pg-skin-desc">Смесь: поверх игры — тёмное дымчатое стекло (читается на яркой сцене), окна — светлые, с цветной эмалевой шапкой.</span>
             <span class="pg-skin-mark">Выбрано</span>
           </button>
+        </div>
+
+        <div class="pg-hud" role="group" aria-label="HUD поверх игры">
+          <span class="pg-fonts-h">HUD поверх игры:</span>
+          <div class="k-seg pg-hud-seg">
+            <button type="button" data-hud="enamel">Эмаль (как в Ретро)</button>
+            <button type="button" data-hud="light">Светлый (как в Пляжном дне)</button>
+          </div>
+          <span class="pg-hud-note">Меню и окна — всегда Ретро-парк 2.0; меняется только то, что поверх игры.</span>
         </div>
 
         <div class="pg-fonts" role="group" aria-label="Шрифт заголовков">

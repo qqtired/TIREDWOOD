@@ -8,6 +8,7 @@ const SKINS = ['retro2', 'beach', 'dusk'];
 const SKIN_KEY = 'tw-ui2-skin'; // свой ключ — не задевает первую версию на том же сайте
 const FONTS = ['rubik', 'unbounded', 'dela', 'mono', 'russo'];
 const FONT_KEY = 'tw-ui2-font';
+const HUD_KEY = 'tw-ui2-hud'; // HUD поверх игры у «Ретро-парка 2.0»: light (по умолчанию) | enamel
 const W = 1440;
 const H = 900;
 
@@ -42,6 +43,32 @@ function setSkin(skin, { sound = true } = {}) {
   document.querySelectorAll('.pg-cmp').forEach((b) => b.classList.toggle('is-on', b.dataset.pick === skin));
   if (sound) sfx.play('open');
   window.dispatchEvent(new CustomEvent('skin-change', { detail: skin }));
+  syncHudCtl();
+}
+
+/* ------------------------------------------------------------------ вариант HUD у «Ретро-парка 2.0»: data-hud на <html> */
+function setHud(hud, { sound = false } = {}) {
+  if (hud !== 'enamel') hud = 'light';
+  document.documentElement.dataset.hud = hud;
+  try { localStorage.setItem(HUD_KEY, hud); } catch { /* без сохранения */ }
+  if (sound) sfx.play('click');
+  syncHudCtl();
+  // площадь HUD в «Сетке» — пересчитать
+  document.querySelectorAll('.stage').forEach((el) => el.dispatchEvent(new CustomEvent('hud-change')));
+  window.dispatchEvent(new CustomEvent('hud-change', { detail: hud }));
+}
+function syncHudCtl() {
+  const hud = document.documentElement.dataset.hud === 'enamel' ? 'enamel' : 'light';
+  const retro = document.documentElement.dataset.skin === 'retro2';
+  const box = document.querySelector('.pg-hud');
+  if (box) {
+    box.classList.toggle('is-off', !retro);
+    box.querySelectorAll('button[data-hud]').forEach((b) => { b.classList.toggle('is-on', b.dataset.hud === hud); b.disabled = !retro; });
+    const note = box.querySelector('.pg-hud-note');
+    if (note) note.textContent = retro ? 'Меню и окна — всегда Ретро-парк 2.0; меняется только то, что поверх игры.' : 'Только для «Ретро-парка 2.0» — выбери его карточку выше.';
+  }
+  const cmp = document.querySelector('.pg-cmp[data-pick="retro2"] .pg-cmp-name');
+  if (cmp) cmp.textContent = hud === 'light' ? 'Ретро-парк 2.0 · HUD светлый' : 'Ретро-парк 2.0 · HUD эмаль';
 }
 
 /* ------------------------------------------------------------------ шрифт заголовков: data-font на <html> (пусто — как в стиле) */
@@ -258,6 +285,7 @@ function buildGrid() {
       });
     },
   });
+  all.el.addEventListener('hud-change', () => all.render());
   const cap = all.el.querySelector('.stage-ctl');
   cap?.insertAdjacentHTML('afterbegin', '<span class="pg-share"></span>');
   all.render();
@@ -588,6 +616,7 @@ document.addEventListener('change', (e) => {
 function init() {
   setSkin(document.documentElement.dataset.skin || 'retro2', { sound: false });
   setFont(document.documentElement.dataset.font || '', { sound: false });
+  document.querySelector('.pg-hud-seg')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-hud]'); if (b && !b.disabled) setHud(b.dataset.hud); });
   document.querySelector('.pg-fonts-seg')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-font]'); if (b) setFont(b.dataset.font, { sound: false }); }); // щелчок звучит сам (общий звук .k-seg)
   document.querySelectorAll('.pg-skin').forEach((b) => b.addEventListener('click', () => setSkin(b.dataset.pick)));
   const snd = document.getElementById('pg-sound');
@@ -596,6 +625,7 @@ function init() {
     snd.addEventListener('change', () => { sfx.setEnabled(snd.checked); if (snd.checked) sfx.play('pop'); });
   }
   buildCompare();
+  syncHudCtl();
   buildGrid();
   buildDetails();
   window.addEventListener('load', () => stages.forEach(fit));
