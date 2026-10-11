@@ -312,7 +312,7 @@ export class ArcadeHall {
     // новый рекорд автомата (за всё время или недели) — строка в общий чат
     const beatAll = aPlace === 1 && score > (before.all[0]?.score ?? 0);
     const beatWeek = wPlace === 1 && score > (before.week[0]?.score ?? 0);
-    if (beatAll || beatWeek) this.h.announce(`🕹️ ${who.nick} набрал ${score} в «${meta.title}» — ${beatAll ? 'рекорд автомата за всё время' : 'рекорд недели'}!`);
+    if (beatAll || beatWeek) this.h.announce(`🕹️ ${who.nick} набрал ${score} в игре «${meta.title}» — ${beatAll ? 'рекорд автомата за всё время' : 'рекорд недели'}!`);
     return {
       run: run.id, score, claimed, medal, coins: rw.total, parts: { medal: rw.medal, record: rw.record, first: rw.first }, capped: rw.capped, newBest,
       week: wPlace, all: aPlace,
