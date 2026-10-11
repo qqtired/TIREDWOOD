@@ -84,7 +84,7 @@ export function usePrompt(id: FarmObjectId, f: FarmProgress, now: number): Promp
     case 'semechkin': return { keys: ['E'], text: 'Семечкин', note: 'семена и обучение' };
     case 'cart': return { keys: ['E'], text: 'В город', note: 'на набережную' };
     case 'farmBoard': return { keys: ['E'], text: 'Доска фермы', note: 'соседи и участки' };
-    case 'boss': return { keys: ['E'], text: 'Древо разлома', note: 'вклад и награды' };
+    case 'boss': return { keys: ['E'], text: 'Древо разлома', note: 'доска фермы: вклад и соседи' };
     case 'orders': {
       const ready = f.orders.list.filter((o) => !o.done && orderReady(f, o, now)).length;
       return { keys: ['E'], text: 'Доска заказов', pills: ready ? [{ tone: 'good', text: `${ready} ${ready === 1 ? 'готов' : 'готово'}` }] : undefined };
