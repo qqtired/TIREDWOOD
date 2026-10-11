@@ -49,10 +49,17 @@ test('лестница острова: 4, 8, 12, 16 и сет «Смотрите
   assert.deepEqual(ISLE_LADDER.map((s) => stepNeed(s, ISLE_TOTAL)), [4, 8, 12, 16, 20]);
   assert.deepEqual(ISLE_LADDER.map((s) => s.items), [['b:bellbuoy'], ['r:lighthouse'], ['w:fog'], ['s:puffin'], ['h:keeper', 'a:keeper', 'n:lighthouse']]);
   assert.equal(ISLE_LADDER.at(-1)!.set, 'Смотритель маяка');
+  const iconFiles: Record<string, string> = {
+    'b:bellbuoy': 'bobber-bellbuoy.webp', 'r:lighthouse': 'rod-lighthouse.webp', 'w:fog': 'frame-fog.webp',
+    's:puffin': 'reward-puffin.webp', 'h:keeper': 'reward-keeper-hat.webp',
+    'a:keeper': 'reward-keeper-sweater.webp', 'n:lighthouse': 'badge-lighthouse.webp',
+  };
   for (const id of ISLE_ITEMS) {
     assert.equal(itemById(id)?.tier, 'trophy', `${id}: трофей, не продаётся`);
     assert.ok(REWARD_INFO[id]?.text, `${id}: описание`);
-    assert.ok(FISH_ICONS[id]?.startsWith('<svg'), `${id}: значок`);
+    const src = /^<img\s+[^>]*src="([^"]+)"/.exec(FISH_ICONS[id] ?? '')?.[1];
+    assert.ok(src, `${id}: растровый значок с адресом картинки`);
+    assert.equal(src, new URL(`../client/assets/fishgear/${iconFiles[id]}`, import.meta.url).href, `${id}: картинка своего предмета`);
     assert.ok(!LADDER.some((s) => s.items.includes(id)), `${id}: не на лестнице 52 видов`);
   }
   assert.equal(isleNeedOf('s:puffin'), 16);

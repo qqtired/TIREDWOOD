@@ -168,7 +168,7 @@ test('крылатка бросает тень на каменный ход, а 
   assert.equal(pos.z, -17);
 });
 
-test('structure shield renders only at structures; reentry signs stand over both outer ladders', async (t) => {
+test('structure shield renders only at structures; outer ladders retain pennants without text signs', async (t) => {
   const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
   const noop=()=>{};
   const ctx=new Proxy({getImageData:(_x:number,_y:number,w:number,h:number)=>({data:new Uint8ClampedArray(w*h*4)}),
@@ -186,11 +186,15 @@ test('structure shield renders only at structures; reentry signs stand over both
   assert.ok(field.children.some(c=>Math.abs(c.position.z-2.6)<.01));
   props.setGate(0);props.setRally(true);assert.equal(field.children[1].visible,false);
   props.setRally(false);assert.equal(field.visible,false);
-  const signs=scene.children.filter(c=>c.name==='fort-return-ladder');assert.equal(signs.length,2);
-  for(const sign of signs){
-    const l=LADDERS.find(x=>x.name.endsWith('-out')&&Math.sign(x.x)===Math.sign(sign.position.x))!;
-    assert.equal(world.groundBelow(sign.position.x,.1,sign.position.z),0,'табличка над лугом');
-    assert.ok(Math.abs(sign.position.z-l.z)<.01,'прямо над лестницей');
+  assert.equal(scene.children.filter(c=>c.name==='fort-return-ladder').length,0,'пространственных надписей нет');
+  const pennants=scene.children.filter((c):c is THREE.Mesh<THREE.BufferGeometry,THREE.MeshStandardMaterial>=>
+    c instanceof THREE.Mesh&&c.material instanceof THREE.MeshStandardMaterial&&c.material.color.getHex()===0x54bbab);
+  assert.equal(pennants.length,2,'прежние мятные вымпелы сохранены у обеих наружных лестниц');
+  for(const pennant of pennants){
+    const l=LADDERS.find(x=>x.name.endsWith('-out')&&Math.sign(x.x)===Math.sign(pennant.position.x))!;
+    assert.equal(world.groundBelow(pennant.position.x,.1,pennant.position.z),0,'вымпел над лугом');
+    assert.ok(Math.abs(pennant.position.x-(l.x+l.nx*2.2))<.01,'рядом с наружной лестницей');
+    assert.ok(Math.abs(pennant.position.z-(l.z+2.3))<.01,'положение вымпела сохранено');
     assert.ok(world.groundBelow(l.x-l.nx,4,l.z) >= WALL_H - .01,'наверху лестницы — ход по стене');
   }
 });
