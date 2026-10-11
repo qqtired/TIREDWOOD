@@ -50,6 +50,8 @@ export const PAVILIONS: readonly PavPlace[] = [
   { id: 'cardveranda', file: 'pav_cardveranda.glb', x: 28.25, z: 0.8, yaw: 0, group: 'games', solid: 'layout' },
   { id: 'billiards', file: 'pav_billiards.glb', x: 40.7, z: 17.7, yaw: 0, group: 'games', solid: 'mode' },
   { id: 'regatta_lookout', file: 'pav_regatta_lookout.glb', x: 56.5, z: 17.6, yaw: PI, group: 'games', solid: 'layout' },
+  // фонтан Бульварного сквера (≤ 2,4 м — в коридоре вида на TIREDWOOD), вода пульсирует
+  { id: 'fountain', file: 'pav_fountain.glb', x: 50, z: -11, yaw: 0, group: 'games', solid: 'layout', live: ['live_water'] },
   // Центр: ротонда и доски у площади (лицом на юг, к точке появления)
   { id: 'rotunda', file: 'pav_rotunda.glb', x: 15, z: 8.5, yaw: 0, group: 'hub', solid: 'layout' },
   { id: 'honor', file: 'pav_honor.glb', x: 13.7, z: -22.4, yaw: PI, group: 'hub', solid: 'layout' },

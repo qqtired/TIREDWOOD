@@ -35,6 +35,9 @@ const SYNC = [
   { pav: 'mole', match: /^col_red_light$/, q: 'port' },
   // крысиные бега v2 (11.10): уголок букмекера и две трибунки на понтоне; понтон, загон и столбы табло — твёрдое режима
   { pav: 'rats', match: /^col_(counter|easel|umbrella_pole|stand_[we]_(1|2|back|post_[ns]))$/, q: 'port' },
+  // фонтан Бульварного сквера: чаша восьмиугольником из 7 боксов, пьедестал, нижняя чаша; заменяет плиту блокаута pav.fountain
+  // (кольцо борта — четыре бокса pav.fountain-rim.* руками: боксы чаши модели перекрываются, а раскладка перекрытий не терпит)
+  { pav: 'fountain', match: /^col_(basin_dg|pedestal)$/, old: /^pav\.fountain(\..+)?$/, q: 'games' },
 ];
 
 const r3 = (v) => Math.round(v * 1000) / 1000;

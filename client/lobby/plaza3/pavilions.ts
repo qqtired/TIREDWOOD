@@ -351,6 +351,12 @@ function liveTick(name: string, hooks: PavHooks): Live['tick'] {
         const d = new Date();
         turn(l, _axisZ, (2 * Math.PI * (d.getMinutes() + d.getSeconds() / 60)) / 60);
       };
+    // вода фонтана: лёгкий пульс струй (README-gq, раздел фонтана)
+    case 'live_water':
+      return (l, _dt, t) => {
+        const s = 1 + 0.012 * Math.sin(t * 2.1 + 0.8);
+        l.pivot.scale.set(s, 1 + 0.025 * Math.sin(t * 2.1), s);
+      };
     // рольставня картинга: 1 — закрыта, 0,5 — в покое (видны карты), 0,08 — открыта на отсчёте
     case 'live_door':
       return (l, dt) => {

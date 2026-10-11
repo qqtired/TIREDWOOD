@@ -1402,12 +1402,58 @@
       "color": 12103842
     },
     {
-      "id": "pav.fountain",
+      "id": "pav.fountain.basin_dg",
       "q": "games",
-      "min": [47.4, 0, -13.6],
-      "max": [52.6, 0.5, -8.4],
-      "mat": "concrete",
-      "color": 12103842
+      "pav": "fountain",
+      "min": [48.03, 0, -12.97],
+      "max": [51.97, 0.5, -9.03],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain.pedestal",
+      "q": "games",
+      "pav": "fountain",
+      "min": [49.38, 0.5, -11.62],
+      "max": [50.62, 2.4, -10.38],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.n",
+      "q": "games",
+      "pav": "fountain",
+      "min": [49.05, 0, -13.55],
+      "max": [50.95, 0.5, -12.97],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.s",
+      "q": "games",
+      "pav": "fountain",
+      "min": [49.05, 0, -9.03],
+      "max": [50.95, 0.5, -8.45],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.w",
+      "q": "games",
+      "pav": "fountain",
+      "min": [47.42, 0, -11.95],
+      "max": [48.03, 0.5, -10.05],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.e",
+      "q": "games",
+      "pav": "fountain",
+      "min": [51.97, 0, -11.95],
+      "max": [52.58, 0.5, -10.05],
+      "mat": "invisible",
+      "color": 0
     },
     {
       "id": "pav.kalancha",
@@ -2553,6 +2599,7 @@
     },
     {
       "q": "games",
+      "pav": "fountain",
       "t": "cyl",
       "c": [50, 0.5, -11],
       "r": 0.5,

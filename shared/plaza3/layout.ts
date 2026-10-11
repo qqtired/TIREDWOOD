@@ -3133,20 +3133,106 @@ export const P3: Plaza3Layout = {
       "color": 12103842
     },
     {
-      "id": "pav.fountain",
+      "id": "pav.fountain.basin_dg",
       "q": "games",
+      "pav": "fountain",
       "min": [
-        47.4,
+        48.03,
         0,
-        -13.6
+        -12.97
       ],
       "max": [
-        52.6,
+        51.97,
         0.5,
-        -8.4
+        -9.03
       ],
-      "mat": "concrete",
-      "color": 12103842
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain.pedestal",
+      "q": "games",
+      "pav": "fountain",
+      "min": [
+        49.38,
+        0.5,
+        -11.62
+      ],
+      "max": [
+        50.62,
+        2.4,
+        -10.38
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.n",
+      "q": "games",
+      "pav": "fountain",
+      "min": [
+        49.05,
+        0,
+        -13.55
+      ],
+      "max": [
+        50.95,
+        0.5,
+        -12.97
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.s",
+      "q": "games",
+      "pav": "fountain",
+      "min": [
+        49.05,
+        0,
+        -9.03
+      ],
+      "max": [
+        50.95,
+        0.5,
+        -8.45
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.w",
+      "q": "games",
+      "pav": "fountain",
+      "min": [
+        47.42,
+        0,
+        -11.95
+      ],
+      "max": [
+        48.03,
+        0.5,
+        -10.05
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fountain-rim.e",
+      "q": "games",
+      "pav": "fountain",
+      "min": [
+        51.97,
+        0,
+        -11.95
+      ],
+      "max": [
+        52.58,
+        0.5,
+        -10.05
+      ],
+      "mat": "invisible",
+      "color": 0
     },
     {
       "id": "pav.kalancha",
@@ -5308,6 +5394,7 @@ export const P3: Plaza3Layout = {
     },
     {
       "q": "games",
+      "pav": "fountain",
       "t": "cyl",
       "c": [
         50,
