@@ -1,35 +1,21 @@
-// Интерфейс «Крепости»: всё «стрелковое» (здоровье, патроны, прицел, метки попаданий, смерть) — общий интерфейс
-// пейнтбола (paintball/hud.ts), поверх — своё: полоса сверху (волна, ворота, кристалл, сколько зомби осталось или
-// сколько до волны, золото 💰), тревоги («ворота ломают!»), подсказка у стойки (на телефоне — кнопка), мини-карта
-// с ордой, таблица защитников (Tab), карточка волны (wavecard.ts), итоги игры с жетонами и рекордами; арсенал —
-// прилавок справа, полоска стволов и гранат, цифры урона и золота (stall.ts, floaters.ts). Полосу сверху, тревоги,
-// босса, баннеры, подсказки новичку и итоги рисует client/fort/ui (FortUi): сюда — только крючки к нему.
-import { FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_BOSS, Z_KRAKEN,
+// Интерфейс «Крепости» на ките 2.0 (как на странице lab/ui «Крепость»): всё «стрелковое» считает общий интерфейс
+// пейнтбола (paintball/hud.ts) — его окна в крепости спрятаны (ui/ui.css), а числа и события идут в свои части кита:
+// панель бойца отдельными блоками, прицел, «Тебя повалили!», мелкие сообщения — тостами. Своё — FortUi (ui/index.ts):
+// карточка крепости с мини-картой (верх-лево), плитки под бейджем, плашка волны / босса / голосования и тосты
+// (верх-центр), подсказка действия, стрелки угроз, Tab и итоги. Здесь же прилавок справа (stall.ts) и цифры урона
+// и золота (floaters.ts). match.ts и arsenalc.ts говорят только с этим классом.
+import { FORT_WAVES, FT_END, FT_WAVE, ZK, Z_BOSS, Z_KRAKEN,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
-import { WaveCardView } from './wavecard.ts';
 import { krakenInfo } from './krakenfx.ts';
 import { KRAKEN_OPEN_RAGE, KRAKEN_OPEN_TICKS } from '../../shared/fortkraken.ts';
 import type { BossPart } from './ui/boss.ts';
 import { FORT, GATE, ROADS, TOWER_SPOTS } from '../../shared/fortmap.ts';
 import { newBossDanger, newBossHudLine } from './bosses-f.ts';
 import { Hud, fmtTime } from '../paintball/hud.ts';
-import { TOUCH } from '../touch.ts';
 import { FortFloaters } from './floaters.ts';
-import { ArmsStrip, StallPanel } from './stall.ts';
-import { FortUi, type AlarmOpts } from './ui/index.ts';
-import './fort.css';
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  if (parent) parent.appendChild(e);
-  return e;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-}
+import { StallPanel } from './stall.ts';
+import { FortUi, type AlarmOpts, type FortKit } from './ui/index.ts';
+import { el } from './ui/dom.ts';
 
 /** Точка на мини-карте: зомби (тип) или человек */
 export interface MapDot {
@@ -38,8 +24,10 @@ export interface MapDot {
   kind: number;
 }
 
-/** Мини-карта: поле от леса до моря, север — вверх */
-const MAP = { x0: -70, x1: 70, z0: -90, z1: 26 };
+/** Мини-карта (квадрат 96): поле перед воротами, крепость и берег, север — вверх */
+const MAP = { x0: -48, x1: 48, z0: -68, z1: 28 };
+/** Пикселей холста на сторону (96 на экране × масштаб × плотность — с запасом) */
+const MAP_PX = 240;
 
 export class FortHud {
   readonly root: HTMLElement;
@@ -47,162 +35,91 @@ export class FortHud {
   readonly pb: Hud;
   /** Телефон: нажали на подсказку у стойки */
   onTapUse: () => void = () => {};
-  /** Прилавок (лавка, ворота, кристалл, башни), полоска стволов и гранат, цифры урона и золота */
+  /** Прилавок (лавка, ворота, кристалл, башни) и цифры урона и золота */
   readonly stall: StallPanel;
-  readonly arms: ArmsStrip;
   readonly floaters: FortFloaters;
-  /** Новый интерфейс крепости: полоса, команда, тревоги, босс, баннеры, новичку, итоги */
+  /** Интерфейс крепости на ките */
   readonly ui: FortUi;
-  private readonly resumeEl: HTMLElement;
-  private readonly waveEl: HTMLElement;
-  private readonly phaseEl: HTMLElement;
-  private readonly defenseEl: HTMLElement;
-  private readonly infoEl: HTMLElement;
-  private readonly gateBox: HTMLElement;
-  private readonly gateFill: HTMLElement;
-  private readonly gateNum: HTMLElement;
-  private readonly crysBox: HTMLElement;
-  private readonly crysFill: HTMLElement;
-  private readonly crysNum: HTMLElement;
-  private readonly ptsEl: HTMLElement;
-  private readonly alertEl: HTMLElement;
-  private readonly hintEl: HTMLElement;
-  private readonly hintKey: HTMLElement;
-  private readonly hintText: HTMLElement;
-  private readonly hintPrice: HTMLElement;
-  private readonly map: HTMLCanvasElement;
+  /** Полоска стволов — в панели бойца (арсенал зовёт set каждый кадр); setVisible — панель бойца целиком (в итогах — нет) */
+  readonly arms: { set(gun: number, heavy: number, heavyName: string, heavyIcon: string, other: number, gr: number, grMax: number): void; setVisible(v: boolean): void };
+  private readonly world: HTMLElement;
   private readonly mapCtx: CanvasRenderingContext2D;
   private readonly mapBase: HTMLCanvasElement;
-  private readonly board: HTMLElement;
-  private readonly deathTitle: HTMLElement | null;
-  private readonly deathBy: HTMLElement | null;
-  /** Карточка волны: что идёт, откуда, босс, событие */
-  readonly card: WaveCardView;
-  private readonly bossEl: HTMLElement;
-  private last: Record<string, string | number | boolean> = {};
+  private readonly map: HTMLCanvasElement;
 
-  constructor(root: HTMLElement) {
+  /** root — слой сцены (.hud в оболочке); kit — слоты и верх-центр кита */
+  constructor(root: HTMLElement, kit: FortKit) {
     this.root = root;
     this.pb = new Hud(root);
     root.classList.add('fort-hud');
-    this.deathTitle = root.querySelector('.death-title');
-    this.deathBy = root.querySelector('.death-by');
-    if (this.deathTitle) this.deathTitle.textContent = 'Тебя повалили!';
-
-    // --- полоса сверху
-    const top = el('div', 'ft-top', root);
-    const wave = el('div', 'ft-wave', top);
-    this.phaseEl = el('span', 'ft-phase', wave, 'СБОР');
-    this.waveEl = el('b', 'ft-wave-n', wave, '1');
-    this.infoEl = el('span', 'ft-info', wave, '');
-    const meter = (cls: string, icon: string): [HTMLElement, HTMLElement, HTMLElement] => {
-      const box = el('div', `ft-meter ${cls}`, top);
-      el('span', 'ft-icon', box, icon);
-      const bar = el('div', 'ft-bar', box);
-      const fill = el('i', '', bar);
-      const num = el('b', 'ft-num', box, '');
-      return [box, fill, num];
+    this.world = el('div', 'k-world ft-world', root);
+    // окна (Tab, итоги) — рядом со слоем кита, над ним; в превью — в самом слое сцены
+    const scrims = root.parentElement ?? root;
+    this.ui = new FortUi(kit, this.pb, this.world, scrims);
+    this.floaters = new FortFloaters(this.world);
+    this.stall = new StallPanel(kit.slots.root);
+    this.stall.wrap.classList.add('ft-only');
+    this.ui.stallOpen = () => this.stall.shown;
+    this.ui.prompt.onTap = () => this.onTapUse();
+    const vitals = this.ui.vitals;
+    this.arms = {
+      set: (gun, heavy, heavyName, heavyIcon, other, gr, grMax) => vitals.setArms(gun, heavy, heavyName, heavyIcon, other, gr, grMax),
+      setVisible: (v) => vitals.setVisible(v),
     };
-    [this.gateBox, this.gateFill, this.gateNum] = meter('ft-gate', '🚪');
-    [this.crysBox, this.crysFill, this.crysNum] = meter('ft-crys', '💎');
-    this.ptsEl = el('div', 'ft-pts', top, '💰 0');
-    this.ptsEl.title = 'Золото этой игры: за сбитых, общак и бонус волны; тратится у прилавка, ворот, кристалла и мест башен';
-    this.alertEl = el('div', 'ft-alert', root);
-    this.alertEl.setAttribute('role', 'status');
-    const briefing = el('div', 'ft-briefing', root);
-    this.card = new WaveCardView(briefing, root);
-    this.defenseEl = el('div', 'ft-defense', briefing);
-    this.defenseEl.title = 'Колокол на террасе: 8 секунд защиты строений, общий откат 30 секунд. Игроки по-прежнему получают полный урон.';
-    this.bossEl = el('div', 'ft-boss', briefing);
-    el('b', 'ft-boss-name', this.bossEl, ZK[Z_BOSS].name);
-    const bossBar = el('div', 'ft-boss-bar', this.bossEl);
-    bossBar.setAttribute('role', 'progressbar');
-    bossBar.setAttribute('aria-label', 'Здоровье босса');
-    bossBar.setAttribute('aria-valuemin', '0');
-    bossBar.setAttribute('aria-valuemax', '100');
-    el('i', '', bossBar);
-    el('span', 'ft-boss-info', this.bossEl);
-
-    // --- подсказка у стойки
-    this.hintEl = el('div', 'ft-hint', root);
-    this.hintKey = el('b', 'ft-key', this.hintEl, TOUCH ? '👆' : 'E');
-    this.hintText = el('span', 'ft-hint-text', this.hintEl);
-    this.hintPrice = el('span', 'ft-price', this.hintEl);
-    if (TOUCH) {
-      this.hintEl.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        if (this.hintEl.classList.contains('can')) this.onTapUse();
-      });
-    }
-    if (!TOUCH) {
-      el('div', 'ft-help', root).innerHTML =
-        '<b>ЛКМ</b> огонь · <b>ПКМ</b> прицел · <b>1</b>/<b>2</b> ствол · <b>G</b> граната · <b>E</b> лавка и стойки · <b>Q</b> плечо · <b>колесо</b> камера · <b>Tab</b> защитники';
-    }
-
-    // --- мини-карта: подложка (луг, дороги, стены) рисуется один раз
-    const size = TOUCH ? 104 : 168;
-    this.map = el('canvas', 'ft-map', root);
-    this.map.width = size * 2;
-    this.map.height = Math.round(size * 2 * ((MAP.z1 - MAP.z0) / (MAP.x1 - MAP.x0)));
-    this.map.style.width = `${size}px`;
+    this.adopt();
+    // мини-карта: подложка (луг, дороги, стены) рисуется один раз
+    this.map = this.ui.card.map;
+    this.map.width = MAP_PX;
+    this.map.height = MAP_PX;
     this.mapCtx = this.map.getContext('2d')!;
-    this.mapBase = this.drawMapBase(this.map.width, this.map.height);
+    this.mapBase = this.drawMapBase(MAP_PX, MAP_PX);
+    this.mapCtx.drawImage(this.mapBase, 0, 0);
+  }
 
-    this.board = el('div', 'board overlay-card ft-board', root);
-
-    this.floaters = new FortFloaters(root);
-    this.arms = new ArmsStrip(root);
-    this.stall = new StallPanel(root);
-    this.resumeEl = el('div', 'ars-resume', root, 'Кликни или нажми любую клавишу — обратно в бой');
-    this.ui = new FortUi(root, this.pb);
+  /** Числа и события стрелкового интерфейса — в части кита (окна пейнтбола в крепости спрятаны) */
+  private adopt(): void {
+    const pb = this.pb;
+    const ui = this.ui;
+    const wrap = <K extends keyof Hud>(name: K, after: Hud[K]): void => {
+      const orig = (pb[name] as (...a: unknown[]) => unknown).bind(pb);
+      const mine = after as (...a: unknown[]) => unknown;
+      (pb as unknown as Record<string, unknown>)[name] = (...a: unknown[]) => {
+        orig(...a);
+        mine(...a);
+      };
+    };
+    wrap('setVitals', (hp: number, max: number) => ui.vitals.setHp(hp, max));
+    wrap('setAmmo', (ammo: number, max: number, reload: number | null) => ui.vitals.setAmmo(ammo, max, reload));
+    wrap('setDash', (ready: number) => ui.vitals.setDash(ready));
+    wrap('setCrosshair', (gap: number, visible: boolean) => ui.cross.set(gap, visible));
+    wrap('hitmarker', (head: boolean, kill: boolean) => ui.cross.hit(head, kill));
+    wrap('setRespawn', (sec: number) => ui.down.setRespawn(sec));
+    wrap('hideDeath', () => ui.down.hide());
+    pb.setStats = (text: string | null) => ui.card.setStats(text);
   }
 
   /** Курсор свободен (закрыли прилавок Esc): подсказка «кликни — обратно» */
   setResume(show: boolean): void {
-    if (this.set('resume', show)) this.resumeEl.classList.toggle('show', show);
-  }
-
-  private set(key: string, value: string | number | boolean): boolean {
-    if (this.last[key] === value) return false;
-    this.last[key] = value;
-    return true;
-  }
-
-  // ------------------------------------------------------------ полоса сверху
-
-  /** Волна, фаза и строка справа (сколько зомби или сколько до волны) */
-  setWave(phase: number, wave: number, info: string, urgent: boolean): void {
-    const ph = phase === FT_GATHER ? 'Сбор' : phase === FT_BREAK ? 'Передышка' : phase === FT_END ? 'Итоги' : 'Волна';
-    if (this.set('ph', ph)) this.phaseEl.textContent = ph;
-    const shown = phase === FT_BREAK || phase === FT_GATHER ? wave + 1 : wave;
-    const w = String(Math.max(1, Math.min(FORT_WAVES, shown)));
-    if (this.set('wave', w)) this.waveEl.textContent = w;
-    if (this.set('info', info)) this.infoEl.textContent = info;
-    if (this.set('urgent', urgent)) this.infoEl.classList.toggle('urgent', urgent);
+    this.ui.prompt.setResume(show);
   }
 
   /** Карточка волны: в бою — идущая, в передышке и сборе — следующая */
   setCard(card: FortWaveCard | null, phase: number): void {
-    this.card.set(phase === FT_END ? null : card, phase !== FT_WAVE);
+    this.ui.wave.setCard(phase === FT_END ? null : card);
   }
 
-  setDefense(phase: number, defenders: number, rally: number, cooldown: number): void {
-    this.defenseEl.hidden = phase === FT_END;
-    const status = rally > 0 ? `Щит строений −50% · ${Math.ceil(rally / 60)} с`
-      : cooldown > 0 ? `Колокол восстановится через ${Math.ceil(cooldown / 60)} с`
-      : phase === FT_WAVE ? 'Щит готов · E у колокола на террасе' : 'В бою колокол защищает строения на 8 с';
-    const text = `Орда на ${Math.max(1, defenders)} · ${status}`;
-    if (this.set('defense', text)) this.defenseEl.textContent = text;
-    this.defenseEl.classList.toggle('active', rally > 0);
+  /** Колокол на террасе: щит строений (rally — сколько ещё, cooldown — откат), в карточке крепости */
+  setDefense(phase: number, _defenders: number, rally: number, cooldown: number): void {
+    this.ui.card.setBell(phase === FT_WAVE, rally, cooldown);
   }
 
   /**
-   * Полоса босса (FortUi): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort. У Кракена — своя
-   * подсказка (krakenInfo) и части: щупальца и голова.
+   * Полоса босса (плашка верх-центра): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort. У Кракена — своя
+   * подсказка (krakenInfo) и части: щупальца и голова. max — полное HP (ui/schedule.ts bossMaxHp), 0 — только проценты.
    */
-  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean, parts?: readonly BossPart[]): void {
+  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean, parts?: readonly BossPart[], max = 0): void {
     const kraken = kind === Z_KRAKEN;
-    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage, parts,
+    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage, parts, max,
       status: kraken ? krakenInfo(state, wind) : newBossHudLine(state) ?? undefined, danger: newBossDanger(state), openTicks: kraken ? (rage ? KRAKEN_OPEN_RAGE : KRAKEN_OPEN_TICKS) : undefined } : null);
   }
 
@@ -210,36 +127,19 @@ export class FortHud {
   get shopShown(): boolean { return this.stall.shown; }
 
   setGate(hp: number, max: number): void {
-    const pct = Math.round((hp / max) * 100);
-    if (!this.set('gate', pct)) return;
-    this.gateFill.style.width = `${pct}%`;
-    this.gateNum.textContent = hp > 0 ? `${pct}%` : 'пали';
-    this.gateBox.classList.toggle('low', pct <= 30);
-    this.gateBox.classList.toggle('down', hp <= 0);
+    this.ui.card.gate.set(hp, max);
   }
 
   setCrystal(hp: number, max: number): void {
-    const pct = Math.round((hp / max) * 100);
-    if (!this.set('crys', pct)) return;
-    this.crysFill.style.width = `${pct}%`;
-    this.crysNum.textContent = `${pct}%`;
-    this.crysBox.classList.toggle('low', pct <= 30);
+    this.ui.card.crystal.set(hp, max);
   }
 
-  /** Ворота или кристалл только что получили урон — полоска вздрагивает */
+  /** Ворота или кристалл только что получили урон — строка в карточке вздрагивает */
   hurt(which: 'gate' | 'crys'): void {
     this.ui.hurt(which);
   }
 
-  setPoints(n: number): void {
-    if (!this.set('pts', n)) return;
-    this.ptsEl.textContent = `💰 ${n.toLocaleString('ru-RU')}`;
-    this.ptsEl.classList.remove('pulse');
-    void this.ptsEl.offsetWidth;
-    this.ptsEl.classList.add('pulse');
-  }
-
-  /** Тревога под полосой (FortUi): «ворота трещат» со стрелкой к воротам, атаки с отсчётом */
+  /** Тревога тостом под плашкой волны: «ворота трещат» со стрелкой к воротам, атаки с меткой */
   alert(text: string, ms = 2600, opts: AlarmOpts = {}): void {
     this.ui.alarm(text, ms, opts);
   }
@@ -248,15 +148,7 @@ export class FortHud {
 
   /** Подсказка у стойки: null — спрятать; price 0 — без цены; can — нажатие что-то сделает */
   setHint(text: string | null, price: number, can: boolean, afford: boolean): void {
-    const key = text === null ? '' : `${text}|${price}|${can}|${afford}`;
-    if (!this.set('hint', key)) return;
-    this.hintEl.classList.toggle('show', text !== null);
-    if (text === null) return;
-    this.hintText.textContent = text;
-    this.hintPrice.textContent = price > 0 ? `${price} 💰` : '';
-    this.hintPrice.classList.toggle('poor', !afford);
-    this.hintEl.classList.toggle('can', can);
-    this.hintKey.style.display = can ? '' : 'none';
+    this.ui.prompt.setStation(text, price, can, afford);
   }
 
   // ------------------------------------------------------------ мини-карта
@@ -269,16 +161,14 @@ export class FortHud {
     const k = w / (MAP.x1 - MAP.x0);
     const X = (x: number) => (x - MAP.x0) * k;
     const Z = (z: number) => (z - MAP.z0) * k;
-    ctx.fillStyle = 'rgba(70,110,52,0.92)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, 18);
-    ctx.fill();
+    ctx.fillStyle = '#5f8f45';
+    ctx.fillRect(0, 0, w, h);
     // море на юге
-    ctx.fillStyle = 'rgba(40,120,160,0.95)';
-    ctx.fillRect(0, Z(24), w, h - Z(24));
+    ctx.fillStyle = '#2f86ad';
+    ctx.fillRect(0, Z(22), w, h - Z(22));
     // дороги
-    ctx.strokeStyle = 'rgba(214,184,132,0.95)';
-    ctx.lineWidth = 4.5 * k;
+    ctx.strokeStyle = '#d8bb86';
+    ctx.lineWidth = 4 * k;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (const r of ROADS) {
@@ -287,28 +177,23 @@ export class FortHud {
       ctx.stroke();
     }
     // стены и двор
-    ctx.fillStyle = 'rgba(214,204,182,1)';
+    ctx.fillStyle = '#d9ccb2';
     ctx.fillRect(X(FORT.x0), Z(FORT.z0), (FORT.x1 - FORT.x0) * k, (FORT.z1 - FORT.z0) * k);
-    ctx.fillStyle = 'rgba(150,140,120,1)';
+    ctx.fillStyle = '#9a8c74';
     ctx.fillRect(X(FORT.x0 + 3), Z(FORT.z0 + 3), (FORT.x1 - FORT.x0 - 6) * k, (FORT.z1 - FORT.z0 - 6) * k);
     // воротные башни и бастионы
-    ctx.fillStyle = 'rgba(214,204,182,1)';
+    ctx.fillStyle = '#d9ccb2';
     ctx.fillRect(X(-6), Z(-18.5), 12 * k, 3 * k);
     ctx.fillRect(X(-21), Z(-19), 6 * k, 6 * k);
     ctx.fillRect(X(15), Z(-19), 6 * k, 6 * k);
     // места башен
     ctx.strokeStyle = 'rgba(255,236,190,0.9)';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     for (const s of TOWER_SPOTS) {
       ctx.beginPath();
-      ctx.arc(X(s.x), Z(s.z), 3.4, 0, Math.PI * 2);
+      ctx.arc(X(s.x), Z(s.z), 4, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.strokeStyle = 'rgba(255,240,215,0.5)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(1, 1, w - 2, h - 2, 18);
-    ctx.stroke();
     return c;
   }
 
@@ -322,29 +207,34 @@ export class FortHud {
     ctx.clearRect(0, 0, w, this.map.height);
     ctx.drawImage(this.mapBase, 0, 0);
     // ворота: целы — коричневые, пали — красный пролом
-    ctx.fillStyle = gateUp ? 'rgba(120,76,40,1)' : 'rgba(255,70,60,1)';
-    ctx.fillRect(X(GATE.x0), Z(GATE.face) - 2, (GATE.x1 - GATE.x0) * k, 4 + (gateUp ? 0 : 2));
+    ctx.fillStyle = gateUp ? '#784c28' : '#ff463c';
+    ctx.fillRect(X(GATE.x0) - 1, Z(GATE.face) - 3, (GATE.x1 - GATE.x0) * k + 2, gateUp ? 5 : 7);
     // кристалл
     ctx.fillStyle = '#6fe6ff';
+    ctx.strokeStyle = 'rgba(10,40,60,0.8)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(X(0), Z(2.6), 5, 0, Math.PI * 2);
+    ctx.arc(X(0), Z(2.6), 6, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
     for (let i = 0; i < nz; i++) {
       const z = zombies[i];
       const kk = ZK[z.kind] ?? ZK[0];
       ctx.fillStyle = `#${kk.color.toString(16).padStart(6, '0')}`;
       ctx.beginPath();
-      ctx.arc(X(z.x), Z(z.z), isBossKind(z.kind) ? 8 : kk.r >= 0.7 ? 5.5 : 3.6, 0, Math.PI * 2);
+      ctx.arc(X(z.x), Z(z.z), isBossKind(z.kind) ? 9 : kk.r >= 0.7 ? 6 : 4.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(20,10,10,0.7)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = 'rgba(20,10,10,0.75)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     }
     ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = 'rgba(20,10,10,0.75)';
     for (let i = 0; i < nm; i++) {
       ctx.beginPath();
-      ctx.arc(X(mates[i].x), Z(mates[i].z), 4, 0, Math.PI * 2);
+      ctx.arc(X(mates[i].x), Z(mates[i].z), 5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
     }
     if (alive) {
       // я — стрелка по взгляду (yaw 0 — на север, вверх)
@@ -353,12 +243,12 @@ export class FortHud {
       ctx.rotate(-meYaw);
       ctx.fillStyle = '#ffd35a';
       ctx.strokeStyle = 'rgba(30,20,10,0.9)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(0, -9);
-      ctx.lineTo(6, 6);
-      ctx.lineTo(0, 3);
-      ctx.lineTo(-6, 6);
+      ctx.moveTo(0, -11);
+      ctx.lineTo(7.5, 7.5);
+      ctx.lineTo(0, 3.5);
+      ctx.lineTo(-7.5, 7.5);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -366,31 +256,20 @@ export class FortHud {
     }
   }
 
-  // ------------------------------------------------------------ таблицы
+  // ------------------------------------------------------------ окна
 
-  private rosterTable(rows: FortPlayerRow[], myId: number, phase: number): string {
-    const calm = phase === FT_GATHER || phase === FT_BREAK;
-    const body = [...rows]
-      .sort((a, b) => b.k - a.k || a.d - b.d)
-      .map((r) => `<tr class="${r.id === myId ? 'me' : ''}"><td class="n">${escapeHtml(r.name)}${calm && r.ready ? ' <i>🔔 готов</i>' : ''}</td><td>${r.k}</td><td>${r.d}</td><td>${r.pts}</td><td class="ping">${r.ping}</td></tr>`)
-      .join('');
-    return `<div class="board-team ft-team"><h3>Защитники крепости</h3><table><thead><tr><th class="n">Игрок</th><th>Сбил</th><th>Повален</th><th>💰</th><th>мс</th></tr></thead><tbody>${body}</tbody></table></div>`;
-  }
-
+  /** Tab: защитники (и кто где ещё) — пока держишь */
   showBoard(show: boolean, rows: FortPlayerRow[], myId: number, phase: number): void {
-    if (show) {
-      const html = `${this.rosterTable(rows, myId, phase)}<div class="board-hint">💰 — золото этой игры: 60 % награды — тому, кто бил, 40 % — в общак волны поровну; тратят у прилавка, ворот, кристалла и на башни</div>`;
-      if (this.set('boardHtml', html)) this.board.innerHTML = html;
-    }
-    if (this.set('board', show)) this.board.classList.toggle('show', show);
+    this.ui.showBoard(show, rows, myId, phase);
   }
 
   /**
-   * Итоги (FortUi): устояла или пала, лучший, таблица с золотом и жетонами, «вся команда»; рекорды крепости — top
+   * Итоги: устояла или пала, лучший, таблица с золотом и жетонами, «вся команда»; рекорды крепости — top
    * (лучшие забеги), record — команда побила рекорд, prev — прежний рекорд (0 — не было).
    */
   showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number,
     top: readonly FortRunRec[] = [], record = false, prev = 0, surr = false, run = 0): void {
+    this.stall.close();
     this.ui.results.show({ win, wave, lastWave: FORT_WAVES, mvp, rows, myId,
       record: record || prev > 0 ? { best: prev, isNew: record } : null, top, run, surr });
   }
@@ -408,15 +287,17 @@ export class FortHud {
     this.ui.results.hide();
   }
 
+  /** Окно итогов на экране (закрыли «Ещё раз» — уже нет) */
   get endShown(): boolean {
     return this.ui.results.shown;
   }
 
-  // ------------------------------------------------------------ смерть
+  // ------------------------------------------------------------ повален
 
-  showDeath(text: string): void {
+  /** «Тебя повалили!»: почему (текст) и кто (вид врага, −1 — не знаем) */
+  showDeath(text: string, kind = -1): void {
     this.pb.showDeath(null, 0, 'fort');
-    if (this.deathBy) this.deathBy.textContent = text;
+    this.ui.down.show(text, kind);
   }
 
   setVisible(v: boolean): void {
@@ -424,13 +305,10 @@ export class FortHud {
     if (!v) {
       this.stall.close();
       this.floaters.clear();
-      this.setResume(false);
       this.setBoss(0, 0, 0, 0);
-      this.card.hideAll();
       this.hideEnd();
       this.ui.reset();
       this.showBoard(false, [], 0, 0);
-      this.setHint(null, 0, false, true);
     }
   }
 }

@@ -58,6 +58,8 @@ export interface SceneDeps {
   overlay: HTMLElement;
   /** Сцене снова нужна мышь (вышли из примерочной): захватить, а если браузер не дал — пауза с кнопкой */
   wantPointer: () => void;
+  /** Ушли без жеста (Esc в итогах крепости): ближайшая пауза без мыши — вуалью «Кликни, чтобы играть», а не меню */
+  quietPause?: () => void;
 }
 
 export interface Scene {
