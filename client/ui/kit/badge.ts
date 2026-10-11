@@ -45,7 +45,6 @@ export class Badge {
       this.share = share;
       this.levelEl.textContent = String(level);
       this.ring.style.setProperty('--p', String(share));
-      this.ring.title = `Уровень ${level} · до следующего ${Math.round(share * 100)} % опыта`;
     }
     this.setTokens(tokens);
   }

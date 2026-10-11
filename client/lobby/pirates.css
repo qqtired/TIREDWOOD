@@ -10,51 +10,41 @@
 
 /* плашка «Пираты на горизонте!» и «Волна N» — событие в верх-центре HUD (client/ui/kit/topcenter.ts) */
 
-/* панель набега: корабль, добыча, волна */
+/* панель набега: корабль, добыча, волна — плашка кита (.k-plate) в слоте под стопкой верх-центра (.k-slot--tc-under):
+   плашка волны и тосты сверху её не закрывают, она съезжает ниже. Цвета — токены кита. */
 .pr-panel {
-  position: absolute;
-  top: 70px;
-  left: 50%;
-  transform: translate(-50%, -8px);
-  width: min(430px, calc(100vw - 24px));
-  padding: 9px 14px 11px;
-  border-radius: 18px;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  color: var(--cream);
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  width: 430px;
+  padding: 8px 14px 10px;
+  font: 500 var(--fs-14)/1.25 var(--font-text);
+  animation: k-toast-in 0.25s var(--ease-out) both;
 }
-.pr-panel.show { opacity: 1; transform: translate(-50%, 0); }
-.pr-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 7px; }
-.pr-title { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; }
-.pr-wave { font-size: 14px; font-weight: 700; color: var(--gold); }
-.pr-time { min-width: 38px; text-align: right; font-size: 14px; font-weight: 700; color: var(--cream-dim); }
+.pr-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pr-title { display: inline-flex; flex: 1; align-items: center; gap: 6px; font: 800 var(--fs-15)/1.2 var(--font-text); }
+.pr-title-ic { width: 22px; height: 22px; object-fit: contain; }
+.pr-wave { font: 700 var(--fs-14)/1.2 var(--font-text); color: var(--gold-text); }
+.pr-time { min-width: 38px; text-align: right; font: 800 var(--fs-15)/1.2 var(--font-text); color: var(--gold-text); }
 .pr-row { display: flex; align-items: center; gap: 9px; min-height: 22px; }
 .pr-row + .pr-row { margin-top: 5px; }
-.pr-lab { width: 62px; font-size: 13px; font-weight: 700; color: var(--cream-dim); }
-.pr-bar { position: relative; flex: 1; height: 14px; border-radius: 8px; background: rgba(0, 0, 0, 0.38); overflow: hidden; border: 1px solid rgba(255, 236, 205, 0.18); }
-.pr-fill { position: absolute; inset: 0 auto 0 0; width: 100%; border-radius: 8px; background: linear-gradient(180deg, #ffb35a, #ff7a2a); transition: width 0.35s ease, background 0.35s ease; }
-.pr-fill.low { background: linear-gradient(180deg, #ff6b5a, #d6342a); }
-.pr-val { min-width: 46px; text-align: right; font-size: 15px; font-weight: 800; }
-.pr-have { min-width: 20px; font-size: 17px; font-weight: 900; color: var(--gold); text-align: center; }
-.pr-sub { font-size: 12px; font-weight: 600; color: var(--cream-dim); }
+.pr-lab { width: 62px; font-size: var(--fs-13); font-weight: 700; color: var(--surf-dim); }
+.pr-bar { position: relative; flex: 1; height: 12px; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); overflow: hidden; }
+.pr-fill { --c: var(--gold); position: absolute; inset: 0 auto 0 0; width: 100%; border-radius: inherit; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 74%, #fff), var(--c) 60%); transition: width 0.35s ease; }
+.pr-fill.low { --c: var(--bad); }
+.pr-val { min-width: 46px; text-align: right; font-size: var(--fs-15); font-weight: 800; }
+.pr-have { min-width: 20px; font-size: var(--fs-16); font-weight: 900; color: var(--gold-text); text-align: center; }
+.pr-sub { font-size: var(--fs-13); font-weight: 600; color: var(--surf-dim); }
 .pr-slots { display: flex; gap: 4px; margin-left: auto; }
 .pr-slots i {
   display: block;
-  width: 17px;
-  height: 17px;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 2px solid rgba(255, 107, 90, 0.75);
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-xs);
+  background: var(--track);
+  border: 2px solid var(--bad-soft);
   transition: background 0.25s ease, transform 0.25s ease;
 }
-.pr-slots i.on { background: #e0283a; border-color: #ffd0cc; transform: scale(1.08); }
+.pr-slots i.on { background: var(--bad); border-color: var(--bad-hi); transform: scale(1.08); }
 .pr-slots i.warn { animation: pr-warn 0.6s ease-in-out infinite; }
-@keyframes pr-warn { 50% { background: rgba(255, 107, 90, 0.55); } }
-.pr-flash { animation: pr-flash 0.5s ease; }
-@keyframes pr-flash { 0% { transform: translate(-50%, 0) scale(1.06); } 100% { transform: translate(-50%, 0) scale(1); } }
+@keyframes pr-warn { 50% { background: var(--bad-soft); } }
 
 /* прицел: маркер — кружок цвета краски, пушка — большой прицел с таймом перезарядки */
 .pr-ret { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; transition: opacity 0.15s ease; }
@@ -186,7 +176,7 @@
 .pr-result-me { margin-top: 8px; font-size: 20px; font-weight: 900; color: var(--gold); }
 
 @media (max-width: 640px), (pointer: coarse) {
-  .pr-panel { top: 52px; padding: 7px 10px 9px; }
+  .pr-panel { width: min(430px, calc(100vw - 24px)); padding: 7px 10px 9px; }
   .pr-title { font-size: 13px; }
   .pr-lab { width: 54px; font-size: 12px; }
   .pr-slots i { width: 14px; height: 14px; }

@@ -7,9 +7,9 @@ import type { ChatLine, RoomKind } from '../shared/messages.ts';
 import { appendCoinText } from './ui/coin.ts';
 import { keyHtml, iconImg } from './ui/kit/dom.ts';
 
-const ROOM_ICON: Record<RoomKind, [string, string]> = {
-  lobby: ['anchor', 'набережная'], paintball: ['paintballs', 'пейнтбол'], race: ['kart', 'картинг'], fort: ['shield', 'крепость'],
-  fight: ['champion', 'Fight Club'], skill: ['climber', 'Выше облаков'], hide: ['hide-box', 'прятки'], dungeon: ['dungeon', 'Подземелье'], farm: ['farm-gate', 'ферма'],
+/** Значок комнаты у строки из другой комнаты */
+const ROOM_ICON: Record<RoomKind, string> = {
+  lobby: 'anchor', paintball: 'paintballs', race: 'kart', fort: 'shield', fight: 'champion', skill: 'climber', hide: 'hide-box', dungeon: 'dungeon', farm: 'farm-gate',
 };
 
 const KEEP = 40;
@@ -125,9 +125,7 @@ export class Chat {
     row.className = `k-chat-line${line.sys ? ' is-sys' : ''}${mine ? ' is-own' : ''}`;
     if (!line.sys) {
       if (line.room && line.room !== myRoom) {
-        const [icon, name] = ROOM_ICON[line.room];
-        row.insertAdjacentHTML('beforeend', iconImg(icon));
-        row.lastElementChild?.setAttribute('title', name);
+        row.insertAdjacentHTML('beforeend', iconImg(ROOM_ICON[line.room]));
       }
       const n = document.createElement('b');
       n.textContent = line.from;

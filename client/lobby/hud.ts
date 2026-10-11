@@ -1,22 +1,26 @@
 // Интерфейс набережной в слотах кита (client/ui/kit/slots.ts): подсказка действия «E — сесть» внизу по центру
 // (.k-prompt; нельзя — приглушена, с причиной), приглашение на жест вдвоём над ней (.k-prompt с полосой времени),
-// эмоции 1–6 справа внизу (пилюля, как на странице lab/ui «Площадь»; 5 и 6 — вдвоём), FPS слева вверху (.k-faint, по настройке), «Джекпот!»
-// по центру (.k-hero) и секундомер аквапарка — плашкой события сверху (верх-центр). Панели набережной (примерочная,
-// столы, автомат) кладут в root. На телефоне подсказку и приглашение можно нажать пальцем — как клавишу.
+// эмоции 1–6 справа внизу (пилюля, как на странице lab/ui «Площадь»; что на какой клавише — Esc → Клавиши), FPS слева вверху
+// (.k-faint, по настройке), «Джекпот!» — крупным баннером по центру и секундомер аквапарка — плашкой события сверху (оба —
+// через верх-центр, client/ui/kit/topcenter.ts). Панели набережной (примерочная, столы, автомат) кладут в root. На телефоне
+// подсказку и приглашение можно нажать пальцем — как клавишу.
 import { TOUCH } from '../touch.ts';
 import { setCoinText } from '../ui/coin.ts';
 import { iconImg, keyHtml, meterHtml } from '../ui/kit/dom.ts';
 import type { HudSlots } from '../ui/kit/slots.ts';
 import { PRIO, escHtml, type TopCenter } from '../ui/kit/topcenter.ts';
 
-/** Эмоции на клавишах 1–6 (подсказка при наведении) */
-const EMOTES = '1 — помахать · 2 — танец · 3 — устал · 4 — смех · 5 — дай пять · 6 — обняться (5 и 6 — с тем, кто перед тобой)';
-/** Сколько висит «Джекпот!» (.k-hero.is-play — появиться и растаять за 3,2 с) */
-const JACKPOT_MS = 3300;
 /** Телефон: какую клавишу «нажимает» подсказка (по первой клавише в ней) */
 const TAP_CODES: Record<string, string> = { E: 'KeyE', Пробел: 'Space', '🎣': 'Space', '🎰': 'Space' };
 const MOUSE: Record<string, string> = { ЛКМ: 'l', ПКМ: 'r' };
 const TIMER = 'timer';
+const JACKPOT = 'jackpot';
+
+/** Подсказка: золотая пульсирующая (успей) и награда пилюлей за чертой */
+export interface HintMore {
+  urgent?: boolean;
+  pill?: string;
+}
 
 export class LobbyHud {
   /** Телефон: нажали на подсказку или приглашение — как клавишу */
@@ -27,13 +31,11 @@ export class LobbyHud {
   private readonly emotes: HTMLElement;
   private readonly ask: HTMLElement;
   private readonly stats: HTMLElement;
-  private readonly heroSlot: HTMLElement;
   private visible = false;
   private hintOn = false;
   private askOn = false;
   private emotesOn = false;
   private timerKey = '';
-  private jackpotTimer = 0;
   private hintKey = '';
   private statsText = '';
   private tapCode = '';
@@ -45,10 +47,8 @@ export class LobbyHud {
     this.ask = el('div', 'k-prompt pz-ask');
     this.hint = el('div', 'k-prompt pz-hint');
     this.emotes = el('div', 'k-pill k-pill--plate pz-emotes');
-    this.emotes.title = EMOTES;
     this.emotes.innerHTML = `${iconImg('emote')}<span class="k-keys">${keyHtml('1')}<span class="pz-dash">–</span>${keyHtml('6')}</span>Эмоции`;
     this.stats = el('div', 'k-faint pz-stats');
-    this.heroSlot = slots.c;
     slots.bc.append(this.ask, this.hint);
     slots.br.append(this.emotes);
     slots.tl.append(this.stats);
@@ -68,7 +68,7 @@ export class LobbyHud {
     this.visible = v;
     this.root.classList.toggle('hidden', !v);
     if (!v) {
-      this.heroSlot.querySelector('.pz-jackpot')?.remove();
+      this.top.clearHero(JACKPOT);
       this.setTimer(null);
     }
     this.paint();
@@ -85,9 +85,10 @@ export class LobbyHud {
   /**
    * Подсказка внизу: клавиши и что будет. Пустой список клавиш — просто надпись («Доска почёта») или причина, почему
    * нельзя, — приглушённо; '/' среди клавиш — разделитель. Текст после первого « · » — серым, за чертой. null — спрятать.
+   * more.urgent — золотая пульсирующая (успей: «Зажечь маяк»); more.pill — награда золотой пилюлей за чертой («🪙до 30»).
    */
-  setHint(keys: readonly string[] | null, text = ''): void {
-    const key = keys ? `${keys.join('|')}#${text}` : '';
+  setHint(keys: readonly string[] | null, text = '', more: HintMore = {}): void {
+    const key = keys ? `${keys.join('|')}#${text}#${more.urgent ? 1 : 0}#${more.pill ?? ''}` : '';
     if (key === this.hintKey) return;
     this.hintKey = key;
     this.hintOn = keys !== null;
@@ -96,6 +97,7 @@ export class LobbyHud {
     this.paint();
     if (!keys) return;
     this.hint.classList.toggle('k-prompt--off', keys.length === 0);
+    this.hint.classList.toggle('k-prompt--urgent', !!more.urgent);
     // узлами, а не HTML: в подписи бывают ники, а 🪙 рисуется значком
     this.hint.textContent = '';
     let group: HTMLElement | null = null;
@@ -123,6 +125,10 @@ export class LobbyHud {
     if (cut >= 0) {
       this.hint.appendChild(el('span', 'k-prompt-sep'));
       coinText(this.hint.appendChild(el('span', 'k-prompt-note')), text.slice(cut + 3));
+    }
+    if (more.pill) {
+      this.hint.appendChild(el('span', 'k-prompt-sep'));
+      coinText(this.hint.appendChild(el('span', 'k-pill k-pill--gold k-pill--sm')), more.pill);
     }
   }
 
@@ -161,16 +167,9 @@ export class LobbyHud {
     this.paint();
   }
 
-  /** Крупно по центру: кто сорвал джекпот и сколько. */
+  /** Крупно по центру: кто сорвал джекпот и сколько (баннер верх-центра; свой «Уровень N!» важнее) */
   showJackpot(nick: string, win: number): void {
-    this.heroSlot.querySelector('.pz-jackpot')?.remove();
-    const hero = el('div', 'k-hero k-hero--gold is-play pz-jackpot');
-    hero.appendChild(el('p', 'k-hero-title')).textContent = 'Джекпот!';
-    // ник — только как текст
-    coinText(hero.appendChild(el('span', 'k-hero-sub')), `${nick} срывает ${win.toLocaleString('ru-RU')} 🪙`);
-    this.heroSlot.append(hero);
-    clearTimeout(this.jackpotTimer);
-    this.jackpotTimer = window.setTimeout(() => hero.remove(), JACKPOT_MS);
+    this.top.hero({ key: JACKPOT, prio: PRIO.info, tone: 'gold', title: 'Джекпот!', sub: `${nick} срывает ${win.toLocaleString('ru-RU')} 🪙` });
   }
 
   /** Секундомер аквапарка — плашка сверху: время забега; done — финиш (время замерло, зелёным), sub — строка под ним; null — спрятать. */

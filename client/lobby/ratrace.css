@@ -49,7 +49,7 @@
 .rr-who[hidden] { display: none; }
 
 /* --- плашка забега: справа под жетонами, одна на всё (что сейчас, крысы по номеру или по местам, своя ставка, клавиши) */
-.rr-panel { --row: 32px; position: absolute; top: 76px; right: 18px; z-index: 4; box-sizing: border-box; width: 344px; padding: 11px 14px 12px; border-radius: 18px; background: rgba(28, 50, 38, 0.94); border: 2px solid #d9b45a; color: #fff4d8; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font: 500 14px/1.3 Rubik, system-ui, sans-serif; text-shadow: none; pointer-events: none; }
+.rr-panel { --row: 32px; position: absolute; top: max(76px, var(--below-badge)); right: 18px; z-index: 4; box-sizing: border-box; width: 344px; padding: 11px 14px 12px; border-radius: 18px; background: rgba(28, 50, 38, 0.94); border: 2px solid #d9b45a; color: #fff4d8; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font: 500 14px/1.3 Rubik, system-ui, sans-serif; text-shadow: none; pointer-events: none; }
 .rr-panel[hidden] { display: none; }
 .rr-pHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 18px; }
 .rr-pTitle { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #e2c27a; }

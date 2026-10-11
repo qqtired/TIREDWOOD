@@ -188,7 +188,7 @@ export class Pirates3D {
       this.group.add(s);
       this.marks.push({ sprite: s, kind: 0 });
     }
-    this.hud = new PirateHud(root, { fire: hooks.fire, top: hooks.top, icon: hooks.icon });
+    this.hud = new PirateHud(root, { fire: hooks.fire, top: hooks.top, icon: hooks.icon, under: hooks.under });
   }
 
   // ------------------------------------------------------------ входящие данные

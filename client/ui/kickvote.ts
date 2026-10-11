@@ -1,7 +1,8 @@
 // Голосование «выгнать игрока» (votekick, shared/votekick.ts) — плашка события в верх-центре кита (самая важная,
 // client/ui/kit/topcenter.ts): «Выгнать <ник>?», кто предложил, счёт, таймер с полоской; кнопки «За [Y]» / «Против [N]»
 // (и F1 / F2) внутри плашки: мышь свободна — кликом, мышь в игре — клавишами, на телефоне — касанием. Проголосовал —
-// «Ты: за». Того, кого выгоняют, и вошедших после начала — без кнопок. Итог — на несколько секунд. Клиент ничего не
+// «Ты: за». Строкой ниже — правило («кик — если «за» больше 60 %»). Того, кого выгоняют, и вошедших после начала — без
+// кнопок. Плашка — в слое над меню: видна и голосуется мышью на паузе. Итог — на несколько секунд. Клиент ничего не
 // решает: всё приходит от сервера ({t:'kickVote'}).
 import { KICK_BAN_MS, KICK_PERCENT, kickWait, type KickClientMsg, type KickResult, type KickServerMsg, type KickVoteView } from '../../shared/votekick.ts';
 import { isTyping } from '../input.ts';
@@ -146,10 +147,11 @@ export class KickVoteUi {
     }
     this.top.event({
       key: KEY, prio: PRIO.vote, tone: 'danger', lamp: true,
-      html: `${icon}<div class="k-event-title" title="${rule}">${escHtml(title)}</div><div class="k-event-sub">${escHtml(sub)}</div>`
+      html: `${icon}<div class="k-event-title">${escHtml(title)}</div><div class="k-event-sub">${escHtml(sub)}</div>`
         + `<div class="k-event-timer${s <= URGENT_S ? ' is-hurry' : ''}">${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</div>`
         + `<div class="k-meter k-meter--thin k-meter--bad" style="--v:${share}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></div>`
-        + `<div class="k-event-actions" role="group" aria-label="Голосование: выгнать игрока">${actions}</div>`,
+        + `<div class="k-event-actions" role="group" aria-label="Голосование: выгнать игрока">${actions}</div>`
+        + `<div class="pz-kick-rule">${rule}</div>`,
     });
   }
 }

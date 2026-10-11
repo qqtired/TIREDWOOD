@@ -490,6 +490,7 @@ export class LobbyScene implements Scene {
       quality: () => lobbyQuality(d.settings.quality),
       top: d.ui.top,
       icon: uiIcon,
+      under: d.ui.slots.tcUnder,
     });
     for (const z of START_ZONES) {
       const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });
@@ -2803,7 +2804,7 @@ export class LobbyScene implements Scene {
     // в своей лодке подсказки — свои (client/boat/ownboats.ts)
     else if (act === ACT_OWNBOAT) hud.setHint(...this.ob.hint());
     else if (isHeld(act)) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], TOUCH ? 'встать · справа пальцем — осмотреться' : 'встать · мышь — осмотреться');
-    else if (this.storm3d.hint) hud.setHint(this.storm3d.hint.keys, this.storm3d.hint.text);
+    else if (this.storm3d.hint) hud.setHint(this.storm3d.hint.keys, this.storm3d.hint.text, this.storm3d.hint);
     else if (this.pirates3d.hint) hud.setHint(this.pirates3d.hint.keys, this.pirates3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);

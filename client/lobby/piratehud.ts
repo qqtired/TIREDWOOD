@@ -1,5 +1,6 @@
 // «Набег пиратов»: интерфейс защитника (DOM поверх игры) — плашка «Пираты на горизонте!» с отсчётом (событие в верх-центре
-// HUD, client/ui/kit/topcenter.ts), панель набега
+// HUD, client/ui/kit/topcenter.ts), панель набега — плашкой кита под стопкой верх-центра (слот tcUnder: плашка волны
+// и тосты её не закрывают — она съезжает ниже)
 // (прочность корабля, добыча на причале, украдено из предела, волна, время), прицел (кружок цвета краски; у пушки —
 // прицел с перезарядкой), отметка попадания, стрелки к угрозам за краем экрана, кнопка «Огонь» на телефоне и карточка
 // итогов. В кадре меняем только то, что поменялось.
@@ -26,10 +27,11 @@ export interface ReticleSpec { mode: ReticleMode; slot: number; text: string; st
 const ARROWS = 8;
 const KEY = 'pirates';
 
-/** Куда класть плашку: верх-центр HUD и картинки кита (без них — тесты — плашки нет) */
+/** Куда класть плашку: верх-центр HUD и картинки кита (без них — тесты — плашки нет); under — слот панели набега */
 export interface PirateTop {
   top?: { event(e: TcEvent): void; clear(key: string): void };
   icon?(id: string): string;
+  under?: HTMLElement;
 }
 
 export class PirateHud {
@@ -64,9 +66,13 @@ export class PirateHud {
     this.tc = hooks;
     this.root = el('div', 'pr-hud', parent);
     this.root.hidden = true;
-    this.panel = el('div', 'pr-panel', this.root);
+    this.panel = el('div', 'k-plate pr-panel', hooks.under ?? this.root);
+    this.panel.hidden = true;
     const head = el('div', 'pr-head', this.panel);
-    el('span', 'pr-title', head, '🏴‍☠️ Набег пиратов');
+    const title = el('span', 'pr-title', head);
+    const flag = hooks.icon?.('pirate-flag');
+    if (flag) Object.assign(el('img', 'pr-title-ic', title), { src: flag, alt: '' });
+    title.append('Набег пиратов');
     this.wave = el('span', 'pr-wave', head);
     this.time = el('span', 'pr-time', head);
     const ship = el('div', 'pr-row', this.panel);
@@ -131,7 +137,7 @@ export class PirateHud {
     if (tick < this.bannerUntil && v.phase !== 'end') this.showBanner(timer);
     else this.tc.top?.clear(KEY);
     // панель
-    this.cls(this.panel, 'show', v.phase === 'raid'); // в конце всё то же — в карточке итогов
+    this.panel.hidden = v.phase !== 'raid'; // в конце всё то же — в карточке итогов
     if (v.phase === 'raid' || v.phase === 'end') {
       this.text(this.wave, `волна ${Math.max(1, v.wave)}/${v.waves}`);
       this.text(this.time, v.phase === 'raid' ? mmss(secs) : '');
@@ -162,7 +168,8 @@ export class PirateHud {
 
   private hideAll(): void {
     this.tc.top?.clear(KEY);
-    for (const e of [this.panel, this.ret, this.fire, this.result]) e.classList.remove('show');
+    this.panel.hidden = true;
+    for (const e of [this.ret, this.fire, this.result]) e.classList.remove('show');
     for (const a of this.arrows) a.classList.remove('show');
     this.resultFor = '';
   }
@@ -238,5 +245,5 @@ export class PirateHud {
   get width(): number { return this.root.clientWidth || window.innerWidth; }
   get height(): number { return this.root.clientHeight || window.innerHeight; }
 
-  dispose(): void { this.tc.top?.clear(KEY); this.root.remove(); }
+  dispose(): void { this.tc.top?.clear(KEY); this.panel.remove(); this.root.remove(); }
 }

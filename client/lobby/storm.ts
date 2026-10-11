@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { STORM_DOOR, STORM_GOAL, STORM_MAX, STORM_PERIOD, STORM_WARN, emptyStorm, stormForce, stormReach, stormWave, type StormView } from '../../shared/storm.ts';
+import { STORM_DOOR, STORM_GOAL, STORM_MAX, STORM_PERIOD, STORM_WARN, emptyStorm, stormForce, stormReach, stormReward, stormWave, type StormView } from '../../shared/storm.ts';
 import { WATER_Y, TICK_RATE } from '../../shared/constants.ts';
 import { seedOf, stormRumbles, stormStrikes, type Strike } from '../../shared/weather.ts';
 import { TOUCH } from '../touch.ts';
-import { PRIO, escHtml, type TcEvent } from '../ui/kit/topcenter.ts';
+import { PRIO, escHtml, type TcEvent, type TcHero } from '../ui/kit/topcenter.ts';
 export interface StormVisualHooks {
   /** Шторм — это погода на максимуме: force — сила (0…1), lampsOn — свет в городе (в шторм гаснет). */
   climate(force: number, lampsOn: boolean): void;
@@ -19,8 +19,8 @@ export interface StormVisualHooks {
   lampPosition?: { x: number; y: number; z: number };
   /** The integrated World already has a lighthouse beam; avoid drawing a second cone. */
   existingBeacon?: boolean;
-  /** Плашка шторма — в верх-центре HUD (client/ui/kit/topcenter.ts); без него (тесты) — без плашки */
-  top?: { event(e: TcEvent): void; clear(key: string): void };
+  /** Плашка шторма — в верх-центре HUD (client/ui/kit/topcenter.ts), «Маяк горит!» — баннером; без него (тесты) — без них */
+  top?: { event(e: TcEvent): void; clear(key: string): void; hero?(h: TcHero): void };
   /** Картинка иконки кита по id (client/ui/kit/icons.ts) */
   icon?(id: string): string;
 }
@@ -77,9 +77,11 @@ export class Storm3D {
   private rumbles: Strike[] = [];
   private rumbleNext = 0;
   private time = 0;
-  /** У двери маяка: ждать или зажигать — и подсказка для HUD */
+  /** У двери маяка: ждать или зажигать — и подсказка для HUD (urgent — золотая пульсирующая, pill — награда) */
   door: StormDoor = null;
-  hint: { keys: string[]; text: string } | null = null;
+  hint: { keys: string[]; text: string; urgent?: boolean; pill?: string } | null = null;
+  /** Шторм, за который уже показали «Маяк горит!» */
+  private heroFor = '';
   constructor(scene: THREE.Scene, root: HTMLElement, hooks: StormVisualHooks) {
     this.hooks = hooks; this.group.name = 'storm-event'; this.group.visible = false; scene.add(this.group);
     const sea = new THREE.MeshStandardMaterial({ color: 0x668d9a, roughness: .38, transparent: true, opacity: .75 });
@@ -143,8 +145,15 @@ export class Storm3D {
     const reach = eligible && stormReach(position.x, position.y, position.z);
     this.door = !reach ? null : v.phase === 'warn' ? 'wait' : v.phase === 'storm' || ranking ? 'light' : null;
     const keys = TOUCH ? ['E'] : ['E', '/', 'ЛКМ'];
+    // награда: в шторм — до 30 (первому), после — за своё место среди отметившихся
     this.hint = this.door === 'wait' ? { keys: [], text: `Маяк ещё горит · свет погаснет через ${Math.max(1, Math.ceil((v.end - tick) / TICK_RATE))} с — тогда ${TOUCH ? 'жми кнопку' : 'жми E или кликни'}` }
-      : this.door === 'light' ? { keys, text: v.phase === 'storm' ? 'зажечь маяк' : 'отметиться у маяка · награда' } : null;
+      : this.door === 'light' ? { keys, text: v.phase === 'storm' ? 'Зажечь маяк' : 'Отметиться у маяка', urgent: true, pill: v.phase === 'storm' ? `🪙до ${stormReward(1)}` : `🪙+${stormReward(v.winners.length + 1)}` } : null;
+    // зажёг первым — «Маяк горит!» по центру (один раз за шторм; остальным — тост сервера и плашка «Шторм стих»)
+    const first = v.phase === 'calm' && tick < v.rankEnd ? v.winners.find(w => w.place === 1 && w.pid === self) : undefined;
+    if (first && this.heroFor !== v.id) {
+      this.heroFor = v.id;
+      this.hooks.top?.hero?.({ key: 'storm', prio: PRIO.storm, tone: 'win', title: 'Маяк горит!', sub: `Ты первый · +${first.tokens} 🪙` });
+    }
     // подсветка двери: видна с мостков, пока есть что делать; ярче, когда стоишь у двери
     const goal = v.phase === 'warn' || v.phase === 'storm' || ranking;
     const pulse = .5 + .5 * Math.sin(this.time * (v.phase === 'storm' ? 5 : 2.6));

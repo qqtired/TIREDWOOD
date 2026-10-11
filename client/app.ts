@@ -45,7 +45,7 @@ import { Badge } from './ui/kit/badge.ts';
 import { bindHudScale } from './ui/kit/scale.ts';
 import { uiIcon } from './ui/kit/icons.ts';
 import { HudSlots } from './ui/kit/slots.ts';
-import { TopCenter } from './ui/kit/topcenter.ts';
+import { PRIO, TopCenter } from './ui/kit/topcenter.ts';
 import { bindClickSounds, sfx } from './ui/kit/sfx.ts';
 import { TokensHud } from './ui/tokens.ts';
 import { Transition } from './ui/transition.ts';
@@ -224,8 +224,9 @@ export class App {
     bindClickSounds(menus);
     // кнопки на экране — под интерфейсом сцен (их подсказки и панели нажимаются пальцем) и под чатом
     this.touch = TOUCH ? new TouchControls(shell, this.input) : null;
-    this.slots = new HudSlots(shell);
-    this.top = new TopCenter(this.slots.tc);
+    // верх-центр (голосование, связь, тосты) — слоем над меню; крупный баннер — по центру HUD
+    this.slots = new HudSlots(shell, document.body);
+    this.top = new TopCenter(this.slots.tc, this.slots.c);
     this.badge = new Badge(this.slots.tr);
     this.chat = new Chat(this.slots.bl);
     this.tokens = new TokensHud(this.badge);
@@ -824,7 +825,8 @@ export class App {
     const me: Extract<ServerMsg, { t: 'me' }> = { t: 'me', ...this.me, build: this.build };
     this.lobby.onJson(me);
     if (this.active && this.active !== this.lobby) this.active.onJson(me);
-    // бейдж: новое число в кольце, кольцо подпрыгивает, «Уровень N» золотом (тост — выше)
+    // по центру — «Уровень N!» (новая рамка — кружком её цвета), бейдж: новое число в кольце, «+N опыта» (тост — выше)
+    this.top.hero({ key: 'level', prio: PRIO.mode, tone: 'gold', title: `Уровень ${m.level}!`, ...(unlocked ? { sub: `Новая рамка ника — ${tier.name}`, dot: tier.color } : {}) });
     this.paintBadge();
     this.badge.levelUp(this.me.level, this.xpGain);
   }

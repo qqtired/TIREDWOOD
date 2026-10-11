@@ -1,5 +1,8 @@
 // Верх-центр HUD (кит 2.0, lab/ui/kit/KIT.md §2–§3): ОДНА плашка события — самая важная по приоритету — и под ней
 // до трёх тостов. Голосование, связь, шторм, пираты, секундомер — плашки; уведомления — тосты (ui/toasts.ts).
+// Крупный баннер по центру (.k-hero: «Уровень N!», «Маяк горит!», «Джекпот!») — тоже здесь: один, по приоритету.
+// Слот верх-центра — в своём слое над меню (kit/slots.ts): голосование, связь и тосты видны и на паузе. Высоту стопки
+// пишем в --tc-stack (px сцены) и data-tc на <html>: панели режимов (пираты) встают под неё, меню Esc — ниже неё.
 // TopCenterModel — без DOM (тесты: test/ui-kit.test.ts), TopCenter — разметка .k-slot--tc > .k-event + .k-toasts.
 // Здесь нельзя подключать kit/icons.ts и kit/dom.ts (import.meta.glob Vite): модель грузят тесты в Node.
 import { setCoinText } from '../coin.ts';
@@ -21,11 +24,20 @@ const LIFE = 4200;
 /** Уход тоста (.is-out в kit.css — 0,3 с) */
 const OUT_MS = 320;
 
+/** Крупный баннер по центру: title — крупно, sub — плашкой под ним (🪙 — монеткой), dot — цвет кружка рамки ника перед sub */
+export type TcHero = { key: string; prio: number; tone: 'gold' | 'win' | 'lose' | 'info'; title: string; sub?: string; dot?: string; life?: number };
+/** Сколько висит баннер (.k-hero.is-play в kit.css — появиться и растаять за 3,2 с) */
+const HERO_LIFE = 3300;
+/** Зазор под стопкой верх-центра до того, что под ней (--slot-gap) */
+const GAP = 10;
+
 type LiveToast = TcToast & { until: number };
+type LiveHero = TcHero & { until: number };
 
 export class TopCenterModel {
   private readonly events = new Map<string, TcEvent>();
   private list: LiveToast[] = [];
+  private big: LiveHero | null = null;
   private readonly now: () => number;
 
   constructor(now: () => number = () => performance.now()) {
@@ -69,6 +81,26 @@ export class TopCenterModel {
   clearToasts(): void {
     this.list = [];
   }
+
+  /** Баннер по центру — один: новый вытесняет прежний, если не менее важен или прежний уже растаял; false — не показан */
+  hero(h: TcHero): boolean {
+    const now = this.now();
+    if (this.big && this.big.until > now && this.big.prio > h.prio) return false;
+    this.big = { ...h, until: now + (h.life ?? HERO_LIFE) };
+    return true;
+  }
+
+  /** Баннер, что сейчас на экране (null — нет или растаял) */
+  currentHero(): TcHero | null {
+    return this.big && this.big.until > this.now() ? this.big : null;
+  }
+
+  /** Убрать баннер этого вида; true — он и был на экране */
+  clearHero(key: string): boolean {
+    if (this.big?.key !== key) return false;
+    this.big = null;
+    return true;
+  }
 }
 
 function el(tag: string, cls: string): HTMLElement {
@@ -88,8 +120,12 @@ const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(pr
 export class TopCenter {
   /** Слот .k-slot--tc: кнопки плашек (голосование) слушают клики здесь */
   readonly root: HTMLElement;
+  /** Слот .k-slot--c для крупного баннера (без него — тесты — баннеров нет) */
+  private readonly centre: HTMLElement | null;
   private readonly model = new TopCenterModel();
   private readonly stack: HTMLElement;
+  private heroEl: HTMLElement | null = null;
+  private heroTimer = 0;
   private readonly shown = new Map<TcToast, HTMLElement>();
   private ev: HTMLElement | null = null;
   private evKey = '';
@@ -97,11 +133,14 @@ export class TopCenter {
   private evHtml = '';
   private timer = 0;
 
-  constructor(slot: HTMLElement) {
+  constructor(slot: HTMLElement, centre: HTMLElement | null = null) {
     this.root = slot;
+    this.centre = centre;
     this.stack = el('div', 'k-toasts');
     this.stack.setAttribute('aria-live', 'polite');
     slot.append(this.stack);
+    // высота стопки — в px сцены (ResizeObserver меряет без zoom слоя)
+    if (typeof ResizeObserver === 'function') new ResizeObserver((es) => publish(es[0].contentRect.height)).observe(slot);
   }
 
   /** Показать или обновить плашку; можно звать каждый кадр — DOM меняется, только когда поменялась разметка */
@@ -126,6 +165,32 @@ export class TopCenter {
   clearToasts(): void {
     this.model.clearToasts();
     this.renderToasts();
+  }
+
+  /** Крупный баннер по центру на ~3 с; менее важный, пока висит более важный, не показывается */
+  hero(h: TcHero): void {
+    if (!this.centre || !this.model.hero(h)) return;
+    this.heroEl?.remove();
+    const box = el('div', `k-hero k-hero--${h.tone} is-play`);
+    box.appendChild(el('p', 'k-hero-title')).textContent = h.title;
+    if (h.sub) {
+      const sub = box.appendChild(el('span', 'k-hero-sub'));
+      if (h.dot) sub.appendChild(el('span', 'pz-tier-dot')).style.setProperty('--tc', h.dot);
+      coinText(sub.appendChild(el('span', '')), h.sub);
+    }
+    this.centre.append(box);
+    this.heroEl = box;
+    clearTimeout(this.heroTimer);
+    this.heroTimer = window.setTimeout(() => {
+      if (this.heroEl === box) this.clearHero(h.key);
+    }, h.life ?? HERO_LIFE);
+  }
+
+  /** Убрать баннер этого вида (ушли с набережной) */
+  clearHero(key: string): void {
+    if (!this.model.clearHero(key)) return;
+    this.heroEl?.remove();
+    this.heroEl = null;
   }
 
   private renderEvent(): void {
@@ -199,6 +264,18 @@ export class TopCenter {
       this.schedule();
     }, Math.max(0, next - performance.now()) + 20);
   }
+}
+
+/** Высота стопки верх-центра (px сцены) — в --tc-stack и data-tc на <html>: пусто — ни того ни другого */
+function publish(h: number): void {
+  const root = document.documentElement;
+  if (h < 1) {
+    delete root.dataset.tc;
+    root.style.removeProperty('--tc-stack');
+    return;
+  }
+  root.dataset.tc = '';
+  root.style.setProperty('--tc-stack', `${Math.ceil(h) + GAP}px`);
 }
 
 /** Обновить плашку на месте: меняются только верхние узлы, что изменились, — кнопки голосования живут между тиками таймера */

@@ -10,7 +10,7 @@ test('storm = weather at full force: scheduled strikes, lighthouse door wait/lig
  fx.update(100+STORM_PERIOD+1,.016,{x:-19,y:0,z:28},true,true);assert.equal((fx as any).crest.visible,true);assert.equal((fx as any).foam.visible,false);
  // молнии шторма — по общему расписанию (shared/weather.ts), а не своей вспышкой
  for(let k=STORM_PERIOD+30;k<=60*60;k+=30)fx.update(100+k,.5,{x:-19,y:0,z:40.98},true);assert.ok(strikes.length>=3);
- assert.equal(fx.door,'light');assert.equal(fx.canLight,true);assert.match(fx.hint!.text,/зажечь/);assert.equal((fx as any).doorGlow.visible,true);
+ assert.equal(fx.door,'light');assert.equal(fx.canLight,true);assert.match(fx.hint!.text,/зажечь/i);assert.equal(fx.hint!.urgent,true);assert.equal(fx.hint!.pill,'🪙до 30');assert.equal((fx as any).doorGlow.visible,true);
  // в предупреждение у двери — ждать: свет ещё горит
  fx.set({...v,id:'y',phase:'warn',start:0,end:3600});fx.update(1200,.016,{x:-19,y:0,z:40.98},true);assert.equal(fx.door,'wait');assert.equal(fx.canLight,false);assert.match(fx.hint!.text,/погаснет/);
  assert.ok(force>.15&&force<.85);
@@ -20,6 +20,17 @@ test('storm = weather at full force: scheduled strikes, lighthouse door wait/lig
  fx.update(1000,.016,{x:-19,y:0,z:40.8},true);assert.equal(rainbow,true);
  fx.update(2000,.016,{x:-19,y:0,z:40.8},true);assert.equal(rainbow,false);assert.equal(fx.door,null);
  fx.dispose();assert.equal(scene.children.length,0);assert.equal(force,0);
+});
+
+test('маяк зажёг я первым — «Маяк горит!» по центру, один раз за шторм; второму — нет',t=>{
+ const root=dom(t),heroes:{title:string;sub?:string}[]=[];
+ const top={event(){},clear(){},hero:(h:{title:string;sub?:string})=>{heroes.push(h);}};
+ const mk=(self:number)=>new Storm3D(new THREE.Scene(),root,{climate(){},strike(){},rainbow(){},lamp(){},sound(){},light(){},self:()=>self,top});
+ const calm={...emptyStorm(),id:'z',phase:'calm' as const,start:500,end:1220,rankEnd:1100,rainbowEnd:2300,waveStart:100,winners:[{pid:2,nick:'Я',place:1,tokens:30},{pid:3,nick:'Бочка',place:2,tokens:20}]};
+ const me=mk(2);me.set(calm);me.update(510,.016,{x:0,y:0,z:0},true);me.update(520,.016,{x:0,y:0,z:0},true);
+ assert.equal(heroes.length,1);assert.equal(heroes[0].title,'Маяк горит!');assert.match(heroes[0].sub!,/Ты первый · \+30/);
+ const second=mk(3);second.set(calm);second.update(510,.016,{x:0,y:0,z:0},true);assert.equal(heroes.length,1);
+ me.dispose();second.dispose();
 });
 
 /** Поддельная страница для HUD: любой элемент отвечает на любой вызов (вёрстку в Node не строим, строим только логику) */

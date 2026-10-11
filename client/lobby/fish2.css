@@ -389,7 +389,7 @@
 .f2-tools {
   position: absolute;
   right: 18px;
-  top: 66px;
+  top: var(--below-badge);
   display: none;
   flex-direction: column;
   align-items: flex-end;
@@ -1083,7 +1083,7 @@
 /* «Шансы сейчас»: из чего сложен шанс — мелкой строкой под чертой (те же бонусы видны на плашках выше) */
 .f2-tools .fe-odds-why { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--cream-dim); }
 /* напиток — плашка того же вида (fishprogresshud.ts), справа сверху под жетонами; последняя минута — оранжевая */
-.fs-buff { --pc: #e2c887; position: absolute; top: 68px; right: 18px; max-width: calc(100vw - 36px); }
+.fs-buff { --pc: #e2c887; position: absolute; top: max(68px, var(--below-badge)); right: 18px; max-width: calc(100vw - 36px); }
 .fs-buff.ending { --pc: #ffb36b; border-color: rgba(255, 179, 107, .45); }
 
 /* Native modal keeps the game inert and constrains just its content scroll. */
