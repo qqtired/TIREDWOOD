@@ -2,6 +2,8 @@
 // числа раскладки v5.1 (docs/plaza3/level/layout.json → port, farmRoad) попали в код; места ловли на моле стоят на опоре;
 // «Удалая», стоянка и пираты не задевают новые коробки; калитка фермы и зона «прошёл — на ферму»; звери ходят по суше;
 // гирлянды висят на фонарях и перголе; молнии не бьют у нового порта. Старая площадь не меняется (test/plaza-legacy.test.ts).
+// 11.10 (отзыв владельца): видимый настил мола один — модель pav_mole (в карте настилы порта невидимые), места 20–27 — на камне,
+// Лавка Семёна со стойкой «Снасти у Семёна» — на помосте у сходней к стоянке.
 // Раскладка выбирается при импорте (shared/layout.ts): сначала PLAZA3=1, потом — только динамический import().
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -29,8 +31,13 @@ const SM = await import('../shared/storm.ts');
 const MM = await import('../shared/mermaid.ts');
 const { FISHERS } = await import('../client/lobby/folk.ts');
 const LI = await import('../client/lobby/plaza3/lights.ts');
+const { SEASON_FIELD } = await import('../client/lobby/seasonsign.ts');
+const PD = await import('../client/lobby/plaza3/pavdata.ts');
+const { readFileSync } = await import('node:fs');
 const { makeState, makeEvents, stepPlayer, BTN_FORWARD, BTN_ADS } = await import('../shared/sim.ts');
 const { TICK_RATE, WATER_Y, PLAYER_HALF } = await import('../shared/constants.ts');
+const { FP_IDLE } = await import('../shared/fishing.ts');
+const { ACT_FERRY, ACT_FISH } = await import('../shared/lobby.ts');
 
 const map = buildLobby();
 const world = new CollisionWorld(map);
@@ -51,35 +58,141 @@ test('порт B: места 20–27 — на Маячном моле (две н
     assert.ok(it && near(it.x, s.x) && near(it.z, s.z) && it.y === MOLE_DECK_Y, `точка «порыбачить» ${p.index}`);
     assert.ok(near(world.groundBelow(s.x, 0.2, s.z), MOLE_DECK_Y), `место ${p.index} стоит на настиле мола`);
   });
-  // голова: x −65,5 и −63 при z 48,45; кромка: x −31 … −46 шагом 3 при z 46,45
-  assert.deepEqual(F.FISH_FAR_SPOTS.slice(0, 2).map((s) => [s.x, s.z]), [[-65.5, 48.45], [-63, 48.45]]);
-  assert.deepEqual(F.FISH_FAR_SPOTS.slice(2).map((s) => [s.x, s.z]), [-31, -34, -37, -40, -43, -46].map((x) => [x, 46.45]));
+  // голова: x −65,5 и −63 при z 47,95; кромка: x −31 … −46 шагом 3 при z 45,95 — рыбак в 0,55 м от кромки (как на площадке маяка)
+  assert.deepEqual(F.FISH_FAR_SPOTS.slice(0, 2).map((s) => [s.x, s.z]), [[-65.5, 47.95], [-63, 47.95]]);
+  assert.deepEqual(F.FISH_FAR_SPOTS.slice(2).map((s) => [s.x, s.z]), [-31, -34, -37, -40, -43, -46].map((x) => [x, 45.95]));
+  // накладка места (1,64 × 0,92, client/lobby/fishplaces3d.ts) — целиком на камне, не над водой
+  for (const s of F.FISH_FAR_SPOTS) for (const [dx, dz] of [[-0.82, -0.46], [0.82, -0.46], [-0.82, 0.46], [0.82, 0.46]]) {
+    assert.ok(near(world.groundBelow(s.x + dx, 0.2, s.z + dz), MOLE_DECK_Y), `накладка места (${s.x}; ${s.z}): угол над водой`);
+  }
   // перед местом (на юг, 1,5 м) — вода: настил кончается кромкой
   for (const s of F.FISH_FAR_SPOTS) assert.ok(world.groundBelow(s.x, 0.2, s.z + 1.6) < WATER_Y + 0.4 || !(world.groundBelow(s.x, 0.2, s.z + 1.6) > MOLE_DECK_Y - 0.01), 'впереди кромка');
 });
 
-test('порт B: мол, голова и сходни — настилы y −0,5, не пересекаются между собой; старые дальние мостки, голова пирса и дом на ней не строятся', () => {
+test('порт B: мол, голова, сходни и помост Лавки — настилы y −0,5, невидимые (рисует модель), не пересекаются; старые дальние мостки, голова пирса и дом на ней не строятся', () => {
   const decks = map.boxes.filter((b) => PORT.decks.some((d) => near(b.min[0], d.box[0]) && near(b.min[2], d.box[1]) && near(b.max[0], d.box[2]) && near(b.max[2], d.box[3]) && near(b.max[1], d.y)));
-  assert.equal(decks.length, PORT.decks.length, 'все три настила порта есть в карте');
+  assert.equal(decks.length, PORT.decks.length, 'все настилы порта есть в карте');
+  // видимый настил один: мол, голову, сходни и ступень рисует pav_mole.glb, помост — доски fishplaces3d.ts; второй слой мерцал
+  for (const b of decks) assert.equal(b.mat, 'invisible', `настил (${b.min[0]}; ${b.min[2]}) — без второго видимого слоя`);
+  const stair = map.boxes.find((b) => near(b.min[0], PORT.stair.box[0]) && near(b.max[0], PORT.stair.box[2]) && near(b.max[1], PORT.stair.y))!;
+  assert.equal(stair.mat, 'invisible', 'ступень — тоже модель');
+  // пока модель не встала, их показывают коробки блокаута с pav mole (прячутся, когда модель загрузилась)
+  for (const d of PORT.decks.filter((k) => k.id !== 'lavka')) {
+    const cx = (d.box[0] + d.box[2]) / 2, cz = (d.box[1] + d.box[3]) / 2;
+    assert.ok(P3.decor.some((k) => k.pav === 'mole' && k.t === 'box' && near(k.c[0], cx, 0.01) && near(k.c[2], cz, 0.01) && near(k.c[1] + k.s![1] / 2, d.y, 0.01)), `запасная коробка ${d.id}`);
+  }
   for (let i = 0; i < decks.length; i++) for (let j = i + 1; j < decks.length; j++) assert.equal(boxOverlap(decks[i], decks[j]), 0, `настилы ${i} и ${j}`);
   // старая голова пирса x −25,5…−12,5, z 54…64 и дальние мостки x −20,5…−17,5, z 46…54: ни настила, ни дома
   assert.ok(!world.overlaps(-25.4, -0.45, 46.6, -12.6, 3, 64), 'на месте старых дальних мостков и головы пирса ничего нет');
-  assert.ok(F.FISH_HOUSE_BOXES.length === 0 || F.FISH_HOUSE_BOXES.every((b) => b.x0 > -16 && b.z1 < 14), 'дом Семёна — только на берегу');
+  const lavka = PORT.decks.find((d) => d.id === 'lavka')!.box;
+  assert.ok(F.FISH_HOUSE_BOXES.every((b) => b.x0 >= lavka[0] && b.x1 <= lavka[2] && b.z0 >= lavka[1] && b.z1 <= lavka[3]), 'сруб и стойка снастей — на помосте Лавки');
   assert.ok(!(world.groundBelow(-19, 0.5, 50) > WATER_Y), 'вода там, где были дальние мостки');
   // ступень с площадки маяка на мол: выше мола на 0,25 — не больше шага
   assert.ok(near(world.groundBelow(PORT.stair.box[0] + 0.3, 0.2, 45), PORT.stair.y));
 });
 
-test('порт B: Семён на берегу — дом, житель и место разговора из layout.json, от центра не дальше 50 м', () => {
-  const h = PORT.semyon.house;
-  assert.ok(F.FISH_HOUSE_BOXES.length > 0);
-  for (const b of F.FISH_HOUSE_BOXES) assert.ok(b.x0 >= h.x0 - 1e-6 && b.x1 <= h.x1 + 1e-6 && b.z0 >= h.z0 - 1e-6 && b.z1 <= h.z1 + 1e-6, 'бокс дома внутри сруба');
-  assert.deepEqual([F.FISHER_NPC.x, F.FISHER_NPC.z], [-15.8, 10.5]);
-  assert.deepEqual([F.FISHER_USE.x, F.FISHER_USE.z], [-17.4, 10.5]);
-  assert.ok(near(F.FISHER_USE.yaw, -Math.PI / 2));
-  assert.ok(Math.hypot(F.FISHER_USE.x - P3.center.x, F.FISHER_USE.z - P3.center.z) <= 50);
-  const it = map.interact.find((q) => q.kind === 'fisher')!;
-  assert.ok(near(it.x, -17.4) && near(it.z, 10.5));
+test('порт B: Лавка Семёна — на помосте у сходней мола: дом, житель, стойка снастей и место разговора из layout.json, всё на настиле, рядом с рыбаками', () => {
+  const S = PORT.semyon;
+  const lavka = PORT.decks.find((d) => d.id === 'lavka')!;
+  const [x0, z0, x1, z1] = lavka.box;
+  // помост — в углу между молом (север), головой мола (запад, у головы) и сходнями (восток), на высоте мола
+  assert.deepEqual([z0, x1, lavka.y, lavka.kind], [46.5, -55.2, MOLE_DECK_Y, 'wood']);
+  assert.equal(x0, -62);
+  assert.ok(S.house.x0 > x0 && S.house.x1 < x1 && S.house.z0 > z0 && S.house.z1 < z1, 'сруб на помосте');
+  assert.equal(S.y, MOLE_DECK_Y);
+  // сруб и стойка — невидимые боксы (сруб рисует pav_semyon.glb, стойку — fisherman.ts): второго дома нет
+  assert.equal(F.FISH_HOUSE_BOXES.length, 2);
+  for (const b of F.FISH_HOUSE_BOXES) assert.equal(b.mat, 'invisible');
+  // житель на крыльце (доски крыльца на 6 см выше помоста), место разговора — на настиле, точка №… та же (kind fisher, arg 0)
+  assert.deepEqual([F.FISHER_NPC.x, F.FISHER_NPC.z, F.FISHER_NPC.yaw], [S.npc.x, S.npc.z, S.npc.yaw]);
+  assert.ok(near(F.FISHER_NPC.y, MOLE_DECK_Y + 0.06));
+  assert.deepEqual([F.FISHER_USE.x, F.FISHER_USE.z, F.FISHER_USE.y], [S.use.x, S.use.z, MOLE_DECK_Y]);
+  const it = map.interact.find((q) => q.kind === 'fisher' && q.arg === 0)!;
+  assert.ok(near(it.x, S.use.x) && near(it.z, S.use.z) && near(it.y, MOLE_DECK_Y), 'точка разговора');
+  assert.ok(near(world.groundBelow(it.x, 0.2, it.z), MOLE_DECK_Y), 'место разговора на настиле');
+  // E доходит и перед Семёном (1,5 м перед ним), и перед стойкой снастей (0,9 м перед ней)
+  const g = F.FISH_GEAR!;
+  const ahead = (p: { x: number; z: number; yaw: number }, d: number): [number, number] => [p.x - Math.sin(p.yaw) * d, p.z - Math.cos(p.yaw) * d];
+  for (const [x, z] of [ahead(S.npc, 1.5), ahead(g, 0.9)]) {
+    assert.ok(Math.hypot(x - it.x, z - it.z) < it.r, `E у (${x.toFixed(2)}; ${z.toFixed(2)})`);
+    assert.ok(near(world.groundBelow(x, 0.2, z), MOLE_DECK_Y) && !world.overlaps(x - 0.3, -0.45, z - 0.3, x + 0.3, 1.2, z + 0.3), 'там можно стоять');
+  }
+  // стойка снастей — справа от крыльца, на помосте, ни во что не врезается
+  const gb = F.FISH_HOUSE_BOXES[1];
+  assert.ok(g.x > S.npc.x && near(g.z, S.npc.z, 0.6), 'справа от Семёна');
+  for (const b of map.boxes) if (!(near(b.min[0], gb.x0) && near(b.min[2], gb.z0) && near(b.max[1], gb.y1))) assert.equal(boxOverlap(b, { min: [gb.x0, gb.y0, gb.z0], max: [gb.x1, gb.y1, gb.z1], mat: 'invisible', color: 0 }), 0, `стойка в боксе (${b.min.join('; ')})`);
+  // рыбаки рядом: до мест на моле — не дальше 15 м
+  assert.ok(Math.min(...F.FISH_FAR_SPOTS.map((s) => Math.hypot(s.x - it.x, s.z - it.z))) < 15, 'места ловли рядом');
+  // проходы: вдоль мола (к голове и «Удалой») и по сходням к стоянке — свободны
+  assert.ok(!world.overlaps(-61.5, -0.45, 43.9, -24.7, 1.2, 46.2), 'вдоль мола свободно');
+  assert.ok(!world.overlaps(-54.4, -0.45, 46, -53.6, 1.2, 58.4), 'по сходням к стоянке свободно');
+  // место на берегу (−13; 10,5), где стояла Лавка, — свободный проход к витрине
+  assert.ok(!world.overlaps(-16.5, 0.05, 7.5, -10.3, 1.6, 13.7), 'на берегу на месте Лавки пусто');
+  // модель стоит там, где её ждёт раскладка: житель, вход, вывеска и доска сезона — по пустышкам pav_semyon.glb
+  const place = PD.PAVILIONS.find((p) => p.id === 'semyon')!;
+  assert.deepEqual([place.x, place.z, place.yaw, place.y], [S.root.x, S.root.z, S.root.yaw, S.y]);
+  const an = PD.pavAnchors(PD.glbJson(new Uint8Array(readFileSync(new URL('../client/assets/plaza3/pav_semyon.glb', import.meta.url)))), place);
+  const res = an.get('anchor_resident')!;
+  assert.ok(near(res.x, S.npc.x, 0.02) && near(res.z, S.npc.z, 0.02) && near(Math.cos(res.yaw - S.npc.yaw), 1, 1e-3), 'житель — на пустышке модели');
+  const entry = an.get('anchor_entry')!;
+  assert.ok(Math.hypot(entry.x - S.use.x, entry.z - S.use.z) < 1, 'место разговора — у входа модели');
+  const box = an.get('anchor_board_season')!;
+  assert.ok(SEASON_FIELD && near(SEASON_FIELD.x, box.x, 0.01) && near(SEASON_FIELD.y, box.y, 0.01) && near(SEASON_FIELD.z, box.z, 0.01), 'доска сезона — на поле модели');
+  assert.ok(near(SEASON_FIELD!.w, Number(box.data.w), 0.01) && SEASON_FIELD!.y < S.y + 5, 'доска сезона небольшая и на коньке, а не над крышей');
+  const sign = P3.signs.find((k) => k.id === 'semyon')!;
+  const sa = an.get('anchor_sign_semyon')!;
+  assert.ok(near(sign.x, sa.x, 0.02) && near(sign.y, sa.y, 0.02) && near(sign.z, sa.z, 0.02), 'вывеска WP10 — на поле модели');
+  // указатель у корня мостков ведёт к Лавке по мосткам (на юг)
+  assert.ok(P3.posts.find((p) => p.id === 'S4')!.arrows.includes('Лавка Семёна ↓'));
+});
+
+test('стоянка своих лодок: помост Лавки — твёрдое для лодок (якорь нельзя), берты и вызов не задевают Лавку', () => {
+  assert.equal(OB.canAnchorAt(-58.6, 51), false, 'на помосте Лавки якорь нельзя');
+  for (let b = 0; b < OB.PARK_COUNT; b++) {
+    const pose = OB.berthPose(b, FB.BOATS[0]);
+    assert.ok(pose.z > 54 + 2, `берт ${b} южнее помоста`);
+  }
+});
+
+test('порт B через хаб: на месте мола садятся и забрасывают, у Лавки Семён открывает разговор (и от стойки снастей), «Удалая» уходит с головы мола', () => {
+  const { hub, clock } = setupHub({ fish2: true });
+  const a = login(hub, 'Tester7');
+  steps(hub, 2);
+  const me = hub.lobby.playerOf(a.c)!;
+  // место 21 на голове мола: E — сел, заброс — поплавок в воде
+  const spot = map.interact.find((q) => q.kind === 'fish' && q.arg === F.FISH_FAR_FIRST + 1)!;
+  placeAt(hub, a.c, spot.x, spot.z, MOLE_DECK_Y);
+  hub.onJson(a.c, { t: 'use', id: spot.id });
+  assert.equal(me.action, ACT_FISH, 'сел на место мола');
+  const hall = hub.lobby.fishing2!;
+  clock.now += 1100;
+  hub.onJson(a.c, { t: 'fish', a: 'cast' });
+  steps(hub, 2);
+  assert.notEqual(hall.phase(spot.arg), FP_IDLE, 'заброс с мола');
+  hub.onJson(a.c, { t: 'unuse' });
+  // Семён: E перед крыльцом и перед стойкой «Снасти у Семёна» открывает окно разговора (квесты, лавка снастей)
+  const it = map.interact.find((q) => q.kind === 'fisher' && q.arg === 0)!;
+  const S = PORT.semyon;
+  const g = F.FISH_GEAR!;
+  for (const [x, z] of [[S.npc.x - Math.sin(S.npc.yaw) * 1.5, S.npc.z - Math.cos(S.npc.yaw) * 1.5], [g.x - Math.sin(g.yaw) * 0.9, g.z - Math.cos(g.yaw) * 0.9]]) {
+    clock.now += 1100;
+    a.s.msgs.length = 0;
+    placeAt(hub, a.c, x, z, MOLE_DECK_Y);
+    hub.onJson(a.c, { t: 'use', id: it.id });
+    const r = lastOf(a.s, 'fishNpc');
+    assert.ok(r && r.open === true && r.npc === 'semyon', `Семён отвечает у (${x.toFixed(2)}; ${z.toFixed(2)}): ${r?.message ?? 'молчит'}`);
+  }
+  // «Удалая»: игрок 3-го уровня садится у головы мола, через 10 с лодка уходит и доходит до «Альбатроса»
+  a.c.profile!.fishing.xp = 770;
+  clock.now += 1100;
+  const fb = map.interact.find((q) => q.kind === 'ferry' && q.arg === 0)!;
+  placeAt(hub, a.c, fb.x, fb.z, MOLE_DECK_Y);
+  hub.onJson(a.c, { t: 'use', id: fb.id });
+  assert.equal(me.action, ACT_FERRY, 'сел в «Удалую»');
+  steps(hub, FE.FERRY_BOARD_TICKS);
+  assert.equal(hub.lobby.ferry.phase, FE.FE_OUT, 'отошла');
+  steps(hub, FE.FERRY_OUT_TICKS);
+  assert.equal(hub.lobby.ferry.phase, FE.FE_AWAY, 'дошла');
 });
 
 test('порт B: Рыбная витрина — доска и прилавок на местах v5.1', () => {

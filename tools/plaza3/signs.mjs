@@ -21,8 +21,9 @@ const PLACE = {
   honor: { x: 13.7, z: -22.4, yaw: Math.PI },
   online: { x: 21.3, z: -22.16, yaw: Math.PI },
   fishshowcase: { x: -12, z: 20.15, yaw: 0 },
-  // v5 подвинула дом на 2,6 м к северу (центр (−13; 10,5)), модель собрана под v4 ((−13; 13,1))
-  semyon: { x: -13, z: 10.5, yaw: Math.PI / 2 },
+  // 11.10: Лавка — на помосте у сходней Маячного мола, крыльцо на север (client/lobby/plaza3/pavdata.ts, port.semyon.root), основание
+  // на настиле y −0,5; модель собрана под v4 ((−13; 13,1), лицом на запад)
+  semyon: { x: -58.6, z: 50.8, yaw: 0, y: -0.5 },
 };
 
 /**
@@ -114,7 +115,7 @@ function toWorld(rootPose, a) {
   const [x, y, z] = a.t;
   const f = a.fwd;
   const fx = f[0] * c + f[2] * s, fz = -f[0] * s + f[2] * c;
-  return { x: rootPose.x + x * c + z * s, y, z: rootPose.z - x * s + z * c, yaw: Math.atan2(-fx, -fz), w: 2 * a.s[0], h: 2 * a.s[1] };
+  return { x: rootPose.x + x * c + z * s, y: (rootPose.y ?? 0) + y, z: rootPose.z - x * s + z * c, yaw: Math.atan2(-fx, -fz), w: 2 * a.s[0], h: 2 * a.s[1] };
 }
 
 const rows = [];

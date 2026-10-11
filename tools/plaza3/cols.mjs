@@ -29,8 +29,9 @@ const SYNC = [
   { pav: 'fishshowcase', match: /^col_(counter|side_[lr]|wall|post_[lr])$/, q: 'port' },
   // южные колонны бильярда в игре стоят на z 21,53…21,79 (shared/billiards.ts BL_POSTS), стенки кончаются перед ними
   { pav: 'billiards', match: /^col_(east_wall|rail_w)$/, q: 'games', clip: { z1: 21.53 } },
-  // перила крыльца в модели начинаются на столбе — свой бокс начинается за его восточной гранью
-  { pav: 'semyon', match: /^col_(porch_post_[ns]|porch_rail_n|porch_table|barrels_sw|bench_s|woodpile_e)$/, q: 'port', clipBy: { col_porch_rail_n: { x0: -16.17 } } },
+  // перила крыльца в модели начинаются на столбе — свой бокс начинается за его южной гранью (Лавка на помосте у мола, крыльцо
+  // на север: столб z 47,47…47,63)
+  { pav: 'semyon', match: /^col_(porch_post_[ns]|porch_rail_n|porch_table|barrels_sw|bench_s|woodpile_e)$/, q: 'port', clipBy: { col_porch_rail_n: { z0: 47.63 } } },
   // col_sign_udalaya (1,14 м в ширину, на всю высоту) не берём: у таблички катера уже стоит столбик режима (BOAT/PORT.sign, 0,1 м)
   { pav: 'mole', match: /^col_red_light$/, q: 'port' },
   // крысиные бега v2 (11.10): уголок букмекера и две трибунки на понтоне; понтон, загон и столбы табло — твёрдое режима

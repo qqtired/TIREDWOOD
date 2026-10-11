@@ -20,6 +20,8 @@ export interface PavPlace {
   x: number;
   z: number;
   yaw: number;
+  /** Высота основания (y 0 модели) в мире; по умолчанию 0. Лавка Семёна стоит на помосте у мола — y −0,5 */
+  y?: number;
   group: PavGroup;
   solid: PavSolid;
   /** Узлы live_*, которые игра двигает (остальные live — флажки и вымпелы — склеиваются с неподвижным) */
@@ -30,8 +32,8 @@ const PI = Math.PI;
 
 /**
  * Места — раскладка v5.1 (docs/plaza3/level/layout.json, pavilions/port; layout.md §14) и manifest*.json моделей.
- * Отличия от манифестов: Лавка Семёна на 2,6 м севернее (v5: пятачок перед витриной), Рыбная витрина и доски у площади —
- * по v5.1 (в манифестах их места временные).
+ * Отличия от манифестов: Лавка Семёна — на помосте у сходней Маячного мола (11.10, отзыв владельца: «на пирсы после
+ * маяка»; корень — port.semyon.root в layout.json), Рыбная витрина и доски у площади — по v5.1 (в манифестах их места временные).
  */
 export const PAVILIONS: readonly PavPlace[] = [
   // Арены: улица z −29…−23 (README.md)
@@ -57,7 +59,6 @@ export const PAVILIONS: readonly PavPlace[] = [
   { id: 'honor', file: 'pav_honor.glb', x: 13.7, z: -22.4, yaw: PI, group: 'hub', solid: 'layout' },
   { id: 'online', file: 'pav_online.glb', x: 21.3, z: -22.16, yaw: PI, group: 'hub', solid: 'layout', live: ['live_clock_hour', 'live_clock_minute'] },
   // Порт B «Маячный мол» (README-pb.md)
-  { id: 'semyon', file: 'pav_semyon.glb', x: -13, z: 10.5, yaw: PI / 2, group: 'port', solid: 'mode' },
   { id: 'lighthouse_arch', file: 'pav_lighthouse_arch.glb', x: -19, z: 21.3, yaw: 0, group: 'port', solid: 'layout' },
   { id: 'sunset', file: 'pav_sunset.glb', x: -23, z: 15, yaw: PI / 2, group: 'port', solid: 'layout' },
   { id: 'fishyard', file: 'pav_fishyard.glb', x: -4, z: 13.4, yaw: 0, group: 'port', solid: 'mode' },
@@ -73,6 +74,8 @@ export const PAVILIONS: readonly PavPlace[] = [
   },
   // Маяк и Маячный мол (мол — твёрдое порта WP4: port.decks)
   { id: 'mole', file: 'pav_mole.glb', x: -43, z: 45, yaw: 0, group: 'pier', solid: 'mode', live: ['live_mole_red_light'] },
+  // Лавка Семёна — на помосте у сходней мола (южная сторона, к стоянке): крыльцо на север, к молу (11.10)
+  { id: 'semyon', file: 'pav_semyon.glb', x: -58.6, z: 50.8, yaw: 0, y: -0.5, group: 'pier', solid: 'mode' },
   { id: 'lighthouse', file: 'pav_lighthouse.glb', x: -19, z: 43, yaw: 0, group: 'pier', solid: 'mode', live: ['live_lamp'] },
 ];
 
@@ -170,9 +173,9 @@ export function apply(m: M4, p: readonly number[]): [number, number, number] {
   return [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
 }
 
-/** Корень павильона в мире: сдвиг (x, 0, z) и поворот yaw вокруг вертикали */
-export function rootMatrix(p: Pick<PavPlace, 'x' | 'z' | 'yaw'>): M4 {
-  return trs([p.x, 0, p.z], [0, Math.sin(p.yaw / 2), 0, Math.cos(p.yaw / 2)]);
+/** Корень павильона в мире: сдвиг (x, y, z) (y по умолчанию 0) и поворот yaw вокруг вертикали */
+export function rootMatrix(p: Pick<PavPlace, 'x' | 'z' | 'yaw' | 'y'>): M4 {
+  return trs([p.x, p.y ?? 0, p.z], [0, Math.sin(p.yaw / 2), 0, Math.cos(p.yaw / 2)]);
 }
 
 export interface WorldNode {

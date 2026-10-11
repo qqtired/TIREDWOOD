@@ -462,7 +462,7 @@ export function buildLobby(): LobbyMap {
 
   // Новые места и NPC — строго после всех прежних interactables: номера уже используются клиентами.
   FISH_SPOTS.slice(6, FISH_ISLAND_COUNT).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i + 6, 'порыбачить'));
-  add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком');
+  add('fisher', FISHER_USE.x, FISHER_USE.z, FISHER_USE.yaw, FISHER_USE.r, 0, 'поговорить с рыбаком', FISHER_USE.y);
   add('skill', SKILL_PORTAL.x, SKILL_PORTAL.z, 0, SKILL_PORTAL.r, 0, 'Выше облаков — скилл-тест');
   add('boatrace', BOAT_RACE_CIRCLE.x, BOAT_RACE_CIRCLE.z, 0, BOAT_RACE_CIRCLE.r, 0, 'Портовая регата');
   add('hide', HIDE_CIRCLE.x, HIDE_CIRCLE.z, 0, HIDE_CIRCLE.r, 0, 'Прятки: Рыбный двор');
@@ -556,17 +556,14 @@ export function buildLobby(): LobbyMap {
     b.box([-31, -6, 71], [-4, 30, 72], 'invisible', 0);
   }
   // дом рыбака: сруб, стойки крыльца, бочки и ящики (рисует client/lobby/fishhouse.ts)
-  // в plaza3 это Лавка Семёна на берегу (коробка сруба)
+  // в plaza3 это Лавка Семёна на помосте у сходней Маячного мола (сруб и стойка снастей; рисуют pav_semyon.glb и fisherman.ts)
   for (const h of FISH_HOUSE_BOXES) b.box([h.x0, h.y0, h.z0], [h.x1, h.y1, h.z1], h.mat ?? 'invisible', h.color ?? 0);
   if (!PLAZA3) {
     // сваи под дальними мостками и площадкой (как у мостков к маяку)
     for (const x of [FISH_PIER2.x0 + 0.25, FISH_PIER2.x1 - 0.25]) for (const z of [48, 52]) b.deco.push({ kind: 'piling', x, z });
     for (const x of [FISH_PIER_HEAD.x0 + 0.25, -19, FISH_PIER_HEAD.x1 - 0.25]) b.deco.push({ kind: 'piling', x, z: FISH_PIER_HEAD.z1 + 0.25 });
-  } else {
-    // сходни к стоянке лодок (порт B): сваи по краям настила; мол и голова — камень, им сваи не нужны
-    const gang = FISH_DECKS.find((d) => d.mat !== 'concrete' && d.y1 < 0);
-    if (gang) for (const x of [gang.x0 + 0.25, gang.x1 - 0.25]) for (let z = gang.z0 + 1.5; z < gang.z1; z += 5) b.deco.push({ kind: 'piling', x, z });
   }
+  // plaza3 (порт B): сваи сходней — в модели pav_mole.glb, сваи помоста Лавки — у его досок (client/lobby/fishplaces3d.ts)
   // места рыбалки на дальних мостках и у дома (в plaza3 — на Маячном моле, y −0,5) — в самый конец: номера прежних точек не меняются
   FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_FAR_FIRST + i, 'порыбачить', s.y ?? 0));
 

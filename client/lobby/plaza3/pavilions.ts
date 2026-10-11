@@ -68,9 +68,9 @@ const _s = new THREE.Vector3();
 const _axisY = new THREE.Vector3(0, 1, 0);
 const _axisZ = new THREE.Vector3(0, 0, 1);
 
-/** Матрица корня павильона: (x, 0, z) и поворот yaw */
-export function placeMatrix(p: Pick<PavPlace, 'x' | 'z' | 'yaw'>, out = new THREE.Matrix4()): THREE.Matrix4 {
-  return out.makeRotationY(p.yaw).setPosition(p.x, 0, p.z);
+/** Матрица корня павильона: (x, y, z) (y по умолчанию 0 — Лавка Семёна стоит на помосте у мола) и поворот yaw */
+export function placeMatrix(p: Pick<PavPlace, 'x' | 'z' | 'yaw' | 'y'>, out = new THREE.Matrix4()): THREE.Matrix4 {
+  return out.makeRotationY(p.yaw).setPosition(p.x, p.y ?? 0, p.z);
 }
 
 /** Плоскость w×h (лицом на +Z) — на поле пустышки: центр, поворот, масштаб — половины ширины и высоты */

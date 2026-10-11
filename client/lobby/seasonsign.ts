@@ -6,10 +6,14 @@
 // Все шансы ×2 — ещё 7:42»: по доске бежит блеск, флажки и рыбки трепещут. После — снова отсчёт.
 // Бюджет: у каждой доски 3 отрисовки (дерево, лицо, флажки с рыбками); холст один на обе и перерисовывается, только
 // когда меняется текст (раз в секунду); вдали (дальше FAR м) доска не рисуется. Ламп нет — свечение материалом.
+// Новая набережная (PLAZA3): у Лавки Семёна своей большой доски нет — на коньке модели pav_semyon уже стоит зелёная доска
+// «Сезон рыбалки» в рамке с лампочками; на её поле (SEASON_FIELD, 1,9 × 0,6) кладётся узкий холст с теми же надписями — одна
+// отрисовка, та же программа шейдера, что у лица большой доски.
 import * as THREE from 'three';
 import { BARKAS, BARKAS_HOUSE } from '../../shared/barkas.ts';
 import { FISH_HOUSE } from '../../shared/fishplaces.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
+import { PORT } from '../../shared/plaza3/port.ts';
 import { SEASON_MUL } from '../../shared/fishrules.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { FISH_SEASON, seasonLeft, type FishSeasonState } from './fishseason.ts';
@@ -230,13 +234,64 @@ function flagGeometry(w: number, postX: number, postTop: number, top: number): G
   return g;
 }
 
+/**
+ * plaza3: поле доски сезона на коньке Лавки — пустышка anchor_board_season модели pav_semyon.glb: в осях корня модели
+ * (0; 4,72; −0,09), лицом туда же, куда крыльцо, 1,9 × 0,6 м (сверка с моделью — test/plaza3-port-farm.test.ts).
+ * Центр поля в мире и куда смотрит (yaw: 0 — на −Z, как у точек раскладки).
+ */
+export const SEASON_FIELD_LOCAL = { y: 4.72, z: -0.09, w: 1.9, h: 0.6 } as const;
+export const SEASON_FIELD: { x: number; y: number; z: number; yaw: number; w: number; h: number } | null = PLAZA3
+  ? ((): { x: number; y: number; z: number; yaw: number; w: number; h: number } => {
+    const r = PORT.semyon.root;
+    const L = SEASON_FIELD_LOCAL;
+    // локальная точка (0, y, z) корня с поворотом yaw: x' = z·sin yaw, z' = z·cos yaw
+    return { x: r.x + L.z * Math.sin(r.yaw), y: PORT.semyon.y + L.y, z: r.z + L.z * Math.cos(r.yaw), yaw: r.yaw, w: L.w, h: L.h };
+  })()
+  : null;
+/** Узкий холст поля Лавки (пропорции поля 1,9 × 0,6) */
+const FW = 1024;
+const FH = 324;
+
+/** Лицо доски: холст + свечение и бегущий блеск в сезон (одна программа шейдера на все такие лица) */
+function faceMaterial(tex: THREE.Texture, uShine: { value: number }): THREE.MeshStandardMaterial {
+  const m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.28 });
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uShine = uShine;
+    shader.fragmentShader = 'uniform float uShine;\n' + shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+        float shineD = vMapUv.x * 0.85 + vMapUv.y * 0.3 - uShine;
+        totalEmissiveRadiance += vec3(1.0, 0.92, 0.72) * exp(-shineD * shineD * 320.0) * 0.5;`,
+    );
+  };
+  m.customProgramCacheKey = () => 'season-sign-face';
+  return m;
+}
+
+/** plaza3: холст на поле доски модели — без своего дерева и флажков (рамка, столбы и лампочки — в модели) */
+class FieldSign {
+  readonly group = new THREE.Group();
+
+  constructor(f: NonNullable<typeof SEASON_FIELD>, face: THREE.Material) {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(f.w, f.h), face);
+    this.group.add(mesh);
+    this.group.position.set(f.x, f.y, f.z);
+    // PlaneGeometry смотрит на +Z; поле — на (−sin yaw; −cos yaw), как крыльцо
+    this.group.rotation.y = f.yaw + Math.PI;
+    mesh.matrixAutoUpdate = false;
+    mesh.updateMatrix();
+  }
+}
+
 /** Обе вывески сезона: у Семёна и на баркасе. Видимость — с рыбалкой 2.0 (как Семён). */
 export class SeasonSigns {
   readonly group = new THREE.Group();
-  private readonly signs: SignMesh[] = [];
+  private readonly signs: Array<SignMesh | FieldSign> = [];
   private readonly ctx: CanvasRenderingContext2D;
   private readonly tex: THREE.CanvasTexture;
   private readonly face: THREE.MeshStandardMaterial;
+  /** plaza3: узкий холст на поле доски Лавки и его лицо */
+  private readonly field: { ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture; face: THREE.MeshStandardMaterial } | null = null;
   private readonly uT = { value: 0 };
   private readonly uAmp = { value: 0.35 };
   private readonly uShine = { value: -9 };
@@ -254,18 +309,16 @@ export class SeasonSigns {
     this.tex = new THREE.CanvasTexture(canvas);
     this.tex.colorSpace = THREE.SRGBColorSpace;
     this.tex.anisotropy = 8;
-    this.face = new THREE.MeshStandardMaterial({ map: this.tex, roughness: 0.8, emissive: 0xffffff, emissiveMap: this.tex, emissiveIntensity: 0.28 });
-    const uShine = this.uShine;
-    this.face.onBeforeCompile = (shader) => {
-      shader.uniforms.uShine = uShine;
-      shader.fragmentShader = 'uniform float uShine;\n' + shader.fragmentShader.replace(
-        '#include <emissivemap_fragment>',
-        `#include <emissivemap_fragment>
-        float shineD = vMapUv.x * 0.85 + vMapUv.y * 0.3 - uShine;
-        totalEmissiveRadiance += vec3(1.0, 0.92, 0.72) * exp(-shineD * shineD * 320.0) * 0.5;`,
-      );
-    };
-    this.face.customProgramCacheKey = () => 'season-sign-face';
+    this.face = faceMaterial(this.tex, this.uShine);
+    if (SEASON_FIELD) {
+      const fc = document.createElement('canvas');
+      fc.width = FW;
+      fc.height = FH;
+      const tex = new THREE.CanvasTexture(fc);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      this.field = { ctx: fc.getContext('2d')!, tex, face: faceMaterial(tex, this.uShine) };
+    }
     const wood = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.02 });
     const flags = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide });
     const { uT, uAmp } = this;
@@ -282,8 +335,11 @@ export class SeasonSigns {
     };
     flags.customProgramCacheKey = () => 'season-sign-flags';
 
-    for (const spot of [SEASON_SIGN_SPOTS.house, SEASON_SIGN_SPOTS.barkas]) {
-      const s = new SignMesh(spot, this.face, wood, flags);
+    const list: Array<SignMesh | FieldSign> = [
+      SEASON_FIELD && this.field ? new FieldSign(SEASON_FIELD, this.field.face) : new SignMesh(SEASON_SIGN_SPOTS.house, this.face, wood, flags),
+      new SignMesh(SEASON_SIGN_SPOTS.barkas, this.face, wood, flags),
+    ];
+    for (const s of list) {
       s.group.updateMatrixWorld(true);
       this.signs.push(s);
       this.group.add(s.group);
@@ -327,10 +383,12 @@ export class SeasonSigns {
     this.uAmp.value += ((on ? 1.25 : soon ? 0.7 : 0.35) - this.uAmp.value) * Math.min(1, dt * 2);
     // скоро — доска мигает; идёт — светится и по ней бежит блеск
     this.face.emissiveIntensity = soon ? 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2.4)) : on ? 0.48 + 0.08 * Math.sin(t * 3) : 0.28;
+    if (this.field) this.field.face.emissiveIntensity = this.face.emissiveIntensity;
     this.uShine.value = on ? -0.4 + ((t % 3) / 1.3) * 1.9 : -9;
   }
 
   private draw(v: SeasonSignView): void {
+    if (this.field) this.drawField(this.field.ctx, v);
     const c = this.ctx;
     c.clearRect(0, 0, CW, CH);
     if (this.bg) c.drawImage(this.bg, 0, 0, CW, CH);
@@ -365,6 +423,27 @@ export class SeasonSigns {
 
   private done(): void {
     this.tex.needsUpdate = true;
+  }
+
+  /**
+   * Узкое поле доски Лавки (1024 × 324): зелёная доска модели — заголовок, крупно отсчёт (или «Все шансы ×2»), строка
+   * под ним; в сезон — красная доска, за 5 минут — заголовок красным и доска мигает (как у большой)
+   */
+  private drawField(c: CanvasRenderingContext2D, v: SeasonSignView): void {
+    const on = v.phase === 'on';
+    const soon = v.phase === 'soon';
+    c.fillStyle = on ? '#a8321f' : '#24513a';
+    c.fillRect(0, 0, FW, FH);
+    c.fillStyle = 'rgba(255,255,255,.05)';
+    for (let y = 40; y < FH; y += 70) c.fillRect(0, y, FW, 3);
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.lineJoin = 'round';
+    const ink = 'rgba(20,30,20,.55)';
+    text(c, v.title, 52, 58, 900, soon ? '#ffb38a' : '#f6ecd0', ink, 8, FW - 80);
+    text(c, v.big, 168, 140, 900, on ? '#fff7e6' : '#ffe08a', ink, 12, FW - 70);
+    text(c, v.sub, 280, 44, 800, on ? '#ffe3c2' : '#cfe7c9', ink, 7, FW - 90);
+    this.field!.tex.needsUpdate = true;
   }
 }
 

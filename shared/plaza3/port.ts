@@ -16,7 +16,10 @@ export interface PortDeck {
 }
 
 export interface PortData {
-  /** Маячный мол, голова мола, сходни к стоянке (верх y −0,5) */
+  /**
+   * Маячный мол, голова мола, сходни к стоянке (их рисует модель pav_mole.glb) и помост Лавки Семёна lavka (доски —
+   * client/lobby/fishplaces3d.ts); верх y −0,5. В карте все они невидимые: видимый настил один — модель или помост.
+   */
   decks: readonly PortDeck[];
   /** Ступень площадка маяка → мол (на 0,25 выше мола) */
   stair: { box: PortBox4; y: number };
@@ -34,10 +37,16 @@ export interface PortData {
     out: readonly PortPt[];
     back: readonly PortPt[];
   };
+  /** Лавка Семёна на помосте lavka (южная сторона мола, у сходней к стоянке): всё стоит на настиле y */
   semyon: {
+    /** Корень модели pav_semyon.glb (client/lobby/plaza3/pavdata.ts): лицо — на −Z корня */
+    root: { x: number; z: number; yaw: number };
+    y: number;
     house: { x0: number; z0: number; x1: number; z1: number };
     npc: { x: number; z: number; yaw: number };
     use: { x: number; z: number; yaw: number; r: number };
+    /** Стойка «Снасти у Семёна» (client/lobby/fisherman.ts) — середина и куда смотрит */
+    gear: { x: number; z: number; yaw: number };
   };
   showcase: {
     box: { x0: number; z0: number; x1: number; z1: number };
