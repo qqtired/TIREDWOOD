@@ -5382,8 +5382,8 @@ export const P3: Plaza3Layout = {
       "id": "karting",
       "text": "КАРТИНГ",
       "x": 40.5,
-      "y": 7.6,
-      "z": -29.2
+      "y": 5.275,
+      "z": -28.881
     },
     {
       "id": "dungeon",
@@ -5472,9 +5472,9 @@ export const P3: Plaza3Layout = {
     {
       "id": "farmarch",
       "text": "ОГОРОДЫ",
-      "x": 55.1,
-      "y": 4.8,
-      "z": -21.5
+      "x": 55.023,
+      "y": 3.95,
+      "z": -21.478
     },
     {
       "id": "farmgate",
