@@ -405,11 +405,11 @@ export function shopRows(v: ShopView): PanelRow[] {
   const d = row.lv[UP_DMG] ?? 0;
   line(UP_DMG, `+20 % урона: ×${fmt(dmgMul(d))} → ×${fmt(dmgMul(d + 1))}`);
   const r = row.lv[UP_RATE] ?? 0;
-  line(UP_RATE, `+10 % темпа, −10 % перезарядки: ×${fmt(rateMul(r))} → ×${fmt(rateMul(r + 1))}`);
+  line(UP_RATE, `темп и перезарядка: ×${fmt(rateMul(r))} → ×${fmt(rateMul(r + 1))}`);
   const m = row.lv[UP_MAG] ?? 0;
-  line(UP_MAG, `+25 % патронов: маркер ${gunMag(GUN_MARKER, m)} → ${gunMag(GUN_MARKER, m + 1)}`);
+  line(UP_MAG, `+25 % патронов: ${gunMag(GUN_MARKER, m)} → ${gunMag(GUN_MARKER, m + 1)}`);
   const c = row.lv[UP_CRIT] ?? 0;
-  line(UP_CRIT, `+5 % шанс урона ×2,5: ${Math.round(critChance(c) * 100)} % → ${Math.round(critChance(c + 1) * 100)} %`);
+  line(UP_CRIT, `шанс урона ×2,5: ${Math.round(critChance(c) * 100)} % → ${Math.round(critChance(c + 1) * 100)} %`);
   const pouch = row.lv[UP_POUCH] ?? 0;
   const gmax = grenadeMax(pouch);
   const full = row.gr >= gmax;
@@ -421,7 +421,7 @@ export function shopRows(v: ShopView): PanelRow[] {
     const owned = (row.gn & (1 << gun)) !== 0;
     const held = row.hv === gun;
     rows.push(money({ id: ACT_SHOP + ROW_GUN0 + gun - 1, key: `gun${gun}`, icon: ['', 'shotgun', 'crossbow', 'mg'][gun], name: g.name,
-      detail: `${g.role} · ${g.pellets > 1 ? `${g.pellets}×${g.body}` : `${g.body}/${g.head}`} · магазин ${gunMag(gun, m)}`,
+      detail: `${g.role} · ${g.pellets > 1 ? `${g.pellets}×${g.body}` : `${g.body}/${g.head}`}`,
       tier: -1, max: 0, price: owned ? 0 : g.price, locked: held, reason: held ? 'в руках · 2' : undefined, tag: held ? 'В руках' : owned ? 'Взять' : undefined }, gold));
   }
   return rows;

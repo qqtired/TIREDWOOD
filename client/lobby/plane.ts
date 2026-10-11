@@ -589,7 +589,7 @@ export class PlaneClient {
     this.ask.hidden = !asking;
     if (asking) this.ask.innerHTML = `${TOUCH ? '' : capHtml('E')}<span>Точно сесть?</span><span class="k-prompt-sep"></span><span class="k-prompt-note">${TOUCH ? 'нажми кнопку ещё раз' : 'нажми E ещё раз'} — летим домой</span>`;
     this.hudLand.hidden = s.ph !== PL_FLY;
-    this.hudLand.innerHTML = `<span>${asking ? 'Точно сесть?' : 'Сесть сейчас'}</span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">E</kbd>'}`;
+    this.hudLand.innerHTML = `<span>${asking ? 'Да, сесть' : 'Сесть сейчас'}</span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">E</kbd>'}`;
   }
 
   /** E в полёте: первый раз — спросить, второй (в течение 3 с) — домой. */

@@ -270,7 +270,9 @@ export class Match {
     if (r.kills) parts.push(`сбитые +${r.kills}`);
     if (r.win) parts.push(`победа +${r.win}`);
     if (r.mvp) parts.push(`лучший +${r.mvp}`);
-    this.d.hud.showReward(`+${r.total} ${plural(r.total, 'жетон', 'жетона', 'жетонов')}: ${parts.join(' · ')}`);
+    // только «раунд» — без повтора того же числа: «+15 жетонов за раунд»
+    const tail = parts.length > 1 ? `: ${parts.join(' · ')}` : ' за раунд';
+    this.d.hud.showReward(`+${r.total} ${plural(r.total, 'жетон', 'жетона', 'жетонов')}${tail}`);
   }
 
   private setRoster(list: RosterEntry[]): void {

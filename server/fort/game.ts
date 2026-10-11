@@ -491,11 +491,11 @@ export class FortGame implements HordeHost, EventHost {
     if (record && prev > 0 && mine) this.hooks.announce?.(`🏰 Новый рекорд крепости — ${wavesText(mine.wave)}: ${namesLine(mine.names)}`);
     if (surr) {
       // сдались голосованием у белого флага: отбитые волны — как при поражении, неотбитая текущая не в счёт
-      this.systemChat(`🏳️ Сдались на волне ${this.cleared + 1}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
+      this.systemChat(`🏳️ Сдались на волне ${this.cleared + 1}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
       return;
     }
     this.systemChat(win ? `🏆 Крепость выстояла! Все ${FORT_WAVES} волн отбиты`
-      : `💥 Кристалл разбит на волне ${this.wave}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}!` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
+      : `💥 Кристалл разбит на волне ${this.wave}${record && this.cleared > 0 ? ` · 🏆 новый рекорд крепости: ${this.cleared}` : prev ? ` · рекорд крепости — ${prev}` : ''}. Новая игра — через несколько секунд`);
   }
 
   /**

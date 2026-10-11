@@ -15,9 +15,12 @@ class HpRow {
   private last = '';
   private hitTimer = 0;
   private readonly tone: string;
+  /** Подпись при нуле: «Ворота пали», «Кристалл пал» */
+  private readonly downWord: string;
 
-  constructor(parent: HTMLElement, name: string, tone: string) {
+  constructor(parent: HTMLElement, name: string, tone: string, downWord: string) {
     this.tone = tone;
+    this.downWord = downWord;
     this.root = el('div', 'ft-hp', parent);
     el('span', 'ft-hp-name', this.root, name);
     this.pct = el('b', 'ft-hp-pct', this.root);
@@ -33,7 +36,7 @@ class HpRow {
     const key = `${pct}|${down}|${low}`;
     if (key === this.last) return;
     this.last = key;
-    setText(this.pct, down ? 'пали' : `${pct}%`);
+    setText(this.pct, down ? this.downWord : `${pct}%`);
     this.root.classList.toggle('is-low', low);
     this.bar.className = `k-meter ${low ? 'k-meter--bad' : this.tone}`;
     this.bar.style.setProperty('--v', String(v.toFixed(3)));
@@ -69,8 +72,8 @@ export class FortCard {
     const box = el('div', 'ft-map', this.root);
     this.map = el('canvas', 'ft-map-cv', box);
     const side = el('div', 'ft-hps', this.root);
-    this.gate = new HpRow(side, 'Ворота', 'k-meter--mode');
-    this.crystal = new HpRow(side, 'Кристалл', 'k-meter--info');
+    this.gate = new HpRow(side, 'Ворота', 'k-meter--mode', 'пали');
+    this.crystal = new HpRow(side, 'Кристалл', 'k-meter--info', 'пал');
     this.bell = el('div', 'ft-bell', side);
     this.stats = el('div', 'k-faint ft-stats');
     this.stats.hidden = true;

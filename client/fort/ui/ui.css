@@ -106,7 +106,7 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 
 /* ---------------------------------------------------------------- прилавок (немодальный, справа под бейджем) */
 /* низ — выше панели бойца (низ-центр: 8 + 52 px над краем и зазор): на 1440 окно не заходит на «Shift рывок» */
-.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: calc(var(--edge) + 72px); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: calc(var(--edge) + 72px); width: 450px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
 .ft-stall { display: flex; flex-direction: column; width: 100%; max-height: 100%; }
 .ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
 .ft-stall .k-win-title { font-size: calc(var(--fs-22) * var(--display-scale)); line-height: 1.1; white-space: normal; }
@@ -125,7 +125,8 @@ button.ft-row:active { transform: translateY(1px); }
 .ft-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ft-row-name { display: flex; align-items: center; gap: 8px; }
 .ft-row-name b { font: 800 var(--fs-16)/1.15 var(--font-text); white-space: nowrap; }
-.ft-row-det { overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); white-space: nowrap; text-overflow: ellipsis; }
+/* описание целиком: коротко в одну строку, длинное — во вторую (обрезанный текст владелец не любит) */
+.ft-row-det { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
 .ft-row-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .ft-row-buy .k-pill { gap: 4px; }
 .ft-why { color: var(--bad-text); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
