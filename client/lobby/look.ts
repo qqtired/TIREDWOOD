@@ -165,6 +165,28 @@ export class LobbyLook {
     // уровни наполнения — на следующих шагах
   }
 
+  /** Новая набережная (client/lobby/plaza3/perf.ts): «рисованный» вид сейчас, до прогрева шейдеров перед первым кадром */
+  paintNow(): void {
+    if (this.painted) return;
+    this.painted = true;
+    this.paintAll();
+  }
+
+  /**
+   * Новая набережная: материал модели, что встала после первого кадра (калитка фермы, вход в пещеру), — тот же
+   * «рисованный» вид; мокрый — с тем же небом в лужах. false — красить нечего (ещё не красили всё или не освещённый).
+   */
+  paintLate(m: THREE.Material): boolean {
+    if (!this.painted || !paintable(m)) return false;
+    paintMaterial(m, this.paint);
+    const std = m as THREE.MeshStandardMaterial;
+    if (std.customProgramCacheKey().startsWith('wet') && !this.wetMats.includes(std)) {
+      this.wetMats.push(std);
+      if (this.overcast <= 0.5) std.envMap = this.env;
+    }
+    return true;
+  }
+
   /** «Рисованные» материалы мира: всё освещённое, кроме желеек (у них свой вид) и статуи со свечами. */
   private paintAll(): void {
     const { scene } = this.p;

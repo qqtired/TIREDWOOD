@@ -31,6 +31,7 @@ import { A, xfP } from '../../shared/plaza3/xf.ts';
 import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import { Plaza3Pavilions } from './plaza3/pavilions.ts';
+import { Plaza3Perf } from './plaza3/perf.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -236,6 +237,8 @@ export class LobbyWorld {
   readonly plaza3: Plaza3World | null = null;
   /** Модели павильонов набережной (WP9, client/lobby/plaza3/pavilions.ts) — встают поверх блокаута по мере загрузки */
   readonly pavilions: Plaza3Pavilions | null = null;
+  /** Бюджет отрисовки новой набережной (WP13, client/lobby/plaza3/perf.ts): общие программы, прогрев, дальность */
+  readonly perf: Plaza3Perf | null = null;
   /** Рамки джекпота и экрана ворот блокаута: прячутся, когда холсты встали на поля моделей */
   private jackpotFrame: THREE.Object3D | null = null;
   private gateFrame: THREE.Object3D | null = null;
@@ -420,6 +423,7 @@ export class LobbyWorld {
       ? new LobbyLook({ scene, renderer, sun: this.sun, hemi: this.hemi, sky: this.skyMat, sea: this.seaMat, haze: this.haze, wind: this.wind, wet: (m) => this.wettable(m), map: this.map }, quality)
       : null;
     this.setQuality(quality);
+    if (NEW_PLAZA) this.perf = new Plaza3Perf({ gl: renderer.gl, scene, camera: this.camera, look: this.look });
   }
 
   /** Что мир даёт оформлению площади (client/lobby/plaza): ветер, мокрота в дождь, огни, которые гаснут вместе со светом. */
@@ -1380,7 +1384,7 @@ export class LobbyWorld {
   /** Точечные лампы — только на высоком качестве (они дороже всего в кадре); на низком ещё и карта теней меньше. */
   setQuality(q: LobbyQuality): void {
     this.lampQuality = q;
-    for (const l of this.lamps) l.visible = q === 'high' && this.weather.lampsOn;
+    this.setLamps(q === 'high' && this.weather.lampsOn);
     this.statue?.setQuality(q);
     this.rainFx.setQuality(q);
     const size = q === 'low' ? 1024 : 2048;
@@ -1392,6 +1396,14 @@ export class LobbyWorld {
       this.renderer.refreshShadows();
     }
     this.look?.setQuality(q);
+  }
+
+  /** Точечные лампы: в plaza3 гасим яркостью (видимость лампы — часть ключа шейдера: пересборка всех программ посреди игры) */
+  private setLamps(on: boolean): void {
+    this.lamps.forEach((l, i) => {
+      if (NEW_PLAZA) l.intensity = on ? POINT_LIGHTS[i][3] : 0;
+      else l.visible = on;
+    });
   }
 
   /** Батут просел: кто-то приземлился. */
@@ -1419,7 +1431,7 @@ export class LobbyWorld {
     w.storm = Number.isFinite(force) ? Math.max(0, Math.min(1, force)) : 0;
     if (w.lampsOn === lampsOn) return;
     w.lampsOn = lampsOn;
-    for (const l of this.lamps) l.visible = lampsOn && this.lampQuality === 'high';
+    this.setLamps(lampsOn && this.lampQuality === 'high');
     for (const o of this.powered) o.visible = lampsOn;
     for (const [m, strength] of this.poweredSigns) m.emissiveIntensity = lampsOn ? strength : 0;
   }
@@ -1597,7 +1609,9 @@ export class LobbyWorld {
   }
 
   render(): void {
+    this.perf?.beforeRender();
     this.renderer.render(this.scene, this.camera, this.exposure);
+    this.perf?.afterRender();
   }
 
   /** Нарисовать сцену с другой камеры (снимок фотоаппарата у маяка) — на тот же холст; дождь — вокруг неё. */
