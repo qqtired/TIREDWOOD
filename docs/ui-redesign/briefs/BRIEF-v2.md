@@ -1,6 +1,6 @@
 # Версия 2.0 страницы-обзора нового UI — общее задание
 
-Страница: `/Users/tired/Desktop/game-opus-ui/lab/ui/` (worktree `mode/ui`). Версия 1 сохранена коммитом `bb5a59f` (тег `ui-review-v1`)
+Историческая рабочая папка страницы: `/Users/tired/Desktop/game-opus-ui/lab/ui/` (бывший worktree `mode/ui`). Версия 1 сохранена коммитом `bb5a59ff5434d8c210ceac9547352ced3ced0b59` (бывший тег `ui-review-v1`)
 и выложена как https://tired.solutions/tech/tiredwood-ui/ — её не трогаем. Версия 2 делается на месте в `lab/ui/` и будет
 выложена отдельно (`tiredwood-ui-v2`). Как устроен кит и страница — `lab/ui/kit/KIT.md`, `kit/KIT-combat.md`.
 

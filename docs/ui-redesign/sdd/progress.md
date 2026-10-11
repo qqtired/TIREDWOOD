@@ -13,7 +13,7 @@ Task 1: fix round 1/5 (8 addressed, 0 open; commits 4240751..7f19d60)
 Task 1: complete (commits becb976..7f19d60, review clean after 1 fix round)
 Task 1: minor (deferred): scale.ts bare matchMedia (non-browser only); "Размер интерфейса" hint outdated (Task 4); nested kit layers would double-zoom — keep .k-scrim out of .k-hud
 Task 2: dispatched (base 7f19d60, implementer a6ed79f96af0d3262)
-Lab: light HUD variant committed ae8d840 (tag ui-review-v2-hud), published tiredwood-ui-v2 20261011-072929; owner to pick HUD light vs enamel
+Lab: light HUD variant committed ae8d840b275e8331394037a225ac0893c92a9241 (former tag ui-review-v2-hud), published tiredwood-ui-v2 20261011-072929; owner to pick HUD light vs enamel
 Task 2: review dispatched (sonnet reviewer a4ae237149b54a1ff, package review-7f19d60..9b5d9db.diff)
 Task 2: review — spec ❌ (I1 pirate panel overlap, I2 vote/link/toasts under Esc menu, I3 праздник heroes + storm prompt, I4 title-only hints), quality Approved
 Task 2: minor (deferred): M3 voice.css rgba; M4 reduced-motion for .pz anims; M5 tests for expire/escHtml/Badge; M6 DRY event-icon/meter markup; M7 dev sandboxes chat input; M8 schedule/expire 20ms; M9 chime on every toast; M10 meter morph kills transition; M-c link banner warn/down same tone; M-d chat-hint margin VOICE=0; M-e other modes' top-centre clashes (mode groups); mobile-fishing.css dead rules → Task 5
