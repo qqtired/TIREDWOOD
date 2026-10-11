@@ -3,10 +3,10 @@
    Всё, что висит над боем, — компактно: карточка 240 с картой 96, волна в одну строку с рядом врагов, плитки под бейджем. */
 
 /* цвет режима — у слоёв кита, пока ты в крепости (бейдж, чат, тосты — тоже оранжевым) */
-html[data-room='fort'] :is(.k-hud, .k-scrim) { --mode: var(--m-fort); --mode-soft: color-mix(in srgb, var(--m-fort) 18%, transparent); --mode-ink: var(--m-ink); }
+html[data-room='fort'] { --mode-w: var(--m-fort); --mode-h: var(--mh-fort); }
 /* свои части в общих слотах кита — только в крепости */
 html:not([data-room='fort']) .ft-only { display: none !important; }
-.ft-world [hidden], .ft-scrim[hidden], .ft-stall-wrap[hidden] { display: none !important; }
+.ft-world [hidden], .ft-scrim[hidden], .ft-stall-wrap[hidden], .ft-vitals[hidden] { display: none !important; }
 /* чат с голосом — в свой угол: низ-лево в крепости свободен (панель бойца — по центру) */
 html[data-room='fort'] .k-hud > .k-slot--bl { bottom: var(--edge); }
 /* крупный баннер («Ворота пали!», «Барон повержен!») — ниже стопки тостов под плашкой волны, не под ними */
@@ -89,6 +89,9 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 .ft-coach .k-toast-sub { color: var(--surf-text); font-size: var(--fs-14); line-height: 1.4; white-space: normal; }
 .ft-coach .k-key { vertical-align: 1px; }
 .ft-coach-time { grid-column: 2; height: 4px; margin-top: 7px; border: 0; }
+/* полоса времени подсказки тает сама за её срок (--life — из coach.ts) */
+.ft-coach-time > .k-meter-fill { animation: ft-drain var(--life, 10s) linear forwards; transition: none; }
+@keyframes ft-drain { from { width: 100%; } to { width: 0; } }
 .ft-spot { outline: 3px solid var(--gold); outline-offset: 5px; box-shadow: var(--plate-shadow), 0 0 32px var(--gold) !important; animation: ft-spot 1.2s ease-in-out infinite alternate; }
 .k-arm.ft-spot { outline: 0; box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 3px var(--gold), 0 0 24px var(--gold) !important; }
 .k-tile.ft-spot { outline: 0; box-shadow: none !important; }
@@ -102,7 +105,8 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 .ft-vitals .k-arm > img { object-fit: contain; }
 
 /* ---------------------------------------------------------------- прилавок (немодальный, справа под бейджем) */
-.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: var(--edge); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+/* низ — выше панели бойца (низ-центр: 8 + 52 px над краем и зазор): на 1440 окно не заходит на «Shift рывок» */
+.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: calc(var(--edge) + 72px); width: 410px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
 .ft-stall { display: flex; flex-direction: column; width: 100%; max-height: 100%; }
 .ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
 .ft-stall .k-win-title { font-size: calc(var(--fs-22) * var(--display-scale)); line-height: 1.1; white-space: normal; }

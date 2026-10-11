@@ -4,6 +4,7 @@
 // тоже; лишнее вытесняет самое старое. DOM трогаем только у живых. Слой — без zoom кита: размер — scale × --hud-k.
 import * as THREE from 'three';
 import { fortImg } from './ui/icons.ts';
+import { hudK } from './ui/dom.ts';
 
 const FLOATERS = 28;
 /** Окно слияния: урон по одному зомби, золото рядом */
@@ -24,11 +25,6 @@ interface Floater {
   cls: string;
   shownText: string;
   shownCls: string;
-}
-
-/** Масштаб HUD кита (client/ui/kit/scale.ts пишет его на <html>) */
-function hudK(): number {
-  return Number(document.documentElement.style.getPropertyValue('--hud-k')) || 1;
 }
 
 export class FortFloaters {

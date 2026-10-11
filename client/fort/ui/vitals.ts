@@ -124,6 +124,12 @@ export class FortVitals {
   setDown(down: boolean): void {
     this.root.classList.toggle('is-down', down);
   }
+
+  /** Панель целиком: в итогах её нет (как на странице), повален — видна, но серая */
+  setVisible(v: boolean): void {
+    if (this.root.hidden === !v) return;
+    this.root.hidden = !v;
+  }
 }
 
 /** Подсказка действия над панелью: «кликни — обратно» важнее подсказки у стойки, та — подсказки у лестницы */

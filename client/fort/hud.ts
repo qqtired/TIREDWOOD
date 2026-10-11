@@ -40,10 +40,8 @@ export class FortHud {
   readonly floaters: FortFloaters;
   /** Интерфейс крепости на ките */
   readonly ui: FortUi;
-  /** Полоска стволов — в панели бойца (арсенал зовёт set каждый кадр) */
+  /** Полоска стволов — в панели бойца (арсенал зовёт set каждый кадр); setVisible — панель бойца целиком (в итогах — нет) */
   readonly arms: { set(gun: number, heavy: number, heavyName: string, heavyIcon: string, other: number, gr: number, grMax: number): void; setVisible(v: boolean): void };
-  /** Карточка волны: знакомство с врагами — тостами (FortUi), сброс — в новой игре */
-  readonly card: { reset(): void; announce(card: FortWaveCard, ...rest: unknown[]): void };
   private readonly world: HTMLElement;
   private readonly mapCtx: CanvasRenderingContext2D;
   private readonly mapBase: HTMLCanvasElement;
@@ -66,9 +64,8 @@ export class FortHud {
     const vitals = this.ui.vitals;
     this.arms = {
       set: (gun, heavy, heavyName, heavyIcon, other, gr, grMax) => vitals.setArms(gun, heavy, heavyName, heavyIcon, other, gr, grMax),
-      setVisible: () => {},
+      setVisible: (v) => vitals.setVisible(v),
     };
-    this.card = { reset: () => this.ui.wave.newGame(), announce: () => this.ui.wave.announce((t) => this.ui.push(t)) };
     this.adopt();
     // мини-карта: подложка (луг, дороги, стены) рисуется один раз
     this.map = this.ui.card.map;
@@ -118,11 +115,11 @@ export class FortHud {
 
   /**
    * Полоса босса (плашка верх-центра): доля HP, фаза, состояние, отсчёт; kind/tier/rage — от агента fort. У Кракена — своя
-   * подсказка (krakenInfo) и части: щупальца и голова.
+   * подсказка (krakenInfo) и части: щупальца и голова. max — полное HP (ui/schedule.ts bossMaxHp), 0 — только проценты.
    */
-  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean, parts?: readonly BossPart[]): void {
+  setBoss(hp: number, stage: number, state: number, wind: number, kind = Z_BOSS, tier = 0, rage?: boolean, parts?: readonly BossPart[], max = 0): void {
     const kraken = kind === Z_KRAKEN;
-    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage, parts,
+    this.ui.boss.set(hp > 0 ? { frac: hp, stage, state, wind, kind, tier, rage, parts, max,
       status: kraken ? krakenInfo(state, wind) : newBossHudLine(state) ?? undefined, danger: newBossDanger(state), openTicks: kraken ? (rage ? KRAKEN_OPEN_RAGE : KRAKEN_OPEN_TICKS) : undefined } : null);
   }
 

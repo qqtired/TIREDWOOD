@@ -20,7 +20,7 @@ export class Alarms {
 
   show(text: string, ms = 2600, target: AlarmTarget = null): void {
     const a = alarmText(text);
-    this.top.toast({ key: `al-${a.title}`, tone: a.tone, icon: fortIcon(a.icon), title: a.title, sub: a.sub || undefined, life: Math.max(2200, ms) });
+    this.top.toast({ key: `ft-al-${a.title}`, tone: a.tone, icon: fortIcon(a.icon), title: a.title, sub: a.sub || undefined, life: Math.max(2200, ms) });
     if (target) {
       this.target = target;
       this.targetUntil = performance.now() + Math.max(2200, ms);

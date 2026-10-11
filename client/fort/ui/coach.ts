@@ -8,12 +8,15 @@ import { Vector3 } from 'three';
 import { LADDERS } from '../../../shared/fortladder.ts';
 import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../shared/fort.ts';
 import { TOUCH } from '../../touch.ts';
-import { el, setText } from './dom.ts';
-import { fortImg } from './icons.ts';
+import type { TopCenter } from '../../ui/kit/topcenter.ts';
+import { el } from './dom.ts';
+import { fortIcon, fortImg } from './icons.ts';
 
 // ------------------------------------------------------------ три подсказки первой игры
 
 const COACH_KEY = 'fort.coach.v1';
+/** Ключ тоста подсказки (начинается с ft- — уходит вместе с тостами крепости) */
+const COACH_TOAST = 'ft-coach';
 
 /** На что показать золотой рамкой: карточку крепости, гранату, золото */
 export type CoachSpot = 'fort' | 'gren' | 'gold';
@@ -53,33 +56,32 @@ function saveStep(n: number): void {
 }
 
 export class Coach {
-  readonly card: HTMLElement;
   /** Что подсветить сейчас (null — ничего) */
   onSpot: (spot: CoachSpot | null) => void = () => {};
-  private readonly title: HTMLElement;
-  private readonly body: HTMLElement;
-  private readonly count: HTMLElement;
-  private readonly time: HTMLElement;
+  private readonly top: TopCenter;
   private step = loadStep();
   private showing = -1;
   private until = 0;
   private started = 0;
   private sawWave = false;
 
-  /** slot — верх-центр (.k-slot--tc): карточка встаёт под тостами */
-  constructor(slot: HTMLElement) {
-    this.card = el('div', 'k-toast ft-coach');
-    this.card.dataset.mode = 'fort';
-    this.card.setAttribute('role', 'note');
-    this.card.hidden = true;
-    el('span', 'k-toast-ic', this.card).innerHTML = fortImg('scroll');
-    const head = el('div', 'k-toast-title', this.card);
-    this.count = el('span', 'ft-coach-n', head);
-    this.title = el('span', '', head);
-    this.body = el('div', 'k-toast-sub', this.card);
-    this.time = el('span', 'k-meter k-meter--thin k-meter--mode ft-coach-time', this.card);
-    this.time.innerHTML = '<i class="k-meter-ghost"></i><i class="k-meter-fill"></i>';
-    slot.append(this.card);
+  /** top — верх-центр кита: подсказка — тост в общей стопке под плашкой волны (как на странице) */
+  constructor(top: TopCenter) {
+    this.top = top;
+  }
+
+  /** Подсказка на экране или вот-вот встанет в этой фазе (новых врагов тостами в это время не представляем) */
+  busy(phase: number): boolean {
+    return this.showing >= 0 || this.next(phase) >= 0;
+  }
+
+  /** Какую подсказку показать в этой фазе (-1 — никакую) */
+  private next(phase: number): number {
+    if (this.step >= TIPS.length || phase === FT_END) return -1;
+    if (this.step === 0 && (phase === FT_GATHER || phase === FT_BREAK || phase === FT_WAVE)) return 0;
+    if (this.step === 1 && phase === FT_WAVE) return 1;
+    if (this.step === 2 && phase === FT_BREAK && this.sawWave) return 2;
+    return -1;
   }
 
   private show(i: number): void {
@@ -87,62 +89,60 @@ export class Coach {
     this.showing = i;
     this.started = performance.now();
     this.until = this.started + tip.ms;
-    setText(this.title, tip.title);
-    setText(this.count, `Новичку · ${i + 1} из ${TIPS.length}`);
-    this.body.innerHTML = tip.html;
-    this.card.hidden = false;
-    this.card.classList.remove('is-new');
-    void this.card.offsetWidth;
-    this.card.classList.add('is-new');
+    // полоса времени тает сама (ui.css: --life), без правок каждый кадр
+    const html = `<div class="k-toast-title"><span class="ft-coach-n">Новичку · ${i + 1} из ${TIPS.length}</span>${tip.title}</div>`
+      + `<div class="k-toast-sub">${tip.html}</div>`
+      + `<span class="k-meter k-meter--thin k-meter--mode ft-coach-time" style="--life:${tip.ms}ms"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
+    this.top.toast({ key: COACH_TOAST, tone: 'info', icon: fortIcon('scroll'), title: tip.title, life: tip.ms, cls: 'ft-coach', html });
     this.onSpot(tip.spot);
   }
 
+  /** Подсказка прочитана: шаг дальше и запомнить */
   private finish(): void {
     if (this.showing < 0) return;
     this.step = Math.max(this.step, this.showing + 1);
     saveStep(this.step);
+    this.close();
+  }
+
+  /** Убрать с экрана, не засчитывая */
+  private close(): void {
+    if (this.showing >= 0) this.top.clearToasts(COACH_TOAST);
     this.showing = -1;
-    this.card.hidden = true;
     this.onSpot(null);
   }
 
   update(phase: number, alive: boolean): void {
     const now = performance.now();
     if (this.showing >= 0) {
-      const v = Math.max(0, (this.until - now) / (this.until - this.started));
-      this.time.style.setProperty('--v', v.toFixed(2));
       // первая подсказка уходит раньше, если началась волна: дальше — вторая
       const early = this.showing === 0 && phase === FT_WAVE && now - this.started > 4000;
       if (now >= this.until || early || phase === FT_END) this.finish();
       return;
     }
-    if (this.step >= TIPS.length || phase === FT_END || !alive) return;
     if (phase === FT_WAVE) this.sawWave = true;
-    if (this.step === 0 && (phase === FT_GATHER || phase === FT_BREAK || phase === FT_WAVE)) this.show(0);
-    else if (this.step === 1 && phase === FT_WAVE) this.show(1);
-    else if (this.step === 2 && phase === FT_BREAK && this.sawWave) this.show(2);
+    if (!alive) return;
+    const i = this.next(phase);
+    if (i >= 0) this.show(i);
   }
 
-  /** Ушли из крепости: подсказка — прочь (шаг сохранён) */
+  /** Ушли из крепости посреди подсказки: убрать, не засчитывая (покажется в следующий раз) */
   hide(): void {
-    if (this.showing >= 0) this.finish();
+    this.close();
   }
 
   /** Для превью: подсказки уже показаны (не мешают другим сценам) */
   skip(): void {
+    this.close();
     this.step = TIPS.length;
-    this.showing = -1;
-    this.card.hidden = true;
-    this.onSpot(null);
   }
 
   /** Для превью и тестов: начать сначала */
   restart(): void {
+    this.close();
     this.step = 0;
-    this.showing = -1;
     this.sawWave = false;
     saveStep(0);
-    this.card.hidden = true;
   }
 }
 

@@ -15,8 +15,11 @@ export const PRIO = { vote: 90, link: 80, boss: 70, mode: 60, storm: 50, pirates
 
 /** html — содержимое .k-event (иконка, заголовок, подстрока, таймер, полоса, кнопки) — только своя разметка, ники — экранировать */
 export type TcEvent = { key: string; prio: number; html: string; tone?: 'danger' | 'good' | 'special'; lamp?: boolean };
-/** icon — адрес картинки (uiIcon(id)); title/sub — текст (🪙 рисуется монеткой); life — сколько висит, мс (4200) */
-export type TcToast = { key?: string; tone?: 'info' | 'reward' | 'warn' | 'good'; icon: string; title: string; sub?: string; life?: number };
+/**
+ * icon — адрес картинки (uiIcon(id)); title/sub — текст (🪙 рисуется монеткой); life — сколько висит, мс (4200).
+ * cls — свои классы карточки; html — своя разметка вместо title/sub (только своя, ники — экранировать): подсказка новичку крепости.
+ */
+export type TcToast = { key?: string; tone?: 'info' | 'reward' | 'warn' | 'good'; icon: string; title: string; sub?: string; life?: number; cls?: string; html?: string };
 
 /** Чужой текст (ники, текст сервера) в разметку плашки */
 export const escHtml = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -80,8 +83,9 @@ export class TopCenterModel {
     return this.list.reduce((m, t) => Math.min(m, t.until), Infinity);
   }
 
-  clearToasts(): void {
-    this.list = [];
+  /** prefix — убрать только тосты с таким началом ключа (свои тосты режима), без него — все */
+  clearToasts(prefix?: string): void {
+    this.list = prefix === undefined ? [] : this.list.filter((t) => !t.key?.startsWith(prefix));
   }
 
   /** Баннер по центру — один: новый вытесняет прежний, если не менее важен или прежний уже растаял; false — не показан */
@@ -164,8 +168,8 @@ export class TopCenter {
     this.schedule();
   }
 
-  clearToasts(): void {
-    this.model.clearToasts();
+  clearToasts(prefix?: string): void {
+    this.model.clearToasts(prefix);
     this.renderToasts();
   }
 
@@ -262,15 +266,18 @@ export class TopCenter {
     // новые — сверху, у плашки события (как pushToast на странице кита)
     for (const t of live) {
       if (this.shown.has(t)) continue;
-      const box = el('div', `k-toast k-toast--${t.tone ?? 'info'} is-new`);
+      const box = el('div', `k-toast k-toast--${t.tone ?? 'info'}${t.cls ? ` ${t.cls}` : ''} is-new`);
       const ic = box.appendChild(el('span', 'k-toast-ic'));
       if (t.icon) {
         const img = ic.appendChild(document.createElement('img'));
         img.src = t.icon;
         img.alt = '';
       }
-      coinText(box.appendChild(el('div', 'k-toast-title')), t.title);
-      if (t.sub) coinText(box.appendChild(el('div', 'k-toast-sub')), t.sub);
+      if (t.html) box.insertAdjacentHTML('beforeend', t.html);
+      else {
+        coinText(box.appendChild(el('div', 'k-toast-title')), t.title);
+        if (t.sub) coinText(box.appendChild(el('div', 'k-toast-sub')), t.sub);
+      }
       this.shown.set(t, box);
       this.stack.prepend(box);
     }

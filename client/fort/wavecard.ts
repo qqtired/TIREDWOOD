@@ -1,8 +1,12 @@
 // Карточка волны «Крепости» без DOM: фишки врагов («×12», новые, элита, чемпионы) и свёртка строки в бою (самые
 // многочисленные и новые, остальные — «+N»). Рисует их плашка волны верх-центра — client/fort/ui/wave.ts.
 import { ZK, type FortWaveCard } from '../../shared/fort.ts';
+import { foeIcon } from './ui/text.ts';
 
 export interface CardChip {
+  /** Вид врага; −1 — элита, −2 — чемпионы */
+  kind?: number;
+  /** id картинки (client/fort/ui/icons.ts) */
   icon: string;
   n: number;
   name: string;
@@ -11,15 +15,16 @@ export interface CardChip {
   label?: string;
 }
 
-/** Строка фишек для карточки: «🧟 ×12 · 🏃 ×5 …» — и для подсказок, и для тестов */
+/** Фишки врагов волны (картинка, «×12», новые, элита, чемпионы) — ряд врагов плашки волны */
 export function cardChips(card: FortWaveCard): CardChip[] {
   const out: CardChip[] = [];
   for (let i = 0; i + 1 < card.chips.length; i += 2) {
-    const k = ZK[card.chips[i]];
-    if (k) out.push({ icon: k.icon, n: card.chips[i + 1], name: k.name, cls: card.fresh.includes(card.chips[i]) ? 'fresh' : '' });
+    const kind = card.chips[i];
+    const k = ZK[kind];
+    if (k) out.push({ kind, icon: foeIcon(kind), n: card.chips[i + 1], name: k.name, cls: card.fresh.includes(kind) ? 'fresh' : '' });
   }
-  if (card.elite > 0) out.push({ icon: '★', n: card.elite, name: 'элита: толще и злее, награда ×2', cls: 'elite' });
-  if (card.champ > 0) out.push({ icon: '✪', n: card.champ, name: 'чемпионы: ×6 HP, награда ×5', cls: 'champ' });
+  if (card.elite > 0) out.push({ kind: -1, icon: 'level', n: card.elite, name: 'элита: толще и злее, награда ×2', cls: 'elite' });
+  if (card.champ > 0) out.push({ kind: -2, icon: 'champion', n: card.champ, name: 'чемпионы: ×6 HP, награда ×5', cls: 'champ' });
   return out;
 }
 

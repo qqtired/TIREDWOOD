@@ -48,6 +48,7 @@ import type { FortHud, MapDot } from './hud.ts';
 import type { TeamRow } from './ui/index.ts';
 import { SurrenderUi } from './ui/surrender.ts';
 import { PRIO } from '../ui/kit/topcenter.ts';
+import { bossMaxHp } from './ui/schedule.ts';
 import type { FortWorld } from './world.ts';
 import type { Zombies3D } from './zombies3d.ts';
 import { PJ_GLOB, PJ_INK, PJ_METEOR, PJ_ROCK, type Projectiles } from './projectiles.ts';
@@ -78,6 +79,8 @@ export interface FortMatchDeps {
   settings: Settings;
   net: Net;
   me: () => MeState;
+  /** Ушли из итогов по Esc (не жест — мышь не захватить): на набережной вуаль «Кликни, чтобы играть», а не меню */
+  quietPause?: () => void;
 }
 
 interface Pose extends AvatarPose {
@@ -332,7 +335,8 @@ export class FortMatch {
   /** «Ещё раз» в итогах: окно прочь, мышь — снова в игру (новая игра начнётся сама) */
   private closeResults(): void {
     this.d.hud.ui.results.dismiss();
-    void this.d.input.lock();
+    // браузер не дал мышь — не меню, а «кликни — обратно в бой»
+    void this.d.input.lock().then(() => { if (!this.d.input.locked) this.ars.releaseCursor(); });
   }
 
   /** Открыта панель стойки (лавка, ворота, кристалл, башня) */
@@ -350,7 +354,10 @@ export class FortMatch {
       e.preventDefault();
       if (down && !e.repeat) {
         if (code === 'KeyE') this.closeResults();
-        else this.d.net.send({ t: 'leave' });
+        else {
+          this.d.quietPause?.();
+          this.d.net.send({ t: 'leave' });
+        }
       }
       return true;
     }
@@ -480,9 +487,12 @@ export class FortMatch {
       return;
     }
     // старт волны, «волна отбита», новые враги и колокол — FortUi (плашка волны и тосты); название волны — из карточки
+    // итоги ушли сами (новая игра без «Ещё раз»): мышь не захватить без жеста — «кликни — обратно в бой», не меню
+    const wasEnd = hud.endShown;
     hud.ui.onPhase(phase, wave, this.card);
     if (phase === FT_GATHER) {
       hud.hideEnd();
+      if (wasEnd && !this.d.input.locked) this.ars.releaseCursor();
       this.surr.reset();
       effects.clearSplats();
     } else if (phase === FT_WAVE) {
@@ -732,7 +742,6 @@ export class FortMatch {
   private onEvents(list: FortEvent[]): void {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
-      hud.ui.onEvent(e);
       if (this.krakenFx.onEvent(e)) continue;
       switch (e[0]) {
         case 'shot': {
@@ -834,12 +843,11 @@ export class FortMatch {
             else if ((tier ?? 0) >= 2) hud.pb.bannerMessage(`✪ Чемпион сбит: ${k.name}!`, 1800);
           }
           if (this.goldOn && kind !== Z_BOAT) this.d.eventFx?.coins(x, y + 1, z, boss || (tier ?? 0) > 0);
-          const by = killer >= TOWER_BY ? '🏰 Башня' : this.nameOf(killer);
           if (boss) {
+            const by = killer >= TOWER_BY ? 'Башня' : this.nameOf(killer);
             hud.ui.push({ key: 'boss-down', hero: true, tone: 'gold', prio: PRIO.boss, ms: 3300,
-              title: `${k.name} повержен!`, sub: killer ? `Добил: ${by.replace(/^🏰 /, '')} · добейте орду` : 'Добейте оставшуюся орду' });
+              title: `${k.name} повержен!`, sub: killer ? `Добил: ${by} · добейте орду` : 'Добейте оставшуюся орду' });
           }
-          if ((kind === Z_BRUTE || (tier ?? 0) >= 2 || boss) && killer) hud.pb.killfeed(by, -1, k.name, -1, false, 'fort', killer === this.myId);
           break;
         }
         case 'pop': {
@@ -874,7 +882,7 @@ export class FortMatch {
             this.downBy = zid;
             this.respawnAt = this.clock.estimate(performance.now()) + FORT_RESPAWN_TICKS;
             const by = zid ? this.d.zombies.kindOf(zid) : -1;
-            hud.showDeath(zid ? downText(by) : 'Снова на террасу', by);
+            hud.showDeath(zid ? downText(by) : 'Передохни — команда держит стену', by);
             sound.death();
             effects.deathSplat(s.x, s.y, s.z, this.colorOf(pid));
             this.deathX = s.x;
@@ -887,7 +895,6 @@ export class FortMatch {
               sound.popAt([p.x, p.y + 0.8, p.z], this.camPos.distanceTo(_v.set(p.x, p.y, p.z)));
             }
             this.avatars.get(pid)?.pop();
-            hud.pb.killfeed('🧟', -1, this.nameOf(pid), -1, false, 'fort', false);
           }
           break;
         }
@@ -1633,8 +1640,10 @@ export class FortMatch {
       kp[TENT_COUNT].frac = boss.hp;
       parts = kp;
     }
+    // полное HP — по формуле сервера: волна и под сколько защитников усилена орда (в бою снимок шлёт horde.defenders)
+    const bossMax = boss && this.phase === FT_WAVE ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0) : 0;
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
-      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts);
+      boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts, bossMax);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);
     // новый интерфейс: полоса, команда, тревоги со стрелкой, стрелки на угрозы, новичку — раз в кадр
     const me = this.predictor.state;
@@ -1766,7 +1775,8 @@ function downText(kind: number): string {
   if (kind === Z_BLOATER) return 'Пузырь лопнул рядом — бей его издалека';
   if (kind === Z_FLYER) return 'Крылатка спикировала — поглядывай в небо';
   if (isBossKind(kind)) return 'Босс достал — уходи с красных меток';
-  return 'Зомби добрались до тебя — встанешь на террасе';
+  // «встанешь на террасе» — строкой ниже, у отсчёта (ui/down.ts)
+  return 'Зомби добрались до тебя — держи дистанцию';
 }
 
 function plural(n: number, one: string, few: string, many: string): string {

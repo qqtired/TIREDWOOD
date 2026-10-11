@@ -150,9 +150,9 @@ export class FortTiles {
     if (key === this.recKey) return became;
     this.recKey = key;
     this.rec.root.classList.toggle('k-tile--own', ours || hot || tie);
-    if (ours) this.rec.setCap(`Ваш! ${rec}`, r.base > 0 ? `было ${r.base}` : 'первый');
+    if (ours) this.rec.setCap(`рекорд ${rec}`, r.base > 0 ? `ваш, было ${r.base}` : 'ваш, первый');
     else if (hot) this.rec.setCap('бьём рекорд', 'ещё 1 волна');
-    else if (tie) this.rec.setCap('рекорд повторён', 'ещё волна!');
+    else if (tie) this.rec.setCap(`рекорд ${rec}`, 'повторили');
     else if (rec > 0) this.rec.setCap(`рекорд ${rec}`, `твой ${mine > 0 ? mine : '—'}`);
     else this.rec.setCap('рекорда нет', 'будет ваш');
     return became;

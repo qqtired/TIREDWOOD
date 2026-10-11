@@ -28,6 +28,8 @@ export interface BossView {
   kind: number;
   /** Круг босса: 0 — первый, 1 — II … */
   tier?: number;
+  /** Полное HP (ui/schedule.ts bossMaxHp): на полосе «1 628 / 2 200»; 0 — только проценты */
+  max?: number;
   rage?: boolean;
   parts?: readonly BossPart[];
   /** Своё имя и вид (иначе — по виду врага): части супер-босса, превью */
@@ -124,16 +126,20 @@ export class BossBar {
     const title = `<div class="k-event-title">${escHtml(name)}${v.tier ? ` ${roman(v.tier + 1)}` : ''} ${pill}</div>`;
     const sub = `<div class="k-event-sub">волна ${num(this.wave)} · ещё ${num(this.left)} ${sup ? 'врагов' : 'зомби'}</div>`;
     const timer = `<div class="k-event-timer">${pct}%</div>`;
-    let html = icon + title + sub + timer + meter(frac, `${sup ? 'k-meter--special' : 'k-meter--bad'} ft-bar`, this.trail);
-    if (open && !v.status) {
-      const w = v.wind > 0 ? Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS))) : 1;
-      html += meter(w, 'k-meter--info ft-bar', w, `Ядро открыто — огонь! ${sec1(v.wind / TICK_RATE)} с`);
+    const max = v.max ?? 0;
+    const nums = max > 0 ? `${num(Math.max(1, Math.round(frac * max)))} / ${num(max)}` : '';
+    let html = icon + title + sub + timer + meter(frac, `${sup ? 'k-meter--special' : 'k-meter--bad'} ft-bar`, this.trail, nums);
+    // окно уязвимости (у Кракена — оглушение): вторая, бирюзовая полоса с секундами, пока отсчёт идёт
+    const timed = open && v.wind > 0;
+    if (timed) {
+      const w = Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS)));
+      html += meter(w, 'k-meter--info ft-bar', w, `${sup ? 'Оглушён — огонь по голове!' : 'Ядро открыто — огонь!'} ${sec1(v.wind / TICK_RATE)} с`);
     }
     const parts = v.parts ?? [];
     if (parts.length) {
       html += `<div class="ft-parts">${parts.map((p) => `<div class="ft-part${p.frac <= 0 ? ' is-off' : ''}"><span>${escHtml(p.label.toLowerCase())}</span>${meter(Math.max(0, Math.min(1, p.frac)), /голов/i.test(p.label) ? 'k-meter--special' : 'k-meter--bad')}</div>`).join('')}</div>`;
     }
-    const doText = open && !v.status ? '<b>Бей в ядро</b> — арбалет больнее всего' : `<b>${escHtml(v.status ?? bossAttackText(v.state))}</b>`;
+    const doText = open && (timed || !v.status) ? `<b>Бей в ${sup ? 'голову' : 'ядро'}</b> — арбалет больнее всего` : `<b>${escHtml(v.status ?? bossAttackText(v.state))}</b>`;
     const doCls = open ? ' is-go' : danger ? ' is-danger' : '';
     html += `<div class="ft-do${doCls}">${fortImg(open ? 'crossbow' : 'warn')}<span>${doText}</span></div>`;
     this.top.event({ key: KEY, prio: PRIO.boss, tone: sup ? 'special' : 'danger', lamp: true, html });

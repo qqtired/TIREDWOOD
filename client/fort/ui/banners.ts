@@ -9,6 +9,8 @@ import { alarmText, type ToastTone } from './text.ts';
 
 /** Баннер по центру живёт не дольше своей анимации (kit.css .k-hero.is-play — 3,2 с) */
 const HERO_MS = 3300;
+/** Начало ключей своих тостов и баннеров: при уходе из крепости убираем только их */
+export const FT = 'ft-';
 
 export interface BannerSpec {
   /** Тот же ключ — заменить прежний */
@@ -31,8 +33,8 @@ export class FortBanners {
   private readonly top: TopCenter;
   /** Повален: мелкие подтверждения молчат (на экране «Тебя повалили!») */
   quiet = false;
-  /** Ключ последнего крупного баннера (убрать при уходе) */
-  private heroKey = '';
+  /** Ключи крупных баннеров, что показывали (при уходе убрать свой, какой бы ни висел) */
+  private readonly heroKeys = new Set<string>();
 
   constructor(top: TopCenter) {
     this.top = top;
@@ -55,23 +57,24 @@ export class FortBanners {
   }
 
   push(s: BannerSpec): void {
+    const key = FT + (s.key ?? s.title);
     if (s.hero) {
-      this.heroKey = s.key ?? s.title;
-      this.top.hero({ key: s.key ?? s.title, prio: s.prio ?? PRIO.info, tone: (s.tone ?? 'gold') as TcHero['tone'], title: s.title, sub: s.sub, life: Math.min(s.ms ?? HERO_MS, HERO_MS) });
+      this.heroKeys.add(key);
+      this.top.hero({ key, prio: s.prio ?? PRIO.info, tone: (s.tone ?? 'gold') as TcHero['tone'], title: s.title, sub: s.sub, life: Math.min(s.ms ?? HERO_MS, HERO_MS) });
       return;
     }
-    this.top.toast({ key: s.key, tone: (s.tone ?? 'info') as ToastTone, icon: fortIcon(s.icon ?? 'warn'), title: s.title, sub: s.sub || undefined, life: s.ms });
+    this.top.toast({ key, tone: (s.tone ?? 'info') as ToastTone, icon: fortIcon(s.icon ?? 'warn'), title: s.title, sub: s.sub || undefined, life: s.ms });
   }
 
   /** Убрать баннер этого вида (устарел: «рекордная волна» после побитого рекорда) */
   drop(key: string): void {
-    this.top.clearHero(key);
+    this.top.clearHero(FT + key);
   }
 
-  /** Ушли из крепости: баннер и тосты — прочь */
+  /** Ушли из крепости: свои баннер и тосты — прочь (чужие тосты — уведомления игры — остаются) */
   dropAll(): void {
-    if (this.heroKey) this.top.clearHero(this.heroKey);
-    this.heroKey = '';
-    this.top.clearToasts();
+    for (const k of this.heroKeys) this.top.clearHero(k);
+    this.heroKeys.clear();
+    this.top.clearToasts(FT);
   }
 }

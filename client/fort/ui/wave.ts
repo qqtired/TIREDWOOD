@@ -2,11 +2,11 @@
 // одна строка «Волна 5 из 100 · Крылатки», справа «ещё 23», ниже — маленький ряд врагов картинками с числом и тонкая
 // полоса. В сборе и передышке — «Дальше: волна 7 · Барон Варенья», откуда идут, отсчёт, ряд врагов (новый — золотом,
 // босс — красным) и полоса времени. Кто новый, какой босс и событие волны — тостами под плашкой, раз за посещение.
-import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, type FortWaveCard } from '../../../shared/fort.ts';
+import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, Z_WALKER, type FortWaveCard } from '../../../shared/fort.ts';
 import { TOUCH } from '../../touch.ts';
 import { PRIO, escHtml, type TopCenter } from '../../ui/kit/topcenter.ts';
 import { fmtTime } from '../../paintball/hud.ts';
-import { foldChips, romanTier, type CardChip } from '../wavecard.ts';
+import { cardChips, foldChips, romanTier } from '../wavecard.ts';
 import { num } from './dom.ts';
 import { fortImg } from './icons.ts';
 import { lastWave } from './schedule.ts';
@@ -93,14 +93,7 @@ export class WavePlate {
 
   /** Ряд врагов картинками: в бою — новые и самые многочисленные (остальные — «+N»), в паузе — все; босс — первым */
   private chips(card: FortWaveCard, fight: boolean): string {
-    const list: (CardChip & { kind: number })[] = [];
-    for (let i = 0; i + 1 < card.chips.length; i += 2) {
-      const kind = card.chips[i];
-      if (!ZK[kind]) continue;
-      list.push({ kind, icon: foeIcon(kind), n: card.chips[i + 1], name: ZK[kind].name, cls: card.fresh.includes(kind) ? 'fresh' : '' });
-    }
-    if (card.elite > 0) list.push({ kind: -1, icon: 'level', n: card.elite, name: 'элита', cls: 'elite' });
-    if (card.champ > 0) list.push({ kind: -2, icon: 'champion', n: card.champ, name: 'чемпионы', cls: 'champ' });
+    const list = cardChips(card);
     const shown = fight ? foldChips(list, FIGHT_KINDS) : list;
     let out = '';
     if (card.boss >= 0 && !fight) {
@@ -117,13 +110,15 @@ export class WavePlate {
    * Знакомство с волной (раз за волну): новые враги, босс, событие — тостами. Зовут в начале паузы перед волной
    * (карточка — уже следующая) и в начале волны (вошёл посреди игры).
    */
-  announce(push: (t: { key: string; icon: string; tone: 'info' | 'warn'; title: string; sub: string; ms: number }) => void): void {
+  announce(push: (t: { key: string; icon: string; tone: 'info' | 'warn'; title: string; sub: string; ms: number }) => void, quietFresh = false): void {
     const card = this.card;
     if (!card || card.w === this.announced) return;
     this.announced = card.w;
     for (const k of card.fresh) {
       if (this.met.has(k) || !ZK[k]) continue;
       this.met.add(k);
+      // шаркуна (первая волна) не представляем; пока на экране подсказка новичку — тоже молчим (новый — золотом в ряду врагов)
+      if (k === Z_WALKER || quietFresh) continue;
       push({ key: `fresh-${k}`, icon: foeIcon(k), tone: 'info', title: `Новый враг: ${ZK[k].name}`, sub: hintOf(k), ms: INTRO_MS });
     }
     if (card.boss >= 0 && !this.met.has(card.boss) && ZK[card.boss]) {

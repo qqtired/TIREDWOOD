@@ -20,7 +20,7 @@ import { WATER_Y } from '../../shared/constants.ts';
 import { crystalMax, gateMax, gateRows, makeArsenalRow, shopRows } from '../../shared/fortarsenal.ts';
 import { GATE, WALL_H, buildFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
-import { BOSS_CYCLE, GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK } from '../../shared/fortkinds.ts';
+import { BOSS_CYCLE, GOLEM_HOME_Z, QUAKE_R, RAM_HOME_Z, RAM_LANE, ROCK_FLIGHT_TICKS, ROCK_R, STOMP_R, ZK, Z_KRAKEN } from '../../shared/fortkinds.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Renderer } from '../render/renderer.ts';
 import type { Quality } from '../settings.ts';
@@ -30,6 +30,7 @@ import { bindHudScale } from '../ui/kit/scale.ts';
 import { HudSlots } from '../ui/kit/slots.ts';
 import { TopCenter } from '../ui/kit/topcenter.ts';
 import { FortHud } from './hud.ts';
+import { bossMaxHp } from './ui/schedule.ts';
 import { FortWorld } from './world.ts';
 import { ALL_MOBS } from './mobs/index.ts';
 import { Zombies3D } from './zombies3d.ts';
@@ -38,6 +39,9 @@ import { Zombies3D } from './zombies3d.ts';
 document.documentElement.classList.toggle('touch', TOUCH);
 // кит: как в игре — оболочка #hud со слоем слотов, верх-центр над ней, масштаб от окна, комната «крепость»
 document.documentElement.dataset.room = 'fort';
+// шкурка и вариант HUD — как в игре (index.html): «Ретро-парк 2.0», светлые плашки поверх боя
+document.documentElement.dataset.skin = 'retro2';
+document.documentElement.dataset.hud = 'light';
 bindHudScale(document.documentElement, () => 1);
 const shell = document.createElement('div');
 shell.className = 'shell';
@@ -299,7 +303,7 @@ function uiFrame(): void {
     team: m === 'down' ? team.map((r) => (r.me ? { ...r, alive: false } : r)) : team, zombies: threats, camera: world.camera, width: window.innerWidth, height: window.innerHeight,
   });
   if (m === 'kraken') {
-    hud.ui.boss.set({ frac: 0.62, stage: 2, state: Math.floor(t / 3) % 2 ? ZS_BOSS_OPEN : 0, wind: 150 - ((t * 60) % 180), kind: Z_BOSS, tier: 1, rage: false,
+    hud.ui.boss.set({ frac: 0.62, stage: 2, state: Math.floor(t / 3) % 2 ? ZS_BOSS_OPEN : 0, wind: 150 - ((t * 60) % 180), kind: Z_BOSS, tier: 1, rage: false, max: bossMaxHp(Z_KRAKEN, 25, 2),
       name: 'Кракен', super: true, parts: [{ label: 'Щупальце', frac: 0 }, { label: 'Щупальце', frac: 0.35 }, { label: 'Щупальце', frac: 0.8 }, { label: 'Щупальце', frac: 1 }, { label: 'Голова', frac: 0.62 }] });
   }
 }
@@ -335,7 +339,7 @@ function frame(now: number) {
   world.props.setRally(shield);
   // полоса босса — только в сценах боя с боссом (иначе плашка волны и босса менялись бы каждый кадр)
   const fightBoss = uiMode.value === 'boss' || uiMode.value === 'down';
-  if (uiMode.value !== 'kraken') hud.setBoss(fightBoss ? boss?.hp ?? 0 : 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0);
+  if (uiMode.value !== 'kraken') hud.setBoss(fightBoss ? boss?.hp ?? 0 : 0, boss?.stage ?? 0, boss?.state ?? 0, boss?.wind ?? 0, boss?.kind ?? Z_BOSS, 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, undefined, bossMaxHp(boss?.kind ?? Z_BOSS, 7, 2));
   uiFrame();
   world.update(dt, world.camera.position);
   world.arsenal.update(dt, world.camera.position, () => false);

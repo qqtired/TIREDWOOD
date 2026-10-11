@@ -6,7 +6,7 @@
 // Tab и итоги — окна кита (.k-scrim). FortHud создаёт FortUi и отдаёт сюда крючки; match.ts раз в кадр передаёт снимок
 // того, что видно (frame). Без своего места верх-центра: всё сверху идёт через TopCenter кита.
 import type * as THREE from 'three';
-import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_BOAT_LAND, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, Z_BOAT, type FortEvent, type FortWaveCard } from '../../../shared/fort.ts';
+import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_BOAT_LAND, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, Z_BOAT, type FortWaveCard } from '../../../shared/fort.ts';
 import { kindFlags, waveBonus } from '../../../shared/fortarsenal.ts';
 import { GATE } from '../../../shared/fortmap.ts';
 import type { ZombieSnap } from '../../../shared/fortnet.ts';
@@ -17,11 +17,12 @@ import type { TopCenter } from '../../ui/kit/topcenter.ts';
 import type { OnlineList } from '../../ui/online.ts';
 import { Alarms, type AlarmTarget } from './alarms.ts';
 import { FortBanners, type BannerSpec } from './banners.ts';
-import { Board } from './board.ts';
+import { Board, type PotInfo } from './board.ts';
 import { BossBar } from './boss.ts';
 import { FortCard } from './card.ts';
 import { Coach, EdgeArrows, ladderHint, type CoachSpot, type Threat } from './coach.ts';
 import { DownBlock } from './down.ts';
+import { hudK } from './dom.ts';
 import { fortIcon } from './icons.ts';
 import { hotBanner } from './record.ts';
 import { Results } from './results.ts';
@@ -84,11 +85,6 @@ export interface FortKit {
 const GATE_AT = { x: (GATE.x0 + GATE.x1) / 2, y: 1.6, z: GATE.face };
 const CRYSTAL_AT = { x: 0, y: 1.6, z: 2.6 };
 
-/** Масштаб HUD кита (client/ui/kit/scale.ts пишет его на <html>) */
-export function hudK(): number {
-  return Number(document.documentElement.style.getPropertyValue('--hud-k')) || 1;
-}
-
 export class FortUi {
   readonly top: TopCenter;
   readonly card: FortCard;
@@ -119,6 +115,8 @@ export class FortUi {
   private waveNow = 0;
   private isDown = false;
   private tilesOff = false;
+  /** Общак последней отбитой волны (Tab) */
+  private pot: PotInfo | null = null;
 
   /** world — слой без zoom (стрелки, прицел, цифры), scrims — куда класть окна (над HUD кита) */
   constructor(kit: FortKit, pb: Hud, world: HTMLElement, scrims: HTMLElement) {
@@ -132,7 +130,7 @@ export class FortUi {
     this.alarms = new Alarms(top);
     this.banners = new FortBanners(top);
     this.banners.adopt(pb);
-    this.coach = new Coach(slots.tc);
+    this.coach = new Coach(top);
     this.edges = new EdgeArrows(world);
     this.cross = new FortCross(world);
     this.down = new DownBlock(slots.root);
@@ -142,7 +140,7 @@ export class FortUi {
     this.results = new Results(scrims);
     this.record = { set: (r) => this.tiles.setRecord(r), grow: (w) => this.tiles.growMine(w) };
     // всё своё в общих слотах — только в крепости (html[data-room='fort'], ui.css)
-    for (const e of [this.card.root, this.card.stats, this.tiles.root, this.coach.card, this.down.root, this.prompt.root, this.vitals.root]) e.classList.add('ft-only');
+    for (const e of [this.card.root, this.card.stats, this.tiles.root, this.down.root, this.prompt.root, this.vitals.root]) e.classList.add('ft-only');
     const spots: Record<CoachSpot, HTMLElement> = { fort: this.card.root, gren: this.vitals.gren.root, gold: this.tiles.gold.root };
     this.coach.onSpot = (spot) => {
       for (const [k, e] of Object.entries(spots)) e.classList.toggle('ft-spot', k === spot);
@@ -221,11 +219,12 @@ export class FortUi {
       const list: BannerSpec[] = [];
       if (phase === FT_GATHER && !join) {
         this.results.hide();
+        this.pot = null;
         this.wave.newGame();
         this.card.reset();
       }
       if (phase === FT_BREAK && !join) list.push(this.clearedSpec(wave, 0, waveBonus(wave), false));
-      this.wave.announce((t) => list.push(t));
+      this.wave.announce((t) => list.push(t), this.coach.busy(phase));
       if (list.length < 3) list.push(this.wave.bellToast(phase));
       for (const s of list) this.push(s);
     } else if (phase === FT_END) {
@@ -239,7 +238,7 @@ export class FortUi {
   /** Старт волны: знакомство с новыми врагами, боссом и событием — тостами (кто босс — и на его плашке); рекордная — тостом */
   waveStart(wave: number, card: FortWaveCard | null = null): void {
     this.wave.setCard(card);
-    this.wave.announce((t) => this.push(t));
+    this.wave.announce((t) => this.push(t), this.coach.busy(FT_WAVE));
     // волна, отбив которую команда побьёт рекорд крепости, — тостом
     if (this.tiles.recordWave(wave)) this.push(hotBanner(wave));
   }
@@ -254,11 +253,9 @@ export class FortUi {
 
   /** Волна отбита; с общаком (событие pot) — тот же тост обновляется */
   cleared(wave: number, share: number, bonus: number, clean: boolean): void {
+    if (share > 0) this.pot = { wave, share };
     this.push(this.clearedSpec(wave, share, bonus, clean));
   }
-
-  /** События боя (босс повержен и прочее объявляет match.ts) */
-  onEvent(_e: FortEvent): void {}
 
   push(spec: BannerSpec): void {
     this.banners.push(spec);
@@ -275,7 +272,7 @@ export class FortUi {
 
   /** Tab: защитники и кто где ещё */
   showBoard(on: boolean, rows: Parameters<Board['show']>[1], myId: number, phase: number): void {
-    this.board.show(on, rows, myId, phase, this.waveNow, on ? this.online?.entries ?? [] : []);
+    this.board.show(on, rows, myId, phase, this.waveNow, on ? this.online?.entries ?? [] : [], this.pot);
   }
 
   get currentWave(): number {
@@ -303,6 +300,7 @@ export class FortUi {
     this.prompt.setLadder(null);
     this.prompt.setResume(false);
     this.gateWas = -1;
+    this.pot = null;
     this.isDown = false;
     this.banners.quiet = false;
     this.vitals.setDown(false);

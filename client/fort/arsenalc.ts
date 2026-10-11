@@ -270,6 +270,11 @@ export class ArsenalClient {
     return this.freeCursor;
   }
 
+  /** Мышь отпущена без паузы (итоги ушли сами — новая игра): подсказка «кликни — обратно в бой», клик вернёт мышь */
+  releaseCursor(): void {
+    if (!TOUCH) this.freeCursor = true;
+  }
+
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
     const { input, hud } = this.d;
     if (down && this.freeCursor && code !== 'Escape' && !TOUCH) {
@@ -814,7 +819,7 @@ export class ArsenalClient {
       this.cancelGrenade();
     }
     if (this.freeCursor && input.locked) this.freeCursor = false;
-    if (this.freeCursor && this.host.phase() === FT_END) this.freeCursor = false;
+    if (this.freeCursor && hud.endShown) this.freeCursor = false;
     hud.setResume(this.freeCursor);
     if (input.blocked || (!input.locked && !TOUCH)) this.cancelGrenade();
     // панель: далеко, сбили, итоги — закрыть
@@ -832,7 +837,8 @@ export class ArsenalClient {
     setAvatarGun(this.host.localAvatar(), gun);
     const heavy = this.load.heavy;
     hud.arms.set(gun, heavy, heavy ? GUNS[heavy].name : '', GUN_ICONS[heavy] ?? 'shotgun', heavy ? holsteredAmmo(s, this.load) : 0, this.row.gr, grenadeMax(this.row.lv[UP_POUCH] ?? 0));
-    hud.arms.setVisible(alive && this.host.phase() !== FT_END);
+    // панель бойца — всю игру (повален — серая, как на странице); в итогах и до новой игры — нет
+    hud.arms.setVisible(this.host.phase() !== FT_END);
   }
 
   /** Чужая желейка: какой ствол у неё в руках (из снимка: байт armor в крепости — номер ствола) */

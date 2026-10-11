@@ -77,6 +77,7 @@ export class FortScene implements Scene {
       settings: d.settings,
       net: d.net,
       me: d.ui.me,
+      quietPause: d.quietPause,
     });
     this.hud.setVisible(true);
     d.ui.chat.setPlaceholder('Сообщение или /help');
