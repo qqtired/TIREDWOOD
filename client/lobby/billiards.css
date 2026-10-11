@@ -278,3 +278,7 @@
   .bl-power { right: 10px; }
   .bl-rules { width: 100%; max-height: 50vh; font-size: 12.5px; }
 }
+
+/* общий верх (кит 2.0): тосты и плашка события — сверху по центру; табло партии съезжает под них (--tc-stack —
+   client/ui/kit/topcenter.ts), вид стола не меняется */
+.bl-board { translate: 0 calc(var(--tc-stack, 0px) * var(--hud-k, 1)); transition: translate .2s var(--ease-out); }

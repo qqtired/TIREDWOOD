@@ -32,7 +32,8 @@ const FOV = 72;
 
 export class HideScene implements Scene {
   readonly kind = 'hide' as const;
-  readonly wantsPointer = true;
+  /** Итоги матча: мышь свободна — кнопка «На набережную» нажимается мышью */
+  get wantsPointer(): boolean { return !this.hud.podium; }
   readonly world: HideWorld;
   private readonly d: SceneDeps;
   private readonly statics = hideStaticWorld();
@@ -61,6 +62,7 @@ export class HideScene implements Scene {
   private readonly look = new THREE.Vector3();
   private readonly hit = makeRayHit();
   private fov = FOV;
+  private podiumWas = false;
 
   constructor(d: SceneDeps) {
     this.d = d;
@@ -68,7 +70,8 @@ export class HideScene implements Scene {
     this.props = new HideProps(this.world.scene);
     this.fx = new HideFx(this.world.scene);
     this.sfx = new HideSfx(d.sound);
-    this.hud = new HideHud(d.hudRoot, (a) => this.touchAction(a));
+    this.hud = new HideHud(d.hudRoot, d.ui, (a) => this.touchAction(a));
+    this.hud.onLeave = () => this.leave();
   }
 
   get touchMode(): TouchMode {
@@ -90,6 +93,7 @@ export class HideScene implements Scene {
     this.seq = 0;
     this.acc = 0;
     this.target = 0;
+    this.podiumWas = false;
     this.motion = new HideMotion();
     this.props.clear();
     this.fx.clear();
@@ -171,7 +175,7 @@ export class HideScene implements Scene {
       case 'feed': this.hud.feed(e.text); break;
       case 'pts': this.hud.points(e.n, e.why); break;
       case 'note': this.hud.note(e.text); break;
-      case 'door': this.sfx.horn(); this.hud.feed('🚪 Ловцы вышли на охоту!', 'big'); break;
+      case 'door': this.sfx.horn(); this.hud.feed('Ловцы вышли на охоту!', 'big'); break;
       case 'final': this.sfx.finalBell(); break;
     }
   }
@@ -240,7 +244,14 @@ export class HideScene implements Scene {
 
   private touchAction(a: HideTouchAction): void { this.act(a); }
 
+  /** Из итогов матча на набережную (Esc или кнопка): пауза потом — вуалью, а не меню */
+  private leave(): void {
+    this.d.quietPause?.();
+    this.d.net.send({ t: 'leave' });
+  }
+
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    if (code === 'Escape' && this.hud.podium) { e.preventDefault(); if (down && !e.repeat) this.leave(); return true; }
     if (code === 'Tab') { e.preventDefault(); this.hud.scoreboard(down); return true; }
     if (!down || e.repeat || this.d.input.blocked) return false;
     if (code === 'KeyF') { this.act('lock'); return true; }
@@ -358,6 +369,13 @@ export class HideScene implements Scene {
       this.lastHud = now;
       this.hud.update(m, this.motion.tick(now));
       this.hud.root.classList.toggle('prop-touch', TOUCH && propView);
+      // итоги матча: мышь — кнопкам окна; новый матч — снова захват (вуалью «Кликни, чтобы играть»)
+      const podium = this.hud.podium;
+      if (podium !== this.podiumWas) {
+        this.podiumWas = podium;
+        if (podium) this.d.input.unlock();
+        else this.d.quietPause?.();
+      }
     }
     this.world.render();
     this.gun.render(this.d.renderer);

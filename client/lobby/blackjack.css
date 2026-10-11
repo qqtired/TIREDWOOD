@@ -194,3 +194,7 @@
   .bj-rules { bottom: 200px; }
   .bj-banner { top: 24%; }
 }
+
+/* общий верх (кит 2.0): тосты и плашка события — сверху по центру; полоска дилера съезжает под них (--tc-stack —
+   client/ui/kit/topcenter.ts), вид стола не меняется */
+.bj-strip { translate: 0 calc(var(--tc-stack, 0px) * var(--hud-k, 1)); transition: translate .2s var(--ease-out); }

@@ -1,236 +1,27 @@
-/* Гидроплан «Стриж»: интерфейс пилота (client/lobby/plane.ts) */
-.pl-hud {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  font-variant-numeric: tabular-nums;
-}
+/* Гидроплан «Стриж» на ките 2.0: интерфейс пилота (client/lobby/plane.ts) и окошко баннера (client/lobby/planebanner.ts).
+   Плашка полёта — событие верх-центра, клавиши — .mo-keys внизу, кнопки — .k-btn справа внизу; здесь только кружок цели
+   (в слое без zoom) и раскладка окна. Только токены кита. */
+.pl-hud[hidden], .pl-aim[hidden] { display: none; }
 
-.pl-hud[hidden] {
-  display: none;
-}
-
-.pl-top {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 20px 9px;
-  border-radius: 18px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  color: var(--cream);
-  text-align: center;
-  white-space: nowrap;
-}
-
-.pl-title {
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.pl-title b {
-  color: var(--gold);
-}
-
-.pl-sub {
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cream-dim);
-}
-
-.pl-help {
-  position: absolute;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100% - 32px);
-  padding: 7px 16px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--cream);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.pl-help.pl-ask {
-  color: var(--gold);
-  border-color: var(--gold);
-}
-
-.pl-land {
-  position: absolute;
-  right: 18px;
-  bottom: 22px;
-  padding: 9px 16px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--cream);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.pl-land[hidden] {
-  display: none;
-}
-
+/* кружок «куда летим»: кольцо с тёмной обводкой и точка, увеличивается масштабом HUD */
 .pl-aim {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 2.5px solid #fff; border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(20, 10, 12, 0.6), inset 0 0 0 1.5px rgba(20, 10, 12, 0.35); scale: var(--hud-k, 1); pointer-events: none;
 }
+.pl-aim::after { content: ''; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(20, 10, 12, 0.65); }
 
-.pl-aim[hidden] {
-  display: none;
-}
+/* кнопки пилота справа внизу (слот br): «Баннер» и «Сесть сейчас» */
+.pl-banner .k-coin { width: 18px; height: 18px; vertical-align: -3px; }
 
-.pl-banner {
-  position: absolute;
-  right: 18px;
-  bottom: 70px;
-  padding: 8px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--gold);
-  background: var(--panel);
-  color: var(--gold);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.pl-banner[hidden] {
-  display: none;
-}
-
-/* Окошко баннера (client/lobby/planebanner.ts) */
-.pb-back {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(10, 16, 28, 0.35);
-  pointer-events: auto;
-  z-index: 30;
-}
-
-.pb-back[hidden] {
-  display: none;
-}
-
-.pb-card {
-  width: min(440px, 100%);
-  padding: 18px 20px 16px;
-  border-radius: 20px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  color: var(--cream);
-}
-
-.pb-title {
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.pb-sub {
-  margin: 6px 0 12px;
-  font-size: 14px;
-  line-height: 1.35;
-  color: var(--cream-dim);
-}
-
-.pb-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
-  color: #2a2a33;
-  font: inherit;
-  font-size: 17px;
-  font-weight: 700;
-  outline: none;
-}
-
-.pb-input:focus {
-  border-color: var(--gold);
-}
-
-.pb-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--cream-dim);
-}
-
-.pb-count {
-  font-variant-numeric: tabular-nums;
-}
-
-.pb-note {
-  text-align: right;
-}
-
-.pb-btns {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.pb-btns button {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--cream);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pb-btns .pb-go {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: #2a2016;
-}
-
-.pb-btns .pb-go:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-@media (max-width: 640px) {
-  .pl-help {
-    bottom: 96px;
-    font-size: 12px;
-  }
-
-  .pl-land {
-    bottom: 150px;
-  }
-
-  .pl-banner {
-    bottom: 196px;
-  }
-}
+/* окошко баннера */
+.pl-ban-scrim[hidden] { display: none; }
+.pl-ban-scrim { pointer-events: auto; }
+.pl-ban-win:focus { outline: none; }
+.pl-ban-sub { margin: 0 0 12px; color: var(--surf-dim); font: 500 var(--fs-15)/1.35 var(--font-text); }
+.pl-ban-input { width: 100%; font-size: var(--fs-18); font-weight: 700; }
+.pl-ban-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--surf-dim); font: 600 var(--fs-13)/1.3 var(--font-text); }
+.pl-ban-count { flex: none; font-variant-numeric: tabular-nums; }
+.pl-ban-note { text-align: right; }
+.pl-ban-note .k-coin { width: 14px; height: 14px; vertical-align: -2px; }
+.pl-ban-actions { padding-top: 4px; }
+.pl-ban-go .k-coin { width: 20px; height: 20px; vertical-align: -4px; }

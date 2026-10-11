@@ -12,10 +12,14 @@ import { Hud } from './hud.ts';
 import { Match } from './match.ts';
 import { SlotMachine } from './slot.ts';
 import { Tracers } from './tracers.ts';
+import { PaintballUi } from './ui.ts';
 
 export class PaintballScene implements Scene {
   readonly kind = 'paintball' as const;
-  readonly wantsPointer = true;
+  /** В итогах раунда мышь свободна — кнопки окна нажимаются (как в крепости) */
+  get wantsPointer(): boolean {
+    return !this.ui.endShown;
+  }
   private readonly d: SceneDeps;
   readonly map = buildPier();
   readonly collision: CollisionWorld;
@@ -23,6 +27,8 @@ export class PaintballScene implements Scene {
   private readonly effects: Effects;
   private readonly tracers: Tracers;
   private readonly hud: Hud;
+  /** Интерфейс на ките 2.0 поверх Hud (ui.ts) */
+  private readonly ui: PaintballUi;
   private readonly slot: SlotMachine;
   private match: Match | null = null;
 
@@ -36,12 +42,19 @@ export class PaintballScene implements Scene {
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
     this.hud = new Hud(root);
+    this.ui = new PaintballUi(this.hud, root, {
+      slots: d.ui.slots, top: d.ui.top, hudRoot: d.hudRoot,
+      // клик — жест игрока: мышь сразу в игру, на набережной не встанет меню
+      leave: () => { void d.input.lock(); d.net.send({ t: 'leave' }); },
+      freeMouse: () => d.input.unlock(),
+      wantMouse: () => d.wantPointer(),
+    });
     this.slot = new SlotMachine(root, d.sound);
   }
 
   /** Телефон: под итогами раунда стрелять и бегать незачем — только верхние кнопки */
   get touchMode(): TouchMode {
-    return this.hud.endShown ? 'none' : 'shoot';
+    return this.ui.endShown ? 'none' : 'shoot';
   }
 
   setQuality(q: Quality): void {
@@ -71,6 +84,8 @@ export class PaintballScene implements Scene {
   }
 
   exit(): void {
+    // свои плашка, тосты и окна — прочь до dispose: иначе закрытие итогов попросило бы мышь обратно уже на выходе
+    this.ui.reset();
     this.match?.dispose();
     this.match = null;
     this.hud.setVisible(false);
@@ -90,6 +105,15 @@ export class PaintballScene implements Scene {
   }
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    // итоги раунда: Esc — «На набережную» (мышью — кнопка окна)
+    if (this.ui.endShown && code === 'Escape' && !this.d.ui.chat.isOpen) {
+      e.preventDefault();
+      if (down && !e.repeat) {
+        this.d.quietPause?.();
+        this.d.net.send({ t: 'leave' });
+      }
+      return true;
+    }
     return this.match?.onKey(code, down, e) ?? false;
   }
 

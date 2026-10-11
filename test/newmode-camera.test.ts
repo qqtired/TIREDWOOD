@@ -19,8 +19,8 @@ import { HIDE_COUNT_TICKS, HIDE_PREP_TICKS, type HideStateMsg } from '../shared/
 import { makeRayHit } from '../shared/world.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 
-// Only asset/CSS URL imports are stubbed: frame(), Input.mouse(), Three camera math and simulation run unchanged.
-const hook=registerHooks({load(url,ctx,next){if(/\.(webp|png|jpg|glb|bin|css)$/.test(new URL(url).pathname))return{format:'module',source:`export default ${JSON.stringify(url)}`,shortCircuit:true};return next(url,ctx);}});
+// Only asset/CSS URL imports and Vite import.meta.glob (UI kit icons) are stubbed: frame(), Input.mouse(), Three camera math and simulation run unchanged.
+const hook=registerHooks({load(url,ctx,next){if(/\.(webp|png|jpg|glb|bin|css)$/.test(new URL(url).pathname))return{format:'module',source:`export default ${JSON.stringify(url)}`,shortCircuit:true};const r=next(url,ctx);const src=r.source==null?'':String(r.source);return src.includes('import.meta.glob(')?{...r,source:src.replaceAll('import.meta.glob(','((..._g: unknown[]) => ({}))(')}:r;}});
 let SkillScene:any,HideScene:any,SkillCamera:any;
 try{SkillScene=(await import('../client/skilltest/scene.ts')).SkillScene;SkillCamera=(await import('../client/skilltest/camera.ts')).SkillCamera;HideScene=(await import('../client/hide/scene.ts')).HideScene;}finally{hook.deregister();}
 const noop=()=>{};

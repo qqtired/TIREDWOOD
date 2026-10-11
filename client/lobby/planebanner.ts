@@ -1,8 +1,11 @@
 // Баннер за гидропланом «Стриж»: полотнище с надписью до 40 знаков (рисуется на холсте — никакого HTML) на тросе за
 // хвостом, колышется волной, как в прототипе лаборатории №19 «Самолёт с баннером». Надпись читается с обеих сторон:
-// две сетки спиной к спине, у каждой — своя сторона. И окошко заказа: текст, счётчик знаков, цена, когда взлетит.
+// две сетки спиной к спине, у каждой — своя сторона. И окошко заказа — окно кита (.k-scrim > .k-window--sm): текст,
+// счётчик знаков, цена, когда взлетит; закрыть — крестиком, Esc или мимо окна.
 import * as THREE from 'three';
 import { BANNER_MAX, BANNER_PRICE } from '../../shared/plane.ts';
+import { coinHtml, iconImg } from '../ui/kit/dom.ts';
+import { coinText } from '../ui/kit/modes.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
 /** Высота полотнища, м; длина — по тексту (10…24 м) */
@@ -167,14 +170,15 @@ const SAMPLES = ['С днём рождения, Миша!', 'Кто со мно�
 
 export class BannerPanel {
   private readonly el: HTMLDivElement;
-  private readonly title: HTMLDivElement;
-  private readonly sub: HTMLDivElement;
+  private readonly eyebrow: HTMLElement;
+  private readonly sub: HTMLElement;
   private readonly input: HTMLInputElement;
   private readonly count: HTMLSpanElement;
   private readonly note: HTMLSpanElement;
   private readonly go: HTMLButtonElement;
   private readonly d: BannerPanelDeps;
   private open_ = false;
+  private noteText = '';
   /** Отправленная надпись, пока сервер её не принял: при отказе (пауза, жетоны, очередь) текст остаётся в поле */
   private pending = '';
 
@@ -187,26 +191,38 @@ export class BannerPanel {
       parent.appendChild(e);
       return e;
     };
-    this.el = el('div', 'pb-back', d.root) as HTMLDivElement;
+    this.el = el('div', 'k-scrim pl-ban-scrim', d.root) as HTMLDivElement;
+    this.el.dataset.mode = 'regatta';
     this.el.hidden = true;
-    const card = el('div', 'pb-card', this.el);
-    this.title = el('div', 'pb-title', card) as HTMLDivElement;
-    this.sub = el('div', 'pb-sub', card) as HTMLDivElement;
-    this.input = el('input', 'pb-input', card) as HTMLInputElement;
+    const win = el('section', 'k-window k-window--sm pl-ban-win', this.el);
+    win.setAttribute('role', 'dialog');
+    // клик по пустому месту окна оставляет фокус в окне — клавиши не уходят в игру
+    win.tabIndex = -1;
+    const head = el('header', 'k-win-head', win);
+    el('span', 'k-win-portrait', head).innerHTML = iconImg('landing', '');
+    const titles = el('div', 'k-win-titles', head);
+    this.eyebrow = el('p', 'k-eyebrow', titles);
+    el('h2', 'k-win-title', titles, 'Баннер');
+    const x = el('button', 'k-close', el('div', 'k-win-tools', head)) as HTMLButtonElement;
+    x.type = 'button';
+    x.setAttribute('aria-label', 'Закрыть');
+    x.innerHTML = '<kbd class="k-key k-key--sm">Esc</kbd>';
+    x.addEventListener('click', () => this.close());
+    const body = el('div', 'k-win-body', win);
+    this.sub = el('p', 'pl-ban-sub', body);
+    this.input = el('input', 'k-input pl-ban-input', body) as HTMLInputElement;
     this.input.type = 'text';
     this.input.maxLength = BANNER_MAX;
     this.input.autocomplete = 'off';
     this.input.spellcheck = false;
-    const row = el('div', 'pb-row', card);
-    this.count = el('span', 'pb-count', row) as HTMLSpanElement;
-    this.note = el('span', 'pb-note', row) as HTMLSpanElement;
-    const btns = el('div', 'pb-btns', card);
-    this.go = el('button', 'pb-go', btns) as HTMLButtonElement;
+    this.input.setAttribute('aria-label', 'Надпись на баннере');
+    const row = el('div', 'pl-ban-row', body);
+    this.count = el('span', 'k-pill k-pill--xs pl-ban-count', row) as HTMLSpanElement;
+    this.note = el('span', 'pl-ban-note', row) as HTMLSpanElement;
+    const foot = el('div', 'k-results-actions pl-ban-actions', win);
+    this.go = el('button', 'k-btn k-btn--gold pl-ban-go', foot) as HTMLButtonElement;
     this.go.type = 'button';
-    const cancel = el('button', 'pb-cancel', btns, 'Отмена') as HTMLButtonElement;
-    cancel.type = 'button';
     this.go.addEventListener('click', () => this.submit());
-    cancel.addEventListener('click', () => this.close());
     this.input.addEventListener('input', () => this.recount());
     // клавиши в окошке — только ему: ни ходьбы, ни эмоций, ни чата
     for (const type of ['keydown', 'keyup', 'keypress'] as const) {
@@ -229,12 +245,13 @@ export class BannerPanel {
 
   /** own — баннер за своим самолётом (в полёте), иначе — заказ пролёта; note — когда взлетит */
   open(own: boolean, note: string): void {
-    this.title.textContent = own ? '✈ Баннер за твоим самолётом' : '✈ Баннер над набережной';
+    this.eyebrow.textContent = own ? '«Стриж» · за твоим самолётом' : '«Стриж» · пролёт над набережной';
     this.sub.textContent = own
       ? 'Полотнище с надписью полетит за хвостом до конца полёта — его увидит вся набережная'
       : 'Самолёт пролетит над площадью, мостками к маяку и вдоль берега с твоей надписью — её увидят все';
-    this.go.textContent = own ? `Прицепить — ${BANNER_PRICE} 🪙` : `Запустить — ${BANNER_PRICE} 🪙`;
-    this.note.textContent = note;
+    this.go.innerHTML = `<span>${own ? 'Прицепить' : 'Запустить'} · ${coinHtml()}${BANNER_PRICE}</span><kbd class="k-key k-key--tr">Enter</kbd>`;
+    coinText(this.note, note);
+    this.noteText = note;
     if (!this.input.value) this.input.placeholder = SAMPLES[Math.floor(Math.random() * SAMPLES.length)];
     this.recount();
     this.el.hidden = false;
@@ -245,7 +262,10 @@ export class BannerPanel {
 
   /** Обновить строку «когда взлетит», пока окошко открыто */
   setNote(note: string): void {
-    if (this.open_ && this.note.textContent !== note) this.note.textContent = note;
+    if (this.open_ && this.noteText !== note) {
+      this.noteText = note;
+      coinText(this.note, note);
+    }
   }
 
   close(): void {

@@ -218,3 +218,10 @@
   .dk .dk-tags .dk-p { gap: 4px; padding: 2px 5px 2px 8px; font-size: 12px; }
   .dk .dk-tags .dk-cnt { height: 20px; font-size: 11px; }
 }
+
+/* общий верх (кит 2.0): тосты и плашка события — сверху по центру; строка стола съезжает под них
+   (--tc-stack — высота стопки в px сцены, client/ui/kit/topcenter.ts), вид стола не меняется */
+.dk-top {
+  translate: 0 calc(var(--tc-stack, 0px) * var(--hud-k, 1));
+  transition: translate 0.2s var(--ease-out);
+}

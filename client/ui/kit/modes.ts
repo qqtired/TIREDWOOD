@@ -5,6 +5,7 @@
 // В кадре DOM трогаем только когда поменялось. Чужой текст (ники) — только через esc() или textContent.
 import { setCoinText } from '../coin.ts';
 import { coinHtml, h } from './dom.ts';
+import { rewardParts } from './modetext.ts';
 import { escHtml } from './topcenter.ts';
 import './modes.css';
 
@@ -36,9 +37,12 @@ function put(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Ряд клавиш одной плашкой (низ-центр, перед стартом): keysRow([['W', 'газ'], [['A', 'D'], 'руль'], ['Space', 'занос']]) */
+/**
+ * Ряд клавиш одной плашкой (низ-центр, перед стартом): keysRow([['W', 'газ'], [['A', 'D'], 'руль'], ['Space', 'занос']]).
+ * Класс key-hint — меню → Управление → «Подсказки клавиш на экране» выключено: ряд прячется (client/ui/menu/menu.css).
+ */
 export function keysRow(items: ReadonlyArray<readonly [string | readonly string[], string]>): HTMLElement {
-  const e = h('div', 'k-plate mo-keys');
+  const e = h('div', 'k-plate mo-keys key-hint');
   e.innerHTML = items.map(([k, t]) => {
     const keys = typeof k === 'string' ? [k] : k;
     const caps = keys.length > 1 ? `<span class="k-keys">${keys.map((x) => capHtml(x)).join('')}</span>` : capHtml(keys[0]);
@@ -292,15 +296,14 @@ export class ModeResults {
     if (!e) return;
     e.hidden = !text;
     if (!text) return;
-    const m = /^\s*(?:🪙\s*)?\+(\d[\d\s]*)\s*(?:🪙)?\s*(.*)$/u.exec(text);
-    if (!m) {
+    const p = rewardParts(text);
+    if (!p) {
       coinText(e, text.includes('🪙') ? text : `🪙 ${text}`);
       return;
     }
     e.innerHTML = coinHtml();
-    e.appendChild(document.createElement('b')).textContent = `+${m[1].trim()}`;
-    const rest = e.appendChild(document.createElement('span'));
-    coinText(rest, m[2] || 'жетонов');
+    e.appendChild(document.createElement('b')).textContent = p.plus;
+    coinText(e.appendChild(document.createElement('span')), p.rest);
   }
 
   /** Строка «через N с» и полоса (frac 0…1, null — без полосы); '' — спрятать */

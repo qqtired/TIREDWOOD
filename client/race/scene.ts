@@ -13,7 +13,10 @@ import { RaceWorld } from './world.ts';
 
 export class RaceScene implements Scene {
   readonly kind = 'race' as const;
-  readonly wantsPointer = true;
+  /** Под итогами мышь свободна: кнопки окна нажимаются (как в крепости) */
+  get wantsPointer(): boolean {
+    return !this.hud.resultsShown;
+  }
   private readonly d: SceneDeps;
   readonly world: RaceWorld;
   private readonly fx: KartFx;
@@ -30,11 +33,17 @@ export class RaceScene implements Scene {
     const root = document.createElement('div');
     root.className = 'hud hidden';
     d.hudRoot.appendChild(root);
-    this.hud = new RaceHud(root, this.world.track);
+    this.hud = new RaceHud(root, this.world.track, { ui: d.ui, shell: d.hudRoot });
     // телефон: нажали на значок бонуса — короткое E, как с клавиатуры
     this.hud.onTap = (code) => {
       d.input.tap(code, true);
       d.input.tap(code, false);
+    };
+    // итоги: мышь отпускаем — «На набережную» нажимается; клик — жест игрока: мышь сразу снова в игре
+    this.hud.onResults = () => d.input.unlock();
+    this.hud.onLeave = () => {
+      void d.input.lock();
+      d.net.send({ t: 'leave' });
     };
   }
 
@@ -67,6 +76,12 @@ export class RaceScene implements Scene {
   }
 
   exit(): void {
+    // ушли по таймеру итогов (мышь была свободна): просим её обратно (отпускали сами — браузер вернёт без клика),
+    // не вышло — на набережной вуаль «Кликни, чтобы играть», а не меню
+    if (this.hud.resultsShown && !this.d.input.locked) {
+      this.d.quietPause?.();
+      this.d.wantPointer();
+    }
     this.match?.dispose();
     this.match = null;
     this.hud.setVisible(false);
@@ -86,6 +101,15 @@ export class RaceScene implements Scene {
   }
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    // итоги: Esc — «На набережную» (мышью — кнопка окна)
+    if (this.hud.resultsShown && code === 'Escape' && !this.d.ui.chat.isOpen) {
+      e.preventDefault();
+      if (down && !e.repeat) {
+        this.d.quietPause?.();
+        this.d.net.send({ t: 'leave' });
+      }
+      return true;
+    }
     return this.match?.onKey(code, down, e) ?? false;
   }
 

@@ -1,18 +1,24 @@
-// Крысиные бега (флаг RATRACE): окно ставки, одна плашка забега и вспышка выигрыша. Окно: шесть крыс (номер в цвете
-// попоны, имя, характер, коэффициент забега и шанс, кто уже поставил — ник и сумма), фишки 10/50/100/500 и поле «своя
-// сумма», как в блэкджеке, кнопка «Поставить». Ставку решает сервер (server/lobby/ratrace.ts): окно ждёт ответа —
-// принята (закрывается) или нет (причина остаётся в окне). Без жетонов кнопка неактивна.
-// Плашка — справа, у арены, одна на всё: что сейчас (приём ставок и сколько до старта / забег / кто победил), шесть
-// строк (по номеру — кто на кого поставил; в забеге — по местам с полоской хода; на финише — места и выплаты), своя
-// ставка и что нажать. Болеть — клавиши 1–6 (вместо эмоций), на телефоне — нажать на крысу в плашке; не чаще раза
-// в 1,2 с. Подсказка внизу экрана — только «E — сделать ставку», без повтора отсчёта.
+// Крысиные бега (флаг RATRACE) на ките 2.0 — как на странице lab/ui «Режимы» → «Крысиные бега».
+// Окно ставки — .k-scrim > .k-window.mo-bet-win в оболочке HUD: шесть карточек крыс (седло с номером в цвете попоны, имя,
+// коэффициент, характер, шанс, кто уже поставил — ник и сумма), фишки 10/50/100/500 и поле суммы, как в блэкджеке,
+// золотая кнопка «Поставить» с итогом «выиграешь». Ставку решает сервер (server/lobby/ratrace.ts): окно ждёт ответа —
+// принята (закрывается) или нет (причина остаётся в окне). Без жетонов кнопка неактивна. Мышью и клавишами
+// (1–6 — крыса, Enter — поставить, Esc — закрыть).
+// У арены: плашка забега — событие в верх-центре (приём ставок с отсчётом / «Забег! Впереди …» / «Победила …»), под
+// бейджем — своя ставка плиткой и шесть крыс списком (в забеге и на финише — по местам, своя — золотом), внизу —
+// клавиши «1–6 болеть · C вид на трассу». Выигрыш — крупным баннером «Ты выиграл!». Болеть — клавиши 1–6 (вместо
+// эмоций), на телефоне — нажать на крысу в списке; не чаще раза в 1,2 с. «E — ставка» — подсказка набережной.
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import {
-  RAT_ADD_MS, RAT_CHIPS, RAT_COUNT, RAT_MAX_BET, RAT_MAX_PAYOUT, RAT_MIN_BET, RAT_OPEN_MAX_MS, RAT_OPEN_MS, RAT_RTP, RATS, maxRatBet, ratChance,
+  RAT_CHIPS, RAT_COUNT, RAT_MAX_BET, RAT_MAX_PAYOUT, RAT_MIN_BET, RAT_OPEN_MS, RATS, maxRatBet, ratChance,
   ratWin, ratWon, type RatBetView, type RatRaceView,
 } from '../../shared/ratrace.ts';
 import { TOUCH } from '../touch.ts';
-import { setCoinText } from '../ui/coin.ts';
+import { uiIcon } from '../ui/kit/icons.ts';
+import { coinHtml, h, meterHtml } from '../ui/kit/dom.ts';
+import { coinText, esc, keysRow } from '../ui/kit/modes.ts';
+import type { HudSlots } from '../ui/kit/slots.ts';
+import { PRIO, type TopCenter } from '../ui/kit/topcenter.ts';
 import { betsWord, ratBank } from './ratraceboard.ts';
 import './ratrace.css';
 
@@ -21,30 +27,26 @@ type BetReply = Extract<ServerMsg, { t: 'ratBet' }>;
 
 const PICK_KEYS: Record<string, number> = {};
 for (let i = 0; i < RAT_COUNT; i++) { PICK_KEYS[`Digit${i + 1}`] = i; PICK_KEYS[`Numpad${i + 1}`] = i; }
-/** Сколько висит итог на плашке после финиша, мс */
+/** Сколько висит итог у арены после финиша, мс */
 const RESULT_MS = 10_000;
-/** Вспышка «Ты выиграл» в середине экрана, мс */
-const WIN_MS = 3200;
 const CHEER_GAP_MS = 1200;
-/** Плашка видна в NEAR_M от середины арены, болеть клавишами — в CHEER_M (сервер разрешает с 16 м) */
+/** Плашка и список видны в NEAR_M от середины арены, болеть клавишами — в CHEER_M (сервер разрешает с 16 м) */
 const NEAR_M = 14;
 const CHEER_M = 13;
+/** Ключи верх-центра (префикс режима rr-) */
+const EVENT = 'rr-race';
+const HERO = 'rr-win';
 const fmt = new Intl.NumberFormat('ru-RU');
 const num = (n: number): string => fmt.format(n);
-const pct = (p: number): string => `${(p * 100).toFixed(1).replace('.', ',')} %`;
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
+const pct = (p: number): string => `${Math.round(p * 100)}%`;
 
 /** Винительный падеж: «поставить на Пулю», «болеть за Барона» */
 const ACC: readonly string[] = ['Пулю', 'Соню', 'Барона', 'Шныря', 'Кексика', 'Ириску'];
 export const ratAcc = (i: number): string => ACC[i] ?? RATS[i]?.name ?? '';
 /** «1-я», «3-й»: место крысы с родом */
 const placeOf = (rat: number, place: number): string => `${place}-${RATS[rat]?.fem ? 'я' : 'й'}`;
+/** Седло с номером в цвете попоны (цвет — данные игры, как на крысе) */
+const saddle = (i: number): string => `<span class="mo-saddle" style="--sd:${RATS[i].saddle}">${i + 1}</span>`;
 
 /** Кто поставил на крысу — строкой: «Tester2 50 · Tester3 30» (своя — «ты 60», первой) */
 function bettors(bets: readonly RatBetView[], rat: number, me: number, max = 3): string {
@@ -53,13 +55,9 @@ function bettors(bets: readonly RatBetView[], rat: number, me: number, max = 3):
   return list.length > max ? `${shown.join(' · ')} · +${list.length - max}` : shown.join(' · ');
 }
 
-interface Row {
-  root: HTMLButtonElement;
-  place: HTMLElement;
-  name: HTMLElement;
-  odds: HTMLElement;
-  who: HTMLElement;
-  bar: HTMLElement;
+export interface RatKit {
+  slots: HudSlots;
+  top: TopCenter;
 }
 
 export class RatRaceHud {
@@ -83,30 +81,30 @@ export class RatRaceHud {
   camAvail: () => boolean = () => false;
   private readonly send: (msg: ClientMsg) => void;
   private readonly balance: () => number;
-  private readonly root: HTMLDialogElement;
+  private readonly kit: RatKit | null;
+  // окно ставки
+  private readonly scrim: HTMLElement;
+  private readonly win: HTMLElement;
   private readonly cards: Array<{ btn: HTMLButtonElement; mult: HTMLElement; chance: HTMLElement; who: HTMLElement }> = [];
   private readonly chipBtns: Array<{ btn: HTMLButtonElement; chip: number }> = [];
   private readonly amount: HTMLInputElement;
   private readonly limit: HTMLElement;
   private readonly go: HTMLButtonElement;
+  private readonly goMain: HTMLElement;
+  private readonly goSmall: HTMLElement;
+  private readonly balPill: HTMLElement;
   private readonly resetBtn: HTMLButtonElement;
   private readonly state: HTMLElement;
   private readonly bank: HTMLElement;
-  // плашка
-  private readonly panel: HTMLElement;
-  private readonly pState: HTMLElement;
-  private readonly pTime: HTMLElement;
-  private readonly pBar: HTMLElement;
-  private readonly pBarFill: HTMLElement;
-  private readonly pRows: Row[] = [];
-  private readonly pMine: HTMLElement;
-  private readonly pBank: HTMLElement;
-  private readonly pKeys: HTMLElement;
+  // у арены: плитка своей ставки и список крыс под бейджем, клавиши внизу
+  private readonly tiles: HTMLElement;
+  private readonly list: HTMLElement;
+  private readonly rows: HTMLElement;
   private readonly camBtn: HTMLButtonElement;
-  private readonly win: HTMLElement;
-  private readonly winSum: HTMLElement;
-  private winTimer = 0;
+  private readonly keys: HTMLElement;
+  private shown = false;
   private panelKey = '';
+  private keysKey = '';
   private view: RatRaceView | null = null;
   private viewAt = 0;
   /** Самый большой отсчёт в этом приёме ставок — для полоски времени */
@@ -127,57 +125,66 @@ export class RatRaceHud {
   /** О каком забеге уже сказали */
   private toasted = 0;
 
-  constructor(overlay: HTMLElement, send: (msg: ClientMsg) => void, balance: () => number) {
+  /** shell — оболочка HUD (#hud): окно ставки рядом со слоем кита; kit — слоты и верх-центр (без него — тесты) */
+  constructor(shell: HTMLElement, send: (msg: ClientMsg) => void, balance: () => number, kit: RatKit | null = null) {
     this.send = send;
     this.balance = balance;
-    this.root = el('dialog', 'rr-dlg');
-    this.root.setAttribute('aria-labelledby', 'rr-title');
-    const top = this.root.appendChild(el('div', 'rr-top'));
-    top.appendChild(el('h2', '', '🐀 Крысиные бега')).id = 'rr-title';
-    const x = top.appendChild(el('button', 'rr-close', '×'));
+    this.kit = kit;
+    // ---- окно ставки
+    this.scrim = h('div', 'k-scrim rr-scrim');
+    this.scrim.dataset.mode = 'farm';
+    this.scrim.hidden = true;
+    this.win = this.scrim.appendChild(h('section', 'k-window mo-bet-win'));
+    this.win.tabIndex = -1;
+    this.win.setAttribute('role', 'dialog');
+    this.win.setAttribute('aria-label', 'Крысиные бега: ставка');
+    const head = this.win.appendChild(h('header', 'k-win-head'));
+    head.appendChild(h('span', 'k-win-portrait', `<img src="${uiIcon('rat')}" alt="">`));
+    const titles = head.appendChild(h('div', 'k-win-titles'));
+    this.bank = titles.appendChild(h('p', 'k-eyebrow'));
+    titles.appendChild(h('h2', 'k-win-title')).textContent = 'Крысиные бега';
+    const x = head.appendChild(h('div', 'k-win-tools')).appendChild(h('button', 'k-close', '<kbd class="k-key k-key--sm">Esc</kbd>'));
     x.type = 'button';
-    x.title = 'Закрыть · Esc';
     x.setAttribute('aria-label', 'Закрыть окно ставки');
     x.addEventListener('click', () => this.close());
-    this.bank = this.root.appendChild(el('p', 'rr-bank'));
-    this.root.appendChild(el('div', 'rr-step', '1. На кого ставишь — ставка на победителя'));
-    const grid = this.root.appendChild(el('div', 'rr-rats'));
+    const body = this.win.appendChild(h('div', 'k-win-body'));
+    body.appendChild(h('p', 'mo-step', '<b>1</b>На кого ставишь'));
+    const grid = body.appendChild(h('div', 'mo-rats'));
     RATS.forEach((def, i) => {
-      const btn = grid.appendChild(el('button', 'rr-rat'));
+      const btn = grid.appendChild(h('button', 'k-cell mo-rat'));
       btn.type = 'button';
-      btn.style.setProperty('--saddle', def.saddle);
       btn.setAttribute('aria-pressed', 'false');
-      const no = btn.appendChild(el('span', 'rr-no', String(i + 1)));
-      if (def.saddle === '#e8b923') no.classList.add('dark');
-      const txt = btn.appendChild(el('span', 'rr-ratText'));
-      txt.appendChild(el('b', 'rr-name', def.name));
-      txt.appendChild(el('span', 'rr-trait', def.trait));
-      const who = txt.appendChild(el('span', 'rr-who'));
-      const odds = btn.appendChild(el('span', 'rr-odds'));
-      const mult = odds.appendChild(el('b', 'rr-mult'));
-      const chance = odds.appendChild(el('span', 'rr-chance'));
+      btn.innerHTML = `${saddle(i)}<span class="mo-rat-name"></span><span class="mo-rat-x"></span><span class="mo-rat-trait"></span><span class="mo-rat-foot"></span><span class="mo-rat-who"></span>`;
+      btn.querySelector('.mo-rat-name')!.textContent = def.name;
+      btn.querySelector('.mo-rat-trait')!.textContent = def.trait;
       btn.addEventListener('click', () => this.choose(i));
-      this.cards.push({ btn, mult, chance, who });
+      this.cards.push({ btn, mult: btn.querySelector('.mo-rat-x')!, chance: btn.querySelector('.mo-rat-foot')!, who: btn.querySelector('.mo-rat-who')! });
     });
-    this.root.appendChild(el('div', 'rr-step', '2. Сколько'));
-    const row = this.root.appendChild(el('div', 'rr-amountRow'));
-    const chips = row.appendChild(el('div', 'rr-chips'));
+    body.appendChild(h('p', 'mo-step', '<b>2</b>Сколько'));
+    const bet = body.appendChild(h('div', 'k-bet'));
+    const chips = bet.appendChild(h('div', 'k-bet-chips'));
     for (const chip of RAT_CHIPS) {
-      const btn = chips.appendChild(el('button', `rr-chip c${chip}`, `+${chip}`));
+      const btn = chips.appendChild(h('button', `k-chip k-chip--${chip}`));
       btn.type = 'button';
+      btn.textContent = String(chip);
       btn.setAttribute('aria-label', `Добавить ${chip} к ставке`);
       btn.addEventListener('click', () => this.setDraft(this.draft + chip));
       this.chipBtns.push({ btn, chip });
     }
-    const field = row.appendChild(el('label', 'rr-field'));
-    this.amount = field.appendChild(el('input', 'rr-input'));
+    this.resetBtn = chips.appendChild(h('button', 'k-btn k-btn--ghost k-btn--sm rr-reset'));
+    this.resetBtn.type = 'button';
+    this.resetBtn.textContent = 'Сбросить';
+    this.resetBtn.addEventListener('click', () => this.setDraft(0));
+    const row = bet.appendChild(h('div', 'k-bet-row'));
+    const field = row.appendChild(h('label', 'k-bet-amount'));
+    field.append('Ставка');
+    this.amount = field.appendChild(h('input', 'k-input k-bet-input'));
     this.amount.type = 'text';
     this.amount.inputMode = 'numeric';
     this.amount.autocomplete = 'off';
     this.amount.maxLength = String(RAT_MAX_BET).length;
-    this.amount.placeholder = 'своя сумма';
+    this.amount.placeholder = '0';
     this.amount.setAttribute('aria-label', 'Сумма ставки в жетонах');
-    field.appendChild(el('i', 'rr-coin', '🪙'));
     this.amount.addEventListener('input', () => {
       const digits = this.amount.value.replace(/\D/g, '').slice(0, 4);
       if (this.amount.value !== digits) this.amount.value = digits;
@@ -185,17 +192,17 @@ export class RatRaceHud {
       this.error = '';
       this.render();
     });
-    this.resetBtn = row.appendChild(el('button', 'rr-reset', 'Сбросить'));
-    this.resetBtn.type = 'button';
-    this.resetBtn.addEventListener('click', () => this.setDraft(0));
-    this.limit = this.root.appendChild(el('p', 'rr-limit'));
-    this.go = this.root.appendChild(el('button', 'rr-go'));
+    this.go = row.appendChild(h('button', 'k-btn k-btn--gold k-btn--lg rr-go'));
     this.go.type = 'button';
+    this.goMain = this.go.appendChild(h('span', ''));
+    this.goSmall = this.go.appendChild(h('small', ''));
+    this.go.insertAdjacentHTML('beforeend', '<kbd class="k-key k-key--tr">Enter</kbd>');
     this.go.addEventListener('click', () => this.submit());
-    this.state = this.root.appendChild(el('p', 'rr-state'));
-    setCoinText(this.root.appendChild(el('p', 'rr-fine')),
-      `Коэффициенты на забег фиксированы: ×3, ×4, ×5, ×7, ×12, ×25 — сервер раздаёт их крысам перед каждым забегом. Шанс крысы — ровно по её коэффициенту, возврат на любую ставку ${pct(RAT_RTP)}. Победителя тянет сервер. Ставка ${RAT_MIN_BET}–${num(RAT_MAX_BET)} 🪙, одна на забег, выплата до ${num(RAT_MAX_PAYOUT)} 🪙. Первая ставка — ${RAT_OPEN_MS / 1000} с до старта, каждый новый игрок — ещё +${RAT_ADD_MS / 1000} с (всего не больше ${RAT_OPEN_MAX_MS / 1000} с). Клавиши: 1–6 — крыса, Enter — поставить, Esc — закрыть.`);
-    this.root.addEventListener('keydown', (e) => {
+    this.balPill = row.appendChild(h('span', 'k-pill k-pill--gold k-pill--lg'));
+    this.state = bet.appendChild(h('p', 'rr-state'));
+    this.limit = bet.appendChild(h('p', 'k-bet-note'));
+    // клавиши в окне — только ему: ни ходьбы, ни эмоций, ни чата
+    this.scrim.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.code === 'Escape') { e.preventDefault(); this.close(); return; }
       if (e.target === this.amount && e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
@@ -203,61 +210,38 @@ export class RatRaceHud {
       if (k !== undefined) { e.preventDefault(); this.choose(k); return; }
       if (e.code === 'Enter' || e.code === 'NumpadEnter') { e.preventDefault(); this.submit(); }
     });
-    this.root.addEventListener('keyup', (e) => e.stopPropagation());
-    this.root.addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
-    this.root.addEventListener('click', (e) => { if (e.target === this.root) this.close(); });
-    overlay.appendChild(this.root);
+    this.scrim.addEventListener('keyup', (e) => e.stopPropagation());
+    // мимо окна — закрыть
+    this.scrim.addEventListener('pointerdown', (e) => { if (e.target === this.scrim) this.close(); });
+    shell.appendChild(this.scrim);
 
-    // плашка забега: справа, кликам по миру не мешает (на телефоне крысу в ней можно нажать — болеть)
-    this.panel = overlay.appendChild(el('div', 'rr-panel'));
-    this.panel.hidden = true;
-    this.panel.setAttribute('role', 'status');
-    const head = this.panel.appendChild(el('div', 'rr-pHead'));
-    head.appendChild(el('span', 'rr-pTitle', '🐀 Крысиные бега'));
-    this.camBtn = head.appendChild(el('button', 'rr-pCam', '🎥'));
+    // ---- у арены: плитка своей ставки и список крыс — под бейджем (слот tr), клавиши — внизу по центру
+    const tr = kit?.slots.tr ?? shell;
+    this.tiles = tr.appendChild(h('div', 'k-tiles rr-tiles'));
+    this.tiles.hidden = true;
+    this.list = tr.appendChild(h('div', 'k-plate mo-list mo-ratlist rr-list'));
+    this.list.hidden = true;
+    this.list.setAttribute('role', 'status');
+    this.rows = this.list.appendChild(h('div', 'rr-rows'));
+    // на телефоне по крысе в списке можно нажать — болеть
+    this.rows.addEventListener('click', (e) => {
+      const r = (e.target as Element).closest<HTMLElement>('[data-rat]');
+      if (r) this.cheer(Number(r.dataset.rat));
+    });
+    this.camBtn = this.list.appendChild(h('button', 'k-btn k-btn--ghost k-btn--sm rr-cam'));
     this.camBtn.type = 'button';
-    this.camBtn.title = 'Камера на трассу';
-    this.camBtn.setAttribute('aria-label', 'Камера на трассу');
+    this.camBtn.hidden = true;
     this.camBtn.addEventListener('click', () => this.onCam());
-    const stateRow = this.panel.appendChild(el('div', 'rr-pStateRow'));
-    this.pState = stateRow.appendChild(el('b', 'rr-pState'));
-    this.pTime = stateRow.appendChild(el('span', 'rr-pTime'));
-    this.pBar = this.panel.appendChild(el('div', 'rr-pBar'));
-    this.pBarFill = this.pBar.appendChild(el('i', ''));
-    const list = this.panel.appendChild(el('div', 'rr-pList'));
-    for (let i = 0; i < RAT_COUNT; i++) {
-      const root = list.appendChild(el('button', 'rr-pRow'));
-      root.type = 'button';
-      root.tabIndex = -1;
-      root.style.setProperty('--saddle', RATS[i].saddle);
-      const place = root.appendChild(el('span', 'rr-pPlace'));
-      const no = root.appendChild(el('span', 'rr-pNo', String(i + 1)));
-      if (RATS[i].saddle === '#e8b923') no.classList.add('dark');
-      const name = root.appendChild(el('span', 'rr-pName', RATS[i].name));
-      const odds = root.appendChild(el('span', 'rr-pOdds'));
-      const who = root.appendChild(el('span', 'rr-pWho'));
-      const bar = root.appendChild(el('i', 'rr-pProg'));
-      root.title = `Болеть за ${ratAcc(i)} — клавиша ${i + 1}`;
-      root.addEventListener('click', () => this.cheer(i));
-      this.pRows.push({ root, place, name, odds, who, bar });
-    }
-    const foot = this.panel.appendChild(el('div', 'rr-pFoot'));
-    this.pMine = foot.appendChild(el('div', 'rr-pMine'));
-    this.pBank = foot.appendChild(el('div', 'rr-pBank'));
-    this.pKeys = foot.appendChild(el('div', 'rr-pKeys'));
-    // вспышка выигрыша — в середине экрана
-    this.win = overlay.appendChild(el('div', 'rr-win'));
-    this.win.hidden = true;
-    this.win.setAttribute('role', 'status');
-    this.win.appendChild(el('span', 'rr-winHead', 'Ты выиграл!'));
-    this.winSum = this.win.appendChild(el('b', 'rr-winSum'));
+    this.keys = h('div', 'k-plate mo-keys key-hint rr-keys');
+    this.keys.hidden = true;
+    kit?.slots.bc.prepend(this.keys);
     window.setInterval(() => this.tick(), 200);
   }
 
-  get isOpen(): boolean { return this.root.open; }
+  get isOpen(): boolean { return !this.scrim.hidden; }
 
   /** Плашка у арены видна */
-  get panelShown(): boolean { return !this.panel.hidden; }
+  get panelShown(): boolean { return this.shown; }
 
   /** Рядом с ареной: итоги и подтверждения — в плашке, тосты не нужны */
   get near(): boolean { return this.nearM <= NEAR_M; }
@@ -265,7 +249,7 @@ export class RatRaceHud {
   /** Болеть можно: у арены идёт приём ставок или забег (тогда клавиши 1–6 — за крыс, а не эмоции) */
   get cheering(): boolean {
     const v = this.view;
-    return !!v && this.nearM <= CHEER_M && !this.panel.hidden && (v.phase === 'open' || v.phase === 'run' || this.running());
+    return !!v && this.nearM <= CHEER_M && this.shown && (v.phase === 'open' || v.phase === 'run' || this.running());
   }
 
   open(pid: number): void {
@@ -274,24 +258,29 @@ export class RatRaceHud {
     if (this.draft <= 0) this.draft = Math.min(maxRatBet(this.balance()), 10);
     this.amount.value = this.draft ? String(this.draft) : '';
     this.render();
-    if (!this.root.open) {
-      this.root.showModal();
+    if (!this.isOpen) {
+      this.scrim.hidden = false;
+      this.win.classList.remove('is-in');
+      void this.win.offsetWidth;
+      this.win.classList.add('is-in');
       this.onOpen();
-      (this.cards[Math.max(0, this.pick)]?.btn ?? this.go).focus({ preventScroll: true });
+      // фокус — в окне (клавиши ему); на карточку — только если крыса уже выбрана, иначе рамка фокуса читается как выбор
+      (this.pick >= 0 ? this.cards[this.pick].btn : this.win).focus({ preventScroll: true });
     }
   }
 
   close(): void {
-    if (!this.root.open) return;
-    this.root.close();
+    if (!this.isOpen) return;
+    this.scrim.hidden = true;
+    (document.activeElement as HTMLElement | null)?.blur?.();
     this.onClose();
   }
 
   /** Вход и выход из сцены: всё спрятать молча (мышь не трогаем) */
   reset(): void {
-    if (this.root.open) this.root.close();
-    this.panel.hidden = true;
-    this.win.hidden = true;
+    this.scrim.hidden = true;
+    this.setShown(false);
+    this.kit?.top.clearHero(HERO);
     this.panelKey = '';
     this.nearM = 99;
     this.pending = 0;
@@ -333,21 +322,21 @@ export class RatRaceHud {
     }
   }
 
-  /** Свой итог: покажем после финиша у этого игрока (плашка, вспышка или тост) */
+  /** Свой итог: покажем после финиша у этого игрока (плитка, баннер или тост) */
   onResult(m: Outcome): void {
     this.outcome = m;
   }
 
   /**
    * Забег race кончился у этого игрока (или итог пришёл позже): что сказать тостом вдали от арены (null — не ставил
-   * или уже сказали). У арены итог крупно в плашке, выигрыш — вспышкой в середине экрана.
+   * или уже сказали). У арены итог — в плашке и плитке, выигрыш — крупным баннером «Ты выиграл!».
    */
   finishText(race: number): { text: string; payout: number } | null {
     if (this.resultRace !== race) { this.resultAt = performance.now(); this.resultRace = race; }
     const o = this.outcome;
     if (!o || o.race !== race || this.toasted === race) return null;
     this.toasted = race;
-    if (o.payout > 0 && this.near) this.flashWin(o.payout);
+    if (o.payout > 0 && this.near) this.kit?.top.hero({ key: HERO, prio: PRIO.mode, tone: 'gold', title: 'Ты выиграл!', sub: `🪙+${num(o.payout)} жетонов` });
     this.panelKey = '';
     this.renderPanel();
     const text = o.payout > 0
@@ -365,13 +354,13 @@ export class RatRaceHud {
     return true;
   }
 
-  /** Кто-то болеет за крысу — строка в плашке вспыхивает */
+  /** Кто-то болеет за крысу — строка в списке вспыхивает */
   pulse(rat: number): void {
-    const r = this.pRows[rat];
-    if (!r || this.panel.hidden) return;
-    r.root.classList.remove('rr-hit');
-    void r.root.offsetWidth;
-    r.root.classList.add('rr-hit');
+    const r = this.rows.querySelector<HTMLElement>(`[data-rat="${rat}"]`);
+    if (!r || !this.shown) return;
+    r.classList.remove('rr-hit');
+    void r.offsetWidth;
+    r.classList.add('rr-hit');
   }
 
   /** Подсказка у точки ставки: только что сделает E (отсчёт и ставки — в плашке и на табло) */
@@ -439,16 +428,6 @@ export class RatRaceHud {
     this.pulse(i);
   }
 
-  private flashWin(payout: number): void {
-    setCoinText(this.winSum, `+${num(payout)} 🪙`);
-    this.win.hidden = false;
-    this.win.classList.remove('rr-show');
-    void this.win.offsetWidth;
-    this.win.classList.add('rr-show');
-    window.clearTimeout(this.winTimer);
-    this.winTimer = window.setTimeout(() => { this.win.hidden = true; }, WIN_MS);
-  }
-
   private tick(): void {
     if (this.isOpen) this.render();
     this.renderPanel();
@@ -467,44 +446,54 @@ export class RatRaceHud {
       c.mult.textContent = m ? `×${m}` : '×?';
       c.chance.textContent = m ? `шанс ${pct(ratChance(m))}${i === fav ? ' · фаворит' : ''}` : '';
       const on = mine ? mine.rat === i : this.pick === i;
-      c.btn.classList.toggle('on', on);
+      c.btn.classList.toggle('is-on', on);
       c.btn.setAttribute('aria-pressed', String(on));
       c.btn.disabled = !!mine || v?.phase === 'run' || busy;
       // кто уже поставил на эту крысу — ник и сумма (своя — «ты»)
-      const who = bettors(bets, i, this.myPid, 4);
+      const who = bettors(bets, i, this.myPid, 3);
       c.who.textContent = who ? `ставки: ${who}` : '';
-      c.who.hidden = !who;
     });
     const cap = maxRatBet(bal);
     for (const { btn, chip } of this.chipBtns) btn.disabled = !!mine || busy || this.draft + chip > cap;
     this.amount.readOnly = !!mine || busy;
     this.resetBtn.disabled = !!mine || busy || this.draft === 0;
-    setCoinText(this.limit, bal < RAT_MIN_BET ? `У тебя ${num(bal)} 🪙 — а на ставку нужно хотя бы ${RAT_MIN_BET} 🪙` : `От ${RAT_MIN_BET} до ${num(cap)} 🪙 · у тебя ${num(bal)} 🪙${cap < RAT_MAX_BET ? '' : ' · лимит стола'}`);
+    const balHtml = `${coinHtml()}${num(bal)}`;
+    if (this.balPill.innerHTML !== balHtml) this.balPill.innerHTML = balHtml;
+    coinText(this.limit, bal < RAT_MIN_BET
+      ? `У тебя ${num(bal)} 🪙 — а на ставку нужно хотя бы ${RAT_MIN_BET} 🪙`
+      : `от ${RAT_MIN_BET} до ${num(cap)} жетонов · одна ставка на забег · выплата до ${num(RAT_MAX_PAYOUT)}`);
     const why = this.blocker();
     const can = !why && !mine && !busy;
     this.go.disabled = !can;
-    this.go.classList.toggle('ready', can);
-    if (mine) setCoinText(this.go, `Ставка сделана: ${RATS[mine.rat].name} · ${num(mine.stake)} 🪙`);
-    else if (busy) this.go.textContent = 'Ставим…';
-    else if (this.pick >= 0 && this.draft >= RAT_MIN_BET && odds[this.pick]) {
-      const win = ratWin(this.draft, odds[this.pick]);
-      setCoinText(this.go, `Поставить ${num(this.draft)} 🪙 на ${ratAcc(this.pick)} · выиграешь ${num(win)} 🪙`);
-    } else setCoinText(this.go, why || 'Поставить');
+    if (mine) {
+      this.goMain.textContent = 'Ставка сделана';
+      coinText(this.goSmall, `${RATS[mine.rat].name} · ${num(mine.stake)} 🪙`);
+    } else if (busy) {
+      this.goMain.textContent = 'Ставим…';
+      this.goSmall.textContent = '';
+    } else if (this.pick >= 0 && this.draft >= RAT_MIN_BET && odds[this.pick]) {
+      this.goMain.textContent = 'Поставить';
+      this.goSmall.textContent = `на ${ratAcc(this.pick)} · выиграешь ${num(ratWin(this.draft, odds[this.pick]))}`;
+    } else {
+      this.goMain.textContent = 'Поставить';
+      coinText(this.goSmall, why);
+    }
+    this.goSmall.hidden = !this.goSmall.textContent && !this.goSmall.childElementCount;
+    // строка состояния: причина отказа сервера (красным) или что сейчас с моей ставкой
     const status = this.error ? this.error
       : mine ? (v?.phase === 'open' ? `Ты поставил на ${ratAcc(mine.rat)} — старт через ${this.left()} с` : `Ты поставил на ${ratAcc(mine.rat)} — забег идёт`)
-        : v?.phase === 'run' || this.running() ? 'Забег идёт — ставь на следующий'
-          : v?.phase === 'open' ? `Приём ставок: старт через ${this.left()} с`
-            : `Ипподром свободен — твоя ставка откроет забег: старт через ${RAT_OPEN_MS / 1000} с`;
-    setCoinText(this.state, status);
-    this.state.classList.toggle('err', !!this.error);
+        : v?.phase === 'run' || this.running() ? 'Забег идёт — ставь на следующий' : '';
+    coinText(this.state, status);
+    this.state.hidden = !status;
+    this.state.classList.toggle('is-err', !!this.error);
     // наверху окна — что сейчас и сколько в банке
     const n = bets.length;
-    setCoinText(this.bank, v?.phase === 'open' ? `Старт через ${this.left()} с · банк ${num(ratBank(bets))} 🪙 · ${n} ${betsWord(n)}`
-      : v?.phase === 'run' || this.running() ? 'Забег идёт — ставки на следующий забег откроются после финиша'
-        : 'Ставок пока нет — первая откроет приём на 15 с');
+    coinText(this.bank, v?.phase === 'open' ? `Ипподром · приём ставок · старт через ${this.left()} с · банк ${num(ratBank(bets))} 🪙 · ${n} ${betsWord(n)}`
+      : v?.phase === 'run' || this.running() ? 'Ипподром · забег идёт — ставки на следующий'
+        : `Ипподром · твоя ставка откроет забег: старт через ${RAT_OPEN_MS / 1000} с`);
   }
 
-  // ------------------------------------------------------------ плашка
+  // ------------------------------------------------------------ у арены
 
   /** Что сейчас у этого игрока: приём ставок, забег (по своим часам), итог (10 с после финиша) или ничего */
   private phase(): 'open' | 'run' | 'result' | '' {
@@ -517,6 +506,18 @@ export class RatRaceHud {
     return '';
   }
 
+  /** Плашка, плитка, список и клавиши — вместе (у арены) */
+  private setShown(on: boolean): void {
+    if (on === this.shown && on) return;
+    this.shown = on;
+    this.tiles.hidden = this.list.hidden = !on;
+    if (!on) {
+      this.kit?.top.clear(EVENT);
+      this.keys.hidden = true;
+      this.keysKey = '';
+    }
+  }
+
   private renderPanel(): void {
     const v = this.view;
     const ph = this.near && v ? this.phase() : '';
@@ -524,14 +525,12 @@ export class RatRaceHud {
     const res = ph === 'result' ? this.resultOrder() : null;
     const left = ph === 'open' ? this.left() : 0;
     const camOn = this.camOn(), camAvail = this.camAvail();
-    // в забеге полоски хода меняются всё время — их обновляем без ключа
-    if (st) for (const rat of st) this.pRows[rat].bar.style.transform = `scaleX(${Math.max(0, Math.min(1, this.progress(rat))).toFixed(3)})`;
+    this.renderKeys(ph, camOn, camAvail);
     const key = `${ph}|${left}|${st?.join('') ?? ''}|${res?.join('') ?? ''}|${v?.race}|${v?.bets.length}|${this.runBets?.race ?? 0}|${v?.last?.race ?? 0}|${this.outcome?.race ?? 0}|${camOn}|${camAvail}|${this.myPid}|${this.balance() >= RAT_MIN_BET}`;
     if (key === this.panelKey) return;
     this.panelKey = key;
-    this.panel.hidden = !ph;
+    this.setShown(!!ph && !!v);
     if (!ph || !v) return;
-    this.panel.className = `rr-panel rr-${ph}`;
     // ставки и коэффициенты: текущего забега (приём, забег) или прошедшего (итог)
     const run = this.runBets;
     const last = v.last && v.last.race === this.resultRace ? v.last : null;
@@ -540,86 +539,72 @@ export class RatRaceHud {
     const bets = ph === 'open' ? v.bets : ph === 'run' ? (run && run.race === runRace ? run.bets : v.phase === 'run' ? v.bets : []) : pastBets;
     const odds = ph === 'result' ? (last?.odds ?? run?.odds ?? v.odds) : ph === 'run' ? (run?.odds ?? v.odds) : v.odds;
     const order = st ?? res ?? [0, 1, 2, 3, 4, 5];
-    const mineRat = bets.find((b) => b.pid === this.myPid)?.rat ?? -1;
-    // заголовок и время
-    if (ph === 'open') {
-      this.pState.textContent = 'Приём ставок';
-      this.pTime.textContent = `старт через ${left} с`;
-      const frac = this.openTotal > 0 ? Math.max(0, Math.min(1, (left * 1000) / this.openTotal)) : 0;
-      this.pBarFill.style.transform = `scaleX(${frac.toFixed(3)})`;
-      this.pBar.classList.toggle('rr-hot', left <= 5);
-    } else if (ph === 'run') {
-      this.pState.textContent = st ? `Забег! Впереди ${RATS[st[0]].name}` : 'Забег!';
-      this.pTime.textContent = '';
-    } else {
-      this.pState.textContent = `🏁 ${res ? ratWon(res[0]) : 'Финиш'}${res && odds[res[0]] ? ` ×${odds[res[0]]}` : ''}!`;
-      this.pTime.textContent = '';
-    }
-    this.pBar.hidden = ph !== 'open';
-    // строки: по номеру (приём) или по местам (забег, итог); своя крыса — золотом
+    const myBet = bets.find((b) => b.pid === this.myPid);
+    const mineRat = myBet?.rat ?? -1;
     const wins = last?.wins ?? [];
-    order.forEach((rat, k) => {
-      const r = this.pRows[rat];
-      r.root.style.setProperty('--k', String(k));
-      r.root.classList.toggle('rr-mine', rat === mineRat);
-      r.root.classList.toggle('rr-lead', ph !== 'open' && k === 0);
-      r.root.classList.toggle('rr-lost', ph === 'result' && k > 0);
-      r.place.textContent = ph === 'open' ? '' : String(k + 1);
-      r.odds.textContent = odds[rat] ? `×${odds[rat]}` : '';
+    const n = bets.length;
+    const o = this.outcome && this.outcome.race === this.resultRace ? this.outcome : null;
+    // плашка забега — событие в верх-центре
+    const ic = `<span class="k-event-ic"><img src="${uiIcon('rat')}" alt=""></span>`;
+    const bankText = n ? `банк ${num(ratBank(bets))} ${coinHtml()} · ${n} ${betsWord(n)}` : 'ставок пока нет';
+    if (ph === 'open') {
+      const frac = this.openTotal > 0 ? Math.max(0, Math.min(1, (left * 1000) / this.openTotal)) : 0;
+      const sub = `${mineRat >= 0 ? `твоя — ${RATS[mineRat].name} · ` : ''}${bankText}`;
+      this.kit?.top.event({ key: EVENT, prio: PRIO.mode, html: `${ic}<div class="k-event-title">Приём ставок</div><div class="k-event-sub">${sub}</div><div class="k-event-timer${left <= 5 ? ' is-hurry' : ''}">0:${String(left).padStart(2, '0')}</div>${meterHtml(frac, 'mode', 'k-meter--thin')}` });
+    } else if (ph === 'run') {
+      const place = st && mineRat >= 0 ? st.indexOf(mineRat) + 1 : 0;
+      const sub = myBet ? `Твоя ${RATS[mineRat].name} — ${place ? placeOf(mineRat, place) : 'в забеге'} · ставка ${num(myBet.stake)}` : bankText;
+      this.kit?.top.event({ key: EVENT, prio: PRIO.mode, html: `${ic}<div class="k-event-title">${st ? `Забег! Впереди ${esc(RATS[st[0]].name)}` : 'Забег!'}</div><div class="k-event-sub">${sub}</div>` });
+    } else {
+      const paid = wins.reduce((a, w) => a + w.payout, 0);
+      const sub = wins.length ? `Выплачено ${num(paid)} ${coinHtml()} · ставок было ${n || wins.length}` : n ? `Никто не угадал · ставок было ${n}` : 'Ставок не было';
+      const title = `${res ? ratWon(res[0]) : 'Финиш'}${res && odds[res[0]] ? ` ×${odds[res[0]]}` : ''}!`;
+      this.kit?.top.event({ key: EVENT, prio: PRIO.mode, tone: 'good', lamp: true, html: `${ic}<div class="k-event-title">${esc(title)}</div><div class="k-event-sub">${sub}</div>` });
+    }
+    // своя ставка — плиткой под бейджем
+    let tile = '';
+    const face = `<span class="k-tile-face"><img src="${uiIcon('rat')}" alt=""></span>`;
+    if (ph === 'result' && o) {
+      tile = o.payout > 0
+        ? `<div class="k-tile k-tile--own">${face}<span class="k-tile-cap"><span>сыграла!</span><small>${coinHtml()}+${num(o.payout)}</small></span></div>`
+        : `<div class="k-tile k-tile--off">${face}<span class="k-tile-cap"><span>${esc(RATS[o.rat].name)} — ${res ? placeOf(o.rat, res.indexOf(o.rat) + 1) : '…'}</span><small>не сыграла</small></span></div>`;
+    } else if (ph !== 'result' && myBet) {
+      tile = `<div class="k-tile k-tile--own">${face}<span class="k-tile-cap"><span>${esc(RATS[mineRat].name)} ×${odds[mineRat] ?? '?'}</span><small>${num(myBet.stake)} → ${coinHtml()}${num(ratWin(myBet.stake, odds[mineRat] ?? 0))}</small></span></div>`;
+    }
+    this.tiles.innerHTML = tile;
+    this.tiles.hidden = !tile;
+    // шесть крыс: по номеру (приём) или по местам (забег, итог); своя — золотом
+    const places = ph !== 'open';
+    this.list.classList.toggle('has-places', places);
+    this.rows.innerHTML = order.map((rat, k) => {
+      let who: string;
       if (ph === 'result' && k === 0) {
         // победители — с выигрышем
-        const paid = bets.filter((b) => b.rat === rat).map((b) => {
-          const w = wins.find((x) => x.nick === b.nick)?.payout ?? 0;
-          return `${b.pid === this.myPid ? 'ты' : b.nick} +${num(w)}`;
-        });
+        const paidRows = bets.filter((b) => b.rat === rat).map((b) => `${b.pid === this.myPid ? 'ты' : b.nick} +${num(wins.find((x) => x.nick === b.nick)?.payout ?? 0)}`);
         const extra = run && run.race === this.resultRace ? [] : wins.map((w) => `${w.nick} +${num(w.payout)}`);
-        r.who.textContent = [...paid, ...extra].slice(0, 3).join(' · ');
-      } else r.who.textContent = bettors(bets, rat, this.myPid, 2);
-      if (ph !== 'run') r.bar.style.transform = 'scaleX(0)';
-    });
-    // низ: своя ставка или итог, банк, клавиши
-    const o = this.outcome && this.outcome.race === this.resultRace ? this.outcome : null;
-    this.pMine.className = 'rr-pMine';
-    if (ph === 'result' && o) {
-      if (o.payout > 0) {
-        this.pMine.classList.add('rr-won');
-        setCoinText(this.pMine, `Ты выиграл ${num(o.payout)} 🪙!`);
-      } else {
-        const place = res ? res.indexOf(o.rat) + 1 : 0;
-        setCoinText(this.pMine, `${RATS[o.rat].name} — ${placeOf(o.rat, place)}. Ставка ${num(o.stake)} 🪙 не сыграла`);
-      }
-    } else if (ph === 'result') {
-      this.pMine.textContent = wins.length ? `Выиграли: ${wins.slice(0, 3).map((w) => w.nick).join(', ')}${wins.length > 3 ? '…' : ''}` : 'Никто не угадал';
-    } else if (mineRat >= 0) {
-      const my = bets.find((b) => b.pid === this.myPid)!;
-      const place = st ? st.indexOf(mineRat) + 1 : 0;
-      setCoinText(this.pMine, st
-        ? `Твоя ${RATS[mineRat].name} — ${placeOf(mineRat, place)} · ставка ${num(my.stake)} 🪙`
-        : `Твоя ставка: ${RATS[mineRat].name} · ${num(my.stake)} 🪙 → выиграешь ${num(ratWin(my.stake, odds[mineRat] ?? 0))} 🪙`);
-      this.pMine.classList.add('rr-bet');
-    } else if (ph === 'open') {
-      this.pMine.textContent = this.balance() >= RAT_MIN_BET ? 'Ты ещё не поставил — E у арены' : 'Нет жетонов на ставку — можно болеть';
-    } else this.pMine.textContent = 'Ставка — на следующий забег';
-    const n = bets.length;
-    if (ph === 'result') {
-      const paid = wins.reduce((a, w) => a + w.payout, 0);
-      setCoinText(this.pBank, wins.length ? `Выплачено ${num(paid)} 🪙 · ставок было: ${n || wins.length}` : n ? `Ставок было: ${n}` : '');
-    } else setCoinText(this.pBank, n ? `Банк ${num(ratBank(bets))} 🪙 · ${n} ${betsWord(n)}` : 'Ставок пока нет');
-    this.pKeys.textContent = '';
-    if (ph === 'result') this.keyHint('E', 'ставка на следующий забег');
-    else {
-      if (TOUCH) this.pKeys.appendChild(el('span', '', 'Нажми на крысу — болеть'));
-      else this.keyHint('1–6', 'болеть');
-      if (camAvail && !TOUCH) this.keyHint('C', camOn ? 'обычный вид' : 'вид на трассу');
-    }
-    this.camBtn.hidden = !TOUCH || !camAvail;
-    this.camBtn.classList.toggle('rr-on', camOn);
+        who = [...paidRows, ...extra].slice(0, 2).join(' · ');
+      } else who = bettors(bets, rat, this.myPid, 2);
+      const cls = `mo-row${rat === mineRat ? ' is-own' : ''}${ph === 'result' && k > 0 ? ' rr-lost' : ''}`;
+      return `<div class="${cls}" data-rat="${rat}">${places ? `<span class="mo-pl${k === 0 ? ' is-lead' : ''}">${k + 1}</span>` : ''}${saddle(rat)}<b><span>${esc(RATS[rat].name)}</span><small>${esc(who || 'ставок нет')}</small></b><span class="mo-row-side">${odds[rat] ? `×${odds[rat]}` : ''}</span></div>`;
+    }).join('');
+    this.camBtn.hidden = !TOUCH || !camAvail || ph === 'result';
+    this.camBtn.innerHTML = `<img class="k-ic" src="${uiIcon('camera')}" alt="">${camOn ? 'Обычный вид' : 'Вид на трассу'}`;
   }
 
-  private keyHint(key: string, text: string): void {
-    const s = this.pKeys.appendChild(el('span', ''));
-    s.appendChild(el('kbd', '', key));
-    s.append(` ${text}`);
+  /** Клавиши внизу: болеть и камера (пока идёт приём ставок или забег и ты у арены) */
+  private renderKeys(ph: string, camOn: boolean, camAvail: boolean): void {
+    const on = (ph === 'open' || ph === 'run') && this.nearM <= CHEER_M;
+    const key = on ? `${TOUCH}|${camOn}|${camAvail}` : '';
+    if (key === this.keysKey) return;
+    this.keysKey = key;
+    this.keys.hidden = !on;
+    if (!on) return;
+    if (TOUCH) {
+      this.keys.innerHTML = '<span class="mo-key"><em>Нажми на крысу в списке — болеть</em></span>';
+      return;
+    }
+    const items: Array<[string, string]> = [['1–6', 'болеть за крысу']];
+    if (camAvail) items.push(['C', camOn ? 'обычный вид' : 'вид на трассу']);
+    this.keys.innerHTML = keysRow(items).innerHTML;
   }
 }
-

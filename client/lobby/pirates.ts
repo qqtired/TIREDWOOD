@@ -188,7 +188,7 @@ export class Pirates3D {
       this.group.add(s);
       this.marks.push({ sprite: s, kind: 0 });
     }
-    this.hud = new PirateHud(root, { fire: hooks.fire, top: hooks.top, icon: hooks.icon, under: hooks.under });
+    this.hud = new PirateHud(root, { fire: hooks.fire, top: hooks.top, icon: hooks.icon, under: hooks.under, bottom: hooks.bottom, shell: hooks.shell, closed: hooks.closed });
   }
 
   // ------------------------------------------------------------ входящие данные
@@ -248,6 +248,8 @@ export class Pirates3D {
   /** Стою у береговой пушки (номер) или −1 */
   get cannonAt(): number { return this.nearCannon; }
   set mePid(v: number) { this.hud.mePid = v; }
+  /** Окно итогов набега открыто: мышь сцене не нужна (закрывают кнопкой «Закрыть» или Esc) */
+  get resultsOpen(): boolean { return this.hud.resultsOpen; }
 
   // ------------------------------------------------------------ кадр
 
@@ -710,12 +712,12 @@ export class Pirates3D {
         const what = s.kind === P.SK_BOAT ? 'шлюпка' : s.kind === P.SK_SHIP ? 'корабль' : 'вода';
         spec = { mode: 'cannon', slot: me.slot, state, text: !s.ok ? 'Цель на берегу — подними прицел к морю' : reload > 0 ? `Перезарядка ${reload.toFixed(1)} с · ${what}` : `Огонь! · ${what}` };
         this.fx.aim(s.x !== undefined ? { x: s.x, y: s.y, z: s.z } : null, !s.ok ? 0xff5a4f : s.kind === P.SK_WATER ? 0xeaf8ff : 0x7bd88f, s.kind === P.SK_SHIP ? 2.2 : P.PIRATE_SPLASH_R * 0.55);
-        this._hint = { keys: touch ? [] : ['ЛКМ'], text: `${touch ? 'кнопка «Огонь» — ' : ''}выстрел ядром · целься в шлюпку или корабль · пушка заряжается 3,5 с` };
+        this._hint = { keys: touch ? [] : ['ЛКМ'], text: `${touch ? '«Огонь» — ' : ''}Выстрел ядром · целься в шлюпку или корабль, заряд 3,5 с` };
       } else {
         spec = { mode: 'marker', slot: me.slot, text: '', state: 'none' };
         this.fx.aim(null, 0, 1);
-        if (this.nearLoot) this._hint = { keys: [], text: 'Коснись брошенного ящика — он вернётся в кучу' };
-        else if (tick - this.raidStart < 25 * TICK_RATE) this._hint = { keys: touch ? [] : ['ЛКМ'], text: `${touch ? 'кнопка «Огонь» — ' : ''}краска по ворам · два попадания — заляпан · у пушки — ядром по шлюпкам` };
+        if (this.nearLoot) this._hint = { keys: [], text: 'Коснись ящика — спасёшь · он вернётся в кучу' };
+        else if (tick - this.raidStart < 25 * TICK_RATE) this._hint = { keys: touch ? [] : ['ЛКМ'], text: `${touch ? '«Огонь» — ' : ''}Крась воров · у пушки — ядром` };
       }
     } else this.fx.aim(null, 0, 1);
     hud.reticle(spec, dt);
