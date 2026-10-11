@@ -129,8 +129,8 @@ export class Chat {
       }
       const n = document.createElement('b');
       n.textContent = line.from;
-      // команда (пейнтбол, крепость) — цветом команды, остальные — одним из шести цветов кита
-      if (line.team >= 0 && TEAM_CSS[line.team]) n.style.setProperty('--nick', TEAM_CSS[line.team]);
+      // команда (пейнтбол, крепость) — цветом команды, читаемым на плашке чата (kit/modes.css .k-team-N), остальные — одним из шести цветов кита
+      if (line.team >= 0 && TEAM_CSS[line.team]) row.classList.add(`k-team-${line.team}`);
       else row.classList.add(`k-nick-${nickTone(line.from)}`);
       row.appendChild(n);
     }
