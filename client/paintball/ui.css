@@ -1,0 +1,65 @@
+/* Пейнтбол на ките 2.0 — раскладка поверх кита (префикс .pb-), как на странице lab/ui «Режимы» → «Пейнтбол».
+   Вид частей — классы кита (.k-*) и общие детали режимов (.mo-*, client/ui/kit/modes.css); цвета — только токены.
+   Разметку собирает client/paintball/ui.ts. */
+
+/* цвет режима — у слоёв кита, пока ты на складе */
+html[data-room='paintball'] { --mode-w: var(--m-paintball); --mode-h: var(--mh-paintball); }
+/* свои части в общих слотах кита — только на складе */
+html:not([data-room='paintball']) .pb-only { display: none !important; }
+.k-scrim.pb-scrim[hidden], .pb-world [hidden] { display: none !important; }
+
+/* ---------------------------------------------------------------- старые окна Hud в пейнтболе не нужны: числа идут в кит (ui.ts);
+   остаются вспышки урона по краям, кляксы на «маске», цифры урона, оптика AWP и крестик «стена мешает» */
+.pb-kit :is(.scorebar, .cross, .hitmark, .card.vitals, .card.ammo, .killfeed, .center-msg, .center-sub, .banner, .shield-note, .death,
+  .board, .endscreen, .stats) { display: none !important; }
+
+/* ---------------------------------------------------------------- ВЦ: счёт — плашка события TopCenter (тосты встают под неё), 300×48:
+   «ЧЕРНИКА 5 · БОЙ 4:42 · 6 МАНДАРИН» — без кружка-иконки, три колонки, как .mo-score */
+.k-event:has(> .mo-team) { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 0; width: 324px; padding: 0; overflow: hidden; }
+/* «43 Мандарин» и «Разминка» в середине помещаются целиком (на странице — 300 при «Бой») */
+.k-event > .mo-team { padding-inline: 9px; }
+.k-event > .mo-team .k-meter { margin: 0; }
+
+/* ---------------------------------------------------------------- ВЛ: лента сбитых — в голову: картинка в золотом кольце */
+.pb-feed .k-ic.pb-head { border-radius: 50%; box-shadow: 0 0 0 2px var(--gold); background: var(--gold-soft); }
+.pb-feed .k-pill--xs { min-height: 20px; padding: 1px 7px; }
+.pb-feed .k-pill.pb-head { box-shadow: inset 0 0 0 1.5px var(--gold); }
+.pb-stats { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- низ: панель бойца (kit/combat.css) */
+.pb-vitals .k-arm > img { object-fit: contain; }
+.pb-vitals .pb-awp-l { margin: 0 4px 0 0; color: var(--gold-text); font-size: var(--fs-14); font-weight: 800; }
+.pb-shield .k-ic { width: 24px; height: 24px; }
+
+/* ---------------------------------------------------------------- сбит: чуть ниже места крупных баннеров (баннер «Бой!» не закрывает) */
+.k-slot--c.pb-down { top: 38%; }
+
+/* ---------------------------------------------------------------- прицел без zoom: раствор — --gap (px экрана), как в крепости */
+.pb-world { z-index: 1; }
+.pb-cross { --gap: 6px; }
+.pb-cross > i:nth-child(1) { transform: translateY(calc(-1 * (var(--gap) + 5px))); }
+.pb-cross > i:nth-child(2) { transform: translateY(calc(var(--gap) + 5px)); }
+.pb-cross > i:nth-child(3) { transform: rotate(90deg) translateY(calc(-1 * (var(--gap) + 5px))); }
+.pb-cross > i:nth-child(4) { transform: rotate(90deg) translateY(calc(var(--gap) + 5px)); }
+/* прицеливание: штрихи короче */
+.pb-cross.is-ads > i { height: 7px; margin-top: -3.5px; }
+.pb-cross.is-kill::after { --hit: var(--bad); }
+.hud.dead .pb-cross { display: none; }
+
+/* ---------------------------------------------------------------- Tab: держишь — открыто (мышь захвачена, кликов нет) */
+.k-scrim.pb-scrim { pointer-events: none; }
+.mo-board .k-table td { padding-top: 6px; padding-bottom: 6px; }
+.mo-board .k-who .k-pill--xs, .mo-results .k-who .k-pill--xs { font-weight: 700; }
+.pb-ping { color: var(--surf-dim); }
+.mo-board .k-table td.pb-ping { font-weight: 500; }
+
+/* ---------------------------------------------------------------- цифры урона над целью — как .k-float кита */
+.pb-kit .floater {
+  color: #fff; font: 900 var(--fs-18)/1 var(--font-text); -webkit-text-stroke: 0;
+  text-shadow: 0 2px 0 rgba(20, 10, 12, .75), 0 0 3px rgba(20, 10, 12, .8), 1px 0 0 rgba(20, 10, 12, .6), -1px 0 0 rgba(20, 10, 12, .6);
+}
+.pb-kit .floater.head { color: var(--gold); font-size: var(--fs-22); }
+
+/* ---------------------------------------------------------------- телефон: верх-лево занят кнопками и чатом, справа под бейджем — кнопки
+   прицела и плеча. Лента сбитых и плитка бонуса там налезали бы на кнопки; бонус и так виден в панели бойца (HP и щит) */
+.touch .pb-feed, .touch .pb-tiles { display: none !important; }

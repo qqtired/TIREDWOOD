@@ -666,7 +666,7 @@ html[data-tc-event] .mn-sub {
 /* меню → Управление → «Подсказки клавиш на экране»: выключено — прячем строки-шпаргалки режимов и полоску эмоций.
    Подсказки «E — …» у предметов (.pz-hint) остаются: без них непонятно, что можно сделать.
    Новой строке-шпаргалке в режиме достаточно класса key-hint */
-html[data-hints='off'] :is(.key-hint, .pz-emotes, .ammo-hint, .rc-help, .br-help, .skill-help, .ft-help, .voice-key) {
+html[data-hints='off'] :is(.key-hint, .pz-emotes, .ammo-hint, .br-help, .skill-help, .ft-help, .voice-key) {
   display: none !important;
 }
 

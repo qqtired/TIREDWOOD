@@ -17,6 +17,8 @@ import type { GatherStatus } from '../../shared/startzones.ts';
 import type { Sound } from '../audio.ts';
 import type { AvatarPose } from '../render/avatar.ts';
 import type { Effects } from '../render/effects.ts';
+import type { HudSlots } from '../ui/kit/slots.ts';
+import type { TopCenter } from '../ui/kit/topcenter.ts';
 import { TOUCH } from '../touch.ts';
 import type { LobbyCamera } from './camera.ts';
 import { BoatModel, HOP_S, hopArc } from './regattaboat.ts';
@@ -43,6 +45,11 @@ export interface RegattaDeps {
   effects: Effects;
   sound: Sound;
   hudRoot: HTMLElement;
+  /** Кит: слоты HUD и верх-центр; оболочка (#hud) — для окна итогов */
+  ui: { slots: HudSlots; top: TopCenter };
+  shell: HTMLElement;
+  /** Окно итогов: true — отпустить мышь (кнопки нажимаются), false — снова захватить */
+  freeMouse: (free: boolean) => void;
   toast: (text: string, ms?: number) => void;
   send: (msg: ClientMsg) => void;
   /** «Нажать» E (кнопка «Ещё!» на экране) */
@@ -201,9 +208,23 @@ export class RegattaClient {
     this.d = d;
     this.course3d = new RegattaCourse3D(d.scene);
     this.wake = new BoatWake(d.scene);
-    this.hud = new RegattaHud(d.hudRoot);
-    this.hud.onAgain = () => d.tapUse();
+    this.hud = new RegattaHud({ slots: d.ui.slots, top: d.ui.top, shell: d.shell });
+    // кнопки итогов: клик — жест игрока, мышь сразу снова в игре
+    this.hud.onAgain = () => {
+      d.tapUse();
+      d.freeMouse(false);
+    };
+    this.hud.onQuit = () => {
+      this.quit();
+      d.freeMouse(false);
+    };
+    this.hud.onResults = (open) => d.freeMouse(open);
     this.pred.drive = (t) => this.drive(t);
+  }
+
+  /** Окно итогов на экране (мышь свободна) */
+  get resultsOpen(): boolean {
+    return this.hud.resultsOpen;
   }
 
   /** Своя лодка в заезде (на сетке, в гонке, на итогах) */
@@ -371,8 +392,14 @@ export class RegattaClient {
     if (this.my) this.d.send({ t: 'rg', a: 'quit' });
   }
 
-  /** Клавиши в катере: эмоции, журнал, F — не к месту (движение, E и R идут во вход). */
+  /** Клавиши в катере: эмоции, журнал, F — не к месту (движение, E и R идут во вход); Esc в итогах — на площадь. */
   onKey(code: string): boolean {
+    // итоги (мышь свободна): Esc — «На площадь», как кнопка окна
+    if (code === 'Escape' && this.hud.resultsOpen) {
+      this.quit();
+      this.d.freeMouse(false);
+      return true;
+    }
     return /^Digit\d$|^Key[JFQ]$/.test(code);
   }
 
@@ -745,20 +772,19 @@ export class RegattaClient {
     if (v.phase === 'results') {
       const voted = v.again.includes(my.id);
       const rows2: RgResultRow[] = v.rows.map((r) => ({
-        place: r.pos ? String(r.pos) : '—', nick: r.nick + (r.bot ? ' 🤖' : ''), time: r.finished ? fmtRg(r.ticks) : r.left ? 'сошёл' : '—',
+        place: r.pos ? String(r.pos) : '—', nick: r.nick, bot: r.bot, time: r.finished ? fmtRg(r.ticks) : r.left ? 'сошёл' : '—',
         best: r.best > 0 ? fmtRg(r.best) : '—', me: r.id === my.id && !r.left, dim: !r.finished, again: v.again.includes(r.id) && !r.left,
       }));
       const mine = v.rows.find((r) => r.id === my.id && !r.left);
       const place = mine?.pos ?? 0;
       const title = place === 1 ? 'Победа!' : place > 0 ? `${place}-е место` : 'Регата окончена';
       const subParts: string[] = [];
-      if (mine && mine.reward > 0) subParts.push(`+${mine.reward} 🪙`);
       if (this.finish?.record === 0) subParts.push('рекорд бухты!');
       else if (this.finish?.pb) subParts.push('твой лучший круг!');
       const secs = (t: number) => Math.max(0, Math.ceil((t - this.renderTick) / 60));
       const foot = voted ? `Ты в деле! Новый заезд через ${secs(v.rematch)} с` : v.rematch > 0 ? `Кто нажал «Ещё!» — снова на старте через ${secs(v.rematch)} с · остальные — на площадь`
         : `На площадь через ${secs(v.end)} с`;
-      hud.setResults({ title, win: place === 1, sub: subParts.join(' · '), rows: rows2, foot, canAgain: !voted });
+      hud.setResults({ title, win: place === 1, sub: subParts.join(' · '), rows: rows2, foot, canAgain: !voted, reward: mine?.reward ?? 0 });
     } else {
       hud.setResults(null);
     }

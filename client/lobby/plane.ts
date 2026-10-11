@@ -3,6 +3,8 @@
 // тем же шагом, что на сервере (сверка с planeMe). Пилоту: камера сзади и чуть сверху (колесо — ближе/дальше),
 // мышь ведёт нос (цель — кружок впереди), интерфейс с временем и «сесть раньше» (E дважды), мотор и ветер.
 // Баннер: у таблички E — окошко заказа пролёта с надписью, в своём полёте B — прицепить баннер (planebanner.ts).
+// Интерфейс пилота — на ките 2.0: плашка полёта в верх-центре (событие pl-flight), клавиши строкой внизу, «Точно сесть?» —
+// золотой подсказкой, кнопки «Сесть сейчас» и «Баннер» справа внизу, кружок цели — в слое без zoom.
 // Сцена набережной (scene.ts) зовёт: welcome, onJson, tickInput, frameInput, frame, camera, avatarPose, hint, onKey.
 import * as THREE from 'three';
 import { TICK_RATE } from '../../shared/constants.ts';
@@ -20,6 +22,10 @@ import type { AvatarPose } from '../render/avatar.ts';
 import { TOUCH } from '../touch.ts';
 import { PlaneModel, PlaneSign } from './plane3d.ts';
 import { BannerPanel } from './planebanner.ts';
+import { coinHtml, iconImg } from '../ui/kit/dom.ts';
+import { capHtml, keysRow } from '../ui/kit/modes.ts';
+import type { HudSlots } from '../ui/kit/slots.ts';
+import { PRIO, type TopCenter } from '../ui/kit/topcenter.ts';
 import './plane.css';
 
 /** Голоса мотора: чужой самолёт (в мире) и свой (без объёма) */
@@ -49,7 +55,15 @@ export interface PlaneDeps {
   me: () => { nick: string; tokens: number };
   /** Окошко баннера открылось (отпустить мышь) или закрылось (захватить снова) */
   modal: (open: boolean) => void;
+  /** Кит: слоты и верх-центр (без него — части интерфейса в hudRoot) и оболочка HUD (#hud) для окна баннера */
+  ui?: { slots: HudSlots; top: TopCenter };
+  shell?: HTMLElement;
 }
+
+/** Ключ плашки полёта в верх-центре (префикс режима pl-) */
+const EVENT = 'pl-flight';
+/** Колпачок «мышь — вести» (кит: .k-mouse--move) */
+const MOUSE_CAP = '<kbd class="k-key"><i class="k-mouse k-mouse--move" aria-label="Мышь"></i></kbd>';
 
 interface Pose {
   ph: number;
@@ -277,13 +291,14 @@ export class PlaneClient {
   private readonly camFrom = new THREE.Vector3();
   private readonly camLook = new THREE.Vector3();
   private readonly hud: HTMLElement;
-  private readonly hudTitle: HTMLElement;
-  private readonly hudSub: HTMLElement;
-  private readonly hudHelp: HTMLElement;
+  private readonly keys: HTMLElement;
+  private readonly ask: HTMLElement;
   private readonly hudLand: HTMLButtonElement;
   private readonly hudBanner: HTMLButtonElement;
   private readonly aim: HTMLElement;
   private hudKey = '';
+  /** Ряд клавиш и кнопка «Сесть» перестраиваются только при смене фазы или вопроса «Точно сесть?» */
+  private rowKey = '';
   private readonly panel: BannerPanel;
 
   constructor(d: PlaneDeps) {
@@ -292,21 +307,33 @@ export class PlaneClient {
     this.sign = new PlaneSign(d.scene);
     this.model.visible = false;
     this.sign.visible = false;
-    this.hud = el('div', 'pl-hud', d.hudRoot);
+    // слой без zoom: кружок цели привязан к точке экрана
+    this.hud = el('div', 'k-world pl-hud', d.hudRoot);
     this.hud.hidden = true;
-    const top = el('div', 'pl-top', this.hud);
-    this.hudTitle = el('div', 'pl-title', top);
-    this.hudSub = el('div', 'pl-sub', top);
-    this.hudHelp = el('div', 'pl-help', this.hud);
-    this.hudLand = el('button', 'pl-land', this.hud, 'Сесть сейчас');
+    const bc = d.ui?.slots.bc ?? this.hud;
+    const br = d.ui?.slots.br ?? this.hud;
+    this.keys = document.createElement('div');
+    this.keys.className = 'k-plate mo-keys key-hint pl-keys';
+    this.keys.hidden = true;
+    this.ask = document.createElement('div');
+    this.ask.className = 'k-prompt k-prompt--urgent pl-ask';
+    this.ask.hidden = true;
+    bc.prepend(this.keys, this.ask);
+    this.hudLand = document.createElement('button');
+    this.hudLand.className = 'k-btn k-btn--ghost k-btn--sm pl-land';
     this.hudLand.type = 'button';
+    this.hudLand.hidden = true;
     this.hudLand.addEventListener('click', () => this.askLand());
-    this.hudBanner = el('button', 'pl-banner', this.hud, `${TOUCH ? '' : 'B — '}баннер +${BANNER_PRICE} 🪙`);
+    this.hudBanner = document.createElement('button');
+    this.hudBanner.className = 'k-btn k-btn--gold k-btn--sm pl-banner';
     this.hudBanner.type = 'button';
+    this.hudBanner.hidden = true;
+    this.hudBanner.innerHTML = `<span>Баннер · ${coinHtml()}${BANNER_PRICE}</span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">B</kbd>'}`;
     this.hudBanner.addEventListener('click', () => this.openBanner());
+    br.prepend(this.hudBanner, this.hudLand);
     this.aim = el('div', 'pl-aim', this.hud);
     this.panel = new BannerPanel({
-      root: d.hudRoot,
+      root: d.shell ?? d.hudRoot,
       send: (text) => d.send({ t: 'plane', a: 'banner', text }),
       onOpen: () => d.modal(true),
       onClose: () => d.modal(false),
@@ -367,7 +394,7 @@ export class PlaneClient {
     this.track.s.length = 0;
     this.mine = false;
     this.camOn = false;
-    this.hud.hidden = true;
+    this.hideHud();
     this.d.sound.engineStop(ENGINE_ID);
     this.d.sound.engineStop(ENGINE_MINE);
     this.engine = 0;
@@ -508,39 +535,61 @@ export class PlaneClient {
     if (this.panel.isOpen && !this.flying) this.panel.setNote(this.bannerNote());
   }
 
+  /** Интерфейс пилота спрятать: части в общих слотах кита и плашку верх-центра */
+  private hideHud(): void {
+    this.hud.hidden = true;
+    this.keys.hidden = this.ask.hidden = this.hudLand.hidden = this.hudBanner.hidden = true;
+    this.d.ui?.top.clear(EVENT);
+    this.hudKey = this.rowKey = '';
+  }
+
   private hudUpdate(): void {
     const show = this.flying && this.pred.ready;
-    this.hud.hidden = !show;
-    if (!show) return;
+    if (!show) {
+      if (!this.hud.hidden || this.hudKey) this.hideHud();
+      return;
+    }
+    this.hud.hidden = false;
     const s = this.pred.state;
     const p = this.pose;
     const asking = performance.now() < this.askUntil;
     let title: string;
-    let help: string;
+    let note = '';
+    let timer = '';
+    let keys: Array<[string, string]> = [];
     if (s.ph === PL_START) {
-      title = 'Взлёт';
-      help = s.v < 1 ? 'Заводим мотор…' : 'Разбег по воде — сейчас оторвёмся';
+      title = 'взлёт';
+      note = s.v < 1 ? 'заводим мотор…' : 'разбег по воде — сейчас оторвёмся';
     } else if (s.ph === PL_FLY) {
-      title = `Полёт · осталось <b>${clock(PLANE_FLY_TICKS - s.t)}</b>`;
-      help = asking ? 'Нажми E ещё раз — летим домой и садимся' : TOUCH ? 'Палец — куда лететь · «Сесть сейчас» — домой' : 'Мышь — куда лететь · Shift — быстрее · S — медленнее · колесо — камера · E — сесть';
-    } else if (s.ph === PL_HOME) {
-      title = 'Автопилот: летим домой';
-      help = TOUCH ? 'Пальцем — осмотреться' : 'Мышь — осмотреться · колесо — камера';
+      title = 'полёт';
+      timer = clock(PLANE_FLY_TICKS - s.t);
+      keys = [['Мышь', 'курс'], ['Shift', 'быстрее'], ['S', 'медленнее'], ['E', 'сесть'], ['Колесо', 'камера']];
     } else {
-      title = 'Посадка на воду';
-      help = TOUCH ? 'Пальцем — осмотреться' : 'Мышь — осмотреться · колесо — камера';
+      title = s.ph === PL_HOME ? 'автопилот: летим домой' : 'посадка на воду';
+      keys = [['Мышь', 'осмотреться'], ['Колесо', 'камера']];
     }
-    const sub = `высота ${Math.max(0, Math.round(p.y - PLANE_FLOAT_Y))} м · ${Math.round(p.v * 3.6)} км/ч`;
-    const key = `${title}|${help}|${sub}|${asking}|${s.ph}|${this.view.b}`;
-    if (key === this.hudKey) return;
-    this.hudKey = key;
-    this.hudTitle.innerHTML = `✈ «Стриж» · ${title}`;
-    this.hudSub.textContent = sub;
-    this.hudHelp.textContent = help;
-    this.hudHelp.classList.toggle('pl-ask', asking);
-    this.hudLand.hidden = s.ph !== PL_FLY;
-    this.hudLand.textContent = asking ? 'Точно сесть?' : 'Сесть сейчас';
+    const sub = `${note ? `${note} · ` : ''}высота ${Math.max(0, Math.round(p.y - PLANE_FLOAT_Y))} м · ${Math.round(p.v * 3.6)} км/ч`;
+    const key = `${title}|${sub}|${timer}`;
+    if (key !== this.hudKey) {
+      this.hudKey = key;
+      this.d.ui?.top.event({
+        key: EVENT, prio: PRIO.mode,
+        html: `<span class="k-event-ic">${iconImg('landing', '')}</span><div class="k-event-title">«Стриж» · ${title}</div><div class="k-event-sub">${sub}</div>${timer ? `<div class="k-event-timer">${timer}</div>` : ''}`,
+      });
+    }
     this.hudBanner.hidden = (s.ph !== PL_START && s.ph !== PL_FLY) || !!this.view.b;
+    // клавиши строкой (на телефоне — свои кнопки); «Точно сесть?» — вместо них, золотой подсказкой. Высота и скорость
+    // меняются каждый кадр — ряд и кнопку «Сесть» строим заново только при смене фазы или вопроса
+    const rowKey = `${s.ph}|${asking}`;
+    if (rowKey === this.rowKey) return;
+    this.rowKey = rowKey;
+    const row = TOUCH || asking || !keys.length ? '' : keysRow(keys).innerHTML.replace(/<kbd class="k-key">Мышь<\/kbd>/g, MOUSE_CAP);
+    this.keys.innerHTML = row;
+    this.keys.hidden = !row;
+    this.ask.hidden = !asking;
+    if (asking) this.ask.innerHTML = `${TOUCH ? '' : capHtml('E')}<span>Точно сесть?</span><span class="k-prompt-sep"></span><span class="k-prompt-note">${TOUCH ? 'нажми кнопку ещё раз' : 'нажми E ещё раз'} — летим домой</span>`;
+    this.hudLand.hidden = s.ph !== PL_FLY;
+    this.hudLand.innerHTML = `<span>${asking ? 'Точно сесть?' : 'Сесть сейчас'}</span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">E</kbd>'}`;
   }
 
   /** E в полёте: первый раз — спросить, второй (в течение 3 с) — домой. */

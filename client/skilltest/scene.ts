@@ -38,7 +38,6 @@ const STEP = 1 / 60;
 
 /** Сбитый кувыркается столько секунд (сальто вокруг середины тела) */
 const TUMBLE_S = 0.7;
-const MEDAL_CLASS = ['', 'bronze', 'silver', 'gold'] as const;
 const PITCH_MIN = -0.6;
 const PITCH_MAX = 0.85;
 
@@ -53,7 +52,8 @@ function byPlace(a: SkillPeer, b: SkillPeer): number {
 
 export class SkillScene implements Scene {
   readonly kind = 'skill' as const;
-  readonly wantsPointer = true;
+  /** Окно итогов: мышь свободна — кнопки «Ещё забег» и «На набережную» нажимаются мышью */
+  get wantsPointer(): boolean { return !this.hud.open; }
   readonly touchMode = 'walk' as const;
   readonly touchUseIcon = '⟳';
   readonly world: SkillWorld;
@@ -125,12 +125,18 @@ export class SkillScene implements Scene {
     this.predictor = new Predictor(this.world.collision, this.dynamics);
     this.fx = new SkillFx(this.world.scene);
     this.sfx = new SkillSfx(d.sound);
-    this.hud = new SkillHud(d.hudRoot, {
+    this.hud = new SkillHud(d.hudRoot, d.ui, {
       respawn: () => this.use(1),
       restart: () => this.use(0),
       again: () => this.again(),
-      leave: () => d.net.send({ t: 'leave' }),
+      leave: () => this.leave(),
     });
+    // итоги открылись — мышь кнопкам окна; закрылись сами — пауза потом вуалью «Кликни, чтобы играть», а не меню
+    this.hud.onOpen = (open) => {
+      if (!this.active) return;
+      if (open) d.input.unlock();
+      else d.quietPause?.();
+    };
     this.world.onPuff = (x, y, z, kind) => this.puff(x, y, z, kind);
     this.world.setQuality(d.settings.quality);
     window.addEventListener('wheel', (e) => {
@@ -584,27 +590,28 @@ export class SkillScene implements Scene {
     const sec = SKILL_SECTIONS[cp];
     this.hud.section(cp, SKILL_SECTIONS.length, sec.name, sec.rule);
     this.hud.live(p.finishedAt === null && cp === SKILL_SECTIONS.length - 1 ? this.stairsHint() : '');
-    let time = skillTime(0), sub: string, cls = '';
+    // плашка времени: медаль цели («Золото — до 2:00»), рекорд и падения, секундомер, полоса — сколько прошло до цели
+    let time = skillTime(0), medal = 3, title = `Золото — до ${skillClock(SKILL_GOLD_TICKS)}`, frac = 0;
     if (p.startedAt !== null) {
       const el = Math.max(0, (p.finishedAt ?? this.viewTick) - p.startedAt);
       time = skillTime(el);
       if (p.finishedAt !== null) {
-        const m = skillMedal(el);
-        sub = `${SKILL_MEDALS[m]} · колокол!`;
-        cls = MEDAL_CLASS[m];
-      } else if (el <= SKILL_GOLD_TICKS) {
-        sub = `до золота ${skillClock(SKILL_GOLD_TICKS - el)}`;
-        cls = 'gold';
-      } else if (el <= SKILL_SILVER_TICKS) {
-        sub = `до серебра ${skillClock(SKILL_SILVER_TICKS - el)}`;
-        cls = 'silver';
+        medal = skillMedal(el);
+        title = `${SKILL_MEDALS[medal]} · колокол!`;
+        frac = 1;
+      } else if (el <= SKILL_GOLD_TICKS) frac = el / SKILL_GOLD_TICKS;
+      else if (el <= SKILL_SILVER_TICKS) {
+        medal = 2;
+        title = `Серебро — до ${skillClock(SKILL_SILVER_TICKS)}`;
+        frac = el / SKILL_SILVER_TICKS;
       } else {
-        sub = 'бронза — главное, дойди';
-        cls = 'bronze';
+        medal = 1;
+        title = 'Бронза — главное, дойди';
+        frac = 1;
       }
-    } else sub = this.racer && this.race.phase === 'pre' ? 'старт — по отсчёту' : 'время пойдёт, как сойдёшь с крыши';
-    const best = (this.best > 0 ? `рекорд ${skillTime(Math.round(this.best * 0.06))}` : 'рекорда пока нет') + (p.falls > 0 ? ` · падений ${p.falls}` : '');
-    this.hud.clock(time, sub, cls, best);
+    }
+    const sub = (this.best > 0 ? `Рекорд ${skillClock(Math.round(this.best * 0.06))}` : 'Рекорда пока нет') + (p.falls > 0 ? ` · падений ${p.falls}` : '');
+    this.hud.clock({ time, medal, title, sub, frac, started: p.startedAt !== null });
     const top = this.world.map.bell.y0;
     const myY = this.predictor.state.y;
     const marks: MeterMark[] = this.peers.map((q) => {
@@ -616,7 +623,7 @@ export class SkillScene implements Scene {
     else if (this.racer && this.race.phase === 'run' && this.race.racers > 1) {
       const order = this.peers.filter((q) => q.racer).sort(byPlace);
       const i = order.findIndex((q) => q.id === this.myId);
-      if (i >= 0) place = `${i + 1} место из ${order.length}`;
+      if (i >= 0) place = `${i + 1} / ${order.length}`;
     }
     this.hud.meterUpdate(marks, p.finishedAt !== null ? 1 : myY / top, place);
     if (this.race.phase === 'done' && this.race.rows.length > 0) {
@@ -660,10 +667,19 @@ export class SkillScene implements Scene {
       return;
     }
     this.confirmAt = 0;
+    // из окна итогов (E или кнопка — это жест): мышь снова игре
+    if (this.hud.open) this.d.wantPointer();
     this.d.net.send({ t: 'use', id: 2 });
   }
 
+  /** На набережную (кнопка или Esc в итогах): пауза потом — вуалью, а не меню */
+  private leave(): void {
+    this.d.quietPause?.();
+    this.d.net.send({ t: 'leave' });
+  }
+
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    if (code === 'Escape' && this.hud.open) { e.preventDefault(); if (down && !e.repeat) this.leave(); return true; }
     if (!down || e.repeat || this.d.input.blocked) return false;
     if (code === 'KeyR' || code === 'KeyN') {
       this.use(code === 'KeyR' ? 1 : 0);

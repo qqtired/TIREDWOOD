@@ -491,6 +491,10 @@ export class LobbyScene implements Scene {
       top: d.ui.top,
       icon: uiIcon,
       under: d.ui.slots.tcUnder,
+      bottom: d.ui.slots.bc,
+      shell: d.hudRoot,
+      // итоги набега закрыли (кнопкой, Esc) или они закрылись сами: мышь — обратно; без жеста — вуаль, а не меню
+      closed: () => { if (!this.wantsPointer) return; d.quietPause?.(); d.wantPointer(); },
     });
     for (const z of START_ZONES) {
       const circle = new StartCircle(this.world.scene, { ...z, color: z.kind === 'fort' ? 0xd9b465 : 0x6fc7b8, label: z.kind === 'fort' ? 'КРЕПОСТЬ' : 'ПЕЙНТБОЛ', subtitle: 'Встань на 3 секунды · E — сразу' });
@@ -569,7 +573,7 @@ export class LobbyScene implements Scene {
       d.sound.fanfare([x, 0.6, z]);
       void rat;
     };
-    this.ratHud = new RatRaceHud(d.overlay, (msg) => d.net.send(msg), () => d.ui.me().tokens);
+    this.ratHud = new RatRaceHud(d.hudRoot, (msg) => d.net.send(msg), () => d.ui.me().tokens, d.ui);
     this.ratHud.onOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.ratHud.onClose = () => d.wantPointer();
     this.ratHud.onCheer = (rat) => d.net.send({ t: 'rat', a: 'cheer', rat });
@@ -591,6 +595,7 @@ export class LobbyScene implements Scene {
     this.aqua = new AquaPark(this.world.scene, this.effects, PLAZA2);
     this.rg = new RegattaClient({
       scene: this.world.scene, effects: this.effects, sound: d.sound, hudRoot: this.hud.root,
+      ui: d.ui, shell: d.hudRoot, freeMouse: (free) => { if (free) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg),
       tapUse: () => { d.input.tap('KeyE', true); d.input.tap('KeyE', false); },
       low: () => lobbyQuality(d.settings.quality) === 'low',
@@ -599,6 +604,7 @@ export class LobbyScene implements Scene {
       scene: this.world.scene, sound: d.sound, hudRoot: this.hud.root, input: d.input,
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg), me: () => d.ui.me(),
       modal: (open) => { if (open) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
+      ui: d.ui, shell: d.hudRoot,
     });
     this.losers = new LosersScreen(this.world.scene);
     this.tg = new TgScreen(this.world.scene);
@@ -643,7 +649,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
