@@ -66,6 +66,7 @@ import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
 import { Plaza3Dress } from './plaza3/dress.ts';
+import { ArcadeClient } from './plaza3/arcade/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
@@ -250,6 +251,7 @@ export class LobbyScene implements Scene {
   private isle: IsleClient | null = null;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
+  private readonly arcade: ArcadeClient | null;
   /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
   private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
@@ -447,6 +449,9 @@ export class LobbyScene implements Scene {
     this.hud = new LobbyHud(d.hudRoot);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
+    // аркада новой набережной (флаг PLAZA3, client/lobby/plaza3/arcade): шесть автоматов в курзале и окно игры
+    const arcPts = this.world.map.interact.filter((it) => it.kind === 'arcade').sort((a, b) => a.arg - b.arg);
+    this.arcade = arcPts.length ? new ArcadeClient({ scene: this.world.scene, wet: this.world.plazaCtx.wet, points: arcPts, hudRoot: this.hud.root, sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, onOpen: () => { d.input.releaseAll(); d.input.unlock(); }, onClose: () => d.wantPointer() }) : null;
     // радио на лодке: свои лодки (client/boat/ownboats.ts) — где лодка и на борту ли я; тестовое /radio — у желейки хозяина
     this.radio = new BoatRadio({
       sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
@@ -634,7 +639,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || !!this.arcade?.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -646,7 +651,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen || this.ob.modalOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.arcade?.isOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -753,6 +758,7 @@ export class LobbyScene implements Scene {
     this.entered = true;
     this.resetAdditions();
     this.juke.reset(true);
+    this.arcade?.reset();
     this.radio.reset(true);
     this.myId = -1;
     this.hasSelf = false;
@@ -818,6 +824,7 @@ export class LobbyScene implements Scene {
   exit(): void {
     this.resetAdditions();
     this.juke.reset(false);
+    this.arcade?.reset();
     this.radio.reset(false);
     this.entered = false;
     this.hasSelf = false;
@@ -873,6 +880,7 @@ export class LobbyScene implements Scene {
   // ------------------------------------------------------------ сеть: JSON
 
   onJson(msg: ServerMsg): void {
+    if (this.arcade?.onMsg(msg)) return;
     switch (msg.t) {
       case 'redeemResult':
         this.wardrobe.giftResult(msg.result);
@@ -1839,6 +1847,8 @@ export class LobbyScene implements Scene {
   // ------------------------------------------------------------ ввод
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    // окно аркады (client/lobby/plaza3/arcade): клавиши — игре, Esc — выйти, шагать нельзя
+    if (this.arcade?.onKey(code, down, e)) return true;
     // пилот гидроплана: E — «сесть сейчас», Ctrl — медленнее
     if (this.plane.onKey(code, down, e)) return true;
     // в своей лодке: Z — якорь, пробел — гудок, G — продать улов (R — радио, client/boat/radio.ts)
@@ -2406,6 +2416,7 @@ export class LobbyScene implements Scene {
     this.rat3d.update(dt, this.time, camPos);
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
+    this.arcade?.update(dt, camPos);
     this.radio.update(dt, this.world.camera);
     this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
@@ -2998,6 +3009,9 @@ export class LobbyScene implements Scene {
         break;
       case 'juke':
         this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песни от ${JUKE_PRICE} 🪙`);
+        break;
+      case 'arcade':
+        if (this.arcade) this.hud.setHint(...this.arcade.hint(it.arg));
         break;
       case 'boat':
         if (this.boat.ph === BP_BOARD) this.hud.setHint(['E'], `сесть в катер — бесплатно · отплытие через ${this.boatSecs()} с`);

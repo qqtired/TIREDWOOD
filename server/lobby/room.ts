@@ -79,6 +79,7 @@ import { sellFromBoat } from './fishlivewell.ts';
 import { PLANE_EXIT } from '../../shared/plane.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
+import { ArcadeHall } from './arcade.ts';
 import { WheelRide } from './wheel.ts';
 import { FishHolds } from './fishhold.ts';
 
@@ -133,6 +134,8 @@ export class LobbyRoom implements Room {
   readonly map: LobbyMap;
   readonly world: CollisionWorld;
   readonly slots: SlotHall;
+  /** Аркада новой набережной (WP12, server/lobby/arcade.ts): null — в карте нет точек 'arcade' (без флага PLAZA3) */
+  readonly arcade: ArcadeHall | null;
   readonly durak: DurakHall;
   readonly blackjack: BlackjackHall;
   readonly storm: Storm | null;
@@ -379,6 +382,26 @@ export class LobbyRoom implements Room {
       log: (text) => console.log(text),
     }) : null;
     if (!this.billiards) for (const box of this.map.billiardsBoxes) this.world.setEnabled(box, false);
+    const arcadeCabs = this.map.interact.filter((it) => it.kind === 'arcade').sort((a, b) => a.arg - b.arg);
+    this.arcade = arcadeCabs.length ? new ArcadeHall({
+      cabs: arcadeCabs,
+      who: (slot) => {
+        const p = this.players.get(slot), pr = p?.client.profile;
+        return p && pr && !p.client.ephemeral ? { pid: pr.id, nick: p.client.nick, profile: pr, x: p.state.x, z: p.state.z } : null;
+      },
+      profiles: () => hub.store.state.profiles,
+      credit: (pid, n) => {
+        const pr = hub.profiles.byId(pid);
+        if (pr) { hub.profiles.credit(pr, n, 'mode'); this.syncBlackjackBalance(pid); }
+      },
+      send: (slot, m) => this.players.get(slot)?.client.sink.sendJson(m),
+      broadcast: (m) => this.broadcast(m),
+      toast: (slot, text) => { const p = this.players.get(slot); if (p) hub.toast(p.client, text); },
+      announce: (text) => hub.announce(text),
+      markDirty: () => hub.store.markDirty(),
+      limit: (key, n, ms) => hub.limits.hit(key, n, ms),
+      now: () => this.now(),
+    }) : null;
     const fishHost: FishingHost = {
       event: (e) => this.events.push(e),
       who: (slot) => {
@@ -687,6 +710,7 @@ export class LobbyRoom implements Room {
       else c.sink.sendJson({ t: 'juke', v: this.juke.view(this.now()) });
     }
     this.radios?.welcome((m) => c.sink.sendJson(m));
+    this.arcade?.welcome((m) => c.sink.sendJson(m));
     const kpos = this.hub.race.positions();
     if (kpos) c.sink.sendJson({ t: 'kpos', p: kpos });
     // экран с чатом друзей из Telegram на крыше склада — всё, что на нём сейчас (дальше — только новое)
@@ -707,6 +731,7 @@ export class LobbyRoom implements Room {
     this.release(p, true);
     this.plane?.drop(p);
     this.ownboats?.drop(p);
+    this.arcade?.leave(p.slot);
     this.aqua.drop(p.slot);
     this.circle.delete(p);
     this.boatQueue?.drop(p);
@@ -785,6 +810,9 @@ export class LobbyRoom implements Room {
         return;
       case 'unuse':
         this.release(p);
+        return;
+      case 'arc':
+        this.arcade?.message(p.slot, msg);
         return;
       case 'ob':
         if (this.ownboats && this.hub.limits.hit(`ob:${c.id}`, 8, 1000)) this.ownboats.message(p, msg);
@@ -1085,6 +1113,10 @@ export class LobbyRoom implements Room {
       case 'dungeon':
         // «Подземелье» выключено флагом — точки как бы нет; включено — свой инстанс на игрока
         if (!c.ephemeral) this.hub.dungeon?.enter(c);
+        return;
+      case 'arcade':
+        // аркада (WP12): корпус занимает сервер, окно игры открывает ответ arcOpen
+        this.arcade?.use(p.slot, it.arg);
         return;
       case 'oboat':
         // своя лодка у берта: сесть (флаг ISLE выключен — точки как бы нет); свободный берт — окно вызова открывает клиент
@@ -1718,6 +1750,7 @@ export class LobbyRoom implements Room {
     this.durak.step(this.tick);
     this.blackjack.step(this.tick);
     this.billiards?.step(this.tick);
+    this.arcade?.step(this.tick);
     this.stepStartZones();
     this.stepFarmRoad();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)

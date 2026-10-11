@@ -34,6 +34,7 @@ import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
+import type { ArcadeClientMsg, ArcadeServerMsg } from './arcade/net.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'skill' | 'hide' | 'dungeon' | 'farm';
 
@@ -187,6 +188,8 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | KickClientMsg
+  /** Аркада новой набережной (shared/arcade/net.ts) */
+  | ArcadeClientMsg
   | DgClientMsg
   | RatClientMsg
   | BilliardsClientMsg
@@ -440,6 +443,8 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | KickServerMsg
+  /** Аркада новой набережной (shared/arcade/net.ts) */
+  | ArcadeServerMsg
   | DgServerMsg
   /** «Подземелье»: табличка рекордов у входа в пещеру — когда поменялась (флаг DUNGEON) */
   | ({ t: 'dgSt' } & DgStatus)

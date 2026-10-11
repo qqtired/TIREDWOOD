@@ -2654,6 +2654,22 @@ export const P3: Plaza3Layout = {
       "color": 16183264
     },
     {
+      "id": "pav.kurzal.arcade",
+      "q": "games",
+      "min": [
+        51.05,
+        0,
+        7.5
+      ],
+      "max": [
+        58.45,
+        1.95,
+        8.38
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
       "id": "pav.tribune1",
       "q": "games",
       "min": [
