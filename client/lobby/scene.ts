@@ -63,6 +63,9 @@ import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
+import { Plaza3Dress } from './plaza3/dress.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
@@ -344,7 +347,7 @@ export class LobbyScene implements Scene {
   private boatYaw = LAUNCH.yaw;
   private readonly boatSign: BoatSign;
   /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
-  private readonly plaza: PlazaDress | null;
+  private readonly plaza: PlazaDress | Plaza3Dress | null;
   private readonly plazaLive: LiveIn = emptyLive();
   /** Над катером во время посадки: отсчёт и «Садись!» */
   private readonly boatBanner: BoatBanner;
@@ -572,7 +575,8 @@ export class LobbyScene implements Scene {
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
-    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    // новая набережная (флаг PLAZA3): своё оформление входов, когда готов блокаут (legacyStatic: false)
+    this.plaza = PLAZA3 && !P3.legacyStatic ? new Plaza3Dress(this.world.plazaCtx) : PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
     // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
     onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);

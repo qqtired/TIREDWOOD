@@ -25,6 +25,10 @@ import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
 import { Builder } from './builder.ts';
 import type { GameMap } from './types.ts';
 import { CRITTERS_ENABLED, coveBoxes } from './critters.ts';
+import { PLAZA3 } from '../layout.ts';
+import { P3 } from '../plaza3/layout.ts';
+import { plaza3Interacts, plaza3Static } from '../plaza3/map.ts';
+import type { P3Rect, Plaza3Lobby } from '../plaza3/types.ts';
 
 /** «Подземелье»: точка E у зева пещеры и где встаёт вернувшийся (docs/survivors/level-data.json, plaza.cave) */
 export const DUNGEON_USE = { x: -14.6, z: 10.5, r: 1.8, yaw: 1.9 } as const;
@@ -36,8 +40,9 @@ export const DUNGEON_RETURN = { x: -13.1, z: 10.0, yaw: -1.275 } as const;
  * plane — гидроплан «Стриж» у западного края площади, banner — заказ баннера (флаг PLANE, shared/plane.ts);
  * dungeon — вход в пещеру «Подземелья» на западной лужайке (флаг DUNGEON, docs/survivors/level.md §8);
  * oboat — берт своей лодки (arg 0–9 — стоянка за домом Семёна, 10–15 — причал острова; флаг ISLE, shared/ownboat.ts);
- * farm — калитка фермы на восточном конце Улицы Аттракционов (флаг FARM, shared/farmlayout.ts plazaGate) */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'retired' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm';
+ * farm — калитка фермы на восточном конце Улицы Аттракционов (флаг FARM, shared/farmlayout.ts plazaGate);
+ * arcade — аркадный автомат новой набережной (флаг PLAZA3, shared/plaza3/map.ts): точки №113 и дальше, arg — номер автомата */
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'retired' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm' | 'arcade';
 
 export interface Interactable {
   id: number;
@@ -123,6 +128,8 @@ export interface LobbyMap extends GameMap {
   plazaBoxes: number[];
   /** Из них — предметы режимов за флагами (двор прятков, мачты регаты): без флага их выключают, как на экране */
   plazaModeBoxes: Record<PlazaSolidMode, number[]>;
+  /** Твёрдое новой набережной (shared/plaza3/map.ts, номера в boxes) — только с флагом PLAZA3 */
+  plaza3Boxes?: number[];
 }
 
 export const MACHINE_XS = [-25, -22.5, -20, -17.5, -15];
@@ -191,6 +198,41 @@ export const PHOTO = { x: -19, z: 33.75, spotX: -19, spotZ: 39.6 };
 /** Сохранён прежний import path: 8 мест на мостках и 4 на площадке маяка. */
 export { FISH_SPOTS } from '../fishplaces.ts';
 
+/**
+ * Числа из тела buildLobby(), которые зависят от площади (docs/plaza3/tech-foundation.md §1.5): точки входов, места
+ * появления, фонари, кнехты, рамки. Без флага — прежние литералы; с PLAZA3 — из docs/plaza3/level/layout.json (lobby).
+ * Сборки режимов (автоматы, столы, бильярд…) переезжают своими константами через pick()/xf() (shared/plaza3/xf.ts).
+ */
+const L2: Plaza3Lobby = {
+  spawn: { x: 0, z: 6, yaw: 0 },
+  pbGate: { x: 0, z: -15.2, yaw: 0, r: 2.2 },
+  kiosk: { x: -23.4, z: -1.4, yaw: Math.PI / 2, r: 4.5 },
+  mirror: { x: -25.4, z: -1.4, yaw: -Math.PI / 2 },
+  honorBoard: { x0: 6, z0: -2, x1: 10, z1: -1.6 },
+  honor: { x: 8, z: -0.3, yaw: 0, r: 1.8 },
+  kboard: { x: 26.05, z: -14.3, yaw: Math.PI, r: 1.6 },
+  lamps: [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]],
+  bollardsWest: { x: -29.2, zs: [-12, 6, 12, 18] },
+  bollardsSouth: { z: 21.2, xs: [-26, -12, -4, 4, 12, 20, 26] },
+  gateSpawn: { x: 0, z: -12.5, yaw: Math.PI },
+  garageSpawn: { x: 15.2, z: -12.4, yaw: Math.PI },
+  skillSpawn: { x: SKILL_PORTAL.x, z: -9.4, yaw: 0 },
+  lighthouse: { x: -19, z: 43 },
+  zones: {
+    arcade: { x0: -28, z0: -26, x1: -12, z1: -16 },
+    warehouse: { x0: -9, z0: -26, x1: 9, z1: -16 },
+    garage: { x0: 13, z0: -26, x1: 28, z1: -16 },
+    cafe: { x0: 24, z0: -10, x1: 30, z1: 4 },
+    terrace: { x0: 14, z0: -9, x1: 23, z1: 15 },
+    kiosk: { x0: -29.5, z0: -6, x1: -25.5, z1: 0 },
+  },
+  bounds: { minX: -30, maxX: 30, minZ: -26, maxZ: FISH_PIER_HEAD.z1 },
+};
+const L: Plaza3Lobby = PLAZA3 ? P3.lobby : L2;
+/** Старая статика площади (настил, павильоны и стены plaza2): без флага — всегда, с PLAZA3 — пока нет блокаута (legacyStatic) */
+const OLD_STATIC = !PLAZA3 || P3.legacyStatic;
+const rect = (r: P3Rect): Box2 => ({ x0: r.x0, z0: r.z0, x1: r.x1, z1: r.z1 });
+
 const BRICK = 0x9a5a48;
 const BRICK_DARK = 0x7d4a3c;
 const CONCRETE = 0xcfc7b6;
@@ -209,30 +251,35 @@ export function buildLobby(): LobbyMap {
     interact.push({ id: interact.length, kind, x, y: 0, z, yaw, r, arg, label });
   };
 
-  // --- Настил и бордюр вдоль моря (запад и юг), кроме проходов на мостки к маяку и на мостик аквапарка
+  // --- Статика площади: старая (ниже — блоки под OLD_STATIC) или новая из docs/plaza3/level/layout.json (plaza3Static).
+  // Вызовы add(...) под OLD_STATIC не попадают никогда: номера точек 0–112 одинаковы в обеих раскладках
   const J = AQUA_JETTY;
-  b.box([-30, -0.6, -26], [30, 0, 22], 'deck', 0xd2c3aa);
-  b.box([-30, 0, -26], [-29.7, 0.22, J.z0], 'concrete', CONCRETE);
-  b.box([-30, 0, J.z1], [-29.7, 0.22, 22], 'concrete', CONCRETE);
-  b.box([-29.7, 0, 21.7], [-21, 0.22, 22], 'concrete', CONCRETE);
-  b.box([-17, 0, 21.7], [30, 0.22, 22], 'concrete', CONCRETE);
-  // Восток — парапет над улицей (кроме стены кафе)
-  b.box([29.6, 0, -16], [30, 1.0, -10], 'concrete', CONCRETE);
-  b.box([29.6, 0, 4], [30, 1.0, 22], 'concrete', CONCRETE);
+  if (OLD_STATIC) {
+    // --- Настил и бордюр вдоль моря (запад и юг), кроме проходов на мостки к маяку и на мостик аквапарка
+    b.box([-30, -0.6, -26], [30, 0, 22], 'deck', 0xd2c3aa);
+    b.box([-30, 0, -26], [-29.7, 0.22, J.z0], 'concrete', CONCRETE);
+    b.box([-30, 0, J.z1], [-29.7, 0.22, 22], 'concrete', CONCRETE);
+    b.box([-29.7, 0, 21.7], [-21, 0.22, 22], 'concrete', CONCRETE);
+    b.box([-17, 0, 21.7], [30, 0.22, 22], 'concrete', CONCRETE);
+    // Восток — парапет над улицей (кроме стены кафе)
+    b.box([29.6, 0, -16], [30, 1.0, -10], 'concrete', CONCRETE);
+    b.box([29.6, 0, 4], [30, 1.0, 22], 'concrete', CONCRETE);
 
-  // --- Невидимые стены: далеко в море (на западе — за аквапарком), за зданиями и над парапетом. Южная — с проёмом
-  // x −30…−5 у пирса: вокруг дальних мостков и дома рыбака своя «бухта» (стены — в блоке пирса ниже)
-  b.box([-98, -6, -30], [-97, 30, 50], 'invisible', 0);
-  b.box([-98, -6, 48], [-30, 30, 49], 'invisible', 0);
-  b.box([30.5, -6, -30], [31.5, 30, 50], 'invisible', 0);
-  b.box([-98, -6, -27], [31.5, 30, -26], 'invisible', 0);
+    // --- Невидимые стены: далеко в море (на западе — за аквапарком), за зданиями и над парапетом. Южная — с проёмом
+    // x −30…−5 у пирса: вокруг дальних мостков и дома рыбака своя «бухта» (стены — в блоке пирса ниже)
+    b.box([-98, -6, -30], [-97, 30, 50], 'invisible', 0);
+    b.box([-98, -6, 48], [-30, 30, 49], 'invisible', 0);
+    b.box([30.5, -6, -30], [31.5, 30, 50], 'invisible', 0);
+    b.box([-98, -6, -27], [31.5, 30, -26], 'invisible', 0);
 
-  // --- Павильон автоматов (x −28..−12): задняя стена, боковые, крыша на столбах
-  b.box([-28, 0, -26], [-12, 5, -25.4], 'brick', BRICK);
-  b.box([-28, 0, -25.4], [-27.4, 5, -16], 'brick', BRICK);
-  b.box([-12.6, 0, -25.4], [-12, 5, -16], 'brick', BRICK);
-  b.box([-28, 4.6, -25.4], [-12, 5.0, -16], 'wood', 0x6b4a36);
-  for (const x of [-22.5, -17.5]) b.box([x - 0.2, 0, -16.4], [x + 0.2, 4.6, -16], 'wood', 0x6b4a36);
+    // --- Павильон автоматов (x −28..−12): задняя стена, боковые, крыша на столбах
+    b.box([-28, 0, -26], [-12, 5, -25.4], 'brick', BRICK);
+    b.box([-28, 0, -25.4], [-27.4, 5, -16], 'brick', BRICK);
+    b.box([-12.6, 0, -25.4], [-12, 5, -16], 'brick', BRICK);
+    b.box([-28, 4.6, -25.4], [-12, 5.0, -16], 'wood', 0x6b4a36);
+    for (const x of [-22.5, -17.5]) b.box([x - 0.2, 0, -16.4], [x + 0.2, 4.6, -16], 'wood', 0x6b4a36);
+  }
+  const plaza3Boxes = PLAZA3 ? plaza3Static(b) : [];
   const machines: Array<{ x: number; z: number }> = [];
   MACHINE_XS.forEach((x, m) => {
     b.box([x - 0.55, 0, -25.4], [x + 0.55, 2.1, MACHINE_FRONT_Z], 'metal', METAL);
@@ -240,42 +287,44 @@ export function buildLobby(): LobbyMap {
     add('slot', x, MACHINE_FRONT_Z + 1, 0, 1.0, m, 'сыграть');
   });
 
-  // --- Склад №3 (x −9..9, 9 м): два блока, перемычка над воротами, ниша 2 м вглубь
-  b.box([-9, 0, -26], [-3, 9, -16], 'brick', BRICK_DARK);
-  b.box([3, 0, -26], [9, 9, -16], 'brick', BRICK_DARK);
-  b.box([-3, 4.5, -26], [3, 9, -16], 'brick', BRICK_DARK);
-  b.box([-3, 0, -26], [3, 4.5, -18], 'invisible', 0);
+  if (OLD_STATIC) {
+    // --- Склад №3 (x −9..9, 9 м): два блока, перемычка над воротами, ниша 2 м вглубь
+    b.box([-9, 0, -26], [-3, 9, -16], 'brick', BRICK_DARK);
+    b.box([3, 0, -26], [9, 9, -16], 'brick', BRICK_DARK);
+    b.box([-3, 4.5, -26], [3, 9, -16], 'brick', BRICK_DARK);
+    b.box([-3, 0, -26], [3, 4.5, -18], 'invisible', 0);
 
-  // --- Гараж картинга (x 13..28)
-  b.box([13, 0, -26], [28, 6, -16], 'brick', BRICK);
+    // --- Гараж картинга (x 13..28)
+    b.box([13, 0, -26], [28, 6, -16], 'brick', BRICK);
 
-  // Закутки у моря и за гаражом закрыты низкой стенкой, проулки между зданиями — забором
-  b.box([-30, 0, -16.3], [-28, 1.2, -16], 'brick', BRICK);
-  b.box([28, 0, -16.3], [30, 1.2, -16], 'brick', BRICK);
-  b.box([-12, 0, -25.6], [-9, 2.2, -25.4], 'wood', WOOD);
-  b.box([9, 0, -25.6], [13, 2.2, -25.4], 'wood', WOOD);
-  b.crate(-10.9, 0, -23.8, 1.2, false);
-  b.crate(-10.9, 1.2, -23.8, 1.0, false);
-  b.crate(-10.2, 0, -21.9, 1.0, false);
-  b.barrel(11.2, -23.6, 0x2f6a8a);
-  b.barrel(11.9, -22.8, 0x2f6a8a);
-  b.barrel(10.6, -21.2, 0xb04a36);
+    // Закутки у моря и за гаражом закрыты низкой стенкой, проулки между зданиями — забором
+    b.box([-30, 0, -16.3], [-28, 1.2, -16], 'brick', BRICK);
+    b.box([28, 0, -16.3], [30, 1.2, -16], 'brick', BRICK);
+    b.box([-12, 0, -25.6], [-9, 2.2, -25.4], 'wood', WOOD);
+    b.box([9, 0, -25.6], [13, 2.2, -25.4], 'wood', WOOD);
+    b.crate(-10.9, 0, -23.8, 1.2, false);
+    b.crate(-10.9, 1.2, -23.8, 1.0, false);
+    b.crate(-10.2, 0, -21.9, 1.0, false);
+    b.barrel(11.2, -23.6, 0x2f6a8a);
+    b.barrel(11.9, -22.8, 0x2f6a8a);
+    b.barrel(10.6, -21.2, 0xb04a36);
+  }
 
-  add('pb_gate', 0, -15.2, 0, 2.2, 0, 'в пейнтбол');
+  add('pb_gate', L.pbGate.x, L.pbGate.z, L.pbGate.yaw, L.pbGate.r, 0, 'в пейнтбол');
   add('garage', KART_START.x, KART_START.z, 0, KART_START.r, 0, 'Картинг');
 
   // --- Ларёк «Примерочная» у воды; зеркало на его восточной стене
-  b.box([-29.5, 0, -6], [-25.5, 3.2, 0], 'wood', 0x3f6f8f);
-  const mirror: Spot = { x: -25.4, y: 0, z: -1.4, yaw: -Math.PI / 2 };
-  add('kiosk', -23.4, -1.4, Math.PI / 2, 4.5, 0, 'примерочная');
+  if (OLD_STATIC) b.box([-29.5, 0, -6], [-25.5, 3.2, 0], 'wood', 0x3f6f8f);
+  const mirror: Spot = { x: L.mirror.x, y: 0, z: L.mirror.z, yaw: L.mirror.yaw };
+  add('kiosk', L.kiosk.x, L.kiosk.z, L.kiosk.yaw, L.kiosk.r, 0, 'примерочная');
 
   // --- Доска почёта на площади (лицом на юг, к точке появления)
-  const honorBoard: Box2 = { x0: 6, z0: -2, x1: 10, z1: -1.6 };
-  b.box([honorBoard.x0, 0, honorBoard.z0], [honorBoard.x1, 3.4, honorBoard.z1], 'wood', 0x5a3e2b);
-  add('honor', 8, -0.3, 0, 1.8, 0, 'Доска почёта');
+  const honorBoard: Box2 = rect(L.honorBoard);
+  if (OLD_STATIC) b.box([honorBoard.x0, 0, honorBoard.z0], [honorBoard.x1, 3.4, honorBoard.z1], 'wood', 0x5a3e2b);
+  add('honor', L.honor.x, L.honor.z, L.honor.yaw, L.honor.r, 0, 'Доска почёта');
 
   // --- Кафе «Чайка»: домик у восточного края, терраса со столиками
-  b.box([24, 0, -10], [30, 4, 4], 'wood', 0xe8dcc4);
+  if (OLD_STATIC) b.box([24, 0, -10], [30, 4, 4], 'wood', 0xe8dcc4);
   const tables = TABLE_ZS.map((z) => ({ x: TABLE_X, z }));
   for (const t of tables) b.box([t.x - 0.55, 0, t.z - 0.55], [t.x + 0.55, 0.75, t.z + 0.55], 'wood', WOOD);
   // невидимые колпаки над столиками: на стол не запрыгнуть и не встать (shared/tableguard.ts)
@@ -284,7 +333,7 @@ export function buildLobby(): LobbyMap {
 
   // --- Площадь: батуты, фонари, скамейки у моря
   for (const [x, z] of PLAZA_TRAMPOLINES) b.trampoline(x, z);
-  for (const [x, z] of [[-14, -2], [-4.5, -11], [LAMP_FORT.x, LAMP_FORT.z], [-14, 16], [2, 16], [14, 16]]) b.lamp(x, z);
+  for (const [x, z] of L.lamps) b.lamp(x, z);
   const benches = BENCH_XS.map((x) => ({ x, z: BENCH_Z, yaw: Math.PI }));
 
   // Места: сначала стулья (стол × 6, против часовой стрелки, если смотреть сверху), потом скамейки (по 2)
@@ -300,7 +349,7 @@ export function buildLobby(): LobbyMap {
   for (const bn of benches) for (const dx of [-0.5, 0.5]) add('seat', bn.x + dx, bn.z, bn.yaw, 0.7, seat++, 'сесть');
 
   // Перед табло гонки на стене гаража (табло — x 26,05, на высоте 1,8–3,7 м): E — болеть за гонщиков
-  add('kboard', 26.05, -14.3, Math.PI, 1.6, 0, 'Табло гонки');
+  add('kboard', L.kboard.x, L.kboard.z, L.kboard.yaw, L.kboard.r, 0, 'Табло гонки');
 
   // Кадки с деревьями: сама кадка и ствол над ней
   for (const [x, z] of PLANTERS) {
@@ -309,8 +358,8 @@ export function buildLobby(): LobbyMap {
   }
 
   // --- Кнехты вдоль воды
-  for (const z of [-12, 6, 12, 18]) b.bollard(-29.2, z);
-  for (const x of [-26, -12, -4, 4, 12, 20, 26]) b.bollard(x, 21.2);
+  for (const z of L.bollardsWest.zs) b.bollard(L.bollardsWest.x, z);
+  for (const x of L.bollardsSouth.xs) b.bollard(x, L.bollardsSouth.z);
 
   // --- Мостки и маяк на юго-западе
   b.box([-21, -0.6, 22], [-17, 0, 38], 'wood', 0x8a6a4a);
@@ -323,7 +372,7 @@ export function buildLobby(): LobbyMap {
   add('photo', PHOTO.x, PHOTO.z - 0.9, Math.PI, 1.4, 0, 'фото у маяка');
   FISH_SPOTS.slice(0, 6).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, i, 'порыбачить'));
   // обратная сторона доски почёта — «Последние входы». Новые точки — только в конец: их номера шлют клиенты
-  add('recent', 8, honorBoard.z0 - 1.3, Math.PI, 1.8, 0, 'Последние входы');
+  add('recent', L.honor.x, honorBoard.z0 - 1.3, Math.PI, 1.8, 0, 'Последние входы');
   // катер у причала: E — покататься (первый платит). Точка — у середины катера: достать и с причала, и из катера
   add('boat', LAUNCH.x, LAUNCH.z - 0.4, Math.PI, 3.5, 0, 'катер');
 
@@ -563,8 +612,10 @@ export function buildLobby(): LobbyMap {
   // --- Калитка фермы (флаг FARM, docs/farm/level/level.md §9) в парапете на восточном конце Улицы Аттракционов — в конец
   // списка; без флага клиент её не рисует и не подсказывает, а сервер игнорирует
   add('farm', FARM_PLAZA_GATE.use.x, FARM_PLAZA_GATE.use.z, FARM_PLAZA_GATE.use.yaw, FARM_PLAZA_GATE.use.r, 0, 'на ферму');
+  // --- Новая набережная (флаг PLAZA3): её новые точки (аркада и т. п.) — только после №112, номера прежних не меняются
+  if (PLAZA3) plaza3Interacts(add);
 
-  const spawn: Spot = { x: 0, y: 0, z: 6, yaw: 0 };
+  const spawn: Spot = { x: L.spawn.x, y: 0, z: L.spawn.z, yaw: L.spawn.yaw };
   return {
     name: 'Набережная',
     boxes: b.boxes,
@@ -572,12 +623,12 @@ export function buildLobby(): LobbyMap {
     trampolines: b.trampolines,
     pickups: [],
     deco: b.deco,
-    bounds: { minX: -30, maxX: 30, minZ: -26, maxZ: FISH_PIER_HEAD.z1 },
+    bounds: { minX: L.bounds.minX, maxX: L.bounds.maxX, minZ: L.bounds.minZ, maxZ: L.bounds.maxZ },
     spawn,
-    gateSpawn: { x: 0, y: 0, z: -12.5, yaw: Math.PI },
-    garageSpawn: { x: 15.2, y: 0, z: -12.4, yaw: Math.PI },
+    gateSpawn: { x: L.gateSpawn.x, y: 0, z: L.gateSpawn.z, yaw: L.gateSpawn.yaw },
+    garageSpawn: { x: L.garageSpawn.x, y: 0, z: L.garageSpawn.z, yaw: L.garageSpawn.yaw },
     fortSpawn: { x: FORT_ARCH.x, y: 0, z: FORT_ARCH.z + 2.4, yaw: Math.PI },
-    skillSpawn: { x: SKILL_PORTAL.x, y: 0, z: -9.4, yaw: 0 },
+    skillSpawn: { x: L.skillSpawn.x, y: 0, z: L.skillSpawn.z, yaw: L.skillSpawn.yaw },
     boatraceSpawn: { x: BOAT_RACE_CIRCLE.x, y: 0, z: BOAT_RACE_CIRCLE.z - 3.1, yaw: Math.PI },
     hideSpawn: { x: HIDE_CIRCLE.x, y: 0, z: HIDE_CIRCLE.z - 3.1, yaw: Math.PI },
     dungeonSpawn: { x: DUNGEON_RETURN.x, y: 0, z: DUNGEON_RETURN.z, yaw: DUNGEON_RETURN.yaw },
@@ -586,16 +637,16 @@ export function buildLobby(): LobbyMap {
     machines,
     tables,
     benches,
-    lighthouse: { x: -19, z: 43 },
+    lighthouse: { x: L.lighthouse.x, z: L.lighthouse.z },
     mirror,
     honorBoard,
     zones: {
-      arcade: { x0: -28, z0: -26, x1: -12, z1: -16 },
-      warehouse: { x0: -9, z0: -26, x1: 9, z1: -16 },
-      garage: { x0: 13, z0: -26, x1: 28, z1: -16 },
-      cafe: { x0: 24, z0: -10, x1: 30, z1: 4 },
-      terrace: { x0: 14, z0: -9, x1: 23, z1: 15 },
-      kiosk: { x0: -29.5, z0: -6, x1: -25.5, z1: 0 },
+      arcade: rect(L.zones.arcade),
+      warehouse: rect(L.zones.warehouse),
+      garage: rect(L.zones.garage),
+      cafe: rect(L.zones.cafe),
+      terrace: rect(L.zones.terrace),
+      kiosk: rect(L.zones.kiosk),
     },
     boatBoxes,
     boatArea,
@@ -612,5 +663,6 @@ export function buildLobby(): LobbyMap {
     isleBoxes: isleBoxIds,
     plazaBoxes,
     plazaModeBoxes,
+    ...(PLAZA3 ? { plaza3Boxes } : {}),
   };
 }

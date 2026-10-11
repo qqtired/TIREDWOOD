@@ -33,6 +33,7 @@
 | Отказ записи сохранения | — | `store.ts`, `storage-failure.ts`, `main.ts` | штатное переподключение | — | `storage-failure.test.ts`, `server-storage-failure.test.ts` | design «Хранилище» |
 | Расчёт ставок без игроков | — | `hub.ts`, `lobby/roulette.ts`, `lobby/ratrace.ts` | — | `ROULETTE`, `RATRACE` | `hub-pending-bets.test.ts` | STATUS «Подготовка 10 октября» |
 | Площадь и набережная (plaza) | `maps/lobby.ts`, `plaza2.ts`, `lobby.ts` | `lobby/room.ts` | `lobby/scene.ts`, `lobby/world.ts`, `lobby/plaza/`, `lobby/hud.ts` | клиентский `DEFAULT_PLAZA` в `client/lobby/plaza/flag.ts`; откат — `?plaza=1` | `plaza2.test.ts`, `lobby.test.ts` | [plaza-redesign-2026-10-04.md](plaza-redesign-2026-10-04.md), [optimization.md](optimization.md) |
+| Новая набережная plaza3 (в работе: каркас переключателя, площадь пока та же) | `layout.ts` (`LAYOUT`, `PLAZA3`, `pick`), `plaza3/` (`layout.ts` — сгенерирован, `xf.ts`, `map.ts`, `types.ts`), вызовы в `maps/lobby.ts` | `hub.ts` (`plaza` в `/health`, `lay` в `me`) | `layout-boot.ts` + `main.ts` (раскладка до `import()` игры), сверка в `app.ts`, `lobby/plaza3/` (заглушки) | `PLAZA3` — только явная `1`, даже в DEV | `plaza-legacy.test.ts` (отпечаток старой площади), `plaza3-boot.test.ts`, `plaza3-map.test.ts` | [plaza3/tech-foundation.md](plaza3/tech-foundation.md); данные — `plaza3/level/layout.json` → `tools/plaza3/layout.mjs` |
 | Декор, фон, маяк и «вид» набережной | — | — | `lobby/decor.ts`, `lobby/backdrop.ts`, `lobby/look*.ts`, `lobby/tokarev-lighthouse.ts` | клиентский `DEFAULT_LOOK` в `client/render/look.ts`; откат — `?look=1` | `look.test.ts` | план `look-v2` |
 | Движение игрока и столкновения | `sim.ts`, `world.ts`, `aim.ts`, `maps/builder.ts` | — | `predict.ts`, `input.ts` | — | `sim.test.ts`, `aim.test.ts` | design «Симуляция», «Прицел от третьего лица» |
 | Сеть и протокол | `protocol.ts`, `messages.ts`, `constants.ts` (`PROTOCOL_VERSION`), `link.ts` | `main.ts`, `hub.ts`, `inputs.ts`, `link.ts` | `net.ts`, `predict.ts`, `remote.ts`, `relink.ts` | — | `hub.test.ts`, `resume.test.ts` | design «Сеть»; AGENTS §8 «Протокол» |
@@ -133,7 +134,7 @@
 - **Новое сообщение по сети** — тип в `shared/messages.ts`, обработка в `server/hub.ts` или в комнате; сменил формат — подними `PROTOCOL_VERSION` в `shared/constants.ts` (новые поля в JSON можно слать без смены номера).
 - **Новое поле профиля** — `server/store.ts` (нормализация: старые сохранения грузятся без потерь, AGENTS §10).
 - **Новый режим** — по образцу помеченных выше: `shared/<режим>*.ts`, `server/<режим>/`, `client/<режим>/`, флаг в `server/main.ts`, строка `Environment` в `deploy/game-opus.service` (только после «да» владельца), тест в `test/`.
-- **Тестовые помощники** без `.test` в имени: `test/kit.ts` (хаб и набережная), `test/fishbot.ts`, `test/skillbot.ts`, `test/hide-helpers.ts`, `test/fixtures/`.
+- **Тестовые помощники** без `.test` в имени: `test/kit.ts` (хаб и набережная), `test/lobbycheck.ts` (проверки карты набережной для обеих раскладок), `test/fishbot.ts`, `test/skillbot.ts`, `test/hide-helpers.ts`, `test/fixtures/` (в т. ч. `lobby-interact-kinds.json` — номера точек 0–112).
 
 ## 3. Карта документов
 
@@ -154,6 +155,7 @@
 | [farm/](farm/) | ферма: дизайн `design-v11.md` (v10 — история), решения владельца `decisions.md`, уровень `level/` (схема, `layout.json`), страница обзора `review/` (выложена на tired.solutions/tech/tiredwood-farm/), снимки `shots/`, превью темы `audio/` | выпущено 10.10 (релиз `20261010-204608`); числа в коде — `shared/farmdata.ts` |
 | [fitting-room.md](fitting-room.md) | отдельная лаборатория примерки, импорт/экспорт, GLB, границы переноса в игру | локальная реализация; выпуск и nginx — отдельно |
 | [lab-research-examples.md](lab-research-examples.md) | семь исследовательских примеров, из них четыре интерактивных | локальные предложения; не решение «Берём» и не перенос механик в игру |
+| [plaza3/](plaza3/) | новая набережная (флаг `PLAZA3`): технический фундамент `tech-foundation.md` (переключатель, перенос режимов, пакеты WP0–WP14), уровень `level/` (`layout.json`, `check.mjs`) | в работе; WP0 (каркас) сделан 11.10 |
 | [plaza-redesign-2026-10-04.md](plaza-redesign-2026-10-04.md) | концепция новой площади: входы в режимы, афиша в кафе, Улица Аттракционов, аквапарк; откат `?plaza=1` | актуально |
 | [billiards-2026-10-04.md](billiards-2026-10-04.md) | бильярд: где стоит, правила «американки», ставка, соло, управление, интерфейс стола, физика | актуально |
 | [ratrace-2026-10-04.md](ratrace-2026-10-04.md) | крысиные бега: где, крысы, шансы и выплаты, табло и камера, итоги | актуально |
@@ -205,6 +207,7 @@
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
 | `farm/` | `layout.mjs` — из `docs/farm/level/layout.json` собирает `shared/farmlayout.ts` |
+| `plaza3/` | `layout.mjs` — из `docs/plaza3/level/layout.json` собирает `shared/plaza3/layout.ts` (`--check` — только сверить) |
 | `farm-sim/` | симуляция экономики фермы (`sim.mjs`, итоги — `RESULTS.md`) |
 | `jukebox-lab/` | стенд песен музыкального автомата |
 | `radio-lab/` | стенд станций радио на лодке: послушать, офлайн-рендер (громкость, спектрограмма), WAV — `window.__radio.check` |

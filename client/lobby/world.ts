@@ -25,6 +25,9 @@ import { LobbyDecor, swayAttr, windSway } from './decor.ts';
 import { KartStart } from './kartstart.ts';
 import { LobbyLook } from './look.ts';
 import { PLAZA2 } from './plaza/flag.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
+import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -201,6 +204,8 @@ export class LobbyWorld {
   private readonly lamps: THREE.PointLight[] = [];
   private readonly powered: THREE.Object3D[] = [];
   private readonly poweredSigns = new Map<THREE.MeshStandardMaterial, number>();
+  /** Статика новой набережной (флаг PLAZA3, client/lobby/plaza3); null — строится старая */
+  readonly plaza3: Plaza3World | null = null;
   private readonly windowGlow: THREE.BufferGeometry[] = [];
   private lampQuality: LobbyQuality = 'high';
   private lighthouseEnabled = true;
@@ -315,20 +320,25 @@ export class LobbyWorld {
     scene.add(sea);
 
     this.buildMapBoxes();
-    this.buildQuay();
-    this.buildArcade();
-    this.buildWarehouse();
-    this.buildGarage();
-    this.buildKiosk();
-    this.buildCafe();
-    this.buildTerrace();
-    this.buildBenches();
-    this.buildHonorStand();
-    this.buildLighthouse();
-    this.buildPhotoSpot();
-    this.buildGarlands();
-    this.buildLightPools();
-    this.buildTownQuay();
+    if (PLAZA3 && !P3.legacyStatic) {
+      // новая набережная (блокаут WP2 и дальше): что из старого остаётся (маяк, фото, якоря автоматов machineAnchors) — решает WP2
+      this.plaza3 = buildPlaza3World(this.plazaCtx);
+    } else {
+      this.buildQuay();
+      this.buildArcade();
+      this.buildWarehouse();
+      this.buildGarage();
+      this.buildKiosk();
+      this.buildCafe();
+      this.buildTerrace();
+      this.buildBenches();
+      this.buildHonorStand();
+      this.buildLighthouse();
+      this.buildPhotoSpot();
+      this.buildGarlands();
+      this.buildLightPools();
+      this.buildTownQuay();
+    }
     this.flush();
     new LobbyDecor(scene, this.wind, (m) => this.wettable(m));
     this.buildTown();

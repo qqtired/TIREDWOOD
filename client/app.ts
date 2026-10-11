@@ -50,6 +50,8 @@ import { setVoiceSource } from './ui/voicepanel.ts';
 import './ui/mobile-fishing.css';
 import { setVoicePresence } from './render/voice-presence.ts';
 import { ISLE } from './render/islegear.ts';
+import { LAYOUT } from '../shared/layout.ts';
+import { layoutReload, webStorage } from './layout-boot.ts';
 
 type Screen = 'join' | 'connecting' | 'game' | 'reconnecting' | 'lost' | 'replaced';
 /** Экран входа: «Привет, ник!», поле ника или поле кода с другого устройства */
@@ -493,7 +495,8 @@ export class App {
         },
         info: () => ({ ...this.renderer.gl.info.render, ratio: this.pixelRatio, screen: this.screen, paused: this.paused,
           cpuMs: this.renderer.cpuMs, gpuMs: this.renderer.gpuMs, frameMedianMs: this.frameStats.median, frameP95Ms: this.frameStats.p95,
-          quality: this.renderQuality(), gfx: { ...this.gfxNow(), ...this.renderer.gfxState(), fx: gfx.fx }, memory: { ...this.renderer.gl.info.memory } }),
+          quality: this.renderQuality(), gfx: { ...this.gfxNow(), ...this.renderer.gfxState(), fx: gfx.fx }, memory: { ...this.renderer.gl.info.memory },
+          programs: this.renderer.gl.info.programs?.length ?? 0, plaza: LAYOUT }),
       };
     }
   }
@@ -766,6 +769,12 @@ export class App {
       return;
     }
     this.build = m.build;
+    // сервер перезапущен с другой раскладкой набережной (флаг PLAZA3): площадь собрана не та — перезагрузка, один раз
+    if (layoutReload(m.lay ?? 2, LAYOUT, webStorage('local'), webStorage('session'))) {
+      this.reloading = true;
+      location.reload();
+      return;
+    }
     // остров «Последний свет» (флаг ISLE): вещи острова в примерочной и журнале, светящаяся «Золотая рыбка»
     ISLE.on = m.isle === true;
     const renamed = this.renamePending && m.nick !== this.me.nick;

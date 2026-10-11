@@ -30,6 +30,7 @@ import { TgFeed } from './tgfeed.ts';
 import { voiceConfigFromEnv } from './voice-config.ts';
 import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
 import { isleEnabled } from '../shared/isle.ts';
+import { PLAZA3 } from '../shared/layout.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -104,6 +105,8 @@ if (isle) console.log('ISLE: остров «Последний свет», св�
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');
+// Новая набережная (docs/plaza3/tech-foundation.md): только явная PLAZA3=1, даже в dev — раскладку читает shared/layout.ts
+if (PLAZA3) console.log('PLAZA3: новая набережная (раскладка 3)');
 // DEV_FISH=scad,mullet,bluefish,tuna,whiteshark — клюют по очереди эти виды (только в разработке: проверить вываживание);
 // ключи — id альбома: после обмена 10.10 whiteshark = «Рыба-молот» (мифик), hammerhead = «Большая белая акула» (легенда баркаса);
 // DEV_POSEIDON=1 вместе с DEV_FISH=chest — каждый сундук оказывается «Сокровищами Посейдона»

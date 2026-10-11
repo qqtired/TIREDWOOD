@@ -465,8 +465,8 @@ export type ServerMsg =
   | { t: 'pirates'; v: PirateView }
   | PirateSnapMsg
   | PirateFxMsg
-  // --- вход и профиль
-  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; isle?: boolean; build: string }
+  // --- вход и профиль (lay — раскладка набережной сервера, флаг PLAZA3: не совпала с браузером — он перезагрузится)
+  | { t: 'me'; pid: number; nick: string; tokens: number; owned: string[]; outfit: Outfit; stats: Stats; album: FishAlbum; fishing: FishProgress; xp?: number; level?: number; gifts?: boolean; isle?: boolean; build: string; lay?: 2 | 3 }
   | ({ t: 'levelUp'; pid: number } & LevelUp)
   | { t: 'tokens'; n: number; delay?: number }
   /** Тост; sub — вторая строка, ms — сколько висит, key — новый того же вида заменяет прежний, big — крупный золотой (клад Посейдона) */
