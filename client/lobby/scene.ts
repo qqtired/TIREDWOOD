@@ -2866,7 +2866,7 @@ export class LobbyScene implements Scene {
     else this.hintNearest();
     this.aquaTimer();
     const { settings, net } = this.d;
-    hud.setStats(settings.showStats ? `${this.fps} FPS · ${Math.round(net.pingMs)} мс · буфер ${this.clock.delay.toFixed(1)} т · кадр ${this.lastFrameMs.toFixed(1)} мс` : null);
+    hud.setStats(settings.showStats ? `${this.fps} FPS · ${Math.round(net.pingMs)} мс · буфер ${this.clock.delay.toFixed(1)} т` : null);
   }
 
   /** На мостике аквапарка: как начать и какой рекорд полосы. */
@@ -3198,7 +3198,7 @@ export class LobbyScene implements Scene {
       id: this.myId, hasSelf: this.hasSelf, action: this.action, arg: this.arg, act: this.myAct, hold: this.predictor.hold,
       pos: [s.x, s.y, s.z], corrections: this.predictor.corrections, target: this.target?.kind ?? null, barkas: this.world.barkas.debug(),
       renderTick: this.clock.renderTick, delay: this.clock.delay, jitter: this.clock.jitter,
-      remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, seq: this.seq,
+      remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, frameMs: this.lastFrameMs, seq: this.seq,
       dkSeat: this.dkSeat, dkLocked: this.dkHud.locked, dkHand: this.dkHand?.cards.length ?? -1,
       blackjack: this.blackjack3d.view(), blackjackOpen: this.bjHud.visible, billiards: this.billiards.debug(), skill: this.skillStatus, kraken: this.kraken.debug(),
       boatrace: this.boatRaceStatus, regatta: this.rg.debug(), plane: this.plane.debug(), ob: this.ob.debug(), hide: this.hideStatus, startZone: this.startZone,

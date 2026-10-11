@@ -6,10 +6,10 @@
 /* масштаб слоёв кита (client/ui/kit/scale.ts). #hud/#menus целиком НЕ зумить — уезжают детали в экранных пикселях */
 .k-hud { zoom: var(--hud-k, 1); }
 /* Окна на десктопе — 70% прежнего размера по просьбе владельца; zoom сохраняет раскладку и область клика. */
-.k-scrim { --window-k: calc(var(--hud-k, 1) * .7); zoom: var(--window-k); }
+.k-scrim { --window-k: calc(var(--ui-base-k, 1) * .7); zoom: var(--window-k); }
 /* На узких и низких экранах сохраняем доступные размеры текста и кнопок. */
 @media (max-width: 760px), (max-height: 520px) {
-  .k-scrim { --window-k: var(--hud-k, 1); }
+  .k-scrim { --window-k: var(--ui-base-k, 1); }
 }
 /* детали, привязанные к точке на экране (урон, стрелки угроз, подписи над миром): без zoom, увеличиваются transform */
 .k-world { position: absolute; inset: 0; pointer-events: none; }
@@ -184,8 +184,10 @@
 .k-stat--empty { opacity: .62; }
 .k-stat--empty .k-stat-ic { filter: grayscale(1) opacity(.5); }
 
-/* ============================================================ бейдж игрока (только в --tr): высота 44, кольцо 36, ник 14, жетоны 16 */
+/* ============================================================ бейдж игрока (только в --tr): портрет, кольцо XP/уровень, баланс */
 .k-badge { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 3px 14px 3px 4px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-badge-avatar { display: block; flex: none; width: 36px; height: 36px; overflow: hidden; border-radius: var(--r-pill); background: var(--ring-face); box-shadow: inset 0 0 0 1px var(--line); }
+.k-badge-avatar > svg { display: block; width: 100%; height: 100%; }
 .k-ring { --p: .5; position: relative; display: grid; place-items: center; flex: none; width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(var(--gold) calc(var(--p) * 360deg), var(--track) 0); box-shadow: 0 0 0 1px var(--line-strong); }
 .k-ring::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--ring-face); box-shadow: inset 0 0 0 1px var(--line); }
 .k-ring > b { position: relative; font: 800 var(--fs-22)/1 var(--font-text); color: var(--surf-text); }
@@ -200,10 +202,8 @@
 .k-ring--lg > b { font-size: var(--fs-48); }
 .k-badge > .k-ring { width: 36px; height: 36px; }
 .k-badge > .k-ring::before { inset: 3.5px; }
-.k-badge > .k-ring > b { font-size: var(--fs-15); }
-.k-badge-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.k-badge-nick { overflow: hidden; max-width: 150px; font: 600 var(--fs-14)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
-.k-badge-tokens { display: inline-flex; align-items: center; gap: 5px; color: var(--gold-text); font: 800 var(--fs-16)/1 var(--font-text); }
+.k-badge > .k-ring > b { font-size: var(--fs-18); }
+.k-badge-tokens { display: inline-flex; align-items: center; gap: 5px; color: var(--gold-text); font: 800 var(--fs-22)/1 var(--font-text); white-space: nowrap; }
 .k-badge-tokens.is-bump { animation: k-bump .35s var(--ease-pop); }
 .k-pop { position: absolute; right: 14px; top: calc(100% + 6px); z-index: 3; padding: 3px 10px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--good-text); font: 800 var(--fs-15)/1.1 var(--font-text); white-space: nowrap; pointer-events: none; animation: k-pop 1.6s var(--ease-out) both; }
 .k-pop--bad { color: var(--bad-text); }

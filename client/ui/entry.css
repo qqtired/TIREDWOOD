@@ -3,11 +3,11 @@
    и токены (client/ui/kit/). Общие куски — .en-scr, .en-art, .en-shade, .en-logo, .en-spin — берёт и экран загрузки
    комнат (transition.css). Страницы входа и загрузки — как сцены lab/ui: корень страницы с классом k-hudctx берёт HUD-значения токенов (при data-hud="light" —
    светлые тёплые плашки и карточка), окна .k-window внутри (связь) остаются оконными, «Ретро-парк 2.0»; цвета только из токенов. Тёмная подложка под текст поверх картин («фотографическая», не часть интерфейса) — свой цвет --en-night.
-   Сцена рисуется в пикселях 1440×900 и масштабируется как слои кита: zoom --hud-k (client/ui/kit/scale.ts). */
+   Сцена рисуется в пикселях 1440×900 и сохраняет базовый масштаб: zoom --ui-base-k (client/ui/kit/scale.ts). */
 
 :root { --en-night: 24, 14, 20; }
 .en-scr, .en-scr *, .en-scr *::before, .en-scr *::after { box-sizing: border-box; }
-.en-scr { --en-ink: var(--hero-step-ink, var(--surf-solid)); position: absolute; inset: 0; overflow: hidden; zoom: var(--hud-k, 1); color: var(--surf-text); font-family: var(--font-text); font-size: var(--fs-16); line-height: var(--lh); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.en-scr { --en-ink: var(--hero-step-ink, var(--surf-solid)); position: absolute; inset: 0; overflow: hidden; zoom: var(--ui-base-k, 1); color: var(--surf-text); font-family: var(--font-text); font-size: var(--fs-16); line-height: var(--lh); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
 .en-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 .en-shade { position: absolute; inset: 0; pointer-events: none; }
 .en-shade--left { background: linear-gradient(90deg, rgba(var(--en-night), .5) 0%, rgba(var(--en-night), .22) 30%, rgba(var(--en-night), 0) 50%), linear-gradient(0deg, rgba(var(--en-night), .45) 0%, rgba(var(--en-night), 0) 22%); }

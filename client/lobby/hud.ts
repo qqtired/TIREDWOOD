@@ -51,14 +51,18 @@ export class LobbyHud {
     this.root = el('div', 'hud lobby-hud hidden');
     this.ask = el('div', 'k-prompt pz-ask');
     this.hint = el('div', 'k-prompt pz-hint');
-    this.emotes = el('div', 'k-plate pz-emotes');
+    this.emotes = el('div', 'pz-emotes');
     this.emotes.setAttribute('role', 'group');
     this.emotes.setAttribute('aria-label', 'Эмоции');
     for (const [i, [icon, name]] of EMOTES.entries()) {
-      const item = el('span', 'pz-emote');
+      const item = el('button', 'pz-emote');
+      item.setAttribute('type', 'button');
       item.dataset.key = `Digit${i + 1}`;
       item.title = `${i + 1} — ${name}`;
       item.setAttribute('aria-label', item.title);
+      item.setAttribute('aria-keyshortcuts', String(i + 1));
+      item.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
+      item.addEventListener('click', () => this.onTap(`Digit${i + 1}`));
       const face = i === 4 ? `${iconImg(icon)}${iconImg(icon)}` : iconImg(icon);
       item.innerHTML = `${keyHtml(String(i + 1), undefined, 'sm')}<span class="pz-emote-face${i === 4 ? ' pz-emote-five' : ''}" aria-hidden="true">${face}</span>`;
       this.emotes.appendChild(item);
