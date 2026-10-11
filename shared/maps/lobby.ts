@@ -7,7 +7,7 @@ import { BARKAS_BOARD, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, SANYA_USE, barkasBo
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
 import { FERRY_AWAY, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
-import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
+import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_POST_H, BL_POST_HALF, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
 import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
 import {
   FISH_BOARD, FISH_BOARD_BODY, FISH_DECKS, FISH_FAR_SPOTS, FISH_HOUSE_BOXES, FISH_ISLAND_COUNT, FISH_MOORINGS, FISH_PIER2, FISH_PIER_HEAD,
@@ -570,7 +570,7 @@ export function buildLobby(): LobbyMap {
   }
   for (const [x, z] of BL_POSTS) {
     billiardsBoxes.push(b.boxes.length);
-    b.box([x - 0.09, 0, z - 0.09], [x + 0.09, 3.8, z + 0.09], 'invisible', 0);
+    b.box([x - BL_POST_HALF, 0, z - BL_POST_HALF], [x + BL_POST_HALF, BL_POST_H, z + BL_POST_HALF], 'invisible', 0);
   }
   // крыша навеса: камера за спиной не пролезает сквозь неё (снизу не достать — выше прыжка)
   billiardsBoxes.push(b.boxes.length);
@@ -610,9 +610,9 @@ export function buildLobby(): LobbyMap {
   // --- Оформление площади (shared/plaza2.ts, client/lobby/plaza): небольшие твёрдые предметы у входов — в самый конец
   const plazaBoxes: number[] = [];
   const plazaModeBoxes: Record<PlazaSolidMode, number[]> = { hide: [], regatta: [], dungeon: [] };
-  // В plaza3 без блокаута старой площади: бочки у склада, покрышки у гаража, столб-указатель и скала «Подземелья» стоят
-  // у старых входов — их нет (скала переезжает к скалам, WP6); остальное переезжает своими группами (WP3–WP8)
-  const solids = OLD_STATIC ? plazaSolids() : plazaSolids().filter((p) => !(PB_BARRELS as readonly PlazaSolid[]).includes(p) && !KART_TIRES.includes(p) && !(p.x === SIGNPOST.x && p.z === SIGNPOST.z) && p.mode !== 'dungeon');
+  // В plaza3 без блокаута старой площади: бочки у склада, покрышки у гаража и столб-указатель стоят у старых входов — их
+  // нет; скала и доска «Подземелья» переехали к скалам (shared/plaza2.ts, WP6), остальное — своими группами (WP3–WP8)
+  const solids = OLD_STATIC ? plazaSolids() : plazaSolids().filter((p) => !(PB_BARRELS as readonly PlazaSolid[]).includes(p) && !KART_TIRES.includes(p) && !(p.x === SIGNPOST.x && p.z === SIGNPOST.z));
   for (const p of solids) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);

@@ -6,11 +6,14 @@
 // Статика склеена по материалам — на весь зал десяток вызовов отрисовки; шары стола — один InstancedMesh с атласом
 // номеров, их мягкие тени — ещё один. Тени от солнца отбрасывают только сами столы (карта теней статичная: после
 // setVisible сцене нужно пересчитать тени — renderer.refreshShadows()).
+// plaza3 (флаг PLAZA3): зал — отдельная лоджия у воды (модель pav_billiards: кровля, пол, колонны, вывеска, стойки с киями
+// — её), здесь остаются столы, лампы под её стропилами, шары, кий и таблички; навес, пол, потолок, стойки и вывеска не строятся.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   BL_CUSHION, BL_FOOT, BL_HALL, BL_HEAD, BL_HX, BL_HZ, BL_OUT_HX, BL_OUT_HZ, BL_POCKETS, BL_R, BL_RAILS, BL_SURFACE_Y, BL_TABLES,
 } from '../../shared/billiards.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { glowSprite, mergeColored, paint } from '../render/kit.ts';
 import { metalEnvTexture, plankTexture, softDot } from '../render/textures.ts';
 import { TableSign, drawPoolBall, type SignModel } from './tablesign.ts';
@@ -125,6 +128,17 @@ function holeAt(sx: number, sz: number): Hole {
 /** Низ потолка навеса над точкой z (крыша — один скат с севера на юг) */
 function roofUnder(z: number): number {
   return BL_HALL.roofY + ((z - BL_HALL.z0) * (BL_HALL.eaveY - BL_HALL.roofY)) / (BL_HALL.z1 - BL_HALL.z0);
+}
+
+/**
+ * Низ потолка лоджии plaza3 над лампой стола (x, z): стропила вальмовой кровли pav_billiards — над северной и южной штангой
+ * каждой лампы разный (замер лучом по модели: стол 1 и 2 — 5,00 / 5,09, стол 3 — 4,84). Лампа висит на штангах до него.
+ */
+const HALL_CEIL: ReadonlyArray<readonly [number, number, number]> = [[36.5, 5.0, 5.09], [41, 5.0, 5.09], [45.5, 4.84, 4.84]];
+function lampTop(cx: number, z: number): number {
+  let best = HALL_CEIL[0];
+  for (const c of HALL_CEIL) if (Math.abs(c[0] - cx) < Math.abs(best[0] - cx)) best = c;
+  return (z < BL_TABLES[0].z ? best[1] : best[2]) - 0.02;
 }
 
 // ------------------------------------------------------------ помощники геометрии
@@ -693,7 +707,7 @@ function buildLamp(b: Buckets, cx: number, cz: number, glows: Array<[number, num
   // штанги к стропилу — у концов планки, чтобы не резали табличку над столом
   for (const s of [-1, 1]) {
     const z = cz + s * 0.82;
-    const top = roofUnder(z) - RAFTER_H;
+    const top = PLAZA3 ? lampTop(cx, z) : roofUnder(z) - RAFTER_H;
     const h = top - (BAR_Y + 0.025);
     b.metal.push(part(new THREE.CylinderGeometry(0.006, 0.006, h, 6), COL.brass, cx, BAR_Y + 0.025 + h / 2, z));
     b.metal.push(part(new THREE.CylinderGeometry(0.03, 0.03, 0.014, 12), COL.brass, cx, top - 0.007, z));
@@ -796,11 +810,15 @@ export class Billiards3D {
       cloths.push(proto.cloth.clone().translate(t.x, 0, t.z));
       buildLamp(all, t.x, t.z, glows);
     }
-    buildCanopy(all);
     const cue = cueGeometry();
-    buildRack(all, POSTS_X[0], 1, cue);
-    buildRack(all, POSTS_X[POSTS_X.length - 1], -1, cue);
-    const board = buildBoard(all);
+    // plaza3: навес, стойки с киями и вывеска — у модели лоджии (pav_billiards), здесь не строятся
+    let board: THREE.Mesh | null = null;
+    if (!PLAZA3) {
+      buildCanopy(all);
+      buildRack(all, POSTS_X[0], 1, cue);
+      buildRack(all, POSTS_X[POSTS_X.length - 1], -1, cue);
+      board = buildBoard(all);
+    }
 
     const matte = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
     const varnish = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.38, envMap: env, envMapIntensity: 0.35 });
@@ -832,8 +850,8 @@ export class Billiards3D {
     felt.updateMatrix();
     this.group.add(felt);
 
-    // доски: пол под навесом и потолок (одна текстура, развёртка в метрах)
-    {
+    // доски: пол под навесом и потолок (одна текстура, развёртка в метрах); в plaza3 пол и стропила — у модели
+    if (!PLAZA3) {
       const H = BL_HALL;
       const floor = paint(new THREE.PlaneGeometry(H.x1 - H.x0, H.z1 - FLOOR_Z0).rotateX(-Math.PI / 2), COL.floor)
         .translate((H.x0 + H.x1) / 2, 0.004, (FLOOR_Z0 + H.z1) / 2);
@@ -859,7 +877,7 @@ export class Billiards3D {
       this.group.add(boards);
     }
 
-    this.group.add(board);
+    if (board) this.group.add(board);
 
     // свет под абажурами
     const halo = glowSprite(0xffc27a, 0.85, 0.32);

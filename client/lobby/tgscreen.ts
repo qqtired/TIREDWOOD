@@ -7,6 +7,7 @@
 // подсветки — 10). На телефоне холст мельче (то же самое в масштабе 0,8): экран там и так невелик.
 // Отладка (?debug): __opus.app.active.tg.demo() — десяток строк, .push('Имя', 'текст') — новое сообщение, .clear().
 import * as THREE from 'three';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { TG_KEEP, type TgLine } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { TOUCH } from '../touch.ts';
@@ -23,10 +24,15 @@ const DEPTH = 0.42;
 /**
  * Склад №3: x −9…9, z −26…−16, крыша — на 9 м, парапет по краю — до 9,6 м. Экран — посередине, лицевая сторона
  * короба — в 1,4 м за передним краем крыши, низ короба — на 0,7 м выше парапета (между ними видны ноги рамы).
+ * plaza3 (WP6): Склад №3 — x −2…18, z −45…−31, щипцовая кровля: конёк по оси x = 8 на 9,6 м, скаты по 0,27 м на метр (до 6,9 на
+ * свесах); экран посередине (x 8), лицевая сторона в 1,4 м за передним краем кровли (z −32,4, как поле live_screen модели
+ * pav_paintball), низ короба — на 1,4 м выше конька, ноги и подкосы встают на скаты (roofAt).
  */
-const ROOF_Y = 9;
-const BASE_Y = 10.3;
-const FACE_Z = -17.4;
+const AT_X = PLAZA3 ? 8 : 0;
+const BASE_Y = PLAZA3 ? 11 : 10.3;
+const FACE_Z = PLAZA3 ? -32.4 : -17.4;
+/** Высота кровли под рамой на расстоянии dx от оси экрана */
+const roofAt = (dx: number): number => (PLAZA3 ? Math.max(6.9, 9.595 - 0.2695 * Math.abs(dx)) : 9);
 const CABINET = 0x17191d;
 /** Задняя стенка короба — крашеный металл посветлее: сзади и сбоку экран не чёрная дыра */
 const CABINET_BACK = 0x4d545c;
@@ -122,9 +128,11 @@ export class TgScreen {
     this.grid = ledGrid(this.canvas.width, this.canvas.height);
     const frame = new THREE.Mesh(buildFrame(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.15 }));
     frame.matrixAutoUpdate = false;
+    frame.position.x = AT_X;
+    frame.updateMatrix();
     // светодиоды светят сами: цвет холста как есть, без тонмаппинга (как экран над воротами склада)
     const face = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), new THREE.MeshBasicMaterial({ map: this.tex, toneMapped: false }));
-    face.position.set(0, BASE_Y + BEZEL + SCREEN_H / 2, FACE_Z + 0.005);
+    face.position.set(AT_X, BASE_Y + BEZEL + SCREEN_H / 2, FACE_Z + 0.005);
     face.matrixAutoUpdate = false;
     face.updateMatrix();
     scene.add(frame, face);
@@ -504,23 +512,25 @@ function buildFrame(): THREE.BufferGeometry {
   box(cabW - 0.12, cabH - 0.12, DEPTH - 0.12, 0, BASE_Y + cabH / 2, FACE_Z - 0.12 - (DEPTH - 0.12) / 2, CABINET_BACK);
   // ноги под передним краем короба и балка по ним — их видно с площади над парапетом
   const legZ = FACE_Z - 0.2;
-  for (const x of [-5.6, -1.9, 1.9, 5.6]) box(0.14, BASE_Y - ROOF_Y, 0.14, x, (ROOF_Y + BASE_Y) / 2, legZ, STEEL);
+  for (const x of [-5.6, -1.9, 1.9, 5.6]) box(0.14, BASE_Y - roofAt(x), 0.14, x, (roofAt(x) + BASE_Y) / 2, legZ, STEEL);
   box(cabW - 0.3, 0.14, 0.14, 0, BASE_Y - 0.07, legZ, STEEL);
   // стойки за коробом — от крыши почти до верха, подкосы назад к крыше, опоры на крыше
   const colZ = FACE_Z - DEPTH - 0.13;
   const top = BASE_Y + cabH - 0.35;
   const footZ = colZ - 3.8;
   // подкос: от опоры на крыше до стойки на 0,6 высоты короба
-  const dy = BASE_Y + cabH * 0.6 - ROOF_Y;
   const dz = colZ - 0.1 - footZ;
   for (const x of [-4.6, 0, 4.6]) {
-    box(0.24, top - ROOF_Y, 0.24, x, (ROOF_Y + top) / 2, colZ, STEEL);
-    box(0.16, Math.hypot(dy, dz), 0.16, x, ROOF_Y + dy / 2, footZ + dz / 2, STEEL, Math.atan2(dz, dy));
-    box(0.6, 0.08, 0.6, x, ROOF_Y + 0.04, colZ, STEEL_DARK);
-    box(0.5, 0.08, 0.5, x, ROOF_Y + 0.04, footZ, STEEL_DARK);
+    const roof = roofAt(x);
+    const dy = BASE_Y + cabH * 0.6 - roof;
+    box(0.24, top - roof, 0.24, x, (roof + top) / 2, colZ, STEEL);
+    box(0.16, Math.hypot(dy, dz), 0.16, x, roof + dy / 2, footZ + dz / 2, STEEL, Math.atan2(dz, dy));
+    box(0.6, 0.08, 0.6, x, roof + 0.04, colZ, STEEL_DARK);
+    box(0.5, 0.08, 0.5, x, roof + 0.04, footZ, STEEL_DARK);
   }
   // поперечины по стойкам сзади и связь подкосов невысоко над крышей
   for (const y of [BASE_Y + 0.25, BASE_Y + cabH * 0.5, top - 0.25]) box(9.44, 0.16, 0.16, 0, y, colZ - 0.2, STEEL);
-  box(9.44, 0.12, 0.12, 0, ROOF_Y + 0.9, footZ + (0.9 / dy) * dz, STEEL_DARK);
+  // (на скатах plaza3 подкосы стоят на разной высоте — связи между ними нет)
+  if (!PLAZA3) box(9.44, 0.12, 0.12, 0, roofAt(0) + 0.9, footZ + (0.9 / (BASE_Y + cabH * 0.6 - roofAt(0))) * dz, STEEL_DARK);
   return mergeColored(parts);
 }

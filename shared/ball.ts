@@ -5,12 +5,17 @@
 // в стоящую желейку мяч просто упруго отскакивает. Решает сервер, 60 раз в секунду, и шлёт мяч в каждом снимке
 // целиком (со скоростью); клиент считает его у себя тем же кодом — свой пинок видно сразу (client/lobby/ballsim.ts).
 import { DT, PLAYER_HEIGHT, TICK_RATE, WATER_Y } from './constants.ts';
+import { pick } from './layout.ts';
+import { P3 } from './plaza3/layout.ts';
 import type { CollisionWorld } from './world.ts';
 
 /** Радиус: большой надувной мяч, по пояс желейке */
 export const BALL_R = 0.34;
-/** Дом мяча — середина мозаики «роза ветров» (сюда он возвращается, падая с высоты BALL_DROP_Y) */
-export const BALL_HOME = { x: 0, z: 3.6 };
+/**
+ * Дом мяча — середина мозаики «роза ветров» (сюда он возвращается, падая с высоты BALL_DROP_Y). plaza3: центр площади
+ * «Роза ветров» (8; −8) — layout.json, center.
+ */
+export const BALL_HOME = pick({ x: 0, z: 3.6 }, () => ({ x: P3.center.x, z: P3.center.z }));
 export const BALL_DROP_Y = 2.6;
 /** Пинок с одной желейки — не чаще раза в столько тиков */
 export const BALL_KICK_TICKS = 15;

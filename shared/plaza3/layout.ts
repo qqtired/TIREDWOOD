@@ -379,9 +379,9 @@ export const P3: Plaza3Layout = {
       "yaw": 0.803
     },
     "dungeonBoard": {
-      "x": -12.5,
-      "z": -27.8,
-      "yaw": 3.141592653589793
+      "x": -16.64,
+      "z": -26.45,
+      "yaw": 0.803
     }
   },
   "land": {
@@ -3542,7 +3542,7 @@ export const P3: Plaza3Layout = {
         -6
       ],
       "max": [
-        -26,
+        -25.5,
         3.2,
         0
       ],

@@ -57,7 +57,8 @@ for (const [k, v] of Object.entries(lobby)) {
     if ('r' in v) {
       if (!(v.r > 0)) bad(`lobby.${k}: r > 0`);
       uses.push({ name: `lobby.${k}`, ...v });
-    } else if ('yaw' in v) spots.push({ name: `lobby.${k}`, ...v });
+    } else if ('yaw' in v && k !== 'mirror') spots.push({ name: `lobby.${k}`, ...v });
+    // mirror — не место, где стоит игрок, а стекло зеркала на восточной стене примерочной (в 9 см от стены): в бокс стены оно не «встаёт»
   }
 }
 for (const [k, v] of Object.entries(L.modes ?? {})) {
