@@ -1,0 +1,94 @@
+/* Окна рыбалки на ките UI 2.0: журнал рыбака (J), Дед Семён / Саня / Игнат, рюкзак (I). Эталон — сцены «5. журнал рыбака»,
+   «6. Дед Семён», «7. рюкзак» в lab/ui/screens/fishing.js; общие правила .fi-* — в fishkit.css, здесь только то, чего в
+   эталоне нет: служебное (скрытие, обёртки), выбор снастей во вкладке «Награды», кнопки Сани и Игната в шапке, строка
+   состояния торговца. Цвета — только токены кита (цвет категории рыбы — --tc из TIER_CSS). */
+
+/* ------------------------------------------------------------------ служебное */
+/* [hidden] перебивает display у .k-btn/.k-pill/.fi-* внутри окон рыбалки */
+.fi-win [hidden] { display: none !important; }
+/* обёртки, которые не должны ломать колонку .k-win-body (gap 18) */
+.fi-tabwrap, .fi-rw, .fi-group { display: contents; }
+.fi-panel { display: flex; flex-direction: column; gap: 18px; }
+/* счётчик на вкладке «Задания»: задание выполнено — золотом */
+.k-tab-count.is-gold { background: var(--gold); color: var(--gold-ink); }
+
+/* ------------------------------------------------------------------ шапка торговца: чужие кнопки (Саня, Игнат) и баланс */
+.fi-extra { display: flex; align-items: center; gap: 10px; }
+.fi-extra:empty { display: none; }
+.fi-home { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 290px; }
+.fi-home .k-btn { white-space: nowrap; }
+.fi-home .k-btn .k-ic { width: 24px; height: 24px; }
+.fi-home-note { color: var(--surf-dim); font: 600 var(--fs-13)/1.2 var(--font-text); text-align: right; text-wrap: balance; }
+.fi-home-note.is-bad { color: var(--bad-text); font-weight: 700; }
+.fi-home-note img.coin { width: 14px; height: 14px; }
+.fi-home-season { display: inline-flex; align-items: center; gap: 5px; }
+.fi-home-season[hidden] { display: none; }
+.fi-home-season .k-ic { width: 18px; height: 18px; }
+.fi-home-season.is-on { color: var(--special-text); font-weight: 700; }
+/* строка состояния торговца («Семён считает…», ответ сервера) — подвал окна, только когда есть что сказать */
+.fi-status .k-note { font-weight: 600; }
+.fi-status img.coin { width: 16px; height: 16px; }
+
+/* ------------------------------------------------------------------ журнал */
+.fi-next-r > svg { flex: none; width: 72px; height: 72px; }
+/* второй значок в углу карточки (вид баркаса, который ловится только в дождь) */
+.fi-fcard-tag + .fi-fcard-tag { top: 38px; }
+.fi-fcard-art > .f2-nopic { width: 56px; height: 56px; font-size: var(--fs-22); }
+.fi-fcard-line .k-coin { width: 16px; height: 16px; }
+/* длинное имя («Дальневосточный кальмар») не вылезает из карточки */
+.fi-fcard .fi-fcard-name { hyphens: auto; overflow-wrap: anywhere; }
+
+/* журнал → «Награды»: снасти — четыре крупные ячейки, как в эталоне (.fi-gear в fishkit.css); ячейка — кнопка: нажал —
+   под ячейками строка выбора (.fi-gear-pick) картинками с именами, как миниатюры окон шкалы в эталоне */
+.fi-gear > .fi-gear-cell { width: 100%; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color .15s, box-shadow .15s; }
+.fi-gear > .fi-gear-cell:hover { background: var(--surf-3); }
+.fi-gear > .fi-gear-cell:focus-visible { outline: none; box-shadow: var(--focus); }
+.fi-gear > .fi-gear-cell.is-open { box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+.fi-gear-cell > .k-pill { align-self: flex-start; margin-top: auto; }
+.fi-gear-art > svg { width: 100px; height: 100px; filter: drop-shadow(0 4px 4px rgba(10, 5, 8, .3)); }
+.fi-gear-none { width: 72px; height: 72px; border: 3px dashed var(--line); border-radius: 50%; }
+.fi-gear > .fi-gear-pick { grid-column: 1 / -1; min-height: 0; gap: 10px; }
+.fi-gear-pick > .fi-gear-wins { flex-wrap: wrap; justify-content: flex-start; }
+.fi-gear-pick > p { margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-gopt, .fi-winmini { display: grid; justify-items: center; align-content: start; gap: 6px; width: 96px; margin: 0; padding: 6px 2px 4px; border: 0; border-radius: var(--r-sm); background: none; color: var(--surf-dim); font: 700 var(--fs-13)/1.15 var(--font-text); text-align: center; text-wrap: balance; cursor: pointer; }
+.fi-gopt:hover:not(:disabled), .fi-winmini:hover:not(:disabled) { background: var(--surf-3); }
+.fi-gopt:focus-visible, .fi-winmini:focus-visible { outline: none; box-shadow: var(--focus); }
+.fi-gopt:disabled, .fi-winmini:disabled { cursor: default; }
+.fi-gopt small, .fi-winmini small { display: block; margin-top: 2px; color: var(--surf-faint); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.fi-gopt-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--surf-3); }
+.fi-gopt-ic > svg, .fi-gopt-ic > img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(10, 5, 8, .3)); }
+.fi-gopt.is-on .fi-gopt-ic { box-shadow: 0 0 0 3px var(--gold), 0 0 14px var(--gold-soft); }
+.fi-gopt.is-on, .fi-winmini.is-on { color: var(--gold-text); }
+.fi-gopt.is-lock .fi-gopt-ic > svg { filter: grayscale(.85) brightness(.75); opacity: .7; }
+.fi-gopt.is-lock, .fi-winmini.is-lock { color: var(--surf-faint); }
+/* миниатюра окна шкалы: те же классы, что у настоящей шкалы (.fr-bar .fr-water .fr-zone, тема — data-fr-theme из
+   client/ui/fishstyle.css), размер — как .fi-winmini в lab/ui/screens/fishing.css: полоса 30×96, золото — надето, серое — закрыто */
+.fi-winmini .fr-bar { display: block; width: 30px; height: 96px; border-width: 3px; border-radius: 9px; }
+.fi-winmini .fr-bar .fr-zone { --fr-w: 3px; left: 2px; right: 2px; bottom: 34%; height: 36%; border-width: 1.5px; border-radius: 5px; }
+.fi-winmini .fr-bar .fr-fish { bottom: 48%; width: 22px; height: 14px; }
+.fi-winmini .fr-fish svg { width: 22px; height: 14px; }
+.fi-winmini.is-on .fr-bar { outline: 3px solid var(--gold); outline-offset: 3px; }
+.fi-winmini.is-lock .fr-bar { filter: grayscale(.85) brightness(.75); }
+/* окно шкалы в ячейке — крупнее, как картинки удочки и поплавка */
+.fi-winmini--big { width: auto; padding: 0; cursor: inherit; }
+.fi-winmini.fi-winmini--big:hover:not(:disabled) { background: none; }
+.fi-winmini--big .fr-bar { width: 38px; height: 100px; }
+.fi-winmini--big .fr-bar .fr-fish, .fi-winmini--big .fr-fish svg { width: 26px; height: 16px; }
+
+/* ------------------------------------------------------------------ Семён: удочки, лавка */
+.fi-cards.fi-cards--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* пять удочек в ряд: «Профессиональная» должна влезть в карточку */
+.fi-cards--5 > .fi-item > b { font-size: var(--fs-16); hyphens: auto; overflow-wrap: anywhere; }
+.fi-item-art > svg { width: 60px; height: 60px; filter: drop-shadow(0 4px 4px rgba(10, 5, 8, .3)); }
+.fi-item.is-rod .fi-item-art > svg { width: 120px; height: 120px; }
+.fi-item.is-lock .fi-item-art > svg { filter: grayscale(1) brightness(.6) opacity(.6); }
+/* пояснение без запрета («Заменит пиво…») — спокойным цветом; запрет — красный .fi-why */
+.fi-item > .fi-note { grid-column: 1 / -1; margin: 4px 0 0; color: var(--surf-dim); font: 600 var(--fs-14)/1.25 var(--font-text); }
+.fi-item > .fi-why img.coin, .fi-item > .fi-note img.coin { width: 15px; height: 15px; }
+.fi-quest > .k-btn { min-width: 200px; }
+
+/* ------------------------------------------------------------------ строки улова: значки поимки и кнопки */
+.fi-row-t .k-pill--sm .k-ic { width: 18px; height: 18px; }
+.fi-row-a .k-btn { white-space: nowrap; }
+.fi-row.is-held { box-shadow: inset 4px 0 0 var(--tc), inset 0 0 0 2px var(--gold); }
+.fi-shop-h .fi-row-a { flex-wrap: wrap; justify-content: flex-end; }

@@ -11,10 +11,11 @@ import { bodyProfile } from '../client/render/outfit3d.ts';
 
 const hook = registerHooks({ load(url, context, next) {
   // Only Vite's asset discovery is substituted; wardrobe turn methods run unchanged.
-  if (url.endsWith('/client/lobby/fish2.ts')) {
+  // картинки ищет Vite (import.meta.glob): рыбы (fish2.ts), значки кита (ui/kit/icons.ts), снасти (lobby/fishkit.ts)
+  if (/\/client\/.*\.ts$/.test(new URL(url).pathname)) {
     const loaded = next(url, context);
-    const source = typeof loaded.source === 'string' ? loaded.source : new TextDecoder().decode(loaded.source);
-    return { ...loaded, source: source.replace("import.meta.glob('../assets/fish/*.{webp,png}', { eager: true, query: '?url', import: 'default' })", '{}') };
+    const source = typeof loaded.source === 'string' ? loaded.source : new TextDecoder().decode(loaded.source ?? new Uint8Array());
+    return source.includes('import.meta.glob(') ? { ...loaded, source: source.replace(/import\.meta\.glob\([^)]*\)/g, '{}') } : loaded;
   }
   if (/\.(webp|png|css)$/.test(new URL(url).pathname)) return { format: 'module', source: `export default ${JSON.stringify(url)}`, shortCircuit: true };
   return next(url, context);

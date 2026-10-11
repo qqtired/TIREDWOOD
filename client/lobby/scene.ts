@@ -456,7 +456,7 @@ export class LobbyScene implements Scene {
       sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
       playerPos: (pid) => this.avatarOfPid(pid)?.root.position ?? null, mePos: () => (this.hasSelf ? this.pose : null),
       boats: { where: (id) => this.ob?.radioWhere(id) ?? null, aboard: (id) => this.ob?.radioAboard(id) ?? false },
-      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), hudRoot: this.hud.root,
+      reeling: () => this.fish2.reelRunning, onOpen: () => d.input.unlock(), onClose: () => d.wantPointer(), kit: { slots: d.ui.slots, top: d.ui.top },
     });
     this.radio.reset(false);
     this.critters = new LobbyCritters(this.world.scene, {
@@ -612,6 +612,7 @@ export class LobbyScene implements Scene {
     this.fish2.onNpcOpen = () => { d.input.releaseAll(); d.input.unlock(); };
     this.fish2.onNpcClose = () => d.wantPointer();
     this.fish2.roulette.isSpinning = () => this.roulette3d.spinning;
+    this.fish2.helm = () => this.ob.driving;
     // табло рулетки на баркасе обновилось (шарик лёг в лунку): список в окне ставки и один тост о розыгрыше
     this.roulette3d.onLogShown = (rows, fresh) => {
       this.fish2.roulette.setLog(rows);
@@ -620,7 +621,7 @@ export class LobbyScene implements Scene {
     };
     this.fish2.onBeer = () => this.fishDrink.start();
     this.ob = new OwnBoatsClient({
-      scene: this.world.scene, sound: d.sound, hudRoot: this.hud.root, overlay: d.overlay, input: d.input, npc: this.fish2.npc,
+      scene: this.world.scene, sound: d.sound, kit: { slots: d.ui.slots, top: d.ui.top }, overlay: d.overlay, input: d.input, npc: this.fish2.npc,
       toast: (text, ms) => d.ui.toasts.show(text, ms), send: (msg) => d.net.send(msg), me: () => d.ui.me(), myId: () => this.myId,
       modal: (open) => { if (open) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
       setParkBoxes: (on) => { for (const i of this.world.map.parkBoxes) this.world.collision.setEnabled(i, on); },
@@ -983,7 +984,7 @@ export class LobbyScene implements Scene {
       case 'isle':
         (this.isle ??= this.makeIsle()).onMsg(msg);
         // шансы рыб острова: туман — как дождь, сезон острова — как сезон (Fish2Hud → «Шансы сейчас» и журнал)
-        this.fish2.isleWeather(msg.fog, msg.season.on);
+        this.fish2.isleWeather(msg.fog, msg.season.on, msg.fogUntil, msg.season.endsAt);
         break;
       case 'aquaTop':
         this.setAquaTop(msg.top);
@@ -2221,22 +2222,24 @@ export class LobbyScene implements Scene {
     this.fishing.onEvent(kind, spot, a, b);
     if (spot !== this.myFishSpot) return;
     const hud = this.fishHud;
+    // «Подсекай!»: рыбалка 2.0 — крупно по центру (кит), старая — прежняя плашка
+    const bite = (on: boolean): void => { if (this.fish2.on) this.fish2.bite(on); else hud.showBite(on); };
     switch (kind) {
       case FE_BITE:
-        hud.showBite(true);
+        bite(true);
         break;
       case FE_HOOK:
-        hud.showBite(false);
+        bite(false);
         break;
       case FE_EARLY:
-        hud.showBite(false);
+        bite(false);
         if (a === 1) this.d.ui.toasts.show('Рано! Это была проба — подсекай, когда поплавок уйдёт под воду', 3200);
         // нажал, пока поплавок спокоен (пробел по привычке прыжка) — удочка смотана: без строки казалось, что клёва нет
         else this.d.ui.toasts.show('Рано — удочка смотана. Подсекай, когда поплавок уйдёт под воду', 2600);
         break;
       case FE_MISS:
-        hud.showBite(false);
-        this.d.ui.toasts.show('Не успел — рыба ушла 💨', 2600);
+        bite(false);
+        this.d.ui.toasts.show('Не успел — рыба ушла', 2600);
         break;
       case FE_DONE:
         this.fish2.done(a);
@@ -2753,6 +2756,11 @@ export class LobbyScene implements Scene {
     this.fish2.frame(fishing, this.d.input.isHeld(BTN_FIRE | BTN_JUMP), this.fishing, this.arg, p?.x ?? null, p?.z ?? null);
   }
 
+  /** Рыбалка 2.0: игрок у воды и видит плашку события — тост о дожде её не повторяет */
+  fishEventPlate(): boolean {
+    return this.fish2.on && this.fish2.plateNear;
+  }
+
   private trampolineAt(x: number, y: number, z: number): { x: number; z: number } | null {
     for (const tr of this.world.map.trampolines) {
       if (Math.hypot(x - tr.x, z - tr.z) < tr.r + 0.4 && Math.abs(y - tr.top) < 1) return tr;
@@ -2838,6 +2846,13 @@ export class LobbyScene implements Scene {
     const ph = this.fishing.phaseOf(this.arg);
     const h = this.hud;
     const cast = TOUCH ? ['🎣'] : ['Пробел', '/', 'ЛКМ'];
+    // рыбалка 2.0 на десктопе: своя подсказка кита (Fish2Hud.prompt), «Подсекай!» по центру, шкала и карточка — со своими клавишами
+    if (this.fish2.on && !TOUCH) {
+      h.setHint(null);
+      const choosing = this.fish2.choosing;
+      this.fish2.prompt(ph === FP_CAST ? 'cast' : ph === FP_WAIT ? 'wait' : ph === FP_BITE || ph === FP_REEL || choosing ? null : this.fish2.bagFull ? 'full' : 'idle');
+      return;
+    }
     if (ph === FP_IDLE && this.fish2.on && this.fish2.bagFull) h.setHint(TOUCH ? [] : ['I'], this.fish2.fullHint.replace(' (I)', ''));
     else if (ph === FP_IDLE) h.setHint(cast, TOUCH ? 'Забросить' : `забросить · ${this.fish2.on ? 'J — журнал · I — рюкзак · ' : ''}E или шаг — уйти`);
     else if (ph === FP_CAST) h.setHint([], 'Заброс…');

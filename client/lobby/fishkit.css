@@ -1,0 +1,264 @@
+/* Рыбалка на ките UI 2.0 (эталон — lab/ui/screens/fishing.css, страница-обзор lab/ui «Рыбалка»): только раскладка поверх
+   компонентов .k-* (префикс .fi-). Цвета — токены кита; исключения — цвета категорий рыбы (TIER_CSS из shared/fishrules.ts,
+   приходят в --tc из JS) и шкала вываживания: она игровое поле, её вид — client/lobby/fish2.css и client/ui/fishstyle.css.
+   Окна рыбалки (журнал, Семён, рюкзак, лодки, рулетка) — нативный <dialog class="k-scrim fi-dlg"> с .k-window внутри
+   (client/lobby/fishkit.ts fishDialog). */
+
+/* ------------------------------------------------------------------ окно-диалог: <dialog> сам — затемнение .k-scrim */
+dialog.fi-dlg { position: fixed; inset: 0; width: auto; height: auto; max-width: none; max-height: none; margin: 0; border: 0; color: var(--surf-text); }
+dialog.fi-dlg:not([open]) { display: none; }
+/* сетка затемнения — ровно экран: иначе строка растёт по содержимому окна (журнал — 2800 px) и окно уезжает вниз;
+   pointer-events: окна живут в #menus и .hud (pointer-events: none) — без auto мышь проходит сквозь окно */
+dialog.fi-dlg { grid-template: minmax(0, 1fr) / minmax(0, 1fr); pointer-events: auto; }
+dialog.fi-dlg::backdrop { background: transparent; }
+.fi-win { height: min(820px, 100%); }
+.fi-win .k-win-body { display: flex; flex-direction: column; gap: 18px; }
+.fi-win.fi-win--auto { height: auto; }
+
+/* ------------------------------------------------------------------ общее */
+.fi-dim { opacity: .5; filter: saturate(.6); transition: opacity .2s, filter .2s; }
+.fi-ic { display: inline-block; flex: none; width: 1.5em; height: 1.5em; object-fit: contain; vertical-align: middle; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .28)); }
+.fi-dot { display: inline-block; flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--tc)); box-shadow: 0 0 0 2px rgba(255, 255, 255, .35), 0 1px 2px rgba(0, 0, 0, .35); }
+/* ярлык категории: сплошной цвет категории, белый текст — читается на любой шкурке */
+.fi-tier { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 11px; border-radius: var(--r-pill); background: var(--tc); color: #fff; font: 900 var(--fs-14)/1 var(--font-text); letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(0, 0, 0, .3); white-space: nowrap; }
+.fi-tier--lg { min-height: 32px; padding: 5px 14px; font-size: var(--fs-16); }
+.fi-say { margin: 2px 0 0; color: var(--surf-dim); font: italic 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-h { display: flex; align-items: baseline; gap: 10px; margin: 0; color: var(--surf-text); font: 800 var(--fs-18)/1.2 var(--font-text); }
+.fi-h small { color: var(--surf-dim); font-size: var(--fs-14); font-weight: 600; }
+.fi-h .fi-dot { align-self: center; }
+.fi-port { object-fit: cover !important; border-radius: inherit; }
+.fi-why { margin: 4px 0 0; color: var(--bad-text); font: 700 var(--fs-14)/1.2 var(--font-text); }
+
+/* ------------------------------------------------------------------ ВЛ: карточка рыбалки (v2: 292 шириной, кольцо 40, легенда 13) */
+.fi-mode { display: flex; flex-direction: column; gap: 8px; width: 292px; padding: 9px 12px 11px 9px; border-radius: var(--r-md); }
+.fi-mode[hidden] { display: none; }
+.fi-mode-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 10px; }
+.fi-mode-head > .k-ring { grid-row: span 2; }
+.fi-mode-head > .k-ring.is-bump { animation: k-bump .35s var(--ease-pop); }
+.fi-mode-t { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fi-mode-t b { font: 800 var(--fs-16)/1.15 var(--font-text); white-space: nowrap; }
+.fi-mode-t span { color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.fi-perk { display: flex; align-items: center; gap: 6px; overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); white-space: nowrap; }
+.fi-perk > span { min-width: 0; white-space: normal; }
+.fi-perk b { color: var(--plate-text); font-weight: 800; }
+.fi-perk .fi-ic { width: 18px; height: 18px; }
+.fi-perk.is-new b { color: var(--gold-text); }
+/* надбавка места: баркас / остров (fishmode.ts setZone) */
+.fi-zone { display: flex; align-items: center; gap: 6px; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }
+.fi-zone[hidden] { display: none; }
+.fi-zone b { color: var(--plate-text); font-weight: 800; }
+.fi-zone .fi-ic { width: 18px; height: 18px; }
+.fi-odds { display: flex; flex-direction: column; gap: 6px; padding-top: 7px; border-top: 1px solid var(--line); }
+.fi-odds[hidden] { display: none; }
+.fi-odds-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fi-odds-t { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-13); letter-spacing: .06em; white-space: nowrap; }
+.fi-odds-t img { width: 22px; height: 22px; margin: -4px 0; object-fit: contain; }
+.fi-odds-why { display: flex; gap: 4px; min-width: 0; overflow: hidden; }
+.fi-odds-h .k-pill--sm { min-height: 24px; padding: 2px 9px 2px 6px; gap: 5px; font-size: var(--fs-13); }
+.fi-odds-h .k-pill--sm .k-ic { width: 18px; height: 18px; }
+.fi-odds-bar { display: flex; gap: 2px; height: 12px; overflow: hidden; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); }
+.fi-odds-bar > i { flex: var(--w) 1 0; min-width: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 65%); }
+.fi-odds-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 14px; }
+.fi-odds-legend > span { display: flex; align-items: center; gap: 6px; min-width: 0; font: 500 var(--fs-13)/1.2 var(--font-text); white-space: nowrap; }
+.fi-odds-legend > span b { margin-left: auto; font-weight: 800; }
+.fi-odds-legend .fi-dot { width: 10px; height: 10px; }
+.fi-odds-legend > span.is-zero { opacity: .5; }
+.fi-isle-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 3px 8px; padding-top: 7px; border-top: 1px solid var(--line); font: 700 var(--fs-14)/1.2 var(--font-text); }
+.fi-isle-row[hidden] { display: none; }
+.fi-isle-row img { grid-row: span 2; width: 26px; height: 26px; object-fit: contain; }
+.fi-isle-row .k-meter { grid-column: 2 / -1; }
+.fi-mode > .k-pop { right: auto; left: 14px; top: calc(100% + 6px); }
+
+/* ------------------------------------------------------------------ плитки под бейджем: рюкзак, пиво, задание, лайвел */
+.fi-tiles[hidden], .fi-tiles > .k-tile[hidden] { display: none; }
+/* все плитки спрятаны — ряда нет (иначе пустой ряд в общем слоте tr даёт лишний зазор под бейджем во всех комнатах) */
+.fi-tiles:not(:has(> :not([hidden]))) { display: none; }
+/* плитку рюкзака и лайвела можно нажать мышью (когда она свободна) и пальцем — откроется рюкзак */
+.fi-tile-btn { margin: 0; padding: 0; border: 0; background: none; font: inherit; pointer-events: auto; cursor: pointer; }
+.fi-tile-btn:hover .k-tile-face { filter: brightness(1.08); }
+/* рыба в рюкзаке: +1 у плитки рюкзака. Слева от неё стоят другие плитки — поэтому +1 выходит вниз, под подпись */
+.fi-bag > .k-pop { top: calc(100% + 4px); right: 50%; margin-right: -19px; }
+
+/* ------------------------------------------------------------------ подсказка внизу: несколько клавиш в одной строке */
+.fi-prompt { gap: 10px; }
+.fi-prompt[hidden] { display: none; }
+.fi-prompt .fi-k { display: inline-flex; align-items: center; gap: 8px; }
+.fi-prompt button.fi-k { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; pointer-events: auto; }
+.fi-wait { display: inline-flex; align-items: center; gap: 8px; padding-left: 6px; }
+.fi-wait img { width: 26px; height: 26px; object-fit: contain; animation: fi-bob 2.4s ease-in-out infinite; }
+@keyframes fi-bob { 50% { transform: translateY(3px) rotate(-4deg); } }
+
+/* ------------------------------------------------------------------ поклёвка: герой с клавишей (слот --c) */
+.fi-bite[hidden] { display: none; }
+.fi-bite .k-hero-sub { gap: 12px; padding: 8px 20px 8px 10px; }
+/* пока поклёвка и вываживание — остальной HUD притихает (fish2hud.ts ставит html[data-fish-focus]) */
+html[data-fish-focus] .k-hud > .k-slot--tl, html[data-fish-focus] .k-hud > .k-slot--tr, html[data-fish-focus] .k-hud > .k-slot--bl { opacity: .5; filter: saturate(.6); transition: opacity .2s, filter .2s; }
+
+/* ------------------------------------------------------------------ шкала вываживания: рамка кита вокруг прежнего игрового поля
+   (fishgame.ts: .fr.k-plate.fi-reel в слое .k-hud). Вид шкалы, зоны, рыбы и полосы — fish2.css / fishstyle.css, не трогаем. */
+.fr.fi-reel { position: absolute; left: calc(50% + 148px); top: 47%; z-index: 15; width: 236px; padding: 12px 14px 30px; border-radius: var(--r-md); transform: translateY(-50%); }
+/* решение владельца 11.10: подложка шкалы — ненавязчивая, полупрозрачная и размытая (единственный элемент HUD с blur) */
+.fr.fi-reel.k-plate { background: color-mix(in srgb, var(--plate-bg) 42%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); }
+.fi-reel-quit { position: absolute; left: 0; right: 0; bottom: -26px; display: flex; justify-content: center; }
+.fi-reel-quit .k-btn { background: var(--plate-bg); }
+/* телефон: держать — где угодно на экране; шкала — узкой колонкой справа, поплавок и вода видны (в альбомной — левее кнопок) */
+.touch .fr.fi-reel { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); width: 150px; padding: 8px 8px 26px; }
+@media (max-height: 480px) and (orientation: landscape) { .touch .fr.fi-reel { right: calc(214px + env(safe-area-inset-right, 0px)); top: 54%; } }
+.touch .fr.fi-reel.show { animation: none; }
+
+/* ------------------------------------------------------------------ НП: карточка улова */
+.fi-catch { --tc: var(--tier-common); display: flex; flex-direction: column; gap: 10px; width: 320px; padding: 14px 16px 16px; box-shadow: var(--panel-shadow), inset 0 0 0 3px var(--tc); pointer-events: auto; }
+.fi-catch[hidden] { display: none; }
+.fi-catch.is-in { animation: fi-catch-in .32s var(--ease-spring) both; }
+@keyframes fi-catch-in { from { opacity: 0; transform: translateY(14px) scale(.96); } }
+.fi-catch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fi-catch-head > span:last-child { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.fi-catch-art { position: relative; display: grid; place-items: center; height: 124px; margin: 0 -4px; border-radius: var(--r-md); background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 38%, transparent), transparent), var(--surf-3); }
+.fi-catch-art > img { max-width: 276px; max-height: 112px; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(10, 5, 8, .4)); }
+.fi-catch-art.is-chest > img, .fi-catch-art.is-chest .fc2-chest { max-height: 118px; }
+.fi-catch-name { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.fi-catch-name b { min-width: 0; font-size: calc(var(--fs-28) * var(--display-scale)); line-height: 1.05; color: var(--surf-text); }
+.fi-catch-name span { color: var(--gold-text); font: 800 var(--fs-22)/1 var(--font-text); white-space: nowrap; }
+.fi-catch-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.fi-catch-btns .k-btn { min-width: 0; padding-left: 8px; padding-right: 8px; }
+.fi-catch-btns .k-btn small { white-space: nowrap; }
+.fi-catch-btns .k-btn small .k-coin { width: 14px; height: 14px; }
+.fi-catch-timer { grid-column: 1 / -1; margin-top: -2px; }
+.fi-catch.is-locked .fi-catch-btns .k-btn { opacity: .45; filter: saturate(.5); pointer-events: none; }
+.fi-catch-foot { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-catch-foot:empty { display: none; }
+.fi-catch-foot img { flex: none; width: 26px; height: 26px; object-fit: contain; }
+.fi-catch-foot b { color: var(--surf-text); }
+.fi-catch-foot.is-bad { color: var(--bad-text); font-weight: 700; }
+.fi-catch-coins { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--gold-text); font: 900 var(--fs-48)/1 var(--font-text); }
+.fi-catch-coins .k-coin, .fi-catch-coins .coin { width: 40px; height: 40px; }
+.fi-catch-sub { margin: -4px 0 0; color: var(--surf-dim); font: 600 var(--fs-16)/1.2 var(--font-text); text-align: center; }
+.fi-catch-lost { color: var(--bad-text); font: 900 var(--fs-28)/1 var(--font-text); text-align: center; }
+
+/* ------------------------------------------------------------------ журнал: полоса прогресса и следующая награда — один раз, сверху */
+.fi-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 14px 18px; }
+.fi-next-r { display: flex; align-items: center; gap: 12px; max-width: 430px; font: 600 var(--fs-16)/1.3 var(--font-text); }
+.fi-next-r img { width: 72px; height: 72px; object-fit: contain; }
+.fi-next-r b { color: var(--gold-text); }
+.fi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.fi-fcard { --tc: var(--tier-common); position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 8px 10px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); text-align: center; }
+.fi-fcard.is-got { box-shadow: inset 0 3px 0 var(--tc); }
+.fi-fcard-art { display: grid; place-items: center; width: 100%; height: 62px; margin-bottom: 2px; border-radius: var(--r-sm); background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent); }
+.fi-fcard-art img { max-width: 92%; max-height: 56px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(10, 5, 8, .35)); }
+.fi-fcard:not(.is-got) .fi-fcard-art { background: none; }
+.fi-fcard:not(.is-got) .fi-fcard-art img { filter: var(--sil); }
+.fi-fcard-name { max-width: 100%; font: 800 var(--fs-16)/1.15 var(--font-text); text-wrap: balance; }
+.fi-fcard:not(.is-got) .fi-fcard-name { color: var(--surf-dim); }
+.fi-fcard-line { color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.fi-fcard-line b { color: var(--surf-text); font-weight: 800; }
+.fi-fcard-tag { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surf-3); }
+.fi-fcard-tag img { width: 24px; height: 24px; object-fit: contain; }
+.fi-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.fi-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.fi-legend img { width: 24px; height: 24px; object-fit: contain; }
+
+/* журнал → «Награды» */
+.fi-gear { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.fi-gear .k-cell { display: flex; flex-direction: column; gap: 8px; min-height: 196px; }
+.fi-gear .k-cell > b { font: 800 var(--fs-18)/1.15 var(--font-text); }
+.fi-gear .k-cell > .fi-gear-desc { margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-gear-art { display: grid; place-items: center; height: 104px; }
+.fi-gear-art > img { max-height: 100px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(10, 5, 8, .3)); }
+.fi-gear-wins { display: flex; justify-content: space-around; gap: 6px; }
+.fi-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.fi-step { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 14px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); }
+.fi-step-n { font: 900 var(--fs-22)/1 var(--font-text); }
+.fi-step-n small { margin-left: 4px; color: var(--surf-dim); font-size: var(--fs-14); font-weight: 600; }
+.fi-step-i { flex: 1; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-step-i b { color: var(--surf-text); font-weight: 700; }
+.fi-step.is-got { background: var(--good-soft); border-color: transparent; }
+.fi-step.is-next { box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+.fi-step.is-lock { opacity: .62; }
+.fi-step.is-final { background: linear-gradient(135deg, var(--gold-soft), var(--surf-2)); }
+.fi-step > .k-pill { align-self: flex-start; }
+
+/* ------------------------------------------------------------------ Семён: задание, удочки, лавка, продажа, лодки */
+.fi-quest { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 6px 20px; padding: 18px 20px; }
+.fi-quest > img { grid-row: span 2; width: 76px; height: 76px; object-fit: contain; }
+.fi-quest-t { font: 800 var(--fs-22)/1.15 var(--font-text); }
+.fi-quest-t small { display: block; margin-top: 4px; color: var(--surf-dim); font: 500 var(--fs-16)/1.2 var(--font-text); }
+.fi-quest .k-meter { grid-column: 2; }
+.fi-quest .k-btn { grid-column: 3; grid-row: 1 / span 2; }
+.fi-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.fi-item { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto 1fr auto auto; align-content: start; gap: 4px 12px; padding: 12px 14px 14px; }
+.fi-item-art { grid-row: 1 / span 2; display: grid; place-items: center; width: 64px; height: 64px; }
+.fi-item-art img { max-height: 64px; max-width: 64px; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(10, 5, 8, .3)); }
+.fi-item > b { align-self: end; font: 800 var(--fs-18)/1.15 var(--font-text); }
+.fi-item > p { margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-item > .fi-why, .fi-item > .k-btn, .fi-item > .k-pill { grid-column: 1 / -1; }
+.fi-item > .k-btn, .fi-item > .k-pill { justify-content: center; margin-top: 6px; }
+.fi-item > p.fi-why { color: var(--bad-text); font-weight: 700; }
+.fi-item.is-rod { display: flex; flex-direction: column; gap: 6px; }
+.fi-item.is-rod .fi-item-art { grid-row: auto; width: 100%; height: 150px; }
+.fi-item.is-rod .fi-item-art img { max-width: 150px; max-height: 150px; }
+.fi-item.is-rod > .k-btn, .fi-item.is-rod > .k-pill { margin-top: auto; }
+.fi-item.is-rod > b { align-self: flex-start; }
+.fi-item.is-lock .fi-item-art img { filter: grayscale(1) brightness(.6) opacity(.6); }
+.fi-item.is-own { box-shadow: inset 0 0 0 2px var(--gold); background: var(--gold-soft); }
+.fi-shop-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* строки улова (рюкзак, «Продать») */
+.fi-rows { display: flex; flex-direction: column; gap: 8px; }
+.fi-row { --tc: var(--tier-common); display: grid; grid-template-columns: 130px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 16px; padding: 8px 12px 8px 8px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); box-shadow: inset 4px 0 0 var(--tc); }
+.fi-row-art { display: grid; place-items: center; height: 52px; border-radius: var(--r-sm); background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent); }
+.fi-row-art img { max-width: 118px; max-height: 48px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(10, 5, 8, .3)); }
+.fi-row-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fi-row-t b { font: 800 var(--fs-18)/1.1 var(--font-text); }
+.fi-row-t span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.fi-row-t .fi-tier { min-height: 22px; padding: 2px 8px; font-size: var(--fs-13); }
+.fi-row-p { display: inline-flex; align-items: center; gap: 6px; color: var(--gold-text); font: 900 var(--fs-22)/1 var(--font-text); white-space: nowrap; }
+.fi-row-a { display: flex; gap: 10px; }
+.fi-sum { display: inline-flex; align-items: center; gap: 8px; font: 700 var(--fs-16)/1 var(--font-text); }
+.fi-sum b { color: var(--gold-text); font-size: var(--fs-22); font-weight: 900; }
+.fi-empty { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 20px; padding: 22px; }
+.fi-empty img { width: 96px; height: 96px; object-fit: contain; }
+.fi-empty b { display: block; margin-bottom: 4px; font: 800 var(--fs-22)/1.2 var(--font-text); }
+.fi-empty p { margin: 0; color: var(--surf-dim); font-size: var(--fs-16); }
+
+.fi-boats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.fi-boat { display: flex; flex-direction: column; gap: 10px; }
+.fi-boat-ph { height: 150px; margin: -4px -4px 2px; border-radius: var(--r-sm); background: center / cover no-repeat; }
+.fi-boat > b { font: 800 var(--fs-22)/1.1 var(--font-text); }
+.fi-boat > p { margin: -4px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-spec { display: grid; grid-template-columns: 74px minmax(0, 1fr) 96px; align-items: center; gap: 6px 10px; font: 600 var(--fs-14)/1.2 var(--font-text); }
+.fi-spec > span:nth-child(3n + 1) { color: var(--surf-dim); }
+.fi-spec > span:nth-child(3n) { text-align: right; font-weight: 800; }
+.fi-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fi-boat .k-btn { margin-top: auto; }
+
+/* ------------------------------------------------------------------ своя лодка: плашка сверху, плитки, кнопки Z G R, радио */
+.fi-boat-ic { display: block; width: 32px; height: 32px; border-radius: 50%; background: center / cover no-repeat; }
+.fi-speed { display: flex; align-items: baseline; gap: 4px; }
+.fi-speed small { color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.fi-speed img { width: 26px; height: 26px; object-fit: contain; }
+/* стрелка «куда плыть» в плитке: цвет режима как текст */
+.fi-nav { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--mode-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); }
+.fi-nav svg { width: 24px; height: 24px; color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); transform: rotate(var(--a, 0deg)); }
+.fi-boatbar { display: flex; justify-content: flex-end; gap: 10px; }
+.fi-boatbar[hidden] { display: none; }
+.fi-boatbar .k-btn { min-width: 0; padding-left: 10px; padding-right: 12px; flex-direction: row; gap: 6px; }
+.fi-boatbar .k-btn small { margin-left: 2px; }
+.fi-boatbar .k-btn .k-ic { width: 22px; height: 22px; }
+.fi-radio { display: flex; flex-direction: column; gap: 8px; width: 290px; padding: 10px 12px 12px; border-radius: var(--r-md); pointer-events: auto; }
+.fi-radio[hidden] { display: none; }
+.fi-radio-h { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.fi-radio-h img { width: 28px; height: 28px; object-fit: contain; }
+.fi-radio-h b { font: 800 var(--fs-16)/1.15 var(--font-text); }
+.fi-station { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1px 10px; width: 100%; padding: 6px 10px 6px 14px; border: var(--surf-2-border); border-radius: var(--r-sm); background: var(--surf-2); color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; }
+.fi-station b { font: 800 var(--fs-15)/1.15 var(--font-text); }
+.fi-station span { grid-column: 1; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); }
+.fi-station .k-eq { grid-column: 2; grid-row: 1 / span 2; }
+.fi-station.is-on { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
+.fi-station:disabled { cursor: default; opacity: .6; }
+.fi-radio-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 700 var(--fs-14)/1.2 var(--font-text); }
+.fi-radio .k-slider { width: 160px; }
+.fi-radio > .k-switch { font-size: var(--fs-14); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fi-wait img, .fi-catch.is-in { animation: none; }
+}

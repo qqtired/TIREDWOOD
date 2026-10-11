@@ -18,9 +18,8 @@
 .fr.frx-down > .fr-prog,
 .fr.frx-down > .fr-grade,
 .fr.frx-down > .fr-slot,
-.fr.frx-down > .fr-rain,
 .fr.frx-down > .fe-reelbonus,
-.fr.frx-down > .fr-quit { translate: 0 var(--frx-down, 0px); transition: translate 0.25s ease-out; }
+.fr.frx-down > .fi-reel-quit { translate: 0 var(--frx-down, 0px); transition: translate 0.25s ease-out; }
 .fr.frx-down > .fr-prog { transition: translate 0.25s ease-out, opacity 0.09s ease-out, scale 0.09s ease-out; }
 
 /* новый кусок шкалы после пролома — со своей рамкой (внутренний кант, как у шкалы) и глубже (у верха — светлее) */
@@ -151,7 +150,6 @@
   font: 900 26px Rubik, system-ui, sans-serif; color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 18px var(--tc), 0 0 3px rgba(0, 0, 0, 0.6); }
 .frx-banner.on { animation: frx-banner 1.6s ease-out forwards; }
 @keyframes frx-banner { 0% { opacity: 0; transform: scale(1.6); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-20px); } }
-.fe-stand.frx-warn { background: rgba(120, 32, 26, 0.94); color: #ffd1c4; }
 
 /* ---------------------------------------------------------------- бонусы уровня: чутьё и метка мифика */
 .fr-fish.frx-sense { animation: frx-sense 0.18s linear infinite; }
@@ -171,9 +169,6 @@
   .frx-storm, .fr .fr-bar.frx-quake, .fr .fr-bar.frx-whip, .fr-fish.frx-sense, .frx-tooth.flick, .frx-badge.turn, .frx-ink-drips i { animation: none; }
 }
 
-/* ---------------------------------------------------------------- награда уровня у шкалы опыта (fishprogresshud.ts) */
-.fs-skill-perk { font-size: 11.5px; line-height: 1.3; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fs-skill-perk b { color: var(--gold); font-weight: 800; }
+/* ---------------------------------------------------------------- награда уровня у шкалы опыта (fishprogresshud.ts; вид — fish2.css) */
 .fs-skill-perk.new { animation: frx-perk 0.9s ease-out 3; }
 @keyframes frx-perk { 0% { text-shadow: 0 0 12px var(--gold); } 100% { text-shadow: none; } }
-.touch .f2-skill .fs-skill-perk { font-size: 10px; }

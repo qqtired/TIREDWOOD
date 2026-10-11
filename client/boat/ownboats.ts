@@ -2,9 +2,9 @@
 // ob (состав и где стоят) и obPos (на ходу, плавно на 3 тика позже часов отрисовки), своя у штурмана — предсказанием
 // тем же шагом, что на сервере (сверка с obMe). Рисуются инстансами (client/boat/models.ts), пирс-стоянка за домом
 // Семёна — тоже здесь. Желейки в лодке сидят на своих местах по позе лодки на экране. Интерфейс лодки: скорость,
-// стрелки к острову (по бакенам F1–F6) и к стоянке, якорь Z, гудок — пробел, «Продать улов» (G) у причала, место под
-// кнопку радио (пакет радио: radioSlot и onBoat). E у таблички места: своя лодка — за штурвал, чужая — пассажиром,
-// свободное место — окно вызова (client/boat/boatui.ts). Вкладка «⛵ Лодки» у Семёна — там же.
+// плитки «куда плыть» к острову (по бакенам F1–F6) и к стоянке, якорь Z, гудок — пробел, «Продать» (G) у причала; кнопка
+// и панель радио — пакет радио (onBoat; ряд кнопок общий, client/boat/boatbar.ts). E у таблички места: своя лодка — за штурвал,
+// чужая — пассажиром, свободное место — окно вызова (client/boat/boatui.ts). Вкладка «Лодки» у Семёна — там же.
 // Сцена набережной (scene.ts) зовёт: welcome, onJson, tickInput, frameInput, frame, avatarPose, selfPose, onKey, onUse,
 // useBerth, hint, berthHint, debug, reset.
 import * as THREE from 'three';
@@ -26,6 +26,7 @@ import type { Sound } from '../audio.ts';
 import type { Input } from '../input.ts';
 import type { Avatar, AvatarPose } from '../render/avatar.ts';
 import type { MeState } from '../scene.ts';
+import type { FishKitUi } from '../lobby/fishkit.ts';
 import type { FishNpcDialog } from '../lobby/fishnpcdialog.ts';
 import { BoatHud, BoatShopTab, SummonDialog, km } from './boatui.ts';
 import { BoatFleet, PierModel, RouteBuoys, type FleetPose, type PlateInfo } from './models.ts';
@@ -47,7 +48,8 @@ const _cam0 = new THREE.Vector3();
 export interface OwnBoatsDeps {
   scene: THREE.Scene;
   sound: Sound;
-  hudRoot: HTMLElement;
+  /** Слоты HUD кита и верх-центр (плашка лодки, плитки под бейджем, кнопки Z G R) */
+  kit: FishKitUi;
   overlay: HTMLElement;
   input: Input;
   npc: FishNpcDialog;
@@ -208,7 +210,7 @@ export class OwnBoatsClient {
     this.fleet = new BoatFleet(d.scene);
     this.pier = new PierModel(d.scene);
     this.buoys = new RouteBuoys(d.scene, ISLE_ROUTE_BUOYS.filter((b) => b.id !== 'F6'));
-    this.hud = new BoatHud(d.hudRoot, {
+    this.hud = new BoatHud(d.kit, {
       anchor: () => this.askAnchor(),
       sell: () => this.askSell(),
     });
@@ -218,11 +220,6 @@ export class OwnBoatsClient {
       onClose: () => d.modal(false),
     });
     this.shop = new BoatShopTab(d.npc, d.me);
-  }
-
-  /** Место под кнопку радио в интерфейсе лодки (пакет радио кладёт сюда свою кнопку) */
-  get radioSlot(): HTMLElement {
-    return this.hud.radio;
   }
 
   /** Открыто окно вызова лодки (мышь свободна, клавиши — ему) */
@@ -654,7 +651,7 @@ export class OwnBoatsClient {
 
   // ------------------------------------------------------------ подсказки и интерфейс
 
-  /** Подсказка в лодке: [клавиши, текст] */
+  /** Подсказка в лодке: [клавиши, текст]. Z, G и R — кнопками справа внизу (client/boat/boatui.ts), в подсказку их не повторяем */
   hint(): [string[], string] {
     const at = this.seatOf(this.act, this.arg);
     const b = at ? this.boats.get(at.boat) : undefined;
@@ -665,10 +662,10 @@ export class OwnBoatsClient {
     if (s.ph === OB_MOOR) return [[], 'Швартуемся…'];
     if (s.ph === OB_DROP) return [[], 'Якорь идёт вниз…'];
     if (s.ph === OB_RAISE) return [[], 'Поднимаем якорь…'];
-    if (s.ph === OB_ANCHORED) return [['Z'], 'поднять якорь · E — снова взять удочку'];
+    if (s.ph === OB_ANCHORED) return [['E'], 'снова взять удочку'];
     const dock = nearDock(s.x, s.z);
-    if (dock) return [['E'], `пришвартоваться у ${dock === 'park' ? 'стоянки' : 'причала острова'} · Z — якорь`];
-    return [['W', 'S', 'A', 'D'], 'газ и руль · Z — якорь · пробел — гудок · мышь — осмотреться'];
+    if (dock) return [['E'], `пришвартоваться у ${dock === 'park' ? 'стоянки' : 'причала острова'}`];
+    return [['W', 'S', 'A', 'D'], 'газ и руль · пробел — гудок'];
   }
 
   /** Подсказка у таблички места */
@@ -699,32 +696,36 @@ export class OwnBoatsClient {
     const yaw = this.d.input.yaw;
     const mine = b.v.pid === this.d.me().pid;
     const docked = s.ph === OB_DOCK || nearDock(p.x, p.z, 10) !== null;
-    // с удочкой справа — панель рыбалки: стрелки прячем, эхолот — строкой под названием
-    const fishing = this.act === ACT_FISH;
+    // плитки «куда плыть» стоят под бейджем и с удочкой: карточка рыбалки теперь слева сверху, справа места хватает
+    const phase = s.ph === OB_DROP ? 'Якорь идёт вниз' : s.ph === OB_RAISE ? 'Поднимаем якорь' : s.ph === OB_DOCK ? 'У причала'
+      : s.ph === OB_MOOR ? 'Швартуемся' : b.speed < -0.3 ? 'Задний ход' : '';
     this.hud.show({
-      title: `«${kind.name}»${mine ? '' : ` · лодка ${b.v.nick}`}`,
-      speed: `${Math.round(Math.abs(b.speed) * 3.6)} км/ч`,
-      phase: s.ph === OB_ANCHORED ? (fishing ? `⚓ на якоре · эхолот: клёв +${Math.round(kind.sonar * 100)} %` : '⚓ на якоре') : s.ph === OB_DROP ? '⚓ якорь идёт вниз' : s.ph === OB_RAISE ? '⚓ поднимаем якорь' : s.ph === OB_DOCK ? 'у причала'
-        : s.ph === OB_MOOR ? 'швартуемся' : b.speed < -0.3 ? 'задний ход' : '',
-      isle: { label: isle.label, dist: km(isle.d), rot: this.arrow(p.x, p.z, isle.x, isle.z, yaw) },
-      park: { label: home ? 'Причал острова' : 'Стоянка у Семёна', dist: km(Math.hypot((home ?? PARK_CENTER).x - p.x, (home ?? PARK_CENTER).z - p.z)),
+      boat: kind.id,
+      name: kind.name,
+      owner: mine ? '' : b.v.nick,
+      kmh: Math.round(Math.abs(b.speed) * 3.6),
+      phase: s.ph === OB_ANCHORED ? '' : phase,
+      anchored: s.ph === OB_ANCHORED,
+      sonar: Math.round(kind.sonar * 100),
+      isle: { label: isle.label, short: isle.short, dist: km(isle.d), rot: this.arrow(p.x, p.z, isle.x, isle.z, yaw) },
+      park: { label: home ? 'Причал острова' : 'Стоянка у Семёна', short: home ? 'Причал' : 'Стоянка', dist: km(Math.hypot((home ?? PARK_CENTER).x - p.x, (home ?? PARK_CENTER).z - p.z)),
         rot: this.arrow(p.x, p.z, (home ?? PARK_CENTER).x, (home ?? PARK_CENTER).z, yaw) },
-      sonar: `эхолот: поклёвка с якоря на ${Math.round(kind.sonar * 100)} % быстрее`,
-      nav: !fishing,
+      nav: true,
       anchor: mine && at.seat === 0 && (s.ph === OB_SEA || s.ph === OB_ANCHORED),
       anchorDown: s.ph === OB_ANCHORED,
-      sell: mine && docked,
+      sell: mine,
+      sellOn: mine && docked,
     });
   }
 
   /** Куда вести к острову: следующий бакен F1–F6 по пути (ближе к острову, чем лодка), за ними — сам остров */
-  private isleTarget(x: number, z: number): { label: string; x: number; z: number; d: number } {
+  private isleTarget(x: number, z: number): { label: string; short: string; x: number; z: number; d: number } {
     const me = Math.hypot(x - ISLE_CENTER.x, z - ISLE_CENTER.z);
-    const island = { label: 'Остров «Последний свет»', x: ISLE_CENTER.x, z: ISLE_CENTER.z, d: me };
+    const island = { label: 'Остров «Последний свет»', short: 'Остров', x: ISLE_CENTER.x, z: ISLE_CENTER.z, d: me };
     if (me < 700) return island;
     for (const b of ISLE_ROUTE_BUOYS) {
       const bd = Math.hypot(b.x - ISLE_CENTER.x, b.z - ISLE_CENTER.z);
-      if (bd < me - 40) return { label: `Бакен ${b.id} → остров ${km(me)}`, x: b.x, z: b.z, d: Math.hypot(b.x - x, b.z - z) };
+      if (bd < me - 40) return { label: `Бакен ${b.id} → остров ${km(me)}`, short: `Бакен ${b.id}`, x: b.x, z: b.z, d: Math.hypot(b.x - x, b.z - z) };
     }
     return island;
   }

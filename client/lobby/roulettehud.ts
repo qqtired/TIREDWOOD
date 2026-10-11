@@ -1,19 +1,24 @@
-// Окно ставки рулетки рыбака (fisheco) и плашка раунда. Окно: твой улов (какие рыбы и сколько стоят — ставка всегда весь
-// улов из рюкзака по его цене), три больших поля «красное / чёрное / зеро» с шансом и выигрышем, кнопка «Поставить».
-// Ставит сервер (server/lobby/roulette.ts): окно по «Поставить» сразу закрывается, чтобы было видно стол и тост сервера
-// с причиной, если ставку не приняли («Подойди к столу», «Колесо уже крутится»). Плашка раунда висит у стола, пока он
-// идёт: приём ставок и твоя ставка, колесо крутится, итог (после остановки шарика) и твой выигрыш.
+// Рулетка рыбака на ките UI 2.0 (эталон — lab/ui «Режимы» → «Рулетка рыбака на баркасе»; свой префикс классов rl-).
+//  · Окно ставки (E у стола) — fishDialog из fishkit.ts, как окно ставки крыс и блэкджека: шаг 1 «Твоя ставка — весь улов
+//    из рюкзака» (рыбы с ценой и сумма), шаг 2 «На что ставишь» (три крупных поля: красное / чёрное / зеро с клавишами 1–3,
+//    множителем, шансом и выигрышем), золотая «Поставить», «Последние ставки», правила в подвале.
+//    Ставит сервер (server/lobby/roulette.ts): окно по «Поставить» сразу закрывается, чтобы было видно стол и тост сервера
+//    с причиной, если ставку не приняли («Подойди к столу», «Колесо уже крутится»).
+//  · Плашка раунда у стола — плашка верх-центра (kit.top.event): приём ставок с отсчётом и твоя ставка, колесо крутится,
+//    итог (после остановки шарика). Висит, только пока ты у стола.
+//  · Твоя ставка — золотая плитка в ряду под бейджем (.k-tile--own); итог ставки — крупный баннер по центру (kit.top.hero).
 import { FISH } from '../../shared/fishing.ts';
-import { bagValue, emptyFishProgress, type FishProgress } from '../../shared/fishprogress.ts';
+import { bagValue, emptyFishProgress, type BagFish, type FishProgress } from '../../shared/fishprogress.ts';
 import type { ClientMsg, ServerMsg } from '../../shared/messages.ts';
 import {
   ROULETTE_COLORS, ROULETTE_COLOR_NAMES, ROULETTE_MAX_PAYOUT, ROULETTE_OPEN_MS, ROULETTE_PAYOUT, rouletteChance, rouletteColor, rouletteWin,
   type RouletteColor, type RouletteLogRow, type RouletteView,
 } from '../../shared/roulette.ts';
-import { setCoinText } from '../ui/coin.ts';
-import { el, fishPic, tierOf } from './fish2.ts';
+import { coinHtml, iconImg, keyHtml, meterHtml } from '../ui/kit/dom.ts';
+import { PRIO, escHtml } from '../ui/kit/topcenter.ts';
+import { fishPic, tierOf } from './fish2.ts';
 import { fishCount, num } from './fishfmt.ts';
-import './fisheco.css';
+import { fishDialog, winHeadHtml, winIn, type FishKitUi } from './fishkit.ts';
 import './roulettelog.css';
 
 const NAMES: Record<RouletteColor, string> = { red: 'Красное', black: 'Чёрное', green: 'Зеро' };
@@ -22,31 +27,44 @@ const PICK_KEYS: Record<string, RouletteColor> = { Digit1: 'red', Digit2: 'black
 /** Сколько висит итог после остановки шарика, мс */
 const RESULT_MS = 9000;
 /** Сколько последних ставок показываем в окне ставки (на табло на баркасе — все десять) */
-const RECENT_ROWS = 4;
+const RECENT_ROWS = 3;
+/** Сколько рыб из улова показываем по одной — остальные одной строкой «+N рыб» */
+const FISH_SHOWN = 3;
+/** Приоритет плашки раунда в верх-центре: выше «прочего» (10) и лодки (35), ниже секундомера (40) */
+const ROUND_PRIO = 36;
+const KEY = 'roulette';
 /** Итог твоей ставки (rouletteResult) */
 type Outcome = Extract<ServerMsg, { t: 'rouletteResult' }>;
+
+const ball = (n: number, c: RouletteColor): string => `<span class="rl-ball is-${c}">${n}</span>`;
 
 export class RouletteHud {
   onOpen: () => void = () => {};
   onClose: () => void = () => {};
   /** Идёт ли вращение у этого игрока (даёт колесо в 3D): итог показываем после остановки шарика */
   isSpinning: () => boolean = () => false;
-  private readonly root: HTMLDialogElement;
+  private readonly dlg: HTMLDialogElement;
+  private readonly win: HTMLElement;
+  private readonly eyebrow: HTMLElement;
   private readonly fish: HTMLElement;
   private fishKey = '';
-  private readonly sum: HTMLElement;
   private readonly state: HTMLElement;
   private readonly picks = new Map<RouletteColor, { btn: HTMLButtonElement; win: HTMLElement }>();
   private readonly go: HTMLButtonElement;
+  private readonly goText: HTMLElement;
   private readonly others: HTMLElement;
   private readonly recent: HTMLElement;
   private log: readonly RouletteLogRow[] = [];
-  private readonly banner: HTMLElement;
-  private readonly badge: HTMLElement;
-  private readonly bannerHead: HTMLElement;
-  private readonly bannerSub: HTMLElement;
-  private bannerKey = '';
+  /** Твоя ставка в ряду плиток под бейджем */
+  private readonly tile: HTMLElement;
+  private readonly tileCap: HTMLElement;
+  private readonly tileSub: HTMLElement;
+  private ownRow: HTMLElement | null = null;
+  private roundKey = '';
+  private tileKey = '';
   private readonly send: (msg: ClientMsg) => void;
+  /** Слоты HUD кита и верх-центр: плашка раунда, плитка своей ставки, итог баннером */
+  private readonly kit: FishKitUi;
   private progress: FishProgress = emptyFishProgress();
   private view: RouletteView | null = null;
   private viewAt = 0;
@@ -58,73 +76,75 @@ export class RouletteHud {
   private outcomeRound = 0;
   private resultKey = '';
   private resultAt = 0;
+  /** Для какого результата уже показали баннер «Выигрыш!» / «Улов ушёл в море…» */
+  private heroKey = '';
+  private lastGo = '';
+  private lastStatus = '';
+  /** Таймер четверти секунды: идёт, пока есть что показывать (у стола или своя ставка в раунде) */
+  private timer = 0;
 
-  constructor(parent: HTMLElement, send: (msg: ClientMsg) => void) {
+  constructor(parent: HTMLElement, send: (msg: ClientMsg) => void, kit: FishKitUi) {
     this.send = send;
-    this.root = el('dialog', 'fe-rl');
-    this.root.setAttribute('aria-labelledby', 'fe-rl-title');
-    const top = this.root.appendChild(el('div', 'fe-bag-top'));
-    top.appendChild(el('h2', '', '🎡 Рулетка рыбака')).id = 'fe-rl-title';
-    const x = top.appendChild(el('button', 'fn-close', '×'));
-    x.type = 'button';
-    x.title = 'Закрыть · Esc';
-    x.setAttribute('aria-label', 'Закрыть рулетку');
-    x.addEventListener('click', () => this.close());
-    // 1. сколько: весь улов из рюкзака
-    this.root.appendChild(el('div', 'fe-rl-step', '1. Твоя ставка — весь улов из рюкзака'));
-    this.fish = this.root.appendChild(el('div', 'fe-rl-fish'));
-    this.sum = this.root.appendChild(el('p', 'fe-rl-sum'));
+    this.kit = kit;
+    const { dlg, win } = fishDialog(parent, 'fi-win--auto rl-win');
+    this.dlg = dlg;
+    this.win = win;
+    const cap = Number.isFinite(ROULETTE_MAX_PAYOUT) ? ` · выплата — не больше ${num(ROULETTE_MAX_PAYOUT)} ${coinHtml()}` : '';
+    win.innerHTML = winHeadHtml({ portrait: iconImg('roulette', ''), eyebrow: 'Баркас · приём ставок', title: 'Рулетка рыбака' })
+      + `<div class="k-win-body">`
+      + `<section class="rl-sec"><p class="rl-step"><b>1</b>Твоя ставка — весь улов из рюкзака</p><div class="rl-stake"></div></section>`
+      + `<section class="rl-sec"><p class="rl-step"><b>2</b>На что ставишь</p><div class="rl-fields"></div></section>`
+      + `<button type="button" class="k-btn k-btn--gold k-btn--lg k-btn--wide rl-go"><span class="rl-go-t"></span>${keyHtml('Enter', 'tr')}</button>`
+      + `<p class="rl-state"></p><p class="rl-others"></p>`
+      + `<div class="k-well rl-last" hidden></div></div>`
+      + `<footer class="k-win-foot"><span class="k-note rl-rules">37 лунок: 18 красных, 18 чёрных и зеро · проиграл — улов пропадает${cap}</span></footer>`;
+    dlg.setAttribute('aria-label', 'Рулетка рыбака');
+    this.eyebrow = win.querySelector<HTMLElement>('.k-eyebrow')!;
+    this.fish = win.querySelector<HTMLElement>('.rl-stake')!;
+    this.state = win.querySelector<HTMLElement>('.rl-state')!;
+    this.others = win.querySelector<HTMLElement>('.rl-others')!;
+    this.recent = win.querySelector<HTMLElement>('.rl-last')!;
+    this.go = win.querySelector<HTMLButtonElement>('.rl-go')!;
+    this.goText = win.querySelector<HTMLElement>('.rl-go-t')!;
+    win.querySelector('.k-close')!.addEventListener('click', () => this.close());
     // 2. на что: три поля
-    this.root.appendChild(el('div', 'fe-rl-step', '2. На что ставишь'));
-    const row = this.root.appendChild(el('div', 'fe-rl-picks'));
+    const fields = win.querySelector<HTMLElement>('.rl-fields')!;
     ROULETTE_COLORS.forEach((c, i) => {
-      const btn = row.appendChild(el('button', `fe-rl-pick ${c}`));
+      const btn = document.createElement('button');
       btn.type = 'button';
+      btn.className = `rl-field is-${c}`;
       btn.setAttribute('aria-pressed', 'false');
-      btn.appendChild(el('span', 'fe-rl-key', String(i + 1)));
-      btn.appendChild(el('b', 'fe-rl-pname', NAMES[c]));
-      btn.appendChild(el('span', 'fe-rl-pmul', `×${ROULETTE_PAYOUT[c]}`));
-      btn.appendChild(el('span', 'fe-rl-pchance', `шанс ${(rouletteChance(c) * 100).toFixed(1).replace('.', ',')}%`));
-      const win = btn.appendChild(el('span', 'fe-rl-pwin'));
+      btn.innerHTML = `${keyHtml(String(i + 1), 'tr', 'sm')}<span class="rl-field-name">${NAMES[c]}</span><span class="rl-field-x">×${ROULETTE_PAYOUT[c]}</span>`
+        + `<span class="rl-field-ch">шанс ${(rouletteChance(c) * 100).toFixed(1).replace('.', ',')}%</span><span class="rl-field-win"></span>`;
+      fields.appendChild(btn);
       btn.addEventListener('click', () => this.choose(c));
-      this.picks.set(c, { btn, win });
+      this.picks.set(c, { btn, win: btn.querySelector<HTMLElement>('.rl-field-win')! });
     });
     // 3. поставить
-    this.go = this.root.appendChild(el('button', 'fn-action fe-rl-go'));
-    this.go.type = 'button';
     this.go.addEventListener('click', () => this.submit());
-    this.state = this.root.appendChild(el('p', 'fe-rl-state'));
-    this.others = this.root.appendChild(el('p', 'fn-fine fe-rl-others'));
-    this.recent = this.root.appendChild(el('div', 'fe-rl-recent'));
-    this.recent.hidden = true;
-    const cap = Number.isFinite(ROULETTE_MAX_PAYOUT) ? ` Выплата — не больше ${num(ROULETTE_MAX_PAYOUT)} 🪙.` : '';
-    setCoinText(this.root.appendChild(el('p', 'fn-fine')), `Европейская рулетка: 37 лунок — 18 красных, 18 чёрных и зеро. Выиграл — жетоны сразу; проиграл — улов пропадает.${cap} Колесо крутится через ${ROULETTE_OPEN_MS / 1000} с после первой ставки или сразу, когда поставили все у стола. Клавиши: 1, 2, 3 — поле, Enter — поставить, Esc — закрыть.`);
-    this.root.addEventListener('keydown', (e) => {
+    dlg.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.code === 'Escape') { e.preventDefault(); this.close(); return; }
       const c = PICK_KEYS[e.code];
       if (c) { e.preventDefault(); this.choose(c); return; }
       if (e.code === 'Enter' || e.code === 'NumpadEnter') { e.preventDefault(); this.submit(); }
     });
-    this.root.addEventListener('keyup', (e) => e.stopPropagation());
-    this.root.addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
-    this.root.addEventListener('click', (e) => { if (e.target === this.root) this.close(); });
-    parent.appendChild(this.root);
-    // плашка раунда у стола: не мешает кликам (живёт в слое меню), только показывает
-    this.banner = parent.appendChild(el('div', 'fe-rl-banner'));
-    this.banner.hidden = true;
-    this.banner.setAttribute('role', 'status');
-    this.badge = this.banner.appendChild(el('div', 'fe-rl-badge'));
-    const text = this.banner.appendChild(el('div', 'fe-rl-btext'));
-    this.bannerHead = text.appendChild(el('b', ''));
-    this.bannerSub = text.appendChild(el('span', ''));
-    window.setInterval(() => this.tick(), 250);
+    dlg.addEventListener('keyup', (e) => e.stopPropagation());
+    // Esc и клик по затемнению (fishkit.ts) — событие cancel
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
+    // твоя ставка: золотая плитка в ряду плиток под бейджем (общий .fi-tiles делает HUD рыбалки; нет его — свой ряд)
+    this.tile = document.createElement('div');
+    this.tile.className = 'k-tile k-tile--own rl-tile';
+    this.tile.hidden = true;
+    this.tile.innerHTML = `<span class="k-tile-face">${iconImg('roulette', '')}</span><span class="k-tile-cap"><span></span><small></small></span>`;
+    this.tileCap = this.tile.querySelector<HTMLElement>('.k-tile-cap > span')!;
+    this.tileSub = this.tile.querySelector<HTMLElement>('.k-tile-cap > small')!;
   }
 
-  get isOpen(): boolean { return this.root.open; }
+  get isOpen(): boolean { return this.dlg.open; }
 
   /** Колесо поехало или встало — плашку обновляем сразу (а не по таймеру в четверть секунды), в один кадр с тостом и звуком */
-  refresh(): void { this.renderBanner(); }
+  refresh(): void { this.renderRound(); }
 
   open(progress: FishProgress, pid: number): void {
     this.progress = progress;
@@ -132,11 +152,13 @@ export class RouletteHud {
     this.pick = null;
     this.renderRecent();
     this.render();
-    if (!this.root.open) {
-      this.root.showModal();
+    if (!this.dlg.open) {
+      this.dlg.showModal();
+      winIn(this.win);
       this.onOpen();
       this.picks.get('red')?.btn.focus({ preventScroll: true });
     }
+    this.wake();
   }
 
   setProgress(progress: FishProgress): void {
@@ -148,7 +170,8 @@ export class RouletteHud {
     this.view = v;
     this.viewAt = performance.now();
     if (this.isOpen) this.render();
-    this.renderBanner();
+    this.renderRound();
+    this.wake();
   }
 
   /** Последние ставки с табло на баркасе (свежие сверху): короткий список в окне — как сыграли другие и ты сам */
@@ -161,10 +184,34 @@ export class RouletteHud {
   setNear(near: boolean): void {
     if (this.near === near) return;
     this.near = near;
-    this.renderBanner();
+    this.renderRound();
+    this.wake();
   }
 
-  /** Твой итог: выигрыш или проигрыш — плашка покажет его после остановки шарика */
+  /** Ушли с набережной: окно закрыть, плашку раунда, баннер и плитку убрать, таймер остановить — в других комнатах ничего от стола */
+  reset(): void {
+    this.close();
+    this.near = false;
+    this.view = null;
+    this.outcome = null;
+    this.outcomeRound = 0;
+    this.resultKey = '';
+    this.heroKey = '';
+    this.roundKey = '';
+    this.tileKey = '';
+    this.kit.top.clear(KEY);
+    this.kit.top.clearHero(KEY);
+    this.tile.hidden = true;
+    this.tile.remove();
+    if (this.timer) { window.clearInterval(this.timer); this.timer = 0; }
+  }
+
+  /** Таймер нужен, пока игрок у стола, открыто окно или своя ставка в раунде (останавливается в tick, когда показывать нечего) */
+  private wake(): void {
+    if (!this.timer && (this.near || this.isOpen || !!this.mine())) this.timer = window.setInterval(() => this.tick(), 250);
+  }
+
+  /** Твой итог: выигрыш или проигрыш — баннер покажет его после остановки шарика */
   onResult(m: Outcome): void {
     this.outcome = m;
     this.outcomeRound = this.view?.round ?? 0;
@@ -179,20 +226,24 @@ export class RouletteHud {
   }
 
   close(): void {
-    if (!this.root.open) return;
-    this.root.close();
+    if (!this.dlg.open) return;
+    this.dlg.close();
     this.onClose();
   }
 
   /** Свой итог текстом (тост): выигрыш или улов ушёл в море */
   static resultText(m: Outcome): string {
     const what = `Выпало ${m.n} — ${ROULETTE_COLOR_NAMES[m.c]}`;
-    return m.payout > 0 ? `🎡 ${what}. Ты выиграл ${num(m.payout)} 🪙!` : `🎡 ${what}. Улов (${num(m.stake)} 🪙) ушёл в море…`;
+    return m.payout > 0 ? `${what}. Ты выиграл ${num(m.payout)} 🪙!` : `${what}. Улов (${num(m.stake)} 🪙) ушёл в море…`;
   }
 
   private left(): number {
+    return Math.ceil(this.leftMs() / 1000);
+  }
+
+  private leftMs(): number {
     const v = this.view;
-    return v ? Math.max(0, Math.ceil((v.left - (performance.now() - this.viewAt)) / 1000)) : 0;
+    return v ? Math.max(0, v.left - (performance.now() - this.viewAt)) : 0;
   }
 
   private mine(): RouletteView['bets'][number] | undefined {
@@ -219,24 +270,49 @@ export class RouletteHud {
 
   private tick(): void {
     if (this.isOpen) this.render();
-    this.renderBanner();
+    this.renderRound();
+    // не у стола, окно закрыто, плашки и плитки нет — таймер не нужен до следующего setNear / setView / open
+    if (!this.near && !this.isOpen && this.tile.hidden && !this.roundKey.split('|')[0]) {
+      window.clearInterval(this.timer);
+      this.timer = 0;
+    }
   }
 
   private renderRecent(): void {
     const rows = this.log.slice(0, RECENT_ROWS);
     this.recent.hidden = rows.length === 0;
     if (rows.length === 0) return;
-    const head = el('p', 'fe-rl-rhead', 'Последние ставки');
-    this.recent.replaceChildren(head, ...rows.map((r) => {
-      const row = el('div', r.pid === this.myPid ? 'fe-rl-rrow mine' : 'fe-rl-rrow');
-      row.title = `Выпало ${r.n} — ${ROULETTE_COLOR_NAMES[rouletteColor(r.n)]}`;
-      row.appendChild(el('span', `fe-rl-rdot ${rouletteColor(r.n)}`, String(r.n)));
-      row.appendChild(el('span', 'fe-rl-rnick', r.nick));
-      row.appendChild(el('span', `fe-rl-rbet ${r.c}`, `${ROULETTE_COLOR_NAMES[r.c]} ${num(r.stake)}`));
-      const res = row.appendChild(el('span', r.payout > 0 ? 'fe-rl-rres win' : 'fe-rl-rres loss'));
-      setCoinText(res, r.payout > 0 ? `+${num(r.payout)} 🪙` : `−${num(r.stake)}`);
-      return row;
+    this.recent.innerHTML = `<p class="k-eyebrow">Последние ставки</p>${rows.map((r) => {
+      const won = r.payout > 0;
+      return `<div class="rl-last-row${r.pid === this.myPid ? ' is-own' : ''}">${ball(r.n, rouletteColor(r.n))}<b>${escHtml(r.nick)}</b>`
+        + `<span>${ROULETTE_COLOR_NAMES[r.c]} · ${coinHtml()}${num(r.stake)}</span><span class="${won ? 'k-good' : 'k-bad'}">${won ? `+${num(r.payout)}` : `−${num(r.stake)}`}</span></div>`;
+    }).join('')}`;
+  }
+
+  /** Шаг 1: рыбы улова (самые дорогие — по одной, остальные — одной строкой) и сумма. Пересобираем, только когда рюкзак поменялся */
+  private renderFish(bag: readonly BagFish[], stake: number): void {
+    const key = bag.map((f) => f.n).join(',');
+    if (key === this.fishKey) return;
+    this.fishKey = key;
+    if (bag.length === 0) {
+      this.fish.innerHTML = '<span class="rl-none">Рюкзак пуст — ставить нечего. Поймай рыбу и возвращайся.</span>';
+      return;
+    }
+    const top = [...bag].sort((a, b) => b.p - a.p).slice(0, FISH_SHOWN);
+    const rest = bag.filter((f) => !top.includes(f));
+    this.fish.replaceChildren(...top.map((f) => {
+      const sp = FISH.findIndex((x) => x.id === f.f);
+      const chip = document.createElement('span');
+      chip.className = 'rl-fish';
+      chip.style.setProperty('--tc', tierOf(sp).css);
+      chip.appendChild(fishPic(sp, 'rl-fpic'));
+      chip.insertAdjacentHTML('beforeend', `<b>${escHtml(FISH[sp]?.name ?? f.f)}</b><span>${coinHtml()}${num(f.p)}</span>`);
+      return chip;
     }));
+    if (rest.length) {
+      this.fish.insertAdjacentHTML('beforeend', `<span class="rl-fish is-more"><b>+${fishCount(rest.length)}</b><span>${coinHtml()}${num(bagValue(rest))}</span></span>`);
+    }
+    this.fish.insertAdjacentHTML('beforeend', `<span class="rl-stake-sum">${fishCount(bag.length)} на <b>${coinHtml()}${num(stake)}</b></span>`);
   }
 
   private render(): void {
@@ -244,88 +320,112 @@ export class RouletteHud {
     const stake = bagValue(bag);
     const v = this.view;
     const mine = this.mine();
-    // какие рыбы идут в ставку — картинки с ценой (пересобираем, только когда рюкзак поменялся)
-    const key = bag.map((f) => f.n).join(',');
-    if (key !== this.fishKey) {
-      this.fishKey = key;
-      this.fish.replaceChildren(...bag.map((f) => {
-        const sp = FISH.findIndex((x) => x.id === f.f);
-        const chip = el('div', 'fe-rl-chip');
-        chip.style.setProperty('--tc', tierOf(sp).css);
-        chip.title = `${FISH[sp]?.name ?? f.f} · ${num(f.p)} жетонов`;
-        chip.appendChild(fishPic(sp, 'fe-rl-fpic'));
-        chip.appendChild(el('span', '', num(f.p)));
-        return chip;
-      }));
-    }
-    this.fish.hidden = bag.length === 0;
-    setCoinText(this.sum, bag.length ? `${fishCount(bag.length)} на ${num(stake)} 🪙 — всё это уйдёт на стол` : 'Рюкзак пуст — ставить нечего. Поймай рыбу и возвращайся.');
+    this.renderFish(bag, stake);
+    this.eyebrow.textContent = v?.phase === 'open' ? `Баркас · приём ставок · ещё ${this.left()} с` : v?.phase === 'spin' ? 'Баркас · колесо крутится' : 'Баркас · стол свободен';
     const can = this.canBet();
     for (const [c, p] of this.picks) {
-      setCoinText(p.win, bag.length ? `выиграешь ${this.winText(stake, c)}` : '');
+      const win = bag.length ? `выиграешь ${coinHtml()}${num(rouletteWin(stake, c))}${rouletteWin(stake, c) < stake * ROULETTE_PAYOUT[c] ? ' (потолок)' : ''}` : '';
+      if (p.win.dataset.k !== win) {
+        p.win.dataset.k = win;
+        p.win.innerHTML = win;
+      }
       p.btn.disabled = bag.length === 0 || !!mine || v?.phase === 'spin';
-      p.btn.classList.toggle('on', this.pick === c);
+      p.btn.classList.toggle('is-on', this.pick === c);
       p.btn.setAttribute('aria-pressed', String(this.pick === c));
     }
     this.go.disabled = !this.pick || !can;
-    setCoinText(this.go, this.pick ? `Поставить весь улов на ${NAMES[this.pick].toLowerCase()}` : 'Выбери поле, на которое ставишь');
-    this.go.classList.toggle('ready', !!this.pick && can);
-    setCoinText(this.state, mine ? `Ты уже поставил на ${ROULETTE_COLOR_NAMES[mine.c]} (${num(mine.stake)} 🪙) — жди колесо`
+    const label = this.pick ? `Поставить весь улов на ${NAMES[this.pick].toLowerCase()}` : 'Выбери поле, на которое ставишь';
+    if (label !== this.lastGo) {
+      this.lastGo = label;
+      this.goText.textContent = label;
+    }
+    const status = mine ? `Ты уже поставил на ${ROULETTE_COLOR_NAMES[mine.c]} (${num(mine.stake)} 🪙) — жди колесо`
       : v?.phase === 'spin' ? 'Колесо крутится — ставь в следующем раунде'
         : v?.phase === 'open' ? `Идёт приём ставок: ещё ${this.left()} с`
-          : 'Стол свободен — твоя ставка откроет раунд');
+          : `Стол свободен — твоя ставка откроет раунд, колесо крутится через ${ROULETTE_OPEN_MS / 1000} с`;
+    if (status !== this.lastStatus) {
+      this.lastStatus = status;
+      this.state.innerHTML = escHtml(status).replace('🪙', coinHtml());
+    }
     const rest = (v?.bets ?? []).filter((b) => b.pid !== this.myPid);
-    setCoinText(this.others, rest.length ? `За столом: ${rest.map((b) => `${b.nick} — ${ROULETTE_COLOR_NAMES[b.c]} (${num(b.stake)} 🪙)`).join('; ')}` : '');
+    const others = rest.length ? `За столом: ${rest.map((b) => `${escHtml(b.nick)} — ${ROULETTE_COLOR_NAMES[b.c]} (${num(b.stake)} ${coinHtml()})`).join('; ')}` : '';
+    if (this.others.innerHTML !== others) this.others.innerHTML = others;
     this.others.hidden = rest.length === 0;
+    this.state.classList.toggle('is-own', !!mine);
   }
 
-  /** «1 200 🪙»; упёрлись в потолок — так и пишем, чтобы ставка на зеро не обещала лишнего */
-  private winText(stake: number, c: RouletteColor): string {
-    const win = rouletteWin(stake, c);
-    return `${num(win)} 🪙${win < stake * ROULETTE_PAYOUT[c] ? ' (потолок)' : ''}`;
-  }
-
-  /** Плашка раунда у стола */
-  private renderBanner(): void {
+  /** Плашка раунда, плитка своей ставки и итог — по состоянию стола; зовём каждые 0,25 с и по событиям */
+  private renderRound(): void {
     const v = this.view;
     const now = performance.now();
-    let cls = '';
-    let head = '';
-    let sub = '';
-    let badge = '';
+    const mine = this.mine();
+    const spinning = this.isSpinning();
+    let html = '';
+    let good = false;
+    let hero: { tone: 'gold' | 'lose'; title: string; sub: string; small?: boolean } | null = null;
     if (this.near && v) {
-      const mine = this.mine();
-      const bet = mine ? `Твоя ставка: ${ROULETTE_COLOR_NAMES[mine.c]} · ${num(mine.stake)} 🪙` : '';
-      if (this.isSpinning()) {
-        cls = 'spin';
-        head = '🎡 Колесо крутится…';
-        sub = bet || (v.bets.length ? `Ставок за столом: ${v.bets.length}` : '');
+      const bet = mine ? `твоя — ${ROULETTE_COLOR_NAMES[mine.c]}, ${num(mine.stake)}` : '';
+      const icon = `<span class="k-event-ic">${iconImg('roulette', '')}</span>`;
+      if (spinning) {
+        html = `${icon}<div class="k-event-title">Колесо крутится…</div><div class="k-event-sub">${escHtml(bet || (v.bets.length ? `ставок за столом: ${v.bets.length}` : 'ставки приняты'))}</div>`;
       } else if (v.phase === 'open') {
-        cls = 'open';
-        head = `🎡 Приём ставок · ${this.left()} с`;
-        sub = bet || `Ставок за столом: ${v.bets.length} · E — поставить`;
+        const sec = this.left();
+        html = `${icon}<div class="k-event-title">Приём ставок</div><div class="k-event-sub">${escHtml(bet ? `${bet} · ставок ${v.bets.length}` : `ставок: ${v.bets.length} · E — поставить`)}</div>`
+          + `<div class="k-event-timer${sec <= 3 ? ' is-hurry' : ''}">0:${String(sec).padStart(2, '0')}</div>${meterHtml(this.leftMs() / ROULETTE_OPEN_MS, 'mode', 'k-meter--thin')}`;
       } else if (v.n !== undefined && v.phase !== 'spin') {
         const rk = `${v.round}:${v.n}`;
         if (rk !== this.resultKey) { this.resultKey = rk; this.resultAt = now; }
         if (now - this.resultAt < RESULT_MS) {
           const col = rouletteColor(v.n);
-          cls = `res ${col}`;
-          badge = String(v.n);
-          head = `Выпало ${v.n} — ${ROULETTE_COLOR_NAMES[col]}`;
           const o = this.outcome;
-          sub = o && o.n === v.n && this.outcomeRound === v.round ? (o.payout > 0 ? `Ты выиграл ${num(o.payout)} 🪙!` : `Улов (${num(o.stake)} 🪙) ушёл в море…`) : '';
+          const mineOut = o && o.n === v.n && this.outcomeRound === v.round ? o : null;
+          good = !!mineOut && mineOut.payout > 0;
+          html = `<span class="k-event-ic">${ball(v.n, col)}</span><div class="k-event-title">Выпало ${v.n} — ${ROULETTE_COLOR_NAMES[col]}</div><div class="k-event-sub">Колесо остановилось</div>`;
+          if (mineOut && this.heroKey !== rk) {
+            this.heroKey = rk;
+            hero = mineOut.payout > 0
+              ? { tone: 'gold', title: 'Выигрыш!', sub: `+${num(mineOut.payout)} 🪙 за улов` }
+              : { tone: 'lose', small: true, title: 'Улов ушёл в море…', sub: `${num(mineOut.stake)} 🪙 — в следующий раз повезёт` };
+          }
         }
       }
     }
-    const key = `${cls}|${head}|${sub}|${badge}`;
-    if (key === this.bannerKey) return;
-    this.bannerKey = key;
-    this.banner.hidden = !cls;
-    this.banner.className = `fe-rl-banner ${cls}`;
-    this.badge.hidden = !badge;
-    this.badge.className = `fe-rl-badge ${cls.split(' ')[1] ?? ''}`;
-    this.badge.textContent = badge;
-    this.bannerHead.textContent = head;
-    setCoinText(this.bannerSub, sub);
+    // плашка раунда
+    const rk = `${html}|${good}`;
+    if (rk !== this.roundKey) {
+      this.roundKey = rk;
+      if (html) this.kit.top.event({ key: KEY, prio: ROUND_PRIO, html, tone: good ? 'good' : undefined, lamp: good });
+      else this.kit.top.clear(KEY);
+    }
+    if (hero) this.kit.top.hero({ key: KEY, prio: PRIO.info + 5, tone: hero.tone, title: hero.title, sub: hero.sub, small: hero.small });
+    // твоя ставка в ряду плиток: пока идёт раунд (приём ставок и колесо)
+    const betOn = !!mine && !!v && (v.phase === 'open' || v.phase === 'spin' || spinning);
+    const tk = `${betOn}|${mine?.c}|${mine?.stake}`;
+    if (tk !== this.tileKey) {
+      this.tileKey = tk;
+      this.tile.hidden = !betOn;
+      if (mine) {
+        this.tileCap.textContent = ROULETTE_COLOR_NAMES[mine.c];
+        this.tileSub.innerHTML = `улов ${coinHtml()}${num(mine.stake)}`;
+      }
+    }
+    if (betOn) this.placeTile();
+  }
+
+  /** Плитка в общем ряду под бейджем (.fi-tiles) или в своём, если общего ещё нет */
+  private placeTile(): void {
+    const tr = this.kit.slots.tr;
+    let row = tr.querySelector<HTMLElement>(':scope > .fi-tiles');
+    if (row) {
+      if (row.hidden) row.hidden = false;
+    } else {
+      if (!this.ownRow) {
+        this.ownRow = document.createElement('div');
+        this.ownRow.className = 'k-tiles rl-tiles';
+        tr.append(this.ownRow);
+      }
+      row = this.ownRow;
+    }
+    if (this.tile.parentElement !== row) row.append(this.tile);
   }
 }

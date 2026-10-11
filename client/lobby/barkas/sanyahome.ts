@@ -1,11 +1,14 @@
-// Саня на баркасе: «Домой, к Семёну» за SANYA_PRICE — кнопка модуля баркаса в шапке разговора fisheco (контейнер extra
-// в client/lobby/fishnpcdialog.ts; сам разговор — лавка, продажа, задания — там). Видна только у Сани, без денег неактивна.
+// Саня на баркасе: «Домой, к Семёну» за SANYA_PRICE — кнопка кита (.k-btn) модуля баркаса в шапке окна торговца (контейнер
+// extra в client/lobby/fishnpcdialog.ts, перед жетонами; сам разговор — лавка, продажа, задания — там). Под кнопкой —
+// строка: бесплатный путь или, если не хватает жетонов, причина красным. Видна только у Сани, без денег неактивна.
 // Сервер: действие 'ferry' разговора (server/lobby/room.ts — onSanyaFerry), ответ — barkasHome: отправил — окно
 // закрывается и тост; нет — причину Саня скажет в окне.
 import { SANYA_PRICE } from '../../../shared/barkas.ts';
 import type { FishNpcId } from '../../../shared/fishplaces.ts';
 import type { ClientMsg } from '../../../shared/messages.ts';
 import { setCoinText } from '../../ui/coin.ts';
+import { coinHtml, iconImg } from '../../ui/kit/dom.ts';
+import '../fishwin.css';
 
 /** Что нужно от окна разговора (FishNpcDialog) */
 export interface NpcDialogHost {
@@ -35,15 +38,15 @@ export class SanyaHome {
     this.send = send;
     this.toast = toast;
     this.box = dialog.extra.appendChild(document.createElement('div'));
-    this.box.className = 'bk-homebox';
+    this.box.className = 'fi-home';
     this.box.hidden = true;
     const b = this.btn = this.box.appendChild(document.createElement('button'));
     b.type = 'button';
-    b.className = 'fn-action bk-home';
-    setCoinText(b, `⛵ Домой, к Семёну · ${SANYA_PRICE} 🪙`);
+    b.className = 'k-btn k-btn--ghost k-btn--sm';
+    b.innerHTML = `<span class="k-row-line">${iconImg('boat')}Домой, к Семёну · ${SANYA_PRICE} ${coinHtml()}</span>`;
     b.addEventListener('click', () => this.go());
     this.note = this.box.appendChild(document.createElement('small'));
-    this.note.className = 'bk-homenote';
+    this.note.className = 'fi-home-note';
     window.setInterval(() => { if (this.dialog.isOpen) this.refresh(); }, 500);
   }
 
@@ -58,6 +61,7 @@ export class SanyaHome {
     const note = short > 0 ? `Не хватает ${short} 🪙 · бесплатно — колокол у калитки` : NOTE;
     if (this.note.dataset.t !== note) {
       this.note.dataset.t = note;
+      this.note.classList.toggle('is-bad', short > 0);
       setCoinText(this.note, note);
     }
   }

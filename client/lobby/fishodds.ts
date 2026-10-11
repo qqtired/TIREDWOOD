@@ -1,74 +1,76 @@
-// «Шансы сейчас» (fisheco): пока сидишь с удочкой — цветная полоса по категориям с процентами и строка «что их
-// поднимает» (сезон или дождь, уровень, удочка, напиток или водка, блесна, баркас). Те же формулы, что у броска сервера
-// (shared/fishrules.ts tierOdds): итог честный — со всеми бонусами сразу. Наведи на категорию — видно, из чего он сложен:
-// база места × погода × бонусы; у нижней категории под потолком — ещё и сколько ей осталось после старших.
+// «Шансы сейчас» в карточке рыбалки (кит UI 2.0, lab/ui «Рыбалка» → «С удочкой: ждёшь поклёвку»): полоса по категориям
+// от обычной до царя морей, легенда в две колонки с процентами и одна пилюля «почему сейчас так» (сезон, дождь или туман,
+// напиток). Те же формулы, что у броска сервера (shared/fishrules.ts tierOdds): итог честный — со всеми бонусами сразу.
+// Хлам и сундук — не рыба: в полосу не входят (их доля — строкой «сундук · хлам» в журнале).
 import type { FishCastMods } from '../../shared/fishprogress.ts';
-import { COMMON_FLOOR, FISH_TIERS, T_CHEST, T_COMMON, T_JUNK, TIER_CSS, TIER_NAMES, TIER_SHORT, tierOdds, tierOddsParts, tierRank } from '../../shared/fishrules.ts';
+import { RAIN_MUL, SEASON_MUL, TIER_CSS, T_COMMON, T_DIVINE, T_EPIC, T_LEGEND, T_MYTH, T_RARE, tierOdds } from '../../shared/fishrules.ts';
+import { ALE, BEER, LORD, VODKA } from '../../shared/fishshop.ts';
+import { iconImg } from '../ui/kit/dom.ts';
 import { el } from './fish2.ts';
-import { mul, oddsParts } from './fishfmt.ts';
-import './fisheco.css';
+import { mul } from './fishfmt.ts';
+import { gearUrl } from './fishkit.ts';
 
-/** Процент: от 10 — целыми, от 1 — с десятыми, меньше — с сотыми (у божественной — с тысячными) */
-export function oddsPct(x: number): string {
+/** В легенде карточки — короче, чтобы две колонки влезли в 292 px (как lab/ui): от 10 — целыми, от 0,1 — с десятыми, меньше — с сотыми */
+function legendPct(x: number): string {
   const v = x * 100;
-  const s = v >= 10 ? String(Math.round(v)) : v >= 1 ? v.toFixed(1) : v >= 0.1 ? v.toFixed(2) : v.toFixed(3);
-  return `${s.replace('.', ',')}%`;
+  const s = v >= 10 ? String(Math.round(v)) : v >= 0.1 ? v.toFixed(1) : v.toFixed(2);
+  return `${s.replace('.', ',')} %`;
+}
+
+/** Порядок и подписи легенды: обычные … мифы, царь морей (как на странице lab/ui) */
+const ROWS: ReadonlyArray<readonly [number, string]> = [
+  [T_COMMON, 'Обычные'], [T_RARE, 'Редкие'], [T_EPIC, 'Эпические'], [T_LEGEND, 'Легенды'], [T_MYTH, 'Мифы'], [T_DIVINE, 'Царь морей'],
+];
+
+/** Пилюля «почему»: сезон, погода (дождь у пристани, туман у острова) или напиток; ничего из этого — пусто */
+function whyPill(mods: Readonly<FishCastMods>, rain: boolean, season: boolean, isle: boolean): string {
+  const pill = (tone: string, icon: string, text: string): string => `<span class="k-pill k-pill--${tone} k-pill--sm">${icon}${text}</span>`;
+  const img = (src: string): string => (src ? `<img class="k-ic" src="${src}" alt="">` : '');
+  if (season) return pill(isle ? 'special' : 'gold', iconImg(isle ? 'fog' : 'season'), `сезон ${mul(SEASON_MUL)}`);
+  if (rain) return isle ? pill('special', iconImg('fog'), `туман ${mul(RAIN_MUL)}`) : pill('info', iconImg('rain'), `дождь ${mul(RAIN_MUL)}`);
+  if (mods.drink === 4) return pill('gold', img(gearUrl('fishshop/vodka')), `водка ${mul(VODKA.top ?? 1)}`);
+  if (mods.drink === 3) return pill('gold', img(gearUrl('fishshop/beer')), `владыка ${mul(LORD.rare)}`);
+  if (mods.drink === 2) return pill('gold', img(gearUrl('fishshop/ale')), `эль ${mul(ALE.rare)}`);
+  if (mods.drink === 1) return pill('gold', img(gearUrl('fishshop/beer')), `пиво ${mul(BEER.rare)}`);
+  return '';
 }
 
 export class FishOdds {
   readonly root: HTMLElement;
-  private readonly title: HTMLElement;
+  private readonly why: HTMLElement;
   private readonly bar: HTMLElement;
   private readonly legend: HTMLElement;
-  private readonly why: HTMLElement;
   private key = '';
 
   constructor(parent: HTMLElement) {
-    this.root = parent.appendChild(el('div', 'fe-odds'));
-    const head = this.root.appendChild(el('div', 'fe-odds-head'));
-    this.title = head.appendChild(el('b', '', 'Шансы сейчас'));
-    this.bar = this.root.appendChild(el('div', 'fe-odds-bar'));
-    this.legend = this.root.appendChild(el('div', 'fe-odds-legend'));
-    this.why = this.root.appendChild(el('div', 'fe-odds-why'));
-    // на телефоне строку «почему» открывают касанием (мышь у рыбака захвачена — там она видна всегда)
-    this.root.addEventListener('click', () => this.root.classList.toggle('open'));
+    this.root = parent.appendChild(el('div', 'fi-odds'));
+    const head = this.root.appendChild(el('div', 'fi-odds-h'));
+    head.appendChild(el('p', 'k-eyebrow fi-odds-t')).innerHTML = `${iconImg('odds', '')}Шансы сейчас`;
+    this.why = head.appendChild(el('span', 'fi-odds-why'));
+    this.bar = this.root.appendChild(el('div', 'fi-odds-bar'));
+    this.legend = this.root.appendChild(el('div', 'fi-odds-legend'));
   }
 
-  set(mods: Readonly<FishCastMods>, rain: boolean, season = false): void {
+  /** rain — дождь у пристани или туман у острова; season — сезон рыбалки или острова; isle — пул острова */
+  set(mods: Readonly<FishCastMods>, rain: boolean, season = false, isle = false): void {
     const odds = tierOdds(rain, mods, season);
-    const key = `${odds.map((x) => x.toFixed(6)).join()}|${rain}|${season}|${mods.zone}|${mods.level}|${mods.rod}|${mods.drink}|${mods.lure}`;
+    const key = `${odds.map((x) => x.toFixed(6)).join()}|${rain}|${season}|${isle}|${mods.drink}`;
     if (key === this.key) return;
     this.key = key;
-    this.title.textContent = season ? 'Шансы сейчас · 🎣 сезон рыбалки' : rain ? 'Шансы сейчас · 🌧 дождь' : 'Шансы сейчас';
-    this.root.classList.toggle('season', season);
-    this.bar.replaceChildren();
-    this.legend.replaceChildren();
-    for (const t of FISH_TIERS) {
-      if (odds[t] <= 0) continue;
-      const seg = this.bar.appendChild(el('i', ''));
-      seg.style.flexGrow = String(odds[t]);
-      seg.style.background = TIER_CSS[t];
-      const item = this.legend.appendChild(el('span', ''));
-      item.style.setProperty('--tc', TIER_CSS[t]);
-      item.textContent = `${TIER_SHORT[t]} ${oddsPct(odds[t])}`;
-      const rank = tierRank(t);
-      if (rank > 0) {
-        const p = tierOddsParts(rank, rain, mods, season);
-        const want = p.base * p.weather * p.bonus;
-        // потолок сверху вниз: старшие взяли своё целиком, нижней оставшейся — остаток до 100 %
-        const cap = p.now < want - 1e-9 ? ` → ${oddsPct(p.now)}: старшие категории взяли своё, этой — остаток` : '';
-        item.title = `${TIER_NAMES[t]}: база ${oddsPct(p.base)} × погода ${mul(p.weather)} × бонусы ${mul(p.bonus)} = ${oddsPct(want)}${cap}`;
-      } else item.title = `${TIER_NAMES[t]}: всё, что осталось от остальных категорий`;
+    this.why.innerHTML = whyPill(mods, rain, season, isle);
+    this.bar.textContent = '';
+    this.legend.textContent = '';
+    for (const [t, name] of ROWS) {
+      const x = odds[t] ?? 0;
+      if (x > 0) {
+        const seg = this.bar.appendChild(el('i', ''));
+        seg.style.setProperty('--w', String(x * 100));
+        seg.style.setProperty('--c', TIER_CSS[t]);
+      }
+      const item = this.legend.appendChild(el('span', x > 0 ? '' : 'is-zero'));
+      item.appendChild(el('i', 'fi-dot')).style.setProperty('--c', TIER_CSS[t]);
+      item.append(name);
+      item.appendChild(el('b', '', legendPct(x)));
     }
-    const extra = this.legend.appendChild(el('span', 'fe-odds-misc'));
-    // с 10-го уровня хлама нет совсем — так и пишем, без «хлам 0,000%»
-    extra.textContent = `сундук ${oddsPct(odds[T_CHEST])} · ${odds[T_JUNK] > 0 ? `хлам ${oddsPct(odds[T_JUNK])}` : 'хлама нет'}`;
-    const parts = oddsParts(mods, rain, season);
-    this.why.textContent = parts.join(' · ');
-    // потолок: редкие и выше заняли всё, что можно (95 % рыбы), обычным — пол 5 %
-    const fish = 1 - odds[T_JUNK] - odds[T_CHEST];
-    const full = odds[T_COMMON] <= fish * COMMON_FLOOR + 1e-9
-      ? ` Потолок: редкие и выше заняли ${Math.round((1 - COMMON_FLOOR) * 100)} % рыбы, старшие — в первую очередь; обычным всегда остаётся ${Math.round(COMMON_FLOOR * 100)} %.` : '';
-    this.root.title = `Что клюнет при следующем забросе. Редкие и выше: ${parts.join(', ')}.${full}`;
   }
 }

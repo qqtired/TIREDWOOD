@@ -1,11 +1,11 @@
-// fisheco: подписи бонусов одним языком везде (лавка, рюкзак, «Шансы сейчас», карточка улова, шкала) и картинки лавки.
+// fisheco: подписи бонусов одним языком везде (лавка, рюкзак, карточка улова, тост уровня рыбалки).
 import { rewardLabel, stepLabel, type RewardStep } from '../../shared/fishstyle.ts';
 import { itemById } from '../../shared/outfit.ts';
 import {
-  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_MAX_LEVEL, FISH_XP_LEVELS, fishLevel, levelOdds, rodOdds, type FishCastMods, type FishProgress,
+  BAG_ALE, BAG_BARKAS, BAG_BEER, BAG_LORD, BAG_RAIN, FISH_MAX_LEVEL, FISH_XP_LEVELS, fishLevel, levelOdds, type FishProgress,
 } from '../../shared/fishprogress.ts';
-import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES, VODKA, lureOf } from '../../shared/fishshop.ts';
-import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RAIN_MUL, RULE, SEASON_MUL, SEA_DRAIN, SEA_FIGHT } from '../../shared/fishrules.ts';
+import { ALE, BAGS, BARKAS_LEVEL, BEER, LORD, LURES } from '../../shared/fishshop.ts';
+import { BARKAS_INCOME, RAIN_NUM, RAIN_DEN, RULE } from '../../shared/fishrules.ts';
 import { FISH } from '../../shared/fishing.ts';
 import { LEVEL_PERKS, ZONE_PER_LEVEL } from '../../shared/fishability.ts';
 
@@ -19,14 +19,6 @@ export function isleStepText(step: RewardStep): string {
 export function isleFish(id: string): boolean {
   const sp = FISH.findIndex((f) => f.id === id);
   return sp >= 0 && RULE[sp]?.zone === 'isle';
-}
-
-const SHOP = import.meta.glob('../assets/fishshop/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-
-/** Картинка вещи лавки (bag1…3, lure1…4, beer, ale, vodka, drum) или null */
-export function shopImg(id: string): string | null {
-  for (const [file, url] of Object.entries(SHOP)) if (file.endsWith(`/${id}.webp`)) return url;
-  return null;
 }
 
 const NUM = new Intl.NumberFormat('ru-RU');
@@ -60,12 +52,12 @@ export function levelZonePct(level: number): string {
 }
 
 /** Что даёт уровень рыбалки: зона (+1,5 % за уровень) и шанс редких и выше (+2,5 % за уровень от базы) */
-export function levelPerks(level: number): string {
+function levelPerks(level: number): string {
   return `зона +${levelZonePct(level)}% · редкие, эпик, лег., миф. и бож. ${mul(levelOdds(level))}`;
 }
 
 /** Награда уровня 1–15 (shared/fishability.ts LEVEL_PERKS): «Стойкость I — способности мификов короче на 10 %»; нет — '' */
-export function levelPerkText(level: number): string {
+function levelPerkText(level: number): string {
   const p = LEVEL_PERKS.find((x) => x.level === level);
   return p ? `${p.name} — ${p.text}` : '';
 }
@@ -93,34 +85,4 @@ export function fishLevelUpText(level: number): string {
 /** Сколько опыта ещё до уровня level (0 — уже есть) */
 export function xpTo(progress: Readonly<FishProgress>, level: number): number {
   return fishLevel(progress.xp) >= level ? 0 : Math.max(0, FISH_XP_LEVELS[Math.min(FISH_MAX_LEVEL, level)] - progress.xp);
-}
-
-/**
- * Разбивка шанса и манеры для подсказок: что сейчас поднимает редких и выше и что делает рыбу мягче/злее. Тот же
- * порядок и те же множители, что в броске сервера (shared/fishrules.ts: погода × уровень × удочка × напиток × блесна).
- * Уровень, удочка, пиво и погода умножают все категории от редкой до божественной; блесна и водка — эпическую и выше.
- */
-export function oddsParts(mods: Readonly<FishCastMods>, rain: boolean, season = false): string[] {
-  const parts: string[] = [];
-  if (season) parts.push(`сезон рыбалки: виды дождя, все шансы ${mul(SEASON_MUL)} к дождю — редкие и выше ${mul(RAIN_MUL * SEASON_MUL)}`);
-  else if (rain) parts.push(`дождь: виды дождя, редкие и выше ${mul(RAIN_MUL)}`);
-  parts.push(`ур. ${mods.level} ${mul(levelOdds(mods.level))}`);
-  if (mods.rod) parts.push(`удочка ${mul(rodOdds(mods.rod))}`);
-  if (mods.drink === 4) parts.push(`водка: эпик и выше ${mul(VODKA.top ?? 1)}, зона ${mul(VODKA.zone ?? 1)}`);
-  else if (mods.drink === 3) parts.push(`пиво владыки ${mul(LORD.rare)}`);
-  else if (mods.drink === 2) parts.push(`эль ${mul(ALE.rare)}`);
-  else if (mods.drink === 1) parts.push(`пиво ${mul(BEER.rare)}`);
-  const lure = lureOf(mods.lure);
-  if (lure) parts.push(`${lure.name.split(' ')[0].toLowerCase()} блесна: эпик и выше ${mul(lure.epic)}`);
-  if (mods.zone === 'barkas') parts.push(`баркас: цена и опыт ${mul(BARKAS_INCOME)}`);
-  return parts;
-}
-
-/** Подсказки сложности: блесна смягчает рывки, море усиливает их; водка сужает зону и пьянит. */
-export function dartParts(mods: Readonly<FishCastMods>): string[] {
-  const out: string[] = [];
-  if (mods.calm > 0) out.push(`рывки −${Math.round(mods.calm * 100)}% блесна`);
-  if (mods.zone === 'barkas') out.push(`рывки +${Math.round((SEA_FIGHT - 1) * 100)}% море · сопротивление +${Math.round((SEA_DRAIN - 1) * 100)}%`);
-  if (mods.drink === 4) out.push(`водка: зона −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}% · шатает, икаешь`);
-  return out;
 }

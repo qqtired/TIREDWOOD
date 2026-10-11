@@ -18,16 +18,13 @@ import {
   BOUNCE_FULL, PATTERN_NAMES, REEL_P_MAX, reelBitten, reelGrade, reelPulling, reelRun, reelSlack, reelStart, reelTaut, reelView, type Reel,
 } from '../../shared/fishreel.ts';
 import { RULE, TIER_CSS, TIER_NAMES, T_DIVINE, T_JUNK, T_LEGEND, T_MYTH, isFishTier } from '../../shared/fishrules.ts';
-import { BIG_FILL, ZONE_PER_LEVEL, gradeErrors, levelBonus, reelStyle2 } from '../../shared/fishability.ts';
+import { BIG_FILL, gradeErrors, levelBonus, reelStyle2 } from '../../shared/fishability.ts';
 import { ReelAbilityFx } from './fishabfx.ts';
 import type { FishCastMods } from '../../shared/fishprogress.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Sound } from '../audio.ts';
 import { TOUCH } from '../touch.ts';
 import { el } from './fish2.ts';
-import { dartParts } from './fishfmt.ts';
-import { rodBonus } from '../../shared/fishprogress.ts';
-import { VODKA } from '../../shared/fishshop.ts';
 import { errorsText, gradeClass, gradeMul, gradeName } from './fishgrade.ts';
 
 /** Новые нажатия уходят серверу не чаще чем раз в столько тиков, без нажатий — раз в столько (сервер ждёт 4 с) */
@@ -89,7 +86,6 @@ export class ReelGame {
   private readonly fill: HTMLElement;
   private readonly label: HTMLElement;
   private readonly hint: HTMLElement;
-  private readonly rainEl: HTMLElement;
   /** «Прекратить [X]»: сдаться — рыба срывается, управление возвращается (кнопка нажимается мышью и пальцем, клавиша X — scene.ts) */
   private readonly quitBtn: HTMLButtonElement;
   /** fisheco: откуда зона и рывки («Зона 30% → 36% (ур. 4 +10%, удочка +10%)», «рывки −5% блесна») и «Последний рывок!» */
@@ -137,7 +133,10 @@ export class ReelGame {
 
   constructor(parent: HTMLElement, sound: Sound) {
     this.sound = sound;
-    this.root = el('div', 'fr');
+    // кит UI 2.0 (lab/ui «Рыбалка» → «Вываживание»): вокруг прежней шкалы — рамка-плашка: категория рыбы, живая оценка,
+    // одна подсказка (или срочная красная надпись) и «Прекратить» с клавишей X на нижнем краю. Вид самой шкалы — прежний.
+    this.root = el('div', 'fr k-plate fi-reel');
+    this.root.dataset.mode = 'fishing';
     this.label = this.root.appendChild(el('div', 'fr-label'));
     this.bar = this.root.appendChild(el('div', 'fr-bar'));
     this.bar.appendChild(el('div', 'fr-water'));
@@ -156,17 +155,18 @@ export class ReelGame {
     // короткое касание вслепую не считается). Срочные надписи не раздвигают колонку (fish2.css, .fr-slot): шкала не
     // прыгает, и низ колонки не наезжает на подсказку внизу экрана.
     const slot = this.root.appendChild(el('div', 'fr-slot'));
-    this.standEl = slot.appendChild(el('div', 'fe-stand', 'Последний рывок!'));
-    slot.appendChild(el('div', 'fe-slack', 'Леска провисла — приподними зону!'));
-    slot.appendChild(el('div', 'fe-taut', 'Леска натянута — отпусти!'));
-    this.hint = slot.appendChild(el('div', 'fr-hint', TOUCH ? 'Держи ↑ · отпусти ↓' : 'Держи ЛКМ или Пробел — зона вверх'));
-    this.rainEl = this.root.appendChild(el('div', 'fr-rain', TOUCH ? '🎣 Виды события ×1,5' : '🎣 Событие · уникальные рыбы ×1,5'));
+    this.standEl = slot.appendChild(el('div', 'fe-stand k-pill k-pill--bad', 'Последний рывок!'));
+    slot.appendChild(el('div', 'fe-slack k-pill k-pill--bad', 'Леска провисла — приподними!'));
+    slot.appendChild(el('div', 'fe-taut k-pill k-pill--bad', 'Леска натянута — отпусти!'));
+    this.hint = slot.appendChild(el('div', 'fr-hint'));
+    if (TOUCH) this.hint.textContent = 'Держи палец — зона вверх';
+    else this.hint.innerHTML = 'Держи <span class="k-key"><i class="k-mouse k-mouse--l"></i></span> — зона вверх';
     this.bonus = this.root.appendChild(el('div', 'fe-reelbonus'));
-    this.quitBtn = this.root.appendChild(el('button', 'fr-quit'));
+    const quit = this.root.appendChild(el('div', 'fi-reel-quit'));
+    this.quitBtn = quit.appendChild(el('button', 'fr-quit k-btn k-btn--ghost k-btn--sm'));
     this.quitBtn.type = 'button';
-    this.quitBtn.title = 'Бросить вываживание: рыба сорвётся, можно забрасывать снова';
     this.quitBtn.append('Прекратить');
-    if (!TOUCH) this.quitBtn.append(' ', el('kbd', '', 'X'));
+    if (!TOUCH) this.quitBtn.insertAdjacentHTML('beforeend', '<kbd class="k-key k-key--sm k-key--tr">X</kbd>');
     this.quitBtn.addEventListener('click', () => this.giveUp());
     this.result = this.root.appendChild(el('div', 'fr-res'));
     if (TOUCH) {
@@ -205,8 +205,8 @@ export class ReelGame {
     return this.r ? this.r.p / REEL_P_MAX : 0;
   }
 
-  /** Подсёк: вид и сид от сервера; rain — идёт ли дождь (значок у шкалы). */
-  start(sp: number, seed: number, rain: boolean, mods: Readonly<FishCastMods>): void {
+  /** Подсёк: вид и сид от сервера (дождь — плашкой сверху экрана, на шкале не повторяется). */
+  start(sp: number, seed: number, mods: Readonly<FishCastMods>): void {
     const rule = RULE[sp];
     if (!rule) return;
     // та же манера, что у сервера: способность вида и бонусы уровня — из sp и снимка заброса (shared/fishability.ts)
@@ -220,14 +220,9 @@ export class ReelGame {
     this.fx.start(this.r, lb);
     this.wasStand = 0;
     this.standEl.classList.remove('show');
-    const base = rule.style.zone;
-    // откуда зона шире или уже: только то, что есть (у новичка без удочки строки нет)
-    const why: string[] = [];
-    if (mods.level) why.push(`ур. ${mods.level} +${(Math.round(mods.level * ZONE_PER_LEVEL * 1000) / 10).toLocaleString('ru-RU')}%`);
-    if (mods.rod) why.push(`удочка +${Math.round(rodBonus(mods.rod) * 100)}%`);
-    if (drunk && isFishTier(rule.tier)) why.push(`водка −${Math.round((1 - (VODKA.zone ?? 1)) * 100)}%`);
-    const zoneLine = why.length ? [`Зона ${Math.round(base)}% → ${Math.round(style.zone)}% (${why.join(', ')})`] : [];
-    const lines = isFishTier(rule.tier) ? [...zoneLine, ...dartParts(mods)] : [];
+    // кит UI 2.0: под шкалой — только то, что меняет бой прямо сейчас (держать мифика дольше, повадка рыбы — бонус
+    // 3-го уровня); откуда зона шире и рывки мягче — в журнале и у Семёна
+    const lines: string[] = [];
     // мифик и божественная: держать дольше и способность; «Знаток повадок» (ур. 3) — как ходит рыба
     if (style.fill === BIG_FILL) lines.push(`держать в зоне на ${BIG_FILL - 100}% дольше${style.ability ? ' · на 60–75% улова — способность' : ''}`);
     if (lb.habits && isFishTier(rule.tier) && style.mainPattern && style.secondaryPattern) {
@@ -267,7 +262,6 @@ export class ReelGame {
     this.hicEl.classList.remove('show');
     this.drunkMs = 0;
     this.blinkAt = this.lastNow + between(BLINK_GAP_MS);
-    this.setRain(rain);
     this.root.classList.add('show');
     this.hold?.classList.add('show');
     this.render();
@@ -277,10 +271,6 @@ export class ReelGame {
   theme(key: string): void {
     if (key === 'wood') delete this.root.dataset.frTheme;
     else this.root.dataset.frTheme = key;
-  }
-
-  setRain(rain: boolean): void {
-    this.rainEl.classList.toggle('show', rain);
   }
 
   /** Кадр: held — держит ли игрок кнопку (мышь, пробел, кнопка 🎣); палец на экране — сам. */
@@ -319,7 +309,7 @@ export class ReelGame {
       this.calm();
       this.fx.end();
       this.root.classList.add('lost');
-      this.result.textContent = text;
+      this.result.replaceChildren(el('b', 'k-bad', text));
     }
   }
 
@@ -371,10 +361,11 @@ export class ReelGame {
     // вытащил рыбу — ниже оценка крупно её цветом («Идеально · ×2,5 опыта»; сервер считает так же — она же в карточке);
     // сорвалась, пока леска была натянута, — оборвалась; сдался сам (text) — просто сорвалась
     this.fx.end();
-    this.result.textContent = caught ? 'Поймал! 🎣' : text ?? (r && reelBitten(r) ? 'Леска перекушена!' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…');
+    // итог — крупно на рамке (кит: «Поймал!» зелёным, «Сорвалась…» красным), под ним оценка цветом оценки
+    this.result.replaceChildren(el('b', caught ? 'k-good' : 'k-bad', caught ? 'Поймал!' : text ?? (r && reelBitten(r) ? 'Леска перекушена!' : r && reelTaut(r) ? 'Леска оборвалась!' : 'Сорвалась…')));
     if (caught && r && this.fishTier) {
       const g = reelGrade(gradeErrors(r.err, this.level));
-      this.result.appendChild(el('small', gradeClass(g), `${gradeName(g)} · ${gradeMul(g)} опыта`));
+      this.result.appendChild(el('span', gradeClass(g), `${gradeName(g)} · опыт ${gradeMul(g)}`));
     }
     this.onEnd(caught);
   }

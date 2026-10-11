@@ -1,6 +1,6 @@
 // Радио на лодке — связка клиента: что включено на каждой лодке (сервер, shared/boatradio.ts), какое радио слышно
 // (на борту — полностью, рядом — тише с расстоянием, звучит одно — громче всех), синтез станции движком автомата
-// (client/music + client/boat/radiostream.ts) в «эфирном» месте потока по серверным часам, кнопка и окно радио.
+// (client/music + client/boat/radiostream.ts) в «эфирном» месте потока по серверным часам, кнопка R и панель радио.
 // Плавно: включение — нарастание, выключение — затухание, смена станции — короткий «шорох эфира». Пока тянешь рыбу —
 // радио тише; автомат на площади уступает радио, когда оно рядом. Скрытая вкладка или ползунок «Музыка» на нуле — не
 // синтезируем.
@@ -15,6 +15,7 @@ import {
 } from '../../shared/boatradio.ts';
 import { MusicPlayer } from '../music/engine.ts';
 import { RadioPanel, type RadioPanelState } from './radiopanel.ts';
+import type { FishKitUi } from '../lobby/fishkit.ts';
 import { stationFeed, type StationFeed } from './radiostream.ts';
 import { STATION_DEFS } from './stations/index.ts';
 
@@ -43,7 +44,8 @@ export interface RadioDeps {
   /** Окно открылось / закрылось: отпустить мышь / забрать обратно */
   onOpen(): void;
   onClose(): void;
-  hudRoot: HTMLElement;
+  /** Слоты HUD кита (панель радио — над кнопками лодки в низ-право) */
+  kit: FishKitUi;
 }
 
 /** Расхождение с эфиром, после которого начинаем заново с верного места, с */
@@ -77,7 +79,7 @@ export class BoatRadio {
 
   constructor(d: RadioDeps) {
     this.d = d;
-    this.panel = new RadioPanel(d.hudRoot, {
+    this.panel = new RadioPanel(d.kit, {
       close: () => this.close(),
       toggle: () => this.toggle(),
       power: () => this.power(),
@@ -272,7 +274,7 @@ export class BoatRadio {
     if (lobby) for (const w of this.wires) if (this.aboard(w) && (!mine || w.owner === this.d.myPid())) mine = w;
     this.mineId = mine?.id ?? null;
     if (!mine && this.panel.isOpen) this.close();
-    this.panel.setChip(mine ? { title: mine.on ? RADIO_STATIONS[mine.st]?.title ?? '' : 'выкл', emoji: mine.on ? RADIO_STATIONS[mine.st]?.emoji ?? '📻' : '📻', on: mine.on === 1 } : null);
+    this.panel.setChip(mine ? { title: mine.on ? RADIO_STATIONS[mine.st]?.title ?? '' : 'выкл', on: mine.on === 1 } : null);
 
     // какое радио слышно: громче всех (на борту — без потерь на расстояние)
     const cp = cam.position;

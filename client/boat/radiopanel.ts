@@ -1,9 +1,15 @@
-// Кнопка и окно радио на лодке: кнопка «📻 R · станция» справа внизу, пока ты на борту; окно — вкл/выкл, три станции,
-// громкость, «Разрешить всем на борту» (только хозяин). Решает сервер — окно только показывает состояние и просит.
-// Окно не модальное: лодкой можно править, пока оно открыто. Клавиши — значками на кнопках: 1–3 станция, 0 вкл/выкл,
-// − / + громкость; Esc или R — закрыть.
+// Кнопка и панель радио на лодке на ките UI 2.0 (эталон — lab/ui «Рыбалка» → «8. своя лодка», состояние «на якоре · радио»):
+// кнопка «Радио» с клавишей R — третья в ряду Z G R справа внизу (общий ряд .fi-boatbar, client/boat/boatbar.ts; пока ты на
+// борту); панель .k-panel.fi-radio — над рядом: включить, три станции (клавиши 1–3, у играющей — эквалайзер), громкость,
+// «Слышат все на борту» (только хозяин) и строка, кто управляет. Решает сервер — панель только показывает состояние и просит.
+// Панель не модальная: лодкой можно править, пока она открыта. Закрыть — R, Esc или кнопка «Радио» (она в нажатом виде).
+// Клавиши: 1–3 станция, 0 вкл/выкл, − / + громкость (client/boat/radio.ts).
 import type { MusicPlayer } from '../music/engine.ts';
-import { RADIO_STATIONS, RADIO_VOL_MAX } from '../../shared/boatradio.ts';
+import { RADIO_STATIONS, RADIO_VOL_MAX, RADIO_VOL_MIN } from '../../shared/boatradio.ts';
+import type { FishKitUi } from '../lobby/fishkit.ts';
+import { iconImg, keyHtml } from '../ui/kit/dom.ts';
+import { escHtml } from '../ui/kit/topcenter.ts';
+import { boatBar } from './boatbar.ts';
 import './radio.css';
 
 export interface RadioPanelState {
@@ -27,96 +33,91 @@ export interface RadioPanelActions {
   allowAll(on: boolean): void;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement, html?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
   parent?.appendChild(e);
   return e;
 }
 
-function setText(e: HTMLElement, text: string): void {
-  if (e.textContent !== text) e.textContent = text;
-}
-
-function btn(cls: string, parent: HTMLElement, html: string, title: string, fn: () => void): HTMLButtonElement {
-  const b = el('button', cls, parent);
-  b.type = 'button';
-  b.innerHTML = html;
-  b.title = title;
-  b.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
-  return b;
-}
-
+const EQ = '<span class="k-eq"><i></i><i></i><i></i></span>';
+/** Полос эквалайзера в движке (client/music) — в панели три: низ, середина, верх */
 const BANDS = 5;
+const BAR_BAND = [0, 2, 4];
 
 export class RadioPanel {
   private readonly root: HTMLElement;
   private readonly chip: HTMLButtonElement;
-  private readonly chipText: HTMLElement;
-  private readonly chipEmoji: HTMLElement;
-  private readonly sub: HTMLElement;
-  private readonly powerBtn: HTMLButtonElement;
-  private readonly rows: Array<{ li: HTMLButtonElement; eq: HTMLElement[] }> = [];
-  private readonly volFill: HTMLElement;
-  private readonly volText: HTMLElement;
-  private readonly volBtns: HTMLButtonElement[] = [];
+  private readonly chipEq: HTMLElement;
+  private readonly power: HTMLInputElement;
+  private readonly rows: Array<{ btn: HTMLButtonElement; eq: HTMLElement[] }> = [];
+  private readonly vol: HTMLInputElement;
   private readonly allRow: HTMLElement;
   private readonly allBox: HTMLInputElement;
-  private readonly lock: HTMLElement;
+  private readonly note: HTMLElement;
   private readonly bands = new Float32Array(BANDS);
   private open_ = false;
   private last = '';
   private st = -1;
+  private vol_ = RADIO_VOL_MIN;
+  private dragging = false;
 
-  constructor(host: HTMLElement, a: RadioPanelActions) {
-    // кнопка на HUD (видна, пока ты на борту)
-    this.chip = btn('br-chip', host, '', 'Радио лодки (R)', () => a.toggle());
-    this.chipEmoji = el('span', 'br-chip-emoji', this.chip);
-    el('kbd', 'br-key', this.chip).textContent = 'R';
-    this.chipText = el('span', 'br-chip-text', this.chip);
+  constructor(kit: FishKitUi, a: RadioPanelActions) {
+    const bar = boatBar(kit.slots);
+    // кнопка «Радио» в ряду Z G R (видна, пока ты на борту)
+    this.chip = el('button', 'k-btn k-btn--sm k-btn--special br-chip', bar, `${iconImg('radio')}Радио${EQ}${keyHtml('R', 'tr')}`);
+    this.chip.type = 'button';
+    this.chip.setAttribute('aria-label', 'Радио лодки');
     this.chip.hidden = true;
+    this.chipEq = this.chip.querySelector<HTMLElement>('.k-eq')!;
+    this.chipEq.hidden = true;
+    this.chip.addEventListener('click', () => a.toggle());
 
-    this.root = el('div', 'br', host);
+    this.root = el('div', 'k-panel fi-radio br');
     this.root.hidden = true;
     this.root.setAttribute('role', 'dialog');
     this.root.setAttribute('aria-label', 'Радио лодки');
-    const head = el('div', 'br-head', this.root);
-    el('div', 'br-title', head).textContent = '📻 Радио лодки';
-    btn('br-x', head, '✕', 'Закрыть (Esc)', () => a.close()).setAttribute('aria-label', 'Закрыть');
-    this.sub = el('div', 'br-sub', this.root);
+    this.root.innerHTML = `<div class="fi-radio-h">${iconImg('radio', '')}<b>Радио лодки</b>`
+      + `<label class="k-switch"><input type="checkbox" class="br-power" aria-label="Включить радио"><span class="k-switch-track"></span></label></div>`
+      + RADIO_STATIONS.map((s, i) => `<button type="button" class="fi-station" data-st="${i}"><b>${escHtml(s.title)}</b><span>${escHtml(s.mood)}</span>${EQ}${keyHtml(String(i + 1), 'tl', 'sm')}</button>`).join('')
+      + `<div class="fi-radio-row">Громкость<input class="k-slider br-vol" type="range" min="${RADIO_VOL_MIN}" max="${RADIO_VOL_MAX}" step="1" aria-label="Громкость"></div>`
+      + `<label class="k-switch br-all">Слышат все на борту<input type="checkbox"><span class="k-switch-track"></span></label>`
+      + `<p class="fi-radio-note br-lock"></p>`;
+    kit.slots.br.insertBefore(this.root, bar);
 
-    this.powerBtn = btn('br-power', this.root, '', 'Включить или выключить (0)', () => a.power());
-
-    const list = el('div', 'br-list', this.root);
-    RADIO_STATIONS.forEach((s, i) => {
-      const li = btn('br-st', list, '', `${s.title} (${i + 1})`, () => a.station(i));
-      el('kbd', 'br-key', li).textContent = String(i + 1);
-      el('span', 'br-emoji', li).textContent = s.emoji;
-      const meta = el('span', 'br-meta', li);
-      el('b', '', meta).textContent = s.title;
-      el('small', '', meta).textContent = s.mood;
-      const eqBox = el('span', 'br-eq', li);
-      const eq = Array.from({ length: BANDS }, () => el('i', '', eqBox));
-      this.rows.push({ li, eq });
+    this.power = this.root.querySelector<HTMLInputElement>('.br-power')!;
+    this.power.addEventListener('change', () => this.ask(() => a.power(), this.power));
+    this.root.querySelectorAll<HTMLButtonElement>('.fi-station').forEach((btn, i) => {
+      btn.addEventListener('click', () => a.station(i));
+      this.rows.push({ btn, eq: Array.from(btn.querySelectorAll<HTMLElement>('.k-eq > i')) });
     });
+    this.vol = this.root.querySelector<HTMLInputElement>('.br-vol')!;
+    this.vol.addEventListener('pointerdown', () => { this.dragging = true; });
+    window.addEventListener('pointerup', () => { this.dragging = false; });
+    this.vol.addEventListener('input', () => this.paintVol(Number(this.vol.value)));
+    this.vol.addEventListener('change', () => {
+      const v = Math.round(Number(this.vol.value));
+      this.dragging = false;
+      if (v !== this.vol_) a.volume(v - this.vol_);
+      this.last = '';
+      this.vol.blur();
+    });
+    this.allRow = this.root.querySelector<HTMLElement>('.br-all')!;
+    this.allBox = this.allRow.querySelector<HTMLInputElement>('input')!;
+    this.allBox.addEventListener('change', () => this.ask(() => a.allowAll(this.allBox.checked), this.allBox));
+    this.note = this.root.querySelector<HTMLElement>('.br-lock')!;
 
-    const vol = el('div', 'br-vol', this.root);
-    el('span', 'br-cap', vol).textContent = 'Громкость';
-    this.volBtns.push(btn('br-vb', vol, '−', 'Тише (−)', () => a.volume(-1)));
-    const bar = el('div', 'br-bar', vol);
-    this.volFill = el('i', '', bar);
-    this.volBtns.push(btn('br-vb', vol, '+', 'Громче (+)', () => a.volume(1)));
-    this.volText = el('span', 'br-vol-n', vol);
-
-    this.allRow = el('label', 'br-all', this.root);
-    this.allBox = el('input', '', this.allRow);
-    this.allBox.type = 'checkbox';
-    this.allBox.addEventListener('change', () => a.allowAll(this.allBox.checked));
-    el('span', '', this.allRow).textContent = 'Разрешить всем на борту';
-
-    this.lock = el('div', 'br-lock', this.root);
-    // клики по окну не уходят в игру (не захватывают мышь)
+    // кнопки не забирают фокус (пробел — гудок лодки, а не нажатие кнопки); клики по панели и кнопкам не уходят в игру
+    for (const b of [this.chip, ...this.rows.map((r) => r.btn)]) b.addEventListener('mousedown', (e) => e.preventDefault());
     for (const e of [this.root, this.chip]) e.addEventListener('mousedown', (ev) => ev.stopPropagation());
+  }
+
+  /** Переключатель нажали: просьба серверу, а на экране остаётся то, что скажет сервер (следующий кадр панели) */
+  private ask(fn: () => void, box: HTMLInputElement): void {
+    fn();
+    this.last = '';
+    box.blur();
   }
 
   get isOpen(): boolean {
@@ -126,22 +127,25 @@ export class RadioPanel {
   open(): void {
     this.open_ = true;
     this.root.hidden = false;
+    this.chip.classList.add('is-pressed');
     this.last = '';
   }
 
   close(): void {
     this.open_ = false;
     this.root.hidden = true;
+    this.chip.classList.remove('is-pressed');
+    this.dragging = false;
   }
 
-  /** Кнопка на HUD: null — не на борту (спрятать) */
-  setChip(c: { title: string; emoji: string; on: boolean } | null): void {
+  /** Кнопка в ряду: null — не на борту (спрятать); on — радио играет (в кнопке бегут полоски) */
+  setChip(c: { title: string; on: boolean } | null): void {
     this.chip.hidden = !c;
     if (!c) return;
-    setText(this.chipEmoji, c.emoji);
-    setText(this.chipText, c.title);
-    this.chip.classList.toggle('on', c.on);
-    this.chip.classList.toggle('open', this.open_);
+    this.chipEq.hidden = !c.on;
+    // без всплывающей подсказки (UI 2.0: что важно — видно сразу): станция — в открытой панели, играет — эквалайзер на кнопке
+    this.chip.setAttribute('aria-label', c.on ? `Радио лодки: ${c.title}` : 'Радио лодки');
+    this.chip.classList.toggle('is-pressed', this.open_);
   }
 
   update(s: RadioPanelState): void {
@@ -149,37 +153,46 @@ export class RadioPanel {
     if (key === this.last) return;
     this.last = key;
     this.st = s.on ? s.st : -1;
-    setText(this.sub, s.owner ? 'Твоя лодка — ты хозяин радио' : `Лодка ${s.ownerNick}`);
-    this.powerBtn.innerHTML = s.on ? '<kbd class="br-key">0</kbd> Выключить' : '<kbd class="br-key">0</kbd> Включить';
-    this.powerBtn.classList.toggle('on', s.on);
-    this.powerBtn.disabled = !s.can;
+    this.vol_ = s.vol;
+    this.power.checked = s.on;
+    this.power.disabled = !s.can;
     this.rows.forEach((r, i) => {
-      r.li.classList.toggle('cur', s.on && s.st === i);
-      r.li.disabled = !s.can;
+      const cur = s.on && s.st === i;
+      r.btn.classList.toggle('is-on', cur);
+      r.btn.disabled = !s.can;
     });
-    this.volFill.style.width = `${(s.vol / RADIO_VOL_MAX) * 100}%`;
-    setText(this.volText, String(s.vol));
-    for (const b of this.volBtns) b.disabled = !s.can;
+    if (!this.dragging) {
+      this.vol.value = String(s.vol);
+      this.paintVol(s.vol);
+    }
+    this.vol.disabled = !s.can;
     this.allRow.hidden = !s.owner;
     this.allBox.checked = s.all;
-    setText(this.lock, s.owner ? (s.all ? 'Все на борту могут переключать станции' : 'Переключаешь только ты') : s.can ? '✅ Хозяин разрешил всем на борту' : `🔒 Радио включает хозяин лодки — ${s.ownerNick}`);
-    this.lock.classList.toggle('locked', !s.can);
+    this.note.classList.toggle('locked', !s.can);
+    this.note.innerHTML = s.owner ? (s.all ? 'Все на борту могут переключать станции' : 'Переключаешь только ты')
+      : s.can ? `Хозяин (${escHtml(s.ownerNick)}) разрешил всем на борту`
+        : `${iconImg('lock')}Радио включает хозяин лодки — ${escHtml(s.ownerNick)}`;
+  }
+
+  /** Заливка ползунка (--v: 0…1) */
+  private paintVol(v: number): void {
+    this.vol.style.setProperty('--v', String(Math.max(0, Math.min(1, (v - RADIO_VOL_MIN) / (RADIO_VOL_MAX - RADIO_VOL_MIN)))));
   }
 
   /** Нельзя: строка про хозяина мигает */
   flashLock(): void {
-    this.lock.classList.remove('flash');
-    void this.lock.offsetWidth;
-    this.lock.classList.add('flash');
+    this.note.classList.remove('flash');
+    void this.note.offsetWidth;
+    this.note.classList.add('flash');
   }
 
-  /** Каждый кадр, пока окно открыто: эквалайзер у играющей станции */
+  /** Каждый кадр, пока панель открыта: эквалайзер у играющей станции */
   tick(p: MusicPlayer | null): void {
     if (p) p.bands(this.bands);
     else this.bands.fill(0);
     this.rows.forEach((r, i) => {
       const live = i === this.st && !!p;
-      r.eq.forEach((bar, b) => { bar.style.transform = `scaleY(${live ? 0.15 + Math.min(1, this.bands[b] * 1.6) * 0.85 : 0.15})`; });
+      r.eq.forEach((bar, b) => { bar.style.transform = `scaleY(${live ? 0.2 + Math.min(1, this.bands[BAR_BAND[b]] * 1.6) * 0.8 : 0.2})`; });
     });
   }
 }
