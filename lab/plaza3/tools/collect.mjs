@@ -104,7 +104,7 @@ if (exists(path.join(layoutDir, 'layout.json'))) {
   layout = JSON.parse(fs.readFileSync(path.join(layoutDir, 'layout.json'), 'utf8'));
 } else note('! нет layout/layout.json');
 A.layout = {};
-for (const [key, name] of [['plan', 'plan'], ['planVsNow', 'plan-vs-now'], ['portA', 'port-A'], ['portB', 'port-B']]) {
+for (const [key, name] of [['plan', 'plan'], ['planVsNow', 'plan-vs-now'], ['portA', 'port-A'], ['portB', 'port-B'], ['spawnView', 'spawn-view']]) {
   const svg = path.join(layoutDir, name + '.svg');
   if (exists(svg)) {
     copySvg(svg, path.join(OUT, 'assets/layout', name + '.svg'));
@@ -132,11 +132,11 @@ for (const base of pcNames) {
 }
 
 // ------------------------------------------------------------------ павильоны: модели
-// Какой павильон раскладки — по точке world_origin из manifest (ближайший центр), иначе по имени файла
+// Какой павильон раскладки — layout_id из manifest, иначе по имени файла (HINTS), иначе по ближайшему центру к world_origin
 // роли моделей, которых нет среди павильонов раскладки: они встают по своим координатам и заменяют заглушку сцены
-const ROLES = [[/^lighthouse$|^tokarev/, 'lighthouse']];
+const ROLES = [[/^lighthouse$|^tokarev/, 'lighthouse'], [/windmill|melnic/, 'windmill']];
 const HINTS = [
-  [/^lighthouse$|^tokarev/, null], [/online|who_?is/, 'honor'], [/fish_?show|showcase|vitrin/, 'podium'],
+  [/^lighthouse$|^tokarev/, null], [/online|who_?is/, 'honor'], [/fish_?show|showcase|vitrin/, 'showcase'],
   [/paint|sklad/, 'paintball'], [/fort|krep/, 'fortress'], [/sky|kalan|climb/, 'kalancha'], [/kart|garage/, 'karting'],
   [/dungeon|cave|podzem|cliff/, 'dungeon'], [/farm.?gate|kalitk/, 'farmgate'], [/farm|ogorod/, 'farmarch'],
   [/kurs|kurz|arcade|slots/, 'kurzal'], [/card|veranda|pergol/, 'cards'], [/cafe|chaika/, 'cafe'], [/billiard/, 'billiards'],
@@ -146,14 +146,15 @@ const HINTS = [
   [/east_?mole/, 'eastmole'], [/mole|mol\b/, 'westmole'], [/semyon|shop|lavka/, 'semyon'], [/belved/, 'belvedere'], [/honor|pochet/, 'honor'], [/wheel|koleso/, 'wheel'],
 ];
 const centers = (layout?.pavilions || []).filter((p) => p.center).map((p) => ({ id: p.id, x: p.center.x, z: p.center.z }));
+// сначала по имени файла: точки world_origin ставились по прошлой раскладке, а центры павильонов переезжают (v5)
 function layoutIdFor(key, origin) {
+  for (const [re, id] of HINTS) if (re.test(key)) return id;
   if (origin) {
     const oz = origin.length > 2 ? origin[2] : origin[1];
     let best = null, bd = 6;
     for (const c of centers) { const d = Math.hypot(c.x - origin[0], c.z - oz); if (d < bd) { bd = d; best = c.id; } }
     if (best) return best;
   }
-  for (const [re, id] of HINTS) if (re.test(key)) return id;
   return null;
 }
 function roleFor(key) {

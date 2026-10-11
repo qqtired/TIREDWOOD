@@ -109,7 +109,7 @@
   --head-rule: 1px solid rgba(255, 244, 220, .14);
   --awning-h: 10px; --awning-w: 22px; --awning-fest: 0;
   --awning-a: #ff7a5c; --awning-b: #f3e6c9;
-  --m-def: #ffcd4a;
+  --m-def: #ffcd4a; --mode-soft-k: 16%;
   --portrait-bg: radial-gradient(circle at 35% 30%, #fff8e6, #f1dcb0 70%);
   --portrait-ring: 0 0 0 2px #ff7a5c, 0 0 0 4px #f3e6c9;
   --portrait-radius: 50%; --portrait-rotate: 0deg;
@@ -194,7 +194,7 @@
   --head-text: #16313a;
   --head-rule: 1px solid rgba(23, 50, 58, .08);
   --awning-h: 0px; --awning-w: 22px; --awning-fest: 0;
-  --m-def: #12a09d;
+  --m-def: #12a09d; --mode-soft-k: 14%;
   --portrait-bg: linear-gradient(180deg, #eaf8f6, #d6eeeb);
   --portrait-ring: 0 0 0 2px #ffffff, 0 0 0 3.5px rgba(18, 160, 157, .5), 0 4px 10px rgba(14, 50, 64, .14);
   --portrait-radius: 16px; --portrait-rotate: 0deg;
@@ -297,7 +297,7 @@
   --head-text: #fff6e6; --head-eyebrow: rgba(255, 246, 230, .84);
   --head-rule: 0 solid transparent;
   --awning-h: 0px; --awning-w: 22px; --awning-fest: 0;
-  --m-def: #1f8f88;
+  --m-def: #1f8f88; --mode-soft-k: 18%;
   --portrait-bg: radial-gradient(circle at 35% 30%, #fffaf0, #f3e2c6 70%);
   --portrait-ring: 0 0 0 2px #fff6e6, 0 3px 8px rgba(8, 40, 38, .35);
   --portrait-radius: 50%; --portrait-rotate: 0deg;
@@ -381,7 +381,7 @@
   --plate-border: 1px solid rgba(255, 255, 255, .95);
   --plate-shadow: 0 0 0 1px rgba(16, 48, 60, .1), 0 5px 16px rgba(10, 40, 56, .24), 0 1px 2px rgba(10, 40, 56, .16);
   --plate-blur: none; --hud-text-shadow: none;
-  --chat-bg: rgba(255, 252, 246, .88); --chat-border: 0 solid transparent; --chat-shadow: 0 0 0 1px rgba(16, 48, 60, .08), 0 2px 8px rgba(10, 40, 56, .16);
+  --chat-bg: rgba(255, 252, 246, .88); --chat-old: .72; --chat-border: 0 solid transparent; --chat-shadow: 0 0 0 1px rgba(16, 48, 60, .08), 0 2px 8px rgba(10, 40, 56, .16);
   --nick-1: #d0562d; --nick-2: #1b7a48; --nick-3: #4b48c9; --nick-4: #b8336a; --nick-5: #0b7774; --nick-6: #955a00;
   /* режимы в HUD — тёмные средние тона, читаются на белом; по умолчанию — бирюза ретро */
   --mh-def: #13827b; --mh-fishing: #0f9a96; --mh-farm: #3c9a4c; --mh-fort: #c8692a; --mh-race: #e0453a; --mh-dungeon: #a0742a;
@@ -403,7 +403,7 @@
   --ring-face: var(--w-ring-face); --accent-k: var(--w-accent-k); --accent-to: var(--w-accent-to); --sil: var(--w-sil); --lamp-band: var(--w-lamp-band);
   --lamp-ring: var(--w-lamp-ring); --lamp-dot: var(--w-lamp-dot); --lamp-dot-size: var(--w-lamp-dot-size); --lamp-inset: var(--w-lamp-inset); --lamp-dot-glow: var(--w-lamp-dot-glow);
   --info: var(--w-info); --info-soft: var(--w-info-soft);
-  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
   --disp-font: var(--font-display); --disp-weight: var(--display-weight); --disp-case: var(--display-case); --disp-word: var(--display-word); --disp-track: var(--display-track);
 }
 .k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
@@ -416,7 +416,7 @@
   --ring-face: var(--h-ring-face); --accent-k: var(--h-accent-k); --accent-to: var(--h-accent-to); --sil: var(--h-sil); --lamp-band: var(--h-lamp-band);
   --lamp-ring: var(--h-lamp-ring); --lamp-dot: var(--h-lamp-dot); --lamp-dot-size: var(--h-lamp-dot-size); --lamp-inset: var(--h-lamp-inset); --lamp-dot-glow: var(--h-lamp-dot-glow);
   --info: var(--h-info); --info-soft: var(--h-info-soft);
-  --hk: 100%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --hk: 100%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
   --disp-font: var(--h-disp-font, var(--font-display)); --disp-weight: var(--h-disp-weight, var(--display-weight)); --disp-case: var(--h-disp-case, var(--display-case));
   --disp-word: var(--h-disp-word, var(--display-word)); --disp-track: var(--h-disp-track, var(--display-track));
 }
@@ -429,19 +429,19 @@
   --ring-face: var(--hd-ring-face); --accent-k: var(--hd-accent-k); --accent-to: var(--hd-accent-to); --sil: var(--hd-sil); --lamp-band: var(--hd-lamp-band);
   --lamp-ring: var(--hd-lamp-ring); --lamp-dot: var(--hd-lamp-dot); --lamp-dot-size: var(--hd-lamp-dot-size); --lamp-inset: var(--hd-lamp-inset); --lamp-dot-glow: var(--hd-lamp-dot-glow);
   --info: var(--hd-info); --info-soft: var(--hd-info-soft);
-  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
+  --hk: 0%; --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink));
   --disp-font: var(--font-display); --disp-weight: var(--display-weight); --disp-case: var(--display-case); --disp-word: var(--display-word); --disp-track: var(--display-track);
 }
 
 /* ---------------------------------------------------------------- режимные акценты (поверх любой шкурки; цвет берётся из ближайшей шкурки)
    --m-<режим> — в окне, --mh-<режим> — в HUD */
-[data-mode='fishing'] { --mode-w: var(--m-fishing); --mode-h: var(--mh-fishing); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='farm'] { --mode-w: var(--m-farm); --mode-h: var(--mh-farm); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='fort'] { --mode-w: var(--m-fort); --mode-h: var(--mh-fort); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='race'] { --mode-w: var(--m-race); --mode-h: var(--mh-race); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='dungeon'] { --mode-w: var(--m-dungeon); --mode-h: var(--mh-dungeon); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='paintball'] { --mode-w: var(--m-paintball); --mode-h: var(--mh-paintball); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='hide'] { --mode-w: var(--m-hide); --mode-h: var(--mh-hide); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='skill'] { --mode-w: var(--m-skill); --mode-h: var(--mh-skill); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='pirates'] { --mode-w: var(--m-pirates); --mode-h: var(--mh-pirates); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
-[data-mode='regatta'] { --mode-w: var(--m-regatta); --mode-h: var(--mh-regatta); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) 18%, transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='fishing'] { --mode-soft-k: 18%; --mode-w: var(--m-fishing); --mode-h: var(--mh-fishing); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='farm'] { --mode-soft-k: 18%; --mode-w: var(--m-farm); --mode-h: var(--mh-farm); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='fort'] { --mode-soft-k: 18%; --mode-w: var(--m-fort); --mode-h: var(--mh-fort); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='race'] { --mode-soft-k: 18%; --mode-w: var(--m-race); --mode-h: var(--mh-race); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='dungeon'] { --mode-soft-k: 20%; --mode-w: var(--m-dungeon); --mode-h: var(--mh-dungeon); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='paintball'] { --mode-soft-k: 18%; --mode-w: var(--m-paintball); --mode-h: var(--mh-paintball); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='hide'] { --mode-soft-k: 18%; --mode-w: var(--m-hide); --mode-h: var(--mh-hide); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='skill'] { --mode-soft-k: 18%; --mode-w: var(--m-skill); --mode-h: var(--mh-skill); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='pirates'] { --mode-soft-k: 18%; --mode-w: var(--m-pirates); --mode-h: var(--mh-pirates); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }
+[data-mode='regatta'] { --mode-soft-k: 18%; --mode-w: var(--m-regatta); --mode-h: var(--mh-regatta); --mode: color-mix(in srgb, var(--mode-h) var(--hk), var(--mode-w)); --mode-soft: color-mix(in srgb, var(--mode) var(--mode-soft-k, 18%), transparent); --mode-ink: color-mix(in srgb, var(--m-ink-h) var(--hk), var(--m-ink)); }

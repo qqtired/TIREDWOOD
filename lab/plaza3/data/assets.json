@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-11T07:00:30.115Z",
+ "generatedAt": "2026-10-11T08:10:42.895Z",
  "source": "concepts_blender/plaza3",
  "layout": {
   "plan": {
@@ -7,7 +7,7 @@
    "viewBox": [
     0,
     0,
-    1812,
+    1908,
     1258
    ]
   },
@@ -16,7 +16,7 @@
    "viewBox": [
     0,
     0,
-    1812,
+    1908,
     1258
    ]
   },
@@ -36,6 +36,15 @@
     0,
     1378,
     936
+   ]
+  },
+  "spawnView": {
+   "svg": "assets/layout/spawn-view.svg",
+   "viewBox": [
+    0,
+    0,
+    1790,
+    760
    ]
   }
  },
@@ -331,7 +340,7 @@
   {
    "key": "dungeon_cliff",
    "file": "assets/models/pav/pav_dungeon_cliff.glb",
-   "bytes": 769388,
+   "bytes": 859776,
    "role": null,
    "layoutId": "dungeon",
    "origin": [
@@ -340,10 +349,10 @@
    ],
    "yaw": 3.141592653589793,
    "name": "Подземелье — скальный массив",
-   "tris": 9730,
+   "tris": 11808,
    "bulbs": 0,
-   "props": 162,
-   "nodes": 206,
+   "props": 166,
+   "nodes": 207,
    "poster": "assets/pavilions/renders/dungeon_cliff-34-s.jpg"
   },
   {
@@ -363,6 +372,24 @@
    "props": 71,
    "nodes": 89,
    "poster": "assets/pavilions/renders/farm_arch-34-s.jpg"
+  },
+  {
+   "key": "fishshowcase",
+   "file": "assets/models/pav/pav_fishshowcase.glb",
+   "bytes": 563064,
+   "role": null,
+   "layoutId": "showcase",
+   "origin": [
+    -12.6,
+    20.4
+   ],
+   "yaw": 0,
+   "name": "Рыбная витрина «Крупнейшие рыбы сегодня»",
+   "tris": 7356,
+   "bulbs": 50,
+   "props": 7,
+   "nodes": 76,
+   "poster": "assets/pavilions/renders/fishshowcase-34-s.jpg"
   },
   {
    "key": "fishyard",
@@ -493,7 +520,7 @@
   {
    "key": "lighthouse_arch",
    "file": "assets/models/pav/pav_lighthouse_arch.glb",
-   "bytes": 337600,
+   "bytes": 196052,
    "role": null,
    "layoutId": "jettyarch",
    "origin": [
@@ -501,11 +528,11 @@
     21.3
    ],
    "yaw": 0,
-   "name": "Арка «Маяк · Рыбалка», трофей, рамы досок рыбаков",
-   "tris": 5068,
-   "bulbs": 11,
-   "props": 6,
-   "nodes": 32,
+   "name": "Арка «Маяк · Рыбалка»",
+   "tris": 3020,
+   "bulbs": 0,
+   "props": 5,
+   "nodes": 11,
    "poster": "assets/pavilions/renders/lighthouse_arch-34-s.jpg"
   },
   {
@@ -525,6 +552,24 @@
    "props": 14,
    "nodes": 44,
    "poster": "assets/pavilions/renders/mole-34-s.jpg"
+  },
+  {
+   "key": "online",
+   "file": "assets/models/pav/pav_online.glb",
+   "bytes": 177696,
+   "role": null,
+   "layoutId": "honor",
+   "origin": [
+    13.5,
+    -1.8
+   ],
+   "yaw": 3.14159,
+   "name": "Кто на набережной",
+   "tris": 2776,
+   "bulbs": 24,
+   "props": 2,
+   "nodes": 39,
+   "poster": "assets/pavilions/renders/online-34-s.jpg"
   },
   {
    "key": "paintball",
@@ -637,7 +682,7 @@
   {
    "key": "sunset",
    "file": "assets/models/pav/pav_sunset.glb",
-   "bytes": 101652,
+   "bytes": 101636,
    "role": null,
    "layoutId": "belvedere",
    "origin": [

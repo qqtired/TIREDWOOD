@@ -821,20 +821,36 @@ function twOrient(pts, ccw) {
   return a > 0 === ccw ? pts : [...pts].reverse();
 }
 /** Надпись: { group, center (середина слова), top (верх букв), d } */
-function buildTiredwood({ wheel, bearing, d = 530, h = 45, lineY = 37, word = 'TIREDWOOD' }) {
+// letters — раскладка игры из layout.json (sign.letters: x, y низа плиты, z, yawDeg); rot — поворот всей надписи вокруг колеса, рад
+function buildTiredwood({ wheel, bearing, d = 530, h = 45, lineY = 37, word = 'TIREDWOOD', letters = null, rot = 0, hump = true }) {
   const glyphs = [...word].map(twGlyph).filter(Boolean);
+  const useL = Array.isArray(letters) && letters.length === glyphs.length;
   const ang = (w) => 2 * Math.atan2((w * h) / 2, d);
   let total = glyphs.reduce((a, g) => a + ang(g.w), 0) + (glyphs.length - 1) * (TW.GAP * h) / d;
   let beta = bearing - total / 2;
   let seed = 61;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const faces = [], posts = [];
-  for (const g of glyphs) {
+  const cs = Math.cos(rot), sn = Math.sin(rot);
+  const turn = (x, z) => { const ox = x - wheel.x, oz = z - wheel.z; return [wheel.x + ox * cs - oz * sn, wheel.z + oz * cs + ox * sn]; };
+  const at = [];
+  for (const [gi, g] of glyphs.entries()) {
     const bc = beta + ang(g.w) / 2;
     beta += ang(g.w) + (TW.GAP * h) / d;
-    const x = wheel.x + Math.sin(bc) * d, z = wheel.z - Math.cos(bc) * d;
-    const yaw = Math.atan2(wheel.x - x, wheel.z - z) + (rnd() - 0.5) * 0.05;
-    const lift = h * (0.05 + 0.07 * rnd()), lean = 0.01 + rnd() * 0.03, y = lineY + lift;
+    let x, z, y, yaw, lift;
+    const lean = 0.01 + rnd() * 0.03;
+    if (useL) {
+      const Lt = letters[gi];
+      [x, z] = turn(Lt.x, Lt.z);
+      yaw = THREE.MathUtils.degToRad(Lt.yawDeg ?? 0) - rot;
+      y = Lt.y; lift = Math.max(2, y - lineY);
+      rnd();
+    } else {
+      x = wheel.x + Math.sin(bc) * d; z = wheel.z - Math.cos(bc) * d;
+      yaw = Math.atan2(wheel.x - x, wheel.z - z) + (rnd() - 0.5) * 0.05;
+      lift = h * (0.05 + 0.07 * rnd()); y = lineY + lift;
+    }
+    at.push([x, y, z]);
     for (const p of g.parts) {
       const v = (q) => new THREE.Vector2(q[0] * h, q[1] * h);
       const shape = new THREE.Shape(twOrient(p.outer, true).map(v));
@@ -862,16 +878,24 @@ function buildTiredwood({ wheel, bearing, d = 530, h = 45, lineY = 37, word = 'T
   const dark = new THREE.Mesh(mergeGeometries(posts), new THREE.MeshBasicMaterial({ color: 0x33373b, fog: false }));
   white.frustumCulled = false; dark.frustumCulled = false;
   group.add(dark, white);
-  // холм под надписью: пологий горб за буквами, склон у букв — на высоте lineY. Цвет — зелень в дымке (туман его съел бы)
-  const R = 300, H = 72, back = R * Math.sqrt(1 - (lineY / H) ** 2);
+  // середина слова и его азимут с колеса — по фактическим буквам
+  const mid = at.reduce((a, p) => [a[0] + p[0] / at.length, a[1] + p[1] / at.length, a[2] + p[2] / at.length], [0, 0, 0]);
+  const dMid = Math.hypot(mid[0] - wheel.x, mid[2] - wheel.z);
+  const bMid = Math.atan2(mid[0] - wheel.x, -(mid[2] - wheel.z));
+  if (useL) { bearing = bMid; d = dMid; }
+  // холм под надписью: горб за буквами, склон у букв — на высоте lineY, гребень выше верха букв (как HILL_UP в игре:
+  // с площади за буквами склон, а не небо). Цвет — зелень в дымке (туман его съел бы)
+  const R = useL ? 240 : 300, H = useL ? Math.max(120, (lineY + h) * 1.6) : 72, back = R * Math.sqrt(1 - (lineY / H) ** 2);
   const cx = wheel.x + Math.sin(bearing) * (d + back), cz = wheel.z - Math.cos(bearing) * (d + back);
   const hillMat = new THREE.MeshLambertMaterial({ color: 0x9db08a, fog: false });
   const hill = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 14, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.6, H / R, 1), hillMat);
+  hill.visible = hump;
   hill.rotation.y = -bearing; // длинная ось горба — поперёк луча с колеса
   hill.position.set(cx, -2, cz);
   group.add(hill);
-  const center = V3(wheel.x + Math.sin(bearing) * d, lineY + h * 0.6, wheel.z - Math.cos(bearing) * d);
-  return { group, center, hillMat, d, top: lineY + h * 1.12 };
+  const center = useL ? V3(mid[0], mid[1] + h * 0.55, mid[2]) : V3(wheel.x + Math.sin(bearing) * d, lineY + h * 0.6, wheel.z - Math.cos(bearing) * d);
+  const top = useL ? Math.max(...at.map((p) => p[1])) + h : lineY + h * 1.12;
+  return { group, center, hillMat, d, top, at };
 }
 
 export async function plazaViewer(host, { assets, layout, models, extras = [], gameModels = [], tiredwood = null, npcs, signFor, labelFor, quarterOf, onPick, onReady, progress }) {
@@ -902,13 +926,13 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), skyMat);
   scene.add(sky);
-  scene.fog = new THREE.Fog(0xcfe0ef, 220, 900);
+  scene.fog = new THREE.Fog(0xcfe0ef, 300, 1600);
 
   // ---------------------------------------------------------------- земля, вода, задник
   const M = (color, rough = 0.9) => paint(new THREE.MeshStandardMaterial({ color, roughness: rough }));
   const matPave = M(0xe9dcc2), matQuay = M(0xb9aa90), matRock = M(0xb3a184, 1), matField = M(0xb8c46e), matHill = M(0x9aa47e);
   const matStone = M(0xd6cbb6), matWood = M(0x9a7a58), matWhite = M(0xf4efe4, 0.7), matProm = M(0xf3e9d3);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600).rotateX(-Math.PI / 2), paint(new THREE.MeshStandardMaterial({ color: 0x5a8ea6, roughness: 0.3, metalness: 0.05 })));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200).rotateX(-Math.PI / 2), paint(new THREE.MeshStandardMaterial({ color: 0x5a8ea6, roughness: 0.3, metalness: 0.05 })));
   water.position.y = -0.55;
   water.receiveShadow = true;
   scene.add(water);
@@ -925,15 +949,51 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
     cliff.castShadow = true; cliff.receiveShadow = true;
     scene.add(cliff);
   }
-  // задник: холм с городком к северу, поле подсолнухов к востоку
-  // холм к северу: от кромки суши (z −45) плавно поднимается
-  const hillGeo = new THREE.PlaneGeometry(220, 110, 22, 22).rotateX(-Math.PI / 2).translate(25, -0.06, -100);
-  const hp = hillGeo.attributes.position;
-  for (let i = 0; i < hp.count; i++) hp.setY(i, -0.06 + Math.max(0, -hp.getZ(i) - 50) * 0.18);
-  hillGeo.computeVertexNormals();
-  const hill = new THREE.Mesh(hillGeo, matHill);
-  hill.receiveShadow = true;
-  scene.add(hill);
+  // задник — город, как в игре (client/lobby/world.ts, landY): суша к востоку от площади (x > PLAZA_E, z < 22) и к северу
+  // (z < PLAZA_N, x > −30); у края — улица, вглубь — холмы, за надписью — подъём signHill (client/lobby/tiredwood.ts).
+  // Числа v5 — из layout.json sign.code (PLAZA_E/N, HILL_BEARING, HILL_UP); вода — только к югу от z 22 и к западу от x −30.
+  const SC = L.sign?.code || {};
+  const num = (k, d) => (typeof SC[k]?.now === 'number' ? SC[k].now : d);
+  const signNow = num('SIGN_BEARING', tiredwood?.bearingDeg ?? 54);
+  const T = {
+    E: num('PLAZA_E', L.land?.bbox?.x1 ?? 30), N: num('PLAZA_N', -26), QZ: 22, QX: -30, up: num('HILL_UP', 90),
+    hb: THREE.MathUtils.degToRad(num('HILL_BEARING', 62) + ((tiredwood?.bearingDeg ?? signNow) - signNow)), // холм поворачивается вместе с надписью
+  };
+  const wheel0 = (L.pavilions || []).find((p) => p.id === 'wheel')?.center || { x: 27, z: 13 };
+  const landDepth = (x, z) => Math.max(Math.min(x - T.E, T.QZ - z), Math.min(T.N - z, x - T.QX));
+  const signHillK = (x, z) => {
+    const dx = x - wheel0.x, dz = z - wheel0.z;
+    const along = dx * Math.sin(T.hb) - dz * Math.cos(T.hb), across = dx * Math.cos(T.hb) + dz * Math.sin(T.hb);
+    const t = Math.min(1, Math.max(0, (along - 400) / 400));
+    return t * t * (3 - 2 * t) * Math.exp(-0.5 * (across / 750) ** 2);
+  };
+  const STREET = -0.3; // в игре улица на 0,6 м ниже настила; здесь чуть выше нашей воды
+  const townY = (x, z) => {
+    const d = landDepth(x, z);
+    if (d < 0) return x > T.QX && z < T.QZ ? STREET : -3.2; // внутри рамки площади — ровная земля, снаружи — дно
+    const ramp = Math.min(1, Math.max(0, (d - 150) / 350));
+    const hl = Math.max(0, d - 70) * 0.1 + 34 * Math.sin(x * 0.006 + 0.4) * Math.cos(z * 0.0045 - 0.3) * ramp + T.up * signHillK(x, z);
+    const wob = 5 * Math.sin(x * 0.011 + 1.3) * Math.sin(z * 0.014 - 0.7) * Math.min(1, Math.max(0, (d - 60) / 120));
+    return STREET + Math.max(0, hl + wob);
+  };
+  {
+    // сетка 10 м; линии x = PLAZA_E и z = 22 — на узлах, чтобы кромка была ровной
+    const x0 = T.E - 150, x1 = T.E + 1070, z1 = T.QZ + 40, z0 = T.QZ - 1030;
+    const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0, (x1 - x0) / 10, (z1 - z0) / 10).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, 0, (z0 + z1) / 2);
+    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+    const cStreet = new THREE.Color(0xd8ccb0), cGreen = new THREE.Color(0x9db08a), cHigh = new THREE.Color(0x86a070), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i), y = townY(x, z), d = landDepth(x, z);
+      pos.setY(i, y);
+      c.copy(cStreet).lerp(cGreen, Math.min(1, Math.max(0, (d - 8) / 50))).lerp(cHigh, Math.min(1, Math.max(0, (y - 30) / 90)));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    const town = new THREE.Mesh(geo, paint(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 1 })));
+    town.receiveShadow = true;
+    scene.add(town);
+  }
   if (L.land?.fieldPolygon) {
     const f = new THREE.Mesh(extrudeShape(L.land.fieldPolygon, 3, 0.005), [matField, matQuay]);
     f.receiveShadow = true;
@@ -953,23 +1013,44 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
     scene.add(head, stem);
   }
   {
-    // городок на холме: дома с черепицей и кипарисы
-    const rand = rng(3), n = 34;
+    // город: дома с черепицей и кипарисы по рельефу; в коридоре вида на надпись — только низкие дома и без рощ (§3а раскладки),
+    // на склоне за буквами — зелень
+    const rand = rng(3), n = 150;
+    const cor = L.sign?.corridor;
+    const inCorridor = (x, z) => { if (!cor) return false; const az = (THREE.MathUtils.radToDeg(Math.atan2(x - cor.x, -(z - cor.z))) + 360) % 360; return az >= cor.a0 && az <= cor.a1 && Math.hypot(x - cor.x, z - cor.z) < cor.dMax; };
+    const spot = (tries = 40) => {
+      for (let k = 0; k < tries; k++) {
+        const x = T.QX + 6 + rand() * 430, z = T.QZ - 4 - rand() * 440, d = landDepth(x, z);
+        if (d >= 5 && d < 320 && signHillK(x, z) < 0.12) return [x, z];
+      }
+      return null;
+    };
     const houses = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), M(0xffffff), n);
     const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.75, 1, 4).rotateY(Math.PI / 4).translate(0, 0.5, 0), M(0xc9643b, 0.8), n);
     const walls = [0xf1ebe1, 0xf1d3ca, 0xefc8b2, 0xd3e6d2, 0xf0e7d6];
     const mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-    for (let i = 0; i < n; i++) {
-      const x = -4 + rand() * 66, z = -52 - rand() * 26 - (x < 0 ? 6 : 0), w = 5 + rand() * 4, d = 5 + rand() * 3, h = 4.5 + rand() * 5;
-      const y = (-z - 50) * 0.18;
-      q.setFromEuler(e.set(0, (rand() - 0.5) * 0.4, 0));
-      mt.compose(V3(x, y, z), q, V3(w, h, d)); houses.setMatrixAt(i, mt); houses.setColorAt(i, new THREE.Color(walls[i % walls.length]));
-      mt.compose(V3(x, y + h, z), q, V3(w * 1.02, 2 + rand(), d * 1.02)); roofs.setMatrixAt(i, mt);
+    let nh = 0;
+    for (let i = 0; i < n * 2 && nh < n; i++) {
+      const p = spot(); if (!p) continue;
+      const [x, z] = p;
+      const low = inCorridor(x, z);
+      const w = 5 + rand() * 5, d = 5 + rand() * 4, h = low ? 3.4 + rand() * 1.6 : 4.5 + rand() * 6;
+      const y = Math.min(townY(x - w / 2, z), townY(x + w / 2, z), townY(x, z - d / 2), townY(x, z + d / 2));
+      q.setFromEuler(e.set(0, (rand() - 0.5) * 0.5, 0));
+      mt.compose(V3(x, y, z), q, V3(w, h, d)); houses.setMatrixAt(nh, mt); houses.setColorAt(nh, new THREE.Color(walls[nh % walls.length]));
+      mt.compose(V3(x, y + h, z), q, V3(w * 1.02, 2 + rand(), d * 1.02)); roofs.setMatrixAt(nh, mt);
+      nh++;
     }
+    houses.count = roofs.count = nh;
     houses.castShadow = roofs.castShadow = true;
     scene.add(houses, roofs);
-    const cyp = new THREE.InstancedMesh(new THREE.ConeGeometry(0.9, 7, 6).translate(0, 3.5, 0), M(0x3c6b3f), 26);
-    for (let i = 0; i < 26; i++) { const x = -6 + rand() * 70, z = -49 - rand() * 22; mt.compose(V3(x, (-z - 50) * 0.18, z), q.identity(), V3(1, 0.8 + rand() * 0.5, 1)); cyp.setMatrixAt(i, mt); }
+    const nc = 90, cyp = new THREE.InstancedMesh(new THREE.ConeGeometry(0.9, 7, 6).translate(0, 3.5, 0), M(0x3c6b3f), nc);
+    let ncy = 0;
+    for (let i = 0; i < nc * 3 && ncy < nc; i++) {
+      const p = spot(); if (!p || inCorridor(p[0], p[1])) continue;
+      mt.compose(V3(p[0], townY(p[0], p[1]), p[1]), q.identity(), V3(1, 0.8 + rand() * 0.5, 1)); cyp.setMatrixAt(ncy++, mt);
+    }
+    cyp.count = ncy;
     cyp.castShadow = true;
     scene.add(cyp);
   }
@@ -1009,10 +1090,98 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
     post.castShadow = true;
     scene.add(post, lampHead);
   }
+  // ---------------------------------------------------------------- v5: Приморский сад, Бульварный сквер с фонтаном, партер бульвара
+  {
+    const rand = rng(11);
+    const mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const matLawn = paint(new THREE.MeshStandardMaterial({ color: 0x9fbf6e, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1.2, polygonOffsetUnits: -1.2 }));
+    const garden = (L.pavilions || []).find((p) => p.id === 'garden' && Array.isArray(p.area));
+    const trees = [], palms = [], beds = [], shrubs = [];
+    if (garden) {
+      const [x0, z0, x1, z1] = garden.area;
+      // газоны четырьмя куртинами между дорожками; кромка у воды — дорожка
+      const lawnParts = [];
+      const cols = [[x0 + 1, x0 + (x1 - x0) / 2 - 1.5], [x0 + (x1 - x0) / 2 + 1.5, x1 - 1]], rws = [[z0 + 1, -0.8], [1.2, z1 - 4]];
+      for (const [a, b] of cols) for (const [c, d] of rws) lawnParts.push(new THREE.BoxGeometry(b - a, 0.06, d - c).translate((a + b) / 2, 0.03, (c + d) / 2));
+      const lawn = new THREE.Mesh(mergeGeometries(lawnParts), matLawn);
+      lawn.receiveShadow = true;
+      scene.add(lawn);
+      for (const [a, b] of cols) for (const [c, d] of rws) {
+        const south = c > 0;
+        for (let i = 0; i < (south ? 5 : 4); i++) {
+          const x = a + 1.5 + rand() * (b - a - 3), z = c + 1.2 + rand() * (d - c - 2.4);
+          if (south) (i % 2 ? trees : palms).push([x, z]); else (i % 2 ? beds : shrubs).push([x, z]);
+        }
+      }
+      // беседка-«ракушка» у восточного края
+      const gz = new THREE.Group();
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(2.4, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 2.8, 0), M(0xf4efe4, 0.6));
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.3, 18).translate(0, 0.15, 0), matStone);
+      gz.add(dome, floor);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; const c = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 2.8, 8).translate(0, 1.4, 0), M(0xf4efe4, 0.6)); c.position.set(Math.cos(a) * 2.1, 0, Math.sin(a) * 2.1); gz.add(c); }
+      gz.position.set(x1 - 4.5, 0, (z0 + z1) / 2 + 6);
+      gz.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      scene.add(gz);
+    }
+    // партер бульвара: низкие самшитовые бордюры и торшеры по обеим кромкам, деревья — только у площади (x < 31)
+    const bv = L.boulevard || L.objects?.boulevard;
+    const torch = [];
+    if (bv?.from && bv?.to) {
+      const [ax, az] = bv.from, [bx, bz] = bv.to, len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux, half = (bv.width || 8) / 2;
+      const hedgeParts = [];
+      for (let t = 3; t < len - 4; t += 6.5) {
+        for (const sgn of [-1, 1]) {
+          const cx = ax + ux * (t + 2) + nx * sgn * (half + 0.9), cz = az + uz * (t + 2) + nz * sgn * (half + 0.9);
+          hedgeParts.push(new THREE.BoxGeometry(4.2, 0.55, 0.9).rotateY(-Math.atan2(uz, ux)).translate(cx, 0.28, cz));
+          torch.push([ax + ux * t + nx * sgn * (half + 0.9), az + uz * t + nz * sgn * (half + 0.9)]);
+          if (sgn < 0 && ax + ux * t < 31) trees.push([ax + ux * t + nx * sgn * (half + 3), az + uz * t + nz * sgn * (half + 3)]);
+          else if (rand() > 0.4) beds.push([ax + ux * (t + 4.3) + nx * sgn * (half + 1.6), az + uz * (t + 4.3) + nz * sgn * (half + 1.6)]);
+        }
+      }
+      if (hedgeParts.length) { const m = new THREE.Mesh(mergeGeometries(hedgeParts), M(0x5f8a46, 0.9)); m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+    }
+    // фонтан сквера (низкий — это коридор вида на надпись)
+    const fo = L.objects?.square?.fountain;
+    if (fo && typeof fo.x === 'number') {
+      const g = new THREE.Group(), R = fo.r || 2.6, H = fo.h || 2.4;
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(R, R + 0.15, 0.6, 28).translate(0, 0.3, 0), matStone);
+      const pool = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.25, R - 0.25, 0.04, 28).translate(0, 0.56, 0), paint(new THREE.MeshStandardMaterial({ color: 0x6fb7d0, roughness: 0.15 })));
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, H - 0.6, 12).translate(0, 0.3 + (H - 0.6) / 2, 0), matStone);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.4, 0.35, 20).translate(0, H * 0.72, 0), matStone);
+      const jet = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 10).translate(0, H + 0.1, 0), new THREE.MeshBasicMaterial({ color: 0xdff4fb, transparent: true, opacity: 0.85, toneMapped: false }));
+      g.add(rim, pool, stem, bowl, jet);
+      g.position.set(fo.x, 0, fo.z);
+      g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      scene.add(g);
+      st.label('Фонтан сквера', V3(fo.x, H + 1.2, fo.z), { maxDist: 45, cls: 'npc' });
+    }
+    const inst = (geo, mat, pts, sc = () => 1, y = 0) => {
+      if (!pts.length) return;
+      const m = new THREE.InstancedMesh(geo, mat, pts.length);
+      pts.forEach(([x, z], i) => { const k = sc(); q.setFromEuler(e.set(0, rand() * 6.28, 0)); mt.compose(V3(x, y, z), q, V3(k, k, k)); m.setMatrixAt(i, mt); });
+      m.castShadow = true; m.receiveShadow = true;
+      scene.add(m);
+    };
+    inst(new THREE.ConeGeometry(0.85, 6.5, 7).translate(0, 3.25, 0), M(0x3c6b3f), trees, () => 0.8 + rand() * 0.4);
+    inst(new THREE.CylinderGeometry(0.16, 0.24, 5.4, 6).translate(0, 2.7, 0), M(0x8a6a4a), palms);
+    inst(new THREE.IcosahedronGeometry(1.5, 0).scale(1, 0.45, 1).translate(0, 5.6, 0), M(0x4f8f45), palms.map((p) => p), () => 1, 0);
+    inst(new THREE.CylinderGeometry(1.1, 1.2, 0.35, 14).translate(0, 0.18, 0), M(0xe08aa0, 0.8), beds, () => 0.8 + rand() * 0.5);
+    inst(new THREE.IcosahedronGeometry(0.7, 0).translate(0, 0.6, 0), M(0x5f8a46), shrubs, () => 0.8 + rand() * 0.6);
+    if (torch.length) {
+      const post = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.08, 3.2, 6).translate(0, 1.6, 0), M(0x2e3330, 0.5), torch.length);
+      const [bg] = bulbParts();
+      const head = new THREE.InstancedMesh(bg, new THREE.MeshBasicMaterial({ color: 0xffe3a6, toneMapped: false }), torch.length);
+      torch.forEach(([x, z], i) => { post.setMatrixAt(i, mt.makeTranslation(x, 0, z)); head.setMatrixAt(i, mt.makeScale(4, 4, 4).setPosition(x, 3.3, z)); });
+      post.castShadow = true;
+      scene.add(post, head);
+    }
+  }
+
   // точка появления
   const spawn = L.spawn || { x: 8, z: -5.6 };
   const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 3).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xc9643b, toneMapped: false }));
   arrow.position.set(spawn.x, 0.4, spawn.z);
+  arrow.rotation.y = typeof spawn.yaw === 'number' ? spawn.yaw : 0; // yaw игрока: 0 — на север, взгляд (−sin, −cos)
   scene.add(arrow);
   st.label('Точка появления', arrow, { off: 1.2, maxDist: 70, cls: 'npc' });
 
@@ -1175,14 +1344,29 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
   const wheelAt = wheelP?.center ? { x: wheelP.center.x, z: wheelP.center.z } : { x: 27, z: 13 };
   let tw = null;
   if (tiredwood && typeof tiredwood.bearingDeg === 'number') {
-    tw = buildTiredwood({ wheel: wheelAt, bearing: THREE.MathUtils.degToRad(tiredwood.bearingDeg), d: tiredwood.distanceM || 530, h: tiredwood.letterH || 45, lineY: tiredwood.lineY ?? 37 });
+    const LS = L.sign || {};
+    const base = LS.code?.SIGN_BEARING?.now;
+    const letters = tiredwood.fromLayout !== false && Array.isArray(LS.letters) && typeof base === 'number' ? LS.letters : null;
+    tw = buildTiredwood({
+      wheel: wheelAt, bearing: THREE.MathUtils.degToRad(tiredwood.bearingDeg), d: tiredwood.distanceM || 530, h: tiredwood.letterH || 45, lineY: tiredwood.lineY ?? 37,
+      letters, rot: letters ? THREE.MathUtils.degToRad(tiredwood.bearingDeg - base) : 0, hump: false,
+    });
     scene.add(tw.group);
-    st.label(`TIREDWOOD — на холме за городом, ~${Math.round(tw.d / 10) * 10} м`, tw.center.clone().setY(tw.top + 6), { maxDist: Infinity, cls: 'qlbl tw' });
+    const sp = L.spawn || { x: 8, z: -5.6 };
+    const dSpawn = tw.at.reduce((a, p) => a + Math.hypot(p[0] - sp.x, p[2] - sp.z), 0) / tw.at.length;
+    st.label(`TIREDWOOD — на холме за городом, ~${Math.round(dSpawn / 10) * 10} м от спавна`, tw.center.clone().setY(tw.top + 6), { maxDist: Infinity, cls: 'qlbl tw' });
   }
+  const bb0 = L.land?.bbox || { x0: -30, x1: 64, z0: -56, z1: 22 };
+  const BB = { cx: (bb0.x0 + bb0.x1) / 2, cz: (bb0.z0 + bb0.z1) / 2, span: Math.max(bb0.x1 - bb0.x0, bb0.z1 - bb0.z0) };
   const VIEWS = {
-    overview: [V3(46, 68, 62), V3(14, 0, -14)],
-    spawn: [V3(spawn.x, 2.1, spawn.z + 2.2), V3(spawn.x, 6, spawn.z - 40)],
-    top: [V3(17, 190, 4), V3(17, 0, -8)],
+    overview: [V3(BB.cx + BB.span * 0.3, BB.span * 0.62, BB.cz + BB.span * 0.75), V3(BB.cx - 4, 0, BB.cz)],
+    // камера лобби: в 4,2 м за игроком, глаз ~2,4 м; взгляд по yaw спавна, чуть вверх — чтобы в кадр вошла надпись над крышами
+    spawn: (() => {
+      const yw = typeof spawn.yaw === 'number' ? spawn.yaw : 0, dx = -Math.sin(yw), dz = -Math.cos(yw);
+      const cam = spawn.camera && typeof spawn.camera.x === 'number' ? spawn.camera : { x: spawn.x - dx * 4.2, z: spawn.z - dz * 4.2 };
+      return [V3(cam.x, 2.4, cam.z), V3(spawn.x + dx * 40, 2.4 + 40 * Math.tan(THREE.MathUtils.degToRad(4)), spawn.z + dz * 40)];
+    })(),
+    top: [V3(BB.cx, BB.span * 1.35, BB.cz + 10), V3(BB.cx, 0, BB.cz)],
   };
   if (tw) {
     // с колеса (высота ~18 м) на надпись: цель — в 40 м по лучу, чуть выше глаз
@@ -1192,6 +1376,12 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
   for (const [id, c] of Object.entries(quarterCenters)) {
     const span = id === 'hub' ? 26 : id === 'port' ? 44 : 36;
     VIEWS[id] = [V3(c.x + span * 0.35, span * 0.95, c.z + span * 1.05), V3(c.x, 2, c.z)];
+  }
+  // ферма: с устья бульвара вдоль оси на арку «Огороды» (за ней калитка, над ней — надпись)
+  const bvv = L.boulevard || L.objects?.boulevard;
+  if (bvv?.from && bvv?.to) {
+    const [ax, az] = bvv.from, [bx, bz] = bvv.to, len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
+    VIEWS.farm = [V3(ax - ux * 10 + uz * 6, 14, az - uz * 10 - ux * 6), V3(bx + ux * 4, 2.5, bz + uz * 4)];
   }
   // узкое окно (телефон) — отодвигаем камеру, чтобы в кадр влезло то же, что на десктопе
   const asp = (host.clientWidth || 1) / (host.clientHeight || 1);
@@ -1206,13 +1396,17 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
   controls.update();
   const clampTarget = () => {
     const t = controls.target;
-    t.x = THREE.MathUtils.clamp(t.x, -80, 90); t.z = THREE.MathUtils.clamp(t.z, -90, 70); t.y = THREE.MathUtils.clamp(t.y, 0, 20);
+    t.x = THREE.MathUtils.clamp(t.x, -80, 110); t.z = THREE.MathUtils.clamp(t.z, -100, 80); t.y = THREE.MathUtils.clamp(t.y, 0, 20);
   };
   controls.addEventListener('change', clampTarget);
   function go(id) {
     const v = VIEWS[id];
     if (!v) return;
     controls.autoRotate = false;
+    // кадр игры со спавна: 16:9 при ±45,8° по горизонтали — это 60° по вертикали; со спавна и с колеса смотрим чуть вверх
+    const fov = id === 'spawn' ? 60 : 45;
+    if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    controls.maxPolarAngle = id === 'spawn' || id === 'tiredwood' ? Math.PI * 0.56 : Math.PI * 0.48;
     st.tween(v[0], v[1], 1.8);
   }
 
@@ -1271,25 +1465,93 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
   const placed = new Map(); // layoutId -> Group
   const residents = new Map(); // layoutId -> Vector3 (мир)
   const total = { pav: models.size + extras.length, done: 0 };
+  // Место модели. Моделлеры ставили world_origin по прошлой раскладке; если центр павильона в текущей раскладке уехал
+  // дальше 1,5 м (или точки нет), берём центр и фасад из layout.json. Скалу со входом не трогаем: её вход уже по v5.
+  const KEEP_MANIFEST = new Set(['dungeon']);
+  function placementFor(m, id) {
+    const p = id ? pavById.get(id) : null;
+    const own = { x: m.origin ? m.origin[0] : p?.center?.x, z: m.origin ? m.origin[1] : p?.center?.z, yaw: typeof m.yaw === 'number' ? m.yaw : (p ? yawOf(p) : 0), moved: false };
+    if (!p?.center || KEEP_MANIFEST.has(id) || m.role) return own;
+    if (m.origin && Math.hypot(m.origin[0] - p.center.x, m.origin[1] - p.center.z) <= 1.5) return own;
+    return { x: p.center.x, z: p.center.z, yaw: yawOf(p), moved: true };
+  }
+  // несколько моделей на одно место раскладки (табло: «Доска почёта» + «Кто на набережной») — в ряд вдоль фасада
+  const rows = new Map(); // layoutId -> [wrap]
+  function arrangeRow(id) {
+    const p = pavById.get(id), list = rows.get(id);
+    if (!p?.center || !list || list.length < 2) return;
+    const yaw = yawOf(p), rx = -Math.cos(yaw), rz = Math.sin(yaw); // вправо для того, кто смотрит на фасад
+    const ext = list.map((w) => {
+      w.position.set(0, 0, 0); w.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(w);
+      const xs = [b.min.x, b.max.x], zs = [b.min.z, b.max.z];
+      let lo = Infinity, hi = -Infinity;
+      for (const x of xs) for (const z of zs) { const t = x * rx + z * rz; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+      return [lo, hi];
+    });
+    const gap = 0.8, total = ext.reduce((a, [lo, hi]) => a + hi - lo, 0) + gap * (list.length - 1);
+    let t = -total / 2;
+    list.forEach((w, i) => {
+      const [lo, hi] = ext[i];
+      const c = t - lo; t += hi - lo + gap;
+      w.position.set(p.center.x + rx * c, 0, p.center.z + rz * c);
+      w.updateMatrixWorld(true);
+    });
+    r.shadowMap.needsUpdate = true; st.dirty = true;
+  }
+  // мельница сидит в GLB арки «Огороды» (узлы static_windmill, live_sails); в v5 она стоит отдельно — (84; −62)
+  const millAt = L.objects?.windmill && typeof L.objects.windmill.x === 'number' ? L.objects.windmill : null;
+  let millStub = null, millDone = false;
+  if (millAt) {
+    const h = millAt.h || 15, g = new THREE.Group();
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 2.6, h * 0.72, 12).translate(0, h * 0.36, 0), M(0xf4efe4, 0.8));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(2.1, h * 0.2, 12).translate(0, h * 0.82, 0), M(0x9a6a44, 0.8));
+    const blades = new THREE.Group();
+    for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.7, 5.6, 0.08).translate(0, 3, 0), M(0xe9dcc2, 0.9)); b.rotation.z = i * Math.PI / 2 + 0.4; blades.add(b); }
+    blades.position.set(0, h * 0.66, -2.2);
+    g.add(tower, cap, blades);
+    g.position.set(millAt.x, 0, millAt.z);
+    g.rotation.y = Math.atan2(C.x - millAt.x, C.z - millAt.z) + Math.PI; // крылья — к площади
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    scene.add(g);
+    millStub = g;
+    st.tickers.push((dt) => { if (g.visible) { blades.rotation.z += dt * 0.5; st.dirty = true; } });
+  }
+  function moveMill(root) {
+    if (!millAt || millDone) return;
+    const mill = []; root.traverse((o) => { if (/windmill|sails/i.test(o.name) && !/^anchor_/.test(o.name)) mill.push(o); });
+    const top = mill.filter((o) => !mill.includes(o.parent));
+    const body = top.find((o) => /windmill/i.test(o.name));
+    if (!body) return;
+    const at = new THREE.Box3().setFromObject(body).getCenter(new THREE.Vector3());
+    const dx = millAt.x - at.x, dz = millAt.z - at.z;
+    for (const o of top) { scene.attach(o); o.position.x += dx; o.position.z += dz; o.updateMatrixWorld(true); }
+    millDone = true;
+    if (millStub) millStub.visible = false;
+  }
   // модели без своего павильона в раскладке (маяк, вторая доска у почёта и т. п.) — по координатам из манифеста
   async function placeExtra(m) {
     if (!m.origin) return;
     const id = m.layoutId || null;
-    const pav = await buildPavilion(m.file, { assets, signs: id ? signFor(id) : [] });
+    const pav = await buildPavilion(m.file, { assets, signs: m.signs || (id ? signFor(id) : []) });
     const wrap = new THREE.Group();
     wrap.add(pav);
-    wrap.position.set(m.origin[0], 0, m.origin[1]);
-    wrap.rotation.y = typeof m.yaw === 'number' ? m.yaw : 0;
+    const pl = placementFor(m, id);
+    wrap.position.set(pl.x, 0, pl.z);
+    wrap.rotation.y = pl.yaw;
     if (id) wrap.userData.pick = id;
     scene.add(wrap);
     wrap.updateMatrixWorld(true);
+    if (id && pl.moved) { rows.get(id)?.push(wrap); arrangeRow(id); }
+    if (m.role === 'windmill' && millStub) { millStub.visible = false; millDone = true; }
     const top0 = new THREE.Box3().setFromObject(wrap).max.y, top = m.role === 'lighthouse' ? top0 : Math.min(top0, 10);
     if (m.role === 'lighthouse' && lighthouseObj) {
       lighthouseObj.visible = false;
       if (lighthouseLbl) { lighthouseLbl.obj = V3(m.origin[0], top + 1, m.origin[1]); lighthouseLbl.off = 0; }
     } else {
       if (id) { const s = stubs.get(id); if (s) { s.visible = false; const k = pickables.indexOf(s); if (k >= 0) pickables.splice(k, 1); } const Lb = labelsById.get(id); if (Lb) Lb.el.classList.remove('stub'); }
-      st.label(m.name || m.key, V3(m.origin[0], top + 0.8, m.origin[1]), { maxDist: 70 });
+      const lc = new THREE.Box3().setFromObject(wrap).getCenter(new THREE.Vector3());
+      st.label(m.name || m.key, V3(lc.x, top + 0.8, lc.z), { maxDist: 70 });
     }
     if (id) pickables.push(wrap);
     total.done++;
@@ -1306,7 +1568,11 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
     part.position.set(0, 0, 0); part.rotation.set(0, 0, 0);
     const root = new THREE.Group();
     root.add(part);
-    root.position.set(g.world[0], g.y || 0, g.world[1]);
+    // якорь из манифеста ставился по прошлой раскладке; если место в раскладке уехало (калитка за аркой «Огороды», v5) — по ней
+    const lp = g.layoutId && g.layoutId !== 'dungeon' ? pavById.get(g.layoutId) : null;
+    let gx = g.world[0], gz = g.world[1];
+    if (lp?.center && Math.hypot(gx - lp.center.x, gz - lp.center.z) > 1.5) { gx = lp.center.x; gz = lp.center.z; }
+    root.position.set(gx, g.y || 0, gz);
     root.rotation.y = g.yaw || 0;
     root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     const pid = g.layoutId || g.pick;
@@ -1322,7 +1588,7 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
       if (Lb) Lb.show = false; // подпись даёт сама модель из игры
     }
     const top = Math.min(new THREE.Box3().setFromObject(root).max.y, 9);
-    st.label(g.name, V3(g.world[0], top + 0.8, g.world[1]), { maxDist: 60, cls: 'game' });
+    st.label(g.name, V3(gx, top + 0.8, gz), { maxDist: 60, cls: 'game' });
     r.shadowMap.needsUpdate = true;
     st.dirty = true;
   }
@@ -1331,13 +1597,16 @@ export async function plazaViewer(host, { assets, layout, models, extras = [], g
     const pav = await buildPavilion(m.file, { assets, signs: signFor(id) });
     const wrap = new THREE.Group();
     wrap.add(pav);
-    const ox = m.origin ? m.origin[0] : p?.center?.x, oz = m.origin ? m.origin[1] : p?.center?.z;
+    const pl = placementFor(m, id);
+    const ox = pl.x, oz = pl.z;
     if (ox == null) return;
     wrap.position.set(ox, 0, oz);
-    wrap.rotation.y = typeof m.yaw === 'number' ? m.yaw : (p ? yawOf(p) : 0);
+    wrap.rotation.y = pl.yaw;
     wrap.userData.pick = id;
     wrap.updateMatrixWorld(true);
     scene.add(wrap);
+    if (pl.moved) rows.set(id, [wrap]);
+    moveMill(wrap);
     // модель «скала со входом» (pav_dungeon_cliff) сама и есть скала — простую глыбу-заглушку убираем
     if (cliffMesh && /cliff/.test(m.key || m.file || '')) { cliffMesh.visible = false; r.shadowMap.needsUpdate = true; }
     placed.set(id, wrap);

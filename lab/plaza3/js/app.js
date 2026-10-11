@@ -22,7 +22,7 @@ async function getJSON(u, fallback) {
 
 // ------------------------------------------------------------------------------------------------ подписи и смысл точек раскладки
 const SHORT = {
-  rose: 'Роза ветров', honor: 'Доска почёта', rotunda: 'Ротонда', cafe: 'Кафе «Чайка»', cards: 'Карточная веранда',
+  rose: 'Роза ветров', honor: 'Доска почёта', showcase: 'Рыбная витрина', garden: 'Приморский сад', rotunda: 'Ротонда', cafe: 'Кафе «Чайка»', cards: 'Карточная веранда',
   kurzal: 'Курзал «Автоматы · Аркада»', billiards: 'Бильярд', wheel: 'Колесо обозрения', viewdeck: 'Смотровая на регату',
   kalancha: '«Выше облаков»', paintball: 'Пейнтбол «Склад №3»', fortress: 'Крепость', karting: 'Картинг', dungeon: 'Подземелье',
   aquapark: 'Аквапарк «Волна»', wardrobe: 'Примерочная', trampolines: 'Батуты', plane: 'Гидроплан «Стриж»',
@@ -31,7 +31,7 @@ const SHORT = {
   ratrace: 'Крысиные бега', lastochka: '«Ласточка»', regatta: 'Регата', eastmole: 'Восточный мол', farmarch: 'Арка «Огороды»', farmgate: 'Калитка фермы',
 };
 const WHAT = {
-  rose: 'точка появления, мяч живёт в центре розы', honor: 'доска почёта и «Последние входы»', rotunda: 'музыкальный автомат',
+  rose: 'точка появления, мяч живёт в центре розы', honor: '«Доска почёта» и «Кто на набережной» — два табло лицом к спавну', showcase: 'крупнейшие рыбы дня во льду и «Рекорды рыбаков»', garden: 'тихий сад у моря: газоны, пальмы, беседка', rotunda: 'музыкальный автомат',
   cafe: 'кафе, афиша «Сегодня в городе»', cards: 'дурак ×2 и блэкджек под перголой', kurzal: 'слоты и аркада: 3 игры с рекордами',
   billiards: 'бильярд, 3 стола', wheel: 'колесо обозрения', viewdeck: 'трибуна, отсюда смотрят старт регаты',
   kalancha: '«Выше облаков» — забег на каланчу', paintball: 'пейнтбол', fortress: 'крепость — оборона от волн зомби', karting: 'картинг, 3 круга',
@@ -43,7 +43,7 @@ const WHAT = {
   farmarch: 'дорога на ферму', farmgate: 'калитка — переход на ферму',
 };
 const EXTRA_RESIDENT = { cards: 'Крупье (блэкджек)', semyon: 'Дед Семён' };
-const NO_RUN = new Set(['rose', 'eastmole', 'fishboard', 'podium', 'trampolines', 'belvedere']);
+const NO_RUN = new Set(['rose', 'eastmole', 'fishboard', 'podium', 'trampolines', 'belvedere', 'garden']);
 function shortName(n) { return String(n || '').replace(/\s*\(.*?\)/g, '').split(' — ')[0].split(' + ')[0].replace(/:\s.*$/, '').trim(); }
 
 // ------------------------------------------------------------------------------------------------ состояние
@@ -69,7 +69,7 @@ async function main() {
     else D.extras.push(m);
   }
   D.spawn = layout.spawn || { x: 8, z: -5.6 };
-  const steps = [hero, concept, plan, plaza, portSec, pavilions, residents, signs, arcade, questions, release, footer];
+  const steps = [hero, concept, plan, spawnView, plaza, portSec, pavilions, residents, signs, arcade, questions, release, footer];
   for (const f of steps) { try { f(); } catch (e) { console.error(f.name, e); } }
   setupLightbox();
   setupTheme();
@@ -101,6 +101,24 @@ function signsFor(id) {
   return own ? [own] : c.signs.length ? [c.signs[Math.min(c.layout.indexOf(id), c.signs.length - 1)]] : text ? [{ text, status: '' }] : [];
 }
 const icon = (id) => D.assets.ui?.icons?.[id] || null;
+const capFirst = (t) => { const x = String(t || '').toLowerCase(); return x.charAt(0).toUpperCase() + x.slice(1); };
+function cardModels(c) {
+  const out = [];
+  for (const id of c.layout) {
+    const main = D.models.get(id);
+    const pair = D.extras.some((x) => x.layoutId === id) && c.signs[out.length];
+    if (main) out.push({ m: main, id, title: pair ? capFirst(pair.text) : main.name || labelFor(id), signs: pair ? [pair] : signsFor(id) });
+    for (const x of D.extras) if (x.layoutId === id) {
+      const sg = c.signs[out.length] || null;
+      out.push({ m: x, id, title: sg ? capFirst(sg.text) : x.name || labelFor(id), signs: sg ? [sg] : [] });
+    }
+  }
+  for (const k of c.keys || []) {
+    const m = (D.assets.pavilionModels || []).find((x) => x.key === k);
+    if (m) out.push({ m, id: null, title: m.name || c.title, signs: [] });
+  }
+  return out;
+}
 const BALL = '<svg class="ball" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#2a1f24"/><circle cx="21" cy="21" r="10" fill="#fff3de"/><text x="21" y="25.5" font-size="12" font-weight="900" text-anchor="middle" fill="#2a1f24" font-family="Rubik, sans-serif">8</text></svg>';
 const iconHtml = (id, cls = '') => (id === 'ball' ? BALL : icon(id) ? `<img class="${cls}" src="${esc(icon(id))}" alt="" loading="lazy">` : '');
 
@@ -113,11 +131,11 @@ function hero() {
   const w = bb.x1 - bb.x0, d = bb.z1 - bb.z0;
   const old = layout.land?.oldPlaza || { x0: -30, x1: 30, z0: -26, z1: 22 };
   const ow = old.x1 - old.x0, od = old.z1 - old.z0;
-  const k = (w * d) / (ow * od);
+  const k = layout.land?.growth || (w * d) / (ow * od);
   const walk = layout.land?.walkableM2, oldA = layout.land?.oldPlaza?.areaM2 || ow * od;
   const quarters = (layout.quarters || []).filter((q) => q.id !== 'hub').length;
   const items = [
-    [`×${nf(Math.floor(k * 10) / 10, 1)}`, `площадь: ${w}×${d} м суши, было ${ow}×${od}${walk ? `; пешком ${nf(walk / 1000, 1)} тыс. м² — вдвое больше` : ''}`],
+    [`×${nf(Math.floor(k * 10) / 10, 1)}`, `площадь: ${w}×${d} м суши, было ${ow}×${od}${walk ? `; пешком ${nf(walk / 1000, 1)} тыс. м² — в ${nf(Math.round((walk / oldA) * 10) / 10, 1)} раза больше` : ''}`],
     [String(quarters), 'кварталов вокруг круглой площади «Роза ветров»'],
     [String(D.pav.cards.length), 'павильонов — у каждого режима свой дом'],
     [String(D.npcs.list.length), 'жителей, у каждого входа свой'],
@@ -125,7 +143,20 @@ function hero() {
     ['Fight Club', 'убран из игры совсем — места ему нет', 'x'],
   ];
   $('#stats').innerHTML = items.map(([b, s, c]) => `<li class="${c || ''}"><b>${esc(b)}</b><span>${esc(s)}</span></li>`).join('');
-  const pm = D.pav.cards.filter((c) => c.layout.some((id) => D.models.has(id))).length, nm = Object.keys(assets.npcModels || {}).length;
+  const pm = D.pav.cards.filter((c) => cardModels(c).length).length, nm = Object.keys(assets.npcModels || {}).length;
+  // что поменялось по замечаниям владельца
+  const ch = D.page.changes;
+  if (ch?.items?.length) {
+    $('#changes').innerHTML = `<h2>${esc(ch.title)}${ch.date ? ` <small>${esc(ch.date)}</small>` : ''}</h2>
+      <ol>${ch.items.map((x) => `<li><a href="${esc(x.href)}"${x.view ? ` data-go-view="${esc(x.view)}"` : ''}>${escN(x.t)}</a></li>`).join('')}</ol>`;
+    $('#changes').hidden = false;
+    $('#changes').addEventListener('click', async (e) => {
+      const a = e.target.closest('[data-go-view]'); if (!a) return;
+      const v = await startViewer($('#v-plaza'));
+      $$('#pz-views button').forEach((x) => x.classList.toggle('on', x.dataset.view === a.dataset.goView));
+      setTimeout(() => v?.go(a.dataset.goView), 400);
+    });
+  }
   $('#ready').innerHTML = `Готово 3D-моделей: павильонов <b>${pm}</b> из ${D.pav.cards.length}, жителей <b>${nm}</b> из ${D.npcs.list.length}.` + (pm < D.pav.cards.length || nm < D.npcs.list.length ? ' Где модели ещё нет — показан концепт; новые модели страница подхватит сама.' : '');
 }
 
@@ -193,6 +224,7 @@ function plan() {
       const sh = [];
       if (p.box) sh.push(`<rect class="hs" x="${X(Math.min(p.box.x0, p.box.x1))}" y="${Y(Math.min(p.box.z0, p.box.z1))}" width="${Lm(Math.abs(p.box.x1 - p.box.x0))}" height="${Lm(Math.abs(p.box.z1 - p.box.z0))}"/>`);
       else if (p.circle) sh.push(`<circle class="hs" cx="${X(p.circle.x)}" cy="${Y(p.circle.z)}" r="${Lm(p.circle.r)}"/>`);
+      else if (Array.isArray(p.area)) { const [x0, z0, x1, z1] = p.area; sh.push(`<rect class="hs" x="${X(x0)}" y="${Y(z0)}" width="${Lm(x1 - x0)}" height="${Lm(z1 - z0)}"/>`); }
       if (p.points) for (const q of p.points) sh.push(`<circle class="hs" cx="${X(q.x)}" cy="${Y(q.z)}" r="${Lm(1.9)}"/>`);
       if (p.decks) for (const dk of p.decks) { const [x0, z0, x1, z1] = Array.isArray(dk) ? dk : dk.b; sh.push(`<rect class="hs" x="${X(x0)}" y="${Y(z0)}" width="${Lm(x1 - x0)}" height="${Lm(z1 - z0)}"/>`); }
       const e = entranceOf(p);
@@ -286,6 +318,30 @@ function plan() {
   if (worst) $('.run-head p').insertAdjacentHTML('afterend', `<p class="small">Дальше всех — ${esc(labelFor(worst.id))}: ${nf(worst.s, 1)} с. Пунктир — 6 секунд.</p>`);
 }
 
+// ------------------------------------------------------------------------------------------------ вид со спавна
+function spawnView() {
+  const A = D.assets.layout || {}, T = D.page.spawnView || {};
+  const sec = $('#spawnview');
+  if (!A.spawnView) { sec.hidden = true; $('#course a[href="#spawnview"]')?.closest('li')?.setAttribute('hidden', ''); return; }
+  if (T.lead) $('#sv-lead').textContent = T.lead;
+  const vb = A.spawnView.viewBox || [0, 0, 1790, 760];
+  $('#sv-fig').innerHTML = `<button type="button" class="shot sv-shot" data-full="${esc(A.spawnView.svg)}" data-cap="Вид со спавна — развёртка кадра" data-zoom="1">
+      <img src="${esc(A.spawnView.svg)}" alt="Вид со спавна: развёртка кадра с надписью TIREDWOOD над аркой «Огороды»" width="${vb[2]}" height="${vb[3]}" loading="lazy"></button>
+    ${T.caption ? `<figcaption>${escN(T.caption)}</figcaption>` : ''}`;
+  const sg = D.layout.sign || {}, sp = D.layout.spawn || {};
+  const facts = [...(T.facts || [])];
+  if (typeof sp.azimuthDeg === 'number' && typeof sp.yaw === 'number') facts.unshift(`взгляд со спавна — азимут ${nf(sp.azimuthDeg)}° (yaw ${nf(sp.yaw, 2)}), было — строго на север`);
+  if (sg.code?.SIGN_BEARING) facts.push(`надпись повёрнута: азимут с колеса ${sg.code.SIGN_BEARING.was}° → ${sg.code.SIGN_BEARING.now}°, сама стоит выше по склону`);
+  $('#sv-facts').innerHTML = facts.map((t) => `<li>${escN(t)}</li>`).join('');
+  if (T.note) $('.sv-bar').insertAdjacentHTML('afterend', `<p class="muted small sv-note">${escN(T.note)}</p>`);
+  $('#sv-3d').addEventListener('click', async () => {
+    $('#plaza3d').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const v = await startViewer($('#v-plaza'));
+    $$('#pz-views button').forEach((x) => x.classList.toggle('on', x.dataset.view === 'spawn'));
+    setTimeout(() => v?.go('spawn'), 500);
+  });
+}
+
 // ------------------------------------------------------------------------------------------------ площадь в 3D
 function plaza() {
   const views = [['overview', 'Обзор'], ['spawn', 'Со спавна'], ['top', 'Сверху'], ...(D.layout.quarters || []).map((q) => [q.id, quarterShort(q.id)]), ...(D.sceneCfg?.tiredwood ? [['tiredwood', 'Надпись TIREDWOOD']] : [])];
@@ -349,13 +405,13 @@ function pavilions() {
   });
   $('#pvs').innerHTML = pav.cards.map((c) => {
     const im = assets.pavilionConcepts?.[c.n];
-    const models = c.layout.map((id) => D.models.get(id)).filter(Boolean);
+    const models = cardModels(c);
     const conceptBtn = im ? `<button type="button" class="shot pv-concept" data-full="${esc(im.full)}" data-cap="Павильон ${esc(c.n)} · ${esc(c.title)}"><img src="${esc(im.thumb)}" alt="Концепт: ${esc(c.title)}" loading="lazy" width="720" height="480"></button>` : '';
     let media;
     if (models.length) {
-      const poster = models[0].poster || im?.thumb;
+      const poster = models[0].m.poster || im?.thumb;
       const tabs = models.length > 1 || c.layout.length > 1
-        ? models.map((m, i) => `<button type="button" data-model="${i}" class="${i ? '' : 'on'}">${esc(labelFor(m.layoutId))}</button>`).join('')
+        ? models.map((x, i) => `<button type="button" data-model="${i}" class="${i ? '' : 'on'}">${esc(x.title)}</button>`).join('')
         : '<button type="button" data-model="0" class="on">3D</button>';
       media = `<div class="viewer v3d" data-kind="pav" data-card="${esc(c.id)}">${poster ? `<img class="poster" src="${esc(poster)}" alt="">` : ''}<div class="tip">крути мышью</div></div>
         <div class="pv-tabs">${tabs}${im ? '<button type="button" data-concept="1">Концепт</button>' : ''}</div>
@@ -371,7 +427,7 @@ function pavilions() {
         <dl>
           <dt>Силуэт</dt><dd><span class="sw" style="--c:${esc(c.accent)}" title="цвет-акцент"></span>${esc(c.silhouette)}</dd>
           ${res.length ? `<dt>${res.length > 1 ? 'Жители' : 'Житель'}</dt><dd>${res.map((n) => `<a href="#npc-${esc(n.id)}">${esc(n.name)}</a>`).join(', ')}</dd>` : ''}
-          <dt>${c.signs.length > 1 ? 'Вывески' : 'Вывеска'}</dt><dd>${c.signs.length ? `<span class="minisigns">${c.signs.map((s) => `<span class="minisign">${iconHtml(s.icon)}<b>${esc(s.text)}</b></span>`).join('')}</span>` : 'нет — это набережная, а не здание'}</dd>
+          <dt>${c.signs.length > 1 ? 'Вывески' : 'Вывеска'}</dt><dd>${c.signs.length ? `<span class="minisigns">${c.signs.map((s) => `<span class="minisign">${iconHtml(s.icon)}<b>${esc(s.text)}</b></span>`).join('')}</span>` : esc(c.signsNote || 'нет — это набережная, а не здание')}</dd>
         </dl>
       </div></article>`;
   }).join('');
@@ -388,12 +444,13 @@ function pavilions() {
   });
 }
 function pavModelsFor(card) {
-  return card.layout.map((id) => {
-    const m = D.models.get(id);
-    const n = D.npcByPav.get(id);
+  const seen = new Set();
+  return cardModels(card).map(({ m, id, title, signs }) => {
+    const n = id && !seen.has(id) ? D.npcByPav.get(id) : null; // житель — у первой модели места
+    if (id) seen.add(id);
     const npc = n && D.assets.npcModels?.[n.id] ? D.assets.npcModels[n.id] : null;
-    return m ? { file: m.file, title: m.name || labelFor(id), signs: signsFor(id), layoutId: id, npc } : null;
-  }).filter(Boolean);
+    return { file: m.file, title, signs, layoutId: id, npc };
+  });
 }
 
 // ------------------------------------------------------------------------------------------------ жители
@@ -641,7 +698,12 @@ function startViewer(host) {
         const npcs = D.npcs.list.filter((n) => D.assets.npcModels?.[n.id]).map((n) => ({ ...n, file: D.assets.npcModels[n.id].file }));
         v = await V.plazaViewer(host, {
           assets: D.assets, layout: D.layout, models: D.models, npcs, signFor: signsFor, labelFor, quarterOf: quarterShort,
-          extras: D.extras, tiredwood: D.sceneCfg?.tiredwood || null,
+          extras: D.extras.map((m) => {
+            const c = m.layoutId && D.cardByLayout.get(m.layoutId);
+            const x = c ? cardModels(c).find((y) => y.m === m) : null;
+            return x ? { ...m, signs: x.signs, name: m.name || x.title } : m;
+          }),
+          tiredwood: D.sceneCfg?.tiredwood || null,
           gameModels: (D.assets.gameModels || []).map((g) => ({ ...g, pick: (D.assets.pavilionModels || []).find((m) => m.key === g.of)?.layoutId || null })),
           onPick: pzInfo, progress,
           onReady: (x) => { ready = x; if (v) say(); },

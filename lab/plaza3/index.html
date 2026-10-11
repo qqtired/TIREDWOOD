@@ -31,7 +31,7 @@
       <p class="eyebrow">TIREDWOOD · лаборатория · обзор перед сборкой</p>
       <h1>Новая набережная</h1>
       <div class="bulbs" aria-hidden="true"></div>
-      <p class="lead">Набережная вырастает в&nbsp;2,5 раза и&nbsp;становится курортным городком вокруг круглой площади «Роза ветров».
+      <p class="lead">Набережная вырастает в&nbsp;2,4 раза и&nbsp;становится курортным городком вокруг круглой площади «Роза ветров».
         У&nbsp;каждого режима — свой павильон: штукатурка, черепица, зелёные ставни, маркизы и&nbsp;лампочки, но&nbsp;силуэты разные,
         чтобы сразу было видно, что где. Вывески одной системы с&nbsp;живым статусом, у&nbsp;каждого входа свой житель,
         на&nbsp;ферму ведёт дорога через арку «Огороды». Fight Club уходит совсем.</p>
@@ -44,6 +44,7 @@
   </div>
   <div class="wrap">
     <ul class="stats" id="stats" aria-label="Главные числа"></ul>
+    <div class="changes" id="changes" hidden></div>
     <p class="ready" id="ready"></p>
   </div>
 </header>
@@ -53,6 +54,7 @@
     <ol id="course">
       <li><a href="#concept">Концепт</a></li>
       <li><a href="#plan">План</a></li>
+      <li><a href="#spawnview">Вид со спавна</a></li>
       <li><a href="#plaza3d">Площадь в 3D</a></li>
       <li><a href="#port">Порт</a></li>
       <li><a href="#pavilions">Павильоны</a></li>
@@ -127,13 +129,30 @@
     </div>
   </section>
 
+  <!-- ======================================================== Вид со спавна -->
+  <section class="sec sec-warm" id="spawnview">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">03</span> Вид со спавна</p>
+        <h2>Что видишь, когда заходишь</h2>
+        <p class="lead" id="sv-lead"></p>
+      </header>
+      <figure class="sv" id="sv-fig"></figure>
+      <div class="sv-bar">
+        <ul class="pts sv-facts" id="sv-facts"></ul>
+        <button type="button" class="btn" id="sv-3d">Посмотреть в 3D со спавна</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ======================================================== Площадь в 3D -->
   <section class="sec sec-sea" id="plaza3d">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">03</span> Площадь целиком</p>
+        <p class="eyebrow"><span class="num">04</span> Площадь целиком</p>
         <h2>Облети её сам</h2>
-        <p class="lead">Готовые павильоны стоят на своих местах по раскладке, остальные пока коробки-заглушки с подписью.
+        <p class="lead">Всё стоит по раскладке v5: суша до восточного края, Огородный бульвар с аркой, Приморский сад, фонтан, надпись на холме.
+          Готовые модели переставлены на новые места (перемоделированные под v5 подтянутся сами), остальное пока коробки-заглушки с подписью.
           Тяни мышью — вращать, правой кнопкой или двумя пальцами — двигать, колесо — после клика по сцене.</p>
       </header>
       <div class="pz-tools" id="pz-tools">
@@ -150,7 +169,7 @@
   <section class="sec" id="port">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">04</span> Порт за маяком</p>
+        <p class="eyebrow"><span class="num">05</span> Порт за маяком</p>
         <h2 id="port-h">Что делаем за маяком</h2>
         <p class="lead" id="port-lead"></p>
       </header>
@@ -162,7 +181,7 @@
   <section class="sec" id="pavilions">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">05</span> Павильоны</p>
+        <p class="eyebrow"><span class="num">06</span> Павильоны</p>
         <h2>Свой дом у каждого режима</h2>
         <p class="lead">Общее у всех — штукатурка, черепица, ставни, лампочки и эмалевая вывеска. Разное — силуэт и один цвет-акцент,
           который виден с площади и повторяется в рамке вывески и в одежде жителя. Где модель уже готова — её можно покрутить.</p>
@@ -176,7 +195,7 @@
   <section class="sec sec-warm" id="npcs">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">06</span> Жители</p>
+        <p class="eyebrow"><span class="num">07</span> Жители</p>
         <h2 id="npc-h">Кто встречает у входов</h2>
         <p class="lead">Та же желейка, что игроки, только с вещами по смыслу места и руками на виду. С 15 метров каждого узнаёшь по одной
           крупной детали. Ближе подойдёшь — поздоровается и скажет живую новость: сколько мест, когда старт, чей рекорд.</p>
@@ -193,7 +212,7 @@
   <section class="sec" id="signs">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">07</span> Таблички</p>
+        <p class="eyebrow"><span class="num">08</span> Таблички</p>
         <h2>Одна система вывесок</h2>
         <p class="lead">Эмалевый щит с узкой маркизой: иконка в круге, название и живой статус с точкой — зелёная «свободно», золотая «идёт сейчас»,
           красная «закрыто». Лампочки — только у главных входов в режимы. На развилках — столбы-указатели, у площади — доски «Топ игроков» и «Кто онлайн».</p>
@@ -217,7 +236,7 @@
   <section class="sec sec-night" id="arcade">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">08</span> Аркада</p>
+        <p class="eyebrow"><span class="num">09</span> Аркада</p>
         <h2>Три игры у автоматов — сыграй</h2>
         <p class="lead">Рядом со слотами — ряд обычных игровых автоматов: без ставок, только ловкость и рекорды. Нажми на автомат.
           Звук выключен — включается кнопкой «Звук» у экрана.</p>
@@ -233,7 +252,7 @@
   <section class="sec" id="questions">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">09</span> Решения</p>
+        <p class="eyebrow"><span class="num">10</span> Решения</p>
         <h2>Аркада: решено по умолчанию</h2>
         <p class="lead">Ты не ответил — берём рекомендованные варианты: 1а, 2а, 3а. Это решение по умолчанию, его можно поменять в любой момент.</p>
       </header>
@@ -245,7 +264,7 @@
   <section class="sec" id="release">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow"><span class="num">10</span> Как выпускаем</p>
+        <p class="eyebrow"><span class="num">11</span> Как выпускаем</p>
         <h2>Старая площадь живёт, пока новая не готова</h2>
       </header>
       <div class="rel">
