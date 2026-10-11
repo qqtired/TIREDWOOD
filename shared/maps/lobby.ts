@@ -15,6 +15,7 @@ import {
   FISH_ISLE_FIRST, barkasSpotIndex,
 } from '../fishplaces.ts';
 import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE, isleBoxes } from './isle.ts';
+import { isleTerrain } from './isleterrain.ts';
 import { RAT_BOARD, RAT_DECK, RAT_PEN, RAT_USE } from '../ratrace.ts';
 import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { BERTHS, parkDeckBoxes } from '../ownboat.ts';
@@ -692,6 +693,7 @@ export function buildLobby(): LobbyMap {
     planeBoxes,
     parkBoxes,
     isleBoxes: isleBoxIds,
+    terrain: isleTerrain(isleBoxIds[0]),
     plazaBoxes,
     plazaModeBoxes,
     ...(PLAZA3 ? { plaza3Boxes } : {}),

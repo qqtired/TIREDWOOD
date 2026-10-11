@@ -1,5 +1,5 @@
 // Мир столкновений: массивы границ боксов + лучи (для выстрелов, камеры, ботов).
-import type { GameMap } from './maps/types.ts';
+import type { GameMap, MapTerrain } from './maps/types.ts';
 
 export interface RayHit {
   t: number;
@@ -32,8 +32,10 @@ export class CollisionWorld {
   lastHit = -1;
   /** Убранные боксы (катер ушёл в поездку): их настоящие границы */
   private readonly away = new Map<number, [number, number, number, number, number, number]>();
+  private readonly terrain: MapTerrain | undefined;
 
   constructor(map: GameMap) {
+    this.terrain = map.terrain;
     const boxes = map.boxes;
     const n = boxes.length;
     this.n = n;
@@ -62,6 +64,27 @@ export class CollisionWorld {
     }
   }
 
+  /** Exact surface under a player's centre. Box-only maps exit before querying triangles. */
+  terrainHeight(x: number, z: number, ceiling = Infinity): number {
+    if (!this.terrain || (this.terrain.enabledBy !== undefined && this.away.has(this.terrain.enabledBy))) return -Infinity;
+    return this.terrain.height(x, z, ceiling);
+  }
+
+  terrainBlocks(x: number, y: number, z: number, height: number): boolean {
+    if (!this.terrain || (this.terrain.enabledBy !== undefined && this.away.has(this.terrain.enabledBy))) return false;
+    return this.terrain.blocks?.(x, y, z, height) ?? this.terrain.height(x, z) > y + 1e-7;
+  }
+
+  terrainCeiling(x: number, z: number, head: number): number {
+    if (!this.terrain || (this.terrain.enabledBy !== undefined && this.away.has(this.terrain.enabledBy))) return Infinity;
+    return this.terrain.ceiling?.(x, z, head) ?? Infinity;
+  }
+
+  terrainWalkable(x: number, z: number): boolean {
+    if (!this.terrain || (this.terrain.enabledBy !== undefined && this.away.has(this.terrain.enabledBy))) return true;
+    return this.terrain.walkable?.(x, z) ?? true;
+  }
+
   /**
    * Убрать бокс из мира или вернуть на место (катер «Ласточка» уходит от причала). Убранный бокс сжимается в точку
    * далеко за картой — горячие циклы физики и лучей о нём не знают и не тратят лишних проверок.
@@ -88,12 +111,13 @@ export class CollisionWorld {
         return true;
       }
     }
-    return false;
+    return this.terrainBlocks((x0 + x1) / 2, y0, (z0 + z1) / 2, y1 - y0);
   }
 
   /** Самая высокая опора под точкой не выше y (для теней и ботов). -Infinity — вода. */
   groundBelow(x: number, y: number, z: number): number {
-    let best = -Infinity;
+    const h = this.terrainHeight(x, z, y + 1e-3);
+    let best = h <= y + 1e-3 ? h : -Infinity;
     for (let i = 0; i < this.n; i++) {
       if (this.shootThrough[i]) continue;
       if (x < this.minX[i] || x > this.maxX[i] || z < this.minZ[i] || z > this.maxZ[i]) continue;
