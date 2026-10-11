@@ -10,6 +10,7 @@ import { P3 } from '../../../shared/plaza3/layout.ts';
 import type { P3Pt } from '../../../shared/plaza3/types.ts';
 import { mergeColored, paint, place, staticMesh } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
+import { dressPlaza3Ground } from './ground.ts';
 
 export interface Plaza3World {
   readonly group: THREE.Group;
@@ -124,6 +125,8 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   groundMesh.castShadow = false;
   groundMesh.name = 'plaza3-ground';
   group.add(groundMesh);
+  // земля в текстурах (plaza3/ground.ts): меш на картинку, развёртка в метрах, программа та же
+  dressPlaza3Ground(group, ctx.wet);
 
   // --- коробки блокаута: видимое твёрдое (павильоны, балюстрада, скалы) и декор без твёрдого — по мешу на квартал
   const byQ = new Map<string, THREE.BufferGeometry[]>();
