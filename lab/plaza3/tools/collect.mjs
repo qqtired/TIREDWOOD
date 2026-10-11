@@ -140,7 +140,7 @@ const HINTS = [
   [/rotund|music|juke/, 'rotunda'], [/lookout|viewdeck|tribune/, 'viewdeck'], [/lifeguard|aqua|beach_tower|vyshka/, 'aquapark'],
   [/cabin|wardrobe|primer/, 'wardrobe'], [/aero|plane|strizh/, 'plane'], [/jetty|fish_arch|mayak/, 'jettyarch'],
   [/fishyard|hide|dvor/, 'hide'], [/rat/, 'ratrace'], [/lastoch|swallow/, 'lastochka'], [/regat/, 'regatta'],
-  [/mole|mol\b/, 'eastmole'], [/semyon|shop|lavka/, 'semyon'], [/belved/, 'belvedere'], [/honor|pochet/, 'honor'], [/wheel|koleso/, 'wheel'],
+  [/east_?mole/, 'eastmole'], [/mole|mol\b/, 'westmole'], [/semyon|shop|lavka/, 'semyon'], [/belved/, 'belvedere'], [/honor|pochet/, 'honor'], [/wheel|koleso/, 'wheel'],
 ];
 const centers = (layout?.pavilions || []).filter((p) => p.center).map((p) => ({ id: p.id, x: p.center.x, z: p.center.z }));
 function layoutIdFor(key, origin) {

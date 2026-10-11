@@ -26,7 +26,7 @@ const SHORT = {
   kurzal: 'Курзал «Автоматы · Аркада»', billiards: 'Бильярд', wheel: 'Колесо обозрения', viewdeck: 'Смотровая на регату',
   kalancha: '«Выше облаков»', paintball: 'Пейнтбол «Склад №3»', fortress: 'Крепость', karting: 'Картинг', dungeon: 'Подземелье',
   aquapark: 'Аквапарк «Волна»', wardrobe: 'Примерочная', trampolines: 'Батуты', plane: 'Гидроплан «Стриж»',
-  jettyarch: 'Арка «Маяк · Рыбалка»', semyon: 'Лавка Семёна', belvedere: 'Бельведер «Закат»', westmole: 'Западный мол',
+  jettyarch: 'Арка «Маяк · Рыбалка»', semyon: 'Лавка Семёна', belvedere: 'Бельведер «Закат»', westmole: 'Маячный мол',
   marina: 'Свои лодки', udalaya: '«Удалая»', fishboard: 'Рекорды рыбаков', podium: 'Крупнейшие рыбы', hide: 'Рыбный двор',
   ratrace: 'Крысиные бега', lastochka: '«Ласточка»', regatta: 'Регата', eastmole: 'Восточный мол', farmarch: 'Арка «Огороды»', farmgate: 'Калитка фермы',
 };

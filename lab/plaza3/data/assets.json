@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-11T00:33:02.220Z",
+ "generatedAt": "2026-10-11T01:07:18.563Z",
  "source": "concepts_blender/plaza3",
  "layout": {
   "plan": {
@@ -239,9 +239,26 @@
  },
  "pavilionModels": [
   {
+   "key": "aeroclub",
+   "file": "assets/models/pav/pav_aeroclub.glb",
+   "bytes": 312260,
+   "layoutId": "plane",
+   "origin": [
+    -28.1,
+    -18.75
+   ],
+   "yaw": -1.5708,
+   "name": "Гидроплан «Стриж»: будка аэроклуба",
+   "tris": 4770,
+   "bulbs": 0,
+   "props": 9,
+   "nodes": 26,
+   "poster": "assets/pavilions/renders/aeroclub-34-s.jpg"
+  },
+  {
    "key": "billiards",
    "file": "assets/models/pav/pav_billiards.glb",
-   "bytes": 413520,
+   "bytes": 413280,
    "layoutId": "billiards",
    "origin": [
     42.7,
@@ -249,11 +266,28 @@
    ],
    "yaw": 3.14159,
    "name": "Бильярдная лоджия",
-   "tris": 6441,
+   "tris": 6433,
    "bulbs": 0,
    "props": 9,
    "nodes": 34,
    "poster": "assets/pavilions/renders/billiards-34-s.jpg"
+  },
+  {
+   "key": "cabins",
+   "file": "assets/models/pav/pav_cabins.glb",
+   "bytes": 233956,
+   "layoutId": "wardrobe",
+   "origin": [
+    -27.5,
+    -3
+   ],
+   "yaw": -1.5708,
+   "name": "Примерочная: пляжные кабинки и зеркало",
+   "tris": 3344,
+   "bulbs": 0,
+   "props": 4,
+   "nodes": 14,
+   "poster": "assets/pavilions/renders/cabins-34-s.jpg"
   },
   {
    "key": "cafe",
@@ -307,9 +341,26 @@
    "poster": "assets/pavilions/renders/dungeon_cliff-34-s.jpg"
   },
   {
+   "key": "farm_arch",
+   "file": "assets/models/pav/pav_farm_arch.glb",
+   "bytes": 364516,
+   "layoutId": "farmarch",
+   "origin": [
+    50,
+    -20
+   ],
+   "yaw": 1.5707963267948966,
+   "name": "Арка «Огороды» + мельница",
+   "tris": 5524,
+   "bulbs": 0,
+   "props": 71,
+   "nodes": 89,
+   "poster": "assets/pavilions/renders/farm_arch-34-s.jpg"
+  },
+  {
    "key": "fishyard",
    "file": "assets/models/pav/pav_fishyard.glb",
-   "bytes": 265948,
+   "bytes": 265900,
    "layoutId": "hide",
    "origin": [
     -4,
@@ -360,7 +411,7 @@
   {
    "key": "kursaal",
    "file": "assets/models/pav/pav_kursaal.glb",
-   "bytes": 829228,
+   "bytes": 825708,
    "layoutId": "kurzal",
    "origin": [
     45,
@@ -368,16 +419,33 @@
    ],
    "yaw": 3.14159,
    "name": "Курзал «Автоматы · Аркада»",
-   "tris": 12609,
+   "tris": 12577,
    "bulbs": 367,
    "props": 33,
    "nodes": 447,
    "poster": "assets/pavilions/renders/kursaal-34-s.jpg"
   },
   {
+   "key": "lifeguard",
+   "file": "assets/models/pav/pav_lifeguard.glb",
+   "bytes": 241652,
+   "layoutId": "aquapark",
+   "origin": [
+    -27,
+    4.25
+   ],
+   "yaw": -1.5708,
+   "name": "Аквапарк «Волна»: вышка спасателя и надувная арка",
+   "tris": 3656,
+   "bulbs": 0,
+   "props": 4,
+   "nodes": 20,
+   "poster": "assets/pavilions/renders/lifeguard-34-s.jpg"
+  },
+  {
    "key": "lighthouse_arch",
    "file": "assets/models/pav/pav_lighthouse_arch.glb",
-   "bytes": 337560,
+   "bytes": 337600,
    "layoutId": "jettyarch",
    "origin": [
     -19,
@@ -392,9 +460,26 @@
    "poster": "assets/pavilions/renders/lighthouse_arch-34-s.jpg"
   },
   {
+   "key": "mole",
+   "file": "assets/models/pav/pav_mole.glb",
+   "bytes": 266024,
+   "layoutId": "westmole",
+   "origin": [
+    -43,
+    45
+   ],
+   "yaw": 0,
+   "name": "Маячный мол: мол, голова с красным огнём, сходни",
+   "tris": 3924,
+   "bulbs": 0,
+   "props": 14,
+   "nodes": 44,
+   "poster": "assets/pavilions/renders/mole-34-s.jpg"
+  },
+  {
    "key": "paintball",
    "file": "assets/models/pav/pav_paintball.glb",
-   "bytes": 723080,
+   "bytes": 723092,
    "layoutId": "paintball",
    "origin": [
     8,
@@ -411,7 +496,7 @@
   {
    "key": "rats",
    "file": "assets/models/pav/pav_rats.glb",
-   "bytes": 263164,
+   "bytes": 263080,
    "layoutId": "ratrace",
    "origin": [
     -7.4,
@@ -423,7 +508,7 @@
    "bulbs": 0,
    "props": 5,
    "nodes": 29,
-   "poster": null
+   "poster": "assets/pavilions/renders/rats-34-s.jpg"
   },
   {
    "key": "regatta_lookout",
@@ -496,7 +581,7 @@
   {
    "key": "sunset",
    "file": "assets/models/pav/pav_sunset.glb",
-   "bytes": 101648,
+   "bytes": 101652,
    "layoutId": "belvedere",
    "origin": [
     -23,
@@ -509,6 +594,23 @@
    "props": 41,
    "nodes": 85,
    "poster": "assets/pavilions/renders/sunset-34-s.jpg"
+  },
+  {
+   "key": "swallow_gate",
+   "file": "assets/models/pav/pav_swallow_gate.glb",
+   "bytes": 295356,
+   "layoutId": "lastochka",
+   "origin": [
+    7.9,
+    21.3
+   ],
+   "yaw": 0,
+   "name": "Морские ворота «Ласточка» и старт регаты",
+   "tris": 4604,
+   "bulbs": 0,
+   "props": 9,
+   "nodes": 29,
+   "poster": "assets/pavilions/renders/swallow_gate-34-s.jpg"
   }
  ],
  "kit": {
