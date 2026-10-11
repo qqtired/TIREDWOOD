@@ -218,16 +218,39 @@ export function monoRun(text: string, em: number): { xs: number[]; width: number
 }
 
 /**
- * Подбор кегля названия под ширину: не меньше minFrac от базового, иначе обрезка с «…» (длинное сокращаем, а не мельчим).
- * Возвращает кегль и текст.
+ * Подбор кегля названия под ширину: не меньше minFrac от базового (половина — название целиком важнее кегля, приёмка
+ * 11.10: «ВЫШЕ ОБЛАК…»), иначе обрезка с «…». Возвращает кегль и текст.
  */
-export function fitTitle(text: string, em: number, maxW: number, minFrac = 0.62): { em: number; text: string } {
+export function fitTitle(text: string, em: number, maxW: number, minFrac = 0.5): { em: number; text: string } {
   let t = text;
   let e = em;
   const w = (s: string, k: number): number => monoRun(s, k).width;
   if (w(t, e) <= maxW) return { em: e, text: t };
   e = Math.max(em * minFrac, Math.min(em, (em * maxW) / w(t, em)));
   while (w(t, e) > maxW + 1e-6 && t.length > 1) t = `${t.slice(0, -2).trimEnd()}…`;
+  return { em: e, text: t };
+}
+
+/**
+ * Подбор строки статуса под ширину: кегль до minFrac от базового; не влезает — отбрасываем хвостовые части после « · »
+ * (целые слова, а не «задания Семё…»), и только последнее средство — обрезка с «…». measure(text, em) — ширина в px.
+ */
+export function fitStatus(
+  text: string,
+  em: number,
+  maxW: number,
+  measure: (text: string, em: number) => number,
+  minFrac = 0.6,
+): { em: number; text: string } {
+  let t = text;
+  const w0 = measure(t, em);
+  if (w0 <= maxW) return { em, text: t };
+  const floor = em * minFrac;
+  let e = Math.max(floor, (em * maxW) / w0);
+  // ширина на холсте не строго пропорциональна кеглю (хинтинг): дожимаем по 2 %, пока не влезет или не упрёмся в минимум
+  while (measure(t, e) > maxW && e > floor) e = Math.max(floor, e * 0.98);
+  while (measure(t, e) > maxW && t.includes(' · ')) t = t.slice(0, t.lastIndexOf(' · ')).trimEnd();
+  while (measure(t, e) > maxW && t.length > 1) t = `${t.slice(0, -2).trimEnd()}…`;
   return { em: e, text: t };
 }
 
