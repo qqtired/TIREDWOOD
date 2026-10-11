@@ -2756,9 +2756,9 @@ export class LobbyScene implements Scene {
     this.fish2.frame(fishing, this.d.input.isHeld(BTN_FIRE | BTN_JUMP), this.fishing, this.arg, p?.x ?? null, p?.z ?? null);
   }
 
-  /** Рыбалка 2.0: о дожде скажет плашка события у воды — при входе (появится сама) и пока игрок у воды тост не нужен */
-  fishEventPlate(first: boolean): boolean {
-    return this.fish2.on && (first || this.fish2.plateNear);
+  /** Рыбалка 2.0: игрок у воды и видит плашку события — тост о дожде её не повторяет */
+  fishEventPlate(): boolean {
+    return this.fish2.on && this.fish2.plateNear;
   }
 
   private trampolineAt(x: number, y: number, z: number): { x: number; z: number } | null {

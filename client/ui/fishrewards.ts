@@ -152,7 +152,7 @@ export class FishRewards {
     const desc = cur ? REWARD_INFO[cur.id]?.text ?? FREE_TEXT[slot] ?? '' : '';
     const isOpen = this.open === slot;
     return `<button type="button" class="k-cell fi-gear-cell${isOpen ? ' is-open' : ''}" data-pick="${slot}" aria-expanded="${isOpen}">`
-      + `<span class="fi-gear-art">${art}</span><b>${esc(cur?.name ?? '')}</b><p>${SLOT_TITLE[slot] ?? ''} · ${esc(desc)}</p>`
+      + `<span class="fi-gear-art">${art}</span><b>${esc(cur?.name ?? '')}</b><span class="fi-gear-desc">${SLOT_TITLE[slot] ?? ''} · ${esc(desc)}</span>`
       + `<span class="k-pill k-pill--sm${isOpen ? ' k-pill--gold' : ''}">${isOpen ? 'выбор открыт' : `есть ${have} из ${list.length} · выбрать`}</span></button>`;
   }
 

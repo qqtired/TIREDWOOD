@@ -169,9 +169,6 @@
   .frx-storm, .fr .fr-bar.frx-quake, .fr .fr-bar.frx-whip, .fr-fish.frx-sense, .frx-tooth.flick, .frx-badge.turn, .frx-ink-drips i { animation: none; }
 }
 
-/* ---------------------------------------------------------------- награда уровня у шкалы опыта (fishprogresshud.ts) */
-.fs-skill-perk { font-size: 11.5px; line-height: 1.3; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fs-skill-perk b { color: var(--gold); font-weight: 800; }
+/* ---------------------------------------------------------------- награда уровня у шкалы опыта (fishprogresshud.ts; вид — fish2.css) */
 .fs-skill-perk.new { animation: frx-perk 0.9s ease-out 3; }
 @keyframes frx-perk { 0% { text-shadow: 0 0 12px var(--gold); } 100% { text-shadow: none; } }
-.touch .f2-skill .fs-skill-perk { font-size: 10px; }

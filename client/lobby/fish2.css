@@ -140,11 +140,6 @@
     inset 0 -2px 3px rgba(0, 28, 14, 0.35);
 }
 
-/* миниатюра окна в «Наградах» (там же .fr-zone): плетение помельче */
-.frw-win .fr-zone {
-  --fr-w: 3px;
-}
-
 /* морская карта — бледный пергамент: фактура потише, чтобы зона осталась «пунктиром курса» */
 [data-fr-theme='chart'] .fr-zone::before {
   opacity: 0.55;
@@ -595,16 +590,16 @@
   background: #3fc1a5;
 }
 
-/* Fishing skill and server-owned buff. Timer digits never move the adjacent text. */
-.fs-skill { display: flex; flex-direction: column; gap: 5px; }
-.fs-skill-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-.fs-skill-head b { font-size: 14px; margin: 0; }
-.fs-skill-head span { font-size: 12px; color: var(--cream-2); font-variant-numeric: tabular-nums; }
-.fs-skill-sub { font-size: 12px; color: var(--cream-dim); }
-.fs-xp { display: block; width: 100%; height: 8px; appearance: none; border: 0; border-radius: 4px; overflow: hidden; background: rgba(245,235,205,.13); accent-color: #8bb99b; }
-.fs-xp::-webkit-progress-bar { background: rgba(245,235,205,.13); border-radius: 4px; }
-.fs-xp::-webkit-progress-value { background: #8bb99b; border-radius: 4px; }
-.fs-xp::-moz-progress-bar { background: #8bb99b; border-radius: 4px; }
+/* Уровень рыбалки в профиле (меню Esc → «Коллекция», fishprogresshud.ts fishSkillBlock): кит — значок, полоса .k-meter цвета
+   режима, токены кита; цифры опыта не двигают текст рядом */
+.fs-skill { display: flex; flex-direction: column; gap: 6px; }
+.fs-skill-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.fs-skill-head b { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--surf-text); font: 800 var(--fs-16)/1.2 var(--font-text); }
+.fs-skill-head .fs-ic { width: 24px; height: 24px; object-fit: contain; }
+.fs-skill-head span { color: var(--surf-dim); font: 700 var(--fs-14)/1.2 var(--font-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fs-skill-sub { color: var(--surf-dim); font: 500 var(--fs-13)/1.3 var(--font-text); }
+.fs-skill-perk { overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); white-space: nowrap; text-overflow: ellipsis; }
+.fs-skill-perk b { color: var(--gold-text); font-weight: 800; }
 
 .fb-cell { min-width: 0; color: var(--cream); font-family: inherit; cursor: default; }
 button.fb-cell { cursor: pointer; }
@@ -630,7 +625,7 @@ button.fb-cell { cursor: pointer; }
 .prof-block.prof-fishing .fs-skill { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
 .prof-block.prof-fishing .fs-skill-head { display: flex; align-items: baseline; justify-content: space-between; }
 .prof-block.prof-fishing .fs-skill-head b { margin: 0; }
-.prof-fish-note { font-size: 11px; line-height: 1.5; color: var(--cream-dim); margin: 10px 0 0; }
+.prof-fish-note { margin: 10px 0 0; color: var(--surf-dim); font: 500 var(--fs-13)/1.45 var(--font-text); }
 
 @media (max-width: 640px), (max-height: 480px) {
   .fs-skill-head { gap: 6px; flex-wrap: wrap; }
@@ -640,7 +635,7 @@ button.fb-cell { cursor: pointer; }
 .touch .fr-label {
   max-width: 100%;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.25;
   letter-spacing: 0;
   white-space: normal;
@@ -693,7 +688,7 @@ button.fb-cell { cursor: pointer; }
 
 @media (max-height: 480px) and (orientation: landscape) {
   .touch .fr-bar { height: min(142px, 34dvh); }
-  .touch .fr-label { font-size: 11px; }
+  .touch .fr-label { font-size: 13px; }
   .touch .fr-hint { font-size: 13px; padding: 3px 6px; }
   .touch .fs-card {
     top: calc(66px + env(safe-area-inset-top, 0px));

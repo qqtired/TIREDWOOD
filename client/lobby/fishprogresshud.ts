@@ -2,7 +2,7 @@ import { activeDrink, bagSlots, bagValue, drinkOf, drinkUntil, fishLevelView, qu
 import { BEER, type ShopDrink } from '../../shared/fishshop.ts';
 import { catchValue, livewellCap, livewellOf } from '../../shared/fishlivewell.ts';
 import { TOUCH } from '../touch.ts';
-import { coinHtml, keyHtml, meterHtml } from '../ui/kit/dom.ts';
+import { coinHtml, iconImg, keyHtml, meterHtml } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
 import { el } from './fish2.ts';
 import { FishClock, fishTimeLeft } from './fishclock.ts';
@@ -23,21 +23,31 @@ export function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-/** Same compact skill scale in the journal, NPC dialog and profile. fresh — уровень только что вырос: строка награды вспыхивает */
+/**
+ * Уровень рыбалки в профиле (меню Esc → «Коллекция», client/ui/profile.ts) — на ките: значок поплавка, опыт полосой .k-meter
+ * цвета режима, строка зоны и награды уровня. fresh — уровень только что вырос: строка награды вспыхивает.
+ */
 export function fishSkillBlock(progress: FishProgress, compact = false, fresh = false): HTMLElement {
   const view = fishLevelView(progress.xp);
   const block = el('div', compact ? 'fs-skill compact' : 'fs-skill');
+  block.dataset.mode = 'fishing';
   const head = block.appendChild(el('div', 'fs-skill-head'));
-  head.appendChild(el('b', '', compact ? `🎣 Ур. ${view.level}` : view.level === 0 ? '🎣 Новичок' : `🎣 Уровень ${view.level} из ${FISH_MAX_LEVEL}`));
+  const title = head.appendChild(el('b', ''));
+  title.innerHTML = iconImg('float', 'fs-ic');
+  title.append(compact ? `Ур. ${view.level}` : view.level === 0 ? 'Новичок' : `Уровень ${view.level} из ${FISH_MAX_LEVEL}`);
   // Шкала на каждом уровне идёт с нуля: опыт внутри уровня / сколько нужно на весь уровень (5-й: «0 / 1 150 XP»).
   // На максимальном уровне следующего нет — пишем накопленный опыт.
   const gained = Math.max(0, view.xp - view.from);
   const fmt = (n: number): string => n.toLocaleString('ru-RU');
   const stat = view.next === null ? `${fmt(view.xp)} XP` : `${fmt(gained)} / ${fmt(view.next - view.from)}`;
   head.appendChild(el('span', '', compact ? stat : view.next === null ? `${stat} · максимум` : `${stat} XP`));
-  const bar = block.appendChild(el('progress', 'fs-xp'));
-  bar.max = view.next === null ? 1 : Math.max(1, view.next - view.from);
-  bar.value = view.next === null ? 1 : gained;
+  const need = view.next === null ? 1 : Math.max(1, view.next - view.from);
+  block.insertAdjacentHTML('beforeend', meterHtml(view.next === null ? 1 : gained / need, 'mode'));
+  const bar = block.lastElementChild!;
+  bar.setAttribute('role', 'progressbar');
+  bar.setAttribute('aria-valuemin', '0');
+  bar.setAttribute('aria-valuemax', String(need));
+  bar.setAttribute('aria-valuenow', String(view.next === null ? need : Math.min(need, gained)));
   bar.setAttribute('aria-label', view.next === null ? 'Максимальный уровень рыбалки' : `До следующего уровня ${Math.max(0, view.next - view.xp)} XP`);
   block.appendChild(el('span', 'fs-skill-sub', view.next === null
     ? `Высший уровень · зелёная зона +${levelZonePct(view.level)}% · опыт продолжает учитываться`
@@ -49,7 +59,7 @@ export function fishSkillBlock(progress: FishProgress, compact = false, fresh = 
   const last = have.at(-1);
   const next = LEVEL_PERKS.find((p) => p.level === view.level + 1);
   const perk = block.appendChild(el('span', `fs-skill-perk${fresh ? ' new' : ''}`));
-  if (last) perk.appendChild(el('b', '', `★ ${last.name}`));
+  if (last) perk.appendChild(el('b', '', last.name));
   if (next) perk.append(`${last ? ' · ' : ''}на ${next.level}-м: ${next.name}`);
   perk.title = [...have.map((p) => `★ ${p.level}. ${p.name} — ${p.text}`), ...(next ? [`дальше, ${next.level}-й: ${next.name} — ${next.text}`] : [])].join('\n');
   return block;
