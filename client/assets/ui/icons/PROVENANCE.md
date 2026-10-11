@@ -1,13 +1,13 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
-Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2» и «Дополнение 3» — v0.162.1; `codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
-Всего 129 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15, Дополнение 2: крепость, меню, другие режимы — 16, Дополнение 3: примерочная — 25. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
+Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2», «Дополнение 3» и «Дополнение 4» — v0.162.1; `codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
+Всего 148 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15, Дополнение 2: крепость, меню, другие режимы — 16, Дополнение 3: примерочная — 25, Дополнение 4: примерочная, ферма — 19. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
 
 Тот же способ, что у иконок фермы (`client/assets/farm/icons/PROVENANCE.md`). Стиль сверен с иконками фермы, крепости и лавки рыбака: рисованная «сказочная» манера, тёплое солнце слева сверху, тонкий тёмно-коричневый контур. Без надписей и цифр, без сине-жёлтого, без sci-fi и неона. Список взят из задания «UI icons» (id — смысл — Subject); в задании было «~70», в списке 73 id — нарисованы все.
 
 ## Формат
 
-- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1547 КБ (по 6–20 КБ на иконку).
+- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1791 КБ (по 6–20 КБ на иконку).
 - Предмет обрезан по содержимому (альфа > 24) и вписан в 240×240 по центру (поле 8 px), поэтому мелкие и крупные предметы занимают рамку одинаково.
 - Оригиналы 1254×1254 в репозиторий не кладём; они лежат в библиотеке Codex (`~/.codex/generated_images/<папка Codex>/<файл>.png`, имена — в таблице ниже).
 
@@ -350,11 +350,56 @@ Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes
 - **`wd-a-greengloves.webp`** — зелёные перчатки. Subject: a pair of green gardening gloves with soft green fabric and ribbed knit cuffs, fingers slightly curled, little brown soil smudges on the fingertips and palms.
   - исходник `exec-63b3bd3f-caf4-4aad-9911-e77838fb6e65.png` (папка Codex `01a12b50-55c1-7671-b2f6-af9ae4dcc714`, 1254x1254, sha256 c82112ce1add…), в игре 14 КБ
 
+### Дополнение 4: примерочная, ферма
+
+Нарисованы 11 октября 2026, Codex CLI `codex-cli 0.162.1` (`codex --version`), тем же способом, что «Дополнение 3»: `codex exec`, встроенный `image_gen`, прозрачный фон, одна иконка на вызов, по четыре вызова одновременно, тот же общий стиль и та же обёртка (описаны выше; строка про желейных персонажей не добавлялась — это вещи и питомцы, не желейки). Это картинки 19 вещей фермы для карточек «Примерочной», которые до этого показывали пустую «·»: файл `wd-<слот>-<ключ>.webp` подхватывается сам (`itemArt()` в `client/ui/wardrobe.ts`). Шапки и аксессуары — сама вещь, питомцы — сам зверёк (милый мультяшный, как в игре). Вид взят из `shared/farmdata.ts` (`FARM_WEAR`), `client/render/farmwear.ts`, `client/render/outfitfarm.ts`, `art/farm/MODELS.md` («Косметика», «Питомцы»), `docs/farm/design-v11.md` §12 и превью `art/farm/renders/`.
+
+- **`wd-h-farmcap.webp`** — кепка фермера. Subject: a green trucker-style farmer cap: a rounded green front dome with a bright embroidered cream sprout (two tiny leaves on a thin stem, no letters) on the front, a curved darker-green peak (visor), a checkered dark-and-light green mesh back panel, a small button on top and a little plastic snap strap at the back.
+  - исходник `exec-a0010f8b-53e4-4d38-a0b4-cf32ca6bee9e.png` (папка Codex `01a12b7d-4504-7f73-855b-84d193756463`, 1254x1254, sha256 9c029d90e42d…), в игре 10 КБ
+- **`wd-h-straw.webp`** — соломенная шляпа. Subject: a classic farmer woven straw hat with a very wide round brim and a soft round crown, coiled braided straw weave, a red cloth ribbon with a small bow on the right side and two loose straws sticking out.
+  - исходник `exec-1d4e08c7-316d-4c37-8ee3-c0d04cf7dc64.png` (папка Codex `01a12b7d-450b-7c62-b6fa-23dea56c22b9`, 1254x1254, sha256 09a44e570f0c…), в игре 13 КБ
+- **`wd-h-sunhat.webp`** — шляпа-подсолнух. Subject: a soft ochre-tan cotton sun hat with a rounded crown and a floppy brim, with one big cheerful sunflower (bright golden petals, brown seed center, tiny green leaves) attached on its right side.
+  - исходник `exec-8cdc4236-fc66-4bc5-b045-54f2fddf71b9.png` (папка Codex `01a12b7d-4508-75c3-9917-cfe3a59d2c22`, 1254x1254, sha256 f59922d05cd0…), в игре 10 КБ
+- **`wd-h-goldstraw.webp`** — золотая солома. Subject: a farmer straw hat woven from shiny honey-golden straw braid, wide round brim, rounded crown, with a hat band made of little golden wheat ears and a soft warm gleam on the weave.
+  - исходник `exec-5ee17f8a-6901-4809-b659-f09a5576a482.png` (папка Codex `01a12b7d-4504-7a83-9bdd-375995b188a9`, 1254x1254, sha256 c4bba6ae35ff…), в игре 13 КБ
+- **`wd-h-leafcrown.webp`** — венец из листьев. Subject: a ring-shaped wreath crown (open in the middle, to be worn on a head) made of overlapping oak and maple leaves in autumn green, orange, red and brown, woven on a thin brown twig band with four small clusters of shiny red berries.
+  - исходник `exec-80db9588-545f-471f-a160-fbad530e0ebf.png` (папка Codex `01a12b7f-35ae-7873-a300-7dfb2109b27a`, 1254x1254, sha256 2d18bc57db77…), в игре 18 КБ
+- **`wd-h-explorer.webp`** — панама «Исследователь». Subject: a beige canvas explorer bucket hat with a rounded crown and a wide brim, a dark olive band with a checked pattern, a rolled-up pale mosquito net on the brim edge, and a small round brass magnifying glass badge (clear lens, no symbols) pinned on the band.
+  - исходник `exec-f9a83057-f68e-4664-8560-818a492d899a.png` (папка Codex `01a12b7f-48c1-7571-b7f4-1ae8e0218b8f`, 1254x1254, sha256 b68bbc9939ca…), в игре 10 КБ
+- **`wd-h-nightcap.webp`** — колпак «Ночной дозор». Subject: a cozy knitted striped nightcap with wide deep-violet and cream stripes, a thick cream ribbed rim, a long soft tip drooping down to one side and ending in a pale cream crescent-moon-shaped pompom.
+  - исходник `exec-79964c09-7285-44ab-8562-e900ea9e0b85.png` (папка Codex `01a12b7f-a3cd-7b12-a4ea-248e60e67bd9`, 1254x1254, sha256 1fcb7dac2ca2…), в игре 14 КБ
+- **`wd-h-oldgardener.webp`** — шляпа «Старый садовник». Subject: a worn soft brown felt gardener hat with a dented crown crease and pinched sides, a dark brown band, a short gray-and-cream feather tucked in on the left and a yellow pencil tucked behind the band on the right, slightly scuffed and friendly.
+  - исходник `exec-8d998fc6-8d16-41c5-81b6-ff33135e5c18.png` (папка Codex `01a12b7f-b9bf-77d1-b559-c99e7d601652`, 1254x1254, sha256 56d9c239a626…), в игре 10 КБ
+- **`wd-h-pigears.webp`** — шапка со свиными ушами. Subject: a cute pink knitted beanie cap with two floppy droopy pig ears (darker pink inside) on top and a small round pink piggy snout with two nostril dots on the front, knit texture, cheerful and funny.
+  - исходник `exec-28d00850-ae4e-44fd-8902-374fa8653d3b.png` (папка Codex `01a12b81-158b-7c71-9243-714db41023d5`, 1254x1254, sha256 9044a693ba35…), в игре 13 КБ
+- **`wd-a-apron.webp`** — фартук «Торгаш». Subject: a cream-tan canvas gardener's apron laid out, with a chest bib, a neck strap, waist ties with a bow, two big front pockets with brown stitching, and a bright orange carrot with green leafy top sticking out of the right pocket.
+  - исходник `exec-88362815-a8c5-49a1-8ecd-e894f173a719.png` (папка Codex `01a12b81-341f-7fe0-8374-53f9ec4cd748`, 1254x1254, sha256 b89b570bafd0…), в игре 14 КБ
+- **`wd-a-alarm.webp`** — будильник «Тик-так». Subject: a round copper alarm clock with two small bell domes on top, a hammer between them, a cream clock face with simple black hands (no numbers, just small dot marks), two tiny legs, and a brown leather strap loop attached on both sides.
+  - исходник `exec-a22ee99f-5743-4271-b106-cf7c06db5649.png` (папка Codex `01a12b81-a09f-7822-9a55-f71c10b88afe`, 1254x1254, sha256 8c13f4b56b4d…), в игре 15 КБ
+- **`wd-a-basket.webp`** — корзинка гостинцев. Subject: a round woven wicker basket with an arched handle, filled with a few red apples and a golden pie covered by a red-and-cream checkered napkin hanging over the edge.
+  - исходник `exec-648fce39-8a3b-49e6-84d3-f9d39e7edfe7.png` (папка Codex `01a12b81-c47a-7600-ac75-a23c90e2c94d`, 1254x1254, sha256 d4a736130bfa…), в игре 18 КБ
+- **`wd-a-bee.webp`** — пчёлка на плече. Subject: a cute fuzzy round bumblebee with black-and-golden stripes, tiny clear pale wings, little antennae, a friendly face with two small dark eyes and tiny legs, hovering, shown alone.
+  - исходник `exec-8bcb9f54-7e53-4ef3-8148-57f4d0c5bf73.png` (папка Codex `01a12b82-a95a-77a3-a503-b868fb2252d4`, 1254x1254, sha256 914ac6a45346…), в игре 13 КБ
+- **`wd-a-canpack.webp`** — рюкзак-лейка. Subject: a backpack shaped like a big copper watering can: a round copper body with a riveted band, an arched copper top handle, a long thin spout rising up, and two brown leather shoulder straps with a chest strap, seen from the back three-quarter view.
+  - исходник `exec-675ceabc-a11d-4629-839c-aecdd04643f7.png` (папка Codex `01a12b82-e96e-7b82-9e43-58135e19c91f`, 1254x1254, sha256 3973de2f7b58…), в игре 14 КБ
+- **`wd-s-chick.webp`** — цыплёнок «Пик». Subject: a cute fluffy round yellow baby chick, big shining dark eyes, a small orange beak, stubby orange legs and feet, tiny wings, a little tuft of feathers on its head, standing, extremely cute.
+  - исходник `exec-09153422-122b-4a95-9568-82f67deee1ea.png` (папка Codex `01a12b83-9f42-79a3-bee9-e9a2ff789919`, 1254x1254, sha256 4d390838f1c7…), в игре 10 КБ
+- **`wd-s-piglet.webp`** — поросёнок «Желудь». Subject: a cute chubby pink piglet, big floppy ears, a round pink snout, curly tail, tiny hooves, happy dark eyes, standing, with a green ribbon around its neck holding a little brown acorn.
+  - исходник `exec-fe8f3957-f519-48f7-a4fd-93bb54da3634.png` (папка Codex `01a12b83-cb97-7d92-91a2-da259983b1d8`, 1254x1254, sha256 313f0594330b…), в игре 12 КБ
+- **`wd-s-beetle.webp`** — жук «Клёпа». Subject: a cute round shiny bronze-green rose-chafer beetle with glossy metallic green wing cases, a few small golden rivet dots on its back, two curved antennae with golden tips, large friendly dark eyes with tiny pink cheeks, six thin dark legs.
+  - исходник `exec-018e436a-7dfa-42ed-9a49-5edc1ff7f946.png` (папка Codex `01a12b84-4e39-72e3-bdcd-38bdbce3590e`, 1254x1254, sha256 2180f73975f5…), в игре 13 КБ
+- **`wd-s-firefly.webp`** — светлячок в банке «Огонёк». Subject: a clear glass jar with a round cork stopper tied with a twine bow, inside a cute little glowing warm amber-orange firefly with a soft glow and a tiny friendly face hovering above a tuft of green grass.
+  - исходник `exec-749b2f09-63a5-4ceb-aa85-0d5ce23eb332.png` (папка Codex `01a12b84-baaf-78f2-a63a-db5ef1ea1bbf`, 1254x1254, sha256 84f176c9d797…), в игре 14 КБ
+- **`wd-s-mushroom.webp`** — мини-гриб «Опёнок». Subject: a cute mini mushroom creature with a rounded light caramel-brown cap dotted with tiny brown speckles, a short white stem body with two big dark glossy eyes and pink cheeks under the cap, two little brown stump feet.
+  - исходник `exec-996566b6-172b-4055-8bce-eb360718fdbf.png` (папка Codex `01a12b85-736f-7483-a96f-4b97e05e279d`, 1254x1254, sha256 3775cecd66f6…), в игре 10 КБ
+
+Отступление от вида в игре (чтобы не получить сине-жёлтое сочетание): у `wd-h-nightcap` полоски фиолетовые, а не синие, и помпон-месяц кремовый, а не золотой. Остальное — как в игре: у `wd-h-farmcap` зелёная кепка с сетчатым затылком и кремовым ростком, у `wd-h-explorer` свёрнутая сетка на полях и лупа на ленте, у `wd-h-oldgardener` перо и карандаш за лентой, у `wd-h-pigears` розовая вязаная шапка с ушками и пятачком, у `wd-a-apron` морковка в кармане, у `wd-a-basket` яблоки и пирожок под клетчатой салфеткой, у `wd-a-bee` бледные прозрачные крылышки (без голубого оттенка), питомцы нарисованы стоя. У `wd-a-apron`, `wd-a-alarm`, `wd-a-basket`, `wd-a-canpack` — сама вещь без желейки. Перегенераций нет: все 19 — с первого раза.
+
 ## Перегенерации
 
 - `keys`: v1 — просто кремовый скруглённый кубик, на 48 px не читался как клавиша → v2 с тёмной ножкой и квадратной пластиной под колпачком (он в игре).
 - `pumpkin-boss`: v1 — рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками (выглядит мрачно, потёки как кровь) → v2 добрый ворчун-король с ножками, короной и лозами-руками (он в игре).
-- Остальные 127 — с первого раза, без правок.
+- Остальные 146 — с первого раза, без правок.
 
 ## Слабые места (оставлены как есть)
 
@@ -369,7 +414,12 @@ Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes
 - `wd-e-glasses`, `wd-e-monocle` — тонкая коричневая оправа очков и тонкое золотое кольцо монокля с цепочкой; на 48 px линии тонкие, но силуэт «очки» и «монокль на цепочке» узнаётся.
 - `wd-e-angry`, `wd-e-happy` — у лиц-желеек рядом с мордочкой видны мягкие руки-варежки (строка про желейных персонажей); на 48 px это просто выступы по бокам, лицо читается.
 - `wd-h-sailor`, `wd-h-crown`, `wd-a-epaulets` — у вещей в игре тёмно-синие детали рядом с золотом (кокарда, боковые камни, подушки): чтобы не получить сине-жёлтое, нарисованы чёрными и зелёными (см. «Дополнение 3»).
+- `wd-h-straw`, `wd-h-goldstraw`, `wd-h-sunhat` — три соломенно-охристые шляпы с широкими полями, силуэты близки; на 48 px различаются деталями: красная лента с бантом, лента из колосьев и крупный подсолнух сбоку.
+- `wd-h-leafcrown` — замкнутый венок из осенних листьев и красных ягод (как кольцо на макушке в игре): на 48 px читается как «осенний венок».
+- `wd-a-canpack` — на 48 px в первую очередь «медная лейка»; лямки рюкзака и грудная перемычка — тонкие коричневые линии сбоку и сзади.
+- `wd-s-beetle` — тонкие тёмные лапки и усики на 48 px сливаются; блестящий зелёный панцирь с золотыми заклёпками и мордочка с розовыми щёчками узнаются.
+- `wd-s-firefly` — стеклянная банка почти бесцветная, на светлом фоне стекло едва заметно; пробка со шпагатом, трава и тёплый янтарный светлячок читаются.
 
 ## Сводка
 
-`_sheet.png` — все 129 иконок сеткой 8 × 17: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
+`_sheet.png` — все 148 иконок сеткой 8 × 19: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
