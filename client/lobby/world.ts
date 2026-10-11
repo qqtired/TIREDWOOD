@@ -370,6 +370,7 @@ export class LobbyWorld {
           honor: { mesh: this.honorBoard.mesh },
           online: { mesh: this.recentBoard.mesh },
           jackpot: { mesh: this.jackpotBoard.mesh, frame: this.jackpotFrame ?? undefined },
+          kart: { mesh: this.kartStart.board.mesh, frame: this.kartStart.frame },
         },
         // экран над воротами блокаута: у модели склада там вывеска (WP10), крыша — у экрана Telegram
         hide: { paintball: [this.gateScreen.mesh, ...(this.gateFrame ? [this.gateFrame] : [])] },

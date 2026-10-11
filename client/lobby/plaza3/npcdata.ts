@@ -13,6 +13,8 @@ import { FARM_LAYOUT } from '../../../shared/farmlayout.ts';
 import { FARM_PLAZA_GATE } from '../../../shared/farmmap.ts';
 import { PLAZA3 } from '../../../shared/layout.ts';
 import { P3 } from '../../../shared/plaza3/layout.ts';
+import { RATS, ratWon } from '../../../shared/ratrace.ts';
+import { plural } from '../plaza/live.ts';
 
 /** Жители plaza3 рисуются (оформление plaza3 вместо plaza2 — тот же выбор, что в client/lobby/scene.ts) */
 export const NPC3 = PLAZA3 && !P3.legacyStatic;
@@ -159,8 +161,9 @@ export const NPCS: readonly NpcDef[] = [
   // ---------------------------------------------------------------- порт
   {
     id: 'miron', name: 'Смотритель Мирон', accent: '#ffd23f', talk: 'lighthouse', mode: null,
-    // площадка маяка: сбоку от входа с мостков, у штатива фото, лицом к мосткам
-    x: -15.8, z: 39.2, y: 0, yaw: +toward(-15.8, 39.2, -19, 34).toFixed(3), greet: true, wave: L,
+    // площадка маяка: в восточном кармане у башни (за кадром фото, в 3 м от рыбака-желейки WP8 в (−14,6; 39,2), вне мест
+    // рыбалки 7 и 9 и кнехта (−14,7; 45,3)), лицом к мосткам
+    x: -16.2, z: 41.8, y: 0, yaw: +toward(-16.2, 41.8, -19, 34).toFixed(3), greet: true, wave: L,
     lines: [
       'С маяка всю бухту видно. И чаек, и рыбу',
       'Встань у штатива — сниму тебя на память',
@@ -220,8 +223,9 @@ export const NPCS: readonly NpcDef[] = [
   },
   {
     id: 'tolik', name: 'Букмекер Толик', accent: '#7a3f9e', talk: 'ratrace', mode: null, layout: 'ratrace',
-    // у тумбы букмекера на берегу у понтона бегов
-    x: -11.6, z: 20.6, y: 0, yaw: 0, greet: true, wave: L,
+    // у понтона бегов, лицом к табло. Прежнее место (якорь resident у тумбы, −11,6; 20,6) оказалось внутри витрины рыб (ограждённый
+    // закуток за её прилавком) — тумба букмекера в модели pav_rats стоит внахлёст с витриной, это разведено в отчёте WP14a
+    x: -7.4, z: 21, y: 0, yaw: +toward(-7.4, 21, -7.4, 26.5).toFixed(3), greet: true, wave: L,
     lines: [
       'Крысиные бега! Ставки — у табло',
       'Пуля рвёт со старта, Соня берёт на финише',
@@ -395,6 +399,52 @@ export interface NpcStatusIn {
   season: { on: boolean; left: number } | null;
   /** Вещь дня в примерочной (имя из каталога shared/outfit.ts) */
   fashion: string | null;
+  // Что знает сцена набережной (client/lobby/scene.ts → NpcCrowd.setLive); необязательные: null или нет поля — данных нет, говорят обычные реплики
+  /** Гидроплан «Стриж» (Ася) */
+  plane?: NpcPlaneIn | null;
+  /** Крысиные бега (Толик) */
+  rats?: NpcRatsIn | null;
+  /** Автоматы курзала (Жетоныч): джекпот и сколько автоматов занято */
+  slots?: NpcSlotsIn | null;
+  /** Бильярд (Лёня): столы, партии, ждущие соперника */
+  billiards?: NpcBilliardsIn | null;
+}
+
+export interface NpcPlaneIn {
+  /** Самолёт не у стоянки (взлёт, полёт, домой, посадка) */
+  flying: boolean;
+  /** Пилот ('' — самолёт летит без него: баннер или домой) и чей баннер за ним ('' — без баннера) */
+  pilot: string;
+  banner: string;
+  /** Самолёт на стоянке ждёт этого по очереди ('' — никого) и сколько человек в очереди */
+  hold: string;
+  queue: number;
+  /** Через сколько секунд самолёт будет у стоянки (в полёте) */
+  etaSec: number;
+}
+
+export interface NpcRatsIn {
+  /** open — приём ставок, run — забег идёт, result — висит итог, idle — тишина */
+  phase: 'open' | 'run' | 'result' | 'idle';
+  /** До старта, с (open) */
+  leftSec: number;
+  /** Кто впереди в забеге (run) и кто победил в прошлом (result); −1 — нет */
+  leader: number;
+  winner: number;
+}
+
+export interface NpcSlotsIn {
+  /** Джекпот автоматов, жетонов; 0 или меньше — не знаем */
+  pool: number;
+  busy: number;
+  total: number;
+}
+
+export interface NpcBilliardsIn {
+  tables: number;
+  /** На скольких столах идёт партия и у скольких кто-то ждёт соперника */
+  matches: number;
+  waiting: number;
 }
 
 const cut = (s: string): string => (s.length > 60 ? `${s.slice(0, 59)}…` : s);
@@ -406,6 +456,12 @@ function wait(ms: number): string {
   const m = Math.ceil(s / 60);
   const h = Math.floor(m / 60);
   return h > 0 ? (m % 60 ? `${h} ч ${m % 60} мин` : `${h} ч`) : `${m} мин`;
+}
+
+/** «40 с», «2 мин» — как soon() у гидроплана (client/lobby/plane.ts) */
+function soonSec(sec: number): string {
+  const s = Math.max(1, Math.ceil(sec));
+  return s < 90 ? `${s} с` : `${Math.round(s / 60)} мин`;
 }
 
 /** «7 волн», «21 волна» */
@@ -433,6 +489,42 @@ export function npcStatusLines(talk: NpcTalk, s: NpcStatusIn): string[] {
     }
     case 'wardrobe':
       return s.fashion ? [cut(`Сегодня в моде: ${s.fashion}. Примерь!`)] : [];
+    case 'plane': {
+      const p = s.plane;
+      if (!p) return [];
+      if (p.flying) {
+        const back = soonSec(p.etaSec);
+        if (p.pilot) return [cut(`В небе ${p.pilot}. Самолёт вернётся через ${back}`)];
+        return [cut(p.banner ? `Самолёт катает баннер ${p.banner}. Будет через ${back}` : `Самолёт летит домой — будет через ${back}`)];
+      }
+      if (p.hold) return [cut(`Самолёт ждёт ${p.hold}. Вставай следом!`)];
+      return p.queue > 0 ? [cut(`К самолёту очередь: ${p.queue}. Занимай место!`)] : [];
+    }
+    case 'ratrace': {
+      const r = s.rats;
+      if (!r) return [];
+      if (r.phase === 'open') return [cut(`Приём ставок! Старт через ${Math.max(0, Math.ceil(r.leftSec))} с — жми E у табло`)];
+      if (r.phase === 'run') return [cut(RATS[r.leader] ? `Бегут! Впереди ${RATS[r.leader].name}. Болей громче!` : 'Бегут! Болей громче!')];
+      return r.phase === 'result' && RATS[r.winner] ? [cut(`${ratWon(r.winner)}! Ставки на следующий — у табло`)] : [];
+    }
+    case 'slots': {
+      const x = s.slots;
+      if (!x) return [];
+      const out: string[] = [];
+      if (x.pool > 0) out.push(cut(`Джекпот уже ${x.pool} ${plural(x.pool, 'жетон', 'жетона', 'жетонов')}! Ловишь?`));
+      if (x.total > 0) {
+        const free = Math.max(0, x.total - x.busy);
+        out.push(free === 0 ? 'Все автоматы заняты — загляни в аркаду' : cut(`${free === 1 ? 'Свободен' : 'Свободно'} ${free} ${plural(free, 'автомат', 'автомата', 'автоматов')}. Заходи!`));
+      }
+      return out;
+    }
+    case 'billiards': {
+      const b = s.billiards;
+      if (!b || b.tables <= 0) return [];
+      if (b.matches >= b.tables) return ['Все столы заняты. Подожди — партия идёт'];
+      if (b.matches > 0) return [cut(`Играют на ${b.matches} из ${b.tables} столов. ${b.tables - b.matches > 1 ? 'Есть свободные' : 'Один свободен'}`)];
+      return [b.waiting > 0 ? 'У стола ждут соперника. Составишь компанию?' : 'Все столы свободны. Сыграем партию?'];
+    }
     default:
       return [];
   }

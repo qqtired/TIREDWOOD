@@ -376,6 +376,19 @@ export class BilliardsClient {
     return { px: t.x + sx * 1.05, py: 2.65, pz: t.z, lx: t.x + sx * 0.3, ly: BL_SURFACE_Y, lz: t.z, fov: 50 };
   }
 
+  /** Занятость столов для реплик Лёни (plaza3): сколько столов, на скольких идёт партия, у скольких ждут соперника; null — бильярда нет */
+  occupancy(): { tables: number; matches: number; waiting: number } | null {
+    if (!this.on) return null;
+    let matches = 0;
+    let waiting = 0;
+    for (const v of this.views) {
+      if (!v) continue;
+      if (v.phase === 'match') matches++;
+      else if (v.seats.some(Boolean)) waiting++;
+    }
+    return { tables: BL_TABLE_COUNT, matches, waiting };
+  }
+
   /** Подсказка у стола (E). */
   hint(table: number): string {
     const v = this.views[table];

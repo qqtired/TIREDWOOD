@@ -24,6 +24,8 @@ export const BOARD_POS = pick({ x: 26.05, y: 2.75, z: -15.9 }, () => ({ x: P3.lo
 export class KartStart {
   readonly group = new THREE.Group();
   readonly board = new KartBoard(BOARD_W, BOARD_H);
+  /** Рамка табло на фасаде: в plaza3 прячется, когда встала модель картинга (табло — на её поле anchor_kboard_face) */
+  readonly frame: THREE.Mesh;
   private st: KartStatus = { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: 3 };
   /** Время мира, когда пришёл статус */
   private at = 0;
@@ -74,7 +76,7 @@ export class KartStart {
     this.num.position.set(x, NUM_Y, z);
     this.num.visible = false;
 
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W + 0.24, BOARD_H + 0.24, 0.12), new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.6 }));
+    const frame = this.frame = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W + 0.24, BOARD_H + 0.24, 0.12), new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.6 }));
     frame.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z - 0.07);
     this.board.mesh.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z);
     this.group.add(pad, ring, label, this.glow, this.num, frame, this.board.mesh);

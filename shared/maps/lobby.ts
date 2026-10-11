@@ -473,11 +473,14 @@ export function buildLobby(): LobbyMap {
   for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], f.mat ?? 'wood', f.color ?? 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
   const fishPropsBoxes: number[] = [];
-  for (const f of [FISHER_BODY, FISH_BOARD_BODY, FISH_PODIUM_BODY, ...FISH_PODIUM_STEP_BOXES, ...FISHER_CANOPY_BOXES]) {
+  // plaza3: основание и ступени витрины, доска и её столбы — внутри прилавка и стенки модели pav_fishshowcase; их твёрдое —
+  // боксы col_* модели в layout.json (pav.fishshowcase.*, node tools/plaza3/cols.mjs), старые лежали бы внутри них
+  const fishBodies = PLAZA3 ? [FISHER_BODY, ...FISHER_CANOPY_BOXES] : [FISHER_BODY, FISH_BOARD_BODY, FISH_PODIUM_BODY, ...FISH_PODIUM_STEP_BOXES, ...FISHER_CANOPY_BOXES];
+  for (const f of fishBodies) {
     fishPropsBoxes.push(b.boxes.length);
     b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'invisible', 0);
   }
-  for (const sign of [-1, 1]) {
+  for (const sign of PLAZA3 ? [] : [-1, 1]) {
     const x = FISH_BOARD.x + sign * (FISH_BOARD.w / 2 + 0.09);
     fishPropsBoxes.push(b.boxes.length);
     b.box([x - 0.075, 0, FISH_BOARD.z - 0.075], [x + 0.075, FISH_BOARD.h + 0.45, FISH_BOARD.z + 0.075], 'invisible', 0);
@@ -488,7 +491,9 @@ export function buildLobby(): LobbyMap {
   for (const sign of [-1, 1]) {
     const x = SKILL_PORTAL.x + sign * 1.5;
     skillPortalBoxes.push(b.boxes.length);
-    b.box([x - .18, 0, SKILL_PORTAL.z - .18], [x + .18, 3.4, SKILL_PORTAL.z + .18], 'invisible', 0);
+    // plaza3: стойки модели pav_skytower (col_portal_l/r) — 0,76 × 0,76 до 4,5 м, а не 0,36 × 3,4 прежнего портала внутри них
+    const h = PLAZA3 ? 0.38 : 0.18;
+    b.box([x - h, 0, SKILL_PORTAL.z - h], [x + h, PLAZA3 ? 4.5 : 3.4, SKILL_PORTAL.z + h], 'invisible', 0);
   }
   skillPortalBoxes.push(b.boxes.length);
   b.box([SKILL_PORTAL.x - 1.68, 2.9, SKILL_PORTAL.z - .18], [SKILL_PORTAL.x + 1.68, 3.35, SKILL_PORTAL.z + .18], 'invisible', 0);

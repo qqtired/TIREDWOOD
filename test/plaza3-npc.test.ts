@@ -96,3 +96,23 @@ test('plaza3 жители: формы ходов ожидания и репли�
   assert.equal(fashionOfDay(ITEMS, Date.UTC(2026, 9, 11, 1)), fashionOfDay(ITEMS, Date.UTC(2026, 9, 11, 23)));
   for (const t of ['dungeon', 'lighthouse', 'wardrobe'] as const) for (const l of npcStatusLines(t, s)) assert.ok(l.length <= 60, l);
 });
+
+test('plaza3 жители: реплики по состоянию режимов — самолёт, бега, автоматы, бильярд (WP14a)', () => {
+  const base = { dg: { top: null, week: null }, season: { on: true, left: 0 }, fashion: null };
+  const L = (talk: Parameters<typeof npcStatusLines>[0], patch: object): string[] => npcStatusLines(talk, { ...base, ...patch } as Parameters<typeof npcStatusLines>[1]);
+  // без данных — пусто (тогда житель говорит свои обычные реплики)
+  for (const t of ['plane', 'ratrace', 'slots', 'billiards'] as const) assert.deepEqual(L(t, {}), [], t);
+  assert.match(L('plane', { plane: { flying: true, pilot: 'Аня', banner: '', hold: '', queue: 0, etaSec: 40 } })[0], /В небе Аня/);
+  assert.match(L('plane', { plane: { flying: false, pilot: '', banner: '', hold: 'Боря', queue: 0, etaSec: 0 } })[0], /ждёт Боря/);
+  assert.deepEqual(L('plane', { plane: { flying: false, pilot: '', banner: '', hold: '', queue: 0, etaSec: 0 } }), []);
+  assert.match(L('ratrace', { rats: { phase: 'open', leftSec: 12.2, leader: -1, winner: -1 } })[0], /Старт через 13 с/);
+  assert.match(L('ratrace', { rats: { phase: 'run', leftSec: 0, leader: 0, winner: -1 } })[0], /Впереди Пуля/);
+  assert.match(L('ratrace', { rats: { phase: 'result', leftSec: 0, leader: -1, winner: 2 } })[0], /^Победил Барон/);
+  assert.deepEqual(L('ratrace', { rats: { phase: 'idle', leftSec: 0, leader: -1, winner: -1 } }), []);
+  assert.match(L('slots', { slots: { pool: 250, busy: 1, total: 4 } })[0], /Джекпот уже 250 жетонов/);
+  assert.deepEqual(L('slots', { slots: { pool: 0, busy: 4, total: 4 } }), ['Все автоматы заняты — загляни в аркаду']);
+  assert.match(L('billiards', { billiards: { tables: 3, matches: 1, waiting: 0 } })[0], /Играют на 1 из 3 столов/);
+  assert.deepEqual(L('billiards', { billiards: { tables: 3, matches: 3, waiting: 0 } }), ['Все столы заняты. Подожди — партия идёт']);
+  assert.match(L('billiards', { billiards: { tables: 3, matches: 0, waiting: 1 } })[0], /ждут соперника/);
+  for (const t of ['plane', 'ratrace', 'slots', 'billiards'] as const) for (const l of L(t, { plane: { flying: true, pilot: 'Очень-длинный-ник-игрока', banner: '', hold: '', queue: 0, etaSec: 90 }, rats: { phase: 'open', leftSec: 25, leader: 0, winner: 0 }, slots: { pool: 99999, busy: 0, total: 8 }, billiards: { tables: 4, matches: 2, waiting: 0 } })) assert.ok(l.length <= 60, l);
+});

@@ -212,7 +212,7 @@
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
 | `farm/` | `layout.mjs` — из `docs/farm/level/layout.json` собирает `shared/farmlayout.ts` |
-| `plaza3/` | `layout.mjs` — из `docs/plaza3/level/layout.json` собирает `shared/plaza3/layout.ts` (`--check` — только сверить); `signs.mjs` — места и размеры вывесок из якорей `anchor_sign_*` моделей (`--write` — в `layout.json`) |
+| `plaza3/` | `layout.mjs` — из `docs/plaza3/level/layout.json` собирает `shared/plaza3/layout.ts` (`--check` — только сверить); `signs.mjs` — места и размеры вывесок из якорей `anchor_sign_*` моделей (`--write` — в `layout.json`); `cols.mjs` — твёрдое мест, которое держит модель (`col_*` Семёна, витрины, бильярда, мола, ряды скалы), в `colliders` раскладки (`--write`; без аргумента — только сверка) |
 | `farm-sim/` | симуляция экономики фермы (`sim.mjs`, итоги — `RESULTS.md`) |
 | `jukebox-lab/` | стенд песен музыкального автомата |
 | `radio-lab/` | стенд станций радио на лодке: послушать, офлайн-рендер (громкость, спектрограмма), WAV — `window.__radio.check` |

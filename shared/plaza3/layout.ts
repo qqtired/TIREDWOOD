@@ -3517,14 +3517,14 @@ export const P3: Plaza3Layout = {
       "q": "cliffs",
       "pav": "dungeon_cliff",
       "min": [
-        -30,
+        -28.5,
         0,
-        -56
+        -26.75
       ],
       "max": [
-        -6.167,
-        20,
-        -55
+        -26.25,
+        8,
+        -26
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3536,12 +3536,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -55
+        -27.5
       ],
       "max": [
-        -6.333,
-        20,
-        -54
+        -26.25,
+        10.125,
+        -26.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3551,14 +3551,14 @@ export const P3: Plaza3Layout = {
       "q": "cliffs",
       "pav": "dungeon_cliff",
       "min": [
-        -30,
+        -25.5,
         0,
-        -54
+        -27.5
       ],
       "max": [
-        -6.5,
-        20,
-        -53
+        -24,
+        10.125,
+        -26.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3570,12 +3570,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -53
+        -28.25
       ],
       "max": [
-        -6.667,
-        20,
-        -52
+        -22.5,
+        10.875,
+        -27.5
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3587,12 +3587,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -52
+        -29
       ],
       "max": [
-        -6.833,
-        20,
-        -51
+        -21.75,
+        10.875,
+        -28.25
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3604,12 +3604,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -51
+        -29.75
       ],
       "max": [
-        -7,
-        20,
-        -50
+        -21.75,
+        11.625,
+        -29
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3619,14 +3619,14 @@ export const P3: Plaza3Layout = {
       "q": "cliffs",
       "pav": "dungeon_cliff",
       "min": [
-        -30,
+        -21,
         0,
-        -50
+        -29.75
       ],
       "max": [
-        -7.9,
-        20,
-        -49
+        -20.25,
+        11.625,
+        -29
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3638,12 +3638,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -49
+        -31.25
       ],
       "max": [
-        -8.8,
-        20,
-        -48
+        -20.25,
+        13.125,
+        -29.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3655,12 +3655,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -48
+        -32
       ],
       "max": [
-        -9.7,
-        20,
-        -47
+        -20,
+        13.125,
+        -31.25
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3672,12 +3672,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -47
+        -33.5
       ],
       "max": [
-        -10.6,
-        20,
-        -46
+        -18.75,
+        14.625,
+        -32
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3689,12 +3689,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -46
+        -34.25
       ],
       "max": [
-        -11.5,
-        20,
-        -45
+        -18,
+        15.375,
+        -33.5
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3706,12 +3706,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -45
+        -35
       ],
       "max": [
-        -11.75,
-        20,
-        -44
+        -17.25,
+        15.375,
+        -34.25
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3723,12 +3723,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -44
+        -35.75
       ],
       "max": [
-        -12,
-        20,
-        -43
+        -16.5,
+        16.125,
+        -35
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3738,14 +3738,14 @@ export const P3: Plaza3Layout = {
       "q": "cliffs",
       "pav": "dungeon_cliff",
       "min": [
-        -30,
+        -15,
         0,
-        -43
+        -35.75
       ],
       "max": [
-        -12.25,
-        20,
-        -42
+        -14.25,
+        16.125,
+        -35
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3757,12 +3757,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -42
+        -36.5
       ],
       "max": [
-        -12.5,
-        20,
-        -41
+        -14.25,
+        16.875,
+        -35.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3774,12 +3774,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -41
+        -37.25
       ],
       "max": [
-        -12.75,
-        19.875,
-        -40
+        -13.5,
+        17.625,
+        -36.5
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3791,12 +3791,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -40
+        -38.75
       ],
       "max": [
-        -13,
-        19.125,
-        -39
+        -12.75,
+        18.375,
+        -37.25
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3808,12 +3808,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -39
+        -41
       ],
       "max": [
-        -13.75,
-        18.375,
-        -38
+        -12,
+        19.875,
+        -38.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3825,12 +3825,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -38
+        -43.25
       ],
       "max": [
-        -14.5,
-        17.625,
-        -37
+        -11.25,
+        20,
+        -42
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3842,12 +3842,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -37
+        -42
       ],
       "max": [
-        -15.25,
-        16.875,
-        -36
+        -12,
+        20,
+        -41
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3859,12 +3859,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -36
+        -44.75
       ],
       "max": [
-        -16,
-        16.125,
-        -35
+        -12,
+        20,
+        -43.25
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3876,12 +3876,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -35
+        -45.5
       ],
       "max": [
-        -17,
-        15.375,
-        -34
+        -10.5,
+        20,
+        -44.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3893,12 +3893,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -34
+        -47
       ],
       "max": [
-        -18,
-        14.625,
-        -33
+        -10,
+        20,
+        -45.5
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3910,12 +3910,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -33
+        -47.75
       ],
       "max": [
-        -19,
-        13.875,
-        -32
+        -9,
+        20,
+        -47
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3927,12 +3927,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -32
+        -50
       ],
       "max": [
-        -20,
-        13.125,
-        -31
+        -7.5,
+        20,
+        -47.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3944,12 +3944,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -31
+        -50.75
       ],
       "max": [
-        -21.167,
-        12.375,
-        -30
+        -6.75,
+        20,
+        -50
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3961,12 +3961,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -30
+        -53
       ],
       "max": [
-        -22.5,
-        11.625,
-        -29
+        -6,
+        20,
+        -50.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3978,12 +3978,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -29
+        -53.75
       ],
       "max": [
-        -23.833,
-        10.875,
-        -28
+        -6,
+        20,
+        -53
       ],
       "mat": "concrete",
       "color": 10392194
@@ -3995,12 +3995,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -30,
         0,
-        -28
+        -56
       ],
       "max": [
-        -27.25,
-        10.125,
-        -27
+        -6,
+        20,
+        -53.75
       ],
       "mat": "concrete",
       "color": 10392194
@@ -4582,6 +4582,278 @@ export const P3: Plaza3Layout = {
       ],
       "mat": "wood",
       "color": 9071174
+    },
+    {
+      "id": "pav.fishshowcase.counter",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -14.8,
+        0,
+        18.62
+      ],
+      "max": [
+        -9.2,
+        1.45,
+        20.35
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fishshowcase.post_l",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -8.97,
+        0,
+        18.48
+      ],
+      "max": [
+        -8.75,
+        2.035,
+        18.7
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fishshowcase.post_r",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -15.25,
+        0,
+        18.48
+      ],
+      "max": [
+        -15.03,
+        2.035,
+        18.7
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fishshowcase.side_l",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -9.2,
+        0,
+        18.95
+      ],
+      "max": [
+        -8.56,
+        1,
+        21.35
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fishshowcase.side_r",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -15.44,
+        0,
+        18.95
+      ],
+      "max": [
+        -14.8,
+        1.3,
+        21.35
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.fishshowcase.wall",
+      "q": "port",
+      "pav": "fishshowcase",
+      "min": [
+        -15.36,
+        0,
+        21.35
+      ],
+      "max": [
+        -8.64,
+        5.04,
+        21.6
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.billiards.east_wall",
+      "q": "games",
+      "pav": "billiards",
+      "min": [
+        47.98,
+        0,
+        18.15
+      ],
+      "max": [
+        48.42,
+        1,
+        21.53
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.billiards.rail_w",
+      "q": "games",
+      "pav": "billiards",
+      "min": [
+        32.95,
+        0,
+        17.9
+      ],
+      "max": [
+        33.45,
+        1.06,
+        21.53
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.barrels_sw",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -17.05,
+        0,
+        12.35
+      ],
+      "max": [
+        -15.3,
+        0.85,
+        13.25
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.bench_s",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -15,
+        0,
+        13.2
+      ],
+      "max": [
+        -13,
+        0.95,
+        13.65
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.porch_post_n",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -16.33,
+        0,
+        8.82
+      ],
+      "max": [
+        -16.17,
+        2.5,
+        8.98
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.porch_post_s",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -16.33,
+        0,
+        12.02
+      ],
+      "max": [
+        -16.17,
+        2.5,
+        12.18
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.porch_rail_n",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -16.17,
+        0,
+        8.78
+      ],
+      "max": [
+        -15.2,
+        1,
+        8.9
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.porch_table",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -16.2,
+        0,
+        9.05
+      ],
+      "max": [
+        -15.5,
+        1.05,
+        9.75
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.semyon.woodpile_e",
+      "q": "port",
+      "pav": "semyon",
+      "min": [
+        -10.8,
+        0,
+        8
+      ],
+      "max": [
+        -10.35,
+        1.1,
+        10
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
+      "id": "pav.mole.red_light",
+      "q": "port",
+      "pav": "mole",
+      "min": [
+        -67.68,
+        -0.5,
+        42.82
+      ],
+      "max": [
+        -67.12,
+        2.8,
+        43.38
+      ],
+      "mat": "invisible",
+      "color": 0
     }
   ],
   "decor": [
@@ -6100,7 +6372,7 @@ export const P3: Plaza3Layout = {
       "text": "ПЕЙНТБОЛ",
       "x": 8,
       "y": 6.15,
-      "z": -28.881,
+      "z": -28.761,
       "yaw": 3.142,
       "w": 3.26,
       "h": 0.96

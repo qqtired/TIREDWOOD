@@ -66,6 +66,8 @@ import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
 import { Plaza3Dress } from './plaza3/dress.ts';
+import type { NpcStatusIn } from './plaza3/npcdata.ts';
+import { PL_DOCK } from '../../shared/plane.ts';
 import { ArcadeClient } from './plaza3/arcade/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
@@ -351,6 +353,8 @@ export class LobbyScene implements Scene {
   /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
   private readonly plaza: PlazaDress | Plaza3Dress | null;
   private readonly plazaLive: LiveIn = emptyLive();
+  /** Чужие желейки для жителей plaza3 (поворот к ближайшему игроку); массив переиспользуется каждый кадр */
+  private readonly npcOthers: Array<{ x: number; z: number }> = [];
   /** Над катером во время посадки: отсчёт и «Садись!» */
   private readonly boatBanner: BoatBanner;
   private readonly seatTmp = { x: 0, z: 0 };
@@ -581,7 +585,8 @@ export class LobbyScene implements Scene {
     this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
     // новая набережная (флаг PLAZA3): своё оформление входов, когда готов блокаут (legacyStatic: false)
-    this.plaza = PLAZA3 && !P3.legacyStatic ? new Plaza3Dress(this.world.plazaCtx) : PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    this.plaza = PLAZA3 && !P3.legacyStatic ? new Plaza3Dress(this.world.plazaCtx, () => d.ui.me().nick) : PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    if (this.plaza instanceof Plaza3Dress) this.plaza.npc.setLive(() => this.npcLive());
     // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
     onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);
@@ -2475,8 +2480,41 @@ export class LobbyScene implements Scene {
       boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
       tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
-    if (plaza instanceof Plaza3Dress) plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
+    if (plaza instanceof Plaza3Dress) {
+      plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
+      const others = this.npcOthers;
+      others.length = 0;
+      for (const r of this.remotes.values()) if (r.pose.valid) others.push(r.pose);
+      plaza.setPlayers(others);
+    }
     plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);
+  }
+
+  /** Статусы в репликах жителей plaza3 (раз в секунду): гидроплан, крысиные бега, автоматы курзала, бильярд — то, что сцена и так знает */
+  private npcLive(): Partial<NpcStatusIn> {
+    const pv = this.plane.view;
+    const tick = this.clock.ready ? this.clock.renderTick : 0;
+    const flying = pv.ph !== PL_DOCK;
+    const rr = this.rat3d;
+    let rats: NpcStatusIn['rats'] = null;
+    if (rr.on) {
+      const lead = rr.standings();
+      const res = rr.resultOrder();
+      if (rr.opening) rats = { phase: 'open', leftSec: rr.countdown / 1000, leader: -1, winner: -1 };
+      else if (lead) rats = { phase: 'run', leftSec: 0, leader: lead[0], winner: -1 };
+      else if (res) rats = { phase: 'result', leftSec: 0, leader: -1, winner: res[0] };
+      else rats = { phase: 'idle', leftSec: 0, leader: -1, winner: -1 };
+    }
+    let busy = 0;
+    for (let m = 0; m < MACHINE_XS.length; m++) if (((this.busySlots >> m) & 1) === 1) busy++;
+    return {
+      plane: this.plane.enabled
+        ? { flying, pilot: pv.nick, banner: pv.b ? pv.bn : '', hold: pv.hold, queue: pv.q.length, etaSec: flying && tick ? Math.max(0, pv.k + pv.eta - tick) / TICK_RATE : 0 }
+        : null,
+      rats,
+      slots: { pool: this.pool, busy, total: MACHINE_XS.length },
+      billiards: this.billiards.occupancy(),
+    };
   }
 
   /** Фон меню: облёт площади по кругу. */

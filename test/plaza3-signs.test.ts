@@ -8,7 +8,7 @@ import { P3 } from '../shared/plaza3/layout.ts';
 import { emptyLive, type LiveIn } from '../client/lobby/plaza/live.ts';
 import {
   ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_STATUS_H, PLANK, SIGN_META, STATUS_SIZE, contentOf, fitTitle, frameOf, headItems, monoRun,
-  packAtlas, parseArrow, planPost,
+  packAtlas, parseArrow, planPost, spreadOrder,
 } from '../client/lobby/plaza3/signstyle.ts';
 import { STATUS_MAX, clock, emptyExtras, signStatus, statusKey, type SignExtras, type StatusMode } from '../client/lobby/plaza3/status.ts';
 
@@ -237,4 +237,25 @@ test('plaza3-signs: столб — доски через PLANK.pitch сверх�
   // длинное название — длинная доска
   const w = (s: string): number => planPost([`${s} ↑`]).planks[0].w;
   assert.ok(w('Маяк · Рыбалка') > w('Пляж'));
+});
+
+test('plaza3-signs: порядок досок столба — те же доски, соседние по высоте смотрят врозь (WP14a)', () => {
+  for (const p of P3.posts) {
+    const plan = planPost(p.arrows);
+    const dirs = p.arrows.map((a) => parseArrow(a).name).sort();
+    assert.deepEqual(plan.planks.map((pk) => pk.name).sort(), dirs, `${p.id}: доски те же`);
+    // стрелки по компасу: ближайшие по высоте — не ближе, чем у порядка из layout.json (до перестановки)
+    const turn = (a: readonly [number, number], b: readonly [number, number]): number => 1 - (a[0] * b[0] + a[1] * b[1]);
+    const sum = (list: ReadonlyArray<{ dir: readonly [number, number] }>): number => list.slice(1).reduce((t, d, i) => t + turn(d.dir, list[i].dir), 0);
+    const raw = p.arrows.map((a, i) => ({ dir: parseArrow(a).dir ?? ([Math.cos((i * Math.PI) / 4), Math.sin((i * Math.PI) / 4)] as const) }));
+    assert.ok(sum(plan.planks) >= sum(raw) - 1e-9, `${p.id}: порядок не лучше исходного`);
+  }
+  // чисто: от запада к востоку и обратно, дальше — как можно более поперёк предыдущей
+  const d = (a: number): readonly [number, number] => [Math.cos(a), Math.sin(a)];
+  const ring = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ i, dir: d((i * Math.PI) / 4) }));
+  const order = spreadOrder(ring).map((r) => r.i);
+  assert.equal(order[0], 0);
+  assert.equal(order[1], 4, 'вторая — навстречу первой');
+  assert.deepEqual(order.slice().sort(), [0, 1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(spreadOrder(ring).map((r) => r.i), order, 'без случайности');
 });

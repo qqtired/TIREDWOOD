@@ -411,6 +411,7 @@ interface Npc {
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const OFF = 9;
+const NO_PLAYERS: ReadonlyArray<{ x: number; z: number }> = [];
 
 export class NpcCrowd {
   private readonly scene: THREE.Scene;
@@ -425,6 +426,8 @@ export class NpcCrowd {
   private readonly bubbles: Bubble[] = [];
   private status: NpcStatusIn = { dg: null, season: null, fashion: null };
   private statusAt = -1;
+  /** Данные сцены для реплик Аси, Толика, Жетоныча и Лёни (раз в секунду): гидроплан, бега, автоматы, бильярд */
+  private live: (() => Partial<NpcStatusIn>) | null = null;
   private triangles = 0;
   private boneCount = 0;
   private failed: string[] = [];
@@ -622,6 +625,11 @@ export class NpcCrowd {
     return npcStatusLines(t, this.status);
   }
 
+  /** Сцена набережной даёт источник данных для статусов в репликах (client/lobby/scene.ts) */
+  setLive(source: () => Partial<NpcStatusIn>): void {
+    this.live = source;
+  }
+
   private refreshStatus(time: number): void {
     if (this.statusAt >= 0 && time - this.statusAt < 1 && time >= this.statusAt) return;
     this.statusAt = time;
@@ -631,11 +639,12 @@ export class NpcCrowd {
       dg: dg ? { top: rec(dg.top[0]), week: rec(dg.week[0]) } : null,
       season: FISH_SEASON.state(),
       fashion: fashionOfDay(ITEMS, Date.now()),
+      ...this.live?.(),
     };
   }
 
-  /** Кадр: время мира, камера, своя желейка (x, z) или null, статусы режимов */
-  update(dt: number, time: number, cam: THREE.Vector3, me: { x: number; z: number } | null, live: LiveIn): void {
+  /** Кадр: время мира, камера, своя желейка (x, z) или null, статусы режимов, чужие желейки (поворот к ближайшему игроку) */
+  update(dt: number, time: number, cam: THREE.Vector3, me: { x: number; z: number } | null, live: LiveIn, others: ReadonlyArray<{ x: number; z: number }> = NO_PLAYERS): void {
     if (!this.mesh) return;
     this.refreshStatus(time);
     const now = performance.now();
@@ -661,8 +670,25 @@ export class NpcCrowd {
       }
       const dm = me ? Math.hypot(me.x - n.x, me.z - n.z) : Infinity;
       n.distMe = dm;
-      // поворот: к своей желейке, пока она рядом; иначе — на пост (у Гали — как велит калитка)
-      const want = ext ? ext.yaw : me && dm < TURN_R ? toward(n.x, n.z, me.x, me.z) : def.yaw;
+      // поворот: к ближайшему игроку (своей желейке или чужой), пока он рядом; иначе — на пост (у Гали — как велит калитка)
+      let want = def.yaw;
+      if (ext) want = ext.yaw;
+      else {
+        let near: { x: number; z: number } | null = null;
+        let nearD = TURN_R;
+        if (me && dm < nearD) {
+          near = me;
+          nearD = dm;
+        }
+        for (const p of others) {
+          const dp = Math.hypot(p.x - n.x, p.z - n.z);
+          if (dp < nearD) {
+            near = p;
+            nearD = dp;
+          }
+        }
+        if (near) want = toward(n.x, n.z, near.x, near.z);
+      }
       n.yaw = lerpAngle(n.yaw, want, Math.min(1, dt * 3.2));
       // взмах и приветствие
       n.waveCool -= dt;

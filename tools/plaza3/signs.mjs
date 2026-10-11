@@ -25,6 +25,13 @@ const PLACE = {
   semyon: { x: -13, z: 10.5, yaw: Math.PI / 2 },
 };
 
+/**
+ * Сдвиг вывески от стены «наружу» (в сторону, куда она смотрит), м: у модели в этом месте карниз выступает дальше плоскости
+ * щита — без сдвига он режет верх вывески. Пейнтбол: карниз pav_paintball (y 6,42…6,60) выступает на z −28,86, щит стоял на
+ * −28,881 (WP14a: щит теперь на 12 см впереди карниза, лампочки рамки — позади щита).
+ */
+const NUDGE = { paintball: 0.12 };
+
 /** Вывеска → (файл, якорь [, якорь обратной стороны]), текст на вывеске, порядок — как в layout.json */
 const SIGNS = [
   ['honor', 'ДОСКА ПОЧЁТА', 'pav_honor', 'anchor_sign_face'],
@@ -122,6 +129,9 @@ for (const [id, text, file, a, aBack] of SIGNS) {
   const an = anchors(path.join(MODELS, `${file}.glb`));
   if (!an[a]) throw new Error(`${file}: нет якоря ${a}`);
   const w = toWorld(pose, an[a]);
+  const out = NUDGE[id] ?? 0;
+  w.x += -Math.sin(w.yaw) * out;
+  w.z += -Math.cos(w.yaw) * out;
   const row = { id, text, x: r3(w.x), y: r3(w.y), z: r3(w.z), yaw: r3(w.yaw), w: r3(w.w), h: r3(w.h) };
   if (aBack) {
     if (!an[aBack]) throw new Error(`${file}: нет якоря ${aBack}`);

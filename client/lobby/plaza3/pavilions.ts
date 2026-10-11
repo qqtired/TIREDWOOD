@@ -29,7 +29,7 @@ const BULB = ((): THREE.BufferGeometry => {
 /** Свечение (окна, фонари, табло-заглушки) при погашенном в сети свете */
 const GLOW_OFF = 0.32;
 
-export type BoardKey = 'honor' | 'online' | 'jackpot';
+export type BoardKey = 'honor' | 'online' | 'jackpot' | 'kart';
 
 /** Что мир набережной даёт павильонам */
 export interface PavHooks {
@@ -74,14 +74,18 @@ export function placeMatrix(p: Pick<PavPlace, 'x' | 'z' | 'yaw'>, out = new THRE
 }
 
 /** Плоскость w×h (лицом на +Z) — на поле пустышки: центр, поворот, масштаб — половины ширины и высоты */
-export function mountOn(mesh: THREE.Mesh, field: THREE.Matrix4): void {
+export function mountOn(mesh: THREE.Mesh, field: THREE.Matrix4, contain = false): void {
   const g = mesh.geometry as THREE.PlaneGeometry;
   const w = g.parameters?.width ?? 1;
   const h = g.parameters?.height ?? 1;
   field.decompose(_p, _q, _s);
   mesh.position.copy(_p);
   mesh.quaternion.copy(_q);
-  mesh.scale.set((2 * _s.x) / w, (2 * _s.y) / h, 1);
+  // contain: холст целиком внутри поля, пропорции целы (как экран Telegram на крыше склада): по меньшему из двух масштабов
+  const kx = (2 * _s.x) / w;
+  const ky = (2 * _s.y) / h;
+  if (contain) mesh.scale.set(Math.min(kx, ky), Math.min(kx, ky), 1);
+  else mesh.scale.set(kx, ky, 1);
   mesh.updateMatrix();
 }
 
@@ -257,7 +261,7 @@ export class Plaza3Pavilions {
       const board = this.hooks.boards[key as BoardKey];
       const at = field(f.anchor);
       if (!board || !at) continue;
-      mountOn(board.mesh, at);
+      mountOn(board.mesh, at, key === 'kart');
       if (board.frame) board.frame.visible = false;
     }
     for (const o of this.hooks.hide?.[p.id] ?? []) o.visible = false;

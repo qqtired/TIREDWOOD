@@ -20,10 +20,14 @@ export class Plaza3Dress {
   readonly signs: Plaza3Signs;
   /** Вход «Подземелья» (plaza_entrance.glb) у скалы pav_dungeon_cliff — по anchor_entrance (= DUNGEON_ROCK из P3.modes, WP9) */
   private readonly dungeon: DungeonEntrance;
+  /** Чужие желейки: жители поворачиваются к ближайшему игроку, а не только к своей */
+  private players: ReadonlyArray<{ x: number; z: number }> = [];
 
-  constructor(ctx: VenueCtx) {
+  /** myNick — ник игрока: его строка на доске рекордов «Подземелья» золотом (как в старой площади) */
+  constructor(ctx: VenueCtx, myNick: () => string = () => '') {
     this.ctx = ctx;
-    this.dungeon = new DungeonEntrance(ctx, () => plaza3Shadows.refresh());
+    // вывеска входа — WP10 (signs.ts, живой статус): вывеску из plaza_entrance.glb не ставим, она лежала бы на ней
+    this.dungeon = new DungeonEntrance(ctx, () => plaza3Shadows.refresh(), myNick, false);
     this.npc = new NpcCrowd(ctx.scene);
     this.signs = new Plaza3Signs(ctx.scene);
   }
@@ -56,9 +60,14 @@ export class Plaza3Dress {
     this.signs.setExtras({ slots: { busy, total } });
   }
 
+  /** Где сейчас чужие желейки (список обновляет сцена; хранится ссылка, копировать не нужно) */
+  setPlayers(list: ReadonlyArray<{ x: number; z: number }>): void {
+    this.players = list;
+  }
+
   /** Кадр: время мира, камера, своя желейка, статусы режимов, горит ли свет в сети */
   update(dt: number, time: number, cam: THREE.Vector3, me: { x: number; z: number } | null, live: LiveIn, lampsOn: boolean): void {
-    this.npc.update(dt, time, cam, me, live);
+    this.npc.update(dt, time, cam, me, live, this.players);
     this.dungeon.update(dt, time);
     const rec = dgStatus()?.top[0];
     this.signs.setExtras({ dungeon: rec ? { nick: rec.nick, waves: rec.waves } : null });

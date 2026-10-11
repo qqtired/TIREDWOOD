@@ -344,18 +344,47 @@ export interface PostPlan {
   planks: Array<{ name: string; dir: readonly [number, number]; w: number; em: number; y: number }>;
 }
 
-/** Столб из строк layout.json → posts[].arrows: доски через PLANK.pitch сверху вниз, колпак выше верхней */
+/** Угол между направлениями на карте, 0…π */
+const turn = (a: readonly [number, number], b: readonly [number, number]): number => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1])));
+
+/**
+ * Порядок досок сверху вниз: первая — как в данных, каждая следующая смотрит как можно дальше от предыдущей (равные — по
+ * порядку в данных). Доски в 3D друг друга не пересекают (шаг PLANK.pitch 0,44 м при высоте 0,4), но вблизи, с высоты глаз,
+ * соседние по высоте доски на соседние стороны света (↖ ← ↙) перекрываются на экране и «режут» друг друга; через одну —
+ * на другую сторону — перекрытий в разы меньше (WP14a: S0 — доля перекрытия на экране 0,12 → 0,03).
+ */
+export function spreadOrder<T extends { dir: readonly [number, number] }>(list: readonly T[]): T[] {
+  const left = list.slice();
+  const out = left.splice(0, 1);
+  while (left.length) {
+    const last = out[out.length - 1];
+    let best = 0;
+    let bestTurn = -1;
+    left.forEach((p, k) => {
+      const t = turn(p.dir, last.dir);
+      if (t > bestTurn + 1e-9) {
+        bestTurn = t;
+        best = k;
+      }
+    });
+    out.push(...left.splice(best, 1));
+  }
+  return out;
+}
+
+/** Столб из строк layout.json → posts[].arrows: доски через PLANK.pitch сверху вниз (порядок — spreadOrder), колпак выше верхней */
 export function planPost(arrows: readonly string[]): PostPlan {
   const n = arrows.length;
   const base = 1.05;
   const top = base + n * PLANK.pitch;
   // без стрелки в строке доска смотрит по кругу, чтобы не слипались
-  const planks = arrows.map((a, i) => {
+  const list = arrows.map((a, i) => {
     const p = parseArrow(a);
     const dir = p.dir ?? ([Math.cos((i * Math.PI) / 4), Math.sin((i * Math.PI) / 4)] as const);
     const { w, em } = plankSize(p.name);
-    return { name: p.name, dir, w, em, y: top - PLANK.pitch * (i + 0.5) };
+    return { name: p.name, dir, w, em };
   });
+  const planks = spreadOrder(list).map((p, i) => ({ ...p, y: top - PLANK.pitch * (i + 0.5) }));
   // не ниже 3,3 м: заглушка столба из блокаута (layout.json → decor, цилиндр r 0,09 × 3,2) прячется внутри ствола
   return { height: Math.max(top + 0.3, 3.3), planks };
 }
