@@ -1,13 +1,13 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
-Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2» — v0.162.1; `codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
-Всего 104 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15, Дополнение 2: крепость, меню, другие режимы — 16. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
+Нарисованы 11 октября 2026 через Codex CLI (первые 88 — v0.153.4, «Дополнение 2» и «Дополнение 3» — v0.162.1; `codex exec`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по три вызова одновременно, без рисования кодом и без правок руками. Ключей не запрашивали — у Codex своя авторизация.
+Всего 129 иконок: Оболочка (интерфейс, меню, HUD) — 23, Рыбалка — 14, Крепость — 14, Другие режимы и события — 22, Дополнение: ферма, картинг, крепость — 15, Дополнение 2: крепость, меню, другие режимы — 16, Дополнение 3: примерочная — 25. Сводка — `_sheet.png` (каждая иконка 128 px и 48 px, id под ней; подписи и номера наложены скриптом, не генератором).
 
 Тот же способ, что у иконок фермы (`client/assets/farm/icons/PROVENANCE.md`). Стиль сверен с иконками фермы, крепости и лавки рыбака: рисованная «сказочная» манера, тёплое солнце слева сверху, тонкий тёмно-коричневый контур. Без надписей и цифр, без сине-жёлтого, без sci-fi и неона. Список взят из задания «UI icons» (id — смысл — Subject); в задании было «~70», в списке 73 id — нарисованы все.
 
 ## Формат
 
-- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1283 КБ (по 6–20 КБ на иконку).
+- **256×256 WebP с альфой** (качество 0,82), прозрачный фон; как у иконок крепости (`client/assets/fort/*.webp`). Всего 1547 КБ (по 6–20 КБ на иконку).
 - Предмет обрезан по содержимому (альфа > 24) и вписан в 240×240 по центру (поле 8 px), поэтому мелкие и крупные предметы занимают рамку одинаково.
 - Оригиналы 1254×1254 в репозиторий не кладём; они лежат в библиотеке Codex (`~/.codex/generated_images/<папка Codex>/<файл>.png`, имена — в таблице ниже).
 
@@ -37,7 +37,7 @@ Then copy the generated image file, completely unchanged (do not resize, convert
 Style: a single bold game interface icon for a cozy seaside resort party game (a sunny Black Sea town with jelly-bean characters), polished hand-painted cartoon look in the same family as other chunky game item icons: clean readable shapes, soft painterly cel shading, a thin dark-brown outline, a gentle bright highlight, rich natural saturated colors, warm midday summer sunlight from the upper left with soft warm shadows. The object is shown large and centered in a pleasant three-quarter view, filling about 80 percent of the square 1024x1024 canvas with small even margins. Genuinely transparent background (real alpha channel): no ground, no cast shadow, no scenery, no checkerboard, no white box, no frame, no border. Cozy and grounded storybook mood: not sci-fi, no neon, no electric glow, no darkness. Strictly: no text, no letters, no numbers, no symbols, no logos, no watermark. Avoid any blue-and-yellow color combination.
 ```
 
-Для иконок с желейными персонажами (`token`, `online`, `zombie`, `climber`, `brute`, `champion`, `boss`, `landing`, `bloater`, `spitter`, `armored`, `thief`) в конец общего стиля добавлялась строка:
+Для иконок с желейными персонажами (`token`, `online`, `zombie`, `climber`, `brute`, `champion`, `boss`, `landing`, `bloater`, `spitter`, `armored`, `thief`, `wd-e-normal`, `wd-e-sleepy`, `wd-e-angry`, `wd-e-happy`) в конец общего стиля добавлялась строка:
 
 ```
 Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes, mitten hands, no legs, no nose.
@@ -291,11 +291,70 @@ Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes
   - к общему стилю добавлена строка про желейных персонажей (см. выше)
   - исходник `exec-3ccac97b-370e-454c-9918-d7ade753df93.png` (папка Codex `01a12b06-56c9-75e2-b6a6-f1d491693e00`, 1254x1254, sha256 5145bba15648…), в игре 12 КБ
 
+### Дополнение 3: примерочная
+
+Нарисованы 11 октября 2026, Codex CLI `codex-cli 0.162.1` (`codex --version`), тем же способом, что «Дополнение 2»: `codex exec`, встроенный `image_gen`, прозрачный фон, одна иконка на вызов, по три вызова одновременно, тот же общий стиль и та же обёртка (описаны выше). Это картинки вещей для карточек «Примерочной»: файл `wd-<слот>-<ключ>.webp` подхватывается сам (`itemArt()` в `client/ui/wardrobe.ts`) и заменяет эмодзи. Глаза «обычные / сонные / сердитые / довольные» — портрет желейки крупным планом (оранжево-персиковая желейка; глаза как в игре: белок с тёмным зрачком, веко срезает глаз); очки, шапки и аксессуары — сама вещь. Вид вещей взят из кода (`shared/outfit.ts`, `client/render/outfit3d.ts`, `client/render/outfitfish.ts`, `docs/farm/design-v11.md`). Очки рыболова — из сета «Бывалый рыбак».
+
+- **`wd-e-normal.webp`** — обычные глаза. Subject: a close-up portrait of a plump round peach-orange jelly-bean face filling the frame, two big friendly round white eyes with dark round pupils looking straight ahead, a tiny gentle smile and soft rosy cheeks, the eyes are the star of the picture.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-7baabb54-29eb-40bd-a787-fbc2925151b5.png` (папка Codex `01a12b43-2d19-7913-97c8-fe57a66f08f5`, 1254x1254, sha256 a9b57059675e…), в игре 10 КБ
+- **`wd-e-sleepy.webp`** — сонные глаза. Subject: a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with sleepy half-closed eyes: heavy flat peach-colored eyelids cover the top half of each big white eye, small dark pupils drooping low, a small calm relaxed mouth, drowsy and peaceful.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-6435b941-ee71-46b5-aa78-0c97e902586a.png` (папка Codex `01a12b43-2d19-7f52-ac37-fec5d301a87e`, 1254x1254, sha256 26695571c796…), в игре 9 КБ
+- **`wd-e-angry.webp`** — сердитые глаза. Subject: a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with grumpy angry eyes: thick peach-colored eyelids slanting steeply down toward the middle of the face over big white eyes in a stern V-shape, small dark pupils glaring forward, a small flat frowning mouth, cute and grumpy not scary.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-68c09656-91a9-46c0-b00f-90a1616fdc25.png` (папка Codex `01a12b43-2d19-7282-95e3-524dbec79fb8`, 1254x1254, sha256 c5bedb86beee…), в игре 10 КБ
+- **`wd-e-happy.webp`** — довольные глаза. Subject: a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with blissfully happy eyes squeezed into two upward-curved crescent arcs like ^ ^ with tiny dark pupils peeking out beneath the arcs, a wide soft smile and rosy cheeks.
+  - к общему стилю добавлена строка про желейных персонажей (см. выше)
+  - исходник `exec-44183237-46bc-4e12-8d83-3ce8cb0df28c.png` (папка Codex `01a12b44-f756-79a2-8ffb-fe1a2c8ac1ff`, 1254x1254, sha256 2636abee18f5…), в игре 9 КБ
+- **`wd-e-glasses.webp`** — очки. Subject: a pair of round thin dark-brown wire-frame eyeglasses with clear glass lenses showing a soft white glint, a small nose bridge and two slim temple arms, shown alone in three-quarter view.
+  - исходник `exec-12c8b57a-8996-4584-b551-4be121318114.png` (папка Codex `01a12b45-07e8-7dc1-991d-cd02290831eb`, 1254x1254, sha256 fda69fdda65e…), в игре 12 КБ
+- **`wd-e-shades.webp`** — тёмные очки. Subject: a pair of glossy black sunglasses with large rounded dark lenses each with a bright white glint streak, a thin black bridge bar and slim black temple arms, shown alone in three-quarter view.
+  - исходник `exec-4062a212-92da-4475-bc13-806d08e604d9.png` (папка Codex `01a12b45-0c0a-7470-b35c-f7780063672d`, 1254x1254, sha256 8275a9f98ef9…), в игре 8 КБ
+- **`wd-e-patch.webp`** — пиратская повязка. Subject: a black pirate eye patch: a rounded black cloth oval patch on a thin black elastic strap forming a loop, plain with no skull and no symbols, shown alone in three-quarter view.
+  - исходник `exec-b687e80e-57fc-445d-b003-a133f97433d7.png` (папка Codex `01a12b46-8dc8-72b1-bc41-d3ebc8cbf752`, 1254x1254, sha256 9b9e8b9fd3bb…), в игре 8 КБ
+- **`wd-e-monocle.webp`** — монокль. Subject: a gentleman's gold monocle: a round thin polished gold ring frame holding a clear glass lens with a soft glint, a fine gold chain trailing down from it in a gentle curve.
+  - исходник `exec-af02648d-272a-4e6a-bb84-5ebf5e372767.png` (папка Codex `01a12b46-b307-7122-9e53-2c7a6fc6db51`, 1254x1254, sha256 fe1e5d15b35d…), в игре 18 КБ
+- **`wd-e-angler.webp`** — очки рыболова. Subject: a pair of angler polarized sunglasses with glossy amber-orange lenses showing a pale glint, a dark forest-green frame, slim green temple arms and a green retainer cord looped behind, from a seasoned fisherman's outfit, shown alone in three-quarter view.
+  - исходник `exec-cda24d80-4711-47e9-8176-aa361ed97d95.png` (папка Codex `01a12b46-eccc-7a41-9d60-4ec4215e2d46`, 1254x1254, sha256 44d71ed5f623…), в игре 10 КБ
+- **`wd-h-cap.webp`** — кепка. Subject: a classic red baseball cap with a rounded dome crown, a slightly darker red curved peak (visor) and a small button on top, plain with no logo.
+  - исходник `exec-cc3eb4d8-5093-448f-925d-220f848128f1.png` (папка Codex `01a12b48-39f7-7580-95a2-6c731e41cc51`, 1254x1254, sha256 e230b7b27f0e…), в игре 7 КБ
+- **`wd-h-panama.webp`** — панама. Subject: a pale cream woven straw Panama hat with a soft rounded dome crown, a wide gently sloping brim and a sage-green hatband.
+  - исходник `exec-b55e19bc-f769-42bc-a88c-ba5bf7c282bb.png` (папка Codex `01a12b48-64f2-77a3-a5bf-e7aa2d322db5`, 1254x1254, sha256 ade5db583d3b…), в игре 10 КБ
+- **`wd-h-ushanka.webp`** — ушанка. Subject: a brown fur ushanka winter hat with long fluffy fur ear flaps hanging down at both sides, a thick fur band across the front and a small red star-shaped badge on the front.
+  - исходник `exec-0571c7e8-ce81-425d-959f-b72933dd8d37.png` (папка Codex `01a12b48-8779-7810-8253-04fa60562d3e`, 1254x1254, sha256 c48416357f19…), в игре 12 КБ
+- **`wd-h-fisher.webp`** — рыбацкая шляпа. Subject: an olive-khaki canvas fisherman's bucket hat with a soft cylindrical crown, a drooping brim all around, a dark olive band, and a tiny red-and-white fishing bobber pinned on the side.
+  - исходник `exec-fad1a661-5170-4d31-81b0-9ab8c808de00.png` (папка Codex `01a12b49-e2fb-7122-b50d-df1fc5f6dd9d`, 1254x1254, sha256 aa854f6df16d…), в игре 8 КБ
+- **`wd-h-bandana.webp`** — бандана. Subject: a plain red cotton bandana tied as a head scarf, a snug dome shape with soft fabric folds, the knot at the back and two short loose tails hanging, no pattern and no skull.
+  - исходник `exec-c83f4f66-7d06-4c7b-be69-dbfd0695e4e6.png` (папка Codex `01a12b49-e44c-7c82-bfcc-ddac64143df7`, 1254x1254, sha256 6905af1c0b8e…), в игре 8 КБ
+- **`wd-h-helmet.webp`** — каска. Subject: a shiny yellow construction hard hat with a raised center ridge running front to back and a rounded rim, glossy highlights.
+  - исходник `exec-c22aa168-5c24-4898-9076-e960131e940c.png` (папка Codex `01a12b4a-7273-7eb1-955b-b3b39be0b216`, 1254x1254, sha256 dd4678fe90a5…), в игре 9 КБ
+- **`wd-h-sailor.webp`** — бескозырка. Subject: a sailor's flat round cap: a flat black round top with a thin white piping ring, a black band around it, a small round brass cockade plate on the front, two long black ribbons trailing at the back, no letters on the band.
+  - исходник `exec-f6d5ea0a-6064-4633-ac6a-9f6443ca343d.png` (папка Codex `01a12b4b-9a62-7073-baf8-b9a82e782989`, 1254x1254, sha256 d9e5a85e1e43…), в игре 9 КБ
+- **`wd-h-tophat.webp`** — цилиндр. Subject: a tall black silk top hat with a flat brim and a deep burgundy-red hatband, glossy highlights.
+  - исходник `exec-7b9b1647-66cd-47a9-8b07-93cd74e49d80.png` (папка Codex `01a12b4b-b33f-7153-80df-ad9bdb159a94`, 1254x1254, sha256 a17320490c50…), в игре 8 КБ
+- **`wd-h-crown.webp`** — корона. Subject: a shiny gold royal crown with a band and six points each tipped with a small gold ball, a round red ruby in front and two round green emeralds at the sides.
+  - исходник `exec-74731f50-e343-4d7c-9605-92f34ec04a19.png` (папка Codex `01a12b4b-f3ec-7073-b6f0-ada38359614f`, 1254x1254, sha256 dd49108647a6…), в игре 13 КБ
+- **`wd-h-fool.webp`** — колпак дурака. Subject: a jester's fool cap: a rounded cap split into a red half and a green half with a golden-yellow band, and three floppy curving horns in red, green and golden yellow, each ending in a small gold jingle bell.
+  - исходник `exec-2953a878-d317-467e-a547-b4b141dea7e2.png` (папка Codex `01a12b4c-e960-7932-8025-b2d8c1a11ebc`, 1254x1254, sha256 e1d950026abf…), в игре 13 КБ
+- **`wd-a-scarf.webp`** — шарф. Subject: a cozy chunky knitted scarf with red and cream stripes, looped into a ring with two short hanging ends.
+  - исходник `exec-f7e2aff2-499c-41e6-8204-ed9f66d91244.png` (папка Codex `01a12b4d-28e8-78e2-96eb-e0249954ef14`, 1254x1254, sha256 294966ee534c…), в игре 14 КБ
+- **`wd-a-bowtie.webp`** — бабочка. Subject: a classic raspberry-red satin bow tie with a darker red center knot, plain with no pattern.
+  - исходник `exec-30c1c5fd-f6a3-4a12-a3f2-fcffdfc2a45f.png` (папка Codex `01a12b4d-a87f-78e2-ad3a-958e7b253cc9`, 1254x1254, sha256 0f4626b1168f…), в игре 7 КБ
+- **`wd-a-headphones.webp`** — наушники. Subject: chunky over-ear headphones with a slim dark-grey headband, bright cobalt-blue ear cups and soft black ear pads, three-quarter view.
+  - исходник `exec-bd36bbd0-64c0-45be-8ace-ddcffc6beeda.png` (папка Codex `01a12b4e-6bcf-74f1-aa0c-16fd7e555485`, 1254x1254, sha256 b89a0799b826…), в игре 11 КБ
+- **`wd-a-chain.webp`** — золотая цепь. Subject: a thick shiny gold chain necklace of chunky links hanging in a U shape with a round plain gold medallion pendant with no engraving.
+  - исходник `exec-775a7874-53b1-4652-9a53-1b77ee17464a.png` (папка Codex `01a12b4e-c89e-7263-8103-d9a20c5d6a6f`, 1254x1254, sha256 f2e407d8f754…), в игре 13 КБ
+- **`wd-a-epaulets.webp`** — погоны. Subject: a pair of military-style shoulder epaulets side by side: rounded dark charcoal-black pads with a thin gold braid edge, a row of shiny gold bullion fringe hanging from the outer end and a small gold button.
+  - исходник `exec-da249b7d-8ebb-403b-8e54-faed6d64a751.png` (папка Codex `01a12b4f-eeb6-7063-8e2d-aa4803499968`, 1254x1254, sha256 a02093fc8c5c…), в игре 14 КБ
+- **`wd-a-greengloves.webp`** — зелёные перчатки. Subject: a pair of green gardening gloves with soft green fabric and ribbed knit cuffs, fingers slightly curled, little brown soil smudges on the fingertips and palms.
+  - исходник `exec-63b3bd3f-caf4-4aad-9911-e77838fb6e65.png` (папка Codex `01a12b50-55c1-7671-b2f6-af9ae4dcc714`, 1254x1254, sha256 c82112ce1add…), в игре 14 КБ
+
 ## Перегенерации
 
 - `keys`: v1 — просто кремовый скруглённый кубик, на 48 px не читался как клавиша → v2 с тёмной ножкой и квадратной пластиной под колпачком (он в игре).
 - `pumpkin-boss`: v1 — рыжая тыква-фонарь со светящимся вырезанным лицом и красными потёками (выглядит мрачно, потёки как кровь) → v2 добрый ворчун-король с ножками, короной и лозами-руками (он в игре).
-- Остальные 102 — с первого раза, без правок.
+- Остальные 127 — с первого раза, без правок.
 
 ## Слабые места (оставлены как есть)
 
@@ -307,7 +366,10 @@ Jelly-bean characters: soft rounded gummy-candy bodies, two small dark oval eyes
 - `leshy` — мелкая детальная коряга с рогами и ягодами; на 48 px — «ходячее дерево», от `rift-tree` отличается рогами и руками.
 - `elite` — золотой пояс чемпиона (как пояс элиты на модели зомби), без лица: на 48 px читается как «золотая награда».
 - `chat` — пустой кремовый пузырь без контрастной заливки: на светлом фоне интерфейса сливается, на тёмной плашке виден хорошо.
+- `wd-e-glasses`, `wd-e-monocle` — тонкая коричневая оправа очков и тонкое золотое кольцо монокля с цепочкой; на 48 px линии тонкие, но силуэт «очки» и «монокль на цепочке» узнаётся.
+- `wd-e-angry`, `wd-e-happy` — у лиц-желеек рядом с мордочкой видны мягкие руки-варежки (строка про желейных персонажей); на 48 px это просто выступы по бокам, лицо читается.
+- `wd-h-sailor`, `wd-h-crown`, `wd-a-epaulets` — у вещей в игре тёмно-синие детали рядом с золотом (кокарда, боковые камни, подушки): чтобы не получить сине-жёлтое, нарисованы чёрными и зелёными (см. «Дополнение 3»).
 
 ## Сводка
 
-`_sheet.png` — все 104 иконок сеткой 8 × 13: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.
+`_sheet.png` — все 129 иконок сеткой 8 × 17: слева 128 px, справа вверху 48 px, id внизу; номер справа — порядковый номер в списке. Фон листа кремовый, чтобы был виден край иконок.

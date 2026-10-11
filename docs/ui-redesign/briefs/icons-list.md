@@ -115,3 +115,30 @@
 - slots — игровой автомат — a chunky cartoon slot machine cabinet in raspberry red with golden trim, three round reel windows each showing a red cherry, a side lever with a red ball knob and golden coins spilling out of the tray
 - seaplane — гидроплан — a small cheerful cartoon seaplane in red and cream floating on two pontoon floats with a round propeller on its nose and a little splash of sea foam under the floats
 - thief — вор — a jelly-bean character wearing a black eye mask and a red-and-cream striped knitted beanie, sneaking along while carrying a wooden crate on its shoulder with a gold coin peeking out, goofy
+
+## Примерочная
+- wd-e-normal — обычные глаза — a close-up portrait of a plump round peach-orange jelly-bean face filling the frame, two big friendly round white eyes with dark round pupils looking straight ahead, a tiny gentle smile and soft rosy cheeks, the eyes are the star of the picture
+- wd-e-sleepy — сонные глаза — a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with sleepy half-closed eyes: heavy flat peach-colored eyelids cover the top half of each big white eye, small dark pupils drooping low, a small calm relaxed mouth, drowsy and peaceful
+- wd-e-angry — сердитые глаза — a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with grumpy angry eyes: thick peach-colored eyelids slanting steeply down toward the middle of the face over big white eyes in a stern V-shape, small dark pupils glaring forward, a small flat frowning mouth, cute and grumpy not scary
+- wd-e-happy — довольные глаза — a close-up portrait of a plump round peach-orange jelly-bean face filling the frame with blissfully happy eyes squeezed into two upward-curved crescent arcs like ^ ^ with tiny dark pupils peeking out beneath the arcs, a wide soft smile and rosy cheeks
+- wd-e-glasses — очки — a pair of round thin dark-brown wire-frame eyeglasses with clear glass lenses showing a soft white glint, a small nose bridge and two slim temple arms, shown alone in three-quarter view
+- wd-e-shades — тёмные очки — a pair of glossy black sunglasses with large rounded dark lenses each with a bright white glint streak, a thin black bridge bar and slim black temple arms, shown alone in three-quarter view
+- wd-e-patch — пиратская повязка — a black pirate eye patch: a rounded black cloth oval patch on a thin black elastic strap forming a loop, plain with no skull and no symbols, shown alone in three-quarter view
+- wd-e-monocle — монокль — a gentleman's gold monocle: a round thin polished gold ring frame holding a clear glass lens with a soft glint, a fine gold chain trailing down from it in a gentle curve
+- wd-e-angler — очки рыболова — a pair of angler polarized sunglasses with glossy amber-orange lenses showing a pale glint, a dark forest-green frame, slim green temple arms and a green retainer cord looped behind, from a seasoned fisherman's outfit, shown alone in three-quarter view
+- wd-h-cap — кепка — a classic red baseball cap with a rounded dome crown, a slightly darker red curved peak (visor) and a small button on top, plain with no logo
+- wd-h-panama — панама — a pale cream woven straw Panama hat with a soft rounded dome crown, a wide gently sloping brim and a sage-green hatband
+- wd-h-ushanka — ушанка — a brown fur ushanka winter hat with long fluffy fur ear flaps hanging down at both sides, a thick fur band across the front and a small red star-shaped badge on the front
+- wd-h-fisher — рыбацкая шляпа — an olive-khaki canvas fisherman's bucket hat with a soft cylindrical crown, a drooping brim all around, a dark olive band, and a tiny red-and-white fishing bobber pinned on the side
+- wd-h-bandana — бандана — a plain red cotton bandana tied as a head scarf, a snug dome shape with soft fabric folds, the knot at the back and two short loose tails hanging, no pattern and no skull
+- wd-h-helmet — каска — a shiny yellow construction hard hat with a raised center ridge running front to back and a rounded rim, glossy highlights
+- wd-h-sailor — бескозырка — a sailor's flat round cap: a flat black round top with a thin white piping ring, a black band around it, a small round brass cockade plate on the front, two long black ribbons trailing at the back, no letters on the band
+- wd-h-tophat — цилиндр — a tall black silk top hat with a flat brim and a deep burgundy-red hatband, glossy highlights
+- wd-h-crown — корона — a shiny gold royal crown with a band and six points each tipped with a small gold ball, a round red ruby in front and two round green emeralds at the sides
+- wd-h-fool — колпак дурака — a jester's fool cap: a rounded cap split into a red half and a green half with a golden-yellow band, and three floppy curving horns in red, green and golden yellow, each ending in a small gold jingle bell
+- wd-a-scarf — шарф — a cozy chunky knitted scarf with red and cream stripes, looped into a ring with two short hanging ends
+- wd-a-bowtie — бабочка — a classic raspberry-red satin bow tie with a darker red center knot, plain with no pattern
+- wd-a-headphones — наушники — chunky over-ear headphones with a slim dark-grey headband, bright cobalt-blue ear cups and soft black ear pads, three-quarter view
+- wd-a-chain — золотая цепь — a thick shiny gold chain necklace of chunky links hanging in a U shape with a round plain gold medallion pendant with no engraving
+- wd-a-epaulets — погоны — a pair of military-style shoulder epaulets side by side: rounded dark charcoal-black pads with a thin gold braid edge, a row of shiny gold bullion fringe hanging from the outer end and a small gold button
+- wd-a-greengloves — зелёные перчатки — a pair of green gardening gloves with soft green fabric and ribbed knit cuffs, fingers slightly curled, little brown soil smudges on the fingertips and palms

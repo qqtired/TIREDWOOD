@@ -80,7 +80,7 @@ const ICONS: Record<string, string> = {
 
 /**
  * Картинка вещи: иконка imagegen client/assets/ui/icons/wd-<слот>-<ключ>.webp, если уже есть, иначе — рисунок вещи
- * из ICONS (SVG или эмодзи: своих картинок у вещей пока нет — список в отчёте задачи 10 редизайна UI).
+ * из ICONS (SVG: усы, круг, премиальные вещи и трофеи рыбалки — у них своих картинок нет).
  */
 function itemArt(id: string): string {
   const src = uiIcon(`wd-${id.replace(':', '-')}`);
