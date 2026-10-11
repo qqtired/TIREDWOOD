@@ -1,6 +1,6 @@
 // Интерфейс набережной в слотах кита (client/ui/kit/slots.ts): подсказка действия «E — сесть» внизу по центру
 // (.k-prompt; нельзя — приглушена, с причиной), приглашение на жест вдвоём над ней (.k-prompt с полосой времени),
-// эмоции 1–6 справа внизу (пилюля, как на странице lab/ui «Площадь»; что на какой клавише — Esc → Клавиши), FPS слева вверху
+// эмоции 1–6 справа внизу (цифра над своим рисунком в компактном ряду), FPS слева вверху
 // (.k-faint, по настройке), «Джекпот!» — крупным баннером по центру и секундомер аквапарка — плашкой события сверху (оба —
 // через верх-центр, client/ui/kit/topcenter.ts). Панели набережной (примерочная, столы, автомат) кладут в root. На телефоне
 // подсказку и приглашение можно нажать пальцем — как клавишу.
@@ -15,6 +15,11 @@ const TAP_CODES: Record<string, string> = { E: 'KeyE', Пробел: 'Space', '�
 const MOUSE: Record<string, string> = { ЛКМ: 'l', ПКМ: 'r' };
 const TIMER = 'timer';
 const JACKPOT = 'jackpot';
+/** Порядок совпадает с EMOTE_KEYS/PAIR_KEYS сцены и панелью телефона */
+const EMOTES = [
+  ['emote', 'Помахать'], ['music', 'Танец'], ['wd-e-sleepy', 'Устал'],
+  ['wd-e-happy', 'Смех'], ['emote', 'Дай пять'], ['heart', 'Обняться'],
+] as const;
 
 /** Подсказка: золотая пульсирующая (успей) и награда пилюлей за чертой */
 export interface HintMore {
@@ -46,8 +51,18 @@ export class LobbyHud {
     this.root = el('div', 'hud lobby-hud hidden');
     this.ask = el('div', 'k-prompt pz-ask');
     this.hint = el('div', 'k-prompt pz-hint');
-    this.emotes = el('div', 'k-pill k-pill--plate pz-emotes');
-    this.emotes.innerHTML = `${iconImg('emote')}<span class="k-keys">${keyHtml('1')}<span class="pz-dash">–</span>${keyHtml('6')}</span>Эмоции`;
+    this.emotes = el('div', 'k-plate pz-emotes');
+    this.emotes.setAttribute('role', 'group');
+    this.emotes.setAttribute('aria-label', 'Эмоции');
+    for (const [i, [icon, name]] of EMOTES.entries()) {
+      const item = el('span', 'pz-emote');
+      item.dataset.key = `Digit${i + 1}`;
+      item.title = `${i + 1} — ${name}`;
+      item.setAttribute('aria-label', item.title);
+      const face = i === 4 ? `${iconImg(icon)}${iconImg(icon)}` : iconImg(icon);
+      item.innerHTML = `${keyHtml(String(i + 1), undefined, 'sm')}<span class="pz-emote-face${i === 4 ? ' pz-emote-five' : ''}" aria-hidden="true">${face}</span>`;
+      this.emotes.appendChild(item);
+    }
     this.stats = el('div', 'k-faint pz-stats');
     slots.bc.append(this.ask, this.hint);
     slots.br.append(this.emotes);

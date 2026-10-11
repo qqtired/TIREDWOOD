@@ -1,5 +1,5 @@
 // Прилавок «Крепости» — окно кита справа (.k-window, как на странице lab/ui «Крепость»): лавка оружейника, ворота,
-// кристалл, место башни. Немодальный: бегать и стрелять можно, пока он открыт; покупка — 1–9 (номер на углу строки),
+// кристалл, место башни. Немодальный: бегать и стрелять можно, пока он открыт; покупка — 1–9 (номер слева в своей колонке),
 // мышью — кликом по строке, на телефоне — касанием; закрыть — E, Esc, крестик или отойти на 4 м. Строки (что, почём,
 // почему нельзя) считает shared/fortarsenal.ts — те же, что проверяет сервер. У ворот и кристалла сверху — прочность.
 // DOM строк создаётся один раз и меняется, только когда изменился текст.
@@ -180,7 +180,7 @@ export class StallPanel {
   private makeRow(i: number): RowEl {
     const root = el('button', 'k-cell ft-row', this.list);
     root.type = 'button';
-    if (!TOUCH) el('kbd', 'k-key k-key--tl', root, String(i + 1));
+    if (!TOUCH) el('kbd', 'k-key ft-row-key', root, String(i + 1));
     const icw = el('span', 'ft-row-icw', root);
     const main = el('span', 'ft-row-main', root);
     const name = el('span', 'ft-row-name', main);

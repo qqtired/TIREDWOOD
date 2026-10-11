@@ -162,6 +162,8 @@ export class FortUi {
     }
     this.card.gate.set(v.gate, v.gateMax);
     this.card.crystal.set(v.crystal, v.crystalMax);
+    this.card.gate.setTier(v.gateTier);
+    this.card.crystal.setTier(v.crystalTier);
     this.tiles.setGold(v.gold);
     this.tiles.setTeam(v.team, calm);
     this.tiles.updateRecord(v.cleared ?? 0, v.wave, v.phase);

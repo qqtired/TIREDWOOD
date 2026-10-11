@@ -975,20 +975,49 @@ html:not(.touch)[data-room='dungeon'] .pz-dock:not(.is-open) .k-chat-closed {
 }
 
 .pz-emotes {
-  gap: 8px;
-  min-height: 40px;
-  padding: 4px 14px 4px 6px;
-  font-size: var(--fs-15);
+  display: grid;
+  grid-template-columns: repeat(6, 32px);
+  gap: 6px;
+  padding: 6px 8px;
+  width: max-content;
 }
 
-.pz-emotes .k-ic {
-  width: 24px;
-  height: 24px;
+.pz-emote {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 
-.pz-dash {
-  color: var(--surf-dim);
-  font-weight: 800;
+.pz-emote-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.pz-emote-face .k-ic {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.pz-emote-five .k-ic {
+  position: absolute;
+  width: 23px;
+  height: 30px;
+}
+
+.pz-emote-five .k-ic:first-child {
+  left: -1px;
+  transform: rotate(18deg);
+}
+
+.pz-emote-five .k-ic:last-child {
+  right: -1px;
+  transform: scaleX(-1) rotate(18deg);
 }
 
 /* FPS/пинг (настройки → «Показывать FPS»): голый текст поверх сцены — на светлом HUD без плашки не читается */

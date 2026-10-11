@@ -1,7 +1,8 @@
 // Карточка крепости в верх-лево (кит: .k-plate, как на странице lab/ui «Крепость»): мини-карта 96 и справа — ворота
-// и кристалл тонкими полосами с процентом (бьют — строка вздрагивает красным, мало — красное число) и строка колокола
+// и кристалл с иконками, процентом и ступенями прокачки (бьют — строка вздрагивает красным, мало — красное число), колокол
 // (щит готов / щит · 6 с / колокол через 23 с). Под карточкой — строка FPS (по настройке). Мини-карту рисует FortHud.
 import { TICK_RATE } from '../../../shared/constants.ts';
+import { CRYSTAL_TIERS, GATE_TIERS } from '../../../shared/fortarsenal.ts';
 import { el, setText } from './dom.ts';
 import { fortImg } from './icons.ts';
 
@@ -12,20 +13,42 @@ class HpRow {
   readonly root: HTMLElement;
   private readonly pct: HTMLElement;
   private readonly bar: HTMLElement;
+  private readonly pips: readonly HTMLElement[];
+  private readonly tierText: HTMLElement;
+  private tier = -1;
   private last = '';
   private hitTimer = 0;
   private readonly tone: string;
   /** Подпись при нуле: «Ворота пали», «Кристалл пал» */
   private readonly downWord: string;
 
-  constructor(parent: HTMLElement, name: string, tone: string, downWord: string) {
+  constructor(parent: HTMLElement, name: string, icon: string, tone: string, downWord: string, private readonly maxTier: number) {
     this.tone = tone;
     this.downWord = downWord;
     this.root = el('div', 'ft-hp', parent);
-    el('span', 'ft-hp-name', this.root, name);
+    this.root.setAttribute('aria-label', name);
+    this.root.title = name;
+    this.root.dataset.structure = icon;
+    this.root.insertAdjacentHTML('beforeend', fortImg(icon, 'ft-hp-ic'));
     this.pct = el('b', 'ft-hp-pct', this.root);
     this.bar = el('span', `k-meter ${tone}`, this.root);
     this.bar.innerHTML = '<i class="k-meter-ghost"></i><i class="k-meter-fill"></i>';
+    const level = el('span', 'ft-hp-up', this.root);
+    const pips = el('span', 'ft-pips', level);
+    pips.setAttribute('aria-hidden', 'true');
+    this.pips = Array.from({ length: maxTier }, () => el('i', '', pips));
+    this.tierText = el('span', 'ft-tier', level);
+    this.setTier(0);
+  }
+
+  /** Реальная ступень укрепления из снимка арсенала, не доля здоровья */
+  setTier(tier: number): void {
+    if (tier === this.tier) return;
+    this.tier = tier;
+    for (const [i, pip] of this.pips.entries()) pip.classList.toggle('on', i < tier);
+    setText(this.tierText, `${tier}/${this.maxTier}`);
+    this.tierText.setAttribute('aria-label', `Прокачка: ${tier} из ${this.maxTier}`);
+    this.tierText.title = `Прокачка: ${tier} из ${this.maxTier}`;
   }
 
   set(hp: number, max: number): void {
@@ -72,8 +95,8 @@ export class FortCard {
     const box = el('div', 'ft-map', this.root);
     this.map = el('canvas', 'ft-map-cv', box);
     const side = el('div', 'ft-hps', this.root);
-    this.gate = new HpRow(side, 'Ворота', 'k-meter--mode', 'пали');
-    this.crystal = new HpRow(side, 'Кристалл', 'k-meter--info', 'пал');
+    this.gate = new HpRow(side, 'Ворота', 'gate', 'k-meter--mode', 'пали', GATE_TIERS);
+    this.crystal = new HpRow(side, 'Кристалл', 'crystal', 'k-meter--info', 'пал', CRYSTAL_TIERS);
     this.bell = el('div', 'ft-bell', side);
     this.stats = el('div', 'k-faint ft-stats');
     this.stats.hidden = true;

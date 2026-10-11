@@ -1,5 +1,5 @@
 // Живое в крепости: кристалл над постаментом (цвет и мерцание по прочности, вспышка от удара, луч в небо),
-// колокол на террасе, таблички над стойками, указатели к лестницам с луга, щит над воротами и кристаллом. Ворота
+// колокол на террасе, таблички над стойками, вымпелы у лестниц с луга, щит над воротами и кристаллом. Ворота
 // (створки, повреждения, падение, прорыв) — в castle.ts; башни, лестницы и прилавок — арсенал (arsenal3d.ts).
 // Эффекты и звук — у матча, здесь только меши и их анимация.
 import * as THREE from 'three';
@@ -48,7 +48,7 @@ export class FortProps {
   private readonly bell = new THREE.Group();
   private bellAngle = 0;
   private bellVel = 0;
-  private readonly marks: Mark[] = [];
+  private readonly marks: Array<Mark | undefined> = [];
   private readonly labelCache = new Map<string, THREE.CanvasTexture>();
   /** Белый флаг на террасе (стойка 'flag'): древко и колышущееся полотнище */
   private readonly flag: FortFlag;
@@ -98,7 +98,7 @@ export class FortProps {
     this.rally.name = 'fort-structure-shield';
     this.rally.visible = false;
     scene.add(this.rally);
-    this.buildReturnSigns();
+    this.buildReturnFlags();
     this.buildBell(map);
     this.flag = new FortFlag(scene);
     this.buildMarks(map);
@@ -109,17 +109,10 @@ export class FortProps {
     this.rally.children[1].visible = this.gateUp;
   }
 
-  /** С луга обратно в крепость: над каждой наружной лестницей — табличка «↑ НА СТЕНУ» и мятный вымпел рядом */
-  private buildReturnSigns(): void {
-    const texture = labelTexture('↑', 'НА СТЕНУ');
-    const mat = new THREE.SpriteMaterial({ map: texture, depthWrite: false });
+  /** Мятные вымпелы рядом с наружными лестницами; пространственных надписей нет. */
+  private buildReturnFlags(): void {
     for (const l of LADDERS) {
       if (l.name !== 'west-out' && l.name !== 'east-out') continue;
-      const sign = new THREE.Sprite(mat);
-      sign.name = 'fort-return-ladder';
-      sign.position.set(l.x + l.nx * 1.6, 5.4, l.z);
-      sign.scale.set(3.2, 1.2, 1);
-      this.scene.add(sign);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 3.6, 6), new THREE.MeshStandardMaterial({ color: 0x665343 }));
       pole.position.set(l.x + l.nx * 2.2, 1.8, l.z + 1.6);
       const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .8), new THREE.MeshStandardMaterial({ color: 0x54bbab, side: THREE.DoubleSide }));
@@ -159,16 +152,17 @@ export class FortProps {
   /** Таблички над стойками: значок и цена (что именно — решает matchLabel у матча) */
   private buildMarks(map: FortMap): void {
     for (const st of map.stations) {
+      // Места башен обозначает прозрачный силуэт в Turrets3D; подписи в окне строительства остаются.
+      if (st.kind === 'tower') continue;
       // постоянного размера на экране (как ники желеек), вдали и вплотную — прячутся
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, sizeAttenuation: false }));
-      // над башней — выше её навершия и вымпела (башни client/fort/turrets — до 2,9 м)
-      const baseY = st.y + (st.kind === 'tower' ? 3.2 : st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : st.kind === 'flag' ? 5.4 : 2.3);
+      const baseY = st.y + (st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : st.kind === 'flag' ? 5.4 : 2.3);
       sprite.position.set(st.x, baseY, st.z);
       sprite.scale.set(LABEL_W, LABEL_H, 1);
       sprite.renderOrder = 6;
       sprite.visible = false;
       this.scene.add(sprite);
-      this.marks.push({ st, sprite, key: '', baseY });
+      this.marks[st.id] = { st, sprite, key: '', baseY };
     }
   }
 
@@ -250,11 +244,10 @@ export class FortProps {
 
     // таблички: покачиваются, вдали прячутся
     for (const m of this.marks) {
-      if (!m.key) continue;
+      if (!m?.key) continue;
       m.sprite.position.y = m.baseY + Math.sin(t * 2 + m.st.id) * 0.06;
       const d = _v.set(m.st.x, m.baseY, m.st.z).distanceTo(camPos);
-      // места башен — восемь штук по стенам: табличка только вблизи, иначе со двора — частокол «БАШНЯ»
-      m.sprite.visible = d < (m.st.kind === 'tower' ? 15 : m.st.kind === 'flag' ? 24 : 42) && d > 2.2;
+      m.sprite.visible = d < (m.st.kind === 'flag' ? 24 : 42) && d > 2.2;
     }
   }
 }

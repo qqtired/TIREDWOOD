@@ -9,9 +9,8 @@ import { TOWER_MAX_LEVEL, TW_BALLISTA, TW_CANNON, TW_TAR } from '../../../shared
 import { TOWER_SPOTS, type TowerSpot } from '../../../shared/fortmap.ts';
 import { softDot } from '../../render/textures.ts';
 import type { Quality } from '../../settings.ts';
-import { ringTexture } from '../textures.ts';
 import { CELL_FLASH, CELL_SOFT, CELL_SPARK, TurretFx } from './fx.ts';
-import { BatchPool, C, Part, PartPool, dayEnvTexture, turretMaterial } from './kit.ts';
+import { BatchPool, C, Part, PartPool, dayEnvTexture, merge, turretMaterial } from './kit.ts';
 import {
   PENNANT_COLORS, STAGES, STAR_COLORS, ballGeometry, boltGeometry, bubbleGeometry, buildModel, crankGeometry, pennantGeometry, stageOf,
   starGeometry, starsOf, streamGeometry, stringGeometry, type TurretModel,
@@ -157,7 +156,7 @@ export class Turrets3D {
   private readonly star: Part;
   private readonly pennants: Part[] = [];
   private readonly shadow: THREE.InstancedMesh;
-  private readonly ring: THREE.InstancedMesh;
+  private readonly hint: THREE.InstancedMesh;
   private readonly uTime = { value: 0 };
   private time = 0;
   private where: Where | null = null;
@@ -187,7 +186,7 @@ export class Turrets3D {
     this.stream = new Part(streamGeometry(), cap * STREAM_SEGS);
     this.star = new Part(starGeometry(), cap * 3);
     this.pennants.push(new Part(pennantGeometry(0), cap), new Part(pennantGeometry(1), cap));
-    // пятно-тень и пунктирный круг пустого места
+    // Пятно-тень занятого места и едва видимый общий силуэт баллисты для свободных мест.
     const hasDoc = typeof document !== 'undefined';
     this.shadow = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
@@ -195,12 +194,13 @@ export class Turrets3D {
       cap,
     );
     this.shadow.renderOrder = 1;
-    this.ring = new THREE.InstancedMesh(
-      new THREE.PlaneGeometry(1.6, 1.6).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ map: hasDoc ? ringTexture() : null, transparent: true, depthWrite: false, color: 0xfff1c8 }),
+    this.hint = new THREE.InstancedMesh(
+      this.hintGeometry(),
+      new THREE.MeshBasicMaterial({ color: C.yellow, transparent: true, opacity: 0.12, depthWrite: false, depthTest: true }),
       cap,
     );
-    for (const m of [this.shadow, this.ring]) {
+    this.hint.name = 'fort-tower-placement-hint';
+    for (const m of [this.shadow, this.hint]) {
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.frustumCulled = false;
       m.count = 0;
@@ -223,6 +223,23 @@ export class Turrets3D {
       });
     });
     this.setQuality(quality);
+  }
+
+  /** Одна неподвижная копия существующей баллисты I; геометрия общая для всех мест, без мелких эффектов. */
+  private hintGeometry(): THREE.BufferGeometry {
+    const m = this.model(TW_BALLISTA, 0);
+    const gunY = m.turnY + m.pivotY;
+    const parts = [m.base.geo.clone(), m.turn.geo.clone().translate(0, m.turnY, 0)];
+    if (m.gun) parts.push(m.gun.geo.clone().translate(0, gunY, m.pivotZ));
+    if (m.arm) {
+      const y = gunY + m.bows[0];
+      const z = m.pivotZ + m.armPivot.z;
+      parts.push(m.arm.geo.clone().rotateY(-0.2).translate(m.armPivot.x, y, z));
+      parts.push(m.arm.geo.clone().rotateY(-0.2).rotateZ(Math.PI).translate(-m.armPivot.x, y, z));
+    }
+    const geo = merge(parts);
+    for (const part of parts) part.dispose();
+    return geo;
   }
 
   /** Ткань вымпелов: волна бежит от древка к хвосту (вершинный шейдер), цвет — из инстанса */
@@ -546,7 +563,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     this.clothPool.begin();
     this.fx.begin();
     let shadows = 0;
-    let rings = 0;
+    let hints = 0;
     for (let i = 0; i < this.spots.length; i++) {
       const s = this.spots[i];
       if (cam) {
@@ -556,9 +573,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
       } else s.seen = true;
       if (s.shownType < 0) {
         if (!s.seen) continue;
-        const pulse = 1 + 0.035 * Math.sin(this.time * 2.4 + s.seed);
-        _mA.makeScale(pulse, 1, pulse).setPosition(s.def.x, s.def.y + 0.03, s.def.z);
-        this.ring.setMatrixAt(rings++, _mA);
+        this.hint.setMatrixAt(hints++, s.root);
         continue;
       }
       if (camPos) {
@@ -582,9 +597,9 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     this.shadow.count = shadows;
     this.shadow.visible = shadows > 0;
     this.shadow.instanceMatrix.needsUpdate = true;
-    this.ring.count = rings;
-    this.ring.visible = rings > 0;
-    this.ring.instanceMatrix.needsUpdate = true;
+    this.hint.count = hints;
+    this.hint.visible = hints > 0;
+    this.hint.instanceMatrix.needsUpdate = true;
   }
 
   /** Время анимаций, прицел-пружина, отдача, изгиб плеч, смола */
@@ -1069,7 +1084,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
   /** Для отладки и тестов: вызовы отрисовки башен (без частиц), деталей в пачке, частицы, что показано */
   get info(): { draws: number; parts: number; particles: number; shown: number[]; stages: number[] } {
     return {
-      draws: this.pool.draws + this.clothPool.draws + (this.shadow.count ? 1 : 0) + (this.ring.count ? 1 : 0),
+      draws: this.pool.draws + this.clothPool.draws + (this.shadow.count ? 1 : 0) + (this.hint.count ? 1 : 0),
       parts: this.pool.count,
       particles: this.fx.active,
       shown: this.spots.map((s) => s.shownType),
@@ -1081,7 +1096,7 @@ transformed.y += sin( uTime * 5.0 - wX * 6.0 + wPh ) * 0.02 * wX - 0.04 * wX * w
     this.pool.dispose();
     this.clothPool.dispose();
     this.fx.dispose(this.scene);
-    for (const m of [this.shadow, this.ring]) {
+    for (const m of [this.shadow, this.hint]) {
       this.scene.remove(m);
       m.geometry.dispose();
       (m.material as THREE.MeshBasicMaterial).map?.dispose();
