@@ -2475,6 +2475,7 @@ export class LobbyScene implements Scene {
       boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
       tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
+    if (plaza instanceof Plaza3Dress) plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
     plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);
   }
 
