@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Аркада у автоматов</title>
+<meta name="description" content="Новая набережная: ряд аркадных автоматов рядом со слотами — три мини-игры с рекордами (прототип)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%2714%27 y=%274%27 width=%2736%27 height=%2756%27 rx=%276%27 fill=%27%23d9483a%27/%3E%3Crect x=%2719%27 y=%2716%27 width=%2726%27 height=%2720%27 rx=%273%27 fill=%27%232a1f24%27/%3E%3Ccircle cx=%2725%27 cy=%2746%27 r=%274%27 fill=%27%23ffd35a%27/%3E%3Ccircle cx=%2739%27 cy=%2746%27 r=%274%27 fill=%27%23fff3de%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./arcade.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">TIREDWOOD · лаборатория · новая набережная</p>
+    <h1>Аркада у автоматов</h1>
+    <p class="lead">Рядом со слотами — ряд обычных игровых автоматов: без ставок, только ловкость и рекорды.
+      Три мини-игры на 1–3 минуты. Выбери автомат мышью или клавишей <kbd>1</kbd>–<kbd>3</kbd>.</p>
+    <p class="filewarn" id="filewarn" hidden>Страница открыта как файл — браузер не грузит модули с диска.
+      Открой её через сервер: в папке игры <code>npm run dev</code> → <code>/lab/plaza3/arcade/</code>,
+      или любой статический сервер в папке <code>lab/plaza3/arcade</code>.</p>
+  </header>
+
+  <section class="hall" aria-label="Ряд аркадных автоматов">
+    <div class="hall-lights" aria-hidden="true"></div>
+    <div class="hall-row" id="hall"></div>
+    <div class="hall-floor" aria-hidden="true"></div>
+  </section>
+  <p class="hall-note">На экранах — демо, как у настоящих автоматов. «Играет Саня» — так соседи видят автомат, за которым
+    кто-то играет: имя и живой счёт. Три пустых места — под будущие игры.</p>
+
+  <section class="notes" aria-label="Награды, рекорды и честность">
+    <article class="note">
+      <h2>Награды <span class="tag">предложение</span></h2>
+      <p>Платим за медаль партии: новичку бронза — со второй-третьей попытки, золото — повод вернуться. Длинные игры платят больше: хорошая игра — 8–13 🪙 в минуту.</p>
+      <table class="coins">
+        <thead><tr><th>очки → 🪙</th><th>Паровозик</th><th>Тир</th><th>Замок</th></tr></thead>
+        <tbody id="medal-table"></tbody>
+      </table>
+      <ul>
+        <li>Свой рекорд в игре — ещё <b>+10 🪙</b> (раз в день на игру).</li>
+        <li>Первое место недели или всех времён — <b>+25 🪙</b> и строка в общий чат.</li>
+        <li>Потолок — <b>150 🪙 в день</b> на всю аркаду. Дальше играешь за рекорды.</li>
+      </ul>
+    </article>
+    <article class="note">
+      <h2>Рекорды</h2>
+      <p>Над каждым автоматом — табло «Неделя» и «Всё время», по пять строк; твоя строка — золотом.
+        Неделя начинается в понедельник в 00:00 по Москве.</p>
+      <p>Новый рекорд — баннер на экране, фанфары и строка в общий чат:
+        «Роман набрал 1240 в «Паровозике» — рекорд недели!»</p>
+    </article>
+    <article class="note">
+      <h2>Честно</h2>
+      <p>Сервер выдаёт партии зерно, игра записывает нажатия. В конце сервер сам переигрывает партию по журналу и сам
+        считает очки — подделать счёт нельзя.</p>
+      <p>Здесь это видно: после каждой партии справа строка «Сервер переиграл бы…» с его счётом.</p>
+    </article>
+  </section>
+</div>
+
+<div class="play" id="play" hidden role="dialog" aria-modal="true" aria-labelledby="play-title">
+  <div class="play-grid">
+    <div class="cab big" id="big-cab">
+      <div class="cab-marquee"><span class="cab-title" id="big-title"></span></div>
+      <div class="cab-body">
+        <div class="cab-bezel"><div class="cab-screen"><canvas id="screen" width="960" height="720" tabindex="0" aria-label="Экран автомата"></canvas></div></div>
+        <div class="cab-deck">
+          <button type="button" class="act go" id="btn-start"><span>Играть</span><kbd>Пробел</kbd></button>
+          <button type="button" class="act" id="btn-pause" disabled><span>Пауза</span><kbd>P</kbd></button>
+          <button type="button" class="act" id="btn-restart"><span>Заново</span><kbd>R</kbd></button>
+          <button type="button" class="act" id="btn-sound"><span>Звук</span><kbd>M</kbd></button>
+          <button type="button" class="act out" id="btn-exit"><span>Выйти</span><kbd>Esc</kbd></button>
+        </div>
+      </div>
+    </div>
+    <aside class="side" aria-live="polite">
+      <div class="side-head">
+        <div>
+          <h2 id="play-title"></h2>
+          <p class="side-like" id="play-like"></p>
+        </div>
+        <button type="button" class="side-x" id="btn-x" aria-label="Закрыть">✕</button>
+      </div>
+      <ol class="side-rules" id="play-rules"></ol>
+      <div class="side-block">
+        <h3>Управление</h3>
+        <ul class="side-ctrl" id="play-ctrl"></ul>
+      </div>
+      <div class="side-block">
+        <h3>Медали за партию</h3>
+        <ul class="side-medals" id="play-medals"></ul>
+        <p class="side-small" id="play-scoring"></p>
+      </div>
+      <div class="side-block mine">
+        <h3>Твой рекорд</h3>
+        <p class="side-best"><b id="play-best">—</b> <span id="play-best-medal"></span></p>
+        <p class="side-last" id="play-last" hidden></p>
+        <p class="side-check" id="play-check" hidden></p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  if (location.protocol === 'file:') document.getElementById('filewarn').hidden = false;
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

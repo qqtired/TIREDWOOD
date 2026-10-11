@@ -206,6 +206,7 @@ export class DungeonEntrance {
   readonly venue: Venue;
   private readonly refreshShadows: () => void;
   private readonly myNick: () => string;
+  private readonly showSign: boolean;
   private phase: Phase = 'idle';
   private status: DgStatus | null = null;
   private me = '';
@@ -216,10 +217,14 @@ export class DungeonEntrance {
   private blink: THREE.AnimationAction | null = null;
   private nextBlink = 0;
 
-  /** myNick — ник игрока: его строки на доске золотом */
-  constructor(ctx: VenueCtx, refreshShadows: () => void, myNick: () => string = () => '') {
+  /**
+   * myNick — ник игрока: его строки на доске золотом. showSign: false — вывеску «ПОДЗЕМЕЛЬЕ» из модели не ставить (plaza3:
+   * там свою вывеску с живым статусом делает client/lobby/plaza3/signs.ts, на том же месте — иначе мерцание)
+   */
+  constructor(ctx: VenueCtx, refreshShadows: () => void, myNick: () => string = () => '', showSign = true) {
     this.refreshShadows = refreshShadows;
     this.myNick = myNick;
+    this.showSign = showSign;
     this.venue = new Venue('dungeon', ctx, 71);
     this.venue.group.visible = false;
     ctx.scene.add(this.venue.group);
@@ -296,7 +301,10 @@ export class DungeonEntrance {
     eyesPivot.scale.setScalar(EYES_SCALE);
     eyes.position.set(0, 0, 0);
     eyesPivot.add(eyes);
-    rockLive.add(eyesPivot, sign);
+    rockLive.add(eyesPivot);
+    // без вывески: убрать и из скалы (иначе запекается вместе с камнем)
+    if (this.showSign) rockLive.add(sign);
+    else sign.removeFromParent();
     boardLive.add(face);
 
     for (const [prop, at] of [[rock, DUNGEON_ROCK], [board, DUNGEON_BOARD]] as const) {
@@ -322,7 +330,7 @@ export class DungeonEntrance {
       this.blink.clampWhenFinished = true;
     }
 
-    this.sign = this.canvas(sign, SIGN_SIZE.w, SIGN_SIZE.h, 0.45);
+    this.sign = this.showSign ? this.canvas(sign, SIGN_SIZE.w, SIGN_SIZE.h, 0.45) : null;
     this.board = this.canvas(face, BOARD_SIZE.w, BOARD_SIZE.h, 0.4);
     v.group.add(rockLive, boardLive);
 

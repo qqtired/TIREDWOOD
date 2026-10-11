@@ -9,8 +9,7 @@ import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../shared
 import { BUBBLE_CHARS } from '../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, FORT_ARCH, HIDE_CIRCLE, KART_START, LAMP_FORT, SKILL_PORTAL, buildLobby } from '../shared/maps/lobby.ts';
 import { itemOf } from '../shared/outfit.ts';
-import { FIGHT_POSTS, PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_BARREL, YARD_CRATES, YARD_GATE, plazaSolids } from '../shared/plaza2.ts';
-import { FC_CIRCLE } from '../shared/fight.ts';
+import { PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_BARREL, YARD_CRATES, YARD_GATE, plazaSolids } from '../shared/plaza2.ts';
 import { TOUT_INFO, type ToutKey } from '../client/lobby/plaza/data.ts';
 import { DEFAULT_PLAZA, pickPlaza } from '../client/lobby/plaza/flag.ts';
 import { setupHub } from './kit.ts';
@@ -28,8 +27,8 @@ test('оформление: ?plaza= в адресе сильнее запомн�
   assert.equal(pickPlaza('?plaza=7', 'oops', 2), 2);
 });
 
-test('зазывалы: десять, номера от 960 и все разные, имена короткие, наряды из каталога, реплики влезают в облачко', () => {
-  assert.equal(KEYS.length, 10);
+test('зазывалы: девять, номера от 960 и все разные, имена короткие, наряды из каталога, реплики влезают в облачко', () => {
+  assert.equal(KEYS.length, 9);
   const ids = new Set<number>();
   for (const k of KEYS) {
     const t = TOUT_INFO[k];
@@ -65,7 +64,6 @@ test('живые реплики: по каждому статусу — коро
   states.push({ ...base(), regatta: { q: { phase: 'count', n: 4, left: 7 }, running: false } });
   states.push({ ...base(), regatta: { q: { phase: 'idle', n: 5 }, running: false } });
   states.push({ ...base(), regatta: { q: null, running: true } });
-  for (const phase of ['count', 'fight', 'idle']) states.push({ ...base(), fight: { phase, left: 14, n: 2 } });
   for (const ph of [0, BP_BOARD, BP_RIDE]) for (const n of [0, 2, BOAT_SEATS]) states.push({ ...base(), boat: { ph, n, left: 22 } });
   let produced = 0;
   for (const s of states) {
@@ -92,7 +90,6 @@ test('афиша кафе: без флагов — пейнтбол, карти�
     kart: { phase: 'count', n: 4, left: 9, lap: 0, laps: 3 },
     hide: { phase: 'gather', n: 1, max: 8 },
     regatta: { q: { phase: 'count', n: 5, left: 11 }, running: false },
-    fight: { phase: 'count', left: 14, n: 2 },
     boat: { ph: BP_BOARD, n: 1, left: 25 },
     aqua: { nick: 'Tester7', ms: 41200 },
     ...over,
@@ -120,13 +117,13 @@ test('афиша кафе: без флагов — пейнтбол, карти�
   assert.equal(text('regatta', all({ regatta: { q: { phase: 'idle', n: 0 }, running: false } })), 'бухта свободна');
 
   // перебор всех состояний: ни одной кривой строки
-  const phases = { fort: [FT_GATHER, FT_WAVE, FT_BREAK, FT_END], kart: ['idle', 'count', 'race', 'results'], hide: ['gather', 'hide'], skill: ['pre', 'run', 'idle'], fight: ['idle', 'count', 'fight'] };
+  const phases = { fort: [FT_GATHER, FT_WAVE, FT_BREAK, FT_END], kart: ['idle', 'count', 'race', 'results'], hide: ['gather', 'hide'], skill: ['pre', 'run', 'idle'] };
   for (const fp of phases.fort) for (const humans of [0, 2, FORT_MAX_HUMANS]) {
-    for (const kp of phases.kart) for (const hp of phases.hide) for (const sp of phases.skill) for (const gp of phases.fight) {
+    for (const kp of phases.kart) for (const hp of phases.hide) for (const sp of phases.skill) {
       for (const boat of [0, BP_BOARD, BP_RIDE]) {
         const s = all({
           fort: { phase: fp, wave: 99, humans, left: 30 }, kart: { phase: kp, n: 6, left: 30, lap: 9, laps: 3 }, hide: { phase: hp, n: 0, max: 8 },
-          skill: { n: 0, max: 4, phase: sp, left: 30 }, fight: { phase: gp, left: 30, n: 0 }, boat: { ph: boat, n: BOAT_SEATS, left: 99 },
+          skill: { n: 0, max: 4, phase: sp, left: 30 }, boat: { ph: boat, n: BOAT_SEATS, left: 99 },
         });
         for (const r of agendaRows(s)) {
           assert.ok(r.text.length > 0 && r.text.length <= 28, `«${r.name}: ${r.text}»`);
@@ -141,7 +138,7 @@ test('бариста: читает афишу вслух — «режим: чт�
   assert.deepEqual(liveLines('cafe', emptyLive()), []);
   const busy: LiveIn = {
     pbHumans: 2, fort: { phase: FT_WAVE, wave: 9, humans: 3, left: 0 }, skill: { n: 0, max: 4, phase: 'idle', left: 0 },
-    kart: { phase: 'race', n: 3, left: 0, lap: 2, laps: 3 }, hide: null, regatta: { q: null, running: true }, fight: null, boat: { ph: BP_RIDE, n: 2, left: 20 },
+    kart: { phase: 'race', n: 3, left: 0, lap: 2, laps: 3 }, hide: null, regatta: { q: null, running: true }, boat: { ph: BP_RIDE, n: 2, left: 20 },
     aqua: { nick: 'Tester7', ms: 41200 },
   };
   assert.deepEqual(liveLines('cafe', busy), [
@@ -175,7 +172,7 @@ test('fillLive: статусы сцены → строки, секунды сч�
   const out = emptyLive();
   const raw = (over: Partial<LiveRaw> = {}): LiveRaw => ({
     pbHumans: 2, fort: null, skill: null, kart: { phase: 'count', n: 3, lap: 0, laps: 3 }, kartLeft: 8, hide: { phase: 'idle', n: 1, max: 8 },
-    boatrace: { phase: 'count', n: 2, left: 6 }, regattaRunning: false, fight: { phase: 'count', left: 10, names: ['a', 'b'] },
+    boatrace: { phase: 'count', n: 2, left: 6 }, regattaRunning: false,
     boat: { ph: BP_BOARD, at: 1000 + 30 * TICK_RATE, n: 1 }, aqua: { nick: 'Tester7', ms: 41200 }, tick: 1000, tickRate: TICK_RATE, ...over,
   });
   fillLive(out, raw());
@@ -184,7 +181,6 @@ test('fillLive: статусы сцены → строки, секунды сч�
   assert.equal(out.kart?.left, 8);
   assert.equal(out.hide?.phase, 'gather', 'круг сбора пряток — это сбор');
   assert.equal(out.regatta.q?.n, 2);
-  assert.equal(out.fight?.n, 2);
   assert.equal(out.boat?.left, 30);
   const kart = out.kart;
   const boat = out.boat;
@@ -192,11 +188,10 @@ test('fillLive: статусы сцены → строки, секунды сч�
   assert.equal(out.kart, kart, 'объекты переиспользуются');
   assert.equal(out.boat, boat);
   assert.equal(out.boat?.left, BOAT_RIDE_TICKS / TICK_RATE - 15, 'поездка: её длина минус 15 с');
-  fillLive(out, raw({ kart: null, hide: null, boatrace: null, fight: null }));
+  fillLive(out, raw({ kart: null, hide: null, boatrace: null }));
   assert.equal(out.kart, null);
   assert.equal(out.hide, null);
   assert.equal(out.regatta.q, null);
-  assert.equal(out.fight, null);
 });
 
 // ------------------------------------------------------------ твёрдые предметы в карте
@@ -248,7 +243,7 @@ function gap(px: number, pz: number, s: { x: number; z: number; hx: number; hz: 
 test('твёрдое оформление: круги сбора и точки взаимодействия свободны, в круг можно встать целиком', () => {
   const circles = [
     { ...HIDE_CIRCLE }, { ...BOAT_RACE_CIRCLE }, { x: KART_START.x, z: KART_START.z, r: KART_START.r }, { ...SKILL_PORTAL },
-    { x: FC_CIRCLE.x, z: FC_CIRCLE.z, r: FC_CIRCLE.r }, { x: 0, z: -15.2, r: 2.2 },
+    { x: 0, z: -15.2, r: 2.2 },
   ];
   for (const c of circles) for (const s of solids) assert.ok(gap(c.x, c.z, s) > c.r, `круг (${c.x}; ${c.z}) задевает предмет (${s.x}; ${s.z})`);
   for (const it of lobby.interact) for (const s of solids) assert.ok(gap(it.x, it.z, s) > 0.35, `точка ${it.kind} (${it.x}; ${it.z}) у предмета (${s.x}; ${s.z})`);
@@ -257,11 +252,10 @@ test('твёрдое оформление: круги сбора и точки �
   }
 });
 
-test('оформление у входов: столбики и мачты стоят там, где их рисует клиент (общие константы)', () => {
+test('оформление у входов: бочки, мачты и стойки стоят там, где их рисует клиент (общие константы)', () => {
   const at = (x: number, z: number): boolean => solids.some((s) => Math.abs(s.x - x) < 1e-9 && Math.abs(s.z - z) < 1e-9);
   for (const b of PB_BARRELS) assert.ok(at(b.x, b.z), 'бочка пейнтбола');
   for (const m of REGATTA_MASTS) assert.ok(at(m.x, m.z), 'мачта регаты');
-  for (const p of FIGHT_POSTS) assert.ok(at(p.x, p.z), 'столбик у Fight Club');
   assert.ok(at(YARD_GATE.x - YARD_GATE.half, YARD_GATE.z) && at(YARD_GATE.x + YARD_GATE.half, YARD_GATE.z), 'стойки арки двора');
   assert.ok(at(YARD_BARREL.x, YARD_BARREL.z), 'бочка двора');
   for (const c of YARD_CRATES) assert.ok(at(c.x, c.z), 'ящик двора');
@@ -281,14 +275,14 @@ test('улица: фонарь не стоит на оси проулка кре
 
 test('твёрдое оформление режимов за флагами: без флага предметов нет (как и на экране), с флагом — есть; остальные всегда на месте', () => {
   const off = setupHub({ skill: false });
-  const on = setupHub({ hide: true, boatrace: true, fight: true, dungeon: true });
+  const on = setupHub({ hide: true, boatrace: true, dungeon: true });
   const solidAt = (hub: ReturnType<typeof setupHub>['hub'], index: number): boolean => {
     const b = lobby.boxes[index];
     const x = (b.min[0] + b.max[0]) / 2;
     const z = (b.min[2] + b.max[2]) / 2;
     return hub.lobby.world.overlaps(x - 0.01, b.min[1] + 0.05, z - 0.01, x + 0.01, b.min[1] + 0.1, z + 0.01);
   };
-  for (const mode of ['hide', 'regatta', 'fight', 'dungeon'] as const) {
+  for (const mode of ['hide', 'regatta', 'dungeon'] as const) {
     assert.ok(lobby.plazaModeBoxes[mode].length > 0, `у режима ${mode} есть твёрдые предметы`);
     for (const i of lobby.plazaModeBoxes[mode]) {
       assert.equal(solidAt(off.hub, i), false, `${mode}: без флага бокс ${i} выключен`);

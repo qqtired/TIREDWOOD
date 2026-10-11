@@ -1,13 +1,12 @@
 // Чат кругов (server/lobby/circlechat.ts): «ждёт в круге — 1/6», «поехали, 3 игрока», «заходит в «Пейнтбол»» и анти-спам.
 // Сначала сама логика на поддельных часах (секунда за секундой, как проверка кругов на сервере), потом — через настоящий
-// хаб без браузера: картинг, регата у пирса, прятки, Fight Club и входы в пейнтбол и крепость.
+// хаб без браузера: картинг, регата у пирса, прятки и входы в пейнтбол и крепость.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { PROTOCOL_VERSION, TICK_RATE } from '../shared/constants.ts';
-import { FC_CIRCLE } from '../shared/fight.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START } from '../shared/maps/lobby.ts';
 import { START_ZONES } from '../shared/startzones.ts';
 import { Hub } from '../server/hub.ts';
@@ -88,10 +87,10 @@ test('один ушёл, другой пришёл: число снова рас
 
 test('круг полон: места кончились — «круг полон!», лишние в дуэли новых строк не дают', () => {
   const r = rig();
-  r.play([{ kind: 'fight', max: 2, who: spans([A, 1, 200], [B, 2, 200], [C, 30, 200]) }], 0, 80);
+  r.play([{ kind: 'kart', max: 2, who: spans([A, 1, 200], [B, 2, 200], [C, 30, 200]) }], 0, 80);
   assert.deepEqual(r.lines, [
-    { at: 3, text: '🥊 Tester7 ждёт в круге «Fight Club» — 1/2, подходите!' },
-    { at: 23, text: '🥊 Tester8 ждёт в круге «Fight Club» — уже 2/2, круг полон!' },
+    { at: 3, text: '🏁 Tester7 ждёт в круге «Картинг» — 1/2, подходите!' },
+    { at: 23, text: '🏁 Tester8 ждёт в круге «Картинг» — уже 2/2, круг полон!' },
   ]);
 });
 
@@ -174,14 +173,12 @@ test('круг ушёл в режим: одна строка «поехали, 3
   r.chat.launched('kart', 1);
   r.chat.launched('boatrace', 2);
   r.chat.launched('hide', 5);
-  r.chat.launched('fight', 4);
   r.chat.launched('hide', 0);
   assert.deepEqual(r.lines.map((l) => l.text), [
     '🏁 Картинг: поехали, 3 игрока',
     '🏁 Картинг: поехали, 1 игрок',
     '🚤 Портовая регата: поехали, 2 игрока',
     '🔎 Прятки: начинаем, 5 игроков',
-    '🥊 Fight Club: бой, 4 игрока',
   ]);
   assert.deepEqual([1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 111].map(playersWord), ['1 игрок', '2 игрока', '4 игрока', '5 игроков', '11 игроков', '12 игроков', '14 игроков', '21 игрок', '22 игрока', '25 игроков', '111 игроков']);
 });
@@ -240,7 +237,7 @@ test('память про игроков не растёт: старые зап�
 const dirs: string[] = [];
 after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
 
-function env(flags: { boatrace?: boolean; hide?: boolean; fight?: boolean; fort?: boolean } = {}) {
+function env(flags: { boatrace?: boolean; hide?: boolean; fort?: boolean } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'opus-circlechat-'));
   dirs.push(dir);
   const clock = { now: Date.UTC(2026, 9, 3, 18) };
@@ -351,27 +348,6 @@ test('прятки: двое в круге — строка про первог�
   run(e, 20);
   assert.equal(a.c.room?.kind, 'hide');
   assert.deepEqual(circleLines(watcher.s), ['🔎 Tester7 ждёт в круге «Прятки» — 1/8, подходите!', '🔎 Прятки: начинаем, 2 игрока']);
-});
-
-test('Fight Club: круг у двери — «1/2» для дуэли, потом «бой»', () => {
-  const e = env({ fight: true });
-  const watcher = join(e, 'Зритель');
-  const a = join(e, 'Tester7');
-  placeAt(e.hub, a.c, FC_CIRCLE.x, FC_CIRCLE.z);
-  run(e, 3);
-  assert.deepEqual(circleLines(watcher.s), ['🥊 Tester7 ждёт в круге «Fight Club» — 1/2, подходите!']);
-  run(e, 14);
-  assert.equal(a.c.room?.kind, 'fight');
-  assert.equal(circleLines(watcher.s).at(-1), '🥊 Fight Club: бой, 1 игрок');
-});
-
-test('Fight Club выключен флагом — круга нет, строк нет', () => {
-  const e = env();
-  const watcher = join(e, 'Зритель');
-  const a = join(e, 'Tester7');
-  placeAt(e.hub, a.c, FC_CIRCLE.x, FC_CIRCLE.z);
-  run(e, 6);
-  assert.deepEqual(circleLines(watcher.s), []);
 });
 
 test('вход в пейнтбол кругом на 3 с и в крепость по E — строки с числом внутри; повторный заход в минуту молчит', () => {

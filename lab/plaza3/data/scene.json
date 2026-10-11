@@ -1,0 +1,4 @@
+{
+  "about": "Настройки общей 3D-сцены страницы. tiredwood.bearingDeg — азимут надписи TIREDWOOD от колеса обозрения (от севера к востоку, градусы), как SIGN_BEARING в client/lobby/tiredwood.ts. Левел-дизайнер меняет одно это число. Буквы берутся из layout.json (sign.letters — настоящая раскладка игры на склоне) и поворачиваются вокруг колеса на разницу с sign.code.SIGN_BEARING.now; если букв в раскладке нет — ставятся дугой на distanceM от колеса, низ на высоте lineY.",
+  "tiredwood": { "bearingDeg": 78, "distanceM": 580, "letterH": 45, "lineY": 50, "fromLayout": true }
+}

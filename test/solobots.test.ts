@@ -1,9 +1,8 @@
 // Боты только соло (решение владельца): в заезде или матче один человек — боты добирают соперников, как раньше;
-// двое и больше — ботов нет совсем. Картинг, «Портовая регата», пейнтбол, Fight Club; таблички говорят то же самое.
+// двое и больше — ботов нет совсем. Картинг, «Портовая регата», пейнтбол; таблички говорят то же самое.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PHASE_END, PHASE_PLAY, PHASE_WARMUP, TICK_RATE } from '../shared/constants.ts';
-import { FC_CHECK_EVERY, FC_CIRCLE, FC_COUNT_TICKS, FC_FIGHTERS, type FcMode } from '../shared/fight.ts';
 import { RC_GRID, RC_MAX_KARTS, RC_MIN_KARTS } from '../shared/kart.ts';
 import { KART_CHECK_EVERY, KART_COUNT_TICKS } from '../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, KART_START } from '../shared/maps/lobby.ts';
@@ -11,8 +10,6 @@ import { makeRng } from '../shared/math.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { RG_GATHER_TICKS, RG_MIN_BOATS } from '../shared/regatta.ts';
 import { BOTS_RULE, botsAllowed, botsWord } from '../shared/solobots.ts';
-import { boardLines, fightHint } from '../client/fight/door.ts';
-import { FightGame } from '../server/fight/game.ts';
 import { Game, type Player } from '../server/paintball/game.ts';
 import { Race } from '../server/race/race.ts';
 import { fakeSink, login, placeAt, setupHub, steps } from './kit.ts';
@@ -216,59 +213,4 @@ test('пейнтбол: /bots вдвоём ничего не меняет и г�
   assert.equal(pbBots(g), 3, 'до двух в команде: рядом с человеком один, напротив два');
   g.command(a, '/bots 0');
   assert.equal(pbBots(g), 0);
-});
-
-// ---------------------------------------------------------------- Fight Club
-
-function fcGame(mode: FcMode, fighters: number, spectators = 0): FightGame {
-  const g = new FightGame(mode, { result() {}, over() {} }, { rng: makeRng(5) });
-  for (let i = 0; i < fighters + spectators; i++) g.addHuman({ pid: 100 + i, nick: `Боец${i}`, outfit: { ...DEFAULT_OUTFIT } }, fakeSink(), i < fighters);
-  g.start();
-  return g;
-}
-
-const fcBots = (g: FightGame): number => [...g.players.values()].filter((p) => p.bot).length;
-
-test('Fight Club: боец-человек один — боты добирают бойцов; двое и больше — без ботов', () => {
-  for (const [mode, humans, bots] of [
-    ['duel', 1, 1], ['team', 1, 3], ['ffa', 1, 3],
-    ['duel', 2, 0], ['team', 2, 0], ['team', 4, 0], ['ffa', 2, 0], ['ffa', FC_FIGHTERS.ffa, 0],
-  ] as const) {
-    const g = fcGame(mode, humans);
-    assert.equal(fcBots(g), bots, `${mode}, людей ${humans}`);
-    assert.equal(g.fighters, humans + bots);
-  }
-});
-
-test('Fight Club через набережную: один в круге — внизу бот; двое — только они', () => {
-  for (const [n, bots] of [[1, 1], [2, 0]] as const) {
-    const { hub } = setupHub({ fight: true });
-    const who = Array.from({ length: n }, (_, i) => login(hub, `Fc${n}x${i}`));
-    who.forEach((w, i) => placeAt(hub, w.c, FC_CIRCLE.x + i * 0.6, FC_CIRCLE.z));
-    steps(hub, FC_COUNT_TICKS + 2 * FC_CHECK_EVERY);
-    const g = hub.fight!.game;
-    assert.ok(g && g.started, `${n} в круге — бой начался`);
-    assert.equal(fcBots(g), bots, `${n} в круге — ботов ${bots}`);
-    assert.equal(g.fighters, n + bots);
-    assert.ok(who.every((w) => w.c.room === hub.fight));
-  }
-});
-
-test('Fight Club: зрители в счёт не идут — один боец среди зрителей всё равно с ботом', () => {
-  const g = fcGame('duel', 1, 2);
-  assert.equal(g.humans, 3);
-  assert.equal(g.humanFighters, 1);
-  assert.equal(fcBots(g), 1);
-  assert.equal(g.fighters, 2);
-});
-
-test('Fight Club: картон и подсказка у круга говорят про ботов правду', () => {
-  const st = (names: string[]) => ({ phase: 'count' as const, mode: 'duel' as const, left: 9, names, host: names[0], round: 0, score: [] });
-  assert.ok(boardLines(st(['Один']))[2].includes('с ботами'));
-  assert.ok(boardLines(st(['Один', 'Второй']))[2].includes('без ботов'));
-  assert.ok(boardLines({ ...st([]), phase: 'idle' })[2].includes(BOTS_RULE));
-  assert.ok(fightHint(st(['Один']), 'Один', 0)!.text.includes('с ботами'));
-  assert.ok(fightHint(st(['Один', 'Второй']), 'Один', 0)!.text.includes('без ботов'));
-  // зрителям места в ринге не хватило: бойцов-людей по-прежнему двое
-  assert.ok(boardLines({ ...st(['A', 'B', 'C']) })[2].includes('без ботов'));
 });

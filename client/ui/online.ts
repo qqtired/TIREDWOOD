@@ -19,7 +19,6 @@ const ROOM: Record<RoomKind, readonly [name: string, icon: string, pos: string]>
   paintball: ['Склад', 'paint', '50% 55%'],
   race: ['Гонка', 'kart', '50% 55%'],
   fort: ['Крепость', 'shield', '50% 45%'],
-  fight: ['Подвал', 'cellar', '50% 55%'],
   skill: ['Выше облаков', 'bell-cloud', '50% 40%'],
   hide: ['Прятки', 'hide-box', '50% 55%'],
   farm: ['Ферма', 'farm-gate', '50% 50%'],

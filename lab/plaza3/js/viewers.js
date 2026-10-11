@@ -1,0 +1,1684 @@
+// 3D-окна страницы обзора новой набережной. three.js r186 с jsDelivr (importmap в index.html), модели — из assets/.
+// Устройство окна — как в lab/fishing-review/js/viewers.js: колесо мыши над сценой прокручивает страницу, зум — только
+// после клика по сцене и выключается, когда курсор ушёл; рисуем только пока окно на экране (IntersectionObserver).
+// Маленьких окон (павильоны, жители, набор kit) на странице десятки, а контекстов WebGL у браузера ~16, поэтому их рисует
+// ОДИН общий рендерер в свои 2D-холсты (и шейдеры собираются один раз на всех). Площадь целиком — свой рендерер.
+// Вид — как в игре: кривая тона и «рисованный» свет из pavilions/models/viewer.html (копия client lookpaint.ts),
+// материалы по семействам p3_*, предметы павильонов — инстансами по пустышкам anchor_prop__*, лампочки — одним мешем.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const fmt = (n) => Math.round(n).toLocaleString('ru-RU');
+
+// ------------------------------------------------------------------------------------------------ загрузка
+const loader = new GLTFLoader();
+const cache = new Map();
+// свои часы вместо THREE.Clock (в r186 он помечен устаревшим и пишет предупреждение в консоль)
+function mkClock() {
+  let t = performance.now();
+  return { getDelta() { const n = performance.now(), d = (n - t) / 1000; t = n; return d; } };
+}
+export function load(url, onProg) {
+  if (!cache.has(url)) {
+    cache.set(url, new Promise((res, rej) => loader.load(url, (g) => { g.scene.updateMatrixWorld(true); res(g); }, onProg,
+      () => { cache.delete(url); rej(new Error('не загрузился ' + url)); })));
+  }
+  return cache.get(url);
+}
+const jsonCache = new Map();
+function loadJson(url) {
+  if (!jsonCache.has(url)) jsonCache.set(url, fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  return jsonCache.get(url);
+}
+const imgCache = new Map();
+function loadImg(url) {
+  if (!url) return Promise.resolve(null);
+  if (!imgCache.has(url)) {
+    imgCache.set(url, new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = url; }));
+  }
+  return imgCache.get(url);
+}
+
+// ------------------------------------------------------------------------------------------------ тема
+export function isDark() {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function onTheme(fn) {
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', fn);
+  const mo = new MutationObserver(fn);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  fn();
+  return () => { mq.removeEventListener('change', fn); mo.disconnect(); };
+}
+
+// ------------------------------------------------------------------------------------------------ вид игры: тон и «рисованный» свет
+const TONE = { exposure: 1.08, shade: [0.92, 0.96, 1.1], light: [1.07, 1.0, 0.88], t0: 0.05, t1: 1.0, sat: 1.42, lift: 0.4 };
+const f3 = (v) => `vec3( ${v.map((x) => x.toFixed(4)).join(', ')} )`;
+const TONE_GLSL = `
+vec3 CustomToneMapping( vec3 color ) {
+	const mat3 lookIn = mat3( vec3( 0.59719, 0.07600, 0.02840 ), vec3( 0.35458, 0.90834, 0.13383 ), vec3( 0.04823, 0.01566, 0.83777 ) );
+	const mat3 lookOut = mat3( vec3( 1.60475, -0.10208, -0.00327 ), vec3( -0.53108, 1.10813, -0.07276 ), vec3( -0.07367, -0.00605, 1.07602 ) );
+	const vec3 lum = vec3( 0.2126, 0.7152, 0.0722 );
+	vec3 c = max( color, 0.0 ) * ( toneMappingExposure * ${(TONE.exposure / 0.6).toFixed(5)} );
+	float l = dot( c, lum );
+	c *= mix( ${f3(TONE.shade)}, ${f3(TONE.light)}, smoothstep( ${TONE.t0.toFixed(4)}, ${TONE.t1.toFixed(4)}, l ) );
+	l = dot( c, lum );
+	c = max( vec3( l ) + ( c - l ) * ${TONE.sat.toFixed(4)}, 0.0 );
+	c = saturate( lookOut * RRTAndODTFit( lookIn * c ) );
+	vec3 d = 1.0 - c;
+	return c + ${TONE.lift.toFixed(4)} * c * d * d;
+}`;
+const TONE_STUB = 'vec3 CustomToneMapping( vec3 color ) { return color; }';
+const TONE_OK = THREE.ShaderChunk.tonemapping_pars_fragment.includes(TONE_STUB);
+if (TONE_OK) THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace(TONE_STUB, TONE_GLSL);
+const WRAP = 0.3;
+const PAINT_PARS = `
+varying vec3 vLookW;
+uniform vec3 uLookShade;
+uniform float uLookSunInv;
+float lookLit = 0.0;
+vec3 lookDirect( float nl, vec3 light ) {
+	float w = saturate( ( nl + ${WRAP.toFixed(3)} ) / ${(1 + WRAP).toFixed(3)} );
+	lookLit = max( lookLit, saturate( luminance( light ) * uLookSunInv ) * smoothstep( -0.05, 0.35, nl ) );
+	return light * ( w * mix( ${f3([0.82, 0.9, 1.12])}, vec3( 1.0 ), smoothstep( 0.0, 0.5, w ) ) );
+}
+float lookWobble( vec3 p ) {
+	return sin( p.x * 0.9 + sin( p.z * 1.3 + p.y * 0.7 ) * 1.7 ) * sin( p.z * 0.8 + sin( p.x * 1.1 - p.y * 0.9 ) * 1.5 + p.y * 0.4 );
+}`;
+const GRAIN = `
+	{
+		float lookFar = length( vLookW - cameraPosition );
+		if ( lookFar < 260.0 ) {
+			vec3 lookK = vec3( 0.075, 0.055, 0.035 ) * lookWobble( vLookW * 0.45 ) * ( 1.0 - smoothstep( 120.0, 260.0, lookFar ) );
+			if ( lookFar < 70.0 ) lookK += 0.04 * lookWobble( vLookW * 1.9 + 7.3 ) * ( 1.0 - smoothstep( 25.0, 70.0, lookFar ) );
+			diffuseColor.rgb *= 1.0 + lookK;
+		}
+	}`;
+const VERT_POS = `
+	{
+		vec4 lookWp = vec4( transformed, 1.0 );
+		#ifdef USE_INSTANCING
+			lookWp = instanceMatrix * lookWp;
+		#endif
+		vLookW = ( modelMatrix * lookWp ).xyz;
+	}`;
+const PHYS = 'reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseContribution ) * ( 1.0 - F );';
+const PHYS_OK = THREE.ShaderChunk.lights_physical_pars_fragment.includes(PHYS);
+const physical = THREE.ShaderChunk.lights_physical_pars_fragment.replace(PHYS,
+  'reflectedLight.directDiffuse += lookDirect( dot( geometryNormal, directLight.direction ), directLight.color ) * BRDF_Lambert( material.diffuseContribution ) * ( 1.0 - F );');
+const paintUniforms = { uLookShade: { value: new THREE.Color(0.9, 0.96, 1.22) }, uLookSunInv: { value: 1 / 3.2 * 1.6 } };
+function paint(m) {
+  if (!m.isMeshStandardMaterial || !PHYS_OK) return m;
+  m.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLookW;')
+      .replace('#include <project_vertex>', `#include <project_vertex>\n${VERT_POS}`);
+    Object.assign(s.uniforms, paintUniforms);
+    s.fragmentShader = s.fragmentShader.replace('#include <common>', `#include <common>\n${PAINT_PARS}`)
+      .replace('#include <lights_physical_pars_fragment>', physical)
+      .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n\treflectedLight.indirectDiffuse *= mix( uLookShade, vec3( 1.0 ), lookLit );')
+      .replace('#include <color_fragment>', `#include <color_fragment>\n${GRAIN}`);
+  };
+  m.customProgramCacheKey = () => 'look2g' + (m.isMeshPhysicalMaterial ? 'p' : '');
+  return m;
+}
+function setupRenderer(r) {
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  r.toneMapping = TONE_OK ? THREE.CustomToneMapping : THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = 1.0;
+  r.shadowMap.enabled = true;
+  r.shadowMap.type = THREE.PCFShadowMap;
+  r.shadowMap.autoUpdate = false;
+}
+
+// ------------------------------------------------------------------------------------------------ материалы по семействам
+const FAM = new Map();
+function famMat(name) {
+  let m = FAM.get(name);
+  if (m) return m;
+  if (name === 'p3_glow') m = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
+  else if (name === 'npc_jelly') m = paint(new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.28, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12 }));
+  else m = paint(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: name === 'p3_gloss' ? 0.35 : name === 'p3_foliage' ? 0.8 : 0.85, metalness: 0 }));
+  m.name = name;
+  FAM.set(name, m);
+  return m;
+}
+function applyFam(o, { npc = false } = {}) {
+  if (!o.isMesh) return;
+  const src = Array.isArray(o.material) ? o.material[0] : o.material;
+  const name = src?.name || 'p3_matte';
+  if (!o.geometry.attributes.color) { if (src?.isMeshStandardMaterial) paint(src); return; } // без цвета вершин — свой материал как есть
+  o.material = famMat(npc && name === 'p3_gloss' ? 'npc_jelly' : (/^p3_/.test(name) ? name : 'p3_matte'));
+}
+let bulbGeo = null, bulbMat = null;
+function bulbParts() {
+  bulbGeo ||= new THREE.IcosahedronGeometry(0.05, 1);
+  bulbMat ||= new THREE.MeshBasicMaterial({ color: 0xffe3a6, toneMapped: false });
+  return [bulbGeo, bulbMat];
+}
+let blobTex = null;
+function blobShadow(r = 0.62) {
+  if (!blobTex) {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(40,24,20,.45)'); gr.addColorStop(0.55, 'rgba(40,24,20,.22)'); gr.addColorStop(1, 'rgba(40,24,20,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    blobTex = new THREE.CanvasTexture(c);
+  }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, toneMapped: false }));
+  m.position.y = 0.012;
+  m.renderOrder = 1;
+  return m;
+}
+export function countTris(obj) {
+  let n = 0;
+  obj.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    const g = o.geometry;
+    const t = (g.index ? g.index.count : g.attributes.position.count) / 3;
+    n += o.isInstancedMesh ? t * o.count : t;
+  });
+  return Math.round(n);
+}
+
+// ------------------------------------------------------------------------------------------------ холсты: вывеска, экран
+function drawBall(g, cx, cy, r) {
+  g.fillStyle = '#2a1f24'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+  g.fillStyle = '#fff3de'; g.beginPath(); g.arc(cx - r * 0.12, cy - r * 0.12, r * 0.48, 0, 7); g.fill();
+  g.fillStyle = '#2a1f24'; g.font = `900 ${Math.round(r * 0.62)}px Rubik, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('8', cx - r * 0.12, cy - r * 0.08); g.textAlign = 'left';
+}
+// вывеска на модели — скин «Ретро-парк 2.0» (game-opus-ui/docs/sign-tokens-retropark2.md): эмалевый щит, кант крем + тёмная обводка,
+// узкая маркиза коралл/крем, иконка в круге, название Rubik Mono One, строка статуса Rubik 700 и точка состояния справа.
+// Размеры — от «обычной вывески» 1024×352 (CSS-пиксели ×4), по высоте щита.
+const RP2 = { top: '#13675f', bottom: '#0d524d', cream: '#f3e6c9', outline: '#0a3b37', text: '#fff4dc', dim: 'rgba(255,244,220,.76)', coral: '#ff7a5c', go: '#ffcd4a', open: '#56c07d', bad: '#e5484d' };
+function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
+function statusState(t) { return /закрыт|нет мест/i.test(t) ? 'bad' : /идёт|играет|бегут|прячутся|внизу|в бухте/i.test(t) ? 'go' : 'open'; }
+function signTexture(cfg, w, h, icon) {
+  const W = 1024, H = Math.max(160, Math.min(1024, Math.round(W * h / Math.max(0.01, w))));
+  const k = Math.min(H / 352, W / 1024 * 1.6);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const R = 48 * k, o = 4 * k, cr = 8 * k, ins = o + cr;
+  rr(g, 0, 0, W, H, R); g.fillStyle = RP2.outline; g.fill();
+  rr(g, o, o, W - 2 * o, H - 2 * o, R - o); g.fillStyle = RP2.cream; g.fill();
+  rr(g, ins, ins, W - 2 * ins, H - 2 * ins, R - ins);
+  const en = g.createLinearGradient(0, ins, 0, H - ins); en.addColorStop(0, RP2.top); en.addColorStop(1, RP2.bottom);
+  g.fillStyle = en; g.fill();
+  g.save(); g.clip();
+  const sh = g.createLinearGradient(0, ins, 0, ins + (H - 2 * ins) * 0.32); sh.addColorStop(0, 'rgba(255,255,255,.055)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = sh; g.fillRect(0, 0, W, H);
+  // маркиза по верхнему краю: полосы 88, высота 40, прямой низ
+  const aw = 40 * k;
+  for (let x = ins, i = 0; x < W; x += 88 * k, i++) { g.fillStyle = i % 2 ? RP2.cream : RP2.coral; g.fillRect(x, ins, 88 * k, aw); }
+  g.restore();
+  const top = ins + aw, mid = (top + H - ins) / 2, pad = 64 * k;
+  const ir = Math.min(120 * k, (H - ins - top) / 2 - 18 * k);
+  const icx = ins + pad * 0.6 + ir + 16 * k;
+  g.fillStyle = RP2.cream; g.beginPath(); g.arc(icx, mid, ir + 16 * k, 0, 7); g.fill();
+  g.fillStyle = RP2.coral; g.beginPath(); g.arc(icx, mid, ir + 8 * k, 0, 7); g.fill();
+  const ig = g.createRadialGradient(icx - ir * 0.3, mid - ir * 0.4, 0, icx, mid, ir); ig.addColorStop(0, '#fff8e6'); ig.addColorStop(0.7, '#f1dcb0'); ig.addColorStop(1, '#f1dcb0');
+  g.fillStyle = ig; g.beginPath(); g.arc(icx, mid, ir, 0, 7); g.fill();
+  if (icon) g.drawImage(icon, icx - ir * 0.8, mid - ir * 0.8, ir * 1.6, ir * 1.6);
+  else if (cfg.icon === 'ball') drawBall(g, icx, mid, ir * 0.7);
+  const tx = icx + ir + 16 * k + 48 * k, maxW = W - ins - pad * 0.6 - tx;
+  const title = String(cfg.text || '').toUpperCase();
+  let fs = Math.round(80 * k);
+  const font = (s) => `400 ${s}px "Rubik Mono One", Rubik, sans-serif`;
+  g.font = font(fs);
+  while (g.measureText(title).width > maxW && fs > 12) { fs -= 2; g.font = font(fs); }
+  const st = cfg.status ? Math.round(40 * k) : 0;
+  const base = cfg.status ? mid - 4 * k : mid + fs * 0.36;
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = RP2.outline; g.fillText(title, tx, base + 8 * k);
+  g.fillStyle = RP2.text; g.fillText(title, tx, base);
+  if (cfg.status) {
+    const dot = 40 * k, sy = base + 16 * k + st;
+    g.font = `700 ${st}px Rubik, sans-serif`;
+    let s = cfg.status;
+    while (g.measureText(s).width > maxW - dot * 1.6 && s.length > 4) s = s.slice(0, -2).trimEnd() + '…';
+    g.fillStyle = RP2.dim; g.fillText(s, tx, sy);
+    g.fillStyle = RP2[statusState(cfg.status)]; g.beginPath(); g.arc(W - ins - pad * 0.6 - dot / 2, sy - st * 0.36, dot / 2, 0, 7); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function screenTexture() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 460;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 460); gr.addColorStop(0, '#2b2330'); gr.addColorStop(1, '#3a2b33');
+  g.fillStyle = gr; g.fillRect(0, 0, 1024, 460);
+  g.textAlign = 'center';
+  g.fillStyle = '#ffd35a'; g.font = '900 64px Rubik, sans-serif'; g.fillText('МАТЧ · 1:42', 512, 92);
+  g.font = '900 150px Rubik, sans-serif';
+  g.fillStyle = '#ec8a3e'; g.fillText('3', 330, 300);
+  g.fillStyle = '#fff3de'; g.fillText(':', 512, 290);
+  g.fillStyle = '#9dc64c'; g.fillText('2', 694, 300);
+  g.font = '700 40px Rubik, sans-serif'; g.fillStyle = '#fff3de'; g.fillText('рыжие            лаймы', 512, 380);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false;
+  return t;
+}
+// автомат аркады у пустышки anchor_arcade_N (в курзале): корпус и светящийся экран, лицом к −Z
+const CAB_COLORS = [0x2f8a4f, 0xb8332f, 0xd9a04a];
+let cabGeo = null, cabScreenGeo = null;
+function arcadeCabinet(i) {
+  cabGeo ||= new THREE.BoxGeometry(0.82, 1.78, 0.72).translate(0, 0.89, 0);
+  cabScreenGeo ||= new THREE.PlaneGeometry(0.6, 0.46).rotateY(Math.PI).translate(0, 1.32, -0.365);
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(cabGeo, paint(new THREE.MeshStandardMaterial({ color: CAB_COLORS[i % 3], roughness: 0.4 })));
+  const scr = new THREE.Mesh(cabScreenGeo, new THREE.MeshBasicMaterial({ color: [0x9cf0b8, 0xffb0a0, 0xffe2a0][i % 3], toneMapped: false, side: THREE.DoubleSide }));
+  g.add(body, scr);
+  return g;
+}
+
+// ------------------------------------------------------------------------------------------------ павильон из GLB
+// Возвращает Group в осях павильона (лицо −Z): статика с материалами семейств, предметы инстансами, лампочки, вывески,
+// экраны; пустышки anchor_* и коллайдеры col_* убраны. resident — точка жителя (anchor_resident), если есть.
+let kitManP = null;
+export async function buildPavilion(url, { assets, signs = [], onProg } = {}) {
+  const g = await load(url, onProg);
+  const root = g.scene.clone(true);
+  root.updateMatrixWorld(true);
+  const anchors = [];
+  root.traverse((o) => { if (/^(anchor_|col_)/.test(o.name)) anchors.push(o); });
+  const isAnchor = new Set(anchors);
+  const under = (o) => { for (let p = o; p; p = p.parent) if (isAnchor.has(p)) return true; return false; };
+  root.traverse((o) => {
+    if (!o.isMesh || under(o)) return;
+    if (/^live_screen/.test(o.name) || /^live_screen/.test(o.parent?.name || '')) { o.material = new THREE.MeshBasicMaterial({ map: screenTexture(), toneMapped: false }); return; }
+    applyFam(o);
+    const glow = o.material?.name === 'p3_glow';
+    o.castShadow = !glow; o.receiveShadow = true;
+  });
+  const out = new THREE.Group();
+  out.add(root);
+  const mats = (re) => anchors.filter((a) => re.test(a.name));
+  // предметы
+  const want = new Map();
+  for (const a of anchors) {
+    const m = /^anchor_prop__(.+?)__\d+$/.exec(a.name);
+    if (!m) continue;
+    if (!want.has(m[1])) want.set(m[1], []);
+    want.get(m[1]).push(a.matrixWorld.clone());
+  }
+  if (want.size && assets) {
+    kitManP ||= assets.kit?.manifest ? loadJson(assets.kit.manifest) : Promise.resolve(null);
+    const kitMan = await kitManP;
+    const propNames = new Set(assets.props?.pieces || []);
+    const fileOf = (n) => {
+      if (assets.propFiles?.[n]) return assets.propFiles[n];
+      const k = kitMan?.pieces?.find((p) => p.name === n);
+      if (k) return 'assets/models/kit/' + k.file;
+      if (propNames.has(n) && assets.props?.file) return assets.props.file;
+      return null;
+    };
+    const files = [...new Set([...want.keys()].map(fileOf).filter(Boolean))];
+    const kits = await Promise.all(files.map((f) => load(f).catch(() => null)));
+    const inv = new THREE.Matrix4(), tmp = new THREE.Matrix4();
+    for (const [name, list] of want) {
+      const node = kits.map((k) => k?.scene.getObjectByName(name)).find(Boolean);
+      if (!node) continue;
+      inv.copy(node.matrixWorld).invert();
+      node.traverse((o) => {
+        if (!o.isMesh) return;
+        const rel = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+        const mat = o.geometry.attributes.color ? famMat(/^p3_/.test(o.material.name) ? o.material.name : 'p3_matte') : o.material;
+        const im = new THREE.InstancedMesh(o.geometry, mat, list.length);
+        list.forEach((m, i) => im.setMatrixAt(i, tmp.multiplyMatrices(m, rel)));
+        im.castShadow = mat.name !== 'p3_glow'; im.receiveShadow = true;
+        im.frustumCulled = false;
+        out.add(im);
+      });
+    }
+  }
+  // лампочки
+  const bulbs = mats(/^anchor_bulbs_\d+$/);
+  if (bulbs.length) {
+    const [bg, bm] = bulbParts();
+    const im = new THREE.InstancedMesh(bg, bm, bulbs.length);
+    bulbs.forEach((b, i) => im.setMatrixAt(i, b.matrixWorld));
+    im.frustumCulled = false;
+    out.add(im);
+  }
+  // вывески
+  const faces = mats(/^anchor_sign_face/);
+  if (faces.length && signs.length) {
+    await Promise.all(['400 80px "Rubik Mono One"', '700 40px Rubik'].map((f) => document.fonts?.load(f))).catch(() => {});
+    for (let i = 0; i < faces.length; i++) {
+      const cfg = signs[Math.min(i, signs.length - 1)];
+      const icon = await loadImg(assets?.ui?.icons?.[cfg.icon]);
+      const s = new THREE.Vector3();
+      faces[i].matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), s);
+      const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: signTexture(cfg, Math.abs(s.x), Math.abs(s.y), icon), toneMapped: false, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+      quad.matrixAutoUpdate = false;
+      quad.matrix.copy(faces[i].matrixWorld);
+      out.add(quad);
+    }
+  }
+  // автоматы аркады в курзале
+  mats(/^anchor_arcade_\d+$/).forEach((a, i) => {
+    const cab = arcadeCabinet(i);
+    cab.matrixAutoUpdate = false;
+    cab.matrix.copy(a.matrixWorld);
+    out.add(cab);
+  });
+  const res = anchors.find((a) => a.name === 'anchor_resident');
+  out.userData.resident = res ? new THREE.Vector3().setFromMatrixPosition(res.matrixWorld) : null;
+  out.userData.residentYaw = res ? new THREE.Euler().setFromRotationMatrix(res.matrixWorld).y : null;
+  const bb = new THREE.Box3();
+  root.traverse((o) => { if (o.isMesh && !under(o)) bb.expandByObject(o); });
+  out.userData.box = bb.isEmpty() ? new THREE.Box3().setFromObject(root) : bb;
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ житель: ожидание
+// Клипы idle/greet, если они есть в GLB; иначе — по частям userData.animation_part: покачивание тела (с сохранением
+// объёма), моргание (eyes.scale.y → 0,12, как у игрока) и взмах свободной рукой раз в несколько секунд.
+export function npcIdle(root, clips = [], phase = Math.random() * 10) {
+  const idleClip = clips.find((c) => c.name === 'idle');
+  if (idleClip) {
+    const mixer = new THREE.AnimationMixer(root);
+    mixer.clipAction(idleClip).play();
+    if (phase) mixer.update(phase % idleClip.duration);
+    return (dt) => mixer.update(dt);
+  }
+  const P = {};
+  root.traverse((o) => { const p = o.userData?.animation_part; if (p && !P[p]) P[p] = o; });
+  const base = new Map();
+  for (const o of Object.values(P)) base.set(o, { p: o.position.clone(), r: o.rotation.clone(), s: o.scale.clone() });
+  const holds = (h) => { let y = false; h?.traverse((o) => { if (/^prop/.test(o.userData?.animation_part || '')) y = true; }); return y; };
+  const hand = [P['hand.R'], P['hand.L']].find((h) => h && !holds(h)) || P['hand.R'] || P['hand.L'];
+  const side = hand && hand === P['hand.L'] ? -1 : 1;
+  return (dt, t0) => {
+    const t = t0 + phase;
+    const body = P.body;
+    if (body) {
+      const b = base.get(body), s = Math.sin(t * 2.1);
+      body.scale.set(b.s.x * (1 - 0.013 * s), b.s.y * (1 + 0.026 * s), b.s.z * (1 - 0.013 * s));
+      body.rotation.z = b.r.z + Math.sin(t * 0.9) * 0.035;
+      body.rotation.y = b.r.y + Math.sin(t * 0.45) * 0.08;
+    }
+    const eyes = P.eyes;
+    if (eyes) {
+      const b = base.get(eyes), c = t % 3.7;
+      const k = c < 0.16 ? 0.12 + 0.88 * Math.abs(c - 0.08) / 0.08 : 1;
+      eyes.scale.y = b.s.y * k;
+    }
+    if (hand) {
+      const b = base.get(hand), c = t % 6.5;
+      const w = c < 1.8 ? Math.sin(Math.PI * c / 1.8) : 0;
+      hand.position.set(b.p.x + side * 0.07 * w, b.p.y + 0.3 * w, b.p.z - 0.05 * w);
+      hand.rotation.z = b.r.z + side * 0.45 * w + Math.sin(t * 13) * 0.3 * w;
+    }
+  };
+}
+
+// ------------------------------------------------------------------------------------------------ окно-сцена
+class Stage {
+  constructor(host, { fov = 40, near = 0.1, far = 2000, shared = false, fps = 60 } = {}) {
+    this.host = host;
+    this.shared = shared;
+    if (shared) {
+      this.canvas = document.createElement('canvas');
+      this.ctx2d = this.canvas.getContext('2d');
+    } else {
+      const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      setupRenderer(r);
+      this.canvas = r.domElement;
+    }
+    host.insertBefore(this.canvas, host.firstChild);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(fov, 1, near, far);
+    this.controls = new OrbitControls(this.camera, this.canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    // Колесо мыши над сценой не отнимает прокрутку у страницы: зум включается после клика по сцене и выключается,
+    // когда курсор ушёл. Палец на телефоне: пока не нажал на сцену — страница прокручивается (touch-action pan-y).
+    this.controls.enableZoom = false;
+    this.canvas.addEventListener('pointerdown', () => { this.controls.enableZoom = true; this.canvas.classList.add('live'); });
+    this.canvas.addEventListener('pointerleave', () => { this.controls.enableZoom = false; this.canvas.classList.remove('live'); });
+    this.controls.addEventListener('change', () => { this.dirty = true; });
+    this.controls.addEventListener('start', () => { this.active = true; });
+    this.controls.addEventListener('end', () => { this.active = false; });
+    this.tickers = [];
+    this.labels = [];
+    this.time = 0;
+    this.visible = false;
+    this.dirty = true;
+    this.animated = false;
+    this.minDt = 1 / fps;
+    this.hud = document.createElement('div'); this.hud.className = 'hud'; host.appendChild(this.hud);
+    this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(host);
+    this.io = new IntersectionObserver(([e]) => { this.visible = e.isIntersecting; if (this.visible) this.dirty = true; }, { threshold: 0.02 });
+    this.io.observe(host);
+    this.resize();
+    if (shared) Mini.add(this);
+    else {
+      this.clock = mkClock();
+      let acc = 0;
+      const loop = () => {
+        this.raf = requestAnimationFrame(loop);
+        const dt = Math.min(this.clock.getDelta(), 0.1);
+        if (!this.visible || document.hidden) return;
+        acc += dt;
+        if (!this.active && !this.controls.autoRotate && acc < this.minDt) return; // в покое — реже
+        this.step(acc);
+        acc = 0;
+        this.renderer.render(this.scene, this.camera);
+        this.afterFrame();
+      };
+      this.raf = requestAnimationFrame(loop);
+    }
+  }
+  step(dt) {
+    this.time += dt;
+    for (const t of [...this.tickers]) t(dt, this.time);
+    if (this.controls.update(dt)) this.dirty = true;
+  }
+  afterFrame() {
+    this.dirty = false;
+    this.placeLabels();
+    if (!this.firstFrame) { this.firstFrame = true; this.onFirstFrame?.(); }
+    this.afterRender?.();
+  }
+  resize() {
+    const w = this.host.clientWidth, h = this.host.clientHeight;
+    if (!w || !h) return;
+    if (this.shared) { this.canvas.width = Math.round(w * DPR); this.canvas.height = Math.round(h * DPR); }
+    else this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.dirty = true;
+  }
+  setHud(items) { this.hud.innerHTML = items.filter(Boolean).map((t) => `<span>${t}</span>`).join(''); }
+  label(text, obj, { off = 0, maxDist = Infinity, minDist = 0, cls = '' } = {}) {
+    const el = document.createElement('div');
+    el.className = 'lbl' + (cls ? ' ' + cls : ''); el.textContent = text; el.style.display = 'none';
+    this.host.appendChild(el);
+    const L = { el, obj, off, maxDist, minDist, v: new THREE.Vector3(), show: true };
+    this.labels.push(L);
+    return L;
+  }
+  placeLabels() {
+    if (!this.labels.length) return;
+    const w = this.host.clientWidth, h = this.host.clientHeight;
+    for (const L of this.labels) {
+      if (L.obj.isVector3) L.v.copy(L.obj); else L.obj.getWorldPosition(L.v);
+      L.v.y += L.off;
+      const d = L.v.distanceTo(this.camera.position);
+      L.v.project(this.camera);
+      let vis = this.labelsOn !== false && L.show && L.v.z < 1 && Math.abs(L.v.x) < 1.05 && Math.abs(L.v.y) < 1.05 && d < L.maxDist && d >= L.minDist;
+      if (vis && !L.obj.isVector3) { for (let o = L.obj; o; o = o.parent) if (o.visible === false) { vis = false; break; } }
+      L.el.style.display = vis ? '' : 'none';
+      if (vis) L.el.style.transform = `translate(${((L.v.x * 0.5 + 0.5) * w).toFixed(1)}px, ${((-L.v.y * 0.5 + 0.5) * h).toFixed(1)}px) translate(-50%, -120%)`;
+    }
+  }
+  toast(text, ms = 3600) {
+    if (!this.toastEl) { this.toastEl = document.createElement('div'); this.toastEl.className = 'toast'; this.host.appendChild(this.toastEl); }
+    this.toastEl.textContent = text;
+    this.toastEl.style.opacity = '1';
+    clearTimeout(this.toastT);
+    this.toastT = setTimeout(() => { if (this.toastEl) this.toastEl.style.opacity = '0'; }, ms);
+  }
+  tween(pos, target, dur = 1.6, done) {
+    const c = this.camera, ctl = this.controls;
+    const p0 = c.position.clone(), t0 = ctl.target.clone();
+    if (REDUCED || dur <= 0) { c.position.copy(pos); ctl.target.copy(target); this.dirty = true; done?.(); return; }
+    let k = 0;
+    ctl.enabled = false;
+    this.active = true;
+    const f = (dt) => {
+      k = Math.min(1, k + dt / dur);
+      const e = ease(k);
+      c.position.lerpVectors(p0, pos, e);
+      ctl.target.lerpVectors(t0, target, e);
+      this.dirty = true;
+      if (k >= 1) { this.tickers.splice(this.tickers.indexOf(f), 1); ctl.enabled = true; this.active = false; done?.(); }
+    };
+    this.tickers.push(f);
+  }
+  // кадр «3/4 спереди» по габаритам: лицо модели смотрит в −Z, камера — спереди-слева, чуть выше глаз
+  frameFront(box, { k = 0.9, minY = 2.2, lookY = 0.4, side = 0.55 } = {}) {
+    const ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    const R = Math.max(0.5, size.length() / 2);
+    const fov = THREE.MathUtils.degToRad(this.camera.fov);
+    const fit = (R * 1.02) / Math.sin(Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * this.camera.aspect)) / 2);
+    this.camera.position.set(ctr.x - fit * side * k, Math.max(minY, ctr.y + size.y * 0.15), ctr.z - fit * 0.85 * k);
+    this.controls.target.set(ctr.x, box.min.y + size.y * lookY, ctr.z);
+    this.camera.near = Math.max(0.02, fit / 200);
+    this.camera.far = fit * 40;
+    this.camera.updateProjectionMatrix();
+    this.controls.minDistance = R * 0.5;
+    this.controls.maxDistance = fit * 2.6;
+    this.controls.maxPolarAngle = Math.PI * 0.49;
+    this.controls.update();
+    this.dirty = true;
+  }
+  dispose() {
+    cancelAnimationFrame(this.raf);
+    if (this.shared) Mini.remove(this);
+    this.ro.disconnect(); this.io.disconnect();
+    this.offTheme?.();
+    this.controls.dispose();
+    if (this.renderer) { this.renderer.dispose(); this.renderer.forceContextLoss(); }
+    this.canvas.remove();
+    this.hud.remove();
+    this.toastEl?.remove();
+    for (const L of this.labels) L.el.remove();
+    this.labels = [];
+  }
+}
+
+// ------------------------------------------------------------------------------------------------ общий рендерер маленьких окон
+const Mini = {
+  r: null, stages: new Set(), raf: 0, clock: mkClock(), w: 0, h: 0, info: { calls: 0 },
+  add(st) {
+    this.stages.add(st);
+    if (!this.r) {
+      this.r = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+      this.r.setPixelRatio(1);
+      setupRenderer(this.r);
+      this.r.setScissorTest(true);
+    }
+    if (!this.raf) { this.clock.getDelta(); this.raf = requestAnimationFrame(() => this.loop()); }
+  },
+  remove(st) { this.stages.delete(st); },
+  loop() {
+    this.raf = requestAnimationFrame(() => this.loop());
+    const dt = Math.min(this.clock.getDelta(), 0.1);
+    if (document.hidden) return;
+    for (const st of this.stages) {
+      if (!st.visible) continue;
+      st.step(dt);
+      if (!st.dirty && !st.animated) continue;
+      const pw = st.canvas.width, ph = st.canvas.height;
+      if (!pw || !ph) continue;
+      if (pw > this.w || ph > this.h) { this.w = Math.max(this.w, pw); this.h = Math.max(this.h, ph); this.r.setSize(this.w, this.h, false); }
+      this.r.setViewport(0, 0, pw, ph);
+      this.r.setScissor(0, 0, pw, ph);
+      this.r.shadowMap.needsUpdate = !!st.shadowDirty;
+      st.shadowDirty = false;
+      this.r.render(st.scene, st.camera);
+      st.calls = this.r.info.render.calls;
+      st.ctx2d.drawImage(this.r.domElement, 0, this.h - ph, pw, ph, 0, 0, pw, ph);
+      st.afterFrame();
+    }
+  },
+};
+
+function lightStudio(st, { sunFrom = new THREE.Vector3(-0.45, 0.62, -0.65), shadowR = 14 } = {}) {
+  const hemi = new THREE.HemisphereLight(0xb2c8f4, 0xd2a57c, 1.3);
+  const sun = new THREE.DirectionalLight(0xffd49a, 3.2);
+  sun.position.copy(sunFrom).normalize().multiplyScalar(shadowR * 3);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
+  Object.assign(sun.shadow.camera, { left: -shadowR, right: shadowR, top: shadowR, bottom: -shadowR, near: 0.5, far: shadowR * 7 });
+  sun.shadow.camera.updateProjectionMatrix();
+  st.scene.add(hemi, sun, sun.target);
+  st.shadowDirty = true;
+  return { hemi, sun };
+}
+function studioGround(st, r = 60) {
+  const mat = paint(new THREE.MeshStandardMaterial({ color: 0xe8dfcf, roughness: 0.95 }));
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(r, 48).rotateX(-Math.PI / 2), mat);
+  ground.receiveShadow = true;
+  st.scene.add(ground);
+  st.offTheme = onTheme(() => {
+    const d = isDark();
+    st.scene.background = new THREE.Color(d ? 0x2a3746 : 0xcfe0ef);
+    mat.color.set(d ? 0x6f6658 : 0xe8dfcf);
+    st.dirty = true;
+  });
+  return ground;
+}
+
+// ------------------------------------------------------------------------------------------------ окно павильона (и набора kit)
+export async function pavilionViewer(host, { assets, models, npcModel, progress }) {
+  const st = new Stage(host, { shared: true, fov: 42, near: 0.1, far: 900 });
+  studioGround(st, 90);
+  const L = lightStudio(st, { shadowR: 16 });
+  const group = new THREE.Group(); st.scene.add(group);
+  let token = 0, cur = null, tick = null;
+  async function show(i) {
+    const my = ++token;
+    const m = models[i];
+    const pav = await buildPavilion(m.file, { assets, signs: m.signs || [], onProg: progress });
+    if (my !== token) return;
+    group.clear();
+    group.add(pav);
+    if (tick) { st.tickers = st.tickers.filter((t) => t !== tick); tick = null; }
+    const box = pav.userData.box;
+    const R = Math.max(6, box.getSize(new THREE.Vector3()).length() / 2);
+    Object.assign(L.sun.shadow.camera, { left: -R, right: R, top: R, bottom: -R, far: R * 7 });
+    L.sun.shadow.camera.updateProjectionMatrix();
+    L.sun.position.set(-0.45, 0.62, -0.65).normalize().multiplyScalar(R * 3).add(box.getCenter(new THREE.Vector3()));
+    L.sun.target.position.copy(box.getCenter(new THREE.Vector3()));
+    // житель у входа — если его модель уже есть
+    const nm = m.npc || npcModel;
+    if (nm && pav.userData.resident) {
+      try {
+        const ng = await load(nm.file);
+        if (my !== token) return;
+        const npc = ng.scene.clone(true);
+        npc.traverse((o) => { applyFam(o, { npc: true }); o.castShadow = false; });
+        npc.position.copy(pav.userData.resident);
+        npc.rotation.y = pav.userData.residentYaw ?? 0;
+        npc.add(blobShadow());
+        pav.add(npc);
+        tick = npcIdle(npc, ng.animations);
+        st.tickers.push(tick);
+        st.animated = true;
+      } catch { /* житель не обязателен */ }
+    }
+    st.frameFront(box, { k: m.k || 0.92 });
+    st.shadowDirty = true;
+    cur = i;
+    // в карточке — только название: число треугольников окна (павильон + вещи + житель без склейки) путает с бюджетом игры
+    st.setHud([m.title]);
+  }
+  await show(0);
+  return { show, get current() { return cur; }, stage: st, dispose() { st.dispose(); } };
+}
+
+// ------------------------------------------------------------------------------------------------ окно жителя
+export async function npcViewer(host, { file, name, progress }) {
+  const st = new Stage(host, { shared: true, fov: 30, near: 0.05, far: 200 });
+  studioGround(st, 30);
+  const L = lightStudio(st, { shadowR: 3 });
+  L.sun.castShadow = false;
+  const g = await load(file, progress);
+  const root = g.scene.clone(true);
+  root.traverse((o) => applyFam(o, { npc: true }));
+  root.add(blobShadow(0.66));
+  st.scene.add(root);
+  const box = new THREE.Box3().setFromObject(root);
+  // кадр с запасом: шляпа, руки и вещь в руке целиком в окне
+  const h = Math.max(1.2, box.max.y), sz = box.getSize(new THREE.Vector3());
+  const w = Math.max(sz.x, sz.z * 0.8, 0.8);
+  const aspect = Math.max(0.5, (host.clientWidth || 1) / (host.clientHeight || 1));
+  const t = Math.tan(THREE.MathUtils.degToRad(st.camera.fov) / 2);
+  const d = Math.max((h * 1.3) / (2 * t), (w * 1.3) / (2 * t * aspect));
+  const dir = new THREE.Vector3(0.36, 0.2, -1).normalize();
+  st.controls.target.set((box.min.x + box.max.x) / 2, h * 0.5, (box.min.z + box.max.z) / 2);
+  st.camera.position.copy(st.controls.target).addScaledVector(dir, d);
+  st.controls.minDistance = 1.4;
+  st.controls.maxDistance = Math.max(9, d * 2);
+  st.controls.maxPolarAngle = Math.PI * 0.5;
+  st.controls.update();
+  st.tickers.push(npcIdle(root, g.animations, 0));
+  st.animated = !REDUCED;
+  st.setHud([`${fmt(countTris(root))} треугольников`]);
+  return { stage: st, dispose() { st.dispose(); } };
+}
+
+// ------------------------------------------------------------------------------------------------ площадь целиком
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+function flatShape(points, y = 0) {
+  const s = new THREE.Shape(points.map(([x, z]) => new THREE.Vector2(x, -z)));
+  return new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2).translate(0, y, 0);
+}
+function extrudeShape(points, depth, top = 0) {
+  const s = new THREE.Shape(points.map(([x, z]) => new THREE.Vector2(x, z)));
+  return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false }).rotateX(Math.PI / 2).translate(0, top, 0);
+}
+function stripGeo(pts, width, y) {
+  const parts = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    if (len < 0.01) continue;
+    const g = new THREE.PlaneGeometry(len + width * 0.5, width).rotateX(-Math.PI / 2);
+    g.rotateY(-Math.atan2(z1 - z0, x1 - x0));
+    g.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
+    parts.push(g);
+  }
+  return parts;
+}
+function wallGeo(pts, h, thick) {
+  const parts = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    if (len < 0.01) continue;
+    const g = new THREE.BoxGeometry(len + thick, h, thick);
+    g.rotateY(-Math.atan2(z1 - z0, x1 - x0));
+    g.translate((x0 + x1) / 2, h / 2, (z0 + z1) / 2);
+    parts.push(g);
+  }
+  return parts;
+}
+// детерминированный «случай» — чтобы задник не прыгал между запусками
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function inPoly(x, z, poly) {
+  let ins = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i], [xj, zj] = poly[j];
+    if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) ins = !ins;
+  }
+  return ins;
+}
+function roseTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = '#efe0c2'; g.fillRect(0, 0, 512, 512);
+  g.translate(256, 256);
+  g.strokeStyle = '#c9643b'; g.lineWidth = 10; g.beginPath(); g.arc(0, 0, 236, 0, 7); g.stroke();
+  g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 200, 0, 7); g.stroke();
+  for (let i = 0; i < 16; i++) {
+    const long = i % 4 === 0, mid = i % 2 === 0;
+    const r = long ? 220 : mid ? 150 : 110, w = long ? 34 : 22;
+    g.save(); g.rotate(i * Math.PI / 8);
+    g.fillStyle = long ? (i === 0 ? '#c9643b' : '#2a1f24') : mid ? '#d9a441' : '#7a9a7e';
+    g.beginPath(); g.moveTo(0, -r); g.lineTo(w, 0); g.lineTo(0, w * 0.4); g.lineTo(-w, 0); g.closePath(); g.fill();
+    g.restore();
+  }
+  g.fillStyle = '#ffd35a'; g.beginPath(); g.arc(0, 0, 18, 0, 7); g.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+
+// ------------------------------------------------------------------------------------------------ надпись TIREDWOOD на холме
+// Упрощённая копия client/lobby/tiredwood.ts: те же буквы-плиты (рубленый шрифт блоками), высота 45 м, белые без света и
+// тумана, тёмные стойки. Стоят по дуге на расстоянии d от колеса, середина слова — на азимуте bearing (от севера к востоку).
+const TW = { S: 0.21, GAP: 0.17, DEPTH: 0.07 };
+function twRect(x0, y0, x1, y1) { return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
+function twRounded(x0, y0, x1, y1, r, seg = 6) {
+  const out = [];
+  const arc = (cx, cy, rad, a0) => {
+    if (rad <= 0) { out.push([cx, cy]); return; }
+    for (let i = 0; i <= seg; i++) { const a = a0 + (i / seg) * (Math.PI / 2); out.push([cx + Math.cos(a) * rad, cy + Math.sin(a) * rad]); }
+  };
+  arc(x0 + r[0], y0 + r[0], r[0], Math.PI); arc(x1 - r[1], y0 + r[1], r[1], Math.PI * 1.5);
+  arc(x1 - r[2], y1 - r[2], r[2], 0); arc(x0 + r[3], y1 - r[3], r[3], Math.PI / 2);
+  return out;
+}
+function twSlant(xb, xt, t) { return [[xb - t / 2, 0], [xb + t / 2, 0], [xt + t / 2, 1], [xt - t / 2, 1]]; }
+function twGlyph(ch) {
+  const S = TW.S;
+  switch (ch) {
+    case 'T': { const w = 0.66, c = w / 2; return { w, parts: [{ outer: [[c - S / 2, 0], [c + S / 2, 0], [c + S / 2, 1 - S], [w, 1 - S], [w, 1], [0, 1], [0, 1 - S], [c - S / 2, 1 - S]] }], feet: [c - 0.05, c + 0.05] }; }
+    case 'I': return { w: S + 0.01, parts: [{ outer: twRect(0, 0, S + 0.01, 1) }], feet: [(S + 0.01) / 2] };
+    case 'R': { const w = 0.64; return { w, parts: [{ outer: twRect(0, 0, S, 1) }, { outer: twRounded(0, 0.4, w, 1, [0, 0.2, 0.24, 0]), holes: [twRounded(S, 0.57, w - S, 1 - S, [0, 0.07, 0.07, 0])] }, { outer: [[0.18, 0.44], [0.42, 0.44], [w, 0], [w - 0.25, 0]] }], feet: [S / 2, w - 0.12] }; }
+    case 'E': { const w = 0.56, m = 0.5; return { w, parts: [{ outer: [[0, 0], [w, 0], [w, S], [S, S], [S, m - S / 2], [w * 0.9, m - S / 2], [w * 0.9, m + S / 2], [S, m + S / 2], [S, 1 - S], [w, 1 - S], [w, 1], [0, 1]] }], feet: [0.12, w - 0.13] }; }
+    case 'D': { const w = 0.66; return { w, parts: [{ outer: twRounded(0, 0, w, 1, [0, 0.32, 0.32, 0]), holes: [twRounded(S, S, w - S, 1 - S, [0, 0.13, 0.13, 0])] }], feet: [0.12, 0.38] }; }
+    case 'W': { const w = 1, t = S * 1.12; return { w, parts: [{ outer: twSlant(0.27, t / 2, t) }, { outer: twSlant(0.27, 0.5, t) }, { outer: twSlant(0.73, 0.5, t) }, { outer: twSlant(0.73, w - t / 2, t) }], feet: [0.27, 0.73] }; }
+    case 'O': { const w = 0.74; return { w, parts: [{ outer: twRounded(0, 0, w, 1, [0.3, 0.3, 0.3, 0.3]), holes: [twRounded(S, S, w - S, 1 - S, [0.12, 0.12, 0.12, 0.12])] }], feet: [0.26, 0.48] }; }
+    default: return null;
+  }
+}
+function twOrient(pts, ccw) {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length]; a += x0 * y1 - x1 * y0; }
+  return a > 0 === ccw ? pts : [...pts].reverse();
+}
+/** Надпись: { group, center (середина слова), top (верх букв), d } */
+// letters — раскладка игры из layout.json (sign.letters: x, y низа плиты, z, yawDeg); rot — поворот всей надписи вокруг колеса, рад
+function buildTiredwood({ wheel, bearing, d = 530, h = 45, lineY = 37, word = 'TIREDWOOD', letters = null, rot = 0, hump = true }) {
+  const glyphs = [...word].map(twGlyph).filter(Boolean);
+  const useL = Array.isArray(letters) && letters.length === glyphs.length;
+  const ang = (w) => 2 * Math.atan2((w * h) / 2, d);
+  let total = glyphs.reduce((a, g) => a + ang(g.w), 0) + (glyphs.length - 1) * (TW.GAP * h) / d;
+  let beta = bearing - total / 2;
+  let seed = 61;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const faces = [], posts = [];
+  const cs = Math.cos(rot), sn = Math.sin(rot);
+  const turn = (x, z) => { const ox = x - wheel.x, oz = z - wheel.z; return [wheel.x + ox * cs - oz * sn, wheel.z + oz * cs + ox * sn]; };
+  const at = [];
+  for (const [gi, g] of glyphs.entries()) {
+    const bc = beta + ang(g.w) / 2;
+    beta += ang(g.w) + (TW.GAP * h) / d;
+    let x, z, y, yaw, lift;
+    const lean = 0.01 + rnd() * 0.03;
+    if (useL) {
+      const Lt = letters[gi];
+      [x, z] = turn(Lt.x, Lt.z);
+      yaw = THREE.MathUtils.degToRad(Lt.yawDeg ?? 0) - rot;
+      y = Lt.y; lift = Math.max(2, y - lineY);
+      rnd();
+    } else {
+      x = wheel.x + Math.sin(bc) * d; z = wheel.z - Math.cos(bc) * d;
+      yaw = Math.atan2(wheel.x - x, wheel.z - z) + (rnd() - 0.5) * 0.05;
+      lift = h * (0.05 + 0.07 * rnd()); y = lineY + lift;
+    }
+    at.push([x, y, z]);
+    for (const p of g.parts) {
+      const v = (q) => new THREE.Vector2(q[0] * h, q[1] * h);
+      const shape = new THREE.Shape(twOrient(p.outer, true).map(v));
+      for (const hole of p.holes || []) shape.holes.push(new THREE.Path(twOrient(hole, false).map(v)));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: TW.DEPTH * h, bevelEnabled: false, steps: 1 });
+      geo.translate(-(g.w * h) / 2, 0, -TW.DEPTH * h);
+      // объём — цветом граней: лицо белое, торцы светло-серые (сверху светлее), спина серее
+      const n = geo.getAttribute('normal'), col = new Float32Array(n.count * 3);
+      for (let i = 0; i < n.count; i++) { const nz = n.getZ(i); const t = nz > 0.5 ? 1 : nz < -0.5 ? 0.55 : 0.68 + 0.18 * n.getY(i); col.set([t, t, t], i * 3); }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.deleteAttribute('normal'); geo.deleteAttribute('uv');
+      geo.rotateX(-lean); geo.rotateY(yaw); geo.translate(x, y, z);
+      faces.push(geo);
+    }
+    for (const f of g.feet) {
+      const lx = (f - g.w / 2) * h, top = 0.22 * h, low = -lift - 4;
+      const post = new THREE.BoxGeometry(0.034 * h, top - low, 0.034 * h).translate(lx, (top + low) / 2, -TW.DEPTH * h * 0.5);
+      post.deleteAttribute('uv');
+      post.rotateY(yaw); post.translate(x, y, z);
+      posts.push(post);
+    }
+  }
+  const group = new THREE.Group();
+  const white = new THREE.Mesh(mergeGeometries(faces), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }));
+  const dark = new THREE.Mesh(mergeGeometries(posts), new THREE.MeshBasicMaterial({ color: 0x33373b, fog: false }));
+  white.frustumCulled = false; dark.frustumCulled = false;
+  group.add(dark, white);
+  // середина слова и его азимут с колеса — по фактическим буквам
+  const mid = at.reduce((a, p) => [a[0] + p[0] / at.length, a[1] + p[1] / at.length, a[2] + p[2] / at.length], [0, 0, 0]);
+  const dMid = Math.hypot(mid[0] - wheel.x, mid[2] - wheel.z);
+  const bMid = Math.atan2(mid[0] - wheel.x, -(mid[2] - wheel.z));
+  if (useL) { bearing = bMid; d = dMid; }
+  // холм под надписью: горб за буквами, склон у букв — на высоте lineY, гребень выше верха букв (как HILL_UP в игре:
+  // с площади за буквами склон, а не небо). Цвет — зелень в дымке (туман его съел бы)
+  const R = useL ? 240 : 300, H = useL ? Math.max(120, (lineY + h) * 1.6) : 72, back = R * Math.sqrt(1 - (lineY / H) ** 2);
+  const cx = wheel.x + Math.sin(bearing) * (d + back), cz = wheel.z - Math.cos(bearing) * (d + back);
+  const hillMat = new THREE.MeshLambertMaterial({ color: 0x9db08a, fog: false });
+  const hill = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 14, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.6, H / R, 1), hillMat);
+  hill.visible = hump;
+  hill.rotation.y = -bearing; // длинная ось горба — поперёк луча с колеса
+  hill.position.set(cx, -2, cz);
+  group.add(hill);
+  const center = useL ? V3(mid[0], mid[1] + h * 0.55, mid[2]) : V3(wheel.x + Math.sin(bearing) * d, lineY + h * 0.6, wheel.z - Math.cos(bearing) * d);
+  const top = useL ? Math.max(...at.map((p) => p[1])) + h : lineY + h * 1.12;
+  return { group, center, hillMat, d, top, at };
+}
+
+export async function plazaViewer(host, { assets, layout, models, extras = [], gameModels = [], tiredwood = null, npcs, signFor, labelFor, quarterOf, onPick, onReady, progress }) {
+  const st = new Stage(host, { fov: 45, near: 0.5, far: 1800, fps: 30 });
+  const { scene, camera, controls } = st;
+  const r = st.renderer;
+  const L = layout;
+  const C = L.center || { x: 8, z: -8 };
+  // ---------------------------------------------------------------- свет и небо
+  const hemi = new THREE.HemisphereLight(0xc6daf6, 0xd8b48a, 1.25);
+  const sun = new THREE.DirectionalLight(0xffdcae, 3.1);
+  const toSun = V3(-0.42, 0.86, 0.58).normalize();
+  const sc = V3(17, 0, -6);
+  sun.position.copy(sc).addScaledVector(toSun, 160);
+  sun.target.position.copy(sc);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.06;
+  Object.assign(sun.shadow.camera, { left: -64, right: 64, top: 64, bottom: -64, near: 20, far: 340 });
+  sun.shadow.camera.updateProjectionMatrix();
+  scene.add(hemi, sun, sun.target);
+  paintUniforms.uLookSunInv.value = 1.6 / Math.max(0.05, sun.intensity * 0.85);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, toneMapped: false, fog: false,
+    uniforms: { a: { value: new THREE.Color(0xffd9ad) }, b: { value: new THREE.Color(0x9cc4ee) }, c: { value: new THREE.Color(0x4f86d0) } },
+    vertexShader: 'varying vec3 p; void main(){ p = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+    fragmentShader: 'uniform vec3 a,b,c;\nvarying vec3 p;\nvoid main(){\nfloat h = max(p.y, 0.);\nvec3 col = mix(a, b, smoothstep(0., .18, h));\ncol = mix(col, c, smoothstep(.18, .8, h));\ngl_FragColor = vec4(col, 1.);\n#include <colorspace_fragment>\n}',
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), skyMat);
+  scene.add(sky);
+  scene.fog = new THREE.Fog(0xcfe0ef, 300, 1600);
+
+  // ---------------------------------------------------------------- земля, вода, задник
+  const M = (color, rough = 0.9) => paint(new THREE.MeshStandardMaterial({ color, roughness: rough }));
+  const matPave = M(0xe9dcc2), matQuay = M(0xb9aa90), matRock = M(0xb3a184, 1), matField = M(0xb8c46e), matHill = M(0x9aa47e);
+  const matStone = M(0xd6cbb6), matWood = M(0x9a7a58), matWhite = M(0xf4efe4, 0.7), matProm = M(0xf3e9d3);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200).rotateX(-Math.PI / 2), paint(new THREE.MeshStandardMaterial({ color: 0x5a8ea6, roughness: 0.3, metalness: 0.05 })));
+  water.position.y = -0.55;
+  water.receiveShadow = true;
+  scene.add(water);
+  const land = L.land?.polygon;
+  if (land) {
+    const g = extrudeShape(land, 3, 0);
+    const m = new THREE.Mesh(g, [matPave, matQuay]);
+    m.receiveShadow = true;
+    scene.add(m);
+  }
+  let cliffMesh = null;
+  if (L.land?.cliffPolygon) {
+    const cliff = cliffMesh = new THREE.Mesh(extrudeShape(L.land.cliffPolygon, 16, 15), matRock);
+    cliff.castShadow = true; cliff.receiveShadow = true;
+    scene.add(cliff);
+  }
+  // задник — город, как в игре (client/lobby/world.ts, landY): суша к востоку от площади (x > PLAZA_E, z < 22) и к северу
+  // (z < PLAZA_N, x > −30); у края — улица, вглубь — холмы, за надписью — подъём signHill (client/lobby/tiredwood.ts).
+  // Числа v5 — из layout.json sign.code (PLAZA_E/N, HILL_BEARING, HILL_UP); вода — только к югу от z 22 и к западу от x −30.
+  const SC = L.sign?.code || {};
+  const num = (k, d) => (typeof SC[k]?.now === 'number' ? SC[k].now : d);
+  const signNow = num('SIGN_BEARING', tiredwood?.bearingDeg ?? 54);
+  const T = {
+    E: num('PLAZA_E', L.land?.bbox?.x1 ?? 30), N: num('PLAZA_N', -26), QZ: 22, QX: -30, up: num('HILL_UP', 90),
+    hb: THREE.MathUtils.degToRad(num('HILL_BEARING', 62) + ((tiredwood?.bearingDeg ?? signNow) - signNow)), // холм поворачивается вместе с надписью
+  };
+  const wheel0 = (L.pavilions || []).find((p) => p.id === 'wheel')?.center || { x: 27, z: 13 };
+  const landDepth = (x, z) => Math.max(Math.min(x - T.E, T.QZ - z), Math.min(T.N - z, x - T.QX));
+  const signHillK = (x, z) => {
+    const dx = x - wheel0.x, dz = z - wheel0.z;
+    const along = dx * Math.sin(T.hb) - dz * Math.cos(T.hb), across = dx * Math.cos(T.hb) + dz * Math.sin(T.hb);
+    const t = Math.min(1, Math.max(0, (along - 400) / 400));
+    return t * t * (3 - 2 * t) * Math.exp(-0.5 * (across / 750) ** 2);
+  };
+  const STREET = -0.3; // в игре улица на 0,6 м ниже настила; здесь чуть выше нашей воды
+  const townY = (x, z) => {
+    const d = landDepth(x, z);
+    if (d < 0) return x > T.QX && z < T.QZ ? STREET : -3.2; // внутри рамки площади — ровная земля, снаружи — дно
+    const ramp = Math.min(1, Math.max(0, (d - 150) / 350));
+    const hl = Math.max(0, d - 70) * 0.1 + 34 * Math.sin(x * 0.006 + 0.4) * Math.cos(z * 0.0045 - 0.3) * ramp + T.up * signHillK(x, z);
+    const wob = 5 * Math.sin(x * 0.011 + 1.3) * Math.sin(z * 0.014 - 0.7) * Math.min(1, Math.max(0, (d - 60) / 120));
+    return STREET + Math.max(0, hl + wob);
+  };
+  {
+    // сетка 10 м; линии x = PLAZA_E и z = 22 — на узлах, чтобы кромка была ровной
+    const x0 = T.E - 150, x1 = T.E + 1070, z1 = T.QZ + 40, z0 = T.QZ - 1030;
+    const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0, (x1 - x0) / 10, (z1 - z0) / 10).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, 0, (z0 + z1) / 2);
+    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+    const cStreet = new THREE.Color(0xd8ccb0), cGreen = new THREE.Color(0x9db08a), cHigh = new THREE.Color(0x86a070), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i), y = townY(x, z), d = landDepth(x, z);
+      pos.setY(i, y);
+      c.copy(cStreet).lerp(cGreen, Math.min(1, Math.max(0, (d - 8) / 50))).lerp(cHigh, Math.min(1, Math.max(0, (y - 30) / 90)));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.computeVertexNormals();
+    const town = new THREE.Mesh(geo, paint(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 1 })));
+    town.receiveShadow = true;
+    scene.add(town);
+  }
+  if (L.land?.fieldPolygon) {
+    const f = new THREE.Mesh(extrudeShape(L.land.fieldPolygon, 3, 0.005), [matField, matQuay]);
+    f.receiveShadow = true;
+    scene.add(f);
+    const field = L.land.fieldPolygon;
+    const xs = field.map((p) => p[0]), zs = field.map((p) => p[1]);
+    const rand = rng(7), pts = [];
+    while (pts.length < 520) {
+      const x = Math.min(...xs) + rand() * (Math.max(...xs) - Math.min(...xs)), z = Math.min(...zs) + rand() * (Math.max(...zs) - Math.min(...zs));
+      if (inPoly(x, z, field) && !(z > -22.5 && z < -17.5)) pts.push([x, z]);
+      if (pts.length === 0 && rand() > 2) break;
+    }
+    const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.36, 7, 5), M(0xf2c230, 0.7), pts.length);
+    const stem = new THREE.InstancedMesh(new THREE.ConeGeometry(0.32, 1.3, 5).translate(0, 0.65, 0), M(0x6f9a3a), pts.length);
+    const mt = new THREE.Matrix4();
+    pts.forEach(([x, z], i) => { const s = 0.85 + rand() * 0.4; mt.makeScale(s, s, s).setPosition(x, 1.35 * s, z); head.setMatrixAt(i, mt); mt.makeScale(s, s, s).setPosition(x, 0, z); stem.setMatrixAt(i, mt); });
+    scene.add(head, stem);
+  }
+  {
+    // город: дома с черепицей и кипарисы по рельефу; в коридоре вида на надпись — только низкие дома и без рощ (§3а раскладки),
+    // на склоне за буквами — зелень
+    const rand = rng(3), n = 150;
+    const cor = L.sign?.corridor;
+    const inCorridor = (x, z) => { if (!cor) return false; const az = (THREE.MathUtils.radToDeg(Math.atan2(x - cor.x, -(z - cor.z))) + 360) % 360; return az >= cor.a0 && az <= cor.a1 && Math.hypot(x - cor.x, z - cor.z) < cor.dMax; };
+    const spot = (tries = 40) => {
+      for (let k = 0; k < tries; k++) {
+        const x = T.QX + 6 + rand() * 430, z = T.QZ - 4 - rand() * 440, d = landDepth(x, z);
+        if (d >= 5 && d < 320 && signHillK(x, z) < 0.12) return [x, z];
+      }
+      return null;
+    };
+    const houses = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), M(0xffffff), n);
+    const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.75, 1, 4).rotateY(Math.PI / 4).translate(0, 0.5, 0), M(0xc9643b, 0.8), n);
+    const walls = [0xf1ebe1, 0xf1d3ca, 0xefc8b2, 0xd3e6d2, 0xf0e7d6];
+    const mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    let nh = 0;
+    for (let i = 0; i < n * 2 && nh < n; i++) {
+      const p = spot(); if (!p) continue;
+      const [x, z] = p;
+      const low = inCorridor(x, z);
+      const w = 5 + rand() * 5, d = 5 + rand() * 4, h = low ? 3.4 + rand() * 1.6 : 4.5 + rand() * 6;
+      const y = Math.min(townY(x - w / 2, z), townY(x + w / 2, z), townY(x, z - d / 2), townY(x, z + d / 2));
+      q.setFromEuler(e.set(0, (rand() - 0.5) * 0.5, 0));
+      mt.compose(V3(x, y, z), q, V3(w, h, d)); houses.setMatrixAt(nh, mt); houses.setColorAt(nh, new THREE.Color(walls[nh % walls.length]));
+      mt.compose(V3(x, y + h, z), q, V3(w * 1.02, 2 + rand(), d * 1.02)); roofs.setMatrixAt(nh, mt);
+      nh++;
+    }
+    houses.count = roofs.count = nh;
+    houses.castShadow = roofs.castShadow = true;
+    scene.add(houses, roofs);
+    const nc = 90, cyp = new THREE.InstancedMesh(new THREE.ConeGeometry(0.9, 7, 6).translate(0, 3.5, 0), M(0x3c6b3f), nc);
+    let ncy = 0;
+    for (let i = 0; i < nc * 3 && ncy < nc; i++) {
+      const p = spot(); if (!p || inCorridor(p[0], p[1])) continue;
+      mt.compose(V3(p[0], townY(p[0], p[1]), p[1]), q.identity(), V3(1, 0.8 + rand() * 0.5, 1)); cyp.setMatrixAt(ncy++, mt);
+    }
+    cyp.count = ncy;
+    cyp.castShadow = true;
+    scene.add(cyp);
+  }
+
+  // ---------------------------------------------------------------- площадь, кварталы, променады, балюстрады
+  const hub = new THREE.Mesh(new THREE.CircleGeometry(15, 72).rotateX(-Math.PI / 2), M(0xf2e6cd));
+  hub.position.set(C.x, 0.025, C.z); hub.receiveShadow = true;
+  scene.add(hub);
+  const rose = new THREE.Mesh(new THREE.CircleGeometry(4.5, 48).rotateX(-Math.PI / 2), paint(new THREE.MeshStandardMaterial({ map: roseTexture(), roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
+  rose.position.set(C.x, 0.05, C.z); rose.receiveShadow = true;
+  scene.add(rose);
+  const qColors = {};
+  for (const q of L.quarters || []) {
+    qColors[q.id] = q.color;
+    if (!q.poly) continue;
+    const m = new THREE.Mesh(flatShape(q.poly, 0.012), new THREE.MeshBasicMaterial({ color: q.color, transparent: true, opacity: 0.13, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, toneMapped: false }));
+    m.renderOrder = 1;
+    scene.add(m);
+  }
+  const promParts = (L.promenades || []).flatMap((p) => stripGeo(p.pts, Math.min(p.width || 4, 9), 0.035));
+  if (promParts.length) {
+    const m = new THREE.Mesh(mergeGeometries(promParts), matProm);
+    m.material.polygonOffset = true; m.material.polygonOffsetFactor = -1.5; m.material.polygonOffsetUnits = -1.5;
+    m.receiveShadow = true;
+    scene.add(m);
+  }
+  const balParts = (L.balustrades || []).flatMap((b) => wallGeo(b.pts, 0.95, 0.28));
+  if (balParts.length) { const m = new THREE.Mesh(mergeGeometries(balParts), matWhite); m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+  // фонари площади
+  const lamps = L.objects?.lamps || [];
+  if (lamps.length) {
+    const post = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.12, 4.2, 8).translate(0, 2.1, 0), M(0x2e3330, 0.5), lamps.length);
+    const [bg] = bulbParts();
+    const lampHead = new THREE.InstancedMesh(bg, new THREE.MeshBasicMaterial({ color: 0xffe3a6, toneMapped: false }), lamps.length);
+    const mt = new THREE.Matrix4();
+    lamps.forEach(([x, z], i) => { post.setMatrixAt(i, mt.makeTranslation(x, 0, z)); lampHead.setMatrixAt(i, mt.makeScale(5, 5, 5).setPosition(x, 4.3, z)); });
+    post.castShadow = true;
+    scene.add(post, lampHead);
+  }
+  // ---------------------------------------------------------------- v5: Приморский сад, Бульварный сквер с фонтаном, партер бульвара
+  {
+    const rand = rng(11);
+    const mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const matLawn = paint(new THREE.MeshStandardMaterial({ color: 0x9fbf6e, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1.2, polygonOffsetUnits: -1.2 }));
+    const garden = (L.pavilions || []).find((p) => p.id === 'garden' && Array.isArray(p.area));
+    const trees = [], palms = [], beds = [], shrubs = [];
+    if (garden) {
+      const [x0, z0, x1, z1] = garden.area;
+      // газоны четырьмя куртинами между дорожками; кромка у воды — дорожка
+      const lawnParts = [];
+      const cols = [[x0 + 1, x0 + (x1 - x0) / 2 - 1.5], [x0 + (x1 - x0) / 2 + 1.5, x1 - 1]], rws = [[z0 + 1, -0.8], [1.2, z1 - 4]];
+      for (const [a, b] of cols) for (const [c, d] of rws) lawnParts.push(new THREE.BoxGeometry(b - a, 0.06, d - c).translate((a + b) / 2, 0.03, (c + d) / 2));
+      const lawn = new THREE.Mesh(mergeGeometries(lawnParts), matLawn);
+      lawn.receiveShadow = true;
+      scene.add(lawn);
+      for (const [a, b] of cols) for (const [c, d] of rws) {
+        const south = c > 0;
+        for (let i = 0; i < (south ? 5 : 4); i++) {
+          const x = a + 1.5 + rand() * (b - a - 3), z = c + 1.2 + rand() * (d - c - 2.4);
+          if (south) (i % 2 ? trees : palms).push([x, z]); else (i % 2 ? beds : shrubs).push([x, z]);
+        }
+      }
+      // беседка-«ракушка» у восточного края
+      const gz = new THREE.Group();
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(2.4, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 2.8, 0), M(0xf4efe4, 0.6));
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.3, 18).translate(0, 0.15, 0), matStone);
+      gz.add(dome, floor);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; const c = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 2.8, 8).translate(0, 1.4, 0), M(0xf4efe4, 0.6)); c.position.set(Math.cos(a) * 2.1, 0, Math.sin(a) * 2.1); gz.add(c); }
+      gz.position.set(x1 - 4.5, 0, (z0 + z1) / 2 + 6);
+      gz.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      scene.add(gz);
+    }
+    // партер бульвара: низкие самшитовые бордюры и торшеры по обеим кромкам, деревья — только у площади (x < 31)
+    const bv = L.boulevard || L.objects?.boulevard;
+    const torch = [];
+    if (bv?.from && bv?.to) {
+      const [ax, az] = bv.from, [bx, bz] = bv.to, len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux, half = (bv.width || 8) / 2;
+      const hedgeParts = [];
+      for (let t = 3; t < len - 4; t += 6.5) {
+        for (const sgn of [-1, 1]) {
+          const cx = ax + ux * (t + 2) + nx * sgn * (half + 0.9), cz = az + uz * (t + 2) + nz * sgn * (half + 0.9);
+          hedgeParts.push(new THREE.BoxGeometry(4.2, 0.55, 0.9).rotateY(-Math.atan2(uz, ux)).translate(cx, 0.28, cz));
+          torch.push([ax + ux * t + nx * sgn * (half + 0.9), az + uz * t + nz * sgn * (half + 0.9)]);
+          if (sgn < 0 && ax + ux * t < 31) trees.push([ax + ux * t + nx * sgn * (half + 3), az + uz * t + nz * sgn * (half + 3)]);
+          else if (rand() > 0.4) beds.push([ax + ux * (t + 4.3) + nx * sgn * (half + 1.6), az + uz * (t + 4.3) + nz * sgn * (half + 1.6)]);
+        }
+      }
+      if (hedgeParts.length) { const m = new THREE.Mesh(mergeGeometries(hedgeParts), M(0x5f8a46, 0.9)); m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+    }
+    // фонтан сквера (низкий — это коридор вида на надпись)
+    const fo = L.objects?.square?.fountain;
+    if (fo && typeof fo.x === 'number') {
+      const g = new THREE.Group(), R = fo.r || 2.6, H = fo.h || 2.4;
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(R, R + 0.15, 0.6, 28).translate(0, 0.3, 0), matStone);
+      const pool = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.25, R - 0.25, 0.04, 28).translate(0, 0.56, 0), paint(new THREE.MeshStandardMaterial({ color: 0x6fb7d0, roughness: 0.15 })));
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, H - 0.6, 12).translate(0, 0.3 + (H - 0.6) / 2, 0), matStone);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.4, 0.35, 20).translate(0, H * 0.72, 0), matStone);
+      const jet = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 10).translate(0, H + 0.1, 0), new THREE.MeshBasicMaterial({ color: 0xdff4fb, transparent: true, opacity: 0.85, toneMapped: false }));
+      g.add(rim, pool, stem, bowl, jet);
+      g.position.set(fo.x, 0, fo.z);
+      g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      scene.add(g);
+      st.label('Фонтан сквера', V3(fo.x, H + 1.2, fo.z), { maxDist: 45, cls: 'npc' });
+    }
+    const inst = (geo, mat, pts, sc = () => 1, y = 0) => {
+      if (!pts.length) return;
+      const m = new THREE.InstancedMesh(geo, mat, pts.length);
+      pts.forEach(([x, z], i) => { const k = sc(); q.setFromEuler(e.set(0, rand() * 6.28, 0)); mt.compose(V3(x, y, z), q, V3(k, k, k)); m.setMatrixAt(i, mt); });
+      m.castShadow = true; m.receiveShadow = true;
+      scene.add(m);
+    };
+    inst(new THREE.ConeGeometry(0.85, 6.5, 7).translate(0, 3.25, 0), M(0x3c6b3f), trees, () => 0.8 + rand() * 0.4);
+    inst(new THREE.CylinderGeometry(0.16, 0.24, 5.4, 6).translate(0, 2.7, 0), M(0x8a6a4a), palms);
+    inst(new THREE.IcosahedronGeometry(1.5, 0).scale(1, 0.45, 1).translate(0, 5.6, 0), M(0x4f8f45), palms.map((p) => p), () => 1, 0);
+    inst(new THREE.CylinderGeometry(1.1, 1.2, 0.35, 14).translate(0, 0.18, 0), M(0xe08aa0, 0.8), beds, () => 0.8 + rand() * 0.5);
+    inst(new THREE.IcosahedronGeometry(0.7, 0).translate(0, 0.6, 0), M(0x5f8a46), shrubs, () => 0.8 + rand() * 0.6);
+    if (torch.length) {
+      const post = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.08, 3.2, 6).translate(0, 1.6, 0), M(0x2e3330, 0.5), torch.length);
+      const [bg] = bulbParts();
+      const head = new THREE.InstancedMesh(bg, new THREE.MeshBasicMaterial({ color: 0xffe3a6, toneMapped: false }), torch.length);
+      torch.forEach(([x, z], i) => { post.setMatrixAt(i, mt.makeTranslation(x, 0, z)); head.setMatrixAt(i, mt.makeScale(4, 4, 4).setPosition(x, 3.3, z)); });
+      post.castShadow = true;
+      scene.add(post, head);
+    }
+  }
+
+  // точка появления
+  const spawn = L.spawn || { x: 8, z: -5.6 };
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 3).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xc9643b, toneMapped: false }));
+  arrow.position.set(spawn.x, 0.4, spawn.z);
+  arrow.rotation.y = typeof spawn.yaw === 'number' ? spawn.yaw : 0; // yaw игрока: 0 — на север, взгляд (−sin, −cos)
+  scene.add(arrow);
+  st.label('Точка появления', arrow, { off: 1.2, maxDist: 70, cls: 'npc' });
+
+  // ---------------------------------------------------------------- маяк и мостки (стоят на месте), молы выбранного варианта
+  let lighthouseObj = null, lighthouseLbl = null;
+  const portV = L.port ? Object.values(L.port).find((v) => v?.lighthouseKept) : null;
+  const lk = portV?.lighthouseKept || { decks: [[-21, 22, -17, 38], [-24, 38, -14, 46], [-17, 36, -14, 38]], lighthouse: { x: -19, z: 43, r: 2.4 } };
+  const deckParts = [];
+  for (const [x0, z0, x1, z1] of lk.decks || []) deckParts.push(new THREE.BoxGeometry(x1 - x0, 0.5, z1 - z0).translate((x0 + x1) / 2, -0.15, (z0 + z1) / 2));
+  if (deckParts.length) { const m = new THREE.Mesh(mergeGeometries(deckParts), matWood); m.receiveShadow = true; m.castShadow = true; scene.add(m); }
+  if (lk.lighthouse) {
+    const { x, z, r: lr = 2.4 } = lk.lighthouse;
+    const tower = new THREE.Group();
+    const t1 = new THREE.Mesh(new THREE.CylinderGeometry(lr * 0.62, lr, 13, 20).translate(0, 6.5, 0), M(0xf5f1e8, 0.6));
+    const t2 = new THREE.Mesh(new THREE.CylinderGeometry(lr * 0.66, lr * 0.66, 1.4, 20).translate(0, 13.7, 0), M(0xcf4a3d, 0.5));
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(lr * 0.45, lr * 0.45, 1.6, 16).translate(0, 15.2, 0), new THREE.MeshBasicMaterial({ color: 0xffe2a0, toneMapped: false }));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(lr * 0.62, 1.8, 16).translate(0, 16.9, 0), M(0xcf4a3d, 0.5));
+    for (const m of [t1, t2, cap]) { m.castShadow = true; m.receiveShadow = true; }
+    tower.add(t1, t2, lamp, cap);
+    tower.position.set(x, 0, z);
+    scene.add(tower);
+    lighthouseObj = tower;
+    lighthouseLbl = st.label('Маяк', tower, { off: 19, maxDist: 160 });
+  }
+  const chosenDecks = [];
+  if (L.port) {
+    for (const v of Object.values(L.port)) if (v?.chosen || v?.selected) chosenDecks.push(...(v.decks || []));
+  }
+
+  // ---------------------------------------------------------------- павильоны: заглушки
+  const SPECIAL_SKIP = new Set(['rose']);
+  const stubs = new Map(); // id -> Group
+  const pickables = [];
+  const wallM = M(0xf1e7d4, 0.85), doorM = M(0x2f5c4a, 0.4);
+  const topMats = {};
+  // крыша заглушки — цвет квартала, приглушённый к штукатурке: видно квартал, но коробка не спорит с готовыми павильонами
+  const topM = (q) => (topMats[q] ||= M(new THREE.Color(qColors[q] || '#c9643b').lerp(new THREE.Color(0xf1e7d4), 0.38), 0.8));
+  const yawOf = (p) => -THREE.MathUtils.degToRad(p.facing?.compassDeg || 0);
+  const labelPos = new Map();
+  function stubFor(p) {
+    const grp = new THREE.Group();
+    const q = p.quarter;
+    const h = Math.max(0.4, Math.min(30, p.height || 1));
+    if (p.id === 'wheel' && p.box) {
+      const cx = (p.box.x0 + p.box.x1) / 2, cz = (p.box.z0 + p.box.z1) / 2, R = Math.min(9, (p.height || 18) / 2 - 0.6);
+      const w = new THREE.Group();
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.22, 8, 48), M(0xf4efe4, 0.5));
+      w.add(ring);
+      for (let i = 0; i < 8; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.12, R * 2, 0.12), M(0xd63c5e, 0.5)); s.rotation.z = i * Math.PI / 8; w.add(s); }
+      for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; const cab = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), M([0xcf4a3d, 0xf2cf4a, 0x2fa7a0, 0xf28c28][i % 4], 0.5)); cab.position.set(Math.cos(a) * R, Math.sin(a) * R - 0.7, 0); w.add(cab); }
+      w.rotation.y = Math.PI / 2;
+      w.position.set(cx, R + 0.8, cz);
+      const legs = new THREE.Mesh(new THREE.BoxGeometry(1.2, R + 0.8, 3), M(0xf4efe4, 0.6));
+      legs.position.set(cx, (R + 0.8) / 2, cz);
+      grp.add(w, legs);
+      grp.traverse((o) => { if (o.isMesh) { o.castShadow = true; } });
+      labelPos.set(p.id, V3(cx, R * 2 + 1.6, cz));
+      return grp;
+    }
+    const boxes = [];
+    if (p.box) boxes.push({ ...p.box, h });
+    if (p.donjon) { const d = Array.isArray(p.donjon) ? { x0: p.donjon[0], z0: p.donjon[1], x1: p.donjon[2], z1: p.donjon[3] } : p.donjon; if (d.x0 != null) boxes.push({ ...d, h: d.h || 18 }); }
+    for (const b of boxes) {
+      const w = Math.abs(b.x1 - b.x0), d = Math.abs(b.z1 - b.z0);
+      const geo = new THREE.BoxGeometry(Math.max(0.3, w), b.h, Math.max(0.3, d)).translate(0, b.h / 2, 0);
+      const m = new THREE.Mesh(geo, [wallM, wallM, topM(q), wallM, wallM, wallM]);
+      m.position.set((b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2);
+      m.castShadow = true; m.receiveShadow = true;
+      grp.add(m);
+    }
+    if (p.circle && !p.box && p.id !== 'rose') {
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(p.circle.r, p.circle.r, h, 28).translate(0, h / 2, 0), [wallM, topM(q), wallM]);
+      cyl.position.set(p.circle.x, 0, p.circle.z);
+      cyl.castShadow = true;
+      grp.add(cyl);
+    }
+    if (p.points) {
+      p.points.forEach((pt, i) => {
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.5, 24).translate(0, 0.25, 0), M([0xcf4a3d, 0xf2c230, 0x2fa7a0][i % 3], 0.5));
+        tr.position.set(pt.x, 0, pt.z); tr.castShadow = true;
+        grp.add(tr);
+      });
+    }
+    if (p.decks) {
+      for (const dk of p.decks) {
+        const [x0, z0, x1, z1] = Array.isArray(dk) ? dk : dk.b;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.8, z1 - z0).translate(0, -0.1, 0), matStone);
+        m.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2); m.receiveShadow = true;
+        grp.add(m);
+      }
+    }
+    // дверь на фасаде — видно, куда смотрит вход
+    if (p.box && h >= 2 && p.facing && !p.open) {
+      const cx = (p.box.x0 + p.box.x1) / 2, cz = (p.box.z0 + p.box.z1) / 2;
+      const yaw = yawOf(p);
+      const dx = -Math.sin(yaw), dz = -Math.cos(yaw);
+      const half = Math.abs(dx) > 0.5 ? Math.abs(p.box.x1 - p.box.x0) / 2 : Math.abs(p.box.z1 - p.box.z0) / 2;
+      const door = new THREE.Mesh(new THREE.BoxGeometry(Math.min(2.4, half * 1.2), Math.min(2.6, h * 0.8), 0.2).translate(0, Math.min(2.6, h * 0.8) / 2, 0), doorM);
+      door.position.set(cx + dx * (half + 0.06), 0, cz + dz * (half + 0.06));
+      door.rotation.y = yaw;
+      grp.add(door);
+    }
+    if (!grp.children.length) return null;
+    const bb = new THREE.Box3().setFromObject(grp);
+    labelPos.set(p.id, V3((bb.min.x + bb.max.x) / 2, bb.max.y + 0.6, (bb.min.z + bb.max.z) / 2));
+    return grp;
+  }
+  const pavById = new Map((L.pavilions || []).map((p) => [p.id, p]));
+  const labelsById = new Map();
+  for (const p of L.pavilions || []) {
+    if (SPECIAL_SKIP.has(p.id)) continue;
+    const g = stubFor(p);
+    if (!g) continue;
+    g.userData.pick = p.id;
+    stubs.set(p.id, g);
+    pickables.push(g);
+    scene.add(g);
+    const lp = labelPos.get(p.id);
+    const far = p.far || Math.hypot(lp.x - C.x, lp.z - C.z) > 70;
+    labelsById.set(p.id, st.label(labelFor(p.id), lp, { maxDist: far ? 140 : 95, cls: 'stub' }));
+  }
+  for (const dk of chosenDecks) {
+    const [x0, z0, x1, z1] = Array.isArray(dk) ? dk : dk.b;
+    const wood = !Array.isArray(dk) && dk.kind === 'wood';
+    const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, wood ? 0.4 : 0.8, z1 - z0).translate(0, wood ? -0.05 : -0.1, 0), wood ? matWood : matStone);
+    m.position.set((x0 + x1) / 2, Array.isArray(dk) ? 0 : (dk.y ?? 0), (z0 + z1) / 2); m.receiveShadow = true;
+    scene.add(m);
+  }
+  // красный огонь на голове мола выбранного варианта
+  for (const pv of Object.values(L.port || {})) {
+    const lt = (pv?.chosen || pv?.selected) && pv.light;
+    if (!lt || typeof lt.x !== 'number') continue;
+    const h = lt.h || 3;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, h, 8).translate(0, h / 2, 0), M(0xf5f1e8, 0.6));
+    const lampR = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 8).translate(0, h + 0.2, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(lt.color || '#e53935'), toneMapped: false }));
+    const g = new THREE.Group(); g.add(pole, lampR); g.position.set(lt.x, -0.1, lt.z); pole.castShadow = true;
+    scene.add(g);
+  }
+  // подписи кварталов — видны издалека
+  const qCenter = (q) => {
+    if (q.circle) return V3(q.circle.x, 0, q.circle.z);
+    const xs = q.poly.map((p) => p[0]), zs = q.poly.map((p) => p[1]);
+    let cx = xs.reduce((a, b) => a + b, 0) / xs.length, cz = zs.reduce((a, b) => a + b, 0) / zs.length;
+    if (!inPoly(cx, cz, q.poly)) { cx = (Math.min(...xs) + Math.max(...xs)) / 2; cz = (Math.min(...zs) + Math.max(...zs)) / 2; }
+    return V3(cx, 0, cz);
+  };
+  const quarterCenters = {};
+  for (const q of L.quarters || []) {
+    const c = qCenter(q);
+    if (q.id === 'port') c.set(-6, 0, 20);
+    if (q.id === 'farm') c.set(56, 0, -24);
+    quarterCenters[q.id] = c;
+    const Lb = st.label(quarterOf(q.id), c.clone().setY(8), { minDist: 70, cls: 'qlbl' });
+    Lb.el.style.setProperty('--qc', q.color);
+  }
+
+  // ---------------------------------------------------------------- камера и виды
+  // ---------------------------------------------------------------- надпись TIREDWOOD на холме (как в игре — азимут от колеса)
+  const wheelP = pavById.get('wheel');
+  const wheelAt = wheelP?.center ? { x: wheelP.center.x, z: wheelP.center.z } : { x: 27, z: 13 };
+  let tw = null;
+  if (tiredwood && typeof tiredwood.bearingDeg === 'number') {
+    const LS = L.sign || {};
+    const base = LS.code?.SIGN_BEARING?.now;
+    const letters = tiredwood.fromLayout !== false && Array.isArray(LS.letters) && typeof base === 'number' ? LS.letters : null;
+    tw = buildTiredwood({
+      wheel: wheelAt, bearing: THREE.MathUtils.degToRad(tiredwood.bearingDeg), d: tiredwood.distanceM || 530, h: tiredwood.letterH || 45, lineY: tiredwood.lineY ?? 37,
+      letters, rot: letters ? THREE.MathUtils.degToRad(tiredwood.bearingDeg - base) : 0, hump: false,
+    });
+    scene.add(tw.group);
+    const sp = L.spawn || { x: 8, z: -5.6 };
+    const dSpawn = tw.at.reduce((a, p) => a + Math.hypot(p[0] - sp.x, p[2] - sp.z), 0) / tw.at.length;
+    st.label(`TIREDWOOD — на холме за городом, ~${Math.round(dSpawn / 10) * 10} м от спавна`, tw.center.clone().setY(tw.top + 6), { maxDist: Infinity, cls: 'qlbl tw' });
+  }
+  const bb0 = L.land?.bbox || { x0: -30, x1: 64, z0: -56, z1: 22 };
+  const BB = { cx: (bb0.x0 + bb0.x1) / 2, cz: (bb0.z0 + bb0.z1) / 2, span: Math.max(bb0.x1 - bb0.x0, bb0.z1 - bb0.z0) };
+  const VIEWS = {
+    overview: [V3(BB.cx + BB.span * 0.3, BB.span * 0.62, BB.cz + BB.span * 0.75), V3(BB.cx - 4, 0, BB.cz)],
+    // камера лобби: в 4,2 м за игроком, глаз ~2,4 м; взгляд по yaw спавна, чуть вверх — чтобы в кадр вошла надпись над крышами
+    spawn: (() => {
+      const yw = typeof spawn.yaw === 'number' ? spawn.yaw : 0, dx = -Math.sin(yw), dz = -Math.cos(yw);
+      const cam = spawn.camera && typeof spawn.camera.x === 'number' ? spawn.camera : { x: spawn.x - dx * 4.2, z: spawn.z - dz * 4.2 };
+      return [V3(cam.x, 2.4, cam.z), V3(spawn.x + dx * 40, 2.4 + 40 * Math.tan(THREE.MathUtils.degToRad(4)), spawn.z + dz * 40)];
+    })(),
+    top: [V3(BB.cx, BB.span * 1.35, BB.cz + 10), V3(BB.cx, 0, BB.cz)],
+  };
+  if (tw) {
+    // с колеса (высота ~18 м) на надпись: цель — в 40 м по лучу, чуть выше глаз
+    const dir = tw.center.clone().setY(0).sub(V3(wheelAt.x, 0, wheelAt.z)).normalize();
+    VIEWS.tiredwood = [V3(wheelAt.x - dir.x * 14, 22, wheelAt.z - dir.z * 14), V3(wheelAt.x + dir.x * 40, 20, wheelAt.z + dir.z * 40)];
+  }
+  for (const [id, c] of Object.entries(quarterCenters)) {
+    const span = id === 'hub' ? 26 : id === 'port' ? 44 : 36;
+    VIEWS[id] = [V3(c.x + span * 0.35, span * 0.95, c.z + span * 1.05), V3(c.x, 2, c.z)];
+  }
+  // ферма: с устья бульвара вдоль оси на арку «Огороды» (за ней калитка, над ней — надпись)
+  const bvv = L.boulevard || L.objects?.boulevard;
+  if (bvv?.from && bvv?.to) {
+    const [ax, az] = bvv.from, [bx, bz] = bvv.to, len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
+    VIEWS.farm = [V3(ax - ux * 10 + uz * 6, 14, az - uz * 10 - ux * 6), V3(bx + ux * 4, 2.5, bz + uz * 4)];
+  }
+  // узкое окно (телефон) — отодвигаем камеру, чтобы в кадр влезло то же, что на десктопе
+  const asp = (host.clientWidth || 1) / (host.clientHeight || 1);
+  if (asp < 1.4) for (const [id, [p, t]] of Object.entries(VIEWS)) if (id !== 'spawn' && id !== 'tiredwood') p.sub(t).multiplyScalar(Math.min(1.9, Math.pow(1.6 / asp, 0.75))).add(t);
+  camera.position.copy(VIEWS.overview[0]);
+  controls.target.copy(VIEWS.overview[1]);
+  controls.maxPolarAngle = Math.PI * 0.48;
+  controls.minDistance = 4;
+  controls.maxDistance = 360;
+  controls.screenSpacePanning = false;
+  controls.autoRotateSpeed = 0.5;
+  controls.update();
+  const clampTarget = () => {
+    const t = controls.target;
+    t.x = THREE.MathUtils.clamp(t.x, -80, 110); t.z = THREE.MathUtils.clamp(t.z, -100, 80); t.y = THREE.MathUtils.clamp(t.y, 0, 20);
+  };
+  controls.addEventListener('change', clampTarget);
+  function go(id) {
+    const v = VIEWS[id];
+    if (!v) return;
+    controls.autoRotate = false;
+    // кадр игры со спавна: 16:9 при ±45,8° по горизонтали — это 60° по вертикали; со спавна и с колеса смотрим чуть вверх
+    const fov = id === 'spawn' ? 60 : 45;
+    if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    controls.maxPolarAngle = id === 'spawn' || id === 'tiredwood' ? Math.PI * 0.56 : Math.PI * 0.48;
+    st.tween(v[0], v[1], 1.8);
+  }
+
+  // ---------------------------------------------------------------- выбор мышью
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let down = null, mark = null;
+  st.canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+  st.canvas.addEventListener('pointerup', (e) => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+    const rc = st.canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(pickables, true).find((h) => h.object.visible);
+    if (!hit) return;
+    let o = hit.object;
+    while (o && !o.userData.pick) o = o.parent;
+    if (o) select(o.userData.pick, false);
+  });
+  function select(id, fly = true) {
+    const obj = placed.get(id) || stubs.get(id);
+    if (mark) { scene.remove(mark); mark = null; }
+    if (obj) {
+      const box = new THREE.Box3().setFromObject(obj).expandByScalar(0.6);
+      mark = new THREE.Box3Helper(box, 0xffb347);
+      mark.material.transparent = true; mark.material.depthTest = false; mark.renderOrder = 9;
+      scene.add(mark);
+      if (fly) {
+        const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+        const R = Math.max(10, s.length() * 0.9);
+        const p = pavById.get(id);
+        const yaw = p ? yawOf(p) : 0;
+        const dx = -Math.sin(yaw), dz = -Math.cos(yaw);
+        st.tween(V3(c.x + dx * R + dz * R * 0.4, c.y + R * 0.55, c.z + dz * R - dx * R * 0.4), V3(c.x, Math.max(1.5, c.y * 0.6), c.z), 1.6);
+      }
+    }
+    onPick?.(id);
+    st.dirty = true;
+  }
+  st.tickers.push((dt, t) => { if (mark) mark.material.opacity = 0.55 + 0.45 * Math.sin(t * 4); });
+
+  // ---------------------------------------------------------------- тема
+  st.offTheme = onTheme(() => {
+    const d = isDark();
+    skyMat.uniforms.a.value.set(d ? 0xf2a37a : 0xffd9ad);
+    skyMat.uniforms.b.value.set(d ? 0x5a6f9c : 0x9cc4ee);
+    skyMat.uniforms.c.value.set(d ? 0x1f2b52 : 0x4f86d0);
+    scene.fog.color.set(d ? 0x6a6f8e : 0xcfe0ef);
+    hemi.intensity = d ? 0.85 : 1.25;
+    sun.color.set(d ? 0xffb07a : 0xffdcae);
+    sun.intensity = d ? 2.2 : 3.1;
+    r.toneMappingExposure = d ? 0.92 : 1.0;
+    st.dirty = true;
+  });
+
+  // ---------------------------------------------------------------- готовые павильоны и жители
+  const placed = new Map(); // layoutId -> Group
+  const residents = new Map(); // layoutId -> Vector3 (мир)
+  const total = { pav: models.size + extras.length, done: 0 };
+  // Место модели. Моделлеры ставили world_origin по прошлой раскладке; если центр павильона в текущей раскладке уехал
+  // дальше 1,5 м (или точки нет), берём центр и фасад из layout.json. Скалу со входом не трогаем: её вход уже по v5.
+  const KEEP_MANIFEST = new Set(['dungeon']);
+  function placementFor(m, id) {
+    const p = id ? pavById.get(id) : null;
+    const own = { x: m.origin ? m.origin[0] : p?.center?.x, z: m.origin ? m.origin[1] : p?.center?.z, yaw: typeof m.yaw === 'number' ? m.yaw : (p ? yawOf(p) : 0), moved: false };
+    if (!p?.center || KEEP_MANIFEST.has(id) || m.role) return own;
+    if (m.origin && Math.hypot(m.origin[0] - p.center.x, m.origin[1] - p.center.z) <= 1.5) return own;
+    return { x: p.center.x, z: p.center.z, yaw: yawOf(p), moved: true };
+  }
+  // несколько моделей на одно место раскладки (табло: «Доска почёта» + «Кто на набережной») — в ряд вдоль фасада
+  const rows = new Map(); // layoutId -> [wrap]
+  function arrangeRow(id) {
+    const p = pavById.get(id), list = rows.get(id);
+    if (!p?.center || !list || list.length < 2) return;
+    const yaw = yawOf(p), rx = -Math.cos(yaw), rz = Math.sin(yaw); // вправо для того, кто смотрит на фасад
+    const ext = list.map((w) => {
+      w.position.set(0, 0, 0); w.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(w);
+      const xs = [b.min.x, b.max.x], zs = [b.min.z, b.max.z];
+      let lo = Infinity, hi = -Infinity;
+      for (const x of xs) for (const z of zs) { const t = x * rx + z * rz; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+      return [lo, hi];
+    });
+    const gap = 0.8, total = ext.reduce((a, [lo, hi]) => a + hi - lo, 0) + gap * (list.length - 1);
+    let t = -total / 2;
+    list.forEach((w, i) => {
+      const [lo, hi] = ext[i];
+      const c = t - lo; t += hi - lo + gap;
+      w.position.set(p.center.x + rx * c, 0, p.center.z + rz * c);
+      w.updateMatrixWorld(true);
+    });
+    r.shadowMap.needsUpdate = true; st.dirty = true;
+  }
+  // мельница сидит в GLB арки «Огороды» (узлы static_windmill, live_sails); в v5 она стоит отдельно — (84; −62)
+  const millAt = L.objects?.windmill && typeof L.objects.windmill.x === 'number' ? L.objects.windmill : null;
+  let millStub = null, millDone = false;
+  if (millAt) {
+    const h = millAt.h || 15, g = new THREE.Group();
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 2.6, h * 0.72, 12).translate(0, h * 0.36, 0), M(0xf4efe4, 0.8));
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(2.1, h * 0.2, 12).translate(0, h * 0.82, 0), M(0x9a6a44, 0.8));
+    const blades = new THREE.Group();
+    for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.7, 5.6, 0.08).translate(0, 3, 0), M(0xe9dcc2, 0.9)); b.rotation.z = i * Math.PI / 2 + 0.4; blades.add(b); }
+    blades.position.set(0, h * 0.66, -2.2);
+    g.add(tower, cap, blades);
+    g.position.set(millAt.x, 0, millAt.z);
+    g.rotation.y = Math.atan2(C.x - millAt.x, C.z - millAt.z) + Math.PI; // крылья — к площади
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    scene.add(g);
+    millStub = g;
+    st.tickers.push((dt) => { if (g.visible) { blades.rotation.z += dt * 0.5; st.dirty = true; } });
+  }
+  function moveMill(root) {
+    if (!millAt || millDone) return;
+    const mill = []; root.traverse((o) => { if (/windmill|sails/i.test(o.name) && !/^anchor_/.test(o.name)) mill.push(o); });
+    const top = mill.filter((o) => !mill.includes(o.parent));
+    const body = top.find((o) => /windmill/i.test(o.name));
+    if (!body) return;
+    const at = new THREE.Box3().setFromObject(body).getCenter(new THREE.Vector3());
+    const dx = millAt.x - at.x, dz = millAt.z - at.z;
+    for (const o of top) { scene.attach(o); o.position.x += dx; o.position.z += dz; o.updateMatrixWorld(true); }
+    millDone = true;
+    if (millStub) millStub.visible = false;
+  }
+  // модели без своего павильона в раскладке (маяк, вторая доска у почёта и т. п.) — по координатам из манифеста
+  async function placeExtra(m) {
+    if (!m.origin) return;
+    const id = m.layoutId || null;
+    const pav = await buildPavilion(m.file, { assets, signs: m.signs || (id ? signFor(id) : []) });
+    const wrap = new THREE.Group();
+    wrap.add(pav);
+    const pl = placementFor(m, id);
+    wrap.position.set(pl.x, 0, pl.z);
+    wrap.rotation.y = pl.yaw;
+    if (id) wrap.userData.pick = id;
+    scene.add(wrap);
+    wrap.updateMatrixWorld(true);
+    if (id && pl.moved) { rows.get(id)?.push(wrap); arrangeRow(id); }
+    if (m.role === 'windmill' && millStub) { millStub.visible = false; millDone = true; }
+    const top0 = new THREE.Box3().setFromObject(wrap).max.y, top = m.role === 'lighthouse' ? top0 : Math.min(top0, 10);
+    if (m.role === 'lighthouse' && lighthouseObj) {
+      lighthouseObj.visible = false;
+      if (lighthouseLbl) { lighthouseLbl.obj = V3(m.origin[0], top + 1, m.origin[1]); lighthouseLbl.off = 0; }
+    } else {
+      if (id) { const s = stubs.get(id); if (s) { s.visible = false; const k = pickables.indexOf(s); if (k >= 0) pickables.splice(k, 1); } const Lb = labelsById.get(id); if (Lb) Lb.el.classList.remove('stub'); }
+      const lc = new THREE.Box3().setFromObject(wrap).getCenter(new THREE.Vector3());
+      st.label(m.name || m.key, V3(lc.x, top + 0.8, lc.z), { maxDist: 70 });
+    }
+    if (id) pickables.push(wrap);
+    total.done++;
+    r.shadowMap.needsUpdate = true;
+    st.dirty = true;
+  }
+  // то, что уже стоит в игре: вход в пещеру, калитка фермы — их GLB из client/assets как есть
+  async function placeGame(g) {
+    const gl = await load(g.file);
+    // узел (вход, доска рекордов) ставим своим началом в точку якоря; без узла — весь файл
+    const src = g.node ? gl.scene.getObjectByName(g.node) : gl.scene;
+    if (!src) return;
+    const part = src.clone(true);
+    part.position.set(0, 0, 0); part.rotation.set(0, 0, 0);
+    const root = new THREE.Group();
+    root.add(part);
+    // якорь из манифеста ставился по прошлой раскладке; если место в раскладке уехало (калитка за аркой «Огороды», v5) — по ней
+    const lp = g.layoutId && g.layoutId !== 'dungeon' ? pavById.get(g.layoutId) : null;
+    let gx = g.world[0], gz = g.world[1];
+    if (lp?.center && Math.hypot(gx - lp.center.x, gz - lp.center.z) > 1.5) { gx = lp.center.x; gz = lp.center.z; }
+    root.position.set(gx, g.y || 0, gz);
+    root.rotation.y = g.yaw || 0;
+    root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const pid = g.layoutId || g.pick;
+    if (pid) root.userData.pick = pid;
+    scene.add(root);
+    root.updateMatrixWorld(true);
+    if (pid) pickables.push(root);
+    // заменяет заглушку раскладки (калитка фермы) — коробку и её подпись «заглушка» убираем
+    if (g.layoutId) {
+      const s = stubs.get(g.layoutId);
+      if (s) { s.visible = false; const k = pickables.indexOf(s); if (k >= 0) pickables.splice(k, 1); }
+      const Lb = labelsById.get(g.layoutId);
+      if (Lb) Lb.show = false; // подпись даёт сама модель из игры
+    }
+    const top = Math.min(new THREE.Box3().setFromObject(root).max.y, 9);
+    st.label(g.name, V3(gx, top + 0.8, gz), { maxDist: 60, cls: 'game' });
+    r.shadowMap.needsUpdate = true;
+    st.dirty = true;
+  }
+  async function placePavilion(id, m) {
+    const p = pavById.get(id);
+    const pav = await buildPavilion(m.file, { assets, signs: signFor(id) });
+    const wrap = new THREE.Group();
+    wrap.add(pav);
+    const pl = placementFor(m, id);
+    const ox = pl.x, oz = pl.z;
+    if (ox == null) return;
+    wrap.position.set(ox, 0, oz);
+    wrap.rotation.y = pl.yaw;
+    wrap.userData.pick = id;
+    wrap.updateMatrixWorld(true);
+    scene.add(wrap);
+    if (pl.moved) rows.set(id, [wrap]);
+    moveMill(wrap);
+    // модель «скала со входом» (pav_dungeon_cliff) сама и есть скала — простую глыбу-заглушку убираем
+    if (cliffMesh && /cliff/.test(m.key || m.file || '')) { cliffMesh.visible = false; r.shadowMap.needsUpdate = true; }
+    placed.set(id, wrap);
+    pickables.push(wrap);
+    const s = stubs.get(id);
+    if (s) { s.visible = false; const i = pickables.indexOf(s); if (i >= 0) pickables.splice(i, 1); }
+    // для курзала-заглушки башенка и галерея — та же коробка; убираем и её подпись «заглушка»
+    const Lb = labelsById.get(id);
+    if (Lb) { Lb.el.classList.remove('stub'); Lb.obj = p?.sign && typeof p.sign.x === 'number' ? V3(p.sign.x, (p.sign.y || 3) + 1.8, p.sign.z) : V3(ox, Math.min(new THREE.Box3().setFromObject(wrap).max.y, 10) + 0.8, oz); }
+    if (pav.userData.resident) residents.set(id, pav.userData.resident.clone().applyMatrix4(wrap.matrixWorld));
+    total.done++;
+    r.shadowMap.needsUpdate = true;
+    st.dirty = true;
+  }
+  const npcPlaced = [];
+  async function placeNpc(n) {
+    const g = await load(n.file);
+    const root = g.scene.clone(true);
+    root.traverse((o) => { applyFam(o, { npc: true }); o.castShadow = false; });
+    root.add(blobShadow(0.7));
+    const p = pavById.get(n.pav);
+    const at = residents.get(n.pav) || (n.pos ? V3(n.pos[0], 0, n.pos[1]) : p?.npc ? V3(p.npc.x, 0, p.npc.z) : null);
+    if (!at) return;
+    root.position.copy(at);
+    const dx = C.x - at.x, dz = C.z - at.z;
+    root.rotation.y = Math.atan2(-dx, -dz);
+    scene.add(root);
+    st.tickers.push(npcIdle(root, g.animations));
+    st.label(n.name, root, { off: 2.3, maxDist: 34, cls: 'npc' });
+    npcPlaced.push(n.id);
+  }
+  st.animated = true;
+  r.shadowMap.needsUpdate = true;
+  // число отрисовок здесь не показываем: это сцена-превью без склейки, бюджет игры — в разделе «Как выпускаем»
+  const hud = () => st.setHud([
+    `${fmt(st.renderer.info.render.triangles)} треугольников в кадре`,
+    `павильонов готово: ${total.done}`,
+    npcPlaced.length ? `жителей: ${npcPlaced.length}` : null,
+  ]);
+  let hudT = 0;
+  st.tickers.push((dt) => { hudT += dt; if (hudT > 1) { hudT = 0; hud(); } });
+
+  // грузим по одной, начиная с ближних к центру — сцена живёт сразу, модели подтягиваются
+  (async () => {
+    const list = [...models.entries()].sort((a, b) => {
+      const pa = pavById.get(a[0])?.center, pb = pavById.get(b[0])?.center;
+      return (pa ? Math.hypot(pa.x - C.x, pa.z - C.z) : 99) - (pb ? Math.hypot(pb.x - C.x, pb.z - C.z) : 99);
+    });
+    let i = 0;
+    for (const [id, m] of list) {
+      try { await placePavilion(id, m); } catch (e) { console.warn('павильон', id, e); }
+      progress?.(++i / (list.length + npcs.length));
+    }
+    for (const m of extras) {
+      try { await placeExtra(m); } catch (e) { console.warn('модель', m.key, e); }
+    }
+    for (const g of gameModels) {
+      try { await placeGame(g); } catch (e) { console.warn('модель из игры', g.id, e); }
+    }
+    for (const n of npcs) {
+      try { await placeNpc(n); } catch (e) { console.warn('житель', n.id, e); }
+      progress?.(++i / (list.length + npcs.length));
+    }
+    progress?.(1);
+    onReady?.({ pavilions: total.done, npcs: npcPlaced.length });
+  })();
+
+  return {
+    go, select,
+    setLabels(on) { st.labelsOn = on; st.dirty = true; },
+    setOrbit(on) { controls.autoRotate = on && !REDUCED; },
+    stage: st,
+    dispose() { st.dispose(); },
+  };
+}

@@ -5,7 +5,9 @@
 // запекание (lookbake.ts: мягкие тени на плитке, отражение своего неба); погода (дождь) работает как раньше. Статую и
 // свечи у неё не трогаем.
 import * as THREE from 'three';
+import { PLAZA3, pick } from '../../shared/layout.ts';
 import { STATUE, type LobbyMap } from '../../shared/maps/lobby.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import { fitShadow } from '../render/kit.ts';
 import { installLookTone, lookTone, paintMaterial, paintable, type PaintOptions } from '../render/lookpaint.ts';
 import { LOOK_EVENING, lookSea, lookSky } from '../render/looksky.ts';
@@ -50,9 +52,11 @@ const SHADE: readonly [number, number, number] = [0.9, 0.96, 1.22];
 const DECK_TINT: readonly [number, number, number] = [1.15, 1.24, 1.5];
 /** Мягкость края тени (радиус PCF: цена та же) */
 const SHADOW_RADIUS = 3;
-/** Рамка теней и её центр — как у мира */
-const SHADOW_CENTER = new THREE.Vector3(0, 4, 10);
-const SHADOW_BOX = new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 47));
+/** Рамка теней и её центр — как у мира (в plaza3 — по новой суше, client/lobby/plaza3/world.ts) */
+const SHADOW_CENTER = pick(new THREE.Vector3(0, 4, 10), () => new THREE.Vector3(31, 4, 4));
+const SHADOW_BOX = pick(new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 47)), () => new THREE.Box3(new THREE.Vector3(-31, -1, -57), new THREE.Vector3(93, 26, 47)));
+/** Новая набережная без старой статики: наполнение старой площади (горшки у склада, кайма розы, указатель) не ставим */
+const NEW_PLAZA = PLAZA3 && !P3.legacyStatic;
 
 const _c = new THREE.Color();
 const _c2 = new THREE.Color();
@@ -64,7 +68,7 @@ export class LobbyLook {
   private readonly clearSun = new THREE.Color(SUN_COLOR);
   private readonly baseSun: THREE.Color;
   private readonly shade = new THREE.Color().setRGB(...SHADE);
-  private readonly decor: LookDecor;
+  private readonly decor: LookDecor | null;
   /** запечённые тени плитки (null — настил не нашёлся, тени как у мира) */
   private readonly bake: DeckBake | null;
   /** отражение своего неба в мокром (в ясную погоду; в дождь — дождливое мира) */
@@ -96,10 +100,10 @@ export class LobbyLook {
     lookSky(p.sky);
     lookSea(p.sea);
     // наполнение и город — до первой отрисовки: попадут и в «рисованные» материалы, и в тени статики
-    this.decor = new LookDecor({ scene: p.scene, wind: p.wind, wet: p.wet, deco: p.map.deco, lite: TOUCH });
+    this.decor = NEW_PLAZA ? null : new LookDecor({ scene: p.scene, wind: p.wind, wet: p.wet, deco: p.map.deco, lite: TOUCH });
     lookTown(p.scene, TOUCH);
     // запекание: пятна затенения у фонарей и кнехтов (кроме тех, что у статуи) и у нового наполнения
-    const contacts: Contact[] = [...this.decor.contacts];
+    const contacts: Contact[] = [...(this.decor?.contacts ?? [])];
     for (const d of p.map.deco) {
       if (Math.hypot(d.x - STATUE.x, d.z - STATUE.z) < 4) continue;
       if (d.kind === 'lamp') contacts.push([d.x, d.z, 0.55, 0.4]);
@@ -154,11 +158,33 @@ export class LobbyLook {
   }
 
   update(dt: number, t: number): void {
-    this.decor.update(dt, t);
+    this.decor?.update(dt, t);
   }
 
   setQuality(_q: LobbyQuality): void {
     // уровни наполнения — на следующих шагах
+  }
+
+  /** Новая набережная (client/lobby/plaza3/perf.ts): «рисованный» вид сейчас, до прогрева шейдеров перед первым кадром */
+  paintNow(): void {
+    if (this.painted) return;
+    this.painted = true;
+    this.paintAll();
+  }
+
+  /**
+   * Новая набережная: материал модели, что встала после первого кадра (калитка фермы, вход в пещеру), — тот же
+   * «рисованный» вид; мокрый — с тем же небом в лужах. false — красить нечего (ещё не красили всё или не освещённый).
+   */
+  paintLate(m: THREE.Material): boolean {
+    if (!this.painted || !paintable(m)) return false;
+    paintMaterial(m, this.paint);
+    const std = m as THREE.MeshStandardMaterial;
+    if (std.customProgramCacheKey().startsWith('wet') && !this.wetMats.includes(std)) {
+      this.wetMats.push(std);
+      if (this.overcast <= 0.5) std.envMap = this.env;
+    }
+    return true;
   }
 
   /** «Рисованные» материалы мира: всё освещённое, кроме желеек (у них свой вид) и статуи со свечами. */

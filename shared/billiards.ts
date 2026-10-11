@@ -6,21 +6,59 @@
 // никаких sin/cos/exp/hypot. Начальную скорость битка (vx, vz) считает сервер и шлёт числами — клиенты проигрывают тот же
 // расчёт бит в бит, а конечные позиции всё равно приходят с сервера в виде стола.
 import { TICK_RATE } from './constants.ts';
+import { pick } from './layout.ts';
 import type { MapBox } from './maps/types.ts';
+import { A, xfBox2, xfP } from './plaza3/xf.ts';
 
 // ------------------------------------------------------------ зал
 
-/** Пристройка к павильону автоматов: навес на столбах к югу от него. Столы — длинной стороной с севера на юг. */
-export const BL_HALL = { x0: -28, x1: -12.6, z0: -16, z1: -7.8, roofY: 4.25, eaveY: 3.75 } as const;
+interface BlHall {
+  readonly x0: number;
+  readonly x1: number;
+  readonly z0: number;
+  readonly z1: number;
+  readonly roofY: number;
+  readonly eaveY: number;
+}
+
+/** Пока не плывёт дробная часть сдвига группы (17,700000000000003): значения plaza3 — с точностью до мм */
+const mm = (v: number): number => Math.round(v * 1000) / 1000;
+
+/**
+ * Пристройка к павильону автоматов: навес на столбах к югу от него. Столы — длинной стороной с севера на юг.
+ * В plaza3 (группа billiards сдвинута на (+61; +29,6)) — отдельная бильярдная лоджия у воды x 33…48,4, z 13,6…21,8 с вальмовой
+ * кровлей модели pav_billiards: конёк 5,5, свес 3,4 (от eaveY — колпаки над столами и «крыша» карты).
+ */
+export const BL_HALL: BlHall = pick<BlHall>({ x0: -28, x1: -12.6, z0: -16, z1: -7.8, roofY: 4.25, eaveY: 3.75 }, () => {
+  const h = xfBox2(A.billiards, { x0: -28, x1: -12.6, z0: -16, z1: -7.8 });
+  return { x0: mm(h.x0), x1: mm(h.x1), z0: mm(h.z0), z1: mm(h.z1), roofY: 5.5, eaveY: 3.4 };
+});
 /** Центры столов (мировые x, z). Номер стола — индекс. */
-export const BL_TABLES: ReadonlyArray<{ readonly x: number; readonly z: number }> = [
-  { x: -24.5, z: -11.9 },
-  { x: -20, z: -11.9 },
-  { x: -15.5, z: -11.9 },
-];
+export const BL_TABLES: ReadonlyArray<{ readonly x: number; readonly z: number }> = pick(
+  [
+    { x: -24.5, z: -11.9 },
+    { x: -20, z: -11.9 },
+    { x: -15.5, z: -11.9 },
+  ],
+  () => [{ x: -24.5, z: -11.9 }, { x: -20, z: -11.9 }, { x: -15.5, z: -11.9 }].map((t) => xfP(A.billiards, t)).map((t) => ({ x: mm(t.x), z: mm(t.z) })),
+);
 export const BL_TABLE_COUNT = BL_TABLES.length;
-/** Столбы навеса по южному краю (x, z), 0,18 × 0,18 м */
-export const BL_POSTS: ReadonlyArray<readonly [number, number]> = [[-27.8, -7.9], [-22.25, -7.9], [-17.75, -7.9], [-12.8, -7.9]];
+/**
+ * Столбы навеса (x, z), 0,18 × 0,18 м. В plaza3 — колонны модели pav_billiards (боксы col_post_*, 0,26 × 0,26 до 3,1): север
+ * и юг по x 33,2 / 38,75 / 43,25 / 48,2, торцы — x 33,2 и 48,2 на z 17,7. Южные колонны модели стоят на z 21,8 (на тумбах
+ * балюстрады), но блокаут держит кромку боксом rail.east от z 21,8 — бокс колонны сдвинут на 0,14 м к северу (z 21,66), чтобы
+ * твёрдое не пересекалось; когда модель принесёт свой парапет (col_parapet), вернуть z 21,8.
+ */
+export const BL_POSTS: ReadonlyArray<readonly [number, number]> = pick(
+  [[-27.8, -7.9], [-22.25, -7.9], [-17.75, -7.9], [-12.8, -7.9]] as ReadonlyArray<readonly [number, number]>,
+  () => {
+    const xs = [33.2, 38.75, 43.25, 48.2];
+    return [...xs.map((x) => [x, 13.9] as const), ...xs.map((x) => [x, 21.66] as const), [33.2, 17.7] as const, [48.2, 17.7] as const];
+  },
+);
+/** Полуширина и высота бокса столба в карте: у навеса plaza2 0,09 и 3,8 (бокс 0,18), у колонн лоджии 0,13 и 3,1 (бокс 0,26) */
+export const BL_POST_HALF = pick(0.09, () => 0.13);
+export const BL_POST_H = pick(3.8, () => 3.1);
 
 // ------------------------------------------------------------ стол (локальные координаты: x — поперёк, z — вдоль)
 

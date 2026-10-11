@@ -2,9 +2,11 @@
 // (shared/maps/lobby.ts: коллизия считается на сервере и в браузере одинаково) и для рисунка (client/lobby/plaza/*):
 // позиции лежат в одном месте, чтобы видимое совпадало с твёрдым. Остальное оформление — над головой, на стенах,
 // на земле и за линией зданий: коллизии у него нет.
+import { pick } from './layout.ts';
+import { P3 } from './plaza3/layout.ts';
 
 /** Режим за флагом сервера, чьё оформление твёрдое: без флага режима его предметов нет — ни на экране, ни в карте */
-export type PlazaSolidMode = 'hide' | 'regatta' | 'fight' | 'dungeon';
+export type PlazaSolidMode = 'hide' | 'regatta' | 'dungeon';
 
 export interface PlazaSolid {
   /** Центр на земле */
@@ -74,12 +76,6 @@ export const REGATTA_MASTS: ReadonlyArray<{ x: number; z: number }> = [{ x: 12.9
 export const BOAT_GATE = { x0: 4.9, x1: 10.9, z: 21.3 } as const;
 
 /**
- * Fight Club (круг мелом у приямка в южной стене кафе): латунные столбики с красным канатом перед проёмом — «клуб
- * по записи». Вывеска-кронштейн и красный фонарь — над головой, коврик — на земле, без коллизии.
- */
-export const FIGHT_POSTS: readonly PlazaSolid[] = [solid(27.15, 4.42, 0.07, 0.07, 0.95), solid(29.05, 4.42, 0.07, 0.07, 0.95)];
-
-/**
  * «Подземелье» (режим за флагом DUNGEON, западная лужайка): скала с пещерой и доска рекордов (client/lobby/plaza/dungeon.ts).
  * Скала — овал 5,6 × 5,4 м с центром в (−18,4; 11,6), зев смотрит на точку появления (yaw модели = π + yaw из
  * docs/survivors/level.md §8, −1,275). Доска — на двух столбиках в 5 м к юго-востоку от зева, лицом на север, к тропе
@@ -88,17 +84,49 @@ export const FIGHT_POSTS: readonly PlazaSolid[] = [solid(27.15, 4.42, 0.07, 0.07
  * Скала — три бокса без пересечений (основной до 3,8 м и два выступа до 3,0 м): рисунок скалы они покрывают с запасом
  * до 0,5 м, ступени у порога и рельсы вне боксов — там можно стоять (точка «E» у зева). Доска — два столбика и плита.
  */
-export const DUNGEON_ROCK = { x: -18.4, z: 11.6, yaw: Math.PI - 1.275 } as const;
-export const DUNGEON_BOARD = { x: -11, z: 14.3, yaw: Math.PI } as const;
-const DUNGEON_SOLIDS: readonly PlazaSolid[] = [
-  solid(-18.4, 11.4, 3.2, 2.4, 3.8),
-  solid(-18.0, 8.6, 1.8, 0.4, 3.0),
-  solid(-18.5, 14.2, 2.1, 0.4, 3.0),
-  // доска: два столбика (±1,21 м от центра вдоль x, основания 0,5 м) и плита между ними от 1 до 3 м — под ней голова (1,6 м) не пролезет
-  solid(DUNGEON_BOARD.x - 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
-  solid(DUNGEON_BOARD.x + 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
-  { ...solid(DUNGEON_BOARD.x, DUNGEON_BOARD.z + 0.06, 0.94, 0.3, 2.0), y: 1.0 },
-];
+export const DUNGEON_ROCK: { readonly x: number; readonly z: number; readonly yaw: number } = pick<{ readonly x: number; readonly z: number; readonly yaw: number }>(
+  { x: -18.4, z: 11.6, yaw: Math.PI - 1.275 },
+  () => ({ x: P3.modes.dungeonRock.x, z: P3.modes.dungeonRock.z, yaw: P3.modes.dungeonRock.yaw }),
+);
+export const DUNGEON_BOARD: { readonly x: number; readonly z: number; readonly yaw: number } = pick<{ readonly x: number; readonly z: number; readonly yaw: number }>(
+  { x: -11, z: 14.3, yaw: Math.PI },
+  () => ({ x: P3.modes.dungeonBoard.x, z: P3.modes.dungeonBoard.z, yaw: P3.modes.dungeonBoard.yaw }),
+);
+/**
+ * plaza3 (WP6): скала — один массив на 20 м у северо-западного угла (корень входа (−20,25; −34,8), yaw 0,803, зев на азимут 134°),
+ * его твёрдое — cliff.* блокаута (docs/plaza3/level/layout.json), три старых бокса овала не нужны. Здесь — то, что стоит на
+ * дворе перед массивом (замеры col_* модели pav_dungeon_cliff, мир = центр (−18; −41) + поворот на π): доска рекордов — три
+ * бокса 0,6 × 0,6 вдоль её диагонали (шаг 1 м, высота 3,2), бочка у подножия (урезана по линии cliff.*), вагонетка входа — четыре
+ * бокса 0,84 и два столба фонарей.
+ */
+function dungeonSolidsP3(): readonly PlazaSolid[] {
+  const c = Math.cos(DUNGEON_BOARD.yaw);
+  const s = Math.sin(DUNGEON_BOARD.yaw);
+  const board = [-1, 0, 1].map((k) => solid(DUNGEON_BOARD.x + k * c, DUNGEON_BOARD.z - k * s, 0.3, 0.3, 3.2));
+  return [
+    ...board,
+    // бочка входа: (−19,69; −31,13) ±0,4 — западнее x −20 лежит cliff.24, берём только восточную часть
+    { x: -19.645, z: -31.13, hx: 0.355, hz: 0.4, h: 1.0 },
+    solid(-16.024, -33.778, 0.42, 0.42, 1.3),
+    solid(-15.33, -34.498, 0.42, 0.42, 1.3),
+    solid(-15.484, -33.257, 0.42, 0.42, 1.3),
+    solid(-14.79, -33.977, 0.42, 0.42, 1.3),
+    solid(-14.41, -32.498, 0.18, 0.18, 2.8),
+    solid(-17.523, -28.554, 0.18, 0.18, 2.8),
+  ];
+}
+const DUNGEON_SOLIDS: readonly PlazaSolid[] = pick<readonly PlazaSolid[]>(
+  [
+    solid(-18.4, 11.4, 3.2, 2.4, 3.8),
+    solid(-18.0, 8.6, 1.8, 0.4, 3.0),
+    solid(-18.5, 14.2, 2.1, 0.4, 3.0),
+    // доска: два столбика (±1,21 м от центра вдоль x, основания 0,5 м) и плита между ними от 1 до 3 м — под ней голова (1,6 м) не пролезет
+    solid(DUNGEON_BOARD.x - 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
+    solid(DUNGEON_BOARD.x + 1.21, DUNGEON_BOARD.z + 0.06, 0.26, 0.3, 3.2),
+    { ...solid(DUNGEON_BOARD.x, DUNGEON_BOARD.z + 0.06, 0.94, 0.3, 2.0), y: 1.0 },
+  ],
+  dungeonSolidsP3,
+);
 
 /** Указатель «Куда идти» у звезды (центр (0; 3,6)): столб на основании, стрелки — над головой */
 export const SIGNPOST = { x: -3.8, z: 1.4, h: 3.4 } as const;
@@ -110,7 +138,6 @@ export function plazaSolids(): PlazaSolid[] {
     ...forMode('hide', YARD_CRATES),
     ...forMode('regatta', REGATTA_MASTS.map((m) => solid(m.x, m.z, 0.17, 0.17, 3.2))),
     solid(BOAT_GATE.x0, BOAT_GATE.z, 0.13, 0.13, 3.6), solid(BOAT_GATE.x1, BOAT_GATE.z, 0.13, 0.13, 3.6),
-    ...forMode('fight', FIGHT_POSTS),
     solid(SIGNPOST.x, SIGNPOST.z, 0.12, 0.12, SIGNPOST.h),
     ...forMode('dungeon', DUNGEON_SOLIDS),
   ];

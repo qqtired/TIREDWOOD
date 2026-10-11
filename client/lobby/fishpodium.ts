@@ -4,6 +4,9 @@ import { FISH, fmtWeight } from '../../shared/fishing.ts';
 import type { FishPodiumCatch } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { makeFish3D } from './fishart.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { onShowcase } from './plaza3/mounts.ts';
+import { ShowcaseFish } from './plaza3/showcase.ts';
 
 const COLORS = [0xd6bb62, 0xb9c5c3, 0xb78d60, 0x9bada2, 0x879eaa];
 const PANEL_WIDTH=.94, PANEL_HEIGHT=.56, RANK_HEIGHT=.16, RANK_GAP=.025;
@@ -70,6 +73,9 @@ export class FishPodium3D {
   private readonly titleRail = new THREE.Group();
   private readonly titlePosts: THREE.Mesh[] = [];
   private key = '';
+  /** plaza3: рыбы дня на местах «Рыбной витрины» (WP9); null — свой пьедестал */
+  private showcase: ShowcaseFish | null = null;
+  private rows: readonly FishPodiumCatch[] = [];
 
   constructor(scene: THREE.Scene) {
     this.group.name = 'daily-catch-podium';
@@ -127,9 +133,13 @@ export class FishPodium3D {
     const label=new THREE.Mesh(new THREE.PlaneGeometry(5.06,.265),new THREE.MeshStandardMaterial({map:texture,roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
     label.position.set(0,0,.574);label.rotation.y=Math.PI;this.titleRail.add(label);
     this.group.visible=false;scene.add(this.group);this.set([]);
+    // plaza3: встала «Рыбная витрина» (WP9) — три рыбы дня на её местах (anchor_fish_1…3), пьедестал не показывается
+    if (PLAZA3) onShowcase((m) => { this.showcase = new ShowcaseFish(this.group, m, podiumFishLength); this.showcase.set(this.rows); });
   }
 
   set(rows: readonly FishPodiumCatch[]): void {
+    this.rows = rows;
+    if (this.showcase) return this.showcase.set(rows);
     const key=JSON.stringify(rows.slice(0,5));if(key===this.key)return;this.key=key;
     let highest=1.3;
     for(let rank=0;rank<5;rank++) {

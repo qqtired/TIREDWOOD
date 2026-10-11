@@ -35,7 +35,7 @@ test('JSON control pressure is explicit even with VOICE off; ordinary sends stil
 
 
 test('all room, private hand, reward and state JSON close at1MiB regardless of voice flag', () => {
-  for (const voice of [false,true]) for (const t of ['scene','lobby','welcome','durakHand','blackjack','tokens','me','pbReward','fcReward','brReward','voiceState']) {
+  for (const voice of [false,true]) for (const t of ['scene','lobby','welcome','durakHand','blackjack','tokens','me','pbReward','fortReward','brReward','voiceState']) {
     const ws=socket(1024*1024);let pressure=0;sendServerJson(ws,{t},voice,()=>pressure++);
     assert.equal(ws.sent.length,0,t);assert.deepEqual(ws.closed,[[1013,'backpressure']],t);assert.equal(pressure,1,t);
   }

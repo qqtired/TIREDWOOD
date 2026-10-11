@@ -3,7 +3,9 @@
 // Только украшение: карты, стулья и боты остаются в durak3d.ts, правила и столы — на сервере.
 import * as THREE from 'three';
 import { MODE_NAMES, suitOf } from '../../shared/durak.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 import type { DurakTableView } from '../../shared/messages.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import { TableSign, type SignModel } from './tablesign.ts';
 
 /** Верх столешницы — 0,775 (см. world.ts); клеёнка лежит на 2 мм выше, карты — ещё на 1,5 мм */
@@ -108,7 +110,9 @@ function buildProps(): THREE.Group {
   top.position.y = CLOTH_Y;
   g.add(top);
   const skirtTex = repeatTex(clothCanvas(), 27, 1);
-  const skirtMat = new THREE.MeshStandardMaterial({ map: skirtTex, roughness: 0.6, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: skirtTex, emissiveIntensity: 0.06 });
+  // изнанку края видно только из-под стола: на новой набережной — одна программа с клеёнкой (бюджет 80, plaza3/perf.ts)
+  const skirtSide = PLAZA3 && !P3.legacyStatic ? THREE.FrontSide : THREE.DoubleSide;
+  const skirtMat = new THREE.MeshStandardMaterial({ map: skirtTex, roughness: 0.6, side: skirtSide, emissive: 0xffffff, emissiveMap: skirtTex, emissiveIntensity: 0.06 });
   // края тяжело свисают: чуть шире стола, длиной в ладонь
   const skirt = new THREE.Mesh(new THREE.CylinderGeometry(TABLE_R + 0.03, TABLE_R + 0.045, 0.13, 56, 1, true), skirtMat);
   skirt.position.y = CLOTH_Y - 0.065;

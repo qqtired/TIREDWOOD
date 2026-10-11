@@ -1,6 +1,7 @@
 // The complete client-only animal roster and route authority. No profile/server state: every client derives the
 // same animal positions from the server tick (client/lobby/crittersim.ts); reactions are local.
 import { WATER_Y } from '../constants.ts';
+import { pick } from '../layout.ts';
 
 export const CRITTERS_ENABLED = true;
 export type CritterKind = 'cat' | 'gull' | 'crab' | 'dog';
@@ -20,8 +21,11 @@ export interface CritterStop {
   lift?: number;
 }
 export interface CritterDef { id: number; kind: CritterKind; coat: number; speed: number; phase: number; stops: readonly CritterStop[]; }
-/** Quiet exclusion margin around the existing memorial. Nothing is added there. */
-export const CRITTER_QUIET_ZONE = { x: -23.6, z: 19.2, r: 7 };
+/**
+ * Quiet exclusion margin around the existing memorial. Nothing is added there.
+ * plaza3: the memorial is gone (the corner is a rounded belvedere), so the zone has zero radius.
+ */
+export const CRITTER_QUIET_ZONE = pick({ x: -23.6, z: 19.2, r: 7 }, () => ({ x: -23.6, z: 19.2, r: 0 }));
 
 /**
  * Small natural sandbar against the stone quay at the foot of the lighthouse jetty (east side): the sea floor rises
@@ -89,7 +93,7 @@ export function coveBoxes(): Array<{ x0: number; x1: number; z0: number; z1: num
 const stop = (x: number, z: number, action: CritterAction, hold: number, rest: string, y = 0, travel?: CritterStop['travel']): CritterStop => ({ x, y, z, action, hold, rest, travel });
 const sand = (x: number, z: number, action: CritterAction, hold: number): CritterStop => stop(x, z, action, hold, 'cove', coveHeight(x, z));
 const fly = (s: CritterStop, loop: readonly [number, number], lift = 2.6): CritterStop => ({ ...s, travel: 'fly', loop, lift });
-export const CRITTERS: readonly CritterDef[] = [
+const CRITTERS_2: readonly CritterDef[] = [
   { id: 0, kind: 'cat', coat: 0, speed: 0.53, phase: 0, stops: [
     { ...stop(-0.55, 19.42, 'sleep', 27, 'sea-bench', 0.30, 'hop'), yaw: -Math.PI / 2 }, stop(-1.5, 20.4, 'groom', 13, 'bench-front', 0, 'hop'),
     stop(2.8, 20.1, 'sit', 11, 'shore-warm-stone'), stop(2.3, 18.5, 'groom', 9, 'bench-side'), stop(-1.5, 18.6, 'sit', 6, 'bench-step'),
@@ -136,3 +140,28 @@ export const CRITTERS: readonly CritterDef[] = [
     stop(11, 8, 'sniff', 5, 'plaza-east'), stop(16.3, 8, 'sit', 6, 'cafe-walk'),
   ] },
 ];
+
+/**
+ * plaza3: те же 15 зверей под теми же номерами, но маршруты тех, кто ходил через старое кафе, склад и сарай, проложены по
+ * новым улицам. Остальные (кошка у скамей, кошка маяка, чайки у кнехтов и мостков, крабы на отмели у мостков) стоят на тех же
+ * местах: набережная z 21,2, мостки, маяк и стенка порта в новой раскладке не двигались.
+ */
+const CRITTERS_3_ROUTES: Readonly<Record<number, readonly CritterStop[]>> = {
+  // кошка у развилки скал: тропа P5 от розы к подземелью, гравий у подножия скалы (вместо склада и ящика)
+  1: [
+    stop(-11.3, -19.6, 'sit', 18, 'fork-lawn'), stop(-12.6, -21.4, 'sniff', 7, 'fork-sign'),
+    stop(-14.4, -25.6, 'groom', 22, 'rock-gravel'), stop(-12.6, -21.4, 'sit', 8, 'fork-sign'),
+  ],
+  // кошка у колеса: проулок между ротондой и колесом (вместо старого кафе)
+  3: [
+    stop(22.6, 5.5, 'sleep', 23, 'veranda-shade'), stop(22.4, 8.5, 'groom', 17, 'wheel-path'),
+    stop(21.3, 12.8, 'sit', 17, 'wheel-corner'), stop(22.4, 8.5, 'sit', 6, 'wheel-path'),
+  ],
+  // собака: круг по набережной к югу от ротонды и колеса — старое кафе и «плаца-восток» теперь внутри ротонды
+  14: [
+    stop(22.4, 15, 'sleep', 21, 'wheel-lee'), stop(19.6, 19.2, 'sniff', 9, 'promenade-east'), stop(11, 18.4, 'sit', 6, 'shore-corner'),
+    stop(3.4, 18.4, 'sniff', 11, 'shore-walk'), stop(11, 18.4, 'sniff', 4, 'shore-corner'), stop(10.5, 14, 'sniff', 5, 'rotunda-south'),
+  ],
+};
+
+export const CRITTERS: readonly CritterDef[] = pick(CRITTERS_2, () => CRITTERS_2.map((d) => (CRITTERS_3_ROUTES[d.id] ? { ...d, stops: CRITTERS_3_ROUTES[d.id] } : d)));

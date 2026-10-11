@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
 import { LobbyJukebox, type JukeModelLike } from '../client/lobby/jukebox.ts';
-import { JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_USE } from '../shared/jukebox.ts';
+import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_USE } from '../shared/jukebox.ts';
 
 const g = globalThis as { document?: unknown };
 g.document ??= { hidden: false, addEventListener: () => {} };
@@ -41,7 +41,8 @@ function cam(x: number, y: number, z: number): THREE.Camera {
 const at = (x: number, y: number, z: number) => ({ x, y, z });
 const atPlaza = (dx = 0) => at(JUKE_USE.x + dx, 0, JUKE_USE.z);
 const atBarkas = (dx = 0) => at(JUKE_BARKAS_USE.x + dx, JUKEBOX_BARKAS.y, JUKE_BARKAS_USE.z);
-const camPlaza = () => cam(JUKE_USE.x, 3, JUKE_USE.z + 4);
+// камера на 4 м дальше игрока, за ним: автомат лицом на юг (площадь) — камера южнее, лицом на север (ротонда plaza3, PLAZA3=1) — севернее
+const camPlaza = () => cam(JUKE_USE.x, 3, JUKE_USE.z + (Math.cos(JUKEBOX.yaw) < 0 ? 4 : -4));
 const camBarkas = () => cam(JUKE_BARKAS_USE.x, 3, JUKE_BARKAS_USE.z - 4);
 
 test('модели: без «juke» с сервера — ни одной; на площади — всегда, на баркасе — только вблизи; вышел из лобби — нет', () => {

@@ -39,7 +39,7 @@ export function setVoiceSource(next: VoicePanelSource | null): void {
 
 /** Зоны голоса по-человечески: «world» — весь внешний мир, остальное — отдельная игра */
 const ZONE: Record<string, string> = {
-  world: 'Внешний мир', paintball: 'Склад (пейнтбол)', race: 'Картинг', fort: 'Крепость', fight: 'Подвал', skill: 'Выше облаков', hide: 'Прятки', farm: 'Ферма', dungeon: 'Подземелье',
+  world: 'Внешний мир', paintball: 'Склад (пейнтбол)', race: 'Картинг', fort: 'Крепость', skill: 'Выше облаков', hide: 'Прятки', farm: 'Ферма', dungeon: 'Подземелье',
 };
 export function zoneLabel(zone: string): string { return ZONE[zone] ?? (zone ? 'Своя игра' : '—'); }
 const ZONE_HINT = 'Во внешнем мире — набережная, море с катерами, баркас — слышно всех. В режимах (крепость, картинг, прятки…) — только тех, кто в той же игре.';

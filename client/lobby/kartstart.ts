@@ -1,10 +1,13 @@
 // Круг «Старт» у гаража картинга: шахматное кольцо и надпись на настиле, большое число отсчёта над кругом,
 // табло на стене гаража. Всё — по статусу kart от сервера; секунды между сообщениями тикают сами.
 import * as THREE from 'three';
+import { pick } from '../../shared/layout.ts';
 import { KART_START } from '../../shared/maps/lobby.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import type { KartStatus } from '../../shared/messages.ts';
 import { botsWord } from '../../shared/solobots.ts';
 import { KartBoard } from './boards.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
 /** Кольцо: два ряда клеток по краю круга */
@@ -16,11 +19,14 @@ const NUM_SIZE = 1.9;
 /** Табло на стене гаража справа от ворот (ширина, высота, центр) */
 const BOARD_W = 3.3;
 const BOARD_H = 1.85;
-export const BOARD_POS = { x: 26.05, y: 2.75, z: -15.9 };
+/** В plaza3 — на фасаде картинга (z −29) над точкой «Табло гонки» (lobby.kboard) */
+export const BOARD_POS = pick({ x: 26.05, y: 2.75, z: -15.9 }, () => ({ x: P3.lobby.kboard.x, y: 2.75, z: P3.lobby.kboard.z - 1.3 }));
 
 export class KartStart {
   readonly group = new THREE.Group();
   readonly board = new KartBoard(BOARD_W, BOARD_H);
+  /** Рамка табло на фасаде: в plaza3 прячется, когда встала модель картинга (табло — на её поле anchor_kboard_face) */
+  readonly frame: THREE.Mesh;
   private st: KartStatus = { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: 3 };
   /** Время мира, когда пришёл статус */
   private at = 0;
@@ -38,28 +44,28 @@ export class KartStart {
     const ring = new THREE.Mesh(checkerRing(r - 2 * BAND, r, CELLS), new THREE.MeshStandardMaterial({
       vertexColors: true, roughness: 0.82, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     }));
-    ring.position.set(x, 0.012, z);
+    ring.position.set(x, 0.012 + DECAL_LIFT, z);
     ring.receiveShadow = true;
     // тёмная краска внутри кольца — на светлой плитке надпись иначе не читается
     const pad = new THREE.Mesh(new THREE.CircleGeometry(r - 2 * BAND + 0.01, 64), new THREE.MeshStandardMaterial({
       color: 0x34312e, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
     }));
     pad.rotation.x = -Math.PI / 2;
-    pad.position.set(x, 0.01, z);
+    pad.position.set(x, 0.01 + DECAL_LIFT, z);
     pad.receiveShadow = true;
 
     const label = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.25), new THREE.MeshStandardMaterial({
       map: labelTexture(), transparent: true, roughness: 0.9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
     }));
     label.rotation.x = -Math.PI / 2;
-    label.position.set(x, 0.014, z);
+    label.position.set(x, 0.014 + DECAL_LIFT, z);
     label.receiveShadow = true;
 
     this.glow = new THREE.Mesh(new THREE.RingGeometry(r - 0.06, r + 0.32, 72), new THREE.MeshBasicMaterial({
       color: 0xffd27a, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
     }));
     this.glow.rotation.x = -Math.PI / 2;
-    this.glow.position.set(x, 0.02, z);
+    this.glow.position.set(x, 0.02 + DECAL_LIFT, z);
 
     const c = document.createElement('canvas');
     c.width = 384;
@@ -71,10 +77,12 @@ export class KartStart {
     this.num.position.set(x, NUM_Y, z);
     this.num.visible = false;
 
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W + 0.24, BOARD_H + 0.24, 0.12), new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.6 }));
+    const frame = this.frame = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W + 0.24, BOARD_H + 0.24, 0.12), new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.6 }));
     frame.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z - 0.07);
     this.board.mesh.position.set(BOARD_POS.x, BOARD_POS.y, BOARD_POS.z);
     this.group.add(pad, ring, label, this.glow, this.num, frame, this.board.mesh);
+    // круг старта на земле — место режима: набережная plaza3 не прячет его вдали (plaza3/perf.ts); число и табло — по размеру
+    for (const m of [pad, ring, label, this.glow]) m.userData.p3keep = true;
   }
 
   update(st: KartStatus): void {

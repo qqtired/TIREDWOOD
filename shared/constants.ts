@@ -6,7 +6,8 @@
 // 16 — рыбалка 10.10: способности мификов, +20 % времени, бонусы уровней на шкале (shared/fishability.ts reelStyle2),
 //      остров «Последний свет», свои лодки и лайвел (одним релизом)
 // 16 — ферма: комната farm, сообщения farm/farmMe/farmPlot/farmRoster/farmEv/farmSt, калитка на площади
-export const PROTOCOL_VERSION = 16;
+// 17 — новая набережная (флаг PLAZA3): аркада (shared/arcade/net.ts), раскладка в me.lay, Fight Club удалён (fc*)
+export const PROTOCOL_VERSION = 17;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;

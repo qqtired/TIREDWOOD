@@ -10,7 +10,9 @@
 // буквами была зелень, а не небо, к дальнему холму города добавлен широкий подъём (signHill): с верха колеса верх букв
 // ниже его гребня. Раскладка и подъём не зависят от three.js и проверяются тестом.
 import * as THREE from 'three';
+import { pick } from '../../shared/layout.ts';
 import { makeRng } from '../../shared/math.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import { WHEEL } from '../../shared/wheel.ts';
 import { mergeColored, paint, place, staticMesh } from '../render/kit.ts';
 import { skyHaze } from './backdrop.ts';
@@ -25,8 +27,9 @@ export const LETTER_H = 45;
  * Азимут (от севера к востоку) с колеса на середину надписи — правее мачты с красным огнём (она на 36°), чтобы мачта
  * стояла слева от первой буквы, — и высота склона, где буквы стоят, м (на таком склоне до них 500–570 м от колеса).
  */
-export const SIGN_BEARING = (54 * Math.PI) / 180;
-const LINE_Y = 37;
+export const SIGN_BEARING = (pick(54, () => P3.sign.bearingDeg) * Math.PI) / 180;
+/** В plaza3 (флаг PLAZA3) надпись правее и выше по склону — в коридоре вида с точки появления (docs/plaza3/level/layout.json, sign) */
+const LINE_Y = pick(37, () => P3.sign.lineY);
 /** Толщина штриха и просвет между буквами, в высотах буквы; глубина плиты тоже */
 const STROKE = 0.21;
 const GAP = 0.17;
@@ -55,8 +58,8 @@ const RIM_SHADE = 0.18;
  * колеса на HILL_UP метров и держится дальше гребнем; поперёк — колокол шириной HILL_SIDE (σ). Буквы стоят на его
  * склоне, за ними — зелёная гора.
  */
-const HILL_UP = 90;
-export const HILL_BEARING = (62 * Math.PI) / 180;
+const HILL_UP = pick(90, () => P3.sign.hillUp);
+export const HILL_BEARING = (pick(62, () => P3.sign.hillBearingDeg) * Math.PI) / 180;
 const HILL_FROM = 400;
 const HILL_TO = 800;
 const HILL_SIDE = 750;

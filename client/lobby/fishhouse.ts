@@ -5,6 +5,7 @@
 // в одну сетку; отдельно — стёкла (тёплый свет изнутри), сеть (прозрачная текстура), фонарь и дымок.
 import * as THREE from 'three';
 import { FISH_HOUSE } from '../../shared/fishplaces.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { glowSprite, glowTexture, mergeColored, paint, place, staticMesh } from '../render/kit.ts';
 
 const H = FISH_HOUSE;
@@ -42,8 +43,10 @@ function cyl(out: G[], r0: number, r1: number, h: number, x: number, y: number, 
 
 export class FishHouse3D {
   readonly group = new THREE.Group();
-  private readonly lamp: THREE.Sprite;
-  private readonly glass: THREE.MeshStandardMaterial;
+  /** plaza3: старый дом на конце пирса не строится — Лавка Семёна стоит на берегу (pav_semyon.glb, WP9) */
+  private readonly off = PLAZA3;
+  private readonly lamp!: THREE.Sprite;
+  private readonly glass!: THREE.MeshStandardMaterial;
   private readonly puffs: THREE.Sprite[] = [];
   private readonly puffAge: number[] = [];
   private readonly chimney = new THREE.Vector3(-17.3, 4.95, 62.45);
@@ -51,6 +54,7 @@ export class FishHouse3D {
 
   constructor(scene: THREE.Scene) {
     this.group.name = 'fish-house';
+    if (this.off) return;
     const solid: G[] = [];
     const glass: G[] = [];
     this.walls(solid);
@@ -94,6 +98,7 @@ export class FishHouse3D {
 
   /** Дымок и фонарь; вдали — реже */
   update(dt: number, time: number, cam: THREE.Vector3, rain = 0): void {
+    if (this.off) return;
     this.acc += dt;
     const far = (cam.x - CX) ** 2 + (cam.z - CZ) ** 2 > 70 * 70;
     if (far && this.acc < 0.2) return;

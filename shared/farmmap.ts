@@ -2,6 +2,9 @@
 // участков: где грядки в мире, места E у NPC, порядок выдачи участков. Общая для сервера (проверка расстояний) и
 // клиента (рисование, подсказки). Оси как на площади: x — восток, z — юг.
 import { FARM_LAYOUT } from './farmlayout.ts';
+import { pick } from './layout.ts';
+import { A, xfP, xfSpot } from './plaza3/xf.ts';
+import { P3 } from './plaza3/layout.ts';
 import type { GameMap, MapBox } from './maps/types.ts';
 
 export const FARM_BOUNDS = FARM_LAYOUT.bounds;
@@ -139,5 +142,51 @@ export const FARM_PLOT_ORDER: readonly number[] = (() => {
   return FARM_PLOTS_GEO.map((p) => ({ i: p.i, d: Math.hypot(p.gate.x - cx, p.gate.z - cz) })).sort((a, b) => a.d - b.d).map((p) => p.i);
 })();
 
-/** Вход на ферму с площади: место E у калитки и куда встать, вернувшись (level.md §9) */
-export const FARM_PLAZA_GATE = FARM_LAYOUT.plazaGate.current;
+/** Калитка фермы на площади: места и боксы (числа — плоские, не литералы планировки: в plaza3 они другие) */
+export interface FarmPlazaGate {
+  /** Место E у калитки */
+  use: { x: number; z: number; yaw: number; r: number };
+  /** Куда встать, вернувшись с фермы */
+  spawnBack: { x: number; z: number; yaw: number };
+  /** Телега с сеном за парапетом (y — высота земли под ней) */
+  cart: { x: number; z: number; y: number };
+  signpost: { x: number; z: number };
+  tout: { x: number; z: number };
+  /** Бокс створок (в карту площади не кладётся: створки открыты для прохода) */
+  box: { min: readonly [number, number, number]; max: readonly [number, number, number] };
+}
+
+const GATE_OLD: FarmPlazaGate = FARM_LAYOUT.plazaGate.current;
+
+/**
+ * Вход на ферму с площади: место E у калитки и куда встать, вернувшись (level.md §9). plaza3: вся группа едет якорем
+ * farmGate (+31,5; −11,3) — на ось бульвара за аркой «Огороды» (калитка (61,3; −23,3)), земля там на 0, не на −0,6.
+ */
+export const FARM_PLAZA_GATE: FarmPlazaGate = pick<FarmPlazaGate>(GATE_OLD, () => ({
+  use: xfSpot(A.farmGate, GATE_OLD.use),
+  spawnBack: xfSpot(A.farmGate, GATE_OLD.spawnBack),
+  cart: { ...xfP(A.farmGate, GATE_OLD.cart), y: 0 },
+  signpost: xfP(A.farmGate, GATE_OLD.signpost),
+  tout: xfP(A.farmGate, GATE_OLD.tout),
+  box: {
+    min: [GATE_OLD.box.min[0] + (A.farmGate?.dx ?? 0), GATE_OLD.box.min[1], GATE_OLD.box.min[2] + (A.farmGate?.dz ?? 0)],
+    max: [GATE_OLD.box.max[0] + (A.farmGate?.dx ?? 0), GATE_OLD.box.max[1], GATE_OLD.box.max[2] + (A.farmGate?.dz ?? 0)],
+  },
+}));
+
+/** Ось калитки (дуга, створки): место и взгляд на ферму; на площади plaza3 — со сдвигом группы */
+export const FARM_PLAZA_GATE_ANCHOR: { x: number; z: number; yaw: number } = xfSpot(A.farmGate, FARM_LAYOUT.plazaGate.anchor);
+
+/** Прямоугольник на земле (x0 < x1, z0 < z1) */
+export interface FarmRoadZone { x0: number; z0: number; x1: number; z1: number }
+/**
+ * Зона «прошёл калитку — на ферму» (plaza3: layout.json farmRoad.zone, сразу за створками). В старой раскладке её нет:
+ * на ферму ведёт только E у калитки.
+ */
+export const FARM_ROAD_ZONE: FarmRoadZone | null = pick<FarmRoadZone | null>(null, () => ({ ...P3.farmRoad.zone }));
+
+/** Игрок на земле стоит в зоне «на ферму» (высота — как у обычного круга входа: по земле или в прыжке над ней) */
+export function inFarmRoadZone(x: number, y: number, z: number): boolean {
+  const q = FARM_ROAD_ZONE;
+  return !!q && x >= q.x0 && x <= q.x1 && z >= q.z0 && z <= q.z1 && y >= -0.5 && y <= 1.5;
+}

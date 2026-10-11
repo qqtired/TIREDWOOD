@@ -25,6 +25,13 @@ import { LobbyDecor, swayAttr, windSway } from './decor.ts';
 import { KartStart } from './kartstart.ts';
 import { LobbyLook } from './look.ts';
 import { PLAZA2 } from './plaza/flag.ts';
+import { PLAZA3, pick } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
+import { A, xfP } from '../../shared/plaza3/xf.ts';
+import { buildPlaza3Lights } from './plaza3/lights.ts';
+import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
+import { Plaza3Pavilions } from './plaza3/pavilions.ts';
+import { Plaza3Perf } from './plaza3/perf.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
 import { CoverMap, RainFx, hazy, wettable, type HazeUniforms, type WetUniforms } from './rain.ts';
@@ -40,13 +47,27 @@ export type LobbyQuality = 'high' | 'medium' | 'low';
 const LAMP = 0xffb46a;
 /** Ближняя плоскость камеры набережной, м (была 0,05): чем она дальше, тем точнее буфер глубины, тем реже борьба плоскостей издали */
 const NEAR_PLANE = 0.15;
-/** Точечные источники: павильон, ворота склада, терраса, ларёк (горят только на высоком качестве) */
-const POINT_LIGHTS: ReadonlyArray<readonly [number, number, number, number, number]> = [
+/** Точечные источники: павильон, ворота склада, терраса, ларёк (горят только на высоком качестве); в plaza3 — курзал,
+ * ворота Склада №3, веранда кафе, примерочная */
+const POINT_LIGHTS: ReadonlyArray<readonly [number, number, number, number, number]> = pick([
   [-20, 3, -20, 30, 15],
   [0, 3, -14, 26, 13],
   [16, 3, 3, 30, 16],
   [-24, 2.6, -3, 18, 10],
-];
+], () => [
+  [56.5, 3, 4.5, 30, 15],
+  [8, 3, -27, 26, 13],
+  [28.2, 2.5, 0.8, 30, 16],
+  [-24, 2.6, -3, 18, 10],
+]);
+/** Новая набережная без старой статики (блокаут WP2 и дальше) */
+const NEW_PLAZA = PLAZA3 && !P3.legacyStatic;
+/** Рамка теней мира и её центр; в plaza3 — по новой суше (x −30…92, z −56…22) и пирсу */
+const SHADOW_CENTER = pick(new THREE.Vector3(0, 4, 10), () => new THREE.Vector3(31, 4, 4));
+const SHADOW_BOX = pick(new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 65)), () => new THREE.Box3(new THREE.Vector3(-31, -1, -57), new THREE.Vector3(93, 26, 65)));
+/** Карта укрытий от дождя: северный и восточный края (южный — за баркасом, западный — у его носа) */
+const COVER_Z0 = pick(-26, () => -57);
+const COVER_X1 = pick(30, () => 93);
 const BEAM_LEN = 48;
 /** Фотоаппарат на штативе: высота объектива, вспышка над ним (видна всем, кто смотрит в ту сторону) */
 export const PHOTO_LENS_Y = 1.43;
@@ -96,8 +117,18 @@ function facing(fx: number, fz: number): number {
  * к востоку от площади вода начинается за z = 22, к северу — за x = −30. Земля города кончается у внутренней грани
  * каменной стенки толщиной QUAY_T; стенка с бордюром — как у площади, только на уровне улицы (на 0,6 м ниже настила).
  */
-const PLAZA_E = 30;
-const PLAZA_N = -26;
+const PLAZA_E = pick(30, () => P3.land.town.e);
+const PLAZA_N = pick(-26, () => P3.land.town.n);
+/** Коридор вида на TIREDWOOD с точки появления (plaza3, docs/plaza3/level/layout.json sign.corridor): дома ниже, рощ нет */
+const CORRIDOR = PLAZA3 ? P3.sign.corridor : null;
+function inCorridor(x: number, z: number): boolean {
+  if (!CORRIDOR) return false;
+  const dx = x - CORRIDOR.x;
+  const dz = z - CORRIDOR.z;
+  if (Math.hypot(dx, dz) > CORRIDOR.dMax) return false;
+  const az = (Math.atan2(dx, -dz) * 180) / Math.PI;
+  return az >= CORRIDOR.a0 && az <= CORRIDOR.a1;
+}
 const QUAY_Z = 22;
 const QUAY_X = -30;
 const QUAY_T = 0.6;
@@ -192,15 +223,25 @@ export class LobbyWorld {
   readonly gateScreen = new GateScreen(6, 2.2);
   /** Круг «Старт» перед гаражом, число отсчёта и табло картинга */
   readonly kartStart = new KartStart();
-  readonly honorBoard = new HonorBoard(3.7, 2.4);
+  /** В plaza3 — по полям киосков (pav_honor 4,2×2,8, pav_online 3×2) */
+  readonly honorBoard = NEW_PLAZA ? new HonorBoard(4.2, 2.8) : new HonorBoard(3.7, 2.4);
   /** Обратная сторона доски почёта */
-  readonly recentBoard = new RecentBoard(3.7, 2.4);
+  readonly recentBoard = NEW_PLAZA ? new RecentBoard(3, 2) : new RecentBoard(3.7, 2.4);
   readonly jackpotBoard = new JackpotBoard(6.4, 1.3);
   private readonly sun = new THREE.DirectionalLight(0xffc48a, SUN_CLEAR);
   private readonly hemi = new THREE.HemisphereLight(HEMI_CLEAR[1], HEMI_CLEAR[2], HEMI_CLEAR[0]);
   private readonly lamps: THREE.PointLight[] = [];
   private readonly powered: THREE.Object3D[] = [];
   private readonly poweredSigns = new Map<THREE.MeshStandardMaterial, number>();
+  /** Статика новой набережной (флаг PLAZA3, client/lobby/plaza3); null — строится старая */
+  readonly plaza3: Plaza3World | null = null;
+  /** Модели павильонов набережной (WP9, client/lobby/plaza3/pavilions.ts) — встают поверх блокаута по мере загрузки */
+  readonly pavilions: Plaza3Pavilions | null = null;
+  /** Бюджет отрисовки новой набережной (WP13, client/lobby/plaza3/perf.ts): общие программы, прогрев, дальность */
+  readonly perf: Plaza3Perf | null = null;
+  /** Рамки джекпота и экрана ворот блокаута: прячутся, когда холсты встали на поля моделей */
+  private jackpotFrame: THREE.Object3D | null = null;
+  private gateFrame: THREE.Object3D | null = null;
   private readonly windowGlow: THREE.BufferGeometry[] = [];
   private lampQuality: LobbyQuality = 'high';
   private lighthouseEnabled = true;
@@ -270,7 +311,7 @@ export class LobbyWorld {
     // --- дождь: где от него укрыто и как в мокром отражается небо (ясное и дождливое)
     // до баркаса «Альбатрос» (−60; 68): на его палубе тоже мокро, под крышей рубки и тентом — сухо
     // до баркаса включительно (он далеко в море — карта укрытий длиннее на юг)
-    this.cover = new CoverMap([...this.map.boxes, ...barkasCover()], Math.floor(BARKAS.bow) - 2, -26, 30, Math.ceil(BARKAS.z + BARKAS.half) + 3);
+    this.cover = new CoverMap([...this.map.boxes, ...barkasCover()], Math.floor(BARKAS.bow) - 2, COVER_Z0, COVER_X1, Math.ceil(BARKAS.z + BARKAS.half) + 3);
     this.wet = { uWet: { value: 0 }, uCover: { value: this.cover.texture }, uCoverBox: { value: this.cover.box } };
     const pmrem = new THREE.PMREMGenerator(renderer.gl);
     const env = (p: SkyPalette): THREE.Texture => {
@@ -288,12 +329,12 @@ export class LobbyWorld {
     scene.add(this.hemi);
     // Солнце ~12° над морем; ниже 11° для теней не опускаем, иначе тени ложатся через всю площадь
     const toSun = new THREE.Vector3(EVENING.sunDir.x, Math.max(EVENING.sunDir.y, 0.2), EVENING.sunDir.z).normalize();
-    const center = new THREE.Vector3(0, 4, 10);
+    const center = SHADOW_CENTER.clone();
     this.sun.position.copy(center).addScaledVector(toSun, 160);
     this.sun.target.position.copy(center);
     this.sun.castShadow = true;
     // до z 65 — с пирсом до конца и домом рыбака (shared/fishplaces.ts — FISH_PIER_HEAD)
-    fitShadow(this.sun, center, new THREE.Box3(new THREE.Vector3(-31, -1, -27), new THREE.Vector3(31, 15, 65)));
+    fitShadow(this.sun, center, SHADOW_BOX);
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.04;
     this.sun.shadow.radius = 2.5;
@@ -315,22 +356,52 @@ export class LobbyWorld {
     scene.add(sea);
 
     this.buildMapBoxes();
-    this.buildQuay();
-    this.buildArcade();
-    this.buildWarehouse();
-    this.buildGarage();
-    this.buildKiosk();
-    this.buildCafe();
-    this.buildTerrace();
-    this.buildBenches();
-    this.buildHonorStand();
-    this.buildLighthouse();
-    this.buildPhotoSpot();
-    this.buildGarlands();
-    this.buildLightPools();
-    this.buildTownQuay();
+    if (NEW_PLAZA) {
+      // новая набережная (блокаут WP2 и дальше): суша и коробки кварталов — plaza3/world.ts; из старого — маяк с фото,
+      // основание его площадки, берег города, якоря автоматов и доски (почёта, «Кто на набережной», джекпот, экран ворот)
+      this.plaza3 = buildPlaza3World(this.plazaCtx, this.map);
+      this.buildPlaza3Kept();
+      // столы и стулья карточной веранды (настил модели — 5 см)
+      this.buildTables(0.05);
+      this.buildLighthouse();
+      this.buildPhotoSpot();
+      this.buildTownQuay();
+      // ореолы гирлянд — программой огней города (дымка glow), без своей (бюджет 80)
+      buildPlaza3Lights(this.plazaCtx, this.map, (m) => this.far(m, true));
+      this.pavilions = new Plaza3Pavilions(this.plazaCtx, this.plaza3, {
+        gl: renderer.gl,
+        camera: this.camera,
+        refreshShadows: () => renderer.refreshShadows(),
+        boards: {
+          honor: { mesh: this.honorBoard.mesh },
+          online: { mesh: this.recentBoard.mesh },
+          jackpot: { mesh: this.jackpotBoard.mesh, frame: this.jackpotFrame ?? undefined },
+          kart: { mesh: this.kartStart.board.mesh, frame: this.kartStart.frame },
+        },
+        // экран над воротами блокаута: у модели склада там вывеска (WP10), крыша — у экрана Telegram
+        hide: { paintball: [this.gateScreen.mesh, ...(this.gateFrame ? [this.gateFrame] : [])] },
+        lighthouse: { model: this.lighthouse, beam: [this.beam, this.beamFlash] },
+        kartPhase: () => this.kartStart.status.phase,
+      });
+    } else {
+      this.buildQuay();
+      this.buildArcade();
+      this.buildWarehouse();
+      this.buildGarage();
+      this.buildKiosk();
+      this.buildCafe();
+      this.buildTerrace();
+      this.buildBenches();
+      this.buildHonorStand();
+      this.buildLighthouse();
+      this.buildPhotoSpot();
+      this.buildGarlands();
+      this.buildLightPools();
+      this.buildTownQuay();
+    }
     this.flush();
-    new LobbyDecor(scene, this.wind, (m) => this.wettable(m));
+    // наполнение старой площади (кадки, мозаика у розы, ящики с цветами на стенах, флажки) — не для новой
+    if (!NEW_PLAZA) new LobbyDecor(scene, this.wind, (m) => this.wettable(m));
     this.buildTown();
     this.backdrop = new Backdrop(scene, (m, glow) => this.far(m, glow));
     this.buildFarShore();
@@ -355,6 +426,7 @@ export class LobbyWorld {
       ? new LobbyLook({ scene, renderer, sun: this.sun, hemi: this.hemi, sky: this.skyMat, sea: this.seaMat, haze: this.haze, wind: this.wind, wet: (m) => this.wettable(m), map: this.map }, quality)
       : null;
     this.setQuality(quality);
+    if (NEW_PLAZA) this.perf = new Plaza3Perf({ gl: renderer.gl, scene, camera: this.camera, look: this.look, viewK: () => renderer.gfxState().viewK });
   }
 
   /** Что мир даёт оформлению площади (client/lobby/plaza): ветер, мокрота в дождь, огни, которые гаснут вместе со светом. */
@@ -508,7 +580,11 @@ export class LobbyWorld {
     const { map } = this;
     const lh = map.lighthouse;
     let deck: MapBox | null = null;
-    for (const b of map.boxes) {
+    // твёрдое новой набережной рисует client/lobby/plaza3/world.ts (коробки по кварталам)
+    const skip = new Set(map.plaza3Boxes ?? []);
+    for (let i = 0; i < map.boxes.length; i++) {
+      const b = map.boxes[i];
+      if (skip.has(i)) continue;
       if (b.mat === 'invisible' || b.mat === 'tramp' || b.mat === 'metal') continue;
       if (b.mat === 'deck') {
         deck = b;
@@ -546,6 +622,42 @@ export class LobbyWorld {
     ao.channel = 1;
     const m = this.wettable(new THREE.MeshStandardMaterial({ map: tex.paverTexture(), aoMap: ao, aoMapIntensity: 1, vertexColors: true, roughness: 0.93, metalness: 0 }));
     this.scene.add(staticMesh(g, m, true));
+  }
+
+  /**
+   * Что из старой статики остаётся на новой набережной: якоря автоматов (модели строит slots3d), табло джекпота на
+   * стене курзала (группа slots), Доска почёта и «Кто на набережной» на фасадах своих досок, экран над воротами Склада №3,
+   * круг «Старт» картинга, основание площадки маяка. Блокаут: без вывесок и ламп — их добавят WP9–WP10.
+   */
+  private buildPlaza3Kept(): void {
+    for (const m of this.map.machines) {
+      const a = new THREE.Object3D();
+      a.position.set(m.x, 0, MACHINE_FRONT_Z);
+      this.scene.add(a);
+      this.machineAnchors.push(a);
+    }
+    const jp = xfP(A.slots, { x: -20, z: -25.31 });
+    // рамки — свои сетки (материал как у склейки solid — та же программа): прячутся, когда встанет модель павильона
+    const frameMat = this.wettable(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.1 }));
+    const frame = (w: number, h: number, d: number, x: number, y: number, z: number, color: number): THREE.Mesh => {
+      const m = staticMesh(place(paint(new THREE.BoxGeometry(w, h, d), color), x, y, z), frameMat, true);
+      this.scene.add(m);
+      return m;
+    };
+    this.jackpotFrame = frame(6.7, 1.6, 0.08, jp.x, 3.5, jp.z - 0.05, 0x3a2418);
+    this.jackpotBoard.mesh.position.set(jp.x, 3.5, jp.z);
+    // доски смотрят на юг (+Z), к площади: почёт — на фасаде pav_honor, «Кто на набережной» — на фасаде pav_online
+    const hb = this.map.honorBoard;
+    this.honorBoard.mesh.position.set((hb.x0 + hb.x1) / 2, 2.3, hb.z1 + 0.02);
+    const on = P3.pavilions.find((p) => p.id === 'online')?.box;
+    if (on) this.recentBoard.mesh.position.set((on.x0 + on.x1) / 2, 2.2, on.z1 + 0.02);
+    // экран над воротами Склада №3: перемычка проёма (x 5…11, y 4,5…9,6) на z −29
+    this.gateScreen.mesh.position.set(8, 6.6, -28.93);
+    this.gateFrame = frame(6.3, 2.5, 0.12, 8, 6.6, -28.98, 0x161616);
+    this.scene.add(this.jackpotBoard.mesh, this.honorBoard.mesh, this.recentBoard.mesh, this.gateScreen.mesh, this.kartStart.group);
+    // доски у площади видны издалека — дальность набережной их не прячет (plaza3/perf.ts)
+    this.honorBoard.mesh.userData.p3keep = this.recentBoard.mesh.userData.p3keep = true;
+    this.box('concrete', [-24, -3.2, 38], [-14, -0.6, 46], 0x7d776e, -10);
   }
 
   /** Каменная стенка под краем набережной и основание площадки маяка — до воды и ниже. */
@@ -748,19 +860,28 @@ export class LobbyWorld {
   private buildTerrace(): void {
     const t = this.map.zones.terrace;
     this.overlay(tex.plankTexture(), 0xa0704a, t.x0, t.z0, t.x1, t.z1, 2);
-    for (const tb of this.map.tables) {
-      this.cyl(0.66, 0.66, 0.05, tb.x, 0.75, tb.z, 0x8a5a36, 28);
-      this.cyl(0.05, 0.05, 0.72, tb.x, 0.37, tb.z, 0x2e2e30, 8);
-      this.cyl(0.3, 0.32, 0.03, tb.x, 0.015, tb.z, 0x2e2e30, 18);
-      // свеча в баночке — у самого края, между двумя стульями: середина стола для карт
-      this.bulb(0.05, tb.x, 0.82, tb.z + CANDLE_R, 0xffb060);
-      this.addGlow(0xffa040, 0.6, tb.x, 0.86, tb.z + CANDLE_R, 0.55);
-    }
-    for (const it of this.map.interact) if (it.kind === 'durak') this.chair(it.x, it.z, it.yaw);
+    this.buildTables(0);
     for (const [x, z] of CANOPY_POLES) {
       this.cyl(0.07, 0.08, CANOPY_POLE_H, x, CANOPY_POLE_H / 2, z, 0x3a2a20, 8);
       this.cyl(0.1, 0.1, 0.08, x, CANOPY_POLE_H + 0.04, z, 0x2a2a2a, 8);
     }
+  }
+
+  /**
+   * Столики (столешница, ножка, опора, свеча) и стулья у мест дурака — на старой террасе и на веранде plaza3
+   * (у модели pav_cardveranda только настил и пергола). deck — высота настила под опорой.
+   */
+  private buildTables(deck: number): void {
+    for (const tb of this.map.tables) {
+      this.cyl(0.66, 0.66, 0.05, tb.x, 0.75, tb.z, 0x8a5a36, 28);
+      this.cyl(0.05, 0.05, 0.72, tb.x, 0.37, tb.z, 0x2e2e30, 8);
+      this.cyl(0.3, 0.32, 0.03, tb.x, deck + 0.015, tb.z, 0x2e2e30, 18);
+      // свеча в баночке — у самого края, между двумя стульями: середина стола для карт
+      this.bulb(0.05, tb.x, 0.82, tb.z + CANDLE_R, 0xffb060);
+      // ореол свечи — только на старой террасе (в plaza3 каждый спрайт — лишняя отрисовка)
+      if (!NEW_PLAZA) this.addGlow(0xffa040, 0.6, tb.x, 0.86, tb.z + CANDLE_R, 0.55);
+    }
+    for (const it of this.map.interact) if (it.kind === 'durak') this.chair(it.x, it.z, it.yaw);
   }
 
   /**
@@ -1028,6 +1149,12 @@ export class LobbyWorld {
     for (let x = QUAY_X + 10; x <= TOWN_X1; x += 10) xs.push(x);
     const zs: number[] = [];
     for (let z = TOWN_Z0; z <= PLAZA_N; z += 10) zs.push(z);
+    // край площади — линия сетки (в старой раскладке так и выходит, в plaza3 её добавляем)
+    if (zs[zs.length - 1] !== PLAZA_N) zs.push(PLAZA_N);
+    if (!xs.includes(PLAZA_E)) {
+      xs.push(PLAZA_E);
+      xs.sort((a, b) => a - b);
+    }
     for (let z = PLAZA_N + 8; z < QUAY_Z - QUAY_T; z += 10) zs.push(z);
     zs.push(QUAY_Z - QUAY_T);
     const pos: number[] = [];
@@ -1090,7 +1217,8 @@ export class LobbyWorld {
         const dmin = Math.min(landDepth(x0, z0), landDepth(x1, z0), landDepth(x0, z1), landDepth(x1, z1));
         if (dmin < 10 || dist > 680 || rng() > (dmin < 50 ? 0.72 : 0.56 - dist / 900)) continue;
         lots.set(cell(cx, cz), [x0 - 2, z0 - 2, x1 + 2, z1 + 2]);
-        const floors = dmin < 50 ? 2 + Math.floor(rng() * 3) : 3 + Math.floor(rng() * 4);
+        const floors0 = dmin < 50 ? 2 + Math.floor(rng() * 3) : 3 + Math.floor(rng() * 4);
+        const floors = CORRIDOR && inCorridor((x0 + x1) / 2, (z0 + z1) / 2) ? Math.min(floors0, CORRIDOR.floorsMax) : floors0;
         const y0 = Math.min(landY(x0, z0), landY(x1, z0), landY(x0, z1), landY(x1, z1)) - 0.4;
         const y1 = y0 + 0.4 + floors * 3;
         const k = hazeAt((x0 + x1) / 2, (z0 + z1) / 2);
@@ -1161,7 +1289,7 @@ export class LobbyWorld {
       const r = 2.8 + rng() * 3.2;
       const leaf = rng() < 0.06 ? blossoms[Math.floor(rng() * blossoms.length)] : greens[Math.floor(rng() * greens.length)];
       // на горе под надписью деревьев нет — голый зелёный склон, как у HOLLYWOOD
-      if (signHillK(x, z) > 0.12 || sign.blocks(x, z, 8 + r)) continue;
+      if (signHillK(x, z) > 0.12 || sign.blocks(x, z, 8 + r) || inCorridor(x, z)) continue;
       trees.push([x, landY(x, z), z, r, new THREE.Color(leaf).lerp(haze, hazeAt(x, z))]);
     }
     // на набережной к востоку от площади — ряд деревьев между кнехтами и домами
@@ -1270,7 +1398,7 @@ export class LobbyWorld {
   /** Точечные лампы — только на высоком качестве (они дороже всего в кадре); на низком ещё и карта теней меньше. */
   setQuality(q: LobbyQuality): void {
     this.lampQuality = q;
-    for (const l of this.lamps) l.visible = q === 'high' && this.weather.lampsOn;
+    this.setLamps(q === 'high' && this.weather.lampsOn);
     this.statue?.setQuality(q);
     this.rainFx.setQuality(q);
     const size = q === 'low' ? 1024 : 2048;
@@ -1282,6 +1410,14 @@ export class LobbyWorld {
       this.renderer.refreshShadows();
     }
     this.look?.setQuality(q);
+  }
+
+  /** Точечные лампы: в plaza3 гасим яркостью (видимость лампы — часть ключа шейдера: пересборка всех программ посреди игры) */
+  private setLamps(on: boolean): void {
+    this.lamps.forEach((l, i) => {
+      if (NEW_PLAZA) l.intensity = on ? POINT_LIGHTS[i][3] : 0;
+      else l.visible = on;
+    });
   }
 
   /** Батут просел: кто-то приземлился. */
@@ -1309,7 +1445,7 @@ export class LobbyWorld {
     w.storm = Number.isFinite(force) ? Math.max(0, Math.min(1, force)) : 0;
     if (w.lampsOn === lampsOn) return;
     w.lampsOn = lampsOn;
-    for (const l of this.lamps) l.visible = lampsOn && this.lampQuality === 'high';
+    this.setLamps(lampsOn && this.lampQuality === 'high');
     for (const o of this.powered) o.visible = lampsOn;
     for (const [m, strength] of this.poweredSigns) m.emissiveIntensity = lampsOn ? strength : 0;
   }
@@ -1460,11 +1596,15 @@ export class LobbyWorld {
     this.backdrop.update(t);
     this.look?.update(dt, t);
     const phase = Math.floor(t * 2.6) % 2;
-    this.chase[0].visible = this.weather.lampsOn && phase === 0;
-    this.chase[1].visible = this.weather.lampsOn && phase === 1;
+    // бегущая рамка вывески «АВТОМАТЫ» (в plaza3 вывески пока нет — WP10)
+    if (this.chase.length) {
+      this.chase[0].visible = this.weather.lampsOn && phase === 0;
+      this.chase[1].visible = this.weather.lampsOn && phase === 1;
+    }
     if (this.signGlow) this.signGlow.material.opacity = BULB_SIGN_GLOW[phase];
     this.gateScreen.tick(t);
     this.kartStart.tick(t);
+    this.pavilions?.update(dt, t, this.weather.lampsOn);
     // луч маяка и вспышка, когда он смотрит на камеру
     const a = t * 0.55;
     this.beam.rotation.y = a;
@@ -1483,7 +1623,9 @@ export class LobbyWorld {
   }
 
   render(): void {
+    this.perf?.beforeRender();
     this.renderer.render(this.scene, this.camera, this.exposure);
+    this.perf?.afterRender();
   }
 
   /** Нарисовать сцену с другой камеры (снимок фотоаппарата у маяка) — на тот же холст; дождь — вокруг неё. */

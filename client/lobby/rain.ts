@@ -8,6 +8,7 @@ import { WATER_Y } from '../../shared/constants.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
 import { gfx } from '../render/gfx.ts';
 import type { V3 } from '../render/kit.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
 import { RIPPLE_FN, SKY_FN } from '../render/sky.ts';
 import type { LobbyQuality } from './world.ts';
 
@@ -282,7 +283,7 @@ export class RainFx {
       const c = Math.cos(rot);
       const s = Math.sin(rot);
       for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-        pos.push(x + u * rx * c - v * rz * s, 0.012, z + u * rx * s + v * rz * c);
+        pos.push(x + u * rx * c - v * rz * s, 0.012 + DECAL_LIFT, z + u * rx * s + v * rz * c);
         q.push(u, v);
         sd.push(n * 0.137 + 0.05);
       }
@@ -637,7 +638,7 @@ function streakMaterial(coverU: Record<string, THREE.IUniform>): THREE.ShaderMat
         vec2 xz = aLamp.xz + dir * along + vec2(-dir.y, dir.x) * (position.x * (0.12 + 0.025 * aLamp.y));
         vK = aLamp.w * (1.0 - smoothstep(18.0, 40.0, dist));
         vXZ = xz;
-        gl_Position = projectionMatrix * viewMatrix * vec4(xz.x, 0.02, xz.y, 1.0);
+        gl_Position = projectionMatrix * viewMatrix * vec4(xz.x, ${String(0.02 + DECAL_LIFT)}, xz.y, 1.0);
       }
     `,
     fragmentShader: /* glsl */ `

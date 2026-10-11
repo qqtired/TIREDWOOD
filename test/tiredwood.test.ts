@@ -133,7 +133,7 @@ test('холм за надписью: у города и колеса ровно
   }
   assert.ok(prev > 0.999, 'дальше 800 м — гребень');
   assert.ok(signHillK(...onRay(SIGN_BEARING, 1000)) > 0.95, 'за надписью — почти гребень');
-  assert.ok(signHill(...onRay(HILL_BEARING, 1000)) > 85 && signHill(...onRay(HILL_BEARING, 1000)) <= 90 + 1e-9, 'гребень выше прежнего холма метров на 90');
+  assert.ok(signHill(...onRay(HILL_BEARING, 1000)) > 85 && signHill(...onRay(HILL_BEARING, 1000)) <= 130 + 1e-9, 'гребень выше прежнего холма метров на 90 (в plaza3 — до 130)');
   // там, где стоят буквы (500–570 м), подъём уже заметный, но не гребень
   const mid = signHillK(...onRay(SIGN_BEARING, 540));
   assert.ok(mid > 0.1 && mid < 0.5, `у букв подъём ${mid}`);

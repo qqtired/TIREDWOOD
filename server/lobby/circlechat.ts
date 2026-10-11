@@ -2,7 +2,7 @@
 // в чат» приходят снаружи (server/lobby/room.ts зовёт её раз в проверку кругов), поэтому анти-спам проверяется
 // тестом без сервера (test/circlechat.test.ts).
 //
-// Круг сбора (картинг, регата у пирса, прятки, Fight Club) пишет в чат, когда:
+// Круг сбора (картинг, регата у пирса, прятки) пишет в чат, когда:
 //  · человек простоял в круге не меньше CIRCLE_DWELL_MS — пробегающий мимо не в счёт;
 //  · круг был пуст и в него встали («ждёт в круге — 1/6») или людей в нём стало больше («уже 2/6»);
 //  · на этот круг с прошлой строки прошло не меньше CIRCLE_GAP_MS (кого строка не дождалась, тот попадёт в следующую,
@@ -22,7 +22,7 @@ export interface CircleFolk {
 }
 
 export type DoorKind = 'paintball' | 'fort' | 'skill';
-export type CircleKind = 'kart' | 'boatrace' | 'hide' | 'fight' | DoorKind;
+export type CircleKind = 'kart' | 'boatrace' | 'hide' | DoorKind;
 
 /** Сколько человек вмещает комната режима — для «внутри 2/16» */
 const DOOR_MAX: Readonly<Record<DoorKind, number>> = { paintball: MAX_HUMANS, fort: FORT_MAX_HUMANS, skill: SKILL_CAPACITY };
@@ -37,7 +37,6 @@ const LOOK: Readonly<Record<CircleKind, { icon: string; title: string; go?: stri
   kart: { icon: '🏁', title: 'Картинг', go: 'поехали' },
   boatrace: { icon: '🚤', title: 'Портовая регата', go: 'поехали' },
   hide: { icon: '🔎', title: 'Прятки', go: 'начинаем' },
-  fight: { icon: '🥊', title: 'Fight Club', go: 'бой' },
   paintball: { icon: '🎯', title: 'Пейнтбол' },
   fort: { icon: '🏰', title: 'Крепость' },
   skill: { icon: '☁️', title: 'Выше облаков' },

@@ -10,7 +10,7 @@ const exec = promisify(execFile);
 const root = path.resolve(import.meta.dirname, '..');
 const fixtureModule = path.join(root, 'test/release-fixture.mjs');
 
-async function run(fixture: Record<string, unknown>, expected: Record<string, string> = { EXPECT_FORTRESS: '1', EXPECT_FIGHT: '1', EXPECT_FISH2: '1' }) {
+async function run(fixture: Record<string, unknown>, expected: Record<string, string> = { EXPECT_FORTRESS: '1', EXPECT_FISH2: '1' }) {
   const out = await mkdtemp(path.join(tmpdir(), 'opus-release-csp-test-'));
   try {
     let code: number;
@@ -18,7 +18,7 @@ async function run(fixture: Record<string, unknown>, expected: Record<string, st
     try {
       const result = await exec(process.execPath, ['--import', fixtureModule, path.join(root, 'tools/release/csp-check.mjs')], {
         cwd: out, timeout: 20_000, maxBuffer: 256 * 1024,
-        env: { ...process.env, EXPECT_FORTRESS: '', EXPECT_FIGHT: '', EXPECT_FISH2: '', ...expected, OUT: out, OPUS_RELEASE_FIXTURE: JSON.stringify({ kind: 'csp', ...fixture }) },
+        env: { ...process.env, EXPECT_FORTRESS: '', EXPECT_FISH2: '', ...expected, OUT: out, OPUS_RELEASE_FIXTURE: JSON.stringify({ kind: 'csp', ...fixture }) },
       });
       code = 0;
       output = result.stdout + result.stderr;
@@ -40,9 +40,8 @@ test('CSP command rejects recorded failures instead of returning successful diag
     ['browser resource error', { logs: [{ level: 'error', text: 'Failed to load resource: 404' }] }],
     ['runtime exception', { exception: 'TypeError: fixture failure' }],
     ['console error mentioning AudioContext', { console: [{ type: 'error', text: 'AudioContext fixture failure' }] }],
-    ['wrong fortress flag', { flags: { fortress: false, fight: true, fish2: true } }],
-    ['wrong fight flag', { flags: { fortress: true, fight: false, fish2: true } }],
-    ['wrong fishing flag', { flags: { fortress: true, fight: true, fish2: false } }],
+    ['wrong fortress flag', { flags: { fortress: false, fish2: true } }],
+    ['wrong fishing flag', { flags: { fortress: true, fish2: false } }],
     ['missing canvas', { missingCanvas: true }],
     ['missing built script', { missingBuild: true }],
     ['missing app', { missingApp: true }],
@@ -60,7 +59,7 @@ test('CSP command rejects recorded failures instead of returning successful diag
 test('CSP command requires explicit valid expected service flags', { concurrency: 2 }, async (t) => {
   await Promise.all([
     t.test('missing flags', async () => assert.notEqual((await run({}, {})).code, 0)),
-    t.test('malformed flag', async () => assert.notEqual((await run({}, { EXPECT_FORTRESS: 'yes', EXPECT_FIGHT: '1', EXPECT_FISH2: '1' })).code, 0)),
+    t.test('malformed flag', async () => assert.notEqual((await run({}, { EXPECT_FORTRESS: 'yes', EXPECT_FISH2: '1' })).code, 0)),
   ]);
 });
 
@@ -72,6 +71,6 @@ test('CSP command accepts healthy desktop content and writes configured evidence
 });
 
 test('CSP command accepts explicit disabled modes', async () => {
-  const result = await run({ flags: { fortress: false, fight: false, fish2: false } }, { EXPECT_FORTRESS: '0', EXPECT_FIGHT: '0', EXPECT_FISH2: '0' });
+  const result = await run({ flags: { fortress: false, fish2: false } }, { EXPECT_FORTRESS: '0', EXPECT_FISH2: '0' });
   assert.equal(result.code, 0, result.output);
 });

@@ -1,6 +1,6 @@
 // Desktop acceptance of the production build under the site's CSP; no deployment.
 // Start an isolated game server/CSP proxy and Chrome/CDP first (see csp-proxy.mjs).
-// EXPECT_FORTRESS=1 EXPECT_FIGHT=1 EXPECT_FISH2=1 OUT=<temporary evidence directory>
+// EXPECT_FORTRESS=1 EXPECT_FISH2=1 OUT=<temporary evidence directory>
 //   CDP_PORT=9333 URL=http://localhost:5192/?debug node tools/release/csp-check.mjs
 // All expected service flags are required: use 0 explicitly for a flags-off check.
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const expected = {};
-for (const [flag, env] of [['fortress', 'EXPECT_FORTRESS'], ['fight', 'EXPECT_FIGHT'], ['fish2', 'EXPECT_FISH2']]) {
+for (const [flag, env] of [['fortress', 'EXPECT_FORTRESS'], ['fish2', 'EXPECT_FISH2']]) {
   const value = process.env[env];
   if (value !== '0' && value !== '1') {
     console.error(`${env} must explicitly be 0 or 1`);
@@ -115,7 +115,7 @@ try {
       build: [...document.scripts].map((s) => s.src.split('/').pop()).filter(Boolean),
       coins: [...document.querySelectorAll('img.coin')].map((image) => image.complete && image.naturalWidth > 0),
       // крепость: прежняя арка или (новое оформление площади, client/lobby/plaza) пришедший статус крепости
-      flags: { fortress: !!(lobby?.fortGate || lobby?.fortSt), fight: !!lobby?.fcDoor, fish2: !!lobby?.fish2?.on },
+      flags: { fortress: !!(lobby?.fortGate || lobby?.fortSt), fish2: !!lobby?.fish2?.on },
     };
   })()`);
   const d = report.desktop;

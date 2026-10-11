@@ -99,7 +99,8 @@ export interface Stats {
   ftWins: number;
   ftBest: number;
   ftKills: number;
-  /** «Fight Club»: боёв (дрался и дождался итогов), побед, нокаутов */
+  /** Бывший «Fight Club» (удалён 11.10.2026): боёв, побед, нокаутов. Поля остаются в профиле, чтобы старые сохранения грузились
+   * без потерь, и считаются в общий опыт (shared/levels.ts); новые бои не копятся, в интерфейсе их не показываем */
   fcFights: number;
   fcWins: number;
   fcKos: number;
@@ -140,6 +141,26 @@ export interface Stats {
   dgBestMs: number;
   dgKills: number;
   dgBosses: number;
+  /**
+   * Аркада новой набережной (shared/arcade/rewards.ts): по играм (Tr «Паровозик», Ti «Тир», Ca «Песочный замок») — лучший
+   * счёт, неделя лучшего за неделю (номер дня понедельника по Москве) и он сам, партий; день по Москве (номер), жетоны
+   * аркады за него и за какие игры в этот день уже дали «+10 за свой рекорд» (биты 0–2)
+   */
+  arBestTr: number;
+  arBestTi: number;
+  arBestCa: number;
+  arWkTr: number;
+  arWkTi: number;
+  arWkCa: number;
+  arWkBestTr: number;
+  arWkBestTi: number;
+  arWkBestCa: number;
+  arRunsTr: number;
+  arRunsTi: number;
+  arRunsCa: number;
+  arDay: number;
+  arDayCoins: number;
+  arRecMask: number;
 }
 
 export function emptyStats(): Stats {
@@ -154,6 +175,8 @@ export function emptyStats(): Stats {
     rlSpins: 0, rlStaked: 0, rlWon: 0,
     skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
     dgRuns: 0, dgBest: 0, dgBestMs: 0, dgKills: 0, dgBosses: 0,
+    arBestTr: 0, arBestTi: 0, arBestCa: 0, arWkTr: 0, arWkTi: 0, arWkCa: 0, arWkBestTr: 0, arWkBestTi: 0, arWkBestCa: 0,
+    arRunsTr: 0, arRunsTi: 0, arRunsCa: 0, arDay: 0, arDayCoins: 0, arRecMask: 0,
   };
 }
 

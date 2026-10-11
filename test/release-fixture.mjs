@@ -11,7 +11,7 @@ if (fixture.kind === 'health') {
     return new Response(fixture.body, { status: fixture.status ?? 200 });
   };
 } else if (fixture.kind === 'csp') {
-  const flags = fixture.flags ?? { fortress: true, fight: true, fish2: true };
+  const flags = fixture.flags ?? { fortress: true, fish2: true };
   const state = { screen: 'game', scene: 'lobby', nick: 'Tester6', pos: [0, 1, 0], paused: false, ...fixture.state };
   const canvas = fixture.missingCanvas ? null : { width: 1280, height: 720, clientWidth: 1280, clientHeight: 720 };
   const listeners = new Map();
@@ -26,7 +26,7 @@ if (fixture.kind === 'health') {
     __opus: fixture.missingApp ? undefined : {
       state: () => ({ ...state }),
       app: {
-        active: { fortGate: flags.fortress ? {} : null, fcDoor: flags.fight ? {} : null, fish2: { on: flags.fish2 }, world: { look: null } },
+        active: { fortGate: flags.fortress ? {} : null, fish2: { on: flags.fish2 }, world: { look: null } },
         input: { locked: false },
         play: () => {},
         setPaused: (paused) => { state.paused = paused; },

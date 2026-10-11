@@ -561,56 +561,6 @@ export function drawNumberPlate(ctx: Ctx, W: number, H: number, n: number, ink =
   bigText(ctx, String(n).padStart(2, '0'), W / 2, H * 0.54, H * 0.7, W * 0.8, ink, '#f6f2e8', 0, 900, '');
 }
 
-// ------------------------------------------------------------ Fight Club
-
-/** Перчатка: красный кулак с манжетой, смотрит вправо. */
-export function gloveIcon(ctx: Ctx, cx: number, cy: number, s: number, color = '#d9372b'): void {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, s * 0.5, s * 0.4, -0.15, 0, Math.PI * 2);
-  ctx.fill();
-  roundRectPath(ctx, -s * 0.72, -s * 0.2, s * 0.34, s * 0.4, s * 0.06);
-  ctx.fillStyle = '#f4f1e8';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-  ctx.lineWidth = s * 0.04;
-  ctx.beginPath();
-  ctx.moveTo(s * 0.12, -s * 0.2);
-  ctx.quadraticCurveTo(s * 0.32, 0, s * 0.12, s * 0.2);
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(-s * 0.05, -s * 0.2, s * 0.2, s * 0.08, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-/** Доска на кронштейне у угла кафе (портрет): перчатка сверху, FIGHT / CLUB, мелкая подпись. Красная окантовка. */
-export function drawFightSign(ctx: Ctx, W: number, H: number): void {
-  ctx.fillStyle = '#17171b';
-  ctx.fillRect(0, 0, W, H);
-  speckle(ctx, W, H, 67, 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)');
-  ctx.strokeStyle = '#d9372b';
-  ctx.lineWidth = W * 0.045;
-  roundRectPath(ctx, W * 0.05, W * 0.05, W * 0.9, H - W * 0.1, W * 0.09);
-  ctx.stroke();
-  gloveIcon(ctx, W * 0.5, H * 0.2, W * 0.5);
-  bigText(ctx, 'FIGHT', W / 2, H * 0.47, H * 0.2, W * 0.84, '#ff4b3e', '#ffffff', W * 0.022, 900, 'rgba(255,60,40,0.5)');
-  bigText(ctx, 'CLUB', W / 2, H * 0.67, H * 0.2, W * 0.84, '#ff4b3e', '#ffffff', W * 0.022, 900, 'rgba(255,60,40,0.5)');
-  ctx.fillStyle = '#f4f1e8';
-  const l1 = 'ПОДВАЛ · БОИ ПО ОЧЕРЕДИ';
-  fitFont(ctx, l1, H * 0.062, W * 0.84, 800);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(l1, W / 2, H * 0.83);
-  ctx.fillStyle = '#ff8a7a';
-  const l2 = 'ВХОД С ЮГА, ВНИЗ ПО СТУПЕНЯМ';
-  fitFont(ctx, l2, H * 0.055, W * 0.84, 700);
-  ctx.fillText(l2, W / 2, H * 0.91);
-}
-
 // ------------------------------------------------------------ коврики-«двери» на земле
 
 /** Брезент с сетью: тёмно-бирюзовая ткань, по краю — сетка с поплавками, внутри — стайка рыб. Верх — север. */
@@ -747,60 +697,6 @@ export function drawRegattaPad(ctx: Ctx, W: number, H: number): void {
     ctx.fillRect(0, j * b * 2, b, b * 2);
     ctx.fillRect(W - b, j * b * 2, b, b * 2);
   }
-  ctx.restore();
-}
-
-/** Бетонный коврик у подвала: тёмный, красно-чёрная диагональ по краю, трещины. Верх — север. */
-export function drawFightPad(ctx: Ctx, W: number, H: number): void {
-  const R = H * 0.1;
-  ctx.clearRect(0, 0, W, H);
-  roundRectPath(ctx, 0, 0, W, H, R);
-  ctx.fillStyle = '#3b3b42';
-  ctx.fill();
-  ctx.save();
-  ctx.clip();
-  speckle(ctx, W, H, 79, 'rgba(255,255,255,0.07)', 'rgba(0,0,0,0.2)', 26);
-  // трещины
-  const rng = makeRng(81);
-  ctx.strokeStyle = 'rgba(0,0,0,0.38)';
-  ctx.lineWidth = 3;
-  for (let i = 0; i < 6; i++) {
-    let x = rng() * W;
-    let y = rng() * H;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    for (let k = 0; k < 5; k++) {
-      x += (rng() - 0.5) * W * 0.12;
-      y += (rng() - 0.3) * H * 0.12;
-      ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  // красно-чёрная диагональ по периметру
-  const b = H * 0.07;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, W, H);
-  ctx.rect(b, b, W - b * 2, H - b * 2);
-  ctx.clip('evenodd');
-  const s = b * 1.6;
-  for (let i = -H; i < W + H; i += s * 2) {
-    ctx.fillStyle = '#d9372b';
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i + s, 0);
-    ctx.lineTo(i + s + H, H);
-    ctx.lineTo(i + H, H);
-    ctx.fill();
-    ctx.fillStyle = '#17171b';
-    ctx.beginPath();
-    ctx.moveTo(i + s, 0);
-    ctx.lineTo(i + s * 2, 0);
-    ctx.lineTo(i + s * 2 + H, H);
-    ctx.lineTo(i + s + H, H);
-    ctx.fill();
-  }
-  ctx.restore();
   ctx.restore();
 }
 

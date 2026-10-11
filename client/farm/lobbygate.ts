@@ -7,16 +7,18 @@
 import * as THREE from 'three';
 import { FARM_PLOTS } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
+import { FARM_PLAZA_GATE, FARM_PLAZA_GATE_ANCHOR } from '../../shared/farmmap.ts';
 import type { FarmStatus } from '../../shared/farmnet.ts';
 import { ACT_NONE, ACT_WAVE } from '../../shared/lobby.ts';
 import { DEFAULT_OUTFIT } from '../../shared/outfit.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { LOCAL_WALKER } from '../render/outfitfarm.ts';
+import { NPC3, npcHandle } from '../lobby/plaza3/npcdata.ts';
 import { WalkPets } from './3d/pets.ts';
 import { StaticBatch, loadModel, type Part } from './models.ts';
 
-const G = FARM_LAYOUT.plazaGate;
+const G = { local: FARM_LAYOUT.plazaGate.local, anchor: FARM_PLAZA_GATE_ANCHOR, current: FARM_PLAZA_GATE };
 /** Створки открываются, когда ближе этого (м), за 0,3 с */
 const OPEN_R = 4.5;
 const OPEN_S = 0.3;
@@ -75,6 +77,8 @@ export class FarmGate {
   private readonly leaves: [THREE.Group, number][] = [];
   private open = 0;
   private tout: Avatar | null = null;
+  /** Новая набережная (PLAZA3): Галя — житель plaza3 (client/lobby/plaza3/npc.ts), здесь только её логика */
+  private readonly npc = NPC3 ? npcHandle('galya') : null;
   private readonly toutPose: AvatarPose = { x: G.current.tout.x, y: 0, z: G.current.tout.z, yaw: G.anchor.yaw + Math.PI, pitch: 0, flags: E_ALIVE | E_GROUNDED };
   private toutNear = false;
   private toutLine = 0;
@@ -136,11 +140,16 @@ export class FarmGate {
     sign.rotation.y = a.yaw;
     this.group.add(sign);
     // Фермерша Галя
-    const tout = new Avatar(-31, { gun: false, voice: false });
-    tout.setOutfit({ ...DEFAULT_OUTFIT, c: 13, c2: 15, h: 'straw', u: 'workshirt', l: 'overalls', a: 'none' });
-    tout.setInfo('Фермерша Галя', null, false);
-    tout.addTo(this.scene);
-    this.tout = tout;
+    if (this.npc) {
+      this.npc.place(this.toutPose.x, 0, this.toutPose.z, this.toutPose.yaw);
+      this.npc.on = true;
+    } else {
+      const tout = new Avatar(-31, { gun: false, voice: false });
+      tout.setOutfit({ ...DEFAULT_OUTFIT, c: 13, c2: 15, h: 'straw', u: 'workshirt', l: 'overalls', a: 'none' });
+      tout.setInfo('Фермерша Галя', null, false);
+      tout.addTo(this.scene);
+      this.tout = tout;
+    }
     this.refresh();
   }
 
@@ -158,7 +167,8 @@ export class FarmGate {
     const k = this.open * this.open * (3 - 2 * this.open);
     for (const [g, dir] of this.leaves) g.rotation.y = G.anchor.yaw + dir * OPEN_ANGLE * k;
     const t = this.tout;
-    if (!t) return;
+    const h = this.npc;
+    if (!t && !h) return;
     const p = this.toutPose;
     let close = false;
     if (here) {
@@ -167,11 +177,18 @@ export class FarmGate {
       if (close) p.yaw = Math.atan2(-(here.x - p.x), -(here.z - p.z));
     }
     if (close && !this.toutNear) {
-      t.setAction(ACT_WAVE, 0);
-      t.say(TOUT_LINES[this.toutLine++ % TOUT_LINES.length]);
-      setTimeout(() => t.setAction(ACT_NONE, 0), 2200);
+      const line = TOUT_LINES[this.toutLine++ % TOUT_LINES.length];
+      if (h) {
+        h.wave();
+        h.say(line);
+      } else if (t) {
+        t.setAction(ACT_WAVE, 0);
+        t.say(line);
+        setTimeout(() => t.setAction(ACT_NONE, 0), 2200);
+      }
     }
     this.toutNear = close;
-    t.update(p, dt, this.time, this.ground, camPos, false);
+    if (h) h.yaw = p.yaw;
+    else t?.update(p, dt, this.time, this.ground, camPos, false);
   }
 }

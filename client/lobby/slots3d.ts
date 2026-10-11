@@ -9,6 +9,7 @@
 // Неподвижное склеено в несколько мешей на весь зал; отдельно крутятся только барабаны и рычаги.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { makeRng } from '../../shared/math.ts';
 import { BIG_WIN_MULT, JACKPOT_MULT, MACHINE_NAMES, PAYTABLES, REEL_STOP_MS, SPIN_MS, STAKES } from '../../shared/slots.ts';
 import type { Sound } from '../audio.ts';
@@ -95,11 +96,13 @@ const WIN_LIGHTS_MS = 2000;
 const LOSE_DIM_MS = 600;
 const JACKPOT_MS = 4000;
 const JACKPOT_COINS = 90;
-const FIREWORKS_AT = new THREE.Vector3(-20, 12, -10);
+// plaza3: над бульваром перед фасадом курзала (он смотрит на север, шапка вывески — x 58,3)
+const FIREWORKS_AT = PLAZA3 ? new THREE.Vector3(58.3, 13, -7) : new THREE.Vector3(-20, 12, -10);
 /** Фонтаны искр: по бокам автомата (за рычагом), сколько секунд у крупного выигрыша */
 const FOUNTAIN_DX = [-0.78, 0.78];
 /** Конфетти-пушки на углах крыши павильона: при джекпоте стреляют над площадью */
-const CANNONS: ReadonlyArray<readonly [number, number, number]> = [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
+// plaza3: на кровле курзала по краям фасада (кровля у фасада — y 6,0)
+const CANNONS: ReadonlyArray<readonly [number, number, number]> = PLAZA3 ? [[52.2, 6.3, 1.3], [65.2, 6.3, 1.3]] : [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
 const BIG_FOUNTAIN_S = 1.6;
 
 const _v = new THREE.Vector3();

@@ -27,7 +27,7 @@ for (const recover of [true, false]) {
       await new Promise<void>(resolve => reservation.close(() => resolve()));
       const child = spawn(process.execPath, ['server/main.ts'], { cwd: root, env: {
         ...process.env, HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dir,
-        VOICE: '0', FORTRESS: '0', FIGHT: '0', SKILL: '0', BOATRACE: '0', HIDE: '0', STORM: '0', PIRATES: '0', FISH2: '0',
+        VOICE: '0', FORTRESS: '0', SKILL: '0', BOATRACE: '0', HIDE: '0', STORM: '0', PIRATES: '0', FISH2: '0',
         GIFTS: '0', ROULETTE: '0', RATRACE: '0', LAB: '0', JUKEBOX: '0', BILLIARDS: '0', PLANE: '0', VOTEKICK: '0',
       }, stdio: ['ignore', 'pipe', 'pipe'] });
       let exited = false, ready = false, stdout = '', stderr = '';

@@ -2,6 +2,9 @@
 // X — восток, Z — юг; yaw=0 — север. Старые шесть мест идут первыми: их arg и interaction ID не меняются.
 import { BARKAS_DECK_Y, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, BARKAS_ROULETTE, SANYA_USE } from './barkas.ts';
 import { ISLE_FISH_SPOTS, ISLE_IGNAT_USE } from './maps/isle.ts';
+import { pick } from './layout.ts';
+import { MOLE_DECK_Y, PORT } from './plaza3/port.ts';
+import { A, xfBox2, xfP } from './plaza3/xf.ts';
 
 export interface FishPlaceBox {
   x0: number;
@@ -10,6 +13,12 @@ export interface FishPlaceBox {
   x1: number;
   y1: number;
   z1: number;
+  /**
+   * Материал и цвет бокса настила на карте (по умолчанию дерево). plaza3: настилы порта и сруб Лавки — невидимые, их рисуют
+   * модели (pav_mole, pav_semyon) и доски помоста (client/lobby/fishplaces3d.ts) — без второго слоя, который мерцал бы
+   */
+  mat?: 'wood' | 'concrete' | 'invisible';
+  color?: number;
 }
 
 /**
@@ -24,6 +33,8 @@ export interface FishSpot {
   yaw: number;
   /** По умолчанию 'pier' */
   zone?: FishZone;
+  /** Высота, на которой стоит рыбак; по умолчанию 0 (настил). Места на Маячном моле plaza3 — на y −0,5 */
+  y?: number;
   /** Эхолот своей лодки (shared/fishboat.ts): ожидание поклёвки короче на эту долю */
   sonar?: number;
 }
@@ -46,8 +57,24 @@ export const FISH_PIER_HEAD: FishPlaceBox = { x0: -25.5, y0: -0.6, z0: 54, x1: -
  * Дом рыбака: сруб у южного края площадки (задняя стена — по краю), крыльцо под навесом смотрит на север, к пирсу.
  * Твёрдое — коробка сруба, две стойки крыльца, бочки и ящики у стен (всё есть и без FISH2: дом — часть пирса).
  */
-export const FISH_HOUSE = { x0: -22, x1: -16, z0: 59.6, z1: 64, wall: 2.6, ridge: 4.25, porch: 1.2, door: -20.2 } as const;
-export const FISH_HOUSE_BOXES: readonly FishPlaceBox[] = [
+export interface FishHouse {
+  readonly x0: number;
+  readonly x1: number;
+  readonly z0: number;
+  readonly z1: number;
+  readonly wall: number;
+  readonly ridge: number;
+  readonly porch: number;
+  /** Где дверь на стене с крыльцом: x — крыльцо на север (старый дом и Лавка Семёна plaza3 на помосте у мола) */
+  readonly door: number;
+}
+const FISH_HOUSE2: FishHouse = { x0: -22, x1: -16, z0: 59.6, z1: 64, wall: 2.6, ridge: 4.25, porch: 1.2, door: -20.2 };
+/**
+ * plaza3: Лавка Семёна (pav_semyon.glb) на помосте у сходней Маячного мола (11.10, «на пирсы после маяка»): сруб 5,4 × 4,4 м
+ * на настиле y −0,5 (PORT.semyon.y), крыльцо на север, к молу. Старый дом на голове пирса не строится (client/lobby/fishhouse.ts).
+ */
+export const FISH_HOUSE: FishHouse = pick(FISH_HOUSE2, () => ({ ...PORT.semyon.house, wall: 2.6, ridge: 4.25, porch: 1.2, door: PORT.semyon.npc.x }));
+const FISH_HOUSE_BOXES2: readonly FishPlaceBox[] = [
   // сруб (крышу не достать прыжком: стены выше 2,5 м)
   { x0: FISH_HOUSE.x0, y0: 0, z0: FISH_HOUSE.z0, x1: FISH_HOUSE.x1, y1: FISH_HOUSE.wall, z1: FISH_HOUSE.z1 },
   // стойки крыльца по углам
@@ -59,8 +86,32 @@ export const FISH_HOUSE_BOXES: readonly FishPlaceBox[] = [
   // ящик с бухтой каната на крыльце, левее двери
   { x0: -21.95, y0: 0, z0: 59.0, x1: -21.15, y1: 0.62, z1: 59.6 },
 ];
+/**
+ * plaza3: Лавка Семёна на помосте — стойка «Снасти у Семёна» (client/lobby/fisherman.ts): середина на настиле и куда смотрит,
+ * полуразмеры по своим осям (поперёк hw, вдоль hd)
+ */
+export const FISH_GEAR: { x: number; y: number; z: number; yaw: number; hw: number; hd: number } | null = pick<{ x: number; y: number; z: number; yaw: number; hw: number; hd: number } | null>(
+  null, () => ({ ...PORT.semyon.gear, y: PORT.semyon.y, hw: 0.4, hd: 0.4 }),
+);
+/**
+ * plaza3: сруб (невидимый: его рисует pav_semyon.glb, коробка блокаута — decor pav semyon, пока модель не встала; до конька
+ * col_house модели — 4,32 м) и стойка снастей. Крыльцо, бочки, скамья, поленница — боксы col_* модели в layout.json
+ * (pav.semyon.*, node tools/plaza3/cols.mjs)
+ */
+export const FISH_HOUSE_BOXES: readonly FishPlaceBox[] = pick(FISH_HOUSE_BOXES2, () => {
+  const y = PORT.semyon.y;
+  const out: FishPlaceBox[] = [{ x0: FISH_HOUSE.x0, y0: y, z0: FISH_HOUSE.z0, x1: FISH_HOUSE.x1, y1: y + 4.32, z1: FISH_HOUSE.z1, mat: 'invisible' }];
+  const g = FISH_GEAR;
+  if (g) {
+    // осевой бокс повёрнутой стойки (у Лавки yaw 0 — точный)
+    const c = Math.abs(Math.cos(g.yaw)), sn = Math.abs(Math.sin(g.yaw));
+    const ex = g.hw * c + g.hd * sn, ez = g.hw * sn + g.hd * c;
+    out.push({ x0: g.x - ex, y0: y, z0: g.z - ez, x1: g.x + ex, y1: y + 1.9, z1: g.z + ez, mat: 'invisible' });
+  }
+  return out;
+});
 /** Места рыбалки на дальних мостках и на площадке у дома: только в конец FISH_SPOTS (после баркаса), зона — пристань */
-export const FISH_FAR_SPOTS: ReadonlyArray<FishSpot> = [
+const FISH_FAR_SPOTS2: ReadonlyArray<FishSpot> = [
   // мостки 3 м: западные и восточные места вразбежку — с сидящими рыбаками проход остаётся
   { x: -18.05, z: 47.0, yaw: -Math.PI / 2 }, { x: -19.95, z: 48.5, yaw: Math.PI / 2 },
   { x: -18.05, z: 50.5, yaw: -Math.PI / 2 }, { x: -19.95, z: 52.5, yaw: Math.PI / 2 },
@@ -69,6 +120,11 @@ export const FISH_FAR_SPOTS: ReadonlyArray<FishSpot> = [
   { x: -24.95, z: 56.2, yaw: Math.PI / 2 }, { x: -23.65, z: 63.45, yaw: Math.PI },
   { x: -13.05, z: 56.2, yaw: -Math.PI / 2 }, { x: -13.05, z: 61.2, yaw: -Math.PI / 2 },
 ];
+/**
+ * plaza3 (порт B «Маячный мол»): те же 8 номеров, но на новом молу — 0–1 на южной кромке головы, 2–7 на южной кромке мола
+ * через 3 м, заброс на юг, в открытую воду; рыбак стоит на камне, y −0,5.
+ */
+export const FISH_FAR_SPOTS: ReadonlyArray<FishSpot> = pick(FISH_FAR_SPOTS2, () => PORT.farSpots.map((s) => ({ x: s.x, z: s.z, yaw: Math.PI, y: MOLE_DECK_Y })));
 export const FISH_SPOTS: ReadonlyArray<FishSpot> = [
   ...[25, 28.5, 32].flatMap((z) => [
     { x: -20.45, z, yaw: Math.PI / 2 }, { x: -17.55, z, yaw: -Math.PI / 2 },
@@ -128,10 +184,13 @@ export function spotZone(spot: number): FishZone {
 export const fishZone = spotZone;
 
 /** Дед Семён — на крыльце своего дома на конце пирса (правее двери), смотрит на север, на приходящих по мосткам. */
-export const FISHER_NPC = { x: -17.55, y: 0, z: 59.05, yaw: 0 };
+// plaza3: на крыльце Лавки (доски крыльца модели — на 6 см выше настила помоста)
+export const FISHER_NPC = pick({ x: -17.55, y: 0, z: 59.05, yaw: 0 }, () => ({ x: PORT.semyon.npc.x, y: PORT.semyon.y + 0.06, z: PORT.semyon.npc.z, yaw: PORT.semyon.npc.yaw }));
 /** Посетитель стоит перед крыльцом и смотрит на юг, на Семёна. */
-export const FISHER_USE = { x: -17.55, y: 0, z: 57.45, yaw: Math.PI, r: 1.7 };
-export const FISHER_BODY: FishPlaceBox = { x0: -17.97, y0: 0, z0: 58.66, x1: -17.13, y1: 1.75, z1: 59.5 };
+export const FISHER_USE = pick({ x: -17.55, y: 0, z: 57.45, yaw: Math.PI, r: 1.7 }, () => ({ ...PORT.semyon.use, y: PORT.semyon.y }));
+export const FISHER_BODY: FishPlaceBox = pick({ x0: -17.97, y0: 0, z0: 58.66, x1: -17.13, y1: 1.75, z1: 59.5 }, () => ({
+  x0: FISHER_NPC.x - 0.42, y0: PORT.semyon.y, z0: FISHER_NPC.z - 0.42, x1: FISHER_NPC.x + 0.42, y1: PORT.semyon.y + 1.75, z1: FISHER_NPC.z + 0.42,
+}));
 
 /**
  * Рыбаки-торговцы: Дед Семён на пристани и его младший брат Саня на баркасе — одни задания, лавка и скупка улова; смотритель
@@ -156,10 +215,19 @@ export const FISH_NPC_USE: Readonly<Record<FishNpcId, { x: number; y: number; z:
 export const ROULETTE_SPOT = { x: BARKAS_ROULETTE.x, y: BARKAS_DECK_Y, z: BARKAS_ROULETTE.z, yaw: Math.PI / 2, r: 2.6 } as const;
 
 /** Слева при движении к маяку по южной стороне площади; памятник находится западнее мостков. */
-export const FISH_BOARD = { x: -15, y: 0, z: 20.8, yaw: 0, w: 3.6, d: 0.16, h: 2.45, panelY: 0.8 };
-export const FISH_BOARD_BODY: FishPlaceBox = { x0: -16.88, y0: 0.7, z0: 20.72, x1: -13.12, y1: 2.53, z1: 20.88 };
-export const FISH_PODIUM = { x: -11, y: 0, z: 17.2, yaw: 0, w: 5.4, d: 1.4, h: 0.2 };
-export const FISH_PODIUM_BODY: FishPlaceBox = { x0: -13.7, y0: 0, z0: 16.5, x1: -8.3, y1: 0.2, z1: 17.9 };
+const FISH_BOARD2 = { x: -15, y: 0, z: 20.8, yaw: 0, w: 3.6, d: 0.16, h: 2.45, panelY: 0.8 };
+/**
+ * plaza3: доска «Рекорды рыбаков» — над прилавком Рыбной витрины у её задней стены (якорь fishBoard, сдвиг (3; 0,565)):
+ * центр (−12; 21,365), ширина и высота холста те же, поле выше — w 3,6, верх h 4,14, низ panelY 2,49 (раскладка v5.1)
+ */
+export const FISH_BOARD = pick(FISH_BOARD2, () => ({ ...xfP(A.fishBoard, FISH_BOARD2), w: PORT.showcase.board.w, h: PORT.showcase.board.h, panelY: PORT.showcase.board.panelY }));
+const FISH_BOARD_BODY2: FishPlaceBox = { x0: -16.88, y0: 0.7, z0: 20.72, x1: -13.12, y1: 2.53, z1: 20.88 };
+export const FISH_BOARD_BODY: FishPlaceBox = pick(FISH_BOARD_BODY2, () => ({ ...xfBox2(A.fishBoard, FISH_BOARD_BODY2), y0: FISH_BOARD.panelY - 0.1, y1: FISH_BOARD.h + 0.08 }));
+const FISH_PODIUM2 = { x: -11, y: 0, z: 17.2, yaw: 0, w: 5.4, d: 1.4, h: 0.2 };
+/** plaza3: прилавок Рыбной витрины — центр (−12; 19,3), поворота нет (якорь fishPodium, сдвиг (−1; 2,1)) */
+export const FISH_PODIUM = pick(FISH_PODIUM2, () => xfP(A.fishPodium, FISH_PODIUM2));
+const FISH_PODIUM_BODY2: FishPlaceBox = { x0: -13.7, y0: 0, z0: 16.5, x1: -8.3, y1: 0.2, z1: 17.9 };
+export const FISH_PODIUM_BODY: FishPlaceBox = pick(FISH_PODIUM_BODY2, () => xfBox2(A.fishPodium, FISH_PODIUM_BODY2));
 /** Display positions left to right: 4,2,1,3,5. Heights descend strictly by rank. */
 export const FISH_PODIUM_STEPS = [
   { rank: 3, x: -2.12, h: 0.57 }, { rank: 1, x: -1.06, h: 0.95 },
@@ -170,18 +238,37 @@ export const FISH_PODIUM_STEP_WIDTH = 0.98;
 export const FISHER_CANOPY_POSTS: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = [];
 
 /** Пристройки встык к существующим мосткам / бетону; верх всех настилов — y=0. Дальние мостки и площадка дома — тоже здесь. */
-export const FISH_DECKS: readonly FishPlaceBox[] = [
+const FISH_DECKS2: readonly FishPlaceBox[] = [
   { x0: -17, y0: -0.6, z0: 36, x1: -14, y1: 0, z1: 38 },
   FISH_PIER2,
   FISH_PIER_HEAD,
 ];
+/**
+ * plaza3 (порт B): дальние мостки и голова пирса с домом убраны; вместо них Маячный мол (камень), голова мола (камень),
+ * сходни к стоянке лодок (дерево), помост Лавки Семёна (дерево), верх y −0,5, и ступень с площадки маяка на мол (на 0,25 м
+ * выше мола). Все они в карте невидимые: мол, голову, сходни и ступень рисует pav_mole.glb (второй слой поверх модели мерцал
+ * и «кривил» мол; пока модель не встала — коробки блокаута decor pav mole), помост — доски client/lobby/fishplaces3d.ts.
+ * Мостки к маяку, площадка маяка и обвязка у них — те же.
+ */
+export const FISH_DECKS: readonly FishPlaceBox[] = pick(FISH_DECKS2, () => [
+  FISH_DECKS2[0],
+  ...PORT.decks.map((d): FishPlaceBox => ({ x0: d.box[0], y0: d.y - 0.6, z0: d.box[1], x1: d.box[2], y1: d.y, z1: d.box[3], mat: 'invisible', color: 0 })),
+  { x0: PORT.stair.box[0], y0: MOLE_DECK_Y, z0: PORT.stair.box[1], x1: PORT.stair.box[2], y1: PORT.stair.y, z1: PORT.stair.box[3], mat: 'invisible', color: 0 },
+]);
+/** plaza3: помост Лавки Семёна (настил lavka порта) — его доски, балки и сваи рисует client/lobby/fishplaces3d.ts */
+export const FISH_LAVKA_DECK: FishPlaceBox | null = pick<FishPlaceBox | null>(null, () => {
+  const d = PORT.decks.find((k) => k.id === 'lavka');
+  return d ? { x0: d.box[0], y0: d.y - 0.6, z0: d.box[1], x1: d.box[2], y1: d.y, z1: d.box[3] } : null;
+});
 
 /** Небольшие швартовные тумбы только на внешних углах; проходы между настилами остаются открыты. */
-export const FISH_MOORINGS: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = [
+const FISH_MOORINGS2: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = [
   { x: -14.18, z: 36.18, r: 0.11, h: 0.72 }, { x: -14.18, z: 37.82, r: 0.11, h: 0.72 },
   // углы площадки у дома (северные — у выхода с мостков на площадку)
   { x: -25.25, z: 54.25, r: 0.11, h: 0.72 }, { x: -12.75, z: 54.25, r: 0.11, h: 0.72 },
 ];
+/** plaza3: тумбы на углах площадки у дома убраны вместе с ней; остались две у стыка мостков с площадкой маяка */
+export const FISH_MOORINGS: ReadonlyArray<{ x: number; z: number; r: number; h: number }> = pick(FISH_MOORINGS2, () => FISH_MOORINGS2.slice(0, 2));
 
 /** Exact world-space bounds consumed by the lobby's gated FISH2 collision. */
 export const FISH_PODIUM_STEP_BOXES: readonly FishPlaceBox[] = FISH_PODIUM_STEPS.map((s) => ({

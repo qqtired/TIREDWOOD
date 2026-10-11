@@ -26,7 +26,6 @@ Strictly: no text, no letters, no numbers, no words, no signs with writing, no l
 | Пейнтбол | `paintball.webp`, 56.5 КБ | `paintball-jelly.webp`, 17.1 КБ |
 | Картинг | `race.webp`, 58.6 КБ | `race-jelly.webp`, 18.9 КБ |
 | Крепость | `fort.webp`, 62.9 КБ | `fort-jelly.webp`, 19.8 КБ |
-| Fight Club | `fight.webp`, 59.2 КБ | `fight-jelly.webp`, 14.8 КБ |
 | «Выше облаков» | `skill.webp`, 56.8 КБ | `skill-jelly.webp`, 14.7 КБ |
 | Прятки «Рыбный двор» | `hide.webp`, 60.9 КБ | `hide-jelly.webp`, 17.9 КБ |
 
@@ -40,8 +39,6 @@ Strictly: no text, no letters, no numbers, no words, no signs with writing, no l
 
 **fort.webp** — Scene: a cozy cartoon stone castle (a small fortress) on a grassy seaside hill on a bright summer day, with colorful banners, bunting and a big wooden gate. Jelly defenders stand on the battlements with toy crossbows and paint markers, cheering; a large glowing green crystal stands on a pedestal in the castle courtyard; a goofy crowd of cute cartoon zombies (green-gray, silly, round, clumsy, slow, not scary at all) shambles up the dirt road toward the gate. The blue sea and the little town are in the distance.
 Затем флаги и знамёна перекрашены из сине-жёлтых в красно-белые правкой этой же картинки через Codex image_gen («repaint all blue-and-yellow flags and banners into red and white, keep everything else the same»), WebP 0,30.
-
-**fight.webp** — Scene (indoors, so the sky is visible only through a small high window): an underground fight club in a cozy brick basement under a seaside house. A small boxing ring with red ropes and a worn canvas floor in the center, warm hanging lamps casting round pools of golden light, sun rays slanting in through the small high window, old posters without any writing, a crowd of jelly spectators around the ring cheering and waving. Two jelly boxers in big red boxing gloves face each other in the ring in a fighting stance, one wears a white headband. Warm, playful and sporty, not grim, not dark, no blood.
 
 **skill.webp** — Scene: an "above the clouds" sky obstacle course. A tall old red-brick fire watchtower (a Russian "kalancha" with a lookout gallery and a bell at the top) rises high above a sea of fluffy white clouds; wooden platforms, rope bridges, spinning wooden beams and small floating grassy islands climb up into a bright blue sky, with a few colorful hot-air balloons around. Jelly characters jump between the platforms, one floats with a bunch of balloons, small birds fly by. Sunny, airy, a strong sense of height and fun.
 
@@ -64,6 +61,5 @@ Framing: full body visible, centered, the character fills about 85 percent of th
 - **paintball-jelly.webp** — blueberry blue; paintball goggles pushed up on its forehead, it holds a chunky toy paint marker (bright orange and black, obviously a toy) in both mittens, a splash of orange paint on its belly, confident grin. Slight three-quarter view facing left.
 - **race-jelly.webp** — one cute glossy jelly character (see style) in tangerine orange: plump soft rounded jelly-bean / gummy-candy body slightly wider at the bottom, translucent jelly sheen with a bright specular highlight, two small dark oval eyes with white catchlights, a big happy open smile, rosy cheeks, two small mitten-like hands, no legs, no nose. It wears a shiny round racing helmet (white with a red stripe) pushed up on its head and racing goggles on the forehead, and proudly holds up a small black-and-white checkered flag in one mitten. Cheerful, energetic pose, slight three-quarter view facing left.
 - **fort-jelly.webp** — mint green; it wears a slightly too big knight helmet with the visor up and a red plume, holds a small round wooden shield and a wooden toy sword, brave determined smile. Slight three-quarter view facing left.
-- **fight-jelly.webp** — raspberry red; it wears big shiny red boxing gloves on its mitten hands and a white headband, playful boxing stance with one glove raised, confident wink. Slight three-quarter view facing left.
 - **skill-jelly.webp** — sky blue; it wears a small brown leather aviator cap and floats upward holding a bunch of five colorful balloons (red, yellow, green, orange, purple) on strings in one mitten, joyful face, the balloons are fully visible above it. Slight three-quarter view facing left.
 - **hide-jelly.webp** — grape purple; it sits inside an old wooden barrel with iron hoops and peeks out over the rim, only its upper half visible above the barrel, one mitten resting on the rim, mischievous smile. The whole barrel is visible. Slight three-quarter view facing left.

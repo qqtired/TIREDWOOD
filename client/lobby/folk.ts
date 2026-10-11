@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { rollCatch } from '../../shared/fishing.ts';
 import { RULE, rollCatch2, SP_BOOT, T_EPIC, T_JUNK } from '../../shared/fishrules.ts';
+import { pick } from '../../shared/layout.ts';
 import { ACT_SIT } from '../../shared/lobby.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
@@ -22,7 +23,7 @@ const FISHER_RAIN = 'В дождь самый клёв!';
  * Рыбаки у маяка: место (лицом к воде, ведро — по левую руку) и наряд. Первый — в тельняшке, рыбацкой шляпе
  * и с усами (сонный — давно сидит), второй — в панаме и шарфе.
  */
-const FISHERS: ReadonlyArray<{ place: FishPlace; outfit: Outfit; extra: 'thermos' | 'tackle' }> = [
+export const FISHERS: ReadonlyArray<{ place: FishPlace; outfit: Outfit; extra: 'thermos' | 'tackle' }> = pick([
   {
     // юго-восточный угол площадки у дома Семёна на конце пирса, лицом в море на восток (с южного края маяка ушёл — там
     // начинаются дальние мостки; с юго-западного — там теперь место рыбалки у причала лодки «Удалая», shared/ferry.ts)
@@ -35,7 +36,21 @@ const FISHERS: ReadonlyArray<{ place: FishPlace; outfit: Outfit; extra: 'thermos
     outfit: { c: 8, c2: 15, p: 'none', e: 'happy', h: 'panama', a: 'scarf' },
     extra: 'tackle',
   },
-];
+], () => [
+  // plaza3 (порт B): головы пирса нет, а к западу от площадки маяка теперь мол — оба рыбака сидят на северном краю площадки
+  // маяка (y 0), забрасывают на запад и на восток; места игроков 8–9 (x −23,45; z 41 и x −14,55; z 42,5) — в 1,6–3 м южнее;
+  // кнехт (−23,3; 38,7) — рядом с первым, поэтому второй сидит на 1,4 м восточнее
+  {
+    place: { x: -14.6, z: 39.2, yaw: -Math.PI / 2, bucket: [-14.55, 0, 38.35] },
+    outfit: { c: 13, c2: 15, p: 'stripes', e: 'sleepy', h: 'fisher', a: 'mustache' },
+    extra: 'thermos',
+  },
+  {
+    place: { x: -22, z: 39.4, yaw: Math.PI / 2, bucket: [-21.85, 0, 40.35] },
+    outfit: { c: 8, c2: 15, p: 'none', e: 'happy', h: 'panama', a: 'scarf' },
+    extra: 'tackle',
+  },
+]);
 /** Сиденье стульчика — на высоте, где сидит желейка */
 const STOOL_H = 0.3;
 

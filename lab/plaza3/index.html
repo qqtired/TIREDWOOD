@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#fbf3e4">
+<title>Новая набережная</title>
+<meta name="description" content="TIREDWOOD: обзор новой набережной перед сборкой в игре — концепт, план, павильоны, жители, таблички, аркада и вопросы владельцу">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M6 26 32 8l26 18z' fill='%23c9643b'/%3E%3Crect x='12' y='26' width='40' height='30' rx='2' fill='%23fff3de'/%3E%3Cpath d='M12 30h40v7H12z' fill='%23cf4a3d'/%3E%3Cpath d='M17 30h5v7h-5zm10 0h5v7h-5zm10 0h5v7h-5zm10 0h5v7h-5z' fill='%23fff3de'/%3E%3Crect x='27' y='42' width='10' height='14' rx='5' fill='%233f7c5b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@800&display=swap">
+<link rel="stylesheet" href="assets/ui/kit/tokens.css">
+<link rel="stylesheet" href="css/page.css">
+<script>
+  // тема до первой отрисовки: сохранённый выбор или системная
+  try { const t = localStorage.getItem('pz-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  // аркада на этой странице по умолчанию без звука; включают кнопкой «Звук» у экрана (выбор запоминается)
+  try { if (localStorage.getItem('tw-arcade-mute') == null) localStorage.setItem('tw-arcade-mute', 'true'); } catch (e) {}
+</script>
+</head>
+<body>
+<a class="skip" href="#concept">К содержанию</a>
+
+<header class="hero" id="top">
+  <div class="awning" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <p class="eyebrow">TIREDWOOD · лаборатория · обзор перед сборкой</p>
+      <h1>Новая набережная</h1>
+      <div class="bulbs" aria-hidden="true"></div>
+      <p class="lead">Набережная вырастает в&nbsp;2,4 раза и&nbsp;становится курортным городком вокруг круглой площади «Роза ветров».
+        У&nbsp;каждого режима — свой павильон: штукатурка, черепица, зелёные ставни, маркизы и&nbsp;лампочки, но&nbsp;силуэты разные,
+        чтобы сразу было видно, что где. Вывески одной системы с&nbsp;живым статусом, у&nbsp;каждого входа свой житель,
+        на&nbsp;ферму ведёт дорога через арку «Огороды». Fight Club уходит совсем.</p>
+      <p class="ask">Посмотри и&nbsp;скажи «да» — тогда собираем площадь в&nbsp;игре. Что решено по аркаде — <a href="#questions">в&nbsp;конце страницы</a>.</p>
+    </div>
+    <figure class="postcard">
+      <button type="button" class="shot" id="hero-shot" aria-label="Открыть концепт крупно"><img id="hero-img" alt="Концепт новой набережной" width="1600" height="1067"></button>
+      <figcaption>Концепт «Ривьера» — основа стиля павильонов</figcaption>
+    </figure>
+  </div>
+  <div class="wrap">
+    <ul class="stats" id="stats" aria-label="Главные числа"></ul>
+    <div class="changes" id="changes" hidden></div>
+    <p class="ready" id="ready"></p>
+  </div>
+</header>
+
+<nav class="course" aria-label="Разделы">
+  <div class="wrap course-in">
+    <ol id="course">
+      <li><a href="#concept">Концепт</a></li>
+      <li><a href="#plan">План</a></li>
+      <li><a href="#spawnview">Вид со спавна</a></li>
+      <li><a href="#plaza3d">Площадь в 3D</a></li>
+      <li><a href="#port">Порт</a></li>
+      <li><a href="#pavilions">Павильоны</a></li>
+      <li><a href="#npcs">Жители</a></li>
+      <li><a href="#signs">Таблички</a></li>
+      <li><a href="#arcade">Аркада</a></li>
+      <li><a href="#questions">Решения</a></li>
+      <li><a href="#release">Выпуск</a></li>
+    </ol>
+    <button type="button" class="theme-btn" id="theme-btn" aria-label="Сменить тему"><span class="ico" aria-hidden="true"></span><span class="lbl">Авто</span></button>
+  </div>
+</nav>
+
+<main>
+  <!-- ======================================================== Концепт -->
+  <section class="sec" id="concept">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">01</span> Концепт</p>
+        <h2>Три картинки — один городок</h2>
+        <p class="lead">Тебе понравились все три концепта. Берём из каждого лучшее: дома из первого, набережную из второго, маяк из третьего.</p>
+      </header>
+      <div class="concepts" id="concepts"></div>
+      <div class="synth">
+        <div class="synth-flow" aria-hidden="true"><span>v1</span><i>+</i><span>v2</span><i>+</i><span>v3</span><i>=</i><b>новая набережная</b></div>
+        <p>Флаги и вымпелы — без национальных сочетаний и без сине-жёлтого: бело-зелёно-красные знамёна с первой картинки в игру не идут.</p>
+      </div>
+      <div class="kit">
+        <div class="kit-text">
+          <h3>Из чего строим</h3>
+          <p>Все павильоны собираются из одного набора деталей: стены со ставнями, черепичные крыши, арки с лампочками, маркизы,
+            фонари, балюстрада, кадки с пальмами. Поэтому площадь выглядит одной рукой, а силуэты остаются разными.</p>
+          <p class="muted">Справа — проба набора: павильон-аркада и кусок набережной с лестницей к воде, в свете игры. Крути мышью.</p>
+          <button type="button" class="shot kit-sheet" id="kit-sheet"><img alt="Лист деталей набора" loading="lazy"><span>Все детали набора</span></button>
+        </div>
+        <div class="viewer v3d" id="v-kit" data-kind="kit"><div class="tip">крути мышью · колесо — после клика</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== План -->
+  <section class="sec" id="plan">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">02</span> План</p>
+        <h2>Площадь и шесть кварталов вокруг</h2>
+        <p class="lead">Север — наверх, клетка 10 м. Наведи на павильон или нажми на него: что там, кто встречает и сколько бежать от точки появления.</p>
+      </header>
+      <div class="plan-bar">
+        <div class="seg" role="group" aria-label="Что показать">
+          <button type="button" class="on" data-plan="plan" aria-pressed="true">Как будет</button>
+          <button type="button" data-plan="planVsNow" aria-pressed="false">Как сейчас → как будет</button>
+        </div>
+        <button type="button" class="btn ghost" id="plan-big">Крупно</button>
+      </div>
+      <ul class="qchips" id="qchips" aria-label="Кварталы"></ul>
+      <figure class="plan" id="plan-fig">
+        <div class="plan-wrap" id="plan-wrap">
+          <img id="plan-img" alt="План новой набережной" width="1812" height="1258">
+          <svg id="plan-hot" aria-hidden="true"></svg>
+          <div class="plan-tip" id="plan-tip" hidden></div>
+        </div>
+        <figcaption id="plan-cap">Цвет — квартал, буква у павильона: Н — новое, С — переезжает, 0 — на месте.</figcaption>
+      </figure>
+      <div class="run">
+        <div class="run-head">
+          <h3>Бегом от точки появления</h3>
+          <p class="muted">Бег 8,4 м/с, по прямой. Ты просил, чтобы до любого входа было 5–6 секунд.</p>
+        </div>
+        <ol class="runbars" id="runbars"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Вид со спавна -->
+  <section class="sec sec-warm" id="spawnview">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">03</span> Вид со спавна</p>
+        <h2>Что видишь, когда заходишь</h2>
+        <p class="lead" id="sv-lead"></p>
+      </header>
+      <figure class="sv" id="sv-fig"></figure>
+      <div class="sv-bar">
+        <ul class="pts sv-facts" id="sv-facts"></ul>
+        <button type="button" class="btn" id="sv-3d">Посмотреть в 3D со спавна</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Площадь в 3D -->
+  <section class="sec sec-sea" id="plaza3d">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">04</span> Площадь целиком</p>
+        <h2>Облети её сам</h2>
+        <p class="lead">Всё стоит по раскладке v5: суша до восточного края, Огородный бульвар с аркой, Приморский сад, фонтан, надпись на холме.
+          Готовые модели переставлены на новые места (перемоделированные под v5 подтянутся сами), остальное пока коробки-заглушки с подписью.
+          Тяни мышью — вращать, правой кнопкой или двумя пальцами — двигать, колесо — после клика по сцене.</p>
+      </header>
+      <div class="pz-tools" id="pz-tools">
+        <div class="seg seg-wrap" role="group" aria-label="Куда смотреть" id="pz-views"></div>
+        <label class="switch"><input type="checkbox" id="pz-labels" checked><span></span>Подписи</label>
+        <label class="switch"><input type="checkbox" id="pz-orbit"><span></span>Облёт</label>
+      </div>
+      <div class="viewer pz v3d" id="v-plaza" data-kind="plaza"><div class="tip">клик — что это · колесо — после клика</div></div>
+      <div class="pz-info" id="pz-info"><p class="muted">Нажми на павильон в сцене — здесь появится, что это.</p></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Порт -->
+  <section class="sec" id="port">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">05</span> Порт за маяком</p>
+        <h2 id="port-h">Что делаем за маяком</h2>
+        <p class="lead" id="port-lead"></p>
+      </header>
+      <div class="port" id="port-body"></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Павильоны -->
+  <section class="sec" id="pavilions">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">06</span> Павильоны</p>
+        <h2>Свой дом у каждого режима</h2>
+        <p class="lead">Общее у всех — штукатурка, черепица, ставни, лампочки и эмалевая вывеска. Разное — силуэт и один цвет-акцент,
+          который виден с площади и повторяется в рамке вывески и в одежде жителя. Где модель уже готова — её можно покрутить.</p>
+      </header>
+      <ul class="filters" id="pv-filters" aria-label="Квартал"></ul>
+      <div class="pvs" id="pvs"></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Жители -->
+  <section class="sec sec-warm" id="npcs">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">07</span> Жители</p>
+        <h2 id="npc-h">Кто встречает у входов</h2>
+        <p class="lead">Та же желейка, что игроки, только с вещами по смыслу места и руками на виду. С 15 метров каждого узнаёшь по одной
+          крупной детали. Ближе подойдёшь — поздоровается и скажет живую новость: сколько мест, когда старт, чей рекорд.</p>
+      </header>
+      <div class="npc-top">
+        <button type="button" class="shot lineup" id="npc-lineup"><img alt="Все жители рядом" loading="lazy"><span>Все рядом</span></button>
+        <p class="muted small" id="npc-note">Бочку и Капитана Севу узнаваемо улучшили, Зуко стал настоящим зомби-желейкой: швы, заплатки, сонный глаз, один зуб.</p>
+      </div>
+      <div class="npcs" id="npc-grid"></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Таблички -->
+  <section class="sec" id="signs">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">08</span> Таблички</p>
+        <h2>Одна система вывесок</h2>
+        <p class="lead">Эмалевый щит с узкой маркизой: иконка в круге, название и живой статус с точкой — зелёная «свободно», золотая «идёт сейчас»,
+          красная «закрыто». Лампочки — только у главных входов в режимы. На развилках — столбы-указатели, у площади — доски «Топ игроков» и «Кто онлайн».</p>
+      </header>
+      <div class="sign-bar">
+        <span class="badge ok skin-pick">Г · Ретро-парк 2.0 — выбран 11.10</span>
+        <p class="note">Цвета, шрифты и размеры — по токенам UI-треда для вывесок. В игре лампочки — свечение, не настоящие лампы.</p>
+      </div>
+      <div class="signs rp2" id="signs-demo">
+        <div class="signs-grid" id="signs-grid"></div>
+        <div class="post-wrap">
+          <div class="post" id="post"></div>
+          <ul class="post-pick" id="post-pick" aria-label="Какой указатель"></ul>
+        </div>
+      </div>
+      <div class="boards rp2" id="boards"></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== Аркада -->
+  <section class="sec sec-night" id="arcade">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">09</span> Аркада</p>
+        <h2>Три игры у автоматов — сыграй</h2>
+        <p class="lead">Рядом со слотами — ряд обычных игровых автоматов: без ставок, только ловкость и рекорды. Нажми на автомат.
+          Звук выключен — включается кнопкой «Звук» у экрана.</p>
+      </header>
+      <div class="arcade-frame" id="arcade-frame">
+        <iframe id="arcade-if" title="Аркада у автоматов" src="arcade/index.html" loading="lazy"></iframe>
+      </div>
+      <p class="muted small" id="arcade-note">Рекорды здесь хранятся только в твоём браузере. В игре их считает и хранит сервер: он сам переигрывает партию по нажатиям.</p>
+    </div>
+  </section>
+
+  <!-- ======================================================== Вопросы -->
+  <section class="sec" id="questions">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">10</span> Решения</p>
+        <h2>Аркада: решено по умолчанию</h2>
+        <p class="lead">Ты не ответил — берём рекомендованные варианты: 1а, 2а, 3а. Это решение по умолчанию, его можно поменять в любой момент.</p>
+      </header>
+      <ol class="qs" id="qs"></ol>
+    </div>
+  </section>
+
+  <!-- ======================================================== Выпуск -->
+  <section class="sec" id="release">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow"><span class="num">11</span> Как выпускаем</p>
+        <h2>Старая площадь живёт, пока новая не готова</h2>
+      </header>
+      <div class="rel">
+        <ol class="steps">
+          <li><b>Твоё «да» по этой странице.</b> Без него в игре ничего не трогаем.</li>
+          <li><b>Новая площадь — за флагом PLAZA3.</b> Без флага игра ведёт себя ровно как сейчас: старая набережная, старые координаты.</li>
+          <li><b>Собираем по кварталам.</b> Сначала суша и коробки, потом режимы переезжают в свои кварталы, потом павильоны, вывески, жители и аркада.</li>
+          <li><b>Смотришь у себя на порту 3105.</b> Там новая набережная целиком, можно бегать и заходить во все режимы.</li>
+          <li><b>Выпускаем целиком,</b> одним релизом и только после твоего «да». Прогресс игроков не трогаем.</li>
+        </ol>
+        <div class="budget" id="budget"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Источники: <code>concepts_blender/plaza3</code> — концепты, раскладка <code>layout/layout.json</code>, павильоны, жители, набор kit; аркада — <code>lab/plaza3/arcade</code>.
+      Ассеты собирает <code>lab/plaza3/tools/collect.mjs</code>; <span id="gen-at"></span></p>
+  </div>
+</footer>
+
+<dialog class="lb" id="lightbox" aria-label="Крупный просмотр">
+  <div class="lb-bar"><p class="lb-cap"></p><button type="button" class="btn ghost lb-zoom" hidden>1:1</button><button type="button" class="btn" id="lb-close">Закрыть</button></div>
+  <div class="lb-body"><img alt=""></div>
+</dialog>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

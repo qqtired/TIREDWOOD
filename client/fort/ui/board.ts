@@ -14,7 +14,7 @@ export interface PotInfo {
 }
 
 const ROOM: Record<RoomKind, string> = {
-  lobby: 'Набережная', paintball: 'Склад', race: 'Гонка', fort: 'Крепость', fight: 'Подвал', skill: 'Выше облаков', hide: 'Прятки',
+  lobby: 'Набережная', paintball: 'Склад', race: 'Гонка', fort: 'Крепость', skill: 'Выше облаков', hide: 'Прятки',
   farm: 'Ферма', dungeon: 'Подземелье',
 };
 

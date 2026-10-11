@@ -9,7 +9,7 @@ import { keyHtml, iconImg } from './ui/kit/dom.ts';
 
 /** Значок комнаты у строки из другой комнаты */
 const ROOM_ICON: Record<RoomKind, string> = {
-  lobby: 'anchor', paintball: 'paintballs', race: 'kart', fort: 'shield', fight: 'champion', skill: 'climber', hide: 'hide-box', dungeon: 'dungeon', farm: 'farm-gate',
+  lobby: 'anchor', paintball: 'paintballs', race: 'kart', fort: 'shield', skill: 'climber', hide: 'hide-box', dungeon: 'dungeon', farm: 'farm-gate',
 };
 
 const KEEP = 40;

@@ -49,7 +49,7 @@ import { WHEEL_PERIOD, WHEEL_PRICE, WHEEL_SEATS, seatAt as wheelSeatAt, wheelArr
 import { ClockSync } from '../net.ts';
 import { Predictor, type StepHook } from '../predict.ts';
 import { RemoteTrack, type RemoteSample } from '../remote.ts';
-import { Avatar, FIVE_HIT, HUG_HOLD, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
+import { Avatar, FIVE_HIT, HUG_HOLD, tickAvatarShared, type AvatarPose, type GroundQuery } from '../render/avatar.ts';
 import { Effects } from '../render/effects.ts';
 import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
@@ -57,14 +57,19 @@ import { TOUCH, type TouchMode } from '../touch.ts';
 import { Wardrobe } from '../ui/wardrobe.ts';
 import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { noteFortStatus } from '../fort/record.ts';
-import { FC_CIRCLE, type FcStatus } from '../../shared/fight.ts';
-import { FC_HINT_R, FightDoor, fightDist, fightHint } from '../fight/door.ts';
 import { AquaPark } from './aquapark.ts';
 import { LobbyBall } from './ball.ts';
 import { BoatBanner } from './boatbanner.ts';
 import { BoatSign } from './boatsign.ts';
 import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA_MODES, PlazaDress, type PlazaMode } from './plaza/index.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
+import { Plaza3Dress } from './plaza3/dress.ts';
+import { DECAL_LIFT } from './plaza3/floor.ts';
+import type { NpcStatusIn } from './plaza3/npcdata.ts';
+import { PL_DOCK } from '../../shared/plane.ts';
+import { ArcadeClient } from './plaza3/arcade/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
@@ -250,6 +255,7 @@ export class LobbyScene implements Scene {
   private isle: IsleClient | null = null;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
+  private readonly arcade: ArcadeClient | null;
   /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
   private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
@@ -338,10 +344,6 @@ export class LobbyScene implements Scene {
   /** «Крепость»: статус с сервера (null — режим выключен флагом: арки нет, точка молчит) и сама арка */
   private fortSt: FortStatus | null = null;
   private fortGate: FortGate | null = null;
-  /** «Fight Club»: статус круга мелом (null — режим выключен флагом: двери нет, круг молчит), дверь и писк отсчёта */
-  private fcSt: FcStatus | null = null;
-  private fcDoor: FightDoor | null = null;
-  private fcBeep = 0;
   /** Последняя секунда отсчёта, на которой пискнули (0 — не пищим) */
   private kartBeep = 0;
   /** Катер «Ласточка»: статус с сервера и где он на экране (по часам отрисовки — там же сидят его пассажиры) */
@@ -351,8 +353,10 @@ export class LobbyScene implements Scene {
   private boatYaw = LAUNCH.yaw;
   private readonly boatSign: BoatSign;
   /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
-  private readonly plaza: PlazaDress | null;
+  private readonly plaza: PlazaDress | Plaza3Dress | null;
   private readonly plazaLive: LiveIn = emptyLive();
+  /** Чужие желейки для жителей plaza3 (поворот к ближайшему игроку); массив переиспользуется каждый кадр */
+  private readonly npcOthers: Array<{ x: number; z: number }> = [];
   /** Над катером во время посадки: отсчёт и «Садись!» */
   private readonly boatBanner: BoatBanner;
   private readonly seatTmp = { x: 0, z: 0 };
@@ -384,7 +388,7 @@ export class LobbyScene implements Scene {
   private aquaT0 = 0;
   private aquaT1 = 0;
   /** Опора под желейками для теней: настил и неподвижное — из мира, паромы и лифт — как на экране */
-  private readonly ground: { groundBelow(x: number, y: number, z: number): number };
+  private readonly ground: GroundQuery;
   /** «Топ проигравших» на стене павильона автоматов (отладка: __opus.app.lobby.losers.set(строки, свой pid)) */
   readonly losers: LosersScreen;
   /** Экран с чатом друзей из Telegram на крыше склада (отладка: __opus.app.active.tg.demo()) */
@@ -444,13 +448,16 @@ export class LobbyScene implements Scene {
         stormPush(s, col, inp.viewTick, this.stormState, this.eventEligible);
       },
     };
-    this.ground = { groundBelow: (x, y, z) => Math.max(col.groundBelow(x, y, z), this.aqua.groundBelow(x, y, z)) };
+    this.ground = { groundBelow: (x, y, z) => Math.max(col.groundBelow(x, y, z), this.aqua.groundBelow(x, y, z)), shadowLift: 0.015 + DECAL_LIFT };
     this.predictor = new Predictor(col, this.aquaHook);
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot, d.ui.slots, d.ui.top);
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
+    // аркада новой набережной (флаг PLAZA3, client/lobby/plaza3/arcade): шесть автоматов в курзале и окно игры
+    const arcPts = this.world.map.interact.filter((it) => it.kind === 'arcade').sort((a, b) => a.arg - b.arg);
+    this.arcade = arcPts.length ? new ArcadeClient({ scene: this.world.scene, wet: this.world.plazaCtx.wet, points: arcPts, hudRoot: this.hud.root, sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, onOpen: () => { d.input.releaseAll(); d.input.unlock(); }, onClose: () => d.wantPointer() }) : null;
     // радио на лодке: свои лодки (client/boat/ownboats.ts) — где лодка и на борту ли я; тестовое /radio — у желейки хозяина
     this.radio = new BoatRadio({
       sound: d.sound, send: (m) => d.net.send(m), toast: (text) => d.ui.toasts.show(text, 3400), myPid: () => d.ui.me().pid, ping: () => d.net.pingMs,
@@ -588,7 +595,9 @@ export class LobbyScene implements Scene {
     this.folk = new LobbyFolk(this.world.scene, this.world.collision, this.effects, this.fx, d.sound);
     this.respects = STATUE_SHOWN ? new Respects(this.world.scene, this.fx, d.sound) : null;
     this.boatSign = new BoatSign(this.world.scene);
-    this.plaza = PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    // новая набережная (флаг PLAZA3): своё оформление входов, когда готов блокаут (legacyStatic: false)
+    this.plaza = PLAZA3 && !P3.legacyStatic ? new Plaza3Dress(this.world.plazaCtx, () => d.ui.me().nick) : PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
+    if (this.plaza instanceof Plaza3Dress) this.plaza.npc.setLive(() => this.npcLive());
     // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
     onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);
@@ -649,7 +658,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen || !!this.arcade?.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -661,7 +670,7 @@ export class LobbyScene implements Scene {
    */
   get touchMode(): TouchMode {
     const act = this.myAct;
-    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen || this.ob.modalOpen) return 'none';
+    if (!this.hasSelf || act === ACT_DURAK || act === ACT_BILLIARDS || (act === ACT_WARDROBE && this.wardrobeOpen) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.arcade?.isOpen) return 'none';
     if (this.rg.racing) return 'kart';
     if (act === ACT_SLOT) return 'slot';
     if (act === ACT_FISH) return 'fish';
@@ -768,6 +777,7 @@ export class LobbyScene implements Scene {
     this.entered = true;
     this.resetAdditions();
     this.juke.reset(true);
+    this.arcade?.reset();
     this.radio.reset(true);
     this.myId = -1;
     this.hasSelf = false;
@@ -833,6 +843,7 @@ export class LobbyScene implements Scene {
   exit(): void {
     this.resetAdditions();
     this.juke.reset(false);
+    this.arcade?.reset();
     this.radio.reset(false);
     this.entered = false;
     this.hasSelf = false;
@@ -891,6 +902,7 @@ export class LobbyScene implements Scene {
   // ------------------------------------------------------------ сеть: JSON
 
   onJson(msg: ServerMsg): void {
+    if (this.arcade?.onMsg(msg)) return;
     switch (msg.t) {
       case 'redeemResult':
         this.wardrobe.giftResult(msg.result);
@@ -953,7 +965,6 @@ export class LobbyScene implements Scene {
         this.setAquaTop(msg.aqua ?? []);
         this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
         this.onFort(msg.fort ?? null);
-        this.onFightSt(msg.fc ?? null);
         this.farmGate.status(msg.farm ?? null);
         setDgStatus(msg.dg ?? null);
         break;
@@ -973,9 +984,6 @@ export class LobbyScene implements Scene {
         break;
       case 'farmSt':
         this.farmGate.status(msg);
-        break;
-      case 'fcSt':
-        this.onFightSt(msg);
         break;
       case 'boat':
         this.setBoat(msg);
@@ -1247,14 +1255,6 @@ export class LobbyScene implements Scene {
       this.d.renderer.refreshShadows();
     }
     this.fortGate?.setStatus(st);
-  }
-
-  /** Круг «Fight Club»: первый статус — ставим дверь в стене кафе, дальше — картон и мел. */
-  private onFightSt(st: FcStatus | null): void {
-    this.fcSt = st;
-    this.plazaMode('fight', !!st);
-    if (st && !this.fcDoor) this.fcDoor = new FightDoor(this.world.scene);
-    if (st) this.fcDoor?.setStatus(st);
   }
 
   private onPb(pb: PbStatus): void {
@@ -1869,6 +1869,8 @@ export class LobbyScene implements Scene {
   // ------------------------------------------------------------ ввод
 
   onKey(code: string, down: boolean, e: KeyboardEvent): boolean {
+    // окно аркады (client/lobby/plaza3/arcade): клавиши — игре, Esc — выйти, шагать нельзя
+    if (this.arcade?.onKey(code, down, e)) return true;
     // пилот гидроплана: E — «сесть сейчас», Ctrl — медленнее
     if (this.plane.onKey(code, down, e)) return true;
     // в своей лодке: Z — якорь, пробел — гудок, G — продать улов (R — радио, client/boat/radio.ts)
@@ -2442,6 +2444,7 @@ export class LobbyScene implements Scene {
     this.rat3d.update(dt, this.time, camPos);
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
+    this.arcade?.update(dt, camPos);
     this.radio.update(dt, this.world.camera);
     this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
@@ -2468,7 +2471,6 @@ export class LobbyScene implements Scene {
     this.world.recentBoard.tick(performance.now());
     this.tg.update(this.time);
     this.fortGate?.update(this.time);
-    this.fcDoor?.update(this.time);
     this.updatePlaza(dt, camPos);
     tickAvatarShared(this.time);
     this.world.camera.getWorldDirection(_v);
@@ -2498,10 +2500,44 @@ export class LobbyScene implements Scene {
     const ks = this.world.kartStart;
     fillLive(this.plazaLive, {
       pbHumans: this.pbHumans, fort: this.fortSt, skill: this.skillStatus, kart: ks.status, kartLeft: ks.left, hide: this.hideStatus,
-      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', fight: this.fcSt, boat: this.boat, aqua: this.aquaTop[0] ?? null,
+      boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
       tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
+    if (plaza instanceof Plaza3Dress) {
+      plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
+      const others = this.npcOthers;
+      others.length = 0;
+      for (const r of this.remotes.values()) if (r.pose.valid) others.push(r.pose);
+      plaza.setPlayers(others);
+    }
     plaza.update(dt, this.time, camPos, this.hasSelf ? this.pose : null, this.plazaLive, this.world.weather.lampsOn);
+  }
+
+  /** Статусы в репликах жителей plaza3 (раз в секунду): гидроплан, крысиные бега, автоматы курзала, бильярд — то, что сцена и так знает */
+  private npcLive(): Partial<NpcStatusIn> {
+    const pv = this.plane.view;
+    const tick = this.clock.ready ? this.clock.renderTick : 0;
+    const flying = pv.ph !== PL_DOCK;
+    const rr = this.rat3d;
+    let rats: NpcStatusIn['rats'] = null;
+    if (rr.on) {
+      const lead = rr.standings();
+      const res = rr.resultOrder();
+      if (rr.opening) rats = { phase: 'open', leftSec: rr.countdown / 1000, leader: -1, winner: -1 };
+      else if (lead) rats = { phase: 'run', leftSec: 0, leader: lead[0], winner: -1 };
+      else if (res) rats = { phase: 'result', leftSec: 0, leader: -1, winner: res[0] };
+      else rats = { phase: 'idle', leftSec: 0, leader: -1, winner: -1 };
+    }
+    let busy = 0;
+    for (let m = 0; m < MACHINE_XS.length; m++) if (((this.busySlots >> m) & 1) === 1) busy++;
+    return {
+      plane: this.plane.enabled
+        ? { flying, pilot: pv.nick, banner: pv.b ? pv.bn : '', hold: pv.hold, queue: pv.q.length, etaSec: flying && tick ? Math.max(0, pv.k + pv.eta - tick) / TICK_RATE : 0 }
+        : null,
+      rats,
+      slots: { pool: this.pool, busy, total: MACHINE_XS.length },
+      billiards: this.billiards.occupancy(),
+    };
   }
 
   /** Фон меню: облёт площади по кругу. */
@@ -2802,8 +2838,6 @@ export class LobbyScene implements Scene {
     hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
-    const fd = this.fcSt && this.hasSelf ? fightDist(this.pose.x, this.pose.y, this.pose.z) : Infinity;
-    this.fightBeeps(fd);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
     else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться · шаг — отойти`);
     else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
@@ -2826,7 +2860,6 @@ export class LobbyScene implements Scene {
     else if (this.pirates3d.hint) hud.setHint(this.pirates3d.hint.keys, this.pirates3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);
-    else if (fd <= FC_HINT_R) this.hintFight(fd);
     else if (this.aquaAt === 0 && onJetty(this.pose.x, this.pose.y, this.pose.z)) this.hintAqua();
     else this.hintNearest();
     this.aquaTimer();
@@ -2907,22 +2940,6 @@ export class LobbyScene implements Scene {
     this.kartBeep = n;
   }
 
-  /** У двери «Fight Club»: что в круге мелом; E — хозяину (сменить режим) и всем, пока внизу бой (посмотреть). */
-  private hintFight(d: number): void {
-    const h = fightHint(this.fcSt!, this.d.ui.me().nick, d);
-    if (!h) return this.hud.setHint(null);
-    if (h.keys.length) this.target = this.world.map.interact.find((it) => it.kind === 'fight') ?? null;
-    this.hud.setHint(h.keys, h.text);
-  }
-
-  /** Три последних секунды отсчёта у круга «Fight Club» — писк, только тем, кто в круге. */
-  private fightBeeps(d: number): void {
-    const st = this.fcSt;
-    const n = st && st.phase === 'count' && d <= FC_CIRCLE.r ? st.left : 0;
-    if (n > 0 && n <= 3 && n !== this.fcBeep) this.d.sound.countBeep(false);
-    this.fcBeep = n;
-  }
-
   /** Ближайший предмет в радиусе: впереди или совсем рядом. Свободные места и автоматы — в приоритете. */
   private hintNearest(): void {
     const p = this.pose;
@@ -2955,8 +2972,8 @@ export class LobbyScene implements Scene {
       if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS)) continue;
       if ((it.kind === 'plane' || it.kind === 'banner') && !this.plane.enabled) continue;
       if (it.kind === 'oboat' && !this.ob.enabled) continue;
-      // круг «Fight Club» подсказывает сам (hintFight), без флага — молчит
-      if (it.kind === 'fight') continue;
+      // место 45 — пустышка бывшего «Fight Club»: подсказки нет
+      if (it.kind === 'retired') continue;
       if (this.isBusy(it)) {
         if (dist < takenD) {
           taken = it;
@@ -3066,6 +3083,9 @@ export class LobbyScene implements Scene {
         break;
       case 'juke':
         this.hud.setHint(TOUCH ? ['E'] : ['E', '/', 'ЛКМ'], `музыкальный автомат · песни от ${JUKE_PRICE} 🪙`);
+        break;
+      case 'arcade':
+        if (this.arcade) this.hud.setHint(...this.arcade.hint(it.arg));
         break;
       case 'boat':
         if (this.boat.ph === BP_BOARD) this.hud.setHint(['E'], `сесть в катер — бесплатно · отплытие через ${this.boatSecs()} с`);
@@ -3192,9 +3212,17 @@ export class LobbyScene implements Scene {
 
   private orbit(): void {
     const cam = this.world.camera;
-    const a = 0.4 + this.time * 0.04;
-    cam.position.set(Math.cos(a) * 34, 14, -6 + Math.sin(a) * 34);
-    cam.lookAt(0, 3, -6);
+    if (PLAZA3) {
+      // plaza3: круг шире и выше вокруг розы ветров (8; −8) — снаружи самых высоких зданий (каланча, крепость, колесо); начинаем с запада,
+      // чтобы в кадре были площадь, бульвар и холм с надписью
+      const a = 2.7 + this.time * 0.035;
+      cam.position.set(8 + Math.cos(a) * 46, 22, -8 + Math.sin(a) * 46);
+      cam.lookAt(8, 3, -8);
+    } else {
+      const a = 0.4 + this.time * 0.04;
+      cam.position.set(Math.cos(a) * 34, 14, -6 + Math.sin(a) * 34);
+      cam.lookAt(0, 3, -6);
+    }
     if (cam.fov !== 60) {
       cam.fov = 60;
       cam.updateProjectionMatrix();

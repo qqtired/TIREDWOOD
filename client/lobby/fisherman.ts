@@ -5,8 +5,10 @@
 // Подошёл игрок — машет ему; открыт разговор — поворачивается к игроку, кивает и разводит руками. Вдали — обновляется
 // реже. Рядом — вывеска «Снасти у Семёна» над крыльцом; время до сезона рыбалки — на большой вывеске на коньке крыши
 // (client/lobby/seasonsign.ts).
+// Новая набережная (PLAZA3): Семён — на крыльце Лавки на помосте у сходней Маячного мола; ящик с уловом, ведро, удочки и
+// вывеска «Снасти у Семёна» — отдельная стойка справа от крыльца (FISH_GEAR: место, твёрдое — shared/fishplaces.ts).
 import * as THREE from 'three';
-import { FISHER_NPC, FISH_HOUSE } from '../../shared/fishplaces.ts';
+import { FISHER_NPC, FISH_GEAR, FISH_HOUSE } from '../../shared/fishplaces.ts';
 import { glowTexture, mergeColored, paint, place } from '../render/kit.ts';
 import { makeFish3D } from './fishart.ts';
 
@@ -425,6 +427,10 @@ export class Fisherman3D {
 
   /** Рядом на крыльце: ящик с уловом, ведро, удочки у стойки, бочонок-стол со снастями */
   private addGear(): void {
+    if (FISH_GEAR) {
+      this.addStand(FISH_GEAR);
+      return;
+    }
     const g: G[] = [];
     const lx = (x: number): number => x - FISHER_NPC.x;
     const lz = (z: number): number => z - FISHER_NPC.z;
@@ -456,33 +462,78 @@ export class Fisherman3D {
     }
   }
 
+  /**
+   * plaza3: стойка «Снасти у Семёна» на помосте справа от крыльца (FISH_GEAR — середина на настиле, лицо — на −Z стойки):
+   * два столбика с перекладиной, на ней на цепочках вывеска; к перекладине прислонены удочки, внизу — ящик с уловом и ведро.
+   * Строится в осях Семёна (его группа), поэтому видна и прячется вместе с ним.
+   */
+  private addStand(gear: NonNullable<typeof FISH_GEAR>): void {
+    const stand = new THREE.Group();
+    // середина стойки в осях группы Семёна (обратный поворот на его yaw)
+    const dx = gear.x - FISHER_NPC.x;
+    const dz = gear.z - FISHER_NPC.z;
+    const c = Math.cos(FISHER_NPC.yaw), s = Math.sin(FISHER_NPC.yaw);
+    stand.position.set(dx * c - dz * s, gear.y - FISHER_NPC.y, dx * s + dz * c);
+    stand.rotation.y = gear.yaw - FISHER_NPC.yaw;
+    const WOOD = 0x5a4130;
+    const g: G[] = [];
+    // столбики сзади и перекладина (вывеска шире столбиков — висит на концах перекладины)
+    const postZ = 0.3;
+    const barY = 1.95;
+    for (const x of [-0.36, 0.36]) g.push(at(new THREE.BoxGeometry(0.07, barY, 0.07), WOOD, x, barY / 2, postZ));
+    g.push(at(new THREE.BoxGeometry(1.16, 0.07, 0.07), WOOD, 0, barY, postZ));
+    // ящик с уловом и льдом (как был на крыльце старого дома)
+    const cx = -0.16, cz = -0.04;
+    g.push(at(new THREE.BoxGeometry(0.5, 0.03, 0.4), 0x8e7556, cx, 0.02, cz));
+    for (let y = 0.07; y < 0.34; y += 0.075) for (const k of [-1, 1]) {
+      g.push(at(new THREE.BoxGeometry(0.5, 0.055, 0.022), 0x9b8263, cx, y, cz + k * 0.2));
+      g.push(at(new THREE.BoxGeometry(0.022, 0.055, 0.4), 0x8e7556, cx + k * 0.25, y, cz));
+    }
+    g.push(at(new THREE.BoxGeometry(0.46, 0.03, 0.36), 0xdfeef2, cx, 0.3, cz));
+    // ведро
+    g.push(at(new THREE.CylinderGeometry(0.12, 0.095, 0.25, 12, 1, true), 0x8d9a99, 0.24, 0.125, -0.2));
+    g.push(at(new THREE.TorusGeometry(0.12, 0.01, 4, 12).rotateX(Math.PI / 2), 0x6f7a7a, 0.24, 0.25, -0.2));
+    // три удочки прислонены к перекладине, катушки внизу
+    for (let i = 0; i < 3; i++) {
+      const x = 0.1 + i * 0.1;
+      const a = new THREE.Vector3(x, 0.03, 0.12);
+      const b = new THREE.Vector3(x + 0.04, barY + 0.12, postZ + 0.02);
+      const d = new THREE.Vector3().subVectors(b, a);
+      const rod = new THREE.CylinderGeometry(0.008, 0.015, d.length(), 6);
+      rod.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()));
+      g.push(at(rod, i === 1 ? 0x2b3b33 : 0x3a2a1e, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2));
+      g.push(at(new THREE.CylinderGeometry(0.025, 0.025, 0.06, 8).rotateZ(Math.PI / 2), METAL, x + 0.005, 0.42, 0.15));
+    }
+    stand.add(mesh(g, this.mat));
+    for (let i = 0; i < 3; i++) {
+      const fish = makeFish3D(i, 140);
+      fish.scale.multiplyScalar(0.7);
+      fish.position.set(cx - 0.1 + i * 0.1, 0.33, cz - 0.08 + i * 0.07);
+      fish.rotation.y = 0.3 + i * 0.4;
+      stand.add(fish);
+    }
+    // вывеска на цепочках под перекладиной, лицом вперёд (−Z стойки)
+    const signW = 1.1;
+    const signH = signW * 0.195;
+    const signY = barY - 0.2 - signH / 2;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signH), new THREE.MeshStandardMaterial({ map: gearSignTexture(), roughness: 0.85 }));
+    sign.position.set(0, signY, postZ - 0.095);
+    sign.rotation.y = Math.PI;
+    stand.add(sign);
+    const wood: G[] = [at(new THREE.BoxGeometry(signW + 0.06, signH + 0.06, 0.04), 0x4e3a27, 0, signY, postZ - 0.06)];
+    for (const x of [-0.45, 0.45]) wood.push(at(new THREE.CylinderGeometry(0.006, 0.006, 0.2, 5), METAL, x, barY - 0.1, postZ - 0.06));
+    stand.add(mesh(wood, this.mat));
+    this.group.add(stand);
+  }
+
   /** Вывеска над крыльцом */
   private addSign(): void {
+    // plaza3: вывеска «Снасти у Семёна» — на стойке снастей (addStand), над крыльцом Лавки — вывеска модели и WP10
+    if (FISH_GEAR) return;
     const lx = (x: number): number => x - FISHER_NPC.x;
     const lz = (z: number): number => z - FISHER_NPC.z;
     // вывеска: доска на цепочках под краем навеса
-    const c = document.createElement('canvas');
-    c.width = 1024;
-    c.height = 200;
-    const x = c.getContext('2d')!;
-    x.fillStyle = '#6a4f34';
-    x.fillRect(0, 0, 1024, 200);
-    x.fillStyle = 'rgba(255,240,210,.08)';
-    for (let y = 18; y < 200; y += 34) x.fillRect(0, y, 1024, 3);
-    x.strokeStyle = '#e9dcb8';
-    x.lineWidth = 8;
-    x.strokeRect(14, 14, 996, 172);
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
-    x.fillStyle = '#f6ecd0';
-    x.font = '800 78px Rubik, system-ui, sans-serif';
-    x.fillText('СНАСТИ У СЕМЁНА', 512, 84);
-    x.fillStyle = '#ffd36b';
-    x.font = '600 38px Rubik, system-ui, sans-serif';
-    x.fillText('улов · снасти · задания', 512, 150);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
+    const tex = gearSignTexture();
     const signW = 2.3;
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.195), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
     sign.position.set(lx(-19), 2.02, lz(58.47) - 0.06);
@@ -492,6 +543,33 @@ export class Fisherman3D {
     for (const dx of [-0.9, 0.9]) wood.push(at(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 5), METAL, lx(-19) + dx, 2.3, lz(58.47) - 0.02));
     this.group.add(mesh(wood, this.mat));
   }
+}
+
+/** Вывеска «Снасти у Семёна»: дощечка с рамкой, 1024 × 200 */
+function gearSignTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 200;
+  const x = c.getContext('2d')!;
+  x.fillStyle = '#6a4f34';
+  x.fillRect(0, 0, 1024, 200);
+  x.fillStyle = 'rgba(255,240,210,.08)';
+  for (let y = 18; y < 200; y += 34) x.fillRect(0, y, 1024, 3);
+  x.strokeStyle = '#e9dcb8';
+  x.lineWidth = 8;
+  x.strokeRect(14, 14, 996, 172);
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillStyle = '#f6ecd0';
+  x.font = '800 78px Rubik, system-ui, sans-serif';
+  x.fillText('СНАСТИ У СЕМЁНА', 512, 84);
+  x.fillStyle = '#ffd36b';
+  x.font = '600 38px Rubik, system-ui, sans-serif';
+  x.fillText('улов · снасти · задания', 512, 150);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
 }
 
 /** Ромбовая сеть (прозрачная текстура) */

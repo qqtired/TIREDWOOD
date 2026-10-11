@@ -3,6 +3,8 @@
 // синтезирует клиент (client/music/), здесь — только то, что нужно серверу и обоим: номер, название, настроение, темп
 // и число тактов.
 import { BARKAS, BARKAS_BAK_Y } from './barkas.ts';
+import { pick } from './layout.ts';
+import { A, xfSpot } from './plaza3/xf.ts';
 
 /** Песня в каталоге: длина = такты × доли × 60 / темп + хвост (звенит последний аккорд и реверберация) */
 export interface JukeSong {
@@ -74,14 +76,26 @@ export const JUKE_RATE_MS = 1500;
 /**
  * Автомат: на западе площади, в пару доске почёта на востоке, лицом на юг — к точке появления и морю.
  * x, z — середина корпуса у пола; yaw — куда смотрит лицевая сторона (0 — на −Z, как у игрока; π — на юг).
+ * plaza3: в музыкальной ротонде (15; 10,2) у южной колоннады, лицом на север, к площади (группа jukebox: поворот на 180° вокруг
+ * автомата + сдвиг); ротонда стоит на подиуме из трёх ступеней по 0,12 м, поэтому пол под автоматом — JUKEBOX_Y.
  */
-export const JUKEBOX = { x: -8.6, z: -3.2, yaw: Math.PI } as const;
+export const JUKEBOX_Y = pick(0, () => 0.36);
+export const JUKEBOX: { readonly x: number; readonly z: number; readonly yaw: number } = pick<{ readonly x: number; readonly z: number; readonly yaw: number }>(
+  { x: -8.6, z: -3.2, yaw: Math.PI },
+  () => {
+    const p = xfSpot(A.jukebox, { x: -8.6, z: -3.2, yaw: Math.PI });
+    // 15,000000000000002 → 15; поворот 2π → 0
+    return { x: Math.round(p.x * 1000) / 1000, z: Math.round(p.z * 1000) / 1000, yaw: p.yaw - Math.round(p.yaw / (2 * Math.PI)) * 2 * Math.PI };
+  },
+);
 /** Корпус: ширина (по X), глубина (по Z), высота с аркой — он же коллайдер */
 export const JUKE_W = 1.36;
 export const JUKE_D = 0.78;
 export const JUKE_H = 2.05;
+/** В какую сторону по z смотрит лицо автомата: +1 — на юг (yaw π), −1 — на север (yaw 0): игрок встаёт с этой стороны */
+const JUKE_FACE = Math.cos(JUKEBOX.yaw) < 0 ? 1 : -1;
 /** Где встаёт игрок, чтобы выбрать песню: перед лицевой стороной */
-export const JUKE_USE = { x: JUKEBOX.x, z: JUKEBOX.z + JUKE_D / 2 + 0.85, r: 2.2 } as const;
+export const JUKE_USE = { x: JUKEBOX.x, z: JUKEBOX.z + JUKE_FACE * (JUKE_D / 2) + JUKE_FACE * 0.85, r: 2.2 } as const;
 /** Сервер принимает заказ с чуть большего расстояния (задержка сети, игрок отошёл на шаг) */
 export const JUKE_SERVER_R = 4.2;
 /**
@@ -96,7 +110,7 @@ export const JUKE_BARKAS_USE = { x: JUKEBOX_BARKAS.x, z: JUKEBOX_BARKAS.z - JUKE
  * Очередь одна: на площади автомат слышно по всей набережной (не тише 40 %), две разные песни звучали бы кашей.
  */
 export const JUKE_SPOTS = [
-  { x: JUKEBOX.x, y: 0, z: JUKEBOX.z, yaw: JUKEBOX.yaw, use: JUKE_USE },
+  { x: JUKEBOX.x, y: JUKEBOX_Y, z: JUKEBOX.z, yaw: JUKEBOX.yaw, use: JUKE_USE },
   { x: JUKEBOX_BARKAS.x, y: JUKEBOX_BARKAS.y, z: JUKEBOX_BARKAS.z, yaw: JUKEBOX_BARKAS.yaw, use: JUKE_BARKAS_USE },
 ] as const;
 

@@ -16,9 +16,8 @@ Environment=PORT=5190
 Environment=ALLOWED_ORIGINS=https://game.tired.solutions
 # Профили, банк джекпота, копии и токен проверки — вне релиза, переживают выкладки
 Environment=DATA_DIR=/var/lib/game-opus
-# Режимы выпуска 6 — включены по «да» владельца (2026-10-02)
+# Режимы выпуска 6 — включены по «да» владельца (2026-10-02). Fight Club удалён 11.10.2026 по слову владельца — флаг FIGHT больше не читается
 Environment=FORTRESS=1
-Environment=FIGHT=1
 Environment=FISH2=1
 # Накопленный релиз и экспериментальный голос — разрешены владельцем 2026-10-03
 Environment=SKILL=1

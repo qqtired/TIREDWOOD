@@ -12,6 +12,9 @@
 import { BARKAS } from './barkas.ts';
 import { TICK_RATE, WATER_Y } from './constants.ts';
 import type { Vec3 } from './maps/types.ts';
+import { pick } from './layout.ts';
+import { MOLE_DECK_Y, PORT } from './plaza3/port.ts';
+import { A, xfP, xfSpot } from './plaza3/xf.ts';
 
 /** В море на баркас — с 3-го уровня рыбалки (fishLevel из shared/fishprogress.ts) */
 export const FERRY_LEVEL = 3;
@@ -41,7 +44,12 @@ export interface FerryPose {
  * (shared/fishplaces.ts — FISH_PIER_HEAD, край x −25,5), нос на север (правый борт — к настилу, зазор 0,15 м), корма —
  * у юго-западного угла, мимо сваи перед ним (x −25,25, z 64,25).
  */
-export const FERRY_HOME: FerryPose = { x: -26.75, z: 61.6, yaw: 0 };
+export const FERRY_HOME: FerryPose = xfSpot(A.udalaya, { x: -26.75, z: 61.6, yaw: 0 });
+/**
+ * plaza3: вся группа «Удалой» переезжает целиком на (−42,5; −15,1) — к западной грани головы Маячного мола (x −68): стоянка
+ * (−69,25; 46,5), табличка, посадка, высадка и места высадки (раскладка v5.1, порт B). Верх головы — y −0,5, не 0.
+ */
+export const FERRY_DECK_Y = pick(0, () => MOLE_DECK_Y);
 /** Стоянка у баркаса: у транца, нос на юг (правый борт — к калитке) */
 export const FERRY_AWAY: FerryPose = { x: BARKAS.stern + 1.5, z: BARKAS.z, yaw: Math.PI };
 /** Пол лодки — над водой на 0,3 м (как у катера); сидят на банках выше на BOAT_SIT_LIFT */
@@ -57,21 +65,25 @@ export const FERRY_SEAT_AT: ReadonlyArray<readonly [number, number]> = [
 export const FERRY_GOSHA: readonly [number, number] = [-0.5, 2.15];
 
 /** Табличка «Удалой» на столбике у угла хижины (за бочками у западной стены), лицом на север — к идущим с мостков */
-export const FERRY_SIGN = { x: -22.75, z: 61.35 } as const;
+export const FERRY_SIGN: { readonly x: number; readonly z: number } = xfP(A.udalaya, { x: -22.75, z: 61.35 });
 /**
  * Где садиться (E): точка — над передней банкой лодки у правого борта, достаёт с края площадки напротив носа (и не
  * задевает места рыбалки на площадке)
  */
-export const FERRY_HOME_BOARD = { x: -26.3, z: 60.35, yaw: Math.PI / 2, r: 1.9 } as const;
+export const FERRY_HOME_BOARD: { readonly x: number; readonly z: number; readonly yaw: number; readonly r: number } = xfSpot(A.udalaya, { x: -26.3, z: 60.35, yaw: Math.PI / 2, r: 1.9 });
 
 /**
  * Куда высаживают у Семёна (на площадку напротив лодки, лицом к мосткам) и куда отправляет Саня: между краем площадки
  * и табличкой у западной стены хижины, мимо бочек и места рыбалки в юго-западном углу.
  */
-export const FERRY_HOME_LANDING = { x: -24.5, z: 60.95, yaw: 0 } as const;
-export const FERRY_HOME_SPOTS: ReadonlyArray<readonly [number, number]> = [
+export const FERRY_HOME_LANDING: { readonly x: number; readonly z: number; readonly yaw: number } = xfSpot(A.udalaya, { x: -24.5, z: 60.95, yaw: 0 });
+const FERRY_HOME_SPOTS2: ReadonlyArray<readonly [number, number]> = [
   [-24.95, 61.9], [-24.0, 61.9], [-24.95, 60.95], [-24.0, 60.95], [-24.95, 60.0], [-24.0, 60.0],
 ];
+export const FERRY_HOME_SPOTS: ReadonlyArray<readonly [number, number]> = pick(FERRY_HOME_SPOTS2, () => FERRY_HOME_SPOTS2.map(([x, z]) => {
+  const p = xfP(A.udalaya, { x, z });
+  return [p.x, p.z] as const;
+}));
 
 /** Корпус 5 × 2,2 м: половины длины и ширины (для проверок зазоров) */
 export const FERRY_HALF_L = 2.5;
@@ -86,18 +98,22 @@ const OUT_FROM = { x: FERRY_HOME.x - HOME_DRIFT, z: FERRY_HOME.z };
  * Путь к баркасу (после разворота у причала носом на юг): на юг вдоль края площадки, мимо сваи у угла с зазором,
  * дальше на юго-запад — западнее петли «Ласточки» (shared/boat.ts) и восточнее аквапарка, и к корме баркаса с севера.
  */
-const OUT_POINTS: ReadonlyArray<readonly [number, number]> = [
+const OUT_POINTS2: ReadonlyArray<readonly [number, number]> = [
   [OUT_FROM.x, OUT_FROM.z], [-27.25, 65.4], [-28.1, 69], [-30.4, 72.6], [-34, 76.4], [-37.5, 80], [-39.5, 89], [-40.8, 98.5],
   [-41.6, 106.5], [FERRY_AWAY.x, FERRY_AWAY.z - 5.5], [FERRY_AWAY.x, FERRY_AWAY.z],
 ];
+/** plaza3: от головы мола на юго-запад вокруг стоянки лодок (84,3 м против 60,5), первая и последние две точки — те же, что выше */
+const OUT_POINTS: ReadonlyArray<readonly [number, number]> = pick(OUT_POINTS2, () => PORT.ferry.out);
 /**
  * Путь назад (после разворота у транца носом на север): на север западнее петли «Ласточки», к хижине с юго-запада
  * и последние метры — носом на север, к западному краю площадки под небольшим углом, мимо сваи у угла.
  */
-const BACK_POINTS: ReadonlyArray<readonly [number, number]> = [
+const BACK_POINTS2: ReadonlyArray<readonly [number, number]> = [
   [FERRY_AWAY.x, FERRY_AWAY.z], [FERRY_AWAY.x + 0.1, FERRY_AWAY.z - 5.5], [-40.6, 104], [-38.6, 95], [-36.4, 86.5], [-32.4, 78.8],
   [-29.8, 74.6], [-28.2, 70.6], [-27.5, 67.6], [-27.05, 64.8], [FERRY_HOME.x, FERRY_HOME.z],
 ];
+/** plaza3: обратный путь с запада от стоянки лодок к западной грани головы мола */
+const BACK_POINTS: ReadonlyArray<readonly [number, number]> = pick(BACK_POINTS2, () => PORT.ferry.back);
 
 /** Ход: ровно 3,6 м/с, разгон и торможение по 2,5 с; у стоянок нос плавно сводится к курсу стоянки на последних 4 м */
 export const FERRY_SPEED = 3.6;
