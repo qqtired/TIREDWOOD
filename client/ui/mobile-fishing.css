@@ -3,5 +3,6 @@
 @media (max-width: 640px), (max-height: 480px) {
   html.touch[data-fishing] .fi-mode .fi-odds-legend,
   html.touch[data-fishing] .fi-mode .fi-perk { display: none; }
-  html.touch[data-fishing] .fi-mode { width: 210px; }
+  /* под кнопками ☰ 💬 👥 😊 слева сверху (client/touch.ts .tc-bar: 44 px от 10 px) — карточка ниже, кнопки нажимаются */
+  html.touch[data-fishing] .fi-mode { width: 210px; margin-top: calc(58px / var(--hud-k, 1)); }
 }
