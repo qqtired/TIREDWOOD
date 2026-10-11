@@ -12,7 +12,7 @@
 .voice-speaker[data-self] { box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold); }
 .voice-speaker[data-out] { opacity: 0; transform: translateX(-8px); animation: none; }
 .voice-more { color: var(--surf-dim); animation: none; }
-.voice-speaker-icon { flex: none; display: grid; place-items: center; width: 16px; height: 16px; color: var(--good); }
+.voice-speaker-icon { flex: none; display: grid; place-items: center; width: 16px; height: 16px; color: var(--good-text); }
 .voice-speaker-icon svg { display: block; width: 16px; height: 16px; overflow: visible; }
 .voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* волны: в такт голосу (--lvl 0…1 из client/ui/voice.ts), без уровня — спокойно дышат */
@@ -33,7 +33,7 @@
 .voice-hold[data-state='listen'] { color: var(--surf-dim); }
 .voice-hold[data-state='talking'] { transform: scale(.96); }
 .voice-hold[data-state='blocked'] { background: var(--gold); color: var(--gold-ink); animation: voice-nudge 1.6s ease-in-out infinite; }
-.voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: var(--gold); border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
+.voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: var(--gold-text); border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
 .voice-hold:disabled { cursor: default; }
 .voice-hold:hover:not(:disabled) { filter: brightness(1.08); }
 .voice-hold:focus-visible { outline: none; box-shadow: var(--plate-shadow), var(--focus); }
@@ -47,7 +47,7 @@
   .voice-speaker { animation: none; transition: none; }
   .voice-speaker .vw1, .voice-speaker .vw2 { animation: none !important; transition: none; }
   .voice-hold[data-state='blocked'] { animation: none; }
-  .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { animation: none; border-style: dashed; border-color: var(--gold); }
+  .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { animation: none; border-style: dashed; border-color: var(--gold-text); }
 }
 /* в окне на телефоне — выше джойстика */
 @media (pointer: coarse) {
