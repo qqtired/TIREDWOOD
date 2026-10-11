@@ -5,7 +5,7 @@
 import { AQUA_BOARD, AQUA_BOTTOM, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, slideSteps } from '../aqua.ts';
 import { BARKAS_BOARD, BARKAS_FISH_FIRST, BARKAS_FISH_SPOTS, SANYA_USE, barkasBoxes } from '../barkas.ts';
 import { BOAT_FLOOR_Y, LAUNCH } from '../boat.ts';
-import { FERRY_AWAY, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
+import { FERRY_AWAY, FERRY_DECK_Y, FERRY_HOME, FERRY_HOME_BOARD, FERRY_SIGN, ferryBoxes } from '../ferry.ts';
 import { BJ_TABLE } from '../blackjack.ts';
 import { BL_HALL, BL_OUT_HX, BL_OUT_HZ, BL_POSTS, BL_POST_H, BL_POST_HALF, BL_SURFACE_Y, BL_TABLES } from '../billiards.ts';
 import { JUKEBOX, JUKEBOX_BARKAS, JUKE_BARKAS_USE, JUKE_D, JUKE_H, JUKE_USE, JUKE_W } from '../jukebox.ts';
@@ -262,8 +262,8 @@ function yawTo(x: number, z: number, tx: number, tz: number): number {
 export function buildLobby(): LobbyMap {
   const b = new Builder(false);
   const interact: Interactable[] = [];
-  const add = (kind: InteractKind, x: number, z: number, yaw: number, r: number, arg: number, label: string): void => {
-    interact.push({ id: interact.length, kind, x, y: 0, z, yaw, r, arg, label });
+  const add = (kind: InteractKind, x: number, z: number, yaw: number, r: number, arg: number, label: string, y = 0): void => {
+    interact.push({ id: interact.length, kind, x, y, z, yaw, r, arg, label });
   };
 
   // --- Статика площади: старая (ниже — блоки под OLD_STATIC) или новая из docs/plaza3/level/layout.json (plaza3Static).
@@ -469,7 +469,7 @@ export function buildLobby(): LobbyMap {
   // Музыкальный автомат (shared/jukebox.ts): E перед лицевой стороной — выбрать песню
   add('juke', JUKE_USE.x, JUKE_USE.z, 0, JUKE_USE.r, 0, 'музыкальный автомат');
   // Настилы встык к мосткам и площадке; швартовные углы и рыбак совпадают с видимыми предметами.
-  for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], 'wood', 0x8a6a4a);
+  for (const f of FISH_DECKS) b.box([f.x0, f.y0, f.z0], [f.x1, f.y1, f.z1], f.mat ?? 'wood', f.color ?? 0x8a6a4a);
   for (const m of FISH_MOORINGS) b.box([m.x - m.r, 0, m.z - m.r], [m.x + m.r, m.h, m.z + m.r], 'invisible', 0);
   const fishPropsBoxes: number[] = [];
   for (const f of [FISHER_BODY, FISH_BOARD_BODY, FISH_PODIUM_BODY, ...FISH_PODIUM_STEP_BOXES, ...FISHER_CANOPY_BOXES]) {
@@ -509,9 +509,9 @@ export function buildLobby(): LobbyMap {
     }
   }
   // табличка «Удалой» у стоянки: столбик (обходить, как кнехт)
-  b.box([FERRY_SIGN.x - 0.05, 0, FERRY_SIGN.z - 0.05], [FERRY_SIGN.x + 0.05, 1.9, FERRY_SIGN.z + 0.05], 'invisible', 0);
+  b.box([FERRY_SIGN.x - 0.05, FERRY_DECK_Y, FERRY_SIGN.z - 0.05], [FERRY_SIGN.x + 0.05, FERRY_DECK_Y + 1.9, FERRY_SIGN.z + 0.05], 'invisible', 0);
   BARKAS_FISH_SPOTS.slice(0, BARKAS_FISH_FIRST).forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_ISLAND_COUNT + i, 'порыбачить'));
-  add('ferry', FERRY_HOME_BOARD.x, FERRY_HOME_BOARD.z, FERRY_HOME_BOARD.yaw, FERRY_HOME_BOARD.r, 0, 'лодка «Удалая»');
+  add('ferry', FERRY_HOME_BOARD.x, FERRY_HOME_BOARD.z, FERRY_HOME_BOARD.yaw, FERRY_HOME_BOARD.r, 0, 'лодка «Удалая»', FERRY_DECK_Y);
   add('ferry', BARKAS_BOARD.x, BARKAS_BOARD.z, BARKAS_BOARD.yaw, BARKAS_BOARD.r, 1, 'лодка «Удалая»');
   add('fisher', SANYA_USE.x, SANYA_USE.z, SANYA_USE.yaw, SANYA_USE.r, 1, 'поговорить с Саней');
   // стол рулетки рыбака (fisheco, флаг ROULETTE) — на палубе под тентом за рубкой
@@ -550,12 +550,19 @@ export function buildLobby(): LobbyMap {
     b.box([-31, -6, 71], [-4, 30, 72], 'invisible', 0);
   }
   // дом рыбака: сруб, стойки крыльца, бочки и ящики (рисует client/lobby/fishhouse.ts)
-  for (const h of FISH_HOUSE_BOXES) b.box([h.x0, h.y0, h.z0], [h.x1, h.y1, h.z1], 'invisible', 0);
-  // сваи под дальними мостками и площадкой (как у мостков к маяку)
-  for (const x of [FISH_PIER2.x0 + 0.25, FISH_PIER2.x1 - 0.25]) for (const z of [48, 52]) b.deco.push({ kind: 'piling', x, z });
-  for (const x of [FISH_PIER_HEAD.x0 + 0.25, -19, FISH_PIER_HEAD.x1 - 0.25]) b.deco.push({ kind: 'piling', x, z: FISH_PIER_HEAD.z1 + 0.25 });
-  // места рыбалки на дальних мостках и у дома — в самый конец: номера прежних точек не меняются
-  FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_FAR_FIRST + i, 'порыбачить'));
+  // в plaza3 это Лавка Семёна на берегу (коробка сруба)
+  for (const h of FISH_HOUSE_BOXES) b.box([h.x0, h.y0, h.z0], [h.x1, h.y1, h.z1], h.mat ?? 'invisible', h.color ?? 0);
+  if (!PLAZA3) {
+    // сваи под дальними мостками и площадкой (как у мостков к маяку)
+    for (const x of [FISH_PIER2.x0 + 0.25, FISH_PIER2.x1 - 0.25]) for (const z of [48, 52]) b.deco.push({ kind: 'piling', x, z });
+    for (const x of [FISH_PIER_HEAD.x0 + 0.25, -19, FISH_PIER_HEAD.x1 - 0.25]) b.deco.push({ kind: 'piling', x, z: FISH_PIER_HEAD.z1 + 0.25 });
+  } else {
+    // сходни к стоянке лодок (порт B): сваи по краям настила; мол и голова — камень, им сваи не нужны
+    const gang = FISH_DECKS.find((d) => d.mat !== 'concrete' && d.y1 < 0);
+    if (gang) for (const x of [gang.x0 + 0.25, gang.x1 - 0.25]) for (let z = gang.z0 + 1.5; z < gang.z1; z += 5) b.deco.push({ kind: 'piling', x, z });
+  }
+  // места рыбалки на дальних мостках и у дома (в plaza3 — на Маячном моле, y −0,5) — в самый конец: номера прежних точек не меняются
+  FISH_FAR_SPOTS.forEach((s, i) => add('fish', s.x, s.z, s.yaw, 1.0, FISH_FAR_FIRST + i, 'порыбачить', s.y ?? 0));
 
   // бильярд (флаг BILLIARDS; места столов — в самый конец списка) — навес к югу от павильона автоматов: столы и столбы твёрдые, E — у стола (shared/billiards.ts)
   const billiardsBoxes: number[] = [];

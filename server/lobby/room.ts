@@ -40,6 +40,7 @@ import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/resp
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
 import { inStartCircle, START_DWELL_TICKS, START_ZONES, type StartZoneKind } from '../../shared/startzones.ts';
+import { inFarmRoadZone } from '../../shared/farmmap.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
 import {
   BTN_DASH, BTN_FIRE, BTN_JUMP, BTN_RELOAD, BTN_USE, makeEvents, makeInput, makeState, type Input, type PlayerState, type StepEvents,
@@ -180,6 +181,8 @@ export class LobbyRoom implements Room {
   /** Кто стоит в круге «Старт» — по порядку входа (Set хранит порядок) */
   private readonly circle = new Set<LobbyPlayer>();
   private readonly starts = new Map<LobbyPlayer, { armed: boolean; zone: StartZoneKind | null; since: number; shown: string }>();
+  /** Кто уже «прошёл калитку» и ждёт, пока выйдет из зоны (plaza3: зона «на ферму», чтобы полная ферма не засыпала тостами) */
+  private readonly farmRoadTried = new WeakSet<LobbyPlayer>();
   /** Тик конца отсчёта до гонки (0 — отсчёта нет) */
   private kartCountEnd = 0;
   private kartTrack: RaceTrackId = DEFAULT_TRACK;
@@ -1716,6 +1719,7 @@ export class LobbyRoom implements Room {
     this.blackjack.step(this.tick);
     this.billiards?.step(this.tick);
     this.stepStartZones();
+    this.stepFarmRoad();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)
     const losers = this.slots.losers.step(this.tick);
     if (losers) this.broadcast({ t: 'losers', top: losers });
@@ -2125,6 +2129,18 @@ export class LobbyRoom implements Room {
         p.client.sink.sendJson({ t: 'startZone', kind: null, left: 0 });
         this.hub.move(p.client, target!);
       }
+    }
+  }
+
+  /** plaza3: прошёл калитку фермы — на ферму (то же, что E у калитки; без зоны в старой раскладке шаг пустой) */
+  private stepFarmRoad(): void {
+    if (!this.hub.farm) return;
+    for (const p of this.players.values()) {
+      const s = p.state;
+      if (p.client.ephemeral || !inFarmRoadZone(s.x, s.y, s.z)) { this.farmRoadTried.delete(p); continue; }
+      if (this.farmRoadTried.has(p) || isHeld(p.action) || p.menuOpen) continue;
+      this.farmRoadTried.add(p);
+      this.hub.enterFarm(p.client);
     }
   }
 

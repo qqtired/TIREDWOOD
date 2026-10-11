@@ -28,6 +28,7 @@ import { PLAZA2 } from './plaza/flag.ts';
 import { PLAZA3, pick } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
 import { A, xfP } from '../../shared/plaza3/xf.ts';
+import { buildPlaza3Lights } from './plaza3/lights.ts';
 import { buildPlaza3World, type Plaza3World } from './plaza3/world.ts';
 import type { VenueCtx } from './plaza/venue.ts';
 import type { RainWire, Strike } from '../../shared/weather.ts';
@@ -353,6 +354,7 @@ export class LobbyWorld {
       this.buildLighthouse();
       this.buildPhotoSpot();
       this.buildTownQuay();
+      buildPlaza3Lights(this.plazaCtx, this.map);
     } else {
       this.buildQuay();
       this.buildArcade();

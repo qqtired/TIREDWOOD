@@ -11,6 +11,9 @@ import type { FishZone } from './fishplaces.ts';
 import { TIER_BASE } from './fishrules.ts';
 import { ISLE_BERTHS, ISLE_SPAWN as ISLE_LANDING } from './maps/isle.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT, type Input } from './sim.ts';
+import { pick } from './layout.ts';
+import { PORT } from './plaza3/port.ts';
+import { A, xfP } from './plaza3/xf.ts';
 
 const DT = 1 / TICK_RATE;
 
@@ -42,7 +45,9 @@ export const OB_SNAP_RANGE = 900;
 // ------------------------------------------------------------ стоянка и причал острова
 
 /** Стоянка «У Семёна»: начало координат пирса — верх сходней у южного края площадки дома рыбака (y = 0), пирс уходит на юг */
-export const PARK = { x: -13.7, y: 0, z: 64 } as const;
+const PARK2 = { x: -13.7, y: 0, z: 64 } as const;
+/** plaza3 (порт B): стоянка уходит на сходни к югу от Маячного мола — PARK (−54; 58,5), всё остальное считается от неё (якорь marina) */
+export const PARK: { readonly x: number; readonly y: number; readonly z: number } = pick(PARK2, () => ({ ...xfP(A.marina, PARK2), y: 0 }));
 /** Настил пирса ниже площадки (GLB: deck_y), сходни 3,2 м; ширина мостика 2,4 м, пальцы 5 × 0,6 м */
 export const PARK_DECK_Y = -0.62;
 export const PARK_RAMP = 3.2;
@@ -89,7 +94,8 @@ export function parkDeckBoxes(): Array<{ min: [number, number, number]; max: [nu
   const x0 = PARK.x - PARK_HALF;
   const x1 = PARK.x + PARK_HALF;
   const out: Array<{ min: [number, number, number]; max: [number, number, number] }> = [];
-  const steps = [[0, 1.1, -0.15], [1.1, 2.2, -0.35], [2.2, PARK_RAMP, -0.5]] as const;
+  // plaza3: сходни ведут с настила на y −0,5 — одна ступень на всю длину, без «горба» после сходен
+  const steps = pick<ReadonlyArray<readonly [number, number, number]>>([[0, 1.1, -0.15], [1.1, 2.2, -0.35], [2.2, PARK_RAMP, -0.5]], () => [[0, PARK_RAMP, -0.5]]);
   for (const [a, c, top] of steps) out.push({ min: [x0, -1, PARK.z + a], max: [x1, top, PARK.z + c] });
   out.push({ min: [x0, -1, PARK.z + PARK_RAMP], max: [x1, PARK_DECK_Y, PARK.z + PARK_END] });
   for (const side of [-1, 1]) {
@@ -391,8 +397,10 @@ const BOXES: ReadonlyArray<readonly [number, number, number, number]> = [
   [-30.5, -2000, 2000, 21.8],
   [-95, 6.5, -33.5, 39],
   [-42, -15, -34, -7],
-  // мостки к маяку, площадка маяка, дальние мостки, площадка дома Семёна
-  [-21, 21.8, -17, 37], [-24.5, 37, -13.5, 46.5], [-20.5, 46.5, -17.5, 54], [-25.5, 54, -12.5, 64],
+  // мостки к маяку, площадка маяка, дальние мостки, площадка дома Семёна (в plaza3 вместо двух последних — Маячный мол,
+  // голова мола и сходни к стоянке: порт B)
+  [-21, 21.8, -17, 37], [-24.5, 37, -13.5, 46.5],
+  ...pick<ReadonlyArray<readonly [number, number, number, number]>>([[-20.5, 46.5, -17.5, 54], [-25.5, 54, -12.5, 64]], () => PORT.decks.map((d) => d.box)),
   // причал «Ласточки» и понтон крысиных бегов
   [3, 21.8, 13, 25], [-10.8, 21.8, -4, 26.8],
   // стоянка: мостик и пальцы между бертами (у каждого борта — 6 пальцев по 0,6 м)

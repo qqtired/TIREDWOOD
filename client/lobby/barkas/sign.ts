@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { BARKAS_FISH_SPOTS } from '../../../shared/barkas.ts';
 import { TICK_RATE } from '../../../shared/constants.ts';
-import { FE_AWAY, FE_BOARD, FE_HOME, FE_OUT, FERRY_LEVEL, FERRY_SEATS, FERRY_SIGN, ferryEta } from '../../../shared/ferry.ts';
+import { FE_AWAY, FE_BOARD, FE_HOME, FE_OUT, FERRY_DECK_Y, FERRY_LEVEL, FERRY_SEATS, FERRY_SIGN, ferryEta } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
 import { mergeColored, paint, place } from '../../render/kit.ts';
 
@@ -30,9 +30,9 @@ export class FerrySign {
     this.tex.anisotropy = 8;
     const { x, z } = FERRY_SIGN;
     const parts = [
-      place(paint(new THREE.BoxGeometry(0.09, BOARD_Y + BOARD_H + 0.06, 0.09), 0x5b4130), x, (BOARD_Y + BOARD_H + 0.06) / 2, z + 0.02),
-      place(paint(new THREE.BoxGeometry(BOARD_W + 0.08, BOARD_H + 0.08, 0.05), 0x6e5236), x, BOARD_Y + BOARD_H / 2, z - 0.03),
-      place(paint(new THREE.ConeGeometry(0.07, 0.07, 4).rotateY(Math.PI / 4), 0x3a2a1e), x, BOARD_Y + BOARD_H + 0.1, z + 0.02),
+      place(paint(new THREE.BoxGeometry(0.09, BOARD_Y + BOARD_H + 0.06, 0.09), 0x5b4130), x, FERRY_DECK_Y + (BOARD_Y + BOARD_H + 0.06) / 2, z + 0.02),
+      place(paint(new THREE.BoxGeometry(BOARD_W + 0.08, BOARD_H + 0.08, 0.05), 0x6e5236), x, FERRY_DECK_Y + BOARD_Y + BOARD_H / 2, z - 0.03),
+      place(paint(new THREE.ConeGeometry(0.07, 0.07, 4).rotateY(Math.PI / 4), 0x3a2a1e), x, FERRY_DECK_Y + BOARD_Y + BOARD_H + 0.1, z + 0.02),
     ];
     const wood = new THREE.Mesh(mergeColored(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
     wood.castShadow = true;
@@ -40,7 +40,7 @@ export class FerrySign {
       new THREE.PlaneGeometry(BOARD_W, BOARD_H),
       new THREE.MeshStandardMaterial({ map: this.tex, roughness: 0.7, emissive: 0xffffff, emissiveMap: this.tex, emissiveIntensity: 0.18 }),
     );
-    face.position.set(x, BOARD_Y + BOARD_H / 2, z - 0.056);
+    face.position.set(x, FERRY_DECK_Y + BOARD_Y + BOARD_H / 2, z - 0.056);
     face.rotation.y = Math.PI;
     scene.add(wood, face);
     this.draw('', '#bfe3dc');

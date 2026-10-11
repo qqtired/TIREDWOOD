@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { FARM_PLOTS } from '../../shared/farmdata.ts';
 import { FARM_LAYOUT } from '../../shared/farmlayout.ts';
+import { FARM_PLAZA_GATE, FARM_PLAZA_GATE_ANCHOR } from '../../shared/farmmap.ts';
 import type { FarmStatus } from '../../shared/farmnet.ts';
 import { ACT_NONE, ACT_WAVE } from '../../shared/lobby.ts';
 import { DEFAULT_OUTFIT } from '../../shared/outfit.ts';
@@ -16,7 +17,7 @@ import { LOCAL_WALKER } from '../render/outfitfarm.ts';
 import { WalkPets } from './3d/pets.ts';
 import { StaticBatch, loadModel, type Part } from './models.ts';
 
-const G = FARM_LAYOUT.plazaGate;
+const G = { local: FARM_LAYOUT.plazaGate.local, anchor: FARM_PLAZA_GATE_ANCHOR, current: FARM_PLAZA_GATE };
 /** Створки открываются, когда ближе этого (м), за 0,3 с */
 const OPEN_R = 4.5;
 const OPEN_S = 0.3;

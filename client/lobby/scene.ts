@@ -3124,9 +3124,17 @@ export class LobbyScene implements Scene {
 
   private orbit(): void {
     const cam = this.world.camera;
-    const a = 0.4 + this.time * 0.04;
-    cam.position.set(Math.cos(a) * 34, 14, -6 + Math.sin(a) * 34);
-    cam.lookAt(0, 3, -6);
+    if (PLAZA3) {
+      // plaza3: круг шире и выше вокруг розы ветров (8; −8) — снаружи самых высоких зданий (каланча, крепость, колесо); начинаем с запада,
+      // чтобы в кадре были площадь, бульвар и холм с надписью
+      const a = 2.7 + this.time * 0.035;
+      cam.position.set(8 + Math.cos(a) * 46, 22, -8 + Math.sin(a) * 46);
+      cam.lookAt(8, 3, -8);
+    } else {
+      const a = 0.4 + this.time * 0.04;
+      cam.position.set(Math.cos(a) * 34, 14, -6 + Math.sin(a) * 34);
+      cam.lookAt(0, 3, -6);
+    }
     if (cam.fov !== 60) {
       cam.fov = 60;
       cam.updateProjectionMatrix();

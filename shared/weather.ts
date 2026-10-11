@@ -3,6 +3,8 @@
 // Тот же расчёт молний у шторма маяка: шторм — это просто гроза на максимальной силе.
 import { BARKAS } from './barkas.ts';
 import { TICK_RATE } from './constants.ts';
+import { pick } from './layout.ts';
+import { PORT } from './plaza3/port.ts';
 import { hash32, hashFloat, makeRng } from './math.ts';
 
 /**
@@ -168,11 +170,21 @@ export interface Strike {
 /** Баркас «Альбатрос» на якоре: иногда молния бьёт рядом — видно с палубы */
 export const BARKAS_AT = { x: BARKAS.x, z: BARKAS.z };
 /** Куда молнии не бьют (x0, x1, z0, z1): аквапарк, мостки с маяком, отмелью и пирсом с хижиной Семёна, баркас */
-const KEEP_OUT: ReadonlyArray<readonly [number, number, number, number]> = [
+const KEEP_OUT_2: ReadonlyArray<readonly [number, number, number, number]> = [
   [-95, -33.5, 6, 39],
   [-25.5, -11.5, 21.5, 67],
   [BARKAS.bow - 0.5, BARKAS.stern + 0.5, BARKAS.z - BARKAS.half - 0.5, BARKAS.z + BARKAS.half + 0.5],
 ];
+/**
+ * plaza3: к мосткам с маяком прибавились мол с головой и сходни, а берты своих лодок идут от сходней к югу до z 81
+ * (layout.json port.decks, pavilions.marina); старый пирс с хижиной Семёна ушёл, но южный квадрат оставлен — под маяком
+ * ловят и в шторм.
+ */
+const KEEP_OUT: ReadonlyArray<readonly [number, number, number, number]> = pick(KEEP_OUT_2, () => [
+  ...KEEP_OUT_2,
+  ...PORT.decks.map((d) => [d.box[0], d.box[2], d.box[1], d.box[3]] as const),
+  [-55.2, -52.8, 58.5, 81] as const,
+]);
 /** Не ближе стольких метров к людным местам (и к игроку — это клиент) */
 export const STRIKE_CLEAR = 25;
 

@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { BARKAS, BARKAS_HOUSE } from '../../shared/barkas.ts';
 import { FISH_HOUSE } from '../../shared/fishplaces.ts';
+import { PLAZA3 } from '../../shared/layout.ts';
 import { SEASON_MUL } from '../../shared/fishrules.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { FISH_SEASON, seasonLeft, type FishSeasonState } from './fishseason.ts';
@@ -84,7 +85,8 @@ export interface SeasonSignSpot {
  * к палубе и к подходящей лодке.
  */
 export const SEASON_SIGN_SPOTS: { readonly house: SeasonSignSpot; readonly barkas: SeasonSignSpot } = {
-  house: { x: (FISH_HOUSE.x0 + FISH_HOUSE.x1) / 2, y: FISH_HOUSE.ridge + 0.18, z: (FISH_HOUSE.z0 + FISH_HOUSE.z1) / 2, yaw: Math.PI, w: 5.2, lift: 0.3, guyDrop: 0.8 },
+  // plaza3: Лавка Семёна на берегу — доска на коньке лицом на запад, к тропе с площади и к арке (конёк 5,4 м вдоль z)
+  house: { x: (FISH_HOUSE.x0 + FISH_HOUSE.x1) / 2, y: FISH_HOUSE.ridge + 0.18, z: (FISH_HOUSE.z0 + FISH_HOUSE.z1) / 2, yaw: PLAZA3 ? -Math.PI / 2 : Math.PI, w: PLAZA3 ? 4.6 : 5.2, lift: 0.3, guyDrop: 0.8 },
   barkas: { x: BARKAS_HOUSE.x1 + 0.19, y: BARKAS_HOUSE.h + 0.12, z: BARKAS.z, yaw: Math.PI / 2, w: 4, lift: 0.4, guyDrop: 0 },
 };
 

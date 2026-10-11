@@ -8,14 +8,17 @@ export function addFishPlaces3d(parent: THREE.Object3D): void {
   const timber: THREE.BufferGeometry[] = [];
   const fittings: THREE.BufferGeometry[] = [];
   for (const d of FISH_DECKS) {
+    // plaza3: мол и голова мола — камень (рисует pav_mole.glb / блокаут), обвязка и сваи нужны только деревянным настилам
+    if (d.mat === 'concrete') continue;
+    const top = d.y1;
     const w = d.x1 - d.x0, depth = d.z1 - d.z0;
     const x = (d.x0 + d.x1) / 2, z = (d.z0 + d.z1) / 2;
     // Обвязка только ниже поверхности, без поперечного ограждения входов.
     for (const edgeX of [d.x0 + 0.04, d.x1 - 0.04]) {
-      timber.push(place(paint(new THREE.BoxGeometry(0.08, 0.22, depth), 0x705035), edgeX, -0.19, z));
+      timber.push(place(paint(new THREE.BoxGeometry(0.08, 0.22, depth), 0x705035), edgeX, top - 0.19, z));
     }
     for (const edgeZ of [d.z0 + 0.04, d.z1 - 0.04]) {
-      timber.push(place(paint(new THREE.BoxGeometry(w, 0.22, 0.08), 0x705035), x, -0.19, edgeZ));
+      timber.push(place(paint(new THREE.BoxGeometry(w, 0.22, 0.08), 0x705035), x, top - 0.19, edgeZ));
     }
     // сваи по периметру: на углах и (у длинных настилов) не реже чем через 3,2 м
     const nz = Math.max(1, Math.ceil((depth - 0.44) / 3.2));
@@ -25,7 +28,7 @@ export function addFishPlaces3d(parent: THREE.Object3D): void {
       const key = `${px.toFixed(2)},${pz.toFixed(2)}`;
       if (posts.has(key)) return;
       posts.add(key);
-      timber.push(place(paint(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 8), 0x5a4937), px, -1.25, pz));
+      timber.push(place(paint(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 8), 0x5a4937), px, top - 1.25, pz));
     };
     for (let i = 0; i <= nz; i++) for (const edgeX of [d.x0 + 0.22, d.x1 - 0.22]) post(edgeX, d.z0 + 0.22 + ((depth - 0.44) * i) / nz);
     for (let i = 0; i <= nx; i++) for (const edgeZ of [d.z0 + 0.22, d.z1 - 0.22]) post(d.x0 + 0.22 + ((w - 0.44) * i) / nx, edgeZ);
@@ -41,7 +44,7 @@ export function addFishPlaces3d(parent: THREE.Object3D): void {
       station.push(place(paint(new THREE.BoxGeometry(.032,.007,.92),0x9b8360),side*.82,.006,0));
       for(const x of [-.75,.75]) station.push(place(paint(new THREE.BoxGeometry(.115,.011,.07),0xb4a17a),x,.01,side*.4));
     }
-    const inset=mergeColored(station).rotateY(s.yaw).translate(s.x,0,s.z);
+    const inset=mergeColored(station).rotateY(s.yaw).translate(s.x,s.y ?? 0,s.z);
     fittings.push(inset);
   }
   for (const m of FISH_MOORINGS) {
