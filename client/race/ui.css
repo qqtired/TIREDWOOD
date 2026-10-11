@@ -53,10 +53,18 @@ html[data-room='race'] .k-hud > .k-slot--c > .k-hero--lose.is-play { animation: 
   0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -150%) scale(1.6); }
 }
-/* телефон: бонус и заряд — слева над рулём (низ-центр между рулём и газом узкий) */
-/* телефон: скорость — внизу посередине, между рулём и газом (справа внизу — кнопка газа) */
-html.touch[data-room='race'] .k-hud > .k-slot--br { right: auto; left: 50%; width: 200px; margin-left: -100px; align-items: center; }
-html.touch[data-room='race'] .k-hud > .k-slot--bc { left: calc(var(--edge) + 0px); margin-left: 0; width: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); align-items: flex-start; }
+/* телефон 375×812 стоя. Слои кита масштабируются --hud-k, поэтому экранные px — calc(<px> / var(--hud-k, 1)).
+   Верхний ряд занят кнопками ☰ 💬 👥, «на трассу» и бейджем: карточка места и скорость — ниже него слева, мини-карта справа
+   (уже, чтобы не резать подпись «на трассу»). Внизу над рулём — бонус: не шире 190 px, чтобы не доходить до «тормоза» (x ≥ 203);
+   скорость внизу лежала на ▶ руля — её там нет. Чат — под скоростью */
+html.touch[data-room='race'] .k-hud > .k-slot--tl { top: calc(62px / var(--hud-k, 1)); }
+html.touch[data-room='race'] .rc-stats { display: none; }
+html.touch[data-room='race'] .k-hud > .k-slot--tr .mo-map { width: 160px; }
+html.touch[data-room='race'] .k-hud > .k-slot--br { top: calc((110px + env(safe-area-inset-top, 0px)) / var(--hud-k, 1)); bottom: auto; right: auto; left: var(--edge); margin-left: calc(env(safe-area-inset-left, 0px) / var(--hud-k, 1)); width: auto; align-items: flex-start; }
+html.touch[data-room='race'] .k-hud > .k-slot--bl { top: calc((152px + env(safe-area-inset-top, 0px)) / var(--hud-k, 1)); }
+html.touch[data-room='race'] .k-hud > .k-slot--bc { left: var(--edge); margin-left: calc(env(safe-area-inset-left, 0px) / var(--hud-k, 1)); width: auto; bottom: calc((108px + env(safe-area-inset-bottom, 0px)) / var(--hud-k, 1)); align-items: flex-start; }
+html.touch[data-room='race'] .rc-item .mo-item-txt { min-width: 0; max-width: 150px; }
+html.touch[data-room='race'] .rc-item .mo-item-txt > * { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   .rc-item.is-rolling .mo-ic, .rc-item.is-ready .mo-item-ic, .touch .rc-item.is-ready .mo-item-ic, .rc-charge.is-max .k-meter { animation: none !important; }

@@ -63,3 +63,15 @@ html:not([data-room='paintball']) .pb-only { display: none !important; }
 /* ---------------------------------------------------------------- телефон: верх-лево занят кнопками и чатом, справа под бейджем — кнопки
    прицела и плеча. Лента сбитых и плитка бонуса там налезали бы на кнопки; бонус и так виден в панели бойца (HP и щит) */
 .touch .pb-feed, .touch .pb-tiles { display: none !important; }
+
+/* телефон 375×812 стоя (экранные px — calc(<px> / var(--hud-k, 1)), слои масштабируются --hud-k). Верхний ряд — кнопки ☰ 💬 👥 и бейдж:
+   счёт и тосты — под ним, чат — под счётом. Панель бойца шире экрана (сцена 560) — собрана в два ряда слева над джойстиком,
+   правее неё кнопки прицела, перезарядки, огня и плеча (x ≥ 191): здоровье и патроны, под ними оружие и рывок */
+html.touch[data-room='paintball'] .k-slot--tc { top: calc(62px / var(--hud-k, 1)); }
+html.touch[data-room='paintball'] .k-hud > .k-slot--bl { top: calc((108px + env(safe-area-inset-top, 0px)) / var(--hud-k, 1)); }
+html.touch[data-room='paintball'] .k-hud > .k-slot--bc { left: var(--edge); margin-left: calc(env(safe-area-inset-left, 0px) / var(--hud-k, 1)); width: calc(176px / var(--hud-k, 1)); bottom: calc((160px + env(safe-area-inset-bottom, 0px)) / var(--hud-k, 1)); align-items: flex-start; }
+html.touch[data-room='paintball'] .pb-vitals { flex-wrap: wrap; justify-content: flex-start; width: 100%; max-width: none; gap: 6px; }
+html.touch[data-room='paintball'] .pb-vitals > .k-vitals-hp { order: 1; flex: 1 1 auto; min-width: 0; }
+html.touch[data-room='paintball'] .pb-vitals > .k-vitals-ammo { order: 2; flex: 1 1 auto; min-width: 0; }
+html.touch[data-room='paintball'] .pb-vitals > .k-vitals-arms { order: 3; }
+html.touch[data-room='paintball'] .pb-vitals > .k-vitals-dash { order: 4; }
