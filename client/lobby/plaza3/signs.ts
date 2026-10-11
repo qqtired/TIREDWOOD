@@ -14,7 +14,7 @@ import { P3 } from '../../../shared/plaza3/layout.ts';
 import type { LiveIn } from '../plaza/live.ts';
 import {
   ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_ICON_H, MIN_STATUS_H, PLANK, SIGN_COLOR, SIGN_FONT, SIGN_META, STATUS_SIZE, TONE_COLOR,
-  contentOf, enamelAt, fitTitle, headItems, monoRun, packAtlas,
+  contentOf, enamelAt, fitStatus, fitTitle, headItems, monoRun, packAtlas,
   type Atlas, type AtlasItem, type AtlasRect, type Content, type FlagMode, type IconId, type PostPlan, type SignMeta,
 } from './signstyle.ts';
 import { emptyExtras, signStatus, statusKey, type SignExtras, type SignStatus } from './status.ts';
@@ -337,9 +337,7 @@ function drawStatus(ctx: Ctx, s: Sign, st: SignStatus): void {
   const dot = st.tone === 'none' ? 0 : status.dot.r * k * 2.6;
   const maxW = strip.w - dot;
   ctx.textBaseline = 'alphabetic';
-  // кегль подгоняем под ширину (не меньше 72 %), иначе режем с «…»
-  let text = st.text;
-  let e = em;
+  // кегль подгоняем под ширину (не меньше 60 %), иначе отбрасываем хвост после « · » (signstyle.ts fitStatus)
   const measure = (t: string, size: number): number => {
     let sum = 0;
     for (const part of t.split(/(\d+(?::\d+)*)/)) {
@@ -349,9 +347,7 @@ function drawStatus(ctx: Ctx, s: Sign, st: SignStatus): void {
     }
     return sum;
   };
-  const w1 = measure(text, e);
-  if (w1 > maxW) e = Math.max(em * 0.72, (em * maxW) / w1);
-  while (measure(text, e) > maxW && text.length > 1) text = `${text.slice(0, -2).trimEnd()}…`;
+  const { em: e, text } = fitStatus(st.text, em, maxW, measure);
   let x = strip.x;
   for (const part of text.split(/(\d+(?::\d+)*)/)) {
     if (!part) continue;

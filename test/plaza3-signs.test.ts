@@ -7,7 +7,7 @@ import { FORT_MAX_HUMANS, FT_BREAK, FT_GATHER, FT_WAVE } from '../shared/fort.ts
 import { P3 } from '../shared/plaza3/layout.ts';
 import { emptyLive, type LiveIn } from '../client/lobby/plaza/live.ts';
 import {
-  ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_STATUS_H, PLANK, SIGN_META, STATUS_SIZE, contentOf, fitTitle, frameOf, headItems, monoRun,
+  ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_STATUS_H, PLANK, SIGN_META, STATUS_SIZE, contentOf, fitStatus, fitTitle, frameOf, headItems, monoRun,
   packAtlas, parseArrow, planPost, spreadOrder,
 } from '../client/lobby/plaza3/signstyle.ts';
 import { STATUS_MAX, clock, emptyExtras, signStatus, statusKey, type SignExtras, type StatusMode } from '../client/lobby/plaza3/status.ts';
@@ -144,7 +144,7 @@ test('plaza3-signs: раскладка щита — иконка, названи
   }
 });
 
-test('plaza3-signs: название — моноширинная сетка, длинное сужается до 72 % и режется с «…»', () => {
+test('plaza3-signs: название — моноширинная сетка, длинное сужается до половины и только потом режется с «…»', () => {
   const a = monoRun('АБ В', 10);
   assert.equal(a.xs.length, 4);
   assert.ok(a.xs[3] - a.xs[2] < a.xs[1] - a.xs[0], 'шаг пробела короче знака: пробел сужен');
@@ -153,7 +153,24 @@ test('plaza3-signs: название — моноширинная сетка, д
   const sq = fitTitle('АВТОМАТЫ · АРКАДА', 20, monoRun('АВТОМАТЫ · АРКАДА', 20).width * 0.85);
   assert.ok(sq.em < 20 && sq.em >= 14.39 && sq.text === 'АВТОМАТЫ · АРКАДА', 'чуть длинное — меньший кегль');
   const cut = fitTitle('КРУПНЕЙШИЕ РЫБЫ СЕГОДНЯ В ПОРТУ', 20, 150);
-  assert.ok(cut.em >= 12.39 && cut.text.endsWith('…') && monoRun(cut.text, cut.em).width <= 150, 'совсем длинное — обрезано');
+  assert.ok(cut.em >= 9.99 && cut.text.endsWith('…') && monoRun(cut.text, cut.em).width <= 150, 'совсем длинное — обрезано');
+  const sky = fitTitle('ВЫШЕ ОБЛАКОВ', 20, monoRun('ВЫШЕ ОБЛАКОВ', 20).width * 0.55);
+  assert.equal(sky.text, 'ВЫШЕ ОБЛАКОВ', 'название в 0,55 ширины — целиком, мельче');
+});
+
+test('plaza3-signs: статус — мельче до 60 %, потом без хвоста после « · », «…» — последнее средство', () => {
+  const m = (t: string, em: number): number => t.length * em * 0.5;
+  assert.deepEqual(fitStatus('каланча свободна', 20, 1000, m), { em: 20, text: 'каланча свободна' });
+  const sq = fitStatus('скупка рыбы · задания Семёна', 20, m('скупка рыбы · задания Семёна', 20) * 0.8, m);
+  assert.ok(sq.em < 20 && sq.text === 'скупка рыбы · задания Семёна', 'чуть длинное — меньший кегль, целиком');
+  const tail = fitStatus('5 жетонов · один оборот', 20, m('5 жетонов · один оборот', 12) * 0.7, m);
+  assert.equal(tail.text, '5 жетонов', 'хвост после « · » отброшен целиком');
+  // ширина чуть больше пропорциональной (как measureText на холсте) — всё равно целиком, без «…»
+  const lumpy = (t: string, em: number): number => t.length * em * 0.5 + 3;
+  const hair = fitStatus('каланча свободна', 20, lumpy('каланча свободна', 20) * 0.9, lumpy);
+  assert.equal(hair.text, 'каланча свободна', 'нелинейная ширина — дожали кегль, а не обрезали');
+  const last = fitStatus('на стенах пусто — зови', 20, 40, m);
+  assert.ok(last.text.endsWith('…') && m(last.text, last.em) <= 40, 'без « · » и совсем длинное — обрезано');
 });
 
 // ------------------------------------------------------------------------------------------------ атлас
