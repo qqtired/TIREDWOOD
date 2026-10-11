@@ -449,6 +449,53 @@ label.set-item .set-ctl {
   outline-offset: 2px;
 }
 
+/* на экране входа (⚙ Настройки) — все категории подряд, компактно; ссылок на разделы меню там нет */
+.join-settings .mn-set .set-cat {
+  display: flex !important;
+}
+
+.join-settings .set-cat-h {
+  display: block;
+}
+
+.join-settings .set-cat:first-child .set-cat-h {
+  margin-top: 0;
+}
+
+.join-settings .set-item {
+  min-height: 0;
+  padding: 9px 0;
+  gap: 6px 14px;
+}
+
+.join-settings .set-item:has(.set-link) {
+  display: none;
+}
+
+.join-settings div.set-item .set-text,
+.join-settings div.set-item .set-ctl {
+  flex: 1 1 100%;
+  justify-content: flex-start;
+}
+
+.join-settings label.set-item .set-text {
+  flex: 1 1 0;
+}
+
+.join-settings .set-text b {
+  font-size: 15px;
+}
+
+.join-settings .set-text small {
+  font-size: 12px;
+}
+
+.join-settings .seg button {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
 /* --- профиль: обзор */
 
 .mn-body .prof-head {

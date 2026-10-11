@@ -68,6 +68,8 @@ const CONNECT_TIMEOUT_MS = 9000;
 const SILENCE_MS = 20_000;
 /** Сервер молчит дольше этого — плашка «Связь нестабильна» (игра идёт дальше) */
 const SHAKY_MS = 3000;
+/** Сколько кадров облёта рисуем за входом, прежде чем перестать (прогрев шейдеров) */
+const IDLE_WARM_FRAMES = 90;
 /** Паузы между попытками переподключения, с (дальше — последняя) */
 const RETRY_S = [1, 2, 4, 8, 15];
 const PING_MS = 2000;
@@ -156,6 +158,8 @@ export class App {
   private attemptAt = 0;
   private retryN = 0;
   private retryAt = 0;
+  /** Кадров облёта набережной за экраном входа (после прогрева шейдеров он не рисуется — картина входа непрозрачна) */
+  private idleFrames = 0;
   /** Сколько длится нынешняя пауза до новой попытки, мс (для полосы в окне связи) */
   private retryMs = 1000;
   private retryTimer = 0;
@@ -1397,10 +1401,15 @@ export class App {
     }
     this.touch?.sync('none', 'off');
     this.syncFishingUi(false);
-    // меню, обрыв: фоном — облёт набережной
-    this.renderer.beginFrame(this.settings.showStats);
-    try { this.lobby.idle(dt); }
-    finally { this.renderer.endFrame(); }
+    // вход и обрыв: фоном — облёт набережной. За входом он закрыт непрозрачной картиной (.en-art): первые кадры рисуем, чтобы
+    // собрались шейдеры набережной, дальше не рисуем (канвас держит последний кадр). Под окнами связи мир виден — там рисуем всегда
+    const covered = (this.screen === 'join' || this.screen === 'connecting') && this.idleFrames >= IDLE_WARM_FRAMES;
+    if (!covered) {
+      this.idleFrames++;
+      this.renderer.beginFrame(this.settings.showStats);
+      try { this.lobby.idle(dt); }
+      finally { this.renderer.endFrame(); }
+    }
     if (this.screen === 'join') {
       this.healthTimer -= dt;
       if (this.healthTimer <= 0) {

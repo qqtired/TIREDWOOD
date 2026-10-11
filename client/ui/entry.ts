@@ -166,7 +166,7 @@ export class JoinScreen {
   constructor(s: Settings, hooks: JoinHooks) {
     this.h = hooks;
     this.root = el('div', 'screen join show');
-    const scr = this.root.appendChild(el('div', 'en-scr en-login'));
+    const scr = this.root.appendChild(el('div', 'en-scr en-login k-hudctx'));
     const art = scr.appendChild(el('img', 'en-art'));
     art.src = artUrl('hero-left');
     art.alt = '';
@@ -188,6 +188,9 @@ export class JoinScreen {
     scr.append(this.quick.root);
 
     this.card.addEventListener('click', (e) => this.onClick(e));
+    // клетка кода выделяется при фокусе и клике: набранный знак заменяется новым (maxlength=1 иначе не пускал бы ввод)
+    this.card.addEventListener('focusin', (e) => this.selectCell(e.target));
+    this.card.addEventListener('click', (e) => this.selectCell(e.target));
     this.card.addEventListener('input', (e) => this.onInput(e));
     this.card.addEventListener('keydown', (e) => this.onKey(e));
     this.card.addEventListener('paste', (e) => this.onPaste(e));
@@ -306,7 +309,7 @@ export class JoinScreen {
         <h2 class="en-h">Как тебя звать?</h2>
         <label class="en-field ${cls}"><span class="en-field-top"><span>Ник — его увидят все</span><span class="k-num en-count">${[...this.nickText].length} / ${MAX_NAME}</span></span>
           <input class="k-input en-nick" type="text" maxlength="${MAX_NAME}" spellcheck="false" autocomplete="off" placeholder="${escHtml(this.placeholder)}" value="${escHtml(this.nickText)}"${dis}></label>
-        <div class="en-msg ${cls}" role="status">${cls ? `<i class="en-tick">${cls === 'is-ok' ? '✓' : '!'}</i>` : ''}<span class="en-msg-text">${escHtml(msg)}</span></div>
+        <div class="en-msg ${cls}" role="${this.err ? 'alert' : 'status'}">${cls ? `<i class="en-tick">${cls === 'is-ok' ? '✓' : '!'}</i>` : ''}<span class="en-msg-text">${escHtml(msg)}</span></div>
         ${play('Играть')}
         <div class="en-alt">${saved ? `<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="back"${dis}>Назад</button>` : ''}<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="code"${dis}>У меня есть код</button></div>`;
       if (this.err) this.card.querySelector('.en-field')!.classList.add('is-bad');
@@ -323,7 +326,7 @@ export class JoinScreen {
       </ol>
       <div class="en-field"><span class="en-field-top"><span>Код</span><span>буквы и цифры</span></span>
         <div class="en-code">${cells.slice(0, 4).join('')}<i class="en-code-dash"></i>${cells.slice(4).join('')}</div></div>
-      <div class="en-msg ${this.err ? 'is-bad' : ''}" role="status">${this.err ? `<i class="en-tick">!</i><span>${escHtml(this.err)}</span>` : '<span>Дефис и регистр не важны</span>'}</div>
+      <div class="en-msg ${this.err ? 'is-bad' : ''}" role="${this.err ? 'alert' : 'status'}">${this.err ? `<i class="en-tick">!</i><span>${escHtml(this.err)}</span>` : '<span>Дефис и регистр не важны</span>'}</div>
       ${play('Войти')}
       <div class="en-alt en-alt--one"><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="back"${dis}>Назад</button></div>`;
   }
@@ -394,6 +397,10 @@ export class JoinScreen {
     let i = chars.length >= CODE_LEN ? 0 : Math.max(0, cells.indexOf(t));
     for (const ch of chars.slice(0, CODE_LEN)) if (i < cells.length) cells[i++].value = ch;
     cells[Math.min(i, cells.length - 1)].focus();
+  }
+
+  private selectCell(t: EventTarget | null): void {
+    if (t instanceof HTMLInputElement && t.closest('.en-code')) t.select();
   }
 
   private cells(): HTMLInputElement[] {

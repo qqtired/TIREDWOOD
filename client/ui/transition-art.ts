@@ -6,7 +6,7 @@
 import type { RoomKind } from '../../shared/messages.ts';
 
 /** Картинки экрана загрузки и входа — свои файлы сборки: CSP пускает картинки только со своего адреса и data: */
-const FILES = import.meta.glob('../assets/loading/hd/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const FILES = import.meta.glob(['../assets/loading/hd/*.webp', '!../assets/loading/hd/hero-center.webp'], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 /** Адрес HD-картины по имени файла без расширения (hero-left, cover, farm, farm-jelly, farm-sm…); нет файла — '' */
 export const artUrl = (name: string): string => FILES[`../assets/loading/hd/${name}.webp`] ?? '';
 

@@ -205,7 +205,8 @@
 }
 .k-hud, .k-plate, .k-badge, .k-tiles, .k-tile, .k-toasts, .k-toast, .k-event, .k-prompt, .k-ctx, .k-chat, .k-chat-closed, .k-chat-input,
 .k-voice, .k-vitals, .k-edge, .k-hero, .k-pop, .k-pill--plate,
-.voice-hud /* игра: кнопка голоса уезжает в <dialog> — там это всё ещё HUD */ {
+.voice-hud /* игра: кнопка голоса уезжает в <dialog> — там это всё ещё HUD */,
+.k-hudctx /* страница целиком в HUD-значениях (вход, загрузка комнат — как сцена lab/ui внутри .k-hud); только токены, окна .k-window внутри остаются оконными */ {
   --surf-solid: var(--h-surf-solid); --surf-text: var(--h-surf-text); --surf-dim: var(--h-surf-dim); --surf-faint: var(--h-surf-faint); --surf-2: var(--h-surf-2);
   --surf-2-border: var(--h-surf-2-border); --surf-3: var(--h-surf-3); --line: var(--h-line); --line-strong: var(--h-line-strong); --panel-bg: var(--h-panel-bg);
   --panel-border: var(--h-panel-border); --panel-shadow: var(--h-panel-shadow); --gold-text: var(--h-gold-text); --good-text: var(--h-good-text); --bad-text: var(--h-bad-text);

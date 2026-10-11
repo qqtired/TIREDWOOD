@@ -354,19 +354,19 @@
 
 /* --- отсчёт 3-2-1 над миром: в центре HUD (.k-slot--c), цифры — .k-count кита */
 
+/* вне показа не занимает места: в слоте c на этом месте ложатся баннеры героя (Уровень N!, Маяк горит!) */
 .en-count-box {
-  display: grid;
+  display: none;
   place-items: center;
-  width: 720px;
+  width: 520px;
   min-height: 260px;
   background: radial-gradient(closest-side, rgba(var(--en-night), 0.38), rgba(var(--en-night), 0));
   text-align: center;
-  opacity: 0;
   pointer-events: none;
 }
 
 .en-count-box.show {
-  opacity: 1;
+  display: grid;
 }
 
 /* --- живое, пока экран виден */

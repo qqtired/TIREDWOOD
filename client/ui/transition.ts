@@ -20,7 +20,7 @@ import { errorReport } from '../errors.ts';
 import type { Renderer } from '../render/renderer.ts';
 import type { Scene } from '../scene.ts';
 import { logoHtml } from './entry.ts';
-import { iconImg, meterHtml } from './kit/dom.ts';
+import { iconImg } from './kit/dom.ts';
 import { PRIO, escHtml, type TopCenter } from './kit/topcenter.ts';
 import { MODE_CARDS, nextTips, preloadArt } from './transition-art.ts';
 import './transition.css';
@@ -147,7 +147,7 @@ export class Transition {
   constructor(host: TransitionHost, after: HTMLElement, top: TopCenter, centre: HTMLElement) {
     this.h = host;
     this.top = top;
-    this.root = el('div', 'tr en-scr');
+    this.root = el('div', 'tr en-scr k-hudctx');
     this.root.setAttribute('aria-hidden', 'true');
     // картина режима (пока не пришла — небо в цвет режима) и облака, что плывут поверх неё
     this.artEl = el('div', 'tr-art', this.root);
@@ -610,7 +610,7 @@ export class Transition {
     let tone: 'danger' | undefined;
     if (!this.busy && this.waiting > 0 && late.length) {
       key = `wait|${names(late)}|${this.waiting}`;
-      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Ждём: ${escHtml(names(late))}</div><div class="k-event-sub">${late.length > 1 ? 'Начнём, как только загрузятся' : 'Остальные уже на месте — начнём, как только загрузится'}</div><div class="k-event-timer">до ${this.waiting} с</div><div style="display:contents" data-mode="${this.kind}">${meterHtml(this.waiting / WAIT_S, 'mode', 'k-meter--thin')}</div>`;
+      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Ждём: ${escHtml(names(late))}</div><div class="k-event-sub">${late.length > 1 ? 'Начнём, как только загрузятся' : 'Начнём, как только загрузится'}</div><div class="k-event-timer">до ${this.waiting} с</div><span class="k-meter k-meter--mode k-meter--thin" data-mode="${this.kind}" style="--v:${Math.round(Math.min(1, Math.max(0, this.waiting / WAIT_S)) * 1000) / 1000}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
     } else if (!this.busy && this.missedUntil && late.length) {
       key = `missed|${names(late)}`;
       tone = 'danger';

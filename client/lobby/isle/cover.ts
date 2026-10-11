@@ -21,7 +21,7 @@ export class IsleCover {
   private shownAt = 0;
 
   constructor(parent: HTMLElement) {
-    this.root = el('div', 'tr en-scr isle-cover', parent);
+    this.root = el('div', 'tr en-scr k-hudctx isle-cover', parent);
     this.root.setAttribute('aria-hidden', 'true');
     this.root.dataset.mode = 'fishing';
     this.root.style.setProperty('--focus', '58% 40%');
