@@ -139,7 +139,7 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   group.add(groundMesh);
   // земля в текстурах (plaza3/ground.ts): меш на картинку, развёртка в метрах, программа та же
   dressPlaza3Ground(group, ctx.wet);
-  buildPlaza3Garden(ctx);
+  const garden = buildPlaza3Garden(ctx);
 
   // --- коробки блокаута: видимое твёрдое (павильоны, балюстрада, скалы) и декор без твёрдого — по мешу на квартал
   const byQ = new Map<string, THREE.BufferGeometry[]>();
@@ -178,7 +178,7 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
   let moleFloorReady = false;
   return {
     group,
-    debug: () => ({ meshes, tris: Math.round(tris), quarters: [...byQ.keys()] }),
+    debug: () => ({ meshes, tris: Math.round(tris), quarters: [...byQ.keys()], garden: garden.debug() }),
     hidePavilion: (id) => {
       const m = group.getObjectByName(`plaza3-${id}`);
       if (m) m.visible = false;
