@@ -65,6 +65,7 @@ Read this after your task brief. The brief is your requirements; this file is wh
   never `pkill`/`killall`. Shared lock: `mkdir /private/tmp/claude-501/-Users-tired-Desktop/56f6b8eb-2545-4e49-9c5b-d98b01077673/scratchpad/ui/chrome.lock`
   before launching Chrome, `rmdir` it when Chrome is closed; if the mkdir fails, wait and retry (another group holds it) —
   hold it only while taking snapshots. CDP helpers you may copy: `scratchpad/ui/lead-work/cdp.mjs`, `page.mjs`.
+- Disk is nearly full: reuse ONE Chrome `--user-data-dir` for all your runs; when done, move it to `~/.Trash`. No big temp copies.
 - python3 is broken — use node. Delete only by moving to `~/.Trash`, never `rm`.
 - Images: you cannot generate images. If an icon is missing from `client/assets/ui/icons/`, reuse the closest existing one
   and list it under «Missing icons» in your report — the lead generates it later.
