@@ -1,0 +1,937 @@
+{
+ "generatedAt": "2026-10-11T00:33:02.220Z",
+ "source": "concepts_blender/plaza3",
+ "layout": {
+  "plan": {
+   "svg": "assets/layout/plan.svg",
+   "viewBox": [
+    0,
+    0,
+    1812,
+    1258
+   ]
+  },
+  "planVsNow": {
+   "svg": "assets/layout/plan-vs-now.svg",
+   "viewBox": [
+    0,
+    0,
+    1812,
+    1258
+   ]
+  },
+  "portA": {
+   "svg": "assets/layout/port-A.svg",
+   "viewBox": [
+    0,
+    0,
+    1378,
+    936
+   ]
+  },
+  "portB": {
+   "svg": "assets/layout/port-B.svg",
+   "viewBox": [
+    0,
+    0,
+    1378,
+    936
+   ]
+  }
+ },
+ "concepts": {
+  "v1": {
+   "full": "assets/concepts/plaza-v1.jpg",
+   "thumb": "assets/concepts/plaza-v1-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "v2": {
+   "full": "assets/concepts/plaza-v2.jpg",
+   "thumb": "assets/concepts/plaza-v2-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "v3": {
+   "full": "assets/concepts/plaza-v3.jpg",
+   "thumb": "assets/concepts/plaza-v3-s.jpg",
+   "w": 1600,
+   "h": 1066
+  }
+ },
+ "pavilionConcepts": {
+  "10": {
+   "slug": "regatta-lookout",
+   "full": "assets/pavilions/10-regatta-lookout.jpg",
+   "thumb": "assets/pavilions/10-regatta-lookout-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "11": {
+   "slug": "beach-set",
+   "full": "assets/pavilions/11-beach-set.jpg",
+   "thumb": "assets/pavilions/11-beach-set-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "12": {
+   "slug": "port-set",
+   "full": "assets/pavilions/12-port-set.jpg",
+   "thumb": "assets/pavilions/12-port-set-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "13": {
+   "slug": "harbour-gates",
+   "full": "assets/pavilions/13-harbour-gates.jpg",
+   "thumb": "assets/pavilions/13-harbour-gates-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "14": {
+   "slug": "farm-exit",
+   "full": "assets/pavilions/14-farm-exit.jpg",
+   "thumb": "assets/pavilions/14-farm-exit-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "01": {
+   "slug": "kalancha",
+   "full": "assets/pavilions/01-kalancha.jpg",
+   "thumb": "assets/pavilions/01-kalancha-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "02": {
+   "slug": "sklad3-paintball",
+   "full": "assets/pavilions/02-sklad3-paintball.jpg",
+   "thumb": "assets/pavilions/02-sklad3-paintball-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "03": {
+   "slug": "krepost",
+   "full": "assets/pavilions/03-krepost.jpg",
+   "thumb": "assets/pavilions/03-krepost-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "04": {
+   "slug": "karting-garage",
+   "full": "assets/pavilions/04-karting-garage.jpg",
+   "thumb": "assets/pavilions/04-karting-garage-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "05": {
+   "slug": "podzemelye",
+   "full": "assets/pavilions/05-podzemelye.jpg",
+   "thumb": "assets/pavilions/05-podzemelye-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "06": {
+   "slug": "cafe-chaika-cards",
+   "full": "assets/pavilions/06-cafe-chaika-cards.jpg",
+   "thumb": "assets/pavilions/06-cafe-chaika-cards-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "07": {
+   "slug": "kursaal-arcade",
+   "full": "assets/pavilions/07-kursaal-arcade.jpg",
+   "thumb": "assets/pavilions/07-kursaal-arcade-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "08": {
+   "slug": "billiard-loggia",
+   "full": "assets/pavilions/08-billiard-loggia.jpg",
+   "thumb": "assets/pavilions/08-billiard-loggia-s.jpg",
+   "w": 1600,
+   "h": 1066
+  },
+  "09": {
+   "slug": "music-rotunda",
+   "full": "assets/pavilions/09-music-rotunda.jpg",
+   "thumb": "assets/pavilions/09-music-rotunda-s.jpg",
+   "w": 1600,
+   "h": 1066
+  }
+ },
+ "props": {
+  "file": "assets/models/pav/pav_props.glb",
+  "pieces": [
+   "barrel_wood",
+   "cloud_puff",
+   "cone",
+   "crate_paint",
+   "crate_plain",
+   "drum_paint",
+   "flag_checkered",
+   "grass_tuft",
+   "haystack",
+   "kart_green",
+   "kart_red",
+   "lantern_post_wood",
+   "mine_cart",
+   "pallets",
+   "pumpkin",
+   "sandbags",
+   "shrub",
+   "sunflower_clump",
+   "tyre_stack_black",
+   "tyre_stack_red",
+   "tyre_stack_tall",
+   "wattle_2m"
+  ]
+ },
+ "propFiles": {
+  "gq_binocular": "assets/models/pav/pav_gq_props.glb",
+  "gq_deckchair": "assets/models/pav/pav_gq_props.glb",
+  "gq_umbrella": "assets/models/pav/pav_gq_props.glb",
+  "barrel_wood": "assets/models/pav/pav_props.glb",
+  "cloud_puff": "assets/models/pav/pav_props.glb",
+  "cone": "assets/models/pav/pav_props.glb",
+  "crate_paint": "assets/models/pav/pav_props.glb",
+  "crate_plain": "assets/models/pav/pav_props.glb",
+  "drum_paint": "assets/models/pav/pav_props.glb",
+  "flag_checkered": "assets/models/pav/pav_props.glb",
+  "grass_tuft": "assets/models/pav/pav_props.glb",
+  "haystack": "assets/models/pav/pav_props.glb",
+  "kart_green": "assets/models/pav/pav_props.glb",
+  "kart_red": "assets/models/pav/pav_props.glb",
+  "lantern_post_wood": "assets/models/pav/pav_props.glb",
+  "mine_cart": "assets/models/pav/pav_props.glb",
+  "pallets": "assets/models/pav/pav_props.glb",
+  "pumpkin": "assets/models/pav/pav_props.glb",
+  "sandbags": "assets/models/pav/pav_props.glb",
+  "shrub": "assets/models/pav/pav_props.glb",
+  "sunflower_clump": "assets/models/pav/pav_props.glb",
+  "tyre_stack_black": "assets/models/pav/pav_props.glb",
+  "tyre_stack_red": "assets/models/pav/pav_props.glb",
+  "tyre_stack_tall": "assets/models/pav/pav_props.glb",
+  "wattle_2m": "assets/models/pav/pav_props.glb",
+  "pb_barrel": "assets/models/pav/pb_props.glb",
+  "pb_binocular": "assets/models/pav/pb_props.glb",
+  "pb_bollard": "assets/models/pav/pb_props.glb",
+  "pb_buoy": "assets/models/pav/pb_props.glb",
+  "pb_crate": "assets/models/pav/pb_props.glb",
+  "pb_crate_fish": "assets/models/pav/pb_props.glb",
+  "pb_fish_rack": "assets/models/pav/pb_props.glb",
+  "pb_lifebuoy": "assets/models/pav/pb_props.glb",
+  "pb_net_pile": "assets/models/pav/pb_props.glb",
+  "pb_oars": "assets/models/pav/pb_props.glb",
+  "pb_rope_coil": "assets/models/pav/pb_props.glb",
+  "pb_stool": "assets/models/pav/pb_props.glb",
+  "flowerbox_1m": "assets/models/kit/glb/kit_green.glb",
+  "bench": "assets/models/kit/glb/kit_street.glb",
+  "pot": "assets/models/kit/glb/kit_green.glb",
+  "lantern_wall": "assets/models/kit/glb/kit_lights.glb",
+  "quay_wall_1m": "assets/models/kit/glb/kit_embankment.glb",
+  "balustrade_post": "assets/models/kit/glb/kit_embankment.glb",
+  "balustrade_post_plain": "assets/models/kit/glb/kit_embankment.glb",
+  "balustrade_2m": "assets/models/kit/glb/kit_embankment.glb",
+  "balustrade_1m": "assets/models/kit/glb/kit_embankment.glb",
+  "column_tuscan_3m": "assets/models/kit/glb/kit_arcade.glb",
+  "lamp_post": "assets/models/kit/glb/kit_lights.glb",
+  "planter_oleander": "assets/models/kit/glb/kit_green.glb"
+ },
+ "pavilionModels": [
+  {
+   "key": "billiards",
+   "file": "assets/models/pav/pav_billiards.glb",
+   "bytes": 413520,
+   "layoutId": "billiards",
+   "origin": [
+    42.7,
+    4.3
+   ],
+   "yaw": 3.14159,
+   "name": "Бильярдная лоджия",
+   "tris": 6441,
+   "bulbs": 0,
+   "props": 9,
+   "nodes": 34,
+   "poster": "assets/pavilions/renders/billiards-34-s.jpg"
+  },
+  {
+   "key": "cafe",
+   "file": "assets/models/pav/pav_cafe.glb",
+   "bytes": 498828,
+   "layoutId": "cafe",
+   "origin": [
+    27,
+    -9
+   ],
+   "yaw": 1.5708,
+   "name": "Кафе «Чайка»",
+   "tris": 7608,
+   "bulbs": 0,
+   "props": 13,
+   "nodes": 24,
+   "poster": "assets/pavilions/renders/cafe-34-s.jpg"
+  },
+  {
+   "key": "cardveranda",
+   "file": "assets/models/pav/pav_cardveranda.glb",
+   "bytes": 339844,
+   "layoutId": "cards",
+   "origin": [
+    19.5,
+    -9.5
+   ],
+   "yaw": 1.5708,
+   "name": "Веранда кафе (пергола): дурак ×2, блэкджек",
+   "tris": 4902,
+   "bulbs": 62,
+   "props": 4,
+   "nodes": 83,
+   "poster": "assets/pavilions/renders/cardveranda-34-s.jpg"
+  },
+  {
+   "key": "dungeon_cliff",
+   "file": "assets/models/pav/pav_dungeon_cliff.glb",
+   "bytes": 390248,
+   "layoutId": "dungeon",
+   "origin": [
+    -18,
+    -41
+   ],
+   "yaw": 3.141592653589793,
+   "name": "Подземелье — скальный массив",
+   "tris": 5172,
+   "bulbs": 0,
+   "props": 172,
+   "nodes": 222,
+   "poster": "assets/pavilions/renders/dungeon_cliff-34-s.jpg"
+  },
+  {
+   "key": "fishyard",
+   "file": "assets/models/pav/pav_fishyard.glb",
+   "bytes": 265948,
+   "layoutId": "hide",
+   "origin": [
+    -4,
+    13.4
+   ],
+   "yaw": 0,
+   "name": "«Рыбный двор» — вход в прятки",
+   "tris": 3656,
+   "bulbs": 11,
+   "props": 14,
+   "nodes": 55,
+   "poster": "assets/pavilions/renders/fishyard-34-s.jpg"
+  },
+  {
+   "key": "fort",
+   "file": "assets/models/pav/pav_fort.glb",
+   "bytes": 640832,
+   "layoutId": "fortress",
+   "origin": [
+    26,
+    -32
+   ],
+   "yaw": 3.141592653589793,
+   "name": "Крепость: барбакан + донжон",
+   "tris": 9412,
+   "bulbs": 0,
+   "props": 9,
+   "nodes": 28,
+   "poster": "assets/pavilions/renders/fort-34-s.jpg"
+  },
+  {
+   "key": "karting",
+   "file": "assets/models/pav/pav_karting.glb",
+   "bytes": 453516,
+   "layoutId": "karting",
+   "origin": [
+    40.5,
+    -37
+   ],
+   "yaw": 3.141592653589793,
+   "name": "Картинг — гараж",
+   "tris": 7342,
+   "bulbs": 44,
+   "props": 22,
+   "nodes": 84,
+   "poster": "assets/pavilions/renders/karting-34-s.jpg"
+  },
+  {
+   "key": "kursaal",
+   "file": "assets/models/pav/pav_kursaal.glb",
+   "bytes": 829228,
+   "layoutId": "kurzal",
+   "origin": [
+    45,
+    -10.5
+   ],
+   "yaw": 3.14159,
+   "name": "Курзал «Автоматы · Аркада»",
+   "tris": 12609,
+   "bulbs": 367,
+   "props": 33,
+   "nodes": 447,
+   "poster": "assets/pavilions/renders/kursaal-34-s.jpg"
+  },
+  {
+   "key": "lighthouse_arch",
+   "file": "assets/models/pav/pav_lighthouse_arch.glb",
+   "bytes": 337560,
+   "layoutId": "jettyarch",
+   "origin": [
+    -19,
+    21.3
+   ],
+   "yaw": 0,
+   "name": "Арка «Маяк · Рыбалка», трофей, рамы досок рыбаков",
+   "tris": 5068,
+   "bulbs": 11,
+   "props": 6,
+   "nodes": 32,
+   "poster": "assets/pavilions/renders/lighthouse_arch-34-s.jpg"
+  },
+  {
+   "key": "paintball",
+   "file": "assets/models/pav/pav_paintball.glb",
+   "bytes": 723080,
+   "layoutId": "paintball",
+   "origin": [
+    8,
+    -37
+   ],
+   "yaw": 3.141592653589793,
+   "name": "Пейнтбол — «Склад №3»",
+   "tris": 11831,
+   "bulbs": 138,
+   "props": 14,
+   "nodes": 173,
+   "poster": "assets/pavilions/renders/paintball-34-s.jpg"
+  },
+  {
+   "key": "rats",
+   "file": "assets/models/pav/pav_rats.glb",
+   "bytes": 263164,
+   "layoutId": "ratrace",
+   "origin": [
+    -7.4,
+    24.4
+   ],
+   "yaw": 0,
+   "name": "Крысиные бега: понтон, трибуна, тумба букмекера",
+   "tris": 3780,
+   "bulbs": 0,
+   "props": 5,
+   "nodes": 29,
+   "poster": null
+  },
+  {
+   "key": "regatta_lookout",
+   "file": "assets/models/pav/pav_regatta_lookout.glb",
+   "bytes": 79288,
+   "layoutId": "viewdeck",
+   "origin": [
+    47,
+    15.5
+   ],
+   "yaw": 3.14159,
+   "name": "Смотровая на регату + лестница к морю",
+   "tris": 914,
+   "bulbs": 0,
+   "props": 82,
+   "nodes": 117,
+   "poster": "assets/pavilions/renders/regatta_lookout-34-s.jpg"
+  },
+  {
+   "key": "rotunda",
+   "file": "assets/models/pav/pav_rotunda.glb",
+   "bytes": 457592,
+   "layoutId": "rotunda",
+   "origin": [
+    15,
+    8.5
+   ],
+   "yaw": 0,
+   "name": "Музыкальная ротонда",
+   "tris": 7598,
+   "bulbs": 35,
+   "props": 6,
+   "nodes": 72,
+   "poster": "assets/pavilions/renders/rotunda-34-s.jpg"
+  },
+  {
+   "key": "semyon",
+   "file": "assets/models/pav/pav_semyon.glb",
+   "bytes": 480120,
+   "layoutId": "semyon",
+   "origin": [
+    -13,
+    13.1
+   ],
+   "yaw": 1.5708,
+   "name": "Лавка деда Семёна",
+   "tris": 7328,
+   "bulbs": 7,
+   "props": 13,
+   "nodes": 36,
+   "poster": "assets/pavilions/renders/semyon-34-s.jpg"
+  },
+  {
+   "key": "skytower",
+   "file": "assets/models/pav/pav_skytower.glb",
+   "bytes": 584448,
+   "layoutId": "kalancha",
+   "origin": [
+    -7,
+    -39
+   ],
+   "yaw": 3.141592653589793,
+   "name": "«Выше облаков» — каланча",
+   "tris": 9680,
+   "bulbs": 0,
+   "props": 51,
+   "nodes": 67,
+   "poster": "assets/pavilions/renders/skytower-34-s.jpg"
+  },
+  {
+   "key": "sunset",
+   "file": "assets/models/pav/pav_sunset.glb",
+   "bytes": 101648,
+   "layoutId": "belvedere",
+   "origin": [
+    -23,
+    15
+   ],
+   "yaw": 1.5708,
+   "name": "Угол «Закат»: дуга, балюстрада, бельведер",
+   "tris": 1642,
+   "bulbs": 16,
+   "props": 41,
+   "nodes": 85,
+   "poster": "assets/pavilions/renders/sunset-34-s.jpg"
+  }
+ ],
+ "kit": {
+  "demo": "assets/models/kit/demo.glb",
+  "manifest": "assets/models/kit/glb/manifest.json",
+  "sheet": {
+   "full": "assets/kit/kit-sheet.jpg",
+   "thumb": "assets/kit/kit-sheet-s.jpg",
+   "w": 1600,
+   "h": 1107
+  },
+  "demo34": {
+   "full": "assets/kit/demo-34.jpg",
+   "thumb": "assets/kit/demo-34-s.jpg",
+   "w": 1600,
+   "h": 1018
+  },
+  "demoAbove": {
+   "full": "assets/kit/demo-above.jpg",
+   "thumb": "assets/kit/demo-above-s.jpg",
+   "w": 1600,
+   "h": 1018
+  }
+ },
+ "npcConcepts": {
+  "asya": {
+   "full": "assets/npc/asya.jpg",
+   "thumb": "assets/npc/asya-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "bochka": {
+   "full": "assets/npc/bochka.jpg",
+   "thumb": "assets/npc/bochka-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "boris": {
+   "full": "assets/npc/boris.jpg",
+   "thumb": "assets/npc/boris-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "galya": {
+   "full": "assets/npc/galya.jpg",
+   "thumb": "assets/npc/galya-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "gena": {
+   "full": "assets/npc/gena.jpg",
+   "thumb": "assets/npc/gena-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "liza": {
+   "full": "assets/npc/liza.jpg",
+   "thumb": "assets/npc/liza-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "lyonya": {
+   "full": "assets/npc/lyonya.jpg",
+   "thumb": "assets/npc/lyonya-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "lyova": {
+   "full": "assets/npc/lyova.jpg",
+   "thumb": "assets/npc/lyova-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "miron": {
+   "full": "assets/npc/miron.jpg",
+   "thumb": "assets/npc/miron-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "pasha": {
+   "full": "assets/npc/pasha.jpg",
+   "thumb": "assets/npc/pasha-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "seva": {
+   "full": "assets/npc/seva.jpg",
+   "thumb": "assets/npc/seva-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "shura": {
+   "full": "assets/npc/shura.jpg",
+   "thumb": "assets/npc/shura-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "tolik": {
+   "full": "assets/npc/tolik.jpg",
+   "thumb": "assets/npc/tolik-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "tonya": {
+   "full": "assets/npc/tonya.jpg",
+   "thumb": "assets/npc/tonya-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "vova": {
+   "full": "assets/npc/vova.jpg",
+   "thumb": "assets/npc/vova-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "zhetonych": {
+   "full": "assets/npc/zhetonych.jpg",
+   "thumb": "assets/npc/zhetonych-s.jpg",
+   "w": 1600,
+   "h": 1600
+  },
+  "zuko": {
+   "full": "assets/npc/zuko.jpg",
+   "thumb": "assets/npc/zuko-s.jpg",
+   "w": 1600,
+   "h": 1600
+  }
+ },
+ "npcLineup": {
+  "full": "assets/npc/lineup.jpg",
+  "thumb": "assets/npc/lineup-s.jpg",
+  "w": 1600,
+  "h": 1129
+ },
+ "npcModels": {
+  "asya": {
+   "file": "assets/models/npc/asya.glb",
+   "bytes": 193180,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop",
+    "hand.L",
+    "hand.R",
+    "live",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/asya-34-s.jpg"
+  },
+  "bochka": {
+   "file": "assets/models/npc/bochka.glb",
+   "bytes": 209284,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "hand.L",
+    "prop",
+    "hand.R",
+    "tag",
+    "body",
+    "static"
+   ],
+   "poster": "assets/npc/renders/bochka-34-s.jpg"
+  },
+  "boris": {
+   "file": "assets/models/npc/boris.glb",
+   "bytes": 168372,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "hand.L",
+    "prop",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/boris-34-s.jpg"
+  },
+  "galya": {
+   "file": "assets/models/npc/galya.glb",
+   "bytes": 227848,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop",
+    "hand.L",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/galya-34-s.jpg"
+  },
+  "gena": {
+   "file": "assets/models/npc/gena.glb",
+   "bytes": 198756,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/gena-34-s.jpg"
+  },
+  "liza": {
+   "file": "assets/models/npc/liza.glb",
+   "bytes": 201440,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/liza-34-s.jpg"
+  },
+  "lyonya": {
+   "file": "assets/models/npc/lyonya.glb",
+   "bytes": 150392,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/lyonya-34-s.jpg"
+  },
+  "lyova": {
+   "file": "assets/models/npc/lyova.glb",
+   "bytes": 187664,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop",
+    "hand.L",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/lyova-34-s.jpg"
+  },
+  "miron": {
+   "file": "assets/models/npc/miron.glb",
+   "bytes": 213812,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/miron-34-s.jpg"
+  },
+  "pasha": {
+   "file": "assets/models/npc/pasha.glb",
+   "bytes": 200500,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "hand.L",
+    "prop",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/pasha-34-s.jpg"
+  },
+  "seva": {
+   "file": "assets/models/npc/seva.glb",
+   "bytes": 204376,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop",
+    "hand.L",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/seva-34-s.jpg"
+  },
+  "shura": {
+   "file": "assets/models/npc/shura.glb",
+   "bytes": 192260,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/shura-34-s.jpg"
+  },
+  "tolik": {
+   "file": "assets/models/npc/tolik.glb",
+   "bytes": 213076,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/tolik-34-s.jpg"
+  },
+  "tonya": {
+   "file": "assets/models/npc/tonya.glb",
+   "bytes": 178480,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop.L",
+    "hand.L",
+    "prop.R",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/tonya-34-s.jpg"
+  },
+  "vova": {
+   "file": "assets/models/npc/vova.glb",
+   "bytes": 194600,
+   "clips": [],
+   "parts": [
+    "eyes",
+    "prop",
+    "hand.L",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/vova-34-s.jpg"
+  },
+  "zhetonych": {
+   "file": "assets/models/npc/zhetonych.glb",
+   "bytes": 211504,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "hand.L",
+    "prop",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/zhetonych-34-s.jpg"
+  },
+  "zuko": {
+   "file": "assets/models/npc/zuko.glb",
+   "bytes": 197372,
+   "clips": [],
+   "parts": [
+    "lid",
+    "eyes",
+    "hand.L",
+    "hand.R",
+    "tag",
+    "body"
+   ],
+   "poster": "assets/npc/renders/zuko-34-s.jpg"
+  }
+ },
+ "ui": {
+  "icons": {
+   "kart": "assets/ui/icons/kart.webp",
+   "regatta": "assets/ui/icons/regatta.webp",
+   "dungeon": "assets/ui/icons/dungeon.webp",
+   "farm-gate": "assets/ui/icons/farm-gate.webp",
+   "lighthouse": "assets/ui/icons/lighthouse.webp",
+   "rat": "assets/ui/icons/rat.webp",
+   "cards": "assets/ui/icons/cards.webp",
+   "paint": "assets/ui/icons/paint.webp",
+   "climber": "assets/ui/icons/climber.webp",
+   "hide-box": "assets/ui/icons/hide-box.webp",
+   "slide": "assets/ui/icons/slide.webp",
+   "music": "assets/ui/icons/music.webp",
+   "wardrobe": "assets/ui/icons/wardrobe.webp",
+   "roulette": "assets/ui/icons/roulette.webp",
+   "boat": "assets/ui/icons/boat.webp",
+   "token": "assets/ui/icons/token.webp",
+   "shield": "assets/ui/icons/shield.webp",
+   "zombie": "assets/ui/icons/zombie.webp",
+   "records": "assets/ui/icons/records.webp",
+   "season": "assets/ui/icons/season.webp",
+   "quest-fish": "assets/ui/icons/quest-fish.webp",
+   "ticket": "assets/ui/icons/ticket.webp",
+   "compass": "assets/ui/icons/compass.webp",
+   "scroll": "assets/ui/icons/scroll.webp",
+   "medal-gold": "assets/ui/icons/medal-gold.webp",
+   "runner": "assets/ui/icons/runner.webp",
+   "anchor": "assets/ui/icons/anchor.webp",
+   "bell": "assets/ui/icons/bell.webp",
+   "stopwatch": "assets/ui/icons/stopwatch.webp",
+   "sound": "assets/ui/icons/sound.webp"
+  },
+  "tokens": "assets/ui/kit/tokens.css"
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "static_pavilion": {
+  "tris": 11942,
+  "bulbs": 187,
+  "materials": [
+   "p3_matte",
+   "p3_gloss"
+  ]
+ },
+ "static_embankment": {
+  "tris": 2510,
+  "materials": [
+   "p3_matte"
+  ]
+ },
+ "props_instanced": {
+  "tris": 21916,
+  "count": {
+   "awning_2m_red": 4,
+   "flowerbox_1m": 4,
+   "lantern_wall": 4,
+   "planter_cypress": 2,
+   "planter_oleander": 2,
+   "planter_palm": 4,
+   "balustrade_post": 8,
+   "balustrade_post_plain": 2,
+   "balustrade_2m": 8,
+   "lamp_post_short": 2,
+   "bench": 2,
+   "stringlight_pole": 2
+  }
+ }
+}
