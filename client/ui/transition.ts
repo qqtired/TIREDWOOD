@@ -561,7 +561,7 @@ export class Transition {
     // data-mode — акцент режима (кит: --mode); data-kind — для особых движений желейки
     this.root.dataset.kind = kind;
     this.root.dataset.mode = kind;
-    this.root.style.setProperty('--focus', card.focus);
+    this.root.style.setProperty('--art-focus', card.focus);
     // картина: та же — уже на месте; новая — проявится, когда придёт (обычно она уже в кэше, см. preloadArt)
     if (this.picEl.getAttribute('src') !== card.art) {
       this.artEl.classList.remove('ready');

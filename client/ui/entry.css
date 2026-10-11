@@ -37,6 +37,8 @@
 /* заголовок на карточке входа: карточка — .k-panel поверх сцены, поэтому цвет текста карточки, а не --title-color окна */
 .en-h { margin: 0; color: var(--surf-text); font-family: var(--font-display); font-weight: var(--display-weight); font-size: calc(var(--fs-36) * var(--display-scale)); line-height: 1.12; letter-spacing: var(--display-track); text-transform: var(--display-case); text-shadow: var(--title-shadow); overflow-wrap: anywhere; }
 .en-h b { color: var(--gold-text); font-weight: inherit; }
+.en-h .en-nobr { white-space: nowrap; }
+.en-h .en-bang { color: var(--surf-text); font-style: normal; }
 .en-lead { margin: 8px 0 0; color: var(--surf-dim); font-size: var(--fs-16); line-height: 1.4; }
 .en-play { margin-top: 24px; }
 .en-play .k-btn { font-size: var(--fs-28); min-height: 70px; }

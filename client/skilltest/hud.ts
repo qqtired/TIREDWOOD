@@ -49,6 +49,9 @@ const medalCell = (m: number) => (m > 0 ? `${iconImg(MEDAL_ICON[m], 'mo-med')}${
 
 export class SkillHud {
   private readonly ui: Ui;
+  /** Плашка времени: что в ней кроме времени (пересобираем только при смене) и её узел на экране */
+  private clockHead = '';
+  private clockEl: HTMLElement | null = null;
   private readonly sec: HTMLElement;
   private readonly secNum: HTMLElement;
   private readonly secName: HTMLElement;
@@ -143,6 +146,8 @@ export class SkillHud {
       this.count.set(null);
       this.countSub.hidden = true;
       this.ui.top.clear('sk-clock');
+      this.clockHead = '';
+      this.clockEl = null;
       this.ui.top.clearToasts('sk-');
       this.render();
     }
@@ -164,10 +169,25 @@ export class SkillHud {
   clock(c: SkillClock): void {
     if (!this.on) return;
     const icon = c.medal > 0 ? MEDAL_ICON[c.medal] : 'stopwatch';
-    const html = `<span class="k-event-ic">${iconImg(icon, '')}</span><div class="k-event-title">${esc(c.title)}</div><div class="k-event-sub">${esc(c.sub)}</div>`
-      + `<div class="k-event-timer">${esc(c.time)}</div>`
-      + `<span class="k-meter k-meter--thin k-meter--mode" style="--v:${clamp01(c.frac).toFixed(2)};--g:${clamp01(c.frac).toFixed(2)}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
-    this.ui.top.event({ key: 'sk-clock', prio: PRIO.mode, html });
+    // время меняется каждый кадр (сотые): плашку пересобираем только при смене иконки, заголовка и подписи,
+    // а время и полосу пишем в готовые узлы — иначе верх-центр перестраивает разметку каждый кадр
+    const head = `${icon}|${c.title}|${c.sub}`;
+    if (head !== this.clockHead) {
+      this.clockHead = head;
+      const html = `<span class="k-event-ic">${iconImg(icon, '')}</span><div class="k-event-title">${esc(c.title)}</div><div class="k-event-sub">${esc(c.sub)}</div>`
+        + `<div class="k-event-timer sk-clock-t">${esc(c.time)}</div>`
+        + `<span class="k-meter k-meter--thin k-meter--mode sk-clock-m" style="--v:0;--g:0"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
+      this.ui.top.event({ key: 'sk-clock', prio: PRIO.mode, html });
+    }
+    // своя плашка может быть не на экране (выше — голосование): тогда узлов нет, пишем, когда вернётся
+    if (!this.clockEl?.isConnected) this.clockEl = document.querySelector<HTMLElement>('.k-hud--top .sk-clock-t')?.closest<HTMLElement>('.k-event') ?? null;
+    if (this.clockEl) {
+      const t = this.clockEl.querySelector<HTMLElement>('.sk-clock-t');
+      if (t && t.textContent !== c.time) t.textContent = c.time;
+      const m = this.clockEl.querySelector<HTMLElement>('.sk-clock-m');
+      const v = clamp01(c.frac).toFixed(2);
+      if (m && m.style.getPropertyValue('--v') !== v) { m.style.setProperty('--v', v); m.style.setProperty('--g', v); }
+    }
     const keys = c.started || TOUCH;
     if (this.keys.hidden !== keys) this.keys.hidden = keys;
     if (this.acts.hidden !== !c.started) this.acts.hidden = !c.started;

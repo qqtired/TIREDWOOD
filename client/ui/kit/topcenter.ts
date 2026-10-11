@@ -210,7 +210,8 @@ export class TopCenter {
       this.publish();
       return;
     }
-    const cls = `k-event${e.tone ? ` k-event--${e.tone}` : ''}${e.lamp ? ' k-lamp' : ''}`;
+    // ниже связи — плашка режима: пока открыто меню Esc, её не видно (иначе она лежит на шапке окна меню)
+    const cls = `k-event${e.tone ? ` k-event--${e.tone}` : ''}${e.lamp ? ' k-lamp' : ''}${e.prio < PRIO.link ? ' is-minor' : ''}`;
     if (!this.ev || this.evKey !== e.key) {
       this.ev?.remove();
       const box = el('div', cls);

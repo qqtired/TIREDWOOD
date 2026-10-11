@@ -32,6 +32,12 @@ export class LevelWin extends FarmWin {
     this.open();
   }
 
+  /** Ушли с фермы: очередь уровней сбрасываем, иначе закрытие откроет следующий уже над площадью */
+  reset(): void {
+    this.queue = [];
+    this.close(true);
+  }
+
   /** Закрыли — следующий уровень из очереди */
   close(silent = false): void {
     if (!this.isOpen) return;

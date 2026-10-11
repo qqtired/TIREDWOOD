@@ -140,7 +140,7 @@ export class CatchCard2 {
       line(iconImg('lighthouse', ''), `Остров <b>${m.isle} из ${ISLE_SIZE}</b>${next ? ` · до ${esc(isleStepText(next))} ещё ${species(Math.min(next.need, ISLE_SIZE) - m.isle)}` : ''}`);
     } else {
       const next = nextStep(m.got);
-      line(iconImg('journal', ''), `Журнал <b>${m.got} из ${COLLECTION_SIZE}</b>${next ? ` · до ${esc(stepLabel(next))} ещё ${species(stepNeed(next) - m.got)}` : ''}`);
+      line(iconImg('journal', ''), `Журнал <b>${m.got} из ${COLLECTION_SIZE}</b>${next ? ` · ещё ${species(stepNeed(next) - m.got)} — и ${esc(stepLabel(next))}` : ''}`);
     }
     return p;
   }

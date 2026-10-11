@@ -155,6 +155,7 @@ export class FarmHud {
       this.notify.reset();
       this.timer = window.setInterval(() => this.tick(), 1000);
     } else {
+      this.level.reset();
       this.close(false);
       this.belt.hide();
       // свои тосты и герои фермы не должны висеть над площадью (только с префиксом — чужие остаются)

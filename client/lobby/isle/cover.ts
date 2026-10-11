@@ -24,7 +24,7 @@ export class IsleCover {
     this.root = el('div', 'tr en-scr k-hudctx isle-cover', parent);
     this.root.setAttribute('aria-hidden', 'true');
     this.root.dataset.mode = 'fishing';
-    this.root.style.setProperty('--focus', '58% 40%');
+    this.root.style.setProperty('--art-focus', '58% 40%');
     const art = el('div', 'tr-art', this.root);
     const pic = el('img', 'tr-pic en-art', art);
     pic.alt = '';

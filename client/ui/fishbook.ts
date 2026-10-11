@@ -47,8 +47,8 @@ export function fishLine(sp: number, known: boolean, progress: FishProgress = em
   // остров: его «дождь» — туман, сезон — свой (rain и season здесь — туман и сезон острова, их передаёт журнал)
   const isle = r.zone === 'isle';
   const wet = isle ? 'туман' : 'дождь';
-  const where = isle ? `🏝 воды острова «Последний свет» (с ${ISLE_MIN_LEVEL}-го уровня рыбалки)` : r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? `⚓ ${sea}` : 'пристань';
-  const when = r.rain ? `${isle ? '🌫' : '🌧'} только в ${wet}, цена ×1,5` : r.tier === T_DIVINE ? `в любую погоду; в ${wet} — в 1,5 раза чаще, в сезон ${isle ? 'острова' : 'рыбалки'} — ещё вдвое` : 'в любую погоду';
+  const where = isle ? `воды острова «Последний свет» (с ${ISLE_MIN_LEVEL}-го уровня рыбалки)` : r.zones.length > 1 ? `пристань и ${sea}` : r.zone === 'barkas' ? sea : 'пристань';
+  const when = r.rain ? `только в ${wet}, цена ×1,5` : r.tier === T_DIVINE ? `в любую погоду; в ${wet} — в 1,5 раза чаще, в сезон ${isle ? 'острова' : 'рыбалки'} — ещё вдвое` : 'в любую погоду';
   const now2 = r.rain && !rain ? `в ${wet} — ${fmt(biteShare(sp, true, mods) * 100)}% поклёвок` : `сейчас — ${fmt(share)}% поклёвок`;
   return `${f.name}${known ? '' : ' · ещё не поймана'} · ${TIER_NAMES[r.tier]} · ${where} · ${when}${odds ? ` · ${now2}` : ''} · ${lo}–${hi} 🪙 · ${r.note}`;
 }
@@ -97,9 +97,10 @@ function cell(sp: number, album: FishAlbum, compact: boolean, onPick?: (sp: numb
   const both = r.zones.length > 1;
   const isle = r.zone === 'isle';
   if (r.rain || seaOnly || both) {
-    const marks = c.appendChild(el('span', 'fb-rain', `${seaOnly ? '⚓' : both ? '⚓+' : ''}${r.rain ? (isle ? '🌫' : '🌧') : ''}`));
+    // значки — картинки кита; словами то же самое — в строке выбранной рыбы (descr)
+    const marks = c.appendChild(el('span', 'fb-rain'));
+    marks.innerHTML = `${seaOnly || both ? iconImg('anchor') : ''}${both ? '<b>+</b>' : ''}${r.rain ? iconImg(isle ? 'fog' : 'rain') : ''}`;
     const what = [seaOnly ? 'ловится только с баркаса' : both ? 'ловится и у пристани, и с баркаса' : '', r.rain ? (isle ? 'только в туман' : 'только в дождь') : ''].filter(Boolean).join(', ');
-    marks.title = what;
     marks.setAttribute('aria-label', what);
   }
   c.appendChild(el('span', 'fb-name', f.name));

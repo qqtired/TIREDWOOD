@@ -7,7 +7,7 @@
    (client/lobby/isle/cover.ts). */
 
 .tr {
-  --focus: 50% 50%;
+  --art-focus: 50% 50%;
   /* пока картина не пришла — дневное небо в цвет режима */
   background: linear-gradient(180deg, #74c3f0 0%, #b7e2fa 48%, color-mix(in srgb, var(--mode) 40%, #fff1d6) 100%);
   opacity: 0;
@@ -43,7 +43,7 @@
 }
 
 .tr-pic {
-  object-position: var(--focus, 50% 50%);
+  object-position: var(--art-focus, 50% 50%);
   opacity: 0;
   transform-origin: 50% 45%;
   transition: opacity 0.3s ease-out;

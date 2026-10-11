@@ -558,7 +558,15 @@
   position: absolute;
   top: 4px;
   right: 6px;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font: 800 13px/1 var(--font-text);
+}
+
+.fb-rain .k-ic {
+  width: 20px;
+  height: 20px;
 }
 
 /* в профиле — плотнее */

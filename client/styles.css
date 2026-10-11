@@ -757,6 +757,11 @@ input[type='checkbox'] {
   z-index: 25;
 }
 
+/* открыто меню Esc (не вуаль): плашки режимов ниже голосования и связи не лежат на шапке окна меню */
+html:has(.screen.pause.show:not(.veil)) .k-hud--top .k-event.is-minor {
+  visibility: hidden;
+}
+
 /* пустая стопка тостов не добавляет отступ под плашкой события */
 .k-slot--tc > .k-toasts:empty {
   display: none;
@@ -872,10 +877,15 @@ html[data-room]:not([data-room='lobby']) .k-slot--bl {
   bottom: 164px;
 }
 
-/* режимы на ките (картинг, пейнтбол, прятки, «Выше облаков»): низ-лево свободен — док чата в своём углу (на телефоне там
+/* режимы на ките (картинг, пейнтбол, прятки, «Выше облаков», ферма): низ-лево свободен — док чата в своём углу (на телефоне там
    кнопки движения — док остаётся выше) */
-html:not(.touch):is([data-room='race'], [data-room='paintball'], [data-room='hide'], [data-room='skill']) .k-hud > .k-slot--bl {
+html:not(.touch):is([data-room='race'], [data-room='paintball'], [data-room='hide'], [data-room='skill'], [data-room='farm']) .k-hud > .k-slot--bl {
   bottom: var(--edge);
+}
+
+/* напиток рыбака меняет только цены рыбалки — вне набережной его плитка лишняя (в «Подземелье» легла бы на полосу убийств) */
+html[data-room]:not([data-room='lobby']) .k-tile.fi-drink {
+  display: none;
 }
 
 /* «Подземелье»: правее столбика бонусов; на компьютере — в углу, открытый чат — выше оружий */
