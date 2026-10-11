@@ -69,7 +69,7 @@ export async function waitForFonts(fonts: Pick<FontFaceSet, 'load'>): Promise<vo
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
-      Promise.all([fonts.load('700 30px Rubik', 'Аб7'), fonts.load('900 40px Rubik', 'Аб7')]),
+      Promise.all([fonts.load('700 30px Rubik', 'Аб7'), fonts.load('900 40px Rubik', 'Аб7'), fonts.load('400 40px "Rubik Mono One"', 'TIREDWOOD')]),
       new Promise<void>(resolve => { timeout = setTimeout(resolve, 1500); }),
     ]);
   } catch {
@@ -92,10 +92,17 @@ export function startupView(root: HTMLElement, content: HTMLElement[], reload: (
   const progress = root.querySelector<HTMLElement>('#startup-progress')!;
   const retry = root.querySelector<HTMLButtonElement>('#startup-retry')!;
   retry.addEventListener('click', () => { retry.disabled = true; reload(); });
+  // картина проявляется из заглушки, когда придёт (уже в кэше — сразу)
+  const art = root.querySelector<HTMLImageElement>('#startup-art');
+  const showArt = () => { root.dataset.art = ''; };
+  if (art?.complete && art.naturalWidth > 0) showArt();
+  else art?.addEventListener('load', showArt);
+  // совет — один из трёх, по кругу от случайного (шаги идут быстро — менять его по ходу незачем)
+  root.dataset.tip = String(Math.floor(Math.random() * 3));
   return {
     stage(stage) {
       root.dataset.stage = stage;
-      status.textContent = STAGE_TEXT[stage];
+      title.textContent = STAGE_TEXT[stage];
       progress.setAttribute('aria-valuetext', STAGE_TEXT[stage]);
     },
     finish() {
@@ -108,6 +115,7 @@ export function startupView(root: HTMLElement, content: HTMLElement[], reload: (
       status.textContent = stage === 'modules'
         ? 'Не удалось загрузить файлы игры. Проверьте соединение и попробуйте ещё раз.'
         : 'Не удалось открыть набережную. Попробуйте ещё раз или откройте игру в браузере с поддержкой WebGL 2.';
+      status.hidden = false;
       progress.hidden = true;
       retry.hidden = false;
       retry.focus({ preventScroll: true });

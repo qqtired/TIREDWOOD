@@ -1,7 +1,10 @@
 // Экран загрузки «Последний свет»: игрок оказался у острова (высадка, «/isle»), а остров ещё грузится — картина маяка
-// в тумане (client/assets/isle/loading.webp, Codex), название и полоса. Вид — тот же, что у экрана загрузки режимов
-// (client/ui/transition.css, классы .tr-*), свой только текст и картина. Виден хотя бы 1,2 с — не мигает.
-const ART = new URL('../../assets/isle/loading.webp', import.meta.url).href;
+// в тумане (HD-версия client/assets/loading/hd/isle.webp, Codex), название и полоса. Вид — тот же, что у экрана загрузки
+// режимов (client/ui/transition.css, классы .tr-*, раскладка сцены «Загрузка комнаты»), свой только текст и картина.
+// Виден хотя бы 1,2 с — не мигает.
+import { logoHtml } from '../../ui/entry.ts';
+import { artUrl } from '../../ui/transition-art.ts';
+
 const MIN_MS = 1200;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent: HTMLElement): HTMLElementTagNameMap[K] {
@@ -18,25 +21,26 @@ export class IsleCover {
   private shownAt = 0;
 
   constructor(parent: HTMLElement) {
-    this.root = el('div', 'tr isle-cover', parent);
+    this.root = el('div', 'tr en-scr k-hudctx isle-cover', parent);
     this.root.setAttribute('aria-hidden', 'true');
-    this.root.style.setProperty('--tint', '#d9d3c9');
+    this.root.dataset.mode = 'fishing';
     this.root.style.setProperty('--focus', '58% 40%');
     const art = el('div', 'tr-art', this.root);
-    const pic = el('img', 'tr-pic', art);
+    const pic = el('img', 'tr-pic en-art', art);
     pic.alt = '';
     pic.decoding = 'async';
     pic.draggable = false;
     pic.addEventListener('load', () => art.classList.add('ready'));
-    pic.src = ART;
-    el('div', 'tr-shade', this.root);
-    el('p', 'tr-brand', this.root).innerHTML = 'TIRED<b>WOOD</b>';
-    const card = el('div', 'tr-card', this.root);
-    card.setAttribute('role', 'status');
-    el('h2', 'tr-title', card).textContent = 'Последний свет';
-    el('p', 'tr-sub', card).textContent = 'Остров маяка в тумане: мол с местами рыбалки, смотритель Игнат';
-    this.bar = el('i', '', el('div', 'tr-bar', card));
-    this.status = el('p', 'tr-status', card);
+    pic.src = artUrl('isle');
+    el('div', 'en-shade en-shade--bottom', this.root);
+    el('div', 'tr-brand', this.root).innerHTML = logoHtml('en-logo--sm');
+    const info = el('div', 'tr-info', this.root);
+    info.setAttribute('role', 'status');
+    el('h2', 'tr-title', info).textContent = 'Последний свет';
+    const plate = el('div', 'k-plate tr-plate', info);
+    el('p', 'tr-sub', plate).textContent = 'Остров маяка в тумане: мол с местами рыбалки, смотритель Игнат';
+    this.bar = el('i', 'tr-fill', el('div', 'k-meter k-meter--lg k-meter--mode tr-meter', plate));
+    this.status = el('p', 'tr-status', plate);
   }
 
   get on(): boolean {

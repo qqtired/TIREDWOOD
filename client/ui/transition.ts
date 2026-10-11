@@ -6,19 +6,27 @@
 //    compileAsync (шейдеры компилируются параллельно, кадр не стоит), текстуры заливаются по нескольку за кадр;
 //    второй проход ловит то, что появилось из первых снимков (игроки, зомби).
 // 4. Пара настоящих кадров под экраном → {t:'ready'} серверу → проявление 0,4 с, сразу вид от игрока.
-// Экран — картина режима на весь экран, желейка-ведущая с подсказками, название и полоса (вид — transition.css,
-// картины и тексты — transition-art.ts). Анимируется только transform/opacity: эти анимации ведёт compositor,
-// и они не замирают, пока строится мир.
-// После проявления — плашка «Ждём: …», пока грузятся остальные, и крупный отсчёт 3-2-1 по письму сервера `go`.
+// Экран — картина режима на весь экран (HD, transition-art.ts), желейка-ведущая с советом, название и плашка с полосой
+// (раскладка — сцена «Загрузка комнаты» страницы lab/ui; вид — transition.css и кит). Анимируется только transform/opacity:
+// эти анимации ведёт compositor, и они не замирают, пока строится мир.
+// После проявления — «Ждём: …» событием в верх-центре кита, пока грузятся остальные, и крупный отсчёт 3-2-1 (.k-count)
+// по письму сервера `go` — в центре HUD.
 // 15 с без готовности или ошибка стройки — сообщение и назад на набережную.
 import type * as THREE from 'three';
-import { LOAD_GIVEUP_MS, type LoadServerMsg, type LoadWho } from '../../shared/loading.ts';
+import { TICK_RATE } from '../../shared/constants.ts';
+import { LOAD_GIVEUP_MS, LOAD_WAIT_TICKS, type LoadServerMsg, type LoadWho } from '../../shared/loading.ts';
 import type { ClientMsg, RoomKind, ServerMsg } from '../../shared/messages.ts';
 import { errorReport } from '../errors.ts';
 import type { Renderer } from '../render/renderer.ts';
 import type { Scene } from '../scene.ts';
+import { logoHtml } from './entry.ts';
+import { iconImg } from './kit/dom.ts';
+import { PRIO, escHtml, type TopCenter } from './kit/topcenter.ts';
 import { MODE_CARDS, nextTips, preloadArt } from './transition-art.ts';
 import './transition.css';
+
+/** Сколько секунд сервер ждёт опоздавшего (полоса «Ждём» в событии) */
+const WAIT_S = LOAD_WAIT_TICKS / TICK_RATE;
 
 /** Затемнение до экрана загрузки и проявление мира, мс (такие же — в transition.css) */
 const OUT_MS = 350;
@@ -86,8 +94,6 @@ function report(where: string, e: unknown): void {
 export class Transition {
   /** Экран загрузки (в #menus сразу над старым затемнением: пауза и экраны связи — поверх него) */
   readonly root: HTMLElement;
-  /** Плашка «Ждём…» и крупный отсчёт — над экраном загрузки, мышь не ловят */
-  readonly hud: HTMLElement;
   private readonly h: TransitionHost;
   private phase: Phase = 'idle';
   private kind: RoomKind = 'lobby';
@@ -126,38 +132,38 @@ export class Transition {
   private readonly tipsEl: HTMLElement;
   private readonly titleEl: HTMLElement;
   private readonly subEl: HTMLElement;
+  private readonly lineEl: HTMLElement;
   private readonly barEl: HTMLElement;
   private readonly statusEl: HTMLElement;
   private readonly whoEl: HTMLElement;
   private readonly retryEl: HTMLButtonElement;
-  private readonly waitEl: HTMLElement;
-  private readonly waitTextEl: HTMLElement;
-  private readonly waitLeftEl: HTMLElement;
   private waitKey = '';
-  private readonly countEl: HTMLElement;
-  private readonly countNumEl: HTMLElement;
+  /** Верх-центр кита: сюда — «Ждём: …» (ui/kit/topcenter.ts) */
+  private readonly top: TopCenter;
+  /** Крупный отсчёт 3-2-1 — в центре HUD (слот .k-slot--c) */
+  private readonly countBox: HTMLElement;
   private preloadAt = 0;
 
-  constructor(host: TransitionHost, after: HTMLElement) {
+  constructor(host: TransitionHost, after: HTMLElement, top: TopCenter, centre: HTMLElement) {
     this.h = host;
-    this.root = el('div', 'tr');
+    this.top = top;
+    this.root = el('div', 'tr en-scr k-hudctx');
     this.root.setAttribute('aria-hidden', 'true');
     // картина режима (пока не пришла — небо в цвет режима) и облака, что плывут поверх неё
     this.artEl = el('div', 'tr-art', this.root);
-    this.picEl = el('img', 'tr-pic', this.artEl);
+    this.picEl = el('img', 'tr-pic en-art', this.artEl);
     this.picEl.alt = '';
     this.picEl.decoding = 'async';
     this.picEl.draggable = false;
     this.picEl.addEventListener('load', () => this.artEl.classList.add('ready'));
     const clouds = el('div', 'tr-clouds', this.root);
     for (let i = 1; i <= 3; i++) el('i', `tr-cloud c${i}`, clouds);
-    el('div', 'tr-shade', this.root);
-    const brand = el('p', 'tr-brand', this.root);
-    brand.innerHTML = 'TIRED<b>WOOD</b>';
+    el('div', 'en-shade en-shade--bottom', this.root);
+    el('div', 'tr-brand', this.root).innerHTML = logoHtml('en-logo--sm');
     // желейка-ведущая: подпрыгивает и подсказывает (подсказки сменяются сами, CSS)
     const hostEl = el('div', 'tr-host', this.root);
-    const bubble = el('div', 'tr-bubble', hostEl);
-    el('b', 'tr-bubble-label', bubble).textContent = 'Совет';
+    const bubble = el('div', 'k-plate tr-bubble', hostEl);
+    el('p', 'k-eyebrow', bubble).textContent = 'Совет';
     this.tipsEl = el('div', 'tr-tips', bubble);
     const jelly = el('div', 'tr-jelly', hostEl);
     el('i', 'tr-jelly-shadow', jelly);
@@ -165,29 +171,23 @@ export class Transition {
     this.jellyEl.alt = '';
     this.jellyEl.decoding = 'async';
     this.jellyEl.draggable = false;
-    const card = el('div', 'tr-card', this.root);
-    card.setAttribute('role', 'status');
-    this.titleEl = el('h2', 'tr-title', card);
-    this.subEl = el('p', 'tr-sub', card);
-    const bar = el('div', 'tr-bar', card);
-    this.barEl = el('i', '', bar);
-    this.statusEl = el('p', 'tr-status', card);
-    this.whoEl = el('div', 'tr-who', card);
-    this.retryEl = el('button', 'btn primary tr-retry', card);
+    const info = el('div', 'tr-info', this.root);
+    info.setAttribute('role', 'status');
+    this.titleEl = el('h2', 'tr-title', info);
+    const plate = el('div', 'k-plate tr-plate', info);
+    this.subEl = el('p', 'tr-sub', plate);
+    this.lineEl = el('p', 'tr-line', plate);
+    // заливка полосы — сдвигом (transform с переходом ведёт compositor, даже если главный поток занят стройкой)
+    this.barEl = el('i', 'tr-fill', el('div', 'k-meter k-meter--lg k-meter--mode tr-meter', plate));
+    this.statusEl = el('p', 'tr-status', plate);
+    this.whoEl = el('div', 'tr-who', plate);
+    this.retryEl = el('button', 'k-btn k-btn--gold k-btn--sm tr-retry', plate);
+    this.retryEl.type = 'button';
     this.retryEl.textContent = 'Обновить страницу';
     this.retryEl.hidden = true;
     this.retryEl.addEventListener('click', () => location.reload());
-    this.hud = el('div', 'tr-hud');
-    this.waitEl = el('div', 'tr-wait', this.hud);
-    el('i', 'tr-wait-ico', this.waitEl);
-    this.waitTextEl = el('span', 'tr-wait-text', this.waitEl);
-    this.waitLeftEl = el('b', 'tr-wait-left', this.waitEl);
-    this.countEl = el('div', 'tr-count', this.hud);
-    el('i', 'tr-count-burst', this.countEl);
-    el('i', 'tr-count-ring', this.countEl);
-    el('i', 'tr-count-disc', this.countEl);
-    this.countNumEl = el('b', 'tr-count-num', this.countEl);
-    after.after(this.root, this.hud);
+    this.countBox = el('div', 'en-count-box', centre);
+    after.after(this.root);
   }
 
   /** Экран загрузки на месте: ввод не пускаем */
@@ -552,11 +552,16 @@ export class Transition {
   private fill(kind: RoomKind): void {
     const card = MODE_CARDS[kind];
     this.titleEl.textContent = card.title;
-    this.subEl.textContent = this.h.detail(kind) ?? card.sub;
+    this.subEl.textContent = card.sub;
+    // строка с иконкой: рекорд крепости, трасса картинга (текст из игры может начинаться с эмодзи — иконку рисуем сами)
+    const line = this.h.detail(kind);
+    this.lineEl.hidden = !line;
+    this.lineEl.innerHTML = line ? iconImg(card.lineIcon) : '';
+    if (line) this.lineEl.append(document.createTextNode(line.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '')));
+    // data-mode — акцент режима (кит: --mode); data-kind — для особых движений желейки
     this.root.dataset.kind = kind;
-    this.root.style.setProperty('--tint', card.tint);
+    this.root.dataset.mode = kind;
     this.root.style.setProperty('--focus', card.focus);
-    this.hud.style.setProperty('--tint', card.tint);
     // картина: та же — уже на месте; новая — проявится, когда придёт (обычно она уже в кэше, см. preloadArt)
     if (this.picEl.getAttribute('src') !== card.art) {
       this.artEl.classList.remove('ready');
@@ -578,7 +583,7 @@ export class Transition {
     this.statusEl.textContent = text;
   }
 
-  /** Полоса: transform с переходом — её дотягивает compositor, даже если кадр стоит. Сдвиг, а не растяжение: полоски заливки не мнутся. */
+  /** Полоса: transform с переходом — её дотягивает compositor, даже если кадр стоит. Сдвиг, а не растяжение. */
   private progress(p: number, seconds: number): void {
     this.barEl.style.transitionDuration = `${seconds}s`;
     this.barEl.style.transform = `translateX(${((Math.max(0.04, Math.min(1, p)) - 1) * 100).toFixed(1)}%)`;
@@ -591,29 +596,30 @@ export class Transition {
     if (!others.length) return;
     el('span', 'tr-who-label', this.whoEl).textContent = 'Заходят вместе:';
     for (const w of [...this.who].sort((a, b) => Number(b.nick === me) - Number(a.nick === me))) {
-      const chip = el('span', `tr-chip${w.ok ? ' ok' : ''}`, this.whoEl);
-      chip.textContent = w.nick === me ? 'ты' : w.nick;
+      const chip = el('span', `k-pill k-pill--sm${w.ok ? ' k-pill--good' : ''}`, this.whoEl);
+      chip.textContent = `${w.nick === me ? 'ты' : w.nick}${w.ok ? ' ✓' : ' …'}`;
     }
   }
 
-  /** Плашка над миром: кого ждём (после проявления) или кого не дождались. */
+  /** Событие в верх-центре кита: кого ждём (после проявления) или кого не дождались. */
   private syncWait(): void {
     const me = this.h.nick();
     const late = this.who.filter((w) => !w.ok && w.nick !== me).map((w) => w.nick);
-    let text = '';
-    let left = '';
+    let key = '';
+    let html = '';
+    let tone: 'danger' | undefined;
     if (!this.busy && this.waiting > 0 && late.length) {
-      text = `Ждём ${names(late)}`;
-      left = `до ${this.waiting} с`;
-    } else if (!this.busy && this.missedUntil && late.length) text = `Не дождались: ${names(late)} — начинаем`;
-    const key = `${text}|${left}`;
-    if (this.waitKey !== key) {
-      this.waitKey = key;
-      this.waitTextEl.textContent = text;
-      this.waitLeftEl.textContent = left;
-      this.waitEl.classList.toggle('missed', text !== '' && !left);
+      key = `wait|${names(late)}|${this.waiting}`;
+      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Ждём: ${escHtml(names(late))}</div><div class="k-event-sub">${late.length > 1 ? 'Начнём, как только загрузятся' : 'Начнём, как только загрузится'}</div><div class="k-event-timer">до ${this.waiting} с</div><span class="k-meter k-meter--mode k-meter--thin" data-mode="${this.kind}" style="--v:${Math.round(Math.min(1, Math.max(0, this.waiting / WAIT_S)) * 1000) / 1000}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
+    } else if (!this.busy && this.missedUntil && late.length) {
+      key = `missed|${names(late)}`;
+      tone = 'danger';
+      html = `<span class="k-event-ic">${iconImg('online', '')}</span><div class="k-event-title">Не дождались: ${escHtml(names(late))}</div><div class="k-event-sub">Начинаем без них</div>`;
     }
-    this.waitEl.classList.toggle('show', text !== '');
+    if (this.waitKey === key) return;
+    this.waitKey = key;
+    if (html) this.top.event({ key: 'load-wait', prio: PRIO.mode, tone, html });
+    else this.top.clear('load-wait');
   }
 
   private tickCount(now: number): void {
@@ -639,17 +645,18 @@ export class Transition {
   }
 
   private showCount(text: string, go: boolean): void {
-    this.countNumEl.textContent = text;
-    this.countEl.dataset.n = go ? 'go' : text;
-    this.countEl.className = 'tr-count';
-    void this.countEl.offsetWidth;
-    this.countEl.className = `tr-count show${go ? ' go' : ''}`;
+    // новый элемент каждый раз — анимация идёт сначала (кит: .k-count.is-tick — цифры, .k-count--go с .k-hero.is-pop — слово старта)
+    const c = el('div', go ? 'k-count k-count--go k-hero is-pop' : 'k-count is-tick');
+    c.textContent = text;
+    this.countBox.replaceChildren(c);
+    this.countBox.classList.add('show');
   }
 
   private hideCount(): void {
     this.goShown = -1;
     this.goHideAt = 0;
-    this.countEl.className = 'tr-count';
+    this.countBox.classList.remove('show');
+    this.countBox.replaceChildren();
   }
 
   /** Для window.__opus: где сейчас переход */

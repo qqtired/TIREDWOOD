@@ -124,7 +124,7 @@
 | Голосование «выгнать» | `votekick.ts` | `votekick.ts` | `ui/kickvote.ts`, `ui/online.ts` | `VOTEKICK` | `votekick.test.ts` | план `tabmenu` |
 | Лаборатория идей `/lab` | `lab.ts`, `lab-*.ts` (правила локальных примеров) | `lab/http.ts`, `lab/store.ts` | `lab/` (страница — `lab/index.html` в корне репозитория) | `LAB` | `lab.test.ts`, `lab-registry.test.ts`, `lab-*.test.ts` | план `lab`, [примеры ревью](lab-research-examples.md) |
 | Страница `/fishing` | — | — | — (страница — `public/fishing/` в корне) | — | `tools/fishing-guide/verify.mjs`, `test/fishing-guide.test.ts` (подсказки калькулятора) | [STATUS.md](STATUS.md); пересборка — `node tools/fishing-guide/gen.mjs` |
-| Экраны загрузки | `loading.ts` | `readygate.ts` | `ui/transition.ts`, `ui/transition-art.ts`, `startup.ts`, `assets/loading/` | — | `loading.test.ts`, `startup.test.ts` | план `loading` |
+| Экраны загрузки, вход и связь (карточка входа, окно «Связь потеряна…») | `loading.ts` | `readygate.ts` | `ui/entry.ts`, `ui/entry.css`, `ui/transition.ts`, `ui/transition-art.ts`, `startup.ts`, `index.html` (первая загрузка), `assets/loading/hd/` | — | `loading.test.ts`, `startup.test.ts` | план `loading` |
 | Звук (sfx.ts лежит в папке каждого режима) | — | — | `audio.ts`, `ambience.ts`, `voices.ts`, `music/` | — | `ambience.test.ts`, `settings-mix.test.ts` | план `sound`, design «Звук» |
 | Боты (только соло) | `solobots.ts` | `paintball/bot.ts`, `race/bot.ts`, `fight/bots.ts`, `lobby/regattabot.ts` | — | — | `solobots.test.ts`, `bots.test.ts` | AGENTS §6 |
 | Телефон | — | — | `touch.ts` | — | `touch.test.ts` | design «Телефоны» |
