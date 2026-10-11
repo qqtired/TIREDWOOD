@@ -43,6 +43,8 @@ Environment=VOTEKICK=1
 Environment=FARM=1
 Environment=ISLE=1
 Environment=DUNGEON=1
+# UI 2.0 и новая набережная — общий релиз по «да» владельца 2026-10-11
+Environment=PLAZA3=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
