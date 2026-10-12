@@ -23,6 +23,116 @@ function fixture(config = true): string {
 }
 const success = (): Response => new Response(JSON.stringify({ ok: true, result: { message_id: 123 } }), { status: 200 });
 
+test('telegram release send: connect-before-TLS отказ повторяется автоматически и сохраняется история до sent', async () => {
+  const dir = fixture();
+  let calls = 0;
+  const options = { dir, release, smokePassed: true, activeReleaseId: release.releaseId, retryConnectFailures: true, log: () => {},
+    fetch: async () => { if (++calls === 1) throw Object.assign(new Error('offline'), { connect: true, code: 'ETIMEDOUT' }); return success(); } };
+  const results = await Promise.all([announceRelease(options), announceRelease(options)]);
+  assert.deepEqual(results.sort(), ['already-attempted', 'sent']);
+  assert.equal(calls, 2);
+  const state = JSON.parse(readFileSync(path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`), 'utf8'));
+  assert.deepEqual(state.attempts.map((a: { status: string }) => a.status), ['failed', 'sent']);
+  assert.equal(await announceRelease(options), 'already-sent');
+  assert.equal(calls, 2);
+});
+
+test('telegram release send: максимум три connect-failure попытки; обычный повтор не начинает новую серию', async () => {
+  const dir = fixture();
+  let calls = 0;
+  const options = { dir, release, smokePassed: true, activeReleaseId: release.releaseId, retryConnectFailures: true, log: () => {},
+    fetch: async () => { calls++; throw Object.assign(new Error('offline'), { connect: true, code: 'ETIMEDOUT' }); } };
+  assert.equal(await announceRelease(options), 'failed');
+  assert.equal(calls, 3);
+  assert.equal(await announceRelease(options), 'already-attempted');
+  assert.equal(calls, 3);
+  const state = JSON.parse(readFileSync(path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`), 'utf8'));
+  assert.equal(state.attempts.length, 3);
+});
+
+test('telegram release send: uncertain, HTTP 4xx и HTTP 5xx не повторяются автоматически', async () => {
+  for (const status of [0, 400, 500]) {
+    const dir = fixture();
+    let calls = 0;
+    const result = await announceRelease({ dir, release, smokePassed: true, activeReleaseId: release.releaseId,
+      retryConnectFailures: true, log: () => {}, fetch: async () => {
+        calls++;
+        if (!status) throw Object.assign(new Error('reset after TLS'), { code: 'ECONNRESET' });
+        return new Response('{"ok":false}', { status });
+      } });
+    assert.equal(result, status === 400 ? 'failed' : 'uncertain');
+    assert.equal(calls, 1);
+  }
+});
+
+test('telegram release retry: явный API-отказ хранит безопасную причину и допускает только ручной повтор с историей', async () => {
+  const dir = fixture();
+  const logs: string[] = [];
+  const options = { dir, release, smokePassed: true, activeReleaseId: release.releaseId, log: (s: string) => logs.push(s) };
+  assert.equal(await announceRelease({ ...options, fetch: async () => new Response(JSON.stringify({ ok: false,
+    error_code: 400, description: `Bad Request: chat -1001 missing; https://api.telegram.org/bot${token}/sendMessage ${token}` }), { status: 400 }) }), 'failed');
+  let calls = 0;
+  const fetch: TgFetch = async () => { calls++; return success(); };
+  assert.equal(await announceRelease({ ...options, fetch }), 'already-attempted');
+  assert.equal(await announceRelease({ ...options, fetch, retryFailed: true }), 'sent');
+  assert.equal(calls, 1);
+  const text = readFileSync(path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`), 'utf8');
+  const state = JSON.parse(text);
+  assert.deepEqual(state.attempts.map((a: { status: string }) => a.status), ['failed', 'sent']);
+  assert.equal(state.attempts[0].diagnostic.kind, 'api-rejected');
+  assert.equal(state.attempts[0].diagnostic.httpStatus, 400);
+  assert.equal(state.attempts[0].diagnostic.telegramErrorCode, 400);
+  assert.match(state.attempts[0].diagnostic.description, /Bad Request/);
+  for (const secret of [token, token.split(':')[1], '-1001', 'https://api.telegram.org']) {
+    assert.ok(!text.includes(secret));
+    assert.ok(!logs.join('\n').includes(secret));
+  }
+});
+
+test('telegram release retry: uncertain, attempted и sent никогда не повторяются', async () => {
+  for (const status of ['uncertain', 'attempted', 'sent']) {
+    const dir = fixture();
+    mkdirSync(path.join(dir, RELEASE_STATE_DIR));
+    const file = path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`);
+    const original = JSON.stringify({ releaseId: release.releaseId, status, at: new Date().toISOString() });
+    writeFileSync(file, original);
+    let calls = 0;
+    assert.equal(await announceRelease({ dir, release, smokePassed: true, activeReleaseId: release.releaseId,
+      retryFailed: true, fetch: async () => { calls++; return success(); }, log: () => {} }), 'retry-refused');
+    assert.equal(calls, 0);
+    assert.equal(readFileSync(file, 'utf8'), original);
+  }
+});
+
+test('telegram release retry: два одновременных retry после connect-failure создают только одну новую попытку', async () => {
+  const dir = fixture();
+  const options = { dir, release, smokePassed: true, activeReleaseId: release.releaseId, log: () => {} };
+  assert.equal(await announceRelease({ ...options,
+    fetch: async () => { throw Object.assign(new Error('offline'), { connect: true, code: 'ENETUNREACH' }); } }), 'failed');
+  const file = path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`);
+  assert.equal(JSON.parse(readFileSync(file, 'utf8')).diagnostic.code, 'ENETUNREACH');
+  let calls = 0;
+  const retry = { ...options, retryFailed: true, fetch: async () => { calls++; return success(); } };
+  assert.deepEqual((await Promise.all([announceRelease(retry), announceRelease(retry)])).sort(), ['already-attempted', 'sent']);
+  assert.equal(calls, 1);
+  assert.equal(JSON.parse(readFileSync(file, 'utf8')).attempts.length, 2);
+});
+
+test('telegram release retry: legacy failed сохраняется первой попыткой; новый failed без доказательства не повторяется', async () => {
+  for (const legacy of [true, false]) {
+    const dir = fixture();
+    mkdirSync(path.join(dir, RELEASE_STATE_DIR));
+    const file = path.join(dir, RELEASE_STATE_DIR, `${release.releaseId}.json`);
+    writeFileSync(file, JSON.stringify({ releaseId: release.releaseId, status: 'failed', at: '2026-10-12T12:00:00.000Z',
+      ...(legacy ? {} : { attempts: [{ status: 'failed' }] }) }));
+    let calls = 0;
+    assert.equal(await announceRelease({ dir, release, smokePassed: true, activeReleaseId: release.releaseId,
+      retryFailed: true, fetch: async () => { calls++; return success(); }, log: () => {} }), legacy ? 'sent' : 'retry-refused');
+    assert.equal(calls, legacy ? 1 : 0);
+    if (legacy) assert.equal(JSON.parse(readFileSync(file, 'utf8')).attempts[0].at, '2026-10-12T12:00:00.000Z');
+  }
+});
+
 test('release notes: пустой или слишком длинный текст блокирует подготовку; текст остаётся явно заданным', () => {
   assert.throws(() => prepareReleaseNotes(release.releaseId, ' \n '), /текст/);
   assert.throws(() => prepareReleaseNotes(release.releaseId, 'а'.repeat(3001)), /3000/);
@@ -204,6 +314,9 @@ test('release CLI: prepare → архив deploy → распаковка → se
   const sent = spawnSync(process.execPath, [...args, '--smoke-passed'], { encoding: 'utf8', timeout: 5000 });
   assert.equal(sent.status, 1, sent.stderr);
   assert.match(sent.stdout, /unconfigured/);
+  const retry = spawnSync(process.execPath, [args[0], 'retry', active, current, data, '--smoke-passed'], { encoding: 'utf8', timeout: 5000 });
+  assert.equal(retry.status, 1, retry.stderr);
+  assert.match(retry.stdout, /unconfigured/, 'явный CLI retry использует тот же проверенный manifest');
   assert.equal(existsSync(path.join(data, RELEASE_STATE_DIR)), false);
 });
 

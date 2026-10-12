@@ -1,5 +1,7 @@
 // prepare <release-id> <notes.txt> <manifest.json> — до заливки, без чтения настроек Telegram.
 // send <release-dir> <current-symlink> <data-dir> --smoke-passed — только после успешного smoke.
+// send делает до трёх попыток только при connect-before-TLS отказе, с паузой 1 с.
+// retry <те же аргументы> — вручную, только после подтверждённого failed; история сохраняется.
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { announceRelease, prepareReleaseNotes, type ReleaseNotes } from '../server/tgrelease.ts';
@@ -10,7 +12,7 @@ try {
     const release = prepareReleaseNotes(first, readFileSync(second, 'utf8'));
     writeFileSync(third, JSON.stringify(release) + '\n', { flag: 'wx', mode: 0o600 });
     console.log('Текст обновления подготовлен');
-  } else if (mode === 'send' && first && second && third) {
+  } else if ((mode === 'send' || mode === 'retry') && first && second && third) {
     const releaseDir = realpathSync(first);
     const currentDir = realpathSync(second);
     const manifest = JSON.parse(readFileSync(path.join(releaseDir, 'release-notes.json'), 'utf8')) as ReleaseNotes;
@@ -18,10 +20,12 @@ try {
       dir: third, release: manifest,
       smokePassed: proof === '--smoke-passed' && path.basename(releaseDir) === manifest.releaseId,
       activeReleaseId: currentDir === releaseDir ? path.basename(currentDir) : '',
+      retryFailed: mode === 'retry',
+      retryConnectFailures: mode === 'send',
     });
     process.exitCode = status === 'sent' || status === 'already-sent' ? 0 : 1;
   } else {
-    console.error('Нужны prepare <номер релиза> <файл текста> <файл результата> или send <релиз> <current> <данные> --smoke-passed');
+    console.error('Нужны prepare <номер релиза> <файл текста> <файл результата> или send/retry <релиз> <current> <данные> --smoke-passed');
     process.exitCode = 1;
   }
 } catch {
