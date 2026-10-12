@@ -15,6 +15,21 @@
 
 Локальный исследовательский стенд сравнения WebGL/WebGPU — [`tools/render-bench/`](../tools/render-bench/README.md), команды `bench:check`, `bench:build`, `bench:preview`; тесты `test/render-bench-*.test.ts`. В игровую сборку не входит и не означает переход игры с `WebGLRenderer` на WebGPU. План эксперимента — [2026-10-06-render-benchmark.md](superpowers/plans/2026-10-06-render-benchmark.md).
 
+### Пакет одобренных изменений 12 октября
+
+Объём, проверка и откат — [review3-integration.md](review3-integration.md).
+
+| Изменение | Основные файлы | Документ и проверки |
+|---|---|---|
+| Ферма: выбор семян, репутация, доход всей фермы | `client/farm/ui/`, `shared/farm*.ts` | [farm/review3.md](farm/review3.md), `farm-review3.test.ts` |
+| Осадные волны и модели крепости | `server/fort/siege.ts`, `shared/fortsiege.ts`, `client/fort/approved/` | [fort-approved/gameplay.md](fort-approved/gameplay.md), `fort-approved-{siege,clock,replay}.test.ts` |
+| Регата «Белые скалы» | `shared/regatta*.ts`, `client/lobby/regattaland.ts`, `tools/regatta/` | [regatta/README.md](regatta/README.md), `regatta-{banks,world}.test.ts` |
+| Длинные трассы картинга | `shared/maps/{ring,hills}.ts`, `shared/kart.ts` | [karting-v3.md](karting-v3.md), `racecourse.test.ts` |
+| Архивы рекордов по курсам | `server/store.ts`, `shared/economy.ts`, `client/ui/records.ts` | [course-records.md](course-records.md), `course-records-migration.test.ts` |
+| Башня 185 м | `shared/skilltower.ts`, `client/skilltest/cloudworld.ts` | [cloudtower/README.md](cloudtower/README.md), `skill-cloudtower*.test.ts` |
+| Аквапарк-подкова | `shared/aqua.ts`, `client/lobby/aquamodels.ts` | [aquapark-v3/README.md](aquapark-v3/README.md), `aqua-model.test.ts` |
+| Памятка Подземелья и метки атак | `client/dungeon/pause-data.ts`, `hud.ts`, `game.ts` | `dungeon-pause-info.test.ts`, `dungeon-telegraph-visibility.test.ts` |
+
 ## 2. Карта кода по системам
 
 Как читать:

@@ -47,6 +47,10 @@ Environment=ISLE=1
 Environment=DUNGEON=1
 # UI 2.0 и новая набережная — общий релиз по «да» владельца 2026-10-11
 Environment=PLAZA3=1
+# Осадные волны, башня 185 м и общий змей на 7 — «да» владельца 2026-10-12
+Environment=FORTRESS_SIEGE=1
+Environment=SKILL_TOWER2=1
+Environment=KITE=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always

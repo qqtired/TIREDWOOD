@@ -31,11 +31,18 @@ export function hopArc(ax: number, ay: number, az: number, bx: number, by: numbe
 const assetUrl = new URL('../assets/ownboats/volzhanka.glb', import.meta.url).href;
 let asset: Promise<THREE.Group> | null = null;
 function sourceBoat(): Promise<THREE.Group> {
-  if (!asset) {
-    asset = new GLTFLoader().loadAsync(assetUrl).then(g => g.scene);
-    void asset.catch(() => { asset = null; });
-  }
-  return asset;
+  if (asset) return asset;
+  const load = () => new GLTFLoader().loadAsync(assetUrl).then(g => g.scene);
+  // Один повтор на общий запрос; новый катер после окончательной ошибки попробует снова.
+  const pending = load().catch(async () => {
+    await new Promise<void>(resolve => setTimeout(resolve, 500));
+    return load();
+  });
+  asset = pending;
+  void pending.catch(() => {
+    if (asset === pending) asset = null;
+  });
+  return pending;
 }
 function numberTexture(number: number): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -139,7 +146,7 @@ export class BoatModel {
       column.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis.normalize());
       this.root.add(column);
       this.root.add(hull); this.paint(); this.loaded = true;
-    });
+    }).catch(() => { this.loaded = false; });
   }
 
   private paint(): void {

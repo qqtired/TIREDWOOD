@@ -349,13 +349,12 @@ test('матрос Колян рыбачит у северного борта: �
   for (const d of [6.5, 8.5]) assert.equal(w.groundBelow(k.x, 5, k.z - d), -Infinity, 'поплавок в воде');
 });
 
-test('баркас — на уровне дальнего края регаты: не задевает трассу, аквапарк, «Ласточку», пиратов и гидроплан', () => {
+test('баркас сохраняет место и не задевает расширенную регату, аквапарк, «Ласточку», пиратов и гидроплан', () => {
   const c = regattaCourse();
   const t = c.track;
-  let far = -Infinity;
-  for (let i = 0; i < t.px.length; i++) far = Math.max(far, t.pz[i] + t.hw[i]);
-  // дальний край коридора регаты — z ≈ 126; середина баркаса — на её дальней прямой (z 119), снимок — до 128
-  assert.ok(Math.abs(BARKAS.z - 119) <= 2 && far - BARKAS.z < 10, `баркас z ${BARKAS.z}, край регаты ${far.toFixed(1)}`);
+  // Новая петля уходит дальше в море; баркас и его места рыбалки остаются на прежнем якоре.
+  assert.equal(BARKAS.x, -60);
+  assert.equal(BARKAS.z, 118);
   const hull = { x0: BARKAS.bow - 1, x1: BARKAS.stern + 1, z0: BARKAS.z - BARKAS.half - 1, z1: BARKAS.z + BARKAS.half + 1 };
   const outside = (x: number, z: number, m: number): boolean => x < hull.x0 - m || x > hull.x1 + m || z < hull.z0 - m || z > hull.z1 + m;
   // коридор регаты (с поплавками по краям) — дальше 20 м

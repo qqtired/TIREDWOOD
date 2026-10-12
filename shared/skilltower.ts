@@ -159,7 +159,7 @@ export function makeCloudTowerMap(): SkillMap {
         const r = rect(p(k / (n + 1), lo + k), 2.65);
         const phase = (k - 1) * 54;
         clouds.push({ box: addBox([r.x0, r.y - .7, r.z0], [r.x1, r.y, r.z1]), sec, phase, rect: r });
-        join(last, r, sec, 'jump', { at: [phase + 10, phase + 30], flow: k > 1 }); last = r;
+        join(last, r, sec, 'jump', { at: [phase + 10, phase + 30], ...(k > 1 ? { flow: true } : {}) }); last = r;
       }
       join(last, end, sec, 'jump', { at: [n * 54 + 10], flow: true });
       if (sec === 10) {
@@ -175,7 +175,7 @@ export function makeCloudTowerMap(): SkillMap {
         const r = rect(q, k <= 10 ? 1.3 : 2.4, k <= 10 ? 2.4 : 19.5 / 16);
         const at = (k - 1) * 1.05 + .5;
         steps.push({ box: addBox([r.x0, r.y - .45, r.z0], [r.x1, r.y, r.z1]), s: at, corner: k % 6 === 1, rect: r });
-        join(last, r, sec, 'walk', { flow: k > 1 }); last = r;
+        join(last, r, sec, 'walk', k > 1 ? { flow: true } : {}); last = r;
       }
       stairLength = 28; join(last, end, sec, 'walk', { flow: true }); continue;
     }

@@ -279,7 +279,8 @@ test('контрруление меняет сторону сноса без о�
   for (let i = 0; i < 14; i++) stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH | BTN_RIGHT }, c, ev, true);
   const hx = s.hx, hz = s.hz;
   stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH | BTN_RIGHT }, c, ev, true);
-  assert.ok(s.drift > 0 && s.driftDir === -1, 'снос не прерывается');
+  assert.ok(s.drift > 0, 'снос не прерывается');
+  assert.equal(s.driftDir, -1, 'сторона сноса изменилась после контрруления');
   assert.ok(hx * s.hz - hz * s.hx > 0.01, 'нос уже поворачивает вправо');
   assert.equal(s.respawns, 0);
 });

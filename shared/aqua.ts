@@ -175,8 +175,8 @@ export const AQUA_MOVERS: readonly AquaMover[] = pick(AQUA_MOVERS_V2, () => {
 export const AQUA_WARN = 48;
 
 /** Вертушка: оборот за 3,6 с, перекладина в обе стороны — каждое место накрывает раз в 1,8 с */
-export const AQUA_SWEEPERS: readonly AquaSweeper[] = pick(
-  [{ x: -91.6, z: 30.6, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 0 }],
+export const AQUA_SWEEPERS: readonly AquaSweeper[] = pick<readonly AquaSweeper[]>(
+  [{ x: -91.6, z: 30.6, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216 }],
   () => [
     { x: -91.6, z: 34.2, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 0 },
     { x: -63.2, z: 33.4, top: 2, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 54 },

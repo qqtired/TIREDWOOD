@@ -81,7 +81,7 @@ test('Sky and HIDE W/S align with camera yaw and preserve normalized diagonal sp
   const results=[];
   for(const buttons of[BTN_FORWARD,BTN_BACK,BTN_FORWARD|BTN_RIGHT]){
    const map=makeSkillMap(),world=mode==='sky'?new CollisionWorld(map):hideMotionWorld();
-   const state={...makeState(),y:mode==='sky'?40:0,z:mode==='sky'?0:9,grounded:1};
+   const state={...makeState(),x:mode==='sky'?map.checkpoints[0].px:0,y:mode==='sky'?map.checkpoints[0].y:0,z:mode==='sky'?map.checkpoints[0].pz:9,grounded:1};
    const dyn=mode==='sky'?new SkillDynamics(map,world):Object.assign(new HidePhysics(world),{mover:'prop',kind:'crate'});
    for(let i=0;i<10;i++){const inp={...makeInput(),buttons,yaw,viewTick:i};if(dyn instanceof SkillDynamics)dyn.step(state,inp,i-1,makeEvents());else dyn.step(state,inp);}
    results.push(state);
