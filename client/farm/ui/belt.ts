@@ -12,6 +12,7 @@ import { sfx } from '../../ui/kit/sfx.ts';
 import type { HudSlots } from '../../ui/kit/slots.ts';
 import { BELT_SLOTS, WheelAcc, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets, wheelPixels } from './belt-model.ts';
 import { C, big, fi, fmtMin, meter, resIconName, resName, ui } from './common.ts';
+import { priceNumber, seedPrices } from './price-model.ts';
 
 export interface BeltActions {
   send(m: FarmClientMsg): void;
@@ -185,7 +186,8 @@ export class SeedBelt {
     const level = farmLevel(f.xp);
     const info = farmLevelInfo(f.xp);
     const grow = fmtMin(Math.max(1, Math.round(growMs(f, c, this.now) / 60_000)));
-    const price = `<span class="farm-price">${C()}${c.seed} <i>→</i> ${C()}${c.sale}</span>`;
+    const prices = seedPrices(f, c, this.now);
+    const price = `<span class="farm-price">Семя ${C()}${prices.seed} <i>→</i> Гриб сейчас ${C()}${priceNumber(prices.sale)}</span>`;
     const stats = s.locked
       ? `<div class="farm-pick-stats"><span>Откроется на <b>ур. ${c.level}</b> фермы</span><span class="k-dim">ещё ${big(Math.max(0, FARM_XP_TOTAL[c.level - 1] - f.xp))} опыта</span></div>${c.level === level + 1 ? meter(info.into / info.need, 'k-meter--thin k-meter--mode farm-pick-meter') : ''}`
       : `<div class="farm-pick-stats"><span><b>${grow}</b></span><span class="k-gold"><b>+${c.xp}</b> опыта</span>${price}<span>${fi(resIconName(c.res))}${resName(c.res)} ${s.chance} %</span></div>`;

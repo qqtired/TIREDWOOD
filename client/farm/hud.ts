@@ -114,7 +114,7 @@ export class FarmHud {
     // окна — <dialog> в верхнем слое: родитель любой, кладём в body
     const body = document.body;
     this.seeds = new SeedsWin(body, host, { id: 'seeds', eyebrow: 'Ферма · семена', title: 'Семечкин', line: '«Первая посадка новой культуры — от меня в подарок!»', portrait: 'seeds', size: 'lg' });
-    this.grib = new GribWin(body, host, { id: 'grib', eyebrow: 'Ферма · скупка', title: 'Дядюшка Гриб', line: '«Всё возьму! Но что ждёт Фургон — неси ему, он щедрее»', portrait: 'giant-mushroom' });
+    this.grib = new GribWin(body, host, { id: 'grib', eyebrow: 'Ферма · скупка', title: 'Дядюшка Гриб', line: '«Всё возьму! У Фургона свои ящики и опыт»', portrait: 'giant-mushroom' });
     this.orders = new OrdersWin(body, host, { id: 'orders', eyebrow: 'Ферма · заказы', title: 'Заказы', portrait: 'van', size: 'lg' });
     this.estate = new EstateWin(body, host, { id: 'estate', eyebrow: 'Ферма · участок', title: 'Хозяйство', portrait: 'basket', size: 'lg' });
     this.board = new BoardWin(body, host, { id: 'board', eyebrow: 'Ферма · доска', title: 'Доска фермы', line: 'Кто где живёт, кто спит и кому можно помочь', portrait: 'help-hands', size: 'lg', coins: false });

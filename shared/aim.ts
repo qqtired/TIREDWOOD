@@ -33,6 +33,8 @@ export const PIVOT_Y = 1.45;
 export const CAM_MIN = 0.35;
 /** Запас до стены */
 export const CAM_PAD = 0.2;
+/** Terrain clearance must fit the lobby near plane's corners, not just the camera centre. */
+const CAM_TERRAIN_RADIUS = 0.25;
 /** Если точка прицела ближе этого (вдоль взгляда) — стреляем по взгляду */
 export const AIM_FALLBACK = 0.5;
 
@@ -66,8 +68,10 @@ export function cameraRig(px: number, py: number, pz: number, yaw: number, pitch
   dy /= len;
   dz /= len;
   let dist = len;
-  if (world.raycast(ox, oy, oz, dx, dy, dz, len, hit, true, true)) {
-    dist = Math.max(CAM_MIN, hit.t - CAM_PAD);
+  if (world.raycast(ox, oy, oz, dx, dy, dz, len, hit, true, true, true)) {
+    // The same ray-distance pad gives too little normal clearance at grazing hill angles.
+    const pad = hit.box === -2 ? CAM_TERRAIN_RADIUS / Math.max(1e-4, Math.abs(dx * hit.nx + dy * hit.ny + dz * hit.nz)) : CAM_PAD;
+    dist = Math.max(CAM_MIN, hit.t - pad);
     if (dist > len) dist = len;
   }
   out.x = ox + dx * dist;

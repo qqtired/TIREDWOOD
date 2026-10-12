@@ -12,7 +12,7 @@ import { mergeColored, paint, place, staticMesh } from '../../render/kit.ts';
 import type { VenueCtx } from '../plaza/venue.ts';
 import { FLOOR_Y } from './floor.ts';
 import { dressPlaza3Ground, outsideGardenField } from './ground.ts';
-import { moleFloorGeometry, removeMoleSlabs } from './molefloor.ts';
+import { moleFloorGeometry, recessMoleSupport, removeMoleSlabs } from './molefloor.ts';
 import { buildPlaza3Garden } from './garden.ts';
 import { FIELD_Y } from './garden-data.ts';
 
@@ -186,7 +186,7 @@ export function buildPlaza3World(ctx: VenueCtx, map: LobbyMap): Plaza3World {
     },
     dressPavilionGround: (id, node, geometry) => {
       if (id !== 'mole' || node !== 'static_mole') return geometry;
-      const { kept, removed } = removeMoleSlabs(geometry);
+      const { kept, removed } = removeMoleSlabs(recessMoleSupport(geometry));
       if (removed && !moleFloorReady) {
         const floor = staticMesh(moleFloorGeometry(), mat, true);
         floor.name = 'plaza3-groundMole';

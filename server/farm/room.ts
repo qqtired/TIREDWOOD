@@ -561,7 +561,7 @@ export class FarmRoom implements Room, FarmCtx {
 
   private onTutorial(p: FarmPlayer, f: FarmProgress, m: Extract<FarmClientMsg, { a: 'tutorial' }>): void {
     if (m.k === 'close' && f.tutorial >= 0 && f.tutorial < 6) f.tutorial = -1;
-    else if (m.k === 'open' && f.tutorial < 0) f.tutorial = 0;
+    else if (m.k === 'open' && (f.tutorial < 0 || f.tutorial >= 6)) f.tutorial = 0;
     else return;
     this.done(p, false);
   }
@@ -619,7 +619,13 @@ export class FarmRoom implements Room, FarmCtx {
     this.releaseSeat(p);
     this.sitSeats[id] = p.id;
     p.seat = id;
-    const prevButtons = p.state.prevButtons;
+    // Посадка — новая граница состояния. Старые входы до JSON уже подтверждены этим телепортом:
+    // не применяем их движение/Space на сиденье, но сохраняем seq fence и последние удержанные кнопки.
+    const prevButtons = p.inq.items.at(-1)?.buttons ?? p.state.prevButtons;
+    p.inq.items.length = 0;
+    p.inq.ack = Math.max(p.inq.ack, p.inq.lastSeq);
+    p.last.seq = p.inq.ack;
+    p.last.buttons = prevButtons;
     Object.assign(p.state, makeState(), { x: s.x, y: s.y, z: s.z, grounded: 1, prevButtons });
     p.last.yaw = s.yaw;
     p.selfReset = true;
@@ -694,7 +700,7 @@ export class FarmRoom implements Room, FarmCtx {
     const n = q.due();
     for (let i = 0; i < n; i++) {
       const inp = q.shift();
-      if (p.seat >= 0 && (inp.buttons & ~p.state.prevButtons & BTN_USE)) this.releaseSeat(p);
+      // E уже отправляет JSON sit/stand через FarmScene.onUse. Тот же бинарный BTN_USE не повторяет действие.
       if (!stepHeld(p.state, p.pondSeat !== null ? holdMask(ACT_FISH) : p.seat >= 0 ? LEAVE_SEAT : 0, inp, this.world, false, 0, p.ev)) {
         this.releaseSeat(p); this.pond?.stand(p);
       }

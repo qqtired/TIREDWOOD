@@ -554,8 +554,8 @@ export class LobbyScene implements Scene {
       pointerFree: () => !d.input.locked && !d.input.blocked,
       refreshShadows: () => d.renderer.refreshShadows(),
     });
-    // при новом оформлении площади арка без таблички: заголовок и статус — на облаке-вывеске
-    this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z, !PLAZA2);
+    // plaza2 — рама без таблички; plaza3 уже рисует всю облачную арку павильоном.
+    this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z, !PLAZA2, !PLAZA3);
     this.farmGate = new FarmGate(this.world.scene, () => d.renderer.refreshShadows());
     this.skillPortal.setVisible(false);
     this.kraken = new Kraken(this.world.scene, { onScare: (p) => d.sound.krakenScare([p.x, p.y, p.z]) });

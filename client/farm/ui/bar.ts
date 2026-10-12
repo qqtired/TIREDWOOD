@@ -97,7 +97,10 @@ export class FarmBar {
     this.questSteps.className = 'farm-quest-steps';
     this.questSteps.innerHTML = '<i></i>'.repeat(TUTORIAL_STEPS);
     this.questPrize.className = 'k-pill k-pill--gold k-pill--sm farm-quest-prize';
-    q.append(this.questHead, this.questText, this.questSteps, this.questPrize);
+    const questHeader = document.createElement('div');
+    questHeader.className = 'farm-quest-head';
+    questHeader.append(this.questHead, this.questPrize);
+    q.append(questHeader, this.questText, this.questSteps);
 
     this.row.className = 'k-tiles';
     // справа налево: первая плитка — у края экрана
@@ -161,7 +164,7 @@ export class FarmBar {
         TOGGLE(steps[i] as HTMLElement, 'is-done', i < t);
         TOGGLE(steps[i] as HTMLElement, 'is-cur', i === t);
       }
-      put(this.questPrize, `+${TUTORIAL_XP[t]} опыта${t === TUTORIAL_STEPS - 1 ? ` · ${C()}${TUTORIAL_COINS}` : ''}`);
+      put(this.questPrize, t < f.tutorialRewarded ? 'Награда получена' : `+${TUTORIAL_XP[t]} опыта${t === TUTORIAL_STEPS - 1 ? ` · ${C()}${TUTORIAL_COINS}` : ''}`);
     }
 
     // --- плитки

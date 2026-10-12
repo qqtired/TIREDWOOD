@@ -132,7 +132,7 @@ export class CollisionWorld {
    * forShots: пропускать «прострельные» боксы; skipInvisible: пропускать все невидимые (камера
    * не должна дёргаться о столбы фонарей и кнехты).
    */
-  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, hit: RayHit, forShots: boolean, skipInvisible = false): boolean {
+  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, hit: RayHit, forShots: boolean, skipInvisible = false, includeTerrain = false): boolean {
     const ix = dx !== 0 ? 1 / dx : Infinity;
     const iy = dy !== 0 ? 1 / dy : Infinity;
     const iz = dz !== 0 ? 1 / dz : Infinity;
@@ -189,6 +189,12 @@ export class CollisionWorld {
         found = i;
         axis = a;
       }
+    }
+    // Camera-only opt-in preserves all previous shot/box callers and maps without a surface.
+    if (includeTerrain && this.terrain?.raycast && (this.terrain.enabledBy === undefined || !this.away.has(this.terrain.enabledBy))
+      && this.terrain.raycast(ox, oy, oz, dx, dy, dz, best, hit)) {
+      hit.box = -2;
+      return true;
     }
     if (found < 0) return false;
     hit.t = best;

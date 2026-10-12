@@ -1,6 +1,6 @@
 // Exact Last Light support from v2 GLB. All coordinates in the packed data are island-local.
 // A two-metre spatial index limits each query to the triangles touching that cell.
-import type { MapTerrain } from './types.ts';
+import type { MapTerrain, TerrainRayHit } from './types.ts';
 import { ISLE_SURFACE_POINTS, ISLE_SURFACE_INDICES, ISLE_SURFACE_KINDS } from './isleterrain-data.ts';
 import { ISLE_CENTER, ISLE_Y } from './isle.ts';
 
@@ -55,6 +55,57 @@ function query(u: number, v: number, mode: 0 | 1 | 2 | 3, ceiling = Infinity, fe
 
 export function isleSurfaceHeight(u: number, v: number, ceiling = Infinity): number { return query(u, v, 0, ceiling); }
 
+const raySeen = new Uint32Array(kinds.length);
+let rayStamp = 0;
+
+/** Short camera segment only: walk its 2m cells and intersect their triangles, with no per-ray allocations. */
+function surfaceRaycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, hit: TerrainRayHit): boolean {
+  if (!(maxT > 0) || !Number.isFinite(maxT) || (dx === 0 && dy === 0 && dz === 0)) return false;
+  const ex = ox + dx * maxT, ez = oz + dz * maxT;
+  if (Math.max(ox, ex) < -170 || Math.min(ox, ex) > 260 || Math.max(oz, ez) < -125 || Math.min(oz, ez) > 100) return false;
+  rayStamp = (rayStamp + 1) >>> 0;
+  if (rayStamp === 0) { raySeen.fill(0); rayStamp = 1; }
+  let best = maxT, found = false;
+  let x = Math.floor(ox / C), z = Math.floor(oz / C);
+  const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+  const deltaX = dx === 0 ? Infinity : C / Math.abs(dx), deltaZ = dz === 0 ? Infinity : C / Math.abs(dz);
+  let nextX = dx === 0 ? Infinity : ((dx > 0 ? x + 1 : x) * C - ox) / dx;
+  let nextZ = dz === 0 ? Infinity : ((dz > 0 ? z + 1 : z) * C - oz) / dz;
+  let entered = 0;
+  while (entered <= best) {
+    const candidates = grid.get(cellKey(x, z));
+    if (candidates) for (const i of candidates) {
+      const id = i / 3;
+      if (raySeen[id] === rayStamp) continue;
+      raySeen[id] = rayStamp;
+      const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+      const abx = points[b] - points[a], aby = points[b + 1] - points[a + 1], abz = points[b + 2] - points[a + 2];
+      const acx = points[c] - points[a], acy = points[c + 1] - points[a + 1], acz = points[c + 2] - points[a + 2];
+      const px = dy * acz - dz * acy, py = dz * acx - dx * acz, pz = dx * acy - dy * acx;
+      const det = abx * px + aby * py + abz * pz;
+      if (Math.abs(det) < 1e-10) continue;
+      const inv = 1 / det, tx = ox - points[a], ty = oy - points[a + 1], tz = oz - points[a + 2];
+      const u = (tx * px + ty * py + tz * pz) * inv;
+      if (u < -1e-7 || u > 1 + 1e-7) continue;
+      const qx = ty * abz - tz * aby, qy = tz * abx - tx * abz, qz = tx * aby - ty * abx;
+      const v = (dx * qx + dy * qy + dz * qz) * inv;
+      if (v < -1e-7 || u + v > 1 + 1e-7) continue;
+      const t = (acx * qx + acy * qy + acz * qz) * inv;
+      if (t <= 1e-6 || t >= best || oy + dy * t <= 0.12) continue;
+      best = t; found = true; hit.t = t;
+      const nx = aby * acz - abz * acy, ny = abz * acx - abx * acz, nz = abx * acy - aby * acx;
+      const len = Math.hypot(nx, ny, nz); hit.nx = nx / len; hit.ny = ny / len; hit.nz = nz / len;
+    }
+    const next = Math.min(nextX, nextZ);
+    if (next > best) break;
+    // On a grid corner visit the X-neighbour first, then the diagonal at the same t.
+    // Boundary triangles are indexed in both touching cells by their inclusive bounds.
+    if (nextX <= nextZ) { entered = nextX; x += sx; nextX += deltaX; }
+    else { entered = nextZ; z += sz; nextZ += deltaZ; }
+  }
+  return found;
+}
+
 /** The sentinel is the first island collision box: existing feature toggles disable both boxes and support. */
 export function isleTerrain(enabledBy: number): MapTerrain {
   return {
@@ -63,5 +114,6 @@ export function isleTerrain(enabledBy: number): MapTerrain {
     blocks: (x, y, z, height) => query(x - ISLE_CENTER.x, z - ISLE_CENTER.z, 1, Infinity, y - ISLE_Y, y + height - ISLE_Y) !== -Infinity,
     ceiling: (x, z, head) => query(x - ISLE_CENTER.x, z - ISLE_CENTER.z, 2, Infinity, -Infinity, head - ISLE_Y) + ISLE_Y,
     walkable: (x, z) => query(x - ISLE_CENTER.x, z - ISLE_CENTER.z, 3) === 1,
+    raycast: (ox, oy, oz, dx, dy, dz, maxT, hit) => surfaceRaycast(ox - ISLE_CENTER.x, oy - ISLE_Y, oz - ISLE_CENTER.z, dx, dy, dz, maxT, hit),
   };
 }

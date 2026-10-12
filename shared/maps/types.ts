@@ -54,8 +54,17 @@ export interface MapTerrain {
   blocks?(x: number, y: number, z: number, height: number): boolean;
   ceiling?(x: number, z: number, head: number): number;
   walkable?(x: number, z: number): boolean;
+  /** Explicit camera query against the same visible surface; t uses the caller's unnormalised direction. */
+  raycast?(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, hit: TerrainRayHit): boolean;
   /** An existing collision box controls the same feature flag as the surface. */
   enabledBy?: number;
+}
+
+export interface TerrainRayHit {
+  t: number;
+  nx: number;
+  ny: number;
+  nz: number;
 }
 
 export interface GameMap {

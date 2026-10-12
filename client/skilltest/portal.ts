@@ -15,8 +15,10 @@ export class SkillPortal {
   private readonly texture: THREE.CanvasTexture | null = null;
   private lastStatus = '';
   /** label = false — арка без таблички: заголовок и строка статуса — на облаке-вывеске нового оформления площади. */
-  constructor(scene: THREE.Scene, x = -10, z = -12.8, label = true) {
+  constructor(scene: THREE.Scene, x = -10, z = -12.8, label = true, frame = true) {
     this.scene = scene; this.root.position.set(x, 0, z);
+    // plaza3 уже рисует облачную арку моделью: контроллер статуса не добавляет вторую раму внутри неё.
+    if (!frame) return;
     const stone = new THREE.MeshStandardMaterial({ color: 0xc8e9ed, roughness: 0.6 });
     const blue = new THREE.MeshStandardMaterial({ color: 0x6eafd0, emissive: 0x153344, roughness: 0.65 });
     const box = new THREE.BoxGeometry(1, 1, 1);

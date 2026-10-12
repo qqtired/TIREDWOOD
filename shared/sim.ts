@@ -273,7 +273,8 @@ function moveHorizontal(s: PlayerState, w: CollisionWorld, axis: 0 | 2, d: numbe
         const nz = axis === 2 ? s.z + raised : s.z;
         const down = sweep(w, nx, ry, nz, 1, -up);
         const ny = ry + down;
-        if (ny > s.y + 1e-4) {
+        // Exact triangle support can rise by less than the old box-step deadband near a flat seam.
+        if (ny > s.y + (w.lastHit === -2 ? EPS : 1e-4)) {
           ev.stepUp += ny - s.y;
           s.x = nx;
           s.z = nz;

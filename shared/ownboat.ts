@@ -79,7 +79,9 @@ export const PARK_BERTHS: readonly Berth[] = [-1, 1].flatMap((side) => SLIP_Z.ma
   x: PARK.x + side * 1.3, z: PARK.z + z, yaw: (side * Math.PI) / 2, px: PARK.x + side * 0.84, pz: PARK.z + z, py: PARK_DECK_Y,
 })));
 /** Берты причала острова (пакет острова, shared/maps/isle.ts): корма у понтона, нос на юг; центр = точка + вперёд × L/2 */
-export const ISLE_DOCK: readonly Berth[] = ISLE_BERTHS.map((b) => ({ ...b, px: b.x, pz: b.z - 1, py: b.y + 0.4 }));
+// Free standing points on the actual pontoon: 0.5m behind the sign posts.
+// The first berth also stays 1m east of the gangway's terminal handrail; the boat itself keeps its original berth.
+export const ISLE_DOCK: readonly Berth[] = ISLE_BERTHS.map((b, i) => ({ ...b, px: b.x + (i === 0 ? 1 : 0), pz: b.z - 1.5, py: b.y + 0.4 }));
 /** Все берты подряд: 0–9 — стоянка, 10–15 — остров */
 export const BERTHS: readonly Berth[] = [...PARK_BERTHS, ...ISLE_DOCK];
 export const PARK_COUNT = PARK_BERTHS.length;
@@ -137,10 +139,10 @@ export function berthPose(b: number, kind: BoatKind, out: BoatPose = { x: 0, z: 
   return out;
 }
 
-/** Куда ставим сошедшего на берег у берта b: на настил у таблички (у острова — точка высадки) */
+/** Куда ставим сошедшего на берег у берта b: на свободный настил рядом с его табличкой. */
 export function berthLanding(b: number): { x: number; y: number; z: number; yaw: number } {
-  if (!isParkBerth(b)) return { ...ISLE_LANDING };
   const t = BERTHS[b];
+  if (!isParkBerth(b)) return { x: t.px, y: t.py, z: t.pz, yaw: ISLE_LANDING.yaw };
   // на мостике, лицом к площадке дома
   return { x: PARK.x + (t.px - PARK.x) * 0.4, y: PARK_DECK_Y, z: t.pz, yaw: 0 };
 }

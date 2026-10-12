@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { dressFarSilhouette } from '../client/lobby/isle/island3d.ts';
+
+test('actual far island GLB сохраняет геометрию/палитру и fade, но использует Basic без солнечного освещения/тумана', async () => {
+  const bytes = readFileSync(new URL('../client/assets/isle/island-terrain.glb', import.meta.url));
+  const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
+  const root = gltf.scene.getObjectByName('island_silhouette')!;
+  assert.ok(root && root.userData.hidden_with_full_island);
+  const mesh = root as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  const geometry = mesh.geometry, positions = geometry.getAttribute('position'), colors = geometry.getAttribute('color'), indices = geometry.index;
+  const originalMaterial = mesh.material, originalColor = originalMaterial.color.clone();
+  const palette = Array.from(colors.array);
+  const neighbour = new THREE.Mesh(new THREE.BoxGeometry(), originalMaterial);
+  root.position.set(-950, -1.25, 180); root.updateMatrixWorld(true);
+  const matrix = root.matrixWorld.clone();
+  const faded = dressFarSilhouette(root)!;
+  const material = mesh.material as unknown as THREE.MeshBasicMaterial;
+  assert.equal(material.type, 'MeshBasicMaterial'); assert.equal(material.vertexColors, true);
+  assert.equal(material.fog, false); assert.equal(material.toneMapped, true);
+  assert.equal(material.transparent, false); assert.equal(material.depthWrite, true);
+  assert.ok(material.color.equals(originalColor));
+  assert.equal(mesh.geometry, geometry); assert.equal(geometry.getAttribute('position'), positions); assert.equal(geometry.index, indices);
+  assert.deepEqual(Array.from(colors.array), palette, 'включая бело-красную башню — исходные vertex colors без recolor');
+  assert.deepEqual(root.matrixWorld.elements, matrix.elements);
+  assert.equal(indices!.count / 3, 2534, 'прежний единственный дальний mesh');
+  assert.equal(neighbour.material, originalMaterial); assert.ok(originalMaterial.color.equals(originalColor));
+  assert.equal(mesh.castShadow, false); assert.equal(mesh.receiveShadow, false);
+  const shader = { uniforms: {}, vertexShader: THREE.ShaderLib.basic.vertexShader, fragmentShader: THREE.ShaderLib.basic.fragmentShader } as Parameters<THREE.Material['onBeforeCompile']>[0];
+  faded.material.onBeforeCompile(shader, {} as THREE.WebGLRenderer);
+  const key = faded.material.customProgramCacheKey(); faded.fade.value = .42;
+  assert.equal((shader.uniforms.p3Fade as { value: number }).value, .42);
+  assert.equal(faded.material.customProgramCacheKey(), key); assert.equal(shader.fragmentShader.match(/uniform float p3Fade;/g)?.length, 1);
+});

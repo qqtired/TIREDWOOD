@@ -123,6 +123,24 @@ function prepared(src: THREE.BufferGeometry, m: THREE.Matrix4, keep: readonly st
   return g.applyMatrix4(m);
 }
 
+/** Дальний остров читается своей палитрой: солнечная засветка Standard не растворяет башню в горизонте. */
+export function dressFarSilhouette(root: THREE.Object3D): FadingMaterial | null {
+  let last: FadingMaterial | null = null;
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || Array.isArray(m.material)) return;
+    const source = m.material as THREE.MeshStandardMaterial;
+    const material = new THREE.MeshBasicMaterial({
+      name: 'isle_far_silhouette', color: source.color.clone(), side: source.side,
+      vertexColors: true, fog: false, toneMapped: true,
+    });
+    last = fadingMaterial(material);
+    m.material = last.material;
+    m.castShadow = m.receiveShadow = false;
+  });
+  return last;
+}
+
 interface Lit {
   per: number;
   ph: number;
@@ -337,15 +355,7 @@ export class Island3D {
     if (this.bell) this.bellBase.copy(this.bell.quaternion);
     if (this.silhouette) {
       this.root.attach(this.silhouette);
-      this.silhouette.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh || Array.isArray(m.material)) return;
-        const faded = fadingMaterial(m.material);
-        (faded.material as THREE.MeshStandardMaterial).fog = false;
-        m.material = faded.material;
-        this.silhouetteFade = faded;
-        m.castShadow = m.receiveShadow = false;
-      });
+      this.silhouetteFade = dressFarSilhouette(this.silhouette);
       this.silhouette.visible = false;
     }
     this.buildLabels(labels);

@@ -1,12 +1,13 @@
 // Окно Дядюшки Гриба (lab/ui/screens/farm.js «Дядюшка Гриб: продать урожай»): «Продать» — счётчик продаж за сегодня
 // с понятной фразой, строки сумки с ценой (репутация и бафф внутри, без дневного снижения) и одной кнопкой «Продать»; то, что
-// сейчас ждёт Фургон, помечено — не продашь по ошибке дёшево; внизу «Продать всё» одной суммой. «Опыт за ресурсы» — кладовая
+// сейчас ждёт Фургон, помечено его текущей выплатой; внизу «Продать всё» одной суммой. «Опыт за ресурсы» — кладовая
 // в опыт фермы: степпер на строку (по умолчанию — свободное, что не нужно на улучшения), итог и «Превратить».
 // Решает сервер: окно только просит ({t:'farm', a:'sell'|'convert'}).
 import { farmLevel, hasBuff, repBonus, repLevel, saleUnit, upgradeStep } from '../../../shared/farm.ts';
 import { BUFFS, CROPS, REP_LEVELS, RESOURCES, TRUFFLE, TRUFFLE_PRICE, UPGRADES, cropById, type CropDef } from '../../../shared/farmdata.ts';
 import { vanTime } from '../../../shared/farmvan.ts';
-import { C, FarmWin, dec, fi, resIconName, soldToday } from './common.ts';
+import { C, FarmWin, fi, resIconName, soldToday } from './common.ts';
+import { gribPayment, gribTotal, priceNumber, vanPayment } from './price-model.ts';
 
 interface Line {
   item: string;
@@ -62,6 +63,14 @@ export class GribWin extends FarmWin {
     return out;
   }
 
+  private vanHint(item: string): string {
+    if (!vanTime(this.host.now).open) return '';
+    const offer = this.host.van()?.slots.find(s => s.offer?.item === item && !s.done)?.offer;
+    if (!offer) return '';
+    const pay = vanPayment(this.host.f, offer, this.host.now);
+    return `<span class="k-pill k-pill--info k-pill--sm farm-row-van">${fi('van')}Фургон: ${C()}${pay.coins} за ${offer.n} шт.</span>`;
+  }
+
   private drawSell(body: HTMLElement, lines: Line[], pieces: number): void {
     const f = this.host.f;
     const now = this.host.now;
@@ -73,29 +82,39 @@ export class GribWin extends FarmWin {
       <div class="k-cell farm-cash">
         <div class="farm-cash-top"><b>Продано сегодня</b><span class="k-gold" data-live="sold">${this.salesText(sold)}</span></div>
         <p class="k-dim">Цена сохраняется при любых продажах</p>
-        ${pills.length ? `<div class="farm-cash-pills">${pills.join('')}</div>` : ''}
+        <div class="farm-cash-pills" data-price-bonuses>${pills.join('')}</div>
       </div>`;
+    this.live('[data-price-bonuses]', () => {
+      const current = this.host.f, pills: string[] = [];
+      if (repBonus(current.rep) > 0) pills.push(`<span class="k-pill k-pill--good k-pill--sm">Репутация «${REP_LEVELS[repLevel(current.rep) - 1].name}» +${Math.round(repBonus(current.rep) * 100)} %</span>`);
+      if (hasBuff(current, 'price', this.host.now)) pills.push(`<span class="k-pill k-pill--gold k-pill--sm">Бафф Древа +${Math.round((BUFFS.price.mult - 1) * 100)} %</span>`);
+      return pills.join('');
+    });
+    this.live('[data-live=sold]', () => this.salesText(Math.floor(soldToday(this.host.f, this.host.now))));
     if (!lines.length) {
       body.innerHTML = `<div class="farm-pane">${cash}<div class="farm-empty">${fi('bag', 'farm-empty-ic')}<p class="farm-lead k-dim">Сумка пуста — собери урожай и приходи.</p></div></div>`;
       this.setFoot('');
       return;
     }
-    const van = this.host.van();
-    const vanOpen = !!van && vanTime(now).open;
     const rows = lines.map((l) => {
-      const offer = vanOpen ? van!.slots.find((x) => x.offer?.item === l.item && !x.done)?.offer : undefined;
+      const vanHint = this.vanHint(l.item);
       return `
         <div class="k-cell farm-row">
           ${fi(l.iconName, 'farm-row-ic')}
-          <div class="farm-row-main"><div class="farm-row-t">${l.name} <b>× ${l.n}</b></div><div class="farm-row-s k-dim">${dec(l.unit)} ${C()} за штуку</div></div>
-          ${offer ? `<span class="k-pill k-pill--info k-pill--sm farm-row-van">${fi('van')}Фургон даст ×${dec(offer.mult)}</span>` : '<span></span>'}
-          <button class="k-btn k-btn--sm${offer ? ' k-btn--ghost' : ''}" type="button" data-sell="${l.item}" data-n="${l.n}" data-sfx="reward">Продать<small>${C()}${Math.floor(l.all)}</small></button>
+          <div class="farm-row-main"><div class="farm-row-t">${l.name} <b>× ${l.n}</b></div><div class="farm-row-s k-dim" data-price-unit="${l.item}">${priceNumber(l.unit)} ${C()} за штуку</div></div>
+          <span data-price-van="${l.item}">${vanHint}</span>
+          <button class="k-btn k-btn--sm${vanHint ? ' k-btn--ghost' : ''}" type="button" data-sell="${l.item}" data-n="${l.n}" data-sfx="reward">Продать<small data-price-sell="${l.item}">${C()}${gribPayment(f, l.item, l.n, now)}</small></button>
         </div>`;
     }).join('');
     body.innerHTML = `<div class="farm-pane">${cash}<div class="farm-rows">${rows}</div></div>`;
-    const total = Math.floor(lines.reduce((a, l) => a + l.all, 0));
-    this.setFoot(`<span class="k-note">${lines.length} ${lines.length === 1 ? 'вид' : lines.length < 5 ? 'вида' : 'видов'} · ${pieces} шт. в сумке</span><button class="k-btn k-btn--lg" type="button" data-all data-sfx="reward">Продать всё<small>${C()}${total}</small></button>`);
-    this.live('[data-live=sold]', () => this.salesText(Math.floor(soldToday(this.host.f, this.host.now))));
+    const total = gribTotal(f, lines, now);
+    this.setFoot(`<span class="k-note">${lines.length} ${lines.length === 1 ? 'вид' : lines.length < 5 ? 'вида' : 'видов'} · ${pieces} шт. в сумке</span><button class="k-btn k-btn--lg" type="button" data-all data-sfx="reward">Продать всё<small data-price-total>${C()}${total}</small></button>`);
+    for (const l of lines) {
+      this.live(`[data-price-unit="${l.item}"]`, () => `${priceNumber(l.item === TRUFFLE ? TRUFFLE_PRICE : saleUnit(this.host.f, cropById(l.item)!, this.host.now))} ${C()} за штуку`);
+      this.live(`[data-price-sell="${l.item}"]`, () => `${C()}${gribPayment(this.host.f, l.item, l.n, this.host.now)}`);
+      this.live(`[data-price-van="${l.item}"]`, () => this.vanHint(l.item));
+    }
+    this.live('[data-price-total]', () => `${C()}${gribTotal(this.host.f, lines, this.host.now)}`);
     this.onClick('[data-sell]', (b) => this.host.sell(b.dataset.sell!, Number(b.dataset.n)));
     this.onClick('[data-all]', () => lines.forEach((l, i) => window.setTimeout(() => this.host.sell(l.item, l.n), i * GAP_MS)));
   }

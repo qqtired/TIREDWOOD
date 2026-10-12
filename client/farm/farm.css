@@ -32,13 +32,14 @@ dialog.k-scrim.farm-scrim--clear { background: transparent; }
 
 /* шаг обучения — одна карточка-задание */
 .farm-quest { width: 292px; padding: 9px 12px 11px; border-radius: var(--r-md); }
+.farm-quest-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
 .farm-quest .k-eyebrow { font-size: var(--fs-13); }
 .farm-quest-t { margin: 5px 0 8px; font: 600 var(--fs-14)/1.35 var(--font-text); }
 .farm-quest-steps { display: flex; gap: 4px; }
 .farm-quest-steps i { flex: 1; height: 5px; border-radius: var(--r-pill); background: var(--track); }
 .farm-quest-steps i.is-done { background: var(--good); }
 .farm-quest-steps i.is-cur { background: var(--gold); }
-.farm-quest-prize.k-pill--sm { position: absolute; top: 7px; right: 9px; min-height: 22px; padding: 2px 8px; font-size: var(--fs-13); }
+.farm-quest-prize.k-pill--sm { min-height: 22px; padding: 2px 8px; font-size: var(--fs-13); }
 
 /* ------------------------------------------------ ВП: плитки кита — лейка, колодец, сумка, созрело, помощь (своего CSS не нужно) */
 

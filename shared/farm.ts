@@ -73,6 +73,8 @@ export interface FarmProgress {
   firstPlanted: string[];
   /** Шаг обучения Семечкина: 0–5 — текущий, 6 — пройдено, −1 — закрыто крестиком */
   tutorial: number;
+  /** Уже оплаченный префикс шагов (0–6); повтор подсказок его не сбрасывает. */
+  tutorialRewarded: number;
   look: FarmLook;
   identity: { name: string; icon: string };
   /** Убранство (эмоции, титулы, рамки, скины инструментов, вещи участка): id из FARM_DECOR */
@@ -96,7 +98,7 @@ export function emptyFarm(now: number): FarmProgress {
     v: 2, xp: 0, beds: Array.from({ length: 3 }, emptyBed), tools: { rake: 1, can: 1, shovel: 1, bag: 1 }, water: 0, bag: {}, cellar: {},
     built: { compost: false, bees: false, pig: null }, rep: 0, repHelpDay: '', repHelpToday: 0,
     help: { points: 0, resetAt: 0, coinsBy: {} }, orders: { day: '', list: [], rerolls: 0 }, van: { cycle: -1, done: [] },
-    well: { sets: WELL_SETS, since: now }, buffs: [], counters: {}, achievements: [], firstPlanted: [], tutorial: 0,
+    well: { sets: WELL_SETS, since: now }, buffs: [], counters: {}, achievements: [], firstPlanted: [], tutorial: 0, tutorialRewarded: 0,
     look: {}, identity: { name: '', icon: 'radish' }, decor: [], generalXpDay: '', generalXpToday: 0, lastDay: '', streak: 0, sold: { day: '', coins: 0, frac: 0 },
   };
 }
@@ -225,6 +227,9 @@ export function normalizeFarm(raw: unknown, now = Date.now()): FarmProgress {
   f.achievements = strList(r.achievements, 100);
   f.firstPlanted = strList(r.firstPlanted, CROPS.length).filter((id) => !!cropById(id));
   f.tutorial = int(r.tutorial, -1, TUTORIAL_STEPS, 0);
+  // Старый закрытый tutorial утратил прежний шаг: консервативно считаем награды полученными.
+  // Явный marker нового профиля (в том числе 0 при закрытии до первого шага) сохраняется.
+  f.tutorialRewarded = int(r.tutorialRewarded, 0, TUTORIAL_STEPS, f.tutorial < 0 ? TUTORIAL_STEPS : f.tutorial);
   const l = obj(r.look);
   f.look = {};
   for (const k of ['title', 'frame', 'can', 'shovel', 'fence', 'decor'] as const) if (typeof l[k] === 'string') f.look[k] = str(l[k]);
@@ -654,6 +659,8 @@ export function tutorialEvent(f: FarmProgress, ev: TutorialEvent): { step: numbe
   const step = f.tutorial;
   if (step < 0 || step >= TUTORIAL_STEPS || TUTORIAL_EVENTS[step] !== ev) return null;
   f.tutorial = step + 1;
+  if (f.tutorialRewarded >= step + 1) return { step: step + 1, xp: 0, coins: 0 };
+  f.tutorialRewarded = step + 1;
   return { step: step + 1, xp: TUTORIAL_XP[step], coins: step + 1 === TUTORIAL_STEPS ? TUTORIAL_COINS : 0 };
 }
 

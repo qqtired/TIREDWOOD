@@ -243,6 +243,9 @@ test('ящик падает в 40 % случаев в поле за стеной
 
 test('ящик в игре: снимок несёт где он; подобрал — золото каждому защитнику', () => {
   const game = new FortGame();
+  // Проверяем снимок и осознанный подбор по E. Случайная посадка прямо под игроком
+  // подбирается касанием в тот же тик и не обязана оставлять промежуточный CRATE_DOWN.
+  Object.defineProperty(game, 'rng', { value: makeRng(7) });
   const sink = { sendJson() {}, sendBinary() {}, close() {} };
   const a = game.addHuman({ pid: 1, nick: 'Tester4', outfit: DEFAULT_OUTFIT }, sink as never)!;
   const b = game.addHuman({ pid: 2, nick: 'Друг', outfit: DEFAULT_OUTFIT }, sink as never)!;

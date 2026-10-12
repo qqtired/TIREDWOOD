@@ -1,7 +1,7 @@
 // Окно Семечкина (lab/ui/screens/farm.js «Семечкин: каталог семян»): «Культуры» — крупные карточки (картинка, рост и опыт,
 // «семя → продажа», ресурс; закрытые — силуэтом с уровнем, ближайшая названа), «Скоро» — что откроет следующий уровень,
-// «Обучение» — шесть шагов, пока не пройдено. Сажают теперь у грядки поясом семян (ui/belt.ts), окно — для знакомства.
-import { cropOpen, farmLevel, farmLevelInfo, growMs, seedPrice } from '../../../shared/farm.ts';
+// «Обучение» — шесть подсказок с однократными наградами. Сажают у грядки поясом семян (ui/belt.ts).
+import { cropOpen, farmLevel, farmLevelInfo, growMs } from '../../../shared/farm.ts';
 import {
   CROPS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, FARM_XP_TOTAL, TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, BEES_BONUS, type CropDef,
 } from '../../../shared/farmdata.ts';
@@ -9,6 +9,7 @@ import { keyHtml } from '../../ui/kit/dom.ts';
 import { C, FarmWin, TUTORIAL_TEXT, big, fi, fmtMin, meter, resIconName, resName, ui } from './common.ts';
 import { levelOpens } from './levels.ts';
 import { UPGRADE_ICON, rewardIcon, rewardName } from './names.ts';
+import { priceNumber, seedPrices, tutorialRewards } from './price-model.ts';
 
 export class SeedsWin extends FarmWin {
   protected firstTab(): string {
@@ -18,15 +19,13 @@ export class SeedsWin extends FarmWin {
   protected draw(body: HTMLElement): void {
     const f = this.host.f;
     const level = farmLevel(f.xp);
-    const showTut = f.tutorial < TUTORIAL_STEPS;
-    if (this.tab === 'tut' && !showTut) this.tab = 'crops';
     if (!['crops', 'next', 'tut'].includes(this.tab)) this.tab = 'crops';
     const open = CROPS.filter((c) => cropOpen(c, level)).length;
     const done = f.tutorial < 0 ? 0 : Math.min(TUTORIAL_STEPS, f.tutorial);
     this.setTabs([
       { id: 'crops', icon: fi('radish'), label: 'Культуры', count: `${open} из ${CROPS.length}` },
       { id: 'next', icon: fi('strawberry'), label: 'Скоро' },
-      ...(showTut ? [{ id: 'tut', icon: ui('scroll'), label: 'Обучение', count: `${done} из ${TUTORIAL_STEPS}` }] : []),
+      { id: 'tut', icon: ui('scroll'), label: 'Обучение', count: `${done} из ${TUTORIAL_STEPS}` },
     ]);
     if (this.tab === 'next') this.drawNext(body);
     else if (this.tab === 'tut') this.drawTutorial(body);
@@ -48,6 +47,8 @@ export class SeedsWin extends FarmWin {
         </div>`;
     }
     const gift = !f.firstPlanted.includes(c.id);
+    const prices = seedPrices(f, c, this.host.now);
+    this.live(`[data-seed-sale="${c.id}"]`, () => priceNumber(seedPrices(this.host.f, c, this.host.now).sale));
     const chance = Math.round((c.chance + (f.built.bees ? BEES_BONUS : 0)) * 100);
     const got = f.counters[`h:${c.id}`] ?? 0;
     return `
@@ -56,7 +57,8 @@ export class SeedsWin extends FarmWin {
         ${fi(c.icon, 'farm-crop-ic')}
         <div class="farm-crop-name">${c.name}</div>
         <div class="farm-crop-row"><b>${fmtMin(Math.max(1, Math.round(growMs(f, c, this.host.now) / 60_000)))}</b><span class="k-gold">+${c.xp} опыта</span></div>
-        <div class="farm-crop-row"><span class="farm-price">${C()}${gift ? 0 : seedPrice(f, c)} <i>→</i> ${C()}${c.sale}</span></div>
+        <div class="farm-crop-row"><span class="farm-price">Семя ${C()}${prices.seed}</span></div>
+        <div class="farm-crop-row"><span class="farm-price">Гриб сейчас ${C()}<span data-seed-sale="${c.id}">${priceNumber(prices.sale)}</span></span></div>
         <div class="farm-crop-row k-dim">${fi(resIconName(c.res))}${resName(c.res)} ${chance} %</div>
         ${got ? `<div class="farm-crop-own k-faint">собрано: ${got}</div>` : ''}
       </div>`;
@@ -108,13 +110,19 @@ export class SeedsWin extends FarmWin {
     const rows = TUTORIAL_TEXT.map((text, i) => {
       const done = f.tutorial >= 0 && i < f.tutorial;
       const cur = f.tutorial === i;
-      const prize = i === TUTORIAL_STEPS - 1 ? `+${TUTORIAL_XP[i]} опыта и ${TUTORIAL_COINS} ${C()}` : `+${TUTORIAL_XP[i]} опыта`;
-      return `<div class="k-cell farm-step${done ? ' is-done' : ''}${cur ? ' is-cur' : ''}"><span class="k-place">${i + 1}</span><span class="farm-step-t">${text.replace(/\bE\b/g, keyHtml('E', undefined, 'sm'))}</span><span class="k-pill k-pill--sm ${done ? 'k-pill--good' : cur ? 'k-pill--gold' : ''}">${done ? 'готово · ' : ''}${prize}</span></div>`;
+      const paid = i < f.tutorialRewarded;
+      const prize = paid ? 'Награда получена' : i === TUTORIAL_STEPS - 1 ? `+${TUTORIAL_XP[i]} опыта и ${TUTORIAL_COINS} ${C()}` : `+${TUTORIAL_XP[i]} опыта`;
+      return `<div class="k-cell farm-step${done ? ' is-done' : ''}${cur ? ' is-cur' : ''}"><span class="k-place">${i + 1}</span><span class="farm-step-t">${text.replace(/\bE\b/g, keyHtml('E', undefined, 'sm'))}</span><span class="k-pill k-pill--sm ${paid || done ? 'k-pill--good' : cur ? 'k-pill--gold' : ''}">${prize}</span></div>`;
     }).join('');
-    const closed = f.tutorial < 0;
+    const closed = f.tutorial < 0 || f.tutorial >= TUTORIAL_STEPS;
+    const rewards = tutorialRewards(f.tutorialRewarded);
+    const rewardText = rewards.steps
+      ? `Осталось получить: +${rewards.xp} опыта${rewards.coins ? ` и ${rewards.coins} ${C()}` : ''} за ${rewards.steps} ${rewards.steps === 1 ? 'шаг' : rewards.steps < 5 ? 'шага' : 'шагов'}.`
+      : 'Все награды получены. Шесть подсказок можно повторить.';
     body.innerHTML = `
       <div class="farm-pane farm-steps">
-        ${closed ? `<p class="farm-lead k-dim">Подсказки закрыты. Хочешь — вернём: ${TUTORIAL_STEPS} шагов и награда в конце.</p><button class="k-btn k-btn--go farm-tut-btn" type="button" data-tut="open">Начать обучение заново</button>` : ''}
+        <p class="farm-lead k-dim">${closed ? (f.tutorial < 0 ? 'Подсказки закрыты. ' : 'Обучение завершено. ') : ''}${rewardText}</p>
+        ${closed ? '<button class="k-btn k-btn--go farm-tut-btn" type="button" data-tut="open">Повторить подсказки</button>' : ''}
         ${rows}
         ${!closed && f.tutorial < TUTORIAL_STEPS ? '<button class="k-btn k-btn--ghost k-btn--sm farm-tut-btn" type="button" data-tut="close">Закрыть подсказки</button>' : ''}
       </div>`;

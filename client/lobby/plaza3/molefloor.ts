@@ -18,6 +18,30 @@ export const MOLE_FLOOR_COLOR = 0xe0c49a;
 /** Двухметровая рампа от нижнего мола к расширенной площадке маяка. */
 export function moleJointY(x: number): number { return MOLE_TOP + Math.max(0, Math.min(0.5, (x + 28) * 0.25)); }
 
+/**
+ * Подложка v1 — два больших треугольника x −62…−24, z 43,5…46,5 на y −0,515.
+ * Подъём восточных вершин при правке стыка растянул её скатом на весь мол: подложка закрыла новый настил.
+ * Возвращаем только этот верх под плиты; рампу рисует moleFloorGeometry, борта и коллизии не меняются.
+ */
+export function recessMoleSupport(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  const pos = geo.getAttribute('position');
+  const normal = geo.getAttribute('normal');
+  const idx = geo.index;
+  for (let i = 0; i < (idx?.count ?? pos.count); i += 3) {
+    const ids = [0, 1, 2].map((k) => idx ? idx.getX(i + k) : i + k);
+    const corner = (v: number): boolean =>
+      (Math.abs(pos.getX(v) + 62) < 1e-4 || Math.abs(pos.getX(v) + 24) < 1e-4) &&
+      (Math.abs(pos.getZ(v) - 43.5) < 1e-4 || Math.abs(pos.getZ(v) - 46.5) < 1e-4) &&
+      pos.getY(v) >= MOLE_TOP - .016 && pos.getY(v) <= -.019;
+    if (!ids.every(corner)) continue;
+    for (const v of ids) {
+      pos.setY(v, MOLE_TOP - .015);
+      normal?.setXYZ(v, 0, 1, 0);
+    }
+  }
+  return geo;
+}
+
 /** Треугольники исходных плит: на поверхности настила/рампы, целиком в одном из полей. */
 export function isMoleSlab(points: readonly (readonly [number, number, number])[]): boolean {
   return points.length === 3 && points.every(([x, y]) => Math.abs(y - moleJointY(x)) < 1e-4) &&

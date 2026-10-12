@@ -14,6 +14,7 @@ import type { Avatar } from '../render/avatar.ts';
 import { Effects } from '../render/effects.ts';
 import type { SceneDeps } from '../scene.ts';
 import { Pond3D } from './3d/pond.ts';
+import { pondTarget, type PondTarget } from './pond-target.ts';
 
 type Self = { id: number; x: number; y: number; z: number };
 
@@ -65,10 +66,15 @@ export class FarmPond {
   }
   get wantsPointer(): boolean { return !this.hud.modalOpen; }
   get blockActions(): boolean { return this.activeSeat !== null || this.hud.modalOpen; }
+  private get target(): PondTarget | null {
+    return this.self ? pondTarget(this.self.x, this.self.z, this.active && this.enabled, this.activeSeat) : null;
+  }
   get nearHint(): string | null {
-    if (!this.active || !this.enabled || !this.self || this.blockActions) return null;
-    if (Math.hypot(this.self.x - POND_USE.x, this.self.z - POND_USE.z) <= POND_USE.r) return 'Рыбак Фома · снасти и улов';
-    return POND_SPOTS.some((s) => Math.hypot(this.self!.x - s.x, this.self!.z - s.z) < 1.65) ? 'Порыбачить · 6 мест' : null;
+    if (this.blockActions) return null;
+    const target = this.target;
+    if (target?.kind === 'npc') return 'Рыбак Фома · снасти и улов';
+    if (target?.kind !== 'seat') return null;
+    return this.seats[target.seat] ? 'Место занято' : 'Порыбачить · 6 мест';
   }
 
   private send(msg: ClientMsg): void {
@@ -140,13 +146,15 @@ export class FarmPond {
       else this.press();
       return true;
     }
-    if (Math.hypot(this.self.x - POND_USE.x, this.self.z - POND_USE.z) <= POND_USE.r) {
+    const target = this.target;
+    if (target?.kind === 'npc') {
       this.hud.requestNpcOpen('pond'); return true;
     }
-    let nearest = -1, distance = 1.65;
-    POND_SPOTS.forEach((s, i) => { const d = Math.hypot(this.self!.x - s.x, this.self!.z - s.z); if (d < distance && !this.seats[i]) { distance = d; nearest = i; } });
-    if (nearest >= 0) { this.d.net.send({ t: 'farmPondSeat', epoch: this.epoch, seat: nearest }); return true; }
-    if (this.nearHint) { this.d.ui.toasts.show('Все 6 мест заняты', 3000); return true; }
+    if (target?.kind === 'seat') {
+      if (this.seats[target.seat]) this.d.ui.toasts.show('Место занято', 3000);
+      else this.d.net.send({ t: 'farmPondSeat', epoch: this.epoch, seat: target.seat });
+      return true;
+    }
     return false;
   }
 

@@ -269,7 +269,7 @@ export class FarmScene implements Scene {
         this.hud.onEvent(e);
         return;
       case 'tut':
-        this.toast({ tone: 'reward', icon: 'ui:scroll', title: `Шаг обучения ${e.step} пройден`, sub: `+${e.xp} опыта${e.coins ? ` · +${e.coins} 🪙` : ''}` });
+        this.toast({ tone: 'reward', icon: 'ui:scroll', title: `Шаг обучения ${e.step} пройден`, sub: e.xp || e.coins ? `+${e.xp} опыта${e.coins ? ` · +${e.coins} 🪙` : ''}` : 'Награда получена' });
         return;
       case 'fill':
         // мини-игра «Набери лейку» (B4, client/farm/well.ts): отсчёты уходят серверу, он и считает долю

@@ -96,7 +96,7 @@ test('спокойные повторяемые текстуры и восемь
     assert.ok(Array.from(uv.array).every(Number.isFinite));
     assert.ok((m.material as THREE.MeshStandardMaterial).map);
   });
-  assert.equal(materials.size, 5, 'пять материалов вместо новой коллекции индивидуальных поверхностей');
+  assert.equal(materials.size, 6, 'пять материалов земли / камня и один общий материал деревянных настилов');
 });
 
 test('наклон, обрыв и одинаковый ввод: шаг и прыжок остаются прежними', () => {

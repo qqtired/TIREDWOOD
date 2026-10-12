@@ -1,13 +1,14 @@
 // Окно «Заказы» (lab/ui/screens/farm.js «Заказы: Фургон и доска заказов в одном окне»): две вкладки, открывается от Фургона
-// или от доски сразу на нужной. «Фургон» — шапка «приехал, уедет в 15:00» с таймером и кассой, ящики-карточки: сколько нужно,
-// сколько в сумке, во сколько раз дороже Гриба; почему нельзя — отдельной строкой, а не текстом на кнопке; закрытые слоты
+// или от доски сразу на нужной. «Фургон» — время приезда/отъезда, ящики-карточки: сколько нужно,
+// сколько в сумке, текущая выплата и разница с Грибом; почему нельзя — отдельной строкой; закрытые слоты
 // с причиной. «Доска заказов» — три личные карточки: цель, прогресс, награда, «Забрать», «Заменить». Ящики и замки приходят
 // от сервера (farmVan, shared/farmsys.ts), заказы лежат в профиле (FarmProgress.orders); решает сервер.
 import { farmLevel, type FarmOrder } from '../../../shared/farm.ts';
-import { DAILY_CAP, ORDER_TEMPLATES, REP_LEVELS, TRUFFLE, VAN_MAX_SLOTS, VAN_SLOTS_BY_LEVEL, cropById, type OrderKind } from '../../../shared/farmdata.ts';
+import { ORDER_TEMPLATES, REP_LEVELS, TRUFFLE, VAN_MAX_SLOTS, VAN_SLOTS_BY_LEVEL, cropById, type OrderKind } from '../../../shared/farmdata.ts';
 import { orderReady, ordersResetAt } from '../../../shared/farmorders.ts';
-import { vanTime } from '../../../shared/farmvan.ts';
-import { C, FarmWin, big, clockHour, dec, fi, fmtLeft, meter, mskHour, soldToday, ui } from './common.ts';
+import { vanTime, type VanOffer } from '../../../shared/farmvan.ts';
+import { C, FarmWin, clockHour, fi, fmtLeft, meter, mskHour, ui } from './common.ts';
+import { priceNumber, vanPayment } from './price-model.ts';
 
 const KIND: Record<OrderKind, [label: string, icon: string]> = {
   grow: ['Вырасти', 'wheat'],
@@ -53,6 +54,12 @@ export class OrdersWin extends FarmWin {
 
   // ------------------------------------------------------------ Фургон
 
+  private cratePay(offer: VanOffer): string {
+    const pay = vanPayment(this.host.f, offer, this.host.now);
+    const more = pay.extra === 0 ? 'Как у Гриба' : `${C()}${Math.abs(pay.extra)} ${pay.extra > 0 ? 'больше' : 'меньше'} Гриба`;
+    return `<span class="k-pill k-pill--info k-pill--sm">${more}</span><span class="k-gold"><b>${C()}${pay.coins}</b> за ящик · +${offer.xp} опыта</span><span class="k-dim">${C()}${priceNumber(pay.unit)} за штуку сейчас</span>`;
+  }
+
   private crate(i: number, level: number): string {
     const f = this.host.f;
     const view = this.host.van();
@@ -86,7 +93,7 @@ export class OrdersWin extends FarmWin {
         ${fi(offer.item === TRUFFLE ? 'truffle' : (c?.icon ?? ''), 'farm-crate-ic')}
         <div class="farm-crate-t">${name} <b>× ${offer.n}</b></div>
         ${meter(Math.min(1, have / offer.n), ok ? 'k-meter--good k-meter--lg' : 'k-meter--lg', `в сумке ${Math.min(have, 999)} из ${offer.n}`)}
-        <div class="farm-crate-pay"><span class="k-pill k-pill--info k-pill--sm">×${dec(offer.mult)} к цене Гриба</span><span class="k-gold"><b>${C()}${offer.coins}</b> · +${offer.xp} опыта</span></div>
+        <div class="farm-crate-pay" data-van-price="${i}">${this.cratePay(offer)}</div>
         ${action}
       </div>`;
   }
@@ -96,14 +103,13 @@ export class OrdersWin extends FarmWin {
     const now = this.host.now;
     const level = farmLevel(f.xp);
     const t = vanTime(now);
-    const sold = Math.floor(soldToday(f, now));
     const crates = Array.from({ length: VAN_MAX_SLOTS }, (_, i) => this.crate(i, level)).join('');
     body.innerHTML = `
       <div class="farm-pane">
         <div class="k-cell farm-vanbar">
           ${fi('van', 'farm-vanbar-ic')}
-          <div><div class="farm-vanbar-t" data-live="status"></div><div class="k-dim">${level < VAN_SLOTS_BY_LEVEL[0].level ? `Фургон начнёт брать ящики с ${VAN_SLOTS_BY_LEVEL[0].level} уровня фермы.` : 'Сдай ящик целиком из сумки — платит в 1,3–1,5 раза больше Гриба. Не успел — ничего не теряешь.'}</div></div>
-          <div class="farm-vanbar-timer"><b class="${t.open ? 'k-gold' : 'k-dim'}" data-live="timer"></b><span class="${sold >= DAILY_CAP ? 'k-bad' : 'k-dim'}">${sold >= DAILY_CAP ? 'касса полна — ×0,25' : `касса ${C()}${big(sold)} из ${DAILY_CAP}`}</span></div>
+          <div><div class="farm-vanbar-t" data-live="status"></div><div class="k-dim">${level < VAN_SLOTS_BY_LEVEL[0].level ? `Фургон начнёт брать ящики с ${VAN_SLOTS_BY_LEVEL[0].level} уровня фермы.` : 'Сдай ящик целиком из сумки — получишь жетоны и опыт. Не успел — урожай останется у тебя.'}</div></div>
+          <div class="farm-vanbar-timer"><b class="${t.open ? 'k-gold' : 'k-dim'}" data-live="timer"></b></div>
         </div>
         <div class="farm-crates">${crates}</div>
       </div>`;
@@ -113,6 +119,10 @@ export class OrdersWin extends FarmWin {
       return v.open ? `Фургон приехал — уедет в ${h}` : `Фургон уехал — приедет в ${h}`;
     });
     this.live('[data-live=timer]', () => fmtLeft(vanTime(this.host.now).next - this.host.now));
+    for (const slot of this.host.van()?.slots ?? []) if (slot.offer) {
+      const offer = slot.offer;
+      this.live(`[data-van-price="${slot.i}"]`, () => this.cratePay(offer));
+    }
     this.onClick('[data-van]', (b) => this.host.send({ t: 'farm', a: 'van', slot: Number(b.dataset.van) }));
   }
 
