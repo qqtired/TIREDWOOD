@@ -142,6 +142,8 @@ export class FortGame implements HordeHost, EventHost {
   readonly rng = makeRng(Date.now() & 0xffffffff);
   tick = 0;
   phase = FT_GATHER;
+  /** Once somebody rings physically, confirmations stay available until the next phase, even if they leave. */
+  private readyStarted = false;
   phaseEnd = 0;
   /** Какая волна идёт (или была последней); сколько отбито в этой игре */
   wave = 0;
@@ -241,6 +243,8 @@ export class FortGame implements HordeHost, EventHost {
     this.spawn(p);
     this.sendSurrTo(p);
     const activeSiege = [...this.waveEvents.replay(), ...this.horde.siege.replay(), ...this.arsenal.repairReplay()];
+    // Silent replay of an existing readiness invitation, including after its initiator has left.
+    if (this.readyStarted && (this.phase === FT_GATHER || this.phase === FT_BREAK)) activeSiege.push(['bell', 0]);
     if (activeSiege.length) sink.sendJson({ t: 'fev', k: this.tick, e: activeSiege });
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
       this.waveEvents.raiseDefenders(this.horde.defenders);
@@ -266,6 +270,7 @@ export class FortGame implements HordeHost, EventHost {
     // ушедший выбывает из подсчёта голосов: без него голосование может пройти или провалиться раньше срока
     const left = this.surr.leave(id, this.tick);
     if (left) this.surrenderStep(left.out);
+    this.finishReadiness();
   }
 
   private uniqueName(name: string): string {
@@ -320,8 +325,11 @@ export class FortGame implements HordeHost, EventHost {
   }
 
   private setPhase(phase: number, end: number): void {
+    // fphase is sent immediately, events wait for the next snapshot: never replay the prior phase's bell after it.
+    this.events = this.events.filter((e) => e[0] !== 'bell');
     this.phase = phase;
     this.phaseEnd = end;
+    this.readyStarted = false;
     for (const p of this.players.values()) p.ready = false;
     this.rosterDirty = true;
     this.broadcast({ t: 'fphase', phase, end, wave: this.wave, ...(this.card ? { card: this.card } : {}) });
@@ -771,7 +779,7 @@ export class FortGame implements HordeHost, EventHost {
       return;
     }
     const st = this.map.stations[id];
-    if (!st || !this.atStation(p, st)) return;
+    if (!st || (!this.atStation(p, st) && !(st.kind === 'bell' && calm && this.readyStarted))) return;
     if (st.kind === 'flag') return this.useFlag(p);
     if (st.kind === 'bell') {
       if (this.phase === FT_WAVE) {
@@ -784,22 +792,26 @@ export class FortGame implements HordeHost, EventHost {
       }
       if (!calm) return;
       if (p.ready) return;
+      this.readyStarted = true;
       p.ready = true;
       this.rosterDirty = true;
       this.events.push(['bell', p.id]);
-      const all = [...this.players.values()].every((q) => q.ready);
-      if (all) {
-        this.phaseEnd = Math.min(this.phaseEnd, this.tick + READY_TICKS);
-        // в передышке — «вызвали раньше»: +10 % золота за следующую волну всем
-        if (this.phase === FT_BREAK && !this.early) {
-          this.early = true;
-          this.events.push(['early', Math.round(EARLY_BONUS * 100)]);
-        }
-        if (this.card) this.card = { ...this.card, ...(this.early ? { early: true } : {}) };
-        this.broadcast({ t: 'fphase', phase: this.phase, end: this.phaseEnd, wave: this.wave, ...(this.card ? { card: this.card } : {}) });
-      }
+      this.finishReadiness();
       return;
     }
+  }
+
+  private finishReadiness(): void {
+    if (!this.readyStarted || (this.phase !== FT_GATHER && this.phase !== FT_BREAK)
+      || !this.players.size || ![...this.players.values()].every((p) => p.ready)) return;
+    this.phaseEnd = Math.min(this.phaseEnd, this.tick + READY_TICKS);
+    // Updating the deadline within this phase must not clear readiness or the invitation.
+    if (this.phase === FT_BREAK && !this.early) {
+      this.early = true;
+      this.events.push(['early', Math.round(EARLY_BONUS * 100)]);
+    }
+    if (this.card) this.card = { ...this.card, ...(this.early ? { early: true } : {}) };
+    this.broadcast({ t: 'fphase', phase: this.phase, end: this.phaseEnd, wave: this.wave, ...(this.card ? { card: this.card } : {}) });
   }
 
   // ------------------------------------------------------------ белый флаг: сдаться голосованием

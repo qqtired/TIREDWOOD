@@ -1,4 +1,4 @@
-// Интерфейс «Крепости»: общая верхняя панель в теме Dungeon — укрепления, волна, золото, команда и рекорд.
+// Интерфейс «Крепости»: общая верхняя панель в теме Dungeon — укрепления, волна, золото и рекорд.
 // Мини-карта с колоколом остаётся слева; панель стоит первой в штатном слоте TopCenter, поэтому босс,
 // голосование, связь и тосты автоматически располагаются ниже неё. Остальные части — на ките 2.0:
 // низ-центр — подсказка действия над панелью бойца (здоровье, стволы, граната, патроны, рывок), центр — «Тебя
@@ -160,7 +160,6 @@ export class FortUi {
 
   frame(v: UiFrame): void {
     this.waveNow = v.wave;
-    const calm = v.phase === FT_GATHER || v.phase === FT_BREAK;
     const alive = v.me.alive;
     if (this.isDown !== !alive) {
       this.isDown = !alive;
@@ -174,7 +173,6 @@ export class FortUi {
     this.card.gate.setTier(v.gateTier);
     this.card.crystal.setTier(v.crystalTier);
     this.tiles.setGold(v.gold);
-    this.tiles.setTeam(v.team, calm);
     this.tiles.updateRecord(v.cleared ?? 0, v.wave, v.phase);
     const off = this.results.shown;
     if (off !== this.tilesOff) {

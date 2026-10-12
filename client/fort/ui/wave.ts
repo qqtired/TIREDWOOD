@@ -115,7 +115,12 @@ export class WavePlate {
   }
 
   /** Тост колокола в начале паузы: все готовы — волна раньше (в передышке ещё и +10 % золота) */
-  bellToast(phase: number): { key: string; icon: string; tone: 'info'; title: string; sub: string; ms: number } {
+  bellToast(phase: number, mode: 'start' | 'invite' | 'ready' = 'start'): { key: string; icon: string; tone: 'info'; title: string; sub: string; ms: number } {
+    if (mode !== 'start') return {
+      key: 'bell', icon: 'bell', tone: 'info', ms: 6000,
+      title: mode === 'ready' ? 'Ты готов к волне' : TOUCH ? 'Нажми подсказку — готов к волне' : 'Нажми E — готов к волне',
+      sub: mode === 'ready' ? 'Ждём остальных защитников' : 'Подходить к колоколу не нужно',
+    };
     return {
       key: 'bell', icon: 'bell', tone: 'info', ms: 6000,
       title: TOUCH ? 'Все готовы? Колокол на террасе' : 'Все готовы? E у колокола',

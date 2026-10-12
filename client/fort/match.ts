@@ -130,6 +130,8 @@ export class FortMatch {
 
   myId = 0;
   ready = false;
+  private readyStarted = false;
+  private readyNotice: 'invite' | 'ready' | null = null;
   phase = FT_GATHER;
   phaseEnd = 0;
   wave = 0;
@@ -197,7 +199,6 @@ export class FortMatch {
   private fps = 0;
   private fpsFrames = 0;
   private fpsTime = 0;
-  private lastFrameMs = 0;
   private mapTimer = 0;
   private readonly mapZ: MapDot[] = [];
   private readonly mapM: MapDot[] = [];
@@ -408,6 +409,14 @@ export class FortMatch {
   }
 
   private useStation(): void {
+    if (this.d.chat.isOpen || this.d.input.blocked) return;
+    // E first closes an already open panel; it must never confirm readiness through a menu.
+    if (this.d.hud.stall.shown && this.ars.use(this.alive ? this.station : null)) return;
+    if (this.alive && this.remoteReady) {
+      const bell = this.d.map.stations.find((s) => s.kind === 'bell');
+      if (bell) this.d.net.send({ t: 'use', id: bell.id });
+      return;
+    }
     // панель открыта — E её закрывает; у стойки арсенала — открывает (игра не встаёт, мышь остаётся в игре)
     if (this.ars.use(this.alive ? this.station : null)) return;
     if (!this.alive || !this.station) return;
@@ -420,6 +429,7 @@ export class FortMatch {
     switch (m.t) {
       case 'fort':
         if (!Number.isFinite(m.tick) || m.tick < 0) return;
+        this.clearReadyInvite();
         this.clock.addSample(m.tick, performance.now());
         this.d.eventFx?.setRenderTick(this.clock.renderTick);
         this.myId = m.id;
@@ -432,9 +442,11 @@ export class FortMatch {
         this.setRoster(m.players);
         // вошёл: что идёт и что дальше — плашкой волны и тостами (без «волна отбита» и крупного баннера)
         this.d.hud.ui.onPhase(m.phase, m.wave, this.card, true);
+        this.showReadyNotice();
         if (m.rec) this.onRecIntro(m.rec);
         break;
       case 'frecNew':
+        this.clearReadyInvite();
         this.onRecIntro(m.rec);
         break;
       case 'frec':
@@ -442,6 +454,7 @@ export class FortMatch {
         break;
       case 'froster':
         this.setRoster(m.players);
+        this.showReadyNotice();
         break;
       case 'fev':
         if (this.ready) this.onEvents(m.e);
@@ -479,6 +492,7 @@ export class FortMatch {
       this.localAvatar.setOutfit(me.o);
     }
     this.ars.setRoster();
+    if (this.calm && list.some((r) => r.ready)) this.readyStarted = true;
   }
 
   private nameOf(id: number): string {
@@ -499,6 +513,7 @@ export class FortMatch {
   private onPhase(phase: number, end: number, wave: number): void {
     const { hud, sound, effects } = this.d;
     const same = phase === this.phase && wave === this.wave;
+    if (!same) this.clearReadyInvite();
     this.phase = phase;
     this.phaseEnd = end;
     this.wave = wave;
@@ -531,6 +546,7 @@ export class FortMatch {
   private onEnd(win: boolean, wave: number, mvp: number, rows: FortResultRow[], top: readonly FortRunRec[], record: boolean, prev: number, surr = false, run = 0): void {
     const { hud, sound } = this.d;
     this.phase = FT_END;
+    this.clearReadyInvite();
     this.card = null;
     this.surr.reset();
     const mvpRow = rows.find((r) => r.id === mvp) ?? null;
@@ -639,6 +655,7 @@ export class FortMatch {
     const h = this.header;
     this.clock.addSample(h.tick, at);
     this.queueAvg += (h.queue - this.queueAvg) * 0.05;
+    if (h.phase !== this.phase || h.scoreA !== this.wave) this.clearReadyInvite();
     this.phase = h.phase;
     this.phaseEnd = h.phaseEnd;
     this.wave = h.scoreA;
@@ -1194,6 +1211,12 @@ export class FortMatch {
         }
         case 'bell': {
           const [, pid] = e;
+          if (this.calm) {
+            this.readyStarted = true;
+            if (pid !== this.myId) this.showReadyNotice();
+          }
+          // ID 0 restores an invitation for a late join; it is not another bell strike or a player's action.
+          if (pid === 0) break;
           world.props.ringBell();
           const st = this.d.map.stations.find((s) => s.kind === 'bell');
           sound.bell(st && pid !== this.myId ? [st.x, st.y + 2, st.z] : null);
@@ -1330,7 +1353,6 @@ export class FortMatch {
       this.fpsFrames = 0;
       this.fpsTime = 0;
     }
-    this.lastFrameMs = dtRaw * 1000;
 
     this.clock.update(now, dt * 1000);
     d.eventFx?.setRenderTick(this.clock.renderTick);
@@ -1598,6 +1620,24 @@ export class FortMatch {
     return this.phase === FT_GATHER || this.phase === FT_BREAK;
   }
 
+  private get remoteReady(): boolean {
+    return this.calm && this.readyStarted && !this.roster.get(this.myId)?.ready;
+  }
+
+  private clearReadyInvite(): void {
+    if (this.readyStarted) this.d.hud.ui.top.clearToasts('ft-bell');
+    this.readyStarted = false;
+    this.readyNotice = null;
+  }
+
+  private showReadyNotice(): void {
+    if (!this.calm || !this.readyStarted) return;
+    const mode = this.roster.get(this.myId)?.ready ? 'ready' : 'invite';
+    if (mode === this.readyNotice) return;
+    this.readyNotice = mode;
+    this.d.hud.ui.push(this.d.hud.ui.wave.bellToast(this.phase, mode));
+  }
+
   /** Ближайшая стойка в досягаемости (как проверит сервер, с запасом) и подсказка к ней. */
   private updateStation(): void {
     const { hud, map } = this.d;
@@ -1616,6 +1656,10 @@ export class FortMatch {
       bd = dist;
     }
     this.station = best;
+    if (this.remoteReady && !hud.stall.shown) {
+      hud.setHint('готов к волне · подходить к колоколу не нужно', 0, true, true);
+      return;
+    }
     // у открытой панели подсказка не нужна: всё в панели
     const hint = best && !hud.stall.shown ? this.stationHint(best) : null;
     const marks = this.d.marks;
@@ -1758,7 +1802,7 @@ export class FortMatch {
     hud.showBoard(this.boardHeld && this.phase !== FT_END, this.rosterList, this.myId, this.phase);
     pb.updateFloaters(dt, cam, window.innerWidth, window.innerHeight);
     this.ars.frame(dt, cam, window.innerWidth, window.innerHeight);
-    pb.setStats(settings.showStats ? `${this.fps} FPS · ${Math.round(this.d.net.pingMs)} мс · буфер ${this.clock.delay.toFixed(1)} т · кадр ${this.lastFrameMs.toFixed(1)} мс · зомби ${this.d.zombies.count}` : null);
+    pb.setStats(settings.showStats ? `${this.fps} FPS · ${Math.round(this.d.net.pingMs)} мс · буфер ${this.clock.delay.toFixed(1)} т · зомби ${this.d.zombies.count}` : null);
 
     this.mapTimer -= dt;
     if (this.mapTimer <= 0) {
