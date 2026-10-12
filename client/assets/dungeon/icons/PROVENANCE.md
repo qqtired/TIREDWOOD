@@ -274,3 +274,16 @@ Runtime preparation: штатный docs/ui-redesign/icons-pipeline/post.mjs, 25
 - evo-pickaxe_evo.webp — 18338 bytes; SHA256 a9c5813f539d0dbca43cefb86d1ae67b3c3e78f3dc755fdb40e4d0825b2a8e2d
 - evo-spark_evo.webp — 18496 bytes; SHA256 72ede620521f40989fcb99f227c160f159b12ed7e88ce53c0af897813bbb97e7
 - evo-charges_evo.webp — 17948 bytes; SHA256 3e416bbf02c460d6b3361b7a80739ad1c26a90948e27416e2ef2ef17548e66e3
+
+## Новые враги, 12 октября 2026 — UI3
+
+Крюколап, Фитильщик, Рельсовый щелкун и Цепной пристав: четыре отдельных вызова встроенного `image_gen` через Codex CLI (управляющая модель `gpt-6-astra`, усилие `max`; имя модели изображения инструмент не раскрывает). Образцы — существующий `mob-beetle.webp` и финальные 3D-превью соответствующих врагов. Сохранены круглый тёмный медальон, охристый фон, сиреневые глаза и прозрачность вне обода; надписей нет.
+
+Оригиналы и полные промпты сохранены вне игрового репозитория: `reports/tiredwood-dungeon-waves-16-20-2026-10-11/ui3/icons/<id>/`; запуск — `ui3/source/generate-mob-icons.mjs`. В игру скопированы PNG 192×192 (штатный resolver поддерживает PNG и WebP), уменьшенные macOS `sips -z 192 192`; исходный PNG не перезаписан. Все четыре результата просмотрены.
+
+| Враг | CLI thread | SHA256 игрового PNG |
+|---|---|---|
+| `hookclaw` | `01a130cc-170a-7643-a6ea-bc6d3fad5f31` | `b30c871e34d44c97090f452221d84a2d3c2b91d3e4671bfa5671ea72175108bb` |
+| `wickmole` | `01a130cc-170a-7df2-b0f6-a35ba4faeaa3` | `3f83c1dca416e1150f6279e10100334b7a2921dd9e2763bc2abf1955605a871b` |
+| `railhopper` | `01a130ce-e25a-7972-86bc-9799774b436c` | `075e1785671a54cec52e3dad853d3b28636dd40839cd8c7d0f58ac88f4ba81c8` |
+| `chainwarden` | `01a130cf-1917-7fb2-a94c-dcba2dc9d7f2` | `4aa03064a635e9d87a6dcf4d4117a646c9c6ec5f404866a3bcb5c25b52e7439d` |

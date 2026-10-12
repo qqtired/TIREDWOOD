@@ -670,6 +670,7 @@ export class SimRun implements RunSource {
       buffs,
       weapons: sim.weapons.map((x) => this.weaponHud(x)),
       passives: sim.passives.map((x) => ({ id: x.id, icon: PASSIVES[x.id]?.icon ?? '•', name: PASSIVES[x.id]?.name ?? x.id, lv: x.lv, max: PASSIVES[x.id]?.max ?? 5, val: passiveVal(x.id, x.lv) })),
+      temper: sim.temper,
       dash01: h.dashCdMax > 0 ? 1 - h.dashCd / h.dashCdMax : 1,
       q01: h.qCdMax > 0 ? 1 - h.qCd / h.qCdMax : 1,
       dashLeft: Math.max(0, h.dashCd) * DT,
@@ -707,6 +708,7 @@ function breatherOf(n: number, left: number, bossName: string): NonNullable<DgVi
   if (def) {
     for (const k of Object.keys(def.mobs)) kinds.add(k);
     for (const k of Object.keys(def.elites ?? {})) kinds.add(k);
+    for (const event of def.events) if (event.mob) kinds.add(event.mob);
   }
   const mobs = [...kinds].filter((k) => k in MOBS).map((k) => ({ id: k, ...MOBS[k as MobKind] }));
   const boss = n % 10 === 0;

@@ -203,6 +203,7 @@ export interface DgView {
   buffs: HudBuff[];
   weapons: HudItem[];
   passives: HudItem[];
+  temper?: number;
   dash01: number;
   q01: number;
   /** открыт выбор карточек (мир стоит) */
