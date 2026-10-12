@@ -236,6 +236,8 @@ export class DungeonHud implements DungeonHudApi {
   private readonly wslots: WSlot[] = [];
   private readonly passiveRow = el('div', 'dg-items');
   private readonly bl = el('div', 'dg-bl dg-pnl');
+  private readonly actionRow = el('div', 'dg-bc');
+  private readonly layoutObserver = new ResizeObserver(() => this.layoutWeapons());
   private readonly dash: Ring;
   private readonly strike: Ring;
   /** Телефон: кнопка Q справа у большого пальца (на компьютере скрыта в CSS) */
@@ -260,11 +262,18 @@ export class DungeonHud implements DungeonHudApi {
   private readonly pauseLayer = el('div', 'dg-layer dg-pause-layer');
   private readonly resultsLayer = el('div', 'dg-layer dg-results-layer');
   private readonly pauseQuit: HTMLButtonElement;
-  private readonly pauseWeapons = el('div', 'dg-pause-skills');
-  private readonly pausePassives = el('div', 'dg-pause-skills');
+  private readonly pauseWeapons = el('div', 'dg-pause-loadout');
+  private readonly pausePassives = el('div', 'dg-pause-loadout');
   private readonly pauseWeaponSlots = el('span', 'dg-pause-slots');
   private readonly pausePassiveSlots = el('span', 'dg-pause-slots');
   private readonly pauseTemper = el('div', 'dg-pause-temper');
+  private readonly pauseSkillDetail = el('div', 'dg-pause-detail-panel');
+  private readonly pauseBuildingDetail = el('div', 'dg-pause-detail-panel dg-pause-building-detail');
+  private readonly pauseSlotButtons = new Map<string, HTMLButtonElement>();
+  private readonly pauseBuildingButtons = new Map<string, HTMLButtonElement>();
+  private pauseSelection = '';
+  private pauseBuilding = 'forge';
+  private pausePreviousFocus: HTMLElement | null = null;
   private pauseFrame: HudFrame | null = null;
   private readonly sndAll: HTMLButtonElement;
   private readonly sndXp: HTMLButtonElement;
@@ -353,7 +362,7 @@ export class DungeonHud implements DungeonHudApi {
     window.addEventListener('blur', this.onBlur);
 
     // снизу по центру: рывок и удар
-    const bc = el('div', 'dg-bc');
+    const bc = this.actionRow;
     this.dash = this.ring('dash', ['active', 'dash'], '💨', 'Пробел', '');
     this.strike = this.ring('strike', ['active', 'strike'], '🏮', 'Q', '');
     this.dash.root.title = 'Рывок — Пробел';
@@ -384,38 +393,54 @@ export class DungeonHud implements DungeonHudApi {
     cardsFoot.append(this.rerollBtn, this.banBtn);
     this.cardsLayer.append(this.cardsHead, this.cardsRow, cardsFoot);
 
-    // Пауза: текущая сборка слева, памятка построек справа; прежняя тема и звук режима.
+    // Пауза: видимые слоты и каталог; детали в своей области, по наведению и фокусу.
     const pauseWin = el('div', 'dg-window dg-pnl dg-pause');
+    pauseWin.setAttribute('role', 'dialog'); pauseWin.setAttribute('aria-modal', 'true');
+    pauseWin.setAttribute('aria-labelledby', 'dg-pause-title');
     const pauseHead = el('div', 'dg-pause-head');
     const pauseClose = button('cream dg-pause-close', '×', '', () => this.act.resume());
     pauseClose.setAttribute('aria-label', 'Продолжить игру');
-    pauseHead.append(el('h2', '', 'Пауза'), pauseClose);
+    const pauseTitle = el('h2', '', 'Пауза'); pauseTitle.id = 'dg-pause-title';
+    const pauseIntro = el('div'); pauseIntro.append(pauseTitle, el('p', 'dg-pause-hint', 'Наведи на значок или выбери его клавишей Tab'));
+    pauseHead.append(pauseIntro, pauseClose);
     const pauseGrid = el('div', 'dg-pause-grid');
-    const build = el('section', 'dg-pause-section');
+    const build = el('section', 'dg-pause-section dg-pause-build');
     const weaponHead = el('h3', 'dg-pause-subhead', 'Оружие');
     const passiveHead = el('h3', 'dg-pause-subhead', 'Бонусы');
     weaponHead.append(this.pauseWeaponSlots); passiveHead.append(this.pausePassiveSlots);
-    build.append(el('h3', 'dg-pause-title', 'Твоя сборка'), weaponHead, this.pauseWeapons, passiveHead, this.pausePassives, this.pauseTemper);
+    const loadouts = el('div', 'dg-pause-loadouts'); loadouts.append(weaponHead, this.pauseWeapons, passiveHead, this.pausePassives);
+    build.append(el('h3', 'dg-pause-title', 'Твоя сборка'), loadouts, this.pauseSkillDetail, this.pauseTemper);
     const guide = el('section', 'dg-pause-section dg-pause-guide');
     guide.append(el('h3', 'dg-pause-title', 'Постройки'));
+    const catalog = el('div', 'dg-pause-catalog');
     for (const entry of PAUSE_BUILDINGS) {
-      const row = el('div', 'dg-pause-building');
-      const info = el('div');
-      info.append(el('b', '', entry.name), el('p', '', entry.text));
-      row.append(ico('poi', entry.icon, '', 'dg-pause-building-ic'), info);
-      guide.append(row);
+      const row = el('button', 'dg-pause-building'); row.type = 'button';
+      row.setAttribute('aria-label', entry.name); row.dataset.building = entry.id;
+      row.append(ico('poi', entry.icon, '', 'dg-pause-building-ic'), el('span', '', entry.short));
+      for (const event of ['mouseenter', 'focus', 'click']) row.addEventListener(event, () => this.selectPauseBuilding(entry.id));
+      this.pauseBuildingButtons.set(entry.id, row); catalog.append(row);
     }
+    guide.append(catalog, this.pauseBuildingDetail);
     pauseGrid.append(build, guide);
-    const pauseActs = el('div', 'dg-actions');
-    this.pauseQuit = button('red', 'Выйти', '', () => this.act.quit());
+    const pauseActs = el('div', 'dg-actions dg-pause-actions');
+    this.pauseQuit = button('red dg-pause-exit', 'Выйти', '', () => this.act.quit());
     pauseActs.append(button('green', 'Продолжить', 'Esc', () => this.act.resume()), this.pauseQuit);
-    this.sndAll = this.toggle('🔊', 'Звуки подземелья', () => setDgPref('sound', !dgPrefs().sound));
-    this.sndXp = this.toggle('✨', 'Звук подбора опыта', () => setDgPref('xp', !dgPrefs().xp));
+    this.sndAll = this.toggle('🔊', 'Все звуки', () => setDgPref('sound', !dgPrefs().sound));
+    this.sndXp = this.toggle('✨', 'Подбор опыта', () => setDgPref('xp', !dgPrefs().xp));
+    this.sndAll.title = 'Звуки подземелья'; this.sndXp.title = 'Звук подбора опыта';
     const snd = el('div', 'dg-sound');
-    snd.append(el('div', 'dg-sound-title', 'Звук'), this.sndAll, this.sndXp);
-    pauseWin.append(pauseHead, pauseGrid, pauseActs, snd);
+    snd.append(this.sndAll, this.sndXp);
+    const pauseFoot = el('div', 'dg-pause-foot'); pauseFoot.append(snd, pauseActs);
+    pauseWin.append(pauseHead, pauseGrid, pauseFoot);
     this.pauseLayer.append(pauseWin);
     this.pauseLayer.addEventListener('click', (event) => { if (event.target === this.pauseLayer) this.act.resume(); });
+    this.pauseLayer.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const buttons = [...this.pauseLayer.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+      const first = buttons[0], last = buttons.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
     this.syncPrefs();
     this.offPrefs = onDgPrefs(() => this.syncPrefs());
 
@@ -432,6 +457,7 @@ export class DungeonHud implements DungeonHudApi {
 
     r.append(this.cardsLayer, this.chestLayer, this.pauseLayer, this.resultsLayer, this.loadLayer, this.phoneLayer);
     parent.append(r);
+    for (const node of [r, this.bl, this.actionRow, this.weapRow]) this.layoutObserver.observe(node);
   }
 
   get banMode(): boolean {
@@ -463,8 +489,21 @@ export class DungeonHud implements DungeonHudApi {
     clearTimeout(this.bannerTimer);
     clearTimeout(this.flashTimer);
     this.offPrefs();
+    this.layoutObserver.disconnect();
     window.removeEventListener('blur', this.onBlur);
     this.root.remove();
+  }
+
+  /** Размеры читаем при изменении раскладки, а не в игровом кадре. */
+  private layoutWeapons(): void {
+    const root = this.root.getBoundingClientRect(), actions = this.actionRow.getBoundingClientRect();
+    if (!root.width || !actions.width) return;
+    const bonus = this.bl.getBoundingClientRect();
+    const left = (bonus.width ? bonus.right : root.left + 16) - root.left + 20;
+    const right = actions.left - root.left - 20;
+    const center = `${(left + right) / 2}px`, room = `${Math.max(60, right - left)}px`;
+    if (this.weapRow.style.left !== center) this.weapRow.style.left = center;
+    if (this.weapRow.style.maxWidth !== room) this.weapRow.style.maxWidth = room;
   }
 
   /** true, если значение по ключу изменилось (и запоминает новое) */
@@ -895,38 +934,81 @@ export class DungeonHud implements DungeonHudApi {
 
   // ------------------------------------------------------------------ пауза
 
-  private pauseSkill(row: PauseSkill, kind: 'weapon' | 'passive'): HTMLElement {
-    const cell = el('div', `dg-pause-skill ${row.state}`);
-    const copy = el('div', 'dg-pause-skill-copy');
-    const head = el('div', 'dg-pause-skill-head');
-    head.append(el('b', '', row.item.name), el('span', 'dg-pause-level', row.level));
-    copy.append(head, el('p', 'dg-pause-effect', row.description));
-    if (row.synergy) copy.append(el('p', 'dg-pause-recipe', row.synergy));
-    if (row.detail) copy.append(el('p', 'dg-pause-detail', row.detail));
-    cell.append(ico(itemKind(row.item, kind), row.item.id, row.item.icon, 'dg-pause-skill-ic'), copy);
-    return cell;
+  private pauseSlot(row: PauseSkill | undefined, kind: 'weapon' | 'passive', index: number): HTMLElement {
+    const cell = el('button', `dg-pause-slot${row ? ` ${row.state}` : ' empty'}`); cell.type = 'button';
+    if (!row) {
+      cell.disabled = true; cell.setAttribute('aria-label', `Свободный слот ${index + 1}`);
+      cell.append(el('span', 'dg-pause-slot-plus', '+'), el('small', '', 'Свободно')); return cell;
+    }
+    const key = `${kind}:${row.item.id}`;
+    cell.dataset.pauseSlot = key;
+    cell.setAttribute('aria-label', `${row.item.name} · ${row.level}. ${row.description}`);
+    cell.append(ico(itemKind(row.item, kind), row.item.id, row.item.icon, 'dg-pause-slot-ic'), el('small', 'dg-pause-slot-level', row.item.evo ? '★' : `${row.item.lv} / ${row.item.max}`));
+    for (const event of ['mouseenter', 'focus', 'click']) cell.addEventListener(event, () => this.selectPauseSkill(key, row, kind));
+    this.pauseSlotButtons.set(key, cell); return cell;
+  }
+
+  private selectPauseSkill(key: string, row: PauseSkill, kind: 'weapon' | 'passive'): void {
+    this.pauseSelection = key;
+    for (const [id, button] of this.pauseSlotButtons) button.setAttribute('aria-pressed', String(id === key));
+    const heading = el('div', 'dg-pause-detail-head'), name = el('div');
+    name.append(el('span', 'dg-pause-kicker', row.level), el('h4', '', row.item.name));
+    heading.append(ico(itemKind(row.item, kind), row.item.id, row.item.icon, 'dg-pause-detail-ic'), name);
+    const chain = el('div', 'dg-pause-chain'); chain.setAttribute('aria-label', row.synergy);
+    row.recipe.forEach((part, i) => {
+      if (i) chain.append(el('span', 'dg-pause-chain-op', i === 1 ? '+' : '→'));
+      const node = el('div', `dg-pause-chain-part${part.met ? ' met' : ''}`);
+      node.append(ico(part.kind, part.id, part.icon, 'dg-pause-chain-ic'), el('span', '', part.name));
+      if (part.level) node.append(el('small', '', `${part.level} ур.${part.met ? ' ✓' : ''}`));
+      chain.append(node);
+    });
+    const status = row.detail || (row.recipe[2]?.met ? 'Получено' : row.recipe.slice(0, 2).every((part) => part.met) ? 'Готово — найди сундук' : 'Выполни оба условия и найди сундук.');
+    this.pauseSkillDetail.replaceChildren(heading, el('p', 'dg-pause-effect', row.description), chain, el('p', `dg-pause-status ${row.state}`, status));
+  }
+
+  private selectPauseBuilding(id: string): void {
+    const entry = PAUSE_BUILDINGS.find((building) => building.id === id);
+    if (!entry) return;
+    this.pauseBuilding = id;
+    for (const [key, button] of this.pauseBuildingButtons) button.setAttribute('aria-pressed', String(key === id));
+    const heading = el('div', 'dg-pause-detail-head');
+    heading.append(ico('poi', entry.icon, '', 'dg-pause-detail-ic'), el('h4', '', entry.name));
+    const details = el('dl', 'dg-pause-building-facts');
+    for (const [label, text] of [['Действие', entry.action], ['Цена / риск', entry.cost], ['Результат', entry.result]]) details.append(el('dt', '', label), el('dd', '', text));
+    this.pauseBuildingDetail.replaceChildren(heading, details);
   }
 
   private updatePause(): void {
     const frame = this.pauseFrame;
     if (!frame) return;
     const build = pauseBuild(frame);
-    this.pauseWeaponSlots.textContent = `${frame.weapons.length} / ${frame.weaponSlots} · можно ещё ${build.weaponFree}`;
-    this.pausePassiveSlots.textContent = `${frame.passives.length} / ${frame.passiveSlots} · можно ещё ${build.passiveFree}`;
-    this.pauseWeapons.replaceChildren(...build.weapons.map((row) => this.pauseSkill(row, 'weapon')));
-    this.pausePassives.replaceChildren(...build.passives.map((row) => this.pauseSkill(row, 'passive')));
-    if (!build.passives.length) this.pausePassives.append(el('p', 'dg-pause-empty', 'Бонусов пока нет — выбирай их при новом уровне.'));
+    this.pauseWeaponSlots.textContent = `${frame.weapons.length} / ${frame.weaponSlots} · свободно ${build.weaponFree}`;
+    this.pausePassiveSlots.textContent = `${frame.passives.length} / ${frame.passiveSlots} · свободно ${build.passiveFree}`;
+    this.pauseSlotButtons.clear();
+    this.pauseWeapons.replaceChildren(...Array.from({ length: frame.weaponSlots }, (_, i) => this.pauseSlot(build.weapons[i], 'weapon', i)));
+    this.pausePassives.replaceChildren(...Array.from({ length: frame.passiveSlots }, (_, i) => this.pauseSlot(build.passives[i], 'passive', i)));
+    const choices = [...build.weapons.map((row) => ({ row, kind: 'weapon' as const })), ...build.passives.map((row) => ({ row, kind: 'passive' as const }))];
+    const selected = choices.find(({ row, kind }) => `${kind}:${row.item.id}` === this.pauseSelection) ?? choices[0];
+    if (selected) this.selectPauseSkill(`${selected.kind}:${selected.row.item.id}`, selected.row, selected.kind);
+    else this.pauseSkillDetail.replaceChildren(el('p', 'dg-pause-effect', 'Выбирай оружие и бонусы при повышении уровня.'));
+    this.selectPauseBuilding(this.pauseBuilding);
     this.pauseTemper.textContent = build.temper;
     this.pauseTemper.hidden = !build.temper;
   }
 
   pause(open: boolean, wavesDone: number): void {
+    const wasOpen = this.pauseLayer.classList.contains('open');
+    if (open && !wasOpen) this.pausePreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.pauseLayer.classList.toggle('open', open);
-    if (!open) return;
+    if (!open) {
+      if (wasOpen && this.pauseLayer.contains(document.activeElement)) this.pausePreviousFocus?.focus({ preventScroll: true });
+      this.pausePreviousFocus = null; return;
+    }
     this.updatePause();
     this.syncPrefs();
     (this.pauseQuit.firstElementChild as HTMLElement).textContent =
       wavesDone > 0 ? `Выйти (засчитать ${wavesWord(wavesDone)})` : 'Выйти';
+    if (!wasOpen) (this.pauseSlotButtons.get(this.pauseSelection) ?? this.pauseLayer.querySelector<HTMLButtonElement>('button'))?.focus({ preventScroll: true });
   }
 
   // ------------------------------------------------------------------ итоги

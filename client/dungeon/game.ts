@@ -14,6 +14,7 @@ import { BuildingZones } from './zones.ts';
 import { BOSS_NAME, WEAPONS, plural } from './data.ts';
 import { A_BAR, A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
+import { EvolutionRenderer } from './evolutions.ts';
 import { DungeonHud } from './hud.ts';
 import type { HudArrow, HudFrame, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
 import { Journal } from './journal.ts';
@@ -76,6 +77,7 @@ export class DungeonGame {
   private readonly world: WorldLike | null;
   private readonly mobs: MobRenderer;
   private readonly hero: HeroView;
+  private readonly evolutions: EvolutionRenderer;
   /** Модели боссов: по id червя (у Близнецов на 30-й волне их два); свободные ждут в запасе */
   private readonly bossViews = new Map<number, BossView>();
   private readonly bossSpare: BossView[] = [];
@@ -170,6 +172,8 @@ export class DungeonGame {
     s.add(this.mobs.root);
     this.hero = new HeroView(assets.hero);
     s.add(this.hero.root);
+    this.evolutions = new EvolutionRenderer(assets.evolutions, this.hero.root);
+    s.add(this.evolutions.root);
     this.bossGltf = assets.boss;
     this.cauldronGltf = assets.cauldron;
     this.bossSpare.push(this.makeBossView());
@@ -248,6 +252,7 @@ export class DungeonGame {
 
   async warm(): Promise<void> {
     this.mobs.warm(this.camX, this.camZ);
+    this.evolutions.warm(true);
     for (const b of this.bossSpare) { b.root.visible = true; b.root.position.set(this.camX, -50, this.camZ); }
     this.layoutCamera();
     try {
@@ -257,6 +262,7 @@ export class DungeonGame {
     }
     this.mobs.begin();
     this.mobs.end();
+    this.evolutions.warm(false);
     for (const b of this.bossSpare) b.root.visible = false;
   }
 
@@ -298,6 +304,7 @@ export class DungeonGame {
     this.camZ = h.z;
     this.prevHero = { x: h.x, z: h.z, yaw: h.yaw };
     this.hero.revive();
+    this.evolutions.reset();
     this.d.hud.results(null);
     this.d.hud.pause(false, 0);
     this.d.hud.cards(null);
@@ -992,17 +999,19 @@ export class DungeonGame {
       if (this.ended) this.lanternK = Math.max(0, this.lanternK - dt * 0.6);
       if (h.qCharge >= 0 && !this.hero.isCharging) this.hero.chargeStart();
       this.hero.update(still ? 0 : dt, hx, hz, hyaw, still ? 0 : h.speed, h.qCharge >= 0, h.invuln, time, this.lanternK, h.y);
-      this.hero.evolveLantern(v.weapons.some(w => w.id === 'lantern_evo'));
-      this.beacon.visible = v.weapons.some(w => w.id === 'beam_evo');
-      this.sparkFocus.visible = v.weapons.some(w => w.id === 'spark_evo');
+      this.hero.evolveLantern(!this.evolutions.enabled && v.weapons.some(w => w.id === 'lantern_evo'));
+      this.beacon.visible = !this.evolutions.enabled && v.weapons.some(w => w.id === 'beam_evo');
+      this.sparkFocus.visible = !this.evolutions.enabled && v.weapons.some(w => w.id === 'spark_evo');
       if (this.beacon.visible) this.beacon.rotation.y = (v.rays[0]?.yaw ?? 0) - this.hero.root.rotation.y;
+      const ray = v.rays[0]?.yaw ?? hyaw, previousRay = this.prevRays[0]?.yaw ?? ray;
+      this.evolutions.begin(v, wt, previousRay + Math.atan2(Math.sin(ray - previousRay), Math.cos(ray - previousRay)) * alpha);
       this.decN.add(hx, 0.02, hz, 0.95 / (1 + h.y * 0.3), 0.95 / (1 + h.y * 0.3), 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.85);
       // Маяк: два крутящихся луча из героя
       for (let i = 0; i < v.rays.length; i++) {
         const r = v.rays[i];
         const p = this.prevRays[i];
         const yaw = p ? p.yaw + Math.atan2(Math.sin(r.yaw - p.yaw), Math.cos(r.yaw - p.yaw)) * alpha : r.yaw;
-        this.decA.add(hx, 0.06, hz, r.w * 0.6, r.len, yaw, D_BEAM, 0, 0, 1, 0.95, 0.7, 0.75);
+        this.decA.add(hx, 0.06, hz, r.w * 0.6, r.len, yaw, D_BEAM, 0, 0, 1, 0.95, 0.7, this.evolutions.enabled ? .34 : .75);
         if (!still && this.pool.rnd() < 0.4) {
           const k = 2 + this.pool.rnd() * (r.len - 2);
           this.pool.spark(hx + Math.sin(yaw) * k, 0.4, hz + Math.cos(yaw) * k, 0, 0.8, 0, 0.3, 0.4, A_SOFT, 1, 0.9, 0.6);
@@ -1113,17 +1122,19 @@ export class DungeonGame {
         if (!near(pr.x, pr.z, 3)) continue;
         const key = pr.phase && pr.phase > 1 ? `${pr.kind}_p${pr.phase}` : pr.evo ? `${pr.kind}_evo` : pr.kind;
         const im = this.projMeshes.get(key) ?? this.projMeshes.get(pr.kind);
-        if (!im || im.count >= im.instanceMatrix.count) continue;
         const p = this.prev.get(-1000000 - pr.id);
         const x = X(p ? p.x + wrap(pr.x - p.x) * alpha : pr.x);
         const z = Z(p ? p.z + wrap(pr.z - p.z) * alpha : pr.z);
-        q.setFromAxisAngle(up, pr.yaw);
-        pv.set(x, pr.y, z);
-        m4.compose(pv, q, one);
-        im.setMatrixAt(im.count++, m4);
-        if (pr.kind === 'ember') this.bbA.add(x, pr.y, z, 1.1, 1.1, 0, A_SOFT, 1, 0.55, 0.2, 0.9);
-        else if (pr.kind === 'firefly') this.bbA.add(x, pr.y, z, 0.9, 0.9, 0, A_SOFT, 0.8, 1, 0.35, 0.9);
-        else if (pr.kind === 'spit') this.bbA.add(x, pr.y, z, 1, 1, 0, A_SOFT, 0.6, 0.25, 0.9, 0.7);
+        if (!this.evolutions.projectile(pr, x, z, this.bbA)) {
+          if (!im || im.count >= im.instanceMatrix.count) continue;
+          q.setFromAxisAngle(up, pr.yaw);
+          pv.set(x, pr.y, z);
+          m4.compose(pv, q, one);
+          im.setMatrixAt(im.count++, m4);
+          if (pr.kind === 'ember') this.bbA.add(x, pr.y, z, 1.1, 1.1, 0, A_SOFT, 1, 0.55, 0.2, 0.9);
+          else if (pr.kind === 'firefly') this.bbA.add(x, pr.y, z, 0.9, 0.9, 0, A_SOFT, 0.8, 1, 0.35, 0.9);
+          else if (pr.kind === 'spit') this.bbA.add(x, pr.y, z, 1, 1, 0, A_SOFT, 0.6, 0.25, 0.9, 0.7);
+        }
         if (pr.kind === 'rock' || pr.kind === 'spit') this.decN.add(x, 0.025, z, 0.6, 0.6, 0, D_SHADOW, 0, 0, 0, 0, 0, 0.5);
         if (pr.kind === 'ember' && !still && this.pool.rnd() < 0.5) this.pool.spark(x, pr.y, z, 0, 0.2, 0, 0.25, 0.35, A_SOFT, 1, 0.5, 0.15);
       }
@@ -1131,6 +1142,7 @@ export class DungeonGame {
         im.visible = im.count > 0;
         if (im.count) im.instanceMatrix.needsUpdate = true;
       }
+      this.evolutions.end();
       // подборы: осколки инстансами, прочее — значками
       let gn = 0;
       const gc = new THREE.Color();

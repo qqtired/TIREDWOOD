@@ -21,6 +21,18 @@ const MOB_FILES = {
 } as const;
 export type MobModel = keyof typeof MOB_FILES;
 
+const EVOLUTION_FILES = {
+  lantern_evo: new URL('../assets/dungeon/evolutions/lantern_evo.glb', import.meta.url).href,
+  embers_evo: new URL('../assets/dungeon/evolutions/embers_evo.glb', import.meta.url).href,
+  pickaxe_evo: new URL('../assets/dungeon/evolutions/pickaxe_evo.glb', import.meta.url).href,
+  fireflies_evo: new URL('../assets/dungeon/evolutions/fireflies_evo.glb', import.meta.url).href,
+  spark_evo: new URL('../assets/dungeon/evolutions/spark_evo.glb', import.meta.url).href,
+  stalactites_evo: new URL('../assets/dungeon/evolutions/stalactites_evo.glb', import.meta.url).href,
+  charges_evo: new URL('../assets/dungeon/evolutions/charges_evo.glb', import.meta.url).href,
+  beam_evo: new URL('../assets/dungeon/evolutions/beam_evo.glb', import.meta.url).href,
+} as const;
+export type EvolutionModel = keyof typeof EVOLUTION_FILES;
+
 const KIT_FILES = [
   new URL('../assets/dungeon/kit_common.glb', import.meta.url).href,
   new URL('../assets/dungeon/kit_cellars.glb', import.meta.url).href,
@@ -39,6 +51,7 @@ export interface DungeonAssets {
   hero: GLTF;
   boss: GLTF;
   cauldron:GLTF;
+  evolutions: Record<EvolutionModel, GLTF>;
   mobs: Record<MobModel, GLTF>;
   /** все пропы всех наборов по имени корневого узла (позиция сброшена) */
   kits: Map<string, THREE.Object3D>;
@@ -59,7 +72,7 @@ export function loadDungeonAssets(progress: (p: number) => void = () => {}): Pro
 
 async function load(progress: (p: number) => void): Promise<DungeonAssets> {
   const loader = new GLTFLoader();
-  const total = Object.keys(MOB_FILES).length + KIT_FILES.length + 3;
+  const total = Object.keys(MOB_FILES).length + Object.keys(EVOLUTION_FILES).length + KIT_FILES.length + 3;
   let done = 0;
   const one = async (url: string): Promise<GLTF> => {
     const g = await loader.loadAsync(url);
@@ -68,12 +81,14 @@ async function load(progress: (p: number) => void): Promise<DungeonAssets> {
     return g;
   };
   const mobKeys = Object.keys(MOB_FILES) as MobModel[];
-  const [hero, boss, cauldron,mobList, kitList] = await Promise.all([
+  const evolutionKeys = Object.keys(EVOLUTION_FILES) as EvolutionModel[];
+  const [hero, boss, cauldron,mobList, kitList, evolutionList] = await Promise.all([
     one(HERO_FILE),
     one(BOSS_FILE),
     one(CAULDRON_FILE),
     Promise.all(mobKeys.map((k) => one(MOB_FILES[k]))),
     Promise.all(KIT_FILES.map((u) => one(u))),
+    Promise.all(evolutionKeys.map(k => one(EVOLUTION_FILES[k]))),
   ]);
   const mobs = {} as Record<MobModel, GLTF>;
   mobKeys.forEach((k, i) => (mobs[k] = mobList[i]));
@@ -90,7 +105,17 @@ async function load(progress: (p: number) => void): Promise<DungeonAssets> {
   tameMetal(hero.scene);
   tameMetal(boss.scene);
   tameMetal(cauldron.scene);
-  return { hero, boss, cauldron,mobs, kits, kitClips };
+  const evolutions = {} as Record<EvolutionModel, GLTF>;
+  evolutionKeys.forEach((key, i) => {
+    const g = evolutionList[i]; tameMetal(g.scene);
+    // Only the small abdomen emits: wings and the dark body retain their materials.
+    if (key === 'fireflies_evo') g.scene.traverse(o => {
+      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (m?.name === 'mob_evo_glow') m.emissiveIntensity = 1.8;
+    });
+    evolutions[key] = g;
+  });
+  return { hero, boss, cauldron,mobs, kits, kitClips, evolutions };
 }
 
 /** Без карты окружения металл в three.js чернеет (README героя): снижаем металличность */
