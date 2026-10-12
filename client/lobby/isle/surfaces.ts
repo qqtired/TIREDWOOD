@@ -60,7 +60,7 @@ export function dressIsleSurfaces(root: THREE.Object3D): void {
     if (m.material.name === 'fi_metal') markerMaterial ??= m.material;
     for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p.name === 'hidden_with_full_island' || /silhouette/.test(p.name)) return;
     if (m.material instanceof THREE.MeshStandardMaterial && (/^(fi_ground|fi_stone)$/.test(m.material.name)
-      || (m.material.name === 'fi_wood' && (/^(walk_lighthouse_stairs|lighthouse_rails_v2|walk_jetty_underlay|walk_pontoon_underlay)$/.test(m.name)
+      || (m.material.name === 'fi_wood' && (/^(walk_lighthouse_stairs|lighthouse_rails_v2|lighthouse_structure_v3|walk_jetty_underlay|walk_pontoon_underlay|walk_landing_underlay|walk_landing_transition)$/.test(m.name)
         || (m.name === 'pier_1' && m.parent?.name === 'pier'))))) sources.push(m);
   });
   for (const mesh of sources) {

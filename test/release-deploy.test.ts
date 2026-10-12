@@ -9,16 +9,23 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 const root = path.resolve(import.meta.dirname, '..');
 
-async function run(fixture: { body?: string; status?: number; unreachable?: boolean }, force = '0') {
+async function run(fixture: { body?: string; status?: number; unreachable?: boolean }, force = '0', notes: string | null = '• Тестовое обновление игры.') {
   const dir = await mkdtemp(path.join(tmpdir(), 'opus-release-deploy-test-'));
   const project = path.join(dir, 'game-opus');
   const bin = path.join(dir, 'bin');
   const calls = path.join(dir, 'calls');
+  const npmCalls = path.join(dir, 'npm-calls');
+  const notesFile = path.join(dir, 'notes.txt');
   try {
     for (const part of ['game-opus/server', 'game-opus/shared', 'game-opus/dist', 'game-opus/deploy', 'ssh', 'bin']) await mkdir(path.join(dir, part), { recursive: true });
     await copyFile(path.join(root, 'deploy.sh'), path.join(project, 'deploy.sh'));
-    for (const file of ['package.json', 'package-lock.json', 'server/fixture', 'shared/fixture', 'dist/fixture', 'deploy/install.sh']) await writeFile(path.join(project, file), '{}');
-    await writeFile(path.join(bin, 'npm'), '#!/bin/sh\nexit 0\n', { mode: 0o700 });
+    // Настоящий prepare и его runtime-импорты: health проверяется уже после корректной подготовки notes.
+    for (const file of ['package.json', 'deploy/announce-release.ts', 'server/tgrelease.ts', 'server/tgfeed.ts', 'server/tgnet.ts', 'shared/messages.ts']) {
+      await copyFile(path.join(root, file), path.join(project, file));
+    }
+    for (const file of ['package-lock.json', 'server/fixture', 'shared/fixture', 'dist/fixture', 'deploy/install.sh']) await writeFile(path.join(project, file), '{}');
+    if (notes !== null) await writeFile(notesFile, notes);
+    await writeFile(path.join(bin, 'npm'), '#!/bin/sh\nprintf "npm\\n" >> "$OPUS_RELEASE_NPM_CALLS"\nexit 0\n', { mode: 0o700 });
     await writeFile(path.join(bin, 'node'), '#!/bin/sh\nif [ "$1" = deploy/compress.ts ]; then exit 0; fi\nexec "$OPUS_TEST_NODE" "$@"\n', { mode: 0o700 });
     await writeFile(path.join(dir, 'ssh/connect.sh'), '#!/bin/sh\ncat >/dev/null\nprintf "connect\\n" >> "$OPUS_RELEASE_CALLS"\n', { mode: 0o700 });
     let code: number;
@@ -27,7 +34,8 @@ async function run(fixture: { body?: string; status?: number; unreachable?: bool
       const result = await exec('/bin/sh', [path.join(project, 'deploy.sh')], {
         cwd: project, timeout: 10_000, maxBuffer: 256 * 1024,
         env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, NODE_OPTIONS: `--import=${path.join(root, 'test/release-fixture.mjs')}`, OPUS_TEST_NODE: process.execPath,
-          FORCE: force, OPUS_RELEASE_CALLS: calls, OPUS_RELEASE_FIXTURE: JSON.stringify({ kind: 'health', body: '{}', ...fixture }) },
+          FORCE: force, RELEASE_NOTES_FILE: notes === null ? '' : notesFile, OPUS_RELEASE_NPM_CALLS: npmCalls,
+          OPUS_RELEASE_CALLS: calls, OPUS_RELEASE_FIXTURE: JSON.stringify({ kind: 'health', body: '{}', ...fixture }) },
       });
       code = 0;
       output = result.stdout + result.stderr;
@@ -37,11 +45,21 @@ async function run(fixture: { body?: string; status?: number; unreachable?: bool
       code = e.code;
       output = e.stdout + e.stderr;
     }
-    return { code, output, calls: await readFile(calls, 'utf8').catch(() => '') };
+    return { code, output, calls: await readFile(calls, 'utf8').catch(() => ''), npmCalls: await readFile(npmCalls, 'utf8').catch(() => '') };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 }
+
+test('deploy command refuses missing or empty notes before npm, health and mocked SSH', async (t) => {
+  for (const notes of [null, '   \n']) await t.test(notes === null ? 'missing notes' : 'empty notes', async () => {
+    const result = await run({ body: '{"ok":true,"busy":0}' }, '0', notes);
+    assert.notEqual(result.code, 0, result.output);
+    assert.equal(result.npmCalls, '', 'notes must be validated before checks/build');
+    assert.equal(result.calls, '', 'notes must be validated before health/upload/install');
+    assert.match(result.output, notes === null ? /RELEASE_NOTES_FILE/ : /Не удалось подготовить notes/);
+  });
+});
 
 test('deploy command refuses unknown health before the mocked upload/install boundary', async (t) => {
   const cases: Array<[string, { body?: string; status?: number; unreachable?: boolean }]> = [

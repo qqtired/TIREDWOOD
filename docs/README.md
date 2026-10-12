@@ -109,6 +109,7 @@
 | Круги старта и очереди | `startzones.ts` | `lobby/modequeue.ts` | `lobby/startcircles.ts`, `lobby/kartstart.ts` | — | `startzones.test.ts`, `modequeue.test.ts` | design «Круги старта и очереди» |
 | Колесо, мяч, фото, жесты вдвоём | `wheel.ts`, `ball.ts`, `lobby.ts` | `lobby/wheel.ts` | `lobby/wheel.ts`, `lobby/ball*.ts`, `lobby/photo.ts` | — | `wheel.test.ts`, `ball.test.ts` | design «Колесо обозрения», «Мяч на площади», «Вдвоём и фото у маяка» |
 | Экран с чатом Telegram | — | `tgfeed.ts`, `tgnet.ts` | `lobby/tgscreen.ts` | токен — файл в `DATA_DIR` | `tgfeed.test.ts`, `tgnet.test.ts` | README «Экран с чатом Telegram» |
+| Обновления игры в чате Telegram | — | `tgrelease.ts`, существующий `tgnet.ts`; hook `deploy/announce-release.ts` после smoke | — | существующие токен и привязанный чат; явный `RELEASE_NOTES_FILE` при выпуске | `tgrelease.test.ts` | README «Выкладка на сервер» и «Экран с чатом Telegram» |
 | Памятник и «Press F» (памятник не трогать) | `respect.ts` | — | `lobby/statue*.ts`, `lobby/respect.ts`, `assets/statue/` | — | `statue.test.ts` | AGENTS §11 |
 
 ### 2.4 Отдельные режимы (свои комнаты)
@@ -240,7 +241,7 @@
 
 ## 5. Выкладка и данные
 
-- **`deploy.sh`** (корень) — выкладка одной командой: проверки, тесты, сборка, архив, установка. Только после «да» владельца и с чистого `main`. Выкладывает помощник на Маке владельца, у которого есть приватные скрипты доступа к серверу (в репозитории их нет). Пошаговый чек-лист — AGENTS §10.
+- **`deploy.sh`** (корень) — выкладка одной командой с обязательным `RELEASE_NOTES_FILE`: проверка текста, проверки, тесты, сборка, архив, установка. После smoke активного выпуска `deploy/announce-release.ts` отправляет notes существующим Telegram-ботом; статус уведомления отдельно от статуса игры. Только после «да» владельца и с чистого `main`. Выкладывает помощник на Маке владельца, у которого есть приватные скрипты доступа к серверу (в репозитории их нет). Пошаговый чек-лист — AGENTS §10.
 - **`deploy/game-opus.service`** — служба и флаги режимов (`Environment=…=1`). Смена флага — правка файла и новый релиз.
 - **`deploy/install.sh`** — ставит релиз на сервере, перезапускает службу, проверяет вход и при ошибке возвращает прошлый релиз. **`deploy/smoke.ts`** — проверочный клиент. **`deploy/compress.ts`** — сжатые копии сборки.
 - **`deploy/game.nginx.conf`** — блок nginx; ставится вручную, `deploy.sh` nginx не трогает. Для новой лаборатории

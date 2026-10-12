@@ -51,11 +51,11 @@ const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 
-/** Свет в маяке: конус, ярче к фонарю и к оси (как на странице ревью) */
+/** Два конуса вдоль ±X: затухание от фонаря одинаковое у обоих, включая открытый дальний край. */
 function beamMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Color(0xffc56a) }, uI: { value: 0.4 }, uLen: { value: BEAM } },
-    vertexShader: 'varying float vD; varying vec3 vN; varying vec3 vV; uniform float uLen;\nvoid main(){ vD = position.x / uLen; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    vertexShader: 'varying float vD; varying vec3 vN; varying vec3 vV; uniform float uLen;\nvoid main(){ vD = abs(position.x) / uLen; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
     fragmentShader: 'varying float vD; varying vec3 vN; varying vec3 vV; uniform vec3 uColor; uniform float uI;\nvoid main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.3); float a = uI * pow(1.0 - clamp(vD, 0.0, 1.0), 1.4) * edge; gl_FragColor = vec4(uColor, clamp(a, 0.0, 0.9)); }',
     transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
   });

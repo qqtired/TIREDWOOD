@@ -73,6 +73,15 @@ test('треугольники дают точную высоту на гран�
   assert.ok(w.terrainHeight(ISLE_CENTER.x + 40, ISLE_CENTER.z - 44) > ISLE_Y + 6);
 });
 
+test('вывеска не перекрывает обратный проход с мостика на береговую площадку', () => {
+  const world = new CollisionWorld(buildLobby());
+  // The crate stack occupies v -7.1…-6.1; keep the player's half-width clear of it.
+  for (const v of [-8.6, -8, -7.6]) {
+    const p = Object.assign(makeState(), { x: ISLE_CENTER.x + 64, y: ISLE_Y + 1.4, z: ISLE_CENTER.z + v, grounded: 1 });
+    walk(world, p, [[60, v], [58, v], [60, v], [64, v]]);
+  }
+});
+
 test('спокойные повторяемые текстуры и восемь видимых мест не меняют дальний силуэт', async () => {
   const load = async (file: string): Promise<THREE.Group> => {
     const b = fs.readFileSync(new URL(`../client/assets/isle/${file}.glb`, import.meta.url));

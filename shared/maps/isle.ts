@@ -38,10 +38,12 @@ const at = (u: number, h: number, v: number, yaw: number) => ({ ...isleWorld(u, 
  * Точка высадки и выныривания (пустышка `spawn`): площадка у причала, лицом к деревне (на запад). Рядом — ещё несколько
  * свободных мест на той же площадке (бочки, ящики и табличка стоят по краям), чтобы вынырнувшие не стояли друг в друге.
  */
-export const ISLE_SPAWN = at(58, 1.8, -10, Math.PI / 2);
+// Высадка использует верх экспортированного настила без отдельного округления высоты.
+const LANDING_TOP = ISLE_FLOORS[0][4];
+export const ISLE_SPAWN = at(58, LANDING_TOP, -10, Math.PI / 2);
 export const ISLE_LANDING_SPOTS: ReadonlyArray<{ x: number; y: number; z: number; yaw: number }> = [
   [58, -10], [57.6, -8.4], [58.8, -8.4], [60, -8.4], [59.4, -9.6], [60.4, -9.4],
-].map(([u, v]) => at(u, 1.8, v, Math.PI / 2));
+].map(([u, v]) => at(u, LANDING_TOP, v, Math.PI / 2));
 
 /**
  * Берты причала (пустышки `berth_0…5`, номера 1–6 на табличках): точка — корма лодки у южного края понтона, нос на юг

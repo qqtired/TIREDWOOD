@@ -239,6 +239,7 @@ export const A_SOFT = 24;
 export const A_STAR = 25;
 export const A_SPARK = 26;
 export const A_RING = 27;
+export const A_BAR = 28;
 export const ICONS: Record<string, number> = { stew: 16, magnet: 17, keg: 18, hourglass: 19, chest: 20, skull: 21, heart: 22, bolt: 23 };
 const ICON_GLYPH = ['🍲', '🧲', '🛢️', '⏳', '🎁', '💀', '❤️', '⚡'];
 
@@ -314,6 +315,12 @@ function makeAtlas(): THREE.CanvasTexture {
     g.beginPath();
     g.arc(x, y, 24, 0, Math.PI * 2);
     g.stroke();
+  }
+  // Сплошная клетка для компактных HP-полосок элиты, в том же billboard batch.
+  {
+    const [x, y] = cell(A_BAR);
+    g.fillStyle = '#fff';
+    g.fillRect(x - S / 2 + 1, y - S / 2 + 1, S - 2, S - 2);
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;

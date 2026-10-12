@@ -7,6 +7,16 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 CONNECT="$ROOT/../ssh/connect.sh"
 cd "$ROOT"
 
+# Текст для игроков готовится явно к этому выпуску; без него ничего не собираем и не загружаем.
+if [ -z "${RELEASE_NOTES_FILE:-}" ]; then
+    echo 'Нужен файл с изменениями для игроков: RELEASE_NOTES_FILE=/путь/notes.txt ./deploy.sh' >&2
+    exit 1
+fi
+RELEASE_ID=$(date -u '+%Y%m%d-%H%M%S')
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+node deploy/announce-release.ts prepare "$RELEASE_ID" "$RELEASE_NOTES_FILE" "$TMP/release-notes.json"
+
 npm run check
 npm test
 npm run build
@@ -36,11 +46,8 @@ if [ "${FORCE:-0}" != 1 ]; then
     fi
 fi
 
-RELEASE_ID=$(date -u '+%Y%m%d-%H%M%S')
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
 BUNDLE="$TMP/game-opus-$RELEASE_ID.tar.gz"
-COPYFILE_DISABLE=1 tar --no-xattrs -czf "$BUNDLE" package.json package-lock.json server shared dist deploy
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$BUNDLE" package.json package-lock.json server shared dist deploy -C "$TMP" release-notes.json
 "$CONNECT" "cat > /tmp/game-opus-$RELEASE_ID.tar.gz" < "$BUNDLE"
 "$CONNECT" "sh /dev/stdin $RELEASE_ID" < "$ROOT/deploy/install.sh"
 echo "Готово: https://game.tired.solutions (релиз $RELEASE_ID)"

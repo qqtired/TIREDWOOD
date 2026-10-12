@@ -333,7 +333,10 @@ function makeSeaMaterial(p: SkyPalette): THREE.ShaderMaterial {
           vec2 d = normalize(w[i].xy);
           float k = w[i].z;
           float a = 0.06 / k;
-          g += d * k * a * cos(dot(d, p) * k + t * w[i].w);
+          float phase = dot(d, p) * k;
+          // Keep nearby waves; fade frequencies that exceed the pixel footprint at grazing angles.
+          float resolved = 1.0 - smoothstep(1.0, 3.14159265, fwidth(phase));
+          g += d * k * a * cos(phase + t * w[i].w) * resolved;
         }
         return g;
       }

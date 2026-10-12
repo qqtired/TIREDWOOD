@@ -12,12 +12,12 @@ import { BossView } from './boss.ts';
 import { BuildingRenderer } from './buildings.ts';
 import { BuildingZones } from './zones.ts';
 import { BOSS_NAME, WEAPONS, plural } from './data.ts';
-import { A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
+import { A_BAR, A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
 import { DungeonHud } from './hud.ts';
 import type { HudArrow, HudFrame, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
 import { Journal } from './journal.ts';
-import { MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
+import { eliteHpFraction, MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { DungeonSfx } from './sfx.ts';
 import type { RunSource } from './source.ts';
 import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBoss, type VBuilding, type VFx } from './view.ts';
@@ -967,6 +967,14 @@ export class DungeonGame {
         this.decN.add(X(x), 0.02, Z(z), r * 1.7, r * 1.7, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.02, 0.85);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол
         if (e.elite) this.decA.add(X(x), 0.05, Z(z), 2.4, 2.4, 0, D_SOFT, 1.6, 0, 0.55, 0.25, 0.8, 0.5);
+        const hp = eliteHpFraction(e);
+        if (hp !== null) {
+          const bx = X(x), bz = Z(z), by = this.mobs.height(e.kind) * s + 0.35 - 0.4 * (1 - born);
+          const right = this.camera.matrixWorld.elements, offset = 1.64 * (hp - 1) / 2;
+          this.bbN.add(bx, by, bz, 1.8, 0.19, 0, A_BAR, 0.09, 0.07, 0.06, born * 0.92);
+          this.bbN.add(bx + right[0] * offset, by + right[1] * offset, bz + right[2] * offset,
+            1.64 * hp, 0.09, 0, A_BAR, 1, 0.56, 0.69, born);
+        }
       }
       // трупы: клип смерти, потом исчезают
       this.corpses = this.corpses.filter((c) => wt - c.t < c.dur);

@@ -4197,6 +4197,23 @@ export const P3: Plaza3Layout = {
       "color": 15194032
     },
     {
+      "id": "pav.plane.jetty",
+      "q": "beach",
+      "pav": "aeroclub",
+      "min": [
+        -33,
+        -0.26,
+        -11.8
+      ],
+      "max": [
+        -30,
+        0,
+        -10
+      ],
+      "mat": "invisible",
+      "color": 0
+    },
+    {
       "id": "pav.lifeguard.deck",
       "q": "beach",
       "pav": "lifeguard",

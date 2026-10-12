@@ -61,7 +61,7 @@ systemctl restart game-opus
 healthy() {
     for attempt in 1 2 3 4 5 6 7 8 9 10; do
         if curl --fail --silent --max-time 2 http://127.0.0.1:5190/health >/dev/null; then
-            node deploy/smoke.ts ws://127.0.0.1:5190/ws https://game.tired.solutions "$(cat /var/lib/game-opus/smoke-token 2>/dev/null || true)" && return 0
+            node deploy/smoke.ts ws://127.0.0.1:5190/ws https://game.tired.solutions --token-file /var/lib/game-opus/smoke-token --build-file "$RELEASE/dist/index.html" && return 0
         fi
         sleep 1
     done
@@ -79,6 +79,11 @@ if ! healthy; then
         systemctl stop game-opus
     fi
     exit 1
+fi
+
+# Только проверенный и всё ещё активный релиз. Проблема Telegram не отменяет успешный выпуск игры.
+if ! runuser -u game-opus -- "$BASE/runtime/bin/node" "$RELEASE/deploy/announce-release.ts" send "$RELEASE" "$BASE/current" /var/lib/game-opus --smoke-passed; then
+    echo 'Игра работает; уведомление Telegram не подтверждено (отдельный статус tg-release выше).' >&2
 fi
 
 # Старые релизы: храним несколько последних для отката

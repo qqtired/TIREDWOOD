@@ -34,9 +34,9 @@ test('каждая каменная / земляная грань имеет е�
   assert.ok(faces > 20000, `проверены реальные грани, включая скалы и крутые склоны: ${faces}`);
 });
 
-test('фактура ступеней / поручней использует один материал и сохраняет форму / shading normals', async () => {
+test('фактура ступеней / поручней / несущего каркаса использует один материал и сохраняет форму / shading normals', async () => {
   const root = await load('lighthouse');
-  const names = ['walk_lighthouse_stairs', 'lighthouse_rails_v2'];
+  const names = ['walk_lighthouse_stairs', 'lighthouse_rails_v2', 'lighthouse_structure_v3'];
   const before = names.map((name) => {
     const mesh = root.getObjectByName(name) as THREE.Mesh;
     return { name, p: [...mesh.geometry.getAttribute('position').array], n: [...mesh.geometry.getAttribute('normal').array] };
@@ -50,28 +50,30 @@ test('фактура ступеней / поручней использует о
     assert.deepEqual([...mesh.geometry.getAttribute('position').array], b.p); assert.deepEqual([...mesh.geometry.getAttribute('normal').array], b.n);
     assert.equal(mesh.geometry.getAttribute('uv').count, mesh.geometry.getAttribute('position').count);
   }
-  assert.equal(mats.size, 1, 'ступени и поручни склеиваются в один bucket');
+  assert.equal(mats.size, 1, 'ступени, поручни и несущий каркас склеиваются в один bucket');
 });
 
 test('понтон / сходни используют тот же wood bucket, дерево домов / предметов остаётся прежним', async () => {
   const pier = await load('pier-breakwater'), lighthouse = await load('lighthouse');
-  const names = ['pier_1', 'walk_jetty_underlay', 'walk_pontoon_underlay'];
+  const names = ['pier_1', 'walk_jetty_underlay', 'walk_pontoon_underlay', 'walk_landing_underlay', 'walk_landing_transition'];
   const before = names.map((name) => {
     const mesh = pier.getObjectByName(name) as THREE.Mesh, g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
     return { name, p: [...g.getAttribute('position').array], n: [...g.getAttribute('normal').array], tris: g.getAttribute('position').count / 3 };
   });
   dressIsleSurfaces(pier); dressIsleSurfaces(lighthouse);
   const stairs = lighthouse.getObjectByName('walk_lighthouse_stairs_surface_wood') as THREE.Mesh;
-  let tris = 0;
   for (const b of before) {
     const mesh = pier.getObjectByName(`${b.name}_surface_wood`) as THREE.Mesh;
     assert.ok(mesh, b.name); assert.equal(mesh.material, stairs.material, 'у настилов и лестницы один материал / bitmap');
     assert.deepEqual([...mesh.geometry.getAttribute('position').array], b.p); assert.deepEqual([...mesh.geometry.getAttribute('normal').array], b.n);
-    assert.equal(mesh.geometry.getAttribute('position').count / 3, b.tris); tris += b.tris;
+    assert.ok(b.tris > 0, `${b.name}: исходная конструкция не пуста`);
+    assert.equal(mesh.geometry.getAttribute('position').count / 3, b.tris, `${b.name}: текстурирование сохраняет каждую исходную грань`);
     const uv = mesh.geometry.getAttribute('uv'); assert.equal(uv.count, mesh.geometry.getAttribute('position').count);
     assert.ok([...uv.array].every(Number.isFinite));
   }
-  assert.equal(tris, 1418, 'реальные деревянные меши настилов / сходней в GLB');
+  const textured: string[] = [];
+  pier.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material === stairs.material) textured.push(m.name); });
+  assert.deepEqual(textured.sort(), names.map((name) => `${name}_surface_wood`).sort(), 'весь настил и оба новых стыка получили общую фактуру');
   for (const file of ['props', 'keeper-house', 'houses', 'cannery', 'schooner-wreck']) {
     const root = await load(file), untouched: Array<{ m: THREE.Mesh; parent: THREE.Object3D | null; g: THREE.BufferGeometry; material: THREE.Material }> = [];
     root.traverse((o) => {

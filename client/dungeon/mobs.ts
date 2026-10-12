@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { DungeonAssets, MobModel } from './assets.ts';
-import type { MobKind } from './view.ts';
+import type { MobKind, VEnemy } from './view.ts';
 import { D } from '../../shared/dungeon/data.ts';
 
 const FPS = 24;
@@ -26,7 +26,13 @@ interface Baked {
   geo: THREE.BufferGeometry;
   tex: THREE.DataTexture;
   clips: Partial<Record<ClipKey, ClipRows>>;
+  height: number;
   atlas?: THREE.Texture;
+}
+
+/** Полоска нужна только живой элите; обычные враги и отдельный HUD боссов остаются прежними. */
+export function eliteHpFraction(enemy: Pick<VEnemy, 'elite' | 'hp' | 'hpMax'>): number | null {
+  return enemy.elite && enemy.hp > 0 && enemy.hpMax > 0 ? Math.min(1, enemy.hp / enemy.hpMax) : null;
 }
 
 /** Вид врага → модель и масштаб */
@@ -82,6 +88,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   });
   root.position.set(0, 0, 0);
   root.updateMatrixWorld(true);
+  const height = new THREE.Box3().setFromObject(root).max.y;
   const rootInv = root.matrixWorld.clone().invert();
 
   // геометрия: каждая часть — в системе своего сустава, номер части в вершине
@@ -178,7 +185,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
   tex.needsUpdate = true;
-  return { geo, tex, clips, atlas };
+  return { geo, tex, clips, height, atlas };
 }
 
 const VERT_HEAD = /* glsl */ `
@@ -313,6 +320,10 @@ export class MobRenderer {
 
   duration(kind: MobKind, key: ClipKey): number {
     return this.target(kind)?.baked.clips[key]?.duration ?? 1;
+  }
+
+  height(kind: MobKind): number {
+    return (this.target(kind)?.baked.height ?? 0) * KIND_MODEL[kind].scale;
   }
 
   capacity(kind: MobKind): number {

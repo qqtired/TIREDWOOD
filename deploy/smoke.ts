@@ -1,8 +1,9 @@
 // Проверка после выкладки: заходим в игру как настоящий клиент и ждём профиль, комнату и снимок мира.
 // node deploy/smoke.ts [адрес WebSocket] [Origin] [токен проверки]
+// Для installer: [адрес] [Origin] --token-file <файл> --build-file <dist/index.html релиза>.
 // Токен лежит в DATA_DIR/smoke-token (на сервере — /var/lib/game-opus/smoke-token). С ним сервер
 // пускает «Проверку» без профиля: профили, жетоны и журнал входов не трогаются.
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import WebSocket from 'ws';
 import { PROTOCOL_VERSION } from '../shared/constants.ts';
@@ -15,6 +16,11 @@ const origin = process.argv[3] || 'https://game.tired.solutions';
 let token = '';
 try { token = (process.argv[4] === '--token-file' ? readFileSync(process.argv[5], 'utf8') : process.argv[4] ?? '').trim(); }
 catch { console.error('ОШИБКА: недоступен файл проверки'); process.exit(1); }
+// Installer требует именно сборку этого релиза, а не просто ответ любого живого сервера.
+let expectedBuild = '';
+try {
+  if (process.argv[6] === '--build-file') expectedBuild = createHash('sha256').update(readFileSync(process.argv[7])).digest('hex').slice(0, 12);
+} catch { console.error('ОШИБКА: недоступна сборка проверяемого релиза'); process.exit(1); }
 
 if (!token) {
   console.log(`ОШИБКА: ${url} — нет токена проверки`);
@@ -43,7 +49,10 @@ ws.on('open', () => ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, ke
 ws.on('message', (data, isBinary) => {
   if (!isBinary) {
     const m = JSON.parse(String(data)) as ServerMsg;
-    if (m.t === 'me') me = true;
+    if (m.t === 'me') {
+      if (expectedBuild && m.build !== expectedBuild) { finish(false, 'сервер отвечает другой сборкой'); return; }
+      me = true;
+    }
     else if (m.t === 'scene') scene = true;
     else if (m.t === 'error') finish(false, m.code === 'need_nick' ? 'токен проверки не подошёл' : m.text);
     return;

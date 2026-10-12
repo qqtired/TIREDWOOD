@@ -38,7 +38,7 @@ function query(u: number, v: number, mode: 0 | 1 | 2 | 3, ceiling = Infinity, fe
     if (aa < -1e-6 || bb < -1e-6 || cc < -1e-6) continue;
     const h = aa * points[a + 1] + bb * points[b + 1] + cc * points[c + 1];
     if (h <= 0.12) continue;
-    const kind = kinds[i / 3], depth = kind === 2 ? 0.205 : 0.08;
+    const kind = kinds[i / 3], depth = kind === 2 ? 0.205 : kind === 3 ? 0.18 : 0.08;
     if (mode === 3 && h > best) {
       best = h;
       const abx = bx - ax, aby = points[b + 1] - points[a + 1], abz = bz - az;

@@ -1417,7 +1417,11 @@ export class LobbyWorld {
     const rng = makeRng(808);
     const haze = new THREE.Color(EVENING.horizon);
     const geos: THREE.BufferGeometry[] = [];
-    // сухогруз — силуэт против солнца
+    // Дальний рейд северо-западнее острова: вне пути из бухты к его причалу.
+    // Геометрия и огни используют одну матрицу, чтобы надстройка не оставалась на старом месте.
+    const anchorage = new THREE.Matrix4().makeTranslation(-1260, 0, -640)
+      .multiply(new THREE.Matrix4().makeRotationY(0.36))
+      .multiply(new THREE.Matrix4().makeTranslation(640, 0, -150));
     const dark = new THREE.Color(0x3b3a44).lerp(haze, 0.3);
     geos.push(place(paint(new THREE.BoxGeometry(150, 9, 22), dark), -640, WATER_Y + 3.5, 150));
     geos.push(place(paint(new THREE.BoxGeometry(16, 13, 20), new THREE.Color(0xd8d2c8).lerp(haze, 0.45)), -705, WATER_Y + 14, 150));
@@ -1425,11 +1429,14 @@ export class LobbyWorld {
       const cc = new THREE.Color([0x9a4a3a, 0x3f6f8f, 0x4c7a5a, 0xc07a3a][k % 4]).lerp(haze, 0.5);
       geos.push(place(paint(new THREE.BoxGeometry(13, 4 + rng() * 4, 18), cc), -680 + k * 14, WATER_Y + 10, 150));
     }
-    this.scene.add(staticMesh(mergeGeometries(geos, false)!, this.far(new THREE.MeshLambertMaterial({ vertexColors: true, fog: false })), false));
+    const ship = staticMesh(mergeGeometries(geos, false)!.applyMatrix4(anchorage), this.far(new THREE.MeshLambertMaterial({ vertexColors: true, fog: false })), false);
+    ship.name = 'distant_freighter';
+    this.scene.add(ship);
 
     const pts = [-640, WATER_Y + 22, 150, -700, WATER_Y + 22, 150, -575, WATER_Y + 10, 150];
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    g.applyMatrix4(anchorage);
     this.scene.add(new THREE.Points(g, this.far(new THREE.PointsMaterial({
       color: 0xffc888, size: 3.5, map: glowTexture(), transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }), true)));

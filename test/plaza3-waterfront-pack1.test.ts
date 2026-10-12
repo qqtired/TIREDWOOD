@@ -21,6 +21,36 @@ const { makeState, makeEvents, stepPlayer, BTN_FORWARD } = await import('../shar
 const ground = (x: number, z: number): number => townHeight(x, z,
   Math.max(Math.min(x - P3.land.town.e, townCoastZ(x) - z), Math.min(P3.land.town.n - z, x + 30)), signHill(x, z));
 
+test('мостик гидроплана: видимый настил имеет опору, проход от берега и обратно без падения и прыжка', async () => {
+  const world = new CollisionWorld(buildLobby());
+  const p = PAVILIONS.find((v) => v.id === 'aeroclub')!;
+  const bytes = readFileSync(new URL(`../client/assets/plaza3/${p.file}`, import.meta.url));
+  const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
+  gltf.scene.position.set(p.x, p.y ?? 0, p.z);
+  gltf.scene.rotation.y = p.yaw;
+  gltf.scene.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster();
+  for (const z of [-11.3, -10.9, -10.5]) {
+    for (let x = -32.7; x < -30; x += 0.3) {
+      ray.set(new THREE.Vector3(x, 0.1, z), new THREE.Vector3(0, -1, 0));
+      const hit = ray.intersectObject(gltf.scene, true)[0];
+      assert.ok(hit && hit.point.y > -0.04, 'проверяем видимые доски GLB');
+      const y = world.groundBelow(x, 0.1, z);
+      assert.ok(Math.abs(y - hit.point.y) < 0.04, `под досками опора: ${x};${z}, y=${y}`);
+    }
+    for (const direction of [-1, 1]) {
+      const state = Object.assign(makeState(), { x: direction < 0 ? -29.2 : -32.5, y: 0, z, grounded: 1 });
+      const event = makeEvents();
+      const target = direction < 0 ? -32.5 : -29.2;
+      for (let seq = 1; seq <= 100 && (direction < 0 ? state.x > target : state.x < target); seq++) {
+        stepPlayer(state, { seq, buttons: BTN_FORWARD, yaw: -direction * Math.PI / 2, pitch: 0, viewTick: 0 }, world, false, 1, event);
+        assert.ok(state.y >= -0.04, 'не проваливается при обычной ходьбе');
+      }
+      assert.ok(direction < 0 ? state.x <= target : state.x >= target, `проход ${direction} по z=${z}: x=${state.x}`);
+    }
+  }
+});
+
 test('actual GLB кафе/веранды и досок у spawn оставляют буквы TIREDWOOD открытыми с площади и колеса', async () => {
   const letters = layoutSign(ground);
   const eyes = [new THREE.Vector3(P3.lobby.spawn.x, 1.7, P3.lobby.spawn.z), new THREE.Vector3(P3.center.x, 1.7, P3.center.z), new THREE.Vector3(27, 17, 13)];
