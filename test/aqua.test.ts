@@ -7,10 +7,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
+import { PLAZA3 } from '../shared/layout.ts';
 import { Predictor, type StepHook } from '../client/predict.ts';
 import {
   AQUA_BAGS, AQUA_BAG_H, AQUA_BAG_R, AQUA_COURSE, AQUA_FINISH, AQUA_JETTY, AQUA_MOVERS, AQUA_NEAR_X, AQUA_PAUSE, AQUA_PIECES, AQUA_RESPAWN, AQUA_SKEW,
-  AQUA_SKEW_K, AQUA_SWEEPER, AQUA_TOP,
+  AQUA_SKEW_K, AQUA_SWEEPER, AQUA_SWEEPERS, AQUA_TOP,
   addRecord, aquaMs, fmtAquaTime, onFinish, onJetty, slideSteps, type AquaMover, type AquaPiece, type AquaRecord,
 } from '../shared/aqua.ts';
 import {
@@ -28,13 +29,28 @@ import { Store } from '../server/store.ts';
 import type { Client, Hub } from '../server/hub.ts';
 import { allOf, lastOf, login, placeAt, setupHub, steps, type FakeSink } from './kit.ts';
 
-const [PAD1, PAD2, PAD3, DECK1, DECK2, DECK3, TRAMP1, STEP, TRAMP2, TOWER, SLIDE, DECK4, DISC, PYLON, DECK5, BEAM, DECK6, TOWER2, PILLAR1, PILLAR2, DECK7, FINISH] =
+const [PAD1, PAD2, PAD3, DECK1, DECK2, DECK3, TRAMP1, STEP, TRAMP2, TOWER, SLIDE, DECK4, DISC, , DECK5, BEAM, DECK6, TOWER2, PILLAR1, PILLAR2, DECK7, FINISH] =
   AQUA_PIECES;
 const [FERRY, SINK1, SINK2, SINK3, SINK4, LIFT, FERRY_A, FERRY_B] = AQUA_MOVERS;
 /** Смотреть на запад (+x — восток, yaw 0 — на −z) */
 const WEST = Math.PI / 2;
 /** Метка входа робота отстаёт от тика сервера на столько (задержка отрисовки и пинг) */
 const LAGT = 10;
+
+test('аквапарк 3: на обратной дуге есть вторая вертушка с отдельной фазой', { skip: !PLAZA3 }, () => {
+  const sweeps = AQUA_SWEEPERS;
+  assert.equal(sweeps.length, 2, 'обе принятые вертушки работают на полном маршруте');
+  const second = sweeps[1];
+  assert.equal(second.top, 2);
+  assert.notEqual(second.phase, sweeps[0].phase);
+  const map = buildLobby();
+  const world = new CollisionWorld(map);
+  const dyn = new AquaDyn(world, map.aquaMovers);
+  const s = standing(second.x + 2, second.top, second.z);
+  aquaStep(world, dyn, s, second.phase ?? 0, second.phase ?? 0);
+  assert.equal(dyn.knock, KNOCK_SWEEP, 'вторая перекладина действительно толкает');
+  assert.ok(s.vy > 0 && s.grounded === 0);
+});
 
 function lp(hub: Hub, c: Client) {
   const p = hub.lobby.playerOf(c);
@@ -174,12 +190,12 @@ function pastBag(k: number): Leg {
 }
 
 /** Перекладина вертушки (обе стороны) в момент t — угол в градусах по модулю 180. */
-function sweepDeg(t: number): number {
-  return ((sweepAngle(t) * 180) / Math.PI) % 180;
+function sweepDeg(t: number, sw = AQUA_SWEEPER): number {
+  return ((sweepAngle(t, sw) * 180) / Math.PI) % 180;
 }
 
 /** Вдоль вертушки — по восточной стороне от столба */
-const DISC_X = -89.9;
+const DISC_X = AQUA_SWEEPER.x + 1.7;
 
 /** Весь путь: где ждать паромов, лифта, подушек, перекладины и мешков. */
 const WAY: Leg[] = [
@@ -187,9 +203,9 @@ const WAY: Leg[] = [
   onPiece('подушка 2', PAD2),
   onPiece('подушка 3', PAD3),
   onPiece('причал парома', DECK1),
-  onMover('паром', FERRY, { wait: { x: DECK1.x0 + 0.5, z: 9 }, go: (t) => cyc(FERRY, t) < 36 }),
+  onMover('паром', FERRY, { wait: { x: DECK1.x0 + 0.5, z: mid(DECK1).z }, go: (t) => cyc(FERRY, t) < 36 }),
   onPiece('причал за паромом', DECK2, { go: (t) => cyc(FERRY, t) >= 272 && cyc(FERRY, t) < 320 }),
-  onMover('тонущая подушка 1', SINK1, { wait: { x: DECK2.x0 + 0.35, z: 9 }, go: (t) => cyc(SINK1, t) < 30 }),
+  onMover('тонущая подушка 1', SINK1, { wait: { x: DECK2.x0 + 0.35, z: mid(DECK2).z }, go: (t) => cyc(SINK1, t) < 30 }),
   onMover('тонущая подушка 2', SINK2),
   onMover('тонущая подушка 3', SINK3),
   onMover('тонущая подушка 4', SINK4),
@@ -199,19 +215,23 @@ const WAY: Leg[] = [
   onTramp('сильный батут', TRAMP2),
   onPiece('башня', TOWER),
   onPiece('площадка под горкой', DECK4),
-  onPiece('вертушка', DISC, { at: { x: DISC_X, z: 30.6 }, wait: { x: DISC_X, z: 25.4 }, go: (t) => sweepDeg(t) <= 8 }),
-  onPiece('площадка за вертушкой', DECK5, { at: { x: DISC_X, z: 36.6 } }),
+  onPiece('вертушка', DISC, { at: { x: DISC_X, z: mid(DISC).z }, wait: { x: DISC_X, z: DECK4.z1 - 0.6 }, go: (t) => sweepDeg(t) <= 8 }),
+  onPiece('площадка за вертушкой', DECK5, { at: { x: DISC_X, z: mid(DECK5).z } }),
   onPiece('бревно', BEAM, { at: { x: -88.6 } }),
   pastBag(0),
   pastBag(1),
   pastBag(2),
   onPiece('площадка у лифта', DECK6, { at: { x: -74.6 } }),
-  onMover('лифт', LIFT, { wait: { x: DECK6.x1 - 0.4, z: 36.6 }, go: (t) => cyc(LIFT, t) < 36 }),
+  onMover('лифт', LIFT, { wait: { x: DECK6.x1 - 0.4, z: mid(DECK6).z }, go: (t) => cyc(LIFT, t) < 36 }),
   onPiece('верхняя палуба', TOWER2, { go: (t) => cyc(LIFT, t) >= 188 && cyc(LIFT, t) < 236 }),
-  onPiece('тумба 1', PILLAR1),
+  ...(PLAZA3 ? [
+    onPiece('вторая вертушка', PILLAR1, { at: { x: -65, z: 34.6 }, wait: { x: TOWER2.x1 - 0.5, z: TOWER2.z0 + 0.5 }, go: (t) => sweepDeg(t, AQUA_SWEEPERS[1]) <= 1 }),
+    onPiece('северный край вертушки', PILLAR1, { at: { x: -65, z: 31.6 }, done: (s) => standsOn(s, PILLAR1) && s.z < 31.85 }),
+    onPiece('выход с вертушки', PILLAR1, { at: { x: -61.6, z: 31.6 }, done: (s) => standsOn(s, PILLAR1) && s.x > -61.8 }),
+  ] : [onPiece('тумба 1', PILLAR1)]),
   onPiece('тумба 2', PILLAR2),
   onPiece('причал паромов', DECK7),
-  onMover('паром к встрече', FERRY_A, { wait: { x: DECK7.x1 - 0.4, z: 36.6 }, go: (t) => cyc(FERRY_A, t) < 30 }),
+  onMover('паром к встрече', FERRY_A, { wait: { x: DECK7.x1 - 0.4, z: mid(DECK7).z }, go: (t) => cyc(FERRY_A, t) < 30 }),
   onMover('встречный паром', FERRY_B, { go: (t) => cyc(FERRY_A, t) >= 182 && cyc(FERRY_A, t) < 212 }),
   onPiece('финиш', FINISH, { go: (t) => cyc(FERRY_B, t) >= 2 && cyc(FERRY_B, t) < 40 }),
 ];
@@ -247,6 +267,14 @@ function pilot(world: CollisionWorld, s: PlayerState, leg: Leg, t: number, waiti
     const uz = dz / dist;
     const low = (k: number) => groundAt(world, s.x + ux * k, s.y + 0.3, s.z + uz * k, t) < s.y - 0.6;
     jump = (low(0.75) && low(1.05)) || groundAt(world, s.x + ux * 0.75, s.y + 3, s.z + uz * 0.75, t) > s.y + STEP_HEIGHT;
+    // На новой вертушке бот смотрит на приближающуюся трубу и нажимает обычный прыжок заранее.
+    if (PLAZA3) for (const sw of AQUA_SWEEPERS.slice(1)) {
+      if (Math.abs(s.y - sw.top) > 0.08) continue;
+      const a = sweepAngle(t + 10, sw);
+      const rx = s.x + ux * 0.8 - sw.x;
+      const rz = s.z + uz * 0.8 - sw.z;
+      if (Math.hypot(rx, rz) < sw.len + 0.5 && Math.abs(rz * Math.cos(a) - rx * Math.sin(a)) < 1) jump = true;
+    }
   }
   return { buttons: (go ? BTN_FORWARD : 0) | (jump ? BTN_JUMP : 0), yaw };
 }
@@ -254,7 +282,8 @@ function pilot(world: CollisionWorld, s: PlayerState, leg: Leg, t: number, waiti
 /** Пошёл — значит пошёл: окно «можно идти» запоминается до конца отрезка (в прыжке назад не поворачивает). */
 class Gate {
   private open: Leg | null = null;
-  waiting(leg: Leg, t: number): boolean {
+  waiting(leg: Leg, t: number, s?: PlayerState): boolean {
+    if (PLAZA3 && this.open !== leg && leg.wait && s && leg.name.includes('вертушка') && Math.hypot(s.x - leg.wait.x, s.z - leg.wait.z) > 0.5) return true;
     if (this.open === leg || !leg.go || leg.go(t)) {
       this.open = leg;
       return false;
@@ -280,6 +309,8 @@ function robotRun(hub: Hub, who: { c: Client; s: FakeSink }): Run {
   const p = lp(hub, c);
   placeAt(hub, c, AQUA_RESPAWN.x, AQUA_RESPAWN.z);
   pad.hold(0, 3);
+  const predicted = clientPredictor();
+  predicted.reset(p.state, pad.seq);
   const world = hub.lobby.world;
   const legs: Array<[string, number]> = [];
   let seen = sink.msgs.length;
@@ -293,15 +324,17 @@ function robotRun(hub: Hub, who: { c: Client; s: FakeSink }): Run {
     while (k < WAY.length && WAY[k].done(s, t)) legs.push([WAY[k++].name, n]);
     const leg = WAY[Math.min(k, WAY.length - 1)];
     const where = () => `«${leg.name}» из (${s.x.toFixed(2)}, ${s.y.toFixed(2)}, ${s.z.toFixed(2)}), тик ${n}`;
-    const { buttons, yaw } = pilot(world, s, leg, t, gate.waiting(leg, t));
+    const { buttons, yaw } = pilot(world, s, leg, t, gate.waiting(leg, t, s));
     const seq = pad.send(buttons, yaw);
+    predicted.step(pad.log[pad.log.length - 1], false);
+    assert.ok(statesEqual(predicted.at(seq)!.after, p.state), `клиент и сервер расходятся: ${where()}`);
     maxY = Math.max(maxY, p.state.y);
     for (; seen < sink.msgs.length; seen++) {
       const m = sink.msgs[seen];
       if (m.t === 'lev') {
         for (const e of m.e) {
           assert.ok(e[0] !== 'splash', `упал в воду: ${where()}`);
-          assert.ok(e[0] !== 'aqhit', `толкнуло: ${where()}`);
+          assert.ok(e[0] !== 'aqhit', `толкнуло: ${where()}, фаза ${sweepDeg(t).toFixed(1)}, этапы ${JSON.stringify(legs.slice(-4))}`);
         }
       } else if (m.t === 'aquaRun') {
         if (m.a === 'start') at = m.at;
@@ -372,11 +405,15 @@ test('аквапарк: полоса — на воде к западу от пл
   // мостик — вровень с настилом, проход в бордюре
   assert.equal(world.groundBelow((AQUA_JETTY.x0 + AQUA_JETTY.x1) / 2, 1, 9), 0);
   assert.equal(world.groundBelow(-29.85, 1, 9), 0, 'бордюр у мостика разобран');
-  assert.equal(world.groundBelow(-29.85, 1, 3), 0.22, 'а рядом — на месте');
+  assert.equal(world.groundBelow(-29.85, 1, 3), PLAZA3 ? 0.95 : 0.22, 'а рядом — на месте');
   const all: Array<[string, Rect]> = [...AQUA_PIECES.map((p, i): [string, Rect] => [`${p.kind} ${i}`, p]), ...AQUA_MOVERS.map((m, i): [string, Rect] => [`${m.kind} ${i}`, sweptRect(m)])];
   for (const [name, r] of all) {
     assert.ok(r.x1 < AQUA_NEAR_X && r.x0 > -96.5 && r.z0 > -25 && r.z1 < 47, `${name} — к западу от площади, внутри стен`);
     assert.ok(!overlap(r, { ...AQUA_JETTY, top: 0 }), `${name} не налезает на мостик`);
+    for (const b of map.boxes) {
+      if (b.mat !== 'invisible' || b.max[1] < 20 || b.min[1] > -1) continue;
+      assert.ok(!overlap(r, { x0: b.min[0], x1: b.max[0], z0: b.min[2], z1: b.max[2], top: b.max[1] }), `${name}: невидимая граница не пересекает трассу`);
+    }
     // лодки и буи на воде — в стороне
     for (const d of map.deco) {
       if (d.kind !== 'boat' && d.kind !== 'buoy') continue;
@@ -408,7 +445,7 @@ test('аквапарк: полоса — на воде к западу от пл
     for (let j = i + 1; j < AQUA_PIECES.length; j++) {
       const a = AQUA_PIECES[i];
       const b = AQUA_PIECES[j];
-      if ((a === DISC && b === PYLON) || (a === PYLON && b === DISC)) continue;
+      if ((a.kind === 'disc' && b.kind === 'pylon') || (a.kind === 'pylon' && b.kind === 'disc')) continue;
       assert.ok(!overlap(a, b), `${a.kind} ${i} и ${b.kind} ${j} не налезают`);
     }
   }
@@ -423,7 +460,7 @@ test('аквапарк: полоса — на воде к западу от пл
   // между кусками — вода: мимо полосы не пройти посуху
   assert.equal(world.groundBelow(-35.3, 1, 9), -Infinity);
   assert.equal(world.groundBelow(-55, 1, 9), -Infinity, 'паромная переправа — вода');
-  assert.equal(world.groundBelow(-45, 1, 36.6), -Infinity, 'переправа двух паромов — вода');
+  assert.equal(world.groundBelow(-45, 1, mid(FINISH).z), -Infinity, 'переправа двух паромов — вода');
   // подвижные боксы вне шага игрока — далеко за картой (мяч, камера и тени их не видят)
   for (const k of map.aquaMovers) assert.ok(world.minX[k] > 1e5 && world.maxY[k] < -1e5);
   // старт и финиш
@@ -437,7 +474,7 @@ test('аквапарк: полоса — на воде к западу от пл
 
 test('аквапарк: каждый кусок достижим в своё окно — паромы и лифт причаливают, подушки идут волной, батуты добрасывают', () => {
   // прыжки между неподвижными кусками — не длиннее 1,6 м воды; длинные переправы — только на пароме (с рывком не допрыгнуть)
-  const hops: Array<[Rect, Rect]> = [[PAD1, PAD2], [PAD2, PAD3], [PAD3, DECK1], [TOWER2, PILLAR1], [PILLAR1, PILLAR2], [PILLAR2, DECK7]];
+  const hops: Array<[Rect, Rect]> = [[PAD1, PAD2], [PAD2, PAD3], [PAD3, DECK1], ...(!PLAZA3 ? [[TOWER2, PILLAR1], [PILLAR1, PILLAR2]] as Array<[Rect, Rect]> : []), [PILLAR2, DECK7]];
   for (const [a, b] of hops) assert.ok(gapX(a, b) <= 1.6 + 1e-9 && gapX(a, b) > 0.5, `прыжок ${gapX(a, b).toFixed(2)} м`);
   assert.ok(gapZ(DECK4, DISC) <= 1.6 + 1e-9 && gapZ(DISC, DECK5) <= 1.6 + 1e-9, 'на площадку вертушки и с неё — прыжком');
   assert.ok(JUMP_GAP > 6.5 && JUMP_GAP < 7.2, `прыжок с разбега ≈ ${JUMP_GAP.toFixed(2)} м`);
@@ -513,7 +550,7 @@ test('аквапарк: каждый кусок достижим в своё о�
 
 // ------------------------------------------------------------ робот через хаб
 
-test('аквапарк: робот проходит всю полосу через хаб — паромы, подушки, батуты, горка, вертушка, мешки, лифт, тумбы', () => {
+test('аквапарк: робот проходит всю полосу через хаб — паромы, подушки, батуты, горка, вертушки, мешки, лифт, тумбы', (t) => {
   const { hub } = setupHub();
   const a = login(hub, 'Пловец');
   const run = robotRun(hub, a);
@@ -525,6 +562,7 @@ test('аквапарк: робот проходит всю полосу чере
   assert.equal(a.c.profile!.stats.aqRuns, 1);
   assert.equal(a.c.profile!.stats.aqBest, run.ms);
   assert.equal(lastOf(a.s, 'aquaTop')!.top[0].ms, run.ms);
+  t.diagnostic(`Полоса ${AQUA_COURSE}: ${fmtAquaTime(run.ms)}, ${run.log.length} вводов, ${run.legs.length} переходов; клиент совпал с сервером на каждом шаге.`);
 });
 
 test('аквапарк: время по шагам не зависит от дрожания сети — те же входы пачками и с паузами дают то же время и то же место', () => {
@@ -578,7 +616,7 @@ test('аквапарк: на полосе сервер не додумывает
   const p = lp(hub, a.c);
   const pad = new Pad(hub, a.c);
   // на причале парома идёт на запад, связь пропала на секунду — стоит, где был, а не бежит дальше в воду
-  placeAt(hub, a.c, (DECK1.x0 + DECK1.x1) / 2 + 0.6, 9, DECK1.top);
+  placeAt(hub, a.c, (DECK1.x0 + DECK1.x1) / 2 + 0.6, mid(DECK1).z, DECK1.top);
   pad.hold(BTN_FORWARD, 6);
   const before = makeState();
   copyState(before, p.state);
@@ -663,9 +701,9 @@ test('аквапарк: предсказание клиента на паром�
       }
       assert.equal(k, legs.length, `дошёл (${legs.map((l) => l.name).join(', ')})`);
     };
-    drive('паром', 2, DECK1, { x: DECK1.x0 + 0.6, z: 9 });
-    drive('лифт', 2, DECK6, { x: DECK6.x1 - 0.6, z: 36.6 });
-    drive('паром к встрече', 3, DECK7, { x: DECK7.x1 - 0.6, z: 36.6 });
+    drive('паром', 2, DECK1, { x: DECK1.x0 + 0.6, z: mid(DECK1).z });
+    drive('лифт', 2, DECK6, { x: DECK6.x1 - 0.6, z: mid(DECK6).z });
+    drive('паром к встрече', 3, DECK7, { x: DECK7.x1 - 0.6, z: mid(DECK7).z });
     assert.equal(pred.corrections, 0, 'ни одной поправки');
   }
 });
@@ -700,7 +738,7 @@ test('аквапарк: паром и лифт везут стоящего ро�
   const dyn = new AquaDyn(world, map.aquaMovers);
   // паром: стоит у края — после всей переправы там же относительно парома, вровень с верхом
   const f0 = boxAt(FERRY, 0);
-  const s = standing(f0.x0 + 0.5, f0.top, 9.3);
+  const s = standing(f0.x0 + 0.5, f0.top, mid(f0).z + 0.3);
   let tPrev = 0;
   for (let t = 1; t <= FERRY.rest + FERRY.go + 10; t++) {
     aquaStep(world, dyn, s, t, tPrev);
@@ -710,7 +748,7 @@ test('аквапарк: паром и лифт везут стоящего ро�
   }
   assert.ok(world.minX[map.aquaMovers[0]] > 1e5, 'после шага паром — снова за картой');
   // неровные метки: везёт ровно на сдвиг между метками входов
-  const s2 = standing(f0.x0 + 1, f0.top, 9);
+  const s2 = standing(f0.x0 + 1, f0.top, mid(f0).z);
   let p2 = 60;
   for (const t of [61, 61.5, 61.5, 64, 70.25, 71, 90.75]) {
     aquaStep(world, dyn, s2, t, p2);
@@ -719,7 +757,7 @@ test('аквапарк: паром и лифт везут стоящего ро�
   }
   // лифт: поднимает на верхнюю палубу и стоит вровень с ней
   const l0 = boxAt(LIFT, 0);
-  const s3 = standing((l0.x0 + l0.x1) / 2, l0.top, 36.6);
+  const s3 = standing((l0.x0 + l0.x1) / 2, l0.top, mid(l0).z);
   tPrev = 0;
   for (let t = 1; t <= LIFT.rest + LIFT.go + 5; t++) {
     aquaStep(world, dyn, s3, t, tPrev);
@@ -728,7 +766,7 @@ test('аквапарк: паром и лифт везут стоящего ро�
   assert.ok(Math.abs(s3.y - TOWER2.top) < 1e-9 && s3.grounded === 1, `лифт поднял (${s3.y})`);
   // тонущая подушка: стоял — ушёл под воду ниже, чем тонет желейка
   const k0 = boxAt(SINK1, 0);
-  const s4 = standing((k0.x0 + k0.x1) / 2, k0.top, 9);
+  const s4 = standing((k0.x0 + k0.x1) / 2, k0.top, mid(k0).z);
   tPrev = 0;
   for (let t = 1; t <= SINK1.rest + SINK1.go + 2; t++) {
     aquaStep(world, dyn, s4, t, tPrev);
@@ -875,7 +913,7 @@ test('аквапарк: старт — только с мостика на за�
   assert.equal(lastOf(a.s, 'aquaRun')?.a, 'stop');
   // в прыжке над финишем — не финиш, на площадке — финиш
   startRun(hub, pad);
-  placeAt(hub, a.c, (FINISH.x0 + FINISH.x1) / 2, 36.6, FINISH.top + 1.2);
+  placeAt(hub, a.c, (FINISH.x0 + FINISH.x1) / 2, mid(FINISH).z, FINISH.top + 1.2);
   pad.hold(0, 3);
   assert.equal(lastOf(a.s, 'aquaRun')?.a, 'start', 'ещё летит');
   pad.hold(0, 40);

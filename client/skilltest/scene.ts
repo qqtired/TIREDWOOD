@@ -9,8 +9,8 @@ import { E_ALIVE, E_GROUNDED, encodeInputs } from '../../shared/protocol.ts';
 import { makeInput, type StepEvents } from '../../shared/sim.ts';
 import { SKILL_KNOCK_TICKS, SkillDynamics, makeSackPose, moverAt, sackAt, type P3 } from '../../shared/skillphysics.ts';
 import {
-  SKILL_COUNT_TICKS, SKILL_COURSE, SKILL_GOLD_TICKS, SKILL_MEDALS, SKILL_SECTIONS, SKILL_SILVER_TICKS, makeSkillProgress, skillClock,
-  skillMedal, skillTime, type SkillPeer, type SkillProgress, type SkillRaceView, type SkillServerMsg,
+  SKILL_COUNT_TICKS, SKILL_COURSE, SKILL_LEGACY_COURSE, SKILL_LEGACY_SECTIONS, SKILL_GOLD_TICKS, SKILL_LEGACY_GOLD_TICKS, SKILL_LEGACY_SILVER_TICKS, SKILL_MEDALS, SKILL_SECTIONS, SKILL_SILVER_TICKS, makeSkillProgress, skillClock,
+  skillMedal, skillTime, type SkillPeer, type SkillProgress, type SkillRaceView, type SkillServerMsg, type SkillCourse,
 } from '../../shared/skilltest.ts';
 import { CRUMBLE_SPEED, crumbleFront, crumbleReformIn, ramState, windState, type RamPhase } from '../../shared/skilltraps.ts';
 import { ClockSync } from '../net.ts';
@@ -23,6 +23,7 @@ import { SkillFx } from './fx.ts';
 import { SkillHud, type MeterMark } from './hud.ts';
 import { SkillSfx } from './sfx.ts';
 import { SkillWorld } from './world.ts';
+import { CloudTowerWorld } from './cloudworld.ts';
 
 type StateMsg = Extract<SkillServerMsg, { t: 'skill_state' }>;
 type V3 = [number, number, number];
@@ -56,12 +57,16 @@ export class SkillScene implements Scene {
   get wantsPointer(): boolean { return !this.hud.open; }
   readonly touchMode = 'walk' as const;
   readonly touchUseIcon = '⟳';
-  readonly world: SkillWorld;
+  world: SkillWorld | CloudTowerWorld;
+  private course: SkillCourse = SKILL_LEGACY_COURSE;
+  private cloudWorld: CloudTowerWorld | null = null;
+  private readonly legacyWorld: SkillWorld;
+  get modelsLoading(): boolean { return this.world instanceof CloudTowerWorld && this.world.loading; }
   private readonly d: SceneDeps;
   private predictor: Predictor;
-  private readonly dynamics: SkillDynamics;
+  private dynamics: SkillDynamics;
   private readonly cam = new SkillCamera();
-  private readonly fx: SkillFx;
+  private fx: SkillFx;
   private readonly sfx: SkillSfx;
   private readonly hud: SkillHud;
   private readonly avatars = new Map<number, Avatar>();
@@ -121,6 +126,7 @@ export class SkillScene implements Scene {
   constructor(d: SceneDeps) {
     this.d = d;
     this.world = new SkillWorld(d.renderer);
+    this.legacyWorld = this.world;
     this.dynamics = new SkillDynamics(this.world.map, this.world.collision);
     this.predictor = new Predictor(this.world.collision, this.dynamics);
     this.fx = new SkillFx(this.world.scene);
@@ -197,7 +203,21 @@ export class SkillScene implements Scene {
   onJson(msg: ServerMsg): void {
     if (!this.active) return;
     if (msg.t === 'skill_state') {
-      if (msg.course === SKILL_COURSE) this.onState(msg);
+      if (msg.course === SKILL_COURSE || msg.course === SKILL_LEGACY_COURSE) {
+        if (msg.course !== this.course) {
+          const aspect = this.world.camera.aspect;
+          this.fx.clear();
+          this.world = msg.course === SKILL_COURSE ? this.cloudWorld ??= new CloudTowerWorld(this.d.renderer) : this.legacyWorld;
+          this.world.camera.aspect = aspect; this.world.camera.updateProjectionMatrix();
+          this.world.onPuff = (x, y, z, kind) => this.puff(x, y, z, kind);
+          this.world.setQuality(this.d.settings.quality);
+          this.dynamics = new SkillDynamics(this.world.map, this.world.collision);
+          this.predictor = new Predictor(this.world.collision, this.dynamics);
+          this.fx = new SkillFx(this.world.scene);
+          this.ready = false; this.reset = -1; this.course = msg.course;
+        }
+        this.onState(msg);
+      }
     } else if (msg.t === 'skill_finish') {
       this.hud.finish(msg, this.d.ui.me().nick, '');
       this.cardUntil = performance.now() + 9000;
@@ -466,12 +486,14 @@ export class SkillScene implements Scene {
         out.z += p1.z - p0.z;
         return out;
       }
-      const d = map.disc, rx = out.x - d.cx, rz = out.z - d.cz;
+      for (const d of map.carousels?.map(c => c.disc) ?? [map.disc]) {
+      const rx = out.x - d.cx, rz = out.z - d.cz;
       if (Math.abs(out.y - d.top) < 0.06 && rx * rx + rz * rz < d.r * d.r) {
-        const an = (TAU * (t1 - t0)) / d.period, c = Math.cos(an), sn = Math.sin(an);
+        const an = (d.dir ?? 1) * (TAU * (t1 - t0)) / d.period, c = Math.cos(an), sn = Math.sin(an);
         out.x = d.cx + rx * c - rz * sn;
         out.z = d.cz + rx * sn + rz * c;
         out.yaw -= an;
+      }
       }
     }
     return out;
@@ -529,7 +551,7 @@ export class SkillScene implements Scene {
       if (st.phase === 'wind' && near(r.fx, y, r.fz, 15)) this.sfx.ramWind([r.fx, y, r.fz]);
       else if (st.phase === 'strike' && near(r.fx, y, r.fz, 20)) this.sfx.ramHit([r.fx + r.dx * r.stroke, y, r.fz + r.dz * r.stroke]);
     }
-    const wz = map.winds[0];
+    const wz = map.winds.find(w => me.y >= w.y0 - 3 && me.y <= w.y1 + 3 && me.x > w.x0 - 4 && me.x < w.x1 + 4 && me.z > w.z0 - 4 && me.z < w.z1 + 4);
     if (wz) {
       const w = windState(wz.phase, t);
       const inside = me.x > wz.x0 - 6 && me.x < wz.x1 + 6 && me.z > wz.z0 - 6 && me.z < wz.z1 + 6 && me.y > wz.y0 - 4 && me.y < wz.y1 + 4;
@@ -538,9 +560,10 @@ export class SkillScene implements Scene {
       if (inside && this.windWas < 1 && w >= 1) this.sfx.gust(src);
       this.windWas = w;
       this.gust = inside ? (w >= 1 ? 1 : w * 0.4) : 0;
-    }
+    } else { this.windWas = 0; this.gust = 0; }
     const reform = crumbleReformIn(t) < 30;
-    if (reform && !this.reformWas && me.y > 42) this.sfx.stairsBack([0, 56, 0]);
+    const stairY = map.steps[0]?.rect.y ?? 0;
+    if (reform && !this.reformWas && me.y > stairY - 5 && me.y < stairY + 18) this.sfx.stairsBack([map.steps[0].rect.x0, stairY + 5, map.steps[0].rect.z0]);
     this.reformWas = reform;
   }
 
@@ -586,24 +609,27 @@ export class SkillScene implements Scene {
 
   private updateHud(now: number): void {
     const p = this.progress;
-    const cp = Math.min(p.checkpoint, SKILL_SECTIONS.length - 1);
-    const sec = SKILL_SECTIONS[cp];
-    this.hud.section(cp, SKILL_SECTIONS.length, sec.name, sec.rule);
-    this.hud.live(p.finishedAt === null && cp === SKILL_SECTIONS.length - 1 ? this.stairsHint() : '');
+    const sections = this.course === SKILL_COURSE ? SKILL_SECTIONS : SKILL_LEGACY_SECTIONS;
+    const cp = Math.min(p.checkpoint, sections.length - 1);
+    const sec = sections[cp];
+    this.hud.section(cp, sections.length, sec.name, sec.rule);
+    this.hud.live(p.finishedAt === null && cp === (this.course === SKILL_COURSE ? 15 : 9) ? this.stairsHint() : '');
     // плашка времени: медаль цели («Золото — до 2:00»), рекорд и падения, секундомер, полоса — сколько прошло до цели
-    let time = skillTime(0), medal = 3, title = `Золото — до ${skillClock(SKILL_GOLD_TICKS)}`, frac = 0;
+    const gold = this.course === SKILL_COURSE ? SKILL_GOLD_TICKS : SKILL_LEGACY_GOLD_TICKS;
+    const silver = this.course === SKILL_COURSE ? SKILL_SILVER_TICKS : SKILL_LEGACY_SILVER_TICKS;
+    let time = skillTime(0), medal = 3, title = `Золото — до ${skillClock(gold)}`, frac = 0;
     if (p.startedAt !== null) {
       const el = Math.max(0, (p.finishedAt ?? this.viewTick) - p.startedAt);
       time = skillTime(el);
       if (p.finishedAt !== null) {
-        medal = skillMedal(el);
+        medal = skillMedal(el, this.course);
         title = `${SKILL_MEDALS[medal]} · колокол!`;
         frac = 1;
-      } else if (el <= SKILL_GOLD_TICKS) frac = el / SKILL_GOLD_TICKS;
-      else if (el <= SKILL_SILVER_TICKS) {
+      } else if (el <= gold) frac = el / gold;
+      else if (el <= silver) {
         medal = 2;
-        title = `Серебро — до ${skillClock(SKILL_SILVER_TICKS)}`;
-        frac = el / SKILL_SILVER_TICKS;
+        title = `Серебро — до ${skillClock(silver)}`;
+        frac = el / silver;
       } else {
         medal = 1;
         title = 'Бронза — главное, дойди';
@@ -618,7 +644,7 @@ export class SkillScene implements Scene {
       const me = q.id === this.myId;
       return { id: q.id, nick: q.nick, me, done: q.finished, racer: q.racer, h: q.finished ? 1 : (me ? myY : q.y) / top };
     });
-    let place = '';
+    let place = this.course === SKILL_COURSE ? `${Math.max(0, Math.floor(myY))} / 185 м` : '';
     if (this.race.phase === 'run' && !this.racer) place = 'свой подъём';
     else if (this.racer && this.race.phase === 'run' && this.race.racers > 1) {
       const order = this.peers.filter((q) => q.racer).sort(byPlace);
@@ -663,7 +689,7 @@ export class SkillScene implements Scene {
     const now = performance.now();
     if (busy && now - this.confirmAt > 3000) {
       this.confirmAt = now;
-      this.hud.notice('Ты в пути: нажми E ещё раз — и на старт нового забега');
+      this.hud.notice(this.course === SKILL_COURSE ? 'Нажми E ещё раз — начать подъём с нуля' : 'Ты в пути: нажми E ещё раз — и на старт нового забега');
       return;
     }
     this.confirmAt = 0;
@@ -704,7 +730,7 @@ export class SkillScene implements Scene {
   debugState(): Record<string, unknown> {
     const s = this.predictor.state;
     return {
-      mode: 'skill', course: SKILL_COURSE, ready: this.ready, tick: this.tick, viewTick: this.viewTick, id: this.myId,
+      mode: 'skill', course: this.course, ready: this.ready, modelsLoading: this.modelsLoading, modelError: this.world instanceof CloudTowerWorld ? this.world.loadError : null, tick: this.tick, viewTick: this.viewTick, id: this.myId,
       player: { x: s.x, y: s.y, z: s.z, grounded: s.grounded, knock: s.fireCd }, progress: { ...this.progress },
       race: { id: this.race.id, phase: this.race.phase, phaseEnd: this.race.phaseEnd, start: this.race.start, racers: this.race.racers, rows: this.race.rows.length },
       racer: this.racer, lock: this.lock, count: this.countText, best: this.best, peers: this.peers.length, corrections: this.predictor.corrections,

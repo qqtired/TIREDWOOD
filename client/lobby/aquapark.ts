@@ -8,25 +8,28 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {
   AQUA_BAGS, AQUA_BAG_H, AQUA_BAG_R, AQUA_BOARD, AQUA_FINISH, AQUA_FINISH_X, AQUA_JETTY, AQUA_MOVERS, AQUA_PIECES, AQUA_RINGS, AQUA_START_X,
-  AQUA_SWEEPER, fmtAquaTime, type AquaMover, type AquaPiece,
+  AQUA_SWEEPER, AQUA_SWEEPERS, fmtAquaTime, type AquaMover, type AquaPiece, type AquaSweeper,
 } from '../../shared/aqua.ts';
 import { bagPose, makeBagPose, makeMoverBox, moverBox, sinkWarn, sweepAngle, type MoverBox } from '../../shared/aquadyn.ts';
 import { PLAYER_HALF, WATER_Y } from '../../shared/constants.ts';
+import { PLAZA3, pick } from '../../shared/layout.ts';
 import type { AquaRow } from '../../shared/messages.ts';
 import type { Effects } from '../render/effects.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { plankTexture } from '../render/textures.ts';
+import { AquaKit, aquaShore, aquaSupports, loadAquaKit, rod } from './aquamodels.ts';
 import { drawPvc } from './plaza/art.ts';
 import { paintTexture, planarUV } from './plaza/gfx.ts';
 
 /** Надувное уходит под воду на столько */
 const SINK = 0.25;
-const BASE = 0x1f7ae0;
-const STRAP = 0xf4f6f8;
+const BASE = pick(0x1f7ae0, () => 0x76b8a3);
+const STRAP = pick(0xf4f6f8, () => 0xf7f1e5);
 /** Верх площадок — светлее основания */
-const DECK_TOP = 0x5ab4ff;
-const YELLOW = 0xffc61a;
-const RED = 0xe8402e;
-const ORANGE = 0xff7b1c;
+const DECK_TOP = pick(0x5ab4ff, () => 0xf7f1e5);
+const YELLOW = pick(0xffc61a, () => 0xc5a66c);
+const RED = pick(0xe8402e, () => 0xcf6659);
+const ORANGE = pick(0xff7b1c, () => 0xa97743);
 const FONT = 'Rubik, system-ui, sans-serif';
 /** Доска рекордов: холст и размер в метрах, низ — над настилом */
 const BW = 512;
@@ -54,6 +57,7 @@ interface TrampVis {
   mat: THREE.Mesh;
   squash: number;
   vel: number;
+  authored?: boolean;
 }
 
 interface MoverVis {
@@ -75,7 +79,7 @@ export class AquaPark {
   private readonly boxes: MoverBox[] = AQUA_MOVERS.map(makeMoverBox);
   private readonly tmpBox: MoverBox = makeMoverBox();
   private liftCol: THREE.Mesh | null = null;
-  private readonly sweeper: THREE.Mesh;
+  private readonly sweepers: THREE.Mesh[] = [];
   private readonly bags: THREE.InstancedMesh;
   private readonly bagTmp = makeBagPose();
   private readonly m4 = new THREE.Matrix4();
@@ -88,11 +92,14 @@ export class AquaPark {
   private myPid = 0;
   private boardKey = '';
   private time = 0;
+  /** Для общей приёмки: ошибка загрузки не выдаётся за установленную модель. */
+  readonly models = { ready: !PLAZA3, error: '', source: 'aqua-kit-v3.glb' };
+  readonly ready: Promise<void>;
 
   /** skin — «кожа» надувного ПВХ (стёганые подушки со швами; оформление plaza2): та же полоса, только вид */
   constructor(scene: THREE.Scene, effects: Effects, skin = false) {
     this.effects = effects;
-    const uv = (g: THREE.BufferGeometry): THREE.BufferGeometry => (skin ? planarUV(g, 1 / PVC_M) : g);
+    const uv = (g: THREE.BufferGeometry): THREE.BufferGeometry => (skin || PLAZA3 ? planarUV(g, 1 / PVC_M) : g);
     const parts: THREE.BufferGeometry[] = [];
     for (const p of AQUA_PIECES) this.piece(parts, scene, p);
     arch(parts, AQUA_START_X, AQUA_JETTY.z0 - 0.3, AQUA_JETTY.z1 + 0.3, 2.9, BASE, YELLOW);
@@ -101,16 +108,24 @@ export class AquaPark {
     AQUA_RINGS.forEach((r, i) => ring(parts, r.x, r.z, r.y, i % 2 === 0 ? RED : YELLOW));
     gantry(parts);
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.02 });
-    if (skin) {
-      mat.map = mat.bumpMap = paintTexture(256, 256, drawPvc, true);
-      mat.bumpScale = PVC_BUMP;
-      mat.color.setScalar(1.22);
+    if (skin || PLAZA3) {
+      mat.map = mat.bumpMap = paintTexture(256, 256, (ctx, w, h) => {
+        if (!PLAZA3) return drawPvc(ctx, w, h);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 0.12;
+        drawPvc(ctx, w, h);
+        ctx.globalAlpha = 1;
+      }, true);
+      mat.bumpScale = PLAZA3 ? 0.014 : PVC_BUMP;
+      mat.color.setScalar(PLAZA3 ? 1.03 : 1.22);
     }
+    if (PLAZA3) mat.roughness = 0.55;
     const mesh = new THREE.Mesh(uv(mergeColored(parts)), mat);
     mesh.matrixAutoUpdate = false;
     scene.add(mesh);
-    scene.add(banner('СТАРТ', '#1f7ae0', AQUA_START_X, (AQUA_JETTY.z0 + AQUA_JETTY.z1) / 2, 2.9));
-    scene.add(banner('ФИНИШ', '#e8402e', AQUA_FINISH_X, (AQUA_FINISH.z0 + AQUA_FINISH.z1) / 2, 3.0, true));
+    scene.add(banner('СТАРТ', PLAZA3 ? '#467e6e' : '#1f7ae0', AQUA_START_X, (AQUA_JETTY.z0 + AQUA_JETTY.z1) / 2, 2.9));
+    scene.add(banner('ФИНИШ', PLAZA3 ? '#aa5249' : '#e8402e', AQUA_FINISH_X, (AQUA_FINISH.z0 + AQUA_FINISH.z1) / 2, 3.0, true));
 
     // подвижное: у каждой площадки свой меш (у подушек — свой материал: мигать), перекладина и мешки
     for (const m of AQUA_MOVERS) {
@@ -133,12 +148,22 @@ export class AquaPark {
       scene.add(mv);
       this.movers.push({ m, mesh: mv, mat: m.kind === 'sink' ? mm : null, under: false, lx: (m.x0 + m.x1) / 2, wakeT: 0 });
     }
-    this.sweeper = new THREE.Mesh(uv(sweeperGeo()), mat);
-    this.sweeper.position.set(AQUA_SWEEPER.x, AQUA_SWEEPER.top, AQUA_SWEEPER.z);
-    scene.add(this.sweeper);
+    for (const sw of AQUA_SWEEPERS) {
+      const rotor = new THREE.Mesh(uv(sweeperGeo(sw)), mat);
+      rotor.position.set(sw.x, sw.top, sw.z);
+      scene.add(rotor);
+      this.sweepers.push(rotor);
+    }
     this.bags = new THREE.InstancedMesh(uv(bagGeo()), mat, AQUA_BAGS.length);
     this.bags.frustumCulled = false;
     scene.add(this.bags);
+    this.ready = PLAZA3 ? loadAquaKit().then((kit) => {
+      this.installKit(scene, mesh, mat, kit, uv);
+      this.models.ready = true;
+    }).catch((error: unknown) => {
+      this.models.error = error instanceof Error ? error.message : String(error);
+      console.error('[аквапарк] модель не загружена', this.models.error);
+    }) : Promise.resolve();
     this.update(0, 0);
 
     // доска рекордов на двух столбиках у мостика, лицом на восток (к площади)
@@ -190,7 +215,11 @@ export class AquaPark {
     for (const tr of this.tramps) {
       tr.vel += (-tr.squash * 220 - tr.vel * 9) * dt;
       tr.squash += tr.vel * dt;
-      tr.mat.position.y = tr.top - 0.04 + tr.squash * 0.35;
+      if (tr.authored) {
+        tr.mat.scale.y = Math.max(0.65, 1 + tr.squash * 0.3);
+        tr.mat.position.y = tr.top + tr.squash * 0.2;
+      }
+      else tr.mat.position.y = tr.top - 0.04 + tr.squash * 0.35;
     }
     for (let i = 0; i < this.movers.length; i++) {
       const v = this.movers[i];
@@ -225,7 +254,7 @@ export class AquaPark {
         v.under = under;
       }
     }
-    this.sweeper.rotation.y = -sweepAngle(t);
+    for (let i = 0; i < this.sweepers.length; i++) this.sweepers[i].rotation.y = -sweepAngle(t, AQUA_SWEEPERS[i]);
     for (let i = 0; i < AQUA_BAGS.length; i++) {
       const bg = AQUA_BAGS[i];
       const p = bagPose(bg, t, this.bagTmp);
@@ -263,6 +292,90 @@ export class AquaPark {
   }
 
   // ------------------------------------------------------------ неподвижные куски
+
+  private installKit(scene: THREE.Scene, staticMesh: THREE.Mesh, material: THREE.MeshStandardMaterial, kit: AquaKit, uv: (g: THREE.BufferGeometry) => THREE.BufferGeometry): void {
+    const pvc: THREE.BufferGeometry[] = [];
+    const wood: THREE.BufferGeometry[] = [];
+    for (const p of AQUA_PIECES) {
+      const w = p.x1 - p.x0; const d = p.z1 - p.z0;
+      const x = (p.x0 + p.x1) / 2; const z = (p.z0 + p.z1) / 2;
+      if (p.kind === 'tramp') {
+        const tr = this.tramps.find((v) => v.x === x && v.z === z)!;
+        tr.mat.geometry.dispose();
+        tr.mat.geometry = uv(kit.trampoline(p));
+        tr.mat.material = material;
+        tr.mat.rotation.set(0, 0, 0);
+        tr.mat.position.set(x, p.top, z);
+        tr.authored = true;
+        const base = p.top < 0 ? kit.floating('aqua_sink', w, d, p.top - 0.32) : kit.part('aqua_sink').scale(w / 1.8, 0.35, d / 1.8);
+        pvc.push(base.translate(x, p.top - 0.32, z));
+        aquaSupports(wood, p);
+      } else if (p.kind === 'slide') pvc.push(kit.slide(p));
+      else if (p.kind === 'pylon') {
+        // Центр твёрдый, как и раньше; кремовый колпачок отмечает ось вращения.
+        const sw = AQUA_SWEEPERS.find((s) => Math.abs(s.x - x) < 0.1 && Math.abs(s.z - z) < 0.1)!;
+        pvc.push(rbox(w, p.top - sw.top, d, 0.14, BASE, x, (p.top + sw.top) / 2, z));
+        pvc.push(place(paint(new THREE.CylinderGeometry(0.47, 0.47, 0.12, 20), STRAP), x, p.top + 0.06, z));
+      } else if (p.kind === 'beam') {
+        // Узкое деревянное бревно остаётся шириной ровно 1 м. Стыки утоплены,
+        // на них не появляется дополнительной ступеньки в физике.
+        const n = Math.ceil(w / 0.48);
+        for (let i = 0; i < n; i++) wood.push(rbox(w / n - 0.015, 0.23, d, 0.025, i % 3 ? 0xa97743 : 0xc59458, p.x0 + w * (i + 0.5) / n, p.top - 0.115, z, 1));
+        for (const side of [-1, 1]) rod(wood, [p.x0, p.top - 0.31, z + side * 0.3], [p.x1, p.top - 0.31, z + side * 0.3], 0.11, 0x85562f);
+      } else if (p.kind === 'disc') {
+        // Круглая вращающаяся площадка на квадратном основании. Видимые углы
+        // основания совпадают с AABB; невидимого пола снаружи круга нет.
+        const base = p.top < 0 ? kit.floating('aqua_sink', w, d, p.top - 0.055) : kit.part('aqua_sink').scale(w / 1.8, 1, d / 1.8);
+        pvc.push(base.translate(x, p.top - 0.055, z));
+        pvc.push(kit.part('aqua_sweeper_disc').translate(x, p.top + 0.018, z));
+        aquaSupports(wood, p);
+      } else {
+        const elevated = ['step', 'tower', 'pillar'].includes(p.kind);
+        const g = elevated ? kit.part('aqua_sink').scale(w / 1.8, 1, d / 1.8) : kit.floating('aqua_sink', w, d, p.top);
+        // У спокойных опор — мятный борт. Коралловый оставлен движущимся подушкам.
+        const c = g.getAttribute('color'); const mint = new THREE.Color(BASE);
+        for (let i = 0; i < c.count; i++) if (c.getX(i) > c.getY(i) * 1.8 && c.getX(i) > 0.4) c.setXYZ(i, mint.r, mint.g, mint.b);
+        pvc.push(g.translate(x, p.top, z));
+        if (elevated) aquaSupports(wood, p);
+      }
+    }
+    arch(pvc, AQUA_START_X, AQUA_JETTY.z0 - 0.3, AQUA_JETTY.z1 + 0.3, 2.9, BASE, STRAP);
+    arch(pvc, AQUA_FINISH_X, AQUA_FINISH.z0 - 0.3, AQUA_FINISH.z1 + 0.3, 3, RED, STRAP);
+    checkers(pvc, AQUA_FINISH_X, AQUA_FINISH.z0 + 0.1, AQUA_FINISH.z1 - 0.1, AQUA_FINISH.top + 0.016);
+    AQUA_RINGS.forEach((r) => ring(pvc, r.x, r.z, r.y, RED));
+    aquaShore(pvc);
+    for (const b of AQUA_BAGS) {
+      for (const side of [-1, 1]) {
+        rod(wood, [b.x, WATER_Y - 0.25, b.z + side * 3.3], [b.x, b.py + 0.17, b.z + side * 3.3], 0.13, 0x85562f);
+        rod(wood, [b.x - 0.6, WATER_Y - 0.2, b.z + side * 3.3], [b.x, b.py - 0.45, b.z + side * 3.3], 0.065, 0x85562f);
+      }
+      rod(wood, [b.x, b.py + 0.17, b.z - 3.45], [b.x, b.py + 0.17, b.z + 3.45], 0.14, 0xa97743);
+    }
+    const lift = AQUA_MOVERS.find((m) => m.kind === 'lift')!;
+    wood.push(kit.part('aqua_lift_frame').rotateY(Math.PI / 2).scale(1, 1.8, 1).translate((lift.x0 + lift.x1) / 2, lift.top, (lift.z0 + lift.z1) / 2));
+    staticMesh.geometry.dispose();
+    staticMesh.geometry = uv(mergeColored(pvc));
+    staticMesh.name = 'aqua-v3-course';
+    staticMesh.receiveShadow = true;
+    const timber = new THREE.Mesh(planarUV(mergeColored(wood), 0.55), new THREE.MeshStandardMaterial({ vertexColors: true, map: plankTexture(), roughness: 0.78 }));
+    timber.name = 'aqua-v3-timber';
+    timber.matrixAutoUpdate = false;
+    timber.receiveShadow = true;
+    scene.add(timber);
+    this.liftCol?.removeFromParent();
+    this.liftCol = null;
+    for (const v of this.movers) {
+      v.mesh.geometry.dispose();
+      v.mesh.geometry = uv(kit.mover(v.m));
+      v.mesh.name = `aqua-v3-${v.m.kind}`;
+    }
+    for (let i = 0; i < this.sweepers.length; i++) {
+      this.sweepers[i].geometry.dispose();
+      this.sweepers[i].geometry = uv(kit.sweeper(AQUA_SWEEPERS[i]));
+    }
+    this.bags.geometry.dispose();
+    this.bags.geometry = uv(kit.bag());
+  }
 
   private piece(parts: THREE.BufferGeometry[], scene: THREE.Scene, p: AquaPiece): void {
     const w = p.x1 - p.x0;
@@ -589,8 +702,7 @@ function bellowsGeo(m: AquaMover): THREE.BufferGeometry {
 }
 
 /** Перекладина вертушки: труба через ось в обе стороны (красная в белых полосах), на концах — мягкие шары. */
-function sweeperGeo(): THREE.BufferGeometry {
-  const sw = AQUA_SWEEPER;
+function sweeperGeo(sw: AquaSweeper = AQUA_SWEEPER): THREE.BufferGeometry {
   const yc = (sw.y0 + sw.y1) / 2;
   const list: THREE.BufferGeometry[] = [];
   list.push(place(paint(new THREE.CapsuleGeometry(sw.r, sw.len * 2 - sw.r * 2, 4, 14).rotateZ(Math.PI / 2), RED), 0, yc, 0));

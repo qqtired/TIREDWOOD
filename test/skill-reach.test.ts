@@ -2,8 +2,8 @@
 // тележка, карусель, корзина, облака, ступени) и весь основной путь подряд — с работающими ловушками — быстрее золота.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { makeSkillMap } from '../shared/skillmap.ts';
-import { SKILL_GOLD_TICKS } from '../shared/skilltest.ts';
+import { makeLegacySkillMap as makeSkillMap } from '../shared/skillmap.ts';
+import { SKILL_LEGACY_GOLD_TICKS as SKILL_GOLD_TICKS } from '../shared/skilltest.ts';
 import { makeState } from '../shared/sim.ts';
 import { SkillBot, SkillRouteBot } from './skillbot.ts';
 

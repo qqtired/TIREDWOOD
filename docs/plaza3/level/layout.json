@@ -806,22 +806,22 @@
       "id": "wall.farWest",
       "q": "edge",
       "min": [-98, -6, -56],
-      "max": [-97, 30, 38],
+      "max": [-97, 30, 44],
       "mat": "invisible",
       "color": 0
     },
     {
       "id": "wall.southWest",
       "q": "edge",
-      "min": [-98, -6, 38],
-      "max": [-81, 30, 39],
+      "min": [-98, -6, 44],
+      "max": [-81, 30, 45],
       "mat": "invisible",
       "color": 0
     },
     {
       "id": "wall.bayWest",
       "q": "edge",
-      "min": [-81, -6, 39],
+      "min": [-81, -6, 45],
       "max": [-80, 30, 90],
       "mat": "invisible",
       "color": 0

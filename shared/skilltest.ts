@@ -5,7 +5,9 @@ import type { Outfit } from './outfit.ts';
 import type { PlayerState } from './sim.ts';
 
 /** Новая трасса — новые рекорды: времена старых «Островов» с ней не сравнить. */
-export const SKILL_COURSE = 'sky-tower-v1';
+export const SKILL_COURSE = 'cloud-tower-185-v2';
+export const SKILL_LEGACY_COURSE = 'sky-tower-v1';
+export type SkillCourse = typeof SKILL_COURSE | typeof SKILL_LEGACY_COURSE;
 export const SKILL_CAPACITY = 5;
 export const SKILL_REJOIN_TICKS = 10 * 60 * TICK_RATE;
 /** Сбор забега: ждём друзей столько (экран загрузки продлевает — server/readygate.ts); последние 3 с — отсчёт */
@@ -16,9 +18,11 @@ export const SKILL_AGAIN_TICKS = 5 * TICK_RATE;
 /** После первого колокола остальным даётся столько, потом — итоги */
 export const SKILL_AFTER_FIRST_TICKS = 30 * TICK_RATE;
 export const SKILL_RESULTS_TICKS = 12 * TICK_RATE;
-/** Медали: золото — до 2:00, серебро — до 3:30, бронза — любой подъём */
-export const SKILL_GOLD_TICKS = 120 * TICK_RATE;
-export const SKILL_SILVER_TICKS = 210 * TICK_RATE;
+/** Большая башня: полный подъём, а не короткий забег. Старый курс сохраняет свои пороги. */
+export const SKILL_GOLD_TICKS = 300 * TICK_RATE;
+export const SKILL_SILVER_TICKS = 480 * TICK_RATE;
+export const SKILL_LEGACY_GOLD_TICKS = 120 * TICK_RATE;
+export const SKILL_LEGACY_SILVER_TICKS = 210 * TICK_RATE;
 export const SKILL_MEDALS = ['', 'Бронза', 'Серебро', 'Золото'] as const;
 /** Жетоны за медаль — разово за каждую новую ступень; за «без падений» — разово; за первый подъём дня */
 export const SKILL_MEDAL_REWARD = [0, 20, 40, 80] as const;
@@ -27,17 +31,27 @@ export const SKILL_DAILY_REWARD = 10;
 
 /** Участки по порядку: номер участка — номер последней взятой точки. */
 export const SKILL_SECTIONS = [
-  { name: 'Крыша', rule: 'Разбег и прыжок. Жёлтый гриб подбрасывает' },
+  { name: 'Крыши', rule: 'Разбег и прыжок через пропуски ступеней' },
   { name: 'Мельница', rule: 'Шагни в люльку внизу, сойди наверху' },
   { name: 'Маятники', rule: 'Мешок пролетел — беги. Пережидай в карманах' },
   { name: 'Поршни', rule: 'Таран отъехал назад — сейчас ударит' },
   { name: 'Облака', rule: 'Дрожит — скоро растает. Прыгай за новыми' },
+  { name: 'Точная посадка', rule: 'Дождись мешка и приземлись в середину уступа' },
   { name: 'Ветер', rule: 'Флажки рвутся — порыв. Прячься за парус' },
-  { name: 'Батуты', rule: 'Гриб и тележка подбрасывают — правь в полёте' },
-  { name: 'Карусель', rule: 'Прыгай через перекладину, мимо столбиков' },
-  { name: 'Шары', rule: 'Корзина везёт наверх. Мешок — отойди в сторону' },
-  { name: 'Колокольня', rule: 'Ступени осыпаются снизу — беги и прыгни в колокол' },
+  { name: 'Батутная тележка', rule: 'Тележка подбросит — правь в полёте' },
+  { name: 'Восходящий поток', rule: 'Встань над мехами, наверху выйди на настил' },
+  { name: 'Карусели', rule: 'Прыгай через перекладину и держи направление' },
+  { name: 'Облака под мешком', rule: 'Лови волну облаков после прохода мешка' },
+  { name: 'Две корзины', rule: 'Выбери свободную корзину и сойди наверху' },
+  { name: 'Два батута', rule: 'Две точные посадки подряд — правь в полёте' },
+  { name: 'Поршни на высоте', rule: 'Следи за замахом, пережидай на краю' },
+  { name: 'Воздушный шар', rule: 'Прыгай в корзину у нижнего причала' },
+  { name: 'Обвал', rule: 'Ступени осыпаются снизу — беги без остановки' },
+  { name: 'Ветер и разрывы', rule: 'Укройся от порыва, затем прыгай' },
+  { name: 'Колокол', rule: 'Последняя спираль — прыгни в колокол!' },
 ] as const;
+
+export const SKILL_LEGACY_SECTIONS = [SKILL_SECTIONS[0], SKILL_SECTIONS[1], SKILL_SECTIONS[2], SKILL_SECTIONS[3], SKILL_SECTIONS[4], SKILL_SECTIONS[6], SKILL_SECTIONS[7], SKILL_SECTIONS[9], SKILL_SECTIONS[11], SKILL_SECTIONS[15]] as const;
 
 export interface SkillProgress {
   /** Последняя взятая точка: 0 — крыша, 9 — причал у колокольни */
@@ -124,7 +138,7 @@ export interface SkillFinish {
 
 export type SkillServerMsg =
   | {
-    t: 'skill_state'; course: typeof SKILL_COURSE; tick: number; id: number; ack: number;
+    t: 'skill_state'; course: SkillCourse; tick: number; id: number; ack: number;
     state: PlayerState; reset: number; progress: SkillProgress; peers: SkillPeer[]; race: SkillRaceView;
     /** Личный рекорд, мс (0 — не было) */
     best: number;
@@ -156,8 +170,10 @@ export function skillClock(ticks: number): string {
 }
 
 /** Медаль за время подъёма: 3 — золото, 2 — серебро, 1 — бронза. */
-export function skillMedal(ticks: number): number {
-  return ticks <= SKILL_GOLD_TICKS ? 3 : ticks <= SKILL_SILVER_TICKS ? 2 : 1;
+export function skillMedal(ticks: number, course: SkillCourse = SKILL_COURSE): number {
+  const gold = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_GOLD_TICKS : SKILL_GOLD_TICKS;
+  const silver = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_SILVER_TICKS : SKILL_SILVER_TICKS;
+  return ticks <= gold ? 3 : ticks <= silver ? 2 : 1;
 }
 
 export function skillMs(ticks: number): number {
@@ -168,8 +184,8 @@ export function skillMs(ticks: number): number {
  * Подъём засчитан: статистика профиля и жетоны. Медаль платит разово за каждую новую ступень (сразу золото — все
  * три), «без падений» — разово, первый подъём дня (день по Москве) — каждый день. stats меняются на месте.
  */
-export function applySkillFinish(stats: Stats, ticks: number, falls: number, day: number): Omit<SkillFinish, 'place'> {
-  const medal = skillMedal(ticks);
+export function applySkillFinish(stats: Stats, ticks: number, falls: number, day: number, course: SkillCourse = SKILL_COURSE): Omit<SkillFinish, 'place'> {
+  const medal = skillMedal(ticks, course);
   const had = Math.max(0, Math.min(3, Math.floor(stats.skMedal)));
   let tokens = 0;
   for (let m = had + 1; m <= medal; m++) tokens += SKILL_MEDAL_REWARD[m];
