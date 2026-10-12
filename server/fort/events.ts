@@ -10,7 +10,9 @@ import {
   METEOR_R, METEOR_TICKS, METEOR_WARN_TICKS, METEOR_ZOMBIE, SUPPLY_FALL_TICKS, SUPPLY_FIELD, SUPPLY_PICK_R, SUPPLY_TOUCH_R,
   releaseTicks,
 } from '../../shared/fortwaves.ts';
-import { GATE, WALL_H, insideFort } from '../../shared/fortmap.ts';
+import { CRYSTAL, GATE, WALL_H, insideFort } from '../../shared/fortmap.ts';
+import * as S from '../../shared/fortsiege.ts';
+import { raySphere } from './siege.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import type { WavePlan } from './director.ts';
 import type { Horde, HordeTarget, Zombie } from './horde.ts';
@@ -25,6 +27,7 @@ export interface EventHost {
   targets(): readonly HordeTarget[];
   hitPlayer(zid: number, pid: number, dmg: number): void;
   hitGate(dmg: number): void;
+  hitCrystal?(dmg: number): void;
   gateUp(): boolean;
   event(e: FortEvent): void;
   systemChat(text: string): void;
@@ -41,6 +44,12 @@ interface Strike {
   x: number;
   y: number;
   z: number;
+  id?: number;
+  start?: number;
+  fromX?: number;
+  fromY?: number;
+  fromZ?: number;
+  hits?: number;
 }
 
 /** Откуда в небе прилетает метеор: с севера и чуть сбоку, высоко */
@@ -54,6 +63,9 @@ export class WaveEvents {
   private strikes: Strike[] = [];
   private meteorsOn = false;
   private meteorsDone = false;
+  private siege = false;
+  private humans = 1;
+  private nextMeteor = 1_000_000;
   /** Ящик: CRATE_*, где, когда начал падать / сядет */
   crate = CRATE_NONE;
   crateX = 0;
@@ -72,6 +84,8 @@ export class WaveEvents {
   /** Волна началась: расписание по её плану */
   start(plan: WavePlan, tick: number): void {
     this.stop();
+    this.siege = plan.siege === true;
+    this.humans = plan.defenders;
     this.kind = plan.event;
     if (this.kind === EV_NONE) return;
     let span = 0;
@@ -79,11 +93,14 @@ export class WaveEvents {
     if (span <= 0) span = releaseTicks(plan.w);
     const rng = this.host.rng;
     if (this.kind === EV_METEORS) {
-      const first = tick + clamp(Math.round(span * 0.45), 6 * TICK_RATE, 20 * TICK_RATE) + METEOR_WARN_TICKS;
-      for (let i = 0; i < METEOR_COUNT; i++) {
+      const warnTicks = this.siege ? S.SIEGE_METEOR_FLIGHT : METEOR_WARN_TICKS;
+      const first = tick + clamp(Math.round(span * 0.45), 6 * TICK_RATE, 20 * TICK_RATE) + warnTicks;
+      const count = this.siege ? S.SIEGE_METEOR_COUNT : METEOR_COUNT;
+      for (let i = 0; i < count; i++) {
         const jitter = Math.round((rng() - 0.5) * 16);
-        const at = first + Math.round((i * METEOR_TICKS) / METEOR_COUNT) + (i > 0 ? jitter : 0);
-        this.strikes.push({ at, crowd: i % METEOR_CROWD_EVERY === 0, warned: false, x: 0, y: 0, z: 0 });
+        const at = first + (this.siege ? i * S.SIEGE_METEOR_GAP : Math.round((i * METEOR_TICKS) / METEOR_COUNT) + (i > 0 ? jitter : 0));
+        this.strikes.push({ at, crowd: !this.siege && i % METEOR_CROWD_EVERY === 0, warned: false, x: 0, y: 0, z: 0,
+          ...(this.siege ? { id: this.nextMeteor++, hits: S.meteorHits(plan.defenders) } : {}) });
       }
       this.strikes.sort((a, b) => a.at - b.at);
     } else if (this.kind === EV_SUPPLY) {
@@ -99,6 +116,9 @@ export class WaveEvents {
 
   /** Волна кончилась (отбили, пали, новая игра): всё убрать, клиентам — конец события */
   stop(): void {
+    for (const s of this.strikes) if (s.id && s.warned && s.at >= 0) {
+      this.meteorEvent(s, 4); this.host.event(['warnend', s.id]);
+    }
     if (this.meteorsOn && !this.meteorsDone) this.host.event(['event', EV_METEORS, 0]);
     if (this.crate !== CRATE_NONE) {
       this.host.event(['supply', 3, 0, r2(this.crateX), r2(this.crateY), r2(this.crateZ)]);
@@ -134,7 +154,7 @@ export class WaveEvents {
     let left = 0;
     for (const s of this.strikes) {
       if (s.at < 0) continue;
-      if (!s.warned && tick >= s.at - METEOR_WARN_TICKS) this.warn(s);
+      if (!s.warned && tick >= s.at - (this.siege ? S.SIEGE_METEOR_FLIGHT : METEOR_WARN_TICKS)) this.warn(s);
       if (s.warned && tick >= s.at) {
         this.impact(s);
         s.at = -1;
@@ -152,33 +172,82 @@ export class WaveEvents {
     if (!this.meteorsOn) {
       this.meteorsOn = true;
       this.host.event(['event', EV_METEORS, 1]);
-      this.host.systemChat('☄ Метеоры! 14 с — не стойте на месте, уходите из красных кругов');
+      this.host.systemChat(this.siege ? `☄ Крупные метеоры! ${S.meteorHits(this.humans)} попадания сбивают камень — прикройте замок!`
+        : '☄ Метеоры! 14 с — не стойте на месте, уходите из красных кругов');
     }
     const p = this.spot;
-    if (!(s.crowd ? this.crowdSpot(p) || this.peopleSpot(p) : this.peopleSpot(p) || this.crowdSpot(p))) this.fieldSpot(p);
+    if (this.siege && (s.id! % 3 === 0 || !this.host.targets().length)) {
+      p.x = 0; p.y = this.host.gateUp() ? 1.5 : CRYSTAL.y; p.z = this.host.gateUp() ? GATE.face : CRYSTAL.z;
+    } else if (!(s.crowd ? this.crowdSpot(p) || this.peopleSpot(p) : this.peopleSpot(p) || this.crowdSpot(p))) this.fieldSpot(p);
     s.warned = true;
     s.x = p.x;
     s.y = p.y;
     s.z = p.z;
     const rng = this.host.rng;
     const side = (rng() - 0.5) * 30;
-    this.host.event(['warn', 0, ZS_METEOR, r2(p.x), r2(p.y), r2(p.z), METEOR_R, s.at]);
-    this.host.event(['throw', r2(p.x + side), SKY_H, r2(p.z - SKY_BACK), r2(p.x), r2(p.y), r2(p.z), s.at - this.host.tick, ZS_METEOR]);
+    if (this.siege) {
+      s.start = this.host.tick; s.fromX = r2(p.x + side); s.fromY = SKY_H; s.fromZ = r2(p.z - SKY_BACK);
+      this.host.event(['warn', s.id!, ZS_METEOR, r2(p.x), r2(p.y), r2(p.z), S.SIEGE_METEOR_RADIUS, s.at]);
+      this.meteorEvent(s, 0);
+    } else {
+      this.host.event(['warn', 0, ZS_METEOR, r2(p.x), r2(p.y), r2(p.z), METEOR_R, s.at]);
+      this.host.event(['throw', r2(p.x + side), SKY_H, r2(p.z - SKY_BACK), r2(p.x), r2(p.y), r2(p.z), s.at - this.host.tick, ZS_METEOR]);
+    }
   }
 
   private impact(s: Strike): void {
     const h = this.host;
-    h.horde.skyStrike(s.x, s.y, s.z, METEOR_R, METEOR_ZOMBIE);
+    const radius = this.siege ? S.SIEGE_METEOR_RADIUS : METEOR_R;
+    h.horde.skyStrike(s.x, s.y, s.z, radius, METEOR_ZOMBIE);
     for (const t of h.targets()) {
-      if (Math.hypot(t.x - s.x, t.z - s.z) <= METEOR_R && Math.abs(t.y - s.y) < 2.5) h.hitPlayer(0, t.id, METEOR_PLAYER);
+      if (Math.hypot(t.x - s.x, t.z - s.z) <= radius && Math.abs(t.y - s.y) < 2.5) h.hitPlayer(0, t.id, this.siege ? S.SIEGE_METEOR_PLAYER : METEOR_PLAYER);
     }
     // ворота: круг задевает створки
     if (h.gateUp() && s.y < GATE.h + 1) {
       const gx = clamp(s.x, GATE.x0, GATE.x1);
       const gz = clamp(s.z, GATE.face, GATE.z1);
-      if (Math.hypot(s.x - gx, s.z - gz) <= METEOR_R + 0.3) h.hitGate(METEOR_GATE);
+      if (Math.hypot(s.x - gx, s.z - gz) <= radius + 0.3) h.hitGate(this.siege ? S.SIEGE_METEOR_GATE : METEOR_GATE);
     }
-    h.event(['blast', ZS_METEOR, r2(s.x), r2(s.y + 0.3), r2(s.z), METEOR_R]);
+    if (this.siege) {
+      if (Math.hypot(s.x - CRYSTAL.x, s.z - CRYSTAL.z) <= radius && Math.abs(s.y - CRYSTAL.y) < 3) h.hitCrystal?.(S.SIEGE_METEOR_CRYSTAL);
+      this.meteorEvent(s, 3); h.event(['warnend', s.id!]);
+    }
+    h.event(['blast', ZS_METEOR, r2(s.x), r2(s.y + 0.3), r2(s.z), radius]);
+  }
+
+  private meteorEvent(s: Strike, phase: number): void {
+    this.host.event(['meteor', s.id!, phase, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!]);
+  }
+
+  replay(): FortEvent[] {
+    const events: FortEvent[] = [];
+    for (const s of this.strikes) if (s.id && s.warned && s.at > this.host.tick) {
+      events.push(['warn', s.id, ZS_METEOR, r2(s.x), r2(s.y), r2(s.z), S.SIEGE_METEOR_RADIUS, s.at]);
+      events.push(['meteor', s.id, 0, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!]);
+    }
+    return events;
+  }
+
+  /** Only live projectiles are candidates; the capped shot view tick can rewind their exact linear flight. */
+  meteorRay(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number, tick = this.host.tick): { id: number; t: number } | null {
+    let best: { id: number; t: number } | null = null;
+    for (const s of this.strikes) {
+      if (!s.id || !s.warned || s.at < 0 || this.host.tick >= s.at) continue;
+      const u = clamp((tick - s.start!) / (s.at - s.start!), 0, 1);
+      const x = s.fromX! + (s.x - s.fromX!) * u, y = s.fromY! + (s.y - s.fromY!) * u, z = s.fromZ! + (s.z - s.fromZ!) * u;
+      const t = raySphere(ox, oy, oz, dx, dy, dz, x, y, z, S.SIEGE_METEOR_BODY);
+      if (t >= 0 && t < max) { max = t; best = { id: s.id, t }; }
+    }
+    return best;
+  }
+
+  hitMeteor(id: number): boolean {
+    const s = this.strikes.find((s) => s.id === id && s.warned && s.at > this.host.tick);
+    if (!s || !s.hits) return false;
+    s.hits--;
+    this.meteorEvent(s, s.hits ? 1 : 2);
+    if (!s.hits) { this.host.event(['warnend', id]); s.at = -1; }
+    return true;
   }
 
   /**

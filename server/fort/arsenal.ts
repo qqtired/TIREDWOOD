@@ -3,7 +3,7 @@
 // кристалл (ремонт и укрепление). Цены и строки лавки — shared/fortarsenal.ts (их же рисует клиент), шаг стволов —
 // shared/fortgun.ts. Всё, что даёт и забирает золото, — только здесь.
 import { EYE_HEIGHT, MAX_REWIND_TICKS, TICK_RATE } from '../../shared/constants.ts';
-import { FORT_MAX_ALIVE, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, ZS_ATTACK, ZS_WALK, Z_BOSS, Z_BRUTE, Z_FLYER } from '../../shared/fort.ts';
+import { FORT_MAX_ALIVE, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, ZS_ATTACK, ZS_WALK, Z_BOSS, Z_BRUTE, Z_FLYER, type FortEvent } from '../../shared/fort.ts';
 import { FT_STRIDE, fortShotDir, nearestZombie, zombieHead, zombieRay } from '../../shared/fortaim.ts';
 import {
   ACT_CRYSTAL, ACT_GATE, ACT_SHOP, ACT_TOWER, AR_TAIL_BYTES, BOAT_BOUNTY, BURN_TICKS, CANNON_SPEED, CLEAN_MULT, CRIT_MUL, CRYSTAL_TIERS,
@@ -26,6 +26,7 @@ import type { FortGame, FortPlayer } from './game.ts';
 import type { Zombie } from './horde.ts';
 import { tearWebAt, webSlowAt } from './boss-weaver.ts';
 import { makeRun, type FortRun } from './ledger.ts';
+import { REPAIR_COOLDOWN_TICKS, REPAIR_WORK_TICKS, Z_CANOPY } from '../../shared/fortsiege.ts';
 
 /** Деньги и покупки защитника на эту игру (живут в p.run.arsenal: вышел и вернулся — всё на месте) */
 export interface ArsenalRun {
@@ -118,6 +119,8 @@ interface HordeHooks {
 }
 
 export class Arsenal {
+  private repair: { pid: number; id: number; price: number; at: number; x: number; y: number; z: number; hurt: number } | null = null;
+  repairReady = 0;
   private readonly game: FortGame;
   readonly towers: TowerState[] = [];
   /** Лужи смолы: до какого тика и где */
@@ -156,6 +159,8 @@ export class Arsenal {
 
   /** Новая игра: башни, ступени ворот и кристалла, общак — с нуля (забеги игроков обнуляет хозяин) */
   newGame(): void {
+    this.cancelRepair();
+    this.repairReady = 0;
     for (const t of this.towers) {
       t.type = -1;
       t.level = 0;
@@ -356,6 +361,7 @@ export class Arsenal {
    */
   fire(p: FortPlayer, inp: Input): void {
     const g = this.game;
+    if (this.repair?.pid === p.id) this.cancelRepair();
     const s = p.state;
     const gun = gunInHands(s, p.load);
     const spec = GUNS[gun];
@@ -384,6 +390,8 @@ export class Arsenal {
     let nx = 0;
     let ny = 0;
     let nz = 0;
+    const hitMeteors = new Set<number>();
+    const hitAnchors = new Set<number>();
     for (let k = 0; k < pellets; k++) {
       let dx = this.dir.dirX;
       let dy = this.dir.dirY;
@@ -409,7 +417,19 @@ export class Arsenal {
       let keep = 1;
       let from = -1;
       let end = wall;
-      for (let hitN = 0; hitN < spec.pierce; hitN++) {
+      const firstBody = this.nextZombie(ox, oy, oz, dx, dy, dz, -1, wall, n);
+      const targetMax = firstBody < 0 ? wall : this.near.t;
+      const anchor = g.horde.siege.anchorRay(ox, oy, oz, dx, dy, dz, targetMax);
+      const meteor = g.waveEvents.meteorRay(ox, oy, oz, dx, dy, dz, anchor?.t ?? targetMax, Math.max(g.tick - MAX_REWIND_TICKS, Math.min(g.tick, inp.viewTick)));
+      const intercepted = !!meteor || !!anchor;
+      if (meteor) {
+        if (!hitMeteors.has(meteor.id)) { g.waveEvents.hitMeteor(meteor.id); hitMeteors.add(meteor.id); }
+        end = meteor.t; kind = 1;
+      } else if (anchor) {
+        if (!hitAnchors.has(anchor.boat.id)) { g.horde.siege.hitRopeTarget(anchor.boat, p.id); hitAnchors.add(anchor.boat.id); }
+        end = anchor.t; kind = 1;
+      }
+      for (let hitN = 0; !intercepted && hitN < spec.pierce; hitN++) {
         const i = this.nextZombie(ox, oy, oz, dx, dy, dz, from, wall, n);
         if (i < 0) break;
         const t = this.near.t;
@@ -420,7 +440,9 @@ export class Arsenal {
         }
         const hy = oy + dy * t;
         const head = zombieHead(tg[i * FT_STRIDE + 3], hy, tg[i * FT_STRIDE + 1]);
-        const base = gun === GUN_MARKER ? damageAt(t, head) : gunDamage(gun, t, head);
+        const canopyLock = head && tg[i * FT_STRIDE + 3] === Z_CANOPY;
+        const base = (gun === GUN_MARKER ? damageAt(t, canopyLock ? false : head) : gunDamage(gun, t, canopyLock ? false : head))
+          * (canopyLock ? 1.6 : 1);
         if (this.accHits[i] === 0) {
           this.touched.push(i);
           this.accPt[i * 3] = ox + dx * t;
@@ -478,6 +500,7 @@ export class Arsenal {
 
   /** Отпустил G: бросок, если есть граната и прошла перезарядка броска */
   throwGrenade(p: FortPlayer, inp: Input): void {
+    if (this.repair?.pid === p.id) this.cancelRepair();
     const g = this.game;
     const a = p.run.arsenal;
     if (!p.alive || g.phase === FT_END || a.gr <= 0 || g.tick < p.grenReady) return;
@@ -773,6 +796,7 @@ export class Arsenal {
 
   /** Тик арсенала: гранаты летят всегда, башни и ядра — в волну */
   step(): void {
+    this.stepRepair();
     this.stepGrenades();
     if (this.game.phase !== FT_WAVE) return;
     this.stepTowers();
@@ -842,11 +866,54 @@ export class Arsenal {
       g.event(['anope', p.id, id, NOPE_GOLD]);
       return true;
     }
+    if (g.siegeEnabled && g.phase === FT_WAVE && (id === ACT_GATE || id === ACT_CRYSTAL)) {
+      if (this.repair || g.tick < this.repairReady) {
+        g.event(['repair', p.id, id, this.repair?.at ?? 0, this.repairReady, 3]);
+        return true;
+      }
+      this.repair = { pid: p.id, id, price: row.price, at: g.tick + REPAIR_WORK_TICKS,
+        x: p.state.x, y: p.state.y, z: p.state.z, hurt: p.hurtTick };
+      g.event(['repair', p.id, id, this.repair.at, this.repairReady, 0]);
+      return true;
+    }
     a.gold -= row.price;
     this.apply(p, id, row.price);
     g.event(['abuy', p.id, id]);
     g.flushRoster();
     return true;
+  }
+
+  cancelRepair(): void {
+    const r = this.repair;
+    if (!r) return;
+    this.repair = null;
+    this.game.event(['repair', r.pid, r.id, 0, this.repairReady, 2]);
+  }
+
+  repairReplay(): FortEvent[] {
+    const r = this.repair;
+    return r ? [['repair', r.pid, r.id, r.at, this.repairReady, 0]] : [];
+  }
+
+  private stepRepair(): void {
+    const r = this.repair;
+    if (!r) return;
+    const g = this.game;
+    const p = g.players.get(r.pid);
+    const st = this.station(r.id === ACT_GATE ? 'gate' : 'crystal');
+    if (!p?.alive || g.phase !== FT_WAVE || p.hurtTick !== r.hurt || !st || !g.atStation(p, st)
+      || Math.hypot(p.state.x - r.x, p.state.y - r.y, p.state.z - r.z) > .5
+      || (r.id === ACT_GATE && (g.gate <= 0 || g.gate >= this.gateMax))
+      || (r.id === ACT_CRYSTAL && (g.crystal <= 0 || g.crystal >= this.crystalMax))) { this.cancelRepair(); return; }
+    if (g.tick < r.at) return;
+    if (p.run.arsenal.gold < r.price) { this.cancelRepair(); g.event(['anope', p.id, r.id, NOPE_GOLD]); return; }
+    p.run.arsenal.gold -= r.price;
+    this.apply(p, r.id, r.price);
+    this.repair = null;
+    this.repairReady = g.tick + REPAIR_COOLDOWN_TICKS;
+    g.event(['repair', p.id, r.id, g.tick, this.repairReady, 1]);
+    g.event(['abuy', p.id, r.id]);
+    g.flushRoster();
   }
 
   private apply(p: FortPlayer, id: number, price: number): void {

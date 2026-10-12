@@ -4,6 +4,7 @@
 // ниже. Состояния: плывёт и гребёт (ZS_BOAT), у берега крабы прыгают за борт, вёсла подняты (ZS_BOAT_LAND), пустая
 // отходит, вёсла волочатся (ZS_BOAT_LEAVE). Потопили — кренится, задирает нос и уходит под воду, крабы лопаются.
 import * as THREE from 'three';
+import { ZS_SIEGE_DEPLOY, ZS_SIEGE_ACTION } from '../../../shared/fortsiege.ts';
 import { ZS_BOAT_LAND, ZS_BOAT_LEAVE, Z_BOAT } from '../../../shared/fort.ts';
 import { colored, merge, setBone, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { flipWinding, seatedCrab } from './crew-crab.ts';
@@ -275,8 +276,8 @@ function boatPose(a: MobAnim, out: MobPose): void {
   const stage = (a as MobAnim & { stage?: number }).stage;
   let crew: number;
   if (st === ZS_BOAT_LEAVE) crew = 0;
-  else if (typeof stage === 'number' && Number.isFinite(stage)) crew = stage;
-  else if (st === ZS_BOAT_LAND) crew = Math.max(0, BOAT_STAGE_DEFAULT - Math.max(0, Math.floor((a.stT - HOP_FIRST) / HOP_EVERY) + 1));
+  else if (typeof stage === 'number' && Number.isFinite(stage)) crew = stage & 127;
+  else if ((st === ZS_BOAT_LAND || st === ZS_SIEGE_DEPLOY || st === ZS_SIEGE_ACTION)) crew = Math.max(0, BOAT_STAGE_DEFAULT - Math.max(0, Math.floor((a.stT - HOP_FIRST) / HOP_EVERY) + 1));
   else crew = BOAT_STAGE_DEFAULT;
   const groups = crewGroups(crew);
   const showA = (groups & CREW_A) !== 0;
@@ -288,13 +289,13 @@ function boatPose(a: MobAnim, out: MobPose): void {
   let pitch = 0.035 * Math.sin(t * 1.3 + seed * 4);
   let roll = 0.05 * Math.sin(t * 1.1 + seed * 9);
   // гребля: темп 1,25 гребка в секунду, размах — от скорости; гребут, пока на корме гребцы
-  const rowing = st !== ZS_BOAT_LAND && st !== ZS_BOAT_LEAVE && showC ? Math.min(1, a.speed / 2) : 0;
+  const rowing = st !== ZS_BOAT_LAND && st !== ZS_SIEGE_DEPLOY && st !== ZS_SIEGE_ACTION && st !== ZS_BOAT_LEAVE && showC ? Math.min(1, a.speed / 2) : 0;
   const phi = t * Math.PI * 2 * 1.25 + seed * 6;
   let oar = 0.42 * Math.sin(phi) * rowing;
   let lift = -0.12 * Math.cos(phi) * rowing;
   pitch += -0.02 * Math.sin(phi) * rowing;
   heave += 0.015 * Math.cos(phi) * rowing;
-  if (st === ZS_BOAT_LAND) {
+  if ((st === ZS_BOAT_LAND || st === ZS_SIEGE_DEPLOY || st === ZS_SIEGE_ACTION)) {
     oar = -0.05;
     lift = 0.2;
   } else if (st === ZS_BOAT_LEAVE || rowing === 0) {
@@ -303,7 +304,7 @@ function boatPose(a: MobAnim, out: MobPose): void {
     lift = -0.04;
   }
   // крабы подпрыгивают от нетерпения (у берега — сильнее), гребцы — в такт гребку
-  const eager = st === ZS_BOAT_LAND ? 1.8 : 1;
+  const eager = (st === ZS_BOAT_LAND || st === ZS_SIEGE_DEPLOY || st === ZS_SIEGE_ACTION) ? 1.8 : 1;
   let jumpA = 0.05 * eager * Math.abs(Math.sin(t * 5.5 + seed * 3));
   let jumpB = 0.045 * eager * Math.abs(Math.sin(t * 4.9 + 1.3 + seed * 5));
   let jumpC = rowing > 0 ? 0.045 * Math.max(0, Math.cos(phi)) : 0.035 * eager * Math.abs(Math.sin(t * 4.3 + 2.1));

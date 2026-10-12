@@ -1,3 +1,4 @@
+import { SIEGE_METEOR_RADIUS, SIEGE_METEOR_FLIGHT, Z_MILLER, PUMP_POOL_SLOW, PUMP_POOL_TICKS, REPAIR_WORK_TICKS, ZS_SIEGE_GLOB, ZS_SIEGE_SHELL, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY } from '../../shared/fortsiege.ts';
 // Игра в крепости на клиенте: предсказание своего движения (тот же stepPlayer, что на сервере, и ворота в мире
 // коллизий — по хвосту снимка), чужие защитники — интерполяцией, орда — zombies3d.ts, свой выстрел — сразу по тем же
 // формулам, что у сервера (shared/fortaim.ts, цели — зомби на «часах отрисовки»), события (попадания, сбитые,
@@ -104,6 +105,10 @@ export class FortMatch {
   private readonly d: FortMatchDeps;
   private readonly clock = new ClockSync(FORT_MIN_DELAY);
   private readonly predictor: Predictor;
+  private readonly siegePools = new Map<number, { x: number; y: number; z: number; radius: number; from: number; until: number }>();
+  private stepFromX = 0;
+  private stepFromZ = 0;
+  private repairEnd = 0;
   /** Арсенал: стволы, гранаты, лестницы, лавка и панели, башни, золото */
   private readonly ars: ArsenalClient;
   private readonly tracks = new Map<number, RemoteTrack>();
@@ -250,8 +255,21 @@ export class FortMatch {
       tick: () => this.clock.estimate(performance.now()) });
     // стволы крепости — вокруг того же шага, что у сервера (shared/fortgun.ts), и при переигровке тоже
     this.predictor = new Predictor(deps.collision, {
-      before: (s, inp) => this.ars.before(s, inp),
-      after: (s, _inp, ev) => this.ars.after(s, ev),
+      before: (s, inp) => {
+        this.stepFromX = s.x; this.stepFromZ = s.z;
+        return this.ars.before(s, inp);
+      },
+      after: (s, inp, ev) => {
+        const tick = inp.viewTick + FORT_MIN_DELAY;
+        for (const pool of this.siegePools.values()) {
+          if (tick >= pool.from && tick < pool.until && Math.abs(s.y-pool.y)<1 && Math.hypot(s.x-pool.x,s.z-pool.z)<pool.radius) {
+            s.x = this.stepFromX + (s.x-this.stepFromX)*PUMP_POOL_SLOW;
+            s.z = this.stepFromZ + (s.z-this.stepFromZ)*PUMP_POOL_SLOW;
+            break;
+          }
+        }
+        this.ars.after(s, ev);
+      },
     });
     this.localAvatar = new Avatar(0, { gun: true });
     this.localAvatar.setOutfit(deps.me().outfit);
@@ -277,6 +295,7 @@ export class FortMatch {
     this.ars = new ArsenalClient({
       map: deps.map, collision: deps.collision, arsenal3d: deps.world.arsenal, effects: deps.effects, zombies: deps.zombies, hud: deps.hud,
       sound: deps.sound, input: deps.input, net: deps.net, canvas: deps.world.renderer.canvas,
+      meteorRay: (ox,oy,oz,dx,dy,dz,range) => deps.eventFx?.meteorRay(ox,oy,oz,dx,dy,dz,range) ?? null,
     }, {
       myId: () => this.myId,
       phase: () => this.phase,
@@ -317,6 +336,7 @@ export class FortMatch {
     this.d.zombies.clear();
     this.d.marks?.clear();
     this.d.eventFx?.clear();
+    this.siegePools.clear();
     this.setFog(false);
     this.fogK = 0;
     this.applyFog();
@@ -399,6 +419,9 @@ export class FortMatch {
   onJson(m: ServerMsg): void {
     switch (m.t) {
       case 'fort':
+        if (!Number.isFinite(m.tick) || m.tick < 0) return;
+        this.clock.addSample(m.tick, performance.now());
+        this.d.eventFx?.setRenderTick(this.clock.renderTick);
         this.myId = m.id;
         this.predictor.seed = m.seed;
         this.phase = m.phase;
@@ -806,14 +829,58 @@ export class FortMatch {
           if (this.camPos.distanceTo(_v.set(x, y, z)) < 40) sound.heal([x, y + 1, z]);
           break;
         }
+        case 'meteor': {
+          const [, id, phase, fx, fy, fz, tx, ty, tz, start, end, left] = e;
+          const now = this.clock.renderTick;
+          if (!this.clock.ready || ![now,start,end,fx,fy,fz,tx,ty,tz].every(Number.isFinite) || end <= start) break;
+          this.d.eventFx?.siegeMeteor(id, phase, [fx,fy,fz], [tx,ty,tz], start, end, now);
+          if (phase === 0) {
+            this.d.marks?.meteor(tx,ty,tz,SIEGE_METEOR_RADIUS,end,SIEGE_METEOR_FLIGHT,id);
+            hud.alert('Метеор над крепостью · стреляй в камень или уйди с метки', 2200);
+          } else if (phase === 1) { hud.alert('Метеор: ещё '+left+' попадания', 700); }
+          else this.d.marks?.cancel(id);
+          if (phase === 2) { const u = Math.max(0,Math.min(1,(now-start)/(end-start))); sound.boom([fx+(tx-fx)*u,fy+(ty-fy)*u,fz+(tz-fz)*u],.45); hud.alert('Метеор разбит в воздухе', 1800); }
+          break;
+        }
+        case 'siegepool': {
+          const [, id, x, y, z, radius, end, sourceKind] = e;
+          if (end) {
+            this.siegePools.set(id,{x,y,z,radius,from:end-PUMP_POOL_TICKS,until:end});
+            this.d.marks?.pool(id,x,y,z,radius,end,sourceKind===Z_MILLER);
+          } else {
+            const pool = this.siegePools.get(id);
+            if (pool) pool.until = Math.min(pool.until,this.clock.estimate(performance.now()));
+            this.d.marks?.cancel(id);
+          }
+          const oldest = this.clock.renderTick - 256;
+          for (const [key,pool] of this.siegePools) if (pool.until < oldest) this.siegePools.delete(key);
+          break;
+        }
+        case 'warnend': { this.d.marks?.cancel(e[1]); break; }
+        case 'siegephase': {
+          const [,id,kind,state,start,end] = e;
+          zombies.phase(id,kind,state,start,end);
+          break;
+        }
+        case 'siege': {
+          const [, , part, left] = e;
+          hud.alert(left > 0 ? (part === 1 ? 'Канат' : part === 2 ? 'Навес' : 'Механизм')+': ещё '+left+' попадания' : (part === 1 ? 'Канат оборван · десант сорван' : part === 2 ? 'Навес сложен · враги открыты' : 'Механизм сорван · добивайте'), left > 0 ? 800 : 2200);
+          break;
+        }
+        case 'repair': {
+          const [, pid, , end, cooldownEnd, status] = e;
+          if (pid === this.myId) { this.repairEnd = status === 0 ? end : 0; hud.alert(status === 0 ? 'Ремонт · не двигайся и не стреляй '+Math.ceil((end-this.clock.estimate(performance.now()))/TICK_RATE)+' с' : status === 1 ? 'Ремонт завершён' : status === 2 ? 'Ремонт прерван' : 'Ремонт будет доступен через '+Math.max(1,Math.ceil((cooldownEnd-this.clock.estimate(performance.now()))/TICK_RATE))+' с', status === 0 ? 1200 : 2200); }
+          break;
+        }
         case 'throw': {
           const [, fx, fy, fz, tx, ty, tz, ticks, what] = e;
           const fresh = newBossThrow(what);
-          const kind = what === ZS_SPIT || fresh === 'glob' ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT || fresh === 'ink' ? PJ_INK : PJ_METEOR;
+          const kind = what === ZS_SIEGE_SHELL ? PJ_ROCK : what === ZS_SIEGE_GLOB || what === ZS_SPIT || fresh === 'glob' ? PJ_GLOB : what === ZS_THROW ? PJ_ROCK : what === ZS_KRAKEN_SPIT || fresh === 'ink' ? PJ_INK : PJ_METEOR;
           // метеор: огненный ком у эффектов fort-fx, пока их нет — простой из бросков
           if (kind === PJ_METEOR && this.d.eventFx) this.d.eventFx.meteor(fx, fy, fz, tx, ty, tz, ticks / TICK_RATE);
           else this.d.projectiles?.launch(kind, fx, fy, fz, tx, ty, tz, ticks / TICK_RATE, kind === PJ_METEOR ? 0.05 : 0.3);
           if (kind === PJ_GLOB) sound.spit([fx, fy, fz]);
+          if (what === ZS_SIEGE_SHELL) { sound.boom([fx,fy,fz],.6); effects.puff(fx,fy,fz,1.2,0xb5a88e,.45,.45,.45); }
           break;
         }
         case 'zdie': {
@@ -937,16 +1004,22 @@ export class FortMatch {
           break;
         }
         case 'warn': {
-          const [, , attack, tx, ty, tz, wr, end] = e;
+          const [, warnId, attack, tx, ty, tz, wr, end] = e;
           const sec = Math.max(0, (end - this.clock.estimate(performance.now())) / TICK_RATE);
           // плевки и бочки — часто: тревога только тому, у кого метка рядом
           const near = Math.hypot(tx - this.predictor.state.x, tz - this.predictor.state.z) < 6;
           if (attack === ZS_METEOR) {
-            this.d.marks?.meteor(tx, ty, tz, wr, end, METEOR_WARN_TICKS);
+            this.d.marks?.meteor(tx, ty, tz, wr, end, METEOR_WARN_TICKS, warnId > 0 ? warnId : undefined);
             const me = this.predictor.state;
             if (this.alive && Math.hypot(tx - me.x, tz - me.z) < wr + 0.8 && Math.abs(ty - me.y) < 2.5) {
               hud.alert('☄ Метеор летит в тебя · уйди из красного круга', Math.max(1000, sec * 1000));
             }
+            break;
+          }
+          if (attack === ZS_SIEGE_WINDUP || attack === ZS_SIEGE_DEPLOY || attack === ZS_SIEGE_GLOB || attack === ZS_SIEGE_SHELL) {
+            if (zombies.kindOf(warnId) === Z_MILLER) this.d.marks?.stripe(warnId,tx,ty,tz,8,3.2,end,Math.max(1,sec*TICK_RATE));
+            else this.d.marks?.meteor(tx, ty, tz, wr, end, Math.max(1, sec*TICK_RATE), warnId);
+            if (near) hud.alert('Осадный удар · уйди с метки или сорви механизм', Math.max(1200,sec*1000));
             break;
           }
           if (attack === ZS_SPIT) {
@@ -1036,7 +1109,7 @@ export class FortMatch {
             if (dist < r + 10) this.shake = Math.max(this.shake, 0.75);
             break;
           }
-          if (attack === ZS_THROW) {
+          if (attack === ZS_THROW || attack === ZS_SIEGE_SHELL) {
             // камень раскололся
             effects.burst(x, y, z, 0x7d7f77, 26, 6, 0, 1, 0, 0.09);
             effects.puff(x, y, z, r * 0.9, 0xb8b2a2, 0.9, 0.8, 0.55);
@@ -1234,6 +1307,8 @@ export class FortMatch {
       best = this.near.t;
       kind = 1;
     }
+    const meteor = this.d.eventFx?.meteorRay(ox,oy,oz,dx,dy,dz,best);
+    if (meteor !== undefined && meteor !== null) { best = meteor; kind = 1; }
     const av = this.localAvatar;
     av.muzzle(_v);
     av.onShot();
@@ -1259,6 +1334,7 @@ export class FortMatch {
     this.lastFrameMs = dtRaw * 1000;
 
     this.clock.update(now, dt * 1000);
+    d.eventFx?.setRenderTick(this.clock.renderTick);
     if (this.ready && this.clock.ready) {
       const rate = clamp(1 - (this.queueAvg - 1.2) * 0.02, 0.97, 1.03);
       this.acc += dt * 1000 * rate;
@@ -1607,6 +1683,7 @@ export class FortMatch {
     const pb = hud.pb;
     const est = this.clock.estimate(performance.now());
     const leftS = (this.phaseEnd - est) / TICK_RATE;
+    hud.ui.prompt.setRepair(this.repairEnd > est ? (this.repairEnd-est)/TICK_RATE : 0,1-(this.repairEnd-est)/REPAIR_WORK_TICKS);
     hud.setDefense(this.phase, this.tail.defenders ?? this.rosterList.length, this.tail.rally ?? 0, this.tail.rallyCd ?? 0);
     hud.setGate(this.gate, this.ars.gateMax);
     hud.setCrystal(this.crystal, this.ars.crystalMax);

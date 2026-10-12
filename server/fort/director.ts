@@ -13,6 +13,10 @@ import {
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
+import {
+  SIEGE_BATTERY, SIEGE_NONE, SIEGE_TOWER, Z_BATTERY, Z_CANOPY, Z_FOREMAN, Z_JAMPUMP, Z_ROPECRAB, Z_SIEGE_TOWER,
+  Z_SPRING, newBossKind,
+} from '../../shared/fortsiege.ts';
 
 /** Один враг волны: когда (тиков от начала волны), какой, с какой дороги, какой ступени */
 export interface PlanSpawn {
@@ -28,6 +32,7 @@ export interface PlanBoat {
   lane: number;
   crew: number[];
   tiers: number[];
+  anchor?: boolean;
 }
 
 export interface WavePlan {
@@ -43,6 +48,9 @@ export interface WavePlan {
   /** Супер-волна с Кракеном */
   kraken: boolean;
   event: number;
+  /** Одобренные механики за FORTRESS_SIEGE; старый директор при false неизменён. */
+  siege?: boolean;
+  siegeEvent?: number;
   /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul */
   hpScale: number;
   dmgMul: number;
@@ -58,6 +66,7 @@ export interface DirectorFeatures {
   sea: boolean;
   kraken: boolean;
   events: boolean;
+  siege?: boolean;
 }
 
 export const FEATURES: DirectorFeatures = {
@@ -77,6 +86,27 @@ export const ALL_FEATURES: DirectorFeatures = {
   kraken: true,
   events: true,
 };
+
+export const SIEGE_FEATURES: DirectorFeatures = { ...FEATURES, siege: true };
+
+/** Одна читаемая осада через шесть волн. Боссовые/кракеновые волны забирают свой слот. */
+export function siegeEventFor(w: number): number {
+  if (w < 10 || (w - 10) % 6 !== 0 || isBossWave(w) || isSuperWave(w)) return SIEGE_NONE;
+  return ((w - 10) / 6) % 2 === 0 ? SIEGE_TOWER : SIEGE_BATTERY;
+}
+
+/** Первое знакомство — один экземпляр. После знакомства выбор меняется по волнам, а не по числу тел. */
+export function siegeRolesFor(w: number, n: number): number[] {
+  if (isBossWave(w) || isSuperWave(w) || siegeEventFor(w)) return [];
+  const roles = [Z_ROPECRAB, Z_SPRING, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN].filter((k) => ZK[k].first <= w);
+  const fresh = roles.find((k) => ZK[k].first === w);
+  if (fresh !== undefined) return [fresh];
+  if (w % 3 === 2 || w % 6 === 1) return [];
+  if (!roles.length) return [];
+  const first = roles[w % roles.length];
+  // Один защитный эффект: навесу не добавляем лекаря/броню (смесь ограничивается ниже).
+  return n >= 2 && w >= 30 ? [first, roles[(w + 1) % roles.length]] : [first];
+}
 
 type Mix = ReadonlyArray<readonly [number, number]>;
 
@@ -120,6 +150,7 @@ function kindTable(v: Record<number, number>): number[] {
 export interface LastEvent {
   wave: number;
   kind: number;
+  siegeFailureWave?: number;
 }
 
 /**
@@ -149,7 +180,12 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     tierOfBoss = superTier(w) + 1;
     hpTier = tierOfBoss;
   }
+  if (f.siege && newBossKind(w) >= 0) boss = newBossKind(w);
+  // Сохраняем прежний бюджет сопровождения. Предложенные -20% для Мельничихи в модели делали 98-ю легче базы.
   const landMul = kraken ? 0.5 : boss >= 0 ? 0.6 : 1;
+  const recovery = f.siege && last.siegeFailureWave === w - 1;
+  const siegeEvent = f.siege && !recovery ? siegeEventFor(w) : SIEGE_NONE;
+  const roles = f.siege && !recovery ? siegeRolesFor(w, n) : [];
 
   // десант: экипаж — из HP волны
   const boats: PlanBoat[] = [];
@@ -162,7 +198,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
         const kind = i % 4 === 3 && f.kinds.has(Z_CLIMBER) ? Z_CLIMBER : Z_WALKER;
         crew.push(kind);
       }
-      boats.push({ at: 0, lane: b % 2 === 0 ? (rng() < 0.5 ? -1 : 1) : -boats[b - 1].lane, crew, tiers: crew.map(() => TIER_NORMAL) });
+      boats.push({ at: 0, lane: b % 2 === 0 ? (rng() < 0.5 ? -1 : 1) : -boats[b - 1].lane, crew, tiers: crew.map(() => TIER_NORMAL),
+        ...(f.siege && !recovery && w >= 13 && w % 6 === 1 && !siegeEvent && boss < 0 && !kraken && b === 0 ? { anchor: true } : {}) });
     }
   }
 
@@ -201,6 +238,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     sum += hpOf(kind, tier);
     fixed += fixedOf(kind, tier);
   };
+  for (const kind of roles) add(kind, TIER_NORMAL);
+  if (siegeEvent) add(siegeEvent === SIEGE_TOWER ? Z_SIEGE_TOWER : Z_BATTERY, TIER_NORMAL);
   /** Тема волны и новичок (их тип не срезаем) */
   let theme = -1;
   let title: string;
@@ -218,7 +257,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     }
     while (sum < target - walkerHp * 0.5 && list.length < cap) add(Z_WALKER);
   } else {
-    const pool = [...f.kinds].filter((k) => ZK[k].first <= w && WEIGHT[k] > 0);
+    const pool = [...f.kinds].filter((k) => ZK[k].first <= w && WEIGHT[k] > 0
+      && !(roles.includes(Z_CANOPY) && [Z_MEDIC, Z_SHIELD, Z_ARMORED].includes(k)));
     const themed = pool.filter((k) => THEME[k]);
     const fresh = pool.find((k) => ZK[k].first === w);
     theme = fresh ?? themed[Math.floor(rng() * themed.length)] ?? Z_WALKER;
@@ -261,7 +301,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     for (const i of order) {
       if (sum >= target - walkerHp * 0.5 || have >= limit) break;
       const s = list[i];
-      if (s.tier !== from) continue;
+      if (s.tier !== from || s.kind >= Z_ROPECRAB) continue;
       sum += hpOf(s.kind, to) - hpOf(s.kind, from);
       fixed += fixedOf(s.kind, to) - fixedOf(s.kind, from);
       s.tier = to;
@@ -300,24 +340,35 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     const within = (i - start) / Math.max(1, end - start);
     return { at: 30 + Math.floor(span * (pulse + within * 0.6) / pulses), kind: s.kind, road: roads[(i - start + pulse) % roads.length], tier: s.tier };
   });
+  // Новую цель видно до подхода её сопровождения; задачи не возникают одновременно из разных дорог.
+  let specialist = 0;
+  for (const s of spawns) if (s.kind >= Z_ROPECRAB) {
+    s.at = 30 + specialist++ * 8 * 60;
+    s.road = 1;
+  }
+  spawns.sort((a, b) => a.at - b.at);
   boats.forEach((b, i) => { b.at = Math.floor(span * 0.2) + i * 4 * 60; });
 
   let event = EV_NONE;
-  if (f.events && eventAllowed(w, last.wave) && rng() < EVENT_CHANCE) {
+  if (f.events && !recovery && !siegeEvent && !roles.length && !boats.some((b) => b.anchor) && eventAllowed(w, last.wave) && rng() < EVENT_CHANCE) {
     const options = EVENTS.filter((e) => e !== last.kind);
     event = options[Math.floor(rng() * options.length)];
   }
 
   const plan: WavePlan = {
     w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, hpTier) : 0, kraken, event,
-    hpScale, dmgMul: waveDmgMul(w), roads,
+    hpScale, dmgMul: waveDmgMul(w), roads, ...(f.siege ? { siege: true, siegeEvent } : {}),
     // десант — сюрприз (04.10): в карточке и превью лодок нет, тревога — только когда лодки уже у берега
-    card: { w, title: isFinalWave(w) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
+    card: { w, ...(f.siege ? { siege: true } : {}), title: isFinalWave(w) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
       boss: kraken ? Z_KRAKEN : boss, tier: kraken ? superTier(w) : tierOfBoss, event, roads: [...roads].sort((a, b) => a - b), fresh: [],
       elite: 0, champ: 0 },
   };
   plan.card.chips = chipsOf(counts);
   plan.card.fresh = freshKinds(w, counts, f);
+  if (f.siege) {
+    plan.card.fresh.push(...roles.filter((k) => ZK[k].first === w));
+    if (siegeEvent) plan.card.title = siegeEvent === SIEGE_TOWER ? 'Осадная башня' : 'Полевая батарея';
+  }
   for (const s of spawns) {
     if (s.tier === TIER_ELITE) plan.card.elite++;
     else if (s.tier === TIER_CHAMP) plan.card.champ++;

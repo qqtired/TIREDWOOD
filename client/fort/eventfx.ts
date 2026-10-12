@@ -14,6 +14,8 @@ import * as THREE from 'three';
 import { makeRng } from '../../shared/math.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import type { Quality } from '../settings.ts';
+import { TICK_RATE } from '../../shared/constants.ts';
+import { SIEGE_METEOR_BODY, SIEGE_METEOR_RADIUS } from '../../shared/fortsiege.ts';
 
 /** Ящик припасов для crate(): как в хвосте снимка — 0 нет (подобран или волна кончилась), 1 летит, 2 лежит */
 export const CRATE_NONE = 0;
@@ -713,6 +715,11 @@ function canopyGeometry(): THREE.BufferGeometry {
 // ------------------------------------------------------------ состояние
 
 interface Meteor {
+  id: number;
+  linear: boolean;
+  startTick: number;
+  endTick: number;
+  bodyScale: number;
   on: boolean;
   fx: number; fy: number; fz: number;
   tx: number; ty: number; tz: number;
@@ -739,6 +746,8 @@ export class EventFx {
   private readonly camera: THREE.Camera;
   private readonly world: CollisionWorld | null;
   private time = 0;
+  /** The same delayed server tick sent in Input.viewTick; never an arrival clock. */
+  private renderTick = NaN;
   private density = 1;
 
   // пулы
@@ -818,7 +827,7 @@ export class EventFx {
     (this.smoke.mesh.material as THREE.ShaderMaterial).uniforms.uNear.value = 2.5;
 
     for (let i = 0; i < MAX_METEORS; i++) {
-      this.meteors.push({ on: false, fx: 0, fy: 0, fz: 0, tx: 0, ty: 0, tz: 0, dur: 1, t: 0, r: METEOR_R, ex: 0, ey: 0, ez: 0, smoke: 0, drip: 0, spin: 0 });
+      this.meteors.push({ id: -1, linear: false, startTick: NaN, endTick: NaN, bodyScale: 1.5, on: false, fx: 0, fy: 0, fz: 0, tx: 0, ty: 0, tz: 0, dur: 1, t: 0, r: METEOR_R, ex: 0, ey: 0, ez: 0, smoke: 0, drip: 0, spin: 0 });
     }
     this.rocks = new THREE.InstancedMesh(meteorGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }), MAX_METEORS);
     this.rocks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -927,7 +936,7 @@ export class EventFx {
    * ним к удару разгорается отсветом (метку атаки рисует marks.ts). Сам удар — meteorHit (событие blast); долетел раньше
    * события — ждёт на месте до 0,3 с.
    */
-  meteor(fx: number, fy: number, fz: number, tx: number, ty: number, tz: number, seconds: number, r = METEOR_R): void {
+  meteor(fx: number, fy: number, fz: number, tx: number, ty: number, tz: number, seconds: number, r = METEOR_R, id = -1, linear = false, elapsed = 0): void {
     let m = this.meteors.find((q) => !q.on);
     if (!m) {
       // все заняты — заменить того, кто ближе всех к удару
@@ -935,15 +944,66 @@ export class EventFx {
       for (const q of this.meteors) if (q.t / q.dur > m.t / m.dur) m = q;
     }
     m.on = true;
+    m.id = id; m.linear = linear; m.bodyScale = linear ? SIEGE_METEOR_BODY / .8 : 1.5;
+    m.startTick = m.endTick = NaN;
     m.fx = fx; m.fy = fy; m.fz = fz;
     m.tx = tx; m.ty = ty; m.tz = tz;
     m.dur = Math.max(0.2, seconds);
-    m.t = 0;
+    m.t = Math.max(0, elapsed);
     m.r = r > 0 ? r : METEOR_R;
     m.ex = fx; m.ey = fy; m.ez = fz;
     m.smoke = 0;
     m.drip = 0;
     m.spin = Math.random() * 6;
+  }
+
+  setRenderTick(tick: number): void {
+    if (!Number.isFinite(tick)) return;
+    this.renderTick = tick;
+    for (const m of this.meteors) if (m.on && m.linear && Number.isFinite(m.startTick)) m.t = (tick-m.startTick)/TICK_RATE;
+  }
+
+  /** Targetable meteors use the same absolute server timeline as shot rewinding. */
+  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number): void {
+    if (![startTick,endTick,renderTick,...from,...to].every(Number.isFinite) || endTick <= startTick) return;
+    this.setRenderTick(renderTick);
+    const seconds=(endTick-startTick)/TICK_RATE,elapsed=(renderTick-startTick)/TICK_RATE;
+    if (phase === 0) {
+      if (!this.meteors.some(m => m.on && m.id === id)) this.meteor(from[0], from[1], from[2], to[0], to[1], to[2], seconds, SIEGE_METEOR_RADIUS, id, true, elapsed);
+      const active=this.meteors.find(m=>m.on&&m.id===id)!;
+      active.startTick=startTick;active.endTick=endTick;active.t=elapsed;
+      return;
+    }
+    const m = this.meteors.find(m => m.on && m.id === id);
+    const u = Math.max(0, Math.min(1, elapsed / Math.max(.01, seconds)));
+    const x = from[0] + (to[0]-from[0])*u, y = from[1] + (to[1]-from[1])*u, z = from[2] + (to[2]-from[2])*u;
+    if (phase === 1 || phase === 2) {
+      // Airburst has no crater or ground shockwave: its fragments visibly fall away.
+      for (let i = 0; i < (phase === 2 ? 38 : 9); i++) {
+        const a = Math.random()*Math.PI*2;
+        const s = at(x, y, z, phase === 2 ? rand(.5,1.3) : .35, phase === 2 ? rand(.18,.55) : .16, .015);
+        s.vx = Math.cos(a)*rand(3,8); s.vy = rand(-2,7); s.vz = Math.sin(a)*rand(3,8); s.grav = 10;
+        s.c0.set(phase === 2 ? 0xe2874b : 0xffecb3); s.c1.set(0x682c42); this.blob.emit(s);
+      }
+      const flash = at(x,y,z,.22,2,phase === 2 ? 6 : 3); flash.c0.set(0xffe4b2); flash.c1.set(0xef7440); this.fire.emit(flash);
+    }
+    if (phase >= 2 && m) m.on = false;
+    // The authoritative blast event owns the ground explosion (no duplicate flash).
+  }
+
+  /** Visual shot endpoint uses the very sphere currently drawn in the sky. */
+  meteorRay(ox:number,oy:number,oz:number,dx:number,dy:number,dz:number,range:number):number|null {
+    let nearest=range,found=false;
+    for(const m of this.meteors){
+      if(!m.on||!m.linear||!Number.isFinite(this.renderTick)||this.renderTick<m.startTick||this.renderTick>=m.endTick)continue;
+      const u=Math.max(0,Math.min(1,m.t/m.dur));
+      const x=ox-m.fx-(m.tx-m.fx)*u,y=oy-m.fy-(m.ty-m.fy)*u,z=oz-m.fz-(m.tz-m.fz)*u;
+      const b=x*dx+y*dy+z*dz,c=x*x+y*y+z*z-SIEGE_METEOR_BODY*SIEGE_METEOR_BODY,disc=b*b-c;
+      if(disc<0)continue;
+      const t=Math.max(0,-b-Math.sqrt(disc));
+      if(t<nearest&&-b+Math.sqrt(disc)>=0){nearest=t;found=true;}
+    }
+    return found?nearest:null;
   }
 
   /** Удар метеора: вспышка, огненный шар, брызги варенья и земли, ударная волна, дым, кратер-клякса */
@@ -1348,7 +1408,11 @@ export class EventFx {
     const k = this.density;
     for (const m of this.meteors) {
       if (!m.on) continue;
-      m.t += dt;
+      if (m.linear) {
+        if (!Number.isFinite(this.renderTick)) continue;
+        m.t=(this.renderTick-m.startTick)/TICK_RATE;
+        if (m.t<0) continue;
+      } else m.t += dt;
       // долетел, а удара ещё нет — ждём событие на месте (немного), потом гаснем сами
       if (m.t > m.dur + 0.3) {
         m.on = false;
@@ -1356,7 +1420,7 @@ export class EventFx {
       }
       const u = Math.min(1, m.t / m.dur);
       // чуть разгоняется: вверху виден дольше, к земле быстрее
-      const w = u * (0.72 + 0.28 * u);
+      const w = m.linear ? u : u * (0.72 + 0.28 * u);
       const x = m.fx + (m.tx - m.fx) * w;
       const y = m.fy + (m.ty - m.fy) * w;
       const z = m.fz + (m.tz - m.fz) * w;
@@ -1371,7 +1435,7 @@ export class EventFx {
       // ком
       _e.set(m.spin + m.t * 2.3, m.spin * 0.6 + m.t * 3.1, 0);
       _q.setFromEuler(_e);
-      const pulse = 1.5 * (1 + 0.07 * Math.sin(this.time * 31 + m.spin));
+      const pulse = m.bodyScale * (1 + 0.025 * Math.sin(this.time * 31 + m.spin));
       this.rocks.setMatrixAt(n++, _m.compose(_p.set(x, y, z), _q, _s.set(pulse, pulse, pulse)));
       // ком в языках пламени: мягкий оранжевый ореол, внешнее и внутреннее пламя рвутся назад (плотные клубы — на светлом
       // небе читаются лучше свечения: сложение с небом даёт белое), горячая сердцевина и хвост-полоса

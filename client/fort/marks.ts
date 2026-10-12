@@ -12,6 +12,9 @@ import { CRATE_DOWN, CRATE_FALL, CRATE_NONE, SUPPLY_FALL_TICKS } from '../../sha
 export interface EventFxApi {
   meteor(fx: number, fy: number, fz: number, tx: number, ty: number, tz: number, seconds: number): void;
   meteorHit(x: number, y: number, z: number, r?: number): void;
+  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number): void;
+  setRenderTick(tick:number):void;
+  meteorRay(ox:number,oy:number,oz:number,dx:number,dy:number,dz:number,range:number):number|null;
   /** 1 — начал падать (сядет через 7 с), 2 — лежит, 0 — пропал */
   crate(state: number, x: number, z: number, y?: number): void;
   cratePicked(x: number, y: number, z: number): void;
@@ -24,11 +27,15 @@ export interface EventFxApi {
 
 const RED = 0xff5a3c;
 const GOLD = 0xffd04a;
-const MAX_RINGS = 8;
+const MAX_RINGS = 24;
 /** С какой высоты падает ящик (над точкой посадки) */
 const DROP_H = 42;
 
 interface Ring {
+  id?: number;
+  pool?: boolean;
+  depth?: number;
+  color?: number;
   x: number;
   y: number;
   z: number;
@@ -47,6 +54,8 @@ const _c = new THREE.Color();
 export class EventMarks {
   private readonly ring: THREE.InstancedMesh;
   private readonly fill: THREE.InstancedMesh;
+  private readonly stripeRing: THREE.InstancedMesh;
+  private readonly stripeFill: THREE.InstancedMesh;
   private readonly rings: Ring[] = [];
   private readonly beacon: THREE.Group;
   private readonly beaconRing: THREE.Mesh;
@@ -68,7 +77,9 @@ export class EventMarks {
     const mat = (opacity: number) => new THREE.MeshBasicMaterial({ transparent: true, opacity, depthWrite: false, depthTest: false, side: THREE.DoubleSide });
     this.ring = new THREE.InstancedMesh(flat(new THREE.RingGeometry(0.9, 1, 48)), mat(0.9), MAX_RINGS);
     this.fill = new THREE.InstancedMesh(flat(new THREE.CircleGeometry(1, 40)), mat(0.2), MAX_RINGS);
-    for (const m of [this.ring, this.fill]) {
+    this.stripeRing = new THREE.InstancedMesh(flat(new THREE.RingGeometry(.9,1,4).rotateZ(Math.PI/4).scale(Math.SQRT2,Math.SQRT2,1)),mat(.9),MAX_RINGS);
+    this.stripeFill = new THREE.InstancedMesh(flat(new THREE.PlaneGeometry(2,2)),mat(.2),MAX_RINGS);
+    for (const m of [this.ring, this.fill, this.stripeRing, this.stripeFill]) {
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.count = 0;
       m.frustumCulled = false;
@@ -77,6 +88,7 @@ export class EventMarks {
     }
     this.ring.renderOrder = 5;
     this.fill.renderOrder = 4;
+    this.stripeRing.renderOrder=5;this.stripeFill.renderOrder=4;
 
     // маяк ящика: кольцо на земле и столб света
     this.beacon = new THREE.Group();
@@ -100,9 +112,25 @@ export class EventMarks {
   }
 
   /** Круг метеора: удар на тике end, метка видна total тиков */
-  meteor(x: number, y: number, z: number, r: number, end: number, total: number): void {
+  meteor(x: number, y: number, z: number, r: number, end: number, total: number, id?: number): void {
+    if (id !== undefined) this.cancel(id);
     if (this.rings.length >= MAX_RINGS) this.rings.shift();
-    this.rings.push({ x, y, z, r, end, total });
+    this.rings.push({ x, y, z, r, end, total, id });
+  }
+
+  cancel(id: number): void {
+    for (let i = this.rings.length - 1; i >= 0; i--) if (this.rings[i].id === id) this.rings.splice(i, 1);
+  }
+
+  pool(id: number, x: number, y: number, z: number, r: number, end: number, flour = false): void {
+    this.cancel(id);
+    if (this.rings.length >= MAX_RINGS) this.rings.shift();
+    this.rings.push({id,x,y,z,r,end,total:1,pool:true,color:flour?0xe4cda2:0x8e409d});
+  }
+
+  stripe(id:number,x:number,y:number,z:number,width:number,depth:number,end:number,total:number):void {
+    this.cancel(id);if(this.rings.length>=MAX_RINGS)this.rings.shift();
+    this.rings.push({id,x,y,z,r:width/2,depth:depth/2,end,total});
   }
 
   /** Ящик: CRATE_* и где (y — поверхность); падение — с этого момента */
@@ -118,6 +146,7 @@ export class EventMarks {
     this.rings.length = 0;
     this.crateState = CRATE_NONE;
     this.ring.count = this.fill.count = 0;
+    this.stripeRing.count=this.stripeFill.count=0;
     this.beacon.visible = false;
     this.box.visible = false;
   }
@@ -126,6 +155,7 @@ export class EventMarks {
   update(dt: number, renderTick: number): void {
     this.time += dt;
     let n = 0;
+    let stripes=0;
     for (let i = this.rings.length - 1; i >= 0; i--) {
       const r = this.rings[i];
       if (renderTick > r.end + 3) {
@@ -134,19 +164,20 @@ export class EventMarks {
       }
     }
     for (const r of this.rings) {
-      const progress = Math.max(0.06, Math.min(1, 1 - (r.end - renderTick) / r.total));
+      const progress = r.pool ? .93 + .025*Math.sin(this.time*3) : Math.max(0.06, Math.min(1, 1 - (r.end - renderTick) / r.total));
       _q.identity();
       _p.set(r.x, r.y + 0.07, r.z);
-      _s.set(r.r, 1, r.r);
-      this.ring.setMatrixAt(n, _m.compose(_p, _q, _s));
-      _s.set(r.r * progress, 1, r.r * progress);
-      this.fill.setMatrixAt(n, _m.compose(_p, _q, _s));
-      this.ring.setColorAt(n, _c.set(RED));
-      this.fill.setColorAt(n, _c);
-      n++;
+      const ring=r.depth?this.stripeRing:this.ring,fill=r.depth?this.stripeFill:this.fill,index=r.depth?stripes++:n++;
+      _s.set(r.r, 1, r.depth??r.r);
+      ring.setMatrixAt(index, _m.compose(_p, _q, _s));
+      _s.set(r.r * progress, 1, (r.depth??r.r)*progress);
+      fill.setMatrixAt(index, _m.compose(_p, _q, _s));
+      ring.setColorAt(index, _c.set(r.color??RED));
+      fill.setColorAt(index, _c);
     }
     this.ring.count = this.fill.count = n;
-    for (const m of [this.ring, this.fill]) {
+    this.stripeRing.count=this.stripeFill.count=stripes;
+    for (const m of [this.ring, this.fill,this.stripeRing,this.stripeFill]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
