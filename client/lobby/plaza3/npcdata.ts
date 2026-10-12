@@ -105,7 +105,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'zhetonych', name: 'Жетоныч', accent: '#9b1b30', talk: 'slots', mode: null, layout: 'kurzal',
     // Кафейный проулок у западной двери курзала, лицом вдоль проулка к скверу
-    x: 54.2, z: 2, y: 0, yaw: HALF_PI, greet: true, wave: L,
+    x: 54.2, z: -5.5, y: 0, yaw: HALF_PI, greet: true, wave: L,
     lines: [
       'Заходи, тут всё звенит и мигает!',
       'Автоматы налево, аркада направо — выбирай',

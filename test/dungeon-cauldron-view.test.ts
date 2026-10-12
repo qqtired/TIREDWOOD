@@ -27,3 +27,15 @@ test('detached lid stays on the floor through walk/attack/death and wraps with t
   v.update(.03,boss('walk',3),270,280,.2,250,280);lid.getWorldPosition(p);assert.ok(Math.abs(p.x-(ground.x+240))<1e-6);assert.ok(Math.abs(p.z-(ground.z+240))<1e-6);
   v.update(0,null,0,0,0);v.update(0,boss('idle',1),10,10,0,10,10);lid.getWorldPosition(p);assert.ok(Math.abs(p.x-10)<1e-6);assert.ok(Math.abs(p.y-2)<1e-6);
 });
+
+// The same real elapsed time must land on the accelerated attack pose, not only finish sooner.
+test('Казанщик: клип и длительность ускорены вдвое, Повидл сохраняет прежний темп',()=>{
+  for(const family of ['cauldronmaster','povidl'] as const){
+    const scene=new THREE.Group(), marker=new THREE.Group();marker.name='marker';scene.add(marker);
+    const prefix=family==='povidl'?'boss':'cauldronmaster';
+    const gltf={scene,animations:[new THREE.AnimationClip(prefix+'_attack',1,[new THREE.VectorKeyframeTrack('marker.position',[0,1],[0,0,0,10,0,0])])]} as unknown as GLTF;
+    const view=new BossView(gltf,family);view.update(0,{...boss('attack',1),family},0,0,.2);
+    assert.equal(view.duration('attack'),family==='cauldronmaster'?.5:1);
+    assert.ok(Math.abs(view.root.getObjectByName('marker')!.position.x-(family==='cauldronmaster'?4:2))<1e-5);
+  }
+});

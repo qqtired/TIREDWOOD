@@ -38,6 +38,8 @@ export interface PassiveDef {
 }
 export interface MobDef {
   id: MobKind; name: string; short: string; tier: string; hp: number; speed: number; dmg: number; xp: number; radius: number;
+  /** Прежний вес в составе волн: рост HP не сокращает отряд и не меняет HP остальных видов. */
+  waveBudgetHp?: number;
   dashSpeed?: number; flying?: boolean; knockbackResist?: number; turnRate?: number;
   splitInto?: { id: MobKind; n: number };
   deathCloud?: { radius: number; time: number; slow: number };
@@ -86,7 +88,7 @@ export interface DesignData {
   weapons: WeaponDef[];
   evolutions: EvoDef[];
   passives: PassiveDef[];
-  xp: { base: number; perLevel: number; gems: { id: string; xp: number }[]; mergeOver: number };
+  xp: { gainMul: number; base: number; perLevel: number; gems: { id: string; xp: number }[]; mergeOver: number };
   levelUp: {
     cards: number; rerolls: number; banishes: number; perBoss: { rerolls: number; banishes: number };
     weights: { ownedUpgrade: number; newWeapon: number; newPassive: number }; temper: { dmg: number; max: number };
@@ -103,6 +105,8 @@ export interface DesignData {
   expansion: { liveCaps: Partial<Record<MobKind, number>>; newTelegraphs: number; enemyCharges: number; firstWave: number };
   cauldron: {
     id: 'cauldronmaster'; name: string; hp: number; contactDmg: number; speed: number; radius: number; xp: number;
+    /** Темп исходных анимаций/сроков ударов и число целей напольного залпа. */
+    actionSpeed: number; groundVolleyMul: number;
     enrageAt: number; endlessGrowth: number; summonBudget: number; summonEvery: number; summonN: number; transition: number;
     attacks: Record<string, { impact: number; impact2?: number; recover: number; radius: number; dmg: number; angle?: number; width?: number; length?: number; inner?: number; right?: number; forward?: number; right2?: number; forward2?: number; radius2?: number }>;
   };

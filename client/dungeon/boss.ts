@@ -6,6 +6,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { VBoss } from './view.ts';
 import { DG_MAP } from '../../shared/dungeon/api.ts';
+import { D } from '../../shared/dungeon/data.ts';
 
 type BossAnim = VBoss['anim'];
 const ONCE: BossAnim[] = ['emerge', 'burrow', 'slam', 'spit', 'roar', 'death', 'attack', 'appear', 'pour', 'boil', 'phase2', 'phase3', 'recover'];
@@ -75,8 +76,10 @@ export class BossView {
   }
 
   duration(anim: BossAnim, phase = 1): number {
-    return this.actions.get(this.key(anim, phase))?.getClip().duration ?? 1;
+    return (this.actions.get(this.key(anim, phase))?.getClip().duration ?? 1) / this.actionSpeed;
   }
+
+  private get actionSpeed(): number { return this.family === 'cauldronmaster' ? D.cauldron.actionSpeed : 1; }
 
   /** b — состояние на шаге; tick — текущий шаг; stepT — секунды с начала anim */
   update(dt: number, b: VBoss | null, x: number, z: number, stepT: number, camX = x, camZ = z): void {
@@ -89,13 +92,14 @@ export class BossView {
       }
       return;
     }
+    const speed = this.actionSpeed, clipT = stepT * speed;
     const under = b.anim === 'under';
     this.root.visible = !under;
     this.root.position.set(x, 0, z);
     this.root.scale.setScalar(b.scale);
     let d = b.yaw - this.root.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
-    this.root.rotation.y += d * Math.min(1, dt * 4);
+    this.root.rotation.y += d * Math.min(1, dt * 4 * speed);
     const key = this.key(b.anim, b.phase);
     if (!under && (key !== this.cur || b.animAt !== this.curAt)) {
       const next = this.actions.get(key);
@@ -105,8 +109,9 @@ export class BossView {
         const phaseChange = this.family === 'cauldronmaster' && this.cur !== null && key.match(/_p[23]$/)?.[0] !== this.cur.match(/_p[23]$/)?.[0];
         if (phaseChange) this.mixer.stopAllAction();
         next.reset().setEffectiveWeight(1).play();
-        if (ONCE.includes(b.anim)) next.time = Math.min(stepT, next.getClip().duration - 0.01);
+        if (ONCE.includes(b.anim)) next.time = Math.min(clipT, next.getClip().duration - 0.01);
         const lying = (k: string | null): boolean => k === 'move';
+        // mixer уже ускорен: 0.1 секунды клипа дают 0.05 секунды реального смешивания.
         const fade = this.family === 'cauldronmaster' ? 0.1 : lying(b.anim) !== lying(this.cur) ? 0.5 : 0.2;
         if (!phaseChange && prev && prev !== next && this.cur !== 'burrow') prev.crossFadeTo(next, fade, false);
         else if (prev && prev !== next) prev.stop();
@@ -116,16 +121,16 @@ export class BossView {
     }
     const move = this.actions.get('move');
     if (move) move.timeScale = 1;
-    this.mixer.update(dt);
+    this.mixer.update(dt * speed);
     if (this.family === 'cauldronmaster') {
       // Серверный elapsed удерживается при freeze и не сбрасывается между предупреждением и ударом.
       const a = this.actions.get(key);
       if (a) {
         const duration = a.getClip().duration;
-        a.time = ONCE.includes(b.anim) ? Math.max(0, Math.min(stepT, duration - 1e-4)) : ((stepT % duration) + duration) % duration;
+        a.time = ONCE.includes(b.anim) ? Math.max(0, Math.min(clipT, duration - 1e-4)) : ((clipT % duration) + duration) % duration;
         this.mixer.update(0);
       }
-      this.lockDetachedLid(b, stepT, camX, camZ);
+      this.lockDetachedLid(b, clipT, camX, camZ);
     }
     // вспышка попадания: эмиссия ярче на миг
     this.flashT = Math.max(0, this.flashT - dt);

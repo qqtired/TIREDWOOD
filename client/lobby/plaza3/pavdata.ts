@@ -47,7 +47,7 @@ export const PAVILIONS: readonly PavPlace[] = [
   { id: 'farm_arch', file: 'pav_farm_arch.glb', x: 55.1, z: -21.5, yaw: 1.8495, group: 'farm', solid: 'layout' },
   { id: 'windmill', file: 'pav_windmill.glb', x: 84, z: -62, yaw: 2.2092, group: 'farm', solid: 'mode', live: ['live_sails'] },
   // Игровой квартал (README-gq.md)
-  { id: 'kursaal', file: 'pav_kursaal.glb', x: 61, z: 1, yaw: PI / 2, group: 'games', solid: 'layout' },
+  { id: 'kursaal', file: 'pav_kursaal.glb', x: 61, z: -6.5, yaw: PI / 2, group: 'games', solid: 'layout' },
   { id: 'cafe', file: 'pav_cafe.glb', x: 49, z: 0, yaw: PI / 2, group: 'games', solid: 'layout', live: ['live_vane'] },
   { id: 'cardveranda', file: 'pav_cardveranda.glb', x: 38.25, z: -2.2, yaw: 0, group: 'games', solid: 'layout' },
   { id: 'billiards', file: 'pav_billiards.glb', x: 40.7, z: 17.7, yaw: 0, group: 'games', solid: 'mode' },

@@ -6,6 +6,7 @@ import { D, LV, MOB_KINDS, mobDef, type MobKind, type WaveDef } from './data.ts'
 import { blocked } from './map.ts';
 import { aliveCount, canSpawn, enrage, spawnMob } from './mobs.ts';
 import { dropGem, vacuum, waveChest } from './pickups.ts';
+import { earnedXp } from './progress.ts';
 import { wavePropsReset } from './props.ts';
 import type { DgAlert, DgSim, DgWave } from './types.ts';
 import { dirOf, powi, rnd, rndRange, ticks, wrapD, wrapP } from './util.ts';
@@ -194,7 +195,7 @@ function endlessSetup(sim: DgSim, n: number): number {
   let bodies = 0;
   for (const [k, share] of Object.entries(mix.share)) {
     const def = mobDef(k);
-    let unit = def.hp;
+    let unit = def.waveBudgetHp ?? def.hp;
     if (def.splitInto) unit += mobDef(def.splitInto.id).hp * def.splitInto.n;
     const c = Math.round(((share as number) * budget) / (unit * hpMul));
     counts[MOB_KINDS.indexOf(k as MobKind)] = c;
@@ -236,7 +237,7 @@ function endlessSetup(sim: DgSim, n: number): number {
   }
   // Полный состав включает события. Очень поздние налёты не обходят cap700: сохраняем их HP в меньшем числе тел.
   if (n > 20 && total > cap) {
-    const unit = (k: string): number => { const m = mobDef(k); return m.hp + (m.splitInto ? mobDef(m.splitInto.id).hp * m.splitInto.n : 0); };
+    const unit = (k: string): number => { const m = mobDef(k); return (m.waveBudgetHp ?? m.hp) + (m.splitInto ? mobDef(m.splitInto.id).hp * m.splitInto.n : 0); };
     const hp = (): number => {
       let sum = 0;
       for (let i = 0; i < w.pend.length; i++) if (w.pend[i]) sum += w.pend[i] * unit(MOB_KINDS[i]);
@@ -535,7 +536,7 @@ function sweep(sim: DgSim): void {
   const xp = SWEEP_XP * w.n;
   dropGem(sim, sim.hero.x, sim.hero.z, xp);
   vacuum(sim);
-  fx(sim, { k: 'sweep', n: w.n, xp });
+  fx(sim, { k: 'sweep', n: w.n, xp: earnedXp(sim, xp) });
   w.swept = 1;
   w.n++;
   w.stage = 'breather';

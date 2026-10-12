@@ -1,0 +1,40 @@
+// Semёn door: remove coplanar frame, crossbar and brace intersections; preserve anchors and collisions.
+// node semyon-door.mjs <input.glb> <output.glb>
+import {readFileSync,writeFileSync} from 'node:fs';import {resolve} from 'node:path';import {pathToFileURL} from 'node:url';
+const EPS=1e-7;
+const area=p=>Math.abs(p.reduce((s,v,i)=>{const q=p[(i+1)%p.length];return s+v[0]*q[1]-q[0]*v[1];},0))/2;
+const signed=p=>p.reduce((s,v,i)=>{const q=p[(i+1)%p.length];return s+v[0]*q[1]-q[0]*v[1];},0);
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+function split(poly,a,b,sign){const inside=[],outside=[];const d=p=>sign*((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]));for(let i=0;i<poly.length;i++){const p=poly[i],q=poly[(i+1)%poly.length],dp=d(p),dq=d(q);(dp>=-EPS?inside:outside).push(p);if((dp>=-EPS)!==(dq>=-EPS)){const v=mix(p,q,dp/(dp-dq));inside.push(v);outside.push(v);}}return[inside,outside];}
+function intersection(a,b){let p=a;const sign=signed(b)>=0?1:-1;for(let i=0;i<b.length&&p.length>=3;i++)[p]=split(p,b[i],b[(i+1)%b.length],sign);return p.length>=3?area(p):0;}
+function subtract(poly,clip){let rest=poly;const out=[],sign=signed(clip)>=0?1:-1;for(let i=0;i<clip.length;i++){const[inside,outside]=split(rest,clip[i],clip[(i+1)%clip.length],sign);if(outside.length>=3&&area(outside)>1e-10)out.push(outside);rest=inside;if(rest.length<3||area(rest)<1e-10)break;}return out;}
+const COMPONENT={5126:[4,'readFloatLE'],5125:[4,'readUInt32LE'],5123:[2,'readUInt16LE'],5121:[1,'readUInt8']},WIDTH={SCALAR:1,VEC2:2,VEC3:3,VEC4:4};
+function read(file){const b=readFileSync(file),len=b.readUInt32LE(12);return{j:JSON.parse(b.subarray(20,20+len).toString()),bin:b.subarray(28+len)};}
+function values(g,id){const a=g.j.accessors[id],v=g.j.bufferViews[a.bufferView],[bytes,method]=COMPONENT[a.componentType],w=WIDTH[a.type],stride=v.byteStride??w*bytes,start=(v.byteOffset??0)+(a.byteOffset??0),div=a.normalized?(a.componentType===5123?65535:255):1;return Array.from({length:a.count},(_,i)=>Array.from({length:w},(_,k)=>g.bin[method](start+i*stride+k*bytes)/div));}
+function triangles(g,p){const attrs=Object.fromEntries(Object.entries(p.attributes).map(([key,id])=>[key,values(g,id)])),ids=p.indices===undefined?Array.from({length:attrs.POSITION.length},(_,i)=>i):values(g,p.indices).flat();const out=[];for(let i=0;i<ids.length;i+=3)out.push(ids.slice(i,i+3).map(id=>Object.fromEntries(Object.entries(attrs).map(([key,vals])=>[key,vals[id]]))));return out;}
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
+// Include the complete 2.42m wall reveals, with margin beyond their Float32 z=-1.8 edge.
+// On the jamb and lintel contact planes dark wooden lining covers the light plaster.
+function plane(tri){if(!tri.every(v=>Math.abs(v.POSITION[0])<.65&&v.POSITION[1]>=0&&v.POSITION[1]<=2.5&&v.POSITION[2]>=-2.6&&v.POSITION[2]<=-1.7))return null;const[a,b,c]=tri.map(v=>v.POSITION),u=b.map((v,i)=>v-a[i]),v=c.map((v,i)=>v-a[i]),n=cross(u,v),len=Math.hypot(...n);if(len<1e-9)return null;for(let i=0;i<3;i++)n[i]/=len;const at=n.find(x=>Math.abs(x)>1e-5);if(at<0)for(let i=0;i<3;i++)n[i]*=-1;const d=dot(n,a),axis=n.reduce((best,x,i)=>Math.abs(x)>Math.abs(n[best])?i:best,0),axes=[0,1,2].filter(x=>x!==axis);return{key:[...n,d].map(x=>Math.round(x*10000)).join(','),axis,axes};}
+function cleanup(tris){const groups=new Map(),ordinary=[];for(const tri of tris){const p=plane(tri);if(!p){ordinary.push(tri);continue;}if(!groups.has(p.key))groups.set(p.key,{...p,tris:[]});groups.get(p.key).tris.push(tri);}
+ const out=[...ordinary];let beforePairs=0,beforeArea=0,cuts=0,candidateTris=0;
+ for(const group of groups.values()){const keys=Object.keys(group.tris[0][0]),widths=keys.map(k=>group.tris[0][0][k].length),polys=group.tris.map(tri=>tri.map(v=>[...group.axes.map(a=>v.POSITION[a]),...keys.flatMap(k=>v[k])])),priorities=group.tris.map(tri=>{const brightness=tri.reduce((s,v)=>s+v.COLOR_0.slice(0,3).reduce((n,x)=>n+x,0),0)/3;const lining=(group.axis===0&&Math.abs(Math.abs(tri[0].POSITION[0])-.48)<1e-4)||(group.axis===1&&Math.abs(tri[0].POSITION[1]-2.05)<1e-4);return lining?-brightness:brightness;});candidateTris+=polys.length;
+  for(let i=0;i<polys.length;i++)for(let k=i+1;k<polys.length;k++){const shared=intersection(polys[i],polys[k]);if(shared>1e-8){beforePairs++;beforeArea+=shared;}}
+  for(let i=0;i<polys.length;i++){let pieces=[polys[i]];for(let k=0;k<polys.length&&pieces.length;k++){if(k===i||priorities[k]<priorities[i]-1e-6||(Math.abs(priorities[k]-priorities[i])<1e-6&&k<i))continue;if(intersection(polys[i],polys[k])<1e-9)continue;pieces=pieces.flatMap(p=>subtract(p,polys[k]));cuts++;}
+   for(const poly of pieces)for(let k=1;k<poly.length-1;k++){const row=[poly[0],poly[k],poly[k+1]];if(area(row)<1e-9)continue;out.push(row.map(flat=>{let at=2;const v={};keys.forEach((key,i)=>{v[key]=flat.slice(at,at+widths[i]);at+=widths[i];});return v;}));}
+  }
+ }
+ return{tris:out,stats:{candidateMaxY:Math.max(...[...groups.values()].flatMap(g=>g.tris.flatMap(t=>t.map(v=>v.POSITION[1])))),candidateMaxZ:Math.max(...[...groups.values()].flatMap(g=>g.tris.flatMap(t=>t.map(v=>v.POSITION[2])))),candidateTris,planeGroups:groups.size,beforePairs,beforeArea,cuts,trianglesBefore:tris.length,trianglesAfter:out.length}};
+}
+function replace(g,p,tris,chunks){function append(vals,w,type,target){const data=type===5125?Buffer.from(new Uint32Array(vals).buffer):Buffer.from(new Float32Array(vals).buffer),view=g.j.bufferViews.push({buffer:0,byteOffset:chunks.reduce((n,b)=>n+b.length,0),byteLength:data.length,target})-1;chunks.push(data);const a={bufferView:view,componentType:type,count:vals.length/w,type:Object.keys(WIDTH).find(k=>WIDTH[k]===w)};if(w===3&&target===34962){a.min=[0,1,2].map(k=>Math.min(...vals.filter((_,i)=>i%3===k)));a.max=[0,1,2].map(k=>Math.max(...vals.filter((_,i)=>i%3===k)));}return g.j.accessors.push(a)-1;}const verts=tris.flat(),attrs={};for(const key of Object.keys(p.attributes))attrs[key]=append(verts.flatMap(v=>v[key]),verts[0][key].length,5126,34962);p.attributes=attrs;p.indices=append(Array.from({length:verts.length},(_,i)=>i),1,5125,34963);}
+function save(file,g,chunks){const bin=Buffer.concat(chunks);g.j.buffers[0].byteLength=bin.length;const json=Buffer.from(JSON.stringify(g.j)),jl=(json.length+3)&~3,bl=(bin.length+3)&~3,b=Buffer.alloc(28+jl+bl);b.writeUInt32LE(0x46546c67);b.writeUInt32LE(2,4);b.writeUInt32LE(b.length,8);b.writeUInt32LE(jl,12);b.writeUInt32LE(0x4e4f534a,16);b.fill(32,20,20+jl);json.copy(b,20);b.writeUInt32LE(bl,20+jl);b.writeUInt32LE(0x004e4942,24+jl);bin.copy(b,28+jl);writeFileSync(file,b);}
+function door(g){const node=g.j.nodes.find(n=>n.name==='static_semyon');return g.j.meshes[node.mesh].primitives;}
+function tagged(g){return door(g).flatMap((p,i)=>triangles(g,p).map(t=>t.map(v=>({...v,_BATCH:[i]}))));}
+export function auditDoor(file){return cleanup(tagged(read(file))).stats;}
+export function fixDoor(input,output){
+ const g=read(input),primitives=door(g),chunks=[g.bin],fixed=cleanup(tagged(g));
+ if(fixed.stats.beforePairs===0)throw Error('input has no expected coplanar door surfaces');
+ for(let i=0;i<primitives.length;i++)replace(g,primitives[i],fixed.tris.filter(t=>Math.round(t[0]._BATCH[0])===i),chunks);
+ save(output,g,chunks);return fixed.stats;
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){if(process.argv.length!==4)throw Error('input.glb output.glb required');console.log(JSON.stringify(fixDoor(process.argv[2],process.argv[3]),null,2));}

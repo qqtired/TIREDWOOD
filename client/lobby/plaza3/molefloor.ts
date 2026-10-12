@@ -42,6 +42,45 @@ export function recessMoleSupport(geo: THREE.BufferGeometry): THREE.BufferGeomet
   return geo;
 }
 
+/** Площадка маяка начинается на x −26: её верх и бок не должны дублировать старую посадку мола. */
+function trimMoleLanding(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  const attributes = Object.entries(geo.attributes);
+  const position = geo.getAttribute('position'), index = geo.index;
+  const output = attributes.map(() => [] as number[]);
+  type Vertex = number[][];
+  const read = (id: number): Vertex => attributes.map(([, a]) => Array.from({ length: a.itemSize }, (_, k) => a.getComponent(id, k)));
+  const p = attributes.findIndex(([name]) => name === 'position');
+  const mix = (a: Vertex, b: Vertex, t: number): Vertex => a.map((values, i) => values.map((v, k) => v + (b[i]![k]! - v) * t));
+  for (let i = 0; i < (index?.count ?? position.count); i += 3) {
+    const triangle = [0, 1, 2].map((k) => read(index ? index.getX(i + k) : i + k));
+    const clipped: Vertex[] = [];
+    for (let k = 0; k < 3; k++) {
+      const a = triangle[k]!, b = triangle[(k + 1) % 3]!;
+      const ax = a[p]![0]!, bx = b[p]![0]!;
+      if (ax < -26) clipped.push(a);
+      if ((ax < -26) !== (bx < -26)) clipped.push(mix(a, b, (-26 - ax) / (bx - ax)));
+    }
+    for (let k = 1; k + 1 < clipped.length; k++) {
+      for (const vertex of [clipped[0]!, clipped[k]!, clipped[k + 1]!]) {
+        const xyz = [...vertex[p]!];
+        const t = Math.max(0, Math.min(1, (xyz[0]! + 28) / 2));
+        // Старый камень выступал на 12 см с обеих сторон. На стыке он заканчивается ровно по основанию.
+        if (xyz[2]! < 43.5) xyz[2]! += (43.5 - xyz[2]!) * t;
+        if (xyz[2]! > 46.5) xyz[2]! += (46.5 - xyz[2]!) * t;
+        const top = moleJointY(xyz[0]!);
+        // Случайная высота и фаска камня плавно сходятся к единому верху площадки, без уступа в конце рампы.
+        if (xyz[1]! >= top - .05 && xyz[1]! <= top + .005) xyz[1]! += (top - xyz[1]!) * t;
+        vertex.forEach((values, a) => output[a]!.push(...(a === p ? xyz : values)));
+      }
+    }
+  }
+  const trimmed = new THREE.BufferGeometry();
+  attributes.forEach(([name, a], i) => trimmed.setAttribute(name, new THREE.Float32BufferAttribute(output[i]!, a.itemSize)));
+  trimmed.setIndex(Array.from({ length: trimmed.getAttribute('position').count }, (_, i) => i));
+  geo.dispose();
+  return trimmed;
+}
+
 /** Треугольники исходных плит: на поверхности настила/рампы, целиком в одном из полей. */
 export function isMoleSlab(points: readonly (readonly [number, number, number])[]): boolean {
   return points.length === 3 && points.every(([x, y]) => Math.abs(y - moleJointY(x)) < 1e-4) &&
@@ -62,7 +101,7 @@ export function removeMoleSlabs(geo: THREE.BufferGeometry): { kept: THREE.Buffer
   }
   // Геометрия уже принадлежит вызывающему коду; атрибуты остаются без изменений.
   if (removed) geo.setIndex(indices);
-  return { kept: geo, removed };
+  return { kept: trimMoleLanding(geo), removed };
 }
 
 export function moleFloorGeometry(): THREE.BufferGeometry {

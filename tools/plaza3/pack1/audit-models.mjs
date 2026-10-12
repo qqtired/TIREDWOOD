@@ -19,7 +19,7 @@ for(const id of Object.keys(anchorSets)){
  }
  if(id==='lighthouse_arch'){assert.ok(!anchors.has('anchor_sign_lighthouse'));assert.ok(!anchors.has('anchor_sign_lighthouse_back'));}
  if(id==='sunset'){assert.ok(Math.abs(anchors.get('anchor_seat_24').yaw-3*Math.PI/4)<.001);assert.ok(Math.abs(anchors.get('anchor_seat_25').yaw-3*Math.PI/4)<.001);assert.ok(!anchors.has('anchor_sign_sunset'));}
- if(id==='kursaal'){const f=anchors.get('anchor_jackpot_face');assert.ok(Math.abs(f.x-62)<1e-4&&Math.abs(f.y-3.5)<1e-4&&Math.abs(f.z+3.2)<1e-4);assert.equal(f.data.field_w,6.4);assert.equal(f.data.field_h,1.3);}
+ if(id==='kursaal'){const f=anchors.get('anchor_jackpot_face');assert.ok(Math.abs(f.x-62)<1e-4&&Math.abs(f.y-3.5)<1e-4&&Math.abs(f.z-(p.z-4.2))<1e-4);assert.equal(f.data.field_w,6.4);assert.equal(f.data.field_h,1.3);}
  if(id==='online'){const f=anchors.get('anchor_board_online');assert.equal(f.data.field_w,3);assert.equal(f.data.field_h,2.42);}
  console.log(`${id}: anchors/bounds/material data PASS`);
 }

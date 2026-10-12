@@ -362,7 +362,7 @@ export interface DgChoice {
 
 /** Строка сундука: что выпало */
 export interface DgChestRow {
-  /** w/p — уровень вещи, evo — эволюция (id эволюции), gold — всё собрано: 50 опыта и +30 HP */
+  /** w/p — уровень вещи, evo — эволюция (id эволюции), gold — всё собрано: опыт и +30 HP */
   k: 'w' | 'p' | 'evo' | 'gold';
   id: string;
   lv: number;

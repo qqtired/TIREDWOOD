@@ -5,22 +5,30 @@ import type { DgCard, DgChestRow, DgSim } from './types.ts';
 import { rnd, ticks, wrapD } from './util.ts';
 
 const MAX_WLV = 7;
+// Осколок 1 × Подкова (+4 % за уровень) × 60 % точно помещается в тысячные опыта.
+const XP_UNIT = 1000;
 
 export function xpNeed(level: number): number {
   return D.xp.base + D.xp.perLevel * level;
 }
 
+/** Получаемый опыт: на 40 % меньше, с прежним бонусом Подковы. Также для подписей наград. */
+export function earnedXp(sim: DgSim, v: number): number {
+  const mag = passiveLv(sim, 'magnet') * (passiveDef('magnet').xp ?? 0);
+  return Math.round(v * (1 + mag) * D.xp.gainMul * XP_UNIT) / XP_UNIT;
+}
+
 export function addXp(sim: DgSim, v: number): void {
   const h = sim.hero;
   if (h.dead) return;
-  const mag = passiveLv(sim, 'magnet') * (passiveDef('magnet').xp ?? 0);
-  h.xp += v * (1 + mag);
-  while (h.xp >= h.xpNext) {
-    h.xp -= h.xpNext;
+  let xp = Math.round(h.xp * XP_UNIT) + Math.round(earnedXp(sim, v) * XP_UNIT);
+  while (xp >= h.xpNext * XP_UNIT) {
+    xp -= h.xpNext * XP_UNIT;
     h.level++;
     h.xpNext = xpNeed(h.level);
     levelUp(sim);
   }
+  h.xp = xp / XP_UNIT;
 }
 
 /** Новый уровень: вспышка фонаря (+HP, отталкивание), в очередь выбора */
@@ -230,14 +238,14 @@ function upgradable(sim: DgSim): { k: 'w' | 'p'; id: string }[] {
   return out;
 }
 
-/** Сундук: эволюция (если готова, одна), иначе барабан 1/2/3 уровня; всё собрано — 50 опыта и +30 HP */
+/** Сундук: эволюция (если готова, одна), иначе барабан 1/2/3 уровня; всё собрано — опыт и +30 HP */
 /** Сундук островка: сколько улучшений */
 const ISLE_ROWS = interNum('isleChest', 'rows', 2);
 
 /**
  * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 улучшение из общего пула карточек
  * (новое оружие, пассивка или уровень своей вещи, как при новом уровне), isle — 2 таких; small (элита) — барабан
- * 1/2/3 уровня своим вещам; big/curse — 3. Нечего давать — 50 опыта и +30 HP.
+ * 1/2/3 уровня своим вещам; big/curse — 3. Нечего давать — 30 опыта до Подковы и +30 HP.
  */
 export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' | 'isle'): void {
   const rows: DgChestRow[] = [];

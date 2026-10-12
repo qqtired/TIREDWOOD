@@ -225,7 +225,7 @@ export function hurtMob(
     if (m.stunT < until) m.stunT = until;
     if((m.k==='hookclaw'||m.k==='chainwarden')&&m.st==='wind'){m.attackAt=sim.t;m.attackKind='recover';m.attackStep=0;m.st='rest';for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;}
   }
-  if(m.k==='cauldronmaster'&&src==='q'&&stun>0&&m.attackKind==='boil'&&m.attackAt!==undefined){const age=(sim.t-m.attackAt)/30;if(age>=D.cauldron.attacks.boil.impact-.6&&age<D.cauldron.attacks.boil.impact&&d<=m.r+1.5)m.attackStep=-1;}
+  if(m.k==='cauldronmaster'&&src==='q'&&stun>0&&m.attackKind==='boil'&&m.attackAt!==undefined){const age=(sim.t-m.attackAt)/30*D.cauldron.actionSpeed;if(age>=D.cauldron.attacks.boil.impact-.6&&age<D.cauldron.attacks.boil.impact&&d<=m.r+1.5)m.attackStep=-1;}
   if (m.hp <= 0) killHook(sim, m, src);
   return dmg;
 }

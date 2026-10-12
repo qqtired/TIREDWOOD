@@ -42,7 +42,7 @@ test('shaman heals either boss by3% and keeps ordinary healing at30%',()=>{
 
 test('level flash pushes ordinary mobs while either boss keeps zero knockback',()=>{
   for(const wave of [10,20]){
-    const {s,m}=fixture(wave),rat=spawnMob(s,'rat',s.hero.x+1,s.hero.z,0);addXp(s,s.hero.xpNext);
+    const {s,m}=fixture(wave),rat=spawnMob(s,'rat',s.hero.x+1,s.hero.z,0);s.hero.xp=s.hero.xpNext;addXp(s,0);
     assert.equal(m.kx,0,String(wave));assert.equal(m.kz,0);assert.ok(Math.abs(rat.kx)>0);
   }
 });

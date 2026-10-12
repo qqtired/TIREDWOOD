@@ -74,7 +74,7 @@ test('freezing the cauldron holds the visible warning fraction and impact deadli
 });
 
 test('charged Q only cancels boil during the last window and near the body', () => {
-  for (const [age, distance, cancel] of [[.3, 2, false], [1.1, 8, false], [1.1, 2, true]] as const) {
+  for (const [age, distance, cancel] of [[.15, 2, false], [.55, 8, false], [.55, 2, true]] as const) {
     const s = empty(65); spawnBosses(s, 20); const m = s.mobs.find(m => m.k === 'cauldronmaster')!;
     m.attackKind = 'boil'; m.attackAt = s.t - Math.round(age * 30); m.st = 'wind';
     hurtMob(s, m, 1, 'q', m.x - distance, m.z, 0, 30, 0);
@@ -92,7 +92,7 @@ test('cauldron aims its real contact cup at the hero and has no old invisible se
 
 test('out of melee reach the cauldron uses its real ranged pour', () => {
   const s = empty(68); spawnBosses(s, 20); const b = s.bosses[0]; b.act = 'pause'; b.actT = -100; b.rot = 0;
-  step(s); assert.equal(b.act, 'pour'); assert.equal(s.marks.filter(m=>m.what==='cauldron_pour').length,3);
+  step(s); assert.equal(b.act, 'pour'); assert.equal(s.marks.filter(m=>m.what==='cauldron_pour').length,6);
 });
 
 test('rail warning and actual shot follow body knockback with locked aim', () => {
@@ -121,6 +121,7 @@ test('actual charged Q holds the plant clock and placement follows the displaced
 
 test('death from actual Q before plant cancels the placement entirely',()=>{
   const s=empty(74);s.hero.x=120;s.hero.z=120;const m=spawnMob(s,'wickmole',125.1,120,0);m.cd=100;m.spd=0;
+  m.hp=80; // Удар Q добивает раненого сапёра; полное здоровье нового врага выше урона Q.
   applyEvent(s,{t:s.t,k:'q',on:1});for(let i=0;i<31;i++)step(s);m.cd=0;step(s);applyEvent(s,{t:s.t,k:'q',on:0});step(s);
   assert.ok(m.die);for(let i=0;i<50;i++)step(s);assert.equal(s.enemyCharges.length,0);assert.equal(s.marks.filter(k=>k.src===m.id).length,0);
 });

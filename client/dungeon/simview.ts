@@ -8,6 +8,7 @@ import {
   type DgBoss, type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
 } from '../../shared/dungeon/sim.ts';
 import { evoOf } from '../../shared/dungeon/data.ts';
+import { earnedXp } from '../../shared/dungeon/progress.ts';
 import { expansionKind } from '../../shared/dungeon/expansion.ts';
 import { areaMul } from '../../shared/dungeon/core.ts';
 import { BOSS_NAME, BUFFS, MISC, MOBS, PASSIVES, WEAPONS } from './data.ts';
@@ -146,9 +147,10 @@ function chestView(sim: DgSim): HudChest | null {
   const ch = sim.chest;
   if (!ch) return null;
   const items: HudChest['items'] = [];
+  const xpReward = `+${num(earnedXp(sim, 50))} опыта и +30 HP`;
   let fallback: string | undefined;
   for (const r of ch.rows) {
-    if (r.k === 'gold') fallback = '+50 опыта и +30 HP';
+    if (r.k === 'gold') fallback = xpReward;
     else if (r.k === 'evo') {
       const info = WEAPONS[r.id];
       items.push({ id: r.id, kind: 'evo', icon: info?.icon ?? '★', name: info?.name ?? r.id, from: 0, to: 0, evo: true });
@@ -158,7 +160,7 @@ function chestView(sim: DgSim): HudChest | null {
     }
   }
   const title = ch.kind === 'plain' ? 'Сундук' : ch.kind === 'isle' ? 'Сундук островка' : undefined;
-  return { items, big: ch.kind === 'big', title, fallback: items.length ? undefined : fallback ?? '+50 опыта и +30 HP' };
+  return { items, big: ch.kind === 'big', title, fallback: items.length ? undefined : fallback ?? xpReward };
 }
 
 /** Состояние врага → что играть */

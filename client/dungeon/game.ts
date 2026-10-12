@@ -795,7 +795,7 @@ export class DungeonGame {
         break;
       case 'sweep':
         sfx.waveWin();
-        this.d.hud.banner('Зачистка!', f.xp > 0 ? `+${f.xp} опыта · передышка` : 'Передышка', 'clear');
+        this.d.hud.banner('Зачистка!', f.xp > 0 ? `+${String(f.xp).replace('.', ',')} опыта · передышка` : 'Передышка', 'clear');
         break;
       case 'rage':
         if (f.n > 0) this.d.hud.toast('rage', `${f.n} ${plural(f.n, 'враг озверел', 'врага озверели', 'врагов озверели')}`, 'warn');

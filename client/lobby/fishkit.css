@@ -100,10 +100,12 @@ html[data-fish-focus] .k-hud > .k-slot--tl, html[data-fish-focus] .k-hud > .k-sl
 /* Один мягкий слой под шкалой и текстом: края размытия растворяются, игровое поле остаётся чётким. */
 .fr.fi-reel.k-plate { isolation: isolate; overflow: visible; border: 0; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .fr.fi-reel.k-plate::before {
-  content: ''; position: absolute; inset: -36px -44px -48px; z-index: -1; pointer-events: none;
+  content: ''; position: absolute; inset: -56px -64px -68px; z-index: -1; pointer-events: none;
   background: radial-gradient(ellipse, color-mix(in srgb, var(--plate-bg) 68%, transparent) 0%, color-mix(in srgb, var(--plate-bg) 46%, transparent) 48%, transparent 85%);
   -webkit-backdrop-filter: blur(16px) saturate(1.12); backdrop-filter: blur(16px) saturate(1.12);
-  -webkit-mask-image: radial-gradient(ellipse, #000 0%, #000 38%, transparent 80%); mask-image: radial-gradient(ellipse, #000 0%, #000 38%, transparent 80%);
+  /* closest-side гасит слой до каждой стороны; farthest-corner оставлял видимый прямоугольный срез. */
+  -webkit-mask-image: radial-gradient(ellipse closest-side, #000 0%, #000 44%, rgb(0 0 0 / .8) 60%, rgb(0 0 0 / .35) 74%, rgb(0 0 0 / .08) 86%, transparent 96%);
+  mask-image: radial-gradient(ellipse closest-side, #000 0%, #000 44%, rgb(0 0 0 / .8) 60%, rgb(0 0 0 / .35) 74%, rgb(0 0 0 / .08) 86%, transparent 96%);
 }
 .fr.fi-reel :is(.fr-hint, .fr-grade, .fe-reelbonus, .fr-res) { text-shadow: 0 1px 5px color-mix(in srgb, var(--plate-bg) 90%, transparent); }
 .fr.fi-reel :is(.fr-grade, .fe-reelbonus) { color: var(--plate-text); }

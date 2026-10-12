@@ -145,7 +145,7 @@ test('мяч: дом — «Роза ветров» (8; −8), там пусто,
 
 test('курзал: бывшая восточная стена повёрнута на север, обе игровые линии обращены к центру и доступны', () => {
   const wall = P3.colliders.find((c) => c.id === 'pav.kurzal.e')!;
-  assert.ok(near(wall.min[2], -8.5) && near(wall.max[2], -8.1));
+  assert.ok(near(wall.min[2], -16) && near(wall.max[2], -15.6));
   assert.ok(wall.max[0] - wall.min[0] >= 6, 'экран шириной 6 м помещается на стене');
   assert.equal(map.machines.length, 5);
   map.machines.forEach((m, i) => {

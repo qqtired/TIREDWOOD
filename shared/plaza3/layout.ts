@@ -18,7 +18,7 @@ export const P3: Plaza3Layout = {
   "anchors": {
     "slots": {
       "dx": 77,
-      "dz": 26.6,
+      "dz": 19.1,
       "rot": 0
     },
     "billiards": {
@@ -210,9 +210,9 @@ export const P3: Plaza3Layout = {
     "zones": {
       "arcade": {
         "x0": 56.1,
-        "z0": -8.5,
+        "z0": -16,
         "x1": 65.9,
-        "z1": 10.5
+        "z1": 3
       },
       "warehouse": {
         "x0": -2,
@@ -377,60 +377,60 @@ export const P3: Plaza3Layout = {
       {
         "body": {
           "x": 61,
-          "z": -6.4,
+          "z": -13.9,
           "yaw": 1.5707963267948966
         },
         "use": {
           "x": 59.15,
-          "z": -6.4,
+          "z": -13.9,
           "yaw": 4.71238898038469
         }
       },
       {
         "body": {
           "x": 61,
-          "z": -4.8,
+          "z": -12.3,
           "yaw": 1.5707963267948966
         },
         "use": {
           "x": 59.15,
-          "z": -4.8,
+          "z": -12.3,
           "yaw": 4.71238898038469
         }
       },
       {
         "body": {
           "x": 61,
-          "z": -3.2,
+          "z": -10.7,
           "yaw": 1.5707963267948966
         },
         "use": {
           "x": 59.15,
-          "z": -3.2,
+          "z": -10.7,
           "yaw": 4.71238898038469
         }
       },
       {
         "body": {
           "x": 61,
-          "z": -1.6,
+          "z": -9.1,
           "yaw": 1.5707963267948966
         },
         "use": {
           "x": 59.15,
-          "z": -1.6,
+          "z": -9.1,
           "yaw": 4.71238898038469
         }
       },
       {
         "body": {
           "x": 61,
-          "z": 0,
+          "z": -7.5,
           "yaw": 1.5707963267948966
         },
         "use": {
           "x": 59.15,
-          "z": 0,
+          "z": -7.5,
           "yaw": 4.71238898038469
         }
       }
@@ -2667,12 +2667,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.9,
         5.4,
-        -8.5
+        -16
       ],
       "max": [
         65.9,
         6.8,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2684,12 +2684,12 @@ export const P3: Plaza3Layout = {
       "min": [
         55.6,
         3.2,
-        6.5
+        -1
       ],
       "max": [
         57.9,
         11.2,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2701,12 +2701,12 @@ export const P3: Plaza3Layout = {
       "min": [
         65.5,
         0,
-        -2.5
+        -10
       ],
       "max": [
         65.9,
         5.4,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2718,12 +2718,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.9,
         0,
-        -5.5
+        -13
       ],
       "max": [
         58.3,
         5.4,
-        6.62
+        -0.88
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2735,12 +2735,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56.1,
         2.9,
-        -8.5
+        -16
       ],
       "max": [
         56.6,
         5.85,
-        6.5
+        -1
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2752,12 +2752,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.9,
         0,
-        -8.5
+        -16
       ],
       "max": [
         65.9,
         5.4,
-        -8.1
+        -15.6
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2769,12 +2769,12 @@ export const P3: Plaza3Layout = {
       "min": [
         65.5,
         0,
-        -8.1
+        -15.6
       ],
       "max": [
         65.9,
         5.4,
-        -4.5
+        -12
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2786,12 +2786,12 @@ export const P3: Plaza3Layout = {
       "min": [
         63.1,
         0,
-        10.1
+        2.6
       ],
       "max": [
         65.5,
         5.4,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2803,12 +2803,12 @@ export const P3: Plaza3Layout = {
       "min": [
         58.5,
         0,
-        10.1
+        2.6
       ],
       "max": [
         61.1,
         5.4,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2820,12 +2820,12 @@ export const P3: Plaza3Layout = {
       "min": [
         65.5,
         2.3,
-        -4.5
+        -12
       ],
       "max": [
         65.9,
         5.4,
-        -2.5
+        -10
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2837,12 +2837,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.9,
         2.3,
-        -7.5
+        -15
       ],
       "max": [
         58.3,
         5.4,
-        -5.5
+        -13
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2854,12 +2854,12 @@ export const P3: Plaza3Layout = {
       "min": [
         61.1,
         2.3,
-        10.1
+        2.6
       ],
       "max": [
         63.1,
         5.4,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2871,12 +2871,12 @@ export const P3: Plaza3Layout = {
       "min": [
         55.94,
         0,
-        7.01
+        -0.49
       ],
       "max": [
         56.5,
         3.2,
-        7.58
+        0.08
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2888,12 +2888,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56.5,
         0,
-        6.73
+        -0.77
       ],
       "max": [
         56.83,
         3.2,
-        7.27
+        -0.23
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2905,12 +2905,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        6.2
+        -1.3
       ],
       "max": [
         56.5,
         2.9,
-        7
+        -0.5
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2922,12 +2922,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        -8.6
+        -16.1
       ],
       "max": [
         56.7,
         2.9,
-        -7.8
+        -15.3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2939,12 +2939,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        0.28
+        -7.22
       ],
       "max": [
         56.7,
         2.9,
-        1.08
+        -6.42
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2956,12 +2956,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        3.24
+        -4.26
       ],
       "max": [
         56.7,
         2.9,
-        4.04
+        -3.46
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2973,12 +2973,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        -2.68
+        -10.18
       ],
       "max": [
         56.7,
         2.9,
-        -1.88
+        -9.38
       ],
       "mat": "concrete",
       "color": 15321508
@@ -2990,12 +2990,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56,
         0,
-        -5.64
+        -13.14
       ],
       "max": [
         56.7,
         2.9,
-        -4.84
+        -12.34
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3007,12 +3007,12 @@ export const P3: Plaza3Layout = {
       "min": [
         55.72,
         0,
-        7.58
+        0.08
       ],
       "max": [
         56.23,
         3.2,
-        7.94
+        0.44
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3024,12 +3024,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56.16,
         0,
-        9.65
+        2.15
       ],
       "max": [
         56.68,
         3.2,
-        10.16
+        2.66
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3041,12 +3041,12 @@ export const P3: Plaza3Layout = {
       "min": [
         55.9,
         0,
-        9.37
+        1.87
       ],
       "max": [
         56.41,
         3.2,
-        9.65
+        2.15
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3058,12 +3058,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56.68,
         0,
-        9.87
+        2.37
       ],
       "max": [
         56.98,
         3.2,
-        10.35
+        2.85
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3075,12 +3075,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.9,
         0,
-        -8.1
+        -15.6
       ],
       "max": [
         58.3,
         5.4,
-        -7.5
+        -15
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3092,12 +3092,12 @@ export const P3: Plaza3Layout = {
       "min": [
         55.72,
         0,
-        9.06
+        1.56
       ],
       "max": [
         56.2,
         3.2,
-        9.37
+        1.87
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3109,12 +3109,12 @@ export const P3: Plaza3Layout = {
       "min": [
         56.98,
         0,
-        10.03
+        2.53
       ],
       "max": [
         57.31,
         3.2,
-        10.47
+        2.97
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3126,12 +3126,12 @@ export const P3: Plaza3Layout = {
       "min": [
         57.31,
         0,
-        10.12
+        2.62
       ],
       "max": [
         57.67,
         3.2,
-        10.5
+        3
       ],
       "mat": "concrete",
       "color": 15321508
@@ -3142,12 +3142,12 @@ export const P3: Plaza3Layout = {
       "min": [
         63.11,
         0,
-        1.58
+        -5.92
       ],
       "max": [
         63.99,
         1.95,
-        8.67
+        1.17
       ],
       "mat": "invisible",
       "color": 0
@@ -5569,7 +5569,7 @@ export const P3: Plaza3Layout = {
       "c": [
         57.6,
         12,
-        8.5
+        1
       ],
       "r": 2.3,
       "h": 1.6,
@@ -6564,9 +6564,9 @@ export const P3: Plaza3Layout = {
       "name": "Курзал: «Автоматы · Аркада»",
       "box": {
         "x0": 56.1,
-        "z0": -8.5,
+        "z0": -16,
         "x1": 65.9,
-        "z1": 10.5
+        "z1": 3
       },
       "h": 8.5,
       "top": 12,
@@ -6910,7 +6910,7 @@ export const P3: Plaza3Layout = {
       "text": "АВТОМАТЫ · АРКАДА",
       "x": 56.001,
       "y": 6.24,
-      "z": -0.8,
+      "z": -8.3,
       "yaw": 1.571,
       "w": 2.76,
       "h": 0.48
@@ -7129,7 +7129,7 @@ export const P3: Plaza3Layout = {
       "id": "kurzal",
       "name": "Механик автоматов Жора",
       "x": 54.2,
-      "z": 2
+      "z": -5.5
     },
     {
       "id": "billiards",
@@ -7616,37 +7616,37 @@ export const P3: Plaza3Layout = {
   "arcade": [
     {
       "x": 62.3,
-      "z": 2,
+      "z": -5.5,
       "yaw": 4.71238898038469,
       "r": 0.8
     },
     {
       "x": 62.3,
-      "z": 3.25,
+      "z": -4.25,
       "yaw": 4.71238898038469,
       "r": 0.8
     },
     {
       "x": 62.3,
-      "z": 4.5,
+      "z": -3,
       "yaw": 4.71238898038469,
       "r": 0.8
     },
     {
       "x": 62.3,
-      "z": 5.75,
+      "z": -1.75,
       "yaw": 4.71238898038469,
       "r": 0.8
     },
     {
       "x": 62.3,
-      "z": 7,
+      "z": -0.5,
       "yaw": 4.71238898038469,
       "r": 0.8
     },
     {
       "x": 62.3,
-      "z": 8.25,
+      "z": 0.75,
       "yaw": 4.71238898038469,
       "r": 0.8
     }

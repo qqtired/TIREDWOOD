@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MOLE_FLOOR, MOLE_TOP, isMoleSlab, moleJointY, moleFloorGeometry, recessMoleSupport, removeMoleSlabs } from '../client/lobby/plaza3/molefloor.ts';
 import { worldGeometry } from '../client/lobby/plaza3/models.ts';
 
-test('замена снимает только верхние плитки настоящего GLB: борта, ступень и сходни остаются', async () => {
+test('замена снимает верхние плитки и лишнюю посадку GLB, сохраняя нижний мол и сходни', async () => {
   const bytes = fs.readFileSync(new URL('../client/assets/plaza3/pav_mole.glb', import.meta.url));
   const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
   gltf.scene.updateMatrixWorld(true);
@@ -18,16 +18,15 @@ test('замена снимает только верхние плитки на�
   for (const mesh of meshes) {
     const matrix = new THREE.Matrix4().makeTranslation(-43, 0, 45).multiply(mesh.matrixWorld);
     const geo = worldGeometry(mesh.geometry, matrix);
-    const oldCount = geo.index!.count;
-    const positions = geo.getAttribute('position').array.slice();
     geo.computeBoundingBox();
     const bounds = geo.boundingBox!.clone();
     const { kept, removed } = removeMoleSlabs(geo);
     totalRemoved += removed;
-    assert.equal(kept.index!.count, oldCount - removed * 3);
-    assert.deepEqual(kept.getAttribute('position').array, positions, 'вершины сохранились; меняется только список граней');
     kept.computeBoundingBox();
-    assert.deepEqual(kept.boundingBox, bounds, 'габариты бортов, ступени, огня и сходней сохранены');
+    assert.equal(kept.boundingBox!.min.x, bounds.min.x);
+    assert.equal(kept.boundingBox!.min.z, bounds.min.z);
+    assert.equal(kept.boundingBox!.max.z, bounds.max.z);
+    assert.ok(kept.boundingBox!.max.x <= -26, 'за стыком нет старого камня под площадкой и рядом с ней');
     const p = kept.getAttribute('position');
     for (let i = 0; i < kept.index!.count; i += 3) {
       const points = [0, 1, 2].map((k): [number, number, number] => {
@@ -38,6 +37,28 @@ test('замена снимает только верхние плитки на�
     }
   }
   assert.ok(totalRemoved >= 150 && totalRemoved <= 250, `верхние плитки: ${totalRemoved}`);
+});
+
+test('рампа настоящего GLB заканчивается вровень с верхом и внешней кромкой площадки маяка', async () => {
+  const bytes = fs.readFileSync(new URL('../client/assets/plaza3/pav_mole.glb', import.meta.url));
+  const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
+  gltf.scene.updateMatrixWorld(true);
+  let seamVertices = 0;
+  gltf.scene.getObjectByName('static_mole')!.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const geo = worldGeometry(mesh.geometry, new THREE.Matrix4().makeTranslation(-43, 0, 45).multiply(mesh.matrixWorld));
+    const { kept } = removeMoleSlabs(recessMoleSupport(geo));
+    const p = kept.getAttribute('position');
+    for (let i = 0; i < p.count; i++) {
+      assert.ok(p.getX(i) <= -26 + 1e-5);
+      if (Math.abs(p.getX(i) + 26) > 1e-5) continue;
+      seamVertices++;
+      assert.ok(p.getZ(i) >= 43.5 && p.getZ(i) <= 46.5, 'нет 12-см выступа камня вдоль площадки');
+      if (p.getY(i) > -.05) assert.ok(Math.abs(p.getY(i)) < 1e-5, 'весь верх стыка на y=0');
+    }
+  });
+  assert.ok(seamVertices > 20, 'проверена реальная кромка модели');
 });
 
 test('цельный настил сохраняет нижний мол и соединяет его рампой с площадкой без второго слоя landing', () => {
