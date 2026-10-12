@@ -153,6 +153,8 @@ export interface HubOptions {
   billiards?: boolean;
   /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
   plane?: boolean;
+  /** Воздушный змей на набережной — общая эмоция 7 (флаг KITE). */
+  kite?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
   /** «Подземелье»: соло-забег, инстанс на игрока (флаг сервера DUNGEON, server/dungeon/) */

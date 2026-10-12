@@ -496,6 +496,8 @@ export type ServerMsg =
   | {
     t: 'lobby'; id: number; tick: number; yaw: number; players: LobbyPlayerInfo[]; pool: number; pb: PbStatus; honor: HonorInfo; tables: DurakTableView[];
     blackjack?: BlackjackView;
+    /** Общая игрушка набережной: воздушный змей на 7 (флаг KITE). */
+    kite?: boolean;
     skill?: SkillStatus;
     /** «Портовая регата» (флаг BOATRACE): заезд, круг сбора у пирса, рекорды бухты */
     regatta?: { v: RgView; q: GatherStatus; top: RgRecordRow[] };

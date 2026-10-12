@@ -11,6 +11,7 @@ import {
   ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
 } from '../../shared/lobby.ts';
 import { clamp, lerp, lerpAngle } from '../../shared/math.ts';
+import { ACT_KITE, kiteAmount } from '../../shared/kite.ts';
 import { DEFAULT_OUTFIT, PALETTE, PATTERN_INDEX, sameOutfit, slotKey, type Outfit } from '../../shared/outfit.ts';
 import { SHELL_ACCS } from '../../shared/fishstyle.ts';
 import { E_ADS, E_ALIVE, E_DASH, E_GROUNDED, E_PROTECTED, E_RELOAD } from '../../shared/protocol.ts';
@@ -31,6 +32,7 @@ const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035, -0.62);
 /** В первом лице варежка ближе к боковому рычагу и не уходит за нижний край кадра при тяге. */
 const SLOT_HAND_OFFSET = new THREE.Matrix4().makeTranslation(0.3, 0.35, -0.55);
 const WHITE = new THREE.Color(0xffffff);
+const _gripPoint = new THREE.Vector3();
 const LEVEL_REDUCED_MOTION = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
 const GOLD = 0xd4a93a;
 /** Сколько окружения отражает лак обычного желе (у золота — всё) */
@@ -508,6 +510,20 @@ export class Avatar {
    * null — как обычно (по действию)
    */
   hands: number[] | null = null;
+  /** Точный хват небольшого предмета после update: обе варежки ставятся в его мировые точки. */
+  gripWorld(left: THREE.Vector3, right: THREE.Vector3): number {
+    let error = 0;
+    for (let i = 0; i < 2; i++) {
+      const hand = this.mittens[i];
+      const target = i === 0 ? left : right;
+      hand.parent!.updateWorldMatrix(true, false);
+      hand.position.copy(target);
+      hand.parent!.worldToLocal(hand.position);
+      hand.updateWorldMatrix(false, false);
+      error = Math.max(error, hand.getWorldPosition(_gripPoint).distanceTo(target));
+    }
+    return error;
+  }
   /** Что в руках (удочка, рыба): узел в осях желейки, сдвигается вместе с макушкой на высоте рук */
   readonly held = new THREE.Group();
   /** Жест вдвоём: где стоит партнёр (сцена ставит каждый кадр, пока он виден) */
@@ -1288,6 +1304,10 @@ export class Avatar {
       lift = Math.abs(Math.sin(time * 8.4)) * 0.08;
     } else if (act === ACT_LAUGH) {
       jitter = Math.sin(time * 47) * 0.012;
+    } else if (act === ACT_KITE) {
+      const pull = kiteAmount(this.arg);
+      sway = Math.sin(time * 2.1 + this.id) * 0.025 * pull;
+      sy *= 1 - 0.025 * pull;
     } else if (act === ACT_RESPECT) {
       // смирно: чуть вытягивается
       const k = smooth(Math.min(1, this.honorT / 0.5));

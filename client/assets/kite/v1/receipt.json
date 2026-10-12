@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-12",
+  "tool": "Codex CLI built-in image_gen",
+  "thread": "01a130f2-86fc-7762-b722-c47213259eb3",
+  "source": "kite-icon-source.png",
+  "sourceSha256": "ddae8fe7555f88f7ce971879699fda06cced1d1f17fc674847a8bd4ab51789c1",
+  "sourceSize": [
+    1254,
+    1254
+  ],
+  "asset": "../../ui/icons/kite.webp",
+  "assetSha256": "ccb74f2de4a2b9d23f1f061145e3e27b246d6fc1bf7bef7db1c5469a1e813403",
+  "assetSize": [
+    256,
+    256
+  ],
+  "postprocess": "docs/ui-redesign/icons-pipeline/post.mjs process",
+  "alpha": {
+    "borderOpaquePct": 0,
+    "semiPct": 1
+  },
+  "prompt": "kite-icon-prompt.txt"
+}

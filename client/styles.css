@@ -976,7 +976,7 @@ html:not(.touch)[data-room='dungeon'] .pz-dock:not(.is-open) .k-chat-closed {
 
 .pz-emotes {
   display: grid;
-  grid-template-columns: repeat(6, 32px);
+  grid-template-columns: repeat(var(--emote-count, 6), 32px);
   gap: 6px;
   padding: 6px 8px;
   width: max-content;
@@ -1000,6 +1000,10 @@ html:not(.touch)[data-room='dungeon'] .pz-dock:not(.is-open) .k-chat-closed {
   border-radius: var(--r-sm);
   box-shadow: var(--focus);
 }
+
+.pz-emote[hidden], .pz-kite-note[hidden] { display: none; }
+.pz-emote[aria-pressed="true"] .pz-emote-face { background: var(--gold-soft); border-radius: var(--r-sm); }
+.pz-kite-note { grid-column: 1 / -1; font-size: var(--fs-14); color: var(--plate-text); text-align: right; }
 
 .pz-emote-face {
   position: relative;
