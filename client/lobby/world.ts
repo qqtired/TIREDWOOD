@@ -641,7 +641,7 @@ export class LobbyWorld {
       this.scene.add(a);
       this.machineAnchors.push(a);
     }
-    const jp = { x: 62, z: -3.2 };
+    const jp = P3.modes.casinoBoards.jackpot;
     // рамки — свои сетки (материал как у склейки solid — та же программа): прячутся, когда встанет модель павильона
     const frameMat = this.wettable(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.1 }));
     const frame = (w: number, h: number, d: number, x: number, y: number, z: number, color: number): THREE.Mesh => {
@@ -649,9 +649,12 @@ export class LobbyWorld {
       this.scene.add(m);
       return m;
     };
-    this.jackpotFrame = frame(0.08, 1.6, 6.7, jp.x + 0.05, 3.5, jp.z, 0x3a2418);
-    this.jackpotBoard.mesh.position.set(jp.x, 3.5, jp.z);
-    this.jackpotBoard.mesh.rotation.y = -Math.PI / 2;
+    this.jackpotFrame = frame(jp.w + .3, jp.h + .3, .08, 0, 0, -.05, 0x3a2418);
+    this.jackpotFrame.position.set(jp.x, jp.y, jp.z);
+    this.jackpotFrame.rotation.y = jp.yaw;
+    this.jackpotFrame.updateMatrix();
+    this.jackpotBoard.mesh.position.set(jp.x, jp.y, jp.z);
+    this.jackpotBoard.mesh.rotation.y = jp.yaw;
     // доски смотрят на юг (+Z), к площади: почёт — на фасаде pav_honor, «Кто на набережной» — на фасаде pav_online
     const hb = this.map.honorBoard;
     this.honorBoard.mesh.position.set((hb.x0 + hb.x1) / 2, 2.3, hb.z1 + 0.02);

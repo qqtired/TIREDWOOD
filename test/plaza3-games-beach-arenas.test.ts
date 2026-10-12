@@ -154,7 +154,7 @@ test('курзал: бывшая восточная стена повёрнут�
     const use = map.interact.find((it) => it.kind === 'slot' && it.arg === i)!;
     assert.ok(near(use.x, p.use.x) && near(use.z, p.use.z) && near(use.yaw, p.use.yaw));
     assert.ok(standFree(use.x, use.z), `перед автоматом ${i} можно стоять`);
-    assert.ok(p.use.x < p.body.x && near(p.body.yaw, Math.PI / 2), 'лицо автомата смотрит на запад, к площади');
+    assert.ok(p.use.x > p.body.x && near(p.body.yaw, Math.PI * 1.5), 'лицо автомата смотрит от западной стены в зал');
   });
   for (const use of map.interact.filter((it) => it.kind === 'arcade')) {
     assert.ok(near(use.yaw, Math.PI * 1.5) && standFree(use.x, use.z), 'аркада смотрит к центру, подход свободен');
